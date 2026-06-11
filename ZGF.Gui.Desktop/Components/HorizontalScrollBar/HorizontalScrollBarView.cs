@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.HorizontalScrollBar;
@@ -35,7 +36,7 @@ public sealed class HorizontalScrollBarView : MultiChildView
         set => _slideArea.BorderSize = value;
     }
 
-    public HorizontalScrollBarView()
+    public HorizontalScrollBarView(InputSystem input)
     {
         Height = 12;
 
@@ -60,7 +61,7 @@ public sealed class HorizontalScrollBarView : MultiChildView
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.UseController(_ => new HorizontalScrollBarThumbViewController(_thumbView));
+        _thumbView.UseController(input, () => new HorizontalScrollBarThumbViewController(_thumbView, input));
     }
 
     public float Scale

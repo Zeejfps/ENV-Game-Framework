@@ -243,12 +243,12 @@ public sealed class ContextMenuItem : MultiChildView
         }
     }
 
-    public ContextMenuItem()
+    public ContextMenuItem(ICanvas canvas)
     {
         ZIndex = 2;
         _selectedBackgroundColor= 0xFFE6E6E6;
 
-        _arrowView = new TextView
+        _arrowView = new TextView(canvas)
         {
             FontSize = 12,
             Width = 16,
@@ -256,7 +256,7 @@ public sealed class ContextMenuItem : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
         };
 
-        _iconView = new TextView
+        _iconView = new TextView(canvas)
         {
             FontSize = 14,
             Width = 16,
@@ -264,12 +264,12 @@ public sealed class ContextMenuItem : MultiChildView
             HorizontalTextAlignment = TextAlignment.Center,
         };
 
-        _textView = new TextView
+        _textView = new TextView(canvas)
         {
             VerticalTextAlignment = TextAlignment.Center,
         };
 
-        _shortcutView = new TextView
+        _shortcutView = new TextView(canvas)
         {
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalTextAlignment = TextAlignment.Start,

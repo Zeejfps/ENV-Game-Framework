@@ -28,12 +28,12 @@ internal sealed class PropertyBindingBehavior<TView, TSource, TProp> : IViewBeha
         _apply = apply;
     }
 
-    public void AttachToContext(View view, Context context)
+    public void Attach(View view)
     {
         _subscription = _source.Subscribe(s => _apply(_view, _project(s)));
     }
 
-    public void DetachFromContext(View view, Context context)
+    public void Detach(View view)
     {
         _subscription?.Dispose();
         _subscription = null;

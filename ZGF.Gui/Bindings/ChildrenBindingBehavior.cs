@@ -28,12 +28,12 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
         _onRemoved = onRemoved;
     }
 
-    public void AttachToContext(View view, Context context)
+    public void Attach(View view)
     {
         _subscription = _source.Subscribe(OnChange);
     }
 
-    public void DetachFromContext(View view, Context context)
+    public void Detach(View view)
     {
         _subscription?.Dispose();
         _subscription = null;

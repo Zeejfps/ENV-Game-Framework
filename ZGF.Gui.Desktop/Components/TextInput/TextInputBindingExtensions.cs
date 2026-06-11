@@ -54,7 +54,7 @@ public static class TextInputBindingExtensions
             _sink = sink;
         }
 
-        public void AttachToContext(View view, Context context)
+        public void Attach(View view)
         {
             _sourceSub = _source.Subscribe(s =>
             {
@@ -70,7 +70,7 @@ public static class TextInputBindingExtensions
             });
         }
 
-        public void DetachFromContext(View view, Context context)
+        public void Detach(View view)
         {
             _sourceSub?.Dispose();
             _sourceSub = null;

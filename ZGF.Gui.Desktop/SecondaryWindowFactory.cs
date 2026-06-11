@@ -55,7 +55,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
         var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend);
-        impl.SetRoot(request.Root);
+        impl.SetRoot(request.BuildRoot(context));
 
         // Paint once before showing so the first frame isn't a flash of an empty window.
         window.MakeContextCurrent();
@@ -139,7 +139,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         if (_root != null)
         {
             _root.LayoutSelf();
-            _root.DrawSelf();
+            _root.DrawSelf(_canvas);
         }
     }
 
@@ -147,7 +147,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     {
         if (_root != null)
         {
-            _root.Context = null;
+            _root.Unmount();
             _root.OnRedrawNeeded = null;
         }
         _root = root;
@@ -155,8 +155,8 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         {
             root.Width = _window.Width;
             root.Height = _window.Height;
-            root.Context = _context;
             root.OnRedrawNeeded = _window.RequestRedraw;
+            root.Mount();
         }
     }
 

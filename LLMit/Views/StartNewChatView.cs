@@ -1,6 +1,6 @@
 using ZGF.Gui;
 using ZGF.Gui.Desktop.Controllers;
-using ZGF.Gui.Tests;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace LLMit.Views;
@@ -14,14 +14,14 @@ public sealed class StartNewChatView : MultiChildView
     private readonly ChatTextInputView _chatTextInput;
     private readonly ModelSelector _modelSelector;
 
-    public StartNewChatView()
+    public StartNewChatView(Context context)
     {
-        _chatTextInput = new ChatTextInputView
+        _chatTextInput = new ChatTextInputView(context)
         {
             Submit = OnSubmit
         };
 
-        _modelSelector = new ModelSelector
+        _modelSelector = new ModelSelector(context.Canvas)
         {
 
         };
@@ -44,14 +44,14 @@ public sealed class StartNewChatView : MultiChildView
                                     Gap = 5,
                                     Children =
                                     {
-                                        new TextView
+                                        new TextView(context.Canvas)
                                         {
                                             Text = "What would you like to ask",
                                             TextColor = 0xFFFFFFFF,
                                             VerticalTextAlignment = TextAlignment.Center,
                                         },
                                         _modelSelector,
-                                        new TextView
+                                        new TextView(context.Canvas)
                                         {
                                             Text = "?",
                                             TextColor = 0xFFFFFFFF,
@@ -69,7 +69,7 @@ public sealed class StartNewChatView : MultiChildView
 
         AddChildToSelf(layout);
 
-        _modelSelector.UseController(ctx => new ModelSelectorController(_modelSelector, ctx));
+        _modelSelector.UseController(context.Require<InputSystem>(), () => new ModelSelectorController(_modelSelector, context));
     }
 
     private void OnSubmit(ReadOnlySpan<char> text)

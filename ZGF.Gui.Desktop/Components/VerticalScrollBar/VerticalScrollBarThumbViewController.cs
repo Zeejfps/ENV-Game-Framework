@@ -7,14 +7,16 @@ namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 public sealed class VerticalScrollBarThumbViewController : KeyboardMouseController
 {
     private readonly VerticalScrollBarThumbView _view;
+    private readonly InputSystem _inputSystem;
 
     private PointF _startPoint;
     private bool _isDragging;
     private bool _isHovered;
 
-    public VerticalScrollBarThumbViewController(VerticalScrollBarThumbView view)
+    public VerticalScrollBarThumbViewController(VerticalScrollBarThumbView view, InputSystem inputSystem)
     {
         _view = view;
+        _inputSystem = inputSystem;
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -45,7 +47,7 @@ public sealed class VerticalScrollBarThumbViewController : KeyboardMouseControll
         if (e.Phase != EventPhase.Bubbling)
             return;
 
-        var inputSystem = _view.Context?.Get<InputSystem>();
+        var inputSystem = _inputSystem;
 
         if (!_isDragging &&
             e.Button == MouseButton.Left &&

@@ -100,7 +100,7 @@ public class RedrawNotifyTests
     [Fact]
     public void TextViewRotationChange_Notifies()
     {
-        var text = new TextView();
+        var text = new TextView(new FakeCanvas());
         var root = new RectView { Width = 100f, Height = 80f };
         root.Children.Add(text);
         LayoutToSteadyState(root);

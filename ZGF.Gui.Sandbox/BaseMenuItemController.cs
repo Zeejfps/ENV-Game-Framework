@@ -8,21 +8,17 @@ namespace ZGF.Gui.Sandbox;
 public abstract class BaseMenuItemController : KeyboardMouseController, IDisposable
 {
     protected MenuItem MenuItem { get; }
-    protected Context Context { get; }
     private readonly IContextMenuHost _contextMenuManager;
-    private readonly InputSystem _inputSystem;
     private readonly IWindowCoordinates? _coordinates;
 
-    private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
-    private readonly List<MultiChildView> _menuRegistrations = new();
+    private InputSystem? _menuInputSystem;
+    private ContextMenu? _registeredMenu;
 
     protected BaseMenuItemController(MenuItem menuItem, Context context)
     {
         MenuItem = menuItem;
-        Context = context;
         _contextMenuManager = context.Get<IContextMenuHost>()!;
-        _inputSystem = context.Get<InputSystem>()!;
         _coordinates = context.Get<IWindowCoordinates>();
     }
 
@@ -33,7 +29,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        UnregisterMenuControllers();
+        UnregisterMenuController();
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -44,34 +40,34 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             return;
         }
 
-        _contextMenu = new ContextMenu();
-        BuildMenu(_contextMenu);
-
         var screen = _coordinates != null
             ? _coordinates.ToScreenPoints(MenuItem.Position.BottomLeft)
             : default;
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu, screen);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(popupCtx =>
+        {
+            var contextMenu = new ContextMenu();
+            BuildMenu(contextMenu, popupCtx);
+            return contextMenu;
+        }, screen);
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-            RegisterMenuController(_contextMenu, new ContextMenuKbmController(_openedContextMenu));
+            var menuInput = _openedContextMenu.Context.Get<InputSystem>();
+            menuInput?.RegisterController(_openedContextMenu.Menu, new ContextMenuKbmController(_openedContextMenu));
+            _menuInputSystem = menuInput;
+            _registeredMenu = _openedContextMenu.Menu;
             MenuItem.IsSelected = true;
         }
     }
 
-    protected void RegisterMenuController(MultiChildView view, IKeyboardMouseController controller)
+    private void UnregisterMenuController()
     {
-        _inputSystem.RegisterController(view, controller);
-        _menuRegistrations.Add(view);
-    }
-
-    private void UnregisterMenuControllers()
-    {
-        foreach (var view in _menuRegistrations)
+        if (_registeredMenu != null)
         {
-            _inputSystem.UnregisterController(view);
+            _menuInputSystem?.UnregisterController(_registeredMenu);
+            _registeredMenu = null;
         }
-        _menuRegistrations.Clear();
+        _menuInputSystem = null;
     }
 
     private void OnOpenedContextMenuClosed()
@@ -82,7 +78,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        UnregisterMenuControllers();
+        UnregisterMenuController();
     }
 
     public override void OnMouseExit(ref MouseExitEvent e)
@@ -93,5 +89,5 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
         }
     }
 
-    protected abstract void BuildMenu(ContextMenu contextMenu);
+    protected abstract void BuildMenu(ContextMenu contextMenu, Context popupContext);
 }

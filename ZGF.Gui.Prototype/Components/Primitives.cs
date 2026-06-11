@@ -50,7 +50,7 @@ public sealed record Text : Primitive
 
     protected override View CreateView(Context ctx)
     {
-        var v = new TextView { Text = Value };
+        var v = new TextView(ctx.Canvas) { Text = Value };
         if (FontSize.IsSet) v.FontSize = FontSize;
         if (Color.IsSet) v.TextColor = Color;
         if (HAlign.IsSet) v.HorizontalTextAlignment = HAlign;

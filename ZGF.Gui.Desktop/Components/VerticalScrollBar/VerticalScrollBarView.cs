@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
@@ -35,7 +36,7 @@ public sealed class VerticalScrollBarView : MultiChildView
         set => _slideArea.BorderSize = value;
     }
 
-    public VerticalScrollBarView()
+    public VerticalScrollBarView(InputSystem input)
     {
         Width = 12;
 
@@ -60,7 +61,7 @@ public sealed class VerticalScrollBarView : MultiChildView
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.UseController(_ => new VerticalScrollBarThumbViewController(_thumbView));
+        _thumbView.UseController(input, () => new VerticalScrollBarThumbViewController(_thumbView, input));
     }
 
     public float Scale

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using ZGF.Gui;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
-using ZGF.Gui.Tests;
+using ZGF.Gui.Desktop.Input;
 
 namespace LLMit.Views;
 
@@ -13,10 +13,10 @@ public sealed class ModelContextMenuItemView : MultiChildView
     public Action<ModelContextMenuItemView>? Chosen { get; set; }
     public string Model { get; }
 
-    public ModelContextMenuItemView(string model)
+    public ModelContextMenuItemView(Context context, string model)
     {
         Model = model;
-        _contextMenuItem = new ContextMenuItem
+        _contextMenuItem = new ContextMenuItem(context.Canvas)
         {
             Text = model,
             NormalBackgroundColor = 0x00000000,
@@ -26,11 +26,11 @@ public sealed class ModelContextMenuItemView : MultiChildView
 
         AddChildToSelf(_contextMenuItem);
 
-        _contextMenuItem.UseController(ctx => new ContextMenuItemDefaultKbmController(_contextMenuItem, ctx, () =>
+        _contextMenuItem.UseController(context.Require<InputSystem>(), () => new ContextMenuItemDefaultKbmController(_contextMenuItem, context, () =>
         {
             var contextMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
             Debug.Assert(contextMenu != null);
-            var contextMenuManager = _contextMenuItem.Context?.Get<IContextMenuHost>();
+            var contextMenuManager = context.Get<IContextMenuHost>();
             contextMenuManager?.RequestCloseMenu(contextMenu);
             Chosen?.Invoke(this);
         }));

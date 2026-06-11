@@ -28,13 +28,13 @@ internal sealed class DerivedChildrenBindingBehavior<TItem, TChild> : IViewBehav
         _create = create;
     }
 
-    public void AttachToContext(View view, Context context)
+    public void Attach(View view)
     {
         _derived = new Derived<TItem[]>(() => _compute().ToArray());
         _subscription = _derived.Subscribe(Reseed);
     }
 
-    public void DetachFromContext(View view, Context context)
+    public void Detach(View view)
     {
         _subscription?.Dispose();
         _subscription = null;

@@ -58,7 +58,7 @@ public sealed class GuiApp : IDisposable
             app, fontBackend, defaultFont, renderBackend, context,
             mainCanvasForFontRegistry: mainCanvas);
 
-        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput, measureContext: context);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput);
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);
@@ -74,18 +74,18 @@ public sealed class GuiApp : IDisposable
         if (context.Get<IClipboard>() == null)
             context.AddService<IClipboard>(new WindowClipboard(app));
 
-        // All framework services are registered above, so a content factory sees the same
-        // fully-wired context that OnAttachedToContext would.
+        // All framework services are registered above, so the content factory sees the
+        // fully-wired main-window context.
         var content = contentFactory(context);
 
         _root = new MultiChildView
         {
             Width = mainCanvas.Width,
             Height = mainCanvas.Height,
-            Context = context,
             Children = { content },
         };
         _root.OnRedrawNeeded = app.MainWindow.RequestRedraw;
+        _root.Mount();
 
         PlatformBackend.PopulateMain = PopulateGui;
 
@@ -218,14 +218,14 @@ public sealed class GuiApp : IDisposable
     private void PopulateGui()
     {
         _root.LayoutSelf();
-        _root.DrawSelf();
+        _root.DrawSelf(_mainCanvas);
     }
 
     public void Dispose()
     {
-        // Detach the whole view tree from the context so views release context-scoped
-        // resources (view models, and roots that own a store via OnDetachedFromContext).
-        _root.Context = null;
+        // Unmount the whole view tree so behaviors release their per-mount resources
+        // (subscriptions, input registrations, view models).
+        _root.Unmount();
 
         _app.OnTick -= HandleTick;
         _app.MainWindow.OnResize -= HandleResize;

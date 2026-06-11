@@ -105,8 +105,11 @@ public sealed class TextInputView : MultiChildView
     public IReadable<string> TextValue => _text;
     public bool IsEditing => _isEditing;
 
-    public TextInputView()
+    private readonly ICanvas _canvas;
+
+    public TextInputView(ICanvas canvas)
     {
+        _canvas = canvas;
         _buffer = new char[512];
         _cursorStyle.BackgroundColor = 0xFF000000;
         _selectionRectStyle.BackgroundColor = 0xFF8aadff;
@@ -138,7 +141,7 @@ public sealed class TextInputView : MultiChildView
         }
 
         var xOffset = point.X - Position.Left + _scrollOffsetX;
-        var canvas = Context!.Canvas;
+        var canvas = _canvas;
         var lineCount = 1;
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
 
@@ -244,9 +247,7 @@ public sealed class TextInputView : MultiChildView
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
-        var canvas = Context?.Canvas;
-        if (canvas == null)
-            return 0f;
+        var canvas = _canvas;
 
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         if (_strLen == 0)
@@ -688,9 +689,7 @@ public sealed class TextInputView : MultiChildView
     // across proportional fonts rather than by character count.
     private void MoveCaretVertically(int direction, bool select)
     {
-        var canvas = Context?.Canvas;
-        if (canvas == null)
-            return;
+        var canvas = _canvas;
 
         var lines = GetLines(Position.Width, canvas).ToList();
         var lineIndex = FindCaretLineIndex(lines);

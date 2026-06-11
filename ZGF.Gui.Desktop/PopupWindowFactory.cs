@@ -44,22 +44,31 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     public IPopupWindow Acquire(in PopupRequest request)
     {
-        var rect = ResolveRect(request);
-
         PopupWindowImpl popup;
         if (_pool.Count > 0)
         {
             popup = _pool[^1];
             _pool.RemoveAt(_pool.Count - 1);
-            popup.Resize(rect.Width, rect.Height);
         }
         else
         {
-            popup = CreateNewPopup(rect.Width, rect.Height, request.MousePassThrough);
+            popup = CreateNewPopup(request.MousePassThrough);
         }
 
         popup.MousePassThrough = request.MousePassThrough;
-        popup.SetRoot(request.Root);
+
+        // Build the content against THIS popup's context so its controllers register with
+        // this popup's input system and its text measures against this popup's canvas.
+        // Built views are pinned to the window they were built for.
+        var root = request.BuildRoot(popup.Context);
+        popup.SetRoot(root);
+
+        var width = (int)MathF.Ceiling(root.MeasureWidth());
+        var height = (int)MathF.Ceiling(root.MeasureHeight(width));
+        var (preferred, flipped) = request.Place(width, height);
+        var rect = ResolveRect(preferred, flipped);
+
+        popup.Resize(rect.Width, rect.Height);
         popup.Window.SetSize(rect.Width, rect.Height);
         popup.Window.SetPosition(rect.X, rect.Y);
 
@@ -162,7 +171,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             main.Focus();
     }
 
-    private RectI ResolveRect(in PopupRequest request)
+    private RectI ResolveRect(in RectI preferredRect, in RectI? flippedRect)
     {
         // Pick the target monitor from the anchor (the click point = the rect's
         // top-left), NOT the rect's center. The rect extends right/down by the
@@ -170,13 +179,13 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // menu; on a multi-monitor setup that offset can push the center across
         // the midpoint between two monitor centers and select the neighbouring
         // monitor while the click — and plenty of room — are still on this one.
-        var anchor = new PointI(request.PreferredScreenRect.X, request.PreferredScreenRect.Y);
+        var anchor = new PointI(preferredRect.X, preferredRect.Y);
         var (mx, my, mw, mh) = GetMonitorWorkArea(anchor);
-        if (FitsInside(request.PreferredScreenRect, mx, my, mw, mh))
-            return request.PreferredScreenRect;
-        if (request.FlippedScreenRect is { } flipped && FitsInside(flipped, mx, my, mw, mh))
+        if (FitsInside(preferredRect, mx, my, mw, mh))
+            return preferredRect;
+        if (flippedRect is { } flipped && FitsInside(flipped, mx, my, mw, mh))
             return flipped;
-        return Clamp(request.PreferredScreenRect, mx, my, mw, mh);
+        return Clamp(preferredRect, mx, my, mw, mh);
     }
 
     private static bool FitsInside(RectI r, int mx, int my, int mw, int mh) =>
@@ -221,19 +230,22 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return (best.X, best.Y, best.Width, best.Height);
     }
 
-    private PopupWindowImpl CreateNewPopup(int width, int height, bool mousePassThrough)
+    private PopupWindowImpl CreateNewPopup(bool mousePassThrough)
     {
+        // Created at a placeholder size; Acquire resizes to the measured content
+        // after building the root.
+        const int initialSize = 32;
         var window = _app.CreatePopupWindow(new PopupWindowOptions
         {
-            WidthPoints = width,
-            HeightPoints = height,
+            WidthPoints = initialSize,
+            HeightPoints = initialSize,
             OwnerWindow = _app.MainWindow,
             MousePassThrough = mousePassThrough,
         });
 
         _decorator.DecoratePopup(window.NativeHandle, mousePassThrough);
 
-        var canvas = _backend.CreateCanvas(window, width, height, _mainCanvasForFontRegistry);
+        var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
 
         var input = new DesktopInputSystem(window, canvas, _arbiter);
 
@@ -278,6 +290,8 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public bool MousePassThrough { get; set; }
 
     public IWindow Window => _window;
+    public Context Context => _context;
+    public View? Root => _root;
     public IPointerWindow PointerWindow => _input;
 
     public PopupWindowImpl(
@@ -301,7 +315,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         if (_root != null)
         {
             _root.LayoutSelf();
-            _root.DrawSelf();
+            _root.DrawSelf(_canvas);
         }
     }
 
@@ -309,18 +323,16 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     {
         if (_root != null)
         {
-            _root.Context = null;
+            _root.Unmount();
             _root.OnRedrawNeeded = null;
         }
         _root = root;
         if (root != null)
         {
-            root.Context = _context;
             root.OnRedrawNeeded = _window.RequestRedraw;
+            root.Mount();
         }
     }
-
-    void IPopupWindow.SetRoot(View root) => SetRoot((View?)root);
 
     public void Resize(int width, int height)
     {

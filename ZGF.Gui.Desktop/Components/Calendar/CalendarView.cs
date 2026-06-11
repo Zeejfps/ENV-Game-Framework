@@ -25,11 +25,7 @@ public sealed class CalendarView : RectView
     /// user clicks into the year field.</summary>
     public bool HasKeyboardFocus
     {
-        get
-        {
-            var input = Context?.Get<InputSystem>();
-            return input is not null && ReferenceEquals(input.FocusedComponent, _yearController);
-        }
+        get => ReferenceEquals(_input.FocusedComponent, _yearController);
     }
 
     private DateOnly? _minDate;
@@ -67,8 +63,13 @@ public sealed class CalendarView : RectView
     private readonly CalendarDayCell[] _cells = new CalendarDayCell[CellCount];
     private readonly DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
 
-    public CalendarView()
+    private readonly ICanvas _canvas;
+    private readonly InputSystem _input;
+
+    public CalendarView(ICanvas canvas, InputSystem input)
     {
+        _canvas = canvas;
+        _input = input;
         DisplayedMonth = new State<DateOnly>(new DateOnly(_today.Year, _today.Month, 1));
 
         BackgroundColor = 0xFF1E1E1E;
@@ -78,14 +79,14 @@ public sealed class CalendarView : RectView
         var prev = NavButton("‹", 18, new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 }, () => StepMonth(-1));
         var next = NavButton("›", 18, new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 }, () => StepMonth(1));
 
-        _monthLabel = new TextView
+        _monthLabel = new TextView(canvas)
         {
             FontSize = 15,
             VerticalTextAlignment = TextAlignment.Center,
             TextColor = HeaderTextColor,
         };
 
-        _yearInput = new TextInputView
+        _yearInput = new TextInputView(canvas)
         {
             Width = 40,
             Height = 20,
@@ -96,8 +97,8 @@ public sealed class CalendarView : RectView
             SelectionRectColor = 0xFF3B82F6,
             TextVerticalAlignment = TextAlignment.Center,
         };
-        _yearController = new CalendarYearInputController(_yearInput, CommitYear, RevertYear);
-        _yearInput.UseController(_ => _yearController);
+        _yearController = new CalendarYearInputController(_yearInput, input, CommitYear, RevertYear);
+        _yearInput.UseController(input, _yearController);
 
         var yearField = new RectView
         {
@@ -143,7 +144,7 @@ public sealed class CalendarView : RectView
         var weekdayRow = new RowView();
         for (var i = 0; i < Columns; i++)
         {
-            _weekdayLabels[i] = new TextView
+            _weekdayLabels[i] = new TextView(canvas)
             {
                 Width = CellWidth,
                 Height = 24,
@@ -162,13 +163,13 @@ public sealed class CalendarView : RectView
             var row = new RowView();
             for (var c = 0; c < Columns; c++)
             {
-                var cell = new CalendarDayCell
+                var cell = new CalendarDayCell(canvas)
                 {
                     Width = CellWidth,
                     Height = CellHeight,
                     Clicked = OnDayClicked,
                 };
-                cell.UseController(_ => new CalendarDayCellController(cell));
+                cell.UseController(input, () => new CalendarDayCellController(cell));
                 _cells[cellIndex++] = cell;
                 row.Children.Add(cell);
             }
@@ -194,7 +195,7 @@ public sealed class CalendarView : RectView
 
     private RectView NavButton(string glyph, float fontSize, PaddingStyle padding, Action onClick)
     {
-        var label = new TextView
+        var label = new TextView(_canvas)
         {
             Text = glyph,
             FontSize = fontSize,
@@ -209,7 +210,7 @@ public sealed class CalendarView : RectView
             Padding = padding,
             Children = { label },
         };
-        button.UseController(_ => new CalendarNavButtonController(button, onClick, NavButtonColor, NavButtonHoverColor));
+        button.UseController(_input, () => new CalendarNavButtonController(button, onClick, NavButtonColor, NavButtonHoverColor));
         return button;
     }
 

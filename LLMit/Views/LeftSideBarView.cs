@@ -5,7 +5,7 @@ namespace LLMit.Views;
 
 public sealed class LeftSideBarView : MultiChildView
 {
-    public LeftSideBarView()
+    public LeftSideBarView(ICanvas canvas)
     {
         Width = 300;
 
@@ -19,7 +19,7 @@ public sealed class LeftSideBarView : MultiChildView
                 {
                     Children =
                     {
-                        new TextView
+                        new TextView(canvas)
                         {
                             Text = "Chat History",
                             TextColor = 0xFFFFFFFF,

@@ -1,6 +1,8 @@
 ﻿using GLFW;
+using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
@@ -14,7 +16,7 @@ public sealed class Center : MultiChildView
     private readonly TextInputView _textInput;
     private readonly VerticalListView _listView;
 
-    public Center()
+    public Center(ICanvas canvas, InputSystem input, IClipboard? clipboard)
     {
         var background = new RectView
         {
@@ -23,12 +25,12 @@ public sealed class Center : MultiChildView
 
         AddChildToSelf(background);
 
-        _w1 = new Window("About This Computer");
-        (_textInput, _listView) = BuildWindow(_w1);
+        _w1 = new Window("About This Computer", canvas, input);
+        (_textInput, _listView) = BuildWindow(_w1, canvas, input);
         AddChildToSelf(_w1);
 
-        ModelView = new ImageView();
-        _w3 = new Window("3D View")
+        ModelView = new ImageView(canvas);
+        _w3 = new Window("3D View", canvas, input)
         {
             Children =
             {
@@ -37,13 +39,13 @@ public sealed class Center : MultiChildView
         };
         AddChildToSelf(_w3);
 
-        _w1.UseController(_ => new WindowDefaultKbmController(_w1));
-        _w3.UseController(_ => new WindowDefaultKbmController(_w3));
-        _textInput.UseController(_ => new TextInputViewKbmController(_textInput));
-        _listView.UseController(_ => new DefaultVerticalListViewKbmController(_listView));
+        _w1.UseController(input, () => new WindowDefaultKbmController(_w1));
+        _w3.UseController(input, () => new WindowDefaultKbmController(_w3));
+        _textInput.UseController(input, () => new TextInputViewKbmController(_textInput, input, clipboard));
+        _listView.UseController(input, () => new DefaultVerticalListViewKbmController(_listView));
     }
 
-    private (TextInputView, VerticalListView) BuildWindow(Window window)
+    private (TextInputView, VerticalListView) BuildWindow(Window window, ICanvas canvas, InputSystem input)
     {
         var scrollBar = new RectView
         {
@@ -76,7 +78,7 @@ public sealed class Center : MultiChildView
             BorderColor = BorderColorStyle.All(0x000000)
         };
 
-        var textInput = new TextInputView
+        var textInput = new TextInputView(canvas)
         {
             Height = 30f
         };
@@ -115,7 +117,7 @@ public sealed class Center : MultiChildView
                 BackgroundColor = 0xFF9C9C9C,
                 Children =
                 {
-                    new TextView
+                    new TextView(canvas)
                     {
                         Text = $"Element: {i+1}"
                     }
@@ -123,7 +125,7 @@ public sealed class Center : MultiChildView
             });
         }
 
-        var listView = new VerticalListView
+        var listView = new VerticalListView(input)
         {
             Gap = 5,
             Children =

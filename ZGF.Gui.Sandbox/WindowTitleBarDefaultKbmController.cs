@@ -9,13 +9,15 @@ public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
 {
     private readonly Window _window;
     private readonly WindowTitleBarView _titleBar;
+    private readonly InputSystem _inputSystem;
     private PointF _prevMousePosition;
     private bool _isDragging;
-    
-    public WindowTitleBarDefaultKbmController(Window window, WindowTitleBarView titleBar)
+
+    public WindowTitleBarDefaultKbmController(Window window, WindowTitleBarView titleBar, InputSystem inputSystem)
     {
         _window = window;
         _titleBar = titleBar;
+        _inputSystem = inputSystem;
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
@@ -54,7 +56,7 @@ public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
         }
         
         _isDragging = false;
-        _titleBar.Context?.Get<InputSystem>()!.Blur(this);
+        _inputSystem.Blur(this);
     }
 
     public bool CanReleaseFocus()
@@ -84,7 +86,7 @@ public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
         {
             _isDragging = true;
             e.Consume();
-            _titleBar.Context?.Get<InputSystem>()!.StealFocus(this);
+            _inputSystem.StealFocus(this);
             return;
         }
     }

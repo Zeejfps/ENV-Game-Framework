@@ -1,4 +1,5 @@
 ﻿using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
@@ -10,30 +11,32 @@ public sealed class AppBar : MultiChildView
     private readonly MenuItem _viewLabel;
     private readonly MenuItem _helpLabel;
 
-    public AppBar(App app)
+    public AppBar(App app, Context context)
     {
-        _fileItem = new MenuItem
+        var canvas = context.Canvas;
+
+        _fileItem = new MenuItem(canvas)
         {
             Text = "File"
         };
 
-        _editItem = new MenuItem
+        _editItem = new MenuItem(canvas)
         {
             Text = "Edit"
         };
 
-        _viewLabel = new MenuItem
+        _viewLabel = new MenuItem(canvas)
         {
             Text = "View"
         };
 
-        var specialMenuItem = new MenuItem
+        var specialMenuItem = new MenuItem(canvas)
         {
             Text = "Special",
             IsDisabled = true
         };
 
-        _helpLabel = new MenuItem
+        _helpLabel = new MenuItem(canvas)
         {
             Text = "Help"
         };
@@ -86,9 +89,10 @@ public sealed class AppBar : MultiChildView
 
         AddChildToSelf(container);
 
-        _fileItem.UseController(ctx => new FileMenuItemController(_fileItem, app, ctx));
-        _editItem.UseController(ctx => new TestMenuItemController(_editItem, ctx));
-        _viewLabel.UseController(ctx => new TestMenuItemController(_viewLabel, ctx));
-        _helpLabel.UseController(ctx => new TestMenuItemController(_helpLabel, ctx));
+        var input = context.Require<InputSystem>();
+        _fileItem.UseController(input, () => new FileMenuItemController(_fileItem, app, context));
+        _editItem.UseController(input, () => new TestMenuItemController(_editItem, context));
+        _viewLabel.UseController(input, () => new TestMenuItemController(_viewLabel, context));
+        _helpLabel.UseController(input, () => new TestMenuItemController(_helpLabel, context));
     }
 }

@@ -4,7 +4,6 @@ using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
-using ZGF.Gui.Tests;
 using ZGF.Gui.Views;
 
 namespace LLMit.Views;
@@ -19,9 +18,9 @@ public sealed class ModelSelector : MultiChildView
         set => _textView.Text = value;
     }
 
-    public ModelSelector()
+    public ModelSelector(ICanvas canvas)
     {
-        _textView = new TextView
+        _textView = new TextView(canvas)
         {
             Text = "Gemini",
             TextColor = 0xFF0493BF,
@@ -48,6 +47,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 {
     private readonly ModelSelector _modelSelector;
     private readonly IContextMenuHost _contextMenuManager;
+    private readonly IWindowCoordinates? _coordinates;
 
     private IOpenedContextMenu? _openedContextMenu;
     private InputSystem? _inputSystem;
@@ -57,6 +57,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
     {
         _modelSelector = modelSelector;
         _contextMenuManager = context.Get<IContextMenuHost>()!;
+        _coordinates = context.Get<IWindowCoordinates>();
         Debug.Assert(_contextMenuManager != null);
     }
 
@@ -84,36 +85,41 @@ public sealed class ModelSelectorController : KeyboardMouseController
             return;
         }
 
-        var contextMenu = new ContextMenu
+        var screen = _coordinates != null
+            ? _coordinates.ToScreenPoints(_modelSelector.Position.BottomLeft)
+            : default;
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(BuildContextMenu, screen);
+        if (_openedContextMenu == null)
+            return;
+
+        _openedContextMenu.Closed += OnContextMenuClosed;
+        _inputSystem = _openedContextMenu.Context.Get<InputSystem>();
+        _inputSystem?.RegisterController(_openedContextMenu.Menu, new ContextMenuKbmController(_openedContextMenu));
+        _registeredContextMenu = _openedContextMenu.Menu;
+    }
+
+    private ContextMenu BuildContextMenu(Context popupContext)
+    {
+        return new ContextMenu
         {
             BackgroundColor = 0xFF353535,
             BorderColor = BorderColorStyle.All(0xFF3C3C3C),
             Children =
             {
-                new ModelContextMenuItemView("Gemini")
+                new ModelContextMenuItemView(popupContext, "Gemini")
                 {
                     Chosen = item => _modelSelector.Model = item.Model
                 },
-                new ModelContextMenuItemView("GPT 5")
+                new ModelContextMenuItemView(popupContext, "GPT 5")
                 {
                     Chosen = item => _modelSelector.Model = item.Model
                 },
-                new ModelContextMenuItemView("Claude Opus")
+                new ModelContextMenuItemView(popupContext, "Claude Opus")
                 {
                     Chosen = item => _modelSelector.Model = item.Model
                 },
             }
         };
-
-        var coords = _modelSelector.Context?.Get<IWindowCoordinates>();
-        var screen = coords != null
-            ? coords.ToScreenPoints(_modelSelector.Position.BottomLeft)
-            : default;
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(contextMenu, screen);
-        _openedContextMenu.Closed += OnContextMenuClosed;
-        _inputSystem = _modelSelector.Context?.Get<InputSystem>();
-        _inputSystem?.RegisterController(contextMenu, new ContextMenuKbmController(_openedContextMenu));
-        _registeredContextMenu = contextMenu;
     }
 
     private void OnContextMenuClosed()

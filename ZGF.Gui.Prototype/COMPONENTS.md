@@ -1,20 +1,34 @@
 # Building GUIs with Components
 
 This document describes the component pattern prototyped in `ZGF.Gui.Prototype`. It is the
-intended way to build new screens and app-level UI. The retained `View` system underneath is
-unchanged — components are a layer on top of it.
+intended way to build new screens and app-level UI.
 
 ## The architecture in one picture
 
 ```
-Context      DI container, per window. The ONLY way data and services reach UI code.
-   │
+Context      DI container, per window. Exists at BUILD TIME only. The ONLY way data and
+   │         services reach UI code.
 Components   Inert records. Build(ctx) resolves dependencies and returns structure.
    │         One BuildView(ctx) call at the window recurses to the leaves.
    ▼
-Views        Retained tree: layout, drawing, dirty tracking, input. Never written by hand
-             in app code — only primitives construct them.
+Views        Retained tree: layout, drawing, dirty tracking, input. Carries NO context —
+             every dependency was injected when it was built. Never written by hand in
+             app code — only primitives construct them.
 ```
+
+Views know nothing about `Context`. A built view holds exactly the dependencies its
+constructor received (e.g. `TextView` holds the `ICanvas` it measures with), which means a
+view is **pinned to the window it was built for** — its controllers are registered with that
+window's `InputSystem`, its text measures against that window's canvas.
+
+## View lifecycle: Mount / Unmount
+
+A view tree is *live* while mounted. The window calls `Mount()` on its root; adding a child
+to a mounted parent mounts it, removing unmounts it. Behaviors (bindings, controllers, VM
+holders) attach on mount and dispose their subscriptions on unmount — `View` is not
+`IDisposable`, because leaving the tree *is* the disposal signal, and it's reversible:
+re-adding a subtree re-subscribes everything. App code never calls Mount/Unmount; it falls
+out of tree operations (and `Each`'s add/remove does the right thing automatically).
 
 A GUI is three kinds of objects:
 
@@ -112,7 +126,7 @@ VM lifetimes:
 Components describe the initial structure; everything dynamic flows through auto-tracked
 bindings declared as `Func<T>` props on primitives. Any `State<T>`/`ObservableList<T>` read
 inside the function is tracked; the binding re-fires when any of them change, and its
-lifetime follows the view (subscribe on attach, dispose on detach).
+lifetime follows the view (subscribe on mount, dispose on unmount).
 
 ```csharp
 new Text { Bind = () => $"{vm.RemainingCount()} of {vm.Tasks.Count} remaining" },
@@ -186,11 +200,16 @@ public sealed record Toggle : Primitive
     {
         var view = new RectView { ... };
         view.BindBackgroundColor(() => Value.Value ? OnColor : OffColor);
-        view.UseController(_ => new ToggleController(view, Value));
+        view.UseController(ctx.Require<InputSystem>(), () => new ToggleController(view, Value));
         return view;
     }
 }
 ```
+
+`CreateView` is where build-time injection happens: text/image views take `ctx.Canvas`,
+controllers take `ctx.Require<InputSystem>()`, and anything a controller needs at runtime
+(clipboard, coordinates, app services) is resolved here and passed through its constructor.
+Nothing reaches back into a context after build.
 
 Generic primitives should also ship a static factory for type inference (`Each.Of`), since
 C# does not infer generic arguments from constructors or initializers.
@@ -222,6 +241,13 @@ Components are window-agnostic; built Views are not. The rule:
 - Share **components** freely — build the same instance in any window's context.
 - Never move a **built View** between windows. To show the "same" UI elsewhere, build the
   component again against that window's context.
+
+The framework enforces this: every window owner takes a build factory, not a view —
+`GuiAppBuilder.UseContent(Func<Context, View>)`, `SecondaryWindowRequest.BuildRoot`,
+`PopupRequest.BuildRoot`, and `IContextMenuHost.ShowContextMenu(Func<Context, ContextMenu>, …)`.
+Each window invokes the factory with its **own** context (its canvas, its `InputSystem`, its
+`IWindowCoordinates`), so popup menus and secondary windows are built fresh, correctly wired,
+on every show.
 
 ## Known gaps (prototype status)
 

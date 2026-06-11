@@ -1,5 +1,6 @@
 ﻿using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
@@ -12,13 +13,13 @@ public sealed class Window : MultiChildView
     private readonly WindowTitleBarView _titlePanel;
     public override ChildrenCollection Children => _contents.Children;
 
-    public Window(string titleText)
+    public Window(string titleText, ICanvas canvas, InputSystem input)
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
         _contents = new MultiChildView();
 
-        _titlePanel = new WindowTitleBarView(titleText);
+        _titlePanel = new WindowTitleBarView(titleText, canvas);
 
         var leftBorder = new RectView
         {
@@ -103,7 +104,7 @@ public sealed class Window : MultiChildView
         };
         AddChildToSelf(outline);
 
-        _titlePanel.UseController(_ => new WindowTitleBarDefaultKbmController(this, _titlePanel));
+        _titlePanel.UseController(input, () => new WindowTitleBarDefaultKbmController(this, _titlePanel, input));
     }
 
     protected override void OnLayoutSelf()

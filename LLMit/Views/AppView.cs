@@ -2,19 +2,18 @@
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
-using ZGF.Gui.Tests;
 using ZGF.Gui.Views;
 
 namespace LLMit.Views;
 
 public sealed class AppView : MultiChildView
 {
-    public AppView()
+    public AppView(Context context)
     {
         var layout = new BorderLayoutView
         {
-            West = new LeftSideBarView(),
-            Center = new CenterArea(),
+            West = new LeftSideBarView(context.Canvas),
+            Center = new CenterArea(context),
         };
 
         AddChildToSelf(layout);   
@@ -26,15 +25,20 @@ public sealed class CenterArea : MultiChildView
     private readonly TabView _newChatTabView;
     private readonly TabBarView _tabBarView;
     private readonly MultiChildView _tabContentsView;
+    private readonly ICanvas _canvas;
+    private readonly InputSystem _inputSystem;
 
-    public CenterArea()
+    public CenterArea(Context context)
     {
-        _newChatTabView = new TabView
+        _canvas = context.Canvas;
+        _inputSystem = context.Require<InputSystem>();
+
+        _newChatTabView = new TabView(_canvas)
         {
             Text = "New Chat",
             IsActive = true,
         };
-        _newChatTabView.UseController(_ => new TabViewController(_newChatTabView));
+        _newChatTabView.UseController(_inputSystem, () => new TabViewController(_newChatTabView));
 
         _tabBarView = new TabBarView
         {
@@ -53,7 +57,7 @@ public sealed class CenterArea : MultiChildView
         {
             Children =
             {
-                new StartNewChatView
+                new StartNewChatView(context)
                 {
                     StartNewChatCallback = StartNewChat,
                 },
@@ -85,12 +89,12 @@ public sealed class CenterArea : MultiChildView
     private void StartNewChat(string? model, ReadOnlySpan<char> text)
     {
         _newChatTabView.IsActive = false;
-        var tabView = new TabView
+        var tabView = new TabView(_canvas)
         {
             Text = model,
             IsActive = true,
         };
-        tabView.UseController(_ => new TabViewController(tabView));
+        tabView.UseController(_inputSystem, () => new TabViewController(tabView));
         _tabBarView.Children.Add(tabView);
         _tabContentsView.Children.Clear();
     }

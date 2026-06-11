@@ -8,6 +8,8 @@ namespace ZGF.Gui.Desktop.Components.TextInput;
 public abstract class BaseTextInputKbmController : KeyboardMouseController
 {
     private readonly TextInputView _textInput;
+    private readonly InputSystem _inputSystem;
+    private readonly IClipboard? _clipboard;
 
     public bool IsMultiLine { get; set; }
 
@@ -21,9 +23,11 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     private bool _hasLastClick;
     private int _lastClickTickMs;
 
-    public BaseTextInputKbmController(TextInputView textInput)
+    public BaseTextInputKbmController(TextInputView textInput, InputSystem inputSystem, IClipboard? clipboard = null)
     {
         _textInput = textInput;
+        _inputSystem = inputSystem;
+        _clipboard = clipboard;
     }
 
     // Use this from outside the controller (e.g. dialog auto-focus) to enter an edit
@@ -33,7 +37,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     public void BeginEditing()
     {
         _textInput.StartEditing();
-        _textInput.Context?.Get<InputSystem>()?.StealFocus(this);
+        _inputSystem.StealFocus(this);
     }
 
     // Ends the edit session and releases focus — the counterpart to BeginEditing, used
@@ -42,7 +46,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     public void EndEditing()
     {
         _textInput.StopEditing();
-        _textInput.Context?.Get<InputSystem>()?.Blur(this);
+        _inputSystem.Blur(this);
     }
     
     public override void OnMouseMoved(ref MouseMoveEvent e)
@@ -70,7 +74,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
         {
             var isEditing = _textInput.IsEditing;
             var containsPoint = _textInput.Position.ContainsPoint(e.Mouse.Point);
-            var inputSystem = _textInput.Context?.Get<InputSystem>();
+            var inputSystem = _inputSystem;
 
             if (isEditing && !containsPoint)
             {
@@ -248,8 +252,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
 
     private void Paste()
     {
-        var clipboard = _textInput.Context?.Get<IClipboard>();
-        var text = clipboard?.GetText();
+        var text = _clipboard?.GetText();
         if (text == null) 
             return;
         
@@ -262,10 +265,9 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
         if (string.IsNullOrEmpty(selectedText))
             return;
         
-        var clipboard = _textInput.Context?.Get<IClipboard>();
-        if (clipboard == null)
+        if (_clipboard == null)
             return;
-   
-        clipboard.SetText(selectedText);
+
+        _clipboard.SetText(selectedText);
     }
 }

@@ -27,9 +27,9 @@ public sealed class CalendarDayCell : MultiChildView
     public uint SelectedBackgroundColor = 0xFF3B82F6;
     public uint TodayRingColor = 0xFF3B82F6;
 
-    public CalendarDayCell()
+    public CalendarDayCell(ICanvas canvas)
     {
-        _label = new TextView
+        _label = new TextView(canvas)
         {
             FontSize = 14,
             HorizontalTextAlignment = TextAlignment.Center,

@@ -34,11 +34,11 @@ public sealed class TabView : MultiChildView
         }
     }
 
-    public TabView()
+    public TabView(ICanvas canvas)
     {
         Width = 150;
 
-        _text = new TextView
+        _text = new TextView(canvas)
         {
             Text = "New Chat",
             VerticalTextAlignment = TextAlignment.Center,

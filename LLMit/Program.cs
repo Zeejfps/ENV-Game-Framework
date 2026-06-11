@@ -9,5 +9,5 @@ var builder = GuiApp.CreateBuilder(new StartupConfig
     WindowHeight = 720,
 });
 
-using var guiApp = builder.UseContent(new AppView()).Build();
+using var guiApp = builder.UseContent(ctx => new AppView(ctx)).Build();
 guiApp.Run();

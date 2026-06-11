@@ -3,7 +3,6 @@ using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
-using ZGF.Gui.Tests;
 using ZGF.Gui.Views;
 using ZGF.KeyboardModule;
 
@@ -15,9 +14,9 @@ public sealed class ChatTextInputView : MultiChildView
 
     private readonly TextInputView _textInput;
 
-    public ChatTextInputView()
+    public ChatTextInputView(Context context)
     {
-        _textInput = new TextInputView
+        _textInput = new TextInputView(context.Canvas)
         {
             Width = 500,
             TextWrap = TextWrap.Wrap,
@@ -38,7 +37,8 @@ public sealed class ChatTextInputView : MultiChildView
 
         AddChildToSelf(bg);
 
-        _textInput.UseController(_ => new ChatTextInputViewController(_textInput)
+        var inputSystem = context.Require<InputSystem>();
+        _textInput.UseController(inputSystem, () => new ChatTextInputViewController(_textInput, inputSystem, context.Get<IClipboard>())
         {
             IsMultiLine = true,
             Submit = OnSubmit
@@ -62,7 +62,8 @@ public sealed class ChatTextInputViewController : BaseTextInputKbmController, ID
 
     private readonly TextInputView _textInput;
 
-    public ChatTextInputViewController(TextInputView textInput) : base(textInput)
+    public ChatTextInputViewController(TextInputView textInput, InputSystem inputSystem, IClipboard? clipboard = null)
+        : base(textInput, inputSystem, clipboard)
     {
         _textInput = textInput;
     }

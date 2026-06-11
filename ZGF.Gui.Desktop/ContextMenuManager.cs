@@ -12,6 +12,9 @@ sealed class OpenedContextMenu : IOpenedContextMenu
     public bool IsOpened { get; private set; } = true;
     public required ContextMenu ContextMenu { get; init; }
     public required IPopupWindow Popup { get; init; }
+
+    public ContextMenu Menu => ContextMenu;
+    public Context Context => Popup.Context;
     public OpenedContextMenu? Parent { get; set; }
     public OpenedContextMenu? Child { get; set; }
     public long CloseTimestamp { get; set; }
@@ -37,7 +40,6 @@ public sealed class ContextMenuManager : IContextMenuHost
 {
     private readonly IPopupWindowFactory _popupFactory;
     private readonly IWindowCoordinates _coordinates;
-    private readonly Context? _measureContext;
 
     private readonly HashSet<OpenedContextMenu> _closingMenus = new();
     private readonly Dictionary<ContextMenu, OpenedContextMenu> _openedMenus = new();
@@ -51,12 +53,10 @@ public sealed class ContextMenuManager : IContextMenuHost
     public ContextMenuManager(
         IPopupWindowFactory popupFactory,
         IWindowCoordinates coordinates,
-        DesktopInputSystem? mainInput = null,
-        Context? measureContext = null)
+        DesktopInputSystem? mainInput = null)
     {
         _popupFactory = popupFactory;
         _coordinates = coordinates;
-        _measureContext = measureContext;
         // Outside-click fallback for platforms whose decorator provides no OS-level
         // capture (e.g. NoopPopupDecorator): a press on the main window while a menu is
         // open is, by definition, outside the menu. Hover modality is handled entirely
@@ -73,39 +73,27 @@ public sealed class ContextMenuManager : IContextMenuHost
         HandleOutsideClick(screen);
     }
 
-    public IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
+    public IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
     {
-        if (_openedMenus.ContainsKey(menu))
-            throw new System.Exception("Menu already opened");
-
-        // MeasureWidth/Height walks the view tree which needs a context (for canvas
-        // + fonts) to compute text metrics. Without this, the popup is sized at
-        // whatever default the views fall back to (often zero or tiny) and the
-        // resulting popup truncates its own content. Attach to the main context
-        // for measurement; PopupWindowImpl.SetRoot reassigns to the popup context.
-        if (_measureContext != null && menu.Context == null)
-        {
-            menu.Context = _measureContext;
-        }
-        var width = (int)MathF.Ceiling(menu.MeasureWidth());
-        var height = (int)MathF.Ceiling(menu.MeasureHeight(width));
-
+        // The menu is built by the popup factory against the popup's own context, then
+        // measured (text views carry their canvas, so measurement needs no live window).
         // Below: the menu's top sits at the anchor and it grows down (the default — anchor is
         // the trigger's bottom edge). Above: the menu's bottom sits at the anchor and it grows
         // up (anchor is the trigger's top edge), for triggers near the bottom of the screen.
         // The other direction becomes the flip fallback the popup factory uses when the
         // preferred placement won't fit on the monitor.
-        var belowRect = new RectI(X: screenAnchor.X, Y: screenAnchor.Y, Width: width, Height: height);
-        var aboveRect = belowRect with { Y = screenAnchor.Y - height };
-        var (preferred, flipped) = placement == MenuPlacement.Above
-            ? (aboveRect, belowRect)
-            : (belowRect, aboveRect);
-
+        ContextMenu menu = null!;
         var popup = _popupFactory.Acquire(new PopupRequest
         {
-            Root = menu,
-            PreferredScreenRect = preferred,
-            FlippedScreenRect = flipped,
+            BuildRoot = ctx => menu = buildMenu(ctx),
+            Place = (width, height) =>
+            {
+                var belowRect = new RectI(X: screenAnchor.X, Y: screenAnchor.Y, Width: width, Height: height);
+                var aboveRect = belowRect with { Y = screenAnchor.Y - height };
+                return placement == MenuPlacement.Above
+                    ? (aboveRect, (RectI?)belowRect)
+                    : (belowRect, aboveRect);
+            },
             MousePassThrough = false,
         });
 

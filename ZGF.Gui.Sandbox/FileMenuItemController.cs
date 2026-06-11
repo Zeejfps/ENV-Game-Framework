@@ -1,4 +1,6 @@
 using ZGF.Gui.Desktop.Components.ContextMenu;
+using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 
 namespace ZGF.Gui.Sandbox;
 
@@ -11,20 +13,20 @@ public sealed class FileMenuItemController : BaseMenuItemController
         _app = app;
     }
 
-    protected override void BuildMenu(ContextMenu contextMenu)
+    protected override void BuildMenu(ContextMenu contextMenu, Context popupContext)
     {
-        var openModelItem = new ContextMenuItem
+        var openModelItem = new ContextMenuItem(popupContext.Canvas)
         {
             Text = "Open Model",
         };
         contextMenu.Children.Add(openModelItem);
 
-        var exitItem = new ContextMenuItem
+        var exitItem = new ContextMenuItem(popupContext.Canvas)
         {
             Text = "Exit",
         };
         contextMenu.Children.Add(exitItem);
-        RegisterMenuController(exitItem, new ContextMenuItemDefaultKbmController(exitItem, Context, () =>
+        exitItem.UseController(popupContext.Require<InputSystem>(), () => new ContextMenuItemDefaultKbmController(exitItem, popupContext, () =>
         {
             _app.Exit();
         }));

@@ -17,7 +17,7 @@ public sealed record Button : Primitive
 
     protected override View CreateView(Context ctx)
     {
-        var label = new TextView
+        var label = new TextView(ctx.Canvas)
         {
             Text = Label,
             TextColor = TextColor,
@@ -33,7 +33,7 @@ public sealed record Button : Primitive
             Padding = Padding,
             Children = { label },
         };
-        button.UseController(_ => new ButtonController(button, OnClick, Background, HoverBackground));
+        button.UseController(ctx.Require<InputSystem>(), () => new ButtonController(button, OnClick, Background, HoverBackground));
         return button;
     }
 }

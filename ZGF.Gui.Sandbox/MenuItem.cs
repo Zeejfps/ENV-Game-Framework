@@ -46,9 +46,9 @@ public sealed class MenuItem : MultiChildView
         }
     }
 
-    public MenuItem()
+    public MenuItem(ICanvas canvas)
     {
-        _textView = new TextView
+        _textView = new TextView(canvas)
         {
             VerticalTextAlignment = TextAlignment.Center,
         };

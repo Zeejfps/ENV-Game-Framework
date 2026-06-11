@@ -1,6 +1,7 @@
 ﻿using ZGF.Gui;
 using ZGF.Gui.Desktop.Components.VerticalScrollBar;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.VerticalScrollBar;
 using ZGF.Gui.Views;
 
@@ -19,10 +20,10 @@ public sealed class VerticalListView : MultiChildView
     public VerticalScrollPane ScrollPaneView { get; }
     public VerticalScrollBarView ScrollBarView { get; }
 
-    public VerticalListView()
+    public VerticalListView(InputSystem input)
     {
         ScrollPaneView = new VerticalScrollPane();
-        ScrollBarView = new VerticalScrollBarView();
+        ScrollBarView = new VerticalScrollBarView(input);
 
         AddChildToSelf(new BorderLayoutView
         {
@@ -30,7 +31,7 @@ public sealed class VerticalListView : MultiChildView
             East = ScrollBarView,
         });
 
-        ScrollBarView.UseController(_ => new VerticalScrollBarViewController(ScrollBarView));
+        ScrollBarView.UseController(input, () => new VerticalScrollBarViewController(ScrollBarView));
     }
 
     public void Scroll(float delta)

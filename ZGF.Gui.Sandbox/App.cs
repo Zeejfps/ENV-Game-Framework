@@ -95,14 +95,15 @@ public sealed class App : IDisposable
 
         glClearColor(0f, 0f, 0f, 0f);
 
-        var appBar = new AppBar(this);
-        var center = new Center();
+        var input = _inputSystem.InputSystem;
+        var appBar = new AppBar(this, context);
+        var center = new Center(_canvas, input, context.Get<IClipboard>());
 
         _modelView = center.ModelView;
         _modelView.ImageId = _frameBufferHandle.ImageId;
 
-        var calendar = new CalendarView();
-        var selectedLabel = new TextView
+        var calendar = new CalendarView(_canvas, input);
+        var selectedLabel = new TextView(_canvas)
         {
             FontSize = 14,
             TextColor = 0xFFE0E0E0,
@@ -136,9 +137,9 @@ public sealed class App : IDisposable
         {
             Width = _canvas.Width,
             Height = _canvas.Height,
-            Context = context,
             Children = { contents }
         };
+        _gui.Mount();
 
         _windowApp.OnTick += HandleTick;
         _mainWindow.OnResize += HandleResize;
@@ -217,7 +218,7 @@ public sealed class App : IDisposable
 
         _canvas.BeginFrame();
         _gui.LayoutSelf();
-        _gui.DrawSelf();
+        _gui.DrawSelf(_canvas);
         _canvas.EndFrame();
     }
 

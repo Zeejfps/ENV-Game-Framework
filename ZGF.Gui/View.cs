@@ -6,42 +6,57 @@ namespace ZGF.Gui;
 
 public abstract class View
 {
-    private Context? _context;
-    public Context? Context
+    /// <summary>True while this view is part of a window's live tree. Behaviors are attached
+    /// exactly while mounted; their subscriptions are disposed on unmount.</summary>
+    public bool IsMounted { get; private set; }
+
+    /// <summary>
+    /// Mounts this subtree into a window's live tree. Children mount before this view's
+    /// behaviors attach, mirroring the unmount order in <see cref="Unmount"/>. Called by
+    /// windows on their root view; propagates automatically when a child is added to a
+    /// mounted parent.
+    /// </summary>
+    public void Mount()
     {
-        get => _context;
-        set
+        if (IsMounted)
+            return;
+
+        IsMounted = true;
+        foreach (var child in _children)
         {
-            var prevContext = _context;
-            if (SetField(ref _context, value))
-            {
-                if (prevContext != null)
-                {
-                    foreach (var behavior in _behaviors.ToArray())
-                    {
-                        behavior.DetachFromContext(this, prevContext);
-                    }
-                    OnDetachedFromContext(prevContext);
-                }
+            child.Mount();
+        }
+        // Snapshot: a behavior's Attach may add new behaviors via UseController etc.
+        // AddBehaviorToSelf already attaches those immediately, so the snapshot avoids
+        // both CollectionModified and double-attach.
+        foreach (var behavior in _behaviors.ToArray())
+        {
+            behavior.Attach(this);
+        }
+        SetDirty();
+    }
 
-                OnApplyContextToChildren(_context);
+    /// <summary>
+    /// Unmounts this subtree: behaviors detach (disposing their subscriptions), self before
+    /// children. The view tree itself stays intact and can be mounted again.
+    /// </summary>
+    public void Unmount()
+    {
+        if (!IsMounted)
+            return;
 
-                if (_context != null)
-                {
-                    OnAttachedToContext(_context);
-                    // Snapshot: a behavior's AttachToContext may add new behaviors via
-                    // UseController/UseViewModel etc. AddBehaviorToSelf already attaches
-                    // those immediately, so the snapshot avoids both CollectionModified
-                    // and double-attach.
-                    foreach (var behavior in _behaviors.ToArray())
-                    {
-                        behavior.AttachToContext(this, _context);
-                    }
-                }
-            }
+        foreach (var behavior in _behaviors.ToArray())
+        {
+            behavior.Detach(this);
+        }
+        IsMounted = false;
+        foreach (var child in _children)
+        {
+            child.Unmount();
         }
     }
-    
+
+
     public RectF Position
     {
         get;
@@ -199,16 +214,6 @@ public abstract class View
         Behaviors = new BehaviorCollection(this);
     }
     
-    protected virtual void OnAttachedToContext(Context context)
-    {
-
-    }
-
-    protected virtual void OnDetachedFromContext(Context context)
-    {
-    }
-    
-    
     public void BringToFront(View view)
     {
         // If its already the last child ignore it
@@ -331,7 +336,8 @@ public abstract class View
 
         view.Parent = this;
         view.Depth = Depth + 1;
-        view.Context = Context;
+        if (IsMounted)
+            view.Mount();
         OnChildAdded(view);
     }
 
@@ -380,14 +386,6 @@ public abstract class View
         return null;
     }
     
-    protected virtual void OnApplyContextToChildren(Context? context)
-    {
-        foreach (var component in _children)
-        {
-            component.Context = context;
-        }
-    }
-
     protected virtual void OnDrawSelf(ICanvas c)
     {
         
@@ -632,14 +630,7 @@ public abstract class View
         }
     }
 
-    public void DrawSelf()
-    {
-        Debug.Assert(Context != null);
-        var c = Context.Canvas;
-        DrawSelf(c);
-    }
-
-    private void DrawSelf(ICanvas c)
+    public void DrawSelf(ICanvas c)
     {
         if (!IsVisible) return;
         if (c.TryGetClip(out var clipRect))
@@ -672,7 +663,8 @@ public abstract class View
         view.Parent = this;
         view.Depth = Depth + 1;
         view.SiblingIndex =  siblingIndex;
-        view.Context = Context;
+        if (IsMounted)
+            view.Mount();
         OnChildAdded(view);
     }
 
@@ -680,7 +672,7 @@ public abstract class View
     {
         if (_children.Remove(view))
         {
-            view.Context = null;
+            view.Unmount();
             view.Parent = null;
             view.Depth = 0;
             view.SiblingIndex = 0;
@@ -693,9 +685,9 @@ public abstract class View
     private void AddBehaviorToSelf(IViewBehavior behavior)
     {
         _behaviors.Add(behavior);
-        if (_context != null)
+        if (IsMounted)
         {
-            behavior.AttachToContext(this, _context);
+            behavior.Attach(this);
         }
     }
 
@@ -704,9 +696,9 @@ public abstract class View
         if (!_behaviors.Remove(behavior))
             return false;
 
-        if (_context != null)
+        if (IsMounted)
         {
-            behavior.DetachFromContext(this, _context);
+            behavior.Detach(this);
         }
         return true;
     }

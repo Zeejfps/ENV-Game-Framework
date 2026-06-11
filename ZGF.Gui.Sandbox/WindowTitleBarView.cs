@@ -12,7 +12,7 @@ public sealed class WindowTitleBarView : MultiChildView
         set => _titleTextView.Text = value;
     }
 
-    public WindowTitleBarView(string title)
+    public WindowTitleBarView(string title, ICanvas canvas)
     {
         Height = 30f;
         
@@ -42,7 +42,7 @@ public sealed class WindowTitleBarView : MultiChildView
             },
         };
 
-        _titleTextView = new TextView
+        _titleTextView = new TextView(canvas)
         {
             Text = title,
             HorizontalTextAlignment = TextAlignment.Center,
