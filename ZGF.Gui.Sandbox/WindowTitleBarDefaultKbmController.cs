@@ -8,15 +8,13 @@ namespace ZGF.Gui.Sandbox;
 public sealed class WindowTitleBarDefaultKbmController : KeyboardMouseController
 {
     private readonly Window _window;
-    private readonly WindowTitleBarView _titleBar;
     private readonly InputSystem _inputSystem;
     private PointF _prevMousePosition;
     private bool _isDragging;
 
-    public WindowTitleBarDefaultKbmController(Window window, WindowTitleBarView titleBar, InputSystem inputSystem)
+    public WindowTitleBarDefaultKbmController(Window window, InputSystem inputSystem)
     {
         _window = window;
-        _titleBar = titleBar;
         _inputSystem = inputSystem;
     }
 

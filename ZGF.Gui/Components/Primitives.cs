@@ -1,9 +1,8 @@
-using ZGF.Gui;
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Views;
 using ZGF.Observable;
 
-namespace ZGF.Gui.Prototype.Components;
+namespace ZGF.Gui.Components;
 
 /// <summary>
 /// Shared per-view props every primitive forwards onto the built <see cref="View"/>.

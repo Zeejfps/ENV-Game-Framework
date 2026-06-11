@@ -1,21 +1,14 @@
+using ZGF.Gui.Components;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed class WindowTitleBarView : MultiChildView
+public sealed record WindowTitleBar : Primitive
 {
-    private readonly TextView _titleTextView;
+    public required string Title { get; init; }
 
-    public string? TitleText
+    protected override View CreateView(Context ctx)
     {
-        get => _titleTextView.Text;
-        set => _titleTextView.Text = value;
-    }
-
-    public WindowTitleBarView(string title, ICanvas canvas)
-    {
-        Height = 30f;
-        
         var button = new RectView
         {
             Width = 10f,
@@ -42,9 +35,9 @@ public sealed class WindowTitleBarView : MultiChildView
             },
         };
 
-        _titleTextView = new TextView(canvas)
+        var titleTextView = new TextView(ctx.Canvas)
         {
-            Text = title,
+            Text = Title,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
         };
@@ -56,13 +49,14 @@ public sealed class WindowTitleBarView : MultiChildView
             Children =
             {
                 button,
-                new FlexItem { Grow = 1f, Child = _titleTextView },
+                new FlexItem { Grow = 1f, Child = titleTextView },
                 button2,
             }
         };
-        
-        var background = new RectView
+
+        return new RectView
         {
+            Height = 30f,
             BackgroundColor = 0xFFCECECE,
             BorderColor = new BorderColorStyle
             {
@@ -82,12 +76,5 @@ public sealed class WindowTitleBarView : MultiChildView
                 row
             }
         };
-        
-        AddChildToSelf(background);
-    }
-
-    public override string ToString()
-    {
-        return $"TitleBar - {TitleText} - {ZIndex}";
     }
 }

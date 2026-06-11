@@ -2,12 +2,14 @@ using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Sandbox;
 
 public abstract class BaseMenuItemController : KeyboardMouseController, IDisposable
 {
-    protected MenuItem MenuItem { get; }
+    protected View MenuItem { get; }
+    private readonly State<bool> _isSelected;
     private readonly IContextMenuHost _contextMenuManager;
     private readonly IWindowCoordinates? _coordinates;
 
@@ -15,9 +17,10 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
     private InputSystem? _menuInputSystem;
     private ContextMenu? _registeredMenu;
 
-    protected BaseMenuItemController(MenuItem menuItem, Context context)
+    protected BaseMenuItemController(View menuItem, State<bool> isSelected, Context context)
     {
         MenuItem = menuItem;
+        _isSelected = isSelected;
         _contextMenuManager = context.Get<IContextMenuHost>()!;
         _coordinates = context.Get<IWindowCoordinates>();
     }
@@ -56,7 +59,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             menuInput?.RegisterController(_openedContextMenu.Menu, new ContextMenuKbmController(_openedContextMenu));
             _menuInputSystem = menuInput;
             _registeredMenu = _openedContextMenu.Menu;
-            MenuItem.IsSelected = true;
+            _isSelected.Value = true;
         }
     }
 
@@ -72,7 +75,7 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
 
     private void OnOpenedContextMenuClosed()
     {
-        MenuItem.IsSelected = false;
+        _isSelected.Value = false;
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;

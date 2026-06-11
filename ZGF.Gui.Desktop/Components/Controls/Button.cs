@@ -1,9 +1,9 @@
-using ZGF.Gui;
+using ZGF.Gui.Components;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Prototype.Components;
+namespace ZGF.Gui.Desktop.Components.Controls;
 
 public sealed record Button : Primitive
 {

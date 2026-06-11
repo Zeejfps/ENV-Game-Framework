@@ -1,4 +1,4 @@
-﻿using GLFW;
+using ZGF.Gui.Components;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
@@ -7,45 +7,55 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed class Center : MultiChildView
+public sealed record Center : Primitive
 {
-    public ImageView ModelView { get; }
+    public required string ModelImageId { get; init; }
 
-    private readonly Window _w1;
-    private readonly Window _w3;
-    private readonly TextInputView _textInput;
-    private readonly VerticalListView _listView;
-
-    public Center(ICanvas canvas, InputSystem input, IClipboard? clipboard)
+    protected override View CreateView(Context ctx)
     {
+        var canvas = ctx.Canvas;
+        var input = ctx.Require<InputSystem>();
+        var clipboard = ctx.Get<IClipboard>();
+
         var background = new RectView
         {
             BackgroundColor = 0xFF9C9CCE,
         };
 
-        AddChildToSelf(background);
+        var w1 = new Window("About This Computer", input,
+            new WindowTitleBar { Title = "About This Computer" }.BuildView(ctx));
+        var (textInput, listView) = BuildWindowContent(w1, canvas, input);
 
-        _w1 = new Window("About This Computer", canvas, input);
-        (_textInput, _listView) = BuildWindow(_w1, canvas, input);
-        AddChildToSelf(_w1);
-
-        ModelView = new ImageView(canvas);
-        _w3 = new Window("3D View", canvas, input)
+        var modelView = new ImageView(canvas)
+        {
+            ImageId = ModelImageId,
+        };
+        var w3 = new Window("3D View", input,
+            new WindowTitleBar { Title = "3D View" }.BuildView(ctx))
         {
             Children =
             {
-                ModelView
+                modelView
             }
         };
-        AddChildToSelf(_w3);
 
-        _w1.UseController(input, () => new WindowDefaultKbmController(_w1));
-        _w3.UseController(input, () => new WindowDefaultKbmController(_w3));
-        _textInput.UseController(input, () => new TextInputViewKbmController(_textInput, input, clipboard));
-        _listView.UseController(input, () => new DefaultVerticalListViewKbmController(_listView));
+        w1.UseController(input, () => new WindowDefaultKbmController(w1));
+        w3.UseController(input, () => new WindowDefaultKbmController(w3));
+        textInput.UseController(input, () => new TextInputViewKbmController(textInput, input, clipboard));
+        listView.UseController(input, () => new DefaultVerticalListViewKbmController(listView));
+
+        return new MultiChildView
+        {
+            Children =
+            {
+                background,
+                w1,
+                w3,
+            }
+        };
     }
 
-    private (TextInputView, VerticalListView) BuildWindow(Window window, ICanvas canvas, InputSystem input)
+    private static (TextInputView, VerticalListView) BuildWindowContent(Window window, ICanvas canvas, InputSystem input)
     {
         var scrollBar = new RectView
         {

@@ -168,7 +168,9 @@ Constraint to design around: scopes are type-keyed. One registration per type pe
 
 ## Primitives
 
-The current vocabulary (`ZGF.Gui.Prototype/Components/`):
+The component infrastructure lives in the framework: `IComponent`/`Component`/`Raw` and the
+layout primitives in `ZGF.Gui/Components/` (namespace `ZGF.Gui.Components`), input-bearing
+controls like `Button` in `ZGF.Gui.Desktop/Components/Controls/`. The current vocabulary:
 
 | Primitive | Builds | Notes |
 |---|---|---|
@@ -219,9 +221,14 @@ C# does not infer generic arguments from constructors or initializers.
 Components compose; they do not lay out or paint. Write a `View` subclass only for:
 
 - a new layout/paint algorithm (something that overrides `Measure*`/`OnLayout*`/`OnDrawSelf`),
-- a widget with an imperative peer protocol (scrollbars ↔ scroll pane).
+- a widget with an imperative peer protocol — a sibling view's layout or controller drives it
+  through a typed handle (scrollbars ↔ scroll pane, `ContextMenuItem` ↔ `ContextMenu`'s
+  shortcut-column layout, `CalendarDayCell` ↔ the calendar grid's refresh).
 
-Then expose it to component land with a primitive wrapper.
+Then expose it to component land with a primitive wrapper. The reference example is
+`ZGF.Gui.Desktop/Components/Calendar/Calendar.cs`: a `Primitive` whose `CreateView` resolves
+`CalendarViewModel` from the context, assembles plain views (the day cells stay Views), wires
+controllers, and binds VM state to a refresh routine.
 
 ## ViewModels
 

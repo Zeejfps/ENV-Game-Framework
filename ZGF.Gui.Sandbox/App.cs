@@ -6,6 +6,7 @@ using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 using ZGF.Gui.Bindings;
+using ZGF.Gui.Components;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Backends.OpenGl;
 using ZGF.Gui.Desktop.Components.Calendar;
@@ -35,7 +36,6 @@ public sealed class App : IDisposable
     private readonly GlImageManager _imageManager;
 
     private GlFrameBufferHandle _frameBufferHandle;
-    private ImageView _modelView;
     private int _modelMatrixUniformLocation;
     private int _viewProjectionMatrixUniformLocation;
 
@@ -95,14 +95,13 @@ public sealed class App : IDisposable
 
         glClearColor(0f, 0f, 0f, 0f);
 
-        var input = _inputSystem.InputSystem;
-        var appBar = new AppBar(this, context);
-        var center = new Center(_canvas, input, context.Get<IClipboard>());
+        context.AddService(this);
+        var appBar = new AppBar().BuildView(context);
+        var center = new Center { ModelImageId = _frameBufferHandle.ImageId }.BuildView(context);
 
-        _modelView = center.ModelView;
-        _modelView.ImageId = _frameBufferHandle.ImageId;
-
-        var calendar = new CalendarView(_canvas, input);
+        var calendarVm = new CalendarViewModel();
+        context.AddService(calendarVm);
+        var calendar = new Calendar().BuildView(context);
         var selectedLabel = new TextView(_canvas)
         {
             FontSize = 14,
@@ -110,7 +109,7 @@ public sealed class App : IDisposable
             HorizontalTextAlignment = TextAlignment.Center,
         };
         selectedLabel.BindText(() =>
-            calendar.SelectedDate.Value is { } picked ? picked.ToString("yyyy-MM-dd") : "No date selected");
+            calendarVm.SelectedDate.Value is { } picked ? picked.ToString("yyyy-MM-dd") : "No date selected");
 
         var calendarPanel = new RectView
         {

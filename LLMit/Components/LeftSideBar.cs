@@ -1,0 +1,28 @@
+using ZGF.Gui;
+using ZGF.Gui.Components;
+
+namespace LLMit.Components;
+
+public sealed record LeftSideBar : Component
+{
+    protected override IComponent Build(Context ctx) => new Box
+    {
+        Width = 300,
+        Background = 0xFF181818,
+        Padding = PaddingStyle.All(8),
+        Children =
+        [
+            new Column
+            {
+                Children =
+                [
+                    new Text
+                    {
+                        Value = "Chat History",
+                        Color = 0xFFFFFFFF,
+                    },
+                ],
+            },
+        ],
+    };
+}

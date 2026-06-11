@@ -1,4 +1,5 @@
-using LLMit.Views;
+using LLMit.Components;
+using LLMit.ViewModels;
 using ZGF.Desktop;
 using ZGF.Gui.Desktop;
 
@@ -9,5 +10,7 @@ var builder = GuiApp.CreateBuilder(new StartupConfig
     WindowHeight = 720,
 });
 
-using var guiApp = builder.UseContent(ctx => new AppView(ctx)).Build();
+builder.Services.AddSingleton(_ => new AppViewModel());
+
+using var guiApp = builder.UseContent(new AppScreen()).Build();
 guiApp.Run();

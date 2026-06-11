@@ -1,7 +1,4 @@
-using ZGF.Gui;
-using ZGF.Gui.Desktop;
-
-namespace ZGF.Gui.Prototype.Components;
+namespace ZGF.Gui.Components;
 
 /// <summary>
 /// A window-agnostic, immutable description of UI. <see cref="BuildView"/> turns it into a
@@ -34,11 +31,4 @@ public sealed record Raw : IComponent
     public required View View { get; init; }
 
     public View BuildView(Context ctx) => View;
-}
-
-public static class ComponentAppExtensions
-{
-    /// <summary>Mounts a component as the main window's root content.</summary>
-    public static GuiAppBuilder UseContent(this GuiAppBuilder builder, IComponent root) =>
-        builder.UseContent(root.BuildView);
 }

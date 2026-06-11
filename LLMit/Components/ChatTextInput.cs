@@ -1,4 +1,6 @@
+using LLMit.ViewModels;
 using ZGF.Gui;
+using ZGF.Gui.Components;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
@@ -6,17 +8,16 @@ using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 using ZGF.KeyboardModule;
 
-namespace LLMit.Views;
+namespace LLMit.Components;
 
-public sealed class ChatTextInputView : MultiChildView
+public sealed record ChatTextInput : Primitive
 {
-    public Action<ReadOnlySpan<char>>? Submit { get; set; }
-
-    private readonly TextInputView _textInput;
-
-    public ChatTextInputView(Context context)
+    protected override View CreateView(Context ctx)
     {
-        _textInput = new TextInputView(context.Canvas)
+        var vm = ctx.Require<AppViewModel>();
+        var inputSystem = ctx.Require<InputSystem>();
+
+        var textInput = new TextInputView(ctx.Canvas)
         {
             Width = 500,
             TextWrap = TextWrap.Wrap,
@@ -25,44 +26,35 @@ public sealed class ChatTextInputView : MultiChildView
             SelectionRectColor = 0xAA466583,
         };
 
-        var bg = new RectView
+        textInput.UseController(inputSystem, () => new ChatTextInputController(textInput, inputSystem, ctx.Get<IClipboard>())
+        {
+            IsMultiLine = true,
+            Submit = text =>
+            {
+                vm.StartNewChat(text.ToString());
+                textInput.Clear();
+            },
+        });
+
+        return new RectView
         {
             Padding = PaddingStyle.All(10),
             BackgroundColor = 0xFF303030,
             Children =
             {
-                _textInput
-            }
+                textInput
+            },
         };
-
-        AddChildToSelf(bg);
-
-        var inputSystem = context.Require<InputSystem>();
-        _textInput.UseController(inputSystem, () => new ChatTextInputViewController(_textInput, inputSystem, context.Get<IClipboard>())
-        {
-            IsMultiLine = true,
-            Submit = OnSubmit
-        });
-    }
-
-    private void OnSubmit(ReadOnlySpan<char> text)
-    {
-        Submit?.Invoke(text);
-    }
-
-    public void Clear()
-    {
-        _textInput.Clear();
     }
 }
 
-public sealed class ChatTextInputViewController : BaseTextInputKbmController, IDisposable
+public sealed class ChatTextInputController : BaseTextInputKbmController, IDisposable
 {
     public Action<ReadOnlySpan<char>>? Submit { get; set; }
 
     private readonly TextInputView _textInput;
 
-    public ChatTextInputViewController(TextInputView textInput, InputSystem inputSystem, IClipboard? clipboard = null)
+    public ChatTextInputController(TextInputView textInput, InputSystem inputSystem, IClipboard? clipboard = null)
         : base(textInput, inputSystem, clipboard)
     {
         _textInput = textInput;

@@ -10,16 +10,13 @@ public sealed class Window : MultiChildView
     public string TitleText { get; }
 
     private readonly MultiChildView _contents;
-    private readonly WindowTitleBarView _titlePanel;
     public override ChildrenCollection Children => _contents.Children;
 
-    public Window(string titleText, ICanvas canvas, InputSystem input)
+    public Window(string titleText, InputSystem input, View titleBar)
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
         _contents = new MultiChildView();
-
-        _titlePanel = new WindowTitleBarView(titleText, canvas);
 
         var leftBorder = new RectView
         {
@@ -85,7 +82,7 @@ public sealed class Window : MultiChildView
         
         var borderLayout = new BorderLayoutView
         {
-            North = _titlePanel,
+            North = titleBar,
             West = leftBorder,
             Center = contentOutline,
             East = rightBorder,
@@ -104,7 +101,7 @@ public sealed class Window : MultiChildView
         };
         AddChildToSelf(outline);
 
-        _titlePanel.UseController(input, () => new WindowTitleBarDefaultKbmController(this, _titlePanel, input));
+        titleBar.UseController(input, () => new WindowTitleBarDefaultKbmController(this, input));
     }
 
     protected override void OnLayoutSelf()

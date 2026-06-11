@@ -1,51 +1,49 @@
 using System.Diagnostics;
+using LLMit.ViewModels;
 using ZGF.Gui;
+using ZGF.Gui.Bindings;
+using ZGF.Gui.Components;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
-namespace LLMit.Views;
+namespace LLMit.Components;
 
-public sealed class ModelSelector : MultiChildView
+public sealed record ModelSelector : Primitive
 {
-    private readonly TextView _textView;
-
-    public string? Model
+    protected override View CreateView(Context ctx)
     {
-        get => _textView.Text;
-        set => _textView.Text = value;
-    }
+        var vm = ctx.Require<AppViewModel>();
 
-    public ModelSelector(ICanvas canvas)
-    {
-        _textView = new TextView(canvas)
+        var textView = new TextView(ctx.Canvas)
         {
-            Text = "Gemini",
             TextColor = 0xFF0493BF,
             VerticalTextAlignment = TextAlignment.Center,
         };
-        var background = new RectView
+        textView.BindText(() => vm.SelectedModel.Value);
+
+        var view = new RectView
         {
             BorderColor = BorderColorStyle.All(0xFF0493BF),
             BorderSize = BorderSizeStyle.All(1),
             Padding = PaddingStyle.All(4),
             Children =
             {
-                _textView
-            }
+                textView
+            },
         };
 
-        AddChildToSelf(background);
+        view.UseController(ctx.Require<InputSystem>(), () => new ModelSelectorController(view, ctx, vm));
+        return view;
     }
-
-
 }
 
 public sealed class ModelSelectorController : KeyboardMouseController
 {
-    private readonly ModelSelector _modelSelector;
+    private readonly View _anchor;
+    private readonly AppViewModel _vm;
     private readonly IContextMenuHost _contextMenuManager;
     private readonly IWindowCoordinates? _coordinates;
 
@@ -53,9 +51,10 @@ public sealed class ModelSelectorController : KeyboardMouseController
     private InputSystem? _inputSystem;
     private ContextMenu? _registeredContextMenu;
 
-    public ModelSelectorController(ModelSelector modelSelector, Context context)
+    public ModelSelectorController(View anchor, Context context, AppViewModel vm)
     {
-        _modelSelector = modelSelector;
+        _anchor = anchor;
+        _vm = vm;
         _contextMenuManager = context.Get<IContextMenuHost>()!;
         _coordinates = context.Get<IWindowCoordinates>();
         Debug.Assert(_contextMenuManager != null);
@@ -63,10 +62,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
     public override void OnMouseExit(ref MouseExitEvent e)
     {
-        if (_openedContextMenu != null)
-        {
-            _openedContextMenu.CloseRequest();
-        }
+        _openedContextMenu?.CloseRequest();
     }
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
@@ -86,7 +82,7 @@ public sealed class ModelSelectorController : KeyboardMouseController
         }
 
         var screen = _coordinates != null
-            ? _coordinates.ToScreenPoints(_modelSelector.Position.BottomLeft)
+            ? _coordinates.ToScreenPoints(_anchor.Position.BottomLeft)
             : default;
         _openedContextMenu = _contextMenuManager.ShowContextMenu(BuildContextMenu, screen);
         if (_openedContextMenu == null)
@@ -100,32 +96,44 @@ public sealed class ModelSelectorController : KeyboardMouseController
 
     private ContextMenu BuildContextMenu(Context popupContext)
     {
-        return new ContextMenu
+        var menu = new ContextMenu
         {
             BackgroundColor = 0xFF353535,
             BorderColor = BorderColorStyle.All(0xFF3C3C3C),
-            Children =
-            {
-                new ModelContextMenuItemView(popupContext, "Gemini")
-                {
-                    Chosen = item => _modelSelector.Model = item.Model
-                },
-                new ModelContextMenuItemView(popupContext, "GPT 5")
-                {
-                    Chosen = item => _modelSelector.Model = item.Model
-                },
-                new ModelContextMenuItemView(popupContext, "Claude Opus")
-                {
-                    Chosen = item => _modelSelector.Model = item.Model
-                },
-            }
         };
+
+        foreach (var model in _vm.AvailableModels)
+        {
+            menu.Children.Add(BuildMenuItem(popupContext, model));
+        }
+
+        return menu;
+    }
+
+    private ContextMenuItem BuildMenuItem(Context popupContext, string model)
+    {
+        var item = new ContextMenuItem(popupContext.Canvas)
+        {
+            Text = model,
+            NormalBackgroundColor = 0x00000000,
+            SelectedBackgroundColor = 0xFFD00EDE,
+            TextColor = 0xFFFFFFFF,
+        };
+
+        item.UseController(popupContext.Require<InputSystem>(), () => new ContextMenuItemDefaultKbmController(item, popupContext, clicked: () =>
+        {
+            var contextMenu = item.GetParentOfType<ContextMenu>();
+            Debug.Assert(contextMenu != null);
+            popupContext.Get<IContextMenuHost>()?.RequestCloseMenu(contextMenu);
+            _vm.SelectedModel.Value = model;
+        }));
+
+        return item;
     }
 
     private void OnContextMenuClosed()
     {
-        Console.WriteLine("CloseD?");
-        _openedContextMenu.Closed -= OnContextMenuClosed;
+        _openedContextMenu!.Closed -= OnContextMenuClosed;
         _openedContextMenu = null;
         if (_registeredContextMenu != null)
         {

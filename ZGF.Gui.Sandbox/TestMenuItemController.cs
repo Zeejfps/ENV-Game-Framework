@@ -1,12 +1,13 @@
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Sandbox;
 
 public sealed class TestMenuItemController : BaseMenuItemController
 {
-    public TestMenuItemController(MenuItem menuItem, Context context) : base(menuItem, context)
+    public TestMenuItemController(View menuItem, State<bool> isSelected, Context context) : base(menuItem, isSelected, context)
     {
     }
 
