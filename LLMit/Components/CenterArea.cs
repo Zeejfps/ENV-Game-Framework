@@ -4,7 +4,7 @@ using ZGF.Gui.Components;
 
 namespace LLMit.Components;
 
-public sealed record CenterArea : Component
+public sealed record CenterArea : Widget
 {
     protected override IWidget Build(Context ctx)
     {

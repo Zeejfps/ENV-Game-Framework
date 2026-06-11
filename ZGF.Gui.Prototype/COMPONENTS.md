@@ -35,7 +35,7 @@ A GUI is three kinds of objects:
 | Layer | What it is | Mutable? | Example |
 |---|---|---|---|
 | ViewModel | State + logic. Observable (`State<T>`, `ObservableList<T>`, `Derived<T>`). No view types. | yes — the only mutable layer | `TodoViewModel` |
-| Component | A record describing structure. Resolves its VM from `Context` in `Build`. | no — init-only, inert | `TodoScreen`, `TaskRow` |
+| Widget | A record describing structure. Resolves its VM from `Context` in `Build`. | no — init-only, inert | `TodoScreen`, `TaskRow` |
 | View | Retained render node. | framework-managed | `RectView`, `FlexView` |
 
 ## The rules
@@ -55,11 +55,13 @@ A GUI is three kinds of objects:
 
 ## Writing a screen
 
-A screen is a composite component: subclass `Component`, override `Build`, resolve the VM,
-return structure. Never call `BuildView` yourself — the recursion happens once, at the window.
+A screen is a composite widget: subclass `Widget`, override `Build`, resolve the VM, return
+structure. (`Widget` has two override seams — `Build` to compose, `CreateView` to construct
+views; override exactly one.) Never call `BuildView` yourself — the recursion happens once,
+at the window.
 
 ```csharp
-public sealed record TodoScreen : Component
+public sealed record TodoScreen : Widget
 {
     protected override IWidget Build(Context ctx)
     {
@@ -89,8 +91,8 @@ public sealed record TodoScreen : Component
 ```
 
 Break large layouts into private static helper methods (`Header(vm)`, `Footer(vm)`) or into
-further components. Use a component (not a helper) when the piece is reusable elsewhere or
-needs its own context resolution; use a helper when it's just visual decomposition.
+further widgets. Use a widget (not a helper) when the piece is reusable elsewhere or needs
+its own context resolution; use a helper when it's just visual decomposition.
 
 ## Wiring it up (the composition root)
 
@@ -149,7 +151,7 @@ the item registered as a service, and the template builds against that scope.
 Each.Of(vm.Tasks, new TaskRow(), gap: 4)
 
 // The template — note: parameterless, shared, built once per item:
-public sealed record TaskRow : Component
+public sealed record TaskRow : Widget
 {
     protected override IWidget Build(Context ctx)
     {
@@ -168,7 +170,7 @@ Constraint to design around: scopes are type-keyed. One registration per type pe
 
 ## Primitives
 
-The component infrastructure lives in the framework: `IWidget`/`Component`/`Raw` and the
+The component infrastructure lives in the framework: `IWidget`/`Widget`/`Raw` and the
 layout primitives in `ZGF.Gui/Components/` (namespace `ZGF.Gui.Components`), input-bearing
 controls like `Button` in `ZGF.Gui.Desktop/Components/Controls/`. The current vocabulary:
 
@@ -191,9 +193,8 @@ All primitives inherit shared per-view props from `Widget`: `Width`, `Height`,
 ### Writing a new primitive
 
 Drop down a level when a piece needs view construction, controllers, or services — i.e. when
-`Build` returning other components isn't enough. Subclass `Widget` (to inherit shared
-props) and implement `CreateView`; this is the only place app-adjacent code constructs Views
-and wires behaviors:
+`Build` returning other widgets isn't enough. Override `CreateView` instead of `Build`; this
+is the only place app-adjacent code constructs Views and wires behaviors:
 
 ```csharp
 public sealed record Toggle : Widget
@@ -240,7 +241,7 @@ controllers, and binds VM state to a refresh routine.
 - View-derived facts a host needs to query (focus, scroll position) are exposed as a
   VM property whose implementation the building component supplies:
   `vm.FocusProbe = () => ReferenceEquals(input.FocusedComponent, controller);`
-- Constructor args = the VM's own dependencies. Component init-props = static config.
+- Constructor args = the VM's own dependencies. Widget init-props = static config.
   Context = how VMs reach components. Keep those three channels straight.
 
 ## Multi-window

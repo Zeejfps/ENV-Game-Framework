@@ -6,12 +6,12 @@ namespace ZGF.Gui.Components;
 /// Wraps a child in a <see cref="FlexItem"/> so it grows along the parent flex axis.
 /// The child must build to a <see cref="MultiChildView"/> (FlexItem's requirement).
 /// </summary>
-public sealed record Grow : IWidget
+public sealed record Grow : Widget
 {
     public required IWidget Child { get; init; }
     public float Factor { get; init; } = 1f;
 
-    public View BuildView(Context ctx) => new FlexItem
+    protected override View CreateView(Context ctx) => new FlexItem
     {
         Grow = Factor,
         Child = (MultiChildView)Child.BuildView(ctx),

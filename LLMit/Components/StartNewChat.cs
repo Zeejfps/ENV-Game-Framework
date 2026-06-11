@@ -3,7 +3,7 @@ using ZGF.Gui.Components;
 
 namespace LLMit.Components;
 
-public sealed record StartNewChat : Component
+public sealed record StartNewChat : Widget
 {
     protected override IWidget Build(Context ctx) => new Center
     {

@@ -5,7 +5,7 @@ using ZGF.Gui.Views;
 
 namespace LLMit.Components;
 
-public sealed record TabBar : Component
+public sealed record TabBar : Widget
 {
     protected override IWidget Build(Context ctx)
     {

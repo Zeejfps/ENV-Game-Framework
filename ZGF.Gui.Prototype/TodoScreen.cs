@@ -11,7 +11,7 @@ namespace ZGF.Gui.Prototype;
 /// Screen-level VMs resolve from the context (registered or container-constructed);
 /// per-item VMs (<see cref="TaskRow"/>) are passed down as plain data.
 /// </summary>
-public sealed record TodoScreen : Component
+public sealed record TodoScreen : Widget
 {
     protected override IWidget Build(Context ctx)
     {
@@ -76,7 +76,7 @@ public sealed record TodoScreen : Component
 /// Item template: built once per task against the scoped context <see cref="Each{T}"/> creates,
 /// so the task VM resolves from the scope and the list VM chains up to the window context.
 /// </summary>
-public sealed record TaskRow : Component
+public sealed record TaskRow : Widget
 {
     protected override IWidget Build(Context ctx)
     {

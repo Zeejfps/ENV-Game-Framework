@@ -3,7 +3,7 @@ using ZGF.Gui.Components;
 
 namespace LLMit.Components;
 
-public sealed record LeftSideBar : Component
+public sealed record LeftSideBar : Widget
 {
     protected override IWidget Build(Context ctx) => new Box
     {

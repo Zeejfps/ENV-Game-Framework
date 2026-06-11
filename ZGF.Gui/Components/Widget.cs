@@ -3,7 +3,10 @@ using ZGF.Gui.Bindings;
 namespace ZGF.Gui.Components;
 
 /// <summary>
-/// Shared per-view props every primitive forwards onto the built <see cref="View"/>.
+/// The single authoring base for widgets. Override exactly one of the two seams:
+/// <see cref="Build"/> to compose (return other widgets), or <see cref="CreateView"/> to
+/// construct (build and wire real views). Shared per-view props (size, id, visibility
+/// binding) are forwarded onto the built <see cref="View"/> either way.
 /// </summary>
 public abstract record Widget : IWidget
 {
@@ -28,5 +31,10 @@ public abstract record Widget : IWidget
         return v;
     }
 
-    protected abstract View CreateView(Context ctx);
+    /// <summary>Compose: resolve dependencies and return other widgets.</summary>
+    protected virtual IWidget Build(Context ctx) =>
+        throw new InvalidOperationException($"{GetType().Name} must override Build or CreateView.");
+
+    /// <summary>Construct: build and wire real views. Defaults to recursing through <see cref="Build"/>.</summary>
+    protected virtual View CreateView(Context ctx) => Build(ctx).BuildView(ctx);
 }
