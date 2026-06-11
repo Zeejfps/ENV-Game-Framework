@@ -7,7 +7,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed record Center : Widget
+public sealed record MainPanel : Widget
 {
     public required string ModelImageId { get; init; }
 

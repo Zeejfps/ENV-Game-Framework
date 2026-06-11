@@ -49,13 +49,14 @@ public sealed class App : IDisposable
         _imageManager.LoadImageFromFile("Assets/Icons/arrow_down.png");
         _frameBufferHandle = _imageManager.CreateFrameBuffer(640, 480);
 
+        var dpiScale = _mainWindow.DpiScale;
         _fontBackend = new FreeTypeFontBackend();
-        _defaultFont = _fontBackend.LoadFontFromFile("Assets/Fonts/Inter/Inter-Regular.ttf", 16);
+        _defaultFont = _fontBackend.LoadFontFromFile("Assets/Fonts/Inter/Inter-Regular.ttf", (int)MathF.Round(16 * dpiScale));
 
         _shared = new GlSharedResources(_fontBackend, _imageManager);
         _canvas = new OpenGlRenderedCanvas(
             startupConfig.WindowWidth, startupConfig.WindowHeight,
-            _fontBackend, _defaultFont, _shared);
+            _fontBackend, _defaultFont, _shared, dpiScale);
 
         var pointerArbiter = new PointerOwnershipArbiter();
         _inputSystem = new DesktopInputSystem(_mainWindow, _canvas, pointerArbiter);
@@ -97,7 +98,7 @@ public sealed class App : IDisposable
 
         context.AddService(this);
         var appBar = new AppBar().BuildView(context);
-        var center = new Center { ModelImageId = _frameBufferHandle.ImageId }.BuildView(context);
+        var center = new MainPanel { ModelImageId = _frameBufferHandle.ImageId }.BuildView(context);
 
         var calendarVm = new CalendarViewModel();
         context.AddService(calendarVm);
