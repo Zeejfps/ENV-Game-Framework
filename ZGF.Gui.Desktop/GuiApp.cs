@@ -16,7 +16,7 @@ public sealed class GuiApp : IDisposable
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly IGuiRenderBackend _renderBackend;
     private readonly DesktopInputSystem _mainInput;
-    private readonly ContainerView _root;
+    private readonly GuiWindowHost _mainHost;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly FrameTicker _frameTicker;
     private long _lastAnimationTimestamp;
@@ -32,7 +32,9 @@ public sealed class GuiApp : IDisposable
         IGuiRenderBackend renderBackend,
         FontHandle defaultFont,
         Context context,
-        Func<Context, View> contentFactory)
+        Func<Context, View> contentFactory,
+        Action<Context> registerBackendServices,
+        Action<Context>? startup)
     {
         _app = app;
         _mainCanvas = mainCanvas;
@@ -44,7 +46,7 @@ public sealed class GuiApp : IDisposable
         var pointerArbiter = new PointerOwnershipArbiter();
         _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter);
         pointerArbiter.Register(_mainInput, isModal: false);
-        _mainInput.OnAnyInput = () => app.MainWindow.RequestRedraw();
+        _mainHost = new GuiWindowHost(app.MainWindow, mainCanvas, _mainInput, context, sizeRootToWindow: true);
         _dispatcher = new QueuedUiDispatcher { OnWorkPosted = app.Wake };
         _frameTicker = new FrameTicker(onActivated: app.MainWindow.RequestRedraw);
         _lastAnimationTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -75,18 +77,21 @@ public sealed class GuiApp : IDisposable
         if (context.Get<IClipboard>() == null)
             context.AddService<IClipboard>(new WindowClipboard(app));
 
-        // All framework services are registered above, so the content factory sees the
-        // fully-wired main-window context.
+        registerBackendServices(context);
+
+        // All framework and backend services are registered above, so the startup hook and
+        // content factory see the fully-wired main-window context. The main window's
+        // graphics context is still current from backend resolution, so the startup hook
+        // can create engine resources (frame buffers, shaders) the content builds against.
+        startup?.Invoke(context);
         var content = contentFactory(context);
 
-        _root = new ContainerView
+        _mainHost.SetRoot(new ContainerView
         {
             Width = mainCanvas.Width,
             Height = mainCanvas.Height,
             Children = { content },
-        };
-        _root.OnRedrawNeeded = app.MainWindow.RequestRedraw;
-        _root.Mount();
+        });
 
         PlatformBackend.PopulateMain = PopulateGui;
 
@@ -114,13 +119,20 @@ public sealed class GuiApp : IDisposable
     /// <summary>Starts a fluent <see cref="GuiAppBuilder"/> for configuring and building a GuiApp.</summary>
     public static GuiAppBuilder CreateBuilder(StartupConfig config) => new(config);
 
-    internal static GuiApp Create(StartupConfig config, Context context, Func<Context, View> contentFactory)
+    internal static GuiApp Create(
+        StartupConfig config,
+        Context context,
+        Func<Context, View> contentFactory,
+        GuiRenderBackendKind backendKind = GuiRenderBackendKind.Auto,
+        Action? renderHook = null,
+        Action<Context>? startup = null)
     {
-        var backend = PlatformBackend.Resolve(config);
+        var backend = PlatformBackend.Resolve(config, backendKind, renderHook);
         return new GuiApp(
             backend.App, backend.MainCanvas, backend.FontBackend,
             backend.RenderBackend,
-            backend.DefaultFont, context, contentFactory);
+            backend.DefaultFont, context, contentFactory,
+            backend.RegisterServices, startup);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)
@@ -180,6 +192,17 @@ public sealed class GuiApp : IDisposable
 
     public void Run() => _app.Run();
 
+    /// <summary>Asks the run loop to exit; <see cref="Run"/> returns after the current iteration.</summary>
+    public void Quit() => _app.Quit();
+
+    /// <summary>Schedules a main-window repaint — for embedded rendering that animates
+    /// state the view tree doesn't know about (e.g. a scene's model matrix).</summary>
+    public void RequestRedraw() => _app.MainWindow.RequestRedraw();
+
+    /// <summary>Makes the main window's graphics context current — for engine resource
+    /// work outside the render hook (loads, rebuilds).</summary>
+    public void MakeMainContextCurrent() => _app.MakeMainContextCurrent();
+
     private void HandleTick()
     {
         _dispatcher.Drain();
@@ -203,9 +226,7 @@ public sealed class GuiApp : IDisposable
 
     private void HandleResize(int width, int height)
     {
-        _root.Width = width;
-        _root.Height = height;
-        _mainCanvas.Resize(width, height);
+        _mainHost.HandleResize(width, height);
         _app.MainWindow.MakeContextCurrent();
         _app.MainWindow.RenderNow();
         OnWindowResized?.Invoke(width, height);
@@ -216,17 +237,13 @@ public sealed class GuiApp : IDisposable
         if (_app is OpenGlApp) GL46.glViewport(0, 0, width, height);
     }
 
-    private void PopulateGui()
-    {
-        _root.LayoutSelf();
-        _root.DrawSelf(_mainCanvas);
-    }
+    private void PopulateGui() => _mainHost.DrawContent();
 
     public void Dispose()
     {
         // Unmount the whole view tree so behaviors release their per-mount resources
         // (subscriptions, input registrations, view models).
-        _root.Unmount();
+        _mainHost.SetRoot(null);
 
         _app.OnTick -= HandleTick;
         _app.MainWindow.OnResize -= HandleResize;

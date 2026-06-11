@@ -55,6 +55,12 @@ public sealed class OpenGlApp : IWindowedApp
 
     public void Wake() => Glfw.PostEmptyEvent();
 
+    public void Quit()
+    {
+        Glfw.SetWindowShouldClose(_mainWindow.GlfwWindow, true);
+        Wake();
+    }
+
     public IWindow CreatePopupWindow(in PopupWindowOptions options)
     {
         Glfw.DefaultWindowHints();

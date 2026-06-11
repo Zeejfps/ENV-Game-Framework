@@ -280,19 +280,15 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
 internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 {
-    private readonly IWindow _window;
-    private readonly RenderedCanvasBase _canvas;
-    private readonly DesktopInputSystem _input;
-    private readonly Context _context;
-    private View? _root;
+    private readonly GuiWindowHost _host;
 
     public event Action<PointI>? OutsideClick;
     public bool MousePassThrough { get; set; }
 
-    public IWindow Window => _window;
-    public Context Context => _context;
-    public View? Root => _root;
-    public IPointerWindow PointerWindow => _input;
+    public IWindow Window => _host.Window;
+    public Context Context => _host.Context;
+    public View? Root => _host.Root;
+    public IPointerWindow PointerWindow => _host.Input;
 
     public PopupWindowImpl(
         IWindow window,
@@ -301,48 +297,15 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         Context context,
         IGuiRenderBackend backend)
     {
-        _window = window;
-        _canvas = canvas;
-        _input = input;
-        _context = context;
-
-        _input.OnAnyInput = () => _window.RequestRedraw();
-        backend.WireRenderLoop(_window, _canvas, DrawContent, (0f, 0f, 0f, 0f));
+        _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: false);
+        backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 0f));
     }
 
-    private void DrawContent()
-    {
-        if (_root != null)
-        {
-            _root.LayoutSelf();
-            _root.DrawSelf(_canvas);
-        }
-    }
+    public void SetRoot(View? root) => _host.SetRoot(root);
 
-    public void SetRoot(View? root)
-    {
-        if (_root != null)
-        {
-            _root.Unmount();
-            _root.OnRedrawNeeded = null;
-        }
-        _root = root;
-        if (root != null)
-        {
-            root.OnRedrawNeeded = _window.RequestRedraw;
-            root.Mount();
-        }
-    }
+    public void Resize(int width, int height) => _host.HandleResize(width, height);
 
-    public void Resize(int width, int height)
-    {
-        _canvas.Resize(width, height);
-    }
-
-    public void RefreshDpiScale()
-    {
-        _canvas.UpdateDpiScale(_window.DpiScale);
-    }
+    public void RefreshDpiScale() => _host.RefreshDpiScale();
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
 
@@ -352,14 +315,14 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     /// </summary>
     public void ClearOutsideClickSubscribers() => OutsideClick = null;
 
-    public void UpdateInput() => _input.Update();
+    public void UpdateInput() => _host.Input.Update();
 
-    public void ResetInput() => _input.Reset();
+    public void ResetInput() => _host.Input.Reset();
 
     public void Dispose()
     {
         SetRoot(null);
-        if (_canvas is IDisposable d) d.Dispose();
-        _window.Dispose();
+        _host.DisposeCanvas();
+        _host.Window.Dispose();
     }
 }

@@ -56,6 +56,12 @@ public sealed class MetalApp : IWindowedApp
 
     public void Wake() => GLFW.Glfw.PostEmptyEvent();
 
+    public void Quit()
+    {
+        GLFW.Glfw.SetWindowShouldClose(_mainWindow.GlfwWindow, true);
+        Wake();
+    }
+
     public IWindow CreatePopupWindow(in PopupWindowOptions options)
     {
         GLFW.Glfw.DefaultWindowHints();

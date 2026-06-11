@@ -15,6 +15,9 @@ public sealed class GuiAppBuilder
 {
     private readonly StartupConfig _config;
     private Func<Context, View>? _contentFactory;
+    private GuiRenderBackendKind _backendKind = GuiRenderBackendKind.Auto;
+    private Action? _renderHook;
+    private Action<Context>? _startup;
 
     internal GuiAppBuilder(StartupConfig config)
     {
@@ -46,12 +49,46 @@ public sealed class GuiAppBuilder
         return this;
     }
 
+    /// <summary>
+    /// Forces a specific graphics backend instead of the platform default. Apps that embed
+    /// the GUI over their own engine rendering pick the backend their engine code targets
+    /// (e.g. <see cref="GuiRenderBackendKind.OpenGl"/> for raw GL on any platform).
+    /// </summary>
+    public GuiAppBuilder UseRenderBackend(GuiRenderBackendKind kind)
+    {
+        _backendKind = kind;
+        return this;
+    }
+
+    /// <summary>
+    /// Runs at the start of every main-window frame, with the window's graphics context
+    /// current, before the GUI clears and draws — the seam for engine rendering underneath
+    /// or alongside the GUI (e.g. render a scene into a frame buffer shown by an ImageView).
+    /// </summary>
+    public GuiAppBuilder UseRenderHook(Action renderFrame)
+    {
+        _renderHook = renderFrame;
+        return this;
+    }
+
+    /// <summary>
+    /// Runs once during <see cref="Build"/>, after all framework and backend services are
+    /// registered but before the content factory — with the main window's graphics context
+    /// current. The place to create engine resources (meshes, shaders, frame buffers) that
+    /// the content needs at build time.
+    /// </summary>
+    public GuiAppBuilder UseStartup(Action<Context> startup)
+    {
+        _startup = startup;
+        return this;
+    }
+
     /// <summary>Resolves the backend, wires framework services, and mounts the content.</summary>
     public GuiApp Build()
     {
         if (_contentFactory is null)
             throw new InvalidOperationException(
                 "No root content set. Call UseContent(...) before Build().");
-        return GuiApp.Create(_config, Services, _contentFactory);
+        return GuiApp.Create(_config, Services, _contentFactory, _backendKind, _renderHook, _startup);
     }
 }
