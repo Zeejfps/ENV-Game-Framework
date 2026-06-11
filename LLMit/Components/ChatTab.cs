@@ -2,8 +2,7 @@ using LLMit.ViewModels;
 using LLMit.Views;
 using ZGF.Gui;
 using ZGF.Gui.Bindings;
-using ZGF.Gui.Desktop.Controllers;
-using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.Widgets;
 
 namespace LLMit.Components;
@@ -19,27 +18,12 @@ public sealed record ChatTab : Widget
             Text = tab.Title,
         };
         view.Bind(tab.IsActive, isActive => view.IsActive = isActive);
-        view.UseController(ctx.Require<InputSystem>(), () => new TabViewController(view));
-        return view;
-    }
-}
 
-public sealed class TabViewController : KeyboardMouseController
-{
-    private readonly TabView _tabView;
-
-    public TabViewController(TabView tabView)
-    {
-        _tabView = tabView;
-    }
-
-    public override void OnMouseEnter(ref MouseEnterEvent e)
-    {
-        _tabView.IsHighlighted = true;
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        _tabView.IsHighlighted = false;
+        return new KbmInput
+        {
+            OnHoverEnter = () => view.IsHighlighted = true,
+            OnHoverExit = () => view.IsHighlighted = false,
+            Child = new Raw { View = view },
+        }.BuildView(ctx);
     }
 }

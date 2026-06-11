@@ -2,6 +2,7 @@
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
 
@@ -39,18 +40,26 @@ public sealed record MainPanel : Widget
             }
         };
 
-        w1.UseController(input, () => new WindowDefaultKbmController(w1));
-        w3.UseController(input, () => new WindowDefaultKbmController(w3));
         textInput.UseController(input, () => new TextInputViewKbmController(textInput, input, clipboard));
         listView.UseController(input, () => new DefaultVerticalListViewKbmController(listView));
+
+        View WithBringToFront(Window window) => new KbmInput
+        {
+            OnMouseButton = (ref MouseButtonEvent e) =>
+            {
+                if (e.Phase == EventPhase.Capturing && e.State == InputState.Pressed)
+                    window.BringToFront();
+            },
+            Child = new Raw { View = window },
+        }.BuildView(ctx);
 
         return new ContainerView
         {
             Children =
             {
                 background,
-                w1,
-                w3,
+                WithBringToFront(w1),
+                WithBringToFront(w3),
             }
         };
     }
