@@ -34,8 +34,9 @@ public abstract record Primitive : IComponent
     protected abstract View CreateView(Context ctx);
 }
 
-public sealed record Text(string? Value = null) : Primitive
+public sealed record Text : Primitive
 {
+    public string? Value { get; init; }
     public StyleValue<float> FontSize { get; init; }
     public StyleValue<uint> Color { get; init; }
     public StyleValue<TextAlignment> HAlign { get; init; }
@@ -123,8 +124,11 @@ public sealed record Row : FlexBase
 /// Wraps a child in a <see cref="FlexItem"/> so it grows along the parent flex axis.
 /// The child must build to a <see cref="MultiChildView"/> (FlexItem's requirement).
 /// </summary>
-public sealed record Grow(IComponent Child, float Factor = 1f) : IComponent
+public sealed record Grow : IComponent
 {
+    public required IComponent Child { get; init; }
+    public float Factor { get; init; } = 1f;
+
     public View BuildView(Context ctx) => new FlexItem
     {
         Grow = Factor,
@@ -139,18 +143,47 @@ public sealed record Spacer : IComponent
 }
 
 /// <summary>
-/// Dynamic children: mirrors an <see cref="ObservableList{T}"/> into a flex container,
-/// building one component per item via <paramref name="Template"/>. Captures <paramref name="ctx"/>
-/// for late item builds — safe because the built view is already pinned to this window.
+/// Inference-friendly entry point for <see cref="Each{T}"/> — constructors can't infer
+/// generic arguments, so <c>Each.Of(vm.Tasks, new TaskRow(), gap: 4)</c> beats
+/// <c>new Each&lt;TaskViewModel&gt;(...)</c>. Rarer props via <c>with</c>:
+/// <c>Each.Of(...) with { CrossAxis = ... }</c>.
 /// </summary>
-public sealed record Each<T>(ObservableList<T> Items, Func<T, IComponent> Template) : FlexBase
+public static class Each
 {
-    protected override Axis Axis => ZGF.Gui.Views.Axis.Vertical;
+    public static Each<T> Of<T>(
+        ObservableList<T> items,
+        IComponent template,
+        float gap = 0f,
+        Axis axis = Axis.Vertical) where T : class =>
+        new() { Items = items, Template = template, Gap = gap, ListAxis = axis };
+}
+
+/// <summary>
+/// Dynamic children: mirrors an <see cref="ObservableList{T}"/> into a flex container.
+/// Each item gets a scoped child <see cref="Context"/> with the item registered as a service,
+/// and <paramref name="Template"/> is built against that scope — so item components resolve
+/// their item VM from the context like every other dependency, never via constructor.
+/// The parent <paramref name="ctx"/> is captured for late item builds — safe because the
+/// built view is already pinned to this window.
+/// </summary>
+public sealed record Each<T> : FlexBase
+    where T : class
+{
+    public required ObservableList<T> Items { get; init; }
+    public required IComponent Template { get; init; }
+    public Axis ListAxis { get; init; } = ZGF.Gui.Views.Axis.Vertical;
+
+    protected override Axis Axis => ListAxis;
 
     protected override View CreateView(Context ctx)
     {
         var v = (FlexView)base.CreateView(ctx);
-        v.BindChildren(Items, item => Template(item).BuildView(ctx));
+        v.BindChildren(Items, item =>
+        {
+            var scope = new Context(ctx);
+            scope.AddService(item);
+            return Template.BuildView(scope);
+        });
         return v;
     }
 }

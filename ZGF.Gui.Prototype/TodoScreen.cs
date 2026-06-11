@@ -7,10 +7,18 @@ namespace ZGF.Gui.Prototype;
 /// <summary>
 /// Composite component: ViewModel in, structure out. Never touches a View — the single
 /// BuildView call at the window recurses through every nested component.
+/// Screen-level VMs resolve from the context (registered or container-constructed);
+/// per-item VMs (<see cref="TaskRow"/>) are passed down as plain data.
 /// </summary>
-public sealed record TodoScreen(TodoViewModel Vm) : Component
+public sealed record TodoScreen : Component
 {
-    protected override IComponent Build(Context ctx) => new Box
+    protected override IComponent Build(Context ctx)
+    {
+        var vm = ctx.Require<TodoViewModel>();
+        return Layout(vm);
+    }
+
+    private static IComponent Layout(TodoViewModel Vm) => new Box
     {
         Background = 0xFF1E1E1E,
         Padding = PaddingStyle.All(16),
@@ -22,50 +30,61 @@ public sealed record TodoScreen(TodoViewModel Vm) : Component
                 CrossAxis = CrossAxisAlignment.Stretch,
                 Children =
                 [
-                    Header(),
+                    Header(Vm),
                     new Text
                     {
                         FontSize = 13,
                         Color = 0xFF9CA3AF,
                         Bind = () => $"{Vm.RemainingCount()} of {Vm.Tasks.Count} remaining",
                     },
-                    new Text("Nothing to do — add a task.")
+                    new Text
                     {
+                        Value = "Nothing to do — add a task.",
                         FontSize = 13,
                         Color = 0xFF6B7280,
                         BindVisible = () => Vm.Tasks.Count == 0,
                     },
-                    new Each<TaskViewModel>(Vm.Tasks, task => new TaskRow(Vm, task))
-                    {
-                        Gap = 4,
-                    },
+                    Each.Of(Vm.Tasks, new TaskRow(), gap: 4),
                 ],
             },
         ],
     };
 
-    private IComponent Header() => new Row
+    private static IComponent Header(TodoViewModel Vm) => new Row
     {
         Gap = 8,
         CrossAxis = CrossAxisAlignment.Center,
         Children =
         [
-            new Text("Tasks") { FontSize = 20, Color = 0xFFE0E0E0 },
+            new Text { Value = "Tasks", FontSize = 20, Color = 0xFFE0E0E0 },
             new Spacer(),
-            new Button("Clear done", Vm.ClearDone)
+            new Button
             {
+                Label = "Clear done",
+                OnClick = Vm.ClearDone,
                 Background = 0xFF374151,
                 HoverBackground = 0xFF4B5563,
                 FontSize = 13,
             },
-            new Button("Add", Vm.AddTask) { FontSize = 13 },
+            new Button { Label = "Add", OnClick = Vm.AddTask, FontSize = 13 },
         ],
     };
 }
 
-public sealed record TaskRow(TodoViewModel Vm, TaskViewModel Task) : Component
+/// <summary>
+/// Item template: built once per task against the scoped context <see cref="Each{T}"/> creates,
+/// so the task VM resolves from the scope and the list VM chains up to the window context.
+/// </summary>
+public sealed record TaskRow : Component
 {
-    protected override IComponent Build(Context ctx) => new Box
+    protected override IComponent Build(Context ctx)
+    {
+        var list = ctx.Require<TodoViewModel>();
+        var task = ctx.Require<TaskViewModel>();
+        return Layout(list, task);
+    }
+
+    private static IComponent Layout(TodoViewModel Vm, TaskViewModel Task) => new Box
     {
         Padding = PaddingStyle.All(8),
         BorderRadius = BorderRadiusStyle.All(4),
@@ -78,21 +97,26 @@ public sealed record TaskRow(TodoViewModel Vm, TaskViewModel Task) : Component
                 CrossAxis = CrossAxisAlignment.Center,
                 Children =
                 [
-                    new Button("✓", Task.Toggle)
+                    new Button
                     {
+                        Label = "✓",
+                        OnClick = Task.Toggle,
                         FontSize = 12,
                         Background = 0xFF374151,
                         HoverBackground = 0xFF4B5563,
                         Padding = new PaddingStyle { Left = 7, Right = 7, Top = 2, Bottom = 2 },
                     },
-                    new Text(Task.Title)
+                    new Text
                     {
+                        Value = Task.Title,
                         FontSize = 14,
                         BindColor = () => Task.IsDone.Value ? 0xFF6B7280 : 0xFFE0E0E0,
                     },
                     new Spacer(),
-                    new Button("✕", () => Vm.Remove(Task))
+                    new Button
                     {
+                        Label = "✕",
+                        OnClick = () => Vm.Remove(Task),
                         FontSize = 12,
                         Background = 0x00000000,
                         HoverBackground = 0xFF7F1D1D,

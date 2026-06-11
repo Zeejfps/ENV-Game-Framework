@@ -29,8 +29,10 @@ public abstract record Component : IComponent
 /// Escape hatch: embeds an already-built <see cref="View"/>. Deliberately explicit — a raw view
 /// pins the surrounding component to one window, so it should be a visible decision.
 /// </summary>
-public sealed record Raw(View View) : IComponent
+public sealed record Raw : IComponent
 {
+    public required View View { get; init; }
+
     public View BuildView(Context ctx) => View;
 }
 

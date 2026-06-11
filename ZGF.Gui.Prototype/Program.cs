@@ -3,11 +3,6 @@ using ZGF.Gui.Desktop;
 using ZGF.Gui.Prototype;
 using ZGF.Gui.Prototype.Components;
 
-var vm = new TodoViewModel();
-vm.AddTask();
-vm.AddTask();
-vm.AddTask();
-
 var builder = GuiApp.CreateBuilder(new StartupConfig
 {
     WindowWidth = 480,
@@ -15,8 +10,17 @@ var builder = GuiApp.CreateBuilder(new StartupConfig
     WindowTitle = "Component Prototype",
 });
 
+builder.Services.AddSingleton(_ =>
+{
+    var vm = new TodoViewModel();
+    vm.AddTask();
+    vm.AddTask();
+    vm.AddTask();
+    return vm;
+});
+
 using var app = builder
-    .UseContent(new TodoScreen(vm))
+    .UseContent(new TodoScreen())
     .Build();
 
 app.Run();

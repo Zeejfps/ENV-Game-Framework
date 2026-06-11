@@ -5,8 +5,10 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Prototype.Components;
 
-public sealed record Button(string Label, Action OnClick) : Primitive
+public sealed record Button : Primitive
 {
+    public required string Label { get; init; }
+    public required Action OnClick { get; init; }
     public uint Background { get; init; } = 0xFF3B82F6;
     public uint HoverBackground { get; init; } = 0xFF2563EB;
     public uint TextColor { get; init; } = 0xFFFFFFFF;
