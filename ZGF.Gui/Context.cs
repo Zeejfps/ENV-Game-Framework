@@ -3,11 +3,15 @@ using System.Reflection;
 
 namespace ZGF.Gui;
 
-public sealed class Context
+public sealed class Context : IDisposable
 {
     public ICanvas Canvas { get; set; } = null!;
 
     private readonly Dictionary<Type, object> _services = new();
+    private readonly Dictionary<Type, Func<Context, object>> _factories = new();
+    private readonly List<Type> _eager = new();
+    private readonly List<IDisposable> _owned = new();
+    private readonly HashSet<Type> _creating = new();
     private readonly Context? _parent;
 
     public Context() { }
@@ -23,26 +27,71 @@ public sealed class Context
         _services[typeof(T)] = service;
     }
 
-    public T? Get<T>() where T : class
+    /// <summary>
+    /// Registers <typeparamref name="T"/> to be constructed on first resolution, with its
+    /// constructor parameters injected from this context. Eager singletons are constructed
+    /// when <see cref="CreateEagerSingletons"/> runs.
+    /// </summary>
+    public void AddSingleton<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        bool eager = false) where T : class =>
+        AddSingleton(ctx => (T)ctx.CreateInstance(typeof(T)), eager);
+
+    /// <summary>Registers <typeparamref name="TImpl"/> as the lazily-constructed implementation of <typeparamref name="TService"/>.</summary>
+    public void AddSingleton<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>(
+        bool eager = false)
+        where TService : class
+        where TImpl : class, TService =>
+        AddSingleton<TService>(ctx => (TImpl)ctx.CreateInstance(typeof(TImpl)), eager);
+
+    /// <summary>Registers a factory invoked once, on first resolution of <typeparamref name="TService"/>.</summary>
+    public void AddSingleton<TService>(Func<Context, TService> factory, bool eager = false)
+        where TService : class
     {
-        if (_services.TryGetValue(typeof(T), out var service))
-            return service as T;
-        return _parent?.Get<T>();
+        _factories[typeof(TService)] = factory;
+        if (eager)
+            _eager.Add(typeof(TService));
     }
 
-    public T Require<T>() where T : class =>
-        Get<T>() ?? throw new InvalidOperationException(
-            $"{typeof(T).Name} not registered in Context.");
+    /// <summary>
+    /// Instantiates every singleton registered with <c>eager: true</c>. Call once the context is
+    /// fully wired (e.g. after the framework services exist) so background services start up
+    /// even though nothing resolves them explicitly.
+    /// </summary>
+    public void CreateEagerSingletons()
+    {
+        foreach (var type in _eager)
+            Resolve(type);
+        _eager.Clear();
+    }
 
     /// <summary>
-    /// Constructs an instance of <typeparamref name="T"/> by resolving its constructor
-    /// parameters from this context. Picks the greediest public constructor. Throws if any
-    /// parameter type is not registered.
+    /// Resolves <typeparamref name="T"/>: a registered instance or singleton wins (searching up the
+    /// parent chain); otherwise, if <typeparamref name="T"/> is a constructible class, a new
+    /// transient instance is built with constructor parameters injected from this context. The
+    /// caller owns transient instances — they are not cached or disposed by the context. Returns
+    /// null only when <typeparamref name="T"/> is neither registered nor constructible.
     /// </summary>
-    public T Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
-        where T : class => (T)Create(typeof(T));
+    public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        where T : class
+    {
+        var resolved = Resolve(typeof(T));
+        if (resolved is T service)
+            return service;
+        if (IsConstructible(typeof(T)))
+            return (T)CreateInstance(typeof(T));
+        return null;
+    }
 
-    public object Create(
+    public T Require<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        where T : class =>
+        Get<T>() ?? throw new InvalidOperationException(
+            $"{typeof(T).Name} is not registered in Context and is not a constructible class.");
+
+    private static bool IsConstructible(Type type) =>
+        type is { IsClass: true, IsAbstract: false } &&
+        type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Length > 0;
+
+    private object CreateInstance(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
     {
         var ctors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
@@ -58,11 +107,20 @@ public sealed class Context
         var args = new object?[parameters.Length];
         for (var i = 0; i < parameters.Length; i++)
         {
-            var pType = parameters[i].ParameterType;
-            var svc = Resolve(pType);
-            args[i] = svc ?? throw new InvalidOperationException(
-                $"Cannot construct {type.Name}: parameter '{parameters[i].Name}' " +
-                $"of type {pType.Name} not registered in Context.");
+            var parameter = parameters[i];
+            var svc = Resolve(parameter.ParameterType);
+            if (svc is null)
+            {
+                if (parameter.HasDefaultValue)
+                {
+                    args[i] = parameter.DefaultValue;
+                    continue;
+                }
+                throw new InvalidOperationException(
+                    $"Cannot construct {type.Name}: parameter '{parameter.Name}' " +
+                    $"of type {parameter.ParameterType.Name} not registered in Context.");
+            }
+            args[i] = svc;
         }
 
         return ctor.Invoke(args);
@@ -72,6 +130,35 @@ public sealed class Context
     {
         if (_services.TryGetValue(type, out var service))
             return service;
+
+        if (_factories.TryGetValue(type, out var factory))
+        {
+            if (!_creating.Add(type))
+                throw new InvalidOperationException(
+                    $"Circular dependency detected while creating {type.Name}.");
+            try
+            {
+                var created = factory(this);
+                _services[type] = created;
+                if (created is IDisposable disposable)
+                    _owned.Add(disposable);
+                return created;
+            }
+            finally
+            {
+                _creating.Remove(type);
+            }
+        }
+
         return _parent?.Resolve(type);
+    }
+
+    /// <summary>Disposes singletons this context created, in reverse creation order. Instances
+    /// added via <see cref="AddService{T}"/> are owned by the caller and left alone.</summary>
+    public void Dispose()
+    {
+        for (var i = _owned.Count - 1; i >= 0; i--)
+            _owned[i].Dispose();
+        _owned.Clear();
     }
 }

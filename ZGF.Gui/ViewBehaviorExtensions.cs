@@ -30,7 +30,7 @@ public static class ViewBehaviorExtensions
         Action<TVm> bind)
         where TVm : class, IDisposable
     {
-        view.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Create<TVm>(), bind));
+        view.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Require<TVm>(), bind));
     }
 
     /// <summary>
@@ -44,6 +44,6 @@ public static class ViewBehaviorExtensions
         IBind<TVm> target)
         where TVm : class, IDisposable
     {
-        host.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Create<TVm>(), target.Bind));
+        host.Behaviors.Add(new ViewModelBehavior<TVm>(ctx => ctx.Require<TVm>(), target.Bind));
     }
 }
