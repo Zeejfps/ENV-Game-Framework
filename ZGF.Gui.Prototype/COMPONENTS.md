@@ -61,13 +61,13 @@ return structure. Never call `BuildView` yourself — the recursion happens once
 ```csharp
 public sealed record TodoScreen : Component
 {
-    protected override IComponent Build(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
         var vm = ctx.Require<TodoViewModel>();
         return Layout(vm);
     }
 
-    private static IComponent Layout(TodoViewModel vm) => new Box
+    private static IWidget Layout(TodoViewModel vm) => new Box
     {
         Background = 0xFF1E1E1E,
         Padding = PaddingStyle.All(16),
@@ -151,7 +151,7 @@ Each.Of(vm.Tasks, new TaskRow(), gap: 4)
 // The template — note: parameterless, shared, built once per item:
 public sealed record TaskRow : Component
 {
-    protected override IComponent Build(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
         var list = ctx.Require<TodoViewModel>();   // parent chain → window context
         var task = ctx.Require<TaskViewModel>();   // this row's scope
@@ -168,7 +168,7 @@ Constraint to design around: scopes are type-keyed. One registration per type pe
 
 ## Primitives
 
-The component infrastructure lives in the framework: `IComponent`/`Component`/`Raw` and the
+The component infrastructure lives in the framework: `IWidget`/`Component`/`Raw` and the
 layout primitives in `ZGF.Gui/Components/` (namespace `ZGF.Gui.Components`), input-bearing
 controls like `Button` in `ZGF.Gui.Desktop/Components/Controls/`. The current vocabulary:
 
@@ -177,24 +177,26 @@ controls like `Button` in `ZGF.Gui.Desktop/Components/Controls/`. The current vo
 | `Text` | `TextView` | `Value`, `FontSize`, `Color`, `Bind`, `BindColor` |
 | `Box` | `RectView` | background/border/padding, `Children`, `BindBackground` |
 | `Column` / `Row` | `FlexView` | `Gap`, `MainAxis`, `CrossAxis`, `Children` |
+| `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills |
+| `Center` | `CenterView` | centers `Child` in the available space |
 | `Grow` | `FlexItem` | `Child` grows along the parent flex axis |
 | `Spacer` | `FlexItem` | flexible empty space between siblings |
 | `Button` | `RectView`+`TextView`+controller | `Label`, `OnClick` (both `required`) |
 | `Each<T>` / `Each.Of` | `FlexView` + children binding | dynamic lists, scoped contexts |
 | `Raw` | — | embeds a prebuilt `View`; pins the component to one window |
 
-All primitives inherit shared per-view props from `Primitive`: `Width`, `Height`,
+All primitives inherit shared per-view props from `Widget`: `Width`, `Height`,
 `MinWidth`, `MinHeight`, `Id`, `BindVisible`.
 
 ### Writing a new primitive
 
 Drop down a level when a piece needs view construction, controllers, or services — i.e. when
-`Build` returning other components isn't enough. Subclass `Primitive` (to inherit shared
+`Build` returning other components isn't enough. Subclass `Widget` (to inherit shared
 props) and implement `CreateView`; this is the only place app-adjacent code constructs Views
 and wires behaviors:
 
 ```csharp
-public sealed record Toggle : Primitive
+public sealed record Toggle : Widget
 {
     public required State<bool> Value { get; init; }
 
@@ -226,7 +228,7 @@ Components compose; they do not lay out or paint. Write a `View` subclass only f
   shortcut-column layout, `CalendarDayCell` ↔ the calendar grid's refresh).
 
 Then expose it to component land with a primitive wrapper. The reference example is
-`ZGF.Gui.Desktop/Components/Calendar/Calendar.cs`: a `Primitive` whose `CreateView` resolves
+`ZGF.Gui.Desktop/Components/Calendar/Calendar.cs`: a `Widget` whose `CreateView` resolves
 `CalendarViewModel` from the context, assembles plain views (the day cells stay Views), wires
 controllers, and binds VM state to a refresh routine.
 

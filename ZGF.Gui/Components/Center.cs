@@ -1,9 +1,8 @@
-using ZGF.Gui;
-using ZGF.Gui.Components;
 using ZGF.Gui.Views;
 
-namespace LLMit.Components.Primitives;
+namespace ZGF.Gui.Components;
 
+/// <summary>Centers its child in the available space. Builds a <see cref="CenterView"/>.</summary>
 public sealed record Center : Widget
 {
     public required IWidget Child { get; init; }

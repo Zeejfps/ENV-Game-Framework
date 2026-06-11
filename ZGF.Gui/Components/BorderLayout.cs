@@ -1,9 +1,11 @@
-using ZGF.Gui;
-using ZGF.Gui.Components;
 using ZGF.Gui.Views;
 
-namespace LLMit.Components.Primitives;
+namespace ZGF.Gui.Components;
 
+/// <summary>
+/// Five-region layout: edge regions take their intrinsic size, <see cref="Center"/> fills
+/// the rest. Builds a <see cref="BorderLayoutView"/>.
+/// </summary>
 public sealed record BorderLayout : Widget
 {
     public IWidget? North { get; init; }
