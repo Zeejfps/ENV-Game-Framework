@@ -1,6 +1,6 @@
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>
 /// Wraps a child in a <see cref="FlexItem"/> so it grows along the parent flex axis.

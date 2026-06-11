@@ -2,7 +2,7 @@ using ZGF.Gui.Bindings;
 using ZGF.Gui.Views;
 using ZGF.Observable;
 
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>
 /// Inference-friendly entry point for <see cref="Each{T}"/> — constructors can't infer

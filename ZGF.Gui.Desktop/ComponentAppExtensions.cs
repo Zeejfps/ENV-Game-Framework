@@ -1,4 +1,4 @@
-using ZGF.Gui.Components;
+using ZGF.Gui.Widgets;
 
 namespace ZGF.Gui.Desktop;
 

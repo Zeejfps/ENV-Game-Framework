@@ -1,7 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Prototype;
-using ZGF.Gui.Components;
 using ZGF.Gui.Desktop.Components.Controls;
 
 var builder = GuiApp.CreateBuilder(new StartupConfig

@@ -1,6 +1,6 @@
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>Flexible empty space — <c>new Spacer()</c> pushes siblings apart.</summary>
 public sealed record Spacer : Widget

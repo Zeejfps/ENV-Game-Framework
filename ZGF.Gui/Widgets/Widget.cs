@@ -1,6 +1,6 @@
 using ZGF.Gui.Bindings;
 
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>
 /// The single authoring base for widgets. Override exactly one of the two seams:

@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>
 /// A window-agnostic, immutable description of UI. <see cref="BuildView"/> turns it into a

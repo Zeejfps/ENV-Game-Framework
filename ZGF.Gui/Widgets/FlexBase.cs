@@ -1,6 +1,6 @@
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 public abstract record FlexBase : Widget
 {

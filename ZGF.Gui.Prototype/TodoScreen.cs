@@ -1,7 +1,7 @@
 using ZGF.Gui;
-using ZGF.Gui.Components;
 using ZGF.Gui.Desktop.Components.Controls;
 using ZGF.Gui.Views;
+using ZGF.Gui.Widgets;
 
 namespace ZGF.Gui.Prototype;
 

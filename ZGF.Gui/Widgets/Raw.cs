@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>
 /// Escape hatch: embeds an already-built <see cref="View"/>. Deliberately explicit — a raw view

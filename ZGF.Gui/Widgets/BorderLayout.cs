@@ -1,6 +1,6 @@
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Components;
+namespace ZGF.Gui.Widgets;
 
 /// <summary>
 /// Five-region layout: edge regions take their intrinsic size, <see cref="Center"/> fills
