@@ -72,10 +72,11 @@ public sealed class GuiApp : IDisposable
         context.AddService<IUiDispatcher>(_dispatcher);
         context.AddService<IFrameTicker>(_frameTicker);
 
-        // Default clipboard routes through the window's display-server connection. Platforms
-        // with a native implementation (Win32/macOS) register their own before this runs.
+        // Clipboard: the native implementation where one exists, else the window's
+        // display-server connection. Apps can still override by registering an IClipboard
+        // on the builder before Build.
         if (context.Get<IClipboard>() == null)
-            context.AddService<IClipboard>(new WindowClipboard(app));
+            context.AddService(CreatePlatformClipboard(app));
 
         registerBackendServices(context);
 
@@ -114,6 +115,15 @@ public sealed class GuiApp : IDisposable
                 return;
         }
         _contextMenuManager.CloseAllImmediately();
+    }
+
+    private static IClipboard CreatePlatformClipboard(IWindowedApp app)
+    {
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            return new Platforms.Osx.OsxClipboard();
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            return new Platforms.Windows.Win32Clipboard();
+        return new WindowClipboard(app);
     }
 
     /// <summary>Starts a fluent <see cref="GuiAppBuilder"/> for configuring and building a GuiApp.</summary>

@@ -6,8 +6,6 @@ using ZGF.Gui.Components;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Backends.OpenGl;
 using ZGF.Gui.Desktop.Components.Calendar;
-using ZGF.Gui.Desktop.Platforms.Osx;
-using ZGF.Gui.Desktop.Platforms.Windows;
 using ZGF.Gui.Views;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -37,11 +35,6 @@ public sealed class App : IDisposable
     {
         var builder = GuiApp.CreateBuilder(startupConfig);
 
-#if OSX
-        builder.Services.AddService<IClipboard>(new OsxClipboard());
-#elif WIN
-        builder.Services.AddService<IClipboard>(new Win32Clipboard());
-#endif
         builder.Services.AddService(this);
         builder.Services.AddService(new CalendarViewModel());
 
