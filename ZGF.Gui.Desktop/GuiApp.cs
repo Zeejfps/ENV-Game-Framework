@@ -31,7 +31,7 @@ public sealed class GuiApp : IDisposable
         IGuiRenderBackend renderBackend,
         FontHandle defaultFont,
         Context context,
-        View content)
+        Func<Context, View> contentFactory)
     {
         _app = app;
         _mainCanvas = mainCanvas;
@@ -74,6 +74,10 @@ public sealed class GuiApp : IDisposable
         if (context.Get<IClipboard>() == null)
             context.AddService<IClipboard>(new WindowClipboard(app));
 
+        // All framework services are registered above, so a content factory sees the same
+        // fully-wired context that OnAttachedToContext would.
+        var content = contentFactory(context);
+
         _root = new MultiChildView
         {
             Width = mainCanvas.Width,
@@ -109,13 +113,13 @@ public sealed class GuiApp : IDisposable
     /// <summary>Starts a fluent <see cref="GuiAppBuilder"/> for configuring and building a GuiApp.</summary>
     public static GuiAppBuilder CreateBuilder(StartupConfig config) => new(config);
 
-    internal static GuiApp Create(StartupConfig config, Context context, View content)
+    internal static GuiApp Create(StartupConfig config, Context context, Func<Context, View> contentFactory)
     {
         var backend = PlatformBackend.Resolve(config);
         return new GuiApp(
             backend.App, backend.MainCanvas, backend.FontBackend,
             backend.RenderBackend,
-            backend.DefaultFont, context, content);
+            backend.DefaultFont, context, contentFactory);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)

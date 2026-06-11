@@ -14,7 +14,7 @@ namespace ZGF.Gui.Desktop;
 public sealed class GuiAppBuilder
 {
     private readonly StartupConfig _config;
-    private View? _content;
+    private Func<Context, View>? _contentFactory;
 
     internal GuiAppBuilder(StartupConfig config)
     {
@@ -31,16 +31,27 @@ public sealed class GuiAppBuilder
     /// <summary>Sets the root content mounted into the main window.</summary>
     public GuiAppBuilder UseContent(View content)
     {
-        _content = content;
+        _contentFactory = _ => content;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the root content as a factory invoked with the fully-wired <see cref="Context"/> —
+    /// framework services (input, canvas, popups, ...) are registered before it runs, so the
+    /// factory can resolve them at build time instead of waiting for attach.
+    /// </summary>
+    public GuiAppBuilder UseContent(Func<Context, View> contentFactory)
+    {
+        _contentFactory = contentFactory;
         return this;
     }
 
     /// <summary>Resolves the backend, wires framework services, and mounts the content.</summary>
     public GuiApp Build()
     {
-        if (_content is null)
+        if (_contentFactory is null)
             throw new InvalidOperationException(
                 "No root content set. Call UseContent(...) before Build().");
-        return GuiApp.Create(_config, Services, _content);
+        return GuiApp.Create(_config, Services, _contentFactory);
     }
 }
