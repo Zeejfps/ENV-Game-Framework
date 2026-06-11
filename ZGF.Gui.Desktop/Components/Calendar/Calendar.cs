@@ -3,6 +3,7 @@ using ZGF.Gui.Bindings;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
 
@@ -99,7 +100,7 @@ public sealed record Calendar : Widget
         yearInput.UseController(input, yearController);
         vm.FocusProbe = () => ReferenceEquals(input.FocusedComponent, yearController);
 
-        RectView NavButton(string glyph, float fontSize, PaddingStyle padding, Action onClick)
+        View NavButton(string glyph, float fontSize, PaddingStyle padding, Action onClick)
         {
             var label = new TextView(canvas)
             {
@@ -116,8 +117,13 @@ public sealed record Calendar : Widget
                 Padding = padding,
                 Children = { label },
             };
-            button.UseController(input, () => new CalendarNavButtonController(button, onClick, NavButtonColor, NavButtonHoverColor));
-            return button;
+            return new KbmInput
+            {
+                OnClick = onClick,
+                OnHoverEnter = () => button.BackgroundColor = NavButtonHoverColor,
+                OnHoverExit = () => button.BackgroundColor = NavButtonColor,
+                Child = new Raw { View = button },
+            }.BuildView(ctx);
         }
 
         var prev = NavButton("‹", 18, new PaddingStyle { Left = 8, Right = 8, Top = 3, Bottom = 3 }, () => vm.StepMonth(-1));
@@ -192,9 +198,20 @@ public sealed record Calendar : Widget
                     Height = CellHeight,
                     Clicked = vm.PickDate,
                 };
-                cell.UseController(input, () => new CalendarDayCellController(cell));
                 cells[cellIndex++] = cell;
-                row.Children.Add(cell);
+                row.Children.Add(new KbmInput
+                {
+                    OnClick = () =>
+                    {
+                        if (!cell.IsDisabled) cell.RaiseClicked();
+                    },
+                    OnHoverEnter = () =>
+                    {
+                        if (!cell.IsDisabled) cell.SetHovered(true);
+                    },
+                    OnHoverExit = () => cell.SetHovered(false),
+                    Child = new Raw { View = cell },
+                }.BuildView(ctx));
             }
             grid.Children.Add(row);
         }

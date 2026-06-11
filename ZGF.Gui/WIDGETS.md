@@ -192,9 +192,40 @@ current vocabulary:
 | `ScrollArea` | scroll pane+scrollbar | wheel/drag/keys synced; needs a bounded height to engage |
 | `Each<T>` / `Each.Of` | `FlexView` + children binding | dynamic lists, scoped contexts |
 | `Raw` | — | embeds a prebuilt `View`; pins the widget to one window |
+| `KbmInput` | controller on the child's view | desktop input as a widget: `OnClick`/hover, raw handlers, `Controller` seam |
 
 All of these inherit shared per-view props from `Widget`: `Width`, `Height`,
 `MinWidth`, `MinHeight`, `Id`, `BindVisible`.
+
+### Input as widgets
+
+Views are input-agnostic so each platform can interpret the same tree with its own input
+stack. On desktop that interpretation is `KbmInput` (`ZGF.Gui.Desktop/Widgets/`), which wraps
+a child and registers a keyboard/mouse controller on the child's built view for its mounted
+lifetime — no wrapper view is inserted. Three tiers, combinable:
+
+- **Semantic callbacks** for the common case — `OnClick` (left press, consumes),
+  `OnHoverEnter`/`OnHoverExit`. They fire once per gesture, on the bubble phase.
+- **Raw handlers** (`OnMouseButton`, `OnKey`, `OnMouseWheel`, ...) see every phase and manage
+  consumption themselves.
+- **`Controller`** attaches a stateful `IKeyboardMouseController` built against the child's
+  view — created per mount, disposed per unmount. Use it when the interaction is a real
+  state machine (text editing, drag).
+
+```csharp
+new KbmInput
+{
+    OnClick = () => vm.StepMonth(-1),
+    OnHoverEnter = () => button.BackgroundColor = HoverColor,
+    OnHoverExit = () => button.BackgroundColor = NormalColor,
+    Child = new Raw { View = button },
+}
+```
+
+`view.UseController(...)` remains the imperative escape hatch inside `CreateView` when the
+controller targets a view other than the widget's root (e.g. the calendar's year input). A
+future mobile stack would ship its own `TouchInput` twin with touch-native semantics
+(tap, drag, long-press) over the same views.
 
 ### Writing a new view-constructing widget
 

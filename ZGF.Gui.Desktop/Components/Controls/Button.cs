@@ -1,5 +1,4 @@
-using ZGF.Gui.Desktop.Controllers;
-using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
 
@@ -33,41 +32,13 @@ public sealed record Button : Widget
             Padding = Padding,
             Children = { label },
         };
-        button.UseController(ctx.Require<InputSystem>(), () => new ButtonController(button, OnClick, Background, HoverBackground));
-        return button;
-    }
-}
 
-internal sealed class ButtonController : KeyboardMouseController
-{
-    private readonly RectView _button;
-    private readonly Action _onClick;
-    private readonly uint _normalColor;
-    private readonly uint _hoverColor;
-
-    public ButtonController(RectView button, Action onClick, uint normalColor, uint hoverColor)
-    {
-        _button = button;
-        _onClick = onClick;
-        _normalColor = normalColor;
-        _hoverColor = hoverColor;
-    }
-
-    public override void OnMouseEnter(ref MouseEnterEvent e)
-    {
-        _button.BackgroundColor = _hoverColor;
-    }
-
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        _button.BackgroundColor = _normalColor;
-    }
-
-    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
-    {
-        if (e.State != InputState.Pressed || e.Button != MouseButton.Left) return;
-
-        _onClick();
-        e.Consume();
+        return new KbmInput
+        {
+            OnClick = OnClick,
+            OnHoverEnter = () => button.BackgroundColor = HoverBackground,
+            OnHoverExit = () => button.BackgroundColor = Background,
+            Child = new Raw { View = button },
+        }.BuildView(ctx);
     }
 }
