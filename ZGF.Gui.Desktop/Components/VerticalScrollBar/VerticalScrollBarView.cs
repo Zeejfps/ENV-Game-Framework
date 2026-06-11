@@ -1,10 +1,13 @@
 using ZGF.Geometry;
-using ZGF.Gui.Desktop.Controllers;
-using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 
+/// <summary>
+/// Visual track + thumb composite with no input wiring — views stay input-agnostic.
+/// Widget land uses the <c>ScrollBar</c> widget instead; view-land consumers wire the
+/// thumb themselves (DragRecognizer + KbmHandlers via UseController).
+/// </summary>
 public sealed class VerticalScrollBarView : View
 {
     private readonly VerticalScrollBarThumbView _thumbView;
@@ -36,7 +39,7 @@ public sealed class VerticalScrollBarView : View
         set => _slideArea.BorderSize = value;
     }
 
-    public VerticalScrollBarView(InputSystem input)
+    public VerticalScrollBarView()
     {
         Width = 12;
 
@@ -60,31 +63,6 @@ public sealed class VerticalScrollBarView : View
         };
 
         AddChildToSelf(_slideArea);
-
-        var hovered = false;
-        DragRecognizer? drag = null;
-        _thumbView.UseController(input, () => drag = new DragRecognizer(input)
-        {
-            DragStarted = () => _thumbView.IsSelected = true,
-            Dragged = delta => _thumbView.Move(delta.Y),
-            DragEnded = () =>
-            {
-                if (!hovered) _thumbView.IsSelected = false;
-            },
-        });
-        _thumbView.UseController(input, new KbmHandlers
-        {
-            OnHoverEnter = () =>
-            {
-                hovered = true;
-                _thumbView.IsSelected = true;
-            },
-            OnHoverExit = () =>
-            {
-                hovered = false;
-                if (drag is not { IsDragging: true }) _thumbView.IsSelected = false;
-            },
-        });
     }
 
     public float Scale

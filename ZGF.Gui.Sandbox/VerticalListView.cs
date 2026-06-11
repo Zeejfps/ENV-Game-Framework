@@ -23,7 +23,7 @@ public sealed class VerticalListView : View
     public VerticalListView(InputSystem input)
     {
         ScrollPaneView = new VerticalScrollPane();
-        ScrollBarView = new VerticalScrollBarView(input);
+        ScrollBarView = new VerticalScrollBarView();
 
         AddChildToSelf(new BorderLayoutView
         {
@@ -31,7 +31,44 @@ public sealed class VerticalListView : View
             East = ScrollBarView,
         });
 
-        ScrollBarView.UseController(input, () => new VerticalScrollBarViewController(ScrollBarView));
+        var thumb = ScrollBarView.Thumb;
+        var hovered = false;
+        DragRecognizer? drag = null;
+        thumb.UseController(input, () => drag = new DragRecognizer(input)
+        {
+            DragStarted = () => thumb.IsSelected = true,
+            Dragged = delta => thumb.Move(delta.Y),
+            DragEnded = () =>
+            {
+                if (!hovered) thumb.IsSelected = false;
+            },
+        });
+        thumb.UseController(input, new KbmHandlers
+        {
+            OnHoverEnter = () =>
+            {
+                hovered = true;
+                thumb.IsSelected = true;
+            },
+            OnHoverExit = () =>
+            {
+                hovered = false;
+                if (drag is not { IsDragging: true }) thumb.IsSelected = false;
+            },
+        });
+        ScrollBarView.UseController(input, new KbmHandlers
+        {
+            OnMouseButton = (ref MouseButtonEvent e) =>
+            {
+                if (e.Phase == EventPhase.Bubbling
+                    && e.Button == MouseButton.Left
+                    && e.State == InputState.Pressed)
+                {
+                    ScrollBarView.ScrollToPoint(e.Mouse.Point);
+                    e.Consume();
+                }
+            },
+        });
     }
 
     public void Scroll(float delta)

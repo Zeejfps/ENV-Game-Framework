@@ -1,6 +1,7 @@
 using ZGF.Gui.Desktop.Components.VerticalScrollBar;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.VerticalScrollBar;
 using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
@@ -18,52 +19,53 @@ public sealed record ScrollArea : Widget
     public IWidget[] Children { get; init; } = [];
     public int Gap { get; init; }
 
-    protected override View CreateView(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
-        var input = ctx.Require<InputSystem>();
-
         var pane = new VerticalScrollPane { Gap = Gap };
         foreach (var child in Children)
             pane.Children.Add(child.BuildView(ctx));
 
-        var bar = new VerticalScrollBarView(input);
-        bar.UseController(input, () => new VerticalScrollBarViewController(bar));
-
-        var root = new BorderLayoutView
+        var thumb = new VerticalScrollBarThumbView();
+        return new KbmInput
         {
-            Center = pane,
-            East = bar,
+            Controller = _ => new ScrollAreaKbmController(pane, thumb),
+            Child = new Raw
+            {
+                View = new BorderLayoutView
+                {
+                    Center = pane,
+                    East = new ScrollBar { Thumb = thumb }.BuildView(ctx),
+                },
+            },
         };
-        root.UseController(input, () => new ScrollAreaKbmController(pane, bar));
-        return root;
     }
 }
 
 /// <summary>
-/// Keeps a scroll pane and its scrollbar in sync (position and thumb scale, both ways)
+/// Keeps a scroll pane and its scrollbar thumb in sync (position and thumb scale, both ways)
 /// and handles wheel/arrow-key scrolling for the area it is registered on. Subscriptions
 /// follow the controller's mounted lifetime.
 /// </summary>
 public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposable
 {
     private readonly VerticalScrollPane _pane;
-    private readonly VerticalScrollBarView _bar;
+    private readonly VerticalScrollBarThumbView _thumb;
 
-    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarView bar)
+    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarThumbView thumb)
     {
         _pane = pane;
-        _bar = bar;
+        _thumb = thumb;
 
         _pane.ScrollToTop();
-        _bar.ScrollToTop();
+        _thumb.ScrollToTop();
 
-        _bar.ScrollPositionChanged += OnBarScrolled;
+        _thumb.ScrollPositionChanged += OnBarScrolled;
         _pane.ScrollPositionChanged += OnPaneScrolled;
     }
 
     public void Dispose()
     {
-        _bar.ScrollPositionChanged -= OnBarScrolled;
+        _thumb.ScrollPositionChanged -= OnBarScrolled;
         _pane.ScrollPositionChanged -= OnPaneScrolled;
     }
 
@@ -71,8 +73,8 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
     {
         // The pane raises this from every layout pass, so it doubles as the seam that
         // keeps the thumb's scale in sync as content grows or shrinks.
-        _bar.Scale = _pane.Scale;
-        _bar.SetNormalizedScrollPosition(normalized);
+        _thumb.Scale = _pane.Scale;
+        _thumb.SetScrollPositionNormalized(normalized);
     }
 
     private void OnBarScrolled(float normalized)

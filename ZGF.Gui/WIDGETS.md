@@ -192,7 +192,8 @@ current vocabulary:
 | `ScrollArea` | scroll pane+scrollbar | wheel/drag/keys synced; needs a bounded height to engage |
 | `Each<T>` / `Each.Of` | `FlexView` + children binding | dynamic lists, scoped contexts |
 | `Raw` | — | embeds a prebuilt `View`; pins the widget to one window |
-| `KbmInput` | controller on the child's view | desktop input as a widget: `OnClick`/hover, raw handlers, `Controller` seam |
+| `KbmInput` | controller on the child's view | desktop input as a widget: `OnClick`/hover, drag, raw handlers, `Controller` seam |
+| `ScrollBar` | track `Box` + thumb via `KbmInput` | consumer supplies the thumb view as the sync handle |
 
 All of these inherit shared per-view props from `Widget`: `Width`, `Height`,
 `MinWidth`, `MinHeight`, `Id`, `BindVisible`.
@@ -219,8 +220,9 @@ lifetime — no wrapper view is inserted. Four tiers, combinable:
 
 View-land code (a `View` subclass with no build context) gets the same vocabulary as plain
 controllers: `KbmHandlers` (the delegate tiers as an `IKeyboardMouseController`) and
-`DragRecognizer`, both registered via `UseController`. The scrollbar thumbs compose the two —
-a recognizer for the drag, `KbmHandlers` for the hover highlight.
+`DragRecognizer`, both registered via `UseController`. The Sandbox's `VerticalListView`
+composes the two for its scrollbar — a recognizer for the thumb drag, `KbmHandlers` for the
+hover highlight and track click.
 
 ```csharp
 new KbmInput
