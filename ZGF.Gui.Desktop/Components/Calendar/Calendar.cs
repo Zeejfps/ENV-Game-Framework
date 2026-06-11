@@ -14,7 +14,7 @@ namespace ZGF.Gui.Desktop.Components.Calendar;
 /// <see cref="CalendarDayCell"/> stays a View — the grid drives it imperatively
 /// (Configure/SetHovered) on every refresh.
 /// </summary>
-public sealed record Calendar : Primitive
+public sealed record Calendar : Widget
 {
     private const int Columns = 7;
     private const int Rows = 6;

@@ -5,7 +5,7 @@ namespace LLMit.Components;
 
 public sealed record LeftSideBar : Component
 {
-    protected override IComponent Build(Context ctx) => new Box
+    protected override IWidget Build(Context ctx) => new Box
     {
         Width = 300,
         Background = 0xFF181818,

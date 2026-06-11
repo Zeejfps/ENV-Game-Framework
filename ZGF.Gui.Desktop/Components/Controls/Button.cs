@@ -5,7 +5,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.Controls;
 
-public sealed record Button : Primitive
+public sealed record Button : Widget
 {
     public required string Label { get; init; }
     public required Action OnClick { get; init; }

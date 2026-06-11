@@ -4,9 +4,9 @@ using ZGF.Gui.Views;
 
 namespace LLMit.Components.Primitives;
 
-public sealed record Center : Primitive
+public sealed record Center : Widget
 {
-    public required IComponent Child { get; init; }
+    public required IWidget Child { get; init; }
 
     protected override View CreateView(Context ctx) => new CenterView
     {

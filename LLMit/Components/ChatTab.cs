@@ -8,7 +8,7 @@ using ZGF.Gui.Desktop.Input;
 
 namespace LLMit.Components;
 
-public sealed record ChatTab : Primitive
+public sealed record ChatTab : Widget
 {
     protected override View CreateView(Context ctx)
     {

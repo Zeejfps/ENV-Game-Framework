@@ -1,4 +1,4 @@
-using ZGF.Gui.Components;
+﻿using ZGF.Gui.Components;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.TextInput;
 using ZGF.Gui.Desktop.Controllers;
@@ -7,7 +7,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed record Center : Primitive
+public sealed record Center : Widget
 {
     public required string ModelImageId { get; init; }
 

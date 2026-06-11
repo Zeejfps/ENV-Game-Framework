@@ -6,7 +6,7 @@ namespace LLMit.Components;
 
 public sealed record StartNewChat : Component
 {
-    protected override IComponent Build(Context ctx) => new Center
+    protected override IWidget Build(Context ctx) => new Center
     {
         Child = new Column
         {

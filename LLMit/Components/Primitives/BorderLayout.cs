@@ -4,13 +4,13 @@ using ZGF.Gui.Views;
 
 namespace LLMit.Components.Primitives;
 
-public sealed record BorderLayout : Primitive
+public sealed record BorderLayout : Widget
 {
-    public IComponent? North { get; init; }
-    public IComponent? South { get; init; }
-    public IComponent? East { get; init; }
-    public IComponent? West { get; init; }
-    public IComponent? Center { get; init; }
+    public IWidget? North { get; init; }
+    public IWidget? South { get; init; }
+    public IWidget? East { get; init; }
+    public IWidget? West { get; init; }
+    public IWidget? Center { get; init; }
 
     protected override View CreateView(Context ctx) => new BorderLayoutView
     {

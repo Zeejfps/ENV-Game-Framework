@@ -7,7 +7,7 @@ namespace ZGF.Gui.Components;
 /// <summary>
 /// Shared per-view props every primitive forwards onto the built <see cref="View"/>.
 /// </summary>
-public abstract record Primitive : IComponent
+public abstract record Widget : IWidget
 {
     public StyleValue<float> Width { get; init; }
     public StyleValue<float> Height { get; init; }
@@ -33,7 +33,7 @@ public abstract record Primitive : IComponent
     protected abstract View CreateView(Context ctx);
 }
 
-public sealed record Text : Primitive
+public sealed record Text : Widget
 {
     public string? Value { get; init; }
     public StyleValue<float> FontSize { get; init; }
@@ -60,14 +60,14 @@ public sealed record Text : Primitive
     }
 }
 
-public sealed record Box : Primitive
+public sealed record Box : Widget
 {
     public uint Background { get; init; }
     public PaddingStyle Padding { get; init; }
     public StyleValue<BorderRadiusStyle> BorderRadius { get; init; }
     public StyleValue<BorderSizeStyle> BorderSize { get; init; }
     public StyleValue<BorderColorStyle> BorderColor { get; init; }
-    public IComponent[] Children { get; init; } = [];
+    public IWidget[] Children { get; init; } = [];
 
     /// <summary>Auto-tracked background binding (hover/selection driven by VM state).</summary>
     public Func<uint>? BindBackground { get; init; }
@@ -85,12 +85,12 @@ public sealed record Box : Primitive
     }
 }
 
-public abstract record FlexBase : Primitive
+public abstract record FlexBase : Widget
 {
     public float Gap { get; init; }
     public MainAxisAlignment MainAxis { get; init; } = MainAxisAlignment.Start;
     public CrossAxisAlignment CrossAxis { get; init; } = CrossAxisAlignment.Start;
-    public IComponent[] Children { get; init; } = [];
+    public IWidget[] Children { get; init; } = [];
 
     protected abstract Axis Axis { get; }
 
@@ -123,9 +123,9 @@ public sealed record Row : FlexBase
 /// Wraps a child in a <see cref="FlexItem"/> so it grows along the parent flex axis.
 /// The child must build to a <see cref="MultiChildView"/> (FlexItem's requirement).
 /// </summary>
-public sealed record Grow : IComponent
+public sealed record Grow : IWidget
 {
-    public required IComponent Child { get; init; }
+    public required IWidget Child { get; init; }
     public float Factor { get; init; } = 1f;
 
     public View BuildView(Context ctx) => new FlexItem
@@ -136,7 +136,7 @@ public sealed record Grow : IComponent
 }
 
 /// <summary>Flexible empty space — <c>new Spacer()</c> pushes siblings apart.</summary>
-public sealed record Spacer : IComponent
+public sealed record Spacer : IWidget
 {
     public View BuildView(Context ctx) => new FlexItem { Grow = 1f, Child = new RectView() };
 }
@@ -151,7 +151,7 @@ public static class Each
 {
     public static Each<T> Of<T>(
         ObservableList<T> items,
-        IComponent template,
+        IWidget template,
         float gap = 0f,
         Axis axis = Axis.Vertical) where T : class =>
         new() { Items = items, Template = template, Gap = gap, ListAxis = axis };
@@ -169,7 +169,7 @@ public sealed record Each<T> : FlexBase
     where T : class
 {
     public required ObservableList<T> Items { get; init; }
-    public required IComponent Template { get; init; }
+    public required IWidget Template { get; init; }
     public Axis ListAxis { get; init; } = ZGF.Gui.Views.Axis.Vertical;
 
     protected override Axis Axis => ListAxis;

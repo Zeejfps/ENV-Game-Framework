@@ -10,7 +10,7 @@ using ZGF.KeyboardModule;
 
 namespace LLMit.Components;
 
-public sealed record ChatTextInput : Primitive
+public sealed record ChatTextInput : Widget
 {
     protected override View CreateView(Context ctx)
     {

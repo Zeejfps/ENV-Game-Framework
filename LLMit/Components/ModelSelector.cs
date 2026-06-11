@@ -11,7 +11,7 @@ using ZGF.Gui.Views;
 
 namespace LLMit.Components;
 
-public sealed record ModelSelector : Primitive
+public sealed record ModelSelector : Widget
 {
     protected override View CreateView(Context ctx)
     {

@@ -1,4 +1,4 @@
-using ZGF.Gui.Bindings;
+﻿using ZGF.Gui.Bindings;
 using ZGF.Gui.Components;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
@@ -7,7 +7,7 @@ using ZGF.Observable;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed record AppBar : Primitive
+public sealed record AppBar : Widget
 {
     protected override View CreateView(Context ctx)
     {

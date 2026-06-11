@@ -3,7 +3,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed record WindowTitleBar : Primitive
+public sealed record WindowTitleBar : Widget
 {
     public required string Title { get; init; }
 

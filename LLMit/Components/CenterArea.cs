@@ -7,7 +7,7 @@ namespace LLMit.Components;
 
 public sealed record CenterArea : Component
 {
-    protected override IComponent Build(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
         var vm = ctx.Require<AppViewModel>();
 

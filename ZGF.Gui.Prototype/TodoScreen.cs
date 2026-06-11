@@ -13,13 +13,13 @@ namespace ZGF.Gui.Prototype;
 /// </summary>
 public sealed record TodoScreen : Component
 {
-    protected override IComponent Build(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
         var vm = ctx.Require<TodoViewModel>();
         return Layout(vm);
     }
 
-    private static IComponent Layout(TodoViewModel Vm) => new Box
+    private static IWidget Layout(TodoViewModel Vm) => new Box
     {
         Background = 0xFF1E1E1E,
         Padding = PaddingStyle.All(16),
@@ -51,7 +51,7 @@ public sealed record TodoScreen : Component
         ],
     };
 
-    private static IComponent Header(TodoViewModel Vm) => new Row
+    private static IWidget Header(TodoViewModel Vm) => new Row
     {
         Gap = 8,
         CrossAxis = CrossAxisAlignment.Center,
@@ -78,14 +78,14 @@ public sealed record TodoScreen : Component
 /// </summary>
 public sealed record TaskRow : Component
 {
-    protected override IComponent Build(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
         var list = ctx.Require<TodoViewModel>();
         var task = ctx.Require<TaskViewModel>();
         return Layout(list, task);
     }
 
-    private static IComponent Layout(TodoViewModel Vm, TaskViewModel Task) => new Box
+    private static IWidget Layout(TodoViewModel Vm, TaskViewModel Task) => new Box
     {
         Padding = PaddingStyle.All(8),
         BorderRadius = BorderRadiusStyle.All(4),

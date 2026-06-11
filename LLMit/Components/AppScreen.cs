@@ -6,7 +6,7 @@ namespace LLMit.Components;
 
 public sealed record AppScreen : Component
 {
-    protected override IComponent Build(Context ctx) => new BorderLayout
+    protected override IWidget Build(Context ctx) => new BorderLayout
     {
         West = new LeftSideBar(),
         Center = new CenterArea(),
