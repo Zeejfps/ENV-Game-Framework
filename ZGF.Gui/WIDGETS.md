@@ -202,15 +202,25 @@ All of these inherit shared per-view props from `Widget`: `Width`, `Height`,
 Views are input-agnostic so each platform can interpret the same tree with its own input
 stack. On desktop that interpretation is `KbmInput` (`ZGF.Gui.Desktop/Widgets/`), which wraps
 a child and registers a keyboard/mouse controller on the child's built view for its mounted
-lifetime — no wrapper view is inserted. Three tiers, combinable:
+lifetime — no wrapper view is inserted. Four tiers, combinable:
 
 - **Semantic callbacks** for the common case — `OnClick` (left press, consumes),
   `OnHoverEnter`/`OnHoverExit`. They fire once per gesture, on the bubble phase.
+- **Drag callbacks** — `OnDragStart`/`OnDrag(Vector2 delta)`/`OnDragEnd` plus `DragThreshold`
+  (0 = drag starts on press; >0 = press arms, drag starts past the travel). The framework's
+  `DragRecognizer` owns the gesture state (`_isDragging`, previous point) and the
+  steal-focus/consume/blur dance; it is recreated per mount so state can't leak across
+  remounts. App code stays stateless.
 - **Raw handlers** (`OnMouseButton`, `OnKey`, `OnMouseWheel`, ...) see every phase and manage
   consumption themselves.
 - **`Controller`** attaches a stateful `IKeyboardMouseController` built against the child's
-  view — created per mount, disposed per unmount. Use it when the interaction is a real
-  state machine (text editing, drag).
+  view — created per mount, disposed per unmount. Use it when the interaction is a state
+  machine the framework doesn't own a recognizer for (text editing).
+
+View-land code (a `View` subclass with no build context) gets the same vocabulary as plain
+controllers: `KbmHandlers` (the delegate tiers as an `IKeyboardMouseController`) and
+`DragRecognizer`, both registered via `UseController`. The scrollbar thumbs compose the two —
+a recognizer for the drag, `KbmHandlers` for the hover highlight.
 
 ```csharp
 new KbmInput

@@ -101,7 +101,11 @@ public sealed class Window : View
         };
         AddChildToSelf(outline);
 
-        titleBar.UseController(input, () => new WindowTitleBarDefaultKbmController(this, input));
+        titleBar.UseController(input, () => new DragRecognizer(input)
+        {
+            Threshold = 1f,
+            Dragged = delta => Move(delta.X, delta.Y),
+        });
     }
 
     protected override void OnLayoutSelf()

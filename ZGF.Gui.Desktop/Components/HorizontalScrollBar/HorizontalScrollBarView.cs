@@ -61,7 +61,30 @@ public sealed class HorizontalScrollBarView : View
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.UseController(input, () => new HorizontalScrollBarThumbViewController(_thumbView, input));
+        var hovered = false;
+        DragRecognizer? drag = null;
+        _thumbView.UseController(input, () => drag = new DragRecognizer(input)
+        {
+            DragStarted = () => _thumbView.IsSelected = true,
+            Dragged = delta => _thumbView.Move(delta.X),
+            DragEnded = () =>
+            {
+                if (!hovered) _thumbView.IsSelected = false;
+            },
+        });
+        _thumbView.UseController(input, new KbmHandlers
+        {
+            OnHoverEnter = () =>
+            {
+                hovered = true;
+                _thumbView.IsSelected = true;
+            },
+            OnHoverExit = () =>
+            {
+                hovered = false;
+                if (drag is not { IsDragging: true }) _thumbView.IsSelected = false;
+            },
+        });
     }
 
     public float Scale
