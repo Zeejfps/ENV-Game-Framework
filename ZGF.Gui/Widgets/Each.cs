@@ -35,17 +35,34 @@ public sealed record Each<T> : FlexBase
     public required IWidget Template { get; init; }
     public Axis ListAxis { get; init; } = ZGF.Gui.Views.Axis.Vertical;
 
+    /// <summary>
+    /// Optional extra per-item registrations on the item's scope (beyond the item itself) —
+    /// e.g. a row controller or per-item service. Singletons the scope creates are disposed
+    /// when the item is removed from the list.
+    /// </summary>
+    public Action<Context, T>? ConfigureScope { get; init; }
+
     protected override Axis Axis => ListAxis;
 
     protected override View CreateView(Context ctx)
     {
         var v = (FlexView)base.CreateView(ctx);
-        v.Children.BindChildren(Items, item =>
-        {
-            var scope = new Context(ctx);
-            scope.AddService<T>(item);
-            return Template.BuildView(scope);
-        });
+        var scopes = new Dictionary<View, Context>();
+        v.Children.BindChildren(Items,
+            item =>
+            {
+                var scope = new Context(ctx);
+                scope.AddService(item);
+                ConfigureScope?.Invoke(scope, item);
+                var child = Template.BuildView(scope);
+                scopes[child] = scope;
+                return child;
+            },
+            onRemoved: child =>
+            {
+                if (scopes.Remove(child, out var scope))
+                    scope.Dispose();
+            });
         return v;
     }
 }

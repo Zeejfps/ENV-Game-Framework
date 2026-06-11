@@ -164,6 +164,8 @@ public sealed record TaskRow : Widget
 
 Resolution is nearest-scope-wins, so nested `Each`es of the same item type shadow correctly.
 Adds/removes/moves on the source list create and destroy subtrees live; no manual wiring.
+`Each.ConfigureScope` registers extra per-item services on the scope; singletons the scope
+creates are disposed when the item is removed.
 
 Constraint to design around: scopes are type-keyed. One registration per type per scope —
 "what type does this item resolve as" is part of an item VM's API design.
@@ -272,9 +274,6 @@ on every show.
 
 ## Known gaps
 
-- `Each` does not yet dispose per-item scopes on removal. Harmless today (item scopes only
-  hold caller-owned registrations), required before item scopes may register factory-created
-  `IDisposable`s. `BindChildren`'s `onRemoved` hook is the seam.
 - Grow the widget vocabulary on demand; `Raw` in app code is the signal a wrapper is missing.
 - Legacy composite `View` subclasses coexist fine — embed via `Raw { View = ... }` until
   each is converted to a widget + VM.
