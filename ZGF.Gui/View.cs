@@ -4,7 +4,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
-public abstract class View
+public class View
 {
     /// <summary>True while this view is part of a window's live tree. Behaviors are attached
     /// exactly while mounted; their subscriptions are disposed on unmount.</summary>
@@ -209,9 +209,55 @@ public abstract class View
     protected readonly List<View> _children = new();
     protected readonly List<IViewBehavior> _behaviors = new();
 
+    public virtual ChildrenCollection Children { get; }
+
     public View()
     {
         Behaviors = new BehaviorCollection(this);
+        Children = new ChildrenCollection(this);
+    }
+
+    /// <summary>
+    /// A view's children. A concrete collection with a by-value <see cref="Enumerator"/> — the
+    /// same shape as <see cref="List{T}"/> — so <c>foreach (var child in Children)</c> allocates
+    /// nothing. It implements only the non-generic <see cref="IEnumerable"/>, which is all that
+    /// collection-initializer syntax (<c>Children = { a, b }</c>) needs; there is deliberately no
+    /// <c>IEnumerable&lt;View&gt;</c> LINQ surface that would box an enumerator.
+    /// </summary>
+    public sealed class ChildrenCollection(View view) : IEnumerable
+    {
+        public int Count => view._children.Count;
+
+        public View this[int index] => view._children[index];
+
+        public Enumerator GetEnumerator() => new(view._children);
+
+        IEnumerator IEnumerable.GetEnumerator() => view._children.GetEnumerator();
+
+        public void Add(View child) => view.AddChildToSelf(child);
+
+        public void Insert(int index, View child) => view.InsertChildToSelf(index, child);
+
+        public void Move(View child, int newIndex) => view.MoveChildToSelf(child, newIndex);
+
+        public bool Remove(View child) => view.RemoveChildFromSelf(child);
+
+        public bool Contains(View child) => view._children.Contains(child);
+
+        public void Clear()
+        {
+            foreach (var child in view._children.ToArray())
+                Remove(child);
+        }
+
+        public struct Enumerator(List<View> children)
+        {
+            private List<View>.Enumerator _inner = children.GetEnumerator();
+
+            public View Current => _inner.Current;
+
+            public bool MoveNext() => _inner.MoveNext();
+        }
     }
     
     public void BringToFront(View view)

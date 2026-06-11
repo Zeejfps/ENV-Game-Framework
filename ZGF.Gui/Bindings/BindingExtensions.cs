@@ -192,10 +192,10 @@ public static class BindingExtensions
         }
     }
 
-    extension(MultiChildView parent)
+    extension(View parent)
     {
         /// <summary>
-        /// Binds the parent's <see cref="MultiChildView.Children"/> to the source list. Add/
+        /// Binds the parent's <see cref="View.Children"/> to the source list. Add/
         /// Insert/Remove/Move/Replace/Clear events from the source produce matching mutations
         /// on the parent's children — no full diff. Subscription is tied to the parent's
         /// context lifecycle.
@@ -211,7 +211,7 @@ public static class BindingExtensions
         }
 
         /// <summary>
-        /// Binds the parent's <see cref="MultiChildView.Children"/> to a derived list. The
+        /// Binds the parent's <see cref="View.Children"/> to a derived list. The
         /// compute function's observable reads are auto-tracked; when any dependency
         /// invalidates, the function re-runs and the children are reseeded.
         /// </summary>

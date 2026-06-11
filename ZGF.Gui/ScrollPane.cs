@@ -8,7 +8,7 @@ namespace ZGF.Gui;
 /// gives it max(viewport, natural) on each axis, and translates it by the current scroll
 /// distances. Fires normalized scroll-position events for vertical and horizontal axes.
 /// </summary>
-public sealed class ScrollPane : MultiChildView, IScrollableContent
+public sealed class ScrollPane : View, IScrollableContent
 {
     public event Action<float>? VerticalScrollPositionChanged;
     public event Action<float>? HorizontalScrollPositionChanged;

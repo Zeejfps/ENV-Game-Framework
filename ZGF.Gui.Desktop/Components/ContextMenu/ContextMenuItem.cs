@@ -7,7 +7,7 @@ public sealed class ContextMenuItemData
     public string Text { get; set; }
 }
 
-public sealed class ContextMenuItem : MultiChildView
+public sealed class ContextMenuItem : View
 {
     private uint _normalBackgroundColor;
     public uint NormalBackgroundColor
@@ -36,7 +36,7 @@ public sealed class ContextMenuItem : MultiChildView
     private readonly TextView _textView;
     private readonly TextView _shortcutView;
     private FlexRowView _row = null!;
-    private MultiChildView _labelView = null!;
+    private View _labelView = null!;
 
     public string? Text
     {
@@ -201,7 +201,7 @@ public sealed class ContextMenuItem : MultiChildView
         _arrowView.TextColor = color;
     }
 
-    public void SetLabelView(MultiChildView labelView)
+    public void SetLabelView(View labelView)
     {
         var idx = -1;
         for (var i = 0; i < _row.Children.Count; i++)

@@ -5,7 +5,7 @@ namespace ZGF.Gui.Bindings;
 internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     where TChild : View
 {
-    private readonly MultiChildView _parent;
+    private readonly View _parent;
     private readonly ObservableList<TItem> _source;
     private readonly Func<TItem, TChild> _create;
     private readonly Action<TChild, TItem>? _onCreated;
@@ -15,7 +15,7 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     private readonly List<TChild> _tracked = new();
 
     public ChildrenBindingBehavior(
-        MultiChildView parent,
+        View parent,
         ObservableList<TItem> source,
         Func<TItem, TChild> create,
         Action<TChild, TItem>? onCreated,

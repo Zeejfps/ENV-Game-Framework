@@ -4,7 +4,7 @@ using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop.Components.TextInput;
 
-public sealed class TextInputView : MultiChildView
+public sealed class TextInputView : View
 {
     private StyleValue<TextWrap> _textWrap;
     public StyleValue<TextWrap> TextWrap

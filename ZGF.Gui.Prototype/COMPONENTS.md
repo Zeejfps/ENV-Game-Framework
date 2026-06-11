@@ -264,9 +264,7 @@ on every show.
 - `Each` does not yet dispose per-item scopes on removal. Harmless today (item scopes only
   hold caller-owned registrations), required before item scopes may register factory-created
   `IDisposable`s. `BindChildren`'s `onRemoved` hook is the seam.
-- `FlexItem.Child` requires a `MultiChildView`, so `Grow`/`Spacer` cast. Relax to `View` in
-  `ZGF.Gui` eventually.
-- The primitive vocabulary is minimal; grow it on demand (Image, ScrollPane, TextInput,
-  Center wrappers are obvious next candidates).
-- Legacy composite `View` subclasses (Calendar, etc.) coexist fine — embed via
-  `Raw { View = ... }` until each is converted to a component + VM.
+- The primitive vocabulary is minimal; grow it on demand (Image, ScrollPane and TextInput
+  wrappers are obvious next candidates).
+- Legacy composite `View` subclasses coexist fine — embed via `Raw { View = ... }` until
+  each is converted to a widget + VM.

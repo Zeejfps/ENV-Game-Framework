@@ -44,7 +44,7 @@ public sealed record MainPanel : Widget
         textInput.UseController(input, () => new TextInputViewKbmController(textInput, input, clipboard));
         listView.UseController(input, () => new DefaultVerticalListViewKbmController(listView));
 
-        return new MultiChildView
+        return new View
         {
             Children =
             {

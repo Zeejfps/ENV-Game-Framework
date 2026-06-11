@@ -3,7 +3,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.Calendar;
 
-public sealed class CalendarDayCell : MultiChildView
+public sealed class CalendarDayCell : View
 {
     private readonly RectView _bg;
     private readonly TextView _label;

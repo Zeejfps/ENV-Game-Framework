@@ -3,7 +3,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Views;
 
-public sealed class TextView : MultiChildView
+public sealed class TextView : View
 {
     private readonly ICanvas _canvas;
     private readonly TextStyle _style = new();

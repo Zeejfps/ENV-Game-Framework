@@ -15,7 +15,7 @@ public sealed class GuiApp : IDisposable
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly IGuiRenderBackend _renderBackend;
     private readonly DesktopInputSystem _mainInput;
-    private readonly MultiChildView _root;
+    private readonly View _root;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly FrameTicker _frameTicker;
     private long _lastAnimationTimestamp;
@@ -78,7 +78,7 @@ public sealed class GuiApp : IDisposable
         // fully-wired main-window context.
         var content = contentFactory(context);
 
-        _root = new MultiChildView
+        _root = new View
         {
             Width = mainCanvas.Width,
             Height = mainCanvas.Height,

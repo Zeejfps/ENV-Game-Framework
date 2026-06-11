@@ -5,7 +5,7 @@ namespace ZGF.Gui.Views;
 /// drawing — use this for pure spacing. Reach for <see cref="RectView"/> only when
 /// you also need to paint a box.
 /// </summary>
-public sealed class PaddingView : MultiChildView
+public sealed class PaddingView : View
 {
     private PaddingStyle _padding;
 

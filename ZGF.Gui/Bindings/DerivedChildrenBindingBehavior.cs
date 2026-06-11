@@ -10,7 +10,7 @@ namespace ZGF.Gui.Bindings;
 internal sealed class DerivedChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     where TChild : View
 {
-    private readonly MultiChildView _parent;
+    private readonly View _parent;
     private readonly Func<IEnumerable<TItem>> _compute;
     private readonly Func<TItem, TChild> _create;
 
@@ -19,7 +19,7 @@ internal sealed class DerivedChildrenBindingBehavior<TItem, TChild> : IViewBehav
     private readonly List<TChild> _tracked = new();
 
     public DerivedChildrenBindingBehavior(
-        MultiChildView parent,
+        View parent,
         Func<IEnumerable<TItem>> compute,
         Func<TItem, TChild> create)
     {

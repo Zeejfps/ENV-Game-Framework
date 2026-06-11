@@ -5,18 +5,18 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed class Window : MultiChildView
+public sealed class Window : View
 {
     public string TitleText { get; }
 
-    private readonly MultiChildView _contents;
+    private readonly View _contents;
     public override ChildrenCollection Children => _contents.Children;
 
     public Window(string titleText, InputSystem input, View titleBar)
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
-        _contents = new MultiChildView();
+        _contents = new View();
 
         var leftBorder = new RectView
         {

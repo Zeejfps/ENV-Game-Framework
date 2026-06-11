@@ -7,7 +7,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed class VerticalListView : MultiChildView
+public sealed class VerticalListView : View
 {
     public StyleValue<int> Gap
     {
@@ -49,7 +49,7 @@ public sealed class VerticalListView : MultiChildView
         ScrollPaneView.ScrollDown(delta);
     }
 
-    public void ScrollTo(MultiChildView view)
+    public void ScrollTo(View view)
     {
         
     }

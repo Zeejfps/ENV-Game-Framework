@@ -14,7 +14,7 @@ namespace ZGF.Gui.Views;
 /// viewport. This is what guarantees a centered modal never grows past the
 /// window it sits in.
 /// </summary>
-public sealed class CenterView : MultiChildView
+public sealed class CenterView : View
 {
     /// <summary>
     /// Gap kept between a clamped child and the viewport edge, so a child forced

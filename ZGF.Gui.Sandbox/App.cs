@@ -26,7 +26,7 @@ public sealed class App : IDisposable
     private readonly OpenGlWindow _mainWindow;
     private readonly OpenGlRenderedCanvas _canvas;
     private readonly GlSharedResources _shared;
-    private readonly MultiChildView _gui;
+    private readonly View _gui;
 
     private readonly DesktopInputSystem _inputSystem;
     private readonly FreeTypeFontBackend _fontBackend;
@@ -133,7 +133,7 @@ public sealed class App : IDisposable
             Center = center,
         };
 
-        _gui = new MultiChildView
+        _gui = new View
         {
             Width = _canvas.Width,
             Height = _canvas.Height,

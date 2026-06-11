@@ -5,7 +5,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.HorizontalScrollBar;
 
-public sealed class HorizontalScrollBarView : MultiChildView
+public sealed class HorizontalScrollBarView : View
 {
     private readonly HorizontalScrollBarThumbView _thumbView;
     private readonly RectView _slideArea;

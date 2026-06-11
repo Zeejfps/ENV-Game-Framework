@@ -5,7 +5,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 
-public sealed class VerticalScrollBarView : MultiChildView
+public sealed class VerticalScrollBarView : View
 {
     private readonly VerticalScrollBarThumbView _thumbView;
     private readonly RectView _slideArea;

@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Views;
 
-public sealed class ImageView : MultiChildView
+public sealed class ImageView : View
 {
     private readonly ICanvas _canvas;
 
