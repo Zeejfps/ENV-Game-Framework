@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ZGF.Desktop;
-using ZGF.Gui;
 using ZGF.Gui.Desktop;
 using ZGF.Observable;
 using ZGF.Gui.MemoryDiagnostics;
@@ -58,9 +57,11 @@ var config = new StartupConfig
     IsUndecorated = false,
 };
 
-var context = new Context();
-var guiApp = GuiApp.CreateDefault(config, context, scenario.Root);
-var dispatcher = context.Get<IUiDispatcher>()
+var builder = GuiApp.CreateBuilder(config);
+var guiApp = builder
+    .UseContent(scenario.Root)
+    .Build();
+var dispatcher = builder.Services.Get<IUiDispatcher>()
                  ?? throw new InvalidOperationException("IUiDispatcher not registered by GuiApp.");
 
 // Driver runs off the UI thread: it paces scenario mutations (marshaled onto the UI thread
