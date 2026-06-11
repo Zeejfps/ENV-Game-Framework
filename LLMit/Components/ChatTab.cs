@@ -9,7 +9,7 @@ namespace LLMit.Components;
 
 public sealed record ChatTab : Widget
 {
-    protected override View CreateView(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
         var tab = ctx.Require<ChatTabViewModel>();
 
@@ -24,6 +24,6 @@ public sealed record ChatTab : Widget
             OnHoverEnter = () => view.IsHighlighted = true,
             OnHoverExit = () => view.IsHighlighted = false,
             Child = new Raw { View = view },
-        }.BuildView(ctx);
+        };
     }
 }

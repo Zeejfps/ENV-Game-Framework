@@ -1,6 +1,6 @@
 using ZGF.Gui.Desktop.Widgets;
-using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop.Components.Controls;
 
@@ -14,31 +14,31 @@ public sealed record Button : Widget
     public StyleValue<float> FontSize { get; init; }
     public PaddingStyle Padding { get; init; } = new() { Left = 10, Right = 10, Top = 4, Bottom = 4 };
 
-    protected override View CreateView(Context ctx)
+    protected override IWidget Build(Context ctx)
     {
-        var label = new TextView(ctx.Canvas)
-        {
-            Text = Label,
-            TextColor = TextColor,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-        };
-        if (FontSize.IsSet) label.FontSize = FontSize;
-
-        var button = new RectView
-        {
-            BackgroundColor = Background,
-            BorderRadius = BorderRadiusStyle.All(4),
-            Padding = Padding,
-            Children = { label },
-        };
-
+        var hovered = new State<bool>(false);
         return new KbmInput
         {
             OnClick = OnClick,
-            OnHoverEnter = () => button.BackgroundColor = HoverBackground,
-            OnHoverExit = () => button.BackgroundColor = Background,
-            Child = new Raw { View = button },
-        }.BuildView(ctx);
+            OnHoverEnter = () => hovered.Value = true,
+            OnHoverExit = () => hovered.Value = false,
+            Child = new Box
+            {
+                BindBackground = () => hovered.Value ? HoverBackground : Background,
+                BorderRadius = BorderRadiusStyle.All(4),
+                Padding = Padding,
+                Children =
+                [
+                    new Text
+                    {
+                        Value = Label,
+                        Color = TextColor,
+                        FontSize = FontSize,
+                        HAlign = TextAlignment.Center,
+                        VAlign = TextAlignment.Center,
+                    },
+                ],
+            },
+        };
     }
 }

@@ -186,7 +186,7 @@ current vocabulary:
 | `Center` | `CenterView` | centers `Child` in the available space |
 | `Grow` | `FlexItem` | `Child` grows along the parent flex axis |
 | `Spacer` | `FlexItem` | flexible empty space between siblings |
-| `Button` | `RectView`+`TextView`+controller | `Label`, `OnClick` (both `required`) |
+| `Button` | `KbmInput`→`Box`→`Text` | `Label`, `OnClick` (both `required`); pure `Build` composition |
 | `Image` | `ImageView` | `ImageId`, `Tint`, `Rotation` |
 | `TextInput` | `TextInputView`+controller | two-way `Value` (`State<string>`), `Placeholder`, clipboard wired |
 | `ScrollArea` | scroll pane+scrollbar | wheel/drag/keys synced; needs a bounded height to engage |
@@ -226,6 +226,16 @@ new KbmInput
 controller targets a view other than the widget's root (e.g. the calendar's year input). A
 future mobile stack would ship its own `TouchInput` twin with touch-native semantics
 (tap, drag, long-press) over the same views.
+
+With `KbmInput`, an interactive control can be pure `Build` composition — no views, no
+`Raw`: `Button` is `KbmInput` → `Box` (with `BindBackground` over a local
+`State<bool> hovered`) → `Text`.
+
+**`widget.BuildView(ctx)` is for crossing the widget→view boundary mid-tree only** (adding a
+built widget into a view's `Children`, the mirror image of `Raw`). If a `CreateView` override
+*ends* with `return someWidget.BuildView(ctx);`, that's `Build`'s job — override `Build` and
+return the widget instead. `Build` also receives the context, so it may still construct and
+wire views (via `Raw`) when it needs to; the difference is only who calls `BuildView`.
 
 ### Writing a new view-constructing widget
 
