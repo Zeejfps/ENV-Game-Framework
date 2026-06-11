@@ -1,19 +1,19 @@
-# Building GUIs with Components
+# Building GUIs with Widgets
 
-This document describes the component pattern prototyped in `ZGF.Gui.Prototype`. It is the
-intended way to build new screens and app-level UI.
+This document describes the widget pattern — the intended way to build new screens and
+app-level UI. `ZGF.Gui.Prototype` is the running reference example.
 
 ## The architecture in one picture
 
 ```
 Context      DI container, per window. Exists at BUILD TIME only. The ONLY way data and
    │         services reach UI code.
-Components   Inert records. Build(ctx) resolves dependencies and returns structure.
+Widgets      Inert records. Build(ctx) resolves dependencies and returns structure.
    │         One BuildView(ctx) call at the window recurses to the leaves.
    ▼
 Views        Retained tree: layout, drawing, dirty tracking, input. Carries NO context —
              every dependency was injected when it was built. Never written by hand in
-             app code — only primitives construct them.
+             app code — only widgets construct them.
 ```
 
 Views know nothing about `Context`. A built view holds exactly the dependencies its
@@ -40,17 +40,17 @@ A GUI is three kinds of objects:
 
 ## The rules
 
-1. **Everything comes from Context.** Components never receive ViewModels or services through
+1. **Everything comes from Context.** Widgets never receive ViewModels or services through
    constructors. `Build(ctx)` resolves them: `ctx.Require<TodoViewModel>()`. Per-item data
-   reaches item components through *scoped* child contexts (see Lists below).
-2. **No constructor parameters, anywhere.** Components use init-only properties. Mandatory
+   reaches item widgets through *scoped* child contexts (see Lists below).
+2. **No constructor parameters, anywhere.** Widgets use init-only properties. Mandatory
    props are marked `required` so the compiler still enforces them:
    `new Button { Label = "Add", OnClick = vm.AddTask }`.
-3. **Components are immutable templates.** A component instance can be built any number of
+3. **Widgets are immutable templates.** A widget instance can be built any number of
    times, against any window's context. All mutable state lives in ViewModels; all
    change-over-time on screen happens through bindings.
-4. **App code never touches `View`.** If a screen needs something the primitives can't
-   express, either write a new primitive (see below) or use `Raw { View = ... }` as an
+4. **App code never touches `View`.** If a screen needs something the built-in widgets can't
+   express, either write a new widget (see below) or use `Raw { View = ... }` as an
    explicit, deliberate escape hatch.
 
 ## Writing a screen
@@ -116,7 +116,7 @@ app.Run();
 
 VM lifetimes:
 
-- **Registered singleton** — one instance per context, shared by every component that
+- **Registered singleton** — one instance per context, shared by every widget that
   resolves it, disposed by the context on shutdown (if container-created and `IDisposable`).
   Use for screen/feature VMs.
 - **Unregistered constructible** — `ctx.Require<T>()` falls through to constructor injection
@@ -125,8 +125,8 @@ VM lifetimes:
 
 ## Binding: how the screen changes after build
 
-Components describe the initial structure; everything dynamic flows through auto-tracked
-bindings declared as `Func<T>` props on primitives. Any `State<T>`/`ObservableList<T>` read
+Widgets describe the initial structure; everything dynamic flows through auto-tracked
+bindings declared as `Func<T>` props on widgets. Any `State<T>`/`ObservableList<T>` read
 inside the function is tracked; the binding re-fires when any of them change, and its
 lifetime follows the view (subscribe on mount, dispose on unmount).
 
@@ -136,7 +136,7 @@ new Text { Value = "Nothing to do.", BindVisible = () => vm.Tasks.Count == 0 },
 new Box  { BindBackground = () => task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A, ... },
 ```
 
-There is no diffing/reconciliation: a component builds once, then bindings mutate the
+There is no diffing/reconciliation: a widget builds once, then bindings mutate the
 retained views in place. If you find yourself wanting to "rebuild on state change," you
 almost always want a binding (or `Each` for lists) instead.
 
@@ -170,9 +170,10 @@ Constraint to design around: scopes are type-keyed. One registration per type pe
 
 ## Primitives
 
-The component infrastructure lives in the framework: `IWidget`/`Widget`/`Raw` and the
-layout primitives in `ZGF.Gui/Components/` (namespace `ZGF.Gui.Components`), input-bearing
-controls like `Button` in `ZGF.Gui.Desktop/Components/Controls/`. The current vocabulary:
+The widget infrastructure lives in the framework: `IWidget`/`Widget`/`Raw` and the layout
+widgets in `ZGF.Gui/Widgets/` (namespace `ZGF.Gui.Widgets`), input-bearing controls like
+`Button`, `TextInput` and `ScrollArea` in `ZGF.Gui.Desktop/Components/Controls/`. The
+current vocabulary:
 
 | Primitive | Builds | Notes |
 |---|---|---|
@@ -184,13 +185,16 @@ controls like `Button` in `ZGF.Gui.Desktop/Components/Controls/`. The current vo
 | `Grow` | `FlexItem` | `Child` grows along the parent flex axis |
 | `Spacer` | `FlexItem` | flexible empty space between siblings |
 | `Button` | `RectView`+`TextView`+controller | `Label`, `OnClick` (both `required`) |
+| `Image` | `ImageView` | `ImageId`, `Tint`, `Rotation` |
+| `TextInput` | `TextInputView`+controller | two-way `Value` (`State<string>`), `Placeholder`, clipboard wired |
+| `ScrollArea` | scroll pane+scrollbar | wheel/drag/keys synced; needs a bounded height to engage |
 | `Each<T>` / `Each.Of` | `FlexView` + children binding | dynamic lists, scoped contexts |
-| `Raw` | — | embeds a prebuilt `View`; pins the component to one window |
+| `Raw` | — | embeds a prebuilt `View`; pins the widget to one window |
 
-All primitives inherit shared per-view props from `Widget`: `Width`, `Height`,
+All of these inherit shared per-view props from `Widget`: `Width`, `Height`,
 `MinWidth`, `MinHeight`, `Id`, `BindVisible`.
 
-### Writing a new primitive
+### Writing a new view-constructing widget
 
 Drop down a level when a piece needs view construction, controllers, or services — i.e. when
 `Build` returning other widgets isn't enough. Override `CreateView` instead of `Build`; this
@@ -216,12 +220,12 @@ controllers take `ctx.Require<InputSystem>()`, and anything a controller needs a
 (clipboard, coordinates, app services) is resolved here and passed through its constructor.
 Nothing reaches back into a context after build.
 
-Generic primitives should also ship a static factory for type inference (`Each.Of`), since
+Generic widgets should also ship a static factory for type inference (`Each.Of`), since
 C# does not infer generic arguments from constructors or initializers.
 
 ### When to subclass `View` instead
 
-Components compose; they do not lay out or paint. Write a `View` subclass only for:
+Widgets compose; they do not lay out or paint. Write a `View` subclass only for:
 
 - a new layout/paint algorithm (something that overrides `Measure*`/`OnLayout*`/`OnDrawSelf`),
 - a widget with an imperative peer protocol — a sibling view's layout or controller drives it
@@ -235,7 +239,7 @@ slot-style views (`FlexItem`, `BorderLayoutView`) keep it protected and accept c
 through their slots. Children bindings (`BindChildren`) live on the collection, so they're
 only available where children are public.
 
-Then expose it to component land with a primitive wrapper. The reference example is
+Then expose it to widget land with a wrapper. The reference example is
 `ZGF.Gui.Desktop/Components/Calendar/Calendar.cs`: a `Widget` whose `CreateView` resolves
 `CalendarViewModel` from the context, assembles plain views (the day cells stay Views), wires
 controllers, and binds VM state to a refresh routine.
@@ -246,18 +250,18 @@ controllers, and binds VM state to a refresh routine.
   commands. No view types, no `Context` — VMs receive *their* dependencies via constructor
   (the container injects them when registered with `AddSingleton<T>()`).
 - View-derived facts a host needs to query (focus, scroll position) are exposed as a
-  VM property whose implementation the building component supplies:
+  VM property whose implementation the building widget supplies:
   `vm.FocusProbe = () => ReferenceEquals(input.FocusedComponent, controller);`
 - Constructor args = the VM's own dependencies. Widget init-props = static config.
-  Context = how VMs reach components. Keep those three channels straight.
+  Context = how VMs reach widgets. Keep those three channels straight.
 
 ## Multi-window
 
-Components are window-agnostic; built Views are not. The rule:
+Widgets are window-agnostic; built Views are not. The rule:
 
-- Share **components** freely — build the same instance in any window's context.
+- Share **widgets** freely — build the same instance in any window's context.
 - Never move a **built View** between windows. To show the "same" UI elsewhere, build the
-  component again against that window's context.
+  widget again against that window's context.
 
 The framework enforces this: every window owner takes a build factory, not a view —
 `GuiAppBuilder.UseContent(Func<Context, View>)`, `SecondaryWindowRequest.BuildRoot`,
@@ -266,12 +270,11 @@ Each window invokes the factory with its **own** context (its canvas, its `Input
 `IWindowCoordinates`), so popup menus and secondary windows are built fresh, correctly wired,
 on every show.
 
-## Known gaps (prototype status)
+## Known gaps
 
 - `Each` does not yet dispose per-item scopes on removal. Harmless today (item scopes only
   hold caller-owned registrations), required before item scopes may register factory-created
   `IDisposable`s. `BindChildren`'s `onRemoved` hook is the seam.
-- The primitive vocabulary is minimal; grow it on demand (Image, ScrollPane and TextInput
-  wrappers are obvious next candidates).
+- Grow the widget vocabulary on demand; `Raw` in app code is the signal a wrapper is missing.
 - Legacy composite `View` subclasses coexist fine — embed via `Raw { View = ... }` until
   each is converted to a widget + VM.

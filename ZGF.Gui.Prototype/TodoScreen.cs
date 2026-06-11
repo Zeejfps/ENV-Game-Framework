@@ -45,7 +45,14 @@ public sealed record TodoScreen : Widget
                         Color = 0xFF6B7280,
                         BindVisible = () => Vm.Tasks.Count == 0,
                     },
-                    Each.Of(Vm.Tasks, new TaskRow(), gap: 4),
+                    new Grow
+                    {
+                        Child = new ScrollArea
+                        {
+                            Gap = 4,
+                            Children = [Each.Of(Vm.Tasks, new TaskRow(), gap: 4)],
+                        },
+                    },
                 ],
             },
         ],
@@ -59,6 +66,16 @@ public sealed record TodoScreen : Widget
         [
             new Text { Value = "Tasks", FontSize = 20, Color = 0xFFE0E0E0 },
             new Spacer(),
+            new TextInput
+            {
+                Value = Vm.NewTitle,
+                Placeholder = "New task…",
+                Width = 200,
+                Height = 24,
+                FontSize = 13,
+                Color = 0xFFE0E0E0,
+                CaretColor = 0xFFE0E0E0,
+            },
             new Button
             {
                 Label = "Clear done",

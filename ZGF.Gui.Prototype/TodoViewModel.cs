@@ -18,7 +18,14 @@ public sealed class TodoViewModel
 
     public ObservableList<TaskViewModel> Tasks { get; } = new();
 
-    public void AddTask() => Tasks.Add(new TaskViewModel($"Task #{++_counter}"));
+    public State<string> NewTitle { get; } = new("");
+
+    public void AddTask()
+    {
+        var title = NewTitle.Value.Trim();
+        Tasks.Add(new TaskViewModel(title.Length > 0 ? title : $"Task #{++_counter}"));
+        NewTitle.Value = "";
+    }
 
     public void Remove(TaskViewModel task) => Tasks.Remove(task);
 
