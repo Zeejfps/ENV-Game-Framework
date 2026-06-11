@@ -2,6 +2,8 @@ namespace ZGF.Gui.Views;
 
 public class RectView : View
 {
+    public new ChildrenCollection Children => base.Children;
+
     private readonly RectStyle _style = new();
 
     public uint BackgroundColor

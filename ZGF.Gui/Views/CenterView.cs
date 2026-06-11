@@ -16,6 +16,8 @@ namespace ZGF.Gui.Views;
 /// </summary>
 public sealed class CenterView : View
 {
+    public new ChildrenCollection Children => base.Children;
+
     /// <summary>
     /// Gap kept between a clamped child and the viewport edge, so a child forced
     /// down to the cap doesn't sit flush against the window border.

@@ -228,6 +228,13 @@ Components compose; they do not lay out or paint. Write a `View` subclass only f
   through a typed handle (scrollbars ↔ scroll pane, `ContextMenuItem` ↔ `ContextMenu`'s
   shortcut-column layout, `CalendarDayCell` ↔ the calendar grid's refresh).
 
+`View.Children` is protected by default: a view decides whether it accepts arbitrary
+children. General containers (`ContainerView`, `RectView`, `FlexView`, `PaddingView`,
+`CenterView`) re-expose the collection with `public new ChildrenCollection Children`;
+slot-style views (`FlexItem`, `BorderLayoutView`) keep it protected and accept content only
+through their slots. Children bindings (`BindChildren`) live on the collection, so they're
+only available where children are public.
+
 Then expose it to component land with a primitive wrapper. The reference example is
 `ZGF.Gui.Desktop/Components/Calendar/Calendar.cs`: a `Widget` whose `CreateView` resolves
 `CalendarViewModel` from the context, assembles plain views (the day cells stay Views), wires

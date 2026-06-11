@@ -90,7 +90,7 @@ public static class Scenarios
         public ListChurnScenario()
         {
             _root = new ColumnView { Gap = 2 };
-            _root.BindChildren(_items, i => MakeRow((uint)(0xFF000000 | (uint)(i * 2654435761u))));
+            _root.Children.BindChildren(_items, i => MakeRow((uint)(0xFF000000 | (uint)(i * 2654435761u))));
             for (var i = 0; i < 40; i++) _items.Add(i);
         }
 
@@ -114,7 +114,7 @@ public static class Scenarios
         public DerivedChurnScenario()
         {
             _root = new ColumnView { Gap = 2 };
-            _root.BindChildren(
+            _root.Children.BindChildren(
                 () => Enumerable.Range(0, _version.Value % 8 + 1),
                 i => MakeRow((uint)(0xFF000000 | (uint)(i * 40503u))));
         }

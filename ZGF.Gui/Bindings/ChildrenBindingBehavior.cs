@@ -5,7 +5,7 @@ namespace ZGF.Gui.Bindings;
 internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     where TChild : View
 {
-    private readonly View _parent;
+    private readonly View.ChildrenCollection _children;
     private readonly ObservableList<TItem> _source;
     private readonly Func<TItem, TChild> _create;
     private readonly Action<TChild, TItem>? _onCreated;
@@ -15,13 +15,13 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     private readonly List<TChild> _tracked = new();
 
     public ChildrenBindingBehavior(
-        View parent,
+        View.ChildrenCollection children,
         ObservableList<TItem> source,
         Func<TItem, TChild> create,
         Action<TChild, TItem>? onCreated,
         Action<TChild>? onRemoved)
     {
-        _parent = parent;
+        _children = children;
         _source = source;
         _create = create;
         _onCreated = onCreated;
@@ -50,7 +50,7 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
             case ListChangeKind.Added:
             {
                 var child = _create(change.Item!);
-                _parent.Children.Insert(change.Index, child);
+                _children.Insert(change.Index, child);
                 _tracked.Insert(change.Index, child);
                 _onCreated?.Invoke(child, change.Item!);
                 break;
@@ -59,7 +59,7 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
             case ListChangeKind.Removed:
             {
                 var child = _tracked[change.Index];
-                _parent.Children.Remove(child);
+                _children.Remove(child);
                 _tracked.RemoveAt(change.Index);
                 _onRemoved?.Invoke(child);
                 break;
@@ -68,11 +68,11 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
             case ListChangeKind.Replaced:
             {
                 var oldChild = _tracked[change.Index];
-                _parent.Children.Remove(oldChild);
+                _children.Remove(oldChild);
                 _onRemoved?.Invoke(oldChild);
 
                 var newChild = _create(change.Item!);
-                _parent.Children.Insert(change.Index, newChild);
+                _children.Insert(change.Index, newChild);
                 _tracked[change.Index] = newChild;
                 _onCreated?.Invoke(newChild, change.Item!);
                 break;
@@ -83,7 +83,7 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
                 var child = _tracked[change.Index];
                 _tracked.RemoveAt(change.Index);
                 _tracked.Insert(change.NewIndex, child);
-                _parent.Children.Move(child, change.NewIndex);
+                _children.Move(child, change.NewIndex);
                 break;
             }
 
@@ -100,7 +100,7 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
         {
             var item = _source[i];
             var child = _create(item);
-            _parent.Children.Add(child);
+            _children.Add(child);
             _tracked.Add(child);
             _onCreated?.Invoke(child, item);
         }
@@ -110,7 +110,7 @@ internal sealed class ChildrenBindingBehavior<TItem, TChild> : IViewBehavior
     {
         foreach (var child in _tracked)
         {
-            _parent.Children.Remove(child);
+            _children.Remove(child);
             _onRemoved?.Invoke(child);
         }
         _tracked.Clear();

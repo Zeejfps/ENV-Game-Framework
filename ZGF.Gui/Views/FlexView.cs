@@ -34,6 +34,8 @@ public enum CrossAxisAlignment
 /// </summary>
 public class FlexView : View
 {
+    public new ChildrenCollection Children => base.Children;
+
     public Axis Axis { get; init; } = Axis.Vertical;
 
     public float Gap

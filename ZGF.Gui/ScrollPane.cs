@@ -25,7 +25,7 @@ public sealed class ScrollPane : View, IScrollableContent
 
     private readonly ColumnView _columnView;
 
-    public override ChildrenCollection Children => _columnView.Children;
+    public new ChildrenCollection Children => _columnView.Children;
 
     public override bool ClipsContent => true;
 

@@ -7,6 +7,8 @@ namespace ZGF.Gui.Views;
 /// </summary>
 public sealed class PaddingView : View
 {
+    public new ChildrenCollection Children => base.Children;
+
     private PaddingStyle _padding;
 
     public PaddingStyle Padding

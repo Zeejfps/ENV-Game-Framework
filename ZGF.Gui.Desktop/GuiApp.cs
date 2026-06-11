@@ -4,6 +4,7 @@ using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Views;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop;
@@ -15,7 +16,7 @@ public sealed class GuiApp : IDisposable
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly IGuiRenderBackend _renderBackend;
     private readonly DesktopInputSystem _mainInput;
-    private readonly View _root;
+    private readonly ContainerView _root;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly FrameTicker _frameTicker;
     private long _lastAnimationTimestamp;
@@ -78,7 +79,7 @@ public sealed class GuiApp : IDisposable
         // fully-wired main-window context.
         var content = contentFactory(context);
 
-        _root = new View
+        _root = new ContainerView
         {
             Width = mainCanvas.Width,
             Height = mainCanvas.Height,

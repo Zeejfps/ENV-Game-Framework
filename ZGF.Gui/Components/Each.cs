@@ -40,7 +40,7 @@ public sealed record Each<T> : FlexBase
     protected override View CreateView(Context ctx)
     {
         var v = (FlexView)base.CreateView(ctx);
-        v.BindChildren(Items, item =>
+        v.Children.BindChildren(Items, item =>
         {
             var scope = new Context(ctx);
             scope.AddService<T>(item);

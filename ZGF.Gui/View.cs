@@ -209,7 +209,7 @@ public class View
     protected readonly List<View> _children = new();
     protected readonly List<IViewBehavior> _behaviors = new();
 
-    public virtual ChildrenCollection Children { get; }
+    protected ChildrenCollection Children { get; }
 
     public View()
     {
@@ -224,8 +224,17 @@ public class View
     /// collection-initializer syntax (<c>Children = { a, b }</c>) needs; there is deliberately no
     /// <c>IEnumerable&lt;View&gt;</c> LINQ surface that would box an enumerator.
     /// </summary>
-    public sealed class ChildrenCollection(View view) : IEnumerable
+    public sealed class ChildrenCollection : IEnumerable
     {
+        private readonly View view;
+
+        internal ChildrenCollection(View view)
+        {
+            this.view = view;
+        }
+
+        internal View Owner => view;
+
         public int Count => view._children.Count;
 
         public View this[int index] => view._children[index];

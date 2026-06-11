@@ -9,14 +9,14 @@ public sealed class Window : View
 {
     public string TitleText { get; }
 
-    private readonly View _contents;
-    public override ChildrenCollection Children => _contents.Children;
+    private readonly ContainerView _contents;
+    public new ChildrenCollection Children => _contents.Children;
 
     public Window(string titleText, InputSystem input, View titleBar)
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
-        _contents = new View();
+        _contents = new ContainerView();
 
         var leftBorder = new RectView
         {

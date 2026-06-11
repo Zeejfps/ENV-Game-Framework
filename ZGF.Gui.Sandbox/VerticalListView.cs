@@ -15,7 +15,7 @@ public sealed class VerticalListView : View
         set => ScrollPaneView.Gap = value;
     }
     
-    public override ChildrenCollection Children => ScrollPaneView.Children;
+    public new ChildrenCollection Children => ScrollPaneView.Children;
 
     public VerticalScrollPane ScrollPaneView { get; }
     public VerticalScrollBarView ScrollBarView { get; }

@@ -192,13 +192,13 @@ public static class BindingExtensions
         }
     }
 
-    extension(View parent)
+    extension(View.ChildrenCollection children)
     {
         /// <summary>
-        /// Binds the parent's <see cref="View.Children"/> to the source list. Add/
-        /// Insert/Remove/Move/Replace/Clear events from the source produce matching mutations
-        /// on the parent's children — no full diff. Subscription is tied to the parent's
-        /// context lifecycle.
+        /// Mirrors the source list into this children collection. Add/Insert/Remove/Move/
+        /// Replace/Clear events from the source produce matching mutations — no full diff.
+        /// Subscription is tied to the owning view's mounted lifetime. Available only on
+        /// views that expose their children publicly.
         /// </summary>
         public void BindChildren<TItem, TChild>(ObservableList<TItem> source,
             Func<TItem, TChild> create,
@@ -206,21 +206,21 @@ public static class BindingExtensions
             Action<TChild>? onRemoved = null)
             where TChild : View
         {
-            parent.Behaviors.Add(new ChildrenBindingBehavior<TItem, TChild>(
-                parent, source, create, onCreated, onRemoved));
+            children.Owner.Behaviors.Add(new ChildrenBindingBehavior<TItem, TChild>(
+                children, source, create, onCreated, onRemoved));
         }
 
         /// <summary>
-        /// Binds the parent's <see cref="View.Children"/> to a derived list. The
-        /// compute function's observable reads are auto-tracked; when any dependency
-        /// invalidates, the function re-runs and the children are reseeded.
+        /// Mirrors a derived list into this children collection. The compute function's
+        /// observable reads are auto-tracked; when any dependency invalidates, the function
+        /// re-runs and the children are reseeded.
         /// </summary>
         public void BindChildren<TItem, TChild>(Func<IEnumerable<TItem>> compute,
             Func<TItem, TChild> create)
             where TChild : View
         {
-            parent.Behaviors.Add(new DerivedChildrenBindingBehavior<TItem, TChild>(
-                parent, compute, create));
+            children.Owner.Behaviors.Add(new DerivedChildrenBindingBehavior<TItem, TChild>(
+                children, compute, create));
         }
     }
 }
