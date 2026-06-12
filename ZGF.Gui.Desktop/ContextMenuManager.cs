@@ -128,6 +128,17 @@ public sealed class ContextMenuManager : IContextMenuHost
         var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         foreach (var menu in _closingMenus.ToList())
         {
+            // The 100ms window is a re-entry grace period: a canceled request (pointer
+            // came back — e.g. a one-tick excursion past the popup edge) resurrects the
+            // menu instead of releasing it.
+            if (!menu.IsCloseRequested)
+            {
+                _closingMenus.Remove(menu);
+                _openedMenus[menu.ContextMenu] = menu;
+                if (menu.Parent is { IsOpened: true } parent && parent.Child == null)
+                    parent.Child = menu;
+                continue;
+            }
             if (now - menu.CloseTimestamp > 100)
             {
                 _popupFactory.Release(menu.Popup);
