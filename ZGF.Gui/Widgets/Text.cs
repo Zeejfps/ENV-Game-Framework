@@ -7,6 +7,9 @@ public sealed record Text : Widget
 {
     public string? Value { get; init; }
     public StyleValue<float> FontSize { get; init; }
+    public string? FontFamily { get; init; }
+    public StyleValue<FontWeight> Weight { get; init; }
+    public StyleValue<TextWrap> Wrap { get; init; }
     public StyleValue<uint> Color { get; init; }
     public StyleValue<TextAlignment> HAlign { get; init; }
     public StyleValue<TextAlignment> VAlign { get; init; }
@@ -21,6 +24,9 @@ public sealed record Text : Widget
     {
         var v = new TextView(ctx.Canvas) { Text = Value };
         if (FontSize.IsSet) v.FontSize = FontSize;
+        if (FontFamily != null) v.FontFamily = FontFamily;
+        if (Weight.IsSet) v.FontWeight = Weight;
+        if (Wrap.IsSet) v.TextWrap = Wrap;
         if (Color.IsSet) v.TextColor = Color;
         if (HAlign.IsSet) v.HorizontalTextAlignment = HAlign;
         if (VAlign.IsSet) v.VerticalTextAlignment = VAlign;
