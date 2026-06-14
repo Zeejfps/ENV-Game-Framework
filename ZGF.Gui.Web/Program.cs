@@ -30,8 +30,7 @@ public static partial class Program
 
     public static void Main()
     {
-        // Point FreeTypeSharp's [DllImport("freetype")] at our statically-linked
-        // libfreetype.a before any font code runs (FontSpike / StartAsync).
+        // Required before any FreeType use: see WasmFreeTypeResolver.
         Native.WasmFreeTypeResolver.Install();
         Console.WriteLine("ZGF.Gui.Web runtime started.");
     }

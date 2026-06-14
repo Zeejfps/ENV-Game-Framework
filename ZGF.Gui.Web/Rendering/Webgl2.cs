@@ -18,8 +18,7 @@ internal static partial class Webgl2
 {
     public static async Task<bool> InitAsync(string canvasSelector)
     {
-        // Path is relative to the runtime module in _framework/, so step up to the
-        // bundle root where the shim is deployed (WasmExtraFilesToDeploy).
+        // Relative to the runtime in _framework/, so ../ reaches the bundle root.
         await JSHost.ImportAsync("webgl2", "../webgl2.js");
         return Init(canvasSelector) != 0;
     }

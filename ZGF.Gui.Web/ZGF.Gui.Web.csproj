@@ -1,41 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!--
-      Browser (WASM) host for ZGF GUI. This is the project that carries the
-      browser-wasm NATIVE wiring described in docs/web-font-rendering.md:
-        - our self-built libfreetype.a (NativeFileReference),
-        - the published HarfBuzz wasm shaping asset, and
-        - AOT + native relinking (required for native deps on wasm).
+      Browser (WASM) host for ZGF GUI: .NET WASM browser-app model (JSExport/
+      JSImport), not Blazor; renders a <canvas> + WebGL2. Runs FreeType raster +
+      HarfBuzz shaping as statically-linked wasm native libs.
 
-      It uses the lightweight ".NET WASM browser app" model (System.Runtime.
-      InteropServices.JavaScript / [JSExport]/[JSImport]) rather than Blazor,
-      because the eventual renderer drives a <canvas> + WebGL2 directly and the
-      Blazor component layer would add nothing.
-
-      STATUS: skeleton. Its only runnable behavior today is the font validation
-      spike (FontSpike.Run, see docs §7). The WebGL2 canvas backend and the
-      BeginFrame/EndFrame render loop are a separate plan; Tick() is the seam
-      where they will plug in.
-
-      Build/run (needs the wasm-tools workload AND a prior run of
-      tools/build-freetype-wasm.sh to produce native/wasm/libfreetype.a):
-
+      Build/run (needs wasm-tools workload; build native/wasm/libfreetype.a first):
           dotnet workload install wasm-tools
           tools/build-freetype-wasm.sh
-          dotnet run -c Release (run from the ZGF.Gui.Web directory)
+          dotnet build -c Release ZGF.Gui.Web/ZGF.Gui.Web.csproj
+          # serve the AppBundle statically, e.g.:
+          (cd bin/Release/net10.0-browser/browser-wasm/AppBundle && python3 -m http.server 8080)
+      `dotnet run` does not work here (no perHostConfig under plain Microsoft.NET.Sdk).
 
-      This project IS listed in "ENV Game Framework.sln" (so IDEs load it), but
-      it is deliberately excluded from the solution's Build.0 mappings so a
-      normal solution-wide `dotnet build` does NOT require the wasm toolchain or
-      the native archive. Build it explicitly when you want the web host.
+      Listed in "ENV Game Framework.sln" (so IDEs load it) but excluded from the
+      solution Build.0 mappings, so a normal solution build needs no wasm toolchain.
     -->
 
     <PropertyGroup>
         <TargetFramework>net10.0-browser</TargetFramework>
-        <!-- The browser-wasm RID is what triggers the WASM app-bundle build and
-             makes `dotnet run` start the browser dev server. Set here (not via
-             command-line -r) so it does NOT propagate to the net9.0/net6.0
-             project references, which would demand wasm-tools-net9/net6. -->
+        <!-- Set here (not via -r) so the RID doesn't propagate to the net9/net6 refs. -->
         <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
@@ -53,10 +37,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- Static page + JS shims must land in the AppBundle. main.js is deployed
-             via WasmMainJSPath; index.html and the [JSImport] modules loaded at
-             runtime (files/webgl2/clipboard.js via JSHost.ImportAsync) are not, so
-             deploy them explicitly. -->
+        <!-- Page + JS shims into the AppBundle (main.js ships via WasmMainJSPath). -->
         <WasmExtraFilesToDeploy Include="index.html" />
         <WasmExtraFilesToDeploy Include="files.js" />
         <WasmExtraFilesToDeploy Include="webgl2.js" />
@@ -82,13 +63,8 @@
         <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="8.3.1.3" />
     </ItemGroup>
 
-    <!--
-      The HarfBuzz package only auto-registers its native .a when the project uses
-      the WebAssembly SDK (UsingMicrosoftNETSdkWebAssembly). This project uses the
-      plain Microsoft.NET.Sdk, so we link it ourselves, mirroring the package's own
-      variant selection (net9.0+ => 3.1.56; mt/st by threads; ",simd" by SIMD).
-      The archive filename (libHarfBuzzSharp) already matches HarfBuzzSharp's
-      [DllImport("libHarfBuzzSharp")], so it binds statically with no extra module. -->
+    <!-- The HarfBuzz package auto-links its .a only under the WebAssembly SDK; on
+         plain Microsoft.NET.Sdk we link it ourselves (variant by threads/SIMD). -->
     <PropertyGroup>
         <_HbVariant Condition="'$(WasmEnableThreads)' == 'true'">mt</_HbVariant>
         <_HbVariant Condition="'$(WasmEnableThreads)' != 'true'">st</_HbVariant>
@@ -99,23 +75,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Rasterization: our self-built archive (tools/build-freetype-wasm.sh). The HarfBuzz
-             wasm package self-registers its own static lib via its build props; we only add
-             FreeType. If the HarfBuzz package's props ever stop auto-registering, also add:
-             <NativeFileReference Include="$(HarfBuzzSharpStaticLibraryPath)" /> -->
+        <!-- Rasterization: our self-built archive (tools/build-freetype-wasm.sh). -->
         <NativeFileReference Include="..\native\wasm\libfreetype.a" />
     </ItemGroup>
 
-    <!--
-      The wasm pinvoke-table generator derives a module name from each native
-      file's FILENAME (libfreetype) and only statically binds [DllImport]s whose
-      library name matches a module. FreeTypeSharp uses [DllImport("freetype")],
-      which would NOT match "libfreetype" — so its calls would fall through to a
-      runtime DllImportResolver (which FreeTypeSharp registers, and which throws
-      PlatformNotSupportedException on browser). Registering "freetype" as a
-      pinvoke module makes those calls bind directly to the statically-linked
-      symbols in libfreetype.a, bypassing the resolver entirely.
-    -->
+    <!-- FreeTypeSharp uses [DllImport("freetype")] but the lib is libfreetype.a;
+         register "freetype" as a pinvoke module so resolution can fall through to
+         the static table (paired with WasmFreeTypeResolver). -->
     <Target Name="_AddFreeTypePInvokeModule" BeforeTargets="_GenerateManagedToNative">
         <ItemGroup>
             <_WasmPInvokeModules Include="freetype" />
