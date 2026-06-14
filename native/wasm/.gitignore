@@ -1,0 +1,4 @@
+# Build outputs from tools/build-freetype-wasm.sh — produced locally or restored
+# from CI artifacts; not committed (see docs/web-font-rendering.md §6).
+libfreetype.a
+.libfreetype.a.stamp

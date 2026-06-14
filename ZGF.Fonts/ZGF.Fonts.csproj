@@ -4,6 +4,11 @@
         <TargetFrameworks>net10.0</TargetFrameworks>
         <!-- iOS compile coverage is opt-in: `dotnet build -p:BuildIos=true` (needs the ios workload). -->
         <TargetFrameworks Condition="'$(BuildIos)'=='true'">net10.0;net10.0-ios</TargetFrameworks>
+        <!-- Web (browser-wasm) compile coverage is opt-in: `dotnet build -p:BuildWasm=true`
+             (needs the wasm-tools workload). The managed FreeType/HarfBuzz wrappers compile
+             here; the browser-wasm native libs are linked by the web host, not this project.
+             See docs/web-font-rendering.md. -->
+        <TargetFrameworks Condition="'$(BuildWasm)'=='true'">$(TargetFrameworks);net10.0-browser</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

@@ -2,6 +2,7 @@
 bin/
 obj/
 builds/
+.build/
 BenchmarkDotNet.Artifacts/
 /packages/
 riderModule.iml

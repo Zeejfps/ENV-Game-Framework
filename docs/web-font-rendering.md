@@ -324,13 +324,26 @@ Open questions to resolve during the spike:
 
 ## 9. Task list
 
-- [ ] Extract `IGlyphSource` in `ZGF.Fonts`; implement on `FreeTypeFontBackend`;
+- [x] Extract `IGlyphSource` in `ZGF.Fonts`; implement on `FreeTypeFontBackend`;
       retype `RenderedCanvasBase` to depend on the interface. (No behavior change.)
-- [ ] Add `tools/build-freetype-wasm.sh` (pinned emsdk + minimal FreeType → `.a`).
-- [ ] Run the §7 spike; record the emsdk + FreeType versions that link cleanly.
-- [ ] Add `BuildWasm` opt-in TFM to `ZGF.Fonts`, `ZGF.Gui`, and shared deps.
-- [ ] Add `ZGF.Gui.Web.SmokeTest` (`net10.0-browser` compile probe), excluded
+- [x] Add `tools/build-freetype-wasm.sh` (pinned emsdk + minimal FreeType → `.a`).
+- [x] Add `BuildWasm` opt-in TFM to `ZGF.Fonts` and `ZGF.Gui` (deps are consumed
+      via their existing TFMs, which `net10.0-browser` supports).
+- [x] Add `ZGF.Gui.Web.SmokeTest` (`net10.0-browser` compile probe), excluded
       from the solution.
+- [ ] Run the §7 spike: install `wasm-tools`, build the smoke test with
+      `-p:BuildWasm=true`, run `tools/build-freetype-wasm.sh`, and record the
+      emsdk + FreeType versions that link cleanly. **(needs the .NET wasm
+      toolchain — not yet run.)**
 - [ ] Wire `NativeFileReference` + HarfBuzz wasm package + AOT in the web host.
 - [ ] (Separate plan) WebGL2 backend + browser host shell + input mapping.
+
+> **Implementation status (this branch):** the first four items are landed as a
+> non-behavioral refactor + opt-in scaffolding. They have **not** been compiled
+> here — this environment has no .NET SDK — so the `IGlyphSource` swap is verified
+> by inspection (every member `RenderedCanvasBase` calls already exists on
+> `FreeTypeFontBackend` with matching signatures, and subclasses upcast their
+> concrete backend at the `base(...)` call). The `BuildWasm` TFM and the smoke
+> test are gated/excluded so a normal desktop build is unaffected; they still need
+> a real `-p:BuildWasm=true` build to confirm restore + browser compile.
 ```

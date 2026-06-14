@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      Web (browser-wasm) compile smoke-test (step 1 of the web-rendering prep).
+
+      A class library targeting net10.0-browser that references the platform-independent
+      toolkit (ZGF.Gui) and the font backend (ZGF.Fonts). Its only job is to *compile*
+      those assemblies under the browser target, which:
+        - flushes out any browser-incompatible API usage in the referenced code early, and
+        - surfaces restore-time issues before any real web host work begins.
+
+      The toolkit projects expose a net10.0-browser target only when BuildWasm=true, so this
+      project must be built with that flag (the global property propagates to the project
+      references):
+
+          dotnet workload install wasm-tools
+          dotnet build ZGF.Gui.Web.SmokeTest/ZGF.Gui.Web.SmokeTest.csproj -p:BuildWasm=true
+
+      This is intentionally NOT part of "ENV Game Framework.sln" so a normal desktop build
+      does not require the wasm-tools workload. It is a managed compile + restore probe only;
+      the browser-wasm NATIVE libs (self-built libfreetype.a + HarfBuzz wasm asset) and AOT
+      are wired into the real web host, not here. See docs/web-font-rendering.md.
+    -->
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-browser</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPublishable>false</IsPublishable>
+        <!-- Ensure the referenced toolkit projects expose their net10.0-browser target. -->
+        <BuildWasm>true</BuildWasm>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+    </ItemGroup>
+
+</Project>
