@@ -16,33 +16,33 @@ await runMain();
 const P = exports.ZGF.Gui.Web.Program;
 const I = exports.ZGF.Gui.Web.Input.WebInput;
 
-// Font spike panel.
+// Font spike result goes to the console now that the page is a full-screen canvas.
 try {
-    document.getElementById('out').textContent = P.RunFontSpike();
+    console.log(P.RunFontSpike());
 } catch (e) {
-    document.getElementById('out').textContent = 'spike threw on the JS boundary: ' + e;
+    console.error('spike threw on the JS boundary:', e);
 }
 
-// Canvas: logical CSS size (from the style attribute) with a device-pixel backing store.
+// Full-window canvas: logical CSS size = viewport, with a device-pixel backing store.
 const canvas = document.getElementById('zgf-canvas');
-const LOGICAL_W = parseInt(canvas.style.width, 10) || 800;
-const LOGICAL_H = parseInt(canvas.style.height, 10) || 600;
+let logicalW = Math.max(1, window.innerWidth);
+let logicalH = Math.max(1, window.innerHeight);
 
 function applyBacking(dpr) {
-    canvas.width = Math.round(LOGICAL_W * dpr);
-    canvas.height = Math.round(LOGICAL_H * dpr);
+    canvas.width = Math.round(logicalW * dpr);
+    canvas.height = Math.round(logicalH * dpr);
 }
 
 let dpr = window.devicePixelRatio || 1;
 applyBacking(dpr);
-await P.StartAsync('#zgf-canvas', LOGICAL_W, LOGICAL_H, dpr);
+await P.StartAsync('#zgf-canvas', logicalW, logicalH, dpr);
 
 // ---- DOM input -> WebInput (coords converted to canvas-logical, Y-up GUI space) ----
 function guiCoords(ev) {
     const rect = canvas.getBoundingClientRect();
     const x = ev.clientX - rect.left;
     const yTop = ev.clientY - rect.top;
-    return { x: x, y: LOGICAL_H - yTop };
+    return { x: x, y: logicalH - yTop };
 }
 function modBits(ev) {
     return (ev.shiftKey ? 1 : 0) | (ev.ctrlKey ? 2 : 0) | (ev.altKey ? 4 : 0) | (ev.metaKey ? 8 : 0);
@@ -92,11 +92,11 @@ function frame(ts) {
 }
 requestAnimationFrame(frame);
 
-// Handle DPI changes (e.g. moving the window between monitors).
+// Track window size and DPI changes (resize, or moving between monitors).
 window.addEventListener('resize', () => {
-    const next = window.devicePixelRatio || 1;
-    if (next === dpr) return;
-    dpr = next;
+    dpr = window.devicePixelRatio || 1;
+    logicalW = Math.max(1, window.innerWidth);
+    logicalH = Math.max(1, window.innerHeight);
     applyBacking(dpr);
-    P.Resize(LOGICAL_W, LOGICAL_H, dpr);
+    P.Resize(logicalW, logicalH, dpr);
 });
