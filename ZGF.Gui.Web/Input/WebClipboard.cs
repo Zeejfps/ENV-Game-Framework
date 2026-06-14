@@ -21,7 +21,7 @@ public sealed partial class WebClipboard : IClipboard
 
     public static async Task InitAsync()
     {
-        await JSHost.ImportAsync("clipboard", "./clipboard.js");
+        await JSHost.ImportAsync("clipboard", "../clipboard.js");
     }
 
     public void SetText(string text)

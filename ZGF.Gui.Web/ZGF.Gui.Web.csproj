@@ -32,6 +32,11 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0-browser</TargetFramework>
+        <!-- The browser-wasm RID is what triggers the WASM app-bundle build and
+             makes `dotnet run` start the browser dev server. Set here (not via
+             command-line -r) so it does NOT propagate to the net9.0/net6.0
+             project references, which would demand wasm-tools-net9/net6. -->
+        <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -46,6 +51,17 @@
              (the global property propagates across the project references). -->
         <BuildWasm>true</BuildWasm>
     </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Static page + JS shims must land in the AppBundle. main.js is deployed
+             via WasmMainJSPath; index.html and the [JSImport] modules loaded at
+             runtime (files/webgl2/clipboard.js via JSHost.ImportAsync) are not, so
+             deploy them explicitly. -->
+        <WasmExtraFilesToDeploy Include="index.html" />
+        <WasmExtraFilesToDeploy Include="files.js" />
+        <WasmExtraFilesToDeploy Include="webgl2.js" />
+        <WasmExtraFilesToDeploy Include="clipboard.js" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
@@ -66,6 +82,22 @@
         <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="8.3.1.3" />
     </ItemGroup>
 
+    <!--
+      The HarfBuzz package only auto-registers its native .a when the project uses
+      the WebAssembly SDK (UsingMicrosoftNETSdkWebAssembly). This project uses the
+      plain Microsoft.NET.Sdk, so we link it ourselves, mirroring the package's own
+      variant selection (net9.0+ => 3.1.56; mt/st by threads; ",simd" by SIMD).
+      The archive filename (libHarfBuzzSharp) already matches HarfBuzzSharp's
+      [DllImport("libHarfBuzzSharp")], so it binds statically with no extra module. -->
+    <PropertyGroup>
+        <_HbVariant Condition="'$(WasmEnableThreads)' == 'true'">mt</_HbVariant>
+        <_HbVariant Condition="'$(WasmEnableThreads)' != 'true'">st</_HbVariant>
+        <_HbVariant Condition="'$(WasmEnableSIMD)' == 'true'">$(_HbVariant),simd</_HbVariant>
+    </PropertyGroup>
+    <ItemGroup>
+        <NativeFileReference Include="$(HarfBuzzSharpStaticLibraryPath)\3.1.56\$(_HbVariant)\libHarfBuzzSharp.a" />
+    </ItemGroup>
+
     <ItemGroup>
         <!-- Rasterization: our self-built archive (tools/build-freetype-wasm.sh). The HarfBuzz
              wasm package self-registers its own static lib via its build props; we only add
@@ -73,5 +105,21 @@
              <NativeFileReference Include="$(HarfBuzzSharpStaticLibraryPath)" /> -->
         <NativeFileReference Include="..\native\wasm\libfreetype.a" />
     </ItemGroup>
+
+    <!--
+      The wasm pinvoke-table generator derives a module name from each native
+      file's FILENAME (libfreetype) and only statically binds [DllImport]s whose
+      library name matches a module. FreeTypeSharp uses [DllImport("freetype")],
+      which would NOT match "libfreetype" — so its calls would fall through to a
+      runtime DllImportResolver (which FreeTypeSharp registers, and which throws
+      PlatformNotSupportedException on browser). Registering "freetype" as a
+      pinvoke module makes those calls bind directly to the statically-linked
+      symbols in libfreetype.a, bypassing the resolver entirely.
+    -->
+    <Target Name="_AddFreeTypePInvokeModule" BeforeTargets="_GenerateManagedToNative">
+        <ItemGroup>
+            <_WasmPInvokeModules Include="freetype" />
+        </ItemGroup>
+    </Target>
 
 </Project>

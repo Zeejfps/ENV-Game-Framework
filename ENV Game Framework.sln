@@ -116,6 +116,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Tests", "ZGF.Gui.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.MemoryDiagnostics", "ZGF.Gui.MemoryDiagnostics\ZGF.Gui.MemoryDiagnostics.csproj", "{3632C4A8-6821-46D0-95D2-818C7CC556F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Web", "ZGF.Gui.Web\ZGF.Gui.Web.csproj", "{3D04644B-0EA7-43AE-9842-F9161AA763A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -810,6 +812,12 @@ Global
 		{3632C4A8-6821-46D0-95D2-818C7CC556F5}.Release|x64.Build.0 = Release|Any CPU
 		{3632C4A8-6821-46D0-95D2-818C7CC556F5}.Release|x86.ActiveCfg = Release|Any CPU
 		{3632C4A8-6821-46D0-95D2-818C7CC556F5}.Release|x86.Build.0 = Release|Any CPU
+		{3D04644B-0EA7-43AE-9842-F9161AA763A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D04644B-0EA7-43AE-9842-F9161AA763A6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3D04644B-0EA7-43AE-9842-F9161AA763A6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3D04644B-0EA7-43AE-9842-F9161AA763A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D04644B-0EA7-43AE-9842-F9161AA763A6}.Release|x64.ActiveCfg = Release|Any CPU
+		{3D04644B-0EA7-43AE-9842-F9161AA763A6}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

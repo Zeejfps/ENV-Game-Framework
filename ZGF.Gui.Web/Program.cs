@@ -30,6 +30,9 @@ public static partial class Program
 
     public static void Main()
     {
+        // Point FreeTypeSharp's [DllImport("freetype")] at our statically-linked
+        // libfreetype.a before any font code runs (FontSpike / StartAsync).
+        Native.WasmFreeTypeResolver.Install();
         Console.WriteLine("ZGF.Gui.Web runtime started.");
     }
 
@@ -52,7 +55,7 @@ public static partial class Program
         await WebClipboard.InitAsync();
         await WebFilePicker.InitAsync();
         _picker = new WebFilePicker();
-        WebFileDrop.FilesDropped += (_, files) => _ = SummarizeAsync("Dropped", files);
+        WebFileDrop.FilesDropped += (point, files) => _ = SummarizeAsync("Dropped", files);
 
         var fonts = new FreeTypeFontBackend();
         var fontBytes = AppUtilsAssets.LoadBytes(typeof(View).Assembly, "Inter-Regular.ttf");

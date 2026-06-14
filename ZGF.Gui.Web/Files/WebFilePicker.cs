@@ -12,7 +12,7 @@ namespace ZGF.Gui.Web.Files;
 [SupportedOSPlatform("browser")]
 internal static partial class WebFiles
 {
-    public static async Task InitAsync() => await JSHost.ImportAsync("files", "./files.js");
+    public static async Task InitAsync() => await JSHost.ImportAsync("files", "../files.js");
 
     // openPicker calls input.click() synchronously, so the JSImport call must happen
     // inside a live user gesture; the returned task resolves when the user chooses.

@@ -60,8 +60,15 @@ sha256_of() {
 find_dotnet_emsdk_version() {
   [ -n "${EMSDK_VERSION}" ] && { echo "${EMSDK_VERSION}"; return; }
 
+  # Resolve the SDK root from the dotnet binary's real location so this works
+  # regardless of install prefix (/usr/local/share/dotnet, /usr/share/dotnet, ...).
+  local dotnet_root=""
+  if command -v dotnet >/dev/null 2>&1; then
+    dotnet_root="$(cd "$(dirname "$(readlink "$(command -v dotnet)" || command -v dotnet)")" && pwd)"
+  fi
+
   local pack
-  pack="$(find "${HOME}/.dotnet" "${DOTNET_ROOT:-/usr/share/dotnet}" "${HOME}/.nuget" \
+  pack="$(find "${HOME}/.dotnet" "${DOTNET_ROOT:-/usr/share/dotnet}" "${dotnet_root:-/usr/share/dotnet}" "${HOME}/.nuget" \
             -maxdepth 6 -type d -iname 'Microsoft.NET.Runtime.Emscripten.*.Node.*' 2>/dev/null \
           | head -n1 || true)"
   [ -z "${pack}" ] && return 1
@@ -130,6 +137,12 @@ fi
 # Every optional dependency is disabled so the archive is self-contained (no
 # zlib/png/brotli/harfbuzz). TrueType/CFF/autohint drivers stay enabled — they
 # are what produce our desktop anti-aliasing.
+#
+# -sSUPPORT_LONGJMP=wasm: FreeType's smooth rasterizer (ftgrays.c) uses
+# setjmp/longjmp. The .NET wasm runtime links with wasm-style SjLj
+# (-mllvm -wasm-enable-sjlj), so the archive must use the SAME longjmp ABI;
+# the Emscripten default (JS-based) emits an `emscripten_longjmp` symbol that
+# the .NET link does not provide, which fails wasm-ld with an undefined symbol.
 # ----------------------------------------------------------------------------
 CMAKE_BUILD="${BUILD_ROOT}/build-${FREETYPE_VERSION}"
 log "configuring (emcmake)"
@@ -141,7 +154,7 @@ emcmake cmake -B "${CMAKE_BUILD}" -S "${SRC_DIR}" \
   -DFT_DISABLE_PNG=ON \
   -DFT_DISABLE_BROTLI=ON \
   -DFT_DISABLE_HARFBUZZ=ON \
-  -DCMAKE_C_FLAGS="-O2 -fPIC"
+  -DCMAKE_C_FLAGS="-O2 -fPIC -sSUPPORT_LONGJMP=wasm"
 
 log "building"
 emmake make -C "${CMAKE_BUILD}" -j"$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"
