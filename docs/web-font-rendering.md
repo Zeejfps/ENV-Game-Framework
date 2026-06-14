@@ -342,8 +342,13 @@ Open questions to resolve during the spike:
 - [~] WebGL2 canvas backend: first draft landed in `ZGF.Gui.Web/Rendering`
       (`WebGl2RenderedCanvas` + `[JSImport]` binding + `webgl2.js` shim + GLSL→ES
       adapter), wired into `Program.Tick()` with a demo draw. Unbuilt/unrun.
-- [ ] (Separate plan) Web view/layout/input shell: `IWindow`/`IGuiRenderBackend`
-      web impls, DOM-event → `DesktopInputSystem` mapping, clipboard; image draws.
+- [~] Web DOM input bridge (`Input/WebInput`) + clipboard (`Input/WebClipboard`)
+      landed in `ZGF.Gui.Web`; the demo reacts to the pointer. Self-contained —
+      does not yet drive the real controller framework. Unbuilt/unrun.
+- [ ] (Architectural milestone) Extract the interaction layer (InputSystem,
+      controllers, components) out of `ZGF.Gui.Desktop` into a platform-neutral
+      package both desktop and web reference, so the web host can drive the real
+      view/controller framework. Plus image draws on the WebGL2 backend.
 
 > **Implementation status (this branch):** the structural items above are landed
 > as a non-behavioral refactor + opt-in scaffolding (the `IGlyphSource` seam, the

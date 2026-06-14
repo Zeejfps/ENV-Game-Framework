@@ -1,5 +1,5 @@
-// .NET WASM browser-app bootstrap. Loads the runtime, runs the font spike, then
-// initializes the WebGL2 canvas and drives a requestAnimationFrame render loop.
+// .NET WASM browser-app bootstrap. Loads the runtime, runs the font spike,
+// initializes the WebGL2 canvas, attaches DOM input, and drives the render loop.
 // Follows the `dotnet new wasmbrowser` layout.
 import { dotnet } from './_framework/dotnet.js'
 
@@ -13,6 +13,7 @@ const exports = await getAssemblyExports(config.mainAssemblyName);
 await runMain();
 
 const P = exports.ZGF.Gui.Web.Program;
+const I = exports.ZGF.Gui.Web.Input.WebInput;
 
 // Font spike panel.
 try {
@@ -35,6 +36,33 @@ let dpr = window.devicePixelRatio || 1;
 applyBacking(dpr);
 await P.StartAsync('#zgf-canvas', LOGICAL_W, LOGICAL_H, dpr);
 
+// ---- DOM input -> WebInput (coords converted to canvas-logical, Y-up GUI space) ----
+function guiCoords(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    const yTop = ev.clientY - rect.top;
+    return { x: x, y: LOGICAL_H - yTop };
+}
+function modBits(ev) {
+    return (ev.shiftKey ? 1 : 0) | (ev.ctrlKey ? 2 : 0) | (ev.altKey ? 4 : 0) | (ev.metaKey ? 8 : 0);
+}
+
+canvas.addEventListener('pointermove', e => { const p = guiCoords(e); I.PointerMove(p.x, p.y); });
+canvas.addEventListener('pointerdown', e => {
+    const p = guiCoords(e);
+    I.PointerDown(e.button, p.x, p.y, modBits(e));
+    if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointerup', e => { const p = guiCoords(e); I.PointerUp(e.button, p.x, p.y, modBits(e)); });
+canvas.addEventListener('pointerenter', () => I.PointerEnter());
+canvas.addEventListener('pointerleave', () => I.PointerLeave());
+canvas.addEventListener('wheel', e => { I.Wheel(e.deltaX, e.deltaY); e.preventDefault(); }, { passive: false });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('keydown', e => I.KeyDown(e.code, modBits(e)));
+window.addEventListener('keyup', e => I.KeyUp(e.code, modBits(e)));
+window.addEventListener('blur', () => I.Blur());
+
+// ---- render loop ----
 function frame(ts) {
     P.Tick(ts);
     requestAnimationFrame(frame);

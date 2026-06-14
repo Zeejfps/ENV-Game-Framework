@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui;
+using ZGF.Gui.Web.Input;
 using ZGF.Gui.Web.Rendering;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
 using static ZGF.Gui.Web.Rendering.Gl;
@@ -42,6 +43,8 @@ public static partial class Program
             return;
         }
 
+        await WebClipboard.InitAsync();
+
         var fonts = new FreeTypeFontBackend();
         var fontBytes = AppUtilsAssets.LoadBytes(typeof(View).Assembly, "Inter-Regular.ttf");
         var defaultFont = fonts.LoadFontFromMemory(fontBytes, (int)Math.Round(16 * dpr));
@@ -73,15 +76,23 @@ public static partial class Program
         _canvas.Resize(width, height);
     }
 
-    // A static demo exercising the rect / glyph(text) / shape pipelines end to end.
-    // The WebGL2 backend has no view/layout system wired yet; this draws directly
-    // against ICanvas to prove the render path before the host shell exists.
+    // A static demo exercising the rect / glyph(text) / shape pipelines end to end,
+    // now reacting to the DOM input bridge (WebInput) so the whole DOM -> GUI-coords
+    // -> hit-test -> redraw path is exercised. The WebGL2 backend has no view/layout
+    // system wired yet; this draws directly against ICanvas.
     private static void DrawDemo(ICanvas c)
     {
+        var button = new RectF(40, 60, 420, 180);
+
+        // Hover/press feedback proves pointer coords land in the right place.
+        var bg = 0xFF3A6EA5u;
+        if (WebInput.IsOver(button))
+            bg = WebInput.IsButtonDown(0) ? 0xFF1E456Bu : 0xFF4E86C5u;
+
         c.DrawRect(new DrawRectInputs
         {
-            Position = new RectF(40, 60, 420, 180),
-            Style = new RectStyle { BackgroundColor = 0xFF3A6EA5 },
+            Position = button,
+            Style = new RectStyle { BackgroundColor = bg },
             ZIndex = 0,
         });
 
@@ -109,5 +120,17 @@ public static partial class Program
             Color = 0xFF66CC99,
             ZIndex = 0,
         });
+
+        // Live cursor marker — visualizes the DOM -> GUI (Y-up) coordinate mapping.
+        if (WebInput.MouseInside)
+        {
+            c.DrawCircle(new DrawCircleInputs
+            {
+                Center = WebInput.MousePoint,
+                Radius = 6f,
+                Color = 0xFFFF5555,
+                ZIndex = 10,
+            });
+        }
     }
 }
