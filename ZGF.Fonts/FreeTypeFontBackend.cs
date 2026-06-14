@@ -7,7 +7,7 @@ using HbBuffer = HarfBuzzSharp.Buffer;
 
 namespace ZGF.Fonts;
 
-public sealed unsafe class FreeTypeFontBackend
+public sealed unsafe class FreeTypeFontBackend : IGlyphSource
 {
     private const int ShapeCacheGenCap = 256;
 

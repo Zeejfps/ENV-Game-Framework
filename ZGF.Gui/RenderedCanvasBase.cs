@@ -177,7 +177,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
     // ---------- Font/sizing state ----------
 
-    private readonly FreeTypeFontBackend _fonts;
+    private readonly IGlyphSource _fonts;
     private readonly FontHandle _defaultFont;
     private readonly Dictionary<string, FontHandle> _fontsByFamily = new();
     private int _width, _height;
@@ -187,7 +187,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
     protected RenderedCanvasBase(
         int width, int height,
-        FreeTypeFontBackend fonts,
+        IGlyphSource fonts,
         FontHandle defaultFont,
         float dpiScale = 1f)
     {
@@ -204,7 +204,7 @@ public abstract class RenderedCanvasBase : ICanvas
     // at device pixels (logical * DpiScale) and then drawn onto logical-sized
     // rects so the GPU downsamples instead of upscaling on HiDPI displays.
     public float DpiScale => _dpiScale;
-    protected FreeTypeFontBackend FontBackend => _fonts;
+    protected IGlyphSource FontBackend => _fonts;
 
     public void Resize(int width, int height)
     {
