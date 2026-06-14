@@ -22,10 +22,12 @@
 
           dotnet workload install wasm-tools
           tools/build-freetype-wasm.sh
-          dotnet run -c Release --project ZGF.Gui.Web
+          dotnet run -c Release (run from the ZGF.Gui.Web directory)
 
-      Intentionally NOT in "ENV Game Framework.sln" so a normal desktop build
-      does not require the wasm toolchain or the native archive.
+      This project IS listed in "ENV Game Framework.sln" (so IDEs load it), but
+      it is deliberately excluded from the solution's Build.0 mappings so a
+      normal solution-wide `dotnet build` does NOT require the wasm toolchain or
+      the native archive. Build it explicitly when you want the web host.
     -->
 
     <PropertyGroup>
