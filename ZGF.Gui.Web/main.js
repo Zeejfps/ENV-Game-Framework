@@ -2,6 +2,7 @@
 // initializes the WebGL2 canvas, attaches DOM input, and drives the render loop.
 // Follows the `dotnet new wasmbrowser` layout.
 import { dotnet } from './_framework/dotnet.js'
+import { registerFiles } from './files.js'
 
 const { getAssemblyExports, getConfig, runMain } = await dotnet
     .withDiagnosticTracing(false)
@@ -61,6 +62,28 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => I.KeyDown(e.code, modBits(e)));
 window.addEventListener('keyup', e => I.KeyUp(e.code, modBits(e)));
 window.addEventListener('blur', () => I.Blur());
+
+// ---- file upload: picker (click) + drag-and-drop ----
+const D = exports.ZGF.Gui.Web.Files.WebFileDrop;
+
+// The click must stay inside the user gesture so the picker can open: call straight
+// through to C#, which triggers input.click() synchronously before any await.
+canvas.addEventListener('click', e => { const p = guiCoords(e); P.HandleClick(p.x, p.y); });
+
+canvas.addEventListener('dragenter', e => { e.preventDefault(); });
+canvas.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    const p = guiCoords(e);
+    D.DragOver(p.x, p.y);
+});
+canvas.addEventListener('dragleave', () => D.DragLeave());
+canvas.addEventListener('drop', e => {
+    e.preventDefault();
+    const p = guiCoords(e);
+    const json = registerFiles(e.dataTransfer ? e.dataTransfer.files : []);
+    D.Drop(p.x, p.y, json);
+});
 
 // ---- render loop ----
 function frame(ts) {

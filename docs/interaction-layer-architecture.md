@@ -139,6 +139,42 @@ source (platform)**.
 
 ---
 
+## 5a. Platform services (clipboard, file picker, drag-and-drop)
+
+Some capabilities aren't input *events* or rendering — they're OS/browser
+services the UI calls into: clipboard, file open/save, etc. These follow the same
+view/controller/source split, expressed as **neutral service interfaces injected
+via `Context`**, with one implementation per host. `IClipboard` (already in
+`ZGF.Gui`) is the precedent; `IFilePicker` is the next one.
+
+Two rules keep these abstractions honest across platforms:
+
+- **Model content, not paths.** The browser sandbox returns file *content*, never
+  a filesystem path. So `IFilePicker` yields a `PickedFile` exposing
+  `OpenReadAsync()` (a stream) — desktop wraps an OS path behind the same surface.
+  A path-typed API would be a desktop-ism that can't cross to web/mobile.
+- **Respect user-activation.** A web file picker (and similar gated APIs) can only
+  open synchronously inside a user gesture. So the click that opens it must be
+  dispatched **synchronously** from the platform event source into the controller
+  — not deferred to the next polled frame. This is a concrete reason the per-
+  platform *event source* should pump button events synchronously (as
+  `DesktopInputSystem` already does), and a constraint controllers that call gated
+  services must honor.
+
+Drag-and-drop of files is **input**, not a one-off service call: the source
+surfaces `FileDragEnter/Over/Drop` carrying GUI-space coordinates (for hit-test +
+drop-zone highlight) and, on drop, the `PickedFile` payload — routed through the
+neutral `InputSystem` to the view under the pointer like any other pointer event.
+(Browsers withhold file contents until `drop`, so dragover can only drive the
+highlight.)
+
+Platform implementations: web = hidden `<input type=file>` / drag events on the
+canvas (`ZGF.Gui.Web/Files`); desktop = OS dialog (note: GLFW has **no** file
+dialog, so a platform dialog or native call is needed) + `glfwSetDropCallback`
+for drops; mobile = document picker / share sheet. A first-cut web implementation
+exists in `ZGF.Gui.Web`; `IFilePicker`/`PickedFile` should graduate to the neutral
+package alongside `IClipboard`.
+
 ## 6. Migration plan (incremental, low-risk)
 
 Because the moved code is neutral, this is a **relocation**, not a rewrite — it

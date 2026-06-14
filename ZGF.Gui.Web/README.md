@@ -49,12 +49,37 @@ Open the served URL; the page runs the spike and prints either:
 | `Rendering/GlslEs.cs` | rewrites desktop `#version 410` GLSL → GLSL ES 3.00 |
 | `Input/WebInput.cs` | DOM input bridge: `[JSExport]` pointer/key/wheel callbacks + polled snapshot |
 | `Input/WebClipboard.cs` | `IClipboard` over async `navigator.clipboard` |
-| `webgl2.js` / `clipboard.js` | WebGL2 shim (handle tables) / clipboard shim |
+| `Files/IFilePicker.cs` | neutral file-acquisition service (`IFilePicker`, `PickedFile`) — path-free |
+| `Files/WebFilePicker.cs` | web picker (hidden `<input type=file>`) + drag-drop (`WebFileDrop`) |
+| `webgl2.js` / `clipboard.js` / `files.js` | WebGL2 / clipboard / file shims |
 | `main.js` | bootstrap: spike, canvas sizing, DOM listeners, RAF render loop |
 | `index.html` | page + `#zgf-canvas` render target |
 
 The WebGL2 backend lives here for now; it could be extracted to a `ZGF.Gui.WebGL2`
 package later (mirroring `ZGF.Gui.Metal`) once a second web host needs it.
+
+## File upload & drag-and-drop
+
+Files are a platform-mediated capability (the canvas has no native `<input>`), so
+they go through a neutral `IFilePicker` service — like `IClipboard` — plus
+drag-drop delivered as input. The demo's button opens the OS picker on click and
+accepts dropped files (it highlights green on drag-over and prints each file's
+name/size, reading the first file's bytes to prove the content path).
+
+Two browser constraints shaped this:
+
+- **User activation:** a file picker can only open synchronously inside a user
+  gesture. So `main.js`'s `click` handler calls straight through to
+  `Program.HandleClick`, which triggers `input.click()` *before its first await*
+  (`HandleClick → PickFilesAsync → WebFiles.OpenPicker` is all synchronous). A
+  picker opened from the polled render tick would be blocked — this is why the
+  real input feeder must dispatch clicks synchronously, not defer them to a frame.
+- **Content, not paths:** the browser hands back `File` content, never a path, so
+  `PickedFile` exposes `OpenReadAsync()` (a stream), with no path anywhere. File
+  contents are only available on `drop`, not during `dragover`.
+
+`IFilePicker`/`PickedFile` live in the host for now; they belong next to
+`IClipboard` in the neutral package once it exists.
 
 ## Input & the interaction layer
 
