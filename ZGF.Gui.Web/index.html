@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ZGF.Gui.Web — font spike</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; }
+        canvas { border: 1px solid #ccc; display: block; margin-bottom: 1rem; }
+        pre { background: #111; color: #eee; padding: 1rem; border-radius: 6px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>ZGF.Gui.Web</h1>
+    <p>Skeleton browser host. The canvas below is the future WebGL2 render target;
+       the panel reports the in-browser FreeType + HarfBuzz font spike.</p>
+    <canvas id="zgf-canvas" width="800" height="600"></canvas>
+    <pre id="out">starting .NET runtime…</pre>
+    <script type="module" src="./main.js"></script>
+</body>
+</html>

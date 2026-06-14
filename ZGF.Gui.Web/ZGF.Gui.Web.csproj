@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      Browser (WASM) host for ZGF GUI. This is the project that carries the
+      browser-wasm NATIVE wiring described in docs/web-font-rendering.md:
+        - our self-built libfreetype.a (NativeFileReference),
+        - the published HarfBuzz wasm shaping asset, and
+        - AOT + native relinking (required for native deps on wasm).
+
+      It uses the lightweight ".NET WASM browser app" model (System.Runtime.
+      InteropServices.JavaScript / [JSExport]/[JSImport]) rather than Blazor,
+      because the eventual renderer drives a <canvas> + WebGL2 directly and the
+      Blazor component layer would add nothing.
+
+      STATUS: skeleton. Its only runnable behavior today is the font validation
+      spike (FontSpike.Run, see docs §7). The WebGL2 canvas backend and the
+      BeginFrame/EndFrame render loop are a separate plan; Tick() is the seam
+      where they will plug in.
+
+      Build/run (needs the wasm-tools workload AND a prior run of
+      tools/build-freetype-wasm.sh to produce native/wasm/libfreetype.a):
+
+          dotnet workload install wasm-tools
+          tools/build-freetype-wasm.sh
+          dotnet run -c Release --project ZGF.Gui.Web
+
+      Intentionally NOT in "ENV Game Framework.sln" so a normal desktop build
+      does not require the wasm toolchain or the native archive.
+    -->
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-browser</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <WasmMainJSPath>main.js</WasmMainJSPath>
+
+        <!-- Native deps on wasm require an AOT/native relink. -->
+        <RunAOTCompilation>true</RunAOTCompilation>
+        <WasmBuildNative>true</WasmBuildNative>
+
+        <!-- Make the referenced toolkit projects expose their net10.0-browser target
+             (the global property propagates across the project references). -->
+        <BuildWasm>true</BuildWasm>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+        <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Shaping: published native asset (no custom build). The managed HarfBuzzSharp
+             wrapper is pulled in transitively by ZGF.Fonts. -->
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="8.3.1.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Rasterization: our self-built archive (tools/build-freetype-wasm.sh). The HarfBuzz
+             wasm package self-registers its own static lib via its build props; we only add
+             FreeType. If the HarfBuzz package's props ever stop auto-registering, also add:
+             <NativeFileReference Include="$(HarfBuzzSharpStaticLibraryPath)" /> -->
+        <NativeFileReference Include="..\native\wasm\libfreetype.a" />
+    </ItemGroup>
+
+</Project>
