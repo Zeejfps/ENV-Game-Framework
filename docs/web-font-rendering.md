@@ -339,7 +339,11 @@ Open questions to resolve during the spike:
 - [ ] Run the §7 spike: install `wasm-tools`, run `tools/build-freetype-wasm.sh`,
       `dotnet run --project ZGF.Gui.Web`, and record the emsdk + FreeType versions
       that link cleanly. **(needs the .NET wasm toolchain — not yet run.)**
-- [ ] (Separate plan) WebGL2 backend wired into `Program.Tick()` + input mapping.
+- [~] WebGL2 canvas backend: first draft landed in `ZGF.Gui.Web/Rendering`
+      (`WebGl2RenderedCanvas` + `[JSImport]` binding + `webgl2.js` shim + GLSL→ES
+      adapter), wired into `Program.Tick()` with a demo draw. Unbuilt/unrun.
+- [ ] (Separate plan) Web view/layout/input shell: `IWindow`/`IGuiRenderBackend`
+      web impls, DOM-event → `DesktopInputSystem` mapping, clipboard; image draws.
 
 > **Implementation status (this branch):** the structural items above are landed
 > as a non-behavioral refactor + opt-in scaffolding (the `IGlyphSource` seam, the

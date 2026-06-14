@@ -51,6 +51,14 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- Reuse the desktop canvas shaders as the single source of truth; GlslEs.Adapt
+             rewrites the #version 410 header to GLSL ES 3.00 at load (see Rendering/GlslEs.cs). -->
+        <EmbeddedResource Include="..\ZGF.Gui.Desktop\Assets\Shaders\*.glsl">
+            <LogicalName>%(Filename)%(Extension)</LogicalName>
+        </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- Shaping: published native asset (no custom build). The managed HarfBuzzSharp
              wrapper is pulled in transitively by ZGF.Fonts. -->
         <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="8.3.1.3" />

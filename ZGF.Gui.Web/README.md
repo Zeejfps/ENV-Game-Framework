@@ -4,11 +4,12 @@ Browser (WebAssembly) host for ZGF GUI, using the lightweight **.NET WASM
 browser-app** model (`System.Runtime.InteropServices.JavaScript`), not Blazor —
 the eventual renderer drives a `<canvas>` + WebGL2 directly.
 
-> **Status: skeleton.** The only runnable behavior today is the **font validation
-> spike** (`FontSpike.Run`), which proves FreeType (our self-built `libfreetype.a`)
-> and HarfBuzz (the published wasm asset) work under browser-wasm. The WebGL2
-> canvas backend and the `BeginFrame`/`EndFrame` render loop are a separate plan;
-> `Program.Tick()` is the seam where they plug in.
+> **Status: skeleton (first draft, never compiled/run here).** Two things run:
+> the **font validation spike** (`FontSpike.Run`) — proves FreeType (our self-built
+> `libfreetype.a`) + HarfBuzz (the published wasm asset) work under browser-wasm —
+> and a **WebGL2 render demo** (`Rendering/WebGl2RenderedCanvas`) driven from
+> `Program.Tick()`, drawing a rect + text + shapes directly against `ICanvas`.
+> There is no view/layout/input shell yet; `Resize` is wired but DOM input is not.
 
 ## Prerequisites
 
@@ -39,10 +40,17 @@ Open the served URL; the page runs the spike and prints either:
 
 | File | Role |
 |------|------|
-| `Program.cs` | `Main` + `[JSExport]` `RunFontSpike` / `Tick` |
+| `Program.cs` | `Main` + `[JSExport]` `RunFontSpike` / `StartAsync` / `Tick` / `Resize` + the demo draw |
 | `FontSpike.cs` | the §7 spike: load font, shape, rasterize, read atlas |
-| `main.js` | runtime bootstrap, runs the spike, RAF seam |
-| `index.html` | page + `#zgf-canvas` (future render target) |
+| `Rendering/WebGl2RenderedCanvas.cs` | `RenderedCanvasBase` backend on WebGL2 (port of the desktop GL backend) |
+| `Rendering/Webgl2.cs` | `[JSImport]` binding over the WebGL2 shim (int-handle model) |
+| `Rendering/GlslEs.cs` | rewrites desktop `#version 410` GLSL → GLSL ES 3.00 |
+| `webgl2.js` | WebGL2 shim: handle tables + flat function surface |
+| `main.js` | runtime bootstrap, runs the spike, sizes the canvas, RAF render loop |
+| `index.html` | page + `#zgf-canvas` render target |
+
+The WebGL2 backend lives here for now; it could be extracted to a `ZGF.Gui.WebGL2`
+package later (mirroring `ZGF.Gui.Metal`) once a second web host needs it.
 
 ## Not in the solution
 
