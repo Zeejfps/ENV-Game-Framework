@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using ZGF.Geometry;
+using ZGF.Gui.VerticalScrollBar;
 using ZGF.Gui.Views;
 using ZGF.Gui.Web.Files;
 using ZGF.Gui.Web.Input;
@@ -39,6 +40,7 @@ internal sealed class DemoScreen
     private readonly List<DemoButton> _buttons = new();
     private readonly TextView _statusLabel;
     private readonly TextView _outputLabel;
+    private readonly VerticalScrollPane _contentScroll = new() { Gap = 16 };
     private DemoButton? _activeNav;
 
     public DemoScreen(Context context, int width, int height)
@@ -141,7 +143,7 @@ internal sealed class DemoScreen
 
     private MultiChildView BuildContent()
     {
-        var col = new ColumnView { Gap = 16 };
+        var col = _contentScroll;
         col.Children.Add(Label("Widgets", 26, Palette.Text, bold: true));
         col.Children.Add(Label(
             "This screen is a live ZGF.Gui view tree — RectView, TextView, ColumnView/RowView, " +
@@ -185,7 +187,7 @@ internal sealed class DemoScreen
             BackgroundColor = Palette.PageBg,
             Children =
             {
-                new PaddingView { Padding = PaddingStyle.All(24), Children = { col } },
+                new PaddingView { Padding = PaddingStyle.All(24), Children = { _contentScroll } },
             },
         };
     }
@@ -308,6 +310,10 @@ internal sealed class DemoScreen
 
     public void Sync()
     {
+        var (_, wheelY) = WebInput.TakeWheel();
+        if (wheelY != 0f && WebInput.IsOver(_contentScroll.Position))
+            _contentScroll.Scroll(wheelY);
+
         foreach (var b in _buttons)
             b.Sync();
 
