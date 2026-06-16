@@ -16,8 +16,8 @@ namespace ZGF.Gui;
 /// <see cref="Derived{T}"/> (implicit); an interface-typed <see cref="IReadable{T}"/> uses
 /// <c>Prop.Bind(vm.BgColor)</c>. The binding subscribes on mount and releases on unmount and never
 /// disposes the source, so pass externally-owned observables (VM/service state) that outlive the view.</item>
-/// <item><b>Projection</b> — <c>Background = vm.IsDone.Map(d =&gt; d ? A : B)</c>. See
-/// <see cref="PropExtensions.Map{TIn,TOut}"/>; leak-free.</item>
+/// <item><b>Projection</b> — <c>Background = vm.IsDone.Bind(d =&gt; d ? A : B)</c>. See
+/// <see cref="PropExtensions.Bind{TIn,TOut}"/>; leak-free.</item>
 /// <item><b>Compute</b> — <c>Background = Prop.Bind(() =&gt; a.Value ? b.Value : c)</c> for ad-hoc
 /// multi-source logic. Explicit because C# will not flow a bare lambda through a user-defined
 /// conversion.</item>
@@ -116,12 +116,13 @@ public static class Prop
 public static class PropExtensions
 {
     /// <summary>
-    /// Projects an observable into a bindable prop: <c>Background = vm.IsDone.Map(d =&gt; d ? A : B)</c>.
-    /// Leak-free — the projecting <see cref="Derived{T}"/> is created when the view mounts and disposed
+    /// Projects an observable into a bindable prop: <c>Background = vm.IsDone.Bind(d =&gt; d ? A : B)</c>.
+    /// The instance counterpart to <see cref="Prop.Bind{T}(System.Func{T})"/> — same verb, one source.
+    /// Leak-free: the projecting <see cref="Derived{T}"/> is created when the view mounts and disposed
     /// when it unmounts, and it never touches <paramref name="source"/>'s lifetime. Prefer this over
     /// <see cref="ReadableExtensions.Select{TIn,TOut}"/> for inline binding: <c>Select</c> eagerly
     /// builds a standalone observable that you would have to own and dispose yourself.
     /// </summary>
-    public static Prop<TOut> Map<TIn, TOut>(this IReadable<TIn> source, Func<TIn, TOut> project) =>
+    public static Prop<TOut> Bind<TIn, TOut>(this IReadable<TIn> source, Func<TIn, TOut> project) =>
         Prop.Bind(() => project(source.Value));
 }

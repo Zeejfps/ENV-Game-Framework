@@ -17,7 +17,7 @@ public abstract record Widget : IWidget
     public string? Id { get; init; }
 
     /// <summary>Visibility: a constant, an observable (<c>vm.IsOpen</c>), a projection
-    /// (<c>vm.Count.Map(c =&gt; c == 0)</c>), or a compute (<c>Prop.Bind(() =&gt; …)</c>). Unset leaves
+    /// (<c>vm.Count.Bind(c =&gt; c == 0)</c>), or a compute (<c>Prop.Bind(() =&gt; …)</c>). Unset leaves
     /// the view visible.</summary>
     public Prop<bool> Visible { get; init; }
 
