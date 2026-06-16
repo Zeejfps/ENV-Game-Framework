@@ -3,7 +3,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.Calendar;
 
-public sealed class CalendarDayCell : MultiChildView
+public sealed class CalendarDayCell : View
 {
     private readonly RectView _bg;
     private readonly TextView _label;
@@ -27,9 +27,9 @@ public sealed class CalendarDayCell : MultiChildView
     public uint SelectedBackgroundColor = 0xFF3B82F6;
     public uint TodayRingColor = 0xFF3B82F6;
 
-    public CalendarDayCell()
+    public CalendarDayCell(ICanvas canvas)
     {
-        _label = new TextView
+        _label = new TextView(canvas)
         {
             FontSize = 14,
             HorizontalTextAlignment = TextAlignment.Center,

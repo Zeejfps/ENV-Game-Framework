@@ -1,24 +1,22 @@
 ﻿using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed class Window : MultiChildView
+public sealed class Window : View
 {
     public string TitleText { get; }
 
-    private readonly MultiChildView _contents;
-    private readonly WindowTitleBarView _titlePanel;
-    public override ChildrenCollection Children => _contents.Children;
+    private readonly ContainerView _contents;
+    public new ChildrenCollection Children => _contents.Children;
 
-    public Window(string titleText)
+    public Window(string titleText, InputSystem input, View titleBar)
     {
         TitleText = titleText;
         Position = new RectF(200f, 200f, 640f, 500f);
-        _contents = new MultiChildView();
-
-        _titlePanel = new WindowTitleBarView(titleText);
+        _contents = new ContainerView();
 
         var leftBorder = new RectView
         {
@@ -84,7 +82,7 @@ public sealed class Window : MultiChildView
         
         var borderLayout = new BorderLayoutView
         {
-            North = _titlePanel,
+            North = titleBar,
             West = leftBorder,
             Center = contentOutline,
             East = rightBorder,
@@ -103,7 +101,11 @@ public sealed class Window : MultiChildView
         };
         AddChildToSelf(outline);
 
-        _titlePanel.UseController(_ => new WindowTitleBarDefaultKbmController(this, _titlePanel));
+        titleBar.UseController(input, () => new DragRecognizer(input)
+        {
+            Threshold = 1f,
+            Dragged = delta => Move(delta.X, delta.Y),
+        });
     }
 
     protected override void OnLayoutSelf()

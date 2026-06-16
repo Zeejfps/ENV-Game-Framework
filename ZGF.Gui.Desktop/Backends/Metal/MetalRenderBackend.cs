@@ -27,13 +27,14 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         return canvas;
     }
 
-    public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor)
+    public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null)
     {
         var metalWindow = (MetalWindow)window;
         var metalCanvas = (MetalRenderedCanvas)canvas;
         var surfaceRenderer = new MetalSurfaceRenderer(metalWindow);
         metalWindow.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
         {
+            preDraw?.Invoke();
             canvas.BeginFrame();
             drawContent();
             metalCanvas.EndFrame(encoder, commandBuffer);

@@ -4,7 +4,7 @@ public sealed class FlexItem : View
 {
     public StyleValue<float> Grow { get; init; }
 
-    public required MultiChildView Child
+    public required View Child
     {
         init => AddChildToSelf(value);
     }

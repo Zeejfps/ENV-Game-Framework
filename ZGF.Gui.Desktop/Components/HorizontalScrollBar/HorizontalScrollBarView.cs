@@ -1,10 +1,11 @@
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.HorizontalScrollBar;
 
-public sealed class HorizontalScrollBarView : MultiChildView
+public sealed class HorizontalScrollBarView : View
 {
     private readonly HorizontalScrollBarThumbView _thumbView;
     private readonly RectView _slideArea;
@@ -35,7 +36,7 @@ public sealed class HorizontalScrollBarView : MultiChildView
         set => _slideArea.BorderSize = value;
     }
 
-    public HorizontalScrollBarView()
+    public HorizontalScrollBarView(InputSystem input)
     {
         Height = 12;
 
@@ -60,7 +61,30 @@ public sealed class HorizontalScrollBarView : MultiChildView
 
         AddChildToSelf(_slideArea);
 
-        _thumbView.UseController(_ => new HorizontalScrollBarThumbViewController(_thumbView));
+        var hovered = false;
+        DragRecognizer? drag = null;
+        _thumbView.UseController(input, () => drag = new DragRecognizer(input)
+        {
+            DragStarted = () => _thumbView.IsSelected = true,
+            Dragged = delta => _thumbView.Move(delta.X),
+            DragEnded = () =>
+            {
+                if (!hovered) _thumbView.IsSelected = false;
+            },
+        });
+        _thumbView.UseController(input, new KbmHandlers
+        {
+            OnHoverEnter = () =>
+            {
+                hovered = true;
+                _thumbView.IsSelected = true;
+            },
+            OnHoverExit = () =>
+            {
+                hovered = false;
+                if (drag is not { IsDragging: true }) _thumbView.IsSelected = false;
+            },
+        });
     }
 
     public float Scale

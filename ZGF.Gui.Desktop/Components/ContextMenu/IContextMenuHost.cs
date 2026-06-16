@@ -1,4 +1,5 @@
 using ZGF.Geometry;
+using ZGF.Gui;
 
 namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
@@ -14,6 +15,14 @@ public interface IOpenedContextMenu
 {
     event Action Closed;
     bool IsOpened { get; }
+
+    /// <summary>The menu view built for this popup.</summary>
+    ContextMenu Menu { get; }
+
+    /// <summary>The hosting popup window's build context — per-window services
+    /// (input system, coordinates) resolve from here.</summary>
+    Context Context { get; }
+
     void CancelCloseRequest();
     void CloseRequest();
 }
@@ -22,7 +31,12 @@ public interface IOpenedContextMenu
 // menu with a borderless popup window; other platforms can host menus as in-canvas overlays.
 public interface IContextMenuHost
 {
-    IOpenedContextMenu? ShowContextMenu(ContextMenu menu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below);
+    /// <summary>
+    /// Opens a context menu. <paramref name="buildMenu"/> builds the menu against the popup
+    /// window's own context, so the menu's controllers register with that popup's input
+    /// system — menus are built fresh per show and pinned to their popup.
+    /// </summary>
+    IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below);
     void RequestCloseMenu(ContextMenu menu);
     void RequestCloseAll();
     void CloseAllImmediately();

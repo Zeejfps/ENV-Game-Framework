@@ -58,10 +58,10 @@ public static class BindingExtensions
         /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
         /// inside <paramref name="select"/> are auto-tracked.
         /// </summary>
-        public void BindThemedTextColor<TStyles>(Func<TStyles, uint> select)
+        public void BindThemedTextColor<TStyles>(IThemeService<TStyles> theme, Func<TStyles, uint> select)
         {
             view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<TextView, TStyles, uint>(
-                view, select, (v, c) => v.TextColor = c));
+                view, theme, select, (v, c) => v.TextColor = c));
         }
 
         /// <summary>
@@ -117,15 +117,28 @@ public static class BindingExtensions
         }
 
         /// <summary>
+        /// Two-way sync between a view-owned state and a view-model state, tied to the view's
+        /// mounted lifetime (bound on mount, released on unmount). On initial bind
+        /// <paramref name="source"/> wins — pass the VM state as the source so the view
+        /// follows the model. The mount scoping is what makes this safe to use from widget
+        /// CreateView code: an inline <see cref="StateBindingExtensions.BindTwoWay{T}"/> would
+        /// leave the longer-lived source retaining the discarded view after unmount.
+        /// </summary>
+        public void BindTwoWay<T>(State<T> target, State<T> source)
+        {
+            view.Behaviors.Add(new TwoWayStateBindingBehavior<T>(target, source));
+        }
+
+        /// <summary>
         /// Subscribes to the active <see cref="IThemeService{TStyles}"/> for painted views
         /// that can't express their colors as discrete property bindings. The callback fires
         /// once when the view attaches to a context and again on every theme swap; typical
         /// use is to mutate cached <c>TextStyle</c>/colour fields and call <c>SetDirty()</c>.
         /// </summary>
-        public void BindThemed<TStyles>(Action<TStyles> onChange)
+        public void BindThemed<TStyles>(IThemeService<TStyles> theme, Action<TStyles> onChange)
         {
             view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<View, TStyles, TStyles>(
-                view, s => s, (v, s) => onChange(s)));
+                view, theme, s => s, (v, s) => onChange(s)));
         }
     }
 
@@ -155,10 +168,10 @@ public static class BindingExtensions
         /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
         /// inside <paramref name="select"/> are auto-tracked.
         /// </summary>
-        public void BindThemedBackgroundColor<TStyles>(Func<TStyles, uint> select)
+        public void BindThemedBackgroundColor<TStyles>(IThemeService<TStyles> theme, Func<TStyles, uint> select)
         {
             view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<RectView, TStyles, uint>(
-                view, select, (v, c) => v.BackgroundColor = c));
+                view, theme, select, (v, c) => v.BackgroundColor = c));
         }
 
         /// <summary>
@@ -185,20 +198,20 @@ public static class BindingExtensions
         /// <see cref="IThemeService{TStyles}"/> styles. Theme swaps and any observable reads
         /// inside <paramref name="select"/> are auto-tracked.
         /// </summary>
-        public void BindThemedBorderColor<TStyles>(Func<TStyles, BorderColorStyle> select)
+        public void BindThemedBorderColor<TStyles>(IThemeService<TStyles> theme, Func<TStyles, BorderColorStyle> select)
         {
             view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<RectView, TStyles, BorderColorStyle>(
-                view, select, (v, c) => v.BorderColor = c));
+                view, theme, select, (v, c) => v.BorderColor = c));
         }
     }
 
-    extension(MultiChildView parent)
+    extension(View.ChildrenCollection children)
     {
         /// <summary>
-        /// Binds the parent's <see cref="MultiChildView.Children"/> to the source list. Add/
-        /// Insert/Remove/Move/Replace/Clear events from the source produce matching mutations
-        /// on the parent's children — no full diff. Subscription is tied to the parent's
-        /// context lifecycle.
+        /// Mirrors the source list into this children collection. Add/Insert/Remove/Move/
+        /// Replace/Clear events from the source produce matching mutations — no full diff.
+        /// Subscription is tied to the owning view's mounted lifetime. Available only on
+        /// views that expose their children publicly.
         /// </summary>
         public void BindChildren<TItem, TChild>(ObservableList<TItem> source,
             Func<TItem, TChild> create,
@@ -206,21 +219,21 @@ public static class BindingExtensions
             Action<TChild>? onRemoved = null)
             where TChild : View
         {
-            parent.Behaviors.Add(new ChildrenBindingBehavior<TItem, TChild>(
-                parent, source, create, onCreated, onRemoved));
+            children.Owner.Behaviors.Add(new ChildrenBindingBehavior<TItem, TChild>(
+                children, source, create, onCreated, onRemoved));
         }
 
         /// <summary>
-        /// Binds the parent's <see cref="MultiChildView.Children"/> to a derived list. The
-        /// compute function's observable reads are auto-tracked; when any dependency
-        /// invalidates, the function re-runs and the children are reseeded.
+        /// Mirrors a derived list into this children collection. The compute function's
+        /// observable reads are auto-tracked; when any dependency invalidates, the function
+        /// re-runs and the children are reseeded.
         /// </summary>
         public void BindChildren<TItem, TChild>(Func<IEnumerable<TItem>> compute,
             Func<TItem, TChild> create)
             where TChild : View
         {
-            parent.Behaviors.Add(new DerivedChildrenBindingBehavior<TItem, TChild>(
-                parent, compute, create));
+            children.Owner.Behaviors.Add(new DerivedChildrenBindingBehavior<TItem, TChild>(
+                children, compute, create));
         }
     }
 }

@@ -13,7 +13,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
-      <ProjectReference Include="..\ZGF.Gui.Tests\ZGF.Gui.Tests.csproj" />
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
     </ItemGroup>

@@ -1,43 +1,41 @@
-﻿using ZGF.Gui.Desktop.Controllers;
+﻿using ZGF.Gui.Bindings;
+using ZGF.Gui.Desktop.Controllers;
+using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
+using ZGF.Gui.Widgets;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Sandbox;
 
-public sealed class AppBar : MultiChildView
+public sealed record AppBar : Widget
 {
-    private readonly MenuItem _fileItem;
-    private readonly MenuItem _editItem;
-    private readonly MenuItem _viewLabel;
-    private readonly MenuItem _helpLabel;
-
-    public AppBar(App app)
+    protected override View CreateView(Context ctx)
     {
-        _fileItem = new MenuItem
-        {
-            Text = "File"
-        };
+        var canvas = ctx.Canvas;
+        var input = ctx.Require<InputSystem>();
+        var app = ctx.Require<App>();
 
-        _editItem = new MenuItem
+        View MenuItem(string text, bool isDisabled, Func<View, State<bool>, BaseMenuItemController>? createController)
         {
-            Text = "Edit"
-        };
+            var isSelected = new State<bool>(false);
+            var textView = new TextView(canvas)
+            {
+                Text = text,
+                VerticalTextAlignment = TextAlignment.Center,
+                TextColor = isDisabled ? 0xFF959595 : 0xFF000000,
+            };
+            var item = new RectView
+            {
+                BackgroundColor = 0xFFDEDEDE,
+                Padding = PaddingStyle.All(3),
+                Children = { textView },
+            };
+            item.BindBackgroundColor(() => isSelected.Value ? 0x9C9CCEu : 0xFFDEDEDEu);
+            if (createController != null)
+                item.UseController(input, () => createController(item, isSelected));
+            return item;
+        }
 
-        _viewLabel = new MenuItem
-        {
-            Text = "View"
-        };
-
-        var specialMenuItem = new MenuItem
-        {
-            Text = "Special",
-            IsDisabled = true
-        };
-
-        _helpLabel = new MenuItem
-        {
-            Text = "Help"
-        };
-        
         var row = new FlexRowView
         {
             MainAxisAlignment = MainAxisAlignment.Start,
@@ -45,14 +43,14 @@ public sealed class AppBar : MultiChildView
             Gap = 10,
             Children =
             {
-                _fileItem,
-                _editItem,
-                _viewLabel,
-                specialMenuItem,
-                _helpLabel,
+                MenuItem("File", false, (item, selected) => new FileMenuItemController(item, selected, app, ctx)),
+                MenuItem("Edit", false, (item, selected) => new TestMenuItemController(item, selected, ctx)),
+                MenuItem("View", false, (item, selected) => new TestMenuItemController(item, selected, ctx)),
+                MenuItem("Special", true, null),
+                MenuItem("Help", false, (item, selected) => new TestMenuItemController(item, selected, ctx)),
             }
         };
-        
+
         var background = new RectView
         {
             BackgroundColor = 0xFFDEDEDE,
@@ -70,8 +68,8 @@ public sealed class AppBar : MultiChildView
                 row
             }
         };
-        
-        var container = new RectView
+
+        return new RectView
         {
             BackgroundColor = 0xFF000000,
             Padding = new PaddingStyle
@@ -83,12 +81,5 @@ public sealed class AppBar : MultiChildView
                 background
             }
         };
-
-        AddChildToSelf(container);
-
-        _fileItem.UseController(ctx => new FileMenuItemController(_fileItem, app, ctx));
-        _editItem.UseController(ctx => new TestMenuItemController(_editItem, ctx));
-        _viewLabel.UseController(ctx => new TestMenuItemController(_viewLabel, ctx));
-        _helpLabel.UseController(ctx => new TestMenuItemController(_helpLabel, ctx));
     }
 }

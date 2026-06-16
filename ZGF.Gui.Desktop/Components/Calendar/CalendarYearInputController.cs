@@ -11,8 +11,8 @@ public sealed class CalendarYearInputController : BaseTextInputKbmController
     private readonly Action _onRevert;
     private bool _reverting;
 
-    public CalendarYearInputController(TextInputView input, Action<string> onCommit, Action onRevert)
-        : base(input)
+    public CalendarYearInputController(TextInputView input, InputSystem inputSystem, Action<string> onCommit, Action onRevert)
+        : base(input, inputSystem)
     {
         _input = input;
         _onCommit = onCommit;

@@ -3,9 +3,9 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
-public sealed class ContextMenu : MultiChildView
+public sealed class ContextMenu : View
 {
-    public override ChildrenCollection Children => _itemsContainer.Children;
+    public new ChildrenCollection Children => _itemsContainer.Children;
 
     private readonly ColumnView _itemsContainer;
     private readonly RectView _background;

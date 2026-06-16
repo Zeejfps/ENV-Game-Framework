@@ -27,11 +27,12 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
         return canvas;
     }
 
-    public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor)
+    public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null)
     {
         var glWindow = (OpenGlWindow)window;
         glWindow.RenderFrame = () =>
         {
+            preDraw?.Invoke();
             glClearColor(clearColor.R, clearColor.G, clearColor.B, clearColor.A);
             glClear(GL_COLOR_BUFFER_BIT);
             canvas.BeginFrame();

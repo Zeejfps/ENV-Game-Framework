@@ -339,6 +339,14 @@ public sealed class InputSystem
         _focusedComponent = null;
         _hoveredComponent = null;
         _focusQueue.Clear();
+        // Registrations must go too. SetRoot(null) only unregisters controllers added
+        // through behaviors (UseController); anything registered directly with
+        // RegisterController (e.g. a menu's keep-open controller) would otherwise stay
+        // in the hit-test set with its dead view's stale Position — stealing hover from
+        // the next popup this pooled instance hosts and swallowing its enter events.
+        _viewToControllers.Clear();
+        _controllerToView.Clear();
+        _hoverableComponents.Clear();
     }
 
     /// <summary>

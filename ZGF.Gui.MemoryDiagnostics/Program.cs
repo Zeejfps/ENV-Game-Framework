@@ -59,7 +59,7 @@ var config = new StartupConfig
 
 var builder = GuiApp.CreateBuilder(config);
 var guiApp = builder
-    .UseContent(scenario.Root)
+    .UseContent(ctx => scenario.BuildRoot(ctx.Canvas))
     .Build();
 var dispatcher = builder.Services.Get<IUiDispatcher>()
                  ?? throw new InvalidOperationException("IUiDispatcher not registered by GuiApp.");

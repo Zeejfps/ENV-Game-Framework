@@ -1,10 +1,14 @@
 using ZGF.Geometry;
-using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 
-public sealed class VerticalScrollBarView : MultiChildView
+/// <summary>
+/// Visual track + thumb composite with no input wiring — views stay input-agnostic.
+/// Widget land uses the <c>ScrollBar</c> widget instead; view-land consumers wire the
+/// thumb themselves (DragRecognizer + KbmHandlers via UseController).
+/// </summary>
+public sealed class VerticalScrollBarView : View
 {
     private readonly VerticalScrollBarThumbView _thumbView;
     private readonly RectView _slideArea;
@@ -59,8 +63,6 @@ public sealed class VerticalScrollBarView : MultiChildView
         };
 
         AddChildToSelf(_slideArea);
-
-        _thumbView.UseController(_ => new VerticalScrollBarThumbViewController(_thumbView));
     }
 
     public float Scale

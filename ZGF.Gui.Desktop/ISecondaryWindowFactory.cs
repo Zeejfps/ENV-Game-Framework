@@ -15,7 +15,9 @@ public interface ISecondaryWindowFactory : IDisposable
 
 public readonly struct SecondaryWindowRequest
 {
-    public required View Root { get; init; }
+    /// <summary>Builds the window's root view against the window's own per-window
+    /// <see cref="Context"/> (canvas, input system, coordinates).</summary>
+    public required Func<Context, View> BuildRoot { get; init; }
     public required string Title { get; init; }
     public required int Width { get; init; }
     public required int Height { get; init; }

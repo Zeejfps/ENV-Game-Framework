@@ -3,7 +3,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.VerticalScrollBar;
 
-public sealed class VerticalScrollPane : MultiChildView
+public sealed class VerticalScrollPane : View
 {
     public event Action<float>? ScrollPositionChanged;
 
@@ -13,7 +13,7 @@ public sealed class VerticalScrollPane : MultiChildView
 
     public float ScrollNormalized { get; private set; }
     public float Scale { get; private set; }
-    public override ChildrenCollection Children => _columnView.Children;
+    public new ChildrenCollection Children => _columnView.Children;
 
     public override bool ClipsContent => true;
 
@@ -67,7 +67,7 @@ public sealed class VerticalScrollPane : MultiChildView
         Scroll(delta);
     }
 
-    public void ScrollTo(MultiChildView view)
+    public void ScrollTo(View view)
     {
         if (!Children.Contains(view))
             return;

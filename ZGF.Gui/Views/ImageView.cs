@@ -1,7 +1,14 @@
 namespace ZGF.Gui.Views;
 
-public sealed class ImageView : MultiChildView
+public sealed class ImageView : View
 {
+    private readonly ICanvas _canvas;
+
+    public ImageView(ICanvas canvas)
+    {
+        _canvas = canvas;
+    }
+
     public uint TintColor { get; set; } = 0xFFFFFFFF;
     public float Rotation { get; set; }
 
@@ -17,8 +24,8 @@ public sealed class ImageView : MultiChildView
         if (Width.IsSet)
             return Width.Value;
 
-        if (ImageId != null && Context != null)
-            return Context.Canvas.GetImageWidth(ImageId);
+        if (ImageId != null)
+            return _canvas.GetImageWidth(ImageId);
 
         return WidthConstraint;
     }
@@ -29,8 +36,8 @@ public sealed class ImageView : MultiChildView
         if (Height.IsSet)
             return Height.Value;
 
-        if (ImageId != null && Context != null)
-            return Context.Canvas.GetImageHeight(ImageId);
+        if (ImageId != null)
+            return _canvas.GetImageHeight(ImageId);
 
         return HeightConstraint;
     }

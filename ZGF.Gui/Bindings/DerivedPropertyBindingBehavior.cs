@@ -27,13 +27,13 @@ internal sealed class DerivedPropertyBindingBehavior<TView, TProp> : IViewBehavi
         _apply = apply;
     }
 
-    public void AttachToContext(View view, Context context)
+    public void Attach(View view)
     {
         _derived = new Derived<TProp>(_compute);
         _subscription = _derived.Subscribe(v => _apply(_view, v));
     }
 
-    public void DetachFromContext(View view, Context context)
+    public void Detach(View view)
     {
         _subscription?.Dispose();
         _subscription = null;

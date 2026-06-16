@@ -55,7 +55,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
         var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend);
-        impl.SetRoot(request.Root);
+        impl.SetRoot(request.BuildRoot(context));
 
         // Paint once before showing so the first frame isn't a flash of an empty window.
         window.MakeContextCurrent();
@@ -101,14 +101,10 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
 internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 {
-    private readonly IWindow _window;
-    private readonly RenderedCanvasBase _canvas;
-    private readonly DesktopInputSystem _input;
-    private readonly Context _context;
-    private View? _root;
+    private readonly GuiWindowHost _host;
     private bool _disposed;
 
-    public IWindow Window => _window;
+    public IWindow Window => _host.Window;
     public bool CloseRequested { get; private set; }
     public event Action? Closed;
 
@@ -119,71 +115,38 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         Context context,
         IGuiRenderBackend backend)
     {
-        _window = window;
-        _canvas = canvas;
-        _input = input;
-        _context = context;
+        _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: true);
 
-        _input.OnAnyInput = () => _window.RequestRedraw();
-        _window.OnResize += HandleResize;
-        _window.OnFramebufferResize += HandleFramebufferResize;
+        window.OnResize += HandleResize;
+        window.OnFramebufferResize += HandleFramebufferResize;
         // The native close button asks to close — defer the actual teardown to the next
         // factory Update() so we don't destroy the window from inside its GLFW callback.
-        _window.OnClose += () => CloseRequested = true;
+        window.OnClose += () => CloseRequested = true;
 
-        backend.WireRenderLoop(_window, _canvas, DrawContent, (0f, 0f, 0f, 1f));
+        backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 1f));
     }
 
-    private void DrawContent()
-    {
-        if (_root != null)
-        {
-            _root.LayoutSelf();
-            _root.DrawSelf();
-        }
-    }
+    public void SetRoot(View? root) => _host.SetRoot(root);
 
-    public void SetRoot(View? root)
-    {
-        if (_root != null)
-        {
-            _root.Context = null;
-            _root.OnRedrawNeeded = null;
-        }
-        _root = root;
-        if (root != null)
-        {
-            root.Width = _window.Width;
-            root.Height = _window.Height;
-            root.Context = _context;
-            root.OnRedrawNeeded = _window.RequestRedraw;
-        }
-    }
+    public void UpdateInput() => _host.Input.Update();
 
-    public void UpdateInput() => _input.Update();
-
-    public void RequestRedraw() => _window.RequestRedraw();
+    public void RequestRedraw() => _host.Window.RequestRedraw();
 
     public void Close() => CloseRequested = true;
 
     private void HandleResize(int width, int height)
     {
-        _canvas.Resize(width, height);
-        if (_root != null)
-        {
-            _root.Width = width;
-            _root.Height = height;
-        }
+        _host.HandleResize(width, height);
         // Repaint synchronously so a live drag-resize doesn't show stretched/stale content.
-        _window.MakeContextCurrent();
-        _window.RenderNow();
+        _host.Window.MakeContextCurrent();
+        _host.Window.RenderNow();
     }
 
     private void HandleFramebufferResize(int width, int height)
     {
         // Keep the atlas/viewport DPI in sync when the window moves between monitors of
         // different scale. The canvas recomputes its glViewport from Width*DpiScale each frame.
-        _canvas.UpdateDpiScale(_window.DpiScale);
+        _host.RefreshDpiScale();
     }
 
     public void Dispose()
@@ -191,16 +154,16 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         if (_disposed) return;
         _disposed = true;
 
-        _window.OnResize -= HandleResize;
-        _window.OnFramebufferResize -= HandleFramebufferResize;
+        _host.Window.OnResize -= HandleResize;
+        _host.Window.OnFramebufferResize -= HandleFramebufferResize;
         SetRoot(null);
         // VAOs are per-context (not shared across the GL share group). Make THIS window's
         // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
         // runs against whatever context is current (often the main window) and destroys that
         // context's same-named VAOs — corrupting the main window's rendering.
-        _window.MakeContextCurrent();
-        if (_canvas is IDisposable d) d.Dispose();
-        _window.Dispose();
+        _host.Window.MakeContextCurrent();
+        _host.DisposeCanvas();
+        _host.Window.Dispose();
         Closed?.Invoke();
     }
 }

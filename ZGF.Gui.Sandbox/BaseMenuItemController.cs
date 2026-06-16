@@ -2,27 +2,27 @@ using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Sandbox;
 
 public abstract class BaseMenuItemController : KeyboardMouseController, IDisposable
 {
-    protected MenuItem MenuItem { get; }
-    protected Context Context { get; }
+    protected View MenuItem { get; }
+    private readonly State<bool> _isSelected;
     private readonly IContextMenuHost _contextMenuManager;
-    private readonly InputSystem _inputSystem;
     private readonly IWindowCoordinates? _coordinates;
 
-    private ContextMenu? _contextMenu;
     private IOpenedContextMenu? _openedContextMenu;
-    private readonly List<MultiChildView> _menuRegistrations = new();
+    private InputSystem? _menuInputSystem;
+    private ContextMenu? _registeredMenu;
+    private long _closedAtMs;
 
-    protected BaseMenuItemController(MenuItem menuItem, Context context)
+    protected BaseMenuItemController(View menuItem, State<bool> isSelected, Context context)
     {
         MenuItem = menuItem;
-        Context = context;
+        _isSelected = isSelected;
         _contextMenuManager = context.Get<IContextMenuHost>()!;
-        _inputSystem = context.Get<InputSystem>()!;
         _coordinates = context.Get<IWindowCoordinates>();
     }
 
@@ -33,65 +33,74 @@ public abstract class BaseMenuItemController : KeyboardMouseController, IDisposa
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        UnregisterMenuControllers();
+        UnregisterMenuController();
     }
 
     public override void OnMouseEnter(ref MouseEnterEvent e)
     {
+        _openedContextMenu?.CancelCloseRequest();
+    }
+
+    // Click-to-open: the pointer arbiter clears main-window hover whenever a modal popup
+    // is open, so a hover-opened menu would immediately receive a synthetic exit and
+    // close itself. Opening on press matches the framework's modal design; the menu
+    // closes on outside click (ContextMenuManager's main-window press preview).
+    public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
+    {
+        if (e.State != InputState.Pressed || e.Button != MouseButton.Left)
+            return;
         if (_openedContextMenu != null && _openedContextMenu.IsOpened)
+            return;
+        // This same press may have just closed the menu via the manager's outside-click
+        // preview (which runs before dispatch) — that's a toggle-close, not a reopen.
+        if (Environment.TickCount64 - _closedAtMs < 100)
         {
-            _openedContextMenu.CancelCloseRequest();
+            e.Consume();
             return;
         }
-
-        _contextMenu = new ContextMenu();
-        BuildMenu(_contextMenu);
 
         var screen = _coordinates != null
             ? _coordinates.ToScreenPoints(MenuItem.Position.BottomLeft)
             : default;
-        _openedContextMenu = _contextMenuManager.ShowContextMenu(_contextMenu, screen);
+        _openedContextMenu = _contextMenuManager.ShowContextMenu(popupCtx =>
+        {
+            var contextMenu = new ContextMenu();
+            BuildMenu(contextMenu, popupCtx);
+            return contextMenu;
+        }, screen);
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed += OnOpenedContextMenuClosed;
-            RegisterMenuController(_contextMenu, new ContextMenuKbmController(_openedContextMenu));
-            MenuItem.IsSelected = true;
+            var menuInput = _openedContextMenu.Context.Get<InputSystem>();
+            menuInput?.RegisterController(_openedContextMenu.Menu, new ContextMenuKbmController(_openedContextMenu));
+            _menuInputSystem = menuInput;
+            _registeredMenu = _openedContextMenu.Menu;
+            _isSelected.Value = true;
+            e.Consume();
         }
     }
 
-    protected void RegisterMenuController(MultiChildView view, IKeyboardMouseController controller)
+    private void UnregisterMenuController()
     {
-        _inputSystem.RegisterController(view, controller);
-        _menuRegistrations.Add(view);
-    }
-
-    private void UnregisterMenuControllers()
-    {
-        foreach (var view in _menuRegistrations)
+        if (_registeredMenu != null)
         {
-            _inputSystem.UnregisterController(view);
+            _menuInputSystem?.UnregisterController(_registeredMenu);
+            _registeredMenu = null;
         }
-        _menuRegistrations.Clear();
+        _menuInputSystem = null;
     }
 
     private void OnOpenedContextMenuClosed()
     {
-        MenuItem.IsSelected = false;
+        _closedAtMs = Environment.TickCount64;
+        _isSelected.Value = false;
         if (_openedContextMenu != null)
         {
             _openedContextMenu.Closed -= OnOpenedContextMenuClosed;
             _openedContextMenu = null;
         }
-        UnregisterMenuControllers();
+        UnregisterMenuController();
     }
 
-    public override void OnMouseExit(ref MouseExitEvent e)
-    {
-        if (_openedContextMenu != null && _openedContextMenu.IsOpened)
-        {
-            _openedContextMenu.CloseRequest();
-        }
-    }
-
-    protected abstract void BuildMenu(ContextMenu contextMenu);
+    protected abstract void BuildMenu(ContextMenu contextMenu, Context popupContext);
 }

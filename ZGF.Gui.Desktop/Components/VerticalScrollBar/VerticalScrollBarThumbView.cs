@@ -3,7 +3,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Desktop.Components.VerticalScrollBar;
 
-public sealed class VerticalScrollBarThumbView : MultiChildView
+public sealed class VerticalScrollBarThumbView : View
 {
     public event Action<float>? ScrollPositionChanged;
 

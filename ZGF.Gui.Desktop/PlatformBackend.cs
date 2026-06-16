@@ -18,16 +18,26 @@ internal static class PlatformBackend
         public required FreeTypeFontBackend FontBackend { get; init; }
         public required FontHandle DefaultFont { get; init; }
         public required IGuiRenderBackend RenderBackend { get; init; }
+
+        /// <summary>Registers backend-specific resources (e.g. the image manager, for
+        /// frame-buffer-backed images) into the app context so embedded-rendering apps can
+        /// resolve them at build time.</summary>
+        public required Action<Context> RegisterServices { get; init; }
     }
 
-    public static Backend Resolve(StartupConfig config)
+    public static Backend Resolve(StartupConfig config, GuiRenderBackendKind kind, Action? mainPreDraw)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return ResolveMetal(config);
-        return ResolveOpenGl(config);
+        return kind switch
+        {
+            GuiRenderBackendKind.OpenGl => ResolveOpenGl(config, mainPreDraw),
+            GuiRenderBackendKind.Metal => ResolveMetal(config, mainPreDraw),
+            _ => RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? ResolveMetal(config, mainPreDraw)
+                : ResolveOpenGl(config, mainPreDraw),
+        };
     }
 
-    private static Backend ResolveOpenGl(StartupConfig config)
+    private static Backend ResolveOpenGl(StartupConfig config, Action? mainPreDraw)
     {
         var app = new OpenGlApp(config);
         var mainWindow = (OpenGlWindow)app.MainWindow;
@@ -45,7 +55,7 @@ internal static class PlatformBackend
         if (windowHeight <= 0) windowHeight = 720;
 
         var canvas = backend.CreateCanvas(mainWindow, windowWidth, windowHeight, fontSource: null);
-        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f));
+        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f), mainPreDraw);
 
         return new Backend
         {
@@ -54,10 +64,11 @@ internal static class PlatformBackend
             FontBackend = fonts,
             DefaultFont = defaultFont,
             RenderBackend = backend,
+            RegisterServices = ctx => ctx.AddService(imageManager),
         };
     }
 
-    private static Backend ResolveMetal(StartupConfig config)
+    private static Backend ResolveMetal(StartupConfig config, Action? mainPreDraw)
     {
         var app = new MetalApp(config);
         var mainWindow = (MetalWindow)app.MainWindow;
@@ -70,7 +81,7 @@ internal static class PlatformBackend
         var backend = new MetalRenderBackend(shared, fonts, defaultFont);
 
         var canvas = backend.CreateCanvas(mainWindow, config.WindowWidth, config.WindowHeight, fontSource: null);
-        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f));
+        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f), mainPreDraw);
 
         return new Backend
         {
@@ -79,6 +90,7 @@ internal static class PlatformBackend
             FontBackend = fonts,
             DefaultFont = defaultFont,
             RenderBackend = backend,
+            RegisterServices = ctx => ctx.AddService(imageManager),
         };
     }
 

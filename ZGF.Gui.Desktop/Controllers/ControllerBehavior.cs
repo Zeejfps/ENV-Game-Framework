@@ -4,35 +4,38 @@ namespace ZGF.Gui.Desktop.Controllers;
 
 public sealed class ControllerBehavior<T> : IViewBehavior where T : IKeyboardMouseController
 {
-    private readonly Func<Context, T>? _factory;
+    private readonly InputSystem _input;
+    private readonly Func<T>? _factory;
     private readonly EventPhaseFilter _phaseFilter;
     private readonly bool _ownsController;
     private T? _controller;
 
-    public ControllerBehavior(Func<Context, T> factory, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
+    public ControllerBehavior(InputSystem input, Func<T> factory, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
     {
+        _input = input;
         _factory = factory;
         _phaseFilter = phaseFilter;
         _ownsController = true;
     }
 
-    public ControllerBehavior(T controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
+    public ControllerBehavior(InputSystem input, T controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
     {
+        _input = input;
         _controller = controller;
         _phaseFilter = phaseFilter;
         _ownsController = false;
     }
 
-    public void AttachToContext(View view, Context context)
+    public void Attach(View view)
     {
-        _controller ??= _factory!(context);
-        context.Get<InputSystem>()!.RegisterController(view, _controller, _phaseFilter);
+        _controller ??= _factory!();
+        _input.RegisterController(view, _controller, _phaseFilter);
     }
 
-    public void DetachFromContext(View view, Context context)
+    public void Detach(View view)
     {
         if (_controller != null)
-            context.Get<InputSystem>()?.UnregisterController(view, _controller);
+            _input.UnregisterController(view, _controller);
 
         if (_ownsController)
         {

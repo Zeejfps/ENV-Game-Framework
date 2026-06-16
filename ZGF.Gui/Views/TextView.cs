@@ -3,9 +3,15 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Views;
 
-public sealed class TextView : MultiChildView
+public sealed class TextView : View
 {
+    private readonly ICanvas _canvas;
     private readonly TextStyle _style = new();
+
+    public TextView(ICanvas canvas)
+    {
+        _canvas = canvas;
+    }
 
     public StyleValue<uint> TextColor
     {
@@ -93,16 +99,16 @@ public sealed class TextView : MultiChildView
         if (Width.IsSet)
             return Width;
 
-        if (Context == null || _text == null)
+        if (_text == null)
             return 0f;
 
         if (!HasNewlines(_text))
-            return Context.Canvas.MeasureTextWidth(_text, _style);
+            return _canvas.MeasureTextWidth(_text, _style);
 
         var max = 0f;
         foreach (var line in SplitLines(_text))
         {
-            var w = Context.Canvas.MeasureTextWidth(line, _style);
+            var w = _canvas.MeasureTextWidth(line, _style);
             if (w > max) max = w;
         }
         return max;
@@ -110,10 +116,10 @@ public sealed class TextView : MultiChildView
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
-        if (Context == null || _text == null)
+        if (_text == null)
             return 0f;
 
-        var lineHeight = Context.Canvas.MeasureTextLineHeight(_style);
+        var lineHeight = _canvas.MeasureTextLineHeight(_style);
 
         // availableWidth <= 0 means "unconstrained"; treat as single-line natural width.
         if (IsWrapping && availableWidth > 0f)
@@ -133,7 +139,7 @@ public sealed class TextView : MultiChildView
 
     private void EnsureWrapped(float width)
     {
-        if (Context == null || _text == null)
+        if (_text == null)
         {
             _wrappedLines.Clear();
             _wrappedFromText = null;
@@ -143,7 +149,7 @@ public sealed class TextView : MultiChildView
         if (Math.Abs(width - _wrappedForWidth) < 0.5f && ReferenceEquals(_wrappedFromText, _text))
             return;
         _wrappedLines.Clear();
-        TextWrapper.Wrap(Context.Canvas, _text, _style, width, _wrappedLines);
+        TextWrapper.Wrap(_canvas, _text, _style, width, _wrappedLines);
         _wrappedForWidth = width;
         _wrappedFromText = _text;
     }

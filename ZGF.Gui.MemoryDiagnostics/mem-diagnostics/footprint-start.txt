@@ -1,0 +1,48 @@
+======================================================================
+ZGF.Gui.MemoryDiagnostics [75414]: 64-bit    Footprint: 285 MB (16384 bytes per page)
+======================================================================
+
+  Dirty      Clean  Reclaimable    Regions    Category
+    ---        ---          ---        ---    ---
+ 195 MB        0 B          0 B         35    Owned physical footprint (unmapped) (graphics)
+  29 MB        0 B          0 B          5    IOSurface
+  26 MB        0 B          0 B        162    untagged (VM_ALLOCATE)
+  12 MB        0 B          0 B         15    MALLOC_SMALL
+  11 MB        0 B          0 B         52    IOAccelerator (graphics)
+4096 KB        0 B          0 B         32    Owned physical footprint (unmapped)
+1419 KB        0 B          0 B        867    __DATA_DIRTY
+1024 KB        0 B          0 B          7    CoreUI image data
+ 989 KB        0 B          0 B        971    __DATA
+ 720 KB        0 B          0 B          9    MALLOC metadata
+ 673 KB        0 B          0 B          1    page table
+ 592 KB        0 B          0 B         34    stack
+ 544 KB        0 B          0 B         28    CoreAnimation
+ 496 KB      21 MB          0 B         98    mapped file
+ 384 KB      16 KB          0 B       1025    __DATA_CONST
+ 280 KB        0 B          0 B       2511    unused dyld shared cache area
+ 256 KB        0 B          0 B          1    MALLOC_TINY
+ 175 KB        0 B          0 B        625    __AUTH
+ 128 KB        0 B          0 B          1    Accelerate image backing stores
+ 112 KB        0 B          0 B       1010    __AUTH_CONST
+  96 KB        0 B          0 B          2    __TPRO_CONST
+  64 KB        0 B          0 B          2    IOAccelerator
+  64 KB        0 B          0 B          5    IOKit
+  48 KB        0 B          0 B          1    dyld private memory
+  48 KB        0 B          0 B          3    CoreGraphics
+  32 KB        0 B          0 B          1    Activity Tracing
+  32 KB        0 B          0 B          1    MALLOC_NANO
+  16 KB        0 B          0 B          1    tag 22
+  16 KB        0 B          0 B          1    Foundation
+  16 KB        0 B          0 B          1    os_alloc_once
+  16 KB        0 B          0 B          1    ColorSync
+    0 B    9920 KB          0 B       1047    __TEXT
+    0 B     640 KB          0 B         13    __LINKEDIT
+    0 B        0 B          0 B          1    __FONT_DATA
+    0 B        0 B          0 B          1    __CTF
+    ---        ---          ---        ---    ---
+ 285 MB      31 MB          0 B       8572    TOTAL
+
+Auxiliary data:
+    phys_footprint: 285 MB
+    phys_footprint_peak: 285 MB
+

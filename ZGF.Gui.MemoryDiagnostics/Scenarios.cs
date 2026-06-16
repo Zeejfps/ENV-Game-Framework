@@ -13,7 +13,7 @@ namespace ZGF.Gui.MemoryDiagnostics;
 public interface IScenario
 {
     string Name { get; }
-    View Root { get; }
+    View BuildRoot(ICanvas canvas);
     void Tick(long frame);
 }
 
@@ -45,14 +45,13 @@ public static class Scenarios
     private sealed class IdleScenario : IScenario
     {
         public string Name => "idle";
-        public View Root { get; } = BuildRoot();
 
-        private static View BuildRoot()
+        public View BuildRoot(ICanvas canvas)
         {
             var col = new ColumnView { Gap = 4 };
             col.Children.Add(new RectView { Width = 400f, Height = 60f, BackgroundColor = 0xFF2D6CDF });
-            col.Children.Add(new TextView { Text = "memory diagnostics — idle", TextColor = 0xFFFFFFFF, FontSize = 18f });
-            col.Children.Add(new TextView { Text = "static frame, no mutation", TextColor = 0xFFAAAAAA, FontSize = 14f });
+            col.Children.Add(new TextView(canvas) { Text = "memory diagnostics — idle", TextColor = 0xFFFFFFFF, FontSize = 18f });
+            col.Children.Add(new TextView(canvas) { Text = "static frame, no mutation", TextColor = 0xFFAAAAAA, FontSize = 14f });
             return col;
         }
 
@@ -63,20 +62,22 @@ public static class Scenarios
     // without plateauing, the font backend's sized-variant/atlas cache isn't deduping.
     private sealed class FontSizesScenario : IScenario
     {
-        private readonly TextView _text = new() { Text = "The quick brown fox 0123456789", TextColor = 0xFFFFFFFF };
+        private TextView? _text;
         public string Name => "fontsizes";
-        public View Root => _text;
-        public void Tick(long frame) => _text.FontSize = 8f + frame % 64;
+        public View BuildRoot(ICanvas canvas) =>
+            _text = new TextView(canvas) { Text = "The quick brown fox 0123456789", TextColor = 0xFFFFFFFF };
+        public void Tick(long frame) => _text!.FontSize = 8f + frame % 64;
     }
 
     // Replaces the text string every frame — new managed string + reshape each frame.
     // Managed churn should be collected; if the working set climbs, shaping/glyph path leaks.
     private sealed class TextChurnScenario : IScenario
     {
-        private readonly TextView _text = new() { TextColor = 0xFFFFFFFF, FontSize = 18f };
+        private TextView? _text;
         public string Name => "textchurn";
-        public View Root => _text;
-        public void Tick(long frame) => _text.Text = $"frame {frame} :: the quick brown fox jumps {frame * 7 % 9973}";
+        public View BuildRoot(ICanvas canvas) =>
+            _text = new TextView(canvas) { TextColor = 0xFFFFFFFF, FontSize = 18f };
+        public void Tick(long frame) => _text!.Text = $"frame {frame} :: the quick brown fox jumps {frame * 7 % 9973}";
     }
 
     // Steady-size list with constant add/remove churn — exercises ChildrenBindingBehavior
@@ -89,12 +90,12 @@ public static class Scenarios
         public ListChurnScenario()
         {
             _root = new ColumnView { Gap = 2 };
-            _root.BindChildren(_items, i => MakeRow((uint)(0xFF000000 | (uint)(i * 2654435761u))));
+            _root.Children.BindChildren(_items, i => MakeRow((uint)(0xFF000000 | (uint)(i * 2654435761u))));
             for (var i = 0; i < 40; i++) _items.Add(i);
         }
 
         public string Name => "listchurn";
-        public View Root => _root;
+        public View BuildRoot(ICanvas canvas) => _root;
 
         public void Tick(long frame)
         {
@@ -113,13 +114,13 @@ public static class Scenarios
         public DerivedChurnScenario()
         {
             _root = new ColumnView { Gap = 2 };
-            _root.BindChildren(
+            _root.Children.BindChildren(
                 () => Enumerable.Range(0, _version.Value % 8 + 1),
                 i => MakeRow((uint)(0xFF000000 | (uint)(i * 40503u))));
         }
 
         public string Name => "derivedchurn";
-        public View Root => _root;
+        public View BuildRoot(ICanvas canvas) => _root;
         public void Tick(long frame) => _version.Value = (int)frame;
     }
 }

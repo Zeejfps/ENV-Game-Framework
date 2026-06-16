@@ -32,8 +32,10 @@ public enum CrossAxisAlignment
 /// is written once; only the per-child measure and placement primitives swap main/cross.
 /// Children opt into growth by wrapping in a <see cref="FlexItem"/>.
 /// </summary>
-public class FlexView : MultiChildView
+public class FlexView : View
 {
+    public new ChildrenCollection Children => base.Children;
+
     public Axis Axis { get; init; } = Axis.Vertical;
 
     public float Gap
