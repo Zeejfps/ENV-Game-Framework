@@ -26,7 +26,7 @@ public sealed record CenterArea : Widget
                 [
                     new Box
                     {
-                        BindVisible = () => vm.IsStartScreenVisible.Value,
+                        Visible = vm.IsStartScreenVisible,
                         Children = [new StartNewChat()],
                     },
                 ],

@@ -43,7 +43,7 @@ public sealed record TodoScreen : Widget
                         Value = "Nothing to do — add a task.",
                         FontSize = 13,
                         Color = 0xFF6B7280,
-                        BindVisible = () => Vm.Tasks.Count == 0,
+                        Visible = Prop.Bind(() => Vm.Tasks.Count == 0),
                     },
                     new Grow
                     {
@@ -106,7 +106,7 @@ public sealed record TaskRow : Widget
     {
         Padding = PaddingStyle.All(8),
         BorderRadius = BorderRadiusStyle.All(4),
-        Background = Prop.Bind(() => Task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A),
+        Background = Task.IsDone.Map(done => done ? 0xFF232A23 : 0xFF2A2A2Au),
         Children =
         [
             new Row

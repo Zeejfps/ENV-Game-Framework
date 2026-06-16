@@ -16,8 +16,10 @@ public abstract record Widget : IWidget
     public Prop<float> MinHeight { get; init; }
     public string? Id { get; init; }
 
-    /// <summary>Auto-tracked visibility binding (e.g. <c>() =&gt; vm.Items.Count == 0</c>).</summary>
-    public Func<bool>? BindVisible { get; init; }
+    /// <summary>Visibility: a constant, an observable (<c>vm.IsOpen</c>), a projection
+    /// (<c>vm.Count.Map(c =&gt; c == 0)</c>), or a compute (<c>Prop.Bind(() =&gt; …)</c>). Unset leaves
+    /// the view visible.</summary>
+    public Prop<bool> Visible { get; init; }
 
     public View BuildView(Context ctx)
     {
@@ -26,8 +28,8 @@ public abstract record Widget : IWidget
         Height.Apply(v, static (x, h) => x.Height = h);
         MinWidth.Apply(v, static (x, w) => x.MinWidthConstraint = w);
         MinHeight.Apply(v, static (x, h) => x.MinHeightConstraint = h);
+        Visible.Apply(v, static (x, vis) => x.IsVisible = vis);
         if (Id != null) v.Id = Id;
-        if (BindVisible != null) v.BindIsVisible(BindVisible);
         return v;
     }
 

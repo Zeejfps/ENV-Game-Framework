@@ -132,7 +132,7 @@ lifetime follows the view (subscribe on mount, dispose on unmount).
 
 ```csharp
 new Text { Bind = () => $"{vm.RemainingCount()} of {vm.Tasks.Count} remaining" },
-new Text { Value = "Nothing to do.", BindVisible = () => vm.Tasks.Count == 0 },
+new Text { Value = "Nothing to do.", Visible = Prop.Bind(() => vm.Tasks.Count == 0) },
 new Box  { Background = Prop.Bind(() => task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A), ... },
 ```
 
@@ -201,7 +201,7 @@ current vocabulary:
 | `ScrollBar` | track `Box` + thumb via `KbmInput` | consumer supplies the thumb view as the sync handle |
 
 All of these inherit shared per-view props from `Widget`: `Width`, `Height`,
-`MinWidth`, `MinHeight`, `Id`, `BindVisible`.
+`MinWidth`, `MinHeight`, `Id`, `Visible`.
 
 ### Input as widgets
 

@@ -24,7 +24,7 @@ public sealed record Button : Widget
             OnHoverExit = () => hovered.Value = false,
             Child = new Box
             {
-                Background = Prop.Bind(() => hovered.Value ? HoverBackground : Background),
+                Background = hovered.Map(h => h ? HoverBackground : Background),
                 BorderRadius = BorderRadiusStyle.All(4),
                 Padding = Padding,
                 Children =
