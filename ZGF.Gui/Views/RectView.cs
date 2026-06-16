@@ -67,6 +67,10 @@ public class RectView : View
 
     protected override float MeasureWidthIntrinsic()
     {
+        // An explicit Width is the outer (border-box) size, matching how ResolveWidth
+        // consumes it — chrome lives inside it, so don't add it on top.
+        if (Width.IsSet) return Width;
+
         var width= base.MeasureWidthIntrinsic();
         var padding = Padding;
         var borderSize = _style.BorderSize;
@@ -76,6 +80,11 @@ public class RectView : View
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
+        // An explicit Height is the outer (border-box) size, matching how ResolveHeight
+        // consumes it. Adding chrome here would make a parent reserve more than the view
+        // lays out at, leaving a gap on the anchored edge.
+        if (Height.IsSet) return Height;
+
         var padding = Padding;
         var borderSize = _style.BorderSize;
         var horizontalChrome = padding.Left + padding.Right + borderSize.Left + borderSize.Right;
