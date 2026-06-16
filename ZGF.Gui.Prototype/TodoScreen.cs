@@ -106,7 +106,7 @@ public sealed record TaskRow : Widget
     {
         Padding = PaddingStyle.All(8),
         BorderRadius = BorderRadiusStyle.All(4),
-        BindBackground = () => Task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A,
+        Background = Prop.Bind(() => Task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A),
         Children =
         [
             new Row

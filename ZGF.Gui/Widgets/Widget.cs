@@ -10,10 +10,10 @@ namespace ZGF.Gui.Widgets;
 /// </summary>
 public abstract record Widget : IWidget
 {
-    public StyleValue<float> Width { get; init; }
-    public StyleValue<float> Height { get; init; }
-    public StyleValue<float> MinWidth { get; init; }
-    public StyleValue<float> MinHeight { get; init; }
+    public Prop<float> Width { get; init; }
+    public Prop<float> Height { get; init; }
+    public Prop<float> MinWidth { get; init; }
+    public Prop<float> MinHeight { get; init; }
     public string? Id { get; init; }
 
     /// <summary>Auto-tracked visibility binding (e.g. <c>() =&gt; vm.Items.Count == 0</c>).</summary>
@@ -22,10 +22,10 @@ public abstract record Widget : IWidget
     public View BuildView(Context ctx)
     {
         var v = CreateView(ctx);
-        if (Width.IsSet) v.Width = Width;
-        if (Height.IsSet) v.Height = Height;
-        if (MinWidth.IsSet) v.MinWidthConstraint = MinWidth;
-        if (MinHeight.IsSet) v.MinHeightConstraint = MinHeight;
+        Width.Apply(v, static (x, w) => x.Width = w);
+        Height.Apply(v, static (x, h) => x.Height = h);
+        MinWidth.Apply(v, static (x, w) => x.MinWidthConstraint = w);
+        MinHeight.Apply(v, static (x, h) => x.MinHeightConstraint = h);
         if (Id != null) v.Id = Id;
         if (BindVisible != null) v.BindIsVisible(BindVisible);
         return v;
