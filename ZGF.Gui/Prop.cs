@@ -109,6 +109,26 @@ public readonly struct Prop<T>
     }
 
     /// <summary>
+    /// Projects this prop into a prop of another type — the <see cref="Prop{T}"/> counterpart to
+    /// <see cref="PropExtensions.Bind{TIn,TOut}"/>, for slicing one field out of a composite prop
+    /// (<c>Style.Select(s =&gt; s.Background)</c>). A constant stays constant; a source/compute/deferred
+    /// prop yields a tracked compute that re-projects when its dependencies change. Unset in, unset out.
+    /// </summary>
+    public Prop<TOut> Select<TOut>(Func<T, TOut> project)
+    {
+        if (!IsSet)
+            return Prop<TOut>.Unset;
+        if (_source == null && _compute == null && _deferred == null)
+            return project(_value);
+        var self = this;
+        return Prop.Deferred<TOut>(ctx =>
+        {
+            var compute = self.AsCompute(ctx);
+            return Prop.Bind(() => project(compute()));
+        });
+    }
+
+    /// <summary>
     /// Resolves this prop to a value-producing function, for bindings whose target isn't a single
     /// view property (e.g. a children collection). Invoking the result inside a tracked binding
     /// registers the prop's observable dependencies, so the binding re-fires on change; a constant

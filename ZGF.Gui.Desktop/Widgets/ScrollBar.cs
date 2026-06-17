@@ -8,17 +8,28 @@ namespace ZGF.Gui.Desktop.Widgets;
 /// Vertical scrollbar: track + draggable thumb, wired entirely through <see cref="KbmInput"/>
 /// (thumb drag/hover, track click-to-scroll). The consumer supplies the thumb view — it is
 /// the scrollbar's API surface (position, scale, <c>ScrollPositionChanged</c>) for whoever
-/// syncs it with a scroll pane.
+/// syncs it with a scroll pane. <see cref="Style"/> colors the track and thumb; unset, it falls
+/// back to <see cref="ScrollBarStyle.Default"/>.
 /// </summary>
 public sealed record ScrollBar : Widget
 {
     public required VerticalScrollBarThumbView Thumb { get; init; }
+    public Prop<ScrollBarStyle> Style { get; init; } = ScrollBarStyle.Default;
 
     protected override IWidget Build(Context ctx)
     {
         var thumb = Thumb;
         var hovered = false;
         var dragging = false;
+
+        Style.Apply(ctx, thumb, static (t, s) =>
+        {
+            t.IdleBackgroundColor = s.ThumbIdleBackground;
+            t.HoveredBackgroundColor = s.ThumbHoverBackground;
+            t.BorderSize = s.ThumbBorderSize;
+            t.BorderColor = s.ThumbBorder;
+        });
+
         return new KbmInput
         {
             Width = 12,
@@ -34,15 +45,9 @@ public sealed record ScrollBar : Widget
             },
             Child = new Box
             {
-                Background = 0xFFCECECE,
-                BorderSize = BorderSizeStyle.All(1),
-                BorderColor = new BorderColorStyle
-                {
-                    Left = 0xFF9C9C9C,
-                    Top = 0xFF9C9C9C,
-                    Right = 0xFFFFFFFF,
-                    Bottom = 0xFFFFFFFF,
-                },
+                Background = Style.Select(s => s.TrackBackground),
+                BorderSize = Style.Select(s => s.TrackBorderSize),
+                BorderColor = Style.Select(s => s.TrackBorder),
                 Children =
                 [
                     new KbmInput

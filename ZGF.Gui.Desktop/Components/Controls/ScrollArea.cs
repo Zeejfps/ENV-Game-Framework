@@ -19,6 +19,10 @@ public sealed record ScrollArea : Widget
     public IWidget[] Children { get; init; } = [];
     public int Gap { get; init; }
 
+    /// <summary>Track/thumb colors for the scrollbar; unset, falls back to
+    /// <see cref="ScrollBarStyle.Default"/>.</summary>
+    public Prop<ScrollBarStyle> Style { get; init; } = ScrollBarStyle.Default;
+
     protected override IWidget Build(Context ctx)
     {
         var pane = new VerticalScrollPane { Gap = Gap };
@@ -34,7 +38,7 @@ public sealed record ScrollArea : Widget
                 View = new BorderLayoutView
                 {
                     Center = pane,
-                    East = new ScrollBar { Thumb = thumb }.BuildView(ctx),
+                    East = new ScrollBar { Thumb = thumb, Style = Style }.BuildView(ctx),
                 },
             },
         };
