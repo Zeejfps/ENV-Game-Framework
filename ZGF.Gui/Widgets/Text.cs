@@ -13,6 +13,7 @@ public sealed record Text : Widget
     public Prop<uint> Color { get; init; }
     public Prop<TextAlignment> HAlign { get; init; }
     public Prop<TextAlignment> VAlign { get; init; }
+    public Prop<TextOverflow> Overflow { get; init; }
 
     /// <summary>Glyph rotation in radians, about the text rect's center.</summary>
     public Prop<float> Rotation { get; init; }
@@ -28,6 +29,7 @@ public sealed record Text : Widget
         Color.Apply(ctx, v,static (x, c) => x.TextColor = c);
         HAlign.Apply(ctx, v,static (x, a) => x.HorizontalTextAlignment = a);
         VAlign.Apply(ctx, v,static (x, a) => x.VerticalTextAlignment = a);
+        Overflow.Apply(ctx, v,static (x, o) => x.TextOverflow = o);
         Rotation.Apply(ctx, v,static (x, r) => x.Rotation = r);
         return v;
     }
