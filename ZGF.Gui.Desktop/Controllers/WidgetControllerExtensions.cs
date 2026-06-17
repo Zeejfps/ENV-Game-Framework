@@ -16,6 +16,15 @@ public static class WidgetControllerExtensions
         new ControllerAttachment(widget, v => v.UseController(input, factory));
 
     /// <summary>
+    /// View-aware factory overload: <paramref name="factory"/> receives the child's built view, for
+    /// controllers whose constructor needs the local view (drag targets, peer registration). Mirrors
+    /// <see cref="ZGF.Gui.Widgets.WidgetExtensions.Use{T}(IWidget, System.Func{View, T})"/>.
+    /// </summary>
+    public static IWidget WithController<T>(this IWidget widget, InputSystem input, Func<View, T> factory)
+        where T : IKeyboardMouseController =>
+        new ControllerAttachment(widget, v => v.UseController(input, () => factory(v)));
+
+    /// <summary>
     /// Resolves <typeparamref name="T"/> from <paramref name="ctx"/> at mount time — for
     /// view-agnostic controllers whose constructor dependencies are all container services
     /// (e.g. global keybind handlers). A fresh transient is built on each attach and disposed
