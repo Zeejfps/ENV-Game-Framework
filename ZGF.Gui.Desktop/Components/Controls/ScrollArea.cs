@@ -3,7 +3,6 @@ using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.VerticalScrollBar;
-using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
 
 namespace ZGF.Gui.Desktop.Components.Controls;
@@ -33,13 +32,10 @@ public sealed record ScrollArea : Widget
         return new KbmInput
         {
             Controller = _ => new ScrollAreaKbmController(pane, thumb),
-            Child = new Raw
+            Child = new BorderLayout
             {
-                View = new BorderLayoutView
-                {
-                    Center = pane,
-                    East = new ScrollBar { Thumb = thumb, Style = Style }.BuildView(ctx),
-                },
+                Center = new Raw { View = pane },
+                East = new ScrollBar { Thumb = thumb, Style = Style },
             },
         };
     }
