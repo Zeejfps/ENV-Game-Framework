@@ -36,7 +36,7 @@ public sealed record TodoScreen : Widget
                     {
                         FontSize = 13,
                         Color = 0xFF9CA3AF,
-                        Bind = () => $"{Vm.RemainingCount()} of {Vm.Tasks.Count} remaining",
+                        Value = Prop.Bind(() => $"{Vm.RemainingCount()} of {Vm.Tasks.Count} remaining"),
                     },
                     new Text
                     {
@@ -128,7 +128,7 @@ public sealed record TaskRow : Widget
                     {
                         Value = Task.Title,
                         FontSize = 14,
-                        BindColor = () => Task.IsDone.Value ? 0xFF6B7280 : 0xFFE0E0E0,
+                        Color = Task.IsDone.Bind(done => done ? 0xFF6B7280 : 0xFFE0E0E0),
                     },
                     new Spacer(),
                     new Button

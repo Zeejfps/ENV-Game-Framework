@@ -11,7 +11,7 @@ public sealed record Button : Widget
     public uint Background { get; init; } = 0xFF3B82F6;
     public uint HoverBackground { get; init; } = 0xFF2563EB;
     public uint TextColor { get; init; } = 0xFFFFFFFF;
-    public StyleValue<float> FontSize { get; init; }
+    public Prop<float> FontSize { get; init; }
     public PaddingStyle Padding { get; init; } = new() { Left = 10, Right = 10, Top = 4, Bottom = 4 };
 
     protected override IWidget Build(Context ctx)

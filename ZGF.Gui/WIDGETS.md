@@ -131,7 +131,7 @@ inside the function is tracked; the binding re-fires when any of them change, an
 lifetime follows the view (subscribe on mount, dispose on unmount).
 
 ```csharp
-new Text { Bind = () => $"{vm.RemainingCount()} of {vm.Tasks.Count} remaining" },
+new Text { Value = Prop.Bind(() => $"{vm.RemainingCount()} of {vm.Tasks.Count} remaining") },
 new Text { Value = "Nothing to do.", Visible = Prop.Bind(() => vm.Tasks.Count == 0) },
 new Box  { Background = Prop.Bind(() => task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A), ... },
 ```
@@ -184,7 +184,7 @@ current vocabulary:
 
 | Primitive | Builds | Notes |
 |---|---|---|
-| `Text` | `TextView` | `Value`, `FontSize`, `Color`, `Bind`, `BindColor` |
+| `Text` | `TextView` | `Value` and `Color` (each a `Prop<T>`), `FontSize`, `Weight`, `Wrap`, `HAlign`/`VAlign` |
 | `Box` | `RectView` | `Background`/`BorderColor`/`Padding` (each a `Prop<T>`), `Children` |
 | `Column` / `Row` | `FlexView` | `Gap`, `MainAxis`, `CrossAxis`, `Children` |
 | `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills |
