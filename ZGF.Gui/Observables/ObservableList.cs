@@ -31,6 +31,12 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IInvalidatable
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    public int IndexOf(T item)
+    {
+        DependencyTracker.Register(this);
+        return _items.IndexOf(item);
+    }
+
     public void Add(T item)
     {
         var index = _items.Count;
