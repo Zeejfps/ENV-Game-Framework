@@ -1,5 +1,3 @@
-using ZGF.Observable;
-
 namespace ZGF.Gui.Widgets;
 
 /// <summary>
@@ -32,16 +30,6 @@ public static class WidgetExtensions
     /// </summary>
     public static IWidget Use<T>(this IWidget widget, Func<View, T> factory) where T : IDisposable =>
         new Attachment(widget, v => v.Use(() => factory(v)));
-
-    /// <summary>
-    /// Materializes <paramref name="prop"/> into <paramref name="state"/> with the built view's
-    /// mount lifetime — the prop's binding (constant, observable, or compute) drives the state and
-    /// tears down on unmount. A <see cref="Prop{T}"/> can flow <em>into</em> a view but can't be
-    /// read back; use this when a widget needs to <em>read</em> a consumer-supplied prop inside its
-    /// own compute (e.g. an icon color that depends on both a bound badge count and local state).
-    /// </summary>
-    public static IWidget Materialize<T>(this IWidget widget, Context ctx, Prop<T> prop, State<T> state) =>
-        new Attachment(widget, v => prop.Apply(ctx, v, (_, value) => state.Value = value));
 
     private sealed record Attachment(IWidget Child, Action<View> Attach) : IWidget
     {
