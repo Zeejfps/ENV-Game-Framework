@@ -14,11 +14,11 @@ public sealed record Box : Widget
     protected override View CreateView(Context ctx)
     {
         var v = new RectView();
-        Background.Apply(v, static (x, c) => x.BackgroundColor = c);
-        Padding.Apply(v, static (x, p) => x.Padding = p);
-        BorderRadius.Apply(v, static (x, r) => x.BorderRadius = r);
-        BorderSize.Apply(v, static (x, s) => x.BorderSize = s);
-        BorderColor.Apply(v, static (x, c) => x.BorderColor = c);
+        Background.Apply(ctx, v,static (x, c) => x.BackgroundColor = c);
+        Padding.Apply(ctx, v,static (x, p) => x.Padding = p);
+        BorderRadius.Apply(ctx, v,static (x, r) => x.BorderRadius = r);
+        BorderSize.Apply(ctx, v,static (x, s) => x.BorderSize = s);
+        BorderColor.Apply(ctx, v,static (x, c) => x.BorderColor = c);
         foreach (var child in Children)
             v.Children.Add(child.BuildView(ctx));
         return v;

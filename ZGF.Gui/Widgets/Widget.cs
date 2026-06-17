@@ -24,11 +24,11 @@ public abstract record Widget : IWidget
     public View BuildView(Context ctx)
     {
         var v = CreateView(ctx);
-        Width.Apply(v, static (x, w) => x.Width = w);
-        Height.Apply(v, static (x, h) => x.Height = h);
-        MinWidth.Apply(v, static (x, w) => x.MinWidthConstraint = w);
-        MinHeight.Apply(v, static (x, h) => x.MinHeightConstraint = h);
-        Visible.Apply(v, static (x, vis) => x.IsVisible = vis);
+        Width.Apply(ctx, v,static (x, w) => x.Width = w);
+        Height.Apply(ctx, v,static (x, h) => x.Height = h);
+        MinWidth.Apply(ctx, v,static (x, w) => x.MinWidthConstraint = w);
+        MinHeight.Apply(ctx, v,static (x, h) => x.MinHeightConstraint = h);
+        Visible.Apply(ctx, v,static (x, vis) => x.IsVisible = vis);
         if (Id != null) v.Id = Id;
         return v;
     }

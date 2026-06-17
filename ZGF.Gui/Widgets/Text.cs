@@ -17,14 +17,14 @@ public sealed record Text : Widget
     protected override View CreateView(Context ctx)
     {
         var v = new TextView(ctx.Canvas);
-        Value.Apply(v, static (x, t) => x.Text = t);
-        FontSize.Apply(v, static (x, s) => x.FontSize = s);
-        FontFamily.Apply(v, static (x, f) => x.FontFamily = f);
-        Weight.Apply(v, static (x, w) => x.FontWeight = w);
-        Wrap.Apply(v, static (x, w) => x.TextWrap = w);
-        Color.Apply(v, static (x, c) => x.TextColor = c);
-        HAlign.Apply(v, static (x, a) => x.HorizontalTextAlignment = a);
-        VAlign.Apply(v, static (x, a) => x.VerticalTextAlignment = a);
+        Value.Apply(ctx, v,static (x, t) => x.Text = t);
+        FontSize.Apply(ctx, v,static (x, s) => x.FontSize = s);
+        FontFamily.Apply(ctx, v,static (x, f) => x.FontFamily = f);
+        Weight.Apply(ctx, v,static (x, w) => x.FontWeight = w);
+        Wrap.Apply(ctx, v,static (x, w) => x.TextWrap = w);
+        Color.Apply(ctx, v,static (x, c) => x.TextColor = c);
+        HAlign.Apply(ctx, v,static (x, a) => x.HorizontalTextAlignment = a);
+        VAlign.Apply(ctx, v,static (x, a) => x.VerticalTextAlignment = a);
         return v;
     }
 }

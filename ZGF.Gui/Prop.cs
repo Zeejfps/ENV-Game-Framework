@@ -21,6 +21,9 @@ namespace ZGF.Gui;
 /// <item><b>Compute</b> — <c>Background = Prop.Bind(() =&gt; a.Value ? b.Value : c)</c> for ad-hoc
 /// multi-source logic. Explicit because C# will not flow a bare lambda through a user-defined
 /// conversion.</item>
+/// <item><b>Context-deferred</b> — <c>Color = Theme.Color(s =&gt; s.X)</c>; resolved from the build
+/// <see cref="Context"/> at apply time via <see cref="Prop.Deferred{T}"/>, so a value can depend on a
+/// service (theme, locale) yet stay ctx-free to author.</item>
 /// </list>
 /// </summary>
 public readonly struct Prop<T>
@@ -28,6 +31,7 @@ public readonly struct Prop<T>
     private readonly T _value;
     private readonly IReadable<T>? _source;
     private readonly Func<T>? _compute;
+    private readonly Func<Context, Prop<T>>? _deferred;
 
     public bool IsSet { get; }
 
@@ -36,6 +40,7 @@ public readonly struct Prop<T>
         _value = value;
         _source = null;
         _compute = null;
+        _deferred = null;
         IsSet = true;
     }
 
@@ -44,6 +49,7 @@ public readonly struct Prop<T>
         _value = default!;
         _source = source;
         _compute = null;
+        _deferred = null;
         IsSet = true;
     }
 
@@ -52,6 +58,16 @@ public readonly struct Prop<T>
         _value = default!;
         _source = null;
         _compute = compute;
+        _deferred = null;
+        IsSet = true;
+    }
+
+    internal Prop(Func<Context, Prop<T>> deferred)
+    {
+        _value = default!;
+        _source = null;
+        _compute = null;
+        _deferred = deferred;
         IsSet = true;
     }
 
@@ -78,11 +94,13 @@ public readonly struct Prop<T>
     /// compute attaches a binding behavior whose lifetime follows the view's mounted state. A
     /// no-op when unset, so an absent prop leaves the view's own default untouched.
     /// </summary>
-    public void Apply<TView>(TView view, Action<TView, T> set) where TView : View
+    public void Apply<TView>(Context ctx, TView view, Action<TView, T> set) where TView : View
     {
         if (!IsSet)
             return;
-        if (_compute != null)
+        if (_deferred != null)
+            _deferred(ctx).Apply(ctx, view, set);
+        else if (_compute != null)
             view.Behaviors.Add(new DerivedPropertyBindingBehavior<TView, T>(view, _compute, set));
         else if (_source != null)
             view.Behaviors.Add(new PropertyBindingBehavior<TView, T, T>(view, _source, static x => x, set));
@@ -108,9 +126,17 @@ public static class Prop
     /// A prop bound directly to any observable, including an interface-typed <see cref="IReadable{T}"/>
     /// that can't ride an implicit conversion (CS0552). The binding subscribes on mount and releases on
     /// unmount; it never disposes <paramref name="source"/>, so pass an externally-owned observable that
-    /// outlives the view — for an inline projection use <see cref="PropExtensions.Map{TIn,TOut}"/>.
+    /// outlives the view — for an inline projection use <see cref="PropExtensions.Bind{TIn,TOut}"/>.
     /// </summary>
     public static Prop<T> Bind<T>(IReadable<T> source) => new(source);
+
+    /// <summary>
+    /// A prop whose source is resolved from the build <see cref="Context"/> at apply time — the form
+    /// that lets a value depend on a service (theme, locale, …) while staying ctx-free to author.
+    /// <paramref name="resolve"/> runs during the owning view's build (where ctx is in hand) and returns
+    /// any other prop form. See GitBench's <c>Theme.Color(s =&gt; …)</c> for the canonical use.
+    /// </summary>
+    public static Prop<T> Deferred<T>(Func<Context, Prop<T>> resolve) => new(resolve);
 }
 
 public static class PropExtensions
