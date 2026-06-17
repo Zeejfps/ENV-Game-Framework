@@ -75,15 +75,21 @@ public sealed record MainPanel : Widget
         {
             Width = 14f,
             BackgroundColor = 0xFF000000,
-            Padding = new PaddingStyle
-            {
-                Left = 1,
-                Top = 1,
-                Bottom = 15
-            },
             Children =
             {
-                scrollBar
+                new PaddingView
+                {
+                    Padding = new PaddingStyle
+                    {
+                        Left = 1,
+                        Top = 1,
+                        Bottom = 15
+                    },
+                    Children =
+                    {
+                        scrollBar
+                    }
+                }
             }
         };
 
@@ -107,10 +113,16 @@ public sealed record MainPanel : Widget
             BackgroundColor = 0xFFEFEFEF,
             BorderColor = BorderColorStyle.All(0xFF252525),
             BorderSize = BorderSizeStyle.All(1),
-            Padding = PaddingStyle.All(4),
             Children =
             {
-                textInput
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(4),
+                    Children =
+                    {
+                        textInput
+                    }
+                }
             }
         };
 
@@ -132,13 +144,19 @@ public sealed record MainPanel : Widget
         {
             content.Children.Add(new RectView
             {
-                Padding = PaddingStyle.All(4),
                 BackgroundColor = 0xFF9C9C9C,
                 Children =
                 {
-                    new TextView(canvas)
+                    new PaddingView
                     {
-                        Text = $"Element: {i+1}"
+                        Padding = PaddingStyle.All(4),
+                        Children =
+                        {
+                            new TextView(canvas)
+                            {
+                                Text = $"Element: {i+1}"
+                            }
+                        }
                     }
                 }
             });

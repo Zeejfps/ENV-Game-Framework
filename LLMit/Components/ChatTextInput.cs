@@ -38,11 +38,17 @@ public sealed record ChatTextInput : Widget
 
         return new RectView
         {
-            Padding = PaddingStyle.All(10),
             BackgroundColor = 0xFF303030,
             Children =
             {
-                textInput
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(10),
+                    Children =
+                    {
+                        textInput
+                    },
+                }
             },
         };
     }

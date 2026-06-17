@@ -49,7 +49,6 @@ public sealed class TabView : View
         _bg = new RectView
         {
             BackgroundColor = 0xFF111111,
-            Padding = PaddingStyle.All(6),
             BorderSize = new BorderSizeStyle
             {
                 Top = 1,
@@ -59,7 +58,14 @@ public sealed class TabView : View
             BorderColor = BorderColorStyle.All(0xFF4f4f4f),
             Children =
             {
-                _text
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(6),
+                    Children =
+                    {
+                        _text
+                    }
+                }
             }
         };
 

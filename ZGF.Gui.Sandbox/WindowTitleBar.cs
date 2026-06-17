@@ -13,7 +13,6 @@ public sealed record WindowTitleBar : Widget
         {
             Width = 10f,
             BackgroundColor = 0xFF000000,
-            Padding = PaddingStyle.All(1),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
@@ -26,7 +25,6 @@ public sealed record WindowTitleBar : Widget
         {
             Width = 10f,
             BackgroundColor = 0xFF000000,
-            Padding = PaddingStyle.All(1),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
@@ -70,10 +68,16 @@ public sealed record WindowTitleBar : Widget
                 Left = 1,
                 Right = 1,
             },
-            Padding = PaddingStyle.All(3),
             Children =
             {
-                row
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(3),
+                    Children =
+                    {
+                        row
+                    }
+                }
             }
         };
     }

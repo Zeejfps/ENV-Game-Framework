@@ -28,10 +28,16 @@ public sealed record ModelSelector : Widget
         {
             BorderColor = BorderColorStyle.All(0xFF0493BF),
             BorderSize = BorderSizeStyle.All(1),
-            Padding = PaddingStyle.All(4),
             Children =
             {
-                textView
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(4),
+                    Children =
+                    {
+                        textView
+                    },
+                }
             },
         };
 

@@ -67,7 +67,6 @@ public sealed class Window : View
         var contentOutline = new RectView
         {
             BackgroundColor = 0xFF000000,
-            Padding = PaddingStyle.All(1),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
@@ -76,7 +75,14 @@ public sealed class Window : View
             },
             Children =
             {
-                _contents
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(1),
+                    Children =
+                    {
+                        _contents
+                    }
+                }
             }
         };
         

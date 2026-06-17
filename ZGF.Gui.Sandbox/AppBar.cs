@@ -27,8 +27,14 @@ public sealed record AppBar : Widget
             var item = new RectView
             {
                 BackgroundColor = 0xFFDEDEDE,
-                Padding = PaddingStyle.All(3),
-                Children = { textView },
+                Children =
+                {
+                    new PaddingView
+                    {
+                        Padding = PaddingStyle.All(3),
+                        Children = { textView },
+                    }
+                },
             };
             item.BindBackgroundColor(() => isSelected.Value ? 0x9C9CCEu : 0xFFDEDEDEu);
             if (createController != null)
@@ -54,7 +60,6 @@ public sealed record AppBar : Widget
         var background = new RectView
         {
             BackgroundColor = 0xFFDEDEDE,
-            Padding = PaddingStyle.All(6),
             BorderSize = BorderSizeStyle.All(1),
             BorderColor = new BorderColorStyle
             {
@@ -65,20 +70,33 @@ public sealed record AppBar : Widget
             },
             Children =
             {
-                row
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(6),
+                    Children =
+                    {
+                        row
+                    }
+                }
             }
         };
 
         return new RectView
         {
             BackgroundColor = 0xFF000000,
-            Padding = new PaddingStyle
-            {
-                Bottom = 1,
-            },
             Children =
             {
-                background
+                new PaddingView
+                {
+                    Padding = new PaddingStyle
+                    {
+                        Bottom = 1,
+                    },
+                    Children =
+                    {
+                        background
+                    }
+                }
             }
         };
     }

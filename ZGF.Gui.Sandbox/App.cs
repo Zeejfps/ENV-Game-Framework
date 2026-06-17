@@ -102,13 +102,19 @@ public sealed class App : IDisposable
         var calendarPanel = new RectView
         {
             BackgroundColor = 0xFF101010,
-            Padding = PaddingStyle.All(12),
             Children =
             {
-                new ColumnView
+                new PaddingView
                 {
-                    Gap = 10,
-                    Children = { calendar, selectedLabel },
+                    Padding = PaddingStyle.All(12),
+                    Children =
+                    {
+                        new ColumnView
+                        {
+                            Gap = 10,
+                            Children = { calendar, selectedLabel },
+                        }
+                    }
                 }
             }
         };
