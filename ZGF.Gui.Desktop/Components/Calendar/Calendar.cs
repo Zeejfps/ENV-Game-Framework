@@ -114,8 +114,14 @@ public sealed record Calendar : Widget
             {
                 BackgroundColor = NavButtonColor,
                 BorderRadius = BorderRadiusStyle.All(4),
-                Padding = padding,
-                Children = { label },
+                Children =
+                {
+                    new PaddingView
+                    {
+                        Padding = padding,
+                        Children = { label },
+                    }
+                },
             };
             return new KbmInput
             {
@@ -133,8 +139,14 @@ public sealed record Calendar : Widget
         {
             BackgroundColor = YearFieldColor,
             BorderRadius = BorderRadiusStyle.All(4),
-            Padding = new PaddingStyle { Left = 6, Right = 6, Top = 2, Bottom = 2 },
-            Children = { yearInput },
+            Children =
+            {
+                new PaddingView
+                {
+                    Padding = new PaddingStyle { Left = 6, Right = 6, Top = 2, Bottom = 2 },
+                    Children = { yearInput },
+                }
+            },
         };
 
         var spinner = new ColumnView
@@ -220,17 +232,23 @@ public sealed record Calendar : Widget
         {
             BackgroundColor = BackgroundColor,
             BorderRadius = BorderRadiusStyle.All(6),
-            Padding = PaddingStyle.All(10),
             Children =
             {
-                new ColumnView
+                new PaddingView
                 {
-                    Gap = 6,
+                    Padding = PaddingStyle.All(10),
                     Children =
                     {
-                        header,
-                        weekdayRow,
-                        grid,
+                        new ColumnView
+                        {
+                            Gap = 6,
+                            Children =
+                            {
+                                header,
+                                weekdayRow,
+                                grid,
+                            }
+                        }
                     }
                 }
             }

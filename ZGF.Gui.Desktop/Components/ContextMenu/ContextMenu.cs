@@ -8,6 +8,7 @@ public sealed class ContextMenu : View
     public new ChildrenCollection Children => _itemsContainer.Children;
 
     private readonly ColumnView _itemsContainer;
+    private readonly PaddingView _padding;
     private readonly RectView _background;
 
     public uint BackgroundColor
@@ -16,10 +17,10 @@ public sealed class ContextMenu : View
         set => _background.BackgroundColor = value;
     }
 
-    public StyleValue<PaddingStyle> Padding
+    public PaddingStyle Padding
     {
-        get => _background.Padding;
-        set => _background.Padding = value;
+        get => _padding.Padding;
+        set => _padding.Padding = value;
     }
 
     public StyleValue<BorderSizeStyle> BorderSize
@@ -38,10 +39,15 @@ public sealed class ContextMenu : View
     {
         _itemsContainer = new ColumnView { Gap = 4 };
 
+        _padding = new PaddingView
+        {
+            Padding = PaddingStyle.All(4),
+            Children = { _itemsContainer },
+        };
+
         _background = new RectView
         {
             BackgroundColor = 0xFFDEDEDE,
-            Padding = PaddingStyle.All(4),
             BorderSize = new BorderSizeStyle { Left = 1, Right = 1, Bottom = 1 },
             BoxShadow = new BoxShadowStyle
             {
@@ -51,7 +57,7 @@ public sealed class ContextMenu : View
                 Spread = 0f,
                 Color = 0x60000000,
             },
-            Children = { _itemsContainer },
+            Children = { _padding },
         };
 
         AddChildToSelf(_background);

@@ -12,12 +12,6 @@ public class RectView : View
         set => _style.BackgroundColor = value;
     }
 
-    public PaddingStyle Padding
-    {
-        get => _style.Padding;
-        set => SetField(ref _style.Padding, value);
-    }
-
     public BorderColorStyle BorderColor
     {
         get => _style.BorderColor;
@@ -68,46 +62,43 @@ public class RectView : View
     protected override float MeasureWidthIntrinsic()
     {
         // An explicit Width is the outer (border-box) size, matching how ResolveWidth
-        // consumes it — chrome lives inside it, so don't add it on top.
+        // consumes it — the border lives inside it, so don't add it on top.
         if (Width.IsSet) return Width;
 
         var width= base.MeasureWidthIntrinsic();
-        var padding = Padding;
         var borderSize = _style.BorderSize;
-        width += padding.Left + padding.Right + borderSize.Left + borderSize.Right;
+        width += borderSize.Left + borderSize.Right;
         return width;
     }
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         // An explicit Height is the outer (border-box) size, matching how ResolveHeight
-        // consumes it. Adding chrome here would make a parent reserve more than the view
+        // consumes it. Adding the border here would make a parent reserve more than the view
         // lays out at, leaving a gap on the anchored edge.
         if (Height.IsSet) return Height;
 
-        var padding = Padding;
         var borderSize = _style.BorderSize;
-        var horizontalChrome = padding.Left + padding.Right + borderSize.Left + borderSize.Right;
-        // Subtract our own chrome from the width available to children so they wrap correctly.
+        var horizontalBorder = borderSize.Left + borderSize.Right;
+        // Subtract our own border from the width available to children so they wrap correctly.
         // A non-positive availableWidth means "unconstrained" — leave it as-is so the convention
         // propagates down to descendants.
-        var childAvailableWidth = availableWidth > 0f ? availableWidth - horizontalChrome : availableWidth;
+        var childAvailableWidth = availableWidth > 0f ? availableWidth - horizontalBorder : availableWidth;
         var height = base.MeasureHeightIntrinsic(childAvailableWidth);
-        height += padding.Top + padding.Bottom + borderSize.Top + borderSize.Bottom;
+        height += borderSize.Top + borderSize.Bottom;
         return height;
     }
 
     protected override void OnLayoutChildren()
     {
         var position = Position;
-        var padding = _style.Padding;
         var border = _style.BorderSize;
-        
-        var left = position.Left + padding.Left + border.Left;
-        var right = position.Right - padding.Right - border.Right;
-        var top = position.Top - padding.Top - border.Top;
-        var bottom = position.Bottom + padding.Bottom + border.Bottom;
-        
+
+        var left = position.Left + border.Left;
+        var right = position.Right - border.Right;
+        var top = position.Top - border.Top;
+        var bottom = position.Bottom + border.Bottom;
+
         foreach (var child in Children)
         {
             child.LeftConstraint = left;

@@ -291,10 +291,13 @@ public sealed class ContextMenuItem : View
         _bg = new RectView
         {
             BackgroundColor = 0xFFDEDEDE,
-            Padding = PaddingStyle.All(6),
             Children =
             {
-                _row
+                new PaddingView
+                {
+                    Padding = PaddingStyle.All(6),
+                    Children = { _row },
+                }
             }
         };
 
