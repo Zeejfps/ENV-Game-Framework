@@ -24,6 +24,9 @@ public sealed class GuiApp : IDisposable
     private readonly PopupWindowFactory _popupFactory;
     private readonly SecondaryWindowFactory _secondaryWindows;
     private readonly IWindowChrome _windowChrome;
+    private readonly Context _context;
+    private readonly Func<Context, View> _contentFactory;
+    private readonly Action<Type[]?>? _hotReloadHandler;
 
     private GuiApp(
         IWindowedApp app,
@@ -40,6 +43,8 @@ public sealed class GuiApp : IDisposable
         _mainCanvas = mainCanvas;
         _fontBackend = fontBackend;
         _renderBackend = renderBackend;
+        _context = context;
+        _contentFactory = contentFactory;
 
         // One arbiter shared by every window's input system decides pointer ownership.
         // The main window is the base (non-modal) layer; popups register themselves.
@@ -85,14 +90,7 @@ public sealed class GuiApp : IDisposable
         // graphics context is still current from backend resolution, so the startup hook
         // can create engine resources (frame buffers, shaders) the content builds against.
         startup?.Invoke(context);
-        var content = contentFactory(context);
-
-        _mainHost.SetRoot(new ContainerView
-        {
-            Width = mainCanvas.Width,
-            Height = mainCanvas.Height,
-            Children = { content },
-        });
+        MountContent();
 
         PlatformBackend.PopulateMain = PopulateGui;
 
@@ -100,6 +98,17 @@ public sealed class GuiApp : IDisposable
         app.MainWindow.OnResize += HandleResize;
         app.MainWindow.OnFramebufferResize += HandleFramebufferResize;
         app.MainWindow.OnFocusChanged += HandleMainFocusChanged;
+
+        // .NET Hot Reload (dotnet watch / Rider) patches edited Build/CreateView IL in place but
+        // re-runs nothing, so the live tree keeps drawing the old output. Rebuild it when a delta
+        // lands. MetadataUpdater.IsSupported is true only under a hot-reload host, so this is a
+        // no-op in a normal or AOT run. The event fires on the agent's background thread, so hop
+        // onto the UI loop before touching the tree.
+        if (System.Reflection.Metadata.MetadataUpdater.IsSupported)
+        {
+            _hotReloadHandler = _ => _dispatcher.Post(Reload);
+            HotReloadService.UpdateApplied += _hotReloadHandler;
+        }
     }
 
     private void HandleMainFocusChanged(bool focused)
@@ -249,8 +258,45 @@ public sealed class GuiApp : IDisposable
 
     private void PopulateGui() => _mainHost.DrawContent();
 
+    private void MountContent() => SetRootContent(_contentFactory(_context));
+
+    private void SetRootContent(View content) =>
+        _mainHost.SetRoot(new ContainerView
+        {
+            Width = _mainCanvas.Width,
+            Height = _mainCanvas.Height,
+            Children = { content },
+        });
+
+    /// <summary>
+    /// Rebuilds the main window's view tree from the content factory, picking up edited
+    /// Build/CreateView code. Application state lives in the DI <see cref="Context"/> (stores and
+    /// view models resolved as singletons), not in the views, so the rebuild preserves it. The new
+    /// content is built before the old tree is torn down, so a Build that throws after an edit
+    /// leaves the previous tree mounted and live instead of blanking the window. Runs on the UI
+    /// thread — see the hot-reload wiring in the constructor.
+    /// </summary>
+    public void Reload()
+    {
+        View content;
+        try
+        {
+            content = _contentFactory(_context);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HotReload] rebuild failed, keeping current view tree: {ex}");
+            return;
+        }
+
+        SetRootContent(content);
+    }
+
     public void Dispose()
     {
+        if (_hotReloadHandler != null)
+            HotReloadService.UpdateApplied -= _hotReloadHandler;
+
         // Unmount the whole view tree so behaviors release their per-mount resources
         // (subscriptions, input registrations, view models).
         _mainHost.SetRoot(null);
