@@ -26,16 +26,22 @@ public sealed record Button : Widget
             {
                 Background = hovered.Bind(h => h ? HoverBackground : Background),
                 BorderRadius = BorderRadiusStyle.All(4),
-                Padding = Padding,
                 Children =
                 [
-                    new Text
+                    new Padding
                     {
-                        Value = Label,
-                        Color = TextColor,
-                        FontSize = FontSize,
-                        HAlign = TextAlignment.Center,
-                        VAlign = TextAlignment.Center,
+                        Amount = Padding,
+                        Children =
+                        [
+                            new Text
+                            {
+                                Value = Label,
+                                Color = TextColor,
+                                FontSize = FontSize,
+                                HAlign = TextAlignment.Center,
+                                VAlign = TextAlignment.Center,
+                            },
+                        ],
                     },
                 ],
             },

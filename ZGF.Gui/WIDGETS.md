@@ -72,17 +72,23 @@ public sealed record TodoScreen : Widget
     private static IWidget Layout(TodoViewModel vm) => new Box
     {
         Background = 0xFF1E1E1E,
-        Padding = PaddingStyle.All(16),
         Children =
         [
-            new Column
+            new Padding
             {
-                Gap = 10,
+                Amount = PaddingStyle.All(16),
                 Children =
                 [
-                    new Text { Value = "Tasks", FontSize = 20 },
-                    new Button { Label = "Add", OnClick = vm.AddTask },
-                    Each.Of(vm.Tasks, new TaskRow(), gap: 4),
+                    new Column
+                    {
+                        Gap = 10,
+                        Children =
+                        [
+                            new Text { Value = "Tasks", FontSize = 20 },
+                            new Button { Label = "Add", OnClick = vm.AddTask },
+                            Each.Of(vm.Tasks, new TaskRow(), gap: 4),
+                        ],
+                    },
                 ],
             },
         ],
@@ -136,10 +142,10 @@ new Text { Value = "Nothing to do.", Visible = Prop.Bind(() => vm.Tasks.Count ==
 new Box  { Background = Prop.Bind(() => task.IsDone.Value ? 0xFF232A23 : 0xFF2A2A2A), ... },
 ```
 
-Most styling props are `Prop<T>`: a constant converts implicitly (`Padding = PaddingStyle.All(8)`),
+Most styling props are `Prop<T>`: a constant converts implicitly (`Amount = PaddingStyle.All(8)`),
 a reactive value goes through `Prop.Bind(() => …)` (any observable read inside is auto-tracked).
 The same channel makes layout props reactive too — `Height = Prop.Bind(() => …)`,
-`Padding = Prop.Bind(() => …)` — with no per-property `Bind*` companion.
+`Amount = Prop.Bind(() => …)` — with no per-property `Bind*` companion.
 
 There is no diffing/reconciliation: a widget builds once, then bindings mutate the
 retained views in place. If you find yourself wanting to "rebuild on state change," you
@@ -185,7 +191,8 @@ current vocabulary:
 | Primitive | Builds | Notes |
 |---|---|---|
 | `Text` | `TextView` | `Value` and `Color` (each a `Prop<T>`), `FontSize`, `Weight`, `Wrap`, `HAlign`/`VAlign`, `Rotation` (radians, for spinner glyphs) |
-| `Box` | `RectView` | `Background`/`BorderColor`/`Padding` (each a `Prop<T>`), `Children` |
+| `Box` | `RectView` | `Background`/`BorderColor`/`BorderRadius`/`BorderSize` (each a `Prop<T>`), `Children` — paints a box |
+| `Padding` | `PaddingView` | `Amount` (a `Prop<PaddingStyle>`), `Children` — pure spacing, no draw |
 | `Column` / `Row` | `FlexView` | `Gap`, `MainAxis`, `CrossAxis`, `Children` |
 | `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills |
 | `Center` | `CenterView` | centers `Child` in the available space |

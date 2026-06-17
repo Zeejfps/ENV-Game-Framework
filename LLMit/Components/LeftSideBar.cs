@@ -9,17 +9,23 @@ public sealed record LeftSideBar : Widget
     {
         Width = 300,
         Background = 0xFF181818,
-        Padding = PaddingStyle.All(8),
         Children =
         [
-            new Column
+            new Padding
             {
+                Amount = PaddingStyle.All(8),
                 Children =
                 [
-                    new Text
+                    new Column
                     {
-                        Value = "Chat History",
-                        Color = 0xFFFFFFFF,
+                        Children =
+                        [
+                            new Text
+                            {
+                                Value = "Chat History",
+                                Color = 0xFFFFFFFF,
+                            },
+                        ],
                     },
                 ],
             },
