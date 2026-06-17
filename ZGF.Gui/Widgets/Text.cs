@@ -14,6 +14,10 @@ public sealed record Text : Widget
     public Prop<TextAlignment> HAlign { get; init; }
     public Prop<TextAlignment> VAlign { get; init; }
 
+    /// <summary>Glyph rotation in radians, about the text rect's center. Bind from a spinner
+    /// animation to keep a glyph turning while an operation runs.</summary>
+    public Prop<float> Rotation { get; init; }
+
     protected override View CreateView(Context ctx)
     {
         var v = new TextView(ctx.Canvas);
@@ -25,6 +29,7 @@ public sealed record Text : Widget
         Color.Apply(ctx, v,static (x, c) => x.TextColor = c);
         HAlign.Apply(ctx, v,static (x, a) => x.HorizontalTextAlignment = a);
         VAlign.Apply(ctx, v,static (x, a) => x.VerticalTextAlignment = a);
+        Rotation.Apply(ctx, v,static (x, r) => x.Rotation = r);
         return v;
     }
 }

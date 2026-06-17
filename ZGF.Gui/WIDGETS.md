@@ -184,7 +184,7 @@ current vocabulary:
 
 | Primitive | Builds | Notes |
 |---|---|---|
-| `Text` | `TextView` | `Value` and `Color` (each a `Prop<T>`), `FontSize`, `Weight`, `Wrap`, `HAlign`/`VAlign` |
+| `Text` | `TextView` | `Value` and `Color` (each a `Prop<T>`), `FontSize`, `Weight`, `Wrap`, `HAlign`/`VAlign`, `Rotation` (radians, for spinner glyphs) |
 | `Box` | `RectView` | `Background`/`BorderColor`/`Padding` (each a `Prop<T>`), `Children` |
 | `Column` / `Row` | `FlexView` | `Gap`, `MainAxis`, `CrossAxis`, `Children` |
 | `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills |
