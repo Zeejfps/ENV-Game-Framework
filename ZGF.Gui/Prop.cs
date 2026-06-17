@@ -108,6 +108,21 @@ public readonly struct Prop<T>
             set(view, _value);
     }
 
+    /// <summary>
+    /// Resolves this prop to a value-producing function, for bindings whose target isn't a single
+    /// view property (e.g. a children collection). Invoking the result inside a tracked binding
+    /// registers the prop's observable dependencies, so the binding re-fires on change; a constant
+    /// yields a function that never changes. <paramref name="ctx"/> resolves the deferred form.
+    /// </summary>
+    internal Func<T> AsCompute(Context ctx)
+    {
+        if (_deferred != null) return _deferred(ctx).AsCompute(ctx);
+        if (_compute != null) return _compute;
+        if (_source is { } source) return () => source.Value;
+        var value = _value;
+        return () => value;
+    }
+
     public static Prop<T> Unset => default;
 }
 

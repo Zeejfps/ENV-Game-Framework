@@ -1,12 +1,11 @@
 using ZGF.Gui.Bindings;
 using ZGF.Gui.Views;
-using ZGF.Observable;
 
 namespace ZGF.Gui.Widgets;
 
 public sealed record Column : FlexBase
 {
-    protected override Axis Axis => ZGF.Gui.Views.Axis.Vertical;
+    protected override Axis Axis => Axis.Vertical;
 }
 
 /// <summary>
@@ -16,15 +15,15 @@ public sealed record Column : FlexBase
 /// </summary>
 public sealed record Column<T> : FlexBase
 {
-    public required IReadable<IReadOnlyList<T>> Items { get; init; }
+    public required Prop<IReadOnlyList<T>> Items { get; init; }
     public required Func<T, IWidget> Template { get; init; }
 
-    protected override Axis Axis => ZGF.Gui.Views.Axis.Vertical;
+    protected override Axis Axis => Axis.Vertical;
 
     protected override View CreateView(Context ctx)
     {
         var v = (FlexView)base.CreateView(ctx);
-        v.Children.BindChildren(() => Items.Value, item => Template(item).BuildView(ctx));
+        v.Children.BindChildren(Items.AsCompute(ctx), item => Template(item).BuildView(ctx));
         return v;
     }
 }
