@@ -14,8 +14,7 @@ public sealed record Text : Widget
     public Prop<TextAlignment> HAlign { get; init; }
     public Prop<TextAlignment> VAlign { get; init; }
 
-    /// <summary>Glyph rotation in radians, about the text rect's center. Bind from a spinner
-    /// animation to keep a glyph turning while an operation runs.</summary>
+    /// <summary>Glyph rotation in radians, about the text rect's center.</summary>
     public Prop<float> Rotation { get; init; }
 
     protected override View CreateView(Context ctx)
