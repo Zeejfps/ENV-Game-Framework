@@ -186,10 +186,8 @@ public sealed class CheckboxState : ICheckbox
 binds VM state, `Checked = true` pins a constant, and the widget treats both the same. Hover/press
 are `State<bool>` because the *checkbox* owns them: a controller writes them, the theme reads them,
 nothing outside cares. `CreateState` resolves the input's read side (`ToReadable`) and write side
-(`Write`) once; past that seam everything is plain owned state.
-
-> The older `TextInput` still takes a `State<T>` directly as its two-way input — that predates
-> `Prop`'s write-back. New widgets follow the checkbox: inputs are `Prop<T>`.
+(`Write`) once; past that seam everything is plain owned state. `TextInput` does the same with a
+two-way `Prop<string>`.
 
 ## Lists: `Each` and scoped contexts
 
@@ -240,7 +238,7 @@ current vocabulary:
 | `Spacer` | `FlexItem` | flexible empty space between siblings |
 | `Button` | `KbmInput`→`Box`→`Text` | `Label`, `OnClick` (both `required`); pure `Build` composition |
 | `Image` | `ImageView` | `ImageId`, `Tint`, `Rotation` |
-| `TextInput` | `TextInputView`+controller | two-way `Value` (`State<string>`), `Placeholder`, clipboard wired |
+| `TextInput` | `TextInputView`+controller | two-way `Value` (`Prop<string>`), `Placeholder`, clipboard wired |
 | `ScrollArea` | scroll pane+scrollbar | wheel/drag/keys synced; needs a bounded height to engage |
 | `Each<T>` / `Each.Of` | `FlexView` + children binding | dynamic lists, scoped contexts |
 | `Raw` | — | embeds a prebuilt `View`; pins the widget to one window |
