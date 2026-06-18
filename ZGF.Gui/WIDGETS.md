@@ -151,6 +151,46 @@ There is no diffing/reconciliation: a widget builds once, then bindings mutate t
 retained views in place. If you find yourself wanting to "rebuild on state change," you
 almost always want a binding (or `Each` for lists) instead.
 
+## `Prop<T>` vs `State<T>`
+
+Two reactive types, two jobs. The line between them is **ownership**:
+
+- **`Prop<T>` is a widget's *input*** — a value handed *in* by the parent. Every authoring prop is
+  a `Prop<T>`, one- or two-way. The parent picks the source (constant, VM `State`, projection, or
+  `Prop.Bind` compute) and the widget never learns which. A `Prop` can also write back
+  (`CanWrite`/`Write`), so an *editable* input stays a `Prop` — a constant in a two-way slot just
+  pins the value.
+- **`State<T>` is *owned, mutable* state** — held by a ViewModel, or by a stateful widget's state
+  object. It is the only writable layer; visuals react to it through bindings. It is never a widget
+  input.
+
+`CheckboxWidget` shows both, and the seam between them:
+
+```csharp
+public sealed record CheckboxWidget : Widget<CheckboxState>
+{
+    public Prop<bool> Checked { get; init; }                 // input: the caller owns the value
+
+    protected override CheckboxState CreateState(Context ctx) =>
+        new(Checked.ToReadable(ctx), Checked.Write);         // bridge the Prop into owned state
+}
+
+public sealed class CheckboxState : ICheckbox
+{
+    private readonly State<bool> _hovered = new(false);      // owned: live interaction state
+    private readonly State<bool> _pressed = new(false);
+}
+```
+
+`Checked` is a `Prop<bool>` because the *caller* owns it — `new CheckboxWidget { Checked = vm.Init }`
+binds VM state, `Checked = true` pins a constant, and the widget treats both the same. Hover/press
+are `State<bool>` because the *checkbox* owns them: a controller writes them, the theme reads them,
+nothing outside cares. `CreateState` resolves the input's read side (`ToReadable`) and write side
+(`Write`) once; past that seam everything is plain owned state.
+
+> The older `TextInput` still takes a `State<T>` directly as its two-way input — that predates
+> `Prop`'s write-back. New widgets follow the checkbox: inputs are `Prop<T>`.
+
 ## Lists: `Each` and scoped contexts
 
 `Each` mirrors an `ObservableList<T>` into children, one template build per item. It is also
@@ -270,13 +310,15 @@ is the only place app-adjacent code constructs Views and wires behaviors:
 ```csharp
 public sealed record Toggle : Widget
 {
-    public required State<bool> Value { get; init; }
+    public Prop<bool> Value { get; init; }   // an input, so a Prop — see "Prop<T> vs State<T>"
 
     protected override View CreateView(Context ctx)
     {
+        var value = Value.ToReadable(ctx);
         var view = new RectView { ... };
-        view.BindBackgroundColor(() => Value.Value ? OnColor : OffColor);
-        view.UseController(ctx.Require<InputSystem>(), () => new ToggleController(view, Value));
+        view.BindBackgroundColor(() => value.Value ? OnColor : OffColor);
+        view.UseController(ctx.Require<InputSystem>(),
+            () => new ToggleController(view, value, Value.Write));
         return view;
     }
 }

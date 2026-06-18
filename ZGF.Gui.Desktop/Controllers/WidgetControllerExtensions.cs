@@ -39,21 +39,21 @@ public static class WidgetControllerExtensions
     /// <summary>
     /// Sugar over <see cref="WithController{TController}(IWidget, System.Func{IInteractable})"/> for a
     /// stateful widget whose state is its interaction target: attaches a DI-built
-    /// <typeparamref name="TController"/> with the widget's <see cref="IStatefulWidget{TState}.State"/>
+    /// <typeparamref name="TController"/> with the widget's <see cref="IWidget{TState}.State"/>
     /// injected as the <see cref="IInteractable"/>. The parent calls it on the widget
     /// (<c>checkbox.WithController&lt;KbmController&gt;()</c>), choosing the controller — and thus the
     /// input modality — while the widget only supplies the state. The covariant <c>State</c> is read
     /// lazily, after the widget builds.
     /// </summary>
     public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
-        this IStatefulWidget<IInteractable> widget)
+        this IWidget<IInteractable> widget)
         where TController : class, IKeyboardMouseController =>
         widget.WithController<TController>(() => widget.State);
 
     /// <summary>
     /// Attaches a controller built by DI for an interaction target resolved at attach time. The
     /// <paramref name="target"/> thunk runs after the widget builds — needed when the target is a
-    /// widget's <see cref="IStatefulWidget{TState}.State"/>, which doesn't exist until then.
+    /// widget's <see cref="IWidget{TState}.State"/>, which doesn't exist until then.
     /// </summary>
     public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
         this IWidget widget, Func<IInteractable> target)
