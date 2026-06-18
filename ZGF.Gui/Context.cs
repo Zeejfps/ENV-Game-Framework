@@ -28,6 +28,16 @@ public sealed class Context : IDisposable
     }
 
     /// <summary>
+    /// Registers <paramref name="service"/> under a runtime <see cref="Type"/> — for keys known only
+    /// at runtime, such as a built view's concrete type, so a controller resolved from this context
+    /// can take that view by its exact type.
+    /// </summary>
+    public void AddService(Type type, object service)
+    {
+        _services[type] = service;
+    }
+
+    /// <summary>
     /// Registers <typeparamref name="T"/> to be constructed on first resolution, with its
     /// constructor parameters injected from this context. Eager singletons are constructed
     /// when <see cref="CreateEagerSingletons"/> runs.
