@@ -330,6 +330,98 @@ Nothing reaches back into a context after build.
 Generic widgets should also ship a static factory for type inference (`Each.Of`), since
 C# does not infer generic arguments from constructors or initializers.
 
+### Stateful controls: a state object the parent wires
+
+`Toggle` above stays imperative — `CreateView` builds the view *and* attaches the controller in
+one place. That's fine when the control owns its whole interaction. But a richer control (a
+checkbox, an action button) has live interaction state — hover, press, enabled — that three
+parties touch: a controller *writes* it, the theme *reads* it to pick colors, and the control
+*reads its rising edge* as activation. Bake that into `CreateView` and the control also ends up
+deciding which input modality drives it and whether it shows a tooltip — decisions that belong to
+the *parent*, not the control.
+
+The pattern that unbundles this is `Widget<TState>` + a state object implementing `IInteractable`:
+
+- **`CreateState(ctx)`** builds the interaction state once, before the view tree. Two-way `Prop`
+  inputs are bridged into owned state here — `Checked.ToReadable(ctx)` for the read side,
+  `Checked.Write` for the write side — so past this seam the control deals only in plain
+  observables (see "`Prop<T>` vs `State<T>`").
+- **`Build(ctx, state)`** composes visuals and binds them to that state:
+  `Background = Theme.Color(s => s.Checkbox.BoxFill(state))`. The state *is* the theme's input —
+  `CheckboxStyles` resolves every color from the one `ICheckbox` reference instead of loose booleans.
+- The state is exposed as **`IWidget<TState>.State`**, valid only after build. `IWidget<out TState>`
+  is covariant, so a `Widget<CheckboxState>` is also an `IWidget<IInteractable>` — that up-cast is
+  what lets a single non-generic combinator reach the state without the caller naming `CheckboxState`.
+
+`IInteractable` is the entire contract between the control and its controller: `Hovered`/`Pressed`
+(the controller writes), `Enabled` (the controller reads to know whether to). The control wires
+*activation* in its state's constructor — the rising edge of `Pressed` runs the command / flips the
+value — so nothing downstream re-implements "what does a press mean":
+
+```csharp
+public sealed class CheckboxState : ICheckbox            // ICheckbox : IInteractable
+{
+    private readonly State<bool> _hovered = new(false);  // owned: the controller writes these
+    private readonly State<bool> _pressed = new(false);  // (Hovered/Pressed/Enabled exposed — elided)
+    public IReadable<bool> Checked { get; }              // the bridged read side of the Prop
+
+    public CheckboxState(IReadable<bool> @checked, Action<bool> writeChecked)
+    {
+        Checked = @checked;
+        _pressed.Changed += pressed =>                   // rising edge of press = activation
+        {
+            if (pressed) writeChecked(!@checked.Value);
+        };
+    }
+}
+```
+
+#### The parent attaches behavior: `WithController`, `WithTooltip`
+
+The control stays neutral about *modality* and *decoration*; the parent composes those on with
+combinators that read the exposed `State`:
+
+```csharp
+new CheckboxWidget { Label = "Remove even if dirty", Checked = vm.Force }
+    .WithController<KbmController>()
+```
+
+- **`WithController<TController>()`** (framework, `ZGF.Gui.Desktop/Controllers`) wires a DI-built
+  controller onto the built view, injecting the widget's `State` as the `IInteractable` it drives.
+  The parent picks `KbmController` — and thus keyboard/mouse as the modality — while the control only
+  supplies the state; a touch stack would later attach its own controller over the same surface.
+  (Overloads cover view-aware controllers and external peer targets — see `WidgetControllerExtensions`.)
+- **`WithTooltip("…")`** (app layer, GitBench's `TooltipWidgetExtensions`) hangs a hover tooltip off
+  the *same* state, reading its `Hovered`/`Enabled`. It no-ops on an unset string, so a tooltip is
+  opt-in per call site instead of a field every control has to carry.
+
+Chaining order is **tooltip, then controller**, and the types enforce it: `WithTooltip` returns
+`IWidget<TState>` (state preserved, so it can come first), `WithController` returns a plain
+`IWidget` (state consumed). `ActionButton` is the same `Widget<TState>` shape and reads identically:
+
+```csharp
+new ActionButton { Command = vm.OpenFolder, Children = [new ButtonIcon { Value = LucideIcons.FolderOpen }] }
+    .WithTooltip("Open in file explorer")
+    .WithController<KbmController>()
+```
+
+Contrast `Button`, which needs none of this: its only interaction state is a local
+`State<bool> hovered` and a single `OnClick`, so it rides `KbmInput`'s semantic callbacks directly.
+Reach for `Widget<TState>` + `IInteractable` when the control has a real hover/press/enabled state
+machine that a controller drives, the theme reads, and that carries activation — not for a plain click.
+
+#### Converting an interactive View to this shape
+
+1. Move the live booleans (hover/press/checked/enabled) out of the View into a small state class
+   implementing `IInteractable` (or a superset like `ICheckbox`); wire activation as a
+   `Pressed.Changed` rising-edge handler in its constructor.
+2. Make the widget a `Widget<TState>`; build the state in `CreateState`, bridging any two-way input
+   `Prop` through `ToReadable`/`Write`.
+3. In `Build(ctx, state)`, return plain widgets and bind visuals via `Theme.Color(s => …(state))` —
+   no `Raw`, no hand-built views, where you can avoid it.
+4. Delete the View's own controller wiring. Let the parent attach `.WithController<KbmController>()`
+   (and optionally `.WithTooltip(…)`) at the call site.
+
 ### When to subclass `View` instead
 
 Widgets compose; they do not lay out or paint. Write a `View` subclass only for:
