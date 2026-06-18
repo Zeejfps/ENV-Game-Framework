@@ -79,6 +79,31 @@ public static class WidgetControllerExtensions
         where TController : class, IKeyboardMouseController =>
         widget.WithController<TController>(() => target);
 
+    /// <summary>
+    /// Attaches a DI-built <typeparamref name="TController"/> to a stateful widget, exposing the
+    /// widget's covariant <see cref="IWidget{TState}.State"/> to the controller's constructor under the
+    /// <typeparamref name="TTarget"/> key — a richer interaction surface than the single
+    /// <see cref="IInteractable"/> the no-arg overload seeds. A <c>Widget&lt;RepoRowState&gt;</c> can be
+    /// wired as an <c>IRepoRow</c> or an <c>INavigableRow</c> by naming the view here, so two controllers
+    /// reach the same state through different surfaces. The owning <see cref="Context"/> is seeded too,
+    /// so a controller that needs it (e.g. to open a context menu) resolves the real one rather than a
+    /// fabricated transient.
+    /// </summary>
+    public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController, TTarget>(
+        this IWidget<TTarget> widget)
+        where TController : class, IKeyboardMouseController
+        where TTarget : class =>
+        new DiControllerAttachment(widget, (ctx, v) =>
+        {
+            var input = ctx.Require<InputSystem>();
+            var scope = new Context(ctx);
+            scope.AddService<TTarget>(widget.State);
+            scope.AddService(ctx);
+            for (var t = v.GetType(); t != null && typeof(View).IsAssignableFrom(t); t = t.BaseType)
+                scope.AddService(t, v);
+            v.UseController(input, scope.Require<TController>);
+        });
+
     private sealed record ControllerAttachment(IWidget Child, Action<View> Attach) : IWidget
     {
         public View BuildView(Context ctx)
