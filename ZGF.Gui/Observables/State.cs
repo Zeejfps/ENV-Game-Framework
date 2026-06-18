@@ -5,7 +5,7 @@ namespace ZGF.Observable;
 /// — mutate from the UI thread only. If you need background-thread writers later, add
 /// a marshaling layer rather than making this thread-safe.
 /// </summary>
-public sealed class State<T> : IReadable<T>, IInvalidatable, IDisposable
+public sealed class State<T> : IReadable<T>, IWritable<T>, IInvalidatable, IDisposable
 {
     private T _value;
     private Action<T>? _changed;

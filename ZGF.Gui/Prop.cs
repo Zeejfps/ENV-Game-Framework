@@ -74,6 +74,22 @@ public readonly struct Prop<T>
     /// <summary>The constant snapshot. Meaningful only when this prop was given a constant.</summary>
     public T Value => _value;
 
+    /// <summary>True when the source is writable, so <see cref="Write"/> propagates rather than no-ops.</summary>
+    public bool CanWrite => _source is IWritable<T>;
+
+    /// <summary>
+    /// Pushes a value back through the source when it is writable (a <see cref="State{T}"/> or any
+    /// <see cref="IWritable{T}"/>); a no-op for a constant, compute, or read-only source. This is the
+    /// two-way counterpart to the read forms, so one <see cref="Prop{T}"/> serves both editable and
+    /// display-only widget inputs — a constant in a two-way slot simply pins the value, exactly as a
+    /// constant in a one-way slot does.
+    /// </summary>
+    public void Write(T value)
+    {
+        if (_source is IWritable<T> writable)
+            writable.Value = value;
+    }
+
     public static implicit operator Prop<T>(T value) => new(value);
 
     /// <summary>
@@ -141,6 +157,20 @@ public readonly struct Prop<T>
         if (_source is { } source) return () => source.Value;
         var value = _value;
         return () => value;
+    }
+
+    /// <summary>
+    /// Materializes the read side as an <see cref="IReadable{T}"/> for subscribe-based bindings (a
+    /// text field's two-way sync, say). An observable source is returned directly so its two-way
+    /// writability survives; a constant becomes a never-changing readable; a compute/deferred prop is
+    /// wrapped in a tracked <see cref="Derived{T}"/>.
+    /// </summary>
+    public IReadable<T> ToReadable(Context ctx)
+    {
+        if (_deferred != null) return _deferred(ctx).ToReadable(ctx);
+        if (_source != null) return _source;
+        if (_compute != null) return new Derived<T>(_compute);
+        return new State<T>(_value);
     }
 
     public static Prop<T> Unset => default;

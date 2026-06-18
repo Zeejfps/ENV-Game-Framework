@@ -37,26 +37,26 @@ public static class WidgetControllerExtensions
         widget.WithController(ctx.Require<InputSystem>(), () => ctx.Require<T>());
 
     /// <summary>
-    /// Sugar over <see cref="WithController{TController}(IWidget, IInteractable)"/> for a widget that
-    /// is its own target: attaches a DI-built <typeparamref name="TController"/> with the widget
-    /// injected as the <see cref="IInteractable"/>. Called on the widget itself by whoever creates it
-    /// (<c>checkbox.WithController&lt;KbmController&gt;()</c>), collapsing widget and target.
+    /// Sugar over <see cref="WithController{TController}(IWidget, IInteractableWidget)"/> for a widget
+    /// that is its own target: attaches a DI-built <typeparamref name="TController"/> with the widget
+    /// injected as the <see cref="IInteractableWidget"/>. Called on the widget itself by whoever creates
+    /// it (<c>checkbox.WithController&lt;KbmController&gt;()</c>), collapsing widget and target.
     /// </summary>
     public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
         this IInteractableWidget widget)
         where TController : class, IKeyboardMouseController =>
-        widget.WithController<TController>((IInteractable)widget);
+        widget.WithController<TController>(widget);
 
     /// <summary>
     /// Attaches a controller built by DI for an interaction <paramref name="target"/> — typically the
     /// widget itself (<c>tree.WithController&lt;KbmController&gt;(this)</c>). Resolves
     /// <typeparamref name="TController"/> from a child <see cref="Context"/> seeded with
     /// <paramref name="target"/> and the built view, so the controller's constructor receives the
-    /// <see cref="IInteractable"/> (and the view, if it asks for it) while any other dependencies come
-    /// from the context. Created on mount, disposed on unmount, like the factory overloads.
+    /// <see cref="IInteractableWidget"/> (and the view, if it asks for it) while any other dependencies
+    /// come from the context. Created on mount, disposed on unmount, like the factory overloads.
     /// </summary>
     public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
-        this IWidget widget, IInteractable target)
+        this IWidget widget, IInteractableWidget target)
         where TController : class, IKeyboardMouseController =>
         new DiControllerAttachment(widget, (ctx, v) =>
         {

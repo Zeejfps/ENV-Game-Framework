@@ -6,18 +6,22 @@ using ZGF.Observable;
 namespace ZGF.Gui.Tests;
 
 /// <summary>
-/// Pins the pressable seam: <see cref="KbmController"/> drives an <see cref="IInteractable"/>'s
+/// Pins the pressable seam: <see cref="KbmController"/> drives an <see cref="IInteractableWidget"/>'s
 /// hover/press/activation on the bubble phase only, and <c>WithController&lt;KbmController&gt;(target)</c>
 /// DI-builds the controller with that target injected, registered for the view's mounted lifetime.
 /// </summary>
 public class KbmControllerTests
 {
-    private sealed class FakeInteractable : IInteractable
+    private sealed class FakeInteractable : IInteractableWidget
     {
         public State<bool> Hovered { get; } = new(false);
         public State<bool> Pressed { get; } = new(false);
         public State<bool> Enabled { get; } = new(true);
         public int Activations { get; private set; }
+
+        IWritable<bool> IInteractableWidget.Hovered => Hovered;
+        IWritable<bool> IInteractableWidget.Pressed => Pressed;
+        IReadable<bool> IInteractableWidget.Enabled => Enabled;
 
         public FakeInteractable()
         {
@@ -26,6 +30,8 @@ public class KbmControllerTests
                 if (pressed) Activations++;
             };
         }
+
+        public View BuildView(Context ctx) => new Box().BuildView(ctx);
     }
 
     private static Context ContextWith(InputSystem input)
