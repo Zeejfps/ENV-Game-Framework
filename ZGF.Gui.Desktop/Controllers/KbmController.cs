@@ -5,13 +5,13 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Desktop.Controllers;
 
 /// <summary>
-/// Translates keyboard/mouse input into the interaction state of an <see cref="IInteractableWidget"/>:
+/// Translates keyboard/mouse input into the interaction state of an <see cref="IInteractable"/>:
 /// hover and press, whose rising edge the widget reads as activation. One controller serves every
-/// pressable widget — a checkbox, a button — so widgets declare <see cref="IInteractableWidget"/> and
-/// attach this instead of hand-rolling input. The mobile counterpart would be a touch controller
-/// writing the same surface.
+/// pressable widget — a checkbox, a button — by binding to its <see cref="IInteractable"/> state
+/// rather than to the widget itself, so the same controller drives anything that exposes that
+/// surface. The mobile counterpart would be a touch controller writing the same surface.
 /// </summary>
-public sealed class KbmController(IInteractableWidget target) : KeyboardMouseController
+public sealed class KbmController(IInteractable target) : KeyboardMouseController
 {
     private bool _focused;
 

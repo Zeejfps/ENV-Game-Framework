@@ -37,36 +37,47 @@ public static class WidgetControllerExtensions
         widget.WithController(ctx.Require<InputSystem>(), () => ctx.Require<T>());
 
     /// <summary>
-    /// Sugar over <see cref="WithController{TController}(IWidget, IInteractableWidget)"/> for a widget
-    /// that is its own target: attaches a DI-built <typeparamref name="TController"/> with the widget
-    /// injected as the <see cref="IInteractableWidget"/>. Called on the widget itself by whoever creates
-    /// it (<c>checkbox.WithController&lt;KbmController&gt;()</c>), collapsing widget and target.
+    /// Sugar over <see cref="WithController{TController}(IWidget, System.Func{IInteractable})"/> for a
+    /// stateful widget whose state is its interaction target: attaches a DI-built
+    /// <typeparamref name="TController"/> with the widget's <see cref="IStatefulWidget{TState}.State"/>
+    /// injected as the <see cref="IInteractable"/>. The parent calls it on the widget
+    /// (<c>checkbox.WithController&lt;KbmController&gt;()</c>), choosing the controller — and thus the
+    /// input modality — while the widget only supplies the state. The covariant <c>State</c> is read
+    /// lazily, after the widget builds.
     /// </summary>
     public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
-        this IInteractableWidget widget)
+        this IStatefulWidget<IInteractable> widget)
         where TController : class, IKeyboardMouseController =>
-        widget.WithController<TController>(widget);
+        widget.WithController<TController>(() => widget.State);
 
     /// <summary>
-    /// Attaches a controller built by DI for an interaction <paramref name="target"/> — typically the
-    /// widget itself (<c>tree.WithController&lt;KbmController&gt;(this)</c>). Resolves
-    /// <typeparamref name="TController"/> from a child <see cref="Context"/> seeded with
-    /// <paramref name="target"/> and the built view, so the controller's constructor receives the
-    /// <see cref="IInteractableWidget"/> (and the view, if it asks for it) while any other dependencies
-    /// come from the context. Created on mount, disposed on unmount, like the factory overloads.
+    /// Attaches a controller built by DI for an interaction target resolved at attach time. The
+    /// <paramref name="target"/> thunk runs after the widget builds — needed when the target is a
+    /// widget's <see cref="IStatefulWidget{TState}.State"/>, which doesn't exist until then.
     /// </summary>
     public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
-        this IWidget widget, IInteractableWidget target)
+        this IWidget widget, Func<IInteractable> target)
         where TController : class, IKeyboardMouseController =>
         new DiControllerAttachment(widget, (ctx, v) =>
         {
             var input = ctx.Require<InputSystem>();
             var scope = new Context(ctx);
-            scope.AddService(target);
+            scope.AddService(target());
             for (var t = v.GetType(); t != null && typeof(View).IsAssignableFrom(t); t = t.BaseType)
                 scope.AddService(t, v);
             v.UseController(input, scope.Require<TController>);
         });
+
+    /// <summary>
+    /// Attaches a controller built by DI for an already-built interaction <paramref name="target"/> —
+    /// the eager counterpart to the thunk overload, for a target that exists at attach time (a peer
+    /// widget's state, a test double). Resolves <typeparamref name="TController"/> from a child
+    /// <see cref="Context"/> seeded with the target and the built view.
+    /// </summary>
+    public static IWidget WithController<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TController>(
+        this IWidget widget, IInteractable target)
+        where TController : class, IKeyboardMouseController =>
+        widget.WithController<TController>(() => target);
 
     private sealed record ControllerAttachment(IWidget Child, Action<View> Attach) : IWidget
     {
