@@ -236,62 +236,42 @@ current vocabulary:
 | `Center` | `CenterView` | centers `Child` in the available space |
 | `Grow` | `FlexItem` | `Child` grows along the parent flex axis |
 | `Spacer` | `FlexItem` | flexible empty space between siblings |
-| `Button` | `KbmInput`→`Box`→`Text` | `Label`, `OnClick` (both `required`); pure `Build` composition |
+| `Button` | `Box`→`Text` | `Label`, `OnClick` (both `required`); pure `Build` composition |
 | `Image` | `ImageView` | `ImageId`, `Tint`, `Rotation` |
 | `TextInput` | `TextInputView`+controller | two-way `Value` (`Prop<string>`), `Placeholder`, clipboard wired |
 | `ScrollArea` | scroll pane+scrollbar | wheel/drag/keys synced; needs a bounded height to engage |
 | `Each<T>` / `Each.Of` | `FlexView` + children binding | dynamic lists, scoped contexts |
 | `Raw` | — | embeds a prebuilt `View`; pins the widget to one window |
-| `KbmInput` | controller on the child's view | desktop input as a widget: `OnClick`/hover, drag, raw handlers, `Controller` seam |
-| `ScrollBar` | track `Box` + thumb via `KbmInput` | consumer supplies the thumb view as the sync handle |
+| `ScrollBar` | track `Box` + thumb | consumer supplies the thumb view as the sync handle |
 
 All of these inherit shared per-view props from `Widget`: `Width`, `Height`,
 `MinWidth`, `MinHeight`, `Id`, `Visible`.
 
-### Input as widgets
+### Wiring input: controllers on views
 
 Views are input-agnostic so each platform can interpret the same tree with its own input
-stack. On desktop that interpretation is `KbmInput` (`ZGF.Gui.Desktop/Widgets/`), which wraps
-a child and registers a keyboard/mouse controller on the child's built view for its mounted
-lifetime — no wrapper view is inserted. Four tiers, combinable:
+stack. Input reaches a view by attaching a **controller** to it — not by wrapping it in an
+input node. Two seams cover the cases:
 
-- **Semantic callbacks** for the common case — `OnClick` (left press, consumes),
-  `OnHoverEnter`/`OnHoverExit`. They fire once per gesture, on the bubble phase.
-- **Drag callbacks** — `OnDragStart`/`OnDrag(Vector2 delta)`/`OnDragEnd` plus `DragThreshold`
-  (0 = drag starts on press; >0 = press arms, drag starts past the travel). The framework's
-  `DragRecognizer` owns the gesture state (`_isDragging`, previous point) and the
-  steal-focus/consume/blur dance; it is recreated per mount so state can't leak across
-  remounts. App code stays stateless.
-- **Raw handlers** (`OnMouseButton`, `OnKey`, `OnMouseWheel`, ...) see every phase and manage
-  consumption themselves.
-- **`Controller`** attaches a stateful `IKeyboardMouseController` built against the child's
-  view — created per mount, disposed per unmount. Use it when the interaction is a state
-  machine the framework doesn't own a recognizer for (text editing).
+- **Inside `CreateView`**, `view.UseController(ctx.Require<InputSystem>(), () => new …Controller(…))`
+  attaches a stateful `IKeyboardMouseController` for the view's mounted lifetime — created per
+  mount, disposed per unmount. This is where a control that owns its whole interaction (text
+  editing, a toggle) wires its own input, and the escape hatch when the controller targets a
+  view other than the widget's root (e.g. the calendar's year input).
+- **On a `Widget<TState>`** whose state implements `IInteractable`, the *parent* attaches the
+  controller with `.WithController<KbmController>()` (see "Stateful controls" below), so the
+  control stays neutral about input modality — a touch stack would attach its own over the
+  same surface.
 
-View-land code (a `View` subclass with no build context) gets the same vocabulary as plain
-controllers: `KbmHandlers` (the delegate tiers as an `IKeyboardMouseController`) and
-`DragRecognizer`, both registered via `UseController`. The Sandbox's `VerticalListView`
-composes the two for its scrollbar — a recognizer for the thumb drag, `KbmHandlers` for the
-hover highlight and track click.
-
-```csharp
-new KbmInput
-{
-    OnClick = () => vm.StepMonth(-1),
-    OnHoverEnter = () => button.BackgroundColor = HoverColor,
-    OnHoverExit = () => button.BackgroundColor = NormalColor,
-    Child = new Raw { View = button },
-}
-```
-
-`view.UseController(...)` remains the imperative escape hatch inside `CreateView` when the
-controller targets a view other than the widget's root (e.g. the calendar's year input). A
-future mobile stack would ship its own `TouchInput` twin with touch-native semantics
-(tap, drag, long-press) over the same views.
-
-With `KbmInput`, an interactive control can be pure `Build` composition — no views, no
-`Raw`: `Button` is `KbmInput` → `Box` (with `BindBackground` over a local
-`State<bool> hovered`) → `Text`.
+Both seams draw from one controller vocabulary, available to view-land code (a `View` subclass
+with no build context) too. `KbmHandlers` packages semantic callbacks (`OnClick`,
+`OnHoverEnter`/`OnHoverExit`, fired once per gesture on the bubble phase) and raw handlers
+(`OnMouseButton`, `OnKey`, `OnMouseWheel`, …, which see every phase and manage their own
+consumption) into a single `IKeyboardMouseController`. `DragRecognizer` owns drag gesture state
+— `_isDragging`, the previous point, the steal-focus/consume/blur dance — and is recreated per
+mount so state can't leak across remounts. The Sandbox's `VerticalListView` composes the two
+for its scrollbar — a recognizer for the thumb drag, `KbmHandlers` for the hover highlight and
+track click. Both register via `UseController`.
 
 **`widget.BuildView(ctx)` is for crossing the widget→view boundary mid-tree only** (adding a
 built widget into a view's `Children`, the mirror image of `Raw`). If a `CreateView` override
@@ -406,7 +386,7 @@ new ActionButton { Command = vm.OpenFolder, Children = [new ButtonIcon { Value =
 ```
 
 Contrast `Button`, which needs none of this: its only interaction state is a local
-`State<bool> hovered` and a single `OnClick`, so it rides `KbmInput`'s semantic callbacks directly.
+`State<bool> hovered` and a single `OnClick` wired by a controller on its own view.
 Reach for `Widget<TState>` + `IInteractable` when the control has a real hover/press/enabled state
 machine that a controller drives, the theme reads, and that carries activation — not for a plain click.
 
