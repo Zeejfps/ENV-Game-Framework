@@ -212,7 +212,16 @@ public sealed class DesktopInputSystem : IPointerWindow
             Phase = EventPhase.Capturing,
         };
         OnMouseButtonPreview?.Invoke(e);
-        InputSystem.SendMouseButtonEvent(ref e);
+
+        // While a modal menu is open and this window sits behind it, the press's only role is
+        // to dismiss the menu (the preview above / OS capture handles that). Our own hover path
+        // is frozen at whatever was hovered when the menu opened — Update() clears hover but
+        // keeps _focusQueue — so dispatching here would re-fire that stale path: reopening the
+        // just-closed menu (left-click) or popping a context menu from a control the cursor
+        // isn't even over (right-click). Skip local dispatch; the dismiss click is consumed.
+        if (_arbiter == null || !_arbiter.IsBlockedByModal(this))
+            InputSystem.SendMouseButtonEvent(ref e);
+
         OnAnyInput?.Invoke();
     }
 

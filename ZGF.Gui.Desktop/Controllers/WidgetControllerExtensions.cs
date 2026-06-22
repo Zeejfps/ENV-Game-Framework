@@ -25,6 +25,16 @@ public static class WidgetControllerExtensions
         new ControllerAttachment(widget, v => v.UseController(input, () => factory(v)));
 
     /// <summary>
+    /// View-aware factory overload that resolves the <see cref="InputSystem"/> from
+    /// <paramref name="ctx"/>: the factory receives the child's built view (for a controller that needs
+    /// it, e.g. to anchor a popup at the view's rect), saving the caller from pulling
+    /// <c>InputSystem</c> out of the context by hand.
+    /// </summary>
+    public static IWidget WithController<T>(this IWidget widget, Context ctx, Func<View, T> factory)
+        where T : IKeyboardMouseController =>
+        widget.WithController(ctx.Require<InputSystem>(), factory);
+
+    /// <summary>
     /// Resolves <typeparamref name="T"/> from <paramref name="ctx"/> at mount time — for
     /// view-agnostic controllers whose constructor dependencies are all container services
     /// (e.g. global keybind handlers). A fresh transient is built on each attach and disposed

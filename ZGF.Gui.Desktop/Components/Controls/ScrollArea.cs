@@ -4,6 +4,7 @@ using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.VerticalScrollBar;
 using ZGF.Gui.Widgets;
+using ZGF.Gui;
 
 namespace ZGF.Gui.Desktop.Components.Controls;
 
@@ -22,6 +23,11 @@ public sealed record ScrollArea : Widget
     /// <see cref="ScrollBarStyle.Default"/>.</summary>
     public Prop<ScrollBarStyle> Style { get; init; } = ScrollBarStyle.Default;
 
+    /// <summary>When true, the scrollbar is hidden while all content fits and reappears once it
+    /// overflows. Its gutter stays reserved either way, so content width doesn't jump as scrolling
+    /// engages. Defaults to false: the scrollbar is always shown.</summary>
+    public bool AutoHide { get; init; }
+
     protected override IWidget Build(Context ctx)
     {
         var pane = new VerticalScrollPane { Gap = Gap };
@@ -29,13 +35,14 @@ public sealed record ScrollArea : Widget
             pane.Children.Add(child.BuildView(ctx));
 
         var thumb = new VerticalScrollBarThumbView();
+        var scrollBar = new ScrollBar { Thumb = thumb, Style = Style }.BuildView(ctx);
         return new KbmInput
         {
-            Controller = _ => new ScrollAreaKbmController(pane, thumb),
+            Controller = _ => new ScrollAreaKbmController(pane, thumb, AutoHide ? scrollBar : null),
             Child = new BorderLayout
             {
                 Center = new Raw { View = pane },
-                East = new ScrollBar { Thumb = thumb, Style = Style },
+                East = new Raw { View = scrollBar },
             },
         };
     }
@@ -50,11 +57,13 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
 {
     private readonly VerticalScrollPane _pane;
     private readonly VerticalScrollBarThumbView _thumb;
+    private readonly View? _autoHideTarget;
 
-    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarThumbView thumb)
+    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarThumbView thumb, View? autoHideTarget = null)
     {
         _pane = pane;
         _thumb = thumb;
+        _autoHideTarget = autoHideTarget;
 
         _pane.ScrollToTop();
         _thumb.ScrollToTop();
@@ -75,6 +84,11 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
         // keeps the thumb's scale in sync as content grows or shrinks.
         _thumb.Scale = _pane.Scale;
         _thumb.SetScrollPositionNormalized(normalized);
+
+        // Scale < 1 means content overflows the viewport. Toggling visibility (not presence)
+        // keeps the gutter reserved, so engaging the scrollbar never reflows the content.
+        if (_autoHideTarget != null)
+            _autoHideTarget.IsVisible = _pane.Scale < 1f;
     }
 
     private void OnBarScrolled(float normalized)
