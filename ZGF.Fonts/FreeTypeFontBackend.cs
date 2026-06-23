@@ -257,6 +257,13 @@ public sealed unsafe class FreeTypeFontBackend
         ThrowIfDisposed();
         _ = GetEntry(font);
         _fallbacks.Add(font);
+
+        // Shape buckets are keyed on the primary font and text only, not the fallback set, so a
+        // line shaped before this fallback existed would have fallen back to .notdef (tofu) and be
+        // cached that way permanently. Drop every cached shape so it re-itemizes against the new
+        // chain. Registration happens once at startup, off the per-frame hot path.
+        foreach (var entry in _fonts)
+            entry.ShapeBuckets = null;
     }
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
