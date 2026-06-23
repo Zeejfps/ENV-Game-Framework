@@ -179,6 +179,35 @@ public class LayoutTests
     }
 
     [Fact]
+    public void ScrollPane_Rtl_RestsContentAtRightEdge()
+    {
+        var pane = new ScrollPane();
+        var content = new RectView { Width = 200f, Height = 20f };
+        pane.Children.Add(content);
+        var root = Root(100f, 50f, pane);
+        root.IsRtl = true;
+
+        root.LayoutSelf();
+
+        // Content (200) is wider than the 100 viewport; at rest its right edge sits at the viewport
+        // right, so its left edge is at 100 - 200 = -100 (LTR would rest it at 0).
+        Assert.Equal(-100f, content.Position.Left, 3);
+    }
+
+    [Fact]
+    public void ScrollPane_Ltr_RestsContentAtLeftEdge()
+    {
+        var pane = new ScrollPane();
+        var content = new RectView { Width = 200f, Height = 20f };
+        pane.Children.Add(content);
+        var root = Root(100f, 50f, pane);
+
+        root.LayoutSelf();
+
+        Assert.Equal(0f, content.Position.Left, 3);
+    }
+
+    [Fact]
     public void PaddingView_Rtl_SwapsInlineInsets()
     {
         // Left/Right are inline start/end: an indent (larger Left) insets from the right under RTL.

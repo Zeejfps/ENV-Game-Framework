@@ -49,7 +49,12 @@ public sealed class ScrollPane : View, IScrollableContent
         var naturalWidth = child.MeasureWidth();
         var contentWidth = Math.Max(position.Width, naturalWidth);
 
-        child.LeftConstraint = position.Left - _distanceFromLeft;
+        // _distanceFromLeft is the distance scrolled from the leading edge. Under RTL the leading edge
+        // is the right, so at rest (distance 0) the content's right edge aligns with the viewport's
+        // right; scrolling then reveals the trailing (left) content. LTR keeps its left origin.
+        child.LeftConstraint = IsRtl
+            ? position.Right - contentWidth + _distanceFromLeft
+            : position.Left - _distanceFromLeft;
         child.WidthConstraint = contentWidth;
 
         // Pass contentWidth so height-for-width children (wrapping text) report a height

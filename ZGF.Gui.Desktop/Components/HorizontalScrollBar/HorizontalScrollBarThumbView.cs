@@ -117,7 +117,10 @@ public sealed class HorizontalScrollBarThumbView : View
             Height = HeightConstraint,
         };
 
-        var scrollPositionNormalized = _maxDistanceToLeft > 0 ? _distanceToLeft / _maxDistanceToLeft : 0f;
+        // Normalized 0 is the content's leading edge. Under RTL that edge is the right of the track,
+        // so the thumb's pixel offset from the left inverts against the reported position.
+        var rawNormalized = _maxDistanceToLeft > 0 ? _distanceToLeft / _maxDistanceToLeft : 0f;
+        var scrollPositionNormalized = IsRtl ? 1f - rawNormalized : rawNormalized;
         ScrollPositionChanged?.Invoke(scrollPositionNormalized);
     }
 
@@ -125,7 +128,8 @@ public sealed class HorizontalScrollBarThumbView : View
     {
         if (float.IsNaN(normalizedPosition) || float.IsInfinity(normalizedPosition))
             normalizedPosition = 0f;
-        DistanceToLeft = Math.Clamp(normalizedPosition, 0f, 1f) * _maxDistanceToLeft;
+        var clamped = Math.Clamp(normalizedPosition, 0f, 1f);
+        DistanceToLeft = (IsRtl ? 1f - clamped : clamped) * _maxDistanceToLeft;
     }
 
     public void Move(float deltaX)
@@ -135,7 +139,8 @@ public sealed class HorizontalScrollBarThumbView : View
 
     public void ScrollToStart()
     {
-        DistanceToLeft = 0;
+        // "Start" is the leading edge: the left of the track in LTR, the right in RTL.
+        DistanceToLeft = IsRtl ? _maxDistanceToLeft : 0;
     }
 
     public void ScrollToPoint(PointF point)
