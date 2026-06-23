@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
     <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
+    <ProjectReference Include="..\ZGF.Gui.Testing\ZGF.Gui.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -120,6 +120,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Prototype", "ZGF.Gu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Generator", "ZGF.Gui.Generator\ZGF.Gui.Generator.csproj", "{D679B75D-45B0-45DC-9469-F77A26B9D81C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Testing", "ZGF.Gui.Testing\ZGF.Gui.Testing.csproj", "{5917EFC9-3820-4646-935A-29CDF75AD789}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -838,6 +840,18 @@ Global
 		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x64.Build.0 = Release|Any CPU
 		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x86.ActiveCfg = Release|Any CPU
 		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x86.Build.0 = Release|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Debug|x64.Build.0 = Debug|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Debug|x86.Build.0 = Debug|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Release|x64.ActiveCfg = Release|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Release|x64.Build.0 = Release|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Release|x86.ActiveCfg = Release|Any CPU
+		{5917EFC9-3820-4646-935A-29CDF75AD789}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

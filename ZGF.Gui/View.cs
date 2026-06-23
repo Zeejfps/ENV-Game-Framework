@@ -215,6 +215,9 @@ public class View
 
     public int SiblingIndex { get; private set; }
 
+    public int ChildCount => _children.Count;
+    public View ChildAt(int index) => _children[index];
+
     private bool IsSelfDirty { get; set; } = true;
 
     // Set when any descendant is self-dirty. Propagated up on SetDirty and cleared on layout,
