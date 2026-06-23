@@ -23,6 +23,8 @@ public sealed class FakeCanvas : ICanvas
     public void PopClip() { }
 
     public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style) => text.Length * 8f;
+    public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style) =>
+        Math.Clamp(prefixLength, 0, text.Length) * 8f;
     public float MeasureTextLineHeight(TextStyle style) => 16f;
 
     public int GetImageWidth(string imageId) => 0;

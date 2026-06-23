@@ -171,13 +171,24 @@ public sealed class TextInputView : View
                 var lineStartIndex = line.Start.Value;
                 var lineEndIndex = line.End.Value;
                 var selectionWidth = 0f;
+                var singleLine = TextWrap != Gui.TextWrap.Wrap;
                 for (var i = lineStartIndex+1; i <= line.End.Value; i++)
                 {
-                    var c = _buffer.AsSpan(i-1, 1);
-                    var charWidth = canvas.MeasureTextWidth(c, _textStyle);
-                    var leftPart = _buffer.AsSpan(lineStartIndex, i - lineStartIndex);
-                    var leftPartWidth = canvas.MeasureTextWidth(leftPart, _textStyle);
-                    selectionWidth = leftPartWidth - charWidth * 0.5f;
+                    // Boundary x is the midpoint of char i-1: clicking past it selects to its right.
+                    // Single line measures in context (cursive-correct); wrapped lines measure the
+                    // per-segment substring as before.
+                    float leftPartWidth, prevPartWidth;
+                    if (singleLine)
+                    {
+                        leftPartWidth = canvas.MeasureTextPrefix(Text, i, _textStyle);
+                        prevPartWidth = canvas.MeasureTextPrefix(Text, i - 1, _textStyle);
+                    }
+                    else
+                    {
+                        leftPartWidth = canvas.MeasureTextWidth(_buffer.AsSpan(lineStartIndex, i - lineStartIndex), _textStyle);
+                        prevPartWidth = leftPartWidth - canvas.MeasureTextWidth(_buffer.AsSpan(i - 1, 1), _textStyle);
+                    }
+                    selectionWidth = (leftPartWidth + prevPartWidth) * 0.5f;
                     if (selectionWidth > xOffset)
                     {
                         return i - 1;
@@ -314,7 +325,7 @@ public sealed class TextInputView : View
             return;
         }
 
-        var caretX = c.MeasureTextWidth(_buffer.AsSpan(0, _caretIndex), _textStyle);
+        var caretX = c.MeasureTextPrefix(Text, _caretIndex, _textStyle);
         var width = position.Width;
 
         if (caretX - _scrollOffsetX < 0f)
@@ -454,8 +465,10 @@ public sealed class TextInputView : View
         }
 
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
-        var minText = _buffer.AsSpan(startIndex, min - startIndex);
-        var minTextWidth = c.MeasureTextWidth(minText, _textStyle);
+        // Single line: in-context prefix width (cursive-correct); wrapped lines keep the segment measure.
+        var minTextWidth = TextWrap != Gui.TextWrap.Wrap
+            ? c.MeasureTextPrefix(Text, min, _textStyle)
+            : c.MeasureTextWidth(_buffer.AsSpan(startIndex, min - startIndex), _textStyle);
         var startPointLeft = position.Left + minTextWidth - _scrollOffsetX;
         var startPointBottom = position.Top - linesCount * lineHeight + verticalOffset;
         var width = position.Width - minTextWidth;
@@ -467,12 +480,14 @@ public sealed class TextInputView : View
             {
                 var selectionRect = new RectF
                 {
-                    Left = startPointLeft,
+                    // Mirror the segment within the field for RTL, so the highlight lands on the
+                    // right-aligned text (scroll is 0 for wrapped lines).
+                    Left = _contentRtl ? position.Left + position.Right - startPointLeft - width : startPointLeft,
                     Bottom = startPointBottom,
                     Width = width,
                     Height = lineHeight
-                };  
-            
+                };
+
                 c.DrawRect(new DrawRectInputs
                 {
                     Position = selectionRect,
@@ -484,17 +499,18 @@ public sealed class TextInputView : View
                 startPointLeft = position.Left;
                 startPointBottom -= lineHeight;
                 width = position.Width;
-            } 
+            }
         }
         
         if (startIndex <= max)
         {
-            var text = _buffer.AsSpan(startIndex, max - startIndex);
-            var textWidth = c.MeasureTextWidth(text, _textStyle);
-            // Single-line RTL: the selection hangs left from the start caret on the right edge.
-            // (Multi-line RTL selection stays on the LTR path — a documented limitation.)
-            var segLeft = _contentRtl && TextWrap != Gui.TextWrap.Wrap
-                ? position.Right + _scrollOffsetX - minTextWidth - textWidth
+            var textWidth = TextWrap != Gui.TextWrap.Wrap
+                ? c.MeasureTextPrefix(Text, max, _textStyle) - minTextWidth
+                : c.MeasureTextWidth(_buffer.AsSpan(startIndex, max - startIndex), _textStyle);
+            // Mirror the final segment for RTL (single-line and the last wrapped line alike): reflect
+            // its extent within the field so it sits on the right-aligned text.
+            var segLeft = _contentRtl
+                ? position.Left + position.Right - startPointLeft - textWidth
                 : startPointLeft;
             var selectionRect = new RectF
             {
@@ -595,8 +611,12 @@ public sealed class TextInputView : View
         
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         var cursorHeight = lineHeight;
-        var lineText = _buffer.AsSpan(startIndex, _caretIndex - startIndex);
-        var cursorPosLeft = canvas.MeasureTextWidth(lineText, _textStyle);
+        // Single line: measure the caret prefix in the context of the whole line, so a cursive
+        // Arabic caret lands correctly and a zero-width mark doesn't shift it. (Wrapped lines keep
+        // the per-segment measure.)
+        var cursorPosLeft = TextWrap != Gui.TextWrap.Wrap
+            ? canvas.MeasureTextPrefix(Text, _caretIndex, _textStyle)
+            : canvas.MeasureTextWidth(_buffer.AsSpan(startIndex, _caretIndex - startIndex), _textStyle);
         var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight + verticalOffset;
         
         var cursorPos = new RectF

@@ -104,6 +104,51 @@ public class BidiShapingTests
     }
 
     [Fact]
+    public void ArabicClusterPrefixAdvances_AreMonotonic_AndMarkIsZeroWidth()
+    {
+        // The caret model sums the advances of fully-shaped glyphs whose cluster precedes the caret
+        // (in-context), instead of re-measuring a detached prefix. This must be monotonic so the caret
+        // never moves backwards, and a zero-width combining mark must not shift it.
+        var arabic = ArabicFontPath();
+        if (arabic is null) return;
+
+        var fonts = new FreeTypeFontBackend();
+        try
+        {
+            var primary = fonts.LoadFontFromFile(InterPath, 16);
+            var fallback = fonts.LoadFontFromFile(arabic, 16);
+            fonts.RegisterFallbackFont(fallback);
+
+            const string text = "مرحبًا"; // م ر ح ب ً ا — index 4 is the tanwin (U+064B), a zero-width mark
+            Span<ShapedGlyph> glyphs = stackalloc ShapedGlyph[64];
+            var n = fonts.ShapeText(primary, text, glyphs);
+
+            var snapshot = glyphs[..n].ToArray();
+            float Prefix(int k)
+            {
+                var sum = 0f;
+                foreach (var g in snapshot)
+                    if (g.Cluster < k) sum += g.XAdvance;
+                return sum;
+            }
+
+            var prev = 0f;
+            for (var k = 0; k <= text.Length; k++)
+            {
+                var p = Prefix(k);
+                Assert.True(p >= prev - 0.01f, $"prefix({k})={p} regressed below {prev}");
+                prev = p;
+            }
+
+            // The combining mark contributes no advance, so the caret x is unchanged across it.
+            Assert.Equal(Prefix(4), Prefix(5), 3);
+            // The whole word still has real width.
+            Assert.True(Prefix(text.Length) > 0f);
+        }
+        finally { fonts.Dispose(); }
+    }
+
+    [Fact]
     public void ExplicitBaseDirection_FlipsRunOrderOfMixedLine()
     {
         var arabic = ArabicFontPath();

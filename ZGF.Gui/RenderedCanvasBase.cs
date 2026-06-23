@@ -754,6 +754,31 @@ public abstract class RenderedCanvasBase : ICanvas
         return max;
     }
 
+    public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style)
+    {
+        if (prefixLength <= 0 || text.IsEmpty)
+            return 0f;
+
+        var font = ResolveFont(style);
+        var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
+        var baseDir = style.BaseDirection.IsSet ? style.BaseDirection.Value : DefaultBaseDirection;
+
+        const int StackCap = 256;
+        Span<ShapedGlyph> shaped = text.Length <= StackCap
+            ? stackalloc ShapedGlyph[StackCap]
+            : new ShapedGlyph[text.Length * 2];
+        var n = _fonts.ShapeText(font, text, shaped, features, baseDir);
+
+        // Cluster ids are logical, so glyphs whose cluster precedes the caret are exactly the prefix —
+        // summed from the full-line shaping, so contextual (cursive) advances and zero-width marks are
+        // already baked in. Order-independent, so this holds whether the run is laid out L→R or R→L.
+        var sum = 0f;
+        for (var i = 0; i < n; i++)
+            if (shaped[i].Cluster < prefixLength)
+                sum += shaped[i].XAdvance;
+        return sum / _dpiScale;
+    }
+
     public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight / _dpiScale;
 
     public Size GetImageSize(string imageId) => GetImageSizeImpl(imageId);

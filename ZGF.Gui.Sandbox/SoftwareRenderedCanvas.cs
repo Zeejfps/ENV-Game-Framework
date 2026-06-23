@@ -161,6 +161,12 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         return totalWidth;
     }
 
+    public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style)
+    {
+        var len = Math.Clamp(prefixLength, 0, text.Length);
+        return MeasureTextWidth(text[..len], style);
+    }
+
     public float MeasureTextLineHeight(TextStyle style)
     {
         return _font.FontMetrics.Common.LineHeight;
