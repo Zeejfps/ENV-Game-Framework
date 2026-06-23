@@ -33,13 +33,6 @@ public sealed class BorderLayoutView : View
         set => SetView(ref field, value);
     }
 
-    /// <summary>Right-to-left layout: the West (leading) edge sits on the right and East on the left.</summary>
-    public bool IsRtl
-    {
-        get;
-        set => SetField(ref field, value);
-    }
-
     private void SetView(ref View? view, View? value)
     {
         if (view == value)

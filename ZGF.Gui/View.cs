@@ -137,6 +137,35 @@ public class View
 
     public View? Parent { get; private set; }
 
+    private bool? _rtlOverride;
+
+    /// <summary>
+    /// UI writing direction for layout and custom painting. Inherited from the parent unless set
+    /// explicitly, so an app sets it once near the root (from the locale) and the whole tree mirrors:
+    /// <see cref="Views.FlexView"/> reflects its children, <see cref="Views.BorderLayoutView"/> swaps
+    /// its East/West edges, and custom painters read it to mirror their hand-rolled layout. Defaults
+    /// to left-to-right at the root. Setting it re-lays-out and repaints the whole subtree.
+    /// </summary>
+    public bool IsRtl
+    {
+        get => _rtlOverride ?? Parent?.IsRtl ?? false;
+        set
+        {
+            if (_rtlOverride == value) return;
+            _rtlOverride = value;
+            InvalidateSubtree();
+        }
+    }
+
+    // A direction change flips positions/painting for every descendant that inherits it, but the
+    // dirty system only propagates upward — so force the whole subtree to re-layout and repaint.
+    private void InvalidateSubtree()
+    {
+        SetDirty();
+        foreach (var child in _children)
+            child.InvalidateSubtree();
+    }
+
     public string? Id { get; set; }
 
     public int ZIndex

@@ -1,26 +1,22 @@
+using ZGF.Gui.Views;
+
 namespace ZGF.Gui.Widgets;
 
 /// <summary>
-/// Establishes the ambient UI writing direction for its subtree. Horizontal layout — a <c>Row</c>'s
-/// main axis, the cross axis of a <c>Column</c>, and <c>BorderLayout</c>'s West/East edges — reads it
-/// via <see cref="IsRtl"/> to mirror Start/End and child order when the UI is right-to-left, the
-/// styling mirror of <see cref="Foreground"/>/<c>Theme.Color</c>. Absent a scope the direction is
-/// left-to-right, so existing trees are unaffected.
+/// Sets the UI writing direction (LTR/RTL) on its child's subtree root, from where every descendant
+/// inherits it via <see cref="View.IsRtl"/>. Wrap the app content in one of these, driven from the
+/// locale, and the whole tree mirrors — <c>Row</c>/<c>Column</c> reflect their children,
+/// <c>BorderLayout</c> swaps its edges, and custom painters read <see cref="View.IsRtl"/>.
 /// </summary>
 public sealed record UiDirection : Widget
 {
     public required Prop<bool> Rtl { get; init; }
     public required IWidget Child { get; init; }
 
-    /// <summary>The ambient right-to-left flag resolved from the build context; false when unscoped.</summary>
-    public static Prop<bool> IsRtl =>
-        Prop.Deferred(ctx => ctx.GetRegistered<Holder>() is { } h ? h.Rtl : (Prop<bool>)false);
-
-    protected override IWidget Build(Context ctx) => new Provide<Holder>
+    protected override View CreateView(Context ctx)
     {
-        Value = new Holder(Rtl),
-        Child = Child,
-    };
-
-    internal sealed record Holder(Prop<bool> Rtl);
+        var view = Child.BuildView(ctx);
+        Rtl.Apply(ctx, view, static (v, rtl) => v.IsRtl = rtl);
+        return view;
+    }
 }

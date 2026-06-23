@@ -14,17 +14,12 @@ public sealed record BorderLayout : Widget
     public IWidget? West { get; init; }
     public IWidget? Center { get; init; }
 
-    protected override View CreateView(Context ctx)
+    protected override View CreateView(Context ctx) => new BorderLayoutView
     {
-        var v = new BorderLayoutView
-        {
-            North = North?.BuildView(ctx),
-            South = South?.BuildView(ctx),
-            East = East?.BuildView(ctx),
-            West = West?.BuildView(ctx),
-            Center = Center?.BuildView(ctx),
-        };
-        UiDirection.IsRtl.Apply(ctx, v, static (x, rtl) => x.IsRtl = rtl);
-        return v;
-    }
+        North = North?.BuildView(ctx),
+        South = South?.BuildView(ctx),
+        East = East?.BuildView(ctx),
+        West = West?.BuildView(ctx),
+        Center = Center?.BuildView(ctx),
+    };
 }

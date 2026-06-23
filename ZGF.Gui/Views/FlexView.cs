@@ -56,17 +56,6 @@ public class FlexView : View
         set => SetField(ref field, value);
     }
 
-    /// <summary>
-    /// Right-to-left layout: horizontal placement (a Row's main axis, a Column's cross axis) is
-    /// mirrored within the container so Start lands on the right and child order reverses. Vertical
-    /// placement is untouched.
-    /// </summary>
-    public bool IsRtl
-    {
-        get;
-        set => SetField(ref field, value);
-    }
-
     private bool Vert => Axis == Axis.Vertical;
 
     protected override float MeasureWidthIntrinsic()
@@ -102,6 +91,7 @@ public class FlexView : View
     {
         var pos = Position;
         if (Children.Count == 0) return;
+        var rtl = IsRtl;
 
         var mainExtent = Vert ? pos.Height : pos.Width;
         var crossExtent = Vert ? pos.Width : pos.Height;
@@ -180,7 +170,7 @@ public class FlexView : View
             // Mirror the (LTR-computed) horizontal extent within the container: the same transform
             // flips a Row's main axis and a Column's cross axis, reversing visual order and swapping
             // Start/End/SpaceBetween without special-casing each. Vertical coords are left alone.
-            if (IsRtl)
+            if (rtl)
                 child.LeftConstraint = pos.Left + pos.Right - child.LeftConstraint - child.WidthConstraint;
 
             if (grow > 0)

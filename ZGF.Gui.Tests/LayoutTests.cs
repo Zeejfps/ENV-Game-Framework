@@ -179,6 +179,23 @@ public class LayoutTests
     }
 
     [Fact]
+    public void IsRtl_IsInheritedFromAncestor()
+    {
+        // A FlexView that never sets IsRtl inherits it from an ancestor, so setting direction once
+        // near the root mirrors the whole tree.
+        var a = new RectView { Width = 30f };
+        var flex = new FlexView { Axis = Axis.Horizontal, CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        flex.Children.Add(a);
+        var root = Root(100f, 50f, flex);
+        root.IsRtl = true;
+
+        root.LayoutSelf();
+
+        Assert.True(flex.IsRtl);
+        AssertRect(a, 70f, 0f, 30f, 50f);
+    }
+
+    [Fact]
     public void BorderLayout_Ltr_KeepsWestLeftEastRight()
     {
         var west = new RectView { Width = 20f };
