@@ -199,22 +199,22 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             return;
         }
         
-        if (e.Key == KeyboardKey.LeftArrow)
+        if (e.Key == KeyboardKey.LeftArrow || e.Key == KeyboardKey.RightArrow)
         {
+            // Arrow keys move the caret visually. In an RTL field "visually left" is the logically
+            // later character, so the key's logical direction flips. LTR is unchanged.
+            var visualLeft = e.Key == KeyboardKey.LeftArrow;
+            var moveForward = _textInput.IsContentRtl ? visualLeft : !visualLeft;
             if (isWordJump)
-                _textInput.MoveCaretLeftWord(isShiftPressed);
+            {
+                if (moveForward) _textInput.MoveCaretRightWord(isShiftPressed);
+                else _textInput.MoveCaretLeftWord(isShiftPressed);
+            }
             else
-                _textInput.MoveCaretLeft(isShiftPressed);
-            e.Consume();
-            return;
-        }
-
-        if (e.Key == KeyboardKey.RightArrow)
-        {
-            if (isWordJump)
-                _textInput.MoveCaretRightWord(isShiftPressed);
-            else
-                _textInput.MoveCaretRight(isShiftPressed);
+            {
+                if (moveForward) _textInput.MoveCaretRight(isShiftPressed);
+                else _textInput.MoveCaretLeft(isShiftPressed);
+            }
             e.Consume();
             return;
         }

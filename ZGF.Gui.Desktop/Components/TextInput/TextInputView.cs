@@ -71,6 +71,10 @@ public sealed class TextInputView : View
 
     public bool IsSelecting => _caretIndex != _selectionStartIndex;
 
+    /// <summary>The field's resolved writing direction (from content first-strong, last draw). Arrow-key
+    /// handling reads it so Left/Right move the caret visually rather than logically under RTL.</summary>
+    public bool IsContentRtl => _contentRtl;
+
     private readonly RectStyle _background = new();
     private readonly TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
