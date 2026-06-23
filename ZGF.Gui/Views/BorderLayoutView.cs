@@ -33,6 +33,13 @@ public sealed class BorderLayoutView : View
         set => SetView(ref field, value);
     }
 
+    /// <summary>Right-to-left layout: the West (leading) edge sits on the right and East on the left.</summary>
+    public bool IsRtl
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
     private void SetView(ref View? view, View? value)
     {
         if (view == value)
@@ -85,26 +92,31 @@ public sealed class BorderLayoutView : View
             bottomOffset += height;
         }
 
-        if (West != null)
+        // Under RTL the leading (West) edge moves to the right and the trailing (East) edge to the
+        // left; the vertical North/South edges are unaffected.
+        var leftEdge = IsRtl ? East : West;
+        var rightEdge = IsRtl ? West : East;
+
+        if (leftEdge != null)
         {
-            var width = West.MeasureWidth();
-            West.LeftConstraint = position.Left;
-            West.BottomConstraint = position.Bottom + bottomOffset;
-            West.WidthConstraint = width;
-            West.HeightConstraint = centerAreaHeight;
-            West.LayoutSelf();
+            var width = leftEdge.MeasureWidth();
+            leftEdge.LeftConstraint = position.Left;
+            leftEdge.BottomConstraint = position.Bottom + bottomOffset;
+            leftEdge.WidthConstraint = width;
+            leftEdge.HeightConstraint = centerAreaHeight;
+            leftEdge.LayoutSelf();
             centerAreaWidth -= width;
             leftOffset += width;
         }
 
-        if (East != null)
+        if (rightEdge != null)
         {
-            var width = East.MeasureWidth();
-            East.LeftConstraint = position.Right - width;
-            East.BottomConstraint = position.Bottom + bottomOffset;
-            East.WidthConstraint = width;
-            East.HeightConstraint = centerAreaHeight;
-            East.LayoutSelf();
+            var width = rightEdge.MeasureWidth();
+            rightEdge.LeftConstraint = position.Right - width;
+            rightEdge.BottomConstraint = position.Bottom + bottomOffset;
+            rightEdge.WidthConstraint = width;
+            rightEdge.HeightConstraint = centerAreaHeight;
+            rightEdge.LayoutSelf();
             centerAreaWidth -= width;
         }
 

@@ -97,6 +97,14 @@ public sealed class Context : IDisposable
         Get<T>() ?? throw new InvalidOperationException(
             $"{typeof(T).Name} is not registered in Context and is not a constructible class.");
 
+    /// <summary>
+    /// Resolves a registered instance or singleton of <typeparamref name="T"/> (searching up the
+    /// parent chain), or null when none is registered. Unlike <see cref="Get{T}"/> it never
+    /// auto-constructs a transient — the right lookup for an optional ambient value (a
+    /// <c>Provide</c>d scope holder) that should fall back to a default when absent.
+    /// </summary>
+    public T? GetRegistered<T>() where T : class => Resolve(typeof(T)) as T;
+
     private static bool IsConstructible(Type type) =>
         type is { IsClass: true, IsAbstract: false } &&
         type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Length > 0;

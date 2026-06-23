@@ -106,4 +106,91 @@ public class LayoutTests
 
         AssertRect(leaf, 10f, 10f, 180f, 60f);
     }
+
+    [Fact]
+    public void HorizontalFlex_Rtl_MirrorsChildrenWithinContainer()
+    {
+        var a = new RectView { Width = 30f };
+        var b = new RectView { Width = 30f };
+        var flex = new FlexView
+        {
+            Axis = Axis.Horizontal,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            IsRtl = true,
+        };
+        flex.Children.Add(a);
+        flex.Children.Add(b);
+        var root = Root(100f, 50f, flex);
+
+        root.LayoutSelf();
+
+        // LTR would place a@[0..30], b@[30..60]; mirrored within [0,100] the first child sits on
+        // the right and the order reverses visually.
+        AssertRect(a, 70f, 0f, 30f, 50f);
+        AssertRect(b, 40f, 0f, 30f, 50f);
+    }
+
+    [Fact]
+    public void HorizontalFlex_Ltr_IsUnmirrored()
+    {
+        var a = new RectView { Width = 30f };
+        var b = new RectView { Width = 30f };
+        var flex = new FlexView { Axis = Axis.Horizontal, CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        flex.Children.Add(a);
+        flex.Children.Add(b);
+        var root = Root(100f, 50f, flex);
+
+        root.LayoutSelf();
+
+        AssertRect(a, 0f, 0f, 30f, 50f);
+        AssertRect(b, 30f, 0f, 30f, 50f);
+    }
+
+    [Fact]
+    public void VerticalFlex_Rtl_MirrorsCrossAxis()
+    {
+        // A left-aligned (cross Start) column item moves to the right under RTL; vertical
+        // (main-axis) stacking is untouched.
+        var a = new RectView { Width = 20f, Height = 30f };
+        var flex = new FlexView { Axis = Axis.Vertical, CrossAxisAlignment = CrossAxisAlignment.Start, IsRtl = true };
+        flex.Children.Add(a);
+        var root = Root(100f, 100f, flex);
+
+        root.LayoutSelf();
+
+        AssertRect(a, 80f, 70f, 20f, 30f);
+    }
+
+    [Fact]
+    public void BorderLayout_Rtl_SwapsWestAndEast()
+    {
+        var west = new RectView { Width = 20f };
+        var east = new RectView { Width = 10f };
+        var center = new RectView();
+        var bl = new BorderLayoutView { West = west, East = east, Center = center, IsRtl = true };
+        var root = Root(100f, 50f, bl);
+
+        root.LayoutSelf();
+
+        // West (leading) is now on the right, East (trailing) on the left, Center fills the middle.
+        AssertRect(east, 0f, 0f, 10f, 50f);
+        AssertRect(west, 80f, 0f, 20f, 50f);
+        AssertRect(center, 10f, 0f, 70f, 50f);
+    }
+
+    [Fact]
+    public void BorderLayout_Ltr_KeepsWestLeftEastRight()
+    {
+        var west = new RectView { Width = 20f };
+        var east = new RectView { Width = 10f };
+        var center = new RectView();
+        var bl = new BorderLayoutView { West = west, East = east, Center = center };
+        var root = Root(100f, 50f, bl);
+
+        root.LayoutSelf();
+
+        AssertRect(west, 0f, 0f, 20f, 50f);
+        AssertRect(east, 90f, 0f, 10f, 50f);
+        AssertRect(center, 20f, 0f, 70f, 50f);
+    }
 }

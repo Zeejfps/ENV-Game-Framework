@@ -20,6 +20,7 @@ public abstract record FlexBase : Widget
             MainAxisAlignment = MainAxis,
             CrossAxisAlignment = CrossAxis,
         };
+        UiDirection.IsRtl.Apply(ctx, v, static (x, rtl) => x.IsRtl = rtl);
         foreach (var child in Children)
             v.Children.Add(child.BuildView(ctx));
         return v;
