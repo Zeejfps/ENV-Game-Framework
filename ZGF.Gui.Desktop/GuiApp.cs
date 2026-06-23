@@ -166,6 +166,17 @@ public sealed class GuiApp : IDisposable
         _mainCanvas.RegisterFont(family, handle);
     }
 
+    /// Registers a glyph-fallback font (consulted when the primary font lacks a glyph, e.g.
+    /// a CJK system font behind the Latin UI font). <paramref name="faceIndex"/> selects the
+    /// face inside a .ttc collection. Fallbacks live on the shared font backend, so every
+    /// canvas (incl. popups) sees them automatically.
+    public void RegisterFallbackFont(string path, int pixelSize, int faceIndex = 0)
+    {
+        var resolved = Path.IsPathRooted(path) ? path : PathUtils.ResolveLocalPath(path);
+        var handle = _fontBackend.LoadFontFromFile(resolved, ScalePixelSize(pixelSize), faceIndex);
+        _fontBackend.RegisterFallbackFont(handle);
+    }
+
     // Loads an image into the main canvas and returns the id (the resolved path) to reference
     // it by — pass that id to ImageView.ImageId. Mirrors RegisterFont's local-path resolution.
     public string LoadImage(string path)

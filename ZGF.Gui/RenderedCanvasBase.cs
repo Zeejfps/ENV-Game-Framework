@@ -526,7 +526,7 @@ public abstract class RenderedCanvasBase : ICanvas
         for (var i = 0; i < n; i++)
         {
             var sg = shaped[i];
-            if (!_fonts.TryGetGlyph(font, sg.GlyphIndex, out var glyph))
+            if (!_fonts.TryGetGlyph(new FontHandle(sg.FontId), sg.GlyphIndex, out var glyph))
             {
                 cursorX += sg.XAdvance * invScale;
                 continue;

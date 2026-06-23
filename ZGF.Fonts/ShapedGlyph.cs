@@ -9,8 +9,11 @@ public readonly record struct ShapedGlyph
     public readonly float YAdvance;
     public readonly int Cluster;
 
+    // Source font id: fallback can split one line across fonts, so this is per-glyph.
+    public readonly int FontId;
+
     public ShapedGlyph(uint glyphIndex, float xOffset, float yOffset,
-        float xAdvance, float yAdvance, int cluster)
+        float xAdvance, float yAdvance, int cluster, int fontId)
     {
         GlyphIndex = glyphIndex;
         XOffset = xOffset;
@@ -18,5 +21,6 @@ public readonly record struct ShapedGlyph
         XAdvance = xAdvance;
         YAdvance = yAdvance;
         Cluster = cluster;
+        FontId = fontId;
     }
 }

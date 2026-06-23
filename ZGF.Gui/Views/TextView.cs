@@ -206,6 +206,12 @@ public sealed class TextView : View
         while (lo < hi)
         {
             var mid = (lo + hi + 1) / 2;
+            // Never cut inside a surrogate pair: a low surrogate at mid means the
+            // prefix would end on an orphaned high surrogate (renders as tofu).
+            if (mid < text.Length && char.IsLowSurrogate(text[mid]))
+                mid--;
+            if (mid <= lo)
+                break;
             if (c.MeasureTextWidth(text.AsSpan(0, mid), _style) + ellipsisWidth <= available)
                 lo = mid;
             else

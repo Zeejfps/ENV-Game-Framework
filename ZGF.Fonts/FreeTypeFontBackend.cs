@@ -15,6 +15,7 @@ public sealed unsafe class FreeTypeFontBackend
     private readonly GlyphAtlas _atlas;
     private readonly Dictionary<long, GlyphRenderInfo> _glyphCache = new();
     private readonly List<FontEntry> _fonts = new();
+    private readonly List<FontHandle> _fallbacks = new();
     private bool _disposed;
 
     public FreeTypeFontBackend(int atlasWidth = 2048, int atlasHeight = 2048)
@@ -30,13 +31,13 @@ public sealed unsafe class FreeTypeFontBackend
     public AtlasDirtyRect DirtyRect => _atlas.DirtyRect;
     public void ClearDirty() => _atlas.ClearDirty();
 
-    public FontHandle LoadFontFromFile(string path, int pixelSize)
+    public FontHandle LoadFontFromFile(string path, int pixelSize, int faceIndex = 0)
     {
         var bytes = File.ReadAllBytes(path);
-        return LoadFontFromMemory(bytes, pixelSize);
+        return LoadFontFromMemory(bytes, pixelSize, faceIndex);
     }
 
-    public FontHandle LoadFontFromMemory(byte[] data, int pixelSize)
+    public FontHandle LoadFontFromMemory(byte[] data, int pixelSize, int faceIndex = 0)
     {
         ThrowIfDisposed();
 
@@ -45,7 +46,7 @@ public sealed unsafe class FreeTypeFontBackend
         FT_Error err;
         fixed (byte* dataPtr = data)
         {
-            err = FT_New_Memory_Face(_library.Native, dataPtr, (IntPtr)data.Length, IntPtr.Zero, &face);
+            err = FT_New_Memory_Face(_library.Native, dataPtr, (IntPtr)data.Length, (IntPtr)faceIndex, &face);
         }
         if (err != FT_Error.FT_Err_Ok)
         {
@@ -62,7 +63,7 @@ public sealed unsafe class FreeTypeFontBackend
         }
 
         var hbBlob = new Blob(handle.AddrOfPinnedObject(), data.Length, MemoryMode.ReadOnly);
-        var hbFace = new Face(hbBlob, 0);
+        var hbFace = new Face(hbBlob, faceIndex);
         hbBlob.Dispose();
         var hbFont = new Font(hbFace);
         hbFont.SetFunctionsOpenType();
@@ -75,6 +76,7 @@ public sealed unsafe class FreeTypeFontBackend
             PinnedData = handle,
             SourceData = data,
             PixelSize = pixelSize,
+            FaceIndex = faceIndex,
             HasKerning = (face->face_flags.ToInt64() & 0x02) != 0,
             HbFace = hbFace,
             HbFont = hbFont,
@@ -98,7 +100,7 @@ public sealed unsafe class FreeTypeFontBackend
         if (entry.SizeVariants.TryGetValue(pixelSize, out var cached))
             return cached;
 
-        var variant = LoadFontFromMemory(entry.SourceData, pixelSize);
+        var variant = LoadFontFromMemory(entry.SourceData, pixelSize, entry.FaceIndex);
         entry.SizeVariants[pixelSize] = variant;
         // Preserve the embolden flag across sized variants so e.g. a bold 18px variant of
         // a bold 16px font is still bold.
@@ -119,7 +121,7 @@ public sealed unsafe class FreeTypeFontBackend
         if (entry.EmboldenedVariant.HasValue)
             return entry.EmboldenedVariant.Value;
 
-        var variant = LoadFontFromMemory(entry.SourceData, entry.PixelSize);
+        var variant = LoadFontFromMemory(entry.SourceData, entry.PixelSize, entry.FaceIndex);
         GetEntry(variant).IsEmboldened = true;
         entry.EmboldenedVariant = variant;
         return variant;
@@ -247,6 +249,16 @@ public sealed unsafe class FreeTypeFontBackend
         return delta.x.ToInt64() / 64f;
     }
 
+    /// Registers a font consulted (in registration order) when the primary font lacks a
+    /// glyph for a code point — e.g. a CJK font behind the Latin UI font. Pass a base
+    /// handle; the matching pixel size / weight variant is resolved per shape call.
+    public void RegisterFallbackFont(FontHandle font)
+    {
+        ThrowIfDisposed();
+        _ = GetEntry(font);
+        _fallbacks.Add(font);
+    }
+
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
         => ShapeText(font, text, output, FontFeatureSet.None);
 
@@ -266,6 +278,98 @@ public sealed unsafe class FreeTypeFontBackend
         if (TryGetCachedShape(entry, sig, text, out var cached))
             return CopyShaped(cached, output);
 
+        var shaped = ShapeWithFallback(font, entry, text, features);
+        PutShape(entry, sig, text.ToString(), shaped);
+        return CopyShaped(shaped, output);
+    }
+
+    // Splits the text into runs by font coverage (primary, then each fallback in order) and
+    // shapes each run with the font that actually has glyphs for it. Every emitted glyph carries
+    // the id of its source font; since font ids are unique the glyph cache never collides across
+    // fonts. With no fallbacks registered this is a single shaped run through the primary font.
+    private ShapedGlyph[] ShapeWithFallback(FontHandle font, FontEntry entry, ReadOnlySpan<char> text, in FontFeatureSet features)
+    {
+        var glyphs = new List<ShapedGlyph>(text.Length);
+
+        if (_fallbacks.Count == 0)
+        {
+            ShapeRun(entry, font.Id, text, 0, features, glyphs);
+            return glyphs.ToArray();
+        }
+
+        // Resolve each fallback at the primary's pixel size (and weight) so substituted
+        // glyphs match the surrounding text. Index 0 is always the primary.
+        var chain = new FontHandle[_fallbacks.Count + 1];
+        var entries = new FontEntry[chain.Length];
+        chain[0] = font;
+        entries[0] = entry;
+        for (var f = 0; f < _fallbacks.Count; f++)
+        {
+            var fb = GetSizedVariant(_fallbacks[f], entry.PixelSize);
+            if (entry.IsEmboldened)
+                fb = GetEmboldenedVariant(fb);
+            chain[f + 1] = fb;
+            entries[f + 1] = GetEntry(fb);
+        }
+
+        var runStart = 0;
+        var runFont = -1;
+        var i = 0;
+        while (i < text.Length)
+        {
+            var c = text[i];
+            int cp;
+            int len;
+            if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+            {
+                cp = char.ConvertToUtf32(c, text[i + 1]);
+                len = 2;
+            }
+            else
+            {
+                cp = c;
+                len = 1;
+            }
+
+            var fontIdx = SelectFontIndex(entries, cp);
+            if (runFont < 0)
+            {
+                runFont = fontIdx;
+                runStart = i;
+            }
+            else if (fontIdx != runFont)
+            {
+                ShapeRun(entries[runFont], chain[runFont].Id, text.Slice(runStart, i - runStart), runStart, features, glyphs);
+                runFont = fontIdx;
+                runStart = i;
+            }
+
+            i += len;
+        }
+        if (runFont >= 0)
+            ShapeRun(entries[runFont], chain[runFont].Id, text.Slice(runStart, text.Length - runStart), runStart, features, glyphs);
+
+        return glyphs.ToArray();
+    }
+
+    // First font in the chain whose cmap covers the code point; falls back to the primary
+    // (index 0), which will render .notdef/tofu rather than dropping the character silently.
+    private static int SelectFontIndex(FontEntry[] entries, int codePoint)
+    {
+        for (var k = 0; k < entries.Length; k++)
+        {
+            if (FT_Get_Char_Index(entries[k].Face, (UIntPtr)(uint)codePoint) != 0)
+                return k;
+        }
+        return 0;
+    }
+
+    private void ShapeRun(FontEntry entry, int fontId, ReadOnlySpan<char> text, int clusterBase,
+        in FontFeatureSet features, List<ShapedGlyph> output)
+    {
+        if (text.Length == 0)
+            return;
+
         var buf = entry.HbBuffer!;
         var hbFont = entry.HbFont!;
 
@@ -276,22 +380,18 @@ public sealed unsafe class FreeTypeFontBackend
 
         var infos = buf.GetGlyphInfoSpan();
         var positions = buf.GetGlyphPositionSpan();
-        var shaped = new ShapedGlyph[infos.Length];
-
         for (var i = 0; i < infos.Length; i++)
         {
             var pos = positions[i];
-            shaped[i] = new ShapedGlyph(
+            output.Add(new ShapedGlyph(
                 infos[i].Codepoint,
                 pos.XOffset / 64f,
                 pos.YOffset / 64f,
                 pos.XAdvance / 64f,
                 pos.YAdvance / 64f,
-                (int)infos[i].Cluster);
+                (int)infos[i].Cluster + clusterBase,
+                fontId));
         }
-
-        PutShape(entry, sig, text.ToString(), shaped);
-        return CopyShaped(shaped, output);
     }
 
     private static Feature[] BuildHbFeatures(in FontFeatureSet features)
@@ -410,6 +510,7 @@ public sealed unsafe class FreeTypeFontBackend
         public GCHandle PinnedData;
         public byte[] SourceData = Array.Empty<byte>();
         public int PixelSize;
+        public int FaceIndex;
         public bool HasKerning;
         public bool IsEmboldened;
         public Face? HbFace;
