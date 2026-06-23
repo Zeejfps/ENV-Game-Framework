@@ -84,6 +84,13 @@ public sealed class TextInputView : View
     private int _selectionStartIndex;
     private float _scrollOffsetX;
 
+    // The field's resolved writing direction, recomputed each draw from the content's first strong
+    // character (an empty field follows the UI direction). Drives text alignment + the caret/selection
+    // origin so an LTR identifier reads left-aligned and Arabic input reads right-aligned, regardless
+    // of locale. Per-character caret precision holds for unidirectional lines; mixed bidi within one
+    // line is approximate (a true fix needs per-cluster shaper mapping).
+    private bool _contentRtl;
+
     // Sticky x for vertical movement: the pixel column Up/Down aim for. Set on the first
     // Up/Down of a run and reused so passing through a short line doesn't shrink the column;
     // any horizontal move or edit clears it (-1) so the next Up/Down re-anchors to the caret.
@@ -140,7 +147,11 @@ public sealed class TextInputView : View
             return _strLen;
         }
 
-        var xOffset = point.X - Position.Left + _scrollOffsetX;
+        // xOffset is the click's distance from the line's leading edge — the left under LTR, the
+        // right under RTL — matched below against logical prefix widths (also leading-relative).
+        var xOffset = _contentRtl
+            ? Position.Right + _scrollOffsetX - point.X
+            : point.X - Position.Left + _scrollOffsetX;
         var canvas = _canvas;
         var lineCount = 1;
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
@@ -316,9 +327,25 @@ public sealed class TextInputView : View
         _scrollOffsetX = Math.Clamp(_scrollOffsetX, 0f, maxOffset);
     }
 
+    // The field is RTL when its first strong character is RTL; an empty field follows the UI
+    // direction so the caret rests on the correct side before anything is typed.
+    private bool ResolveContentRtl()
+    {
+        var text = Text;
+        if (text.IsEmpty)
+            return IsRtl;
+        Bidi.ResolveLevels(text, BidiDirection.Auto, out var paragraphLevel);
+        return paragraphLevel == 1;
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         var position = Position;
+
+        // Resolve direction first so text alignment (via the style's base direction) and the mirrored
+        // caret/selection origin below agree within this draw.
+        _contentRtl = ResolveContentRtl();
+        _textStyle.BaseDirection = _contentRtl ? BidiDirection.Rtl : BidiDirection.Ltr;
 
         DrawBackground(position, c);
 
@@ -460,13 +487,18 @@ public sealed class TextInputView : View
         {
             var text = _buffer.AsSpan(startIndex, max - startIndex);
             var textWidth = c.MeasureTextWidth(text, _textStyle);
+            // Single-line RTL: the selection hangs left from the start caret on the right edge.
+            // (Multi-line RTL selection stays on the LTR path — a documented limitation.)
+            var segLeft = _contentRtl && TextWrap != Gui.TextWrap.Wrap
+                ? position.Right + _scrollOffsetX - minTextWidth - textWidth
+                : startPointLeft;
             var selectionRect = new RectF
             {
-                Left = startPointLeft,
+                Left = segLeft,
                 Bottom = startPointBottom,
                 Width = textWidth,
                 Height = lineHeight
-            };  
+            };
             
             c.DrawRect(new DrawRectInputs
             {
@@ -480,7 +512,9 @@ public sealed class TextInputView : View
     private void DrawText(in RectF position, ICanvas c, float verticalOffset)
     {
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
-        var left = position.Left - _scrollOffsetX;
+        // Under RTL the line box shifts the other way so the canvas (which right-aligns Start text on
+        // an RTL base) ends each line at the right edge; scrolling reveals the trailing/left content.
+        var left = _contentRtl ? position.Left + _scrollOffsetX : position.Left - _scrollOffsetX;
         var bottom = position.Top - lineHeight + verticalOffset;
         var lines = GetLines(position.Width, c);
         foreach (var line in lines)
@@ -564,7 +598,10 @@ public sealed class TextInputView : View
         var cursorPos = new RectF
         {
             Bottom = cursorPosBottom,
-            Left = position.Left + cursorPosLeft - _scrollOffsetX,
+            // Logical prefix width measures from the leading edge: left edge under LTR, right under RTL.
+            Left = _contentRtl
+                ? position.Right + _scrollOffsetX - cursorPosLeft - CaretWidth
+                : position.Left + cursorPosLeft - _scrollOffsetX,
             Width = CaretWidth,
             Height = cursorHeight
         };
