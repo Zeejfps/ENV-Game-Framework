@@ -9,8 +9,11 @@ namespace ZGF.Observable;
 public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollector, IDisposable
 {
     private readonly Func<T> _compute;
-    private readonly HashSet<IInvalidatable> _dependencies = new();
-    private readonly List<Action> _depUnsubscribes = new();
+    private readonly Action _onDependencyInvalidated;
+    // The sources we're currently subscribed to. _next is the set collected during the latest
+    // compute; the two are diffed so only genuinely added/dropped sources change subscriptions.
+    private HashSet<IInvalidatable> _dependencies = new();
+    private HashSet<IInvalidatable> _next = new();
     private T _value;
     private bool _hasComputed;
     private Action<T>? _changed;
@@ -19,6 +22,7 @@ public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollec
     public Derived(Func<T> compute)
     {
         _compute = compute;
+        _onDependencyInvalidated = Recompute;
         _value = default!;
         Recompute();
     }
@@ -54,12 +58,7 @@ public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollec
     void IDependencyCollector.AddDependency(IInvalidatable source)
     {
         if (source == this) return;
-        if (_dependencies.Add(source))
-        {
-            Action handler = Recompute;
-            source.Invalidated += handler;
-            _depUnsubscribes.Add(() => source.Invalidated -= handler);
-        }
+        _next.Add(source);
     }
 
     /// <summary>
@@ -69,24 +68,30 @@ public sealed class Derived<T> : IReadable<T>, IInvalidatable, IDependencyCollec
     /// </summary>
     public void Dispose()
     {
-        foreach (var unsub in _depUnsubscribes) unsub();
-        _depUnsubscribes.Clear();
+        foreach (var dep in _dependencies) dep.Invalidated -= _onDependencyInvalidated;
         _dependencies.Clear();
+        _next.Clear();
         _changed = null;
         _invalidated = null;
     }
 
     private void Recompute()
     {
-        foreach (var unsub in _depUnsubscribes) unsub();
-        _depUnsubscribes.Clear();
-        _dependencies.Clear();
-
+        _next.Clear();
         T newValue;
         using (DependencyTracker.BeginTracking(this))
         {
             newValue = _compute();
         }
+
+        // Reconcile subscriptions against the new dependency set instead of tearing them all
+        // down and rebuilding: the set is almost always identical recompute-to-recompute, so the
+        // common case is zero subscription changes and zero allocation.
+        foreach (var dep in _dependencies)
+            if (!_next.Contains(dep)) dep.Invalidated -= _onDependencyInvalidated;
+        foreach (var dep in _next)
+            if (!_dependencies.Contains(dep)) dep.Invalidated += _onDependencyInvalidated;
+        (_dependencies, _next) = (_next, _dependencies);
 
         var changed = !_hasComputed || !EqualityComparer<T>.Default.Equals(_value, newValue);
         _value = newValue;

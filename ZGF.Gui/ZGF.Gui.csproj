@@ -30,6 +30,7 @@
     <!-- Platform packages (e.g. ZGF.Gui.Desktop) load embedded fonts via internal helpers. -->
     <ItemGroup>
       <InternalsVisibleTo Include="ZGF.Gui.Desktop" />
+      <InternalsVisibleTo Include="ZGF.Gui.Benchmarks" />
     </ItemGroup>
 
     <ItemGroup>

@@ -74,19 +74,19 @@ public class LayoutBenchmarks
     {
         var root = new RectView { Width = RootWidth, Height = RootHeight };
         View? leaf = null;
-        BuildChildren(root, 0, ref leaf);
+        BuildChildren(root.Children, 0, ref leaf);
         deepLeaf = leaf!;
         return root;
     }
 
-    private static void BuildChildren(MultiChildView parent, int depth, ref View? deepLeaf)
+    private static void BuildChildren(View.ChildrenCollection parent, int depth, ref View? deepLeaf)
     {
         if (depth >= Depth)
         {
             for (var i = 0; i < Branching; i++)
             {
                 var leaf = new RectView { Width = 20f, Height = 18f };
-                parent.Children.Add(leaf);
+                parent.Add(leaf);
                 deepLeaf ??= leaf;
             }
             return;
@@ -95,8 +95,8 @@ public class LayoutBenchmarks
         for (var i = 0; i < Branching; i++)
         {
             var node = new FlexView { Axis = depth % 2 == 0 ? Axis.Vertical : Axis.Horizontal };
-            parent.Children.Add(node);
-            BuildChildren(node, depth + 1, ref deepLeaf);
+            parent.Add(node);
+            BuildChildren(node.Children, depth + 1, ref deepLeaf);
         }
     }
 }
