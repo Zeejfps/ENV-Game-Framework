@@ -260,16 +260,24 @@ public sealed unsafe class FreeTypeFontBackend
     }
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
-        => ShapeText(font, text, output, FontFeatureSet.None);
+        => ShapeText(font, text, output, FontFeatureSet.None, BidiDirection.Auto);
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output, in FontFeatureSet features)
+        => ShapeText(font, text, output, features, BidiDirection.Auto);
+
+    // Glyphs come back in visual (left-to-right) order — for a bidirectional line the runs are
+    // BiDi-reordered here — so callers can lay them out by accumulating advances either way.
+    public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output,
+        in FontFeatureSet features, BidiDirection baseDir)
     {
         ThrowIfDisposed();
         if (text.Length == 0)
             return 0;
 
         var entry = GetEntry(font);
-        var sig = features.Signature;
+        // Fold the base direction into the cache bucket: the same text can shape to a different
+        // glyph order under a different base. Auto is 0, so the LTR common path keeps its bucket.
+        var sig = features.Signature ^ ((ulong)baseDir * 0x9E3779B97F4A7C15UL);
 
         // Shaped runs are position-independent and immutable for a given (font, text, features),
         // so cache them and skip HarfBuzz on repeat lines (the common per-frame case). Each
@@ -278,7 +286,7 @@ public sealed unsafe class FreeTypeFontBackend
         if (TryGetCachedShape(entry, sig, text, out var cached))
             return CopyShaped(cached, output);
 
-        var shaped = ShapeWithFallback(font, entry, text, features);
+        var shaped = ShapeWithFallback(font, entry, text, baseDir, features);
         PutShape(entry, sig, text.ToString(), shaped);
         return CopyShaped(shaped, output);
     }
@@ -287,8 +295,14 @@ public sealed unsafe class FreeTypeFontBackend
     // shapes each run with the font that actually has glyphs for it. Every emitted glyph carries
     // the id of its source font; since font ids are unique the glyph cache never collides across
     // fonts. With no fallbacks registered this is a single shaped run through the primary font.
-    private ShapedGlyph[] ShapeWithFallback(FontHandle font, FontEntry entry, ReadOnlySpan<char> text, in FontFeatureSet features)
+    // Lines containing right-to-left text go through ShapeBidi, which additionally itemizes by
+    // BiDi level and reorders the runs to visual order.
+    private ShapedGlyph[] ShapeWithFallback(FontHandle font, FontEntry entry, ReadOnlySpan<char> text,
+        BidiDirection baseDir, in FontFeatureSet features)
     {
+        if (Bidi.ContainsRtl(text))
+            return ShapeBidi(font, entry, text, baseDir, features);
+
         var glyphs = new List<ShapedGlyph>(text.Length);
 
         if (_fallbacks.Count == 0)
@@ -297,40 +311,14 @@ public sealed unsafe class FreeTypeFontBackend
             return glyphs.ToArray();
         }
 
-        // Resolve each fallback at the primary's pixel size (and weight) so substituted
-        // glyphs match the surrounding text. Index 0 is always the primary.
-        var chain = new FontHandle[_fallbacks.Count + 1];
-        var entries = new FontEntry[chain.Length];
-        chain[0] = font;
-        entries[0] = entry;
-        for (var f = 0; f < _fallbacks.Count; f++)
-        {
-            var fb = GetSizedVariant(_fallbacks[f], entry.PixelSize);
-            if (entry.IsEmboldened)
-                fb = GetEmboldenedVariant(fb);
-            chain[f + 1] = fb;
-            entries[f + 1] = GetEntry(fb);
-        }
+        var entries = BuildFallbackChain(font, entry, out var chain);
 
         var runStart = 0;
         var runFont = -1;
         var i = 0;
         while (i < text.Length)
         {
-            var c = text[i];
-            int cp;
-            int len;
-            if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
-            {
-                cp = char.ConvertToUtf32(c, text[i + 1]);
-                len = 2;
-            }
-            else
-            {
-                cp = c;
-                len = 1;
-            }
-
+            var cp = CodePointAt(text, i, out var len);
             var fontIdx = SelectFontIndex(entries, cp);
             if (runFont < 0)
             {
@@ -352,6 +340,116 @@ public sealed unsafe class FreeTypeFontBackend
         return glyphs.ToArray();
     }
 
+    // Bidirectional layout: itemize the line into runs that share both a BiDi embedding level and
+    // a covering font, shape each run with the direction its level implies (the shaper reverses
+    // glyphs within an RTL run), then reorder the runs into visual order (UAX #9 L2) and emit
+    // their glyphs left to right. Cluster ids stay logical, so selection mapping is unaffected.
+    private ShapedGlyph[] ShapeBidi(FontHandle font, FontEntry entry, ReadOnlySpan<char> text,
+        BidiDirection baseDir, in FontFeatureSet features)
+    {
+        var levels = Bidi.ResolveLevels(text, baseDir, out _);
+        var entries = BuildFallbackChain(font, entry, out var chain);
+
+        // Itemize into (level, font) runs in logical order.
+        var runStartList = new List<int>();
+        var runLenList = new List<int>();
+        var runLevelList = new List<byte>();
+        var runFontList = new List<int>();
+
+        var runStart = 0;
+        var runFont = -1;
+        byte runLevel = 0;
+        var i = 0;
+        while (i < text.Length)
+        {
+            var cp = CodePointAt(text, i, out var len);
+            var fontIdx = SelectFontIndex(entries, cp);
+            var lvl = levels[i];
+            if (runFont < 0)
+            {
+                runFont = fontIdx;
+                runLevel = lvl;
+                runStart = i;
+            }
+            else if (fontIdx != runFont || lvl != runLevel)
+            {
+                runStartList.Add(runStart);
+                runLenList.Add(i - runStart);
+                runLevelList.Add(runLevel);
+                runFontList.Add(runFont);
+                runFont = fontIdx;
+                runLevel = lvl;
+                runStart = i;
+            }
+
+            i += len;
+        }
+        if (runFont >= 0)
+        {
+            runStartList.Add(runStart);
+            runLenList.Add(text.Length - runStart);
+            runLevelList.Add(runLevel);
+            runFontList.Add(runFont);
+        }
+
+        var runCount = runStartList.Count;
+        var runGlyphs = new List<ShapedGlyph>[runCount];
+        for (var r = 0; r < runCount; r++)
+        {
+            var list = new List<ShapedGlyph>();
+            var dir = (runLevelList[r] & 1) == 1 ? Direction.RightToLeft : Direction.LeftToRight;
+            ShapeRun(entries[runFontList[r]], chain[runFontList[r]].Id,
+                text.Slice(runStartList[r], runLenList[r]), runStartList[r], features, list, dir);
+            runGlyphs[r] = list;
+        }
+
+        Span<int> order = runCount <= 64 ? stackalloc int[runCount] : new int[runCount];
+        Bidi.ComputeVisualOrder(CollectionsMarshal.AsSpan(runLevelList), order);
+
+        var total = 0;
+        for (var r = 0; r < runCount; r++) total += runGlyphs[r].Count;
+        var glyphs = new List<ShapedGlyph>(total);
+        for (var v = 0; v < runCount; v++)
+            glyphs.AddRange(runGlyphs[order[v]]);
+
+        return glyphs.ToArray();
+    }
+
+    // Builds the [primary, fallback...] handle chain sized/weighted to the primary, plus the
+    // matching FontEntry array. Index 0 is always the primary.
+    private FontEntry[] BuildFallbackChain(FontHandle font, FontEntry entry, out FontHandle[] chain)
+    {
+        // Resolve each fallback at the primary's pixel size (and weight) so substituted glyphs
+        // match the surrounding text.
+        chain = new FontHandle[_fallbacks.Count + 1];
+        var entries = new FontEntry[chain.Length];
+        chain[0] = font;
+        entries[0] = entry;
+        for (var f = 0; f < _fallbacks.Count; f++)
+        {
+            var fb = GetSizedVariant(_fallbacks[f], entry.PixelSize);
+            if (entry.IsEmboldened)
+                fb = GetEmboldenedVariant(fb);
+            chain[f + 1] = fb;
+            entries[f + 1] = GetEntry(fb);
+        }
+
+        return entries;
+    }
+
+    private static int CodePointAt(ReadOnlySpan<char> text, int i, out int len)
+    {
+        var c = text[i];
+        if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+        {
+            len = 2;
+            return char.ConvertToUtf32(c, text[i + 1]);
+        }
+
+        len = 1;
+        return c;
+    }
+
     // First font in the chain whose cmap covers the code point; falls back to the primary
     // (index 0), which will render .notdef/tofu rather than dropping the character silently.
     private static int SelectFontIndex(FontEntry[] entries, int codePoint)
@@ -365,7 +463,7 @@ public sealed unsafe class FreeTypeFontBackend
     }
 
     private void ShapeRun(FontEntry entry, int fontId, ReadOnlySpan<char> text, int clusterBase,
-        in FontFeatureSet features, List<ShapedGlyph> output)
+        in FontFeatureSet features, List<ShapedGlyph> output, Direction? direction = null)
     {
         if (text.Length == 0)
             return;
@@ -375,7 +473,12 @@ public sealed unsafe class FreeTypeFontBackend
 
         buf.ClearContents();
         buf.AddUtf16(text);
+        // GuessSegmentProperties infers script + language (needed for Arabic joining); the
+        // caller-supplied direction, when present, overrides the guess so a run's glyphs are
+        // ordered for its resolved BiDi level rather than re-guessed from weak content.
         buf.GuessSegmentProperties();
+        if (direction.HasValue)
+            buf.Direction = direction.Value;
         hbFont.Shape(buf, BuildHbFeatures(features));
 
         var infos = buf.GetGlyphInfoSpan();
