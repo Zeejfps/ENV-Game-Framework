@@ -179,6 +179,22 @@ public class LayoutTests
     }
 
     [Fact]
+    public void PaddingView_Rtl_SwapsInlineInsets()
+    {
+        // Left/Right are inline start/end: an indent (larger Left) insets from the right under RTL.
+        var leaf = new RectView();
+        var padding = new PaddingView { Padding = new PaddingStyle { Left = 20, Right = 5 } };
+        padding.Children.Add(leaf);
+        var root = Root(100f, 50f, padding);
+        root.IsRtl = true;
+
+        root.LayoutSelf();
+
+        // LTR insets to [20, 95]; under RTL the insets swap to [5, 80].
+        AssertRect(leaf, 5f, 0f, 75f, 50f);
+    }
+
+    [Fact]
     public void IsRtl_IsInheritedFromAncestor()
     {
         // A FlexView that never sets IsRtl inherits it from an ancestor, so setting direction once

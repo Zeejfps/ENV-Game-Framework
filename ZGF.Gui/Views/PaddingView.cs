@@ -37,8 +37,13 @@ public sealed class PaddingView : View
     protected override void OnLayoutChildren()
     {
         var position = Position;
-        var left = position.Left + _padding.Left;
-        var right = position.Right - _padding.Right;
+        // Left/Right are treated as inline start/end: under RTL they swap, so an indent (a larger
+        // Left) insets from the right and asymmetric padding mirrors with the rest of the layout.
+        var rtl = IsRtl;
+        var padLeft = rtl ? _padding.Right : _padding.Left;
+        var padRight = rtl ? _padding.Left : _padding.Right;
+        var left = position.Left + padLeft;
+        var right = position.Right - padRight;
         var top = position.Top - _padding.Top;
         var bottom = position.Bottom + _padding.Bottom;
 
