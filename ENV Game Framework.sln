@@ -118,6 +118,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.MemoryDiagnostics",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Prototype", "ZGF.Gui.Prototype\ZGF.Gui.Prototype.csproj", "{018D0360-2D52-41E9-855C-625688E849A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Generator", "ZGF.Gui.Generator\ZGF.Gui.Generator.csproj", "{D679B75D-45B0-45DC-9469-F77A26B9D81C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -824,6 +826,18 @@ Global
 		{018D0360-2D52-41E9-855C-625688E849A8}.Release|x64.Build.0 = Release|Any CPU
 		{018D0360-2D52-41E9-855C-625688E849A8}.Release|x86.ActiveCfg = Release|Any CPU
 		{018D0360-2D52-41E9-855C-625688E849A8}.Release|x86.Build.0 = Release|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Debug|x64.Build.0 = Debug|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Debug|x86.Build.0 = Debug|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x64.ActiveCfg = Release|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x64.Build.0 = Release|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x86.ActiveCfg = Release|Any CPU
+		{D679B75D-45B0-45DC-9469-F77A26B9D81C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
