@@ -3,9 +3,11 @@ using System.Text;
 namespace ZGF.Gui;
 
 /// <summary>
-/// Greedy word-wrap that uses an <see cref="ICanvas"/> to measure widths in the supplied
-/// <see cref="TextStyle"/>. Splits on spaces; words longer than the width are kept whole on
-/// their own line (no character-level breaking).
+/// Greedy line-wrap that uses an <see cref="ICanvas"/> to measure widths in the supplied
+/// <see cref="TextStyle"/>. Latin runs break only at spaces (a word wider than the line is kept
+/// whole); CJK and other "wide" scripts also break between adjacent code points (UAX-14-lite), so a
+/// spaceless CJK paragraph wraps instead of overflowing. Minimal kinsoku keeps closing punctuation
+/// off the start of a line and opening punctuation off the end.
 /// </summary>
 public static class TextWrapper
 {
@@ -41,42 +43,148 @@ public static class TextWrapper
             return;
         }
 
-        var sb = new StringBuilder();
+        // Width is accumulated per chunk rather than re-measuring the whole candidate each step:
+        // a spaceless CJK line is one chunk per code point, so re-measuring would be quadratic.
+        // Summing chunk widths slightly over-estimates (it drops cross-chunk kerning), which only
+        // ever wraps earlier — it never overflows.
+        var spaceWidth = canvas.MeasureTextWidth(" ", style);
+        var line = new StringBuilder();
+        var lineWidth = 0f;
+
         var i = 0;
-        while (i < raw.Length)
+        var n = raw.Length;
+        var spaceBefore = false;
+        while (i < n)
         {
-            if (sb.Length == 0)
+            if (raw[i] == ' ')
             {
-                while (i < raw.Length && raw[i] == ' ') i++;
-                if (i >= raw.Length) break;
+                spaceBefore = true;
+                do { i++; } while (i < n && raw[i] == ' ');
+                continue;
             }
 
-            var wordStart = i;
-            while (i < raw.Length && raw[i] != ' ') i++;
-            var word = raw.AsSpan(wordStart, i - wordStart);
-
-            if (sb.Length == 0)
+            var start = i;
+            var prev = ReadCodePoint(raw, ref i);
+            while (i < n && raw[i] != ' ')
             {
-                sb.Append(word);
+                var next = ReadCodePoint(raw, i, out var nextLen);
+                if (BreakAllowedBetween(prev, next))
+                    break;
+                prev = next;
+                i += nextLen;
+            }
+
+            var chunk = raw.AsSpan(start, i - start);
+            var chunkWidth = canvas.MeasureTextWidth(chunk, style);
+
+            if (line.Length == 0)
+            {
+                line.Append(chunk);
+                lineWidth = chunkWidth;
             }
             else
             {
-                var candidate = sb.ToString() + " " + word.ToString();
-                if (canvas.MeasureTextWidth(candidate, style) <= maxWidth)
+                var sep = spaceBefore ? spaceWidth : 0f;
+                if (lineWidth + sep + chunkWidth <= maxWidth)
                 {
-                    sb.Append(' ').Append(word);
+                    if (spaceBefore)
+                    {
+                        line.Append(' ');
+                        lineWidth += spaceWidth;
+                    }
+                    line.Append(chunk);
+                    lineWidth += chunkWidth;
                 }
                 else
                 {
-                    output.Add(sb.ToString());
-                    sb.Clear();
-                    sb.Append(word);
+                    output.Add(line.ToString());
+                    line.Clear();
+                    line.Append(chunk);
+                    lineWidth = chunkWidth;
                 }
             }
 
-            if (i < raw.Length && raw[i] == ' ') i++;
+            spaceBefore = false;
         }
 
-        if (sb.Length > 0) output.Add(sb.ToString());
+        if (line.Length > 0) output.Add(line.ToString());
     }
+
+    private static int ReadCodePoint(string s, ref int i)
+    {
+        var cp = ReadCodePoint(s, i, out var len);
+        i += len;
+        return cp;
+    }
+
+    private static int ReadCodePoint(string s, int i, out int len)
+    {
+        var c = s[i];
+        if (char.IsHighSurrogate(c) && i + 1 < s.Length && char.IsLowSurrogate(s[i + 1]))
+        {
+            len = 2;
+            return char.ConvertToUtf32(c, s[i + 1]);
+        }
+
+        len = 1;
+        return c;
+    }
+
+    private static bool BreakAllowedBetween(int before, int after)
+    {
+        if (IsNoBreakBefore(after)) return false;  // kinsoku: closing punctuation can't start a line
+        if (IsNoBreakAfter(before)) return false;  // kinsoku: opening punctuation can't end a line
+        return IsWide(before) || IsWide(after);
+    }
+
+    /// <summary>
+    /// CJK and other ideographic / syllabic code points that permit a break on either side
+    /// (UAX-14 ID-like classes). Latin/Cyrillic/etc. return false, so they keep word-only breaking.
+    /// </summary>
+    private static bool IsWide(int cp) =>
+        (cp >= 0x1100 && cp <= 0x11FF) ||   // Hangul Jamo
+        (cp >= 0x2E80 && cp <= 0x2EFF) ||   // CJK Radicals Supplement
+        (cp >= 0x2F00 && cp <= 0x2FDF) ||   // Kangxi Radicals
+        (cp >= 0x3000 && cp <= 0x303F) ||   // CJK Symbols and Punctuation
+        (cp >= 0x3040 && cp <= 0x309F) ||   // Hiragana
+        (cp >= 0x30A0 && cp <= 0x30FF) ||   // Katakana
+        (cp >= 0x3100 && cp <= 0x312F) ||   // Bopomofo
+        (cp >= 0x3130 && cp <= 0x318F) ||   // Hangul Compatibility Jamo
+        (cp >= 0x31F0 && cp <= 0x31FF) ||   // Katakana Phonetic Extensions
+        (cp >= 0x3200 && cp <= 0x32FF) ||   // Enclosed CJK Letters and Months
+        (cp >= 0x3400 && cp <= 0x4DBF) ||   // CJK Unified Ideographs Extension A
+        (cp >= 0x4E00 && cp <= 0x9FFF) ||   // CJK Unified Ideographs
+        (cp >= 0xA960 && cp <= 0xA97F) ||   // Hangul Jamo Extended-A
+        (cp >= 0xAC00 && cp <= 0xD7A3) ||   // Hangul Syllables
+        (cp >= 0xD7B0 && cp <= 0xD7FF) ||   // Hangul Jamo Extended-B
+        (cp >= 0xF900 && cp <= 0xFAFF) ||   // CJK Compatibility Ideographs
+        (cp >= 0xFF00 && cp <= 0xFFEF) ||   // Halfwidth and Fullwidth Forms
+        (cp >= 0x20000 && cp <= 0x2FA1F);   // CJK Unified Ideographs Ext B-F + Compatibility Supplement
+
+    /// <summary>Characters that must not begin a wrapped line (closing punctuation, small kana).</summary>
+    private static bool IsNoBreakBefore(int cp) => cp switch
+    {
+        ',' or '.' or '!' or '?' or ':' or ';' or ')' or ']' or '}' => true,
+        0x3001 or 0x3002 or 0x3009 or 0x300B or 0x300D or 0x300F or 0x3011
+            or 0x3015 or 0x3017 or 0x3019 or 0x301B => true,  // 、。〉》」』】〕〗〙〛
+        0x3005 or 0x301C or 0x30FC => true,                   // 々〜ー
+        0x2025 or 0x2026 => true,                             // ‥…
+        0x3041 or 0x3043 or 0x3045 or 0x3047 or 0x3049 or 0x3063
+            or 0x3083 or 0x3085 or 0x3087 or 0x308E or 0x3095 or 0x3096 => true,  // small hiragana
+        0x30A1 or 0x30A3 or 0x30A5 or 0x30A7 or 0x30A9 or 0x30C3
+            or 0x30E3 or 0x30E5 or 0x30E7 or 0x30EE or 0x30F5 or 0x30F6 => true,  // small katakana
+        0xFF01 or 0xFF09 or 0xFF0C or 0xFF0E or 0xFF1A or 0xFF1B
+            or 0xFF1F or 0xFF3D or 0xFF5D or 0xFF63 => true,  // ！），．：；？］｝｣
+        _ => false,
+    };
+
+    /// <summary>Characters that must not end a line (opening punctuation).</summary>
+    private static bool IsNoBreakAfter(int cp) => cp switch
+    {
+        '(' or '[' or '{' => true,
+        0x3008 or 0x300A or 0x300C or 0x300E or 0x3010
+            or 0x3014 or 0x3016 or 0x3018 or 0x301A => true,  // 〈《「『【〔〖〘〚
+        0xFF08 or 0xFF3B or 0xFF5B or 0xFF62 => true,         // （［｛｢
+        _ => false,
+    };
 }
