@@ -77,6 +77,12 @@ public sealed class TextView : View
         set => SetField(ref _style.FontFeatures, value);
     }
 
+    public StyleValue<BidiDirection> BaseDirection
+    {
+        get => _style.BaseDirection;
+        set => SetField(ref _style.BaseDirection, value);
+    }
+
     private string? _text;
     public string? Text
     {

@@ -1,3 +1,4 @@
+using ZGF.Fonts;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Widgets;
@@ -15,6 +16,13 @@ public sealed record Text : Widget
     public Prop<TextAlignment> VAlign { get; init; }
     public Prop<TextOverflow> Overflow { get; init; }
 
+    /// <summary>
+    /// Base paragraph direction for bidi reordering and Start/End alignment. Leave unset to follow the
+    /// UI's writing direction; set <see cref="BidiDirection.Ltr"/> to pin direction-neutral content
+    /// (a SHA, file path, or URL) left-to-right inside an otherwise RTL layout.
+    /// </summary>
+    public Prop<BidiDirection> BaseDir { get; init; }
+
     /// <summary>Glyph rotation in radians, about the text rect's center.</summary>
     public Prop<float> Rotation { get; init; }
 
@@ -30,6 +38,7 @@ public sealed record Text : Widget
         HAlign.Apply(ctx, v,static (x, a) => x.HorizontalTextAlignment = a);
         VAlign.Apply(ctx, v,static (x, a) => x.VerticalTextAlignment = a);
         Overflow.Apply(ctx, v,static (x, o) => x.TextOverflow = o);
+        BaseDir.Apply(ctx, v,static (x, d) => x.BaseDirection = d);
         Rotation.Apply(ctx, v,static (x, r) => x.Rotation = r);
         return v;
     }

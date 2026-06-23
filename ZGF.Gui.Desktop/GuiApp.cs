@@ -220,6 +220,17 @@ public sealed class GuiApp : IDisposable
     public void SetTitleBarDark(bool dark) =>
         _windowChrome.SetTitleBarTheme(_app.MainWindow, dark);
 
+    /// <summary>
+    /// Sets the UI's base writing direction on the main canvas, flipping text alignment and the bidi
+    /// base for direction-neutral lines. Popups opened afterward inherit it (they copy the main
+    /// canvas), so call it before opening RTL menus/dialogs. Schedules a repaint.
+    /// </summary>
+    public void SetBaseDirection(BidiDirection direction)
+    {
+        _mainCanvas.DefaultBaseDirection = direction;
+        _app.MainWindow.RequestRedraw();
+    }
+
     public void Run() => _app.Run();
 
     /// <summary>Asks the run loop to exit; <see cref="Run"/> returns after the current iteration.</summary>

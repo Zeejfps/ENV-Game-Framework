@@ -104,6 +104,39 @@ public class BidiShapingTests
     }
 
     [Fact]
+    public void ExplicitBaseDirection_FlipsRunOrderOfMixedLine()
+    {
+        var arabic = ArabicFontPath();
+        if (arabic is null) return;
+
+        var fonts = new FreeTypeFontBackend();
+        try
+        {
+            var primary = fonts.LoadFontFromFile(InterPath, 16);
+            var fallback = fonts.LoadFontFromFile(arabic, 16);
+            fonts.RegisterFallbackFont(fallback);
+
+            // "ab" (LTR) + "مر" (RTL island). The canvas threads the UI base direction here so an
+            // ambiguous line follows the locale instead of the first-strong heuristic.
+            const string text = "abمر";
+            Span<ShapedGlyph> ltr = stackalloc ShapedGlyph[32];
+            Span<ShapedGlyph> rtl = stackalloc ShapedGlyph[32];
+            var nLtr = fonts.ShapeText(primary, text, ltr, FontFeatureSet.None, BidiDirection.Ltr);
+            var nRtl = fonts.ShapeText(primary, text, rtl, FontFeatureSet.None, BidiDirection.Rtl);
+
+            // LTR base: the Latin run is visually first (leftmost glyph is 'a' from the primary).
+            Assert.Equal(primary.Id, ltr[0].FontId);
+            Assert.Equal(0, ltr[0].Cluster);
+
+            // RTL base: the logically-first Latin run moves to the right, so the leftmost glyph now
+            // comes from the Arabic island (the fallback font).
+            Assert.Equal(fallback.Id, rtl[0].FontId);
+            Assert.Equal(nLtr, nRtl);
+        }
+        finally { fonts.Dispose(); }
+    }
+
+    [Fact]
     public void ArabicWithLatinPrimaryNoFallback_StaysNotdef_ButReordered()
     {
         var fonts = new FreeTypeFontBackend();

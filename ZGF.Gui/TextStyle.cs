@@ -14,4 +14,8 @@ public sealed record TextStyle
     public StyleValue<TextOverflow> TextOverflow;
     public StyleValue<float> Rotation = new(0f, false);
     public StyleValue<FontFeatureSet> FontFeatures;
+    // Base paragraph direction for bidi reordering and Start/End alignment. Unset defers to the
+    // canvas's DefaultBaseDirection; set it to force a direction on direction-neutral content (an
+    // LTR SHA/path in an otherwise RTL UI).
+    public StyleValue<BidiDirection> BaseDirection;
 }

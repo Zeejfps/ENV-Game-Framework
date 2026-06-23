@@ -185,6 +185,15 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public int LastFrameUploadCount { get; protected set; }
 
+    /// <summary>
+    /// Base paragraph direction applied to text whose <see cref="TextStyle.BaseDirection"/> is unset —
+    /// i.e. the UI's writing direction. <see cref="BidiDirection.Auto"/> (the default) keeps the
+    /// first-strong per-line heuristic and leaves Start alignment on the left; an RTL locale sets
+    /// <see cref="BidiDirection.Rtl"/> so neutral/ambiguous lines lay out right-to-left and
+    /// Start-aligned text moves to the right edge.
+    /// </summary>
+    public BidiDirection DefaultBaseDirection { get; set; } = BidiDirection.Auto;
+
     protected RenderedCanvasBase(
         int width, int height,
         FreeTypeFontBackend fonts,
@@ -452,7 +461,6 @@ public abstract class RenderedCanvasBase : ICanvas
         var descender = metrics.Descender * invScale;
         var lineHeight = metrics.LineHeight * invScale;
 
-        var lineStart = pos.Left;
         var baselineY = pos.Top - ascender;
 
         if (style.VerticalAlignment.IsSet && style.VerticalAlignment.Value == TextAlignment.Center)
@@ -461,7 +469,9 @@ public abstract class RenderedCanvasBase : ICanvas
             baselineY = midline - (ascender + descender) * 0.5f;
         }
 
-        var hCenter = style.HorizontalAlignment.IsSet && style.HorizontalAlignment.Value == TextAlignment.Center;
+        var baseDir = style.BaseDirection.IsSet ? style.BaseDirection.Value : DefaultBaseDirection;
+        var hAlign = style.HorizontalAlignment.IsSet ? style.HorizontalAlignment.Value : TextAlignment.Start;
+        var placement = TextLayout.ResolveHorizontal(hAlign, baseDir == BidiDirection.Rtl);
         var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
         var textSpan = text.AsSpan();
 
@@ -481,7 +491,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
             var lineSlice = textSpan[sliceStart..lineEnd];
 
-            ShapeAndDrawLine(font, lineSlice, lineStart, pos.Left, pos.Width, hCenter,
+            ShapeAndDrawLine(font, lineSlice, pos.Left, pos.Width, placement, baseDir,
                 baselineY, color, clip, rotation, key, features);
 
             if (nl < 0)
@@ -492,8 +502,8 @@ public abstract class RenderedCanvasBase : ICanvas
         }
     }
 
-    private void ShapeAndDrawLine(FontHandle font, ReadOnlySpan<char> line, float lineStartX,
-        float boxLeft, float boxWidth, bool hCenter, float baselineY,
+    private void ShapeAndDrawLine(FontHandle font, ReadOnlySpan<char> line,
+        float boxLeft, float boxWidth, TextPlacement placement, BidiDirection baseDir, float baselineY,
         uint color, uint clip, float rotation, long key, in FontFeatureSet features)
     {
         if (line.Length == 0)
@@ -504,17 +514,22 @@ public abstract class RenderedCanvasBase : ICanvas
             ? stackalloc ShapedGlyph[StackCap]
             : new ShapedGlyph[line.Length * 2];
 
-        var n = _fonts.ShapeText(font, line, shaped, features);
+        var n = _fonts.ShapeText(font, line, shaped, features, baseDir);
 
-        var cursorX = lineStartX;
-        if (hCenter)
+        // Glyphs come back in visual L→R order regardless of base direction, so every placement is
+        // just a starting pen position; the emit loop below always advances rightward.
+        var cursorX = boxLeft;
+        if (placement != TextPlacement.Left)
         {
             // Width from the already-shaped run, so the line is shaped once instead
             // of twice (measure + emit).
             var total = 0f;
             for (var i = 0; i < n; i++)
                 total += shaped[i].XAdvance;
-            cursorX = boxLeft + (boxWidth - total / _dpiScale) * 0.5f;
+            var w = total / _dpiScale;
+            cursorX = placement == TextPlacement.Center
+                ? boxLeft + (boxWidth - w) * 0.5f
+                : boxLeft + boxWidth - w;
         }
 
         var atlasWidth = (float)_fonts.AtlasWidth;
@@ -562,7 +577,7 @@ public abstract class RenderedCanvasBase : ICanvas
         }
     }
 
-    private float MeasureLineWidth(FontHandle font, ReadOnlySpan<char> line, in FontFeatureSet features)
+    private float MeasureLineWidth(FontHandle font, ReadOnlySpan<char> line, in FontFeatureSet features, BidiDirection baseDir)
     {
         if (line.Length == 0)
             return 0f;
@@ -571,7 +586,7 @@ public abstract class RenderedCanvasBase : ICanvas
         Span<ShapedGlyph> shaped = line.Length <= StackCap
             ? stackalloc ShapedGlyph[StackCap]
             : new ShapedGlyph[line.Length * 2];
-        var n = _fonts.ShapeText(font, line, shaped, features);
+        var n = _fonts.ShapeText(font, line, shaped, features, baseDir);
         var total = 0f;
         for (var i = 0; i < n; i++)
             total += shaped[i].XAdvance;
@@ -587,11 +602,14 @@ public abstract class RenderedCanvasBase : ICanvas
     /// Copies the source canvas's font-family registry onto this canvas. Popup
     /// canvases need this so views using non-default font families (e.g. icons,
     /// monospace) can resolve them when measuring/drawing text in a popup window.
+    /// Also carries the UI base direction so a popup opened under an RTL locale lays out
+    /// right-to-left like its parent window.
     /// </summary>
     public void CopyFontsFrom(RenderedCanvasBase source)
     {
         foreach (var kv in source._fontsByFamily)
             _fontsByFamily[kv.Key] = kv.Value;
+        DefaultBaseDirection = source.DefaultBaseDirection;
     }
 
     private FontHandle ResolveFont(TextStyle style)
@@ -720,6 +738,7 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         var font = ResolveFont(style);
         var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
+        var baseDir = style.BaseDirection.IsSet ? style.BaseDirection.Value : DefaultBaseDirection;
         // Multi-line text: width is the widest line's shaped advance.
         var max = 0f;
         var i = 0;
@@ -727,7 +746,7 @@ public abstract class RenderedCanvasBase : ICanvas
         {
             var nl = text[i..].IndexOf('\n');
             var lineEnd = nl < 0 ? text.Length : i + nl;
-            var w = MeasureLineWidth(font, text[i..lineEnd], features);
+            var w = MeasureLineWidth(font, text[i..lineEnd], features, baseDir);
             if (w > max) max = w;
             if (nl < 0) break;
             i = lineEnd + 1;
