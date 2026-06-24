@@ -38,6 +38,15 @@ public sealed class VirtualRowListView : View
     public Action<ICanvas, RectF, int, RowRenderState, int>? ItemBuilder { get; set; }
 
     /// <summary>
+    /// Drawn once per frame — after scroll is clamped, before the rows, inside the list's clip —
+    /// with the viewport rect and a z-index that sits <b>below</b> row content (rows draw at
+    /// <c>z + 2</c>). Lets a consumer float a single selection bar that rides scroll and can
+    /// animate between rows, instead of the per-row <see cref="ItemBuilder"/> painting selection
+    /// into every row. Null draws nothing.
+    /// </summary>
+    public Action<ICanvas, RectF, int>? SelectionOverlayBuilder { get; set; }
+
+    /// <summary>
     /// Fires when the user left-clicks within the widget. The index is the row that was
     /// hit, or -1 if the click landed in the widget but missed every row (consumers
     /// typically use -1 to clear selection). Modifiers carry Shift/Ctrl/Cmd state for
@@ -180,6 +189,10 @@ public sealed class VirtualRowListView : View
 
         ClampScroll();
 
+        // Selection bar floats here, below row content (rows draw at z + 2), so a consumer can
+        // animate one bar across rows independently of the per-row builder.
+        SelectionOverlayBuilder?.Invoke(c, pos, z);
+
         var top = pos.Top;
         var bodyHeight = pos.Height;
         var firstVisible = Math.Max(0, (int)(_scrollY / RowHeight) - 1);
@@ -193,7 +206,7 @@ public sealed class VirtualRowListView : View
             var state = new RowRenderState(
                 IsHovered: i == _hoveredIndex,
                 IsContextHighlighted: i == _contextHighlightIndex);
-            ItemBuilder(c, rowRect, i, state, z + 1);
+            ItemBuilder(c, rowRect, i, state, z + 2);
         }
 
         c.PopClip();
