@@ -56,6 +56,10 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         }
 
         popup.MousePassThrough = request.MousePassThrough;
+        // Re-apply the native click-through attribute every acquire: this popup window is pooled
+        // and may previously have served a popup of the other kind. A menu (not pass-through)
+        // reusing a window left click-through by a prior tooltip would get hover but eat no clicks.
+        _decorator.SetMousePassThrough(popup.Window.NativeHandle, request.MousePassThrough);
 
         // Build the content against THIS popup's context so its controllers register with
         // this popup's input system and its text measures against this popup's canvas.
@@ -243,7 +247,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             MousePassThrough = mousePassThrough,
         });
 
-        _decorator.DecoratePopup(window.NativeHandle, mousePassThrough);
+        _decorator.DecoratePopup(window.NativeHandle);
 
         var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
 
