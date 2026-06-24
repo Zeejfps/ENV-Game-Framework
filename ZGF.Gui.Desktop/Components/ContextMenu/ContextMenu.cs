@@ -71,6 +71,16 @@ public sealed class ContextMenu : View
         Position = new RectF { Left = 0, Bottom = 0, Width = width, Height = height };
     }
 
+    // The popup window is sized from MeasureWidth() before the menu is ever laid out, so the
+    // shortcut column (otherwise only applied in OnLayoutSelf) has to be folded into the measured
+    // width too. Without this, a menu whose widest row carries a shortcut measures too narrow and
+    // the popup clips its right edge — the shortcut column and border fall outside the window.
+    protected override float MeasureWidthIntrinsic()
+    {
+        AlignShortcutColumn();
+        return base.MeasureWidthIntrinsic();
+    }
+
     // Gap reserved between the label column and the shortcut column so long labels don't
     // crowd their shortcut hints.
     private const float ShortcutColumnGap = 32f;
