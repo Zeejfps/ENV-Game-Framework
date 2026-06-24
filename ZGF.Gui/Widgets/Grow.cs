@@ -8,11 +8,15 @@ namespace ZGF.Gui.Widgets;
 public sealed record Grow : Widget
 {
     public required IWidget Child { get; init; }
-    public float Factor { get; init; } = 1f;
 
-    protected override View CreateView(Context ctx) => new FlexItem
+    /// <summary>Flex grow weight. A constant by default; bind it to animate a proportional fill
+    /// (e.g. a depleting progress bar) without needing pixel widths.</summary>
+    public Prop<float> Factor { get; init; } = 1f;
+
+    protected override View CreateView(Context ctx)
     {
-        Grow = Factor,
-        Child = Child.BuildView(ctx),
-    };
+        var v = new FlexItem { Child = Child.BuildView(ctx) };
+        Factor.Apply(ctx, v, static (x, f) => x.Grow = f);
+        return v;
+    }
 }

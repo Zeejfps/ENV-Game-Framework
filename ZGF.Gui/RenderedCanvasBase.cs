@@ -130,6 +130,17 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly List<StagedShape> _stagedShapes = new();
     private readonly List<Vector4> _stagedClips = new();
     private readonly Stack<int> _clipStack = new();
+
+    // Render-only opacity (alpha multiplier) and translation (position offset), composed via
+    // push/pop like the clip stack but BAKED into each staged instance's color/position at stage
+    // time — so the GPU sees ordinary opaque geometry and no shader/vertex-format change is needed.
+    // The cached _opacity/_translation mirror the stack tops for cheap per-draw reads (the glyph
+    // loop reads them per glyph). Both seeded to identity in BeginFrame.
+    private readonly Stack<float> _opacityStack = new();
+    private readonly Stack<Vector2> _translationStack = new();
+    private float _opacity = 1f;
+    private Vector2 _translation = Vector2.Zero;
+
     private int _sequence;
 
     // Sorted-output scratch (re-allocated as needed)
@@ -250,6 +261,15 @@ public abstract class RenderedCanvasBase : ICanvas
         // Slot 0 is the default fullscreen clip.
         _stagedClips.Add(new Vector4(0, 0, _width, _height));
         _clipStack.Push(0);
+
+        // Seed opacity/translation to identity. The seed is never popped (PopOpacity/PopTranslation
+        // keep one entry as a floor, mirroring the clip stack's slot-0 invariant).
+        _opacityStack.Clear();
+        _opacityStack.Push(1f);
+        _opacity = 1f;
+        _translationStack.Clear();
+        _translationStack.Push(Vector2.Zero);
+        _translation = Vector2.Zero;
     }
 
     public void DrawRect(in DrawRectInputs inputs)
@@ -260,8 +280,8 @@ public abstract class RenderedCanvasBase : ICanvas
         // Snap origin with Ceiling and size separately so drawn dimensions don't depend
         // on the fractional part of the origin (which would otherwise wobble +/- 1px
         // across frames as subpixel layout drift flips Round's banker's-rounding tie).
-        var left = MathF.Ceiling(pos.Left);
-        var bottom = MathF.Ceiling(pos.Bottom);
+        var left = MathF.Ceiling(pos.Left + _translation.X);
+        var bottom = MathF.Ceiling(pos.Bottom + _translation.Y);
         var width = MathF.Ceiling(pos.Width);
         var height = MathF.Ceiling(pos.Height);
 
@@ -281,11 +301,11 @@ public abstract class RenderedCanvasBase : ICanvas
                     MathF.Round(style.BorderSize.Right.Value),
                     MathF.Round(style.BorderSize.Bottom.Value),
                     MathF.Round(style.BorderSize.Left.Value)),
-                BgColor = style.BackgroundColor,
-                BorderColorTop = style.BorderColor.Top.Value,
-                BorderColorRight = style.BorderColor.Right.Value,
-                BorderColorBottom = style.BorderColor.Bottom.Value,
-                BorderColorLeft = style.BorderColor.Left.Value,
+                BgColor = Tint(style.BackgroundColor),
+                BorderColorTop = Tint(style.BorderColor.Top.Value),
+                BorderColorRight = Tint(style.BorderColor.Right.Value),
+                BorderColorBottom = Tint(style.BorderColor.Bottom.Value),
+                BorderColorLeft = Tint(style.BorderColor.Left.Value),
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
@@ -309,8 +329,8 @@ public abstract class RenderedCanvasBase : ICanvas
         var sigma = MathF.Max(blur * 0.5f, 0.0001f);
 
         // The shifted+spread source rect that produces the shadow, in world coords.
-        var sLeft = MathF.Floor(pos.Left + offsetX - spread);
-        var sBottom = MathF.Floor(pos.Bottom + offsetY - spread);
+        var sLeft = MathF.Floor(pos.Left + offsetX - spread + _translation.X);
+        var sBottom = MathF.Floor(pos.Bottom + offsetY - spread + _translation.Y);
         var sWidth = MathF.Ceiling(pos.Width + spread * 2f);
         var sHeight = MathF.Ceiling(pos.Height + spread * 2f);
 
@@ -334,7 +354,7 @@ public abstract class RenderedCanvasBase : ICanvas
                     radius.BottomRight.Value,
                     radius.BottomLeft.Value),
                 Sigma = sigma,
-                Color = shadow.Color.Value,
+                Color = Tint(shadow.Color.Value),
                 ClipIndex = (uint)_clipStack.Peek(),
             }
         });
@@ -344,15 +364,17 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         var p0 = inputs.Start;
         var p1 = inputs.End;
+        var tx = _translation.X;
+        var ty = _translation.Y;
         var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
         var pad = half + 1.5f;
         // Square caps extend ~half past each end; widen the AABB so a diagonal
         // cap corner isn't clipped.
         if (inputs.Cap == LineCap.Square) pad += half;
-        var minX = MathF.Min(p0.X, p1.X) - pad;
-        var minY = MathF.Min(p0.Y, p1.Y) - pad;
-        var maxX = MathF.Max(p0.X, p1.X) + pad;
-        var maxY = MathF.Max(p0.Y, p1.Y) + pad;
+        var minX = MathF.Min(p0.X, p1.X) - pad + tx;
+        var minY = MathF.Min(p0.Y, p1.Y) - pad + ty;
+        var maxX = MathF.Max(p0.X, p1.X) + pad + tx;
+        var maxY = MathF.Max(p0.Y, p1.Y) + pad + ty;
 
         var dashed = inputs.DashLength > 0f && inputs.GapLength > 0f;
         var grad = inputs.GradientEndColor.HasValue;
@@ -366,11 +388,11 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new ShapeInstance
             {
                 OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
-                ShapeData = new Vector4(p0.X, p0.Y, p1.X, p1.Y),
+                ShapeData = new Vector4(p0.X + tx, p0.Y + ty, p1.X + tx, p1.Y + ty),
                 ShapeData2 = new Vector4(0f, 0f, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
                 HalfWidth = half,
-                Color = inputs.Color,
-                Color2 = grad ? inputs.GradientEndColor!.Value : inputs.Color,
+                Color = Tint(inputs.Color),
+                Color2 = Tint(grad ? inputs.GradientEndColor!.Value : inputs.Color),
                 ShapeType = ShapeLine,
                 Flags = flags,
                 ClipIndex = (uint)_clipStack.Peek(),
@@ -383,12 +405,14 @@ public abstract class RenderedCanvasBase : ICanvas
         var p0 = inputs.Start;
         var p1 = inputs.Control;
         var p2 = inputs.End;
+        var tx = _translation.X;
+        var ty = _translation.Y;
         var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
         var pad = half + 1.5f;
-        var minX = MathF.Min(p0.X, MathF.Min(p1.X, p2.X)) - pad;
-        var minY = MathF.Min(p0.Y, MathF.Min(p1.Y, p2.Y)) - pad;
-        var maxX = MathF.Max(p0.X, MathF.Max(p1.X, p2.X)) + pad;
-        var maxY = MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y)) + pad;
+        var minX = MathF.Min(p0.X, MathF.Min(p1.X, p2.X)) - pad + tx;
+        var minY = MathF.Min(p0.Y, MathF.Min(p1.Y, p2.Y)) - pad + ty;
+        var maxX = MathF.Max(p0.X, MathF.Max(p1.X, p2.X)) + pad + tx;
+        var maxY = MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y)) + pad + ty;
 
         var grad = inputs.GradientEndColor.HasValue;
         var dashed = inputs.DashLength > 0f && inputs.GapLength > 0f;
@@ -402,11 +426,11 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new ShapeInstance
             {
                 OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
-                ShapeData = new Vector4(p0.X, p0.Y, p1.X, p1.Y),
-                ShapeData2 = new Vector4(p2.X, p2.Y, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
+                ShapeData = new Vector4(p0.X + tx, p0.Y + ty, p1.X + tx, p1.Y + ty),
+                ShapeData2 = new Vector4(p2.X + tx, p2.Y + ty, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
                 HalfWidth = half,
-                Color = inputs.Color,
-                Color2 = grad ? inputs.GradientEndColor!.Value : inputs.Color,
+                Color = Tint(inputs.Color),
+                Color2 = Tint(grad ? inputs.GradientEndColor!.Value : inputs.Color),
                 ShapeType = ShapeBezier,
                 Flags = flags,
                 ClipIndex = (uint)_clipStack.Peek(),
@@ -417,13 +441,15 @@ public abstract class RenderedCanvasBase : ICanvas
     public void DrawCircle(in DrawCircleInputs inputs)
     {
         var c = inputs.Center;
+        var cx = c.X + _translation.X;
+        var cy = c.Y + _translation.Y;
         var r = MathF.Max(inputs.Radius, 0f);
         var stroke = MathF.Max(inputs.Thickness, 0f);
         var ring = stroke > 0f;
         var half = stroke * 0.5f;
         var ext = (ring ? r + half : r) + 1.5f;
-        var minX = c.X - ext;
-        var minY = c.Y - ext;
+        var minX = cx - ext;
+        var minY = cy - ext;
 
         _stagedShapes.Add(new StagedShape
         {
@@ -431,9 +457,9 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new ShapeInstance
             {
                 OuterRect = new Vector4(minX, minY, ext * 2f, ext * 2f),
-                ShapeData = new Vector4(c.X, c.Y, r, 0f),
+                ShapeData = new Vector4(cx, cy, r, 0f),
                 HalfWidth = half,
-                Color = inputs.Color,
+                Color = Tint(inputs.Color),
                 ShapeType = ring ? ShapeRing : ShapeFilledCircle,
                 ClipIndex = (uint)_clipStack.Peek(),
             }
@@ -448,24 +474,26 @@ public abstract class RenderedCanvasBase : ICanvas
 
         var style = inputs.Style;
         var font = ResolveFont(style);
-        var color = style.TextColor.Value;
+        var color = Tint(style.TextColor.Value);
         var clip = (uint)_clipStack.Peek();
         var rotation = style.Rotation.Value;
         var seq = _sequence++;
         var key = MakeKey(inputs.ZIndex, seq);
 
         var pos = inputs.Position;
+        var tx = _translation.X;
+        var ty = _translation.Y;
         var invScale = 1f / _dpiScale;
         var metrics = _fonts.GetMetrics(font);
         var ascender = metrics.Ascender * invScale;
         var descender = metrics.Descender * invScale;
         var lineHeight = metrics.LineHeight * invScale;
 
-        var baselineY = pos.Top - ascender;
+        var baselineY = pos.Top - ascender + ty;
 
         if (style.VerticalAlignment.IsSet && style.VerticalAlignment.Value == TextAlignment.Center)
         {
-            var midline = pos.Top - pos.Height * 0.5f;
+            var midline = pos.Top - pos.Height * 0.5f + ty;
             baselineY = midline - (ascender + descender) * 0.5f;
         }
 
@@ -491,7 +519,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
             var lineSlice = textSpan[sliceStart..lineEnd];
 
-            ShapeAndDrawLine(font, lineSlice, pos.Left, pos.Width, placement, baseDir,
+            ShapeAndDrawLine(font, lineSlice, pos.Left + tx, pos.Width, placement, baseDir,
                 baselineY, color, clip, rotation, key, features);
 
             if (nl < 0)
@@ -660,8 +688,8 @@ public abstract class RenderedCanvasBase : ICanvas
             scaledWidth = rectH * aspect;
         }
 
-        var offsetX = pos.Left + (rectW - scaledWidth) * 0.5f;
-        var offsetY = pos.Bottom + (rectH - scaledHeight) * 0.5f;
+        var offsetX = pos.Left + (rectW - scaledWidth) * 0.5f + _translation.X;
+        var offsetY = pos.Bottom + (rectH - scaledHeight) * 0.5f + _translation.Y;
 
         var snappedLeft = MathF.Round(offsetX);
         var snappedBottom = MathF.Round(offsetY);
@@ -675,7 +703,7 @@ public abstract class RenderedCanvasBase : ICanvas
             {
                 Rect = new Vector4(snappedLeft, snappedBottom, snappedRight - snappedLeft, snappedTop - snappedBottom),
                 SrcUV = new Vector4(0f, 0f, 1f, 1f),
-                Tint = inputs.TintColor,
+                Tint = Tint(inputs.TintColor),
                 ClipIndex = (uint)_clipStack.Peek(),
                 Rotation = inputs.Rotation,
                 TextureId = GetImageTextureId(imageId),
@@ -699,11 +727,15 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public void PushClip(RectF rect)
     {
+        // Clips compose with the active translation so content drawn offset (an animating subtree)
+        // is clipped in the same space it's drawn in.
+        var tx = _translation.X;
+        var ty = _translation.Y;
         var current = _stagedClips[_clipStack.Peek()];
-        var left = MathF.Ceiling(MathF.Max(rect.Left, current.X));
-        var bottom = MathF.Ceiling(MathF.Max(rect.Bottom, current.Y));
-        var right = MathF.Floor(MathF.Min(rect.Right, current.Z));
-        var top = MathF.Floor(MathF.Min(rect.Top, current.W));
+        var left = MathF.Ceiling(MathF.Max(rect.Left + tx, current.X));
+        var bottom = MathF.Ceiling(MathF.Max(rect.Bottom + ty, current.Y));
+        var right = MathF.Floor(MathF.Min(rect.Right + tx, current.Z));
+        var top = MathF.Floor(MathF.Min(rect.Top + ty, current.W));
         if (right < left) right = left;
         if (top < bottom) top = bottom;
 
@@ -717,6 +749,46 @@ public abstract class RenderedCanvasBase : ICanvas
         // Always keep the default fullscreen clip on the stack.
         if (_clipStack.Count > 1)
             _clipStack.Pop();
+    }
+
+    public void PushOpacity(float opacity)
+    {
+        var clamped = opacity < 0f ? 0f : opacity > 1f ? 1f : opacity;
+        var next = _opacity * clamped;
+        _opacityStack.Push(next);
+        _opacity = next;
+    }
+
+    public void PopOpacity()
+    {
+        if (_opacityStack.Count > 1) _opacityStack.Pop();
+        _opacity = _opacityStack.Peek();
+    }
+
+    public void PushTranslation(float dx, float dy)
+    {
+        var next = _translation + new Vector2(dx, dy);
+        _translationStack.Push(next);
+        _translation = next;
+    }
+
+    public void PopTranslation()
+    {
+        if (_translationStack.Count > 1) _translationStack.Pop();
+        _translation = _translationStack.Peek();
+    }
+
+    // Scales a packed ARGB color's alpha byte by the current opacity, leaving RGB untouched (the
+    // pipeline is non-premultiplied). The opacity>=1 fast path returns the input unchanged so a
+    // fully-opaque tree stages byte-identical instances and the idle-frame skip keeps working.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private uint Tint(uint argb)
+    {
+        var o = _opacity;
+        if (o >= 1f) return argb;
+        var a = (uint)(((argb >> 24) & 0xFFu) * o + 0.5f);
+        if (a > 255u) a = 255u;
+        return (a << 24) | (argb & 0x00FFFFFFu);
     }
 
     private int InternClipSlot(Vector4 clip)

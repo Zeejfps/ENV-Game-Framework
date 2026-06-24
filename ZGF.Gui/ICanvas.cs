@@ -15,7 +15,18 @@ public interface ICanvas
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);
     void PopClip();
-    
+
+    /// <summary>Multiplies a render-only opacity onto everything drawn until the matching
+    /// <see cref="PopOpacity"/>; composes (nests) with any opacity already on the stack.</summary>
+    void PushOpacity(float opacity);
+    void PopOpacity();
+
+    /// <summary>Offsets everything drawn (and nested clips) by (dx, dy) logical points until the
+    /// matching <see cref="PopTranslation"/>; composes (nests) with any active translation. Affects
+    /// drawing only — never layout.</summary>
+    void PushTranslation(float dx, float dy);
+    void PopTranslation();
+
     float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style);
 
     /// <summary>

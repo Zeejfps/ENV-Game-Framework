@@ -22,6 +22,11 @@ public sealed class FakeCanvas : ICanvas
     public void PushClip(RectF rect) { }
     public void PopClip() { }
 
+    public void PushOpacity(float opacity) { }
+    public void PopOpacity() { }
+    public void PushTranslation(float dx, float dy) { }
+    public void PopTranslation() { }
+
     public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style) => text.Length * 8f;
     public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style) =>
         Math.Clamp(prefixLength, 0, text.Length) * 8f;

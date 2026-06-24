@@ -21,6 +21,15 @@ public abstract record Widget : IWidget
     /// the view visible.</summary>
     public Prop<bool> Visible { get; init; }
 
+    /// <summary>Render-only opacity (0..1) for this view and its descendants. Unset leaves it fully
+    /// opaque (no cost). Bind it to an animation for a fade.</summary>
+    public Prop<float> Opacity { get; init; }
+
+    /// <summary>Render-only draw offsets (logical points) for this view and its descendants — visual
+    /// only, never layout. Unset = no offset. Bind them to an animation for a slide.</summary>
+    public Prop<float> TranslationX { get; init; }
+    public Prop<float> TranslationY { get; init; }
+
     public View BuildView(Context ctx)
     {
         var v = CreateView(ctx);
@@ -29,6 +38,9 @@ public abstract record Widget : IWidget
         MinWidth.Apply(ctx, v,static (x, w) => x.MinWidthConstraint = w);
         MinHeight.Apply(ctx, v,static (x, h) => x.MinHeightConstraint = h);
         Visible.Apply(ctx, v,static (x, vis) => x.IsVisible = vis);
+        Opacity.Apply(ctx, v,static (x, o) => x.Opacity = o);
+        TranslationX.Apply(ctx, v,static (x, t) => x.TranslationX = t);
+        TranslationY.Apply(ctx, v,static (x, t) => x.TranslationY = t);
         if (Id != null) v.Id = Id;
         return v;
     }

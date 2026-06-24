@@ -186,6 +186,35 @@ public class View
     } = true;
 
     /// <summary>
+    /// Render-only opacity in [0,1]. Multiplies the alpha of everything this view and its
+    /// descendants draw — never affects layout, measure, or hit-testing. 1 = fully opaque (zero
+    /// cost). Changing it repaints without re-measuring.
+    /// </summary>
+    public float Opacity
+    {
+        get;
+        set => SetVisualField(ref field, value);
+    } = 1f;
+
+    /// <summary>
+    /// Render-only horizontal draw offset (logical points). Shifts this view and its descendants
+    /// visually without changing <see cref="Position"/> or participating in layout. Pairs with
+    /// <see cref="TranslationY"/>.
+    /// </summary>
+    public float TranslationX
+    {
+        get;
+        set => SetVisualField(ref field, value);
+    }
+
+    /// <summary>Render-only vertical draw offset; the vertical counterpart to <see cref="TranslationX"/>.</summary>
+    public float TranslationY
+    {
+        get;
+        set => SetVisualField(ref field, value);
+    }
+
+    /// <summary>
     /// When true, this view clips its descendants — both visually (containers that
     /// override this should also <c>PushClip</c> in <c>OnDrawChildren</c>) and for
     /// hit-testing. The input system rejects descendant hits whose cursor point
@@ -498,6 +527,18 @@ public class View
         return true;
     }
 
+    // Like SetField but for render-only state (opacity, translation): schedules a repaint without
+    // invalidating layout or measure caches, so per-frame animation never forces a re-layout.
+    private bool SetVisualField<T>(ref T field, T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return false;
+
+        field = value;
+        MarkVisualDirty();
+        return true;
+    }
+
     protected void SetDirty()
     {
         IsSelfDirty = true;
@@ -516,6 +557,18 @@ public class View
         // notified, so only the walk that arrives at the root tells the window.
         if (top.Parent == null)
             top.OnRedrawNeeded?.Invoke();
+    }
+
+    // Schedules a repaint without invalidating layout — for render-only changes (opacity,
+    // translation) that affect drawing but never size or position. Draw traversal is unconditional
+    // from the root, so reaching the root's OnRedrawNeeded is all a repaint needs; the dirty bits
+    // and measure caches (a layout concern) are deliberately left untouched.
+    private void MarkVisualDirty()
+    {
+        var top = this;
+        while (top.Parent != null)
+            top = top.Parent;
+        top.OnRedrawNeeded?.Invoke();
     }
 
     private void InvalidateMeasure()
@@ -720,15 +773,31 @@ public class View
     public void DrawSelf(ICanvas c)
     {
         if (!IsVisible) return;
+
+        var translated = TranslationX != 0f || TranslationY != 0f;
         if (c.TryGetClip(out var clipRect))
         {
-            if (!clipRect.Intersects(Position))
+            // Cull against the rect this view actually draws at (Position shifted by its own
+            // translation), not the raw layout Position — so a view animating near a clip edge
+            // isn't wrongly culled.
+            var cull = translated
+                ? new RectF(Position.Left + TranslationX, Position.Bottom + TranslationY, Position.Width, Position.Height)
+                : Position;
+            if (!clipRect.Intersects(cull))
             {
                 return;
             }
         }
+
+        var fade = Opacity < 1f;
+        if (fade) c.PushOpacity(Opacity);
+        if (translated) c.PushTranslation(TranslationX, TranslationY);
+
         OnDrawSelf(c);
         OnDrawChildren(c);
+
+        if (translated) c.PopTranslation();
+        if (fade) c.PopOpacity();
     }
 
     protected virtual void OnChildAdded(View view)
