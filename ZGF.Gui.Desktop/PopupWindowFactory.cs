@@ -171,8 +171,23 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // the key window; hiding it does not automatically return key status to
         // the main window. Only refocus once no popups remain — closing a submenu
         // while its parent menu is still open must not pull focus to main.
-        if (_activePopups.Count == 0 && _app.MainWindow is { } main)
+        //
+        // But if a real top-level window took focus while the menu was open — e.g. a
+        // secondary window opened from a menu item — it now holds key status, and
+        // yanking focus back to main would send that window behind. Refocus main only
+        // when no other window currently owns focus (the just-hidden popup excepted).
+        if (_activePopups.Count == 0 && _app.MainWindow is { } main && !OtherWindowHasFocus(impl.Window))
             main.Focus();
+    }
+
+    // True when some window other than the just-closed popup currently holds OS focus —
+    // i.e. focus is not orphaned and must not be reassigned to the main window.
+    private bool OtherWindowHasFocus(IWindow closingPopup)
+    {
+        foreach (var window in _app.Windows)
+            if (!ReferenceEquals(window, closingPopup) && window.IsFocused)
+                return true;
+        return false;
     }
 
     private RectI ResolveRect(in RectI preferredRect, in RectI? flippedRect)
