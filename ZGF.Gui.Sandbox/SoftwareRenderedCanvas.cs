@@ -7,7 +7,7 @@ using static GL46;
 namespace ZGF.Gui.Sandbox;
 
 internal readonly record struct DrawCommand(
-    int Id, CommandKind Kind, int ZIndex, RectF Clip, float Opacity, float TranslationX, float TranslationY);
+    int Id, CommandKind Kind, int ZIndex, RectF Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY);
 
 public sealed class SoftwareRenderedCanvas : ICanvas
 {
@@ -25,9 +25,11 @@ public sealed class SoftwareRenderedCanvas : ICanvas
     private readonly Stack<RectF> _clipStack = new();
     private readonly Stack<float> _opacityStack = new();
     private readonly Stack<(float X, float Y)> _translationStack = new();
+    private readonly Stack<(float X, float Y)> _scaleStack = new();
 
     private float CurrentOpacity() => _opacityStack.Count > 0 ? _opacityStack.Peek() : 1f;
     private (float X, float Y) CurrentTranslation() => _translationStack.Count > 0 ? _translationStack.Peek() : (0f, 0f);
+    private (float X, float Y) CurrentScale() => _scaleStack.Count > 0 ? _scaleStack.Peek() : (1f, 1f);
 
     private static uint ScaleAlpha(uint argb, float opacity)
     {
@@ -72,7 +74,8 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var id = _commands.Count;
         var clip = GetClip();
         var t = CurrentTranslation();
-        _commands.Add(new DrawCommand(id, CommandKind.DrawRect, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y));
+        var s = CurrentScale();
+        _commands.Add(new DrawCommand(id, CommandKind.DrawRect, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y, s.X, s.Y));
         _rectCommandData.Add(id, inputs);
     }
 
@@ -81,7 +84,8 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var id = _commands.Count;
         var clip = GetClip();
         var t = CurrentTranslation();
-        _commands.Add(new DrawCommand(id, CommandKind.DrawText, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y));
+        var s = CurrentScale();
+        _commands.Add(new DrawCommand(id, CommandKind.DrawText, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y, s.X, s.Y));
         _textCommandData.Add(id, inputs);
     }
 
@@ -90,7 +94,8 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var id = _commands.Count;
         var clip = GetClip();
         var t = CurrentTranslation();
-        _commands.Add(new DrawCommand(id, CommandKind.DrawImage, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y));
+        var s = CurrentScale();
+        _commands.Add(new DrawCommand(id, CommandKind.DrawImage, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y, s.X, s.Y));
         _imageCommandData.Add(id, inputs);
     }
 
@@ -99,7 +104,8 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var id = _commands.Count;
         var clip = GetClip();
         var t = CurrentTranslation();
-        _commands.Add(new DrawCommand(id, CommandKind.DrawLine, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y));
+        var s = CurrentScale();
+        _commands.Add(new DrawCommand(id, CommandKind.DrawLine, inputs.ZIndex, clip, CurrentOpacity(), t.X, t.Y, s.X, s.Y));
         _lineCommandData.Add(id, inputs);
     }
 
@@ -130,15 +136,30 @@ public sealed class SoftwareRenderedCanvas : ICanvas
 
     public void PushOpacity(float opacity) => _opacityStack.Push(CurrentOpacity() * Math.Clamp(opacity, 0f, 1f));
     public void PopOpacity() { if (_opacityStack.Count > 0) _opacityStack.Pop(); }
-    public void PushTranslation(float dx, float dy) { var c = CurrentTranslation(); _translationStack.Push((c.X + dx, c.Y + dy)); }
+    public void PushTranslation(float dx, float dy) { var c = CurrentTranslation(); var s = CurrentScale(); _translationStack.Push((c.X + dx * s.X, c.Y + dy * s.Y)); }
     public void PopTranslation() { if (_translationStack.Count > 0) _translationStack.Pop(); }
+
+    public void PushScale(float sx, float sy, float pivotX, float pivotY)
+    {
+        var c = CurrentTranslation();
+        var s = CurrentScale();
+        _translationStack.Push((c.X + pivotX * (1f - sx) * s.X, c.Y + pivotY * (1f - sy) * s.Y));
+        _scaleStack.Push((s.X * sx, s.Y * sy));
+    }
+
+    public void PopScale()
+    {
+        if (_scaleStack.Count > 0) _scaleStack.Pop();
+        if (_translationStack.Count > 0) _translationStack.Pop();
+    }
 
     public void PushClip(RectF rect)
     {
-        // Compose with the active translation so clipped content drawn offset is clipped in the
+        // Compose with the active transform so clipped content drawn offset/scaled is clipped in the
         // same space it's drawn in (mirrors the GPU canvas).
         var tr = CurrentTranslation();
-        rect = new RectF { Left = rect.Left + tr.X, Bottom = rect.Bottom + tr.Y, Width = rect.Width, Height = rect.Height };
+        var sc = CurrentScale();
+        rect = new RectF { Left = rect.Left * sc.X + tr.X, Bottom = rect.Bottom * sc.Y + tr.Y, Width = rect.Width * sc.X, Height = rect.Height * sc.Y };
 
         var currentClip = GetClip();
 
@@ -360,11 +381,13 @@ public sealed class SoftwareRenderedCanvas : ICanvas
             scaledWidth = height * aspect;
         }
 
-        var offsetX = (int)(x + (width - scaledWidth) / 2) + (int)cmd.TranslationX;
-        var offsetY = (int)(y + (height - scaledHeight) / 2) + (int)cmd.TranslationY;
+        var sx = cmd.ScaleX;
+        var sy = cmd.ScaleY;
+        var offsetX = (int)((x + (width - scaledWidth) / 2) * sx + cmd.TranslationX);
+        var offsetY = (int)((y + (height - scaledHeight) / 2) * sy + cmd.TranslationY);
 
         Graphics.BlitTransparent(
-            _colorBuffer, offsetX, offsetY, (int)scaledWidth, (int)scaledHeight,
+            _colorBuffer, offsetX, offsetY, (int)(scaledWidth * sx), (int)(scaledHeight * sy),
             image, 0, 0, image.Width, image.Height,
             ScaleAlpha(data.TintColor, cmd.Opacity)
         );
@@ -375,17 +398,22 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         var style = data.Style;
         var position = data.Position;
         var op = command.Opacity;
-        var tx = (int)command.TranslationX;
-        var ty = (int)command.TranslationY;
-        var left = (int)position.Left + tx;
-        var right = (int)position.Right - 1 + tx;
-        var bottom = (int)position.Bottom + ty;
-        var top = (int)position.Top - 1 + ty;
+        var sx = command.ScaleX;
+        var sy = command.ScaleY;
+        var tx = command.TranslationX;
+        var ty = command.TranslationY;
+        var left = (int)(position.Left * sx + tx);
+        var right = (int)(position.Right * sx + tx) - 1;
+        var bottom = (int)(position.Bottom * sy + ty);
+        var top = (int)(position.Top * sy + ty) - 1;
 
+        // Glyph bitmaps and border strokes stay at native thickness in the software path; only
+        // positions and the fill extent scale (good enough for the sandbox — the GPU canvas scales
+        // everything including text).
         var borderSize = style.BorderSize;
 
-        var fillWidth = (int)(position.Width - borderSize.Left - borderSize.Right);
-        var fillHeight = (int)(position.Height - borderSize.Top - borderSize.Bottom);
+        var fillWidth = (int)(position.Width * sx) - (int)borderSize.Left - (int)borderSize.Right;
+        var fillHeight = (int)(position.Height * sy) - (int)borderSize.Top - (int)borderSize.Bottom;
 
         var borderColor = style.BorderColor;
         var clipRect = command.Clip;
@@ -418,12 +446,15 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         //Graphics.DrawRect(_colorBuffer, (int)position.Left, (int)position.Bottom, (int)position.Width, (int)position.Height, 0x00ff00);
         
         var fontBase = _font.FontMetrics.Common.Base;
-        var tx = (int)cmd.TranslationX;
-        var ty = (int)cmd.TranslationY;
+        var sx = cmd.ScaleX;
+        var sy = cmd.ScaleY;
+        var tx = cmd.TranslationX;
+        var ty = cmd.TranslationY;
 
-        var lineStart = (int)position.Left + tx;
+        // Glyph bitmaps stay native-size in the software path; only the pen origin is transformed.
+        var lineStart = (int)(position.Left * sx + tx);
         var cursorX = lineStart;
-        var cursorY = (int)(position.Top - fontBase) + ty;
+        var cursorY = (int)((position.Top - fontBase) * sy + ty);
 
         var style = data.Style;
         if (style.VerticalAlignment.IsSet)
@@ -433,7 +464,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
                 case TextAlignment.Start:
                     break;
                 case TextAlignment.Center:
-                    cursorY = (int)((position.Top - position.Height * 0.5f) - (fontBase * 0.5f)) + ty;
+                    cursorY = (int)((position.Top - position.Height * 0.5f) * sy - (fontBase * 0.5f) + ty);
                     break;
                 case TextAlignment.End:
                     break;
@@ -450,7 +481,7 @@ public sealed class SoftwareRenderedCanvas : ICanvas
                     break;
                 case TextAlignment.Center:
                     var width = MeasureTextWidth(text, style);
-                    cursorX = (int)(position.Left + (position.Width - width) * 0.5f) + tx;
+                    cursorX = (int)((position.Left + (position.Width - width) * 0.5f) * sx + tx);
                     break;
                 case TextAlignment.End:
                     break;
@@ -520,11 +551,13 @@ public sealed class SoftwareRenderedCanvas : ICanvas
 
     private void ExecuteDrawLineCommand(in DrawCommand command, in DrawLineInputs data)
     {
-        var tx = (int)command.TranslationX;
-        var ty = (int)command.TranslationY;
+        var sx = command.ScaleX;
+        var sy = command.ScaleY;
+        var tx = command.TranslationX;
+        var ty = command.TranslationY;
         Graphics.DrawLine(_colorBuffer,
-            (int)data.Start.X + tx, (int)data.Start.Y + ty,
-            (int)data.End.X + tx, (int)data.End.Y + ty,
+            (int)(data.Start.X * sx + tx), (int)(data.Start.Y * sy + ty),
+            (int)(data.End.X * sx + tx), (int)(data.End.Y * sy + ty),
             ScaleAlpha(data.Color, command.Opacity), command.Clip);
     }
 

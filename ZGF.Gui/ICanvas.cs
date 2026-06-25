@@ -22,10 +22,17 @@ public interface ICanvas
     void PopOpacity();
 
     /// <summary>Offsets everything drawn (and nested clips) by (dx, dy) logical points until the
-    /// matching <see cref="PopTranslation"/>; composes (nests) with any active translation. Affects
+    /// matching <see cref="PopTranslation"/>; composes (nests) with any active transform. Affects
     /// drawing only — never layout.</summary>
     void PushTranslation(float dx, float dy);
     void PopTranslation();
+
+    /// <summary>Scales everything drawn (and nested clips) by (sx, sy) about the pivot point
+    /// (pivotX, pivotY) — given in the current local coordinate space — until the matching
+    /// <see cref="PopScale"/>; composes (nests) with any active transform. Affects drawing only —
+    /// never layout. Pass a view's center as the pivot for a pop/zoom animation.</summary>
+    void PushScale(float sx, float sy, float pivotX, float pivotY);
+    void PopScale();
 
     float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style);
 
