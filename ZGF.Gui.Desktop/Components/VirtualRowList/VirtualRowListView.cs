@@ -17,8 +17,9 @@ public readonly record struct RowRenderState(bool IsHovered, bool IsContextHighl
 /// content — the consumer supplies an <see cref="ItemBuilder"/> that draws each row
 /// into a caller-owned rect.
 ///
-/// Fixed row height for now; variable heights can be added later via a per-index
-/// callback without breaking the existing surface.
+/// Uniform <see cref="RowHeight"/> by default. Set <see cref="RowHeightAt"/> to opt into
+/// per-row variable heights; while it is null the widget stays on the closed-form uniform
+/// path and pays nothing for the variable-height machinery.
 ///
 /// Input is routed via <see cref="VirtualRowListController"/> — attach it with
 /// <c>view.UseController(ctx =&gt; new VirtualRowListController(list))</c>.
@@ -27,6 +28,17 @@ public sealed class VirtualRowListView : View
 {
     public int ItemCount { get; set; }
     public float RowHeight { get; set; } = 22f;
+
+    /// <summary>
+    /// Opt-in per-row height. When null (the default) every row is <see cref="RowHeight"/> and
+    /// the widget uses the closed-form uniform index math, paying nothing for variable heights.
+    /// When set, the widget builds a cached cumulative-offset table and resolves rows by binary
+    /// search, so callers that mix row heights (e.g. an expanded accordion row) only pay for it
+    /// when they opt in. The table is rebuilt lazily after <see cref="NotifyItemsChanged"/> or
+    /// <see cref="InvalidateRowHeights"/>; call one of those whenever a height result changes.
+    /// </summary>
+    public Func<int, float>? RowHeightAt { get; set; }
+
     public float ScrollWheelStep { get; set; } = 60f;
     public int DoubleClickThresholdMs { get; set; } = 400;
 
@@ -80,6 +92,14 @@ public sealed class VirtualRowListView : View
     public Action<float>? HorizontalWheelHandler { get; set; }
 
     public float ScrollY => _scrollY;
+
+    /// <summary>
+    /// Total height of all rows in content space — <c>ItemCount * RowHeight</c> in uniform mode,
+    /// or the sum of per-row heights in variable mode. Consumers size a scrollbar from this so
+    /// the thumb tracks the same content the widget scrolls against.
+    /// </summary>
+    public float ContentHeight => RowHeightAt == null ? ItemCount * RowHeight : Offsets()[ItemCount];
+
     public int? HoveredIndex => _hoveredIndex < 0 ? null : _hoveredIndex;
     public int? ContextHighlightIndex => _contextHighlightIndex < 0 ? null : _contextHighlightIndex;
 
@@ -89,6 +109,11 @@ public sealed class VirtualRowListView : View
     private bool _hasLastClick;
     private int _lastClickTickMs;
     private int _lastClickIndex = -1;
+
+    // Cumulative top offsets for variable-height mode: _offsets[i] is the distance from content
+    // top to the top of row i; _offsets[ItemCount] is total content height. Null in uniform mode
+    // or when stale; rebuilt lazily by Offsets(). See RowHeightAt.
+    private float[]? _offsets;
 
     public override bool ClipsContent => true;
 
@@ -119,8 +144,18 @@ public sealed class VirtualRowListView : View
         var bodyHeight = Position.Height;
         if (bodyHeight <= 0) return;
 
-        var rowStart = rowIndex * RowHeight;
-        var rowEnd = rowStart + RowHeight;
+        float rowStart, rowEnd;
+        if (RowHeightAt == null)
+        {
+            rowStart = rowIndex * RowHeight;
+            rowEnd = rowStart + RowHeight;
+        }
+        else
+        {
+            var offsets = Offsets();
+            rowStart = offsets[rowIndex];
+            rowEnd = offsets[rowIndex + 1];
+        }
 
         var target = _scrollY;
         if (rowStart < target) target = rowStart;
@@ -146,9 +181,23 @@ public sealed class VirtualRowListView : View
     /// </summary>
     public void NotifyItemsChanged()
     {
+        _offsets = null;
         if (ItemCount == 0) _scrollY = 0f;
         if (_hoveredIndex >= ItemCount) _hoveredIndex = -1;
         if (_contextHighlightIndex >= ItemCount) _contextHighlightIndex = -1;
+        ClampScroll();
+        SetDirty();
+    }
+
+    /// <summary>
+    /// Discards the cached variable-height offset table so it rebuilds on the next draw/hit-test.
+    /// Call when <see cref="RowHeightAt"/> would return different values but <see cref="ItemCount"/>
+    /// is unchanged (e.g. a row expands or collapses). No-op in uniform mode.
+    /// </summary>
+    public void InvalidateRowHeights()
+    {
+        if (RowHeightAt == null) return;
+        _offsets = null;
         ClampScroll();
         SetDirty();
     }
@@ -200,8 +249,18 @@ public sealed class VirtualRowListView : View
 
         var top = pos.Top;
         var bodyHeight = pos.Height;
-        var firstVisible = Math.Max(0, (int)(_scrollY / RowHeight) - 1);
-        var lastVisible = Math.Min(ItemCount - 1, (int)((_scrollY + bodyHeight) / RowHeight) + 1);
+        int firstVisible, lastVisible;
+        if (RowHeightAt == null)
+        {
+            firstVisible = Math.Max(0, (int)(_scrollY / RowHeight) - 1);
+            lastVisible = Math.Min(ItemCount - 1, (int)((_scrollY + bodyHeight) / RowHeight) + 1);
+        }
+        else
+        {
+            var offsets = Offsets();
+            firstVisible = Math.Max(0, IndexAtContentY(offsets, _scrollY) - 1);
+            lastVisible = Math.Min(ItemCount - 1, IndexAtContentY(offsets, _scrollY + bodyHeight) + 1);
+        }
 
         for (var i = firstVisible; i <= lastVisible; i++)
         {
@@ -289,8 +348,55 @@ public sealed class VirtualRowListView : View
     private RectF RowRect(int index)
     {
         var pos = Position;
-        var rowTop = pos.Top + _scrollY - index * RowHeight;
-        return new RectF(pos.Left, rowTop - RowHeight, pos.Width, RowHeight);
+        if (RowHeightAt == null)
+        {
+            var rowTop = pos.Top + _scrollY - index * RowHeight;
+            return new RectF(pos.Left, rowTop - RowHeight, pos.Width, RowHeight);
+        }
+
+        var offsets = Offsets();
+        var top = pos.Top + _scrollY - offsets[index];
+        var height = offsets[index + 1] - offsets[index];
+        return new RectF(pos.Left, top - height, pos.Width, height);
+    }
+
+    // Builds (and caches) the cumulative top-offset table for variable-height mode. O(ItemCount)
+    // on the first call after an invalidation, then O(1) until ItemCount or a height changes. The
+    // length guard also catches an ItemCount change that skipped NotifyItemsChanged. Only reached
+    // when RowHeightAt is non-null, so the callback dereference is safe.
+    private float[] Offsets()
+    {
+        var n = ItemCount;
+        if (_offsets is { } cached && cached.Length == n + 1) return cached;
+
+        var offsets = new float[n + 1];
+        var acc = 0f;
+        for (var i = 0; i < n; i++)
+        {
+            offsets[i] = acc;
+            acc += RowHeightAt!(i);
+        }
+        offsets[n] = acc;
+        _offsets = offsets;
+        return offsets;
+    }
+
+    // The row index whose band contains content-space Y; -1 above the first row, ItemCount past
+    // the last. Binary search over the sorted offset table — preserves the uniform path's
+    // "miss = out of range" semantics for points below the last row.
+    private int IndexAtContentY(float[] offsets, float y)
+    {
+        if (y < 0f) return -1;
+        if (y >= offsets[ItemCount]) return ItemCount;
+
+        int lo = 0, hi = ItemCount;
+        while (lo < hi)
+        {
+            var mid = (lo + hi) >> 1;
+            if (offsets[mid] <= y) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo - 1;
     }
 
     private int HitTestRow(PointF point)
@@ -300,8 +406,8 @@ public sealed class VirtualRowListView : View
         if (point.Y < pos.Bottom || point.Y > pos.Top) return -1;
         if (ItemCount == 0) return -1;
 
-        var distFromTop = pos.Top - point.Y;
-        var idx = (int)((distFromTop + _scrollY) / RowHeight);
+        var contentY = pos.Top - point.Y + _scrollY;
+        var idx = RowHeightAt == null ? (int)(contentY / RowHeight) : IndexAtContentY(Offsets(), contentY);
         if (idx < 0 || idx >= ItemCount) return -1;
         return idx;
     }
@@ -309,7 +415,7 @@ public sealed class VirtualRowListView : View
     private void ClampScroll()
     {
         if (Position.Height <= 0) return;
-        var max = Math.Max(0f, ItemCount * RowHeight - Position.Height);
+        var max = Math.Max(0f, ContentHeight - Position.Height);
         if (_scrollY < 0f) _scrollY = 0f;
         else if (_scrollY > max) _scrollY = max;
     }
