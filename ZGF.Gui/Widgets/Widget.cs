@@ -30,6 +30,10 @@ public abstract record Widget : IWidget
     public Prop<float> TranslationX { get; init; }
     public Prop<float> TranslationY { get; init; }
 
+    /// <summary>Stacking order relative to siblings — accumulates down the tree, higher draws on top.
+    /// Unset leaves it at 0. Use to lift an overlay layer above normal content.</summary>
+    public Prop<int> ZIndex { get; init; }
+
     public View BuildView(Context ctx)
     {
         var v = CreateView(ctx);
@@ -41,6 +45,7 @@ public abstract record Widget : IWidget
         Opacity.Apply(ctx, v,static (x, o) => x.Opacity = o);
         TranslationX.Apply(ctx, v,static (x, t) => x.TranslationX = t);
         TranslationY.Apply(ctx, v,static (x, t) => x.TranslationY = t);
+        ZIndex.Apply(ctx, v,static (x, z) => x.ZIndex = z);
         if (Id != null) v.Id = Id;
         return v;
     }
