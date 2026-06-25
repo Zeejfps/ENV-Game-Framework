@@ -228,6 +228,27 @@ public sealed class VirtualRowListView : View
     /// pointer to a row without re-deriving the scroll math.</summary>
     public int RowIndexAt(PointF point) => HitTestRow(point);
 
+    /// <summary>The inclusive range of row indices currently within the viewport (no overscan), or
+    /// (0, -1) when nothing is visible. Lets a consumer drive a data window without re-deriving the
+    /// height math; correct in both uniform and variable-height modes.</summary>
+    public (int First, int Last) VisibleRange()
+    {
+        var bodyHeight = Position.Height;
+        if (ItemCount == 0 || bodyHeight <= 0f) return (0, -1);
+
+        if (RowHeightAt == null)
+        {
+            var first = Math.Max(0, (int)(_scrollY / RowHeight));
+            var last = Math.Min(ItemCount - 1, (int)((_scrollY + bodyHeight) / RowHeight));
+            return (first, last);
+        }
+
+        var offsets = Offsets();
+        return (
+            Math.Max(0, IndexAtContentY(offsets, _scrollY)),
+            Math.Min(ItemCount - 1, IndexAtContentY(offsets, _scrollY + bodyHeight)));
+    }
+
     protected override void OnDrawSelf(ICanvas c)
     {
         var pos = Position;
