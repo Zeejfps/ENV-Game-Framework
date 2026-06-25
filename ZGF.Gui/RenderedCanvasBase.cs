@@ -131,14 +131,18 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly List<Vector4> _stagedClips = new();
     private readonly Stack<int> _clipStack = new();
 
-    // Render-only opacity (alpha multiplier) and translation (position offset), composed via
-    // push/pop like the clip stack but BAKED into each staged instance's color/position at stage
+    // Render-only opacity (alpha multiplier) and an affine transform (scale + translation), composed
+    // via push/pop like the clip stack but BAKED into each staged instance's color/position at stage
     // time — so the GPU sees ordinary opaque geometry and no shader/vertex-format change is needed.
-    // The cached _opacity/_translation mirror the stack tops for cheap per-draw reads (the glyph
-    // loop reads them per glyph). Both seeded to identity in BeginFrame.
+    // A drawn local point p maps to p * _scale + _translation; sizes scale by _scale and radial
+    // quantities (radius, stroke, corner radius, blur) by the mean of the two axes. The cached
+    // _opacity/_scale/_translation mirror the stack tops for cheap per-draw reads (the glyph loop
+    // reads them per glyph). All seeded to identity in BeginFrame; the seed is never popped (the
+    // Pop* methods keep one entry as a floor, mirroring the clip stack's slot-0 invariant).
     private readonly Stack<float> _opacityStack = new();
-    private readonly Stack<Vector2> _translationStack = new();
+    private readonly Stack<(Vector2 Scale, Vector2 Translation)> _xformStack = new();
     private float _opacity = 1f;
+    private Vector2 _scale = Vector2.One;
     private Vector2 _translation = Vector2.Zero;
 
     private int _sequence;
@@ -262,13 +266,14 @@ public abstract class RenderedCanvasBase : ICanvas
         _stagedClips.Add(new Vector4(0, 0, _width, _height));
         _clipStack.Push(0);
 
-        // Seed opacity/translation to identity. The seed is never popped (PopOpacity/PopTranslation
-        // keep one entry as a floor, mirroring the clip stack's slot-0 invariant).
+        // Seed opacity/transform to identity. The seed is never popped (the Pop* methods keep one
+        // entry as a floor, mirroring the clip stack's slot-0 invariant).
         _opacityStack.Clear();
         _opacityStack.Push(1f);
         _opacity = 1f;
-        _translationStack.Clear();
-        _translationStack.Push(Vector2.Zero);
+        _xformStack.Clear();
+        _xformStack.Push((Vector2.One, Vector2.Zero));
+        _scale = Vector2.One;
         _translation = Vector2.Zero;
     }
 
@@ -280,10 +285,11 @@ public abstract class RenderedCanvasBase : ICanvas
         // Snap origin with Ceiling and size separately so drawn dimensions don't depend
         // on the fractional part of the origin (which would otherwise wobble +/- 1px
         // across frames as subpixel layout drift flips Round's banker's-rounding tie).
-        var left = MathF.Ceiling(pos.Left + _translation.X);
-        var bottom = MathF.Ceiling(pos.Bottom + _translation.Y);
-        var width = MathF.Ceiling(pos.Width);
-        var height = MathF.Ceiling(pos.Height);
+        var savg = (_scale.X + _scale.Y) * 0.5f;
+        var left = MathF.Ceiling(pos.Left * _scale.X + _translation.X);
+        var bottom = MathF.Ceiling(pos.Bottom * _scale.Y + _translation.Y);
+        var width = MathF.Ceiling(pos.Width * _scale.X);
+        var height = MathF.Ceiling(pos.Height * _scale.Y);
 
         _stagedRects.Add(new StagedRect
         {
@@ -292,15 +298,15 @@ public abstract class RenderedCanvasBase : ICanvas
             {
                 Rect = new Vector4(left, bottom, width, height),
                 BorderRadius = new Vector4(
-                    style.BorderRadius.TopLeft.Value,
-                    style.BorderRadius.TopRight.Value,
-                    style.BorderRadius.BottomRight.Value,
-                    style.BorderRadius.BottomLeft.Value),
+                    style.BorderRadius.TopLeft.Value * savg,
+                    style.BorderRadius.TopRight.Value * savg,
+                    style.BorderRadius.BottomRight.Value * savg,
+                    style.BorderRadius.BottomLeft.Value * savg),
                 BorderSize = new Vector4(
-                    MathF.Round(style.BorderSize.Top.Value),
-                    MathF.Round(style.BorderSize.Right.Value),
-                    MathF.Round(style.BorderSize.Bottom.Value),
-                    MathF.Round(style.BorderSize.Left.Value)),
+                    MathF.Round(style.BorderSize.Top.Value * savg),
+                    MathF.Round(style.BorderSize.Right.Value * savg),
+                    MathF.Round(style.BorderSize.Bottom.Value * savg),
+                    MathF.Round(style.BorderSize.Left.Value * savg)),
                 BgColor = Tint(style.BackgroundColor),
                 BorderColorTop = Tint(style.BorderColor.Top.Value),
                 BorderColorRight = Tint(style.BorderColor.Right.Value),
@@ -319,6 +325,9 @@ public abstract class RenderedCanvasBase : ICanvas
 
         var pos = inputs.Position;
         var radius = inputs.BorderRadius;
+        var sx = _scale.X;
+        var sy = _scale.Y;
+        var savg = (sx + sy) * 0.5f;
 
         var offsetX = shadow.OffsetX.IsSet ? shadow.OffsetX.Value : 0f;
         var offsetY = shadow.OffsetY.IsSet ? shadow.OffsetY.Value : 0f;
@@ -326,13 +335,13 @@ public abstract class RenderedCanvasBase : ICanvas
         var spread = shadow.Spread.IsSet ? shadow.Spread.Value : 0f;
         // Treat the user-provided "blur" as a CSS-style blur radius (~2σ),
         // so the on-screen result roughly matches CSS box-shadow expectations.
-        var sigma = MathF.Max(blur * 0.5f, 0.0001f);
+        var sigma = MathF.Max(blur * 0.5f * savg, 0.0001f);
 
         // The shifted+spread source rect that produces the shadow, in world coords.
-        var sLeft = MathF.Floor(pos.Left + offsetX - spread + _translation.X);
-        var sBottom = MathF.Floor(pos.Bottom + offsetY - spread + _translation.Y);
-        var sWidth = MathF.Ceiling(pos.Width + spread * 2f);
-        var sHeight = MathF.Ceiling(pos.Height + spread * 2f);
+        var sLeft = MathF.Floor((pos.Left + offsetX - spread) * sx + _translation.X);
+        var sBottom = MathF.Floor((pos.Bottom + offsetY - spread) * sy + _translation.Y);
+        var sWidth = MathF.Ceiling((pos.Width + spread * 2f) * sx);
+        var sHeight = MathF.Ceiling((pos.Height + spread * 2f) * sy);
 
         // Inflate the drawn quad to include the ~3σ penumbra.
         var pad = MathF.Ceiling(sigma * 3f + 1f);
@@ -349,10 +358,10 @@ public abstract class RenderedCanvasBase : ICanvas
                 OuterRect = new Vector4(oLeft, oBottom, oWidth, oHeight),
                 ShadowRect = new Vector4(sLeft, sBottom, sWidth, sHeight),
                 BorderRadius = new Vector4(
-                    radius.TopLeft.Value,
-                    radius.TopRight.Value,
-                    radius.BottomRight.Value,
-                    radius.BottomLeft.Value),
+                    radius.TopLeft.Value * savg,
+                    radius.TopRight.Value * savg,
+                    radius.BottomRight.Value * savg,
+                    radius.BottomLeft.Value * savg),
                 Sigma = sigma,
                 Color = Tint(shadow.Color.Value),
                 ClipIndex = (uint)_clipStack.Peek(),
@@ -364,17 +373,24 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         var p0 = inputs.Start;
         var p1 = inputs.End;
+        var sx = _scale.X;
+        var sy = _scale.Y;
+        var savg = (sx + sy) * 0.5f;
         var tx = _translation.X;
         var ty = _translation.Y;
-        var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
+        var x0 = p0.X * sx + tx;
+        var y0 = p0.Y * sy + ty;
+        var x1 = p1.X * sx + tx;
+        var y1 = p1.Y * sy + ty;
+        var half = MathF.Max(inputs.Thickness, 0f) * 0.5f * savg;
         var pad = half + 1.5f;
         // Square caps extend ~half past each end; widen the AABB so a diagonal
         // cap corner isn't clipped.
         if (inputs.Cap == LineCap.Square) pad += half;
-        var minX = MathF.Min(p0.X, p1.X) - pad + tx;
-        var minY = MathF.Min(p0.Y, p1.Y) - pad + ty;
-        var maxX = MathF.Max(p0.X, p1.X) + pad + tx;
-        var maxY = MathF.Max(p0.Y, p1.Y) + pad + ty;
+        var minX = MathF.Min(x0, x1) - pad;
+        var minY = MathF.Min(y0, y1) - pad;
+        var maxX = MathF.Max(x0, x1) + pad;
+        var maxY = MathF.Max(y0, y1) + pad;
 
         var dashed = inputs.DashLength > 0f && inputs.GapLength > 0f;
         var grad = inputs.GradientEndColor.HasValue;
@@ -388,8 +404,8 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new ShapeInstance
             {
                 OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
-                ShapeData = new Vector4(p0.X + tx, p0.Y + ty, p1.X + tx, p1.Y + ty),
-                ShapeData2 = new Vector4(0f, 0f, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
+                ShapeData = new Vector4(x0, y0, x1, y1),
+                ShapeData2 = new Vector4(0f, 0f, dashed ? inputs.DashLength * savg : 0f, dashed ? inputs.GapLength * savg : 0f),
                 HalfWidth = half,
                 Color = Tint(inputs.Color),
                 Color2 = Tint(grad ? inputs.GradientEndColor!.Value : inputs.Color),
@@ -405,14 +421,23 @@ public abstract class RenderedCanvasBase : ICanvas
         var p0 = inputs.Start;
         var p1 = inputs.Control;
         var p2 = inputs.End;
+        var sx = _scale.X;
+        var sy = _scale.Y;
+        var savg = (sx + sy) * 0.5f;
         var tx = _translation.X;
         var ty = _translation.Y;
-        var half = MathF.Max(inputs.Thickness, 0f) * 0.5f;
+        var x0 = p0.X * sx + tx;
+        var y0 = p0.Y * sy + ty;
+        var x1 = p1.X * sx + tx;
+        var y1 = p1.Y * sy + ty;
+        var x2 = p2.X * sx + tx;
+        var y2 = p2.Y * sy + ty;
+        var half = MathF.Max(inputs.Thickness, 0f) * 0.5f * savg;
         var pad = half + 1.5f;
-        var minX = MathF.Min(p0.X, MathF.Min(p1.X, p2.X)) - pad + tx;
-        var minY = MathF.Min(p0.Y, MathF.Min(p1.Y, p2.Y)) - pad + ty;
-        var maxX = MathF.Max(p0.X, MathF.Max(p1.X, p2.X)) + pad + tx;
-        var maxY = MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y)) + pad + ty;
+        var minX = MathF.Min(x0, MathF.Min(x1, x2)) - pad;
+        var minY = MathF.Min(y0, MathF.Min(y1, y2)) - pad;
+        var maxX = MathF.Max(x0, MathF.Max(x1, x2)) + pad;
+        var maxY = MathF.Max(y0, MathF.Max(y1, y2)) + pad;
 
         var grad = inputs.GradientEndColor.HasValue;
         var dashed = inputs.DashLength > 0f && inputs.GapLength > 0f;
@@ -426,8 +451,8 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new ShapeInstance
             {
                 OuterRect = new Vector4(minX, minY, maxX - minX, maxY - minY),
-                ShapeData = new Vector4(p0.X + tx, p0.Y + ty, p1.X + tx, p1.Y + ty),
-                ShapeData2 = new Vector4(p2.X + tx, p2.Y + ty, dashed ? inputs.DashLength : 0f, dashed ? inputs.GapLength : 0f),
+                ShapeData = new Vector4(x0, y0, x1, y1),
+                ShapeData2 = new Vector4(x2, y2, dashed ? inputs.DashLength * savg : 0f, dashed ? inputs.GapLength * savg : 0f),
                 HalfWidth = half,
                 Color = Tint(inputs.Color),
                 Color2 = Tint(grad ? inputs.GradientEndColor!.Value : inputs.Color),
@@ -441,10 +466,11 @@ public abstract class RenderedCanvasBase : ICanvas
     public void DrawCircle(in DrawCircleInputs inputs)
     {
         var c = inputs.Center;
-        var cx = c.X + _translation.X;
-        var cy = c.Y + _translation.Y;
-        var r = MathF.Max(inputs.Radius, 0f);
-        var stroke = MathF.Max(inputs.Thickness, 0f);
+        var savg = (_scale.X + _scale.Y) * 0.5f;
+        var cx = c.X * _scale.X + _translation.X;
+        var cy = c.Y * _scale.Y + _translation.Y;
+        var r = MathF.Max(inputs.Radius, 0f) * savg;
+        var stroke = MathF.Max(inputs.Thickness, 0f) * savg;
         var ring = stroke > 0f;
         var half = stroke * 0.5f;
         var ext = (ring ? r + half : r) + 1.5f;
@@ -481,6 +507,10 @@ public abstract class RenderedCanvasBase : ICanvas
         var key = MakeKey(inputs.ZIndex, seq);
 
         var pos = inputs.Position;
+        // Positions are computed in local (layout) space and mapped through the active transform at
+        // glyph-emit time, so scale grows the glyphs and translation slides them.
+        var sx = _scale.X;
+        var sy = _scale.Y;
         var tx = _translation.X;
         var ty = _translation.Y;
         var invScale = 1f / _dpiScale;
@@ -489,11 +519,11 @@ public abstract class RenderedCanvasBase : ICanvas
         var descender = metrics.Descender * invScale;
         var lineHeight = metrics.LineHeight * invScale;
 
-        var baselineY = pos.Top - ascender + ty;
+        var baselineY = pos.Top - ascender;
 
         if (style.VerticalAlignment.IsSet && style.VerticalAlignment.Value == TextAlignment.Center)
         {
-            var midline = pos.Top - pos.Height * 0.5f + ty;
+            var midline = pos.Top - pos.Height * 0.5f;
             baselineY = midline - (ascender + descender) * 0.5f;
         }
 
@@ -519,8 +549,8 @@ public abstract class RenderedCanvasBase : ICanvas
 
             var lineSlice = textSpan[sliceStart..lineEnd];
 
-            ShapeAndDrawLine(font, lineSlice, pos.Left + tx, pos.Width, placement, baseDir,
-                baselineY, color, clip, rotation, key, features);
+            ShapeAndDrawLine(font, lineSlice, pos.Left, pos.Width, placement, baseDir,
+                baselineY, sx, sy, tx, ty, color, clip, rotation, key, features);
 
             if (nl < 0)
                 break;
@@ -532,6 +562,7 @@ public abstract class RenderedCanvasBase : ICanvas
 
     private void ShapeAndDrawLine(FontHandle font, ReadOnlySpan<char> line,
         float boxLeft, float boxWidth, TextPlacement placement, BidiDirection baseDir, float baselineY,
+        float sx, float sy, float tx, float ty,
         uint color, uint clip, float rotation, long key, in FontFeatureSet features)
     {
         if (line.Length == 0)
@@ -592,7 +623,7 @@ public abstract class RenderedCanvasBase : ICanvas
                     Key = key,
                     Inst = new GlyphInstance
                     {
-                        Rect = new Vector4(glyphX, glyphY, glyphW, glyphH),
+                        Rect = new Vector4(glyphX * sx + tx, glyphY * sy + ty, glyphW * sx, glyphH * sy),
                         AtlasUV = new Vector4(atlasU, atlasV, atlasW, atlasH),
                         Color = color,
                         ClipIndex = clip,
@@ -688,13 +719,15 @@ public abstract class RenderedCanvasBase : ICanvas
             scaledWidth = rectH * aspect;
         }
 
-        var offsetX = pos.Left + (rectW - scaledWidth) * 0.5f + _translation.X;
-        var offsetY = pos.Bottom + (rectH - scaledHeight) * 0.5f + _translation.Y;
+        var sx = _scale.X;
+        var sy = _scale.Y;
+        var offsetX = (pos.Left + (rectW - scaledWidth) * 0.5f) * sx + _translation.X;
+        var offsetY = (pos.Bottom + (rectH - scaledHeight) * 0.5f) * sy + _translation.Y;
 
         var snappedLeft = MathF.Round(offsetX);
         var snappedBottom = MathF.Round(offsetY);
-        var snappedRight = MathF.Round(offsetX + scaledWidth);
-        var snappedTop = MathF.Round(offsetY + scaledHeight);
+        var snappedRight = MathF.Round(offsetX + scaledWidth * sx);
+        var snappedTop = MathF.Round(offsetY + scaledHeight * sy);
 
         _stagedImages.Add(new StagedImage
         {
@@ -727,15 +760,17 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public void PushClip(RectF rect)
     {
-        // Clips compose with the active translation so content drawn offset (an animating subtree)
-        // is clipped in the same space it's drawn in.
+        // Clips compose with the active transform so content drawn offset/scaled (an animating
+        // subtree) is clipped in the same space it's drawn in.
+        var sx = _scale.X;
+        var sy = _scale.Y;
         var tx = _translation.X;
         var ty = _translation.Y;
         var current = _stagedClips[_clipStack.Peek()];
-        var left = MathF.Ceiling(MathF.Max(rect.Left + tx, current.X));
-        var bottom = MathF.Ceiling(MathF.Max(rect.Bottom + ty, current.Y));
-        var right = MathF.Floor(MathF.Min(rect.Right + tx, current.Z));
-        var top = MathF.Floor(MathF.Min(rect.Top + ty, current.W));
+        var left = MathF.Ceiling(MathF.Max(rect.Left * sx + tx, current.X));
+        var bottom = MathF.Ceiling(MathF.Max(rect.Bottom * sy + ty, current.Y));
+        var right = MathF.Floor(MathF.Min(rect.Right * sx + tx, current.Z));
+        var top = MathF.Floor(MathF.Min(rect.Top * sy + ty, current.W));
         if (right < left) right = left;
         if (top < bottom) top = bottom;
 
@@ -767,15 +802,32 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public void PushTranslation(float dx, float dy)
     {
-        var next = _translation + new Vector2(dx, dy);
-        _translationStack.Push(next);
-        _translation = next;
+        // A local offset (dx, dy) maps through the current scale, so a translating subtree inside a
+        // scaled one moves at the scaled rate. Identity-preserving when no scale is active.
+        _translation += new Vector2(dx, dy) * _scale;
+        _xformStack.Push((_scale, _translation));
     }
 
-    public void PopTranslation()
+    public void PopTranslation() => PopXform();
+
+    public void PushScale(float sx, float sy, float pivotX, float pivotY)
     {
-        if (_translationStack.Count > 1) _translationStack.Pop();
-        _translation = _translationStack.Peek();
+        var s = new Vector2(sx, sy);
+        // Scale about the pivot (current local space): fold the pivot compensation into the
+        // translation so a point p maps to p * (_scale * s) + _translation'.
+        _translation += new Vector2(pivotX, pivotY) * (Vector2.One - s) * _scale;
+        _scale *= s;
+        _xformStack.Push((_scale, _translation));
+    }
+
+    public void PopScale() => PopXform();
+
+    private void PopXform()
+    {
+        if (_xformStack.Count > 1) _xformStack.Pop();
+        var top = _xformStack.Peek();
+        _scale = top.Scale;
+        _translation = top.Translation;
     }
 
     // Scales a packed ARGB color's alpha byte by the current opacity, leaving RGB untouched (the

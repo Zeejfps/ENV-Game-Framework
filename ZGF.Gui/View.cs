@@ -215,6 +215,25 @@ public class View
     }
 
     /// <summary>
+    /// Render-only horizontal scale factor about this view's center. 1 = unscaled (zero cost).
+    /// Scales this view and its descendants visually — including text — without changing
+    /// <see cref="Position"/> or participating in layout. Pairs with <see cref="ScaleY"/>; bind both
+    /// to an animation for a pop/zoom.
+    /// </summary>
+    public float ScaleX
+    {
+        get;
+        set => SetVisualField(ref field, value);
+    } = 1f;
+
+    /// <summary>Render-only vertical scale factor; the vertical counterpart to <see cref="ScaleX"/>.</summary>
+    public float ScaleY
+    {
+        get;
+        set => SetVisualField(ref field, value);
+    } = 1f;
+
+    /// <summary>
     /// When true, this view clips its descendants — both visually (containers that
     /// override this should also <c>PushClip</c> in <c>OnDrawChildren</c>) and for
     /// hit-testing. The input system rejects descendant hits whose cursor point
@@ -775,7 +794,10 @@ public class View
         if (!IsVisible) return;
 
         var translated = TranslationX != 0f || TranslationY != 0f;
-        if (c.TryGetClip(out var clipRect))
+        var scaled = ScaleX != 1f || ScaleY != 1f;
+        // A scaled view can draw outside its layout box, so skip the clip cull while it's scaled
+        // rather than mis-computing the scaled bounds; scaling is a brief animation, never idle.
+        if (!scaled && c.TryGetClip(out var clipRect))
         {
             // Cull against the rect this view actually draws at (Position shifted by its own
             // translation), not the raw layout Position — so a view animating near a clip edge
@@ -792,10 +814,16 @@ public class View
         var fade = Opacity < 1f;
         if (fade) c.PushOpacity(Opacity);
         if (translated) c.PushTranslation(TranslationX, TranslationY);
+        if (scaled)
+        {
+            var center = Position.Center;
+            c.PushScale(ScaleX, ScaleY, center.X, center.Y);
+        }
 
         OnDrawSelf(c);
         OnDrawChildren(c);
 
+        if (scaled) c.PopScale();
         if (translated) c.PopTranslation();
         if (fade) c.PopOpacity();
     }

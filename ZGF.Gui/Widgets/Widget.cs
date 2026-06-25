@@ -30,6 +30,11 @@ public abstract record Widget : IWidget
     public Prop<float> TranslationX { get; init; }
     public Prop<float> TranslationY { get; init; }
 
+    /// <summary>Render-only scale factors about the view's center for this view and its descendants —
+    /// visual only, never layout. Unset = unscaled (1). Bind them to an animation for a pop/zoom.</summary>
+    public Prop<float> ScaleX { get; init; }
+    public Prop<float> ScaleY { get; init; }
+
     /// <summary>Stacking order relative to siblings — accumulates down the tree, higher draws on top.
     /// Unset leaves it at 0. Use to lift an overlay layer above normal content.</summary>
     public Prop<int> ZIndex { get; init; }
@@ -45,6 +50,8 @@ public abstract record Widget : IWidget
         Opacity.Apply(ctx, v,static (x, o) => x.Opacity = o);
         TranslationX.Apply(ctx, v,static (x, t) => x.TranslationX = t);
         TranslationY.Apply(ctx, v,static (x, t) => x.TranslationY = t);
+        ScaleX.Apply(ctx, v,static (x, s) => x.ScaleX = s);
+        ScaleY.Apply(ctx, v,static (x, s) => x.ScaleY = s);
         ZIndex.Apply(ctx, v,static (x, z) => x.ZIndex = z);
         if (Id != null) v.Id = Id;
         return v;
