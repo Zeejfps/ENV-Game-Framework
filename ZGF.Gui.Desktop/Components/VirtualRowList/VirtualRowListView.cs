@@ -174,6 +174,11 @@ public sealed class VirtualRowListView : View
         return true;
     }
 
+    /// <summary>The row index at a point in GUI coordinates, or -1 if the point is outside the viewport
+    /// or hits no row. The inverse of <see cref="TryGetRowRect"/> — lets a consumer resolve a drag/drop
+    /// pointer to a row without re-deriving the scroll math.</summary>
+    public int RowIndexAt(PointF point) => HitTestRow(point);
+
     protected override void OnDrawSelf(ICanvas c)
     {
         var pos = Position;
