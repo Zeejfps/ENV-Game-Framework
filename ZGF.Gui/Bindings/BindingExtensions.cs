@@ -140,6 +140,18 @@ public static class BindingExtensions
             view.Behaviors.Add(new ThemedDerivedPropertyBindingBehavior<View, TStyles, TStyles>(
                 view, theme, s => s, (v, s) => onChange(s)));
         }
+
+        /// <summary>
+        /// Binds the <see cref="AccessibilityStates"/> of <see cref="View.Accessibility"/> to a
+        /// derived value, leaving role and label untouched. The compute's observable reads are
+        /// auto-tracked, so a row's Selected/Checked/Expanded state stays live in a snapshot without
+        /// a rebuild — the accessibility mirror of how the row's visuals already bind to selection.
+        /// </summary>
+        public void BindAccessibilityStates(Func<AccessibilityStates> compute)
+        {
+            view.Behaviors.Add(new DerivedPropertyBindingBehavior<View, AccessibilityStates>(
+                view, compute, (v, s) => v.Accessibility = v.Accessibility with { States = s }));
+        }
     }
 
     extension(RectView view)

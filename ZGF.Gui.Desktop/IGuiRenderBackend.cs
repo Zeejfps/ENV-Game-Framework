@@ -10,4 +10,9 @@ internal interface IGuiRenderBackend : IDisposable
     /// window's graphics context current, before the GUI clear/draw — the seam for embedding
     /// the GUI over engine-rendered content.</param>
     void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null);
+
+    /// <summary>Requests that the next rendered frame be written to <paramref name="path"/> as a PNG.
+    /// Captured inside the render loop (after draw, before swap) where the backend supports CPU
+    /// read-back; a no-op otherwise.</summary>
+    void RequestScreenshot(string path);
 }

@@ -61,6 +61,25 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         UploadProjection();
     }
 
+    /// <summary>Reads the framebuffer back as top-down RGBA (PNG row order) at device-pixel size.
+    /// Must run with this canvas's GL context current and after the frame is drawn but before the
+    /// buffer swap, so the back buffer still holds the rendered content. RGBA is 4 bytes/pixel, so
+    /// the default pack alignment already matches the row stride.</summary>
+    public byte[] ReadFramebufferRgba(out int width, out int height)
+    {
+        width = (int)MathF.Round(Width * DpiScale);
+        height = (int)MathF.Round(Height * DpiScale);
+        var buf = new byte[width * height * 4];
+        fixed (byte* p = buf)
+            glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, p);
+
+        var rowBytes = width * 4;
+        var flipped = new byte[buf.Length];
+        for (var y = 0; y < height; y++)
+            Array.Copy(buf, (height - 1 - y) * rowBytes, flipped, y * rowBytes, rowBytes);
+        return flipped;
+    }
+
     protected override Size GetImageSizeImpl(string imageId) => _shared.ImageManager.GetImageSize(imageId);
     protected override uint GetImageTextureId(string imageId) => _shared.ImageManager.GetTextureId(imageId);
     public override void LoadImageFromFile(string path) => _shared.ImageManager.LoadImageFromFile(path);

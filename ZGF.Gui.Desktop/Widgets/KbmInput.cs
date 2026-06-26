@@ -71,6 +71,11 @@ public sealed record KbmInput : Widget
         if (handlers.HasHandlers)
             view.UseController(input, handlers, Phases);
 
+        // A click handler is the semantic "this is a button" signal. The label is left for the
+        // reader to aggregate from descendant text at read time, so it stays live.
+        if (OnClick != null)
+            view.Accessibility = view.Accessibility.Overlay(new AccessibilityInfo(AccessibilityRole.Button));
+
         if (OnDrag != null || OnDragStart != null || OnDragEnd != null)
         {
             view.UseController(input, () => new DragRecognizer(input)

@@ -41,5 +41,8 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         });
     }
 
+    public void RequestScreenshot(string path) =>
+        Console.WriteLine("[Screenshot] framebuffer read-back is not implemented on the Metal backend.");
+
     public void Dispose() => _shared.Dispose();
 }

@@ -22,6 +22,11 @@ public abstract record Widget : IWidget
     public Prop<float> MaxHeight { get; init; }
     public string? Id { get; init; }
 
+    /// <summary>Accessibility metadata to overlay onto the built view. A widget may set an intrinsic
+    /// role/label in <see cref="CreateView"/>; what's set here wins per-field (see
+    /// <see cref="AccessibilityInfo.Overlay"/>), so an author can override just the label.</summary>
+    public AccessibilityInfo Accessibility { get; init; }
+
     /// <summary>Visibility: a constant, an observable (<c>vm.IsOpen</c>), a projection
     /// (<c>vm.Count.Bind(c =&gt; c == 0)</c>), or a compute (<c>Prop.Bind(() =&gt; …)</c>). Unset leaves
     /// the view visible.</summary>
@@ -62,6 +67,7 @@ public abstract record Widget : IWidget
         ScaleY.Apply(ctx, v,static (x, s) => x.ScaleY = s);
         ZIndex.Apply(ctx, v,static (x, z) => x.ZIndex = z);
         if (Id != null) v.Id = Id;
+        if (!Accessibility.IsEmpty) v.Accessibility = v.Accessibility.Overlay(Accessibility);
         return v;
     }
 

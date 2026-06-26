@@ -1,3 +1,5 @@
+using ZGF.Gui.Bindings;
+
 namespace ZGF.Gui.Widgets;
 
 /// <summary>
@@ -6,6 +8,18 @@ namespace ZGF.Gui.Widgets;
 /// </summary>
 public static class WidgetExtensions
 {
+    /// <summary>Sets the built view's accessibility role (and optional label), overlaying any
+    /// intrinsic value the widget already set. For static semantics — e.g. tagging a row
+    /// <see cref="AccessibilityRole.ListItem"/> — that don't change at runtime.</summary>
+    public static IWidget WithRole(this IWidget widget, AccessibilityRole role, string? label = null) =>
+        new Attachment(widget, v => v.Accessibility = v.Accessibility.Overlay(new AccessibilityInfo(role, label)));
+
+    /// <summary>Binds the built view's accessibility <see cref="AccessibilityStates"/> to a derived
+    /// value (auto-tracked), so selection/checked/expanded state stays live in a snapshot. Leaves
+    /// role and label untouched.</summary>
+    public static IWidget WithAccessibleStates(this IWidget widget, Func<AccessibilityStates> compute) =>
+        new Attachment(widget, v => v.BindAccessibilityStates(compute));
+
     /// <summary>
     /// The built view owns <paramref name="viewModel"/>: disposed when the view unmounts.
     /// Widget-built views are single-mount — bindings close over the instance at build

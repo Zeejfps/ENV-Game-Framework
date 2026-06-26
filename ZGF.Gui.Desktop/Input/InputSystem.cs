@@ -589,6 +589,11 @@ public sealed class InputSystem
     /// <see cref="IsFocused"/> (which reflects hover order), this is the real keyboard-focus target.</summary>
     public IKeyboardMouseController? FocusedComponent => _focusedComponent;
 
+    /// <summary>The controller currently under the cursor (the topmost hovered view's representative),
+    /// or null. Pairs with <see cref="GetView"/> to resolve which view is hovered — used by the test
+    /// harness to surface hover state in a snapshot.</summary>
+    public IKeyboardMouseController? HoveredComponent => _hoveredComponent;
+
     public bool IsFocused(IKeyboardMouseController component)
     {
         var focused = _focusQueue.First;

@@ -168,6 +168,11 @@ public class View
 
     public string? Id { get; set; }
 
+    /// <summary>Accessibility metadata (role, label, self-owned states) for assistive tech and the
+    /// test harness. Render- and layout-inert: a plain field that never marks the view dirty, so
+    /// setting it — even per frame — costs nothing in measure, layout, or paint.</summary>
+    public AccessibilityInfo Accessibility { get; set; }
+
     public int ZIndex
     {
         get;

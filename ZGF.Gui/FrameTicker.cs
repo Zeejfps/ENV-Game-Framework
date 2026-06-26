@@ -26,6 +26,10 @@ public sealed class FrameTicker : IFrameTicker
         _onActivated = onActivated;
     }
 
+    /// <summary>Number of registered ticks. Zero means no animation is driving the loop — the UI
+    /// is at rest. A test harness ticks until this reaches zero to reach a settled frame.</summary>
+    public int ActiveCount => _ticks.Count;
+
     public void Add(Action<float> tick)
     {
         ArgumentNullException.ThrowIfNull(tick);

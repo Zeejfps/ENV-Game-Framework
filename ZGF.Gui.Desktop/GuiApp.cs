@@ -231,6 +231,16 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.RequestRedraw();
     }
 
+    /// <summary>Captures the next rendered main-window frame to a PNG at <paramref name="path"/> —
+    /// pixel-perfect, via the GPU backend's framebuffer read-back (no-op on backends without it).
+    /// Bind it to a debug shortcut or a menu action to dump exactly what's on screen, e.g. for an
+    /// LLM to inspect alongside the headless <c>GuiTestHarness</c> snapshot.</summary>
+    public void CaptureScreenshot(string path)
+    {
+        _renderBackend.RequestScreenshot(path);
+        _app.MainWindow.RequestRedraw();
+    }
+
     public void Run() => _app.Run();
 
     /// <summary>Asks the run loop to exit; <see cref="Run"/> returns after the current iteration.</summary>

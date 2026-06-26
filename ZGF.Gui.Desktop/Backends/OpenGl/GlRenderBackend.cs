@@ -1,3 +1,4 @@
+using PngSharp.Api;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
@@ -10,6 +11,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
     private readonly GlSharedResources _shared;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
+    private string? _pendingScreenshotPath;
 
     public GlRenderBackend(GlSharedResources shared, FreeTypeFontBackend fonts, FontHandle defaultFont)
     {
@@ -38,8 +40,28 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
             canvas.BeginFrame();
             drawContent();
             canvas.EndFrame();
+
+            // Read back here — after the frame is drawn, before the window swaps buffers — so the
+            // back buffer still holds this frame's content.
+            if (_pendingScreenshotPath is { } path && canvas is OpenGlRenderedCanvas glCanvas)
+            {
+                _pendingScreenshotPath = null;
+                try
+                {
+                    var rgba = glCanvas.ReadFramebufferRgba(out var w, out var h);
+                    var dir = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                    Png.EncodeToFile(Png.CreateRgba(w, h, rgba), path);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Screenshot] failed: {ex.Message}");
+                }
+            }
         };
     }
+
+    public void RequestScreenshot(string path) => _pendingScreenshotPath = path;
 
     public void Dispose() => _shared.Dispose();
 }

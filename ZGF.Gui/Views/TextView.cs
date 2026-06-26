@@ -11,6 +11,7 @@ public sealed class TextView : View
     public TextView(ICanvas canvas)
     {
         _canvas = canvas;
+        Accessibility = new AccessibilityInfo(AccessibilityRole.Text);
     }
 
     public StyleValue<uint> TextColor
