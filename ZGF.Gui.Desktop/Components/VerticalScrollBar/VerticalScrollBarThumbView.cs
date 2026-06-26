@@ -64,13 +64,11 @@ public sealed class VerticalScrollBarThumbView : View
         }
     }
 
-    private float _distanceToTop;
-    private float DistanceToTop
-    {
-        get => _distanceToTop;
-        set => SetField(ref _distanceToTop, value);
-    }
-
+    // The thumb's position is the normalized 0..1 fraction, not an absolute pixel offset: the pixel
+    // travel (_maxDistanceToTop) shrinks and grows with Scale, so a stored pixel offset would re-map
+    // to a different fraction whenever the thumb is resized. _maxDistanceToTop is the last laid-out
+    // travel, kept only to convert pixel drags/clicks back into a fraction.
+    private float _normalized;
     private int _maxDistanceToTop;
 
     private readonly RectView _background;
@@ -99,16 +97,10 @@ public sealed class VerticalScrollBarThumbView : View
 
         _maxDistanceToTop = Math.Max(0, (int)(TopConstraint - height - BottomConstraint));
 
-        if (_distanceToTop < 0)
-        {
-            _distanceToTop = 0;
-        }
-        else if (_distanceToTop > _maxDistanceToTop)
-        {
-            _distanceToTop = _maxDistanceToTop;
-        }
-
-        var bottom = TopConstraint - _distanceToTop - height;
+        // Derive pixels from the fraction; layout must never echo a fraction back to the consumer,
+        // or a Scale-driven re-layout would drag the content to a stale position (feedback loop).
+        var distanceToTop = _normalized * _maxDistanceToTop;
+        var bottom = TopConstraint - distanceToTop - height;
         Position = new RectF
         {
             Left = LeftConstraint,
@@ -116,32 +108,46 @@ public sealed class VerticalScrollBarThumbView : View
             Width = WidthConstraint,
             Height = height,
         };
-
-        var scrollPositionNormalized = _maxDistanceToTop > 0 ? _distanceToTop / _maxDistanceToTop : 0f;
-        ScrollPositionChanged?.Invoke(scrollPositionNormalized);
     }
 
+    // External sync (content -> thumb): set the fraction without notifying the consumer back.
     public void SetScrollPositionNormalized(float normalizedPosition)
     {
-        if (float.IsNaN(normalizedPosition) || float.IsInfinity(normalizedPosition))
-            normalizedPosition = 0f;
-        DistanceToTop = Math.Clamp(normalizedPosition, 0f, 1f) * _maxDistanceToTop;
+        SetNormalized(normalizedPosition, notify: false);
     }
 
     public void Move(float deltaY)
     {
-        DistanceToTop -= deltaY;
+        if (_maxDistanceToTop <= 0) return;
+        SetNormalized(_normalized - deltaY / _maxDistanceToTop, notify: true);
     }
 
     public void ScrollToTop()
     {
-        DistanceToTop = 0;
+        SetNormalized(0f, notify: true);
     }
 
     public void ScrollToPoint(PointF point)
     {
+        if (_maxDistanceToTop <= 0) return;
         var height = HeightConstraint * Scale;
         var halfHeight = height * 0.5f;
-        DistanceToTop = TopConstraint - point.Y - halfHeight;
+        var distanceToTop = TopConstraint - point.Y - halfHeight;
+        SetNormalized(distanceToTop / _maxDistanceToTop, notify: true);
+    }
+
+    // User-driven moves (drag, track click, scroll-to-top) notify so the content follows; layout-time
+    // repositioning does not, which is what keeps the resize -> echo feedback loop from firing.
+    private void SetNormalized(float value, bool notify)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value)) value = 0f;
+        value = Math.Clamp(value, 0f, 1f);
+        if (_normalized != value)
+        {
+            _normalized = value;
+            SetDirty();
+        }
+        if (notify)
+            ScrollPositionChanged?.Invoke(_normalized);
     }
 }
