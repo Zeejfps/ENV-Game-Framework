@@ -22,6 +22,12 @@ public sealed record TextInput : Widget
     public Prop<float> FontSize { get; init; }
     public Prop<TextAlignment> VAlign { get; init; }
 
+    /// <summary>When true the field grabs keyboard focus as soon as it mounts, so a field revealed in
+    /// response to a click (a search bar, a just-opened editor) is ready to type without a second click.
+    /// Mirrors Flutter's <c>autofocus</c>. A plain init flag rather than a reactive <see cref="Prop{T}"/>
+    /// because it's a one-time mount decision, like <see cref="Widget.Id"/>.</summary>
+    public bool AutoFocus { get; init; }
+
     protected override View CreateView(Context ctx)
     {
         var input = ctx.Require<InputSystem>();
@@ -38,7 +44,22 @@ public sealed record TextInput : Widget
         VAlign.Apply(ctx, view, static (v, a) => v.TextVerticalAlignment = a);
 
         view.BindTwoWay(Value.ToReadable(ctx), Value.Write);
-        view.UseController(input, () => new TextInputViewKbmController(view, input, clipboard));
+
+        // Created eagerly (not via the lazy factory) so AutoFocus can hold the controller and drive it.
+        var controller = new TextInputViewKbmController(view, input, clipboard);
+        view.UseController(input, controller);
+        if (AutoFocus)
+            view.Behaviors.Add(new FocusOnMount(controller));
         return view;
+    }
+
+    // Grabs the caret on mount and releases it on unmount, so the field is ready to type the moment it
+    // appears and doesn't leave a detached caret stealing keys once it's gone.
+    private sealed class FocusOnMount : IViewBehavior
+    {
+        private readonly TextInputViewKbmController _controller;
+        public FocusOnMount(TextInputViewKbmController controller) => _controller = controller;
+        public void Attach(View view) => _controller.BeginEditing();
+        public void Detach(View view) => _controller.EndEditing();
     }
 }
