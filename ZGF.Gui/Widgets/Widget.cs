@@ -14,6 +14,12 @@ public abstract record Widget : IWidget
     public Prop<float> Height { get; init; }
     public Prop<float> MinWidth { get; init; }
     public Prop<float> MinHeight { get; init; }
+
+    /// <summary>Upper bounds on the measured size. A view that would measure larger is capped to these;
+    /// content that no longer fits must scroll or clip (e.g. a <c>ScrollArea</c> given a
+    /// <see cref="MaxHeight"/> so it has a bounded viewport). Unset leaves the size unbounded.</summary>
+    public Prop<float> MaxWidth { get; init; }
+    public Prop<float> MaxHeight { get; init; }
     public string? Id { get; init; }
 
     /// <summary>Visibility: a constant, an observable (<c>vm.IsOpen</c>), a projection
@@ -46,6 +52,8 @@ public abstract record Widget : IWidget
         Height.Apply(ctx, v,static (x, h) => x.Height = h);
         MinWidth.Apply(ctx, v,static (x, w) => x.MinWidthConstraint = w);
         MinHeight.Apply(ctx, v,static (x, h) => x.MinHeightConstraint = h);
+        MaxWidth.Apply(ctx, v,static (x, w) => x.MaxWidthConstraint = w);
+        MaxHeight.Apply(ctx, v,static (x, h) => x.MaxHeightConstraint = h);
         Visible.Apply(ctx, v,static (x, vis) => x.IsVisible = vis);
         Opacity.Apply(ctx, v,static (x, o) => x.Opacity = o);
         TranslationX.Apply(ctx, v,static (x, t) => x.TranslationX = t);
