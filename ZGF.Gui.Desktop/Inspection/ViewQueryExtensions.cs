@@ -1,7 +1,7 @@
-﻿using System.Text;
+using System.Text;
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Testing;
+namespace ZGF.Gui.Desktop.Inspection;
 
 /// <summary>Tree queries over a mounted, laid-out <see cref="View"/> subtree. The <c>Find*</c>
 /// helpers consider the receiver itself; <see cref="Descendants"/> does not.</summary>

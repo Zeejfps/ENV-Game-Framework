@@ -1,3 +1,4 @@
+using ZGF.Gui.Desktop.Inspection;
 using ZGF.Gui.Testing;
 using ZGF.Gui.Widgets;
 

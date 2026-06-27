@@ -1,3 +1,4 @@
+using PngSharp.Api;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.Metal;
 using ZGF.Fonts;
@@ -11,6 +12,9 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
     private readonly MetalSharedResources _shared;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
+    private MetalSurfaceRenderer? _surfaceRenderer;
+    private string? _pendingScreenshotPath;
+    private Action? _pendingScreenshotDone;
 
     public MetalRenderBackend(MetalSharedResources shared, FreeTypeFontBackend fonts, FontHandle defaultFont)
     {
@@ -32,17 +36,53 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         var metalWindow = (MetalWindow)window;
         var metalCanvas = (MetalRenderedCanvas)canvas;
         var surfaceRenderer = new MetalSurfaceRenderer(metalWindow);
-        metalWindow.RenderFrame = () => surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
+        _surfaceRenderer = surfaceRenderer;
+        metalWindow.RenderFrame = () =>
         {
-            preDraw?.Invoke();
-            canvas.BeginFrame();
-            drawContent();
-            metalCanvas.EndFrame(encoder, commandBuffer);
-        });
+            surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
+            {
+                preDraw?.Invoke();
+                canvas.BeginFrame();
+                drawContent();
+                metalCanvas.EndFrame(encoder, commandBuffer);
+            });
+
+            if (_pendingScreenshotPath is { } path)
+            {
+                _pendingScreenshotPath = null;
+                var done = _pendingScreenshotDone;
+                _pendingScreenshotDone = null;
+                try
+                {
+                    if (surfaceRenderer.TryTakeCapture(out var w, out var h, out var rgba))
+                    {
+                        var dir = Path.GetDirectoryName(path);
+                        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                        Png.EncodeToFile(Png.CreateRgba(w, h, rgba), path);
+                    }
+                    else
+                    {
+                        Console.WriteLine("[Screenshot] no captured frame was produced.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Screenshot] failed: {ex.Message}");
+                }
+                finally
+                {
+                    done?.Invoke();
+                }
+            }
+        };
     }
 
-    public void RequestScreenshot(string path) =>
-        Console.WriteLine("[Screenshot] framebuffer read-back is not implemented on the Metal backend.");
+    public void RequestScreenshot(string path, Action? onComplete = null)
+    {
+        _pendingScreenshotPath = path;
+        _pendingScreenshotDone = onComplete;
+        _surfaceRenderer?.RequestCapture();
+    }
 
     public void Dispose() => _shared.Dispose();
 }

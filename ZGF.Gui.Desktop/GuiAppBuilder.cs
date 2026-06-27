@@ -18,6 +18,7 @@ public sealed class GuiAppBuilder
     private GuiRenderBackendKind _backendKind = GuiRenderBackendKind.Auto;
     private Action? _renderHook;
     private Action<Context>? _startup;
+    private int? _debugServerPort;
 
     internal GuiAppBuilder(StartupConfig config)
     {
@@ -83,12 +84,26 @@ public sealed class GuiAppBuilder
         return this;
     }
 
+    /// <summary>
+    /// Starts a localhost-only HTTP debug server on <paramref name="port"/> once the app is built:
+    /// read the live view tree (<c>GET /snapshot</c>), inject mouse/keyboard input
+    /// (<c>POST /click</c>, <c>/type</c>, <c>/key</c>), and capture a screenshot
+    /// (<c>GET /screenshot</c>). A debugging aid for driving the running window from a script or an
+    /// LLM. The server also auto-starts (without this call) when the <c>ZGF_GUI_DEBUG</c> environment
+    /// variable is set, reading <c>ZGF_GUI_DEBUG_PORT</c> (default 5577).
+    /// </summary>
+    public GuiAppBuilder UseDebugServer(int port = 5577)
+    {
+        _debugServerPort = port;
+        return this;
+    }
+
     /// <summary>Resolves the backend, wires framework services, and mounts the content.</summary>
     public GuiApp Build()
     {
         if (_contentFactory is null)
             throw new InvalidOperationException(
                 "No root content set. Call UseContent(...) before Build().");
-        return GuiApp.Create(_config, Services, _contentFactory, _backendKind, _renderHook, _startup);
+        return GuiApp.Create(_config, Services, _contentFactory, _backendKind, _renderHook, _startup, _debugServerPort);
     }
 }

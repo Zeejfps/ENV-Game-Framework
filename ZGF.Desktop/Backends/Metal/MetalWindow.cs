@@ -185,7 +185,9 @@ public sealed class MetalWindow : IWindow, IMetalSurface
 
         msg_Void_IntPtr(layer, Sel("setDevice:"), device);
         msg_Void_UInt(layer, Sel("setPixelFormat:"), (uint)MTLPixelFormat.BGRA8Unorm);
-        msg_Void_Bool(layer, Sel("setFramebufferOnly:"), true);
+        // false (not the usual true) so the presented drawable can be used as a blit source for
+        // CPU framebuffer read-back (GuiApp.CaptureScreenshot / the debug server's /screenshot).
+        msg_Void_Bool(layer, Sel("setFramebufferOnly:"), false);
 
         var backingScale = msg_Double(nsWindow, Sel("backingScaleFactor"));
         msg_Void_Double(layer, Sel("setContentsScale:"), backingScale);

@@ -1,8 +1,9 @@
+using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using ZGF.Geometry;
 
-namespace ZGF.Gui.Testing;
+namespace ZGF.Gui.Desktop.Inspection;
 
 /// <summary>One node of a <see cref="UiSnapshot"/>: a laid-out view reduced to the facts an LLM
 /// needs to reason about the screen — what it is, what it says, where it is, and what state it's in.
@@ -47,8 +48,15 @@ public sealed record UiSnapshot(UiNode Root)
         return sb.ToString();
     }
 
-    public string ToJson() =>
-        JsonSerializer.Serialize(Project(Root), new JsonSerializerOptions { WriteIndented = true });
+    /// <summary>JSON form of the tree (same shape as <see cref="ToText"/> but machine-readable).
+    /// Written reflection-free so it stays trim/AOT-safe in the shipped app.</summary>
+    public string ToJson()
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
+            WriteNode(writer, Root);
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
 
     public override string ToString() => ToText();
 
@@ -152,20 +160,42 @@ public sealed record UiSnapshot(UiNode Root)
             AppendNode(sb, child, depth + 1);
     }
 
-    private static object Project(UiNode n) => new
+    private static void WriteNode(Utf8JsonWriter w, UiNode n)
     {
-        type = n.Type,
-        id = n.Id,
-        role = string.IsNullOrEmpty(n.Role.Name) ? null : n.Role.Name,
-        label = n.Label,
-        text = n.Text,
-        bounds = new { x = R(n.Bounds.Left), y = R(n.Bounds.Bottom), w = R(n.Bounds.Width), h = R(n.Bounds.Height) },
-        visible = n.Visible,
-        opacity = n.Opacity,
-        clips = n.Clips,
-        states = n.States,
-        children = n.Children.Select(Project).ToArray(),
-    };
+        w.WriteStartObject();
+        w.WriteString("type", n.Type);
+        WriteStringOrNull(w, "id", n.Id);
+        WriteStringOrNull(w, "role", string.IsNullOrEmpty(n.Role.Name) ? null : n.Role.Name);
+        WriteStringOrNull(w, "label", n.Label);
+        WriteStringOrNull(w, "text", n.Text);
+
+        w.WriteStartObject("bounds");
+        w.WriteNumber("x", R(n.Bounds.Left));
+        w.WriteNumber("y", R(n.Bounds.Bottom));
+        w.WriteNumber("w", R(n.Bounds.Width));
+        w.WriteNumber("h", R(n.Bounds.Height));
+        w.WriteEndObject();
+
+        w.WriteBoolean("visible", n.Visible);
+        w.WriteNumber("opacity", n.Opacity);
+        w.WriteBoolean("clips", n.Clips);
+
+        w.WriteStartArray("states");
+        foreach (var state in n.States) w.WriteStringValue(state);
+        w.WriteEndArray();
+
+        w.WriteStartArray("children");
+        foreach (var child in n.Children) WriteNode(w, child);
+        w.WriteEndArray();
+
+        w.WriteEndObject();
+    }
+
+    private static void WriteStringOrNull(Utf8JsonWriter w, string name, string? value)
+    {
+        if (value == null) w.WriteNull(name);
+        else w.WriteString(name, value);
+    }
 
     private static int R(float v) => (int)MathF.Round(v);
 

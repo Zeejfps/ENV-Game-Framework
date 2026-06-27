@@ -1,7 +1,7 @@
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
 
-namespace ZGF.Gui.Testing;
+namespace ZGF.Gui.Desktop.Inspection;
 
 /// <summary>Reduces a mounted, laid-out view tree to a <see cref="UiSnapshot"/>. Structural facts
 /// (type, bounds, visibility, clip, opacity, text) come straight off the views; role/label/states

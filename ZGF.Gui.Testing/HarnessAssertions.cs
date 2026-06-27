@@ -1,3 +1,5 @@
+using ZGF.Gui.Desktop.Inspection;
+
 namespace ZGF.Gui.Testing;
 
 /// <summary>Raised by a harness assertion. The message carries the failure plus the full

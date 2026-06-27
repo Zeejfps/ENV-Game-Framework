@@ -1,6 +1,7 @@
 using PngSharp.Api;
 using ZGF.Fonts;
 using ZGF.Gui.Desktop.Widgets;
+using ZGF.Gui.Desktop.Inspection;
 using ZGF.Gui.Testing;
 using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;

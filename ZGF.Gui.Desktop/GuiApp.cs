@@ -27,6 +27,7 @@ public sealed class GuiApp : IDisposable
     private readonly Context _context;
     private readonly Func<Context, View> _contentFactory;
     private readonly Action<Type[]?>? _hotReloadHandler;
+    private GuiDebugServer? _debugServer;
 
     private GuiApp(
         IWindowedApp app,
@@ -37,7 +38,8 @@ public sealed class GuiApp : IDisposable
         Context context,
         Func<Context, View> contentFactory,
         Action<Context> registerBackendServices,
-        Action<Context>? startup)
+        Action<Context>? startup,
+        int? debugServerPort)
     {
         _app = app;
         _mainCanvas = mainCanvas;
@@ -109,6 +111,8 @@ public sealed class GuiApp : IDisposable
             _hotReloadHandler = _ => _dispatcher.Post(Reload);
             HotReloadService.UpdateApplied += _hotReloadHandler;
         }
+
+        StartDebugServer(debugServerPort);
     }
 
     private void HandleMainFocusChanged(bool focused)
@@ -144,14 +148,15 @@ public sealed class GuiApp : IDisposable
         Func<Context, View> contentFactory,
         GuiRenderBackendKind backendKind = GuiRenderBackendKind.Auto,
         Action? renderHook = null,
-        Action<Context>? startup = null)
+        Action<Context>? startup = null,
+        int? debugServerPort = null)
     {
         var backend = PlatformBackend.Resolve(config, backendKind, renderHook);
         return new GuiApp(
             backend.App, backend.MainCanvas, backend.FontBackend,
             backend.RenderBackend,
             backend.DefaultFont, context, contentFactory,
-            backend.RegisterServices, startup);
+            backend.RegisterServices, startup, debugServerPort);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)
@@ -235,10 +240,36 @@ public sealed class GuiApp : IDisposable
     /// pixel-perfect, via the GPU backend's framebuffer read-back (no-op on backends without it).
     /// Bind it to a debug shortcut or a menu action to dump exactly what's on screen, e.g. for an
     /// LLM to inspect alongside the headless <c>GuiTestHarness</c> snapshot.</summary>
-    public void CaptureScreenshot(string path)
+    public void CaptureScreenshot(string path) => CaptureScreenshot(path, null);
+
+    /// <inheritdoc cref="CaptureScreenshot(string)"/>
+    /// <param name="onComplete">Runs on the render thread once the capture attempt finishes.</param>
+    public void CaptureScreenshot(string path, Action? onComplete)
     {
-        _renderBackend.RequestScreenshot(path);
+        _renderBackend.RequestScreenshot(path, onComplete);
         _app.MainWindow.RequestRedraw();
+    }
+
+    private void StartDebugServer(int? configuredPort)
+    {
+        var port = configuredPort ?? ResolveEnvDebugPort();
+        if (port is not { } p) return;
+        var server = new GuiDebugServer(() => _mainHost.Root, _mainInput, _dispatcher, CaptureScreenshot);
+        try
+        {
+            server.Start(p);
+            _debugServer = server;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GuiDebugServer] failed to start on port {p}: {ex.Message}");
+        }
+    }
+
+    private static int? ResolveEnvDebugPort()
+    {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ZGF_GUI_DEBUG"))) return null;
+        return int.TryParse(Environment.GetEnvironmentVariable("ZGF_GUI_DEBUG_PORT"), out var p) ? p : 5577;
     }
 
     public void Run() => _app.Run();
@@ -326,6 +357,8 @@ public sealed class GuiApp : IDisposable
 
     public void Dispose()
     {
+        _debugServer?.Dispose();
+
         if (_hotReloadHandler != null)
             HotReloadService.UpdateApplied -= _hotReloadHandler;
 

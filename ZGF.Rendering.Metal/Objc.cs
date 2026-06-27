@@ -82,6 +82,26 @@ public static unsafe class Objc
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern void msg_Void_MTLRegion_NUInt_IntPtr_NUInt(IntPtr receiver, IntPtr selector, MTLRegion region, nuint level, IntPtr bytes, nuint bytesPerRow);
 
+    // objc_msgSend returning NSUInteger (e.g. MTLTexture.width / .height).
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern nuint msg_NUInt(IntPtr receiver, IntPtr selector);
+
+    // MTLTextureDescriptor texture2DDescriptorWithPixelFormat:width:height:mipmapped:
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern IntPtr msg_IntPtr_NUInt_NUInt_NUInt_Bool(IntPtr receiver, IntPtr selector, nuint a, nuint b, nuint c, [MarshalAs(UnmanagedType.I1)] bool d);
+
+    // MTLTexture getBytes:bytesPerRow:fromRegion:mipmapLevel:
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_GetBytes(IntPtr receiver, IntPtr selector, IntPtr bytes, nuint bytesPerRow, MTLRegion region, nuint level);
+
+    // MTLBlitCommandEncoder copyFromTexture:sourceSlice:sourceLevel:sourceOrigin:sourceSize:
+    //                                toTexture:destinationSlice:destinationLevel:destinationOrigin:
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_BlitCopyTexture(
+        IntPtr receiver, IntPtr selector,
+        IntPtr srcTexture, nuint srcSlice, nuint srcLevel, MTLOrigin srcOrigin, MTLSize srcSize,
+        IntPtr dstTexture, nuint dstSlice, nuint dstLevel, MTLOrigin dstOrigin);
+
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern IntPtr msg_IntPtr_MTLPrim_UInt_UInt_UInt(IntPtr receiver, IntPtr selector, uint prim, uint vertexStart, uint vertexCount, uint instanceCount);
 

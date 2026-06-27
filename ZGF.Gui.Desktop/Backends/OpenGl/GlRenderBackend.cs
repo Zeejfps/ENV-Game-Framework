@@ -12,6 +12,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private string? _pendingScreenshotPath;
+    private Action? _pendingScreenshotDone;
 
     public GlRenderBackend(GlSharedResources shared, FreeTypeFontBackend fonts, FontHandle defaultFont)
     {
@@ -46,6 +47,8 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
             if (_pendingScreenshotPath is { } path && canvas is OpenGlRenderedCanvas glCanvas)
             {
                 _pendingScreenshotPath = null;
+                var done = _pendingScreenshotDone;
+                _pendingScreenshotDone = null;
                 try
                 {
                     var rgba = glCanvas.ReadFramebufferRgba(out var w, out var h);
@@ -57,11 +60,19 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
                 {
                     Console.WriteLine($"[Screenshot] failed: {ex.Message}");
                 }
+                finally
+                {
+                    done?.Invoke();
+                }
             }
         };
     }
 
-    public void RequestScreenshot(string path) => _pendingScreenshotPath = path;
+    public void RequestScreenshot(string path, Action? onComplete = null)
+    {
+        _pendingScreenshotPath = path;
+        _pendingScreenshotDone = onComplete;
+    }
 
     public void Dispose() => _shared.Dispose();
 }
