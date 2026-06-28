@@ -103,8 +103,23 @@ public sealed class VirtualRowListView : View
     public int? HoveredIndex => _hoveredIndex < 0 ? null : _hoveredIndex;
     public int? ContextHighlightIndex => _contextHighlightIndex < 0 ? null : _contextHighlightIndex;
 
+    /// <summary>
+    /// When set, the widget repaints on every pointer move within the hovered row (not just when
+    /// the hovered row changes) so consumers can light up sub-row hotspots via <see cref="HoverPoint"/>.
+    /// Off by default: plain lists only redraw when the hovered row flips.
+    /// </summary>
+    public bool TrackHoverPoint { get; set; }
+
+    /// <summary>
+    /// The pointer's position while it is over a row, or null when no row is hovered — in the same
+    /// coordinate space as <see cref="TryGetRowRect"/>. Kept current within a row only while
+    /// <see cref="TrackHoverPoint"/> is set.
+    /// </summary>
+    public PointF? HoverPoint => _hoveredIndex < 0 ? null : _hoverPoint;
+
     private float _scrollY;
     private int _hoveredIndex = -1;
+    private PointF _hoverPoint;
     private int _contextHighlightIndex = -1;
     private bool _hasLastClick;
     private int _lastClickTickMs;
@@ -317,8 +332,15 @@ public sealed class VirtualRowListView : View
     internal void OnPointerMove(PointF point)
     {
         var idx = HitTestRow(point);
-        if (idx == _hoveredIndex) return;
+        if (idx == _hoveredIndex)
+        {
+            if (!TrackHoverPoint || _hoverPoint == point) return;
+            _hoverPoint = point;
+            SetDirty();
+            return;
+        }
         _hoveredIndex = idx;
+        _hoverPoint = point;
         SetDirty();
     }
 
