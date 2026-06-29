@@ -39,7 +39,7 @@ public sealed class VirtualRowListView : View
     /// </summary>
     public Func<int, float>? RowHeightAt { get; set; }
 
-    public float ScrollWheelStep { get; set; } = 60f;
+    public float ScrollWheelStep { get; set; } = ScrollDefaults.WheelStep;
     public int DoubleClickThresholdMs { get; set; } = 400;
 
     /// <summary>

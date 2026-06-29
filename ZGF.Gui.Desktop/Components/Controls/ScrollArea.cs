@@ -28,6 +28,10 @@ public sealed record ScrollArea : Widget
     /// engages. Defaults to false: the scrollbar is always shown.</summary>
     public bool AutoHide { get; init; }
 
+    /// <summary>Pixels travelled per mouse-wheel notch. Defaults to <see cref="ScrollDefaults.WheelStep"/>;
+    /// set it to keep wheel speed uniform with other scroll surfaces in the host app.</summary>
+    public float WheelStep { get; init; } = ScrollDefaults.WheelStep;
+
     protected override IWidget Build(Context ctx)
     {
         var pane = new VerticalScrollPane { Gap = Gap };
@@ -38,7 +42,7 @@ public sealed record ScrollArea : Widget
         var scrollBar = new ScrollBar { Thumb = thumb, Style = Style }.BuildView(ctx);
         return new KbmInput
         {
-            Controller = _ => new ScrollAreaKbmController(pane, thumb, AutoHide ? scrollBar : null),
+            Controller = _ => new ScrollAreaKbmController(pane, thumb, AutoHide ? scrollBar : null, WheelStep),
             Child = new BorderLayout
             {
                 Center = new Raw { View = pane },
@@ -58,12 +62,14 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
     private readonly VerticalScrollPane _pane;
     private readonly VerticalScrollBarThumbView _thumb;
     private readonly View? _autoHideTarget;
+    private readonly float _wheelStep;
 
-    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarThumbView thumb, View? autoHideTarget = null)
+    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarThumbView thumb, View? autoHideTarget = null, float wheelStep = ScrollDefaults.WheelStep)
     {
         _pane = pane;
         _thumb = thumb;
         _autoHideTarget = autoHideTarget;
+        _wheelStep = wheelStep;
 
         _pane.ScrollToTop();
         _thumb.ScrollToTop();
@@ -101,7 +107,7 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
         if (e.Phase != EventPhase.Bubbling)
             return;
 
-        _pane.Scroll(e.DeltaY * -10f);
+        _pane.Scroll(e.DeltaY * -_wheelStep);
         e.Consume();
     }
 
