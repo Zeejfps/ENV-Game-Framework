@@ -71,6 +71,11 @@ public sealed class ContextMenu : View
         Position = new RectF { Left = 0, Bottom = 0, Width = width, Height = height };
     }
 
+    /// <summary>Lower bound on the menu's measured width; 0 sizes purely to content. Lets a caller
+    /// widen an otherwise-skinny menu (e.g. a submenu of single-digit rows) so its rows are easy to hit.
+    /// Folded into the intrinsic measure because the menu self-sizes from an unclamped MeasureWidth().</summary>
+    public float MinWidth { get; set; }
+
     // The popup window is sized from MeasureWidth() before the menu is ever laid out, so the
     // shortcut column (otherwise only applied in OnLayoutSelf) has to be folded into the measured
     // width too. Without this, a menu whose widest row carries a shortcut measures too narrow and
@@ -78,7 +83,8 @@ public sealed class ContextMenu : View
     protected override float MeasureWidthIntrinsic()
     {
         AlignShortcutColumn();
-        return base.MeasureWidthIntrinsic();
+        var intrinsic = base.MeasureWidthIntrinsic();
+        return MinWidth > intrinsic ? MinWidth : intrinsic;
     }
 
     // Gap reserved between the label column and the shortcut column so long labels don't
