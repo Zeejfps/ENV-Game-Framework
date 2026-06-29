@@ -92,6 +92,10 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         }
     }
 
+    /// <summary>The currently open secondary windows. Exposed for inspection (the MCP server
+    /// projects these to surfaces).</summary>
+    internal IReadOnlyList<SecondaryWindowImpl> Active => _active;
+
     public void Dispose()
     {
         foreach (var w in _active) w.Dispose();
@@ -105,6 +109,8 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     private bool _disposed;
 
     public IWindow Window => _host.Window;
+    internal DesktopInputSystem Input => _host.Input;
+    internal View? Root => _host.Root;
     public bool CloseRequested { get; private set; }
     public event Action? Closed;
 

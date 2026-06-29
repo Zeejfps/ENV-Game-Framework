@@ -4,6 +4,7 @@ using McpSdk.Protocol;
 using McpSdk.Protocol.Models;
 using McpSdk.Server;
 using McpSdk.Shared;
+using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Inspection;
@@ -13,29 +14,27 @@ using ZGF.Observable;
 namespace ZGF.Gui.Desktop;
 
 /// <summary>An in-process Model Context Protocol server (Streamable HTTP) that lets an MCP client —
-/// an LLM, an agent, a script — drive the live main window: read the laid-out view tree, inject
-/// mouse/keyboard input, and grab a screenshot. Each tool marshals its work onto the UI thread via
-/// the <see cref="IUiDispatcher"/> and blocks for the result, so nothing races the renderer. Debug
-/// aid only — bound to 127.0.0.1 and opt-in (<c>GuiAppBuilder.UseMcpServer</c> or the
+/// an LLM, an agent, a script — drive the live app across every window: read the laid-out view trees
+/// (main window plus open context menus, tooltips, and secondary windows), inject mouse/keyboard
+/// input into the right window, and grab a per-window screenshot. Each tool marshals its work onto
+/// the UI thread via the <see cref="IUiDispatcher"/> and blocks for the result, so nothing races the
+/// renderer. Debug aid only — bound to 127.0.0.1 and opt-in (<c>GuiAppBuilder.UseMcpServer</c> or the
 /// <c>ZGF_GUI_MCP</c> env var).</summary>
 public sealed class GuiMcpServer : IDisposable
 {
-    private readonly Func<View?> _getRoot;
-    private readonly DesktopInputSystem _input;
+    private readonly Func<IReadOnlyList<GuiSurface>> _getSurfaces;
     private readonly IUiDispatcher _dispatcher;
-    private readonly Action<string, Action?> _captureScreenshot;
+    private readonly Action<IWindow, string, Action?> _captureScreenshot;
 
     private StreamableHttpListener? _listener;
     private Thread? _thread;
 
     public GuiMcpServer(
-        Func<View?> getRoot,
-        DesktopInputSystem input,
+        Func<IReadOnlyList<GuiSurface>> getSurfaces,
         IUiDispatcher dispatcher,
-        Action<string, Action?> captureScreenshot)
+        Action<IWindow, string, Action?> captureScreenshot)
     {
-        _getRoot = getRoot;
-        _input = input;
+        _getSurfaces = getSurfaces;
         _dispatcher = dispatcher;
         _captureScreenshot = captureScreenshot;
     }
@@ -72,7 +71,7 @@ public sealed class GuiMcpServer : IDisposable
     {
         tools.AddTool(Def(
             "gui_snapshot",
-            "Read the live main window's laid-out view tree (ids, labels, text, positions). Call this first to discover what is on screen and how to target it.",
+            "Read the laid-out view tree of every live window — the main window plus any open context menu, tooltip, or secondary window — each under a \"=== window: ROLE [x,y wxh] ===\" header. Call this first to discover what is on screen (incl. context menus, which are separate windows) and how to target it.",
             new ObjectSchema().AddOption("format", new StringSchema
             {
                 Description = "\"text\" (default, compact and human-readable) or \"json\" (machine-readable).",
@@ -83,14 +82,15 @@ public sealed class GuiMcpServer : IDisposable
 
         tools.AddTool(Def(
             "gui_screenshot",
-            "Capture a PNG screenshot of the rendered main window. Returns image content, or an error if the active render backend cannot read back its framebuffer.",
-            new ObjectSchema(),
+            "Capture a PNG screenshot of a rendered window. Defaults to the topmost open context menu if one is open, else the main window; pass \"window\" (a role like \"context-menu\" or \"main\", or a snapshot window index) to target another. Returns image content, or an error if the active render backend cannot read back its framebuffer.",
+            new ObjectSchema()
+                .AddOption("window", new StringSchema { Description = "Window to capture: a role (\"main\", \"context-menu\", \"tooltip\", \"secondary\") or a snapshot window index. Defaults to the topmost context menu, else main." }),
             readOnly: true,
-            (a, _) => Run(() => Image(Screenshot()))));
+            (a, _) => Run(() => Image(Screenshot(Str(a, "window"))))));
 
         tools.AddTool(Def(
             "gui_click",
-            "Click a view in the main window. Target it by \"id\", \"label\", or \"text\", or click absolute GUI coordinates with \"x\" and \"y\".",
+            "Click a view in any live window (searches open context menus first, then secondary windows, then main). Target it by \"id\", \"label\", or \"text\", or click absolute GUI coordinates with \"x\" and \"y\" (in the \"window\" you name, default main).",
             new ObjectSchema()
                 .AddOption("id", new StringSchema { Description = "View id to click." })
                 .AddOption("label", new StringSchema { Description = "Clickable label / accessible name to match." })
@@ -98,11 +98,12 @@ public sealed class GuiMcpServer : IDisposable
                 .AddOption("exact", new BooleanSchema { Description = "Match id/label/text exactly (default true); false matches substrings." })
                 .AddOption("button", new StringSchema { Description = "Mouse button (default left).", Options = ["left", "right", "middle"] })
                 .AddOption("x", new NumberSchema { Description = "Absolute GUI x (use with y to click a coordinate)." })
-                .AddOption("y", new NumberSchema { Description = "Absolute GUI y (use with x to click a coordinate)." }),
+                .AddOption("y", new NumberSchema { Description = "Absolute GUI y (use with x to click a coordinate)." })
+                .AddOption("window", new StringSchema { Description = "For x/y clicks, which window's coordinate space: a role or snapshot index (default \"main\")." }),
             readOnly: false,
             (a, _) => Run(() => Text(Click(
                 Str(a, "id"), Str(a, "label"), Str(a, "text"),
-                Bool(a, "exact", true), Num(a, "x"), Num(a, "y"), Str(a, "button"))))));
+                Bool(a, "exact", true), Num(a, "x"), Num(a, "y"), Str(a, "button"), Str(a, "window"))))));
 
         tools.AddTool(Def(
             "gui_type",
@@ -125,41 +126,53 @@ public sealed class GuiMcpServer : IDisposable
     // ---- actions (run on the UI thread) ----
 
     private string Snapshot(bool asJson) => RunOnUi(() =>
-    {
-        var root = RequireRoot();
-        root.LayoutSelf();
-        var snap = SnapshotBuilder.Build(root, _input.InputSystem);
-        return asJson ? snap.ToJson() : snap.ToText();
-    });
+        new MultiWindowSnapshot(BuildWindowSnapshots()).Render(asJson));
 
-    private string Click(string? id, string? label, string? text, bool exact, float? x, float? y, string? button) => RunOnUi(() =>
+    private List<WindowSnapshot> BuildWindowSnapshots()
     {
-        var root = RequireRoot();
-        root.LayoutSelf();
+        var surfaces = _getSurfaces();
+        var windows = new List<WindowSnapshot>(surfaces.Count);
+        foreach (var s in surfaces)
+        {
+            if (s.Root is not { } root) continue;
+            root.LayoutSelf();
+            s.Window.GetPosition(out var x, out var y);
+            var bounds = new RectI(x, y, s.Window.Width, s.Window.Height);
+            windows.Add(new WindowSnapshot(
+                s.Role, bounds, s.Window.IsFocused, SnapshotBuilder.Build(root, s.Input.InputSystem)));
+        }
+        return windows;
+    }
+
+    private string Click(string? id, string? label, string? text, bool exact, float? x, float? y, string? button, string? window) => RunOnUi(() =>
+    {
         var mouseButton = ParseMouseButton(button);
 
+        GuiSurface surface;
         PointF point;
         string target;
         if (x is { } px && y is { } py)
         {
+            surface = ResolveWindow(window) ?? throw NoWindow(window);
             point = new PointF(px, py);
-            target = $"({px:0},{py:0})";
+            target = $"{surface.Role} ({px:0},{py:0})";
         }
         else
         {
-            var view = ResolveView(root, id, label, text, exact)
-                       ?? throw NotFound(root, id ?? label ?? text);
-            point = view.Position.Center;
-            target = Describe(view);
+            var hit = ResolveAcross(id, label, text, exact)
+                      ?? throw NotFound(id ?? label ?? text);
+            surface = hit.Surface;
+            point = hit.View.Position.Center;
+            target = $"{surface.Role} {Describe(hit.View)}";
         }
 
-        InjectClick(point, mouseButton);
+        InjectClick(surface.Input, point, mouseButton);
         return $"clicked {target} at ({point.X:0},{point.Y:0})";
     });
 
     private string Type(string text) => RunOnUi(() =>
     {
-        var sys = _input.InputSystem;
+        var sys = FocusedSurface().Input.InputSystem;
         foreach (var ch in text)
         {
             if (ch == '\r') continue;
@@ -176,7 +189,7 @@ public sealed class GuiMcpServer : IDisposable
             throw new InvalidOperationException($"Unknown key '{keyName}'.");
         var modifiers = ParseModifiers(mods);
         var act = (action ?? "press").ToLowerInvariant();
-        var sys = _input.InputSystem;
+        var sys = FocusedSurface().Input.InputSystem;
         switch (act)
         {
             case "down": SendKey(sys, key, modifiers, press: true, release: false); break;
@@ -186,11 +199,16 @@ public sealed class GuiMcpServer : IDisposable
         return $"key {key} {act}";
     });
 
-    private byte[] Screenshot()
+    private byte[] Screenshot(string? window)
     {
         var path = Path.Combine(Path.GetTempPath(), $"zgf-mcp-{Guid.NewGuid():N}.png");
         using var done = new ManualResetEventSlim(false);
-        _dispatcher.Post(() => _captureScreenshot(path, () => done.Set()));
+
+        var surface = RunOnUi(() => window is { Length: > 0 }
+            ? ResolveWindow(window) ?? throw NoWindow(window)
+            : DefaultScreenshotSurface());
+
+        _dispatcher.Post(() => _captureScreenshot(surface.Window, path, () => done.Set()));
 
         if (!done.Wait(5000) || !File.Exists(path))
             throw new InvalidOperationException(
@@ -200,10 +218,10 @@ public sealed class GuiMcpServer : IDisposable
         finally { try { File.Delete(path); } catch { /* best effort */ } }
     }
 
-    private void InjectClick(PointF point, MouseButton button)
+    private void InjectClick(DesktopInputSystem input, PointF point, MouseButton button)
     {
-        var mouse = _input.Mouse;
-        var sys = _input.InputSystem;
+        var mouse = input.Mouse;
+        var sys = input.InputSystem;
 
         mouse.Point = point;
         var move = new MouseMoveEvent { Mouse = mouse, Phase = EventPhase.Capturing };
@@ -252,6 +270,56 @@ public sealed class GuiMcpServer : IDisposable
         return null;
     }
 
+    // ---- surface resolution ----
+
+    // Search every interactive window topmost-first (last-opened popup wins — it's modal and on
+    // top), skipping pass-through tooltip windows which receive no clicks.
+    private (GuiSurface Surface, View View)? ResolveAcross(string? id, string? label, string? text, bool exact)
+    {
+        var surfaces = _getSurfaces();
+        for (var i = surfaces.Count - 1; i >= 0; i--)
+        {
+            var s = surfaces[i];
+            if (s.Role == "tooltip" || s.Root is not { } root) continue;
+            root.LayoutSelf();
+            if (ResolveView(root, id, label, text, exact) is { } v) return (s, v);
+        }
+        return null;
+    }
+
+    // A window named by role (topmost match) or by snapshot index; null/empty => main.
+    private GuiSurface? ResolveWindow(string? selector)
+    {
+        var surfaces = _getSurfaces();
+        if (surfaces.Count == 0) return null;
+        if (string.IsNullOrWhiteSpace(selector)) return surfaces[0];
+        if (int.TryParse(selector, out var idx) && idx >= 0 && idx < surfaces.Count) return surfaces[idx];
+        for (var i = surfaces.Count - 1; i >= 0; i--)
+            if (EqualsIc(surfaces[i].Role, selector)) return surfaces[i];
+        return null;
+    }
+
+    // Keyboard goes to the focused window (an open menu popup is the key window — see
+    // GuiApp.HandleMainFocusChanged); fall back to main when nothing reports focus.
+    private GuiSurface FocusedSurface()
+    {
+        var surfaces = _getSurfaces();
+        if (surfaces.Count == 0) throw new InvalidOperationException("No window is mounted.");
+        for (var i = surfaces.Count - 1; i >= 0; i--)
+            if (surfaces[i].Window.IsFocused) return surfaces[i];
+        return surfaces[0];
+    }
+
+    // The most useful default for "show me the menu": the topmost open context menu, else main.
+    private GuiSurface DefaultScreenshotSurface()
+    {
+        var surfaces = _getSurfaces();
+        if (surfaces.Count == 0) throw new InvalidOperationException("No window is mounted.");
+        for (var i = surfaces.Count - 1; i >= 0; i--)
+            if (surfaces[i].Role == "context-menu") return surfaces[i];
+        return surfaces[0];
+    }
+
     // ---- UI-thread marshaling ----
 
     private T RunOnUi<T>(Func<T> fn, int timeoutMs = 10000)
@@ -271,12 +339,16 @@ public sealed class GuiMcpServer : IDisposable
         return result;
     }
 
-    private View RequireRoot() => _getRoot() ?? throw new InvalidOperationException("No root view is mounted.");
-
-    private Exception NotFound(View root, string? query)
+    private Exception NotFound(string? query)
     {
-        var snap = SnapshotBuilder.Build(root, _input.InputSystem).ToText();
+        var snap = new MultiWindowSnapshot(BuildWindowSnapshots()).ToText();
         return new InvalidOperationException($"No view matched \"{query ?? "(none)"}\".\n--- snapshot ---\n{snap}");
+    }
+
+    private Exception NoWindow(string? selector)
+    {
+        var roles = string.Join(", ", _getSurfaces().Select(s => s.Role));
+        return new InvalidOperationException($"No window matched \"{selector ?? "(none)"}\". Open windows: {roles}");
     }
 
     private static string Describe(View view) =>

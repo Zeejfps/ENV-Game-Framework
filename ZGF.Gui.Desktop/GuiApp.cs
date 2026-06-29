@@ -250,11 +250,37 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.RequestRedraw();
     }
 
+    /// <summary>Projects every live window — main, open secondary windows, and shown popups
+    /// (context menus, tooltips) — to a flat <see cref="GuiSurface"/> list, oldest/topmost order:
+    /// main, then secondaries, then popups in open order (last = topmost). Rebuilt per call so a
+    /// pooled/released popup simply drops out next time. Drives the multi-window MCP tools.</summary>
+    private IReadOnlyList<GuiSurface> CollectSurfaces()
+    {
+        var list = new List<GuiSurface> { new("main", _app.MainWindow, _mainHost.Root, _mainInput) };
+        foreach (var s in _secondaryWindows.Active)
+            list.Add(new GuiSurface("secondary", s.Window, s.Root, s.Input));
+        foreach (var p in _popupFactory.ActivePopups)
+            list.Add(new GuiSurface(p.MousePassThrough ? "tooltip" : "context-menu", p.Window, p.Root, p.Input));
+        return list;
+    }
+
+    /// <summary>Screenshots a specific window (not just main). Renders <paramref name="window"/>
+    /// synchronously so its frame consumes the backend's single pending-capture slot — no race with
+    /// other windows' redraws — then restores the main GL context when the target wasn't main.</summary>
+    private void CaptureWindowScreenshot(IWindow window, string path, Action? onComplete)
+    {
+        _renderBackend.RequestScreenshot(path, onComplete);
+        window.MakeContextCurrent();
+        window.RenderNow();
+        if (!ReferenceEquals(window, _app.MainWindow))
+            _app.MakeMainContextCurrent();
+    }
+
     private void StartMcpServer(int? configuredPort)
     {
         var port = configuredPort ?? ResolveEnvMcpPort();
         if (port is not { } p) return;
-        var server = new GuiMcpServer(() => _mainHost.Root, _mainInput, _dispatcher, CaptureScreenshot);
+        var server = new GuiMcpServer(CollectSurfaces, _dispatcher, CaptureWindowScreenshot);
         try
         {
             server.Start(p);

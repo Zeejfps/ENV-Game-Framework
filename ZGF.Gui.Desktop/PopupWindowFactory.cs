@@ -288,6 +288,10 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             _activePopups[i].UpdateInput();
     }
 
+    /// <summary>The currently shown popups, oldest first (so the last entry is topmost — a submenu
+    /// follows its parent). Exposed for inspection (the MCP server projects these to surfaces).</summary>
+    internal IReadOnlyList<PopupWindowImpl> ActivePopups => _activePopups;
+
     public void Dispose()
     {
         foreach (var p in _activePopups) p.Dispose();
@@ -308,6 +312,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public Context Context => _host.Context;
     public View? Root => _host.Root;
     public IPointerWindow PointerWindow => _host.Input;
+    internal DesktopInputSystem Input => _host.Input;
 
     public PopupWindowImpl(
         IWindow window,
