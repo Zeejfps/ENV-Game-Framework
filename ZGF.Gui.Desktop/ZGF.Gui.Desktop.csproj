@@ -20,6 +20,14 @@
       <InternalsVisibleTo Include="ZGF.Gui.Sandbox" />
     </ItemGroup>
 
+    <!-- In-process MCP server (GuiMcpServer) for driving the live window from an LLM/agent.
+         The Streamable HTTP transport is self-hosted over System.Net.HttpListener — no ASP.NET. -->
+    <ItemGroup>
+      <PackageReference Include="McpSdk.Server" Version="1.0.0" />
+      <PackageReference Include="McpSdk.Adapter.System.Text.Json" Version="1.0.0" />
+      <PackageReference Include="McpSdk.Adapter.StreamableHttpServer" Version="1.0.0" />
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />

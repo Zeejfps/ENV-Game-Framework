@@ -27,7 +27,7 @@ public sealed class GuiApp : IDisposable
     private readonly Context _context;
     private readonly Func<Context, View> _contentFactory;
     private readonly Action<Type[]?>? _hotReloadHandler;
-    private GuiDebugServer? _debugServer;
+    private GuiMcpServer? _mcpServer;
 
     private GuiApp(
         IWindowedApp app,
@@ -39,7 +39,7 @@ public sealed class GuiApp : IDisposable
         Func<Context, View> contentFactory,
         Action<Context> registerBackendServices,
         Action<Context>? startup,
-        int? debugServerPort)
+        int? mcpServerPort)
     {
         _app = app;
         _mainCanvas = mainCanvas;
@@ -112,7 +112,7 @@ public sealed class GuiApp : IDisposable
             HotReloadService.UpdateApplied += _hotReloadHandler;
         }
 
-        StartDebugServer(debugServerPort);
+        StartMcpServer(mcpServerPort);
     }
 
     private void HandleMainFocusChanged(bool focused)
@@ -149,14 +149,14 @@ public sealed class GuiApp : IDisposable
         GuiRenderBackendKind backendKind = GuiRenderBackendKind.Auto,
         Action? renderHook = null,
         Action<Context>? startup = null,
-        int? debugServerPort = null)
+        int? mcpServerPort = null)
     {
         var backend = PlatformBackend.Resolve(config, backendKind, renderHook);
         return new GuiApp(
             backend.App, backend.MainCanvas, backend.FontBackend,
             backend.RenderBackend,
             backend.DefaultFont, context, contentFactory,
-            backend.RegisterServices, startup, debugServerPort);
+            backend.RegisterServices, startup, mcpServerPort);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)
@@ -250,26 +250,26 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.RequestRedraw();
     }
 
-    private void StartDebugServer(int? configuredPort)
+    private void StartMcpServer(int? configuredPort)
     {
-        var port = configuredPort ?? ResolveEnvDebugPort();
+        var port = configuredPort ?? ResolveEnvMcpPort();
         if (port is not { } p) return;
-        var server = new GuiDebugServer(() => _mainHost.Root, _mainInput, _dispatcher, CaptureScreenshot);
+        var server = new GuiMcpServer(() => _mainHost.Root, _mainInput, _dispatcher, CaptureScreenshot);
         try
         {
             server.Start(p);
-            _debugServer = server;
+            _mcpServer = server;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GuiDebugServer] failed to start on port {p}: {ex.Message}");
+            Console.WriteLine($"[GuiMcpServer] failed to start on port {p}: {ex.Message}");
         }
     }
 
-    private static int? ResolveEnvDebugPort()
+    private static int? ResolveEnvMcpPort()
     {
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ZGF_GUI_DEBUG"))) return null;
-        return int.TryParse(Environment.GetEnvironmentVariable("ZGF_GUI_DEBUG_PORT"), out var p) ? p : 5577;
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ZGF_GUI_MCP"))) return null;
+        return int.TryParse(Environment.GetEnvironmentVariable("ZGF_GUI_MCP_PORT"), out var p) ? p : 5577;
     }
 
     public void Run() => _app.Run();
@@ -357,7 +357,7 @@ public sealed class GuiApp : IDisposable
 
     public void Dispose()
     {
-        _debugServer?.Dispose();
+        _mcpServer?.Dispose();
 
         if (_hotReloadHandler != null)
             HotReloadService.UpdateApplied -= _hotReloadHandler;

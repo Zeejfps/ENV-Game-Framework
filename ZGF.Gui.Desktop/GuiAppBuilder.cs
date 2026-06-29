@@ -18,7 +18,7 @@ public sealed class GuiAppBuilder
     private GuiRenderBackendKind _backendKind = GuiRenderBackendKind.Auto;
     private Action? _renderHook;
     private Action<Context>? _startup;
-    private int? _debugServerPort;
+    private int? _mcpServerPort;
 
     internal GuiAppBuilder(StartupConfig config)
     {
@@ -85,16 +85,17 @@ public sealed class GuiAppBuilder
     }
 
     /// <summary>
-    /// Starts a localhost-only HTTP debug server on <paramref name="port"/> once the app is built:
-    /// read the live view tree (<c>GET /snapshot</c>), inject mouse/keyboard input
-    /// (<c>POST /click</c>, <c>/type</c>, <c>/key</c>), and capture a screenshot
-    /// (<c>GET /screenshot</c>). A debugging aid for driving the running window from a script or an
-    /// LLM. The server also auto-starts (without this call) when the <c>ZGF_GUI_DEBUG</c> environment
-    /// variable is set, reading <c>ZGF_GUI_DEBUG_PORT</c> (default 5577).
+    /// Starts a localhost-only Model Context Protocol server (Streamable HTTP) on
+    /// <paramref name="port"/> once the app is built, at <c>http://127.0.0.1:{port}/mcp</c>. It
+    /// exposes the live window to an MCP client through tools: read the view tree (<c>gui_snapshot</c>),
+    /// inject input (<c>gui_click</c>, <c>gui_type</c>, <c>gui_key</c>), and capture a screenshot
+    /// (<c>gui_screenshot</c>). A debugging aid for driving the running window from an LLM or an agent.
+    /// The server also auto-starts (without this call) when the <c>ZGF_GUI_MCP</c> environment variable
+    /// is set, reading <c>ZGF_GUI_MCP_PORT</c> (default 5577).
     /// </summary>
-    public GuiAppBuilder UseDebugServer(int port = 5577)
+    public GuiAppBuilder UseMcpServer(int port = 5577)
     {
-        _debugServerPort = port;
+        _mcpServerPort = port;
         return this;
     }
 
@@ -104,6 +105,6 @@ public sealed class GuiAppBuilder
         if (_contentFactory is null)
             throw new InvalidOperationException(
                 "No root content set. Call UseContent(...) before Build().");
-        return GuiApp.Create(_config, Services, _contentFactory, _backendKind, _renderHook, _startup, _debugServerPort);
+        return GuiApp.Create(_config, Services, _contentFactory, _backendKind, _renderHook, _startup, _mcpServerPort);
     }
 }
