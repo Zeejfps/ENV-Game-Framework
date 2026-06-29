@@ -1,6 +1,7 @@
 using System.Text;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Inspection;
 using ZGF.KeyboardModule;
@@ -36,6 +37,7 @@ public sealed class GuiTestHarness : IDisposable
     private readonly FrameTicker _ticker;
     private readonly Context _context;
     private readonly View _root;
+    private readonly HeadlessContextMenuHost _menuHost;
     private int _redrawCount;
 
     public View Root => _root;
@@ -52,7 +54,7 @@ public sealed class GuiTestHarness : IDisposable
 
     private GuiTestHarness(
         Context context, RecordingCanvas? canvas, RasterCanvas? raster,
-        InputSystem input, Mouse mouse, FrameTicker ticker, View root)
+        InputSystem input, Mouse mouse, FrameTicker ticker, View root, HeadlessContextMenuHost menuHost)
     {
         _context = context;
         _canvas = canvas;
@@ -61,6 +63,7 @@ public sealed class GuiTestHarness : IDisposable
         _mouse = mouse;
         _ticker = ticker;
         _root = root;
+        _menuHost = menuHost;
     }
 
     public static GuiTestHarness Create(
@@ -78,13 +81,15 @@ public sealed class GuiTestHarness : IDisposable
         var mouse = new Mouse();
         var ticker = new FrameTicker();
         ctx.AddService<IFrameTicker>(ticker);
+        var menuHost = new HeadlessContextMenuHost(ctx);
+        ctx.AddService<IContextMenuHost>(menuHost);
         configure?.Invoke(ctx);
 
         var root = content(ctx);
         root.Width = width;
         root.Height = height;
 
-        var harness = new GuiTestHarness(ctx, canvas, null, input, mouse, ticker, root);
+        var harness = new GuiTestHarness(ctx, canvas, null, input, mouse, ticker, root, menuHost);
         root.OnRedrawNeeded = () => harness._redrawCount++;
         root.Mount();
         root.LayoutSelf();
@@ -114,13 +119,15 @@ public sealed class GuiTestHarness : IDisposable
         var mouse = new Mouse();
         var ticker = new FrameTicker();
         ctx.AddService<IFrameTicker>(ticker);
+        var menuHost = new HeadlessContextMenuHost(ctx);
+        ctx.AddService<IContextMenuHost>(menuHost);
         configure?.Invoke(ctx);
 
         var root = content(ctx);
         root.Width = width;
         root.Height = height;
 
-        var harness = new GuiTestHarness(ctx, null, canvas, input, mouse, ticker, root);
+        var harness = new GuiTestHarness(ctx, null, canvas, input, mouse, ticker, root, menuHost);
         root.OnRedrawNeeded = () => harness._redrawCount++;
         root.Mount();
         root.LayoutSelf();
@@ -133,6 +140,48 @@ public sealed class GuiTestHarness : IDisposable
     /// diffable view of what's on screen, with live focus/hover merged in from the input system.
     /// Lay out (or <see cref="Settle"/>) first so bounds and state are current.</summary>
     public UiSnapshot Snapshot() => SnapshotBuilder.Build(_root, _input);
+
+    /// <summary>Open context menus, oldest first (last = topmost). Each is its own headless window
+    /// with its own input system — context menus opened through the harness's
+    /// <see cref="ZGF.Gui.Desktop.Components.ContextMenu.IContextMenuHost"/> land here, not in the
+    /// main tree. Empty when no menu is open.</summary>
+    public IReadOnlyList<OpenMenu> Menus => _menuHost.OpenMenus;
+
+    public int OpenMenuCount => _menuHost.OpenMenus.Count;
+
+    /// <summary>The topmost open context menu's root, or null when none is open.</summary>
+    public ContextMenu? TopMenu
+    {
+        get
+        {
+            var menus = _menuHost.OpenMenus;
+            return menus.Count > 0 ? menus[^1].Menu : null;
+        }
+    }
+
+    /// <summary>Like <see cref="Snapshot"/> but a forest: the main root plus every open context menu,
+    /// each under a <c>=== window: ROLE [x,y wxh] ===</c> header — so a context menu (a separate
+    /// window in the live app) is visible and diffable alongside the main window, exactly as the live
+    /// MCP server renders it. Lay out / <see cref="Settle"/> first so bounds are current.</summary>
+    public MultiWindowSnapshot SnapshotWindows()
+    {
+        Layout();
+        var menus = _menuHost.OpenMenus;
+        var windows = new List<WindowSnapshot>(menus.Count + 1);
+        var mainBounds = new RectI(0, 0, (int)_root.Position.Width, (int)_root.Position.Height);
+        windows.Add(new WindowSnapshot("main", mainBounds, Focused: menus.Count == 0,
+            SnapshotBuilder.Build(_root, _input)));
+        for (var i = 0; i < menus.Count; i++)
+        {
+            var menu = menus[i].Menu;
+            menu.LayoutSelf();
+            var p = menu.Position;
+            var bounds = new RectI((int)p.Left, (int)p.Bottom, (int)p.Width, (int)p.Height);
+            windows.Add(new WindowSnapshot("context-menu", bounds, Focused: i == menus.Count - 1,
+                SnapshotBuilder.Build(menu, menus[i].Input)));
+        }
+        return new MultiWindowSnapshot(windows);
+    }
 
     public void Resize(int width, int height)
     {
@@ -169,46 +218,51 @@ public sealed class GuiTestHarness : IDisposable
     public void MoveTo(float x, float y)
     {
         Layout();
-        _mouse.Point = new PointF(x, y);
-        var e = new MouseMoveEvent { Mouse = _mouse, Phase = EventPhase.Capturing };
-        _input.SendMouseMovedEvent(ref e);
+        DispatchMove(_input, x, y);
     }
 
-    public void Press(MouseButton? button = null)
-    {
-        var b = button ?? MouseButton.Left;
-        _mouse.Press(b);
-        var e = new MouseButtonEvent
-        {
-            Mouse = _mouse,
-            Button = b,
-            State = InputState.Pressed,
-            Modifiers = InputModifiers.None,
-            Phase = EventPhase.Capturing,
-        };
-        _input.SendMouseButtonEvent(ref e);
-    }
+    public void Press(MouseButton? button = null) =>
+        DispatchButton(_input, button ?? MouseButton.Left, InputState.Pressed);
 
-    public void Release(MouseButton? button = null)
-    {
-        var b = button ?? MouseButton.Left;
-        _mouse.Release(b);
-        var e = new MouseButtonEvent
-        {
-            Mouse = _mouse,
-            Button = b,
-            State = InputState.Released,
-            Modifiers = InputModifiers.None,
-            Phase = EventPhase.Capturing,
-        };
-        _input.SendMouseButtonEvent(ref e);
-    }
+    public void Release(MouseButton? button = null) =>
+        DispatchButton(_input, button ?? MouseButton.Left, InputState.Released);
 
     public void Click(float x, float y, MouseButton? button = null)
     {
         MoveTo(x, y);
         Press(button);
         Release(button);
+    }
+
+    // Targeted dispatch — same path as the public Move/Press/Release but against an arbitrary input
+    // system, so a click can be routed into an open menu's own input system rather than the main one.
+    private void DispatchMove(InputSystem input, float x, float y)
+    {
+        _mouse.Point = new PointF(x, y);
+        var e = new MouseMoveEvent { Mouse = _mouse, Phase = EventPhase.Capturing };
+        input.SendMouseMovedEvent(ref e);
+    }
+
+    private void DispatchButton(InputSystem input, MouseButton button, InputState state)
+    {
+        if (state == InputState.Pressed) _mouse.Press(button); else _mouse.Release(button);
+        var e = new MouseButtonEvent
+        {
+            Mouse = _mouse,
+            Button = button,
+            State = state,
+            Modifiers = InputModifiers.None,
+            Phase = EventPhase.Capturing,
+        };
+        input.SendMouseButtonEvent(ref e);
+    }
+
+    private void ClickAt(InputSystem input, float x, float y, MouseButton? button)
+    {
+        var b = button ?? MouseButton.Left;
+        DispatchMove(input, x, y);
+        DispatchButton(input, b, InputState.Pressed);
+        DispatchButton(input, b, InputState.Released);
     }
 
     public void ClickOn(View view, MouseButton? button = null)
@@ -234,6 +288,56 @@ public sealed class GuiTestHarness : IDisposable
             ?? throw NotFound("clickable view labeled", label, ClickableCandidates());
         ClickOn(view, button);
     }
+
+    /// <summary>Clicks a context-menu item by its text, in the topmost open menu (searching submenus
+    /// first). Routes the click into that menu's own input system, so the item's controller runs
+    /// exactly as it would over a real popup — a leaf item dismisses the menu, a disabled item
+    /// consumes the press and keeps it open. Throws with the window forest when nothing matches.</summary>
+    public void ClickMenuItem(string text, bool exact = true, MouseButton? button = null)
+    {
+        var hit = ResolveMenuItem(text, exact) ?? throw MenuItemNotFound(text);
+        var center = hit.View.Position.Center;
+        ClickAt(hit.Input, center.X, center.Y, button);
+    }
+
+    /// <summary>Moves the pointer over a context-menu item by its text (topmost menu first) — the
+    /// gesture that opens a submenu or selects a row, without clicking.</summary>
+    public void HoverMenuItem(string text, bool exact = true)
+    {
+        var hit = ResolveMenuItem(text, exact) ?? throw MenuItemNotFound(text);
+        var center = hit.View.Position.Center;
+        DispatchMove(hit.Input, center.X, center.Y);
+    }
+
+    // Resolve a menu item by text across open menus, topmost-first (a menu is modal and on top).
+    // Tries the item's own text, then a clickable/accessible-name match for items with custom labels.
+    private (InputSystem Input, View View)? ResolveMenuItem(string text, bool exact)
+    {
+        var menus = _menuHost.OpenMenus;
+        for (var i = menus.Count - 1; i >= 0; i--)
+        {
+            var menu = menus[i].Menu;
+            menu.LayoutSelf();
+            var view = menu.FindByText(text, exact)
+                ?? menu.FindClickable(text, exact)
+                ?? menu.Find(v => NameMatches(v.AccessibleName(), text, exact));
+            if (view != null) return (menus[i].Input, view);
+        }
+        return null;
+    }
+
+    private InvalidOperationException MenuItemNotFound(string text)
+    {
+        var sb = new StringBuilder();
+        sb.Append("No context-menu item with text \"").Append(text).Append("\" found in any open menu.");
+        sb.Append("\n--- windows ---\n").Append(SnapshotWindows().ToText());
+        return new InvalidOperationException(sb.ToString());
+    }
+
+    private static bool NameMatches(string? name, string query, bool exact) =>
+        name != null && (exact
+            ? string.Equals(name, query, StringComparison.OrdinalIgnoreCase)
+            : name.Contains(query, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Resolves a view by <see cref="View.Id"/> first, then by accessible label (any role).
     /// Throws with candidates + snapshot when nothing matches.</summary>
@@ -335,6 +439,7 @@ public sealed class GuiTestHarness : IDisposable
 
     public void Dispose()
     {
+        _menuHost.CloseAllImmediately();
         _root.Unmount();
         _context.Dispose();
     }
