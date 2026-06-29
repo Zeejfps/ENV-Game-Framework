@@ -56,6 +56,11 @@ public sealed record DataGridColumn<TItem>
     /// forced commit (focus lost / clicking away), which is best-effort and writes whatever parses.</summary>
     public Func<View, bool>? ValidateEditor { get; init; }
 
+    /// <summary>Optional: render an editor's validity state (called with <c>invalid: true</c> when a non-forced
+    /// commit is rejected by <see cref="ValidateEditor"/>, and with <c>false</c> to clear). The framework stays
+    /// unopinionated about the cue — a consumer might tint the text, draw a border, etc. Null = no visual.</summary>
+    public Action<View, bool>? MarkInvalid { get; init; }
+
     public bool Sortable { get; init; }
 
     /// <summary>True when this column can be edited — i.e. it supplies an editor cell.</summary>

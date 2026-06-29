@@ -8,7 +8,19 @@ public class DataGridEditableRowTests
 {
     private sealed class Cell { public string A = ""; public string B = ""; }
 
-    private sealed class RecordingEditor : View { public string Value = ""; }
+    private sealed class RecordingEditor : View { public string Value = ""; public bool Invalid; }
+
+    // An editable column that rejects empty values and records its validity cue on the editor.
+    private static DataGridColumn<Cell> ValidatedEditable() => new()
+    {
+        Key = "a",
+        Width = ColumnWidth.Flex(),
+        Text = c => c.A,
+        CreateEditor = _ => new RecordingEditor(),
+        BindEditor = (v, item) => ((RecordingEditor)v).Value = item.A,
+        ValidateEditor = v => ((RecordingEditor)v).Value.Length > 0,
+        MarkInvalid = (v, invalid) => ((RecordingEditor)v).Invalid = invalid,
+    };
 
     private static DataGridColumn<Cell> FakeEditable() => new()
     {
@@ -72,6 +84,41 @@ public class DataGridEditableRowTests
         col.CommitEditor!(editor, item);
 
         Assert.Equal("bye", item.A);
+    }
+
+    [Fact]
+    public void ShowValidation_FlagsInvalidCells_AndRevalidatingOrClearingResetsThem()
+    {
+        var row = BuildRow(new[] { ValidatedEditable() });
+        var editor = (RecordingEditor)row.Editor(0)!;
+
+        editor.Value = ""; // rejected (empty)
+        Assert.False(row.ShowValidation());
+        Assert.True(editor.Invalid); // flagged
+
+        editor.Value = "ok";
+        Assert.True(row.ShowValidation());
+        Assert.False(editor.Invalid); // re-validating a now-valid cell clears the flag
+
+        editor.Value = "";
+        row.ShowValidation();
+        Assert.True(editor.Invalid);
+        row.ClearValidation();
+        Assert.False(editor.Invalid); // explicit clear (edit ended)
+    }
+
+    [Fact]
+    public void Bind_ClearsAnyStaleInvalidFlag()
+    {
+        var row = BuildRow(new[] { ValidatedEditable() });
+        var editor = (RecordingEditor)row.Editor(0)!;
+
+        editor.Value = "";
+        row.ShowValidation();
+        Assert.True(editor.Invalid);
+
+        row.Bind(new Cell { A = "fresh" }); // a (re)bound row isn't invalid until a commit is attempted
+        Assert.False(editor.Invalid);
     }
 
     [Fact]

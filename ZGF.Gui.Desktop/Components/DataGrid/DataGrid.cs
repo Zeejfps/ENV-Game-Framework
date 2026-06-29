@@ -2,6 +2,7 @@ using ZGF.Gui.Desktop.Components.Controls;
 using ZGF.Gui.Desktop.Components.VerticalScrollBar;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Widgets;
+using ZGF.Gui.Views;
 using ZGF.Gui.Widgets;
 
 namespace ZGF.Gui.Desktop.Components.DataGrid;
@@ -40,6 +41,10 @@ public sealed record DataGrid<TItem> : Widget
     /// <summary>Invoked with a column's <see cref="DataGridColumn{TItem}.Key"/> when its sortable header is clicked.</summary>
     public Action<string>? OnSort { get; init; }
 
+    /// <summary>Invoked (on press) with a non-sortable column's <see cref="DataGridColumn{TItem}.Key"/> when its
+    /// header is clicked — a hook for column-header affordances such as a filter popover.</summary>
+    public Action<string>? OnHeaderPress { get; init; }
+
     /// <summary>When true, the body runs in <see cref="DataGridView{TItem}.ExternalSelection"/> mode: it reports
     /// clicks/nav keys (wire them via <see cref="Ready"/>) and renders only what the owner pushes with
     /// <see cref="DataGridView{TItem}.SetSelectedKeys"/>, instead of owning selection itself.</summary>
@@ -58,9 +63,10 @@ public sealed record DataGrid<TItem> : Widget
         };
         var header = new DataGridHeaderView<TItem>(body.Columns, columns, Style, input);
         if (OnSort != null) header.SortRequested += OnSort;
+        if (OnHeaderPress != null) header.HeaderPressed += OnHeaderPress;
         Ready?.Invoke(body);
 
-        var thumb = new VerticalScrollBarThumbView();
+        var thumb = new VerticalScrollBarThumbView { MinHeight = Style.MinThumbHeight };
 
         return new BorderLayout
         {
@@ -71,9 +77,21 @@ public sealed record DataGrid<TItem> : Widget
                 Child = new BorderLayout
                 {
                     Center = new Raw { View = body },
-                    East = new ScrollBar { Thumb = thumb },
+                    East = new ScrollBar { Thumb = thumb, Style = ScrollBarStyleFrom(Style) },
                 },
             },
         };
     }
+
+    // The scrollbar inherits the grid's surface/border/muted-text colors so it themes with the rest of the grid
+    // instead of falling back to the default grey.
+    private static ScrollBarStyle ScrollBarStyleFrom(DataGridStyle s) => new()
+    {
+        TrackBackground = s.Surface,
+        TrackBorderSize = new BorderSizeStyle { Left = 1 },
+        TrackBorder = new BorderColorStyle { Left = s.Border },
+        ThumbIdleBackground = s.Border,
+        ThumbHoverBackground = s.HeaderText,
+        ThumbBorderSize = BorderSizeStyle.All(0),
+    };
 }

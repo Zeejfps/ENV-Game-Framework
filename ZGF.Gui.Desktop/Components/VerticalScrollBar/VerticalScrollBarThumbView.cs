@@ -14,6 +14,17 @@ public sealed class VerticalScrollBarThumbView : View
         set => SetField(ref _scale, value);
     }
 
+    // The thumb never shrinks below this many pixels (a tiny proportional thumb on a long list is unusable),
+    // clamped to the track height. The travel math uses the clamped height so dragging stays accurate.
+    private float _minHeight;
+    public float MinHeight
+    {
+        get => _minHeight;
+        set => SetField(ref _minHeight, value);
+    }
+
+    private float ThumbHeight() => Math.Max(HeightConstraint * Scale, Math.Min(_minHeight, HeightConstraint));
+
     private uint _idleBackgroundColor = 0xFFCECECE;
     public uint IdleBackgroundColor
     {
@@ -93,7 +104,7 @@ public sealed class VerticalScrollBarThumbView : View
 
     protected override void OnLayoutSelf()
     {
-        var height = HeightConstraint * Scale;
+        var height = ThumbHeight();
 
         _maxDistanceToTop = Math.Max(0, (int)(TopConstraint - height - BottomConstraint));
 
@@ -130,7 +141,7 @@ public sealed class VerticalScrollBarThumbView : View
     public void ScrollToPoint(PointF point)
     {
         if (_maxDistanceToTop <= 0) return;
-        var height = HeightConstraint * Scale;
+        var height = ThumbHeight();
         var halfHeight = height * 0.5f;
         var distanceToTop = TopConstraint - point.Y - halfHeight;
         SetNormalized(distanceToTop / _maxDistanceToTop, notify: true);

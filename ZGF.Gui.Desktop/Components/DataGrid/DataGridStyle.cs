@@ -18,6 +18,9 @@ public sealed record DataGridStyle
     /// <summary>Width of the scrollbar gutter the header insets its content by, so its labels and dividers
     /// line up with the body cells (which the scrollbar pushes left).</summary>
     public float ScrollbarWidth { get; init; } = 12f;
+    /// <summary>The scrollbar thumb never shrinks below this (a proportional thumb on a long list is otherwise
+    /// unusably small).</summary>
+    public float MinThumbHeight { get; init; } = 24f;
     /// <summary>The smallest a flex column is allowed to shrink to when a neighbour is dragged wider.</summary>
     public float MinFlexWidth { get; init; } = 80f;
     public bool Striped { get; init; } = true;
@@ -31,6 +34,9 @@ public sealed record DataGridStyle
     /// <summary>The transient reveal-highlight background for a flashed row (e.g. a just-inserted entry).</summary>
     public uint FlashRow { get; init; } = 0xFF2A3A2Eu;
     public uint SelectionBar { get; init; } = 0xFF3B82F6u;
+    /// <summary>Border of the one cell being edited in an editable row — frames the active editor so only it
+    /// reads as "being edited", the rest of the row staying plain.</summary>
+    public uint FocusRing { get; init; } = 0xFF3B82F6u;
     public uint Text { get; init; } = 0xFFEDEDEDu;
     public uint HeaderSurface { get; init; } = 0xFF202024u;
     public uint HeaderText { get; init; } = 0xFFAEB4BEu;

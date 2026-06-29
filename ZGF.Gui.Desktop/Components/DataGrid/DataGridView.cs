@@ -409,7 +409,7 @@ public sealed class DataGridView<TItem> : View
         _editing = true;
         if (!ExternalSelection) { if (isNew) ClearSelection(); else SelectOnly(row); }
         EditingStarted?.Invoke(row);
-        _editor!.Bind(item);
+        _editor!.Bind(item, isNew);
         PositionEditor();
         FocusEditor(_focusCol);
         SetDirty();
@@ -425,7 +425,7 @@ public sealed class DataGridView<TItem> : View
     private bool TryCommit(bool force)
     {
         if (!_editing || _editor == null) return true;
-        if (!force && !_editor.Validate()) return false;
+        if (!force && !_editor.ShowValidation()) return false;
 
         if (IsNewRowIndex(_focusRow))
         {
@@ -480,7 +480,7 @@ public sealed class DataGridView<TItem> : View
         _editing = false;
         _focusRow = -1;
         _focusCol = -1;
-        if (_editor != null) _editor.IsVisible = false;
+        if (_editor != null) { _editor.SetFocusedColumn(-1); _editor.ClearValidation(); _editor.IsVisible = false; }
     }
 
     /// <summary>Handles a navigation key when not editing: arrows move the selection, Enter/F2 begin editing
@@ -559,7 +559,7 @@ public sealed class DataGridView<TItem> : View
         if (IsNewRowIndex(_focusRow) && dir > 0)
         {
             var col = ResolveEditableColumn(column ?? _focusCol);
-            if (!_editor.Validate()) return; // invalid draft — stay on the new-row strip
+            if (!_editor.ShowValidation()) return; // invalid draft — stay on the new-row strip
             AddNewRow();
             EndEditSilently();
             Refresh();
@@ -570,7 +570,7 @@ public sealed class DataGridView<TItem> : View
         var target = _focusRow + dir;
         if (target < 0 || target >= EffectiveCount) { CommitEdit(); return; }
 
-        if (!IsNewRowIndex(_focusRow) && !_editor.Validate()) return; // invalid — don't leave the row
+        if (!IsNewRowIndex(_focusRow) && !_editor.ShowValidation()) return; // invalid — don't leave the row
 
         if (!IsNewRowIndex(_focusRow) && _source.TryGetItem(_focusRow, out var current))
         {
@@ -587,7 +587,7 @@ public sealed class DataGridView<TItem> : View
         if (column.HasValue) _focusCol = ResolveEditableColumn(column.Value);
         _list.EnsureRowVisible(target);
         if (!ExternalSelection) { if (targetIsNew) ClearSelection(); else SelectOnly(target); }
-        _editor.Bind(next);
+        _editor.Bind(next, targetIsNew);
         PositionEditor();
         FocusEditor(_focusCol);
         _movingFocus = false;
@@ -627,6 +627,7 @@ public sealed class DataGridView<TItem> : View
 
     private void FocusEditor(int column)
     {
+        _editor?.SetFocusedColumn(column);
         if (_editor?.Editor(column) is { } view && _input.GetController(view) is IGridCellEditor ed) ed.BeginEdit();
     }
 

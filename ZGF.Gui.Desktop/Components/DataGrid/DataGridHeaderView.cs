@@ -26,6 +26,11 @@ public sealed class DataGridHeaderView<TItem> : View
     /// clicked. The consumer re-queries its source; the grid does not sort data itself.</summary>
     public event Action<string>? SortRequested;
 
+    /// <summary>Raised (on press, after a non-sortable header is clicked) with the hit column's
+    /// <see cref="DataGridColumn{TItem}.Key"/> — a hook for column-header affordances like a filter popover.
+    /// Fires only for columns a <see cref="SortRequested"/> didn't already consume.</summary>
+    public event Action<string>? HeaderPressed;
+
     public DataGridHeaderView(
         DataGridColumns geometry, DataGridColumn<TItem>[] columns, DataGridStyle style, InputSystem input)
     {
@@ -92,6 +97,17 @@ public sealed class DataGridHeaderView<TItem> : View
         var idx = _geometry.HitTest(Band, x);
         if (idx < 0 || !_columns[idx].Sortable) return false;
         SortRequested?.Invoke(_columns[idx].Key);
+        return true;
+    }
+
+    /// <summary>Press on a non-divider, non-sortable part of the header: raises <see cref="HeaderPressed"/> for
+    /// the hit column (a filter/menu affordance hook). Returns whether it acted.</summary>
+    internal bool TryHeaderPress(float x)
+    {
+        if (HeaderPressed is null) return false;
+        var idx = _geometry.HitTest(Band, x);
+        if (idx < 0) return false;
+        HeaderPressed.Invoke(_columns[idx].Key);
         return true;
     }
 
@@ -208,7 +224,7 @@ internal sealed class DataGridHeaderController<TItem> : KeyboardMouseController
                 return;
             }
 
-            if (_view.TrySort(e.Mouse.Point.X)) e.Consume();
+            if (_view.TrySort(e.Mouse.Point.X) || _view.TryHeaderPress(e.Mouse.Point.X)) e.Consume();
             return;
         }
 
