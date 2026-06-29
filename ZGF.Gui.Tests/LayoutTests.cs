@@ -1,4 +1,5 @@
 using ZGF.Gui;
+using ZGF.Gui.VerticalScrollBar;
 using ZGF.Gui.Views;
 
 namespace ZGF.Gui.Tests;
@@ -205,6 +206,62 @@ public class LayoutTests
         root.LayoutSelf();
 
         Assert.Equal(0f, content.Position.Left, 3);
+    }
+
+    [Fact]
+    public void VerticalScrollPane_FillParent_ReportsZeroIntrinsicHeight()
+    {
+        // FillParent makes the pane a zero-basis flex child: it claims no height of its own so a
+        // parent flex hands it only leftover space. A normal pane still reports its content height.
+        var fill = new VerticalScrollPane { FillParent = true };
+        fill.Children.Add(new RectView { Height = 500f });
+
+        var normal = new VerticalScrollPane();
+        normal.Children.Add(new RectView { Height = 500f });
+
+        Assert.Equal(0f, fill.MeasureHeight(100f), 3);
+        Assert.Equal(500f, normal.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void VerticalScrollPane_StretchContent_FillsGrowChildToViewport()
+    {
+        // A pinned row plus a Grow filler; the content's natural height is just the pinned 20px.
+        var pinned = new RectView { Height = 20f };
+        var filler = new RectView();
+        var body = new FlexView { Axis = Axis.Vertical, CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        body.Children.Add(pinned);
+        body.Children.Add(new FlexItem { Grow = 1, Child = filler });
+
+        // DialogScrollRegion wraps content in a Grow so the stretch reaches it.
+        var pane = new VerticalScrollPane { StretchContent = true };
+        pane.Children.Add(new FlexItem { Grow = 1, Child = body });
+        var root = Root(100f, 200f, pane);
+
+        root.LayoutSelf();
+
+        // Stretched to the 200 viewport: the pinned row keeps its 20, the Grow filler absorbs 180.
+        AssertRect(pinned, 0f, 180f, 100f, 20f);
+        Assert.Equal(180f, filler.Position.Height, 3);
+    }
+
+    [Fact]
+    public void VerticalScrollPane_WithoutStretch_LeavesGrowChildCollapsed()
+    {
+        var pinned = new RectView { Height = 20f };
+        var filler = new RectView();
+        var body = new FlexView { Axis = Axis.Vertical, CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        body.Children.Add(pinned);
+        body.Children.Add(new FlexItem { Grow = 1, Child = filler });
+
+        var pane = new VerticalScrollPane();   // StretchContent defaults false
+        pane.Children.Add(new FlexItem { Grow = 1, Child = body });
+        var root = Root(100f, 200f, pane);
+
+        root.LayoutSelf();
+
+        // No stretch: the body rests at its natural 20px, so the Grow filler stays collapsed.
+        Assert.Equal(0f, filler.Position.Height, 3);
     }
 
     [Fact]
