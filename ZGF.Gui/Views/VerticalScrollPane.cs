@@ -17,10 +17,25 @@ public sealed class VerticalScrollPane : View
 
     public override bool ClipsContent => true;
 
+    /// <summary>
+    /// When true the pane reports no intrinsic height of its own (a flex basis of 0), so a parent
+    /// flex hands it only leftover space instead of its content's full height. It still scrolls its
+    /// content within whatever height it is allotted. Use for a list that should absorb a
+    /// container's slack rather than dictate the container's size.
+    /// </summary>
+    public bool FillParent { get; init; }
+
+    /// <summary>
+    /// When true the content is laid out at the viewport height whenever it is shorter than the
+    /// viewport (rather than at its own smaller height), so a Grow child inside the content fills
+    /// the pane. No effect once the content is taller than the viewport — then it scrolls.
+    /// </summary>
+    public bool StretchContent { get; init; }
+
     public StyleValue<int> Gap
     {
         get => _columnView.Gap;
-        set => _columnView.Gap = value;       
+        set => _columnView.Gap = value;
     }
 
     public VerticalScrollPane()
@@ -29,9 +44,20 @@ public sealed class VerticalScrollPane : View
         AddChildToSelf(_columnView);
     }
 
+    protected override float MeasureHeightIntrinsic(float availableWidth)
+    {
+        if (Height.IsSet) return Height;
+        return FillParent ? 0f : _columnView.MeasureHeight(availableWidth);
+    }
+
     protected override void OnLayoutChild(in RectF position, View child)
     {
         var childHeight = child.MeasureHeight(position.Width);
+        if (StretchContent)
+        {
+            childHeight = Math.Max(childHeight, position.Height);
+            child.HeightConstraint = childHeight;
+        }
         child.BottomConstraint = position.Top + _distanceFromTop - childHeight;
         child.LeftConstraint = position.Left;
         child.WidthConstraint = position.Width;
