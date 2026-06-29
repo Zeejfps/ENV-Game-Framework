@@ -29,6 +29,14 @@ public sealed class ScrollPane : View, IScrollableContent
 
     public override bool ClipsContent => true;
 
+    /// <summary>
+    /// When true the pane reports no intrinsic height of its own (a flex basis of 0), so a parent
+    /// flex hands it only leftover space rather than its content's full height. It still scrolls its
+    /// content within whatever height it is allotted. Use for a list that should absorb a
+    /// container's slack rather than dictate the container's size.
+    /// </summary>
+    public bool FillParent { get; init; }
+
     public StyleValue<int> Gap
     {
         get => _columnView.Gap;
@@ -39,6 +47,12 @@ public sealed class ScrollPane : View, IScrollableContent
     {
         _columnView = new ColumnView();
         AddChildToSelf(_columnView);
+    }
+
+    protected override float MeasureHeightIntrinsic(float availableWidth)
+    {
+        if (Height.IsSet) return Height;
+        return FillParent ? 0f : _columnView.MeasureHeight(availableWidth);
     }
 
     protected override void OnLayoutChild(in RectF position, View child)
@@ -114,14 +128,14 @@ public sealed class ScrollPane : View, IScrollableContent
         HorizontalScrollPositionChanged?.Invoke(HorizontalScrollNormalized);
     }
 
-    public void ScrollVertical(float delta)
+    public bool ScrollVertical(float delta)
     {
-        SetDistanceFromTop(_distanceFromTop + delta);
+        return SetDistanceFromTop(_distanceFromTop + delta);
     }
 
-    public void ScrollHorizontal(float delta)
+    public bool ScrollHorizontal(float delta)
     {
-        SetDistanceFromLeft(_distanceFromLeft + delta);
+        return SetDistanceFromLeft(_distanceFromLeft + delta);
     }
 
     public void ScrollToOrigin()
@@ -164,19 +178,21 @@ public sealed class ScrollPane : View, IScrollableContent
         SetDirty();
     }
 
-    private void SetDistanceFromTop(float value)
+    private bool SetDistanceFromTop(float value)
     {
         var clamped = Math.Clamp(value, 0f, _maxDistanceFromTop);
-        if (Math.Abs(clamped - _distanceFromTop) < 0.0001f) return;
+        if (Math.Abs(clamped - _distanceFromTop) < 0.0001f) return false;
         _distanceFromTop = clamped;
         SetDirty();
+        return true;
     }
 
-    private void SetDistanceFromLeft(float value)
+    private bool SetDistanceFromLeft(float value)
     {
         var clamped = Math.Clamp(value, 0f, _maxDistanceFromLeft);
-        if (Math.Abs(clamped - _distanceFromLeft) < 0.0001f) return;
+        if (Math.Abs(clamped - _distanceFromLeft) < 0.0001f) return false;
         _distanceFromLeft = clamped;
         SetDirty();
+        return true;
     }
 }

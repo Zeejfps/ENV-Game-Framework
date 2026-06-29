@@ -106,8 +106,12 @@ public sealed class VerticalScrollPane : View
         // TODO: Finish
     }
 
-    public void Scroll(float delta)
+    /// <summary>Scrolls by <paramref name="delta"/>; returns whether the offset actually moved
+    /// (false when already pinned at an edge), so a wheel controller can decline to consume the
+    /// event and let it bubble to an outer scrollable.</summary>
+    public bool Scroll(float delta)
     {
+        var previous = _distanceFromTop;
         _distanceFromTop += delta;
         if (_distanceFromTop < 0)
         {
@@ -117,7 +121,9 @@ public sealed class VerticalScrollPane : View
         {
             _distanceFromTop = _maxDistanceFromTop;
         }
+        if (_distanceFromTop == previous) return false;
         SetDirty();
+        return true;
     }
 
     public void ScrollToTop()
