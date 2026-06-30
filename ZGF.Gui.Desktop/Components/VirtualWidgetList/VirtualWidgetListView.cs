@@ -84,6 +84,7 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
     private int _lastClickTickMs;
     private int _lastClickIndex = -1;
     private float[]? _offsets;
+    private int _pendingEnsureVisible = -1;
     private readonly List<TRow> _pool = new();
     private readonly List<int> _boundIndex = new();
 
@@ -179,13 +180,27 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
             Math.Min(ItemCount - 1, IndexAtContentY(offsets, _scrollY + bodyHeight)));
     }
 
-    /// <summary>Scrolls just enough to bring the row at <paramref name="rowIndex"/> fully into view.</summary>
+    /// <summary>Scrolls just enough to bring the row at <paramref name="rowIndex"/> fully into view. When called
+    /// before the list has a viewport — e.g. a register built already navigated to a row, whose reveal runs in the
+    /// view-model constructor before the first layout — the request is remembered and applied on that first layout
+    /// instead of being dropped, which would leave the navigated-to row scrolled off-screen.</summary>
     public void EnsureRowVisible(int rowIndex)
     {
         if (rowIndex < 0 || rowIndex >= ItemCount) return;
-        var bodyHeight = Position.Height;
-        if (bodyHeight <= 0) return;
+        if (Position.Height <= 0f)
+        {
+            _pendingEnsureVisible = rowIndex;
+            SetDirty();
+            return;
+        }
+        _pendingEnsureVisible = -1;
+        SetScrollY(ScrollToReveal(rowIndex));
+    }
 
+    // The scroll offset that brings row `rowIndex` fully into view with the smallest move from the current
+    // offset. Assumes a valid (positive) Position.Height — callers guard that.
+    private float ScrollToReveal(int rowIndex)
+    {
         float rowStart, rowEnd;
         if (RowHeightAt == null)
         {
@@ -201,8 +216,8 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
 
         var target = _scrollY;
         if (rowStart < target) target = rowStart;
-        else if (rowEnd > target + bodyHeight) target = rowEnd - bodyHeight;
-        SetScrollY(target);
+        else if (rowEnd > target + Position.Height) target = rowEnd - Position.Height;
+        return target;
     }
 
     public void OnWheel(float deltaX, float deltaY)
@@ -273,6 +288,15 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
     // layout pass and let the normal draw/input traversal handle the rest.
     protected override void OnLayoutChildren()
     {
+        // A reveal requested before the list had a viewport (a register that opens already navigated to a row,
+        // laid out for the first time here) was deferred; satisfy it now, before the visible window is computed,
+        // by setting the scroll directly — the LayoutSynced at the end resyncs any attached scrollbar.
+        if (_pendingEnsureVisible >= 0 && Position.Height > 0f)
+        {
+            if (_pendingEnsureVisible < ItemCount) _scrollY = ScrollToReveal(_pendingEnsureVisible);
+            _pendingEnsureVisible = -1;
+        }
+
         ClampScroll();
         var pos = Position;
         var bodyHeight = pos.Height;

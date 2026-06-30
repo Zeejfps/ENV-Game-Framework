@@ -121,6 +121,29 @@ public class VirtualWidgetListTests
     }
 
     [Fact]
+    public void EnsureRowVisible_CalledBeforeLayout_IsDeferredAndAppliedOnFirstLayout()
+    {
+        var list = new VirtualWidgetListView<FakeRow>
+        {
+            LeftConstraint = 10f,
+            BottomConstraint = 20f,
+            Width = 200f,
+            Height = 100f,
+            RowHeight = 25f,
+            ItemCount = 1000,
+            CreateRow = () => new FakeRow(),
+            BindRow = (r, i) => r.BoundIndex = i,
+        };
+
+        // No layout yet → no viewport. The request can't scroll now, but it must not be dropped.
+        list.EnsureRowVisible(50);
+        Assert.Equal(0f, list.ScrollY, 3);
+
+        list.LayoutSelf(); // first real viewport — the deferred reveal lands here
+        Assert.Equal(1175f, list.ScrollY, 3); // row 50 end (1275) - viewport (100)
+    }
+
+    [Fact]
     public void NotifyItemsChanged_ClampsScrollIntoNewRange()
     {
         var (list, _) = MakeList(itemCount: 1000);
