@@ -210,4 +210,55 @@ public class DataGridEditLifecycleTests
             Assert.Equal(2, grid.FocusedRow);
         }
     }
+
+    private sealed class TextCell { public string Value = ""; }
+
+    // Regression: committing a cell and moving on (Enter / Down) must rebind the just-committed row's preview so
+    // it shows the new value, not the old one. An internal-selection grid masks the gap via SelectOnly -> Refresh
+    // on the move; an external-selection grid (the ledger) takes no such path, so the commit itself must refresh.
+    [Fact]
+    public void CommitThenMoveDown_RebindsCommittedRow_UnderExternalSelection()
+    {
+        var items = Enumerable.Range(0, 50).Select(i => new TextCell { Value = $"r{i}" }).ToList();
+        var reads = new List<string>();
+        DataGridView<TextCell> grid = null!;
+        using var h = GuiTestHarness.Create(ctx =>
+        {
+            grid = new DataGridView<TextCell>(
+                new[]
+                {
+                    GridColumn.TextEditable<TextCell>(
+                        "v", "V", ColumnWidth.Flex(),
+                        c => { reads.Add(c.Value); return c.Value; },
+                        (c, v) => c.Value = v),
+                },
+                new ListSource<TextCell>(items), DataGridStyle.Default, ctx.Canvas, ctx.Require<InputSystem>())
+            {
+                ExternalSelection = true,
+            };
+            return grid;
+        }, width: 400, height: 200);
+
+        h.Layout();
+        var x = grid.Position.Left + 20f;
+        var y = grid.Position.Top - 2.5f * DataGridStyle.Default.RowHeight; // row 2
+        h.Click(x, y);
+        h.Click(x, y); // double-click begins editing row 2
+
+        Assert.True(grid.IsEditing);
+        Assert.Equal(2, grid.FocusedRow);
+
+        h.Type("z"); // replaces the selected "r2"
+        // Settle to a clean baseline: lay out (consuming any pending rebind left by the click's hover) and clear
+        // the read log, so the only rebind we can observe afterwards is the one the commit itself must trigger.
+        h.Layout();
+        reads.Clear();
+
+        h.PressKey(KeyboardKey.Enter); // commit row 2, move down to row 3
+        h.Layout();                    // run the layout pass that rebinds the recycled preview rows
+
+        Assert.Equal("z", items[2].Value); // committed to the source
+        Assert.Equal(3, grid.FocusedRow);  // and the editor moved on
+        Assert.Contains("z", reads);       // the row we just left re-bound with its new value (was stale before)
+    }
 }

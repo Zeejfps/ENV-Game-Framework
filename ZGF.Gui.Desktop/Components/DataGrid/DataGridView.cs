@@ -576,6 +576,10 @@ public sealed class DataGridView<TItem> : View
         {
             _editor.Commit(current);
             CellCommitted?.Invoke(_focusRow);
+            // Rebind the visible preview rows so the row we just committed shows its new value: the editor
+            // is about to uncover it as it moves on, and (unlike the end-edit and internal-selection paths)
+            // nothing else here forces a rebind. Without this the old text lingers until the next refresh.
+            _list.RefreshRows();
         }
 
         if (!IsNewRowIndex(target)) _source.EnsureWindow(target, target);
