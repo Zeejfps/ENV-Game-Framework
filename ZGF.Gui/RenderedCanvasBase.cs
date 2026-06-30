@@ -463,6 +463,16 @@ public abstract class RenderedCanvasBase : ICanvas
         });
     }
 
+    public void DrawCubicBezier(in DrawCubicBezierInputs inputs)
+    {
+        // The shape shader strokes only quadratics, so flatten the cubic into quadratic pieces
+        // (reusing DrawBezier's pipeline). Tolerance is set in device pixels then mapped back into
+        // local units, since DrawBezier re-applies the current scale to each piece.
+        var savg = (_scale.X + _scale.Y) * 0.5f;
+        var flatness = 0.2f / MathF.Max(savg, 1e-3f);
+        CubicBezier.Flatten(in inputs, this, flatness);
+    }
+
     public void DrawCircle(in DrawCircleInputs inputs)
     {
         var c = inputs.Center;

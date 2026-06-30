@@ -121,6 +121,12 @@ public sealed class SoftwareRenderedCanvas : ICanvas
         // GPU backends only); no test currently rasterizes one.
     }
 
+    public void DrawCubicBezier(in DrawCubicBezierInputs inputs)
+    {
+        // Cubic beziers are not implemented in the software canvas yet (used by
+        // GPU backends only); no test currently rasterizes one.
+    }
+
     private RectF GetClip()
     {
         if (_clipStack.Count == 0)
