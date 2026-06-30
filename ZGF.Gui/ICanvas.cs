@@ -11,7 +11,8 @@ public interface ICanvas
     void DrawLine(in DrawLineInputs inputs);
     void DrawCircle(in DrawCircleInputs inputs);
     void DrawBezier(in DrawBezierInputs inputs);
-    
+    void DrawCubicBezier(in DrawCubicBezierInputs inputs);
+
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);
     void PopClip();

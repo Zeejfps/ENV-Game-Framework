@@ -12,6 +12,7 @@ public sealed class FakeCanvas : ICanvas
     public void DrawLine(in DrawLineInputs inputs) { }
     public void DrawCircle(in DrawCircleInputs inputs) { }
     public void DrawBezier(in DrawBezierInputs inputs) { }
+    public void DrawCubicBezier(in DrawCubicBezierInputs inputs) { }
 
     public bool TryGetClip(out RectF rect)
     {

@@ -12,6 +12,7 @@ public sealed record RecordedBoxShadow(DrawBoxShadowInputs Inputs, int Sequence,
 public sealed record RecordedLine(DrawLineInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 public sealed record RecordedCircle(DrawCircleInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 public sealed record RecordedBezier(DrawBezierInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
+public sealed record RecordedCubicBezier(DrawCubicBezierInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 
 /// <summary>Captures every draw call into typed lists with the clip in effect and a draw-order
 /// sequence index, so tests can assert what was drawn instead of pixels. Text metrics come from a
@@ -33,6 +34,7 @@ public sealed class RecordingCanvas : ICanvas
     private readonly List<RecordedLine> _lines = new();
     private readonly List<RecordedCircle> _circles = new();
     private readonly List<RecordedBezier> _beziers = new();
+    private readonly List<RecordedCubicBezier> _cubicBeziers = new();
     private readonly List<DrawCommand> _all = new();
 
     public IReadOnlyList<RecordedRect> Rects => _rects;
@@ -42,6 +44,7 @@ public sealed class RecordingCanvas : ICanvas
     public IReadOnlyList<RecordedLine> Lines => _lines;
     public IReadOnlyList<RecordedCircle> Circles => _circles;
     public IReadOnlyList<RecordedBezier> Beziers => _beziers;
+    public IReadOnlyList<RecordedCubicBezier> CubicBeziers => _cubicBeziers;
 
     public int DefaultImageWidth { get; set; }
     public int DefaultImageHeight { get; set; }
@@ -121,6 +124,15 @@ public sealed class RecordingCanvas : ICanvas
         _all.Add(cmd);
     }
 
+    public void DrawCubicBezier(in DrawCubicBezierInputs inputs)
+    {
+        var t = CurrentTranslation();
+        var s = CurrentScale();
+        var cmd = new RecordedCubicBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        _cubicBeziers.Add(cmd);
+        _all.Add(cmd);
+    }
+
     public bool TryGetClip(out RectF rect)
     {
         if (_clips.Count > 0)
@@ -185,6 +197,7 @@ public sealed class RecordingCanvas : ICanvas
         _lines.Clear();
         _circles.Clear();
         _beziers.Clear();
+        _cubicBeziers.Clear();
         _all.Clear();
         _clips.Clear();
         _opacities.Clear();
