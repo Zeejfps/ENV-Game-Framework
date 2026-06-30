@@ -84,7 +84,10 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
     private int _lastClickTickMs;
     private int _lastClickIndex = -1;
     private float[]? _offsets;
-    private int _pendingEnsureVisible = -1;
+    // A reveal requested before the list had a viewport, replayed on the first layout. _pendingRevealOffset null
+    // means "minimal scroll into view"; a value means "place the row that many pixels below the viewport top".
+    private int _pendingRevealIndex = -1;
+    private float? _pendingRevealOffset;
     private readonly List<TRow> _pool = new();
     private readonly List<int> _boundIndex = new();
 
@@ -189,30 +192,52 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
         if (rowIndex < 0 || rowIndex >= ItemCount) return;
         if (Position.Height <= 0f)
         {
-            _pendingEnsureVisible = rowIndex;
+            _pendingRevealIndex = rowIndex;
+            _pendingRevealOffset = null;
             SetDirty();
             return;
         }
-        _pendingEnsureVisible = -1;
+        _pendingRevealIndex = -1;
         SetScrollY(ScrollToReveal(rowIndex));
     }
+
+    /// <summary>Scrolls so the row at <paramref name="rowIndex"/> sits <paramref name="viewportOffset"/> pixels
+    /// below the top of the viewport — used to land a navigated-to row at the same on-screen position the source
+    /// row occupied, so the jump isn't jarring. Clamped to the scroll range (a row too near the top simply lands
+    /// as high as it can). Like <see cref="EnsureRowVisible"/>, deferred to the first layout if there's no viewport
+    /// yet.</summary>
+    public void RevealRowAtOffset(int rowIndex, float viewportOffset)
+    {
+        if (rowIndex < 0 || rowIndex >= ItemCount) return;
+        if (Position.Height <= 0f)
+        {
+            _pendingRevealIndex = rowIndex;
+            _pendingRevealOffset = viewportOffset;
+            SetDirty();
+            return;
+        }
+        _pendingRevealIndex = -1;
+        SetScrollY(ContentTopOf(rowIndex) - viewportOffset);
+    }
+
+    /// <summary>How far (pixels) the top of the row at <paramref name="rowIndex"/> currently sits below the top of
+    /// the viewport — i.e. where it is on screen. Null when the list isn't laid out yet or the index is out of
+    /// range. The capture half of <see cref="RevealRowAtOffset"/>.</summary>
+    public float? RowViewportOffset(int rowIndex)
+    {
+        if (rowIndex < 0 || rowIndex >= ItemCount || Position.Height <= 0f) return null;
+        return ContentTopOf(rowIndex) - _scrollY;
+    }
+
+    // Content-space top of a row: the closed-form uniform position, or the cumulative offset in variable mode.
+    private float ContentTopOf(int index) => RowHeightAt == null ? index * RowHeight : Offsets()[index];
 
     // The scroll offset that brings row `rowIndex` fully into view with the smallest move from the current
     // offset. Assumes a valid (positive) Position.Height — callers guard that.
     private float ScrollToReveal(int rowIndex)
     {
-        float rowStart, rowEnd;
-        if (RowHeightAt == null)
-        {
-            rowStart = rowIndex * RowHeight;
-            rowEnd = rowStart + RowHeight;
-        }
-        else
-        {
-            var offsets = Offsets();
-            rowStart = offsets[rowIndex];
-            rowEnd = offsets[rowIndex + 1];
-        }
+        var rowStart = ContentTopOf(rowIndex);
+        var rowEnd = RowHeightAt == null ? rowStart + RowHeight : Offsets()[rowIndex + 1];
 
         var target = _scrollY;
         if (rowStart < target) target = rowStart;
@@ -291,10 +316,14 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
         // A reveal requested before the list had a viewport (a register that opens already navigated to a row,
         // laid out for the first time here) was deferred; satisfy it now, before the visible window is computed,
         // by setting the scroll directly — the LayoutSynced at the end resyncs any attached scrollbar.
-        if (_pendingEnsureVisible >= 0 && Position.Height > 0f)
+        if (_pendingRevealIndex >= 0 && Position.Height > 0f)
         {
-            if (_pendingEnsureVisible < ItemCount) _scrollY = ScrollToReveal(_pendingEnsureVisible);
-            _pendingEnsureVisible = -1;
+            if (_pendingRevealIndex < ItemCount)
+                _scrollY = _pendingRevealOffset is { } offset
+                    ? ContentTopOf(_pendingRevealIndex) - offset
+                    : ScrollToReveal(_pendingRevealIndex);
+            _pendingRevealIndex = -1;
+            _pendingRevealOffset = null;
         }
 
         ClampScroll();

@@ -121,6 +121,53 @@ public class VirtualWidgetListTests
     }
 
     [Fact]
+    public void RevealRowAtOffset_PlacesRowAtThatDistanceBelowTheViewportTop()
+    {
+        var (list, _) = MakeList(itemCount: 1000); // rowHeight 25, viewport 100
+
+        list.RevealRowAtOffset(40, 50f); // row 40 content top 1000; land it 50px down → scrollY 950
+
+        Assert.Equal(950f, list.ScrollY, 3);
+    }
+
+    [Fact]
+    public void RowViewportOffset_ReportsWhereARowSits_AndRoundTripsThroughRevealRowAtOffset()
+    {
+        var (list, _) = MakeList(itemCount: 1000); // rowHeight 25, viewport 100
+        list.SetScrollY(900f);
+        list.LayoutSelf();
+
+        // Row 38's content top is 950; at scrollY 900 it sits 50px below the viewport top.
+        Assert.Equal(50f, list.RowViewportOffset(38));
+
+        // Revealing it at that same offset is a no-op — capture/restore round-trips exactly.
+        list.RevealRowAtOffset(38, 50f);
+        Assert.Equal(900f, list.ScrollY, 3);
+    }
+
+    [Fact]
+    public void RevealRowAtOffset_CalledBeforeLayout_IsDeferredAndAppliedOnFirstLayout()
+    {
+        var list = new VirtualWidgetListView<FakeRow>
+        {
+            LeftConstraint = 10f,
+            BottomConstraint = 20f,
+            Width = 200f,
+            Height = 100f,
+            RowHeight = 25f,
+            ItemCount = 1000,
+            CreateRow = () => new FakeRow(),
+            BindRow = (r, i) => r.BoundIndex = i,
+        };
+
+        list.RevealRowAtOffset(40, 50f);
+        Assert.Equal(0f, list.ScrollY, 3); // no viewport yet
+
+        list.LayoutSelf();
+        Assert.Equal(950f, list.ScrollY, 3); // deferred offset reveal lands here
+    }
+
+    [Fact]
     public void EnsureRowVisible_CalledBeforeLayout_IsDeferredAndAppliedOnFirstLayout()
     {
         var list = new VirtualWidgetListView<FakeRow>

@@ -201,6 +201,14 @@ public sealed class DataGridView<TItem> : View
     /// <summary>Scrolls just enough to bring the row at <paramref name="index"/> fully into view.</summary>
     public void EnsureRowVisible(int index) => _list.EnsureRowVisible(index);
 
+    /// <summary>Scrolls so the row at <paramref name="index"/> lands <paramref name="viewportOffset"/> pixels below
+    /// the viewport top — to drop a navigated-to row at the same on-screen spot the source row occupied.</summary>
+    public void RevealRowAtOffset(int index, float viewportOffset) => _list.RevealRowAtOffset(index, viewportOffset);
+
+    /// <summary>Where the row at <paramref name="index"/> currently sits on screen, as pixels below the viewport
+    /// top, or null when off-window / not laid out. The capture half of <see cref="RevealRowAtOffset"/>.</summary>
+    public float? RowViewportOffset(int index) => _list.RowViewportOffset(index);
+
     /// <summary>The on-screen rect of the cell currently being edited, in GUI coordinates — for positioning
     /// editor-adjacent overlays (autocomplete lists, date pickers). False when not editing or the focused row
     /// is scrolled out of range.</summary>
