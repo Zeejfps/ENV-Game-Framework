@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Fonts;
+using ZGF.Gui.Desktop.Input;
 
 namespace ZGF.Gui.Desktop;
 
@@ -16,6 +17,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly FontHandle _defaultFont;
     private readonly IGuiRenderBackend _backend;
     private readonly Context _mainContext;
+    private readonly PointerOwnershipArbiter _arbiter;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
@@ -26,6 +28,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         FontHandle defaultFont,
         IGuiRenderBackend backend,
         Context mainContext,
+        PointerOwnershipArbiter arbiter,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
@@ -33,6 +36,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         _defaultFont = defaultFont;
         _backend = backend;
         _mainContext = mainContext;
+        _arbiter = arbiter;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
@@ -47,14 +51,17 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
         var canvas = _backend.CreateCanvas(window, request.Width, request.Height, _mainCanvasForFontRegistry);
 
-        var input = new DesktopInputSystem(window, canvas);
+        // Share the app's pointer arbiter so this window participates in pointer ownership. Without
+        // it the main window (which is arbitrated) keeps believing it owns the pointer at screen
+        // points that overlap this window, and its widgets hover through this one.
+        var input = new DesktopInputSystem(window, canvas, _arbiter);
 
         var context = new Context(_mainContext);
         context.Canvas = canvas;
         context.AddService(input.InputSystem);
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
-        var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend);
+        var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend, _arbiter);
         impl.SetRoot(request.BuildRoot(context));
 
         // Paint once before showing so the first frame isn't a flash of an empty window.
@@ -106,6 +113,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 {
     private readonly GuiWindowHost _host;
+    private readonly PointerOwnershipArbiter _arbiter;
     private bool _disposed;
 
     public IWindow Window => _host.Window;
@@ -119,17 +127,32 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         RenderedCanvasBase canvas,
         DesktopInputSystem input,
         Context context,
-        IGuiRenderBackend backend)
+        IGuiRenderBackend backend,
+        PointerOwnershipArbiter arbiter)
     {
         _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: true);
+        _arbiter = arbiter;
+
+        // Register as a non-modal participant. The arbiter orders by registration as a z-order
+        // proxy, so re-register on focus to keep this window's slot matching its on-screen stacking:
+        // whichever top-level window the user last raised must own the pointer over an overlap.
+        _arbiter.Register(input, isModal: false);
 
         window.OnResize += HandleResize;
         window.OnFramebufferResize += HandleFramebufferResize;
+        window.OnFocusChanged += HandleFocusChanged;
         // The native close button asks to close — defer the actual teardown to the next
         // factory Update() so we don't destroy the window from inside its GLFW callback.
         window.OnClose += () => CloseRequested = true;
 
         backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 1f));
+    }
+
+    private void HandleFocusChanged(bool focused)
+    {
+        // Raised to the front ⇒ move to the top of the arbiter's order so it wins pointer
+        // ownership over any window it overlaps.
+        if (focused) _arbiter.Register(_host.Input, isModal: false);
     }
 
     public void SetRoot(View? root) => _host.SetRoot(root);
@@ -160,8 +183,10 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         if (_disposed) return;
         _disposed = true;
 
+        _arbiter.Unregister(_host.Input);
         _host.Window.OnResize -= HandleResize;
         _host.Window.OnFramebufferResize -= HandleFramebufferResize;
+        _host.Window.OnFocusChanged -= HandleFocusChanged;
         SetRoot(null);
         // VAOs are per-context (not shared across the GL share group). Make THIS window's
         // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays

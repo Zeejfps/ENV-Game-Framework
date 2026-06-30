@@ -16,6 +16,7 @@ public sealed class GuiApp : IDisposable
     private readonly FreeTypeFontBackend _fontBackend;
     private readonly IGuiRenderBackend _renderBackend;
     private readonly DesktopInputSystem _mainInput;
+    private readonly PointerOwnershipArbiter _pointerArbiter;
     private readonly GuiWindowHost _mainHost;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly FrameTicker _frameTicker;
@@ -49,8 +50,10 @@ public sealed class GuiApp : IDisposable
         _contentFactory = contentFactory;
 
         // One arbiter shared by every window's input system decides pointer ownership.
-        // The main window is the base (non-modal) layer; popups register themselves.
+        // The main window is the base (non-modal) layer; popups and secondary windows register
+        // themselves, and each re-registers on focus so arbiter order tracks on-screen stacking.
         var pointerArbiter = new PointerOwnershipArbiter();
+        _pointerArbiter = pointerArbiter;
         _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter);
         pointerArbiter.Register(_mainInput, isModal: false);
         _mainHost = new GuiWindowHost(app.MainWindow, mainCanvas, _mainInput, context, sizeRootToWindow: true);
@@ -65,7 +68,7 @@ public sealed class GuiApp : IDisposable
             app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter,
             mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, context,
+            app, fontBackend, defaultFont, renderBackend, context, pointerArbiter,
             mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput);
@@ -117,7 +120,14 @@ public sealed class GuiApp : IDisposable
 
     private void HandleMainFocusChanged(bool focused)
     {
-        if (focused) return;
+        if (focused)
+        {
+            // Raised to the front ⇒ move the main window to the top of the arbiter's order so it
+            // wins pointer ownership over any secondary window it now overlaps. Modal menus stay
+            // unaffected — they win by modality regardless of order.
+            _pointerArbiter.Register(_mainInput, isModal: false);
+            return;
+        }
         // On macOS, clicking a popup NSWindow makes it key and main loses focus.
         // Treat focus loss as "close menus" only when the focus moved outside
         // our process — i.e., none of our windows are focused. Otherwise the
