@@ -35,6 +35,16 @@ public sealed class ContextMenu : View
         set => _background.BorderColor = value;
     }
 
+    /// <summary>Replaces the default item column with caller-supplied <paramref name="content"/> — for
+    /// a menu that hosts its own layout (e.g. a search field above a scrollable, height-capped item
+    /// list) rather than a plain stack. The menu still provides the themed frame (background, border,
+    /// shadow); the caller owns the content's sizing, scrolling, and any item filtering.</summary>
+    public void SetContent(View content)
+    {
+        _padding.Children.Clear();
+        _padding.Children.Add(content);
+    }
+
     public ContextMenu()
     {
         _itemsContainer = new ColumnView { Gap = 4 };

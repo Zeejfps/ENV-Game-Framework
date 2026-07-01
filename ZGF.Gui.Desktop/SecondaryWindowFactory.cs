@@ -152,7 +152,15 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     {
         // Raised to the front ⇒ move to the top of the arbiter's order so it wins pointer
         // ownership over any window it overlaps.
-        if (focused) _arbiter.Register(_host.Input, isModal: false);
+        if (focused)
+        {
+            _arbiter.Register(_host.Input, isModal: false);
+            return;
+        }
+        // Focus left this window: close any open menu (e.g. a base-branch dropdown anchored in
+        // this window) if the whole app lost focus. The arbiter dismisses only when no arbitrated
+        // window still holds focus, so switching to an owned menu popup doesn't self-close it.
+        _arbiter.NotifyFocusChanged();
     }
 
     public void SetRoot(View? root) => _host.SetRoot(root);

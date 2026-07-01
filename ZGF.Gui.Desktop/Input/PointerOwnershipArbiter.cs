@@ -2,12 +2,13 @@ namespace ZGF.Gui.Desktop.Input;
 
 /// <summary>
 /// A window that participates in pointer-ownership arbitration. Implemented by
-/// <see cref="DesktopInputSystem"/>. The only thing the arbiter needs from a window is
-/// whether the OS cursor currently sits inside that window's client bounds.
+/// <see cref="DesktopInputSystem"/>. The arbiter needs two things from a window: whether the
+/// OS cursor currently sits inside its client bounds, and whether it currently holds OS focus.
 /// </summary>
 public interface IPointerWindow
 {
     bool IsCursorInsideWindow();
+    bool IsWindowFocused();
 }
 
 /// <summary>
@@ -83,6 +84,61 @@ public sealed class PointerOwnershipArbiter
             return p.Window == window;
         }
         return false;
+    }
+
+    /// <summary>
+    /// The topmost open modal (the active menu in a chain), or null when none is open. Used to route
+    /// keyboard to an open menu: only the menu window receives OS key events on platforms where it
+    /// takes focus (macOS), so on the others the active window forwards keys here instead.
+    /// </summary>
+    public IPointerWindow? TopmostModal()
+    {
+        for (var i = _participants.Count - 1; i >= 0; i--)
+            if (_participants[i].IsModal) return _participants[i].Window;
+        return null;
+    }
+
+    /// <summary>
+    /// Raised when a base (non-modal) window receives a pointer press while a modal menu is open
+    /// above it — i.e. a click outside the menu. The context-menu host subscribes to dismiss the
+    /// open menu chain. This is the reliable cross-window close: a press a non-modal window receives
+    /// is, by construction, not on the menu (menu presses land on the menu's own window), so it
+    /// fires even where the OS popup capture doesn't — a background WS_EX_NOACTIVATE popup opened
+    /// away from the cursor, or a secondary window whose presses the host never sees directly.
+    /// </summary>
+    public event Action? OutsidePressDismiss;
+
+    /// <summary>
+    /// Reports a pointer press on <paramref name="window"/>. When a modal is open and the pressed
+    /// window is a base window behind it (not the menu chain itself), raises
+    /// <see cref="OutsidePressDismiss"/>. A no-op when no modal is open or the press is on the menu,
+    /// so menu and submenu clicks never self-dismiss.
+    /// </summary>
+    public void NotifyPress(IPointerWindow window)
+    {
+        if (!AnyModalOpen()) return;
+        foreach (var p in _participants)
+            if (p.Window == window)
+            {
+                if (!p.IsModal) OutsidePressDismiss?.Invoke();
+                return;
+            }
+    }
+
+    /// <summary>
+    /// Reports that some window's OS focus changed. When a modal menu is open and focus has left
+    /// every arbitrated window — the whole app lost focus (alt-tab, another application, a
+    /// title-bar or taskbar click that steals focus without a client press) — raises
+    /// <see cref="OutsidePressDismiss"/> so the menu chain closes. A no-op while any window still
+    /// holds focus, including the menu popup itself (which is the key window on macOS), so opening
+    /// a menu never immediately self-closes.
+    /// </summary>
+    public void NotifyFocusChanged()
+    {
+        if (!AnyModalOpen()) return;
+        foreach (var p in _participants)
+            if (p.Window.IsWindowFocused()) return;
+        OutsidePressDismiss?.Invoke();
     }
 
     private bool AnyModalOpen()

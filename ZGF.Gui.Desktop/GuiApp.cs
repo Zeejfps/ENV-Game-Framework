@@ -71,7 +71,7 @@ public sealed class GuiApp : IDisposable
             app, fontBackend, defaultFont, renderBackend, context, pointerArbiter,
             mainCanvasForFontRegistry: mainCanvas);
 
-        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, _mainInput);
+        _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, pointerArbiter);
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);
@@ -128,16 +128,10 @@ public sealed class GuiApp : IDisposable
             _pointerArbiter.Register(_mainInput, isModal: false);
             return;
         }
-        // On macOS, clicking a popup NSWindow makes it key and main loses focus.
-        // Treat focus loss as "close menus" only when the focus moved outside
-        // our process — i.e., none of our windows are focused. Otherwise the
-        // user is interacting with a menu popup we own.
-        foreach (var w in _app.Windows)
-        {
-            if (w.IsFocused)
-                return;
-        }
-        _contextMenuManager.CloseAllImmediately();
+        // Focus left the main window: close any open menu if the whole app lost focus. The arbiter
+        // only dismisses when no arbitrated window (including the menu popup, which is key on macOS)
+        // still holds focus, so interacting with an owned popup doesn't self-close the menu.
+        _pointerArbiter.NotifyFocusChanged();
     }
 
     private static IClipboard CreatePlatformClipboard(IWindowedApp app)

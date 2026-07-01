@@ -1,7 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
-using InputState = ZGF.Gui.Desktop.Input.InputState;
 
 namespace ZGF.Gui.Desktop;
 
@@ -53,24 +52,17 @@ public sealed class ContextMenuManager : IContextMenuHost
     public ContextMenuManager(
         IPopupWindowFactory popupFactory,
         IWindowCoordinates coordinates,
-        DesktopInputSystem? mainInput = null)
+        PointerOwnershipArbiter? arbiter = null)
     {
         _popupFactory = popupFactory;
         _coordinates = coordinates;
-        // Outside-click fallback for platforms whose decorator provides no OS-level
-        // capture (e.g. NoopPopupDecorator): a press on the main window while a menu is
-        // open is, by definition, outside the menu. Hover modality is handled entirely
-        // by the PointerOwnershipArbiter, so this controller no longer touches focus.
-        if (mainInput != null)
-            mainInput.OnMouseButtonPreview += OnMainWindowPress;
-    }
-
-    private void OnMainWindowPress(MouseButtonEvent e)
-    {
-        if (e.State != InputState.Pressed) return;
-        if (_openedMenus.Count == 0 && _closingMenus.Count == 0) return;
-        var screen = _coordinates.ToScreenPoints(e.Mouse.Point);
-        HandleOutsideClick(screen);
+        // A press on any base window while a menu is open is, by definition, outside the menu.
+        // The arbiter (the single modality authority) raises this for every host window — the
+        // main window, and every secondary window the host never sees directly — so the menu
+        // chain dismisses even where the OS popup capture misses the click. It's also the whole
+        // dismissal path on platforms whose decorator provides no capture (e.g. NoopPopupDecorator).
+        if (arbiter != null)
+            arbiter.OutsidePressDismiss += CloseAllImmediately;
     }
 
     public IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)

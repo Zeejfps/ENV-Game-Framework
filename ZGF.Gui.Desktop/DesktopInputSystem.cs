@@ -18,14 +18,6 @@ public sealed class DesktopInputSystem : IPointerWindow
     public Mouse Mouse { get; } = new();
     public Action? OnAnyInput { get; set; }
 
-    /// <summary>
-    /// Fires for every mouse button event on this window, before normal dispatch.
-    /// Used by <see cref="ContextMenuManager"/> to detect a click on the main window
-    /// (an "outside click") and close open menus on platforms whose native decorator
-    /// provides no OS-level capture.
-    /// </summary>
-    public event Action<MouseButtonEvent>? OnMouseButtonPreview;
-
     public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas, PointerOwnershipArbiter? arbiter = null)
     {
         _window = window;
@@ -44,6 +36,9 @@ public sealed class DesktopInputSystem : IPointerWindow
         _window.GetCursorPosition(out var x, out var y);
         return x >= 0 && y >= 0 && x <= _window.Width && y <= _window.Height;
     }
+
+    /// <summary>True when this window currently holds OS keyboard focus.</summary>
+    public bool IsWindowFocused() => _window.IsFocused;
 
     /// <summary>
     /// Clear all transient input state so this instance can be reused for a fresh
@@ -211,14 +206,20 @@ public sealed class DesktopInputSystem : IPointerWindow
             Modifiers = (InputModifiers)modifiers,
             Phase = EventPhase.Capturing,
         };
-        OnMouseButtonPreview?.Invoke(e);
+        // A press on a window that isn't the open menu is, by definition, outside it: ask the
+        // arbiter to dismiss the menu chain. This is the reliable cross-window close — it covers
+        // secondary windows (whose presses the menu host never sees) and the case where the OS
+        // popup capture misses the click (a background WS_EX_NOACTIVATE menu opened away from the
+        // cursor). The arbiter no-ops unless a modal is open above this (a base) window.
+        if (s == InputState.Pressed)
+            _arbiter?.NotifyPress(this);
 
         // While a modal menu is open and this window sits behind it, the press's only role is
-        // to dismiss the menu (the preview above / OS capture handles that). Our own hover path
-        // is frozen at whatever was hovered when the menu opened — Update() clears hover but
-        // keeps _focusQueue — so dispatching here would re-fire that stale path: reopening the
-        // just-closed menu (left-click) or popping a context menu from a control the cursor
-        // isn't even over (right-click). Skip local dispatch; the dismiss click is consumed.
+        // to dismiss the menu (handled above). Our own hover path is frozen at whatever was
+        // hovered when the menu opened — Update() clears hover but keeps _focusQueue — so
+        // dispatching here would re-fire that stale path: reopening the just-closed menu
+        // (left-click) or popping a context menu from a control the cursor isn't even over
+        // (right-click). Skip local dispatch; the dismiss click is consumed.
         if (_arbiter == null || !_arbiter.IsBlockedByModal(this))
             InputSystem.SendMouseButtonEvent(ref e);
 
@@ -234,6 +235,23 @@ public sealed class DesktopInputSystem : IPointerWindow
             Modifiers = (InputModifiers)mods,
             Phase = EventPhase.Capturing
         };
+
+        // An open context-menu popup owns the keyboard while it has a focused target (a search box):
+        // popups can't take OS keyboard focus on every platform (Windows borderless menus are
+        // WS_EX_NOACTIVATE), so OS keys land on whichever real window is active. Forward them to the
+        // menu's own input system and skip local dispatch, so the menu's search/type-ahead works and
+        // the host window's shortcuts stay dormant while it's up. Gated on the menu actually holding
+        // focus, so a plain (non-searchable) menu doesn't swallow the host window's keys. When the
+        // menu window itself is the one receiving keys (it took focus), TopmostModal() == this, so it
+        // falls through and dispatches locally as usual.
+        var modal = _arbiter?.TopmostModal();
+        if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
+        {
+            menu.InputSystem.SendKeyboardKeyEvent(ref e);
+            OnAnyInput?.Invoke();
+            return;
+        }
+
         InputSystem.SendKeyboardKeyEvent(ref e);
         OnAnyInput?.Invoke();
     }
