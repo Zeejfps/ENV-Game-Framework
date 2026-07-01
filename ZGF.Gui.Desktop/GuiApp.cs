@@ -408,6 +408,11 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();
+        // Secondary/popup teardown above left their own (now-destroyed) contexts current. The
+        // render backend's shared GL objects live in the main window's context share group, so
+        // make it current before deleting them. The main window is still alive here — it's
+        // destroyed in _app.Dispose() below.
+        _app.MakeMainContextCurrent();
         _renderBackend.Dispose();
         _app.Dispose();
     }

@@ -58,7 +58,7 @@ var config = new StartupConfig
 };
 
 var builder = GuiApp.CreateBuilder(config);
-var guiApp = builder
+using var guiApp = builder
     .UseContent(ctx => scenario.BuildRoot(ctx.Canvas))
     .Build();
 var dispatcher = builder.Services.Get<IUiDispatcher>()

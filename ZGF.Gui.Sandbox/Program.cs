@@ -1,7 +1,7 @@
 ﻿using ZGF.Desktop;
 using ZGF.Gui.Sandbox;
 
-var app = new App(new StartupConfig
+using var app = new App(new StartupConfig
 {
     WindowWidth = 1280,
     WindowHeight = 720,

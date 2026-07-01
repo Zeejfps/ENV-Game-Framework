@@ -168,8 +168,11 @@ public sealed class OpenGlApp : IWindowedApp
             if (!anyRendered)
                 Glfw.WaitEventsTimeout(IdleEventTimeoutSeconds);
         }
-        Dispose();
-        Glfw.Terminate();
+        // The run loop exiting does NOT tear anything down: the owner (e.g. GuiApp) disposes this
+        // app after Run() returns, and its teardown of secondary windows / popups / the render
+        // backend still needs GLFW alive and contexts makeable. Terminating here would pull GLFW
+        // out from under that teardown ("GLFW library is not initialized"). Terminate() runs in
+        // Dispose(), which the owner calls last.
     }
 
     public void Dispose()
@@ -182,6 +185,7 @@ public sealed class OpenGlApp : IWindowedApp
             if (_windows[i] != _mainWindow) _windows[i].Dispose();
         }
         _mainWindow.Dispose();
+        Glfw.Terminate();
         GC.SuppressFinalize(this);
     }
 }

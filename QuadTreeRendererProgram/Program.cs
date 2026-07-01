@@ -1,7 +1,7 @@
 ﻿using SoftwareRendererOpenGlBackend;
 using ZGF.Desktop;
 
-var app = new QuadTreeRendererApp(new StartupConfig
+using var app = new QuadTreeRendererApp(new StartupConfig
 {
     WindowWidth = 1280,
     WindowHeight = 720,

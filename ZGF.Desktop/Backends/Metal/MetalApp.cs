@@ -148,8 +148,10 @@ public sealed class MetalApp : IWindowedApp
                 objc_autoreleasePoolPop(autoreleasePool);
             }
         }
-        Dispose();
-        GLFW.Glfw.Terminate();
+        // The run loop exiting does NOT tear anything down: the owner (e.g. GuiApp) disposes this
+        // app after Run() returns, and its teardown of secondary windows / popups / the render
+        // backend still needs GLFW alive. Terminating here would pull GLFW out from under that
+        // teardown ("GLFW library is not initialized"). Terminate() runs in Dispose(), last.
     }
 
     public void Dispose()
@@ -163,6 +165,7 @@ public sealed class MetalApp : IWindowedApp
         _mainWindow.Dispose();
         Release(CommandQueue);
         Release(Device);
+        GLFW.Glfw.Terminate();
         GC.SuppressFinalize(this);
     }
 }
