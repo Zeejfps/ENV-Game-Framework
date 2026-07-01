@@ -116,7 +116,7 @@ public abstract record Widget<TState> : Widget, IWidget<TState> where TState : c
     /// any services or authoring props (e.g. <c>SomeProp.ToReadable(ctx)</c>) the state needs.</summary>
     protected virtual TState CreateState(Context ctx)
     {
-        return _state ?? ctx.Require<TState>()
+        return _state ?? ctx.Require<TState>();
     }
 
     /// <summary>Composes the view tree against <paramref name="state"/> — bind visuals to its
