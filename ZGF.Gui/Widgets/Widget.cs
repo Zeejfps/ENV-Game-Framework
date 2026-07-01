@@ -104,7 +104,10 @@ public abstract record Widget<TState> : Widget, IWidget<TState> where TState : c
 
     /// <summary>Builds the state object once, before the view tree. <paramref name="ctx"/> resolves
     /// any services or authoring props (e.g. <c>SomeProp.ToReadable(ctx)</c>) the state needs.</summary>
-    protected abstract TState CreateState(Context ctx);
+    protected virtual TState CreateState(Context ctx)
+    {
+        return ctx.Require<TState>();
+    }
 
     /// <summary>Composes the view tree against <paramref name="state"/> — bind visuals to its
     /// observables, etc. Replaces <see cref="Widget.Build(Context)"/>.</summary>
