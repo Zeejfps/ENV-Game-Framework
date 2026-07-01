@@ -68,10 +68,16 @@ public sealed class GuiApp : IDisposable
             app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter,
             mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, context, pointerArbiter,
+            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter,
             mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, pointerArbiter);
+
+        // A press on the OS title bar / borders / caption buttons is non-client: GLFW never surfaces
+        // it, and grabbing a title bar changes no focus (the window already holds it), so the arbiter's
+        // client-press and focus-loss dismissals both miss it. Watch the main window's native frame so
+        // a title-bar grab while a menu is open still dismisses the menu. No-ops off Windows.
+        decorator.WatchWindowNonClientPress(app.MainWindow.NativeHandle, pointerArbiter.NotifyNonClientPress);
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);

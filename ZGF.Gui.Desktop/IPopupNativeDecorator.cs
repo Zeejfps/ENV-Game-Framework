@@ -17,4 +17,12 @@ public interface IPopupNativeDecorator
     // callback installed even when the source's capture state is missing (e.g.
     // it was released by a prior race).
     void TransferCapture(IntPtr fromHandle, IntPtr toHandle, Action<PointI> onOutsideClick);
+    // Watch a host (non-popup) window's native frame for the lifetime of the window: while a context
+    // menu is open, a press on this window's non-client area (title bar, borders, caption buttons) is
+    // outside the menu and must dismiss it. GLFW surfaces only client-area mouse events, so without
+    // this a title-bar grab on the menu's own host window — which changes neither focus nor client
+    // input — leaves the menu open. onNonClientPress fires for each such press; the decorator no-ops
+    // where the platform has no native frame hook.
+    void WatchWindowNonClientPress(IntPtr nativeWindowHandle, Action onNonClientPress);
+    void UnwatchWindow(IntPtr nativeWindowHandle);
 }

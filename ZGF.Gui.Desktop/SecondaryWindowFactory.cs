@@ -16,6 +16,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private readonly IGuiRenderBackend _backend;
+    private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
@@ -27,6 +28,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
         IGuiRenderBackend backend,
+        IPopupNativeDecorator decorator,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
@@ -35,6 +37,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         _fonts = fonts;
         _defaultFont = defaultFont;
         _backend = backend;
+        _decorator = decorator;
         _mainContext = mainContext;
         _arbiter = arbiter;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
@@ -64,6 +67,11 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend, _arbiter);
         impl.SetRoot(request.BuildRoot(context));
 
+        // A title-bar / border grab on this window is a non-client press GLFW never reports and that
+        // changes no focus, so it's the case where an open menu anchored here would otherwise never
+        // dismiss. Route those presses to the arbiter's outside-press dismissal.
+        _decorator.WatchWindowNonClientPress(window.NativeHandle, _arbiter.NotifyNonClientPress);
+
         // Paint once before showing so the first frame isn't a flash of an empty window.
         window.MakeContextCurrent();
         window.RenderNow();
@@ -85,6 +93,9 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             if (w.CloseRequested)
             {
                 _active.RemoveAt(i);
+                // Restore the native wndproc before the window is destroyed so the decorator's
+                // subclass table doesn't retain a dead handle.
+                _decorator.UnwatchWindow(w.Window.NativeHandle);
                 w.Dispose();
                 // w.Dispose() left no GL context current (it destroyed its own window after
                 // deleting its objects under its own context). Restore the main context so the
@@ -105,7 +116,11 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
     public void Dispose()
     {
-        foreach (var w in _active) w.Dispose();
+        foreach (var w in _active)
+        {
+            _decorator.UnwatchWindow(w.Window.NativeHandle);
+            w.Dispose();
+        }
         _active.Clear();
     }
 }

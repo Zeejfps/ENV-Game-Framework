@@ -141,6 +141,18 @@ public sealed class PointerOwnershipArbiter
         OutsidePressDismiss?.Invoke();
     }
 
+    /// <summary>
+    /// Reports a press on a host window's non-client area — title bar, borders, or caption buttons.
+    /// GLFW surfaces only client-area mouse events and grabbing a title bar changes no focus (the
+    /// host window already holds it), so neither <see cref="NotifyPress"/> nor
+    /// <see cref="NotifyFocusChanged"/> fires for it. Any non-client press is by definition outside
+    /// the menu popup, so raises <see cref="OutsidePressDismiss"/> whenever a modal menu is open.
+    /// </summary>
+    public void NotifyNonClientPress()
+    {
+        if (AnyModalOpen()) OutsidePressDismiss?.Invoke();
+    }
+
     private bool AnyModalOpen()
     {
         foreach (var p in _participants)
