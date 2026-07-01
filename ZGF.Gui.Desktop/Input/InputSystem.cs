@@ -19,6 +19,12 @@ public sealed class InputSystem
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
 
+    // True when the focused component consumed the most recent mouse move — i.e. a drag owns the
+    // pointer stream (scrollbar thumb, splitter, box-select). This is the pointer-capture concept,
+    // distinct from merely holding keyboard focus (a list, a text field), which does not consume
+    // moves. Reset on every focus transition so it can never outlive the drag that set it.
+    private bool _pointerCaptured;
+
     public void RegisterController(View view, IKeyboardMouseController controller, EventPhaseFilter phaseFilter = EventPhaseFilter.Both)
     {
         if (!_viewToControllers.TryGetValue(view, out var list))
@@ -101,6 +107,7 @@ public sealed class InputSystem
         if (_focusedComponent == controller)
         {
             _focusedComponent = null;
+            _pointerCaptured = false;
         }
     }
     
@@ -305,6 +312,9 @@ public sealed class InputSystem
         finally
         {
             if (!focusedConsumed) RefreshHover(e.Mouse);
+            // Same signal that decides the freeze above, latched for the still-cursor case: a drag
+            // consumes moves, so it captures the pointer; a keyboard-focused control does not.
+            _pointerCaptured = focusedConsumed;
         }
     }
 
@@ -338,6 +348,7 @@ public sealed class InputSystem
     {
         _focusedComponent = null;
         _hoveredComponent = null;
+        _pointerCaptured = false;
         _focusQueue.Clear();
         // Registrations must go too. SetRoot(null) only unregisters controllers added
         // through behaviors (UseController); anything registered directly with
@@ -565,16 +576,19 @@ public sealed class InputSystem
         if (_focusedComponent == component) return;
         var prev = _focusedComponent;
         _focusedComponent = component;
+        // A fresh focus holder hasn't captured the pointer yet; the next consumed move re-asserts it.
+        _pointerCaptured = false;
         prev?.OnFocusLost();
         component.OnFocusGained();
     }
-    
+
     public void Blur(IKeyboardMouseController component)
     {
         if (_focusedComponent == component)
         {
             _focusedComponent?.OnFocusLost();
             _focusedComponent = null;
+            _pointerCaptured = false;
         }
     }
 
@@ -584,6 +598,15 @@ public sealed class InputSystem
     }
 
     public bool HasFocus => _focusedComponent != null;
+
+    /// <summary>
+    /// True while a drag owns the pointer — the focused component consumed the most recent mouse
+    /// move (scrollbar thumb, splitter, box-select). This is pointer capture, not keyboard focus:
+    /// a focused list or text field holds <see cref="HasFocus"/> but not this. Callers that refresh
+    /// hover on a still cursor skip the refresh while this holds, so a drag can't re-hover content
+    /// that scrolls beneath a stationary cursor.
+    /// </summary>
+    public bool IsPointerCaptured => _focusedComponent != null && _pointerCaptured;
 
     /// <summary>The controller currently holding keyboard focus, or null. Unlike
     /// <see cref="IsFocused"/> (which reflects hover order), this is the real keyboard-focus target.</summary>

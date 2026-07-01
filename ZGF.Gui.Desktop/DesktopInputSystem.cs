@@ -95,6 +95,17 @@ public sealed class DesktopInputSystem : IPointerWindow
                 InputSystem.SendMouseMovedEvent(ref capturedEvent);
                 OnAnyInput?.Invoke();
             }
+            else if (!InputSystem.IsPointerCaptured)
+            {
+                // Cursor stationary and no drag owns the pointer: the tree may still have changed
+                // under it since last frame (e.g. a click closed a tab and the next tab slid under
+                // the cursor), so re-hit-test — this keeps hover, and the click-dispatch path built
+                // from it, tracking what's now beneath the cursor without a mouse wiggle. Skipped
+                // while a drag captures the pointer (scrollbar thumb, splitter): there, content
+                // scrolling under a still cursor must NOT re-hover what slid beneath it. Keyboard
+                // focus alone (a list, a text field) does not capture, so hover stays live for it.
+                InputSystem.RefreshHover(Mouse);
+            }
             return;
         }
 
