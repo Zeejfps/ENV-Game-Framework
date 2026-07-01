@@ -99,8 +99,18 @@ public abstract record Widget<TState> : Widget, IWidget<TState> where TState : c
 
     /// <summary>The state for this build. Throws until <see cref="CreateView"/> has run, since
     /// <see cref="CreateState"/> needs the build context and so cannot run at construction.</summary>
-    public TState State => _state ?? throw new InvalidOperationException(
-        $"{GetType().Name}.State is not available until the widget has been built.");
+    public TState State
+    {
+        get
+        {
+            return _state ?? throw new InvalidOperationException(
+                $"{GetType().Name}.State is not available until the widget has been built.");
+        }
+        set
+        {
+            _state = value;
+        }
+    }
 
     /// <summary>Builds the state object once, before the view tree. <paramref name="ctx"/> resolves
     /// any services or authoring props (e.g. <c>SomeProp.ToReadable(ctx)</c>) the state needs.</summary>
