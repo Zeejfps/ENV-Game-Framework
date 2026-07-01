@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Gui.Widgets;
 
 namespace ZGF.Gui.Desktop;
 
@@ -36,6 +37,12 @@ public sealed class GuiAppBuilder
     public GuiAppBuilder UseContent(View content)
     {
         _contentFactory = _ => content;
+        return this;
+    }
+
+    public GuiAppBuilder UseContent<T>() where T : Widget
+    {
+        _contentFactory = ctx => ctx.Require<T>().BuildView(ctx);
         return this;
     }
 
