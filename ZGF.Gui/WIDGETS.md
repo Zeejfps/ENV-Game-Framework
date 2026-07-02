@@ -234,6 +234,7 @@ current vocabulary:
 | `Column` / `Row` | `FlexView` | `Gap`, `MainAxis`, `CrossAxis`, `Children` |
 | `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills |
 | `Center` | `CenterView` | centers `Child` in the available space |
+| `Clipped` | `ClippingView` | clips `Child` to the allotted bounds (e.g. long labels in fixed rows) |
 | `Grow` | `FlexItem` | `Child` grows along the parent flex axis |
 | `Spacer` | `FlexItem` | flexible empty space between siblings |
 | `Button` | `Box`→`Text` | `Label`, `OnClick` (both `required`); pure `Build` composition |
