@@ -232,7 +232,7 @@ current vocabulary:
 | `Box` | `RectView` | `Background`/`BorderColor`/`BorderRadius`/`BorderSize` (each a `Prop<T>`), `Children` — paints a box |
 | `Padding` | `PaddingView` | `Amount` (a `Prop<PaddingStyle>`), `Children` — pure spacing, no draw |
 | `Column` / `Row` | `FlexView` | `Gap`, `MainAxis`, `CrossAxis`, `Children` |
-| `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills |
+| `BorderLayout` | `BorderLayoutView` | `North`/`South`/`East`/`West` intrinsic, `Center` fills, `VGap`/`HGap` space the regions |
 | `Center` | `CenterView` | centers `Child` in the available space |
 | `Clipped` | `ClippingView` | clips `Child` to the allotted bounds (e.g. long labels in fixed rows) |
 | `Grow` | `FlexItem` | `Child` grows along the parent flex axis |

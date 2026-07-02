@@ -33,6 +33,20 @@ public sealed class BorderLayoutView : View
         set => SetView(ref field, value);
     }
 
+    /// <summary>Vertical spacing between the North, Center, and South regions.</summary>
+    public float VGap
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
+    /// <summary>Horizontal spacing between the West, Center, and East regions.</summary>
+    public float HGap
+    {
+        get;
+        set => SetField(ref field, value);
+    }
+
     private void SetView(ref View? view, View? value)
     {
         if (view == value)
@@ -70,7 +84,7 @@ public sealed class BorderLayoutView : View
             North.WidthConstraint = position.Width;
             North.HeightConstraint = height;
             North.LayoutSelf();
-            centerAreaHeight -= height;
+            centerAreaHeight -= height + VGap;
         }
 
         if (South != null)
@@ -81,8 +95,8 @@ public sealed class BorderLayoutView : View
             South.WidthConstraint = position.Width;
             South.HeightConstraint = height;
             South.LayoutSelf();
-            centerAreaHeight -= height;
-            bottomOffset += height;
+            centerAreaHeight -= height + VGap;
+            bottomOffset += height + VGap;
         }
 
         // Under RTL the leading (West) edge moves to the right and the trailing (East) edge to the
@@ -98,8 +112,8 @@ public sealed class BorderLayoutView : View
             leftEdge.WidthConstraint = width;
             leftEdge.HeightConstraint = centerAreaHeight;
             leftEdge.LayoutSelf();
-            centerAreaWidth -= width;
-            leftOffset += width;
+            centerAreaWidth -= width + HGap;
+            leftOffset += width + HGap;
         }
 
         if (rightEdge != null)
@@ -110,7 +124,7 @@ public sealed class BorderLayoutView : View
             rightEdge.WidthConstraint = width;
             rightEdge.HeightConstraint = centerAreaHeight;
             rightEdge.LayoutSelf();
-            centerAreaWidth -= width;
+            centerAreaWidth -= width + HGap;
         }
 
         if (Center != null)
