@@ -48,8 +48,14 @@ public sealed record ScrollArea : Widget
     protected override IWidget Build(Context ctx)
     {
         var pane = new VerticalScrollPane { Gap = Gap, StretchContent = StretchContent, FillParent = FillParent };
+
+        // The pane is the subtree's ambient IScrollScope, so content that tracks a point of
+        // interest (a text editor's caret, a focus ring's focused control) can ask the nearest
+        // enclosing scroll container to keep it in view without any explicit wiring.
+        var scope = new Context(ctx);
+        scope.AddService<IScrollScope>(pane);
         foreach (var child in Children)
-            pane.Children.Add(child.BuildView(ctx));
+            pane.Children.Add(child.BuildView(scope));
 
         var thumb = new VerticalScrollBarThumbView();
         var scrollBar = new ScrollBar { Thumb = thumb, Style = Style }.BuildView(ctx);

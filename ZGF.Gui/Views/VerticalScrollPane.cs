@@ -3,7 +3,7 @@ using ZGF.Gui.Views;
 
 namespace ZGF.Gui.VerticalScrollBar;
 
-public sealed class VerticalScrollPane : View
+public sealed class VerticalScrollPane : View, IScrollScope
 {
     public event Action<float>? ScrollPositionChanged;
 
@@ -104,6 +104,26 @@ public sealed class VerticalScrollPane : View
             return;
         
         // TODO: Finish
+    }
+
+    /// <summary>
+    /// Scrolls just far enough to bring <paramref name="rect"/> (absolute coordinates) inside the
+    /// viewport; a no-op when it already fits. A rect taller than the viewport reveals its top.
+    /// </summary>
+    public void EnsureVisible(RectF rect)
+    {
+        var viewport = Position;
+
+        // Refresh the travel limit from the current content measure: a reveal typically follows
+        // an edit that just grew the content, and the limit cached by the last layout pass would
+        // clamp the scroll one line short.
+        var contentHeight = _columnView.MeasureHeight(viewport.Width);
+        _maxDistanceFromTop = Math.Max(0f, contentHeight - viewport.Height);
+
+        if (rect.Top > viewport.Top)
+            Scroll(viewport.Top - rect.Top);
+        else if (rect.Bottom < viewport.Bottom)
+            Scroll(viewport.Bottom - rect.Bottom);
     }
 
     /// <summary>Scrolls by <paramref name="delta"/>; returns whether the offset actually moved

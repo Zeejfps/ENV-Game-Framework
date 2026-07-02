@@ -18,6 +18,12 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
     public Action? OnTab { get; set; }
     public Action? OnShiftTab { get; set; }
 
+    /// <summary>The scrolling viewport this input lives in, if any. When set, every caret-moving
+    /// interaction (typing, arrows, clicks, drag-selection, paste) asks it to keep the caret's
+    /// line in view, so a multi-line editor follows the caret instead of letting it leave the
+    /// viewport.</summary>
+    public IScrollScope? ScrollScope { get; set; }
+
     public int DoubleClickThresholdMs { get; set; } = 400;
 
     private bool _hasLastClick;
@@ -62,7 +68,17 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
             return;
         
         _textInput.MoveCaretTo(e.Mouse.Point, true);
+        RevealCaret();
         e.Consume();
+    }
+
+    // Ask the enclosing scroll scope (if any) to bring the caret's line into view. Guarded on
+    // IsEditing so a blur (click-away, Tab traversal) never scrolls back to a field being left.
+    private void RevealCaret()
+    {
+        if (ScrollScope == null || !_textInput.IsEditing)
+            return;
+        ScrollScope.EnsureVisible(_textInput.GetCaretRect());
     }
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
@@ -106,6 +122,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
 
             var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
+            RevealCaret();
             e.Consume();
         }
     }
@@ -118,10 +135,13 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController
         if (!_textInput.IsEditing)
             return;
 
-        if (e.State != InputState.Pressed) 
+        if (e.State != InputState.Pressed)
             return;
 
-        OnKeyboardKeyPressed(ref e);   
+        OnKeyboardKeyPressed(ref e);
+        // After any handled key: edits and caret moves both flow through here, and for keys that
+        // moved nothing (Ctrl+C, say) the reveal is a no-op since the caret is already in view.
+        RevealCaret();
     }
 
     protected virtual void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)

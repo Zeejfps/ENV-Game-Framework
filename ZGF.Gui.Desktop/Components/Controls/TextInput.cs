@@ -50,7 +50,11 @@ public sealed record TextInput : Widget
         view.BindTwoWay(Value.ToReadable(ctx), Value.Write);
 
         // Created eagerly (not via the lazy factory) so AutoFocus can hold the controller and drive it.
-        var controller = new TextInputViewKbmController(view, input, clipboard);
+        var controller = new TextInputViewKbmController(view, input, clipboard)
+        {
+            // Nearest enclosing scroll container, if any — keeps the caret in view as it moves.
+            ScrollScope = ctx.Get<IScrollScope>(),
+        };
         view.UseController(input, controller);
         if (AutoFocus)
             view.Behaviors.Add(new FocusOnMount(controller));

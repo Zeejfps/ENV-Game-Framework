@@ -588,7 +588,18 @@ public sealed class TextInputView : View
         return lineWidth >= maxWidth;
     }
     
-    private void DrawCaret(in RectF position, ICanvas canvas, float verticalOffset)
+    /// <summary>
+    /// The caret's current rect in absolute (canvas) coordinates — the same rect the caret is
+    /// painted at. Lets a scroll container (<see cref="IScrollScope"/>) keep the caret in view.
+    /// </summary>
+    public RectF GetCaretRect()
+    {
+        var position = Position;
+        var lineHeight = _canvas.MeasureTextLineHeight(_textStyle);
+        return ComputeCaretRect(position, _canvas, VerticalTextOffset(position, lineHeight, _canvas));
+    }
+
+    private RectF ComputeCaretRect(in RectF position, ICanvas canvas, float verticalOffset)
     {
         var startIndex = 0;
         var linesCount = 0;
@@ -605,10 +616,10 @@ public sealed class TextInputView : View
                 {
                     startIndex = i;
                     linesCount++;
-                } 
+                }
             }
         }
-        
+
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         var cursorHeight = lineHeight;
         // Single line: measure the caret prefix in the context of the whole line, so a cursive
@@ -618,8 +629,8 @@ public sealed class TextInputView : View
             ? canvas.MeasureTextPrefix(Text, _caretIndex, _textStyle)
             : canvas.MeasureTextWidth(_buffer.AsSpan(startIndex, _caretIndex - startIndex), _textStyle);
         var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight + verticalOffset;
-        
-        var cursorPos = new RectF
+
+        return new RectF
         {
             Bottom = cursorPosBottom,
             // Logical prefix width measures from the leading edge: left edge under LTR, right under RTL.
@@ -629,10 +640,13 @@ public sealed class TextInputView : View
             Width = CaretWidth,
             Height = cursorHeight
         };
-            
+    }
+
+    private void DrawCaret(in RectF position, ICanvas canvas, float verticalOffset)
+    {
         canvas.DrawRect(new DrawRectInputs
         {
-            Position = cursorPos,
+            Position = ComputeCaretRect(position, canvas, verticalOffset),
             Style = _cursorStyle,
             ZIndex = GetDrawZIndex()
         });
