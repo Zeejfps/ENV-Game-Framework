@@ -6,14 +6,17 @@ using ZGF.Gui.Widgets;
 namespace ZGF.Gui.Desktop.Components.Controls;
 
 /// <summary>
-/// Single-line text input. <see cref="Value"/> is a two-way <see cref="Prop{T}"/>: its source
+/// Text input. <see cref="Value"/> is a two-way <see cref="Prop{T}"/>: its source
 /// drives the input and the user's edits are written back through it. Keyboard handling, focus
-/// and clipboard are wired from the build context.
+/// and clipboard are wired from the build context. Single-line by default; set <see cref="Wrap"/>
+/// to <see cref="TextWrap.Wrap"/> for a multi-line editor whose intrinsic height grows with its
+/// wrapped content.
 /// </summary>
 public sealed record TextInput : Widget
 {
     public required Prop<string> Value { get; init; }
     public Prop<string?> Placeholder { get; init; }
+    public Prop<TextWrap> Wrap { get; init; }
     public Prop<uint> PlaceholderColor { get; init; }
     public Prop<uint> Background { get; init; } = 0xFF2A2A2A;
     public Prop<uint> Color { get; init; }
@@ -34,6 +37,7 @@ public sealed record TextInput : Widget
         var clipboard = ctx.Get<IClipboard>();
 
         var view = new TextInputView(ctx.Canvas);
+        Wrap.Apply(ctx, view, static (v, w) => v.TextWrap = w);
         Background.Apply(ctx, view, static (v, c) => v.BackgroundColor = c);
         Placeholder.Apply(ctx, view, static (v, p) => v.PlaceholderText = p);
         PlaceholderColor.Apply(ctx, view, static (v, c) => v.PlaceholderTextColor = c);

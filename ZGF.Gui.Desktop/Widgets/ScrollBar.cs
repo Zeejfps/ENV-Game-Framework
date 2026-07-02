@@ -28,6 +28,7 @@ public sealed record ScrollBar : Widget
             t.HoveredBackgroundColor = s.ThumbHoverBackground;
             t.BorderSize = s.ThumbBorderSize;
             t.BorderColor = s.ThumbBorder;
+            t.BorderRadius = s.ThumbRadius;
         });
 
         return new KbmInput

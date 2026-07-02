@@ -15,6 +15,7 @@ public readonly record struct ScrollBarStyle
     public uint ThumbHoverBackground { get; init; }
     public BorderSizeStyle ThumbBorderSize { get; init; }
     public BorderColorStyle ThumbBorder { get; init; }
+    public BorderRadiusStyle ThumbRadius { get; init; }
 
     public static ScrollBarStyle Default { get; } = new()
     {

@@ -61,6 +61,12 @@ public sealed class VerticalScrollBarThumbView : View
         set => _background.BorderSize = value;
     }
 
+    public BorderRadiusStyle BorderRadius
+    {
+        get => _background.BorderRadius;
+        set => _background.BorderRadius = value;
+    }
+
     private bool _isSelected;
     public bool IsSelected
     {

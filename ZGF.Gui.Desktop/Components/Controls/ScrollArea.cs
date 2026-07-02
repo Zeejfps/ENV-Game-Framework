@@ -32,9 +32,22 @@ public sealed record ScrollArea : Widget
     /// set it to keep wheel speed uniform with other scroll surfaces in the host app.</summary>
     public float WheelStep { get; init; } = ScrollDefaults.WheelStep;
 
+    /// <summary>Passes <see cref="VerticalScrollPane.StretchContent"/> through: while the content is
+    /// shorter than the viewport it is laid out at the viewport height, so a <see cref="Grow"/> child
+    /// fills the area (e.g. a text editor whose whole surface should be clickable). Once the content
+    /// outgrows the viewport this has no effect — the area just scrolls.</summary>
+    public bool StretchContent { get; init; }
+
+    /// <summary>Passes <see cref="VerticalScrollPane.FillParent"/> through: the area reports no
+    /// intrinsic height (a flex basis of 0), taking only the leftover space its slot hands it.
+    /// Set this when the area sits in a <see cref="Grow"/>; otherwise its content's full height
+    /// leaks into the parent's measure and growing content inflates the surrounding layout
+    /// instead of scrolling.</summary>
+    public bool FillParent { get; init; }
+
     protected override IWidget Build(Context ctx)
     {
-        var pane = new VerticalScrollPane { Gap = Gap };
+        var pane = new VerticalScrollPane { Gap = Gap, StretchContent = StretchContent, FillParent = FillParent };
         foreach (var child in Children)
             pane.Children.Add(child.BuildView(ctx));
 
