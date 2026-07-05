@@ -81,6 +81,7 @@ public sealed class GuiTestHarness : IDisposable
         var mouse = new Mouse();
         var ticker = new FrameTicker();
         ctx.AddService<IFrameTicker>(ticker);
+        ctx.AddService(new SvgImageCache(new SvgImageCacheOptions()));
         var menuHost = new HeadlessContextMenuHost(ctx);
         ctx.AddService<IContextMenuHost>(menuHost);
         configure?.Invoke(ctx);
@@ -119,6 +120,7 @@ public sealed class GuiTestHarness : IDisposable
         var mouse = new Mouse();
         var ticker = new FrameTicker();
         ctx.AddService<IFrameTicker>(ticker);
+        ctx.AddService(new SvgImageCache(new SvgImageCacheOptions()));
         var menuHost = new HeadlessContextMenuHost(ctx);
         ctx.AddService<IContextMenuHost>(menuHost);
         configure?.Invoke(ctx);

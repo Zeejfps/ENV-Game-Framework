@@ -49,7 +49,56 @@ public sealed unsafe class MetalImageManager : IDisposable
     internal IntPtr GetMetalTexture(uint textureId)
         => _textureByTextureId.TryGetValue(textureId, out var t) ? t : IntPtr.Zero;
 
-    private IntPtr UploadRgbaTexture(int width, int height, byte[] rgba)
+    public bool HasImage(string imageId) => _textureIdByImageId.ContainsKey(imageId);
+
+    /// <summary>
+    /// Creates or replaces a dynamic image from straight-alpha RGBA8, top-down rows
+    /// (flipped here to the shader's bottom-up UV convention). Updates always allocate
+    /// a fresh texture and remap the id: an in-flight command buffer may still sample
+    /// the old texture, and it retains it, so releasing our reference right away is safe
+    /// while mutating it in place would not be.
+    /// </summary>
+    public bool CreateOrUpdateRgbaImage(string imageId, int width, int height, ReadOnlySpan<byte> rgbaTopDown)
+    {
+        var flipped = FlipRows(rgbaTopDown, width, height);
+        var texture = UploadRgbaTexture(width, height, flipped);
+
+        if (_textureIdByImageId.TryGetValue(imageId, out var oldTextureId))
+        {
+            if (_textureByTextureId.Remove(oldTextureId, out var oldTexture))
+                Release(oldTexture);
+        }
+
+        var textureId = _nextTextureId++;
+        _textureIdByImageId[imageId] = textureId;
+        _sizeByImageId[imageId] = new Size { Width = width, Height = height };
+        _textureByTextureId[textureId] = texture;
+        return true;
+    }
+
+    public void RemoveImage(string imageId)
+    {
+        if (!_textureIdByImageId.Remove(imageId, out var textureId))
+            return;
+        _sizeByImageId.Remove(imageId);
+        if (_textureByTextureId.Remove(textureId, out var texture))
+            Release(texture);
+    }
+
+    private byte[] _flipScratch = [];
+
+    private ReadOnlySpan<byte> FlipRows(ReadOnlySpan<byte> topDown, int width, int height)
+    {
+        var rowBytes = width * 4;
+        var needed = rowBytes * height;
+        if (_flipScratch.Length < needed)
+            _flipScratch = new byte[needed];
+        for (var y = 0; y < height; y++)
+            topDown.Slice(y * rowBytes, rowBytes).CopyTo(_flipScratch.AsSpan((height - 1 - y) * rowBytes, rowBytes));
+        return _flipScratch.AsSpan(0, needed);
+    }
+
+    private IntPtr UploadRgbaTexture(int width, int height, ReadOnlySpan<byte> rgba)
     {
         // 1) Build an MTLTextureDescriptor (RGBA8Unorm, 2D, ShaderRead, Shared storage).
         var descClass = Class("MTLTextureDescriptor");
@@ -74,7 +123,7 @@ public sealed unsafe class MetalImageManager : IDisposable
             Origin = new MTLOrigin(),
             Size = new MTLSize { Width = (nuint)width, Height = (nuint)height, Depth = 1 },
         };
-        fixed (byte* ptr = &rgba[0])
+        fixed (byte* ptr = rgba)
         {
             msg_Void_MTLRegion_NUInt_IntPtr_NUInt(
                 texture, Sel("replaceRegion:mipmapLevel:withBytes:bytesPerRow:"),

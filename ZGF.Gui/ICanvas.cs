@@ -52,4 +52,18 @@ public interface ICanvas
 
     int GetImageWidth(string imageId);
     int GetImageHeight(string imageId);
+
+    /// <summary>Device pixels per logical point (1 on non-HiDPI surfaces).</summary>
+    float DpiScale => 1f;
+
+    /// <summary>
+    /// Creates the image under <paramref name="imageId"/>, or replaces its pixels
+    /// (and size) if it already exists. Pixel data is straight-alpha RGBA8 in
+    /// top-down row order. Returns false on canvases without image support.
+    /// </summary>
+    bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => false;
+
+    bool HasImage(string imageId) => false;
+
+    void RemoveImage(string imageId) { }
 }

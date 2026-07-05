@@ -39,6 +39,7 @@
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
       <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
       <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
+      <ProjectReference Include="..\ZGF.Svg\ZGF.Svg.csproj" />
     </ItemGroup>
 
 </Project>
