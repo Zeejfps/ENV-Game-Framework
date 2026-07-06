@@ -80,6 +80,9 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     protected override Size GetImageSizeImpl(string imageId) => _shared.ImageManager.GetImageSize(imageId);
     protected override uint GetImageTextureId(string imageId) => _shared.ImageManager.GetTextureId(imageId);
     public override void LoadImageFromFile(string path) => _shared.ImageManager.LoadImageFromFile(path);
+    public override bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => _shared.ImageManager.CreateOrUpdateRgbaImage(imageId, widthPx, heightPx, rgbaTopDown);
+    public override bool HasImage(string imageId) => _shared.ImageManager.HasImage(imageId);
+    public override void RemoveImage(string imageId) => _shared.ImageManager.RemoveImage(imageId);
 
     protected override void UploadRectInstances(RectInstance[] data, int count)
     {

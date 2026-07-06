@@ -91,14 +91,73 @@ public sealed unsafe class GlImageManager : IDisposable
     public int GetImageWidth(string imageId) => (int)_sizeByImageId[imageId].Width;
     public int GetImageHeight(string imageId) => (int)_sizeByImageId[imageId].Height;
 
-    private uint UploadRgbaTexture(int width, int height, byte[] rgba)
+    public bool HasImage(string imageId) => _textureIdByImageId.ContainsKey(imageId);
+
+    /// <summary>
+    /// Creates or replaces a dynamic image from straight-alpha RGBA8, top-down rows.
+    /// The manager flips to the bottom-up convention the canvas_image shader samples with.
+    /// </summary>
+    public bool CreateOrUpdateRgbaImage(string imageId, int width, int height, ReadOnlySpan<byte> rgbaTopDown)
+    {
+        var flipped = FlipRows(rgbaTopDown, width, height);
+
+        if (_textureIdByImageId.TryGetValue(imageId, out var textureId))
+        {
+            var prev = _sizeByImageId[imageId];
+            var sameSize = (int)prev.Width == width && (int)prev.Height == height;
+            glBindTexture(GL_TEXTURE_2D, textureId);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            fixed (byte* ptr = flipped)
+            {
+                if (sameSize)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
+                else
+                    glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
+            }
+            AssertNoGlError();
+            glBindTexture(GL_TEXTURE_2D, 0);
+            _sizeByImageId[imageId] = new Size { Width = width, Height = height };
+        }
+        else
+        {
+            textureId = UploadRgbaTexture(width, height, flipped);
+            _textureIdByImageId.Add(imageId, textureId);
+            _sizeByImageId.Add(imageId, new Size { Width = width, Height = height });
+            _ownedTextures.Add(textureId);
+        }
+        return true;
+    }
+
+    public void RemoveImage(string imageId)
+    {
+        if (!_textureIdByImageId.Remove(imageId, out var textureId))
+            return;
+        _sizeByImageId.Remove(imageId);
+        _ownedTextures.Remove(textureId);
+        glDeleteTextures(1, &textureId);
+    }
+
+    private byte[] _flipScratch = [];
+
+    private ReadOnlySpan<byte> FlipRows(ReadOnlySpan<byte> topDown, int width, int height)
+    {
+        var rowBytes = width * 4;
+        var needed = rowBytes * height;
+        if (_flipScratch.Length < needed)
+            _flipScratch = new byte[needed];
+        for (var y = 0; y < height; y++)
+            topDown.Slice(y * rowBytes, rowBytes).CopyTo(_flipScratch.AsSpan((height - 1 - y) * rowBytes, rowBytes));
+        return _flipScratch.AsSpan(0, needed);
+    }
+
+    private uint UploadRgbaTexture(int width, int height, ReadOnlySpan<byte> rgba)
     {
         uint textureId;
         glGenTextures(1, &textureId);
         glBindTexture(GL_TEXTURE_2D, textureId);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        fixed (byte* ptr = &rgba[0])
+        fixed (byte* ptr = rgba)
         {
             glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
         }

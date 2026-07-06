@@ -924,6 +924,12 @@ public abstract class RenderedCanvasBase : ICanvas
     // the default is a no-op so canvases without an image manager don't have to.
     public virtual void LoadImageFromFile(string path) { }
 
+    // Dynamic image surface (rasterized SVGs and other generated pixels). Same override
+    // contract as LoadImageFromFile: backends with an image manager forward to it.
+    public virtual bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => false;
+    public virtual bool HasImage(string imageId) => false;
+    public virtual void RemoveImage(string imageId) { }
+
     // ---------- EndFrame: sort, batch, upload, draw ----------
 
     public void EndFrame()
