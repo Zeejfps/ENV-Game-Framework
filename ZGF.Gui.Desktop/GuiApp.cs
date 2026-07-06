@@ -54,7 +54,7 @@ public sealed class GuiApp : IDisposable
         // themselves, and each re-registers on focus so arbiter order tracks on-screen stacking.
         var pointerArbiter = new PointerOwnershipArbiter();
         _pointerArbiter = pointerArbiter;
-        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter);
+        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter, app);
         pointerArbiter.Register(_mainInput, isModal: false);
         _mainHost = new GuiWindowHost(app.MainWindow, mainCanvas, _mainInput, context, sizeRootToWindow: true);
         _dispatcher = new QueuedUiDispatcher { OnWorkPosted = app.Wake };

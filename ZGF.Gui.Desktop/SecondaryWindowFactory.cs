@@ -57,7 +57,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         // Share the app's pointer arbiter so this window participates in pointer ownership. Without
         // it the main window (which is arbitrated) keeps believing it owns the pointer at screen
         // points that overlap this window, and its widgets hover through this one.
-        var input = new DesktopInputSystem(window, canvas, _arbiter);
+        var input = new DesktopInputSystem(window, canvas, _arbiter, _app);
 
         var context = new Context(_mainContext);
         context.Canvas = canvas;

@@ -141,6 +141,10 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             }
         }
 
+        // Captured before Hide(): hiding a key window drops or reassigns OS focus, so
+        // this is the last moment "was the app active?" is observable.
+        var appWasActive = impl.Window.IsFocused || OtherWindowHasFocus(impl.Window);
+
         impl.Window.Hide();
         impl.SetRoot(null);
         // Drop any OutsideClick subscribers the caller wired up (e.g. ContextMenuManager
@@ -176,7 +180,13 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // secondary window opened from a menu item — it now holds key status, and
         // yanking focus back to main would send that window behind. Refocus main only
         // when no other window currently owns focus (the just-hidden popup excepted).
-        if (_activePopups.Count == 0 && _app.MainWindow is { } main && !OtherWindowHasFocus(impl.Window))
+        //
+        // And when no app window held focus even before the hide, the app is in the
+        // background (a tooltip closing while another application is frontmost, or a
+        // menu dismissed after the user switched away): there is no orphaned key status
+        // to restore, and Focus() would activate the app — stealing focus from whatever
+        // the user is working in.
+        if (_activePopups.Count == 0 && appWasActive && _app.MainWindow is { } main && !OtherWindowHasFocus(impl.Window))
             main.Focus();
     }
 
@@ -266,7 +276,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
 
-        var input = new DesktopInputSystem(window, canvas, _arbiter);
+        var input = new DesktopInputSystem(window, canvas, _arbiter, _app);
 
         var popupContext = new Context(_mainContext);
         popupContext.Canvas = canvas;

@@ -12,17 +12,19 @@ public sealed class DesktopInputSystem : IPointerWindow
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
     private readonly PointerOwnershipArbiter? _arbiter;
+    private readonly IWindowedApp? _app;
     private bool _pendingExitClear;
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
     public Action? OnAnyInput { get; set; }
 
-    public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas, PointerOwnershipArbiter? arbiter = null)
+    public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas, PointerOwnershipArbiter? arbiter = null, IWindowedApp? app = null)
     {
         _window = window;
         _canvas = canvas;
         _arbiter = arbiter;
+        _app = app;
 
         _window.OnKey += HandleKeyEvent;
         _window.OnMouseButton += HandleMouseButtonEvent;
@@ -67,6 +69,21 @@ public sealed class DesktopInputSystem : IPointerWindow
 
     public void Update()
     {
+        // Hover here is polled (GetCursorPosition + bounds test), not event-driven, and
+        // GLFW reports cursor coords relative to the window even when the window is
+        // unfocused or covered by another application. Without this gate, hover keeps
+        // dispatching — and spawning tooltips — while the app sits in the background,
+        // merely because the cursor crosses the window's screen rect.
+        if (!AnyAppWindowFocused())
+        {
+            if (!InputSystem.IsPointerCaptured)
+            {
+                InputSystem.ClearHover();
+                Mouse.Point = new PointF(float.MinValue, float.MinValue);
+            }
+            return;
+        }
+
         var managed = _arbiter != null && _arbiter.IsRegistered(this);
 
         // A modal (context menu) is open and this window sits behind it: suppress all
@@ -265,6 +282,19 @@ public sealed class DesktopInputSystem : IPointerWindow
 
         InputSystem.SendKeyboardKeyEvent(ref e);
         OnAnyInput?.Invoke();
+    }
+
+    // True when any of the app's windows (main, secondary, or popup) holds OS focus —
+    // i.e. the app is the active application. A click-through tooltip never takes key
+    // focus, so during normal tooltip hover the main window still reports focused and
+    // hover stays live. Instances constructed without an app (tests) are always active.
+    private bool AnyAppWindowFocused()
+    {
+        if (_app == null) return true;
+        var windows = _app.Windows;
+        for (var i = 0; i < windows.Count; i++)
+            if (windows[i].IsFocused) return true;
+        return false;
     }
 
     private static InputState MapState(InputAction action) => action switch
