@@ -694,7 +694,7 @@ public class View
         if (_measuredWidthValid)
             return _measuredWidth;
 
-        _measuredWidth = MeasureWidthIntrinsic();
+        _measuredWidth = ClampWidth(MeasureWidthIntrinsic());
         _measuredWidthValid = true;
         return _measuredWidth;
     }
@@ -736,13 +736,15 @@ public class View
     /// Measure the height this view would occupy when given <paramref name="availableWidth"/>
     /// of horizontal space. A non-positive value (≤ 0) means "unconstrained — use the view's
     /// intrinsic width." This is the entry point for height-for-width content (wrapping text).
+    /// The result is clamped to the view's own min/max height constraints, so a parent summing
+    /// measures sees the same size layout will grant.
     /// </summary>
     public float MeasureHeight(float availableWidth)
     {
         if (_measuredHeightValid && _measuredHeightAvailableWidth == availableWidth)
             return _measuredHeight;
 
-        _measuredHeight = MeasureHeightIntrinsic(availableWidth);
+        _measuredHeight = ClampHeight(MeasureHeightIntrinsic(availableWidth));
         _measuredHeightAvailableWidth = availableWidth;
         _measuredHeightValid = true;
         return _measuredHeight;

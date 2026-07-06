@@ -166,13 +166,20 @@ public sealed class VerticalScrollPane : View, IScrollScope
     
     protected override void OnLayoutChildren()
     {
-        base.OnLayoutChildren();
-        
-        var viewportRect = Position;
-        var contentRect = _columnView.Position;
-        
         var viewportHeight = Position.Height;
         var contentHeight = _columnView.MeasureHeight(Position.Width);
+
+        // Re-clamp before positioning: a viewport grown since the last scroll (e.g. a window
+        // resize) shrinks the travel range, and a stale offset would leave the content pinned
+        // scrolled-up with no scrollbar to bring it back.
+        _maxDistanceFromTop = Math.Max(0f, contentHeight - viewportHeight);
+        if (_distanceFromTop > _maxDistanceFromTop)
+            _distanceFromTop = _maxDistanceFromTop;
+
+        base.OnLayoutChildren();
+
+        var viewportRect = Position;
+        var contentRect = _columnView.Position;
 
         if (contentHeight <= viewportHeight)
         {

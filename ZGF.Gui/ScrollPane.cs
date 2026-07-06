@@ -92,6 +92,14 @@ public sealed class ScrollPane : View, IScrollableContent
 
     protected override void OnLayoutChildren()
     {
+        // Re-clamp before positioning: a viewport grown since the last scroll (e.g. a window
+        // resize) shrinks the travel range on both axes, and a stale offset would leave the
+        // content pinned scrolled-away with no scrollbar to bring it back.
+        var contentWidth = Math.Max(Position.Width, _columnView.MeasureWidth());
+        var contentHeight = Math.Max(Position.Height, _columnView.MeasureHeight(contentWidth));
+        _distanceFromTop = Math.Clamp(_distanceFromTop, 0f, contentHeight - Position.Height);
+        _distanceFromLeft = Math.Clamp(_distanceFromLeft, 0f, contentWidth - Position.Width);
+
         base.OnLayoutChildren();
 
         var viewport = Position;

@@ -265,6 +265,52 @@ public class LayoutTests
     }
 
     [Fact]
+    public void VerticalScrollPane_GrowingViewport_ReclampsStaleScrollOffset()
+    {
+        var content = new RectView { Height = 300f };
+        var pane = new VerticalScrollPane();
+        pane.Children.Add(content);
+        var root = Root(100f, 100f, pane);
+        root.LayoutSelf();
+
+        pane.Scroll(200f);
+        root.LayoutSelf();
+        Assert.Equal(300f, content.Position.Top, 3); // scrolled to the end
+
+        // Growing the viewport past the content height shrinks the travel range to zero; layout
+        // alone must snap the content back to the top, not wait for the next wheel event.
+        root.Height = 400f;
+        root.LayoutSelf();
+
+        Assert.Equal(400f, content.Position.Top, 3);
+    }
+
+    [Fact]
+    public void ScrollPane_GrowingViewport_ReclampsStaleScrollOffsets()
+    {
+        var content = new RectView { Width = 300f, Height = 300f };
+        var pane = new ScrollPane();
+        pane.Children.Add(content);
+        var root = Root(100f, 100f, pane);
+        root.LayoutSelf();
+
+        pane.ScrollVertical(200f);
+        pane.ScrollHorizontal(200f);
+        root.LayoutSelf();
+        Assert.Equal(-200f, content.Position.Left, 3);
+        Assert.Equal(0f, content.Position.Bottom, 3); // scrolled to the end on both axes
+
+        // Once the viewport contains the content, both offsets must reset on layout alone:
+        // back to the left edge and the top (Y-up: bottom = 400 - 300).
+        root.Width = 400f;
+        root.Height = 400f;
+        root.LayoutSelf();
+
+        Assert.Equal(0f, content.Position.Left, 3);
+        Assert.Equal(100f, content.Position.Bottom, 3);
+    }
+
+    [Fact]
     public void PaddingView_Rtl_SwapsInlineInsets()
     {
         // Left/Right are inline start/end: an indent (larger Left) insets from the right under RTL.
