@@ -30,6 +30,7 @@ public sealed class HeadlessContextMenuHost : IContextMenuHost
 
     private readonly Context _parent;
     private readonly List<Entry> _open = new();
+    private readonly List<Action> _afterCloseActions = new();
     private bool _applying;
 
     public HeadlessContextMenuHost(Context parent)
@@ -86,6 +87,15 @@ public sealed class HeadlessContextMenuHost : IContextMenuHost
         foreach (var e in _open) e.ClosePending = true;
     }
 
+    public void CloseAllAndThen(Action afterClosed)
+    {
+        // Flag every menu for close and defer the action, mirroring the desktop host: the
+        // teardown and the action both run on the next ApplyPendingCloses (a read), never
+        // mid-dispatch, and the action runs only after the menus are gone.
+        foreach (var e in _open) e.ClosePending = true;
+        _afterCloseActions.Add(afterClosed);
+    }
+
     public void CloseAllImmediately()
     {
         // Synchronous teardown — only called outside input dispatch (e.g. before opening a fresh
@@ -118,6 +128,16 @@ public sealed class HeadlessContextMenuHost : IContextMenuHost
                 var e = _open[i];
                 _open.RemoveAt(i);
                 Teardown(e);
+            }
+
+            // Menus are torn down — run any actions that were waiting for the close
+            // (CloseAllAndThen). Re-entrant reads are guarded above, so this runs after the
+            // menu is gone from every observer's point of view.
+            if (_afterCloseActions.Count > 0)
+            {
+                var actions = _afterCloseActions.ToArray();
+                _afterCloseActions.Clear();
+                foreach (var action in actions) action();
             }
         }
         finally

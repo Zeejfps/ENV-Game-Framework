@@ -39,5 +39,13 @@ public interface IContextMenuHost
     IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below);
     void RequestCloseMenu(ContextMenu menu);
     void RequestCloseAll();
+
+    /// <summary>
+    /// Tears the whole menu chain down and runs <paramref name="afterClosed"/> only once the
+    /// menu is actually off screen. For a committed selection whose action must not run while
+    /// the menu is still visible — e.g. a blocking native file picker, which would otherwise
+    /// open behind the menu popup. Safe to call from inside an item's click dispatch.
+    /// </summary>
+    void CloseAllAndThen(Action afterClosed);
     void CloseAllImmediately();
 }

@@ -48,6 +48,10 @@ public sealed class ContextMenuManager : IContextMenuHost
     // hide a popup window from inside its own WND_PROC subclass — which on
     // Windows leaves activation/capture state half-broken.
     private readonly List<OpenedContextMenu> _pendingHide = new();
+    // Set by CloseAllAndThen: the whole chain closes on the next Update, and the queued
+    // actions run only after the popup windows are actually hidden.
+    private bool _closeAllRequested;
+    private readonly List<Action> _afterCloseActions = new();
 
     public ContextMenuManager(
         IPopupWindowFactory popupFactory,
@@ -108,6 +112,15 @@ public sealed class ContextMenuManager : IContextMenuHost
 
     public void Update()
     {
+        if (_closeAllRequested)
+        {
+            // Update() is outside input dispatch, so the synchronous teardown
+            // CloseAllImmediately performs is safe here; the OS-level Hide it queues to
+            // _pendingHide is drained just below, in the same tick.
+            _closeAllRequested = false;
+            CloseAllImmediately();
+        }
+
         if (_pendingHide.Count > 0)
         {
             foreach (var menu in _pendingHide)
@@ -115,6 +128,15 @@ public sealed class ContextMenuManager : IContextMenuHost
                 _popupFactory.Release(menu.Popup);
             }
             _pendingHide.Clear();
+        }
+
+        // The popups queued above are now hidden, so any action that was waiting for the
+        // menu to leave the screen (CloseAllAndThen) can run without it appearing behind.
+        if (_afterCloseActions.Count > 0)
+        {
+            var actions = _afterCloseActions.ToArray();
+            _afterCloseActions.Clear();
+            foreach (var action in actions) action();
         }
 
         var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
@@ -169,6 +191,16 @@ public sealed class ContextMenuManager : IContextMenuHost
     {
         foreach (var opened in _openedMenus.Values)
             opened.CloseRequest();
+    }
+
+    public void CloseAllAndThen(Action afterClosed)
+    {
+        // Flag the chain to tear down on the next Update and stash the action to run after
+        // the popups are hidden. Both are deferred because this is called mid-dispatch (from
+        // an item's click), where a synchronous teardown would mutate the input system's
+        // focus queue while it iterates — the same reason RequestCloseAll only flags.
+        _closeAllRequested = true;
+        _afterCloseActions.Add(afterClosed);
     }
 
     public void CloseAllImmediately()
