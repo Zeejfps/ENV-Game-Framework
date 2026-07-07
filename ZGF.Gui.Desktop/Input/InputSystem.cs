@@ -1,4 +1,5 @@
-﻿using ZGF.Geometry;
+﻿using ZGF.Desktop;
+using ZGF.Geometry;
 
 namespace ZGF.Gui.Desktop.Input;
 
@@ -616,6 +617,22 @@ public sealed class InputSystem
     /// or null. Pairs with <see cref="GetView"/> to resolve which view is hovered — used by the test
     /// harness to surface hover state in a snapshot.</summary>
     public IKeyboardMouseController? HoveredComponent => _hoveredComponent;
+
+    /// <summary>The cursor shape to display right now. A drag that captures the pointer wins (so a
+    /// splitter keeps its resize cursor even when the pointer strays off the bar mid-drag); otherwise
+    /// the hovered target decides. Falls back to <see cref="MouseCursor.Default"/> when neither asks
+    /// for a shape.</summary>
+    public MouseCursor DesiredCursor
+    {
+        get
+        {
+            if (IsPointerCaptured && _focusedComponent is IProvidesCursor captured)
+                return captured.Cursor;
+            if (_hoveredComponent is IProvidesCursor hovered)
+                return hovered.Cursor;
+            return MouseCursor.Default;
+        }
+    }
 
     public bool IsFocused(IKeyboardMouseController component)
     {

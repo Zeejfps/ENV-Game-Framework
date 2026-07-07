@@ -32,6 +32,7 @@ public interface IWindow : IDisposable
     void SetSize(int widthPoints, int heightPoints);
     void GetPosition(out int screenX, out int screenY);
     void GetCursorPosition(out double x, out double y);
+    void SetCursor(MouseCursor cursor);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);
     void RequestRedraw();
     void RenderNow();

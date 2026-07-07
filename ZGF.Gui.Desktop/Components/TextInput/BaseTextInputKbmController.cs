@@ -1,12 +1,15 @@
 ﻿using System.Runtime.InteropServices;
+using ZGF.Desktop;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Desktop.Components.TextInput;
 
-public abstract class BaseTextInputKbmController : KeyboardMouseController
+public abstract class BaseTextInputKbmController : KeyboardMouseController, IProvidesCursor
 {
+    public MouseCursor Cursor => MouseCursor.Text;
+
     private readonly TextInputView _textInput;
     private readonly InputSystem _inputSystem;
     private readonly IClipboard? _clipboard;

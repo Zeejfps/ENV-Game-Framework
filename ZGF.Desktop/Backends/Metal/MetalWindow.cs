@@ -99,6 +99,15 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public void SetSize(int w, int h) => GLFW.Glfw.SetWindowSize(_window, w, h);
     public void GetPosition(out int screenX, out int screenY) => GLFW.Glfw.GetWindowPosition(_window, out screenX, out screenY);
     public void GetCursorPosition(out double x, out double y) => GLFW.Glfw.GetCursorPosition(_window, out x, out y);
+
+    private MouseCursor _currentCursor = MouseCursor.Default;
+
+    public void SetCursor(MouseCursor cursor)
+    {
+        if (cursor == _currentCursor) return;
+        _currentCursor = cursor;
+        GLFW.Glfw.SetCursor(_window, GlfwStandardCursors.Get(cursor));
+    }
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
         var images = new Image[icons.Count];

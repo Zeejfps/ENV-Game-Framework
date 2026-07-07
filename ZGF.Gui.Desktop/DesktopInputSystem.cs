@@ -123,6 +123,7 @@ public sealed class DesktopInputSystem : IPointerWindow
                 // focus alone (a list, a text field) does not capture, so hover stays live for it.
                 InputSystem.RefreshHover(Mouse);
             }
+            _window.SetCursor(InputSystem.DesiredCursor);
             return;
         }
 
@@ -179,16 +180,19 @@ public sealed class DesktopInputSystem : IPointerWindow
         if (prevPoint == guiPoint)
         {
             InputSystem.RefreshHover(Mouse);
-            return;
+        }
+        else
+        {
+            var e = new MouseMoveEvent
+            {
+                Mouse = Mouse,
+                Phase = EventPhase.Capturing,
+            };
+            InputSystem.SendMouseMovedEvent(ref e);
+            OnAnyInput?.Invoke();
         }
 
-        var e = new MouseMoveEvent
-        {
-            Mouse = Mouse,
-            Phase = EventPhase.Capturing,
-        };
-        InputSystem.SendMouseMovedEvent(ref e);
-        OnAnyInput?.Invoke();
+        _window.SetCursor(InputSystem.DesiredCursor);
     }
 
     private void HandleScrollEvent(double x, double y)

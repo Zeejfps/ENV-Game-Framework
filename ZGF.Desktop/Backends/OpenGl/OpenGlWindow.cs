@@ -109,6 +109,15 @@ public sealed class OpenGlWindow : IWindow
     public void GetCursorPosition(out double x, out double y) =>
         GLFW.Glfw.GetCursorPosition(GlfwWindow, out x, out y);
 
+    private MouseCursor _currentCursor = MouseCursor.Default;
+
+    public void SetCursor(MouseCursor cursor)
+    {
+        if (cursor == _currentCursor) return;
+        _currentCursor = cursor;
+        GLFW.Glfw.SetCursor(GlfwWindow, GlfwStandardCursors.Get(cursor));
+    }
+
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
         var images = new Image[icons.Count];
