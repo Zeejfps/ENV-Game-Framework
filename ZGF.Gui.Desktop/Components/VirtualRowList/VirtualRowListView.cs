@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Input;
 
@@ -90,6 +91,15 @@ public sealed class VirtualRowListView : View
     /// their own scroll offset.
     /// </summary>
     public Action<float>? HorizontalWheelHandler { get; set; }
+
+    /// <summary>
+    /// Resolves the cursor shape for a pointer position over the list. Consumers that embed
+    /// interactive regions inside rows (links, badges) return <see cref="MouseCursor.Hand"/>
+    /// etc. for those spots. Null (or a null-returning hook) keeps the default arrow. Read
+    /// via <see cref="VirtualRowListController"/>'s <see cref="IProvidesCursor"/> at the last
+    /// pointer position.
+    /// </summary>
+    public Func<PointF, MouseCursor>? CursorAt { get; set; }
 
     public float ScrollY => _scrollY;
 
