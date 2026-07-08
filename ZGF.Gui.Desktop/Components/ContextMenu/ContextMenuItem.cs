@@ -50,15 +50,34 @@ public sealed class ContextMenuItem : View
         set
         {
             _iconView.Text = value;
-            // Detach the icon view entirely when no icon is provided so the menu doesn't
-            // reserve a 16-px column of empty space on the left for icon-less items.
-            var hasIcon = !string.IsNullOrEmpty(value);
-            var isInRow = _row.Children.Count > 0 && ReferenceEquals(_row.Children[0], _iconView);
-            if (hasIcon && !isInRow)
-                _row.Children.Insert(0, _iconView);
-            else if (!hasIcon && isInRow)
-                _row.Children.Remove(_iconView);
+            SyncIconColumn();
         }
+    }
+
+    private bool _reserveIconColumn;
+    // Keeps the leading icon column present even for an icon-less row, so the labels of a
+    // menu that mixes checked and unchecked items stay aligned and don't jump as the
+    // check appears and disappears.
+    public bool ReserveIconColumn
+    {
+        get => _reserveIconColumn;
+        set
+        {
+            _reserveIconColumn = value;
+            SyncIconColumn();
+        }
+    }
+
+    // Detach the icon view entirely when there's no icon and no reserved column, so a plain
+    // menu doesn't carry a 16-px gap on the left; keep it otherwise for alignment.
+    private void SyncIconColumn()
+    {
+        var present = _reserveIconColumn || !string.IsNullOrEmpty(_iconView.Text);
+        var isInRow = _row.Children.Count > 0 && ReferenceEquals(_row.Children[0], _iconView);
+        if (present && !isInRow)
+            _row.Children.Insert(0, _iconView);
+        else if (!present && isInRow)
+            _row.Children.Remove(_iconView);
     }
 
     public StyleValue<string> IconFontFamily
@@ -93,6 +112,14 @@ public sealed class ContextMenuItem : View
     {
         get => _bg.BorderColor;
         set => _bg.BorderColor = value;
+    }
+
+    // Rounds the row's fill so the hover and active-selection highlights read as soft pills
+    // rather than full-bleed rectangles. Defaults to square.
+    public StyleValue<BorderRadiusStyle> BackgroundCornerRadius
+    {
+        get => _bg.BorderRadius;
+        set => _bg.BorderRadius = value;
     }
 
     // Accelerator hint (e.g. "Enter", "Delete") shown just after the label. Null/empty
