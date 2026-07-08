@@ -40,23 +40,28 @@ public class RectView : View
     {
         var z = GetDrawZIndex();
 
+        var radius = IsRtl ? _style.BorderRadius.Mirror() : _style.BorderRadius;
+
         if (_style.BoxShadow.IsActive)
         {
             c.DrawBoxShadow(new DrawBoxShadowInputs
             {
                 Position = Position,
-                BorderRadius = _style.BorderRadius,
+                BorderRadius = radius,
                 Shadow = _style.BoxShadow,
                 ZIndex = z,
             });
         }
 
+        var original = _style.BorderRadius;
+        _style.BorderRadius = radius;
         c.DrawRect(new DrawRectInputs
         {
             Position = Position,
             Style = _style,
             ZIndex = z,
         });
+        _style.BorderRadius = original;
     }
 
     protected override float MeasureWidthIntrinsic()

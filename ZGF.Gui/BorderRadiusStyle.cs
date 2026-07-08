@@ -17,4 +17,15 @@ public struct BorderRadiusStyle
             BottomLeft = radius,
         };
     }
+
+    public BorderRadiusStyle Mirror()
+    {
+        return new BorderRadiusStyle
+        {
+            TopLeft = TopRight,
+            TopRight = TopLeft,
+            BottomRight = BottomLeft,
+            BottomLeft = BottomRight,
+        };
+    }
 }
