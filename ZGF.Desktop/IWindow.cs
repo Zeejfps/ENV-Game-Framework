@@ -31,6 +31,9 @@ public interface IWindow : IDisposable
     void SetPosition(int screenX, int screenY);
     void SetSize(int widthPoints, int heightPoints);
     void GetPosition(out int screenX, out int screenY);
+    // Thickness of the native decoration (title bar, borders) around the client area, in screen
+    // coordinates. All zeros for borderless windows (popups, fullscreen).
+    void GetFrameSize(out int left, out int top, out int right, out int bottom);
     void GetCursorPosition(out double x, out double y);
     void SetCursor(MouseCursor cursor);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);

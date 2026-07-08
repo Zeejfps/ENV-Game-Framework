@@ -36,11 +36,18 @@ public sealed class DesktopInputSystem : IPointerWindow
         _window.OnPointerEnter += HandleCursorEnter;
     }
 
-    /// <summary>True when the OS cursor is within this window's client bounds.</summary>
+    /// <summary>
+    /// True when the OS cursor is within this window's full on-screen rect, native frame
+    /// included. This is the arbiter's occlusion test, so it must cover everything this
+    /// window visually obscures: with a client-only rect, a cursor parked on a window's
+    /// title bar would let the window *behind* it claim pointer ownership and hover.
+    /// Cursor coords are client-relative, so the frame extends the rect into negatives.
+    /// </summary>
     public bool IsCursorInsideWindow()
     {
         _window.GetCursorPosition(out var x, out var y);
-        return x >= 0 && y >= 0 && x <= _window.Width && y <= _window.Height;
+        _window.GetFrameSize(out var left, out var top, out var right, out var bottom);
+        return x >= -left && y >= -top && x <= _window.Width + right && y <= _window.Height + bottom;
     }
 
     /// <summary>True when this window currently holds OS keyboard focus.</summary>

@@ -3,7 +3,8 @@ namespace ZGF.Gui.Desktop.Input;
 /// <summary>
 /// A window that participates in pointer-ownership arbitration. Implemented by
 /// <see cref="DesktopInputSystem"/>. The arbiter needs two things from a window: whether the
-/// OS cursor currently sits inside its client bounds, and whether it currently holds OS focus.
+/// OS cursor currently sits inside its on-screen rect (native frame included, so a window
+/// occludes the one below it even under its title bar), and whether it currently holds OS focus.
 /// </summary>
 public interface IPointerWindow
 {

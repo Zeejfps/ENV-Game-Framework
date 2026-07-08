@@ -106,6 +106,9 @@ public sealed class OpenGlWindow : IWindow
     public void GetPosition(out int screenX, out int screenY) =>
         GLFW.Glfw.GetWindowPosition(GlfwWindow, out screenX, out screenY);
 
+    public void GetFrameSize(out int left, out int top, out int right, out int bottom) =>
+        GLFW.Glfw.GetWindowFrameSize(GlfwWindow, out left, out top, out right, out bottom);
+
     public void GetCursorPosition(out double x, out double y) =>
         GLFW.Glfw.GetCursorPosition(GlfwWindow, out x, out y);
 
