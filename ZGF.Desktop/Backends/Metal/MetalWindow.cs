@@ -12,6 +12,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     private readonly Window _window;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
+    private readonly PositionCallback _windowPosCallback;
     private readonly FocusCallback _focusCallback;
     private readonly WindowCallback _closeCallback;
     private readonly WindowCallback _refreshCallback;
@@ -55,6 +56,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
 
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
+        _windowPosCallback = HandleWindowPositionChanged;
         _focusCallback = HandleFocusChanged;
         _closeCallback = HandleClose;
         // OS damage event (expose, restore from minimize) — rendering is gated on NeedsRedraw.
@@ -65,6 +67,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         _cursorEnterCallback = HandleCursorEnter;
         GLFW.Glfw.SetWindowSizeCallback(window, _windowSizeCallback);
         GLFW.Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
+        GLFW.Glfw.SetWindowPositionCallback(window, _windowPosCallback);
         GLFW.Glfw.SetWindowFocusCallback(window, _focusCallback);
         GLFW.Glfw.SetCloseCallback(window, _closeCallback);
         GLFW.Glfw.SetWindowRefreshCallback(window, _refreshCallback);
@@ -85,6 +88,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
+    public event Action<int, int>? OnMove;
     public event Action<bool>? OnFocusChanged;
     public event Action? OnClose;
     public event Action<KeyboardKey, InputAction, KeyModifiers>? OnKey;
@@ -152,6 +156,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         OnFramebufferResize?.Invoke(width, height);
     }
 
+    private void HandleWindowPositionChanged(Window window, int x, int y) => OnMove?.Invoke(x, y);
     private void HandleFocusChanged(Window window, bool focused) => OnFocusChanged?.Invoke(focused);
     private void HandleClose(Window window) => OnClose?.Invoke();
 

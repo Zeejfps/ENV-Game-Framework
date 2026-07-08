@@ -16,6 +16,7 @@ public sealed class MetalApp : IWindowedApp
 
     private readonly MetalWindow _mainWindow;
     private readonly List<IWindow> _windows = new();
+    private readonly StartupConfig _startupConfig;
     private bool _isDisposed;
 
     public IntPtr Device { get; }
@@ -23,6 +24,7 @@ public sealed class MetalApp : IWindowedApp
 
     public MetalApp(StartupConfig startupConfig)
     {
+        _startupConfig = startupConfig;
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             throw new PlatformNotSupportedException("MetalApp requires macOS.");
 
@@ -104,10 +106,9 @@ public sealed class MetalApp : IWindowedApp
 
     public void Run()
     {
-        var videoMode = GLFW.Glfw.GetVideoMode(GLFW.Glfw.PrimaryMonitor);
         GLFW.Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
-        var px = (int)((videoMode.Width - ww) * 0.5f);
-        var py = (int)((videoMode.Height - wh) * 0.5f);
+        var (px, py) = WindowPlacement.Compute(
+            Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
         GLFW.Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
         _mainWindow.Show();
 

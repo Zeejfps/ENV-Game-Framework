@@ -109,6 +109,7 @@ public sealed class GuiApp : IDisposable
         app.OnTick += HandleTick;
         app.MainWindow.OnResize += HandleResize;
         app.MainWindow.OnFramebufferResize += HandleFramebufferResize;
+        app.MainWindow.OnMove += HandleMove;
         app.MainWindow.OnFocusChanged += HandleMainFocusChanged;
 
         // .NET Hot Reload (dotnet watch / Rider) patches edited Build/CreateView IL in place but
@@ -228,6 +229,10 @@ public sealed class GuiApp : IDisposable
     }
 
     public event Action<int, int>? OnWindowResized;
+
+    /// <summary>Fires when the main window is moved, with its new top-left screen position —
+    /// for persisting placement so it can be restored on next launch.</summary>
+    public event Action<int, int>? OnWindowMoved;
 
     /// <summary>
     ///     Switches the main window's native title bar between dark and light
@@ -356,6 +361,8 @@ public sealed class GuiApp : IDisposable
         if (_app is OpenGlApp) GL46.glViewport(0, 0, width, height);
     }
 
+    private void HandleMove(int x, int y) => OnWindowMoved?.Invoke(x, y);
+
     private void PopulateGui() => _mainHost.DrawContent();
 
     private void MountContent() => SetRootContent(_contentFactory(_context));
@@ -406,6 +413,7 @@ public sealed class GuiApp : IDisposable
         _app.OnTick -= HandleTick;
         _app.MainWindow.OnResize -= HandleResize;
         _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
+        _app.MainWindow.OnMove -= HandleMove;
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();

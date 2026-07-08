@@ -17,6 +17,8 @@ public interface IWindow : IDisposable
 
     event Action<int, int> OnResize;
     event Action<int, int> OnFramebufferResize;
+    // Window moved: new top-left position in screen coordinates.
+    event Action<int, int> OnMove;
     event Action<bool> OnFocusChanged;
     event Action OnClose;
 

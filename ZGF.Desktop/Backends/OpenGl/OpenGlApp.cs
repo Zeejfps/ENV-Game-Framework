@@ -11,10 +11,12 @@ public sealed class OpenGlApp : IWindowedApp
 
     private readonly OpenGlWindow _mainWindow;
     private readonly List<OpenGlWindow> _windows = new();
+    private readonly StartupConfig _startupConfig;
     private bool _isDisposed;
 
     public OpenGlApp(StartupConfig startupConfig)
     {
+        _startupConfig = startupConfig;
         Glfw.Init();
 
         Glfw.DefaultWindowHints();
@@ -129,10 +131,9 @@ public sealed class OpenGlApp : IWindowedApp
 
     public void Run()
     {
-        var videoMode = Glfw.GetVideoMode(Glfw.PrimaryMonitor);
         Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
-        var px = (int)((videoMode.Width - ww) * 0.5f);
-        var py = (int)((videoMode.Height - wh) * 0.5f);
+        var (px, py) = WindowPlacement.Compute(
+            Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
         Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
         _mainWindow.Show();
 
