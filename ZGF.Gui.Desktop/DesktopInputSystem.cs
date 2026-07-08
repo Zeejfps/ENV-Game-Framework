@@ -14,6 +14,10 @@ public sealed class DesktopInputSystem : IPointerWindow
     private readonly PointerOwnershipArbiter? _arbiter;
     private readonly IWindowedApp? _app;
     private bool _pendingExitClear;
+    // Buttons whose press was swallowed as a modal-dismiss click. The matching release is
+    // part of the same gesture and must be swallowed too — dispatched alone, it would land
+    // on whatever sits under the cursor now that the menu is gone.
+    private readonly HashSet<MouseButton> _modalDismissButtons = new();
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
@@ -55,6 +59,7 @@ public sealed class DesktopInputSystem : IPointerWindow
     {
         InputSystem.Reset();
         _pendingExitClear = false;
+        _modalDismissButtons.Clear();
         Mouse.Point = new PointF(float.MinValue, float.MinValue);
     }
 
@@ -251,8 +256,21 @@ public sealed class DesktopInputSystem : IPointerWindow
         // hovered when the menu opened — Update() clears hover but keeps _focusQueue — so
         // dispatching here would re-fire that stale path: reopening the just-closed menu
         // (left-click) or popping a context menu from a control the cursor isn't even over
-        // (right-click). Skip local dispatch; the dismiss click is consumed.
-        if (_arbiter == null || !_arbiter.IsBlockedByModal(this))
+        // (right-click). Skip local dispatch; the dismiss click is consumed. This check runs
+        // after NotifyPress but still sees the modal as open — CloseAllImmediately only flags
+        // the popup for release; the arbiter unregistration is deferred to the next Update().
+        var blocked = _arbiter != null && _arbiter.IsBlockedByModal(this);
+        if (s == InputState.Pressed)
+        {
+            if (blocked) _modalDismissButtons.Add(b);
+            else _modalDismissButtons.Remove(b);
+        }
+        else if (_modalDismissButtons.Remove(b))
+        {
+            blocked = true;
+        }
+
+        if (!blocked)
             InputSystem.SendMouseButtonEvent(ref e);
 
         OnAnyInput?.Invoke();
