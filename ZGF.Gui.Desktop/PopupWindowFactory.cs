@@ -22,6 +22,11 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly List<PopupWindowImpl> _pool = new();
     private PopupWindowImpl? _captureHolder;
 
+    // The app window that held OS focus when the current popup chain opened — the window the menu
+    // belongs to. Captured before the first popup shows (on macOS a borderless popup takes key
+    // status) and handed the focus back when the last one closes. Null while no chain is open.
+    private IWindow? _chainOwner;
+
     internal PopupWindowFactory(
         IWindowedApp app,
         FreeTypeFontBackend fonts,
@@ -44,6 +49,11 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     public IPopupWindow Acquire(in PopupRequest request)
     {
+        // Opening a chain: note which window the menu hangs off, while it still holds focus. A
+        // submenu (or a tooltip alongside an open menu) must not overwrite it.
+        if (_activePopups.Count == 0)
+            _chainOwner = FocusedAppWindow();
+
         PopupWindowImpl popup;
         if (_pool.Count > 0)
         {
@@ -169,29 +179,60 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         }
         _pool.Add(impl);
 
-        // When the last popup closes, restore OS key focus to the main window so
-        // in-app dialog overlays (e.g. Create Tag) receive keyboard input without
-        // requiring a manual click. On macOS, showing a borderless popup makes it
-        // the key window; hiding it does not automatically return key status to
-        // the main window. Only refocus once no popups remain — closing a submenu
-        // while its parent menu is still open must not pull focus to main.
+        // When the last popup closes, restore OS key focus to the window the chain opened from, so
+        // in-app dialog overlays (e.g. Create Tag) receive keyboard input without requiring a manual
+        // click. On macOS, showing a borderless popup makes it the key window; hiding it does not
+        // automatically return key status to anyone. Restoring to the *chain owner* rather than the
+        // main window is what keeps a menu opened from a secondary window (e.g. a review window's
+        // base picker) from sending that window behind the main one. Only refocus once no popups
+        // remain — closing a submenu while its parent menu is still open must not pull focus away.
         //
-        // But if a real top-level window took focus while the menu was open — e.g. a
-        // secondary window opened from a menu item — it now holds key status, and
-        // yanking focus back to main would send that window behind. Refocus main only
-        // when no other window currently owns focus (the just-hidden popup excepted).
+        // But if a real top-level window took focus while the menu was open — e.g. a secondary window
+        // opened from a menu item — it now holds key status, and yanking focus back would send that
+        // window behind. Refocus only when no other window currently owns focus (the just-hidden
+        // popup excepted).
         //
-        // And when no app window held focus even before the hide, the app is in the
-        // background (a tooltip closing while another application is frontmost, or a
-        // menu dismissed after the user switched away): there is no orphaned key status
-        // to restore, and Focus() would activate the app — stealing focus from whatever
-        // the user is working in.
-        if (_activePopups.Count == 0 && appWasActive && _app.MainWindow is { } main && !OtherWindowHasFocus(impl.Window))
-            main.Focus();
+        // And when no app window held focus even before the hide, the app is in the background (a
+        // tooltip closing while another application is frontmost, or a menu dismissed after the user
+        // switched away): there is no orphaned key status to restore, and Focus() would activate the
+        // app — stealing focus from whatever the user is working in.
+        if (_activePopups.Count == 0)
+        {
+            if (appWasActive && !OtherWindowHasFocus(impl.Window) && RestoreTarget() is { } target)
+                target.Focus();
+            _chainOwner = null;
+        }
+    }
+
+    // The window to hand focus back to: the one the chain opened from, unless it has since been
+    // closed (a menu item that disposes its own window), in which case the main window takes it.
+    private IWindow? RestoreTarget()
+    {
+        if (_chainOwner is { } owner && _app.Windows.Contains(owner)) return owner;
+        return _app.MainWindow;
+    }
+
+    // The app's currently focused non-popup window — the one a menu opened now hangs off. Popups
+    // are excluded: a tooltip acquired while one is somehow focused must not become the owner.
+    private IWindow? FocusedAppWindow()
+    {
+        foreach (var window in _app.Windows)
+            if (window.IsFocused && !IsPopupWindow(window))
+                return window;
+        return null;
+    }
+
+    private bool IsPopupWindow(IWindow window)
+    {
+        foreach (var p in _activePopups)
+            if (ReferenceEquals(p.Window, window)) return true;
+        foreach (var p in _pool)
+            if (ReferenceEquals(p.Window, window)) return true;
+        return false;
     }
 
     // True when some window other than the just-closed popup currently holds OS focus —
-    // i.e. focus is not orphaned and must not be reassigned to the main window.
+    // i.e. focus is not orphaned and must not be reassigned.
     private bool OtherWindowHasFocus(IWindow closingPopup)
     {
         foreach (var window in _app.Windows)
