@@ -176,6 +176,9 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             var evict = _pool[0];
             _pool.RemoveAt(0);
             evict.Dispose();
+            // Dispose left the evicted window's (now-destroyed) context current; restore the
+            // main context so the run loop's next GL calls target a valid one.
+            _app.MakeMainContextCurrent();
         }
         _pool.Add(impl);
 
@@ -397,6 +400,11 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public void Dispose()
     {
         SetRoot(null);
+        // VAOs are per-context (not shared across the GL share group). Make THIS window's
+        // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
+        // runs against whatever context is current (often the main window) and destroys that
+        // context's same-named VAOs. Callers restore the main context afterwards.
+        _host.Window.MakeContextCurrent();
         _host.DisposeCanvas();
         _host.Window.Dispose();
     }
