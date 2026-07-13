@@ -381,6 +381,11 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
         // Same hand-off as HandleTextEvent: a searchable context menu that owns typing owns the
         // composition that produces it too, or the preedit would render in the host window's field
         // while its committed text lands in the menu's.
+        //
+        // Known gap: this branch is currently unreachable. A popup field enables the IME on the
+        // popup's own window, but a borderless popup never holds OS keyboard focus — so the IME
+        // composes against the host, whose input mode is off, and no preedit is produced to forward.
+        // A menu's search box therefore takes Latin but not CJK. See docs/plans/cjk-ime-support.md.
         var modal = _arbiter?.TopmostModal();
         if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
         {

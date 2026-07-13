@@ -69,8 +69,12 @@ namespace GLFW
             var assembly = typeof(Glfw).Assembly;
             foreach (var candidate in LibraryNames())
             {
-                if (NativeLibrary.TryLoad(candidate, assembly, DllImportSearchPath.AssemblyDirectory, out var handle))
-                    return NativeLibrary.TryGetExport(handle, symbol, out _);
+                // Keep going when a candidate loads but lacks the symbol: on Linux the first name
+                // that resolves may be the distro's unpatched GLFW, and stopping there would report
+                // "unsupported" while the P/Invoke went on to bind the app-local patched one.
+                if (NativeLibrary.TryLoad(candidate, assembly, DllImportSearchPath.AssemblyDirectory, out var handle)
+                    && NativeLibrary.TryGetExport(handle, symbol, out _))
+                    return true;
             }
 
             return false;

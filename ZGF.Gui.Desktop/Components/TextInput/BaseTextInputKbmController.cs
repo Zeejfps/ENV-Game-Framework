@@ -77,6 +77,12 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         _inputSystem.ImeHost?.ResetComposition();
         _textInput.ClearComposition();
         _inputSystem.ImeHost?.SetImeEnabled(false);
+        // Ends the edit session too, so that "the IME is on" and "a field is being edited" cannot
+        // drift apart. Focus can be taken by a bare StealFocus that never routes through
+        // EndEditing; left editing, the field would keep its caret, and clicking back into it would
+        // take neither branch of the press handler — so it would never re-focus and never turn the
+        // IME back on, leaving a field that draws a caret and accepts nothing.
+        _textInput.StopEditing();
         OnFocusLostCore();
     }
 
@@ -119,7 +125,14 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
 
         if (!_textInput.IsEditing)
             return;
-        
+
+        // The composition is spliced into the displayed text at the caret, so dragging the caret out
+        // from under it would leave the two disagreeing. No press can start a drag while composing
+        // (the press handler clears the composition first), so this is belt-and-braces against a
+        // desync that would surface as an out-of-range crash rather than anything diagnosable.
+        if (_textInput.IsComposing)
+            return;
+
         _textInput.MoveCaretTo(e.Mouse.Point, true);
         RevealCaret();
         e.Consume();
@@ -211,8 +224,10 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         OnKeyboardKeyPressed(ref e);
         // After any handled key: edits and caret moves both flow through here, and for keys that
         // moved nothing (Ctrl+C, say) the reveal is a no-op since the caret is already in view.
+        // The IME caret rect deliberately isn't refreshed here — it only matters while composing,
+        // and composing returns above, so doing it here would shape the caret prefix on every
+        // keystroke in every field to tell the IME about a composition that isn't happening.
         RevealCaret();
-        UpdateImeCaretRect();
     }
 
     protected virtual void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
