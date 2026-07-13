@@ -2,9 +2,12 @@ namespace ZGF.Fonts;
 
 internal sealed class GlyphAtlas
 {
-    private readonly byte[] _pixels;
+    private byte[] _pixels;
     private readonly int _width;
-    private readonly int _height;
+    private int _height;
+    private readonly int _maxHeight;
+    private int _version;
+    private bool _exhausted;
 
     private readonly List<SkylineNode> _skyline = new();
 
@@ -16,10 +19,11 @@ internal sealed class GlyphAtlas
 
     private const int Padding = 1;
 
-    public GlyphAtlas(int width, int height)
+    public GlyphAtlas(int width, int height, int maxHeight = 8192)
     {
         _width = width;
         _height = height;
+        _maxHeight = Math.Max(height, maxHeight);
         _pixels = new byte[width * height];
 
         _skyline.Add(new SkylineNode { X = 0, Y = 0, Width = width });
@@ -28,6 +32,17 @@ internal sealed class GlyphAtlas
     public int Width => _width;
     public int Height => _height;
     public ReadOnlySpan<byte> Pixels => _pixels;
+
+    /// <summary>Bumped whenever the atlas grows. A renderer holding a texture of the old size
+    /// compares this against the version it uploaded and reallocates when they differ.</summary>
+    public int Version => _version;
+
+    /// <summary>Raised the first time a glyph cannot be placed even at the maximum size — the atlas
+    /// is out of room and glyphs are being dropped. Silence here renders as tofu, which reads as a
+    /// font-coverage bug rather than an atlas one.</summary>
+    public event Action? Exhausted;
+
+    public bool IsExhausted => _exhausted;
 
     public bool Dirty => _dirty;
 
@@ -44,7 +59,56 @@ internal sealed class GlyphAtlas
         _dirtyMaxY = int.MinValue;
     }
 
+    /// <summary>Reserves space for a glyph, growing the atlas when it no longer fits. Only fails once
+    /// the atlas is at its maximum size — and then it says so through <see cref="Exhausted"/>.</summary>
     public bool TryReserve(int w, int h, out int outX, out int outY)
+    {
+        outX = 0;
+        outY = 0;
+
+        // Growth adds rows, so a glyph wider than the atlas will never fit however tall it gets.
+        if (w + Padding * 2 > _width)
+        {
+            SignalExhausted();
+            return false;
+        }
+
+        while (true)
+        {
+            if (TryReserveInPlace(w, h, out outX, out outY))
+                return true;
+
+            if (TryGrow())
+                continue;
+
+            SignalExhausted();
+            return false;
+        }
+    }
+
+    private void SignalExhausted()
+    {
+        if (_exhausted)
+            return;
+
+        _exhausted = true;
+        Exhausted?.Invoke();
+    }
+
+    // Height doubles; the width is fixed, so a row's offset into the pixel buffer (y * width + x)
+    // is unchanged by the resize and both the existing pixels and the skyline stay valid.
+    private bool TryGrow()
+    {
+        if (_height >= _maxHeight)
+            return false;
+
+        _height = Math.Min(_height * 2, _maxHeight);
+        Array.Resize(ref _pixels, _width * _height);
+        _version++;
+        return true;
+    }
+
+    private bool TryReserveInPlace(int w, int h, out int outX, out int outY)
     {
         outX = 0;
         outY = 0;

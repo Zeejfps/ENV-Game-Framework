@@ -30,6 +30,88 @@ public static class TextWrapper
         }
     }
 
+    /// <summary>
+    /// Wraps <paramref name="text"/> into ranges over the input rather than new strings, for callers
+    /// that index the text they wrapped (a text field's caret is a UTF-16 index into its buffer).
+    /// The ranges tile the input: a soft-wrapped line ends where the next begins — spaces at the break
+    /// stay on the line they follow, so every index remains reachable by the caret — while a newline
+    /// leaves a one-character gap between them.
+    /// </summary>
+    public static void WrapRanges(ICanvas canvas, ReadOnlySpan<char> text, TextStyle style, float maxWidth, List<Range> output)
+    {
+        var lineStart = 0;
+        for (var i = 0; i <= text.Length; i++)
+        {
+            if (i != text.Length && text[i] != '\n')
+                continue;
+
+            WrapLineRanges(canvas, text, lineStart, i, style, maxWidth, output);
+            lineStart = i + 1;
+        }
+    }
+
+    private static void WrapLineRanges(
+        ICanvas canvas, ReadOnlySpan<char> text, int start, int end, TextStyle style, float maxWidth, List<Range> output)
+    {
+        var raw = text[start..end];
+        if (raw.Length == 0 || maxWidth <= 0f || canvas.MeasureTextWidth(raw, style) <= maxWidth)
+        {
+            output.Add(new Range(start, end));
+            return;
+        }
+
+        var spaceWidth = canvas.MeasureTextWidth(" ", style);
+        var lineStart = start;
+        var lineWidth = 0f;
+        var lineHasContent = false;
+
+        var i = 0;
+        var n = raw.Length;
+        while (i < n)
+        {
+            var spaces = 0;
+            while (i < n && raw[i] == ' ')
+            {
+                i++;
+                spaces++;
+            }
+            if (i >= n)
+                break;
+
+            var chunkStart = i;
+            var prev = ReadCodePoint(raw, ref i);
+            while (i < n && raw[i] != ' ')
+            {
+                var next = ReadCodePoint(raw, i, out var nextLen);
+                if (BreakAllowedBetween(prev, next))
+                    break;
+                prev = next;
+                i += nextLen;
+            }
+
+            var chunkWidth = canvas.MeasureTextWidth(raw[chunkStart..i], style);
+            var sep = spaces * spaceWidth;
+
+            if (!lineHasContent)
+            {
+                lineWidth += sep + chunkWidth;
+                lineHasContent = true;
+            }
+            else if (lineWidth + sep + chunkWidth <= maxWidth)
+            {
+                lineWidth += sep + chunkWidth;
+            }
+            else
+            {
+                output.Add(new Range(lineStart, start + chunkStart));
+                lineStart = start + chunkStart;
+                lineWidth = chunkWidth;
+            }
+        }
+
+        output.Add(new Range(lineStart, end));
+    }
+
     private static void WrapLine(ICanvas canvas, string raw, TextStyle style, float maxWidth, List<string> output)
     {
         if (raw.Length == 0)
@@ -110,14 +192,14 @@ public static class TextWrapper
         if (line.Length > 0) output.Add(line.ToString());
     }
 
-    private static int ReadCodePoint(string s, ref int i)
+    private static int ReadCodePoint(ReadOnlySpan<char> s, ref int i)
     {
         var cp = ReadCodePoint(s, i, out var len);
         i += len;
         return cp;
     }
 
-    private static int ReadCodePoint(string s, int i, out int len)
+    private static int ReadCodePoint(ReadOnlySpan<char> s, int i, out int len)
     {
         var c = s[i];
         if (char.IsHighSurrogate(c) && i + 1 < s.Length && char.IsLowSurrogate(s[i + 1]))
@@ -141,7 +223,7 @@ public static class TextWrapper
     /// CJK and other ideographic / syllabic code points that permit a break on either side
     /// (UAX-14 ID-like classes). Latin/Cyrillic/etc. return false, so they keep word-only breaking.
     /// </summary>
-    private static bool IsWide(int cp) =>
+    public static bool IsWide(int cp) =>
         (cp >= 0x1100 && cp <= 0x11FF) ||   // Hangul Jamo
         (cp >= 0x2E80 && cp <= 0x2EFF) ||   // CJK Radicals Supplement
         (cp >= 0x2F00 && cp <= 0x2FDF) ||   // Kangxi Radicals

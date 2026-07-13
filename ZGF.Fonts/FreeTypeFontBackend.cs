@@ -18,10 +18,10 @@ public sealed unsafe class FreeTypeFontBackend
     private readonly List<FontHandle> _fallbacks = new();
     private bool _disposed;
 
-    public FreeTypeFontBackend(int atlasWidth = 2048, int atlasHeight = 2048)
+    public FreeTypeFontBackend(int atlasWidth = 2048, int atlasHeight = 2048, int atlasMaxHeight = 8192)
     {
         _library = new FreeTypeLibrary();
-        _atlas = new GlyphAtlas(atlasWidth, atlasHeight);
+        _atlas = new GlyphAtlas(atlasWidth, atlasHeight, atlasMaxHeight);
     }
 
     public int AtlasWidth => _atlas.Width;
@@ -30,6 +30,18 @@ public sealed unsafe class FreeTypeFontBackend
     public bool AtlasDirty => _atlas.Dirty;
     public AtlasDirtyRect DirtyRect => _atlas.DirtyRect;
     public void ClearDirty() => _atlas.ClearDirty();
+
+    /// <summary>Changes when the atlas grows: the pixel buffer is a new size, so a renderer must
+    /// reallocate its texture rather than upload a dirty sub-rect into the old one.</summary>
+    public int AtlasVersion => _atlas.Version;
+
+    /// <summary>Raised once when the atlas can no longer fit a glyph even at its maximum size.
+    /// Glyphs are being dropped from that point on, and dropped glyphs render as nothing.</summary>
+    public event Action? AtlasExhausted
+    {
+        add => _atlas.Exhausted += value;
+        remove => _atlas.Exhausted -= value;
+    }
 
     public FontHandle LoadFontFromFile(string path, int pixelSize, int faceIndex = 0)
     {

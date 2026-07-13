@@ -11,6 +11,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="ZGF.Gui.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="FreeTypeSharp" Version="3.0.1" />
         <PackageReference Include="HarfBuzzSharp" Version="8.3.0.1" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.0.1" />

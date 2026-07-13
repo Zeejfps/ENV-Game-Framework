@@ -14,6 +14,7 @@ public sealed unsafe class GlSharedResources : IDisposable
     private int _glyphAtlasLoc, _imageTexLoc;
     private uint _unitQuadVbo;
     private uint _fontAtlasTextureId;
+    private int _uploadedAtlasVersion = -1;
     private readonly FreeTypeFontBackend _fonts;
     private readonly GlImageManager _imageManager;
     private bool _isDisposed;
@@ -86,6 +87,15 @@ public sealed unsafe class GlSharedResources : IDisposable
 
     public void UploadAtlasIfDirty(ref int uploadCount)
     {
+        // A grown atlas is a new pixel buffer of a new size: reallocate the texture's storage and
+        // upload all of it, rather than poking a sub-rect into storage that is now the wrong shape.
+        if (_fonts.AtlasVersion != _uploadedAtlasVersion)
+        {
+            UploadWholeAtlas();
+            uploadCount++;
+            return;
+        }
+
         if (!_fonts.AtlasDirty) return;
 
         var rect = _fonts.DirtyRect;
@@ -130,16 +140,9 @@ public sealed unsafe class GlSharedResources : IDisposable
 
     private void SetupFontAtlas()
     {
-        var width = _fonts.AtlasWidth;
-        var height = _fonts.AtlasHeight;
-        var pixels = _fonts.AtlasPixels;
-
         uint tex;
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        fixed (byte* ptr = &MemoryMarshal.GetReference(pixels))
-            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, ptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE);
@@ -147,6 +150,21 @@ public sealed unsafe class GlSharedResources : IDisposable
         AssertNoGlError();
 
         _fontAtlasTextureId = tex;
+        UploadWholeAtlas();
+    }
+
+    private void UploadWholeAtlas()
+    {
+        var pixels = _fonts.AtlasPixels;
+
+        glBindTexture(GL_TEXTURE_2D, _fontAtlasTextureId);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        fixed (byte* ptr = &MemoryMarshal.GetReference(pixels))
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_R8, _fonts.AtlasWidth, _fonts.AtlasHeight, 0,
+                GL_RED, GL_UNSIGNED_BYTE, ptr);
+        AssertNoGlError();
+
+        _uploadedAtlasVersion = _fonts.AtlasVersion;
         _fonts.ClearDirty();
     }
 

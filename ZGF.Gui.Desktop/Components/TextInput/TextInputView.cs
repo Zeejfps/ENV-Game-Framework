@@ -10,9 +10,13 @@ public sealed class TextInputView : View
     public StyleValue<TextWrap> TextWrap
     {
         get => _textWrap;
-        set => SetField(ref _textWrap, value);
+        set
+        {
+            if (SetField(ref _textWrap, value))
+                InvalidateLines();
+        }
     }
-    
+
     public uint BackgroundColor
     {
         get => _background.BackgroundColor;
@@ -28,13 +32,21 @@ public sealed class TextInputView : View
     public StyleValue<float> FontSize
     {
         get => _textStyle.FontSize;
-        set => SetField(ref _textStyle.FontSize, value);
+        set
+        {
+            if (SetField(ref _textStyle.FontSize, value))
+                InvalidateLines();
+        }
     }
 
     public StyleValue<FontFeatureSet> FontFeatures
     {
         get => _textStyle.FontFeatures;
-        set => SetField(ref _textStyle.FontFeatures, value);
+        set
+        {
+            if (SetField(ref _textStyle.FontFeatures, value))
+                InvalidateLines();
+        }
     }
 
     public StyleValue<TextAlignment> TextVerticalAlignment
@@ -101,6 +113,11 @@ public sealed class TextInputView : View
     private float _goalColumnX = -1f;
     private char[] _buffer;
     private readonly State<string> _text = new(string.Empty);
+
+    private readonly List<Range> _lines = new();
+    private float _linesWidth = -1f;
+    private int _linesVersion = -1;
+    private int _version;
 
     /// <summary>Zero-allocation view of the current text. Prefer this for renderers,
     /// controllers, and equality checks; use <see cref="TextValue"/> to observe changes.</summary>
@@ -170,42 +187,34 @@ public sealed class TextInputView : View
             {
                 var lineStartIndex = line.Start.Value;
                 var lineEndIndex = line.End.Value;
-                var selectionWidth = 0f;
-                var singleLine = TextWrap != Gui.TextWrap.Wrap;
-                for (var i = lineStartIndex+1; i <= line.End.Value; i++)
+
+                // Walk the line a cluster at a time: the boundary x between two clusters is their
+                // midpoint, so clicking past it lands the caret after the cluster — never inside it.
+                var text = Text;
+                var prevIndex = lineStartIndex;
+                var prevOffset = LineOffsetOf(lineStartIndex, lineStartIndex, canvas);
+                var i = lineStartIndex;
+                while (i < lineEndIndex)
                 {
-                    // Boundary x is the midpoint of char i-1: clicking past it selects to its right.
-                    // Single line measures in context (cursive-correct); wrapped lines measure the
-                    // per-segment substring as before.
-                    float leftPartWidth, prevPartWidth;
-                    if (singleLine)
-                    {
-                        leftPartWidth = canvas.MeasureTextPrefix(Text, i, _textStyle);
-                        prevPartWidth = canvas.MeasureTextPrefix(Text, i - 1, _textStyle);
-                    }
-                    else
-                    {
-                        leftPartWidth = canvas.MeasureTextWidth(_buffer.AsSpan(lineStartIndex, i - lineStartIndex), _textStyle);
-                        prevPartWidth = leftPartWidth - canvas.MeasureTextWidth(_buffer.AsSpan(i - 1, 1), _textStyle);
-                    }
-                    selectionWidth = (leftPartWidth + prevPartWidth) * 0.5f;
-                    if (selectionWidth > xOffset)
-                    {
-                        return i - 1;
-                    }
+                    var next = TextBoundaries.Next(text, i);
+                    if (next <= i)
+                        break;
+
+                    var offset = LineOffsetOf(next, lineStartIndex, canvas);
+                    if ((offset + prevOffset) * 0.5f > xOffset)
+                        return prevIndex;
+
+                    prevIndex = next;
+                    prevOffset = offset;
+                    i = next;
                 }
-                
-                if (xOffset > selectionWidth)
-                {
-                    return lineEndIndex;
-                }
-                        
-                return lineEndIndex - 1;
+
+                return prevIndex;
             }
-            
+
             lineCount++;
         }
-        
+
         return _strLen;
     }
 
@@ -235,18 +244,6 @@ public sealed class TextInputView : View
         {
             _caretIndex = _strLen;
         }
-    }
-
-    private void DeleteChar(int index)
-    {
-        if (index < _strLen)
-        {
-            for (var i = index; i < _strLen; i++)
-            {
-                _buffer[i] = _buffer[i + 1];
-            }
-        }
-        _strLen--;
     }
 
     private void EnsureCapacity(int required)
@@ -282,39 +279,32 @@ public sealed class TextInputView : View
         // availableWidth <= 0 means "unconstrained" — fall back to intrinsic width so we
         // still report a sensible (single-line) height instead of one line per character.
         var width = availableWidth > 0f ? availableWidth : MeasureWidth();
-        var height = GetLines(width, canvas).Count() * lineHeight;
+        var height = GetLines(width, canvas).Count * lineHeight;
         if (Height.IsSet && height < Height)
             return Height;
 
         return height;
     }
 
-    private IEnumerable<Range> GetLines(float width, ICanvas canvas)
+    // The field's visual lines, as ranges into the buffer: soft wraps from TextWrapper (word
+    // boundaries, kinsoku, never inside a surrogate pair) plus the hard '\n' breaks. Everything that
+    // needs line geometry — drawing, the caret rect, selection rects, clicks, Up/Down — reads these,
+    // so they cannot disagree about where a line ends. Cached until the text, the width or a
+    // metrics-affecting style changes.
+    private IReadOnlyList<Range> GetLines(float width, ICanvas canvas)
     {
-        var startIndex = 0;
-        for (var i = 0; i < _strLen; i++)
-        {
-            var range = new Range(startIndex, i);
-            var line = _buffer.AsSpan(range);
-            if (TextWrap == Gui.TextWrap.Wrap)
-            {
-                if (ShouldWrap(_buffer.AsSpan(startIndex, i-startIndex + 1), canvas, width))
-                {
-                    yield return range;
-                    startIndex = i;
-                }
-                else if (_buffer[i] == '\n')
-                {
-                    yield return range;
-                    startIndex = i+1;
-                }
-            }
-        }
+        if (_linesVersion == _version && _linesWidth == width)
+            return _lines;
 
-        if (startIndex <= _strLen)
-        {
-            yield return new Range(startIndex, _strLen);
-        }
+        _lines.Clear();
+        if (TextWrap == Gui.TextWrap.Wrap)
+            TextWrapper.WrapRanges(canvas, Text, _textStyle, width, _lines);
+        else
+            _lines.Add(new Range(0, _strLen));
+
+        _linesVersion = _version;
+        _linesWidth = width;
+        return _lines;
     }
 
     private void UpdateScrollOffset(in RectF position, ICanvas c)
@@ -434,92 +424,38 @@ public sealed class TextInputView : View
         });
     }
 
+    // One rect per visual line the selection touches, clipped to that line's range.
     private void DrawSelectionBox(in RectF position, ICanvas c, float verticalOffset)
     {
-        var min = _selectionStartIndex;
-        var max = _caretIndex;
-        if (_selectionStartIndex > _caretIndex)
-        {
-            min = _caretIndex;
-            max = _selectionStartIndex;
-        }
-        
-        var startIndex = 0;
-        var linesCount = 1;
-
-        if (TextWrap == Gui.TextWrap.Wrap)
-        {
-            for (var i = 0; i < min; i++)
-            {
-                if (_buffer[i] == '\n')
-                {
-                    startIndex = i;
-                    linesCount++;
-                } 
-                else if (ShouldWrap(startIndex, i+1, c, position.Width))
-                {
-                    startIndex = i;
-                    linesCount++;
-                }
-            }
-        }
+        var min = Math.Min(_selectionStartIndex, _caretIndex);
+        var max = Math.Max(_selectionStartIndex, _caretIndex);
 
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
-        // Single line: in-context prefix width (cursive-correct); wrapped lines keep the segment measure.
-        var minTextWidth = TextWrap != Gui.TextWrap.Wrap
-            ? c.MeasureTextPrefix(Text, min, _textStyle)
-            : c.MeasureTextWidth(_buffer.AsSpan(startIndex, min - startIndex), _textStyle);
-        var startPointLeft = position.Left + minTextWidth - _scrollOffsetX;
-        var startPointBottom = position.Top - linesCount * lineHeight + verticalOffset;
-        var width = position.Width - minTextWidth;
+        var lines = GetLines(position.Width, c);
 
-        startIndex = min;
-        for (var i = min; i < max && TextWrap == Gui.TextWrap.Wrap; i++)
+        for (var i = 0; i < lines.Count; i++)
         {
-            if (_buffer[i] == '\n' || ShouldWrap(startIndex, i+1, c, width))
-            {
-                var selectionRect = new RectF
-                {
-                    // Mirror the segment within the field for RTL, so the highlight lands on the
-                    // right-aligned text (scroll is 0 for wrapped lines).
-                    Left = _contentRtl ? position.Left + position.Right - startPointLeft - width : startPointLeft,
-                    Bottom = startPointBottom,
-                    Width = width,
-                    Height = lineHeight
-                };
+            var lineStart = lines[i].Start.Value;
+            var lineEnd = lines[i].End.Value;
+            if (max < lineStart || min > lineEnd)
+                continue;
 
-                c.DrawRect(new DrawRectInputs
-                {
-                    Position = selectionRect,
-                    Style = _selectionRectStyle,
-                    ZIndex = GetDrawZIndex()
-                });
+            var segStart = Math.Max(min, lineStart);
+            var segEnd = Math.Min(max, lineEnd);
 
-                startIndex = i;
-                startPointLeft = position.Left;
-                startPointBottom -= lineHeight;
-                width = position.Width;
-            }
-        }
-        
-        if (startIndex <= max)
-        {
-            var textWidth = TextWrap != Gui.TextWrap.Wrap
-                ? c.MeasureTextPrefix(Text, max, _textStyle) - minTextWidth
-                : c.MeasureTextWidth(_buffer.AsSpan(startIndex, max - startIndex), _textStyle);
-            // Mirror the final segment for RTL (single-line and the last wrapped line alike): reflect
-            // its extent within the field so it sits on the right-aligned text.
-            var segLeft = _contentRtl
-                ? position.Left + position.Right - startPointLeft - textWidth
-                : startPointLeft;
+            var startOffset = LineOffsetOf(segStart, lineStart, c);
+            var width = LineOffsetOf(segEnd, lineStart, c) - startOffset;
+            var left = position.Left + startOffset - _scrollOffsetX;
             var selectionRect = new RectF
             {
-                Left = segLeft,
-                Bottom = startPointBottom,
-                Width = textWidth,
-                Height = lineHeight
+                // Mirror the segment within the field for RTL, so the highlight lands on the
+                // right-aligned text.
+                Left = _contentRtl ? position.Left + position.Right - left - width : left,
+                Bottom = position.Top - (i + 1) * lineHeight + verticalOffset,
+                Width = width,
+                Height = lineHeight,
             };
-            
+
             c.DrawRect(new DrawRectInputs
             {
                 Position = selectionRect,
@@ -528,6 +464,13 @@ public sealed class TextInputView : View
             });
         }
     }
+
+    // The x of an index within its visual line. A single line measures the prefix in context
+    // (cursive-correct, and a zero-width mark doesn't shift it); a wrapped line measures its segment.
+    private float LineOffsetOf(int index, int lineStart, ICanvas c) =>
+        TextWrap != Gui.TextWrap.Wrap
+            ? c.MeasureTextPrefix(Text, index, _textStyle)
+            : c.MeasureTextWidth(_buffer.AsSpan(lineStart, index - lineStart), _textStyle);
 
     private void DrawText(in RectF position, ICanvas c, float verticalOffset)
     {
@@ -571,23 +514,11 @@ public sealed class TextInputView : View
         if (!center)
             return 0f;
 
-        var lineCount = _strLen == 0 ? 1 : GetLines(position.Width, c).Count();
+        var lineCount = _strLen == 0 ? 1 : GetLines(position.Width, c).Count;
         var slack = position.Height - lineCount * lineHeight;
         return slack > 0f ? -slack * 0.5f : 0f;
     }
 
-    private bool ShouldWrap(int startIndex, int endIndex, ICanvas canvas, float maxWidth)
-    {
-        var line = _buffer.AsSpan(startIndex, endIndex - startIndex);
-        return ShouldWrap(line, canvas, maxWidth);
-    }
-
-    private bool ShouldWrap(ReadOnlySpan<char> line, ICanvas canvas, float maxWidth)
-    {
-        var lineWidth = canvas.MeasureTextWidth(line, _textStyle);
-        return lineWidth >= maxWidth;
-    }
-    
     /// <summary>
     /// The caret's current rect in absolute (canvas) coordinates — the same rect the caret is
     /// painted at. Lets a scroll container (<see cref="IScrollScope"/>) keep the caret in view.
@@ -601,24 +532,9 @@ public sealed class TextInputView : View
 
     private RectF ComputeCaretRect(in RectF position, ICanvas canvas, float verticalOffset)
     {
-        var startIndex = 0;
-        var linesCount = 0;
-        for (var i = 0; i < _caretIndex; i++)
-        {
-            if (TextWrap == Gui.TextWrap.Wrap)
-            {
-                if (ShouldWrap(startIndex, i+1, canvas, position.Width))
-                {
-                    startIndex = i;
-                    linesCount++;
-                }
-                else if (_buffer[i] == '\n')
-                {
-                    startIndex = i;
-                    linesCount++;
-                }
-            }
-        }
+        var lines = GetLines(position.Width, canvas);
+        var lineIndex = FindCaretLineIndex(lines);
+        var startIndex = lines[lineIndex].Start.Value;
 
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
         var cursorHeight = lineHeight;
@@ -628,7 +544,7 @@ public sealed class TextInputView : View
         var cursorPosLeft = TextWrap != Gui.TextWrap.Wrap
             ? canvas.MeasureTextPrefix(Text, _caretIndex, _textStyle)
             : canvas.MeasureTextWidth(_buffer.AsSpan(startIndex, _caretIndex - startIndex), _textStyle);
-        var cursorPosBottom = position.Top - linesCount * lineHeight - cursorHeight + verticalOffset;
+        var cursorPosBottom = position.Top - (lineIndex + 1) * lineHeight + verticalOffset;
 
         return new RectF
         {
@@ -655,11 +571,7 @@ public sealed class TextInputView : View
     public void MoveCaretTo(PointF point, bool isSelecting = false)
     {
         _goalColumnX = -1f;
-        _caretIndex = GetCaretIndexFromPoint(point);
-        if (!isSelecting)
-        {
-            _selectionStartIndex = _caretIndex;
-        }
+        SetCaret(GetCaretIndexFromPoint(point), isSelecting);
     }
 
     public void SelectAll()
@@ -675,9 +587,7 @@ public sealed class TextInputView : View
         var isSelecting = IsSelecting;
         if (!isSelecting || select)
         {
-            _caretIndex--;
-            if (_caretIndex < 0)
-                _caretIndex = 0;
+            _caretIndex = TextBoundaries.Prev(Text, _caretIndex);
         }
                 
         if (!select)
@@ -699,9 +609,7 @@ public sealed class TextInputView : View
         var isSelecting = IsSelecting;
         if (!isSelecting || select)
         {
-            _caretIndex++;
-            if (_caretIndex > _strLen)
-                _caretIndex = _strLen;
+            _caretIndex = TextBoundaries.Next(Text, _caretIndex);
         }
                 
         if (!select)
@@ -733,27 +641,9 @@ public sealed class TextInputView : View
             _selectionStartIndex = _caretIndex;
     }
 
-    private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+    private int FindPreviousWordBoundary(int index) => TextBoundaries.PrevWord(Text, index);
 
-    private int FindPreviousWordBoundary(int index)
-    {
-        var i = index;
-        while (i > 0 && !IsWordChar(_buffer[i - 1]))
-            i--;
-        while (i > 0 && IsWordChar(_buffer[i - 1]))
-            i--;
-        return i;
-    }
-
-    private int FindNextWordBoundary(int index)
-    {
-        var i = index;
-        while (i < _strLen && IsWordChar(_buffer[i]))
-            i++;
-        while (i < _strLen && !IsWordChar(_buffer[i]))
-            i++;
-        return i;
-    }
+    private int FindNextWordBoundary(int index) => TextBoundaries.NextWord(Text, index);
 
     public void MoveCaretDown(bool select = false) => MoveCaretVertically(1, select);
 
@@ -766,7 +656,7 @@ public sealed class TextInputView : View
     {
         var canvas = _canvas;
 
-        var lines = GetLines(Position.Width, canvas).ToList();
+        var lines = GetLines(Position.Width, canvas);
         var lineIndex = FindCaretLineIndex(lines);
 
         var lineStart = lines[lineIndex].Start.Value;
@@ -788,7 +678,7 @@ public sealed class TextInputView : View
         SetCaret(FindIndexClosestToX(lines[targetLineIndex], _goalColumnX, canvas), select);
     }
 
-    private int FindCaretLineIndex(List<Range> lines)
+    private int FindCaretLineIndex(IReadOnlyList<Range> lines)
     {
         for (var i = 0; i < lines.Count; i++)
         {
@@ -813,29 +703,38 @@ public sealed class TextInputView : View
     {
         var start = line.Start.Value;
         var end = line.End.Value;
+        var text = Text;
 
         var bestIndex = start;
         var bestDistance = targetX;
-        for (var i = start + 1; i <= end; i++)
+        var i = start;
+        while (i < end)
         {
-            var x = canvas.MeasureTextWidth(_buffer.AsSpan(start, i - start), _textStyle);
+            var next = TextBoundaries.Next(text, i);
+            if (next <= i)
+                break;
+
+            var x = canvas.MeasureTextWidth(_buffer.AsSpan(start, next - start), _textStyle);
             var distance = Math.Abs(x - targetX);
             if (distance < bestDistance)
             {
                 bestDistance = distance;
-                bestIndex = i;
+                bestIndex = next;
             }
             else if (x > targetX)
             {
                 break;
             }
+            i = next;
         }
         return bestIndex;
     }
 
+    // Every computed caret index funnels through here (clicks, vertical movement), so a pixel
+    // position that lands inside a cluster is snapped once rather than at each call site.
     private void SetCaret(int index, bool select)
     {
-        _caretIndex = index;
+        _caretIndex = TextBoundaries.Snap(Text, index);
         if (!select)
             _selectionStartIndex = _caretIndex;
     }
@@ -851,8 +750,9 @@ public sealed class TextInputView : View
             }
             else if (_caretIndex > 0)
             {
-                DeleteChar(_caretIndex - 1);
-                _caretIndex--;
+                var clusterStart = TextBoundaries.Prev(Text, _caretIndex);
+                DeleteRange(clusterStart, _caretIndex);
+                _caretIndex = clusterStart;
                 _selectionStartIndex = _caretIndex;
             }
         }
@@ -968,5 +868,11 @@ public sealed class TextInputView : View
 
     // Publishes the buffer as the observable text value. The State equality guard collapses
     // no-op edits (e.g. a Delete that removed nothing) into nothing.
-    private void SyncText() => _text.Value = new string(_buffer, 0, _strLen);
+    private void SyncText()
+    {
+        InvalidateLines();
+        _text.Value = new string(_buffer, 0, _strLen);
+    }
+
+    private void InvalidateLines() => _version++;
 }

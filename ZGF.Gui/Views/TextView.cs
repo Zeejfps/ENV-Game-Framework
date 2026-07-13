@@ -200,31 +200,7 @@ public sealed class TextView : View
     {
         if (!_style.TextOverflow.IsSet || _style.TextOverflow.Value != ZGF.Gui.TextOverflow.Ellipsis)
             return text;
-        if (string.IsNullOrEmpty(text)) return text;
-        if (available <= 0f) return string.Empty;
-        if (c.MeasureTextWidth(text, _style) <= available) return text;
-
-        const string ellipsis = "…";
-        var ellipsisWidth = c.MeasureTextWidth(ellipsis, _style);
-        if (ellipsisWidth > available) return ellipsis;
-
-        var lo = 0;
-        var hi = text.Length;
-        while (lo < hi)
-        {
-            var mid = (lo + hi + 1) / 2;
-            // Never cut inside a surrogate pair: a low surrogate at mid means the
-            // prefix would end on an orphaned high surrogate (renders as tofu).
-            if (mid < text.Length && char.IsLowSurrogate(text[mid]))
-                mid--;
-            if (mid <= lo)
-                break;
-            if (c.MeasureTextWidth(text.AsSpan(0, mid), _style) + ellipsisWidth <= available)
-                lo = mid;
-            else
-                hi = mid - 1;
-        }
-        return text[..lo] + ellipsis;
+        return TextEllipsis.Truncate(c, text, _style, available);
     }
 
     private void DrawLines(ICanvas c, IReadOnlyList<string> lines, int z)

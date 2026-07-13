@@ -16,11 +16,12 @@ public sealed unsafe class MetalSharedResources : IDisposable
     public IntPtr ShapePipeline { get; }
     public IntPtr UnitQuadBuffer { get; }
     public IntPtr SamplerState { get; }
-    public IntPtr AtlasTexture { get; }
+    public IntPtr AtlasTexture { get; private set; }
     public MetalImageManager ImageManager { get; }
     public FreeTypeFontBackend Fonts { get; }
 
     private bool _isDisposed;
+    private int _uploadedAtlasVersion;
 
     public MetalSharedResources(IntPtr device, IntPtr commandQueue, FreeTypeFontBackend fonts, MetalImageManager imageManager)
     {
@@ -52,10 +53,22 @@ public sealed unsafe class MetalSharedResources : IDisposable
         UnitQuadBuffer = MakeUnitQuadBuffer(device);
         SamplerState = BuildLinearClampSampler(device);
         AtlasTexture = SetupFontAtlasTexture(device, fonts);
+        _uploadedAtlasVersion = fonts.AtlasVersion;
     }
 
     public void UploadAtlasIfDirty(ref int uploadCount)
     {
+        // A Metal texture's size is fixed at creation, so a grown atlas needs a new one.
+        if (Fonts.AtlasVersion != _uploadedAtlasVersion)
+        {
+            var old = AtlasTexture;
+            AtlasTexture = SetupFontAtlasTexture(Device, Fonts);
+            _uploadedAtlasVersion = Fonts.AtlasVersion;
+            Release(old);
+            uploadCount++;
+            return;
+        }
+
         if (!Fonts.AtlasDirty) return;
         var rect = Fonts.DirtyRect;
         if (rect.IsEmpty) { Fonts.ClearDirty(); return; }
