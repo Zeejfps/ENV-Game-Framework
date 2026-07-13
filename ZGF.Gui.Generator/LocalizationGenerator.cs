@@ -25,6 +25,23 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
 
     private static readonly string[] PluralCategories = { "other", "zero", "one", "two", "few", "many" };
 
+    // The plural forms each language grammatically distinguishes. A missing form falls back to
+    // "other" at runtime, which reads as the wrong case rather than failing — so an omission is
+    // invisible unless the catalog is required to carry it. "zero" stays optional everywhere: only
+    // a count of 0 selects it, and "other" reads acceptably there.
+    private static readonly string[] DefaultRequiredCategories = { "one", "other" };
+
+    private static readonly Dictionary<string, string[]> RequiredCategoriesByLanguage = new()
+    {
+        // No grammatical plural — a single "other" form covers every count. A "one" form is
+        // allowed on top of it, for keys that read better with a bare singular.
+        ["ja"] = new[] { "other" },
+        ["ko"] = new[] { "other" },
+        ["zh"] = new[] { "other" },
+        ["ar"] = new[] { "one", "two", "few", "many", "other" },
+        ["ru"] = new[] { "one", "few", "many", "other" },
+    };
+
     private static readonly DiagnosticDescriptor ParseError = new(
         id: "LOC001",
         title: "Localization catalog parse error",
@@ -71,6 +88,14 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
         messageFormat: "Locale '{0}' key '{1}' is {2} but the reference (en.json) is {3}; falling back to English",
         category: "Localization",
         DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor MissingPluralCategory = new(
+        id: "LOC008",
+        title: "Locale plural entry is missing a form its language selects",
+        messageFormat: "Locale '{0}' key '{1}' has no '{2}' plural form; '{0}' selects '{2}' for some counts, so the 'other' form would be shown in its place",
+        category: "Localization",
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor NoLocaleEnum = new(
@@ -184,6 +209,26 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
             foreach (var entry in locale.Entries)
                 if (!referenceSet.Contains(entry.Key))
                     spc.ReportDiagnostic(Diagnostic.Create(UnexpectedKey, Location.None, locale.Stem, entry.Key));
+        }
+
+        foreach (var locale in locales)
+        {
+            var byKey = ToLookup(locale.Entries);
+            var required = RequiredCategories(locale.Stem);
+
+            foreach (var key in referenceKeys)
+            {
+                if (!referenceByKey[key].IsPlural)
+                    continue;
+                if (!byKey.TryGetValue(key, out var entry) || !entry.IsPlural)
+                    continue;
+
+                var forms = ToDict(entry.Plural!);
+                foreach (var category in required)
+                    if (!forms.ContainsKey(category))
+                        spc.ReportDiagnostic(Diagnostic.Create(
+                            MissingPluralCategory, Location.None, locale.Stem, key, category));
+            }
         }
 
         spc.AddSource("Strings.g.cs",
@@ -372,6 +417,15 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine(");");
+    }
+
+    private static string[] RequiredCategories(string stem)
+    {
+        var dash = stem.IndexOf('-');
+        var language = dash >= 0 ? stem.Substring(0, dash) : stem;
+        return RequiredCategoriesByLanguage.TryGetValue(language, out var categories)
+            ? categories
+            : DefaultRequiredCategories;
     }
 
     private static (Kind, List<string>) Classify(Entry reference)

@@ -11,6 +11,7 @@ public static class PluralRules
     {
         "fr" or "pt" => n is 0 or 1 ? PluralCategory.One : PluralCategory.Other,
         "ar" => Arabic(n),
+        "ru" => Russian(n),
         _ => n == 1 ? PluralCategory.One : PluralCategory.Other,
     };
 
@@ -27,4 +28,16 @@ public static class PluralRules
             _ => PluralCategory.Other,
         },
     };
+
+    // CLDR cardinal rules for Russian. "one" covers 1, 21, 31… — not just 1 — so a Russian
+    // "one" form has to carry the count rather than read as a bare singular. CLDR reserves
+    // "other" for fractions, which a long count never reaches.
+    private static PluralCategory Russian(long n) => (n % 100) is >= 11 and <= 14
+        ? PluralCategory.Many
+        : (n % 10) switch
+        {
+            1 => PluralCategory.One,
+            >= 2 and <= 4 => PluralCategory.Few,
+            _ => PluralCategory.Many,
+        };
 }
