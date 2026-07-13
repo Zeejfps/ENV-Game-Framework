@@ -1,3 +1,4 @@
+using ZGF.Desktop.Input;
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Observable;
@@ -91,8 +92,13 @@ public sealed class TextInputView : View
     private readonly TextStyle _textStyle = new();
     private readonly RectStyle _cursorStyle = new();
     private readonly RectStyle _selectionRectStyle = new();
+    // Takes the resolved text color at draw time, so a composition always contrasts with the text
+    // it sits among without the theme having to say anything about it.
+    private readonly RectStyle _preeditUnderlineStyle = new();
 
     private const float CaretWidth = 2f;
+    private const float UnderlineThickness = 1f;
+    private const float FocusedUnderlineThickness = 2f;
 
     private int _caretIndex;
     private int _strLen;
@@ -114,6 +120,14 @@ public sealed class TextInputView : View
     private char[] _buffer;
     private readonly State<string> _text = new(string.Empty);
 
+    // The in-flight IME composition, held apart from _buffer so it never becomes the field's value:
+    // half-typed pinyin must not reach whatever is bound to TextValue. _composed is _buffer with the
+    // composition spliced in at the caret — what the user sees, and the only thing drawing and
+    // measuring read, so the preedit renders inline without ever being typed.
+    private PreeditText _preedit = PreeditText.Empty;
+    private char[] _composed = new char[64];
+    private int _composedLen;
+
     private readonly List<Range> _lines = new();
     private float _linesWidth = -1f;
     private int _linesVersion = -1;
@@ -122,6 +136,73 @@ public sealed class TextInputView : View
     /// <summary>Zero-allocation view of the current text. Prefer this for renderers,
     /// controllers, and equality checks; use <see cref="TextValue"/> to observe changes.</summary>
     public ReadOnlySpan<char> Text => _buffer.AsSpan(0, _strLen);
+
+    /// <summary>True while an IME composition is in flight. The field's value is unchanged during
+    /// one — nothing has been typed yet — but keys belong to the IME, not to editing.</summary>
+    public bool IsComposing => !_preedit.IsEmpty;
+
+    // Text as drawn: the buffer with any composition spliced in at the caret. Equal to Text when
+    // nothing is composing, which is why every draw/measure path can read it unconditionally.
+    private ReadOnlySpan<char> DisplayText => IsComposing ? _composed.AsSpan(0, _composedLen) : Text;
+    private int DisplayLength => IsComposing ? _composedLen : _strLen;
+    // Within a composition the caret is the IME's, which sits inside the preedit rather than at its end.
+    private int DisplayCaret => IsComposing ? _caretIndex + _preedit.Caret : _caretIndex;
+
+    /// <summary>
+    /// Replaces the in-flight composition. An empty <paramref name="preedit"/> ends it, which means
+    /// only "stop showing this" — it says nothing about whether the user committed or cancelled, and
+    /// committed text arrives separately through <see cref="Enter(System.ReadOnlySpan{char})"/>.
+    /// </summary>
+    public void SetComposition(PreeditText preedit)
+    {
+        // A composition replaces the selection, the same as typing would. That deletion is a real
+        // edit to the buffer, so unlike the composition itself it does notify — otherwise cancelling
+        // the composition would leave the field rendering empty while TextValue still held the
+        // replaced text.
+        if (!preedit.IsEmpty && !IsComposing && IsSelecting)
+        {
+            DeleteSelection();
+            SyncText();
+        }
+
+        _preedit = preedit;
+        RebuildComposed();
+        InvalidateLines();
+        SetDirty();
+    }
+
+    /// <summary>Drops the composition without committing it. The IME still holds one of its own —
+    /// callers that want it gone for good must also reset the IME.</summary>
+    public void ClearComposition()
+    {
+        if (!IsComposing)
+            return;
+
+        _preedit = PreeditText.Empty;
+        _composedLen = 0;
+        InvalidateLines();
+        SetDirty();
+    }
+
+    private void RebuildComposed()
+    {
+        if (!IsComposing)
+        {
+            _composedLen = 0;
+            return;
+        }
+
+        var preedit = _preedit.Text;
+        var required = _strLen + preedit.Length;
+        if (_composed.Length < required)
+            Array.Resize(ref _composed, Math.Max(required, _composed.Length * 2));
+
+        var composed = _composed.AsSpan();
+        _buffer.AsSpan(0, _caretIndex).CopyTo(composed);
+        preedit.AsSpan().CopyTo(composed[_caretIndex..]);
+        _buffer.AsSpan(_caretIndex, _strLen - _caretIndex).CopyTo(composed[(_caretIndex + preedit.Length)..]);
+        _composedLen = required;
+    }
 
     /// <summary>
     /// The current text as an observable value, updated on every buffer mutation (a
@@ -273,7 +354,7 @@ public sealed class TextInputView : View
         var canvas = _canvas;
 
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
-        if (_strLen == 0)
+        if (DisplayLength == 0)
             return lineHeight;
 
         // availableWidth <= 0 means "unconstrained" — fall back to intrinsic width so we
@@ -298,9 +379,9 @@ public sealed class TextInputView : View
 
         _lines.Clear();
         if (TextWrap == Gui.TextWrap.Wrap)
-            TextWrapper.WrapRanges(canvas, Text, _textStyle, width, _lines);
+            TextWrapper.WrapRanges(canvas, DisplayText, _textStyle, width, _lines);
         else
-            _lines.Add(new Range(0, _strLen));
+            _lines.Add(new Range(0, DisplayLength));
 
         _linesVersion = _version;
         _linesWidth = width;
@@ -315,7 +396,7 @@ public sealed class TextInputView : View
             return;
         }
 
-        var caretX = c.MeasureTextPrefix(Text, _caretIndex, _textStyle);
+        var caretX = c.MeasureTextPrefix(DisplayText, DisplayCaret, _textStyle);
         var width = position.Width;
 
         if (caretX - _scrollOffsetX < 0f)
@@ -327,7 +408,7 @@ public sealed class TextInputView : View
             _scrollOffsetX = caretX - width + CaretWidth;
         }
 
-        var totalWidth = c.MeasureTextWidth(_buffer.AsSpan(0, _strLen), _textStyle);
+        var totalWidth = c.MeasureTextWidth(DisplayText, _textStyle);
         var maxOffset = Math.Max(0f, totalWidth - width + CaretWidth);
         _scrollOffsetX = Math.Clamp(_scrollOffsetX, 0f, maxOffset);
     }
@@ -336,7 +417,7 @@ public sealed class TextInputView : View
     // direction so the caret rests on the correct side before anything is typed.
     private bool ResolveContentRtl()
     {
-        var text = Text;
+        var text = DisplayText;
         if (text.IsEmpty)
             return IsRtl;
         Bidi.ResolveLevels(text, BidiDirection.Auto, out var paragraphLevel);
@@ -362,12 +443,13 @@ public sealed class TextInputView : View
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var verticalOffset = VerticalTextOffset(position, lineHeight, c);
 
-        if (_isEditing && _selectionStartIndex != _caretIndex)
+        // A composition collapses the selection, so there is never both.
+        if (_isEditing && !IsComposing && _selectionStartIndex != _caretIndex)
         {
             DrawSelectionBox(position, c, verticalOffset);
         }
 
-        if (_strLen == 0)
+        if (DisplayLength == 0)
         {
             DrawPlaceholder(position, c, verticalOffset);
         }
@@ -376,12 +458,43 @@ public sealed class TextInputView : View
             DrawText(position, c, verticalOffset);
         }
 
+        if (IsComposing)
+        {
+            DrawPreeditUnderlines(position, c, verticalOffset);
+        }
+
         if (_isEditing)
         {
             DrawCaret(position, c, verticalOffset);
         }
 
         c.PopClip();
+    }
+
+    // The clause underlines that mark text as composed-but-not-typed. The IME splits the composition
+    // into clauses it converts independently; the focused one — the clause the user is working on —
+    // is underlined heavily, the rest lightly. An IME that reports no clauses gets one underline
+    // spanning the whole composition.
+    private void DrawPreeditUnderlines(in RectF position, ICanvas c, float verticalOffset)
+    {
+        _preeditUnderlineStyle.BackgroundColor =
+            _textStyle.TextColor.IsSet ? _textStyle.TextColor.Value : 0xFF000000;
+
+        var blocks = _preedit.Blocks;
+        if (blocks.Count == 0)
+        {
+            DrawRangeRects(_caretIndex, _caretIndex + _preedit.Text.Length, position, c, verticalOffset,
+                _preeditUnderlineStyle, UnderlineThickness);
+            return;
+        }
+
+        for (var i = 0; i < blocks.Count; i++)
+        {
+            var start = _caretIndex + blocks[i].Start;
+            var thickness = i == _preedit.FocusedBlock ? FocusedUnderlineThickness : UnderlineThickness;
+            DrawRangeRects(start, start + blocks[i].Length, position, c, verticalOffset,
+                _preeditUnderlineStyle, thickness);
+        }
     }
 
     private void DrawPlaceholder(in RectF position, ICanvas c, float verticalOffset)
@@ -424,12 +537,20 @@ public sealed class TextInputView : View
         });
     }
 
-    // One rect per visual line the selection touches, clipped to that line's range.
     private void DrawSelectionBox(in RectF position, ICanvas c, float verticalOffset)
     {
         var min = Math.Min(_selectionStartIndex, _caretIndex);
         var max = Math.Max(_selectionStartIndex, _caretIndex);
+        var lineHeight = c.MeasureTextLineHeight(_textStyle);
+        DrawRangeRects(min, max, position, c, verticalOffset, _selectionRectStyle, lineHeight);
+    }
 
+    // One rect per visual line the range [min,max) touches, clipped to that line. Both the selection
+    // highlight and the composition underlines need this, because either can straddle a soft wrap;
+    // they differ only in height — a full line box versus a hairline sitting on the baseline.
+    private void DrawRangeRects(int min, int max, in RectF position, ICanvas c, float verticalOffset,
+        RectStyle style, float height)
+    {
         var lineHeight = c.MeasureTextLineHeight(_textStyle);
         var lines = GetLines(position.Width, c);
 
@@ -446,20 +567,19 @@ public sealed class TextInputView : View
             var startOffset = LineOffsetOf(segStart, lineStart, c);
             var width = LineOffsetOf(segEnd, lineStart, c) - startOffset;
             var left = position.Left + startOffset - _scrollOffsetX;
-            var selectionRect = new RectF
+            var rect = new RectF
             {
-                // Mirror the segment within the field for RTL, so the highlight lands on the
-                // right-aligned text.
+                // Mirror the segment within the field for RTL, so it lands on the right-aligned text.
                 Left = _contentRtl ? position.Left + position.Right - left - width : left,
                 Bottom = position.Top - (i + 1) * lineHeight + verticalOffset,
                 Width = width,
-                Height = lineHeight,
+                Height = height,
             };
 
             c.DrawRect(new DrawRectInputs
             {
-                Position = selectionRect,
-                Style = _selectionRectStyle,
+                Position = rect,
+                Style = style,
                 ZIndex = GetDrawZIndex()
             });
         }
@@ -469,8 +589,8 @@ public sealed class TextInputView : View
     // (cursive-correct, and a zero-width mark doesn't shift it); a wrapped line measures its segment.
     private float LineOffsetOf(int index, int lineStart, ICanvas c) =>
         TextWrap != Gui.TextWrap.Wrap
-            ? c.MeasureTextPrefix(Text, index, _textStyle)
-            : c.MeasureTextWidth(_buffer.AsSpan(lineStart, index - lineStart), _textStyle);
+            ? c.MeasureTextPrefix(DisplayText, index, _textStyle)
+            : c.MeasureTextWidth(DisplayText.Slice(lineStart, index - lineStart), _textStyle);
 
     private void DrawText(in RectF position, ICanvas c, float verticalOffset)
     {
@@ -491,7 +611,7 @@ public sealed class TextInputView : View
                     Width = position.Width,
                     Height = lineHeight,
                 },
-                Text = _buffer.AsSpan(line).ToString(),
+                Text = DisplayText[line].ToString(),
                 Style = _textStyle,
                 ZIndex = GetDrawZIndex()
             });
@@ -514,7 +634,7 @@ public sealed class TextInputView : View
         if (!center)
             return 0f;
 
-        var lineCount = _strLen == 0 ? 1 : GetLines(position.Width, c).Count;
+        var lineCount = DisplayLength == 0 ? 1 : GetLines(position.Width, c).Count;
         var slack = position.Height - lineCount * lineHeight;
         return slack > 0f ? -slack * 0.5f : 0f;
     }
@@ -532,8 +652,11 @@ public sealed class TextInputView : View
 
     private RectF ComputeCaretRect(in RectF position, ICanvas canvas, float verticalOffset)
     {
+        // The composition's caret, when there is one: it sits inside the preedit, and the OS
+        // candidate window is positioned against this rect.
+        var caret = DisplayCaret;
         var lines = GetLines(position.Width, canvas);
-        var lineIndex = FindCaretLineIndex(lines);
+        var lineIndex = FindLineIndex(lines, caret);
         var startIndex = lines[lineIndex].Start.Value;
 
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
@@ -542,8 +665,8 @@ public sealed class TextInputView : View
         // Arabic caret lands correctly and a zero-width mark doesn't shift it. (Wrapped lines keep
         // the per-segment measure.)
         var cursorPosLeft = TextWrap != Gui.TextWrap.Wrap
-            ? canvas.MeasureTextPrefix(Text, _caretIndex, _textStyle)
-            : canvas.MeasureTextWidth(_buffer.AsSpan(startIndex, _caretIndex - startIndex), _textStyle);
+            ? canvas.MeasureTextPrefix(DisplayText, caret, _textStyle)
+            : canvas.MeasureTextWidth(DisplayText.Slice(startIndex, caret - startIndex), _textStyle);
         var cursorPosBottom = position.Top - (lineIndex + 1) * lineHeight + verticalOffset;
 
         return new RectF
@@ -657,7 +780,7 @@ public sealed class TextInputView : View
         var canvas = _canvas;
 
         var lines = GetLines(Position.Width, canvas);
-        var lineIndex = FindCaretLineIndex(lines);
+        var lineIndex = FindLineIndex(lines, _caretIndex);
 
         var lineStart = lines[lineIndex].Start.Value;
         if (_goalColumnX < 0f)
@@ -678,18 +801,18 @@ public sealed class TextInputView : View
         SetCaret(FindIndexClosestToX(lines[targetLineIndex], _goalColumnX, canvas), select);
     }
 
-    private int FindCaretLineIndex(IReadOnlyList<Range> lines)
+    private int FindLineIndex(IReadOnlyList<Range> lines, int caret)
     {
         for (var i = 0; i < lines.Count; i++)
         {
             var end = lines[i].End.Value;
-            if (_caretIndex < end)
+            if (caret < end)
                 return i;
 
             // A caret sitting exactly on a soft-wrap boundary (this line's end == the next
             // line's start) belongs to the next visual line; a '\n' break leaves a gap, so
             // the caret stays on this line.
-            if (_caretIndex == end)
+            if (caret == end)
             {
                 var isSoftWrapBoundary = i + 1 < lines.Count && lines[i + 1].Start.Value == end;
                 if (!isSoftWrapBoundary)
@@ -742,6 +865,7 @@ public sealed class TextInputView : View
     public void Delete()
     {
         _goalColumnX = -1f;
+        DropComposition();
         if (_strLen > 0)
         {
             if (IsSelecting)
@@ -763,6 +887,7 @@ public sealed class TextInputView : View
     public void DeleteWord()
     {
         _goalColumnX = -1f;
+        DropComposition();
         if (_strLen == 0)
         {
             return;
@@ -786,6 +911,7 @@ public sealed class TextInputView : View
     public void Enter(char c)
     {
         _goalColumnX = -1f;
+        DropComposition();
         if (IsSelecting)
         {
             DeleteSelection();
@@ -801,6 +927,7 @@ public sealed class TextInputView : View
     public void Enter(ReadOnlySpan<char> text)
     {
         _goalColumnX = -1f;
+        DropComposition();
         if (_caretIndex != _selectionStartIndex)
         {
             DeleteSelection();
@@ -840,6 +967,7 @@ public sealed class TextInputView : View
     public void Clear()
     {
         _goalColumnX = -1f;
+        DropComposition();
         _strLen = 0;
         _caretIndex = 0;
         _selectionStartIndex = 0;
@@ -857,6 +985,7 @@ public sealed class TextInputView : View
     public void SetText(ReadOnlySpan<char> text)
     {
         _goalColumnX = -1f;
+        DropComposition();
         EnsureCapacity(text.Length);
         text.CopyTo(_buffer);
         _strLen = text.Length;
@@ -864,6 +993,17 @@ public sealed class TextInputView : View
         _selectionStartIndex = _caretIndex;
         SetDirty();
         SyncText();
+    }
+
+    // Every buffer mutation drops the composition, which keeps _composed from going stale against a
+    // _buffer/_caretIndex that moved under it. For committed text that is also the correct semantics
+    // — and the IME can deliver the commit either side of the empty preedit that ends the
+    // composition, so this does not depend on that order. Unlike ClearComposition it is called from
+    // edits that already invalidate and redraw, so it does neither itself.
+    private void DropComposition()
+    {
+        _preedit = PreeditText.Empty;
+        _composedLen = 0;
     }
 
     // Publishes the buffer as the observable text value. The State equality guard collapses

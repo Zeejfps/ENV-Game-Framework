@@ -32,6 +32,10 @@ public abstract class KeyboardMouseController : IKeyboardMouseController
     {
     }
 
+    public virtual void OnComposition(ref CompositionEvent e)
+    {
+    }
+
     public virtual void OnFocusLost()
     {
     }

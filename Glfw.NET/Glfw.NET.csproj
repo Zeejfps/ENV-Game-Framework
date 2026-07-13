@@ -7,6 +7,8 @@
         <PublishAot>true</PublishAot>
     </PropertyGroup>
 
+    <!-- The bundled natives are patched GLFW (IME/preedit support), not stock — the composition
+         input path depends on it. See Native/README.md before replacing any of them. -->
     <ItemGroup>
         <Content Include="Native/win-x64/glfw3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -15,7 +17,8 @@
 
         <!-- Linux native is bundled under its real soname (libglfw.so.3); NativeLibraryResolver
              loads "libglfw.so.3" first, so the app-local copy is found before any distro package.
-             Built for Ubuntu x64 — see Native/linux-x64/README for how it was produced. -->
+             That ordering is load-bearing: the distro's libglfw3 is unpatched, so if it won, Linux
+             would silently lose IME support. -->
         <Content Include="Native/linux-x64/libglfw.so.3" Condition=" '$(RuntimeIdentifier)' == 'linux-x64' ">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>libglfw.so.3</TargetPath>

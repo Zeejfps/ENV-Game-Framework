@@ -1,3 +1,4 @@
+using ZGF.Desktop.Input;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Desktop;
@@ -27,9 +28,21 @@ public interface IWindow : IDisposable
     // resolved for keyboard layout, modifiers and dead keys. OnKey carries physical key positions
     // and cannot be decoded into text without hard-coding a US layout; this is the text path.
     event Action<uint> OnText;
+    // The in-flight IME composition, replaced wholesale on every update and empty when the
+    // composition ends. Purely additive to OnText: committed text still arrives there, so a
+    // keyboard that never composes (Latin, Cyrillic) never raises this.
+    event Action<PreeditText> OnPreedit;
     event Action<int, InputAction, KeyModifiers> OnMouseButton;
     event Action<double, double> OnScroll;
     event Action<bool> OnPointerEnter;
+
+    // Whether the OS IME may compose on this window. Off outside a text field, or a CJK IME would
+    // start composing on the keys that drive list navigation. No-op without a patched GLFW.
+    void SetImeEnabled(bool enabled);
+    // Where the OS candidate window should sit, in window coordinates with a top-left origin.
+    void SetPreeditCursorRect(int x, int y, int width, int height);
+    // Discards any in-flight composition rather than committing it.
+    void ResetPreedit();
 
     void Show();
     void Hide();

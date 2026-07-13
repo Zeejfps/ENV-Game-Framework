@@ -9,6 +9,7 @@ public delegate void MouseMoveEventHandler(ref MouseMoveEvent e);
 public delegate void MouseWheelEventHandler(ref MouseWheelScrolledEvent e);
 public delegate void KeyboardKeyEventHandler(ref KeyboardKeyEvent e);
 public delegate void TextInputEventHandler(ref TextInputEvent e);
+public delegate void CompositionEventHandler(ref CompositionEvent e);
 
 /// <summary>
 /// Delegate-based controller: the handler tiers of <see cref="ZGF.Gui.Desktop.Widgets.KbmInput"/>
@@ -29,6 +30,7 @@ public sealed class KbmHandlers : IKeyboardMouseController
     public MouseWheelEventHandler? OnMouseWheel { get; init; }
     public KeyboardKeyEventHandler? OnKey { get; init; }
     public TextInputEventHandler? OnTextInput { get; init; }
+    public CompositionEventHandler? OnComposition { get; init; }
     public Action? OnFocusGained { get; init; }
     public Action? OnFocusLost { get; init; }
 
@@ -36,7 +38,7 @@ public sealed class KbmHandlers : IKeyboardMouseController
         OnClick != null || OnHoverEnter != null || OnHoverExit != null ||
         OnMouseEnter != null || OnMouseExit != null || OnMouseButton != null ||
         OnMouseMove != null || OnMouseWheel != null || OnKey != null ||
-        OnTextInput != null || OnFocusGained != null || OnFocusLost != null;
+        OnTextInput != null || OnComposition != null || OnFocusGained != null || OnFocusLost != null;
 
     void IKeyboardMouseController.OnMouseEnter(ref MouseEnterEvent e)
     {
@@ -84,6 +86,11 @@ public sealed class KbmHandlers : IKeyboardMouseController
     void IKeyboardMouseController.OnTextInput(ref TextInputEvent e)
     {
         OnTextInput?.Invoke(ref e);
+    }
+
+    void IKeyboardMouseController.OnComposition(ref CompositionEvent e)
+    {
+        OnComposition?.Invoke(ref e);
     }
 
     void IKeyboardMouseController.OnFocusGained()

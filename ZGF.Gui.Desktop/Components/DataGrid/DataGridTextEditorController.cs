@@ -32,7 +32,7 @@ public sealed class DataGridTextEditorController : BaseTextInputKbmController, I
 
     public void EndEdit() => EndEditing();
 
-    public override void OnFocusLost() => _session.Commit();
+    protected override void OnFocusLostCore() => _session.Commit();
 
     protected override void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
     {

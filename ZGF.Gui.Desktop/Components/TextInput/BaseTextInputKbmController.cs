@@ -48,6 +48,10 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     {
         _textInput.StartEditing();
         _inputSystem.StealFocus(this);
+        // The IME is off outside a text field, so that a CJK layout doesn't start composing on the
+        // keys that navigate the commit list.
+        _inputSystem.ImeHost?.SetImeEnabled(true);
+        UpdateImeCaretRect();
     }
 
     // Ends the edit session and releases focus — the counterpart to BeginEditing, used
@@ -55,8 +59,53 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     // linger in an unfocused field.
     public void EndEditing()
     {
+        // Reset before disabling: a composition must never outlive the field it was being typed
+        // into, and the text it holds is discarded rather than committed.
+        _inputSystem.ImeHost?.ResetComposition();
+        _textInput.ClearComposition();
+        _inputSystem.ImeHost?.SetImeEnabled(false);
         _textInput.StopEditing();
         _inputSystem.Blur(this);
+    }
+
+    // Focus can be taken away without anyone calling EndEditing (a focus ring moving on, another
+    // component stealing it), and a composition left behind would keep rendering in a field that no
+    // longer has the keyboard. Sealed so that a subclass cannot drop the IME cleanup by overriding
+    // and forgetting to call base — it hooks OnFocusLostCore instead.
+    public sealed override void OnFocusLost()
+    {
+        _inputSystem.ImeHost?.ResetComposition();
+        _textInput.ClearComposition();
+        _inputSystem.ImeHost?.SetImeEnabled(false);
+        OnFocusLostCore();
+    }
+
+    /// <summary>What this field does when it loses focus — commit, revert, close. Runs after the IME
+    /// has been torn down, so the buffer holds committed text only.</summary>
+    protected virtual void OnFocusLostCore()
+    {
+    }
+
+    /// <summary>Updates the in-flight composition and keeps the OS candidate window on the caret.</summary>
+    public override void OnComposition(ref CompositionEvent e)
+    {
+        if (e.Phase != EventPhase.Bubbling)
+            return;
+
+        if (!_textInput.IsEditing)
+            return;
+
+        _textInput.SetComposition(e.Preedit);
+        UpdateImeCaretRect();
+        RevealCaret();
+        e.Consume();
+    }
+
+    private void UpdateImeCaretRect()
+    {
+        if (!_textInput.IsEditing)
+            return;
+        _inputSystem.ImeHost?.SetImeCaretRect(_textInput.GetCaretRect());
     }
     
     public override void OnMouseMoved(ref MouseMoveEvent e)
@@ -94,20 +143,25 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         {
             var isEditing = _textInput.IsEditing;
             var containsPoint = _textInput.Position.ContainsPoint(e.Mouse.Point);
-            var inputSystem = _inputSystem;
 
             if (isEditing && !containsPoint)
             {
-                _textInput.StopEditing();
-                inputSystem?.Blur(this);
+                EndEditing();
                 _hasLastClick = false;
                 return;
             }
 
             if (!isEditing && containsPoint)
             {
-                _textInput.StartEditing();
-                inputSystem?.StealFocus(this);
+                BeginEditing();
+            }
+
+            // Clicking elsewhere in the field abandons the composition rather than committing it —
+            // the caret is about to move out from under it.
+            if (_textInput.IsComposing)
+            {
+                _inputSystem.ImeHost?.ResetComposition();
+                _textInput.ClearComposition();
             }
 
             var now = Environment.TickCount;
@@ -135,17 +189,30 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     {
         if (e.Phase != EventPhase.Bubbling)
             return;
-        
+
         if (!_textInput.IsEditing)
             return;
 
         if (e.State != InputState.Pressed)
             return;
 
+        // While a composition is live, Enter/Escape/Space/arrows are the IME's — they pick a
+        // candidate, they do not edit and they must not reach the app. Enter is the dangerous one:
+        // leaked, it submits the commit in the middle of a half-typed word. A patched GLFW already
+        // withholds the keys the IME consumed, so this is a second line of defence against a future
+        // GLFW that doesn't — and the failure it guards is silent and destructive. Consuming the
+        // event also stops it bubbling to the app's own keybindings.
+        if (_textInput.IsComposing)
+        {
+            e.Consume();
+            return;
+        }
+
         OnKeyboardKeyPressed(ref e);
         // After any handled key: edits and caret moves both flow through here, and for keys that
         // moved nothing (Ctrl+C, say) the reveal is a no-op since the caret is already in view.
         RevealCaret();
+        UpdateImeCaretRect();
     }
 
     protected virtual void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)

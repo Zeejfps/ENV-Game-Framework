@@ -20,6 +20,12 @@ public sealed class InputSystem
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
 
+    /// <summary>
+    /// The window's IME, set by the desktop input system that drives this one. Null in a headless
+    /// harness, where there is no window to compose against — a text field must tolerate that.
+    /// </summary>
+    public IImeHost? ImeHost { get; set; }
+
     // True when the focused component consumed the most recent mouse move — i.e. a drag owns the
     // pointer stream (scrollbar thumb, splitter, box-select). This is the pointer-capture concept,
     // distinct from merely holding keyboard focus (a list, a text field), which does not consume
@@ -194,6 +200,51 @@ public sealed class InputSystem
             if (filter.HasFlag(EventPhaseFilter.Bubble))
             {
                 ctrl.OnTextInput(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    public void SendCompositionEvent(ref CompositionEvent e)
+    {
+        e.Phase = EventPhase.Bubbling;
+        if (_focusedComponent != null)
+        {
+            var filter = GetPhaseFilter(_focusedComponent);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
+            {
+                _focusedComponent.OnComposition(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
+            }
+        }
+
+        e.Phase = EventPhase.Capturing;
+        foreach (var ctrl in _focusQueue)
+        {
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
+            {
+                ctrl.OnComposition(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
+            }
+        }
+
+        e.Phase = EventPhase.Bubbling;
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
+            {
+                ctrl.OnComposition(ref e);
                 if (e.IsConsumed)
                 {
                     return;

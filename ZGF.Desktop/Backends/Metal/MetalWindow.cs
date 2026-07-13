@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using GLFW;
+using ZGF.Desktop.Input;
 using ZGF.KeyboardModule;
 using ZGF.KeyboardModule.GlfwAdapter;
 using ZGF.Rendering.Metal;
@@ -10,6 +11,7 @@ namespace ZGF.Desktop.Backends.Metal;
 public sealed class MetalWindow : IWindow, IMetalSurface
 {
     private readonly Window _window;
+    private readonly GlfwImeBridge _ime;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly PositionCallback _windowPosCallback;
@@ -78,6 +80,9 @@ public sealed class MetalWindow : IWindow, IMetalSurface
         GLFW.Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
         GLFW.Glfw.SetScrollCallback(window, _scrollCallback);
         GLFW.Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
+
+        _ime = new GlfwImeBridge(window);
+        _ime.OnPreedit += preedit => OnPreedit?.Invoke(preedit);
     }
 
     public IntPtr NativeHandle => NsWindow;
@@ -96,9 +101,14 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public event Action? OnClose;
     public event Action<KeyboardKey, InputAction, KeyModifiers>? OnKey;
     public event Action<uint>? OnText;
+    public event Action<PreeditText>? OnPreedit;
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
+
+    public void SetImeEnabled(bool enabled) => _ime.SetEnabled(enabled);
+    public void SetPreeditCursorRect(int x, int y, int width, int height) => _ime.SetCursorRectangle(x, y, width, height);
+    public void ResetPreedit() => _ime.Reset();
 
     public void Show() { GLFW.Glfw.ShowWindow(_window); _isVisible = true; NeedsRedraw = true; }
     public void Hide() { GLFW.Glfw.HideWindow(_window); _isVisible = false; }

@@ -1,4 +1,5 @@
 using System.Text;
+using ZGF.Desktop.Input;
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Automation;
@@ -412,6 +413,51 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             Phase = EventPhase.Capturing,
         };
         _input.SendTextInputEvent(ref e);
+    }
+
+    /// <summary>
+    /// Dispatches one IME composition update — the harness stand-in for GLFW's preedit callback.
+    /// This is the only way to test CJK input: the OS-level <see cref="Automation.Typist"/> posts
+    /// characters straight into the text queue and bypasses the IME entirely.
+    ///
+    /// <para><paramref name="text"/> is the composition as the IME formats it, which is not a replay
+    /// of the keystrokes behind it — a pinyin IME inserts syllable separators nobody typed. Caret
+    /// defaults to the end of the composition, and blocks default to one clause spanning it.</para>
+    /// </summary>
+    public void SendComposition(string text, int? caret = null, IReadOnlyList<PreeditBlock>? blocks = null,
+        int focusedBlock = 0)
+    {
+        var preedit = text.Length == 0
+            ? PreeditText.Empty
+            : new PreeditText(text, caret ?? text.Length, blocks ?? [new PreeditBlock(0, text.Length)],
+                focusedBlock);
+        SendComposition(preedit);
+    }
+
+    /// <summary>Ends the composition. Says nothing about commit versus cancel — on commit the text
+    /// follows through <see cref="SendText"/>, on cancel nothing does.</summary>
+    public void EndComposition() => SendComposition(PreeditText.Empty);
+
+    /// <summary>Composes <paramref name="composition"/> one character at a time, then commits
+    /// <paramref name="committed"/> — the full IME round trip a CJK user actually performs.</summary>
+    public void Compose(string composition, string committed)
+    {
+        for (var i = 1; i <= composition.Length; i++)
+            SendComposition(composition[..i]);
+
+        EndComposition();
+        foreach (var rune in committed.EnumerateRunes())
+            SendText(rune);
+    }
+
+    private void SendComposition(PreeditText preedit)
+    {
+        var e = new CompositionEvent
+        {
+            Preedit = preedit,
+            Phase = EventPhase.Capturing,
+        };
+        _input.SendCompositionEvent(ref e);
     }
 
     /// <summary>

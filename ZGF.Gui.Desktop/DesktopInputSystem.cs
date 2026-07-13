@@ -1,5 +1,6 @@
 using System.Text;
 using ZGF.Desktop;
+using ZGF.Desktop.Input;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Input;
 using ZGF.KeyboardModule;
@@ -8,7 +9,7 @@ using MouseButton = ZGF.Gui.Desktop.Input.MouseButton;
 
 namespace ZGF.Gui.Desktop;
 
-public sealed class DesktopInputSystem : IPointerWindow
+public sealed class DesktopInputSystem : IPointerWindow, IImeHost
 {
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
@@ -33,9 +34,37 @@ public sealed class DesktopInputSystem : IPointerWindow
 
         _window.OnKey += HandleKeyEvent;
         _window.OnText += HandleTextEvent;
+        _window.OnPreedit += HandlePreeditEvent;
         _window.OnMouseButton += HandleMouseButtonEvent;
         _window.OnScroll += HandleScrollEvent;
         _window.OnPointerEnter += HandleCursorEnter;
+
+        InputSystem.ImeHost = this;
+    }
+
+    public void SetImeEnabled(bool enabled) => _window.SetImeEnabled(enabled);
+
+    public void ResetComposition() => _window.ResetPreedit();
+
+    /// <summary>
+    /// The inverse of <see cref="WindowToGuiCoords"/>, plus the Y flip: GUI coordinates grow upward
+    /// from a bottom-left origin, and the IME wants a top-left one.
+    /// </summary>
+    public void SetImeCaretRect(RectF caretRect)
+    {
+        var width = _window.Width;
+        var height = _window.Height;
+        if (width <= 0 || height <= 0) return;
+
+        var scaleX = _canvas.Width / (float)width;
+        var scaleY = _canvas.Height / (float)height;
+        if (scaleX <= 0f || scaleY <= 0f) return;
+
+        var x = (int)(caretRect.Left / scaleX);
+        var y = (int)(height - (caretRect.Bottom + caretRect.Height) / scaleY);
+        var w = Math.Max(1, (int)(caretRect.Width / scaleX));
+        var h = Math.Max(1, (int)(caretRect.Height / scaleY));
+        _window.SetPreeditCursorRect(x, y, w, h);
     }
 
     /// <summary>
@@ -338,6 +367,29 @@ public sealed class DesktopInputSystem : IPointerWindow
         }
 
         InputSystem.SendTextInputEvent(ref e);
+        OnAnyInput?.Invoke();
+    }
+
+    private void HandlePreeditEvent(PreeditText preedit)
+    {
+        var e = new CompositionEvent
+        {
+            Preedit = preedit,
+            Phase = EventPhase.Capturing,
+        };
+
+        // Same hand-off as HandleTextEvent: a searchable context menu that owns typing owns the
+        // composition that produces it too, or the preedit would render in the host window's field
+        // while its committed text lands in the menu's.
+        var modal = _arbiter?.TopmostModal();
+        if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
+        {
+            menu.InputSystem.SendCompositionEvent(ref e);
+            OnAnyInput?.Invoke();
+            return;
+        }
+
+        InputSystem.SendCompositionEvent(ref e);
         OnAnyInput?.Invoke();
     }
 

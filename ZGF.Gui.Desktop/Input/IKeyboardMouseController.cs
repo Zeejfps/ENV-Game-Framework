@@ -9,6 +9,7 @@ public interface IKeyboardMouseController
     void OnMouseMoved(ref MouseMoveEvent e);
     void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e);
     void OnTextInput(ref TextInputEvent e);
+    void OnComposition(ref CompositionEvent e);
     void OnFocusLost();
     void OnFocusGained();
 }

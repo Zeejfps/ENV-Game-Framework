@@ -105,6 +105,67 @@ public class TextInputUnicodeTests
         Assert.Equal("ship 🚀", value.Value);
     }
 
+    /// <summary>An astral character is two UTF-16 code units but one character to the user. Deleting
+    /// a code unit at a time would leave an orphaned surrogate — half a character, and not valid
+    /// text.</summary>
+    [Fact]
+    public void BackspaceDeletesWholeAstralChar()
+    {
+        var value = new State<string>("");
+        using var h = Field(value);
+
+        h.Type("ship 🚀");
+        h.PressKey(KeyboardKey.Backspace);
+
+        Assert.Equal("ship ", value.Value);
+    }
+
+    /// <summary>The caret must step over an astral character, never land between its halves — where
+    /// the next edit would split it.</summary>
+    [Fact]
+    public void ArrowKeysStepOverAstralChar()
+    {
+        var value = new State<string>("");
+        using var h = Field(value);
+
+        h.Type("a🚀b");
+        h.PressKey(KeyboardKey.LeftArrow);   // before 'b'
+        h.PressKey(KeyboardKey.LeftArrow);   // before the rocket, not inside it
+        h.Type("X");
+
+        Assert.Equal("aX🚀b", value.Value);
+    }
+
+    /// <summary>Backspace from just after an astral character removes the whole thing, leaving the
+    /// text around it intact.</summary>
+    [Fact]
+    public void BackspaceOverAstralChar_LeavesNoOrphanSurrogate()
+    {
+        var value = new State<string>("");
+        using var h = Field(value);
+
+        h.Type("a🚀b");
+        h.PressKey(KeyboardKey.LeftArrow);   // caret between the rocket and 'b'
+        h.PressKey(KeyboardKey.Backspace);
+
+        Assert.Equal("ab", value.Value);
+    }
+
+    /// <summary>CJK has no spaces, so a word jump that keys off whitespace would treat a whole run as
+    /// one word and skip the line.</summary>
+    [Fact]
+    public void WordJumpStepsThroughCjkRun()
+    {
+        var value = new State<string>("");
+        using var h = Field(value);
+
+        h.Type("你好世界");
+        h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Control);
+        h.Type("X");
+
+        Assert.Equal("你好世X界", value.Value);
+    }
+
     [Fact]
     public void BackspaceDeletesOneCyrillicChar()
     {

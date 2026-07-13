@@ -39,7 +39,7 @@ public sealed class CalendarYearInputController : BaseTextInputKbmController
         base.OnKeyboardKeyPressed(ref e);
     }
 
-    public override void OnFocusLost()
+    protected override void OnFocusLostCore()
     {
         if (_reverting)
         {
@@ -50,7 +50,5 @@ public sealed class CalendarYearInputController : BaseTextInputKbmController
         {
             _onCommit(_input.Text.ToString());
         }
-
-        base.OnFocusLost();
     }
 }
