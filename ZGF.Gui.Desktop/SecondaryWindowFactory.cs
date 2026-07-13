@@ -19,6 +19,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
+    private readonly ImeCoordinator _ime;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
@@ -31,6 +32,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         IPopupNativeDecorator decorator,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
+        ImeCoordinator ime,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
@@ -40,6 +42,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         _decorator = decorator;
         _mainContext = mainContext;
         _arbiter = arbiter;
+        _ime = ime;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
@@ -57,14 +60,18 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         // Share the app's pointer arbiter so this window participates in pointer ownership. Without
         // it the main window (which is arbitrated) keeps believing it owns the pointer at screen
         // points that overlap this window, and its widgets hover through this one.
-        var input = new DesktopInputSystem(window, canvas, _arbiter, _app);
+        var input = new DesktopInputSystem(window, canvas, _arbiter, _app, _ime);
+
+        // This window composes for its own fields, and hosts the IME for a menu opened from it — a
+        // review window's base-branch picker composes against this window, not the main one.
+        _ime.Register(input);
 
         var context = new Context(_mainContext);
         context.Canvas = canvas;
         context.AddService(input.InputSystem);
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
 
-        var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend, _arbiter);
+        var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend, _arbiter, _ime);
         impl.SetRoot(request.BuildRoot(context));
 
         // A title-bar / border grab on this window is a non-client press GLFW never reports and that
@@ -129,6 +136,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 {
     private readonly GuiWindowHost _host;
     private readonly PointerOwnershipArbiter _arbiter;
+    private readonly ImeCoordinator _ime;
     private bool _disposed;
 
     public IWindow Window => _host.Window;
@@ -143,10 +151,12 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         DesktopInputSystem input,
         Context context,
         IGuiRenderBackend backend,
-        PointerOwnershipArbiter arbiter)
+        PointerOwnershipArbiter arbiter,
+        ImeCoordinator ime)
     {
         _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: true);
         _arbiter = arbiter;
+        _ime = ime;
 
         // Register as a non-modal participant. The arbiter orders by registration as a z-order
         // proxy, so re-register on focus to keep this window's slot matching its on-screen stacking:
@@ -207,6 +217,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         _disposed = true;
 
         _arbiter.Unregister(_host.Input);
+        _ime.Unregister(_host.Input);
         _host.Window.OnResize -= HandleResize;
         _host.Window.OnFramebufferResize -= HandleFramebufferResize;
         _host.Window.OnFocusChanged -= HandleFocusChanged;

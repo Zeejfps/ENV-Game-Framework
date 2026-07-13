@@ -26,15 +26,24 @@ internal sealed class GlfwImeBridge
 
         _preeditCallback = HandlePreedit;
         GlfwIme.SetPreeditCallback(window, _preeditCallback);
-        // The IME stays off until a text field asks for it. Left on, a Japanese IME would start
-        // composing on the keys that drive list navigation.
-        SetEnabled(false);
     }
 
+    /// <summary>
+    /// Switches the IME on for this window. <b>Turning it off is deliberately not forwarded to
+    /// GLFW.</b> <c>glfwSetInputMode(GLFW_IME, 0)</c> detaches the window's IME context, and
+    /// re-enabling it never restores a working composition: Microsoft Pinyin silently degrades to
+    /// alphanumeric passthrough — not just for this window but for the whole process, so a commit
+    /// box that composed a moment ago starts typing raw <c>nihao</c>. Confirmed against a real IME.
+    /// <para>
+    /// The cost is that the IME stays on outside a text field, so in Chinese mode a bare letter may
+    /// be swallowed into a composition instead of reaching a keybinding. That is the lesser evil:
+    /// the alternative is CJK input that dies process-wide the first time a field is blurred.
+    /// </para>
+    /// </summary>
     public void SetEnabled(bool enabled)
     {
-        if (_preeditCallback == null) return;
-        Glfw.SetInputMode(_window, GlfwIme.Ime, enabled ? 1 : 0);
+        if (_preeditCallback == null || !enabled) return;
+        Glfw.SetInputMode(_window, GlfwIme.Ime, 1);
     }
 
     /// <summary>Positions the OS candidate window against the caret. Coordinates are window-relative, top-left origin.</summary>

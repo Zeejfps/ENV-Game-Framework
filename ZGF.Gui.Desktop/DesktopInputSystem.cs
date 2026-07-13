@@ -9,12 +9,14 @@ using MouseButton = ZGF.Gui.Desktop.Input.MouseButton;
 
 namespace ZGF.Gui.Desktop;
 
-public sealed class DesktopInputSystem : IPointerWindow, IImeHost
+public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 {
     private readonly IWindow _window;
     private readonly RenderedCanvasBase _canvas;
     private readonly PointerOwnershipArbiter? _arbiter;
     private readonly IWindowedApp? _app;
+    private readonly ImeCoordinator? _ime;
+    private readonly WindowCoordinates _coordinates;
     private bool _pendingExitClear;
     // Buttons whose press was swallowed as a modal-dismiss click. The matching release is
     // part of the same gesture and must be swallowed too — dispatched alone, it would land
@@ -25,12 +27,19 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
     public Mouse Mouse { get; } = new();
     public Action? OnAnyInput { get; set; }
 
-    public DesktopInputSystem(IWindow window, RenderedCanvasBase canvas, PointerOwnershipArbiter? arbiter = null, IWindowedApp? app = null)
+    public DesktopInputSystem(
+        IWindow window,
+        RenderedCanvasBase canvas,
+        PointerOwnershipArbiter? arbiter = null,
+        IWindowedApp? app = null,
+        ImeCoordinator? ime = null)
     {
         _window = window;
         _canvas = canvas;
         _arbiter = arbiter;
         _app = app;
+        _ime = ime;
+        _coordinates = new WindowCoordinates(window, canvas);
 
         _window.OnKey += HandleKeyEvent;
         _window.OnText += HandleTextEvent;
@@ -42,29 +51,34 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
         InputSystem.ImeHost = this;
     }
 
-    public void SetImeEnabled(bool enabled) => _window.SetImeEnabled(enabled);
+    // IImeHost — what a field in this window reports. It says only that it is editing and where its
+    // caret is; the coordinator decides which window that makes compose, because the answer is not
+    // always this one (a menu's search box composes against the host window that holds OS focus).
+    public void SetImeEnabled(bool enabled) => _ime?.SetFieldEditing(this, enabled);
 
-    public void ResetComposition() => _window.ResetPreedit();
+    public void SetImeCaretRect(RectF caretRect) => _ime?.SetFieldCaret(this, caretRect);
 
-    /// <summary>
-    /// The inverse of <see cref="WindowToGuiCoords"/>, plus the Y flip: GUI coordinates grow upward
-    /// from a bottom-left origin, and the IME wants a top-left one.
-    /// </summary>
-    public void SetImeCaretRect(RectF caretRect)
+    public void ResetComposition() => _ime?.ResetComposition();
+
+    // IImeWindow — the native switches, driven from the coordinator.
+    public bool HasKeyboardFocus => InputSystem.HasFocus;
+
+    public void SetImeMode(bool enabled) => _window.SetImeEnabled(enabled);
+
+    public void ResetImeComposition() => _window.ResetPreedit();
+
+    public RectI CanvasToScreen(RectF canvasRect) => _coordinates.ToScreenPoints(canvasRect);
+
+    /// <summary>Rebases a screen-space caret into this window's client area, which is what the IME
+    /// wants. The rect can come from another window's canvas, so screen space is where it arrives.</summary>
+    public void SetImeCursorRect(RectI screenRect)
     {
-        var width = _window.Width;
-        var height = _window.Height;
-        if (width <= 0 || height <= 0) return;
-
-        var scaleX = _canvas.Width / (float)width;
-        var scaleY = _canvas.Height / (float)height;
-        if (scaleX <= 0f || scaleY <= 0f) return;
-
-        var x = (int)(caretRect.Left / scaleX);
-        var y = (int)(height - (caretRect.Bottom + caretRect.Height) / scaleY);
-        var w = Math.Max(1, (int)(caretRect.Width / scaleX));
-        var h = Math.Max(1, (int)(caretRect.Height / scaleY));
-        _window.SetPreeditCursorRect(x, y, w, h);
+        _window.GetPosition(out var windowX, out var windowY);
+        _window.SetPreeditCursorRect(
+            screenRect.X - windowX,
+            screenRect.Y - windowY,
+            Math.Max(1, screenRect.Width),
+            Math.Max(1, screenRect.Height));
     }
 
     /// <summary>
@@ -96,6 +110,10 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
     public void Reset()
     {
         InputSystem.Reset();
+        // InputSystem.Reset drops the focused component without raising OnFocusLost, so a text field
+        // that was editing when its popup closed never gets to end its own edit session. Left in the
+        // coordinator's editing set, this (pooled, hidden) window would keep asserting the IME.
+        _ime?.SetFieldEditing(this, false);
         _pendingExitClear = false;
         _modalDismissButtons.Clear();
         Mouse.Point = new PointF(float.MinValue, float.MinValue);
@@ -324,16 +342,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
             Phase = EventPhase.Capturing
         };
 
-        // An open context-menu popup owns the keyboard while it has a focused target (a search box):
-        // popups can't take OS keyboard focus on every platform (Windows borderless menus are
-        // WS_EX_NOACTIVATE), so OS keys land on whichever real window is active. Forward them to the
-        // menu's own input system and skip local dispatch, so the menu's search/type-ahead works and
-        // the host window's shortcuts stay dormant while it's up. Gated on the menu actually holding
-        // focus, so a plain (non-searchable) menu doesn't swallow the host window's keys. When the
-        // menu window itself is the one receiving keys (it took focus), TopmostModal() == this, so it
-        // falls through and dispatches locally as usual.
-        var modal = _arbiter?.TopmostModal();
-        if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
+        if (TypingMenu() is { } menu)
         {
             menu.InputSystem.SendKeyboardKeyEvent(ref e);
             OnAnyInput?.Invoke();
@@ -343,6 +352,17 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
         InputSystem.SendKeyboardKeyEvent(ref e);
         OnAnyInput?.Invoke();
     }
+
+    /// <summary>
+    /// The open context menu that typing belongs to instead of this window, or null when this window
+    /// keeps its own. A searchable menu holds keyboard focus but, on Windows, no OS focus (borderless
+    /// popups are WS_EX_NOACTIVATE), so its keys, characters and compositions all arrive here and have
+    /// to be handed on — and the host window's shortcuts must stay dormant meanwhile. A plain menu
+    /// focuses nothing and so takes none of them. Null too when the menu window is the one receiving
+    /// the event (it took focus, as on macOS): it is the typing target, and dispatches locally.
+    /// </summary>
+    private DesktopInputSystem? TypingMenu() =>
+        _ime?.FocusedModal() is DesktopInputSystem menu && !ReferenceEquals(menu, this) ? menu : null;
 
     private void HandleTextEvent(uint codePoint)
     {
@@ -355,11 +375,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
             Phase = EventPhase.Capturing,
         };
 
-        // Same hand-off as HandleKeyEvent: while a searchable context menu is up it owns typing,
-        // and on platforms where a borderless menu can't take OS focus the characters land here
-        // instead. Forward them to the menu and keep them out of the host window.
-        var modal = _arbiter?.TopmostModal();
-        if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
+        if (TypingMenu() is { } menu)
         {
             menu.InputSystem.SendTextInputEvent(ref e);
             OnAnyInput?.Invoke();
@@ -378,16 +394,11 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost
             Phase = EventPhase.Capturing,
         };
 
-        // Same hand-off as HandleTextEvent: a searchable context menu that owns typing owns the
-        // composition that produces it too, or the preedit would render in the host window's field
-        // while its committed text lands in the menu's.
-        //
-        // Known gap: this branch is currently unreachable. A popup field enables the IME on the
-        // popup's own window, but a borderless popup never holds OS keyboard focus — so the IME
-        // composes against the host, whose input mode is off, and no preedit is produced to forward.
-        // A menu's search box therefore takes Latin but not CJK. See docs/plans/cjk-ime-support.md.
-        var modal = _arbiter?.TopmostModal();
-        if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
+        // Same hand-off as HandleTextEvent: a menu that owns typing owns the composition that
+        // produces it too, or the preedit would render in the host window's field while its
+        // committed text lands in the menu's. The IME is enabled on this window (the OS-focused one)
+        // precisely because the menu's field is editing — see ImeCoordinator.
+        if (TypingMenu() is { } menu)
         {
             menu.InputSystem.SendCompositionEvent(ref e);
             OnAnyInput?.Invoke();

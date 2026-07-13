@@ -16,6 +16,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
+    private readonly ImeCoordinator _ime;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<PopupWindowImpl> _activePopups = new();
@@ -35,6 +36,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         IPopupNativeDecorator decorator,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
+        ImeCoordinator ime,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
@@ -44,6 +46,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _decorator = decorator;
         _mainContext = mainContext;
         _arbiter = arbiter;
+        _ime = ime;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
@@ -175,6 +178,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         {
             var evict = _pool[0];
             _pool.RemoveAt(0);
+            _ime.Unregister(evict.Input);
             evict.Dispose();
             // Dispose left the evicted window's (now-destroyed) context current; restore the
             // main context so the run loop's next GL calls target a valid one.
@@ -320,7 +324,11 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
 
-        var input = new DesktopInputSystem(window, canvas, _arbiter, _app);
+        var input = new DesktopInputSystem(window, canvas, _arbiter, _app, _ime);
+        // Registered for the popup's whole lifetime, not per-acquire: the impl (and its input system)
+        // is pooled, and a searchable menu's field reports its editing session against it. A pooled,
+        // hidden popup is never OS-focused and never modal, so it can't be picked as a target.
+        _ime.Register(input);
 
         var popupContext = new Context(_mainContext);
         popupContext.Canvas = canvas;
@@ -348,9 +356,17 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     public void Dispose()
     {
-        foreach (var p in _activePopups) p.Dispose();
+        foreach (var p in _activePopups)
+        {
+            _ime.Unregister(p.Input);
+            p.Dispose();
+        }
         _activePopups.Clear();
-        foreach (var p in _pool) p.Dispose();
+        foreach (var p in _pool)
+        {
+            _ime.Unregister(p.Input);
+            p.Dispose();
+        }
         _pool.Clear();
     }
 }

@@ -18,6 +18,7 @@ public sealed class GuiApp : IDisposable
     private readonly IGuiRenderBackend _renderBackend;
     private readonly DesktopInputSystem _mainInput;
     private readonly PointerOwnershipArbiter _pointerArbiter;
+    private readonly ImeCoordinator _imeCoordinator;
     private readonly GuiWindowHost _mainHost;
     private readonly QueuedUiDispatcher _dispatcher;
     private readonly FrameTicker _frameTicker;
@@ -55,8 +56,13 @@ public sealed class GuiApp : IDisposable
         // themselves, and each re-registers on focus so arbiter order tracks on-screen stacking.
         var pointerArbiter = new PointerOwnershipArbiter();
         _pointerArbiter = pointerArbiter;
-        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter, app);
+        // One coordinator decides which window the OS IME composes against. A field can't: a menu's
+        // search box lives in a popup that never takes OS keyboard focus, so the window that composes
+        // for it is the host window, not its own.
+        _imeCoordinator = new ImeCoordinator(pointerArbiter);
+        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter, app, _imeCoordinator);
         pointerArbiter.Register(_mainInput, isModal: false);
+        _imeCoordinator.Register(_mainInput);
         _mainHost = new GuiWindowHost(app.MainWindow, mainCanvas, _mainInput, context, sizeRootToWindow: true);
         _dispatcher = new QueuedUiDispatcher { OnWorkPosted = app.Wake };
         _frameTicker = new FrameTicker(onActivated: app.MainWindow.RequestRedraw);
@@ -66,10 +72,10 @@ public sealed class GuiApp : IDisposable
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
         var coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
         _popupFactory = new PopupWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter,
+            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter, _imeCoordinator,
             mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter,
+            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter, _imeCoordinator,
             mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, pointerArbiter);
@@ -343,6 +349,9 @@ public sealed class GuiApp : IDisposable
         _popupFactory.UpdateActivePopupInput();
         _secondaryWindows.Update();
         _contextMenuManager.Update();
+        // Last: menus opened and closed by this tick's input are already settled, so the IME state is
+        // derived from what is actually on screen rather than from what a field remembered to set.
+        _imeCoordinator.Update();
     }
 
     private void TickAnimations()
