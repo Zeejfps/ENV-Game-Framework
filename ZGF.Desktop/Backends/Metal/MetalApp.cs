@@ -35,6 +35,12 @@ public sealed class MetalApp : IWindowedApp
         if (startupConfig.IsUndecorated)
             GLFW.Glfw.WindowHint(Hint.Decorated, false);
 
+        if (startupConfig.StartUnfocused)
+        {
+            GLFW.Glfw.WindowHint(Hint.FocusOnShow, false);
+            GLFW.Glfw.WindowHint(Hint.Focused, false);
+        }
+
         var window = GLFW.Glfw.CreateWindow(
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             startupConfig.WindowTitle, Monitor.None, Window.None);

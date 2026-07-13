@@ -30,6 +30,12 @@ public sealed class OpenGlApp : IWindowedApp
         if (startupConfig.IsUndecorated)
             Glfw.WindowHint(Hint.Decorated, false);
 
+        if (startupConfig.StartUnfocused)
+        {
+            Glfw.WindowHint(Hint.FocusOnShow, false);
+            Glfw.WindowHint(Hint.Focused, false);
+        }
+
         var window = Glfw.CreateWindow(
             startupConfig.WindowWidth, startupConfig.WindowHeight,
             startupConfig.WindowTitle, Monitor.None, Window.None);

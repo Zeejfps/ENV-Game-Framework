@@ -5,12 +5,7 @@ using McpSdk.Protocol;
 using McpSdk.Protocol.Models;
 using McpSdk.Server;
 using McpSdk.Shared;
-using ZGF.Desktop;
-using ZGF.Geometry;
-using ZGF.Gui.Desktop.Input;
-using ZGF.Gui.Desktop.Inspection;
-using ZGF.KeyboardModule;
-using ZGF.Observable;
+using ZGF.Gui.Desktop.Automation;
 
 namespace ZGF.Gui.Desktop;
 
@@ -23,22 +18,12 @@ namespace ZGF.Gui.Desktop;
 /// <c>ZGF_GUI_MCP</c> env var).</summary>
 public sealed class GuiMcpServer : IDisposable
 {
-    private readonly Func<IReadOnlyList<GuiSurface>> _getSurfaces;
-    private readonly IUiDispatcher _dispatcher;
-    private readonly Action<IWindow, string, Action?> _captureScreenshot;
+    private readonly GuiDriver _driver;
 
     private StreamableHttpListener? _listener;
     private Thread? _thread;
 
-    public GuiMcpServer(
-        Func<IReadOnlyList<GuiSurface>> getSurfaces,
-        IUiDispatcher dispatcher,
-        Action<IWindow, string, Action?> captureScreenshot)
-    {
-        _getSurfaces = getSurfaces;
-        _dispatcher = dispatcher;
-        _captureScreenshot = captureScreenshot;
-    }
+    public GuiMcpServer(GuiDriver driver) => _driver = driver;
 
     public void Start(int port)
     {
@@ -124,271 +109,22 @@ public sealed class GuiMcpServer : IDisposable
             (a, _) => Run(() => Text(Key(Str(a, "key") ?? throw Required("key"), Str(a, "mods"), Str(a, "action"))))));
     }
 
-    // ---- actions (run on the UI thread) ----
+    // ---- actions ----
+    //
+    // Every tool is a thin adapter over GuiDriver: parse the MCP arguments, hand them over, wrap what
+    // comes back. The driver owns view resolution, input injection and UI-thread marshaling, so an
+    // MCP-driven run and a scripted one go down exactly the same path.
 
-    private string Snapshot(bool asJson) => RunOnUi(() =>
-        new MultiWindowSnapshot(BuildWindowSnapshots()).Render(asJson));
+    private string Snapshot(bool asJson) => _driver.Snapshot(asJson);
 
-    private List<WindowSnapshot> BuildWindowSnapshots()
-    {
-        var surfaces = _getSurfaces();
-        var windows = new List<WindowSnapshot>(surfaces.Count);
-        foreach (var s in surfaces)
-        {
-            if (s.Root is not { } root) continue;
-            root.LayoutSelf();
-            s.Window.GetPosition(out var x, out var y);
-            var bounds = new RectI(x, y, s.Window.Width, s.Window.Height);
-            windows.Add(new WindowSnapshot(
-                s.Role, bounds, s.Window.IsFocused, SnapshotBuilder.Build(root, s.Input.InputSystem)));
-        }
-        return windows;
-    }
+    private string Click(string? id, string? label, string? text, bool exact, float? x, float? y, string? button, string? window) =>
+        _driver.ClickTool(id, label, text, exact, x, y, button, window);
 
-    private string Click(string? id, string? label, string? text, bool exact, float? x, float? y, string? button, string? window) => RunOnUi(() =>
-    {
-        var mouseButton = ParseMouseButton(button);
+    private string Type(string text) => _driver.TypeTool(text);
 
-        GuiSurface surface;
-        PointF point;
-        string target;
-        if (x is { } px && y is { } py)
-        {
-            surface = ResolveWindow(window) ?? throw NoWindow(window);
-            point = new PointF(px, py);
-            target = $"{surface.Role} ({px:0},{py:0})";
-        }
-        else
-        {
-            var hit = ResolveAcross(id, label, text, exact)
-                      ?? throw NotFound(id ?? label ?? text);
-            surface = hit.Surface;
-            point = hit.View.Position.Center;
-            target = $"{surface.Role} {Describe(hit.View)}";
-        }
+    private string Key(string keyName, string? mods, string? action) => _driver.KeyTool(keyName, mods, action);
 
-        InjectClick(surface.Input, point, mouseButton);
-        return $"clicked {target} at ({point.X:0},{point.Y:0})";
-    });
-
-    // Types the way the OS does: a physical key press/release for characters that have one on a US
-    // layout, plus a text event carrying the character itself. Any script types, not just ASCII.
-    private string Type(string text) => RunOnUi(() =>
-    {
-        var sys = FocusedSurface().Input.InputSystem;
-        foreach (var rune in text.EnumerateRunes())
-        {
-            if (rune.Value == '\r') continue;
-
-            (KeyboardKey Key, bool Shift) mapped = default;
-            var hasPhysicalKey = rune.IsBmp && AsciiKeyMap.Map.TryGetValue((char)rune.Value, out mapped);
-            var mods = mapped.Shift ? InputModifiers.Shift : InputModifiers.None;
-
-            if (Rune.IsControl(rune))
-            {
-                if (hasPhysicalKey) SendKey(sys, mapped.Key, mods, press: true, release: true);
-                continue;
-            }
-
-            if (hasPhysicalKey) SendKey(sys, mapped.Key, mods, press: true, release: false);
-            var e = new TextInputEvent { Rune = rune, Phase = EventPhase.Capturing };
-            sys.SendTextInputEvent(ref e);
-            if (hasPhysicalKey) SendKey(sys, mapped.Key, mods, press: false, release: true);
-        }
-        return $"typed {text.Length} char(s)";
-    });
-
-    private string Key(string keyName, string? mods, string? action) => RunOnUi(() =>
-    {
-        if (!Enum.TryParse<KeyboardKey>(keyName, ignoreCase: true, out var key))
-            throw new InvalidOperationException($"Unknown key '{keyName}'.");
-        var modifiers = ParseModifiers(mods);
-        var act = (action ?? "press").ToLowerInvariant();
-        var sys = FocusedSurface().Input.InputSystem;
-        switch (act)
-        {
-            case "down": SendKey(sys, key, modifiers, press: true, release: false); break;
-            case "up": SendKey(sys, key, modifiers, press: false, release: true); break;
-            default: SendKey(sys, key, modifiers, press: true, release: true); break;
-        }
-        return $"key {key} {act}";
-    });
-
-    private byte[] Screenshot(string? window)
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"zgf-mcp-{Guid.NewGuid():N}.png");
-        using var done = new ManualResetEventSlim(false);
-
-        var surface = RunOnUi(() => window is { Length: > 0 }
-            ? ResolveWindow(window) ?? throw NoWindow(window)
-            : DefaultScreenshotSurface());
-
-        _dispatcher.Post(() => _captureScreenshot(surface.Window, path, () => done.Set()));
-
-        if (!done.Wait(5000) || !File.Exists(path))
-            throw new InvalidOperationException(
-                "Screenshot unavailable — the active render backend does not support framebuffer read-back, or it timed out.");
-
-        try { return File.ReadAllBytes(path); }
-        finally { try { File.Delete(path); } catch { /* best effort */ } }
-    }
-
-    private void InjectClick(DesktopInputSystem input, PointF point, MouseButton button)
-    {
-        var mouse = input.Mouse;
-        var sys = input.InputSystem;
-
-        mouse.Point = point;
-        var move = new MouseMoveEvent { Mouse = mouse, Phase = EventPhase.Capturing };
-        sys.SendMouseMovedEvent(ref move);
-
-        mouse.Press(button);
-        var down = new MouseButtonEvent
-        {
-            Mouse = mouse, Button = button, State = InputState.Pressed,
-            Modifiers = InputModifiers.None, Phase = EventPhase.Capturing,
-        };
-        sys.SendMouseButtonEvent(ref down);
-
-        mouse.Release(button);
-        var up = new MouseButtonEvent
-        {
-            Mouse = mouse, Button = button, State = InputState.Released,
-            Modifiers = InputModifiers.None, Phase = EventPhase.Capturing,
-        };
-        sys.SendMouseButtonEvent(ref up);
-    }
-
-    private static void SendKey(InputSystem sys, KeyboardKey key, InputModifiers mods, bool press, bool release)
-    {
-        if (press)
-        {
-            var e = new KeyboardKeyEvent { Key = key, State = InputState.Pressed, Modifiers = mods, Phase = EventPhase.Capturing };
-            sys.SendKeyboardKeyEvent(ref e);
-        }
-        if (release)
-        {
-            var e = new KeyboardKeyEvent { Key = key, State = InputState.Released, Modifiers = mods, Phase = EventPhase.Capturing };
-            sys.SendKeyboardKeyEvent(ref e);
-        }
-    }
-
-    private static View? ResolveView(View root, string? id, string? label, string? text, bool exact)
-    {
-        if (id is not null)
-            return root.FindById(id);
-        if (label is not null)
-            return root.FindClickable(label, exact)
-                   ?? root.Find(v => NameMatches(v.AccessibleName(), label, exact));
-        if (text is not null)
-            return root.FindByText(text, exact);
-        return null;
-    }
-
-    // ---- surface resolution ----
-
-    // Search every interactive window topmost-first (last-opened popup wins — it's modal and on
-    // top), skipping pass-through tooltip windows which receive no clicks.
-    private (GuiSurface Surface, View View)? ResolveAcross(string? id, string? label, string? text, bool exact)
-    {
-        var surfaces = _getSurfaces();
-        for (var i = surfaces.Count - 1; i >= 0; i--)
-        {
-            var s = surfaces[i];
-            if (s.Role == "tooltip" || s.Root is not { } root) continue;
-            root.LayoutSelf();
-            if (ResolveView(root, id, label, text, exact) is { } v) return (s, v);
-        }
-        return null;
-    }
-
-    // A window named by role (topmost match) or by snapshot index; null/empty => main.
-    private GuiSurface? ResolveWindow(string? selector)
-    {
-        var surfaces = _getSurfaces();
-        if (surfaces.Count == 0) return null;
-        if (string.IsNullOrWhiteSpace(selector)) return surfaces[0];
-        if (int.TryParse(selector, out var idx) && idx >= 0 && idx < surfaces.Count) return surfaces[idx];
-        for (var i = surfaces.Count - 1; i >= 0; i--)
-            if (EqualsIc(surfaces[i].Role, selector)) return surfaces[i];
-        return null;
-    }
-
-    // Keyboard goes to the focused window (an open menu popup is the key window — see
-    // GuiApp.HandleMainFocusChanged); fall back to main when nothing reports focus.
-    private GuiSurface FocusedSurface()
-    {
-        var surfaces = _getSurfaces();
-        if (surfaces.Count == 0) throw new InvalidOperationException("No window is mounted.");
-        for (var i = surfaces.Count - 1; i >= 0; i--)
-            if (surfaces[i].Window.IsFocused) return surfaces[i];
-        return surfaces[0];
-    }
-
-    // The most useful default for "show me the menu": the topmost open context menu, else main.
-    private GuiSurface DefaultScreenshotSurface()
-    {
-        var surfaces = _getSurfaces();
-        if (surfaces.Count == 0) throw new InvalidOperationException("No window is mounted.");
-        for (var i = surfaces.Count - 1; i >= 0; i--)
-            if (surfaces[i].Role == "context-menu") return surfaces[i];
-        return surfaces[0];
-    }
-
-    // ---- UI-thread marshaling ----
-
-    private T RunOnUi<T>(Func<T> fn, int timeoutMs = 10000)
-    {
-        Exception? error = null;
-        T result = default!;
-        using var done = new ManualResetEventSlim(false);
-        _dispatcher.Post(() =>
-        {
-            try { result = fn(); }
-            catch (Exception ex) { error = ex; }
-            finally { done.Set(); }
-        });
-        if (!done.Wait(timeoutMs))
-            throw new TimeoutException("The UI thread did not run the MCP tool within the timeout.");
-        if (error != null) throw error;
-        return result;
-    }
-
-    private Exception NotFound(string? query)
-    {
-        var snap = new MultiWindowSnapshot(BuildWindowSnapshots()).ToText();
-        return new InvalidOperationException($"No view matched \"{query ?? "(none)"}\".\n--- snapshot ---\n{snap}");
-    }
-
-    private Exception NoWindow(string? selector)
-    {
-        var roles = string.Join(", ", _getSurfaces().Select(s => s.Role));
-        return new InvalidOperationException($"No window matched \"{selector ?? "(none)"}\". Open windows: {roles}");
-    }
-
-    private static string Describe(View view) =>
-        view.Id != null ? "#" + view.Id : view.AccessibleName() ?? view.GetType().Name;
-
-    private static bool NameMatches(string? name, string query, bool exact) =>
-        name != null && (exact
-            ? string.Equals(name, query, StringComparison.OrdinalIgnoreCase)
-            : name.Contains(query, StringComparison.OrdinalIgnoreCase));
-
-    private static MouseButton ParseMouseButton(string? s) => s?.ToLowerInvariant() switch
-    {
-        "right" => MouseButton.Right,
-        "middle" => MouseButton.Middle,
-        _ => MouseButton.Left,
-    };
-
-    private static InputModifiers ParseModifiers(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return InputModifiers.None;
-        var mods = InputModifiers.None;
-        foreach (var part in s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            if (Enum.TryParse<InputModifiers>(part, ignoreCase: true, out var m)) mods |= m;
-        return mods;
-    }
+    private byte[] Screenshot(string? window) => _driver.ScreenshotTool(window);
 
     // ---- MCP tool plumbing ----
 

@@ -1,6 +1,7 @@
 using System.Text;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Inspection;
@@ -28,7 +29,7 @@ namespace ZGF.Gui.Testing;
 /// h.Settle();
 /// Console.Write(before.DiffTo(h.Snapshot()));   // ~ #stage-all label "Stage All" -> "Unstage All"
 /// </code></example></summary>
-public sealed class GuiTestHarness : IDisposable
+public sealed class GuiTestHarness : IDisposable, ITypeSink
 {
     private readonly RecordingCanvas? _canvas;
     private readonly RasterCanvas? _raster;
@@ -391,6 +392,14 @@ public sealed class GuiTestHarness : IDisposable
         KeyDown(key, mods);
         KeyUp(key, mods);
     }
+
+    /// <summary>A <see cref="Automation.Typist"/> that types into this headless tree. It paces itself by
+    /// advancing the harness clock instead of sleeping, so a script written against a live window
+    /// (<c>GuiDriver</c>) replays here at full speed, with the caret blink and animations still ticking.</summary>
+    public Typist Typist() => new(this, seconds => Advance(seconds));
+
+    /// <summary>Types one character, key event and all — <see cref="ITypeSink"/> for <see cref="Automation.Typist"/>.</summary>
+    public void TypeRune(Rune rune) => Type(rune.ToString());
 
     /// <summary>Dispatches one OS text-input event — the harness stand-in for GLFW's character
     /// callback. This is the only path that inserts text; <see cref="PressKey"/> carries physical

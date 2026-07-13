@@ -2,6 +2,7 @@ using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
+using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
@@ -292,11 +293,18 @@ public sealed class GuiApp : IDisposable
             _app.MakeMainContextCurrent();
     }
 
+    /// <summary>
+    /// A scripted driver over this app's live windows — find, click, type, wait, screenshot. Call it
+    /// from a background thread; every action marshals onto the UI thread, so driving it from the UI
+    /// thread would deadlock and nothing would repaint. Same engine the MCP server runs on.
+    /// </summary>
+    public GuiDriver CreateDriver() => new(CollectSurfaces, _dispatcher, CaptureWindowScreenshot);
+
     private void StartMcpServer(int? configuredPort)
     {
         var port = configuredPort ?? ResolveEnvMcpPort();
         if (port is not { } p) return;
-        var server = new GuiMcpServer(CollectSurfaces, _dispatcher, CaptureWindowScreenshot);
+        var server = new GuiMcpServer(CreateDriver());
         try
         {
             server.Start(p);
