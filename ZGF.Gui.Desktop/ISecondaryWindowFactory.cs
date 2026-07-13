@@ -21,6 +21,12 @@ public readonly struct SecondaryWindowRequest
     public required string Title { get; init; }
     public required int Width { get; init; }
     public required int Height { get; init; }
+
+    /// <summary>Optional saved top-left screen position. Clamped back onto a connected monitor
+    /// before the window is shown (see <see cref="WindowPlacement"/>); when null the OS places
+    /// the window.</summary>
+    public int? X { get; init; }
+    public int? Y { get; init; }
 }
 
 public interface ISecondaryWindow

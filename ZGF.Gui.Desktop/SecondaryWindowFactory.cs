@@ -79,6 +79,12 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         // dismiss. Route those presses to the arbiter's outside-press dismissal.
         _decorator.WatchWindowNonClientPress(window.NativeHandle, _arbiter.NotifyNonClientPress);
 
+        if (request is { X: { } x, Y: { } y })
+        {
+            var (px, py) = WindowPlacement.Compute(_app.Monitors, request.Width, request.Height, x, y);
+            window.SetPosition(px, py);
+        }
+
         // Paint once before showing so the first frame isn't a flash of an empty window.
         window.MakeContextCurrent();
         window.RenderNow();
