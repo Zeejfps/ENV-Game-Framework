@@ -2,10 +2,10 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Desktop.Input;
 
-/// <summary>Character → (key, shift) over the ASCII subset, shared by the test harness's
-/// <c>Type</c> and the live debug server's <c>/type</c>. Round-trips against
-/// <see cref="KeyboardKeyExtensions.ToChar"/> (asserted by a test), so it can't drift from the
-/// controller's decoding.</summary>
+/// <summary>Character → the physical key that produces it <em>on a US layout</em>, used to
+/// synthesize realistic key events when the test harness and the GUI MCP server type. It does not
+/// decide what gets inserted — that comes from <see cref="TextInputEvent"/> — so a character absent
+/// from this map still types fine; it simply arrives without an accompanying key event.</summary>
 public static class AsciiKeyMap
 {
     public static readonly IReadOnlyDictionary<char, (KeyboardKey Key, bool Shift)> Map =

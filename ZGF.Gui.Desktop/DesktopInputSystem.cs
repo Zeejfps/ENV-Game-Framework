@@ -1,3 +1,4 @@
+using System.Text;
 using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Input;
@@ -31,6 +32,7 @@ public sealed class DesktopInputSystem : IPointerWindow
         _app = app;
 
         _window.OnKey += HandleKeyEvent;
+        _window.OnText += HandleTextEvent;
         _window.OnMouseButton += HandleMouseButtonEvent;
         _window.OnScroll += HandleScrollEvent;
         _window.OnPointerEnter += HandleCursorEnter;
@@ -310,6 +312,32 @@ public sealed class DesktopInputSystem : IPointerWindow
         }
 
         InputSystem.SendKeyboardKeyEvent(ref e);
+        OnAnyInput?.Invoke();
+    }
+
+    private void HandleTextEvent(uint codePoint)
+    {
+        if (!Rune.TryCreate(codePoint, out var rune))
+            return;
+
+        var e = new TextInputEvent
+        {
+            Rune = rune,
+            Phase = EventPhase.Capturing,
+        };
+
+        // Same hand-off as HandleKeyEvent: while a searchable context menu is up it owns typing,
+        // and on platforms where a borderless menu can't take OS focus the characters land here
+        // instead. Forward them to the menu and keep them out of the host window.
+        var modal = _arbiter?.TopmostModal();
+        if (modal is DesktopInputSystem menu && !ReferenceEquals(menu, this) && menu.InputSystem.HasFocus)
+        {
+            menu.InputSystem.SendTextInputEvent(ref e);
+            OnAnyInput?.Invoke();
+            return;
+        }
+
+        InputSystem.SendTextInputEvent(ref e);
         OnAnyInput?.Invoke();
     }
 

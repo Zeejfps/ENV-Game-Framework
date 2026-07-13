@@ -157,6 +157,51 @@ public sealed class InputSystem
         }
     }
 
+    public void SendTextInputEvent(ref TextInputEvent e)
+    {
+        e.Phase = EventPhase.Bubbling;
+        if (_focusedComponent != null)
+        {
+            var filter = GetPhaseFilter(_focusedComponent);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
+            {
+                _focusedComponent.OnTextInput(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
+            }
+        }
+
+        e.Phase = EventPhase.Capturing;
+        foreach (var ctrl in _focusQueue)
+        {
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Capture))
+            {
+                ctrl.OnTextInput(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
+            }
+        }
+
+        e.Phase = EventPhase.Bubbling;
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            var filter = GetPhaseFilter(ctrl);
+            if (filter.HasFlag(EventPhaseFilter.Bubble))
+            {
+                ctrl.OnTextInput(ref e);
+                if (e.IsConsumed)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
     public void SendMouseButtonEvent(ref MouseButtonEvent e)
     {
         e.Phase = EventPhase.Bubbling;

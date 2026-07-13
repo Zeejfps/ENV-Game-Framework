@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text;
 using ZGF.Desktop;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
@@ -191,13 +192,18 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             return;
         }
         
-        if (e.Modifiers == InputModifiers.Shift && e.Key == KeyboardKey.Enter && IsMultiLine)
+        // Enter breaks the line in a multi-line editor. Ctrl/Cmd+Enter is deliberately left alone —
+        // that's the owner's submit shortcut (commit, save) and it has to bubble past us.
+        var isEnter = e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter;
+        var isSubmitChord = e.Modifiers.HasFlag(InputModifiers.Control)
+            || e.Modifiers.HasFlag(InputModifiers.Super);
+        if (isEnter && IsMultiLine && !isSubmitChord)
         {
             Enter('\n');
             e.Consume();
             return;
         }
-        
+
         // Word-jump modifier: Ctrl on Windows/Linux, Option (Alt) on macOS — Cmd/Super is
         // reserved there for line-start/end, so it's a separate variable from ctrlModifier.
         var wordModifier = InputModifiers.Control;
@@ -251,20 +257,40 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             e.Consume();
             return;
         }
+    }
 
-        var c = e.Key.ToChar(isShiftPressed);
-        if (c == '\0')
-        {
+    /// <summary>Inserts a character committed by the OS text-input pipeline. This is the only path
+    /// that types: key events carry physical, layout-independent positions, so decoding them into
+    /// characters would hard-code a US layout and make Cyrillic, accented Latin and every other
+    /// non-ASCII script untypable.</summary>
+    public override void OnTextInput(ref TextInputEvent e)
+    {
+        if (e.Phase != EventPhase.Bubbling)
             return;
-        }
 
-        Enter(c);
+        if (!_textInput.IsEditing)
+            return;
+
+        // Enter and Tab are key gestures, handled above; the OS never commits them as text, but the
+        // harness can synthesize anything, so don't let a control code reach the buffer.
+        if (Rune.IsControl(e.Rune))
+            return;
+
+        Span<char> utf16 = stackalloc char[2];
+        var length = e.Rune.EncodeToUtf16(utf16);
+        Enter(utf16[..length]);
         e.Consume();
+        RevealCaret();
     }
 
     protected virtual void Enter(char c)
     {
         _textInput.Enter(c);
+    }
+
+    protected virtual void Enter(ReadOnlySpan<char> text)
+    {
+        _textInput.Enter(text);
     }
 
     private void Cut()

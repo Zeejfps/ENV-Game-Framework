@@ -23,6 +23,10 @@ public interface IWindow : IDisposable
     event Action OnClose;
 
     event Action<KeyboardKey, InputAction, KeyModifiers> OnKey;
+    // A character committed by the OS text-input pipeline, as a Unicode code point — already
+    // resolved for keyboard layout, modifiers and dead keys. OnKey carries physical key positions
+    // and cannot be decoded into text without hard-coding a US layout; this is the text path.
+    event Action<uint> OnText;
     event Action<int, InputAction, KeyModifiers> OnMouseButton;
     event Action<double, double> OnScroll;
     event Action<bool> OnPointerEnter;

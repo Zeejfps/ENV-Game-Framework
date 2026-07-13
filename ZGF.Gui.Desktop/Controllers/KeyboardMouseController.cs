@@ -28,6 +28,10 @@ public abstract class KeyboardMouseController : IKeyboardMouseController
     {
     }
 
+    public virtual void OnTextInput(ref TextInputEvent e)
+    {
+    }
+
     public virtual void OnFocusLost()
     {
     }

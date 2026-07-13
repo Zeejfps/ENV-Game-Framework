@@ -392,17 +392,49 @@ public sealed class GuiTestHarness : IDisposable
         KeyUp(key, mods);
     }
 
-    /// <summary>Synthesizes key events for each character via <see cref="KeyMap"/>. Best-effort over
-    /// the ASCII subset; throws for an unmapped character — use <see cref="PressKey"/> for those.</summary>
+    /// <summary>Dispatches one OS text-input event — the harness stand-in for GLFW's character
+    /// callback. This is the only path that inserts text; <see cref="PressKey"/> carries physical
+    /// keys, which drive shortcuts and navigation.</summary>
+    public void SendText(Rune rune)
+    {
+        var e = new TextInputEvent
+        {
+            Rune = rune,
+            Phase = EventPhase.Capturing,
+        };
+        _input.SendTextInputEvent(ref e);
+    }
+
+    /// <summary>
+    /// Types <paramref name="text"/> the way a real keyboard does: each character dispatches a
+    /// physical key press/release <em>and</em> a separate text-input event carrying the character
+    /// itself. Any character can be typed, not just ASCII.
+    ///
+    /// The split mirrors the OS. Physical keys are layout-independent, so only characters that sit
+    /// on a US layout get one (via <see cref="KeyMap"/>); a Cyrillic or accented character arrives
+    /// as text alone — which is exactly what the app sees on a non-US layout, where the key at the
+    /// 'q' position reports as 'q' but the OS commits 'й'. Control characters (Enter, Tab) are
+    /// key-only: the OS never delivers them as text.
+    /// </summary>
     public void Type(string text)
     {
-        foreach (var ch in text)
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (ch == '\r') continue;
-            if (!KeyMap.TryGetValue(ch, out var mapped))
-                throw new NotSupportedException(
-                    $"Type cannot synthesize '{ch}' (U+{(int)ch:X4}); use PressKey for unmapped keys.");
-            PressKey(mapped.Key, mapped.Shift ? InputModifiers.Shift : InputModifiers.None);
+            if (rune.Value == '\r') continue;
+
+            (KeyboardKey Key, bool Shift) mapped = default;
+            var hasPhysicalKey = rune.IsBmp && KeyMap.TryGetValue((char)rune.Value, out mapped);
+            var mods = mapped.Shift ? InputModifiers.Shift : InputModifiers.None;
+
+            if (Rune.IsControl(rune))
+            {
+                if (hasPhysicalKey) PressKey(mapped.Key, mods);
+                continue;
+            }
+
+            if (hasPhysicalKey) KeyDown(mapped.Key, mods);
+            SendText(rune);
+            if (hasPhysicalKey) KeyUp(mapped.Key, mods);
         }
     }
 
@@ -507,8 +539,8 @@ public sealed class GuiTestHarness : IDisposable
         return prev[b.Length];
     }
 
-    /// <summary>Character → (key, shift) for <see cref="Type"/>. Shared with the live debug server
-    /// via <see cref="AsciiKeyMap"/>; round-trips against <see cref="KeyboardKeyExtensions.ToChar"/>
-    /// (asserted by a test), so it can't drift from the controller's decoding.</summary>
+    /// <summary>Character → the physical key that produces it on a US layout, for synthesizing the
+    /// key half of <see cref="Type"/>. Shared with the GUI MCP server via <see cref="AsciiKeyMap"/>.
+    /// Characters outside this map still type fine — they arrive as text events only.</summary>
     public static readonly IReadOnlyDictionary<char, (KeyboardKey Key, bool Shift)> KeyMap = AsciiKeyMap.Map;
 }

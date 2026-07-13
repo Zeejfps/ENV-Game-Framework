@@ -1,3 +1,4 @@
+using System.Text;
 using McpSdk.Adapter.StreamableHttpServer;
 using McpSdk.Adapter.System.Text.Json;
 using McpSdk.Protocol;
@@ -170,15 +171,29 @@ public sealed class GuiMcpServer : IDisposable
         return $"clicked {target} at ({point.X:0},{point.Y:0})";
     });
 
+    // Types the way the OS does: a physical key press/release for characters that have one on a US
+    // layout, plus a text event carrying the character itself. Any script types, not just ASCII.
     private string Type(string text) => RunOnUi(() =>
     {
         var sys = FocusedSurface().Input.InputSystem;
-        foreach (var ch in text)
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (ch == '\r') continue;
-            if (!AsciiKeyMap.Map.TryGetValue(ch, out var mapped))
-                throw new InvalidOperationException($"Cannot type '{ch}' (U+{(int)ch:X4}); not in the ASCII key map. Use gui_key for special keys.");
-            SendKey(sys, mapped.Key, mapped.Shift ? InputModifiers.Shift : InputModifiers.None, press: true, release: true);
+            if (rune.Value == '\r') continue;
+
+            (KeyboardKey Key, bool Shift) mapped = default;
+            var hasPhysicalKey = rune.IsBmp && AsciiKeyMap.Map.TryGetValue((char)rune.Value, out mapped);
+            var mods = mapped.Shift ? InputModifiers.Shift : InputModifiers.None;
+
+            if (Rune.IsControl(rune))
+            {
+                if (hasPhysicalKey) SendKey(sys, mapped.Key, mods, press: true, release: true);
+                continue;
+            }
+
+            if (hasPhysicalKey) SendKey(sys, mapped.Key, mods, press: true, release: false);
+            var e = new TextInputEvent { Rune = rune, Phase = EventPhase.Capturing };
+            sys.SendTextInputEvent(ref e);
+            if (hasPhysicalKey) SendKey(sys, mapped.Key, mods, press: false, release: true);
         }
         return $"typed {text.Length} char(s)";
     });

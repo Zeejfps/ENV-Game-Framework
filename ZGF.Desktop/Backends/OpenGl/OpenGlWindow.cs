@@ -14,6 +14,7 @@ public sealed class OpenGlWindow : IWindow
     private readonly WindowCallback _closeCallback;
     private readonly WindowCallback _refreshCallback;
     private readonly KeyCallback _keyCallback;
+    private readonly CharCallback _charCallback;
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _scrollCallback;
     private readonly MouseEnterCallback _cursorEnterCallback;
@@ -47,6 +48,7 @@ public sealed class OpenGlWindow : IWindow
         // OS damage event (expose, restore from minimize) — rendering is gated on NeedsRedraw.
         _refreshCallback = _ => NeedsRedraw = true;
         _keyCallback = HandleKey;
+        _charCallback = HandleChar;
         _mouseButtonCallback = HandleMouseButton;
         _scrollCallback = HandleScroll;
         _cursorEnterCallback = HandleCursorEnter;
@@ -57,6 +59,7 @@ public sealed class OpenGlWindow : IWindow
         GLFW.Glfw.SetCloseCallback(window, _closeCallback);
         GLFW.Glfw.SetWindowRefreshCallback(window, _refreshCallback);
         GLFW.Glfw.SetKeyCallback(window, _keyCallback);
+        GLFW.Glfw.SetCharCallback(window, _charCallback);
         GLFW.Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
         GLFW.Glfw.SetScrollCallback(window, _scrollCallback);
         GLFW.Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
@@ -78,6 +81,7 @@ public sealed class OpenGlWindow : IWindow
     public event Action<bool>? OnFocusChanged;
     public event Action? OnClose;
     public event Action<KeyboardKey, InputAction, KeyModifiers>? OnKey;
+    public event Action<uint>? OnText;
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
@@ -190,6 +194,10 @@ public sealed class OpenGlWindow : IWindow
 
     private void HandleKey(Window window, Keys key, int scanCode, InputState state, ModifierKeys mods) =>
         OnKey?.Invoke(key.Adapt(), (InputAction)state, (KeyModifiers)mods);
+
+    // GLFW hands us the code point the OS committed, with layout, modifiers and dead keys already
+    // applied, and it filters control codes — so this fires for 'й' and 'é' but not for Ctrl+C.
+    private void HandleChar(Window window, uint codePoint) => OnText?.Invoke(codePoint);
 
     private void HandleMouseButton(Window window, MouseButton button, InputState state, ModifierKeys mods) =>
         OnMouseButton?.Invoke((int)button, (InputAction)state, (KeyModifiers)mods);

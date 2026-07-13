@@ -37,7 +37,6 @@ public sealed record TextInput : Widget
         var clipboard = ctx.Get<IClipboard>();
 
         var view = new TextInputView(ctx.Canvas);
-        Wrap.Apply(ctx, view, static (v, w) => v.TextWrap = w);
         Background.Apply(ctx, view, static (v, c) => v.BackgroundColor = c);
         Placeholder.Apply(ctx, view, static (v, p) => v.PlaceholderText = p);
         PlaceholderColor.Apply(ctx, view, static (v, c) => v.PlaceholderTextColor = c);
@@ -55,6 +54,13 @@ public sealed record TextInput : Widget
             // Nearest enclosing scroll container, if any — keeps the caret in view as it moves.
             ScrollScope = ctx.Get<IScrollScope>(),
         };
+        // Wrapping is what makes the field multi-line, which is also what decides whether Enter
+        // breaks the line or bubbles to the owner as a submit.
+        Wrap.Apply(ctx, view, (v, w) =>
+        {
+            v.TextWrap = w;
+            controller.IsMultiLine = w == TextWrap.Wrap;
+        });
         view.UseController(input, controller);
         if (AutoFocus)
             view.Behaviors.Add(new FocusOnMount(controller));
