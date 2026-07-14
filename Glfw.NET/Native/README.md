@@ -15,6 +15,16 @@ and the regression is silent: everything still builds and runs, CJK input just s
 | osx-x64 | `libglfw.3.dylib` | `glfw3` |
 | osx-arm64 | `libglfw.3.dylib` | `glfw3` |
 
+## Platform selection (Linux)
+
+The Linux native is built with **both Wayland and X11** backends, and GLFW 3.4+ binds to Wayland
+whenever the session offers one — which is the default on current Ubuntu and Fedora. Wayland does not
+let a client position a window, read back its position, focus itself, or set an icon; all four return
+`GLFW_FEATURE_UNAVAILABLE`, and popups, context menus and secondary windows are built on them.
+
+`Glfw`'s static constructor therefore pins Linux to X11 (XWayland under a Wayland session) via the
+`GLFW_PLATFORM` init hint. Do not remove that without making the window system Wayland-aware first.
+
 ## Provenance
 
 Taken from [LWJGL](https://github.com/LWJGL/lwjgl3) 3.3.4, whose GLFW builds ship the IME patch.

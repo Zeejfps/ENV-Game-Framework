@@ -305,6 +305,13 @@ namespace GLFW
 	    JoystickHatButtons = 0x00050001,
 
 	    /// <summary>
+	    ///     Specifies the windowing platform GLFW binds to.
+	    ///     <para>Set with <see cref="Glfw.InitHint(Hint,int)" /> to a <see cref="GLFW.Platform" /> value.</para>
+	    ///     <para>Requires GLFW 3.4 or later; older natives report <see cref="ErrorCode.InvalidEnum" />.</para>
+	    /// </summary>
+	    Platform = 0x00050003,
+
+	    /// <summary>
 	    ///     Specifies whether to set the current directory to the application to the Contents/Resources
 	    ///     subdirectory of the application's bundle, if present.
 	    ///     <para>macOS ONLY!</para>

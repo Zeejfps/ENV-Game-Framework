@@ -70,6 +70,17 @@ namespace GLFW
         /// <summary>
         ///     A window that does not have an OpenGL or OpenGL ES context was passed to a function that requires it to have one.
         /// </summary>
-        NoWindowContext = 0x0001000A
+        NoWindowContext = 0x0001000A,
+
+        /// <summary>
+        ///     The requested feature is not provided by the platform. Wayland, for example, provides no way to position a
+        ///     window, read back its position, or give it an icon.
+        /// </summary>
+        FeatureUnavailable = 0x0001000C,
+
+        /// <summary>
+        ///     The requested feature is supported by the platform, but this implementation of it does not yet provide it.
+        /// </summary>
+        FeatureUnimplemented = 0x0001000D
     }
 }

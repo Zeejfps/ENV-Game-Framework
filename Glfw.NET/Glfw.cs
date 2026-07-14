@@ -41,8 +41,28 @@ namespace GLFW
 
         static Glfw()
         {
-            Init();
+            InitializeLibrary();
             SetErrorCallback(errorCallback);
+        }
+
+        // GLFW 3.4+ binds to Wayland in preference to X11 whenever the session offers it, and Wayland
+        // refuses to position windows, report their position, focus them or give them an icon — all of
+        // which the popup and secondary-window system relies on. Pin Linux to X11 (XWayland under a
+        // Wayland session), and fall back to GLFW's own choice if X11 is genuinely unavailable.
+        private static void InitializeLibrary()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Init();
+                return;
+            }
+
+            InitHint(Hint.Platform, (int) Platform.X11);
+            if (Init())
+                return;
+
+            InitHint(Hint.Platform, (int) Platform.Any);
+            Init();
         }
 
         #endregion
@@ -481,6 +501,14 @@ namespace GLFW
         /// <param name="value">The value of the hint.</param>
         [DllImport(LIBRARY, EntryPoint = "glfwInitHint", CallingConvention = CallingConvention.Cdecl)]
         public static extern void InitHint(Hint hint, bool value);
+
+        /// <summary>
+        ///     This function sets hints for the next initialization of GLFW, for hints whose values are not boolean.
+        /// </summary>
+        /// <param name="hint">The hint, e.g. <see cref="Hint.Platform" />.</param>
+        /// <param name="value">The value of the hint.</param>
+        [DllImport(LIBRARY, EntryPoint = "glfwInitHint", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void InitHint(Hint hint, int value);
 
         /// <summary>
         ///     This function initializes the GLFW library. Before most GLFW functions can be used, GLFW must be initialized, and
@@ -1862,9 +1890,11 @@ namespace GLFW
             revision = GetWindowAttribute(window, (int) ContextAttributes.ContextVersionRevision);
         }
 
+        // Reports rather than throws: this runs on GLFW's native callback frame, and a managed exception
+        // unwinding through native code fail-fasts under NativeAOT instead of surfacing a usable stack.
         private static void GlfwError(ErrorCode code, IntPtr message)
         {
-            throw new Exception(Util.PtrToStringUTF8(message));
+            Console.Error.WriteLine($"GLFW error {code}: {Util.PtrToStringUTF8(message)}");
         }
 
         #endregion
