@@ -222,12 +222,41 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         }
 
         OnKeyboardKeyPressed(ref e);
+
+        // Character keys type through the OS text-input pipeline (OnTextInput), not the key event —
+        // so OnKeyboardKeyPressed leaves them unconsumed. Swallow them here anyway: a field being
+        // edited owns its keys, and an unconsumed Space / letter would bubble on to the app's own
+        // single-key bindings (e.g. the review loop's Space-folds-file), firing a shortcut on every
+        // keystroke. Consuming the key event doesn't affect typing, which is a separate event.
+        // Ctrl/Super/Alt chords and non-typing keys (Enter, Escape, F-keys) still bubble.
+        if (!e.IsConsumed && IsPlainTextKey(ref e)) e.Consume();
+
         // After any handled key: edits and caret moves both flow through here, and for keys that
         // moved nothing (Ctrl+C, say) the reveal is a no-op since the caret is already in view.
         // The IME caret rect deliberately isn't refreshed here — it only matters while composing,
         // and composing returns above, so doing it here would shape the caret prefix on every
         // keystroke in every field to tell the IME about a composition that isn't happening.
         RevealCaret();
+    }
+
+    // A key that produces text when pressed without a command modifier — the keys that type into the
+    // buffer. Modified by Ctrl/Super/Alt they're chords, not text, so they're left to bubble.
+    private static bool IsPlainTextKey(ref KeyboardKeyEvent e)
+    {
+        if ((e.Modifiers & (InputModifiers.Control | InputModifiers.Super | InputModifiers.Alt)) != 0)
+            return false;
+
+        return e.Key
+            is (>= KeyboardKey.Alpha0 and <= KeyboardKey.Z)
+            or KeyboardKey.Space
+            or KeyboardKey.Apostrophe
+            or KeyboardKey.Comma or KeyboardKey.Period or KeyboardKey.Slash or KeyboardKey.SemiColon
+            or KeyboardKey.Equals or KeyboardKey.Minus
+            or KeyboardKey.LeftBracket or KeyboardKey.RightBracket
+            or KeyboardKey.Backslash or KeyboardKey.GraveAccent
+            or (>= KeyboardKey.Numpad0 and <= KeyboardKey.Numpad9)
+            or KeyboardKey.NumpadDecimal or KeyboardKey.NumpadDivide or KeyboardKey.NumpadMultiply
+            or KeyboardKey.NumpadSubtract or KeyboardKey.NumpadAdd or KeyboardKey.NumpadEquals;
     }
 
     protected virtual void OnKeyboardKeyPressed(ref KeyboardKeyEvent e)
