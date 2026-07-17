@@ -98,12 +98,14 @@ public class FlexView : View
 
         var totalBasis = 0f;
         var totalGrow = 0f;
+        var totalShrink = 0f;
         var visibleCount = 0;
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
             totalBasis += MainBasis(child, crossExtent);
             totalGrow += GrowOf(child);
+            totalShrink += ShrinkOf(child);
             visibleCount++;
         }
         if (visibleCount == 0) return;
@@ -145,11 +147,25 @@ public class FlexView : View
                 crossPos = CrossPosition(pos, finalCross, crossExtent);
             }
 
+            // Slack (remaining > 0) is handed out by grow weight; overflow (remaining < 0) is taken
+            // back by shrink weight. Keeping them on separate factors lets an item do one without the
+            // other — a Grow fills and yields, a Shrink only yields, a plain item does neither.
             var finalMain = MainFinal(child, finalCross);
-            if (grow > 0 && totalGrow > 0)
+            var shrunk = false;
+            if (remaining > 0f)
             {
-                finalMain += grow / totalGrow * remaining;
-                if (finalMain < 0) finalMain = 0;
+                if (grow > 0f && totalGrow > 0f)
+                    finalMain += grow / totalGrow * remaining;
+            }
+            else if (remaining < 0f)
+            {
+                var shrink = ShrinkOf(child);
+                if (shrink > 0f && totalShrink > 0f)
+                {
+                    finalMain += shrink / totalShrink * remaining;
+                    if (finalMain < 0f) finalMain = 0f;
+                    shrunk = true;
+                }
             }
 
             if (Vert)
@@ -173,7 +189,7 @@ public class FlexView : View
             if (rtl)
                 child.LeftConstraint = pos.Left + pos.Right - child.LeftConstraint - child.WidthConstraint;
 
-            if (grow > 0)
+            if (grow > 0 || shrunk)
                 (deferredGrow ??= new List<View>()).Add(child);
             else
                 child.LayoutSelf();
@@ -187,6 +203,8 @@ public class FlexView : View
     }
 
     private static float GrowOf(View child) => child is FlexItem item ? (float)item.Grow : 0f;
+
+    private static float ShrinkOf(View child) => child is FlexItem item ? (float)item.Shrink : 0f;
 
     private float MainBasis(View child, float crossExtent) =>
         Vert ? child.ClampHeight(child.MeasureHeight(crossExtent)) : child.ClampWidth(child.MeasureWidth());
