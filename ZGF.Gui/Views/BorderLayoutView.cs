@@ -76,7 +76,7 @@ public sealed class BorderLayoutView : View
         var leftOffset = 0f;
         var bottomOffset = 0f;
 
-        if (North != null)
+        if (IsActive(North))
         {
             var height = North.MeasureHeight(position.Width);
             North.LeftConstraint = position.Left;
@@ -87,7 +87,7 @@ public sealed class BorderLayoutView : View
             centerAreaHeight -= height + VGap;
         }
 
-        if (South != null)
+        if (IsActive(South))
         {
             var height = South.MeasureHeight(position.Width);
             South.LeftConstraint = position.Left;
@@ -104,7 +104,7 @@ public sealed class BorderLayoutView : View
         var leftEdge = IsRtl ? East : West;
         var rightEdge = IsRtl ? West : East;
 
-        if (leftEdge != null)
+        if (IsActive(leftEdge))
         {
             var width = leftEdge.MeasureWidth();
             leftEdge.LeftConstraint = position.Left;
@@ -116,7 +116,7 @@ public sealed class BorderLayoutView : View
             leftOffset += width + HGap;
         }
 
-        if (rightEdge != null)
+        if (IsActive(rightEdge))
         {
             var width = rightEdge.MeasureWidth();
             rightEdge.LeftConstraint = position.Right - width;
@@ -127,7 +127,7 @@ public sealed class BorderLayoutView : View
             centerAreaWidth -= width + HGap;
         }
 
-        if (Center != null)
+        if (IsActive(Center))
         {
             Center.LeftConstraint = position.Left + leftOffset;
             Center.BottomConstraint = position.Bottom + bottomOffset;
@@ -136,4 +136,10 @@ public sealed class BorderLayoutView : View
             Center.LayoutSelf();
         }
     }
+
+    // A hidden region reserves no space — its edge collapses and the Center reclaims the room. Matches
+    // how FlexView skips invisible children when measuring, so an auto-hiding region (e.g. a scrollbar
+    // that only appears when content overflows) doesn't leave a permanent gutter behind.
+    private static bool IsActive([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] View? region) =>
+        region is { IsVisible: true };
 }
