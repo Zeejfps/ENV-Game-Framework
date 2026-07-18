@@ -169,4 +169,46 @@ public class TextInputBoundaryTests
 
         Assert.DoesNotContain(value.Value, c => char.IsSurrogate(c));
     }
+
+    /// <summary>Double-click selects the word under the cursor — and only the word: typing over it
+    /// leaves the trailing space intact (a select-the-word gesture, not select-word-and-separators).</summary>
+    [Fact]
+    public void DoubleClickSelectsTheWordUnderTheCursor()
+    {
+        var value = new State<string>("");
+        using var h = Field(value);
+
+        h.Type("hello world");
+        h.Layout();
+
+        var field = h.Get("field");
+        var x = field.Position.Left + 2f;
+        var y = field.Position.Center.Y;
+        h.Click(x, y); // place caret
+        h.Click(x, y); // second click within the threshold → select the word
+        h.Type("X");
+
+        Assert.Equal("X world", value.Value);
+    }
+
+    /// <summary>A third click within the threshold escalates to selecting the whole field.</summary>
+    [Fact]
+    public void TripleClickSelectsEverything()
+    {
+        var value = new State<string>("");
+        using var h = Field(value);
+
+        h.Type("hello world");
+        h.Layout();
+
+        var field = h.Get("field");
+        var x = field.Position.Left + 2f;
+        var y = field.Position.Center.Y;
+        h.Click(x, y);
+        h.Click(x, y);
+        h.Click(x, y); // triple-click → select all
+        h.Type("X");
+
+        Assert.Equal("X", value.Value);
+    }
 }
