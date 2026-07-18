@@ -170,20 +170,31 @@ public class TextInputBoundaryTests
         Assert.DoesNotContain(value.Value, c => char.IsSurrogate(c));
     }
 
+    // A field whose canvas measures text at a fixed 8px/char, so a click x maps to a known
+    // character index — the mouse-selection tests need that where the caret-key tests don't.
+    private static GuiTestHarness MeasuredField(State<string> value) =>
+        GuiTestHarness.Create(ctx => new TextInput
+        {
+            Id = "field",
+            Value = value,
+            Wrap = TextWrap.NoWrap,
+            AutoFocus = true,
+        }.BuildView(ctx), measurer: new SyntheticTextMeasurer());
+
     /// <summary>Double-click selects the word under the cursor — and only the word: typing over it
     /// leaves the trailing space intact (a select-the-word gesture, not select-word-and-separators).</summary>
     [Fact]
     public void DoubleClickSelectsTheWordUnderTheCursor()
     {
         var value = new State<string>("");
-        using var h = Field(value);
+        using var h = MeasuredField(value);
 
         h.Type("hello world");
         h.Layout();
 
         var field = h.Get("field");
-        var x = field.Position.Left + 2f;
-        var y = field.Position.Center.Y;
+        var y = field.Position.Top - 1f; // hit-test accepts only the top line-height band
+        var x = field.Position.Left + 12f; // ~1.5 chars in → inside "hello"
         h.Click(x, y); // place caret
         h.Click(x, y); // second click within the threshold → select the word
         h.Type("X");
@@ -196,14 +207,14 @@ public class TextInputBoundaryTests
     public void TripleClickSelectsEverything()
     {
         var value = new State<string>("");
-        using var h = Field(value);
+        using var h = MeasuredField(value);
 
         h.Type("hello world");
         h.Layout();
 
         var field = h.Get("field");
-        var x = field.Position.Left + 2f;
-        var y = field.Position.Center.Y;
+        var y = field.Position.Top - 1f; // hit-test accepts only the top line-height band
+        var x = field.Position.Left + 12f;
         h.Click(x, y);
         h.Click(x, y);
         h.Click(x, y); // triple-click → select all
