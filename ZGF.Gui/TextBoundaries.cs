@@ -83,6 +83,46 @@ public static class TextBoundaries
         return i;
     }
 
+    /// <summary>
+    /// The word (or same-class run) around <paramref name="index"/> — the span a double-click
+    /// selects. Unlike <see cref="PrevWord"/>/<see cref="NextWord"/>, which pair a word with its
+    /// trailing separators for caret navigation, this expands over one contiguous run of the same
+    /// class (letters/digits, or whitespace, or punctuation) so the selection is just the thing
+    /// under the cursor. An ideograph is its own word, matching CJK caret navigation. An empty
+    /// buffer yields an empty span at 0.
+    /// </summary>
+    public static void WordAt(ReadOnlySpan<char> text, int index, out int start, out int end)
+    {
+        index = Math.Clamp(index, 0, text.Length);
+        if (text.Length == 0)
+        {
+            start = 0;
+            end = 0;
+            return;
+        }
+
+        // The run's class is the one under the caret (the character to its right); at the very end
+        // of the buffer there is nothing to the right, so fall back to the character before it.
+        var atEnd = index >= text.Length;
+        var cls = atEnd ? ClassBefore(text, index) : ClassAt(text, index);
+
+        // An ideograph stands alone — select the single cluster the caret sits on.
+        if (cls == CharClass.Ideographic)
+        {
+            end = atEnd ? index : NextRune(text, index);
+            start = PrevRune(text, end);
+            return;
+        }
+
+        start = index;
+        while (start > 0 && ClassBefore(text, start) == cls)
+            start = PrevRune(text, start);
+
+        end = index;
+        while (end < text.Length && ClassAt(text, end) == cls)
+            end = NextRune(text, end);
+    }
+
     private enum CharClass
     {
         Word,

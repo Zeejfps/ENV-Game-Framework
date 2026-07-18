@@ -704,6 +704,18 @@ public sealed class TextInputView : View
         _caretIndex = _strLen;
     }
 
+    /// <summary>Selects the word (or same-class run) under <paramref name="point"/> — the
+    /// double-click gesture. The caret lands at the word's end so a follow-on drag extends from
+    /// the word's start.</summary>
+    public void SelectWordAt(PointF point)
+    {
+        _goalColumnX = -1f;
+        var index = GetCaretIndexFromPoint(point);
+        TextBoundaries.WordAt(Text, index, out var start, out var end);
+        _selectionStartIndex = start;
+        _caretIndex = end;
+    }
+
     public void MoveCaretLeft(bool select = false)
     {
         _goalColumnX = -1f;

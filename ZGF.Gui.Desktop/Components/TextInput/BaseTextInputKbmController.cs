@@ -30,7 +30,9 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
 
     public int DoubleClickThresholdMs { get; set; } = 400;
 
-    private bool _hasLastClick;
+    // Multi-click run: how many clicks have landed within DoubleClickThresholdMs of each other.
+    // 1 = place caret, 2 = select word, 3 = select all; a 4th click starts a fresh run.
+    private int _clickCount;
     private int _lastClickTickMs;
 
     public BaseTextInputKbmController(TextInputView textInput, InputSystem inputSystem, IClipboard? clipboard = null)
@@ -160,13 +162,17 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             if (isEditing && !containsPoint)
             {
                 EndEditing();
-                _hasLastClick = false;
+                _clickCount = 0;
                 return;
             }
 
             if (!isEditing && containsPoint)
             {
                 BeginEditing();
+                // Gaining focus starts a fresh click run: the click that focuses the field is a
+                // single click, even if the previous editing session ended (via blur) mid-run.
+                _clickCount = 0;
+                _lastClickTickMs = 0;
             }
 
             // Clicking elsewhere in the field abandons the composition rather than committing it —
@@ -178,20 +184,30 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             }
 
             var now = Environment.TickCount;
-            var isDoubleClick = _hasLastClick
+            var withinThreshold = _clickCount > 0
                 && unchecked(now - _lastClickTickMs) <= DoubleClickThresholdMs;
-            if (isDoubleClick)
+            _clickCount = withinThreshold ? _clickCount + 1 : 1;
+            _lastClickTickMs = now;
+
+            var mousePoint = e.Mouse.Point;
+
+            if (_clickCount == 2)
             {
-                _textInput.SelectAll();
-                _hasLastClick = false;
+                _textInput.SelectWordAt(mousePoint);
+                RevealCaret();
                 e.Consume();
                 return;
             }
 
-            _lastClickTickMs = now;
-            _hasLastClick = true;
+            if (_clickCount >= 3)
+            {
+                _textInput.SelectAll();
+                // End the run so a 4th click places the caret again rather than re-selecting all.
+                _clickCount = 0;
+                e.Consume();
+                return;
+            }
 
-            var mousePoint = e.Mouse.Point;
             _textInput.MoveCaretTo(mousePoint);
             RevealCaret();
             e.Consume();
