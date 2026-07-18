@@ -120,6 +120,25 @@ public sealed class TextInputView : View
     private char[] _buffer;
     private readonly State<string> _text = new(string.Empty);
 
+    // Undo/redo as pre-edit snapshots of (text, caret, selection). Snapshots are simple and cheap for
+    // form-sized fields; a diff journal would only earn its complexity on very large buffers. A run of
+    // same-kind, caret-contiguous edits (a burst of typing, or of backspaces) coalesces into one
+    // snapshot so a single undo doesn't peel the text off a character at a time. Programmatic
+    // wholesale replacement (SetText / Clear) is a new document and drops the history.
+    private readonly record struct UndoSnapshot(string Text, int Caret, int SelectionStart);
+
+    // The kind of the last recorded edit, for coalescing. Insert (single-rune typing) and Delete
+    // (single-cluster backspace) each merge with a contiguous run of their own kind; Boundary (paste,
+    // newline, word-delete, a selection-replacing edit) always stands as its own undo step.
+    private enum EditKind { None, Insert, Delete, Boundary }
+
+    private readonly List<UndoSnapshot> _undo = new();
+    private readonly List<UndoSnapshot> _redo = new();
+    private EditKind _lastEditKind = EditKind.None;
+    private int _lastEditCaret = -1;
+    // Caps the history so a long session can't grow the stack without bound; oldest entries fall off.
+    private const int MaxUndoDepth = 256;
+
     // The in-flight IME composition, held apart from _buffer so it never becomes the field's value:
     // half-typed pinyin must not reach whatever is bound to TextValue. _composed is _buffer with the
     // composition spliced in at the caret — what the user sees, and the only thing drawing and
@@ -161,7 +180,11 @@ public sealed class TextInputView : View
         // replaced text.
         if (!preedit.IsEmpty && !IsComposing && IsSelecting)
         {
+            // The selection-delete is a real edit, so snapshot it — otherwise an undo after the IME
+            // commits (which records its own step) could never reach the text that was selected.
+            RecordUndo(EditKind.Boundary);
             DeleteSelection();
+            _lastEditCaret = _caretIndex;
             SyncText();
         }
 
@@ -716,6 +739,94 @@ public sealed class TextInputView : View
         _caretIndex = end;
     }
 
+    /// <summary>Reverts the last edit — or the last coalesced run of edits — restoring the text, the
+    /// caret and the selection together. Returns false when there is nothing to undo. Exposed as a
+    /// method the controller calls (rather than the controller owning the stack) so a custom
+    /// controller can rebind, wrap or suppress the gesture without reaching into this class.</summary>
+    public bool Undo()
+    {
+        if (_undo.Count == 0)
+            return false;
+
+        _redo.Add(CaptureSnapshot());
+        var snapshot = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+        ApplySnapshot(snapshot);
+        return true;
+    }
+
+    /// <summary>Re-applies the last undone edit, the counterpart to <see cref="Undo"/>. Returns false
+    /// when the redo stack is empty — nothing was undone, or an edit since branched the timeline and
+    /// cleared it.</summary>
+    public bool Redo()
+    {
+        if (_redo.Count == 0)
+            return false;
+
+        _undo.Add(CaptureSnapshot());
+        var snapshot = _redo[^1];
+        _redo.RemoveAt(_redo.Count - 1);
+        ApplySnapshot(snapshot);
+        return true;
+    }
+
+    private UndoSnapshot CaptureSnapshot() =>
+        new(new string(_buffer, 0, _strLen), _caretIndex, _selectionStartIndex);
+
+    private void ApplySnapshot(in UndoSnapshot snapshot)
+    {
+        DropComposition();
+        EnsureCapacity(snapshot.Text.Length);
+        snapshot.Text.AsSpan().CopyTo(_buffer);
+        _strLen = snapshot.Text.Length;
+        _caretIndex = Math.Min(snapshot.Caret, _strLen);
+        _selectionStartIndex = Math.Min(snapshot.SelectionStart, _strLen);
+        _goalColumnX = -1f;
+        // The restored state ends the current coalescing run: the next edit opens a fresh snapshot
+        // rather than merging into one that undo/redo just moved off the stack.
+        _lastEditKind = EditKind.None;
+        _lastEditCaret = _caretIndex;
+        SetDirty();
+        SyncText();
+    }
+
+    // Snapshots the current (pre-edit) state onto the undo stack, unless this edit continues a
+    // coalescing run. Any recorded (non-coalesced) edit clears the redo stack: editing after an undo
+    // branches the timeline and the old redo path no longer leads anywhere.
+    private void RecordUndo(EditKind kind)
+    {
+        var coalesce = _undo.Count > 0
+            && kind == _lastEditKind
+            && (kind == EditKind.Insert || kind == EditKind.Delete)
+            && !IsSelecting
+            && _caretIndex == _lastEditCaret;
+
+        if (!coalesce)
+        {
+            _undo.Add(CaptureSnapshot());
+            if (_undo.Count > MaxUndoDepth)
+                _undo.RemoveAt(0);
+            _redo.Clear();
+        }
+
+        _lastEditKind = kind;
+    }
+
+    private void ResetUndoHistory()
+    {
+        _undo.Clear();
+        _redo.Clear();
+        _lastEditKind = EditKind.None;
+        _lastEditCaret = -1;
+    }
+
+    // A span that is exactly one rune — a single BMP char or a surrogate pair, i.e. one keystroke's
+    // worth of text. Typing commits a rune at a time through Enter(span), so this is how the field
+    // tells coalescing typing apart from a multi-character paste without the caller having to say.
+    private static bool IsSingleRune(ReadOnlySpan<char> text) =>
+        text.Length == 1
+        || (text.Length == 2 && char.IsHighSurrogate(text[0]) && char.IsLowSurrogate(text[1]));
+
     public void MoveCaretLeft(bool select = false)
     {
         _goalColumnX = -1f;
@@ -882,16 +993,19 @@ public sealed class TextInputView : View
         {
             if (IsSelecting)
             {
+                RecordUndo(EditKind.Delete);
                 DeleteSelection();
             }
             else if (_caretIndex > 0)
             {
+                RecordUndo(EditKind.Delete);
                 var clusterStart = TextBoundaries.Prev(Text, _caretIndex);
                 DeleteRange(clusterStart, _caretIndex);
                 _caretIndex = clusterStart;
                 _selectionStartIndex = _caretIndex;
             }
         }
+        _lastEditCaret = _caretIndex;
         SetDirty();
         SyncText();
     }
@@ -905,23 +1019,31 @@ public sealed class TextInputView : View
             return;
         }
 
+        // Word-delete is a bigger, deliberate edit — its own undo step, not merged into any
+        // adjacent character-delete run.
         if (IsSelecting)
         {
+            RecordUndo(EditKind.Boundary);
             DeleteSelection();
         }
         else if (_caretIndex > 0)
         {
+            RecordUndo(EditKind.Boundary);
             var wordStart = FindPreviousWordBoundary(_caretIndex);
             DeleteRange(wordStart, _caretIndex);
             _caretIndex = wordStart;
             _selectionStartIndex = _caretIndex;
         }
+        _lastEditCaret = _caretIndex;
         SetDirty();
         SyncText();
     }
 
     public void Enter(char c)
     {
+        // The single-char entry point is the newline (multi-line Enter key) — a natural undo
+        // boundary, so each break is its own step rather than merging into the surrounding typing.
+        RecordUndo(EditKind.Boundary);
         _goalColumnX = -1f;
         DropComposition();
         if (IsSelecting)
@@ -932,6 +1054,7 @@ public sealed class TextInputView : View
         InsertChar(_caretIndex, c);
         _caretIndex++;
         _selectionStartIndex = _caretIndex;
+        _lastEditCaret = _caretIndex;
         SetDirty();
         SyncText();
     }
@@ -939,6 +1062,13 @@ public sealed class TextInputView : View
     public void Enter(ReadOnlySpan<char> text)
     {
         _goalColumnX = -1f;
+        // A single rune is a keystroke and coalesces as typing; anything longer is a paste and stands
+        // alone. Skip the record entirely when nothing will change (empty text, no selection to
+        // replace) so a stray call doesn't push a snapshot or clear the redo stack.
+        if (!text.IsEmpty || IsSelecting)
+        {
+            RecordUndo(IsSingleRune(text) ? EditKind.Insert : EditKind.Boundary);
+        }
         DropComposition();
         if (_caretIndex != _selectionStartIndex)
         {
@@ -956,6 +1086,7 @@ public sealed class TextInputView : View
         _strLen += text.Length;
         _caretIndex += text.Length;
         _selectionStartIndex = _caretIndex;
+        _lastEditCaret = _caretIndex;
         SetDirty();
         SyncText();
     }
@@ -983,6 +1114,7 @@ public sealed class TextInputView : View
         _strLen = 0;
         _caretIndex = 0;
         _selectionStartIndex = 0;
+        ResetUndoHistory();
         SetDirty();
         SyncText();
     }
@@ -1003,6 +1135,9 @@ public sealed class TextInputView : View
         _strLen = text.Length;
         _caretIndex = _strLen;
         _selectionStartIndex = _caretIndex;
+        // Wholesale source-driven replacement (binding sync, async load, reset) is a new document:
+        // the prior edit history no longer applies, so drop it rather than let an undo cross into it.
+        ResetUndoHistory();
         SetDirty();
         SyncText();
     }

@@ -318,7 +318,28 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             e.Consume();
             return;
         }
-        
+
+        if (e.Key == KeyboardKey.Z && e.Modifiers.HasFlag(ctrlModifier))
+        {
+            // Shift+Cmd/Ctrl+Z is redo (the macOS convention, and a common Windows one); plain is undo.
+            // The view owns the stack and the coalescing — we only route the gesture, so a subclass can
+            // rebind or wrap it by overriding this method.
+            if (e.Modifiers.HasFlag(InputModifiers.Shift))
+                _textInput.Redo();
+            else
+                _textInput.Undo();
+            e.Consume();
+            return;
+        }
+
+        // Ctrl+Y is the Windows redo shortcut; harmless to honour on every platform.
+        if (e.Key == KeyboardKey.Y && e.Modifiers.HasFlag(ctrlModifier))
+        {
+            _textInput.Redo();
+            e.Consume();
+            return;
+        }
+
         // Enter breaks the line in a multi-line editor. Ctrl/Cmd+Enter is deliberately left alone —
         // that's the owner's submit shortcut (commit, save) and it has to bubble past us.
         var isEnter = e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter;
