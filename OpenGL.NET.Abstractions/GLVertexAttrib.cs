@@ -1,11 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using OpenGLSandbox;
-using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace OpenGL.NET;
+namespace OpenGL.NET.Abstractions;
 
 public static class GLVertexAttrib
 {

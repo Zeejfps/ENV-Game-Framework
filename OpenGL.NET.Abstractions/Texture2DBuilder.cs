@@ -1,6 +1,6 @@
 ﻿using OpenGLSandbox;
 
-namespace OpenGL.NET;
+namespace OpenGL.NET.Abstractions;
 
 using static GL46;
 using static OpenGlUtils;

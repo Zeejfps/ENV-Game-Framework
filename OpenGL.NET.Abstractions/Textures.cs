@@ -1,4 +1,4 @@
-﻿namespace OpenGL.NET;
+﻿namespace OpenGL.NET.Abstractions;
 
 public readonly struct Texture
 {
@@ -12,7 +12,7 @@ public readonly struct Texture
     }
 }
 
-public static class GLTexture
+public static class Textures
 {
     public static Texture glBindTexture(uint target, uint textureId)
     {

@@ -2,7 +2,7 @@ using System.Text;
 using static OpenGLSandbox.OpenGlUtils;
 using static GL46;
 
-namespace OpenGL.NET;
+namespace OpenGL.NET.Abstractions;
 
 public sealed class ShaderProgramCompiler
 {
@@ -46,7 +46,7 @@ public sealed class ShaderProgramCompiler
         return this;
     }
 
-    public unsafe ShaderProgramInfo Compile()
+    public unsafe ShaderProgramId Compile()
     {
         var shaderProgramId = glCreateProgram(); AssertNoGlError();
 
@@ -64,7 +64,7 @@ public sealed class ShaderProgramCompiler
             Span<byte> buffer = stackalloc byte[256];
             int length;
             fixed (byte* ptr = &buffer[0])
-                glGetProgramInfoLog(shaderProgramId, 256, &length, ptr); AssertNoGlError();
+                glGetProgramInfoLog(shaderProgramId, buffer.Length, &length, ptr); AssertNoGlError();
             var log = Encoding.ASCII.GetString(buffer);
             Console.WriteLine($"Linking Failed: {log}");
         }
@@ -73,7 +73,7 @@ public sealed class ShaderProgramCompiler
         glDeleteShader(fragmentShader); AssertNoGlError();
         glDeleteShader(geometryShader); AssertNoGlError();
 
-        return new ShaderProgramInfo
+        return new ShaderProgramId
         {
             Id = shaderProgramId,
         };

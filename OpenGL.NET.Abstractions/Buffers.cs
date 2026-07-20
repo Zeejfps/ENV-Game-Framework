@@ -1,7 +1,7 @@
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace OpenGL.NET;
+namespace OpenGL.NET.Abstractions;
 
 public interface IBuffer<T> where T : unmanaged
 {
@@ -30,7 +30,7 @@ public readonly struct Buffer<T> : IBuffer<T> where T : unmanaged
     }
 }
 
-public static class GLBuffer
+public static class Buffers
 {
     public static Buffer<T> glBindBuffer<T>(uint target, uint bufferId) where T : unmanaged
     {

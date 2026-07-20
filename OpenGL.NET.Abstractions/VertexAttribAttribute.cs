@@ -1,6 +1,4 @@
-﻿namespace OpenGL.NET;
-
-using static GL46;
+﻿namespace OpenGL.NET.Abstractions;
 
 // public enum VertexAttribType : uint
 // {

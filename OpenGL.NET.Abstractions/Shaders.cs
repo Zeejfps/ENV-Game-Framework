@@ -1,4 +1,4 @@
-namespace OpenGL.NET;
+namespace OpenGL.NET.Abstractions;
 
 public static class Shaders
 {
