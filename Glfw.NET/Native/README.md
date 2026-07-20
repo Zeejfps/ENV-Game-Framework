@@ -6,7 +6,7 @@ which `ZGF.Gui.Desktop`'s composition input path requires — without it `GlfwIm
 returns false and CJK text cannot be typed (see `docs/plans/cjk-ime-support.md` in the GitBench
 repo). They additionally export `glfwSetTextInputFocus`, which scopes the IME to focused text
 fields; without it every bare-letter keyboard shortcut is dead while a CJK IME is active (see
-`docs/plans/ime-text-input-focus.md`).
+`docs/plans/done/ime-text-input-focus.md`).
 
 Do not replace them with a distro package or an upstream GLFW release archive. Both are unpatched,
 and the regression is silent: everything still builds and runs, CJK input just stops working.

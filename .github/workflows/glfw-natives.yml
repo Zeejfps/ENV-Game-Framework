@@ -2,7 +2,7 @@
 #
 # These are not stock GLFW: they carry the IM-support patch (glfw/glfw#2130) that ZGF.Gui.Desktop's
 # composition input path depends on, and `glfwSetTextInputFocus`, which LWJGL's builds do not export
-# at any version. See docs/plans/ime-text-input-focus.md in the GitBench repo.
+# at any version. See docs/plans/done/ime-text-input-focus.md in the GitBench repo.
 #
 # Deliberately manual: a native bump is an act, not a side effect of a commit. This workflow only
 # produces artifacts — a human downloads them, drops them into Glfw.NET/Native/ and pastes the
