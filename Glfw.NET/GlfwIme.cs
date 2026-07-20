@@ -31,9 +31,6 @@ namespace GLFW
     [SuppressUnmanagedCodeSecurity]
     public static class GlfwIme
     {
-        /// <summary>Input mode that turns the OS IME on or off for a window. Value from the IM-support patch.</summary>
-        public const InputMode Ime = (InputMode)0x00033007;
-
         private static bool? _isSupported;
         private static bool? _isTextInputFocusSupported;
 
