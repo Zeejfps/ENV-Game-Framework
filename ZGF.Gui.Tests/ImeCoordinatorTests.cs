@@ -208,6 +208,26 @@ public class ImeCoordinatorTests
         Assert.False(menu.ImeEnabled);
     }
 
+    /// <summary>Handing composition from one window to another must clear the old one, not merely
+    /// set the new one. Only ever forwarding the "on" direction — which is what this seam used to do —
+    /// would leave both windows claiming text-input focus, and on Windows that means two associated
+    /// IME contexts, one of them on a window receiving no keys.</summary>
+    [Fact]
+    public void CompositionMovingBetweenWindows_LeavesOnlyTheNewOneFocused()
+    {
+        var (ime, _, host, menu) = SearchableMenu();
+        ime.Update();
+        Assert.True(host.ImeEnabled);
+
+        // The popup takes OS focus (macOS behaviour), so composition moves host -> menu.
+        host.OsFocused = false;
+        menu.OsFocused = true;
+        ime.Update();
+
+        Assert.False(host.ImeEnabled);
+        Assert.True(menu.ImeEnabled);
+    }
+
     /// <summary>Text-input focus is a native call per transition, and on Windows it associates and
     /// disassociates the window's IME context. Re-asserting it every tick would churn that context
     /// under a live composition, so an unchanged state must produce no call at all.</summary>
