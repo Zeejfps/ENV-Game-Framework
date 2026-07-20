@@ -6,5 +6,7 @@ BenchmarkDotNet.Artifacts/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+*.user
 .idea/.idea.ENV Game Framework/.idea/misc.xml
 .idea/.idea.ENV Game Framework/.idea/.name
+.idea/.idea.ENV Game Framework/.idea/workspace.xml
