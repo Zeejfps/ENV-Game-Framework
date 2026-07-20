@@ -2,11 +2,19 @@ using System.Runtime.CompilerServices;
 using System.Security;
 // ReSharper disable InconsistentNaming
 
+public readonly struct GLboolean
+{
+	private readonly byte _value;
+	public GLboolean(byte value) => _value = value;
+	public static implicit operator GLboolean(bool b) => new GLboolean(b ? (byte)1 : (byte)0);
+	public static implicit operator bool(GLboolean b) => b._value != 0;
+}
+
 [System.Diagnostics.CodeAnalysis.SuppressMessage("ReSharper", "IdentifierTypo")]
 [SuppressUnmanagedCodeSecurity]
 public static unsafe class GL46
 {
-	public delegate IntPtr GetProcAddressDelegate(string funcName);
+	public delegate nint GetProcAddressDelegate(string funcName);
 
 	public const uint GL_DEPTH_BUFFER_BIT = 0x00000100;
 	public const uint GL_STENCIL_BUFFER_BIT = 0x00000400;
@@ -1427,7 +1435,7 @@ public static unsafe class GL46
 
 	private static void* s_glBindBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBindBufferRange(uint target, uint index, uint buffer, IntPtr offset, IntPtr size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, IntPtr, void>)s_glBindBufferRange)(target, index, buffer, offset, size);
+	public static void glBindBufferRange(uint target, uint index, uint buffer, nint offset, nint size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, nint, void>)s_glBindBufferRange)(target, index, buffer, offset, size);
 
 	private static void* s_glBindBuffersBase;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1435,7 +1443,7 @@ public static unsafe class GL46
 
 	private static void* s_glBindBuffersRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBindBuffersRange(uint target, uint first, int count, uint* buffers, IntPtr* offsets, IntPtr* sizes) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint*, IntPtr*, IntPtr*, void>)s_glBindBuffersRange)(target, first, count, buffers, offsets, sizes);
+	public static void glBindBuffersRange(uint target, uint first, int count, uint* buffers, nint* offsets, nint* sizes) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint*, nint*, nint*, void>)s_glBindBuffersRange)(target, first, count, buffers, offsets, sizes);
 
 	private static void* s_glBindFragDataLocation;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1451,7 +1459,7 @@ public static unsafe class GL46
 
 	private static void* s_glBindImageTexture;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBindImageTexture(uint unit, uint texture, int level, bool layered, int layer, uint access, uint format) => ((delegate* unmanaged[Cdecl]<uint, uint, int, bool, int, uint, uint, void>)s_glBindImageTexture)(unit, texture, level, layered, layer, access, format);
+	public static void glBindImageTexture(uint unit, uint texture, int level, GLboolean layered, int layer, uint access, uint format) => ((delegate* unmanaged[Cdecl]<uint, uint, int, GLboolean, int, uint, uint, void>)s_glBindImageTexture)(unit, texture, level, layered, layer, access, format);
 
 	private static void* s_glBindImageTextures;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1495,11 +1503,11 @@ public static unsafe class GL46
 
 	private static void* s_glBindVertexBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBindVertexBuffer(uint bindingindex, uint buffer, IntPtr offset, int stride) => ((delegate* unmanaged[Cdecl]<uint, uint, IntPtr, int, void>)s_glBindVertexBuffer)(bindingindex, buffer, offset, stride);
+	public static void glBindVertexBuffer(uint bindingindex, uint buffer, nint offset, int stride) => ((delegate* unmanaged[Cdecl]<uint, uint, nint, int, void>)s_glBindVertexBuffer)(bindingindex, buffer, offset, stride);
 
 	private static void* s_glBindVertexBuffers;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBindVertexBuffers(uint first, int count, uint* buffers, IntPtr* offsets, int* strides) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, IntPtr*, int*, void>)s_glBindVertexBuffers)(first, count, buffers, offsets, strides);
+	public static void glBindVertexBuffers(uint first, int count, uint* buffers, nint* offsets, int* strides) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, nint*, int*, void>)s_glBindVertexBuffers)(first, count, buffers, offsets, strides);
 
 	private static void* s_glBlendColor;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1547,15 +1555,15 @@ public static unsafe class GL46
 
 	private static void* s_glBufferData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBufferData(uint target, IntPtr size, void* data, uint usage) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, void*, uint, void>)s_glBufferData)(target, size, data, usage);
+	public static void glBufferData(uint target, nint size, void* data, uint usage) => ((delegate* unmanaged[Cdecl]<uint, nint, void*, uint, void>)s_glBufferData)(target, size, data, usage);
 
 	private static void* s_glBufferStorage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBufferStorage(uint target, IntPtr size, void* data, uint flags) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, void*, uint, void>)s_glBufferStorage)(target, size, data, flags);
+	public static void glBufferStorage(uint target, nint size, void* data, uint flags) => ((delegate* unmanaged[Cdecl]<uint, nint, void*, uint, void>)s_glBufferStorage)(target, size, data, flags);
 
 	private static void* s_glBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glBufferSubData(uint target, IntPtr offset, IntPtr size, void* data) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void*, void>)s_glBufferSubData)(target, offset, size, data);
+	public static void glBufferSubData(uint target, nint offset, nint size, void* data) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void*, void>)s_glBufferSubData)(target, offset, size, data);
 
 	private static void* s_glCheckFramebufferStatus;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1579,7 +1587,7 @@ public static unsafe class GL46
 
 	private static void* s_glClearBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glClearBufferSubData(uint target, uint internalformat, IntPtr offset, IntPtr size, uint format, uint type, void* data) => ((delegate* unmanaged[Cdecl]<uint, uint, IntPtr, IntPtr, uint, uint, void*, void>)s_glClearBufferSubData)(target, internalformat, offset, size, format, type, data);
+	public static void glClearBufferSubData(uint target, uint internalformat, nint offset, nint size, uint format, uint type, void* data) => ((delegate* unmanaged[Cdecl]<uint, uint, nint, nint, uint, uint, void*, void>)s_glClearBufferSubData)(target, internalformat, offset, size, format, type, data);
 
 	private static void* s_glClearBufferfi;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1615,7 +1623,7 @@ public static unsafe class GL46
 
 	private static void* s_glClearNamedBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glClearNamedBufferSubData(uint buffer, uint internalformat, IntPtr offset, IntPtr size, uint format, uint type, void* data) => ((delegate* unmanaged[Cdecl]<uint, uint, IntPtr, IntPtr, uint, uint, void*, void>)s_glClearNamedBufferSubData)(buffer, internalformat, offset, size, format, type, data);
+	public static void glClearNamedBufferSubData(uint buffer, uint internalformat, nint offset, nint size, uint format, uint type, void* data) => ((delegate* unmanaged[Cdecl]<uint, uint, nint, nint, uint, uint, void*, void>)s_glClearNamedBufferSubData)(buffer, internalformat, offset, size, format, type, data);
 
 	private static void* s_glClearNamedFramebufferfi;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1647,7 +1655,7 @@ public static unsafe class GL46
 
 	private static void* s_glClientWaitSync;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static uint glClientWaitSync(IntPtr sync, uint flags, ulong timeout) => ((delegate* unmanaged[Cdecl]<IntPtr, uint, ulong, uint>)s_glClientWaitSync)(sync, flags, timeout);
+	public static uint glClientWaitSync(nint sync, uint flags, ulong timeout) => ((delegate* unmanaged[Cdecl]<nint, uint, ulong, uint>)s_glClientWaitSync)(sync, flags, timeout);
 
 	private static void* s_glClipControl;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1655,11 +1663,11 @@ public static unsafe class GL46
 
 	private static void* s_glColorMask;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glColorMask(bool red, bool green, bool blue, bool alpha) => ((delegate* unmanaged[Cdecl]<bool, bool, bool, bool, void>)s_glColorMask)(red, green, blue, alpha);
+	public static void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) => ((delegate* unmanaged[Cdecl]<GLboolean, GLboolean, GLboolean, GLboolean, void>)s_glColorMask)(red, green, blue, alpha);
 
 	private static void* s_glColorMaski;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glColorMaski(uint index, bool r, bool g, bool b, bool a) => ((delegate* unmanaged[Cdecl]<uint, bool, bool, bool, bool, void>)s_glColorMaski)(index, r, g, b, a);
+	public static void glColorMaski(uint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a) => ((delegate* unmanaged[Cdecl]<uint, GLboolean, GLboolean, GLboolean, GLboolean, void>)s_glColorMaski)(index, r, g, b, a);
 
 	private static void* s_glColorP3ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1719,7 +1727,7 @@ public static unsafe class GL46
 
 	private static void* s_glCopyBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glCopyBufferSubData(uint readTarget, uint writeTarget, IntPtr readOffset, IntPtr writeOffset, IntPtr size) => ((delegate* unmanaged[Cdecl]<uint, uint, IntPtr, IntPtr, IntPtr, void>)s_glCopyBufferSubData)(readTarget, writeTarget, readOffset, writeOffset, size);
+	public static void glCopyBufferSubData(uint readTarget, uint writeTarget, nint readOffset, nint writeOffset, nint size) => ((delegate* unmanaged[Cdecl]<uint, uint, nint, nint, nint, void>)s_glCopyBufferSubData)(readTarget, writeTarget, readOffset, writeOffset, size);
 
 	private static void* s_glCopyImageSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1727,7 +1735,7 @@ public static unsafe class GL46
 
 	private static void* s_glCopyNamedBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glCopyNamedBufferSubData(uint readBuffer, uint writeBuffer, IntPtr readOffset, IntPtr writeOffset, IntPtr size) => ((delegate* unmanaged[Cdecl]<uint, uint, IntPtr, IntPtr, IntPtr, void>)s_glCopyNamedBufferSubData)(readBuffer, writeBuffer, readOffset, writeOffset, size);
+	public static void glCopyNamedBufferSubData(uint readBuffer, uint writeBuffer, nint readOffset, nint writeOffset, nint size) => ((delegate* unmanaged[Cdecl]<uint, uint, nint, nint, nint, void>)s_glCopyNamedBufferSubData)(readBuffer, writeBuffer, readOffset, writeOffset, size);
 
 	private static void* s_glCopyTexImage1D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1795,7 +1803,7 @@ public static unsafe class GL46
 
 	private static void* s_glCreateShaderProgramv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static uint glCreateShaderProgramv(uint type, int count, byte** strs) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, uint>)s_glCreateShaderProgramv)(type, count, strs);
+	public static uint glCreateShaderProgramv(uint type, int count, byte** strings) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, uint>)s_glCreateShaderProgramv)(type, count, strings);
 
 	private static void* s_glCreateTextures;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1815,11 +1823,11 @@ public static unsafe class GL46
 
 	private static void* s_glDebugMessageCallback;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glDebugMessageCallback(IntPtr callback, void* userParam) => ((delegate* unmanaged[Cdecl]<IntPtr, void*, void>)s_glDebugMessageCallback)(callback, userParam);
+	public static void glDebugMessageCallback(nint callback, void* userParam) => ((delegate* unmanaged[Cdecl]<nint, void*, void>)s_glDebugMessageCallback)(callback, userParam);
 
 	private static void* s_glDebugMessageControl;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glDebugMessageControl(uint source, uint type, uint severity, int count, uint* ids, bool enabled) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, uint*, bool, void>)s_glDebugMessageControl)(source, type, severity, count, ids, enabled);
+	public static void glDebugMessageControl(uint source, uint type, uint severity, int count, uint* ids, GLboolean enabled) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, uint*, GLboolean, void>)s_glDebugMessageControl)(source, type, severity, count, ids, enabled);
 
 	private static void* s_glDebugMessageInsert;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1859,7 +1867,7 @@ public static unsafe class GL46
 
 	private static void* s_glDeleteSync;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glDeleteSync(IntPtr sync) => ((delegate* unmanaged[Cdecl]<IntPtr, void>)s_glDeleteSync)(sync);
+	public static void glDeleteSync(nint sync) => ((delegate* unmanaged[Cdecl]<nint, void>)s_glDeleteSync)(sync);
 
 	private static void* s_glDeleteTextures;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1879,7 +1887,7 @@ public static unsafe class GL46
 
 	private static void* s_glDepthMask;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glDepthMask(bool flag) => ((delegate* unmanaged[Cdecl]<bool, void>)s_glDepthMask)(flag);
+	public static void glDepthMask(GLboolean flag) => ((delegate* unmanaged[Cdecl]<GLboolean, void>)s_glDepthMask)(flag);
 
 	private static void* s_glDepthRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -1923,7 +1931,7 @@ public static unsafe class GL46
 
 	private static void* s_glDispatchComputeIndirect;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glDispatchComputeIndirect(IntPtr indirect) => ((delegate* unmanaged[Cdecl]<IntPtr, void>)s_glDispatchComputeIndirect)(indirect);
+	public static void glDispatchComputeIndirect(nint indirect) => ((delegate* unmanaged[Cdecl]<nint, void>)s_glDispatchComputeIndirect)(indirect);
 
 	private static void* s_glDrawArrays;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2035,7 +2043,7 @@ public static unsafe class GL46
 
 	private static void* s_glFenceSync;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static IntPtr glFenceSync(uint condition, uint flags) => ((delegate* unmanaged[Cdecl]<uint, uint, IntPtr>)s_glFenceSync)(condition, flags);
+	public static nint glFenceSync(uint condition, uint flags) => ((delegate* unmanaged[Cdecl]<uint, uint, nint>)s_glFenceSync)(condition, flags);
 
 	private static void* s_glFinish;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2047,11 +2055,11 @@ public static unsafe class GL46
 
 	private static void* s_glFlushMappedBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glFlushMappedBufferRange(uint target, IntPtr offset, IntPtr length) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void>)s_glFlushMappedBufferRange)(target, offset, length);
+	public static void glFlushMappedBufferRange(uint target, nint offset, nint length) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void>)s_glFlushMappedBufferRange)(target, offset, length);
 
 	private static void* s_glFlushMappedNamedBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glFlushMappedNamedBufferRange(uint buffer, IntPtr offset, IntPtr length) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void>)s_glFlushMappedNamedBufferRange)(buffer, offset, length);
+	public static void glFlushMappedNamedBufferRange(uint buffer, nint offset, nint length) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void>)s_glFlushMappedNamedBufferRange)(buffer, offset, length);
 
 	private static void* s_glFramebufferParameteri;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2131,7 +2139,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetActiveAtomicCounterBufferiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetActiveAtomicCounterBufferiv(uint program, uint bufferIndex, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetActiveAtomicCounterBufferiv)(program, bufferIndex, pname, args);
+	public static void glGetActiveAtomicCounterBufferiv(uint program, uint bufferIndex, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetActiveAtomicCounterBufferiv)(program, bufferIndex, pname, @params);
 
 	private static void* s_glGetActiveAttrib;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2159,7 +2167,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetActiveUniformBlockiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetActiveUniformBlockiv(uint program, uint uniformBlockIndex, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetActiveUniformBlockiv)(program, uniformBlockIndex, pname, args);
+	public static void glGetActiveUniformBlockiv(uint program, uint uniformBlockIndex, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetActiveUniformBlockiv)(program, uniformBlockIndex, pname, @params);
 
 	private static void* s_glGetActiveUniformName;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2167,7 +2175,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetActiveUniformsiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetActiveUniformsiv(uint program, int uniformCount, uint* uniformIndices, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, uint, int*, void>)s_glGetActiveUniformsiv)(program, uniformCount, uniformIndices, pname, args);
+	public static void glGetActiveUniformsiv(uint program, int uniformCount, uint* uniformIndices, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, uint, int*, void>)s_glGetActiveUniformsiv)(program, uniformCount, uniformIndices, pname, @params);
 
 	private static void* s_glGetAttachedShaders;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2179,27 +2187,27 @@ public static unsafe class GL46
 
 	private static void* s_glGetBooleani_v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetBooleani_v(uint target, uint index, bool* data) => ((delegate* unmanaged[Cdecl]<uint, uint, bool*, void>)s_glGetBooleani_v)(target, index, data);
+	public static void glGetBooleani_v(uint target, uint index, GLboolean* data) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean*, void>)s_glGetBooleani_v)(target, index, data);
 
 	private static void* s_glGetBooleanv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetBooleanv(uint pname, bool* data) => ((delegate* unmanaged[Cdecl]<uint, bool*, void>)s_glGetBooleanv)(pname, data);
+	public static void glGetBooleanv(uint pname, GLboolean* data) => ((delegate* unmanaged[Cdecl]<uint, GLboolean*, void>)s_glGetBooleanv)(pname, data);
 
 	private static void* s_glGetBufferParameteri64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetBufferParameteri64v(uint target, uint pname, long* args) => ((delegate* unmanaged[Cdecl]<uint, uint, long*, void>)s_glGetBufferParameteri64v)(target, pname, args);
+	public static void glGetBufferParameteri64v(uint target, uint pname, long* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, long*, void>)s_glGetBufferParameteri64v)(target, pname, @params);
 
 	private static void* s_glGetBufferParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetBufferParameteriv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetBufferParameteriv)(target, pname, args);
+	public static void glGetBufferParameteriv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetBufferParameteriv)(target, pname, @params);
 
 	private static void* s_glGetBufferPointerv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetBufferPointerv(uint target, uint pname, void** args) => ((delegate* unmanaged[Cdecl]<uint, uint, void**, void>)s_glGetBufferPointerv)(target, pname, args);
+	public static void glGetBufferPointerv(uint target, uint pname, void** @params) => ((delegate* unmanaged[Cdecl]<uint, uint, void**, void>)s_glGetBufferPointerv)(target, pname, @params);
 
 	private static void* s_glGetBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetBufferSubData(uint target, IntPtr offset, IntPtr size, void* data) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void*, void>)s_glGetBufferSubData)(target, offset, size, data);
+	public static void glGetBufferSubData(uint target, nint offset, nint size, void* data) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void*, void>)s_glGetBufferSubData)(target, offset, size, data);
 
 	private static void* s_glGetCompressedTexImage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2247,11 +2255,11 @@ public static unsafe class GL46
 
 	private static void* s_glGetFramebufferAttachmentParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetFramebufferAttachmentParameteriv(uint target, uint attachment, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetFramebufferAttachmentParameteriv)(target, attachment, pname, args);
+	public static void glGetFramebufferAttachmentParameteriv(uint target, uint attachment, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetFramebufferAttachmentParameteriv)(target, attachment, pname, @params);
 
 	private static void* s_glGetFramebufferParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetFramebufferParameteriv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetFramebufferParameteriv)(target, pname, args);
+	public static void glGetFramebufferParameteriv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetFramebufferParameteriv)(target, pname, @params);
 
 	private static void* s_glGetGraphicsResetStatus;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2275,11 +2283,11 @@ public static unsafe class GL46
 
 	private static void* s_glGetInternalformati64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetInternalformati64v(uint target, uint internalformat, uint pname, int count, long* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, long*, void>)s_glGetInternalformati64v)(target, internalformat, pname, count, args);
+	public static void glGetInternalformati64v(uint target, uint internalformat, uint pname, int count, long* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, long*, void>)s_glGetInternalformati64v)(target, internalformat, pname, count, @params);
 
 	private static void* s_glGetInternalformativ;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetInternalformativ(uint target, uint internalformat, uint pname, int count, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, int*, void>)s_glGetInternalformativ)(target, internalformat, pname, count, args);
+	public static void glGetInternalformativ(uint target, uint internalformat, uint pname, int count, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, int*, void>)s_glGetInternalformativ)(target, internalformat, pname, count, @params);
 
 	private static void* s_glGetMultisamplefv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2287,23 +2295,23 @@ public static unsafe class GL46
 
 	private static void* s_glGetNamedBufferParameteri64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetNamedBufferParameteri64v(uint buffer, uint pname, long* args) => ((delegate* unmanaged[Cdecl]<uint, uint, long*, void>)s_glGetNamedBufferParameteri64v)(buffer, pname, args);
+	public static void glGetNamedBufferParameteri64v(uint buffer, uint pname, long* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, long*, void>)s_glGetNamedBufferParameteri64v)(buffer, pname, @params);
 
 	private static void* s_glGetNamedBufferParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetNamedBufferParameteriv(uint buffer, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetNamedBufferParameteriv)(buffer, pname, args);
+	public static void glGetNamedBufferParameteriv(uint buffer, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetNamedBufferParameteriv)(buffer, pname, @params);
 
 	private static void* s_glGetNamedBufferPointerv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetNamedBufferPointerv(uint buffer, uint pname, void** args) => ((delegate* unmanaged[Cdecl]<uint, uint, void**, void>)s_glGetNamedBufferPointerv)(buffer, pname, args);
+	public static void glGetNamedBufferPointerv(uint buffer, uint pname, void** @params) => ((delegate* unmanaged[Cdecl]<uint, uint, void**, void>)s_glGetNamedBufferPointerv)(buffer, pname, @params);
 
 	private static void* s_glGetNamedBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetNamedBufferSubData(uint buffer, IntPtr offset, IntPtr size, void* data) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void*, void>)s_glGetNamedBufferSubData)(buffer, offset, size, data);
+	public static void glGetNamedBufferSubData(uint buffer, nint offset, nint size, void* data) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void*, void>)s_glGetNamedBufferSubData)(buffer, offset, size, data);
 
 	private static void* s_glGetNamedFramebufferAttachmentParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetNamedFramebufferAttachmentParameteriv(uint framebuffer, uint attachment, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetNamedFramebufferAttachmentParameteriv)(framebuffer, attachment, pname, args);
+	public static void glGetNamedFramebufferAttachmentParameteriv(uint framebuffer, uint attachment, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetNamedFramebufferAttachmentParameteriv)(framebuffer, attachment, pname, @params);
 
 	private static void* s_glGetNamedFramebufferParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2311,7 +2319,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetNamedRenderbufferParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetNamedRenderbufferParameteriv(uint renderbuffer, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetNamedRenderbufferParameteriv)(renderbuffer, pname, args);
+	public static void glGetNamedRenderbufferParameteriv(uint renderbuffer, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetNamedRenderbufferParameteriv)(renderbuffer, pname, @params);
 
 	private static void* s_glGetObjectLabel;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2331,7 +2339,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetProgramInterfaceiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetProgramInterfaceiv(uint program, uint programInterface, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetProgramInterfaceiv)(program, programInterface, pname, args);
+	public static void glGetProgramInterfaceiv(uint program, uint programInterface, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetProgramInterfaceiv)(program, programInterface, pname, @params);
 
 	private static void* s_glGetProgramPipelineInfoLog;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2339,7 +2347,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetProgramPipelineiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetProgramPipelineiv(uint pipeline, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetProgramPipelineiv)(pipeline, pname, args);
+	public static void glGetProgramPipelineiv(uint pipeline, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetProgramPipelineiv)(pipeline, pname, @params);
 
 	private static void* s_glGetProgramResourceIndex;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2359,7 +2367,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetProgramResourceiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetProgramResourceiv(uint program, uint programInterface, uint index, int propCount, uint* props, int count, int* length, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, uint*, int, int*, int*, void>)s_glGetProgramResourceiv)(program, programInterface, index, propCount, props, count, length, args);
+	public static void glGetProgramResourceiv(uint program, uint programInterface, uint index, int propCount, uint* props, int count, int* length, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int, uint*, int, int*, int*, void>)s_glGetProgramResourceiv)(program, programInterface, index, propCount, props, count, length, @params);
 
 	private static void* s_glGetProgramStageiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2367,67 +2375,67 @@ public static unsafe class GL46
 
 	private static void* s_glGetProgramiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetProgramiv(uint program, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetProgramiv)(program, pname, args);
+	public static void glGetProgramiv(uint program, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetProgramiv)(program, pname, @params);
 
 	private static void* s_glGetQueryBufferObjecti64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryBufferObjecti64v(uint id, uint buffer, uint pname, IntPtr offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, void>)s_glGetQueryBufferObjecti64v)(id, buffer, pname, offset);
+	public static void glGetQueryBufferObjecti64v(uint id, uint buffer, uint pname, nint offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, void>)s_glGetQueryBufferObjecti64v)(id, buffer, pname, offset);
 
 	private static void* s_glGetQueryBufferObjectiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryBufferObjectiv(uint id, uint buffer, uint pname, IntPtr offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, void>)s_glGetQueryBufferObjectiv)(id, buffer, pname, offset);
+	public static void glGetQueryBufferObjectiv(uint id, uint buffer, uint pname, nint offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, void>)s_glGetQueryBufferObjectiv)(id, buffer, pname, offset);
 
 	private static void* s_glGetQueryBufferObjectui64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryBufferObjectui64v(uint id, uint buffer, uint pname, IntPtr offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, void>)s_glGetQueryBufferObjectui64v)(id, buffer, pname, offset);
+	public static void glGetQueryBufferObjectui64v(uint id, uint buffer, uint pname, nint offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, void>)s_glGetQueryBufferObjectui64v)(id, buffer, pname, offset);
 
 	private static void* s_glGetQueryBufferObjectuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryBufferObjectuiv(uint id, uint buffer, uint pname, IntPtr offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, void>)s_glGetQueryBufferObjectuiv)(id, buffer, pname, offset);
+	public static void glGetQueryBufferObjectuiv(uint id, uint buffer, uint pname, nint offset) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, void>)s_glGetQueryBufferObjectuiv)(id, buffer, pname, offset);
 
 	private static void* s_glGetQueryIndexediv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryIndexediv(uint target, uint index, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetQueryIndexediv)(target, index, pname, args);
+	public static void glGetQueryIndexediv(uint target, uint index, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, int*, void>)s_glGetQueryIndexediv)(target, index, pname, @params);
 
 	private static void* s_glGetQueryObjecti64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryObjecti64v(uint id, uint pname, long* args) => ((delegate* unmanaged[Cdecl]<uint, uint, long*, void>)s_glGetQueryObjecti64v)(id, pname, args);
+	public static void glGetQueryObjecti64v(uint id, uint pname, long* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, long*, void>)s_glGetQueryObjecti64v)(id, pname, @params);
 
 	private static void* s_glGetQueryObjectiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryObjectiv(uint id, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetQueryObjectiv)(id, pname, args);
+	public static void glGetQueryObjectiv(uint id, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetQueryObjectiv)(id, pname, @params);
 
 	private static void* s_glGetQueryObjectui64v;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryObjectui64v(uint id, uint pname, ulong* args) => ((delegate* unmanaged[Cdecl]<uint, uint, ulong*, void>)s_glGetQueryObjectui64v)(id, pname, args);
+	public static void glGetQueryObjectui64v(uint id, uint pname, ulong* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, ulong*, void>)s_glGetQueryObjectui64v)(id, pname, @params);
 
 	private static void* s_glGetQueryObjectuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryObjectuiv(uint id, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetQueryObjectuiv)(id, pname, args);
+	public static void glGetQueryObjectuiv(uint id, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetQueryObjectuiv)(id, pname, @params);
 
 	private static void* s_glGetQueryiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetQueryiv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetQueryiv)(target, pname, args);
+	public static void glGetQueryiv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetQueryiv)(target, pname, @params);
 
 	private static void* s_glGetRenderbufferParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetRenderbufferParameteriv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetRenderbufferParameteriv)(target, pname, args);
+	public static void glGetRenderbufferParameteriv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetRenderbufferParameteriv)(target, pname, @params);
 
 	private static void* s_glGetSamplerParameterIiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetSamplerParameterIiv(uint sampler, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetSamplerParameterIiv)(sampler, pname, args);
+	public static void glGetSamplerParameterIiv(uint sampler, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetSamplerParameterIiv)(sampler, pname, @params);
 
 	private static void* s_glGetSamplerParameterIuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetSamplerParameterIuiv(uint sampler, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetSamplerParameterIuiv)(sampler, pname, args);
+	public static void glGetSamplerParameterIuiv(uint sampler, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetSamplerParameterIuiv)(sampler, pname, @params);
 
 	private static void* s_glGetSamplerParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetSamplerParameterfv(uint sampler, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetSamplerParameterfv)(sampler, pname, args);
+	public static void glGetSamplerParameterfv(uint sampler, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetSamplerParameterfv)(sampler, pname, @params);
 
 	private static void* s_glGetSamplerParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetSamplerParameteriv(uint sampler, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetSamplerParameteriv)(sampler, pname, args);
+	public static void glGetSamplerParameteriv(uint sampler, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetSamplerParameteriv)(sampler, pname, @params);
 
 	private static void* s_glGetShaderInfoLog;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2443,15 +2451,15 @@ public static unsafe class GL46
 
 	private static void* s_glGetShaderiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetShaderiv(uint shader, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetShaderiv)(shader, pname, args);
+	public static void glGetShaderiv(uint shader, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetShaderiv)(shader, pname, @params);
 
 	private static void* s_glGetString;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static  byte *glGetString(uint name) => ((delegate* unmanaged[Cdecl]<uint, byte*>)s_glGetString)(name);
+	public static byte* glGetString(uint name) => ((delegate* unmanaged[Cdecl]<uint, byte*>)s_glGetString)(name);
 
 	private static void* s_glGetStringi;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static  byte *glGetStringi(uint name, uint index) => ((delegate* unmanaged[Cdecl]<uint, uint, byte*>)s_glGetStringi)(name, index);
+	public static byte* glGetStringi(uint name, uint index) => ((delegate* unmanaged[Cdecl]<uint, uint, byte*>)s_glGetStringi)(name, index);
 
 	private static void* s_glGetSubroutineIndex;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2463,7 +2471,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetSynciv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetSynciv(IntPtr sync, uint pname, int count, int* length, int* values) => ((delegate* unmanaged[Cdecl]<IntPtr, uint, int, int*, int*, void>)s_glGetSynciv)(sync, pname, count, length, values);
+	public static void glGetSynciv(nint sync, uint pname, int count, int* length, int* values) => ((delegate* unmanaged[Cdecl]<nint, uint, int, int*, int*, void>)s_glGetSynciv)(sync, pname, count, length, values);
 
 	private static void* s_glGetTexImage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2471,27 +2479,27 @@ public static unsafe class GL46
 
 	private static void* s_glGetTexLevelParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTexLevelParameterfv(uint target, int level, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint, float*, void>)s_glGetTexLevelParameterfv)(target, level, pname, args);
+	public static void glGetTexLevelParameterfv(uint target, int level, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint, float*, void>)s_glGetTexLevelParameterfv)(target, level, pname, @params);
 
 	private static void* s_glGetTexLevelParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTexLevelParameteriv(uint target, int level, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int*, void>)s_glGetTexLevelParameteriv)(target, level, pname, args);
+	public static void glGetTexLevelParameteriv(uint target, int level, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int*, void>)s_glGetTexLevelParameteriv)(target, level, pname, @params);
 
 	private static void* s_glGetTexParameterIiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTexParameterIiv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTexParameterIiv)(target, pname, args);
+	public static void glGetTexParameterIiv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTexParameterIiv)(target, pname, @params);
 
 	private static void* s_glGetTexParameterIuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTexParameterIuiv(uint target, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetTexParameterIuiv)(target, pname, args);
+	public static void glGetTexParameterIuiv(uint target, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetTexParameterIuiv)(target, pname, @params);
 
 	private static void* s_glGetTexParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTexParameterfv(uint target, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetTexParameterfv)(target, pname, args);
+	public static void glGetTexParameterfv(uint target, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetTexParameterfv)(target, pname, @params);
 
 	private static void* s_glGetTexParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTexParameteriv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTexParameteriv)(target, pname, args);
+	public static void glGetTexParameteriv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTexParameteriv)(target, pname, @params);
 
 	private static void* s_glGetTextureImage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2499,27 +2507,27 @@ public static unsafe class GL46
 
 	private static void* s_glGetTextureLevelParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTextureLevelParameterfv(uint texture, int level, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint, float*, void>)s_glGetTextureLevelParameterfv)(texture, level, pname, args);
+	public static void glGetTextureLevelParameterfv(uint texture, int level, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint, float*, void>)s_glGetTextureLevelParameterfv)(texture, level, pname, @params);
 
 	private static void* s_glGetTextureLevelParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTextureLevelParameteriv(uint texture, int level, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int*, void>)s_glGetTextureLevelParameteriv)(texture, level, pname, args);
+	public static void glGetTextureLevelParameteriv(uint texture, int level, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int*, void>)s_glGetTextureLevelParameteriv)(texture, level, pname, @params);
 
 	private static void* s_glGetTextureParameterIiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTextureParameterIiv(uint texture, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTextureParameterIiv)(texture, pname, args);
+	public static void glGetTextureParameterIiv(uint texture, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTextureParameterIiv)(texture, pname, @params);
 
 	private static void* s_glGetTextureParameterIuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTextureParameterIuiv(uint texture, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetTextureParameterIuiv)(texture, pname, args);
+	public static void glGetTextureParameterIuiv(uint texture, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetTextureParameterIuiv)(texture, pname, @params);
 
 	private static void* s_glGetTextureParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTextureParameterfv(uint texture, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetTextureParameterfv)(texture, pname, args);
+	public static void glGetTextureParameterfv(uint texture, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetTextureParameterfv)(texture, pname, @params);
 
 	private static void* s_glGetTextureParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetTextureParameteriv(uint texture, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTextureParameteriv)(texture, pname, args);
+	public static void glGetTextureParameteriv(uint texture, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetTextureParameteriv)(texture, pname, @params);
 
 	private static void* s_glGetTextureSubImage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2555,23 +2563,23 @@ public static unsafe class GL46
 
 	private static void* s_glGetUniformSubroutineuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetUniformSubroutineuiv(uint shadertype, int location, uint* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, void>)s_glGetUniformSubroutineuiv)(shadertype, location, args);
+	public static void glGetUniformSubroutineuiv(uint shadertype, int location, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, void>)s_glGetUniformSubroutineuiv)(shadertype, location, @params);
 
 	private static void* s_glGetUniformdv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetUniformdv(uint program, int location, double* args) => ((delegate* unmanaged[Cdecl]<uint, int, double*, void>)s_glGetUniformdv)(program, location, args);
+	public static void glGetUniformdv(uint program, int location, double* @params) => ((delegate* unmanaged[Cdecl]<uint, int, double*, void>)s_glGetUniformdv)(program, location, @params);
 
 	private static void* s_glGetUniformfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetUniformfv(uint program, int location, float* args) => ((delegate* unmanaged[Cdecl]<uint, int, float*, void>)s_glGetUniformfv)(program, location, args);
+	public static void glGetUniformfv(uint program, int location, float* @params) => ((delegate* unmanaged[Cdecl]<uint, int, float*, void>)s_glGetUniformfv)(program, location, @params);
 
 	private static void* s_glGetUniformiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetUniformiv(uint program, int location, int* args) => ((delegate* unmanaged[Cdecl]<uint, int, int*, void>)s_glGetUniformiv)(program, location, args);
+	public static void glGetUniformiv(uint program, int location, int* @params) => ((delegate* unmanaged[Cdecl]<uint, int, int*, void>)s_glGetUniformiv)(program, location, @params);
 
 	private static void* s_glGetUniformuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetUniformuiv(uint program, int location, uint* args) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, void>)s_glGetUniformuiv)(program, location, args);
+	public static void glGetUniformuiv(uint program, int location, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, int, uint*, void>)s_glGetUniformuiv)(program, location, @params);
 
 	private static void* s_glGetVertexArrayIndexed64iv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2587,15 +2595,15 @@ public static unsafe class GL46
 
 	private static void* s_glGetVertexAttribIiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetVertexAttribIiv(uint index, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetVertexAttribIiv)(index, pname, args);
+	public static void glGetVertexAttribIiv(uint index, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetVertexAttribIiv)(index, pname, @params);
 
 	private static void* s_glGetVertexAttribIuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetVertexAttribIuiv(uint index, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetVertexAttribIuiv)(index, pname, args);
+	public static void glGetVertexAttribIuiv(uint index, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glGetVertexAttribIuiv)(index, pname, @params);
 
 	private static void* s_glGetVertexAttribLdv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetVertexAttribLdv(uint index, uint pname, double* args) => ((delegate* unmanaged[Cdecl]<uint, uint, double*, void>)s_glGetVertexAttribLdv)(index, pname, args);
+	public static void glGetVertexAttribLdv(uint index, uint pname, double* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, double*, void>)s_glGetVertexAttribLdv)(index, pname, @params);
 
 	private static void* s_glGetVertexAttribPointerv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2603,15 +2611,15 @@ public static unsafe class GL46
 
 	private static void* s_glGetVertexAttribdv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetVertexAttribdv(uint index, uint pname, double* args) => ((delegate* unmanaged[Cdecl]<uint, uint, double*, void>)s_glGetVertexAttribdv)(index, pname, args);
+	public static void glGetVertexAttribdv(uint index, uint pname, double* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, double*, void>)s_glGetVertexAttribdv)(index, pname, @params);
 
 	private static void* s_glGetVertexAttribfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetVertexAttribfv(uint index, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetVertexAttribfv)(index, pname, args);
+	public static void glGetVertexAttribfv(uint index, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glGetVertexAttribfv)(index, pname, @params);
 
 	private static void* s_glGetVertexAttribiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetVertexAttribiv(uint index, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetVertexAttribiv)(index, pname, args);
+	public static void glGetVertexAttribiv(uint index, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glGetVertexAttribiv)(index, pname, @params);
 
 	private static void* s_glGetnColorTable;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2627,7 +2635,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetnHistogram;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetnHistogram(uint target, bool reset, uint format, uint type, int bufSize, void* values) => ((delegate* unmanaged[Cdecl]<uint, bool, uint, uint, int, void*, void>)s_glGetnHistogram)(target, reset, format, type, bufSize, values);
+	public static void glGetnHistogram(uint target, GLboolean reset, uint format, uint type, int bufSize, void* values) => ((delegate* unmanaged[Cdecl]<uint, GLboolean, uint, uint, int, void*, void>)s_glGetnHistogram)(target, reset, format, type, bufSize, values);
 
 	private static void* s_glGetnMapdv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2643,7 +2651,7 @@ public static unsafe class GL46
 
 	private static void* s_glGetnMinmax;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetnMinmax(uint target, bool reset, uint format, uint type, int bufSize, void* values) => ((delegate* unmanaged[Cdecl]<uint, bool, uint, uint, int, void*, void>)s_glGetnMinmax)(target, reset, format, type, bufSize, values);
+	public static void glGetnMinmax(uint target, GLboolean reset, uint format, uint type, int bufSize, void* values) => ((delegate* unmanaged[Cdecl]<uint, GLboolean, uint, uint, int, void*, void>)s_glGetnMinmax)(target, reset, format, type, bufSize, values);
 
 	private static void* s_glGetnPixelMapfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2671,19 +2679,19 @@ public static unsafe class GL46
 
 	private static void* s_glGetnUniformdv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetnUniformdv(uint program, int location, int bufSize, double* args) => ((delegate* unmanaged[Cdecl]<uint, int, int, double*, void>)s_glGetnUniformdv)(program, location, bufSize, args);
+	public static void glGetnUniformdv(uint program, int location, int bufSize, double* @params) => ((delegate* unmanaged[Cdecl]<uint, int, int, double*, void>)s_glGetnUniformdv)(program, location, bufSize, @params);
 
 	private static void* s_glGetnUniformfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetnUniformfv(uint program, int location, int bufSize, float* args) => ((delegate* unmanaged[Cdecl]<uint, int, int, float*, void>)s_glGetnUniformfv)(program, location, bufSize, args);
+	public static void glGetnUniformfv(uint program, int location, int bufSize, float* @params) => ((delegate* unmanaged[Cdecl]<uint, int, int, float*, void>)s_glGetnUniformfv)(program, location, bufSize, @params);
 
 	private static void* s_glGetnUniformiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetnUniformiv(uint program, int location, int bufSize, int* args) => ((delegate* unmanaged[Cdecl]<uint, int, int, int*, void>)s_glGetnUniformiv)(program, location, bufSize, args);
+	public static void glGetnUniformiv(uint program, int location, int bufSize, int* @params) => ((delegate* unmanaged[Cdecl]<uint, int, int, int*, void>)s_glGetnUniformiv)(program, location, bufSize, @params);
 
 	private static void* s_glGetnUniformuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glGetnUniformuiv(uint program, int location, int bufSize, uint* args) => ((delegate* unmanaged[Cdecl]<uint, int, int, uint*, void>)s_glGetnUniformuiv)(program, location, bufSize, args);
+	public static void glGetnUniformuiv(uint program, int location, int bufSize, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, int, int, uint*, void>)s_glGetnUniformuiv)(program, location, bufSize, @params);
 
 	private static void* s_glHint;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2695,7 +2703,7 @@ public static unsafe class GL46
 
 	private static void* s_glInvalidateBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glInvalidateBufferSubData(uint buffer, IntPtr offset, IntPtr length) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void>)s_glInvalidateBufferSubData)(buffer, offset, length);
+	public static void glInvalidateBufferSubData(uint buffer, nint offset, nint length) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void>)s_glInvalidateBufferSubData)(buffer, offset, length);
 
 	private static void* s_glInvalidateFramebuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2723,59 +2731,59 @@ public static unsafe class GL46
 
 	private static void* s_glIsBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsBuffer(uint buffer) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsBuffer)(buffer);
+	public static GLboolean glIsBuffer(uint buffer) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsBuffer)(buffer);
 
 	private static void* s_glIsEnabled;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsEnabled(uint cap) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsEnabled)(cap);
+	public static GLboolean glIsEnabled(uint cap) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsEnabled)(cap);
 
 	private static void* s_glIsEnabledi;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsEnabledi(uint target, uint index) => ((delegate* unmanaged[Cdecl]<uint, uint, bool>)s_glIsEnabledi)(target, index);
+	public static GLboolean glIsEnabledi(uint target, uint index) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean>)s_glIsEnabledi)(target, index);
 
 	private static void* s_glIsFramebuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsFramebuffer(uint framebuffer) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsFramebuffer)(framebuffer);
+	public static GLboolean glIsFramebuffer(uint framebuffer) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsFramebuffer)(framebuffer);
 
 	private static void* s_glIsProgram;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsProgram(uint program) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsProgram)(program);
+	public static GLboolean glIsProgram(uint program) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsProgram)(program);
 
 	private static void* s_glIsProgramPipeline;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsProgramPipeline(uint pipeline) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsProgramPipeline)(pipeline);
+	public static GLboolean glIsProgramPipeline(uint pipeline) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsProgramPipeline)(pipeline);
 
 	private static void* s_glIsQuery;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsQuery(uint id) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsQuery)(id);
+	public static GLboolean glIsQuery(uint id) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsQuery)(id);
 
 	private static void* s_glIsRenderbuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsRenderbuffer(uint renderbuffer) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsRenderbuffer)(renderbuffer);
+	public static GLboolean glIsRenderbuffer(uint renderbuffer) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsRenderbuffer)(renderbuffer);
 
 	private static void* s_glIsSampler;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsSampler(uint sampler) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsSampler)(sampler);
+	public static GLboolean glIsSampler(uint sampler) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsSampler)(sampler);
 
 	private static void* s_glIsShader;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsShader(uint shader) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsShader)(shader);
+	public static GLboolean glIsShader(uint shader) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsShader)(shader);
 
 	private static void* s_glIsSync;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsSync(IntPtr sync) => ((delegate* unmanaged[Cdecl]<IntPtr, bool>)s_glIsSync)(sync);
+	public static GLboolean glIsSync(nint sync) => ((delegate* unmanaged[Cdecl]<nint, GLboolean>)s_glIsSync)(sync);
 
 	private static void* s_glIsTexture;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsTexture(uint texture) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsTexture)(texture);
+	public static GLboolean glIsTexture(uint texture) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsTexture)(texture);
 
 	private static void* s_glIsTransformFeedback;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsTransformFeedback(uint id) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsTransformFeedback)(id);
+	public static GLboolean glIsTransformFeedback(uint id) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsTransformFeedback)(id);
 
 	private static void* s_glIsVertexArray;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glIsVertexArray(uint array) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glIsVertexArray)(array);
+	public static GLboolean glIsVertexArray(uint array) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glIsVertexArray)(array);
 
 	private static void* s_glLineWidth;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2791,19 +2799,19 @@ public static unsafe class GL46
 
 	private static void* s_glMapBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void *glMapBuffer(uint target, uint access) => ((delegate* unmanaged[Cdecl]<uint, uint, void *>)s_glMapBuffer)(target, access);
+	public static void * glMapBuffer(uint target, uint access) => ((delegate* unmanaged[Cdecl]<uint, uint, void *>)s_glMapBuffer)(target, access);
 
 	private static void* s_glMapBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void *glMapBufferRange(uint target, IntPtr offset, IntPtr length, uint access) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, uint, void *>)s_glMapBufferRange)(target, offset, length, access);
+	public static void * glMapBufferRange(uint target, nint offset, nint length, uint access) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, uint, void *>)s_glMapBufferRange)(target, offset, length, access);
 
 	private static void* s_glMapNamedBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void *glMapNamedBuffer(uint buffer, uint access) => ((delegate* unmanaged[Cdecl]<uint, uint, void *>)s_glMapNamedBuffer)(buffer, access);
+	public static void * glMapNamedBuffer(uint buffer, uint access) => ((delegate* unmanaged[Cdecl]<uint, uint, void *>)s_glMapNamedBuffer)(buffer, access);
 
 	private static void* s_glMapNamedBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void *glMapNamedBufferRange(uint buffer, IntPtr offset, IntPtr length, uint access) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, uint, void *>)s_glMapNamedBufferRange)(buffer, offset, length, access);
+	public static void * glMapNamedBufferRange(uint buffer, nint offset, nint length, uint access) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, uint, void *>)s_glMapNamedBufferRange)(buffer, offset, length, access);
 
 	private static void* s_glMemoryBarrier;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2827,7 +2835,7 @@ public static unsafe class GL46
 
 	private static void* s_glMultiDrawArraysIndirectCount;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glMultiDrawArraysIndirectCount(uint mode, void* indirect, IntPtr drawcount, int maxdrawcount, int stride) => ((delegate* unmanaged[Cdecl]<uint, void*, IntPtr, int, int, void>)s_glMultiDrawArraysIndirectCount)(mode, indirect, drawcount, maxdrawcount, stride);
+	public static void glMultiDrawArraysIndirectCount(uint mode, void* indirect, nint drawcount, int maxdrawcount, int stride) => ((delegate* unmanaged[Cdecl]<uint, void*, nint, int, int, void>)s_glMultiDrawArraysIndirectCount)(mode, indirect, drawcount, maxdrawcount, stride);
 
 	private static void* s_glMultiDrawElements;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2843,7 +2851,7 @@ public static unsafe class GL46
 
 	private static void* s_glMultiDrawElementsIndirectCount;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glMultiDrawElementsIndirectCount(uint mode, uint type, void* indirect, IntPtr drawcount, int maxdrawcount, int stride) => ((delegate* unmanaged[Cdecl]<uint, uint, void*, IntPtr, int, int, void>)s_glMultiDrawElementsIndirectCount)(mode, type, indirect, drawcount, maxdrawcount, stride);
+	public static void glMultiDrawElementsIndirectCount(uint mode, uint type, void* indirect, nint drawcount, int maxdrawcount, int stride) => ((delegate* unmanaged[Cdecl]<uint, uint, void*, nint, int, int, void>)s_glMultiDrawElementsIndirectCount)(mode, type, indirect, drawcount, maxdrawcount, stride);
 
 	private static void* s_glMultiTexCoordP1ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2879,15 +2887,15 @@ public static unsafe class GL46
 
 	private static void* s_glNamedBufferData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glNamedBufferData(uint buffer, IntPtr size, void* data, uint usage) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, void*, uint, void>)s_glNamedBufferData)(buffer, size, data, usage);
+	public static void glNamedBufferData(uint buffer, nint size, void* data, uint usage) => ((delegate* unmanaged[Cdecl]<uint, nint, void*, uint, void>)s_glNamedBufferData)(buffer, size, data, usage);
 
 	private static void* s_glNamedBufferStorage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glNamedBufferStorage(uint buffer, IntPtr size, void* data, uint flags) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, void*, uint, void>)s_glNamedBufferStorage)(buffer, size, data, flags);
+	public static void glNamedBufferStorage(uint buffer, nint size, void* data, uint flags) => ((delegate* unmanaged[Cdecl]<uint, nint, void*, uint, void>)s_glNamedBufferStorage)(buffer, size, data, flags);
 
 	private static void* s_glNamedBufferSubData;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glNamedBufferSubData(uint buffer, IntPtr offset, IntPtr size, void* data) => ((delegate* unmanaged[Cdecl]<uint, IntPtr, IntPtr, void*, void>)s_glNamedBufferSubData)(buffer, offset, size, data);
+	public static void glNamedBufferSubData(uint buffer, nint offset, nint size, void* data) => ((delegate* unmanaged[Cdecl]<uint, nint, nint, void*, void>)s_glNamedBufferSubData)(buffer, offset, size, data);
 
 	private static void* s_glNamedFramebufferDrawBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2967,7 +2975,7 @@ public static unsafe class GL46
 
 	private static void* s_glPointParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glPointParameterfv(uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, float*, void>)s_glPointParameterfv)(pname, args);
+	public static void glPointParameterfv(uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, float*, void>)s_glPointParameterfv)(pname, @params);
 
 	private static void* s_glPointParameteri;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -2975,7 +2983,7 @@ public static unsafe class GL46
 
 	private static void* s_glPointParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glPointParameteriv(uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, int*, void>)s_glPointParameteriv)(pname, args);
+	public static void glPointParameteriv(uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, int*, void>)s_glPointParameteriv)(pname, @params);
 
 	private static void* s_glPointSize;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3139,75 +3147,75 @@ public static unsafe class GL46
 
 	private static void* s_glProgramUniformMatrix2dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix2dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix2dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix2dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix2dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix2fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix2fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix2fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix2fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix2fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix2x3dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix2x3dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix2x3dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix2x3dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix2x3dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix2x3fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix2x3fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix2x3fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix2x3fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix2x3fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix2x4dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix2x4dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix2x4dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix2x4dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix2x4dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix2x4fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix2x4fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix2x4fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix2x4fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix2x4fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix3dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix3dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix3dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix3dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix3dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix3fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix3fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix3fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix3fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix3fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix3x2dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix3x2dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix3x2dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix3x2dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix3x2dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix3x2fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix3x2fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix3x2fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix3x2fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix3x2fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix3x4dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix3x4dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix3x4dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix3x4dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix3x4dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix3x4fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix3x4fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix3x4fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix3x4fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix3x4fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix4dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix4dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix4dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix4dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix4dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix4fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix4fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix4fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix4fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix4fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix4x2dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix4x2dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix4x2dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix4x2dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix4x2dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix4x2fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix4x2fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix4x2fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix4x2fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix4x2fv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix4x3dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix4x3dv(uint program, int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, double*, void>)s_glProgramUniformMatrix4x3dv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix4x3dv(uint program, int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, double*, void>)s_glProgramUniformMatrix4x3dv)(program, location, count, transpose, value);
 
 	private static void* s_glProgramUniformMatrix4x3fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glProgramUniformMatrix4x3fv(uint program, int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, bool, float*, void>)s_glProgramUniformMatrix4x3fv)(program, location, count, transpose, value);
+	public static void glProgramUniformMatrix4x3fv(uint program, int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<uint, int, int, GLboolean, float*, void>)s_glProgramUniformMatrix4x3fv)(program, location, count, transpose, value);
 
 	private static void* s_glProvokingVertex;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3251,7 +3259,7 @@ public static unsafe class GL46
 
 	private static void* s_glSampleCoverage;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glSampleCoverage(float value, bool invert) => ((delegate* unmanaged[Cdecl]<float, bool, void>)s_glSampleCoverage)(value, invert);
+	public static void glSampleCoverage(float value, GLboolean invert) => ((delegate* unmanaged[Cdecl]<float, GLboolean, void>)s_glSampleCoverage)(value, invert);
 
 	private static void* s_glSampleMaski;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3311,7 +3319,7 @@ public static unsafe class GL46
 
 	private static void* s_glShaderSource;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glShaderSource(uint shader, int count, byte** str, int* length) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, int*, void>)s_glShaderSource)(shader, count, str, length);
+	public static void glShaderSource(uint shader, int count, byte** @string, int* length) => ((delegate* unmanaged[Cdecl]<uint, int, byte**, int*, void>)s_glShaderSource)(shader, count, @string, length);
 
 	private static void* s_glShaderStorageBlockBinding;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3323,11 +3331,11 @@ public static unsafe class GL46
 
 	private static void* s_glStencilFunc;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glStencilFunc(uint func, int reference, uint mask) => ((delegate* unmanaged[Cdecl]<uint, int, uint, void>)s_glStencilFunc)(func, reference, mask);
+	public static void glStencilFunc(uint func, int @ref, uint mask) => ((delegate* unmanaged[Cdecl]<uint, int, uint, void>)s_glStencilFunc)(func, @ref, mask);
 
 	private static void* s_glStencilFuncSeparate;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glStencilFuncSeparate(uint face, uint func, int reference, uint mask) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint, void>)s_glStencilFuncSeparate)(face, func, reference, mask);
+	public static void glStencilFuncSeparate(uint face, uint func, int @ref, uint mask) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint, void>)s_glStencilFuncSeparate)(face, func, @ref, mask);
 
 	private static void* s_glStencilMask;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3351,7 +3359,7 @@ public static unsafe class GL46
 
 	private static void* s_glTexBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexBufferRange(uint target, uint internalformat, uint buffer, IntPtr offset, IntPtr size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, IntPtr, void>)s_glTexBufferRange)(target, internalformat, buffer, offset, size);
+	public static void glTexBufferRange(uint target, uint internalformat, uint buffer, nint offset, nint size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, nint, void>)s_glTexBufferRange)(target, internalformat, buffer, offset, size);
 
 	private static void* s_glTexCoordP1ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3395,7 +3403,7 @@ public static unsafe class GL46
 
 	private static void* s_glTexImage2DMultisample;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexImage2DMultisample(uint target, int samples, uint internalformat, int width, int height, bool fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, bool, void>)s_glTexImage2DMultisample)(target, samples, internalformat, width, height, fixedsamplelocations);
+	public static void glTexImage2DMultisample(uint target, int samples, uint internalformat, int width, int height, GLboolean fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, GLboolean, void>)s_glTexImage2DMultisample)(target, samples, internalformat, width, height, fixedsamplelocations);
 
 	private static void* s_glTexImage3D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3403,15 +3411,15 @@ public static unsafe class GL46
 
 	private static void* s_glTexImage3DMultisample;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexImage3DMultisample(uint target, int samples, uint internalformat, int width, int height, int depth, bool fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, int, bool, void>)s_glTexImage3DMultisample)(target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	public static void glTexImage3DMultisample(uint target, int samples, uint internalformat, int width, int height, int depth, GLboolean fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, int, GLboolean, void>)s_glTexImage3DMultisample)(target, samples, internalformat, width, height, depth, fixedsamplelocations);
 
 	private static void* s_glTexParameterIiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexParameterIiv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glTexParameterIiv)(target, pname, args);
+	public static void glTexParameterIiv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glTexParameterIiv)(target, pname, @params);
 
 	private static void* s_glTexParameterIuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexParameterIuiv(uint target, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glTexParameterIuiv)(target, pname, args);
+	public static void glTexParameterIuiv(uint target, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glTexParameterIuiv)(target, pname, @params);
 
 	private static void* s_glTexParameterf;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3419,7 +3427,7 @@ public static unsafe class GL46
 
 	private static void* s_glTexParameterfv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexParameterfv(uint target, uint pname, float* args) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glTexParameterfv)(target, pname, args);
+	public static void glTexParameterfv(uint target, uint pname, float* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, float*, void>)s_glTexParameterfv)(target, pname, @params);
 
 	private static void* s_glTexParameteri;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3427,7 +3435,7 @@ public static unsafe class GL46
 
 	private static void* s_glTexParameteriv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexParameteriv(uint target, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glTexParameteriv)(target, pname, args);
+	public static void glTexParameteriv(uint target, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glTexParameteriv)(target, pname, @params);
 
 	private static void* s_glTexStorage1D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3439,7 +3447,7 @@ public static unsafe class GL46
 
 	private static void* s_glTexStorage2DMultisample;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexStorage2DMultisample(uint target, int samples, uint internalformat, int width, int height, bool fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, bool, void>)s_glTexStorage2DMultisample)(target, samples, internalformat, width, height, fixedsamplelocations);
+	public static void glTexStorage2DMultisample(uint target, int samples, uint internalformat, int width, int height, GLboolean fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, GLboolean, void>)s_glTexStorage2DMultisample)(target, samples, internalformat, width, height, fixedsamplelocations);
 
 	private static void* s_glTexStorage3D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3447,7 +3455,7 @@ public static unsafe class GL46
 
 	private static void* s_glTexStorage3DMultisample;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTexStorage3DMultisample(uint target, int samples, uint internalformat, int width, int height, int depth, bool fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, int, bool, void>)s_glTexStorage3DMultisample)(target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	public static void glTexStorage3DMultisample(uint target, int samples, uint internalformat, int width, int height, int depth, GLboolean fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, int, GLboolean, void>)s_glTexStorage3DMultisample)(target, samples, internalformat, width, height, depth, fixedsamplelocations);
 
 	private static void* s_glTexSubImage1D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3471,15 +3479,15 @@ public static unsafe class GL46
 
 	private static void* s_glTextureBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTextureBufferRange(uint texture, uint internalformat, uint buffer, IntPtr offset, IntPtr size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, IntPtr, void>)s_glTextureBufferRange)(texture, internalformat, buffer, offset, size);
+	public static void glTextureBufferRange(uint texture, uint internalformat, uint buffer, nint offset, nint size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, nint, void>)s_glTextureBufferRange)(texture, internalformat, buffer, offset, size);
 
 	private static void* s_glTextureParameterIiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTextureParameterIiv(uint texture, uint pname, int* args) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glTextureParameterIiv)(texture, pname, args);
+	public static void glTextureParameterIiv(uint texture, uint pname, int* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, int*, void>)s_glTextureParameterIiv)(texture, pname, @params);
 
 	private static void* s_glTextureParameterIuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTextureParameterIuiv(uint texture, uint pname, uint* args) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glTextureParameterIuiv)(texture, pname, args);
+	public static void glTextureParameterIuiv(uint texture, uint pname, uint* @params) => ((delegate* unmanaged[Cdecl]<uint, uint, uint*, void>)s_glTextureParameterIuiv)(texture, pname, @params);
 
 	private static void* s_glTextureParameterf;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3507,7 +3515,7 @@ public static unsafe class GL46
 
 	private static void* s_glTextureStorage2DMultisample;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTextureStorage2DMultisample(uint texture, int samples, uint internalformat, int width, int height, bool fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, bool, void>)s_glTextureStorage2DMultisample)(texture, samples, internalformat, width, height, fixedsamplelocations);
+	public static void glTextureStorage2DMultisample(uint texture, int samples, uint internalformat, int width, int height, GLboolean fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, GLboolean, void>)s_glTextureStorage2DMultisample)(texture, samples, internalformat, width, height, fixedsamplelocations);
 
 	private static void* s_glTextureStorage3D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3515,7 +3523,7 @@ public static unsafe class GL46
 
 	private static void* s_glTextureStorage3DMultisample;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTextureStorage3DMultisample(uint texture, int samples, uint internalformat, int width, int height, int depth, bool fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, int, bool, void>)s_glTextureStorage3DMultisample)(texture, samples, internalformat, width, height, depth, fixedsamplelocations);
+	public static void glTextureStorage3DMultisample(uint texture, int samples, uint internalformat, int width, int height, int depth, GLboolean fixedsamplelocations) => ((delegate* unmanaged[Cdecl]<uint, int, uint, int, int, int, GLboolean, void>)s_glTextureStorage3DMultisample)(texture, samples, internalformat, width, height, depth, fixedsamplelocations);
 
 	private static void* s_glTextureSubImage1D;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3539,7 +3547,7 @@ public static unsafe class GL46
 
 	private static void* s_glTransformFeedbackBufferRange;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glTransformFeedbackBufferRange(uint xfb, uint index, uint buffer, IntPtr offset, IntPtr size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, IntPtr, void>)s_glTransformFeedbackBufferRange)(xfb, index, buffer, offset, size);
+	public static void glTransformFeedbackBufferRange(uint xfb, uint index, uint buffer, nint offset, nint size) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, nint, void>)s_glTransformFeedbackBufferRange)(xfb, index, buffer, offset, size);
 
 	private static void* s_glTransformFeedbackVaryings;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3679,75 +3687,75 @@ public static unsafe class GL46
 
 	private static void* s_glUniformMatrix2dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix2dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix2dv)(location, count, transpose, value);
+	public static void glUniformMatrix2dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix2dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix2fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix2fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix2fv)(location, count, transpose, value);
+	public static void glUniformMatrix2fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix2fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix2x3dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix2x3dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix2x3dv)(location, count, transpose, value);
+	public static void glUniformMatrix2x3dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix2x3dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix2x3fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix2x3fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix2x3fv)(location, count, transpose, value);
+	public static void glUniformMatrix2x3fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix2x3fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix2x4dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix2x4dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix2x4dv)(location, count, transpose, value);
+	public static void glUniformMatrix2x4dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix2x4dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix2x4fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix2x4fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix2x4fv)(location, count, transpose, value);
+	public static void glUniformMatrix2x4fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix2x4fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix3dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix3dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix3dv)(location, count, transpose, value);
+	public static void glUniformMatrix3dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix3dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix3fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix3fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix3fv)(location, count, transpose, value);
+	public static void glUniformMatrix3fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix3fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix3x2dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix3x2dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix3x2dv)(location, count, transpose, value);
+	public static void glUniformMatrix3x2dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix3x2dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix3x2fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix3x2fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix3x2fv)(location, count, transpose, value);
+	public static void glUniformMatrix3x2fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix3x2fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix3x4dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix3x4dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix3x4dv)(location, count, transpose, value);
+	public static void glUniformMatrix3x4dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix3x4dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix3x4fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix3x4fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix3x4fv)(location, count, transpose, value);
+	public static void glUniformMatrix3x4fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix3x4fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix4dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix4dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix4dv)(location, count, transpose, value);
+	public static void glUniformMatrix4dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix4dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix4fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix4fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix4fv)(location, count, transpose, value);
+	public static void glUniformMatrix4fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix4fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix4x2dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix4x2dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix4x2dv)(location, count, transpose, value);
+	public static void glUniformMatrix4x2dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix4x2dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix4x2fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix4x2fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix4x2fv)(location, count, transpose, value);
+	public static void glUniformMatrix4x2fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix4x2fv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix4x3dv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix4x3dv(int location, int count, bool transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, double*, void>)s_glUniformMatrix4x3dv)(location, count, transpose, value);
+	public static void glUniformMatrix4x3dv(int location, int count, GLboolean transpose, double* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, double*, void>)s_glUniformMatrix4x3dv)(location, count, transpose, value);
 
 	private static void* s_glUniformMatrix4x3fv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glUniformMatrix4x3fv(int location, int count, bool transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, bool, float*, void>)s_glUniformMatrix4x3fv)(location, count, transpose, value);
+	public static void glUniformMatrix4x3fv(int location, int count, GLboolean transpose, float* value) => ((delegate* unmanaged[Cdecl]<int, int, GLboolean, float*, void>)s_glUniformMatrix4x3fv)(location, count, transpose, value);
 
 	private static void* s_glUniformSubroutinesuiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3755,11 +3763,11 @@ public static unsafe class GL46
 
 	private static void* s_glUnmapBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glUnmapBuffer(uint target) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glUnmapBuffer)(target);
+	public static GLboolean glUnmapBuffer(uint target) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glUnmapBuffer)(target);
 
 	private static void* s_glUnmapNamedBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static bool glUnmapNamedBuffer(uint buffer) => ((delegate* unmanaged[Cdecl]<uint, bool>)s_glUnmapNamedBuffer)(buffer);
+	public static GLboolean glUnmapNamedBuffer(uint buffer) => ((delegate* unmanaged[Cdecl]<uint, GLboolean>)s_glUnmapNamedBuffer)(buffer);
 
 	private static void* s_glUseProgram;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3783,7 +3791,7 @@ public static unsafe class GL46
 
 	private static void* s_glVertexArrayAttribFormat;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexArrayAttribFormat(uint vaobj, uint attribindex, int size, uint type, bool normalized, uint relativeoffset) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint, bool, uint, void>)s_glVertexArrayAttribFormat)(vaobj, attribindex, size, type, normalized, relativeoffset);
+	public static void glVertexArrayAttribFormat(uint vaobj, uint attribindex, int size, uint type, GLboolean normalized, uint relativeoffset) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint, GLboolean, uint, void>)s_glVertexArrayAttribFormat)(vaobj, attribindex, size, type, normalized, relativeoffset);
 
 	private static void* s_glVertexArrayAttribIFormat;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3803,11 +3811,11 @@ public static unsafe class GL46
 
 	private static void* s_glVertexArrayVertexBuffer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexArrayVertexBuffer(uint vaobj, uint bindingindex, uint buffer, IntPtr offset, int stride) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, IntPtr, int, void>)s_glVertexArrayVertexBuffer)(vaobj, bindingindex, buffer, offset, stride);
+	public static void glVertexArrayVertexBuffer(uint vaobj, uint bindingindex, uint buffer, nint offset, int stride) => ((delegate* unmanaged[Cdecl]<uint, uint, uint, nint, int, void>)s_glVertexArrayVertexBuffer)(vaobj, bindingindex, buffer, offset, stride);
 
 	private static void* s_glVertexArrayVertexBuffers;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexArrayVertexBuffers(uint vaobj, uint first, int count, uint* buffers, IntPtr* offsets, int* strides) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint*, IntPtr*, int*, void>)s_glVertexArrayVertexBuffers)(vaobj, first, count, buffers, offsets, strides);
+	public static void glVertexArrayVertexBuffers(uint vaobj, uint first, int count, uint* buffers, nint* offsets, int* strides) => ((delegate* unmanaged[Cdecl]<uint, uint, int, uint*, nint*, int*, void>)s_glVertexArrayVertexBuffers)(vaobj, first, count, buffers, offsets, strides);
 
 	private static void* s_glVertexAttrib1d;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -3963,7 +3971,7 @@ public static unsafe class GL46
 
 	private static void* s_glVertexAttribFormat;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribFormat(uint attribindex, int size, uint type, bool normalized, uint relativeoffset) => ((delegate* unmanaged[Cdecl]<uint, int, uint, bool, uint, void>)s_glVertexAttribFormat)(attribindex, size, type, normalized, relativeoffset);
+	public static void glVertexAttribFormat(uint attribindex, int size, uint type, GLboolean normalized, uint relativeoffset) => ((delegate* unmanaged[Cdecl]<uint, int, uint, GLboolean, uint, void>)s_glVertexAttribFormat)(attribindex, size, type, normalized, relativeoffset);
 
 	private static void* s_glVertexAttribI1i;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -4095,39 +4103,39 @@ public static unsafe class GL46
 
 	private static void* s_glVertexAttribP1ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP1ui(uint index, uint type, bool normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint, void>)s_glVertexAttribP1ui)(index, type, normalized, value);
+	public static void glVertexAttribP1ui(uint index, uint type, GLboolean normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint, void>)s_glVertexAttribP1ui)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP1uiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP1uiv(uint index, uint type, bool normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint*, void>)s_glVertexAttribP1uiv)(index, type, normalized, value);
+	public static void glVertexAttribP1uiv(uint index, uint type, GLboolean normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint*, void>)s_glVertexAttribP1uiv)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP2ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP2ui(uint index, uint type, bool normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint, void>)s_glVertexAttribP2ui)(index, type, normalized, value);
+	public static void glVertexAttribP2ui(uint index, uint type, GLboolean normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint, void>)s_glVertexAttribP2ui)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP2uiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP2uiv(uint index, uint type, bool normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint*, void>)s_glVertexAttribP2uiv)(index, type, normalized, value);
+	public static void glVertexAttribP2uiv(uint index, uint type, GLboolean normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint*, void>)s_glVertexAttribP2uiv)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP3ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP3ui(uint index, uint type, bool normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint, void>)s_glVertexAttribP3ui)(index, type, normalized, value);
+	public static void glVertexAttribP3ui(uint index, uint type, GLboolean normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint, void>)s_glVertexAttribP3ui)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP3uiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP3uiv(uint index, uint type, bool normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint*, void>)s_glVertexAttribP3uiv)(index, type, normalized, value);
+	public static void glVertexAttribP3uiv(uint index, uint type, GLboolean normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint*, void>)s_glVertexAttribP3uiv)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP4ui;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP4ui(uint index, uint type, bool normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint, void>)s_glVertexAttribP4ui)(index, type, normalized, value);
+	public static void glVertexAttribP4ui(uint index, uint type, GLboolean normalized, uint value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint, void>)s_glVertexAttribP4ui)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribP4uiv;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribP4uiv(uint index, uint type, bool normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, bool, uint*, void>)s_glVertexAttribP4uiv)(index, type, normalized, value);
+	public static void glVertexAttribP4uiv(uint index, uint type, GLboolean normalized, uint* value) => ((delegate* unmanaged[Cdecl]<uint, uint, GLboolean, uint*, void>)s_glVertexAttribP4uiv)(index, type, normalized, value);
 
 	private static void* s_glVertexAttribPointer;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glVertexAttribPointer(uint index, int size, uint type, bool normalized, int stride, void* pointer) => ((delegate* unmanaged[Cdecl]<uint, int, uint, bool, int, void*, void>)s_glVertexAttribPointer)(index, size, type, normalized, stride, pointer);
+	public static void glVertexAttribPointer(uint index, int size, uint type, GLboolean normalized, int stride, void* pointer) => ((delegate* unmanaged[Cdecl]<uint, int, uint, GLboolean, int, void*, void>)s_glVertexAttribPointer)(index, size, type, normalized, stride, pointer);
 
 	private static void* s_glVertexBindingDivisor;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -4175,707 +4183,1409 @@ public static unsafe class GL46
 
 	private static void* s_glWaitSync;
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-	public static void glWaitSync(IntPtr sync, uint flags, ulong timeout) => ((delegate* unmanaged[Cdecl]<IntPtr, uint, ulong, void>)s_glWaitSync)(sync, flags, timeout);
+	public static void glWaitSync(nint sync, uint flags, ulong timeout) => ((delegate* unmanaged[Cdecl]<nint, uint, ulong, void>)s_glWaitSync)(sync, flags, timeout);
 
 	public static void Import(GetProcAddressDelegate getProcAddress)
 	{
+		var missing = new System.Collections.Generic.List<string>();
 		s_glActiveShaderProgram = (void*)getProcAddress("glActiveShaderProgram");
+		if (s_glActiveShaderProgram == null) missing.Add("glActiveShaderProgram");
 		s_glActiveTexture = (void*)getProcAddress("glActiveTexture");
+		if (s_glActiveTexture == null) missing.Add("glActiveTexture");
 		s_glAttachShader = (void*)getProcAddress("glAttachShader");
+		if (s_glAttachShader == null) missing.Add("glAttachShader");
 		s_glBeginConditionalRender = (void*)getProcAddress("glBeginConditionalRender");
+		if (s_glBeginConditionalRender == null) missing.Add("glBeginConditionalRender");
 		s_glBeginQuery = (void*)getProcAddress("glBeginQuery");
+		if (s_glBeginQuery == null) missing.Add("glBeginQuery");
 		s_glBeginQueryIndexed = (void*)getProcAddress("glBeginQueryIndexed");
+		if (s_glBeginQueryIndexed == null) missing.Add("glBeginQueryIndexed");
 		s_glBeginTransformFeedback = (void*)getProcAddress("glBeginTransformFeedback");
+		if (s_glBeginTransformFeedback == null) missing.Add("glBeginTransformFeedback");
 		s_glBindAttribLocation = (void*)getProcAddress("glBindAttribLocation");
+		if (s_glBindAttribLocation == null) missing.Add("glBindAttribLocation");
 		s_glBindBuffer = (void*)getProcAddress("glBindBuffer");
+		if (s_glBindBuffer == null) missing.Add("glBindBuffer");
 		s_glBindBufferBase = (void*)getProcAddress("glBindBufferBase");
+		if (s_glBindBufferBase == null) missing.Add("glBindBufferBase");
 		s_glBindBufferRange = (void*)getProcAddress("glBindBufferRange");
+		if (s_glBindBufferRange == null) missing.Add("glBindBufferRange");
 		s_glBindBuffersBase = (void*)getProcAddress("glBindBuffersBase");
+		if (s_glBindBuffersBase == null) missing.Add("glBindBuffersBase");
 		s_glBindBuffersRange = (void*)getProcAddress("glBindBuffersRange");
+		if (s_glBindBuffersRange == null) missing.Add("glBindBuffersRange");
 		s_glBindFragDataLocation = (void*)getProcAddress("glBindFragDataLocation");
+		if (s_glBindFragDataLocation == null) missing.Add("glBindFragDataLocation");
 		s_glBindFragDataLocationIndexed = (void*)getProcAddress("glBindFragDataLocationIndexed");
+		if (s_glBindFragDataLocationIndexed == null) missing.Add("glBindFragDataLocationIndexed");
 		s_glBindFramebuffer = (void*)getProcAddress("glBindFramebuffer");
+		if (s_glBindFramebuffer == null) missing.Add("glBindFramebuffer");
 		s_glBindImageTexture = (void*)getProcAddress("glBindImageTexture");
+		if (s_glBindImageTexture == null) missing.Add("glBindImageTexture");
 		s_glBindImageTextures = (void*)getProcAddress("glBindImageTextures");
+		if (s_glBindImageTextures == null) missing.Add("glBindImageTextures");
 		s_glBindProgramPipeline = (void*)getProcAddress("glBindProgramPipeline");
+		if (s_glBindProgramPipeline == null) missing.Add("glBindProgramPipeline");
 		s_glBindRenderbuffer = (void*)getProcAddress("glBindRenderbuffer");
+		if (s_glBindRenderbuffer == null) missing.Add("glBindRenderbuffer");
 		s_glBindSampler = (void*)getProcAddress("glBindSampler");
+		if (s_glBindSampler == null) missing.Add("glBindSampler");
 		s_glBindSamplers = (void*)getProcAddress("glBindSamplers");
+		if (s_glBindSamplers == null) missing.Add("glBindSamplers");
 		s_glBindTexture = (void*)getProcAddress("glBindTexture");
+		if (s_glBindTexture == null) missing.Add("glBindTexture");
 		s_glBindTextureUnit = (void*)getProcAddress("glBindTextureUnit");
+		if (s_glBindTextureUnit == null) missing.Add("glBindTextureUnit");
 		s_glBindTextures = (void*)getProcAddress("glBindTextures");
+		if (s_glBindTextures == null) missing.Add("glBindTextures");
 		s_glBindTransformFeedback = (void*)getProcAddress("glBindTransformFeedback");
+		if (s_glBindTransformFeedback == null) missing.Add("glBindTransformFeedback");
 		s_glBindVertexArray = (void*)getProcAddress("glBindVertexArray");
+		if (s_glBindVertexArray == null) missing.Add("glBindVertexArray");
 		s_glBindVertexBuffer = (void*)getProcAddress("glBindVertexBuffer");
+		if (s_glBindVertexBuffer == null) missing.Add("glBindVertexBuffer");
 		s_glBindVertexBuffers = (void*)getProcAddress("glBindVertexBuffers");
+		if (s_glBindVertexBuffers == null) missing.Add("glBindVertexBuffers");
 		s_glBlendColor = (void*)getProcAddress("glBlendColor");
+		if (s_glBlendColor == null) missing.Add("glBlendColor");
 		s_glBlendEquation = (void*)getProcAddress("glBlendEquation");
+		if (s_glBlendEquation == null) missing.Add("glBlendEquation");
 		s_glBlendEquationSeparate = (void*)getProcAddress("glBlendEquationSeparate");
+		if (s_glBlendEquationSeparate == null) missing.Add("glBlendEquationSeparate");
 		s_glBlendEquationSeparatei = (void*)getProcAddress("glBlendEquationSeparatei");
+		if (s_glBlendEquationSeparatei == null) missing.Add("glBlendEquationSeparatei");
 		s_glBlendEquationi = (void*)getProcAddress("glBlendEquationi");
+		if (s_glBlendEquationi == null) missing.Add("glBlendEquationi");
 		s_glBlendFunc = (void*)getProcAddress("glBlendFunc");
+		if (s_glBlendFunc == null) missing.Add("glBlendFunc");
 		s_glBlendFuncSeparate = (void*)getProcAddress("glBlendFuncSeparate");
+		if (s_glBlendFuncSeparate == null) missing.Add("glBlendFuncSeparate");
 		s_glBlendFuncSeparatei = (void*)getProcAddress("glBlendFuncSeparatei");
+		if (s_glBlendFuncSeparatei == null) missing.Add("glBlendFuncSeparatei");
 		s_glBlendFunci = (void*)getProcAddress("glBlendFunci");
+		if (s_glBlendFunci == null) missing.Add("glBlendFunci");
 		s_glBlitFramebuffer = (void*)getProcAddress("glBlitFramebuffer");
+		if (s_glBlitFramebuffer == null) missing.Add("glBlitFramebuffer");
 		s_glBlitNamedFramebuffer = (void*)getProcAddress("glBlitNamedFramebuffer");
+		if (s_glBlitNamedFramebuffer == null) missing.Add("glBlitNamedFramebuffer");
 		s_glBufferData = (void*)getProcAddress("glBufferData");
+		if (s_glBufferData == null) missing.Add("glBufferData");
 		s_glBufferStorage = (void*)getProcAddress("glBufferStorage");
+		if (s_glBufferStorage == null) missing.Add("glBufferStorage");
 		s_glBufferSubData = (void*)getProcAddress("glBufferSubData");
+		if (s_glBufferSubData == null) missing.Add("glBufferSubData");
 		s_glCheckFramebufferStatus = (void*)getProcAddress("glCheckFramebufferStatus");
+		if (s_glCheckFramebufferStatus == null) missing.Add("glCheckFramebufferStatus");
 		s_glCheckNamedFramebufferStatus = (void*)getProcAddress("glCheckNamedFramebufferStatus");
+		if (s_glCheckNamedFramebufferStatus == null) missing.Add("glCheckNamedFramebufferStatus");
 		s_glClampColor = (void*)getProcAddress("glClampColor");
+		if (s_glClampColor == null) missing.Add("glClampColor");
 		s_glClear = (void*)getProcAddress("glClear");
+		if (s_glClear == null) missing.Add("glClear");
 		s_glClearBufferData = (void*)getProcAddress("glClearBufferData");
+		if (s_glClearBufferData == null) missing.Add("glClearBufferData");
 		s_glClearBufferSubData = (void*)getProcAddress("glClearBufferSubData");
+		if (s_glClearBufferSubData == null) missing.Add("glClearBufferSubData");
 		s_glClearBufferfi = (void*)getProcAddress("glClearBufferfi");
+		if (s_glClearBufferfi == null) missing.Add("glClearBufferfi");
 		s_glClearBufferfv = (void*)getProcAddress("glClearBufferfv");
+		if (s_glClearBufferfv == null) missing.Add("glClearBufferfv");
 		s_glClearBufferiv = (void*)getProcAddress("glClearBufferiv");
+		if (s_glClearBufferiv == null) missing.Add("glClearBufferiv");
 		s_glClearBufferuiv = (void*)getProcAddress("glClearBufferuiv");
+		if (s_glClearBufferuiv == null) missing.Add("glClearBufferuiv");
 		s_glClearColor = (void*)getProcAddress("glClearColor");
+		if (s_glClearColor == null) missing.Add("glClearColor");
 		s_glClearDepth = (void*)getProcAddress("glClearDepth");
+		if (s_glClearDepth == null) missing.Add("glClearDepth");
 		s_glClearDepthf = (void*)getProcAddress("glClearDepthf");
+		if (s_glClearDepthf == null) missing.Add("glClearDepthf");
 		s_glClearNamedBufferData = (void*)getProcAddress("glClearNamedBufferData");
+		if (s_glClearNamedBufferData == null) missing.Add("glClearNamedBufferData");
 		s_glClearNamedBufferSubData = (void*)getProcAddress("glClearNamedBufferSubData");
+		if (s_glClearNamedBufferSubData == null) missing.Add("glClearNamedBufferSubData");
 		s_glClearNamedFramebufferfi = (void*)getProcAddress("glClearNamedFramebufferfi");
+		if (s_glClearNamedFramebufferfi == null) missing.Add("glClearNamedFramebufferfi");
 		s_glClearNamedFramebufferfv = (void*)getProcAddress("glClearNamedFramebufferfv");
+		if (s_glClearNamedFramebufferfv == null) missing.Add("glClearNamedFramebufferfv");
 		s_glClearNamedFramebufferiv = (void*)getProcAddress("glClearNamedFramebufferiv");
+		if (s_glClearNamedFramebufferiv == null) missing.Add("glClearNamedFramebufferiv");
 		s_glClearNamedFramebufferuiv = (void*)getProcAddress("glClearNamedFramebufferuiv");
+		if (s_glClearNamedFramebufferuiv == null) missing.Add("glClearNamedFramebufferuiv");
 		s_glClearStencil = (void*)getProcAddress("glClearStencil");
+		if (s_glClearStencil == null) missing.Add("glClearStencil");
 		s_glClearTexImage = (void*)getProcAddress("glClearTexImage");
+		if (s_glClearTexImage == null) missing.Add("glClearTexImage");
 		s_glClearTexSubImage = (void*)getProcAddress("glClearTexSubImage");
+		if (s_glClearTexSubImage == null) missing.Add("glClearTexSubImage");
 		s_glClientWaitSync = (void*)getProcAddress("glClientWaitSync");
+		if (s_glClientWaitSync == null) missing.Add("glClientWaitSync");
 		s_glClipControl = (void*)getProcAddress("glClipControl");
+		if (s_glClipControl == null) missing.Add("glClipControl");
 		s_glColorMask = (void*)getProcAddress("glColorMask");
+		if (s_glColorMask == null) missing.Add("glColorMask");
 		s_glColorMaski = (void*)getProcAddress("glColorMaski");
+		if (s_glColorMaski == null) missing.Add("glColorMaski");
 		s_glColorP3ui = (void*)getProcAddress("glColorP3ui");
+		if (s_glColorP3ui == null) missing.Add("glColorP3ui");
 		s_glColorP3uiv = (void*)getProcAddress("glColorP3uiv");
+		if (s_glColorP3uiv == null) missing.Add("glColorP3uiv");
 		s_glColorP4ui = (void*)getProcAddress("glColorP4ui");
+		if (s_glColorP4ui == null) missing.Add("glColorP4ui");
 		s_glColorP4uiv = (void*)getProcAddress("glColorP4uiv");
+		if (s_glColorP4uiv == null) missing.Add("glColorP4uiv");
 		s_glCompileShader = (void*)getProcAddress("glCompileShader");
+		if (s_glCompileShader == null) missing.Add("glCompileShader");
 		s_glCompressedTexImage1D = (void*)getProcAddress("glCompressedTexImage1D");
+		if (s_glCompressedTexImage1D == null) missing.Add("glCompressedTexImage1D");
 		s_glCompressedTexImage2D = (void*)getProcAddress("glCompressedTexImage2D");
+		if (s_glCompressedTexImage2D == null) missing.Add("glCompressedTexImage2D");
 		s_glCompressedTexImage3D = (void*)getProcAddress("glCompressedTexImage3D");
+		if (s_glCompressedTexImage3D == null) missing.Add("glCompressedTexImage3D");
 		s_glCompressedTexSubImage1D = (void*)getProcAddress("glCompressedTexSubImage1D");
+		if (s_glCompressedTexSubImage1D == null) missing.Add("glCompressedTexSubImage1D");
 		s_glCompressedTexSubImage2D = (void*)getProcAddress("glCompressedTexSubImage2D");
+		if (s_glCompressedTexSubImage2D == null) missing.Add("glCompressedTexSubImage2D");
 		s_glCompressedTexSubImage3D = (void*)getProcAddress("glCompressedTexSubImage3D");
+		if (s_glCompressedTexSubImage3D == null) missing.Add("glCompressedTexSubImage3D");
 		s_glCompressedTextureSubImage1D = (void*)getProcAddress("glCompressedTextureSubImage1D");
+		if (s_glCompressedTextureSubImage1D == null) missing.Add("glCompressedTextureSubImage1D");
 		s_glCompressedTextureSubImage2D = (void*)getProcAddress("glCompressedTextureSubImage2D");
+		if (s_glCompressedTextureSubImage2D == null) missing.Add("glCompressedTextureSubImage2D");
 		s_glCompressedTextureSubImage3D = (void*)getProcAddress("glCompressedTextureSubImage3D");
+		if (s_glCompressedTextureSubImage3D == null) missing.Add("glCompressedTextureSubImage3D");
 		s_glCopyBufferSubData = (void*)getProcAddress("glCopyBufferSubData");
+		if (s_glCopyBufferSubData == null) missing.Add("glCopyBufferSubData");
 		s_glCopyImageSubData = (void*)getProcAddress("glCopyImageSubData");
+		if (s_glCopyImageSubData == null) missing.Add("glCopyImageSubData");
 		s_glCopyNamedBufferSubData = (void*)getProcAddress("glCopyNamedBufferSubData");
+		if (s_glCopyNamedBufferSubData == null) missing.Add("glCopyNamedBufferSubData");
 		s_glCopyTexImage1D = (void*)getProcAddress("glCopyTexImage1D");
+		if (s_glCopyTexImage1D == null) missing.Add("glCopyTexImage1D");
 		s_glCopyTexImage2D = (void*)getProcAddress("glCopyTexImage2D");
+		if (s_glCopyTexImage2D == null) missing.Add("glCopyTexImage2D");
 		s_glCopyTexSubImage1D = (void*)getProcAddress("glCopyTexSubImage1D");
+		if (s_glCopyTexSubImage1D == null) missing.Add("glCopyTexSubImage1D");
 		s_glCopyTexSubImage2D = (void*)getProcAddress("glCopyTexSubImage2D");
+		if (s_glCopyTexSubImage2D == null) missing.Add("glCopyTexSubImage2D");
 		s_glCopyTexSubImage3D = (void*)getProcAddress("glCopyTexSubImage3D");
+		if (s_glCopyTexSubImage3D == null) missing.Add("glCopyTexSubImage3D");
 		s_glCopyTextureSubImage1D = (void*)getProcAddress("glCopyTextureSubImage1D");
+		if (s_glCopyTextureSubImage1D == null) missing.Add("glCopyTextureSubImage1D");
 		s_glCopyTextureSubImage2D = (void*)getProcAddress("glCopyTextureSubImage2D");
+		if (s_glCopyTextureSubImage2D == null) missing.Add("glCopyTextureSubImage2D");
 		s_glCopyTextureSubImage3D = (void*)getProcAddress("glCopyTextureSubImage3D");
+		if (s_glCopyTextureSubImage3D == null) missing.Add("glCopyTextureSubImage3D");
 		s_glCreateBuffers = (void*)getProcAddress("glCreateBuffers");
+		if (s_glCreateBuffers == null) missing.Add("glCreateBuffers");
 		s_glCreateFramebuffers = (void*)getProcAddress("glCreateFramebuffers");
+		if (s_glCreateFramebuffers == null) missing.Add("glCreateFramebuffers");
 		s_glCreateProgram = (void*)getProcAddress("glCreateProgram");
+		if (s_glCreateProgram == null) missing.Add("glCreateProgram");
 		s_glCreateProgramPipelines = (void*)getProcAddress("glCreateProgramPipelines");
+		if (s_glCreateProgramPipelines == null) missing.Add("glCreateProgramPipelines");
 		s_glCreateQueries = (void*)getProcAddress("glCreateQueries");
+		if (s_glCreateQueries == null) missing.Add("glCreateQueries");
 		s_glCreateRenderbuffers = (void*)getProcAddress("glCreateRenderbuffers");
+		if (s_glCreateRenderbuffers == null) missing.Add("glCreateRenderbuffers");
 		s_glCreateSamplers = (void*)getProcAddress("glCreateSamplers");
+		if (s_glCreateSamplers == null) missing.Add("glCreateSamplers");
 		s_glCreateShader = (void*)getProcAddress("glCreateShader");
+		if (s_glCreateShader == null) missing.Add("glCreateShader");
 		s_glCreateShaderProgramv = (void*)getProcAddress("glCreateShaderProgramv");
+		if (s_glCreateShaderProgramv == null) missing.Add("glCreateShaderProgramv");
 		s_glCreateTextures = (void*)getProcAddress("glCreateTextures");
+		if (s_glCreateTextures == null) missing.Add("glCreateTextures");
 		s_glCreateTransformFeedbacks = (void*)getProcAddress("glCreateTransformFeedbacks");
+		if (s_glCreateTransformFeedbacks == null) missing.Add("glCreateTransformFeedbacks");
 		s_glCreateVertexArrays = (void*)getProcAddress("glCreateVertexArrays");
+		if (s_glCreateVertexArrays == null) missing.Add("glCreateVertexArrays");
 		s_glCullFace = (void*)getProcAddress("glCullFace");
+		if (s_glCullFace == null) missing.Add("glCullFace");
 		s_glDebugMessageCallback = (void*)getProcAddress("glDebugMessageCallback");
+		if (s_glDebugMessageCallback == null) missing.Add("glDebugMessageCallback");
 		s_glDebugMessageControl = (void*)getProcAddress("glDebugMessageControl");
+		if (s_glDebugMessageControl == null) missing.Add("glDebugMessageControl");
 		s_glDebugMessageInsert = (void*)getProcAddress("glDebugMessageInsert");
+		if (s_glDebugMessageInsert == null) missing.Add("glDebugMessageInsert");
 		s_glDeleteBuffers = (void*)getProcAddress("glDeleteBuffers");
+		if (s_glDeleteBuffers == null) missing.Add("glDeleteBuffers");
 		s_glDeleteFramebuffers = (void*)getProcAddress("glDeleteFramebuffers");
+		if (s_glDeleteFramebuffers == null) missing.Add("glDeleteFramebuffers");
 		s_glDeleteProgram = (void*)getProcAddress("glDeleteProgram");
+		if (s_glDeleteProgram == null) missing.Add("glDeleteProgram");
 		s_glDeleteProgramPipelines = (void*)getProcAddress("glDeleteProgramPipelines");
+		if (s_glDeleteProgramPipelines == null) missing.Add("glDeleteProgramPipelines");
 		s_glDeleteQueries = (void*)getProcAddress("glDeleteQueries");
+		if (s_glDeleteQueries == null) missing.Add("glDeleteQueries");
 		s_glDeleteRenderbuffers = (void*)getProcAddress("glDeleteRenderbuffers");
+		if (s_glDeleteRenderbuffers == null) missing.Add("glDeleteRenderbuffers");
 		s_glDeleteSamplers = (void*)getProcAddress("glDeleteSamplers");
+		if (s_glDeleteSamplers == null) missing.Add("glDeleteSamplers");
 		s_glDeleteShader = (void*)getProcAddress("glDeleteShader");
+		if (s_glDeleteShader == null) missing.Add("glDeleteShader");
 		s_glDeleteSync = (void*)getProcAddress("glDeleteSync");
+		if (s_glDeleteSync == null) missing.Add("glDeleteSync");
 		s_glDeleteTextures = (void*)getProcAddress("glDeleteTextures");
+		if (s_glDeleteTextures == null) missing.Add("glDeleteTextures");
 		s_glDeleteTransformFeedbacks = (void*)getProcAddress("glDeleteTransformFeedbacks");
+		if (s_glDeleteTransformFeedbacks == null) missing.Add("glDeleteTransformFeedbacks");
 		s_glDeleteVertexArrays = (void*)getProcAddress("glDeleteVertexArrays");
+		if (s_glDeleteVertexArrays == null) missing.Add("glDeleteVertexArrays");
 		s_glDepthFunc = (void*)getProcAddress("glDepthFunc");
+		if (s_glDepthFunc == null) missing.Add("glDepthFunc");
 		s_glDepthMask = (void*)getProcAddress("glDepthMask");
+		if (s_glDepthMask == null) missing.Add("glDepthMask");
 		s_glDepthRange = (void*)getProcAddress("glDepthRange");
+		if (s_glDepthRange == null) missing.Add("glDepthRange");
 		s_glDepthRangeArrayv = (void*)getProcAddress("glDepthRangeArrayv");
+		if (s_glDepthRangeArrayv == null) missing.Add("glDepthRangeArrayv");
 		s_glDepthRangeIndexed = (void*)getProcAddress("glDepthRangeIndexed");
+		if (s_glDepthRangeIndexed == null) missing.Add("glDepthRangeIndexed");
 		s_glDepthRangef = (void*)getProcAddress("glDepthRangef");
+		if (s_glDepthRangef == null) missing.Add("glDepthRangef");
 		s_glDetachShader = (void*)getProcAddress("glDetachShader");
+		if (s_glDetachShader == null) missing.Add("glDetachShader");
 		s_glDisable = (void*)getProcAddress("glDisable");
+		if (s_glDisable == null) missing.Add("glDisable");
 		s_glDisableVertexArrayAttrib = (void*)getProcAddress("glDisableVertexArrayAttrib");
+		if (s_glDisableVertexArrayAttrib == null) missing.Add("glDisableVertexArrayAttrib");
 		s_glDisableVertexAttribArray = (void*)getProcAddress("glDisableVertexAttribArray");
+		if (s_glDisableVertexAttribArray == null) missing.Add("glDisableVertexAttribArray");
 		s_glDisablei = (void*)getProcAddress("glDisablei");
+		if (s_glDisablei == null) missing.Add("glDisablei");
 		s_glDispatchCompute = (void*)getProcAddress("glDispatchCompute");
+		if (s_glDispatchCompute == null) missing.Add("glDispatchCompute");
 		s_glDispatchComputeIndirect = (void*)getProcAddress("glDispatchComputeIndirect");
+		if (s_glDispatchComputeIndirect == null) missing.Add("glDispatchComputeIndirect");
 		s_glDrawArrays = (void*)getProcAddress("glDrawArrays");
+		if (s_glDrawArrays == null) missing.Add("glDrawArrays");
 		s_glDrawArraysIndirect = (void*)getProcAddress("glDrawArraysIndirect");
+		if (s_glDrawArraysIndirect == null) missing.Add("glDrawArraysIndirect");
 		s_glDrawArraysInstanced = (void*)getProcAddress("glDrawArraysInstanced");
+		if (s_glDrawArraysInstanced == null) missing.Add("glDrawArraysInstanced");
 		s_glDrawArraysInstancedBaseInstance = (void*)getProcAddress("glDrawArraysInstancedBaseInstance");
+		if (s_glDrawArraysInstancedBaseInstance == null) missing.Add("glDrawArraysInstancedBaseInstance");
 		s_glDrawBuffer = (void*)getProcAddress("glDrawBuffer");
+		if (s_glDrawBuffer == null) missing.Add("glDrawBuffer");
 		s_glDrawBuffers = (void*)getProcAddress("glDrawBuffers");
+		if (s_glDrawBuffers == null) missing.Add("glDrawBuffers");
 		s_glDrawElements = (void*)getProcAddress("glDrawElements");
+		if (s_glDrawElements == null) missing.Add("glDrawElements");
 		s_glDrawElementsBaseVertex = (void*)getProcAddress("glDrawElementsBaseVertex");
+		if (s_glDrawElementsBaseVertex == null) missing.Add("glDrawElementsBaseVertex");
 		s_glDrawElementsIndirect = (void*)getProcAddress("glDrawElementsIndirect");
+		if (s_glDrawElementsIndirect == null) missing.Add("glDrawElementsIndirect");
 		s_glDrawElementsInstanced = (void*)getProcAddress("glDrawElementsInstanced");
+		if (s_glDrawElementsInstanced == null) missing.Add("glDrawElementsInstanced");
 		s_glDrawElementsInstancedBaseInstance = (void*)getProcAddress("glDrawElementsInstancedBaseInstance");
+		if (s_glDrawElementsInstancedBaseInstance == null) missing.Add("glDrawElementsInstancedBaseInstance");
 		s_glDrawElementsInstancedBaseVertex = (void*)getProcAddress("glDrawElementsInstancedBaseVertex");
+		if (s_glDrawElementsInstancedBaseVertex == null) missing.Add("glDrawElementsInstancedBaseVertex");
 		s_glDrawElementsInstancedBaseVertexBaseInstance = (void*)getProcAddress("glDrawElementsInstancedBaseVertexBaseInstance");
+		if (s_glDrawElementsInstancedBaseVertexBaseInstance == null) missing.Add("glDrawElementsInstancedBaseVertexBaseInstance");
 		s_glDrawRangeElements = (void*)getProcAddress("glDrawRangeElements");
+		if (s_glDrawRangeElements == null) missing.Add("glDrawRangeElements");
 		s_glDrawRangeElementsBaseVertex = (void*)getProcAddress("glDrawRangeElementsBaseVertex");
+		if (s_glDrawRangeElementsBaseVertex == null) missing.Add("glDrawRangeElementsBaseVertex");
 		s_glDrawTransformFeedback = (void*)getProcAddress("glDrawTransformFeedback");
+		if (s_glDrawTransformFeedback == null) missing.Add("glDrawTransformFeedback");
 		s_glDrawTransformFeedbackInstanced = (void*)getProcAddress("glDrawTransformFeedbackInstanced");
+		if (s_glDrawTransformFeedbackInstanced == null) missing.Add("glDrawTransformFeedbackInstanced");
 		s_glDrawTransformFeedbackStream = (void*)getProcAddress("glDrawTransformFeedbackStream");
+		if (s_glDrawTransformFeedbackStream == null) missing.Add("glDrawTransformFeedbackStream");
 		s_glDrawTransformFeedbackStreamInstanced = (void*)getProcAddress("glDrawTransformFeedbackStreamInstanced");
+		if (s_glDrawTransformFeedbackStreamInstanced == null) missing.Add("glDrawTransformFeedbackStreamInstanced");
 		s_glEnable = (void*)getProcAddress("glEnable");
+		if (s_glEnable == null) missing.Add("glEnable");
 		s_glEnableVertexArrayAttrib = (void*)getProcAddress("glEnableVertexArrayAttrib");
+		if (s_glEnableVertexArrayAttrib == null) missing.Add("glEnableVertexArrayAttrib");
 		s_glEnableVertexAttribArray = (void*)getProcAddress("glEnableVertexAttribArray");
+		if (s_glEnableVertexAttribArray == null) missing.Add("glEnableVertexAttribArray");
 		s_glEnablei = (void*)getProcAddress("glEnablei");
+		if (s_glEnablei == null) missing.Add("glEnablei");
 		s_glEndConditionalRender = (void*)getProcAddress("glEndConditionalRender");
+		if (s_glEndConditionalRender == null) missing.Add("glEndConditionalRender");
 		s_glEndQuery = (void*)getProcAddress("glEndQuery");
+		if (s_glEndQuery == null) missing.Add("glEndQuery");
 		s_glEndQueryIndexed = (void*)getProcAddress("glEndQueryIndexed");
+		if (s_glEndQueryIndexed == null) missing.Add("glEndQueryIndexed");
 		s_glEndTransformFeedback = (void*)getProcAddress("glEndTransformFeedback");
+		if (s_glEndTransformFeedback == null) missing.Add("glEndTransformFeedback");
 		s_glFenceSync = (void*)getProcAddress("glFenceSync");
+		if (s_glFenceSync == null) missing.Add("glFenceSync");
 		s_glFinish = (void*)getProcAddress("glFinish");
+		if (s_glFinish == null) missing.Add("glFinish");
 		s_glFlush = (void*)getProcAddress("glFlush");
+		if (s_glFlush == null) missing.Add("glFlush");
 		s_glFlushMappedBufferRange = (void*)getProcAddress("glFlushMappedBufferRange");
+		if (s_glFlushMappedBufferRange == null) missing.Add("glFlushMappedBufferRange");
 		s_glFlushMappedNamedBufferRange = (void*)getProcAddress("glFlushMappedNamedBufferRange");
+		if (s_glFlushMappedNamedBufferRange == null) missing.Add("glFlushMappedNamedBufferRange");
 		s_glFramebufferParameteri = (void*)getProcAddress("glFramebufferParameteri");
+		if (s_glFramebufferParameteri == null) missing.Add("glFramebufferParameteri");
 		s_glFramebufferRenderbuffer = (void*)getProcAddress("glFramebufferRenderbuffer");
+		if (s_glFramebufferRenderbuffer == null) missing.Add("glFramebufferRenderbuffer");
 		s_glFramebufferTexture = (void*)getProcAddress("glFramebufferTexture");
+		if (s_glFramebufferTexture == null) missing.Add("glFramebufferTexture");
 		s_glFramebufferTexture1D = (void*)getProcAddress("glFramebufferTexture1D");
+		if (s_glFramebufferTexture1D == null) missing.Add("glFramebufferTexture1D");
 		s_glFramebufferTexture2D = (void*)getProcAddress("glFramebufferTexture2D");
+		if (s_glFramebufferTexture2D == null) missing.Add("glFramebufferTexture2D");
 		s_glFramebufferTexture3D = (void*)getProcAddress("glFramebufferTexture3D");
+		if (s_glFramebufferTexture3D == null) missing.Add("glFramebufferTexture3D");
 		s_glFramebufferTextureLayer = (void*)getProcAddress("glFramebufferTextureLayer");
+		if (s_glFramebufferTextureLayer == null) missing.Add("glFramebufferTextureLayer");
 		s_glFrontFace = (void*)getProcAddress("glFrontFace");
+		if (s_glFrontFace == null) missing.Add("glFrontFace");
 		s_glGenBuffers = (void*)getProcAddress("glGenBuffers");
+		if (s_glGenBuffers == null) missing.Add("glGenBuffers");
 		s_glGenFramebuffers = (void*)getProcAddress("glGenFramebuffers");
+		if (s_glGenFramebuffers == null) missing.Add("glGenFramebuffers");
 		s_glGenProgramPipelines = (void*)getProcAddress("glGenProgramPipelines");
+		if (s_glGenProgramPipelines == null) missing.Add("glGenProgramPipelines");
 		s_glGenQueries = (void*)getProcAddress("glGenQueries");
+		if (s_glGenQueries == null) missing.Add("glGenQueries");
 		s_glGenRenderbuffers = (void*)getProcAddress("glGenRenderbuffers");
+		if (s_glGenRenderbuffers == null) missing.Add("glGenRenderbuffers");
 		s_glGenSamplers = (void*)getProcAddress("glGenSamplers");
+		if (s_glGenSamplers == null) missing.Add("glGenSamplers");
 		s_glGenTextures = (void*)getProcAddress("glGenTextures");
+		if (s_glGenTextures == null) missing.Add("glGenTextures");
 		s_glGenTransformFeedbacks = (void*)getProcAddress("glGenTransformFeedbacks");
+		if (s_glGenTransformFeedbacks == null) missing.Add("glGenTransformFeedbacks");
 		s_glGenVertexArrays = (void*)getProcAddress("glGenVertexArrays");
+		if (s_glGenVertexArrays == null) missing.Add("glGenVertexArrays");
 		s_glGenerateMipmap = (void*)getProcAddress("glGenerateMipmap");
+		if (s_glGenerateMipmap == null) missing.Add("glGenerateMipmap");
 		s_glGenerateTextureMipmap = (void*)getProcAddress("glGenerateTextureMipmap");
+		if (s_glGenerateTextureMipmap == null) missing.Add("glGenerateTextureMipmap");
 		s_glGetActiveAtomicCounterBufferiv = (void*)getProcAddress("glGetActiveAtomicCounterBufferiv");
+		if (s_glGetActiveAtomicCounterBufferiv == null) missing.Add("glGetActiveAtomicCounterBufferiv");
 		s_glGetActiveAttrib = (void*)getProcAddress("glGetActiveAttrib");
+		if (s_glGetActiveAttrib == null) missing.Add("glGetActiveAttrib");
 		s_glGetActiveSubroutineName = (void*)getProcAddress("glGetActiveSubroutineName");
+		if (s_glGetActiveSubroutineName == null) missing.Add("glGetActiveSubroutineName");
 		s_glGetActiveSubroutineUniformName = (void*)getProcAddress("glGetActiveSubroutineUniformName");
+		if (s_glGetActiveSubroutineUniformName == null) missing.Add("glGetActiveSubroutineUniformName");
 		s_glGetActiveSubroutineUniformiv = (void*)getProcAddress("glGetActiveSubroutineUniformiv");
+		if (s_glGetActiveSubroutineUniformiv == null) missing.Add("glGetActiveSubroutineUniformiv");
 		s_glGetActiveUniform = (void*)getProcAddress("glGetActiveUniform");
+		if (s_glGetActiveUniform == null) missing.Add("glGetActiveUniform");
 		s_glGetActiveUniformBlockName = (void*)getProcAddress("glGetActiveUniformBlockName");
+		if (s_glGetActiveUniformBlockName == null) missing.Add("glGetActiveUniformBlockName");
 		s_glGetActiveUniformBlockiv = (void*)getProcAddress("glGetActiveUniformBlockiv");
+		if (s_glGetActiveUniformBlockiv == null) missing.Add("glGetActiveUniformBlockiv");
 		s_glGetActiveUniformName = (void*)getProcAddress("glGetActiveUniformName");
+		if (s_glGetActiveUniformName == null) missing.Add("glGetActiveUniformName");
 		s_glGetActiveUniformsiv = (void*)getProcAddress("glGetActiveUniformsiv");
+		if (s_glGetActiveUniformsiv == null) missing.Add("glGetActiveUniformsiv");
 		s_glGetAttachedShaders = (void*)getProcAddress("glGetAttachedShaders");
+		if (s_glGetAttachedShaders == null) missing.Add("glGetAttachedShaders");
 		s_glGetAttribLocation = (void*)getProcAddress("glGetAttribLocation");
+		if (s_glGetAttribLocation == null) missing.Add("glGetAttribLocation");
 		s_glGetBooleani_v = (void*)getProcAddress("glGetBooleani_v");
+		if (s_glGetBooleani_v == null) missing.Add("glGetBooleani_v");
 		s_glGetBooleanv = (void*)getProcAddress("glGetBooleanv");
+		if (s_glGetBooleanv == null) missing.Add("glGetBooleanv");
 		s_glGetBufferParameteri64v = (void*)getProcAddress("glGetBufferParameteri64v");
+		if (s_glGetBufferParameteri64v == null) missing.Add("glGetBufferParameteri64v");
 		s_glGetBufferParameteriv = (void*)getProcAddress("glGetBufferParameteriv");
+		if (s_glGetBufferParameteriv == null) missing.Add("glGetBufferParameteriv");
 		s_glGetBufferPointerv = (void*)getProcAddress("glGetBufferPointerv");
+		if (s_glGetBufferPointerv == null) missing.Add("glGetBufferPointerv");
 		s_glGetBufferSubData = (void*)getProcAddress("glGetBufferSubData");
+		if (s_glGetBufferSubData == null) missing.Add("glGetBufferSubData");
 		s_glGetCompressedTexImage = (void*)getProcAddress("glGetCompressedTexImage");
+		if (s_glGetCompressedTexImage == null) missing.Add("glGetCompressedTexImage");
 		s_glGetCompressedTextureImage = (void*)getProcAddress("glGetCompressedTextureImage");
+		if (s_glGetCompressedTextureImage == null) missing.Add("glGetCompressedTextureImage");
 		s_glGetCompressedTextureSubImage = (void*)getProcAddress("glGetCompressedTextureSubImage");
+		if (s_glGetCompressedTextureSubImage == null) missing.Add("glGetCompressedTextureSubImage");
 		s_glGetDebugMessageLog = (void*)getProcAddress("glGetDebugMessageLog");
+		if (s_glGetDebugMessageLog == null) missing.Add("glGetDebugMessageLog");
 		s_glGetDoublei_v = (void*)getProcAddress("glGetDoublei_v");
+		if (s_glGetDoublei_v == null) missing.Add("glGetDoublei_v");
 		s_glGetDoublev = (void*)getProcAddress("glGetDoublev");
+		if (s_glGetDoublev == null) missing.Add("glGetDoublev");
 		s_glGetError = (void*)getProcAddress("glGetError");
+		if (s_glGetError == null) missing.Add("glGetError");
 		s_glGetFloati_v = (void*)getProcAddress("glGetFloati_v");
+		if (s_glGetFloati_v == null) missing.Add("glGetFloati_v");
 		s_glGetFloatv = (void*)getProcAddress("glGetFloatv");
+		if (s_glGetFloatv == null) missing.Add("glGetFloatv");
 		s_glGetFragDataIndex = (void*)getProcAddress("glGetFragDataIndex");
+		if (s_glGetFragDataIndex == null) missing.Add("glGetFragDataIndex");
 		s_glGetFragDataLocation = (void*)getProcAddress("glGetFragDataLocation");
+		if (s_glGetFragDataLocation == null) missing.Add("glGetFragDataLocation");
 		s_glGetFramebufferAttachmentParameteriv = (void*)getProcAddress("glGetFramebufferAttachmentParameteriv");
+		if (s_glGetFramebufferAttachmentParameteriv == null) missing.Add("glGetFramebufferAttachmentParameteriv");
 		s_glGetFramebufferParameteriv = (void*)getProcAddress("glGetFramebufferParameteriv");
+		if (s_glGetFramebufferParameteriv == null) missing.Add("glGetFramebufferParameteriv");
 		s_glGetGraphicsResetStatus = (void*)getProcAddress("glGetGraphicsResetStatus");
+		if (s_glGetGraphicsResetStatus == null) missing.Add("glGetGraphicsResetStatus");
 		s_glGetInteger64i_v = (void*)getProcAddress("glGetInteger64i_v");
+		if (s_glGetInteger64i_v == null) missing.Add("glGetInteger64i_v");
 		s_glGetInteger64v = (void*)getProcAddress("glGetInteger64v");
+		if (s_glGetInteger64v == null) missing.Add("glGetInteger64v");
 		s_glGetIntegeri_v = (void*)getProcAddress("glGetIntegeri_v");
+		if (s_glGetIntegeri_v == null) missing.Add("glGetIntegeri_v");
 		s_glGetIntegerv = (void*)getProcAddress("glGetIntegerv");
+		if (s_glGetIntegerv == null) missing.Add("glGetIntegerv");
 		s_glGetInternalformati64v = (void*)getProcAddress("glGetInternalformati64v");
+		if (s_glGetInternalformati64v == null) missing.Add("glGetInternalformati64v");
 		s_glGetInternalformativ = (void*)getProcAddress("glGetInternalformativ");
+		if (s_glGetInternalformativ == null) missing.Add("glGetInternalformativ");
 		s_glGetMultisamplefv = (void*)getProcAddress("glGetMultisamplefv");
+		if (s_glGetMultisamplefv == null) missing.Add("glGetMultisamplefv");
 		s_glGetNamedBufferParameteri64v = (void*)getProcAddress("glGetNamedBufferParameteri64v");
+		if (s_glGetNamedBufferParameteri64v == null) missing.Add("glGetNamedBufferParameteri64v");
 		s_glGetNamedBufferParameteriv = (void*)getProcAddress("glGetNamedBufferParameteriv");
+		if (s_glGetNamedBufferParameteriv == null) missing.Add("glGetNamedBufferParameteriv");
 		s_glGetNamedBufferPointerv = (void*)getProcAddress("glGetNamedBufferPointerv");
+		if (s_glGetNamedBufferPointerv == null) missing.Add("glGetNamedBufferPointerv");
 		s_glGetNamedBufferSubData = (void*)getProcAddress("glGetNamedBufferSubData");
+		if (s_glGetNamedBufferSubData == null) missing.Add("glGetNamedBufferSubData");
 		s_glGetNamedFramebufferAttachmentParameteriv = (void*)getProcAddress("glGetNamedFramebufferAttachmentParameteriv");
+		if (s_glGetNamedFramebufferAttachmentParameteriv == null) missing.Add("glGetNamedFramebufferAttachmentParameteriv");
 		s_glGetNamedFramebufferParameteriv = (void*)getProcAddress("glGetNamedFramebufferParameteriv");
+		if (s_glGetNamedFramebufferParameteriv == null) missing.Add("glGetNamedFramebufferParameteriv");
 		s_glGetNamedRenderbufferParameteriv = (void*)getProcAddress("glGetNamedRenderbufferParameteriv");
+		if (s_glGetNamedRenderbufferParameteriv == null) missing.Add("glGetNamedRenderbufferParameteriv");
 		s_glGetObjectLabel = (void*)getProcAddress("glGetObjectLabel");
+		if (s_glGetObjectLabel == null) missing.Add("glGetObjectLabel");
 		s_glGetObjectPtrLabel = (void*)getProcAddress("glGetObjectPtrLabel");
+		if (s_glGetObjectPtrLabel == null) missing.Add("glGetObjectPtrLabel");
 		s_glGetProgramBinary = (void*)getProcAddress("glGetProgramBinary");
+		if (s_glGetProgramBinary == null) missing.Add("glGetProgramBinary");
 		s_glGetProgramInfoLog = (void*)getProcAddress("glGetProgramInfoLog");
+		if (s_glGetProgramInfoLog == null) missing.Add("glGetProgramInfoLog");
 		s_glGetProgramInterfaceiv = (void*)getProcAddress("glGetProgramInterfaceiv");
+		if (s_glGetProgramInterfaceiv == null) missing.Add("glGetProgramInterfaceiv");
 		s_glGetProgramPipelineInfoLog = (void*)getProcAddress("glGetProgramPipelineInfoLog");
+		if (s_glGetProgramPipelineInfoLog == null) missing.Add("glGetProgramPipelineInfoLog");
 		s_glGetProgramPipelineiv = (void*)getProcAddress("glGetProgramPipelineiv");
+		if (s_glGetProgramPipelineiv == null) missing.Add("glGetProgramPipelineiv");
 		s_glGetProgramResourceIndex = (void*)getProcAddress("glGetProgramResourceIndex");
+		if (s_glGetProgramResourceIndex == null) missing.Add("glGetProgramResourceIndex");
 		s_glGetProgramResourceLocation = (void*)getProcAddress("glGetProgramResourceLocation");
+		if (s_glGetProgramResourceLocation == null) missing.Add("glGetProgramResourceLocation");
 		s_glGetProgramResourceLocationIndex = (void*)getProcAddress("glGetProgramResourceLocationIndex");
+		if (s_glGetProgramResourceLocationIndex == null) missing.Add("glGetProgramResourceLocationIndex");
 		s_glGetProgramResourceName = (void*)getProcAddress("glGetProgramResourceName");
+		if (s_glGetProgramResourceName == null) missing.Add("glGetProgramResourceName");
 		s_glGetProgramResourceiv = (void*)getProcAddress("glGetProgramResourceiv");
+		if (s_glGetProgramResourceiv == null) missing.Add("glGetProgramResourceiv");
 		s_glGetProgramStageiv = (void*)getProcAddress("glGetProgramStageiv");
+		if (s_glGetProgramStageiv == null) missing.Add("glGetProgramStageiv");
 		s_glGetProgramiv = (void*)getProcAddress("glGetProgramiv");
+		if (s_glGetProgramiv == null) missing.Add("glGetProgramiv");
 		s_glGetQueryBufferObjecti64v = (void*)getProcAddress("glGetQueryBufferObjecti64v");
+		if (s_glGetQueryBufferObjecti64v == null) missing.Add("glGetQueryBufferObjecti64v");
 		s_glGetQueryBufferObjectiv = (void*)getProcAddress("glGetQueryBufferObjectiv");
+		if (s_glGetQueryBufferObjectiv == null) missing.Add("glGetQueryBufferObjectiv");
 		s_glGetQueryBufferObjectui64v = (void*)getProcAddress("glGetQueryBufferObjectui64v");
+		if (s_glGetQueryBufferObjectui64v == null) missing.Add("glGetQueryBufferObjectui64v");
 		s_glGetQueryBufferObjectuiv = (void*)getProcAddress("glGetQueryBufferObjectuiv");
+		if (s_glGetQueryBufferObjectuiv == null) missing.Add("glGetQueryBufferObjectuiv");
 		s_glGetQueryIndexediv = (void*)getProcAddress("glGetQueryIndexediv");
+		if (s_glGetQueryIndexediv == null) missing.Add("glGetQueryIndexediv");
 		s_glGetQueryObjecti64v = (void*)getProcAddress("glGetQueryObjecti64v");
+		if (s_glGetQueryObjecti64v == null) missing.Add("glGetQueryObjecti64v");
 		s_glGetQueryObjectiv = (void*)getProcAddress("glGetQueryObjectiv");
+		if (s_glGetQueryObjectiv == null) missing.Add("glGetQueryObjectiv");
 		s_glGetQueryObjectui64v = (void*)getProcAddress("glGetQueryObjectui64v");
+		if (s_glGetQueryObjectui64v == null) missing.Add("glGetQueryObjectui64v");
 		s_glGetQueryObjectuiv = (void*)getProcAddress("glGetQueryObjectuiv");
+		if (s_glGetQueryObjectuiv == null) missing.Add("glGetQueryObjectuiv");
 		s_glGetQueryiv = (void*)getProcAddress("glGetQueryiv");
+		if (s_glGetQueryiv == null) missing.Add("glGetQueryiv");
 		s_glGetRenderbufferParameteriv = (void*)getProcAddress("glGetRenderbufferParameteriv");
+		if (s_glGetRenderbufferParameteriv == null) missing.Add("glGetRenderbufferParameteriv");
 		s_glGetSamplerParameterIiv = (void*)getProcAddress("glGetSamplerParameterIiv");
+		if (s_glGetSamplerParameterIiv == null) missing.Add("glGetSamplerParameterIiv");
 		s_glGetSamplerParameterIuiv = (void*)getProcAddress("glGetSamplerParameterIuiv");
+		if (s_glGetSamplerParameterIuiv == null) missing.Add("glGetSamplerParameterIuiv");
 		s_glGetSamplerParameterfv = (void*)getProcAddress("glGetSamplerParameterfv");
+		if (s_glGetSamplerParameterfv == null) missing.Add("glGetSamplerParameterfv");
 		s_glGetSamplerParameteriv = (void*)getProcAddress("glGetSamplerParameteriv");
+		if (s_glGetSamplerParameteriv == null) missing.Add("glGetSamplerParameteriv");
 		s_glGetShaderInfoLog = (void*)getProcAddress("glGetShaderInfoLog");
+		if (s_glGetShaderInfoLog == null) missing.Add("glGetShaderInfoLog");
 		s_glGetShaderPrecisionFormat = (void*)getProcAddress("glGetShaderPrecisionFormat");
+		if (s_glGetShaderPrecisionFormat == null) missing.Add("glGetShaderPrecisionFormat");
 		s_glGetShaderSource = (void*)getProcAddress("glGetShaderSource");
+		if (s_glGetShaderSource == null) missing.Add("glGetShaderSource");
 		s_glGetShaderiv = (void*)getProcAddress("glGetShaderiv");
+		if (s_glGetShaderiv == null) missing.Add("glGetShaderiv");
 		s_glGetString = (void*)getProcAddress("glGetString");
+		if (s_glGetString == null) missing.Add("glGetString");
 		s_glGetStringi = (void*)getProcAddress("glGetStringi");
+		if (s_glGetStringi == null) missing.Add("glGetStringi");
 		s_glGetSubroutineIndex = (void*)getProcAddress("glGetSubroutineIndex");
+		if (s_glGetSubroutineIndex == null) missing.Add("glGetSubroutineIndex");
 		s_glGetSubroutineUniformLocation = (void*)getProcAddress("glGetSubroutineUniformLocation");
+		if (s_glGetSubroutineUniformLocation == null) missing.Add("glGetSubroutineUniformLocation");
 		s_glGetSynciv = (void*)getProcAddress("glGetSynciv");
+		if (s_glGetSynciv == null) missing.Add("glGetSynciv");
 		s_glGetTexImage = (void*)getProcAddress("glGetTexImage");
+		if (s_glGetTexImage == null) missing.Add("glGetTexImage");
 		s_glGetTexLevelParameterfv = (void*)getProcAddress("glGetTexLevelParameterfv");
+		if (s_glGetTexLevelParameterfv == null) missing.Add("glGetTexLevelParameterfv");
 		s_glGetTexLevelParameteriv = (void*)getProcAddress("glGetTexLevelParameteriv");
+		if (s_glGetTexLevelParameteriv == null) missing.Add("glGetTexLevelParameteriv");
 		s_glGetTexParameterIiv = (void*)getProcAddress("glGetTexParameterIiv");
+		if (s_glGetTexParameterIiv == null) missing.Add("glGetTexParameterIiv");
 		s_glGetTexParameterIuiv = (void*)getProcAddress("glGetTexParameterIuiv");
+		if (s_glGetTexParameterIuiv == null) missing.Add("glGetTexParameterIuiv");
 		s_glGetTexParameterfv = (void*)getProcAddress("glGetTexParameterfv");
+		if (s_glGetTexParameterfv == null) missing.Add("glGetTexParameterfv");
 		s_glGetTexParameteriv = (void*)getProcAddress("glGetTexParameteriv");
+		if (s_glGetTexParameteriv == null) missing.Add("glGetTexParameteriv");
 		s_glGetTextureImage = (void*)getProcAddress("glGetTextureImage");
+		if (s_glGetTextureImage == null) missing.Add("glGetTextureImage");
 		s_glGetTextureLevelParameterfv = (void*)getProcAddress("glGetTextureLevelParameterfv");
+		if (s_glGetTextureLevelParameterfv == null) missing.Add("glGetTextureLevelParameterfv");
 		s_glGetTextureLevelParameteriv = (void*)getProcAddress("glGetTextureLevelParameteriv");
+		if (s_glGetTextureLevelParameteriv == null) missing.Add("glGetTextureLevelParameteriv");
 		s_glGetTextureParameterIiv = (void*)getProcAddress("glGetTextureParameterIiv");
+		if (s_glGetTextureParameterIiv == null) missing.Add("glGetTextureParameterIiv");
 		s_glGetTextureParameterIuiv = (void*)getProcAddress("glGetTextureParameterIuiv");
+		if (s_glGetTextureParameterIuiv == null) missing.Add("glGetTextureParameterIuiv");
 		s_glGetTextureParameterfv = (void*)getProcAddress("glGetTextureParameterfv");
+		if (s_glGetTextureParameterfv == null) missing.Add("glGetTextureParameterfv");
 		s_glGetTextureParameteriv = (void*)getProcAddress("glGetTextureParameteriv");
+		if (s_glGetTextureParameteriv == null) missing.Add("glGetTextureParameteriv");
 		s_glGetTextureSubImage = (void*)getProcAddress("glGetTextureSubImage");
+		if (s_glGetTextureSubImage == null) missing.Add("glGetTextureSubImage");
 		s_glGetTransformFeedbackVarying = (void*)getProcAddress("glGetTransformFeedbackVarying");
+		if (s_glGetTransformFeedbackVarying == null) missing.Add("glGetTransformFeedbackVarying");
 		s_glGetTransformFeedbacki64_v = (void*)getProcAddress("glGetTransformFeedbacki64_v");
+		if (s_glGetTransformFeedbacki64_v == null) missing.Add("glGetTransformFeedbacki64_v");
 		s_glGetTransformFeedbacki_v = (void*)getProcAddress("glGetTransformFeedbacki_v");
+		if (s_glGetTransformFeedbacki_v == null) missing.Add("glGetTransformFeedbacki_v");
 		s_glGetTransformFeedbackiv = (void*)getProcAddress("glGetTransformFeedbackiv");
+		if (s_glGetTransformFeedbackiv == null) missing.Add("glGetTransformFeedbackiv");
 		s_glGetUniformBlockIndex = (void*)getProcAddress("glGetUniformBlockIndex");
+		if (s_glGetUniformBlockIndex == null) missing.Add("glGetUniformBlockIndex");
 		s_glGetUniformIndices = (void*)getProcAddress("glGetUniformIndices");
+		if (s_glGetUniformIndices == null) missing.Add("glGetUniformIndices");
 		s_glGetUniformLocation = (void*)getProcAddress("glGetUniformLocation");
+		if (s_glGetUniformLocation == null) missing.Add("glGetUniformLocation");
 		s_glGetUniformSubroutineuiv = (void*)getProcAddress("glGetUniformSubroutineuiv");
+		if (s_glGetUniformSubroutineuiv == null) missing.Add("glGetUniformSubroutineuiv");
 		s_glGetUniformdv = (void*)getProcAddress("glGetUniformdv");
+		if (s_glGetUniformdv == null) missing.Add("glGetUniformdv");
 		s_glGetUniformfv = (void*)getProcAddress("glGetUniformfv");
+		if (s_glGetUniformfv == null) missing.Add("glGetUniformfv");
 		s_glGetUniformiv = (void*)getProcAddress("glGetUniformiv");
+		if (s_glGetUniformiv == null) missing.Add("glGetUniformiv");
 		s_glGetUniformuiv = (void*)getProcAddress("glGetUniformuiv");
+		if (s_glGetUniformuiv == null) missing.Add("glGetUniformuiv");
 		s_glGetVertexArrayIndexed64iv = (void*)getProcAddress("glGetVertexArrayIndexed64iv");
+		if (s_glGetVertexArrayIndexed64iv == null) missing.Add("glGetVertexArrayIndexed64iv");
 		s_glGetVertexArrayIndexediv = (void*)getProcAddress("glGetVertexArrayIndexediv");
+		if (s_glGetVertexArrayIndexediv == null) missing.Add("glGetVertexArrayIndexediv");
 		s_glGetVertexArrayiv = (void*)getProcAddress("glGetVertexArrayiv");
+		if (s_glGetVertexArrayiv == null) missing.Add("glGetVertexArrayiv");
 		s_glGetVertexAttribIiv = (void*)getProcAddress("glGetVertexAttribIiv");
+		if (s_glGetVertexAttribIiv == null) missing.Add("glGetVertexAttribIiv");
 		s_glGetVertexAttribIuiv = (void*)getProcAddress("glGetVertexAttribIuiv");
+		if (s_glGetVertexAttribIuiv == null) missing.Add("glGetVertexAttribIuiv");
 		s_glGetVertexAttribLdv = (void*)getProcAddress("glGetVertexAttribLdv");
+		if (s_glGetVertexAttribLdv == null) missing.Add("glGetVertexAttribLdv");
 		s_glGetVertexAttribPointerv = (void*)getProcAddress("glGetVertexAttribPointerv");
+		if (s_glGetVertexAttribPointerv == null) missing.Add("glGetVertexAttribPointerv");
 		s_glGetVertexAttribdv = (void*)getProcAddress("glGetVertexAttribdv");
+		if (s_glGetVertexAttribdv == null) missing.Add("glGetVertexAttribdv");
 		s_glGetVertexAttribfv = (void*)getProcAddress("glGetVertexAttribfv");
+		if (s_glGetVertexAttribfv == null) missing.Add("glGetVertexAttribfv");
 		s_glGetVertexAttribiv = (void*)getProcAddress("glGetVertexAttribiv");
+		if (s_glGetVertexAttribiv == null) missing.Add("glGetVertexAttribiv");
 		s_glGetnColorTable = (void*)getProcAddress("glGetnColorTable");
+		if (s_glGetnColorTable == null) missing.Add("glGetnColorTable");
 		s_glGetnCompressedTexImage = (void*)getProcAddress("glGetnCompressedTexImage");
+		if (s_glGetnCompressedTexImage == null) missing.Add("glGetnCompressedTexImage");
 		s_glGetnConvolutionFilter = (void*)getProcAddress("glGetnConvolutionFilter");
+		if (s_glGetnConvolutionFilter == null) missing.Add("glGetnConvolutionFilter");
 		s_glGetnHistogram = (void*)getProcAddress("glGetnHistogram");
+		if (s_glGetnHistogram == null) missing.Add("glGetnHistogram");
 		s_glGetnMapdv = (void*)getProcAddress("glGetnMapdv");
+		if (s_glGetnMapdv == null) missing.Add("glGetnMapdv");
 		s_glGetnMapfv = (void*)getProcAddress("glGetnMapfv");
+		if (s_glGetnMapfv == null) missing.Add("glGetnMapfv");
 		s_glGetnMapiv = (void*)getProcAddress("glGetnMapiv");
+		if (s_glGetnMapiv == null) missing.Add("glGetnMapiv");
 		s_glGetnMinmax = (void*)getProcAddress("glGetnMinmax");
+		if (s_glGetnMinmax == null) missing.Add("glGetnMinmax");
 		s_glGetnPixelMapfv = (void*)getProcAddress("glGetnPixelMapfv");
+		if (s_glGetnPixelMapfv == null) missing.Add("glGetnPixelMapfv");
 		s_glGetnPixelMapuiv = (void*)getProcAddress("glGetnPixelMapuiv");
+		if (s_glGetnPixelMapuiv == null) missing.Add("glGetnPixelMapuiv");
 		s_glGetnPixelMapusv = (void*)getProcAddress("glGetnPixelMapusv");
+		if (s_glGetnPixelMapusv == null) missing.Add("glGetnPixelMapusv");
 		s_glGetnPolygonStipple = (void*)getProcAddress("glGetnPolygonStipple");
+		if (s_glGetnPolygonStipple == null) missing.Add("glGetnPolygonStipple");
 		s_glGetnSeparableFilter = (void*)getProcAddress("glGetnSeparableFilter");
+		if (s_glGetnSeparableFilter == null) missing.Add("glGetnSeparableFilter");
 		s_glGetnTexImage = (void*)getProcAddress("glGetnTexImage");
+		if (s_glGetnTexImage == null) missing.Add("glGetnTexImage");
 		s_glGetnUniformdv = (void*)getProcAddress("glGetnUniformdv");
+		if (s_glGetnUniformdv == null) missing.Add("glGetnUniformdv");
 		s_glGetnUniformfv = (void*)getProcAddress("glGetnUniformfv");
+		if (s_glGetnUniformfv == null) missing.Add("glGetnUniformfv");
 		s_glGetnUniformiv = (void*)getProcAddress("glGetnUniformiv");
+		if (s_glGetnUniformiv == null) missing.Add("glGetnUniformiv");
 		s_glGetnUniformuiv = (void*)getProcAddress("glGetnUniformuiv");
+		if (s_glGetnUniformuiv == null) missing.Add("glGetnUniformuiv");
 		s_glHint = (void*)getProcAddress("glHint");
+		if (s_glHint == null) missing.Add("glHint");
 		s_glInvalidateBufferData = (void*)getProcAddress("glInvalidateBufferData");
+		if (s_glInvalidateBufferData == null) missing.Add("glInvalidateBufferData");
 		s_glInvalidateBufferSubData = (void*)getProcAddress("glInvalidateBufferSubData");
+		if (s_glInvalidateBufferSubData == null) missing.Add("glInvalidateBufferSubData");
 		s_glInvalidateFramebuffer = (void*)getProcAddress("glInvalidateFramebuffer");
+		if (s_glInvalidateFramebuffer == null) missing.Add("glInvalidateFramebuffer");
 		s_glInvalidateNamedFramebufferData = (void*)getProcAddress("glInvalidateNamedFramebufferData");
+		if (s_glInvalidateNamedFramebufferData == null) missing.Add("glInvalidateNamedFramebufferData");
 		s_glInvalidateNamedFramebufferSubData = (void*)getProcAddress("glInvalidateNamedFramebufferSubData");
+		if (s_glInvalidateNamedFramebufferSubData == null) missing.Add("glInvalidateNamedFramebufferSubData");
 		s_glInvalidateSubFramebuffer = (void*)getProcAddress("glInvalidateSubFramebuffer");
+		if (s_glInvalidateSubFramebuffer == null) missing.Add("glInvalidateSubFramebuffer");
 		s_glInvalidateTexImage = (void*)getProcAddress("glInvalidateTexImage");
+		if (s_glInvalidateTexImage == null) missing.Add("glInvalidateTexImage");
 		s_glInvalidateTexSubImage = (void*)getProcAddress("glInvalidateTexSubImage");
+		if (s_glInvalidateTexSubImage == null) missing.Add("glInvalidateTexSubImage");
 		s_glIsBuffer = (void*)getProcAddress("glIsBuffer");
+		if (s_glIsBuffer == null) missing.Add("glIsBuffer");
 		s_glIsEnabled = (void*)getProcAddress("glIsEnabled");
+		if (s_glIsEnabled == null) missing.Add("glIsEnabled");
 		s_glIsEnabledi = (void*)getProcAddress("glIsEnabledi");
+		if (s_glIsEnabledi == null) missing.Add("glIsEnabledi");
 		s_glIsFramebuffer = (void*)getProcAddress("glIsFramebuffer");
+		if (s_glIsFramebuffer == null) missing.Add("glIsFramebuffer");
 		s_glIsProgram = (void*)getProcAddress("glIsProgram");
+		if (s_glIsProgram == null) missing.Add("glIsProgram");
 		s_glIsProgramPipeline = (void*)getProcAddress("glIsProgramPipeline");
+		if (s_glIsProgramPipeline == null) missing.Add("glIsProgramPipeline");
 		s_glIsQuery = (void*)getProcAddress("glIsQuery");
+		if (s_glIsQuery == null) missing.Add("glIsQuery");
 		s_glIsRenderbuffer = (void*)getProcAddress("glIsRenderbuffer");
+		if (s_glIsRenderbuffer == null) missing.Add("glIsRenderbuffer");
 		s_glIsSampler = (void*)getProcAddress("glIsSampler");
+		if (s_glIsSampler == null) missing.Add("glIsSampler");
 		s_glIsShader = (void*)getProcAddress("glIsShader");
+		if (s_glIsShader == null) missing.Add("glIsShader");
 		s_glIsSync = (void*)getProcAddress("glIsSync");
+		if (s_glIsSync == null) missing.Add("glIsSync");
 		s_glIsTexture = (void*)getProcAddress("glIsTexture");
+		if (s_glIsTexture == null) missing.Add("glIsTexture");
 		s_glIsTransformFeedback = (void*)getProcAddress("glIsTransformFeedback");
+		if (s_glIsTransformFeedback == null) missing.Add("glIsTransformFeedback");
 		s_glIsVertexArray = (void*)getProcAddress("glIsVertexArray");
+		if (s_glIsVertexArray == null) missing.Add("glIsVertexArray");
 		s_glLineWidth = (void*)getProcAddress("glLineWidth");
+		if (s_glLineWidth == null) missing.Add("glLineWidth");
 		s_glLinkProgram = (void*)getProcAddress("glLinkProgram");
+		if (s_glLinkProgram == null) missing.Add("glLinkProgram");
 		s_glLogicOp = (void*)getProcAddress("glLogicOp");
+		if (s_glLogicOp == null) missing.Add("glLogicOp");
 		s_glMapBuffer = (void*)getProcAddress("glMapBuffer");
+		if (s_glMapBuffer == null) missing.Add("glMapBuffer");
 		s_glMapBufferRange = (void*)getProcAddress("glMapBufferRange");
+		if (s_glMapBufferRange == null) missing.Add("glMapBufferRange");
 		s_glMapNamedBuffer = (void*)getProcAddress("glMapNamedBuffer");
+		if (s_glMapNamedBuffer == null) missing.Add("glMapNamedBuffer");
 		s_glMapNamedBufferRange = (void*)getProcAddress("glMapNamedBufferRange");
+		if (s_glMapNamedBufferRange == null) missing.Add("glMapNamedBufferRange");
 		s_glMemoryBarrier = (void*)getProcAddress("glMemoryBarrier");
+		if (s_glMemoryBarrier == null) missing.Add("glMemoryBarrier");
 		s_glMemoryBarrierByRegion = (void*)getProcAddress("glMemoryBarrierByRegion");
+		if (s_glMemoryBarrierByRegion == null) missing.Add("glMemoryBarrierByRegion");
 		s_glMinSampleShading = (void*)getProcAddress("glMinSampleShading");
+		if (s_glMinSampleShading == null) missing.Add("glMinSampleShading");
 		s_glMultiDrawArrays = (void*)getProcAddress("glMultiDrawArrays");
+		if (s_glMultiDrawArrays == null) missing.Add("glMultiDrawArrays");
 		s_glMultiDrawArraysIndirect = (void*)getProcAddress("glMultiDrawArraysIndirect");
+		if (s_glMultiDrawArraysIndirect == null) missing.Add("glMultiDrawArraysIndirect");
 		s_glMultiDrawArraysIndirectCount = (void*)getProcAddress("glMultiDrawArraysIndirectCount");
+		if (s_glMultiDrawArraysIndirectCount == null) missing.Add("glMultiDrawArraysIndirectCount");
 		s_glMultiDrawElements = (void*)getProcAddress("glMultiDrawElements");
+		if (s_glMultiDrawElements == null) missing.Add("glMultiDrawElements");
 		s_glMultiDrawElementsBaseVertex = (void*)getProcAddress("glMultiDrawElementsBaseVertex");
+		if (s_glMultiDrawElementsBaseVertex == null) missing.Add("glMultiDrawElementsBaseVertex");
 		s_glMultiDrawElementsIndirect = (void*)getProcAddress("glMultiDrawElementsIndirect");
+		if (s_glMultiDrawElementsIndirect == null) missing.Add("glMultiDrawElementsIndirect");
 		s_glMultiDrawElementsIndirectCount = (void*)getProcAddress("glMultiDrawElementsIndirectCount");
+		if (s_glMultiDrawElementsIndirectCount == null) missing.Add("glMultiDrawElementsIndirectCount");
 		s_glMultiTexCoordP1ui = (void*)getProcAddress("glMultiTexCoordP1ui");
+		if (s_glMultiTexCoordP1ui == null) missing.Add("glMultiTexCoordP1ui");
 		s_glMultiTexCoordP1uiv = (void*)getProcAddress("glMultiTexCoordP1uiv");
+		if (s_glMultiTexCoordP1uiv == null) missing.Add("glMultiTexCoordP1uiv");
 		s_glMultiTexCoordP2ui = (void*)getProcAddress("glMultiTexCoordP2ui");
+		if (s_glMultiTexCoordP2ui == null) missing.Add("glMultiTexCoordP2ui");
 		s_glMultiTexCoordP2uiv = (void*)getProcAddress("glMultiTexCoordP2uiv");
+		if (s_glMultiTexCoordP2uiv == null) missing.Add("glMultiTexCoordP2uiv");
 		s_glMultiTexCoordP3ui = (void*)getProcAddress("glMultiTexCoordP3ui");
+		if (s_glMultiTexCoordP3ui == null) missing.Add("glMultiTexCoordP3ui");
 		s_glMultiTexCoordP3uiv = (void*)getProcAddress("glMultiTexCoordP3uiv");
+		if (s_glMultiTexCoordP3uiv == null) missing.Add("glMultiTexCoordP3uiv");
 		s_glMultiTexCoordP4ui = (void*)getProcAddress("glMultiTexCoordP4ui");
+		if (s_glMultiTexCoordP4ui == null) missing.Add("glMultiTexCoordP4ui");
 		s_glMultiTexCoordP4uiv = (void*)getProcAddress("glMultiTexCoordP4uiv");
+		if (s_glMultiTexCoordP4uiv == null) missing.Add("glMultiTexCoordP4uiv");
 		s_glNamedBufferData = (void*)getProcAddress("glNamedBufferData");
+		if (s_glNamedBufferData == null) missing.Add("glNamedBufferData");
 		s_glNamedBufferStorage = (void*)getProcAddress("glNamedBufferStorage");
+		if (s_glNamedBufferStorage == null) missing.Add("glNamedBufferStorage");
 		s_glNamedBufferSubData = (void*)getProcAddress("glNamedBufferSubData");
+		if (s_glNamedBufferSubData == null) missing.Add("glNamedBufferSubData");
 		s_glNamedFramebufferDrawBuffer = (void*)getProcAddress("glNamedFramebufferDrawBuffer");
+		if (s_glNamedFramebufferDrawBuffer == null) missing.Add("glNamedFramebufferDrawBuffer");
 		s_glNamedFramebufferDrawBuffers = (void*)getProcAddress("glNamedFramebufferDrawBuffers");
+		if (s_glNamedFramebufferDrawBuffers == null) missing.Add("glNamedFramebufferDrawBuffers");
 		s_glNamedFramebufferParameteri = (void*)getProcAddress("glNamedFramebufferParameteri");
+		if (s_glNamedFramebufferParameteri == null) missing.Add("glNamedFramebufferParameteri");
 		s_glNamedFramebufferReadBuffer = (void*)getProcAddress("glNamedFramebufferReadBuffer");
+		if (s_glNamedFramebufferReadBuffer == null) missing.Add("glNamedFramebufferReadBuffer");
 		s_glNamedFramebufferRenderbuffer = (void*)getProcAddress("glNamedFramebufferRenderbuffer");
+		if (s_glNamedFramebufferRenderbuffer == null) missing.Add("glNamedFramebufferRenderbuffer");
 		s_glNamedFramebufferTexture = (void*)getProcAddress("glNamedFramebufferTexture");
+		if (s_glNamedFramebufferTexture == null) missing.Add("glNamedFramebufferTexture");
 		s_glNamedFramebufferTextureLayer = (void*)getProcAddress("glNamedFramebufferTextureLayer");
+		if (s_glNamedFramebufferTextureLayer == null) missing.Add("glNamedFramebufferTextureLayer");
 		s_glNamedRenderbufferStorage = (void*)getProcAddress("glNamedRenderbufferStorage");
+		if (s_glNamedRenderbufferStorage == null) missing.Add("glNamedRenderbufferStorage");
 		s_glNamedRenderbufferStorageMultisample = (void*)getProcAddress("glNamedRenderbufferStorageMultisample");
+		if (s_glNamedRenderbufferStorageMultisample == null) missing.Add("glNamedRenderbufferStorageMultisample");
 		s_glNormalP3ui = (void*)getProcAddress("glNormalP3ui");
+		if (s_glNormalP3ui == null) missing.Add("glNormalP3ui");
 		s_glNormalP3uiv = (void*)getProcAddress("glNormalP3uiv");
+		if (s_glNormalP3uiv == null) missing.Add("glNormalP3uiv");
 		s_glObjectLabel = (void*)getProcAddress("glObjectLabel");
+		if (s_glObjectLabel == null) missing.Add("glObjectLabel");
 		s_glObjectPtrLabel = (void*)getProcAddress("glObjectPtrLabel");
+		if (s_glObjectPtrLabel == null) missing.Add("glObjectPtrLabel");
 		s_glPatchParameterfv = (void*)getProcAddress("glPatchParameterfv");
+		if (s_glPatchParameterfv == null) missing.Add("glPatchParameterfv");
 		s_glPatchParameteri = (void*)getProcAddress("glPatchParameteri");
+		if (s_glPatchParameteri == null) missing.Add("glPatchParameteri");
 		s_glPauseTransformFeedback = (void*)getProcAddress("glPauseTransformFeedback");
+		if (s_glPauseTransformFeedback == null) missing.Add("glPauseTransformFeedback");
 		s_glPixelStoref = (void*)getProcAddress("glPixelStoref");
+		if (s_glPixelStoref == null) missing.Add("glPixelStoref");
 		s_glPixelStorei = (void*)getProcAddress("glPixelStorei");
+		if (s_glPixelStorei == null) missing.Add("glPixelStorei");
 		s_glPointParameterf = (void*)getProcAddress("glPointParameterf");
+		if (s_glPointParameterf == null) missing.Add("glPointParameterf");
 		s_glPointParameterfv = (void*)getProcAddress("glPointParameterfv");
+		if (s_glPointParameterfv == null) missing.Add("glPointParameterfv");
 		s_glPointParameteri = (void*)getProcAddress("glPointParameteri");
+		if (s_glPointParameteri == null) missing.Add("glPointParameteri");
 		s_glPointParameteriv = (void*)getProcAddress("glPointParameteriv");
+		if (s_glPointParameteriv == null) missing.Add("glPointParameteriv");
 		s_glPointSize = (void*)getProcAddress("glPointSize");
+		if (s_glPointSize == null) missing.Add("glPointSize");
 		s_glPolygonMode = (void*)getProcAddress("glPolygonMode");
+		if (s_glPolygonMode == null) missing.Add("glPolygonMode");
 		s_glPolygonOffset = (void*)getProcAddress("glPolygonOffset");
+		if (s_glPolygonOffset == null) missing.Add("glPolygonOffset");
 		s_glPolygonOffsetClamp = (void*)getProcAddress("glPolygonOffsetClamp");
+		if (s_glPolygonOffsetClamp == null) missing.Add("glPolygonOffsetClamp");
 		s_glPopDebugGroup = (void*)getProcAddress("glPopDebugGroup");
+		if (s_glPopDebugGroup == null) missing.Add("glPopDebugGroup");
 		s_glPrimitiveRestartIndex = (void*)getProcAddress("glPrimitiveRestartIndex");
+		if (s_glPrimitiveRestartIndex == null) missing.Add("glPrimitiveRestartIndex");
 		s_glProgramBinary = (void*)getProcAddress("glProgramBinary");
+		if (s_glProgramBinary == null) missing.Add("glProgramBinary");
 		s_glProgramParameteri = (void*)getProcAddress("glProgramParameteri");
+		if (s_glProgramParameteri == null) missing.Add("glProgramParameteri");
 		s_glProgramUniform1d = (void*)getProcAddress("glProgramUniform1d");
+		if (s_glProgramUniform1d == null) missing.Add("glProgramUniform1d");
 		s_glProgramUniform1dv = (void*)getProcAddress("glProgramUniform1dv");
+		if (s_glProgramUniform1dv == null) missing.Add("glProgramUniform1dv");
 		s_glProgramUniform1f = (void*)getProcAddress("glProgramUniform1f");
+		if (s_glProgramUniform1f == null) missing.Add("glProgramUniform1f");
 		s_glProgramUniform1fv = (void*)getProcAddress("glProgramUniform1fv");
+		if (s_glProgramUniform1fv == null) missing.Add("glProgramUniform1fv");
 		s_glProgramUniform1i = (void*)getProcAddress("glProgramUniform1i");
+		if (s_glProgramUniform1i == null) missing.Add("glProgramUniform1i");
 		s_glProgramUniform1iv = (void*)getProcAddress("glProgramUniform1iv");
+		if (s_glProgramUniform1iv == null) missing.Add("glProgramUniform1iv");
 		s_glProgramUniform1ui = (void*)getProcAddress("glProgramUniform1ui");
+		if (s_glProgramUniform1ui == null) missing.Add("glProgramUniform1ui");
 		s_glProgramUniform1uiv = (void*)getProcAddress("glProgramUniform1uiv");
+		if (s_glProgramUniform1uiv == null) missing.Add("glProgramUniform1uiv");
 		s_glProgramUniform2d = (void*)getProcAddress("glProgramUniform2d");
+		if (s_glProgramUniform2d == null) missing.Add("glProgramUniform2d");
 		s_glProgramUniform2dv = (void*)getProcAddress("glProgramUniform2dv");
+		if (s_glProgramUniform2dv == null) missing.Add("glProgramUniform2dv");
 		s_glProgramUniform2f = (void*)getProcAddress("glProgramUniform2f");
+		if (s_glProgramUniform2f == null) missing.Add("glProgramUniform2f");
 		s_glProgramUniform2fv = (void*)getProcAddress("glProgramUniform2fv");
+		if (s_glProgramUniform2fv == null) missing.Add("glProgramUniform2fv");
 		s_glProgramUniform2i = (void*)getProcAddress("glProgramUniform2i");
+		if (s_glProgramUniform2i == null) missing.Add("glProgramUniform2i");
 		s_glProgramUniform2iv = (void*)getProcAddress("glProgramUniform2iv");
+		if (s_glProgramUniform2iv == null) missing.Add("glProgramUniform2iv");
 		s_glProgramUniform2ui = (void*)getProcAddress("glProgramUniform2ui");
+		if (s_glProgramUniform2ui == null) missing.Add("glProgramUniform2ui");
 		s_glProgramUniform2uiv = (void*)getProcAddress("glProgramUniform2uiv");
+		if (s_glProgramUniform2uiv == null) missing.Add("glProgramUniform2uiv");
 		s_glProgramUniform3d = (void*)getProcAddress("glProgramUniform3d");
+		if (s_glProgramUniform3d == null) missing.Add("glProgramUniform3d");
 		s_glProgramUniform3dv = (void*)getProcAddress("glProgramUniform3dv");
+		if (s_glProgramUniform3dv == null) missing.Add("glProgramUniform3dv");
 		s_glProgramUniform3f = (void*)getProcAddress("glProgramUniform3f");
+		if (s_glProgramUniform3f == null) missing.Add("glProgramUniform3f");
 		s_glProgramUniform3fv = (void*)getProcAddress("glProgramUniform3fv");
+		if (s_glProgramUniform3fv == null) missing.Add("glProgramUniform3fv");
 		s_glProgramUniform3i = (void*)getProcAddress("glProgramUniform3i");
+		if (s_glProgramUniform3i == null) missing.Add("glProgramUniform3i");
 		s_glProgramUniform3iv = (void*)getProcAddress("glProgramUniform3iv");
+		if (s_glProgramUniform3iv == null) missing.Add("glProgramUniform3iv");
 		s_glProgramUniform3ui = (void*)getProcAddress("glProgramUniform3ui");
+		if (s_glProgramUniform3ui == null) missing.Add("glProgramUniform3ui");
 		s_glProgramUniform3uiv = (void*)getProcAddress("glProgramUniform3uiv");
+		if (s_glProgramUniform3uiv == null) missing.Add("glProgramUniform3uiv");
 		s_glProgramUniform4d = (void*)getProcAddress("glProgramUniform4d");
+		if (s_glProgramUniform4d == null) missing.Add("glProgramUniform4d");
 		s_glProgramUniform4dv = (void*)getProcAddress("glProgramUniform4dv");
+		if (s_glProgramUniform4dv == null) missing.Add("glProgramUniform4dv");
 		s_glProgramUniform4f = (void*)getProcAddress("glProgramUniform4f");
+		if (s_glProgramUniform4f == null) missing.Add("glProgramUniform4f");
 		s_glProgramUniform4fv = (void*)getProcAddress("glProgramUniform4fv");
+		if (s_glProgramUniform4fv == null) missing.Add("glProgramUniform4fv");
 		s_glProgramUniform4i = (void*)getProcAddress("glProgramUniform4i");
+		if (s_glProgramUniform4i == null) missing.Add("glProgramUniform4i");
 		s_glProgramUniform4iv = (void*)getProcAddress("glProgramUniform4iv");
+		if (s_glProgramUniform4iv == null) missing.Add("glProgramUniform4iv");
 		s_glProgramUniform4ui = (void*)getProcAddress("glProgramUniform4ui");
+		if (s_glProgramUniform4ui == null) missing.Add("glProgramUniform4ui");
 		s_glProgramUniform4uiv = (void*)getProcAddress("glProgramUniform4uiv");
+		if (s_glProgramUniform4uiv == null) missing.Add("glProgramUniform4uiv");
 		s_glProgramUniformMatrix2dv = (void*)getProcAddress("glProgramUniformMatrix2dv");
+		if (s_glProgramUniformMatrix2dv == null) missing.Add("glProgramUniformMatrix2dv");
 		s_glProgramUniformMatrix2fv = (void*)getProcAddress("glProgramUniformMatrix2fv");
+		if (s_glProgramUniformMatrix2fv == null) missing.Add("glProgramUniformMatrix2fv");
 		s_glProgramUniformMatrix2x3dv = (void*)getProcAddress("glProgramUniformMatrix2x3dv");
+		if (s_glProgramUniformMatrix2x3dv == null) missing.Add("glProgramUniformMatrix2x3dv");
 		s_glProgramUniformMatrix2x3fv = (void*)getProcAddress("glProgramUniformMatrix2x3fv");
+		if (s_glProgramUniformMatrix2x3fv == null) missing.Add("glProgramUniformMatrix2x3fv");
 		s_glProgramUniformMatrix2x4dv = (void*)getProcAddress("glProgramUniformMatrix2x4dv");
+		if (s_glProgramUniformMatrix2x4dv == null) missing.Add("glProgramUniformMatrix2x4dv");
 		s_glProgramUniformMatrix2x4fv = (void*)getProcAddress("glProgramUniformMatrix2x4fv");
+		if (s_glProgramUniformMatrix2x4fv == null) missing.Add("glProgramUniformMatrix2x4fv");
 		s_glProgramUniformMatrix3dv = (void*)getProcAddress("glProgramUniformMatrix3dv");
+		if (s_glProgramUniformMatrix3dv == null) missing.Add("glProgramUniformMatrix3dv");
 		s_glProgramUniformMatrix3fv = (void*)getProcAddress("glProgramUniformMatrix3fv");
+		if (s_glProgramUniformMatrix3fv == null) missing.Add("glProgramUniformMatrix3fv");
 		s_glProgramUniformMatrix3x2dv = (void*)getProcAddress("glProgramUniformMatrix3x2dv");
+		if (s_glProgramUniformMatrix3x2dv == null) missing.Add("glProgramUniformMatrix3x2dv");
 		s_glProgramUniformMatrix3x2fv = (void*)getProcAddress("glProgramUniformMatrix3x2fv");
+		if (s_glProgramUniformMatrix3x2fv == null) missing.Add("glProgramUniformMatrix3x2fv");
 		s_glProgramUniformMatrix3x4dv = (void*)getProcAddress("glProgramUniformMatrix3x4dv");
+		if (s_glProgramUniformMatrix3x4dv == null) missing.Add("glProgramUniformMatrix3x4dv");
 		s_glProgramUniformMatrix3x4fv = (void*)getProcAddress("glProgramUniformMatrix3x4fv");
+		if (s_glProgramUniformMatrix3x4fv == null) missing.Add("glProgramUniformMatrix3x4fv");
 		s_glProgramUniformMatrix4dv = (void*)getProcAddress("glProgramUniformMatrix4dv");
+		if (s_glProgramUniformMatrix4dv == null) missing.Add("glProgramUniformMatrix4dv");
 		s_glProgramUniformMatrix4fv = (void*)getProcAddress("glProgramUniformMatrix4fv");
+		if (s_glProgramUniformMatrix4fv == null) missing.Add("glProgramUniformMatrix4fv");
 		s_glProgramUniformMatrix4x2dv = (void*)getProcAddress("glProgramUniformMatrix4x2dv");
+		if (s_glProgramUniformMatrix4x2dv == null) missing.Add("glProgramUniformMatrix4x2dv");
 		s_glProgramUniformMatrix4x2fv = (void*)getProcAddress("glProgramUniformMatrix4x2fv");
+		if (s_glProgramUniformMatrix4x2fv == null) missing.Add("glProgramUniformMatrix4x2fv");
 		s_glProgramUniformMatrix4x3dv = (void*)getProcAddress("glProgramUniformMatrix4x3dv");
+		if (s_glProgramUniformMatrix4x3dv == null) missing.Add("glProgramUniformMatrix4x3dv");
 		s_glProgramUniformMatrix4x3fv = (void*)getProcAddress("glProgramUniformMatrix4x3fv");
+		if (s_glProgramUniformMatrix4x3fv == null) missing.Add("glProgramUniformMatrix4x3fv");
 		s_glProvokingVertex = (void*)getProcAddress("glProvokingVertex");
+		if (s_glProvokingVertex == null) missing.Add("glProvokingVertex");
 		s_glPushDebugGroup = (void*)getProcAddress("glPushDebugGroup");
+		if (s_glPushDebugGroup == null) missing.Add("glPushDebugGroup");
 		s_glQueryCounter = (void*)getProcAddress("glQueryCounter");
+		if (s_glQueryCounter == null) missing.Add("glQueryCounter");
 		s_glReadBuffer = (void*)getProcAddress("glReadBuffer");
+		if (s_glReadBuffer == null) missing.Add("glReadBuffer");
 		s_glReadPixels = (void*)getProcAddress("glReadPixels");
+		if (s_glReadPixels == null) missing.Add("glReadPixels");
 		s_glReadnPixels = (void*)getProcAddress("glReadnPixels");
+		if (s_glReadnPixels == null) missing.Add("glReadnPixels");
 		s_glReleaseShaderCompiler = (void*)getProcAddress("glReleaseShaderCompiler");
+		if (s_glReleaseShaderCompiler == null) missing.Add("glReleaseShaderCompiler");
 		s_glRenderbufferStorage = (void*)getProcAddress("glRenderbufferStorage");
+		if (s_glRenderbufferStorage == null) missing.Add("glRenderbufferStorage");
 		s_glRenderbufferStorageMultisample = (void*)getProcAddress("glRenderbufferStorageMultisample");
+		if (s_glRenderbufferStorageMultisample == null) missing.Add("glRenderbufferStorageMultisample");
 		s_glResumeTransformFeedback = (void*)getProcAddress("glResumeTransformFeedback");
+		if (s_glResumeTransformFeedback == null) missing.Add("glResumeTransformFeedback");
 		s_glSampleCoverage = (void*)getProcAddress("glSampleCoverage");
+		if (s_glSampleCoverage == null) missing.Add("glSampleCoverage");
 		s_glSampleMaski = (void*)getProcAddress("glSampleMaski");
+		if (s_glSampleMaski == null) missing.Add("glSampleMaski");
 		s_glSamplerParameterIiv = (void*)getProcAddress("glSamplerParameterIiv");
+		if (s_glSamplerParameterIiv == null) missing.Add("glSamplerParameterIiv");
 		s_glSamplerParameterIuiv = (void*)getProcAddress("glSamplerParameterIuiv");
+		if (s_glSamplerParameterIuiv == null) missing.Add("glSamplerParameterIuiv");
 		s_glSamplerParameterf = (void*)getProcAddress("glSamplerParameterf");
+		if (s_glSamplerParameterf == null) missing.Add("glSamplerParameterf");
 		s_glSamplerParameterfv = (void*)getProcAddress("glSamplerParameterfv");
+		if (s_glSamplerParameterfv == null) missing.Add("glSamplerParameterfv");
 		s_glSamplerParameteri = (void*)getProcAddress("glSamplerParameteri");
+		if (s_glSamplerParameteri == null) missing.Add("glSamplerParameteri");
 		s_glSamplerParameteriv = (void*)getProcAddress("glSamplerParameteriv");
+		if (s_glSamplerParameteriv == null) missing.Add("glSamplerParameteriv");
 		s_glScissor = (void*)getProcAddress("glScissor");
+		if (s_glScissor == null) missing.Add("glScissor");
 		s_glScissorArrayv = (void*)getProcAddress("glScissorArrayv");
+		if (s_glScissorArrayv == null) missing.Add("glScissorArrayv");
 		s_glScissorIndexed = (void*)getProcAddress("glScissorIndexed");
+		if (s_glScissorIndexed == null) missing.Add("glScissorIndexed");
 		s_glScissorIndexedv = (void*)getProcAddress("glScissorIndexedv");
+		if (s_glScissorIndexedv == null) missing.Add("glScissorIndexedv");
 		s_glSecondaryColorP3ui = (void*)getProcAddress("glSecondaryColorP3ui");
+		if (s_glSecondaryColorP3ui == null) missing.Add("glSecondaryColorP3ui");
 		s_glSecondaryColorP3uiv = (void*)getProcAddress("glSecondaryColorP3uiv");
+		if (s_glSecondaryColorP3uiv == null) missing.Add("glSecondaryColorP3uiv");
 		s_glShaderBinary = (void*)getProcAddress("glShaderBinary");
+		if (s_glShaderBinary == null) missing.Add("glShaderBinary");
 		s_glShaderSource = (void*)getProcAddress("glShaderSource");
+		if (s_glShaderSource == null) missing.Add("glShaderSource");
 		s_glShaderStorageBlockBinding = (void*)getProcAddress("glShaderStorageBlockBinding");
+		if (s_glShaderStorageBlockBinding == null) missing.Add("glShaderStorageBlockBinding");
 		s_glSpecializeShader = (void*)getProcAddress("glSpecializeShader");
+		if (s_glSpecializeShader == null) missing.Add("glSpecializeShader");
 		s_glStencilFunc = (void*)getProcAddress("glStencilFunc");
+		if (s_glStencilFunc == null) missing.Add("glStencilFunc");
 		s_glStencilFuncSeparate = (void*)getProcAddress("glStencilFuncSeparate");
+		if (s_glStencilFuncSeparate == null) missing.Add("glStencilFuncSeparate");
 		s_glStencilMask = (void*)getProcAddress("glStencilMask");
+		if (s_glStencilMask == null) missing.Add("glStencilMask");
 		s_glStencilMaskSeparate = (void*)getProcAddress("glStencilMaskSeparate");
+		if (s_glStencilMaskSeparate == null) missing.Add("glStencilMaskSeparate");
 		s_glStencilOp = (void*)getProcAddress("glStencilOp");
+		if (s_glStencilOp == null) missing.Add("glStencilOp");
 		s_glStencilOpSeparate = (void*)getProcAddress("glStencilOpSeparate");
+		if (s_glStencilOpSeparate == null) missing.Add("glStencilOpSeparate");
 		s_glTexBuffer = (void*)getProcAddress("glTexBuffer");
+		if (s_glTexBuffer == null) missing.Add("glTexBuffer");
 		s_glTexBufferRange = (void*)getProcAddress("glTexBufferRange");
+		if (s_glTexBufferRange == null) missing.Add("glTexBufferRange");
 		s_glTexCoordP1ui = (void*)getProcAddress("glTexCoordP1ui");
+		if (s_glTexCoordP1ui == null) missing.Add("glTexCoordP1ui");
 		s_glTexCoordP1uiv = (void*)getProcAddress("glTexCoordP1uiv");
+		if (s_glTexCoordP1uiv == null) missing.Add("glTexCoordP1uiv");
 		s_glTexCoordP2ui = (void*)getProcAddress("glTexCoordP2ui");
+		if (s_glTexCoordP2ui == null) missing.Add("glTexCoordP2ui");
 		s_glTexCoordP2uiv = (void*)getProcAddress("glTexCoordP2uiv");
+		if (s_glTexCoordP2uiv == null) missing.Add("glTexCoordP2uiv");
 		s_glTexCoordP3ui = (void*)getProcAddress("glTexCoordP3ui");
+		if (s_glTexCoordP3ui == null) missing.Add("glTexCoordP3ui");
 		s_glTexCoordP3uiv = (void*)getProcAddress("glTexCoordP3uiv");
+		if (s_glTexCoordP3uiv == null) missing.Add("glTexCoordP3uiv");
 		s_glTexCoordP4ui = (void*)getProcAddress("glTexCoordP4ui");
+		if (s_glTexCoordP4ui == null) missing.Add("glTexCoordP4ui");
 		s_glTexCoordP4uiv = (void*)getProcAddress("glTexCoordP4uiv");
+		if (s_glTexCoordP4uiv == null) missing.Add("glTexCoordP4uiv");
 		s_glTexImage1D = (void*)getProcAddress("glTexImage1D");
+		if (s_glTexImage1D == null) missing.Add("glTexImage1D");
 		s_glTexImage2D = (void*)getProcAddress("glTexImage2D");
+		if (s_glTexImage2D == null) missing.Add("glTexImage2D");
 		s_glTexImage2DMultisample = (void*)getProcAddress("glTexImage2DMultisample");
+		if (s_glTexImage2DMultisample == null) missing.Add("glTexImage2DMultisample");
 		s_glTexImage3D = (void*)getProcAddress("glTexImage3D");
+		if (s_glTexImage3D == null) missing.Add("glTexImage3D");
 		s_glTexImage3DMultisample = (void*)getProcAddress("glTexImage3DMultisample");
+		if (s_glTexImage3DMultisample == null) missing.Add("glTexImage3DMultisample");
 		s_glTexParameterIiv = (void*)getProcAddress("glTexParameterIiv");
+		if (s_glTexParameterIiv == null) missing.Add("glTexParameterIiv");
 		s_glTexParameterIuiv = (void*)getProcAddress("glTexParameterIuiv");
+		if (s_glTexParameterIuiv == null) missing.Add("glTexParameterIuiv");
 		s_glTexParameterf = (void*)getProcAddress("glTexParameterf");
+		if (s_glTexParameterf == null) missing.Add("glTexParameterf");
 		s_glTexParameterfv = (void*)getProcAddress("glTexParameterfv");
+		if (s_glTexParameterfv == null) missing.Add("glTexParameterfv");
 		s_glTexParameteri = (void*)getProcAddress("glTexParameteri");
+		if (s_glTexParameteri == null) missing.Add("glTexParameteri");
 		s_glTexParameteriv = (void*)getProcAddress("glTexParameteriv");
+		if (s_glTexParameteriv == null) missing.Add("glTexParameteriv");
 		s_glTexStorage1D = (void*)getProcAddress("glTexStorage1D");
+		if (s_glTexStorage1D == null) missing.Add("glTexStorage1D");
 		s_glTexStorage2D = (void*)getProcAddress("glTexStorage2D");
+		if (s_glTexStorage2D == null) missing.Add("glTexStorage2D");
 		s_glTexStorage2DMultisample = (void*)getProcAddress("glTexStorage2DMultisample");
+		if (s_glTexStorage2DMultisample == null) missing.Add("glTexStorage2DMultisample");
 		s_glTexStorage3D = (void*)getProcAddress("glTexStorage3D");
+		if (s_glTexStorage3D == null) missing.Add("glTexStorage3D");
 		s_glTexStorage3DMultisample = (void*)getProcAddress("glTexStorage3DMultisample");
+		if (s_glTexStorage3DMultisample == null) missing.Add("glTexStorage3DMultisample");
 		s_glTexSubImage1D = (void*)getProcAddress("glTexSubImage1D");
+		if (s_glTexSubImage1D == null) missing.Add("glTexSubImage1D");
 		s_glTexSubImage2D = (void*)getProcAddress("glTexSubImage2D");
+		if (s_glTexSubImage2D == null) missing.Add("glTexSubImage2D");
 		s_glTexSubImage3D = (void*)getProcAddress("glTexSubImage3D");
+		if (s_glTexSubImage3D == null) missing.Add("glTexSubImage3D");
 		s_glTextureBarrier = (void*)getProcAddress("glTextureBarrier");
+		if (s_glTextureBarrier == null) missing.Add("glTextureBarrier");
 		s_glTextureBuffer = (void*)getProcAddress("glTextureBuffer");
+		if (s_glTextureBuffer == null) missing.Add("glTextureBuffer");
 		s_glTextureBufferRange = (void*)getProcAddress("glTextureBufferRange");
+		if (s_glTextureBufferRange == null) missing.Add("glTextureBufferRange");
 		s_glTextureParameterIiv = (void*)getProcAddress("glTextureParameterIiv");
+		if (s_glTextureParameterIiv == null) missing.Add("glTextureParameterIiv");
 		s_glTextureParameterIuiv = (void*)getProcAddress("glTextureParameterIuiv");
+		if (s_glTextureParameterIuiv == null) missing.Add("glTextureParameterIuiv");
 		s_glTextureParameterf = (void*)getProcAddress("glTextureParameterf");
+		if (s_glTextureParameterf == null) missing.Add("glTextureParameterf");
 		s_glTextureParameterfv = (void*)getProcAddress("glTextureParameterfv");
+		if (s_glTextureParameterfv == null) missing.Add("glTextureParameterfv");
 		s_glTextureParameteri = (void*)getProcAddress("glTextureParameteri");
+		if (s_glTextureParameteri == null) missing.Add("glTextureParameteri");
 		s_glTextureParameteriv = (void*)getProcAddress("glTextureParameteriv");
+		if (s_glTextureParameteriv == null) missing.Add("glTextureParameteriv");
 		s_glTextureStorage1D = (void*)getProcAddress("glTextureStorage1D");
+		if (s_glTextureStorage1D == null) missing.Add("glTextureStorage1D");
 		s_glTextureStorage2D = (void*)getProcAddress("glTextureStorage2D");
+		if (s_glTextureStorage2D == null) missing.Add("glTextureStorage2D");
 		s_glTextureStorage2DMultisample = (void*)getProcAddress("glTextureStorage2DMultisample");
+		if (s_glTextureStorage2DMultisample == null) missing.Add("glTextureStorage2DMultisample");
 		s_glTextureStorage3D = (void*)getProcAddress("glTextureStorage3D");
+		if (s_glTextureStorage3D == null) missing.Add("glTextureStorage3D");
 		s_glTextureStorage3DMultisample = (void*)getProcAddress("glTextureStorage3DMultisample");
+		if (s_glTextureStorage3DMultisample == null) missing.Add("glTextureStorage3DMultisample");
 		s_glTextureSubImage1D = (void*)getProcAddress("glTextureSubImage1D");
+		if (s_glTextureSubImage1D == null) missing.Add("glTextureSubImage1D");
 		s_glTextureSubImage2D = (void*)getProcAddress("glTextureSubImage2D");
+		if (s_glTextureSubImage2D == null) missing.Add("glTextureSubImage2D");
 		s_glTextureSubImage3D = (void*)getProcAddress("glTextureSubImage3D");
+		if (s_glTextureSubImage3D == null) missing.Add("glTextureSubImage3D");
 		s_glTextureView = (void*)getProcAddress("glTextureView");
+		if (s_glTextureView == null) missing.Add("glTextureView");
 		s_glTransformFeedbackBufferBase = (void*)getProcAddress("glTransformFeedbackBufferBase");
+		if (s_glTransformFeedbackBufferBase == null) missing.Add("glTransformFeedbackBufferBase");
 		s_glTransformFeedbackBufferRange = (void*)getProcAddress("glTransformFeedbackBufferRange");
+		if (s_glTransformFeedbackBufferRange == null) missing.Add("glTransformFeedbackBufferRange");
 		s_glTransformFeedbackVaryings = (void*)getProcAddress("glTransformFeedbackVaryings");
+		if (s_glTransformFeedbackVaryings == null) missing.Add("glTransformFeedbackVaryings");
 		s_glUniform1d = (void*)getProcAddress("glUniform1d");
+		if (s_glUniform1d == null) missing.Add("glUniform1d");
 		s_glUniform1dv = (void*)getProcAddress("glUniform1dv");
+		if (s_glUniform1dv == null) missing.Add("glUniform1dv");
 		s_glUniform1f = (void*)getProcAddress("glUniform1f");
+		if (s_glUniform1f == null) missing.Add("glUniform1f");
 		s_glUniform1fv = (void*)getProcAddress("glUniform1fv");
+		if (s_glUniform1fv == null) missing.Add("glUniform1fv");
 		s_glUniform1i = (void*)getProcAddress("glUniform1i");
+		if (s_glUniform1i == null) missing.Add("glUniform1i");
 		s_glUniform1iv = (void*)getProcAddress("glUniform1iv");
+		if (s_glUniform1iv == null) missing.Add("glUniform1iv");
 		s_glUniform1ui = (void*)getProcAddress("glUniform1ui");
+		if (s_glUniform1ui == null) missing.Add("glUniform1ui");
 		s_glUniform1uiv = (void*)getProcAddress("glUniform1uiv");
+		if (s_glUniform1uiv == null) missing.Add("glUniform1uiv");
 		s_glUniform2d = (void*)getProcAddress("glUniform2d");
+		if (s_glUniform2d == null) missing.Add("glUniform2d");
 		s_glUniform2dv = (void*)getProcAddress("glUniform2dv");
+		if (s_glUniform2dv == null) missing.Add("glUniform2dv");
 		s_glUniform2f = (void*)getProcAddress("glUniform2f");
+		if (s_glUniform2f == null) missing.Add("glUniform2f");
 		s_glUniform2fv = (void*)getProcAddress("glUniform2fv");
+		if (s_glUniform2fv == null) missing.Add("glUniform2fv");
 		s_glUniform2i = (void*)getProcAddress("glUniform2i");
+		if (s_glUniform2i == null) missing.Add("glUniform2i");
 		s_glUniform2iv = (void*)getProcAddress("glUniform2iv");
+		if (s_glUniform2iv == null) missing.Add("glUniform2iv");
 		s_glUniform2ui = (void*)getProcAddress("glUniform2ui");
+		if (s_glUniform2ui == null) missing.Add("glUniform2ui");
 		s_glUniform2uiv = (void*)getProcAddress("glUniform2uiv");
+		if (s_glUniform2uiv == null) missing.Add("glUniform2uiv");
 		s_glUniform3d = (void*)getProcAddress("glUniform3d");
+		if (s_glUniform3d == null) missing.Add("glUniform3d");
 		s_glUniform3dv = (void*)getProcAddress("glUniform3dv");
+		if (s_glUniform3dv == null) missing.Add("glUniform3dv");
 		s_glUniform3f = (void*)getProcAddress("glUniform3f");
+		if (s_glUniform3f == null) missing.Add("glUniform3f");
 		s_glUniform3fv = (void*)getProcAddress("glUniform3fv");
+		if (s_glUniform3fv == null) missing.Add("glUniform3fv");
 		s_glUniform3i = (void*)getProcAddress("glUniform3i");
+		if (s_glUniform3i == null) missing.Add("glUniform3i");
 		s_glUniform3iv = (void*)getProcAddress("glUniform3iv");
+		if (s_glUniform3iv == null) missing.Add("glUniform3iv");
 		s_glUniform3ui = (void*)getProcAddress("glUniform3ui");
+		if (s_glUniform3ui == null) missing.Add("glUniform3ui");
 		s_glUniform3uiv = (void*)getProcAddress("glUniform3uiv");
+		if (s_glUniform3uiv == null) missing.Add("glUniform3uiv");
 		s_glUniform4d = (void*)getProcAddress("glUniform4d");
+		if (s_glUniform4d == null) missing.Add("glUniform4d");
 		s_glUniform4dv = (void*)getProcAddress("glUniform4dv");
+		if (s_glUniform4dv == null) missing.Add("glUniform4dv");
 		s_glUniform4f = (void*)getProcAddress("glUniform4f");
+		if (s_glUniform4f == null) missing.Add("glUniform4f");
 		s_glUniform4fv = (void*)getProcAddress("glUniform4fv");
+		if (s_glUniform4fv == null) missing.Add("glUniform4fv");
 		s_glUniform4i = (void*)getProcAddress("glUniform4i");
+		if (s_glUniform4i == null) missing.Add("glUniform4i");
 		s_glUniform4iv = (void*)getProcAddress("glUniform4iv");
+		if (s_glUniform4iv == null) missing.Add("glUniform4iv");
 		s_glUniform4ui = (void*)getProcAddress("glUniform4ui");
+		if (s_glUniform4ui == null) missing.Add("glUniform4ui");
 		s_glUniform4uiv = (void*)getProcAddress("glUniform4uiv");
+		if (s_glUniform4uiv == null) missing.Add("glUniform4uiv");
 		s_glUniformBlockBinding = (void*)getProcAddress("glUniformBlockBinding");
+		if (s_glUniformBlockBinding == null) missing.Add("glUniformBlockBinding");
 		s_glUniformMatrix2dv = (void*)getProcAddress("glUniformMatrix2dv");
+		if (s_glUniformMatrix2dv == null) missing.Add("glUniformMatrix2dv");
 		s_glUniformMatrix2fv = (void*)getProcAddress("glUniformMatrix2fv");
+		if (s_glUniformMatrix2fv == null) missing.Add("glUniformMatrix2fv");
 		s_glUniformMatrix2x3dv = (void*)getProcAddress("glUniformMatrix2x3dv");
+		if (s_glUniformMatrix2x3dv == null) missing.Add("glUniformMatrix2x3dv");
 		s_glUniformMatrix2x3fv = (void*)getProcAddress("glUniformMatrix2x3fv");
+		if (s_glUniformMatrix2x3fv == null) missing.Add("glUniformMatrix2x3fv");
 		s_glUniformMatrix2x4dv = (void*)getProcAddress("glUniformMatrix2x4dv");
+		if (s_glUniformMatrix2x4dv == null) missing.Add("glUniformMatrix2x4dv");
 		s_glUniformMatrix2x4fv = (void*)getProcAddress("glUniformMatrix2x4fv");
+		if (s_glUniformMatrix2x4fv == null) missing.Add("glUniformMatrix2x4fv");
 		s_glUniformMatrix3dv = (void*)getProcAddress("glUniformMatrix3dv");
+		if (s_glUniformMatrix3dv == null) missing.Add("glUniformMatrix3dv");
 		s_glUniformMatrix3fv = (void*)getProcAddress("glUniformMatrix3fv");
+		if (s_glUniformMatrix3fv == null) missing.Add("glUniformMatrix3fv");
 		s_glUniformMatrix3x2dv = (void*)getProcAddress("glUniformMatrix3x2dv");
+		if (s_glUniformMatrix3x2dv == null) missing.Add("glUniformMatrix3x2dv");
 		s_glUniformMatrix3x2fv = (void*)getProcAddress("glUniformMatrix3x2fv");
+		if (s_glUniformMatrix3x2fv == null) missing.Add("glUniformMatrix3x2fv");
 		s_glUniformMatrix3x4dv = (void*)getProcAddress("glUniformMatrix3x4dv");
+		if (s_glUniformMatrix3x4dv == null) missing.Add("glUniformMatrix3x4dv");
 		s_glUniformMatrix3x4fv = (void*)getProcAddress("glUniformMatrix3x4fv");
+		if (s_glUniformMatrix3x4fv == null) missing.Add("glUniformMatrix3x4fv");
 		s_glUniformMatrix4dv = (void*)getProcAddress("glUniformMatrix4dv");
+		if (s_glUniformMatrix4dv == null) missing.Add("glUniformMatrix4dv");
 		s_glUniformMatrix4fv = (void*)getProcAddress("glUniformMatrix4fv");
+		if (s_glUniformMatrix4fv == null) missing.Add("glUniformMatrix4fv");
 		s_glUniformMatrix4x2dv = (void*)getProcAddress("glUniformMatrix4x2dv");
+		if (s_glUniformMatrix4x2dv == null) missing.Add("glUniformMatrix4x2dv");
 		s_glUniformMatrix4x2fv = (void*)getProcAddress("glUniformMatrix4x2fv");
+		if (s_glUniformMatrix4x2fv == null) missing.Add("glUniformMatrix4x2fv");
 		s_glUniformMatrix4x3dv = (void*)getProcAddress("glUniformMatrix4x3dv");
+		if (s_glUniformMatrix4x3dv == null) missing.Add("glUniformMatrix4x3dv");
 		s_glUniformMatrix4x3fv = (void*)getProcAddress("glUniformMatrix4x3fv");
+		if (s_glUniformMatrix4x3fv == null) missing.Add("glUniformMatrix4x3fv");
 		s_glUniformSubroutinesuiv = (void*)getProcAddress("glUniformSubroutinesuiv");
+		if (s_glUniformSubroutinesuiv == null) missing.Add("glUniformSubroutinesuiv");
 		s_glUnmapBuffer = (void*)getProcAddress("glUnmapBuffer");
+		if (s_glUnmapBuffer == null) missing.Add("glUnmapBuffer");
 		s_glUnmapNamedBuffer = (void*)getProcAddress("glUnmapNamedBuffer");
+		if (s_glUnmapNamedBuffer == null) missing.Add("glUnmapNamedBuffer");
 		s_glUseProgram = (void*)getProcAddress("glUseProgram");
+		if (s_glUseProgram == null) missing.Add("glUseProgram");
 		s_glUseProgramStages = (void*)getProcAddress("glUseProgramStages");
+		if (s_glUseProgramStages == null) missing.Add("glUseProgramStages");
 		s_glValidateProgram = (void*)getProcAddress("glValidateProgram");
+		if (s_glValidateProgram == null) missing.Add("glValidateProgram");
 		s_glValidateProgramPipeline = (void*)getProcAddress("glValidateProgramPipeline");
+		if (s_glValidateProgramPipeline == null) missing.Add("glValidateProgramPipeline");
 		s_glVertexArrayAttribBinding = (void*)getProcAddress("glVertexArrayAttribBinding");
+		if (s_glVertexArrayAttribBinding == null) missing.Add("glVertexArrayAttribBinding");
 		s_glVertexArrayAttribFormat = (void*)getProcAddress("glVertexArrayAttribFormat");
+		if (s_glVertexArrayAttribFormat == null) missing.Add("glVertexArrayAttribFormat");
 		s_glVertexArrayAttribIFormat = (void*)getProcAddress("glVertexArrayAttribIFormat");
+		if (s_glVertexArrayAttribIFormat == null) missing.Add("glVertexArrayAttribIFormat");
 		s_glVertexArrayAttribLFormat = (void*)getProcAddress("glVertexArrayAttribLFormat");
+		if (s_glVertexArrayAttribLFormat == null) missing.Add("glVertexArrayAttribLFormat");
 		s_glVertexArrayBindingDivisor = (void*)getProcAddress("glVertexArrayBindingDivisor");
+		if (s_glVertexArrayBindingDivisor == null) missing.Add("glVertexArrayBindingDivisor");
 		s_glVertexArrayElementBuffer = (void*)getProcAddress("glVertexArrayElementBuffer");
+		if (s_glVertexArrayElementBuffer == null) missing.Add("glVertexArrayElementBuffer");
 		s_glVertexArrayVertexBuffer = (void*)getProcAddress("glVertexArrayVertexBuffer");
+		if (s_glVertexArrayVertexBuffer == null) missing.Add("glVertexArrayVertexBuffer");
 		s_glVertexArrayVertexBuffers = (void*)getProcAddress("glVertexArrayVertexBuffers");
+		if (s_glVertexArrayVertexBuffers == null) missing.Add("glVertexArrayVertexBuffers");
 		s_glVertexAttrib1d = (void*)getProcAddress("glVertexAttrib1d");
+		if (s_glVertexAttrib1d == null) missing.Add("glVertexAttrib1d");
 		s_glVertexAttrib1dv = (void*)getProcAddress("glVertexAttrib1dv");
+		if (s_glVertexAttrib1dv == null) missing.Add("glVertexAttrib1dv");
 		s_glVertexAttrib1f = (void*)getProcAddress("glVertexAttrib1f");
+		if (s_glVertexAttrib1f == null) missing.Add("glVertexAttrib1f");
 		s_glVertexAttrib1fv = (void*)getProcAddress("glVertexAttrib1fv");
+		if (s_glVertexAttrib1fv == null) missing.Add("glVertexAttrib1fv");
 		s_glVertexAttrib1s = (void*)getProcAddress("glVertexAttrib1s");
+		if (s_glVertexAttrib1s == null) missing.Add("glVertexAttrib1s");
 		s_glVertexAttrib1sv = (void*)getProcAddress("glVertexAttrib1sv");
+		if (s_glVertexAttrib1sv == null) missing.Add("glVertexAttrib1sv");
 		s_glVertexAttrib2d = (void*)getProcAddress("glVertexAttrib2d");
+		if (s_glVertexAttrib2d == null) missing.Add("glVertexAttrib2d");
 		s_glVertexAttrib2dv = (void*)getProcAddress("glVertexAttrib2dv");
+		if (s_glVertexAttrib2dv == null) missing.Add("glVertexAttrib2dv");
 		s_glVertexAttrib2f = (void*)getProcAddress("glVertexAttrib2f");
+		if (s_glVertexAttrib2f == null) missing.Add("glVertexAttrib2f");
 		s_glVertexAttrib2fv = (void*)getProcAddress("glVertexAttrib2fv");
+		if (s_glVertexAttrib2fv == null) missing.Add("glVertexAttrib2fv");
 		s_glVertexAttrib2s = (void*)getProcAddress("glVertexAttrib2s");
+		if (s_glVertexAttrib2s == null) missing.Add("glVertexAttrib2s");
 		s_glVertexAttrib2sv = (void*)getProcAddress("glVertexAttrib2sv");
+		if (s_glVertexAttrib2sv == null) missing.Add("glVertexAttrib2sv");
 		s_glVertexAttrib3d = (void*)getProcAddress("glVertexAttrib3d");
+		if (s_glVertexAttrib3d == null) missing.Add("glVertexAttrib3d");
 		s_glVertexAttrib3dv = (void*)getProcAddress("glVertexAttrib3dv");
+		if (s_glVertexAttrib3dv == null) missing.Add("glVertexAttrib3dv");
 		s_glVertexAttrib3f = (void*)getProcAddress("glVertexAttrib3f");
+		if (s_glVertexAttrib3f == null) missing.Add("glVertexAttrib3f");
 		s_glVertexAttrib3fv = (void*)getProcAddress("glVertexAttrib3fv");
+		if (s_glVertexAttrib3fv == null) missing.Add("glVertexAttrib3fv");
 		s_glVertexAttrib3s = (void*)getProcAddress("glVertexAttrib3s");
+		if (s_glVertexAttrib3s == null) missing.Add("glVertexAttrib3s");
 		s_glVertexAttrib3sv = (void*)getProcAddress("glVertexAttrib3sv");
+		if (s_glVertexAttrib3sv == null) missing.Add("glVertexAttrib3sv");
 		s_glVertexAttrib4Nbv = (void*)getProcAddress("glVertexAttrib4Nbv");
+		if (s_glVertexAttrib4Nbv == null) missing.Add("glVertexAttrib4Nbv");
 		s_glVertexAttrib4Niv = (void*)getProcAddress("glVertexAttrib4Niv");
+		if (s_glVertexAttrib4Niv == null) missing.Add("glVertexAttrib4Niv");
 		s_glVertexAttrib4Nsv = (void*)getProcAddress("glVertexAttrib4Nsv");
+		if (s_glVertexAttrib4Nsv == null) missing.Add("glVertexAttrib4Nsv");
 		s_glVertexAttrib4Nub = (void*)getProcAddress("glVertexAttrib4Nub");
+		if (s_glVertexAttrib4Nub == null) missing.Add("glVertexAttrib4Nub");
 		s_glVertexAttrib4Nubv = (void*)getProcAddress("glVertexAttrib4Nubv");
+		if (s_glVertexAttrib4Nubv == null) missing.Add("glVertexAttrib4Nubv");
 		s_glVertexAttrib4Nuiv = (void*)getProcAddress("glVertexAttrib4Nuiv");
+		if (s_glVertexAttrib4Nuiv == null) missing.Add("glVertexAttrib4Nuiv");
 		s_glVertexAttrib4Nusv = (void*)getProcAddress("glVertexAttrib4Nusv");
+		if (s_glVertexAttrib4Nusv == null) missing.Add("glVertexAttrib4Nusv");
 		s_glVertexAttrib4bv = (void*)getProcAddress("glVertexAttrib4bv");
+		if (s_glVertexAttrib4bv == null) missing.Add("glVertexAttrib4bv");
 		s_glVertexAttrib4d = (void*)getProcAddress("glVertexAttrib4d");
+		if (s_glVertexAttrib4d == null) missing.Add("glVertexAttrib4d");
 		s_glVertexAttrib4dv = (void*)getProcAddress("glVertexAttrib4dv");
+		if (s_glVertexAttrib4dv == null) missing.Add("glVertexAttrib4dv");
 		s_glVertexAttrib4f = (void*)getProcAddress("glVertexAttrib4f");
+		if (s_glVertexAttrib4f == null) missing.Add("glVertexAttrib4f");
 		s_glVertexAttrib4fv = (void*)getProcAddress("glVertexAttrib4fv");
+		if (s_glVertexAttrib4fv == null) missing.Add("glVertexAttrib4fv");
 		s_glVertexAttrib4iv = (void*)getProcAddress("glVertexAttrib4iv");
+		if (s_glVertexAttrib4iv == null) missing.Add("glVertexAttrib4iv");
 		s_glVertexAttrib4s = (void*)getProcAddress("glVertexAttrib4s");
+		if (s_glVertexAttrib4s == null) missing.Add("glVertexAttrib4s");
 		s_glVertexAttrib4sv = (void*)getProcAddress("glVertexAttrib4sv");
+		if (s_glVertexAttrib4sv == null) missing.Add("glVertexAttrib4sv");
 		s_glVertexAttrib4ubv = (void*)getProcAddress("glVertexAttrib4ubv");
+		if (s_glVertexAttrib4ubv == null) missing.Add("glVertexAttrib4ubv");
 		s_glVertexAttrib4uiv = (void*)getProcAddress("glVertexAttrib4uiv");
+		if (s_glVertexAttrib4uiv == null) missing.Add("glVertexAttrib4uiv");
 		s_glVertexAttrib4usv = (void*)getProcAddress("glVertexAttrib4usv");
+		if (s_glVertexAttrib4usv == null) missing.Add("glVertexAttrib4usv");
 		s_glVertexAttribBinding = (void*)getProcAddress("glVertexAttribBinding");
+		if (s_glVertexAttribBinding == null) missing.Add("glVertexAttribBinding");
 		s_glVertexAttribDivisor = (void*)getProcAddress("glVertexAttribDivisor");
+		if (s_glVertexAttribDivisor == null) missing.Add("glVertexAttribDivisor");
 		s_glVertexAttribFormat = (void*)getProcAddress("glVertexAttribFormat");
+		if (s_glVertexAttribFormat == null) missing.Add("glVertexAttribFormat");
 		s_glVertexAttribI1i = (void*)getProcAddress("glVertexAttribI1i");
+		if (s_glVertexAttribI1i == null) missing.Add("glVertexAttribI1i");
 		s_glVertexAttribI1iv = (void*)getProcAddress("glVertexAttribI1iv");
+		if (s_glVertexAttribI1iv == null) missing.Add("glVertexAttribI1iv");
 		s_glVertexAttribI1ui = (void*)getProcAddress("glVertexAttribI1ui");
+		if (s_glVertexAttribI1ui == null) missing.Add("glVertexAttribI1ui");
 		s_glVertexAttribI1uiv = (void*)getProcAddress("glVertexAttribI1uiv");
+		if (s_glVertexAttribI1uiv == null) missing.Add("glVertexAttribI1uiv");
 		s_glVertexAttribI2i = (void*)getProcAddress("glVertexAttribI2i");
+		if (s_glVertexAttribI2i == null) missing.Add("glVertexAttribI2i");
 		s_glVertexAttribI2iv = (void*)getProcAddress("glVertexAttribI2iv");
+		if (s_glVertexAttribI2iv == null) missing.Add("glVertexAttribI2iv");
 		s_glVertexAttribI2ui = (void*)getProcAddress("glVertexAttribI2ui");
+		if (s_glVertexAttribI2ui == null) missing.Add("glVertexAttribI2ui");
 		s_glVertexAttribI2uiv = (void*)getProcAddress("glVertexAttribI2uiv");
+		if (s_glVertexAttribI2uiv == null) missing.Add("glVertexAttribI2uiv");
 		s_glVertexAttribI3i = (void*)getProcAddress("glVertexAttribI3i");
+		if (s_glVertexAttribI3i == null) missing.Add("glVertexAttribI3i");
 		s_glVertexAttribI3iv = (void*)getProcAddress("glVertexAttribI3iv");
+		if (s_glVertexAttribI3iv == null) missing.Add("glVertexAttribI3iv");
 		s_glVertexAttribI3ui = (void*)getProcAddress("glVertexAttribI3ui");
+		if (s_glVertexAttribI3ui == null) missing.Add("glVertexAttribI3ui");
 		s_glVertexAttribI3uiv = (void*)getProcAddress("glVertexAttribI3uiv");
+		if (s_glVertexAttribI3uiv == null) missing.Add("glVertexAttribI3uiv");
 		s_glVertexAttribI4bv = (void*)getProcAddress("glVertexAttribI4bv");
+		if (s_glVertexAttribI4bv == null) missing.Add("glVertexAttribI4bv");
 		s_glVertexAttribI4i = (void*)getProcAddress("glVertexAttribI4i");
+		if (s_glVertexAttribI4i == null) missing.Add("glVertexAttribI4i");
 		s_glVertexAttribI4iv = (void*)getProcAddress("glVertexAttribI4iv");
+		if (s_glVertexAttribI4iv == null) missing.Add("glVertexAttribI4iv");
 		s_glVertexAttribI4sv = (void*)getProcAddress("glVertexAttribI4sv");
+		if (s_glVertexAttribI4sv == null) missing.Add("glVertexAttribI4sv");
 		s_glVertexAttribI4ubv = (void*)getProcAddress("glVertexAttribI4ubv");
+		if (s_glVertexAttribI4ubv == null) missing.Add("glVertexAttribI4ubv");
 		s_glVertexAttribI4ui = (void*)getProcAddress("glVertexAttribI4ui");
+		if (s_glVertexAttribI4ui == null) missing.Add("glVertexAttribI4ui");
 		s_glVertexAttribI4uiv = (void*)getProcAddress("glVertexAttribI4uiv");
+		if (s_glVertexAttribI4uiv == null) missing.Add("glVertexAttribI4uiv");
 		s_glVertexAttribI4usv = (void*)getProcAddress("glVertexAttribI4usv");
+		if (s_glVertexAttribI4usv == null) missing.Add("glVertexAttribI4usv");
 		s_glVertexAttribIFormat = (void*)getProcAddress("glVertexAttribIFormat");
+		if (s_glVertexAttribIFormat == null) missing.Add("glVertexAttribIFormat");
 		s_glVertexAttribIPointer = (void*)getProcAddress("glVertexAttribIPointer");
+		if (s_glVertexAttribIPointer == null) missing.Add("glVertexAttribIPointer");
 		s_glVertexAttribL1d = (void*)getProcAddress("glVertexAttribL1d");
+		if (s_glVertexAttribL1d == null) missing.Add("glVertexAttribL1d");
 		s_glVertexAttribL1dv = (void*)getProcAddress("glVertexAttribL1dv");
+		if (s_glVertexAttribL1dv == null) missing.Add("glVertexAttribL1dv");
 		s_glVertexAttribL2d = (void*)getProcAddress("glVertexAttribL2d");
+		if (s_glVertexAttribL2d == null) missing.Add("glVertexAttribL2d");
 		s_glVertexAttribL2dv = (void*)getProcAddress("glVertexAttribL2dv");
+		if (s_glVertexAttribL2dv == null) missing.Add("glVertexAttribL2dv");
 		s_glVertexAttribL3d = (void*)getProcAddress("glVertexAttribL3d");
+		if (s_glVertexAttribL3d == null) missing.Add("glVertexAttribL3d");
 		s_glVertexAttribL3dv = (void*)getProcAddress("glVertexAttribL3dv");
+		if (s_glVertexAttribL3dv == null) missing.Add("glVertexAttribL3dv");
 		s_glVertexAttribL4d = (void*)getProcAddress("glVertexAttribL4d");
+		if (s_glVertexAttribL4d == null) missing.Add("glVertexAttribL4d");
 		s_glVertexAttribL4dv = (void*)getProcAddress("glVertexAttribL4dv");
+		if (s_glVertexAttribL4dv == null) missing.Add("glVertexAttribL4dv");
 		s_glVertexAttribLFormat = (void*)getProcAddress("glVertexAttribLFormat");
+		if (s_glVertexAttribLFormat == null) missing.Add("glVertexAttribLFormat");
 		s_glVertexAttribLPointer = (void*)getProcAddress("glVertexAttribLPointer");
+		if (s_glVertexAttribLPointer == null) missing.Add("glVertexAttribLPointer");
 		s_glVertexAttribP1ui = (void*)getProcAddress("glVertexAttribP1ui");
+		if (s_glVertexAttribP1ui == null) missing.Add("glVertexAttribP1ui");
 		s_glVertexAttribP1uiv = (void*)getProcAddress("glVertexAttribP1uiv");
+		if (s_glVertexAttribP1uiv == null) missing.Add("glVertexAttribP1uiv");
 		s_glVertexAttribP2ui = (void*)getProcAddress("glVertexAttribP2ui");
+		if (s_glVertexAttribP2ui == null) missing.Add("glVertexAttribP2ui");
 		s_glVertexAttribP2uiv = (void*)getProcAddress("glVertexAttribP2uiv");
+		if (s_glVertexAttribP2uiv == null) missing.Add("glVertexAttribP2uiv");
 		s_glVertexAttribP3ui = (void*)getProcAddress("glVertexAttribP3ui");
+		if (s_glVertexAttribP3ui == null) missing.Add("glVertexAttribP3ui");
 		s_glVertexAttribP3uiv = (void*)getProcAddress("glVertexAttribP3uiv");
+		if (s_glVertexAttribP3uiv == null) missing.Add("glVertexAttribP3uiv");
 		s_glVertexAttribP4ui = (void*)getProcAddress("glVertexAttribP4ui");
+		if (s_glVertexAttribP4ui == null) missing.Add("glVertexAttribP4ui");
 		s_glVertexAttribP4uiv = (void*)getProcAddress("glVertexAttribP4uiv");
+		if (s_glVertexAttribP4uiv == null) missing.Add("glVertexAttribP4uiv");
 		s_glVertexAttribPointer = (void*)getProcAddress("glVertexAttribPointer");
+		if (s_glVertexAttribPointer == null) missing.Add("glVertexAttribPointer");
 		s_glVertexBindingDivisor = (void*)getProcAddress("glVertexBindingDivisor");
+		if (s_glVertexBindingDivisor == null) missing.Add("glVertexBindingDivisor");
 		s_glVertexP2ui = (void*)getProcAddress("glVertexP2ui");
+		if (s_glVertexP2ui == null) missing.Add("glVertexP2ui");
 		s_glVertexP2uiv = (void*)getProcAddress("glVertexP2uiv");
+		if (s_glVertexP2uiv == null) missing.Add("glVertexP2uiv");
 		s_glVertexP3ui = (void*)getProcAddress("glVertexP3ui");
+		if (s_glVertexP3ui == null) missing.Add("glVertexP3ui");
 		s_glVertexP3uiv = (void*)getProcAddress("glVertexP3uiv");
+		if (s_glVertexP3uiv == null) missing.Add("glVertexP3uiv");
 		s_glVertexP4ui = (void*)getProcAddress("glVertexP4ui");
+		if (s_glVertexP4ui == null) missing.Add("glVertexP4ui");
 		s_glVertexP4uiv = (void*)getProcAddress("glVertexP4uiv");
+		if (s_glVertexP4uiv == null) missing.Add("glVertexP4uiv");
 		s_glViewport = (void*)getProcAddress("glViewport");
+		if (s_glViewport == null) missing.Add("glViewport");
 		s_glViewportArrayv = (void*)getProcAddress("glViewportArrayv");
+		if (s_glViewportArrayv == null) missing.Add("glViewportArrayv");
 		s_glViewportIndexedf = (void*)getProcAddress("glViewportIndexedf");
+		if (s_glViewportIndexedf == null) missing.Add("glViewportIndexedf");
 		s_glViewportIndexedfv = (void*)getProcAddress("glViewportIndexedfv");
+		if (s_glViewportIndexedfv == null) missing.Add("glViewportIndexedfv");
 		s_glWaitSync = (void*)getProcAddress("glWaitSync");
+		if (s_glWaitSync == null) missing.Add("glWaitSync");
+		if (missing.Count > 0)
+			throw new System.InvalidOperationException(
+				"OpenGL: failed to load " + missing.Count + " function(s): " + string.Join(", ", missing));
 	}
 }
