@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- OpenGL backend for the GUI canvas: turns RenderedCanvasBase draw commands into GL
+         instanced draws / shaders / textures. Used by the desktop host (ZGF.Gui.Desktop) via
+         the GlRenderBackend adapter. GLSL shaders are embedded and compiled at runtime. -->
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Assets\Shaders\*.glsl">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+      <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+    </ItemGroup>
+
+</Project>

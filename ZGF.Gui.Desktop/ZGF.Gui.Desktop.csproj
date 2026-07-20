@@ -5,15 +5,6 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <!-- GLSL shaders for the OpenGL backend are embedded into this assembly. The Metal
-         canvas backend and its .gen.metal shaders now live in ZGF.Gui.Metal (shared with
-         the iOS host); see that project for the Metal shader embedding. -->
-    <ItemGroup>
-      <EmbeddedResource Include="Assets\Shaders\*.glsl">
-        <LogicalName>%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
-    </ItemGroup>
-
     <ItemGroup>
       <InternalsVisibleTo Include="ZGF.Gui.Sandbox" />
     </ItemGroup>
@@ -29,6 +20,7 @@
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.OpenGL\ZGF.Gui.OpenGL.csproj" />
       <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />

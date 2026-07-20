@@ -2,6 +2,7 @@ using PngSharp.Api;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
+using ZGF.Gui.OpenGL;
 using static GL46;
 
 namespace ZGF.Gui.Desktop.Backends.OpenGl;

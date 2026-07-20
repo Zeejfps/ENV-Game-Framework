@@ -1,10 +1,11 @@
 using System.Reflection;
 using AppUtilsAssets = ZGF.AppUtils.EmbeddedAssets;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.OpenGL;
 
-// Canvas shader sources (GLSL for OpenGL, .gen.metal for Metal) are embedded into this
-// desktop package and selected per-RID at build time (see ZGF.Gui.Desktop.csproj).
+// GLSL canvas shader sources are embedded into this assembly (see ZGF.Gui.OpenGL.csproj) and
+// compiled from source at runtime. Embedded here rather than in the desktop package so the
+// OpenGL backend mirrors the Metal backend's self-contained ZGF.Gui.Metal packaging.
 internal static class ShaderAssets
 {
     private static readonly Assembly Assembly = typeof(ShaderAssets).Assembly;

@@ -1,11 +1,10 @@
 using System.Runtime.InteropServices;
 using OpenGL.NET;
 using ZGF.Fonts;
-using ZGF.Gui.Desktop.Backends.OpenGl;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.OpenGL;
 
 public sealed unsafe class GlSharedResources : IDisposable
 {
