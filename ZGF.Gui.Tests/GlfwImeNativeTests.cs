@@ -17,4 +17,14 @@ public class GlfwImeNativeTests
             "The bundled GLFW native does not export glfwSetPreeditCallback, so it is not the " +
             "patched build. CJK text input will silently do nothing. See Glfw.NET/Native/README.md.");
     }
+
+    [Fact]
+    public void BundledGlfw_CanScopeTheImeToTextFields()
+    {
+        Assert.True(GlfwIme.IsTextInputFocusSupported,
+            "The bundled GLFW native does not export glfwSetTextInputFocus, so the IME stays enabled " +
+            "for the whole window and every bare-letter shortcut dies while a CJK input method is " +
+            "active. LWJGL's builds never carried this — the natives must come from the glfw-natives " +
+            "workflow. See Glfw.NET/Native/README.md.");
+    }
 }
