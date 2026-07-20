@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using OpenGL.NET;
 using ZGF.Fonts;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
@@ -43,23 +42,23 @@ public sealed unsafe class GlSharedResources : IDisposable
         _rectShader = new ShaderProgramCompiler()
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_rect.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_rect.frag.glsl"))
-            .Compile().Id;
+            .Compile();
         _glyphShader = new ShaderProgramCompiler()
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_glyph.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_glyph.frag.glsl"))
-            .Compile().Id;
+            .Compile();
         _imageShader = new ShaderProgramCompiler()
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_image.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_image.frag.glsl"))
-            .Compile().Id;
+            .Compile();
         _shadowShader = new ShaderProgramCompiler()
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_shadow.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_shadow.frag.glsl"))
-            .Compile().Id;
+            .Compile();
         _shapeShader = new ShaderProgramCompiler()
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_shape.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_shape.frag.glsl"))
-            .Compile().Id;
+            .Compile();
 
         _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");
         _glyphProjLoc = glGetUniformLocation(_glyphShader, "u_projection");
