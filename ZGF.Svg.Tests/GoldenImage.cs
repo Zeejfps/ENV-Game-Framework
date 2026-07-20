@@ -5,6 +5,11 @@ namespace ZGF.Svg.Tests;
 
 /// <summary>
 /// Golden-image comparison against PNGs checked into TestAssets/Golden.
+/// A pixel counts as differing when any channel is off by more than
+/// <see cref="ChannelTolerance"/>; the image fails when more than
+/// <see cref="MaxDifferingPixelFraction"/> of pixels differ. The two knobs are
+/// orthogonal: the first absorbs antialiasing noise, the second absorbs the
+/// handful of pixels where a curve-flattening decision lands the other way.
 /// Set ZGF_SVG_REGEN_GOLDENS=1 to rewrite the goldens in the source tree
 /// (the run still fails so a regen can't silently pass CI).
 /// On mismatch, *.actual.png and *.diff.png are written next to the golden.
@@ -46,26 +51,22 @@ internal static class GoldenImage
         var maxDelta = 0;
         for (var i = 0; i < actualRgba.Length; i += 4)
         {
-            var pixelDiffers = false;
+            var pixelDelta = 0;
             for (var c = 0; c < 4; c++)
-            {
-                var delta = Math.Abs(actualRgba[i + c] - goldenRgba[i + c]);
-                if (delta > 0)
-                    pixelDiffers = true;
-                maxDelta = Math.Max(maxDelta, delta);
-            }
-            if (pixelDiffers)
+                pixelDelta = Math.Max(pixelDelta, Math.Abs(actualRgba[i + c] - goldenRgba[i + c]));
+            if (pixelDelta > ChannelTolerance)
                 differing++;
+            maxDelta = Math.Max(maxDelta, pixelDelta);
         }
 
         var totalPixels = w * h;
-        if (maxDelta <= ChannelTolerance && differing <= totalPixels * MaxDifferingPixelFraction)
+        if (differing <= totalPixels * MaxDifferingPixelFraction)
             return;
 
         WriteFailureArtifacts(actualRgba, goldenRgba, w, h, name);
         Assert.Fail(
-            $"Golden mismatch for {name}: {differing}/{totalPixels} pixels differ, max channel delta {maxDelta} " +
-            $"(tolerance: delta<={ChannelTolerance}, differing<={MaxDifferingPixelFraction:P1}). " +
+            $"Golden mismatch for {name}: {differing}/{totalPixels} pixels exceed the per-channel tolerance of " +
+            $"{ChannelTolerance}, max channel delta {maxDelta} (allowed: {MaxDifferingPixelFraction:P1} of pixels). " +
             $"See {name}.actual.png / {name}.diff.png in TestAssets/Golden.");
     }
 

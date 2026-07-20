@@ -10,3 +10,7 @@ riderModule.iml
 .idea/.idea.ENV Game Framework/.idea/misc.xml
 .idea/.idea.ENV Game Framework/.idea/.name
 .idea/.idea.ENV Game Framework/.idea/workspace.xml
+
+# Golden-image failure artifacts, written next to the goldens on mismatch
+*.actual.png
+*.diff.png
