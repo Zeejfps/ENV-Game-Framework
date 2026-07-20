@@ -42,6 +42,10 @@ SHA made in the meantime — painful once a repo has consumers.
 - `ZGF.Gui`, `ZGF.Gui.Desktop`, `ZGF.Gui.Metal`, `ZGF.Gui.Testing`, `ZGF.Gui.Tests`,
   `ZGF.Gui.Benchmarks`, `ZGF.Gui.MemoryDiagnostics`, `ZGF.Gui.Prototype`,
   `ZGF.Gui.iOS.SmokeTest`, `ZGF.Gui.Generator`
+
+  `ZGF.Gui.Generator` is a netstandard2.0 Roslyn source generator consumed by the
+  downstream localization framework. Nothing in this repo references it, so it looks dead
+  from the inside — it is not.
 - `ZGF.Desktop`, `ZGF.Rendering.Metal`
 - `ZGF.AppUtils`, `ZGF.Geometry`, `ZGF.Fonts`, `ZGF.Svg` (+ `ZGF.Svg.Tests`), `ZGF.Spatial`
 - `ZGF.KeyboardModule`, `ZGF.KeyboardModule.GlfwAdapter`
@@ -128,19 +132,55 @@ pushed. Anyone re-cloning or re-filtering needs to do this first.
 - Those runs drop untracked `.actual.png` / `.diff.png` files next to the goldens, which
   are not gitignored.
 
+## Centralized build configuration
+
+`Directory.Build.props` and `Directory.Packages.props` were added after the split, with
+MinVer. What they actually buy:
+
+- **MinVer.** The real reason. Packaging `ZGF.Gui` as NuGet later needs versioning across
+  twenty projects; that is now one line plus a tag rather than a retrofit.
+- **`$(IosTfmSuffix)`.** The `BuildIos` conditional-TFM pattern was duplicated across nine
+  csproj files. Each project now appends a single central token to its base TFM, so the
+  iOS target is declared once.
+- **A pinned Roslyn version.** `Microsoft.CodeAnalysis.CSharp` is a compatibility contract
+  for `ZGF.Gui.Generator`, which ships to a downstream consumer. An analyzer built against
+  a newer Roslyn than its consumer's SDK fails at *their* build, so having the version in
+  one visible place matters more than a typical pin.
+- **Inheritance for new projects**, and NuGet erroring on an unversioned package rather
+  than silently resolving one.
+
+Two claims in the original plan were wrong and should not be repeated:
+
+- **The cited package drift did not exist in this repo.** `xunit.runner.visualstudio`
+  2.8.2 and `Microsoft.NET.Test.Sdk` 17.12.0 belong to the *PngSharp submodule*; ZGF's own
+  test projects already agreed on 3.1.4 and 17.14.1. Central package management
+  deliberately does not reach into the submodule, so it fixed no existing drift. Its value
+  is preventing future drift.
+- **`Nullable` / `ImplicitUsings` centralization is cosmetic.** All 24 projects already
+  agreed; removing the redundant lines is tidiness, not correctness.
+
+Base TFMs were deliberately left alone. `ZGF.KeyboardModule` stays net6.0 because
+Sandbox's `EasyGameFramework` still targets it — consolidating net6.0/net9.0/net10.0 is a
+cross-repo decision, not cleanup.
+
+### The PngSharp guard
+
+Both props files scope themselves out of the `PngSharp/` subtree via `IsSubmoduleProject`.
+This is load-bearing, not defensive: MSBuild walks *up* into these files from the
+submodule, and without the guard central package management breaks `PngSharp.Tests` with
+NU1008, while MinVer fights PngSharp's own `<Version>`.
+
+The guard is the one piece of non-obvious MSBuild here. It exists only because PngSharp is
+nested — publishing PngSharp to NuGet would let it be deleted outright.
+
 ## Remaining work
 
-1. **Add `Directory.Build.props` and `Directory.Packages.props`.** TFMs span net6.0 to
-   net10.0 and test package versions have drifted (xunit.runner.visualstudio 2.8.2 vs
-   3.1.4, Microsoft.NET.Test.Sdk 17.12.0 vs 17.14.1). Shared props would also centralize
-   the `BuildIos` conditional-TFM pattern duplicated across nine csproj files.
+1. **Tag a release.** MinVer has no tags to work from, so every assembly is currently
+   `0.0.0-alpha.0.<height>`. A first `git tag` makes versions meaningful.
 
-2. **Decide the fate of `ZGF.Gui.Generator`** — netstandard2.0 Roslyn generator,
-   referenced by nothing as an analyzer or otherwise.
+2. **Rename this repo to `ZGF`.**
 
-3. **Rename this repo to `ZGF`.**
-
-4. `Sandbox.sln` currently includes the 15 ZGF submodule projects. This makes the
+3. `Sandbox.sln` currently includes the 15 ZGF submodule projects. This makes the
    edit-bindings-from-Sandbox workflow pleasant but blurs the repo boundary; they would
    still build transitively if removed.
 
@@ -148,8 +188,8 @@ pushed. Anyone re-cloning or re-filtering needs to do this first.
 
 Submodule is correct while framework and application change together daily. Once
 `ZGF.Gui` stabilizes, packaging `ZGF.Gui` and `ZGF.Gui.Desktop` as NuGet removes the
-submodule entirely. Adding MinVer alongside `Directory.Build.props` makes that nearly
-free later; retrofitting versioning across twenty projects afterwards does not.
+submodule entirely. MinVer and `Directory.Build.props` are already in place, so that step
+no longer requires retrofitting versioning across twenty projects.
 
 `PngSharp` already carries full package metadata and only needs a version stamp —
 publishing it to NuGet would also eliminate the nested submodule, which otherwise
