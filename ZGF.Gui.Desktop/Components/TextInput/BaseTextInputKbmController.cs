@@ -233,19 +233,21 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         // event also stops it bubbling to the app's own keybindings.
         if (_textInput.IsComposing)
         {
-            e.Consume();
+            // Claimed as text, not as a command: this Enter is also what commits the composition,
+            // and the committed characters arrive on the text callback afterwards.
+            e.ConsumeAsText();
             return;
         }
 
         OnKeyboardKeyPressed(ref e);
 
         // Character keys type through the OS text-input pipeline (OnTextInput), not the key event —
-        // so OnKeyboardKeyPressed leaves them unconsumed. Swallow them here anyway: a field being
-        // edited owns its keys, and an unconsumed Space / letter would bubble on to the app's own
-        // single-key bindings (e.g. the review loop's Space-folds-file), firing a shortcut on every
-        // keystroke. Consuming the key event doesn't affect typing, which is a separate event.
+        // so OnKeyboardKeyPressed leaves them unconsumed. Claim them here: a field being edited owns
+        // its keys, and an unconsumed Space / letter would bubble on to the app's own single-key
+        // bindings (e.g. the review loop's Space-folds-file), firing a shortcut on every keystroke.
+        // As text, so the characters they produce still arrive — a command claim would suppress them.
         // Ctrl/Super/Alt chords and non-typing keys (Enter, Escape, F-keys) still bubble.
-        if (!e.IsConsumed && IsPlainTextKey(ref e)) e.Consume();
+        if (!e.IsConsumed && IsPlainTextKey(ref e)) e.ConsumeAsText();
 
         // After any handled key: edits and caret moves both flow through here, and for keys that
         // moved nothing (Ctrl+C, say) the reveal is a no-op since the caret is already in view.

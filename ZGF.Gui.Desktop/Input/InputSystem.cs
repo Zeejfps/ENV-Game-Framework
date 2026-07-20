@@ -118,7 +118,22 @@ public sealed class InputSystem
         }
     }
     
+    /// <summary>
+    /// How the last key was claimed. The OS delivers the characters a key produces on a separate
+    /// callback, after that key's dispatch has finished and before the next key event — so this is
+    /// what carries "the key was already taken as a command" across to the text that would follow.
+    /// A key press that nobody claims, and every release, clear it back to <see cref="KeyClaim.None"/>,
+    /// which bounds it to the keystroke that set it.
+    /// </summary>
+    private KeyClaim _keyClaim;
+
     public void SendKeyboardKeyEvent(ref KeyboardKeyEvent e)
+    {
+        DispatchKeyboardKeyEvent(ref e);
+        _keyClaim = e.Claim;
+    }
+
+    private void DispatchKeyboardKeyEvent(ref KeyboardKeyEvent e)
     {
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
@@ -165,6 +180,12 @@ public sealed class InputSystem
 
     public void SendTextInputEvent(ref TextInputEvent e)
     {
+        // Drop the character only against a live command claim. An IME commit is indistinguishable
+        // from a typed character here and can arrive with no key event of its own (the composition's
+        // keys are withheld), so anything unclaimed has to get through.
+        if (_keyClaim == KeyClaim.Command)
+            return;
+
         e.Phase = EventPhase.Bubbling;
         if (_focusedComponent != null)
         {
@@ -446,6 +467,7 @@ public sealed class InputSystem
         _focusedComponent = null;
         _hoveredComponent = null;
         _pointerCaptured = false;
+        _keyClaim = KeyClaim.None;
         _focusQueue.Clear();
         // Registrations must go too. SetRoot(null) only unregisters controllers added
         // through behaviors (UseController); anything registered directly with
