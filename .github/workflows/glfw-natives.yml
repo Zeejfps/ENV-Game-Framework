@@ -1,0 +1,234 @@
+# Builds the four vendored GLFW natives from source.
+#
+# These are not stock GLFW: they carry the IM-support patch (glfw/glfw#2130) that ZGF.Gui.Desktop's
+# composition input path depends on, and `glfwSetTextInputFocus`, which LWJGL's builds do not export
+# at any version. See docs/plans/ime-text-input-focus.md in the GitBench repo.
+#
+# Deliberately manual: a native bump is an act, not a side effect of a commit. This workflow only
+# produces artifacts — a human downloads them, drops them into Glfw.NET/Native/ and pastes the
+# manifest into that README.
+#
+# There is no symbol-verification step here on purpose. Pinning the SHA already guarantees the IME
+# entry points (they are GLFWAPI functions in the pinned source), and GLFW's own CMake hard-fails on
+# a missing backend dependency rather than quietly building without it — so the explicit
+# GLFW_BUILD_* flags below are the backend guard. What the SHA cannot guarantee is checked here:
+# the macOS binary really being universal. The "wrong binary landed in Native/" case is caught by
+# ZGF.Gui.Tests/GlfwImeNativeTests, which is where that mistake actually happens.
+name: glfw-natives
+
+on:
+  workflow_dispatch:
+    inputs:
+      glfw_repo:
+        description: GLFW fork to build from
+        default: clear-code/glfw
+        required: true
+      glfw_sha:
+        description: Exact commit to build — a SHA, never a branch name (the PR head moves)
+        default: 9af719e6073a317f2dfa17f6cf0c373619b1ec8c
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  # The commit the currently-vendored LWJGL 3.3.4 natives were built from, per Native/README.md.
+  BASELINE_SHA: b35641f4a3c62aa86a0b3c983d163bc0fe36026d
+  CMAKE_COMMON: >-
+    -DBUILD_SHARED_LIBS=ON
+    -DGLFW_BUILD_EXAMPLES=OFF
+    -DGLFW_BUILD_TESTS=OFF
+    -DGLFW_BUILD_DOCS=OFF
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.glfw_repo }}
+          ref: ${{ inputs.glfw_sha }}
+          path: glfw
+
+      # Static CRT (CMP0091 NEW makes CMAKE_MSVC_RUNTIME_LIBRARY take effect). LWJGL builds this
+      # way and the vendored DLL has no vcruntime140.dll dependency; a stock MSVC build does, and
+      # that failure is invisible until the app runs on a machine without the VC++ redist.
+      - name: Configure
+        shell: bash
+        run: >
+          cmake -S glfw -B build -A x64
+          $CMAKE_COMMON
+          -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release
+
+      - name: Stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/win-x64
+          cp -L build/src/Release/glfw3.dll out/win-x64/glfw3.dll
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-win-x64
+          path: out/
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    # ubuntu-latest is 24.04 / glibc 2.39, and a binary built there will not load on anything
+    # older. Build against 22.04's glibc 2.35 to keep the floor where the vendored native's is.
+    container: ubuntu:22.04
+    steps:
+      - name: Install build dependencies
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake git ca-certificates \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            libxkbcommon-dev libwayland-dev wayland-protocols extra-cmake-modules
+
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.glfw_repo }}
+          ref: ${{ inputs.glfw_sha }}
+          path: glfw
+
+      # X11 *and* Wayland, matching the vendored native's surface: Native/README.md documents
+      # Wayland being present and Glfw's static ctor pinning to X11 via GLFW_PLATFORM. Passing both
+      # explicitly is the guard — GLFW's CMake FATAL_ERRORs on a missing backend dependency, so a
+      # half-installed runner fails the build instead of silently producing an X11-only native.
+      - name: Configure
+        run: >
+          cmake -S glfw -B build
+          $CMAKE_COMMON
+          -DCMAKE_BUILD_TYPE=Release
+          -DGLFW_BUILD_X11=ON
+          -DGLFW_BUILD_WAYLAND=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # cp -L: CMake writes libglfw.so.3 as a symlink to the versioned file. The SONAME lives in
+      # the ELF, so dereferencing under the soname filename is what the csproj expects to bundle.
+      - name: Stage
+        run: |
+          set -euo pipefail
+          mkdir -p out/linux-x64
+          cp -L build/src/libglfw.so.3 out/linux-x64/libglfw.so.3
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-linux-x64
+          path: out/
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.glfw_repo }}
+          ref: ${{ inputs.glfw_sha }}
+          path: glfw
+
+      # One universal build rather than two thin builds plus lipo. 11.0 is the floor because the
+      # arm64 slice cannot go lower, and CMake applies one deployment target to both slices.
+      - name: Configure
+        run: >
+          cmake -S glfw -B build
+          $CMAKE_COMMON
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          -DCMAKE_INSTALL_NAME_DIR=@rpath
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # The same universal dylib goes in both RID slots. Keeping osx-arm64 thin is what makes a
+      # RID-less local build on one architecture load the wrong slice; universal everywhere deletes
+      # that failure class rather than documenting it again.
+      #
+      # The lipo assert is the one check the pinned SHA cannot give us: a thin dylib compiles,
+      # links and packages cleanly, and only fails at dlopen on the other architecture.
+      - name: Stage into both RID slots
+        run: |
+          set -euo pipefail
+          mkdir -p out/osx-x64 out/osx-arm64
+          cp -L build/src/libglfw.3.dylib out/osx-x64/libglfw.3.dylib
+          cp -L build/src/libglfw.3.dylib out/osx-arm64/libglfw.3.dylib
+          archs=$(lipo -archs out/osx-x64/libglfw.3.dylib)
+          echo "architectures: $archs"
+          for want in x86_64 arm64; do
+            case " $archs " in *" $want "*) ;; *) echo "::error::universal dylib is missing $want"; exit 1 ;; esac
+          done
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-macos
+          path: out/
+          if-no-files-found: error
+
+  # Collect the four files into one artifact and write the manifest a human pastes into
+  # Native/README.md, plus the drift log against the currently-vendored commit.
+  report:
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.glfw_repo }}
+          ref: ${{ inputs.glfw_sha }}
+          path: glfw
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: native-*
+          path: natives
+          merge-multiple: true
+
+      - name: Write manifest and drift log
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## GLFW natives — \`$(echo '${{ inputs.glfw_sha }}' | cut -c1-12)\`"
+            echo
+            echo "Built from \`${{ inputs.glfw_repo }}\` at \`${{ inputs.glfw_sha }}\`."
+            echo
+            echo '| RID | File | SHA-256 |'
+            echo '| --- | --- | --- |'
+            while read -r sum path; do
+              printf '| %s | `%s` | `%s` |\n' \
+                "$(basename "$(dirname "$path")")" "$(basename "$path")" "$sum"
+            done < <(find natives -type f | sort | xargs sha256sum)
+            echo
+            echo "### Drift from the vendored build (\`$(echo "$BASELINE_SHA" | cut -c1-12)\`)"
+            echo
+            if git -C glfw cat-file -e "$BASELINE_SHA" 2>/dev/null; then
+              echo "$(git -C glfw rev-list --count "$BASELINE_SHA..${{ inputs.glfw_sha }}") commits ahead."
+              echo
+              echo '```'
+              git -C glfw log --oneline "$BASELINE_SHA..${{ inputs.glfw_sha }}"
+              echo '```'
+            else
+              echo "Baseline \`$BASELINE_SHA\` is not reachable in this fork — drift not computed."
+            fi
+          } > "$RUNNER_TEMP/MANIFEST.md"
+          # Written outside natives/ first: redirecting into it would create the file before the
+          # find above runs, and the manifest would list its own checksum.
+          cp "$RUNNER_TEMP/MANIFEST.md" natives/MANIFEST.md
+          cat "$RUNNER_TEMP/MANIFEST.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: glfw-natives-${{ inputs.glfw_sha }}
+          path: natives/
+          if-no-files-found: error
