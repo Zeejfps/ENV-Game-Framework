@@ -24,7 +24,6 @@
       <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
       <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
-      <ProjectReference Include="..\OpenGL.NET.Abstractions\OpenGL.NET.Abstractions.csproj" />
       <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
       <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
       <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
