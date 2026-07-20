@@ -14,6 +14,20 @@ public readonly struct Texture
 
 public static class Textures
 {
+    public static void glBindTexture(Texture texture)
+    {
+        GL46.glBindTexture(texture.Target, texture.Id);
+    }
+    
+    public static void glDeleteTexture(Texture texture)
+    {
+        unsafe
+        {
+            var id = texture.Id;
+            GL46.glDeleteTextures(1, &id);
+        }
+    }
+    
     public static Texture glBindTexture(uint target, uint textureId)
     {
         GL46.glBindTexture(target,  textureId);
