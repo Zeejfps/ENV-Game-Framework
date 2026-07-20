@@ -46,10 +46,48 @@ public class TextWrapperTests
     }
 
     [Fact]
-    public void LatinWordWiderThanLineIsKeptWhole()
+    public void LatinWordWiderThanLineBreaksBetweenCharacters()
     {
-        // No break opportunity inside a Latin word, so it overflows rather than splitting.
-        Assert.Equal(new[] { "aaaaa" }, Wrap("aaaaa", 16f));
+        // No break opportunity inside the word, so it splits by code point rather than overflowing.
+        Assert.Equal(new[] { "aa", "aa", "a" }, Wrap("aaaaa", 16f));
+    }
+
+    [Fact]
+    public void OverWideWordStartsOnAFreshLine()
+    {
+        Assert.Equal(new[] { "aa", "bb", "bb" }, Wrap("aa bbbb", 16f));
+    }
+
+    [Fact]
+    public void PathBreaksAfterSeparatorsNotMidSegment()
+    {
+        Assert.Equal(new[] { "usr/", "bin/", "sh" }, Wrap("usr/bin/sh", 32f));
+    }
+
+    [Fact]
+    public void BackslashPathBreaksAfterSeparators()
+    {
+        Assert.Equal(new[] { "C:\\", "src\\", "a" }, Wrap("C:\\src\\a", 32f));
+    }
+
+    [Fact]
+    public void HyphenAndUnderscoreAreBreakOpportunities()
+    {
+        Assert.Equal(new[] { "a-", "b_", "c" }, Wrap("a-b_c", 16f));
+    }
+
+    [Fact]
+    public void SegmentTooLongForALineStillBreaksByCharacter()
+    {
+        // "aaaa" has no internal break opportunity and exceeds the line on its own.
+        Assert.Equal(new[] { "x/", "aa", "aa" }, Wrap("x/aaaa", 16f));
+    }
+
+    [Fact]
+    public void SeparatorDoesNotStartALine()
+    {
+        // '.' and ':' are kinsoku no-break-before, so they stay attached to the preceding segment.
+        Assert.Equal(new[] { "ab.", "cd" }, Wrap("ab.cd", 24f));
     }
 
     [Fact]

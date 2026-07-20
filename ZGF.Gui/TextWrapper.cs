@@ -4,10 +4,11 @@ namespace ZGF.Gui;
 
 /// <summary>
 /// Greedy line-wrap that uses an <see cref="ICanvas"/> to measure widths in the supplied
-/// <see cref="TextStyle"/>. Latin runs break only at spaces (a word wider than the line is kept
-/// whole); CJK and other "wide" scripts also break between adjacent code points (UAX-14-lite), so a
-/// spaceless CJK paragraph wraps instead of overflowing. Minimal kinsoku keeps closing punctuation
-/// off the start of a line and opening punctuation off the end.
+/// <see cref="TextStyle"/>. Latin runs break at spaces and after separator punctuation, so paths,
+/// URLs and snake_case identifiers wrap at their segment boundaries; CJK and other "wide" scripts
+/// also break between adjacent code points (UAX-14-lite). A run with no break opportunity that is
+/// still wider than the line breaks between code points rather than overflowing. Minimal kinsoku
+/// keeps closing punctuation off the start of a line and opening punctuation off the end.
 /// </summary>
 public static class TextWrapper
 {
@@ -92,7 +93,41 @@ public static class TextWrapper
             var chunkWidth = canvas.MeasureTextWidth(raw[chunkStart..i], style);
             var sep = spaces * spaceWidth;
 
-            if (!lineHasContent)
+            if (chunkWidth > maxWidth)
+            {
+                // Mirrors WrapLine: an unbreakable over-wide chunk starts a fresh line and is split
+                // between code points. The two variants must agree or the caret lands off-line.
+                if (lineHasContent)
+                {
+                    output.Add(new Range(lineStart, start + chunkStart));
+                    lineStart = start + chunkStart;
+                    lineWidth = 0f;
+                }
+                else
+                {
+                    lineWidth += sep;
+                }
+
+                var j = chunkStart;
+                var before = -1;
+                while (j < i)
+                {
+                    var cur = ReadCodePoint(raw, j, out var len);
+                    var w = canvas.MeasureTextWidth(raw.Slice(j, len), style);
+                    if (start + j > lineStart && lineWidth + w > maxWidth && BreakAllowedHere(before, cur))
+                    {
+                        output.Add(new Range(lineStart, start + j));
+                        lineStart = start + j;
+                        lineWidth = 0f;
+                    }
+                    lineWidth += w;
+                    before = cur;
+                    j += len;
+                }
+
+                lineHasContent = true;
+            }
+            else if (!lineHasContent)
             {
                 lineWidth += sep + chunkWidth;
                 lineHasContent = true;
@@ -159,7 +194,19 @@ public static class TextWrapper
             var chunk = raw.AsSpan(start, i - start);
             var chunkWidth = canvas.MeasureTextWidth(chunk, style);
 
-            if (line.Length == 0)
+            if (chunkWidth > maxWidth)
+            {
+                // Nothing inside this chunk is a break opportunity, yet it can't fit on a line of its
+                // own. Start it fresh and split it between code points rather than overflow.
+                if (line.Length > 0)
+                {
+                    output.Add(line.ToString());
+                    line.Clear();
+                    lineWidth = 0f;
+                }
+                AppendBrokenChunk(canvas, chunk, style, maxWidth, line, ref lineWidth, output);
+            }
+            else if (line.Length == 0)
             {
                 line.Append(chunk);
                 lineWidth = chunkWidth;
@@ -192,6 +239,51 @@ public static class TextWrapper
         if (line.Length > 0) output.Add(line.ToString());
     }
 
+    /// <summary>
+    /// Fills lines with <paramref name="chunk"/> a code point at a time, flushing each full line to
+    /// <paramref name="output"/> and leaving the trailing partial line in <paramref name="line"/>.
+    /// Kinsoku still applies, so a cluster the engine glued together (a closing mark after its
+    /// ideograph) overflows rather than being torn apart here.
+    /// </summary>
+    private static void AppendBrokenChunk(
+        ICanvas canvas,
+        ReadOnlySpan<char> chunk,
+        TextStyle style,
+        float maxWidth,
+        StringBuilder line,
+        ref float lineWidth,
+        List<string> output)
+    {
+        var i = 0;
+        var prev = -1;
+        while (i < chunk.Length)
+        {
+            var cur = ReadCodePoint(chunk, i, out var len);
+            var cp = chunk.Slice(i, len);
+            var w = canvas.MeasureTextWidth(cp, style);
+
+            if (line.Length > 0 && lineWidth + w > maxWidth && BreakAllowedHere(prev, cur))
+            {
+                output.Add(line.ToString());
+                line.Clear();
+                lineWidth = 0f;
+            }
+
+            line.Append(cp);
+            lineWidth += w;
+            prev = cur;
+            i += len;
+        }
+    }
+
+    /// <summary>
+    /// Whether a last-resort character break may fall between two code points. Unlike
+    /// <see cref="BreakAllowedBetween"/> it needs no break opportunity — only the absence of a
+    /// kinsoku prohibition. <paramref name="before"/> is -1 at the start of a run.
+    /// </summary>
+    private static bool BreakAllowedHere(int before, int after) =>
+        before >= 0 && !IsNoBreakBefore(after) && !IsNoBreakAfter(before);
+
     private static int ReadCodePoint(ReadOnlySpan<char> s, ref int i)
     {
         var cp = ReadCodePoint(s, i, out var len);
@@ -216,8 +308,19 @@ public static class TextWrapper
     {
         if (IsNoBreakBefore(after)) return false;  // kinsoku: closing punctuation can't start a line
         if (IsNoBreakAfter(before)) return false;  // kinsoku: opening punctuation can't end a line
-        return IsWide(before) || IsWide(after);
+        return IsWide(before) || IsWide(after) || IsBreakAfter(before);
     }
+
+    /// <summary>
+    /// Separators that permit a break on their trailing side, so the separator stays with the segment
+    /// it follows. Lets spaceless runs — paths, URLs, hyphenated and snake_case identifiers — wrap at
+    /// their natural boundaries.
+    /// </summary>
+    private static bool IsBreakAfter(int cp) => cp switch
+    {
+        '/' or '\\' or '-' or '_' or '.' or ':' => true,
+        _ => false,
+    };
 
     /// <summary>
     /// CJK and other ideographic / syllabic code points that permit a break on either side
