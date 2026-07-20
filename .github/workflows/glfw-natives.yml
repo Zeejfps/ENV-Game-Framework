@@ -88,8 +88,11 @@ jobs:
         run: |
           set -eux
           apt-get update
+          # pkg-config is explicit because build-essential does not pull it in and
+          # --no-install-recommends will not either — GLFW needs it for the Wayland module check
+          # (FindPkgConfig at src/CMakeLists.txt:160), and its absence is a hard configure error.
           apt-get install -y --no-install-recommends \
-            build-essential cmake git ca-certificates \
+            build-essential cmake git ca-certificates pkg-config \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
             libxkbcommon-dev libwayland-dev wayland-protocols extra-cmake-modules
 
