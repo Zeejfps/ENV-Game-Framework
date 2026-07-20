@@ -12,6 +12,25 @@ public readonly struct Texture
     }
 }
 
+/// <summary>
+/// All texture targets that can be bound with glBindTexture.
+/// Each value equals the corresponding OpenGL enum constant.
+/// </summary>
+public enum TextureTarget : uint
+{
+    Texture1D                 = GL46.GL_TEXTURE_1D,                    // 0x0DE0
+    Texture2D                 = GL46.GL_TEXTURE_2D,                    // 0x0DE1
+    Texture3D                 = GL46.GL_TEXTURE_3D,                    // 0x806F
+    Texture1DArray            = GL46.GL_TEXTURE_1D_ARRAY,             // 0x8C18
+    Texture2DArray            = GL46.GL_TEXTURE_2D_ARRAY,             // 0x8C1A
+    TextureRectangle          = GL46.GL_TEXTURE_RECTANGLE,            // 0x84F5
+    TextureCubeMap            = GL46.GL_TEXTURE_CUBE_MAP,             // 0x8513
+    TextureCubeMapArray       = GL46.GL_TEXTURE_CUBE_MAP_ARRAY,      // 0x9009
+    TextureBuffer             = GL46.GL_TEXTURE_BUFFER,              // 0x8C2A
+    Texture2DMultisample      = GL46.GL_TEXTURE_2D_MULTISAMPLE,      // 0x9100
+    Texture2DMultisampleArray = GL46.GL_TEXTURE_2D_MULTISAMPLE_ARRAY,// 0x9102
+}
+
 public static class Textures
 {
     public static void glBindTexture(Texture texture)
@@ -30,7 +49,7 @@ public static class Textures
     
     public static Texture glBindTexture(uint target, uint textureId)
     {
-        GL46.glBindTexture(target,  textureId);
+        GL46.glBindTexture(target, textureId);
         return new Texture(textureId, target);
     }
     
