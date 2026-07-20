@@ -22,7 +22,8 @@ There is exactly one GUI -> legacy edge in the repository:
 - `ZGF.Gui.Sandbox` -> `EasyGameFramework`
 - `ZGF.Gui.Sandbox` -> `QuadTreeRendererProgram` (an `OutputType=Exe` referenced as a library)
 
-Sandbox is a sample host, not part of the toolkit.
+`ZGF.Gui.Sandbox` (the project — not the repo of the same name proposed below) is a
+sample host, not part of the toolkit.
 
 No game or EGF project references `ZGF.Gui.*` at all. The relationship is one-way.
 
@@ -89,42 +90,32 @@ ZGF is now consumed by both the GUI application and Sandbox. Two independent con
 strengthen the case for the NuGet endgame below, and mean breaking changes to
 `ZGF.KeyboardModule` or the bindings now have a real (if forgiving) second audience.
 
-## Pre-split blockers
-
-These must be fixed before the split, not after.
-
-1. **`ZGF.Gui.Desktop` references `McpSdk.Server` / `McpSdk.Adapter.System.Text.Json` /
-   `McpSdk.Adapter.StreamableHttpServer` at 1.0.0 with no `NuGet.config` in the repo.**
-   They resolve from a machine-level feed. A fresh clone of the ZGF repo, or any CI run,
-   will fail restore. Add a `NuGet.config` with the real feed, or vendor/publish those
-   packages.
-
-2. **`global.json` pins SDK 7.0.0 with `allowPrerelease: false`** while the ZGF.Gui
-   projects target `net10.0`. Bump as part of the move.
-
 ## Work to do during the split
 
-3. **`ZGF.Gui.Sandbox` moves to the Sandbox repo**, alongside `EasyGameFramework` and
+There are no pre-split blockers. Nothing about the current repo prevents the extraction;
+everything below is cleanup done as part of the move.
+
+1. **`ZGF.Gui.Sandbox` moves to the Sandbox repo**, alongside `EasyGameFramework` and
    `QuadTreeRendererProgram`. This dissolves the only GUI -> legacy edge without any
    dependency surgery — the project simply lands on the side its dependencies already
    live on. Consider renaming it (`ZGF.Gui.Playground`) to avoid confusion with the
    repo name.
 
-4. **Add `Directory.Build.props` and `Directory.Packages.props` to the ZGF repo.**
+2. **Add `Directory.Build.props` and `Directory.Packages.props` to the ZGF repo.**
    Current TFMs span net6.0 to net10.0 and test package versions have already drifted
    (xunit.runner.visualstudio 2.8.2 vs 3.1.4, Microsoft.NET.Test.Sdk 17.12.0 vs 17.14.1).
    Shared props also centralize the `BuildIos` conditional-TFM pattern currently
    duplicated across nine csproj files.
 
-5. **Decide the fate of `ZGF.Gui.Generator`** — netstandard2.0 Roslyn generator,
+3. **Decide the fate of `ZGF.Gui.Generator`** — netstandard2.0 Roslyn generator,
    referenced by nothing as an analyzer or otherwise.
 
-6. **Clean up stale directories** containing only `bin`/`obj` with no csproj:
+4. **Clean up stale directories** containing only `bin`/`obj` with no csproj:
    `ZGF.Core`, `ZGF.Core.Desktop`, `ZGF.Observable`, `ZGF.Gui.Compose`, `Framework`,
    `FrameworkCommon`, `GlfwOpenGLBackend`, `GitGui`, `LibPNG.NET`, `LibPNG.NET Tests`,
    `SimpleEcs`, `SimplifiedFramework`, `ZnvQuadTree`.
 
-7. **Add the five projects missing from the solution** to whichever repo they land in:
+5. **Add the four projects missing from the solution** to whichever repo they land in:
    `ZGF.Gui.Benchmarks`, `ZGF.Gui.iOS.SmokeTest`, `tools/CompileCanvasShaders`,
    `PngSharp.Tests`.
 
