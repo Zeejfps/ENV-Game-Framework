@@ -106,7 +106,7 @@ public sealed class MetalWindow : IWindow, IMetalSurface
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
 
-    public void SetImeEnabled(bool enabled) => _ime.SetEnabled(enabled);
+    public void SetTextInputFocus(bool focused) => _ime.SetTextInputFocus(focused);
     public void SetPreeditCursorRect(int x, int y, int width, int height) => _ime.SetCursorRectangle(x, y, width, height);
     public void ResetPreedit() => _ime.Reset();
 

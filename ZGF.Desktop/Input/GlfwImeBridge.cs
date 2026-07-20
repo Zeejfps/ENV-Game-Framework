@@ -7,8 +7,10 @@ namespace ZGF.Desktop.Input;
 /// Binds a GLFW window's IME to the framework's composition event. Both window backends compose one
 /// of these, so the preedit path is written once.
 /// <para>
-/// Inert when the loaded GLFW has no IM-support patch (<see cref="GlfwIme.IsSupported"/>): the app
-/// keeps working, it just cannot compose CJK. Callers need no support check of their own.
+/// Degrades on its own when the loaded GLFW lacks either capability, so callers need no support
+/// check: without the IM-support patch (<see cref="GlfwIme.IsSupported"/>) the app keeps working
+/// but cannot compose CJK, and without <see cref="GlfwIme.IsTextInputFocusSupported"/> the IME
+/// stays enabled window-wide as it did before that call existed.
 /// </para>
 /// </summary>
 internal sealed class GlfwImeBridge
@@ -22,28 +24,36 @@ internal sealed class GlfwImeBridge
     public GlfwImeBridge(Window window)
     {
         _window = window;
-        if (!GlfwIme.IsSupported) return;
 
-        _preeditCallback = HandlePreedit;
-        GlfwIme.SetPreeditCallback(window, _preeditCallback);
+        if (GlfwIme.IsSupported)
+        {
+            _preeditCallback = HandlePreedit;
+            GlfwIme.SetPreeditCallback(window, _preeditCallback);
+        }
+
+        // GLFW treats a window as text-input-focused until told otherwise once, so a window that
+        // only ever calls this on blur keeps the IME window-wide until its first blur. Arming here
+        // rather than at the window-creation sites also means secondary and pooled popup windows
+        // are covered by construction, and nothing an input system reset does can un-arm them.
+        SetTextInputFocus(false);
     }
 
     /// <summary>
-    /// Switches the IME on for this window. <b>Turning it off is deliberately not forwarded to
-    /// GLFW.</b> <c>glfwSetInputMode(GLFW_IME, 0)</c> detaches the window's IME context, and
-    /// re-enabling it never restores a working composition: Microsoft Pinyin silently degrades to
-    /// alphanumeric passthrough — not just for this window but for the whole process, so a commit
-    /// box that composed a moment ago starts typing raw <c>nihao</c>. Confirmed against a real IME.
+    /// Declares whether this window is editing text. With focus off the IME stops consuming
+    /// keystrokes, so bare-letter shortcuts survive a CJK input method; with it on, composition
+    /// works as normal.
     /// <para>
-    /// The cost is that the IME stays on outside a text field, so in Chinese mode a bare letter may
-    /// be swallowed into a composition instead of reaching a keybinding. That is the lesser evil:
-    /// the alternative is CJK input that dies process-wide the first time a field is blurred.
+    /// This is the IME's routing, not its conversion mode. An earlier implementation toggled
+    /// <c>GLFW_IME</c> instead, which is the input method's own Chinese-vs-alphanumeric setting —
+    /// turning that off degraded Microsoft Pinyin to alphanumeric passthrough process-wide, so only
+    /// the "on" direction was ever forwarded and the IME stayed enabled outside text fields. That
+    /// was the wrong API rather than a broken one; this is the one GLFW provides for the job.
     /// </para>
     /// </summary>
-    public void SetEnabled(bool enabled)
+    public void SetTextInputFocus(bool focused)
     {
-        if (_preeditCallback == null || !enabled) return;
-        Glfw.SetInputMode(_window, GlfwIme.Ime, 1);
+        if (!GlfwIme.IsTextInputFocusSupported) return;
+        GlfwIme.SetTextInputFocus(_window, focused);
     }
 
     /// <summary>Positions the OS candidate window against the caret. Coordinates are window-relative, top-left origin.</summary>

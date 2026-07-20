@@ -63,7 +63,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     // IImeWindow — the native switches, driven from the coordinator.
     public bool HasKeyboardFocus => InputSystem.HasFocus;
 
-    public void SetImeMode(bool enabled) => _window.SetImeEnabled(enabled);
+    public void SetTextInputFocus(bool focused) => _window.SetTextInputFocus(focused);
 
     public void ResetImeComposition() => _window.ResetPreedit();
 

@@ -19,8 +19,9 @@ public interface IImeWindow : IPointerWindow
     /// <see cref="IPointerWindow.IsWindowFocused"/> worth telling apart.</summary>
     bool HasKeyboardFocus { get; }
 
-    /// <summary>Whether the OS IME may compose against this window.</summary>
-    void SetImeMode(bool enabled);
+    /// <summary>Whether this window is editing text, and so whether the OS IME may consume its
+    /// keystrokes to compose.</summary>
+    void SetTextInputFocus(bool focused);
 
     /// <summary>Anchors the OS candidate window on the caret, in screen coordinates. The caret may
     /// belong to a field in a different window than the one composing, so it arrives in the only
@@ -136,8 +137,8 @@ public sealed class ImeCoordinator
         {
             // Native calls, so only on a change. Turning the old one off first keeps at most one
             // window composing — a second one left enabled would compose on keys it never sees.
-            _composing?.SetImeMode(false);
-            composing?.SetImeMode(true);
+            _composing?.SetTextInputFocus(false);
+            composing?.SetTextInputFocus(true);
             _composing = composing;
             _pushedCaret = null;
         }

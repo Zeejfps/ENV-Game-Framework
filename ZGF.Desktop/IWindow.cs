@@ -36,9 +36,9 @@ public interface IWindow : IDisposable
     event Action<double, double> OnScroll;
     event Action<bool> OnPointerEnter;
 
-    // Whether the OS IME may compose on this window. Off outside a text field, or a CJK IME would
-    // start composing on the keys that drive list navigation. No-op without a patched GLFW.
-    void SetImeEnabled(bool enabled);
+    // Whether this window is editing text. Off outside a text field, or a CJK IME swallows the keys
+    // that drive list navigation before the app sees them. No-op without a patched GLFW.
+    void SetTextInputFocus(bool focused);
     // Where the OS candidate window should sit, in window coordinates with a top-left origin.
     void SetPreeditCursorRect(int x, int y, int width, int height);
     // Discards any in-flight composition rather than committing it.

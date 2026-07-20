@@ -27,13 +27,18 @@ public class ImeCoordinatorTests
         public bool OsFocused { get; set; }
         public bool HasKeyboardFocus { get; set; }
         public bool ImeEnabled { get; private set; }
+        public int FocusTransitions { get; private set; }
         public RectI? CursorRect { get; private set; }
         public int Resets { get; private set; }
 
         public bool IsWindowFocused() => OsFocused;
         public bool IsCursorInsideWindow() => false;
 
-        public void SetImeMode(bool enabled) => ImeEnabled = enabled;
+        public void SetTextInputFocus(bool focused)
+        {
+            ImeEnabled = focused;
+            FocusTransitions++;
+        }
         public void SetImeCursorRect(RectI screenRect) => CursorRect = screenRect;
         public void ResetImeComposition() => Resets++;
 
@@ -201,6 +206,23 @@ public class ImeCoordinatorTests
         ime.Update();
 
         Assert.False(menu.ImeEnabled);
+    }
+
+    /// <summary>Text-input focus is a native call per transition, and on Windows it associates and
+    /// disassociates the window's IME context. Re-asserting it every tick would churn that context
+    /// under a live composition, so an unchanged state must produce no call at all.</summary>
+    [Fact]
+    public void SteadyState_DoesNotRepeatTheNativeFocusCall()
+    {
+        var (ime, _, host, _) = SearchableMenu();
+
+        ime.Update();
+        var afterFirst = host.FocusTransitions;
+        ime.Update();
+        ime.Update();
+
+        Assert.Equal(1, afterFirst);
+        Assert.Equal(1, host.FocusTransitions);
     }
 
     /// <summary>The composition lives on the window that is composing, so that is where a blur or an
