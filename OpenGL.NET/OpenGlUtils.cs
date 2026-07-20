@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using OpenGL.NET;
 using OpenGlWrapper;
 using static GL46;
 
@@ -109,11 +108,6 @@ public static class OpenGlUtils
         throw new ArgumentOutOfRangeException(nameof(type), type.ToString());
     }
     
-
-    public static ShaderProgramCompiler NewShader()
-    {
-        return new ShaderProgramCompiler();
-    }
 
     public static bool TryGetGlError(out string errorStr)
     {
