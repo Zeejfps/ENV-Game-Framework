@@ -1,0 +1,40 @@
+<Project>
+
+    <PropertyGroup>
+        <IsSubmoduleProject>false</IsSubmoduleProject>
+        <IsSubmoduleProject Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)PngSharp'))">true</IsSubmoduleProject>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <ManagePackageVersionsCentrally Condition="'$(IsSubmoduleProject)' == 'true'">false</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="MinVer" Version="6.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="FreeTypeSharp" Version="3.0.1" />
+        <PackageVersion Include="HarfBuzzSharp" Version="8.3.0.1" />
+        <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.0.1" />
+        <PackageVersion Include="HarfBuzzSharp.NativeAssets.Win32" Version="8.3.0.1" />
+        <PackageVersion Include="HarfBuzzSharp.NativeAssets.macOS" Version="8.3.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="McpSdk.Server" Version="1.0.0" />
+        <PackageVersion Include="McpSdk.Adapter.System.Text.Json" Version="1.0.0" />
+        <PackageVersion Include="McpSdk.Adapter.StreamableHttpServer" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+        <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+        <PackageVersion Include="xunit" Version="2.9.3" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+        <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    </ItemGroup>
+
+</Project>

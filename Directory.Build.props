@@ -1,0 +1,20 @@
+<Project>
+
+    <!-- PngSharp is a submodule with its own package identity and release cadence.
+         MSBuild walks up into this file from there, so everything below is scoped out of it. -->
+    <PropertyGroup>
+        <IsSubmoduleProject>false</IsSubmoduleProject>
+        <IsSubmoduleProject Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)PngSharp'))">true</IsSubmoduleProject>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(IsSubmoduleProject)' != 'true'">
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IosTfmSuffix Condition="'$(BuildIos)' == 'true'">;net10.0-ios</IosTfmSuffix>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(IsSubmoduleProject)' != 'true'">
+        <PackageReference Include="MinVer" PrivateAssets="all" />
+    </ItemGroup>
+
+</Project>

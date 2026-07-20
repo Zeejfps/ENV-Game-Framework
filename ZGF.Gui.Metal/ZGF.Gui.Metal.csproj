@@ -7,11 +7,8 @@
          at runtime (newLibraryWithSource:), so the same assembly works on macOS and iOS. -->
 
     <PropertyGroup>
-        <TargetFrameworks>net10.0</TargetFrameworks>
         <!-- iOS compile coverage is opt-in: `dotnet build -p:BuildIos=true` (needs the ios workload). -->
-        <TargetFrameworks Condition="'$(BuildIos)'=='true'">net10.0;net10.0-ios</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFrameworks>net10.0$(IosTfmSuffix)</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 

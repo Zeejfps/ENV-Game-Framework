@@ -21,8 +21,6 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0-ios</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
         <IsPublishable>false</IsPublishable>
     </PropertyGroup>

@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
@@ -23,9 +21,9 @@
     <!-- In-process MCP server (GuiMcpServer) for driving the live window from an LLM/agent.
          The Streamable HTTP transport is self-hosted over System.Net.HttpListener — no ASP.NET. -->
     <ItemGroup>
-      <PackageReference Include="McpSdk.Server" Version="1.0.0" />
-      <PackageReference Include="McpSdk.Adapter.System.Text.Json" Version="1.0.0" />
-      <PackageReference Include="McpSdk.Adapter.StreamableHttpServer" Version="1.0.0" />
+      <PackageReference Include="McpSdk.Server" />
+      <PackageReference Include="McpSdk.Adapter.System.Text.Json" />
+      <PackageReference Include="McpSdk.Adapter.StreamableHttpServer" />
     </ItemGroup>
 
     <ItemGroup>
