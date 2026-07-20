@@ -1,7 +1,0 @@
-# Slang native libs are fetched by tools/fetch-slang.{sh,ps1} during build
-Native/win-x64/*.dll
-Native/win-arm64/*.dll
-Native/osx-x64/*.dylib
-Native/osx-arm64/*.dylib
-Native/linux-x64/*.so
-Native/**/.slang-version
