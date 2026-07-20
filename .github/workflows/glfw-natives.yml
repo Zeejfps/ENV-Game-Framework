@@ -119,9 +119,11 @@ jobs:
 
       # cp -L: CMake writes libglfw.so.3 as a symlink to the versioned file. The SONAME lives in
       # the ELF, so dereferencing under the soname filename is what the csproj expects to bundle.
+      # POSIX sh, not bash: Actions runs container steps under `sh -e`, which has no `pipefail`.
+      # There is no pipeline here, so `set -eu` is the whole of what pipefail would have given us.
       - name: Stage
         run: |
-          set -euo pipefail
+          set -eu
           mkdir -p out/linux-x64
           cp -L build/src/libglfw.so.3 out/linux-x64/libglfw.so.3
 
