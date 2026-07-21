@@ -425,6 +425,7 @@ public sealed class GuiApp : IDisposable
 
     public void Dispose()
     {
+        Context?.Dispose();
         _mcpServer?.Dispose();
 
         if (_hotReloadHandler != null)
