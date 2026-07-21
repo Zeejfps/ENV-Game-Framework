@@ -6,11 +6,11 @@ public interface ITexture
     uint Target { get; }
 }
 
-public interface ITexture2D : ITexture
-{
-}
+public interface ITexture2D : ITexture;
+public interface ITexture1DArray : ITexture;
+public interface ITexSubImage2DTarget : ITexture2D, ITexture1DArray;
 
-public readonly struct Texture2D(uint id) : ITexture2D
+public readonly struct Texture2D(uint id) : ITexSubImage2DTarget
 {
     public uint Id { get; } = id;
     public uint Target { get; } = GL46.GL_TEXTURE_2D;
@@ -56,7 +56,7 @@ public static class Textures
         int xoffset, int yoffset, 
         int width, int height,
         uint format, uint type, 
-        ReadOnlySpan<uint> pixels) where T : ITexture
+        ReadOnlySpan<uint> pixels) where T : ITexSubImage2DTarget
     {
         unsafe
         {
@@ -93,7 +93,8 @@ public static class Textures
         int width,
         int height,
         uint format,
-        uint channelType) where TTexture : ITexture2D
+        uint channelType) 
+        where TTexture : ITexture2D
     {
         GL46.glTexImage2D(texture.Target, level, (int)internalFormat,
             width, height, 0, format, channelType, (void*)0);

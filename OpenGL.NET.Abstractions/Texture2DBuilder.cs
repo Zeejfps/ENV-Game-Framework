@@ -39,7 +39,7 @@ public sealed class Texture2DBuilder
         return this;
     }
     
-    public unsafe ITexture2D BindAndBuild()
+    public unsafe Texture2D BindAndBuild()
     {
         uint textureId;
         
