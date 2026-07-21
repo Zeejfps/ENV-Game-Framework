@@ -18,7 +18,7 @@ var builder = GuiApp.CreateBuilder(new StartupConfig
 if (args.Contains("--gl"))
     builder.UseRenderBackend(GuiRenderBackendKind.OpenGl);
 
-builder.Services.AddSingleton(_ =>
+builder.Context.AddSingleton(_ =>
 {
     var vm = new TodoViewModel();
     vm.AddTask();
@@ -47,9 +47,7 @@ if (shotPath != null)
     });
 }
 
-using var app = builder
-    .UseContent(svgDemo ? new SvgDemoScreen() : new TodoScreen())
-    .Build();
+using var app = builder.Build(svgDemo ? new SvgDemoScreen() : new TodoScreen());
 appRef = app;
 
 app.Run();

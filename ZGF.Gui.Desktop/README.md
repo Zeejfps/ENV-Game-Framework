@@ -79,17 +79,16 @@ using var app = GuiApp.CreateBuilder(new StartupConfig
         WindowHeight = 600,
         WindowTitle = "Hello ZGF",
     })
-    .UseContent(new Center
+    .Build(new Center
     {
         Child = new Text { Value = "Hello, desktop!", FontSize = 24, Color = 0xFFE0E0E0 },
-    })
-    .Build();
+    });
 
 app.Run();
 ```
 
-`CreateBuilder` starts a fluent [`GuiAppBuilder`](GuiAppBuilder.cs); `UseContent` sets the root
-widget; `Build` resolves the backend, wires the framework services, and mounts the tree; `Run`
+`CreateBuilder` starts a fluent [`GuiAppBuilder`](GuiAppBuilder.cs); `Build` takes the root
+widget, resolves the backend, wires the framework services, and mounts the tree; `Run`
 enters the event loop and blocks until the window closes. `using var` disposes the app (and the
 whole view tree) on exit. Colors are `0xAARRGGBB`.
 
@@ -202,9 +201,7 @@ var builder = GuiApp.CreateBuilder(new StartupConfig
 
 builder.Context.AddSingleton(_ => new CounterViewModel());
 
-using var app = builder
-    .UseContent(new CounterScreen())
-    .Build();
+using var app = builder.Build(new CounterScreen());
 
 app.Run();
 ```
@@ -298,7 +295,7 @@ nobody disposes — fine for a throwaway helper, a bug for shared state. When in
 register more if you need them:
 
 ```csharp
-using var app = builder.UseContent(new AppShell()).Build();
+using var app = builder.Build(new AppShell());
 
 app.RegisterFont("Inter", "Assets/Fonts/Inter-Regular.ttf", pixelSize: 16);
 app.RegisterFallbackFont("Assets/Fonts/NotoSansCJK.ttc", pixelSize: 16); // consulted for missing glyphs

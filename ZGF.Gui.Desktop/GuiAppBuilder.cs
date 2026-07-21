@@ -5,17 +5,16 @@ namespace ZGF.Gui.Desktop;
 
 /// <summary>
 /// Fluent builder for a <see cref="GuiApp"/>. Register application services on
-/// <see cref="Services"/> and supply the root <see cref="View"/> via <see cref="UseContent"/>;
-/// <see cref="Build"/> resolves the platform backend, wires the framework services (input,
-/// dispatcher, popups, clipboard, ...) into the same <see cref="Context"/>, then mounts the content.
-/// Because mounting happens after the framework services are registered, the content's
-/// <c>OnAttachedToContext</c> sees a fully-wired context and can build itself from it — there is no
-/// "register, then resolve in a specific order" dance for callers to get wrong.
+/// <see cref="Context"/>, then <see cref="Build(IWidget)"/> with the root widget: it resolves the
+/// platform backend, wires the framework services (input, dispatcher, popups, clipboard, ...) into
+/// the same <see cref="Context"/>, then mounts the content. Because mounting happens after the
+/// framework services are registered, the content's <c>OnAttachedToContext</c> sees a fully-wired
+/// context and can build itself from it — there is no "register, then resolve in a specific order"
+/// dance for callers to get wrong.
 /// </summary>
 public sealed class GuiAppBuilder
 {
     private readonly StartupConfig _config;
-    private Func<Context, View>? _contentFactory;
     private GuiRenderBackendKind _backendKind = GuiRenderBackendKind.Auto;
     private Action? _renderHook;
     private Action<Context>? _startup;
@@ -28,34 +27,10 @@ public sealed class GuiAppBuilder
 
     /// <summary>
     /// The application <see cref="ZGF.Gui.Context"/>. Register application services here before
-    /// <see cref="Build"/>; the framework adds its own services into this same container during the
-    /// build, so the root content can resolve both from its <c>OnAttachedToContext</c>.
+    /// <see cref="Build(IWidget)"/>; the framework adds its own services into this same container
+    /// during the build, so the root content can resolve both from its <c>OnAttachedToContext</c>.
     /// </summary>
     public Context Context { get; } = new();
-
-    /// <summary>Sets the root content mounted into the main window.</summary>
-    public GuiAppBuilder UseContent(View content)
-    {
-        _contentFactory = _ => content;
-        return this;
-    }
-
-    public GuiAppBuilder UseContent<T>() where T : Widget
-    {
-        _contentFactory = ctx => ctx.Require<T>().BuildView(ctx);
-        return this;
-    }
-
-    /// <summary>
-    /// Sets the root content as a factory invoked with the fully-wired <see cref="Context"/> —
-    /// framework services (input, canvas, popups, ...) are registered before it runs, so the
-    /// factory can resolve them at build time instead of waiting for attach.
-    /// </summary>
-    public GuiAppBuilder UseContent(Func<Context, View> contentFactory)
-    {
-        _contentFactory = contentFactory;
-        return this;
-    }
 
     /// <summary>
     /// Forces a specific graphics backend instead of the platform default. Apps that embed
@@ -106,12 +81,18 @@ public sealed class GuiAppBuilder
         return this;
     }
 
-    /// <summary>Resolves the backend, wires framework services, and mounts the content.</summary>
-    public GuiApp Build()
-    {
-        if (_contentFactory is null)
-            throw new InvalidOperationException(
-                "No root content set. Call UseContent(...) before Build().");
-        return GuiApp.Create(_config, Context, _contentFactory, _backendKind, _renderHook, _startup, _mcpServerPort);
-    }
+    /// <summary>
+    /// Resolves the backend, wires framework services, and mounts <paramref name="root"/> as the
+    /// main window's content. A <see cref="IWidget"/> is itself a <c>Context → View</c> factory, so
+    /// it is rebuilt from the fully-wired context — on mount and again on hot reload.
+    /// </summary>
+    public GuiApp Build(IWidget root) => Build(root.BuildView);
+
+    /// <summary>
+    /// Builds with the root content as a raw factory invoked with the fully-wired
+    /// <see cref="Context"/> — the escape hatch for a root that isn't a widget (e.g. a view built
+    /// directly against the canvas). Prefer <see cref="Build(IWidget)"/>.
+    /// </summary>
+    public GuiApp Build(Func<Context, View> rootFactory) =>
+        GuiApp.Create(_config, Context, rootFactory, _backendKind, _renderHook, _startup, _mcpServerPort);
 }

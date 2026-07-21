@@ -27,11 +27,10 @@ using var app = GuiApp.CreateBuilder(new StartupConfig
         WindowHeight = 600,
         WindowTitle = "Hello ZGF",
     })
-    .UseContent(new Center
+    .Build(new Center
     {
         Child = new Text { Value = "Hello, desktop!", FontSize = 24, Color = 0xFFE0E0E0 },
-    })
-    .Build();
+    });
 
 app.Run();
 ```

@@ -116,7 +116,7 @@ builder.Context.AddSingleton(_ =>
     return vm;
 });
 
-using var app = builder.UseContent(new TodoScreen()).Build();
+using var app = builder.Build(new TodoScreen());
 app.Run();
 ```
 
@@ -443,8 +443,8 @@ Widgets are window-agnostic; built Views are not. The rule:
 - Never move a **built View** between windows. To show the "same" UI elsewhere, build the
   widget again against that window's context.
 
-The framework enforces this: every window owner takes a build factory, not a view —
-`GuiAppBuilder.UseContent(Func<Context, View>)`, `SecondaryWindowRequest.BuildRoot`,
+The framework enforces this: every window owner takes a widget or build factory, not a view —
+`GuiAppBuilder.Build(IWidget)`, `SecondaryWindowRequest.BuildRoot`,
 `PopupRequest.BuildRoot`, and `IContextMenuHost.ShowContextMenu(Func<Context, ContextMenu>, …)`.
 Each window invokes the factory with its **own** context (its canvas, its `InputSystem`, its
 `IWindowCoordinates`), so popup menus and secondary windows are built fresh, correctly wired,

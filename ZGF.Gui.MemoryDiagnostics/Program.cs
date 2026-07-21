@@ -58,10 +58,8 @@ var config = new StartupConfig
 };
 
 var builder = GuiApp.CreateBuilder(config);
-using var guiApp = builder
-    .UseContent(ctx => scenario.BuildRoot(ctx.Canvas))
-    .Build();
-var dispatcher = builder.Services.Get<IUiDispatcher>()
+using var guiApp = builder.Build(ctx => scenario.BuildRoot(ctx.Canvas));
+var dispatcher = builder.Context.Get<IUiDispatcher>()
                  ?? throw new InvalidOperationException("IUiDispatcher not registered by GuiApp.");
 
 // Driver runs off the UI thread: it paces scenario mutations (marshaled onto the UI thread
