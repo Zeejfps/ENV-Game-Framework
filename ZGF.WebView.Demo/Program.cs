@@ -1,74 +1,75 @@
 using ZGF.Desktop;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Components.WebView;
+using ZGF.Gui.Widgets;
 using ZGF.WebView.Cef;
+using ZGF.WebView.Demo;
 
-// Minimal app that embeds a native web view. The ONLY CEF-referencing symbol touched is
-// UseCefWebView(); the WebView widget itself is engine-agnostic core UI.
+// Embeds a native web view. The ONLY CEF-referencing symbol touched is UseCefWebView(); the WebView
+// widget and the surrounding browser chrome are engine-agnostic ZGF UI.
 //
-//   dotnet run --project ZGF.WebView.Demo -- https://example.com
-//   dotnet run --project ZGF.WebView.Demo -- test  --screenshot out.png   (offline render check)
-//   dotnet run --project ZGF.WebView.Demo -- drive --screenshot out.png   (input + JS bridge check)
+//   dotnet run --project ZGF.WebView.Demo                         # mini-browser (native chrome + web view)
+//   dotnet run --project ZGF.WebView.Demo -- https://example.com  # open a URL in the mini-browser
+//   dotnet run --project ZGF.WebView.Demo -- test  --screenshot out.png   # bare-pipeline render check
+//   dotnet run --project ZGF.WebView.Demo -- drive --screenshot out.png   # input + JS-bridge check
 
-var mode = args.Length > 0 ? args[0] : "https://example.com";
-var screenshotIndex = Array.IndexOf(args, "--screenshot");
-var screenshotPath = screenshotIndex >= 0 && screenshotIndex + 1 < args.Length ? args[screenshotIndex + 1] : null;
-
-const string renderHtml =
-    "<html><body style='margin:0;background:#ffcc00;font-family:sans-serif'>" +
-    "<h1 style='color:#202080'>ZGF WebView works!</h1>" +
-    "<p>Rendered off-screen by CEF into a ZGF texture.</p>" +
-    "<button onclick=\"window.zgf&&window.zgf.postMessage('clicked')\">post to C#</button>" +
-    "</body></html>";
-
-// A full-window text field that echoes each edit back to C# via the JS bridge — so a driver click +
-// type exercises focus, keyboard forwarding and the page→C# channel at once.
-const string driveHtml =
-    "<html><body style='margin:0'>" +
-    "<input id='i' autofocus " +
-    "style='position:fixed;inset:0;width:100%;height:100%;font-size:48px;box-sizing:border-box;background:#e8f0ff' " +
-    "oninput=\"window.zgf&&window.zgf.postMessage('val:'+this.value)\">" +
-    "<script>window.addEventListener('load',function(){window.zgf&&window.zgf.postMessage('loaded');});</script>" +
-    "</body></html>";
-
-string? url = null;
-string? html = null;
-switch (mode)
+// Parse: optional "--screenshot <path>" flag, then the first positional arg is the mode/URL.
+string? screenshotPath = null;
+var positional = new List<string>();
+for (var i = 0; i < args.Length; i++)
 {
-    case "test": html = renderHtml; break;
-    case "drive": html = driveHtml; break;
-    default: url = mode; break;
+    if (args[i] == "--screenshot") { screenshotPath = i + 1 < args.Length ? args[++i] : null; continue; }
+    if (args[i].StartsWith("--")) continue;
+    positional.Add(args[i]);
 }
+var mode = positional.Count > 0 ? positional[0] : "browser";
 
 var builder = GuiApp.CreateBuilder(new StartupConfig
     {
         WindowTitle = "ZGF WebView Demo",
-        WindowWidth = 1024,
-        WindowHeight = 768,
+        WindowWidth = 1280,
+        WindowHeight = 820,
     })
     .UseCefWebView();
 
-using var app = builder.Build(new WebView
+// Root widget by mode: the rich mini-browser by default; the bare WebView for the two automated checks.
+IWidget root = mode switch
 {
-    Id = "web",
-    Url = url,
-    Html = html,
-    OnMessage = msg => Console.WriteLine($"[page->C#] {msg}"),
-});
+    "test" => new WebView
+    {
+        Id = "web",
+        Html = "<html><body style='margin:0;background:#ffcc00;font-family:sans-serif'>" +
+               "<h1 style='color:#202080'>ZGF WebView works!</h1>" +
+               "<p>Rendered off-screen by CEF into a ZGF texture.</p></body></html>",
+    },
+    "drive" => new WebView
+    {
+        Id = "web",
+        Html = "<html><body style='margin:0'><input id='i' autofocus " +
+               "style='position:fixed;inset:0;width:100%;height:100%;font-size:48px;box-sizing:border-box;background:#e8f0ff' " +
+               "oninput=\"window.zgf&&window.zgf.postMessage('val:'+this.value)\">" +
+               "<script>window.addEventListener('load',function(){window.zgf&&window.zgf.postMessage('loaded');});</script>" +
+               "</body></html>",
+        OnMessage = msg => Console.WriteLine($"[page->C#] {msg}"),
+    },
+    _ => new BrowserScreen { InitialUrl = mode == "browser" ? null : mode },
+};
+
+using var app = builder.Build(root);
 
 if (screenshotPath != null)
 {
     var thread = new Thread(() =>
     {
-        Thread.Sleep(4000); // CEF subprocess start + page load + first paints.
+        Thread.Sleep(4500); // CEF subprocess start + page load + first paints.
 
         if (mode == "drive")
         {
             var driver = app.CreateDriver();
             driver.WaitFor("web");
-            driver.Click("web");        // routes a click into the page and grabs keyboard focus
+            driver.Click("web");
             Thread.Sleep(400);
-            driver.Type("ZGF");         // forwarded as Char events; the field echoes each edit to C#
+            driver.Type("ZGF");
             Thread.Sleep(1200);
         }
 
