@@ -73,38 +73,37 @@ internal sealed class WebViewInputController : KeyboardMouseController, IProvide
 
     public override void OnKeyboardKeyStateChanged(ref KeyboardKeyEvent e)
     {
-        // Text-producing keys are delivered as characters via OnTextInput (which synthesizes the full
-        // RawKeyDown→Char→KeyUp sequence CEF needs). Forward here only the non-text keys — navigation,
-        // editing, modifiers — plus any key pressed with a command modifier (Ctrl/Alt/Super shortcuts,
-        // which produce no text). This avoids double-delivering ordinary typed characters.
-        var command = e.Modifiers.HasFlag(InputModifiers.Control)
-                      || e.Modifiers.HasFlag(InputModifiers.Alt)
-                      || e.Modifiers.HasFlag(InputModifiers.Super);
-        if (!IsForwardedKey(e.Key) && !command)
-            return;
-
+        // Forward every key while focused as a RawKeyDown / KeyUp carrying the physical virtual-key
+        // code — exactly the WM_KEYDOWN / WM_KEYUP a real browser sees. The character a key produces
+        // is delivered separately as a Char event by OnTextInput; a RawKeyDown never inserts text on
+        // its own (OSR requires an explicit Char), so forwarding the key here does not double-type.
+        // Emitting the real keydown/keyup is what makes in-page keyboard handlers, shortcuts and
+        // command modifiers (Ctrl/Alt/Super) behave, and the natural press→text→release ordering
+        // falls out of GLFW delivering OnKey(press) → OnText → OnKey(release).
         var pressed = e.State == InputState.Pressed;
         var vk = VirtualKey(e.Key);
         _webView.SendKey(pressed ? WebKeyEventKind.RawKeyDown : WebKeyEventKind.KeyUp,
             vk, vk, '\0', Modifiers(e.Modifiers), isSystemKey: false);
-        // Claim the keystroke so navigation/edit keys reach the page rather than bubbling to app shortcuts.
+        // Claim the keystroke (as text, so the character it produces still arrives) so it reaches the
+        // page rather than bubbling to the app's own single-key shortcuts while the view is focused.
         if (pressed)
             e.ConsumeAsText();
     }
 
     public override void OnTextInput(ref TextInputEvent e)
     {
-        // CEF/Blink inserts a character from a RawKeyDown → Char → KeyUp sequence, not a lone Char, and
-        // wants a non-zero key code on the events — synthesize the sequence per UTF-16 unit.
+        // Insert the typed character with a CEF Char event. For Char events CEF reads WindowsKeyCode
+        // as the character code unit itself (it becomes the WM_CHAR wParam) — NOT a virtual key — so
+        // it must be the character, not an uppercased VK. Passing a VK here is the classic pair of
+        // bugs: 'h' → VK 'H' inserts an uppercase 'H', and '.' → 0x2E is VK_DELETE, which the raw
+        // keydown swallows as a forward-delete so the period never lands. The RawKeyDown/KeyUp around
+        // it come from OnKeyboardKeyStateChanged.
         Span<char> chars = stackalloc char[2];
         var n = e.Rune.EncodeToUtf16(chars);
         for (var i = 0; i < n; i++)
         {
             var c = chars[i];
-            int vk = char.ToUpperInvariant(c);
-            _webView.SendKey(WebKeyEventKind.RawKeyDown, vk, vk, '\0', WebInputModifiers.None, isSystemKey: false);
-            _webView.SendKey(WebKeyEventKind.Char, vk, vk, c, WebInputModifiers.None, isSystemKey: false);
-            _webView.SendKey(WebKeyEventKind.KeyUp, vk, vk, '\0', WebInputModifiers.None, isSystemKey: false);
+            _webView.SendKey(WebKeyEventKind.Char, c, c, c, WebInputModifiers.None, isSystemKey: false);
         }
         e.Consume();
     }
@@ -150,22 +149,10 @@ internal sealed class WebViewInputController : KeyboardMouseController, IProvide
         _ => MouseCursor.Default,
     };
 
-    // Keys forwarded as raw key events (they produce no text of their own): navigation, editing,
-    // whitespace/return, function and modifier keys. Everything else is delivered via OnTextInput.
-    private static bool IsForwardedKey(KeyboardKey key) => key switch
-    {
-        KeyboardKey.Backspace or KeyboardKey.Tab or KeyboardKey.Enter or KeyboardKey.NumpadEnter
-            or KeyboardKey.Escape or KeyboardKey.Delete or KeyboardKey.Insert
-            or KeyboardKey.Home or KeyboardKey.End or KeyboardKey.PageUp or KeyboardKey.PageDown
-            or KeyboardKey.LeftArrow or KeyboardKey.RightArrow or KeyboardKey.UpArrow or KeyboardKey.DownArrow
-            or KeyboardKey.LeftShift or KeyboardKey.RightShift or KeyboardKey.LeftControl or KeyboardKey.RightControl
-            or KeyboardKey.LeftAlt or KeyboardKey.RightAlt or KeyboardKey.LeftSuper or KeyboardKey.RightSuper => true,
-        >= KeyboardKey.F1 and <= KeyboardKey.F25 => true,
-        _ => false,
-    };
-
-    // Common ZGF keys → Windows virtual-key codes (what CEF's WindowsKeyCode expects). Letters/digits
-    // map to their ASCII code; the rest cover navigation/editing. Unmapped keys pass 0.
+    // Common ZGF keys → Windows virtual-key codes (what CEF's WindowsKeyCode expects on RawKeyDown/
+    // KeyUp). Letters/digits map to their ASCII code; punctuation to its US-layout VK_OEM_* code so a
+    // key like '.' is a real OEM_PERIOD (0xBE) rather than colliding with VK_DELETE (0x2E). Unmapped
+    // keys pass 0, which is harmless on a keydown (never mistaken for an editing command).
     private static int VirtualKey(KeyboardKey key)
     {
         if (key is >= KeyboardKey.A and <= KeyboardKey.Z)
@@ -194,6 +181,19 @@ internal sealed class WebViewInputController : KeyboardMouseController, IProvide
             KeyboardKey.LeftShift or KeyboardKey.RightShift => 0x10,
             KeyboardKey.LeftControl or KeyboardKey.RightControl => 0x11,
             KeyboardKey.LeftAlt or KeyboardKey.RightAlt => 0x12,
+            KeyboardKey.LeftSuper or KeyboardKey.RightSuper => 0x5B,
+            // US-layout OEM punctuation (VK_OEM_*): the code Blink expects for these keys.
+            KeyboardKey.SemiColon => 0xBA,
+            KeyboardKey.Equals => 0xBB,
+            KeyboardKey.Comma => 0xBC,
+            KeyboardKey.Minus => 0xBD,
+            KeyboardKey.Period => 0xBE,
+            KeyboardKey.Slash => 0xBF,
+            KeyboardKey.GraveAccent => 0xC0,
+            KeyboardKey.LeftBracket => 0xDB,
+            KeyboardKey.Backslash => 0xDC,
+            KeyboardKey.RightBracket => 0xDD,
+            KeyboardKey.Apostrophe => 0xDE,
             _ => 0,
         };
     }
