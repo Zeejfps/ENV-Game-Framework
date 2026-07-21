@@ -84,5 +84,8 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         _surfaceRenderer?.RequestCapture();
     }
 
+    // No-op: the Metal layer's drawable tracks the window surface, so there's no viewport to reset.
+    public void OnFramebufferResize(int width, int height) { }
+
     public void Dispose() => _shared.Dispose();
 }

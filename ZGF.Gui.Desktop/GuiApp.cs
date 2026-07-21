@@ -1,6 +1,5 @@
 using ZGF.AppUtils;
 using ZGF.Desktop;
-using ZGF.Desktop.Backends.OpenGl;
 using ZGF.Fonts;
 using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
@@ -43,6 +42,7 @@ public sealed class GuiApp : IDisposable
         Context context,
         Func<Context, View> contentFactory,
         Action<Context> registerBackendServices,
+        Action? renderHook,
         Action<Context>? startup,
         int? mcpServerPort)
     {
@@ -118,7 +118,11 @@ public sealed class GuiApp : IDisposable
         // work after Build.
         context.StartHostedServices();
 
-        PlatformBackend.PopulateMain = PopulateGui;
+        // Wire the main-window render loop now that PopulateGui (the draw callback) exists. Doing it
+        // here — rather than in the backend resolver, which runs before this instance exists — keeps
+        // the callback a direct instance reference instead of a static hole, so a second in-process
+        // GuiApp (e.g. the automation runner) can't clobber the first.
+        _renderBackend.WireRenderLoop(app.MainWindow, mainCanvas, PopulateGui, (0f, 0f, 0f, 0f), renderHook);
 
         app.OnTick += HandleTick;
         app.MainWindow.OnResize += HandleResize;
@@ -177,12 +181,12 @@ public sealed class GuiApp : IDisposable
         Action<Context>? startup = null,
         int? mcpServerPort = null)
     {
-        var backend = PlatformBackend.Resolve(config, backendKind, renderHook);
+        var backend = PlatformBackend.Resolve(config, backendKind);
         return new GuiApp(
             backend.App, backend.MainCanvas, backend.FontBackend,
             backend.RenderBackend,
             backend.DefaultFont, context, contentFactory,
-            backend.RegisterServices, startup, mcpServerPort);
+            backend.RegisterServices, renderHook, startup, mcpServerPort);
     }
 
     public void RegisterFont(string family, string path, int pixelSize)
@@ -380,10 +384,8 @@ public sealed class GuiApp : IDisposable
         OnWindowResized?.Invoke(width, height);
     }
 
-    private void HandleFramebufferResize(int width, int height)
-    {
-        if (_app is OpenGlApp) GL46.glViewport(0, 0, width, height);
-    }
+    private void HandleFramebufferResize(int width, int height) =>
+        _renderBackend.OnFramebufferResize(width, height);
 
     private void HandleMove(int x, int y) => OnWindowMoved?.Invoke(x, y);
 

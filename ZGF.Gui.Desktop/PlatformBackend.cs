@@ -26,19 +26,19 @@ internal static class PlatformBackend
         public required Action<Context> RegisterServices { get; init; }
     }
 
-    public static Backend Resolve(StartupConfig config, GuiRenderBackendKind kind, Action? mainPreDraw)
+    public static Backend Resolve(StartupConfig config, GuiRenderBackendKind kind)
     {
         return kind switch
         {
-            GuiRenderBackendKind.OpenGl => ResolveOpenGl(config, mainPreDraw),
-            GuiRenderBackendKind.Metal => ResolveMetal(config, mainPreDraw),
+            GuiRenderBackendKind.OpenGl => ResolveOpenGl(config),
+            GuiRenderBackendKind.Metal => ResolveMetal(config),
             _ => RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                ? ResolveMetal(config, mainPreDraw)
-                : ResolveOpenGl(config, mainPreDraw),
+                ? ResolveMetal(config)
+                : ResolveOpenGl(config),
         };
     }
 
-    private static Backend ResolveOpenGl(StartupConfig config, Action? mainPreDraw)
+    private static Backend ResolveOpenGl(StartupConfig config)
     {
         var app = new OpenGlApp(config);
         var mainWindow = (OpenGlWindow)app.MainWindow;
@@ -56,7 +56,6 @@ internal static class PlatformBackend
         if (windowHeight <= 0) windowHeight = 720;
 
         var canvas = backend.CreateCanvas(mainWindow, windowWidth, windowHeight, fontSource: null);
-        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f), mainPreDraw);
 
         return new Backend
         {
@@ -69,7 +68,7 @@ internal static class PlatformBackend
         };
     }
 
-    private static Backend ResolveMetal(StartupConfig config, Action? mainPreDraw)
+    private static Backend ResolveMetal(StartupConfig config)
     {
         var app = new MetalApp(config);
         var mainWindow = (MetalWindow)app.MainWindow;
@@ -82,7 +81,6 @@ internal static class PlatformBackend
         var backend = new MetalRenderBackend(shared, fonts, defaultFont);
 
         var canvas = backend.CreateCanvas(mainWindow, config.WindowWidth, config.WindowHeight, fontSource: null);
-        backend.WireRenderLoop(mainWindow, canvas, () => PopulateMain?.Invoke(), (0f, 0f, 0f, 0f), mainPreDraw);
 
         return new Backend
         {
@@ -94,7 +92,4 @@ internal static class PlatformBackend
             RegisterServices = ctx => ctx.AddService(imageManager),
         };
     }
-
-    // Wired by GuiApp: the main-window draw callback that fills the canvas.
-    internal static Action? PopulateMain;
 }

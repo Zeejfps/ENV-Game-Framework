@@ -11,6 +11,11 @@ internal interface IGuiRenderBackend : IDisposable
     /// the GUI over engine-rendered content.</param>
     void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null);
 
+    /// <summary>Reacts to the main window's framebuffer changing size — the seam for backend-specific
+    /// viewport state (an OpenGL <c>glViewport</c>; a no-op where the swapchain tracks the surface).
+    /// Keeps GL knowledge out of the host, which only forwards the resize.</summary>
+    void OnFramebufferResize(int width, int height);
+
     /// <summary>Requests that the next rendered frame be written to <paramref name="path"/> as a PNG.
     /// Captured inside the render loop (after draw, before swap) where the backend supports CPU
     /// read-back. <paramref name="onComplete"/> runs once the capture attempt finishes (success or

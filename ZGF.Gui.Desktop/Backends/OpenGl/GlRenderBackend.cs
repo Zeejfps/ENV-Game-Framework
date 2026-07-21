@@ -69,6 +69,8 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
         };
     }
 
+    public void OnFramebufferResize(int width, int height) => glViewport(0, 0, width, height);
+
     public void RequestScreenshot(string path, Action? onComplete = null)
     {
         _pendingScreenshotPath = path;
