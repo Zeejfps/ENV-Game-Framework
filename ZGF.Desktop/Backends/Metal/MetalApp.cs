@@ -60,8 +60,6 @@ public sealed class MetalApp : IWindowedApp
 
     public event Action? OnTick;
 
-    public void MakeMainContextCurrent() { /* Metal is stateless across windows */ }
-
     public void Wake() => GLFW.Glfw.PostEmptyEvent();
 
     public void Quit()
@@ -135,7 +133,7 @@ public sealed class MetalApp : IWindowedApp
                     var w = _windows[i];
                     if (!w.IsVisible) continue;
                     if (!w.NeedsRedraw) continue;
-                    w.RenderNow();
+                    ((MetalWindow)w).RenderNow();
                     anyRendered = true;
                 }
 

@@ -57,9 +57,7 @@ public interface IWindow : IDisposable
     void SetCursor(MouseCursor cursor);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);
     void RequestRedraw();
-    void RenderNow();
-    void MakeContextCurrent();
-    
+
     string GetClipboardText();
     void SetClipboardText(string text);
 }

@@ -87,5 +87,11 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
     // No-op: the Metal layer's drawable tracks the window surface, so there's no viewport to reset.
     public void OnFramebufferResize(int width, int height) { }
 
+    public void RenderWindowNow(IWindow window) => ((MetalWindow)window).RenderNow();
+
+    // Metal has no per-thread current context to switch — each frame binds its own drawable.
+    public void MakeWindowContextCurrent(IWindow window) { }
+    public void MakeMainContextCurrent() { }
+
     public void Dispose() => _shared.Dispose();
 }

@@ -86,8 +86,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         }
 
         // Paint once before showing so the first frame isn't a flash of an empty window.
-        window.MakeContextCurrent();
-        window.RenderNow();
+        _backend.RenderWindowNow(window);
         window.Show();
 
         _active.Add(impl);
@@ -114,7 +113,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
                 // deleting its objects under its own context). Restore the main context so the
                 // run loop's next GL calls — and any GL work between now and the next per-window
                 // MakeContextCurrent — target a valid context.
-                _app.MakeMainContextCurrent();
+                _backend.MakeMainContextCurrent();
             }
             else
             {
@@ -141,6 +140,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 {
     private readonly GuiWindowHost _host;
+    private readonly IGuiRenderBackend _backend;
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
     private bool _disposed;
@@ -161,6 +161,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         ImeCoordinator ime)
     {
         _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: true);
+        _backend = backend;
         _arbiter = arbiter;
         _ime = ime;
 
@@ -206,8 +207,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     {
         _host.HandleResize(width, height);
         // Repaint synchronously so a live drag-resize doesn't show stretched/stale content.
-        _host.Window.MakeContextCurrent();
-        _host.Window.RenderNow();
+        _backend.RenderWindowNow(_host.Window);
     }
 
     private void HandleFramebufferResize(int width, int height)
@@ -232,7 +232,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
         // runs against whatever context is current (often the main window) and destroys that
         // context's same-named VAOs — corrupting the main window's rendering.
-        _host.Window.MakeContextCurrent();
+        _backend.MakeWindowContextCurrent(_host.Window);
         _host.DisposeCanvas();
         _host.Window.Dispose();
         Closed?.Invoke();

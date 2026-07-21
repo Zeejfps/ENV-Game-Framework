@@ -16,6 +16,21 @@ internal interface IGuiRenderBackend : IDisposable
     /// Keeps GL knowledge out of the host, which only forwards the resize.</summary>
     void OnFramebufferResize(int width, int height);
 
+    /// <summary>Renders one frame of <paramref name="window"/> synchronously, making whatever graphics
+    /// context it needs current first — for off-loop repaints (a live resize, a popup/secondary first
+    /// paint before Show, a screenshot). The host never touches per-window context state itself.</summary>
+    void RenderWindowNow(IWindow window);
+
+    /// <summary>Makes <paramref name="window"/>'s graphics context current — for GL object work outside
+    /// a render (deleting a window's per-context VAOs before disposing it). No-op where the backend
+    /// has no per-thread current context (Metal).</summary>
+    void MakeWindowContextCurrent(IWindow window);
+
+    /// <summary>Restores the main window's graphics context as current — after a secondary/popup
+    /// window rendered or was disposed, and for app-side GL resource work (texture/icon uploads).
+    /// No-op on backends without a per-thread current context.</summary>
+    void MakeMainContextCurrent();
+
     /// <summary>Requests that the next rendered frame be written to <paramref name="path"/> as a PNG.
     /// Captured inside the render loop (after draw, before swap) where the backend supports CPU
     /// read-back. <paramref name="onComplete"/> runs once the capture attempt finishes (success or

@@ -12,6 +12,9 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
     private readonly GlSharedResources _shared;
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
+    // The first canvas created belongs to the main window (backend resolution builds it before any
+    // secondary/popup exists); we keep it so MakeMainContextCurrent can restore its GL context.
+    private OpenGlWindow? _mainWindow;
     private string? _pendingScreenshotPath;
     private Action? _pendingScreenshotDone;
 
@@ -24,7 +27,9 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
 
     public RenderedCanvasBase CreateCanvas(IWindow window, int width, int height, RenderedCanvasBase? fontSource)
     {
-        window.MakeContextCurrent();
+        var glWindow = (OpenGlWindow)window;
+        _mainWindow ??= glWindow;
+        glWindow.MakeContextCurrent();
         var canvas = new OpenGlRenderedCanvas(width, height, _fonts, _defaultFont, _shared, window.DpiScale);
         if (fontSource != null)
             canvas.CopyFontsFrom(fontSource);
@@ -70,6 +75,17 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
     }
 
     public void OnFramebufferResize(int width, int height) => glViewport(0, 0, width, height);
+
+    public void RenderWindowNow(IWindow window)
+    {
+        var glWindow = (OpenGlWindow)window;
+        glWindow.MakeContextCurrent();
+        glWindow.RenderNow();
+    }
+
+    public void MakeWindowContextCurrent(IWindow window) => ((OpenGlWindow)window).MakeContextCurrent();
+
+    public void MakeMainContextCurrent() => _mainWindow?.MakeContextCurrent();
 
     public void RequestScreenshot(string path, Action? onComplete = null)
     {

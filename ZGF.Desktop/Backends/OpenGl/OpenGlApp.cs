@@ -56,11 +56,6 @@ public sealed class OpenGlApp : IWindowedApp
 
     public event Action? OnTick;
 
-    public void MakeMainContextCurrent()
-    {
-        Glfw.MakeContextCurrent(_mainWindow.GlfwWindow);
-    }
-
     public void Wake() => Glfw.PostEmptyEvent();
 
     public void Quit()

@@ -304,10 +304,9 @@ public sealed class GuiApp : IDisposable
     private void CaptureWindowScreenshot(IWindow window, string path, Action? onComplete)
     {
         _renderBackend.RequestScreenshot(path, onComplete);
-        window.MakeContextCurrent();
-        window.RenderNow();
+        _renderBackend.RenderWindowNow(window);
         if (!ReferenceEquals(window, _app.MainWindow))
-            _app.MakeMainContextCurrent();
+            _renderBackend.MakeMainContextCurrent();
     }
 
     /// <summary>
@@ -350,7 +349,7 @@ public sealed class GuiApp : IDisposable
 
     /// <summary>Makes the main window's graphics context current — for engine resource
     /// work outside the render hook (loads, rebuilds).</summary>
-    public void MakeMainContextCurrent() => _app.MakeMainContextCurrent();
+    public void MakeMainContextCurrent() => _renderBackend.MakeMainContextCurrent();
 
     private void HandleTick()
     {
@@ -379,8 +378,7 @@ public sealed class GuiApp : IDisposable
     private void HandleResize(int width, int height)
     {
         _mainHost.HandleResize(width, height);
-        _app.MainWindow.MakeContextCurrent();
-        _app.MainWindow.RenderNow();
+        _renderBackend.RenderWindowNow(_app.MainWindow);
         OnWindowResized?.Invoke(width, height);
     }
 
@@ -447,7 +445,7 @@ public sealed class GuiApp : IDisposable
         // render backend's shared GL objects live in the main window's context share group, so
         // make it current before deleting them. The main window is still alive here — it's
         // destroyed in _app.Dispose() below.
-        _app.MakeMainContextCurrent();
+        _renderBackend.MakeMainContextCurrent();
         _renderBackend.Dispose();
         _app.Dispose();
     }

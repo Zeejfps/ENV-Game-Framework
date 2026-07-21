@@ -96,8 +96,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         popup.RefreshDpiScale();
 
         // Synchronous render before show so the first paint isn't a flash.
-        popup.Window.MakeContextCurrent();
-        popup.Window.RenderNow();
+        _backend.RenderWindowNow(popup.Window);
 
         popup.Window.Show();
         _activePopups.Add(popup);
@@ -182,7 +181,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             evict.Dispose();
             // Dispose left the evicted window's (now-destroyed) context current; restore the
             // main context so the run loop's next GL calls target a valid one.
-            _app.MakeMainContextCurrent();
+            _backend.MakeMainContextCurrent();
         }
         _pool.Add(impl);
 
@@ -374,6 +373,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 {
     private readonly GuiWindowHost _host;
+    private readonly IGuiRenderBackend _backend;
 
     public event Action<PointI>? OutsideClick;
     public bool MousePassThrough { get; set; }
@@ -392,6 +392,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         IGuiRenderBackend backend)
     {
         _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: false);
+        _backend = backend;
         backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 0f));
     }
 
@@ -420,7 +421,7 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
         // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
         // runs against whatever context is current (often the main window) and destroys that
         // context's same-named VAOs. Callers restore the main context afterwards.
-        _host.Window.MakeContextCurrent();
+        _backend.MakeWindowContextCurrent(_host.Window);
         _host.DisposeCanvas();
         _host.Window.Dispose();
     }

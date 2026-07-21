@@ -15,5 +15,4 @@ public interface IWindowedApp : IDisposable
     void Quit();
     IWindow CreatePopupWindow(in PopupWindowOptions options);
     IWindow CreateWindow(in WindowOptions options);
-    void MakeMainContextCurrent();
 }
