@@ -200,7 +200,7 @@ var builder = GuiApp.CreateBuilder(new StartupConfig
     WindowTitle = "Counter",
 });
 
-builder.Services.AddSingleton(_ => new CounterViewModel());
+builder.Context.AddSingleton(_ => new CounterViewModel());
 
 using var app = builder
     .UseContent(new CounterScreen())
@@ -271,13 +271,13 @@ new ScrollArea { Children = [ Each.Of(vm.Tasks, new TaskRow(), gap: 4) ] }
 
 ## 7. Wiring services (the composition root)
 
-`Program.cs` registers view models and app services on `builder.Services` (a `Context`). The
+`Program.cs` registers view models and app services on `builder.Context`. The
 framework adds its own services (input, canvas, popups, clipboard) into that same container
 during `Build`, so your root widget's `Build` sees a fully-wired context.
 
 ```csharp
 // Factory — runs lazily on first resolve; seed initial state here:
-builder.Services.AddSingleton(_ =>
+builder.Context.AddSingleton(_ =>
 {
     var vm = new TodoViewModel();
     vm.AddTask();
@@ -285,7 +285,7 @@ builder.Services.AddSingleton(_ =>
 });
 
 // Or constructor-injected, with dependencies pulled from the container:
-builder.Services.AddSingleton<TodoViewModel>();
+builder.Context.AddSingleton<TodoViewModel>();
 ```
 
 Register anything shared as a singleton. `ctx.Require<T>()` on an *unregistered* constructible

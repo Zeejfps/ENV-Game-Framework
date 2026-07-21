@@ -10,6 +10,7 @@ public sealed class Context : IDisposable
     private readonly Dictionary<Type, object> _services = new();
     private readonly Dictionary<Type, Func<Context, object>> _factories = new();
     private readonly List<Type> _eager = new();
+    private readonly List<Type> _hosted = new();
     private readonly List<IDisposable> _owned = new();
     private readonly HashSet<Type> _creating = new();
     private readonly Context? _parent;
@@ -72,6 +73,42 @@ public sealed class Context : IDisposable
         foreach (var type in _eager)
             Resolve(type);
         _eager.Clear();
+    }
+
+    /// <summary>
+    /// Registers <typeparamref name="T"/> as a hosted service: a singleton the host resolves and
+    /// <see cref="IHostedService.Start"/>s once the app is built (see <see cref="StartHostedServices"/>).
+    /// Because it starts after Build, its constructor can inject framework services that only exist
+    /// then (dispatcher, clipboard, ...). Mirrors ASP.NET Core's <c>AddHostedService</c>.
+    /// </summary>
+    public void AddHostedService<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        where T : class, IHostedService
+    {
+        AddSingleton<T>();
+        _hosted.Add(typeof(T));
+    }
+
+    /// <summary>
+    /// Registers <typeparamref name="TImpl"/> as the hosted-service implementation of
+    /// <typeparamref name="TService"/>: consumers resolve the interface, the host starts the one instance.
+    /// </summary>
+    public void AddHostedService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>()
+        where TService : class
+        where TImpl : class, TService, IHostedService
+    {
+        AddSingleton<TService, TImpl>();
+        _hosted.Add(typeof(TService));
+    }
+
+    /// <summary>
+    /// Resolves and <see cref="IHostedService.Start"/>s every registered hosted service, in
+    /// registration order. Called once by the host after the app is built.
+    /// </summary>
+    public void StartHostedServices()
+    {
+        foreach (var type in _hosted)
+            ((IHostedService)Resolve(type)!).Start();
+        _hosted.Clear();
     }
 
     /// <summary>

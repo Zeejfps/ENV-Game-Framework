@@ -27,11 +27,11 @@ public sealed class GuiAppBuilder
     }
 
     /// <summary>
-    /// The service container shared with the GUI. Register application services here before
+    /// The application <see cref="ZGF.Gui.Context"/>. Register application services here before
     /// <see cref="Build"/>; the framework adds its own services into this same container during the
     /// build, so the root content can resolve both from its <c>OnAttachedToContext</c>.
     /// </summary>
-    public Context Services { get; } = new();
+    public Context Context { get; } = new();
 
     /// <summary>Sets the root content mounted into the main window.</summary>
     public GuiAppBuilder UseContent(View content)
@@ -112,6 +112,6 @@ public sealed class GuiAppBuilder
         if (_contentFactory is null)
             throw new InvalidOperationException(
                 "No root content set. Call UseContent(...) before Build().");
-        return GuiApp.Create(_config, Services, _contentFactory, _backendKind, _renderHook, _startup, _mcpServerPort);
+        return GuiApp.Create(_config, Context, _contentFactory, _backendKind, _renderHook, _startup, _mcpServerPort);
     }
 }

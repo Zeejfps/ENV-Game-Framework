@@ -109,7 +109,7 @@ builder's `Services` context; the content factory runs after all framework servi
 ```csharp
 var builder = GuiApp.CreateBuilder(new StartupConfig { ... });
 
-builder.Services.AddSingleton(_ =>
+builder.Context.AddSingleton(_ =>
 {
     var vm = new TodoViewModel();
     // seed initial state here — the factory runs lazily on first resolve
