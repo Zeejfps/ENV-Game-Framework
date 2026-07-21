@@ -1,0 +1,51 @@
+<Project>
+
+    <!--
+      Ships the zgf-cef-helper subprocess exe next to any app that references ZGF.WebView.Cef,
+      with no csproj work required of the app.
+
+      Design (cycle-free): ZGF.WebView.Cef.SubProcess links the shared ZgfCefRenderApp.cs source
+      rather than referencing ZGF.WebView.Cef, so nothing points back at this library. This library
+      then takes a *build-only* ProjectReference to the helper (ReferenceOutputAssembly=false, so its
+      assembly never becomes a reference of ours) purely to force it to build, and stages the helper's
+      MANAGED output under cef-helper/ as our own copy-local content. Because it's ordinary
+      CopyToOutputDirectory content on this library, MSBuild's transitive-content machinery copies it
+      into the consuming app's bin/.../cef-helper/ automatically.
+
+      Chromium's native payload (libcef, *.pak, locales, ...) is deliberately NOT copied here — it
+      already sits in the app root from the CefGlue runtime packages, and the helper loads it from the
+      parent directory (see ZgfCefRenderApp / the helper Program.cs CefRuntime.Load call).
+    -->
+
+    <ItemGroup>
+        <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\ZGF.WebView.Cef.SubProcess.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+            <!-- Build it as part of our build; don't add its assembly as a reference. -->
+        </ProjectReference>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <_ZgfCefHelperOutDir>$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\bin\$(Configuration)\net10.0\</_ZgfCefHelperOutDir>
+    </PropertyGroup>
+
+    <!-- Stage the helper's managed files as copy-local content of THIS project, under cef-helper/.
+         Runs before AssignTargetPaths so GetCopyToOutputDirectoryItems (which the app uses to copy
+         our transitive content) sees them; depends on ResolveProjectReferences so the helper is
+         already built and its files exist on disk. -->
+    <Target Name="StageZgfCefHelper"
+            BeforeTargets="AssignTargetPaths"
+            DependsOnTargets="ResolveProjectReferences">
+        <ItemGroup>
+            <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)zgf-cef-helper.*" />
+            <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)*CefGlue*.dll" />
+            <None Include="@(_ZgfCefHelperFile)">
+                <Link>cef-helper\%(Filename)%(Extension)</Link>
+                <TargetPath>cef-helper\%(Filename)%(Extension)</TargetPath>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <Visible>false</Visible>
+            </None>
+        </ItemGroup>
+    </Target>
+
+</Project>

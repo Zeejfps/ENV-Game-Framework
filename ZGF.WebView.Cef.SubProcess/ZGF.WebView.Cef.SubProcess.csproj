@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <!-- The exe CEF re-launches for its render / GPU / utility processes. -->
+        <AssemblyName>zgf-cef-helper</AssemblyName>
+        <!-- A console host, not WinExe: the subprocess must never open a window of its own. -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CefGlue.Common" />
+    </ItemGroup>
+
+    <!-- The renderer side of the JS bridge runs in the render process, i.e. in THIS exe, not the
+         app. The handler is defined once in ZGF.WebView.Cef and shared here as linked source rather
+         than a project reference, so the helper stays tiny (no app-side CEF surface) and there is no
+         Cef <-> SubProcess reference cycle (ZGF.WebView.Cef builds this project). -->
+    <ItemGroup>
+        <Compile Include="..\ZGF.WebView.Cef\Cef\ZgfCefRenderApp.cs">
+            <Link>Shared\ZgfCefRenderApp.cs</Link>
+        </Compile>
+    </ItemGroup>
+
+</Project>

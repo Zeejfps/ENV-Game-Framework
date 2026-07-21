@@ -25,6 +25,13 @@
         <PackageVersion Include="McpSdk.Adapter.StreamableHttpServer" Version="1.2.0" />
     </ItemGroup>
 
+    <!-- CEF / web view (opt-in; only ZGF.WebView.Cef references these, so no common project
+         drags in Chromium). CefGlue.Common pulls the per-RID Chromium runtime transitively. -->
+    <ItemGroup>
+        <PackageVersion Include="CefGlue.Common" Version="120.6099.211" />
+        <PackageVersion Include="CefGlue.Common.ARM64" Version="120.6099.211" />
+    </ItemGroup>
+
     <ItemGroup>
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
         <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
