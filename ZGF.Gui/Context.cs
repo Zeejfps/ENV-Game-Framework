@@ -9,7 +9,6 @@ public sealed class Context : IDisposable
 
     private readonly Dictionary<Type, object> _services = new();
     private readonly Dictionary<Type, Func<Context, object>> _factories = new();
-    private readonly List<Type> _eager = new();
     private readonly List<Type> _hosted = new();
     private readonly List<IDisposable> _owned = new();
     private readonly HashSet<Type> _creating = new();
@@ -39,40 +38,24 @@ public sealed class Context : IDisposable
     }
 
     /// <summary>
-    /// Registers <typeparamref name="T"/> to be constructed on first resolution, with its
-    /// constructor parameters injected from this context. Eager singletons are constructed
-    /// when <see cref="CreateEagerSingletons"/> runs.
+    /// Registers <typeparamref name="T"/> to be constructed lazily on first resolution, with its
+    /// constructor parameters injected from this context.
     /// </summary>
-    public void AddSingleton<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
-        bool eager = false) where T : class =>
-        AddSingleton(ctx => (T)ctx.CreateInstance(typeof(T)), eager);
+    public void AddSingleton<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        where T : class =>
+        AddSingleton(ctx => (T)ctx.CreateInstance(typeof(T)));
 
     /// <summary>Registers <typeparamref name="TImpl"/> as the lazily-constructed implementation of <typeparamref name="TService"/>.</summary>
-    public void AddSingleton<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>(
-        bool eager = false)
+    public void AddSingleton<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>()
         where TService : class
         where TImpl : class, TService =>
-        AddSingleton<TService>(ctx => (TImpl)ctx.CreateInstance(typeof(TImpl)), eager);
+        AddSingleton<TService>(ctx => (TImpl)ctx.CreateInstance(typeof(TImpl)));
 
     /// <summary>Registers a factory invoked once, on first resolution of <typeparamref name="TService"/>.</summary>
-    public void AddSingleton<TService>(Func<Context, TService> factory, bool eager = false)
+    public void AddSingleton<TService>(Func<Context, TService> factory)
         where TService : class
     {
         _factories[typeof(TService)] = factory;
-        if (eager)
-            _eager.Add(typeof(TService));
-    }
-
-    /// <summary>
-    /// Instantiates every singleton registered with <c>eager: true</c>. Call once the context is
-    /// fully wired (e.g. after the framework services exist) so background services start up
-    /// even though nothing resolves them explicitly.
-    /// </summary>
-    public void CreateEagerSingletons()
-    {
-        foreach (var type in _eager)
-            Resolve(type);
-        _eager.Clear();
     }
 
     /// <summary>
@@ -97,6 +80,19 @@ public sealed class Context : IDisposable
         where TImpl : class, TService, IHostedService
     {
         AddSingleton<TService, TImpl>();
+        _hosted.Add(typeof(TService));
+    }
+
+    /// <summary>
+    /// Registers a hosted service built by <paramref name="factory"/> — for services whose
+    /// constructor dependencies can't be resolved by plain injection (an interface cast, a
+    /// post-construction back-wire). The host resolves and <see cref="IHostedService.Start"/>s it
+    /// like any other hosted service.
+    /// </summary>
+    public void AddHostedService<TService>(Func<Context, TService> factory)
+        where TService : class, IHostedService
+    {
+        AddSingleton(factory);
         _hosted.Add(typeof(TService));
     }
 

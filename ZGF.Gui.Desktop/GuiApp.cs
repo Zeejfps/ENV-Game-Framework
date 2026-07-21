@@ -113,11 +113,10 @@ public sealed class GuiApp : IDisposable
         startup?.Invoke(context);
         MountContent();
 
-        // The app is fully wired and mounted — start background work the host owns. Hosted services
-        // first (stores that seed the view tree's initial loads), then eager singletons (watchers,
-        // sync). Both run here so callers never hand-start background services after Build.
+        // The app is fully wired and mounted — start the hosted services the host owns (stores that
+        // seed the view tree's initial loads, watchers, sync) so callers never hand-start background
+        // work after Build.
         context.StartHostedServices();
-        context.CreateEagerSingletons();
 
         PlatformBackend.PopulateMain = PopulateGui;
 
