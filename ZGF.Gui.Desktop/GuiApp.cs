@@ -212,6 +212,15 @@ public sealed class GuiApp : IDisposable
         _fontBackend.RegisterFallbackFont(handle);
     }
 
+    /// Registers a glyph-fallback font from bytes already in memory. The font backend isn't
+    /// thread-safe, so this must run on the UI thread — but the caller can read the (often large)
+    /// font file off-thread and post the bytes here, keeping the file read off the startup path.
+    public void RegisterFallbackFontFromMemory(byte[] data, int pixelSize, int faceIndex = 0)
+    {
+        var handle = _fontBackend.LoadFontFromMemory(data, ScalePixelSize(pixelSize), faceIndex);
+        _fontBackend.RegisterFallbackFont(handle);
+    }
+
     // Loads an image into the main canvas and returns the id (the resolved path) to reference
     // it by — pass that id to ImageView.ImageId. Mirrors RegisterFont's local-path resolution.
     public string LoadImage(string path)
