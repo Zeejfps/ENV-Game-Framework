@@ -64,35 +64,32 @@ void main() {
     float d = length(mirror - pivot);
     float aa = max(fwidth(d), 1e-6);
 
-    float coverage = 1.0;
-    bool isFill;
+    float coverage = 1.0;   // outer silhouette (shape vs background)
+    float fillFactor;       // 1 = fill, 0 = border, ramped across the inner boundary
     if (inCornerZone && radius > 0.0) {
-        // Soft outer edge of the rounded corner: 1 inside, 0 outside, ramped over one pixel.
+        // Antialiased outer edge of the rounded corner: 1 inside, 0 outside, ramped over one pixel.
         coverage = clamp((radius - d) / aa + 0.5, 0.0, 1.0);
         if (coverage <= 0.0) discard;
-        // Inside the rounded corner: fill if within the inner ellipse.
-        if (borderH < radius && borderW < radius) {
+        if (borderW < radius && borderH < radius) {
+            // Antialiased INNER boundary (fill vs border): the ellipse e == 1, ramped like the outer
+            // edge. Keeps a filled corner smooth even with a transparent border — a hard test would
+            // leave the fill's own corner aliased (reads as square).
             float ix = (mirror.x - pivot.x) / max(radius - borderW, 1e-6);
             float iy = (mirror.y - pivot.y) / max(radius - borderH, 1e-6);
-            isFill = (ix * ix + iy * iy) <= 1.0;
+            float e = ix * ix + iy * iy;
+            float aaInner = max(fwidth(e), 1e-6);
+            fillFactor = clamp((1.0 - e) / aaInner + 0.5, 0.0, 1.0);
         } else {
-            isFill = false;
+            fillFactor = 0.0; // border thicker than the radius: the whole corner is border
         }
     } else {
-        // Straight-edge zone.
+        // Straight-edge zone: axis-aligned, needs no antialiasing.
         bool insideX = mirror.x < (halfW - borderW);
         bool insideY = mirror.y < (halfH - borderH);
-        isFill = insideX && insideY;
+        fillFactor = (insideX && insideY) ? 1.0 : 0.0;
     }
 
-    if (isFill) {
-        f_Color = unpackARGB(v_bgColor);
-        f_Color.a *= coverage;
-        return;
-    }
-
-    // We are in a border. Pick which side wins.
-    // Priority follows the software canvas painting order: bottom > top > right > left.
+    // Border side priority: bottom > top > right > left (matches software canvas).
     bool inBottom = v_localPos.y < v_borderSize.z;
     bool inTop    = v_localPos.y >= rectH - v_borderSize.x;
     bool inRight  = v_localPos.x >= rectW - v_borderSize.y;
@@ -103,13 +100,15 @@ void main() {
     else if (inTop)    pickedColor = v_borderColorTop;
     else if (inRight)  pickedColor = v_borderColorRight;
     else if (inLeft)   pickedColor = v_borderColorLeft;
-    else {
-        // We are in the rounded outer ring of a corner. Use the dominant side
-        // (top or bottom > right/left), matching software priority at corners.
-        if (top)   pickedColor = v_borderColorTop;
-        else       pickedColor = v_borderColorBottom;
-    }
+    else               pickedColor = top ? v_borderColorTop : v_borderColorBottom;
 
-    f_Color = unpackARGB(pickedColor);
-    f_Color.a *= coverage;
+    // Composite fill over border in premultiplied space, then unpremultiply, so a transparent border
+    // lets the fill's rounded corner fade correctly (a straight-alpha mix would darken the edge).
+    // coverage applies the outer silhouette.
+    vec4 fillCol   = unpackARGB(v_bgColor);
+    vec4 borderCol = unpackARGB(pickedColor);
+    float outA     = mix(borderCol.a, fillCol.a, fillFactor);
+    vec3 outPre    = mix(borderCol.rgb * borderCol.a, fillCol.rgb * fillCol.a, fillFactor);
+    vec3 outRgb    = outA > 0.0 ? outPre / outA : vec3(0.0);
+    f_Color = vec4(outRgb, outA * coverage);
 }
