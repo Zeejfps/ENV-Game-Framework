@@ -32,6 +32,8 @@ public sealed class GuiApp : IDisposable
     private readonly Action<Type[]?>? _hotReloadHandler;
     private GuiMcpServer? _mcpServer;
 
+    public Context Context => _context;
+    
     private GuiApp(
         IWindowedApp app,
         RenderedCanvasBase mainCanvas,
