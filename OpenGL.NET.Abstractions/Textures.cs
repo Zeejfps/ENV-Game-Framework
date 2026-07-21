@@ -1,15 +1,19 @@
 ﻿namespace OpenGL.NET.Abstractions;
 
-public readonly struct Texture
+public interface ITexture
 {
-    public uint Id { get; }
-    public uint Target { get; }
+    uint Id { get; }
+    uint Target { get; }
+}
 
-    public Texture(uint id, uint target)
-    {
-        Id = id;
-        Target = target;
-    }
+public interface ITexture2D : ITexture
+{
+}
+
+public readonly struct Texture2D(uint id) : ITexture2D
+{
+    public uint Id { get; } = id;
+    public uint Target { get; } = GL46.GL_TEXTURE_2D;
 }
 
 /// <summary>
@@ -33,12 +37,12 @@ public enum TextureTarget : uint
 
 public static class Textures
 {
-    public static void glBindTexture(Texture texture)
+    public static void glBindTexture<T>(T texture) where T : ITexture
     {
         GL46.glBindTexture(texture.Target, texture.Id);
     }
     
-    public static void glDeleteTexture(Texture texture)
+    public static void glDeleteTexture<T>(T texture) where T : ITexture
     {
         unsafe
         {
@@ -46,22 +50,34 @@ public static class Textures
             GL46.glDeleteTextures(1, &id);
         }
     }
-    
-    public static Texture glBindTexture(uint target, uint textureId)
+
+    public static void glTexSubImage2D<T>(
+        T texture, int level, 
+        int xoffset, int yoffset, 
+        int width, int height,
+        uint format, uint type, 
+        ReadOnlySpan<uint> pixels) where T : ITexture
     {
-        GL46.glBindTexture(target, textureId);
-        return new Texture(textureId, target);
+        unsafe
+        {
+            fixed (void* pixelDataPtr = &pixels[0])
+            {
+                GL46.glTexSubImage2D(texture.Target, level, xoffset, yoffset, width, height, format, type, pixelDataPtr);
+            }
+        }
     }
     
-    public static unsafe void glTexImage2D<T>(
-        Texture texture, 
+    public static unsafe void glTexImage2D<TTexture, TData>(
+        TTexture texture, 
         int level,
         uint internalFormat,
         int width,
         int height,
         uint format,
         uint channelType,
-        ReadOnlySpan<T> data) where T : unmanaged
+        ReadOnlySpan<TData> data)
+        where TTexture : ITexture
+        where TData : unmanaged
     {
         fixed (void* ptr = &data[0])
         {
@@ -70,14 +86,14 @@ public static class Textures
         }
     }
 
-    public static unsafe void glTexImage2D(
-        Texture texture,
+    public static unsafe void glTexImage2D<TTexture>(
+        TTexture texture,
         int level,
         uint internalFormat,
         int width,
         int height,
         uint format,
-        uint channelType)
+        uint channelType) where TTexture : ITexture2D
     {
         GL46.glTexImage2D(texture.Target, level, (int)internalFormat,
             width, height, 0, format, channelType, (void*)0);
