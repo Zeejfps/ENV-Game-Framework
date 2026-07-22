@@ -33,6 +33,7 @@ internal sealed class Vp8Encoder
 
     private readonly Vp8QuantMatrix _q;
     private readonly int _baseQ;
+    private readonly int _filterLevel;
     private readonly byte[] _probs = Vp8Tables.DefaultCoeffProbs;
 
     private readonly Vp8BooleanEncoder _header = new(1024);
@@ -67,6 +68,19 @@ internal sealed class Vp8Encoder
 
         _baseQ = QualityToBaseQuant(quality);
         _q = BuildQuantMatrix(_baseQ);
+        _filterLevel = FilterLevelFor(_baseQ);
+    }
+
+    // Derives the in-loop deblocking level from the base quantizer, following libwebp's
+    // SetupFilterStrength for the single-segment, sharpness-0, mid filter-strength (60) case. The
+    // decoder applies the filter as a post-pass; the encoder only signals the level.
+    private static int FilterLevelFor(int q)
+    {
+        const int level0 = 5 * 60; // 5 * config filter_strength (libwebp default 60)
+        var qstep = Vp8Tables.AcTable[q] >> 2;
+        var baseStrength = Math.Min(qstep, 63); // sharpness 0 => VP8FilterStrengthFromDelta is identity
+        var f = baseStrength * level0 / 256;
+        return f < 2 ? 0 : Math.Min(f, 63);
     }
 
     /// <summary>Encodes an image to a raw VP8 key-frame bitstream (the payload of a <c>VP8 </c> chunk).</summary>
@@ -183,8 +197,8 @@ internal sealed class Vp8Encoder
 
         _header.PutBit(128, 0); // use_segment = false
 
-        _header.PutBit(128, 0); // filter_simple (irrelevant at level 0)
-        _header.PutLiteral(0, 6); // filter level 0 -> no loop filter
+        _header.PutBit(128, 0); // filter_simple = false (normal filter)
+        _header.PutLiteral((uint)_filterLevel, 6); // in-loop deblocking level (0 disables)
         _header.PutLiteral(0, 3); // sharpness
         _header.PutBit(128, 0); // use loop-filter deltas = false
 

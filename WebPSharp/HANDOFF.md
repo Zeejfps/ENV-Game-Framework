@@ -34,10 +34,10 @@ Do not commit unless asked. End commit messages with the `Co-Authored-By: Claude
   diverse golden cases (`Vp8GoldenBatchTests`).
 - **VP8 lossy — ENCODE.** Intra key frames: RGB→YUV (libwebp BT.601 constants), whole-block
   prediction (16x16 luma + 8x8 chroma, DC/V/H/TM chosen by SSE), forward DCT/WHT + quantization,
-  coefficient token encoding, quality→base-quantizer, single DCT partition, no segmentation/filter.
-  Reuses the decoder's transforms + dequant steps so a decode reproduces the encoder's
-  reconstruction bit-for-bit. **Validated pixel-exact vs `dwebp`** across sizes/content/quality
-  (`Vp8EncodeTests` + ad-hoc 36-case sweep). Not size-optimal (no RD, i4x4, trellis, or filter).
+  coefficient token encoding, quality→base-quantizer, quantizer-derived in-loop deblocking level,
+  single DCT partition, no segmentation. Reuses the decoder's transforms + dequant steps so a decode
+  reproduces the encoder's reconstruction bit-for-bit. **Validated pixel-exact vs `dwebp`** across
+  sizes/content/quality (`Vp8EncodeTests` + 48-case sweep). Not size-optimal (no RD, i4x4, trellis).
 - **ALPH alpha (for lossy) — decode + encode.** Decode: parse + (raw / lossless) + unfilter. Encode:
   forward filter (none/h/v/gradient) + raw or header-less VP8L compression, smallest chosen; opaque
   images omit the chunk. Alpha round-trips **exactly** (it is lossless); pixel-exact vs `dwebp`
@@ -53,10 +53,10 @@ Do not commit unless asked. End commit messages with the `Co-Authored-By: Claude
 ## What is LEFT (priority order)
 
 1. **Lossy encoder size tuning** — the encoder is correct but not size-optimal. Biggest wins, in
-   rough order: in-loop filter (currently level 0 / off), i4x4 (B_PRED) mode, rate-distortion /
-   token-cost-aware mode & coefficient decisions, per-frame coefficient probability adaptation,
-   deadzone/trellis quantization. All are quality/size only — none affect correctness, since the
-   decoder reconstructs whatever the encoder emits.
+   rough order: i4x4 (B_PRED) mode, rate-distortion / token-cost-aware mode & coefficient decisions,
+   per-frame coefficient probability adaptation, deadzone/trellis quantization, per-MB skip signaling
+   (the encoder never emits skip, so all-zero MBs still cost EOB tokens). All are quality/size only —
+   none affect correctness, since the decoder reconstructs whatever the encoder emits.
 2. **Animated lossy frames** — `EncodeAnimation` still writes only VP8L frames; now that lossy
    encode exists, `BuildFrameChunk` could emit VP8 frames (decode already handles them).
 3. **VP8 profiles / advanced** — only profile 0 (bicubic reconstruction filter) is exercised by the
@@ -102,6 +102,13 @@ never hand-transcribe 100+ numbers.
 - **Loop filter must be libwebp-exact.** My RFC-6386 `Vp8LoopFilter` (used only in its own unit
   tests) is NOT bit-exact with libwebp (different `NeedsFilter` threshold scaling). The real decode
   uses `Vp8FilterApply` ported verbatim from `dsp/dec.c`.
+- **Inner-edge filtering keys off actual coefficients, not the skip flag.** libwebp's
+  `f_inner = i4x4 | !skip` where `skip` is the skip flag OR "the MB decoded to all-zero
+  coefficients" (`vp8_dec.c` `VP8DecodeMB`). Using only the signaled skip flag is wrong for any
+  stream with non-skip all-zero MBs — e.g. our own encoder, which never signals skip. This bug hid
+  for a while because `cwebp` always marks all-zero MBs skip (so the two agree) and the ≤1-tolerance
+  golden decode tests couldn't see the resulting ≤3 edge diff. See `Vp8Decoder.ApplyLoopFilter`
+  (`hasCoeffs = (MbNonZeroY | MbNonZeroUv) != 0`) and `Vp8EncodeTests.Decode_FilteredEncoderOutput_MatchesDwebp`.
 - **Chroma prediction/context uses the same enum** as luma for the DC edge variants; VP8 fills
   unavailable top border with 127 and left border with 129.
 - **Alpha lossless is a *header-less* VP8L stream** (no signature/dims); the alpha value is the

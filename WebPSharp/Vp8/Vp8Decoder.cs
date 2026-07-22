@@ -730,7 +730,11 @@ internal sealed class Vp8Decoder
             if (limit == 0)
                 continue;
 
-            var fInner = isI4x4 || !MbSkip[mb];
+            // Inner (sub-block) edges are filtered unless a 16x16-predicted macroblock has no
+            // non-zero coefficients at all — matching libwebp's `f_inner = i4x4 | !skip`, where
+            // `skip` means the skip flag OR an all-zero residual (not just the signaled flag).
+            var hasCoeffs = (MbNonZeroY[mb] | MbNonZeroUv[mb]) != 0;
+            var fInner = isI4x4 || hasCoeffs;
             var yOff = mbY * 16 * yStride + mbX * 16;
 
             if (FilterType == 1) // simple

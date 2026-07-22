@@ -136,12 +136,12 @@ asserts every one either decodes or throws a `WebPException` — never a crash o
 ## Limitations
 
 - **Lossy VP8 encoding is intra-only and not size-optimal.** The encoder produces correct,
-  standards-compliant key frames (validated pixel-exact against `dwebp`) but favors simplicity over
-  compression: whole-block 16×16/8×8 prediction only (no 4×4 `B_PRED`), no in-loop filter, no
-  segmentation, default coefficient probabilities, and nearest-rounding quantization. It has no
-  rate-distortion optimization or trellis quantization, so files are larger than libwebp's for the
-  same quality. None of this affects correctness — the decoder reconstructs exactly what the encoder
-  emits — only output size.
+  standards-compliant key frames (validated pixel-exact against `dwebp`, including the in-loop
+  deblocking filter) but favors simplicity over compression: whole-block 16×16/8×8 prediction only
+  (no 4×4 `B_PRED`), no segmentation, default coefficient probabilities, nearest-rounding
+  quantization, and no per-MB skip signaling. It has no rate-distortion or trellis quantization, so
+  files are larger than libwebp's for the same quality. None of this affects correctness — the
+  decoder reconstructs exactly what the encoder emits — only output size.
 - **Lossy animation is not yet written.** `EncodeAnimation` writes only lossless frames. (Lossy
   still images with alpha are fully supported: the alpha channel is stored losslessly in an `ALPH`
   chunk and round-trips bit-exactly.)

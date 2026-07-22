@@ -160,6 +160,25 @@ public class Vp8EncodeTests
     }
 
     [Fact]
+    public void Decode_FilteredEncoderOutput_MatchesDwebp()
+    {
+        // lossy_filtered.webp is our own lossy encoder's output (filter level 21). Because the
+        // encoder does not signal per-MB skip, it produces non-skip all-zero macroblocks; the
+        // decoder must skip their inner-edge filtering exactly as libwebp does. The reference .rgba
+        // is dwebp's decode of the same file, so this guards the loop-filter f_inner rule.
+        var asset = Path.Combine(AppContext.BaseDirectory, "Assets");
+        var webp = File.ReadAllBytes(Path.Combine(asset, "lossy_filtered.webp"));
+        var reference = File.ReadAllBytes(Path.Combine(asset, "lossy_filtered.rgba"));
+
+        var image = WebP.Decode(webp);
+        Assert.Equal(reference.Length, image.PixelData.Length);
+        var max = 0;
+        for (var i = 0; i < reference.Length; i++)
+            max = Math.Max(max, Math.Abs(image.PixelData[i] - reference[i]));
+        Assert.True(max <= 1, $"decode differs from dwebp: max={max}");
+    }
+
+    [Fact]
     public void Encode_WithMetadata_WritesExtendedLossyContainer()
     {
         var img = WebPImage.CreateRgba(32, 32, Smooth(32, 32));
