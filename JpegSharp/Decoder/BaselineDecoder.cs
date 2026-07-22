@@ -597,8 +597,6 @@ internal sealed partial class BaselineDecoder
     {
         var predictors = new int[_components.Length];
         Span<short> zz = stackalloc short[64];
-        Span<double> dequant = stackalloc double[64];
-        Span<double> spatial = stackalloc double[64];
 
         var mcuCount = 0;
 
@@ -626,9 +624,7 @@ internal sealed partial class BaselineDecoder
                         for (var bx = 0; bx < c.H; bx++)
                         {
                             predictors[ci] = BlockScanCoder.DecodeBlock(ref reader, zz, predictors[ci], dc, ac);
-                            Quantizer.DequantizeFromZigZag(zz, quant, dequant);
-                            FastDct.Inverse(dequant, spatial);
-                            StoreBlock(c, (mx * c.H + bx) * 8, (my * c.V + by) * 8, spatial);
+                            ReconstructBlock(c, (mx * c.H + bx) * 8, (my * c.V + by) * 8, zz, quant);
                         }
                     }
                 }
@@ -650,8 +646,6 @@ internal sealed partial class BaselineDecoder
         var blocksPerCol = CeilDiv(ComponentActualHeight(c), 8);
 
         Span<short> zz = stackalloc short[64];
-        Span<double> dequant = stackalloc double[64];
-        Span<double> spatial = stackalloc double[64];
 
         var predictor = 0;
         var blockIndex = 0;
@@ -670,9 +664,44 @@ internal sealed partial class BaselineDecoder
                 blockIndex++;
 
                 predictor = BlockScanCoder.DecodeBlock(ref reader, zz, predictor, dc, ac);
-                Quantizer.DequantizeFromZigZag(zz, quant, dequant);
-                FastDct.Inverse(dequant, spatial);
-                StoreBlock(c, bx * 8, by * 8, spatial);
+                ReconstructBlock(c, bx * 8, by * 8, zz, quant);
+            }
+        }
+    }
+
+    // Dequantizes, inverse-transforms and stores one block. The 8-bit path uses the fixed-point
+    // IntegerIdct with folded fast rounding + level shift; higher precision keeps the double FastDct.
+    private void ReconstructBlock(Component c, int x0, int y0, ReadOnlySpan<short> zz, ReadOnlySpan<ushort> quant)
+    {
+        if (_precision == 8)
+        {
+            Span<int> dequant = stackalloc int[64];
+            Span<int> spatial = stackalloc int[64];
+            Quantizer.DequantizeFromZigZagToInt(zz, quant, dequant);
+            IntegerIdct.Inverse(dequant, spatial);
+            StoreBlock8(c, x0, y0, spatial);
+        }
+        else
+        {
+            Span<double> dequant = stackalloc double[64];
+            Span<double> spatial = stackalloc double[64];
+            Quantizer.DequantizeFromZigZag(zz, quant, dequant);
+            FastDct.Inverse(dequant, spatial);
+            StoreBlock(c, x0, y0, spatial);
+        }
+    }
+
+    // Fast level-shift + clamp for the integer IDCT: the transform already rounded via its final
+    // descale, so this is a plain +128 bias and 8-bit saturation.
+    private static void StoreBlock8(Component c, int x0, int y0, ReadOnlySpan<int> spatial)
+    {
+        for (var yy = 0; yy < 8; yy++)
+        {
+            var row = (y0 + yy) * c.PlaneWidth + x0;
+            for (var xx = 0; xx < 8; xx++)
+            {
+                var v = spatial[yy * 8 + xx] + 128;
+                c.Plane[row + xx] = v < 0 ? (byte)0 : v > 255 ? (byte)255 : (byte)v;
             }
         }
     }
@@ -705,8 +734,12 @@ internal sealed partial class BaselineDecoder
 
     internal static byte LevelShiftClamp8(double spatial)
     {
-        var value = Math.Round(spatial) + 128;
-        return (byte)Math.Clamp(value, 0.0, 255.0);
+        // Fast round-half-up + level shift. Clamp in double first so out-of-range inputs saturate
+        // instead of wrapping when narrowed to a byte.
+        var value = spatial + 128.5;
+        if (value <= 0.0) return 0;
+        if (value >= 256.0) return 255;
+        return (byte)value;
     }
 
     internal static ushort LevelShiftClampHigh(double spatial, int center, int max)

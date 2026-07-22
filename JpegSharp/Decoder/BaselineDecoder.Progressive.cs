@@ -419,9 +419,6 @@ internal sealed partial class BaselineDecoder
 
     private void ReconstructComponents()
     {
-        Span<double> dequant = stackalloc double[64];
-        Span<double> spatial = stackalloc double[64];
-
         for (var ci = 0; ci < _components.Length; ci++)
         {
             var c = _components[ci];
@@ -432,9 +429,7 @@ internal sealed partial class BaselineDecoder
                 for (var bx = 0; bx < c.BlocksWide; bx++)
                 {
                     var offset = (by * c.BlocksWide + bx) * 64;
-                    Quantizer.DequantizeFromZigZag(buffer.AsSpan(offset, 64), quant, dequant);
-                    FastDct.Inverse(dequant, spatial);
-                    StoreBlock(c, bx * 8, by * 8, spatial);
+                    ReconstructBlock(c, bx * 8, by * 8, buffer.AsSpan(offset, 64), quant);
                 }
             }
         }

@@ -90,6 +90,25 @@ internal static class Quantizer
             naturalOutput[order[k]] = zigzagQuantized[k] * (double)zigzagTable[k];
     }
 
+    /// <summary>
+    /// Dequantizes coefficients read in zig-zag order into an integer natural-order buffer, fusing
+    /// dequantization and zig-zag reordering for the fixed-point <see cref="Transforms.IntegerIdct"/>
+    /// decode path. Equivalent to <see cref="DequantizeFromZigZag"/> but without a floating-point step.
+    /// </summary>
+    /// <param name="zigzagQuantized">64 quantized coefficients in zig-zag order.</param>
+    /// <param name="zigzagTable">64 quantization steps permuted into zig-zag order.</param>
+    /// <param name="naturalOutput">Receives the 64 dequantized coefficients in natural order.</param>
+    public static void DequantizeFromZigZagToInt(ReadOnlySpan<short> zigzagQuantized, ReadOnlySpan<ushort> zigzagTable, Span<int> naturalOutput)
+    {
+        EnsureBlock(zigzagQuantized.Length, nameof(zigzagQuantized));
+        EnsureBlock(zigzagTable.Length, nameof(zigzagTable));
+        EnsureBlock(naturalOutput.Length, nameof(naturalOutput));
+
+        var order = ZigZag.Order;
+        for (var k = 0; k < BlockSize; k++)
+            naturalOutput[order[k]] = zigzagQuantized[k] * zigzagTable[k];
+    }
+
     private static void EnsureBlock(int length, string name)
     {
         if (length != BlockSize)

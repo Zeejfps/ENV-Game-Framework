@@ -14,8 +14,8 @@ Huffman** case (the overwhelmingly common 8-bit JPEG). Ordered by impact-to-risk
 | 5 | ExtractBlock interior fast path | 2 | ✅ Completed |
 | 6 | BitReader ulong bulk refill | 2 | ✅ Completed |
 | 7 | SIMD color conversion | 3 | ✅ Completed |
-| 8 | Integer DCT (AAN/Loeffler) | 3 | ⏸ Awaiting user decision (output-changing) |
-| 9 | Faster level-shift rounding | 3 | ⏸ Awaiting user decision (output-changing) |
+| 8 | Integer DCT (islow IDCT, decode) | 3 | ✅ Completed (output-changing ≤1 LSB) |
+| 9 | Faster level-shift rounding | 3 | ✅ Completed (bundled w/ #8) |
 
 Baseline gate (2026-07-22): Release build clean; **615/615 JpegSharp.Tests pass**.
 
@@ -224,11 +224,40 @@ fold dequant scaling into the IDCT. **Output-changing** (re-baseline goldens; ke
 the current `double` `Dct`/`FastDct` as the correctness oracle they already are)
 and a substantial project — but it's where the order-of-magnitude lives.
 
+> ✅ **Completed 2026-07-22 (bundled with #9; output-changing ≤1 LSB).** New
+> `Transforms/IntegerIdct.cs` — libjpeg islow fixed-point IDCT (`CONST_BITS=13`,
+> `PASS1_BITS=2`; all 12 FIX constants + descale shifts faithful to `jidctint.c`,
+> incl. DC-only/AC-all-zero shortcuts). `Quantizer.DequantizeFromZigZagToInt` folds
+> the zig-zag scatter + dequant into an `int[64]`. **8-bit** baseline+progressive
+> decode routed through the integer IDCT + `StoreBlock8`; **12-bit stays on double
+> `FastDct`**. The double `Dct`/`FastDct` are retained as the oracle. **ENCODE was
+> deliberately scoped OUT** (still double `FastDct.Forward`) → encoder output is
+> byte-identical, so **no goldens were regenerated** and the decode tolerance tests
+> absorb the change. **Correctness (not bit-exact — validated vs the double oracle):**
+> over **8.5M pixels** (max-energy noise, Q85 image-derived, DC-only, single-coef
+> blocks) the integer path deviates ≤1 LSB — **97.6% exact, 2.4% off-by-one, 0
+> pixels ≥2**; external decoder (`sips`/libjpeg-turbo) accepts the bytes as valid
+> baseline JPEG at 54.49 dB agreement; int32 overflow on hostile input wraps to a
+> clamped byte (no crash; 68 corrupt/fuzz tests green); 615/615 pass. **Benchmark:**
+> decode **1.15–1.37×** faster (IDCT itself 2.1×). Honest: **not** an order-of-
+> magnitude — the baseline was already the optimized double FastDct, and Huffman/
+> upsample/color dominate the rest. Tradeoff: islow 32-bit overflow ceiling (same as
+> libjpeg-turbo); encoder left on double. **Independently verified:** APPROVE
+> (≤1-LSB histogram re-derived; external-decoder PSNR; overflow/no-crash; encoder-
+> unchanged/goldens-untouched; islow constants re-checked; 615/615 + 1.37× re-run).
+
 ### 9. Faster level-shift rounding in `StoreBlock`
 `LevelShiftClamp8` calls `Math.Round(double)` (banker's) per sample
 (`BaselineDecoder.cs:710-714`). Switching to `(int)(x + 128.5)`-style rounding is
 faster but changes half-integer results — **output-changing**, so only bundle it
 with an integer-DCT re-baseline.
+
+> ✅ **Completed 2026-07-22 (bundled with #8).** The per-sample banker's
+> `Math.Round(double)` in `LevelShiftClamp8` was replaced by round-half-up; for the
+> integer IDCT path the rounding is folded into the final `DESCALE` (round-to-nearest)
+> and `StoreBlock8` does a plain `+128` bias + byte saturation (no `Math.Round`).
+> Its half-integer output change is covered by the same ≤1-LSB validation and
+> golden-free re-baseline as #8 above.
 
 ---
 
