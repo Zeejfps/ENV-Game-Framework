@@ -91,4 +91,74 @@ public sealed class JpegImage
         JpegColorSpace.Cmyk => 4,
         _ => throw new ArgumentOutOfRangeException(nameof(colorSpace)),
     };
+
+    /// <summary>
+    /// Converts the image to one packed 32-bit color per pixel, in row-major order. Grayscale
+    /// samples are replicated across R, G and B; alpha is always fully opaque (255) since JPEG
+    /// carries no alpha channel.
+    /// </summary>
+    /// <param name="format">The channel ordering of each packed pixel.</param>
+    /// <returns>An array of <c>Width * Height</c> packed pixels.</returns>
+    /// <exception cref="NotSupportedException">The image is CMYK, which has no direct RGB packing.</exception>
+    public int[] ToPackedPixels(PackedPixelFormat format)
+    {
+        var destination = new int[Width * Height];
+        ToPackedPixels(destination, format);
+        return destination;
+    }
+
+    /// <summary>
+    /// Converts the image to one packed 32-bit color per pixel, writing into a caller-supplied
+    /// span to avoid an allocation. See <see cref="ToPackedPixels(PackedPixelFormat)"/> for the
+    /// channel and alpha semantics.
+    /// </summary>
+    /// <param name="destination">
+    /// The buffer to fill, in row-major order. Must be at least <c>Width * Height</c> long; any
+    /// extra elements are left untouched.
+    /// </param>
+    /// <param name="format">The channel ordering of each packed pixel.</param>
+    /// <exception cref="ArgumentException">The destination is too small to hold every pixel.</exception>
+    /// <exception cref="NotSupportedException">The image is CMYK, which has no direct RGB packing.</exception>
+    public void ToPackedPixels(Span<int> destination, PackedPixelFormat format)
+    {
+        if (ColorSpace == JpegColorSpace.Cmyk)
+            throw new NotSupportedException("Packing CMYK images is not supported; convert to RGB first.");
+
+        var pixelCount = Width * Height;
+        if (destination.Length < pixelCount)
+            throw new ArgumentException($"Destination length {destination.Length} is smaller than the pixel count {pixelCount}.", nameof(destination));
+
+        // Resolve the per-channel bit offsets once so the packing loop is a handful of shifts.
+        var (rShift, gShift, bShift, aShift) = ShiftsFor(format);
+        var alpha = 255 << aShift;
+        var src = PixelData;
+
+        if (ColorSpace == JpegColorSpace.Grayscale)
+        {
+            for (var i = 0; i < pixelCount; i++)
+            {
+                int v = src[i];
+                destination[i] = (v << rShift) | (v << gShift) | (v << bShift) | alpha;
+            }
+        }
+        else // Rgb
+        {
+            for (var i = 0; i < pixelCount; i++)
+            {
+                var o = i * 3;
+                int r = src[o], g = src[o + 1], b = src[o + 2];
+                destination[i] = (r << rShift) | (g << gShift) | (b << bShift) | alpha;
+            }
+        }
+    }
+
+    // Bit offset of each channel's byte within the packed int for a given format.
+    private static (int R, int G, int B, int A) ShiftsFor(PackedPixelFormat format) => format switch
+    {
+        PackedPixelFormat.Rgba8888 => (24, 16, 8, 0),
+        PackedPixelFormat.Argb8888 => (16, 8, 0, 24),
+        PackedPixelFormat.Bgra8888 => (8, 16, 24, 0),
+        PackedPixelFormat.Abgr8888 => (0, 8, 16, 24),
+        _ => throw new ArgumentOutOfRangeException(nameof(format)),
+    };
 }

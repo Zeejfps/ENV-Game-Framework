@@ -56,6 +56,40 @@ JpegImage fromFile = await Jpeg.LoadAsync("out.jpg");
 Every I/O entry point has both a synchronous and an asynchronous (`…Async`, cancellable) form:
 `Encode`/`Decode`/`Load`/`Save`.
 
+## Pixel access
+
+`JpegImage.PixelData` is the raw interleaved sample buffer (`ComponentCount` bytes per pixel).
+When you need one packed 32-bit color per pixel — for a texture upload, a `WriteableBitmap`, or
+similar — use the packing helpers instead of doing the shifts by hand:
+
+```csharp
+JpegImage image = Jpeg.Decode(jpeg);
+
+int[] rgba = image.ToRgba8888();   // named wrappers, one per format
+int[] argb = image.ToArgb8888();
+int[] bgra = image.ToBgra8888();
+int[] abgr = image.ToAbgr8888();
+
+// Or choose the layout at runtime:
+int[] pixels = image.ToPackedPixels(PackedPixelFormat.Bgra8888);
+```
+
+Each `PackedPixelFormat` is named most-significant-byte first, so the value is unambiguous
+regardless of endianness — `Rgba8888` packs a pixel as `(R << 24) | (G << 16) | (B << 8) | A`.
+`Argb8888` matches the `int` layout used by `System.Drawing`, and `Bgra8888` is the common
+GPU/`WriteableBitmap` order. Alpha is always fully opaque (255) since JPEG carries no alpha, and
+grayscale luminance is replicated across R, G and B.
+
+Every helper has a zero-allocation overload that fills a caller-supplied `Span<int>` — reuse one
+buffer across frames or decodes to avoid per-call allocation:
+
+```csharp
+int[] buffer = new int[image.Width * image.Height];
+image.ToRgba8888(buffer);                                 // or image.ToPackedPixels(buffer, format)
+```
+
+CMYK images have no direct RGB packing and throw `NotSupportedException`; convert to RGB first.
+
 ## Architecture
 
 The codec is organized into small, independently testable components:
