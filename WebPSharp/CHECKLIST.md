@@ -63,10 +63,11 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Boolean (arithmetic) entropy decoder + encoder (RFC 6386, round-trips)
 - [x] Inverse WHT + inverse DCT (spec-exact, analytic + consistency tests)
 - [x] Forward DCT (+ WHT forward, self-consistent; WHT to be validated vs reference for encode)
-- [ ] Frame header parse
+- [x] VP8 constant tables (dequant, coeff/update probs, B-mode probs, bands, zigzag, cat) — fetched from libwebp/RFC 6386, count-verified, in Vp8Tables.cs
+- [ ] Frame header parse (segmentation, filter, quant, partitions, prob updates)
 - [ ] Segment features
-- [ ] Quantization / dequantization tables
-- [ ] Boolean coefficient decode (token tree + probabilities)
+- [~] Quantization / dequantization (tables done; per-segment matrix computation logic captured)
+- [ ] Boolean coefficient decode (GetCoeffs token loop + GetLargeValue) — logic captured, to implement
 - [x] Intra prediction: 16x16 luma + 8x8 chroma (DC/V/H/TM) + 4x4 B_PRED (all 10 modes)
 - [x] Loop (deblocking) filter: simple + subblock + macroblock (RFC 6386, per-line, tested)
 - [~] YUV->RGB conversion (per-sample, spec-exact BT.601; plane conversion + chroma upsampling pending)
