@@ -858,39 +858,41 @@ internal sealed class BaselineDecoder
         var paddedWidth = mcusPerRow * _hmax * 8;
         var paddedHeight = mcusPerCol * _vmax * 8;
 
-        if (_components.Length == 3)
-        {
-            var p0 = _components[0].Plane;
-            var p1 = UpsampleToFull(_components[1], paddedWidth, paddedHeight);
-            var p2 = UpsampleToFull(_components[2], paddedWidth, paddedHeight);
-            var applyYCbCr = ShouldApplyYCbCr();
+        return _components.Length == 3
+            ? AssembleThreeComponent(paddedWidth, paddedHeight)
+            : AssembleCmyk(paddedWidth, paddedHeight);
+    }
 
-            var rgb = new byte[_width * _height * 3];
-            for (var y = 0; y < _height; y++)
+    private JpegImage AssembleThreeComponent(int paddedWidth, int paddedHeight)
+    {
+        var p0 = _components[0].Plane;
+        var p1 = UpsampleToFull(_components[1], paddedWidth, paddedHeight);
+        var p2 = UpsampleToFull(_components[2], paddedWidth, paddedHeight);
+        var applyYCbCr = ShouldApplyYCbCr();
+
+        var rgb = new byte[_width * _height * 3];
+        for (var y = 0; y < _height; y++)
+        {
+            var srcRow = y * paddedWidth;
+            var dstRow = y * _width * 3;
+            for (var x = 0; x < _width; x++)
             {
-                var srcRow = y * paddedWidth;
-                var dstRow = y * _width * 3;
-                for (var x = 0; x < _width; x++)
+                var d = dstRow + x * 3;
+                if (applyYCbCr)
                 {
-                    var d = dstRow + x * 3;
-                    if (applyYCbCr)
-                    {
-                        ColorConverter.YCbCrToRgb(p0[srcRow + x], p1[srcRow + x], p2[srcRow + x],
-                            out rgb[d], out rgb[d + 1], out rgb[d + 2]);
-                    }
-                    else
-                    {
-                        rgb[d] = p0[srcRow + x];
-                        rgb[d + 1] = p1[srcRow + x];
-                        rgb[d + 2] = p2[srcRow + x];
-                    }
+                    ColorConverter.YCbCrToRgb(p0[srcRow + x], p1[srcRow + x], p2[srcRow + x],
+                        out rgb[d], out rgb[d + 1], out rgb[d + 2]);
+                }
+                else
+                {
+                    rgb[d] = p0[srcRow + x];
+                    rgb[d + 1] = p1[srcRow + x];
+                    rgb[d + 2] = p2[srcRow + x];
                 }
             }
-
-            return new JpegImage(_width, _height, JpegColorSpace.Rgb, rgb);
         }
 
-        return AssembleCmyk(paddedWidth, paddedHeight);
+        return new JpegImage(_width, _height, JpegColorSpace.Rgb, rgb);
     }
 
     private bool ShouldApplyYCbCr()
