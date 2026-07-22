@@ -17,7 +17,9 @@ public interface IFilePicker
     /// <summary>
     /// Shows the OS file picker, following the same threading and cancel contract as
     /// <see cref="PickFolder"/>. Opens at <paramref name="initialDirectory"/> when it is a real
-    /// folder; ignored otherwise.
+    /// folder; ignored otherwise. <paramref name="filters"/> restricts the visible files; null
+    /// or empty shows everything. No OS adds an "All files" escape hatch on its own — append a
+    /// <see cref="FileFilter"/> with pattern <c>*.*</c> if the user should be able to opt out.
     /// </summary>
-    void PickFile(string title, string? initialDirectory, Action<string> onPicked);
+    void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked);
 }
