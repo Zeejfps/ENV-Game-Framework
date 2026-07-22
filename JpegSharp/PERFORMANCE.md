@@ -13,9 +13,9 @@ Huffman** case (the overwhelmingly common 8-bit JPEG). Ordered by impact-to-risk
 | 4 | Fuse zig-zag into (de)quant | 2 | ✅ Completed |
 | 5 | ExtractBlock interior fast path | 2 | ✅ Completed |
 | 6 | BitReader ulong bulk refill | 2 | ✅ Completed |
-| 7 | SIMD color conversion | 3 | ⬜ Todo |
-| 8 | Integer DCT (AAN/Loeffler) | 3 | ⬜ Todo |
-| 9 | Faster level-shift rounding | 3 | ⬜ Todo |
+| 7 | SIMD color conversion | 3 | ✅ Completed |
+| 8 | Integer DCT (AAN/Loeffler) | 3 | ⏸ Awaiting user decision (output-changing) |
+| 9 | Faster level-shift rounding | 3 | ⏸ Awaiting user decision (output-changing) |
 
 Baseline gate (2026-07-22): Release build clean; **615/615 JpegSharp.Tests pass**.
 
@@ -198,6 +198,24 @@ behind the existing tests.
 assembly at `BaselineDecoder.cs:749-768`) is scalar per pixel — a large share of
 color-image decode. Vectorizing with `System.Numerics.Vector` / `Vector256` is
 bit-exact if the same fixed-point integer math is kept.
+
+> ✅ **Completed 2026-07-22.** `ColorConverter.cs` + `BaselineDecoder.cs`
+> (`AssembleThreeComponent`): vectorized the plane `YCbCrToRgb`/`RgbToYCbCr` with
+> `Vector128<int>` (NEON on ARM64 / SSE on x86, `Vector128.IsHardwareAccelerated`
+> guard), processing 4 pixels/iteration and reproducing the scalar fixed-point int
+> math lane-for-lane — same coefficients, `Half=1<<15`, `128<<16` bias, arithmetic
+> `>>16`, `Min(Max(v,0),255)` clamp, zero-extend widen. Original scalar loop is the
+> remainder tail AND the no-hardware fallback, so correctness is hardware-independent.
+> Decode 8-bit YCbCr assembly rerouted to one per-row vectorized call; high-precision
+> (12/16-bit `long`) and direct-RGB/CMYK paths untouched. **Bit-exact:** 615/615
+> tests (+ `ColorConverterTests` 11/11); **60 encode→decode configs** (gradient/
+> random/8 pure+saturated colors × 512²/517²/300×301 × 444/420) gave byte-identical
+> encoded JPEG AND decoded RGB vs scalar, cross-checked by re-decoding SIMD-encoded
+> bytes with reverted scalar code. **Benchmark** (Release Stopwatch): decode −4.3→
+> −8.2% (512²/1024², 444/420); encode neutral (DCT-dominated). Tradeoff: ARM64 caps
+> at 4-wide NEON; x86 AVX2 path deliberately left out (unvalidatable on this host).
+> **Independently verified:** APPROVE (lane math re-derived incl. shift/clamp/overflow;
+> 60-config SHA identity + 615/615 re-executed; routing offsets/stride confirmed).
 
 ### 8. Integer DCT (AAN / Loeffler fixed-point)
 The whole `double` transform + quant chain is the real ceiling. libjpeg-turbo's

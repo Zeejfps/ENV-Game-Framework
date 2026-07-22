@@ -746,16 +746,19 @@ internal sealed partial class BaselineDecoder
         {
             var srcRow = y * paddedWidth;
             var dstRow = y * _width * 3;
-            for (var x = 0; x < _width; x++)
+            if (applyYCbCr)
             {
-                var d = dstRow + x * 3;
-                if (applyYCbCr)
+                ColorConverter.YCbCrToRgb(
+                    p0.AsSpan(srcRow, _width),
+                    p1.AsSpan(srcRow, _width),
+                    p2.AsSpan(srcRow, _width),
+                    rgb.AsSpan(dstRow, _width * 3));
+            }
+            else
+            {
+                for (var x = 0; x < _width; x++)
                 {
-                    ColorConverter.YCbCrToRgb(p0[srcRow + x], p1[srcRow + x], p2[srcRow + x],
-                        out rgb[d], out rgb[d + 1], out rgb[d + 2]);
-                }
-                else
-                {
+                    var d = dstRow + x * 3;
                     rgb[d] = p0[srcRow + x];
                     rgb[d + 1] = p1[srcRow + x];
                     rgb[d + 2] = p2[srcRow + x];

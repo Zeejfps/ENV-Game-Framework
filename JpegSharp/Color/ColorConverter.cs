@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace JpegSharp.Color;
 
@@ -106,8 +108,75 @@ internal static class ColorConverter
     public static void RgbToYCbCr(ReadOnlySpan<byte> rgb, Span<byte> y, Span<byte> cb, Span<byte> cr)
     {
         var n = y.Length;
-        for (var i = 0; i < n; i++)
+        var i = 0;
+        if (Vector128.IsHardwareAccelerated && n >= Vector128<int>.Count)
+            i = RgbToYCbCrVector(rgb, y, cb, cr, n);
+        for (; i < n; i++)
             RgbToYCbCr(rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2], out y[i], out cb[i], out cr[i]);
+    }
+
+    private static int RgbToYCbCrVector(ReadOnlySpan<byte> rgb, Span<byte> y, Span<byte> cb, Span<byte> cr, int n)
+    {
+        var width = Vector128<int>.Count;
+
+        var vYR = Vector128.Create(YR);
+        var vYG = Vector128.Create(YG);
+        var vYB = Vector128.Create(YB);
+        var vCbR = Vector128.Create(CbR);
+        var vCbG = Vector128.Create(CbG);
+        var vCbB = Vector128.Create(CbB);
+        var vCrR = Vector128.Create(CrR);
+        var vCrG = Vector128.Create(CrG);
+        var vCrB = Vector128.Create(CrB);
+        var vHalf = Vector128.Create(Half);
+        var vBias = Vector128.Create((128 << ScaleBits) + Half);
+        var vZero = Vector128<int>.Zero;
+        var v255 = Vector128.Create(255);
+
+        Span<int> rBuf = stackalloc int[width];
+        Span<int> gBuf = stackalloc int[width];
+        Span<int> bBuf = stackalloc int[width];
+        Span<int> yBuf = stackalloc int[width];
+        Span<int> cbBuf = stackalloc int[width];
+        Span<int> crBuf = stackalloc int[width];
+
+        var i = 0;
+        var last = n - width;
+        for (; i <= last; i += width)
+        {
+            var s0 = i * 3;
+            for (var k = 0; k < width; k++)
+            {
+                rBuf[k] = rgb[s0 + k * 3];
+                gBuf[k] = rgb[s0 + k * 3 + 1];
+                bBuf[k] = rgb[s0 + k * 3 + 2];
+            }
+
+            var r = Vector128.Create<int>(rBuf);
+            var g = Vector128.Create<int>(gBuf);
+            var b = Vector128.Create<int>(bBuf);
+
+            var vy = (vYR * r + vYG * g + vYB * b + vHalf) >> ScaleBits;
+            var vcb = (vCbR * r + vCbG * g + vCbB * b + vBias) >> ScaleBits;
+            var vcr = (vCrR * r + vCrG * g + vCrB * b + vBias) >> ScaleBits;
+
+            vy = Vector128.Min(Vector128.Max(vy, vZero), v255);
+            vcb = Vector128.Min(Vector128.Max(vcb, vZero), v255);
+            vcr = Vector128.Min(Vector128.Max(vcr, vZero), v255);
+
+            vy.CopyTo(yBuf);
+            vcb.CopyTo(cbBuf);
+            vcr.CopyTo(crBuf);
+
+            for (var k = 0; k < width; k++)
+            {
+                y[i + k] = (byte)yBuf[k];
+                cb[i + k] = (byte)cbBuf[k];
+                cr[i + k] = (byte)crBuf[k];
+            }
+        }
+
+        return i;
     }
 
     /// <summary>Converts three YCbCr planes to interleaved RGB samples.</summary>
@@ -118,8 +187,77 @@ internal static class ColorConverter
     public static void YCbCrToRgb(ReadOnlySpan<byte> y, ReadOnlySpan<byte> cb, ReadOnlySpan<byte> cr, Span<byte> rgb)
     {
         var n = y.Length;
-        for (var i = 0; i < n; i++)
+        var i = 0;
+        if (Vector128.IsHardwareAccelerated && n >= Vector128<int>.Count)
+            i = YCbCrToRgbVector(y, cb, cr, rgb, n);
+        for (; i < n; i++)
             YCbCrToRgb(y[i], cb[i], cr[i], out rgb[i * 3], out rgb[i * 3 + 1], out rgb[i * 3 + 2]);
+    }
+
+    private static int YCbCrToRgbVector(ReadOnlySpan<byte> y, ReadOnlySpan<byte> cb, ReadOnlySpan<byte> cr, Span<byte> rgb, int n)
+    {
+        var width = Vector128<int>.Count;
+
+        var vCrToR = Vector128.Create(CrToR);
+        var vCbToG = Vector128.Create(CbToG);
+        var vCrToG = Vector128.Create(CrToG);
+        var vCbToB = Vector128.Create(CbToB);
+        var vHalf = Vector128.Create(Half);
+        var v128 = Vector128.Create(128);
+        var vZero = Vector128<int>.Zero;
+        var v255 = Vector128.Create(255);
+
+        ref var yRef = ref MemoryMarshal.GetReference(y);
+        ref var cbRef = ref MemoryMarshal.GetReference(cb);
+        ref var crRef = ref MemoryMarshal.GetReference(cr);
+
+        Span<int> rBuf = stackalloc int[width];
+        Span<int> gBuf = stackalloc int[width];
+        Span<int> bBuf = stackalloc int[width];
+
+        var i = 0;
+        var last = n - width;
+        for (; i <= last; i += width)
+        {
+            var vy = WidenToInt32(ref Unsafe.Add(ref yRef, i));
+            var vcb = WidenToInt32(ref Unsafe.Add(ref cbRef, i));
+            var vcr = WidenToInt32(ref Unsafe.Add(ref crRef, i));
+
+            var c = vcr - v128;
+            var d = vcb - v128;
+
+            var r = vy + ((vCrToR * c + vHalf) >> ScaleBits);
+            var g = vy - ((vCbToG * d + vCrToG * c + vHalf) >> ScaleBits);
+            var b = vy + ((vCbToB * d + vHalf) >> ScaleBits);
+
+            r = Vector128.Min(Vector128.Max(r, vZero), v255);
+            g = Vector128.Min(Vector128.Max(g, vZero), v255);
+            b = Vector128.Min(Vector128.Max(b, vZero), v255);
+
+            r.CopyTo(rBuf);
+            g.CopyTo(gBuf);
+            b.CopyTo(bBuf);
+
+            var d0 = i * 3;
+            for (var k = 0; k < width; k++)
+            {
+                rgb[d0 + k * 3] = (byte)rBuf[k];
+                rgb[d0 + k * 3 + 1] = (byte)gBuf[k];
+                rgb[d0 + k * 3 + 2] = (byte)bBuf[k];
+            }
+        }
+
+        return i;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> WidenToInt32(ref byte src)
+    {
+        var packed = Unsafe.ReadUnaligned<uint>(ref src);
+        var bytes = Vector128.CreateScalar(packed).AsByte();
+        var lower16 = Vector128.WidenLower(bytes);
+        var lower32 = Vector128.WidenLower(lower16);
+        return lower32.AsInt32();
     }
 
     /// <summary>Converts a CMYK pixel to RGB using the standard multiplicative model.</summary>
