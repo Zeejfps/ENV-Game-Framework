@@ -2,33 +2,59 @@ namespace WebPSharp.Vp8;
 
 /// <summary>
 /// The VP8 boolean (binary arithmetic) entropy decoder from RFC 6386. Reads bits against 8-bit
-/// probabilities from a compressed partition. Reads past the end of the buffer yield zero bytes so
-/// truncated partitions degrade gracefully rather than throwing mid-bit.
+/// probabilities from a compressed partition. Reads past the end of the partition yield zero bytes
+/// so truncated partitions degrade gracefully rather than throwing mid-bit.
 /// </summary>
 /// <remarks>
-/// A mutable <see langword="ref struct"/>: it holds a <see cref="ReadOnlySpan{T}"/> over the
-/// partition and must not be copied mid-decode.
+/// A reference type so multiple partitions (macroblock-header partition plus one or more DCT
+/// coefficient partitions) can be held alongside one another and advanced independently during the
+/// macroblock loop.
 /// </remarks>
-public ref struct Vp8BooleanDecoder
+public sealed class Vp8BooleanDecoder
 {
-    private readonly ReadOnlySpan<byte> _input;
+    private readonly byte[] _input;
+    private readonly int _end;
     private int _pos;
     private uint _value;
     private uint _range;
     private int _bitCount;
+    private bool _eos;
 
-    /// <summary>Creates a decoder over a compressed partition.</summary>
+    /// <summary>Creates a decoder over an entire partition buffer.</summary>
     /// <param name="data">The partition bytes.</param>
-    public Vp8BooleanDecoder(ReadOnlySpan<byte> data)
+    public Vp8BooleanDecoder(byte[] data) : this(data, 0, (data ?? throw new ArgumentNullException(nameof(data))).Length)
     {
+    }
+
+    /// <summary>Creates a decoder over a sub-range of a buffer.</summary>
+    /// <param name="data">The backing buffer.</param>
+    /// <param name="start">The start offset of the partition.</param>
+    /// <param name="length">The partition length in bytes.</param>
+    public Vp8BooleanDecoder(byte[] data, int start, int length)
+    {
+        ArgumentNullException.ThrowIfNull(data);
         _input = data;
-        _pos = 0;
+        _pos = start;
+        _end = start + length;
         _value = (uint)((NextByte() << 8) | NextByte());
         _range = 255;
         _bitCount = 0;
+        _eos = false;
     }
 
-    private byte NextByte() => _pos < _input.Length ? _input[_pos++] : (byte)0;
+    /// <summary>
+    /// Whether a read has requested more bytes than the partition could supply. Once set it remains
+    /// set for the lifetime of the decoder.
+    /// </summary>
+    public bool IsEndOfStream => _eos;
+
+    private byte NextByte()
+    {
+        if (_pos < _end)
+            return _input[_pos++];
+        _eos = true;
+        return 0;
+    }
 
     /// <summary>Decodes a single boolean against the given probability.</summary>
     /// <param name="probability">The probability of a zero bit, 1..255.</param>
@@ -88,6 +114,11 @@ public ref struct Vp8BooleanDecoder
         var magnitude = (int)GetLiteral(bits);
         return GetBit(128) != 0 ? -magnitude : magnitude;
     }
+
+    /// <summary>Applies a sign bit to an already-decoded magnitude (used for coefficient values).</summary>
+    /// <param name="value">The non-negative magnitude.</param>
+    /// <returns>The signed value.</returns>
+    public int ApplySign(int value) => GetBit(128) != 0 ? -value : value;
 
     /// <summary>Reads an optionally-present signed value: a flag, then magnitude + sign if the flag is set.</summary>
     /// <param name="bits">The number of magnitude bits.</param>
