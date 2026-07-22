@@ -419,24 +419,20 @@ internal sealed partial class BaselineDecoder
 
     private void ReconstructComponents()
     {
-        Span<short> zz = stackalloc short[64];
-        Span<short> natural = stackalloc short[64];
         Span<double> dequant = stackalloc double[64];
         Span<double> spatial = stackalloc double[64];
 
         for (var ci = 0; ci < _components.Length; ci++)
         {
             var c = _components[ci];
-            var quant = GetQuantTable(c.QuantId).AsSpan();
+            var quant = GetQuantTable(c.QuantId).AsZigZagSpan();
             var buffer = _coefficients[ci];
             for (var by = 0; by < c.BlocksHigh; by++)
             {
                 for (var bx = 0; bx < c.BlocksWide; bx++)
                 {
                     var offset = (by * c.BlocksWide + bx) * 64;
-                    buffer.AsSpan(offset, 64).CopyTo(zz);
-                    ZigZag.ToNatural(zz, natural);
-                    Quantizer.Dequantize(natural, quant, dequant);
+                    Quantizer.DequantizeFromZigZag(buffer.AsSpan(offset, 64), quant, dequant);
                     FastDct.Inverse(dequant, spatial);
                     StoreBlock(c, bx * 8, by * 8, spatial);
                 }

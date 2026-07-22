@@ -269,7 +269,6 @@ internal sealed partial class BaselineEncoder
 
         Span<double> samples = stackalloc double[64];
         Span<double> coeffs = stackalloc double[64];
-        Span<short> quantized = stackalloc short[64];
 
         var index = 0;
         for (var my = 0; my < _mcusPerCol; my++)
@@ -279,7 +278,7 @@ internal sealed partial class BaselineEncoder
                 for (var ci = 0; ci < _components.Length; ci++)
                 {
                     var c = _components[ci];
-                    var table = _quantTables[c.QuantId].AsSpan();
+                    var table = _quantTables[c.QuantId].AsZigZagSpan();
                     for (var by = 0; by < c.V; by++)
                     {
                         for (var bx = 0; bx < c.H; bx++)
@@ -288,8 +287,7 @@ internal sealed partial class BaselineEncoder
                             var blockRow = my * c.V + by;
                             ExtractBlock(c, blockCol * 8, blockRow * 8, samples);
                             FastDct.Forward(samples, coeffs);
-                            Quantizer.Quantize(coeffs, table, quantized);
-                            ZigZag.FromNatural(quantized, blocks.AsSpan(index * 64, 64));
+                            Quantizer.QuantizeToZigZag(coeffs, table, blocks.AsSpan(index * 64, 64));
                             blockComponent[index] = ci;
                             index++;
                         }
@@ -303,6 +301,35 @@ internal sealed partial class BaselineEncoder
 
     private void ExtractBlock(Component c, int x0, int y0, Span<double> samples)
     {
+        if (x0 + 8 <= c.PlaneWidth && y0 + 8 <= c.PlaneHeight)
+        {
+            if (_precision == 8)
+            {
+                var plane = c.Plane;
+                var row = y0 * c.PlaneWidth + x0;
+                for (var yy = 0; yy < 8; yy++)
+                {
+                    for (var xx = 0; xx < 8; xx++)
+                        samples[yy * 8 + xx] = plane[row + xx] - 128;
+                    row += c.PlaneWidth;
+                }
+            }
+            else
+            {
+                var center = 1 << (_precision - 1);
+                var plane = c.Plane16!;
+                var row = y0 * c.PlaneWidth + x0;
+                for (var yy = 0; yy < 8; yy++)
+                {
+                    for (var xx = 0; xx < 8; xx++)
+                        samples[yy * 8 + xx] = plane[row + xx] - center;
+                    row += c.PlaneWidth;
+                }
+            }
+
+            return;
+        }
+
         if (_precision == 8)
         {
             for (var yy = 0; yy < 8; yy++)

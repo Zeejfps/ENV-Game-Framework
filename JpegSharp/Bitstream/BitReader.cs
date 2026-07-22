@@ -29,7 +29,7 @@ internal ref struct BitReader
 {
     private readonly ReadOnlySpan<byte> _data;
     private int _pos;
-    private uint _buffer;
+    private ulong _buffer;
     private int _count;
     private bool _marker;
     private byte _markerCode;
@@ -66,15 +66,8 @@ internal ref struct BitReader
         if (count == 0)
             return 0;
 
-        while (_count < count)
-        {
-            if (!FillByte())
-            {
-                // Marker or end of data: pad with 1 bits so the caller can finish gracefully.
-                _buffer = (_buffer << 8) | 0xFF;
-                _count += 8;
-            }
-        }
+        if (_count < count)
+            Refill(count);
 
         _count -= count;
         return (int)((_buffer >> _count) & ((1u << count) - 1));
@@ -91,14 +84,8 @@ internal ref struct BitReader
     /// <returns>The next 8 bits, right-aligned (0..255).</returns>
     public int PeekByte()
     {
-        while (_count < 8)
-        {
-            if (!FillByte())
-            {
-                _buffer = (_buffer << 8) | 0xFF;
-                _count += 8;
-            }
-        }
+        if (_count < 8)
+            Refill(8);
 
         return (int)((_buffer >> (_count - 8)) & 0xFF);
     }
@@ -194,6 +181,46 @@ internal ref struct BitReader
             return 0;
         var threshold = 1 << (magnitude - 1);
         return value < threshold ? value - (1 << magnitude) + 1 : value;
+    }
+
+    private void Refill(int count)
+    {
+        while (_count < count)
+        {
+            // Fast path: a run of non-0xFF source bytes carries no stuffing or marker, so load
+            // it in one shot. Stop before every 0xFF and defer to the byte-at-a-time path, which
+            // handles stuffing (0xFF 0x00), fill runs, markers and end-of-data unchanged. The run
+            // is capped at 7 bytes so the shift below never reaches 64 (C# masks shift counts).
+            if (!_marker && _pos < _data.Length && _data[_pos] != 0xFF)
+            {
+                var room = (64 - _count) >> 3;
+                if (room > 7)
+                    room = 7;
+                var limit = _data.Length - _pos;
+                if (limit > room)
+                    limit = room;
+
+                var n = 0;
+                while (n < limit && _data[_pos + n] != 0xFF)
+                    n++;
+
+                ulong chunk = 0;
+                for (var i = 0; i < n; i++)
+                    chunk = (chunk << 8) | _data[_pos + i];
+
+                _buffer = (_buffer << (n << 3)) | chunk;
+                _pos += n;
+                _count += n << 3;
+                continue;
+            }
+
+            if (!FillByte())
+            {
+                // Marker or end of data: pad with 1 bits so the caller can finish gracefully.
+                _buffer = (_buffer << 8) | 0xFF;
+                _count += 8;
+            }
+        }
     }
 
     private bool FillByte()

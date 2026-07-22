@@ -10,9 +10,9 @@ Huffman** case (the overwhelmingly common 8-bit JPEG). Ordered by impact-to-risk
 | 1 | BitWriter bulk buffering | 1 | ✅ Completed |
 | 2 | FastDct scalar constants + unroll | 1 | ✅ Completed |
 | 3 | Quantize manual rounding | 1 | 🚫 Blocked (regresses on .NET 10) |
-| 4 | Fuse zig-zag into (de)quant | 2 | 🔄 In progress |
-| 5 | ExtractBlock interior fast path | 2 | ⬜ Todo |
-| 6 | BitReader ulong bulk refill | 2 | ⬜ Todo |
+| 4 | Fuse zig-zag into (de)quant | 2 | ✅ Completed |
+| 5 | ExtractBlock interior fast path | 2 | ✅ Completed |
+| 6 | BitReader ulong bulk refill | 2 | ✅ Completed |
 | 7 | SIMD color conversion | 3 | ⬜ Todo |
 | 8 | Integer DCT (AAN/Loeffler) | 3 | ⬜ Todo |
 | 9 | Faster level-shift rounding | 3 | ⬜ Todo |
@@ -124,11 +124,43 @@ zig-zag order into a natural-order buffer using a **zig-zag-permuted quant table
 encode: quantize + zig-zag in one pass. Bit-exact; removes one full-block copy
 and loop per block.
 
+> ✅ **Completed 2026-07-22.** Added a per-`QuantizationTable` zig-zag-permuted
+> table (`_valuesZigZag[k] = _values[Order[k]]`, built once in the constructor,
+> exposed via `AsZigZagSpan()`), and two fused `Quantizer` methods:
+> `QuantizeToZigZag` (gather+divide→zig-zag out, no intermediate `quantized`+
+> `FromNatural`) and `DequantizeFromZigZag` (scatter+multiply zig-zag→natural, no
+> `ToNatural`). Wired into all four baseline+progressive encode/decode call sites,
+> removing a 64-element copy/loop per block (progressive also drops an extra
+> `CopyTo`). Old `Quantize`/`Dequantize`/`ZigZag.ToNatural`/`FromNatural` kept
+> (still used by tests / possible external consumers). **Bit-exact** (mult/div are
+> order-independent; same away-from-zero rounding): 615/615 tests incl. progressive
+> golden; stash-based before/after gave identical encoded-byte AND decoded-RGB
+> SHA256 across baseline 444/420 and progressive 444/420. **Benchmark** (Release
+> Stopwatch): **encode −1.3→−6.4%, decode −7.6→−10.7%** (decode gains more — drops
+> both a copy and a scatter loop). Tradeoff: one cached `ushort[64]` per table
+> (negligible). **Independently verified:** APPROVE (permutation direction
+> re-derived — same `Order[k]` for source/dest/table, no transposition; progressive
+> scan/accumulation logic untouched; SHA identity + 615/615 re-executed).
+
 ### 5. `ExtractBlock` runs `Math.Min` on every sample even for interior blocks (encode)
 `BaselineEncoder.cs:304-334` — edge clamping is only needed for blocks touching
 the right/bottom edge. Add a fast path: when
 `x0 + 8 <= PlaneWidth && y0 + 8 <= PlaneHeight`, do a straight strided copy with
 no `Math.Min`. That covers the vast majority of blocks. Bit-exact.
+
+> ✅ **Completed 2026-07-22.** Added an interior fast path at the top of
+> `BaselineEncoder.ExtractBlock`: when `x0 + 8 <= PlaneWidth && y0 + 8 <=
+> PlaneHeight`, strided-copy the 8×8 block with no per-sample `Math.Min` (edge
+> blocks fall through to the unchanged clamped path via an early `return`). Covers
+> both the 8-bit (`−128`) and 16-bit (`Plane16`, `center = 1<<(precision−1)`)
+> branches. **Bit-exact** — for interior blocks the `Math.Min` is a proven no-op,
+> so identical samples in identical order: 615/615 tests, and independent fast-path
+> on/off SHA256 identical across 512/510/300/20px in 444+420 (interior AND edge
+> blocks). **Benchmark:** marginal — ~1–2% faster on realistic sizes, mostly within
+> noise, **never a regression** (ExtractBlock is a tiny fraction of encode cost).
+> **Independently verified & ship-arbitrated:** APPROVE — zero-risk, mechanical
+> (mirrors libjpeg-turbo's interior/edge split), bit-exact; marginal-but-positive
+> clears the bar. Kept as a correctness-neutral tidy, not a needle-mover.
 
 ### 6. `BitReader` refills 8 bits at a time with a per-byte `0xFF` check (decode)
 `JpegSharp/Bitstream/BitReader.cs:64-104,199-229` — widen the accumulator to
@@ -137,6 +169,25 @@ no `Math.Min`. That covers the vast majority of blocks. Bit-exact.
 logic near a `0xFF`. This is the standard libjpeg-turbo approach and meaningfully
 speeds Huffman decode. Bit-exact, but the most delicate change here — isolate it
 behind the existing tests.
+
+> ✅ **Completed 2026-07-22.** `BitReader.cs`: accumulator widened `uint`→`ulong`;
+> the two 8-bit fill loops replaced by a new `Refill` fast path that scans a bounded
+> window (`n ∈ [1,7]`, shift ≤ 56 so never the `<<64` mask-to-0 trap) of proven
+> non-`0xFF`, in-bounds bytes and bulk-loads them MSB-first. The delicate
+> `FillByte` (`0xFF 0x00` stuffing, fill-runs, marker detection + `_pos--`
+> step-back, EOD→`0xD9`) is **byte-for-byte unchanged** and remains the sole
+> fallback — so the fast path is bit-exact by construction (every byte it loads
+> would take FillByte's plain-data branch identically). The `room==0` boundary is
+> unreachable (max read count ≤16 ⇒ `_count<16` at entry ⇒ room ≥6). **Bit-exact:**
+> 615/615 tests + 202/202 delicate (corrupt/truncated/marker/restart/trailing/
+> progressive); **72 encode→decode configs** (512²/1024², Q85/Q95/Q100, 444/420,
+> RST0/4/8/16, sequential+progressive) gave identical decoded-RGB SHA256 vs reverted
+> code. **Benchmark** (Release Stopwatch): whole-decode +1.7→+4.9% (implementer);
+> independent re-time showed parity-to-slightly-faster (whole-decode can't resolve
+> the entropy-decode fraction) — faster-or-equal, never a regression. Tradeoff:
+> subtle shift-cap invariant (documented with one concise comment). **Independently
+> verified:** APPROVE (shift-safety + no-`0xFF` invariant re-derived; SHA identity
+> + 615/615 + 202/202 re-executed; no unsafe shift or failing adversarial input).
 
 ---
 

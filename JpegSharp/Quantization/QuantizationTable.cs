@@ -10,6 +10,7 @@ namespace JpegSharp.Quantization;
 public sealed class QuantizationTable
 {
     private readonly ushort[] _values;
+    private readonly ushort[] _valuesZigZag;
 
     /// <summary>The number of entries in a quantization table.</summary>
     public const int Size = 64;
@@ -33,6 +34,11 @@ public sealed class QuantizationTable
                 throw new ArgumentException("Quantization values must be non-zero.", nameof(valuesNaturalOrder));
             _values[i] = valuesNaturalOrder[i];
         }
+
+        _valuesZigZag = new ushort[Size];
+        var order = ZigZag.Order;
+        for (var k = 0; k < Size; k++)
+            _valuesZigZag[k] = _values[order[k]];
     }
 
     /// <summary>Gets the quantization step at the given natural-order index (0..63).</summary>
@@ -42,6 +48,14 @@ public sealed class QuantizationTable
     /// <summary>Gets the table values in natural (row-major) order.</summary>
     /// <returns>A read-only view over the 64 quantization steps.</returns>
     public ReadOnlySpan<ushort> AsSpan() => _values;
+
+    /// <summary>
+    /// Gets the table values permuted into zig-zag order, so that entry <c>k</c> is the
+    /// quantization step for the coefficient coded at zig-zag position <c>k</c>. Precomputed
+    /// once per table for fused (de)quantization directly against zig-zag-ordered coefficients.
+    /// </summary>
+    /// <returns>A read-only view over the 64 quantization steps in zig-zag order.</returns>
+    public ReadOnlySpan<ushort> AsZigZagSpan() => _valuesZigZag;
 
     /// <summary>
     /// Builds a luminance quantization table for the given quality factor using the IJG

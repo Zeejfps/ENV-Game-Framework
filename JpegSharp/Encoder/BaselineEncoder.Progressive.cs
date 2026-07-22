@@ -50,13 +50,11 @@ internal sealed partial class BaselineEncoder
         var result = new short[_components.Length][];
         Span<double> samples = stackalloc double[64];
         Span<double> coeffs = stackalloc double[64];
-        Span<short> quantized = stackalloc short[64];
-        Span<short> zz = stackalloc short[64];
 
         for (var ci = 0; ci < _components.Length; ci++)
         {
             var c = _components[ci];
-            var table = _quantTables[c.QuantId].AsSpan();
+            var table = _quantTables[c.QuantId].AsZigZagSpan();
             var buffer = new short[c.BlocksWide * c.BlocksHigh * 64];
             for (var by = 0; by < c.BlocksHigh; by++)
             {
@@ -64,10 +62,8 @@ internal sealed partial class BaselineEncoder
                 {
                     ExtractBlock(c, bx * 8, by * 8, samples);
                     FastDct.Forward(samples, coeffs);
-                    Quantizer.Quantize(coeffs, table, quantized);
-                    ZigZag.FromNatural(quantized, zz);
                     var offset = (by * c.BlocksWide + bx) * 64;
-                    zz.CopyTo(buffer.AsSpan(offset, 64));
+                    Quantizer.QuantizeToZigZag(coeffs, table, buffer.AsSpan(offset, 64));
                 }
             }
 

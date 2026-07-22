@@ -1,3 +1,5 @@
+using JpegSharp.Transforms;
+
 namespace JpegSharp.Quantization;
 
 /// <summary>
@@ -44,6 +46,48 @@ internal static class Quantizer
 
         for (var i = 0; i < BlockSize; i++)
             output[i] = quantized[i] * (double)table[i];
+    }
+
+    /// <summary>
+    /// Quantizes DCT coefficients and emits the results directly in zig-zag order, fusing the
+    /// quantization and zig-zag reordering into a single pass. Bit-identical to
+    /// <see cref="Quantize"/> followed by <see cref="Transforms.ZigZag.FromNatural"/>.
+    /// </summary>
+    /// <param name="coefficients">64 DCT coefficients in natural order.</param>
+    /// <param name="zigzagTable">64 quantization steps permuted into zig-zag order.</param>
+    /// <param name="zigzagOutput">Receives the 64 quantized coefficients in zig-zag order.</param>
+    public static void QuantizeToZigZag(ReadOnlySpan<double> coefficients, ReadOnlySpan<ushort> zigzagTable, Span<short> zigzagOutput)
+    {
+        EnsureBlock(coefficients.Length, nameof(coefficients));
+        EnsureBlock(zigzagTable.Length, nameof(zigzagTable));
+        EnsureBlock(zigzagOutput.Length, nameof(zigzagOutput));
+
+        var order = ZigZag.Order;
+        for (var k = 0; k < BlockSize; k++)
+        {
+            var value = coefficients[order[k]] / zigzagTable[k];
+            var rounded = Math.Round(value, MidpointRounding.AwayFromZero);
+            zigzagOutput[k] = (short)Math.Clamp(rounded, short.MinValue, short.MaxValue);
+        }
+    }
+
+    /// <summary>
+    /// Dequantizes coefficients read in zig-zag order, scattering the results into a natural-order
+    /// buffer, fusing the dequantization and zig-zag reordering into a single pass. Bit-identical
+    /// to <see cref="Transforms.ZigZag.ToNatural"/> followed by <see cref="Dequantize"/>.
+    /// </summary>
+    /// <param name="zigzagQuantized">64 quantized coefficients in zig-zag order.</param>
+    /// <param name="zigzagTable">64 quantization steps permuted into zig-zag order.</param>
+    /// <param name="naturalOutput">Receives the 64 dequantized coefficients in natural order.</param>
+    public static void DequantizeFromZigZag(ReadOnlySpan<short> zigzagQuantized, ReadOnlySpan<ushort> zigzagTable, Span<double> naturalOutput)
+    {
+        EnsureBlock(zigzagQuantized.Length, nameof(zigzagQuantized));
+        EnsureBlock(zigzagTable.Length, nameof(zigzagTable));
+        EnsureBlock(naturalOutput.Length, nameof(naturalOutput));
+
+        var order = ZigZag.Order;
+        for (var k = 0; k < BlockSize; k++)
+            naturalOutput[order[k]] = zigzagQuantized[k] * (double)zigzagTable[k];
     }
 
     private static void EnsureBlock(int length, string name)

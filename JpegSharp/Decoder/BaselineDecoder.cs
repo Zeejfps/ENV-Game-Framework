@@ -597,7 +597,6 @@ internal sealed partial class BaselineDecoder
     {
         var predictors = new int[_components.Length];
         Span<short> zz = stackalloc short[64];
-        Span<short> natural = stackalloc short[64];
         Span<double> dequant = stackalloc double[64];
         Span<double> spatial = stackalloc double[64];
 
@@ -619,7 +618,7 @@ internal sealed partial class BaselineDecoder
                 foreach (var ci in scan.Components)
                 {
                     var c = _components[ci];
-                    var quant = GetQuantTable(c.QuantId).AsSpan();
+                    var quant = GetQuantTable(c.QuantId).AsZigZagSpan();
                     var dc = GetDcTable(c.DcTableId);
                     var ac = GetAcTable(c.AcTableId);
                     for (var by = 0; by < c.V; by++)
@@ -627,8 +626,7 @@ internal sealed partial class BaselineDecoder
                         for (var bx = 0; bx < c.H; bx++)
                         {
                             predictors[ci] = BlockScanCoder.DecodeBlock(ref reader, zz, predictors[ci], dc, ac);
-                            ZigZag.ToNatural(zz, natural);
-                            Quantizer.Dequantize(natural, quant, dequant);
+                            Quantizer.DequantizeFromZigZag(zz, quant, dequant);
                             FastDct.Inverse(dequant, spatial);
                             StoreBlock(c, (mx * c.H + bx) * 8, (my * c.V + by) * 8, spatial);
                         }
@@ -645,14 +643,13 @@ internal sealed partial class BaselineDecoder
     private void DecodeNonInterleavedScan(ref BitReader reader, ScanHeader scan)
     {
         var c = _components[scan.Components[0]];
-        var quant = GetQuantTable(c.QuantId).AsSpan();
+        var quant = GetQuantTable(c.QuantId).AsZigZagSpan();
         var dc = GetDcTable(c.DcTableId);
         var ac = GetAcTable(c.AcTableId);
         var blocksPerLine = CeilDiv(ComponentActualWidth(c), 8);
         var blocksPerCol = CeilDiv(ComponentActualHeight(c), 8);
 
         Span<short> zz = stackalloc short[64];
-        Span<short> natural = stackalloc short[64];
         Span<double> dequant = stackalloc double[64];
         Span<double> spatial = stackalloc double[64];
 
@@ -673,8 +670,7 @@ internal sealed partial class BaselineDecoder
                 blockIndex++;
 
                 predictor = BlockScanCoder.DecodeBlock(ref reader, zz, predictor, dc, ac);
-                ZigZag.ToNatural(zz, natural);
-                Quantizer.Dequantize(natural, quant, dequant);
+                Quantizer.DequantizeFromZigZag(zz, quant, dequant);
                 FastDct.Inverse(dequant, spatial);
                 StoreBlock(c, bx * 8, by * 8, spatial);
             }
