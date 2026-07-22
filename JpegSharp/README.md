@@ -1,0 +1,105 @@
+# JpegSharp
+
+A pure C# JPEG encoder and decoder with zero native dependencies. JpegSharp targets the
+.NET Base Class Library only — no `libjpeg`, Skia, ImageSharp, or other image libraries.
+
+## Features
+
+**Decoder**
+- Baseline sequential DCT (SOF0) and extended sequential (SOF1)
+- Progressive DCT (SOF2): spectral selection *and* successive-approximation refinement
+- Huffman entropy decoding with restart intervals
+- Grayscale, RGB (from YCbCr), CMYK and Adobe YCCK output
+- JFIF (APP0), Exif (APP1), ICC profile (APP2, multi-segment), Adobe (APP14) and comment (COM) metadata
+- Arbitrary chroma sampling factors: 4:4:4, 4:2:2, 4:2:0, 4:1:1 and beyond
+- Header-only inspection via `Jpeg.Identify`
+- Robust, fuzz-tested error reporting — malformed input always raises a `JpegException`
+
+**Encoder**
+- Baseline and progressive output
+- Quality factor (1–100) and configurable chroma subsampling
+- RGB encoded as YCbCr (default) or stored directly (`JpegRgbEncoding.Rgb`, no color-transform loss)
+- CMYK stored directly or as Adobe YCCK (`CmykAsYcck`)
+- Standard, optimized, or fully custom Huffman tables
+- Custom quantization tables
+- Restart intervals
+- Metadata writing (JFIF density, Exif, ICC, comments, arbitrary APPn)
+- Deterministic output
+
+## Quick start
+
+```csharp
+using JpegSharp.Api;
+
+// Encode
+var image = JpegImage.CreateRgb(width, height, rgbBytes);
+byte[] jpeg = Jpeg.Encode(image, new JpegEncoderOptions { Quality = 90 });
+
+// Decode
+JpegImage decoded = Jpeg.Decode(jpeg);
+byte[] pixels = decoded.PixelData; // interleaved, ComponentCount bytes per pixel
+
+// Inspect without decoding pixels
+JpegInfo info = Jpeg.Identify(jpeg);
+
+// Files and streams
+Jpeg.Save(image, "out.jpg");
+JpegImage loaded = Jpeg.Load("out.jpg");
+```
+
+## Architecture
+
+The codec is organized into small, independently testable components:
+
+| Namespace              | Responsibility |
+|------------------------|----------------|
+| `JpegSharp.Api`        | Public entry points (`Jpeg`, `JpegImage`, options, `JpegInfo`, `JpegMetadata`, exceptions) |
+| `JpegSharp.Transforms` | ZigZag ordering and the reference forward/inverse DCT |
+| `JpegSharp.Quantization` | Quantization tables (Annex K, quality scaling) and the quantizer |
+| `JpegSharp.Bitstream`  | MSB-first `BitReader`/`BitWriter` with byte-stuffing and marker handling |
+| `JpegSharp.Huffman`    | Canonical table model, decode/encode, optimized table generation, standard tables |
+| `JpegSharp.Markers`    | Marker constants and the segment reader/writer |
+| `JpegSharp.Color`      | YCbCr/RGB/CMYK/YCCK conversion and chroma up/downsampling |
+| `JpegSharp.Coding`     | Sequential block entropy coding (DC prediction + AC run-length) |
+| `JpegSharp.Encoder`    | Baseline and progressive encoders |
+| `JpegSharp.Decoder`    | Baseline and progressive decoders |
+
+## Pipeline
+
+**Encode:** pixels → color transform (RGB→YCbCr) → chroma downsample → per-8×8-block level
+shift → forward DCT → quantize → zig-zag → entropy code (Huffman) → marker assembly.
+
+**Decode:** marker parse → entropy decode into coefficient buffers → dequantize → inverse DCT
+→ level shift → chroma upsample → color transform → interleaved pixels. Progressive decoding
+accumulates coefficients across multiple scans before reconstruction.
+
+## Performance
+
+Performance is a first-class concern. The implementation favors:
+- `Span<T>`/`ReadOnlySpan<T>` and `stackalloc` throughout the hot paths — block processing is allocation-free
+- 16-bit fixed-point color conversion (matching libjpeg coefficients)
+- `ref struct` bit reader over `ReadOnlySpan<byte>` for zero-copy entropy decoding
+- `AggressiveInlining` on the tightest inner routines
+- No LINQ, boxing, or virtual dispatch in decoding/encoding loops
+
+Benchmarks live in `JpegSharp.Benchmarks` (BenchmarkDotNet). Run them with
+`dotnet run -c Release --project JpegSharp.Benchmarks -- --filter *`, or a quick timing check
+with `-- --smoke`.
+
+## Limitations
+
+- Sample precision is 8-bit (12-bit is reported by `Jpeg.Identify` but not decoded).
+- Arithmetic coding (ISO/IEC 10918-1 Annex D) is not implemented; the architecture isolates
+  the entropy stage so it can be added without disturbing the rest of the pipeline. This is
+  the only optional feature intentionally left out.
+- Chroma upsampling uses centered bilinear interpolation on decode.
+- `OptimizeHuffman` applies to baseline encoding; progressive encoding uses the standard
+  Annex K tables.
+
+## Extension points
+
+- **Custom tables:** supply `QuantizationTable` and `HuffmanTable` instances through
+  `JpegEncoderOptions`.
+- **Metadata:** attach a `JpegMetadata` to embed Exif/ICC/comments; the decoder always exposes
+  what it finds via `JpegImage.Metadata`.
+- **Decoder guards:** `JpegDecoderOptions` bounds allocation (`MaxPixels`) and can skip metadata.

@@ -1,0 +1,98 @@
+using JpegSharp.Decoder;
+using JpegSharp.Encoder;
+
+namespace JpegSharp.Api;
+
+/// <summary>
+/// The primary entry point for encoding and decoding JPEG images. All methods are stateless
+/// and thread-safe.
+/// </summary>
+public static class Jpeg
+{
+    /// <summary>Encodes an image to a JPEG byte array.</summary>
+    /// <param name="image">The image to encode.</param>
+    /// <param name="options">Encoding options, or null for defaults.</param>
+    /// <returns>The encoded JPEG bytes.</returns>
+    public static byte[] Encode(JpegImage image, JpegEncoderOptions? options = null)
+    {
+        using var stream = new MemoryStream();
+        Encode(image, stream, options);
+        return stream.ToArray();
+    }
+
+    /// <summary>Encodes an image to a stream as JPEG.</summary>
+    /// <param name="image">The image to encode.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="options">Encoding options, or null for defaults.</param>
+    public static void Encode(JpegImage image, Stream stream, JpegEncoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(stream);
+        var encoder = new BaselineEncoder(image, options ?? new JpegEncoderOptions());
+        encoder.Encode(stream);
+    }
+
+    /// <summary>Decodes a JPEG image from a byte array.</summary>
+    /// <param name="data">The JPEG bytes.</param>
+    /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <returns>The decoded image.</returns>
+    public static JpegImage Decode(byte[] data, JpegDecoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return new BaselineDecoder(data, options).Decode();
+    }
+
+    /// <summary>
+    /// Reads structural information (dimensions, components, color space, precision,
+    /// progressive flag) from a JPEG stream by parsing only its headers.
+    /// </summary>
+    /// <param name="data">The JPEG bytes.</param>
+    /// <returns>The parsed <see cref="JpegInfo"/>.</returns>
+    public static JpegInfo Identify(byte[] data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return new BaselineDecoder(data).ReadInfo();
+    }
+
+    /// <summary>Reads structural information from a JPEG stream.</summary>
+    /// <param name="stream">The source stream.</param>
+    /// <returns>The parsed <see cref="JpegInfo"/>.</returns>
+    public static JpegInfo Identify(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return Identify(ms.ToArray());
+    }
+
+    /// <summary>Decodes a JPEG image from a stream.</summary>
+    /// <param name="stream">The source stream.</param>
+    /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <returns>The decoded image.</returns>
+    public static JpegImage Decode(Stream stream, JpegDecoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return Decode(ms.ToArray(), options);
+    }
+
+    /// <summary>Loads and decodes a JPEG image from a file.</summary>
+    /// <param name="path">The file path.</param>
+    /// <returns>The decoded image.</returns>
+    public static JpegImage Load(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Decode(stream);
+    }
+
+    /// <summary>Encodes an image and saves it to a file as JPEG.</summary>
+    /// <param name="image">The image to encode.</param>
+    /// <param name="path">The destination file path.</param>
+    /// <param name="options">Encoding options, or null for defaults.</param>
+    public static void Save(JpegImage image, string path, JpegEncoderOptions? options = null)
+    {
+        using var stream = File.Create(path);
+        Encode(image, stream, options);
+    }
+}
