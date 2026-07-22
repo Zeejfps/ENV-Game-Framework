@@ -576,14 +576,16 @@ internal sealed class BaselineEncoder
         ];
     }
 
-    private short[][] BuildQuantizedBlocks(out int[] blockComponent)
+    // Baseline blocks are stored in one flat buffer (64 shorts per block, in scan order) to
+    // avoid a per-block array allocation on large images.
+    private short[] BuildQuantizedBlocks(out int[] blockComponent)
     {
         var perMcu = 0;
         foreach (var c in _components)
             perMcu += c.H * c.V;
         var totalBlocks = _mcusPerRow * _mcusPerCol * perMcu;
 
-        var blocks = new short[totalBlocks][];
+        var blocks = new short[totalBlocks * 64];
         blockComponent = new int[totalBlocks];
 
         Span<double> samples = stackalloc double[64];
@@ -608,9 +610,7 @@ internal sealed class BaselineEncoder
                             ExtractBlock(c, blockCol * 8, blockRow * 8, samples);
                             FastDct.Forward(samples, coeffs);
                             Quantizer.Quantize(coeffs, table, quantized);
-                            var zz = new short[64];
-                            ZigZag.FromNatural(quantized, zz);
-                            blocks[index] = zz;
+                            ZigZag.FromNatural(quantized, blocks.AsSpan(index * 64, 64));
                             blockComponent[index] = ci;
                             index++;
                         }
@@ -649,7 +649,7 @@ internal sealed class BaselineEncoder
         ];
     }
 
-    private HuffmanTable[] BuildOptimizedTables(short[][] blocks, int[] blockComponent)
+    private HuffmanTable[] BuildOptimizedTables(short[] blocks, int[] blockComponent)
     {
         var dcLuma = new int[256];
         var acLuma = new int[256];
@@ -667,17 +667,18 @@ internal sealed class BaselineEncoder
         var mcuIndex = 0;
         var blockInMcu = 0;
 
-        for (var i = 0; i < blocks.Length; i++)
+        for (var i = 0; i < blockComponent.Length; i++)
         {
             if (blockInMcu == 0 && interval > 0 && mcuIndex > 0 && mcuIndex % interval == 0)
                 Array.Clear(predictors);
 
             var ci = blockComponent[i];
             var c = _components[ci];
+            var block = blocks.AsSpan(i * 64, 64);
             if (c.TableClass == 0)
-                predictors[ci] = BlockScanCoder.GatherBlockFrequencies(blocks[i], predictors[ci], dcLuma, acLuma);
+                predictors[ci] = BlockScanCoder.GatherBlockFrequencies(block, predictors[ci], dcLuma, acLuma);
             else
-                predictors[ci] = BlockScanCoder.GatherBlockFrequencies(blocks[i], predictors[ci], dcChroma, acChroma);
+                predictors[ci] = BlockScanCoder.GatherBlockFrequencies(block, predictors[ci], dcChroma, acChroma);
 
             blockInMcu++;
             if (blockInMcu == perMcu)
@@ -696,7 +697,7 @@ internal sealed class BaselineEncoder
         ];
     }
 
-    private void WriteEntropyData(Stream output, short[][] blocks, int[] blockComponent, HuffmanTable[] tables)
+    private void WriteEntropyData(Stream output, short[] blocks, int[] blockComponent, HuffmanTable[] tables)
     {
         var writer = new BitWriter(output);
         var predictors = new int[_components.Length];
@@ -710,7 +711,7 @@ internal sealed class BaselineEncoder
         var blockInMcu = 0;
         var rstIndex = 0;
 
-        for (var i = 0; i < blocks.Length; i++)
+        for (var i = 0; i < blockComponent.Length; i++)
         {
             if (blockInMcu == 0 && interval > 0 && mcuIndex > 0 && mcuIndex % interval == 0)
             {
@@ -725,7 +726,7 @@ internal sealed class BaselineEncoder
             var component = _components[ci];
             var dc = component.TableClass == 0 ? tables[0] : tables[2];
             var ac = component.TableClass == 0 ? tables[1] : tables[3];
-            predictors[ci] = BlockScanCoder.EncodeBlock(writer, blocks[i], predictors[ci], dc, ac);
+            predictors[ci] = BlockScanCoder.EncodeBlock(writer, blocks.AsSpan(i * 64, 64), predictors[ci], dc, ac);
 
             blockInMcu++;
             if (blockInMcu == perMcu)

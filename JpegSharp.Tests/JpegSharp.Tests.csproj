@@ -16,6 +16,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\JpegSharp\JpegSharp.csproj" />
+        <!-- PngSharp is used only to load real reference images for integration tests. -->
+        <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
     </ItemGroup>
 
     <ItemGroup>
