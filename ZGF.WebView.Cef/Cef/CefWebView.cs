@@ -88,6 +88,41 @@ internal sealed class CefWebView : IWebView
         _browserHost = null;
     }
 
+    // Auto-reloads to recover from a render-process crash. Bounded so a page that reliably kills its
+    // renderer can't spin in reload→crash→reload; each user Navigate() resets the budget (see Navigate).
+    private int _crashReloads;
+    private const int MaxCrashReloads = 2;
+
+    // The render process died (crash / OOM / killed) — the surface is frozen on its last frame, which is
+    // the usual cause of a "web view stopped responding" report. Log the cause loudly, then reload once
+    // to respawn the renderer (the browser host outlives it).
+    internal void OnRenderProcessGone(CefTerminationStatus status)
+    {
+        var url = _browser?.GetMainFrame()?.Url ?? _initialUrl;
+        if (_disposed || _browserHost == null)
+        {
+            CefLog.Error($"render process {Describe(status)} on {url}; view is disposed, not recovering");
+            return;
+        }
+        if (_crashReloads++ >= MaxCrashReloads)
+        {
+            CefLog.Error($"render process {Describe(status)} on {url}; " +
+                         $"reload budget ({MaxCrashReloads}) exhausted — leaving the page blank. " +
+                         "This page repeatedly crashes the bundled Chromium 120 renderer.");
+            return;
+        }
+        CefLog.Error($"render process {Describe(status)} on {url}; reloading (attempt {_crashReloads}/{MaxCrashReloads})");
+        _browser?.Reload();
+    }
+
+    private static string Describe(CefTerminationStatus status) => status switch
+    {
+        CefTerminationStatus.ProcessCrashed => "CRASHED",
+        CefTerminationStatus.WasKilled => "was KILLED (OS terminated it)",
+        CefTerminationStatus.OutOfMemory => "ran OUT OF MEMORY",
+        _ => status.ToString(),
+    };
+
     private int _viewRectCount;
 
     internal void GetViewRect(out CefRectangle rect)
@@ -172,6 +207,7 @@ internal sealed class CefWebView : IWebView
     public void Navigate(string url)
     {
         if (_disposed) return;
+        _crashReloads = 0; // a fresh navigation is a fresh page — restore its crash-recovery budget.
         if (_browser != null)
             _browser.GetMainFrame().LoadUrl(url);
         else if (!_created)

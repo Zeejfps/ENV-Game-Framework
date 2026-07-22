@@ -53,6 +53,10 @@ internal static class CefPaths
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ZGF", "WebViewCache");
 
+    /// <summary>Default location for CEF's internal Chromium log (the deepest source of render/GPU crash
+    /// detail). Kept alongside the profile so a user can find it; overridable via <c>ZGF_CEF_LOGFILE</c>.</summary>
+    public static string LogFile => Path.Combine(CacheRoot, "cef-debug.log");
+
     /// <summary>The per-profile cache directory (a subdirectory of <see cref="CacheRoot"/>). Setting
     /// <c>CefSettings.CachePath</c> to this is what keeps CEF's GPU/Dawn shader caches out of the
     /// process working directory — without it the GPU process drops <c>GPUCache/</c>,

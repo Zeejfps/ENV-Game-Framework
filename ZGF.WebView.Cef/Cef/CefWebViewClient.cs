@@ -13,6 +13,8 @@ internal sealed class CefWebViewClient : CefClient
     private readonly CefRenderHandler _renderHandler;
     private readonly CefLifeSpanHandler _lifeSpanHandler;
     private readonly CefDisplayHandler _displayHandler;
+    private readonly CefLoadHandler _loadHandler;
+    private readonly CefRequestHandler _requestHandler;
     private readonly CefWebView _owner;
 
     public CefWebViewClient(CefWebView owner)
@@ -21,11 +23,41 @@ internal sealed class CefWebViewClient : CefClient
         _renderHandler = new RenderHandler(owner);
         _lifeSpanHandler = new LifeSpanHandler(owner);
         _displayHandler = new DisplayHandler(owner);
+        _loadHandler = new LoadHandler();
+        _requestHandler = new RequestHandler(owner);
     }
 
     protected override CefRenderHandler GetRenderHandler() => _renderHandler;
     protected override CefLifeSpanHandler GetLifeSpanHandler() => _lifeSpanHandler;
     protected override CefDisplayHandler GetDisplayHandler() => _displayHandler;
+    protected override CefLoadHandler GetLoadHandler() => _loadHandler;
+    protected override CefRequestHandler GetRequestHandler() => _requestHandler;
+
+    // Surfaces the fault that most often explains a blank/frozen web view: the render process died.
+    // CEF keeps the browser host alive across a renderer crash, so we log the cause and reload once to
+    // recover (bounded per navigation in CefWebView) instead of leaving a dead surface.
+    private sealed class RequestHandler(CefWebView owner) : CefRequestHandler
+    {
+        protected override CefResourceRequestHandler? GetResourceRequestHandler(
+            CefBrowser browser, CefFrame frame, CefRequest request, bool isNavigation,
+            bool isDownload, string requestInitiator, ref bool disableDefaultHandling) => null;
+
+        protected override void OnRenderProcessTerminated(CefBrowser browser, CefTerminationStatus status) =>
+            owner.OnRenderProcessGone(status);
+    }
+
+    private sealed class LoadHandler : CefLoadHandler
+    {
+        protected override void OnLoadError(
+            CefBrowser browser, CefFrame frame, CefErrorCode errorCode, string errorText, string failedUrl)
+        {
+            // ERR_ABORTED is normal — a navigation replaced by another, or a cancelled subresource.
+            if (errorCode == CefErrorCode.Aborted)
+                return;
+            CefLog.Error($"load failed [{errorCode}] {(frame.IsMain ? "main frame" : "subframe")} " +
+                         $"{failedUrl}: {errorText}");
+        }
+    }
 
     // Page → C#: the render process forwards window.zgf.postMessage as a process message.
     protected override bool OnProcessMessageReceived(
@@ -101,6 +133,19 @@ internal sealed class CefWebViewClient : CefClient
         {
             owner.RaiseCursor(type);
             return true; // handled — we drive the host cursor ourselves.
+        }
+
+        // Page JS diagnostics — a console error is often the last thing logged before a renderer dies,
+        // so errors/warnings always surface; info/debug/verbose only when ZGF_CEF_DEBUG is set.
+        protected override bool OnConsoleMessage(
+            CefBrowser browser, CefLogSeverity level, string message, string source, int line)
+        {
+            var where = string.IsNullOrEmpty(source) ? "" : $" ({source}:{line})";
+            if (level is CefLogSeverity.Error or CefLogSeverity.Fatal or CefLogSeverity.Warning)
+                CefLog.Error($"page console [{level}]{where} {message}");
+            else
+                CefLog.Write($"page console [{level}]{where} {message}");
+            return false; // let CEF apply its default handling too.
         }
     }
 }

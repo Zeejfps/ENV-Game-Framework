@@ -39,6 +39,13 @@ internal sealed class CefRuntimeHost : IDisposable
 
         CefRuntime.Load(CefPaths.LibCefDir);
 
+        // Capture Chromium's internal log to a discoverable file (the deepest source of render/GPU crash
+        // detail). Honour ZGF_CEF_LOGFILE if set, else default under the profile dir; verbose only when
+        // debugging, otherwise Info so a renderer's own fatal line is still recorded.
+        var logFile = Environment.GetEnvironmentVariable("ZGF_CEF_LOGFILE");
+        if (string.IsNullOrEmpty(logFile))
+            logFile = CefPaths.LogFile;
+
         var settings = new CefSettings
         {
             WindowlessRenderingEnabled = true,
@@ -54,12 +61,14 @@ internal sealed class CefRuntimeHost : IDisposable
             // shader caches out of the working directory into the app-data profile.
             RootCachePath = CefPaths.CacheRoot,
             CachePath = CefPaths.ProfileCachePath,
-            LogSeverity = CefLog.Enabled ? CefLogSeverity.Verbose : CefLogSeverity.Warning,
-            LogFile = Environment.GetEnvironmentVariable("ZGF_CEF_LOGFILE") ?? string.Empty,
+            LogSeverity = CefLog.Enabled ? CefLogSeverity.Verbose : CefLogSeverity.Info,
+            LogFile = logFile,
         };
 
         Directory.CreateDirectory(CefPaths.ProfileCachePath);
 
+        // Always tell the user where the deep log is — it's what to attach when a page crashes the renderer.
+        Console.Error.WriteLine($"[zgf-cef] Chromium log: {logFile}");
         CefLog.Write($"initializing: libcef={CefPaths.LibCefDir}, helper={CefPaths.HelperExe}, resources={CefPaths.ResourcesDir}, locales={CefPaths.LocalesDir}");
         var mainArgs = new CefMainArgs(GetProcessArgs());
         CefRuntime.Initialize(mainArgs, settings, new ZgfBrowserCefApp(this), IntPtr.Zero);
@@ -156,6 +165,29 @@ internal sealed class ZgfBrowserCefApp : CefApp
     public ZgfBrowserCefApp(CefRuntimeHost host) => _handler = new BrowserProcessHandler(host);
 
     protected override CefBrowserProcessHandler GetBrowserProcessHandler() => _handler;
+
+    protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
+    {
+        // Diagnostics (no rendering change): with ZGF_CEF_DEBUG set, make every Chromium process —
+        // including the render subprocess — log verbosely to stderr, so a renderer's own fatal line
+        // (a CHECK/NOTREACHED, a GPU error) is visible when a page crashes it.
+        if (CefLog.Enabled)
+        {
+            commandLine.AppendSwitch("enable-logging", "stderr");
+            commandLine.AppendSwitch("v", "1");
+        }
+
+        // Escape hatch / diagnostic — OFF by default: set ZGF_CEF_DISABLE_GPU=1 to force software
+        // rendering. If a plain page crashes the render process on one machine but not another, the GPU
+        // process (driver-specific) is the usual culprit; flipping this and seeing the crash stop
+        // confirms it. WebGL still works via SwiftShader. This is a lever, not the default behaviour.
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ZGF_CEF_DISABLE_GPU")))
+        {
+            commandLine.AppendSwitch("disable-gpu");
+            commandLine.AppendSwitch("disable-gpu-compositing");
+            CefLog.Error($"ZGF_CEF_DISABLE_GPU set: forcing software rendering ({processType} process)");
+        }
+    }
 
     private sealed class BrowserProcessHandler(CefRuntimeHost host) : CefBrowserProcessHandler
     {
