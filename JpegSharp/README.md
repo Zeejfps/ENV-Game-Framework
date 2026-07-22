@@ -218,4 +218,17 @@ proportional to image size.
   `JpegEncoderOptions`.
 - **Metadata:** attach a `JpegMetadata` to embed Exif/ICC/comments; the decoder always exposes
   what it finds via `JpegImage.Metadata`.
-- **Decoder guards:** `JpegDecoderOptions` bounds allocation (`MaxPixels`) and can skip metadata.
+- **Decoder guards:** `JpegDecoderOptions` bounds decode cost and hardens against hostile input:
+  - `MaxPixels` — rejects images whose `width × height` exceeds the limit (default 500M).
+  - `MaxDecodedBytes` — bounds the *estimated peak allocation* (sample planes, progressive
+    coefficient buffers, chroma-upsampling scratch and the output buffer, scaled by component
+    count and precision), so a small header can't force a multi-gigabyte allocation the pixel
+    count alone wouldn't catch (default 1 GiB). Both budgets are enforced before allocation;
+    whichever trips first throws.
+  - `StrictRestartMarkers` — when `true`, a missing or out-of-sequence restart marker throws
+    `JpegCorruptException`; when `false` (default) the decoder resyncs leniently, matching its
+    general tolerance of truncated/corrupt entropy.
+  - `ReadMetadata` — set `false` to skip JFIF/Exif/ICC/Adobe/COM parsing.
+
+  Any malformed input surfaces as a `JpegException` subtype from the public decode entry points —
+  never a raw `IndexOutOfRange`/`Overflow`/`OutOfMemory`.
