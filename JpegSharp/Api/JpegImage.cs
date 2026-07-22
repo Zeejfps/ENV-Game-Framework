@@ -1,3 +1,5 @@
+using JpegSharp.Color;
+
 namespace JpegSharp.Api;
 
 /// <summary>
@@ -93,13 +95,60 @@ public sealed class JpegImage
     };
 
     /// <summary>
+    /// Returns an RGB copy of this image. Grayscale luminance is replicated across R, G and B,
+    /// and CMYK is converted with the standard multiplicative model (the decoder has already
+    /// undone any Adobe inversion / YCCK transform). An image that is already RGB is copied so
+    /// the result never shares its <see cref="PixelData"/> with the original. <see cref="Metadata"/>
+    /// is carried over to the result by reference.
+    /// </summary>
+    /// <returns>A new RGB <see cref="JpegImage"/> of the same dimensions.</returns>
+    public JpegImage ToRgb()
+    {
+        var pixelCount = Width * Height;
+        var rgb = new byte[pixelCount * 3];
+        var src = PixelData;
+
+        switch (ColorSpace)
+        {
+            case JpegColorSpace.Rgb:
+                Array.Copy(src, rgb, rgb.Length);
+                break;
+
+            case JpegColorSpace.Grayscale:
+                for (var i = 0; i < pixelCount; i++)
+                {
+                    var v = src[i];
+                    var o = i * 3;
+                    rgb[o] = v;
+                    rgb[o + 1] = v;
+                    rgb[o + 2] = v;
+                }
+                break;
+
+            case JpegColorSpace.Cmyk:
+                for (var i = 0; i < pixelCount; i++)
+                {
+                    var s = i * 4;
+                    var o = i * 3;
+                    ColorConverter.CmykToRgb(src[s], src[s + 1], src[s + 2], src[s + 3], out rgb[o], out rgb[o + 1], out rgb[o + 2]);
+                }
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(ColorSpace));
+        }
+
+        return new JpegImage(Width, Height, JpegColorSpace.Rgb, rgb) { Metadata = Metadata };
+    }
+
+    /// <summary>
     /// Converts the image to one packed 32-bit color per pixel, in row-major order. Grayscale
-    /// samples are replicated across R, G and B; alpha is always fully opaque (255) since JPEG
-    /// carries no alpha channel.
+    /// samples are replicated across R, G and B, and CMYK samples are converted to RGB with the
+    /// standard multiplicative model. Alpha is always fully opaque (255) since JPEG carries no
+    /// alpha channel.
     /// </summary>
     /// <param name="format">The channel ordering of each packed pixel.</param>
     /// <returns>An array of <c>Width * Height</c> packed pixels.</returns>
-    /// <exception cref="NotSupportedException">The image is CMYK, which has no direct RGB packing.</exception>
     public int[] ToPackedPixels(PackedPixelFormat format)
     {
         var destination = new int[Width * Height];
@@ -110,7 +159,7 @@ public sealed class JpegImage
     /// <summary>
     /// Converts the image to one packed 32-bit color per pixel, writing into a caller-supplied
     /// span to avoid an allocation. See <see cref="ToPackedPixels(PackedPixelFormat)"/> for the
-    /// channel and alpha semantics.
+    /// channel, color-space and alpha semantics.
     /// </summary>
     /// <param name="destination">
     /// The buffer to fill, in row-major order. Must be at least <c>Width * Height</c> long; any
@@ -118,12 +167,8 @@ public sealed class JpegImage
     /// </param>
     /// <param name="format">The channel ordering of each packed pixel.</param>
     /// <exception cref="ArgumentException">The destination is too small to hold every pixel.</exception>
-    /// <exception cref="NotSupportedException">The image is CMYK, which has no direct RGB packing.</exception>
     public void ToPackedPixels(Span<int> destination, PackedPixelFormat format)
     {
-        if (ColorSpace == JpegColorSpace.Cmyk)
-            throw new NotSupportedException("Packing CMYK images is not supported; convert to RGB first.");
-
         var pixelCount = Width * Height;
         if (destination.Length < pixelCount)
             throw new ArgumentException($"Destination length {destination.Length} is smaller than the pixel count {pixelCount}.", nameof(destination));
@@ -133,22 +178,38 @@ public sealed class JpegImage
         var alpha = 255 << aShift;
         var src = PixelData;
 
-        if (ColorSpace == JpegColorSpace.Grayscale)
+        switch (ColorSpace)
         {
-            for (var i = 0; i < pixelCount; i++)
-            {
-                int v = src[i];
-                destination[i] = (v << rShift) | (v << gShift) | (v << bShift) | alpha;
-            }
-        }
-        else // Rgb
-        {
-            for (var i = 0; i < pixelCount; i++)
-            {
-                var o = i * 3;
-                int r = src[o], g = src[o + 1], b = src[o + 2];
-                destination[i] = (r << rShift) | (g << gShift) | (b << bShift) | alpha;
-            }
+            case JpegColorSpace.Grayscale:
+                for (var i = 0; i < pixelCount; i++)
+                {
+                    int v = src[i];
+                    destination[i] = (v << rShift) | (v << gShift) | (v << bShift) | alpha;
+                }
+                break;
+
+            case JpegColorSpace.Rgb:
+                for (var i = 0; i < pixelCount; i++)
+                {
+                    var o = i * 3;
+                    int r = src[o], g = src[o + 1], b = src[o + 2];
+                    destination[i] = (r << rShift) | (g << gShift) | (b << bShift) | alpha;
+                }
+                break;
+
+            case JpegColorSpace.Cmyk:
+                // PixelData holds normalized CMYK (the decoder has already undone any Adobe
+                // inversion / YCCK transform), so the standard multiplicative model applies.
+                for (var i = 0; i < pixelCount; i++)
+                {
+                    var o = i * 4;
+                    ColorConverter.CmykToRgb(src[o], src[o + 1], src[o + 2], src[o + 3], out var r, out var g, out var b);
+                    destination[i] = (r << rShift) | (g << gShift) | (b << bShift) | alpha;
+                }
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(ColorSpace));
         }
     }
 

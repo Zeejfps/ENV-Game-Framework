@@ -83,8 +83,10 @@ int[] pixels = image.ToPackedPixels(PackedPixelFormat.Bgra8888);
 Each `PackedPixelFormat` is named most-significant-byte first, so the value is unambiguous
 regardless of endianness — `Rgba8888` packs a pixel as `(R << 24) | (G << 16) | (B << 8) | A`.
 `Argb8888` matches the `int` layout used by `System.Drawing`, and `Bgra8888` is the common
-GPU/`WriteableBitmap` order. Alpha is always fully opaque (255) since JPEG carries no alpha, and
-grayscale luminance is replicated across R, G and B.
+GPU/`WriteableBitmap` order. Alpha is always fully opaque (255) since JPEG carries no alpha.
+Grayscale luminance is replicated across R, G and B, and CMYK is converted to RGB with the
+standard multiplicative model (the decoder has already undone any Adobe inversion / YCCK
+transform, so the conversion is applied to normalized CMYK).
 
 Every helper has a zero-allocation overload that fills a caller-supplied `Span<int>` — reuse one
 buffer across frames or decodes to avoid per-call allocation:
@@ -94,7 +96,18 @@ int[] buffer = new int[image.Width * image.Height];
 image.ToRgba8888(buffer);                                 // or image.ToPackedPixels(buffer, format)
 ```
 
-CMYK images have no direct RGB packing and throw `NotSupportedException`; convert to RGB first.
+When you need RGB *bytes* rather than packed integers — for RGB24 interop, or to normalize a
+grayscale or CMYK image before re-encoding it as RGB — use `ToRgb`, which returns a new
+three-channel `JpegImage` (using the same conversions described above):
+
+```csharp
+JpegImage rgb = Jpeg.DecodeFromFile("cmyk.jpg").ToRgb();
+byte[] rgb24 = rgb.PixelData;             // tightly packed R,G,B, three bytes per pixel
+rgb.EncodeToFile("normalized.jpg");       // re-encode the CMYK/grayscale source as RGB
+```
+
+`ToRgb` always copies, so the result never shares its `PixelData` with the source even when the
+source is already RGB.
 
 ## Architecture
 
