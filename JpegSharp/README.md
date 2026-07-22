@@ -134,11 +134,11 @@ byte[] jpeg     = img.Encode16(new JpegEncoderOptions { Quality = 90 });
 ```
 
 Both `JpegImage` and `JpegImage16` implement `IJpegImage`, so display code can be written once
-against the interface and use `Precision` to detect which it holds. `Jpeg.DecodeAny` returns the
-right concrete type per the file's precision:
+against the interface and use `Precision` to detect which it holds. `Jpeg.DecodeAnyPrecision`
+returns the right concrete type per the file's precision (also `…FromStream` / `…FromStreamAsync`):
 
 ```csharp
-IJpegImage img = Jpeg.DecodeAny(anyJpeg);   // JpegImage (8-bit) or JpegImage16 (12-bit)
+IJpegImage img = Jpeg.DecodeAnyPrecision(anyJpeg);   // JpegImage (8-bit) or JpegImage16 (12-bit)
 int[] preview  = img.ToRgba8888();          // precision-agnostic 8-bit preview, tone-mapped
 ```
 

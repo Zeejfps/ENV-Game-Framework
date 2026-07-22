@@ -117,7 +117,7 @@ public class HighPrecisionCodecTests
     {
         var bytes = Jpeg.Encode16(JpegImage16.CreateGrayscale(8, 8, 12, Gradient12(8, 8, 1)));
 
-        IJpegImage image = Jpeg.DecodeAny(bytes);
+        IJpegImage image = Jpeg.DecodeAnyPrecision(bytes);
         Assert.IsType<JpegImage16>(image);
         Assert.Equal(12, image.Precision);
     }

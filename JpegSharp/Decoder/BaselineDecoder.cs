@@ -81,7 +81,7 @@ internal sealed partial class BaselineDecoder
         var entropyStart = ParseHeaders(reader, ms);
 
         if (_precision != 8)
-            throw new JpegFormatException($"Unsupported sample precision {_precision} for Decode; only 8-bit is supported. Use Decode16 / DecodeAny for higher precision.");
+            throw new JpegFormatException($"Unsupported sample precision {_precision} for Decode; only 8-bit is supported. Use Decode16 / DecodeAnyPrecision for higher precision.");
         ValidatePixelBudget();
 
         FillPlanes(reader, ms, entropyStart);

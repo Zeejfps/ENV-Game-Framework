@@ -94,11 +94,39 @@ public static class Jpeg
     /// <param name="data">The JPEG bytes.</param>
     /// <param name="options">Decoding options, or null for defaults.</param>
     /// <returns>The decoded image as an <see cref="IJpegImage"/>.</returns>
-    public static IJpegImage DecodeAny(byte[] data, JpegDecoderOptions? options = null)
+    public static IJpegImage DecodeAnyPrecision(byte[] data, JpegDecoderOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(data);
         var info = Identify(data);
         return info.Precision == 8 ? Decode(data, options) : Decode16(data, options);
+    }
+
+    /// <summary>
+    /// Decodes a JPEG of any supported precision from a stream. See
+    /// <see cref="DecodeAnyPrecision(byte[], JpegDecoderOptions?)"/>.
+    /// </summary>
+    /// <param name="stream">The source stream.</param>
+    /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <returns>The decoded image as an <see cref="IJpegImage"/>.</returns>
+    public static IJpegImage DecodeAnyPrecisionFromStream(Stream stream, JpegDecoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        return DecodeAnyPrecision(ReadAllBytes(stream), options);
+    }
+
+    /// <summary>
+    /// Asynchronously reads a JPEG of any supported precision from a stream and decodes it. The
+    /// stream is read asynchronously; the decode itself is CPU-bound and runs synchronously.
+    /// </summary>
+    /// <param name="stream">The source stream.</param>
+    /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <param name="cancellationToken">A token to cancel the stream read.</param>
+    /// <returns>The decoded image as an <see cref="IJpegImage"/>.</returns>
+    public static async Task<IJpegImage> DecodeAnyPrecisionFromStreamAsync(Stream stream, JpegDecoderOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        var data = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        return DecodeAnyPrecision(data, options);
     }
 
     /// <summary>
