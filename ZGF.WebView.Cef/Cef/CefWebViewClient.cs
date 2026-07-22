@@ -42,8 +42,14 @@ internal sealed class CefWebViewClient : CefClient
             CefBrowser browser, CefFrame frame, CefRequest request, bool isNavigation,
             bool isDownload, string requestInitiator, ref bool disableDefaultHandling) => null;
 
-        protected override void OnRenderProcessTerminated(CefBrowser browser, CefTerminationStatus status) =>
+        // CEF 150: the callback gained errorCode + errorString (they name the fatal reason directly).
+        protected override void OnRenderProcessTerminated(
+            CefBrowser browser, CefTerminationStatus status, int errorCode, string errorString)
+        {
+            if (errorCode != 0 || !string.IsNullOrEmpty(errorString))
+                CefLog.Error($"renderer termination detail: code={errorCode} '{errorString}'");
             owner.OnRenderProcessGone(status);
+        }
     }
 
     private sealed class LoadHandler : CefLoadHandler
@@ -110,8 +116,9 @@ internal sealed class CefWebViewClient : CefClient
 
         // window.open / target=_blank: cancel the native popup; the app decides what to do (plan
         // decision 9). No new browser windows are spawned by default.
+        // CEF 150: signature gained a popupId before targetUrl.
         protected override bool OnBeforePopup(
-            CefBrowser browser, CefFrame frame, string targetUrl, string targetFrameName,
+            CefBrowser browser, CefFrame frame, int popupId, string targetUrl, string targetFrameName,
             CefWindowOpenDisposition targetDisposition, bool userGesture, CefPopupFeatures popupFeatures,
             CefWindowInfo windowInfo, ref CefClient client, CefBrowserSettings settings,
             ref CefDictionaryValue extraInfo, ref bool noJavascriptAccess) => true;

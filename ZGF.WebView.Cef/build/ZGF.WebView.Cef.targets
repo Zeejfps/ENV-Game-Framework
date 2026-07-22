@@ -48,4 +48,29 @@
         </ItemGroup>
     </Target>
 
+    <!-- CEF 150 cutover: with CefGlue.Common gone, its per-RID runtime NuGet no longer drops the
+         Chromium payload into the app root, so stage the pinned CEF 150 payload ourselves as transitive
+         copy-local content (same mechanism as the helper above). Release/* flattens to the app root
+         (libcef.dll, ICU, snapshots, ANGLE/SwiftShader); Resources/* keeps its layout (*.pak at root,
+         locales/ preserved). The helper in cef-helper/ then loads libcef from its parent (the app root).
+         Payload path is Cef150Binding/cef/win-x64 (gitignored; fetched by fetch-cef.ps1). -->
+    <PropertyGroup>
+        <_ZgfCef150Dir>$(MSBuildThisFileDirectory)..\..\..\Cef150Binding\cef\win-x64\</_ZgfCef150Dir>
+    </PropertyGroup>
+
+    <Target Name="StageZgfCef150Payload" BeforeTargets="AssignTargetPaths">
+        <Error Condition="!Exists('$(_ZgfCef150Dir)Release\libcef.dll')"
+               Text="CEF 150 payload not found at $(_ZgfCef150Dir). Run Cef150Binding/fetch-cef.ps1 first." />
+        <ItemGroup>
+            <_ZgfCef150File Include="$(_ZgfCef150Dir)Release\**\*" />
+            <_ZgfCef150File Include="$(_ZgfCef150Dir)Resources\**\*" />
+            <None Include="@(_ZgfCef150File)">
+                <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+                <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <Visible>false</Visible>
+            </None>
+        </ItemGroup>
+    </Target>
+
 </Project>

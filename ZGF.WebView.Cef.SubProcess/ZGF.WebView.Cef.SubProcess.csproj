@@ -9,8 +9,11 @@
         <!-- A console host, not WinExe: the subprocess must never open a window of its own. -->
     </PropertyGroup>
 
+    <!-- CEF 150 cutover: bind the render-process helper to our own regenerated binding
+         (Cef150Binding/ZgfCef.Interop, assembly Xilium.CefGlue) instead of CefGlue.Common
+         (Chromium 120). Same core Xilium.CefGlue API, so ZgfCefRenderApp compiles unchanged. -->
     <ItemGroup>
-        <PackageReference Include="CefGlue.Common" />
+        <ProjectReference Include="..\..\Cef150Binding\ZgfCef.Interop\ZgfCef.Interop.csproj" />
     </ItemGroup>
 
     <!-- The renderer side of the JS bridge runs in the render process, i.e. in THIS exe, not the

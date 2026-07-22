@@ -88,14 +88,21 @@ internal sealed class CefWebView : IWebView
         _browserHost = null;
     }
 
-    // Auto-reloads to recover from a render-process crash. Bounded so a page that reliably kills its
-    // renderer can't spin in reload→crash→reload; each user Navigate() resets the budget (see Navigate).
+    // Rate-limited auto-reload to recover from a render-process crash.
+    //
+    // On some systems a heavy off-screen page fires a renderer termination ~once during load — a
+    // Chromium __fastfail (STATUS_STACK_BUFFER_OVERRUN / 0xC0000409) that Chromium itself recovers from
+    // by relaunching the render process, after which the page still paints. Reloading on *every*
+    // termination fought that built-in recovery and amplified a single crash into a reload→crash→reload
+    // storm (measured ~2 crashes/load vs ~1 with no reload, no better paint). So recovery is now
+    // rate-limited: reload at most once per interval, and let Chromium's own recovery absorb the rapid
+    // re-crashes. A genuinely frozen surface — a "web view stopped responding" where crashes are spaced
+    // out — still gets bounded reloads. Each user Navigate() resets the budget (see Navigate).
     private int _crashReloads;
-    private const int MaxCrashReloads = 2;
+    private DateTime _lastReloadUtc = DateTime.MinValue;
+    private const int MaxCrashReloads = 1;
+    private const double MinReloadIntervalSeconds = 4;
 
-    // The render process died (crash / OOM / killed) — the surface is frozen on its last frame, which is
-    // the usual cause of a "web view stopped responding" report. Log the cause loudly, then reload once
-    // to respawn the renderer (the browser host outlives it).
     internal void OnRenderProcessGone(CefTerminationStatus status)
     {
         var url = _browser?.GetMainFrame()?.Url ?? _initialUrl;
@@ -104,13 +111,20 @@ internal sealed class CefWebView : IWebView
             CefLog.Error($"render process {Describe(status)} on {url}; view is disposed, not recovering");
             return;
         }
+        var now = DateTime.UtcNow;
+        if ((now - _lastReloadUtc).TotalSeconds < MinReloadIntervalSeconds)
+        {
+            // A re-crash right after a reload — don't storm; Chromium is already relaunching the renderer.
+            CefLog.Error($"render process {Describe(status)} on {url}; within {MinReloadIntervalSeconds}s of a reload — deferring to Chromium's own recovery");
+            return;
+        }
         if (_crashReloads++ >= MaxCrashReloads)
         {
             CefLog.Error($"render process {Describe(status)} on {url}; " +
-                         $"reload budget ({MaxCrashReloads}) exhausted — leaving the page blank. " +
-                         "This page repeatedly crashes the bundled Chromium 120 renderer.");
+                         $"reload budget ({MaxCrashReloads}) exhausted — leaving the page blank.");
             return;
         }
+        _lastReloadUtc = now;
         CefLog.Error($"render process {Describe(status)} on {url}; reloading (attempt {_crashReloads}/{MaxCrashReloads})");
         _browser?.Reload();
     }
@@ -208,6 +222,7 @@ internal sealed class CefWebView : IWebView
     {
         if (_disposed) return;
         _crashReloads = 0; // a fresh navigation is a fresh page — restore its crash-recovery budget.
+        _lastReloadUtc = DateTime.MinValue;
         if (_browser != null)
             _browser.GetMainFrame().LoadUrl(url);
         else if (!_created)

@@ -7,10 +7,13 @@
 
     <!-- The one and only thing that drags in Chromium. No common ZGF project references this
          project, so an app that never adds it pays zero Chromium bytes / zero build cost.
-         CefGlue.Common transitively pulls the matching per-RID chromiumembeddedframework.runtime.*
-         packages, copied next to the consuming app's output. -->
+         CEF 150 cutover: bound to our own regenerated binding (Cef150Binding/ZgfCef.Interop,
+         assembly Xilium.CefGlue) instead of CefGlue.Common (Chromium 120). Same core API surface,
+         so CefWebView/CefWebViewClient compile with only the ~2 CEF-150 handler-signature deltas.
+         The 150 native payload no longer comes from a runtime NuGet, so the .targets below stages
+         it (libcef + *.pak + locales) next to the app the way CefGlue.Common used to. -->
     <ItemGroup>
-        <PackageReference Include="CefGlue.Common" />
+        <ProjectReference Include="..\..\Cef150Binding\ZgfCef.Interop\ZgfCef.Interop.csproj" />
     </ItemGroup>
 
     <ItemGroup>
