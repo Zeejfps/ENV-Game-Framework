@@ -43,13 +43,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Huffman code-length builder from frequencies (HuffmanLengthBuilder, length-limited)
 - [x] LZ77 back-reference decode (copy loop; distance plane codes > 120)
 - [x] LZ77 back-reference encode (hash-chain matcher, plane code > 120, deterministic; public default)
-- [~] Distance mapping (plane code > 120 done; near-distance table ≤ 120 pending golden validation)
+- [x] Distance mapping (plane code > 120 + near-distance table <= 120, from libwebp)
 - [x] Predictor transform (inverse + forward) — 14 predictors, exact boundary rules, entropy sub-image, end-to-end
 - [x] Color transform (inverse + forward) — cross-color decorrelation, entropy sub-image, end-to-end
 - [x] Subtract-green transform (inverse + forward) — end-to-end encoder+decoder + decoder transform pipeline
 - [x] Color-indexing (palette) transform (inverse + forward) — palette + pixel bundling + width threading, end-to-end
 - [x] Entropy image / meta-huffman handling (multiple Huffman groups, per-tile selection) — decode + encode
-- [x] Full lossless decode (all transforms + color cache + LZ77 + meta-Huffman; near-distance ≤120 pending)
+- [x] Full lossless decode (all transforms + color cache + LZ77 + meta-Huffman + near-distance table)
 - [x] Full lossless encode (all transforms + LZ77 + meta-Huffman)
 - [x] Effort-driven transform selection (EncodeBest tries candidates, keeps smallest; wired to WebPEncoderOptions.Effort)
 - [x] Lossless round-trip tests (exact): single pixel, odd dims, noise, gradient, solid, transparent, RGB
@@ -83,10 +83,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [ ] Lossy round-trip tests (thresholded)
 
 ## Alpha
-- [ ] ALPH chunk parse
-- [ ] Alpha decode (none / lossless-VP8L compression)
-- [ ] Alpha encode
-- [ ] Alpha filtering methods
+- [x] ALPH chunk parse (method/filter/preprocessing)
+- [x] Alpha decode (none / lossless-VP8L compression) + unfilter (h/v/gradient) - pixel-exact vs dwebp
+- [ ] Alpha encode (pairs with lossy VP8 encode)
+- [x] Alpha filtering methods (unfilter: none/horizontal/vertical/gradient)
 
 ## Animation
 - [x] ANIM parse/write (bg color, loop count)
