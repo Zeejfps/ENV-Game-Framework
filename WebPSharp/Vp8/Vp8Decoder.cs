@@ -241,6 +241,252 @@ internal sealed class Vp8Decoder
     }
 
     private static int Clip(int value, int max) => value < 0 ? 0 : value > max ? max : value;
+
+    // 16x16 / chroma intra modes.
+    internal const int DcPred = 0, VPred = 1, HPred = 2, TmPred = 3;
+    // 4x4 (B_PRED) intra modes, in the libwebp enumeration order used by the probability tables.
+    internal const int BDc = 0, BTm = 1, BVe = 2, BHe = 3, BRd = 4, BVr = 5, BLd = 6, BVl = 7, BHd = 8, BHu = 9;
+
+    // ---- Per-macroblock decode state ----
+    internal int[] MbSegment { get; private set; } = System.Array.Empty<int>();
+    internal bool[] MbIsI4x4 { get; private set; } = System.Array.Empty<bool>();
+    internal int[] MbUvMode { get; private set; } = System.Array.Empty<int>();
+    internal byte[] MbModes { get; private set; } = System.Array.Empty<byte>();   // mbW*mbH*16
+    internal short[] MbCoeffs { get; private set; } = System.Array.Empty<short>(); // mbW*mbH*384
+    internal uint[] MbNonZeroY { get; private set; } = System.Array.Empty<uint>();
+    internal uint[] MbNonZeroUv { get; private set; } = System.Array.Empty<uint>();
+
+    private Vp8Mb[] _topMb = System.Array.Empty<Vp8Mb>();
+    private Vp8Mb _leftMb;
+    private byte[] _intraTop = System.Array.Empty<byte>(); // 4 * mbW top 4x4 modes
+    private readonly byte[] _intraLeft = new byte[4];
+
+    /// <summary>Decodes every macroblock's modes and dequantized coefficients.</summary>
+    internal void DecodeMacroblocks()
+    {
+        var count = MbWidth * MbHeight;
+        MbSegment = new int[count];
+        MbIsI4x4 = new bool[count];
+        MbUvMode = new int[count];
+        MbModes = new byte[count * 16];
+        MbCoeffs = new short[count * 384];
+        MbNonZeroY = new uint[count];
+        MbNonZeroUv = new uint[count];
+
+        _topMb = new Vp8Mb[MbWidth];
+        _intraTop = new byte[4 * MbWidth];
+        System.Array.Fill(_intraTop, (byte)BDc);
+
+        for (var mbY = 0; mbY < MbHeight; mbY++)
+        {
+            // New scanline: reset left contexts.
+            _leftMb = default;
+            System.Array.Fill(_intraLeft, (byte)BDc);
+
+            var tokenBr = Partitions[mbY & (NumParts - 1)];
+
+            for (var mbX = 0; mbX < MbWidth; mbX++)
+            {
+                var mb = mbY * MbWidth + mbX;
+                ParseIntraMode(FirstPartition, mbX, mb);
+                var skip = UseSkipProba && ParseSkip(FirstPartition);
+                ParseResiduals(tokenBr, mbX, mb, skip);
+            }
+        }
+    }
+
+    private bool ParseSkip(Vp8BooleanDecoder br) => br.GetBit(SkipProba) != 0;
+
+    private void ParseIntraMode(Vp8BooleanDecoder br, int mbX, int mb)
+    {
+        var topOff = 4 * mbX;
+
+        MbSegment[mb] = UpdateMap
+            ? (br.GetBit(SegmentProbas[0]) == 0
+                ? br.GetBit(SegmentProbas[1])
+                : br.GetBit(SegmentProbas[2]) + 2)
+            : 0;
+
+        // Note: the skip flag is read by the caller (ParseSkip), matching the bitstream order.
+        var isI4x4 = br.GetBit(145) == 0;
+        MbIsI4x4[mb] = isI4x4;
+
+        if (!isI4x4)
+        {
+            var ymode = br.GetBit(156) != 0
+                ? (br.GetBit(128) != 0 ? TmPred : HPred)
+                : (br.GetBit(163) != 0 ? VPred : DcPred);
+            MbModes[mb * 16] = (byte)ymode;
+            for (var i = 0; i < 4; i++)
+            {
+                _intraTop[topOff + i] = (byte)ymode;
+                _intraLeft[i] = (byte)ymode;
+            }
+        }
+        else
+        {
+            for (var y = 0; y < 4; y++)
+            {
+                var left = _intraLeft[y];
+                for (var x = 0; x < 4; x++)
+                {
+                    var probBase = Vp8Tables.BModeIndex(_intraTop[topOff + x], left);
+                    left = (byte)DecodeBMode(br, probBase);
+                    _intraTop[topOff + x] = left;
+                    MbModes[mb * 16 + y * 4 + x] = left;
+                }
+                _intraLeft[y] = left;
+            }
+        }
+
+        MbUvMode[mb] = br.GetBit(142) == 0 ? DcPred
+            : br.GetBit(114) == 0 ? VPred
+            : br.GetBit(183) != 0 ? TmPred
+            : HPred;
+    }
+
+    private static int DecodeBMode(Vp8BooleanDecoder br, int probBase)
+    {
+        var p = Vp8Tables.BModeProbs;
+        if (br.GetBit(p[probBase + 0]) == 0) return BDc;
+        if (br.GetBit(p[probBase + 1]) == 0) return BTm;
+        if (br.GetBit(p[probBase + 2]) == 0) return BVe;
+        if (br.GetBit(p[probBase + 3]) == 0)
+            return br.GetBit(p[probBase + 4]) == 0 ? BHe
+                : br.GetBit(p[probBase + 5]) == 0 ? BRd : BVr;
+        return br.GetBit(p[probBase + 6]) == 0 ? BLd
+            : br.GetBit(p[probBase + 7]) == 0 ? BVl
+            : br.GetBit(p[probBase + 8]) == 0 ? BHd : BHu;
+    }
+
+    private static uint NzCodeBits(uint nzCoeffs, int nz, int dcNz)
+    {
+        nzCoeffs <<= 2;
+        nzCoeffs |= (uint)(nz > 3 ? 3 : nz > 1 ? 2 : dcNz);
+        return nzCoeffs;
+    }
+
+    private void ParseResiduals(Vp8BooleanDecoder br, int mbX, int mb, bool skip)
+    {
+        var coeffs = MbCoeffs;
+        var baseOff = mb * 384;
+        System.Array.Clear(coeffs, baseOff, 384);
+
+        ref var top = ref _topMb[mbX];
+
+        if (skip)
+        {
+            top.Nz = 0;
+            _leftMb.Nz = 0;
+            if (!MbIsI4x4[mb])
+            {
+                top.NzDc = 0;
+                _leftMb.NzDc = 0;
+            }
+            MbNonZeroY[mb] = 0;
+            MbNonZeroUv[mb] = 0;
+            return;
+        }
+
+        var q = Dequant[MbSegment[mb]];
+        uint nonZeroY = 0;
+        uint nonZeroUv = 0;
+        int first;
+        int acType;
+
+        if (!MbIsI4x4[mb])
+        {
+            // Second-order (Y2) block via WHT, stored temporarily then scattered to DC positions.
+            Span<short> dc = stackalloc short[16];
+            dc.Clear();
+            var ctx = top.NzDc + _leftMb.NzDc;
+            var y2 = new short[16];
+            var nz = Vp8Coefficients.GetCoeffs(br, CoeffProbs, 1, ctx, q.Y2Dc, q.Y2Ac, 0, y2, 0);
+            top.NzDc = _leftMb.NzDc = nz > 0 ? 1 : 0;
+
+            if (nz > 1)
+            {
+                var wht = new short[16];
+                Vp8Transform.InverseWht(y2, wht);
+                for (var i = 0; i < 16; i++)
+                    coeffs[baseOff + i * 16] = wht[i];
+            }
+            else
+            {
+                var dc0 = (short)((y2[0] + 3) >> 3);
+                for (var i = 0; i < 16; i++)
+                    coeffs[baseOff + i * 16] = dc0;
+            }
+            first = 1;
+            acType = 0;
+        }
+        else
+        {
+            first = 0;
+            acType = 3;
+        }
+
+        var tnz = top.Nz & 0x0Fu;
+        var lnz = _leftMb.Nz & 0x0Fu;
+        for (var y = 0; y < 4; y++)
+        {
+            var l = lnz & 1;
+            uint nzCoeffs = 0;
+            for (var x = 0; x < 4; x++)
+            {
+                var ctx = (int)(l + (tnz & 1));
+                var blockOff = baseOff + (y * 4 + x) * 16;
+                var nz = Vp8Coefficients.GetCoeffs(br, CoeffProbs, acType, ctx, q.Y1Dc, q.Y1Ac, first, coeffs, blockOff);
+                l = nz > first ? 1u : 0u;
+                tnz = (tnz >> 1) | (l << 7);
+                nzCoeffs = NzCodeBits(nzCoeffs, nz, coeffs[blockOff] != 0 ? 1 : 0);
+            }
+            tnz >>= 4;
+            lnz = (lnz >> 1) | (l << 7);
+            nonZeroY = (nonZeroY << 8) | nzCoeffs;
+        }
+        var outTnz = tnz;
+        var outLnz = lnz >> 4;
+
+        for (var ch = 0; ch < 4; ch += 2)
+        {
+            uint nzCoeffs = 0;
+            tnz = top.Nz >> (4 + ch);
+            lnz = _leftMb.Nz >> (4 + ch);
+            for (var y = 0; y < 2; y++)
+            {
+                var l = lnz & 1;
+                for (var x = 0; x < 2; x++)
+                {
+                    var ctx = (int)(l + (tnz & 1));
+                    var blockOff = baseOff + (16 + ch * 2 + y * 2 + x) * 16;
+                    var nz = Vp8Coefficients.GetCoeffs(br, CoeffProbs, 2, ctx, q.UvDc, q.UvAc, 0, coeffs, blockOff);
+                    l = nz > 0 ? 1u : 0u;
+                    tnz = (tnz >> 1) | (l << 3);
+                    nzCoeffs = NzCodeBits(nzCoeffs, nz, coeffs[blockOff] != 0 ? 1 : 0);
+                }
+                tnz >>= 2;
+                lnz = (lnz >> 1) | (l << 5);
+            }
+            nonZeroUv |= nzCoeffs << (4 * ch);
+            outTnz |= (tnz << 4) << ch;
+            outLnz |= (lnz & 0xF0u) << ch;
+        }
+
+        top.Nz = outTnz;
+        _leftMb.Nz = outLnz;
+        MbNonZeroY[mb] = nonZeroY;
+        MbNonZeroUv[mb] = nonZeroUv;
+    }
+}
+
+/// <summary>Non-zero coefficient context for one macroblock column (top) or the rolling left neighbor.</summary>
+internal struct Vp8Mb
+{
+    /// <summary>Packed per-4x4 non-zero flags (Y in bits 0-3, U in 4-5, V in 6-7).</summary>
+    public uint Nz;
+    /// <summary>Whether the second-order (Y2) DC block was non-zero.</summary>
+    public int NzDc;
 }
 
 /// <summary>The per-segment VP8 dequantization step sizes.</summary>

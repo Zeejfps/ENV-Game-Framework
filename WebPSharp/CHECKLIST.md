@@ -64,10 +64,16 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Inverse WHT + inverse DCT (spec-exact, analytic + consistency tests)
 - [x] Forward DCT (+ WHT forward, self-consistent; WHT to be validated vs reference for encode)
 - [x] VP8 constant tables (dequant, coeff/update probs, B-mode probs, bands, zigzag, cat) — fetched from libwebp/RFC 6386, count-verified, in Vp8Tables.cs
-- [ ] Frame header parse (segmentation, filter, quant, partitions, prob updates)
-- [ ] Segment features
-- [~] Quantization / dequantization (tables done; per-segment matrix computation logic captured)
+- [x] Frame header parse (segmentation, filter, quant, partitions, prob updates) — validated on real cwebp golden file
+- [x] Segment features (parse); segment-map decode in MB loop pending
+- [x] Quantization / dequantization (tables + per-segment matrix computation)
+- [x] Golden test infrastructure (cwebp/dwebp fixtures + reference RGBA)
 - [ ] Boolean coefficient decode (GetCoeffs token loop + GetLargeValue) — logic captured, to implement
+- [ ] Macroblock mode decode (16x16/UV/4x4 hardcoded trees + B-mode context)
+- [ ] Macroblock reconstruction (dequant -> inverse transform -> predict -> add residual)
+- [ ] Loop filter application across MB edges
+- [ ] Chroma upsampling + YUV->RGB plane assembly -> RGBA
+- [ ] Wire VP8 into WebP.Decode + pixel-exact golden validation vs dwebp
 - [x] Intra prediction: 16x16 luma + 8x8 chroma (DC/V/H/TM) + 4x4 B_PRED (all 10 modes)
 - [x] Loop (deblocking) filter: simple + subblock + macroblock (RFC 6386, per-line, tested)
 - [~] YUV->RGB conversion (per-sample, spec-exact BT.601; plane conversion + chroma upsampling pending)
