@@ -42,19 +42,25 @@ byte[] pixels = decoded.PixelData; // interleaved, ComponentCount bytes per pixe
 // Inspect without decoding pixels
 JpegInfo info = Jpeg.Identify(jpeg);
 
-// Files and streams
-Jpeg.Save(image, "out.jpg");
-JpegImage loaded = Jpeg.Load("out.jpg");
+// Files
+image.EncodeToFile("out.jpg");
+JpegImage loaded = Jpeg.DecodeFromFile("out.jpg");
+
+// Streams
+image.EncodeToStream(stream, options);
+JpegImage fromStream = Jpeg.DecodeFromStream(stream);
 
 // Async stream/file I/O (the stream read/write is async; the codec work is CPU-bound)
-await Jpeg.EncodeAsync(image, stream, options, cancellationToken);
-JpegImage fromStream = await Jpeg.DecodeAsync(stream, cancellationToken: cancellationToken);
-await Jpeg.SaveAsync(image, "out.jpg");
-JpegImage fromFile = await Jpeg.LoadAsync("out.jpg");
+await image.EncodeToStreamAsync(stream, options, cancellationToken);
+JpegImage decodedAsync = await Jpeg.DecodeFromStreamAsync(stream, cancellationToken: cancellationToken);
+await image.EncodeToFileAsync("out.jpg");
+JpegImage fromFile = await Jpeg.DecodeFromFileAsync("out.jpg");
 ```
 
-Every I/O entry point has both a synchronous and an asynchronous (`…Async`, cancellable) form:
-`Encode`/`Decode`/`Load`/`Save`.
+Every file and stream entry point has both a synchronous and an asynchronous (`…Async`,
+cancellable) form: `EncodeToStream`/`DecodeFromStream` and `EncodeToFile`/`DecodeFromFile`. The
+file overloads also accept an `IFileSystem` to route reads and writes through custom storage
+instead of disk.
 
 ## Pixel access
 
