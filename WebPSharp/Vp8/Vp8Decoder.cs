@@ -769,20 +769,24 @@ internal sealed class Vp8Decoder
         }
     }
 
-    /// <summary>Decodes the frame to a cropped RGBA image using simple (nearest) chroma upsampling.</summary>
+    /// <summary>Decodes the frame to a cropped RGBA image.</summary>
     /// <param name="applyFilter">Whether to apply the in-loop deblocking filter.</param>
+    /// <param name="fancyUpsampling">
+    /// When true (the default), chroma is bilinearly ("fancy") upsampled to match the reference
+    /// decoder's default output; when false, nearest-neighbor upsampling is used.
+    /// </param>
     /// <returns>The RGBA pixels, <see cref="Width"/> × <see cref="Height"/>, row-major.</returns>
-    internal byte[] DecodeToRgba(bool applyFilter = true)
+    internal byte[] DecodeToRgba(bool applyFilter = true, bool fancyUpsampling = true)
     {
         ParseHeaders();
         DecodeMacroblocks();
         Reconstruct();
         if (applyFilter)
             ApplyLoopFilter();
-        return ToRgba();
+        return fancyUpsampling ? ToRgbaFancy() : ToRgbaNearest();
     }
 
-    private byte[] ToRgba()
+    private byte[] ToRgbaNearest()
     {
         var w = LumaStride;
         var cw = ChromaStride;
@@ -803,6 +807,94 @@ internal sealed class Vp8Decoder
             }
         }
         return rgba;
+    }
+
+    private byte[] ToRgbaFancy()
+    {
+        var uFull = UpsampleChannel(PlaneU);
+        var vFull = UpsampleChannel(PlaneV);
+        var w = LumaStride;
+        var rgba = new byte[Width * Height * 4];
+        for (var y = 0; y < Height; y++)
+        for (var x = 0; x < Width; x++)
+        {
+            Vp8Yuv.YuvToRgb(PlaneY[y * w + x], uFull[y * Width + x], vFull[y * Width + x],
+                out var r, out var g, out var b);
+            var o = (y * Width + x) * 4;
+            rgba[o] = r;
+            rgba[o + 1] = g;
+            rgba[o + 2] = b;
+            rgba[o + 3] = 255;
+        }
+        return rgba;
+    }
+
+    // Bilinear ("fancy") 4:2:0 chroma upsampling, ported from libwebp's UPSAMPLE_FUNC macro.
+    private byte[] UpsampleChannel(byte[] c)
+    {
+        var height = Height;
+        var chromaHeight = (height + 1) / 2;
+        var outp = new byte[Width * height];
+
+        UpsampleTopRow(outp, c, 0, 0, 0);
+        for (var cy = 1; cy < chromaHeight; cy++)
+        {
+            UpsampleTopRow(outp, c, 2 * cy - 1, cy - 1, cy);
+            if (2 * cy < height)
+                UpsampleBottomRow(outp, c, 2 * cy, cy - 1, cy);
+        }
+        if ((height & 1) == 0)
+            UpsampleTopRow(outp, c, height - 1, chromaHeight - 1, chromaHeight - 1);
+
+        return outp;
+    }
+
+    private void UpsampleTopRow(byte[] outp, byte[] c, int outRow, int aRow, int bRow)
+    {
+        var w = Width;
+        var stride = ChromaStride;
+        var ob = outRow * w;
+        var a = aRow * stride;
+        var b = bRow * stride;
+        var lastPair = (w - 1) >> 1;
+
+        outp[ob] = (byte)((3 * c[a] + c[b] + 2) >> 2);
+        for (var x = 1; x <= lastPair; x++)
+        {
+            int tl = c[a + x - 1], t = c[a + x], l = c[b + x - 1], uv = c[b + x];
+            var avg = tl + t + l + uv + 8;
+            var diag12 = (avg + 2 * (t + l)) >> 3;
+            var diag03 = (avg + 2 * (tl + uv)) >> 3;
+            outp[ob + 2 * x - 1] = (byte)((diag12 + tl) >> 1);
+            if (2 * x < w)
+                outp[ob + 2 * x] = (byte)((diag03 + t) >> 1);
+        }
+        if ((w & 1) == 0)
+            outp[ob + w - 1] = (byte)((3 * c[a + lastPair] + c[b + lastPair] + 2) >> 2);
+    }
+
+    private void UpsampleBottomRow(byte[] outp, byte[] c, int outRow, int aRow, int bRow)
+    {
+        var w = Width;
+        var stride = ChromaStride;
+        var ob = outRow * w;
+        var a = aRow * stride;
+        var b = bRow * stride;
+        var lastPair = (w - 1) >> 1;
+
+        outp[ob] = (byte)((3 * c[b] + c[a] + 2) >> 2);
+        for (var x = 1; x <= lastPair; x++)
+        {
+            int tl = c[a + x - 1], t = c[a + x], l = c[b + x - 1], uv = c[b + x];
+            var avg = tl + t + l + uv + 8;
+            var diag12 = (avg + 2 * (t + l)) >> 3;
+            var diag03 = (avg + 2 * (tl + uv)) >> 3;
+            outp[ob + 2 * x - 1] = (byte)((diag03 + l) >> 1);
+            if (2 * x < w)
+                outp[ob + 2 * x] = (byte)((diag12 + uv) >> 1);
+        }
+        if ((w & 1) == 0)
+            outp[ob + w - 1] = (byte)((3 * c[b + lastPair] + c[a + lastPair] + 2) >> 2);
     }
 }
 

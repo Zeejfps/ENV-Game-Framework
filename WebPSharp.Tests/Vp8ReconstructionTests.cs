@@ -33,7 +33,7 @@ public class Vp8ReconstructionTests
     public void Reconstruction_MatchesDwebpNoFilterReference()
     {
         var decoder = new Vp8Decoder(Vp8Payload("grad_q80.webp"));
-        var rgba = decoder.DecodeToRgba(applyFilter: false);
+        var rgba = decoder.DecodeToRgba(applyFilter: false, fancyUpsampling: false);
         var reference = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", "grad_q80_nofilter.rgba"));
 
         Assert.Equal(reference.Length, rgba.Length);
