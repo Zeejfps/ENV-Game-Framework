@@ -14,7 +14,11 @@ internal sealed partial class BaselineEncoder
     private void EncodeProgressive(Stream output)
     {
         var coefficients = BuildComponentCoefficients();
-        var tables = StandardTables();
+
+        // The standard Annex K tables only define DC categories up to 11 (8-bit). A 12-bit
+        // progressive DC scan can reach category ~14, so high precision builds tables that cover
+        // every symbol the scans emit.
+        var tables = _precision == 8 ? StandardTables() : BuildProgressive12Tables(coefficients);
 
         var writer = new MarkerWriter(output);
         WriteHeader(writer, JpegMarkers.StartOfFrameProgressive, tables);
@@ -300,6 +304,125 @@ internal sealed partial class BaselineEncoder
     {
         // Integer division toward zero by 2^al.
         return value >= 0 ? value >> al : -((-value) >> al);
+    }
+
+    // Builds Huffman tables for 12-bit progressive output. A completeness seed guarantees every
+    // symbol the scans can emit has a code (12-bit reaches higher categories than Annex K covers),
+    // and the actual DC-first/AC-first frequencies are added on top for good compression.
+    private HuffmanTable[] BuildProgressive12Tables(short[][] coefficients)
+    {
+        var dcLuma = new int[256];
+        var acLuma = new int[256];
+        var dcChroma = new int[256];
+        var acChroma = new int[256];
+        SeedProgressiveSymbols(dcLuma, acLuma);
+        SeedProgressiveSymbols(dcChroma, acChroma);
+
+        GatherDcFirstFrequencies(coefficients, dcLuma, dcChroma);
+        for (var ci = 0; ci < _components.Length; ci++)
+        {
+            var acFreq = _components[ci].TableClass == 0 ? acLuma : acChroma;
+            GatherAcFirstFrequencies(ci, coefficients[ci], acFreq);
+        }
+
+        return
+        [
+            HuffmanTable.BuildOptimized(dcLuma),
+            HuffmanTable.BuildOptimized(acLuma),
+            _hasChromaTables ? HuffmanTable.BuildOptimized(dcChroma) : StandardHuffmanTables.DcChrominance,
+            _hasChromaTables ? HuffmanTable.BuildOptimized(acChroma) : StandardHuffmanTables.AcChrominance,
+        ];
+    }
+
+    // Seeds one occurrence of every symbol the progressive scans can emit: DC categories 0–16,
+    // plus the AC EOB (0x00), ZRL (0xF0), and every run/size combination. This makes the built
+    // tables complete regardless of which symbols the actual coefficients happen to use.
+    private static void SeedProgressiveSymbols(Span<int> dc, Span<int> ac)
+    {
+        for (var category = 0; category <= 16; category++)
+            dc[category] = 1;
+
+        ac[0x00] = 1; // EOB
+        ac[0xF0] = 1; // ZRL
+        for (var run = 0; run <= 15; run++)
+            for (var size = 1; size <= 15; size++)
+                ac[(run << 4) | size] = 1;
+    }
+
+    // Mirrors WriteDcScanEntropy (al = 1) to count the DC-first symbols emitted per table class.
+    private void GatherDcFirstFrequencies(short[][] coefficients, Span<int> dcLuma, Span<int> dcChroma)
+    {
+        const int al = 1;
+        var predictors = new int[_components.Length];
+        var interval = _options.RestartInterval;
+        var mcuIndex = 0;
+
+        for (var my = 0; my < _mcusPerCol; my++)
+        {
+            for (var mx = 0; mx < _mcusPerRow; mx++)
+            {
+                if (interval > 0 && mcuIndex > 0 && mcuIndex % interval == 0)
+                    Array.Clear(predictors);
+
+                for (var ci = 0; ci < _components.Length; ci++)
+                {
+                    var c = _components[ci];
+                    var dc = c.TableClass == 0 ? dcLuma : dcChroma;
+                    for (var by = 0; by < c.V; by++)
+                    {
+                        for (var bx = 0; bx < c.H; bx++)
+                        {
+                            var offset = ((my * c.V + by) * c.BlocksWide + (mx * c.H + bx)) * 64;
+                            var dcValue = coefficients[ci][offset] >> al;
+                            var diff = dcValue - predictors[ci];
+                            predictors[ci] = dcValue;
+                            dc[BlockScanCoder.MagnitudeCategory(diff)]++;
+                        }
+                    }
+                }
+
+                mcuIndex++;
+            }
+        }
+    }
+
+    // Mirrors WriteAcScanEntropy (al = 1) to count the AC-first symbols emitted for one component.
+    private void GatherAcFirstFrequencies(int ci, short[] buffer, Span<int> ac)
+    {
+        const int al = 1;
+        var c = _components[ci];
+        var blocksPerLine = CeilDiv(c.PlaneWidth, 8);
+        var blocksPerCol = CeilDiv(c.PlaneHeight, 8);
+
+        for (var by = 0; by < blocksPerCol; by++)
+        {
+            for (var bx = 0; bx < blocksPerLine; bx++)
+            {
+                var offset = (by * c.BlocksWide + bx) * 64;
+                var run = 0;
+                for (var k = 1; k < 64; k++)
+                {
+                    var value = PointTransform(buffer[offset + k], al);
+                    if (value == 0)
+                    {
+                        run++;
+                        continue;
+                    }
+
+                    while (run > 15)
+                    {
+                        ac[0xF0]++;
+                        run -= 16;
+                    }
+
+                    ac[(run << 4) | BlockScanCoder.MagnitudeCategory(value)]++;
+                    run = 0;
+                }
+
+                if (run > 0)
+                    ac[0x00]++;
+            }
+        }
     }
 
     private void WriteScan(MarkerWriter writer, int[] componentIndices, int ss, int se, int ah, int al)

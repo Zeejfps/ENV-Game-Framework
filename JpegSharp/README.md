@@ -122,6 +122,42 @@ image.EncodeToFile("frame.jpg");
 JpegImage img = JpegImage.CreateFromPackedPixels(width, height, framebuffer, PackedPixelFormat.Rgba8888);
 ```
 
+### High-precision (12-bit) images
+
+JPEG's DCT modes allow 8- or 12-bit samples (ITU-T T.81). 12-bit images (medical/prepress) decode
+to and encode from `JpegImage16`, which stores `ushort` samples right-aligned in
+`[0, MaxSampleValue]` (0–4095 for 12-bit):
+
+```csharp
+JpegImage16 img = Jpeg.Decode16(twelveBitJpeg);   // grayscale or RGB/YCbCr
+byte[] jpeg     = img.Encode16(new JpegEncoderOptions { Quality = 90 });
+```
+
+Both `JpegImage` and `JpegImage16` implement `IJpegImage`, so display code can be written once
+against the interface and use `Precision` to detect which it holds. `Jpeg.DecodeAny` returns the
+right concrete type per the file's precision:
+
+```csharp
+IJpegImage img = Jpeg.DecodeAny(anyJpeg);   // JpegImage (8-bit) or JpegImage16 (12-bit)
+int[] preview  = img.ToRgba8888();          // precision-agnostic 8-bit preview, tone-mapped
+```
+
+`JpegImage16.To8Bit()` down-shifts to a plain `JpegImage`, which bridges to every 8-bit API
+(`ToRgb`, the 32-bit packing helpers). For full-precision access, the 64-bit packing helpers
+mirror the 8-bit ones with 16 bits per channel (`long` per pixel):
+
+```csharp
+long[] rgba16 = image16.ToRgba16161616();                     // or ToPackedPixels64(format)
+JpegImage16 back = JpegImage16.CreateFromRgba16161616(w, h, 12, rgba16);
+```
+
+Channel values in the 64-bit packing are the native right-aligned samples (not rescaled to full
+16-bit range); alpha is `MaxSampleValue`. The `JpegImage16` container permits 9–16 bit for
+packing/interop, but the codec encodes/decodes 12-bit only (8/12 are the JPEG DCT precisions).
+Grayscale, RGB/YCbCr, and CMYK/YCCK are all supported at 12-bit — the same color spaces, chroma
+subsampling, and baseline/progressive modes as the 8-bit codec. The 64-bit packing helpers convert
+CMYK to RGB (multiplicative model) just like the 8-bit `ToPackedPixels`.
+
 ## Architecture
 
 The codec is organized into small, independently testable components:
@@ -166,7 +202,9 @@ proportional to image size.
 
 ## Limitations
 
-- Sample precision is 8-bit (12-bit is reported by `Jpeg.Identify` but not decoded).
+- Sample precision is 8-bit or 12-bit (the JPEG DCT precisions). 12-bit decodes/encodes via
+  `JpegImage16` across all color spaces (grayscale, RGB/YCbCr, CMYK/YCCK), baseline and
+  progressive, with chroma subsampling — see *High-precision (12-bit) images*.
 - Arithmetic coding (ISO/IEC 10918-1 Annex D) is not implemented; the architecture isolates
   the entropy stage so it can be added without disturbing the rest of the pipeline. This is
   the only optional feature intentionally left out.

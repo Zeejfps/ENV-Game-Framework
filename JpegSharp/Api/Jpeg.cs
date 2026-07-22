@@ -36,6 +36,32 @@ public static class Jpeg
         encoder.Encode(stream);
     }
 
+    /// <summary>
+    /// Encodes a high-precision (9–16 bit) image to a JPEG byte array as an extended-sequential
+    /// (SOF1) Huffman JPEG. Supports grayscale and RGB; chroma subsampling and progressive output
+    /// are not available at high precision.
+    /// </summary>
+    /// <param name="image">The image to encode.</param>
+    /// <param name="options">Encoding options, or null for defaults.</param>
+    /// <returns>The encoded JPEG bytes.</returns>
+    public static byte[] Encode16(this JpegImage16 image, JpegEncoderOptions? options = null)
+    {
+        using var stream = new MemoryStream();
+        Encode16ToStream(image, stream, options);
+        return stream.ToArray();
+    }
+
+    /// <summary>Encodes a high-precision image to a stream. See <see cref="Encode16(JpegImage16, JpegEncoderOptions?)"/>.</summary>
+    /// <param name="image">The image to encode.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="options">Encoding options, or null for defaults.</param>
+    public static void Encode16ToStream(this JpegImage16 image, Stream stream, JpegEncoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(stream);
+        new BaselineEncoder(image, options ?? new JpegEncoderOptions()).Encode(stream);
+    }
+
     /// <summary>Decodes a JPEG image from a byte array.</summary>
     /// <param name="data">The JPEG bytes.</param>
     /// <param name="options">Decoding options, or null for defaults.</param>
@@ -44,6 +70,35 @@ public static class Jpeg
     {
         ArgumentNullException.ThrowIfNull(data);
         return new BaselineDecoder(data, options).Decode();
+    }
+
+    /// <summary>
+    /// Decodes a high-precision (9–16 bit) JPEG into a <see cref="JpegImage16"/>.
+    /// </summary>
+    /// <param name="data">The JPEG bytes.</param>
+    /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <returns>The decoded high-precision image.</returns>
+    /// <exception cref="Exceptions.JpegException">The source is 8-bit (use <see cref="Decode(byte[], JpegDecoderOptions?)"/>) or uses an unsupported precision.</exception>
+    public static JpegImage16 Decode16(byte[] data, JpegDecoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return new BaselineDecoder(data, options).Decode16();
+    }
+
+    /// <summary>
+    /// Decodes a JPEG of any supported precision, returning the concrete image type that matches
+    /// the file: <see cref="JpegImage"/> for 8-bit sources, <see cref="JpegImage16"/> for 9–16 bit.
+    /// Inspect <see cref="IJpegImage.Precision"/> (or pattern-match the result) to reach a concrete
+    /// type's native buffer.
+    /// </summary>
+    /// <param name="data">The JPEG bytes.</param>
+    /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <returns>The decoded image as an <see cref="IJpegImage"/>.</returns>
+    public static IJpegImage DecodeAny(byte[] data, JpegDecoderOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        var info = Identify(data);
+        return info.Precision == 8 ? Decode(data, options) : Decode16(data, options);
     }
 
     /// <summary>

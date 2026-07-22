@@ -23,22 +23,25 @@ internal sealed partial class BaselineEncoder
         public required int V;
         public required int QuantId;
         public required int TableClass; // 0 = luma tables, 1 = chroma tables
-        public required byte[] Plane;
+        public required byte[] Plane;       // sample plane for 8-bit input
+        public ushort[]? Plane16;           // sample plane for high-precision input
         public required int PlaneWidth;
         public required int PlaneHeight;
         public int BlocksWide;
         public int BlocksHigh;
     }
 
-    private readonly JpegImage _image;
     private readonly JpegEncoderOptions _options;
+    private readonly int _width;
+    private readonly int _height;
+    private readonly int _precision;
     private readonly int _hmax;
     private readonly int _vmax;
-    private readonly int _mcusPerRow;
-    private readonly int _mcusPerCol;
+    private int _mcusPerRow;
+    private int _mcusPerCol;
     private readonly Component[] _components;
     private readonly QuantizationTable[] _quantTables;
-    private readonly bool _hasChromaTables;
+    private bool _hasChromaTables;
     private readonly bool _writeAdobe;
     private readonly int _adobeTransform;
     private readonly JpegMetadata? _metadata;
@@ -48,9 +51,11 @@ internal sealed partial class BaselineEncoder
 
     public BaselineEncoder(JpegImage image, JpegEncoderOptions options)
     {
-        _image = image;
         _options = options;
         _metadata = options.Metadata ?? image.Metadata;
+        _width = image.Width;
+        _height = image.Height;
+        _precision = 8;
 
         if (image.Width > MaxDimension || image.Height > MaxDimension)
             throw new ArgumentException($"JPEG dimensions must not exceed {MaxDimension}; got {image.Width}x{image.Height}.", nameof(image));
@@ -112,9 +117,82 @@ internal sealed partial class BaselineEncoder
             throw new NotSupportedException($"Encoding of {image.ColorSpace} is not supported.");
         }
 
+        InitGeometry();
+    }
+
+    /// <summary>
+    /// Encodes a high-precision (9–16 bit) image as an extended-sequential (SOF1) Huffman JPEG.
+    /// Supports grayscale and RGB (as YCbCr, or stored directly with <see cref="JpegRgbEncoding.Rgb"/>);
+    /// chroma subsampling and progressive output are not supported at high precision.
+    /// </summary>
+    public BaselineEncoder(JpegImage16 image, JpegEncoderOptions options)
+    {
+        _options = options;
+        _metadata = options.Metadata ?? image.Metadata;
+        _width = image.Width;
+        _height = image.Height;
+        _precision = image.Precision;
+
+        if (image.Precision != 12)
+            throw new NotSupportedException($"Only 12-bit high-precision JPEG encoding is supported; got {image.Precision}-bit. (JPEG DCT sample precision is 8 or 12 per ITU-T T.81.)");
+        if (image.Width > MaxDimension || image.Height > MaxDimension)
+            throw new ArgumentException($"JPEG dimensions must not exceed {MaxDimension}; got {image.Width}x{image.Height}.", nameof(image));
+
+        if (image.ColorSpace == JpegColorSpace.Grayscale)
+        {
+            _hmax = _vmax = 1;
+            _quantTables = [LumaQuant(options)];
+            _components = [HighPrecisionComponent(1, 0, 0, ClonePlane(image.PixelData))];
+        }
+        else if (image.ColorSpace == JpegColorSpace.Rgb)
+        {
+            if (options.RgbEncoding == JpegRgbEncoding.Rgb)
+            {
+                _hmax = _vmax = 1; // direct RGB is not subsampled
+                _quantTables = [LumaQuant(options)];
+                _components = BuildRgbDirectComponents16(image);
+                _writeAdobe = true;
+                _adobeTransform = 0;
+            }
+            else
+            {
+                var (h, v) = options.Subsampling.LumaFactors();
+                _hmax = h;
+                _vmax = v;
+                _quantTables = [LumaQuant(options), ChromaQuant(options)];
+                _components = BuildYCbCrComponents16(image, h, v);
+            }
+        }
+        else if (image.ColorSpace == JpegColorSpace.Cmyk)
+        {
+            _hmax = _vmax = 1; // CMYK/YCCK components are full resolution
+            _writeAdobe = true;
+            if (options.CmykAsYcck)
+            {
+                _quantTables = [LumaQuant(options), ChromaQuant(options)];
+                _components = BuildYcckComponents16(image);
+                _adobeTransform = 2;
+            }
+            else
+            {
+                _quantTables = [LumaQuant(options)];
+                _components = BuildCmykComponents16(image);
+                _adobeTransform = 0;
+            }
+        }
+        else
+        {
+            throw new NotSupportedException($"High-precision encoding of {image.ColorSpace} is not supported.");
+        }
+
+        InitGeometry();
+    }
+
+    private void InitGeometry()
+    {
         _hasChromaTables = Array.Exists(_components, c => c.TableClass == 1);
-        _mcusPerRow = CeilDiv(image.Width, 8 * _hmax);
-        _mcusPerCol = CeilDiv(image.Height, 8 * _vmax);
+        _mcusPerRow = CeilDiv(_width, 8 * _hmax);
+        _mcusPerCol = CeilDiv(_height, 8 * _vmax);
         foreach (var c in _components)
         {
             c.BlocksWide = _mcusPerRow * c.H;
@@ -133,13 +211,18 @@ internal sealed partial class BaselineEncoder
         // Compute all quantized zig-zag blocks in interleaved scan order.
         var blocks = BuildQuantizedBlocks(out var blockComponent);
 
-        // Select Huffman tables (standard or optimized).
-        var tableSet = _options.OptimizeHuffman
+        // Select Huffman tables. High precision forces optimized tables: the standard tables only
+        // define DC categories up to 11 (8-bit), whereas 9–16 bit blocks can reach category 15.
+        var tableSet = _options.OptimizeHuffman || _precision > 8
             ? BuildOptimizedTables(blocks, blockComponent)
             : StandardTables();
 
+        // 12-bit and other >8-bit precisions are extended-sequential (SOF1), not baseline (SOF0).
+        var frameMarker = _precision == 8
+            ? JpegMarkers.StartOfFrameBaseline
+            : JpegMarkers.StartOfFrameExtendedSequential;
         var writer = new MarkerWriter(output);
-        WriteHeader(writer, JpegMarkers.StartOfFrameBaseline, tableSet);
+        WriteHeader(writer, frameMarker, tableSet);
         WriteScanHeader(writer);
         WriteEntropyData(output, blocks, blockComponent, tableSet);
         writer.WriteMarker(JpegMarkers.EndOfImage);
@@ -220,16 +303,34 @@ internal sealed partial class BaselineEncoder
         return blocks;
     }
 
-    private static void ExtractBlock(Component c, int x0, int y0, Span<double> samples)
+    private void ExtractBlock(Component c, int x0, int y0, Span<double> samples)
     {
-        for (var yy = 0; yy < 8; yy++)
+        if (_precision == 8)
         {
-            var sy = Math.Min(y0 + yy, c.PlaneHeight - 1);
-            var row = sy * c.PlaneWidth;
-            for (var xx = 0; xx < 8; xx++)
+            for (var yy = 0; yy < 8; yy++)
             {
-                var sx = Math.Min(x0 + xx, c.PlaneWidth - 1);
-                samples[yy * 8 + xx] = c.Plane[row + sx] - 128;
+                var sy = Math.Min(y0 + yy, c.PlaneHeight - 1);
+                var row = sy * c.PlaneWidth;
+                for (var xx = 0; xx < 8; xx++)
+                {
+                    var sx = Math.Min(x0 + xx, c.PlaneWidth - 1);
+                    samples[yy * 8 + xx] = c.Plane[row + sx] - 128;
+                }
+            }
+        }
+        else
+        {
+            var center = 1 << (_precision - 1);
+            var plane = c.Plane16!;
+            for (var yy = 0; yy < 8; yy++)
+            {
+                var sy = Math.Min(y0 + yy, c.PlaneHeight - 1);
+                var row = sy * c.PlaneWidth;
+                for (var xx = 0; xx < 8; xx++)
+                {
+                    var sx = Math.Min(x0 + xx, c.PlaneWidth - 1);
+                    samples[yy * 8 + xx] = plane[row + sx] - center;
+                }
             }
         }
     }
@@ -387,11 +488,11 @@ internal sealed partial class BaselineEncoder
         var n = _components.Length;
         Span<byte> payload = stackalloc byte[6 + 3 * 4];
         var p = 0;
-        payload[p++] = 8; // sample precision
-        payload[p++] = (byte)(_image.Height >> 8);
-        payload[p++] = (byte)(_image.Height & 0xFF);
-        payload[p++] = (byte)(_image.Width >> 8);
-        payload[p++] = (byte)(_image.Width & 0xFF);
+        payload[p++] = (byte)_precision; // sample precision
+        payload[p++] = (byte)(_height >> 8);
+        payload[p++] = (byte)(_height & 0xFF);
+        payload[p++] = (byte)(_width >> 8);
+        payload[p++] = (byte)(_width & 0xFF);
         payload[p++] = (byte)n;
         foreach (var c in _components)
         {

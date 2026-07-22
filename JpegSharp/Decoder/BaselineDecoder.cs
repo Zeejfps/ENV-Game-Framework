@@ -23,7 +23,8 @@ internal sealed partial class BaselineDecoder
         public int QuantId;
         public int DcTableId;
         public int AcTableId;
-        public byte[] Plane = [];
+        public byte[] Plane = [];        // sample plane for 8-bit images
+        public ushort[] Plane16 = [];    // sample plane for high-precision (9–16 bit) images
         public int PlaneWidth;
         public int PlaneHeight;
         public int BlocksWide;
@@ -80,16 +81,52 @@ internal sealed partial class BaselineDecoder
         var entropyStart = ParseHeaders(reader, ms);
 
         if (_precision != 8)
-            throw new JpegFormatException($"Unsupported sample precision {_precision}; only 8-bit is supported.");
-        if ((long)_width * _height > _options.MaxPixels)
-            throw new JpegFormatException($"Image {_width}x{_height} exceeds the configured maximum of {_options.MaxPixels} pixels.");
+            throw new JpegFormatException($"Unsupported sample precision {_precision} for Decode; only 8-bit is supported. Use Decode16 / DecodeAny for higher precision.");
+        ValidatePixelBudget();
 
-        var image = _isProgressive
-            ? DecodeProgressive(reader, ms, entropyStart)
-            : DecodeScan(_data, entropyStart);
+        FillPlanes(reader, ms, entropyStart);
+        var image = AssembleImage(_mcusPerRow, _mcusPerCol);
         if (_options.ReadMetadata)
             image.Metadata = BuildMetadata();
         return image;
+    }
+
+    public JpegImage16 Decode16()
+    {
+        using var ms = new MemoryStream(_data, writable: false);
+        var reader = new MarkerReader(ms);
+        RequireSoi(reader);
+        var entropyStart = ParseHeaders(reader, ms);
+
+        if (_precision == 8)
+            throw new JpegFormatException("This is an 8-bit JPEG; use Decode.");
+        // JPEG DCT sample precision is 8 or 12 (ITU-T T.81); 13–16 bit would overflow the
+        // 16-bit coefficient buffers, so it is rejected rather than silently corrupted.
+        if (_precision is < 9 or > 12)
+            throw new JpegFormatException($"Unsupported sample precision {_precision}; JPEG DCT precision is 8 or 12.");
+        ValidatePixelBudget();
+
+        FillPlanes(reader, ms, entropyStart);
+        var image = AssembleImage16(_mcusPerRow, _mcusPerCol);
+        if (_options.ReadMetadata)
+            image.Metadata = BuildMetadata();
+        return image;
+    }
+
+    private void ValidatePixelBudget()
+    {
+        if ((long)_width * _height > _options.MaxPixels)
+            throw new JpegFormatException($"Image {_width}x{_height} exceeds the configured maximum of {_options.MaxPixels} pixels.");
+    }
+
+    // Runs entropy decoding + inverse transform, filling each component's sample plane (byte
+    // planes for 8-bit, ushort planes for high precision). Assembly into an image is separate.
+    private void FillPlanes(MarkerReader reader, MemoryStream ms, int entropyStart)
+    {
+        if (_isProgressive)
+            DecodeProgressive(reader, ms, entropyStart);
+        else
+            DecodeScan(_data, entropyStart);
     }
 
     public JpegInfo ReadInfo()
@@ -355,11 +392,14 @@ internal sealed partial class BaselineDecoder
             c.BlocksHigh = _mcusPerCol * c.V;
             c.PlaneWidth = c.BlocksWide * 8;
             c.PlaneHeight = c.BlocksHigh * 8;
-            c.Plane = new byte[c.PlaneWidth * c.PlaneHeight];
+            if (_precision == 8)
+                c.Plane = new byte[c.PlaneWidth * c.PlaneHeight];
+            else
+                c.Plane16 = new ushort[c.PlaneWidth * c.PlaneHeight];
         }
     }
 
-    private JpegImage DecodeScan(byte[] data, int entropyStart)
+    private void DecodeScan(byte[] data, int entropyStart)
     {
         SetupGeometry();
         var mcusPerRow = _mcusPerRow;
@@ -408,19 +448,36 @@ internal sealed partial class BaselineDecoder
                 mcuCount++;
             }
         }
-
-        return AssembleImage(mcusPerRow, mcusPerCol);
     }
 
-    private static void StoreBlock(Component c, int x0, int y0, ReadOnlySpan<double> spatial)
+    // Level-shifts, rounds and clamps an inverse-DCT block into the component's sample plane.
+    // The level-shift offset and clamp ceiling scale with the sample precision.
+    private void StoreBlock(Component c, int x0, int y0, ReadOnlySpan<double> spatial)
     {
-        for (var yy = 0; yy < 8; yy++)
+        if (_precision == 8)
         {
-            var row = (y0 + yy) * c.PlaneWidth + x0;
-            for (var xx = 0; xx < 8; xx++)
+            for (var yy = 0; yy < 8; yy++)
             {
-                var value = (int)Math.Round(spatial[yy * 8 + xx]) + 128;
-                c.Plane[row + xx] = (byte)Math.Clamp(value, 0, 255);
+                var row = (y0 + yy) * c.PlaneWidth + x0;
+                for (var xx = 0; xx < 8; xx++)
+                {
+                    var value = (int)Math.Round(spatial[yy * 8 + xx]) + 128;
+                    c.Plane[row + xx] = (byte)Math.Clamp(value, 0, 255);
+                }
+            }
+        }
+        else
+        {
+            var center = 1 << (_precision - 1);
+            var max = (1 << _precision) - 1;
+            for (var yy = 0; yy < 8; yy++)
+            {
+                var row = (y0 + yy) * c.PlaneWidth + x0;
+                for (var xx = 0; xx < 8; xx++)
+                {
+                    var value = (int)Math.Round(spatial[yy * 8 + xx]) + center;
+                    c.Plane16[row + xx] = (ushort)Math.Clamp(value, 0, max);
+                }
             }
         }
     }
@@ -556,6 +613,125 @@ internal sealed partial class BaselineDecoder
         // Centered bilinear interpolation gives smoother chroma than replication.
         var full = new byte[fullWidth * fullHeight];
         ChromaSampler.UpsampleLinear(c.Plane, c.PlaneWidth, c.PlaneHeight, full, fullWidth, fullHeight);
+        return full;
+    }
+
+    // ----- High-precision (9–16 bit) assembly -----
+
+    private JpegImage16 AssembleImage16(int mcusPerRow, int mcusPerCol)
+    {
+        if (_components.Length == 1)
+        {
+            var c = _components[0];
+            var output = new ushort[_width * _height];
+            for (var y = 0; y < _height; y++)
+                Array.Copy(c.Plane16, y * c.PlaneWidth, output, y * _width, _width);
+            return new JpegImage16(_width, _height, JpegColorSpace.Grayscale, _precision, output);
+        }
+
+        var paddedWidth = mcusPerRow * _hmax * 8;
+        var paddedHeight = mcusPerCol * _vmax * 8;
+        return _components.Length == 3
+            ? AssembleThreeComponent16(paddedWidth, paddedHeight)
+            : AssembleCmyk16(paddedWidth, paddedHeight);
+    }
+
+    private JpegImage16 AssembleCmyk16(int paddedWidth, int paddedHeight)
+    {
+        var maxValue = (1 << _precision) - 1;
+        var planes = new ushort[4][];
+        for (var ch = 0; ch < 4; ch++)
+            planes[ch] = UpsampleToFull16(_components[ch], paddedWidth, paddedHeight);
+
+        // Same Adobe inversion / YCCK handling as the 8-bit path, scaled to the sample maximum.
+        var isYcck = _adobeTransform == 2;
+        var invert = _adobeTransform >= 0;
+
+        var cmyk = new ushort[_width * _height * 4];
+        for (var y = 0; y < _height; y++)
+        {
+            var srcRow = y * paddedWidth;
+            var dstRow = y * _width * 4;
+            for (var x = 0; x < _width; x++)
+            {
+                var c0 = planes[0][srcRow + x];
+                var c1 = planes[1][srcRow + x];
+                var c2 = planes[2][srcRow + x];
+                var c3 = planes[3][srcRow + x];
+
+                ushort cc, mm, yy;
+                if (isYcck)
+                {
+                    ColorConverter.YCbCrToRgb(c0, c1, c2, maxValue, out var r, out var g, out var b);
+                    cc = (ushort)(maxValue - r);
+                    mm = (ushort)(maxValue - g);
+                    yy = (ushort)(maxValue - b);
+                }
+                else if (invert)
+                {
+                    cc = (ushort)(maxValue - c0);
+                    mm = (ushort)(maxValue - c1);
+                    yy = (ushort)(maxValue - c2);
+                }
+                else
+                {
+                    cc = c0;
+                    mm = c1;
+                    yy = c2;
+                }
+
+                var kk = invert ? (ushort)(maxValue - c3) : c3;
+
+                cmyk[dstRow + x * 4] = cc;
+                cmyk[dstRow + x * 4 + 1] = mm;
+                cmyk[dstRow + x * 4 + 2] = yy;
+                cmyk[dstRow + x * 4 + 3] = kk;
+            }
+        }
+
+        return new JpegImage16(_width, _height, JpegColorSpace.Cmyk, _precision, cmyk);
+    }
+
+    private JpegImage16 AssembleThreeComponent16(int paddedWidth, int paddedHeight)
+    {
+        var maxValue = (1 << _precision) - 1;
+        var p0 = UpsampleToFull16(_components[0], paddedWidth, paddedHeight);
+        var p1 = UpsampleToFull16(_components[1], paddedWidth, paddedHeight);
+        var p2 = UpsampleToFull16(_components[2], paddedWidth, paddedHeight);
+        var applyYCbCr = ShouldApplyYCbCr();
+
+        var rgb = new ushort[_width * _height * 3];
+        for (var y = 0; y < _height; y++)
+        {
+            var srcRow = y * paddedWidth;
+            var dstRow = y * _width * 3;
+            for (var x = 0; x < _width; x++)
+            {
+                var d = dstRow + x * 3;
+                if (applyYCbCr)
+                {
+                    ColorConverter.YCbCrToRgb(p0[srcRow + x], p1[srcRow + x], p2[srcRow + x], maxValue,
+                        out rgb[d], out rgb[d + 1], out rgb[d + 2]);
+                }
+                else
+                {
+                    rgb[d] = p0[srcRow + x];
+                    rgb[d + 1] = p1[srcRow + x];
+                    rgb[d + 2] = p2[srcRow + x];
+                }
+            }
+        }
+
+        return new JpegImage16(_width, _height, JpegColorSpace.Rgb, _precision, rgb);
+    }
+
+    private ushort[] UpsampleToFull16(Component c, int fullWidth, int fullHeight)
+    {
+        if (c.PlaneWidth == fullWidth && c.PlaneHeight == fullHeight)
+            return c.Plane16;
+
+        var full = new ushort[fullWidth * fullHeight];
+        ChromaSampler.UpsampleLinear(c.Plane16, c.PlaneWidth, c.PlaneHeight, full, fullWidth, fullHeight, (1 << _precision) - 1);
         return full;
     }
 

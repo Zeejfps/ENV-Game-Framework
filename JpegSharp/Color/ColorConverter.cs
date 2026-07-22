@@ -55,6 +55,49 @@ internal static class ColorConverter
         b = Clamp(y + ((CbToB * d + Half) >> ScaleBits));
     }
 
+    /// <summary>
+    /// Converts a single high-precision JFIF YCbCr pixel to RGB. The chroma center and output
+    /// clamp scale with <paramref name="maxValue"/> (<c>(1 &lt;&lt; precision) - 1</c>); the
+    /// coefficients themselves are precision-independent.
+    /// </summary>
+    /// <param name="y">Luma.</param>
+    /// <param name="cb">Blue-difference chroma.</param>
+    /// <param name="cr">Red-difference chroma.</param>
+    /// <param name="maxValue">The maximum sample value, e.g. 4095 for 12-bit.</param>
+    /// <param name="r">Resulting red channel.</param>
+    /// <param name="g">Resulting green channel.</param>
+    /// <param name="b">Resulting blue channel.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void YCbCrToRgb(int y, int cb, int cr, int maxValue, out ushort r, out ushort g, out ushort b)
+    {
+        var center = (maxValue + 1) >> 1;
+        int c = cr - center;
+        int d = cb - center;
+        r = ClampTo(y + ((CrToR * c + Half) >> ScaleBits), maxValue);
+        g = ClampTo(y - ((CbToG * d + CrToG * c + Half) >> ScaleBits), maxValue);
+        b = ClampTo(y + ((CbToB * d + Half) >> ScaleBits), maxValue);
+    }
+
+    /// <summary>Converts a single high-precision RGB pixel to JFIF YCbCr.</summary>
+    /// <param name="r">Red channel.</param>
+    /// <param name="g">Green channel.</param>
+    /// <param name="b">Blue channel.</param>
+    /// <param name="maxValue">The maximum sample value, e.g. 4095 for 12-bit.</param>
+    /// <param name="y">Resulting luma.</param>
+    /// <param name="cb">Resulting blue-difference chroma.</param>
+    /// <param name="cr">Resulting red-difference chroma.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RgbToYCbCr(int r, int g, int b, int maxValue, out ushort y, out ushort cb, out ushort cr)
+    {
+        var center = (maxValue + 1) >> 1;
+        y = ClampTo((YR * r + YG * g + YB * b + Half) >> ScaleBits, maxValue);
+        cb = ClampTo((CbR * r + CbG * g + CbB * b + (center << ScaleBits) + Half) >> ScaleBits, maxValue);
+        cr = ClampTo((CrR * r + CrG * g + CrB * b + (center << ScaleBits) + Half) >> ScaleBits, maxValue);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ClampTo(int value, int max) => (ushort)(value < 0 ? 0 : value > max ? max : value);
+
     /// <summary>Converts interleaved RGB samples to three YCbCr planes.</summary>
     /// <param name="rgb">Interleaved R,G,B triples.</param>
     /// <param name="y">Destination luma plane.</param>
@@ -93,6 +136,29 @@ internal static class ColorConverter
         r = (byte)((255 - c) * (255 - k) / 255);
         g = (byte)((255 - m) * (255 - k) / 255);
         b = (byte)((255 - y) * (255 - k) / 255);
+    }
+
+    /// <summary>
+    /// Converts a high-precision CMYK pixel to RGB using the standard multiplicative model, scaled
+    /// to <paramref name="maxValue"/> (<c>(1 &lt;&lt; precision) - 1</c>). Inputs and outputs are
+    /// native samples in <c>[0, maxValue]</c>.
+    /// </summary>
+    /// <param name="c">Cyan channel.</param>
+    /// <param name="m">Magenta channel.</param>
+    /// <param name="y">Yellow channel.</param>
+    /// <param name="k">Black channel.</param>
+    /// <param name="maxValue">The maximum sample value, e.g. 4095 for 12-bit.</param>
+    /// <param name="r">Resulting red channel.</param>
+    /// <param name="g">Resulting green channel.</param>
+    /// <param name="b">Resulting blue channel.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CmykToRgb(int c, int m, int y, int k, int maxValue, out ushort r, out ushort g, out ushort b)
+    {
+        // 64-bit intermediates: for 16-bit samples (maxValue up to 65535) the product overflows int.
+        long kk = maxValue - k;
+        r = (ushort)((maxValue - c) * kk / maxValue);
+        g = (ushort)((maxValue - m) * kk / maxValue);
+        b = (ushort)((maxValue - y) * kk / maxValue);
     }
 
     /// <summary>Converts an RGB pixel to CMYK using maximum black generation.</summary>

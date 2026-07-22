@@ -12,7 +12,7 @@ namespace JpegSharp.Decoder;
 // successive-approximation refinement passes, and coefficient-buffer reconstruction.
 internal sealed partial class BaselineDecoder
 {
-    private JpegImage DecodeProgressive(MarkerReader reader, MemoryStream ms, int entropyStart)
+    private void DecodeProgressive(MarkerReader reader, MemoryStream ms, int entropyStart)
     {
         SetupGeometry();
         _coefficients = new short[_components.Length][];
@@ -59,7 +59,6 @@ internal sealed partial class BaselineDecoder
         }
 
         ReconstructComponents();
-        return AssembleImage(_mcusPerRow, _mcusPerCol);
     }
 
     private int DecodeProgressiveScan(ScanHeader scan, int pos)

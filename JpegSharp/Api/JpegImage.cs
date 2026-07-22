@@ -5,9 +5,9 @@ namespace JpegSharp.Api;
 /// <summary>
 /// An in-memory raster image exchanged with the JPEG encoder and decoder. Samples are 8-bit
 /// and stored interleaved in row-major order with <see cref="ComponentCount"/> channels per
-/// pixel.
+/// pixel. For 9–16 bit sample data see <see cref="JpegImage16"/>.
 /// </summary>
-public sealed class JpegImage
+public sealed class JpegImage : IJpegImage
 {
     /// <summary>Creates an image from raw interleaved pixel data.</summary>
     /// <param name="width">Image width in pixels (must be positive).</param>
@@ -49,6 +49,9 @@ public sealed class JpegImage
 
     /// <summary>The number of interleaved channels per pixel (1 grayscale, 3 RGB, 4 CMYK).</summary>
     public int ComponentCount { get; }
+
+    /// <summary>The sample bit precision. Always 8 for <see cref="JpegImage"/>.</summary>
+    public int Precision => 8;
 
     /// <summary>The interleaved sample data in row-major order.</summary>
     public byte[] PixelData { get; }
@@ -282,6 +285,10 @@ public sealed class JpegImage
                 throw new ArgumentOutOfRangeException(nameof(ColorSpace));
         }
     }
+
+    // IJpegImage's precision-agnostic preview bridge. The public convenience form is the
+    // ToRgba8888() extension method; this satisfies the interface without shadowing it.
+    int[] IJpegImage.ToRgba8888() => ToPackedPixels(PackedPixelFormat.Rgba8888);
 
     // Bit offset of each channel's byte within the packed int for a given format.
     private static (int R, int G, int B, int A) ShiftsFor(PackedPixelFormat format) => format switch

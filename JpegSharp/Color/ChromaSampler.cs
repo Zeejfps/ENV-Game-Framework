@@ -155,6 +155,106 @@ internal static class ChromaSampler
         }
     }
 
+    /// <summary>
+    /// High-precision counterpart of <see cref="Downsample(ReadOnlySpan{byte},int,int,int,int,Span{byte},int,int)"/>,
+    /// box-averaging <see cref="ushort"/> samples.
+    /// </summary>
+    /// <param name="src">Full-resolution samples (row-major).</param>
+    /// <param name="srcWidth">Full-resolution width.</param>
+    /// <param name="srcHeight">Full-resolution height.</param>
+    /// <param name="hFactor">Horizontal averaging factor (≥ 1).</param>
+    /// <param name="vFactor">Vertical averaging factor (≥ 1).</param>
+    /// <param name="dst">Destination subsampled samples (row-major).</param>
+    /// <param name="dstWidth">Subsampled width.</param>
+    /// <param name="dstHeight">Subsampled height.</param>
+    public static void Downsample(
+        ReadOnlySpan<ushort> src, int srcWidth, int srcHeight,
+        int hFactor, int vFactor,
+        Span<ushort> dst, int dstWidth, int dstHeight)
+    {
+        ValidateFactors(hFactor, vFactor);
+        ValidateDimensions(src.Length, srcWidth, srcHeight, nameof(src));
+        ValidateDimensions(dst.Length, dstWidth, dstHeight, nameof(dst));
+
+        for (var dy = 0; dy < dstHeight; dy++)
+        {
+            var sy0 = dy * vFactor;
+            for (var dx = 0; dx < dstWidth; dx++)
+            {
+                var sx0 = dx * hFactor;
+                var sum = 0;
+                var count = 0;
+                for (var vy = 0; vy < vFactor; vy++)
+                {
+                    var sy = sy0 + vy;
+                    if (sy >= srcHeight)
+                        break;
+                    var rowStart = sy * srcWidth;
+                    for (var vx = 0; vx < hFactor; vx++)
+                    {
+                        var sx = sx0 + vx;
+                        if (sx >= srcWidth)
+                            break;
+                        sum += src[rowStart + sx];
+                        count++;
+                    }
+                }
+
+                dst[dy * dstWidth + dx] = (ushort)((sum + (count >> 1)) / count);
+            }
+        }
+    }
+
+    /// <summary>
+    /// High-precision counterpart of <see cref="UpsampleLinear(ReadOnlySpan{byte},int,int,Span{byte},int,int)"/>,
+    /// operating on <see cref="ushort"/> samples and clamping to <paramref name="maxValue"/>.
+    /// </summary>
+    /// <param name="src">Subsampled samples (row-major).</param>
+    /// <param name="srcWidth">Subsampled width.</param>
+    /// <param name="srcHeight">Subsampled height.</param>
+    /// <param name="dst">Destination full-resolution samples (row-major).</param>
+    /// <param name="dstWidth">Full-resolution width.</param>
+    /// <param name="dstHeight">Full-resolution height.</param>
+    /// <param name="maxValue">The maximum sample value, e.g. 4095 for 12-bit.</param>
+    public static void UpsampleLinear(
+        ReadOnlySpan<ushort> src, int srcWidth, int srcHeight,
+        Span<ushort> dst, int dstWidth, int dstHeight, int maxValue)
+    {
+        ValidateDimensions(src.Length, srcWidth, srcHeight, nameof(src));
+        ValidateDimensions(dst.Length, dstWidth, dstHeight, nameof(dst));
+        if (srcWidth == 0 || srcHeight == 0)
+            return;
+
+        var scaleX = (double)srcWidth / dstWidth;
+        var scaleY = (double)srcHeight / dstHeight;
+
+        for (var dy = 0; dy < dstHeight; dy++)
+        {
+            var sy = (dy + 0.5) * scaleY - 0.5;
+            var y0 = (int)Math.Floor(sy);
+            var fy = sy - y0;
+            var y0c = Math.Clamp(y0, 0, srcHeight - 1);
+            var y1c = Math.Clamp(y0 + 1, 0, srcHeight - 1);
+            var row0 = y0c * srcWidth;
+            var row1 = y1c * srcWidth;
+            var dstRow = dy * dstWidth;
+
+            for (var dx = 0; dx < dstWidth; dx++)
+            {
+                var sx = (dx + 0.5) * scaleX - 0.5;
+                var x0 = (int)Math.Floor(sx);
+                var fx = sx - x0;
+                var x0c = Math.Clamp(x0, 0, srcWidth - 1);
+                var x1c = Math.Clamp(x0 + 1, 0, srcWidth - 1);
+
+                var top = src[row0 + x0c] * (1 - fx) + src[row0 + x1c] * fx;
+                var bottom = src[row1 + x0c] * (1 - fx) + src[row1 + x1c] * fx;
+                var value = (int)Math.Round(top * (1 - fy) + bottom * fy);
+                dst[dstRow + dx] = (ushort)Math.Clamp(value, 0, maxValue);
+            }
+        }
+    }
+
     private static void ValidateFactors(int hFactor, int vFactor)
     {
         if (hFactor < 1)
