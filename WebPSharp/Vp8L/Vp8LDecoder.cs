@@ -38,15 +38,7 @@ internal static class Vp8LDecoder
         if (version != 0)
             throw new WebPFormatException($"Unsupported VP8L version {version}.");
 
-        var transforms = ReadTransforms(ref reader, width, height, out var decodeWidth);
-
-        var argb = DecodeImageData(ref reader, decodeWidth, height, allowMeta: true);
-
-        // Inverse transforms are applied in the reverse of their bitstream order. The
-        // color-indexing transform expands the working width from bundled back to full.
-        var curWidth = decodeWidth;
-        for (var i = transforms.Count - 1; i >= 0; i--)
-            (argb, curWidth) = ApplyInverseTransform(transforms[i], argb, curWidth, height);
+        var argb = DecodeArgb(ref reader, width, height);
 
         // width*height <= 16384*16384, so the RGBA byte count fits comfortably in an int.
         var rgba = new byte[argb.Length * 4];
@@ -61,6 +53,37 @@ internal static class Vp8LDecoder
         }
 
         return new WebPImage(width, height, WebPColorFormat.Rgba, rgba);
+    }
+
+    /// <summary>
+    /// Decodes a header-less VP8L stream (as used by the lossless ALPH alpha chunk) and returns the
+    /// green channel of each pixel, which carries the alpha value.
+    /// </summary>
+    /// <param name="payload">The VP8L image stream (no signature/dimension header).</param>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <returns>The per-pixel green-channel values, row-major.</returns>
+    public static byte[] DecodeAlpha(ReadOnlySpan<byte> payload, int width, int height)
+    {
+        var reader = new Vp8LBitReader(payload);
+        var argb = DecodeArgb(ref reader, width, height);
+        var green = new byte[width * height];
+        for (var i = 0; i < green.Length; i++)
+            green[i] = (byte)(argb[i] >> 8);
+        return green;
+    }
+
+    private static uint[] DecodeArgb(ref Vp8LBitReader reader, int width, int height)
+    {
+        var transforms = ReadTransforms(ref reader, width, height, out var decodeWidth);
+        var argb = DecodeImageData(ref reader, decodeWidth, height, allowMeta: true);
+
+        // Inverse transforms are applied in the reverse of their bitstream order. The
+        // color-indexing transform expands the working width from bundled back to full.
+        var curWidth = decodeWidth;
+        for (var i = transforms.Count - 1; i >= 0; i--)
+            (argb, curWidth) = ApplyInverseTransform(transforms[i], argb, curWidth, height);
+        return argb;
     }
 
     private readonly record struct TransformInfo(Vp8LTransformType Type, uint[]? Data, int Bits, int OutputWidth);

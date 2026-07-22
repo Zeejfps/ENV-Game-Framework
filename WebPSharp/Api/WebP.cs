@@ -522,6 +522,7 @@ public static class WebP
     private static WebPImage DecodeExtended(ref RiffReader reader, ReadOnlyMemory<byte> vp8xPayload, WebPDecoderOptions options)
     {
         WebPImage? image = null;
+        ReadOnlyMemory<byte>? alphaData = null;
         var metadata = options.ReadMetadata ? new WebPMetadata() : null;
 
         while (reader.MoveNext())
@@ -533,17 +534,26 @@ public static class WebP
             {
                 if (image is not null)
                     throw new WebPFormatException("Extended container has more than one image chunk.");
-                image = id == WebPChunkIds.Vp8
-                    ? DecodeLossy(chunk.Payload, options)
-                    : DecodeLossless(chunk.Payload, options);
+                if (id == WebPChunkIds.Vp8)
+                {
+                    image = DecodeLossy(chunk.Payload, options);
+                    if (alphaData is { } alpha)
+                        ApplyAlpha(image, alpha.Span);
+                }
+                else
+                {
+                    image = DecodeLossless(chunk.Payload, options);
+                }
             }
+            else if (id == WebPChunkIds.Alph)
+                alphaData = chunk.Payload;
             else if (id == WebPChunkIds.Anim || id == WebPChunkIds.Anmf)
                 throw new WebPException("Animated WebP decoding is not yet supported.");
             else if (id == WebPChunkIds.Vp8X)
                 throw new WebPFormatException("Duplicate VP8X chunk.");
-            else if (metadata is null || id == WebPChunkIds.Alph)
+            else if (metadata is null)
             {
-                // Metadata disabled, or ALPH (handled with its VP8 image, which is unsupported here).
+                // Metadata extraction disabled.
             }
             else if (id == WebPChunkIds.Iccp)
                 metadata.IccProfile = SetOnce(metadata.IccProfile, chunk, "ICCP");
@@ -581,6 +591,14 @@ public static class WebP
         var decoder = new Vp8Decoder(payload.ToArray());
         var rgba = decoder.DecodeToRgba();
         return new WebPImage(decoder.Width, decoder.Height, WebPColorFormat.Rgba, rgba);
+    }
+
+    private static void ApplyAlpha(WebPImage image, ReadOnlySpan<byte> alphaChunk)
+    {
+        var alpha = Vp8AlphaDecoder.Decode(alphaChunk, image.Width, image.Height);
+        var pixels = image.PixelData;
+        for (var i = 0; i < alpha.Length; i++)
+            pixels[i * 4 + 3] = alpha[i];
     }
 
     private static WebPImage DecodeLossless(ReadOnlyMemory<byte> payload, WebPDecoderOptions options)
