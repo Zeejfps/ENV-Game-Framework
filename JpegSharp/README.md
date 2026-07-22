@@ -109,6 +109,19 @@ rgb.EncodeToFile("normalized.jpg");       // re-encode the CMYK/grayscale source
 `ToRgb` always copies, so the result never shares its `PixelData` with the source even when the
 source is already RGB.
 
+Going the other way — encoding a packed pixel buffer such as a framebuffer or `WriteableBitmap` —
+the `CreateFrom…` factories are the inverse of the packing helpers. Alpha is discarded, since JPEG
+stores no alpha:
+
+```csharp
+int[] framebuffer = ...;   // width * height packed pixels
+JpegImage image = JpegImage.CreateFromBgra8888(width, height, framebuffer);
+image.EncodeToFile("frame.jpg");
+
+// Or choose the layout at runtime:
+JpegImage img = JpegImage.CreateFromPackedPixels(width, height, framebuffer, PackedPixelFormat.Rgba8888);
+```
+
 ## Architecture
 
 The codec is organized into small, independently testable components:

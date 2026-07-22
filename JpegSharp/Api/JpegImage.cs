@@ -83,6 +83,76 @@ public sealed class JpegImage
     public static JpegImage CreateCmyk(int width, int height, byte[] pixels) =>
         new(width, height, JpegColorSpace.Cmyk, pixels);
 
+    /// <summary>
+    /// Creates an RGB image from one packed 32-bit color per pixel, in row-major order. This is
+    /// the inverse of <see cref="ToPackedPixels(PackedPixelFormat)"/>. Any alpha channel in the
+    /// packed value is discarded, since JPEG stores no alpha.
+    /// </summary>
+    /// <param name="width">Image width in pixels (must be positive).</param>
+    /// <param name="height">Image height in pixels (must be positive).</param>
+    /// <param name="pixels">The packed pixels, exactly <c>width * height</c> long.</param>
+    /// <param name="format">The channel ordering of each packed pixel.</param>
+    /// <returns>The RGB image.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">A dimension is not positive.</exception>
+    /// <exception cref="ArgumentException">The pixel count does not match the dimensions.</exception>
+    public static JpegImage CreateFromPackedPixels(int width, int height, ReadOnlySpan<int> pixels, PackedPixelFormat format)
+    {
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width), "Width must be positive.");
+        if (height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height), "Height must be positive.");
+
+        var pixelCount = width * height;
+        if (pixels.Length != pixelCount)
+            throw new ArgumentException($"Pixel count {pixels.Length} does not match {width}x{height} = {pixelCount}.", nameof(pixels));
+
+        // The same per-channel bit offsets used when packing; here we shift the other way.
+        var (rShift, gShift, bShift, _) = ShiftsFor(format);
+        var rgb = new byte[pixelCount * 3];
+        for (var i = 0; i < pixelCount; i++)
+        {
+            var px = pixels[i];
+            var o = i * 3;
+            rgb[o] = (byte)(px >> rShift);
+            rgb[o + 1] = (byte)(px >> gShift);
+            rgb[o + 2] = (byte)(px >> bShift);
+        }
+
+        return new JpegImage(width, height, JpegColorSpace.Rgb, rgb);
+    }
+
+    /// <summary>Creates an RGB image from RGBA-packed pixels (R in the high byte). Alpha is discarded.</summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="pixels">The packed pixels, exactly <c>width * height</c> long.</param>
+    /// <returns>The RGB image.</returns>
+    public static JpegImage CreateFromRgba8888(int width, int height, ReadOnlySpan<int> pixels) =>
+        CreateFromPackedPixels(width, height, pixels, PackedPixelFormat.Rgba8888);
+
+    /// <summary>Creates an RGB image from ARGB-packed pixels (A in the high byte). Alpha is discarded.</summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="pixels">The packed pixels, exactly <c>width * height</c> long.</param>
+    /// <returns>The RGB image.</returns>
+    public static JpegImage CreateFromArgb8888(int width, int height, ReadOnlySpan<int> pixels) =>
+        CreateFromPackedPixels(width, height, pixels, PackedPixelFormat.Argb8888);
+
+    /// <summary>Creates an RGB image from BGRA-packed pixels (B in the high byte). Alpha is discarded.</summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="pixels">The packed pixels, exactly <c>width * height</c> long.</param>
+    /// <returns>The RGB image.</returns>
+    public static JpegImage CreateFromBgra8888(int width, int height, ReadOnlySpan<int> pixels) =>
+        CreateFromPackedPixels(width, height, pixels, PackedPixelFormat.Bgra8888);
+
+    /// <summary>Creates an RGB image from ABGR-packed pixels (A in the high byte). Alpha is discarded.</summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="pixels">The packed pixels, exactly <c>width * height</c> long.</param>
+    /// <returns>The RGB image.</returns>
+    public static JpegImage CreateFromAbgr8888(int width, int height, ReadOnlySpan<int> pixels) =>
+        CreateFromPackedPixels(width, height, pixels, PackedPixelFormat.Abgr8888);
+
     /// <summary>Returns the number of channels for a color space.</summary>
     /// <param name="colorSpace">The color space.</param>
     /// <returns>The channel count.</returns>
