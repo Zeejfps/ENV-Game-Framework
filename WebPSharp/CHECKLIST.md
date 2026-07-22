@@ -68,9 +68,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Segment features (parse); segment-map decode in MB loop pending
 - [x] Quantization / dequantization (tables + per-segment matrix computation)
 - [x] Golden test infrastructure (cwebp/dwebp fixtures + reference RGBA)
-- [ ] Boolean coefficient decode (GetCoeffs token loop + GetLargeValue) — logic captured, to implement
-- [ ] Macroblock mode decode (16x16/UV/4x4 hardcoded trees + B-mode context)
-- [ ] Macroblock reconstruction (dequant -> inverse transform -> predict -> add residual)
+- [x] Boolean coefficient decode (GetCoeffs token loop + GetLargeValue) — Vp8Coefficients, validated on golden
+- [x] Macroblock mode decode (16x16/UV/4x4 hardcoded trees + B-mode context) — validated on golden
+- [x] Residual parse + non-zero context tracking (Y2 WHT + 16 Y + 8 UV) — validated on golden
+- [ ] Macroblock reconstruction (predict + inverse transform + add residual; libwebp per-MB buffer + top-right replication) — nofilter dwebp reference ready
 - [ ] Loop filter application across MB edges
 - [ ] Chroma upsampling + YUV->RGB plane assembly -> RGBA
 - [ ] Wire VP8 into WebP.Decode + pixel-exact golden validation vs dwebp
