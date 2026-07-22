@@ -1,0 +1,307 @@
+{
+  "audit": "JPEG spec compliance (ITU-T T.81 / T.871 JFIF / T.872 Exif) for pure C# encoder+decoder (JpegSharp)",
+  "started": "2026-07-22",
+  "completed": "2026-07-22",
+  "codebase_mapped": true,
+  "status": "AUDIT COMPLETE — all 17 sections reviewed (compliance + adversarial + test); results documented",
+  "summary": {
+    "pass": 2,
+    "partial": 13,
+    "fail": 2,
+    "unknown": 0
+  },
+  "sections_reviewed": [
+    {
+      "section": "Marker structure & segment framing (SOI/EOI/length/stuffing)",
+      "key": "marker-framing",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 7,
+      "n_required_fixes": 4,
+      "n_new_tests": 5
+    },
+    {
+      "section": "DQT quantization-table segment parsing",
+      "key": "dqt",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 6,
+      "n_required_fixes": 2,
+      "n_new_tests": 8
+    },
+    {
+      "section": "DHT Huffman-table segment parsing & table build",
+      "key": "dht",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 4,
+      "n_required_fixes": 4,
+      "n_new_tests": 9
+    },
+    {
+      "section": "SOF frame-header parsing (SOF0/1/2, reject SOF3/9-11/DAC)",
+      "key": "sof",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 7,
+      "n_required_fixes": 6,
+      "n_new_tests": 14
+    },
+    {
+      "section": "SOS scan-header parsing",
+      "key": "sos",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 6,
+      "n_required_fixes": 4,
+      "n_new_tests": 9
+    },
+    {
+      "section": "DRI interval + RSTn restart resync",
+      "key": "dri-restart",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 4,
+      "n_required_fixes": 4,
+      "n_new_tests": 10
+    },
+    {
+      "section": "Component handling, sampling factors, MCU structure & block order",
+      "key": "component-mcu",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 6,
+      "n_required_fixes": 4,
+      "n_new_tests": 7
+    },
+    {
+      "section": "Huffman entropy decode: DC diff, AC run/size, sign-extend, EOB, ZRL",
+      "key": "huffman-decode",
+      "status": "PASS",
+      "compliance": "PASS",
+      "adversarial": true,
+      "n_findings": 3,
+      "n_required_fixes": 0,
+      "n_new_tests": 12
+    },
+    {
+      "section": "Dequantization + zig-zag reordering",
+      "key": "dequant-zigzag",
+      "status": "PASS",
+      "compliance": "PASS",
+      "adversarial": true,
+      "n_findings": 4,
+      "n_required_fixes": 0,
+      "n_new_tests": 8
+    },
+    {
+      "section": "Inverse DCT, level shift, clamp/round",
+      "key": "idct-levelshift",
+      "status": "FAIL",
+      "compliance": "PASS",
+      "adversarial": false,
+      "n_findings": 5,
+      "n_required_fixes": 0,
+      "n_new_tests": 10
+    },
+    {
+      "section": "Color conversion (YCbCr/RGB/CMYK/YCCK) + chroma upsampling",
+      "key": "color-upsample",
+      "status": "FAIL",
+      "compliance": "FAIL",
+      "adversarial": "n/a",
+      "n_findings": 5,
+      "n_required_fixes": 4,
+      "n_new_tests": 7
+    },
+    {
+      "section": "Progressive: spectral selection + successive approximation + refinement",
+      "key": "progressive",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 6,
+      "n_required_fixes": 5,
+      "n_new_tests": 9
+    },
+    {
+      "section": "Encoder FDCT + quantization + zig-zag ordering",
+      "key": "enc-fdct-quant",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 3,
+      "n_required_fixes": 2,
+      "n_new_tests": 5
+    },
+    {
+      "section": "Encoder Huffman generation (standard+optimized) + bitstream + byte stuffing",
+      "key": "enc-huffman-bitstream",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 3,
+      "n_required_fixes": 2,
+      "n_new_tests": 8
+    },
+    {
+      "section": "Encoder marker emission + overall file-structure compliance",
+      "key": "enc-markers-structure",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 7,
+      "n_required_fixes": 2,
+      "n_new_tests": 10
+    },
+    {
+      "section": "Metadata: JFIF (APP0), Exif (APP1), ICC (APP2 multi-seg), Adobe (APP14), COM",
+      "key": "metadata",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 8,
+      "n_required_fixes": 6,
+      "n_new_tests": 16
+    },
+    {
+      "section": "Robustness: truncated / corrupt / malformed input",
+      "key": "robustness",
+      "status": "PARTIAL",
+      "compliance": "PARTIAL",
+      "adversarial": "n/a",
+      "n_findings": 7,
+      "n_required_fixes": 6,
+      "n_new_tests": 7
+    }
+  ],
+  "remaining_sections": [],
+  "known_issues": [
+    {
+      "section": "dqt",
+      "severity": "major",
+      "issue": "Decoder must reject Pq (precision nibble) not in {0,1}.",
+      "specRef": "T.81 B.2.4.1 (Pq = 0 -> 8-bit, Pq = 1 -> 16-bit; reject Pq not in {0,1})"
+    },
+    {
+      "section": "dht",
+      "severity": "major",
+      "issue": "Tc (table class) must be in {0,1}; values 2..15 are reserved and must be rejected (T.81 B.2.4.2, Table B.5)",
+      "specRef": "T.81 B.2.4.2 / Table B.5 (Tc definition)"
+    },
+    {
+      "section": "dht",
+      "severity": "major",
+      "issue": "Sum of the 16 BITS counts (total number of codes / HUFFVAL bytes) must be <= 256",
+      "specRef": "T.81 B.2.4.2 (sum of Li <= 256) / Annex F.2.2"
+    },
+    {
+      "section": "sof",
+      "severity": "major",
+      "issue": "Sum of Hi*Vi <= 10 for interleaved scans (T.81 A.2.2 / B.2.2 max 10 data units per MCU)",
+      "specRef": "ITU-T T.81 A.2.2 / B.2.2"
+    },
+    {
+      "section": "sof",
+      "severity": "major",
+      "issue": "Reject unsupported precisions; valid DCT precision is 8 (baseline) or 8/12 (extended/progressive) only",
+      "specRef": "ITU-T T.81 B.2.2 (P: baseline 8; extended/progressive 8 or 12)"
+    },
+    {
+      "section": "sof",
+      "severity": "major",
+      "issue": "Must reject DAC (Define Arithmetic Conditioning marker)",
+      "specRef": "ITU-T T.81 B.2.4.3 (DAC); requirement to reject DAC"
+    },
+    {
+      "section": "sos",
+      "severity": "major",
+      "issue": "Reject Ns=0 or Ns>4 (T.81 B.2.3: 1 <= Ns <= 4)",
+      "specRef": "T.81 B.2.3 (Ns range 1..4)"
+    },
+    {
+      "section": "sos",
+      "severity": "major",
+      "issue": "Baseline: Ss=0, Se=63, Ah=Al=0",
+      "specRef": "T.81 B.2.3 (baseline Ss=0,Se=63,Ah=Al=0)"
+    },
+    {
+      "section": "dri-restart",
+      "severity": "major",
+      "issue": "Decoder must handle missing/misordered RST gracefully.",
+      "specRef": "ITU-T T.81 F.1.2.3 / E.1.1 (restart markers, graceful resync)"
+    },
+    {
+      "section": "component-mcu",
+      "severity": "major",
+      "issue": "Non-interleaved (single-component) scans must use per-component dims: blocksPerLine=ceil(xi/8), xi=ceil(X*Hi/Hmax); blocksPerCol=ceil(yi/8), yi=ceil(Y*Vi/Vmax); MCU = 1 data unit (T.81 A.2.2, A.2.4).",
+      "specRef": "ITU-T T.81 A.2.2, A.2.4"
+    },
+    {
+      "section": "component-mcu",
+      "severity": "major",
+      "issue": "A baseline sequential frame may be coded as multiple (typically non-interleaved) scans; a decoder must process every scan (T.81 A.2, B.2.3).",
+      "specRef": "ITU-T T.81 A.2, B.2.3"
+    },
+    {
+      "section": "idct-levelshift",
+      "severity": "major",
+      "issue": "StoreBlock (BaselineDecoder.cs:464 8-bit, :478 high-precision) computes `value = (int)Math.Round(spatial) + center` in unchecked int arithmetic (net10.0, no CheckForOverflowUnderflow). Dequantized coefficients reach ~2.147e9 each (short coeff up to 32767 times ushort quant step up to 65535, Quantizer.cs:45), so an IDCT output pixel can exceed int.MaxValue. The double->int conversion saturates to int.MaxValue, then `+ center` overflows and wraps to a large NEGATIVE int, so Math.Clamp(negative,0,max) returns 0 instead of the required 2^P-1. The explicit clamp-to-max requirement is inverted for large-positive IDCT results: a should-be-saturated-white pixel decodes as black (0). The reviewer's 'Correct. clamp performed after level shift' finding overlooked that the level-shift addition itself overflows before the clamp sees a sane value.",
+      "specRef": "ITU-T T.81 A.3.1 (output clamped to [0, 2^P-1])"
+    },
+    {
+      "section": "color-upsample",
+      "severity": "blocker",
+      "issue": "T.871 YCbCr<->RGB centered at 2^(P-1); high-precision conversion must be correct across supported precisions (9-16 bit)",
+      "specRef": "T.871 YCbCr/RGB conversion; internal support of P=9..16"
+    },
+    {
+      "section": "progressive",
+      "severity": "major",
+      "issue": "T.81 B.2.3 / G.1: a progressive DC scan may be non-interleaved (single component), in which case data units are traversed in that component's own block raster (ceil(actualW/8) x ceil(actualH/8)), not the full-image MCU grid.",
+      "specRef": "T.81 B.2.3 (MCU order), G.1.2"
+    },
+    {
+      "section": "enc-fdct-quant",
+      "severity": "major",
+      "issue": "Quality scaling must clamp elements to [1,255] for 8-bit OR [1,65535] for 16-bit depending on output precision.",
+      "specRef": "T.81 Annex K.1 scaling; B.2.4.1 (Pq/Qk element precision)"
+    },
+    {
+      "section": "metadata",
+      "severity": "major",
+      "issue": "COM arbitrary bytes must round-trip losslessly",
+      "specRef": "T.81 B.2.4.5 (COM = arbitrary bytes); task requirement 'COM arbitrary bytes'"
+    },
+    {
+      "section": "metadata",
+      "severity": "major",
+      "issue": "ICC APP2 chunks must reassemble correctly; reader must tolerate duplicate/malformed chunk sets without producing corrupt output",
+      "specRef": "ICC.1 Annex B / T.872 (ICC_PROFILE\\0 + seqno + count, reassemble in order); task requirement 'reassemble in order' and 'tolerate duplicate'"
+    },
+    {
+      "section": "robustness",
+      "severity": "major",
+      "issue": "restart marker desync detection",
+      "specRef": "ITU-T T.81 E.1.4 / F.1.4 (restart marker sequence RSTm, m = 0..7 mod 8)"
+    },
+    {
+      "section": "robustness",
+      "severity": "major",
+      "issue": "no unbounded allocation / fail safely with a typed exception",
+      "specRef": "T.81 B.2.2 (dimensions up to 65535x65535); robustness: typed failure + bounded allocation"
+    }
+  ],
+  "deliverables": {
+    "report": ".jpeg-audit/REPORT.md",
+    "per_section_findings": ".jpeg-audit/findings/<key>.md",
+    "raw_data": ".jpeg-audit/audit-data.json"
+  }
+}
