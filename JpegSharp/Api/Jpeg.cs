@@ -116,7 +116,7 @@ public static class Jpeg
     /// <summary>Reads structural information from a JPEG stream.</summary>
     /// <param name="stream">The source stream.</param>
     /// <returns>The parsed <see cref="JpegInfo"/>.</returns>
-    public static JpegInfo Identify(Stream stream)
+    public static JpegInfo IdentifyFromStream(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
         using var ms = new MemoryStream();
