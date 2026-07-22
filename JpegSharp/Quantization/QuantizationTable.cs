@@ -48,18 +48,20 @@ public sealed class QuantizationTable
     /// scaling of the Annex K.1 base table.
     /// </summary>
     /// <param name="quality">Quality factor; clamped to 1..100. 100 yields all-ones.</param>
+    /// <param name="samplePrecision">Target sample precision in bits; >8 permits 16-bit steps.</param>
     /// <returns>The scaled luminance table.</returns>
-    public static QuantizationTable Luminance(int quality) =>
-        Scaled(StandardQuantizationTables.Luminance, quality);
+    public static QuantizationTable Luminance(int quality, int samplePrecision = 8) =>
+        Scaled(StandardQuantizationTables.Luminance, quality, samplePrecision);
 
     /// <summary>
     /// Builds a chrominance quantization table for the given quality factor using the IJG
     /// scaling of the Annex K.2 base table.
     /// </summary>
     /// <param name="quality">Quality factor; clamped to 1..100. 100 yields all-ones.</param>
+    /// <param name="samplePrecision">Target sample precision in bits; >8 permits 16-bit steps.</param>
     /// <returns>The scaled chrominance table.</returns>
-    public static QuantizationTable Chrominance(int quality) =>
-        Scaled(StandardQuantizationTables.Chrominance, quality);
+    public static QuantizationTable Chrominance(int quality, int samplePrecision = 8) =>
+        Scaled(StandardQuantizationTables.Chrominance, quality, samplePrecision);
 
     /// <summary>
     /// Creates a quantization table from 64 values given in zig-zag order, as they appear
@@ -96,12 +98,12 @@ public sealed class QuantizationTable
             destination[k] = _values[order[k]];
     }
 
-    private static QuantizationTable Scaled(ReadOnlySpan<ushort> baseTable, int quality)
+    private static QuantizationTable Scaled(ReadOnlySpan<ushort> baseTable, int quality, int samplePrecision)
     {
         var scale = StandardQuantizationTables.QualityToScale(quality);
         Span<ushort> scaled = stackalloc ushort[Size];
         for (var i = 0; i < Size; i++)
-            scaled[i] = StandardQuantizationTables.ScaleValue(baseTable[i], scale);
+            scaled[i] = StandardQuantizationTables.ScaleValue(baseTable[i], scale, samplePrecision);
         return new QuantizationTable(scaled);
     }
 }

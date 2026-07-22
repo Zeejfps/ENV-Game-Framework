@@ -54,6 +54,14 @@ public sealed class JpegMetadata
     public IList<string> Comments { get; } = new List<string>();
 
     /// <summary>
+    /// The raw comment (COM) segment payloads in file order. COM data is defined as arbitrary
+    /// bytes (T.81 B.2.4.5), so this is the lossless source of truth that round-trips binary or
+    /// non-UTF-8 comments exactly. When non-empty it takes precedence over <see cref="Comments"/>
+    /// on encode; <see cref="Comments"/> is a best-effort UTF-8 string view of the same data.
+    /// </summary>
+    public IList<byte[]> CommentBytes { get; } = new List<byte[]>();
+
+    /// <summary>
     /// Application segments the codec does not interpret (any APPn that is not a recognized
     /// JFIF/Exif/ICC/Adobe segment), preserved in file order for round-tripping.
     /// </summary>

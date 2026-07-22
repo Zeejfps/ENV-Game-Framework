@@ -251,11 +251,11 @@ internal sealed partial class BaselineEncoder
             WriteDri(writer);
     }
 
-    private static QuantizationTable LumaQuant(JpegEncoderOptions options) =>
-        options.LuminanceQuantizationTable ?? QuantizationTable.Luminance(options.Quality);
+    private QuantizationTable LumaQuant(JpegEncoderOptions options) =>
+        options.LuminanceQuantizationTable ?? QuantizationTable.Luminance(options.Quality, _precision);
 
-    private static QuantizationTable ChromaQuant(JpegEncoderOptions options) =>
-        options.ChrominanceQuantizationTable ?? QuantizationTable.Chrominance(options.Quality);
+    private QuantizationTable ChromaQuant(JpegEncoderOptions options) =>
+        options.ChrominanceQuantizationTable ?? QuantizationTable.Chrominance(options.Quality, _precision);
 
     // Baseline blocks are stored in one flat buffer (64 shorts per block, in scan order) to
     // avoid a per-block array allocation on large images.

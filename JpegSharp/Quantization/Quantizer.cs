@@ -24,7 +24,8 @@ internal static class Quantizer
         for (var i = 0; i < BlockSize; i++)
         {
             var value = coefficients[i] / table[i];
-            output[i] = (short)Math.Round(value, MidpointRounding.AwayFromZero);
+            var rounded = Math.Round(value, MidpointRounding.AwayFromZero);
+            output[i] = (short)Math.Clamp(rounded, short.MinValue, short.MaxValue);
         }
     }
 

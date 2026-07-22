@@ -49,8 +49,9 @@ internal sealed partial class BaselineDecoder
 
     private JfifDensity? _density;
     private byte[]? _exif;
-    private readonly List<(int Seq, byte[] Data)> _iccChunks = [];
+    private readonly List<(int Seq, int Count, byte[] Data)> _iccChunks = [];
     private readonly List<string> _comments = [];
+    private readonly List<byte[]> _commentBytes = [];
     private readonly List<JpegApplicationSegment> _appSegments = [];
 
     private ScanHeader _scan;
@@ -75,42 +76,69 @@ internal sealed partial class BaselineDecoder
 
     public JpegImage Decode()
     {
-        using var ms = new MemoryStream(_data, writable: false);
-        var reader = new MarkerReader(ms);
-        RequireSoi(reader);
-        var entropyStart = ParseHeaders(reader, ms);
+        try
+        {
+            using var ms = new MemoryStream(_data, writable: false);
+            var reader = new MarkerReader(ms);
+            RequireSoi(reader);
+            var entropyStart = ParseHeaders(reader, ms);
 
-        if (_precision != 8)
-            throw new JpegFormatException($"Unsupported sample precision {_precision} for Decode; only 8-bit is supported. Use Decode16 / DecodeAnyPrecision for higher precision.");
-        ValidatePixelBudget();
+            if (_precision != 8)
+                throw new JpegFormatException($"Unsupported sample precision {_precision} for Decode; only 8-bit is supported. Use Decode16 / DecodeAnyPrecision for higher precision.");
+            ValidatePixelBudget();
 
-        FillPlanes(reader, ms, entropyStart);
-        var image = AssembleImage(_mcusPerRow, _mcusPerCol);
-        if (_options.ReadMetadata)
-            image.Metadata = BuildMetadata();
-        return image;
+            FillPlanes(reader, ms, entropyStart);
+            var image = AssembleImage(_mcusPerRow, _mcusPerCol);
+            if (_options.ReadMetadata)
+                image.Metadata = BuildMetadata();
+            return image;
+        }
+        catch (Exception ex) when (WrapAsJpegException(ex) is { } wrapped)
+        {
+            throw wrapped;
+        }
     }
 
     public JpegImage16 Decode16()
     {
-        using var ms = new MemoryStream(_data, writable: false);
-        var reader = new MarkerReader(ms);
-        RequireSoi(reader);
-        var entropyStart = ParseHeaders(reader, ms);
+        try
+        {
+            using var ms = new MemoryStream(_data, writable: false);
+            var reader = new MarkerReader(ms);
+            RequireSoi(reader);
+            var entropyStart = ParseHeaders(reader, ms);
 
-        if (_precision == 8)
-            throw new JpegFormatException("This is an 8-bit JPEG; use Decode.");
-        // JPEG DCT sample precision is 8 or 12 (ITU-T T.81); 13–16 bit would overflow the
-        // 16-bit coefficient buffers, so it is rejected rather than silently corrupted.
-        if (_precision is < 9 or > 12)
-            throw new JpegFormatException($"Unsupported sample precision {_precision}; JPEG DCT precision is 8 or 12.");
-        ValidatePixelBudget();
+            if (_precision == 8)
+                throw new JpegFormatException("This is an 8-bit JPEG; use Decode.");
+            // JPEG DCT sample precision is 8 or 12 (ITU-T T.81); 13–16 bit would overflow the
+            // 16-bit coefficient buffers, so it is rejected rather than silently corrupted.
+            if (_precision != 12)
+                throw new JpegFormatException($"Unsupported sample precision {_precision}; JPEG DCT precision is 8 or 12.");
+            ValidatePixelBudget();
 
-        FillPlanes(reader, ms, entropyStart);
-        var image = AssembleImage16(_mcusPerRow, _mcusPerCol);
-        if (_options.ReadMetadata)
-            image.Metadata = BuildMetadata();
-        return image;
+            FillPlanes(reader, ms, entropyStart);
+            var image = AssembleImage16(_mcusPerRow, _mcusPerCol);
+            if (_options.ReadMetadata)
+                image.Metadata = BuildMetadata();
+            return image;
+        }
+        catch (Exception ex) when (WrapAsJpegException(ex) is { } wrapped)
+        {
+            throw wrapped;
+        }
+    }
+
+    // Single typed-failure contract for the public decode entry points: any failure during decode
+    // surfaces as a JpegException subtype. Already-typed JpegExceptions (all the DQT/DHT/SOF/SOS
+    // and geometry guards) pass through unchanged so their specific type/message survives; any
+    // other exception (IndexOutOfRange, Overflow, ArgumentException from a deep helper) is wrapped.
+    // OutOfMemoryException from a hostile allocation is intentionally converted to a typed failure.
+    // Returns null (leaving the exception to propagate) for already-typed failures.
+    private static JpegException? WrapAsJpegException(Exception ex)
+    {
+        if (ex is JpegException)
+            return null;
+        return new JpegFormatException("Malformed JPEG stream.", ex);
     }
 
     private void ValidatePixelBudget()
@@ -126,23 +154,30 @@ internal sealed partial class BaselineDecoder
         if (_isProgressive)
             DecodeProgressive(reader, ms, entropyStart);
         else
-            DecodeScan(_data, entropyStart);
+            DecodeSequential(reader, ms, entropyStart);
     }
 
     public JpegInfo ReadInfo()
     {
-        using var ms = new MemoryStream(_data, writable: false);
-        var reader = new MarkerReader(ms);
-        RequireSoi(reader);
-        ParseHeaders(reader, ms);
-
-        var colorSpace = _components.Length switch
+        try
         {
-            1 => JpegColorSpace.Grayscale,
-            4 => JpegColorSpace.Cmyk,
-            _ => JpegColorSpace.Rgb,
-        };
-        return new JpegInfo(_width, _height, _components.Length, colorSpace, _precision, _isProgressive);
+            using var ms = new MemoryStream(_data, writable: false);
+            var reader = new MarkerReader(ms);
+            RequireSoi(reader);
+            ParseHeaders(reader, ms);
+
+            var colorSpace = _components.Length switch
+            {
+                1 => JpegColorSpace.Grayscale,
+                4 => JpegColorSpace.Cmyk,
+                _ => JpegColorSpace.Rgb,
+            };
+            return new JpegInfo(_width, _height, _components.Length, colorSpace, _precision, _isProgressive);
+        }
+        catch (Exception ex) when (WrapAsJpegException(ex) is { } wrapped)
+        {
+            throw wrapped;
+        }
     }
 
     private static void RequireSoi(MarkerReader reader)
@@ -165,6 +200,11 @@ internal sealed partial class BaselineDecoder
                 return (int)ms.Position;
             }
 
+            // Standalone markers (RSTn/TEM) carry no length field; skip them rather than
+            // misreading the following bytes as a segment length.
+            if (!JpegMarkers.HasLengthField(marker))
+                continue;
+
             var segment = reader.ReadSegment();
             switch (marker)
             {
@@ -179,6 +219,10 @@ internal sealed partial class BaselineDecoder
                 case JpegMarkers.StartOfFrameProgressive:
                     ParseFrameHeader(segment, marker);
                     break;
+                case JpegMarkers.DefineArithmeticConditioning:
+                    throw new JpegFormatException(
+                        "Unsupported entropy coding (DAC marker 0xCC): arithmetic coding is not supported; " +
+                        "only Huffman-coded baseline, extended sequential, and progressive frames are supported.");
                 case JpegMarkers.DefineRestartInterval:
                     if (segment.Length < 2)
                         throw new JpegFormatException("Truncated DRI segment.");
@@ -201,7 +245,9 @@ internal sealed partial class BaselineDecoder
                         PreserveApp(marker, segment);
                     break;
                 case JpegMarkers.Comment:
-                    _comments.Add(System.Text.Encoding.UTF8.GetString(segment));
+                    var commentBytes = segment.ToArray();
+                    _commentBytes.Add(commentBytes);
+                    _comments.Add(System.Text.Encoding.UTF8.GetString(commentBytes));
                     break;
                 default:
                     if (JpegMarkers.IsAppMarker(marker))
@@ -229,6 +275,8 @@ internal sealed partial class BaselineDecoder
             var id = pqTq & 0x0F;
             if (id >= _quantTables.Length)
                 throw new JpegFormatException($"Invalid quantization table id {id}.");
+            if (precision > 1)
+                throw new JpegFormatException($"Invalid quantization table precision {precision}.");
 
             if (precision == 0)
             {
@@ -267,6 +315,8 @@ internal sealed partial class BaselineDecoder
             var tcTh = segment[p++];
             var tableClass = tcTh >> 4;
             var id = tcTh & 0x0F;
+            if (tableClass > 1)
+                throw new JpegFormatException($"Invalid Huffman table class {tableClass}.");
             if (id >= 4)
                 throw new JpegFormatException($"Invalid Huffman table id {id}.");
             if (p + 16 > segment.Length)
@@ -277,6 +327,8 @@ internal sealed partial class BaselineDecoder
             var total = 0;
             for (var i = 0; i < 16; i++)
                 total += counts[i];
+            if (total > 256)
+                throw new JpegFormatException($"Huffman table has {total} codes, exceeding the maximum of 256.");
             if (p + total > segment.Length)
                 throw new JpegFormatException("Truncated Huffman table symbols.");
 
@@ -307,6 +359,13 @@ internal sealed partial class BaselineDecoder
 
         _precision = segment[0];
         _isProgressive = marker == JpegMarkers.StartOfFrameProgressive;
+        var precisionValid = marker == JpegMarkers.StartOfFrameBaseline
+            ? _precision == 8
+            : _precision is 8 or 12;
+        if (!precisionValid)
+            throw new JpegFormatException(
+                $"Unsupported sample precision {_precision} for SOF marker 0x{marker:X2}; baseline (SOF0) requires " +
+                "8-bit, extended sequential (SOF1) and progressive (SOF2) require 8- or 12-bit.");
         _height = (segment[1] << 8) | segment[2];
         _width = (segment[3] << 8) | segment[4];
         var count = segment[5];
@@ -342,8 +401,8 @@ internal sealed partial class BaselineDecoder
         if (segment.Length < 1)
             throw new JpegFormatException("Truncated scan header.");
         var count = segment[0];
-        if (count == 0 || segment.Length < 1 + count * 2 + 3)
-            throw new JpegFormatException("Truncated or invalid scan component list.");
+        if (count == 0 || count > 4 || segment.Length < 1 + count * 2 + 3)
+            throw new JpegFormatException("Truncated or invalid scan component list; Ns must be 1..4.");
         var p = 1;
         var indices = new int[count];
         for (var i = 0; i < count; i++)
@@ -357,9 +416,21 @@ internal sealed partial class BaselineDecoder
             indices[i] = index;
         }
 
+        if (count > 1)
+        {
+            var dataUnits = 0;
+            foreach (var index in indices)
+                dataUnits += _components[index].H * _components[index].V;
+            if (dataUnits > 10)
+                throw new JpegFormatException(
+                    $"Sum of sampling factors Σ(Hi·Vi)={dataUnits} in interleaved scan exceeds the maximum of 10 data units per MCU (ITU-T T.81 A.2.2).");
+        }
+
         var ss = segment[p];
         var se = segment[p + 1];
         var ahAl = segment[p + 2];
+        if (!_isProgressive && (ss != 0 || se != 63 || (ahAl >> 4) != 0 || (ahAl & 0x0F) != 0))
+            throw new JpegFormatException($"Sequential scan requires Ss=0, Se=63, Ah=0, Al=0 (got Ss={ss}, Se={se}, Ah={ahAl >> 4}, Al={ahAl & 0x0F}).");
         _scan = new ScanHeader
         {
             Components = indices,
@@ -386,10 +457,26 @@ internal sealed partial class BaselineDecoder
         _mcusPerRow = CeilDiv(_width, 8 * _hmax);
         _mcusPerCol = CeilDiv(_height, 8 * _vmax);
 
+        // Hostile dimensions/sampling (T.81 allows up to 65535x65535 with 4x4 sampling) can make
+        // these size products overflow 32-bit, yielding a small/negative allocation that corrupts
+        // decode. Compute them in long and reject before allocating. Independent of MaxPixels:
+        // sampling can inflate a component plane or coefficient buffer past int.MaxValue even when
+        // width*height is within the pixel budget.
+        if ((long)_width * _height * _components.Length > int.MaxValue)
+            throw new JpegFormatException(
+                $"Image {_width}x{_height} with {_components.Length} components exceeds the maximum decodable buffer size.");
+
         foreach (var c in _components)
         {
             c.BlocksWide = _mcusPerRow * c.H;
             c.BlocksHigh = _mcusPerCol * c.V;
+            // Both the sample plane (PlaneWidth*PlaneHeight == BlocksWide*BlocksHigh*64) and the
+            // progressive coefficient buffer (BlocksWide*BlocksHigh*64) share this size, so one
+            // guard here protects the sequential and progressive allocation paths alike.
+            var bufferSize = (long)c.BlocksWide * c.BlocksHigh * 64;
+            if (bufferSize > int.MaxValue)
+                throw new JpegFormatException(
+                    $"Component plane/coefficient buffer size {bufferSize} exceeds the maximum decodable buffer size.");
             c.PlaneWidth = c.BlocksWide * 8;
             c.PlaneHeight = c.BlocksHigh * 8;
             if (_precision == 8)
@@ -399,13 +486,65 @@ internal sealed partial class BaselineDecoder
         }
     }
 
-    private void DecodeScan(byte[] data, int entropyStart)
+    // A baseline/extended-sequential frame may be coded as multiple scans (ITU-T T.81 A.2).
+    // Mirror the progressive driver: decode a scan, seek past it, parse any tables between
+    // scans, and continue at the next SOS until EOI.
+    private void DecodeSequential(MarkerReader reader, MemoryStream ms, int entropyStart)
     {
         SetupGeometry();
-        var mcusPerRow = _mcusPerRow;
-        var mcusPerCol = _mcusPerCol;
 
-        var reader = new BitReader(data.AsSpan(entropyStart));
+        var scan = _scan;
+        var pos = entropyStart;
+        while (true)
+        {
+            pos = DecodeSequentialScan(scan, pos);
+            ms.Position = pos;
+
+            var marker = reader.ReadMarker();
+            while (marker != JpegMarkers.EndOfImage && marker != JpegMarkers.StartOfScan)
+            {
+                var segment = reader.ReadSegment();
+                switch (marker)
+                {
+                    case JpegMarkers.DefineQuantizationTables:
+                        ParseQuantTables(segment);
+                        break;
+                    case JpegMarkers.DefineHuffmanTables:
+                        ParseHuffmanTables(segment);
+                        break;
+                    case JpegMarkers.DefineRestartInterval:
+                        if (segment.Length < 2)
+                            throw new JpegFormatException("Truncated DRI segment.");
+                        _restartInterval = (segment[0] << 8) | segment[1];
+                        break;
+
+                    // Other markers between scans (APPn, COM) are ignored during decode.
+                }
+
+                marker = reader.ReadMarker();
+            }
+
+            if (marker == JpegMarkers.EndOfImage)
+                break;
+
+            ParseScanHeader(reader.ReadSegment());
+            scan = _scan;
+            pos = (int)ms.Position;
+        }
+    }
+
+    private int DecodeSequentialScan(ScanHeader scan, int pos)
+    {
+        var reader = new BitReader(_data.AsSpan(pos));
+        if (scan.Components.Length > 1)
+            DecodeInterleavedScan(ref reader, scan);
+        else
+            DecodeNonInterleavedScan(ref reader, scan);
+        return pos + reader.BytePosition;
+    }
+
+    private void DecodeInterleavedScan(ref BitReader reader, ScanHeader scan)
+    {
         var predictors = new int[_components.Length];
         Span<short> zz = stackalloc short[64];
         Span<short> natural = stackalloc short[64];
@@ -414,19 +553,20 @@ internal sealed partial class BaselineDecoder
 
         var mcuCount = 0;
 
-        for (var my = 0; my < mcusPerCol; my++)
+        for (var my = 0; my < _mcusPerCol; my++)
         {
-            for (var mx = 0; mx < mcusPerRow; mx++)
+            for (var mx = 0; mx < _mcusPerRow; mx++)
             {
                 if (_restartInterval > 0 && mcuCount > 0 && mcuCount % _restartInterval == 0)
                 {
-                    reader.SkipRestartMarker();
+                    var expectedRst = (mcuCount / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
                     Array.Clear(predictors);
                 }
 
                 // Interleaved MCUs follow the scan's component order (which may differ from the
                 // frame's), per ITU-T T.81 B.2.3.
-                foreach (var ci in _scan.Components)
+                foreach (var ci in scan.Components)
                 {
                     var c = _components[ci];
                     var quant = GetQuantTable(c.QuantId).AsSpan();
@@ -450,6 +590,47 @@ internal sealed partial class BaselineDecoder
         }
     }
 
+    // Non-interleaved scan (Ns==1): one data unit per MCU over the component's own block grid,
+    // sized from its actual pixel dimensions (ITU-T T.81 A.2.2 / A.2.4).
+    private void DecodeNonInterleavedScan(ref BitReader reader, ScanHeader scan)
+    {
+        var c = _components[scan.Components[0]];
+        var quant = GetQuantTable(c.QuantId).AsSpan();
+        var dc = GetDcTable(c.DcTableId);
+        var ac = GetAcTable(c.AcTableId);
+        var blocksPerLine = CeilDiv(ComponentActualWidth(c), 8);
+        var blocksPerCol = CeilDiv(ComponentActualHeight(c), 8);
+
+        Span<short> zz = stackalloc short[64];
+        Span<short> natural = stackalloc short[64];
+        Span<double> dequant = stackalloc double[64];
+        Span<double> spatial = stackalloc double[64];
+
+        var predictor = 0;
+        var blockIndex = 0;
+
+        for (var by = 0; by < blocksPerCol; by++)
+        {
+            for (var bx = 0; bx < blocksPerLine; bx++)
+            {
+                if (_restartInterval > 0 && blockIndex > 0 && blockIndex % _restartInterval == 0)
+                {
+                    var expectedRst = (blockIndex / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
+                    predictor = 0;
+                }
+
+                blockIndex++;
+
+                predictor = BlockScanCoder.DecodeBlock(ref reader, zz, predictor, dc, ac);
+                ZigZag.ToNatural(zz, natural);
+                Quantizer.Dequantize(natural, quant, dequant);
+                FastDct.Inverse(dequant, spatial);
+                StoreBlock(c, bx * 8, by * 8, spatial);
+            }
+        }
+    }
+
     // Level-shifts, rounds and clamps an inverse-DCT block into the component's sample plane.
     // The level-shift offset and clamp ceiling scale with the sample precision.
     private void StoreBlock(Component c, int x0, int y0, ReadOnlySpan<double> spatial)
@@ -460,10 +641,7 @@ internal sealed partial class BaselineDecoder
             {
                 var row = (y0 + yy) * c.PlaneWidth + x0;
                 for (var xx = 0; xx < 8; xx++)
-                {
-                    var value = (int)Math.Round(spatial[yy * 8 + xx]) + 128;
-                    c.Plane[row + xx] = (byte)Math.Clamp(value, 0, 255);
-                }
+                    c.Plane[row + xx] = LevelShiftClamp8(spatial[yy * 8 + xx]);
             }
         }
         else
@@ -474,12 +652,21 @@ internal sealed partial class BaselineDecoder
             {
                 var row = (y0 + yy) * c.PlaneWidth + x0;
                 for (var xx = 0; xx < 8; xx++)
-                {
-                    var value = (int)Math.Round(spatial[yy * 8 + xx]) + center;
-                    c.Plane16[row + xx] = (ushort)Math.Clamp(value, 0, max);
-                }
+                    c.Plane16[row + xx] = LevelShiftClampHigh(spatial[yy * 8 + xx], center, max);
             }
         }
+    }
+
+    internal static byte LevelShiftClamp8(double spatial)
+    {
+        var value = Math.Round(spatial) + 128;
+        return (byte)Math.Clamp(value, 0.0, 255.0);
+    }
+
+    internal static ushort LevelShiftClampHigh(double spatial, int center, int max)
+    {
+        var value = Math.Round(spatial) + center;
+        return (ushort)Math.Clamp(value, 0.0, (double)max);
     }
 
     private JpegImage AssembleImage(int mcusPerRow, int mcusPerCol)

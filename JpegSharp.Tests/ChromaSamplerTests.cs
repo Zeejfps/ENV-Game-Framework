@@ -148,4 +148,20 @@ public class ChromaSamplerTests
         Assert.Throws<ArgumentOutOfRangeException>(
             () => ChromaSampler.Downsample(new byte[4], 2, 2, 0, 1, dst, 2, 2));
     }
+
+    [Fact]
+    public void Downsample_OversizedDst_ThrowsValidationNotDivideByZero()
+    {
+        // 4x4 source with 2x2 factor -> subsampled size is 2x2; a 3x3 dst is oversized
+        // and would divide by count==0 for out-of-range blocks without validation.
+        var src = new byte[16];
+        var dst = new byte[9];
+        Assert.Throws<ArgumentException>(
+            () => ChromaSampler.Downsample(src, 4, 4, 2, 2, dst, 3, 3));
+
+        var srcU = new ushort[16];
+        var dstU = new ushort[9];
+        Assert.Throws<ArgumentException>(
+            () => ChromaSampler.Downsample(srcU, 4, 4, 2, 2, dstU, 3, 3));
+    }
 }

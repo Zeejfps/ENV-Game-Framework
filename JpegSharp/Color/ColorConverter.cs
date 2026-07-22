@@ -73,9 +73,9 @@ internal static class ColorConverter
         var center = (maxValue + 1) >> 1;
         int c = cr - center;
         int d = cb - center;
-        r = ClampTo(y + ((CrToR * c + Half) >> ScaleBits), maxValue);
-        g = ClampTo(y - ((CbToG * d + CrToG * c + Half) >> ScaleBits), maxValue);
-        b = ClampTo(y + ((CbToB * d + Half) >> ScaleBits), maxValue);
+        r = ClampTo(y + (int)((CrToR * (long)c + Half) >> ScaleBits), maxValue);
+        g = ClampTo(y - (int)((CbToG * (long)d + CrToG * (long)c + Half) >> ScaleBits), maxValue);
+        b = ClampTo(y + (int)((CbToB * (long)d + Half) >> ScaleBits), maxValue);
     }
 
     /// <summary>Converts a single high-precision RGB pixel to JFIF YCbCr.</summary>
@@ -90,9 +90,9 @@ internal static class ColorConverter
     public static void RgbToYCbCr(int r, int g, int b, int maxValue, out ushort y, out ushort cb, out ushort cr)
     {
         var center = (maxValue + 1) >> 1;
-        y = ClampTo((YR * r + YG * g + YB * b + Half) >> ScaleBits, maxValue);
-        cb = ClampTo((CbR * r + CbG * g + CbB * b + (center << ScaleBits) + Half) >> ScaleBits, maxValue);
-        cr = ClampTo((CrR * r + CrG * g + CrB * b + (center << ScaleBits) + Half) >> ScaleBits, maxValue);
+        y = ClampTo((int)((YR * (long)r + YG * (long)g + YB * (long)b + Half) >> ScaleBits), maxValue);
+        cb = ClampTo((int)((CbR * (long)r + CbG * (long)g + CbB * (long)b + ((long)center << ScaleBits) + Half) >> ScaleBits), maxValue);
+        cr = ClampTo((int)((CrR * (long)r + CrG * (long)g + CrB * (long)b + ((long)center << ScaleBits) + Half) >> ScaleBits), maxValue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

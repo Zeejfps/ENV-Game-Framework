@@ -51,18 +51,21 @@ internal static class StandardQuantizationTables
 
     /// <summary>
     /// Scales a single base quantization value by the given scale percentage and clamps the
-    /// result to the 8-bit precision range [1, 255].
+    /// result to the target element range: [1, 255] for an 8-bit table (Pq=0) or [1, 65535]
+    /// for a high-precision table (Pq=1) when <paramref name="samplePrecision"/> exceeds 8.
     /// </summary>
     /// <param name="baseValue">The unscaled Annex K table entry.</param>
     /// <param name="scale">The scale percentage from <see cref="QualityToScale"/>.</param>
+    /// <param name="samplePrecision">Target sample precision in bits; >8 permits 16-bit steps.</param>
     /// <returns>The scaled, clamped quantization step.</returns>
-    public static ushort ScaleValue(ushort baseValue, int scale)
+    public static ushort ScaleValue(ushort baseValue, int scale, int samplePrecision = 8)
     {
+        var max = samplePrecision > 8 ? 65535 : 255;
         var scaled = (baseValue * scale + 50) / 100;
         if (scaled < 1)
             scaled = 1;
-        else if (scaled > 255)
-            scaled = 255;
+        else if (scaled > max)
+            scaled = max;
         return (ushort)scaled;
     }
 }

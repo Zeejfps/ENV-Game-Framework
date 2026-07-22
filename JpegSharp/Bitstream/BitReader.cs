@@ -2,6 +2,19 @@ using JpegSharp.Api.Exceptions;
 
 namespace JpegSharp.Bitstream;
 
+/// <summary>Outcome of a restart-marker resync at a restart-interval boundary.</summary>
+internal enum RestartResync
+{
+    /// <summary>The expected RSTn marker was found and consumed.</summary>
+    FoundExpected,
+
+    /// <summary>A restart marker was found and consumed, but its number did not match the expected one.</summary>
+    FoundMismatch,
+
+    /// <summary>No restart marker was found within the bounded resync window.</summary>
+    Missing,
+}
+
 /// <summary>
 /// An MSB-first bit reader over a JPEG entropy-coded segment. Transparently removes
 /// <c>0x00</c> stuffing bytes that follow a <c>0xFF</c> data byte and detects marker codes
@@ -113,28 +126,59 @@ internal ref struct BitReader
         _count = 0;
     }
 
+    // At a restart boundary the reader normally sits exactly on the 0xFF; a small tolerance
+    // absorbs any leftover buffered entropy/stuffing bytes without scanning arbitrarily far.
+    private const int RestartResyncTolerance = 2;
+
     /// <summary>
-    /// Discards any buffered bits, locates the next restart marker (RST0–RST7) in the
-    /// underlying byte stream, and advances just past it. Used at restart-interval
-    /// boundaries during entropy decoding.
+    /// Discards any buffered bits and performs a bounded, byte-aligned resync onto the restart
+    /// marker (RST0–RST7) expected at the current restart-interval boundary. Only a couple of
+    /// leftover bytes and any 0xFF fill run are skipped; the scan never runs unboundedly.
     /// </summary>
-    /// <exception cref="JpegFormatException">No restart marker is found where expected.</exception>
-    public void SkipRestartMarker()
+    /// <param name="expectedRst">The RSTn number (0–7) expected at this boundary.</param>
+    /// <param name="strict">
+    /// When true, a mismatched or missing marker throws <see cref="JpegCorruptException"/>;
+    /// when false the reader resyncs leniently and reports the outcome.
+    /// </param>
+    /// <returns>What was found at the boundary.</returns>
+    /// <exception cref="JpegCorruptException">
+    /// A marker is missing or out of sequence and <paramref name="strict"/> is true.
+    /// </exception>
+    public RestartResync SkipRestartMarker(int expectedRst, bool strict)
     {
         _buffer = 0;
         _count = 0;
         _marker = false;
         _markerCode = 0;
 
-        while (_pos < _data.Length && _data[_pos] != 0xFF)
+        var startPos = _pos;
+        var skipped = 0;
+        while (_pos < _data.Length && _data[_pos] != 0xFF && skipped < RestartResyncTolerance)
+        {
             _pos++;
+            skipped++;
+        }
+
         while (_pos < _data.Length && _data[_pos] == 0xFF)
             _pos++;
 
-        if (_pos >= _data.Length || _data[_pos] is < 0xD0 or > 0xD7)
+        if (_pos < _data.Length && _data[_pos] is >= 0xD0 and <= 0xD7)
+        {
+            var found = _data[_pos] - 0xD0;
+            _pos++;
+            if (found == expectedRst)
+                return RestartResync.FoundExpected;
+            if (strict)
+                throw new JpegCorruptException(
+                    $"Restart marker out of sequence: expected RST{expectedRst}, found RST{found}.");
+            return RestartResync.FoundMismatch;
+        }
+
+        if (strict)
             throw new JpegCorruptException("Expected a restart marker in the entropy stream.");
 
-        _pos++;
+        _pos = startPos;
+        return RestartResync.Missing;
     }
 
     /// <summary>

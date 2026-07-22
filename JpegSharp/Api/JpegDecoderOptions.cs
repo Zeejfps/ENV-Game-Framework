@@ -18,4 +18,13 @@ public sealed class JpegDecoderOptions
     /// and <see cref="JpegImage.Metadata"/> is left null.
     /// </summary>
     public bool ReadMetadata { get; set; } = true;
+
+    /// <summary>
+    /// Controls how restart markers (RST0–RST7) are validated at restart-interval boundaries.
+    /// When false (the default), a missing or out-of-sequence restart marker is handled
+    /// leniently: the decoder resyncs, resets its DC predictors and continues, matching its
+    /// general tolerance of truncated or corrupt entropy data. When true, a missing or
+    /// misordered restart marker throws <see cref="Exceptions.JpegCorruptException"/>.
+    /// </summary>
+    public bool StrictRestartMarkers { get; set; } = false;
 }

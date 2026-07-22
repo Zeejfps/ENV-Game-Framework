@@ -91,6 +91,12 @@ internal sealed partial class BaselineDecoder
 
     private void DecodeDcFirst(ref BitReader reader, ScanHeader scan)
     {
+        if (scan.Components.Length == 1)
+        {
+            DecodeDcFirstNonInterleaved(ref reader, scan);
+            return;
+        }
+
         var predictors = new int[scan.Components.Length];
         var mcuCount = 0;
 
@@ -100,7 +106,8 @@ internal sealed partial class BaselineDecoder
             {
                 if (_restartInterval > 0 && mcuCount > 0 && mcuCount % _restartInterval == 0)
                 {
-                    reader.SkipRestartMarker();
+                    var expectedRst = (mcuCount / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
                     Array.Clear(predictors);
                 }
 
@@ -133,6 +140,42 @@ internal sealed partial class BaselineDecoder
         }
     }
 
+    private void DecodeDcFirstNonInterleaved(ref BitReader reader, ScanHeader scan)
+    {
+        var ci = scan.Components[0];
+        var c = _components[ci];
+        var dc = GetDcTable(c.DcTableId);
+        var buffer = _coefficients[ci];
+        var blocksPerLine = CeilDiv(ComponentActualWidth(c), 8);
+        var blocksPerCol = CeilDiv(ComponentActualHeight(c), 8);
+
+        var predictor = 0;
+        var blockIndex = 0;
+
+        for (var by = 0; by < blocksPerCol; by++)
+        {
+            for (var bx = 0; bx < blocksPerLine; bx++)
+            {
+                if (_restartInterval > 0 && blockIndex > 0 && blockIndex % _restartInterval == 0)
+                {
+                    var expectedRst = (blockIndex / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
+                    predictor = 0;
+                }
+
+                blockIndex++;
+
+                var offset = (by * c.BlocksWide + bx) * 64;
+                var s = dc.DecodeSymbol(ref reader);
+                if (s is < 0 or > 16)
+                    throw new JpegFormatException($"Invalid DC magnitude category {s}.");
+                var diff = s == 0 ? 0 : BitReader.Extend(reader.ReadBits(s), s);
+                predictor += diff;
+                buffer[offset] = (short)(predictor << scan.Al);
+            }
+        }
+    }
+
     private void DecodeAcFirst(ref BitReader reader, ScanHeader scan)
     {
         var ci = scan.Components[0];
@@ -151,7 +194,8 @@ internal sealed partial class BaselineDecoder
             {
                 if (_restartInterval > 0 && blockIndex > 0 && blockIndex % _restartInterval == 0)
                 {
-                    reader.SkipRestartMarker();
+                    var expectedRst = (blockIndex / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
                     eobRun = 0;
                 }
 
@@ -198,6 +242,12 @@ internal sealed partial class BaselineDecoder
 
     private void DecodeDcRefine(ref BitReader reader, ScanHeader scan)
     {
+        if (scan.Components.Length == 1)
+        {
+            DecodeDcRefineNonInterleaved(ref reader, scan);
+            return;
+        }
+
         var p1 = (short)(1 << scan.Al);
         var mcuCount = 0;
 
@@ -206,7 +256,10 @@ internal sealed partial class BaselineDecoder
             for (var mx = 0; mx < _mcusPerRow; mx++)
             {
                 if (_restartInterval > 0 && mcuCount > 0 && mcuCount % _restartInterval == 0)
-                    reader.SkipRestartMarker();
+                {
+                    var expectedRst = (mcuCount / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
+                }
 
                 for (var si = 0; si < scan.Components.Length; si++)
                 {
@@ -231,6 +284,36 @@ internal sealed partial class BaselineDecoder
         }
     }
 
+    private void DecodeDcRefineNonInterleaved(ref BitReader reader, ScanHeader scan)
+    {
+        var ci = scan.Components[0];
+        var c = _components[ci];
+        var buffer = _coefficients[ci];
+        var blocksPerLine = CeilDiv(ComponentActualWidth(c), 8);
+        var blocksPerCol = CeilDiv(ComponentActualHeight(c), 8);
+
+        var p1 = (short)(1 << scan.Al);
+        var blockIndex = 0;
+
+        for (var by = 0; by < blocksPerCol; by++)
+        {
+            for (var bx = 0; bx < blocksPerLine; bx++)
+            {
+                if (_restartInterval > 0 && blockIndex > 0 && blockIndex % _restartInterval == 0)
+                {
+                    var expectedRst = (blockIndex / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
+                }
+
+                blockIndex++;
+
+                var offset = (by * c.BlocksWide + bx) * 64;
+                if (reader.ReadBits(1) != 0)
+                    buffer[offset] |= p1;
+            }
+        }
+    }
+
     private void DecodeAcRefine(ref BitReader reader, ScanHeader scan)
     {
         var ci = scan.Components[0];
@@ -251,7 +334,8 @@ internal sealed partial class BaselineDecoder
             {
                 if (_restartInterval > 0 && blockIndex > 0 && blockIndex % _restartInterval == 0)
                 {
-                    reader.SkipRestartMarker();
+                    var expectedRst = (blockIndex / _restartInterval - 1) & 7;
+                    reader.SkipRestartMarker(expectedRst, _options.StrictRestartMarkers);
                     eobRun = 0;
                 }
 

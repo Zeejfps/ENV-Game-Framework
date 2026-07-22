@@ -38,6 +38,7 @@ internal static class ChromaSampler
         ValidateFactors(hFactor, vFactor);
         ValidateDimensions(src.Length, srcWidth, srcHeight, nameof(src));
         ValidateDimensions(dst.Length, dstWidth, dstHeight, nameof(dst));
+        ValidateDownsampleDst(srcWidth, srcHeight, hFactor, vFactor, dstWidth, dstHeight);
 
         for (var dy = 0; dy < dstHeight; dy++)
         {
@@ -175,6 +176,7 @@ internal static class ChromaSampler
         ValidateFactors(hFactor, vFactor);
         ValidateDimensions(src.Length, srcWidth, srcHeight, nameof(src));
         ValidateDimensions(dst.Length, dstWidth, dstHeight, nameof(dst));
+        ValidateDownsampleDst(srcWidth, srcHeight, hFactor, vFactor, dstWidth, dstHeight);
 
         for (var dy = 0; dy < dstHeight; dy++)
         {
@@ -261,6 +263,16 @@ internal static class ChromaSampler
             throw new ArgumentOutOfRangeException(nameof(hFactor), "Sampling factor must be at least 1.");
         if (vFactor < 1)
             throw new ArgumentOutOfRangeException(nameof(vFactor), "Sampling factor must be at least 1.");
+    }
+
+    private static void ValidateDownsampleDst(int srcWidth, int srcHeight, int hFactor, int vFactor, int dstWidth, int dstHeight)
+    {
+        var expectedWidth = SubsampledSize(srcWidth, hFactor);
+        var expectedHeight = SubsampledSize(srcHeight, vFactor);
+        if (dstWidth != expectedWidth || dstHeight != expectedHeight)
+            throw new ArgumentException(
+                $"Destination {dstWidth}x{dstHeight} does not match the subsampled size {expectedWidth}x{expectedHeight} for source {srcWidth}x{srcHeight} with factors ({hFactor},{vFactor}).",
+                "dst");
     }
 
     private static void ValidateDimensions(int length, int width, int height, string name)

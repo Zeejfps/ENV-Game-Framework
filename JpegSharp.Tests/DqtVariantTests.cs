@@ -51,6 +51,47 @@ public class DqtVariantTests
         Assert.Throws<JpegFormatException>(() => Jpeg.Decode(ms.ToArray()));
     }
 
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(7)]
+    [InlineData(15)]
+    public void Dqt_InvalidPrecisionNibble_Rejected(int pq)
+    {
+        using var ms = new MemoryStream();
+        ms.Write([0xFF, 0xD8, 0xFF, 0xDB]);
+        var payload = new byte[1 + 64];
+        payload[0] = (byte)((pq << 4) | 0x00); // Pq=pq, Tq=0
+        var len = payload.Length + 2;
+        ms.WriteByte((byte)(len >> 8));
+        ms.WriteByte((byte)(len & 0xFF));
+        ms.Write(payload);
+        Assert.Throws<JpegFormatException>(() => Jpeg.Decode(ms.ToArray()));
+    }
+
+    [Fact]
+    public void Dqt_EightBitPrecision_Parses()
+    {
+        var pixels = Gradient(16, 16);
+        var image = JpegImage.CreateGrayscale(16, 16, pixels);
+        var bytes = Jpeg.Encode(image, new JpegEncoderOptions { Quality = 75 });
+        var decoded = Jpeg.Decode(bytes);
+        Assert.Equal(16, decoded.Width);
+        Assert.Equal(16, decoded.Height);
+    }
+
+    [Fact]
+    public void Dqt_SixteenBitPrecision_Parses()
+    {
+        var pixels = Gradient(16, 16);
+        var image = JpegImage.CreateGrayscale(16, 16, pixels);
+        var bytes = Jpeg.Encode(image, new JpegEncoderOptions { Quality = 75 });
+        var rewritten = RewriteDqtAs16Bit(bytes);
+        var decoded = Jpeg.Decode(rewritten);
+        Assert.Equal(16, decoded.Width);
+        Assert.Equal(16, decoded.Height);
+    }
+
     private static byte[] RewriteDqtAs16Bit(byte[] data)
     {
         using var ms = new MemoryStream();

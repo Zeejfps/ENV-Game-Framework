@@ -120,6 +120,51 @@ public class QuantizationTests
     }
 
     [Fact]
+    public void ScaleValue_8bit_ClampsTo255()
+    {
+        var scale = StandardQuantizationTables.QualityToScale(1);
+        ReadOnlySpan<ushort> baseTable = StandardQuantizationTables.Luminance;
+        for (var i = 0; i < 64; i++)
+        {
+            var v = StandardQuantizationTables.ScaleValue(baseTable[i], scale);
+            Assert.InRange(v, (ushort)1, (ushort)255);
+        }
+    }
+
+    [Fact]
+    public void ScaleValue_12bit_AllowsUpTo65535()
+    {
+        var scale = StandardQuantizationTables.QualityToScale(1);
+        ReadOnlySpan<ushort> baseTable = StandardQuantizationTables.Luminance;
+        var sawAbove255 = false;
+        for (var i = 0; i < 64; i++)
+        {
+            var v = StandardQuantizationTables.ScaleValue(baseTable[i], scale, samplePrecision: 12);
+            Assert.InRange(v, (ushort)1, (ushort)65535);
+            if (v > 255)
+                sawAbove255 = true;
+        }
+
+        Assert.True(sawAbove255, "12-bit low-quality scaling must produce at least one step > 255.");
+    }
+
+    [Fact]
+    public void Quantize_LargeCoefficient_ClampsToShortRange()
+    {
+        Span<double> coeffs = stackalloc double[64];
+        Span<ushort> table = stackalloc ushort[64];
+        table.Fill(1);
+        coeffs[0] = 100000.0;  // 100000 / 1 exceeds short.MaxValue (32767)
+        coeffs[1] = -100000.0; // symmetric negative case
+
+        Span<short> output = stackalloc short[64];
+        Quantizer.Quantize(coeffs, table, output);
+
+        Assert.Equal(short.MaxValue, output[0]);
+        Assert.Equal(short.MinValue, output[1]);
+    }
+
+    [Fact]
     public void CustomTable_PreservesValuesInNaturalOrder()
     {
         var values = new ushort[64];

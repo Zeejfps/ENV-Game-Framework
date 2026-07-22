@@ -49,6 +49,69 @@ public class HighPrecisionQuantTests
         Assert.Equal(1 + 64, dqt.Length);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(10)]
+    [InlineData(50)]
+    [InlineData(75)]
+    [InlineData(95)]
+    public void Encode_8bit_QuantTables_Unchanged(int quality)
+    {
+        var image = JpegImage.CreateGrayscale(16, 16, new byte[256]);
+        var bytes = Jpeg.Encode(image, new JpegEncoderOptions { Quality = quality });
+        var dqt = FindSegment(bytes, 0xDB)!;
+
+        // 8-bit encodes always emit an 8-bit (Pq=0) DQT of exactly 1 + 64 bytes.
+        Assert.Equal(0x00, dqt[0] & 0xF0);
+        Assert.Equal(1 + 64, dqt.Length);
+
+        // Emitted steps match the default-precision luminance table (byte-identical regression).
+        var expected = QuantizationTable.Luminance(quality);
+        Span<ushort> zig = stackalloc ushort[64];
+        expected.CopyToZigZag(zig);
+        for (var k = 0; k < 64; k++)
+            Assert.Equal((byte)zig[k], dqt[1 + k]);
+    }
+
+    [Fact]
+    public void Encode16_LowQuality_UsesWideQuantSteps()
+    {
+        var image = JpegImage16.CreateGrayscale(16, 16, 12, Gradient12(16, 16));
+        var bytes = Jpeg.Encode16(image, new JpegEncoderOptions { Quality = 1 });
+
+        var dqt = FindSegment(bytes, 0xDB)!;
+        Assert.Equal(0x10, dqt[0] & 0xF0);   // Pq = 1 (16-bit table)
+        Assert.Equal(1 + 128, dqt.Length);
+
+        var sawAbove255 = false;
+        for (var k = 0; k < 64; k++)
+        {
+            var stored = (ushort)((dqt[1 + 2 * k] << 8) | dqt[1 + 2 * k + 1]);
+            if (stored > 255)
+                sawAbove255 = true;
+        }
+
+        Assert.True(sawAbove255, "12-bit low-quality DQT must carry at least one step > 255.");
+
+        // The wide table still round-trips.
+        var decoded = Jpeg.Decode16(bytes);
+        Assert.Equal(12, decoded.Precision);
+        Assert.Equal(16, decoded.Width);
+    }
+
+    private static ushort[] Gradient12(int w, int h)
+    {
+        var max = (1 << 12) - 1;
+        var data = new ushort[w * h];
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var t = (x + y) / (double)(w + h);
+                data[y * w + x] = (ushort)Math.Clamp((int)(t * max), 0, max);
+            }
+        return data;
+    }
+
     private static byte[]? FindSegment(byte[] data, byte markerCode)
     {
         var i = 2;

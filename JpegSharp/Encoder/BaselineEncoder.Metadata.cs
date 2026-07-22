@@ -71,6 +71,13 @@ internal sealed partial class BaselineEncoder
         if (_metadata is null)
             return;
 
+        if (_metadata.CommentBytes.Count > 0)
+        {
+            foreach (var comment in _metadata.CommentBytes)
+                writer.WriteSegment(JpegMarkers.Comment, comment);
+            return;
+        }
+
         foreach (var comment in _metadata.Comments)
             writer.WriteSegment(JpegMarkers.Comment, System.Text.Encoding.UTF8.GetBytes(comment));
     }

@@ -40,7 +40,8 @@ internal sealed partial class BaselineDecoder
             return false;
 
         var seq = segment[12];
-        _iccChunks.Add((seq, segment[14..].ToArray()));
+        var count = segment[13];
+        _iccChunks.Add((seq, count, segment[14..].ToArray()));
         return true;
     }
 
@@ -71,28 +72,66 @@ internal sealed partial class BaselineDecoder
             metadata.AdobeColorTransform = _adobeTransform;
 
         if (_iccChunks.Count > 0)
-        {
-            _iccChunks.Sort(static (a, b) => a.Seq.CompareTo(b.Seq));
-            var total = 0;
-            foreach (var chunk in _iccChunks)
-                total += chunk.Data.Length;
-            var icc = new byte[total];
-            var offset = 0;
-            foreach (var chunk in _iccChunks)
-            {
-                chunk.Data.CopyTo(icc, offset);
-                offset += chunk.Data.Length;
-            }
-
-            metadata.IccProfile = icc;
-        }
+            metadata.IccProfile = ReassembleIccProfile();
 
         foreach (var comment in _comments)
             metadata.Comments.Add(comment);
+
+        foreach (var commentBytes in _commentBytes)
+            metadata.CommentBytes.Add(commentBytes);
 
         foreach (var segment in _appSegments)
             metadata.ApplicationSegments.Add(segment);
 
         return metadata;
+    }
+
+    // Reassembles the ICC profile from its APP2 chunks per ICC.1 Annex B (T.872). A well-formed
+    // set carries seqNo 1..count with a consistent count and no gaps; identical duplicates are
+    // tolerated. If the set is malformed in any way (inconsistent count, seq out of range,
+    // conflicting duplicate, or a missing chunk) the profile is DROPPED (returns null) rather than
+    // emitting a silently corrupt concatenation.
+    private byte[]? ReassembleIccProfile()
+    {
+        var count = _iccChunks[0].Count;
+        foreach (var chunk in _iccChunks)
+        {
+            if (chunk.Count != count)
+                return null; // chunks disagree on total count
+        }
+
+        if (count < 1 || count > 255)
+            return null;
+
+        var bySeq = new byte[count + 1][];
+        foreach (var chunk in _iccChunks)
+        {
+            if (chunk.Seq < 1 || chunk.Seq > count)
+                return null; // seq=0 or seq>count is out of range
+
+            var existing = bySeq[chunk.Seq];
+            if (existing is null)
+                bySeq[chunk.Seq] = chunk.Data;
+            else if (!existing.AsSpan().SequenceEqual(chunk.Data))
+                return null; // same seq with conflicting data
+        }
+
+        var total = 0;
+        for (var seq = 1; seq <= count; seq++)
+        {
+            if (bySeq[seq] is null)
+                return null; // gap: a chunk is missing
+            total += bySeq[seq].Length;
+        }
+
+        var icc = new byte[total];
+        var offset = 0;
+        for (var seq = 1; seq <= count; seq++)
+        {
+            bySeq[seq].CopyTo(icc, offset);
+            offset += bySeq[seq].Length;
+        }
+
+        return icc;
     }
 }

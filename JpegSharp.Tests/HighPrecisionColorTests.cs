@@ -31,6 +31,60 @@ public class HighPrecisionColorTests
         Assert.Equal(2048, cr);
     }
 
+    [Theory]
+    [InlineData(65535, 65535, 65535)]
+    [InlineData(65535, 0, 0)]
+    [InlineData(0, 65535, 0)]
+    [InlineData(0, 0, 65535)]
+    public void YCbCr16_RoundTrip_SaturatedPixels(int r, int g, int b)
+    {
+        const int max = 65535;
+        ColorConverter.RgbToYCbCr(r, g, b, max, out var y, out var cb, out var cr);
+        ColorConverter.YCbCrToRgb(y, cb, cr, max, out var r2, out var g2, out var b2);
+
+        Assert.True(Math.Abs(r - r2) <= 1, $"R {r} -> {r2}");
+        Assert.True(Math.Abs(g - g2) <= 1, $"G {g} -> {g2}");
+        Assert.True(Math.Abs(b - b2) <= 1, $"B {b} -> {b2}");
+    }
+
+    [Theory]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(12)]
+    [InlineData(13)]
+    [InlineData(14)]
+    [InlineData(15)]
+    [InlineData(16)]
+    public void YCbCr_PrecisionSweep_CenterAndGrayAchromatic(int precision)
+    {
+        var max = (1 << precision) - 1;
+        var center = (max + 1) >> 1;
+
+        ColorConverter.RgbToYCbCr(center, center, center, max, out var y, out var cb, out var cr);
+        Assert.Equal(center, y);
+        Assert.Equal(center, cb);
+        Assert.Equal(center, cr);
+
+        ColorConverter.YCbCrToRgb(y, cb, cr, max, out var r2, out var g2, out var b2);
+        Assert.Equal(center, r2);
+        Assert.Equal(center, g2);
+        Assert.Equal(center, b2);
+    }
+
+    [Theory]
+    [InlineData(65535, 0, 65535)]
+    [InlineData(0, 65535, 0)]
+    [InlineData(0, 0, 65535)]
+    [InlineData(65535, 65535, 0)]
+    public void YCbCrToRgb16_Extremes_ProduceValidSamples(int y, int cb, int cr)
+    {
+        const int max = 65535;
+        ColorConverter.YCbCrToRgb(y, cb, cr, max, out var r, out var g, out var b);
+        Assert.InRange(r, 0, max);
+        Assert.InRange(g, 0, max);
+        Assert.InRange(b, 0, max);
+    }
+
     [Fact]
     public void Upsample16_IsExactWhenDimensionsMatch()
     {
