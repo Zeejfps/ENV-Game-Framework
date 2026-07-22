@@ -41,31 +41,52 @@ internal static class WebPHeaderReader
         if (id == WebPChunkIds.Vp8X)
         {
             var span = first.Payload.Span;
-            if (span.Length < 10)
-                throw new WebPFormatException($"VP8X header is truncated: {span.Length} bytes, need 10.");
+            // libwebp's ParseVP8X rejects any VP8X chunk whose payload size != 10
+            // (VP8X_CHUNK_SIZE) with VP8_STATUS_BITSTREAM_ERROR; match that exactly.
+            if (span.Length != 10)
+                throw new WebPFormatException($"VP8X payload must be exactly 10 bytes; found {span.Length}.");
 
             var flags = span[0];
-            var hasIcc = (flags & 0x20) != 0;
-            var hasAlpha = (flags & 0x10) != 0;
-            var hasExif = (flags & 0x08) != 0;
-            var hasXmp = (flags & 0x04) != 0;
+            var alphaFlag = (flags & 0x10) != 0;
             var hasAnimation = (flags & 0x02) != 0;
             var width = ReadUInt24LittleEndian(span, 4) + 1;
             var height = ReadUInt24LittleEndian(span, 7) + 1;
 
+            // The feature flag byte is advisory: libwebp does not trust it in isolation.
+            // Walk the container so we report what is actually retrievable, not what the
+            // flags claim, so an inconsistent flag byte cannot mis-report.
             var frameCount = 0;
             var loopCount = 0;
-            if (hasAnimation)
+            var hasAlphChunk = false;
+            var hasIcc = false;
+            var hasExif = false;
+            var hasXmp = false;
+            bool? vp8lIntrinsicAlpha = null;
+            while (reader.MoveNext())
             {
-                while (reader.MoveNext())
-                {
-                    var chunk = reader.Current;
-                    if (chunk.Id == WebPChunkIds.Anmf)
-                        frameCount++;
-                    else if (chunk.Id == WebPChunkIds.Anim && chunk.Payload.Length >= 6)
-                        loopCount = BinaryPrimitives.ReadUInt16LittleEndian(chunk.Payload.Span.Slice(4, 2));
-                }
+                var chunk = reader.Current;
+                var cid = chunk.Id;
+                if (cid == WebPChunkIds.Anmf)
+                    frameCount++;
+                else if (cid == WebPChunkIds.Anim && chunk.Payload.Length >= 6)
+                    loopCount = BinaryPrimitives.ReadUInt16LittleEndian(chunk.Payload.Span.Slice(4, 2));
+                else if (cid == WebPChunkIds.Alph)
+                    hasAlphChunk = true;
+                else if (cid == WebPChunkIds.Vp8L)
+                    vp8lIntrinsicAlpha = ReadVp8LDimensions(chunk.Payload.Span).HasAlpha;
+                else if (cid == WebPChunkIds.Iccp)
+                    hasIcc = true;
+                else if (cid == WebPChunkIds.Exif)
+                    hasExif = true;
+                else if (cid == WebPChunkIds.Xmp)
+                    hasXmp = true;
             }
+
+            // Matches libwebp WebPGetFeatures (ParseHeadersInternal): has_alpha starts as the
+            // VP8X alpha flag, but a wrapped VP8L image OVERWRITES it via VP8LGetInfo with the
+            // stream's intrinsic alpha_is_used bit (an assignment, not an OR), then ALPH-chunk
+            // presence is OR'd in. So for VP8X+VP8L the flag is ignored in favor of the VP8L bit.
+            var hasAlpha = (vp8lIntrinsicAlpha ?? alphaFlag) || hasAlphChunk;
 
             return new WebPInfo(width, height, WebPFormat.Extended, hasAlpha, hasAnimation,
                 hasIcc, hasExif, hasXmp, frameCount, loopCount);
@@ -127,8 +148,8 @@ internal static class WebPHeaderReader
     /// <exception cref="WebPFormatException">The header length is wrong.</exception>
     public static WebPInfo ReadExtendedInfo(ReadOnlySpan<byte> payload)
     {
-        if (payload.Length < 10)
-            throw new WebPFormatException($"VP8X header is truncated: {payload.Length} bytes, need 10.");
+        if (payload.Length != 10)
+            throw new WebPFormatException($"VP8X payload must be exactly 10 bytes; found {payload.Length}.");
 
         var flags = payload[0];
         var hasAlpha = (flags & 0x10) != 0;

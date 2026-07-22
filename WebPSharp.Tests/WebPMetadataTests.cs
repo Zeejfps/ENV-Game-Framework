@@ -1,4 +1,5 @@
 using WebPSharp.Api;
+using WebPSharp.Container;
 
 namespace WebPSharp.Tests;
 
@@ -58,15 +59,32 @@ public class WebPMetadataTests
     {
         var image = MakeImage();
         image.Metadata = new WebPMetadata();
-        image.Metadata.UnknownChunks.Add(new WebPUnknownChunk("TEST", new byte[] { 7, 7, 7 }));
+        image.Metadata.UnknownChunks.Add(new WebPUnknownChunk(new FourCc("TEST"), new byte[] { 7, 7, 7 }));
         image.Metadata.IccProfile = new byte[] { 9 };
 
         var decoded = WebP.Decode(WebP.Encode(image));
 
         Assert.NotNull(decoded.Metadata);
         var unknown = Assert.Single(decoded.Metadata!.UnknownChunks);
-        Assert.Equal("TEST", unknown.Id);
+        Assert.Equal(new FourCc("TEST"), unknown.Id);
         Assert.Equal(new byte[] { 7, 7, 7 }, unknown.Data);
+    }
+
+    [Fact]
+    public void UnknownChunk_WithNonPrintableFourCc_RoundTripsByteExact()
+    {
+        var id = new FourCc(0x01, 0x02, 0xFF, 0x00);
+        var image = MakeImage();
+        image.Metadata = new WebPMetadata();
+        image.Metadata.UnknownChunks.Add(new WebPUnknownChunk(id, new byte[] { 1, 2, 3, 4 }));
+
+        var decoded = WebP.Decode(WebP.Encode(image));
+
+        Assert.NotNull(decoded.Metadata);
+        var unknown = Assert.Single(decoded.Metadata!.UnknownChunks);
+        Assert.Equal(id, unknown.Id);
+        Assert.Equal(id.Packed, unknown.Id.Packed);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, unknown.Data);
     }
 
     [Fact]

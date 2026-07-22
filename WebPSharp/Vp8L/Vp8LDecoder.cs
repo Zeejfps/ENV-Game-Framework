@@ -8,8 +8,8 @@ namespace WebPSharp.Vp8L;
 /// Decodes a VP8L (lossless) bitstream to an RGBA image. Supports the full structural surface: all
 /// four transforms (predictor, cross-color, subtract-green, color-indexing with pixel bundling), an
 /// optional color cache, LZ77 back-references, and meta-Huffman (multiple Huffman groups selected
-/// per tile). Back-reference distances that use the near-distance plane codes (≤ 120) are rejected
-/// pending reference-table validation; distances emitted by this library never use them.
+/// per tile). Back-reference distances that use the near-distance plane codes (≤ 120) are fully
+/// supported, mapped to pixel distances through the reference near-distance table.
 /// </summary>
 internal static class Vp8LDecoder
 {
@@ -178,15 +178,15 @@ internal static class Vp8LDecoder
             cacheSize = cache.Size;
         }
 
-        // Meta-Huffman: an entropy image selects a Huffman group per tile.
+        // Meta-Huffman: an entropy image selects a Huffman group per tile. The present bit exists
+        // only for a top-level image; sub-resolution images (allowMeta == false) omit it entirely,
+        // matching the reference decoder, which reads it only when recursion is allowed.
         uint[]? huffmanImage = null;
         var huffmanBits = 0;
         var huffmanWidth = 0;
         var numGroups = 1;
-        if (reader.ReadBit() != 0)
+        if (allowMeta && reader.ReadBit() != 0)
         {
-            if (!allowMeta)
-                throw new WebPCorruptException("VP8L meta-Huffman is not permitted for this image stream.");
             huffmanBits = (int)reader.ReadBits(3) + 2;
             huffmanWidth = Vp8LSubSample.Size(width, huffmanBits);
             var huffmanHeight = Vp8LSubSample.Size(height, huffmanBits);

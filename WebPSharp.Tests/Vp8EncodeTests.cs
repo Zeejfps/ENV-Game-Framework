@@ -1,9 +1,45 @@
 using WebPSharp.Api;
+using WebPSharp.Api.Exceptions;
+using WebPSharp.Vp8;
 
 namespace WebPSharp.Tests;
 
 public class Vp8EncodeTests
 {
+    // VP8 (lossy) stores the RAW dimension in a 14-bit field, so its maximum is 0x3FFF = 16383 --
+    // one less than VP8L (lossless), which stores dimension - 1 and tops out at 16384. These lossy
+    // tests pin the 16383 boundary; the VP8L 16384 boundary lives in the lossless test suite.
+
+    [Theory]
+    [InlineData(16384, 1)] // 16384 sets the 14-bit field to 0 under the & 0x3F mask -> malformed
+    [InlineData(1, 16384)]
+    [InlineData(16385, 1)]
+    [InlineData(1, 16385)]
+    public void Encode_LossyDimensionAbove16383_Throws(int w, int h)
+    {
+        // The VP8 frame header stores width/height as raw values in 14-bit fields; anything above
+        // 16383 cannot be represented and must be rejected rather than silently truncated by the
+        // & 0x3F mask. Note 16384 is fine for VP8L but NOT for VP8.
+        var img = WebPImage.CreateRgba(w, h, new byte[w * h * 4]);
+        Assert.Throws<WebPFormatException>(() => Vp8Encoder.Encode(img, 75));
+    }
+
+    [Theory]
+    [InlineData(16383, 1)]
+    [InlineData(1, 16383)]
+    public void Encode_LossyDimensionAt16383Boundary_Accepted(int w, int h)
+    {
+        // 16383 = 0x3FFF is the largest raw value the 14-bit VP8 field can hold, so it is the valid
+        // maximum. It must encode and round-trip to the same dimensions (16383x1 is only ~16k px).
+        var img = WebPImage.CreateRgba(w, h, new byte[w * h * 4]);
+        var bytes = Vp8Encoder.Encode(img, 75);
+        Assert.NotEmpty(bytes);
+
+        var info = WebP.Identify(WebP.Encode(img, new WebPEncoderOptions { Lossless = false, Quality = 75 }));
+        Assert.Equal(w, info.Width);
+        Assert.Equal(h, info.Height);
+    }
+
     // A smooth photographic-style gradient: compresses well and quantizes with low error, so it is a
     // stable subject for PSNR thresholds.
     private static byte[] Smooth(int w, int h)

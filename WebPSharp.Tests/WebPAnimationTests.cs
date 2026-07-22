@@ -141,4 +141,114 @@ public class WebPAnimationTests
         Assert.Single(decoded.Frames);
         Assert.Equal(anim.Frames[0].Image.PixelData, decoded.Frames[0].Image.PixelData);
     }
+
+    [Fact]
+    public void Decode_AnmfFrameRectExceedsCanvas_Throws()
+    {
+        // Canvas 10x10. Frame is 6x6 placed so x + width = 6 + 6 = 12 > 10.
+        var xAnim = new WebPAnimation(10, 10);
+        xAnim.Frames.Add(new WebPFrame(NoiseRgba(6, 6, 11), x: 6, y: 0));
+        var xBytes = WebP.EncodeAnimation(xAnim);
+        Assert.Throws<WebPFormatException>(() => WebP.DecodeAnimation(xBytes));
+
+        // Same canvas, frame placed so y + height = 6 + 6 = 12 > 10.
+        var yAnim = new WebPAnimation(10, 10);
+        yAnim.Frames.Add(new WebPFrame(NoiseRgba(6, 6, 12), x: 0, y: 6));
+        var yBytes = WebP.EncodeAnimation(yAnim);
+        Assert.Throws<WebPFormatException>(() => WebP.DecodeAnimation(yBytes));
+
+        // A frame exactly filling the canvas is in bounds and must still decode.
+        var fitAnim = new WebPAnimation(10, 10);
+        fitAnim.Frames.Add(new WebPFrame(NoiseRgba(10, 10, 13), x: 0, y: 0));
+        var decoded = WebP.DecodeAnimation(WebP.EncodeAnimation(fitAnim));
+        Assert.Single(decoded.Frames);
+
+        // A frame flush against the far edge (x + width == canvasWidth) is also in bounds.
+        var edgeAnim = new WebPAnimation(10, 10);
+        edgeAnim.Frames.Add(new WebPFrame(NoiseRgba(6, 6, 14), x: 4, y: 4));
+        var edgeDecoded = WebP.DecodeAnimation(WebP.EncodeAnimation(edgeAnim));
+        Assert.Single(edgeDecoded.Frames);
+    }
+
+    [Theory]
+    [InlineData(20, 20)] // declared dims LARGER than the actual 8x8 sub-image
+    [InlineData(4, 4)]   // declared dims SMALLER than the actual 8x8 sub-image
+    public void Decode_AnmfDeclaredDimsMismatch_UsesActualImageDims_MatchesLibwebp(int declaredWidth, int declaredHeight)
+    {
+        // libwebp's demuxer (src/demux/demux.c) reads the ANMF-declared Frame Width/Height
+        // (ParseAnimationFrame) but then OVERWRITES them with the actual VP8/VP8L bitstream
+        // dimensions in SetFrameInfo (frame->width = features->width; frame->height = ...).
+        // It performs NO declared-vs-actual mismatch rejection; the declared fields are
+        // discarded. CheckFrameBounds and the iterator report the actual image dims.
+        // Empirically, `webpmux -info` on a file whose ANMF declares 20x20 or 4x4 over an
+        // 8x8 sub-image still reports width=8 height=8 and decodes fine. WebPSharp mirrors
+        // this: it derives frame dims from the decoded sub-image and ignores the declared
+        // fields, so patching them must not change the decode result.
+        var anim = new WebPAnimation(8, 8) { LoopCount = 0 };
+        anim.Frames.Add(new WebPFrame(NoiseRgba(8, 8, 99)));
+        var reference = WebP.EncodeAnimation(anim);
+
+        var patched = (byte[])reference.Clone();
+        var anmf = IndexOfFourCc(patched, "ANMF");
+        Assert.True(anmf >= 0, "expected an ANMF chunk in the encoded animation");
+        // ANMF payload starts after the 8-byte chunk header. Frame Width Minus One is at
+        // payload offset 6, Frame Height Minus One at payload offset 9 (both 24-bit LE).
+        var payload = anmf + 8;
+        WriteUInt24Le(patched, payload + 6, declaredWidth - 1);
+        WriteUInt24Le(patched, payload + 9, declaredHeight - 1);
+
+        // Sanity: the patch actually changed the declared dims but left the VP8L intact.
+        Assert.NotEqual(reference, patched);
+
+        var decoded = WebP.DecodeAnimation(patched);
+
+        // Matches libwebp: decode succeeds and reports the ACTUAL 8x8 sub-image dims/pixels,
+        // identical to decoding the unpatched file — declared dims are ignored.
+        var referenceDecoded = WebP.DecodeAnimation(reference);
+        Assert.Single(decoded.Frames);
+        Assert.Equal(8, decoded.Frames[0].Width);
+        Assert.Equal(8, decoded.Frames[0].Height);
+        Assert.Equal(referenceDecoded.Frames[0].Image.PixelData, decoded.Frames[0].Image.PixelData);
+    }
+
+    private static void WriteUInt24Le(byte[] data, int offset, int value)
+    {
+        data[offset + 0] = (byte)(value & 0xFF);
+        data[offset + 1] = (byte)((value >> 8) & 0xFF);
+        data[offset + 2] = (byte)((value >> 16) & 0xFF);
+    }
+
+    private static int IndexOfFourCc(byte[] data, string fourCc)
+    {
+        for (var i = 0; i + 4 <= data.Length; i++)
+        {
+            if (data[i] == fourCc[0] && data[i + 1] == fourCc[1] &&
+                data[i + 2] == fourCc[2] && data[i + 3] == fourCc[3])
+                return i;
+        }
+        return -1;
+    }
+
+    [Theory]
+    [InlineData(0x7FFFFFFFu)]
+    [InlineData(0x80000000u)]
+    [InlineData(0xFFFFFFFFu)]
+    public void Decode_AnmfInnerChunkOversized_ThrowsFormatException(uint oversizedSize)
+    {
+        var anim = new WebPAnimation(6, 6) { LoopCount = 0 };
+        anim.Frames.Add(new WebPFrame(NoiseRgba(6, 6, 7)));
+        var bytes = WebP.EncodeAnimation(anim);
+
+        // Locate the ANMF chunk, skip its 8-byte header and 16-byte frame header to reach the
+        // inner sub-chunk header, then overwrite the inner sub-chunk's 4-byte size field.
+        var anmf = IndexOfFourCc(bytes, "ANMF");
+        Assert.True(anmf >= 0, "expected an ANMF chunk in the encoded animation");
+        var innerSizeOffset = anmf + 8 + 16 + 4;
+        bytes[innerSizeOffset + 0] = (byte)(oversizedSize & 0xFF);
+        bytes[innerSizeOffset + 1] = (byte)((oversizedSize >> 8) & 0xFF);
+        bytes[innerSizeOffset + 2] = (byte)((oversizedSize >> 16) & 0xFF);
+        bytes[innerSizeOffset + 3] = (byte)((oversizedSize >> 24) & 0xFF);
+
+        Assert.Throws<WebPFormatException>(() => WebP.DecodeAnimation(bytes));
+    }
 }

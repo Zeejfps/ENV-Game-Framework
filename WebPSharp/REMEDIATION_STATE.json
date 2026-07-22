@@ -1,0 +1,226 @@
+{
+  "baseline_tests": "472 passed / 0 failed (pre-remediation)",
+  "note": "Fix state for SPEC_AUDIT.md deviations. One issue at a time: impl -> build/test -> spec-review -> adversarial -> coverage -> COMPLETE.",
+  "issues": [
+    {
+      "id": "WEBP-DEC-02-ANMF-OVERFLOW",
+      "sev": "BLOCKER",
+      "section": "20/19/1",
+      "description": "ANMF inner sub-chunk size 0x7FFFFFFF -> raw ArgumentOutOfRangeException escapes public DecodeAnimation (only raw-exception escape in codebase). WebP.cs:~424-434 uses signed start+size.",
+      "fix_hint": "WebP.cs ParseFrameChunk: unsigned compare size > (uint)(innerSpan.Length - start) before add",
+      "status": "COMPLETE",
+      "files": [
+        "WebPSharp/Api/WebP.cs (ParseFrameChunk)",
+        "WebPSharp.Tests/WebPAnimationTests.cs"
+      ],
+      "tests": [
+        "Decode_AnmfInnerChunkOversized_ThrowsFormatException (theory: 0x7FFFFFFF/0x80000000/0xFFFFFFFF)"
+      ],
+      "validation": "impl+build+475 tests pass; spec-review PASS; adversarial PASS (boundary sweep, truncation, odd-pad all WebPException-family)"
+    },
+    {
+      "id": "WEBP-DEC-03-FRAMERECT-BOUNDS",
+      "sev": "HIGH",
+      "section": "19",
+      "description": "Animation frame-rect exceeding canvas silently accepted (libwebp rejects). x+w>canvasW / y+h>canvasH.",
+      "fix_hint": "Validate x+w<=canvasW && y+h<=canvasH in DecodeAnimation -> WebPFormatException",
+      "status": "COMPLETE",
+      "files": [
+        "WebPSharp/Api/WebP.cs (DecodeAnimation)",
+        "WebPSharp.Tests/WebPAnimationTests.cs"
+      ],
+      "tests": [
+        "Decode_AnmfFrameRectExceedsCanvas_Throws (x+w>W, y+h>H, exact-fit accepted, flush-edge accepted)"
+      ],
+      "validation": "impl+build+476 tests pass; spec-review PASS (no int overflow: X max ~33.5M + W<=16384 << int.MaxValue); adversarial PASS (15 crafted cases incl lying-header, max-u24 X, flush-edge)"
+    },
+    {
+      "id": "WEBP-DEC-04-ALPH-P1",
+      "sev": "MED",
+      "section": "17",
+      "description": "ALPH decoder rejects valid P=1 (pre-processing) files that cwebp emits. Vp8AlphaDecoder.cs:39-40 throws on all preprocessing!=0.",
+      "fix_hint": "Reject only P>1, ignore P otherwise",
+      "status": "COMPLETE",
+      "files": [
+        "WebPSharp/Vp8/Vp8AlphaDecoder.cs (also WebPException->WebPFormatException)",
+        "WebPSharp.Tests/WebPAlphaTests.cs"
+      ],
+      "tests": [
+        "Decode_AlphaPreprocessingP1_Accepted",
+        "Decode_AlphaPreprocessingInvalid_Throws (P=2,P=3,reserved!=0)"
+      ],
+      "validation": "impl+build+480 tests pass; spec-review PASS (matches libwebp P>ALPHA_PREPROCESSED; dithering is opt-in, not P-driven); adversarial PASS (32 P/C/F combos + 6000-iter fuzz, 0 raw exceptions)"
+    },
+    {
+      "id": "WEBP-ENC-05-DIM-GUARD",
+      "sev": "MED",
+      "section": "12/5/21",
+      "description": "VP8L (and VP8) encoder: no dim>16384 guard -> silent 14-bit truncation. Vp8LEncoder.cs:132-133, Vp8Encoder.cs:660-663, WebPImage.cs.",
+      "fix_hint": "Throw for dim>16384 in encoders / WebPImage ctor",
+      "status": "COMPLETE",
+      "files": [
+        "WebPSharp/Vp8L/Vp8LEncoder.cs (max 16384)",
+        "WebPSharp/Vp8/Vp8Encoder.cs (max 16383 - raw dim, NOT minus-one)",
+        "WebPSharp.Tests/Vp8LRoundTripTests.cs",
+        "WebPSharp.Tests/Vp8EncodeTests.cs"
+      ],
+      "tests": [
+        "Encode_DimensionAbove16384_Throws + boundary (VP8L)",
+        "Encode_LossyDimensionAbove16383_Throws + Encode_LossyDimensionAt16383Boundary_Accepted (VP8)"
+      ],
+      "validation": "impl+build+490 tests pass; adversarial CAUGHT off-by-one (VP8 stores raw dim max 16383, VP8L stores dim-1 max 16384); corrected + re-verified PASS (full [16384,65535] sweep incl mask-collisions 49152/65535 all rejected)"
+    },
+    {
+      "id": "WEBP-DEC-06-PROFILE-FILTER",
+      "sev": "MED",
+      "section": "5",
+      "description": "VP8 profiles 1-3 accepted but version loop-filter override (v1->simple, v2/3->none) not applied. Vp8Decoder.cs:78-79.",
+      "fix_hint": "Clamp FilterType by profile after ParseFilterHeader, or reject Profile!=0",
+      "status": "COMPLETE_NONISSUE",
+      "resolution": "AUDIT FINDING #6 WAS WRONG. libwebp (vp8_dec.c) reads profile ONLY to range-check >3; ParseFilterHeader derives filter_type solely from filter header (level+simple), never from version. frame_dec.c/io_dec.c have ZERO profile refs. RFC 6386 version table's reconstruction col = INTER-prediction (irrelevant to key frames); its loop-filter col is NOT honored by libwebp. Empirically: dwebp output BYTE-IDENTICAL for patched versions 0/1/2/3 of a filter-active stream (same md5); profile>3 -> BITSTREAM_ERROR. WebPSharp already matches dwebp on all versions.",
+      "files": [
+        "WebPSharp/Vp8/Vp8Decoder.cs (spec-note comment only, NO behavior change)",
+        "WebPSharp.Tests/Vp8ProfileTests.cs"
+      ],
+      "tests": [
+        "Decode_Vp8Version1To3_IgnoresVersion_MatchesDwebp (theory 1,2,3)",
+        "Decode_Vp8Version0_Control_MatchesDwebp",
+        "Decode_Vp8InvalidVersion_Throws (theory 4,5,6,7)"
+      ],
+      "validation": "impl+build+501 tests pass; INDEPENDENT skeptical verifier reproduced libwebp source read + dwebp byte-identical-across-versions empirically + WebPSharp-vs-dwebp parity maxDiff<=1 all versions. CONFIRMED non-issue."
+    },
+    {
+      "id": "WEBP-DEC-07-VP8X-FLAGS",
+      "sev": "MED",
+      "section": "3",
+      "description": "VP8X feature flags never validated vs actual chunks -> silent-accept inconsistent + WebPInfo mis-report. WebP.cs:534-596, WebPHeaderReader.cs:41-72.",
+      "fix_hint": "Assert flag<->chunk agreement in DecodeExtended; ReadInfo from real chunks. Also VP8X size !=10 reject. VERIFY libwebp leniency first (issue #6 showed audit can over-prescribe).",
+      "status": "COMPLETE",
+      "resolution": "AUDIT #7 over-prescribed rejection; libwebp CORE decoder is LENIENT on flag/chunk mismatch (dwebp decodes all). Correct fix (verified vs webp_dec.c + empirical): (1) VP8X payload must be EXACTLY 10 (ParseVP8X BITSTREAM_ERROR) - now enforced both Identify+Decode; (2) Identify HasAlpha=flag||ALPH-present, HasIcc/Exif/Xmp=actual chunk presence (matches WebPGetFeatures); (3) NO flag-mismatch rejection - alpha applied from actual ALPH both directions. Did NOT over-reject.",
+      "files": [
+        "WebPSharp/Container/WebPHeaderReader.cs (ReadInfo/ReadExtendedInfo)",
+        "WebPSharp/Api/WebP.cs (DecodeExtended)",
+        "WebPSharp.Tests/WebPVp8XFlagTests.cs"
+      ],
+      "tests": [
+        "16 cases: Identify flag/chunk-mismatch both dirs (alpha/icc/exif/xmp), Decode alpha-from-actual-ALPH both dirs pixel-exact, VP8X size 9/11/20 throws, size-10 succeeds"
+      ],
+      "validation": "impl+build+517 tests pass; spec-review PASS (per-case libwebp parity table, no over-reject, VP8X size exact); adversarial PASS (~35 crafted files vs dwebp+WebPGetFeatures, all pixel-exact incl alpha, only WebPException escapes)"
+    },
+    {
+      "id": "WEBP-ENC-01-PREDICTOR-EMISSION",
+      "sev": "SEVERE",
+      "section": "21/13",
+      "description": "Default WebP.Encode() lossless (Predictor transform) output rejected by dwebp (BITSTREAM_ERROR). Masked by self-round-trip. Vp8LEncoder.cs candidates/emission.",
+      "fix_hint": "Byte-level diff predictor VP8L vs cwebp -lossless; fix emission. Interim: drop Predictor/CrossColor from candidates.",
+      "status": "COMPLETE",
+      "root_cause": "VP8L sub-images (predictor/cross-color/palette/entropy) must NOT carry the meta-Huffman present bit; only level-0 main+alpha do (libwebp ReadHuffmanCodes gated on allow_recursion=is_level0). WebPSharp emitted+read a spurious meta bit in sub-images symmetrically -> self-round-trip hid it, dwebp desynced 1 bit -> BITSTREAM_ERROR.",
+      "files": [
+        "WebPSharp/Vp8L/Vp8LEncoder.cs (allowMeta param on EncodeImageData)",
+        "WebPSharp/Vp8L/Vp8LDecoder.cs (allowMeta gate on meta bit read)",
+        "WebPSharp.Tests/Vp8LDwebpInteropTests.cs"
+      ],
+      "tests": [
+        "DefaultLossless_SpatiallyCorrelated_DecodedByDwebp",
+        "PredictorTransform_DecodedByDwebp",
+        "PredictorAndCrossColorTransforms_DecodedByDwebp (all skip-on-absent dwebp)"
+      ],
+      "validation": "REAL root-cause fix. impl+build+493 tests pass; spec-review PASS (per-image-type allowMeta mapping matches libwebp exactly incl color-cache-bit still per-image, alpha=level0); adversarial PASS 330 encode->dwebp (exit0 maxDiff0) + 120 cwebp->WebPSharp decode (pixel-exact vs dwebp). Resolves audit SEVERE #1, clears \u00a713+\u00a721."
+    },
+    {
+      "id": "WEBP-DEC-10-EXC-TAXONOMY",
+      "sev": "MINOR",
+      "section": "20/5",
+      "description": "Non-key-frame throws base WebPException not WebPFormatException. Vp8Decoder.cs:81.",
+      "fix_hint": "one-liner change to WebPFormatException",
+      "status": "COMPLETE",
+      "tests": [
+        "Decode_Vp8NonKeyFrame_ThrowsFormatException"
+      ],
+      "files": [
+        "WebPSharp/Vp8/Vp8Decoder.cs",
+        "WebPSharp.Tests/Vp8ProfileTests.cs"
+      ],
+      "validation": "519 tests pass; review PASS - WebPFormatException is WebPException subclass, only the non-key-frame throw changed, matches libwebp BITSTREAM_ERROR"
+    },
+    {
+      "id": "WEBP-DEC-11-FOURCC-BYTES",
+      "sev": "MINOR",
+      "section": "18",
+      "description": "Unknown-chunk FourCC with non-printable bytes corrupted via ToString() round-trip.",
+      "fix_hint": "store raw 4 bytes not string",
+      "status": "COMPLETE",
+      "tests": [
+        "UnknownChunk_WithNonPrintableFourCc_RoundTripsByteExact",
+        "updated UnknownChunks_ArePreserved"
+      ],
+      "files": [
+        "WebPSharp/Api/WebPMetadata.cs (WebPUnknownChunk.Id string->FourCc)",
+        "WebPSharp/Api/WebP.cs (:174,:316,:586)",
+        "WebPSharp.Tests/WebPMetadataTests.cs"
+      ],
+      "validation": "519 tests pass; spec-review PASS + adversarial PASS (20 cases byte-exact incl non-printable/high-bit/NUL/collision, dwebp exit0). PUBLIC API BREAK flagged: WebPUnknownChunk.Id string->FourCc - justified/necessary (string cannot represent non-printable FourCC), needs release-note + external-consumer heads-up.",
+      "API_BREAK": true
+    },
+    {
+      "id": "WEBP-DOC-12-STALE-COMMENT",
+      "sev": "MINOR",
+      "section": "16",
+      "description": "Stale doc comment Vp8LDecoder.cs:10-12 (claims near-dist rejected; code handles them).",
+      "fix_hint": "delete comment",
+      "status": "COMPLETE",
+      "tests": [
+        "n/a (comment-only; Vp8LDistanceTests already cover near-dist)"
+      ],
+      "files": [
+        "WebPSharp/Vp8L/Vp8LDecoder.cs (comment only)"
+      ],
+      "validation": "519 tests pass; review PASS - near-dist codes<=120 ARE handled via CodeToPlane table (matches libwebp kCodeToPlane), comment corrected"
+    },
+    {
+      "id": "WEBP-DEC-13-ANMF-DECLARED-DIMS",
+      "sev": "MINOR",
+      "section": "19",
+      "description": "DISCOVERED during #03 review: ParseFrameChunk ignores ANMF-declared frame width/height (header bytes 6-8/9-11) and derives dims from decoded sub-image. libwebp validates declared == actual. Mismatched-dims file silently accepted. Does NOT weaken bounds check (which uses real dims).",
+      "fix_hint": "Read ANMF declared w-1/h-1, assert == decoded sub-image Width/Height, else WebPFormatException",
+      "status": "COMPLETE_NONISSUE",
+      "tests": [
+        "Decode_AnmfDeclaredDimsMismatch_UsesActualImageDims_MatchesLibwebp (declared 20x20 & 4x4 over 8x8)"
+      ],
+      "resolution": "AUDIT/reviewer over-prescribed. libwebp demux SetFrameInfo (demux.c:204-205) OVERWRITES declared ANMF dims with actual VP8/VP8L dims; no declared-vs-actual rejection in decode path (only standalone webpinfo linter flags it). WebPSharp already ignores declared dims + derives from decoded sub-image = matches libwebp. NO code change.",
+      "files": [
+        "WebPSharp.Tests/WebPAnimationTests.cs (parity test only)"
+      ],
+      "validation": "521 tests pass; INDEPENDENT skeptical verifier confirmed libwebp source (overwrite) + empirical WebPDemux-vs-webpinfo split + WebPSharp decode parity (pixel-identical, no throw). CONFIRMED non-issue."
+    },
+    {
+      "id": "WEBP-INFO-14-VP8L-INTRINSIC-ALPHA",
+      "sev": "MINOR",
+      "section": "3/12",
+      "description": "DISCOVERED during #07 review: Identify.HasAlpha for a VP8X wrapping a VP8L-with-alpha stream ignores the VP8L intrinsic alpha bit -> reports flag||ALPH only, diverging from libwebp WebPGetFeatures (which ORs the VP8L bit) in BOTH directions. DECODE is correct (alpha pixel-exact); Identify-report-only. Only arises on hand-crafted VP8X-lossless files where flag disagrees with VP8L bit (cwebp never emits).",
+      "fix_hint": "In ReadInfo, when VP8X inner image is VP8L, OR in the VP8L intrinsic alpha bit (mirror VP8LGetInfo)",
+      "status": "COMPLETE",
+      "tests": [
+        "Identify_Vp8X_Vp8L_{FlagClear/FlagSet}_{BitClear/BitSet} (4-combo truth table)",
+        "Identify_BareVp8L_WithAlphaBit_ReportsAlpha"
+      ],
+      "resolution": "libwebp VP8LGetInfo ASSIGNS has_alpha from VP8L intrinsic bit (overwrites VP8X flag), then |= ALPH-present. Implemented hasAlpha=(vp8lIntrinsicAlpha ?? alphaFlag) || hasAlphChunk in ReadInfo VP8X branch.",
+      "files": [
+        "WebPSharp/Container/WebPHeaderReader.cs (ReadInfo)",
+        "WebPSharp.Tests/WebPVp8XFlagTests.cs"
+      ],
+      "validation": "526 tests pass; INDEPENDENT verifier reproduced truth table vs REAL WebPGetFeatures (compiled libwebp 1.6.0), incl critical overwrite (flag=1,bit=0->false); no committed test weakened; no regression."
+    },
+    {
+      "id": "WEBP-DEC-15-DUP-IMAGE-CHUNK",
+      "sev": "MINOR/DECISION",
+      "section": "3",
+      "description": "DISCOVERED during #07 adversarial: VP8X+VP8+VP8 (duplicate image chunks) -> WebPSharp throws WebPException; dwebp decodes (uses first). Pre-existing check (commit 02e01710), unrelated to #07. Defensible strictness (rejects malformed double-image) but is a dwebp-accepts/WebPSharp-throws divergence. Needs decision: match libwebp leniency (use first) vs keep strict reject.",
+      "fix_hint": "Decision needed; if matching libwebp: use first image chunk, ignore duplicates",
+      "status": "BLOCKED_USER_DECISION",
+      "tests": [],
+      "recommendation": "KEEP strict reject: spec says one image chunk; rejecting a malformed double-image (VP8X+VP8+VP8) is spec-compliant fail-fast. libwebp leniency (use first, ignore dup) is optional, NOT a compliance requirement. Only flip if libwebp-byte-parity on malformed input is desired."
+    }
+  ],
+  "completed": []
+}

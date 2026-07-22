@@ -1,10 +1,33 @@
 using WebPSharp.Api;
+using WebPSharp.Api.Exceptions;
 using WebPSharp.Vp8L;
 
 namespace WebPSharp.Tests;
 
 public class Vp8LRoundTripTests
 {
+    [Theory]
+    [InlineData(16385, 1)]
+    [InlineData(1, 16385)]
+    public void Encode_DimensionAbove16384_Throws(int w, int h)
+    {
+        // VP8L stores width-1 and height-1 as 14-bit fields; a dimension above 16384 cannot be
+        // represented and must be rejected rather than silently masked by & 0x3FFF.
+        var img = WebPImage.CreateRgba(w, h, new byte[w * h * 4]);
+        Assert.Throws<WebPFormatException>(() => Vp8LEncoder.Encode(img));
+    }
+
+    [Theory]
+    [InlineData(16384, 1)]
+    [InlineData(1, 16384)]
+    public void Encode_DimensionAt16384Boundary_Accepted(int w, int h)
+    {
+        // 16384 - 1 = 16383 = 0x3FFF fits the 14-bit field exactly, so the boundary is valid.
+        var img = WebPImage.CreateRgba(w, h, new byte[w * h * 4]);
+        var bytes = Vp8LEncoder.Encode(img);
+        Assert.NotEmpty(bytes);
+    }
+
     private static void AssertRoundTrips(WebPImage image)
     {
         var payload = Vp8LEncoder.Encode(image);

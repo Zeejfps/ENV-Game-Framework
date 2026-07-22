@@ -1,3 +1,5 @@
+using WebPSharp.Container;
+
 namespace WebPSharp.Api;
 
 /// <summary>
@@ -26,6 +28,6 @@ public sealed class WebPMetadata
 /// <summary>
 /// An unrecognized RIFF chunk preserved verbatim.
 /// </summary>
-/// <param name="Id">The chunk's four-character identifier.</param>
+/// <param name="Id">The chunk's four-character identifier, preserved as its raw four bytes.</param>
 /// <param name="Data">The chunk payload (excluding header and padding).</param>
-public readonly record struct WebPUnknownChunk(string Id, byte[] Data);
+public readonly record struct WebPUnknownChunk(FourCc Id, byte[] Data);

@@ -36,8 +36,8 @@ internal static class Vp8AlphaDecoder
         var reserved = (header >> 6) & 0x03;
         if (reserved != 0)
             throw new WebPFormatException("ALPH chunk has non-zero reserved bits.");
-        if (preprocessing != 0)
-            throw new WebPException("ALPH level-reduction pre-processing is not supported.");
+        if (preprocessing > 1)
+            throw new WebPFormatException($"ALPH chunk has invalid pre-processing value {preprocessing}.");
 
         var total = width * height;
         var data = payload[1..];

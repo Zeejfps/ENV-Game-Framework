@@ -1,4 +1,5 @@
 using WebPSharp.Api;
+using WebPSharp.Api.Exceptions;
 using WebPSharp.Vp8L.Transforms;
 
 namespace WebPSharp.Vp8L;
@@ -15,6 +16,10 @@ namespace WebPSharp.Vp8L;
 internal static class Vp8LEncoder
 {
     private const int Signature = 0x2F;
+
+    // VP8L stores width-1 and height-1 as 14-bit fields, so each dimension must fit in [1, 16384].
+    private const int MaxDimension = 1 << 14;
+
     private const int LengthCodes = 24;
     private const int LiteralGreenSymbols = 256;
     private const int DistanceSymbols = 40;
@@ -108,6 +113,7 @@ internal static class Vp8LEncoder
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(settings);
+        ValidateDimensions(image.Width, image.Height);
 
         var width = image.Width;
         var height = image.Height;
@@ -141,12 +147,12 @@ internal static class Vp8LEncoder
             if (type is Vp8LTransformType.Predictor or Vp8LTransformType.CrossColor)
             {
                 writer.PutBits((uint)(bits - 2), 3);
-                EncodeImageData(writer, subImage!, false, 0);
+                EncodeImageData(writer, subImage!, false, 0, allowMeta: false);
             }
             else if (type == Vp8LTransformType.ColorIndexing)
             {
                 writer.PutBits((uint)(numColors - 1), 8);
-                EncodeImageData(writer, subImage!, false, 0);
+                EncodeImageData(writer, subImage!, false, 0, allowMeta: false);
             }
         }
         writer.PutBit(0); // end of transforms
@@ -154,9 +160,19 @@ internal static class Vp8LEncoder
         if (settings.MetaHuffman && !settings.Palette)
             EncodeImageDataMeta(writer, argb, width, height, settings.MetaHuffmanBits, settings.MetaHuffmanGroups);
         else
-            EncodeImageData(writer, argb, settings.Lz77, settings.ColorCacheBits);
+            EncodeImageData(writer, argb, settings.Lz77, settings.ColorCacheBits, allowMeta: true);
 
         return writer.ToArray();
+    }
+
+    // The 14-bit dimension fields cannot represent a value above 16384; masking a larger dimension
+    // with & 0x3FFF would silently emit a wrong size, so reject it here instead.
+    private static void ValidateDimensions(int width, int height)
+    {
+        if (width < 1 || width > MaxDimension)
+            throw new WebPFormatException($"Image width {width} is out of the VP8L range 1..{MaxDimension}.");
+        if (height < 1 || height > MaxDimension)
+            throw new WebPFormatException($"Image height {height} is out of the VP8L range 1..{MaxDimension}.");
     }
 
     /// <summary>
@@ -178,7 +194,7 @@ internal static class Vp8LEncoder
 
         var writer = new Vp8LBitWriter(Math.Max(256, argb.Length));
         writer.PutBit(0); // no transforms
-        EncodeImageData(writer, argb, lz77, 0);
+        EncodeImageData(writer, argb, lz77, 0, allowMeta: true);
         return writer.ToArray();
     }
 
@@ -232,7 +248,7 @@ internal static class Vp8LEncoder
         writer.PutBit(0); // no color cache
         writer.PutBit(1); // meta-Huffman present
         writer.PutBits((uint)(bits - 2), 3);
-        EncodeImageData(writer, entropy, false, 0); // the entropy image (single group, literal)
+        EncodeImageData(writer, entropy, false, 0, allowMeta: false); // the entropy image (single group, literal)
 
         var green = new PrefixCodeWriter[numGroups];
         var red = new PrefixCodeWriter[numGroups];
@@ -358,7 +374,14 @@ internal static class Vp8LEncoder
     /// either all-literal or LZ77 tokens. Reused for the main image and transform sub-images
     /// (sub-images pass <paramref name="cacheBits"/> = 0 and are always literal).
     /// </summary>
-    private static void EncodeImageData(Vp8LBitWriter writer, ReadOnlySpan<uint> argb, bool useLz77, int cacheBits)
+    /// <remarks>
+    /// The meta-Huffman present bit exists only for a top-level (level-0) image; the reference
+    /// decoder reads it solely when recursion is allowed. Sub-resolution images (predictor mode
+    /// image, cross-color image, color-indexing palette, meta entropy image) therefore pass
+    /// <paramref name="allowMeta"/> = <c>false</c> and must not emit it, or the stream desyncs by one
+    /// bit right after the color-cache bit.
+    /// </remarks>
+    private static void EncodeImageData(Vp8LBitWriter writer, ReadOnlySpan<uint> argb, bool useLz77, int cacheBits, bool allowMeta)
     {
         var cache = cacheBits > 0 ? new ColorCache(cacheBits) : null;
         var cacheSize = cache?.Size ?? 0;
@@ -415,7 +438,8 @@ internal static class Vp8LEncoder
         {
             writer.PutBit(0); // no color cache
         }
-        writer.PutBit(0); // no meta-Huffman (single group)
+        if (allowMeta)
+            writer.PutBit(0); // no meta-Huffman (single group); omitted for sub-images
 
         Vp8LHuffman.WritePrefixCode(writer, greenLengths);
         Vp8LHuffman.WritePrefixCode(writer, redLengths);

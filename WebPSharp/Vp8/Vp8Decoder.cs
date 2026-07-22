@@ -75,10 +75,13 @@ internal sealed class Vp8Decoder
         Profile = (bits >> 1) & 7;
         var show = (bits >> 4) & 1;
         var partitionLength = bits >> 5;
+        // The profile (version) is range-checked only. libwebp derives filter_type solely from the
+        // filter header (vp8_dec.c), so the version's reconstruction/loop-filter table (RFC 6386 §9.1)
+        // is not applied: dwebp emits byte-identical output for versions 0-3 of the same key frame.
         if (Profile > 3)
             throw new WebPFormatException($"Unsupported VP8 profile {Profile}.");
         if (!KeyFrame)
-            throw new WebPException("VP8 inter frames are not supported (still images are key frames).");
+            throw new WebPFormatException("VP8 frame is not a key frame; a still-image WebP must contain a single key frame.");
         if (show == 0)
             throw new WebPFormatException("VP8 frame is not displayable.");
 

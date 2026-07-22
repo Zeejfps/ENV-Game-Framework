@@ -1,4 +1,5 @@
 using WebPSharp.Api;
+using WebPSharp.Api.Exceptions;
 
 namespace WebPSharp.Vp8;
 
@@ -16,6 +17,12 @@ internal sealed class Vp8Encoder
     // 16x16 / chroma intra modes, aliased onto the 4x4 B-mode enumeration (see Vp8Decoder).
     private const int DcPred = 0, TmPred = 1, VPred = 2, HPred = 3;
     private const int MaxLevel = 2047;
+
+    // VP8 stores each dimension as the RAW value in a 14-bit frame-header field (see Assemble), so
+    // the largest representable dimension is 0x3FFF = 16383. A value of 16384 would set the field to
+    // 0 under the & 0x3F mask, silently producing a malformed zero-dimension stream. (This differs
+    // from VP8L, which stores dimension - 1 and so tops out one higher, at 16384.)
+    private const int MaxDimension = (1 << 14) - 1;
 
     private readonly int _width;
     private readonly int _height;
@@ -87,7 +94,22 @@ internal sealed class Vp8Encoder
     /// <param name="image">The image to encode.</param>
     /// <param name="quality">The quality, 0 (smallest) to 100 (best).</param>
     /// <returns>The VP8 bitstream.</returns>
-    public static byte[] Encode(WebPImage image, int quality) => new Vp8Encoder(image, quality).Run();
+    public static byte[] Encode(WebPImage image, int quality)
+    {
+        ValidateDimensions(image.Width, image.Height);
+        return new Vp8Encoder(image, quality).Run();
+    }
+
+    // The 14-bit width/height header fields store the raw dimension, so they cannot represent a
+    // value above 16383; a larger dimension would be truncated by the & 0x3F mask in Assemble, so
+    // reject it here instead.
+    private static void ValidateDimensions(int width, int height)
+    {
+        if (width < 1 || width > MaxDimension)
+            throw new WebPFormatException($"Image width {width} is out of the VP8 range 1..{MaxDimension}.");
+        if (height < 1 || height > MaxDimension)
+            throw new WebPFormatException($"Image height {height} is out of the VP8 range 1..{MaxDimension}.");
+    }
 
     // ---- Quantization setup ----
 

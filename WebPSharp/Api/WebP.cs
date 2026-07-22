@@ -171,7 +171,7 @@ public static class WebP
         if (metadata.Xmp is { Length: > 0 } xmp)
             writer.WriteChunk(WebPChunkIds.Xmp, xmp);
         foreach (var chunk in metadata.UnknownChunks)
-            writer.WriteChunk(new FourCc(chunk.Id), chunk.Data);
+            writer.WriteChunk(chunk.Id, chunk.Data);
     }
 
     /// <summary>Encodes an image to a stream as WebP.</summary>
@@ -297,7 +297,10 @@ public static class WebP
             {
                 if (!sawAnim)
                     throw new WebPFormatException("ANMF frame chunk appears before the ANIM chunk.");
-                animation.Frames.Add(ParseFrameChunk(chunk.Payload, options));
+                var frame = ParseFrameChunk(chunk.Payload, options);
+                if (frame.X + frame.Width > info.Width || frame.Y + frame.Height > info.Height)
+                    throw new WebPFormatException("Animation frame rectangle exceeds the canvas bounds.");
+                animation.Frames.Add(frame);
             }
             else if (metadata is null)
             {
@@ -310,7 +313,7 @@ public static class WebP
             else if (id == WebPChunkIds.Xmp)
                 metadata.Xmp = SetOnce(metadata.Xmp, chunk, "XMP");
             else
-                metadata.UnknownChunks.Add(new WebPUnknownChunk(id.ToString(), chunk.Payload.ToArray()));
+                metadata.UnknownChunks.Add(new WebPUnknownChunk(id, chunk.Payload.ToArray()));
         }
 
         if (!sawAnim)
@@ -421,17 +424,17 @@ public static class WebP
         while (pos + RiffReader.HeaderSize <= innerSpan.Length)
         {
             var cid = FourCc.Read(innerSpan.Slice(pos, 4));
-            var size = (int)BinaryPrimitives.ReadUInt32LittleEndian(innerSpan.Slice(pos + 4, 4));
+            var size = BinaryPrimitives.ReadUInt32LittleEndian(innerSpan.Slice(pos + 4, 4));
             var start = pos + RiffReader.HeaderSize;
-            if (size < 0 || start + size > innerSpan.Length)
+            if (size > (uint)(innerSpan.Length - start))
                 throw new WebPFormatException("Animation frame sub-chunk overruns the frame payload.");
 
             if (cid == WebPChunkIds.Vp8L)
-                image = DecodeLossless(inner.Slice(start, size), options);
+                image = DecodeLossless(inner.Slice(start, (int)size), options);
             else if (cid == WebPChunkIds.Vp8)
-                image = DecodeLossy(inner.Slice(start, size), options);
+                image = DecodeLossy(inner.Slice(start, (int)size), options);
 
-            pos = start + size + (size & 1);
+            pos = start + (int)size + (int)(size & 1);
         }
 
         if (image is null)
@@ -533,6 +536,12 @@ public static class WebP
 
     private static WebPImage DecodeExtended(ref RiffReader reader, ReadOnlyMemory<byte> vp8xPayload, WebPDecoderOptions options)
     {
+        var vp8x = vp8xPayload.Span;
+        // libwebp's ParseVP8X rejects any VP8X chunk whose payload size != 10
+        // (VP8X_CHUNK_SIZE) with a bitstream error; dwebp fails these files. Match that.
+        if (vp8x.Length != 10)
+            throw new WebPFormatException($"VP8X payload must be exactly 10 bytes; found {vp8x.Length}.");
+
         WebPImage? image = null;
         ReadOnlyMemory<byte>? alphaData = null;
         var metadata = options.ReadMetadata ? new WebPMetadata() : null;
@@ -574,21 +583,17 @@ public static class WebP
             else if (id == WebPChunkIds.Xmp)
                 metadata.Xmp = SetOnce(metadata.Xmp, chunk, "XMP");
             else
-                metadata.UnknownChunks.Add(new WebPUnknownChunk(id.ToString(), chunk.Payload.ToArray()));
+                metadata.UnknownChunks.Add(new WebPUnknownChunk(id, chunk.Payload.ToArray()));
         }
 
         if (image is null)
             throw new WebPFormatException("Extended (VP8X) container has no supported image chunk.");
 
-        var vp8x = vp8xPayload.Span;
-        if (vp8x.Length >= 10)
-        {
-            var canvasWidth = WebPHeaderReader.ReadUInt24LittleEndian(vp8x, 4) + 1;
-            var canvasHeight = WebPHeaderReader.ReadUInt24LittleEndian(vp8x, 7) + 1;
-            if (image.Width != canvasWidth || image.Height != canvasHeight)
-                throw new WebPFormatException(
-                    $"VP8X canvas {canvasWidth}x{canvasHeight} does not match the image {image.Width}x{image.Height}.");
-        }
+        var canvasWidth = WebPHeaderReader.ReadUInt24LittleEndian(vp8x, 4) + 1;
+        var canvasHeight = WebPHeaderReader.ReadUInt24LittleEndian(vp8x, 7) + 1;
+        if (image.Width != canvasWidth || image.Height != canvasHeight)
+            throw new WebPFormatException(
+                $"VP8X canvas {canvasWidth}x{canvasHeight} does not match the image {image.Width}x{image.Height}.");
 
         if (metadata is not null && HasMetadata(metadata))
             image.Metadata = metadata;
