@@ -237,14 +237,11 @@ internal sealed partial class BaselineEncoder
     private void WriteHeader(MarkerWriter writer, byte frameMarker, HuffmanTable[] tables)
     {
         writer.WriteMarker(JpegMarkers.StartOfImage);
-        if (_writeAdobe)
-            WriteAdobe(writer);
+        var order = _metadata?.HeaderSegmentOrder;
+        if (order is { Count: > 0 })
+            WriteMetadataSegmentsInOrder(writer, order);
         else
-            WriteJfif(writer);
-        WriteExif(writer);
-        WriteIcc(writer);
-        WriteComments(writer);
-        WriteApplicationSegments(writer);
+            WriteMetadataSegmentsFixedOrder(writer);
         WriteQuantTables(writer);
         WriteFrameHeader(writer, frameMarker);
         WriteHuffmanTables(writer, tables);

@@ -57,8 +57,31 @@ internal sealed partial class BaselineDecoder
         return true;
     }
 
-    private void PreserveApp(byte marker, ReadOnlySpan<byte> segment) =>
+    private void PreserveApp(byte marker, ReadOnlySpan<byte> segment)
+    {
         _appSegments.Add(new JpegApplicationSegment(marker, segment.ToArray()));
+        _headerOrder.Add(new HeaderSegmentRef(HeaderSegmentKind.App, _appSegments.Count - 1));
+    }
+
+    // Captures a COM segment (from the header or from between scans) into the comment lists and
+    // appends it to the ordering manifest so it is re-emitted on encode.
+    private void CaptureComment(ReadOnlySpan<byte> segment)
+    {
+        var commentBytes = segment.ToArray();
+        _commentBytes.Add(commentBytes);
+        _comments.Add(System.Text.Encoding.UTF8.GetString(commentBytes));
+        _headerOrder.Add(new HeaderSegmentRef(HeaderSegmentKind.Comment, _commentBytes.Count - 1));
+    }
+
+    // Records a single-instance typed segment (JFIF, Exif, ICC, Adobe) in the ordering manifest the
+    // first time it is encountered; the encoder emits each of these once, so duplicates are ignored.
+    private void RecordOnce(HeaderSegmentKind kind, ref bool recorded)
+    {
+        if (recorded)
+            return;
+        _headerOrder.Add(new HeaderSegmentRef(kind, 0));
+        recorded = true;
+    }
 
     private JpegMetadata BuildMetadata()
     {
@@ -82,6 +105,9 @@ internal sealed partial class BaselineDecoder
 
         foreach (var segment in _appSegments)
             metadata.ApplicationSegments.Add(segment);
+
+        foreach (var reference in _headerOrder)
+            metadata.HeaderSegmentOrder.Add(reference);
 
         return metadata;
     }

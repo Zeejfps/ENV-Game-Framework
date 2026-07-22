@@ -31,6 +31,38 @@ public readonly record struct JfifDensity(JpegDensityUnit Unit, int X, int Y);
 /// <param name="Data">The segment payload (excluding the marker and length bytes).</param>
 public readonly record struct JpegApplicationSegment(byte MarkerCode, byte[] Data);
 
+/// <summary>The kind of a header metadata segment recorded in the encounter-order manifest.</summary>
+internal enum HeaderSegmentKind
+{
+    /// <summary>JFIF density (APP0).</summary>
+    Jfif,
+
+    /// <summary>Adobe color transform (APP14).</summary>
+    Adobe,
+
+    /// <summary>Exif (APP1).</summary>
+    Exif,
+
+    /// <summary>ICC profile (APP2); recorded once at the position of its first chunk.</summary>
+    Icc,
+
+    /// <summary>A comment (COM); <see cref="HeaderSegmentRef.Index"/> selects which comment.</summary>
+    Comment,
+
+    /// <summary>A preserved application segment; <see cref="HeaderSegmentRef.Index"/> selects which entry.</summary>
+    App,
+}
+
+/// <summary>
+/// A reference to one header metadata segment in on-disk encounter order, used to replay the
+/// original segment ordering on re-encode.
+/// </summary>
+/// <param name="Kind">The segment kind.</param>
+/// <param name="Index">For <see cref="HeaderSegmentKind.Comment"/> the index into the comment lists,
+/// for <see cref="HeaderSegmentKind.App"/> the index into <see cref="JpegMetadata.ApplicationSegments"/>;
+/// otherwise unused.</param>
+internal readonly record struct HeaderSegmentRef(HeaderSegmentKind Kind, int Index);
+
 /// <summary>
 /// Optional metadata carried alongside a JPEG image: JFIF density, Exif, ICC profile, the
 /// Adobe color transform, comment segments, and any preserved unrecognized application
@@ -66,4 +98,11 @@ public sealed class JpegMetadata
     /// JFIF/Exif/ICC/Adobe segment), preserved in file order for round-tripping.
     /// </summary>
     public IList<JpegApplicationSegment> ApplicationSegments { get; } = new List<JpegApplicationSegment>();
+
+    /// <summary>
+    /// The on-disk encounter order of the header metadata segments, populated by the decoder so the
+    /// encoder can replay the original ordering. Empty for user-constructed metadata, in which case
+    /// the encoder falls back to its fixed segment order.
+    /// </summary>
+    internal IList<HeaderSegmentRef> HeaderSegmentOrder { get; } = new List<HeaderSegmentRef>();
 }

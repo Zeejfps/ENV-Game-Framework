@@ -53,6 +53,11 @@ internal sealed partial class BaselineDecoder
     private readonly List<string> _comments = [];
     private readonly List<byte[]> _commentBytes = [];
     private readonly List<JpegApplicationSegment> _appSegments = [];
+    private readonly List<HeaderSegmentRef> _headerOrder = [];
+    private bool _jfifRecorded;
+    private bool _exifRecorded;
+    private bool _iccRecorded;
+    private bool _adobeRecorded;
 
     private ScanHeader _scan;
     private short[][] _coefficients = [];
@@ -229,25 +234,31 @@ internal sealed partial class BaselineDecoder
                     _restartInterval = (segment[0] << 8) | segment[1];
                     break;
                 case JpegMarkers.App0:
-                    if (!ParseJfif(segment))
+                    if (ParseJfif(segment))
+                        RecordOnce(HeaderSegmentKind.Jfif, ref _jfifRecorded);
+                    else
                         PreserveApp(marker, segment);
                     break;
                 case JpegMarkers.App1:
-                    if (!ParseExif(segment))
+                    if (ParseExif(segment))
+                        RecordOnce(HeaderSegmentKind.Exif, ref _exifRecorded);
+                    else
                         PreserveApp(marker, segment);
                     break;
                 case JpegMarkers.App2:
-                    if (!ParseIccChunk(segment))
+                    if (ParseIccChunk(segment))
+                        RecordOnce(HeaderSegmentKind.Icc, ref _iccRecorded);
+                    else
                         PreserveApp(marker, segment);
                     break;
                 case JpegMarkers.App14:
-                    if (!ParseAdobe(segment))
+                    if (ParseAdobe(segment))
+                        RecordOnce(HeaderSegmentKind.Adobe, ref _adobeRecorded);
+                    else
                         PreserveApp(marker, segment);
                     break;
                 case JpegMarkers.Comment:
-                    var commentBytes = segment.ToArray();
-                    _commentBytes.Add(commentBytes);
-                    _comments.Add(System.Text.Encoding.UTF8.GetString(commentBytes));
+                    CaptureComment(segment);
                     break;
                 default:
                     if (JpegMarkers.IsAppMarker(marker))
@@ -517,8 +528,11 @@ internal sealed partial class BaselineDecoder
                             throw new JpegFormatException("Truncated DRI segment.");
                         _restartInterval = (segment[0] << 8) | segment[1];
                         break;
+                    case JpegMarkers.Comment:
+                        CaptureComment(segment);
+                        break;
 
-                    // Other markers between scans (APPn, COM) are ignored during decode.
+                    // Other markers between scans (APPn) are ignored during decode.
                 }
 
                 marker = reader.ReadMarker();
