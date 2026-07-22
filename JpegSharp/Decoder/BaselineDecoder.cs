@@ -803,7 +803,9 @@ internal sealed class BaselineDecoder
                     Array.Clear(predictors);
                 }
 
-                for (var ci = 0; ci < _components.Length; ci++)
+                // Interleaved MCUs follow the scan's component order (which may differ from the
+                // frame's), per ITU-T T.81 B.2.3.
+                foreach (var ci in _scan.Components)
                 {
                     var c = _components[ci];
                     var quant = GetQuantTable(c.QuantId).AsSpan();
@@ -974,14 +976,26 @@ internal sealed class BaselineDecoder
         return full;
     }
 
-    private QuantizationTable GetQuantTable(int id) =>
-        _quantTables[id] ?? throw new JpegFormatException($"Missing quantization table {id}.");
+    private QuantizationTable GetQuantTable(int id)
+    {
+        if ((uint)id >= (uint)_quantTables.Length)
+            throw new JpegFormatException($"Invalid quantization table id {id}.");
+        return _quantTables[id] ?? throw new JpegFormatException($"Missing quantization table {id}.");
+    }
 
-    private HuffmanTable GetDcTable(int id) =>
-        _dcTables[id] ?? throw new JpegFormatException($"Missing DC Huffman table {id}.");
+    private HuffmanTable GetDcTable(int id)
+    {
+        if ((uint)id >= (uint)_dcTables.Length)
+            throw new JpegFormatException($"Invalid DC Huffman table id {id}.");
+        return _dcTables[id] ?? throw new JpegFormatException($"Missing DC Huffman table {id}.");
+    }
 
-    private HuffmanTable GetAcTable(int id) =>
-        _acTables[id] ?? throw new JpegFormatException($"Missing AC Huffman table {id}.");
+    private HuffmanTable GetAcTable(int id)
+    {
+        if ((uint)id >= (uint)_acTables.Length)
+            throw new JpegFormatException($"Invalid AC Huffman table id {id}.");
+        return _acTables[id] ?? throw new JpegFormatException($"Missing AC Huffman table {id}.");
+    }
 
     private static int CeilDiv(int a, int b) => (a + b - 1) / b;
 }

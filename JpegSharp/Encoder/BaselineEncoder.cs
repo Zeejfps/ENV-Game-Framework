@@ -54,6 +54,8 @@ internal sealed class BaselineEncoder
 
         if (image.Width > MaxDimension || image.Height > MaxDimension)
             throw new ArgumentException($"JPEG dimensions must not exceed {MaxDimension}; got {image.Width}x{image.Height}.", nameof(image));
+        if (options.RestartInterval > MaxDimension)
+            throw new ArgumentException($"RestartInterval must not exceed {MaxDimension}; got {options.RestartInterval}.", nameof(options));
 
         if (image.ColorSpace == JpegColorSpace.Grayscale)
         {
@@ -745,8 +747,8 @@ internal sealed class BaselineEncoder
     private void WriteJfif(MarkerWriter writer)
     {
         var density = _metadata?.Density ?? new JfifDensity(JpegDensityUnit.None, 1, 1);
-        var x = density.X <= 0 ? 1 : density.X;
-        var y = density.Y <= 0 ? 1 : density.Y;
+        var x = Math.Clamp(density.X, 1, MaxDimension);
+        var y = Math.Clamp(density.Y, 1, MaxDimension);
         Span<byte> payload =
         [
             (byte)'J', (byte)'F', (byte)'I', (byte)'F', 0x00,
@@ -835,15 +837,40 @@ internal sealed class BaselineEncoder
 
     private void WriteQuantTables(MarkerWriter writer)
     {
-        Span<byte> payload = stackalloc byte[1 + 64];
+        Span<byte> payload8 = stackalloc byte[1 + 64];
+        Span<byte> payload16 = stackalloc byte[1 + 128];
         Span<ushort> zig = stackalloc ushort[64];
         for (var id = 0; id < _quantTables.Length; id++)
         {
-            payload[0] = (byte)id; // precision 0 (8-bit) | table id
             _quantTables[id].CopyToZigZag(zig);
+
+            var needs16Bit = false;
             for (var k = 0; k < 64; k++)
-                payload[1 + k] = (byte)zig[k];
-            writer.WriteSegment(JpegMarkers.DefineQuantizationTables, payload);
+            {
+                if (zig[k] > 255)
+                {
+                    needs16Bit = true;
+                    break;
+                }
+            }
+
+            if (needs16Bit)
+            {
+                payload16[0] = (byte)(0x10 | id); // precision 1 (16-bit) | table id
+                for (var k = 0; k < 64; k++)
+                {
+                    payload16[1 + 2 * k] = (byte)(zig[k] >> 8);
+                    payload16[1 + 2 * k + 1] = (byte)(zig[k] & 0xFF);
+                }
+                writer.WriteSegment(JpegMarkers.DefineQuantizationTables, payload16);
+            }
+            else
+            {
+                payload8[0] = (byte)id; // precision 0 (8-bit) | table id
+                for (var k = 0; k < 64; k++)
+                    payload8[1 + k] = (byte)zig[k];
+                writer.WriteSegment(JpegMarkers.DefineQuantizationTables, payload8);
+            }
         }
     }
 
