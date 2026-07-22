@@ -9,8 +9,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Public image type (WebPImage, RGBA/RGB)
 - [x] WebPInfo (dimensions, format, alpha, animation flags)
 - [x] WebPMetadata (ICC, EXIF, XMP, unknown chunks)
-- [ ] WebPDecoderOptions / WebPEncoderOptions
-- [~] WebP static entry API (Identify done; Decode/Encode/Load/Save pending)
+- [x] WebPDecoderOptions / WebPEncoderOptions
+- [x] WebP static entry API (Identify/Decode/Encode/Load/Save + async)
 
 ## Container (RIFF)
 - [x] FourCC type
@@ -77,7 +77,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Wire VP8 into WebP.Decode + pixel-exact golden validation vs dwebp (8 diverse cases)
 - [x] Intra prediction: 16x16 luma + 8x8 chroma (DC/V/H/TM) + 4x4 B_PRED (all 10 modes)
 - [x] Loop (deblocking) filter: simple + subblock + macroblock (RFC 6386, per-line, tested)
-- [~] YUV->RGB conversion (per-sample, spec-exact BT.601; plane conversion + chroma upsampling pending)
+- [x] YUV->RGB conversion (spec-exact BT.601 + nearest chroma upsampling; plane assembly done)
 - [x] Full lossy decode (VP8 key frames, validated pixel-exact vs dwebp)
 - [ ] Full lossy encode (quality/effort)
 - [ ] Lossy round-trip tests (thresholded)
@@ -112,6 +112,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Benchmarks (WebPSharp.Benchmarks: BenchmarkDotNet encode/decode/alloc + --smoke correctness check)
 - [x] Architecture + API documentation (README: API, RIFF, VP8L/animation pipelines, perf, limitations, extension points; XML docs on all public members)
 
-## Known blocker (VP8 lossy full decode)
-- Algorithmic primitives complete + unit-tested: boolean coder, DCT/WHT, intra 16/8/4, loop filter, YUV->RGB.
-- Remaining VP8 decode needs large spec constant tables (dequant 256, coeff/mode probabilities 1000+, token trees) that require a reference source or golden file to transcribe correctly; guessing would silently corrupt output.
+## Remaining work
+- VP8 lossy DECODE is complete and pixel-exact vs dwebp. Constant tables were transcribed from
+  libwebp (BSD, mirrors RFC 6386) with count-validated extraction.
+- Not yet done: lossy VP8 ENCODE, ALPH alpha chunk (pairs with lossy VP8), fancy chroma
+  upsampling (to match dwebp's default; current nearest matches dwebp -nofancy), and the VP8L
+  near-distance table (only affects decoding third-party files that use small-distance codes).
