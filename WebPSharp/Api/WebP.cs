@@ -13,8 +13,9 @@ namespace WebPSharp.Api;
 /// <remarks>
 /// Decoding supports lossless (VP8L), lossy (VP8, pixel-exact with the reference decoder using
 /// nearest-neighbor chroma upsampling), extended (VP8X) containers, metadata, and animation.
-/// Encoding is lossless (VP8L). Operations that meet a not-yet-implemented feature (e.g. lossy
-/// encoding) raise a descriptive <see cref="WebPException"/> rather than mis-decoding.
+/// Encoding supports lossless (VP8L) and lossy (VP8 intra key frames). Operations that meet a
+/// not-yet-implemented feature raise a descriptive <see cref="WebPException"/> rather than
+/// mis-decoding.
 /// </remarks>
 public static class WebP
 {
@@ -103,18 +104,19 @@ public static class WebP
     {
         ArgumentNullException.ThrowIfNull(image);
         options ??= new WebPEncoderOptions();
-        if (!options.Lossless)
-            throw new WebPException("Lossy (VP8) encoding is not yet supported; set WebPEncoderOptions.Lossless = true.");
 
-        var effort = Math.Clamp(options.Effort, 0, 9);
-        var payload = Vp8LEncoder.EncodeBest(image, effort);
+        var lossless = options.Lossless;
+        var imageChunkId = lossless ? WebPChunkIds.Vp8L : WebPChunkIds.Vp8;
+        var payload = lossless
+            ? Vp8LEncoder.EncodeBest(image, Math.Clamp(options.Effort, 0, 9))
+            : Vp8Encoder.Encode(image, options.Quality);
 
         using var ms = new MemoryStream(payload.Length + 64);
         var writer = new RiffWriter(ms);
         if (HasMetadata(image.Metadata))
-            WriteExtended(writer, image, payload);
+            WriteExtended(writer, image, imageChunkId, payload);
         else
-            writer.WriteChunk(WebPChunkIds.Vp8L, payload);
+            writer.WriteChunk(imageChunkId, payload);
         writer.Complete();
         return ms.ToArray();
     }
@@ -133,14 +135,16 @@ public static class WebP
          metadata.Xmp is { Length: > 0 } ||
          metadata.UnknownChunks.Count > 0);
 
-    private static void WriteExtended(RiffWriter writer, WebPImage image, byte[] imagePayload)
+    private static void WriteExtended(RiffWriter writer, WebPImage image, FourCc imageChunkId, byte[] imagePayload)
     {
         var metadata = image.Metadata!;
 
         // VP8X feature flags: ICC, alpha, EXIF, XMP (animation is written by the animation path).
+        // Alpha is only advertised for lossless output; lossy alpha (the ALPH chunk) is not yet
+        // written, so a lossy RGBA image is encoded as opaque.
         byte flags = 0;
         if (metadata.IccProfile is { Length: > 0 }) flags |= 0x20;
-        if (image.HasAlpha) flags |= 0x10;
+        if (image.HasAlpha && imageChunkId == WebPChunkIds.Vp8L) flags |= 0x10;
         if (metadata.Exif is { Length: > 0 }) flags |= 0x08;
         if (metadata.Xmp is { Length: > 0 }) flags |= 0x04;
 
@@ -153,7 +157,7 @@ public static class WebP
         // Spec chunk order: VP8X, ICCP, image, EXIF, XMP, then any preserved unknown chunks.
         if (metadata.IccProfile is { Length: > 0 } icc)
             writer.WriteChunk(WebPChunkIds.Iccp, icc);
-        writer.WriteChunk(WebPChunkIds.Vp8L, imagePayload);
+        writer.WriteChunk(imageChunkId, imagePayload);
         if (metadata.Exif is { Length: > 0 } exif)
             writer.WriteChunk(WebPChunkIds.Exif, exif);
         if (metadata.Xmp is { Length: > 0 } xmp)

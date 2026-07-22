@@ -29,9 +29,15 @@ Do not commit unless asked. End commit messages with the `Co-Authored-By: Claude
 - **VP8L lossless — encode + decode.** All 4 transforms (predictor, cross-color, subtract-green,
   color-indexing w/ pixel bundling), color cache, LZ77, meta-Huffman, near-distance table.
   Encoder has effort-driven candidate selection. Round-trip + combinatorial + fuzz tested.
-- **VP8 lossy — DECODE only.** Header, coefficient/mode/residual decode, reconstruction, in-loop
+- **VP8 lossy — DECODE.** Header, coefficient/mode/residual decode, reconstruction, in-loop
   deblocking filter, fancy (bilinear) chroma upsampling. **Validated pixel-exact vs `dwebp`** on 8
   diverse golden cases (`Vp8GoldenBatchTests`).
+- **VP8 lossy — ENCODE.** Intra key frames: RGB→YUV (libwebp BT.601 constants), whole-block
+  prediction (16x16 luma + 8x8 chroma, DC/V/H/TM chosen by SSE), forward DCT/WHT + quantization,
+  coefficient token encoding, quality→base-quantizer, single DCT partition, no segmentation/filter.
+  Reuses the decoder's transforms + dequant steps so a decode reproduces the encoder's
+  reconstruction bit-for-bit. **Validated pixel-exact vs `dwebp`** across sizes/content/quality
+  (`Vp8EncodeTests` + ad-hoc 36-case sweep). Not size-optimal (no RD, i4x4, trellis, or filter).
 - **ALPH alpha (for lossy)** — parse + decode (raw / lossless) + unfilter. Pixel-exact vs `dwebp`
   (`WebPAlphaTests`).
 - **Container:** RIFF read/write, VP8X, ICC/EXIF/XMP metadata, unknown-chunk preservation, strict
@@ -44,16 +50,16 @@ Do not commit unless asked. End commit messages with the `Co-Authored-By: Claude
 
 ## What is LEFT (priority order)
 
-1. **Lossy VP8 ENCODE** — the biggest remaining piece. Needs: forward pipeline (RGB→YUV, FDCT/FWHT
-   already exist and are tested, quantization, mode decision, boolean *encoder* already exists and
-   round-trips, coefficient token *encoding*, header writing, rate control by quality). This is a
-   large multi-iteration effort. The forward transforms and boolean encoder are done; the token
-   encoding + mode search + header writing are not. Validate by encoding → `dwebp` decode → compare,
-   or encode → my decode round-trip within a PSNR threshold.
-2. **Alpha ENCODE** — pairs with lossy encode (ALPH chunk writing: filter + optional VP8L compress).
-3. **Animated lossy frames** — `DecodeAnimation` currently throws for VP8 frames? (No — animation
-   frames call `DecodeLossy` now via the wired path, but confirm/round-out `EncodeAnimation` still
-   only writes VP8L frames.) Lossy animation frames need lossy encode first.
+1. **Alpha ENCODE** — pairs with lossy encode (ALPH chunk writing: filter + optional VP8L compress).
+   A lossy RGBA image currently encodes as **opaque** (alpha dropped, VP8X alpha flag not set for
+   lossy). Wiring: add ALPH emission in `WebP.WriteExtended`/`Encode` for the lossy path.
+2. **Lossy encoder size tuning** — the encoder is correct but not size-optimal. Biggest wins, in
+   rough order: in-loop filter (currently level 0 / off), i4x4 (B_PRED) mode, rate-distortion /
+   token-cost-aware mode & coefficient decisions, per-frame coefficient probability adaptation,
+   deadzone/trellis quantization. All are quality/size only — none affect correctness, since the
+   decoder reconstructs whatever the encoder emits.
+3. **Animated lossy frames** — `EncodeAnimation` still writes only VP8L frames; now that lossy
+   encode exists, `BuildFrameChunk` could emit VP8 frames (decode already handles them).
 4. **VP8 profiles / advanced** — only profile 0 (bicubic reconstruction filter) is exercised by the
    fixtures; other reconstruction filters (profiles 1-3) use simpler interpolation but the
    coefficient path is the same. Not validated; generate fixtures with `cwebp -m`/segments to widen
@@ -113,6 +119,8 @@ WebPSharp/Vp8/
   Vp8BooleanDecoder.cs / Vp8BooleanEncoder.cs  arithmetic coder (RFC 6386)
   Vp8Tables.cs                                 all constant tables (from libwebp, count-verified)
   Vp8Transform.cs                              DCT/WHT (inverse used by decode; forward for encode)
+  Vp8Encoder.cs                                lossy intra encode: RGB→YUV, mode search, FDCT/WHT,
+                                               quantize, token encode, header write (mirror of decode)
   Vp8Prediction.cs / Vp8Prediction4.cs         intra prediction 16x16/8x8 and 4x4
   Vp8Coefficients.cs                           coefficient token decode (GetCoeffs/GetLargeValue)
   Vp8Decoder.cs                                header parse + MB decode + reconstruction + upsample

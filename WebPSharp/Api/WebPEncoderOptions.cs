@@ -6,14 +6,14 @@ namespace WebPSharp.Api;
 public sealed class WebPEncoderOptions
 {
     /// <summary>
-    /// When true (the default), the image is encoded losslessly (VP8L). Lossy (VP8) encoding is
-    /// being implemented incrementally and is not yet available.
+    /// When true (the default), the image is encoded losslessly (VP8L). When false, the image is
+    /// encoded lossily as a VP8 intra key frame at <see cref="Quality"/>.
     /// </summary>
     public bool Lossless { get; set; } = true;
 
     /// <summary>
     /// Target quality for lossy encoding, 0 (smallest) to 100 (best). Ignored by lossless
-    /// encoding. Reserved for the forthcoming VP8 encoder.
+    /// encoding. Controls the VP8 base quantizer.
     /// </summary>
     public int Quality { get; set; } = 75;
 

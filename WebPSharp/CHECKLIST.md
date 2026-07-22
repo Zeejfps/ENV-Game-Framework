@@ -79,8 +79,11 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Loop (deblocking) filter: simple + subblock + macroblock (RFC 6386, per-line, tested)
 - [x] YUV->RGB conversion (spec-exact BT.601 + nearest chroma upsampling; plane assembly done)
 - [x] Full lossy decode (VP8 key frames, validated pixel-exact vs dwebp)
-- [ ] Full lossy encode (quality/effort)
-- [ ] Lossy round-trip tests (thresholded)
+- [x] Full lossy encode (VP8 intra key frames: 16x16 luma + 8x8 chroma mode search, forward
+      DCT/WHT + quantization, coefficient token encoding, header writing, quality→base-quantizer).
+      Validated pixel-exact vs dwebp on 36 diverse cases (sizes × content × quality).
+- [x] Lossy round-trip tests (thresholded): dimensions/format preserved, PSNR thresholds on smooth
+      content, quality monotonicity, determinism, RGB input, metadata (VP8X) container
 
 ## Alpha
 - [x] ALPH chunk parse (method/filter/preprocessing)
@@ -113,8 +116,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Architecture + API documentation (README: API, RIFF, VP8L/animation pipelines, perf, limitations, extension points; XML docs on all public members)
 
 ## Remaining work
-- VP8 lossy DECODE is complete and pixel-exact vs dwebp. Constant tables were transcribed from
-  libwebp (BSD, mirrors RFC 6386) with count-validated extraction.
-- Not yet done: lossy VP8 ENCODE, ALPH alpha chunk (pairs with lossy VP8), fancy chroma
-  upsampling (to match dwebp's default; current nearest matches dwebp -nofancy), and the VP8L
-  near-distance table (only affects decoding third-party files that use small-distance codes).
+- VP8 lossy DECODE and ENCODE are complete and pixel-exact vs dwebp. Constant tables were
+  transcribed from libwebp (BSD, mirrors RFC 6386) with count-validated extraction.
+- Lossy encoder scope: intra key frames only, whole-block (16x16/8x8) prediction with SSE mode
+  search, single DCT partition, no segmentation, no in-loop filter (level 0), default coefficient
+  probabilities, nearest-rounding quantization. Correct and standards-compliant but not size-optimal
+  (no rate-distortion optimization, i4x4, trellis, or probability adaptation).
+- Not yet done: lossy alpha (ALPH encode, pairs with lossy VP8 — RGBA input currently encodes as
+  opaque), lossy animation frames (EncodeAnimation still lossless-only), and encoder size tuning
+  (loop filter, i4x4, RD/token cost). The VP8L near-distance table is done.

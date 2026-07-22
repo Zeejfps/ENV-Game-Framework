@@ -68,10 +68,11 @@ public class WebPLosslessApiTests
     }
 
     [Fact]
-    public void Encode_LossyRequested_Throws()
+    public void Encode_LossyRequested_ProducesLossyFile()
     {
-        var img = WebPImage.CreateRgba(2, 2, new byte[16]);
-        Assert.Throws<WebPException>(() => WebP.Encode(img, new WebPEncoderOptions { Lossless = false }));
+        var img = WebPImage.CreateRgba(16, 16, RandomPixels(16, 16, seed: 3));
+        var bytes = WebP.Encode(img, new WebPEncoderOptions { Lossless = false });
+        Assert.Equal(WebPFormat.Lossy, WebP.Identify(bytes).Format);
     }
 
     [Fact]

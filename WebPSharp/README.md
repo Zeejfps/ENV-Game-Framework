@@ -18,7 +18,7 @@ engine classes, and `InternalsVisibleTo` the test project.
 | Metadata (ICC / EXIF / XMP) | ✅ | ✅ |
 | Unknown chunk preservation | ✅ | ✅ |
 | Animation (ANIM / ANMF) | ✅ blend, dispose, timing, loop, composition | ✅ |
-| Lossy (VP8) | ⚠️ primitives only (see Limitations) | ⚠️ primitives only |
+| Lossy (VP8) | ✅ full key-frame decode, pixel-exact vs `dwebp` | ✅ intra key frames, pixel-exact vs `dwebp` (see Limitations) |
 
 ## Quick start
 
@@ -29,6 +29,9 @@ using WebPSharp.Api;
 var image = WebPImage.CreateRgba(width, height, rgbaBytes);
 byte[] webp = WebP.Encode(image);
 WebP.Save(image, "out.webp");
+
+// Or encode lossily (VP8 intra key frame) at a target quality.
+byte[] lossy = WebP.Encode(image, new WebPEncoderOptions { Lossless = false, Quality = 80 });
 
 // Decode.
 WebPImage decoded = WebP.Load("out.webp");           // or WebP.Decode(byte[]) / Decode(Stream)
@@ -132,29 +135,30 @@ asserts every one either decodes or throws a `WebPException` — never a crash o
 
 ## Limitations
 
-- **Lossy VP8 full codec is not yet available.** All algorithmic primitives are implemented and
-  unit-tested — the boolean arithmetic coder, the 4×4 DCT and Walsh-Hadamard transforms, intra
-  prediction (16×16, 8×8, and all ten 4×4 modes), the loop/deblocking filters, and YUV→RGB. What
-  remains is the data-heavy core: the dequantization tables and the coefficient/mode probability
-  tables and token trees (well over a thousand spec constants), plus frame-header and macroblock
-  parsing that drive them. These constants are intentionally not included until they can be
-  transcribed from an authoritative reference or validated against a golden file, since incorrect
-  constants would silently corrupt output.
-- **VP8L near-distance plane codes (≤ 120)** are rejected on decode pending reference-table
-  validation. WebPSharp's own encoder never emits them, so its output is unaffected; only decoding
-  third-party files that use compact small-distance back-references is impacted.
+- **Lossy VP8 encoding is intra-only and not size-optimal.** The encoder produces correct,
+  standards-compliant key frames (validated pixel-exact against `dwebp`) but favors simplicity over
+  compression: whole-block 16×16/8×8 prediction only (no 4×4 `B_PRED`), no in-loop filter, no
+  segmentation, default coefficient probabilities, and nearest-rounding quantization. It has no
+  rate-distortion optimization or trellis quantization, so files are larger than libwebp's for the
+  same quality. None of this affects correctness — the decoder reconstructs exactly what the encoder
+  emits — only output size.
+- **Lossy alpha and lossy animation are not yet written.** A lossy RGBA image is encoded as opaque
+  (the `ALPH` chunk is not emitted), and `EncodeAnimation` writes only lossless frames.
 
 ## Extension points
 
-- The VP8 primitives (`Vp8/`) are standalone and ready to be assembled into a macroblock
-  reconstruction loop once the constant tables are supplied.
-- `WebPEncoderOptions.Effort` is the hook for transform/back-reference search strategies.
+- The lossy encoder (`Vp8/Vp8Encoder.cs`) is a direct bitstream mirror of the decoder; the natural
+  next steps (in-loop filter, `B_PRED`, RD/token-cost search, probability adaptation) are all
+  quality/size improvements that plug into the existing prediction → transform → quantize → token
+  pipeline without changing the decoder contract.
+- `WebPEncoderOptions.Effort` is the hook for transform/back-reference search strategies (lossless).
 - Unknown RIFF chunks are preserved through decode/encode, so new chunk types round-trip without
   code changes.
 
 ## Testing
 
-314+ xUnit tests: unit tests for every internal component, exact lossless round-trips (single
-pixel, odd dimensions, noise, gradients, solid, transparent, per-transform and combined), metadata
-and animation round-trips, corruption/fuzz robustness, and property-style randomized round-trips.
-`WebPSharp.Benchmarks --smoke` doubles as an end-to-end correctness check.
+460+ xUnit tests: unit tests for every internal component, exact lossless round-trips (single
+pixel, odd dimensions, noise, gradients, solid, transparent, per-transform and combined), lossy VP8
+decode and encode validated pixel-exact against `dwebp`, lossy encode round-trip/PSNR/monotonicity
+tests, metadata and animation round-trips, corruption/fuzz robustness, and property-style randomized
+round-trips. `WebPSharp.Benchmarks --smoke` doubles as an end-to-end correctness check.

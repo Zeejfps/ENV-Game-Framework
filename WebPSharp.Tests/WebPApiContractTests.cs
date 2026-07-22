@@ -50,10 +50,13 @@ public class WebPApiContractTests
     }
 
     [Fact]
-    public void EncoderOptions_LosslessFalse_ThrowsForImageAndAnimation()
+    public void EncoderOptions_LosslessFalse_EncodesImageButThrowsForAnimation()
     {
-        Assert.Throws<WebPException>(() => WebP.Encode(Sample(), new WebPEncoderOptions { Lossless = false }));
+        // Lossy still-image encoding is supported.
+        var bytes = WebP.Encode(Sample(), new WebPEncoderOptions { Lossless = false });
+        Assert.Equal(WebPFormat.Lossy, WebP.Identify(bytes).Format);
 
+        // Lossy animation encoding is not yet supported.
         var anim = new WebPAnimation(4, 4);
         anim.Frames.Add(new WebPFrame(WebPImage.CreateRgba(4, 4, new byte[64])));
         Assert.Throws<WebPException>(() => WebP.EncodeAnimation(anim, new WebPEncoderOptions { Lossless = false }));
