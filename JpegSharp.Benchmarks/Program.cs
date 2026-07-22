@@ -17,6 +17,12 @@ if (args.Length > 0 && args[0] == "--golden")
     return;
 }
 
+if (args.Length > 0 && args[0] == "--measure")
+{
+    Measure.Run();
+    return;
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 
 internal static class Smoke
@@ -83,6 +89,68 @@ internal static class Golden
     {
         var d = new byte[w * h * 4];
         for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) { var i = (y * w + x) * 4; d[i] = (byte)(x * 255 / (w - 1)); d[i + 1] = (byte)(y * 255 / (h - 1)); d[i + 2] = (byte)((x + y) * 255 / (w + h - 2)); d[i + 3] = (byte)(255 - x * 255 / (w - 1)); }
+        return d;
+    }
+}
+
+// A self-contained throughput/allocation measurement that does not rely on BenchmarkDotNet's
+// project discovery (robust in any working tree). Reports median-of-N timings.
+internal static class Measure
+{
+    public static void Run()
+    {
+        Console.WriteLine($"{"Op",-22}{"Size",-8}{"Median ms",-12}{"MP/s",-10}{"Alloc KB",-10}");
+        foreach (var size in new[] { 64, 256, 512 })
+        {
+            var pixels = MakeImage(size);
+            var image = JpegImage.CreateRgb(size, size, pixels);
+            var opts = new JpegEncoderOptions { Quality = 85, Subsampling = ChromaSubsampling.Samp420 };
+            var encoded = Jpeg.Encode(image, opts);
+
+            Report("Encode baseline 4:2:0", size, () => Jpeg.Encode(image, opts));
+            Report("Decode baseline", size, () => Jpeg.Decode(encoded));
+
+            var prog = Jpeg.Encode(image, new JpegEncoderOptions { Quality = 85, Progressive = true });
+            Report("Decode progressive", size, () => Jpeg.Decode(prog));
+        }
+    }
+
+    private static void Report(string op, int size, Action action)
+    {
+        for (var i = 0; i < 3; i++)
+            action(); // warmup
+
+        const int runs = 9;
+        var times = new double[runs];
+        var sw = new System.Diagnostics.Stopwatch();
+        long allocBefore = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < runs; i++)
+        {
+            sw.Restart();
+            action();
+            sw.Stop();
+            times[i] = sw.Elapsed.TotalMilliseconds;
+        }
+
+        var allocPerRun = (GC.GetAllocatedBytesForCurrentThread() - allocBefore) / runs / 1024.0;
+        Array.Sort(times);
+        var median = times[runs / 2];
+        var mpps = size * (double)size / 1_000_000.0 / (median / 1000.0);
+        Console.WriteLine($"{op,-22}{size + "x" + size,-8}{median,-12:F2}{mpps,-10:F1}{allocPerRun,-10:F0}");
+    }
+
+    private static byte[] MakeImage(int size)
+    {
+        var d = new byte[size * size * 3];
+        var rng = new Random(1);
+        for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var i = (y * size + x) * 3;
+                d[i] = (byte)((x * 255 / size + rng.Next(20)) & 0xFF);
+                d[i + 1] = (byte)((y * 255 / size + rng.Next(20)) & 0xFF);
+                d[i + 2] = (byte)(((x + y) * 127 / size + rng.Next(20)) & 0xFF);
+            }
         return d;
     }
 }
