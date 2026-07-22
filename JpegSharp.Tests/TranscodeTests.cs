@@ -18,9 +18,9 @@ public class TranscodeTests
 
         // Generation loss is front-loaded: after the first save, subsequent re-saves at the
         // same quality drift far less than the original -> gen1 step.
-        var firstLoss = MeanError(original, gen1);
-        var secondLoss = MeanError(gen1, gen2);
-        var thirdLoss = MeanError(gen2, gen3);
+        var firstLoss = TestMetrics.MeanError(original, gen1);
+        var secondLoss = TestMetrics.MeanError(gen1, gen2);
+        var thirdLoss = TestMetrics.MeanError(gen2, gen3);
 
         Assert.True(secondLoss < firstLoss, $"gen1->gen2 {secondLoss:F2} should be < original->gen1 {firstLoss:F2}");
         Assert.True(secondLoss < 2.0, $"gen1->gen2 drift {secondLoss:F2} too high");
@@ -38,15 +38,7 @@ public class TranscodeTests
         var gen1 = Jpeg.Decode(Jpeg.Encode(JpegImage.CreateGrayscale(48, 48, original), options)).PixelData;
         var gen2 = Jpeg.Decode(Jpeg.Encode(JpegImage.CreateGrayscale(48, 48, gen1), options)).PixelData;
 
-        Assert.True(MeanError(gen1, gen2) < MeanError(original, gen1));
-    }
-
-    private static double MeanError(byte[] a, byte[] b)
-    {
-        long total = 0;
-        for (var i = 0; i < a.Length; i++)
-            total += Math.Abs(a[i] - b[i]);
-        return (double)total / a.Length;
+        Assert.True(TestMetrics.MeanError(gen1, gen2) < TestMetrics.MeanError(original, gen1));
     }
 
     private static byte[] Photo(int w, int h)

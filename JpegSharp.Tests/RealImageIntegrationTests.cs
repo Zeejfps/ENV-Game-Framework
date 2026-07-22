@@ -22,7 +22,7 @@ public class RealImageIntegrationTests
 
         Assert.Equal(width, decoded.Width);
         Assert.Equal(height, decoded.Height);
-        Assert.True(Psnr(rgb, decoded.PixelData) > 32.0, "PSNR too low on real image at q95 4:4:4");
+        Assert.True(TestMetrics.Psnr(rgb, decoded.PixelData) > 32.0, "PSNR too low on real image at q95 4:4:4");
     }
 
     [Theory]
@@ -47,8 +47,8 @@ public class RealImageIntegrationTests
         var (width, height, rgb) = LoadRgb("sprite_atlas.png");
         var image = JpegImage.CreateRgb(width, height, rgb);
 
-        var low = Psnr(rgb, Jpeg.Decode(Jpeg.Encode(image, new JpegEncoderOptions { Quality = 40 })).PixelData);
-        var high = Psnr(rgb, Jpeg.Decode(Jpeg.Encode(image, new JpegEncoderOptions { Quality = 92 })).PixelData);
+        var low = TestMetrics.Psnr(rgb, Jpeg.Decode(Jpeg.Encode(image, new JpegEncoderOptions { Quality = 40 })).PixelData);
+        var high = TestMetrics.Psnr(rgb, Jpeg.Decode(Jpeg.Encode(image, new JpegEncoderOptions { Quality = 92 })).PixelData);
         Assert.True(high > low, $"q92 PSNR {high:F1} should exceed q40 PSNR {low:F1}");
     }
 
@@ -85,18 +85,5 @@ public class RealImageIntegrationTests
         }
 
         return (width, height, rgb);
-    }
-
-    private static double Psnr(byte[] a, byte[] b)
-    {
-        double mse = 0;
-        for (var i = 0; i < a.Length; i++)
-        {
-            var d = a[i] - b[i];
-            mse += d * d;
-        }
-
-        mse /= a.Length;
-        return mse <= 0 ? double.PositiveInfinity : 10.0 * Math.Log10(255.0 * 255.0 / mse);
     }
 }

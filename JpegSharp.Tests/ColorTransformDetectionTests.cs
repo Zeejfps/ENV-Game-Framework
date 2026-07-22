@@ -52,7 +52,7 @@ public class ColorTransformDetectionTests
         var image = JpegImage.CreateRgb(16, 16, pixels);
         var direct = Jpeg.Decode(Jpeg.Encode(image, new JpegEncoderOptions { Quality = 95, RgbEncoding = JpegRgbEncoding.Rgb }));
 
-        var directErr = MeanError(pixels, direct.PixelData);
+        var directErr = TestMetrics.MeanError(pixels, direct.PixelData);
         Assert.True(directErr < 12.0, $"RGB-direct mean error {directErr:F2} too high");
     }
 
@@ -69,14 +69,6 @@ public class ColorTransformDetectionTests
         ms.Write(adobe);
         ms.Write(data, 2, data.Length - 2);
         return ms.ToArray();
-    }
-
-    private static double MeanError(byte[] a, byte[] b)
-    {
-        long total = 0;
-        for (var i = 0; i < a.Length; i++)
-            total += Math.Abs(a[i] - b[i]);
-        return (double)total / a.Length;
     }
 
     private static byte[] ColorGradient(int w, int h)
