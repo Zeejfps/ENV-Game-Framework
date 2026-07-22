@@ -72,9 +72,7 @@ public static class Jpeg
     public static JpegImage Decode(Stream stream, JpegDecoderOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        return Decode(ms.ToArray(), options);
+        return Decode(ReadAllBytes(stream), options);
     }
 
     /// <summary>
@@ -88,10 +86,8 @@ public static class Jpeg
     public static async Task<JpegImage> DecodeAsync(Stream stream, JpegDecoderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return Decode(ms.ToArray(), options);
+        var data = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        return Decode(data, options);
     }
 
     /// <summary>
@@ -107,8 +103,51 @@ public static class Jpeg
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(stream);
-        var bytes = Encode(image, options);
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+
+        // Encode synchronously into a buffer (CPU-bound), then write it out asynchronously
+        // without an intermediate ToArray copy.
+        using var buffer = new MemoryStream();
+        Encode(image, buffer, options);
+        buffer.Position = 0;
+        await buffer.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Reads a stream fully into a byte array. Seekable streams (files, MemoryStreams) are read
+    // into an exactly-sized buffer in a single copy; other streams fall back to buffering.
+    private static byte[] ReadAllBytes(Stream stream)
+    {
+        if (stream.CanSeek)
+        {
+            var remaining = stream.Length - stream.Position;
+            if (remaining is > 0 and <= int.MaxValue)
+            {
+                var buffer = new byte[(int)remaining];
+                stream.ReadExactly(buffer);
+                return buffer;
+            }
+        }
+
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
+    }
+
+    private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        if (stream.CanSeek)
+        {
+            var remaining = stream.Length - stream.Position;
+            if (remaining is > 0 and <= int.MaxValue)
+            {
+                var buffer = new byte[(int)remaining];
+                await stream.ReadExactlyAsync(buffer, cancellationToken).ConfigureAwait(false);
+                return buffer;
+            }
+        }
+
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
+        return ms.ToArray();
     }
 
     /// <summary>Loads and decodes a JPEG image from a file.</summary>
