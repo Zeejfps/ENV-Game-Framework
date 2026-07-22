@@ -12,7 +12,14 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IInvalidatable
     private Action<ListChange<T>>? _changed;
     private Action? _invalidated;
 
-    public int Count => _items.Count;
+    public int Count
+    {
+        get
+        {
+            DependencyTracker.Register(this);
+            return _items.Count;
+        }
+    }
 
     public T this[int index]
     {
