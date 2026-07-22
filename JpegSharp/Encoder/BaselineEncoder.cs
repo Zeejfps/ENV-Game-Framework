@@ -1,4 +1,5 @@
 using JpegSharp.Api;
+using JpegSharp.Api.Exceptions;
 using JpegSharp.Bitstream;
 using JpegSharp.Coding;
 using JpegSharp.Color;
@@ -462,6 +463,9 @@ internal sealed partial class BaselineEncoder
                     break;
                 }
             }
+
+            if (needs16Bit && _precision == 8)
+                throw new JpegException("8-bit JPEG quantization table steps must be <= 255 (Pq=0 per T.81 B.2.4.1); a custom table contains a value that requires 16-bit precision.");
 
             if (needs16Bit)
             {

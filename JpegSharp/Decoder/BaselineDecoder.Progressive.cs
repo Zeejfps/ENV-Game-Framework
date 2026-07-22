@@ -126,11 +126,14 @@ internal sealed partial class BaselineDecoder
                             var offset = (blockRow * c.BlocksWide + blockCol) * 64;
 
                             var s = dc.DecodeSymbol(ref reader);
-                            if (s is < 0 or > 16)
-                                throw new JpegFormatException($"Invalid DC magnitude category {s}.");
+                            if (s is < 0 or > 15)
+                                throw new JpegCorruptException($"Invalid DC magnitude category {s}.");
                             var diff = s == 0 ? 0 : BitReader.Extend(reader.ReadBits(s), s);
                             predictors[si] += diff;
-                            buffer[offset] = (short)(predictors[si] << scan.Al);
+                            var value = predictors[si] << scan.Al;
+                            if (value is < short.MinValue or > short.MaxValue)
+                                throw new JpegCorruptException("DC predictor out of range in progressive scan.");
+                            buffer[offset] = (short)value;
                         }
                     }
                 }
@@ -167,11 +170,14 @@ internal sealed partial class BaselineDecoder
 
                 var offset = (by * c.BlocksWide + bx) * 64;
                 var s = dc.DecodeSymbol(ref reader);
-                if (s is < 0 or > 16)
-                    throw new JpegFormatException($"Invalid DC magnitude category {s}.");
+                if (s is < 0 or > 15)
+                    throw new JpegCorruptException($"Invalid DC magnitude category {s}.");
                 var diff = s == 0 ? 0 : BitReader.Extend(reader.ReadBits(s), s);
                 predictor += diff;
-                buffer[offset] = (short)(predictor << scan.Al);
+                var value = predictor << scan.Al;
+                if (value is < short.MinValue or > short.MaxValue)
+                    throw new JpegCorruptException("DC predictor out of range in progressive scan.");
+                buffer[offset] = (short)value;
             }
         }
     }
@@ -226,6 +232,8 @@ internal sealed partial class BaselineDecoder
                         }
 
                         k += 16; // ZRL
+                        if (k > scan.Se + 1)
+                            throw new JpegCorruptException("AC zero-run overruns the spectral band in progressive scan.");
                     }
                     else
                     {
@@ -353,6 +361,8 @@ internal sealed partial class BaselineDecoder
 
                         if (s != 0)
                         {
+                            if (s > 1)
+                                throw new JpegCorruptException("Invalid AC refinement magnitude in progressive scan.");
                             s = reader.ReadBits(1) != 0 ? p1 : m1; // newly-nonzero coefficient value
                         }
                         else if (r != 15)
@@ -380,8 +390,12 @@ internal sealed partial class BaselineDecoder
                             }
                         }
 
-                        if (s != 0 && k <= scan.Se)
+                        if (s != 0)
+                        {
+                            if (k > scan.Se)
+                                throw new JpegCorruptException("AC refinement coefficient cannot be placed within the spectral band.");
                             buffer[offset + k] = (short)s;
+                        }
                     }
                 }
 

@@ -1,4 +1,5 @@
 using JpegSharp.Api;
+using JpegSharp.Api.Exceptions;
 using JpegSharp.Quantization;
 using Xunit;
 
@@ -7,7 +8,7 @@ namespace JpegSharp.Tests;
 public class HighPrecisionQuantTests
 {
     [Fact]
-    public void QuantValueAbove255_IsWrittenAs16BitAndRoundTrips()
+    public void QuantValueAbove255_In8BitFrame_IsRejected()
     {
         var values = new ushort[64];
         Array.Fill(values, (ushort)8);
@@ -18,9 +19,26 @@ public class HighPrecisionQuantTests
         var pixels = new byte[32 * 32];
         Array.Fill(pixels, (byte)128); // flat image
         var image = JpegImage.CreateGrayscale(32, 32, pixels);
-        var bytes = Jpeg.Encode(image, new JpegEncoderOptions { LuminanceQuantizationTable = table });
 
-        // The DQT must be written at 16-bit precision (Pq=1) with the true values.
+        // A baseline (SOF0) 8-bit frame must not emit a Pq=1 (16-bit) DQT (T.81 B.2.4.1).
+        var ex = Assert.Throws<JpegException>(
+            () => Jpeg.Encode(image, new JpegEncoderOptions { LuminanceQuantizationTable = table }));
+        Assert.Contains("255", ex.Message);
+    }
+
+    [Fact]
+    public void QuantValueAbove255_In12BitFrame_IsWrittenAs16BitAndRoundTrips()
+    {
+        var values = new ushort[64];
+        Array.Fill(values, (ushort)8);
+        values[0] = 400;  // exceeds 8-bit range
+        values[5] = 1000; // well beyond a byte
+        var table = new QuantizationTable(values);
+
+        var image = JpegImage16.CreateGrayscale(32, 32, 12, Gradient12(32, 32));
+        var bytes = Jpeg.Encode16(image, new JpegEncoderOptions { LuminanceQuantizationTable = table });
+
+        // A 12-bit frame may legitimately carry a Pq=1 (16-bit) DQT with the true values.
         var dqt = FindSegment(bytes, 0xDB)!;
         Assert.Equal(0x10, dqt[0] & 0xF0); // Pq = 1
 
@@ -32,11 +50,9 @@ public class HighPrecisionQuantTests
             Assert.Equal(zig[k], stored);
         }
 
-        // And the reconstruction stays consistent (encoder and decoder use the same value).
-        var decoded = Jpeg.Decode(bytes);
-        // A flat 128 image quantized by DC=400 reconstructs near 128 (coarse but consistent).
-        // The old truncation bug (400 -> 144) would push the value far below.
-        Assert.InRange(decoded.PixelData[0], 100, 160);
+        var decoded = Jpeg.Decode16(bytes);
+        Assert.Equal(12, decoded.Precision);
+        Assert.Equal(32, decoded.Width);
     }
 
     [Fact]
@@ -94,6 +110,76 @@ public class HighPrecisionQuantTests
         Assert.True(sawAbove255, "12-bit low-quality DQT must carry at least one step > 255.");
 
         // The wide table still round-trips.
+        var decoded = Jpeg.Decode16(bytes);
+        Assert.Equal(12, decoded.Precision);
+        Assert.Equal(16, decoded.Width);
+    }
+
+    [Fact]
+    public void Encode_8bit_CustomQuantStepAbove255_Rejected()
+    {
+        var values = new ushort[64];
+        Array.Fill(values, (ushort)10);
+        values[3] = 300; // > 255: only valid at 16-bit precision (Pq=1), not in an 8-bit frame
+        var table = new QuantizationTable(values);
+
+        var image = JpegImage.CreateGrayscale(16, 16, new byte[256]);
+
+        var ex = Assert.Throws<JpegException>(
+            () => Jpeg.Encode(image, new JpegEncoderOptions { LuminanceQuantizationTable = table }));
+        Assert.Contains("255", ex.Message);
+    }
+
+    [Fact]
+    public void Encode_8bit_CustomQuantAllWithin255_EmitsPq0()
+    {
+        var values = new ushort[64];
+        for (var i = 0; i < 64; i++)
+            values[i] = (ushort)(i + 1); // all <= 255
+        var table = new QuantizationTable(values);
+
+        var pixels = new byte[32 * 32];
+        Array.Fill(pixels, (byte)128);
+        var image = JpegImage.CreateGrayscale(32, 32, pixels);
+        var bytes = Jpeg.Encode(image, new JpegEncoderOptions { LuminanceQuantizationTable = table });
+
+        var dqt = FindSegment(bytes, 0xDB)!;
+        Assert.Equal(0x00, dqt[0] & 0xF0); // Pq = 0 (8-bit)
+        Assert.Equal(1 + 64, dqt.Length);
+
+        Span<ushort> zig = stackalloc ushort[64];
+        table.CopyToZigZag(zig);
+        for (var k = 0; k < 64; k++)
+            Assert.Equal((byte)zig[k], dqt[1 + k]);
+
+        var decoded = Jpeg.Decode(bytes);
+        Assert.Equal(32, decoded.Width);
+        Assert.Equal(32, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_12bit_CustomQuantStepAbove255_EmitsPq1()
+    {
+        var values = new ushort[64];
+        Array.Fill(values, (ushort)16);
+        values[0] = 300; // > 255: valid Pq=1 at 12-bit precision
+        var table = new QuantizationTable(values);
+
+        var image = JpegImage16.CreateGrayscale(16, 16, 12, Gradient12(16, 16));
+        var bytes = Jpeg.Encode16(image, new JpegEncoderOptions { LuminanceQuantizationTable = table });
+
+        var dqt = FindSegment(bytes, 0xDB)!;
+        Assert.Equal(0x10, dqt[0] & 0xF0); // Pq = 1 (16-bit)
+        Assert.Equal(1 + 128, dqt.Length);
+
+        Span<ushort> zig = stackalloc ushort[64];
+        table.CopyToZigZag(zig);
+        for (var k = 0; k < 64; k++)
+        {
+            var stored = (ushort)((dqt[1 + 2 * k] << 8) | dqt[1 + 2 * k + 1]);
+            Assert.Equal(zig[k], stored);
+        }
+
         var decoded = Jpeg.Decode16(bytes);
         Assert.Equal(12, decoded.Precision);
         Assert.Equal(16, decoded.Width);
