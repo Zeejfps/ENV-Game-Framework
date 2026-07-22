@@ -242,8 +242,10 @@ internal sealed class Vp8Decoder
 
     private static int Clip(int value, int max) => value < 0 ? 0 : value > max ? max : value;
 
-    // 16x16 / chroma intra modes.
-    internal const int DcPred = 0, VPred = 1, HPred = 2, TmPred = 3;
+    // 16x16 / chroma intra modes. These are aliased onto the 4x4 B-mode enumeration (DC=B_DC,
+    // TM=B_TM, V=B_VE, H=B_HE) so that a 16x16 macroblock's mode can serve as the neighbor context
+    // for an adjacent 4x4 macroblock's B-mode probabilities.
+    internal const int DcPred = 0, TmPred = 1, VPred = 2, HPred = 3;
     // 4x4 (B_PRED) intra modes, in the libwebp enumeration order used by the probability tables.
     internal const int BDc = 0, BTm = 1, BVe = 2, BHe = 3, BRd = 4, BVr = 5, BLd = 6, BVl = 7, BHd = 8, BHu = 9;
 
@@ -477,6 +479,205 @@ internal sealed class Vp8Decoder
         _leftMb.Nz = outLnz;
         MbNonZeroY[mb] = nonZeroY;
         MbNonZeroUv[mb] = nonZeroUv;
+    }
+
+    // ---- Reconstruction ----
+
+    // Maps the libwebp 4x4 B-mode enumeration to the Vp8Prediction4 (RFC-ordered) mode.
+    private static readonly int[] BModeToPred =
+    {
+        Vp8Prediction4.Dc, Vp8Prediction4.TrueMotion, Vp8Prediction4.Vertical, Vp8Prediction4.Horizontal,
+        Vp8Prediction4.DownRight, Vp8Prediction4.VerticalRight, Vp8Prediction4.DownLeft,
+        Vp8Prediction4.VerticalLeft, Vp8Prediction4.HorizontalDown, Vp8Prediction4.HorizontalUp,
+    };
+
+    internal byte[] PlaneY { get; private set; } = System.Array.Empty<byte>();
+    internal byte[] PlaneU { get; private set; } = System.Array.Empty<byte>();
+    internal byte[] PlaneV { get; private set; } = System.Array.Empty<byte>();
+    internal int LumaStride => MbWidth * 16;
+    internal int ChromaStride => MbWidth * 8;
+
+    /// <summary>Reconstructs the full (padded) Y/U/V planes from the decoded modes and coefficients.</summary>
+    internal void Reconstruct()
+    {
+        var w = MbWidth * 16;
+        var h = MbHeight * 16;
+        var cw = MbWidth * 8;
+        var chh = MbHeight * 8;
+        PlaneY = new byte[w * h];
+        PlaneU = new byte[cw * chh];
+        PlaneV = new byte[cw * chh];
+
+        Span<int> residual = stackalloc int[16];
+        Span<byte> top = stackalloc byte[16];
+        Span<byte> left = stackalloc byte[16];
+        Span<byte> top8 = stackalloc byte[8];
+
+        for (var mbY = 0; mbY < MbHeight; mbY++)
+        for (var mbX = 0; mbX < MbWidth; mbX++)
+        {
+            var mb = mbY * MbWidth + mbX;
+            var coeffOff = mb * 384;
+
+            // ---- Luma ----
+            if (MbIsI4x4[mb])
+            {
+                for (var by = 0; by < 4; by++)
+                for (var bx = 0; bx < 4; bx++)
+                {
+                    var n = by * 4 + bx;
+                    var px = mbX * 16 + bx * 4;
+                    var py = mbY * 16 + by * 4;
+                    GatherLuma4Top(top8, px, py, bx, mbX);
+                    for (var i = 0; i < 4; i++)
+                        left[i] = SampleY(py + i, px - 1);
+                    var corner = SampleY(py - 1, px - 1);
+
+                    Vp8Prediction4.Predict(BModeToPred[MbModes[mb * 16 + n]],
+                        PlaneY.AsSpan(py * w + px), w, top8, left.Slice(0, 4), corner);
+                    Vp8Transform.InverseDct(MbCoeffs.AsSpan(coeffOff + n * 16, 16), residual);
+                    Vp8Transform.AddResidual(PlaneY.AsSpan(py * w + px), w, residual);
+                }
+            }
+            else
+            {
+                var mbPx = mbX * 16;
+                var mbPy = mbY * 16;
+                for (var i = 0; i < 16; i++)
+                {
+                    top[i] = SampleY(mbPy - 1, mbPx + i);
+                    left[i] = SampleY(mbPy + i, mbPx - 1);
+                }
+                PredictFull(MbModes[mb * 16], PlaneY.AsSpan(mbPy * w + mbPx), w, 16, top, left,
+                    SampleY(mbPy - 1, mbPx - 1), mbX > 0, mbY > 0);
+
+                for (var n = 0; n < 16; n++)
+                {
+                    var bx = n & 3;
+                    var by = n >> 2;
+                    var off = (mbPy + by * 4) * w + mbPx + bx * 4;
+                    Vp8Transform.InverseDct(MbCoeffs.AsSpan(coeffOff + n * 16, 16), residual);
+                    Vp8Transform.AddResidual(PlaneY.AsSpan(off), w, residual);
+                }
+            }
+
+            // ---- Chroma ----
+            ReconstructChroma(PlaneU, cw, mbX, mbY, MbUvMode[mb], MbCoeffs, coeffOff + 16 * 16, residual, top8, left);
+            ReconstructChroma(PlaneV, cw, mbX, mbY, MbUvMode[mb], MbCoeffs, coeffOff + 20 * 16, residual, top8, left);
+        }
+    }
+
+    private void ReconstructChroma(byte[] plane, int stride, int mbX, int mbY, int mode, short[] coeffs,
+        int coeffOff, Span<int> residual, Span<byte> top, Span<byte> left)
+    {
+        var px = mbX * 8;
+        var py = mbY * 8;
+        for (var i = 0; i < 8; i++)
+        {
+            top[i] = SampleC(plane, stride, py - 1, px + i);
+            left[i] = SampleC(plane, stride, py + i, px - 1);
+        }
+        var corner = mbY == 0 ? (byte)127 : mbX == 0 ? (byte)129 : plane[(py - 1) * stride + px - 1];
+        PredictFull(mode, plane.AsSpan(py * stride + px), stride, 8, top, left, corner, mbX > 0, mbY > 0);
+
+        for (var n = 0; n < 4; n++)
+        {
+            var bx = n & 1;
+            var by = n >> 1;
+            var off = (py + by * 4) * stride + px + bx * 4;
+            Vp8Transform.InverseDct(coeffs.AsSpan(coeffOff + n * 16, 16), residual);
+            Vp8Transform.AddResidual(plane.AsSpan(off), stride, residual);
+        }
+    }
+
+    // Full-size (16x16 luma / 8x8 chroma) intra prediction from gathered border samples.
+    private static void PredictFull(int mode, Span<byte> dst, int stride, int size,
+        ReadOnlySpan<byte> top, ReadOnlySpan<byte> left, byte corner, bool hasLeft, bool hasTop)
+    {
+        switch (mode)
+        {
+            case DcPred: Vp8Prediction.FillDc(dst, stride, size, top, left, hasTop, hasLeft); break;
+            case VPred: Vp8Prediction.FillVertical(dst, stride, size, top); break;
+            case HPred: Vp8Prediction.FillHorizontal(dst, stride, size, left); break;
+            default: Vp8Prediction.FillTrueMotion(dst, stride, size, top, left, corner); break;
+        }
+    }
+
+    private byte SampleY(int row, int col)
+    {
+        if (row < 0) return 127;
+        if (col < 0) return 129;
+        return PlaneY[row * LumaStride + col];
+    }
+
+    private static byte SampleC(byte[] plane, int stride, int row, int col)
+    {
+        if (row < 0) return 127;
+        if (col < 0) return 129;
+        return plane[row * stride + col];
+    }
+
+    // Gathers the 8 top samples (4 above + 4 above-right) for a 4x4 luma block, applying the VP8
+    // rule that the rightmost 4x4 column uses the macroblock's top-right border (replicated down).
+    private void GatherLuma4Top(Span<byte> top, int px, int py, int bx, int mbX)
+    {
+        for (var i = 0; i < 4; i++)
+            top[i] = SampleY(py - 1, px + i);
+
+        int trRow, trCol;
+        if (bx == 3)
+        {
+            // Rightmost 4x4 column: top-right comes from the macroblock's top border, replicated down.
+            trRow = (py & ~15) - 1;
+            trCol = mbX * 16 + 16;
+        }
+        else
+        {
+            trRow = py - 1;
+            trCol = px + 4;
+        }
+
+        var w = LumaStride;
+        for (var i = 0; i < 4; i++)
+        {
+            var col = trCol + i;
+            if (trRow < 0) top[4 + i] = 127;
+            else if (col >= w) top[4 + i] = PlaneY[trRow * w + (w - 1)];
+            else top[4 + i] = PlaneY[trRow * w + col];
+        }
+    }
+
+    /// <summary>Decodes the frame to a cropped RGBA image using simple (nearest) chroma upsampling.</summary>
+    /// <returns>The RGBA pixels, <see cref="Width"/> × <see cref="Height"/>, row-major.</returns>
+    internal byte[] DecodeToRgba()
+    {
+        ParseHeaders();
+        DecodeMacroblocks();
+        Reconstruct();
+        return ToRgba();
+    }
+
+    private byte[] ToRgba()
+    {
+        var w = LumaStride;
+        var cw = ChromaStride;
+        var rgba = new byte[Width * Height * 4];
+        for (var y = 0; y < Height; y++)
+        {
+            var cy = y >> 1;
+            for (var x = 0; x < Width; x++)
+            {
+                var cx = x >> 1;
+                Vp8Yuv.YuvToRgb(PlaneY[y * w + x], PlaneU[cy * cw + cx], PlaneV[cy * cw + cx],
+                    out var r, out var g, out var b);
+                var o = (y * Width + x) * 4;
+                rgba[o] = r;
+                rgba[o + 1] = g;
+                rgba[o + 2] = b;
+                rgba[o + 3] = 255;
+            }
+        }
+        return rgba;
     }
 }
 
