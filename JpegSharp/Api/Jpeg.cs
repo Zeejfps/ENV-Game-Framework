@@ -9,6 +9,10 @@ namespace JpegSharp.Api;
 /// </summary>
 public static class Jpeg
 {
+    // Shared instance used by the path-based methods when the caller does not supply one.
+    // Stateless, so a single instance is safe to reuse across all calls and threads.
+    private static readonly IFileSystem DefaultFileSystem = new PhysicalFileSystem();
+
     /// <summary>Encodes an image to a JPEG byte array.</summary>
     /// <param name="image">The image to encode.</param>
     /// <param name="options">Encoding options, or null for defaults.</param>
@@ -152,10 +156,11 @@ public static class Jpeg
 
     /// <summary>Loads and decodes a JPEG image from a file.</summary>
     /// <param name="path">The file path.</param>
+    /// <param name="fileSystem">The file system to read through, or null to use the physical file system.</param>
     /// <returns>The decoded image.</returns>
-    public static JpegImage Load(string path)
+    public static JpegImage DecodeFromFile(string path, IFileSystem? fileSystem = null)
     {
-        using var stream = File.OpenRead(path);
+        using var stream = (fileSystem ?? DefaultFileSystem).OpenRead(path);
         return Decode(stream);
     }
 
@@ -163,20 +168,22 @@ public static class Jpeg
     /// <param name="image">The image to encode.</param>
     /// <param name="path">The destination file path.</param>
     /// <param name="options">Encoding options, or null for defaults.</param>
-    public static void Save(JpegImage image, string path, JpegEncoderOptions? options = null)
+    /// <param name="fileSystem">The file system to write through, or null to use the physical file system.</param>
+    public static void EncodeToFile(this JpegImage image, string path, JpegEncoderOptions? options = null, IFileSystem? fileSystem = null)
     {
-        using var stream = File.Create(path);
+        using var stream = (fileSystem ?? DefaultFileSystem).Create(path);
         Encode(image, stream, options);
     }
 
     /// <summary>Asynchronously loads and decodes a JPEG image from a file.</summary>
     /// <param name="path">The file path.</param>
     /// <param name="options">Decoding options, or null for defaults.</param>
+    /// <param name="fileSystem">The file system to read through, or null to use the physical file system.</param>
     /// <param name="cancellationToken">A token to cancel the file read.</param>
     /// <returns>The decoded image.</returns>
-    public static async Task<JpegImage> LoadAsync(string path, JpegDecoderOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task<JpegImage> DecodeFromFileAsync(string path, JpegDecoderOptions? options = null, IFileSystem? fileSystem = null, CancellationToken cancellationToken = default)
     {
-        await using var stream = File.OpenRead(path);
+        await using var stream = (fileSystem ?? DefaultFileSystem).OpenRead(path);
         return await DecodeAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }
 
@@ -184,11 +191,12 @@ public static class Jpeg
     /// <param name="image">The image to encode.</param>
     /// <param name="path">The destination file path.</param>
     /// <param name="options">Encoding options, or null for defaults.</param>
+    /// <param name="fileSystem">The file system to write through, or null to use the physical file system.</param>
     /// <param name="cancellationToken">A token to cancel the file write.</param>
     /// <returns>A task that completes when the file has been written.</returns>
-    public static async Task SaveAsync(JpegImage image, string path, JpegEncoderOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task EncodeToFileAsync(this JpegImage image, string path, JpegEncoderOptions? options = null, IFileSystem? fileSystem = null, CancellationToken cancellationToken = default)
     {
-        await using var stream = File.Create(path);
+        await using var stream = (fileSystem ?? DefaultFileSystem).Create(path);
         await EncodeAsync(image, stream, options, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -57,10 +57,10 @@ public class ApiCoverageTests
         var path = Path.Combine(Path.GetTempPath(), $"jpegsharp_{Guid.NewGuid():N}.jpg");
         try
         {
-            Jpeg.Save(image, path, new JpegEncoderOptions { Quality = 90 });
+            Jpeg.EncodeToFile(image, path, new JpegEncoderOptions { Quality = 90 });
             Assert.True(File.Exists(path));
 
-            var loaded = Jpeg.Load(path);
+            var loaded = Jpeg.DecodeFromFile(path);
             Assert.Equal(32, loaded.Width);
             Assert.Equal(32, loaded.Height);
             Assert.Equal(JpegColorSpace.Rgb, loaded.ColorSpace);

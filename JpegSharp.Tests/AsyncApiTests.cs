@@ -64,10 +64,10 @@ public class AsyncApiTests
         var path = Path.Combine(Path.GetTempPath(), $"jpegsharp_async_{Guid.NewGuid():N}.jpg");
         try
         {
-            await Jpeg.SaveAsync(image, path, new JpegEncoderOptions { Quality = 90 });
+            await Jpeg.EncodeToFileAsync(image, path, new JpegEncoderOptions { Quality = 90 });
             Assert.True(File.Exists(path));
 
-            var loaded = await Jpeg.LoadAsync(path);
+            var loaded = await Jpeg.DecodeFromFileAsync(path);
             Assert.Equal(32, loaded.Width);
             Assert.Equal(24, loaded.Height);
             Assert.Equal(JpegColorSpace.Rgb, loaded.ColorSpace);
