@@ -2,9 +2,12 @@
 
 Living document driving the autonomous TDD loop. Legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 
-**Status:** Complete. Every non-optional item below is done, with 341 passing tests (unit,
-round-trip, golden, structural-compliance, interop-variant, corruption/fuzz, property,
-edge-case, concurrency, scale) and a clean warnings-as-errors build with enforced XML docs.
+**Status:** Complete. Every non-optional item below is done, with 403 passing tests (unit,
+round-trip, real-image integration, golden, structural-compliance, interop-variant,
+corruption/fuzz over the entire input surface, property, edge-case, boundary-value,
+concurrency, scale, allocation, transcode) and a clean warnings-as-errors build with enforced
+XML docs. Encoder and decoder are modularized into cohesive partial-class files (none over
+~600 lines). Six real defects were found and fixed during the systematic review sweep.
 The single intentional exclusion is **arithmetic coding** — the prompt's designated optional
 feature; its entropy stage is architecturally isolated and documented (see README). It is
 deliberately not shipped because the ITU-T T.81 probability-estimation table cannot be

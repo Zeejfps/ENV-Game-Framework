@@ -43,8 +43,8 @@ internal sealed partial class BaselineDecoder
                             throw new JpegFormatException("Truncated DRI segment.");
                         _restartInterval = (segment[0] << 8) | segment[1];
                         break;
-                    default:
-                        break;
+
+                    // Other markers between scans (APPn, COM) are ignored during decode.
                 }
 
                 marker = reader.ReadMarker();
