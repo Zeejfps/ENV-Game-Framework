@@ -54,22 +54,16 @@ public class ApiCoverageTests
     {
         var pixels = ColorGradient(32, 32);
         var image = JpegImage.CreateRgb(32, 32, pixels);
-        var path = Path.Combine(Path.GetTempPath(), $"jpegsharp_{Guid.NewGuid():N}.jpg");
-        try
-        {
-            Jpeg.EncodeToFile(image, path, new JpegEncoderOptions { Quality = 90 });
-            Assert.True(File.Exists(path));
+        var fileSystem = new InMemoryFileSystem();
+        const string path = "roundtrip.jpg";
 
-            var loaded = Jpeg.DecodeFromFile(path);
-            Assert.Equal(32, loaded.Width);
-            Assert.Equal(32, loaded.Height);
-            Assert.Equal(JpegColorSpace.Rgb, loaded.ColorSpace);
-        }
-        finally
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-        }
+        Jpeg.EncodeToFile(image, path, new JpegEncoderOptions { Quality = 90 }, fileSystem);
+        Assert.True(fileSystem.Exists(path));
+
+        var loaded = Jpeg.DecodeFromFile(path, fileSystem);
+        Assert.Equal(32, loaded.Width);
+        Assert.Equal(32, loaded.Height);
+        Assert.Equal(JpegColorSpace.Rgb, loaded.ColorSpace);
     }
 
     [Fact]
@@ -80,7 +74,7 @@ public class ApiCoverageTests
 
         var fromBytes = Jpeg.Decode(bytes);
         using var ms = new MemoryStream(bytes);
-        var fromStream = Jpeg.Decode(ms);
+        var fromStream = Jpeg.DecodeFromStream(ms);
 
         Assert.Equal(fromBytes.PixelData, fromStream.PixelData);
     }
@@ -93,7 +87,7 @@ public class ApiCoverageTests
 
         var bytes = Jpeg.Encode(image, options);
         using var ms = new MemoryStream();
-        Jpeg.Encode(image, ms, options);
+        Jpeg.EncodeToStream(image, ms, options);
 
         Assert.Equal(bytes, ms.ToArray());
     }

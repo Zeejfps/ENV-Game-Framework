@@ -17,10 +17,10 @@ public static class Jpeg
     /// <param name="image">The image to encode.</param>
     /// <param name="options">Encoding options, or null for defaults.</param>
     /// <returns>The encoded JPEG bytes.</returns>
-    public static byte[] Encode(JpegImage image, JpegEncoderOptions? options = null)
+    public static byte[] Encode(this JpegImage image, JpegEncoderOptions? options = null)
     {
         using var stream = new MemoryStream();
-        Encode(image, stream, options);
+        EncodeToStream(image, stream, options);
         return stream.ToArray();
     }
 
@@ -28,7 +28,7 @@ public static class Jpeg
     /// <param name="image">The image to encode.</param>
     /// <param name="stream">The destination stream.</param>
     /// <param name="options">Encoding options, or null for defaults.</param>
-    public static void Encode(JpegImage image, Stream stream, JpegEncoderOptions? options = null)
+    public static void EncodeToStream(this JpegImage image, Stream stream, JpegEncoderOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(stream);
@@ -73,7 +73,7 @@ public static class Jpeg
     /// <param name="stream">The source stream.</param>
     /// <param name="options">Decoding options, or null for defaults.</param>
     /// <returns>The decoded image.</returns>
-    public static JpegImage Decode(Stream stream, JpegDecoderOptions? options = null)
+    public static JpegImage DecodeFromStream(Stream stream, JpegDecoderOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
         return Decode(ReadAllBytes(stream), options);
@@ -87,7 +87,7 @@ public static class Jpeg
     /// <param name="options">Decoding options, or null for defaults.</param>
     /// <param name="cancellationToken">A token to cancel the stream read.</param>
     /// <returns>The decoded image.</returns>
-    public static async Task<JpegImage> DecodeAsync(Stream stream, JpegDecoderOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task<JpegImage> DecodeFromStreamAsync(Stream stream, JpegDecoderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         var data = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
@@ -103,7 +103,7 @@ public static class Jpeg
     /// <param name="options">Encoding options, or null for defaults.</param>
     /// <param name="cancellationToken">A token to cancel the stream write.</param>
     /// <returns>A task that completes when the bytes have been written.</returns>
-    public static async Task EncodeAsync(JpegImage image, Stream stream, JpegEncoderOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task EncodeToStreamAsync(this JpegImage image, Stream stream, JpegEncoderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(stream);
@@ -111,7 +111,7 @@ public static class Jpeg
         // Encode synchronously into a buffer (CPU-bound), then write it out asynchronously
         // without an intermediate ToArray copy.
         using var buffer = new MemoryStream();
-        Encode(image, buffer, options);
+        EncodeToStream(image, buffer, options);
         buffer.Position = 0;
         await buffer.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
     }
@@ -161,7 +161,7 @@ public static class Jpeg
     public static JpegImage DecodeFromFile(string path, IFileSystem? fileSystem = null)
     {
         using var stream = (fileSystem ?? DefaultFileSystem).OpenRead(path);
-        return Decode(stream);
+        return DecodeFromStream(stream);
     }
 
     /// <summary>Encodes an image and saves it to a file as JPEG.</summary>
@@ -172,7 +172,7 @@ public static class Jpeg
     public static void EncodeToFile(this JpegImage image, string path, JpegEncoderOptions? options = null, IFileSystem? fileSystem = null)
     {
         using var stream = (fileSystem ?? DefaultFileSystem).Create(path);
-        Encode(image, stream, options);
+        EncodeToStream(image, stream, options);
     }
 
     /// <summary>Asynchronously loads and decodes a JPEG image from a file.</summary>
@@ -184,7 +184,7 @@ public static class Jpeg
     public static async Task<JpegImage> DecodeFromFileAsync(string path, JpegDecoderOptions? options = null, IFileSystem? fileSystem = null, CancellationToken cancellationToken = default)
     {
         await using var stream = (fileSystem ?? DefaultFileSystem).OpenRead(path);
-        return await DecodeAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        return await DecodeFromStreamAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously encodes an image and saves it to a file as JPEG.</summary>
@@ -197,6 +197,6 @@ public static class Jpeg
     public static async Task EncodeToFileAsync(this JpegImage image, string path, JpegEncoderOptions? options = null, IFileSystem? fileSystem = null, CancellationToken cancellationToken = default)
     {
         await using var stream = (fileSystem ?? DefaultFileSystem).Create(path);
-        await EncodeAsync(image, stream, options, cancellationToken).ConfigureAwait(false);
+        await EncodeToStreamAsync(image, stream, options, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -12,10 +12,10 @@ public class AsyncApiTests
         var image = JpegImage.CreateRgb(32, 32, pixels);
 
         using var ms = new MemoryStream();
-        await Jpeg.EncodeAsync(image, ms, new JpegEncoderOptions { Quality = 90 });
+        await Jpeg.EncodeToStreamAsync(image, ms, new JpegEncoderOptions { Quality = 90 });
         ms.Position = 0;
 
-        var decoded = await Jpeg.DecodeAsync(ms);
+        var decoded = await Jpeg.DecodeFromStreamAsync(ms);
         Assert.Equal(32, decoded.Width);
         Assert.Equal(32, decoded.Height);
         Assert.Equal(JpegColorSpace.Rgb, decoded.ColorSpace);
@@ -29,7 +29,7 @@ public class AsyncApiTests
 
         var sync = Jpeg.Encode(image, options);
         using var ms = new MemoryStream();
-        await Jpeg.EncodeAsync(image, ms, options);
+        await Jpeg.EncodeToStreamAsync(image, ms, options);
         Assert.Equal(sync, ms.ToArray());
     }
 
@@ -41,7 +41,7 @@ public class AsyncApiTests
 
         var sync = Jpeg.Decode(bytes).PixelData;
         using var ms = new MemoryStream(bytes);
-        var async = (await Jpeg.DecodeAsync(ms)).PixelData;
+        var async = (await Jpeg.DecodeFromStreamAsync(ms)).PixelData;
         Assert.Equal(sync, async);
     }
 
@@ -54,29 +54,23 @@ public class AsyncApiTests
         await cts.CancelAsync();
 
         using var ms = new MemoryStream(bytes);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Jpeg.DecodeAsync(ms, cancellationToken: cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Jpeg.DecodeFromStreamAsync(ms, cancellationToken: cts.Token));
     }
 
     [Fact]
     public async Task SaveAsyncThenLoadAsync_FileRoundTrips()
     {
         var image = JpegImage.CreateRgb(32, 24, ColorGradient(32, 24));
-        var path = Path.Combine(Path.GetTempPath(), $"jpegsharp_async_{Guid.NewGuid():N}.jpg");
-        try
-        {
-            await Jpeg.EncodeToFileAsync(image, path, new JpegEncoderOptions { Quality = 90 });
-            Assert.True(File.Exists(path));
+        var fileSystem = new InMemoryFileSystem();
+        const string path = "roundtrip_async.jpg";
 
-            var loaded = await Jpeg.DecodeFromFileAsync(path);
-            Assert.Equal(32, loaded.Width);
-            Assert.Equal(24, loaded.Height);
-            Assert.Equal(JpegColorSpace.Rgb, loaded.ColorSpace);
-        }
-        finally
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-        }
+        await Jpeg.EncodeToFileAsync(image, path, new JpegEncoderOptions { Quality = 90 }, fileSystem);
+        Assert.True(fileSystem.Exists(path));
+
+        var loaded = await Jpeg.DecodeFromFileAsync(path, fileSystem: fileSystem);
+        Assert.Equal(32, loaded.Width);
+        Assert.Equal(24, loaded.Height);
+        Assert.Equal(JpegColorSpace.Rgb, loaded.ColorSpace);
     }
 
     private static byte[] Gray(int w, int h)
