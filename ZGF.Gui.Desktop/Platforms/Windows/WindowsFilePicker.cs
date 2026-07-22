@@ -30,9 +30,9 @@ public sealed class WindowsFilePicker : IFilePicker
             onPicked(path);
     }
 
-    public void PickFile(string title, string? initialDirectory, Action<string> onPicked)
+    public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, pickFolder: false, initialDirectory);
+        var path = ShowFileDialog(title, pickFolder: false, initialDirectory, filters);
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
     }
@@ -40,26 +40,50 @@ public sealed class WindowsFilePicker : IFilePicker
     // Calls IFileDialog/IShellItem methods directly through the COM vtable. This avoids
     // the [ComImport] RCW pattern, which depends on runtime IL generation and is disabled
     // when PublishAot is set.
-    private static unsafe string? ShowFileDialog(string title, bool pickFolder, string? initialDirectory = null)
+    private static unsafe string? ShowFileDialog(string title, bool pickFolder, string? initialDirectory = null, IReadOnlyList<FileFilter>? filters = null)
     {
         CoCreateInstance(in ClsidFileOpenDialog, IntPtr.Zero, CLSCTX_INPROC_SERVER, in IidFileOpenDialog, out var pDialog);
+        // SetFileTypes copies the strings, but they are kept alive until the dialog is released
+        // rather than trusting that detail of the implementation.
+        var nativeFilterStrings = new List<IntPtr>();
+        var pFilterSpecs = IntPtr.Zero;
         try
         {
             var vtbl = *(IntPtr**)pDialog;
 
             // IFileDialog vtable (after IUnknown 0..2):
-            //   3 Show, 9 SetOptions, 10 GetOptions, 12 SetFolder, 17 SetTitle, 20 GetResult
-            var show       = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[3];
-            var setOptions = (delegate* unmanaged[Stdcall]<IntPtr, uint, int>)vtbl[9];
-            var getOptions = (delegate* unmanaged[Stdcall]<IntPtr, uint*, int>)vtbl[10];
-            var setFolder  = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[12];
-            var setTitle   = (delegate* unmanaged[Stdcall]<IntPtr, char*, int>)vtbl[17];
-            var getResult  = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, int>)vtbl[20];
+            //   3 Show, 4 SetFileTypes, 9 SetOptions, 10 GetOptions, 12 SetFolder, 17 SetTitle,
+            //   20 GetResult
+            var show         = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[3];
+            var setFileTypes = (delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr, int>)vtbl[4];
+            var setOptions   = (delegate* unmanaged[Stdcall]<IntPtr, uint, int>)vtbl[9];
+            var getOptions   = (delegate* unmanaged[Stdcall]<IntPtr, uint*, int>)vtbl[10];
+            var setFolder    = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[12];
+            var setTitle     = (delegate* unmanaged[Stdcall]<IntPtr, char*, int>)vtbl[17];
+            var getResult    = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, int>)vtbl[20];
 
             var extraOptions = FOS_FORCEFILESYSTEM | (pickFolder ? FOS_PICKFOLDERS : 0);
             uint options;
             Marshal.ThrowExceptionForHR(getOptions(pDialog, &options));
             Marshal.ThrowExceptionForHR(setOptions(pDialog, options | extraOptions));
+
+            if (!pickFolder && filters is { Count: > 0 })
+            {
+                // COMDLG_FILTERSPEC is a pair of LPCWSTRs (name, "*.a;*.b"); build the array by
+                // hand for the same AOT reason the vtable calls are manual.
+                pFilterSpecs = Marshal.AllocCoTaskMem(filters.Count * 2 * IntPtr.Size);
+                for (var i = 0; i < filters.Count; i++)
+                {
+                    var pName = Marshal.StringToCoTaskMemUni(filters[i].Name);
+                    var pSpec = Marshal.StringToCoTaskMemUni(string.Join(';', filters[i].Patterns));
+                    nativeFilterStrings.Add(pName);
+                    nativeFilterStrings.Add(pSpec);
+                    Marshal.WriteIntPtr(pFilterSpecs, i * 2 * IntPtr.Size, pName);
+                    Marshal.WriteIntPtr(pFilterSpecs, (i * 2 + 1) * IntPtr.Size, pSpec);
+                }
+                // Must happen before Show; the groups appear in the dialog's filter dropdown.
+                Marshal.ThrowExceptionForHR(setFileTypes(pDialog, (uint)filters.Count, pFilterSpecs));
+            }
 
             // Best-effort: an unopenable path just leaves the dialog at its default location.
             if (!string.IsNullOrEmpty(initialDirectory)
@@ -106,6 +130,8 @@ public sealed class WindowsFilePicker : IFilePicker
         finally
         {
             Release(pDialog);
+            foreach (var p in nativeFilterStrings) Marshal.FreeCoTaskMem(p);
+            if (pFilterSpecs != IntPtr.Zero) Marshal.FreeCoTaskMem(pFilterSpecs);
         }
     }
 

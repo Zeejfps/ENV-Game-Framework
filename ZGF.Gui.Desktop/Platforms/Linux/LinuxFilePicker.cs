@@ -23,12 +23,12 @@ public sealed class LinuxFilePicker : IFilePicker
             Console.WriteLine("[FilePicker] No zenity/kdialog found on PATH; folder picker is unavailable.");
     }
 
-    public void PickFolder(string title, Action<string> onPicked) => Pick(title, folder: true, null, onPicked);
+    public void PickFolder(string title, Action<string> onPicked) => Pick(title, folder: true, null, null, onPicked);
 
-    public void PickFile(string title, string? initialDirectory, Action<string> onPicked) =>
-        Pick(title, folder: false, initialDirectory, onPicked);
+    public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
+        Pick(title, folder: false, initialDirectory, filters, onPicked);
 
-    private void Pick(string title, bool folder, string? initialDirectory, Action<string> onPicked)
+    private void Pick(string title, bool folder, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
     {
         var hasStart = !string.IsNullOrEmpty(initialDirectory);
         // zenity treats a --filename ending in '/' as a starting directory; kdialog takes a start
@@ -43,14 +43,37 @@ public sealed class LinuxFilePicker : IFilePicker
             List<string> zenityArgs = ["--file-selection", $"--title={title}"];
             if (folder) zenityArgs.Add("--directory");
             if (hasStart) zenityArgs.Add($"--filename={initialDirectory!.TrimEnd('/')}/");
+            if (!folder && filters != null)
+            {
+                // One repeatable "--file-filter=Name | *.a *.b" per group; shown as a dropdown.
+                foreach (var filter in filters)
+                    zenityArgs.Add($"--file-filter={filter.Name} | {string.Join(' ', filter.Patterns)}");
+            }
             args = [.. zenityArgs];
         }
         else if (_kdialog != null)
         {
             tool = _kdialog;
-            args = folder
-                ? ["--getexistingdirectory", kdialogStart, "--title", title]
-                : ["--getopenfilename", kdialogStart, "--title", title];
+            if (folder)
+            {
+                args = ["--getexistingdirectory", kdialogStart, "--title", title];
+            }
+            else
+            {
+                List<string> kdialogArgs = ["--getopenfilename", kdialogStart];
+                if (filters is { Count: > 0 })
+                {
+                    // kdialog (KF5+) takes Qt-style filters positionally after the start path:
+                    // newline-separated "Name (*.a *.b)" groups.
+                    var groups = new string[filters.Count];
+                    for (var i = 0; i < filters.Count; i++)
+                        groups[i] = $"{filters[i].Name} ({string.Join(' ', filters[i].Patterns)})";
+                    kdialogArgs.Add(string.Join('\n', groups));
+                }
+                kdialogArgs.Add("--title");
+                kdialogArgs.Add(title);
+                args = [.. kdialogArgs];
+            }
         }
         else
         {
