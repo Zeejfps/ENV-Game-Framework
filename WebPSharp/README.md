@@ -18,7 +18,7 @@ engine classes, and `InternalsVisibleTo` the test project.
 | Metadata (ICC / EXIF / XMP) | ✅ | ✅ |
 | Unknown chunk preservation | ✅ | ✅ |
 | Animation (ANIM / ANMF) | ✅ blend, dispose, timing, loop, composition | ✅ |
-| Lossy (VP8) | ✅ full key-frame decode, pixel-exact vs `dwebp` | ✅ intra key frames, pixel-exact vs `dwebp` (see Limitations) |
+| Lossy (VP8) | ✅ full key-frame decode, pixel-exact vs `dwebp` | ✅ intra key frames + `ALPH` alpha, pixel-exact vs `dwebp` (see Limitations) |
 
 ## Quick start
 
@@ -142,8 +142,9 @@ asserts every one either decodes or throws a `WebPException` — never a crash o
   rate-distortion optimization or trellis quantization, so files are larger than libwebp's for the
   same quality. None of this affects correctness — the decoder reconstructs exactly what the encoder
   emits — only output size.
-- **Lossy alpha and lossy animation are not yet written.** A lossy RGBA image is encoded as opaque
-  (the `ALPH` chunk is not emitted), and `EncodeAnimation` writes only lossless frames.
+- **Lossy animation is not yet written.** `EncodeAnimation` writes only lossless frames. (Lossy
+  still images with alpha are fully supported: the alpha channel is stored losslessly in an `ALPH`
+  chunk and round-trips bit-exactly.)
 
 ## Extension points
 

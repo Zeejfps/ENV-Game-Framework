@@ -88,7 +88,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 ## Alpha
 - [x] ALPH chunk parse (method/filter/preprocessing)
 - [x] Alpha decode (none / lossless-VP8L compression) + unfilter (h/v/gradient) - pixel-exact vs dwebp
-- [ ] Alpha encode (pairs with lossy VP8 encode)
+- [x] Alpha encode (ALPH chunk for lossy VP8: forward filter h/v/gradient + raw or VP8L compression,
+      smallest chosen; opaque images omit the chunk) - round-trips exactly, pixel-exact vs dwebp
 - [x] Alpha filtering methods (unfilter: none/horizontal/vertical/gradient)
 
 ## Animation
@@ -122,6 +123,6 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
   search, single DCT partition, no segmentation, no in-loop filter (level 0), default coefficient
   probabilities, nearest-rounding quantization. Correct and standards-compliant but not size-optimal
   (no rate-distortion optimization, i4x4, trellis, or probability adaptation).
-- Not yet done: lossy alpha (ALPH encode, pairs with lossy VP8 — RGBA input currently encodes as
-  opaque), lossy animation frames (EncodeAnimation still lossless-only), and encoder size tuning
-  (loop filter, i4x4, RD/token cost). The VP8L near-distance table is done.
+- Not yet done: lossy animation frames (EncodeAnimation still lossless-only) and encoder size tuning
+  (loop filter, i4x4, RD/token cost). Lossy alpha (ALPH) encode and the VP8L near-distance table are
+  done.

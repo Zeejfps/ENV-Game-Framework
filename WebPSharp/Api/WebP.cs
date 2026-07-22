@@ -111,10 +111,15 @@ public static class WebP
             ? Vp8LEncoder.EncodeBest(image, Math.Clamp(options.Effort, 0, 9))
             : Vp8Encoder.Encode(image, options.Quality);
 
-        using var ms = new MemoryStream(payload.Length + 64);
+        // Lossy carries alpha in a separate ALPH chunk (VP8L already carries it inline).
+        var alpha = !lossless && image.HasAlpha
+            ? Vp8AlphaEncoder.Encode(image.PixelData, image.Width, image.Height)
+            : null;
+
+        using var ms = new MemoryStream(payload.Length + (alpha?.Length ?? 0) + 64);
         var writer = new RiffWriter(ms);
-        if (HasMetadata(image.Metadata))
-            WriteExtended(writer, image, imageChunkId, payload);
+        if (HasMetadata(image.Metadata) || alpha is not null)
+            WriteExtended(writer, image, imageChunkId, payload, alpha);
         else
             writer.WriteChunk(imageChunkId, payload);
         writer.Complete();
@@ -135,18 +140,17 @@ public static class WebP
          metadata.Xmp is { Length: > 0 } ||
          metadata.UnknownChunks.Count > 0);
 
-    private static void WriteExtended(RiffWriter writer, WebPImage image, FourCc imageChunkId, byte[] imagePayload)
+    private static void WriteExtended(RiffWriter writer, WebPImage image, FourCc imageChunkId, byte[] imagePayload, byte[]? alpha = null)
     {
-        var metadata = image.Metadata!;
+        var metadata = image.Metadata;
 
         // VP8X feature flags: ICC, alpha, EXIF, XMP (animation is written by the animation path).
-        // Alpha is only advertised for lossless output; lossy alpha (the ALPH chunk) is not yet
-        // written, so a lossy RGBA image is encoded as opaque.
+        // Alpha is advertised for lossless RGBA (inline) or when a lossy ALPH chunk is present.
         byte flags = 0;
-        if (metadata.IccProfile is { Length: > 0 }) flags |= 0x20;
-        if (image.HasAlpha && imageChunkId == WebPChunkIds.Vp8L) flags |= 0x10;
-        if (metadata.Exif is { Length: > 0 }) flags |= 0x08;
-        if (metadata.Xmp is { Length: > 0 }) flags |= 0x04;
+        if (metadata?.IccProfile is { Length: > 0 }) flags |= 0x20;
+        if (alpha is not null || (image.HasAlpha && imageChunkId == WebPChunkIds.Vp8L)) flags |= 0x10;
+        if (metadata?.Exif is { Length: > 0 }) flags |= 0x08;
+        if (metadata?.Xmp is { Length: > 0 }) flags |= 0x04;
 
         Span<byte> vp8x = stackalloc byte[10];
         vp8x[0] = flags;
@@ -154,10 +158,14 @@ public static class WebP
         WebPHeaderReader.WriteUInt24LittleEndian(vp8x, 7, image.Height - 1);
         writer.WriteChunk(WebPChunkIds.Vp8X, vp8x);
 
-        // Spec chunk order: VP8X, ICCP, image, EXIF, XMP, then any preserved unknown chunks.
-        if (metadata.IccProfile is { Length: > 0 } icc)
+        // Spec chunk order: VP8X, ICCP, ALPH, image, EXIF, XMP, then any preserved unknown chunks.
+        if (metadata?.IccProfile is { Length: > 0 } icc)
             writer.WriteChunk(WebPChunkIds.Iccp, icc);
+        if (alpha is not null)
+            writer.WriteChunk(WebPChunkIds.Alph, alpha);
         writer.WriteChunk(imageChunkId, imagePayload);
+        if (metadata is null)
+            return;
         if (metadata.Exif is { Length: > 0 } exif)
             writer.WriteChunk(WebPChunkIds.Exif, exif);
         if (metadata.Xmp is { Length: > 0 } xmp)

@@ -127,6 +127,39 @@ public class Vp8EncodeTests
     }
 
     [Fact]
+    public void Encode_OpaqueRgba_OmitsAlphaChunk()
+    {
+        var img = WebPImage.CreateRgba(32, 32, Smooth(32, 32)); // Smooth() sets every alpha to 255
+        var info = WebP.Identify(WebP.Encode(img, new WebPEncoderOptions { Lossless = false, Quality = 75 }));
+        Assert.Equal(WebPFormat.Lossy, info.Format);
+        Assert.False(info.HasAlpha);
+    }
+
+    [Theory]
+    [InlineData(32, 32)]
+    [InlineData(65, 49)]
+    [InlineData(17, 20)]
+    public void Encode_WithAlpha_RoundTripsAlphaExactly(int w, int h)
+    {
+        var px = Smooth(w, h);
+        for (var y = 0; y < h; y++)
+        for (var x = 0; x < w; x++)
+            px[(y * w + x) * 4 + 3] = (byte)((x / 6 + y / 6) % 2 == 0 ? 255 : 40); // block-checker alpha
+
+        var img = WebPImage.CreateRgba(w, h, px);
+        var bytes = WebP.Encode(img, new WebPEncoderOptions { Lossless = false, Quality = 85 });
+
+        var info = WebP.Identify(bytes);
+        Assert.Equal(WebPFormat.Extended, info.Format);
+        Assert.True(info.HasAlpha);
+
+        var decoded = WebP.Decode(bytes);
+        // Alpha is stored losslessly, so it must survive bit-exactly even though RGB is lossy.
+        for (var i = 3; i < px.Length; i += 4)
+            Assert.Equal(px[i], decoded.PixelData[i]);
+    }
+
+    [Fact]
     public void Encode_WithMetadata_WritesExtendedLossyContainer()
     {
         var img = WebPImage.CreateRgba(32, 32, Smooth(32, 32));

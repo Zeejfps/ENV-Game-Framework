@@ -160,6 +160,29 @@ internal static class Vp8LEncoder
     }
 
     /// <summary>
+    /// Encodes an 8-bit plane as a header-less VP8L stream carrying the value in the green channel,
+    /// the format the lossy <c>ALPH</c> alpha chunk uses (see <see cref="Vp8LDecoder.DecodeAlpha"/>).
+    /// No signature, dimensions, version, or transforms are written — just the entropy-coded image.
+    /// </summary>
+    /// <param name="plane">The per-pixel values, row-major, length <paramref name="width"/> × <paramref name="height"/>.</param>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="lz77">Whether to emit LZ77 back-references.</param>
+    /// <returns>The header-less VP8L stream.</returns>
+    public static byte[] EncodeAlpha(byte[] plane, int width, int height, bool lz77)
+    {
+        ArgumentNullException.ThrowIfNull(plane);
+        var argb = new uint[width * height];
+        for (var i = 0; i < argb.Length; i++)
+            argb[i] = (uint)plane[i] << 8; // value in the green channel
+
+        var writer = new Vp8LBitWriter(Math.Max(256, argb.Length));
+        writer.PutBit(0); // no transforms
+        EncodeImageData(writer, argb, lz77, 0);
+        return writer.ToArray();
+    }
+
+    /// <summary>
     /// Writes the main image using meta-Huffman: an entropy image assigns one of several Huffman
     /// groups to each tile, and pixels are coded all-literal with their tile's group. Groups are
     /// distributed across tiles deterministically.

@@ -72,7 +72,9 @@ public class WebPLosslessApiTests
     {
         var img = WebPImage.CreateRgba(16, 16, RandomPixels(16, 16, seed: 3));
         var bytes = WebP.Encode(img, new WebPEncoderOptions { Lossless = false });
-        Assert.Equal(WebPFormat.Lossy, WebP.Identify(bytes).Format);
+        // Random pixels carry non-opaque alpha, so the lossy image is wrapped in a VP8X container.
+        Assert.False(WebP.Identify(bytes).IsLossless);
+        Assert.Equal(16, WebP.Decode(bytes).Width);
     }
 
     [Fact]

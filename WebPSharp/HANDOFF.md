@@ -38,8 +38,10 @@ Do not commit unless asked. End commit messages with the `Co-Authored-By: Claude
   Reuses the decoder's transforms + dequant steps so a decode reproduces the encoder's
   reconstruction bit-for-bit. **Validated pixel-exact vs `dwebp`** across sizes/content/quality
   (`Vp8EncodeTests` + ad-hoc 36-case sweep). Not size-optimal (no RD, i4x4, trellis, or filter).
-- **ALPH alpha (for lossy)** — parse + decode (raw / lossless) + unfilter. Pixel-exact vs `dwebp`
-  (`WebPAlphaTests`).
+- **ALPH alpha (for lossy) — decode + encode.** Decode: parse + (raw / lossless) + unfilter. Encode:
+  forward filter (none/h/v/gradient) + raw or header-less VP8L compression, smallest chosen; opaque
+  images omit the chunk. Alpha round-trips **exactly** (it is lossless); pixel-exact vs `dwebp`
+  (`WebPAlphaTests`, `Vp8EncodeTests`).
 - **Container:** RIFF read/write, VP8X, ICC/EXIF/XMP metadata, unknown-chunk preservation, strict
   chunk validation, VP8X canvas-consistency check.
 - **Animation:** ANIM/ANMF encode+decode, blend/dispose/timing/loop, canvas composition.
@@ -50,21 +52,18 @@ Do not commit unless asked. End commit messages with the `Co-Authored-By: Claude
 
 ## What is LEFT (priority order)
 
-1. **Alpha ENCODE** — pairs with lossy encode (ALPH chunk writing: filter + optional VP8L compress).
-   A lossy RGBA image currently encodes as **opaque** (alpha dropped, VP8X alpha flag not set for
-   lossy). Wiring: add ALPH emission in `WebP.WriteExtended`/`Encode` for the lossy path.
-2. **Lossy encoder size tuning** — the encoder is correct but not size-optimal. Biggest wins, in
+1. **Lossy encoder size tuning** — the encoder is correct but not size-optimal. Biggest wins, in
    rough order: in-loop filter (currently level 0 / off), i4x4 (B_PRED) mode, rate-distortion /
    token-cost-aware mode & coefficient decisions, per-frame coefficient probability adaptation,
    deadzone/trellis quantization. All are quality/size only — none affect correctness, since the
    decoder reconstructs whatever the encoder emits.
-3. **Animated lossy frames** — `EncodeAnimation` still writes only VP8L frames; now that lossy
+2. **Animated lossy frames** — `EncodeAnimation` still writes only VP8L frames; now that lossy
    encode exists, `BuildFrameChunk` could emit VP8 frames (decode already handles them).
-4. **VP8 profiles / advanced** — only profile 0 (bicubic reconstruction filter) is exercised by the
+3. **VP8 profiles / advanced** — only profile 0 (bicubic reconstruction filter) is exercised by the
    fixtures; other reconstruction filters (profiles 1-3) use simpler interpolation but the
    coefficient path is the same. Not validated; generate fixtures with `cwebp -m`/segments to widen
    coverage if needed.
-5. **Fancy-upsampling edge exactness** — matches `dwebp` default within ≤1 on all fixtures; the ≤1
+4. **Fancy-upsampling edge exactness** — matches `dwebp` default within ≤1 on all fixtures; the ≤1
    is RGB rounding. If you want exact 0, verify the YUV→RGB rounding path.
 
 ## THE GOLDEN-VALIDATION WORKFLOW (most important thing to know)

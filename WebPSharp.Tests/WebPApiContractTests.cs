@@ -52,9 +52,10 @@ public class WebPApiContractTests
     [Fact]
     public void EncoderOptions_LosslessFalse_EncodesImageButThrowsForAnimation()
     {
-        // Lossy still-image encoding is supported.
+        // Lossy still-image encoding is supported (Sample() has random, non-opaque alpha, so the
+        // lossy image is wrapped in a VP8X container with an ALPH chunk).
         var bytes = WebP.Encode(Sample(), new WebPEncoderOptions { Lossless = false });
-        Assert.Equal(WebPFormat.Lossy, WebP.Identify(bytes).Format);
+        Assert.False(WebP.Identify(bytes).IsLossless);
 
         // Lossy animation encoding is not yet supported.
         var anim = new WebPAnimation(4, 4);
