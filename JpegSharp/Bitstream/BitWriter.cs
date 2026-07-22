@@ -7,7 +7,11 @@ namespace JpegSharp.Bitstream;
 /// </summary>
 internal sealed class BitWriter
 {
+    private const int BufferSize = 8192;
+
     private readonly Stream _stream;
+    private readonly byte[] _buffer = new byte[BufferSize];
+    private int _count;
     private uint _accumulator;
     private int _bitCount;
 
@@ -36,9 +40,20 @@ internal sealed class BitWriter
         {
             _bitCount -= 8;
             var b = (byte)(_accumulator >> _bitCount);
-            _stream.WriteByte(b);
+            if (_count >= BufferSize - 1)
+                DrainBuffer();
+            _buffer[_count++] = b;
             if (b == 0xFF)
-                _stream.WriteByte(0x00);
+                _buffer[_count++] = 0x00;
+        }
+    }
+
+    private void DrainBuffer()
+    {
+        if (_count > 0)
+        {
+            _stream.Write(_buffer, 0, _count);
+            _count = 0;
         }
     }
 
@@ -53,5 +68,7 @@ internal sealed class BitWriter
             var pad = 8 - _bitCount;
             WriteBits((1 << pad) - 1, pad);
         }
+
+        DrainBuffer();
     }
 }
