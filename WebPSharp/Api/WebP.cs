@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using WebPSharp.Api.Exceptions;
 using WebPSharp.Container;
+using WebPSharp.Vp8;
 using WebPSharp.Vp8L;
 
 namespace WebPSharp.Api;
@@ -10,10 +11,10 @@ namespace WebPSharp.Api;
 /// thread-safe.
 /// </summary>
 /// <remarks>
-/// The codec is being implemented incrementally. Container inspection (<see cref="Identify(byte[])"/>)
-/// and lossless (VP8L) encode/decode are available now; lossy (VP8), animation, and metadata
-/// support are layered on in subsequent iterations. Operations that meet an unimplemented feature
-/// raise a descriptive <see cref="WebPException"/> rather than mis-decoding.
+/// Decoding supports lossless (VP8L), lossy (VP8, pixel-exact with the reference decoder using
+/// nearest-neighbor chroma upsampling), extended (VP8X) containers, metadata, and animation.
+/// Encoding is lossless (VP8L). Operations that meet a not-yet-implemented feature (e.g. lossy
+/// encoding) raise a descriptive <see cref="WebPException"/> rather than mis-decoding.
 /// </remarks>
 public static class WebP
 {
@@ -416,7 +417,7 @@ public static class WebP
             if (cid == WebPChunkIds.Vp8L)
                 image = DecodeLossless(inner.Slice(start, size), options);
             else if (cid == WebPChunkIds.Vp8)
-                throw new WebPException("Lossy (VP8) animation frame decoding is not yet supported.");
+                image = DecodeLossy(inner.Slice(start, size), options);
 
             pos = start + size + (size & 1);
         }
@@ -511,7 +512,7 @@ public static class WebP
         if (first.Id == WebPChunkIds.Vp8L)
             return DecodeLossless(first.Payload, options);
         if (first.Id == WebPChunkIds.Vp8)
-            throw new WebPException("Lossy (VP8) decoding is not yet supported.");
+            return DecodeLossy(first.Payload, options);
         if (first.Id == WebPChunkIds.Vp8X)
             return DecodeExtended(ref reader, first.Payload, options);
 
@@ -532,9 +533,9 @@ public static class WebP
             {
                 if (image is not null)
                     throw new WebPFormatException("Extended container has more than one image chunk.");
-                if (id == WebPChunkIds.Vp8)
-                    throw new WebPException("Lossy (VP8) decoding is not yet supported.");
-                image = DecodeLossless(chunk.Payload, options);
+                image = id == WebPChunkIds.Vp8
+                    ? DecodeLossy(chunk.Payload, options)
+                    : DecodeLossless(chunk.Payload, options);
             }
             else if (id == WebPChunkIds.Anim || id == WebPChunkIds.Anmf)
                 throw new WebPException("Animated WebP decoding is not yet supported.");
@@ -570,6 +571,16 @@ public static class WebP
         if (metadata is not null && HasMetadata(metadata))
             image.Metadata = metadata;
         return image;
+    }
+
+    private static WebPImage DecodeLossy(ReadOnlyMemory<byte> payload, WebPDecoderOptions options)
+    {
+        var (width, height) = WebPHeaderReader.ReadVp8Dimensions(payload.Span);
+        if ((long)width * height > options.MaxPixels)
+            throw new WebPFormatException($"Image dimensions {width}x{height} exceed the {options.MaxPixels}-pixel limit.");
+        var decoder = new Vp8Decoder(payload.ToArray());
+        var rgba = decoder.DecodeToRgba();
+        return new WebPImage(decoder.Width, decoder.Height, WebPColorFormat.Rgba, rgba);
     }
 
     private static WebPImage DecodeLossless(ReadOnlyMemory<byte> payload, WebPDecoderOptions options)

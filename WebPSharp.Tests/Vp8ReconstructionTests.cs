@@ -33,11 +33,23 @@ public class Vp8ReconstructionTests
     public void Reconstruction_MatchesDwebpNoFilterReference()
     {
         var decoder = new Vp8Decoder(Vp8Payload("grad_q80.webp"));
-        var rgba = decoder.DecodeToRgba();
+        var rgba = decoder.DecodeToRgba(applyFilter: false);
         var reference = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", "grad_q80_nofilter.rgba"));
 
         Assert.Equal(reference.Length, rgba.Length);
         var (max, mean) = Compare(rgba, reference);
         Assert.True(max <= 1, $"reconstruction differs from dwebp -nofilter: maxDiff={max}, meanDiff={mean:F3}");
+    }
+
+    [Fact]
+    public void FullDecode_MatchesDwebpFilteredReference()
+    {
+        var decoder = new Vp8Decoder(Vp8Payload("grad_q80.webp"));
+        var rgba = decoder.DecodeToRgba(); // with in-loop deblocking filter
+        var reference = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", "grad_q80.rgba"));
+
+        Assert.Equal(reference.Length, rgba.Length);
+        var (max, mean) = Compare(rgba, reference);
+        Assert.True(max <= 1, $"full decode differs from dwebp: maxDiff={max}, meanDiff={mean:F3}");
     }
 }

@@ -71,14 +71,14 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Boolean coefficient decode (GetCoeffs token loop + GetLargeValue) — Vp8Coefficients, validated on golden
 - [x] Macroblock mode decode (16x16/UV/4x4 hardcoded trees + B-mode context) — validated on golden
 - [x] Residual parse + non-zero context tracking (Y2 WHT + 16 Y + 8 UV) — validated on golden
-- [ ] Macroblock reconstruction (predict + inverse transform + add residual; libwebp per-MB buffer + top-right replication) — nofilter dwebp reference ready
-- [ ] Loop filter application across MB edges
-- [ ] Chroma upsampling + YUV->RGB plane assembly -> RGBA
-- [ ] Wire VP8 into WebP.Decode + pixel-exact golden validation vs dwebp
+- [x] Macroblock reconstruction (predict + inverse transform + add residual) — pixel-exact vs dwebp
+- [x] Loop filter application across MB edges (simple + normal, libwebp-exact) — pixel-exact vs dwebp
+- [x] Chroma upsampling (nearest) + YUV->RGB -> RGBA
+- [x] Wire VP8 into WebP.Decode + pixel-exact golden validation vs dwebp (8 diverse cases)
 - [x] Intra prediction: 16x16 luma + 8x8 chroma (DC/V/H/TM) + 4x4 B_PRED (all 10 modes)
 - [x] Loop (deblocking) filter: simple + subblock + macroblock (RFC 6386, per-line, tested)
 - [~] YUV->RGB conversion (per-sample, spec-exact BT.601; plane conversion + chroma upsampling pending)
-- [ ] Full lossy decode
+- [x] Full lossy decode (VP8 key frames, validated pixel-exact vs dwebp)
 - [ ] Full lossy encode (quality/effort)
 - [ ] Lossy round-trip tests (thresholded)
 
@@ -108,7 +108,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (implemented + tested).
 - [x] Corruption detection coverage (fuzz harness: ~10k truncation/bit-flip/garbage mutations fail cleanly, VP8L + container + animation)
 - [x] Property/round-trip test harness (randomized round-trips + combinatorial sweep: 37 settings × 5 image types, all VP8L features/combos)
 - [x] Integration tests on structured content (photographic/graphic/texture): exact round-trip + real compression (graphic < 10% raw)
-- [ ] Golden tests vs reference files (needs external fixtures / VP8 tables)
+- [x] Golden tests vs reference files (cwebp/dwebp fixtures, 8 diverse lossy cases pixel-exact)
 - [x] Benchmarks (WebPSharp.Benchmarks: BenchmarkDotNet encode/decode/alloc + --smoke correctness check)
 - [x] Architecture + API documentation (README: API, RIFF, VP8L/animation pipelines, perf, limitations, extension points; XML docs on all public members)
 

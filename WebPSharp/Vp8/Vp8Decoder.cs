@@ -252,6 +252,7 @@ internal sealed class Vp8Decoder
     // ---- Per-macroblock decode state ----
     internal int[] MbSegment { get; private set; } = System.Array.Empty<int>();
     internal bool[] MbIsI4x4 { get; private set; } = System.Array.Empty<bool>();
+    internal bool[] MbSkip { get; private set; } = System.Array.Empty<bool>();
     internal int[] MbUvMode { get; private set; } = System.Array.Empty<int>();
     internal byte[] MbModes { get; private set; } = System.Array.Empty<byte>();   // mbW*mbH*16
     internal short[] MbCoeffs { get; private set; } = System.Array.Empty<short>(); // mbW*mbH*384
@@ -269,6 +270,7 @@ internal sealed class Vp8Decoder
         var count = MbWidth * MbHeight;
         MbSegment = new int[count];
         MbIsI4x4 = new bool[count];
+        MbSkip = new bool[count];
         MbUvMode = new int[count];
         MbModes = new byte[count * 16];
         MbCoeffs = new short[count * 384];
@@ -292,6 +294,7 @@ internal sealed class Vp8Decoder
                 var mb = mbY * MbWidth + mbX;
                 ParseIntraMode(FirstPartition, mbX, mb);
                 var skip = UseSkipProba && ParseSkip(FirstPartition);
+                MbSkip[mb] = skip;
                 ParseResiduals(tokenBr, mbX, mb, skip);
             }
         }
@@ -647,13 +650,135 @@ internal sealed class Vp8Decoder
         }
     }
 
+    private struct FilterStrength
+    {
+        public int Ilevel;
+        public int Limit;
+        public int HevThresh;
+    }
+
+    // Precomputed [segment][is_i4x4] filter strengths.
+    private readonly FilterStrength[,] _filterStrengths = new FilterStrength[NumMbSegments, 2];
+
+    private void PrecomputeFilterStrengths()
+    {
+        for (var s = 0; s < NumMbSegments; s++)
+        {
+            int baseLevel;
+            if (UseSegment)
+            {
+                baseLevel = SegmentFilterStrength[s];
+                if (!AbsoluteDelta)
+                    baseLevel += FilterLevel;
+            }
+            else
+            {
+                baseLevel = FilterLevel;
+            }
+
+            for (var i4x4 = 0; i4x4 <= 1; i4x4++)
+            {
+                var level = baseLevel;
+                if (UseLfDelta)
+                {
+                    level += RefLfDelta[0]; // intra frames use reference 0
+                    if (i4x4 == 1)
+                        level += ModeLfDelta[0];
+                }
+                level = level < 0 ? 0 : level > 63 ? 63 : level;
+
+                ref var info = ref _filterStrengths[s, i4x4];
+                if (level > 0)
+                {
+                    var ilevel = level;
+                    if (FilterSharpness > 0)
+                    {
+                        ilevel >>= FilterSharpness > 4 ? 2 : 1;
+                        if (ilevel > 9 - FilterSharpness)
+                            ilevel = 9 - FilterSharpness;
+                    }
+                    if (ilevel < 1)
+                        ilevel = 1;
+                    info.Ilevel = ilevel;
+                    info.Limit = 2 * level + ilevel;
+                    info.HevThresh = level >= 40 ? 2 : level >= 15 ? 1 : 0;
+                }
+                else
+                {
+                    info.Limit = 0;
+                }
+            }
+        }
+    }
+
+    private void ApplyLoopFilter()
+    {
+        if (FilterType == 0)
+            return;
+
+        PrecomputeFilterStrengths();
+        var yStride = LumaStride;
+        var uvStride = ChromaStride;
+
+        for (var mbY = 0; mbY < MbHeight; mbY++)
+        for (var mbX = 0; mbX < MbWidth; mbX++)
+        {
+            var mb = mbY * MbWidth + mbX;
+            var isI4x4 = MbIsI4x4[mb];
+            var info = _filterStrengths[MbSegment[mb], isI4x4 ? 1 : 0];
+            var limit = info.Limit;
+            if (limit == 0)
+                continue;
+
+            var fInner = isI4x4 || !MbSkip[mb];
+            var yOff = mbY * 16 * yStride + mbX * 16;
+
+            if (FilterType == 1) // simple
+            {
+                if (mbX > 0) Vp8FilterApply.SimpleH16(PlaneY, yOff, yStride, limit + 4);
+                if (fInner) Vp8FilterApply.SimpleH16i(PlaneY, yOff, yStride, limit);
+                if (mbY > 0) Vp8FilterApply.SimpleV16(PlaneY, yOff, yStride, limit + 4);
+                if (fInner) Vp8FilterApply.SimpleV16i(PlaneY, yOff, yStride, limit);
+            }
+            else // normal
+            {
+                var uvOff = mbY * 8 * uvStride + mbX * 8;
+                var il = info.Ilevel;
+                var hev = info.HevThresh;
+                if (mbX > 0)
+                {
+                    Vp8FilterApply.H16(PlaneY, yOff, yStride, limit + 4, il, hev);
+                    Vp8FilterApply.H8(PlaneU, PlaneV, uvOff, uvStride, limit + 4, il, hev);
+                }
+                if (fInner)
+                {
+                    Vp8FilterApply.H16i(PlaneY, yOff, yStride, limit, il, hev);
+                    Vp8FilterApply.H8i(PlaneU, PlaneV, uvOff, uvStride, limit, il, hev);
+                }
+                if (mbY > 0)
+                {
+                    Vp8FilterApply.V16(PlaneY, yOff, yStride, limit + 4, il, hev);
+                    Vp8FilterApply.V8(PlaneU, PlaneV, uvOff, uvStride, limit + 4, il, hev);
+                }
+                if (fInner)
+                {
+                    Vp8FilterApply.V16i(PlaneY, yOff, yStride, limit, il, hev);
+                    Vp8FilterApply.V8i(PlaneU, PlaneV, uvOff, uvStride, limit, il, hev);
+                }
+            }
+        }
+    }
+
     /// <summary>Decodes the frame to a cropped RGBA image using simple (nearest) chroma upsampling.</summary>
+    /// <param name="applyFilter">Whether to apply the in-loop deblocking filter.</param>
     /// <returns>The RGBA pixels, <see cref="Width"/> × <see cref="Height"/>, row-major.</returns>
-    internal byte[] DecodeToRgba()
+    internal byte[] DecodeToRgba(bool applyFilter = true)
     {
         ParseHeaders();
         DecodeMacroblocks();
         Reconstruct();
+        if (applyFilter)
+            ApplyLoopFilter();
         return ToRgba();
     }
 
