@@ -490,6 +490,42 @@ internal sealed partial class BaselineDecoder
                     $"Component plane/coefficient buffer size {bufferSize} exceeds the maximum decodable buffer size.");
             c.PlaneWidth = c.BlocksWide * 8;
             c.PlaneHeight = c.BlocksHigh * 8;
+        }
+
+        // A pixel-count bound (MaxPixels) does not bound peak memory: component count, precision,
+        // and progressive coefficient buffers all amplify bytes-per-pixel. Estimate the peak
+        // allocation in long and reject before allocating anything. Enforced alongside MaxPixels
+        // (whichever trips first) and independently of the overflow guards above.
+        var bytesPerSample = _precision == 8 ? 1 : 2;
+        long estimatedBytes = 0;
+        foreach (var c in _components)
+        {
+            estimatedBytes += (long)c.PlaneWidth * c.PlaneHeight * bytesPerSample;
+            if (_isProgressive)
+                estimatedBytes += (long)c.BlocksWide * c.BlocksHigh * 64 * sizeof(short);
+        }
+        estimatedBytes += (long)_width * _height * _components.Length * bytesPerSample;
+
+        // Chroma upsampling during assembly allocates a full MCU-padded scratch plane for EACH
+        // subsampled component (UpsampleToFull/UpsampleToFull16 return the plane in place only when
+        // it is already full resolution — c.H==hmax && c.V==vmax — otherwise they allocate
+        // fullWidth*fullHeight samples). These scratch planes coexist with the sample planes and the
+        // output buffer at peak, so they belong in the bound. fullWidth/fullHeight are the padded
+        // dimensions the assemblers pass (mcusPerRow*hmax*8 × mcusPerCol*vmax*8). A single-component
+        // (grayscale) image never subsamples and never upsamples, so nothing is added for it.
+        var paddedWidth = (long)_mcusPerRow * _hmax * 8;
+        var paddedHeight = (long)_mcusPerCol * _vmax * 8;
+        foreach (var c in _components)
+        {
+            if (c.H < _hmax || c.V < _vmax)
+                estimatedBytes += paddedWidth * paddedHeight * bytesPerSample;
+        }
+        if (estimatedBytes > _options.MaxDecodedBytes)
+            throw new JpegFormatException(
+                $"Estimated decode allocation {estimatedBytes} bytes exceeds the configured maximum of {_options.MaxDecodedBytes}.");
+
+        foreach (var c in _components)
+        {
             if (_precision == 8)
                 c.Plane = new byte[c.PlaneWidth * c.PlaneHeight];
             else
