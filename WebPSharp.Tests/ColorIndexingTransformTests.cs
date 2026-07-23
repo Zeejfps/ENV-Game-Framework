@@ -50,6 +50,28 @@ public class ColorIndexingTransformTests
     }
 
     [Fact]
+    public void Inverse_IndexBeyondPopulatedPalette_MapsToZero()
+    {
+        // The palette is always allocated to the full addressable range (1 << (8 >> bits)); entries
+        // past the actual color count are zero padding. A bundled index that lands on that padding
+        // must safely return 0x00000000 (transparent black) rather than crashing. Here bits=0 means
+        // one index per pixel taken straight from the green byte, so index 200 addresses padding.
+        var palette = new uint[256];
+        palette[0] = 0xFF112233u;
+        palette[1] = 0xFF445566u;
+        palette[2] = 0xFF778899u;
+        // palette[3..255] remain 0 (padding).
+
+        // bits=0: Inverse reads the index from (pixel >> 8) & 0xFF. Green bytes: 1, 200, 2.
+        var bundled = new[] { 1u << 8, 200u << 8, 2u << 8 };
+        var restored = ColorIndexingTransform.Inverse(bundled, bundledWidth: 3, fullWidth: 3, height: 1, palette, bits: 0);
+
+        Assert.Equal(0xFF445566u, restored[0]);
+        Assert.Equal(0x00000000u, restored[1]); // index 200 -> zero padding
+        Assert.Equal(0xFF778899u, restored[2]);
+    }
+
+    [Fact]
     public void ExpandPalette_AppliesPerChannelPrefixSum()
     {
         // Deltas 0x01010101 accumulate: entry i = i * 0x01010101.

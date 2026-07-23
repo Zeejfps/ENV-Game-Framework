@@ -52,4 +52,32 @@ public class ColorCacheTests
     {
         Assert.Equal(1 << 7, new ColorCache(7).Size);
     }
+
+    // §14 hash golden: pins the 0x1E35A7BD multiplier. Indices hand-computed as
+    // (unchecked(argb * 0x1E35A7BDu) >> (32 - 8)) for an 8-bit (256-slot) cache.
+    [Theory]
+    [InlineData(0xFF000000u, 67)]
+    [InlineData(0xFFFFFFFFu, 225)]
+    [InlineData(0x11223344u, 138)]
+    public void GetIndex_MatchesHandComputedHash_Bits8(uint argb, int expectedIndex)
+    {
+        var cache = new ColorCache(8);
+        Assert.Equal(expectedIndex, cache.GetIndex(argb));
+
+        cache.Insert(argb);
+        Assert.Equal(argb, cache.Lookup(expectedIndex));
+    }
+
+    [Fact]
+    public void Constructor_MaxValidBits_Accepted()
+    {
+        // Upper bound of the valid 1..11 range must be accepted (11 -> 2048 slots).
+        Assert.Equal(1 << 11, new ColorCache(11).Size);
+    }
+
+    [Fact]
+    public void Constructor_MinValidBits_Accepted()
+    {
+        Assert.Equal(1 << 1, new ColorCache(1).Size);
+    }
 }

@@ -19,6 +19,24 @@ public class CrossColorTransformTests
         Assert.Equal(50u, argb[0] & 0xFF);          // blue unchanged (g2b=r2b=0)
     }
 
+    [Fact]
+    public void Inverse_SignedMultipliersAndSignedChannels_Vector()
+    {
+        // Exercises the sign semantics: green byte > 127 is negative, new_red feeds red_to_blue as sbyte,
+        // and Delta = (sbyte * sbyte) >> 5 (arithmetic shift).
+        // pixel: A=255 R=100 G=144(-112) B=32. multipliers: g2r=-8, g2b=16, r2b=-4.
+        //   Delta(g2r,green)=(-8*-112)>>5 = 896>>5 = 28  -> newRed = (100+28)&0xFF = 128 (as sbyte -128)
+        //   Delta(g2b,green)=(16*-112)>>5 = -1792>>5 = -56
+        //   Delta(r2b,newRed)=(-4*-128)>>5 = 512>>5 = 16
+        //   newBlue = (32 - 56 + 16) & 0xFF = -8 & 0xFF = 248
+        // green unchanged (144), alpha unchanged.
+        var argb = new[] { (0xFFu << 24) | (100u << 16) | (144u << 8) | 32u };
+        var colorImage = new[] { (0xFFu << 24) | (0xFCu << 16) | (0x10u << 8) | 0xF8u };
+        CrossColorTransform.Inverse(argb, 1, 1, colorImage, 2);
+
+        Assert.Equal(0xFF8090F8u, argb[0]);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

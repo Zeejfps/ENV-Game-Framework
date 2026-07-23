@@ -490,7 +490,7 @@ internal sealed class Vp8Decoder
     // ---- Reconstruction ----
 
     // Maps the libwebp 4x4 B-mode enumeration to the Vp8Prediction4 (RFC-ordered) mode.
-    private static readonly int[] BModeToPred =
+    internal static readonly int[] BModeToPred =
     {
         Vp8Prediction4.Dc, Vp8Prediction4.TrueMotion, Vp8Prediction4.Vertical, Vp8Prediction4.Horizontal,
         Vp8Prediction4.DownRight, Vp8Prediction4.VerticalRight, Vp8Prediction4.DownLeft,

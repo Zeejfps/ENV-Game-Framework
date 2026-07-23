@@ -63,6 +63,65 @@ public class PredictorTests
         Assert.Equal(0x03040506u, result);
     }
 
+    [Fact]
+    public void Predictor5_Average3_LeftTopRightTop_Vector()
+    {
+        // mode 5 = Average2(Average2(left, topRight), top), per channel floor((a+b)/2).
+        // left=FF102030, topRight=FF304050, top=FF000000, topLeft irrelevant.
+        // inner=Avg(left,topRight)=FF203040 ; result=Avg(inner,top)=FF101820.
+        var result = Vp8LPredictors.Predict(5, 0xFF102030u, 0xFF000000u, 0x00000000u, 0xFF304050u);
+        Assert.Equal(0xFF101820u, result);
+    }
+
+    [Fact]
+    public void Predictor10_Average3_Vector()
+    {
+        // mode 10 = Average2(Average2(left, topLeft), Average2(top, topRight)).
+        // left=FF102030, topLeft=FF306050, top=FF004080, topRight=FF200000.
+        // Avg(left,topLeft)=FF204040 ; Avg(top,topRight)=FF102040 ; Avg of those=FF183040.
+        var result = Vp8LPredictors.Predict(10, 0xFF102030u, 0xFF004080u, 0xFF306050u, 0xFF200000u);
+        Assert.Equal(0xFF183040u, result);
+    }
+
+    [Fact]
+    public void Predictor11_Select_PicksLeft_Vector()
+    {
+        // Select(top, left, topLeft): paMinusPb = sum(|left-tl| - |top-tl|) per channel.
+        // left=FF206080, top=FF285888, topLeft=FF1040A0 -> paMinusPb = 0-8+8+8 = 8 > 0 -> left.
+        var result = Vp8LPredictors.Predict(11, 0xFF206080u, 0xFF285888u, 0xFF1040A0u, 0x00000000u);
+        Assert.Equal(0xFF206080u, result);
+    }
+
+    [Fact]
+    public void Predictor11_Select_PicksTop_Vector()
+    {
+        // left=FF808080 (near topLeft), top=FF000000 (far), topLeft=FF828282.
+        // paMinusPb per non-alpha channel = |128-130| - |0-130| = 2-130 = -128, sum=-384 <= 0 -> top.
+        var result = Vp8LPredictors.Predict(11, 0xFF808080u, 0xFF000000u, 0xFF828282u, 0x00000000u);
+        Assert.Equal(0xFF000000u, result);
+    }
+
+    [Fact]
+    public void Predictor12_ClampedAddSubtractFull_Vector()
+    {
+        // Per channel Clip255(left + top - topLeft).
+        // left=FFC81040, top=FF640850, topLeft=FF0A2030.
+        // A:255+255-255=255 ; R:200+100-10=290->255 ; G:16+8-32=-8->0 ; B:64+80-48=96.
+        var result = Vp8LPredictors.Predict(12, 0xFFC81040u, 0xFF640850u, 0xFF0A2030u, 0x00000000u);
+        Assert.Equal(0xFFFF0060u, result);
+    }
+
+    [Fact]
+    public void Predictor13_ClampedAddSubtractHalf_Vector()
+    {
+        // ave = Average2(left, top) per channel; result = Clip255(ave + (ave - topLeft)/2).
+        // left=FF8010C0, top=FF4020C0, topLeft=FF006010.
+        // ave: A=255 R=96 G=24 B=192.
+        // A:255+(255-255)/2=255 ; R:96+(96-0)/2=144 ; G:24+(24-96)/2=24-36=-12->0 ; B:192+(192-16)/2=280->255.
+        var result = Vp8LPredictors.Predict(13, 0xFF8010C0u, 0xFF4020C0u, 0xFF006010u, 0x00000000u);
+        Assert.Equal(0xFF9000FFu, result);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

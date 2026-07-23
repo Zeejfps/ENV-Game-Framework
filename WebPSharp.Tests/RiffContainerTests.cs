@@ -122,6 +122,116 @@ public class RiffContainerTests
         Assert.Throws<ArgumentException>(() => new RiffWriter(nonSeekable));
     }
 
+    // T1: A declared RIFF size smaller than 4 cannot even contain the 'WEBP' form type and must be
+    // rejected. Bytes are built by hand because the writer would never emit such a size.
+    [Fact]
+    public void Reader_RiffSizeBelowFour_Throws()
+    {
+        var bytes = new byte[12];
+        WebPChunkIds.Riff.Write(bytes);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(4, 4), 3); // < 4
+        WebPChunkIds.WebP.Write(bytes.AsSpan(8, 4));
+        Assert.Throws<WebPFormatException>(() => RiffReader.Create(bytes));
+    }
+
+    // T3: The reader stops at the declared RIFF size, so bytes appended past that boundary are
+    // ignored. Here the trailing garbage even looks like a second chunk; it must not be seen.
+    [Fact]
+    public void Reader_TrailingBytesBeyondRiffSize_AreIgnored()
+    {
+        var payload = new byte[] { 1, 2, 3, 4 };
+        var valid = WebPTestData.Container(WebPChunkIds.Vp8L, payload);
+
+        // Append a whole extra (fake) chunk past the declared RIFF size boundary.
+        var trailing = new byte[valid.Length + 8 + 4];
+        valid.CopyTo(trailing, 0);
+        WebPChunkIds.Exif.Write(trailing.AsSpan(valid.Length, 4));
+        BinaryPrimitives.WriteUInt32LittleEndian(trailing.AsSpan(valid.Length + 4, 4), 4);
+        // (remaining 4 payload bytes stay zero)
+
+        var reader = RiffReader.Create(trailing);
+        var chunks = new List<RiffChunk>();
+        while (reader.MoveNext())
+            chunks.Add(reader.Current);
+
+        Assert.Single(chunks);
+        Assert.Equal(WebPChunkIds.Vp8L, chunks[0].Id);
+        Assert.Equal(payload, chunks[0].Payload.ToArray());
+    }
+
+    // T4: A chunk with a zero-length payload is legal; the reader must accept it and advance to the
+    // following chunk.
+    [Fact]
+    public void Reader_ZeroSizeChunk_ParsesAndContinues()
+    {
+        var real = new byte[] { 7, 7, 7, 7 };
+        var bytes = WebPTestData.Container(
+            (WebPChunkIds.Iccp, Array.Empty<byte>()),
+            (WebPChunkIds.Vp8L, real));
+
+        var reader = RiffReader.Create(bytes);
+        var chunks = new List<RiffChunk>();
+        while (reader.MoveNext())
+            chunks.Add(reader.Current);
+
+        Assert.Equal(2, chunks.Count);
+        Assert.Equal(WebPChunkIds.Iccp, chunks[0].Id);
+        Assert.Equal(0, chunks[0].Payload.Length);
+        Assert.Equal(WebPChunkIds.Vp8L, chunks[1].Id);
+        Assert.Equal(real, chunks[1].Payload.ToArray());
+    }
+
+    // T5: An odd-sized chunk in the MIDDLE of the container is followed by a pad byte, which the
+    // reader must skip so the next chunk is read at the correct offset.
+    [Fact]
+    public void Reader_InteriorOddChunk_SkipsPadByte_NextChunkAtCorrectOffset()
+    {
+        var oddA = new byte[] { 1, 2, 3 };       // odd -> pad byte emitted after it
+        var b = new byte[] { 10, 20, 30, 40 };
+        var bytes = WebPTestData.Container(
+            (WebPChunkIds.Iccp, oddA),
+            (WebPChunkIds.Exif, b));
+
+        var reader = RiffReader.Create(bytes);
+        var chunks = new List<RiffChunk>();
+        while (reader.MoveNext())
+            chunks.Add(reader.Current);
+
+        Assert.Equal(2, chunks.Count);
+        Assert.Equal(WebPChunkIds.Iccp, chunks[0].Id);
+        Assert.Equal(oddA, chunks[0].Payload.ToArray());
+        // The pad byte after A must have been skipped, so B is read intact.
+        Assert.Equal(WebPChunkIds.Exif, chunks[1].Id);
+        Assert.Equal(b, chunks[1].Payload.ToArray());
+    }
+
+    // T6: A trailing odd-sized chunk whose final pad byte is missing at end of file is tolerated
+    // (spec-lenient). Confirmed behavior: RiffReader parses it rather than throwing. Bytes are built
+    // by hand because the writer always emits the pad byte.
+    [Fact]
+    public void Reader_TrailingOddChunk_MissingPadByte_IsTolerated()
+    {
+        var payload = new byte[] { 0xAA, 0xBB, 0xCC }; // size 3 (odd)
+        // RIFF header (12) + chunk header (8) + payload (3), NO trailing pad byte.
+        var bytes = new byte[12 + 8 + payload.Length];
+        WebPChunkIds.Riff.Write(bytes);
+        WebPChunkIds.WebP.Write(bytes.AsSpan(8, 4));
+        // RIFF size = 'WEBP' (4) + chunk header (8) + payload (3) = 15, with no pad accounted for.
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(4, 4), (uint)(4 + 8 + payload.Length));
+        WebPChunkIds.Exif.Write(bytes.AsSpan(12, 4));
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(16, 4), (uint)payload.Length);
+        payload.CopyTo(bytes, 20);
+
+        var reader = RiffReader.Create(bytes);
+        var chunks = new List<RiffChunk>();
+        while (reader.MoveNext())
+            chunks.Add(reader.Current);
+
+        Assert.Single(chunks);
+        Assert.Equal(WebPChunkIds.Exif, chunks[0].Id);
+        Assert.Equal(payload, chunks[0].Payload.ToArray());
+    }
+
     private sealed class NonSeekableStream : Stream
     {
         public override bool CanRead => false;

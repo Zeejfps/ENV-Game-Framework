@@ -92,6 +92,91 @@ public class Vp8TransformTests
         }
     }
 
+    // Known-answer: a block with DC plus two AC coefficients. Expected pixels hand-computed from the
+    // exact fixed-point formulas Mul1(a)=a+((a*20091)>>16), Mul2(a)=(a*35468)>>16, column pass then
+    // row pass with the +4 rounding bias and final >>3. This pins both multiplier constants.
+    [Fact]
+    public void InverseDct_KnownAnswer_PinsMultiplierConstants()
+    {
+        var coeffs = new short[16];
+        coeffs[0] = 200;
+        coeffs[1] = -40;
+        coeffs[4] = 30;
+        coeffs[5] = 10;
+
+        var residual = new int[16];
+        Vp8Transform.InverseDct(coeffs, residual);
+
+        var expected = new[]
+        {
+            25, 28, 32, 34,
+            21, 25, 29, 33,
+            16, 20, 26, 30,
+            11, 17, 24, 29,
+        };
+        Assert.Equal(expected, residual);
+    }
+
+    // Known-answer: a single AC coefficient at raster position 1 exercises Mul1 and Mul2 in isolation.
+    // Mul1(64) = 64 + ((64*20091)>>16) = 83 and Mul2(64) = (64*35468)>>16 = 34, so each row becomes
+    // ((4+83)>>3, (4+34)>>3, (4-34)>>3, (4-83)>>3) = (10, 4, -4, -10). A wrong constant shifts these.
+    [Fact]
+    public void InverseDct_SingleAcCoeff_PinsMul1AndMul2()
+    {
+        var coeffs = new short[16];
+        coeffs[1] = 64;
+
+        var residual = new int[16];
+        Vp8Transform.InverseDct(coeffs, residual);
+
+        var expected = new[]
+        {
+            10, 4, -4, -10,
+            10, 4, -4, -10,
+            10, 4, -4, -10,
+            10, 4, -4, -10,
+        };
+        Assert.Equal(expected, residual);
+    }
+
+    // The DC-only output must be uniform (DC+4)>>3 and identical to running the general path (there is
+    // a single code path; this asserts the fast-path invariant holds for the actual implementation).
+    [Fact]
+    public void InverseDct_DcOnly_EqualsUniformRoundedDc()
+    {
+        var coeffs = new short[16];
+        coeffs[0] = 100;
+        var residual = new int[16];
+        Vp8Transform.InverseDct(coeffs, residual);
+
+        var expected = (100 + 4) >> 3; // 13
+        Assert.All(residual, v => Assert.Equal(expected, v));
+    }
+
+    // Known-answer for the inverse Walsh-Hadamard transform: pins the +3 rounding bias, the final >>3,
+    // and the strided butterfly ordering. Expected values hand-computed from the exact integer formula.
+    [Fact]
+    public void InverseWht_KnownAnswer_PinsRoundingAndScatter()
+    {
+        var input = new short[16];
+        input[0] = 160;
+        input[1] = -32;
+        input[4] = 24;
+        input[8] = 8;
+
+        var output = new short[16];
+        Vp8Transform.InverseWht(input, output);
+
+        var expected = new short[]
+        {
+            20, 20, 28, 28,
+            18, 18, 26, 26,
+            12, 12, 20, 20,
+            14, 14, 22, 22,
+        };
+        Assert.Equal(expected, output);
+    }
+
     [Fact]
     public void AddResidual_ClipsToByteRange()
     {
