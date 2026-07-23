@@ -1,0 +1,66 @@
+{
+  "baseline": "526 passed / 0 failed (post-remediation, commit 446e6365)",
+  "goal": "Close audit Test Coverage Deltas. Additive tests only (no production code changes unless a real bug surfaces). Each batch: tests exercise the intended path, assert real behavior (non-tautological), pass; independent verification that coverage is genuine.",
+  "tools": "cwebp/dwebp/webpinfo/webpmux libwebp 1.6.0 available",
+  "asset_convention": "Assets/ dir, <name>.webp + <name>.rgba (dwebp reference). Lossless => maxDiff==0 exact. Load via Path.Combine(AppContext.BaseDirectory,'Assets',name).",
+  "batches": [
+    {
+      "id": "TH-01-CWEBP-LOSSLESS-GOLDENS",
+      "priority": 1,
+      "sections": "12-16",
+      "status": "COMPLETE (6 genuine cwebp -lossless goldens: predictor/palette/colorcache[bits=10,3396 lookups]/metahuffman[num_htree_groups=2]/photo/alpha; all decode byte-exact vs dwebp maxDiff==0; NO decoder bug found - meta-Huffman entropy-image path handled correctly. INDEPENDENTLY verified via from-scratch Python VP8L parser: htree=2, cache_bits=10, refs==fresh dwebp. Doc comments corrected. 547 pass.)",
+      "desc": "Commit cwebp -lossless golden assets (predictor-heavy, palette, color-cache, meta-huffman/region-varied, generic photo) + dwebp .rgba refs; Decode_CwebpLossless_* tests. Exercises repeat-codes/max_symbol/near-dist/libwebp-transforms the WebPSharp encoder never emits. Closes 5 sections' interop proof gap at once."
+    },
+    {
+      "id": "TH-02-FUZZ-EXTEND",
+      "priority": 2,
+      "section": "20",
+      "status": "COMPLETE (15 fuzz tests lossy/ALPH/VP8X/anim, ~13k deterministic invocations, contract assertion self-verified genuine, 0 non-WebPException escapes, 0 hangs, 547 pass)",
+      "desc": "Extend fuzz harness (WebPRobustnessTests, currently lossless-only) to lossy VP8 + ALPH + VP8X + animation truncation/corruption. Assert only WebPException-family escapes."
+    },
+    {
+      "id": "TH-03-RIFF-MUSTADD",
+      "priority": 3,
+      "section": "1",
+      "status": "COMPLETE (5 tests T1/T3/T4/T5/T6, real reader behavior confirmed vs code+spec, no bug, 552 pass)",
+      "desc": "RIFF tests T1(riffSize<4 reject), T3(trailing-beyond-riffSize ignored), T4(zero-size chunk continues), T5(interior odd-chunk pad-skip+offset), T6(trailing odd chunk missing pad tolerated). T7 already done via ANMF fix."
+    },
+    {
+      "id": "TH-04-VP8L-DECODE-PATHS",
+      "priority": 4,
+      "sections": "13-15",
+      "status": "COMPLETE (04a: 9 Huffman/cache reject+hash; 04b: 9 transform reject + predictor/crosscolor/colorindex vectors, all hand-computed vs spec verified in Python; no bugs; 570 pass)",
+      "desc": "Decode_RepeatCode16/17/18, Decode_MaxSymbolLimiting, ReadPrefixCode over/under-subscribed bitstream reject, color-cache hash golden + range-reject, near-dist decode, absolute predictor/cross-color vectors, duplicate-transform reject, color-indexing OOB. (Some closed by TH-01 interop; add targeted units for the rest.)"
+    },
+    {
+      "id": "TH-05-VP8-KAT",
+      "priority": 5,
+      "sections": "7,9",
+      "status": "COMPLETE (10 tests: IDCT/IWHT KAT pinning 20091/35468, dequant Y2Ac/UV-DC-clamp-117 factors, boolean read-past-end robustness; hand-computed; no bug; 580 pass; real-cwebp-partition-KAT deferred as impractical)",
+      "desc": "VP8 boolean KAT (decode real cwebp bool partition / read-past-end / empty-partition), IDCT/IWHT known-answer vectors pinning MUL constants, cat6/negative/zero-run GetCoeffs unit, dequant Y2/UV-factor unit."
+    },
+    {
+      "id": "TH-06-VP8-PREDICT-FILTER",
+      "priority": 6,
+      "sections": "8,10,11",
+      "status": "COMPLETE (19 tests: VR4/VL4/HD4/HU4 non-uniform + top-right repl + BModeToPred; SHIPPED loop-filter kernels DoFilter2/4/6 HEV/non-HEV simple/normal/chroma [previously ZERO coverage]; YUV vectors. Hand-computed vs RFC/libwebp, verified Python. NO bug. 599 pass. Trivial BModeToPred private->internal for test.)",
+      "desc": "VR4/VL4/HD4/HU4 non-uniform + top-right-edge + BModeToPred; loop-filter decode-kernel golden vectors (Vp8FilterApply) + simple(-f 0)/sharpness/segment/lf-delta fixtures; non-tautological YUV/fancy-weight vectors."
+    },
+    {
+      "id": "TH-07-ALPH",
+      "priority": 7,
+      "section": "17",
+      "status": "COMPLETE (20 tests: per-filter unfilter vectors, edge dims, all-transp/opaque, C=2/3 reject, raw-truncation reject, dwebp interop alpha-exact; no bug; 619 pass)",
+      "desc": "Per-filter (0-3) round-trip incl 1xN/Nx1, C=2/3 reject, reserved!=0 reject, raw-truncation reject, all-transparent/opaque, dwebp-reads-our-alpha interop."
+    },
+    {
+      "id": "TH-06b-FILTER-VARIANT-ASSETS",
+      "priority": 6.5,
+      "section": "10",
+      "status": "COMPLETE (3 goldens simple-filter[ft==1]/sharpness=7/segments=4 verified via webpinfo; all maxDiff==0 vs dwebp; no divergence; 622 pass)",
+      "desc": "cwebp filter-variant golden assets: simple-filter (-nostrong), sharpness (-sharpness 7), segmented (-segments 4) + dwebp .rgba refs + decode tests, verified via bitstream each uses intended feature. Closes \u00a710 interop fixture gap."
+    }
+  ],
+  "completed": [],
+  "final": "ALL 8 BATCHES COMPLETE. 526 -> 622 tests (+96). 10 new test files, 18 new golden asset files. ZERO production bugs found. Only prod change: BModeToPred private->internal (test visibility, no behavior). Real cwebp-lossless interop (incl meta-Huffman), extended fuzz (lossy/ALPH/VP8X/anim), previously-untested loop-filter kernels, IDCT/dequant KAT, ALPH per-filter+dwebp-interop all clean."
+}
