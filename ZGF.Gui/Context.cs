@@ -97,6 +97,21 @@ public sealed class Context : IDisposable
     }
 
     /// <summary>
+    /// Registers <typeparamref name="TImpl"/>, built by <paramref name="factory"/>, as the
+    /// hosted-service implementation of <typeparamref name="TService"/>: consumers resolve the
+    /// interface, the host starts the one instance. Same as the two-type-parameter overload but for
+    /// an implementation whose constructor needs wiring plain injection can't do (an interface cast).
+    /// The single factory registration means the instance is owned — and disposed — exactly once.
+    /// </summary>
+    public void AddHostedService<TService, TImpl>(Func<Context, TImpl> factory)
+        where TService : class
+        where TImpl : class, TService, IHostedService
+    {
+        AddSingleton<TService>(factory);
+        _hosted.Add(typeof(TService));
+    }
+
+    /// <summary>
     /// Resolves and <see cref="IHostedService.Start"/>s every registered hosted service, in
     /// registration order. Called once by the host after the app is built.
     /// </summary>
