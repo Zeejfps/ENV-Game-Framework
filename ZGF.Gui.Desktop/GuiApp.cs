@@ -96,6 +96,7 @@ public sealed class GuiApp : IDisposable
         context.AddService<ISecondaryWindowFactory>(_secondaryWindows);
         context.AddService<IUiDispatcher>(_dispatcher);
         context.AddService<IFrameTicker>(_frameTicker);
+        context.AddService<IAppForeground>(new AppForeground(app));
         context.AddService(new SvgImageCache(new SvgImageCacheOptions()));
 
         // Clipboard: the native implementation where one exists, else the window's

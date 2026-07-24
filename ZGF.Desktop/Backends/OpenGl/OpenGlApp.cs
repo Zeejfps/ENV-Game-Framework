@@ -11,6 +11,7 @@ public sealed class OpenGlApp : IWindowedApp
 
     private readonly OpenGlWindow _mainWindow;
     private readonly List<OpenGlWindow> _windows = new();
+    private readonly AppForegroundTracker _foreground;
     private readonly StartupConfig _startupConfig;
     private bool _isDisposed;
 
@@ -47,10 +48,20 @@ public sealed class OpenGlApp : IWindowedApp
 
         _mainWindow = new OpenGlWindow(window, isMain: true);
         _windows.Add(_mainWindow);
+        _foreground = new AppForegroundTracker(_windows);
+        _foreground.Watch(_mainWindow);
     }
 
     public IWindow MainWindow => _mainWindow;
     public IReadOnlyList<IWindow> Windows => _windows;
+
+    public bool IsForeground => _foreground.IsForeground;
+
+    public event Action<bool> OnForegroundChanged
+    {
+        add => _foreground.Changed += value;
+        remove => _foreground.Changed -= value;
+    }
 
     public IReadOnlyList<MonitorWorkArea> Monitors => GlfwMonitors.WorkAreas();
 
@@ -92,6 +103,7 @@ public sealed class OpenGlApp : IWindowedApp
 
         var popup = new OpenGlWindow(glfw, isMain: false);
         _windows.Add(popup);
+        _foreground.Watch(popup);
         popup.OnClosed += () => _windows.Remove(popup);
         return popup;
     }
@@ -126,6 +138,7 @@ public sealed class OpenGlApp : IWindowedApp
 
         var window = new OpenGlWindow(glfw, isMain: false);
         _windows.Add(window);
+        _foreground.Watch(window);
         window.OnClosed += () => _windows.Remove(window);
         return window;
     }

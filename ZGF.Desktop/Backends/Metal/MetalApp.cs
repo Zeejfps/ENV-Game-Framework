@@ -16,6 +16,7 @@ public sealed class MetalApp : IWindowedApp
 
     private readonly MetalWindow _mainWindow;
     private readonly List<IWindow> _windows = new();
+    private readonly AppForegroundTracker _foreground;
     private readonly StartupConfig _startupConfig;
     private bool _isDisposed;
 
@@ -52,11 +53,21 @@ public sealed class MetalApp : IWindowedApp
 
         _mainWindow = new MetalWindow(window, Device, CommandQueue, isMain: true);
         _windows.Add(_mainWindow);
+        _foreground = new AppForegroundTracker(_windows);
+        _foreground.Watch(_mainWindow);
     }
 
     public IWindow MainWindow => _mainWindow;
     public IReadOnlyList<IWindow> Windows => _windows;
     public IReadOnlyList<MonitorWorkArea> Monitors => GlfwMonitors.WorkAreas();
+
+    public bool IsForeground => _foreground.IsForeground;
+
+    public event Action<bool> OnForegroundChanged
+    {
+        add => _foreground.Changed += value;
+        remove => _foreground.Changed -= value;
+    }
 
     public event Action? OnTick;
 
@@ -83,6 +94,7 @@ public sealed class MetalApp : IWindowedApp
 
         var popup = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
         _windows.Add(popup);
+        _foreground.Watch(popup);
         popup.OnClosed += () => _windows.Remove(popup);
         return popup;
     }
@@ -104,6 +116,7 @@ public sealed class MetalApp : IWindowedApp
 
         var window = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
         _windows.Add(window);
+        _foreground.Watch(window);
         window.OnClosed += () => _windows.Remove(window);
         return window;
     }
