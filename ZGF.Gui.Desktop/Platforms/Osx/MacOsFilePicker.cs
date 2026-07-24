@@ -92,32 +92,71 @@ public sealed class MacOsFilePicker : IFilePicker
         return path;
     }
 
-    // "choose file of type" takes bare extensions (or UTIs) and greys out everything else —
-    // macOS has no filter dropdown. Only plain "*.ext" patterns are expressible, so others are
-    // skipped; a "*" / "*.*" group means anything may be picked, so the clause is omitted.
+    // Uniform Type Identifiers for the extensions we can express. "choose file of type" silently
+    // ignores bare extensions on current macOS — the dialog then filters nothing at all — so every
+    // pattern has to be translated to a UTI before it reaches AppleScript. One UTI often covers
+    // several extensions (public.jpeg matches .jpg and .jpeg), hence the dedupe below.
+    private static readonly Dictionary<string, string> UtiByExtension = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["png"] = "public.png",
+        ["jpg"] = "public.jpeg",
+        ["jpeg"] = "public.jpeg",
+        ["gif"] = "com.compuserve.gif",
+        ["bmp"] = "com.microsoft.bmp",
+        ["tif"] = "public.tiff",
+        ["tiff"] = "public.tiff",
+        ["heic"] = "public.heic",
+        ["webp"] = "org.webmproject.webp",
+        ["pdf"] = "com.adobe.pdf",
+        ["txt"] = "public.plain-text",
+        ["json"] = "public.json",
+        ["csv"] = "public.comma-separated-values-text",
+        ["zip"] = "public.zip-archive",
+    };
+
+    // "choose file of type" greys out everything that doesn't match — macOS has no filter dropdown.
+    // Only plain "*.ext" patterns with a known UTI are expressible; anything else is dropped from
+    // the clause rather than dropping the whole clause, so one unmappable pattern can't quietly
+    // turn the filter off. A "*" / "*.*" group does mean anything may be picked, so that omits it.
     private static string BuildOfTypeClause(IReadOnlyList<FileFilter>? filters)
     {
         if (filters == null || filters.Count == 0) return "";
 
-        var extensions = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var utis = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var filter in filters)
         {
             foreach (var pattern in filter.Patterns)
             {
                 if (pattern is "*" or "*.*") return "";
-                if (!pattern.StartsWith("*.", StringComparison.Ordinal)) continue;
+                if (!pattern.StartsWith("*.", StringComparison.Ordinal))
+                {
+                    Console.WriteLine($"[FilePicker] Pattern '{pattern}' is not a plain '*.ext' glob; ignored on macOS.");
+                    continue;
+                }
                 var extension = pattern[2..];
-                if (seen.Add(extension)) extensions.Add(extension);
+                if (!UtiByExtension.TryGetValue(extension, out var uti))
+                {
+                    Console.WriteLine($"[FilePicker] No UTI known for '.{extension}'; ignored on macOS.");
+                    continue;
+                }
+                if (seen.Add(uti)) utis.Add(uti);
             }
         }
-        if (extensions.Count == 0) return "";
+        // Nothing survived the translation. AppleScript can't express "allow nothing", so the
+        // dialog ends up unfiltered — say so, since that looks identical to a filter that failed.
+        if (utis.Count == 0)
+        {
+            Console.WriteLine("[FilePicker] No filter pattern mapped to a UTI; showing all files.");
+            return "";
+        }
 
+        // The UTIs come from the table above, so they need no AppleScript escaping.
         var sb = new StringBuilder(" of type {");
-        for (var i = 0; i < extensions.Count; i++)
+        for (var i = 0; i < utis.Count; i++)
         {
             if (i > 0) sb.Append(", ");
-            sb.Append('"').Append(EscapeForAppleScript(extensions[i])).Append('"');
+            sb.Append('"').Append(utis[i]).Append('"');
         }
         return sb.Append('}').ToString();
     }
