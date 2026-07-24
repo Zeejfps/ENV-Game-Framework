@@ -23,6 +23,13 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     private IntPtr _globalsBuffer;
     private IntPtr _clipBuffer;
 
+    // Current element capacity of each instance buffer. The Max* constants below are the STARTING
+    // size, not a ceiling — RenderedCanvasBase grows its staging arrays to whatever a frame needs
+    // (see its EnsureCapacity) and never clamps to them, so a backend that treats them as a ceiling
+    // is a backend that falls over on a busy frame. OpenGlRenderedCanvas has always grown its VBOs;
+    // this is the same contract.
+    private int _rectCap, _glyphCap, _imageCap, _shadowCap, _shapeCap;
+
     private Matrix4x4 _projection;
     private IntPtr _pendingCommandBuffer;
     private IntPtr _currentEncoder;
@@ -40,12 +47,20 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
 
         var device = shared.Device;
-        _rectInstanceBuffer = NewSharedBuffer(device, MaxRects * sizeof(RectInstance));
-        _glyphInstanceBuffer = NewSharedBuffer(device, MaxGlyphs * sizeof(GlyphInstance));
-        _imageInstanceBuffer = NewSharedBuffer(device, MaxImages * sizeof(ImageInstance));
-        _shadowInstanceBuffer = NewSharedBuffer(device, MaxShadows * sizeof(ShadowInstance));
-        _shapeInstanceBuffer = NewSharedBuffer(device, MaxShapes * sizeof(ShapeInstance));
+        _rectCap = MaxRects;
+        _glyphCap = MaxGlyphs;
+        _imageCap = MaxImages;
+        _shadowCap = MaxShadows;
+        _shapeCap = MaxShapes;
+        _rectInstanceBuffer = NewSharedBuffer(device, _rectCap * sizeof(RectInstance));
+        _glyphInstanceBuffer = NewSharedBuffer(device, _glyphCap * sizeof(GlyphInstance));
+        _imageInstanceBuffer = NewSharedBuffer(device, _imageCap * sizeof(ImageInstance));
+        _shadowInstanceBuffer = NewSharedBuffer(device, _shadowCap * sizeof(ShadowInstance));
+        _shapeInstanceBuffer = NewSharedBuffer(device, _shapeCap * sizeof(ShapeInstance));
         _globalsBuffer = NewSharedBuffer(device, sizeof(Matrix4x4));
+        // MaxClips genuinely IS a ceiling, unlike the instance capacities above: the clip rects are a
+        // shader-declared `array<float4, 256>` in the .gen.metal fragment shaders, so this buffer
+        // cannot grow without regenerating them. See UploadClips.
         _clipBuffer = NewSharedBuffer(device, MaxClips * sizeof(Vector4));
 
         UploadProjectionToBuffer();
@@ -84,51 +99,79 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     public override bool HasImage(string imageId) => _shared.ImageManager.HasImage(imageId);
     public override void RemoveImage(string imageId) => _shared.ImageManager.RemoveImage(imageId);
 
+    // Reallocates an instance buffer when the staged count outgrows it. Metal binds buffers by
+    // handle at encode time (setVertexBuffer:offset:atIndex: in IssueDraws), so swapping the handle
+    // needs no other bookkeeping — unlike a GL VAO there is no cached attribute binding to
+    // invalidate. Growth is geometric so a canvas that steadily needs more instances is not
+    // reallocating every frame.
+    //
+    // Releasing the old buffer here is safe because of EndFrame's ordering: it waits on the previous
+    // frame's command buffer (waitUntilCompleted) BEFORE calling base.EndFrame, which is what drives
+    // these uploads. So no in-flight GPU work can still be reading the buffer being replaced.
+    private void EnsureInstanceCapacity(ref IntPtr buffer, ref int capacity, int count, int elemSize)
+    {
+        if (count <= capacity) return;
+        var newCap = Math.Max(count, capacity * 2);
+        var grown = NewSharedBuffer(_shared.Device, newCap * elemSize);
+        Release(buffer);
+        buffer = grown;
+        capacity = newCap;
+    }
+
     protected override void UploadRectInstances(RectInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(ref _rectInstanceBuffer, ref _rectCap, count, sizeof(RectInstance));
         var dst = (RectInstance*)msg_IntPtr(_rectInstanceBuffer, Sel("contents"));
         fixed (RectInstance* src = &data[0])
-            Buffer.MemoryCopy(src, dst, MaxRects * sizeof(RectInstance), count * sizeof(RectInstance));
+            Buffer.MemoryCopy(src, dst, _rectCap * sizeof(RectInstance), count * sizeof(RectInstance));
     }
 
     protected override void UploadGlyphInstances(GlyphInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(ref _glyphInstanceBuffer, ref _glyphCap, count, sizeof(GlyphInstance));
         var dst = (GlyphInstance*)msg_IntPtr(_glyphInstanceBuffer, Sel("contents"));
         fixed (GlyphInstance* src = &data[0])
-            Buffer.MemoryCopy(src, dst, MaxGlyphs * sizeof(GlyphInstance), count * sizeof(GlyphInstance));
+            Buffer.MemoryCopy(src, dst, _glyphCap * sizeof(GlyphInstance), count * sizeof(GlyphInstance));
     }
 
     protected override void UploadImageInstances(ImageInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(ref _imageInstanceBuffer, ref _imageCap, count, sizeof(ImageInstance));
         var dst = (ImageInstance*)msg_IntPtr(_imageInstanceBuffer, Sel("contents"));
         fixed (ImageInstance* src = &data[0])
-            Buffer.MemoryCopy(src, dst, MaxImages * sizeof(ImageInstance), count * sizeof(ImageInstance));
+            Buffer.MemoryCopy(src, dst, _imageCap * sizeof(ImageInstance), count * sizeof(ImageInstance));
     }
 
     protected override void UploadShadowInstances(ShadowInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(ref _shadowInstanceBuffer, ref _shadowCap, count, sizeof(ShadowInstance));
         var dst = (ShadowInstance*)msg_IntPtr(_shadowInstanceBuffer, Sel("contents"));
         fixed (ShadowInstance* src = &data[0])
-            Buffer.MemoryCopy(src, dst, MaxShadows * sizeof(ShadowInstance), count * sizeof(ShadowInstance));
+            Buffer.MemoryCopy(src, dst, _shadowCap * sizeof(ShadowInstance), count * sizeof(ShadowInstance));
     }
 
     protected override void UploadShapeInstances(ShapeInstance[] data, int count)
     {
         if (count == 0) return;
+        EnsureInstanceCapacity(ref _shapeInstanceBuffer, ref _shapeCap, count, sizeof(ShapeInstance));
         var dst = (ShapeInstance*)msg_IntPtr(_shapeInstanceBuffer, Sel("contents"));
         fixed (ShapeInstance* src = &data[0])
-            Buffer.MemoryCopy(src, dst, MaxShapes * sizeof(ShapeInstance), count * sizeof(ShapeInstance));
+            Buffer.MemoryCopy(src, dst, _shapeCap * sizeof(ShapeInstance), count * sizeof(ShapeInstance));
     }
 
     protected override void UploadClips(List<Vector4> clips)
     {
         if (clips.Count == 0) return;
         var dst = (Vector4*)msg_IntPtr(_clipBuffer, Sel("contents"));
-        for (var i = 0; i < clips.Count; i++) dst[i] = clips[i];
+        // Clamped, not grown: u_clipRects is `array<float4, 256>` in the generated fragment shaders,
+        // so MaxClips is fixed by them and not by this allocation. Writing past it corrupted the heap
+        // silently, which is a worse failure than the clipping being wrong past 256 nested regions.
+        var n = Math.Min(clips.Count, MaxClips);
+        for (var i = 0; i < n; i++) dst[i] = clips[i];
     }
 
     protected override void UpdateAtlasIfDirty()
