@@ -258,12 +258,18 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandleScrollEvent(double x, double y)
     {
+        // Read while still inside GLFW's callback: the NSEvent this came from is the application's
+        // currentEvent only for the duration of the dispatch that invoked us.
+        var (gesturePhase, momentumPhase) = MacScrollPhase.Read();
+
         var e = new MouseWheelScrolledEvent
         {
             Mouse = Mouse,
             DeltaX = (float)x,
             DeltaY = (float)y,
-            Phase = EventPhase.Capturing
+            Phase = EventPhase.Capturing,
+            GesturePhase = gesturePhase,
+            MomentumPhase = momentumPhase,
         };
         InputSystem.SendMouseScrollEvent(ref e);
         OnAnyInput?.Invoke();
