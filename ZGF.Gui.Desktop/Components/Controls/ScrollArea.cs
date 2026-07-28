@@ -45,6 +45,12 @@ public sealed record ScrollArea : Widget
     /// instead of scrolling.</summary>
     public bool FillParent { get; init; }
 
+    /// <summary>Follows content that grows at the end — a log, a chat transcript — while the view is
+    /// resting at (or within a hair of) the bottom. Scrolling away deliberately releases the pin and
+    /// the area stays where it was put; scrolling back to the bottom takes it again. Off by default,
+    /// so an ordinary list never moves under the reader.</summary>
+    public bool StickToBottom { get; init; }
+
     protected override IWidget Build(Context ctx)
     {
         var pane = new VerticalScrollPane { Gap = Gap, StretchContent = StretchContent, FillParent = FillParent };
@@ -61,7 +67,7 @@ public sealed record ScrollArea : Widget
         var scrollBar = new ScrollBar { Thumb = thumb, Style = Style }.BuildView(ctx);
         return new KbmInput
         {
-            Controller = _ => new ScrollAreaKbmController(pane, thumb, AutoHide ? scrollBar : null, WheelStep),
+            Controller = _ => new ScrollAreaKbmController(pane, thumb, AutoHide ? scrollBar : null, WheelStep, StickToBottom),
             Child = new BorderLayout
             {
                 Center = new Raw { View = pane },
@@ -78,17 +84,38 @@ public sealed record ScrollArea : Widget
 /// </summary>
 public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposable
 {
+    // How close to the bottom still counts as resting there. A few pixels of slack, so content that
+    // ends mid-line or a fractional layout offset doesn't silently drop the pin.
+    private const float BottomStickThreshold = 24f;
+
     private readonly VerticalScrollPane _pane;
     private readonly VerticalScrollBarThumbView _thumb;
     private readonly View? _autoHideTarget;
     private readonly float _wheelStep;
+    private readonly bool _stickToBottom;
 
-    public ScrollAreaKbmController(VerticalScrollPane pane, VerticalScrollBarThumbView thumb, View? autoHideTarget = null, float wheelStep = ScrollDefaults.WheelStep)
+    // Whether the view is resting at the end and should follow content that grows there. Only a
+    // deliberate scroll changes it, and the decision is deferred to the next layout, where the
+    // pane's normalized position is current rather than one frame stale.
+    private bool _pinnedToBottom = true;
+    private bool _repinPending;
+
+    // True while the pane's own layout is pushing its position onto the thumb, so the echo back
+    // through OnBarScrolled isn't mistaken for the user dragging it.
+    private bool _syncingThumb;
+
+    public ScrollAreaKbmController(
+        VerticalScrollPane pane,
+        VerticalScrollBarThumbView thumb,
+        View? autoHideTarget = null,
+        float wheelStep = ScrollDefaults.WheelStep,
+        bool stickToBottom = false)
     {
         _pane = pane;
         _thumb = thumb;
         _autoHideTarget = autoHideTarget;
         _wheelStep = wheelStep;
+        _stickToBottom = stickToBottom;
 
         _pane.ScrollToTop();
         _thumb.ScrollToTop();
@@ -107,17 +134,44 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
     {
         // The pane raises this from every layout pass, so it doubles as the seam that
         // keeps the thumb's scale in sync as content grows or shrinks.
+        _syncingThumb = true;
         _thumb.Scale = _pane.Scale;
         _thumb.SetScrollPositionNormalized(normalized);
+        _syncingThumb = false;
 
         // Scale < 1 means content overflows the viewport. Toggling visibility (not presence)
         // keeps the gutter reserved, so engaging the scrollbar never reflows the content.
         if (_autoHideTarget != null)
             _autoHideTarget.IsVisible = _pane.Scale < 1f;
+
+        if (!_stickToBottom) return;
+
+        // A scroll the user asked for decides the pin; every other pass is content changing under a
+        // view that is either following the end or parked away from it on purpose.
+        if (_repinPending)
+        {
+            _repinPending = false;
+            _pinnedToBottom = IsNearBottom(normalized);
+        }
+        else if (_pinnedToBottom)
+        {
+            // No-ops once already at the end, so this settles rather than relaying out forever.
+            _pane.ScrollToBottom();
+        }
+    }
+
+    // Converts the remaining travel back into pixels — the pane's normalized position compresses as
+    // content grows, so a normalized epsilon would mean a different distance on every transcript.
+    private bool IsNearBottom(float normalized)
+    {
+        if (_pane.Scale >= 1f) return true; // everything fits; there is no "away from the bottom"
+        var travel = _pane.Position.Height * (1f / _pane.Scale - 1f);
+        return (1f - normalized) * travel <= BottomStickThreshold;
     }
 
     private void OnBarScrolled(float normalized)
     {
+        if (!_syncingThumb) _repinPending = true;
         _pane.SetNormalizedScrollPosition(normalized);
     }
 
@@ -126,6 +180,7 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
         if (e.Phase != EventPhase.Bubbling)
             return;
 
+        _repinPending = true;
         _pane.Scroll(e.DeltaY * -_wheelStep);
         e.Consume();
     }
@@ -139,11 +194,13 @@ public sealed class ScrollAreaKbmController : KeyboardMouseController, IDisposab
 
         if (e.Key == ZGF.KeyboardModule.KeyboardKey.UpArrow)
         {
+            _repinPending = true;
             _pane.ScrollUp(10f);
             e.Consume();
         }
         else if (e.Key == ZGF.KeyboardModule.KeyboardKey.DownArrow)
         {
+            _repinPending = true;
             _pane.ScrollDown(10f);
             e.Consume();
         }
