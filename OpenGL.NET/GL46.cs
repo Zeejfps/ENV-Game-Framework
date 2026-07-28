@@ -4185,6 +4185,18 @@ public static unsafe class GL46
 	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
 	public static void glWaitSync(nint sync, uint flags, ulong timeout) => ((delegate* unmanaged[Cdecl]<nint, uint, ulong, void>)s_glWaitSync)(sync, flags, timeout);
 
+	private static System.Collections.Generic.HashSet<string> s_missing = new(System.StringComparer.Ordinal);
+
+	/// <summary>Entry points the driver did not hand out on the last <see cref="Import"/>. This binding covers
+	/// all of GL 4.6, so a driver exposing an older version legitimately leaves gaps; only the functions the
+	/// caller actually invokes have to be present.</summary>
+	public static System.Collections.Generic.IReadOnlyCollection<string> MissingFunctions => s_missing;
+
+	/// <summary>Whether <paramref name="name"/> resolved during <see cref="Import"/>. Calling a function that
+	/// did not resolve dereferences a null pointer and takes the process down, so anything beyond the version
+	/// this app requires must be gated on this.</summary>
+	public static bool IsLoaded(string name) => !s_missing.Contains(name);
+
 	public static void Import(GetProcAddressDelegate getProcAddress)
 	{
 		var missing = new System.Collections.Generic.List<string>();
@@ -5584,8 +5596,6 @@ public static unsafe class GL46
 		if (s_glViewportIndexedfv == null) missing.Add("glViewportIndexedfv");
 		s_glWaitSync = (void*)getProcAddress("glWaitSync");
 		if (s_glWaitSync == null) missing.Add("glWaitSync");
-		if (missing.Count > 0)
-			throw new System.InvalidOperationException(
-				"OpenGL: failed to load " + missing.Count + " function(s): " + string.Join(", ", missing));
+		s_missing = new System.Collections.Generic.HashSet<string>(missing, System.StringComparer.Ordinal);
 	}
 }
