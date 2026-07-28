@@ -35,6 +35,11 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     // the rest keep bubbling to whatever the app binds them to.
     private bool IsReadOnly => _textInput.ReadOnly;
 
+    // A masked field refuses to put its value on the clipboard: masking is there because the value is
+    // a secret, and a clipboard is a place secrets get pasted somewhere they persist. Cut refuses
+    // outright rather than deleting-without-copying, which would look like a cut and lose the text.
+    private bool IsMasked => _textInput.Masked;
+
     // Multi-click run: how many clicks have landed within DoubleClickThresholdMs of each other.
     // 1 = place caret, 2 = select word, 3 = select all; a 4th click starts a fresh run.
     private int _clickCount;
@@ -313,7 +318,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             return;
         }
 
-        if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(ctrlModifier))
+        if (e.Key == KeyboardKey.C && e.Modifiers.HasFlag(ctrlModifier) && !IsMasked)
         {
             Copy();
             e.Consume();
@@ -327,7 +332,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             return;
         }
 
-        if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier) && !IsReadOnly)
+        if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier) && !IsReadOnly && !IsMasked)
         {
             Cut();
             e.Consume();
@@ -471,12 +476,8 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         _textInput.Enter(text);
     }
 
-    // Copy (and Cut) hand over the plaintext even from a masked field — a decision, not an oversight.
-    // Masking is a defence against the value being *seen*: a bystander, a screenshot, a screen share.
-    // The clipboard isn't any of those, and code that can read it can read the process memory and the
-    // secret store behind it, so refusing raises no bar. It would, though, break the ordinary reason
-    // an API key sits in a field — getting it back out — and it would break it silently: the chord
-    // would look handled and paste nothing. See TextInputView.GetSelectedText.
+    // Never reached for a masked field — the chord is declined above rather than consumed, so it
+    // bubbles instead of looking handled and yielding nothing.
     private void Copy()
     {
         var selectedText = _textInput.GetSelectedText();

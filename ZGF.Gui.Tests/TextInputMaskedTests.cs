@@ -275,12 +275,10 @@ public class TextInputMaskedTests
     // ---- the clipboard decision ----
 
     [Fact]
-    public void CopyingFromAMaskedFieldPutsThePlaintextOnTheClipboard()
+    public void CopyingFromAMaskedFieldPutsNothingOnTheClipboard()
     {
-        // Deliberate, and the reasoning is at TextInputView.GetSelectedText and the controller's
-        // Copy(): masking defends against the value being seen, and the clipboard is not the screen.
-        // Anything that can read the clipboard can read the process, so refusing would cost the user
-        // their own key and buy nothing. If this test is ever flipped, flip those comments with it.
+        // Masking is there because the value is a secret, and a clipboard is where secrets get pasted
+        // somewhere they persist. The chord is declined rather than consumed, so it bubbles.
         var value = new State<string>("sk-live-1234");
         var clipboard = new FakeClipboard();
         using var h = Field(value, masked: true, clipboard, out _);
@@ -288,11 +286,13 @@ public class TextInputMaskedTests
         h.PressKey(KeyboardKey.A, CommandModifier);
         h.PressKey(KeyboardKey.C, CommandModifier);
 
-        Assert.Equal("sk-live-1234", clipboard.Text);
+        Assert.Null(clipboard.Text);
     }
 
+    // Cut refuses outright rather than deleting without copying, which would look like a cut and lose
+    // the text — the user would paste an empty clipboard and find the key gone from both places.
     [Fact]
-    public void CuttingFromAMaskedFieldAlsoYieldsThePlaintext()
+    public void CuttingFromAMaskedFieldNeitherCopiesNorDeletes()
     {
         var value = new State<string>("sk-live-1234");
         var clipboard = new FakeClipboard();
@@ -301,8 +301,21 @@ public class TextInputMaskedTests
         h.PressKey(KeyboardKey.A, CommandModifier);
         h.PressKey(KeyboardKey.X, CommandModifier);
 
-        Assert.Equal("sk-live-1234", clipboard.Text);
-        Assert.Equal(string.Empty, value.Value);
+        Assert.Null(clipboard.Text);
+        Assert.Equal("sk-live-1234", value.Value);
+    }
+
+    [Fact]
+    public void AnOrdinaryFieldStillCopies()
+    {
+        var value = new State<string>("not-a-secret");
+        var clipboard = new FakeClipboard();
+        using var h = Field(value, masked: false, clipboard, out _);
+
+        h.PressKey(KeyboardKey.A, CommandModifier);
+        h.PressKey(KeyboardKey.C, CommandModifier);
+
+        Assert.Equal("not-a-secret", clipboard.Text);
     }
 
     // ---- the plaintext's shape is a leak too ----

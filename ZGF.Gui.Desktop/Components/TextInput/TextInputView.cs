@@ -1194,13 +1194,10 @@ public sealed class TextInputView : View
     }
 
     /// <summary>
-    /// The selected characters, or null when nothing is selected. Returns the <em>plaintext</em> even
-    /// from a <see cref="Masked"/> field, deliberately — masking hides the value from the screen, and
-    /// the clipboard is not the screen. Anyone who can read the clipboard is already running code as
-    /// this user and can read the secret from wherever it is stored, so refusing buys no security;
-    /// what it does buy is a Ctrl+C that silently yields nothing, which teaches the user the field is
-    /// broken and pushes them to retype the key somewhere less careful. The key is theirs, and taking
-    /// it back out is the ordinary reason to have it in a field at all.
+    /// The selected characters, or null when nothing is selected. This is the plaintext regardless of
+    /// <see cref="Masked"/> — it is the accessor an owner uses to read its own field. What a masked
+    /// field withholds is the *clipboard*: the controller declines the copy and cut chords outright,
+    /// so a secret cannot be pasted somewhere it persists.
     /// </summary>
     public string? GetSelectedText()
     {
