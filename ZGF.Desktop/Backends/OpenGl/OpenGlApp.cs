@@ -44,6 +44,7 @@ public sealed class OpenGlApp : IWindowedApp
         Glfw.MakeContextCurrent(window);
         Glfw.SwapInterval(1);
         Import(Glfw.GetProcAddress);
+        GlDriverCheck.Verify();
         AssertNoGlError();
 
         _mainWindow = new OpenGlWindow(window, isMain: true);

@@ -52,7 +52,10 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         int major = 0, minor = 0;
         glGetIntegerv(GL_MAJOR_VERSION, &major);
         glGetIntegerv(GL_MINOR_VERSION, &minor);
-        return major > 4 || (major == 4 && minor >= 2);
+        // A driver can report 4.2 and still not hand out the entry point; calling it then means a
+        // null-pointer jump, so the loaded pointer has the final say over the reported version.
+        return (major > 4 || (major == 4 && minor >= 2))
+               && IsLoaded("glDrawArraysInstancedBaseInstance");
     }
 
     protected override void OnResize(int width, int height)
