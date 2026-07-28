@@ -471,6 +471,12 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         _textInput.Enter(text);
     }
 
+    // Copy (and Cut) hand over the plaintext even from a masked field — a decision, not an oversight.
+    // Masking is a defence against the value being *seen*: a bystander, a screenshot, a screen share.
+    // The clipboard isn't any of those, and code that can read it can read the process memory and the
+    // secret store behind it, so refusing raises no bar. It would, though, break the ordinary reason
+    // an API key sits in a field — getting it back out — and it would break it silently: the chord
+    // would look handled and paste nothing. See TextInputView.GetSelectedText.
     private void Copy()
     {
         var selectedText = _textInput.GetSelectedText();

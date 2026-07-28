@@ -92,6 +92,21 @@ public sealed class TextInputView : View
     /// </summary>
     public bool ReadOnly { get; init; }
 
+    /// <summary>
+    /// Draws a <see cref="MaskCharacter"/> in place of every character — the password / secret field.
+    /// Display only, and independent of <see cref="ReadOnly"/>: typing, paste, delete, selection and
+    /// undo all work exactly as in an ordinary field, and <see cref="TextValue"/> still carries the
+    /// real text to whatever is bound to it. What the mask withholds is the value's appearance on
+    /// screen — a bystander, a screenshot, a screen share. It is not a clipboard policy: a selection
+    /// copies as plaintext (see the copy note on <see cref="GetSelectedText"/>). Word boundaries
+    /// collapse, since the plaintext's would trace the secret's shape in the selection highlight.
+    /// </summary>
+    public bool Masked { get; init; }
+
+    /// <summary>The glyph a <see cref="Masked"/> field draws per character: U+2022 BULLET, which the
+    /// bundled Inter face carries as a real filled outline with a non-zero advance.</summary>
+    public const char MaskCharacter = '•';
+
     public bool IsSelecting => _caretIndex != _selectionStartIndex;
 
     /// <summary>The field's resolved writing direction (from content first-strong, last draw). Arrow-key
@@ -157,6 +172,13 @@ public sealed class TextInputView : View
     private char[] _composed = new char[64];
     private int _composedLen;
 
+    // A run of MaskCharacter, grown to the longest text drawn so far. One mask char per char of the
+    // real text, deliberately — not one per grapheme — so every index into the drawn span is also an
+    // index into the buffer, and the caret, the selection rects and hit-testing need no second index
+    // space to keep in sync. The cost is that an astral character or a combining mark draws as two
+    // bullets; caret stops still land on real cluster boundaries, so editing is unaffected.
+    private char[] _mask = [];
+
     private readonly List<Range> _lines = new();
     private float _linesWidth = -1f;
     private int _linesVersion = -1;
@@ -170,9 +192,34 @@ public sealed class TextInputView : View
     /// one — nothing has been typed yet — but keys belong to the IME, not to editing.</summary>
     public bool IsComposing => !_preedit.IsEmpty;
 
-    // Text as drawn: the buffer with any composition spliced in at the caret. Equal to Text when
-    // nothing is composing, which is why every draw/measure path can read it unconditionally.
-    private ReadOnlySpan<char> DisplayText => IsComposing ? _composed.AsSpan(0, _composedLen) : Text;
+    // Text as drawn: the buffer with any composition spliced in at the caret, masked when the field
+    // is. Equal to Text when nothing is composing and nothing is masked, which is why every
+    // draw/measure path can read it unconditionally. Masking here rather than at the DrawText call is
+    // what keeps the caret honest — the span that is measured is the span that is drawn, so a
+    // proportional font can't place the caret at the plaintext's glyph widths while the screen shows
+    // bullets. Same length either way, so DisplayLength and every index stay as they were.
+    private ReadOnlySpan<char> DisplayText
+    {
+        get
+        {
+            var text = IsComposing ? _composed.AsSpan(0, _composedLen) : Text;
+            if (!Masked)
+                return text;
+
+            if (_mask.Length < text.Length)
+            {
+                _mask = new char[Math.Max(text.Length, 64)];
+                Array.Fill(_mask, MaskCharacter);
+            }
+            return _mask.AsSpan(0, text.Length);
+        }
+    }
+
+    /// <summary>The text as it appears on screen: the buffer itself, or a run of
+    /// <see cref="MaskCharacter"/> when <see cref="Masked"/>. What inspection and automation should
+    /// report — a masked field's value isn't on screen, so it isn't theirs to hand out.</summary>
+    public string VisibleText => DisplayText.ToString();
+
     private int DisplayLength => IsComposing ? _composedLen : _strLen;
     // Within a composition the caret is the IME's, which sits inside the preedit rather than at its end.
     private int DisplayCaret => IsComposing ? _caretIndex + _preedit.Caret : _caretIndex;
@@ -453,6 +500,11 @@ public sealed class TextInputView : View
     // direction so the caret rests on the correct side before anything is typed.
     private bool ResolveContentRtl()
     {
+        // Bullets are direction-neutral, and reading the direction off the plaintext instead would
+        // tell an onlooker which script the secret is in. A masked field follows the UI, like an empty one.
+        if (Masked)
+            return IsRtl;
+
         var text = DisplayText;
         if (text.IsEmpty)
             return IsRtl;
@@ -749,6 +801,16 @@ public sealed class TextInputView : View
     public void SelectWordAt(PointF point)
     {
         _goalColumnX = -1f;
+        // A run of identical bullets has no words in it, and selecting the plaintext's word would
+        // draw the secret's shape — where its separators fall — as a highlight the user can measure
+        // by eye. So a masked field is one word: double-click takes all of it.
+        if (Masked)
+        {
+            _selectionStartIndex = 0;
+            _caretIndex = _strLen;
+            return;
+        }
+
         var index = GetCaretIndexFromPoint(point);
         TextBoundaries.WordAt(Text, index, out var start, out var end);
         _selectionStartIndex = start;
@@ -909,9 +971,13 @@ public sealed class TextInputView : View
             _selectionStartIndex = _caretIndex;
     }
 
-    private int FindPreviousWordBoundary(int index) => TextBoundaries.PrevWord(Text, index);
+    // The masked field's single word, for the same reason as SelectWordAt: word-jumping and
+    // word-deleting by the plaintext's boundaries would step the caret in the secret's own rhythm.
+    private int FindPreviousWordBoundary(int index) =>
+        Masked ? 0 : TextBoundaries.PrevWord(Text, index);
 
-    private int FindNextWordBoundary(int index) => TextBoundaries.NextWord(Text, index);
+    private int FindNextWordBoundary(int index) =>
+        Masked ? _strLen : TextBoundaries.NextWord(Text, index);
 
     public void MoveCaretDown(bool select = false) => MoveCaretVertically(1, select);
 
@@ -929,7 +995,7 @@ public sealed class TextInputView : View
 
         var lineStart = lines[lineIndex].Start.Value;
         if (_goalColumnX < 0f)
-            _goalColumnX = canvas.MeasureTextWidth(_buffer.AsSpan(lineStart, _caretIndex - lineStart), _textStyle);
+            _goalColumnX = canvas.MeasureTextWidth(DisplayText.Slice(lineStart, _caretIndex - lineStart), _textStyle);
 
         var targetLineIndex = lineIndex + direction;
         if (targetLineIndex < 0)
@@ -982,7 +1048,9 @@ public sealed class TextInputView : View
             if (next <= i)
                 break;
 
-            var x = canvas.MeasureTextWidth(_buffer.AsSpan(start, next - start), _textStyle);
+            // Cluster boundaries come from the real text (a caret must never land inside one), but the
+            // column is measured over what's drawn, so a masked line's columns are the bullets'.
+            var x = canvas.MeasureTextWidth(DisplayText.Slice(start, next - start), _textStyle);
             var distance = Math.Abs(x - targetX);
             if (distance < bestDistance)
             {
@@ -1125,6 +1193,15 @@ public sealed class TextInputView : View
         SyncText();
     }
 
+    /// <summary>
+    /// The selected characters, or null when nothing is selected. Returns the <em>plaintext</em> even
+    /// from a <see cref="Masked"/> field, deliberately — masking hides the value from the screen, and
+    /// the clipboard is not the screen. Anyone who can read the clipboard is already running code as
+    /// this user and can read the secret from wherever it is stored, so refusing buys no security;
+    /// what it does buy is a Ctrl+C that silently yields nothing, which teaches the user the field is
+    /// broken and pushes them to retype the key somewhere less careful. The key is theirs, and taking
+    /// it back out is the ordinary reason to have it in a field at all.
+    /// </summary>
     public string? GetSelectedText()
     {
         if (_caretIndex == _selectionStartIndex)

@@ -37,12 +37,20 @@ public sealed record TextInput : Widget
     /// because a field that changes between editable and not mid-life is a different control.</summary>
     public bool ReadOnly { get; init; }
 
+    /// <summary>Draws the value as bullets rather than characters — the password / API-key field.
+    /// Editing is untouched; only the drawing changes, and <see cref="Value"/> still carries the real
+    /// text. See <see cref="TextInputView.Masked"/>, including what it decides about the clipboard.
+    /// A plain init flag rather than a <see cref="Prop{T}"/> for the same reason as
+    /// <see cref="ReadOnly"/>: a reveal toggle wants a fresh field (a distinct <see cref="Widget.Id"/>),
+    /// not a field that changes what it shows under a caret that stayed put.</summary>
+    public bool Masked { get; init; }
+
     protected override View CreateView(Context ctx)
     {
         var input = ctx.Require<InputSystem>();
         var clipboard = ctx.Get<IClipboard>();
 
-        var view = new TextInputView(ctx.Canvas) { ReadOnly = ReadOnly };
+        var view = new TextInputView(ctx.Canvas) { ReadOnly = ReadOnly, Masked = Masked };
         Background.Apply(ctx, view, static (v, c) => v.BackgroundColor = c);
         Placeholder.Apply(ctx, view, static (v, p) => v.PlaceholderText = p);
         PlaceholderColor.Apply(ctx, view, static (v, c) => v.PlaceholderTextColor = c);

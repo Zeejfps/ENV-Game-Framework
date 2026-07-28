@@ -60,7 +60,9 @@ public sealed class GuiDriver : ITypeSink
     public bool Exists(string selector) => RunOnUi(() => Resolve(selector, exact: true) != null);
 
     /// <summary>The text currently in a text field — the ground truth a screenshot can only hint at.
-    /// Accepts the field itself or a wrapper around one.</summary>
+    /// Accepts the field itself or a wrapper around one. A masked field reports its bullets: this is
+    /// a reading of the screen, and a script's output ends up in logs and transcripts, which is the
+    /// last place a secret should be copied to.</summary>
     public string TextOf(string selector) => RunOnUi(() =>
     {
         var hit = Resolve(selector, exact: true) ?? throw NotFound(selector);
@@ -68,7 +70,7 @@ public sealed class GuiDriver : ITypeSink
                     ?? hit.View.Find(v => v is TextInputView) as TextInputView;
         if (field == null)
             throw new InvalidOperationException($"\"{selector}\" is not a text field ({hit.View.GetType().Name}).");
-        return field.Text.ToString();
+        return field.VisibleText;
     });
 
     /// <summary>Blocks until <paramref name="selector"/> is on screen, or throws with a snapshot.</summary>
