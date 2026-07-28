@@ -18,8 +18,25 @@ internal static class GlfwStandardCursors
         if (Cache.TryGetValue(cursor, out var existing))
             return existing;
 
-        var created = GLFW.Glfw.CreateStandardCursor(ToCursorType(cursor));
+        var created = Create(cursor);
         Cache[cursor] = created;
+        return created;
+    }
+
+    // The diagonal shapes only exist from GLFW 3.4 on. An older native library doesn't recognize the
+    // constant and hands back a NULL handle, which SetCursor reads as "system arrow" — so the pointer
+    // would sit on an arrow over a resize grip with nothing to explain it. Fall back to the nearest
+    // axis shape, which at least still says "this resizes". The caller caches whatever comes back, so
+    // the failed probe happens once per shape rather than on every frame's cursor push.
+    private static Cursor Create(MouseCursor cursor)
+    {
+        var created = GLFW.Glfw.CreateStandardCursor(ToCursorType(cursor));
+        if (created != Cursor.None)
+            return created;
+
+        if (cursor is MouseCursor.ResizeNwse or MouseCursor.ResizeNesw)
+            return GLFW.Glfw.CreateStandardCursor(CursorType.ResizeHorizontal);
+
         return created;
     }
 
@@ -30,6 +47,8 @@ internal static class GlfwStandardCursors
         MouseCursor.Crosshair => CursorType.Crosshair,
         MouseCursor.ResizeHorizontal => CursorType.ResizeHorizontal,
         MouseCursor.ResizeVertical => CursorType.ResizeVertical,
+        MouseCursor.ResizeNwse => CursorType.ResizeNwse,
+        MouseCursor.ResizeNesw => CursorType.ResizeNesw,
         _ => CursorType.Arrow,
     };
 }

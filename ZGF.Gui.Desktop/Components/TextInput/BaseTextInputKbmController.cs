@@ -30,6 +30,11 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
 
     public int DoubleClickThresholdMs { get; set; } = 400;
 
+    // Every gesture that would reach the buffer checks this and then declines to consume the key, so
+    // a read-only field is a selectable surface rather than a keyboard black hole: Ctrl+V, Ctrl+Z and
+    // the rest keep bubbling to whatever the app binds them to.
+    private bool IsReadOnly => _textInput.ReadOnly;
+
     // Multi-click run: how many clicks have landed within DoubleClickThresholdMs of each other.
     // 1 = place caret, 2 = select word, 3 = select all; a 4th click starts a fresh run.
     private int _clickCount;
@@ -50,6 +55,12 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     {
         _textInput.StartEditing();
         _inputSystem.StealFocus(this);
+        // Nothing can be composed into a read-only field, so it never turns the IME on — an IME
+        // enabled over a surface that accepts no text would put a candidate window on screen for
+        // text with nowhere to go.
+        if (IsReadOnly)
+            return;
+
         // The IME is off outside a text field, so that a CJK layout doesn't start composing on the
         // keys that navigate the commit list.
         _inputSystem.ImeHost?.SetImeEnabled(true);
@@ -100,7 +111,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         if (e.Phase != EventPhase.Bubbling)
             return;
 
-        if (!_textInput.IsEditing)
+        if (!_textInput.IsEditing || IsReadOnly)
             return;
 
         _textInput.SetComposition(e.Preedit);
@@ -247,7 +258,9 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         // bindings (e.g. the review loop's Space-folds-file), firing a shortcut on every keystroke.
         // As text, so the characters they produce still arrive — a command claim would suppress them.
         // Ctrl/Super/Alt chords and non-typing keys (Enter, Escape, F-keys) still bubble.
-        if (!e.IsConsumed && IsPlainTextKey(ref e)) e.ConsumeAsText();
+        // A read-only field types nothing, so it has no reason to swallow them: letting them bubble
+        // keeps the app's single-key bindings alive while the user has a transcript selected.
+        if (!IsReadOnly && !e.IsConsumed && IsPlainTextKey(ref e)) e.ConsumeAsText();
 
         // After any handled key: edits and caret moves both flow through here, and for keys that
         // moved nothing (Ctrl+C, say) the reveal is a no-op since the caret is already in view.
@@ -307,21 +320,21 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             return;
         }
             
-        if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(ctrlModifier))
+        if (e.Key == KeyboardKey.V && e.Modifiers.HasFlag(ctrlModifier) && !IsReadOnly)
         {
             Paste();
             e.Consume();
             return;
         }
-            
-        if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier))
+
+        if (e.Key == KeyboardKey.X && e.Modifiers.HasFlag(ctrlModifier) && !IsReadOnly)
         {
             Cut();
             e.Consume();
             return;
         }
 
-        if (e.Key == KeyboardKey.Z && e.Modifiers.HasFlag(ctrlModifier))
+        if (e.Key == KeyboardKey.Z && e.Modifiers.HasFlag(ctrlModifier) && !IsReadOnly)
         {
             // Shift+Cmd/Ctrl+Z is redo (the macOS convention, and a common Windows one); plain is undo.
             // The view owns the stack and the coalescing — we only route the gesture, so a subclass can
@@ -335,7 +348,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         }
 
         // Ctrl+Y is the Windows redo shortcut; harmless to honour on every platform.
-        if (e.Key == KeyboardKey.Y && e.Modifiers.HasFlag(ctrlModifier))
+        if (e.Key == KeyboardKey.Y && e.Modifiers.HasFlag(ctrlModifier) && !IsReadOnly)
         {
             _textInput.Redo();
             e.Consume();
@@ -347,7 +360,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         var isEnter = e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter;
         var isSubmitChord = e.Modifiers.HasFlag(InputModifiers.Control)
             || e.Modifiers.HasFlag(InputModifiers.Super);
-        if (isEnter && IsMultiLine && !isSubmitChord)
+        if (isEnter && IsMultiLine && !isSubmitChord && !IsReadOnly)
         {
             Enter('\n');
             e.Consume();
@@ -398,7 +411,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             return;
         }
             
-        if (e.Key == KeyboardKey.Backspace)
+        if (e.Key == KeyboardKey.Backspace && !IsReadOnly)
         {
             if (isWordJump)
                 _textInput.DeleteWord();
@@ -418,7 +431,7 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         if (e.Phase != EventPhase.Bubbling)
             return;
 
-        if (!_textInput.IsEditing)
+        if (!_textInput.IsEditing || IsReadOnly)
             return;
 
         // Enter and Tab are key gestures, handled above; the OS never commits them as text, but the

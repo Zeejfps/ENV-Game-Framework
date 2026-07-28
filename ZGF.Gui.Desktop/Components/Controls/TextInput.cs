@@ -31,12 +31,18 @@ public sealed record TextInput : Widget
     /// because it's a one-time mount decision, like <see cref="Widget.Id"/>.</summary>
     public bool AutoFocus { get; init; }
 
+    /// <summary>Turns the field into a selectable, copyable text surface: <see cref="Value"/> still
+    /// drives what it shows, but no user gesture writes back through it. See
+    /// <see cref="TextInputView.ReadOnly"/>. A plain init flag rather than a <see cref="Prop{T}"/>
+    /// because a field that changes between editable and not mid-life is a different control.</summary>
+    public bool ReadOnly { get; init; }
+
     protected override View CreateView(Context ctx)
     {
         var input = ctx.Require<InputSystem>();
         var clipboard = ctx.Get<IClipboard>();
 
-        var view = new TextInputView(ctx.Canvas);
+        var view = new TextInputView(ctx.Canvas) { ReadOnly = ReadOnly };
         Background.Apply(ctx, view, static (v, c) => v.BackgroundColor = c);
         Placeholder.Apply(ctx, view, static (v, p) => v.PlaceholderText = p);
         PlaceholderColor.Apply(ctx, view, static (v, c) => v.PlaceholderTextColor = c);

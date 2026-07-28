@@ -10,4 +10,8 @@ public enum MouseCursor
     Crosshair,
     ResizeHorizontal,
     ResizeVertical,
+    // Diagonal resize arrows, named after the compass axis they run along: Nwse points top-left to
+    // bottom-right, Nesw top-right to bottom-left.
+    ResizeNwse,
+    ResizeNesw,
 }

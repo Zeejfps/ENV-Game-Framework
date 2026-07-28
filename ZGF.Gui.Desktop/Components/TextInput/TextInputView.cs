@@ -82,6 +82,16 @@ public sealed class TextInputView : View
         set => SetField(ref _placeholderColor, value);
     }
 
+    /// <summary>
+    /// Makes the field a selectable, copyable text surface instead of an editor: selection, caret
+    /// navigation and <see cref="GetSelectedText"/> behave exactly as they do in an editable field,
+    /// but nothing the user does reaches the buffer — typing, paste, cut, delete, newlines, IME
+    /// composition and undo/redo are all inert, and the caret isn't drawn, since a caret promises
+    /// that typing lands here. The buffer still changes through <see cref="SetText"/> and
+    /// <see cref="Clear"/>, which is how the owner supplies the content.
+    /// </summary>
+    public bool ReadOnly { get; init; }
+
     public bool IsSelecting => _caretIndex != _selectionStartIndex;
 
     /// <summary>The field's resolved writing direction (from content first-strong, last draw). Arrow-key
@@ -174,6 +184,9 @@ public sealed class TextInputView : View
     /// </summary>
     public void SetComposition(PreeditText preedit)
     {
+        if (ReadOnly)
+            return;
+
         // A composition replaces the selection, the same as typing would. That deletion is a real
         // edit to the buffer, so unlike the composition itself it does notify — otherwise cancelling
         // the composition would leave the field rendering empty while TextValue still held the
@@ -486,7 +499,10 @@ public sealed class TextInputView : View
             DrawPreeditUnderlines(position, c, verticalOffset);
         }
 
-        if (_isEditing)
+        // The selection above still draws when focused — that's the point of a read-only field — but
+        // the caret does not: it is the promise that the next keystroke lands here, and read-only
+        // can't keep it.
+        if (_isEditing && !ReadOnly)
         {
             DrawCaret(position, c, verticalOffset);
         }
@@ -745,6 +761,9 @@ public sealed class TextInputView : View
     /// controller can rebind, wrap or suppress the gesture without reaching into this class.</summary>
     public bool Undo()
     {
+        if (ReadOnly)
+            return false;
+
         if (_undo.Count == 0)
             return false;
 
@@ -760,6 +779,9 @@ public sealed class TextInputView : View
     /// cleared it.</summary>
     public bool Redo()
     {
+        if (ReadOnly)
+            return false;
+
         if (_redo.Count == 0)
             return false;
 
@@ -987,6 +1009,9 @@ public sealed class TextInputView : View
 
     public void Delete()
     {
+        if (ReadOnly)
+            return;
+
         _goalColumnX = -1f;
         DropComposition();
         if (_strLen > 0)
@@ -1012,6 +1037,9 @@ public sealed class TextInputView : View
 
     public void DeleteWord()
     {
+        if (ReadOnly)
+            return;
+
         _goalColumnX = -1f;
         DropComposition();
         if (_strLen == 0)
@@ -1041,6 +1069,9 @@ public sealed class TextInputView : View
 
     public void Enter(char c)
     {
+        if (ReadOnly)
+            return;
+
         // The single-char entry point is the newline (multi-line Enter key) — a natural undo
         // boundary, so each break is its own step rather than merging into the surrounding typing.
         RecordUndo(EditKind.Boundary);
@@ -1061,6 +1092,9 @@ public sealed class TextInputView : View
 
     public void Enter(ReadOnlySpan<char> text)
     {
+        if (ReadOnly)
+            return;
+
         _goalColumnX = -1f;
         // A single rune is a keystroke and coalesces as typing; anything longer is a paste and stands
         // alone. Skip the record entirely when nothing will change (empty text, no selection to

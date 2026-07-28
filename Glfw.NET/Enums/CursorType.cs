@@ -33,6 +33,18 @@
         /// <summary>
         ///     The vertical resize arrow shape.
         /// </summary>
-        ResizeVertical = 0x00036006
+        ResizeVertical = 0x00036006,
+
+        /// <summary>
+        ///     The top-left to bottom-right diagonal resize arrow shape. Requires GLFW 3.4 or newer;
+        ///     older libraries reject it and return <see cref="Cursor.None" />.
+        /// </summary>
+        ResizeNwse = 0x00036007,
+
+        /// <summary>
+        ///     The top-right to bottom-left diagonal resize arrow shape. Requires GLFW 3.4 or newer;
+        ///     older libraries reject it and return <see cref="Cursor.None" />.
+        /// </summary>
+        ResizeNesw = 0x00036008
     }
 }
