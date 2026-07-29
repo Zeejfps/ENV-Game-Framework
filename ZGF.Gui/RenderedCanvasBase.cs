@@ -620,8 +620,14 @@ public abstract class RenderedCanvasBase : ICanvas
             {
                 var glyphW = glyph.Width * invScale;
                 var glyphH = glyph.Height * invScale;
-                var glyphX = MathF.Round(cursorX + sg.XOffset * invScale) + glyph.BitmapLeft * invScale;
-                var glyphY = MathF.Round(baselineY + sg.YOffset * invScale) + glyph.BitmapTop * invScale - glyphH;
+                // Snap the pen to the device pixel grid, not the logical one: the ortho maps
+                // logical points onto a DpiScale-times-larger framebuffer, so rounding in logical
+                // points leaves glyphs at fractional device pixels under a fractional scale (at
+                // 125%, three glyphs in four) and the linear atlas sampler smears each by a
+                // different amount. Bitmap bearings are already whole device pixels, so adding
+                // them after the snap keeps the quad aligned in both position and size.
+                var glyphX = (MathF.Round((cursorX + sg.XOffset * invScale) * _dpiScale) + glyph.BitmapLeft) * invScale;
+                var glyphY = (MathF.Round((baselineY + sg.YOffset * invScale) * _dpiScale) + glyph.BitmapTop) * invScale - glyphH;
 
                 var atlasU = glyph.AtlasX / atlasWidth;
                 var atlasV = glyph.AtlasY / atlasHeight;
