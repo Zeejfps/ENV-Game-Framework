@@ -78,6 +78,43 @@ public class HorizontalScrollViewTests
         Assert.Equal(0f, content.Position.Left, 3);
     }
 
+    // Content whose height depends on the width it is measured at, so a test can tell which width
+    // the scroller handed it. Stands in for wrapping text.
+    private sealed class HeightForWidthContent : View
+    {
+        public required float NaturalWidth { get; init; }
+        public required Func<float, float> HeightForWidth { get; init; }
+
+        protected override float MeasureWidthIntrinsic() => NaturalWidth;
+
+        protected override float MeasureHeightIntrinsic(float availableWidth) =>
+            HeightForWidth(availableWidth);
+    }
+
+    [Fact]
+    public void WideContent_IsMeasuredAtItsNaturalWidth_NotTheNarrowerViewport()
+    {
+        // Wrapping text scrolls rather than wraps here, so it must not reserve wrapped lines:
+        // 3 lines at the 100px viewport, 1 line at the 300px width it actually lays out at.
+        var content = new HeightForWidthContent
+        {
+            NaturalWidth = 300f,
+            HeightForWidth = w => 20f * MathF.Ceiling(300f / w),
+        };
+        var scroller = new HorizontalScrollView(content);
+
+        Assert.Equal(20f, scroller.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void NarrowContent_IsMeasuredAtTheViewport_ItStretchesTo()
+    {
+        var content = new HeightForWidthContent { NaturalWidth = 40f, HeightForWidth = w => w / 10f };
+        var scroller = new HorizontalScrollView(content);
+
+        Assert.Equal(10f, scroller.MeasureHeight(100f), 3);
+    }
+
     [Fact]
     public void ReportsZeroIntrinsicWidth_SoItNeverWidensAncestors()
     {

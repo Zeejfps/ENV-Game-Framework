@@ -8,11 +8,14 @@ namespace ZGF.Gui;
 /// and the content's natural width, and at the viewport's full height, then offsets it by the
 /// current scroll distance and clips to the viewport. Content that fits stays put; wider content
 /// scrolls. Reports zero intrinsic width so it never forces an ancestor as wide as its content —
-/// that is what lets the surrounding chrome shrink past the content and engage scrolling. No
+/// that is what lets the surrounding chrome shrink past the content and engage scrolling. Its
+/// measured height is the content's height at that same laid-out width, so height-for-width
+/// content reserves exactly the height it will draw rather than the height it would wrap to. No
 /// scrollbar; drive it with a wheel/keyboard controller.
 /// </summary>
 public sealed class HorizontalScrollView : View
 {
+    private readonly View _content;
     private float _distanceFromLeft;
     private float _maxDistanceFromLeft;
 
@@ -20,15 +23,25 @@ public sealed class HorizontalScrollView : View
 
     public HorizontalScrollView(View content)
     {
+        _content = content;
         AddChildToSelf(content);
     }
 
     protected override float MeasureWidthIntrinsic() => 0f;
 
+    // Measured at the same width layout will grant, not at the viewport: height-for-width content
+    // (wrapping text) would otherwise reserve room for lines it never draws once it scrolls.
+    protected override float MeasureHeightIntrinsic(float availableWidth)
+    {
+        if (Height.IsSet)
+            return Height;
+
+        return _content.MeasureHeight(ContentWidth(availableWidth));
+    }
+
     protected override void OnLayoutChild(in RectF position, View child)
     {
-        var naturalWidth = child.MeasureWidth();
-        var contentWidth = Math.Max(position.Width, naturalWidth);
+        var contentWidth = ContentWidth(position.Width);
         _maxDistanceFromLeft = contentWidth - position.Width;
         _distanceFromLeft = Math.Clamp(_distanceFromLeft, 0f, _maxDistanceFromLeft);
 
@@ -55,4 +68,7 @@ public sealed class HorizontalScrollView : View
         _distanceFromLeft = clamped;
         SetDirty();
     }
+
+    private float ContentWidth(float viewportWidth) =>
+        Math.Max(viewportWidth, _content.MeasureWidth());
 }
