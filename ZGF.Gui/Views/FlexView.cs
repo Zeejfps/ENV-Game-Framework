@@ -31,6 +31,11 @@ public enum CrossAxisAlignment
 /// (FlexColumnView / FlexRowView / ColumnView / RowView) with one algorithm: the layout body
 /// is written once; only the per-child measure and placement primitives swap main/cross.
 /// Children opt into growth by wrapping in a <see cref="FlexItem"/>.
+/// <para>
+/// Measurement and layout size children through the same primitives, so every child's height is
+/// measured at exactly the width it is laid out at — the invariant wrapping content depends on to
+/// report a height it can actually draw within.
+/// </para>
 /// </summary>
 public class FlexView : View
 {
@@ -62,29 +67,48 @@ public class FlexView : View
     {
         if (Width.IsSet) return Width;
         if (Vert) return MeasureChildrenWidth();
-        return SumMain(0f);
+        return SumBases(crossExtent: 0f);
     }
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
         if (Height.IsSet) return Height;
-        if (!Vert) return MeasureChildrenHeight(availableWidth);
-        return SumMain(availableWidth);
+        return Vert ? SumBases(availableWidth) : RowHeight(availableWidth);
     }
 
-    // Sum of the main-axis size of visible children plus gaps. availableWidth is only
-    // consulted on the vertical axis, where main size is height-for-width.
-    private float SumMain(float availableWidth)
+    // Sum of the visible children's main-axis bases plus gaps. The intrinsic main size: grow and
+    // shrink only apply once a parent imposes an extent.
+    private float SumBases(float crossExtent)
     {
         var total = 0f;
         var count = 0;
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
-            total += Vert ? child.MeasureHeight(availableWidth) : child.MeasureWidth();
+            total += MainBasis(child, crossExtent);
             count++;
         }
         return total + (count > 0 ? (count - 1) * Gap : 0f);
+    }
+
+    // The tallest child, each measured at the width the same distribution will grant it in layout.
+    // Measuring at the row's full width instead would let a child report the height of one wrap and
+    // then draw at another, overflowing whatever sits below the row.
+    private float RowHeight(float availableWidth)
+    {
+        // Non-positive means "unconstrained": there is no extent to distribute, so each child falls
+        // back to its own intrinsic width.
+        var unconstrained = availableWidth <= 0f;
+        var slack = unconstrained ? default : Distribute(availableWidth, crossExtent: 0f);
+        var height = 0f;
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible) continue;
+            var width = unconstrained ? availableWidth : RowChildWidth(child, slack, out _);
+            var childHeight = child.MeasureHeight(width);
+            if (childHeight > height) height = childHeight;
+        }
+        return height;
     }
 
     protected override void OnLayoutChildren()
@@ -96,22 +120,11 @@ public class FlexView : View
         var mainExtent = Vert ? pos.Height : pos.Width;
         var crossExtent = Vert ? pos.Width : pos.Height;
 
-        var totalBasis = 0f;
-        var totalGrow = 0f;
-        var totalShrink = 0f;
-        var visibleCount = 0;
-        foreach (var child in Children)
-        {
-            if (!child.IsVisible) continue;
-            totalBasis += MainBasis(child, crossExtent);
-            totalGrow += GrowOf(child);
-            totalShrink += ShrinkOf(child);
-            visibleCount++;
-        }
-        if (visibleCount == 0) return;
+        var slack = Distribute(mainExtent, crossExtent);
+        if (slack.VisibleCount == 0) return;
 
-        var remaining = mainExtent - (totalBasis + Gap * (visibleCount - 1));
-
+        var remaining = slack.Remaining;
+        var visibleCount = slack.VisibleCount;
         var mainOffset = 0f;
         var interItem = 0f;
         if (remaining > 0)
@@ -135,38 +148,24 @@ public class FlexView : View
             if (!child.IsVisible) continue;
             var grow = GrowOf(child);
 
-            float finalCross, crossPos;
-            if (CrossAxisAlignment == CrossAxisAlignment.Stretch)
+            // A column resolves its cross size (width) first because its main size is
+            // height-for-width; a row resolves main (width) first for exactly the same reason.
+            float finalMain, finalCross;
+            bool shrunk;
+            if (Vert)
             {
-                finalCross = crossExtent;
-                crossPos = Vert ? pos.Left : pos.Bottom;
+                finalCross = ColumnChildWidth(child, crossExtent);
+                finalMain = ColumnChildHeight(child, finalCross, slack, out shrunk);
             }
             else
             {
-                finalCross = CrossNatural(child);
-                crossPos = CrossPosition(pos, finalCross, crossExtent);
+                finalMain = RowChildWidth(child, slack, out shrunk);
+                finalCross = RowChildHeight(child, crossExtent, finalMain);
             }
 
-            // Slack (remaining > 0) is handed out by grow weight; overflow (remaining < 0) is taken
-            // back by shrink weight. Keeping them on separate factors lets an item do one without the
-            // other — a Grow fills and yields, a Shrink only yields, a plain item does neither.
-            var finalMain = MainFinal(child, finalCross);
-            var shrunk = false;
-            if (remaining > 0f)
-            {
-                if (grow > 0f && totalGrow > 0f)
-                    finalMain += grow / totalGrow * remaining;
-            }
-            else if (remaining < 0f)
-            {
-                var shrink = ShrinkOf(child);
-                if (shrink > 0f && totalShrink > 0f)
-                {
-                    finalMain += shrink / totalShrink * remaining;
-                    if (finalMain < 0f) finalMain = 0f;
-                    shrunk = true;
-                }
-            }
+            var crossPos = CrossAxisAlignment == CrossAxisAlignment.Stretch
+                ? Vert ? pos.Left : pos.Bottom
+                : CrossPosition(pos, finalCross, crossExtent);
 
             if (Vert)
             {
@@ -206,14 +205,81 @@ public class FlexView : View
 
     private static float ShrinkOf(View child) => child is FlexItem item ? (float)item.Shrink : 0f;
 
+    /// <summary>The main-axis surplus (negative when the children overflow) left after every visible
+    /// child's basis and the gaps, together with the weights it is handed out by.</summary>
+    private readonly record struct MainSlack(
+        float Remaining, float TotalGrow, float TotalShrink, int VisibleCount);
+
+    // The one place the main axis is divided up. Layout and height-for-width measurement both size
+    // children through this and MainSize, so a child can never be measured at a width it will not
+    // be laid out at.
+    private MainSlack Distribute(float mainExtent, float crossExtent)
+    {
+        var totalBasis = 0f;
+        var totalGrow = 0f;
+        var totalShrink = 0f;
+        var count = 0;
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible) continue;
+            totalBasis += MainBasis(child, crossExtent);
+            totalGrow += GrowOf(child);
+            totalShrink += ShrinkOf(child);
+            count++;
+        }
+        if (count == 0) return default;
+        return new MainSlack(
+            mainExtent - (totalBasis + Gap * (count - 1)), totalGrow, totalShrink, count);
+    }
+
+    // A child's unstretched main size. crossExtent is only consulted on the vertical axis, where
+    // main size is height-for-width; a row's widths never depend on its height.
     private float MainBasis(View child, float crossExtent) =>
-        Vert ? child.ClampHeight(child.MeasureHeight(crossExtent)) : child.ClampWidth(child.MeasureWidth());
+        Vert
+            ? ColumnChildBasis(child, ColumnChildWidth(child, crossExtent))
+            : child.ClampWidth(child.MeasureWidth());
 
-    private float MainFinal(View child, float finalCross) =>
-        Vert ? child.ClampHeight(child.MeasureHeight(finalCross)) : child.ClampWidth(child.MeasureWidth());
+    // Slack (Remaining > 0) is handed out by grow weight; overflow (Remaining < 0) is taken back by
+    // shrink weight. Keeping them on separate factors lets an item do one without the other — a
+    // Grow fills and yields, a Shrink only yields, a plain item does neither.
+    private static float MainSize(View child, float basis, in MainSlack slack, out bool shrunk)
+    {
+        shrunk = false;
+        if (slack.Remaining > 0f)
+        {
+            var grow = GrowOf(child);
+            if (grow > 0f && slack.TotalGrow > 0f)
+                basis += grow / slack.TotalGrow * slack.Remaining;
+        }
+        else if (slack.Remaining < 0f)
+        {
+            var shrink = ShrinkOf(child);
+            if (shrink > 0f && slack.TotalShrink > 0f)
+            {
+                basis += shrink / slack.TotalShrink * slack.Remaining;
+                if (basis < 0f) basis = 0f;
+                shrunk = true;
+            }
+        }
+        return basis;
+    }
 
-    private float CrossNatural(View child) =>
-        Vert ? child.ClampWidth(child.MeasureWidth()) : child.ClampHeight(child.MeasureHeight(child.MeasureWidth()));
+    private float RowChildWidth(View child, in MainSlack slack, out bool shrunk) =>
+        MainSize(child, MainBasis(child, 0f), slack, out shrunk);
+
+    // A row child's height is height-for-width at the width it was just granted — never at its
+    // intrinsic width, which for wrapping content is the width of the whole unwrapped run.
+    private float RowChildHeight(View child, float crossExtent, float width) =>
+        CrossAxisAlignment == CrossAxisAlignment.Stretch ? crossExtent : child.MeasureHeight(width);
+
+    private float ColumnChildWidth(View child, float crossExtent) =>
+        CrossAxisAlignment == CrossAxisAlignment.Stretch ? crossExtent : child.ClampWidth(child.MeasureWidth());
+
+    private static float ColumnChildBasis(View child, float width) =>
+        child.ClampHeight(child.MeasureHeight(width));
+
+    private float ColumnChildHeight(View child, float width, in MainSlack slack, out bool shrunk) =>
+        MainSize(child, ColumnChildBasis(child, width), slack, out shrunk);
 
     private float CrossPosition(in RectF pos, float finalCross, float crossExtent)
     {

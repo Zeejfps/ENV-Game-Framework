@@ -108,6 +108,68 @@ public class LayoutTests
         AssertRect(leaf, 10f, 10f, 180f, 60f);
     }
 
+    /// <summary>Stand-in for wrapping content: <paramref name="contentWidth"/> pixels of text that
+    /// reflow into as many <paramref name="lineHeight"/>-tall lines as the available width needs.</summary>
+    private sealed class WrappingView(float contentWidth, float lineHeight) : View
+    {
+        protected override float MeasureWidthIntrinsic() => contentWidth;
+
+        protected override float MeasureHeightIntrinsic(float availableWidth) =>
+            availableWidth <= 0f
+                ? lineHeight
+                : (float)Math.Ceiling(contentWidth / availableWidth) * lineHeight;
+    }
+
+    [Fact]
+    public void HorizontalFlex_MeasuresChildHeightAtTheWidthItIsGranted()
+    {
+        // The marker eats 20 of the row's 100px, so the wrapping child gets 80 and needs three
+        // lines — not the two it would need across the full row. A row that measured its height at
+        // its own width would under-report and let the block below it draw over the third line.
+        var marker = new RectView { Width = 20f };
+        var text = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var flex = new FlexView { Axis = Axis.Horizontal, CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        flex.Children.Add(marker);
+        flex.Children.Add(new FlexItem { Grow = 1, Shrink = 1, Child = text });
+
+        Assert.Equal(30f, flex.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void HorizontalFlex_GivesAWrappingChildTheFullHeightItWraps()
+    {
+        // Cross Start (the Row widget's default) sizes a child to its natural cross size. That
+        // natural height is height-for-width at the granted width, so the child never draws past
+        // the row that contains it.
+        var marker = new RectView { Width = 20f };
+        var text = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var flex = new FlexView { Axis = Axis.Horizontal, CrossAxisAlignment = CrossAxisAlignment.Start };
+        flex.Children.Add(marker);
+        flex.Children.Add(new FlexItem { Grow = 1, Shrink = 1, Child = text });
+        var root = Root(100f, 200f, flex);
+
+        root.LayoutSelf();
+
+        AssertRect(text, 20f, 170f, 80f, 30f);
+        Assert.Equal(30f, flex.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void VerticalFlex_MeasuresAClampedChildAtTheWidthItIsGranted()
+    {
+        // A cross-Start column lays a child out at its natural width, which a MaxWidth clamps to 50
+        // — so the height must come from wrapping at 50, not at the column's 100.
+        var text = new WrappingView(contentWidth: 200f, lineHeight: 10f) { MaxWidthConstraint = 50f };
+        var flex = new FlexView { Axis = Axis.Vertical, CrossAxisAlignment = CrossAxisAlignment.Start };
+        flex.Children.Add(text);
+        var root = Root(100f, 200f, flex);
+
+        root.LayoutSelf();
+
+        Assert.Equal(40f, flex.MeasureHeight(100f), 3);
+        AssertRect(text, 0f, 160f, 50f, 40f);
+    }
+
     [Fact]
     public void HorizontalFlex_Rtl_MirrorsChildrenWithinContainer()
     {
