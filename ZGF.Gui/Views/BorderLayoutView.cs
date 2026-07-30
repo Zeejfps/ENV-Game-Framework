@@ -66,6 +66,49 @@ public sealed class BorderLayoutView : View
         }
     }
 
+    // Mirrors OnLayoutChildren region by region: North and South stack at the full width, and the band
+    // between them is as tall as the tallest of West, East and Center. Inheriting View's max() over all
+    // children would both flatten that stack and measure the Center at the full width while layout gives
+    // it what the edges leave — so the Center would draw a wrap past the height the layout reserved.
+    protected override float MeasureHeightIntrinsic(float availableWidth)
+    {
+        var stacked = 0f;
+
+        if (IsActive(North))
+        {
+            stacked += North.MeasureHeight(availableWidth) + VGap;
+        }
+
+        if (IsActive(South))
+        {
+            stacked += South.MeasureHeight(availableWidth) + VGap;
+        }
+
+        var bandWidth = availableWidth;
+        var band = 0f;
+
+        if (IsActive(West))
+        {
+            var width = West.MeasureWidth();
+            bandWidth -= width + HGap;
+            band = MathF.Max(band, West.MeasureHeight(width));
+        }
+
+        if (IsActive(East))
+        {
+            var width = East.MeasureWidth();
+            bandWidth -= width + HGap;
+            band = MathF.Max(band, East.MeasureHeight(width));
+        }
+
+        if (IsActive(Center))
+        {
+            band = MathF.Max(band, Center.MeasureHeight(MathF.Max(bandWidth, 0f)));
+        }
+
+        return stacked + band;
+    }
+
     protected override void OnLayoutChildren()
     {
         var position = Position;

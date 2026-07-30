@@ -406,6 +406,63 @@ public class LayoutTests
     }
 
     [Fact]
+    public void BorderLayout_MeasuresTheCenterAtTheWidthTheEdgesLeaveIt()
+    {
+        // The east gutter takes 20 of the 100, so the center wraps to three lines — not the two it
+        // would need across the full width. Measuring at the full width is how a scroll area came
+        // to reserve one line less than its content drew.
+        var east = new RectView { Width = 20f };
+        var center = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var bl = new BorderLayoutView { East = east, Center = center };
+
+        Assert.Equal(30f, bl.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void BorderLayout_StacksNorthAndSouthAroundTheCenterBand()
+    {
+        // North and South stack with the band between them, gap included — the regions do not
+        // overlap, so the height they need is not the tallest of them.
+        var north = new RectView { Height = 10f };
+        var south = new RectView { Height = 5f };
+        var center = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var bl = new BorderLayoutView { North = north, South = south, Center = center, VGap = 2f };
+
+        Assert.Equal(10f + 2f + 20f + 5f + 2f, bl.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void BorderLayout_HiddenEdgeLeavesItsWidthToTheCenterInTheMeasureToo()
+    {
+        // A collapsed region reserves nothing in layout; the measure has to agree or the two
+        // disagree about the center's width exactly when a region hides.
+        var east = new RectView { Width = 20f, IsVisible = false };
+        var center = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var bl = new BorderLayoutView { East = east, Center = center };
+
+        Assert.Equal(20f, bl.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
+    public void BorderLayout_MeasuredHeightIsWhatItsChildrenAreLaidOutIn()
+    {
+        var north = new RectView { Height = 10f };
+        var east = new RectView { Width = 20f };
+        var center = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var bl = new BorderLayoutView { North = north, East = east, Center = center };
+
+        bl.LeftConstraint = 0f;
+        bl.BottomConstraint = 0f;
+        bl.WidthConstraint = 100f;
+        bl.HeightConstraint = bl.MeasureHeight(100f);
+        bl.LayoutSelf();
+
+        // North's 10 plus the center band's 30, and the center fills exactly the band it measured.
+        Assert.Equal(40f, bl.Position.Height, 3);
+        AssertRect(center, 0f, 0f, 80f, 30f);
+    }
+
+    [Fact]
     public void BorderLayout_Ltr_KeepsWestLeftEastRight()
     {
         var west = new RectView { Width = 20f };
