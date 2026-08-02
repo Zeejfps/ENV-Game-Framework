@@ -159,7 +159,7 @@ namespace GLFW
         // ReSharper disable once InconsistentNaming
         public static void WindowHintStringUTF8(Hint hint, string value)
         {
-            WindowHintString(hint, Encoding.UTF8.GetBytes(value));
+            WindowHintString(hint, Util.StringToUTF8Z(value));
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace GLFW
         // ReSharper disable once InconsistentNaming
         public static void WindowHintStringASCII(Hint hint, string value)
         {
-            WindowHintString(hint, Encoding.ASCII.GetBytes(value));
+            WindowHintString(hint, Util.StringToAsciiZ(value));
         }
 
         /// <summary>
@@ -351,7 +351,7 @@ namespace GLFW
         /// <returns><c>true</c> if successful, or <c>false</c> if an error occurred.</returns>
         public static bool UpdateGamepadMappings(string mappings)
         {
-            return UpdateGamepadMappings(Encoding.ASCII.GetBytes(mappings));
+            return UpdateGamepadMappings(Util.StringToAsciiZ(mappings));
         }
 
         [DllImport(LIBRARY, EntryPoint = "glfwGetGamepadName", CallingConvention = CallingConvention.Cdecl)]
@@ -1520,7 +1520,7 @@ namespace GLFW
         /// <returns>The created window, or <see cref="Window.None" /> if an error occurred.</returns>
         public static Window CreateWindow(int width, int height, [NotNull] string title, Monitor monitor, Window share)
         {
-            return CreateWindow(width, height, Encoding.UTF8.GetBytes(title), monitor, share);
+            return CreateWindow(width, height, Util.StringToUTF8Z(title), monitor, share);
         }
 
         /// <summary>
@@ -1574,7 +1574,7 @@ namespace GLFW
         /// <returns><c>true</c> if the extension is supported; otherwise <c>false</c>.</returns>
         public static bool GetExtensionSupported(string extension)
         {
-            return GetExtensionSupported(Encoding.ASCII.GetBytes(extension));
+            return GetExtensionSupported(Util.StringToAsciiZ(extension));
         }
 
         /// <summary>
@@ -1695,7 +1695,7 @@ namespace GLFW
         /// <returns>The address of the function, or <see cref="IntPtr.Zero" /> if an error occurred.</returns>
         public static IntPtr GetProcAddress(string procName)
         {
-            return GetProcAddress(Encoding.ASCII.GetBytes(procName));
+            return GetProcAddress(Util.StringToAsciiZ(procName));
         }
 
         /// <summary>
@@ -1769,7 +1769,7 @@ namespace GLFW
         /// <param name="str">The string to set to the clipboard.</param>
         public static void SetClipboardString(Window window, string str)
         {
-            SetClipboardString(window, Encoding.UTF8.GetBytes(str));
+            SetClipboardString(window, Util.StringToUTF8Z(str));
         }
 
         /// <summary>
@@ -1779,7 +1779,7 @@ namespace GLFW
         /// <param name="title">The title to set.</param>
         public static void SetWindowTitle(Window window, string title)
         {
-            SetWindowTitle(window, Encoding.UTF8.GetBytes(title));
+            SetWindowTitle(window, Util.StringToUTF8Z(title));
         }
 
         /// <summary>

@@ -181,7 +181,7 @@ namespace GLFW
         /// <param name="str">The string to set.</param>
         public static void SetX11SelectionString([NotNull] string str)
         {
-            SetX11SelectionString(Encoding.UTF8.GetBytes(str));
+            SetX11SelectionString(Util.StringToUTF8Z(str));
         }
 
         /// <summary>

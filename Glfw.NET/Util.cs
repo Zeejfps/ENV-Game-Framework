@@ -32,6 +32,35 @@ namespace GLFW
             return "";
         }
 
+        /// <summary>
+        ///     Encodes a managed <see cref="string" /> as UTF-8 with the trailing null byte that the C
+        ///     <c>const char*</c> parameters these arrays are marshalled to require.
+        /// </summary>
+        /// <param name="str">The string to encode.</param>
+        /// <returns>Null-terminated UTF-8 bytes.</returns>
+        // ReSharper disable once InconsistentNaming
+        public static byte[] StringToUTF8Z([CanBeNull] string str)
+        {
+            var count = Encoding.UTF8.GetByteCount(str ?? "");
+            var buffer = new byte[count + 1];
+            Encoding.UTF8.GetBytes(str ?? "", 0, (str ?? "").Length, buffer, 0);
+            return buffer;
+        }
+
+        /// <summary>
+        ///     Encodes a managed <see cref="string" /> as ASCII with the trailing null byte that the C
+        ///     <c>const char*</c> parameters these arrays are marshalled to require.
+        /// </summary>
+        /// <param name="str">The string to encode.</param>
+        /// <returns>Null-terminated ASCII bytes.</returns>
+        public static byte[] StringToAsciiZ([CanBeNull] string str)
+        {
+            var count = Encoding.ASCII.GetByteCount(str ?? "");
+            var buffer = new byte[count + 1];
+            Encoding.ASCII.GetBytes(str ?? "", 0, (str ?? "").Length, buffer, 0);
+            return buffer;
+        }
+
         #endregion
     }
 }
