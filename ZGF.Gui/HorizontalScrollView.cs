@@ -61,12 +61,16 @@ public sealed class HorizontalScrollView : View
         c.PopClip();
     }
 
-    public void ScrollHorizontal(float delta)
+    /// <summary>Scrolls by <paramref name="delta"/>, clamped to the scrollable range. Returns whether
+    /// the offset actually moved — false when the content fits or is already pinned against that
+    /// edge, which is what lets a wheel controller decline the event and leave it to an ancestor.</summary>
+    public bool ScrollHorizontal(float delta)
     {
         var clamped = Math.Clamp(_distanceFromLeft + delta, 0f, _maxDistanceFromLeft);
-        if (Math.Abs(clamped - _distanceFromLeft) < 0.0001f) return;
+        if (Math.Abs(clamped - _distanceFromLeft) < 0.0001f) return false;
         _distanceFromLeft = clamped;
         SetDirty();
+        return true;
     }
 
     private float ContentWidth(float viewportWidth) =>
