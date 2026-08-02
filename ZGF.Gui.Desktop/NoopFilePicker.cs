@@ -11,4 +11,12 @@ public sealed class NoopFilePicker : IFilePicker
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
         Console.WriteLine($"[FilePicker] No native file picker for this OS. Title: {title}");
+
+    public void PickSaveFile(
+        string title,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters,
+        Action<string> onPicked) =>
+        Console.WriteLine($"[FilePicker] No native save dialog for this OS. Title: {title}");
 }

@@ -23,13 +23,38 @@ public sealed class LinuxFilePicker : IFilePicker
             Console.WriteLine("[FilePicker] No zenity/kdialog found on PATH; folder picker is unavailable.");
     }
 
-    public void PickFolder(string title, Action<string> onPicked) => Pick(title, folder: true, null, null, onPicked);
+    /// <summary>Which of the three dialogs to run.</summary>
+    private enum Chooser
+    {
+        File,
+        Folder,
+        SaveName,
+    }
+
+    public void PickFolder(string title, Action<string> onPicked) =>
+        Pick(title, Chooser.Folder, null, null, null, onPicked);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(title, folder: false, initialDirectory, filters, onPicked);
+        Pick(title, Chooser.File, initialDirectory, null, filters, onPicked);
 
-    private void Pick(string title, bool folder, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
+    public void PickSaveFile(
+        string title,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters,
+        Action<string> onPicked) =>
+        Pick(title, Chooser.SaveName, initialDirectory, suggestedFileName, filters, onPicked);
+
+    private void Pick(
+        string title,
+        Chooser chooser,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters,
+        Action<string> onPicked)
     {
+        var folder = chooser == Chooser.Folder;
+        var saving = chooser == Chooser.SaveName;
         var hasStart = !string.IsNullOrEmpty(initialDirectory);
         // zenity treats a --filename ending in '/' as a starting directory; kdialog takes a start
         // path positionally.
@@ -42,7 +67,21 @@ public sealed class LinuxFilePicker : IFilePicker
             tool = _zenity;
             List<string> zenityArgs = ["--file-selection", $"--title={title}"];
             if (folder) zenityArgs.Add("--directory");
-            if (hasStart) zenityArgs.Add($"--filename={initialDirectory!.TrimEnd('/')}/");
+            if (saving)
+            {
+                // --confirm-overwrite is a no-op on newer zenity, which always confirms; passing
+                // it keeps older builds from silently clobbering.
+                zenityArgs.Add("--save");
+                zenityArgs.Add("--confirm-overwrite");
+            }
+
+            // A --filename ending in '/' is a starting directory; anything after it pre-fills the
+            // name box, which is what a save dialog wants.
+            if (hasStart || saving)
+            {
+                var start = hasStart ? initialDirectory!.TrimEnd('/') + "/" : "";
+                zenityArgs.Add($"--filename={start}{(saving ? suggestedFileName ?? "" : "")}");
+            }
             if (!folder && filters != null)
             {
                 // One repeatable "--file-filter=Name | *.a *.b" per group; shown as a dropdown.
@@ -60,7 +99,12 @@ public sealed class LinuxFilePicker : IFilePicker
             }
             else
             {
-                List<string> kdialogArgs = ["--getopenfilename", kdialogStart];
+                // kdialog takes the pre-filled name as part of the start path.
+                var start = saving && !string.IsNullOrEmpty(suggestedFileName)
+                    ? Path.Combine(kdialogStart, suggestedFileName)
+                    : kdialogStart;
+
+                List<string> kdialogArgs = [saving ? "--getsavefilename" : "--getopenfilename", start];
                 if (filters is { Count: > 0 })
                 {
                     // kdialog (KF5+) takes Qt-style filters positionally after the start path:
@@ -93,6 +137,9 @@ public sealed class LinuxFilePicker : IFilePicker
             try
             {
                 var path = RunPicker(tool, args);
+                if (saving)
+                    path = SaveFileNaming.ApplyDefaultExtension(path ?? "", suggestedFileName);
+
                 if (!string.IsNullOrEmpty(path))
                     dispatcher.Post(() => onPicked(path));
             }

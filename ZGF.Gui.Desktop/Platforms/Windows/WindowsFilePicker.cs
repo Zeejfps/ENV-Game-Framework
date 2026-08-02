@@ -6,6 +6,7 @@ namespace ZGF.Gui.Desktop.Platforms.Windows;
 [SupportedOSPlatform("windows")]
 public sealed class WindowsFilePicker : IFilePicker
 {
+    private const uint FOS_OVERWRITEPROMPT = 0x00000002;
     private const uint FOS_PICKFOLDERS = 0x00000020;
     private const uint FOS_FORCEFILESYSTEM = 0x00000040;
     private const uint SIGDN_FILESYSPATH = 0x80058000;
@@ -16,6 +17,11 @@ public sealed class WindowsFilePicker : IFilePicker
     private static readonly Guid ClsidFileOpenDialog = new("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7");
     // IID_IFileOpenDialog
     private static readonly Guid IidFileOpenDialog = new("d57c7288-d4ad-4768-be02-9d969532d960");
+    // CLSID_FileSaveDialog
+    private static readonly Guid ClsidFileSaveDialog = new("C0B4E2F3-BA21-4773-8DBA-335EC946EB8B");
+    // IID_IFileSaveDialog. It derives from IFileDialog, so every vtable slot used below is at the
+    // same index as on the open dialog — only the slots past IFileDialog differ, and none are used.
+    private static readonly Guid IidFileSaveDialog = new("84bccd23-5fde-4cdb-aea4-af64b83d78ab");
     // IID_IShellItem2. Requesting the base IID_IShellItem from SHCreateItemFromParsingName
     // returns E_NOINTERFACE on some systems; IShellItem2 derives from IShellItem, so the pointer
     // is vtable-compatible with SetFolder (which only needs an IShellItem).
@@ -25,24 +31,63 @@ public sealed class WindowsFilePicker : IFilePicker
     // loop, so the app stays responsive, and COM wants the UI thread's STA anyway.
     public void PickFolder(string title, Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, pickFolder: true);
+        var path = ShowFileDialog(title, DialogKind.OpenFolder);
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
     }
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, pickFolder: false, initialDirectory, filters);
+        var path = ShowFileDialog(title, DialogKind.OpenFile, initialDirectory, null, filters);
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
+    }
+
+    public void PickSaveFile(
+        string title,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters,
+        Action<string> onPicked)
+    {
+        var path = ShowFileDialog(title, DialogKind.SaveFile, initialDirectory, suggestedFileName, filters);
+
+        // SetDefaultExtension has already done this; running it anyway keeps the three platforms
+        // producing the same path from the same keystrokes.
+        path = SaveFileNaming.ApplyDefaultExtension(path ?? "", suggestedFileName);
+
+        if (!string.IsNullOrEmpty(path))
+            onPicked(path);
+    }
+
+    private enum DialogKind
+    {
+        OpenFile,
+        OpenFolder,
+        SaveFile,
     }
 
     // Calls IFileDialog/IShellItem methods directly through the COM vtable. This avoids
     // the [ComImport] RCW pattern, which depends on runtime IL generation and is disabled
     // when PublishAot is set.
-    private static unsafe string? ShowFileDialog(string title, bool pickFolder, string? initialDirectory = null, IReadOnlyList<FileFilter>? filters = null)
+    private static unsafe string? ShowFileDialog(
+        string title,
+        DialogKind kind,
+        string? initialDirectory = null,
+        string? suggestedFileName = null,
+        IReadOnlyList<FileFilter>? filters = null)
     {
-        CoCreateInstance(in ClsidFileOpenDialog, IntPtr.Zero, CLSCTX_INPROC_SERVER, in IidFileOpenDialog, out var pDialog);
+        var pickFolder = kind == DialogKind.OpenFolder;
+        var saving = kind == DialogKind.SaveFile;
+        IntPtr pDialog;
+
+        // IFileSaveDialog and IFileOpenDialog both derive from IFileDialog, so once created they
+        // are driven through the identical vtable slots below.
+        if (saving)
+            CoCreateInstance(in ClsidFileSaveDialog, IntPtr.Zero, CLSCTX_INPROC_SERVER, in IidFileSaveDialog, out pDialog);
+        else
+            CoCreateInstance(in ClsidFileOpenDialog, IntPtr.Zero, CLSCTX_INPROC_SERVER, in IidFileOpenDialog, out pDialog);
+
         // SetFileTypes copies the strings, but they are kept alive until the dialog is released
         // rather than trusting that detail of the implementation.
         var nativeFilterStrings = new List<IntPtr>();
@@ -52,20 +97,43 @@ public sealed class WindowsFilePicker : IFilePicker
             var vtbl = *(IntPtr**)pDialog;
 
             // IFileDialog vtable (after IUnknown 0..2):
-            //   3 Show, 4 SetFileTypes, 9 SetOptions, 10 GetOptions, 12 SetFolder, 17 SetTitle,
-            //   20 GetResult
+            //   3 Show, 4 SetFileTypes, 9 SetOptions, 10 GetOptions, 12 SetFolder,
+            //   15 SetFileName, 17 SetTitle, 20 GetResult, 22 SetDefaultExtension
             var show         = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[3];
             var setFileTypes = (delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr, int>)vtbl[4];
             var setOptions   = (delegate* unmanaged[Stdcall]<IntPtr, uint, int>)vtbl[9];
             var getOptions   = (delegate* unmanaged[Stdcall]<IntPtr, uint*, int>)vtbl[10];
             var setFolder    = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int>)vtbl[12];
+            var setFileName  = (delegate* unmanaged[Stdcall]<IntPtr, char*, int>)vtbl[15];
             var setTitle     = (delegate* unmanaged[Stdcall]<IntPtr, char*, int>)vtbl[17];
             var getResult    = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, int>)vtbl[20];
+            var setDefaultExt = (delegate* unmanaged[Stdcall]<IntPtr, char*, int>)vtbl[22];
 
-            var extraOptions = FOS_FORCEFILESYSTEM | (pickFolder ? FOS_PICKFOLDERS : 0);
+            var extraOptions = FOS_FORCEFILESYSTEM
+                | (pickFolder ? FOS_PICKFOLDERS : 0)
+                | (saving ? FOS_OVERWRITEPROMPT : 0);
             uint options;
             Marshal.ThrowExceptionForHR(getOptions(pDialog, &options));
             Marshal.ThrowExceptionForHR(setOptions(pDialog, options | extraOptions));
+
+            if (saving && !string.IsNullOrEmpty(suggestedFileName))
+            {
+                fixed (char* pName = suggestedFileName)
+                {
+                    Marshal.ThrowExceptionForHR(setFileName(pDialog, pName));
+                }
+
+                // Without this the dialog saves exactly what was typed, so a user who deletes the
+                // extension gets an extensionless file.
+                var extension = Path.GetExtension(suggestedFileName).TrimStart('.');
+                if (extension.Length > 0)
+                {
+                    fixed (char* pExt = extension)
+                    {
+                        setDefaultExt(pDialog, pExt);
+                    }
+                }
+            }
 
             if (!pickFolder && filters is { Count: > 0 })
             {

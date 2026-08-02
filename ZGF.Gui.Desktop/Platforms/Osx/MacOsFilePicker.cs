@@ -16,12 +16,35 @@ public sealed class MacOsFilePicker : IFilePicker
         _context = context;
     }
 
-    public void PickFolder(string title, Action<string> onPicked) => Pick(title, folder: true, null, null, onPicked);
+    /// <summary>Which of AppleScript's three choosers to run.</summary>
+    private enum Chooser
+    {
+        File,
+        Folder,
+        SaveName,
+    }
+
+    public void PickFolder(string title, Action<string> onPicked) =>
+        Pick(title, Chooser.Folder, null, null, null, onPicked);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(title, folder: false, initialDirectory, filters, onPicked);
+        Pick(title, Chooser.File, initialDirectory, null, filters, onPicked);
 
-    private void Pick(string title, bool folder, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
+    public void PickSaveFile(
+        string title,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters,
+        Action<string> onPicked) =>
+        Pick(title, Chooser.SaveName, initialDirectory, suggestedFileName, filters, onPicked);
+
+    private void Pick(
+        string title,
+        Chooser chooser,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters,
+        Action<string> onPicked)
     {
         // The picker stays open until it exits — ignore Browse clicks made while one is up.
         if (Interlocked.CompareExchange(ref _pickerOpen, 1, 0) != 0) return;
@@ -33,7 +56,10 @@ public sealed class MacOsFilePicker : IFilePicker
         {
             try
             {
-                var path = RunPicker(title, folder, initialDirectory, filters);
+                var path = RunPicker(title, chooser, initialDirectory, suggestedFileName, filters);
+                if (chooser == Chooser.SaveName)
+                    path = SaveFileNaming.ApplyDefaultExtension(path ?? "", suggestedFileName);
+
                 if (!string.IsNullOrEmpty(path))
                     dispatcher.Post(() => onPicked(path));
             }
@@ -44,15 +70,36 @@ public sealed class MacOsFilePicker : IFilePicker
         });
     }
 
-    private static string? RunPicker(string title, bool folder, string? initialDirectory, IReadOnlyList<FileFilter>? filters)
+    private static string? RunPicker(
+        string title,
+        Chooser chooser,
+        string? initialDirectory,
+        string? suggestedFileName,
+        IReadOnlyList<FileFilter>? filters)
     {
-        var chooser = folder ? "choose folder" : "choose file";
-        var location = string.IsNullOrEmpty(initialDirectory)
-            ? ""
-            : $" default location (POSIX file \"{EscapeForAppleScript(initialDirectory)}\")";
-        var ofType = folder ? "" : BuildOfTypeClause(filters);
+        var verb = chooser switch
+        {
+            Chooser.Folder => "choose folder",
+            Chooser.SaveName => "choose file name",
+            _ => "choose file",
+        };
+
+        // AppleScript raises rather than falling back when the default location is not a real
+        // folder, which would turn a stale directory into a failed dialog.
+        var location = !string.IsNullOrEmpty(initialDirectory) && Directory.Exists(initialDirectory)
+            ? $" default location (POSIX file \"{EscapeForAppleScript(initialDirectory)}\")"
+            : "";
+
+        // Only "choose file" takes a type list; "choose file name" has no filter clause at all,
+        // so a save dialog on macOS simply does not restrict what can be typed.
+        var ofType = chooser == Chooser.File ? BuildOfTypeClause(filters) : "";
+
+        var defaultName = chooser == Chooser.SaveName && !string.IsNullOrEmpty(suggestedFileName)
+            ? $" default name \"{EscapeForAppleScript(suggestedFileName)}\""
+            : "";
+
         var script =
-            $"set chosen to {chooser} with prompt \"{EscapeForAppleScript(title)}\"{location}{ofType}\n" +
+            $"set chosen to {verb} with prompt \"{EscapeForAppleScript(title)}\"{defaultName}{location}{ofType}\n" +
             "return POSIX path of chosen";
 
         var psi = new ProcessStartInfo
