@@ -25,10 +25,6 @@ public sealed class DataGridView<TItem> : View
     private readonly DataGridEditSession _session;
     private readonly DataGridKeyboardController<TItem> _keyboard;
     private readonly Func<TItem, long>? _keyOf;
-    private readonly Func<TItem>? _newDraft;
-    private readonly Action<TItem>? _onAddRow;
-    private readonly bool _hasNewRow;
-    private TItem? _draft;
     private readonly HashSet<long> _selected = new();
     private int _anchor = -1;
 
@@ -50,18 +46,12 @@ public sealed class DataGridView<TItem> : View
         DataGridStyle style,
         ICanvas canvas,
         InputSystem input,
-        Func<TItem, long>? key = null,
-        Func<TItem>? newDraft = null,
-        Action<TItem>? onAddRow = null)
+        Func<TItem, long>? key = null)
     {
         _source = source;
         _canvas = canvas;
         _input = input;
         _keyOf = key;
-        _newDraft = newDraft;
-        _onAddRow = onAddRow;
-        _hasNewRow = newDraft != null && onAddRow != null;
-        if (_hasNewRow) _draft = newDraft!();
         Style = style;
         _columns = new DataGridColumn<TItem>[columns.Count];
         for (var i = 0; i < columns.Count; i++) _columns[i] = columns[i];
@@ -79,7 +69,7 @@ public sealed class DataGridView<TItem> : View
 
         _list = new VirtualWidgetListView<DataGridPreviewRow<TItem>>
         {
-            ItemCount = EffectiveCount,
+            ItemCount = source.Count,
             RowHeight = style.RowHeight,
             CreateRow = () => new DataGridPreviewRow<TItem>(Columns, _columns, style, canvas),
             BindRow = BindRowAt,
@@ -96,29 +86,15 @@ public sealed class DataGridView<TItem> : View
 
         void BindRowAt(DataGridPreviewRow<TItem> row, int index)
         {
-            if (!IsNewRowIndex(index)) _source.EnsureWindow(index, index);
-            if (!TryGetRowItem(index, out var item, out var isNew)) return;
+            _source.EnsureWindow(index, index);
+            if (!_source.TryGetItem(index, out var item)) return;
             row.Bind(item, new DataGridRowState(
-                Selected: !isNew && _selected.Contains(KeyOf(index, item)),
+                Selected: _selected.Contains(KeyOf(index, item)),
                 Hovered: _list.HoveredIndex == index || _list.ContextHighlightIndex == index,
-                Stripe: !isNew && (index & 1) == 1,
+                Stripe: (index & 1) == 1,
                 Focused: _editing && index == _focusRow,
-                NewRow: isNew,
-                Flash: !isNew && index == _flashIndex));
+                Flash: index == _flashIndex));
         }
-    }
-
-    /// <summary>The number of rows the list shows: the source rows plus the trailing new-row strip when one
-    /// is configured.</summary>
-    private int EffectiveCount => _source.Count + (_hasNewRow ? 1 : 0);
-
-    private bool IsNewRowIndex(int index) => _hasNewRow && index == _source.Count;
-
-    private bool TryGetRowItem(int index, out TItem item, out bool isNew)
-    {
-        isNew = IsNewRowIndex(index);
-        if (isNew) { item = _draft!; return true; }
-        return _source.TryGetItem(index, out item!);
     }
 
     public DataGridStyle Style { get; }
@@ -165,6 +141,12 @@ public sealed class DataGridView<TItem> : View
     /// keep selection and editing mutually exclusive (the way a single-cell grid clears selection on focus).</summary>
     public event Action<int>? EditingStarted;
 
+    /// <summary>Fires (with the column that was being edited) when editing moves down off the last row — Enter on
+    /// the last row, or Tab off its last cell. The edit is already committed and ended.
+    /// <c>DataGrid&lt;TItem&gt;</c> wires this to the pinned <see cref="DataGridNewRowView{TItem}"/>, so entry
+    /// flows from the end of the data straight into the new-row strip.</summary>
+    public event Action<int>? EditMovedPastLastRow;
+
     /// <summary>Raised on a left click on a row (index, modifiers, GUI-coordinate point); index is -1 for a click
     /// in the empty area below the rows. Fires for every consumer; pair it with <see cref="ExternalSelection"/> to
     /// drive an external selection model.</summary>
@@ -193,7 +175,7 @@ public sealed class DataGridView<TItem> : View
     /// that fell out of range.</summary>
     public void Refresh()
     {
-        _list.ItemCount = EffectiveCount;
+        _list.ItemCount = _source.Count;
         if (_keyOf == null) _selected.RemoveWhere(k => k >= _source.Count);
         _list.NotifyItemsChanged();
     }
@@ -405,27 +387,27 @@ public sealed class DataGridView<TItem> : View
     /// is read-only, focus lands on the nearest editable column. Commits any edit already in progress.</summary>
     public void BeginEdit(int row, int column)
     {
-        if (!HasEditableColumn || row < 0 || row >= EffectiveCount) return;
+        if (!HasEditableColumn || row < 0 || row >= _source.Count) return;
         if (_editing) TryCommit(force: true); // switching rows — best-effort commit the one we're leaving
 
-        if (!IsNewRowIndex(row)) _source.EnsureWindow(row, row);
-        if (!TryGetRowItem(row, out var item, out var isNew)) return;
+        _source.EnsureWindow(row, row);
+        if (!_source.TryGetItem(row, out var item)) return;
 
         EnsureEditorRow();
         _focusRow = row;
         _focusCol = ResolveEditableColumn(column);
         _editing = true;
-        if (!ExternalSelection) { if (isNew) ClearSelection(); else SelectOnly(row); }
+        if (!ExternalSelection) SelectOnly(row);
         EditingStarted?.Invoke(row);
-        _editor!.Bind(item, isNew);
+        _editor!.Bind(item);
         PositionEditor();
         FocusEditor(_focusCol);
         SetDirty();
     }
 
-    /// <summary>Commits the editing row's values back through its columns and ends the edit session. Editing
-    /// the trailing new-row strip instead appends a row through the configured add callback. Returns false
-    /// (keeping the row open) when a cell fails its <see cref="DataGridColumn{TItem}.ValidateEditor"/>.</summary>
+    /// <summary>Commits the editing row's values back through its columns and ends the edit session. Returns
+    /// false (keeping the row open) when a cell fails its
+    /// <see cref="DataGridColumn{TItem}.ValidateEditor"/>.</summary>
     public bool CommitEdit() => TryCommit(force: false);
 
     // force = best-effort (focus lost / clicking away): skip the validation gate and end regardless, writing
@@ -435,13 +417,6 @@ public sealed class DataGridView<TItem> : View
         if (!_editing || _editor == null) return true;
         if (!force && !_editor.ShowValidation()) return false;
 
-        if (IsNewRowIndex(_focusRow))
-        {
-            AddNewRow();
-            EndEdit();
-            Refresh();
-            return true;
-        }
         if (_source.TryGetItem(_focusRow, out var item))
         {
             _editor.Commit(item);
@@ -449,15 +424,6 @@ public sealed class DataGridView<TItem> : View
         }
         EndEdit();
         return true;
-    }
-
-    // Writes the editor values into the draft, hands it to the consumer to append, and resets the draft.
-    private void AddNewRow()
-    {
-        _editor!.Commit(_draft!);
-        _onAddRow!(_draft!);
-        CellCommitted?.Invoke(_focusRow);
-        _draft = _newDraft!();
     }
 
     /// <summary>Ends the edit session without writing the editor's values back.</summary>
@@ -563,24 +529,22 @@ public sealed class DataGridView<TItem> : View
     {
         if (!_editing || _editor == null) return;
 
-        // Enter / Tab-off-the-end on the new-row strip: append, then keep editing the fresh strip below.
-        if (IsNewRowIndex(_focusRow) && dir > 0)
+        var target = _focusRow + dir;
+
+        // Down off the last row: commit and hand the focus off (DataGrid wires this to the new-row strip, so
+        // Enter at the end of the data continues into the entry row).
+        if (dir > 0 && target >= _source.Count)
         {
             var col = ResolveEditableColumn(column ?? _focusCol);
-            if (!_editor.ShowValidation()) return; // invalid draft — stay on the new-row strip
-            AddNewRow();
-            EndEditSilently();
-            Refresh();
-            BeginEdit(_source.Count, col);
+            if (CommitEdit()) EditMovedPastLastRow?.Invoke(col);
             return;
         }
 
-        var target = _focusRow + dir;
-        if (target < 0 || target >= EffectiveCount) { CommitEdit(); return; }
+        if (target < 0 || target >= _source.Count) { CommitEdit(); return; }
 
-        if (!IsNewRowIndex(_focusRow) && !_editor.ShowValidation()) return; // invalid — don't leave the row
+        if (!_editor.ShowValidation()) return; // invalid — don't leave the row
 
-        if (!IsNewRowIndex(_focusRow) && _source.TryGetItem(_focusRow, out var current))
+        if (_source.TryGetItem(_focusRow, out var current))
         {
             _editor.Commit(current);
             CellCommitted?.Invoke(_focusRow);
@@ -590,16 +554,16 @@ public sealed class DataGridView<TItem> : View
             _list.RefreshRows();
         }
 
-        if (!IsNewRowIndex(target)) _source.EnsureWindow(target, target);
-        if (!TryGetRowItem(target, out var next, out var targetIsNew)) { CommitEdit(); return; }
+        _source.EnsureWindow(target, target);
+        if (!_source.TryGetItem(target, out var next)) { CommitEdit(); return; }
 
         _movingFocus = true;
         BlurEditor(_focusCol);
         _focusRow = target;
         if (column.HasValue) _focusCol = ResolveEditableColumn(column.Value);
         _list.EnsureRowVisible(target);
-        if (!ExternalSelection) { if (targetIsNew) ClearSelection(); else SelectOnly(target); }
-        _editor.Bind(next, targetIsNew);
+        if (!ExternalSelection) SelectOnly(target);
+        _editor.Bind(next);
         PositionEditor();
         FocusEditor(_focusCol);
         _movingFocus = false;

@@ -26,13 +26,18 @@ public sealed record DataGrid<TItem> : Widget
     /// and windowing (the ledger keys on row id); otherwise selection is by row index.</summary>
     public Func<TItem, long>? Key { get; init; }
 
-    /// <summary>Optional: builds a blank draft item for the trailing new-row strip. Supplying it together with
-    /// <see cref="OnAddRow"/> turns on an always-editable append row at the end of the grid.</summary>
+    /// <summary>Optional: supplies the pending draft item for the new-row strip. Supplying it together with
+    /// <see cref="OnAddRow"/> pins an always-visible entry row below the body. Called whenever the strip
+    /// rebinds, so a consumer whose draft lives in a view model returns a snapshot of that state.</summary>
     public Func<TItem>? NewDraft { get; init; }
 
     /// <summary>Optional: appends the committed draft as a new row (the consumer adds it to its source). Used
     /// with <see cref="NewDraft"/>.</summary>
     public Action<TItem>? OnAddRow { get; init; }
+
+    /// <summary>Hands the constructed new-row strip back (only when <see cref="NewDraft"/>/<see cref="OnAddRow"/>
+    /// are set), so a consumer can anchor editor-adjacent overlays to it the way it does for body rows.</summary>
+    public Action<DataGridNewRowView<TItem>>? NewRowReady { get; init; }
 
     /// <summary>Hands the constructed body view back so the consumer can wire selection/activation and drive
     /// programmatic selection. Called once at build time.</summary>
@@ -62,7 +67,7 @@ public sealed record DataGrid<TItem> : Widget
         var columns = new DataGridColumn<TItem>[Columns.Count];
         for (var i = 0; i < Columns.Count; i++) columns[i] = Columns[i];
 
-        var body = new DataGridView<TItem>(columns, Source, Style, ctx.Canvas, input, Key, NewDraft, OnAddRow)
+        var body = new DataGridView<TItem>(columns, Source, Style, ctx.Canvas, input, Key)
         {
             ExternalSelection = ExternalSelection,
         };
@@ -72,11 +77,28 @@ public sealed record DataGrid<TItem> : Widget
         HeaderReady?.Invoke(header);
         Ready?.Invoke(body);
 
+        // The entry row is its own widget in the South band, not a row of the list: it never scrolls away, and
+        // the body stays a pure view of the source. The two are joined only by the edit focus flowing between
+        // them (down off the last row lands here; Up from here goes back).
+        DataGridNewRowView<TItem>? newRow = null;
+        if (NewDraft is { } newDraft && OnAddRow is { } onAddRow)
+        {
+            newRow = new DataGridNewRowView<TItem>(body.Columns, columns, Style, ctx.Canvas, input, newDraft, onAddRow);
+            newRow.RowAdded += body.Refresh;
+            newRow.MoveUpRequested += col =>
+            {
+                if (Source.Count > 0) body.BeginEdit(Source.Count - 1, col);
+            };
+            body.EditMovedPastLastRow += newRow.FocusCell;
+            NewRowReady?.Invoke(newRow);
+        }
+
         var thumb = new VerticalScrollBarThumbView { MinHeight = Style.MinThumbHeight };
 
         return new BorderLayout
         {
             North = new Raw { View = header },
+            South = newRow == null ? null : new Raw { View = newRow },
             Center = new KbmInput
             {
                 Controller = _ => new VirtualListScrollController<DataGridPreviewRow<TItem>>(body.List, thumb),

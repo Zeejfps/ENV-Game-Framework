@@ -1,5 +1,4 @@
 using ZGF.Gui.Desktop.Components.DataGrid;
-using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Testing;
 using ZGF.KeyboardModule;
 
@@ -23,64 +22,132 @@ public class DataGridNewRowTests
         public void EnsureWindow(int first, int last) { }
     }
 
-    [Fact]
-    public void CommittingNewRowStrip_AppendsThroughTheAddCallback()
+    // A consumer whose pending entry lives outside the grid (the ledger keeps it in its view model): the draft
+    // supplier hands back that same state every time, so flushing into it survives a rebind.
+    private sealed class Pending
+    {
+        public readonly Cell Entry = new();
+        public Cell Draft() => Entry;
+    }
+
+    private sealed class Fixture
+    {
+        public required GuiTestHarness H;
+        public required DataGridView<Cell> Body;
+        public required DataGridNewRowView<Cell> Strip;
+        public required List<Cell> Items;
+
+        public void ClickStrip() => H.Click(Strip.Position.Left + 20f, Strip.Position.Bottom + 5f);
+        public void ClickBody() => H.Click(Strip.Position.Left + 20f, Strip.Position.Top + 60f);
+    }
+
+    private static Fixture Build(int rows = 0, Func<Cell>? newDraft = null)
     {
         var items = new List<Cell>();
-        var source = new ListSource(items);
-        var col = new DataGridColumn<Cell>
+        for (var i = 0; i < rows; i++) items.Add(new Cell { Value = i.ToString() });
+
+        DataGridView<Cell> body = null!;
+        DataGridNewRowView<Cell> strip = null!;
+        var h = GuiTestHarness.Create(ctx => new DataGrid<Cell>
         {
-            Key = "v",
-            Width = ColumnWidth.Flex(),
-            Text = c => c.Value,
-            CreateEditor = _ => new View(),
-            BindEditor = (_, _) => { },
-            CommitEditor = (_, item) => item.Value = "stamped",
-        };
-        var grid = new DataGridView<Cell>(
-            new[] { col }, source, DataGridStyle.Default, new FakeCanvas(), new InputSystem(),
-            newDraft: () => new Cell(), onAddRow: c => items.Add(c))
-        {
-            LeftConstraint = 0f, BottomConstraint = 0f, Width = 400f, Height = 200f,
-        };
-        grid.LayoutSelf();
+            Columns = new[]
+            {
+                GridColumn.TextEditable<Cell>("v", "V", ColumnWidth.Flex(), c => c.Value, (c, v) => c.Value = v),
+            },
+            Source = new ListSource(items),
+            NewDraft = newDraft ?? (() => new Cell()),
+            OnAddRow = items.Add,
+            Ready = v => body = v,
+            NewRowReady = v => strip = v,
+        }.BuildView(ctx), width: 400, height: 200);
+        h.Layout();
 
-        // With the source empty, the only row is the trailing new-row strip at index 0.
-        grid.BeginEdit(0, 0);
-        Assert.True(grid.IsEditing);
-
-        grid.CommitEdit();
-
-        Assert.Single(items);
-        Assert.Equal("stamped", items[0].Value);
-        Assert.False(grid.IsEditing);
+        return new Fixture { H = h, Body = body, Strip = strip, Items = items };
     }
 
     [Fact]
-    public void NewRowStrip_TypeThenEnter_AppendsAndContinuesOnFreshStrip()
+    public void TypeThenEnter_AppendsAndKeepsTheStripFocusedForTheNextEntry()
     {
-        var items = new List<Cell>();
-        DataGridView<Cell> grid = null!;
-        using var h = GuiTestHarness.Create(ctx =>
-        {
-            grid = new DataGridView<Cell>(
-                new[] { GridColumn.TextEditable<Cell>("v", "V", ColumnWidth.Flex(), c => c.Value, (c, v) => c.Value = v) },
-                new ListSource(items), DataGridStyle.Default, ctx.Canvas, ctx.Require<InputSystem>(),
-                newDraft: () => new Cell(), onAddRow: c => items.Add(c));
-            return grid;
-        }, width: 400, height: 200);
+        var fx = Build();
+        using var _ = fx.H;
 
-        h.Layout();
-        var y = grid.Position.Top - DataGridStyle.Default.RowHeight * 0.5f; // row 0 = new-row strip
-        var x = grid.Position.Left + 20f;
-        h.Click(x, y);
-        h.Click(x, y); // double-click begins editing the strip
-        h.Type("hello");
-        h.PressKey(KeyboardKey.Enter);
+        fx.ClickStrip();
+        Assert.True(fx.Strip.IsEditing);
 
-        Assert.Single(items);
-        Assert.Equal("hello", items[0].Value);
-        Assert.True(grid.IsEditing);       // rapid entry: still editing
-        Assert.Equal(1, grid.FocusedRow);  // ...the fresh strip, now at index 1
+        fx.H.Type("hello");
+        fx.H.PressKey(KeyboardKey.Enter);
+
+        Assert.Equal("hello", Assert.Single(fx.Items).Value);
+        Assert.True(fx.Strip.IsEditing); // rapid entry: still on the strip, now blank
+    }
+
+    [Fact]
+    public void TheStripStaysInPlace_NoMatterHowFarTheBodyIsScrolled()
+    {
+        var fx = Build(rows: 500);
+        using var _ = fx.H;
+
+        var before = fx.Strip.Position;
+        Assert.True(before.Height > 0f);
+
+        // Scroll the body to the far end. The strip is not a row of the list, so nothing about it moves.
+        fx.H.MoveTo(fx.Strip.Position.Left + 20f, fx.Strip.Position.Top + 60f);
+        fx.H.Scroll(0f, -4000f);
+        fx.H.Layout();
+
+        Assert.Equal(before, fx.Strip.Position);
+
+        // ...and it's still one click away, with no scrolling back to reach it.
+        fx.ClickStrip();
+        Assert.True(fx.Strip.IsEditing);
+        Assert.Equal(500, fx.Items.Count); // focusing it appended nothing
+    }
+
+    [Fact]
+    public void ClickingAway_KeepsTheTypedDraft_WithoutAppendingARow()
+    {
+        var pending = new Pending();
+        var fx = Build(rows: 5, newDraft: pending.Draft);
+        using var _ = fx.H;
+
+        fx.ClickStrip();
+        fx.H.Type("half typed");
+        fx.ClickBody(); // losing focus must never insert a half-filled entry
+
+        Assert.False(fx.Strip.IsEditing);
+        Assert.Equal(5, fx.Items.Count);
+        Assert.Equal("half typed", pending.Entry.Value); // flushed to the consumer's draft, not dropped
+    }
+
+    [Fact]
+    public void EnterOnTheLastBodyRow_MovesTheEditIntoTheStrip_WithoutInserting()
+    {
+        var fx = Build(rows: 3);
+        using var _ = fx.H;
+
+        fx.Body.BeginEdit(2, 0); // the last row
+        Assert.True(fx.Body.IsEditing);
+
+        fx.H.PressKey(KeyboardKey.Enter); // down off the end
+
+        Assert.False(fx.Body.IsEditing);
+        Assert.True(fx.Strip.IsEditing);
+        Assert.Equal(3, fx.Items.Count); // moving the focus is not an insert
+    }
+
+    [Fact]
+    public void UpFromTheStrip_MovesTheEditBackIntoTheLastBodyRow()
+    {
+        var fx = Build(rows: 3);
+        using var _ = fx.H;
+
+        fx.ClickStrip();
+        Assert.True(fx.Strip.IsEditing);
+
+        fx.H.PressKey(KeyboardKey.UpArrow);
+
+        Assert.False(fx.Strip.IsEditing);
+        Assert.True(fx.Body.IsEditing);
+        Assert.Equal(2, fx.Body.FocusedRow);
     }
 }
