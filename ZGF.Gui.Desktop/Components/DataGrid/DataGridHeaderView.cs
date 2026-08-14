@@ -14,6 +14,8 @@ namespace ZGF.Gui.Desktop.Components.DataGrid;
 public sealed class DataGridHeaderView<TItem> : View
 {
     private const float GrabHalfWidth = 5f;
+    private const float ArrowWidth = 8f;
+    private const float ArrowGap = 5f;
 
     private readonly DataGridColumns _geometry;
     private readonly DataGridColumn<TItem>[] _columns;
@@ -21,6 +23,8 @@ public sealed class DataGridHeaderView<TItem> : View
     private readonly DataGridStyle _style;
 
     private int _hotBoundary = -1;
+    private string? _sortKey;
+    private bool _sortAscending;
 
     /// <summary>Raised with a column's <see cref="DataGridColumn{TItem}.Key"/> when its (sortable) header is
     /// clicked. The consumer re-queries its source; the grid does not sort data itself.</summary>
@@ -49,6 +53,17 @@ public sealed class DataGridHeaderView<TItem> : View
 
         _geometry.Changed += SetDirty;
         this.UseController(input, () => new DataGridHeaderController<TItem>(this, input));
+    }
+
+    /// <summary>Sets which column the data is currently sorted by, so its header shows a direction arrow.
+    /// The grid never sorts data itself, so the owner pushes the sort state it applied to its source here;
+    /// a null <paramref name="columnKey"/> (or one no column matches) clears the indicator.</summary>
+    public void SetSort(string? columnKey, bool ascending)
+    {
+        if (_sortKey == columnKey && _sortAscending == ascending) return;
+        _sortKey = columnKey;
+        _sortAscending = ascending;
+        SetDirty();
     }
 
     /// <summary>The band the columns resolve against — the header rect minus the scrollbar gutter.</summary>
@@ -137,14 +152,34 @@ public sealed class DataGridHeaderView<TItem> : View
         {
             var cell = cells[i];
             if (cell.Width <= 0f) continue;
+
+            var align = _columns[i].Align;
+            var style = LabelStyle(align);
+            var sorted = _sortKey is not null && _columns[i].Key == _sortKey;
+            var textCell = sorted
+                ? new RectF(cell.Left, cell.Bottom, Math.Max(0f, cell.Width - (ArrowWidth + ArrowGap)), cell.Height)
+                : cell;
+
             c.PushClip(cell);
             c.DrawText(new DrawTextInputs
             {
-                Position = cell,
+                Position = textCell,
                 Text = _labels[i],
-                Style = LabelStyle(_columns[i].Align),
+                Style = style,
                 ZIndex = z + 2,
             });
+            if (sorted)
+            {
+                var textWidth = c.MeasureTextWidth(_labels[i], style);
+                var textEnd = align switch
+                {
+                    TextAlignment.End => textCell.Right,
+                    TextAlignment.Center => Math.Min(textCell.Right, textCell.Center.X + textWidth * 0.5f),
+                    _ => Math.Min(textCell.Right, textCell.Left + textWidth),
+                };
+                var arrowLeft = Math.Min(textEnd + ArrowGap, cell.Right - ArrowWidth);
+                DrawSortArrow(c, new RectF(arrowLeft, cell.Bottom, ArrowWidth, cell.Height), _sortAscending, z + 2);
+            }
             c.PopClip();
         }
 
@@ -160,6 +195,29 @@ public sealed class DataGridHeaderView<TItem> : View
             });
         }
     }
+
+    private void DrawSortArrow(ICanvas c, RectF box, bool ascending, int z)
+    {
+        const float halfWidth = 3.5f;
+        const float halfHeight = 2.5f;
+        var cx = box.Center.X;
+        var cy = box.Center.Y;
+        var apexY = ascending ? cy + halfHeight : cy - halfHeight;
+        var baseY = ascending ? cy - halfHeight : cy + halfHeight;
+
+        Line(c, new PointF(cx - halfWidth, baseY), new PointF(cx, apexY), z);
+        Line(c, new PointF(cx, apexY), new PointF(cx + halfWidth, baseY), z);
+    }
+
+    private void Line(ICanvas c, PointF start, PointF end, int z) => c.DrawLine(new DrawLineInputs
+    {
+        Start = start,
+        End = end,
+        Thickness = 1.5f,
+        Color = _style.SelectionBar,
+        ZIndex = z,
+        Cap = LineCap.Round,
+    });
 
     private TextStyle LabelStyle(TextAlignment align) => new()
     {

@@ -38,6 +38,11 @@ public sealed record DataGrid<TItem> : Widget
     /// programmatic selection. Called once at build time.</summary>
     public Action<DataGridView<TItem>>? Ready { get; init; }
 
+    /// <summary>Hands the constructed header band back so the consumer can push the sort state it applied to
+    /// its source (<see cref="DataGridHeaderView{TItem}.SetSort"/>) and have the sorted column show an arrow.
+    /// Called once at build time, before <see cref="Ready"/>.</summary>
+    public Action<DataGridHeaderView<TItem>>? HeaderReady { get; init; }
+
     /// <summary>Invoked with a column's <see cref="DataGridColumn{TItem}.Key"/> when its sortable header is clicked.</summary>
     public Action<string>? OnSort { get; init; }
 
@@ -64,6 +69,7 @@ public sealed record DataGrid<TItem> : Widget
         var header = new DataGridHeaderView<TItem>(body.Columns, columns, Style, input);
         if (OnSort != null) header.SortRequested += OnSort;
         if (OnHeaderPress != null) header.HeaderPressed += OnHeaderPress;
+        HeaderReady?.Invoke(header);
         Ready?.Invoke(body);
 
         var thumb = new VerticalScrollBarThumbView { MinHeight = Style.MinThumbHeight };
