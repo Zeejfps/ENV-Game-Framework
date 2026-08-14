@@ -643,8 +643,13 @@ public sealed class InputSystem
         if (y == null)
             return -1;
 
-        // NOTE: Order is swapped here. Greater ZIndex means the value is less - meaning it should be first in list
-        var result = y.ZIndex.CompareTo(x.ZIndex);
+        // Compare the ACCUMULATED z (View.DrawZIndex), not the local ZIndex, so hit-testing ranks views the
+        // same way drawing composites them. A popover typically carries its lift on its own root while the
+        // interactive widgets inside it sit at a local 0; comparing local ZIndex would score those 0 against
+        // a plain sibling's 0 and fall through to sibling order, letting whatever is painted underneath steal
+        // the click.
+        // NOTE: Order is swapped here. Greater z means the value is less - meaning it should be first in list
+        var result = y.DrawZIndex.CompareTo(x.DrawZIndex);
         if (result == 0)
         {
             if (x.IsInFrontOf(y))

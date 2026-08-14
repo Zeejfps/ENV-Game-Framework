@@ -912,6 +912,12 @@ public class View
     }
 
 
+    /// <summary>The z this view actually composites at: its own <see cref="ZIndex"/> plus every ancestor's.
+    /// Drawing has always used this, and hit-testing compares it too — so a popover lifted above its siblings
+    /// by setting <see cref="ZIndex"/> on its root wins the click as well as the paint, even though the
+    /// interactive widgets inside it carry a local <see cref="ZIndex"/> of 0.</summary>
+    public int DrawZIndex => GetDrawZIndex();
+
     protected int GetDrawZIndex()
     {
         var parentZIndex = Parent?.GetDrawZIndex() ?? 0;
