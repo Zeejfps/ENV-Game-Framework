@@ -156,6 +156,18 @@ public sealed class DataGridView<TItem> : View
     /// is pressed while not editing, so the owner can move its own cursor or begin an edit.</summary>
     public event Action<KeyboardKey>? NavKeyPressed;
 
+    /// <summary>Raised when the row under the pointer changes, with its index or null once the pointer is off
+    /// the rows. The grid already paints its own hover; this is for a second view that has to follow it — a
+    /// chart lighting the slice the hovered row belongs to.</summary>
+    public event Action<int?>? RowHovered
+    {
+        add => _list.HoveredIndexChanged += value;
+        remove => _list.HoveredIndexChanged -= value;
+    }
+
+    /// <summary>The row currently under the pointer, or null.</summary>
+    public int? HoveredRow => _list.HoveredIndex;
+
     /// <summary>Highlights a row as if a context menu were open over it; pass null to clear.</summary>
     public void SetContextHighlight(int? index) => _list.SetContextHighlight(index);
 

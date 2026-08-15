@@ -254,6 +254,8 @@ public sealed record Calendar : Widget
             }
         };
 
+        root.UsePointerShield(input);
+
         root.Bind(vm.DisplayedMonth, _ => RefreshAll());
         root.Bind(vm.SelectedDate, _ => RefreshAll());
         root.Bind(vm.MinDate, _ => RefreshAll());

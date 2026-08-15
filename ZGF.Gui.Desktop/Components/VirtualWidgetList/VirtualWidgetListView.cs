@@ -59,6 +59,11 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
     /// <summary>Fires when <see cref="ScrollY"/> changes (wheel, programmatic, clamp).</summary>
     public event Action? ScrollChanged;
 
+    /// <summary>Fires when the row under the pointer changes, with its index or null when the pointer leaves
+    /// the rows. Also fires when a content change strands the hovered index past the end, so a listener
+    /// mirroring the hover elsewhere can't be left pointing at a row that no longer exists.</summary>
+    public event Action<int?>? HoveredIndexChanged;
+
     /// <summary>Fires at the end of every layout pass, after rows are recycled and positioned — the seam a
     /// scrollbar uses to resync its thumb. Distinct from <see cref="ScrollChanged"/> (scroll-value only).</summary>
     internal event Action? LayoutSynced;
@@ -110,7 +115,7 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
         _offsets = null;
         _contentDirty = true;
         if (ItemCount == 0) _scrollY = 0f;
-        if (_hoveredIndex >= ItemCount) _hoveredIndex = -1;
+        if (_hoveredIndex >= ItemCount) SetHovered(-1);
         if (_contextHighlightIndex >= ItemCount) _contextHighlightIndex = -1;
         ClampScroll();
         SetDirty();
@@ -260,17 +265,24 @@ public sealed class VirtualWidgetListView<TRow> : View where TRow : View
 
     internal void OnPointerMove(PointF point)
     {
-        var idx = HitTestRow(point);
-        if (idx == _hoveredIndex) return;
-        _hoveredIndex = idx;
+        if (!SetHovered(HitTestRow(point))) return;
         RefreshRows();
     }
 
     internal void OnPointerExit()
     {
-        if (_hoveredIndex < 0) return;
-        _hoveredIndex = -1;
+        if (!SetHovered(-1)) return;
         RefreshRows();
+    }
+
+    /// <summary>The single write to the hovered index, so the change event can't be forgotten at one of the
+    /// three places that move it. Returns whether it actually changed.</summary>
+    private bool SetHovered(int index)
+    {
+        if (index == _hoveredIndex) return false;
+        _hoveredIndex = index;
+        HoveredIndexChanged?.Invoke(HoveredIndex);
+        return true;
     }
 
     internal void OnLeftClick(PointF point, InputModifiers modifiers)

@@ -27,6 +27,11 @@ public sealed class VirtualWidgetListController<TRow> : KeyboardMouseController 
 
     public override void OnMouseMoved(ref MouseMoveEvent e) => _list.OnPointerMove(e.Mouse.Point);
 
+    /// <summary>The pointer's arrival is dispatched as an enter rather than a move, so without this a list
+    /// entered by a jump — a fast sweep, a window activation under the cursor — would not light its row
+    /// until the pointer moved again inside it.</summary>
+    public override void OnMouseEnter(ref MouseEnterEvent e) => _list.OnPointerMove(e.Mouse.Point);
+
     public override void OnMouseExit(ref MouseExitEvent e) => _list.OnPointerExit();
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
