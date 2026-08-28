@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text;
 using ZGF.Geometry;
 
 namespace ZGF.Gui.Testing;
@@ -7,6 +8,31 @@ public abstract record DrawCommand(int Sequence, RectF? Clip, float Opacity, flo
 
 public sealed record RecordedRect(DrawRectInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 public sealed record RecordedText(DrawTextInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
+/// <summary>One <see cref="ICanvas.DrawGlyphRun"/> call, with the span copied out so it outlives
+/// the draw. <see cref="Text"/> is the run as a string, for assertions that read like the screen.</summary>
+public sealed record RecordedGlyphRun(
+    PointF Origin,
+    IReadOnlyList<int> CodePoints,
+    float CellAdvance,
+    TextStyle Style,
+    int ZIndex,
+    bool Underline,
+    bool StrikeThrough,
+    int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY)
+    : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY)
+{
+    public string Text
+    {
+        get
+        {
+            var text = new System.Text.StringBuilder(CodePoints.Count);
+            foreach (var codePoint in CodePoints)
+                text.Append(Rune.TryCreate(codePoint, out var rune) ? rune.ToString() : "�");
+            return text.ToString();
+        }
+    }
+}
+
 public sealed record RecordedImage(DrawImageInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 public sealed record RecordedBoxShadow(DrawBoxShadowInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 public sealed record RecordedLine(DrawLineInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
@@ -29,6 +55,7 @@ public sealed class RecordingCanvas : ICanvas
 
     private readonly List<RecordedRect> _rects = new();
     private readonly List<RecordedText> _texts = new();
+    private readonly List<RecordedGlyphRun> _glyphRuns = new();
     private readonly List<RecordedImage> _images = new();
     private readonly List<RecordedBoxShadow> _boxShadows = new();
     private readonly List<RecordedLine> _lines = new();
@@ -39,6 +66,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public IReadOnlyList<RecordedRect> Rects => _rects;
     public IReadOnlyList<RecordedText> Texts => _texts;
+    public IReadOnlyList<RecordedGlyphRun> GlyphRuns => _glyphRuns;
     public IReadOnlyList<RecordedImage> Images => _images;
     public IReadOnlyList<RecordedBoxShadow> BoxShadows => _boxShadows;
     public IReadOnlyList<RecordedLine> Lines => _lines;
@@ -76,6 +104,18 @@ public sealed class RecordingCanvas : ICanvas
         var s = CurrentScale();
         var cmd = new RecordedText(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
         _texts.Add(cmd);
+        _all.Add(cmd);
+    }
+
+    public void DrawGlyphRun(in DrawGlyphRunInputs inputs)
+    {
+        var t = CurrentTranslation();
+        var s = CurrentScale();
+        var cmd = new RecordedGlyphRun(
+            inputs.Origin, inputs.CodePoints.ToArray(), inputs.CellAdvance, inputs.Style, inputs.ZIndex,
+            inputs.Underline, inputs.StrikeThrough,
+            _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        _glyphRuns.Add(cmd);
         _all.Add(cmd);
     }
 
@@ -178,6 +218,12 @@ public sealed class RecordingCanvas : ICanvas
 
     public float MeasureTextLineHeight(TextStyle style) => _measurer.MeasureTextLineHeight(style);
 
+    // Derived from the measurer rather than added to it: a recording canvas has no device pixels to
+    // snap to, so a cell is exactly one character wide and one line tall by that measurer's rules.
+    public CellMetrics MeasureCellSize(TextStyle style) => new(
+        _measurer.MeasureTextWidth("0", style),
+        _measurer.MeasureTextLineHeight(style));
+
     public int GetImageWidth(string imageId) =>
         _imageSizes.TryGetValue(imageId, out var size) ? size.Width : DefaultImageWidth;
 
@@ -192,6 +238,7 @@ public sealed class RecordingCanvas : ICanvas
     {
         _rects.Clear();
         _texts.Clear();
+        _glyphRuns.Clear();
         _images.Clear();
         _boxShadows.Clear();
         _lines.Clear();

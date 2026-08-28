@@ -7,6 +7,7 @@ public sealed class FakeCanvas : ICanvas
 {
     public void DrawRect(in DrawRectInputs inputs) { }
     public void DrawText(in DrawTextInputs inputs) { }
+    public void DrawGlyphRun(in DrawGlyphRunInputs inputs) { }
     public void DrawImage(in DrawImageInputs inputs) { }
     public void DrawBoxShadow(in DrawBoxShadowInputs inputs) { }
     public void DrawLine(in DrawLineInputs inputs) { }
@@ -34,6 +35,7 @@ public sealed class FakeCanvas : ICanvas
     public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style) =>
         Math.Clamp(prefixLength, 0, text.Length) * 8f;
     public float MeasureTextLineHeight(TextStyle style) => 16f;
+    public CellMetrics MeasureCellSize(TextStyle style) => new(8f, 16f);
 
     public int GetImageWidth(string imageId) => 0;
     public int GetImageHeight(string imageId) => 0;

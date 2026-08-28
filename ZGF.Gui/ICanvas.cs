@@ -1,4 +1,4 @@
-﻿using ZGF.Geometry;
+using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
@@ -6,6 +6,25 @@ public interface ICanvas
 {
     void DrawRect(in DrawRectInputs inputs);
     void DrawText(in DrawTextInputs inputs);
+
+    /// <summary>
+    /// Draws consecutive monospaced cells at a fixed pitch, one code point per cell.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The cell-grid counterpart to <see cref="DrawText"/>. Each code point goes straight to a
+    /// glyph and onto its own column, with no shaping, no ligatures and no kerning — which is what
+    /// makes it right for a terminal, where the grid decides the columns and the font does not get
+    /// a say, and wrong for prose, where a glyph's form and advance depend on its neighbours.
+    /// </para>
+    /// <para>
+    /// A cell two columns wide (CJK, most emoji) is drawn by putting its code point on the leading
+    /// column and a space on the trailing one, so the glyph overhangs into the column the grid has
+    /// already reserved for it. A cell holding a whole grapheme cluster rather than a single code
+    /// point cannot be expressed here and belongs in <see cref="DrawText"/>.
+    /// </para>
+    /// </remarks>
+    void DrawGlyphRun(in DrawGlyphRunInputs inputs);
     void DrawImage(in DrawImageInputs inputs);
     void DrawBoxShadow(in DrawBoxShadowInputs inputs);
     void DrawLine(in DrawLineInputs inputs);
@@ -49,6 +68,12 @@ public interface ICanvas
     float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style);
 
     float MeasureTextLineHeight(TextStyle style);
+
+    /// <summary>
+    /// The box one cell occupies for <paramref name="style"/>, and the pitch
+    /// <see cref="DrawGlyphRun"/> will place columns at. See <see cref="CellMetrics"/>.
+    /// </summary>
+    CellMetrics MeasureCellSize(TextStyle style);
 
     int GetImageWidth(string imageId);
     int GetImageHeight(string imageId);

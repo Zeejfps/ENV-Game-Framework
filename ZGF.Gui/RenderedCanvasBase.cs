@@ -570,6 +570,153 @@ public abstract class RenderedCanvasBase : ICanvas
         }
     }
 
+    public void DrawGlyphRun(in DrawGlyphRunInputs inputs)
+    {
+        var codePoints = inputs.CodePoints;
+        if (codePoints.IsEmpty)
+            return;
+
+        var style = inputs.Style;
+        var font = ResolveFont(style);
+        var color = Tint(style.TextColor.Value);
+        var clip = (uint)_clipStack.Peek();
+        var rotation = style.Rotation.Value;
+
+        var sx = _scale.X;
+        var sy = _scale.Y;
+        var tx = _translation.X;
+        var ty = _translation.Y;
+        var invScale = 1f / _dpiScale;
+
+        var metrics = _fonts.GetMetrics(font);
+        var baselineY = inputs.Origin.Y - metrics.Ascender * invScale;
+
+        // Every column is placed from one snapped origin plus an integral advance, so the row's
+        // rounding cannot accumulate and column N lands exactly where the caller's own
+        // MeasureCellSize arithmetic put it. Rounding each column's own left edge instead would
+        // drift, which is the failure this whole path exists to avoid.
+        var originDevice = MathF.Round(inputs.Origin.X * _dpiScale);
+        var advanceDevice = MathF.Max(1f, MathF.Round(inputs.CellAdvance * _dpiScale));
+        var baselineDevice = MathF.Round(baselineY * _dpiScale);
+
+        // Decorations take the earlier sequence so the glyphs land on top of them and a descender
+        // stays legible where it crosses the line.
+        if (inputs.Underline || inputs.StrikeThrough)
+        {
+            var runWidthDevice = advanceDevice * codePoints.Length;
+            var decorationKey = MakeKey(inputs.ZIndex, _sequence++);
+            var thickness = MathF.Max(1f, MathF.Round(metrics.UnderlineThickness));
+
+            if (inputs.Underline)
+            {
+                StageDecoration(decorationKey, originDevice, runWidthDevice,
+                    baselineDevice + MathF.Round(metrics.UnderlinePosition), thickness,
+                    color, clip, sx, sy, tx, ty);
+            }
+
+            if (inputs.StrikeThrough)
+            {
+                // FreeType exposes the post table's underline but not the OS/2 table's strikeout,
+                // so this height is derived rather than read: a third of the ascender puts the line
+                // through the middle of lowercase in every face we bundle.
+                StageDecoration(decorationKey, originDevice, runWidthDevice,
+                    baselineDevice + MathF.Round(metrics.Ascender / 3f), thickness,
+                    color, clip, sx, sy, tx, ty);
+            }
+        }
+
+        var glyphKey = MakeKey(inputs.ZIndex, _sequence++);
+        var atlasWidth = (float)_fonts.AtlasWidth;
+        var atlasHeight = (float)_fonts.AtlasHeight;
+
+        for (var i = 0; i < codePoints.Length; i++)
+        {
+            var codePoint = codePoints[i];
+            if (!IsPrintableScalar(codePoint))
+                continue;
+
+            if (!_fonts.TryGetGlyph(_fonts.ResolveGlyph(font, codePoint), out var glyph))
+                continue;
+            if (glyph.Width <= 0 || glyph.Height <= 0)
+                continue;
+
+            var glyphW = glyph.Width * invScale;
+            var glyphH = glyph.Height * invScale;
+            var glyphX = (originDevice + i * advanceDevice + glyph.BitmapLeft) * invScale;
+            var glyphY = (baselineDevice + glyph.BitmapTop) * invScale - glyphH;
+
+            _stagedGlyphs.Add(new StagedGlyph
+            {
+                Key = glyphKey,
+                Inst = new GlyphInstance
+                {
+                    Rect = new Vector4(glyphX * sx + tx, glyphY * sy + ty, glyphW * sx, glyphH * sy),
+                    AtlasUV = new Vector4(
+                        glyph.AtlasX / atlasWidth,
+                        glyph.AtlasY / atlasHeight,
+                        glyph.Width / atlasWidth,
+                        glyph.Height / atlasHeight),
+                    Color = color,
+                    ClipIndex = clip,
+                    Rotation = rotation,
+                }
+            });
+        }
+    }
+
+    // Controls never reach a cell grid from a terminal engine, and an unpaired surrogate or an
+    // out-of-range value is not a character at all; drawing either would put .notdef tofu on the
+    // screen for something the caller did not ask to see.
+    private static bool IsPrintableScalar(int codePoint) =>
+        codePoint >= 0x20 &&
+        codePoint <= 0x10FFFF &&
+        codePoint != 0x7F &&
+        (codePoint < 0xD800 || codePoint > 0xDFFF) &&
+        (codePoint < 0x80 || codePoint > 0x9F);
+
+    private void StageDecoration(long key, float leftDevice, float widthDevice, float bottomDevice,
+        float thicknessDevice, uint color, uint clip, float sx, float sy, float tx, float ty)
+    {
+        var invScale = 1f / _dpiScale;
+        var left = leftDevice * invScale;
+        var bottom = bottomDevice * invScale;
+        var width = widthDevice * invScale;
+        var height = thicknessDevice * invScale;
+
+        _stagedRects.Add(new StagedRect
+        {
+            Key = key,
+            Inst = new RectInstance
+            {
+                Rect = new Vector4(
+                    MathF.Ceiling(left * sx + tx),
+                    MathF.Ceiling(bottom * sy + ty),
+                    MathF.Ceiling(width * sx),
+                    MathF.Ceiling(height * sy)),
+                BgColor = color,
+                ClipIndex = clip,
+            }
+        });
+    }
+
+    public CellMetrics MeasureCellSize(TextStyle style)
+    {
+        var font = ResolveFont(style);
+        var metrics = _fonts.GetMetrics(font);
+        var invScale = 1f / _dpiScale;
+
+        // Measured from a real glyph rather than assumed from the nominal size: an emboldened
+        // variant and a fallback face both advance differently from the size they were asked for.
+        // Any glyph answers for a monospaced font; a digit is the one every face has.
+        var advanceDevice = 0f;
+        if (_fonts.TryGetGlyph(_fonts.ResolveGlyph(font, '0'), out var glyph))
+            advanceDevice = glyph.XAdvance;
+
+        return new CellMetrics(
+            MathF.Max(1f, MathF.Round(advanceDevice)) * invScale,
+            MathF.Max(1f, MathF.Round(metrics.LineHeight)) * invScale);
+    }
+
     private void ShapeAndDrawLine(FontHandle font, ReadOnlySpan<char> line,
         float boxLeft, float boxWidth, TextPlacement placement, BidiDirection baseDir, float baselineY,
         float sx, float sy, float tx, float ty,

@@ -215,6 +215,7 @@ public class CubicBezierTests
 
         public void DrawRect(in DrawRectInputs inputs) { }
         public void DrawText(in DrawTextInputs inputs) { }
+        public void DrawGlyphRun(in DrawGlyphRunInputs inputs) { }
         public void DrawImage(in DrawImageInputs inputs) { }
         public void DrawBoxShadow(in DrawBoxShadowInputs inputs) { }
         public void DrawLine(in DrawLineInputs inputs) { }
@@ -232,6 +233,7 @@ public class CubicBezierTests
         public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style) => 0f;
         public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style) => 0f;
         public float MeasureTextLineHeight(TextStyle style) => 0f;
+        public CellMetrics MeasureCellSize(TextStyle style) => default;
         public int GetImageWidth(string imageId) => 0;
         public int GetImageHeight(string imageId) => 0;
     }

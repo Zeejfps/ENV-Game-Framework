@@ -7,7 +7,7 @@ using HbBuffer = HarfBuzzSharp.Buffer;
 
 namespace ZGF.Fonts;
 
-public sealed unsafe class FreeTypeFontBackend
+public sealed unsafe class FreeTypeFontBackend : IDisposable
 {
     private const int ShapeCacheGenCap = 256;
 
@@ -149,7 +149,34 @@ public sealed unsafe class FreeTypeFontBackend
         var ascender = m.ascender.ToInt64() / 64f;
         var descender = m.descender.ToInt64() / 64f;
         var height = m.height.ToInt64() / 64f;
-        return new FontMetrics(ascender, descender, height);
+        UnderlineMetrics(entry, descender, out var underlinePos, out var underlineThickness);
+        return new FontMetrics(ascender, descender, height, underlinePos, underlineThickness);
+    }
+
+    // The post table's underline is in font units and has to be scaled to this size. Bitmap-only
+    // faces and a few scalable ones leave it at zero; half the descender is the usual stand-in, and
+    // a hairline is still a line, so the thickness floors at one pixel.
+    private static void UnderlineMetrics(FontEntry entry, float descender,
+        out float position, out float thickness)
+    {
+        var upem = entry.Face->units_per_EM;
+        var raw = (float)entry.Face->underline_position;
+        var rawThickness = (float)entry.Face->underline_thickness;
+
+        if (upem > 0 && raw != 0f)
+        {
+            var yPpem = entry.Face->size->metrics.y_ppem;
+            var scale = yPpem / (float)upem;
+            position = raw * scale;
+            thickness = rawThickness * scale;
+        }
+        else
+        {
+            position = descender * 0.5f;
+            thickness = 0f;
+        }
+
+        thickness = MathF.Max(thickness, 1f);
     }
 
     public uint GetGlyphIndex(FontHandle font, int codePoint)
@@ -158,6 +185,50 @@ public sealed unsafe class FreeTypeFontBackend
         var entry = GetEntry(font);
         return FT_Get_Char_Index(entry.Face, (UIntPtr)(uint)codePoint);
     }
+
+    /// Resolves one code point to a glyph without shaping: the primary font's glyph when it has
+    /// one, otherwise the first registered fallback that covers it, otherwise the primary's
+    /// .notdef. Cached per (font, code point), because a cell grid asks this once per cell per
+    /// frame and the answer only changes when a fallback is registered.
+    ///
+    /// This is the fixed-advance path for monospaced cell content; it deliberately skips HarfBuzz,
+    /// so it applies no ligatures, no kerning and no mark positioning. Text whose appearance
+    /// depends on its neighbours belongs in ShapeText.
+    public GlyphRef ResolveGlyph(FontHandle font, int codePoint)
+    {
+        ThrowIfDisposed();
+        var entry = GetEntry(font);
+
+        var cache = entry.ResolvedGlyphs ??= new Dictionary<int, GlyphRef>();
+        if (cache.TryGetValue(codePoint, out var cached))
+            return cached;
+
+        var resolved = ResolveGlyphUncached(font, entry, codePoint);
+        cache[codePoint] = resolved;
+        return resolved;
+    }
+
+    private GlyphRef ResolveGlyphUncached(FontHandle font, FontEntry entry, int codePoint)
+    {
+        var primary = FT_Get_Char_Index(entry.Face, (UIntPtr)(uint)codePoint);
+        if (primary != 0 || _fallbacks.Count == 0)
+            return new GlyphRef(font, primary);
+
+        var entries = BuildFallbackChain(font, entry, out var chain);
+        for (var k = 1; k < entries.Length; k++)
+        {
+            var index = FT_Get_Char_Index(entries[k].Face, (UIntPtr)(uint)codePoint);
+            if (index != 0)
+                return new GlyphRef(chain[k], index);
+        }
+
+        return new GlyphRef(font, 0);
+    }
+
+    /// The rasterized glyph a <see cref="GlyphRef"/> names. Preferred over the (font, index) pair
+    /// wherever a resolution produced the index, because the two cannot then be crossed.
+    public bool TryGetGlyph(GlyphRef glyph, out GlyphRenderInfo info) =>
+        TryGetGlyph(glyph.Font, glyph.GlyphIndex, out info);
 
     public bool TryGetGlyph(FontHandle font, uint glyphIndex, out GlyphRenderInfo info)
     {
@@ -275,7 +346,10 @@ public sealed unsafe class FreeTypeFontBackend
         // cached that way permanently. Drop every cached shape so it re-itemizes against the new
         // chain. Registration happens once at startup, off the per-frame hot path.
         foreach (var entry in _fonts)
+        {
             entry.ShapeBuckets = null;
+            entry.ResolvedGlyphs = null;
+        }
     }
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
@@ -581,6 +655,22 @@ public sealed unsafe class FreeTypeFontBackend
         cur[key] = shaped;
     }
 
+    // How many shaped runs this font is holding, across every feature bucket and both cache
+    // generations. Exposed for the test that pins the fixed-advance path as shaping-free: a cell
+    // grid that quietly went through ShapeText would still look right and would evict this cache
+    // for every other view in the window.
+    internal int ShapedRunCacheCount(FontHandle font)
+    {
+        var entry = GetEntry(font);
+        if (entry.ShapeBuckets is null)
+            return 0;
+
+        var total = 0;
+        foreach (var bucket in entry.ShapeBuckets.Values)
+            total += (bucket.Cur?.Count ?? 0) + (bucket.Old?.Count ?? 0);
+        return total;
+    }
+
     private FontEntry GetEntry(FontHandle handle)
     {
         if (!handle.IsValid || handle.Id > _fonts.Count)
@@ -643,6 +733,11 @@ public sealed unsafe class FreeTypeFontBackend
 
         // Per-feature-set cache of shaped runs, keyed by the feature signature (see PutShape).
         public Dictionary<ulong, ShapeBucket>? ShapeBuckets;
+
+        // Cache of ResolveGlyph answers, keyed by code point. Unbounded on purpose: it holds one
+        // small entry per distinct code point the font has actually been asked for, which a script
+        // bounds far below the per-line keying the shape cache has to evict against.
+        public Dictionary<int, GlyphRef>? ResolvedGlyphs;
     }
 
     // Two-generation cache of shaped runs keyed by line text, scoped to one feature set.
