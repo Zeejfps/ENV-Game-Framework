@@ -587,7 +587,7 @@ public class View
     // translation) that affect drawing but never size or position. Draw traversal is unconditional
     // from the root, so reaching the root's OnRedrawNeeded is all a repaint needs; the dirty bits
     // and measure caches (a layout concern) are deliberately left untouched.
-    private void MarkVisualDirty()
+    protected void MarkVisualDirty()
     {
         var top = this;
         while (top.Parent != null)
