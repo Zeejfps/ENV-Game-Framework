@@ -8,6 +8,15 @@ public struct MouseWheelScrolledEvent : IEvent
     public required EventPhase Phase { get; set; }
 
     /// <summary>
+    /// The modifier keys held as the wheel turned. Not <c>required</c>, and not read from the scroll
+    /// callback: the platform hands one wheel event two coordinates and nothing else, so this is the
+    /// modifier state the window last saw on a key or a button. A consumer that needs a chord on the
+    /// wheel — xterm's convention that Shift takes it back from the program reading the mouse — has
+    /// no other way to know.
+    /// </summary>
+    public InputModifiers Modifiers { get; init; }
+
+    /// <summary>
     /// Where this event sits in the user's own scrolling gesture — fingers down, moving, lifted. Optional
     /// (defaults to <see cref="ScrollPhase.None"/>) because only a precise input device on a platform that
     /// reports it fills this in; a mouse wheel never does.

@@ -352,7 +352,17 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             ?? throw NotFound("view with id or label", idOrLabel, AllCandidates());
     }
 
-    public void Scroll(float dx, float dy)
+    /// <summary>
+    /// A wheel event. <paramref name="gesture"/> is what separates a mouse from a trackpad: a
+    /// discrete wheel leaves it <see cref="ScrollPhase.None"/>, and only a precise device ever
+    /// reports a phase, so a consumer that scales the two differently is driven by setting it.
+    /// </summary>
+    public void Scroll(
+        float dx,
+        float dy,
+        InputModifiers mods = InputModifiers.None,
+        ScrollPhase gesture = ScrollPhase.None,
+        ScrollPhase momentum = ScrollPhase.None)
     {
         var e = new MouseWheelScrolledEvent
         {
@@ -360,6 +370,9 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             DeltaX = dx,
             DeltaY = dy,
             Phase = EventPhase.Capturing,
+            Modifiers = mods,
+            GesturePhase = gesture,
+            MomentumPhase = momentum,
         };
         _input.SendMouseScrollEvent(ref e);
     }

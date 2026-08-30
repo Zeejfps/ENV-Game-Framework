@@ -22,6 +22,12 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     // part of the same gesture and must be swallowed too — dispatched alone, it would land
     // on whatever sits under the cursor now that the menu is gone.
     private readonly HashSet<MouseButton> _modalDismissButtons = new();
+    // The modifiers the wheel is stamped with. Keys and mouse buttons arrive from the platform with
+    // the modifier state attached; a scroll arrives with two coordinates and nothing else, so the
+    // only way a consumer can see a chord on the wheel is for the window to remember what it last
+    // saw. Cleared when the window loses focus, because a chord released elsewhere is never seen
+    // being released here and would otherwise stay held for as long as the window is away.
+    private InputModifiers _modifiers;
 
     public InputSystem InputSystem { get; } = new();
     public Mouse Mouse { get; } = new();
@@ -46,6 +52,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         _window.OnPreedit += HandlePreeditEvent;
         _window.OnMouseButton += HandleMouseButtonEvent;
         _window.OnScroll += HandleScrollEvent;
+        _window.OnFocusChanged += HandleFocusChanged;
         _window.OnPointerEnter += HandleCursorEnter;
 
         InputSystem.ImeHost = this;
@@ -270,6 +277,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
             Phase = EventPhase.Capturing,
             GesturePhase = gesturePhase,
             MomentumPhase = momentumPhase,
+            Modifiers = _modifiers,
         };
         InputSystem.SendMouseScrollEvent(ref e);
         OnAnyInput?.Invoke();
@@ -277,6 +285,8 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandleMouseButtonEvent(int buttonIndex, InputAction action, KeyModifiers modifiers)
     {
+        _modifiers = (InputModifiers)modifiers;
+
         _window.GetCursorPosition(out var mouseX, out var mouseY);
         Mouse.Point = WindowToGuiCoords(mouseX, mouseY);
         var b = buttonIndex switch
@@ -338,8 +348,15 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         OnAnyInput?.Invoke();
     }
 
+    private void HandleFocusChanged(bool focused)
+    {
+        if (!focused) _modifiers = InputModifiers.None;
+    }
+
     private void HandleKeyEvent(KeyboardKey key, InputAction action, KeyModifiers mods)
     {
+        _modifiers = (InputModifiers)mods;
+
         var e = new KeyboardKeyEvent
         {
             Key = key,
