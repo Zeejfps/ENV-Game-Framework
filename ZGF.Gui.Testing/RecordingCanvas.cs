@@ -89,11 +89,35 @@ public sealed class RecordingCanvas : ICanvas
     private Vector2 CurrentTranslation() => _translations.Count > 0 ? _translations.Peek() : Vector2.Zero;
     private Vector2 CurrentScale() => _scales.Count > 0 ? _scales.Peek() : Vector2.One;
 
+    /// <remarks>
+    /// A canvas may not hold on to the style it is handed: the rendering canvas reads its fields
+    /// straight into the staged instance and keeps no reference, so a view drawing a screenful of
+    /// them is free to reuse one style object for every call. A recorder that kept the reference
+    /// would report every command in the frame with whatever the last one happened to set.
+    /// </remarks>
+    static RectStyle Snapshot(RectStyle style) => new()
+    {
+        BackgroundColor = style.BackgroundColor,
+        BorderColor = style.BorderColor,
+        BorderSize = style.BorderSize,
+        BorderRadius = style.BorderRadius,
+        BoxShadow = style.BoxShadow,
+    };
+
+    /// <inheritdoc cref="Snapshot(RectStyle)"/>
+    static TextStyle Snapshot(TextStyle style) => style with { };
+
     public void DrawRect(in DrawRectInputs inputs)
     {
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedRect(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var recorded = new DrawRectInputs
+        {
+            Position = inputs.Position,
+            Style = Snapshot(inputs.Style),
+            ZIndex = inputs.ZIndex,
+        };
+        var cmd = new RecordedRect(recorded, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
         _rects.Add(cmd);
         _all.Add(cmd);
     }
@@ -102,7 +126,14 @@ public sealed class RecordingCanvas : ICanvas
     {
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedText(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var recorded = new DrawTextInputs
+        {
+            Position = inputs.Position,
+            Text = inputs.Text,
+            Style = Snapshot(inputs.Style),
+            ZIndex = inputs.ZIndex,
+        };
+        var cmd = new RecordedText(recorded, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
         _texts.Add(cmd);
         _all.Add(cmd);
     }
@@ -112,7 +143,7 @@ public sealed class RecordingCanvas : ICanvas
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedGlyphRun(
-            inputs.Origin, inputs.CodePoints.ToArray(), inputs.CellAdvance, inputs.Style, inputs.ZIndex,
+            inputs.Origin, inputs.CodePoints.ToArray(), inputs.CellAdvance, Snapshot(inputs.Style), inputs.ZIndex,
             inputs.Underline, inputs.StrikeThrough,
             _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
         _glyphRuns.Add(cmd);
