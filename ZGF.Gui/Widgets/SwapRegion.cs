@@ -13,6 +13,10 @@ namespace ZGF.Gui.Widgets;
 /// incoming one fresh. <paramref name="keepAlive"/> mode instead caches each built branch in a slot
 /// of its own and toggles the slot, so a hidden branch stays mounted and its subscriptions keep
 /// running without anything out here writing to the branch's own root view.</para>
+/// <para>The region owns its host's <see cref="View.IsVisible"/> — swap mode hides the host while it
+/// has no branch to show — so an author's <see cref="Widget.Visible"/> is routed in through
+/// <see cref="SetAuthorVisible"/> and combined with that, rather than the two writing over each
+/// other.</para>
 /// </summary>
 internal sealed class SwapRegion<T> : IViewBehavior
 {
@@ -24,6 +28,8 @@ internal sealed class SwapRegion<T> : IViewBehavior
 
     private IDisposable? _subscription;
     private View? _current;
+    private bool _hasContent = true;
+    private bool _authorVisible = true;
 
     public SwapRegion(Context ctx, ContainerView host, IReadable<T> key, Func<T, IWidget> build, bool keepAlive = false)
     {
@@ -33,6 +39,15 @@ internal sealed class SwapRegion<T> : IViewBehavior
         _build = build;
         if (keepAlive)
             _cache = new Dictionary<T, View>();
+    }
+
+    /// <summary>The author's <see cref="Widget.Visible"/> for this region, kept apart from whether the
+    /// region has a branch to show. The host is visible only when both say so, and either side can
+    /// change at any time — a constant prop lands before the first swap, a bound one after it.</summary>
+    public void SetAuthorVisible(bool visible)
+    {
+        _authorVisible = visible;
+        _host.IsVisible = _hasContent && _authorVisible;
     }
 
     public void Attach(View view) => _subscription = _key.Subscribe(Swap);
@@ -66,13 +81,11 @@ internal sealed class SwapRegion<T> : IViewBehavior
         }
 
         var widget = _build(key);
-        if (ReferenceEquals(widget, Empty.Widget))
-        {
-            _host.IsVisible = false;
+        _hasContent = !ReferenceEquals(widget, Empty.Widget);
+        _host.IsVisible = _hasContent && _authorVisible;
+        if (!_hasContent)
             return;
-        }
 
-        _host.IsVisible = true;
         _current = widget.BuildView(_ctx);
         _host.Children.Add(_current);
     }
@@ -99,4 +112,15 @@ internal sealed class SwapRegion<T> : IViewBehavior
         slot.IsVisible = true;
         _current = slot;
     }
+}
+
+/// <summary>
+/// The container a <see cref="Show"/> or <see cref="Switch{T}"/> builds into. It carries the region
+/// that owns its <see cref="View.IsVisible"/> so the widget can hand an authored
+/// <see cref="Widget.Visible"/> to that owner, instead of a second writer setting the same flag and
+/// the two taking turns overwriting each other.
+/// </summary>
+internal sealed class SwapHostView : ContainerView
+{
+    internal Action<bool>? SetAuthorVisible { get; set; }
 }

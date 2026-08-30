@@ -194,4 +194,69 @@ public class ControlFlowTests
         Assert.False(host.Children[1].IsVisible);
         Assert.True(host.Children[0].IsVisible);
     }
+
+    [Fact]
+    public void Show_VisibleProp_SurvivesASwap()
+    {
+        var log = new List<string>();
+        var when = new State<bool>(true);
+        var visible = new State<bool>(false);
+        var host = new Show
+        {
+            When = when,
+            Then = () => new Probe("then", log),
+            Else = () => new Probe("else", log),
+            Visible = visible,
+        }.BuildView(new Context());
+        host.Mount();
+
+        Assert.False(host.IsVisible);
+
+        when.Value = false;
+
+        Assert.False(host.IsVisible);
+
+        visible.Value = true;
+
+        Assert.True(host.IsVisible);
+    }
+
+    [Fact]
+    public void Show_VisibleTrue_WithoutElse_StillHidesHostWhenEmpty()
+    {
+        var when = new State<bool>(false);
+        var host = new Show
+        {
+            When = when,
+            Then = () => new Probe("then", []),
+            Visible = new State<bool>(true),
+        }.BuildView(new Context());
+        host.Mount();
+
+        Assert.False(host.IsVisible);
+
+        when.Value = true;
+
+        Assert.True(host.IsVisible);
+    }
+
+    [Fact]
+    public void Switch_KeepAlive_HonoursTheVisibleProp()
+    {
+        var mode = new State<int>(0);
+        var visible = new State<bool>(true);
+        var host = new Switch<int>
+        {
+            Value = mode,
+            KeepAlive = true,
+            Case = m => new Probe($"case{m}", []),
+            Visible = visible,
+        }.BuildView(new Context());
+        host.Mount();
+
+        visible.Value = false;
+        mode.Value = 1;
+
+        Assert.False(host.IsVisible);
+    }
 }

@@ -22,8 +22,13 @@ public sealed record Switch<T> : Widget
 
     protected override View CreateView(Context ctx)
     {
-        var host = new ContainerView();
-        host.Behaviors.Add(new SwapRegion<T>(ctx, host, Value, Case, KeepAlive));
+        var host = new SwapHostView();
+        var region = new SwapRegion<T>(ctx, host, Value, Case, KeepAlive);
+        host.SetAuthorVisible = region.SetAuthorVisible;
+        host.Behaviors.Add(region);
         return host;
     }
+
+    protected override void ApplyVisible(Context ctx, View view) =>
+        Visible.Apply(ctx, view, static (v, vis) => ((SwapHostView)v).SetAuthorVisible!(vis));
 }

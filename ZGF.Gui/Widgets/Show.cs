@@ -21,9 +21,14 @@ public sealed record Show : Widget
 
     protected override View CreateView(Context ctx)
     {
-        var host = new ContainerView();
-        host.Behaviors.Add(new SwapRegion<bool>(ctx, host, When,
-            on => on ? Then() : Else?.Invoke() ?? Empty.Widget));
+        var host = new SwapHostView();
+        var region = new SwapRegion<bool>(ctx, host, When,
+            on => on ? Then() : Else?.Invoke() ?? Empty.Widget);
+        host.SetAuthorVisible = region.SetAuthorVisible;
+        host.Behaviors.Add(region);
         return host;
     }
+
+    protected override void ApplyVisible(Context ctx, View view) =>
+        Visible.Apply(ctx, view, static (v, vis) => ((SwapHostView)v).SetAuthorVisible!(vis));
 }

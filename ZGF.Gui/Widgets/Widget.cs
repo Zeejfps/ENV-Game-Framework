@@ -59,7 +59,7 @@ public abstract record Widget : IWidget
         MinHeight.Apply(ctx, v,static (x, h) => x.MinHeightConstraint = h);
         MaxWidth.Apply(ctx, v,static (x, w) => x.MaxWidthConstraint = w);
         MaxHeight.Apply(ctx, v,static (x, h) => x.MaxHeightConstraint = h);
-        Visible.Apply(ctx, v,static (x, vis) => x.IsVisible = vis);
+        ApplyVisible(ctx, v);
         Opacity.Apply(ctx, v,static (x, o) => x.Opacity = o);
         TranslationX.Apply(ctx, v,static (x, t) => x.TranslationX = t);
         TranslationY.Apply(ctx, v,static (x, t) => x.TranslationY = t);
@@ -70,6 +70,15 @@ public abstract record Widget : IWidget
         if (!Accessibility.IsEmpty) v.Accessibility = v.Accessibility.Overlay(Accessibility);
         return v;
     }
+
+    /// <summary>
+    /// Wires <see cref="Visible"/> onto the built view. Virtual for the widgets that already own
+    /// their view's <see cref="View.IsVisible"/>: a structural region hides its host while it has no
+    /// branch to show, so it has to combine the author's prop with that rather than have the flag
+    /// written out from under it.
+    /// </summary>
+    protected virtual void ApplyVisible(Context ctx, View view) =>
+        Visible.Apply(ctx, view, static (x, vis) => x.IsVisible = vis);
 
     /// <summary>Compose: resolve dependencies and return other widgets.</summary>
     protected virtual IWidget Build(Context ctx) =>
