@@ -282,14 +282,17 @@ public abstract class RenderedCanvasBase : ICanvas
         var style = inputs.Style;
         var pos = inputs.Position;
 
-        // Snap origin with Ceiling and size separately so drawn dimensions don't depend
-        // on the fractional part of the origin (which would otherwise wobble +/- 1px
-        // across frames as subpixel layout drift flips Round's banker's-rounding tie).
+        // Snap each edge independently with the same rule, then derive the size from the snapped
+        // edges. Snapping the size on its own instead would let two rects that share an edge in
+        // layout space land a pixel apart once their origins have different fractional parts —
+        // the seam that shows up as a hairline gap between a bordered container and the child
+        // filling it. The cost is that a rect's drawn size can vary by a pixel as it moves
+        // subpixel, which is inherent to snapping and invisible next to a broken seam.
         var savg = (_scale.X + _scale.Y) * 0.5f;
         var left = MathF.Ceiling(pos.Left * _scale.X + _translation.X);
         var bottom = MathF.Ceiling(pos.Bottom * _scale.Y + _translation.Y);
-        var width = MathF.Ceiling(pos.Width * _scale.X);
-        var height = MathF.Ceiling(pos.Height * _scale.Y);
+        var width = MathF.Max(0f, MathF.Ceiling(pos.Right * _scale.X + _translation.X) - left);
+        var height = MathF.Max(0f, MathF.Ceiling(pos.Top * _scale.Y + _translation.Y) - bottom);
 
         _stagedRects.Add(new StagedRect
         {
