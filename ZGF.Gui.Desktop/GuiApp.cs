@@ -130,6 +130,7 @@ public sealed class GuiApp : IDisposable
         app.MainWindow.OnFramebufferResize += HandleFramebufferResize;
         app.MainWindow.OnMove += HandleMove;
         app.MainWindow.OnFocusChanged += HandleMainFocusChanged;
+        app.MainWindow.OnClose += HandleMainWindowClose;
 
         // .NET Hot Reload (dotnet watch / Rider) patches edited Build/CreateView IL in place but
         // re-runs nothing, so the live tree keeps drawing the old output. Rebuild it when a delta
@@ -351,7 +352,45 @@ public sealed class GuiApp : IDisposable
     public void Run() => _app.Run();
 
     /// <summary>Asks the run loop to exit; <see cref="Run"/> returns after the current iteration.</summary>
+    /// <remarks>Unconditional: <see cref="OnCloseRequested"/> handlers do not see it. Anything a user
+    /// can trigger goes through <see cref="RequestQuit"/> instead, so that a handler holding the app
+    /// open is not bypassed; this is what a handler calls once the user has agreed to close.</remarks>
     public void Quit() => _app.Quit();
+
+    /// <summary>
+    /// Raised before the application closes, for handlers that need to hold it open — unsaved work,
+    /// a process that would be killed. Cancelling makes the request the handler's to resolve.
+    /// </summary>
+    /// <remarks>
+    /// Every OS close arrives here: the title-bar button, Alt+F4, and macOS's Quit, which asks each
+    /// window to close rather than terminating outright. Handlers run on the UI thread inside the
+    /// event poll, so a handler that wants to show something should post it rather than build it
+    /// here.
+    /// </remarks>
+    public event Action<CloseRequest>? OnCloseRequested;
+
+    /// <summary>
+    /// Asks to close, letting <see cref="OnCloseRequested"/> handlers hold the application open.
+    /// Returns whether it is closing.
+    /// </summary>
+    public bool RequestQuit()
+    {
+        var request = new CloseRequest();
+        OnCloseRequested?.Invoke(request);
+
+        if (request.IsCancelled)
+        {
+            // The window may already be marked as closing — the OS marks it before raising the
+            // request — so withdrawing the mark is what actually keeps the run loop going.
+            _app.MainWindow.CancelClose();
+            return false;
+        }
+
+        _app.Quit();
+        return true;
+    }
+
+    private void HandleMainWindowClose() => RequestQuit();
 
     /// <summary>Schedules a main-window repaint — for embedded rendering that animates
     /// state the view tree doesn't know about (e.g. a scene's model matrix).</summary>
@@ -450,6 +489,7 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
         _app.MainWindow.OnMove -= HandleMove;
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
+        _app.MainWindow.OnClose -= HandleMainWindowClose;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();
         // Secondary/popup teardown above left their own (now-destroyed) contexts current. The

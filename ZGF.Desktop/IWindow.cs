@@ -22,6 +22,10 @@ public interface IWindow : IDisposable
     event Action<int, int> OnMove;
     event Action<bool> OnFocusChanged;
     event Action OnClose;
+    // Withdraws a close request while handling OnClose, keeping the window — and, for the main
+    // window, the run loop — alive. The platform marks a window as closing before it raises the
+    // request, so a handler that wants to ask the user something first has to unmark it here.
+    void CancelClose();
 
     event Action<KeyboardKey, InputAction, KeyModifiers> OnKey;
     // A character committed by the OS text-input pipeline, as a Unicode code point — already
