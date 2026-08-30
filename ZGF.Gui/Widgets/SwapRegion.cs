@@ -10,8 +10,9 @@ namespace ZGF.Gui.Widgets;
 /// change — so a stable discriminator never rebuilds, and the live branch keeps its focus,
 /// scroll and animation state.
 /// <para>Default (swap) mode disposes the outgoing branch's bindings via unmount and builds the
-/// incoming one fresh. <paramref name="keepAlive"/> mode instead caches each built branch and
-/// toggles visibility, so a hidden branch stays mounted and its subscriptions keep running.</para>
+/// incoming one fresh. <paramref name="keepAlive"/> mode instead caches each built branch in a slot
+/// of its own and toggles the slot, so a hidden branch stays mounted and its subscriptions keep
+/// running without anything out here writing to the branch's own root view.</para>
 /// </summary>
 internal sealed class SwapRegion<T> : IViewBehavior
 {
@@ -76,19 +77,26 @@ internal sealed class SwapRegion<T> : IViewBehavior
         _host.Children.Add(_current);
     }
 
+    // Each cached branch gets its own slot view, and the slot — never the branch's own root — is
+    // what gets shown and hidden. A branch whose root is itself a swap region (a Show or Switch at
+    // the top of its widget) owns that root's IsVisible and will set it back to true the next time
+    // its own discriminator fires; toggling it from out here would mean two owners for one flag,
+    // and a hidden branch reappearing over the visible one the moment its data changed.
     private void KeepAliveSwap(T key)
     {
         if (_current != null)
             _current.IsVisible = false;
 
-        if (!_cache!.TryGetValue(key, out var next))
+        if (!_cache!.TryGetValue(key, out var slot))
         {
-            next = _build(key).BuildView(_ctx);
-            _cache[key] = next;
-            _host.Children.Add(next);
+            var built = new ContainerView();
+            built.Children.Add(_build(key).BuildView(_ctx));
+            slot = built;
+            _cache[key] = slot;
+            _host.Children.Add(slot);
         }
 
-        next.IsVisible = true;
-        _current = next;
+        slot.IsVisible = true;
+        _current = slot;
     }
 }

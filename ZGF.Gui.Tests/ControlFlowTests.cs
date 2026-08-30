@@ -166,4 +166,32 @@ public class ControlFlowTests
             ["case0:build", "case0:attach", "case1:build", "case1:attach"],
             log);
     }
+
+    [Fact]
+    public void Switch_KeepAlive_HiddenBranchStaysHidden_WhenItsOwnSwapFires()
+    {
+        var log = new List<string>();
+        var mode = new State<int>(0);
+        var inner = new State<int>(0);
+        var host = (ContainerView)new Switch<int>
+        {
+            Value = mode,
+            KeepAlive = true,
+            Case = m => m == 0
+                ? new Probe("case0", log)
+                : new Switch<int>
+                {
+                    Value = inner,
+                    Case = i => new Probe($"inner{i}", log),
+                },
+        }.BuildView(new Context());
+        host.Mount();
+
+        mode.Value = 1;
+        mode.Value = 0;
+        inner.Value = 1;
+
+        Assert.False(host.Children[1].IsVisible);
+        Assert.True(host.Children[0].IsVisible);
+    }
 }
