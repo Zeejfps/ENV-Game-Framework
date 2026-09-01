@@ -18,6 +18,52 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     private readonly ImeCoordinator? _ime;
     private readonly WindowCoordinates _coordinates;
     private bool _pendingExitClear;
+
+    // Where the OS cursor was at the last poll, so a poll can tell "the pointer moved" from "the
+    // pointer is where it was". Null until the first reading.
+    private PointF? _lastPolledPoint;
+
+    // Where the physical cursor sat when a driver took the pointer, so a real hand can be told
+    // from the stillness the driver relies on.
+    private PointF? _physicalAtSuspend;
+
+    /// <summary>How far the physical cursor must travel to take the pointer back from a driver.
+    /// Small enough that anyone reaching for the mouse wins immediately, large enough that a
+    /// desk bump or a sub-pixel jitter does not.</summary>
+    private const float ResumeThreshold = 4f;
+
+    /// <summary>
+    /// Set while something is driving the pointer — automation, a test harness — so the physical
+    /// cursor is ignored rather than dragging the driven pointer back every frame. Released as
+    /// soon as the physical cursor actually travels, so a person is never locked out of their own
+    /// mouse; a driver never has to remember to hand it back.
+    /// </summary>
+    public bool PointerDriven { get; private set; }
+
+    /// <summary>Takes the pointer for a driver. Called when a synthetic move or click is injected.</summary>
+    public void BeginDrivingPointer()
+    {
+        PointerDriven = true;
+        _window.GetCursorPosition(out var x, out var y);
+        _physicalAtSuspend = new PointF((float)x, (float)y);
+    }
+
+    /// <summary>Whether a hand has moved the real mouse far enough to want the pointer back.</summary>
+    private bool PhysicalPointerReclaimed()
+    {
+        if (_physicalAtSuspend is not { } origin) return true;
+
+        _window.GetCursorPosition(out var x, out var y);
+        if (Math.Abs((float)x - origin.X) <= ResumeThreshold &&
+            Math.Abs((float)y - origin.Y) <= ResumeThreshold)
+        {
+            return false;
+        }
+
+        PointerDriven = false;
+        _physicalAtSuspend = null;
+        return true;
+    }
     // Buttons whose press was swallowed as a modal-dismiss click. The matching release is
     // part of the same gesture and must be swallowed too — dispatched alone, it would land
     // on whatever sits under the cursor now that the menu is gone.
@@ -165,6 +211,17 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
             return;
         }
 
+        if (PointerDriven && !PhysicalPointerReclaimed())
+        {
+            // A driver owns the pointer: every branch below reads the physical cursor, and one of
+            // them reports it leaving the window — which is true of the real mouse and false of
+            // the driven one, and would take back a hover the driver is waiting on. Hover still
+            // refreshes, from wherever the driver put the pointer.
+            InputSystem.RefreshHover(Mouse);
+            _window.SetCursor(InputSystem.DesiredCursor);
+            return;
+        }
+
         if (InputSystem.HasFocus)
         {
             _window.GetCursorPosition(out var capturedX, out var capturedY);
@@ -243,14 +300,28 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         }
         
         var guiPoint = WindowToGuiCoords(mouseX, mouseY);
+
+        // A poll that finds the physical cursor where it left it says nothing about the pointer.
+        // Overwriting Mouse.Point anyway is what made injected positions impossible to use: a
+        // driven move survived a single frame before being dragged back to the physical cursor,
+        // and the drag back was itself dispatched as a move. Hover, dwell and cursor shape all
+        // follow Mouse.Point, so whoever set it last — the OS or a driver — has to keep it.
+        var physicalMoved = _lastPolledPoint is not { } last || last != guiPoint;
+        _lastPolledPoint = guiPoint;
+
         var prevPoint = Mouse.Point;
-        Mouse.Point = guiPoint;
-        if (prevPoint == guiPoint)
+        if (!physicalMoved)
         {
+            InputSystem.RefreshHover(Mouse);
+        }
+        else if (prevPoint == guiPoint)
+        {
+            Mouse.Point = guiPoint;
             InputSystem.RefreshHover(Mouse);
         }
         else
         {
+            Mouse.Point = guiPoint;
             var e = new MouseMoveEvent
             {
                 Mouse = Mouse,

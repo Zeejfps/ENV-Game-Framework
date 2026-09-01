@@ -226,6 +226,35 @@ public sealed class GuiDriver : ITypeSink
         return $"clicked {target} at ({point.X:0},{point.Y:0})";
     });
 
+    /// <summary>
+    /// Moves the pointer without pressing anything, so hover behaviour — tooltips, hover cards,
+    /// cursor changes, anything driven by dwell — can be exercised. A click was the only way to
+    /// place the pointer before this, which is no use for the things that a click dismisses.
+    /// </summary>
+    internal string MoveTool(float? x, float? y, string? id, string? label, string? text, bool exact, string? window) =>
+        RunOnUi(() =>
+        {
+            GuiSurface surface;
+            PointF point;
+            string target;
+            if (x is { } px && y is { } py)
+            {
+                surface = ResolveWindow(window) ?? throw NoWindow(window);
+                point = new PointF(px, py);
+                target = $"{surface.Role} ({px:0},{py:0})";
+            }
+            else
+            {
+                var hit = ResolveAcross(id, label, text, exact) ?? throw NotFound(id ?? label ?? text);
+                surface = hit.Surface;
+                point = hit.View.Position.Center;
+                target = $"{surface.Role} {Describe(hit.View)}";
+            }
+
+            InjectMove(surface.Input, point);
+            return $"moved to {target} at ({point.X:0},{point.Y:0})";
+        });
+
     internal string TypeTool(string text)
     {
         Type(text);
@@ -297,14 +326,32 @@ public sealed class GuiDriver : ITypeSink
         }
     }
 
+    /// <summary>
+    /// Places the pointer and dispatches the move, hover bookkeeping included. Shared with
+    /// <see cref="InjectClick"/> so a driven click reaches a view the same way a real one does —
+    /// pointer first, button second.
+    /// </summary>
+    private static void InjectMove(DesktopInputSystem input, PointF point)
+    {
+        var mouse = input.Mouse;
+        input.BeginDrivingPointer();
+        mouse.Point = point;
+
+        // Hover first, then the move. A driven pointer teleports, and a move is delivered to the
+        // views the pointer is over — which, without this, are still the ones it was over before
+        // the jump. A real pointer travels and so is always already there.
+        input.InputSystem.RefreshHover(mouse);
+
+        var move = new MouseMoveEvent { Mouse = mouse, Phase = EventPhase.Capturing };
+        input.InputSystem.SendMouseMovedEvent(ref move);
+    }
+
     private static void InjectClick(DesktopInputSystem input, PointF point, MouseButton button)
     {
         var mouse = input.Mouse;
         var sys = input.InputSystem;
 
-        mouse.Point = point;
-        var move = new MouseMoveEvent { Mouse = mouse, Phase = EventPhase.Capturing };
-        sys.SendMouseMovedEvent(ref move);
+        InjectMove(input, point);
 
         mouse.Press(button);
         var down = new MouseButtonEvent

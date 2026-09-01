@@ -48,7 +48,7 @@ public sealed class GuiMcpServer : IDisposable
             catch (Exception ex) { Console.WriteLine($"[GuiMcpServer] listener stopped: {ex.Message}"); }
         }) { IsBackground = true, Name = "ZGF-GuiMcpServer" };
         _thread.Start();
-        Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {baseUrl}/mcp  (tools: gui_snapshot, gui_screenshot, gui_click, gui_type, gui_key)");
+        Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {baseUrl}/mcp  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
     }
 
     // ---- tool registration ----
@@ -92,6 +92,22 @@ public sealed class GuiMcpServer : IDisposable
                 Bool(a, "exact", true), Num(a, "x"), Num(a, "y"), Str(a, "button"), Str(a, "window"))))));
 
         tools.AddTool(Def(
+            "gui_move",
+            "Move the pointer without clicking, so hover behaviour can be driven: tooltips, hover cards, cursor changes. Target a view by \"id\", \"label\" or \"text\", or absolute GUI coordinates with \"x\" and \"y\". Anything that waits for the pointer to settle needs a moment after this before it appears.",
+            new ObjectSchema()
+                .AddOption("id", new StringSchema { Description = "View id to move onto." })
+                .AddOption("label", new StringSchema { Description = "Clickable label / accessible name to match." })
+                .AddOption("text", new StringSchema { Description = "Visible text to match." })
+                .AddOption("exact", new BooleanSchema { Description = "Match id/label/text exactly (default true); false matches substrings." })
+                .AddOption("x", new NumberSchema { Description = "Absolute GUI x (use with y)." })
+                .AddOption("y", new NumberSchema { Description = "Absolute GUI y (use with x)." })
+                .AddOption("window", new StringSchema { Description = "For x/y moves, which window's coordinate space: a role or snapshot index (default \"main\")." }),
+            readOnly: false,
+            (a, _) => Run(() => Text(Move(
+                Num(a, "x"), Num(a, "y"), Str(a, "id"), Str(a, "label"), Str(a, "text"),
+                Bool(a, "exact", true), Str(a, "window"))))));
+
+        tools.AddTool(Def(
             "gui_type",
             "Type ASCII text into the focused view, one key at a time. Use gui_key for non-printable keys (Enter, Tab, ...).",
             new ObjectSchema().Add("text", new StringSchema { Description = "ASCII text to type." }),
@@ -119,6 +135,9 @@ public sealed class GuiMcpServer : IDisposable
 
     private string Click(string? id, string? label, string? text, bool exact, float? x, float? y, string? button, string? window) =>
         _driver.ClickTool(id, label, text, exact, x, y, button, window);
+
+    private string Move(float? x, float? y, string? id, string? label, string? text, bool exact, string? window) =>
+        _driver.MoveTool(x, y, id, label, text, exact, window);
 
     private string Type(string text) => _driver.TypeTool(text);
 
