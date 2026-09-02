@@ -29,9 +29,9 @@ public sealed class WindowsFilePicker : IFilePicker
 
     // Runs on the calling (UI) thread: IFileDialog::Show is modal and pumps its own message
     // loop, so the app stays responsive, and COM wants the UI thread's STA anyway.
-    public void PickFolder(string title, Action<string> onPicked)
+    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, DialogKind.OpenFolder);
+        var path = ShowFileDialog(title, DialogKind.OpenFolder, initialDirectory);
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
     }

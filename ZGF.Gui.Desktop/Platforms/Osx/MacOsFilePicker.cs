@@ -24,8 +24,8 @@ public sealed class MacOsFilePicker : IFilePicker
         SaveName,
     }
 
-    public void PickFolder(string title, Action<string> onPicked) =>
-        Pick(title, Chooser.Folder, null, null, null, onPicked);
+    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
+        Pick(title, Chooser.Folder, initialDirectory, null, null, onPicked);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
         Pick(title, Chooser.File, initialDirectory, null, filters, onPicked);

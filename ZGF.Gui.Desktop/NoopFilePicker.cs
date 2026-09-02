@@ -6,7 +6,7 @@ namespace ZGF.Gui.Desktop;
 /// </summary>
 public sealed class NoopFilePicker : IFilePicker
 {
-    public void PickFolder(string title, Action<string> onPicked) =>
+    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
         Console.WriteLine($"[FilePicker] No native folder picker for this OS. Title: {title}");
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
