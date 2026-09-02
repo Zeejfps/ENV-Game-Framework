@@ -26,6 +26,16 @@ public sealed class InputSystem
     /// </summary>
     public IImeHost? ImeHost { get; set; }
 
+    /// <summary>
+    /// The modifier keys held right now, as the window last reported them. Keys and mouse buttons
+    /// arrive from the platform with the modifier state attached, but a scroll arrives with two
+    /// coordinates and nothing else, and a mouse move with none at all — so anything whose
+    /// appearance tracks a modifier being <em>held</em> rather than a keystroke has to read it from
+    /// here. Cleared when the window loses focus, because a chord released elsewhere is never seen
+    /// being released here and would otherwise stay held for as long as the window is away.
+    /// </summary>
+    public InputModifiers Modifiers { get; set; }
+
     // True when the focused component consumed the most recent mouse move — i.e. a drag owns the
     // pointer stream (scrollbar thumb, splitter, box-select). This is the pointer-capture concept,
     // distinct from merely holding keyboard focus (a list, a text field), which does not consume
