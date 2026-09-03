@@ -419,6 +419,18 @@ public class LayoutTests
     }
 
     [Fact]
+    public void BorderLayout_MeasuresAnExplicitHeightRatherThanItsRegions()
+    {
+        // A bounded viewport (a scroll area's fixed height) reports the height it was given. Summing
+        // the regions instead hands the parent the whole scrolled content, which is how a searchable
+        // context menu came to open a popup window taller than the rows it could show.
+        var center = new WrappingView(contentWidth: 200f, lineHeight: 10f);
+        var bl = new BorderLayoutView { Center = center, Height = 12f };
+
+        Assert.Equal(12f, bl.MeasureHeight(100f), 3);
+    }
+
+    [Fact]
     public void BorderLayout_StacksNorthAndSouthAroundTheCenterBand()
     {
         // North and South stack with the band between them, gap included — the regions do not

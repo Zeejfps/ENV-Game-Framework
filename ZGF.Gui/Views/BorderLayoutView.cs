@@ -72,6 +72,11 @@ public sealed class BorderLayoutView : View
     // it what the edges leave — so the Center would draw a wrap past the height the layout reserved.
     protected override float MeasureHeightIntrinsic(float availableWidth)
     {
+        // An explicit height wins over the regions, as it does on every other view: a layout given a
+        // bounded viewport (e.g. a ScrollArea's fixed height) must report that height, not the full
+        // size of the content it scrolls.
+        if (Height.IsSet) return Height;
+
         var stacked = 0f;
 
         if (IsActive(North))
