@@ -22,6 +22,10 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     public Action? OnTab { get; set; }
     public Action? OnShiftTab { get; set; }
 
+    // The owner's submit gesture (commit, save) on Ctrl/Cmd+Enter. Unset, the chord bubbles
+    // untouched, which is what a field with no submit action of its own wants.
+    public Action? OnSubmitChord { get; set; }
+
     /// <summary>The scrolling viewport this input lives in, if any. When set, every caret-moving
     /// interaction (typing, arrows, clicks, drag-selection, paste) asks it to keep the caret's
     /// line in view, so a multi-line editor follows the caret instead of letting it leave the
@@ -360,11 +364,18 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
             return;
         }
 
-        // Enter breaks the line in a multi-line editor. Ctrl/Cmd+Enter is deliberately left alone —
-        // that's the owner's submit shortcut (commit, save) and it has to bubble past us.
+        // Enter breaks the line in a multi-line editor. Ctrl/Cmd+Enter is the owner's submit
+        // shortcut instead — handled here when it wired one up, left to bubble when it didn't.
         var isEnter = e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter;
         var isSubmitChord = e.Modifiers.HasFlag(InputModifiers.Control)
             || e.Modifiers.HasFlag(InputModifiers.Super);
+        if (isEnter && isSubmitChord && OnSubmitChord != null)
+        {
+            OnSubmitChord();
+            e.Consume();
+            return;
+        }
+
         if (isEnter && IsMultiLine && !isSubmitChord && !IsReadOnly)
         {
             Enter('\n');
