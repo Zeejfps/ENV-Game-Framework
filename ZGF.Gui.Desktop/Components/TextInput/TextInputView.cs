@@ -437,13 +437,21 @@ public sealed class TextInputView : View
         var canvas = _canvas;
 
         var lineHeight = canvas.MeasureTextLineHeight(_textStyle);
+        float height;
         if (DisplayLength == 0)
-            return lineHeight;
+        {
+            height = lineHeight;
+        }
+        else
+        {
+            // availableWidth <= 0 means "unconstrained" — fall back to intrinsic width so we
+            // still report a sensible (single-line) height instead of one line per character.
+            var width = availableWidth > 0f ? availableWidth : MeasureWidth();
+            height = GetLines(width, canvas).Count * lineHeight;
+        }
 
-        // availableWidth <= 0 means "unconstrained" — fall back to intrinsic width so we
-        // still report a sensible (single-line) height instead of one line per character.
-        var width = availableWidth > 0f ? availableWidth : MeasureWidth();
-        var height = GetLines(width, canvas).Count * lineHeight;
+        // An explicit Height is a floor whether or not there is text, so a field does not grow the
+        // moment its first character replaces the placeholder.
         if (Height.IsSet && height < Height)
             return Height;
 
