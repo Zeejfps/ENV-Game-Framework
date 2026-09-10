@@ -23,6 +23,7 @@ public sealed class MetalWindow : GlfwWindowBase, IMetalSurface
 
         Glfw.GetFramebufferSize(window, out var fbW, out var fbH);
         DpiScaleValue = ComputeDpiScale();
+        ContentScaleValue = ComputeContentScale();
         Layer = AttachMetalLayer(window, device, fbW, fbH);
     }
 
@@ -52,6 +53,10 @@ public sealed class MetalWindow : GlfwWindowBase, IMetalSurface
             return MathF.Max((float)fbW / winW, (float)fbH / winH);
         return 1f;
     }
+
+    // On macOS the backing scale factor is both the framebuffer ratio and the OS content scale: a
+    // point is a point, and the panel decides how many pixels one covers.
+    protected override float ComputeContentScale() => ComputeDpiScale();
 
     private static IntPtr AttachMetalLayer(Window glfwWindow, IntPtr device, int fbWidth, int fbHeight)
     {

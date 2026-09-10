@@ -52,7 +52,7 @@ public sealed class HeadlessContextMenuHost : IContextMenuHost
     }
 
     public IOpenedContextMenu? ShowContextMenu(
-        Func<Context, ContextMenu> buildMenu, PointI screenAnchor,
+        Func<Context, ContextMenu> buildMenu, ScreenPoint screenAnchor,
         ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
     {
         ApplyPendingCloses();
@@ -190,10 +190,10 @@ internal sealed class IdentityWindowCoordinates : IWindowCoordinates
 {
     public static readonly IdentityWindowCoordinates Instance = new();
 
-    public PointI ToScreenPoints(PointF canvasPoint) =>
+    public ScreenPoint ToScreenPoints(CanvasPoint canvasPoint) =>
         new((int)MathF.Round(canvasPoint.X), (int)MathF.Round(canvasPoint.Y));
 
-    public RectI ToScreenPoints(RectF canvasRect) =>
+    public ScreenRect ToScreenPoints(CanvasRect canvasRect) =>
         new((int)MathF.Round(canvasRect.Left), (int)MathF.Round(canvasRect.Bottom),
             (int)MathF.Round(canvasRect.Width), (int)MathF.Round(canvasRect.Height));
 }

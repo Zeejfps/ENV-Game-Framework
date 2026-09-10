@@ -20,6 +20,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
+    private readonly IUiScale _uiScale;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
@@ -33,6 +34,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
+        IUiScale uiScale,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
@@ -43,6 +45,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         _mainContext = mainContext;
         _arbiter = arbiter;
         _ime = ime;
+        _uiScale = uiScale;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
@@ -60,7 +63,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         // Share the app's pointer arbiter so this window participates in pointer ownership. Without
         // it the main window (which is arbitrated) keeps believing it owns the pointer at screen
         // points that overlap this window, and its widgets hover through this one.
-        var input = new DesktopInputSystem(window, canvas, _arbiter, _app, _ime);
+        var input = new DesktopInputSystem(window, _uiScale, _arbiter, _app, _ime);
 
         // This window composes for its own fields, and hosts the IME for a menu opened from it — a
         // review window's base-branch picker composes against this window, not the main one.
@@ -69,9 +72,9 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         var context = new Context(_mainContext);
         context.Canvas = canvas;
         context.AddService(input.InputSystem);
-        context.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
+        context.AddService<IWindowCoordinates>(new WindowCoordinates(window, _uiScale));
 
-        var impl = new SecondaryWindowImpl(window, canvas, input, context, _backend, _arbiter, _ime);
+        var impl = new SecondaryWindowImpl(window, canvas, input, context, _uiScale, _backend, _arbiter, _ime);
         impl.SetRoot(request.BuildRoot(context));
 
         // A title-bar / border grab on this window is a non-client press GLFW never reports and that
@@ -122,6 +125,14 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         }
     }
 
+    /// <summary>Re-derives every open window's canvas scale and size — how a UI-scale change reaches
+    /// windows the setting wasn't changed in.</summary>
+    internal void SyncScale()
+    {
+        foreach (var w in _active)
+            w.SyncScale();
+    }
+
     /// <summary>The currently open secondary windows. Exposed for inspection (the MCP server
     /// projects these to surfaces).</summary>
     internal IReadOnlyList<SecondaryWindowImpl> Active => _active;
@@ -148,6 +159,8 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     public IWindow Window => _host.Window;
     internal DesktopInputSystem Input => _host.Input;
     internal View? Root => _host.Root;
+    internal RenderedCanvasBase Canvas => _host.Canvas;
+    internal float Scale => _host.Space.Scale;
     public bool CloseRequested { get; private set; }
     public event Action? Closed;
 
@@ -156,11 +169,12 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         RenderedCanvasBase canvas,
         DesktopInputSystem input,
         Context context,
+        IUiScale uiScale,
         IGuiRenderBackend backend,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime)
     {
-        _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: true);
+        _host = new GuiWindowHost(window, canvas, input, context, uiScale, sizeRootToWindow: true);
         _backend = backend;
         _arbiter = arbiter;
         _ime = ime;
@@ -172,6 +186,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 
         window.OnResize += HandleResize;
         window.OnFramebufferResize += HandleFramebufferResize;
+        window.OnContentScaleChanged += HandleContentScaleChanged;
         window.OnFocusChanged += HandleFocusChanged;
         // The native close button asks to close — defer the actual teardown to the next
         // factory Update() so we don't destroy the window from inside its GLFW callback.
@@ -199,23 +214,31 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 
     public void UpdateInput() => _host.Input.Update();
 
+    internal void SyncScale()
+    {
+        _host.SyncScale();
+        _host.Window.RequestRedraw();
+    }
+
     public void RequestRedraw() => _host.Window.RequestRedraw();
 
     public void Close() => CloseRequested = true;
 
     private void HandleResize(int width, int height)
     {
-        _host.HandleResize(width, height);
+        _host.SyncScale();
         // Repaint synchronously so a live drag-resize doesn't show stretched/stale content.
         _backend.RenderWindowNow(_host.Window);
     }
 
     private void HandleFramebufferResize(int width, int height)
     {
-        // Keep the atlas/viewport DPI in sync when the window moves between monitors of
-        // different scale. The canvas recomputes its glViewport from Width*DpiScale each frame.
-        _host.RefreshDpiScale();
+        // Keep the atlas and the viewport in sync when the window moves between monitors of
+        // different scale.
+        _host.SyncScale();
     }
+
+    private void HandleContentScaleChanged(float contentScale) => SyncScale();
 
     public void Dispose()
     {
@@ -226,6 +249,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         _ime.Unregister(_host.Input);
         _host.Window.OnResize -= HandleResize;
         _host.Window.OnFramebufferResize -= HandleFramebufferResize;
+        _host.Window.OnContentScaleChanged -= HandleContentScaleChanged;
         _host.Window.OnFocusChanged -= HandleFocusChanged;
         SetRoot(null);
         // VAOs are per-context (not shared across the GL share group). Make THIS window's

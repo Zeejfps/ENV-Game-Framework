@@ -17,6 +17,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
+    private readonly IUiScale _uiScale;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<PopupWindowImpl> _activePopups = new();
@@ -37,6 +38,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
+        IUiScale uiScale,
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
@@ -47,6 +49,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _mainContext = mainContext;
         _arbiter = arbiter;
         _ime = ime;
+        _uiScale = uiScale;
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
@@ -80,20 +83,30 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         var root = request.BuildRoot(popup.Context);
         popup.SetRoot(root);
 
-        var width = (int)MathF.Ceiling(root.MeasureWidth());
-        var height = (int)MathF.Ceiling(root.MeasureHeight(width));
-        var (preferred, flipped) = request.Place(width, height);
-        var rect = ResolveRect(preferred, flipped);
+        // The root measures in logical points; the placement it feeds — the caller's anchor, the
+        // monitor work areas, the window size the OS is given — is all screen coordinates. This is
+        // the seam where the two must be told apart.
+        var logicalWidth = MathF.Ceiling(root.MeasureWidth());
+        var logicalHeight = MathF.Ceiling(root.MeasureHeight(logicalWidth));
+        var logicalSize = new CanvasSize(logicalWidth, logicalHeight);
 
-        popup.Resize(rect.Width, rect.Height);
+        // Placed twice, because the scale a popup should be sized for is the monitor it lands on, and
+        // which monitor that is isn't known until it has been placed. The first pass uses the scale of
+        // whatever window opened it, purely to find the monitor; the second sizes for that monitor.
+        // On a single-scale desktop the two passes agree and the second is free.
+        var space = popup.Space;
+        var probe = Place(request, space, logicalSize);
+        var monitorScale = MonitorScaleAt(probe.TopLeft) * _uiScale.Value;
+        var rect = Place(request, space.WithScale(monitorScale), logicalSize);
+
         popup.Window.SetSize(rect.Width, rect.Height);
         popup.Window.SetPosition(rect.X, rect.Y);
 
-        // After positioning, sync the canvas DPI to the monitor the popup is
-        // now on. Pooled popups may have been created at a different DPI than
-        // the current monitor — without this, text on the new monitor renders
-        // blurry (atlas baked too small) or chunky (baked too large).
-        popup.RefreshDpiScale();
+        // Sized after positioning, so the canvas is scaled for the monitor the popup is now on.
+        // Pooled popups may have been created at a different DPI, or before a UI-scale change —
+        // without this, text on the new monitor renders blurry (atlas baked too small) or chunky
+        // (baked too large), and the canvas and the OS window disagree about how big the popup is.
+        popup.Resize(new ScreenSize(rect.Width, rect.Height));
 
         // Synchronous render before show so the first paint isn't a flash.
         _backend.RenderWindowNow(popup.Window);
@@ -247,7 +260,29 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return false;
     }
 
-    private RectI ResolveRect(in RectI preferredRect, in RectI? flippedRect)
+    // Asks the caller where a popup of this size goes, then keeps it on a monitor.
+    private ScreenRect Place(in PopupRequest request, in WindowSpace space, CanvasSize logicalSize)
+    {
+        var (preferred, flipped) = request.Place(space.ToScreen(logicalSize));
+        return ResolveRect(preferred, flipped);
+    }
+
+    // The content scale of the monitor a popup anchored here lands on, which is not always the scale
+    // of the window that opened it.
+    private float MonitorScaleAt(ScreenPoint anchor)
+    {
+        foreach (var wa in _app.Monitors)
+        {
+            if (anchor.X >= wa.X && anchor.X < wa.X + wa.Width &&
+                anchor.Y >= wa.Y && anchor.Y < wa.Y + wa.Height)
+            {
+                return wa.ContentScale;
+            }
+        }
+        return _app.MainWindow.ContentScale;
+    }
+
+    private ScreenRect ResolveRect(in ScreenRect preferredRect, in ScreenRect? flippedRect)
     {
         // Pick the target monitor from the anchor (the click point = the rect's
         // top-left), NOT the rect's center. The rect extends right/down by the
@@ -255,7 +290,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // menu; on a multi-monitor setup that offset can push the center across
         // the midpoint between two monitor centers and select the neighbouring
         // monitor while the click — and plenty of room — are still on this one.
-        var anchor = new PointI(preferredRect.X, preferredRect.Y);
+        var anchor = preferredRect.TopLeft;
         var (mx, my, mw, mh) = GetMonitorWorkArea(anchor);
         if (FitsInside(preferredRect, mx, my, mw, mh))
             return preferredRect;
@@ -264,17 +299,17 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return Clamp(preferredRect, mx, my, mw, mh);
     }
 
-    private static bool FitsInside(RectI r, int mx, int my, int mw, int mh) =>
+    private static bool FitsInside(ScreenRect r, int mx, int my, int mw, int mh) =>
         r.X >= mx && r.Y >= my && r.X + r.Width <= mx + mw && r.Y + r.Height <= my + mh;
 
-    private static RectI Clamp(RectI r, int mx, int my, int mw, int mh)
+    private static ScreenRect Clamp(ScreenRect r, int mx, int my, int mw, int mh)
     {
         var x = Math.Min(Math.Max(r.X, mx), mx + mw - r.Width);
         var y = Math.Min(Math.Max(r.Y, my), my + mh - r.Height);
-        return new RectI(x, y, r.Width, r.Height);
+        return new ScreenRect(x, y, r.Width, r.Height);
     }
 
-    private (int x, int y, int w, int h) GetMonitorWorkArea(PointI anchor)
+    private (int x, int y, int w, int h) GetMonitorWorkArea(ScreenPoint anchor)
     {
         var monitors = _app.Monitors;
         if (monitors.Count == 0)
@@ -323,7 +358,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
 
-        var input = new DesktopInputSystem(window, canvas, _arbiter, _app, _ime);
+        var input = new DesktopInputSystem(window, _uiScale, _arbiter, _app, _ime);
         // Registered for the popup's whole lifetime, not per-acquire: the impl (and its input system)
         // is pooled, and a searchable menu's field reports its editing session against it. A pooled,
         // hidden popup is never OS-focused and never modal, so it can't be picked as a target.
@@ -337,9 +372,9 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // anchored at a parent-menu-item's canvas position) would inherit the
         // main window's translator and compute screen anchors against the main
         // window's origin instead of this popup's.
-        popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window, canvas));
+        popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window, _uiScale));
 
-        var impl = new PopupWindowImpl(window, canvas, input, popupContext, _backend);
+        var impl = new PopupWindowImpl(window, canvas, input, popupContext, _uiScale, _backend);
         return impl;
     }
 
@@ -384,23 +419,25 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public IPointerWindow PointerWindow => _host.Input;
     internal DesktopInputSystem Input => _host.Input;
 
+    /// <summary>This popup's current conversion between the canvas, its window and the desktop.</summary>
+    internal WindowSpace Space => _host.Space;
+
     public PopupWindowImpl(
         IWindow window,
         RenderedCanvasBase canvas,
         DesktopInputSystem input,
         Context context,
+        IUiScale uiScale,
         IGuiRenderBackend backend)
     {
-        _host = new GuiWindowHost(window, canvas, input, context, sizeRootToWindow: false);
+        _host = new GuiWindowHost(window, canvas, input, context, uiScale, sizeRootToWindow: false);
         _backend = backend;
         backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 0f));
     }
 
     public void SetRoot(View? root) => _host.SetRoot(root);
 
-    public void Resize(int width, int height) => _host.HandleResize(width, height);
-
-    public void RefreshDpiScale() => _host.RefreshDpiScale();
+    public void Resize(ScreenSize size) => _host.ResizeTo(size);
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
 

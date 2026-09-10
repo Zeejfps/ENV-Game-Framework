@@ -19,10 +19,12 @@ public readonly struct PopupRequest
     public required Func<Context, View> BuildRoot { get; init; }
 
     /// <summary>
-    /// Computes the preferred (and optional flipped fallback) screen rect from the built
-    /// root's measured size. The factory measures after building, then places.
+    /// Computes the preferred (and optional flipped fallback) placement from the built root's
+    /// measured size. The factory measures after building, converts the measure out of the canvas's
+    /// logical points, then places — so this works wholly in screen coordinates and composes directly
+    /// with an anchor from <see cref="IWindowCoordinates"/> and with a monitor's work area.
     /// </summary>
-    public required Func<int, int, (RectI Preferred, RectI? Flipped)> Place { get; init; }
+    public required Func<ScreenSize, (ScreenRect Preferred, ScreenRect? Flipped)> Place { get; init; }
 
     public required bool MousePassThrough { get; init; }
 }

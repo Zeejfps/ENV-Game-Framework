@@ -9,7 +9,8 @@ internal static class GlfwMonitors
         for (var i = 0; i < monitors.Length; i++)
         {
             var wa = monitors[i].WorkArea;
-            result[i] = new MonitorWorkArea(wa.X, wa.Y, wa.Width, wa.Height);
+            var scaleX = monitors[i].ContentScale.X;
+            result[i] = new MonitorWorkArea(wa.X, wa.Y, wa.Width, wa.Height, scaleX > 0f ? scaleX : 1f);
         }
         return result;
     }

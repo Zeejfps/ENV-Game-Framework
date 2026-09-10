@@ -69,7 +69,7 @@ public sealed class ContextMenuManager : IContextMenuHost
             arbiter.OutsidePressDismiss += CloseAllImmediately;
     }
 
-    public IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
+    public IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, ScreenPoint screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below)
     {
         // The menu is built by the popup factory against the popup's own context, then
         // measured (text views carry their canvas, so measurement needs no live window).
@@ -82,12 +82,12 @@ public sealed class ContextMenuManager : IContextMenuHost
         var popup = _popupFactory.Acquire(new PopupRequest
         {
             BuildRoot = ctx => menu = buildMenu(ctx),
-            Place = (width, height) =>
+            Place = size =>
             {
-                var belowRect = new RectI(X: screenAnchor.X, Y: screenAnchor.Y, Width: width, Height: height);
-                var aboveRect = belowRect with { Y = screenAnchor.Y - height };
+                var belowRect = new ScreenRect(screenAnchor.X, screenAnchor.Y, size.Width, size.Height);
+                var aboveRect = belowRect with { Y = screenAnchor.Y - size.Height };
                 return placement == MenuPlacement.Above
-                    ? (aboveRect, (RectI?)belowRect)
+                    ? (aboveRect, (ScreenRect?)belowRect)
                     : (belowRect, aboveRect);
             },
             MousePassThrough = false,

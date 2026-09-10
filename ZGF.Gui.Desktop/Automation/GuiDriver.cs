@@ -383,7 +383,8 @@ public sealed class GuiDriver : ITypeSink
             s.Window.GetPosition(out var x, out var y);
             var bounds = new RectI(x, y, s.Window.Width, s.Window.Height);
             windows.Add(new WindowSnapshot(
-                s.Role, bounds, s.Window.IsFocused, SnapshotBuilder.Build(root, s.Input.InputSystem)));
+                s.Role, bounds, s.Scale, s.Window.IsFocused,
+                SnapshotBuilder.Build(root, s.Input.InputSystem)));
         }
         return windows;
     }

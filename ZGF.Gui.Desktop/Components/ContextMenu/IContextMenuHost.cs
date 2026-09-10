@@ -36,7 +36,7 @@ public interface IContextMenuHost
     /// window's own context, so the menu's controllers register with that popup's input
     /// system — menus are built fresh per show and pinned to their popup.
     /// </summary>
-    IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, PointI screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below);
+    IOpenedContextMenu? ShowContextMenu(Func<Context, ContextMenu> buildMenu, ScreenPoint screenAnchor, ContextMenu? parentMenu = null, MenuPlacement placement = MenuPlacement.Below);
     void RequestCloseMenu(ContextMenu menu);
     void RequestCloseAll();
 

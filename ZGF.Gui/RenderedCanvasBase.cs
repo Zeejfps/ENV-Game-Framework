@@ -195,6 +195,10 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private readonly Dictionary<string, FontHandle> _fontsByFamily = new();
+    // The logical size each font was registered at — the size text that names no FontSize of its own
+    // is drawn at, re-derived into device pixels whenever the scale moves.
+    private readonly Dictionary<string, float> _familyPointSizes = new();
+    private float _defaultPointSize;
     private int _width, _height;
     private float _dpiScale;
 
@@ -220,6 +224,17 @@ public abstract class RenderedCanvasBase : ICanvas
         _fonts = fonts;
         _defaultFont = defaultFont;
         _dpiScale = dpiScale > 0f ? dpiScale : 1f;
+        _defaultPointSize = ToPointSize(defaultFont);
+    }
+
+    // Recovers the logical size a font was authored at from the pixel size it was loaded at. Sound
+    // only because every caller loads at this canvas's own scale — PlatformBackend from the same
+    // window DpiScale it passes here, GuiApp.RegisterFont from this canvas's DpiScale — so the two
+    // divide out. Load a font at some other scale and its text will not follow this one.
+    private float ToPointSize(FontHandle handle)
+    {
+        var pixelSize = _fonts.GetPixelSize(handle);
+        return pixelSize > 0 ? pixelSize / _dpiScale : 0f;
     }
 
     public int Width => _width;
@@ -821,6 +836,7 @@ public abstract class RenderedCanvasBase : ICanvas
     public void RegisterFont(string family, FontHandle handle)
     {
         _fontsByFamily[family] = handle;
+        _familyPointSizes[family] = ToPointSize(handle);
     }
 
     /// <summary>
@@ -834,26 +850,35 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         foreach (var kv in source._fontsByFamily)
             _fontsByFamily[kv.Key] = kv.Value;
+        foreach (var kv in source._familyPointSizes)
+            _familyPointSizes[kv.Key] = kv.Value;
+        _defaultPointSize = source._defaultPointSize;
         DefaultBaseDirection = source.DefaultBaseDirection;
     }
 
     private FontHandle ResolveFont(TextStyle style)
     {
         var baseFont = _defaultFont;
+        var pointSize = _defaultPointSize;
         if (style.FontFamily.IsSet && style.FontFamily.Value is { } family &&
             _fontsByFamily.TryGetValue(family, out var resolved))
         {
             baseFont = resolved;
+            pointSize = _familyPointSizes.TryGetValue(family, out var familySize) ? familySize : pointSize;
         }
 
-        if (style.FontSize.IsSet)
-        {
-            // Caller's FontSize is in logical points; bake at device pixels so the
-            // atlas glyph is rendered 1:1 by the linear sampler on Retina.
-            var pixelSize = (int)MathF.Round(style.FontSize.Value * _dpiScale);
-            if (pixelSize > 0)
-                baseFont = _fonts.GetSizedVariant(baseFont, pixelSize);
-        }
+        // The caller's FontSize is in logical points, and so is the size a font was registered at —
+        // which is what unstyled text falls back to, so that it follows a scale change like everything
+        // else instead of staying at the size it was registered for.
+        // A zero size means "none given" as surely as an unset prop does — a ternary whose other arm
+        // is an int quietly produces one — so fall back to the registered size rather than draw the
+        // base font at whatever pixel size it was loaded at, which follows no scale at all.
+        if (style.FontSize.IsSet && style.FontSize.Value > 0f)
+            pointSize = style.FontSize.Value;
+
+        var pixelSize = (int)MathF.Round(pointSize * _dpiScale);
+        if (pixelSize > 0)
+            baseFont = _fonts.GetSizedVariant(baseFont, pixelSize);
 
         if (style.FontWeight.IsSet && style.FontWeight.Value == FontWeight.Bold)
             baseFont = _fonts.GetEmboldenedVariant(baseFont);

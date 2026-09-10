@@ -30,5 +30,7 @@ public enum KeyModifiers
 /// <summary>A window icon: tightly-packed RGBA pixels, row-major, top-left origin.</summary>
 public readonly record struct WindowIconImage(int Width, int Height, byte[] Pixels);
 
-/// <summary>A monitor's usable work area (excludes taskbars/docks), in screen coordinates.</summary>
-public readonly record struct MonitorWorkArea(int X, int Y, int Width, int Height);
+/// <summary>A monitor's usable work area (excludes taskbars/docks), in screen coordinates, and the
+/// content scale the OS asks applications to draw at on it — a popup has to be sized for the monitor
+/// it lands on, which is not always the one the window that opened it is on.</summary>
+public readonly record struct MonitorWorkArea(int X, int Y, int Width, int Height, float ContentScale = 1f);

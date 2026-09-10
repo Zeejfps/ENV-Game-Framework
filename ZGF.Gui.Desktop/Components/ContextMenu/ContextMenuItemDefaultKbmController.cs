@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 
@@ -68,7 +69,7 @@ public sealed class ContextMenuItemDefaultKbmController : KeyboardMouseControlle
         {
             var parentMenu = _contextMenuItem.GetParentOfType<ContextMenu>();
             var screenAnchor = _coordinates != null
-                ? _coordinates.ToScreenPoints(_contextMenuItem.Position.TopRight)
+                ? _coordinates.ToScreenPoints(CanvasPoint.From(_contextMenuItem.Position.TopRight))
                 : default;
             _openedContextMenu = _contextMenuManager.ShowContextMenu(buildSubMenu, screenAnchor, parentMenu);
             if (_openedContextMenu != null)

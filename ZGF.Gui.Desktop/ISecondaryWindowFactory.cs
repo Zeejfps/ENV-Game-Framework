@@ -19,6 +19,9 @@ public readonly struct SecondaryWindowRequest
     /// <see cref="Context"/> (canvas, input system, coordinates).</summary>
     public required Func<Context, View> BuildRoot { get; init; }
     public required string Title { get; init; }
+
+    /// <summary>The window's size in screen coordinates — what the OS was last asked for and what a
+    /// caller persists, not the logical size the content lays out in.</summary>
     public required int Width { get; init; }
     public required int Height { get; init; }
 

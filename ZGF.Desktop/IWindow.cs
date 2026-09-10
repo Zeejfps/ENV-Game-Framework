@@ -8,9 +8,26 @@ public interface IWindow : IDisposable
     // The OS-native window handle (Win32 HWND / Cocoa NSWindow / X11 Window). Native chrome
     // and popup decorators consume this so they never touch the windowing backend.
     IntPtr NativeHandle { get; }
+    // The client area in screen coordinates. Not pixels: on a Retina panel a window is half as many
+    // points wide as it is pixels, which is what FramebufferWidth reports.
     int Width { get; }
     int Height { get; }
+
+    // The drawable surface in pixels. The numerator of every logical size: it is the one number that
+    // means the same thing on a platform that scales by enlarging points (macOS) and one that scales
+    // by putting more pixels in a point (Windows).
+    int FramebufferWidth { get; }
+    int FramebufferHeight { get; }
+
+    /// Framebuffer pixels per screen coordinate. 1 wherever the OS hands out window sizes in pixels
+    /// (Windows, X11), 2 on a Retina panel.
     float DpiScale { get; }
+
+    /// The display scaling the OS asks applications to honour on the monitor this window is on:
+    /// device pixels per logical point, 1.5 at Windows' 150%. Distinct from <see cref="DpiScale"/>,
+    /// which is a property of the framebuffer rather than of the display setting — on Windows the
+    /// framebuffer follows the window's pixel size at every scaling level, so the two disagree.
+    float ContentScale { get; }
     bool IsVisible { get; }
     bool IsFocused { get; }
     bool IsPointerOver { get; }
@@ -18,6 +35,10 @@ public interface IWindow : IDisposable
 
     event Action<int, int> OnResize;
     event Action<int, int> OnFramebufferResize;
+    // The monitor's content scale changed under this window — dragged to a display with different
+    // scaling, or the display setting changed. On Windows this is the only event that fires: the
+    // window keeps its pixel size, so neither a resize nor a framebuffer resize is reported.
+    event Action<float> OnContentScaleChanged;
     // Window moved: new top-left position in screen coordinates.
     event Action<int, int> OnMove;
     event Action<bool> OnFocusChanged;

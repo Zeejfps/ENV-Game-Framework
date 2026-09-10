@@ -9,6 +9,7 @@ public sealed class OpenGlWindow : GlfwWindowBase
     {
         NativeHandle = ComputeNativeHandle(window);
         DpiScaleValue = ComputeDpiScale();
+        ContentScaleValue = ComputeContentScale();
     }
 
     public override IntPtr NativeHandle { get; }
@@ -17,6 +18,9 @@ public sealed class OpenGlWindow : GlfwWindowBase
 
     protected override void Present() => Glfw.SwapBuffers(GlfwWindow);
 
+    // The framebuffer-to-window ratio only. On Windows the two are always equal — GLFW screen
+    // coordinates are pixels there whatever the display scaling is — so the display setting arrives
+    // through ComputeContentScale instead, never through this.
     protected override float ComputeDpiScale()
     {
         Glfw.GetFramebufferSize(GlfwWindow, out var fbW, out var fbH);

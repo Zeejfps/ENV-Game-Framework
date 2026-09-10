@@ -121,6 +121,14 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         return variant;
     }
 
+    /// The size <paramref name="font"/> was loaded at, in pixels — what a caller that remembers a
+    /// handle rather than a size needs to re-derive it at a different scale.
+    public int GetPixelSize(FontHandle font)
+    {
+        ThrowIfDisposed();
+        return GetEntry(font).PixelSize;
+    }
+
     /// Returns a sibling handle that renders the same font with synthesized bold via
     /// FT_GlyphSlot_Embolden. Cached per source entry. If <paramref name="baseFont"/> is
     /// already emboldened the same handle is returned.

@@ -173,7 +173,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         var menus = _menuHost.OpenMenus;
         var windows = new List<WindowSnapshot>(menus.Count + 1);
         var mainBounds = new RectI(0, 0, (int)_root.Position.Width, (int)_root.Position.Height);
-        windows.Add(new WindowSnapshot("main", mainBounds, Focused: menus.Count == 0,
+        windows.Add(new WindowSnapshot("main", mainBounds, Scale: 1f, Focused: menus.Count == 0,
             SnapshotBuilder.Build(_root, _input)));
         for (var i = 0; i < menus.Count; i++)
         {
@@ -181,7 +181,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             menu.LayoutSelf();
             var p = menu.Position;
             var bounds = new RectI((int)p.Left, (int)p.Bottom, (int)p.Width, (int)p.Height);
-            windows.Add(new WindowSnapshot("context-menu", bounds, Focused: i == menus.Count - 1,
+            windows.Add(new WindowSnapshot("context-menu", bounds, Scale: 1f, Focused: i == menus.Count - 1,
                 SnapshotBuilder.Build(menu, menus[i].Input)));
         }
         return new MultiWindowSnapshot(windows);

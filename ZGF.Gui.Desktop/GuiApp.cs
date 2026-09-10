@@ -26,6 +26,7 @@ public sealed class GuiApp : IDisposable
     private readonly PopupWindowFactory _popupFactory;
     private readonly SecondaryWindowFactory _secondaryWindows;
     private readonly IWindowChrome _windowChrome;
+    private readonly IUiScale _uiScale;
     private readonly Context _context;
     private readonly Func<Context, View> _contentFactory;
     private readonly Action<Type[]?>? _hotReloadHandler;
@@ -62,23 +63,24 @@ public sealed class GuiApp : IDisposable
         // search box lives in a popup that never takes OS keyboard focus, so the window that composes
         // for it is the host window, not its own.
         _imeCoordinator = new ImeCoordinator(pointerArbiter);
-        _mainInput = new DesktopInputSystem(app.MainWindow, mainCanvas, pointerArbiter, app, _imeCoordinator);
+        _uiScale = context.Get<IUiScale>() ?? FixedUiScale.One;
+        _mainInput = new DesktopInputSystem(app.MainWindow, _uiScale, pointerArbiter, app, _imeCoordinator);
         pointerArbiter.Register(_mainInput, isModal: false);
         _imeCoordinator.Register(_mainInput);
-        _mainHost = new GuiWindowHost(app.MainWindow, mainCanvas, _mainInput, context, sizeRootToWindow: true);
+        _mainHost = new GuiWindowHost(app.MainWindow, mainCanvas, _mainInput, context, _uiScale, sizeRootToWindow: true);
         _dispatcher = new QueuedUiDispatcher { OnWorkPosted = app.Wake };
         _frameTicker = new FrameTicker(onActivated: app.MainWindow.RequestRedraw);
         _lastAnimationTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
         var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
-        var coordinates = new WindowCoordinates(app.MainWindow, mainCanvas);
+        var coordinates = new WindowCoordinates(app.MainWindow, _uiScale);
         _popupFactory = new PopupWindowFactory(
             app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter, _imeCoordinator,
-            mainCanvasForFontRegistry: mainCanvas);
+            _uiScale, mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
             app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter, _imeCoordinator,
-            mainCanvasForFontRegistry: mainCanvas);
+            _uiScale, mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, pointerArbiter);
 
@@ -125,9 +127,11 @@ public sealed class GuiApp : IDisposable
         // GuiApp (e.g. the automation runner) can't clobber the first.
         _renderBackend.WireRenderLoop(app.MainWindow, mainCanvas, PopulateGui, (0f, 0f, 0f, 0f), renderHook);
 
+        _uiScale.Changed += HandleUiScaleChanged;
         app.OnTick += HandleTick;
         app.MainWindow.OnResize += HandleResize;
         app.MainWindow.OnFramebufferResize += HandleFramebufferResize;
+        app.MainWindow.OnContentScaleChanged += HandleContentScaleChanged;
         app.MainWindow.OnMove += HandleMove;
         app.MainWindow.OnFocusChanged += HandleMainFocusChanged;
         app.MainWindow.OnClose += HandleMainWindowClose;
@@ -301,11 +305,15 @@ public sealed class GuiApp : IDisposable
     /// pooled/released popup simply drops out next time. Drives the multi-window MCP tools.</summary>
     private IReadOnlyList<GuiSurface> CollectSurfaces()
     {
-        var list = new List<GuiSurface> { new("main", _app.MainWindow, _mainHost.Root, _mainInput) };
+        var list = new List<GuiSurface>
+        {
+            new("main", _app.MainWindow, _mainHost.Root, _mainInput, _mainHost.Space.Scale),
+        };
         foreach (var s in _secondaryWindows.Active)
-            list.Add(new GuiSurface("secondary", s.Window, s.Root, s.Input));
+            list.Add(new GuiSurface("secondary", s.Window, s.Root, s.Input, s.Scale));
         foreach (var p in _popupFactory.ActivePopups)
-            list.Add(new GuiSurface(p.MousePassThrough ? "tooltip" : "context-menu", p.Window, p.Root, p.Input));
+            list.Add(new GuiSurface(
+                p.MousePassThrough ? "tooltip" : "context-menu", p.Window, p.Root, p.Input, p.Space.Scale));
         return list;
     }
 
@@ -424,15 +432,39 @@ public sealed class GuiApp : IDisposable
         _frameTicker.Tick(dt > maxStep ? maxStep : dt);
     }
 
+    // The reported width and height are screen coordinates, which is what a caller persists; the
+    // canvas takes its own size from the framebuffer instead, through the host.
     private void HandleResize(int width, int height)
     {
-        _mainHost.HandleResize(width, height);
+        _mainHost.SyncScale();
         _renderBackend.RenderWindowNow(_app.MainWindow);
         OnWindowResized?.Invoke(width, height);
     }
 
-    private void HandleFramebufferResize(int width, int height) =>
+    // Both this and OnResize re-sync: GLFW does not order the two callbacks, so whichever arrives
+    // first may still see the other's stale half.
+    private void HandleFramebufferResize(int width, int height)
+    {
+        _mainHost.SyncScale();
         _renderBackend.OnFramebufferResize(width, height);
+    }
+
+    // Popups aren't re-synced here: they're pooled and every acquire re-derives the popup's scale
+    // and size, so one that outlives the change comes back correct rather than stale.
+    private void HandleUiScaleChanged(float scale)
+    {
+        _mainHost.SyncScale();
+        _secondaryWindows.SyncScale();
+        _app.MainWindow.RequestRedraw();
+    }
+
+    // Dragged onto a display with different scaling. Only the main window is re-synced here: each
+    // secondary window watches its own, since they can sit on different monitors.
+    private void HandleContentScaleChanged(float contentScale)
+    {
+        _mainHost.SyncScale();
+        _app.MainWindow.RequestRedraw();
+    }
 
     private void HandleMove(int x, int y) => OnWindowMoved?.Invoke(x, y);
 
@@ -484,9 +516,11 @@ public sealed class GuiApp : IDisposable
         // (subscriptions, input registrations, view models).
         _mainHost.SetRoot(null);
 
+        _uiScale.Changed -= HandleUiScaleChanged;
         _app.OnTick -= HandleTick;
         _app.MainWindow.OnResize -= HandleResize;
         _app.MainWindow.OnFramebufferResize -= HandleFramebufferResize;
+        _app.MainWindow.OnContentScaleChanged -= HandleContentScaleChanged;
         _app.MainWindow.OnMove -= HandleMove;
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
         _app.MainWindow.OnClose -= HandleMainWindowClose;

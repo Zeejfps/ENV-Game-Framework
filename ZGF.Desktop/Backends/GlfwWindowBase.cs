@@ -14,6 +14,7 @@ public abstract class GlfwWindowBase : IWindow
     private readonly GlfwImeBridge _ime;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
+    private readonly WindowContentsScaleCallback _contentScaleCallback;
     private readonly PositionCallback _windowPosCallback;
     private readonly FocusCallback _focusCallback;
     private readonly WindowCallback _closeCallback;
@@ -26,11 +27,14 @@ public abstract class GlfwWindowBase : IWindow
 
     private int _width;
     private int _height;
+    private int _framebufferWidth;
+    private int _framebufferHeight;
     private bool _isVisible;
     private bool _isDisposed;
     private MouseCursor _currentCursor = MouseCursor.Default;
 
     protected float DpiScaleValue = 1f;
+    protected float ContentScaleValue = 1f;
 
     public Window GlfwWindow { get; }
     public bool IsMain { get; }
@@ -43,10 +47,12 @@ public abstract class GlfwWindowBase : IWindow
         GlfwWindow = window;
         IsMain = isMain;
         GLFW.Glfw.GetWindowSize(window, out _width, out _height);
+        GLFW.Glfw.GetFramebufferSize(window, out _framebufferWidth, out _framebufferHeight);
         _isVisible = isMain && GLFW.Glfw.GetWindowAttribute(window, WindowAttribute.Visible);
 
         _windowSizeCallback = HandleWindowSizeChanged;
         _framebufferSizeCallback = HandleFramebufferSizeChanged;
+        _contentScaleCallback = HandleContentScaleChanged;
         _windowPosCallback = HandleWindowPositionChanged;
         _focusCallback = HandleFocusChanged;
         _closeCallback = HandleClose;
@@ -59,6 +65,7 @@ public abstract class GlfwWindowBase : IWindow
         _cursorEnterCallback = HandleCursorEnter;
         GLFW.Glfw.SetWindowSizeCallback(window, _windowSizeCallback);
         GLFW.Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
+        GLFW.Glfw.SetWindowContentScaleCallback(window, _contentScaleCallback);
         GLFW.Glfw.SetWindowPositionCallback(window, _windowPosCallback);
         GLFW.Glfw.SetWindowFocusCallback(window, _focusCallback);
         GLFW.Glfw.SetCloseCallback(window, _closeCallback);
@@ -77,7 +84,10 @@ public abstract class GlfwWindowBase : IWindow
 
     public int Width => _width;
     public int Height => _height;
+    public int FramebufferWidth => _framebufferWidth;
+    public int FramebufferHeight => _framebufferHeight;
     public float DpiScale => DpiScaleValue;
+    public float ContentScale => ContentScaleValue;
     public bool IsVisible => _isVisible;
     public bool IsFocused => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Focused);
     public bool IsPointerOver => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.MouseHover);
@@ -85,6 +95,7 @@ public abstract class GlfwWindowBase : IWindow
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
+    public event Action<float>? OnContentScaleChanged;
     public event Action<int, int>? OnMove;
     public event Action<bool>? OnFocusChanged;
     public event Action? OnClose;
@@ -182,6 +193,16 @@ public abstract class GlfwWindowBase : IWindow
     // their constructor once their backend-specific state is ready, then this keeps it in sync.
     protected abstract float ComputeDpiScale();
 
+    // The OS content scale for the monitor this window is on, recomputed when the platform reports it
+    // changed. Subclasses must set ContentScaleValue in their constructor, as with DpiScaleValue.
+    protected virtual float ComputeContentScale()
+    {
+        // X and Y can differ in principle; one number has to come out, and taking X matches what
+        // every desktop actually ships.
+        GLFW.Glfw.GetWindowContentScale(GlfwWindow, out var xScale, out _);
+        return xScale > 0f ? xScale : 1f;
+    }
+
     // Hooks for backends whose swapchain/layer must track the window/framebuffer size.
     protected virtual void OnWindowResized(int width, int height) { }
     protected virtual void OnFramebufferResized(int width, int height) { }
@@ -190,15 +211,27 @@ public abstract class GlfwWindowBase : IWindow
     {
         _width = width;
         _height = height;
+        // Read here as well as in the framebuffer callback: GLFW does not order the two, and the
+        // canvas takes its whole size from the framebuffer, so a handler that runs first must not see
+        // the previous one.
+        GLFW.Glfw.GetFramebufferSize(window, out _framebufferWidth, out _framebufferHeight);
         OnWindowResized(width, height);
         OnResize?.Invoke(width, height);
     }
 
     private void HandleFramebufferSizeChanged(Window window, int width, int height)
     {
+        _framebufferWidth = width;
+        _framebufferHeight = height;
         OnFramebufferResized(width, height);
         DpiScaleValue = ComputeDpiScale();
         OnFramebufferResize?.Invoke(width, height);
+    }
+
+    private void HandleContentScaleChanged(Window window, float xScale, float yScale)
+    {
+        ContentScaleValue = ComputeContentScale();
+        OnContentScaleChanged?.Invoke(ContentScaleValue);
     }
 
     private void HandleWindowPositionChanged(Window window, int x, int y) => OnMove?.Invoke(x, y);

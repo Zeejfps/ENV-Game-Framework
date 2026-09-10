@@ -12,7 +12,7 @@ namespace ZGF.Gui.Desktop;
 public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 {
     private readonly IWindow _window;
-    private readonly RenderedCanvasBase _canvas;
+    private readonly IUiScale _uiScale;
     private readonly PointerOwnershipArbiter? _arbiter;
     private readonly IWindowedApp? _app;
     private readonly ImeCoordinator? _ime;
@@ -21,11 +21,12 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     // Where the OS cursor was at the last poll, so a poll can tell "the pointer moved" from "the
     // pointer is where it was". Null until the first reading.
-    private PointF? _lastPolledPoint;
+    private CanvasPoint? _lastPolledPoint;
 
     // Where the physical cursor sat when a driver took the pointer, so a real hand can be told
-    // from the stillness the driver relies on.
-    private PointF? _physicalAtSuspend;
+    // from the stillness the driver relies on. In window coordinates, like the threshold it is
+    // compared against: it is the physical mouse being measured, not anything the UI is drawn in.
+    private WindowPoint? _physicalAtSuspend;
 
     /// <summary>How far the physical cursor must travel to take the pointer back from a driver.
     /// Small enough that anyone reaching for the mouse wins immediately, large enough that a
@@ -44,8 +45,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     public void BeginDrivingPointer()
     {
         PointerDriven = true;
-        _window.GetCursorPosition(out var x, out var y);
-        _physicalAtSuspend = new PointF((float)x, (float)y);
+        _physicalAtSuspend = CursorPoint();
     }
 
     /// <summary>Whether a hand has moved the real mouse far enough to want the pointer back.</summary>
@@ -53,9 +53,9 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     {
         if (_physicalAtSuspend is not { } origin) return true;
 
-        _window.GetCursorPosition(out var x, out var y);
-        if (Math.Abs((float)x - origin.X) <= ResumeThreshold &&
-            Math.Abs((float)y - origin.Y) <= ResumeThreshold)
+        var cursor = CursorPoint();
+        if (Math.Abs(cursor.X - origin.X) <= ResumeThreshold &&
+            Math.Abs(cursor.Y - origin.Y) <= ResumeThreshold)
         {
             return false;
         }
@@ -75,17 +75,17 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     public DesktopInputSystem(
         IWindow window,
-        RenderedCanvasBase canvas,
+        IUiScale uiScale,
         PointerOwnershipArbiter? arbiter = null,
         IWindowedApp? app = null,
         ImeCoordinator? ime = null)
     {
         _window = window;
-        _canvas = canvas;
+        _uiScale = uiScale;
         _arbiter = arbiter;
         _app = app;
         _ime = ime;
-        _coordinates = new WindowCoordinates(window, canvas);
+        _coordinates = new WindowCoordinates(window, uiScale);
 
         _window.OnKey += HandleKeyEvent;
         _window.OnText += HandleTextEvent;
@@ -114,7 +114,8 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     public void ResetImeComposition() => _window.ResetPreedit();
 
-    public RectI CanvasToScreen(RectF canvasRect) => _coordinates.ToScreenPoints(canvasRect);
+    public RectI CanvasToScreen(RectF canvasRect) =>
+        _coordinates.ToScreenPoints(CanvasRect.From(canvasRect)).Points;
 
     /// <summary>Rebases a screen-space caret into this window's client area, which is what the IME
     /// wants. The rect can come from another window's canvas, so screen space is where it arrives.</summary>
@@ -137,9 +138,10 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     /// </summary>
     public bool IsCursorInsideWindow()
     {
-        _window.GetCursorPosition(out var x, out var y);
+        var cursor = CursorPoint();
         _window.GetFrameSize(out var left, out var top, out var right, out var bottom);
-        return x >= -left && y >= -top && x <= _window.Width + right && y <= _window.Height + bottom;
+        return cursor.X >= -left && cursor.Y >= -top &&
+               cursor.X <= _window.Width + right && cursor.Y <= _window.Height + bottom;
     }
 
     /// <summary>True when this window currently holds OS keyboard focus.</summary>
@@ -163,7 +165,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         _ime?.SetFieldEditing(this, false);
         _pendingExitClear = false;
         _modalDismissButtons.Clear();
-        Mouse.Point = new PointF(float.MinValue, float.MinValue);
+        Mouse.Point = OffScreen;
     }
 
     private void HandleCursorEnter(bool entering)
@@ -187,7 +189,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
             if (!InputSystem.IsPointerCaptured)
             {
                 InputSystem.ClearHover();
-                Mouse.Point = new PointF(float.MinValue, float.MinValue);
+                Mouse.Point = OffScreen;
             }
             return;
         }
@@ -201,7 +203,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         if (managed && _arbiter!.IsBlockedByModal(this))
         {
             InputSystem.ClearHover();
-            Mouse.Point = new PointF(float.MinValue, float.MinValue);
+            Mouse.Point = OffScreen;
             return;
         }
 
@@ -218,11 +220,10 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
         if (InputSystem.HasFocus)
         {
-            _window.GetCursorPosition(out var capturedX, out var capturedY);
-            var capturedPoint = WindowToGuiCoords(capturedX, capturedY);
-            if (capturedPoint != Mouse.Point)
+            var capturedPoint = ToCanvas(CursorPoint());
+            if (capturedPoint.Points != Mouse.Point)
             {
-                Mouse.Point = capturedPoint;
+                Mouse.Point = capturedPoint.Points;
                 var capturedEvent = new MouseMoveEvent
                 {
                     Mouse = Mouse,
@@ -251,7 +252,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         if (managed && !_arbiter!.OwnsPointer(this))
         {
             InputSystem.ClearHover();
-            Mouse.Point = new PointF(float.MinValue, float.MinValue);
+            Mouse.Point = OffScreen;
             return;
         }
 
@@ -259,7 +260,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         {
             _pendingExitClear = false;
             var prev = Mouse.Point;
-            Mouse.Point = new PointF(float.MinValue, float.MinValue);
+            Mouse.Point = OffScreen;
             var exitEvent = new MouseMoveEvent
             {
                 Mouse = Mouse,
@@ -282,18 +283,17 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         // directly under a stationary cursor never receives an enter event, so the menu
         // opens dead until the mouse is jiggled. A direct bounds check reports hover on
         // the first tick while still freezing once the cursor genuinely leaves the rect.
-        _window.GetCursorPosition(out var mouseX, out var mouseY);
-        var winWidth = _window.Width;
-        var winHeight = _window.Height;
+        var cursor = CursorPoint();
         var cursorInsideBounds =
-            mouseX >= 0 && mouseY >= 0 && mouseX <= winWidth && mouseY <= winHeight;
-        
+            cursor.X >= 0 && cursor.Y >= 0 &&
+            cursor.X <= _window.Width && cursor.Y <= _window.Height;
+
         if (!cursorInsideBounds)
         {
             return;
         }
-        
-        var guiPoint = WindowToGuiCoords(mouseX, mouseY);
+
+        var guiPoint = ToCanvas(cursor);
 
         // A poll that finds the physical cursor where it left it says nothing about the pointer.
         // Overwriting Mouse.Point anyway is what made injected positions impossible to use: a
@@ -308,14 +308,14 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         {
             InputSystem.RefreshHover(Mouse);
         }
-        else if (prevPoint == guiPoint)
+        else if (prevPoint == guiPoint.Points)
         {
-            Mouse.Point = guiPoint;
+            Mouse.Point = guiPoint.Points;
             InputSystem.RefreshHover(Mouse);
         }
         else
         {
-            Mouse.Point = guiPoint;
+            Mouse.Point = guiPoint.Points;
             var e = new MouseMoveEvent
             {
                 Mouse = Mouse,
@@ -352,8 +352,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
     {
         InputSystem.Modifiers = (InputModifiers)modifiers;
 
-        _window.GetCursorPosition(out var mouseX, out var mouseY);
-        Mouse.Point = WindowToGuiCoords(mouseX, mouseY);
+        Mouse.Point = ToCanvas(CursorPoint()).Points;
         var b = buttonIndex switch
         {
             0 => MouseButton.Left,
@@ -518,14 +517,15 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 
-    private PointF WindowToGuiCoords(double windowX, double windowY)
+    // Where the pointer sits when it is nowhere: far enough outside any canvas that nothing hovers.
+    private static readonly PointF OffScreen = new(float.MinValue, float.MinValue);
+
+    private WindowPoint CursorPoint()
     {
-        var width = _window.Width;
-        var height = _window.Height;
-        var scaleX = _canvas.Width / (float)width;
-        var scaleY = _canvas.Height / (float)height;
-        var screenX = windowX * scaleX;
-        var screenY = (height - windowY) * scaleY;
-        return new PointF((float)screenX, (float)screenY);
+        _window.GetCursorPosition(out var x, out var y);
+        return new WindowPoint((float)x, (float)y);
     }
+
+    private CanvasPoint ToCanvas(WindowPoint point) =>
+        WindowSpace.Of(_window, _window.ContentScale * _uiScale.Value).ToCanvas(point);
 }
