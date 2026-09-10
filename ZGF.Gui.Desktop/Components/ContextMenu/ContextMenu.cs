@@ -29,6 +29,12 @@ public sealed class ContextMenu : View
         set => _background.BorderSize = value;
     }
 
+    public StyleValue<BorderRadiusStyle> BorderRadius
+    {
+        get => _background.BorderRadius;
+        set => _background.BorderRadius = value;
+    }
+
     public StyleValue<BorderColorStyle> BorderColor
     {
         get => _background.BorderColor;
@@ -59,14 +65,6 @@ public sealed class ContextMenu : View
         {
             BackgroundColor = 0xFFDEDEDE,
             BorderSize = new BorderSizeStyle { Left = 1, Right = 1, Bottom = 1 },
-            BoxShadow = new BoxShadowStyle
-            {
-                OffsetX = 0f,
-                OffsetY = -4f,
-                Blur = 16f,
-                Spread = 0f,
-                Color = 0x60000000,
-            },
             Children = { _padding },
         };
 
