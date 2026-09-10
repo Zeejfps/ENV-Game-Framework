@@ -36,7 +36,8 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         var metalWindow = (MetalWindow)window;
         var metalCanvas = (MetalRenderedCanvas)canvas;
         var surfaceRenderer = new MetalSurfaceRenderer(metalWindow);
-        _surfaceRenderer = surfaceRenderer;
+        var capturesScreenshots = _surfaceRenderer is null;
+        if (capturesScreenshots) _surfaceRenderer = surfaceRenderer;
         metalWindow.RenderFrame = () =>
         {
             surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
@@ -47,7 +48,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
                 metalCanvas.EndFrame(encoder, commandBuffer);
             });
 
-            if (_pendingScreenshotPath is { } path)
+            if (capturesScreenshots && _pendingScreenshotPath is { } path)
             {
                 _pendingScreenshotPath = null;
                 var done = _pendingScreenshotDone;
