@@ -84,6 +84,10 @@ public sealed class OpenGlApp : IWindowedApp
         Glfw.WindowHint(Hint.Floating, true);
         Glfw.WindowHint(Hint.FocusOnShow, false);
         Glfw.WindowHint(Hint.Resizable, false);
+        // Popups paint their own silhouette — rounded corners, borders, shadows — over a
+        // framebuffer cleared to transparent. Without this the compositor discards the alpha
+        // channel and the pixels outside that silhouette show as opaque black.
+        Glfw.WindowHint(Hint.TransparentFramebuffer, true);
         Glfw.WindowHint(Hint.ClientApi, ClientApi.OpenGL);
         Glfw.WindowHint(Hint.ContextVersionMajor, 4);
         Glfw.WindowHint(Hint.ContextVersionMinor, 1);

@@ -29,6 +29,20 @@ public sealed class MetalWindow : GlfwWindowBase, IMetalSurface
 
     public override IntPtr NativeHandle => NsWindow;
 
+    /// <summary>
+    /// Lets this window composite per-pixel alpha, so content that leaves parts of its bounds
+    /// unpainted — a rounded popup's corners — shows what is behind the window rather than black.
+    /// </summary>
+    public void MakeTransparent()
+    {
+        msg_Void_Bool(Layer, Sel("setOpaque:"), false);
+        if (NsWindow == IntPtr.Zero) return;
+        msg_Void_Bool(NsWindow, Sel("setOpaque:"), false);
+        var clear = msg_IntPtr(Class("NSColor"), Sel("clearColor"));
+        if (clear != IntPtr.Zero)
+            msg_Void_IntPtr(NsWindow, Sel("setBackgroundColor:"), clear);
+    }
+
     protected override void Present() { /* Metal presents its drawable inside RenderFrame */ }
 
     protected override void OnWindowResized(int width, int height)

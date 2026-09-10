@@ -194,7 +194,13 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // Separate alpha factors so the destination alpha ends up as real coverage. The usual
+        // (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) applied to alpha squares it — a half-covered edge over
+        // a cleared framebuffer lands at 0.25 instead of 0.5. Invisible on an opaque window,
+        // a soft halo on a transparent one (popups).
+        glBlendFuncSeparate(
+            GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+            GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         glActiveTexture(GL_TEXTURE0);
 
         var atlasTex = _shared.FontAtlasTextureId;

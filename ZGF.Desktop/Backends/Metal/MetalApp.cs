@@ -93,6 +93,7 @@ public sealed class MetalApp : IWindowedApp
         GLFW.Glfw.DefaultWindowHints();
 
         var popup = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
+        popup.MakeTransparent();
         _windows.Add(popup);
         _foreground.Watch(popup);
         popup.OnClosed += () => _windows.Remove(popup);
