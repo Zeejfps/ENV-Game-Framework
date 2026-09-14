@@ -1,4 +1,4 @@
-using System.Text;
+using System.Net;
 using McpSdk.Adapter.StreamableHttpServer;
 using McpSdk.Adapter.System.Text.Json;
 using McpSdk.Protocol;
@@ -9,51 +9,97 @@ using ZGF.Gui.Desktop.Automation;
 
 namespace ZGF.Gui.Desktop;
 
-/// <summary>An in-process Model Context Protocol server (Streamable HTTP) that lets an MCP client —
-/// an LLM, an agent, a script — drive the live app across every window: read the laid-out view trees
-/// (main window plus open context menus, tooltips, and secondary windows), inject mouse/keyboard
-/// input into the right window, and grab a per-window screenshot. Each tool marshals its work onto
-/// the UI thread via the <see cref="IUiDispatcher"/> and blocks for the result, so nothing races the
-/// renderer. Debug aid only — bound to 127.0.0.1 and opt-in (<c>GuiAppBuilder.UseMcpServer</c> or the
-/// <c>ZGF_GUI_MCP</c> env var).</summary>
+/// <summary>
+/// An in-process Model Context Protocol server (Streamable HTTP, bound to 127.0.0.1) through which an
+/// MCP client — an LLM, an agent, a script — reaches the running app. What it serves comes from
+/// <see cref="McpServerOptions"/>: the app's own tool sources and prompts, model-facing instructions,
+/// and optionally the framework's <c>gui_*</c> debug tools, which read the laid-out view trees of every
+/// live window, inject mouse/keyboard input, and capture screenshots. The <c>gui_*</c> tools marshal
+/// onto the UI thread and block for the result; app tools run where the transport calls them and may
+/// be genuinely asynchronous. A constructed server is listening; <see cref="Dispose"/> ends every open
+/// session and stops it.
+/// </summary>
 public sealed class GuiMcpServer : IDisposable
 {
+    private readonly McpServerOptions _options;
     private readonly GuiDriver _driver;
+    private readonly SystemJson _json = new();
+    private readonly McpConsoleLogger _loggerFactory = new();
+    private readonly StreamableHttpListener _listener;
 
-    private StreamableHttpListener? _listener;
-    private Thread? _thread;
+    private readonly object _sessionsGate = new();
+    private readonly HashSet<HttpServerTransport> _sessions = new();
+    private bool _disposed;
 
-    public GuiMcpServer(GuiDriver driver) => _driver = driver;
-
-    public void Start(int port)
+    /// <summary>Binds <see cref="McpServerOptions.Port"/> and starts accepting sessions. Throws
+    /// <see cref="HttpListenerException"/> when the port cannot be bound.</summary>
+    public GuiMcpServer(McpServerOptions options, GuiDriver driver)
     {
-        var json = new SystemJson();
-        var loggerFactory = new NullLoggerFactory();
-        var baseUrl = $"http://127.0.0.1:{port}";
-        var listener = new StreamableHttpListener(baseUrl, "/mcp", json, loggerFactory, onSession: async transport =>
-        {
-            var server = new ServerBuilder()
-                .WithName("ZGF GUI")
-                .WithVersion("1.0.0")
-                .WithLogger(loggerFactory)
-                .WithStreamableHttpTransport(transport)
-                .WithDefaultToolsCapability(json, RegisterTools)
-                .Build();
-            await server.Start();
-        });
-        _listener = listener;
-        _thread = new Thread(() =>
-        {
-            try { listener.Start().GetAwaiter().GetResult(); }
-            catch (Exception ex) { Console.WriteLine($"[GuiMcpServer] listener stopped: {ex.Message}"); }
-        }) { IsBackground = true, Name = "ZGF-GuiMcpServer" };
-        _thread.Start();
-        Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {baseUrl}/mcp  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
+        _options = options;
+        _driver = driver;
+        var baseUrl = $"http://127.0.0.1:{options.Port}";
+        var path = options.PathToken is { } token ? $"/mcp/{token.Value}" : "/mcp";
+        Endpoint = new Uri(baseUrl + path);
+        _listener = new StreamableHttpListener(baseUrl, path, _json, _loggerFactory, OnSession);
+        // The listener binds synchronously and hands its accept loop to the thread pool, so this
+        // returns as soon as the port is ours — or throws because it is not.
+        _listener.Start().GetAwaiter().GetResult();
     }
 
-    // ---- tool registration ----
+    /// <summary>The URL a client connects to — <c>http://127.0.0.1:{port}/mcp</c>, with the path
+    /// token appended when one is set.</summary>
+    public Uri Endpoint { get; }
 
-    private void RegisterTools(DefaultToolsController tools)
+    private async Task OnSession(ITransport transport)
+    {
+        var http = SessionTransport(transport);
+        var session = new McpSession(http.SessionId, http.Lifetime);
+        Track(http);
+
+        var builder = new ServerBuilder()
+            .WithName(_options.ServerName)
+            .WithVersion("1.0.0")
+            .WithLogger(_loggerFactory)
+            .WithStreamableHttpTransport(transport)
+            .WithDefaultToolsCapability(_json, tools => RegisterTools(session, tools));
+        if (_options.Instructions is { } instructions) builder.WithInstructions(instructions);
+        if (_options.Prompts is { } prompts) builder.WithPromptsCapability(prompts);
+        await builder.Build().Start();
+    }
+
+    // The listener's contract is that every session transport is an HttpServerTransport — the type
+    // that carries the session id and the teardown token — but its callback is typed as the
+    // transport interface. This is the one place that narrows it, and it fails loudly rather than
+    // serve a session whose end nothing could observe.
+    private static HttpServerTransport SessionTransport(ITransport transport) =>
+        transport as HttpServerTransport
+        ?? throw new InvalidOperationException($"Expected an {nameof(HttpServerTransport)} session, got {transport.GetType().Name}.");
+
+    private void Track(HttpServerTransport http)
+    {
+        lock (_sessionsGate)
+        {
+            if (!_disposed)
+            {
+                _sessions.Add(http);
+                http.Lifetime.Register(() => { lock (_sessionsGate) _sessions.Remove(http); });
+                return;
+            }
+        }
+        // Raced with Dispose: the listener no longer accepts, but this session got in first.
+        _ = http.Stop();
+    }
+
+    private void RegisterTools(McpSession session, DefaultToolsController tools)
+    {
+        if (_options.IncludeGuiTools) RegisterGuiTools(tools);
+        foreach (var source in _options.ToolSources)
+            source.Register(session, tools);
+    }
+
+    // ---- gui_* debug tools ----
+
+    private void RegisterGuiTools(DefaultToolsController tools)
     {
         tools.AddTool(Def(
             "gui_snapshot",
@@ -208,10 +254,20 @@ public sealed class GuiMcpServer : IDisposable
         public Task<CallToolResult> Call(IJsonObject arguments, McpRequestContext context) => _call(arguments, context);
     }
 
+    /// <summary>Stops listening and ends every open session, so a tool waiting on a person sees its
+    /// <see cref="McpSession.Ended"/> fire instead of waiting for a client that will never answer.</summary>
     public void Dispose()
     {
-        var listener = _listener;
-        _listener = null;
-        try { _ = listener?.Stop(); } catch { /* already gone */ }
+        List<HttpServerTransport> sessions;
+        lock (_sessionsGate)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            sessions = [.. _sessions];
+            _sessions.Clear();
+        }
+        _listener.Stop().GetAwaiter().GetResult();
+        foreach (var session in sessions)
+            session.Stop().GetAwaiter().GetResult();
     }
 }
