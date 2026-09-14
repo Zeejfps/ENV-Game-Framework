@@ -32,6 +32,7 @@ public sealed class GuiApp : IDisposable
     private readonly Action<Type[]?>? _hotReloadHandler;
     private readonly State<McpServerState> _mcpServerState = new(new McpServerState.Stopped());
     private GuiMcpServer? _mcpServer;
+    private GuiMcpServer? _debugMcpServer;
 
     public Context Context => _context;
     
@@ -337,9 +338,10 @@ public sealed class GuiApp : IDisposable
     public GuiDriver CreateDriver() => new(CollectSurfaces, _dispatcher, CaptureWindowScreenshot);
 
     /// <summary>
-    /// The MCP server's state — stopped, or running at an endpoint — for a settings page or a
+    /// The app's MCP server's state — stopped, or running at an endpoint — for a settings page or a
     /// status indicator to bind to. Changes only inside <see cref="StartMcpServer"/>,
     /// <see cref="StopMcpServer"/> and <see cref="Dispose"/>, so it is UI-thread state like the rest.
+    /// The debug server (<c>UseMcpServer</c> / <c>ZGF_GUI_MCP</c>) is separate and not reflected here.
     /// </summary>
     public IReadable<McpServerState> McpServer => _mcpServerState;
 
@@ -377,22 +379,19 @@ public sealed class GuiApp : IDisposable
     }
 
     // The debug path: the builder's UseMcpServer or the ZGF_GUI_MCP env var. Serves the gui_* tools
-    // and nothing else, on a plain /mcp endpoint, exactly as a scripted run expects.
+    // and nothing else, on a plain /mcp endpoint, exactly as a scripted run expects. Its own slot,
+    // so a scripted run can drive the window while the app serves its own tools alongside.
     private void StartDebugMcpServer(int? configuredPort)
     {
         if ((configuredPort ?? ResolveEnvMcpPort()) is not { } port) return;
-        switch (StartMcpServer(new McpServerOptions { Port = port, IncludeGuiTools = true }))
+        try
         {
-            case McpServerStart.Started started:
-                Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {started.Endpoint}  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
-                break;
-            case McpServerStart.Failed failed:
-                Console.WriteLine($"[GuiMcpServer] failed to start on port {port}: {failed.Message}");
-                break;
-            case McpServerStart.AlreadyRunning:
-                break;
-            default:
-                throw new InvalidOperationException("Unhandled McpServerStart variant.");
+            _debugMcpServer = new GuiMcpServer(new McpServerOptions { Port = port, IncludeGuiTools = true }, CreateDriver());
+            Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {_debugMcpServer.Endpoint}  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
+        }
+        catch (System.Net.HttpListenerException ex)
+        {
+            Console.WriteLine($"[GuiMcpServer] failed to start on port {port}: {ex.Message}");
         }
     }
 
@@ -553,6 +552,8 @@ public sealed class GuiApp : IDisposable
     {
         Context?.Dispose();
         StopMcpServer();
+        _debugMcpServer?.Dispose();
+        _debugMcpServer = null;
 
         if (_hotReloadHandler != null)
             HotReloadService.UpdateApplied -= _hotReloadHandler;
