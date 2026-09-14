@@ -39,17 +39,20 @@ public sealed class KbmController(IInteractable target) : KeyboardMouseControlle
 
     public override void OnMouseButtonStateChanged(ref MouseButtonEvent e)
     {
-        if (!target.Enabled.Value) return;
         if (e.Phase != EventPhase.Bubbling) return;
         if (e.Button != MouseButton.Left) return;
 
         if (e.State == InputState.Pressed)
         {
+            if (!target.Enabled.Value) return;
             target.Pressed.Value = true;
             e.Consume();
         }
         else if (e.State == InputState.Released)
         {
+            // Not gated on Enabled: a command that disables its own button runs inside the press,
+            // and a release dropped for that would leave Pressed stuck — the button drawn held down
+            // and, once re-enabled, its next press a no-op change that fires nothing.
             target.Pressed.Value = false;
         }
     }
