@@ -20,20 +20,6 @@ public sealed class SubscriptionGroup : IDisposable
         _subscriptions.Add(new ActionDisposable(cleanup));
     }
 
-    private sealed class ActionDisposable : IDisposable
-    {
-        private Action? _cleanup;
-
-        public ActionDisposable(Action cleanup) => _cleanup = cleanup;
-
-        public void Dispose()
-        {
-            var c = _cleanup;
-            _cleanup = null;
-            c?.Invoke();
-        }
-    }
-
     public void Dispose()
     {
         for (var i = _subscriptions.Count - 1; i >= 0; i--)
