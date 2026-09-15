@@ -5,7 +5,7 @@ namespace ZGF.Observable;
 /// <see cref="Derived{T}"/> implement this; view bindings accept it so they don't care
 /// which kind of source they're reading.
 /// </summary>
-public interface IReadable<T>
+public interface IReadable<out T>
 {
     T Value { get; }
     IDisposable Subscribe(Action<T> handler);
