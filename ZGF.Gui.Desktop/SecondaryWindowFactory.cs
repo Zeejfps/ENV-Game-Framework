@@ -13,8 +13,6 @@ namespace ZGF.Gui.Desktop;
 public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 {
     private readonly IWindowedApp _app;
-    private readonly FreeTypeFontBackend _fonts;
-    private readonly FontHandle _defaultFont;
     private readonly IGuiRenderBackend _backend;
     private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
@@ -38,8 +36,6 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         RenderedCanvasBase? mainCanvasForFontRegistry = null)
     {
         _app = app;
-        _fonts = fonts;
-        _defaultFont = defaultFont;
         _backend = backend;
         _decorator = decorator;
         _mainContext = mainContext;

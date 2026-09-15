@@ -42,8 +42,8 @@ public sealed class CenterView : View
             child.MaxWidthConstraint = maxWidth;
             child.MaxHeightConstraint = maxHeight;
 
-            var childWidth = child.ClampWidth(child.MeasureWidth());
-            var childHeight = child.ClampHeight(child.MeasureHeight(childWidth));
+            var childWidth = child.MeasureWidth();
+            var childHeight = child.MeasureHeight(childWidth);
 
             child.LeftConstraint = position.Left + (position.Width - childWidth) / 2f;
             child.BottomConstraint = position.Bottom + (position.Height - childHeight) / 2f;

@@ -10,181 +10,55 @@ using Monitor = GLFW.Monitor;
 
 namespace ZGF.Desktop.Backends.Metal;
 
-public sealed class MetalApp : IWindowedApp
+public sealed class MetalApp : GlfwApp<MetalWindow>
 {
-    private const double IdleEventTimeoutSeconds = 0.1;
+    private IntPtr _autoreleasePool;
 
-    private readonly MetalWindow _mainWindow;
-    private readonly List<IWindow> _windows = new();
-    private readonly AppForegroundTracker _foreground;
-    private readonly StartupConfig _startupConfig;
-    private bool _isDisposed;
-
-    public IntPtr Device { get; }
-    public IntPtr CommandQueue { get; }
+    public IntPtr Device => Main.Device;
+    public IntPtr CommandQueue => Main.CommandQueue;
 
     public MetalApp(StartupConfig startupConfig)
+        : base(RequireMacOs(startupConfig), ClientApi.None, CreateMainWindow)
     {
-        _startupConfig = startupConfig;
+    }
+
+    private static StartupConfig RequireMacOs(StartupConfig startupConfig)
+    {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             throw new PlatformNotSupportedException("MetalApp requires macOS.");
-
-        GLFW.Glfw.Init();
-        GLFW.Glfw.DefaultWindowHints();
-        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
-        GLFW.Glfw.WindowHint(Hint.Visible, false);
-        if (startupConfig.IsUndecorated)
-            GLFW.Glfw.WindowHint(Hint.Decorated, false);
-
-        if (startupConfig.StartUnfocused)
-        {
-            GLFW.Glfw.WindowHint(Hint.FocusOnShow, false);
-            GLFW.Glfw.WindowHint(Hint.Focused, false);
-        }
-
-        var window = GLFW.Glfw.CreateWindow(
-            startupConfig.WindowWidth, startupConfig.WindowHeight,
-            startupConfig.WindowTitle, Monitor.None, Window.None);
-
-        Device = MetalApi.MTLCreateSystemDefaultDevice();
-        if (Device == IntPtr.Zero) throw new System.Exception("MTLCreateSystemDefaultDevice returned null.");
-        CommandQueue = msg_IntPtr(Device, Sel("newCommandQueue"));
-        if (CommandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
-
-        _mainWindow = new MetalWindow(window, Device, CommandQueue, isMain: true);
-        _windows.Add(_mainWindow);
-        _foreground = new AppForegroundTracker(_windows);
-        _foreground.Watch(_mainWindow);
+        return startupConfig;
     }
 
-    public IWindow MainWindow => _mainWindow;
-    public IReadOnlyList<IWindow> Windows => _windows;
-    public IReadOnlyList<MonitorWorkArea> Monitors => GlfwMonitors.WorkAreas();
-
-    public bool IsForeground => _foreground.IsForeground;
-
-    public event Action<bool> OnForegroundChanged
+    private static MetalWindow CreateMainWindow(Window window)
     {
-        add => _foreground.Changed += value;
-        remove => _foreground.Changed -= value;
+        var device = MetalApi.MTLCreateSystemDefaultDevice();
+        if (device == IntPtr.Zero) throw new System.Exception("MTLCreateSystemDefaultDevice returned null.");
+        var commandQueue = msg_IntPtr(device, Sel("newCommandQueue"));
+        if (commandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
+        return new MetalWindow(window, device, commandQueue, isMain: true);
     }
 
-    public event Action? OnTick;
-
-    public void Wake() => GLFW.Glfw.PostEmptyEvent();
-
-    public void Quit()
+    protected override MetalWindow OpenWindow(int widthPoints, int heightPoints, string title, bool transparent)
     {
-        GLFW.Glfw.SetWindowShouldClose(_mainWindow.GlfwWindow, true);
-        Wake();
-    }
-
-    public IWindow CreatePopupWindow(in PopupWindowOptions options)
-    {
-        GLFW.Glfw.DefaultWindowHints();
-        GLFW.Glfw.WindowHint(Hint.Visible, false);
-        GLFW.Glfw.WindowHint(Hint.Decorated, false);
-        GLFW.Glfw.WindowHint(Hint.Floating, true);
-        GLFW.Glfw.WindowHint(Hint.FocusOnShow, false);
-        GLFW.Glfw.WindowHint(Hint.Resizable, false);
-        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
-
-        var glfw = GLFW.Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, "", Monitor.None, Window.None);
-        GLFW.Glfw.DefaultWindowHints();
-
-        var popup = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
-        popup.MakeTransparent();
-        _windows.Add(popup);
-        _foreground.Watch(popup);
-        popup.OnClosed += () => _windows.Remove(popup);
-        return popup;
-    }
-
-    public IWindow CreateWindow(in WindowOptions options)
-    {
-        GLFW.Glfw.DefaultWindowHints();
-        GLFW.Glfw.WindowHint(Hint.Visible, false);
-        // A real secondary window: decorated, resizable, focusable when shown — unlike the
-        // borderless floating popups from CreatePopupWindow.
-        GLFW.Glfw.WindowHint(Hint.Decorated, true);
-        GLFW.Glfw.WindowHint(Hint.Floating, false);
-        GLFW.Glfw.WindowHint(Hint.FocusOnShow, true);
-        GLFW.Glfw.WindowHint(Hint.Resizable, true);
-        GLFW.Glfw.WindowHint(Hint.ClientApi, ClientApi.None);
-
-        var glfw = GLFW.Glfw.CreateWindow(options.WidthPoints, options.HeightPoints, options.Title, Monitor.None, Window.None);
-        GLFW.Glfw.DefaultWindowHints();
+        var glfw = Glfw.CreateWindow(widthPoints, heightPoints, title, Monitor.None, Window.None);
+        Glfw.DefaultWindowHints();
 
         var window = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
-        _windows.Add(window);
-        _foreground.Watch(window);
-        window.OnClosed += () => _windows.Remove(window);
+        if (transparent)
+            window.MakeTransparent();
         return window;
     }
 
-    public void Run()
+    // Drain every autoreleased Objective-C object this turn creates (NSEvents from
+    // PollEvents, per-frame drawables / command buffers / encoders / pass descriptors).
+    // Without this pool they leak as unbounded unmanaged growth — see Objc.objc_autoreleasePoolPush.
+    protected override void BeginTurn() => _autoreleasePool = objc_autoreleasePoolPush();
+
+    protected override void EndTurn() => objc_autoreleasePoolPop(_autoreleasePool);
+
+    protected override void ReleaseDevice()
     {
-        GLFW.Glfw.GetWindowSize(_mainWindow.GlfwWindow, out var ww, out var wh);
-        var (px, py) = WindowPlacement.Compute(
-            Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
-        GLFW.Glfw.SetWindowPosition(_mainWindow.GlfwWindow, px, py);
-        _mainWindow.Show();
-
-        while (!GLFW.Glfw.WindowShouldClose(_mainWindow.GlfwWindow))
-        {
-            // Drain every autoreleased Objective-C object this turn creates (NSEvents from
-            // PollEvents, per-frame drawables / command buffers / encoders / pass descriptors).
-            // Without this pool they leak as unbounded unmanaged growth — see Objc.objc_autoreleasePoolPush.
-            var autoreleasePool = objc_autoreleasePoolPush();
-            try
-            {
-                GLFW.Glfw.PollEvents();
-                OnTick?.Invoke();
-
-                var anyRendered = false;
-                for (var i = 0; i < _windows.Count; i++)
-                {
-                    var w = _windows[i];
-                    if (!w.IsVisible) continue;
-                    if (!w.NeedsRedraw) continue;
-                    ((MetalWindow)w).RenderNow();
-                    anyRendered = true;
-                }
-
-                for (var i = _windows.Count - 1; i >= 0; i--)
-                {
-                    if (_windows[i] is MetalWindow mw && !mw.IsMain && GLFW.Glfw.WindowShouldClose(mw.GlfwWindow))
-                        GLFW.Glfw.SetWindowShouldClose(mw.GlfwWindow, false);
-                }
-
-                // Nothing painted: block for OS events instead of spinning. The timeout bounds
-                // staleness for time-based housekeeping nothing wakes us for.
-                if (!anyRendered)
-                    GLFW.Glfw.WaitEventsTimeout(IdleEventTimeoutSeconds);
-            }
-            finally
-            {
-                objc_autoreleasePoolPop(autoreleasePool);
-            }
-        }
-        // The run loop exiting does NOT tear anything down: the owner (e.g. GuiApp) disposes this
-        // app after Run() returns, and its teardown of secondary windows / popups / the render
-        // backend still needs GLFW alive. Terminating here would pull GLFW out from under that
-        // teardown ("GLFW library is not initialized"). Terminate() runs in Dispose(), last.
-    }
-
-    public void Dispose()
-    {
-        if (_isDisposed) return;
-        _isDisposed = true;
-        for (var i = _windows.Count - 1; i >= 0; i--)
-        {
-            if (_windows[i] != _mainWindow) _windows[i].Dispose();
-        }
-        _mainWindow.Dispose();
         Release(CommandQueue);
         Release(Device);
-        GLFW.Glfw.Terminate();
-        GC.SuppressFinalize(this);
     }
 }

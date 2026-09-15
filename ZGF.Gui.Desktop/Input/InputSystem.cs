@@ -5,17 +5,13 @@ namespace ZGF.Gui.Desktop.Input;
 
 public sealed class InputSystem
 {
-    private readonly record struct ControllerRegistration(
-        IKeyboardMouseController Controller,
-        EventPhaseFilter PhaseFilter
-    );
+    private readonly record struct ControllerRegistration(View View, EventPhaseFilter PhaseFilter);
 
-    private readonly HashSet<IKeyboardMouseController> _hoverableComponents = new();
     private readonly LinkedList<IKeyboardMouseController> _focusQueue = new();
     // A view may host multiple controllers. They participate in capture/bubble dispatch in
     // registration order (capture = registration order, bubble = reverse) — see BuildPath.
-    private readonly Dictionary<View, List<ControllerRegistration>> _viewToControllers = new();
-    private readonly Dictionary<IKeyboardMouseController, View> _controllerToView = new();
+    private readonly Dictionary<View, List<IKeyboardMouseController>> _viewToControllers = new();
+    private readonly Dictionary<IKeyboardMouseController, ControllerRegistration> _registrations = new();
 
     private IKeyboardMouseController? _hoveredComponent;
     private IKeyboardMouseController? _focusedComponent;
@@ -46,25 +42,22 @@ public sealed class InputSystem
     {
         if (!_viewToControllers.TryGetValue(view, out var list))
         {
-            list = new List<ControllerRegistration>();
+            list = new List<IKeyboardMouseController>();
             _viewToControllers[view] = list;
         }
         // Append: controllers on a view dispatch in registration order (capture order).
-        list.Add(new ControllerRegistration(controller, phaseFilter));
-        _controllerToView[controller] = view;
-        AddInteractable(controller);
+        list.Add(controller);
+        _registrations[controller] = new ControllerRegistration(view, phaseFilter);
     }
 
     /// <summary>Remove a single controller from a view, leaving any others on that view intact.</summary>
     public void UnregisterController(View view, IKeyboardMouseController controller)
     {
         if (!_viewToControllers.TryGetValue(view, out var list)) return;
-        var index = list.FindIndex(r => r.Controller == controller);
-        if (index < 0) return;
-        list.RemoveAt(index);
+        if (!list.Remove(controller)) return;
         if (list.Count == 0)
             _viewToControllers.Remove(view);
-        _controllerToView.Remove(controller);
+        _registrations.Remove(controller);
         RemoveInteractable(controller);
     }
 
@@ -72,10 +65,10 @@ public sealed class InputSystem
     public void UnregisterController(View view)
     {
         if (!_viewToControllers.Remove(view, out var list)) return;
-        foreach (var registration in list)
+        foreach (var controller in list)
         {
-            _controllerToView.Remove(registration.Controller);
-            RemoveInteractable(registration.Controller);
+            _registrations.Remove(controller);
+            RemoveInteractable(controller);
         }
     }
 
@@ -83,37 +76,22 @@ public sealed class InputSystem
     public IKeyboardMouseController? GetController(View view)
     {
         return _viewToControllers.TryGetValue(view, out var list) && list.Count > 0
-            ? list[0].Controller
+            ? list[0]
             : null;
     }
 
     public View? GetView(IKeyboardMouseController controller)
     {
-        return _controllerToView.GetValueOrDefault(controller);
+        return _registrations.TryGetValue(controller, out var registration) ? registration.View : null;
     }
 
     public EventPhaseFilter GetPhaseFilter(IKeyboardMouseController controller)
     {
-        if (_controllerToView.TryGetValue(controller, out var view)
-            && _viewToControllers.TryGetValue(view, out var list))
-        {
-            foreach (var registration in list)
-            {
-                if (registration.Controller == controller)
-                    return registration.PhaseFilter;
-            }
-        }
-        return EventPhaseFilter.Both;
-    }
-
-    private void AddInteractable(IKeyboardMouseController controller)
-    {
-        _hoverableComponents.Add(controller);
+        return _registrations.TryGetValue(controller, out var registration) ? registration.PhaseFilter : EventPhaseFilter.Both;
     }
 
     private void RemoveInteractable(IKeyboardMouseController controller)
     {
-        _hoverableComponents.Remove(controller);
         _focusQueue.Remove(controller);
 
         if (_hoveredComponent == controller)
@@ -139,53 +117,8 @@ public sealed class InputSystem
 
     public void SendKeyboardKeyEvent(ref KeyboardKeyEvent e)
     {
-        DispatchKeyboardKeyEvent(ref e);
+        Dispatch(ref e, KeyHandler);
         _keyClaim = e.Claim;
-    }
-
-    private void DispatchKeyboardKeyEvent(ref KeyboardKeyEvent e)
-    {
-        e.Phase = EventPhase.Bubbling;
-        if (_focusedComponent != null)
-        {
-            var filter = GetPhaseFilter(_focusedComponent);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                _focusedComponent.OnKeyboardKeyStateChanged(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Capturing;
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnKeyboardKeyStateChanged(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnKeyboardKeyStateChanged(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
     }
 
     public void SendTextInputEvent(ref TextInputEvent e)
@@ -196,192 +129,34 @@ public sealed class InputSystem
         if (_keyClaim == KeyClaim.Command)
             return;
 
-        e.Phase = EventPhase.Bubbling;
-        if (_focusedComponent != null)
-        {
-            var filter = GetPhaseFilter(_focusedComponent);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                _focusedComponent.OnTextInput(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Capturing;
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnTextInput(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnTextInput(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
+        Dispatch(ref e, TextHandler);
     }
 
     public void SendCompositionEvent(ref CompositionEvent e)
     {
-        e.Phase = EventPhase.Bubbling;
-        if (_focusedComponent != null)
-        {
-            var filter = GetPhaseFilter(_focusedComponent);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                _focusedComponent.OnComposition(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Capturing;
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnComposition(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnComposition(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
+        Dispatch(ref e, CompositionHandler);
     }
 
     public void SendMouseButtonEvent(ref MouseButtonEvent e)
     {
-        e.Phase = EventPhase.Bubbling;
-        if (_focusedComponent != null)
-        {
-            var filter = GetPhaseFilter(_focusedComponent);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                _focusedComponent.OnMouseButtonStateChanged(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
+        var hadFocus = _focusedComponent != null;
+        if (DispatchToFocused(ref e, ButtonHandler))
+            return;
 
-            // If the focused component released focus during dispatch (e.g. a
-            // text input blurring on outside-click) without consuming, the
-            // _focusQueue is still the stale path to it. Rebuild from the
-            // cursor so capture/bubble reaches the actual click target instead
-            // of vanishing — otherwise the user has to click a second time.
-            if (_focusedComponent == null)
-            {
-                RefreshHover(e.Mouse);
-            }
-        }
+        // If the focused component released focus during dispatch (e.g. a
+        // text input blurring on outside-click) without consuming, the
+        // _focusQueue is still the stale path to it. Rebuild from the
+        // cursor so capture/bubble reaches the actual click target instead
+        // of vanishing — otherwise the user has to click a second time.
+        if (hadFocus && _focusedComponent == null)
+            RefreshHover(e.Mouse);
 
-        e.Phase = EventPhase.Capturing;
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnMouseButtonStateChanged(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnMouseButtonStateChanged(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
+        DispatchAlongPath(ref e, ButtonHandler);
     }
-    
+
     public void SendMouseScrollEvent(ref MouseWheelScrolledEvent e)
     {
-        e.Phase = EventPhase.Bubbling;
-        if (_focusedComponent != null)
-        {
-            var filter = GetPhaseFilter(_focusedComponent);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                _focusedComponent.OnMouseWheelScrolled(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Capturing;
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnMouseWheelScrolled(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnMouseWheelScrolled(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
+        Dispatch(ref e, ScrollHandler);
     }
 
     public void SendMouseMovedEvent(ref MouseMoveEvent e)
@@ -394,48 +169,9 @@ public sealed class InputSystem
         var focusedConsumed = false;
         try
         {
-            e.Phase = EventPhase.Bubbling;
-            if (_focusedComponent != null)
-            {
-                var filter = GetPhaseFilter(_focusedComponent);
-                if (filter.HasFlag(EventPhaseFilter.Bubble))
-                {
-                    _focusedComponent.OnMouseMoved(ref e);
-                    if (e.IsConsumed)
-                    {
-                        focusedConsumed = true;
-                        return;
-                    }
-                }
-            }
-
-            e.Phase = EventPhase.Capturing;
-            foreach (var ctrl in _focusQueue)
-            {
-                var filter = GetPhaseFilter(ctrl);
-                if (filter.HasFlag(EventPhaseFilter.Capture))
-                {
-                    ctrl.OnMouseMoved(ref e);
-                    if (e.IsConsumed)
-                    {
-                        return;
-                    }
-                }
-            }
-
-            e.Phase = EventPhase.Bubbling;
-            foreach (var ctrl in _focusQueue.Reverse())
-            {
-                var filter = GetPhaseFilter(ctrl);
-                if (filter.HasFlag(EventPhaseFilter.Bubble))
-                {
-                    ctrl.OnMouseMoved(ref e);
-                    if (e.IsConsumed)
-                    {
-                        return;
-                    }
-                }
-            }
+            focusedConsumed = DispatchToFocused(ref e, MoveHandler);
+            if (!focusedConsumed)
+                DispatchAlongPath(ref e, MoveHandler);
         }
         finally
         {
@@ -443,6 +179,51 @@ public sealed class InputSystem
             // Same signal that decides the freeze above, latched for the still-cursor case: a drag
             // consumes moves, so it captures the pointer; a keyboard-focused control does not.
             _pointerCaptured = focusedConsumed;
+        }
+    }
+
+    private delegate void Handler<TEvent>(IKeyboardMouseController controller, ref TEvent e) where TEvent : struct, IEvent;
+
+    private static void KeyHandler(IKeyboardMouseController c, ref KeyboardKeyEvent e) => c.OnKeyboardKeyStateChanged(ref e);
+    private static void TextHandler(IKeyboardMouseController c, ref TextInputEvent e) => c.OnTextInput(ref e);
+    private static void CompositionHandler(IKeyboardMouseController c, ref CompositionEvent e) => c.OnComposition(ref e);
+    private static void ButtonHandler(IKeyboardMouseController c, ref MouseButtonEvent e) => c.OnMouseButtonStateChanged(ref e);
+    private static void ScrollHandler(IKeyboardMouseController c, ref MouseWheelScrolledEvent e) => c.OnMouseWheelScrolled(ref e);
+    private static void MoveHandler(IKeyboardMouseController c, ref MouseMoveEvent e) => c.OnMouseMoved(ref e);
+    private static void EnterHandler(IKeyboardMouseController c, ref MouseEnterEvent e) => c.OnMouseEnter(ref e);
+    private static void ExitHandler(IKeyboardMouseController c, ref MouseExitEvent e) => c.OnMouseExit(ref e);
+
+    private void Dispatch<TEvent>(ref TEvent e, Handler<TEvent> handler) where TEvent : struct, IEvent
+    {
+        if (!DispatchToFocused(ref e, handler))
+            DispatchAlongPath(ref e, handler);
+    }
+
+    private bool DispatchToFocused<TEvent>(ref TEvent e, Handler<TEvent> handler) where TEvent : struct, IEvent
+    {
+        e.Phase = EventPhase.Bubbling;
+        if (_focusedComponent == null || !GetPhaseFilter(_focusedComponent).HasFlag(EventPhaseFilter.Bubble))
+            return false;
+        handler(_focusedComponent, ref e);
+        return e.IsConsumed;
+    }
+
+    private void DispatchAlongPath<TEvent>(ref TEvent e, Handler<TEvent> handler) where TEvent : struct, IEvent
+    {
+        e.Phase = EventPhase.Capturing;
+        foreach (var ctrl in _focusQueue)
+        {
+            if (!GetPhaseFilter(ctrl).HasFlag(EventPhaseFilter.Capture)) continue;
+            handler(ctrl, ref e);
+            if (e.IsConsumed) return;
+        }
+
+        e.Phase = EventPhase.Bubbling;
+        foreach (var ctrl in _focusQueue.Reverse())
+        {
+            if (!GetPhaseFilter(ctrl).HasFlag(EventPhaseFilter.Bubble)) continue;
+            handler(ctrl, ref e);
+            if (e.IsConsumed) return;
         }
     }
 
@@ -485,8 +266,7 @@ public sealed class InputSystem
         // in the hit-test set with its dead view's stale Position — stealing hover from
         // the next popup this pooled instance hosts and swallowing its enter events.
         _viewToControllers.Clear();
-        _controllerToView.Clear();
-        _hoverableComponents.Clear();
+        _registrations.Clear();
     }
 
     /// <summary>
@@ -529,62 +309,12 @@ public sealed class InputSystem
 
     private void SendMouseExitEvent(ref MouseExitEvent e)
     {
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnMouseExit(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnMouseExit(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
+        DispatchAlongPath(ref e, ExitHandler);
     }
 
     private void SendMouseEnterEvent(ref MouseEnterEvent e)
     {
-        foreach (var ctrl in _focusQueue)
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Capture))
-            {
-                ctrl.OnMouseEnter(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
-
-        e.Phase = EventPhase.Bubbling;
-        foreach (var ctrl in _focusQueue.Reverse())
-        {
-            var filter = GetPhaseFilter(ctrl);
-            if (filter.HasFlag(EventPhaseFilter.Bubble))
-            {
-                ctrl.OnMouseEnter(ref e);
-                if (e.IsConsumed)
-                {
-                    return;
-                }
-            }
-        }
+        DispatchAlongPath(ref e, EnterHandler);
     }
 
     private readonly List<View> _hitTestViews = new();
@@ -614,7 +344,7 @@ public sealed class InputSystem
             return null;
 
         _hitTestViews.Sort(CompareViewsByZIndex);
-        return _viewToControllers[_hitTestViews[0]][0].Controller;
+        return _viewToControllers[_hitTestViews[0]][0];
     }
 
     private static bool IsPointInsideClippingAncestors(View view, in PointF point)
@@ -694,10 +424,10 @@ public sealed class InputSystem
         {
             if (!_viewToControllers.TryGetValue(_pathViews[i], out var list))
                 continue;
-            foreach (var registration in list)
+            foreach (var controller in list)
             {
-                if (_hoverableComponents.Contains(registration.Controller))
-                    _focusQueue.AddLast(registration.Controller);
+                if (_registrations.ContainsKey(controller))
+                    _focusQueue.AddLast(controller);
             }
         }
     }
@@ -728,7 +458,7 @@ public sealed class InputSystem
 
     public bool IsInteractable(IKeyboardMouseController component)
     {
-        return _hoverableComponents.Contains(component);
+        return _registrations.ContainsKey(component);
     }
 
     public bool HasFocus => _focusedComponent != null;

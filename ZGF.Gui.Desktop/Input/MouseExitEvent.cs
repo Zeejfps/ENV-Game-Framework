@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Desktop.Input;
 
-public struct MouseExitEvent
+public struct MouseExitEvent : IEvent
 {
     public required EventPhase Phase { get; set; }
     public required IMouse Mouse { get; init; }

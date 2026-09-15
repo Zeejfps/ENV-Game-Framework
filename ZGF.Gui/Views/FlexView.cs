@@ -237,7 +237,7 @@ public class FlexView : View
     private float MainBasis(View child, float crossExtent) =>
         Vert
             ? ColumnChildBasis(child, ColumnChildWidth(child, crossExtent))
-            : child.ClampWidth(child.MeasureWidth());
+            : child.MeasureWidth();
 
     // Slack (Remaining > 0) is handed out by grow weight; overflow (Remaining < 0) is taken back by
     // shrink weight. Keeping them on separate factors lets an item do one without the other — a
@@ -273,10 +273,10 @@ public class FlexView : View
         CrossAxisAlignment == CrossAxisAlignment.Stretch ? crossExtent : child.MeasureHeight(width);
 
     private float ColumnChildWidth(View child, float crossExtent) =>
-        CrossAxisAlignment == CrossAxisAlignment.Stretch ? crossExtent : child.ClampWidth(child.MeasureWidth());
+        CrossAxisAlignment == CrossAxisAlignment.Stretch ? crossExtent : child.MeasureWidth();
 
     private static float ColumnChildBasis(View child, float width) =>
-        child.ClampHeight(child.MeasureHeight(width));
+        child.MeasureHeight(width);
 
     private float ColumnChildHeight(View child, float width, in MainSlack slack, out bool shrunk) =>
         MainSize(child, ColumnChildBasis(child, width), slack, out shrunk);

@@ -1,4 +1,3 @@
-using PngSharp.Api;
 using ZGF.Desktop;
 using ZGF.Desktop.Backends.Metal;
 using ZGF.Fonts;
@@ -13,8 +12,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private MetalSurfaceRenderer? _surfaceRenderer;
-    private string? _pendingScreenshotPath;
-    private Action? _pendingScreenshotDone;
+    private readonly PendingScreenshot _screenshot = new();
 
     public MetalRenderBackend(MetalSharedResources shared, FreeTypeFontBackend fonts, FontHandle defaultFont)
     {
@@ -36,8 +34,12 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         var metalWindow = (MetalWindow)window;
         var metalCanvas = (MetalRenderedCanvas)canvas;
         var surfaceRenderer = new MetalSurfaceRenderer(metalWindow);
-        var capturesScreenshots = _surfaceRenderer is null;
-        if (capturesScreenshots) _surfaceRenderer = surfaceRenderer;
+        PendingScreenshot.Capture? capture = null;
+        if (_surfaceRenderer is null)
+        {
+            _surfaceRenderer = surfaceRenderer;
+            capture = surfaceRenderer.TryTakeCapture;
+        }
         metalWindow.RenderFrame = () =>
         {
             surfaceRenderer.RenderFrame((encoder, commandBuffer) =>
@@ -48,40 +50,14 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
                 metalCanvas.EndFrame(encoder, commandBuffer);
             });
 
-            if (capturesScreenshots && _pendingScreenshotPath is { } path)
-            {
-                _pendingScreenshotPath = null;
-                var done = _pendingScreenshotDone;
-                _pendingScreenshotDone = null;
-                try
-                {
-                    if (surfaceRenderer.TryTakeCapture(out var w, out var h, out var rgba))
-                    {
-                        var dir = Path.GetDirectoryName(path);
-                        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-                        Png.EncodeToFile(Png.CreateRgba(w, h, rgba), path);
-                    }
-                    else
-                    {
-                        Console.WriteLine("[Screenshot] no captured frame was produced.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Screenshot] failed: {ex.Message}");
-                }
-                finally
-                {
-                    done?.Invoke();
-                }
-            }
+            if (capture != null)
+                _screenshot.Fulfil(capture);
         };
     }
 
     public void RequestScreenshot(string path, Action? onComplete = null)
     {
-        _pendingScreenshotPath = path;
-        _pendingScreenshotDone = onComplete;
+        _screenshot.Request(path, onComplete);
         _surfaceRenderer?.RequestCapture();
     }
 
