@@ -30,7 +30,9 @@ public sealed class GuiApp : IDisposable
     private readonly Context _context;
     private readonly Func<Context, View> _contentFactory;
     private readonly Action<Type[]?>? _hotReloadHandler;
+    private readonly State<McpServerState> _mcpServerState = new(new McpServerState.Stopped());
     private GuiMcpServer? _mcpServer;
+    private GuiMcpServer? _debugMcpServer;
 
     public Context Context => _context;
     
@@ -147,7 +149,7 @@ public sealed class GuiApp : IDisposable
             HotReloadService.UpdateApplied += _hotReloadHandler;
         }
 
-        StartMcpServer(mcpServerPort);
+        StartDebugMcpServer(mcpServerPort);
     }
 
     private void HandleMainFocusChanged(bool focused)
@@ -335,26 +337,68 @@ public sealed class GuiApp : IDisposable
     /// </summary>
     public GuiDriver CreateDriver() => new(CollectSurfaces, _dispatcher, CaptureWindowScreenshot);
 
-    private void StartMcpServer(int? configuredPort)
+    /// <summary>
+    /// The app's MCP server's state — stopped, or running at an endpoint — for a settings page or a
+    /// status indicator to bind to. Changes only inside <see cref="StartMcpServer"/>,
+    /// <see cref="StopMcpServer"/> and <see cref="Dispose"/>, so it is UI-thread state like the rest.
+    /// The debug server (<c>UseMcpServer</c> / <c>ZGF_GUI_MCP</c>) is separate and not reflected here.
+    /// </summary>
+    public IReadable<McpServerState> McpServer => _mcpServerState;
+
+    /// <summary>
+    /// Starts the MCP server from <paramref name="options"/>. UI thread only. A server that is already
+    /// running is left alone — stop it first to apply different options. A port that cannot be bound
+    /// is reported, not thrown, since the usual caller is a preference toggle that shows the reason.
+    /// </summary>
+    public McpServerStart StartMcpServer(McpServerOptions options)
     {
-        var port = configuredPort ?? ResolveEnvMcpPort();
-        if (port is not { } p) return;
-        var server = new GuiMcpServer(CreateDriver());
+        if (_mcpServer is { } running)
+            return new McpServerStart.AlreadyRunning(running.Endpoint);
+        GuiMcpServer server;
         try
         {
-            server.Start(p);
-            _mcpServer = server;
+            server = new GuiMcpServer(options, CreateDriver());
         }
-        catch (Exception ex)
+        catch (System.Net.HttpListenerException ex)
         {
-            Console.WriteLine($"[GuiMcpServer] failed to start on port {p}: {ex.Message}");
+            return new McpServerStart.Failed(ex.Message);
+        }
+        _mcpServer = server;
+        _mcpServerState.Value = new McpServerState.Running(server.Endpoint);
+        return new McpServerStart.Started(server.Endpoint);
+    }
+
+    /// <summary>Stops the MCP server, ending every open client session. UI thread only; a no-op
+    /// when none is running.</summary>
+    public void StopMcpServer()
+    {
+        if (_mcpServer is not { } server) return;
+        _mcpServer = null;
+        server.Dispose();
+        _mcpServerState.Value = new McpServerState.Stopped();
+    }
+
+    // The debug path: the builder's UseMcpServer or the ZGF_GUI_MCP env var. Serves the gui_* tools
+    // and nothing else, on a plain /mcp endpoint, exactly as a scripted run expects. Its own slot,
+    // so a scripted run can drive the window while the app serves its own tools alongside.
+    private void StartDebugMcpServer(int? configuredPort)
+    {
+        if ((configuredPort ?? ResolveEnvMcpPort()) is not { } port) return;
+        try
+        {
+            _debugMcpServer = new GuiMcpServer(new McpServerOptions { Port = port, IncludeGuiTools = true }, CreateDriver());
+            Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {_debugMcpServer.Endpoint}  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
+        }
+        catch (System.Net.HttpListenerException ex)
+        {
+            Console.WriteLine($"[GuiMcpServer] failed to start on port {port}: {ex.Message}");
         }
     }
 
     private static int? ResolveEnvMcpPort()
     {
         if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ZGF_GUI_MCP"))) return null;
-        return int.TryParse(Environment.GetEnvironmentVariable("ZGF_GUI_MCP_PORT"), out var p) ? p : 5577;
+        return int.TryParse(Environment.GetEnvironmentVariable("ZGF_GUI_MCP_PORT"), out var p) && p is >= 1 and <= 65535 ? p : 5577;
     }
 
     public void Run() => _app.Run();
@@ -507,7 +551,9 @@ public sealed class GuiApp : IDisposable
     public void Dispose()
     {
         Context?.Dispose();
-        _mcpServer?.Dispose();
+        StopMcpServer();
+        _debugMcpServer?.Dispose();
+        _debugMcpServer = null;
 
         if (_hotReloadHandler != null)
             HotReloadService.UpdateApplied -= _hotReloadHandler;

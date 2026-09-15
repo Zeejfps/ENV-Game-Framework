@@ -67,13 +67,15 @@ public sealed class GuiAppBuilder
     }
 
     /// <summary>
-    /// Starts a localhost-only Model Context Protocol server (Streamable HTTP) on
+    /// Starts the debug Model Context Protocol server (Streamable HTTP, localhost only) on
     /// <paramref name="port"/> once the app is built, at <c>http://127.0.0.1:{port}/mcp</c>. It
-    /// exposes the live window to an MCP client through tools: read the view tree (<c>gui_snapshot</c>),
-    /// inject input (<c>gui_click</c>, <c>gui_type</c>, <c>gui_key</c>), and capture a screenshot
-    /// (<c>gui_screenshot</c>). A debugging aid for driving the running window from an LLM or an agent.
-    /// The server also auto-starts (without this call) when the <c>ZGF_GUI_MCP</c> environment variable
-    /// is set, reading <c>ZGF_GUI_MCP_PORT</c> (default 5577).
+    /// exposes the live window to an MCP client through the <c>gui_*</c> tools: read the view tree
+    /// (<c>gui_snapshot</c>), inject input (<c>gui_click</c>, <c>gui_type</c>, <c>gui_key</c>), and
+    /// capture a screenshot (<c>gui_screenshot</c>) — a debugging aid for driving the running window
+    /// from an LLM or an agent. The same server also auto-starts (without this call) when the
+    /// <c>ZGF_GUI_MCP</c> environment variable is set, reading <c>ZGF_GUI_MCP_PORT</c> (default 5577).
+    /// An app that serves its own tools — with a path token, instructions, and no <c>gui_*</c> tools —
+    /// starts one at runtime instead through <see cref="GuiApp.StartMcpServer"/>.
     /// </summary>
     public GuiAppBuilder UseMcpServer(int port = 5577)
     {

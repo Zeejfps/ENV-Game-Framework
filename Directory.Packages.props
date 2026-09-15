@@ -20,9 +20,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageVersion Include="McpSdk.Server" Version="1.0.0" />
-        <PackageVersion Include="McpSdk.Adapter.System.Text.Json" Version="1.0.0" />
-        <PackageVersion Include="McpSdk.Adapter.StreamableHttpServer" Version="1.0.0" />
+        <PackageVersion Include="McpSdk.Server" Version="1.2.0" />
+        <PackageVersion Include="McpSdk.Adapter.System.Text.Json" Version="1.2.0" />
+        <PackageVersion Include="McpSdk.Adapter.StreamableHttpServer" Version="1.2.0" />
     </ItemGroup>
 
     <ItemGroup>

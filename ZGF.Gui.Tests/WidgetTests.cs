@@ -79,6 +79,26 @@ public class WidgetTests
         }
     }
 
+    // The list widget mounts in answer to the list's own first Add — a Show over Count, say — and
+    // seeds from contents that already hold the item; the Add it was mounted by must not reach it
+    // as a second copy.
+    [Fact]
+    public void Each_MountedByTheListsOwnChange_SeesTheItemOnce()
+    {
+        var items = new ObservableList<Item>();
+        var seen = new List<Item>();
+        var hasItems = new Derived<bool>(() => items.Count > 0);
+        var root = new Show { When = hasItems, Then = () => Each.Of(items, new SpyRow(seen)) }.BuildView(new Context());
+        root.Mount();
+
+        var a = new Item();
+        items.Add(a);
+        var b = new Item();
+        items.Add(b);
+
+        Assert.Equal([a, b], seen);
+    }
+
     [Fact]
     public void Each_DisposesItemScope_WhenItemRemoved()
     {

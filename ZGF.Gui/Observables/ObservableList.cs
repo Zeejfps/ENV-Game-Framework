@@ -121,9 +121,25 @@ public sealed class ObservableList<T> : IReadOnlyList<T>, IInvalidatable
         return new Subscription(() => _changed -= handler);
     }
 
+    // Invalidation runs first, so a Derived over the list is dirty before any change handler reads
+    // it. That pass can change the handler set: a list widget mounted because Count just went
+    // positive subscribes — and seeds itself from contents that already include this change, so
+    // hearing of it again would apply it twice — and one torn down unsubscribes, and must not be
+    // called on a dead view. So the change goes to the handlers subscribed both before and after.
     private void Fire(ListChange<T> change)
     {
+        var before = _changed;
         _invalidated?.Invoke();
-        _changed?.Invoke(change);
+        var after = _changed;
+        if (before is null || after is null) return;
+        if (ReferenceEquals(before, after))
+        {
+            before(change);
+            return;
+        }
+
+        var remaining = after.GetInvocationList();
+        foreach (var handler in before.GetInvocationList())
+            if (Array.IndexOf(remaining, handler) >= 0) ((Action<ListChange<T>>)handler)(change);
     }
 }

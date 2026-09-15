@@ -98,6 +98,38 @@ public class KbmControllerTests
         Assert.False(press.IsConsumed);
     }
 
+    // An activation that disables its own target runs inside the press; the release that follows
+    // must still clear Pressed, or the target stays held down and its next press changes nothing.
+    [Fact]
+    public void ARelease_ClearsPressed_EvenOnceTheTargetHasDisabledItself()
+    {
+        var target = new FakeInteractable();
+        target.Pressed.Changed += pressed =>
+        {
+            if (pressed) target.Enabled.Value = false;
+        };
+        var controller = new KbmController(target);
+
+        var press = new MouseButtonEvent
+        {
+            Mouse = new Mouse(), Button = MouseButton.Left, State = InputState.Pressed, Phase = EventPhase.Bubbling,
+        };
+        controller.OnMouseButtonStateChanged(ref press);
+        Assert.Equal(1, target.Activations);
+        Assert.False(target.Enabled.Value);
+
+        var release = new MouseButtonEvent
+        {
+            Mouse = new Mouse(), Button = MouseButton.Left, State = InputState.Released, Phase = EventPhase.Bubbling,
+        };
+        controller.OnMouseButtonStateChanged(ref release);
+        Assert.False(target.Pressed.Value);
+
+        target.Enabled.Value = true;
+        controller.OnMouseButtonStateChanged(ref press);
+        Assert.Equal(2, target.Activations);
+    }
+
     [Fact]
     public void WithController_DiBuildsController_InjectingTarget_AndFollowsMountedLifetime()
     {
