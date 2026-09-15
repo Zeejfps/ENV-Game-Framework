@@ -9,6 +9,7 @@ public sealed class Context : IDisposable
 
     private readonly Dictionary<Type, object> _services = new();
     private readonly Dictionary<Type, Func<Context, object>> _factories = new();
+    private readonly Dictionary<Type, Type> _aliases = new();
     private readonly List<Type> _hosted = new();
     private readonly List<IDisposable> _owned = new();
     private readonly HashSet<Type> _creating = new();
@@ -56,6 +57,18 @@ public sealed class Context : IDisposable
         where TService : class
     {
         _factories[typeof(TService)] = factory;
+    }
+
+    /// <summary>
+    /// Registers <typeparamref name="TAlias"/> as another name for whatever <typeparamref name="TTarget"/>
+    /// resolves to. Non-owning: the target's own registration decides lifetime and disposal, so a
+    /// class registered once and aliased under each interface it implements is disposed once.
+    /// </summary>
+    public void AddAlias<TAlias, TTarget>()
+        where TAlias : class
+        where TTarget : class, TAlias
+    {
+        _aliases[typeof(TAlias)] = typeof(TTarget);
     }
 
     /// <summary>
@@ -188,6 +201,9 @@ public sealed class Context : IDisposable
     {
         if (_services.TryGetValue(type, out var service))
             return service;
+
+        if (_aliases.TryGetValue(type, out var target))
+            return Resolve(target);
 
         if (_factories.TryGetValue(type, out var factory))
         {
