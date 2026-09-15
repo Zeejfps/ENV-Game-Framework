@@ -25,7 +25,7 @@ public readonly record struct RowRenderState(bool IsHovered, bool IsContextHighl
 /// Input is routed via <see cref="VirtualRowListController"/> — attach it with
 /// <c>view.UseController(ctx =&gt; new VirtualRowListController(list))</c>.
 /// </summary>
-public sealed class VirtualRowListView : View
+public sealed class VirtualRowListView : View, IScrollableContent
 {
     public int ItemCount { get; set; }
     public float RowHeight { get; set; } = 22f;
@@ -85,6 +85,17 @@ public sealed class VirtualRowListView : View
     public event Action? ScrollChanged;
 
     /// <summary>
+    /// The list's vertical extent as a scrollbar sees it, republished whenever the scroll offset,
+    /// the content height or the viewport height moves it — every draw as well as every scroll, so a
+    /// resize re-syncs a bound bar. The list scrolls one axis: the horizontal side of the contract
+    /// is inert and never raises.
+    /// </summary>
+    public event Action<float>? VerticalScrollPositionChanged;
+    public event Action<float>? HorizontalScrollPositionChanged { add { } remove { } }
+    public float VerticalScale { get; private set; } = 1f;
+    public float HorizontalScale => 1f;
+
+    /// <summary>
     /// Receives the horizontal component of wheel events the widget itself doesn't act on
     /// (the list is vertical-only). Consumers that wrap the widget in a horizontally
     /// scrollable container (e.g. <c>DiffContentView</c>) hook this to apply DeltaX to
@@ -114,6 +125,8 @@ public sealed class VirtualRowListView : View
     public int? ContextHighlightIndex => _contextHighlightIndex < 0 ? null : _contextHighlightIndex;
 
     private float _scrollY;
+    private float _publishedScale = -1f;
+    private float _publishedNormalized;
     private int _hoveredIndex = -1;
     private int _contextHighlightIndex = -1;
     private bool _hasLastClick;
@@ -142,6 +155,17 @@ public sealed class VirtualRowListView : View
             ScrollChanged?.Invoke();
             SetDirty();
         }
+        PublishScroll();
+    }
+
+    public void SetVerticalNormalizedScrollPosition(float normalized)
+    {
+        var range = ContentHeight - Position.Height;
+        SetScrollY(range <= 0f ? 0f : Math.Clamp(normalized, 0f, 1f) * range);
+    }
+
+    public void SetHorizontalNormalizedScrollPosition(float normalized)
+    {
     }
 
     /// <summary>
@@ -197,6 +221,7 @@ public sealed class VirtualRowListView : View
         if (_contextHighlightIndex >= ItemCount) _contextHighlightIndex = -1;
         ClampScroll();
         SetDirty();
+        PublishScroll();
     }
 
     /// <summary>
@@ -210,6 +235,7 @@ public sealed class VirtualRowListView : View
         _offsets = null;
         ClampScroll();
         SetDirty();
+        PublishScroll();
     }
 
     /// <summary>
@@ -264,6 +290,9 @@ public sealed class VirtualRowListView : View
         var pos = Position;
         var z = GetDrawZIndex();
 
+        ClampScroll();
+        PublishScroll();
+
         c.PushClip(pos);
 
         if (ItemCount == 0 || ItemBuilder == null)
@@ -271,8 +300,6 @@ public sealed class VirtualRowListView : View
             c.PopClip();
             return;
         }
-
-        ClampScroll();
 
         // Selection bar floats here, below row content (rows draw at z + 2), so a consumer can
         // animate one bar across rows independently of the per-row builder.
@@ -319,6 +346,7 @@ public sealed class VirtualRowListView : View
                 ScrollChanged?.Invoke();
                 SetDirty();
             }
+            PublishScroll();
         }
 
         if (deltaX != 0f) HorizontalWheelHandler?.Invoke(deltaX);
@@ -449,5 +477,25 @@ public sealed class VirtualRowListView : View
         var max = Math.Max(0f, ContentHeight - Position.Height);
         if (_scrollY < 0f) _scrollY = 0f;
         else if (_scrollY > max) _scrollY = max;
+    }
+
+    private void PublishScroll()
+    {
+        var contentHeight = ContentHeight;
+        var bodyHeight = Position.Height;
+        var scale = 1f;
+        var normalized = 0f;
+        if (bodyHeight > 0f && contentHeight > bodyHeight)
+        {
+            scale = bodyHeight / contentHeight;
+            normalized = Math.Clamp(_scrollY / (contentHeight - bodyHeight), 0f, 1f);
+        }
+
+        VerticalScale = scale;
+        if (Math.Abs(scale - _publishedScale) <= 0.0001f && Math.Abs(normalized - _publishedNormalized) <= 0.0001f)
+            return;
+        _publishedScale = scale;
+        _publishedNormalized = normalized;
+        VerticalScrollPositionChanged?.Invoke(normalized);
     }
 }
