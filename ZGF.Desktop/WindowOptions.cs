@@ -1,8 +1,5 @@
 namespace ZGF.Desktop;
 
-// Options for a persistent secondary top-level window. Distinct from PopupWindowOptions,
-// which describes the undecorated,
-// non-resizable, floating popups used for menus and tooltips.
 public readonly struct WindowOptions
 {
     public required int WidthPoints { get; init; }

@@ -2,12 +2,6 @@ using ZGF.Desktop;
 
 namespace ZGF.Gui.Desktop;
 
-/// <summary>
-/// Opens persistent secondary top-level windows hosting a ZGF view tree.
-/// Unlike <see cref="IPopupWindowFactory"/> (borderless, pooled, capture-driven popups for
-/// menus/tooltips), these windows are persistent, user-movable/resizable, and closed by the
-/// user via the native title-bar close button.
-/// </summary>
 public interface ISecondaryWindowFactory : IDisposable
 {
     ISecondaryWindow Open(in SecondaryWindowRequest request);
