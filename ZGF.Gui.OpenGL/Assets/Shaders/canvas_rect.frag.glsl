@@ -64,6 +64,13 @@ void main() {
     float d = length(mirror - pivot);
     float aa = max(fwidth(d), 1e-6);
 
+    // At fractional display scales an outer edge can pass through a pixel center.
+    // A zero-width side must still count as fill there, not borrow another side's color.
+    bool inBottom = v_borderSize.z > 0.0 && v_localPos.y < v_borderSize.z;
+    bool inTop    = v_borderSize.x > 0.0 && v_localPos.y >= rectH - v_borderSize.x;
+    bool inRight  = v_borderSize.y > 0.0 && v_localPos.x >= rectW - v_borderSize.y;
+    bool inLeft   = v_borderSize.w > 0.0 && v_localPos.x < v_borderSize.w;
+
     float coverage = 1.0;   // outer silhouette (shape vs background)
     float fillFactor;       // 1 = fill, 0 = border, ramped across the inner boundary
     if (inCornerZone && radius > 0.0) {
@@ -84,17 +91,10 @@ void main() {
         }
     } else {
         // Straight-edge zone: axis-aligned, needs no antialiasing.
-        bool insideX = mirror.x < (halfW - borderW);
-        bool insideY = mirror.y < (halfH - borderH);
-        fillFactor = (insideX && insideY) ? 1.0 : 0.0;
+        fillFactor = (inBottom || inTop || inRight || inLeft) ? 0.0 : 1.0;
     }
 
     // Border side priority: bottom > top > right > left (matches software canvas).
-    bool inBottom = v_localPos.y < v_borderSize.z;
-    bool inTop    = v_localPos.y >= rectH - v_borderSize.x;
-    bool inRight  = v_localPos.x >= rectW - v_borderSize.y;
-    bool inLeft   = v_localPos.x < v_borderSize.w;
-
     uint pickedColor;
     if (inBottom)      pickedColor = v_borderColorBottom;
     else if (inTop)    pickedColor = v_borderColorTop;
