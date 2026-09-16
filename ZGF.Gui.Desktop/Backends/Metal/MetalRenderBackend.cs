@@ -33,7 +33,8 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
     {
         var metalWindow = (MetalWindow)window;
         var metalCanvas = (MetalRenderedCanvas)canvas;
-        var surfaceRenderer = new MetalSurfaceRenderer(metalWindow);
+        var surfaceRenderer = new MetalSurfaceRenderer(metalWindow,
+            new MTLClearColor(clearColor.R, clearColor.G, clearColor.B, clearColor.A));
         PendingScreenshot.Capture? capture = null;
         if (_surfaceRenderer is null)
         {

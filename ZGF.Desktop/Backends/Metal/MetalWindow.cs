@@ -32,12 +32,16 @@ public sealed class MetalWindow : GlfwWindowBase, IMetalSurface
     /// <summary>
     /// Lets this window composite per-pixel alpha, so content that leaves parts of its bounds
     /// unpainted — a rounded popup's corners — shows what is behind the window rather than black.
+    /// Drops the native shadow too (as GLFW does for transparent framebuffers): the window server
+    /// derives it from the whole frame's alpha coverage, so a self-painted shadow would get a
+    /// second, rectangular one the size of the full frame behind it.
     /// </summary>
     public void MakeTransparent()
     {
         msg_Void_Bool(Layer, Sel("setOpaque:"), false);
         if (NsWindow == IntPtr.Zero) return;
         msg_Void_Bool(NsWindow, Sel("setOpaque:"), false);
+        msg_Void_Bool(NsWindow, Sel("setHasShadow:"), false);
         var clear = msg_IntPtr(Class("NSColor"), Sel("clearColor"));
         if (clear != IntPtr.Zero)
             msg_Void_IntPtr(NsWindow, Sel("setBackgroundColor:"), clear);

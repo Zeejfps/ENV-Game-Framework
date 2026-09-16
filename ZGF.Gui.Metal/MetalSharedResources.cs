@@ -154,7 +154,9 @@ public sealed unsafe class MetalSharedResources : IDisposable
         msg_Void_UInt(color0, Sel("setRgbBlendOperation:"), 0);
         msg_Void_UInt(color0, Sel("setAlphaBlendOperation:"), 0);
         msg_Void_UInt(color0, Sel("setSourceRGBBlendFactor:"), 4);
-        msg_Void_UInt(color0, Sel("setSourceAlphaBlendFactor:"), 4);
+        // Alpha uses (One, OneMinusSrcAlpha) so destination alpha is real coverage; mirroring the
+        // RGB (SrcAlpha, OneMinusSrcAlpha) pair squares it and halos edges on transparent windows.
+        msg_Void_UInt(color0, Sel("setSourceAlphaBlendFactor:"), 1);
         msg_Void_UInt(color0, Sel("setDestinationRGBBlendFactor:"), 5);
         msg_Void_UInt(color0, Sel("setDestinationAlphaBlendFactor:"), 5);
 
