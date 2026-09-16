@@ -16,11 +16,10 @@ layout(location = 9) in uint i_clipIndex;
 
 uniform mat4 u_projection;
 
-out vec2 v_pixelPos;       // world (pixel) position for clip test
-out vec2 v_localPos;       // 0..rectW, 0..rectH
-out vec4 v_rectSize;       // (w, h, w, h) for convenience
-out vec4 v_borderRadius;
-out vec4 v_borderSize;
+flat out vec2 v_rectOrigin;
+flat out vec4 v_rectSize;  // (w, h, w, h) for convenience
+flat out vec4 v_borderRadius;
+flat out vec4 v_borderSize;
 flat out uint v_bgColor;
 flat out uint v_borderColorTop;
 flat out uint v_borderColorRight;
@@ -32,8 +31,7 @@ void main() {
     vec2 pixelPos = i_rect.xy + a_unitPos * i_rect.zw;
     gl_Position = u_projection * vec4(pixelPos, 0.0, 1.0);
 
-    v_pixelPos = pixelPos;
-    v_localPos = a_unitPos * i_rect.zw;
+    v_rectOrigin = i_rect.xy;
     v_rectSize = vec4(i_rect.zw, i_rect.zw);
     v_borderRadius = i_borderRadius;
     v_borderSize = i_borderSize;

@@ -35,6 +35,15 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     private IntPtr _currentEncoder;
     private int _atlasUploads;
 
+    // The existing shaders read the first 64 bytes. Rectangle shaders also read
+    // the logical/physical canvas sizes at byte 64 to reconstruct pixel centers.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CanvasGlobals
+    {
+        public Matrix4x4 Projection;
+        public Vector4 CanvasMetrics;
+    }
+
     public MetalRenderedCanvas(
         int width, int height,
         FreeTypeFontBackend fonts, FontHandle defaultFont,
@@ -57,7 +66,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         _imageInstanceBuffer = NewSharedBuffer(device, _imageCap * sizeof(ImageInstance));
         _shadowInstanceBuffer = NewSharedBuffer(device, _shadowCap * sizeof(ShadowInstance));
         _shapeInstanceBuffer = NewSharedBuffer(device, _shapeCap * sizeof(ShapeInstance));
-        _globalsBuffer = NewSharedBuffer(device, sizeof(Matrix4x4));
+        _globalsBuffer = NewSharedBuffer(device, sizeof(CanvasGlobals));
         // MaxClips genuinely IS a ceiling, unlike the instance capacities above: the clip rects are a
         // shader-declared `array<float4, 256>` in the .gen.metal fragment shaders, so this buffer
         // cannot grow without regenerating them. See UploadClips.
@@ -76,6 +85,9 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         }
 
         _currentEncoder = renderCommandEncoder;
+        // DPI can change without a logical resize. Refresh after waiting for the
+        // previous frame, before the GPU reads this shared buffer again.
+        UploadProjectionToBuffer();
         base.EndFrame();
         _currentEncoder = IntPtr.Zero;
 
@@ -267,8 +279,13 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     private void UploadProjectionToBuffer()
     {
         if (_globalsBuffer == IntPtr.Zero) return;
-        var dst = (Matrix4x4*)msg_IntPtr(_globalsBuffer, Sel("contents"));
-        *dst = Matrix4x4.Transpose(_projection);
+        var dst = (CanvasGlobals*)msg_IntPtr(_globalsBuffer, Sel("contents"));
+        *dst = new CanvasGlobals
+        {
+            Projection = Matrix4x4.Transpose(_projection),
+            CanvasMetrics = new Vector4(Width, Height,
+                MathF.Round(Width * DpiScale), MathF.Round(Height * DpiScale)),
+        };
     }
 
     // ---------- Vertex descriptors (referenced from MetalSharedResources) ----------

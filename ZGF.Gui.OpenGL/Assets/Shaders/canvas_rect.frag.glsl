@@ -1,10 +1,9 @@
 #version 410
 
-in vec2 v_pixelPos;
-in vec2 v_localPos;
-in vec4 v_rectSize;
-in vec4 v_borderRadius;
-in vec4 v_borderSize;
+flat in vec2 v_rectOrigin;
+flat in vec4 v_rectSize;
+flat in vec4 v_borderRadius;
+flat in vec4 v_borderSize;
 flat in uint v_bgColor;
 flat in uint v_borderColorTop;
 flat in uint v_borderColorRight;
@@ -21,6 +20,9 @@ layout(std140) uniform ClipRects {
 
 out vec4 f_Color;
 
+// Logical canvas size followed by the actual, rounded framebuffer size.
+uniform vec4 u_canvasMetrics;
+
 vec4 unpackARGB(uint c) {
     float a = float((c >> 24) & 0xFFu) / 255.0;
     float r = float((c >> 16) & 0xFFu) / 255.0;
@@ -30,6 +32,11 @@ vec4 unpackARGB(uint c) {
 }
 
 void main() {
+    // Interpolated local coordinates can fall on opposite sides of an exact border
+    // boundary along the same pixel row. Reconstruct from the fragment's pixel center
+    // and flat instance data so straight borders have uniform thickness at any DPI.
+    vec2 v_pixelPos = gl_FragCoord.xy * (u_canvasMetrics.xy / u_canvasMetrics.zw);
+    vec2 v_localPos = v_pixelPos - v_rectOrigin;
     // --- Clip test ---
     vec4 clip = u_clipRects[v_clipIndex];
     if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||

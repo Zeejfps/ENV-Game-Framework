@@ -23,10 +23,10 @@ struct pixelOutput_0
 struct pixelInput_0
 {
     float2 pixelPos_0 [[user(TEXCOORD)]];
-    float2 localPos_0 [[user(TEXCOORD_1)]];
-    float4 rectSize_0 [[user(TEXCOORD_2)]];
-    float4 borderRadius_0 [[user(TEXCOORD_3)]];
-    float4 borderSize_0 [[user(TEXCOORD_4)]];
+    [[flat]] float2 rectOrigin_0 [[user(TEXCOORD_1)]];
+    [[flat]] float4 rectSize_0 [[user(TEXCOORD_2)]];
+    [[flat]] float4 borderRadius_0 [[user(TEXCOORD_3)]];
+    [[flat]] float4 borderSize_0 [[user(TEXCOORD_4)]];
     [[flat]] uint bgColor_0 [[user(COLOR)]];
     [[flat]] uint borderColorTop_0 [[user(COLOR_1)]];
     [[flat]] uint borderColorRight_0 [[user(COLOR_2)]];
@@ -40,6 +40,7 @@ struct pixelInput_0
 struct SLANG_ParameterGroup_Globals_0
 {
     matrix<float,int(4),int(4)>  u_projection_0;
+    float4 u_canvasMetrics_0; // logical width/height, framebuffer width/height
 };
 
 struct SLANG_ParameterGroup_ClipRects_0
@@ -70,8 +71,13 @@ struct KernelContext_0
     (&kernelContext_0)->ClipRects_0 = ClipRects_1;
 
 
+    // Same pixel-center reconstruction as canvas_rect.frag.glsl. Metal's
+    // fragment coordinates start at the top-left; canvas coordinates start below.
+    float4 metrics = Globals_1->u_canvasMetrics_0;
+    float2 pixelPos = float2(position_0.x, metrics.w - position_0.y) * (metrics.xy / metrics.zw);
+    float2 localPos = pixelPos - _S1.rectOrigin_0;
     float4 clip_0 = ClipRects_1->u_clipRects_0[_S1.clipIndex_0];
-    float _S2 = _S1.pixelPos_0.x;
+    float _S2 = pixelPos.x;
 
 #line 82
     bool inCornerZone_0;
@@ -107,7 +113,7 @@ struct KernelContext_0
     {
 
 #line 82
-        inCornerZone_0 = (_S1.pixelPos_0.y) < (clip_0.y);
+        inCornerZone_0 = (pixelPos.y) < (clip_0.y);
 
 #line 82
     }
@@ -123,7 +129,7 @@ struct KernelContext_0
     {
 
 #line 83
-        inCornerZone_0 = (_S1.pixelPos_0.y) >= (clip_0.w);
+        inCornerZone_0 = (pixelPos.y) >= (clip_0.w);
 
 #line 83
     }
@@ -143,13 +149,13 @@ struct KernelContext_0
     float halfW_0 = rectW_0 * 0.5;
     float halfH_0 = rectH_0 * 0.5;
 
-    float2 mirror_0 = abs(_S1.localPos_0 - float2(halfW_0, halfH_0));
+    float2 mirror_0 = abs(localPos - float2(halfW_0, halfH_0));
 
-    float _S3 = _S1.localPos_0.x;
+    float _S3 = localPos.x;
 
 #line 95
     bool right_0 = _S3 > halfW_0;
-    float _S4 = _S1.localPos_0.y;
+    float _S4 = localPos.y;
 
 #line 96
     bool top_0 = _S4 > halfH_0;
@@ -296,6 +302,11 @@ struct KernelContext_0
     }
 
 #line 114
+    // Zero-width sides are fill even when an edge lands on a pixel center.
+    bool inBottom_0 = _S1.borderSize_0.z > 0.0 && localPos.y < _S1.borderSize_0.z;
+    bool inTop_0 = _S1.borderSize_0.x > 0.0 && localPos.y >= rectH_0 - _S1.borderSize_0.x;
+    bool inRight_0 = _S1.borderSize_0.y > 0.0 && localPos.x >= rectW_0 - _S1.borderSize_0.y;
+    bool inLeft_0 = _S1.borderSize_0.w > 0.0 && localPos.x < _S1.borderSize_0.w;
     float fillFactor_0;
 
 #line 114
@@ -363,62 +374,15 @@ struct KernelContext_0
     else
     {
 
-#line 139
-        bool insideY_0 = (mirror_0.y) < (halfH_0 - borderH_0);
-        if(_S7 < (halfW_0 - borderW_0))
-        {
-
-#line 140
-            inCornerZone_0 = insideY_0;
-
-#line 140
-        }
-        else
-        {
-
-#line 140
-            inCornerZone_0 = false;
-
-#line 140
-        }
-
-#line 140
-        if(inCornerZone_0)
-        {
-
-#line 140
-            radius_0 = 1.0;
-
-#line 140
-        }
-        else
-        {
-
-#line 140
-            radius_0 = 0.0;
-
-#line 140
-        }
-
-#line 140
-        fillFactor_0 = radius_0;
-
-#line 140
+        fillFactor_0 = (inBottom_0 || inTop_0 || inRight_0 || inLeft_0) ? 0.0 : 1.0;
         coverage_0 = 1.0;
-
-#line 114
     }
-
-#line 145
-    bool inTop_0 = _S4 >= (rectH_0 - _S1.borderSize_0.x);
-    bool inRight_0 = _S3 >= (rectW_0 - _S1.borderSize_0.y);
-    bool inLeft_0 = _S3 < (_S1.borderSize_0.w);
 
 #line 147
     uint pickedColor_0;
 
 
-    if(_S4 < (_S1.borderSize_0.z))
+    if(inBottom_0)
     {
 
 #line 150
@@ -537,10 +501,10 @@ struct vertexMain_Result_0
 {
     float4 position_1 [[position]];
     float2 pixelPos_1 [[user(TEXCOORD)]];
-    float2 localPos_1 [[user(TEXCOORD_1)]];
-    float4 rectSize_1 [[user(TEXCOORD_2)]];
-    float4 borderRadius_1 [[user(TEXCOORD_3)]];
-    float4 borderSize_1 [[user(TEXCOORD_4)]];
+    [[flat]] float2 rectOrigin_1 [[user(TEXCOORD_1)]];
+    [[flat]] float4 rectSize_1 [[user(TEXCOORD_2)]];
+    [[flat]] float4 borderRadius_1 [[user(TEXCOORD_3)]];
+    [[flat]] float4 borderSize_1 [[user(TEXCOORD_4)]];
     uint bgColor_1 [[user(COLOR)]];
     uint borderColorTop_1 [[user(COLOR_1)]];
     uint borderColorRight_1 [[user(COLOR_2)]];
@@ -571,7 +535,7 @@ struct Varyings_0
 {
     float4 position_2;
     float2 pixelPos_2;
-    float2 localPos_2;
+    float2 rectOrigin_2;
     float4 rectSize_2;
     float4 borderRadius_3;
     float4 borderSize_3;
@@ -611,7 +575,7 @@ struct Varyings_0
 
     (&o_0)->position_2 = (((float4(pixelPos_3, 0.0, 1.0)) * (Globals_2->u_projection_0)));
     (&o_0)->pixelPos_2 = pixelPos_3;
-    (&o_0)->localPos_2 = _S14;
+    (&o_0)->rectOrigin_2 = _S12.rect_0.xy;
     (&o_0)->rectSize_2 = float4(_S13, _S13);
     (&o_0)->borderRadius_3 = _S12.borderRadius_2;
     (&o_0)->borderSize_3 = _S12.borderSize_2;
@@ -632,7 +596,7 @@ struct Varyings_0
     (&_S15)->pixelPos_1 = o_0.pixelPos_2;
 
 #line 64
-    (&_S15)->localPos_1 = o_0.localPos_2;
+    (&_S15)->rectOrigin_1 = o_0.rectOrigin_2;
 
 #line 64
     (&_S15)->rectSize_1 = o_0.rectSize_2;
