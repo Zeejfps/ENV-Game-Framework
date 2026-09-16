@@ -442,7 +442,15 @@ public sealed class GuiApp : IDisposable
         return true;
     }
 
-    private void HandleMainWindowClose() => RequestQuit();
+    private void HandleMainWindowClose()
+    {
+        if (_pointerArbiter.IsBlockedByDialog(_mainInput))
+        {
+            _app.MainWindow.CancelClose();
+            return;
+        }
+        RequestQuit();
+    }
 
     /// <summary>Schedules a main-window repaint — for embedded rendering that animates
     /// state the view tree doesn't know about (e.g. a scene's model matrix).</summary>

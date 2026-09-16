@@ -22,6 +22,10 @@ public readonly struct SecondaryWindowRequest
     /// <summary>Use client-drawn chrome over a transparent background.</summary>
     public bool IsUndecorated { get; init; }
 
+    /// <summary>Block interaction with the main window and other secondary windows until closed.
+    /// Popups opened from this window remain interactive.</summary>
+    public bool IsModal { get; init; }
+
     /// <summary>Center on the main window, limiting the size to its monitor's work area.
     /// Takes precedence over a saved X/Y position.</summary>
     public bool CenterOnMainWindow { get; init; }

@@ -19,6 +19,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
     private readonly IUiScale _uiScale;
+    private readonly IWindowModality? _nativeModality;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
@@ -42,7 +43,26 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         _arbiter = arbiter;
         _ime = ime;
         _uiScale = uiScale;
+        _nativeModality = mainContext.Get<IWindowModality>();
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
+        _app.MainWindow.OnFocusChanged += HandleWindowFocusChanged;
+    }
+
+    private SecondaryWindowImpl? ModalWindow => _active.LastOrDefault(w => w.IsModal);
+
+    private void SyncModality()
+    {
+        var modal = ModalWindow;
+        _arbiter.DialogWindow = modal?.Input;
+        _nativeModality?.SetInputEnabled(_app.MainWindow, modal == null);
+        foreach (var window in _active)
+            _nativeModality?.SetInputEnabled(window.Window, modal == null || ReferenceEquals(window, modal));
+    }
+
+    private void HandleWindowFocusChanged(bool focused)
+    {
+        if (focused && ModalWindow is { } modal && !modal.Window.IsFocused)
+            modal.Window.Focus();
     }
 
     public ISecondaryWindow Open(in SecondaryWindowRequest request)
@@ -94,8 +114,17 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, _uiScale));
 
         var impl = new SecondaryWindowImpl(window, canvas, input, context, _uiScale, _backend, _arbiter, _ime,
-            request.IsUndecorated);
-        impl.SetRoot(request.BuildRoot(context));
+            request.IsUndecorated, request.IsModal);
+        try
+        {
+            impl.SetRoot(request.BuildRoot(context));
+        }
+        catch
+        {
+            impl.Dispose();
+            _backend.MakeMainContextCurrent();
+            throw;
+        }
 
         // A title-bar / border grab on this window is a non-client press GLFW never reports and that
         // changes no focus, so it's the case where an open menu anchored here would otherwise never
@@ -110,9 +139,16 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
         // Paint once before showing so the first frame isn't a flash of an empty window.
         _backend.RenderWindowNow(window);
-        window.Show();
-
+        if (request.IsModal)
+        {
+            _arbiter.NotifyNonClientPress(); // Dismiss any menu belonging to the previous window.
+            _nativeModality?.SetOwner(window, ModalWindow?.Window ?? _app.MainWindow);
+        }
+        window.OnFocusChanged += HandleWindowFocusChanged;
         _active.Add(impl);
+        SyncModality();
+        window.Show();
+        if (request.IsModal) window.Focus();
         return impl;
     }
 
@@ -128,6 +164,9 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             if (w.CloseRequested)
             {
                 _active.RemoveAt(i);
+                w.Window.OnFocusChanged -= HandleWindowFocusChanged;
+                // Enable the owner before destroying its dialog so the OS can activate it.
+                SyncModality();
                 // Restore the native wndproc before the window is destroyed so the decorator's
                 // subclass table doesn't retain a dead handle.
                 _decorator.UnwatchWindow(w.Window.NativeHandle);
@@ -137,6 +176,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
                 // run loop's next GL calls — and any GL work between now and the next per-window
                 // MakeContextCurrent — target a valid context.
                 _backend.MakeMainContextCurrent();
+                if (w.IsModal) (ModalWindow?.Window ?? _app.MainWindow).Focus();
             }
             else
             {
@@ -159,8 +199,15 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
     public void Dispose()
     {
-        foreach (var w in _active)
+        _app.MainWindow.OnFocusChanged -= HandleWindowFocusChanged;
+        _arbiter.DialogWindow = null;
+        _nativeModality?.SetInputEnabled(_app.MainWindow, true);
+        foreach (var w in _active) _nativeModality?.SetInputEnabled(w.Window, true);
+        // Owned windows must be destroyed before their owners.
+        for (var i = _active.Count - 1; i >= 0; i--)
         {
+            var w = _active[i];
+            w.Window.OnFocusChanged -= HandleWindowFocusChanged;
             _decorator.UnwatchWindow(w.Window.NativeHandle);
             w.Dispose();
         }
@@ -182,6 +229,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
     internal RenderedCanvasBase Canvas => _host.Canvas;
     internal float Scale => _host.Space.Scale;
     public bool CloseRequested { get; private set; }
+    internal bool IsModal { get; }
     public event Action? Closed;
 
     public SecondaryWindowImpl(
@@ -193,12 +241,14 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         IGuiRenderBackend backend,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
-        bool transparent)
+        bool transparent,
+        bool isModal = false)
     {
         _host = new GuiWindowHost(window, canvas, input, context, uiScale, sizeRootToWindow: true);
         _backend = backend;
         _arbiter = arbiter;
         _ime = ime;
+        IsModal = isModal;
 
         // Register as a non-modal participant. The arbiter orders by registration as a z-order
         // proxy, so re-register on focus to keep this window's slot matching its on-screen stacking:
@@ -211,7 +261,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         window.OnFocusChanged += HandleFocusChanged;
         // The native close button asks to close — defer the actual teardown to the next
         // factory Update() so we don't destroy the window from inside its GLFW callback.
-        window.OnClose += () => CloseRequested = true;
+        window.OnClose += HandleClose;
 
         backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, transparent ? 0f : 1f));
     }
@@ -245,6 +295,12 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
 
     public void Close() => CloseRequested = true;
 
+    private void HandleClose()
+    {
+        if (_arbiter.IsBlockedByDialog(_host.Input)) _host.Window.CancelClose();
+        else Close();
+    }
+
     private void HandleResize(int width, int height)
     {
         _host.SyncScale();
@@ -272,6 +328,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         _host.Window.OnFramebufferResize -= HandleFramebufferResize;
         _host.Window.OnContentScaleChanged -= HandleContentScaleChanged;
         _host.Window.OnFocusChanged -= HandleFocusChanged;
+        _host.Window.OnClose -= HandleClose;
         SetRoot(null);
         // VAOs are per-context (not shared across the GL share group). Make THIS window's
         // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays

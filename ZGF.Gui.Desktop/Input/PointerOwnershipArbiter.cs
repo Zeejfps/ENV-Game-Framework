@@ -38,6 +38,14 @@ public sealed class PointerOwnershipArbiter
     // parent menu, so it sits above it.
     private readonly List<Participant> _participants = new();
 
+    // A persistent dialog is separate from the transient menu layer: menus still block its
+    // pointer input and dismiss on an outside press, without dismissing the dialog itself.
+    internal IPointerWindow? DialogWindow { get; set; }
+
+    public bool IsBlockedByDialog(IPointerWindow window) =>
+        DialogWindow != null && !ReferenceEquals(DialogWindow, window)
+        && _participants.Any(p => p.Window == window && !p.IsModal);
+
     public void Register(IPointerWindow window, bool isModal)
     {
         _participants.RemoveAll(p => p.Window == window);
@@ -63,6 +71,7 @@ public sealed class PointerOwnershipArbiter
     /// </summary>
     public bool IsBlockedByModal(IPointerWindow window)
     {
+        if (IsBlockedByDialog(window)) return true;
         if (!AnyModalOpen()) return false;
         foreach (var p in _participants)
             if (p.Window == window) return !p.IsModal;
@@ -80,6 +89,7 @@ public sealed class PointerOwnershipArbiter
         for (var i = _participants.Count - 1; i >= 0; i--)
         {
             var p = _participants[i];
+            if (IsBlockedByDialog(p.Window)) continue;
             if (anyModal && !p.IsModal) continue;
             if (!p.Window.IsCursorInsideWindow()) continue;
             return p.Window == window;

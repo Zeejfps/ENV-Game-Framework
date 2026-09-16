@@ -330,6 +330,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandleScrollEvent(double x, double y)
     {
+        if (_arbiter?.IsBlockedByModal(this) == true) return;
         // Read while still inside GLFW's callback: the NSEvent this came from is the application's
         // currentEvent only for the duration of the dispatch that invoked us.
         var (gesturePhase, momentumPhase) = MacScrollPhase.Read();
@@ -419,6 +420,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandleKeyEvent(KeyboardKey key, InputAction action, KeyModifiers mods)
     {
+        if (_arbiter?.IsBlockedByDialog(this) == true) return;
         InputSystem.Modifiers = (InputModifiers)mods;
 
         var e = new KeyboardKeyEvent
@@ -453,6 +455,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandleTextEvent(uint codePoint)
     {
+        if (_arbiter?.IsBlockedByDialog(this) == true) return;
         if (!Rune.TryCreate(codePoint, out var rune))
             return;
 
@@ -475,6 +478,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandlePreeditEvent(PreeditText preedit)
     {
+        if (_arbiter?.IsBlockedByDialog(this) == true) return;
         var e = new CompositionEvent
         {
             Preedit = preedit,

@@ -42,6 +42,10 @@ internal sealed class FakeWindow : IWindow
     public bool IsFocused { get; set; } = true;
     public bool IsPointerOver { get; set; } = true;
     public bool NeedsRedraw { get; private set; } = true;
+    public bool InputEnabled { get; private set; } = true;
+    public IWindow? Owner { get; private set; }
+    public bool CloseCancelled { get; private set; }
+    public bool IsDisposed { get; private set; }
 
     public int PositionX { get; private set; }
     public int PositionY { get; private set; }
@@ -84,7 +88,14 @@ internal sealed class FakeWindow : IWindow
     public void RaiseMouseButton(int button, InputAction action, KeyModifiers modifiers = KeyModifiers.None) =>
         OnMouseButton?.Invoke(button, action, modifiers);
 
-    public void CancelClose() { }
+    public void CancelClose() => CloseCancelled = true;
+    public void RaiseClose() { CloseCancelled = false; OnClose?.Invoke(); }
+    public void RaiseKey() => OnKey?.Invoke(KeyboardKey.A, InputAction.Press, KeyModifiers.None);
+    public void RaiseText() => OnText?.Invoke('a');
+    public void RaisePreedit() => OnPreedit?.Invoke(new PreeditText("a", 1, [], -1));
+    public void RaiseScroll() => OnScroll?.Invoke(0, 1);
+    public void SetInputEnabled(bool enabled) => InputEnabled = enabled;
+    public void SetOwner(IWindow owner) => Owner = owner;
 
     public void SetTextInputFocus(bool focused) { }
     public void SetPreeditCursorRect(int x, int y, int width, int height) { }
@@ -92,7 +103,7 @@ internal sealed class FakeWindow : IWindow
 
     public void Show() => IsVisible = true;
     public void Hide() => IsVisible = false;
-    public void Focus() => IsFocused = true;
+    public void Focus() { IsFocused = true; OnFocusChanged?.Invoke(true); }
 
     public void SetPosition(int screenX, int screenY)
     {
@@ -136,5 +147,5 @@ internal sealed class FakeWindow : IWindow
     public string GetClipboardText() => string.Empty;
     public void SetClipboardText(string text) { }
 
-    public void Dispose() { }
+    public void Dispose() => IsDisposed = true;
 }
