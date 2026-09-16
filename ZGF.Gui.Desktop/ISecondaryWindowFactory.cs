@@ -3,7 +3,7 @@ using ZGF.Desktop;
 namespace ZGF.Gui.Desktop;
 
 /// <summary>
-/// Opens real, decorated, resizable secondary top-level windows hosting a ZGF view tree.
+/// Opens persistent secondary top-level windows hosting a ZGF view tree.
 /// Unlike <see cref="IPopupWindowFactory"/> (borderless, pooled, capture-driven popups for
 /// menus/tooltips), these windows are persistent, user-movable/resizable, and closed by the
 /// user via the native title-bar close button.
@@ -24,6 +24,13 @@ public readonly struct SecondaryWindowRequest
     /// caller persists, not the logical size the content lays out in.</summary>
     public required int Width { get; init; }
     public required int Height { get; init; }
+
+    /// <summary>Use client-drawn chrome over a transparent background.</summary>
+    public bool IsUndecorated { get; init; }
+
+    /// <summary>Center on the main window, limiting the size to its monitor's work area.
+    /// Takes precedence over a saved X/Y position.</summary>
+    public bool CenterOnMainWindow { get; init; }
 
     /// <summary>Optional saved top-left screen position. Clamped back onto a connected monitor
     /// before the window is shown (see <see cref="WindowPlacement"/>); when null the OS places

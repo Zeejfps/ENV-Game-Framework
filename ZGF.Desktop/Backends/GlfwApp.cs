@@ -89,14 +89,14 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     {
         Glfw.DefaultWindowHints();
         Glfw.WindowHint(Hint.Visible, false);
-        // A real secondary window: decorated, resizable, and able to take focus when shown,
-        // unlike CreatePopupWindow's borderless floating popups.
-        Glfw.WindowHint(Hint.Decorated, true);
+        // Persistent secondary windows take focus and are not globally floating. Client-drawn
+        // chrome can opt out of decorations without inheriting menu-popup behavior.
+        Glfw.WindowHint(Hint.Decorated, !options.IsUndecorated);
         Glfw.WindowHint(Hint.Floating, false);
         Glfw.WindowHint(Hint.FocusOnShow, true);
         Glfw.WindowHint(Hint.Resizable, true);
         ApplyClientApiHints();
-        return Track(OpenWindow(options.WidthPoints, options.HeightPoints, options.Title, transparent: false));
+        return Track(OpenWindow(options.WidthPoints, options.HeightPoints, options.Title, transparent: options.IsUndecorated));
     }
 
     // Creates the GLFW window for a popup or secondary window once the shared hints above are

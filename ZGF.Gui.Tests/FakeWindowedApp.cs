@@ -23,6 +23,7 @@ internal sealed class FakeWindowedApp : IWindowedApp
     public IReadOnlyList<IWindow> Windows => _windows;
     public IReadOnlyList<MonitorWorkArea> Monitors { get; }
     public bool IsForeground => true;
+    public WindowOptions? LastWindowOptions { get; private set; }
 
 #pragma warning disable CS0067
     public event Action<bool>? OnForegroundChanged;
@@ -36,8 +37,11 @@ internal sealed class FakeWindowedApp : IWindowedApp
     public IWindow CreatePopupWindow(in PopupWindowOptions options) =>
         Track(new FakeWindow(options.WidthPoints, options.HeightPoints, _backingRatio));
 
-    public IWindow CreateWindow(in WindowOptions options) =>
-        Track(new FakeWindow(options.WidthPoints, options.HeightPoints, _backingRatio));
+    public IWindow CreateWindow(in WindowOptions options)
+    {
+        LastWindowOptions = options;
+        return Track(new FakeWindow(options.WidthPoints, options.HeightPoints, _backingRatio));
+    }
 
     private IWindow Track(IWindow window)
     {
@@ -52,6 +56,7 @@ internal sealed class FakeWindowedApp : IWindowedApp
 /// present step is a no-op.</summary>
 internal sealed class FakeRenderBackend : IGuiRenderBackend
 {
+    public float LastClearAlpha { get; private set; }
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
 
@@ -64,7 +69,8 @@ internal sealed class FakeRenderBackend : IGuiRenderBackend
     public RenderedCanvasBase CreateCanvas(IWindow window, int width, int height, RenderedCanvasBase? fontSource) =>
         new CaptureCanvas(_fonts, _defaultFont, window.DpiScale);
 
-    public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null) { }
+    public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null)
+        => LastClearAlpha = clearColor.A;
     public void OnFramebufferResize(int width, int height) { }
     public void RenderWindowNow(IWindow window) { }
     public void MakeWindowContextCurrent(IWindow window) { }

@@ -5,7 +5,7 @@ using ZGF.Gui.Desktop.Input;
 namespace ZGF.Gui.Desktop;
 
 /// <summary>
-/// Creates decorated, resizable secondary windows (see <see cref="ISecondaryWindowFactory"/>).
+/// Creates persistent secondary windows (see <see cref="ISecondaryWindowFactory"/>).
 /// Mirrors the canvas/input/context/render wiring of <see cref="PopupWindowFactory"/>, but the
 /// windows are persistent (not pooled), have no capture/outside-click behavior, and handle
 /// their own resize and native-close lifecycle.
@@ -47,14 +47,36 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
     public ISecondaryWindow Open(in SecondaryWindowRequest request)
     {
+        var width = request.Width;
+        var height = request.Height;
+        var x = request.X;
+        var y = request.Y;
+        if (request.CenterOnMainWindow)
+        {
+            var owner = _app.MainWindow;
+            owner.GetPosition(out var ownerX, out var ownerY);
+            var centerX = ownerX + owner.Width / 2;
+            var centerY = ownerY + owner.Height / 2;
+            var monitors = _app.Monitors;
+            if (monitors.Count > 0)
+            {
+                var monitor = monitors.FirstOrDefault(m => centerX >= m.X && centerX < m.X + m.Width
+                    && centerY >= m.Y && centerY < m.Y + m.Height, monitors[0]);
+                width = Math.Clamp(width, 1, monitor.Width);
+                height = Math.Clamp(height, 1, monitor.Height);
+            }
+            x = centerX - width / 2;
+            y = centerY - height / 2;
+        }
         var window = _app.CreateWindow(new WindowOptions
         {
-            WidthPoints = request.Width,
-            HeightPoints = request.Height,
+            WidthPoints = width,
+            HeightPoints = height,
             Title = request.Title,
+            IsUndecorated = request.IsUndecorated,
         });
 
-        var canvas = _backend.CreateCanvas(window, request.Width, request.Height, _mainCanvasForFontRegistry);
+        var canvas = _backend.CreateCanvas(window, width, height, _mainCanvasForFontRegistry);
 
         // Share the app's pointer arbiter so this window participates in pointer ownership. Without
         // it the main window (which is arbitrated) keeps believing it owns the pointer at screen
@@ -67,10 +89,12 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 
         var context = new Context(_mainContext);
         context.Canvas = canvas;
+        context.AddService<IWindow>(window);
         context.AddService(input.InputSystem);
         context.AddService<IWindowCoordinates>(new WindowCoordinates(window, _uiScale));
 
-        var impl = new SecondaryWindowImpl(window, canvas, input, context, _uiScale, _backend, _arbiter, _ime);
+        var impl = new SecondaryWindowImpl(window, canvas, input, context, _uiScale, _backend, _arbiter, _ime,
+            request.IsUndecorated);
         impl.SetRoot(request.BuildRoot(context));
 
         // A title-bar / border grab on this window is a non-client press GLFW never reports and that
@@ -78,9 +102,9 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         // dismiss. Route those presses to the arbiter's outside-press dismissal.
         _decorator.WatchWindowNonClientPress(window.NativeHandle, _arbiter.NotifyNonClientPress);
 
-        if (request is { X: { } x, Y: { } y })
+        if (x is { } screenX && y is { } screenY)
         {
-            var (px, py) = WindowPlacement.Compute(_app.Monitors, request.Width, request.Height, x, y);
+            var (px, py) = WindowPlacement.Compute(_app.Monitors, width, height, screenX, screenY);
             window.SetPosition(px, py);
         }
 
@@ -168,7 +192,8 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         IUiScale uiScale,
         IGuiRenderBackend backend,
         PointerOwnershipArbiter arbiter,
-        ImeCoordinator ime)
+        ImeCoordinator ime,
+        bool transparent)
     {
         _host = new GuiWindowHost(window, canvas, input, context, uiScale, sizeRootToWindow: true);
         _backend = backend;
@@ -188,7 +213,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         // factory Update() so we don't destroy the window from inside its GLFW callback.
         window.OnClose += () => CloseRequested = true;
 
-        backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 1f));
+        backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, transparent ? 0f : 1f));
     }
 
     private void HandleFocusChanged(bool focused)
