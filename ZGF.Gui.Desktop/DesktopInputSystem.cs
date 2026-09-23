@@ -415,7 +415,7 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     private void HandleFocusChanged(bool focused)
     {
-        if (!focused) InputSystem.Modifiers = InputModifiers.None;
+        if (!focused) InputSystem.NotifyWindowFocusLost();
     }
 
     private void HandleKeyEvent(KeyboardKey key, InputAction action, KeyModifiers mods)

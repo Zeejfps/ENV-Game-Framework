@@ -115,9 +115,25 @@ public sealed class InputSystem
     /// </summary>
     private KeyClaim _keyClaim;
 
+    private readonly List<IInputFilter> _filters = new();
+
+    public void AddFilter(IInputFilter filter) => _filters.Add(filter);
+
+    public void RemoveFilter(IInputFilter filter) => _filters.Remove(filter);
+
+    /// <summary>Tells the filters the window lost focus. Clears <see cref="Modifiers"/>, for the same reason.</summary>
+    public void NotifyWindowFocusLost()
+    {
+        Modifiers = InputModifiers.None;
+        for (var i = 0; i < _filters.Count; i++)
+            _filters[i].OnWindowFocusLost();
+    }
+
     public void SendKeyboardKeyEvent(ref KeyboardKeyEvent e)
     {
-        Dispatch(ref e, KeyHandler);
+        for (var i = 0; i < _filters.Count && !e.IsConsumed; i++)
+            _filters[i].OnKey(ref e);
+        if (!e.IsConsumed) Dispatch(ref e, KeyHandler);
         _keyClaim = e.Claim;
     }
 
@@ -139,6 +155,8 @@ public sealed class InputSystem
 
     public void SendMouseButtonEvent(ref MouseButtonEvent e)
     {
+        for (var i = 0; i < _filters.Count; i++)
+            _filters[i].OnMouseButton(in e);
         var hadFocus = _focusedComponent != null;
         if (DispatchToFocused(ref e, ButtonHandler))
             return;
