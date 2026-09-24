@@ -124,6 +124,42 @@ public class VirtualRowListTests
     }
 
     [Fact]
+    public void ScrollPastEnd_LetsLastRowReachTopOfViewport()
+    {
+        var list = LaidOutList(height: 100f, rowHeight: 25f, itemCount: 10);
+        list.ScrollPastEnd = true;
+
+        list.SetScrollY(10_000f);
+
+        Assert.Equal(225f, list.ScrollY, 3);
+        list.TryGetRowRect(9, out var last);
+        Assert.Equal(list.Position.Top, last.Top, 3);
+    }
+
+    [Fact]
+    public void ScrollPastEnd_ScrollsAShortListToo()
+    {
+        var list = LaidOutList(height: 100f, rowHeight: 25f, itemCount: 2);
+        list.ScrollPastEnd = true;
+
+        list.SetScrollY(10_000f);
+
+        Assert.Equal(25f, list.ScrollY, 3);
+    }
+
+    [Fact]
+    public void ScrollPastEnd_TurnedOff_ClampsBackToLastRowAtBottom()
+    {
+        var list = LaidOutList(height: 100f, rowHeight: 25f, itemCount: 10);
+        list.ScrollPastEnd = true;
+        list.SetScrollY(10_000f);
+
+        list.ScrollPastEnd = false;
+
+        Assert.Equal(150f, list.ScrollY, 3);
+    }
+
+    [Fact]
     public void ContentHeight_Variable_SumsPerRowHeights()
     {
         var list = VariableList(Expanded, itemCount: 10);

@@ -119,12 +119,39 @@ public sealed class VirtualRowListView : View, IScrollableContent
     /// or the sum of per-row heights in variable mode. Consumers size a scrollbar from this so
     /// the thumb tracks the same content the widget scrolls against.
     /// </summary>
-    public float ContentHeight => RowHeightAt == null ? ItemCount * RowHeight : Offsets()[ItemCount];
+    public float ContentHeight => RowsHeight + PastEndHeight();
+
+    /// <summary>
+    /// Lets the list scroll on until its last row reaches the top of the viewport, the way a code
+    /// editor scrolls past the end of a file. The extra room is part of <see cref="ContentHeight"/>.
+    /// </summary>
+    public bool ScrollPastEnd
+    {
+        get => _scrollPastEnd;
+        set
+        {
+            if (_scrollPastEnd == value) return;
+            _scrollPastEnd = value;
+            ClampScroll();
+            SetDirty();
+            PublishScroll();
+        }
+    }
+
+    private float RowsHeight => RowHeightAt == null ? ItemCount * RowHeight : Offsets()[ItemCount];
+
+    private float PastEndHeight()
+    {
+        if (!_scrollPastEnd || ItemCount == 0) return 0f;
+        var lastRow = RowHeightAt == null ? RowHeight : RowHeightAt(ItemCount - 1);
+        return Math.Max(0f, Position.Height - lastRow);
+    }
 
     public int? HoveredIndex => _hoveredIndex < 0 ? null : _hoveredIndex;
     public int? ContextHighlightIndex => _contextHighlightIndex < 0 ? null : _contextHighlightIndex;
 
     private float _scrollY;
+    private bool _scrollPastEnd;
     private float _publishedScale = -1f;
     private float _publishedNormalized;
     private int _hoveredIndex = -1;
