@@ -489,4 +489,23 @@ public class LayoutTests
         AssertRect(east, 90f, 0f, 10f, 50f);
         AssertRect(center, 20f, 0f, 70f, 50f);
     }
+
+    [Fact]
+    public void HorizontalFlex_OverflowAnItemCannotAbsorb_ShrinksTheOthers()
+    {
+        var wide = new FlexItem { Shrink = 1f, Child = new RectView { Width = 80f, Height = 10f } };
+        var narrow = new FlexItem { Shrink = 2f, Child = new RectView { Width = 10f, Height = 10f } };
+        var fixedItem = new RectView { Width = 60f, Height = 10f };
+        var flex = new FlexView { Axis = Axis.Horizontal };
+        flex.Children.Add(wide);
+        flex.Children.Add(narrow);
+        flex.Children.Add(fixedItem);
+        var root = Root(100f, 10f, flex);
+
+        root.LayoutSelf();
+
+        Assert.Equal(40f, wide.Position.Width, 3);
+        Assert.Equal(0f, narrow.Position.Width, 3);
+        Assert.Equal(40f, fixedItem.Position.Left, 3);
+    }
 }

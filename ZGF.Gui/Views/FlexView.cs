@@ -208,7 +208,7 @@ public class FlexView : View
     /// <summary>The main-axis surplus (negative when the children overflow) left after every visible
     /// child's basis and the gaps, together with the weights it is handed out by.</summary>
     private readonly record struct MainSlack(
-        float Remaining, float TotalGrow, float TotalShrink, int VisibleCount);
+        float Remaining, float TotalGrow, float TotalShrink, int VisibleCount, HashSet<View>? Emptied = null);
 
     // The one place the main axis is divided up. Layout and height-for-width measurement both size
     // children through this and MainSize, so a child can never be measured at a width it will not
@@ -228,8 +228,44 @@ public class FlexView : View
             count++;
         }
         if (count == 0) return default;
-        return new MainSlack(
-            mainExtent - (totalBasis + Gap * (count - 1)), totalGrow, totalShrink, count);
+        var remaining = mainExtent - (totalBasis + Gap * (count - 1));
+        var emptied = remaining < 0f ? Empty(remaining, totalShrink, crossExtent) : null;
+        if (emptied is null)
+            return new MainSlack(remaining, totalGrow, totalShrink, count);
+
+        // An item shrunk to nothing gives up its whole basis and no more; what is still over is
+        // shared by the items that have width left.
+        foreach (var child in emptied)
+        {
+            remaining += MainBasis(child, crossExtent);
+            totalShrink -= ShrinkOf(child);
+        }
+        return new MainSlack(remaining, totalGrow, totalShrink, count, emptied);
+    }
+
+    // The shrinking items the overflow would take below zero, found a round at a time: each round's
+    // emptied items leave a larger share of the overflow to the rest.
+    private HashSet<View>? Empty(float remaining, float totalShrink, float crossExtent)
+    {
+        HashSet<View>? emptied = null;
+        while (totalShrink > 0f)
+        {
+            var found = false;
+            foreach (var child in Children)
+            {
+                if (!child.IsVisible || emptied?.Contains(child) == true) continue;
+                var shrink = ShrinkOf(child);
+                if (shrink <= 0f) continue;
+                var basis = MainBasis(child, crossExtent);
+                if (basis + shrink / totalShrink * remaining >= 0f) continue;
+                (emptied ??= []).Add(child);
+                remaining += basis;
+                totalShrink -= shrink;
+                found = true;
+            }
+            if (!found || remaining >= 0f) break;
+        }
+        return emptied;
     }
 
     // A child's unstretched main size. crossExtent is only consulted on the vertical axis, where
@@ -250,6 +286,11 @@ public class FlexView : View
             var grow = GrowOf(child);
             if (grow > 0f && slack.TotalGrow > 0f)
                 basis += grow / slack.TotalGrow * slack.Remaining;
+        }
+        else if (slack.Emptied?.Contains(child) == true)
+        {
+            basis = 0f;
+            shrunk = true;
         }
         else if (slack.Remaining < 0f)
         {

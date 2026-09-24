@@ -198,9 +198,13 @@ public sealed class TextView : View
 
     private string Ellipsize(ICanvas c, string text, float available)
     {
-        if (!_style.TextOverflow.IsSet || _style.TextOverflow.Value != ZGF.Gui.TextOverflow.Ellipsis)
-            return text;
-        return TextEllipsis.Truncate(c, text, _style, available);
+        if (!_style.TextOverflow.IsSet) return text;
+        return _style.TextOverflow.Value switch
+        {
+            ZGF.Gui.TextOverflow.Ellipsis => TextEllipsis.Truncate(c, text, _style, available),
+            ZGF.Gui.TextOverflow.EllipsisStart => TextEllipsis.TruncateStart(c, text, _style, available),
+            _ => text,
+        };
     }
 
     private void DrawLines(ICanvas c, IReadOnlyList<string> lines, int z)

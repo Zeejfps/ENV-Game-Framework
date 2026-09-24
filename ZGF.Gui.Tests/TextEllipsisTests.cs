@@ -48,4 +48,25 @@ public class TextEllipsisTests
     {
         Assert.Equal("…", Truncate("abcdef", 4f));
     }
+
+    [Fact]
+    public void TruncateStart_KeepsTheEnd()
+    {
+        Assert.Equal("…efgh", TextEllipsis.TruncateStart(Canvas, "abcdefgh", Style, 40f));
+    }
+
+    [Fact]
+    public void TruncateStart_NeverCutsInsideASurrogatePair()
+    {
+        var result = TextEllipsis.TruncateStart(Canvas, "😀😀a", Style, 28f);
+
+        Assert.DoesNotContain(result, char.IsSurrogate);
+        Assert.Equal("…a", result);
+    }
+
+    [Fact]
+    public void TruncateStart_LeavesFittingTextAlone()
+    {
+        Assert.Equal("abc", TextEllipsis.TruncateStart(Canvas, "abc", Style, 40f));
+    }
 }
