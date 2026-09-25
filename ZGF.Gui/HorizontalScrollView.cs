@@ -18,6 +18,7 @@ public sealed class HorizontalScrollView : View
     private readonly View _content;
     private float _distanceFromLeft;
     private float _maxDistanceFromLeft;
+    private View? _reveal;
 
     public override bool ClipsContent => true;
 
@@ -52,6 +53,21 @@ public sealed class HorizontalScrollView : View
         child.BottomConstraint = position.Bottom;
         child.HeightConstraint = position.Height;
         child.LayoutSelf();
+
+        if (_reveal is not { } target) return;
+        _reveal = null;
+        if (!IsAncestorOf(target)) return;
+
+        var shift = 0f;
+        if (target.Position.Right > position.Right) shift = position.Right - target.Position.Right;
+        if (target.Position.Left + shift < position.Left) shift = position.Left - target.Position.Left;
+        if (shift == 0f) return;
+
+        _distanceFromLeft = Math.Clamp(_distanceFromLeft + (IsRtl ? shift : -shift), 0f, _maxDistanceFromLeft);
+        child.LeftConstraint = IsRtl
+            ? position.Right - contentWidth + _distanceFromLeft
+            : position.Left - _distanceFromLeft;
+        child.LayoutSelf();
     }
 
     protected override void OnDrawChildren(ICanvas c)
@@ -71,6 +87,15 @@ public sealed class HorizontalScrollView : View
         _distanceFromLeft = clamped;
         SetDirty();
         return true;
+    }
+
+    /// <summary>Scrolls just far enough that <paramref name="descendant"/> is fully in view, leading
+    /// edge first when it is wider than the viewport. Resolved at the next layout, so it can be asked
+    /// for a view that has only just been added and has no position yet.</summary>
+    public void Reveal(View descendant)
+    {
+        _reveal = descendant;
+        SetDirty();
     }
 
     private float ContentWidth(float viewportWidth) =>

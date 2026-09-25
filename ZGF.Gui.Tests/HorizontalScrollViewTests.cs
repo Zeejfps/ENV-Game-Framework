@@ -138,4 +138,76 @@ public class HorizontalScrollViewTests
         root.LayoutSelf();
         AssertRect(content, 0f, 0f, 400f, 80f);
     }
+    private static (FlexView Row, RectView[] Tabs) Tabs(int count, float width)
+    {
+        var row = new FlexView { Axis = Axis.Horizontal };
+        var tabs = new RectView[count];
+        for (var i = 0; i < count; i++)
+        {
+            tabs[i] = new RectView { Width = width, Height = 20f };
+            row.Children.Add(tabs[i]);
+        }
+        return (row, tabs);
+    }
+
+    [Fact]
+    public void Reveal_TabPastTheTrailingEdge_ScrollsJustFarEnoughToShowIt()
+    {
+        var (row, tabs) = Tabs(5, 60f);
+        var scroller = new HorizontalScrollView(row);
+        var root = Root(100f, 80f, scroller);
+        root.LayoutSelf();
+
+        scroller.Reveal(tabs[3]);
+        root.LayoutSelf();
+
+        Assert.Equal(-140f, row.Position.Left, 3);
+        Assert.Equal(100f, tabs[3].Position.Right, 3);
+    }
+
+    [Fact]
+    public void Reveal_TabPastTheLeadingEdge_ScrollsBackToIt()
+    {
+        var (row, tabs) = Tabs(5, 60f);
+        var scroller = new HorizontalScrollView(row);
+        var root = Root(100f, 80f, scroller);
+        root.LayoutSelf();
+        scroller.ScrollHorizontal(200f);
+        root.LayoutSelf();
+
+        scroller.Reveal(tabs[1]);
+        root.LayoutSelf();
+
+        Assert.Equal(0f, tabs[1].Position.Left, 3);
+    }
+
+    [Fact]
+    public void Reveal_TabAlreadyInView_DoesNotScroll()
+    {
+        var (row, tabs) = Tabs(5, 60f);
+        var scroller = new HorizontalScrollView(row);
+        var root = Root(100f, 80f, scroller);
+        root.LayoutSelf();
+
+        scroller.Reveal(tabs[0]);
+        root.LayoutSelf();
+
+        Assert.Equal(0f, row.Position.Left, 3);
+    }
+
+    [Fact]
+    public void Reveal_TabAddedBeforeLayout_ScrollsToItOnceLaidOut()
+    {
+        var (row, _) = Tabs(2, 60f);
+        var scroller = new HorizontalScrollView(row);
+        var root = Root(100f, 80f, scroller);
+        root.LayoutSelf();
+
+        var added = new RectView { Width = 60f, Height = 20f };
+        row.Children.Add(added);
+        scroller.Reveal(added);
+        root.LayoutSelf();
+
+        Assert.Equal(100f, added.Position.Right, 3);
+    }
 }
