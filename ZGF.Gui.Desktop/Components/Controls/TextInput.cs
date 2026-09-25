@@ -45,12 +45,15 @@ public sealed record TextInput : Widget
     /// not a field that changes what it shows under a caret that stayed put.</summary>
     public bool Masked { get; init; }
 
+    /// <summary>Fits the field's intrinsic width to its text. See <see cref="TextInputView.SizesToText"/>.</summary>
+    public bool SizesToText { get; init; }
+
     protected override View CreateView(Context ctx)
     {
         var input = ctx.Require<InputSystem>();
         var clipboard = ctx.Get<IClipboard>();
 
-        var view = new TextInputView(ctx.Canvas) { ReadOnly = ReadOnly, Masked = Masked };
+        var view = new TextInputView(ctx.Canvas) { ReadOnly = ReadOnly, Masked = Masked, SizesToText = SizesToText };
         Background.Apply(ctx, view, static (v, c) => v.BackgroundColor = c);
         Placeholder.Apply(ctx, view, static (v, p) => v.PlaceholderText = p);
         PlaceholderColor.Apply(ctx, view, static (v, c) => v.PlaceholderTextColor = c);

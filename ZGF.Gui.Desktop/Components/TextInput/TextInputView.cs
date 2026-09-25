@@ -93,6 +93,13 @@ public sealed class TextInputView : View
     public bool ReadOnly { get; init; }
 
     /// <summary>
+    /// Reports the widest hard line of the text as the field's intrinsic width, the way a label does,
+    /// so a container that sizes children to their content can fit the field to what it shows. Off,
+    /// the field has no width of its own and takes what its container gives it.
+    /// </summary>
+    public bool SizesToText { get; init; }
+
+    /// <summary>
     /// Draws a <see cref="MaskCharacter"/> in place of every character — the password / secret field.
     /// Display only, and independent of <see cref="ReadOnly"/>: typing, paste, delete, selection and
     /// undo all work exactly as in an ordinary field, and <see cref="TextValue"/> still carries the
@@ -430,6 +437,25 @@ public sealed class TextInputView : View
             _buffer[i] = _buffer[i-1];
         }
         _buffer[index] = c;
+    }
+
+    protected override float MeasureWidthIntrinsic()
+    {
+        if (!SizesToText || Width.IsSet)
+            return base.MeasureWidthIntrinsic();
+
+        var text = DisplayText;
+        var widest = 0f;
+        while (true)
+        {
+            var end = text.IndexOf('\n');
+            var line = end < 0 ? text : text[..end];
+            var width = _canvas.MeasureTextWidth(line, _textStyle);
+            if (width > widest) widest = width;
+            if (end < 0) break;
+            text = text[(end + 1)..];
+        }
+        return MathF.Ceiling(widest);
     }
 
     protected override float MeasureHeightIntrinsic(float availableWidth)
