@@ -348,6 +348,22 @@ public class LayoutTests
     }
 
     [Fact]
+    public void VerticalScrollPane_ContentOverViewportByRoundingOnly_Fits()
+    {
+        // The heights a dialog body came out at under a 125% UI scale: the viewport, rebuilt from
+        // fractional positions, landed a few ulps under the content it was sized to hold.
+        var content = new RectView { Height = 69.600006f };
+        var pane = new VerticalScrollPane();
+        pane.Children.Add(content);
+        var root = Root(100f, 69.599976f, pane);
+
+        root.LayoutSelf();
+
+        Assert.Equal(1f, pane.Scale);
+        Assert.False(pane.Scroll(1f));
+    }
+
+    [Fact]
     public void ScrollPane_GrowingViewport_ReclampsStaleScrollOffsets()
     {
         var content = new RectView { Width = 300f, Height = 300f };

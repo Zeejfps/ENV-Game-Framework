@@ -5,6 +5,13 @@ namespace ZGF.Gui.VerticalScrollBar;
 
 public sealed class VerticalScrollPane : View, IScrollScope
 {
+    // Content this close to the viewport height counts as fitting. The viewport is rebuilt from
+    // fractional positions down the layout chain (top - bottom at each inset), so at a non-integer
+    // UI scale a pane sized to exactly its content can come out a few ulps short. Read as overflow,
+    // that shows a scrollbar whose gutter rewraps the content taller, which then fits and hides the
+    // bar again — a layout that flips every frame.
+    private const float FitTolerance = 0.5f;
+
     public event Action<float>? ScrollPositionChanged;
 
     private float _distanceFromTop;
@@ -118,7 +125,7 @@ public sealed class VerticalScrollPane : View, IScrollScope
         // an edit that just grew the content, and the limit cached by the last layout pass would
         // clamp the scroll one line short.
         var contentHeight = _columnView.MeasureHeight(viewport.Width);
-        _maxDistanceFromTop = Math.Max(0f, contentHeight - viewport.Height);
+        _maxDistanceFromTop = Overflow(contentHeight, viewport.Height);
 
         if (rect.Top > viewport.Top)
             Scroll(viewport.Top - rect.Top);
@@ -157,7 +164,7 @@ public sealed class VerticalScrollPane : View, IScrollScope
         var viewportHeight = Position.Height;
         var contentHeight = _columnView.MeasureHeight(Position.Width);
 
-        if (contentHeight <= viewportHeight)
+        if (Overflow(contentHeight, viewportHeight) == 0f)
             return;
 
         var delta = _distanceFromTop + contentHeight - viewportHeight;
@@ -172,7 +179,7 @@ public sealed class VerticalScrollPane : View, IScrollScope
         // Re-clamp before positioning: a viewport grown since the last scroll (e.g. a window
         // resize) shrinks the travel range, and a stale offset would leave the content pinned
         // scrolled-up with no scrollbar to bring it back.
-        _maxDistanceFromTop = Math.Max(0f, contentHeight - viewportHeight);
+        _maxDistanceFromTop = Overflow(contentHeight, viewportHeight);
         if (_distanceFromTop > _maxDistanceFromTop)
             _distanceFromTop = _maxDistanceFromTop;
 
@@ -181,15 +188,13 @@ public sealed class VerticalScrollPane : View, IScrollScope
         var viewportRect = Position;
         var contentRect = _columnView.Position;
 
-        if (contentHeight <= viewportHeight)
+        if (_maxDistanceFromTop == 0f)
         {
-            _maxDistanceFromTop = 0;
             Scale = 1f;
             ScrollNormalized = 0f;
         }
         else
         {
-            _maxDistanceFromTop = contentHeight - viewportHeight;
             Scale = viewportHeight / contentHeight;
 
             var scrollOffset = (viewportRect.Bottom - contentRect.Bottom);
@@ -207,5 +212,11 @@ public sealed class VerticalScrollPane : View, IScrollScope
         var delta = contentHeight - viewportHeight;
         _distanceFromTop = delta * normalizedPosition;
         SetDirty();
+    }
+
+    private static float Overflow(float contentHeight, float viewportHeight)
+    {
+        var overflow = contentHeight - viewportHeight;
+        return overflow > FitTolerance ? overflow : 0f;
     }
 }
