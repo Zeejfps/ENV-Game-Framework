@@ -91,11 +91,12 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         var root = content(ctx);
         root.Width = width;
         root.Height = height;
+        root.PixelGrid = new PixelGrid(ctx.Canvas.DpiScale);
 
         var harness = new GuiTestHarness(ctx, canvas, null, input, mouse, ticker, root, menuHost);
         root.OnRedrawNeeded = () => harness._redrawCount++;
         root.Mount();
-        root.LayoutSelf();
+        root.LayoutUntilSettled();
         return harness;
     }
 
@@ -130,15 +131,20 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         var root = content(ctx);
         root.Width = width;
         root.Height = height;
+        root.PixelGrid = new PixelGrid(ctx.Canvas.DpiScale);
 
         var harness = new GuiTestHarness(ctx, null, canvas, input, mouse, ticker, root, menuHost);
         root.OnRedrawNeeded = () => harness._redrawCount++;
         root.Mount();
-        root.LayoutSelf();
+        root.LayoutUntilSettled();
         return harness;
     }
 
-    public void Layout() => _root.LayoutSelf();
+    public void Layout() => _root.LayoutUntilSettled();
+
+    /// <summary>Fails if any view is off its window's device-pixel grid, or if another layout pass
+    /// would still move something. See <see cref="PixelGridAudit"/>.</summary>
+    public void AssertSettledOnPixelGrid() => PixelGridAudit.AssertSettledOnPixelGrid(_root);
 
     /// <summary>Reduces the current laid-out tree to a <see cref="UiSnapshot"/> — the textual,
     /// diffable view of what's on screen, with live focus/hover merged in from the input system.
@@ -178,7 +184,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         for (var i = 0; i < menus.Count; i++)
         {
             var menu = menus[i].Menu;
-            menu.LayoutSelf();
+            menu.LayoutUntilSettled();
             var p = menu.Position;
             var bounds = new RectI((int)p.Left, (int)p.Bottom, (int)p.Width, (int)p.Height);
             windows.Add(new WindowSnapshot("context-menu", bounds, Scale: 1f, Focused: i == menus.Count - 1,
@@ -198,7 +204,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
     {
         var canvas = Canvas;
         canvas.Reset();
-        _root.LayoutSelf();
+        _root.LayoutUntilSettled();
         _root.DrawSelf(canvas);
         return canvas;
     }
@@ -213,7 +219,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             ?? throw new InvalidOperationException(
                 "SaveScreenshot requires raster mode. Create the harness with GuiTestHarness.CreateRaster.");
         raster.BeginFrame();
-        _root.LayoutSelf();
+        _root.LayoutUntilSettled();
         _root.DrawSelf(raster);
         raster.EndFrame();
         raster.SavePng(path);
@@ -321,7 +327,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         for (var i = menus.Count - 1; i >= 0; i--)
         {
             var menu = menus[i].Menu;
-            menu.LayoutSelf();
+            menu.LayoutUntilSettled();
             var view = menu.FindByText(text, exact)
                 ?? menu.FindClickable(text, exact)
                 ?? menu.Find(v => NameMatches(v.AccessibleName(), text, exact));

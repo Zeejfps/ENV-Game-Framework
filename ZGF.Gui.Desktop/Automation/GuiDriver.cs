@@ -379,7 +379,7 @@ public sealed class GuiDriver : ITypeSink
         foreach (var s in surfaces)
         {
             if (s.Root is not { } root) continue;
-            root.LayoutSelf();
+            root.LayoutUntilSettled();
             s.Window.GetPosition(out var x, out var y);
             var bounds = new RectI(x, y, s.Window.Width, s.Window.Height);
             windows.Add(new WindowSnapshot(
@@ -416,7 +416,7 @@ public sealed class GuiDriver : ITypeSink
         {
             var s = surfaces[i];
             if (s.Role == "tooltip" || s.Root is not { } root) continue;
-            root.LayoutSelf();
+            root.LayoutUntilSettled();
             if (ResolveView(root, id, label, text, exact) is { } v) return (s, v);
         }
         return null;

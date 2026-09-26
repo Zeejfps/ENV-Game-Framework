@@ -63,6 +63,7 @@ internal sealed class GuiWindowHost
                 root.Width = Canvas.Width;
                 root.Height = Canvas.Height;
             }
+            root.PixelGrid = Canvas.PixelGrid;
             root.OnRedrawNeeded = Window.RequestRedraw;
             root.Mount();
         }
@@ -71,7 +72,7 @@ internal sealed class GuiWindowHost
     public void DrawContent()
     {
         if (Root == null) return;
-        Root.LayoutSelf();
+        Root.LayoutUntilSettled();
         Root.DrawSelf(Canvas);
     }
 
@@ -96,7 +97,9 @@ internal sealed class GuiWindowHost
         Canvas.UpdateDpiScale(space.Scale);
         Canvas.Resize((int)space.CanvasSize.Width, (int)space.CanvasSize.Height);
 
-        if (!_sizeRootToWindow || Root == null) return;
+        if (Root == null) return;
+        Root.PixelGrid = Canvas.PixelGrid;
+        if (!_sizeRootToWindow) return;
         Root.Width = Canvas.Width;
         Root.Height = Canvas.Height;
     }

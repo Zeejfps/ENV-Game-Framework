@@ -68,9 +68,10 @@ public sealed class HeadlessContextMenuHost : IContextMenuHost
 
         var menu = buildMenu(ctx);
         var opened = new HeadlessOpenedMenu(menu, ctx, this);
+        menu.PixelGrid = new PixelGrid(ctx.Canvas.DpiScale);
         menu.OnRedrawNeeded = static () => { };
         menu.Mount();
-        menu.LayoutSelf();
+        menu.LayoutUntilSettled();
 
         _open.Add(new Entry { Menu = menu, Context = ctx, Input = input, Opened = opened });
         return opened;

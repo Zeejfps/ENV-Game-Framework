@@ -30,7 +30,6 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     // this is the same contract.
     private int _rectCap, _glyphCap, _imageCap, _shadowCap, _shapeCap;
 
-    private Matrix4x4 _projection;
     private IntPtr _pendingCommandBuffer;
     private IntPtr _currentEncoder;
     private int _atlasUploads;
@@ -52,8 +51,6 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         : base(width, height, fonts, defaultFont, dpiScale)
     {
         _shared = shared;
-
-        _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
 
         var device = shared.Device;
         _rectCap = MaxRects;
@@ -100,7 +97,6 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
 
     protected override void OnResize(int width, int height)
     {
-        _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
         UploadProjectionToBuffer();
     }
 
@@ -282,9 +278,8 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         var dst = (CanvasGlobals*)msg_IntPtr(_globalsBuffer, Sel("contents"));
         *dst = new CanvasGlobals
         {
-            Projection = Matrix4x4.Transpose(_projection),
-            CanvasMetrics = new Vector4(Width, Height,
-                MathF.Round(Width * DpiScale), MathF.Round(Height * DpiScale)),
+            Projection = Matrix4x4.Transpose(Projection),
+            CanvasMetrics = new Vector4(ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight),
         };
     }
 

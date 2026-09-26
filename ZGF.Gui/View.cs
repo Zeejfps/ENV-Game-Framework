@@ -57,10 +57,51 @@ public class View
     }
 
 
+    /// <summary>
+    /// Where this view was laid out. On a <see cref="PixelGrid"/> every edge is a whole device pixel,
+    /// however the view computed it.
+    /// </summary>
     public RectF Position
     {
         get;
-        protected set => SetField(ref field, value);
+        protected set => SetField(ref field, _pixelGrid is { } grid ? grid.Snap(value) : value);
+    }
+
+    private PixelGrid? _pixelGrid;
+
+    /// <summary>
+    /// The device-pixel grid this subtree lays out on, or null to lay out unrounded. A window's host
+    /// sets it on the root; descendants follow their parent, the way <see cref="IsRtl"/> does, and a
+    /// change re-lays-out the whole subtree.
+    /// </summary>
+    public PixelGrid? PixelGrid
+    {
+        get => _pixelGrid;
+        set
+        {
+            if (_pixelGrid != value)
+                ApplyPixelGrid(value);
+        }
+    }
+
+    private void ApplyPixelGrid(PixelGrid? grid)
+    {
+        _pixelGrid = grid;
+        SetDirty();
+        foreach (var child in _children)
+        {
+            if (child._pixelGrid != grid)
+                child.ApplyPixelGrid(grid);
+        }
+    }
+
+    // A size someone chose rounds to the nearest pixel; a size content needs rounds up, so it never
+    // comes out a fraction short of what it has to hold.
+    private float SnapSize(float size, StyleValue<float> chosen)
+    {
+        if (_pixelGrid is not { } grid)
+            return size;
+        return chosen.IsSet ? grid.RoundLength(size) : grid.CeilLength(size);
     }
 
     public StyleValue<float> LeftConstraint
@@ -476,6 +517,7 @@ public class View
 
         view.Parent = this;
         view.Depth = Depth + 1;
+        view.PixelGrid = _pixelGrid;
         if (IsMounted)
             view.Mount();
         OnChildAdded(view);
@@ -624,7 +666,7 @@ public class View
     {
         float width;
         if (Width.IsSet)
-            width = Width;
+            width = SnapSize(Width, Width);
         else if (WidthConstraint.IsSet)
             width = WidthConstraint;
         else
@@ -641,7 +683,7 @@ public class View
     {
         float height;
         if (Height.IsSet)
-            height = Height;
+            height = SnapSize(Height, Height);
         else if (HeightConstraint.IsSet)
             height = HeightConstraint;
         else
@@ -694,7 +736,7 @@ public class View
         if (_measuredWidthValid)
             return _measuredWidth;
 
-        _measuredWidth = ClampWidth(MeasureWidthIntrinsic());
+        _measuredWidth = ClampWidth(SnapSize(MeasureWidthIntrinsic(), Width));
         _measuredWidthValid = true;
         return _measuredWidth;
     }
@@ -744,7 +786,7 @@ public class View
         if (_measuredHeightValid && _measuredHeightAvailableWidth == availableWidth)
             return _measuredHeight;
 
-        _measuredHeight = ClampHeight(MeasureHeightIntrinsic(availableWidth));
+        _measuredHeight = ClampHeight(SnapSize(MeasureHeightIntrinsic(availableWidth), Height));
         _measuredHeightAvailableWidth = availableWidth;
         _measuredHeightValid = true;
         return _measuredHeight;
@@ -794,6 +836,23 @@ public class View
             _childrenDirty = false;
             OnLayoutChildren();
         }
+    }
+
+    private const int MaxSettlePasses = 8;
+
+    /// <summary>True while this view or anything under it still has layout to do.</summary>
+    public bool NeedsLayout => IsSelfDirty || _childrenDirty;
+
+    /// <summary>
+    /// Lays out until nothing is left dirty. One view's pass can dirty another it feeds — a scroll
+    /// pane handing its scale to its scrollbar — and a single <see cref="LayoutSelf"/> leaves that
+    /// for the next frame, which then draws a frame late. Hosts lay a window's root out with this.
+    /// Bounded, so a layout that never settles still returns.
+    /// </summary>
+    public void LayoutUntilSettled()
+    {
+        for (var pass = 0; pass < MaxSettlePasses && NeedsLayout; pass++)
+            LayoutSelf();
     }
 
     public void DrawSelf(ICanvas c)
@@ -854,6 +913,7 @@ public class View
         view.Parent = this;
         view.Depth = Depth + 1;
         view.SiblingIndex =  siblingIndex;
+        view.PixelGrid = _pixelGrid;
         if (IsMounted)
             view.Mount();
         OnChildAdded(view);

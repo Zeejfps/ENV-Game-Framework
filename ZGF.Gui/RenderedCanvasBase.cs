@@ -245,6 +245,39 @@ public abstract class RenderedCanvasBase : ICanvas
     public float DpiScale => _dpiScale;
     protected FreeTypeFontBackend FontBackend => _fonts;
 
+    /// <summary>The framebuffer size in device pixels: the canvas size scaled and rounded.</summary>
+    protected int DeviceWidth => Math.Max(1, (int)MathF.Round(_width * _dpiScale));
+    protected int DeviceHeight => Math.Max(1, (int)MathF.Round(_height * _dpiScale));
+
+    // The framebuffer's extent in logical points. The rounding in DeviceWidth/Height leaves it up to
+    // half a pixel off Width/Height; projecting over this instead of over Width keeps one point
+    // exactly DpiScale pixels everywhere, which is what PixelGrid assumes.
+    protected float ProjectionWidth => DeviceWidth / _dpiScale;
+    protected float ProjectionHeight => DeviceHeight / _dpiScale;
+
+    protected Matrix4x4 Projection =>
+        Matrix4x4.CreateOrthographicOffCenter(0, ProjectionWidth, 0, ProjectionHeight, -1f, 1f);
+
+    /// <summary>The device-pixel grid this canvas draws on. Layout rounds to the same one.</summary>
+    public PixelGrid PixelGrid => new(_dpiScale);
+
+    // Every staged edge goes through the grid, so edges that meet in layout meet on screen.
+    private float SnapToDevice(float logical) => PixelGrid.Snap(logical);
+
+    private float SnapLength(float logical) => PixelGrid.RoundLength(logical);
+
+    private float SnapStroke(float logical) => logical > 0f ? MathF.Max(1f / _dpiScale, SnapLength(logical)) : 0f;
+
+    // Edges snap independently so edges shared in layout stay shared on screen. A span under two
+    // device pixels is a line rather than an area, and keeps one width wherever it sits instead.
+    private (float Start, float Length) SnapSpan(float start, float end)
+    {
+        var snappedStart = SnapToDevice(start);
+        if ((end - start) * _dpiScale < 2f)
+            return (snappedStart, MathF.Max(0f, SnapLength(end - start)));
+        return (snappedStart, MathF.Max(0f, SnapToDevice(end) - snappedStart));
+    }
+
     public void Resize(int width, int height)
     {
         _width = width;
@@ -278,7 +311,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _sequence = 0;
 
         // Slot 0 is the default fullscreen clip.
-        _stagedClips.Add(new Vector4(0, 0, _width, _height));
+        _stagedClips.Add(new Vector4(0, 0, ProjectionWidth, ProjectionHeight));
         _clipStack.Push(0);
 
         // Seed opacity/transform to identity. The seed is never popped (the Pop* methods keep one
@@ -304,10 +337,8 @@ public abstract class RenderedCanvasBase : ICanvas
         // filling it. The cost is that a rect's drawn size can vary by a pixel as it moves
         // subpixel, which is inherent to snapping and invisible next to a broken seam.
         var savg = (_scale.X + _scale.Y) * 0.5f;
-        var left = MathF.Ceiling(pos.Left * _scale.X + _translation.X);
-        var bottom = MathF.Ceiling(pos.Bottom * _scale.Y + _translation.Y);
-        var width = MathF.Max(0f, MathF.Ceiling(pos.Right * _scale.X + _translation.X) - left);
-        var height = MathF.Max(0f, MathF.Ceiling(pos.Top * _scale.Y + _translation.Y) - bottom);
+        var (left, width) = SnapSpan(pos.Left * _scale.X + _translation.X, pos.Right * _scale.X + _translation.X);
+        var (bottom, height) = SnapSpan(pos.Bottom * _scale.Y + _translation.Y, pos.Top * _scale.Y + _translation.Y);
 
         _stagedRects.Add(new StagedRect
         {
@@ -321,10 +352,10 @@ public abstract class RenderedCanvasBase : ICanvas
                     style.BorderRadius.BottomRight.Value * savg,
                     style.BorderRadius.BottomLeft.Value * savg),
                 BorderSize = new Vector4(
-                    MathF.Round(style.BorderSize.Top.Value * savg),
-                    MathF.Round(style.BorderSize.Right.Value * savg),
-                    MathF.Round(style.BorderSize.Bottom.Value * savg),
-                    MathF.Round(style.BorderSize.Left.Value * savg)),
+                    SnapStroke(style.BorderSize.Top.Value * savg),
+                    SnapStroke(style.BorderSize.Right.Value * savg),
+                    SnapStroke(style.BorderSize.Bottom.Value * savg),
+                    SnapStroke(style.BorderSize.Left.Value * savg)),
                 BgColor = Tint(style.BackgroundColor),
                 BorderColorTop = Tint(style.BorderColor.Top.Value),
                 BorderColorRight = Tint(style.BorderColor.Right.Value),
@@ -356,10 +387,10 @@ public abstract class RenderedCanvasBase : ICanvas
         var sigma = MathF.Max(blur * 0.5f * savg, 0.0001f);
 
         // The shifted+spread source rect that produces the shadow, in world coords.
-        var sLeft = MathF.Floor((pos.Left + offsetX - spread) * sx + _translation.X);
-        var sBottom = MathF.Floor((pos.Bottom + offsetY - spread) * sy + _translation.Y);
-        var sWidth = MathF.Ceiling((pos.Width + spread * 2f) * sx);
-        var sHeight = MathF.Ceiling((pos.Height + spread * 2f) * sy);
+        var (sLeft, sWidth) = SnapSpan(
+            (pos.Left + offsetX - spread) * sx + _translation.X, (pos.Right + offsetX + spread) * sx + _translation.X);
+        var (sBottom, sHeight) = SnapSpan(
+            (pos.Bottom + offsetY - spread) * sy + _translation.Y, (pos.Top + offsetY + spread) * sy + _translation.Y);
 
         // Inflate the drawn quad to include the ~3σ penumbra.
         var pad = MathF.Ceiling(sigma * 3f + 1f);
@@ -700,6 +731,7 @@ public abstract class RenderedCanvasBase : ICanvas
         var bottom = bottomDevice * invScale;
         var width = widthDevice * invScale;
         var height = thicknessDevice * invScale;
+        var (snappedLeft, snappedWidth) = SnapSpan(left * sx + tx, (left + width) * sx + tx);
 
         _stagedRects.Add(new StagedRect
         {
@@ -707,10 +739,10 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new RectInstance
             {
                 Rect = new Vector4(
-                    MathF.Ceiling(left * sx + tx),
-                    MathF.Ceiling(bottom * sy + ty),
-                    MathF.Ceiling(width * sx),
-                    MathF.Ceiling(height * sy)),
+                    snappedLeft,
+                    SnapToDevice(bottom * sy + ty),
+                    snappedWidth,
+                    SnapStroke(height * sy)),
                 BgColor = color,
                 ClipIndex = clip,
             }
@@ -891,15 +923,13 @@ public abstract class RenderedCanvasBase : ICanvas
         var pos = inputs.Position;
         var imageId = inputs.ImageId;
         var size = GetImageSize(imageId);
-        var imageW = (int)size.Width;
-        var imageH = (int)size.Height;
-        var rectW = (int)pos.Width;
-        var rectH = (int)pos.Height;
+        var rectW = pos.Width;
+        var rectH = pos.Height;
 
         // Aspect-fit: scale to longest matching extent, then center.
-        var aspect = (float)imageW / imageH;
+        var aspect = size.Width / size.Height;
         float scaledWidth, scaledHeight;
-        if (aspect > (float)rectW / rectH)
+        if (aspect > rectW / rectH)
         {
             scaledWidth = rectW;
             scaledHeight = rectW / aspect;
@@ -915,10 +945,10 @@ public abstract class RenderedCanvasBase : ICanvas
         var offsetX = (pos.Left + (rectW - scaledWidth) * 0.5f) * sx + _translation.X;
         var offsetY = (pos.Bottom + (rectH - scaledHeight) * 0.5f) * sy + _translation.Y;
 
-        var snappedLeft = MathF.Round(offsetX);
-        var snappedBottom = MathF.Round(offsetY);
-        var snappedRight = MathF.Round(offsetX + scaledWidth * sx);
-        var snappedTop = MathF.Round(offsetY + scaledHeight * sy);
+        var snappedLeft = SnapToDevice(offsetX);
+        var snappedBottom = SnapToDevice(offsetY);
+        var snappedRight = SnapToDevice(offsetX + scaledWidth * sx);
+        var snappedTop = SnapToDevice(offsetY + scaledHeight * sy);
 
         _stagedImages.Add(new StagedImage
         {
@@ -958,10 +988,14 @@ public abstract class RenderedCanvasBase : ICanvas
         var tx = _translation.X;
         var ty = _translation.Y;
         var current = _stagedClips[_clipStack.Peek()];
-        var left = MathF.Ceiling(MathF.Max(rect.Left * sx + tx, current.X));
-        var bottom = MathF.Ceiling(MathF.Max(rect.Bottom * sy + ty, current.Y));
-        var right = MathF.Floor(MathF.Min(rect.Right * sx + tx, current.Z));
-        var top = MathF.Floor(MathF.Min(rect.Top * sy + ty, current.W));
+        // Snapped by the same rule as DrawRect, so a view clipped to its own Position keeps every
+        // pixel of its background.
+        var (spanLeft, spanWidth) = SnapSpan(rect.Left * sx + tx, rect.Right * sx + tx);
+        var (spanBottom, spanHeight) = SnapSpan(rect.Bottom * sy + ty, rect.Top * sy + ty);
+        var left = MathF.Max(spanLeft, current.X);
+        var bottom = MathF.Max(spanBottom, current.Y);
+        var right = MathF.Min(spanLeft + spanWidth, current.Z);
+        var top = MathF.Min(spanBottom + spanHeight, current.W);
         if (right < left) right = left;
         if (top < bottom) top = bottom;
 

@@ -48,8 +48,8 @@ public sealed class RasterCanvas : RenderedCanvasBase
 
     private void AllocBuffer()
     {
-        _fbW = Math.Max(1, (int)MathF.Round(Width * DpiScale));
-        _fbH = Math.Max(1, (int)MathF.Round(Height * DpiScale));
+        _fbW = DeviceWidth;
+        _fbH = DeviceHeight;
         _rgba = new byte[_fbW * _fbH * 4];
     }
 
@@ -137,17 +137,14 @@ public sealed class RasterCanvas : RenderedCanvasBase
         var (clx0, cly0, clx1, cly1) = ClipBounds(rect.ClipIndex);
         float l = rect.Rect.X, b = rect.Rect.Y, r = rect.Rect.X + rect.Rect.Z, t = rect.Rect.Y + rect.Rect.W;
 
-        var x0 = Math.Max((int)MathF.Floor(l), clx0);
-        var y0 = Math.Max((int)MathF.Floor(b), cly0);
-        var x1 = Math.Min((int)MathF.Ceiling(r), clx1);
-        var y1 = Math.Min((int)MathF.Ceiling(t), cly1);
+        var (x0, y0, x1, y1) = DeviceBounds(l, b, r, t, clx0, cly0, clx1, cly1);
 
         // BorderSize = (top, right, bottom, left); BorderRadius = (tl, tr, br, bl).
         var bs = rect.BorderSize;
         for (var y = y0; y < y1; y++)
         for (var x = x0; x < x1; x++)
         {
-            float px = x + 0.5f, py = y + 0.5f;
+            float px = PointAt(x), py = PointAt(y);
             if (!InsideRounded(px, py, l, b, r, t, rect.BorderRadius)) continue;
 
             uint color = rect.BgColor;
@@ -170,17 +167,15 @@ public sealed class RasterCanvas : RenderedCanvasBase
         int aw = FontBackend.AtlasWidth, ah = FontBackend.AtlasHeight;
 
         var (clx0, cly0, clx1, cly1) = ClipBounds(g.ClipIndex);
-        var x0 = Math.Max((int)MathF.Floor(g.Rect.X), clx0);
-        var y0 = Math.Max((int)MathF.Floor(g.Rect.Y), cly0);
-        var x1 = Math.Min((int)MathF.Ceiling(g.Rect.X + g.Rect.Z), clx1);
-        var y1 = Math.Min((int)MathF.Ceiling(g.Rect.Y + g.Rect.W), cly1);
+        var (x0, y0, x1, y1) = DeviceBounds(
+            g.Rect.X, g.Rect.Y, g.Rect.X + g.Rect.Z, g.Rect.Y + g.Rect.W, clx0, cly0, clx1, cly1);
 
         float u0 = g.AtlasUV.X, v0 = g.AtlasUV.Y, uw = g.AtlasUV.Z, vh = g.AtlasUV.W;
         for (var y = y0; y < y1; y++)
         for (var x = x0; x < x1; x++)
         {
-            var fx = (x + 0.5f - g.Rect.X) / g.Rect.Z;
-            var fy = (y + 0.5f - g.Rect.Y) / g.Rect.W;
+            var fx = (PointAt(x) - g.Rect.X) / g.Rect.Z;
+            var fy = (PointAt(y) - g.Rect.Y) / g.Rect.W;
             if (fx < 0f || fx > 1f || fy < 0f || fy > 1f) continue;
 
             var ax = (int)((u0 + fx * uw) * aw);
@@ -199,15 +194,13 @@ public sealed class RasterCanvas : RenderedCanvasBase
         if (a == 0) return;
 
         var (clx0, cly0, clx1, cly1) = ClipBounds(s.ClipIndex);
-        var x0 = Math.Max((int)MathF.Floor(s.OuterRect.X), clx0);
-        var y0 = Math.Max((int)MathF.Floor(s.OuterRect.Y), cly0);
-        var x1 = Math.Min((int)MathF.Ceiling(s.OuterRect.X + s.OuterRect.Z), clx1);
-        var y1 = Math.Min((int)MathF.Ceiling(s.OuterRect.Y + s.OuterRect.W), cly1);
+        var (x0, y0, x1, y1) = DeviceBounds(s.OuterRect.X, s.OuterRect.Y,
+            s.OuterRect.X + s.OuterRect.Z, s.OuterRect.Y + s.OuterRect.W, clx0, cly0, clx1, cly1);
 
         for (var y = y0; y < y1; y++)
         for (var x = x0; x < x1; x++)
         {
-            var d = ShapeDistance(s, x + 0.5f, y + 0.5f);
+            var d = ShapeDistance(s, PointAt(x), PointAt(y)) * DpiScale;
             if (d > 0.5f) continue;
             int cov = d <= -0.5f ? 255 : (int)((0.5f - d) * 255f);
             Blend(x, y, r, g, b, a * cov / 255);
@@ -252,12 +245,19 @@ public sealed class RasterCanvas : RenderedCanvasBase
     {
         if (clipIndex >= (uint)_clipCount) return (0, 0, _fbW, _fbH);
         var c = _clips[clipIndex]; // (left, bottom, right, top)
-        var x0 = Math.Max(0, (int)MathF.Floor(c.X));
-        var y0 = Math.Max(0, (int)MathF.Floor(c.Y));
-        var x1 = Math.Min(_fbW, (int)MathF.Ceiling(c.Z));
-        var y1 = Math.Min(_fbH, (int)MathF.Ceiling(c.W));
-        return (x0, y0, x1, y1);
+        return DeviceBounds(c.X, c.Y, c.Z, c.W, 0, 0, _fbW, _fbH);
     }
+
+    // Instances and clips are in logical points; the buffer is in device pixels. A pixel is covered
+    // when its centre is, which is the test the GPU shaders make.
+    private float PointAt(int devicePixel) => (devicePixel + 0.5f) / DpiScale;
+
+    private (int X0, int Y0, int X1, int Y1) DeviceBounds(float l, float b, float r, float t,
+        int minX, int minY, int maxX, int maxY) => (
+        Math.Max((int)MathF.Floor(l * DpiScale), minX),
+        Math.Max((int)MathF.Floor(b * DpiScale), minY),
+        Math.Min((int)MathF.Ceiling(r * DpiScale), maxX),
+        Math.Min((int)MathF.Ceiling(t * DpiScale), maxY));
 
     private void Blend(int x, int y, byte sr, byte sg, byte sb, int srcA)
     {

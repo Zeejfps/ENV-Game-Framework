@@ -27,7 +27,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     // the forward-compatible context typically reports the driver's real (>= 4.2) version.
     private readonly bool _useBaseInstance;
 
-    private Matrix4x4 _projection;
     private int _atlasUploads;
 
     public OpenGlRenderedCanvas(
@@ -41,7 +40,6 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _shared = shared;
 
         _useBaseInstance = DetectBaseInstanceSupport();
-        _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
         UploadProjection();
         SetupInstanceBuffers();
         SetupClipUbo();
@@ -58,11 +56,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                && IsLoaded("glDrawArraysInstancedBaseInstance");
     }
 
-    protected override void OnResize(int width, int height)
-    {
-        _projection = Matrix4x4.CreateOrthographicOffCenter(0, width, 0, height, -1f, 1f);
-        UploadProjection();
-    }
+    protected override void OnResize(int width, int height) => UploadProjection();
 
     /// <summary>Reads the framebuffer back as top-down RGBA (PNG row order) at device-pixel size.
     /// Must run with this canvas's GL context current and after the frame is drawn but before the
@@ -186,9 +180,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         // to set explicitly when this canvas gets time to draw (window/framebuffer
         // resizes don't auto-update viewport on subsequent context-make-currents).
         UploadProjection();
-        var fbW = (int)MathF.Round(Width * DpiScale);
-        var fbH = (int)MathF.Round(Height * DpiScale);
-        glViewport(0, 0, fbW, fbH);
+        glViewport(0, 0, DeviceWidth, DeviceHeight);
 
         if (drawCalls.Count == 0) return;
 
@@ -274,12 +266,11 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     private void UploadProjection()
     {
-        var p = _projection;
+        var p = Projection;
         var ptr = &p.M11;
         glUseProgram(_shared.RectShader);
         glUniformMatrix4fv(_shared.RectProjLoc, 1, false, ptr);
-        glUniform4f(_shared.RectCanvasMetricsLoc, Width, Height,
-            MathF.Round(Width * DpiScale), MathF.Round(Height * DpiScale));
+        glUniform4f(_shared.RectCanvasMetricsLoc, ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight);
         glUseProgram(_shared.GlyphShader);
         glUniformMatrix4fv(_shared.GlyphProjLoc, 1, false, ptr);
         glUseProgram(_shared.ImageShader);
