@@ -154,4 +154,39 @@ public sealed class UndecoratedWindowTests : IDisposable
         Assert.Equal(115, window.PositionY);
         Assert.False(input.HasFocus);
     }
+
+    [Fact]
+    public void TopLeftResizeAnchorsTheOppositeCornerAndStopsAtTheMinimumSize()
+    {
+        var window = new FakeWindow();
+        window.SetPosition(100, 100);
+        window.SetSize(400, 300);
+        window.SetCursorPosition(2, 2);
+        var input = new InputSystem();
+        var resize = new WindowResizeController(window, input, WindowEdges.TopLeft) { MinWidth = 200, MinHeight = 150 };
+        Assert.Equal(MouseCursor.ResizeNwse, resize.Cursor);
+        var mouse = new Mouse();
+        mouse.Press(MouseButton.Left);
+        var press = new MouseButtonEvent
+        {
+            Mouse = mouse, Button = MouseButton.Left, State = InputState.Pressed, Phase = EventPhase.Bubbling,
+        };
+        resize.OnMouseButtonStateChanged(ref press);
+        var move = new MouseMoveEvent { Mouse = mouse, Phase = EventPhase.Bubbling };
+
+        window.SetCursorPosition(-18, -8);
+        resize.OnMouseMoved(ref move);
+        Assert.Equal((80, 90, 420, 310), (window.PositionX, window.PositionY, window.Width, window.Height));
+
+        window.SetCursorPosition(400, 400);
+        resize.OnMouseMoved(ref move);
+        Assert.Equal((300, 250, 200, 150), (window.PositionX, window.PositionY, window.Width, window.Height));
+
+        var release = new MouseButtonEvent
+        {
+            Mouse = mouse, Button = MouseButton.Left, State = InputState.Released, Phase = EventPhase.Bubbling,
+        };
+        resize.OnMouseButtonStateChanged(ref release);
+        Assert.False(input.HasFocus);
+    }
 }
