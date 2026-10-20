@@ -6,12 +6,6 @@ namespace ZGF.Gui.Immediate.Sample;
 
 public static class SampleWidgets
 {
-    private sealed class ToggleState
-    {
-        public bool Started;
-        public float Knob;
-    }
-
     public static bool Toggle(this Ui ui, string label, ref bool on, string? id = null)
     {
         var theme = ui.Theme;
@@ -19,18 +13,7 @@ public static class SampleWidgets
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Clicked) on = !on;
 
-        var state = ui.GetState<ToggleState>(i.Id);
-        var target = on ? 1f : 0f;
-        if (!state.Started)
-        {
-            state.Knob = target;
-            state.Started = true;
-        }
-        state.Knob = MoveTowards(state.Knob, target, ui.DeltaTime * 6f);
-        if (state.Knob != target)
-            ui.RequestFrame();
-
-        var t = state.Knob;
+        var t = ui.Animate(i.Id, on ? 1f : 0f, Spring.Wobbly);
         var knobColor = theme.OnAccent;
         using (ui.Row(i.Id, new Box { Width = Sizing.Fit(), Height = theme.ControlHeight }))
         {
@@ -99,7 +82,4 @@ public static class SampleWidgets
             Background = i.Held ? theme.ControlActive : i.Hovered ? theme.ControlHovered : 0u,
         }, color: enabled ? theme.Text : theme.TextMuted, align: Align.Center, id: i.Id);
     }
-
-    private static float MoveTowards(float current, float target, float step) =>
-        current < target ? MathF.Min(current + step, target) : MathF.Max(current - step, target);
 }

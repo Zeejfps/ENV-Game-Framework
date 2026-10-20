@@ -45,7 +45,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             if (!item.Done) remaining++;
         }
         ui.Label(ui.Memo("remaining", (t, remaining), static a => a.t.TasksRemaining(a.remaining)), ui.Theme.TextMuted);
-        ui.ProgressBar(s.Items.Count == 0 ? 0f : 1f - remaining / (float)s.Items.Count);
+        ui.ProgressBar(ui.Animate("progress", s.Items.Count == 0 ? 0f : 1f - remaining / (float)s.Items.Count, Tween.OutCubic(0.35f)));
 
         using (ui.Row())
         {
