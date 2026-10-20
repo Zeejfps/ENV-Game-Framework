@@ -79,6 +79,15 @@ public readonly record struct Box
     public float BorderWidth { get; init; }
     public float Radius { get; init; }
     public bool Clip { get; init; }
+
+    /// <summary>Shifts the children left/up by this much, for content scrolled inside a clip.</summary>
+    public float ScrollX { get; init; }
+    public float ScrollY { get; init; }
 }
 
-public readonly record struct Interaction(bool Hovered, bool Pressed, bool Held, bool Clicked);
+/// <summary>What the pointer did to element <see cref="Id"/> this frame. Record the element with
+/// that id so the next frame can hit-test it.</summary>
+public readonly record struct Interaction(int Id, bool Hovered, bool Pressed, bool Held, bool Clicked)
+{
+    public static Interaction Inert(int id) => new(id, false, false, false, false);
+}

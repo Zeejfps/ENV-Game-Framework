@@ -10,8 +10,8 @@ internal struct Element
     public int FirstChild;
     public int LastChild;
     public int NextSibling;
-    public int FirstLine;
-    public int LastLine;
+    public int FirstPaint;
+    public int LastPaint;
 
     public bool Horizontal;
     public Sizing Width;
@@ -48,11 +48,9 @@ internal struct Element
     public float ChildExtent;
 }
 
-internal struct LinePaint
+internal struct PaintEntry
 {
-    public float X0, Y0, X1, Y1;
-    public float Thickness;
-    public uint Color;
+    public Action<UiPainter> Paint;
     public int Next;
 }
 
@@ -62,11 +60,12 @@ internal readonly record struct HitRegion(int Id, UiRect Rect, int Z, int Order)
 internal sealed class LayoutTree
 {
     private readonly List<Element> _elements = new();
-    private readonly List<LinePaint> _lines = new();
+    private readonly List<PaintEntry> _paints = new();
     private readonly List<(int Index, int Z)> _floating = new();
     private readonly List<UiRect> _clips = new();
     private readonly RectStyle _rectStyle = new();
     private ICanvas _canvas = null!;
+    private UiPainter _painter = null!;
     private float _canvasHeight;
     private int _order;
 
@@ -75,7 +74,7 @@ internal sealed class LayoutTree
     public void Clear()
     {
         _elements.Clear();
-        _lines.Clear();
+        _paints.Clear();
     }
 
     public int Add(in Element element)
@@ -84,7 +83,7 @@ internal sealed class LayoutTree
         _elements.Add(element);
         ref var e = ref this[index];
         e.FirstChild = e.LastChild = e.NextSibling = -1;
-        e.FirstLine = e.LastLine = -1;
+        e.FirstPaint = e.LastPaint = -1;
         if (e.Parent < 0) return index;
 
         ref var parent = ref this[e.Parent];
@@ -96,17 +95,16 @@ internal sealed class LayoutTree
         return index;
     }
 
-    public void AddLine(int element, LinePaint line)
+    public void AddPaint(int element, Action<UiPainter> paint)
     {
-        line.Next = -1;
-        var index = _lines.Count;
-        _lines.Add(line);
+        var index = _paints.Count;
+        _paints.Add(new PaintEntry { Paint = paint, Next = -1 });
         ref var e = ref this[element];
-        if (e.LastLine >= 0)
-            CollectionsMarshal.AsSpan(_lines)[e.LastLine].Next = index;
+        if (e.LastPaint >= 0)
+            CollectionsMarshal.AsSpan(_paints)[e.LastPaint].Next = index;
         else
-            e.FirstLine = index;
-        e.LastLine = index;
+            e.FirstPaint = index;
+        e.LastPaint = index;
     }
 
     public void Solve()
@@ -172,9 +170,10 @@ internal sealed class LayoutTree
         }
     }
 
-    public void Emit(ICanvas canvas, float canvasWidth, float canvasHeight, List<HitRegion> hits, Dictionary<int, UiRect> rects)
+    public void Emit(ICanvas canvas, UiPainter painter, float canvasWidth, float canvasHeight, List<HitRegion> hits, Dictionary<int, UiRect> rects)
     {
         _canvas = canvas;
+        _painter = painter;
         _canvasHeight = canvasHeight;
         _order = 0;
         _floating.Clear();
@@ -254,17 +253,10 @@ internal sealed class LayoutTree
             _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(content), Text = e.Text, Style = e.TextStyle, ZIndex = z });
         }
 
-        for (var l = e.FirstLine; l >= 0; l = _lines[l].Next)
+        for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
-            var line = _lines[l];
-            _canvas.DrawLine(new DrawLineInputs
-            {
-                Start = ToCanvas(rect.X + rect.Width * line.X0, rect.Y + rect.Height * line.Y0),
-                End = ToCanvas(rect.X + rect.Width * line.X1, rect.Y + rect.Height * line.Y1),
-                Thickness = line.Thickness,
-                Color = line.Color,
-                ZIndex = z,
-            });
+            _painter.Begin(rect, z, _canvasHeight);
+            _paints[p].Paint(_painter);
         }
     }
 
@@ -395,6 +387,4 @@ internal sealed class LayoutTree
     };
 
     private RectF ToCanvas(UiRect rect) => new(rect.X, _canvasHeight - rect.Y - rect.Height, rect.Width, rect.Height);
-
-    private PointF ToCanvas(float x, float y) => new(x, _canvasHeight - y);
 }

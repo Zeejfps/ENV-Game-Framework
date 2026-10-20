@@ -17,6 +17,7 @@ internal sealed class ImmediateHost : IDisposable
     private UiInput _frame = new();
     private long _lastFrameTimestamp = Stopwatch.GetTimestamp();
     private bool _textInputFocus;
+    private bool _animating;
     private MouseCursor _cursor;
 
     public ImmediateHost(StartupConfig config, RenderBackendKind backend, UiTheme theme, Action<Ui> renderUi)
@@ -56,7 +57,7 @@ internal sealed class ImmediateHost : IDisposable
         _pending.BeginAfter(_frame);
 
         var now = Stopwatch.GetTimestamp();
-        var dt = (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency);
+        var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
         _lastFrameTimestamp = now;
 
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep));
@@ -73,6 +74,7 @@ internal sealed class ImmediateHost : IDisposable
             _textInputFocus = _ui.WantsTextInput;
             _window.SetTextInputFocus(_textInputFocus);
         }
+        _animating = _ui.FrameRequested;
         if (_frame.HasEvents || _ui.FrameRequested)
             _window.RequestRedraw();
     }

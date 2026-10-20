@@ -1,28 +1,34 @@
 using ZGF.Desktop;
-using ZGF.Geometry;
 
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
 /// The per-frame surface handed to <see cref="Gui{T}"/>.Render. Calls record elements; once
 /// Render returns the tree is laid out and drawn. Interaction is answered during the call from
-/// where each element was laid out on the previous frame, matched by id.
+/// where each element was laid out on the previous frame, matched by id. Widgets are extension
+/// methods built on this surface (see <see cref="UiWidgets"/>).
 /// </summary>
 public sealed partial class Ui
 {
     private const int RootId = 17;
+    private const long StateLifetimeFrames = 1000;
+    private const long StatePruneInterval = 256;
 
     private readonly RenderedCanvasBase _canvas;
     private readonly IWindow _window;
+    private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
     private readonly Stack<int> _ids = new();
     private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align), TextStyle> _textStyles = new();
+    private readonly Dictionary<int, (object State, long LastFrame)> _states = new();
+    private readonly List<int> _expiredStates = new();
     private List<HitRegion> _hits = new();
     private List<HitRegion> _previousHits = new();
     private Dictionary<int, UiRect> _rects = new();
     private Dictionary<int, UiRect> _previousRects = new();
 
+    private long _frame;
     private int _hovered;
     private int _active;
     private bool _activeSeen;
@@ -34,6 +40,7 @@ public sealed partial class Ui
     {
         _canvas = canvas;
         _window = window;
+        _painter = new UiPainter(this, canvas);
         Theme = theme;
     }
 
@@ -44,7 +51,7 @@ public sealed partial class Ui
     public float DeltaTime { get; private set; }
     public double Time { get; private set; }
 
-    /// <summary>True while a widget owns the keyboard; app shortcuts should stand down.</summary>
+    /// <summary>True while a widget holds keyboard focus; app shortcuts should stand down.</summary>
     public bool WantsTextInput => _focused != 0;
 
     public string ClipboardText
@@ -64,6 +71,7 @@ public sealed partial class Ui
 
     internal void BeginFrame(UiInput input, float deltaTime)
     {
+        _frame++;
         Input = input;
         DeltaTime = deltaTime;
         Time += deltaTime;
@@ -114,12 +122,14 @@ public sealed partial class Ui
                 _tree.Position();
                 break;
         }
-        _tree.Emit(_canvas, Width, Height, _hits, _rects);
+        _tree.Emit(_canvas, _painter, Width, Height, _hits, _rects);
 
         if (_active != 0 && !_activeSeen)
             _active = 0;
         if (_focused != 0 && (!_focusSeen || (Input.WasPressed(PointerButton.Left) && !_focusClaimed)))
             _focused = 0;
+        if (_frame % StatePruneInterval == 0)
+            PruneStates();
     }
 
     public int GetId(string label) => HashCode.Combine(_ids.Peek(), label);
@@ -142,8 +152,29 @@ public sealed partial class Ui
     /// <summary>Where the element with <paramref name="id"/> was laid out on the previous frame.</summary>
     public bool TryGetRect(int id, out UiRect rect) => _previousRects.TryGetValue(id, out rect);
 
+    /// <summary>
+    /// Widget-owned state that outlives a frame (a caret, an open dropdown), created on first use
+    /// and kept while <paramref name="id"/> keeps being asked for. App state belongs in the
+    /// <see cref="Gui{T}"/> state instead. Dropped after about a thousand frames unused.
+    /// </summary>
+    public TState GetState<TState>(int id) where TState : class, new()
+    {
+        if (_states.TryGetValue(id, out var entry) && entry.State is TState existing)
+        {
+            _states[id] = (existing, _frame);
+            return existing;
+        }
+
+        var created = new TState();
+        _states[id] = (created, _frame);
+        return created;
+    }
+
+    public Interaction Interact(string label) => Interact(GetId(label));
+
     /// <summary>The click behavior every widget is built on: hover, press, hold-while-dragging and a
-    /// click on release over the same element. Pass the id of the element the widget records.</summary>
+    /// click on release over the same element. Record an element with the returned
+    /// <see cref="Interaction.Id"/> so it can be hit-tested next frame.</summary>
     public Interaction Interact(int id)
     {
         var hovered = _hovered == id && (_active == 0 || _active == id);
@@ -166,10 +197,17 @@ public sealed partial class Ui
             }
         }
 
-        return new Interaction(hovered, pressed, held, clicked);
+        return new Interaction(id, hovered, pressed, held, clicked);
     }
 
-    public bool HasFocus(int id) => _focused == id;
+    /// <summary>Whether <paramref name="id"/> holds keyboard focus. Asking keeps it: focus is
+    /// dropped at the end of a frame in which its owner never asked.</summary>
+    public bool HasFocus(int id)
+    {
+        if (_focused != id) return false;
+        _focusSeen = true;
+        return true;
+    }
 
     public void Focus(int id)
     {
@@ -178,108 +216,20 @@ public sealed partial class Ui
         _focusSeen = true;
     }
 
-    private bool KeepFocus(int id)
-    {
-        if (_focused != id) return false;
-        _focusSeen = true;
-        return true;
-    }
-
-    private int Topmost(List<HitRegion> hits, HashSet<int>? among)
-    {
-        var pointer = Input.Pointer;
-        var best = 0;
-        var bestZ = int.MinValue;
-        var bestOrder = int.MinValue;
-        foreach (var hit in hits)
-        {
-            if (among != null && !among.Contains(hit.Id)) continue;
-            if (!hit.Rect.Contains(pointer)) continue;
-            if (hit.Z < bestZ || (hit.Z == bestZ && hit.Order < bestOrder)) continue;
-            best = hit.Id;
-            bestZ = hit.Z;
-            bestOrder = hit.Order;
-        }
-        return best;
-    }
-
-    private int Open(int id, in Box box, string? text = null, TextStyle? style = null) =>
-        Push(Describe(id, box, text, style));
-
-    private int OpenFloating(int id, in Box box, float anchorX, float anchorY, float offsetX, float offsetY, int z)
-    {
-        var e = Describe(id, box, null, null);
-        e.Floating = true;
-        e.AnchorX = anchorX;
-        e.AnchorY = anchorY;
-        e.OffsetX = offsetX;
-        e.OffsetY = offsetY;
-        e.Z = z;
-        return Push(e);
-    }
-
-    private void Leaf(int id, in Box box, string? text = null, TextStyle? style = null)
-    {
-        Open(id, box, text, style);
-        Close();
-    }
-
-    private void Close() => _open.Pop();
-
-    private int Push(in Element element)
-    {
-        var index = _tree.Add(element);
-        _open.Push(index);
-        return index;
-    }
-
-    private Element Describe(int id, in Box box, string? text, TextStyle? style)
-    {
-        var e = new Element
-        {
-            Id = id,
-            Parent = _open.Count > 0 ? _open.Peek() : -1,
-            Horizontal = box.Direction == Direction.Horizontal,
-            Width = box.Width ?? Sizing.Fit(),
-            Height = box.Height ?? Sizing.Fit(),
-            Padding = box.Padding ?? default,
-            Gap = box.Gap ?? 0f,
-            AlignX = box.AlignX ?? Align.Start,
-            AlignY = box.AlignY ?? Align.Start,
-            Background = box.Background,
-            BorderColor = box.BorderColor,
-            BorderWidth = box.BorderWidth,
-            Radius = box.Radius,
-            Clip = box.Clip,
-        };
-
-        if (!string.IsNullOrEmpty(text) && style != null)
-        {
-            e.Text = text;
-            e.TextStyle = style;
-            e.ContentWidth = MathF.Ceiling(_canvas.MeasureTextWidth(text, style));
-            e.ContentHeight = MathF.Ceiling(_canvas.MeasureTextLineHeight(style));
-        }
-        return e;
-    }
-
-    private bool ParentIsHorizontal => _open.Count > 0 && _tree[_open.Peek()].Horizontal;
-
-    /// <summary>Strokes a line across the element being recorded, in fractions of its rect
-    /// (0,0 top-left to 1,1 bottom-right).</summary>
-    public void Line(float x0, float y0, float x1, float y1, float thickness, uint color) =>
-        _tree.AddLine(_open.Peek(), new LinePaint { X0 = x0, Y0 = y0, X1 = x1, Y1 = y1, Thickness = thickness, Color = color });
+    public void ClearFocus() => _focused = 0;
 
     public float MeasureText(string text, float? size = null, bool bold = false) =>
         MathF.Ceiling(_canvas.MeasureTextWidth(text, Style(size, Theme.Text, bold, Align.Start)));
 
+    /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
+    /// whole line — for placing a caret.</summary>
+    public float MeasureText(string text, int length, float? size = null, bool bold = false) =>
+        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, Style(size, Theme.Text, bold, Align.Start));
+
     public float LineHeight(float? size = null) =>
         MathF.Ceiling(_canvas.MeasureTextLineHeight(Style(size, Theme.Text, false, Align.Start)));
 
-    private float MeasurePrefix(string text, int length) =>
-        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, Style(null, Theme.Text, false, Align.Start));
-
-    private TextStyle Style(float? size, uint color, bool bold, Align align)
+    internal TextStyle Style(float? size, uint color, bool bold, Align align)
     {
         var key = (size ?? Theme.FontSize, color, bold, align);
         if (_textStyles.TryGetValue(key, out var style))
@@ -302,9 +252,33 @@ public sealed partial class Ui
         return style;
     }
 
-    private static string DisplayText(string label)
+    private int Topmost(List<HitRegion> hits, HashSet<int>? among)
     {
-        var hidden = label.IndexOf("##", StringComparison.Ordinal);
-        return hidden < 0 ? label : label[..hidden];
+        var pointer = Input.Pointer;
+        var best = 0;
+        var bestZ = int.MinValue;
+        var bestOrder = int.MinValue;
+        foreach (var hit in hits)
+        {
+            if (among != null && !among.Contains(hit.Id)) continue;
+            if (!hit.Rect.Contains(pointer)) continue;
+            if (hit.Z < bestZ || (hit.Z == bestZ && hit.Order < bestOrder)) continue;
+            best = hit.Id;
+            bestZ = hit.Z;
+            bestOrder = hit.Order;
+        }
+        return best;
+    }
+
+    private void PruneStates()
+    {
+        _expiredStates.Clear();
+        foreach (var (id, entry) in _states)
+        {
+            if (_frame - entry.LastFrame > StateLifetimeFrames)
+                _expiredStates.Add(id);
+        }
+        foreach (var id in _expiredStates)
+            _states.Remove(id);
     }
 }

@@ -14,6 +14,8 @@ public sealed class TodoState
     public string Draft = "";
     public bool HideCompleted;
     public float Volume = 0.4f;
+    public bool Notifications = true;
+    public int Priority = 2;
     public int NextId = 1;
     public List<TodoItem> Items { get; } = new();
 
@@ -58,6 +60,13 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 ui.Label("Volume", ui.Theme.TextMuted);
                 ui.Slider("volume", ref s.Volume, 0f, 1f);
                 ui.Label($"{s.Volume * 100:0}%");
+            }
+            using (ui.Row())
+            {
+                ui.Toggle("Notifications", ref s.Notifications);
+                ui.Spacer();
+                ui.Label("Priority", ui.Theme.TextMuted);
+                ui.Stepper("priority", ref s.Priority, 1, 5);
             }
         }
 
