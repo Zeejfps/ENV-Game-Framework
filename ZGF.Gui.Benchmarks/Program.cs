@@ -10,6 +10,12 @@ if (args.Length > 0 && args[0] == "--drawcalls")
     return;
 }
 
+if (args.Length > 0 && args[0] == "--immediate-alloc")
+{
+    ImmediateAllocationProbe.Run();
+    return;
+}
+
 if (args.Length > 0 && args[0] == "--verify")
 {
     VerifyProbe.Run();

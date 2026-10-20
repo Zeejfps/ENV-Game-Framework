@@ -48,6 +48,30 @@ public class ImmediateFrameBenchmarks
         _canvas.EndFrame();
     }
 
+    internal const int StageCount = 5;
+    internal static readonly string[] StageNames =
+        ["canvas.BeginFrame", "ui.BeginFrame", "Render (record)", "ui.EndFrame (solve+emit)", "canvas.EndFrame"];
+
+    internal void MeasureStages(long[] stages)
+    {
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        _canvas.BeginFrame();
+        var t1 = GC.GetAllocatedBytesForCurrentThread();
+        _ui.BeginFrame(_input, 1f / 60f, _canvas.Width, _canvas.Height);
+        var t2 = GC.GetAllocatedBytesForCurrentThread();
+        Render(_ui);
+        var t3 = GC.GetAllocatedBytesForCurrentThread();
+        _ui.EndFrame();
+        var t4 = GC.GetAllocatedBytesForCurrentThread();
+        _canvas.EndFrame();
+        var t5 = GC.GetAllocatedBytesForCurrentThread();
+        stages[0] += t1 - before;
+        stages[1] += t2 - t1;
+        stages[2] += t3 - t2;
+        stages[3] += t4 - t3;
+        stages[4] += t5 - t4;
+    }
+
     private void Render(Ui ui)
     {
         ui.Heading("Todos");

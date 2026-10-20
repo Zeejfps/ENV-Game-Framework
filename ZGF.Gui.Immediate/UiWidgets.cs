@@ -21,6 +21,11 @@ public static class UiWidgets
         public float Shift;
     }
 
+    private sealed class LabelState
+    {
+        public string Visible = "";
+    }
+
     public static void Label(this Ui ui, string text, uint? color = null, float? size = null, bool bold = false) =>
         ui.Text(text, color: color, size: size, bold: bold);
 
@@ -52,15 +57,17 @@ public static class UiWidgets
             : new Box { Width = Sizing.Grow(), Height = 1f, Background = color });
     }
 
-    /// <summary>Returns true on the frame the button is clicked. A label may carry a hidden id
-    /// suffix after <c>##</c>: <c>"Save##toolbar"</c>.</summary>
-    public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true)
+    /// <summary>Returns true on the frame the button is clicked. The label doubles as the id unless
+    /// <paramref name="id"/> is given, or the label carries a hidden suffix after <c>##</c>:
+    /// <c>"Save##toolbar"</c>.</summary>
+    public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true, string? id = null)
     {
         var theme = ui.Theme;
-        var i = enabled ? ui.Interact(label) : Interaction.Inert(ui.GetId(label));
+        var key = id ?? label;
+        var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
 
-        ui.Text(Visible(label), new Box
+        ui.Text(id != null ? label : Visible(ui, i.Id, label), new Box
         {
             Width = width ?? Sizing.Fit(),
             Height = theme.ControlHeight,
@@ -73,11 +80,12 @@ public static class UiWidgets
         return i.Clicked;
     }
 
-    /// <summary>Returns true on the frame <paramref name="value"/> changes.</summary>
-    public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null)
+    /// <summary>Returns true on the frame <paramref name="value"/> changes. Ids work as for
+    /// <see cref="Button"/>.</summary>
+    public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null)
     {
         var theme = ui.Theme;
-        var i = ui.Interact(label);
+        var i = ui.Interact(id ?? label);
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Clicked) value = !value;
 
@@ -96,7 +104,7 @@ public static class UiWidgets
                 if (value)
                     ui.Paint(theme.OnAccent, static (p, color) => DrawCheckmark(p, color));
             }
-            ui.Text(Visible(label), color: textColor ?? theme.Text);
+            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: textColor ?? theme.Text);
         }
         return i.Clicked;
     }
@@ -292,9 +300,16 @@ public static class UiWidgets
     private static int StepForward(string text, int caret) =>
         caret + 1 < text.Length && char.IsSurrogatePair(text[caret], text[caret + 1]) ? 2 : 1;
 
-    private static string Visible(string label)
+    // Strips a "##id" suffix. The stripped text is kept in the widget's state and reused while it
+    // still matches, so a hidden-id label doesn't allocate a fresh substring every frame.
+    private static string Visible(Ui ui, int id, string label)
     {
         var hidden = label.IndexOf("##", StringComparison.Ordinal);
-        return hidden < 0 ? label : label[..hidden];
+        if (hidden < 0) return label;
+
+        var state = ui.GetState<LabelState>(id);
+        if (!state.Visible.AsSpan().SequenceEqual(label.AsSpan(0, hidden)))
+            state.Visible = label[..hidden];
+        return state.Visible;
     }
 }

@@ -81,7 +81,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 using (ui.Id(item.Id))
                 using (ui.Row())
                 {
-                    ui.Checkbox(item.Title + "##done", ref item.Done, item.Done ? ui.Theme.TextMuted : null);
+                    ui.Checkbox(item.Title, ref item.Done, item.Done ? ui.Theme.TextMuted : null, id: "done");
                     ui.Spacer();
                     if (ui.Button("Delete"))
                         removed = item;
