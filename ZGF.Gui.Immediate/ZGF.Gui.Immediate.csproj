@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.OpenGL\ZGF.Gui.OpenGL.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+      <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
+      <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
+    </ItemGroup>
+
+</Project>
