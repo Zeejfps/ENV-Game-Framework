@@ -75,7 +75,7 @@ public class ImmediateFrameBenchmarks
     private void Render(Ui ui)
     {
         ui.Heading("Todos");
-        ui.Label($"{Rows / 2} of {Rows} remaining", ui.Theme.TextMuted);
+        ui.Label(ui.Memo("remaining", Rows / 2, static remaining => $"{remaining} of {Rows} remaining"), ui.Theme.TextMuted);
         ui.ProgressBar(0.5f);
 
         using (ui.Row())
@@ -98,7 +98,7 @@ public class ImmediateFrameBenchmarks
             {
                 ui.Label("Volume", ui.Theme.TextMuted);
                 ui.Slider("volume", ref _volume, 0f, 1f);
-                ui.Label($"{_volume * 100:0}%");
+                ui.Label(ui.Memo("volume", (int)MathF.Round(_volume * 100), static percent => $"{percent}%"));
             }
         }
 

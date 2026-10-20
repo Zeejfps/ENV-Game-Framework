@@ -7,6 +7,12 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui.Immediate\ZGF.Gui.Immediate.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Generator\ZGF.Gui.Generator.csproj"
+                        OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Localization\Strings\*.json" />
     </ItemGroup>
 
 </Project>

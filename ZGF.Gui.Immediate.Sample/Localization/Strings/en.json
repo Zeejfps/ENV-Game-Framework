@@ -1,0 +1,16 @@
+{
+  "app.title": "Todos",
+  "tasks.remaining": { "one": "{count} task remaining", "other": "{count} tasks remaining" },
+  "tasks.empty": "Nothing to do — add a task.",
+  "draft.placeholder": "What needs doing?",
+  "action.add": "Add",
+  "action.delete": "Delete",
+  "action.clear_completed": "Clear completed",
+  "filter.hide_completed": "Hide completed",
+  "settings.title": "Settings",
+  "settings.volume": "Volume",
+  "settings.volume_value": "{percent}%",
+  "settings.notifications": "Notifications",
+  "settings.priority": "Priority",
+  "settings.language": "Language"
+}

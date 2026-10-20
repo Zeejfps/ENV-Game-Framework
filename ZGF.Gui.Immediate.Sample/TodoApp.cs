@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Sample.Localization;
 
 namespace ZGF.Gui.Immediate.Sample;
 
@@ -11,6 +12,7 @@ public sealed class TodoItem
 
 public sealed class TodoState
 {
+    public Locale Locale = Locale.En;
     public string Draft = "";
     public bool HideCompleted;
     public float Volume = 0.4f;
@@ -24,19 +26,32 @@ public sealed class TodoState
 
 public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
 {
+    private static readonly (Locale Locale, string Endonym)[] Languages =
+    [
+        (Locale.En, "English"),
+        (Locale.Es, "Español"),
+        (Locale.Ru, "Русский"),
+        (Locale.Pseudo, "Pseudo"),
+    ];
+
     protected override void Render(Ui ui, TodoState s)
     {
-        ui.Heading("Todos");
+        var t = Strings.For(s.Locale);
+        ui.Heading(t.AppTitle);
 
-        var remaining = s.Items.Count(item => !item.Done);
-        ui.Label($"{remaining} of {s.Items.Count} remaining", ui.Theme.TextMuted);
+        var remaining = 0;
+        foreach (var item in s.Items)
+        {
+            if (!item.Done) remaining++;
+        }
+        ui.Label(ui.Memo("remaining", (t, remaining), static a => a.t.TasksRemaining(a.remaining)), ui.Theme.TextMuted);
         ui.ProgressBar(s.Items.Count == 0 ? 0f : 1f - remaining / (float)s.Items.Count);
 
         using (ui.Row())
         {
-            var add = ui.TextField("draft", ref s.Draft, "What needs doing?");
+            var add = ui.TextField("draft", ref s.Draft, t.DraftPlaceholder);
             var canAdd = !string.IsNullOrWhiteSpace(s.Draft);
-            add |= ui.Button("Add", enabled: canAdd);
+            add |= ui.Button(t.ActionAdd, enabled: canAdd, id: "add");
             if (add && canAdd)
             {
                 s.Add(s.Draft.Trim());
@@ -46,27 +61,37 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
 
         using (ui.Row())
         {
-            ui.Checkbox("Hide completed", ref s.HideCompleted);
+            ui.Checkbox(t.FilterHideCompleted, ref s.HideCompleted, id: "hide-completed");
             ui.Spacer();
-            if (ui.Button("Clear completed"))
+            if (ui.Button(t.ActionClearCompleted, id: "clear-completed"))
                 s.Items.RemoveAll(item => item.Done);
         }
 
         using (ui.Panel())
         {
-            ui.Label("Settings", bold: true);
+            ui.Label(t.SettingsTitle, bold: true);
             using (ui.Row())
             {
-                ui.Label("Volume", ui.Theme.TextMuted);
+                ui.Label(t.SettingsVolume, ui.Theme.TextMuted);
                 ui.Slider("volume", ref s.Volume, 0f, 1f);
-                ui.Label($"{s.Volume * 100:0}%");
+                var percent = (int)MathF.Round(s.Volume * 100);
+                ui.Label(ui.Memo("volume", (t, percent), static a => a.t.SettingsVolumeValue(a.percent)));
             }
             using (ui.Row())
             {
-                ui.Toggle("Notifications", ref s.Notifications);
+                ui.Toggle(t.SettingsNotifications, ref s.Notifications, id: "notifications");
                 ui.Spacer();
-                ui.Label("Priority", ui.Theme.TextMuted);
+                ui.Label(t.SettingsPriority, ui.Theme.TextMuted);
                 ui.Stepper("priority", ref s.Priority, 1, 5);
+            }
+            ui.Label(t.SettingsLanguage, ui.Theme.TextMuted);
+            using (ui.Row())
+            {
+                foreach (var (locale, endonym) in Languages)
+                {
+                    if (ui.Button(endonym, enabled: s.Locale != locale))
+                        s.Locale = locale;
+                }
             }
         }
 
@@ -83,13 +108,13 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 {
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? ui.Theme.TextMuted : null, id: "done");
                     ui.Spacer();
-                    if (ui.Button("Delete"))
+                    if (ui.Button(t.ActionDelete, id: "delete"))
                         removed = item;
                 }
             }
 
             if (s.Items.Count == 0)
-                ui.Label("Nothing to do — add a task.", ui.Theme.TextMuted);
+                ui.Label(t.TasksEmpty, ui.Theme.TextMuted);
         }
 
         if (removed != null)

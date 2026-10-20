@@ -12,10 +12,10 @@ public static class SampleWidgets
         public float Knob;
     }
 
-    public static bool Toggle(this Ui ui, string label, ref bool on)
+    public static bool Toggle(this Ui ui, string label, ref bool on, string? id = null)
     {
         var theme = ui.Theme;
-        var i = ui.Interact(label);
+        var i = ui.Interact(id ?? label);
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Clicked) on = !on;
 

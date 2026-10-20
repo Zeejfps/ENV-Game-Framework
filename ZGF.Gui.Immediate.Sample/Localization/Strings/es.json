@@ -1,0 +1,16 @@
+{
+  "app.title": "Tareas",
+  "tasks.remaining": { "one": "Queda {count} tarea", "other": "Quedan {count} tareas" },
+  "tasks.empty": "Nada que hacer: añade una tarea.",
+  "draft.placeholder": "¿Qué hay que hacer?",
+  "action.add": "Añadir",
+  "action.delete": "Eliminar",
+  "action.clear_completed": "Borrar completadas",
+  "filter.hide_completed": "Ocultar completadas",
+  "settings.title": "Ajustes",
+  "settings.volume": "Volumen",
+  "settings.volume_value": "{percent} %",
+  "settings.notifications": "Notificaciones",
+  "settings.priority": "Prioridad",
+  "settings.language": "Idioma"
+}

@@ -1,0 +1,21 @@
+{
+  "app.title": "Задачи",
+  "tasks.remaining": {
+    "one": "Осталась {count} задача",
+    "few": "Осталось {count} задачи",
+    "many": "Осталось {count} задач",
+    "other": "Осталось {count} задачи"
+  },
+  "tasks.empty": "Делать нечего — добавьте задачу.",
+  "draft.placeholder": "Что нужно сделать?",
+  "action.add": "Добавить",
+  "action.delete": "Удалить",
+  "action.clear_completed": "Очистить выполненные",
+  "filter.hide_completed": "Скрыть выполненные",
+  "settings.title": "Настройки",
+  "settings.volume": "Громкость",
+  "settings.volume_value": "{percent} %",
+  "settings.notifications": "Уведомления",
+  "settings.priority": "Приоритет",
+  "settings.language": "Язык"
+}
