@@ -15,7 +15,9 @@ internal sealed class ImmediateHost : IDisposable
     private readonly Ui _ui;
     private UiInput _pending = new();
     private UiInput _frame = new();
+    private readonly long _startTimestamp = Stopwatch.GetTimestamp();
     private long _lastFrameTimestamp = Stopwatch.GetTimestamp();
+    private double _wakeAt = double.PositiveInfinity;
     private bool _textInputFocus;
     private bool _animating;
     private MouseCursor _cursor;
@@ -36,7 +38,7 @@ internal sealed class ImmediateHost : IDisposable
         _window.OnResize += HandleResize;
         _window.OnFramebufferResize += HandleResize;
         _window.OnContentScaleChanged += HandleContentScaleChanged;
-        _render.App.OnTick += PollPointer;
+        _render.App.OnTick += Tick;
         HotReload.Applied += Invalidate;
 
         SyncScale();
@@ -60,7 +62,7 @@ internal sealed class ImmediateHost : IDisposable
         var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
         _lastFrameTimestamp = now;
 
-        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), _render.Canvas.Width, _render.Canvas.Height);
+        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.Canvas.Width, _render.Canvas.Height);
         _renderUi(_ui);
         _ui.EndFrame();
 
@@ -75,8 +77,21 @@ internal sealed class ImmediateHost : IDisposable
             _window.SetTextInputFocus(_textInputFocus);
         }
         _animating = _ui.FrameRequested;
+        _wakeAt = _ui.WakeAt;
         if (_frame.HasEvents || _ui.FrameRequested)
             _window.RequestRedraw();
+    }
+
+    private double Seconds(long timestamp) => (timestamp - _startTimestamp) / (double)Stopwatch.Frequency;
+
+    private void Tick()
+    {
+        if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
+        {
+            _wakeAt = double.PositiveInfinity;
+            _window.RequestRedraw();
+        }
+        PollPointer();
     }
 
     private void PollPointer()
@@ -155,7 +170,7 @@ internal sealed class ImmediateHost : IDisposable
     public void Dispose()
     {
         HotReload.Applied -= Invalidate;
-        _render.App.OnTick -= PollPointer;
+        _render.App.OnTick -= Tick;
         _window.OnKey -= HandleKey;
         _window.OnText -= HandleText;
         _window.OnMouseButton -= HandleMouseButton;

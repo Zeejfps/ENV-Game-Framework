@@ -1,5 +1,3 @@
-using ZGF.Gui.Testing;
-
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class AnimationTests
@@ -7,7 +5,7 @@ public sealed class AnimationTests
     [Fact]
     public void A_value_starts_at_its_target_without_animating()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
 
         var value = frames.Run(0f, ui => ui.Animate("v", 5f, Tween.Linear(1f)));
 
@@ -18,7 +16,7 @@ public sealed class AnimationTests
     [Fact]
     public void Tween_follows_its_curve_and_lands_exactly_on_the_target()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         frames.Run(0f, ui => ui.Animate("v", 0f, Tween.Linear(1f)));
 
         Assert.Equal(0f, frames.Run(0.25f, ui => ui.Animate("v", 1f, Tween.Linear(1f))));
@@ -33,7 +31,7 @@ public sealed class AnimationTests
     [Fact]
     public void Tween_applies_its_easing_curve()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         frames.Run(0f, ui => ui.Animate("v", 0f, Tween.OutCubic(1f)));
         frames.Run(0f, ui => ui.Animate("v", 1f, Tween.OutCubic(1f)));
 
@@ -43,7 +41,7 @@ public sealed class AnimationTests
     [Fact]
     public void Tween_holds_its_start_value_through_the_delay()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         var tween = Tween.Linear(1f, delay: 0.5f);
         frames.Run(0f, ui => ui.Animate("v", 0f, tween));
         frames.Run(0f, ui => ui.Animate("v", 1f, tween));
@@ -56,7 +54,7 @@ public sealed class AnimationTests
     [Fact]
     public void Retargeting_a_tween_restarts_from_the_current_value()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         frames.Run(0f, ui => ui.Animate("v", 0f, Tween.Linear(1f)));
         frames.Run(0f, ui => ui.Animate("v", 1f, Tween.Linear(1f)));
         var midway = frames.Run(0.5f, ui => ui.Animate("v", 1f, Tween.Linear(1f)));
@@ -92,7 +90,7 @@ public sealed class AnimationTests
     [Fact]
     public void Retargeting_a_spring_keeps_the_value_continuous()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         frames.Run(0f, ui => ui.Animate("v", 0f, Spring.Default));
         var last = 0f;
         for (var i = 0; i < 6; i++)
@@ -108,7 +106,7 @@ public sealed class AnimationTests
     [Fact]
     public void Exponential_follow_settles_and_stops_requesting_frames()
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         frames.Run(0f, ui => ui.Animate("v", 0f));
         var value = 0f;
         for (var i = 0; i < 120 && (i == 0 || frames.RequestedFrame); i++)
@@ -120,7 +118,7 @@ public sealed class AnimationTests
 
     private static (float Peak, float Final, bool StillAnimating) RunSpring(Spring spring)
     {
-        var frames = new Frames();
+        var frames = new UiFrames();
         frames.Run(0f, ui => ui.Animate("v", 0f, spring));
         var peak = 0f;
         var value = 0f;
@@ -131,28 +129,5 @@ public sealed class AnimationTests
             if (!frames.RequestedFrame) break;
         }
         return (peak, value, frames.RequestedFrame);
-    }
-
-    private sealed class Frames
-    {
-        private readonly UiInput _input = new();
-        private readonly Ui _ui = new(new RecordingCanvas(new SyntheticTextMeasurer()), UiTheme.Dark, new NullClipboard());
-
-        public bool RequestedFrame { get; private set; }
-
-        public float Run(float deltaTime, Func<Ui, float> body)
-        {
-            _ui.BeginFrame(_input, deltaTime, 400f, 300f);
-            var value = body(_ui);
-            _ui.EndFrame();
-            RequestedFrame = _ui.FrameRequested;
-            return value;
-        }
-    }
-
-    private sealed class NullClipboard : IClipboard
-    {
-        public void SetText(string text) { }
-        public string? GetText() => null;
     }
 }

@@ -14,6 +14,7 @@ public sealed record UiTheme
     public uint FieldBackground { get; init; }
     public uint Accent { get; init; }
     public uint OnAccent { get; init; }
+    public uint Selection { get; init; }
 
     public float FontSize { get; init; } = 14f;
     public float ControlHeight { get; init; } = 30f;
@@ -39,5 +40,6 @@ public sealed record UiTheme
         FieldBackground = 0xFF17181B,
         Accent = 0xFF4C8DFF,
         OnAccent = 0xFFFFFFFF,
+        Selection = 0xFF2B4C80,
     };
 }

@@ -1,6 +1,5 @@
 using ZGF.Desktop;
 using ZGF.Geometry;
-using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate;
 
@@ -8,18 +7,11 @@ namespace ZGF.Gui.Immediate;
 /// The built-in widgets. Each is an extension method over the public <see cref="Ui"/> surface
 /// only, so an app's own widgets are written exactly the same way.
 /// </summary>
-public static class UiWidgets
+public static partial class UiWidgets
 {
     private const float CheckboxSize = 18f;
-    private const float FieldPaddingX = 8f;
     private const float MinFieldWidth = 60f;
     private const float SliderThumbRadius = 8f;
-
-    private sealed class TextFieldState
-    {
-        public int Caret;
-        public float Shift;
-    }
 
     private sealed class LabelState
     {
@@ -109,67 +101,6 @@ public static class UiWidgets
         return i.Clicked;
     }
 
-    /// <summary>Edits <paramref name="text"/> in place. Returns true when Enter is pressed while
-    /// the field has focus.</summary>
-    public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null)
-    {
-        var theme = ui.Theme;
-        var i = ui.Interact(id);
-        if (i.Hovered) ui.SetCursor(MouseCursor.Text);
-
-        var state = ui.GetState<TextFieldState>(i.Id);
-        var focused = ui.HasFocus(i.Id);
-        var innerWidth = ui.TryGetRect(i.Id, out var rect) ? rect.Width - FieldPaddingX * 2 : float.PositiveInfinity;
-        if (i.Pressed)
-        {
-            if (!focused) state.Shift = 0f;
-            ui.Focus(i.Id);
-            focused = true;
-            state.Caret = CaretAt(ui, text, ui.Input.Pointer.X - rect.X - FieldPaddingX + state.Shift);
-        }
-
-        var submitted = false;
-        var caretX = 0f;
-        if (focused)
-        {
-            submitted = Edit(ui, state, ref text);
-            focused = ui.HasFocus(i.Id);
-            state.Caret = Math.Clamp(state.Caret, 0, text.Length);
-            caretX = ui.MeasureText(text, state.Caret);
-            if (caretX - state.Shift > innerWidth) state.Shift = caretX - innerWidth;
-            if (caretX < state.Shift) state.Shift = caretX;
-            state.Shift = MathF.Max(0f, MathF.Min(state.Shift, ui.MeasureText(text) - innerWidth));
-        }
-        var shift = focused ? state.Shift : 0f;
-
-        using (ui.Row(i.Id, new Box
-        {
-            Width = width ?? Sizing.Grow(MinFieldWidth),
-            Height = theme.ControlHeight,
-            Padding = new Spacing(FieldPaddingX, 0f),
-            Clip = true,
-            ScrollX = shift,
-            Background = theme.FieldBackground,
-            BorderColor = focused ? theme.Accent : i.Hovered ? theme.TextMuted : theme.ControlBorder,
-            BorderWidth = 1f,
-            Radius = theme.CornerRadius,
-        }))
-        {
-            if (text.Length > 0)
-                ui.Text(text);
-            else if (placeholder != null)
-                ui.Text(placeholder, color: theme.TextMuted);
-
-            if (focused)
-            {
-                var lineHeight = ui.LineHeight();
-                using (ui.Float(0f, 0.5f, FieldPaddingX + caretX - shift, -lineHeight / 2,
-                    new Box { Width = 1.5f, Height = lineHeight, Background = theme.Text }, z: 1)) { }
-            }
-        }
-        return submitted;
-    }
-
     /// <summary>Returns true on frames where <paramref name="value"/> changes.</summary>
     public static bool Slider(this Ui ui, string id, ref float value, float min, float max, Sizing? width = null)
     {
@@ -224,81 +155,6 @@ public static class UiWidgets
         p.Line(start, corner, 2f, color);
         p.Line(corner, end, 2f, color);
     }
-
-    private static bool Edit(Ui ui, TextFieldState state, ref string text)
-    {
-        var submitted = false;
-        state.Caret = Math.Clamp(state.Caret, 0, text.Length);
-        foreach (var stroke in ui.Input.Keys)
-        {
-            var shortcut = (stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
-            switch (stroke.Key)
-            {
-                case KeyboardKey.Backspace when state.Caret > 0:
-                {
-                    var n = StepBack(text, state.Caret);
-                    text = text.Remove(state.Caret - n, n);
-                    state.Caret -= n;
-                    break;
-                }
-                case KeyboardKey.Delete when state.Caret < text.Length:
-                    text = text.Remove(state.Caret, StepForward(text, state.Caret));
-                    break;
-                case KeyboardKey.LeftArrow when state.Caret > 0:
-                    state.Caret -= StepBack(text, state.Caret);
-                    break;
-                case KeyboardKey.RightArrow when state.Caret < text.Length:
-                    state.Caret += StepForward(text, state.Caret);
-                    break;
-                case KeyboardKey.Home:
-                    state.Caret = 0;
-                    break;
-                case KeyboardKey.End:
-                    state.Caret = text.Length;
-                    break;
-                case KeyboardKey.Enter:
-                    submitted = true;
-                    break;
-                case KeyboardKey.Escape:
-                    ui.ClearFocus();
-                    return submitted;
-                case KeyboardKey.V when shortcut:
-                    Insert(state, ref text, ui.ClipboardText.ReplaceLineEndings(" "));
-                    break;
-            }
-        }
-
-        if (ui.Input.Text.Length > 0)
-            Insert(state, ref text, ui.Input.Text);
-        return submitted;
-    }
-
-    private static void Insert(TextFieldState state, ref string text, string value)
-    {
-        text = text.Insert(state.Caret, value);
-        state.Caret += value.Length;
-    }
-
-    private static int CaretAt(Ui ui, string text, float localX)
-    {
-        var best = 0;
-        var bestDistance = MathF.Abs(localX);
-        for (var index = 1; index <= text.Length; index++)
-        {
-            if (index < text.Length && char.IsLowSurrogate(text[index])) continue;
-            var distance = MathF.Abs(ui.MeasureText(text, index) - localX);
-            if (distance >= bestDistance) continue;
-            best = index;
-            bestDistance = distance;
-        }
-        return best;
-    }
-
-    private static int StepBack(string text, int caret) =>
-        caret >= 2 && char.IsSurrogatePair(text[caret - 2], text[caret - 1]) ? 2 : 1;
-
-    private static int StepForward(string text, int caret) =>
-        caret + 1 < text.Length && char.IsSurrogatePair(text[caret], text[caret + 1]) ? 2 : 1;
 
     // Strips a "##id" suffix. The stripped text is kept in the widget's state and reused while it
     // still matches, so a hidden-id label doesn't allocate a fresh substring every frame.

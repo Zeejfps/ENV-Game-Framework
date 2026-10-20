@@ -57,6 +57,10 @@ public sealed partial class Ui
     public float DeltaTime { get; private set; }
     public double Time { get; private set; }
 
+    /// <summary>Wall-clock seconds. Unlike <see cref="Time"/> it keeps running while the UI is idle,
+    /// so it can time things like a caret blink.</summary>
+    public double RealTime { get; private set; }
+
     /// <summary>True while a widget holds keyboard focus; app shortcuts should stand down.</summary>
     public bool WantsTextInput => _focused != 0;
 
@@ -68,14 +72,25 @@ public sealed partial class Ui
 
     internal MouseCursor Cursor { get; private set; }
     internal bool FrameRequested { get; private set; }
+    internal double WakeAt { get; private set; } = double.PositiveInfinity;
 
     /// <summary>Draws another frame after this one, for animation or state that settles over
     /// several frames.</summary>
     public void RequestFrame() => FrameRequested = true;
 
+    /// <summary>Draws a frame once <paramref name="seconds"/> of <see cref="RealTime"/> have
+    /// passed, without drawing the frames in between.</summary>
+    public void RequestFrameIn(double seconds)
+    {
+        if (seconds <= 0)
+            RequestFrame();
+        else
+            WakeAt = Math.Min(WakeAt, RealTime + seconds);
+    }
+
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
-    internal void BeginFrame(UiInput input, float deltaTime, float width, float height)
+    internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
         Width = width;
@@ -84,7 +99,9 @@ public sealed partial class Ui
         Input = input;
         DeltaTime = deltaTime;
         Time += deltaTime;
+        RealTime = realTime;
         FrameRequested = false;
+        WakeAt = double.PositiveInfinity;
         Cursor = MouseCursor.Default;
         _activeSeen = false;
         _focusSeen = false;
