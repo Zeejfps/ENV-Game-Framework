@@ -35,7 +35,7 @@ public static class SampleWidgets
         using (ui.Row(i.Id, new Box { Width = Sizing.Fit(), Height = theme.ControlHeight }))
         {
             using (ui.Box(new Box { Width = 36f, Height = 20f, Radius = 10f, Background = on ? theme.Accent : theme.Control }))
-                ui.Paint(p => p.Circle(new PointF(p.Rect.X + 10f + t * 16f, p.Rect.Y + 10f), 7f, knobColor));
+                ui.Paint((t, knobColor), static (p, knob) => p.Circle(new PointF(p.Rect.X + 10f + knob.t * 16f, p.Rect.Y + 10f), 7f, knob.knobColor));
             ui.Text(label);
         }
         return i.Clicked;

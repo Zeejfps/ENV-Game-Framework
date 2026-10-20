@@ -50,8 +50,42 @@ internal struct Element
 
 internal struct PaintEntry
 {
-    public Action<UiPainter> Paint;
+    public PaintCommand Command;
     public int Next;
+}
+
+internal abstract class PaintCommand
+{
+    public abstract void Run(UiPainter painter);
+    public abstract void Release();
+}
+
+/// <summary>A deferred paint and the state it was given, pooled per state type so recording
+/// one allocates nothing once the pool is warm.</summary>
+internal sealed class PaintCommand<TState> : PaintCommand
+{
+    [ThreadStatic] private static Stack<PaintCommand<TState>>? _pool;
+
+    private TState _state = default!;
+    private Action<UiPainter, TState> _paint = null!;
+
+    public static PaintCommand<TState> Rent(TState state, Action<UiPainter, TState> paint)
+    {
+        var pool = _pool ??= new Stack<PaintCommand<TState>>();
+        var command = pool.Count > 0 ? pool.Pop() : new PaintCommand<TState>();
+        command._state = state;
+        command._paint = paint;
+        return command;
+    }
+
+    public override void Run(UiPainter painter) => _paint(painter, _state);
+
+    public override void Release()
+    {
+        _state = default!;
+        _paint = null!;
+        (_pool ??= new Stack<PaintCommand<TState>>()).Push(this);
+    }
 }
 
 internal readonly record struct HitRegion(int Id, UiRect Rect, int Z, int Order);
@@ -74,6 +108,8 @@ internal sealed class LayoutTree
     public void Clear()
     {
         _elements.Clear();
+        foreach (var entry in _paints)
+            entry.Command.Release();
         _paints.Clear();
     }
 
@@ -95,10 +131,10 @@ internal sealed class LayoutTree
         return index;
     }
 
-    public void AddPaint(int element, Action<UiPainter> paint)
+    public void AddPaint(int element, PaintCommand command)
     {
         var index = _paints.Count;
-        _paints.Add(new PaintEntry { Paint = paint, Next = -1 });
+        _paints.Add(new PaintEntry { Command = command, Next = -1 });
         ref var e = ref this[element];
         if (e.LastPaint >= 0)
             CollectionsMarshal.AsSpan(_paints)[e.LastPaint].Next = index;
@@ -256,7 +292,7 @@ internal sealed class LayoutTree
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
             _painter.Begin(rect, z, _canvasHeight);
-            _paints[p].Paint(_painter);
+            _paints[p].Command.Run(_painter);
         }
     }
 

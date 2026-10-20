@@ -94,10 +94,7 @@ public static class UiWidgets
             }))
             {
                 if (value)
-                {
-                    var check = theme.OnAccent;
-                    ui.Paint(p => DrawCheckmark(p, check));
-                }
+                    ui.Paint(theme.OnAccent, static (p, color) => DrawCheckmark(p, color));
             }
             ui.Text(Visible(label), color: textColor ?? theme.Text);
         }

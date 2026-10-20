@@ -108,8 +108,14 @@ public sealed partial class Ui
     }
 
     /// <summary>Paints custom content on the element being recorded, after its background and
-    /// before its children, once its rect is known.</summary>
-    public void Paint(Action<UiPainter> paint) => _tree.AddPaint(_open.Peek(), paint);
+    /// before its children, once its rect is known. Pass what the paint needs as
+    /// <paramref name="state"/> with a <c>static</c> lambda and nothing is allocated per frame.</summary>
+    public void Paint<TState>(TState state, Action<UiPainter, TState> paint) =>
+        _tree.AddPaint(_open.Peek(), PaintCommand<TState>.Rent(state, paint));
+
+    /// <summary>Convenience form of <see cref="Paint{TState}"/>; a capturing lambda allocates
+    /// every frame.</summary>
+    public void Paint(Action<UiPainter> paint) => Paint(paint, static (painter, p) => p(painter));
 
     public Scope Scroll(string id, Box box = default) => Scroll(GetId(id), box);
 
@@ -284,8 +290,8 @@ public sealed partial class Ui
         {
             e.Text = text;
             e.TextStyle = style;
-            e.ContentWidth = MathF.Ceiling(_canvas.MeasureTextWidth(text, style));
-            e.ContentHeight = MathF.Ceiling(_canvas.MeasureTextLineHeight(style));
+            e.ContentWidth = MeasureWidth(text, style);
+            e.ContentHeight = MeasureLineHeight(style);
         }
         return e;
     }

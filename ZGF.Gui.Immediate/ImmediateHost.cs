@@ -25,7 +25,7 @@ internal sealed class ImmediateHost : IDisposable
         _render = RenderHost.Create(config, backend);
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
-        _ui = new Ui(_render.Canvas, theme, _window);
+        _ui = new Ui(_render.Canvas, theme, new WindowClipboard(_window));
         _render.SetFrame(DrawFrame, theme.Background);
 
         _window.OnKey += HandleKey;
@@ -60,7 +60,7 @@ internal sealed class ImmediateHost : IDisposable
         var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
         _lastFrameTimestamp = now;
 
-        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep));
+        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), _render.Canvas.Width, _render.Canvas.Height);
         _renderUi(_ui);
         _ui.EndFrame();
 
@@ -166,4 +166,11 @@ internal sealed class ImmediateHost : IDisposable
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
         _render.Dispose();
     }
+}
+
+internal sealed class WindowClipboard(IWindow window) : IClipboard
+{
+    public void SetText(string text) => window.SetClipboardText(text);
+
+    public string? GetText() => window.GetClipboardText();
 }

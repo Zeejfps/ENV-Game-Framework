@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ZGF.Desktop;
 
 namespace ZGF.Gui.Immediate;
@@ -14,14 +16,18 @@ public sealed partial class Ui
     private const long StateLifetimeFrames = 1000;
     private const long StatePruneInterval = 256;
 
-    private readonly RenderedCanvasBase _canvas;
-    private readonly IWindow _window;
+    private readonly ICanvas _canvas;
+    private readonly IClipboard _clipboard;
     private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
     private readonly Stack<int> _ids = new();
     private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align), TextStyle> _textStyles = new();
     private readonly Dictionary<int, (object State, long LastFrame)> _states = new();
+    private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
+    private Dictionary<MeasureKey, float> _widths = new();
+    private Dictionary<MeasureKey, float> _previousWidths = new();
+    private float _measuredScale;
     private readonly List<int> _expiredStates = new();
     private List<HitRegion> _hits = new();
     private List<HitRegion> _previousHits = new();
@@ -36,18 +42,18 @@ public sealed partial class Ui
     private bool _focusSeen;
     private bool _focusClaimed;
 
-    internal Ui(RenderedCanvasBase canvas, UiTheme theme, IWindow window)
+    internal Ui(ICanvas canvas, UiTheme theme, IClipboard clipboard)
     {
         _canvas = canvas;
-        _window = window;
+        _clipboard = clipboard;
         _painter = new UiPainter(this, canvas);
         Theme = theme;
     }
 
     public UiTheme Theme { get; }
     public UiInput Input { get; private set; } = new();
-    public float Width => _canvas.Width;
-    public float Height => _canvas.Height;
+    public float Width { get; private set; }
+    public float Height { get; private set; }
     public float DeltaTime { get; private set; }
     public double Time { get; private set; }
 
@@ -56,8 +62,8 @@ public sealed partial class Ui
 
     public string ClipboardText
     {
-        get => _window.GetClipboardText() ?? "";
-        set => _window.SetClipboardText(value);
+        get => _clipboard.GetText() ?? "";
+        set => _clipboard.SetText(value);
     }
 
     internal MouseCursor Cursor { get; private set; }
@@ -69,9 +75,12 @@ public sealed partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
-    internal void BeginFrame(UiInput input, float deltaTime)
+    internal void BeginFrame(UiInput input, float deltaTime, float width, float height)
     {
         _frame++;
+        Width = width;
+        Height = height;
+        BeginMeasurements();
         Input = input;
         DeltaTime = deltaTime;
         Time += deltaTime;
@@ -159,14 +168,13 @@ public sealed partial class Ui
     /// </summary>
     public TState GetState<TState>(int id) where TState : class, new()
     {
-        if (_states.TryGetValue(id, out var entry) && entry.State is TState existing)
-        {
-            _states[id] = (existing, _frame);
+        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_states, id, out _);
+        entry.LastFrame = _frame;
+        if (entry.State is TState existing)
             return existing;
-        }
 
         var created = new TState();
-        _states[id] = (created, _frame);
+        entry.State = created;
         return created;
     }
 
@@ -219,15 +227,67 @@ public sealed partial class Ui
     public void ClearFocus() => _focused = 0;
 
     public float MeasureText(string text, float? size = null, bool bold = false) =>
-        MathF.Ceiling(_canvas.MeasureTextWidth(text, Style(size, Theme.Text, bold, Align.Start)));
+        MeasureWidth(text, Style(size, Theme.Text, bold, Align.Start));
 
     /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
     /// whole line — for placing a caret.</summary>
     public float MeasureText(string text, int length, float? size = null, bool bold = false) =>
         length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, Style(size, Theme.Text, bold, Align.Start));
 
-    public float LineHeight(float? size = null) =>
-        MathF.Ceiling(_canvas.MeasureTextLineHeight(Style(size, Theme.Text, false, Align.Start)));
+    public float LineHeight(float? size = null) => MeasureLineHeight(Style(size, Theme.Text, false, Align.Start));
+
+    internal float MeasureWidth(string text, TextStyle style)
+    {
+        var key = new MeasureKey(text, style);
+        if (_widths.TryGetValue(key, out var width))
+            return width;
+        if (!_previousWidths.TryGetValue(key, out width))
+            width = MathF.Ceiling(_canvas.MeasureTextWidth(text, style));
+        _widths[key] = width;
+        return width;
+    }
+
+    internal float MeasureLineHeight(TextStyle style)
+    {
+        ref var height = ref CollectionsMarshal.GetValueRefOrAddDefault(_lineHeights, style, out var exists);
+        if (!exists)
+            height = MathF.Ceiling(_canvas.MeasureTextLineHeight(style));
+        return height;
+    }
+
+    // Widths are kept while their text was measured this frame or the last, so an unchanged
+    // screen is never re-shaped and text that stops being drawn ages out a frame later. A scale
+    // change re-rasterizes every font, so it invalidates everything.
+    private void BeginMeasurements()
+    {
+        if (_canvas.DpiScale != _measuredScale)
+        {
+            _measuredScale = _canvas.DpiScale;
+            _widths.Clear();
+            _previousWidths.Clear();
+            _lineHeights.Clear();
+        }
+        (_widths, _previousWidths) = (_previousWidths, _widths);
+        _widths.Clear();
+    }
+
+    private readonly struct MeasureKey : IEquatable<MeasureKey>
+    {
+        private readonly string _text;
+        private readonly TextStyle _style;
+
+        public MeasureKey(string text, TextStyle style)
+        {
+            _text = text;
+            _style = style;
+        }
+
+        public bool Equals(MeasureKey other) => ReferenceEquals(_style, other._style) && string.Equals(_text, other._text);
+
+        public override bool Equals(object? obj) => obj is MeasureKey other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(_text, RuntimeHelpers.GetHashCode(_style));
+    }
 
     internal TextStyle Style(float? size, uint color, bool bold, Align align)
     {

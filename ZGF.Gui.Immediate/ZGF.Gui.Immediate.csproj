@@ -5,6 +5,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.Gui.Benchmarks" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.OpenGL\ZGF.Gui.OpenGL.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
