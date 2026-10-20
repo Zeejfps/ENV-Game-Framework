@@ -48,6 +48,9 @@ public sealed record TextInput : Widget
     /// <summary>Fits the field's intrinsic width to its text. See <see cref="TextInputView.SizesToText"/>.</summary>
     public bool SizesToText { get; init; }
 
+    /// <summary>Runs when Enter is pressed in a single-line field, which then consumes the key.</summary>
+    public Action? OnSubmit { get; init; }
+
     protected override View CreateView(Context ctx)
     {
         var input = ctx.Require<InputSystem>();
@@ -70,6 +73,7 @@ public sealed record TextInput : Widget
         {
             // Nearest enclosing scroll container, if any — keeps the caret in view as it moves.
             ScrollScope = ctx.Get<IScrollScope>(),
+            OnSubmit = OnSubmit,
         };
         // Wrapping is what makes the field multi-line, which is also what decides whether Enter
         // breaks the line or bubbles to the owner as a submit.

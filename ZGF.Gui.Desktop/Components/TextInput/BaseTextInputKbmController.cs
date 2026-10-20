@@ -26,6 +26,9 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
     // untouched, which is what a field with no submit action of its own wants.
     public Action? OnSubmitChord { get; set; }
 
+    // The owner's submit on a plain Enter in a single-line field. Unset, Enter bubbles untouched.
+    public Action? OnSubmit { get; set; }
+
     /// <summary>The scrolling viewport this input lives in, if any. When set, every caret-moving
     /// interaction (typing, arrows, clicks, drag-selection, paste) asks it to keep the caret's
     /// line in view, so a multi-line editor follows the caret instead of letting it leave the
@@ -369,6 +372,13 @@ public abstract class BaseTextInputKbmController : KeyboardMouseController, IPro
         var isEnter = e.Key == KeyboardKey.Enter || e.Key == KeyboardKey.NumpadEnter;
         var isSubmitChord = e.Modifiers.HasFlag(InputModifiers.Control)
             || e.Modifiers.HasFlag(InputModifiers.Super);
+        if (isEnter && !IsMultiLine && OnSubmit != null)
+        {
+            OnSubmit();
+            e.Consume();
+            return;
+        }
+
         if (isEnter && isSubmitChord && OnSubmitChord != null)
         {
             OnSubmitChord();
