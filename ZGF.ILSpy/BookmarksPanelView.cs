@@ -127,28 +127,17 @@ internal static class BookmarksPanelView
 
     private static void RenameField(Ui ui, BookmarkList bookmarks)
     {
-        var fieldId = ui.GetId("name");
-        if (bookmarks.FocusRename)
-        {
-            bookmarks.FocusRename = false;
-            ui.Focus(fieldId);
-        }
-        else if (!ui.HasFocus(fieldId))
-        {
+        var begin = bookmarks.FocusRename;
+        bookmarks.FocusRename = false;
+        var result = ui.InlineEdit("name", ref bookmarks.RenameText, begin, Sizing.Grow(ui.Theme.MenuMinWidth / 2, ui.Theme.MenuMinWidth * 1.5f));
+        if (result == InlineEditResult.Editing) return;
+        var stillHere = ui.HasFocus(ui.GetId("name"));
+        if (result == InlineEditResult.Committed)
             bookmarks.CommitRename();
-            return;
-        }
-        if (ui.Input.TakeKey(KeyboardKey.Escape))
-        {
+        else
             bookmarks.CancelRename();
+        if (stillHere || result == InlineEditResult.Cancelled)
             ui.Focus(ListId, takesText: false);
-            return;
-        }
-        if (ui.TextField("name", ref bookmarks.RenameText, width: Sizing.Grow(ui.Theme.MenuMinWidth / 2, ui.Theme.MenuMinWidth * 1.5f)))
-        {
-            bookmarks.CommitRename();
-            ui.Focus(ListId, takesText: false);
-        }
     }
 
     private static void Menu(Ui ui, Workspace w, Strings t)

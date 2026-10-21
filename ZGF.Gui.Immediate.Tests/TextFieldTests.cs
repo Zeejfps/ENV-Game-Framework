@@ -394,3 +394,86 @@ public sealed class TextFieldTests
         }
     }
 }
+
+public sealed class InlineEditTests
+{
+    private readonly UiFrames _frames = new();
+    private readonly List<InlineEditResult> _results = new();
+    private string _text = "Bookmark 1";
+    private bool _begin = true;
+    private bool _editing = true;
+
+    private void Body(Ui ui)
+    {
+        using (ui.Row(new Box { Height = 28f, Gap = 0f }))
+        {
+            if (_editing)
+            {
+                var result = ui.InlineEdit("name", ref _text, _begin);
+                _begin = false;
+                if (result != InlineEditResult.Editing)
+                {
+                    _results.Add(result);
+                    _editing = false;
+                }
+            }
+            var other = ui.Interact("other");
+            ui.Leaf(other.Id, new Box { Width = 100f, Height = 20f });
+        }
+    }
+
+    private void Run()
+    {
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+    }
+
+    [Fact]
+    public void It_starts_with_the_whole_text_selected_so_typing_replaces_it_and_Enter_commits()
+    {
+        Run();
+
+        _frames.Type("Calls First");
+        Run();
+        _frames.Key(KeyboardKey.Enter);
+        Run();
+
+        Assert.Equal("Calls First", _text);
+        Assert.Equal([InlineEditResult.Committed], _results);
+    }
+
+    [Fact]
+    public void Escape_cancels()
+    {
+        Run();
+        _frames.Type("x");
+        Run();
+
+        _frames.Key(KeyboardKey.Escape);
+        Run();
+
+        Assert.Equal([InlineEditResult.Cancelled], _results);
+    }
+
+    [Fact]
+    public void Clicking_elsewhere_commits()
+    {
+        Run();
+
+        _frames.ClickOn(Body, ui => ui.GetId("other"));
+        Run();
+
+        Assert.Equal([InlineEditResult.Committed], _results);
+    }
+
+    [Fact]
+    public void It_is_one_line_tall_rather_than_a_control_tall()
+    {
+        Run();
+
+        var rect = _frames.RectOf(Body, ui => ui.GetId("name"));
+
+        Assert.True(rect.Height < UiTheme.Dark.ControlHeight, $"{rect.Height}");
+        Assert.True(rect.Height <= 28f);
+    }
+}

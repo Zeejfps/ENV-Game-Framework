@@ -5,6 +5,18 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
+/// <summary>Where an <see cref="UiWidgets.InlineEdit"/> stands after this frame.</summary>
+public enum InlineEditResult
+{
+    Editing,
+
+    /// <summary>Enter was pressed, or focus moved elsewhere: keep the text.</summary>
+    Committed,
+
+    /// <summary>Escape was pressed: drop the text.</summary>
+    Cancelled,
+}
+
 public static partial class UiWidgets
 {
     private const double CaretBlinkSeconds = 0.53;
@@ -52,10 +64,40 @@ public static partial class UiWidgets
     /// <paramref name="iconFamily"/>; <paramref name="hint"/> is muted text at the end — a shortcut —
     /// left out while the field is too narrow to keep room for typing.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, string? leadingIcon = null,
-        string? iconFamily = null, string? hint = null)
+        string? iconFamily = null, string? hint = null) =>
+        Field(ui, id, ref text, placeholder, width, leadingIcon, iconFamily, hint, inline: false);
+
+    /// <summary>Edits <paramref name="text"/> in place of the label it replaces, as in a rename: a
+    /// field one line tall, its text where the label's was, outlined in the focus color. On the frame
+    /// <paramref name="begin"/> is true it takes focus with the whole text selected. Enter, or focus
+    /// moving elsewhere, commits; Escape cancels. Editing works as in <see cref="TextField"/>.</summary>
+    public static InlineEditResult InlineEdit(this Ui ui, string id, ref string text, bool begin = false, Sizing? width = null)
+    {
+        var fieldId = ui.GetId(id);
+        if (begin)
+        {
+            var state = ui.GetState<TextFieldState>(fieldId);
+            state.Known = text;
+            state.Undo.Clear();
+            state.Redo.Clear();
+            state.Shift = 0f;
+            state.Select(0, text.Length);
+            ui.Focus(fieldId);
+        }
+        else if (!ui.HasFocus(fieldId))
+        {
+            return InlineEditResult.Committed;
+        }
+        if (ui.Input.TakeKey(KeyboardKey.Escape))
+            return InlineEditResult.Cancelled;
+        return Field(ui, id, ref text, null, width, null, null, null, inline: true) ? InlineEditResult.Committed : InlineEditResult.Editing;
+    }
+
+    private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, string? leadingIcon, string? iconFamily,
+        string? hint, bool inline)
     {
         var theme = ui.Theme;
-        var padding = theme.FieldPaddingX;
+        var padding = inline ? theme.InlineEditPaddingX : theme.FieldPaddingX;
         var i = ui.Interact(id);
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
@@ -132,13 +174,13 @@ public static partial class UiWidgets
         using (ui.Row(i.Id, new Box
         {
             Width = width ?? Sizing.Grow(MinFieldWidth),
-            Height = theme.ControlHeight,
+            Height = inline ? lineHeight + theme.InlineEditPaddingY * 2 : theme.ControlHeight,
             Padding = new Spacing(padding, 0f),
             Gap = theme.GapTight,
             Background = theme.Field,
             BorderColor = focused ? theme.FocusRing : i.Hovered ? theme.BorderStrong : theme.Border,
             BorderWidth = theme.BorderWidth,
-            Radius = theme.CornerRadius,
+            Radius = inline ? theme.RadiusSmall : theme.CornerRadius,
         }))
         {
             if (leadingIcon != null)

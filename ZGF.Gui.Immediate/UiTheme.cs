@@ -156,6 +156,10 @@ public sealed record UiTheme
     /// <summary>The horizontal inset of a text field's text, caret and selection.</summary>
     public float FieldPaddingX { get; init; } = 8f;
 
+    /// <summary>The insets of an inline edit's text, kept small so it stays where the label was.</summary>
+    public float InlineEditPaddingX { get; init; } = 2f;
+    public float InlineEditPaddingY { get; init; } = 2f;
+
     /// <summary>The vertical inset of controls on a toolbar.</summary>
     public float ToolbarPaddingY { get; init; } = 4f;
 

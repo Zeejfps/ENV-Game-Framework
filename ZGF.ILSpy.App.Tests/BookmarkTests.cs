@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.KeyboardModule;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -194,5 +195,27 @@ public sealed class BookmarkTests : IDisposable
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, tab.View.FlashLine);
+    }
+
+    [Fact]
+    public void F2_renames_the_selected_bookmark_in_place_and_Enter_keeps_the_name()
+    {
+        var app = new AppDriver(height: 500f);
+        var (d, tab, line) = OutlineAt("return First();", app.Driver);
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.OpenBookmarks();
+        app.Run(3);
+        app.Click("Bookmark 1");
+
+        app.Frames.Key(KeyboardKey.F2);
+        app.Run(2);
+        app.Frames.Type("Calls First");
+        app.Run(2);
+        app.Frames.Key(KeyboardKey.Enter);
+        app.Run(2);
+
+        Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
+        Assert.Null(d.Workspace.Bookmarks.Renaming);
+        Assert.True(app.Frames.Drew("Calls First"));
     }
 }
