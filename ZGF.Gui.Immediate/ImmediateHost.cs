@@ -161,9 +161,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.Canvas.Width, _render.Canvas.Height);
         _renderUi(_ui);
         _ui.EndFrame();
-        PresentPopups();
-        if (_ui.QuitRequested)
-            _render.App.Quit();
         if (_ui.WindowBackground != _clearColor)
         {
             _clearColor = _ui.WindowBackground;
@@ -175,6 +172,9 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _titleBarDark = dark;
             _window.SetTitleBarTheme(dark);
         }
+        PresentPopups();
+        if (_ui.QuitRequested)
+            _render.App.Quit();
 
         if (_ui.Cursor != _cursor)
         {
