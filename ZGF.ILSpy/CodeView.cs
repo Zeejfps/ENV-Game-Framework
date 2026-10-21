@@ -3,6 +3,7 @@ using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using TextOverflow = ZGF.Gui.Immediate.TextOverflow;
 
@@ -196,7 +197,7 @@ public static class CodeViewWidget
     /// numbers, folding, selection and copy, find (Ctrl+F) and reference navigation: a click on a
     /// reference asks to navigate to it, a Ctrl+click or middle click asks for a new tab.
     /// </summary>
-    public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state)
+    public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state, Strings t)
     {
         using var scope = ui.Id(id);
         state.Show(document);
@@ -227,7 +228,7 @@ public static class CodeViewWidget
         using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground }))
         {
             if (state.FindOpen)
-                FindBar(ui, state, document, focusId, findId);
+                FindBar(ui, state, document, focusId, findId, t);
             ui.TabStop(focusId);
 
             var i = ui.Interact(codeId);
@@ -373,7 +374,7 @@ public static class CodeViewWidget
             state.LaidOutScrollY = state.ScrollY;
         }
 
-        if (ContextMenu(ui, state, document) is { Navigate: not null } picked)
+        if (ContextMenu(ui, state, document, t) is { Navigate: not null } picked)
             result = picked;
         return result;
     }
@@ -640,7 +641,7 @@ public static class CodeViewWidget
             state.SetCollapsed(fold, collapse);
     }
 
-    private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId)
+    private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId, Strings t)
     {
         var theme = ui.Theme;
         using (ui.Row(new Box
@@ -658,7 +659,7 @@ public static class CodeViewWidget
                 state.FocusFind = false;
             }
 
-            var submitted = ui.TextField("find", ref state.Query, "Find", Sizing.Grow(AppLayout.FindMinWidth, AppLayout.FindWidth));
+            var submitted = ui.TextField("find", ref state.Query, t.FindPlaceholder, Sizing.Grow(AppLayout.FindMinWidth, AppLayout.FindWidth));
             var queryChanged = !string.Equals(state.Query, state.Find.Query, StringComparison.Ordinal);
             if (state.Find.Update(document, state.Query))
             {
@@ -670,15 +671,15 @@ public static class CodeViewWidget
 
             var count = state.Find.Matches.Count;
             var label = state.Query.Length == 0 ? ""
-                : count == 0 ? "No results"
-                : ui.Memo("count", (state.CurrentMatch, count), static a => a.CurrentMatch >= 0 ? $"{a.CurrentMatch + 1} of {a.count}" : $"{a.count} matches");
+                : count == 0 ? t.FindNoResults
+                : ui.Memo("count", (state.CurrentMatch, count, t), static a => a.CurrentMatch >= 0 ? a.t.FindPosition(a.CurrentMatch + 1, a.count) : a.t.FindMatches(a.count));
             ui.Text(label, new Box { Width = Sizing.Grow() }, color: count == 0 && state.Query.Length > 0 ? theme.Warning : theme.TextMuted,
                 size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-            if (ui.IconButton("previous", LucideIcons.ChevronUp, LucideIcons.Family, "Previous match (Shift+F3)", count > 0))
+            if (ui.IconButton("previous", LucideIcons.ChevronUp, LucideIcons.Family, ui.Memo("previous-tip", t, static s => s.FindPrevious("Shift+F3")), count > 0))
                 Step(state, document, -1);
-            if (ui.IconButton("next", LucideIcons.ChevronDown, LucideIcons.Family, "Next match (F3)", count > 0))
+            if (ui.IconButton("next", LucideIcons.ChevronDown, LucideIcons.Family, ui.Memo("next-tip", t, static s => s.FindNext("F3")), count > 0))
                 Step(state, document, 1);
-            if (ui.IconButton("close", LucideIcons.X, LucideIcons.Family, "Close (Esc)"))
+            if (ui.IconButton("close", LucideIcons.X, LucideIcons.Family, ui.Memo("close-tip", t, static s => s.FindClose("Esc"))))
             {
                 state.FindOpen = false;
                 ui.Focus(focusId, takesText: false);
@@ -711,32 +712,32 @@ public static class CodeViewWidget
         state.ShowColumns(match.Column, match.Column + state.Find.Length);
     }
 
-    private static CodeViewResult ContextMenu(Ui ui, CodeViewState state, DecompiledDocument document)
+    private static CodeViewResult ContextMenu(Ui ui, CodeViewState state, DecompiledDocument document, Strings t)
     {
         var result = default(CodeViewResult);
         using var menu = ui.ContextMenu("menu");
         if (!menu.IsOpen) return result;
 
-        if (ui.MenuItem("Copy", "Ctrl+C", enabled: state.HasSelection))
+        if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: state.HasSelection, id: "copy"))
             ui.ClipboardText = state.SelectedText;
-        if (ui.MenuItem("Select all", "Ctrl+A"))
+        if (ui.MenuItem(t.CodeSelectAll, "Ctrl+A", id: "select-all"))
             state.Select(default, CodeText.End(document));
         if (document.Folds.Length > 0)
         {
             ui.MenuSeparator();
-            if (ui.MenuItem("Toggle fold", "Ctrl+M, M", enabled: state.MenuLine >= 0 && state.Folds.Innermost(state.MenuLine) >= 0))
+            if (ui.MenuItem(t.CodeToggleFold, "Ctrl+M, M", id: "toggle-fold", enabled: state.MenuLine >= 0 && state.Folds.Innermost(state.MenuLine) >= 0))
                 state.ToggleFold(state.MenuLine);
-            if (ui.MenuItem("Collapse all"))
+            if (ui.MenuItem(t.CodeCollapseAll, id: "collapse-all"))
                 state.CollapseAll();
-            if (ui.MenuItem("Expand all"))
+            if (ui.MenuItem(t.CodeExpandAll, id: "expand-all"))
                 state.ExpandAll();
         }
         if (state.MenuReference is { } reference)
         {
             ui.MenuSeparator();
-            if (ui.MenuItem("Go to definition"))
+            if (ui.MenuItem(t.CodeGoToDefinition, id: "go-to-definition"))
                 result = new CodeViewResult(reference, false);
-            if (ui.MenuItem("Open in new tab"))
+            if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
                 result = new CodeViewResult(reference, true);
         }
         return result;

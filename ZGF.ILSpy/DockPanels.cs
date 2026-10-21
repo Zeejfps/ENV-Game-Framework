@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -10,11 +11,11 @@ public static class DockPanels
     public const string Documents = "documents";
     public const string Search = "search";
 
-    public static DockTab Tab(string panel) => panel switch
+    public static DockTab Tab(Strings t, string panel) => panel switch
     {
-        Assemblies => new DockTab("Assemblies", Closable: false),
-        Documents => new DockTab("Documents", Closable: false, Movable: false),
-        _ => new DockTab("Search"),
+        Assemblies => new DockTab(t.PanelAssemblies, Closable: false),
+        Documents => new DockTab(t.PanelDocuments, Closable: false, Movable: false),
+        _ => new DockTab(t.PanelSearch),
     };
 
     /// <summary>The saved layout without the panels this version does not have or that start

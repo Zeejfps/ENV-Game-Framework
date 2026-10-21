@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -12,6 +13,7 @@ public sealed class SearchModel
 {
     private const double DebounceSeconds = 0.15;
 
+    private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
     private readonly List<SearchRow> _rows = new();
     private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
@@ -22,9 +24,11 @@ public sealed class SearchModel
     private int _version = -1;
     private BrowseNode? _selected;
 
+    /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed: a title and details.</param>
-    public SearchModel(Action<string, string> reportError)
+    public SearchModel(Func<Strings> strings, Action<string, string> reportError)
     {
+        _strings = strings;
         _reportError = reportError;
     }
 
@@ -156,7 +160,7 @@ public sealed class SearchModel
         }
         catch (Exception e)
         {
-            post(() => _reportError("Search failed", e.ToString()));
+            post(() => _reportError(_strings().ErrorSearch, e.ToString()));
         }
         post(() =>
         {

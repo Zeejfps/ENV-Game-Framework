@@ -1,19 +1,20 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
 internal static class TreePaneView
 {
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         w.Tree.SetStyle(theme, ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark);
         w.Tree.SetShowNonPublic(w.ShowNonPublic);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         if (w.Tree.Roots.Count == 0)
-            ui.Text("Open an assembly with File › Open… (Ctrl+O)", new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) },
+            ui.Text(ui.Memo("empty", t, static s => s.TreeEmpty("Ctrl+O")), new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) },
                 color: theme.TextMuted, wrap: true);
 
         var result = ui.TreeView("tree", w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
@@ -30,22 +31,22 @@ internal static class TreePaneView
         using (var menu = ui.ContextMenu("tree-menu"))
         {
             if (menu.IsOpen && w.MenuTarget is { } node)
-                NodeMenu(ui, w, node);
+                NodeMenu(ui, w, t, node);
         }
     }
 
-    private static void NodeMenu(Ui ui, Workspace w, BrowseNode node)
+    private static void NodeMenu(Ui ui, Workspace w, Strings t, BrowseNode node)
     {
-        if (ui.MenuItem("Open in new tab"))
+        if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
             w.Show(node, inNewTab: true);
-        if (node.Target != null && ui.MenuItem("Go to target"))
+        if (node.Target != null && ui.MenuItem(t.TreeGoToTarget, id: "go-to-target"))
             w.GoToTarget(node);
-        if (ui.MenuItem("Copy full name"))
+        if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
         if (node.Kind == NodeKind.Assembly)
         {
             ui.MenuSeparator();
-            if (ui.MenuItem("Close assembly"))
+            if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
                 w.Close(node.Assembly);
         }
     }

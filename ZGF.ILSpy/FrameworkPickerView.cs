@@ -1,13 +1,14 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy;
 
 internal static class FrameworkPickerView
 {
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         var picker = w.Picker;
         if (picker.IsOpen)
@@ -17,7 +18,7 @@ internal static class FrameworkPickerView
         var open = false;
         var close = false;
         var card = new Box { Width = Sizing.Grow(0f, AppLayout.PickerWidth), Height = Sizing.Percent(AppLayout.PickerHeight) };
-        using (var dialog = ui.Dialog("picker", "Open from framework", ref picker.IsOpen, card))
+        using (var dialog = ui.Dialog("picker", t.PickerTitle, ref picker.IsOpen, card))
         {
             if (!dialog.IsOpen) return;
 
@@ -38,7 +39,7 @@ internal static class FrameworkPickerView
                 picker.FocusFilter = false;
                 ui.Focus(ui.GetId("picker-filter"));
             }
-            open |= ui.TextField("picker-filter", ref picker.Filter, "Filter by name");
+            open |= ui.TextField("picker-filter", ref picker.Filter, t.PickerFilter);
 
             using (ui.Box(new Box
             {
@@ -53,20 +54,20 @@ internal static class FrameworkPickerView
             }))
             {
                 if (picker.IsLoading)
-                    ui.Text("Scanning the runtime…", new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted);
+                    ui.Text(t.PickerScanning, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted);
                 else if (picker.Error != null)
-                    ui.Text("The runtime could not be scanned; see the error in the status bar.", new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
+                    ui.Text(t.PickerScanFailed, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
                         color: theme.TextMuted, wrap: true);
                 else
-                    open |= Rows(ui, picker);
+                    open |= Rows(ui, picker, t);
             }
 
             using (ui.Row(new Box { Gap = theme.GapTight }))
             {
-                ui.Text(ui.Memo("picker-count", picker.Filtered.Count, static n => $"{n} assemblies"), color: theme.TextMuted, size: theme.FontSizeSmall);
+                ui.Text(ui.Memo("picker-count", (picker.Filtered.Count, t), static a => a.t.PickerCount(a.Count)), color: theme.TextMuted, size: theme.FontSizeSmall);
                 ui.Spacer();
-                close |= ui.Button("Cancel", id: "picker-cancel");
-                open |= ui.Button("Open", enabled: picker.Selected != null, id: "picker-open", variant: ButtonVariant.Primary);
+                close |= ui.Button(t.PickerCancel, id: "picker-cancel");
+                open |= ui.Button(t.PickerOpen, enabled: picker.Selected != null, id: "picker-open", variant: ButtonVariant.Primary);
             }
         }
 
@@ -79,7 +80,7 @@ internal static class FrameworkPickerView
             picker.Close();
     }
 
-    private static bool Rows(Ui ui, FrameworkPickerModel picker)
+    private static bool Rows(Ui ui, FrameworkPickerModel picker, Strings t)
     {
         var theme = ui.Theme;
         var rowHeight = theme.RowHeight;
@@ -112,7 +113,7 @@ internal static class FrameworkPickerView
                     {
                         ui.Text(assembly.Name, new Box { Width = Sizing.Grow() }, color: listed ? theme.TextMuted : selected ? theme.SelectionText : theme.Text,
                             overflow: TextOverflow.Ellipsis);
-                        ui.Text(listed ? "open" : assembly.Framework, color: theme.TextMuted, size: theme.FontSizeSmall);
+                        ui.Text(listed ? t.PickerListed : assembly.Framework, color: theme.TextMuted, size: theme.FontSizeSmall);
                     }
                 }
             }

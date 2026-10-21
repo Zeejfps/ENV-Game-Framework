@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy;
@@ -8,15 +9,11 @@ namespace ZGF.ILSpy;
 internal static class ToolbarView
 {
     private const string SearchShortcut = "Ctrl+Shift+F";
-    private const string SearchTooltip = $"Search types and members ({SearchShortcut})";
 
-    private static readonly Segment<DecompilationLanguage>[] Languages =
-    [
-        new(DecompilationLanguage.CSharp, "C#", "Decompile to C#"),
-        new(DecompilationLanguage.IL, "IL", "Disassemble to IL"),
-    ];
+    private static Strings? _languagesFor;
+    private static Segment<DecompilationLanguage>[] _languages = [];
 
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         using (ui.Row(new Box
@@ -30,39 +27,53 @@ internal static class ToolbarView
         {
             using (Group(ui))
             {
-                if (ui.IconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family, "Back (Alt+Left)", w.History.CanGoBack))
+                if (ui.IconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family, ui.Memo("back-tip", t, static s => s.ToolbarBack("Alt+Left")),
+                        w.History.CanGoBack))
                     w.GoBack();
-                if (ui.IconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family, "Forward (Alt+Right)", w.History.CanGoForward))
+                if (ui.IconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family, ui.Memo("forward-tip", t, static s => s.ToolbarForward("Alt+Right")),
+                        w.History.CanGoForward))
                     w.GoForward();
             }
 
             using (Group(ui))
             {
                 var language = w.Language;
-                if (ui.SegmentedControl("language", ref language, Languages))
+                if (ui.SegmentedControl("language", ref language, Languages(t)))
                     w.SetLanguage(language);
             }
 
             using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), AlignX = Align.End, AlignY = Align.Center }))
-                Search(ui, w);
+                Search(ui, w, t);
         }
+    }
+
+    private static Segment<DecompilationLanguage>[] Languages(Strings t)
+    {
+        if (ReferenceEquals(t, _languagesFor)) return _languages;
+        _languagesFor = t;
+        _languages =
+        [
+            new(DecompilationLanguage.CSharp, "C#", t.ToolbarDecompileCsharp),
+            new(DecompilationLanguage.IL, "IL", t.ToolbarDisassembleIl),
+        ];
+        return _languages;
     }
 
     private static Ui.Scope Group(Ui ui) =>
         ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.GapTight, AlignY = Align.Center });
 
-    private static void Search(Ui ui, Workspace w)
+    private static void Search(Ui ui, Workspace w, Strings t)
     {
         var searchId = ui.GetId("search");
         if (w.TakeSearchFocus())
             ui.Focus(searchId);
-        var submitted = ui.TextField("search", ref w.Search.Query, "Search types and members", Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
+        var submitted = ui.TextField("search", ref w.Search.Query, t.ToolbarSearch, Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
             LucideIcons.Search, LucideIcons.Family, SearchShortcut);
         if (w.Search.Query.Length > 0)
             w.Search.IsOpen = true;
         if (ui.HasFocus(searchId))
             SearchFieldKeys(ui, w, submitted);
-        ui.Tooltip(searchId, SearchTooltip);
+        ui.Tooltip(searchId, ui.Memo("search-tip", t, static s => s.ToolbarSearchTooltip(SearchShortcut)));
     }
 
     private static void SearchFieldKeys(Ui ui, Workspace w, bool submitted)

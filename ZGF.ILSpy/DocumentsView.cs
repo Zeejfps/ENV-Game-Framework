@@ -1,18 +1,19 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
 internal static class DocumentsView
 {
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         if (w.Tabs.Count == 0)
         {
             using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
             ui.Leaf(new Box { Width = Sizing.Grow(), Height = theme.TabHeight, Background = theme.Surface });
-            Hint(ui);
+            Hint(ui, t);
             return;
         }
 
@@ -23,10 +24,10 @@ internal static class DocumentsView
                 if (w.FindTab(panel) is not { } tab) continue;
                 if (tab.Location == null)
                 {
-                    Hint(ui);
+                    Hint(ui, t);
                     continue;
                 }
-                var result = ui.CodeView("code", tab.Document, tab.View);
+                var result = ui.CodeView("code", tab.Document, tab.View, t);
                 if (result.Navigate is { } reference)
                     w.Navigate(reference, result.NavigateInNewTab);
             }
@@ -41,10 +42,10 @@ internal static class DocumentsView
         return new DockTab(tab.Node is { } node ? w.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip);
     }
 
-    private static void Hint(Ui ui)
+    private static void Hint(Ui ui, Strings t)
     {
         var theme = ui.Theme;
         using (ui.Column(new Box { Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center, Background = theme.EditorBackground }))
-            ui.Text("Select a node in the tree to decompile it.", color: theme.TextMuted);
+            ui.Text(t.DocumentsHint, color: theme.TextMuted);
     }
 }

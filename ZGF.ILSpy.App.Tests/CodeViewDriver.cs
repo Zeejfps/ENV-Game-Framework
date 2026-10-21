@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.App.Tests.Fixtures;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -34,7 +35,7 @@ internal sealed class CodeViewDriver
         _body = ui =>
         {
             using var screen = ui.Screen();
-            return ui.CodeView("code", Document, State);
+            return ui.CodeView("code", Document, State, Strings.En);
         };
     }
 

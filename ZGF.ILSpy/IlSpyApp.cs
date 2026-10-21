@@ -1,6 +1,7 @@
 using ZGF.AppUtils;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -23,5 +24,5 @@ public sealed class IlSpyApp : Gui<Workspace>
         workspace.Assemblies.Changed += Invalidate;
     }
 
-    protected override void Render(Ui ui, Workspace w) => MainView.Render(ui, w);
+    protected override void Render(Ui ui, Workspace w) => MainView.Render(ui, w, Strings.For(w.Locale));
 }

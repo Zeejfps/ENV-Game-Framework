@@ -5,6 +5,7 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -247,7 +248,7 @@ public sealed class FrameworkPickerTests
     {
         var posted = new ConcurrentQueue<Action>();
         var reported = new List<string>();
-        var picker = new FrameworkPickerModel((title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
+        var picker = new FrameworkPickerModel(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
 
         picker.Open(posted.Enqueue);
         var clock = System.Diagnostics.Stopwatch.StartNew();

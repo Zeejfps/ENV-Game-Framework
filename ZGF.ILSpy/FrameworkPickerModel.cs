@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -6,6 +7,7 @@ namespace ZGF.ILSpy;
 /// background, filtered by name.</summary>
 public sealed class FrameworkPickerModel
 {
+    private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
     private readonly Func<IReadOnlyList<RuntimeAssembly>> _scan;
     private readonly List<RuntimeAssembly> _filtered = new();
@@ -15,10 +17,12 @@ public sealed class FrameworkPickerModel
     private bool _loading;
     private string? _appliedFilter;
 
+    /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user the runtime could not be scanned: a title and details.</param>
     /// <param name="scan">Lists the assemblies to offer; the running runtime's by default.</param>
-    public FrameworkPickerModel(Action<string, string> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
+    public FrameworkPickerModel(Func<Strings> strings, Action<string, string> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
     {
+        _strings = strings;
         _reportError = reportError;
         _scan = scan ?? (static () => RuntimeAssemblies.All);
     }
@@ -64,7 +68,7 @@ public sealed class FrameworkPickerModel
                 Error = error;
                 _appliedFilter = null;
                 if (error != null)
-                    _reportError("Cannot scan the runtime's assemblies", error);
+                    _reportError(_strings().ErrorScanRuntime, error);
             });
         });
     }

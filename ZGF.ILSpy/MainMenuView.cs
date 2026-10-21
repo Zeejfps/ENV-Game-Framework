@@ -2,79 +2,113 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
 internal static class MainMenuView
 {
-    private static readonly FileFilter[] AssemblyFilters =
-    [
-        new("Assemblies", ["*.dll", "*.exe", "*.winmd"]),
-        new("All files", ["*.*"]),
-    ];
-
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         using (ui.MenuBar("menu"))
         {
-            using (var file = ui.Menu("File"))
+            using (var file = ui.Menu(t.MenuFile, id: "file"))
             {
                 if (file.IsOpen)
-                    FileMenu(ui, w);
+                    FileMenu(ui, w, t);
             }
-            using (var view = ui.Menu("View"))
+            using (var view = ui.Menu(t.MenuView, id: "view"))
             {
                 if (view.IsOpen)
-                    ViewMenu(ui, w);
+                    ViewMenu(ui, w, t);
             }
-            using (var navigate = ui.Menu("Navigate"))
+            using (var navigate = ui.Menu(t.MenuNavigate, id: "navigate"))
             {
                 if (navigate.IsOpen)
-                    NavigateMenu(ui, w);
+                    NavigateMenu(ui, w, t);
             }
         }
     }
 
-    public static void OpenFile(Ui ui, Workspace w) => ui.PickFile("Open assembly", null, AssemblyFilters, w.Open);
-
-    private static void FileMenu(Ui ui, Workspace w)
+    public static void OpenFile(Ui ui, Workspace w)
     {
-        if (ui.MenuItem("Open…", "Ctrl+O"))
+        var t = Strings.For(w.Locale);
+        FileFilter[] filters =
+        [
+            new(t.FileFilterAssemblies, ["*.dll", "*.exe", "*.winmd"]),
+            new(t.FileFilterAll, ["*.*"]),
+        ];
+        ui.PickFile(t.FileOpenTitle, null, filters, w.Open);
+    }
+
+    private static void FileMenu(Ui ui, Workspace w, Strings t)
+    {
+        if (ui.MenuItem(t.FileOpen, "Ctrl+O", id: "open"))
             OpenFile(ui, w);
-        if (ui.MenuItem("Open from framework…"))
+        if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework"))
             w.Picker.Open(w.Post);
         ui.MenuSeparator();
         var selected = w.Tree.View.HasSelection ? w.Tree.View.Selected!.Assembly : null;
-        if (ui.MenuItem("Close", enabled: selected != null))
+        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close"))
             w.Close(selected!);
-        if (ui.MenuItem("Clear list", enabled: w.Tree.Roots.Count > 0))
+        if (ui.MenuItem(t.FileClearList, enabled: w.Tree.Roots.Count > 0, id: "clear-list"))
             w.ClearList();
-        if (ui.MenuItem("Reload all", "F5", enabled: w.Tree.Roots.Count > 0))
+        if (ui.MenuItem(t.FileReloadAll, "F5", enabled: w.Tree.Roots.Count > 0, id: "reload-all"))
             w.Refresh();
         ui.MenuSeparator();
-        if (ui.MenuItem("Exit", "Alt+F4"))
+        if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit"))
             ui.Quit();
     }
 
-    private static void ViewMenu(Ui ui, Workspace w)
+    private static void ViewMenu(Ui ui, Workspace w, Strings t)
     {
-        if (ui.MenuItem("C#", check: w.Language == DecompilationLanguage.CSharp))
-            w.SetLanguage(DecompilationLanguage.CSharp);
-        if (ui.MenuItem("IL", check: w.Language == DecompilationLanguage.IL))
-            w.SetLanguage(DecompilationLanguage.IL);
+        DecompilerMenu(ui, w, t);
         ui.MenuSeparator();
-        ui.MenuItem("Dark mode", ref w.DarkMode);
-        ui.MenuItem("Show non-public members", ref w.ShowNonPublic);
+        ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
+        ui.MenuSeparator();
+        ThemeMenu(ui, w, t);
+        LanguageMenu(ui, w, t);
     }
 
-    private static void NavigateMenu(Ui ui, Workspace w)
+    private static void DecompilerMenu(Ui ui, Workspace w, Strings t)
     {
-        if (ui.MenuItem("Back", "Alt+Left", enabled: w.History.CanGoBack))
+        using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
+        if (!decompilers.IsOpen) return;
+        if (ui.MenuRadioItem("C#", w.Language == DecompilationLanguage.CSharp))
+            w.SetLanguage(DecompilationLanguage.CSharp);
+        if (ui.MenuRadioItem("IL", w.Language == DecompilationLanguage.IL))
+            w.SetLanguage(DecompilationLanguage.IL);
+    }
+
+    private static void ThemeMenu(Ui ui, Workspace w, Strings t)
+    {
+        using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
+        if (!themes.IsOpen) return;
+        if (ui.MenuRadioItem(t.ViewThemeDark, w.DarkMode, id: "theme-dark"))
+            w.DarkMode = true;
+        if (ui.MenuRadioItem(t.ViewThemeLight, !w.DarkMode, id: "theme-light"))
+            w.DarkMode = false;
+    }
+
+    private static void LanguageMenu(Ui ui, Workspace w, Strings t)
+    {
+        using var languages = ui.SubMenu(t.ViewLanguage, id: "language");
+        if (!languages.IsOpen) return;
+        foreach (var (locale, endonym) in Locales.All)
+        {
+            if (ui.MenuRadioItem(endonym, w.Locale == locale))
+                w.SetLocale(locale);
+        }
+    }
+
+    private static void NavigateMenu(Ui ui, Workspace w, Strings t)
+    {
+        if (ui.MenuItem(t.NavigateBack, "Alt+Left", enabled: w.History.CanGoBack, id: "back"))
             w.GoBack();
-        if (ui.MenuItem("Forward", "Alt+Right", enabled: w.History.CanGoForward))
+        if (ui.MenuItem(t.NavigateForward, "Alt+Right", enabled: w.History.CanGoForward, id: "forward"))
             w.GoForward();
         ui.MenuSeparator();
-        if (ui.MenuItem("Search", "Ctrl+Shift+F"))
+        if (ui.MenuItem(t.NavigateSearch, "Ctrl+Shift+F", id: "search"))
             w.OpenSearch();
     }
 }

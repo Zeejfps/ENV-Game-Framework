@@ -495,7 +495,7 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
                 var close = template.IndexOf('}', i + 1);
                 if (close > i)
                 {
-                    var name = template.Substring(i + 1, close - i - 1);
+                    var name = ParamName(template.Substring(i + 1, close - i - 1));
                     if (IsIdentifier(name) && !names.Contains(name))
                         names.Add(name);
                     i = close + 1;
@@ -521,11 +521,12 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
                 var close = template.IndexOf('}', i + 1);
                 if (close > i)
                 {
-                    var name = template.Substring(i + 1, close - i - 1);
+                    var placeholder = template.Substring(i + 1, close - i - 1);
+                    var name = ParamName(placeholder);
                     var idx = pnames.IndexOf(name);
                     if (idx >= 0)
                     {
-                        sb.Append('{').Append(idx).Append('}');
+                        sb.Append('{').Append(idx).Append(placeholder, name.Length, placeholder.Length - name.Length).Append('}');
                         i = close + 1;
                         continue;
                     }
@@ -548,6 +549,12 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
         }
 
         return sb.ToString();
+    }
+
+    private static string ParamName(string placeholder)
+    {
+        var colon = placeholder.IndexOf(':');
+        return colon < 0 ? placeholder : placeholder.Substring(0, colon);
     }
 
     private static bool IsIdentifier(string s)
@@ -640,8 +647,13 @@ public sealed class LocalizationGenerator : IIncrementalGenerator
     {
         var sb = new StringBuilder(s.Length + 8);
         sb.Append('[');
+        var depth = 0;
         foreach (var c in s)
-            sb.Append(Accent(c));
+        {
+            if (c == '{') depth++;
+            else if (c == '}' && depth > 0) depth--;
+            sb.Append(depth > 0 ? c : Accent(c));
+        }
 
         var pad = Math.Max(1, s.Length / 3);
         sb.Append(' ');

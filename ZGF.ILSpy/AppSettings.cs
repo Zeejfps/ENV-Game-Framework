@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -23,6 +24,9 @@ public sealed class AppSettings
     public List<string> Assemblies { get; set; } = new();
     public bool DarkMode { get; set; } = true;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
+
+    /// <summary>The interface language; null follows the system's.</summary>
+    public Locale? Locale { get; set; }
     public bool ShowNonPublic { get; set; } = true;
     public DockLayout? Layout { get; set; }
 

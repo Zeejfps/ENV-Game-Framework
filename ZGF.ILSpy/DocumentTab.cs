@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -9,16 +10,19 @@ public sealed class DocumentTab
     private static int _nextId;
 
     private readonly Action<Action> _post;
+    private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
     private CancellationTokenSource? _work;
     private CodeViewPosition? _restore;
-    private string _title = "New tab";
+    private string? _title;
 
     /// <param name="post">Runs an action on the UI thread.</param>
+    /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
-    public DocumentTab(Action<Action> post, Action<string, string> reportError)
+    public DocumentTab(Action<Action> post, Func<Strings> strings, Action<string, string> reportError)
     {
         _post = post;
+        _strings = strings;
         _reportError = reportError;
         Panel = $"document-{Id}";
     }
@@ -39,10 +43,10 @@ public sealed class DocumentTab
     public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
     public CodeViewState View { get; } = new();
     public bool IsBusy => _work != null;
-    public string Title => Node != null ? NodeText.Name(Node) : _title;
+    public string Title => Node != null ? NodeText.Name(Node) : _title ?? _strings().DocumentNewTab;
 
     /// <summary>The full identity of what the tab shows.</summary>
-    public string Tooltip => Node != null ? NodeText.Tooltip(Node) : _title;
+    public string Tooltip => Node != null ? NodeText.Tooltip(Node) : Title;
 
     /// <summary>Changes whenever the tab is pointed somewhere, or loses its node.</summary>
     public int Version { get; private set; }
@@ -67,7 +71,7 @@ public sealed class DocumentTab
         Location = node.Path;
         _title = NodeText.Name(node);
         Language = language;
-        Document = DecompiledDocument.FromText(node.Text, "// Decompiling…", language);
+        Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
 
         node.DecompileAsync(language, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
             CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
@@ -88,7 +92,7 @@ public sealed class DocumentTab
         Version++;
         Cancel();
         Node = null;
-        Document = DecompiledDocument.FromText(_title, $"// {message}", Language);
+        Document = DecompiledDocument.FromText(Title, $"// {message}", Language);
     }
 
     public void Cancel()
@@ -112,12 +116,13 @@ public sealed class DocumentTab
         _work = null;
         if (task.IsCanceled) return;
 
+        var t = _strings();
         Document = task.IsFaulted
-            ? DecompiledDocument.FromText(node.Text, $"// Decompilation failed: {task.Exception!.GetBaseException().Message}", Language)
+            ? DecompiledDocument.FromText(node.Text, $"// {t.DocumentDecompilationFailed(task.Exception!.GetBaseException().Message)}", Language)
             : task.Result;
         var failed = task.IsFaulted || Document.IsError;
         if (failed)
-            _reportError($"Cannot decompile {node.FullName}", task.IsFaulted ? task.Exception!.GetBaseException().ToString() : Document.GetText());
+            _reportError(t.ErrorDecompile(node.FullName), task.IsFaulted ? task.Exception!.GetBaseException().ToString() : Document.GetText());
         Arrive(failed ? null : _restore);
         _restore = null;
     }

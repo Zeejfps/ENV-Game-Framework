@@ -247,4 +247,45 @@ public sealed class AppTests
         Assert.Contains('…', location.Text);
         Assert.True(location.Rect.Right <= app.Frames.Width, $"the location ends at {location.Rect.Right}");
     }
+
+    [Fact]
+    public void The_theme_is_picked_from_the_view_menus_theme_submenu()
+    {
+        var app = new AppDriver();
+        app.Run(2);
+        Assert.True(app.Workspace.DarkMode);
+
+        app.Click("View");
+        app.Click("Theme");
+        app.Click("Light theme");
+
+        Assert.False(app.Workspace.DarkMode);
+    }
+
+    [Fact]
+    public void The_decompiler_is_picked_from_the_view_menus_decompiler_submenu()
+    {
+        var app = OpenFixtures();
+        app.Run();
+
+        app.Click("View");
+        app.Click("Decompiler");
+        app.ClickMenuItem("IL");
+        app.Driver.Settle();
+
+        Assert.Equal(DecompilationLanguage.IL, app.Workspace.Language);
+    }
+
+    [Fact]
+    public void The_ui_language_is_picked_from_the_view_menus_language_submenu()
+    {
+        var app = new AppDriver();
+        app.Run(2);
+
+        app.Click("View");
+        app.Click("Language");
+        app.Click("Deutsch");
+
+        Assert.Equal(Localization.Locale.De, app.Workspace.Locale);
+    }
 }

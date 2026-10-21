@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.KeyboardModule;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -11,7 +12,7 @@ internal static class SearchPanelView
     /// <summary>The results list's focus and scroll id.</summary>
     public const int ResultsId = 0x53524C54;
 
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         var search = w.Search;
@@ -25,7 +26,7 @@ internal static class SearchPanelView
             Background = theme.Surface,
         }))
         {
-            ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy), static a => a.IsBusy ? $"{a.Count:N0} results so far…" : $"{a.Count:N0} results"),
+            ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy, t), static a => a.IsBusy ? a.t.SearchResultsSoFar(a.Count) : a.t.SearchResults(a.Count)),
                 color: theme.TextMuted, size: theme.FontSizeSmall);
         }
 

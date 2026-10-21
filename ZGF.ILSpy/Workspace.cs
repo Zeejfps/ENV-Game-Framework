@@ -1,5 +1,7 @@
 using ZGF.Gui.Immediate.Widgets;
+using System.Globalization;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -27,20 +29,21 @@ public sealed class Workspace
         _settings = settings;
         DarkMode = settings.DarkMode;
         Language = settings.Language;
+        Locale = settings.Locale ?? Locales.For(CultureInfo.CurrentUICulture);
         ShowNonPublic = settings.ShowNonPublic;
         Layout = DockPanels.Restore(settings.Layout);
         Tree = new BrowseTree(Post);
-        Search = new SearchModel(ReportError);
+        Search = new SearchModel(() => Strings.For(Locale), ReportError);
         Layout.PanelClosed += panel =>
         {
             if (panel == DockPanels.Search)
                 Search.Clear();
         };
-        Picker = new FrameworkPickerModel(ReportError);
+        Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
         Documents = new DockLayout { NewPanel = () => AddTab().Panel };
         Documents.PanelClosed += RemoveTab;
         if (settings.LoadError is { } error)
-            ReportError("Cannot read the settings; starting with defaults", error);
+            ReportError(Strings.For(Locale).ErrorReadSettings, error);
     }
 
     public AssemblyList Assemblies { get; } = new();
@@ -53,6 +56,9 @@ public sealed class Workspace
 
     public bool DarkMode;
     public bool ShowNonPublic;
+
+    /// <summary>The interface language.</summary>
+    public Locale Locale;
 
     /// <summary>Where the tree, documents and search results are docked.</summary>
     public DockLayout Layout { get; }
@@ -98,7 +104,7 @@ public sealed class Workspace
         {
             if (error != null)
             {
-                ReportError("Cannot open the assemblies", error.ToString());
+                ReportError(Strings.For(Locale).ErrorOpenAssemblies, error.ToString());
                 return;
             }
             ReportAll(opened!.Errors);
@@ -138,7 +144,7 @@ public sealed class Workspace
         {
             if (tab.Location is not { } location) continue;
             CodeViewPosition? position = tab.IsBusy || tab.Node == null || tab.Language != Language ? null : tab.View.Position;
-            tab.Release("Reloading…");
+            tab.Release(Strings.For(Locale).DocumentReloading);
             tabs.Add((tab, location, tab.Version, position));
         }
         var places = tabs.ConvertAll(t => t.Location);
@@ -156,7 +162,7 @@ public sealed class Workspace
             _reloadWork = null;
             if (error != null)
             {
-                ReportError("Cannot reload the assemblies", error.ToString());
+                ReportError(Strings.For(Locale).ErrorReloadAssemblies, error.ToString());
                 return;
             }
             ReportAll(reloaded!.Errors);
@@ -173,12 +179,20 @@ public sealed class Workspace
                 }
                 else
                 {
-                    tab.Release($"{location.Text} is gone after reloading.");
-                    ReportError($"Cannot find {location.Text} after reloading", location.ToString());
+                    var t = Strings.For(Locale);
+                    tab.Release(t.DocumentGone(location.Text));
+                    ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
                 }
             }
             SaveSettings();
         });
+    }
+
+    public void SetLocale(Locale locale)
+    {
+        if (locale == Locale) return;
+        Locale = locale;
+        SaveSettings();
     }
 
     public void SetLanguage(DecompilationLanguage language)
@@ -214,7 +228,8 @@ public sealed class Workspace
             _resolving = NoTicket;
             if (node is null)
             {
-                ReportError($"Cannot resolve {reference.Name}", error?.ToString() ?? $"No definition of {reference} was found in the open assemblies or their references.");
+                var t = Strings.For(Locale);
+                ReportError(t.ErrorResolve(reference.Name), error?.ToString() ?? t.ErrorNoDefinition(reference));
                 return;
             }
             LeaveActive();
@@ -317,9 +332,10 @@ public sealed class Workspace
         _settings.DarkMode = DarkMode;
         _settings.Language = Language;
         _settings.ShowNonPublic = ShowNonPublic;
+        _settings.Locale = Locale;
         _settings.Layout = Layout;
         if (_settings.Save() is { } error)
-            ReportError("Cannot save the settings", error);
+            ReportError(Strings.For(Locale).ErrorSaveSettings, error);
     }
 
     private int Intend() => ++_intent;
@@ -328,7 +344,7 @@ public sealed class Workspace
 
     private DocumentTab AddTab()
     {
-        var tab = new DocumentTab(Post, ReportError);
+        var tab = new DocumentTab(Post, () => Strings.For(Locale), ReportError);
         _tabs.Add(tab);
         return tab;
     }
@@ -388,7 +404,8 @@ public sealed class Workspace
             _resolving = NoTicket;
             if (node is null)
             {
-                ReportError($"Cannot go back to {place.Text}", error?.ToString() ?? $"{place} is no longer there.");
+                var t = Strings.For(Locale);
+                ReportError(t.ErrorGoBack(place.Text), error?.ToString() ?? t.ErrorNoLongerThere(place));
                 return;
             }
             ShowIn(tab != null && _tabs.Contains(tab) ? tab : null, node, position);
@@ -451,7 +468,7 @@ public sealed class Workspace
             }
             catch (AssemblyLoadException e)
             {
-                errors.Add(($"Cannot open {Path.GetFileName(path)}", e.InnerException?.ToString() ?? e.Message));
+                errors.Add((Strings.For(Locale).ErrorOpenFile(Path.GetFileName(path)), e.InnerException?.ToString() ?? e.Message));
             }
         }
         return new Opened(last, errors);

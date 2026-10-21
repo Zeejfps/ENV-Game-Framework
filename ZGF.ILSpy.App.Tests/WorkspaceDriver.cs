@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Testing;
+using ZGF.Gui.Testing;
 using ZGF.ILSpy.App.Tests.Fixtures;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -18,7 +20,7 @@ internal sealed class WorkspaceDriver
 
     public WorkspaceDriver(AppSettings? settings = null)
     {
-        Workspace = new Workspace(settings ?? new AppSettings());
+        Workspace = new Workspace(settings ?? new AppSettings { Locale = Locale.En });
         Workspace.Attach(_posted.Enqueue);
     }
 
@@ -100,7 +102,7 @@ internal sealed class AppDriver
     public void Run()
     {
         Driver.Pump();
-        Frames.Run(Frame, ui => MainView.Render(ui, Workspace));
+        Frames.Run(Frame, ui => MainView.Render(ui, Workspace, Strings.For(Workspace.Locale)));
     }
 
     public void Run(int frames)
@@ -110,10 +112,12 @@ internal sealed class AppDriver
     }
 
     /// <summary>Where the text was drawn on the last frame, in window coordinates.</summary>
-    public UiRect TextRect(string text)
+    public UiRect TextRect(string text) => TextRect(text, Frames.Canvas.Texts.FirstOrDefault(t => t.Inputs.Text == text));
+
+    private UiRect TextRect(string text, RecordedText? drawn)
     {
-        var drawn = Frames.Canvas.Texts.FirstOrDefault(t => t.Inputs.Text == text)
-                    ?? throw new InvalidOperationException($"'{text}' was not drawn: {string.Join(", ", Frames.Canvas.Texts.Select(t => t.Inputs.Text))}");
+        if (drawn == null)
+            throw new InvalidOperationException($"'{text}' was not drawn: {string.Join(", ", Frames.Canvas.Texts.Select(t => t.Inputs.Text))}");
         var p = drawn.Inputs.Position;
         return new UiRect(p.Left, Frames.Height - p.Top, p.Width, p.Height);
     }
@@ -136,16 +140,24 @@ internal sealed class AppDriver
         return new UiRect(p.Left, Frames.Height - p.Top, p.Width, p.Height);
     }
 
-    public void MoveTo(string text)
+    public void MoveTo(string text) => MoveTo(TextRect(text));
+
+    public void Click(string text) => Click(TextRect(text));
+
+    /// <summary>Clicks the last drawn <paramref name="text"/>: the one in the topmost open menu
+    /// when the same text is also on the window below it.</summary>
+    public void ClickMenuItem(string text) =>
+        Click(TextRect(text, Frames.Canvas.Texts.LastOrDefault(t => t.Inputs.Text == text)));
+
+    private void MoveTo(UiRect rect)
     {
-        var rect = TextRect(text);
         Frames.MovePointer(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
         Run();
     }
 
-    public void Click(string text)
+    private void Click(UiRect rect)
     {
-        MoveTo(text);
+        MoveTo(rect);
         Frames.Press();
         Run();
         Frames.Release();

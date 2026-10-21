@@ -2,6 +2,7 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -9,7 +10,7 @@ namespace ZGF.ILSpy;
 /// right: activity, errors, language and the assembly count.</summary>
 internal static class StatusBarView
 {
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         var size = theme.FontSizeSmall;
@@ -28,7 +29,7 @@ internal static class StatusBarView
 
             using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                var activity = w.IsReloading ? "Reloading…" : w.ActiveTab is { IsBusy: true } ? "Decompiling…" : w.IsResolving ? "Resolving…" : null;
+                var activity = w.IsReloading ? t.StatusReloading : w.ActiveTab is { IsBusy: true } ? t.StatusDecompiling : w.IsResolving ? t.StatusResolving : null;
                 if (activity != null)
                 {
                     ui.Text(activity, color: theme.AccentText, size: size);
@@ -36,19 +37,19 @@ internal static class StatusBarView
                 }
                 if (w.Errors.Entries.Count > 0)
                 {
-                    ErrorIndicator(ui, w);
+                    ErrorIndicator(ui, w, t);
                     Dot(ui);
                 }
                 ui.Text(w.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
                 Dot(ui);
-                ui.Text(ui.Memo("status-count", w.Tree.Roots.Count, static n => n == 1 ? "1 assembly" : $"{n} assemblies"), color: theme.TextMuted, size: size);
+                ui.Text(ui.Memo("status-count", (w.Tree.Roots.Count, t), static a => a.t.StatusAssemblies(a.Count)), color: theme.TextMuted, size: size);
             }
         }
     }
 
     private static void Dot(Ui ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
 
-    private static void ErrorIndicator(Ui ui, Workspace w)
+    private static void ErrorIndicator(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         var errors = w.Errors;
@@ -69,7 +70,7 @@ internal static class StatusBarView
         }))
         {
             ui.Text(LucideIcons.AlertCircle, color: theme.Danger, size: theme.IconSize, family: LucideIcons.Family);
-            ui.Text(ui.Memo("status-errors", errors.Entries.Count, static n => n == 1 ? "1 error" : $"{n} errors"), color: theme.Danger,
+            ui.Text(ui.Memo("status-errors", (errors.Entries.Count, t), static a => a.t.StatusErrors(a.Count)), color: theme.Danger,
                 size: theme.FontSizeSmall);
         }
         ui.Tooltip(i.Id, errors.Entries[^1].Summary);
