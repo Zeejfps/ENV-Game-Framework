@@ -251,15 +251,15 @@ internal static class NodeDecompiler
                         WriteComment(output, comment, line);
                 }
                 break;
-            case BaseTypesNode:
+            case BaseTypesNode or DerivedTypesNode:
                 foreach (var child in node.Children)
                 {
                     output.Write(child.Text, SpanKind.Type, child.Target);
                     output.WriteLine();
                 }
                 break;
-            case BaseTypeNode baseType:
-                output.Write(baseType.Text, SpanKind.Type, baseType.Target);
+            case BaseTypeNode or DerivedTypeNode:
+                output.Write(node.Text, SpanKind.Type, node.Target);
                 output.WriteLine();
                 break;
             case ErrorNode error:

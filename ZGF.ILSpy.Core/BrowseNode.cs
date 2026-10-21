@@ -36,6 +36,8 @@ public enum NodeKind
     MetadataTables,
     MetadataTable,
     MetadataHeap,
+    DerivedTypes,
+    DerivedType,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>

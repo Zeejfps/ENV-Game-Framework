@@ -9,6 +9,7 @@ public static class LucideIcons
     public const string AlertCircle = "\uE077";
     public const string ArrowLeft = "\uE048";
     public const string ArrowDown = "\uE042";
+    public const string ArrowDownToDot = "\uE44D";
     public const string ArrowRight = "\uE049";
     public const string ArrowUp = "\uE04A";
     public const string ArrowUpFromDot = "\uE44E";
@@ -31,6 +32,7 @@ public static class LucideIcons
     public const string Folder = "\uE0D7";
     public const string FunctionSquare = "\uE22D";
     public const string GitCommitHorizontal = "\uE0E3";
+    public const string GitFork = "\uE28D";
     public const string Hammer = "\uE0EC";
     public const string Layers3 = "\uE529";
     public const string LayoutGrid = "\uE0FF";

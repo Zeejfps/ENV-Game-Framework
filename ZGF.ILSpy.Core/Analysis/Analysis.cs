@@ -92,8 +92,16 @@ public static class Analysis
         new("Used By", 30, new TypeUsedByAnalyzer()),
     ];
 
-    /// <summary>The type or member <paramref name="node"/> stands for, or null for any other node.</summary>
-    public static AnalysisSymbol? Of(BrowseNode node) => node is EntityNode entity ? Describe(entity.Entity) : null;
+    /// <summary>The type or member <paramref name="node"/> stands for — for a base or derived type
+    /// entry the type it names — or null for any other node.</summary>
+    public static AnalysisSymbol? Of(BrowseNode node) =>
+        node switch
+        {
+            EntityNode entity => Describe(entity.Entity),
+            DerivedTypeNode derived => Describe(derived.Type),
+            BaseTypeNode { Type: var type } when type.GetDefinition() is { } definition => Describe(definition),
+            _ => null,
+        };
 
     /// <summary>The type or member <paramref name="definition"/> names, loading its assembly's file
     /// without listing it; null when the file or the entity is gone.</summary>

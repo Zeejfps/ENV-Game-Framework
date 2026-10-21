@@ -3,6 +3,7 @@ using System.Reflection.Metadata;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
+using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Core.Metadata;
 using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
 using MetadataResource = ICSharpCode.Decompiler.Metadata.Resource;
@@ -172,7 +173,7 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
         get
         {
             var definition = Assembly.File.Metadata.GetTypeDefinition((TypeDefinitionHandle)Type.MetadataToken);
-            return !definition.BaseType.IsNil || definition.GetInterfaceImplementations().Count > 0 || definition.GetNestedTypes().Length > 0 ||
+            return !definition.BaseType.IsNil || definition.GetInterfaceImplementations().Count > 0 || definition.GetNestedTypes().Length > 0 || DerivedTypesNode.CanHave(Type) ||
                    definition.GetFields().Count > 0 || definition.GetMethods().Count > 0 || definition.GetProperties().Count > 0 ||
                    definition.GetEvents().Count > 0;
         }
@@ -184,6 +185,8 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
         var result = new List<BrowseNode>();
         if (type.DirectBaseTypes.Any())
             result.Add(new BaseTypesNode(Assembly, this, type));
+        if (DerivedTypesNode.CanHave(type))
+            result.Add(new DerivedTypesNode(Assembly, this, type));
 
         foreach (var nested in type.NestedTypes.Where(t => !Members.IsHidden(Assembly, t)).OrderBy(t => t.Name, NaturalStringComparer.Instance))
             result.Add(new TypeNode(Assembly, this, nested));
@@ -278,6 +281,63 @@ internal sealed class BaseTypeNode : BrowseNode
     }
 
     public IType Type { get; }
+}
+
+/// <summary>ILSpy's "Derived Types": the types of the open assemblies that name
+/// <see cref="Type"/> among their direct base types, found when first expanded.</summary>
+internal sealed class DerivedTypesNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+    : BrowseNode(assembly, parent, NodeKind.DerivedTypes, "Derived Types")
+{
+    public ITypeDefinition Type { get; } = type;
+
+    private protected override bool MayHaveChildren => true;
+
+    private protected override BrowseNode[] CreateChildren() => Find(Assembly, this, Type);
+
+    /// <summary>Whether anything can derive from <paramref name="type"/>: a class that is not sealed,
+    /// or an interface.</summary>
+    public static bool CanHave(ITypeDefinition type) => !type.IsSealed && type.Kind is TypeKind.Class or TypeKind.Interface;
+
+    /// <summary>The types in scope of <paramref name="type"/> that derive from it directly, as
+    /// ILSpy finds them: one whose direct base types include one of the same name and arity.</summary>
+    internal static BrowseNode[] Find(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+    {
+        var context = new AnalyzerContext { AssemblyList = assembly.List };
+        var result = new List<BrowseNode>();
+        foreach (var candidate in context.GetScopeOf(type).GetTypesInScope(CancellationToken.None))
+        {
+            foreach (var baseType in candidate.DirectBaseTypes)
+            {
+                if (baseType.FullName == type.FullName && baseType.TypeParameterCount == type.TypeParameterCount)
+                {
+                    result.Add(new DerivedTypeNode(assembly, parent, candidate));
+                    break;
+                }
+            }
+        }
+        return result.ToArray();
+    }
+}
+
+/// <summary>A type deriving from the one a <see cref="DerivedTypesNode"/> belongs to: it goes to
+/// that type, and expands to the types deriving from it in turn.</summary>
+internal sealed class DerivedTypeNode : BrowseNode
+{
+    public DerivedTypeNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+        : base(assembly, parent, NodeKind.DerivedType, EntityText.TypeName(type))
+    {
+        Type = type;
+        Accessibility = EntityText.Map(type.Accessibility);
+        IsPublicApi = EntityText.IsPublicApi(type);
+        if (type.ParentModule?.MetadataFile is { } file && !type.MetadataToken.IsNil)
+            Target = CodeReference.ToEntity(CodeReferenceKind.Type, type.Name, file.FileName, type.MetadataToken);
+    }
+
+    public ITypeDefinition Type { get; }
+
+    private protected override bool MayHaveChildren => !Type.IsSealed;
+
+    private protected override BrowseNode[] CreateChildren() => DerivedTypesNode.Find(Assembly, this, Type);
 }
 
 internal sealed class ErrorNode(LoadedAssembly assembly, BrowseNode parent, Exception error)

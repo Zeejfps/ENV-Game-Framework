@@ -49,6 +49,7 @@ public sealed class BrowseTreeTests
         Assert.Equal(
             [
                 (NodeKind.BaseTypes, "Base Types"),
+                (NodeKind.DerivedTypes, "Derived Types"),
                 (NodeKind.Enum, "Mode"),
                 (NodeKind.Constant, "Answer : int"),
                 (NodeKind.Field, "_items : List<T>"),
@@ -83,6 +84,40 @@ public sealed class BrowseTreeTests
         Assert.Equal(["get_Count"], calculator.Child("Count : int").Children.Select(c => c.Text));
         Assert.Equal(["add_Changed", "remove_Changed"], calculator.Child("Changed : EventHandler?").Children.Select(c => c.Text));
         Assert.All(calculator.Child("Count : int").Children, c => Assert.Equal(NodeKind.Method, c.Kind));
+    }
+
+    [Fact]
+    public void Derived_types_list_the_open_types_deriving_directly_and_point_at_them()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var fixtures = assembly.Fixtures();
+
+        var derived = fixtures.Child("IShape").Child("Derived Types").Children;
+
+        var circle = Assert.Single(derived);
+        Assert.Equal((NodeKind.DerivedType, "Circle"), (circle.Kind, circle.Text));
+        Assert.Equal(NodeAccessibility.Internal, circle.Accessibility);
+        Assert.False(circle.HasChildren);
+        Assert.Same(fixtures.Child("Circle"), list.FindNode(circle.Target!));
+        Assert.DoesNotContain(fixtures.Child("Circle").Children, c => c.Kind == NodeKind.DerivedTypes);
+        Assert.DoesNotContain(fixtures.Child("Size").Children, c => c.Kind == NodeKind.DerivedTypes);
+        Assert.Empty(assembly.Calculator().Child("Derived Types").Children);
+        Assert.Equal("Circle", ZGF.ILSpy.Core.Analysis.Analysis.Of(circle)!.Label);
+    }
+
+    [Fact]
+    public void A_derived_type_expands_to_the_types_deriving_from_it_in_turn()
+    {
+        var list = new AssemblyList();
+        var corelib = list.Open(Trees.CoreLibPath);
+        var exception = corelib.Root.Child("System").Child("Exception");
+
+        var system = exception.Child("Derived Types").Children.Single(c => c.Text.EndsWith("SystemException", StringComparison.Ordinal));
+        var argument = system.Children.Single(c => c.Text.EndsWith("ArgumentException", StringComparison.Ordinal));
+
+        Assert.Equal(NodeKind.DerivedType, argument.Kind);
+        Assert.Contains(argument.Children, c => c.Text.EndsWith("ArgumentNullException", StringComparison.Ordinal));
+        Assert.Contains(system.Text, exception.Child("Derived Types").Decompile(DecompilationLanguage.CSharp).GetText());
     }
 
     [Fact]
