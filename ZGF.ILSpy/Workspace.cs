@@ -24,6 +24,7 @@ public sealed class Workspace
     private int _reload;
     private int _savedBookmarks;
     private int _savedAnalyzer;
+    private int _savedFilters;
     private List<CodeAnchor>? _analyzed;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
@@ -48,6 +49,7 @@ public sealed class Workspace
                 Search.Clear();
             RemoveTab(panel);
         };
+        MetadataFilters = new MetadataFilters(settings.MetadataFilters);
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         _savedBookmarks = Bookmarks.Revision;
@@ -71,6 +73,9 @@ public sealed class Workspace
     public TableColumns BookmarkColumns { get; } = new(new TableColumn(Fixed: 28f), new TableColumn(2f, 80f), new TableColumn(3f, 80f),
         new TableColumn(2f, 60f));
     public SearchModel Search { get; }
+
+    /// <summary>The metadata grids' flags filters.</summary>
+    public MetadataFilters MetadataFilters { get; }
     public FrameworkPickerModel Picker { get; }
     public ErrorLog Errors { get; } = new();
     public IReadOnlyList<DocumentTab> Tabs => _tabs;
@@ -110,7 +115,9 @@ public sealed class Workspace
     {
         if (_analyzed is { Count: > 0 } analyzed)
             RestoreAnalyzed(analyzed);
-        if ((Tree.Sync(Assemblies) || Bookmarks.Revision != _savedBookmarks || Analyzer.Revision != _savedAnalyzer) && !IsReloading)
+        MetadataFilters.Sync();
+        if ((Tree.Sync(Assemblies) || Bookmarks.Revision != _savedBookmarks || Analyzer.Revision != _savedAnalyzer
+             || MetadataFilters.Revision != _savedFilters) && !IsReloading)
             SaveSettings();
     }
 
@@ -586,6 +593,8 @@ public sealed class Workspace
             _settings.Analyzed = _analyzed ?? Analyzer.Roots.Select(static r => r.Symbol.Definition).OfType<CodeAnchor>().ToList();
         _savedAnalyzer = Analyzer.Revision;
         _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
+        _settings.MetadataFilters = MetadataFilters.Save();
+        _savedFilters = MetadataFilters.Revision;
         _savedBookmarks = Bookmarks.Revision;
         if (_settings.Save() is { } error)
             ReportError(Strings.For(Locale).ErrorSaveSettings, error);

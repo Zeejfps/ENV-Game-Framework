@@ -1,5 +1,9 @@
 namespace ZGF.Gui.Immediate;
 
+/// <summary>A row of a virtual scroll that is <see cref="Height"/> tall rather than the row height,
+/// as one showing details under it.</summary>
+public readonly record struct TallRow(int Index, float Height);
+
 public sealed partial class Ui
 {
     private const int VirtualOverscan = 1;
@@ -13,8 +17,9 @@ public sealed partial class Ui
         private readonly float _rowHeight;
         private readonly float _gap;
         private readonly float _top;
+        private readonly IReadOnlyList<TallRow>? _tall;
 
-        internal VirtualList(Ui ui, ScrollState state, int count, int first, int end, float rowHeight, float gap, float top)
+        internal VirtualList(Ui ui, ScrollState state, int count, int first, int end, float rowHeight, float gap, float top, IReadOnlyList<TallRow>? tall)
         {
             _ui = ui;
             _state = state;
@@ -24,6 +29,7 @@ public sealed partial class Ui
             _rowHeight = rowHeight;
             _gap = gap;
             _top = top;
+            _tall = tall;
         }
 
         public int Count { get; }
@@ -50,6 +56,9 @@ public sealed partial class Ui
             _ui.RequestFrame();
         }
 
+        /// <summary>Where row <paramref name="index"/> starts, in points from the top of the content.</summary>
+        public float TopOf(int index) => _top + RowTop(index, _rowHeight, _gap, _tall);
+
         /// <summary>Scrolls the least distance that shows row <paramref name="index"/> whole, from
         /// the next frame. Returns false, doing nothing, until the list has been laid out once and
         /// its viewport is known.</summary>
@@ -58,8 +67,8 @@ public sealed partial class Ui
             if (index < 0 || index >= Count) return true;
             var viewport = VisibleHeight(_state);
             if (viewport <= 0f) return false;
-            var top = _top + index * (_rowHeight + _gap);
-            var bottom = top + _rowHeight;
+            var top = _top + RowTop(index, _rowHeight, _gap, _tall);
+            var bottom = top + RowSize(index, _rowHeight, _tall);
             var offset = _state.OffsetY;
             if (top < offset)
                 offset = top;
@@ -73,9 +82,8 @@ public sealed partial class Ui
 
         public void Dispose()
         {
-            var remaining = Count - End;
-            if (remaining > 0)
-                _ui.Leaf(new Box { Width = 0f, Height = remaining * (_rowHeight + _gap) - _gap });
+            if (Count > End)
+                _ui.Leaf(new Box { Width = 0f, Height = RowTop(Count, _rowHeight, _gap, _tall) - RowTop(End, _rowHeight, _gap, _tall) - _gap });
             _ui.EndScroll();
         }
     }
@@ -107,14 +115,17 @@ public sealed partial class Ui
     /// sideways when wider than it, as a code view's lines do: size rows at least as wide as the
     /// widest. Both offsets are the app's; each axis reserves its bar's gutter only while it
     /// overflows, so the last row and the last column are never under a bar.</summary>
-    public VirtualList VirtualScroll(int id, int count, float rowHeight, ref float offsetX, ref float offsetY, Box box = default)
+    /// <remarks>Rows in <paramref name="tall"/>, in order of index, are as tall as it says; record each
+    /// at that height.</remarks>
+    public VirtualList VirtualScroll(int id, int count, float rowHeight, ref float offsetX, ref float offsetY, Box box = default,
+        IReadOnlyList<TallRow>? tall = null)
     {
         var state = GetState<ScrollState>(id);
         if (offsetX != state.SyncedX)
             state.OffsetX = MathF.Max(0f, offsetX);
         if (offsetY != state.Synced)
             state.OffsetY = MathF.Max(0f, offsetY);
-        var list = VirtualScroll(id, ScrollAxes.Both, count, rowHeight, box);
+        var list = VirtualScroll(id, ScrollAxes.Both, count, rowHeight, box, tall);
         offsetX = state.SyncedX = state.OffsetX;
         offsetY = state.Synced = state.OffsetY;
         return list;
@@ -130,8 +141,10 @@ public sealed partial class Ui
     public VirtualList VirtualScroll(int id, int count, float rowHeight, Box box = default) =>
         VirtualScroll(id, ScrollAxes.Vertical, count, rowHeight, box);
 
-    private VirtualList VirtualScroll(int id, ScrollAxes axes, int count, float rowHeight, Box box)
+    private VirtualList VirtualScroll(int id, ScrollAxes axes, int count, float rowHeight, Box box, IReadOnlyList<TallRow>? tall = null)
     {
+        if (tall is { Count: 0 })
+            tall = null;
         var gap = box.Gap ?? Theme.Gap;
         Scroll(id, axes, box with { Direction = Direction.Vertical, Gap = gap });
         var state = GetState<ScrollState>(id);
@@ -141,7 +154,7 @@ public sealed partial class Ui
         var viewportY = VisibleHeight(state);
         if (viewportY > 0f)
         {
-            var content = top + (box.Padding?.Bottom ?? 0f) + MathF.Max(0f, count * stride - gap);
+            var content = top + (box.Padding?.Bottom ?? 0f) + MathF.Max(0f, RowTop(count, rowHeight, gap, tall) - gap);
             var clamped = Math.Clamp(state.OffsetY, 0f, MathF.Max(0f, content - viewportY));
             if (clamped != state.OffsetY)
             {
@@ -150,12 +163,60 @@ public sealed partial class Ui
             }
         }
         var viewport = viewportY > 0f ? viewportY : Height;
-        var first = Math.Clamp((int)MathF.Floor((state.OffsetY - top) / stride) - VirtualOverscan, 0, count);
-        var end = Math.Clamp(first + (int)MathF.Ceiling(viewport / stride) + 1 + VirtualOverscan * 2, first, count);
+        int first, end;
+        if (tall == null)
+        {
+            first = Math.Clamp((int)MathF.Floor((state.OffsetY - top) / stride) - VirtualOverscan, 0, count);
+            end = Math.Clamp(first + (int)MathF.Ceiling(viewport / stride) + 1 + VirtualOverscan * 2, first, count);
+        }
+        else
+        {
+            first = Math.Clamp(RowAt(state.OffsetY - top, rowHeight, gap, tall) - VirtualOverscan, 0, count);
+            end = Math.Clamp(RowAt(state.OffsetY - top + viewport, rowHeight, gap, tall) + 1 + VirtualOverscan, first, count);
+        }
 
         if (first > 0)
-            Leaf(new Box { Width = 0f, Height = first * stride - gap });
-        return new VirtualList(this, state, count, first, end, rowHeight, gap, top);
+            Leaf(new Box { Width = 0f, Height = RowTop(first, rowHeight, gap, tall) - gap });
+        return new VirtualList(this, state, count, first, end, rowHeight, gap, top, tall);
+    }
+
+    /// <summary>How far row <paramref name="index"/> starts below the first.</summary>
+    private static float RowTop(int index, float rowHeight, float gap, IReadOnlyList<TallRow>? tall)
+    {
+        var top = index * (rowHeight + gap);
+        if (tall == null) return top;
+        foreach (var row in tall)
+        {
+            if (row.Index >= index) break;
+            top += row.Height - rowHeight;
+        }
+        return top;
+    }
+
+    private static float RowSize(int index, float rowHeight, IReadOnlyList<TallRow>? tall)
+    {
+        if (tall == null) return rowHeight;
+        foreach (var row in tall)
+        {
+            if (row.Index == index) return row.Height;
+            if (row.Index > index) break;
+        }
+        return rowHeight;
+    }
+
+    /// <summary>The row at <paramref name="offset"/> below the first row's top.</summary>
+    private static int RowAt(float offset, float rowHeight, float gap, IReadOnlyList<TallRow> tall)
+    {
+        var stride = rowHeight + gap;
+        var extra = 0f;
+        foreach (var row in tall)
+        {
+            var rowTop = row.Index * stride + extra;
+            if (offset < rowTop) break;
+            if (offset < rowTop + row.Height + gap) return row.Index;
+            extra += row.Height - rowHeight;
+        }
+        return (int)MathF.Floor((offset - extra) / stride);
     }
 
     private static float VisibleHeight(ScrollState state) =>

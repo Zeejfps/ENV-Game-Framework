@@ -38,6 +38,9 @@ public sealed class AppSettings
     /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
     public List<float>? BookmarkColumns { get; set; }
 
+    /// <summary>The metadata grids' flags filters, by kind of row and column.</summary>
+    public Dictionary<string, string>? MetadataFilters { get; set; }
+
     /// <summary>The main window as it was left; null opens it at the default size, centered.</summary>
     public WindowBounds? Window { get; set; }
 

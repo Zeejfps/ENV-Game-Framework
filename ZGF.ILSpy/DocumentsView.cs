@@ -16,7 +16,7 @@ internal static class DocumentsView
         }
         if (tab.Grid is { } grid)
         {
-            var picked = ui.MetadataGridView("grid", grid, tab.GridView, t);
+            var picked = ui.MetadataGridView("grid", grid, tab.GridView, w.MetadataFilters, t);
             if (picked.Target is { } target)
                 w.Show(target, picked.InNewTab);
             if (picked.Definition is { } definition)

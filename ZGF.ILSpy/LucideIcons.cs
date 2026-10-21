@@ -15,8 +15,10 @@ public static class LucideIcons
     public const string Box = "\uE061";
     public const string Bookmark = "\uE060";
     public const string ChevronDown = "\uE06D";
+    public const string ChevronRight = "\uE06F";
     public const string ChevronUp = "\uE070";
     public const string Braces = "\uE36A";
+    public const string Check = "\uE06C";
     public const string CheckSquare = "\uE16A";
     public const string Brackets = "\uE443";
     public const string Database = "\uE0AD";
@@ -24,6 +26,8 @@ public static class LucideIcons
     public const string Download = "\uE0B2";
     public const string FileIcon = "\uE0C0";
     public const string FileText = "\uE0CC";
+    public const string Filter = "\uE0DC";
+    public const string FilterX = "\uE3B5";
     public const string Folder = "\uE0D7";
     public const string FunctionSquare = "\uE22D";
     public const string GitCommitHorizontal = "\uE0E3";

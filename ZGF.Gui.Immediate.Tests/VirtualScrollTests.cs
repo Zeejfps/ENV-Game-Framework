@@ -50,6 +50,42 @@ public sealed class VirtualScrollTests
         Assert.Equal(300f, bottom, 0.01f);
     }
 
+    [Fact]
+    public void Tall_rows_push_the_rows_after_them_down_and_still_scroll_to_the_end()
+    {
+        var frames = new UiFrames();
+        TallRow[] tall = [new(2, 100f), new(5000, 300f)];
+        float x = 0f, y = 0f;
+        (int First, int End) Tall(Action<Ui.VirtualList>? inside = null) => frames.Run(1f / 60f, ui =>
+        {
+            using var list = ui.VirtualScroll(ui.GetId("rows"), Count, RowHeight, ref x, ref y, default, tall);
+            for (var i = list.First; i < list.End; i++)
+                ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = i == 2 ? 100f : i == 5000 ? 300f : RowHeight });
+            inside?.Invoke(list);
+            return (list.First, list.End);
+        });
+        Tall();
+        Tall();
+
+        var third = frames.Run(0f, ui => ui.TryGetRect(ui.GetId(3), out var rect) ? rect.Y : float.NaN);
+        Assert.Equal(2 * Stride + 100f + 8f, third, 0.01f);
+
+        Tall(list => list.ScrollIntoView(5001));
+        var (first, end) = Tall();
+        Tall();
+        var (tallRow, after) = frames.Run(0f, ui => (ui.TryGetRect(ui.GetId(5000), out var a) ? a : default, ui.TryGetRect(ui.GetId(5001), out var b) ? b : default));
+        Assert.InRange(5000, first, end - 1);
+        Assert.Equal(300f, after.Bottom, 0.01f);
+        Assert.Equal(300f, tallRow.Height, 0.01f);
+        Assert.Equal(after.Y - 8f - 300f, tallRow.Y, 0.01f);
+
+        Tall(list => list.ScrollIntoView(Count - 1));
+        Tall();
+        var (_, last) = Tall();
+        Assert.Equal(Count, last);
+        Assert.Equal(300f, frames.Run(0f, ui => ui.TryGetRect(ui.GetId(Count - 1), out var rect) ? rect.Bottom : float.NaN), 0.01f);
+    }
+
     private static (int First, int End) Frame(UiFrames frames, Action<Ui.VirtualList>? inside = null) =>
         frames.Run(1f / 60f, ui =>
         {

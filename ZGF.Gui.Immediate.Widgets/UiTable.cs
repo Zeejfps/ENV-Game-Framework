@@ -11,6 +11,10 @@ public readonly record struct TableColumn(float Weight = 1f, float MinWidth = 48
 /// clickable.</summary>
 public readonly record struct TableSort(int Column, UiIcon? Icon = null);
 
+/// <summary>Records what the header cell of <paramref name="column"/> shows in place of its label,
+/// <paramref name="hovered"/> while the pointer is over the cell.</summary>
+public delegate void TableHeading(Ui ui, int column, bool hovered);
+
 /// <summary>
 /// The column widths of a table, shared by its <see cref="UiWidgets.TableHeader"/> and the
 /// <see cref="UiWidgets.TableCell"/>s of its rows so they line up. Owned by the app; dragging a
@@ -133,10 +137,11 @@ public static partial class UiWidgets
     /// row with each column's label in <paramref name="headers"/>. A border between two resizable
     /// columns can be dragged. <see cref="TableColumns.Sized"/> columns keep their widths instead,
     /// and the header shows them scrolled by <paramref name="scrollX"/>, as the rows are. With a
-    /// <paramref name="sort"/>, returns the column whose header was clicked, else -1.
+    /// <paramref name="sort"/>, returns the column whose header was clicked, else -1. A
+    /// <paramref name="heading"/> records each cell's content instead of its label.
     /// </summary>
     public static int TableHeader(this Ui ui, string id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX = 0f,
-        float scrollX = 0f, TableSort? sort = null)
+        float scrollX = 0f, TableSort? sort = null, TableHeading? heading = null)
     {
         var theme = ui.Theme;
         var headerId = ui.GetId(id);
@@ -180,15 +185,17 @@ public static partial class UiWidgets
         {
             for (var i = 0; i < columns.Count; i++)
             {
-                var heading = sort is null ? default : ui.Interact(HashCode.Combine(headerId, TableHeadingSalt, i));
-                if (heading.Hovered)
+                var cell = sort is null ? default : ui.Interact(HashCode.Combine(headerId, TableHeadingSalt, i));
+                if (cell.Hovered)
                     ui.SetCursor(MouseCursor.Hand);
-                if (heading.Clicked)
+                if (cell.Clicked)
                     clicked = i;
-                using (sort is null ? ui.TableCell(columns, i) : ui.TableCell(columns, i, heading.Id))
+                using (sort is null ? ui.TableCell(columns, i) : ui.TableCell(columns, i, cell.Id))
                 {
-                    if (i < headers.Length && headers[i].Length > 0)
-                        ui.Text(headers[i], new Box { Width = Sizing.Fit() }, color: heading.Hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
+                    if (heading != null)
+                        heading(ui, i, cell.Hovered);
+                    else if (i < headers.Length && headers[i].Length > 0)
+                        ui.Text(headers[i], new Box { Width = Sizing.Fit() }, color: cell.Hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
                             overflow: TextOverflow.Ellipsis);
                     if (sort is { Icon: { } icon } && sort.Value.Column == i)
                         ui.Icon(icon);

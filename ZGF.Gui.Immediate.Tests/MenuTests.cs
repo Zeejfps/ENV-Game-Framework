@@ -270,6 +270,65 @@ public sealed class TooltipTests
     }
 }
 
+public sealed class FlyoutTests
+{
+    private readonly UiFrames _frames = new();
+    private bool _open;
+    private int _clicks;
+
+    private void Body(Ui ui)
+    {
+        using var screen = ui.Screen();
+        var owner = ui.Interact("owner");
+        if (owner.Clicked) _open = !_open;
+        ui.Leaf(owner.Id, new Box { Width = 60f, Height = 20f });
+        using var flyout = ui.Flyout(ui.GetId("flyout"), ref _open, owner.Id);
+        if (!flyout.IsOpen) return;
+        if (ui.Button("Inside")) _clicks++;
+    }
+
+    private void Click(float x, float y)
+    {
+        _frames.MovePointer(x, y);
+        _frames.Run(0f, Body);
+        _frames.Press();
+        _frames.Run(0f, Body);
+        _frames.Release();
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+    }
+
+    private (float X, float Y) Center(string text)
+    {
+        var p = _frames.Canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Position;
+        return (p.Left + p.Width / 2, 300f - p.Top + p.Height / 2);
+    }
+
+    [Fact]
+    public void A_flyout_keeps_open_for_clicks_inside_and_closes_on_a_press_outside_or_Escape()
+    {
+        _frames.Run(0f, Body);
+        var owner = _frames.RectOf(Body, ui => ui.GetId("owner"));
+        Click(owner.X + owner.Width / 2, owner.Y + owner.Height / 2);
+        Assert.True(_frames.Drew("Inside"));
+
+        var (x, y) = Center("Inside");
+        Click(x, y);
+        Assert.Equal(1, _clicks);
+        Assert.True(_open);
+
+        Click(350f, 250f);
+        Assert.False(_open);
+        Assert.False(_frames.Drew("Inside"));
+
+        Click(owner.X + owner.Width / 2, owner.Y + owner.Height / 2);
+        Assert.True(_open);
+        _frames.Key(KeyboardModule.KeyboardKey.Escape);
+        _frames.Run(0f, Body);
+        Assert.False(_open);
+    }
+}
+
 public sealed class MenuRadioItemTests
 {
     private readonly UiFrames _frames = new();

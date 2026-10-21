@@ -197,6 +197,123 @@ public sealed class MetadataTests
         Assert.Contains("// 02 TypeDef: ", text);
     }
 
+    private static string[] NamesOf(MetadataGrid grid, int[] rows) => rows.Select(r => grid.Text(r, Column(grid, "Name"))).ToArray();
+
+    private static MetadataColumnFilter?[] Filters(MetadataGrid grid, string column, MetadataColumnFilter filter)
+    {
+        var filters = new MetadataColumnFilter?[grid.Columns.Count];
+        filters[Column(grid, column)] = filter;
+        return filters;
+    }
+
+    [Fact]
+    public void A_text_filter_matches_part_of_a_cell_ignoring_case_or_a_regex()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var grid = Grid(Table(assembly, "TypeDef"));
+
+        var part = NamesOf(grid, grid.Filter(null, Filters(grid, "Name", new MetadataColumnFilter { Text = "calcULATOR" })));
+        var regex = NamesOf(grid, grid.Filter(null, Filters(grid, "Name", new MetadataColumnFilter { Text = "/^(Circle|Size)$/" })));
+
+        Assert.Contains("Calculator`1", part);
+        Assert.All(part, n => Assert.Contains("calculator", n, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(["Circle", "Size"], regex.Order());
+    }
+
+    [Fact]
+    public void A_number_filter_compares_with_an_operator_and_otherwise_matches_the_hex_shown()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var grid = Grid(Table(assembly, "TypeDef"));
+        var rid = Column(grid, "RID");
+
+        var above = grid.Filter(null, Filters(grid, "RID", new MetadataColumnFilter { Text = "> 0x3" }));
+        var shown = grid.Filter(null, Filters(grid, "Token", new MetadataColumnFilter { Text = "02000002" }));
+
+        Assert.All(above, r => Assert.True(int.Parse(grid.Text(r, rid)) > 3));
+        Assert.Equal(grid.RowCount - 3, above.Length);
+        Assert.Equal([1], shown);
+    }
+
+    [Fact]
+    public void A_flags_filter_picks_values_of_a_group_and_requires_or_excludes_flags()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var grid = Grid(Table(assembly, "TypeDef"));
+        var schema = grid.Columns[Column(grid, "Attributes")].Flags!;
+        var state = new FilterState(schema);
+        var filters = Filters(grid, "Attributes", new MetadataColumnFilter { Flags = state });
+
+        state.SetMutexSelection("Visibility", [(uint)System.Reflection.TypeAttributes.NotPublic]);
+        state.SetFlagState("Abstract", TriState.Excluded);
+        var names = NamesOf(grid, grid.Filter(null, filters));
+
+        Assert.Contains("Visibility", schema.MutexGroups.Select(g => g.Name));
+        Assert.Contains("Circle", names);
+        Assert.DoesNotContain("Calculator`1", names);
+        Assert.DoesNotContain("<>c", names);
+        Assert.Equal("Visibility = NotPublic ∧ ¬Abstract", FilterStatePresenter.Describe(state));
+    }
+
+    [Fact]
+    public void Filters_keep_the_sorted_order()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var grid = Grid(Table(assembly, "TypeDef"));
+        var order = grid.Order(Column(grid, "Name"), descending: true);
+
+        var rows = grid.Filter(order, Filters(grid, "Namespace", new MetadataColumnFilter { Text = "Fixtures" }));
+
+        Assert.Equal(order.Where(rows.Contains), rows);
+    }
+
+    [Fact]
+    public void A_flags_filter_round_trips_through_its_saved_form()
+    {
+        var schema = FlagsSchemaInferer.For(typeof(System.Reflection.TypeAttributes));
+        var state = new FilterState(schema);
+        state.SetMutexSelection("Visibility", [1u, 2u]);
+        state.SetFlagState("Abstract", TriState.Required);
+        state.IndependentMode = MatchMode.Any;
+
+        var restored = new FilterState(schema);
+        FilterStatePersistence.ApplyXml(restored, FilterStatePersistence.ToXml(state));
+
+        Assert.Equal(FilterStatePresenter.Describe(state), FilterStatePresenter.Describe(restored));
+    }
+
+    [Fact]
+    public void A_header_shows_the_bits_of_its_flags_under_their_row()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var coff = Grid(Metadata(assembly).Child("COFF Header"));
+        var characteristics = Enumerable.Range(0, coff.RowCount).Single(r => coff.Text(r, Column(coff, "Member")) == "Characteristics");
+
+        var bits = Assert.IsType<MetadataBitDetails>(coff.Details(characteristics)).Bits;
+
+        Assert.Equal(MetadataDetailsMode.Foldable, coff.DetailsMode);
+        Assert.Equal(16, bits.Count);
+        Assert.Contains(bits, b => b.Name == "<0002> File is executable" && b.IsSet);
+        Assert.Null(coff.Details(0));
+        Assert.Equal(MetadataDetailsMode.None, Grid(Table(assembly, "TypeDef")).DetailsMode);
+    }
+
+    [Fact]
+    public void Debug_information_shows_its_decoded_value_under_the_selected_row()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var pdb = assembly.Root.Child("Debug Metadata (From portable PDB)").Child("Tables");
+        var grid = Grid(pdb.Children.Single(c => c.Text.Split(' ')[1] == "CustomDebugInformation"));
+        var kind = Column(grid, "KindString");
+
+        var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));
+        var table = Assert.IsType<MetadataTableDetails>(grid.Details(options));
+
+        Assert.Equal(MetadataDetailsMode.WhenSelected, grid.DetailsMode);
+        Assert.Equal(["Name", "Value"], table.Headers);
+        Assert.Contains(table.Rows, r => r[0] == "language" && r[1] == "C#");
+    }
+
     [Fact]
     public void CoreLibs_tables_and_heaps_read()
     {
