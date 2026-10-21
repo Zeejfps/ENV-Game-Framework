@@ -53,6 +53,7 @@ public sealed class TreeViewTests
 
         public void Body(Ui ui)
         {
+            using var screen = ui.Screen();
             Last = ui.TreeView("tree", Roots, Model, State);
             Results.Add(Last);
         }

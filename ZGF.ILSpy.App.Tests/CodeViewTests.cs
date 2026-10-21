@@ -35,8 +35,8 @@ public sealed class CodeViewTests
         var dark = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
         view.Frames.Run(1f / 60f, ui =>
         {
-            ui.UseStyle(UiStyle.Light);
-            ui.CodeView("code", document, view.State);
+            using (ui.Provide(UiTheme.Light))
+                ui.CodeView("code", document, view.State);
         });
         var light = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
 
@@ -107,7 +107,7 @@ public sealed class CodeViewTests
         view.Run();
 
         Assert.Null(result.Navigate);
-        var occurrence = UiColor.Mix(UiStyle.Dark.Field, UiStyle.Dark.Accent, 0.2f);
+        var occurrence = UiColor.Mix(UiTheme.Dark.Field, UiTheme.Dark.Accent, 0.2f);
         var expected = document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
         Assert.True(expected >= 3);
         Assert.Equal(expected, view.Frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == occurrence));

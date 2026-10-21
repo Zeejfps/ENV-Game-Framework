@@ -195,6 +195,7 @@ public sealed class TooltipTests
 
     private static void Body(Ui ui)
     {
+        using var screen = ui.Screen();
         var b = ui.Interact("b");
         ui.Leaf(b.Id, new Box { Width = 100f, Height = 30f });
         ui.Tooltip(b, "Tip");

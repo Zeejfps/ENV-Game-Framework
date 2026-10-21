@@ -1,3 +1,5 @@
+using ZGF.Gui.Immediate.Widgets;
+
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class VirtualScrollOffsetTests
@@ -38,6 +40,7 @@ public sealed class VirtualScrollOffsetTests
     private static (float Offset, float Viewport, int First) Frame(UiFrames frames, Action<Ui.VirtualList>? inside = null) =>
         frames.Run(1f / 60f, ui =>
         {
+            using var screen = ui.Screen();
             using var list = ui.VirtualScroll("rows", Count, RowHeight, new Box { Gap = 0f });
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = RowHeight });

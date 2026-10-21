@@ -4,21 +4,23 @@ using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.ILSpy;
 
-internal static class AppStyles
+internal static class AppThemes
 {
-    public static readonly UiStyle Dark = UiStyle.Dark with { WindowPadding = 0f, FontSize = 13f };
-    public static readonly UiStyle Light = UiStyle.Light with { WindowPadding = 0f, FontSize = 13f };
+    public static readonly UiTheme Dark = Compact(UiTheme.Dark);
+    public static readonly UiTheme Light = Compact(UiTheme.Light);
 
-    public static readonly WidgetTheme Widgets = new()
+    public const float BarHeight = 24f;
+
+    private static UiTheme Compact(UiTheme theme) => theme with
     {
+        FontSize = 13f,
+        ScreenPadding = 0f,
         ControlHeight = 26f,
         ControlPaddingX = 10f,
         CornerRadius = 4f,
         RowHeight = 22f,
         MenuItemHeight = 24f,
     };
-
-    public const float BarHeight = 24f;
 }
 
 internal static class AppWidgets
@@ -27,21 +29,20 @@ internal static class AppWidgets
     /// of choices.</summary>
     public static bool ToggleButton(this Ui ui, string label, bool selected, string id)
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var i = ui.Interact(id);
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
-        var background = selected ? style.Accent : i.Held ? style.Pressed(style.Control) : i.Hovered ? style.Hovered(style.Control) : style.Control;
+        var background = selected ? theme.Accent : i.Held ? theme.Pressed(theme.Control) : i.Hovered ? theme.Hovered(theme.Control) : theme.Control;
         ui.Text(label, new Box
         {
             Width = Sizing.Fit(36f),
             Height = theme.ControlHeight,
             Padding = new Spacing(theme.ControlPaddingX, 0f),
             Background = background,
-            BorderColor = selected ? style.Accent : style.Border,
+            BorderColor = selected ? theme.Accent : theme.Border,
             BorderWidth = 1f,
             Radius = theme.CornerRadius,
-        }, color: selected ? style.OnAccent : style.Text, align: Align.Center, id: i.Id);
+        }, color: selected ? theme.OnAccent : theme.Text, align: Align.Center, id: i.Id);
         return i.Clicked && !selected;
     }
 }

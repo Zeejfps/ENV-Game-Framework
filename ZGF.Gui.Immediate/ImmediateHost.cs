@@ -55,7 +55,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _decorator = decorator;
         _ui = new Ui(_render.Canvas, new WindowClipboard(_window), this) { Wake = Invalidate };
         _filePicker = NativeFilePicker.Create(_ui.Post);
-        _render.SetFrame(DrawFrame, UiStyle.Dark.Background);
+        _render.SetFrame(DrawFrame, UiTheme.Dark.Background);
 
         _window.OnKey += HandleKey;
         _window.OnText += HandleText;

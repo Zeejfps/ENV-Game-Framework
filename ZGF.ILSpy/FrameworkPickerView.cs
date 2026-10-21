@@ -14,8 +14,7 @@ internal static class FrameworkPickerView
         if (!picker.IsOpen) return;
         picker.Update(w.Assemblies);
 
-        var style = ui.Style;
-        var theme = WidgetTheme.For(ui);
+        var theme = ui.Theme;
         var open = false;
         var backdrop = ui.Interact("picker-backdrop");
         var close = backdrop.Clicked || ui.Input.IsKeyPressed(KeyboardKey.Escape);
@@ -40,8 +39,8 @@ internal static class FrameworkPickerView
             Width = 560f,
             Height = Sizing.Percent(0.75f),
             Padding = theme.PanelPadding,
-            Background = style.Surface,
-            BorderColor = style.Border,
+            Background = theme.Surface,
+            BorderColor = theme.Border,
             BorderWidth = 1f,
             Radius = theme.CornerRadius,
         }))
@@ -58,22 +57,22 @@ internal static class FrameworkPickerView
             {
                 Width = Sizing.Grow(),
                 Height = Sizing.Grow(),
-                Background = style.Field,
-                BorderColor = style.Border,
+                Background = theme.Field,
+                BorderColor = theme.Border,
                 BorderWidth = 1f,
                 Radius = theme.CornerRadius,
                 Padding = 2f,
             }))
             {
                 if (picker.IsLoading)
-                    ui.Text("Scanning the runtime…", new Box { Padding = 8f }, color: style.TextMuted);
+                    ui.Text("Scanning the runtime…", new Box { Padding = 8f }, color: theme.TextMuted);
                 else
                     open |= Rows(ui, picker);
             }
 
             using (ui.Row())
             {
-                ui.Text(ui.Memo("picker-count", picker.Filtered.Count, static n => $"{n} assemblies"), color: style.TextMuted);
+                ui.Text(ui.Memo("picker-count", picker.Filtered.Count, static n => $"{n} assemblies"), color: theme.TextMuted);
                 ui.Spacer();
                 open |= ui.Button("Open", enabled: picker.Selected != null, id: "picker-open");
                 close |= ui.Button("Cancel", id: "picker-cancel");
@@ -91,8 +90,8 @@ internal static class FrameworkPickerView
 
     private static bool Rows(Ui ui, FrameworkPickerModel picker)
     {
-        var style = ui.Style;
-        var rowHeight = WidgetTheme.For(ui).RowHeight;
+        var theme = ui.Theme;
+        var rowHeight = ui.Theme.RowHeight;
         var open = false;
         using var list = ui.VirtualScroll("picker-list", picker.Filtered.Count, rowHeight, new Box { Gap = 0f });
         for (var i = list.First; i < list.End; i++)
@@ -107,13 +106,13 @@ internal static class FrameworkPickerView
                     picker.SelectedIndex = i;
                     open |= row.DoubleClicked;
                 }
-                var background = selected ? style.Selection : row.Hovered ? style.Hovered(style.Field) : 0u;
+                var background = selected ? theme.Selection : row.Hovered ? theme.Hovered(theme.Field) : 0u;
                 using (ui.Row(row.Id, new Box { Height = rowHeight, Gap = 8f, Padding = new Spacing(8f, 0f), Background = background }))
                 {
                     var listed = picker.IsListed(assembly);
-                    ui.Text(assembly.Name, color: listed ? style.TextMuted : style.Text);
+                    ui.Text(assembly.Name, color: listed ? theme.TextMuted : theme.Text);
                     ui.Spacer();
-                    ui.Text(listed ? "open" : assembly.Framework, color: style.TextMuted);
+                    ui.Text(listed ? "open" : assembly.Framework, color: theme.TextMuted);
                 }
             }
         }

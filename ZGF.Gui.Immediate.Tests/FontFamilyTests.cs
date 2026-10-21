@@ -56,7 +56,7 @@ public sealed class FontFamilyTests
     public void A_styles_family_is_the_default_inside_its_scope()
     {
         var frames = new UiFrames();
-        var mono = UiStyle.Dark with { FontFamily = "Mono" };
+        var mono = UiTheme.Dark with { FontFamily = "Mono" };
 
         frames.Run(0f, ui =>
         {
@@ -89,21 +89,21 @@ public sealed class FontFamilyTests
 
     private static string? Family(UiFrames frames, string text)
     {
-        var style = frames.Canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style;
-        return style.FontFamily.IsSet ? style.FontFamily.Value : null;
+        var theme = frames.Canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style;
+        return theme.FontFamily.IsSet ? theme.FontFamily.Value : null;
     }
 
     private sealed class FamilyMeasurer : ITextMeasurer
     {
-        public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style) => text.Length * Advance(style);
+        public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle theme) => text.Length * Advance(theme);
 
-        public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style) =>
-            Math.Clamp(prefixLength, 0, text.Length) * Advance(style);
+        public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle theme) =>
+            Math.Clamp(prefixLength, 0, text.Length) * Advance(theme);
 
-        public float MeasureTextLineHeight(TextStyle style) => IsMono(style) ? 20f : 16f;
+        public float MeasureTextLineHeight(TextStyle theme) => IsMono(theme) ? 20f : 16f;
 
-        private static float Advance(TextStyle style) => IsMono(style) ? 10f : 8f;
+        private static float Advance(TextStyle theme) => IsMono(theme) ? 10f : 8f;
 
-        private static bool IsMono(TextStyle style) => style.FontFamily.IsSet && style.FontFamily.Value == "Mono";
+        private static bool IsMono(TextStyle theme) => theme.FontFamily.IsSet && theme.FontFamily.Value == "Mono";
     }
 }

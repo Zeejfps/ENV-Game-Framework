@@ -36,7 +36,7 @@ public sealed class CodeViewPalette
     ], 0xFFC72E2E, 0xFFF8E2B8, 0xFFF2B866);
 
     /// <summary><see cref="Dark"/> on a dark background, else <see cref="Light"/>.</summary>
-    public static CodeViewPalette For(UiStyle style) => IsDark(style.Background) ? Dark : Light;
+    public static CodeViewPalette For(UiTheme theme) => IsDark(theme.Background) ? Dark : Light;
 
     private static bool IsDark(uint color)
     {

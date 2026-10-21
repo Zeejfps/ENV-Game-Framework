@@ -42,22 +42,21 @@ public static partial class UiWidgets
     /// <summary>A row of tabs that scrolls sideways, by wheel or its bar, when they overflow.</summary>
     public static TabStrip TabStrip(this Ui ui, string id, Box box = default)
     {
-        var style = ui.Style;
+        var theme = ui.Theme;
         var stripId = ui.GetId(id);
         var scroll = ui.Scroll(stripId, box with
         {
             Direction = Direction.Horizontal,
             Gap = box.Gap ?? 1f,
             AlignY = box.AlignY ?? Align.End,
-            Background = box.Background != 0 ? box.Background : style.Surface,
+            Background = box.Background != 0 ? box.Background : theme.Surface,
         });
         return new TabStrip(ui, scroll, stripId);
     }
 
     internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id)
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var tab = ui.Interact(id ?? label);
         var closeId = HashCode.Combine(tab.Id, "close");
         var close = closable ? ui.Interact(closeId) : Interaction.Inert(closeId);
@@ -76,21 +75,21 @@ public static partial class UiWidgets
             Height = theme.ControlHeight,
             Padding = new Spacing(theme.ControlPaddingX, 0f, closable ? 6f : theme.ControlPaddingX, 0f),
             Gap = 6f,
-            Background = selected ? style.Background : hovered ? style.Hovered(style.Surface) : style.Surface,
+            Background = selected ? theme.Background : hovered ? theme.Hovered(theme.Surface) : theme.Surface,
         }))
         {
             if (selected)
-                ui.Paint(style.Accent, static (p, color) => p.FillRect(p.Rect with { Height = 2f }, color));
-            ui.Text(id != null ? label : Visible(ui, tab.Id, label), color: selected ? style.Text : style.TextMuted);
+                ui.Paint(theme.Accent, static (p, color) => p.FillRect(p.Rect with { Height = 2f }, color));
+            ui.Text(id != null ? label : Visible(ui, tab.Id, label), color: selected ? theme.Text : theme.TextMuted);
             if (closable)
             {
-                var glyph = close.Hovered ? style.Text : selected || hovered ? style.TextMuted : 0u;
+                var glyph = close.Hovered ? theme.Text : selected || hovered ? theme.TextMuted : 0u;
                 using (ui.Box(closeId, new Box
                 {
                     Width = TabCloseSize,
                     Height = TabCloseSize,
                     Radius = 4f,
-                    Background = close.Held ? style.Pressed(style.Control) : close.Hovered ? style.Control : 0u,
+                    Background = close.Held ? theme.Pressed(theme.Control) : close.Hovered ? theme.Control : 0u,
                 }))
                 {
                     if (glyph != 0)

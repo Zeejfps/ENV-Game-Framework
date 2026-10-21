@@ -1,9 +1,12 @@
+using ZGF.Gui.Immediate.Widgets;
+
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class ScrollTests
 {
     private static void Strip(Ui ui)
     {
+        using var screen = ui.Screen();
         using (ui.Scroll("strip", new Box { Direction = Direction.Horizontal, Gap = 0f }))
         {
             for (var i = 0; i < 10; i++)
@@ -66,6 +69,7 @@ public sealed class ScrollTests
         var frames = new UiFrames();
         void Column(Ui ui)
         {
+            using var screen = ui.Screen();
             using (ui.Scroll("column", new Box { Gap = 0f }))
             {
                 for (var i = 0; i < 40; i++)

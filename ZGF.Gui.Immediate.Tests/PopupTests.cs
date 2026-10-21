@@ -1,4 +1,5 @@
 using ZGF.Geometry;
+using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
 
@@ -37,6 +38,7 @@ public sealed class PopupTests
         var clicks = 0;
         void Covered(Ui ui)
         {
+            using var screen = ui.Screen();
             var under = ui.Interact("under");
             if (under.Clicked) clicks++;
             ui.Leaf(under.Id, new Box { Width = 300f, Height = 200f });
@@ -57,6 +59,7 @@ public sealed class PopupTests
         var clicks = 0;
         void Covered(Ui ui)
         {
+            using var screen = ui.Screen();
             var under = ui.Interact("under");
             if (under.Clicked) clicks++;
             ui.Leaf(under.Id, new Box { Width = 300f, Height = 200f });
@@ -74,6 +77,7 @@ public sealed class PopupTests
         var frames = new UiFrames();
         void Covered(Ui ui)
         {
+            using var screen = ui.Screen();
             using (ui.Scroll("list"))
             {
                 for (var i = 0; i < 50; i++)
@@ -166,6 +170,7 @@ public sealed class PopupTests
 
     private static void Popup(Ui ui, UiRect anchor, bool passThrough = false)
     {
+        using var screen = ui.Screen();
         using (ui.Popup(ui.GetId("popup"), anchor, new Box { Background = 0xFF202020 }, passThrough: passThrough))
             ui.Text("item", new Box { Width = 120f, Height = 40f });
     }

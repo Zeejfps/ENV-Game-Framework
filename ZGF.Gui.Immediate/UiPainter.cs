@@ -58,7 +58,7 @@ public sealed class UiPainter
         _canvas.DrawCircle(new DrawCircleInputs { Center = ToCanvas(center), Radius = radius, Color = color, Thickness = thickness, ZIndex = _z });
 
     /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
-    /// <paramref name="family"/> means the style's <see cref="UiStyle.FontFamily"/>.</summary>
+    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
     public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null)
     {
         if (string.IsNullOrEmpty(text)) return;

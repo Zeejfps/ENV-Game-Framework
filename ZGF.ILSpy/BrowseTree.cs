@@ -12,7 +12,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private BrowseNode[] _roots = [];
     private int _rootsVersion = -1;
     private bool _showNonPublic = true;
-    private UiStyle _style = UiStyle.Dark;
+    private UiTheme _theme = UiTheme.Dark;
     private bool _dark = true;
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
@@ -41,9 +41,9 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.Refresh();
     }
 
-    public void SetStyle(UiStyle style, bool dark)
+    public void SetTheme(UiTheme theme, bool dark)
     {
-        _style = style;
+        _theme = theme;
         _dark = dark;
     }
 
@@ -74,6 +74,6 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         node.Text,
         NodeIcons.Glyph(node.Kind),
         NodeIcons.Color(node.Kind, _dark),
-        node.IsPublicApi ? 0u : _style.TextMuted,
+        node.IsPublicApi ? 0u : _theme.TextMuted,
         NodeIcons.Family);
 }

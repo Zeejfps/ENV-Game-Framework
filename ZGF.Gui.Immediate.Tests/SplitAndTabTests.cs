@@ -10,6 +10,7 @@ public sealed class SplitPaneTests
 
     private void Body(Ui ui)
     {
+        using var screen = ui.Screen();
         using var split = ui.SplitPane("split", Direction.Horizontal, ref _size, minFirst: 50f, minSecond: 100f);
         using (split.First())
             ui.Leaf(ui.GetId("left"), new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
@@ -78,6 +79,7 @@ public sealed class TabStripTests
 
     private void Body(Ui ui)
     {
+        using var screen = ui.Screen();
         var next = _selected;
         using (var strip = ui.TabStrip("tabs"))
         {

@@ -1,6 +1,7 @@
 using ZGF.Desktop;
-using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Testing;
+using ZGF.Gui.Immediate.Widgets;
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.App.Tests.Fixtures;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
@@ -31,7 +32,11 @@ internal sealed class CodeViewDriver
 
     public CodeViewResult Run()
     {
-        Last = Frames.Run(Frame, ui => ui.CodeView("code", Document, State));
+        Last = Frames.Run(Frame, ui =>
+        {
+            using var screen = ui.Screen();
+            return ui.CodeView("code", Document, State);
+        });
         return Last;
     }
 

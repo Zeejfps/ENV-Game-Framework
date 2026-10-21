@@ -94,8 +94,7 @@ public static partial class UiWidgets
     /// pick closes it.</summary>
     public static MenuBar MenuBar(this Ui ui, string id, Box box = default)
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var barId = ui.GetId(id);
         var state = ui.GetState<MenuBarState>(HashCode.Combine(barId, MenuSalt));
         if (state.Open != 0 && ShouldCloseMenu(ui, barId, state.OpenPopup))
@@ -107,7 +106,7 @@ public static partial class UiWidgets
             Height = box.Height ?? theme.ControlHeight,
             Gap = box.Gap ?? 0f,
             Padding = box.Padding ?? new Spacing(4f, 2f),
-            Background = box.Background != 0 ? box.Background : style.Surface,
+            Background = box.Background != 0 ? box.Background : theme.Surface,
         });
         return new MenuBar(row, ui.Provide(state), state);
     }
@@ -117,8 +116,7 @@ public static partial class UiWidgets
     public static MenuScope Menu(this Ui ui, string label, string? id = null)
     {
         var bar = ui.Get<MenuBarState>() ?? throw new InvalidOperationException("A Menu must be recorded inside a MenuBar.");
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var i = ui.Interact(id ?? label);
         if (i.Pressed)
             bar.Open = bar.Open == i.Id ? 0 : i.Id;
@@ -132,7 +130,7 @@ public static partial class UiWidgets
             Padding = new Spacing(10f, 0f),
             AlignY = Align.Center,
             Radius = 4f,
-            Background = open ? style.Pressed(style.Surface) : i.Hovered ? style.Hovered(style.Surface) : 0u,
+            Background = open ? theme.Pressed(theme.Surface) : i.Hovered ? theme.Hovered(theme.Surface) : 0u,
         });
         ui.Text(id != null ? label : Visible(ui, i.Id, label));
         if (!open)
@@ -141,7 +139,7 @@ public static partial class UiWidgets
         bar.OpenSeen = true;
         bar.OpenPopup = HashCode.Combine(i.Id, MenuSalt);
         ui.TryGetRect(i.Id, out var anchor);
-        var popup = ui.Popup(bar.OpenPopup, anchor, MenuBox(ui, theme));
+        var popup = ui.Popup(bar.OpenPopup, anchor, MenuBox(theme));
         return new MenuScope(true, popup, ui.Provide<MenuPopup>(bar), title, true);
     }
 
@@ -167,7 +165,7 @@ public static partial class UiWidgets
         if (!state.Open)
             return default;
 
-        var popup = ui.Popup(menuId, new UiRect(state.At.X, state.At.Y, 0f, 0f), MenuBox(ui, WidgetTheme.For(ui)));
+        var popup = ui.Popup(menuId, new UiRect(state.At.X, state.At.Y, 0f, 0f), MenuBox(ui.Theme));
         return new MenuScope(true, popup, ui.Provide<MenuPopup>(state), default, false);
     }
 
@@ -176,12 +174,11 @@ public static partial class UiWidgets
     /// <paramref name="shortcut"/> is only displayed. Ids work as for <see cref="Button"/>.</summary>
     public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null)
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var highlighted = enabled && (i.Hovered || i.Held);
-        var color = highlighted ? style.OnAccent : enabled ? style.Text : style.TextMuted;
+        var color = highlighted ? theme.OnAccent : enabled ? theme.Text : theme.TextMuted;
 
         using (ui.Row(i.Id, new Box
         {
@@ -190,7 +187,7 @@ public static partial class UiWidgets
             Gap = 0f,
             Padding = new Spacing(2f, 0f, 10f, 0f),
             Radius = 4f,
-            Background = highlighted ? style.Accent : 0u,
+            Background = highlighted ? theme.Accent : 0u,
         }))
         {
             using (ui.Box(new Box { Width = MenuCheckWidth, Height = Sizing.Grow(), Padding = new Spacing(5f, 6f) }))
@@ -201,7 +198,7 @@ public static partial class UiWidgets
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(MenuShortcutGap), Height = 0f });
             if (shortcut != null)
-                ui.Text(shortcut, color: highlighted ? color : style.TextMuted);
+                ui.Text(shortcut, color: highlighted ? color : theme.TextMuted);
         }
 
         if (i.Clicked)
@@ -220,22 +217,18 @@ public static partial class UiWidgets
     public static void MenuSeparator(this Ui ui)
     {
         using (ui.Box(new Box { Width = Sizing.Grow(), Padding = new Spacing(6f, 4f) }))
-            ui.Leaf(new Box { Width = Sizing.Grow(), Height = 1f, Background = ui.Style.Border });
+            ui.Leaf(new Box { Width = Sizing.Grow(), Height = 1f, Background = ui.Theme.Border });
     }
 
-    private static Box MenuBox(Ui ui, WidgetTheme theme)
+    private static Box MenuBox(UiTheme theme) => new()
     {
-        var style = ui.Style;
-        return new Box
-        {
-            Width = Sizing.Fit(MenuMinWidth),
-            Padding = 4f,
-            Background = style.Surface,
-            BorderColor = style.Border,
-            BorderWidth = 1f,
-            Radius = theme.CornerRadius,
-        };
-    }
+        Width = Sizing.Fit(MenuMinWidth),
+        Padding = 4f,
+        Background = theme.Surface,
+        BorderColor = theme.Border,
+        BorderWidth = 1f,
+        Radius = theme.CornerRadius,
+    };
 
     private static bool ShouldCloseMenu(Ui ui, int ownerId, int popupId)
     {

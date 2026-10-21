@@ -73,7 +73,7 @@ public sealed partial class Ui
     {
         Direction = Direction.Vertical,
         Width = box.Width ?? Sizing.Grow(),
-        Gap = box.Gap ?? Style.Gap,
+        Gap = box.Gap ?? Theme.Gap,
     });
 
     public Scope Row(Box box = default) => Row(0, box);
@@ -82,7 +82,7 @@ public sealed partial class Ui
     {
         Direction = Direction.Horizontal,
         Width = box.Width ?? Sizing.Grow(),
-        Gap = box.Gap ?? Style.Gap,
+        Gap = box.Gap ?? Theme.Gap,
         AlignY = box.AlignY ?? Align.Center,
     });
 
@@ -134,10 +134,10 @@ public sealed partial class Ui
 
     /// <summary>A text element: sized to its text plus the box's padding unless the box sizes it,
     /// with the text vertically centered and aligned by <paramref name="align"/>. A null
-    /// <paramref name="family"/> means the style's <see cref="UiStyle.FontFamily"/>.</summary>
+    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
     public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0, string? family = null)
     {
-        Open(id, box, text, TextStyleFor(size, color ?? Style.Text, bold, align, family));
+        Open(id, box, text, TextStyleFor(size, color ?? Theme.Text, bold, align, family));
         Close();
     }
 
@@ -163,7 +163,7 @@ public sealed partial class Ui
         var horizontal = box.Direction == Direction.Horizontal;
         state.Horizontal = horizontal;
         if (id == _wheelTarget)
-            state.Offset -= (horizontal ? Input.ScrollY + Input.ScrollX : Input.ScrollY) * Style.ScrollWheelStep;
+            state.Offset -= (horizontal ? Input.ScrollY + Input.ScrollX : Input.ScrollY) * Theme.ScrollWheelStep;
 
         var thumb = Interact(HashCode.Combine(id, "thumb"));
         var pointer = horizontal ? Input.Pointer.X : Input.Pointer.Y;
@@ -181,13 +181,13 @@ public sealed partial class Ui
         state.Offset = Math.Clamp(state.Offset, 0f, state.Max);
 
         var padding = box.Padding ?? default;
-        var bar = Style.ScrollBarWidth;
+        var bar = Theme.ScrollBarWidth;
         var element = Open(id, horizontal
             ? box with
             {
                 Width = box.Width ?? Sizing.Grow(),
                 Height = box.Height ?? Sizing.Fit(),
-                Gap = box.Gap ?? Style.Gap,
+                Gap = box.Gap ?? Theme.Gap,
                 AlignY = box.AlignY ?? Align.Center,
                 Clip = true,
                 ScrollX = state.Offset,
@@ -197,7 +197,7 @@ public sealed partial class Ui
                 Direction = Direction.Vertical,
                 Width = box.Width ?? Sizing.Grow(),
                 Height = box.Height ?? Sizing.Grow(),
-                Gap = box.Gap ?? Style.Gap,
+                Gap = box.Gap ?? Theme.Gap,
                 Padding = padding with { Right = padding.Right + Gutter(state.Max > 0f, bar) },
                 Clip = true,
                 ScrollY = state.Offset,
@@ -253,7 +253,7 @@ public sealed partial class Ui
         {
             var length = ThumbLength(state);
             var start = (state.Viewport - length) * (state.Offset / state.Max);
-            var color = scroll.Thumb.Held ? Style.ScrollThumbHeld : scroll.Thumb.Hovered ? Style.ScrollThumbHovered : Style.ScrollThumb;
+            var color = scroll.Thumb.Held ? Theme.ScrollThumbHeld : scroll.Thumb.Hovered ? Theme.ScrollThumbHovered : Theme.ScrollThumb;
             var bar = scroll.BarWidth;
             if (state.Horizontal)
                 OpenFloating(scroll.Thumb.Id, new Box { Width = length, Height = bar, Background = color, Radius = bar / 2 }, 0f, 1f, start, -bar - 1f, 1);

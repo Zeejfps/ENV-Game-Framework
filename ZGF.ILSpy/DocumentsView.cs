@@ -10,7 +10,7 @@ internal static class DocumentsView
         if (w.Tabs.Count == 0)
         {
             using (ui.Column(new Box { Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
-                ui.Text("Select a node in the tree to decompile it.", color: ui.Style.TextMuted);
+                ui.Text("Select a node in the tree to decompile it.", color: ui.Theme.TextMuted);
             return;
         }
 

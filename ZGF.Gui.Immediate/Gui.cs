@@ -27,7 +27,7 @@ public abstract class Gui<T> where T : class
     protected abstract void Render(Ui ui, T state);
 
     /// <summary>Makes the font in <paramref name="data"/> (TTF/OTF bytes) drawable as
-    /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiStyle.FontFamily"/>.
+    /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiTheme.FontFamily"/>.
     /// One family is one face: register bold or italic faces under names of their own.</summary>
     public void RegisterFont(string family, byte[] data)
     {

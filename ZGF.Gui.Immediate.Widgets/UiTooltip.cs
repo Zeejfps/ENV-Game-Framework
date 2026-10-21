@@ -35,7 +35,7 @@ public static partial class UiWidgets
             state.Suppressed = true;
         if (state.Suppressed) return;
 
-        var remaining = WidgetTheme.For(ui).TooltipDelaySeconds - (ui.RealTime - state.Since);
+        var remaining = ui.Theme.TooltipDelaySeconds - (ui.RealTime - state.Since);
         if (remaining > 0)
         {
             ui.RequestFrameIn(remaining);
@@ -43,17 +43,17 @@ public static partial class UiWidgets
         }
         if (!ui.TryGetRect(id, out var anchor)) return;
 
-        var style = ui.Style;
+        var theme = ui.Theme;
         using (ui.Popup(TooltipId, anchor, new Box
         {
             Padding = new Spacing(8f, 4f),
-            Background = style.Surface,
-            BorderColor = style.Border,
+            Background = theme.Surface,
+            BorderColor = theme.Border,
             BorderWidth = 1f,
             Radius = 4f,
         }, Align.Center, gap: 6f, passThrough: true))
         {
-            ui.Text(text, color: style.Text, size: MathF.Round(style.FontSize * 0.9f));
+            ui.Text(text, color: theme.Text, size: MathF.Round(theme.FontSize * 0.9f));
         }
     }
 }

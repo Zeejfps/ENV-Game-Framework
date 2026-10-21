@@ -1,3 +1,5 @@
+using ZGF.Gui.Immediate.Widgets;
+
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class GlyphRunTests
@@ -21,6 +23,7 @@ public sealed class GlyphRunTests
 
         frames.Run(0f, ui =>
         {
+            using var screen = ui.Screen();
             ui.Leaf(new Box { Width = 100f, Height = 20f });
             using (ui.Box(new Box { Width = 100f, Height = 20f }))
                 ui.Paint(codePoints, static (p, cps) =>

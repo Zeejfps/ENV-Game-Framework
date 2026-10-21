@@ -1,5 +1,3 @@
-using ZGF.Gui.Immediate.Widgets;
-
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class ContextTests
@@ -49,22 +47,5 @@ public sealed class ContextTests
         var found = frames.Run(0f, ui => ui.Get<Service>());
 
         Assert.Null(found);
-    }
-
-    [Fact]
-    public void Widgets_fall_back_to_the_default_theme_and_follow_a_provided_one()
-    {
-        var frames = new UiFrames();
-        var custom = WidgetTheme.Default with { CornerRadius = 2f };
-
-        var (fallback, provided) = frames.Run(0f, ui =>
-        {
-            var before = WidgetTheme.For(ui);
-            using (ui.Provide(custom))
-                return (before, WidgetTheme.For(ui));
-        });
-
-        Assert.Same(WidgetTheme.Default, fallback);
-        Assert.Same(custom, provided);
     }
 }

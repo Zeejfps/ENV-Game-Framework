@@ -8,11 +8,11 @@ internal static class TreePaneView
 {
     public static void Render(Ui ui, Workspace w)
     {
-        var style = ui.Style;
-        w.Tree.SetStyle(style, w.DarkMode);
+        var theme = ui.Theme;
+        w.Tree.SetTheme(theme, w.DarkMode);
         w.Tree.SetShowNonPublic(w.ShowNonPublic);
         if (w.Tree.Roots.Count == 0)
-            ui.Text("Open an assembly with File › Open… (Ctrl+O)", new Box { Padding = new Spacing(10f, 8f) }, color: style.TextMuted);
+            ui.Text("Open an assembly with File › Open… (Ctrl+O)", new Box { Padding = new Spacing(10f, 8f) }, color: theme.TextMuted);
 
         var result = ui.TreeView("tree", w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, 4f) });
         if (result.SelectionChanged && result.Node is { } selected)

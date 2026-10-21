@@ -37,9 +37,9 @@ public readonly struct SplitPane : IDisposable
     /// <summary>Records the divider, then opens the second pane, a clipped column.</summary>
     public Ui.Scope Second()
     {
-        var style = _ui.Style;
-        var thickness = WidgetTheme.For(_ui).SplitterSize;
-        var color = _divider.Held ? style.Accent : _divider.Hovered ? style.TextMuted : style.Border;
+        var theme = _ui.Theme;
+        var thickness = theme.SplitterSize;
+        var color = _divider.Held ? theme.Accent : _divider.Hovered ? theme.TextMuted : theme.Border;
         using (_ui.Box(_divider.Id, _horizontal
             ? new Box { Width = thickness, Height = Sizing.Grow() }
             : new Box { Width = Sizing.Grow(), Height = thickness }))
@@ -91,7 +91,7 @@ public static partial class UiWidgets
             ui.SetCursor(horizontal ? MouseCursor.ResizeHorizontal : MouseCursor.ResizeVertical);
 
         var hasContainer = ui.TryGetRect(containerId, out var container);
-        var thickness = WidgetTheme.For(ui).SplitterSize;
+        var thickness = ui.Theme.SplitterSize;
         var extent = hasContainer ? (horizontal ? container.Width : container.Height) : float.PositiveInfinity;
         var pointer = horizontal ? ui.Input.Pointer.X : ui.Input.Pointer.Y;
         var state = ui.GetState<SplitState>(divider.Id);

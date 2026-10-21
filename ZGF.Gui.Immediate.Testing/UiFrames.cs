@@ -67,7 +67,9 @@ public sealed class UiFrames
         return 0;
     });
 
-    public uint WindowBackground => _canvas.Rects[0].Inputs.Style.BackgroundColor;
+    public int RectCount => _canvas.Rects.Count;
+
+    public DrawRectInputs FirstRect => _canvas.Rects[0].Inputs;
 
     public uint TextColor(string text) => _canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style.TextColor;
 

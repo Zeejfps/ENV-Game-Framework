@@ -8,8 +8,8 @@ internal static class ToolbarView
 {
     public static void Render(Ui ui, Workspace w)
     {
-        var style = ui.Style;
-        using (ui.Row(new Box { Padding = new Spacing(6f, 4f), Gap = 4f, Background = style.Surface }))
+        var theme = ui.Theme;
+        using (ui.Row(new Box { Padding = new Spacing(6f, 4f), Gap = 4f, Background = theme.Surface }))
         {
             if (ui.Button("←", enabled: w.History.CanGoBack, id: "back"))
                 w.GoBack();

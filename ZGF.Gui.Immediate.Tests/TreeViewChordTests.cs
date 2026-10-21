@@ -18,7 +18,11 @@ public sealed class TreeViewChordTests
     private readonly TreeViewState<string> _state = new();
     private readonly string[] _roots = ["A", "B"];
 
-    private void Body(Ui ui) => ui.TreeView("tree", _roots, _model, _state);
+    private void Body(Ui ui)
+    {
+        using var screen = ui.Screen();
+        ui.TreeView("tree", _roots, _model, _state);
+    }
 
     [Theory]
     [InlineData(KeyboardKey.RightArrow, KeyModifiers.Alt)]

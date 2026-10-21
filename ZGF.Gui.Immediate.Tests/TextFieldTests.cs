@@ -262,7 +262,11 @@ public sealed class TextFieldTests
             set => _text = value;
         }
 
-        public void Frame() => Frames.Run(1f / 60f, ui => { ui.TextField("field", ref _text); });
+        public void Frame() => Frames.Run(1f / 60f, ui =>
+        {
+            using (ui.Screen())
+                ui.TextField("field", ref _text);
+        });
 
         public void Press(int index, KeyModifiers modifiers = KeyModifiers.None, bool fresh = true)
         {

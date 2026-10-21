@@ -112,7 +112,7 @@ public static class CodeViewWidget
     {
         using var scope = ui.Id(id);
         state.Show(document);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var cell = ui.MeasureCell(family: MonoFonts.Regular);
         var advance = cell.Advance;
         var rowHeight = MathF.Ceiling(cell.Height);
@@ -131,7 +131,7 @@ public static class CodeViewWidget
         if (focused || findFocused)
             HandleKeys(ui, state, document, focusId, focused, advance);
 
-        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = style.Field }))
+        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.Field }))
         {
             if (state.FindOpen)
                 FindBar(ui, state, document, focusId, findId);
@@ -217,7 +217,7 @@ public static class CodeViewWidget
             }
 
             if (i.Hovered && ui.Input.ScrollX != 0f)
-                state.ScrollX -= ui.Input.ScrollX * style.ScrollWheelStep;
+                state.ScrollX -= ui.Input.ScrollX * theme.ScrollWheelStep;
             if (state.PendingColumnStart != CodeViewState.NoLine && viewWidth > 0f)
             {
                 var visible = viewWidth - textLeft - advance;
@@ -245,9 +245,9 @@ public static class CodeViewWidget
                 state.ScrollX = Math.Clamp(state.ThumbStartScroll + (pointer.X - state.ThumbAnchor) * maxScrollX / travel, 0f, maxScrollX);
             }
 
-            FillFrame(ui, state, document, style, cell, rowHeight, gutterWidth, textLeft, digits, hoverLine, hoverSpan, hoverReference, hoverNavigable);
+            FillFrame(ui, state, document, theme, cell, rowHeight, gutterWidth, textLeft, digits, hoverLine, hoverSpan, hoverReference, hoverNavigable);
 
-            using (var list = ui.VirtualScroll(codeId, document.Lines.Length, rowHeight, new Box { Gap = 0f, Background = style.Field }))
+            using (var list = ui.VirtualScroll(codeId, document.Lines.Length, rowHeight, new Box { Gap = 0f, Background = theme.Field }))
             {
                 state.LaidOutScrollY = list.Offset;
                 state.LaidOutScrollX = state.ScrollX;
@@ -261,8 +261,8 @@ public static class CodeViewWidget
 
                 if (maxScrollX > 0f && thumbLength > 0f)
                 {
-                    var bar = style.ScrollBarWidth;
-                    var color = thumb.Held ? style.ScrollThumbHeld : thumb.Hovered ? style.ScrollThumbHovered : style.ScrollThumb;
+                    var bar = theme.ScrollBarWidth;
+                    var color = thumb.Held ? theme.ScrollThumbHeld : thumb.Hovered ? theme.ScrollThumbHovered : theme.ScrollThumb;
                     using (ui.Float(0f, 1f, travel * state.ScrollX / maxScrollX, -bar - 1f,
                         new Box { Width = thumbLength, Height = bar, Background = color, Radius = bar / 2 }, z: 1, id: thumbId)) { }
                 }
@@ -277,18 +277,18 @@ public static class CodeViewWidget
     private static float AutoScroll(float distance, float unit, float deltaTime) =>
         distance == 0f ? 0f : (distance * AutoScrollSpeed + MathF.Sign(distance) * unit * AutoScrollSpeed) * deltaTime;
 
-    private static void FillFrame(Ui ui, CodeViewState state, DecompiledDocument document, UiStyle style, CellMetrics cell, float rowHeight,
+    private static void FillFrame(Ui ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CellMetrics cell, float rowHeight,
         float gutterWidth, float textLeft, int digits, int hoverLine, int hoverSpan, CodeReference? hoverReference, bool hoverNavigable)
     {
         var frame = state.Frame;
         var (start, end) = state.Selection;
         frame.Document = document;
-        frame.Palette = CodeViewPalette.For(style);
-        frame.Background = style.Field;
-        frame.GutterText = style.TextMuted;
-        frame.GutterBorder = UiColor.Mix(style.Field, style.Border, 0.6f);
-        frame.Selection = style.Selection;
-        frame.Occurrence = UiColor.Mix(style.Field, style.Accent, 0.2f);
+        frame.Palette = CodeViewPalette.For(theme);
+        frame.Background = theme.Field;
+        frame.GutterText = theme.TextMuted;
+        frame.GutterBorder = UiColor.Mix(theme.Field, theme.Border, 0.6f);
+        frame.Selection = theme.Selection;
+        frame.Occurrence = UiColor.Mix(theme.Field, theme.Accent, 0.2f);
         frame.Advance = cell.Advance;
         frame.CellHeight = cell.Height;
         frame.RowHeight = rowHeight;
@@ -317,7 +317,7 @@ public static class CodeViewWidget
             else
             {
                 frame.FlashLine = state.FlashLine;
-                frame.Flash = UiColor.Mix(style.Field, style.Accent, 0.45f * (1f - t));
+                frame.Flash = UiColor.Mix(theme.Field, theme.Accent, 0.45f * (1f - t));
                 ui.RequestFrame();
             }
         }
@@ -458,8 +458,8 @@ public static class CodeViewWidget
 
     private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId)
     {
-        var style = ui.Style;
-        using (ui.Row(new Box { Padding = new Spacing(6f, 4f), Gap = 6f, Background = style.Surface }))
+        var theme = ui.Theme;
+        using (ui.Row(new Box { Padding = new Spacing(6f, 4f), Gap = 6f, Background = theme.Surface }))
         {
             if (state.FocusFind)
             {
@@ -481,7 +481,7 @@ public static class CodeViewWidget
             var label = state.Query.Length == 0 ? ""
                 : count == 0 ? "No results"
                 : ui.Memo("count", (state.CurrentMatch, count), static a => a.CurrentMatch >= 0 ? $"{a.CurrentMatch + 1} of {a.count}" : $"{a.count} matches");
-            ui.Text(label, color: count == 0 && state.Query.Length > 0 ? CodeViewPalette.For(style).Error : style.TextMuted);
+            ui.Text(label, color: count == 0 && state.Query.Length > 0 ? CodeViewPalette.For(theme).Error : theme.TextMuted);
             ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
             if (ui.Button("Previous", enabled: count > 0))
                 Step(state, document, -1);

@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>What a tree row shows. Colors of 0 take the style's colors; a null
+/// <summary>What a tree row shows. Colors of 0 take the theme's colors; a null
 /// <see cref="IconFamily"/> draws the icon in the default font.</summary>
 public readonly record struct TreeRow(string Label, string? Icon = null, uint IconColor = 0, uint LabelColor = 0, string? IconFamily = null);
 

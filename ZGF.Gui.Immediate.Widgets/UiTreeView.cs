@@ -29,8 +29,7 @@ public static partial class UiWidgets
         this Ui ui, string id, IReadOnlyList<TNode> roots, ITreeModel<TNode> model, TreeViewState<TNode> state, Box box = default)
         where TNode : notnull
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var treeId = ui.GetId(id);
         var rowHeight = theme.RowHeight;
         state.Sync(roots, model);
@@ -95,8 +94,8 @@ public static partial class UiWidgets
                 var content = model.Row(flat.Node);
                 var expanded = hasChildren && state.IsExpanded(flat.Node);
                 var background = i == selection
-                    ? focused ? style.Selection : UiColor.Mix(style.Background, style.Text, 0.12f)
-                    : row.Hovered ? style.Hovered(style.Background) : 0u;
+                    ? focused ? theme.Selection : UiColor.Mix(theme.Background, theme.Text, 0.12f)
+                    : row.Hovered ? theme.Hovered(theme.Background) : 0u;
 
                 using (ui.Row(rowId, new Box
                 {
@@ -110,11 +109,11 @@ public static partial class UiWidgets
                     using (ui.Box(hasChildren ? arrowId : 0, new Box { Width = DisclosureWidth, Height = Sizing.Grow() }))
                     {
                         if (hasChildren)
-                            ui.Paint((expanded, arrow.Hovered ? style.Text : style.TextMuted), static (p, s) => DrawDisclosure(p, s.expanded, s.Item2));
+                            ui.Paint((expanded, arrow.Hovered ? theme.Text : theme.TextMuted), static (p, s) => DrawDisclosure(p, s.expanded, s.Item2));
                     }
                     if (content.Icon != null)
-                        ui.Text(content.Icon, color: content.IconColor != 0 ? content.IconColor : style.TextMuted, family: content.IconFamily);
-                    ui.Text(content.Label, color: content.LabelColor != 0 ? content.LabelColor : style.Text);
+                        ui.Text(content.Icon, color: content.IconColor != 0 ? content.IconColor : theme.TextMuted, family: content.IconFamily);
+                    ui.Text(content.Label, color: content.LabelColor != 0 ? content.LabelColor : theme.Text);
                 }
             }
         }
