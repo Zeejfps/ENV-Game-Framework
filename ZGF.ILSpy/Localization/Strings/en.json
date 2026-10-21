@@ -26,6 +26,8 @@
 
   "toolbar.back": "Back ({shortcut})",
   "toolbar.forward": "Forward ({shortcut})",
+  "toolbar.back_history": "Back history",
+  "toolbar.forward_history": "Forward history",
   "toolbar.decompile_csharp": "Decompile to C#",
   "toolbar.disassemble_il": "Disassemble to IL",
   "toolbar.search": "Search types and members",

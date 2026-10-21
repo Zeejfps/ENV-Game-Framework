@@ -95,4 +95,74 @@ public sealed class HistoryTests
         Assert.False(tab.View.HasSelection);
         Assert.Equal(0, tab.View.Position.TopLine);
     }
+
+    [Fact]
+    public void Going_to_an_entry_jumps_over_the_ones_between_and_keeps_them_all()
+    {
+        var app = Opened();
+        var history = app.Workspace.History;
+        Show(app, app.Driver.Fixture("Outline"));
+        var first = history.CurrentIndex;
+        Show(app, app.Driver.Fixture("Greeter"));
+        Show(app, app.Driver.Fixture("Outline"));
+        var count = history.Entries.Count;
+
+        app.Workspace.GoTo(first);
+        Settle(app);
+        var back = app.Workspace.ActiveTab!.Node!.Text;
+
+        Assert.Equal("Outline", back);
+        Assert.Equal(first, history.CurrentIndex);
+        Assert.Equal(count, history.Entries.Count);
+        Assert.True(history.CanGoForward);
+    }
+
+    [Fact]
+    public void The_back_dropdown_lists_earlier_places_nearest_first_and_goes_to_the_one_picked()
+    {
+        var app = Opened();
+        Show(app, app.Driver.Fixture("Outline"));
+        var first = app.Workspace.History.CurrentIndex;
+        Show(app, app.Driver.Fixture("Greeter"));
+        Show(app, app.Driver.Fixture("Outline"));
+
+        ClickBackDropdown(app);
+        var greeter = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Greeter").Inputs.Position;
+        var outline = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
+        app.ClickMenuItem("Outline");
+        Settle(app);
+
+        Assert.True(greeter.Top > outline.Top);
+        Assert.Equal("Outline", app.Workspace.ActiveTab!.Node!.Text);
+        Assert.Equal(first, app.Workspace.History.CurrentIndex);
+    }
+
+    [Fact]
+    public void Going_somewhere_while_the_back_dropdown_is_open_closes_it()
+    {
+        var app = Opened();
+        Show(app, app.Driver.Fixture("Outline"));
+        Show(app, app.Driver.Fixture("Greeter"));
+        ClickBackDropdown(app);
+        var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
+
+        app.Workspace.GoBack();
+        Settle(app);
+
+        Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Position.Top == row.Top && t.Inputs.Position.Left == row.Left);
+        Assert.Equal("Outline", app.Workspace.ActiveTab!.Node!.Text);
+    }
+
+    private static void ClickBackDropdown(AppDriver app)
+    {
+        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var icon = app.TextRect(LucideIcons.ArrowLeft);
+        var x = icon.X + icon.Width / 2 + theme.IconButtonSize / 2 + theme.DropdownButtonWidth / 2;
+        app.Frames.MovePointer(x, icon.Y + icon.Height / 2);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.Release();
+        app.Run(2);
+    }
 }

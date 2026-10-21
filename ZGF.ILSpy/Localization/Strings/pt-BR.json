@@ -22,6 +22,8 @@
   "navigate.search": "Pesquisar",
   "toolbar.back": "Voltar ({shortcut})",
   "toolbar.forward": "Avançar ({shortcut})",
+  "toolbar.back_history": "Histórico anterior",
+  "toolbar.forward_history": "Histórico seguinte",
   "toolbar.decompile_csharp": "Descompilar para C#",
   "toolbar.disassemble_il": "Desmontar para IL",
   "toolbar.search": "Pesquisar tipos e membros",

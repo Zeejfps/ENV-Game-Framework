@@ -287,3 +287,243 @@ public sealed class MenuRadioItemTests
         Assert.Equal("Light", _theme);
     }
 }
+
+public sealed class DropdownButtonTests
+{
+    private readonly UiFrames _frames = new();
+    private readonly List<string> _picks = new();
+    private bool _enabled = true;
+
+    private void Body(Ui ui)
+    {
+        using var menu = ui.DropdownButton("more", enabled: _enabled);
+        if (!menu.IsOpen) return;
+        if (ui.MenuItem("First")) _picks.Add("First");
+        if (ui.MenuItem("Second")) _picks.Add("Second");
+    }
+
+    private void ClickButton()
+    {
+        _frames.ClickOn(Body, ui => ui.GetId("more"));
+        _frames.Run(0f, Body);
+    }
+
+    [Fact]
+    public void Clicking_opens_the_menu_below_the_button_and_a_pick_closes_it()
+    {
+        _frames.Run(0f, Body);
+
+        ClickButton();
+        var button = _frames.RectOf(Body, ui => ui.GetId("more"));
+        var popup = _frames.RectOf(Body, ui => HashCode.Combine(ui.GetId("more"), 0x4D454E55));
+        Assert.True(_frames.Drew("First"));
+        Assert.Equal(button.X, popup.X);
+        Assert.True(popup.Y >= button.Y + button.Height);
+
+        _frames.ClickOn(Body, ui => ui.GetId("Second"));
+        _frames.Run(0f, Body);
+
+        Assert.Equal(["Second"], _picks);
+        Assert.False(_frames.Drew("First"));
+    }
+
+    [Fact]
+    public void Clicking_the_button_again_closes_the_menu()
+    {
+        _frames.Run(0f, Body);
+        ClickButton();
+
+        ClickButton();
+
+        Assert.False(_frames.Drew("First"));
+        Assert.Empty(_picks);
+    }
+
+    [Fact]
+    public void A_disabled_button_does_not_open()
+    {
+        _enabled = false;
+        _frames.Run(0f, Body);
+
+        ClickButton();
+
+        Assert.False(_frames.Drew("First"));
+    }
+
+    [Fact]
+    public void Keys_open_the_menu_and_pick_from_it()
+    {
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Tab);
+        _frames.Run(0f, Body);
+
+        _frames.Key(KeyboardKey.Enter);
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.DownArrow);
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Enter);
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+
+        Assert.Equal(["Second"], _picks);
+        Assert.False(_frames.Drew("First"));
+    }
+}
+
+public sealed class SplitIconButtonTests
+{
+    private const int ArrowSalt = 0x53504C41;
+    private const int ShellSalt = 0x53504C53;
+    private const int MenuSalt = 0x4D454E55;
+
+    private readonly UiFrames _frames = new();
+    private readonly List<string> _events = new();
+    private int _revision;
+    private bool _nextFocused;
+
+    private void Body(Ui ui)
+    {
+        using (ui.Row(new Box { Gap = 0f }))
+        {
+            using (var split = ui.SplitIconButton("go", "G", revision: _revision))
+            {
+                if (split.Clicked) _events.Add("clicked");
+                if (split.IsOpen)
+                {
+                    if (ui.MenuItem("First")) _events.Add("First");
+                    if (ui.MenuItem("Second")) _events.Add("Second");
+                }
+            }
+            _nextFocused = ui.TabStop(ui.GetId("next"));
+            ui.Leaf(ui.GetId("next"), new Box { Width = 40f, Height = 20f });
+        }
+    }
+
+    private static int Arrow(Ui ui) => HashCode.Combine(ui.GetId("go"), ArrowSalt);
+
+    private void Settle()
+    {
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+    }
+
+    [Fact]
+    public void Clicking_the_main_half_clicks_without_opening_the_menu()
+    {
+        _frames.Run(0f, Body);
+
+        _frames.ClickOn(Body, ui => ui.GetId("go"));
+        _frames.Run(0f, Body);
+
+        Assert.Equal(["clicked"], _events);
+        Assert.False(_frames.Drew("First"));
+    }
+
+    [Fact]
+    public void Clicking_the_arrow_opens_the_menu_below_the_whole_control()
+    {
+        _frames.Run(0f, Body);
+
+        _frames.ClickOn(Body, Arrow);
+        _frames.Run(0f, Body);
+        var shell = _frames.RectOf(Body, ui => HashCode.Combine(ui.GetId("go"), ShellSalt));
+        var main = _frames.RectOf(Body, ui => ui.GetId("go"));
+        var popup = _frames.RectOf(Body, ui => HashCode.Combine(Arrow(ui), MenuSalt));
+        _frames.ClickOn(Body, ui => ui.GetId("First"));
+        _frames.Run(0f, Body);
+
+        Assert.Equal(main.X, shell.X);
+        Assert.Equal(shell.X, popup.X);
+        Assert.True(popup.Y >= shell.Y + shell.Height);
+        Assert.Equal(["First"], _events);
+        Assert.False(_frames.Drew("First"));
+    }
+
+    [Fact]
+    public void Down_opens_the_menu_of_the_focused_control_and_Enter_clicks_it()
+    {
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Tab);
+        _frames.Run(0f, Body);
+
+        _frames.Key(KeyboardKey.Enter);
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.DownArrow);
+        Settle();
+        _frames.Key(KeyboardKey.Enter);
+        Settle();
+
+        Assert.Equal(["clicked", "First"], _events);
+    }
+
+    [Fact]
+    public void A_change_of_revision_closes_the_open_menu()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, Arrow);
+        _frames.Run(0f, Body);
+        Assert.True(_frames.Drew("First"));
+
+        _revision++;
+        _frames.Run(0f, Body);
+
+        Assert.False(_frames.Drew("First"));
+        Assert.Empty(_events);
+    }
+
+    [Fact]
+    public void Tab_closes_the_menu_and_moves_focus_on_from_the_control()
+    {
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Tab);
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.DownArrow);
+        Settle();
+        Assert.True(_frames.Drew("First"));
+
+        _frames.Key(KeyboardKey.Tab);
+        Settle();
+        Settle();
+
+        Assert.False(_frames.Drew("First"));
+        Assert.True(_nextFocused);
+        Assert.Empty(_events);
+    }
+}
+
+public sealed class MenuScrollTests
+{
+    private const int ItemCount = 60;
+
+    private readonly UiFrames _frames = new(height: 2400f);
+
+    private static void Body(Ui ui)
+    {
+        using var menu = ui.DropdownButton("more");
+        if (!menu.IsOpen) return;
+        for (var i = 0; i < ItemCount; i++)
+            ui.MenuItem($"Item {i}");
+    }
+
+    private static int Popup(Ui ui) => HashCode.Combine(ui.GetId("more"), 0x4D454E55);
+
+    [Fact]
+    public void A_long_menu_stops_at_the_theme_height_and_End_scrolls_its_last_item_into_view()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("more"));
+        _frames.Run(0f, Body);
+        var popup = _frames.RectOf(Body, Popup);
+        var theme = UiTheme.Dark;
+        var chrome = (theme.MenuPadding + theme.BorderWidth) * 2;
+
+        _frames.Key(KeyboardKey.End);
+        for (var i = 0; i < 3; i++)
+            _frames.Run(0f, Body);
+        var last = _frames.RectOf(Body, ui => ui.GetId($"Item {ItemCount - 1}"));
+
+        Assert.True(popup.Height <= theme.MenuMaxHeight + chrome, $"{popup.Height}");
+        Assert.True(last.Y >= popup.Y && last.Bottom <= popup.Bottom, $"{last} outside {popup}");
+    }
+}

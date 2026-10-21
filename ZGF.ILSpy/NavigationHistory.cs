@@ -15,6 +15,15 @@ public sealed class NavigationHistory
     private readonly List<HistoryEntry> _entries = new();
     private int _current = -1;
 
+    /// <summary>Every place recorded, oldest first.</summary>
+    public IReadOnlyList<HistoryEntry> Entries => _entries;
+
+    /// <summary>The index in <see cref="Entries"/> of the place being shown, or -1 before any.</summary>
+    public int CurrentIndex => _current;
+
+    /// <summary>Changes whenever an entry is added or dropped, or another becomes current.</summary>
+    public int Revision { get; private set; }
+
     public bool CanGoBack => _current > 0;
     public bool CanGoForward => _current < _entries.Count - 1;
 
@@ -29,6 +38,7 @@ public sealed class NavigationHistory
         if (_entries.Count > Capacity)
             _entries.RemoveAt(0);
         _current = _entries.Count - 1;
+        Revision++;
     }
 
     /// <summary>Remembers where the view of the current place stands as it is left.</summary>
@@ -38,7 +48,12 @@ public sealed class NavigationHistory
             _entries[_current] = _entries[_current] with { Language = language, Position = position };
     }
 
-    public HistoryEntry? Back() => CanGoBack ? _entries[--_current] : null;
-
-    public HistoryEntry? Forward() => CanGoForward ? _entries[++_current] : null;
+    /// <summary>Makes the entry at <paramref name="index"/> current, keeping every entry on either side.</summary>
+    public HistoryEntry? MoveTo(int index)
+    {
+        if (index < 0 || index >= _entries.Count || index == _current) return null;
+        _current = index;
+        Revision++;
+        return _entries[index];
+    }
 }

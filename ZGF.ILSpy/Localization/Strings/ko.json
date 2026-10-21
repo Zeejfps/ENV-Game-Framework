@@ -22,6 +22,8 @@
   "navigate.search": "검색",
   "toolbar.back": "뒤로 ({shortcut})",
   "toolbar.forward": "앞으로 ({shortcut})",
+  "toolbar.back_history": "뒤로 기록",
+  "toolbar.forward_history": "앞으로 기록",
   "toolbar.decompile_csharp": "C#으로 디컴파일",
   "toolbar.disassemble_il": "IL로 디스어셈블",
   "toolbar.search": "형식 및 멤버 검색",

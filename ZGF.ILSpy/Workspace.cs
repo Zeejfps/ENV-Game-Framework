@@ -245,18 +245,16 @@ public sealed class Workspace
             Navigate(target, inNewTab: false);
     }
 
-    public void GoBack()
-    {
-        if (!History.CanGoBack) return;
-        LeaveActive();
-        Restore(History.Back()!.Value);
-    }
+    public void GoBack() => GoTo(History.CurrentIndex - 1);
 
-    public void GoForward()
+    public void GoForward() => GoTo(History.CurrentIndex + 1);
+
+    /// <summary>Goes to the history entry at <paramref name="index"/>, however far back or forward.</summary>
+    public void GoTo(int index)
     {
-        if (!History.CanGoForward) return;
+        if (index < 0 || index >= History.Entries.Count || index == History.CurrentIndex) return;
         LeaveActive();
-        Restore(History.Forward()!.Value);
+        Restore(History.MoveTo(index)!.Value);
     }
 
     /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>

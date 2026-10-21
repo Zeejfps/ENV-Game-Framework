@@ -35,6 +35,7 @@ public readonly struct MenuScope : IDisposable
 {
     private readonly Ui.Scope _layer;
     private readonly Ui.Scope _popup;
+    private readonly Ui.Scope _scroll;
     private readonly Ui.Scope _provided;
     private readonly Ui.Scope _title;
     private readonly bool _hasTitle;
@@ -46,11 +47,12 @@ public readonly struct MenuScope : IDisposable
         _hasTitle = true;
     }
 
-    internal MenuScope(Ui.Scope layer, Ui.Scope popup, Ui.Scope provided, UiWidgets.MenuPopup items, Ui.Scope title = default, bool hasTitle = false)
+    internal MenuScope(Ui.Scope layer, Ui.Scope popup, Ui.Scope scroll, Ui.Scope provided, UiWidgets.MenuPopup items, Ui.Scope title, bool hasTitle)
     {
         IsOpen = true;
         _layer = layer;
         _popup = popup;
+        _scroll = scroll;
         _provided = provided;
         _items = items;
         _title = title;
@@ -64,6 +66,7 @@ public readonly struct MenuScope : IDisposable
         if (IsOpen)
         {
             _provided.Dispose();
+            _scroll.Dispose();
             _popup.Dispose();
             _layer.Dispose();
             _items!.EndItems();
@@ -76,11 +79,12 @@ public readonly struct MenuScope : IDisposable
 public static partial class UiWidgets
 {
     private const int MenuSalt = 0x4D454E55;
+    private const int MenuScrollSalt = 0x4D534352;
 
     private static readonly KeyboardKey[] MenuKeySet =
     [
         KeyboardKey.DownArrow, KeyboardKey.UpArrow, KeyboardKey.Home, KeyboardKey.End,
-        KeyboardKey.Enter, KeyboardKey.Space, KeyboardKey.RightArrow, KeyboardKey.LeftArrow,
+        KeyboardKey.Enter, KeyboardKey.Space, KeyboardKey.RightArrow, KeyboardKey.LeftArrow, KeyboardKey.Tab,
     ];
 
     /// <summary>One open menu's items and keyboard state. Items are counted as they are recorded;
@@ -91,6 +95,8 @@ public static partial class UiWidgets
         private List<bool> _recording = new();
         private List<bool> _subs = new();
         private List<bool> _recordingSubs = new();
+        private List<int> _ids = new();
+        private List<int> _recordingIds = new();
         private int _owner;
         private bool _childSeen;
 
@@ -102,6 +108,8 @@ public static partial class UiWidgets
         public bool SubMenuKeyed;
         public MenuPopup? OpenChild;
 
+        public int ScrollId => HashCode.Combine(PopupId, MenuScrollSalt);
+
         public abstract void Close();
 
         public void BeginItems(int owner)
@@ -111,23 +119,28 @@ public static partial class UiWidgets
                 _owner = owner;
                 _enabled.Clear();
                 _subs.Clear();
+                _ids.Clear();
                 Highlight = -1;
                 OpenSub = -1;
                 OpenChild = null;
             }
             _recording.Clear();
             _recordingSubs.Clear();
+            _recordingIds.Clear();
             _childSeen = false;
         }
 
-        public int AddItem(bool enabled, bool subMenu = false)
+        public int AddItem(int id, bool enabled, bool subMenu = false)
         {
             _recording.Add(enabled);
             _recordingSubs.Add(subMenu);
+            _recordingIds.Add(id);
             return _recording.Count - 1;
         }
 
         public bool SubMenuAt(int index) => index >= 0 && index < _subs.Count && _subs[index];
+
+        public int ItemId(int index) => index >= 0 && index < _ids.Count ? _ids[index] : 0;
 
         public void ChildSeen(MenuPopup child)
         {
@@ -139,6 +152,7 @@ public static partial class UiWidgets
         {
             (_enabled, _recording) = (_recording, _enabled);
             (_subs, _recordingSubs) = (_recordingSubs, _subs);
+            (_ids, _recordingIds) = (_recordingIds, _ids);
             if (!_childSeen) OpenChild = null;
             PickIndex = -1;
             if (Highlight >= _enabled.Count) Highlight = -1;
@@ -295,15 +309,13 @@ public static partial class UiWidgets
         bar.PopupId = HashCode.Combine(i.Id, MenuSalt);
         bar.BeginItems(i.Id);
         ui.TryGetRect(i.Id, out var anchor);
-        var layer = ui.Layer(bar.PopupId);
-        var popup = ui.Popup(bar.PopupId, anchor, MenuBox(theme));
-        var provided = ui.Provide<MenuPopup>(bar);
+        var menu = OpenMenu(ui, bar, anchor, title: title, hasTitle: true);
         if (MenuKeys(ui, bar, isSubMenu: false) is var direction and not 0)
         {
             bar.Open = bar.Neighbor(i.Id, direction);
             bar.HighlightFirstOwner = bar.Open;
         }
-        return new MenuScope(layer, popup, provided, bar, title, true);
+        return menu;
     }
 
     /// <summary>Opens the <see cref="ContextMenu(Ui, string)"/> with <paramref name="id"/>, in the same
@@ -339,11 +351,9 @@ public static partial class UiWidgets
             return default;
 
         state.BeginItems(id);
-        var layer = ui.Layer(id);
-        var popup = ui.Popup(id, new UiRect(state.At.X, state.At.Y, 0f, 0f), MenuBox(ui.Theme));
-        var provided = ui.Provide<MenuPopup>(state);
+        var menu = OpenMenu(ui, state, new UiRect(state.At.X, state.At.Y, 0f, 0f));
         MenuKeys(ui, state, isSubMenu: false);
-        return new MenuScope(layer, popup, provided, state);
+        return menu;
     }
 
     /// <summary>An item that opens a nested menu beside it when hovered, clicked, or entered with
@@ -354,7 +364,7 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
-        var index = parent.AddItem(enabled, subMenu: true);
+        var index = parent.AddItem(i.Id, enabled, subMenu: true);
         if (enabled && (ui.IsPointerOver(i.Id) || i.Clicked))
         {
             parent.Highlight = index;
@@ -391,11 +401,9 @@ public static partial class UiWidgets
         ui.TryGetRect(i.Id, out var row);
         var inset = theme.MenuPadding + theme.BorderWidth;
         var anchor = row with { Y = row.Y - inset, Height = row.Height + inset * 2 };
-        var layer = ui.Layer(popupId);
-        var popup = ui.Popup(popupId, anchor, MenuBox(theme), gap: inset, side: PopupSide.End);
-        var provided = ui.Provide<MenuPopup>(state);
+        var menu = OpenMenu(ui, state, anchor, inset, PopupSide.End);
         MenuKeys(ui, state, isSubMenu: true);
-        return new MenuScope(layer, popup, provided, state);
+        return menu;
     }
 
     /// <summary>Returns true on the frame the item is picked, which also closes its menu.
@@ -422,7 +430,7 @@ public static partial class UiWidgets
         var menu = ui.Get<MenuPopup>();
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
-        var index = menu?.AddItem(enabled) ?? -1;
+        var index = menu?.AddItem(i.Id, enabled) ?? -1;
         var over = enabled && ui.IsPointerOver(i.Id);
         if (over && menu != null)
         {
@@ -472,6 +480,19 @@ public static partial class UiWidgets
             ui.Leaf(new Box { Width = Sizing.Grow(), Height = theme.SeparatorWidth, Background = theme.Separator });
     }
 
+    /// <summary>Records the popup of <paramref name="menu"/> at <paramref name="anchor"/>: an input
+    /// layer holding a column of items that scrolls once taller than <see cref="UiTheme.MenuMaxHeight"/>.</summary>
+    private static MenuScope OpenMenu(Ui ui, MenuPopup menu, UiRect anchor, float gap = 0f, PopupSide side = PopupSide.Below, Ui.Scope title = default,
+        bool hasTitle = false)
+    {
+        var theme = ui.Theme;
+        var layer = ui.Layer(menu.PopupId);
+        var popup = ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
+        var scroll = ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });
+        var provided = ui.Provide(menu);
+        return new MenuScope(layer, popup, scroll, provided, menu, title, hasTitle);
+    }
+
     private static Box MenuBox(UiTheme theme) => new()
     {
         Width = Sizing.Fit(theme.MenuMinWidth),
@@ -508,11 +529,16 @@ public static partial class UiWidgets
         }
 
         var switchTo = 0;
+        var tab = 0;
+        var highlight = menu.Highlight;
         foreach (var stroke in input.Keys)
         {
             if ((stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Super)) != 0) continue;
             switch (stroke.Key)
             {
+                case KeyboardKey.Tab:
+                    tab = (stroke.Modifiers & KeyModifiers.Shift) != 0 ? -1 : 1;
+                    break;
                 case KeyboardKey.DownArrow:
                     menu.Highlight = menu.Step(menu.Highlight, 1);
                     break;
@@ -549,6 +575,14 @@ public static partial class UiWidgets
         }
         foreach (var key in MenuKeySet)
             input.TakeKey(key);
+        if (tab != 0)
+        {
+            menu.Close();
+            ui.MoveFocus(tab);
+            return 0;
+        }
+        if (menu.Highlight != highlight && menu.ItemId(menu.Highlight) is var item and not 0)
+            ui.ScrollIntoView(menu.ScrollId, item);
         return switchTo;
     }
 

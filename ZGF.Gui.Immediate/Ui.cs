@@ -58,6 +58,8 @@ public sealed partial class Ui
     private bool _focusTakesText;
     private bool _focusVisible;
     private readonly List<(int Id, bool TakesText)> _tabStops = new();
+    private int _deferredTab;
+    private long _deferredTabFrame;
     private readonly int[] _pressTargets = new int[UiInput.ButtonCount];
     private int _lastPressTarget;
     private double _lastPressTime = double.NegativeInfinity;
@@ -452,6 +454,16 @@ public sealed partial class Ui
         return HasFocus(id);
     }
 
+    /// <summary>Moves focus to the next Tab stop, or the previous one when <paramref name="direction"/>
+    /// is negative, as Tab would — but only once the layers that stop being recorded have given
+    /// focus back, so a menu closing on Tab hands it on from where it was opened.</summary>
+    public void MoveFocus(int direction)
+    {
+        _deferredTab = Math.Sign(direction);
+        _deferredTabFrame = _frame;
+        RequestFrame();
+    }
+
     private void TraverseFocus()
     {
         var direction = 0;
@@ -460,9 +472,31 @@ public sealed partial class Ui
             if (stroke.Key != KeyboardKey.Tab || (stroke.Modifiers & ~KeyModifiers.Shift) != 0) continue;
             direction = (stroke.Modifiers & KeyModifiers.Shift) != 0 ? -1 : 1;
         }
-        if (direction == 0 || _tabStops.Count == 0) return;
-        _input.TakeKey(KeyboardKey.Tab);
+        if (direction != 0 && _tabStops.Count > 0)
+        {
+            _input.TakeKey(KeyboardKey.Tab);
+            _deferredTab = 0;
+            StepFocus(direction);
+            return;
+        }
+        if (_deferredTab == 0) return;
+        if (_tabStops.Count > 0 && _frame > _deferredTabFrame)
+        {
+            StepFocus(_deferredTab);
+            _deferredTab = 0;
+        }
+        else if (_frame == _deferredTabFrame || LayersChanged())
+        {
+            RequestFrame();
+        }
+        else
+        {
+            _deferredTab = 0;
+        }
+    }
 
+    private void StepFocus(int direction)
+    {
         var at = -1;
         for (var i = 0; i < _tabStops.Count; i++)
         {

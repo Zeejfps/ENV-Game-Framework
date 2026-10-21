@@ -115,6 +115,17 @@ public sealed partial class Ui
         }
     }
 
+    private bool LayersChanged()
+    {
+        if (_layers.Count != _previousLayers.Count) return true;
+        for (var i = 0; i < _layers.Count; i++)
+        {
+            if (_layers[i].Id != _previousLayers[i].Id)
+                return true;
+        }
+        return false;
+    }
+
     private static int IndexOfLayer(List<LayerEntry> layers, int id)
     {
         for (var i = 0; i < layers.Count; i++)

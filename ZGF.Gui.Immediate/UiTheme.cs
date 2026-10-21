@@ -225,6 +225,15 @@ public sealed record UiTheme
     public float MenuShortcutGap { get; init; } = 24f;
     public float MenuMinWidth { get; init; } = 192f;
 
+    /// <summary>The tallest a menu grows before its items scroll.</summary>
+    public float MenuMaxHeight { get; init; } = 480f;
+
+    /// <summary>The width of a dropdown button, and of the arrow half of a split button.</summary>
+    public float DropdownButtonWidth { get; init; } = 14f;
+
+    /// <summary>The width of the triangle a dropdown button shows; it is half as tall.</summary>
+    public float DropdownArrowWidth { get; init; } = 7f;
+
     public float TabPaddingX { get; init; } = 12f;
     public float TabCloseSize { get; init; } = 24f;
     public float TabMinWidth { get; init; } = 80f;

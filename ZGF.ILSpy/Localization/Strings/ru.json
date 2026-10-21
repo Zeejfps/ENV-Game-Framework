@@ -22,6 +22,8 @@
   "navigate.search": "Поиск",
   "toolbar.back": "Назад ({shortcut})",
   "toolbar.forward": "Вперёд ({shortcut})",
+  "toolbar.back_history": "История назад",
+  "toolbar.forward_history": "История вперёд",
   "toolbar.decompile_csharp": "Декомпилировать в C#",
   "toolbar.disassemble_il": "Дизассемблировать в IL",
   "toolbar.search": "Поиск типов и членов",

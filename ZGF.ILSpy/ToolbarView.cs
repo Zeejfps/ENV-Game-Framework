@@ -27,12 +27,23 @@ internal static class ToolbarView
         {
             using (Group(ui))
             {
-                if (ui.IconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family, ui.Memo("back-tip", t, static s => s.ToolbarBack("Alt+Left")),
-                        w.History.CanGoBack))
-                    w.GoBack();
-                if (ui.IconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family, ui.Memo("forward-tip", t, static s => s.ToolbarForward("Alt+Right")),
-                        w.History.CanGoForward))
-                    w.GoForward();
+                using (var back = ui.SplitIconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family,
+                           ui.Memo("back-tip", t, static s => s.ToolbarBack("Alt+Left")), t.ToolbarBackHistory, w.History.CanGoBack, w.History.Revision))
+                {
+                    if (back.Clicked)
+                        w.GoBack();
+                    if (back.IsOpen)
+                        HistoryItems(ui, w, -1);
+                }
+                using (var forward = ui.SplitIconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family,
+                           ui.Memo("forward-tip", t, static s => s.ToolbarForward("Alt+Right")), t.ToolbarForwardHistory, w.History.CanGoForward,
+                           w.History.Revision))
+                {
+                    if (forward.Clicked)
+                        w.GoForward();
+                    if (forward.IsOpen)
+                        HistoryItems(ui, w, 1);
+                }
             }
 
             using (Group(ui))
@@ -60,7 +71,23 @@ internal static class ToolbarView
     }
 
     private static Ui.Scope Group(Ui ui) =>
-        ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.GapTight, AlignY = Align.Center });
+        ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.Gap, AlignY = Align.Center });
+
+    private static void HistoryItems(Ui ui, Workspace w, int direction)
+    {
+        var entries = w.History.Entries;
+        for (var i = w.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
+        {
+            using (ui.Id(i))
+            {
+                if (ui.MenuItem(entries[i].Place.Text, id: "entry"))
+                {
+                    w.GoTo(i);
+                    return;
+                }
+            }
+        }
+    }
 
     private static void Search(Ui ui, Workspace w, Strings t)
     {
