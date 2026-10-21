@@ -674,3 +674,44 @@ public sealed class IconOverlayTests
         Assert.All(overlays, t => Assert.True(_frames.Height - t.Inputs.Position.Top <= list.Bottom, $"{_frames.Height - t.Inputs.Position.Top} > {list.Bottom}"));
     }
 }
+
+public sealed class NestedScrollbarTests
+{
+    private readonly UiFrames _frames = new();
+    private float _outerX;
+    private uint _thumb;
+
+    private void Body(Ui ui)
+    {
+        using var screen = ui.Screen();
+        _thumb = ui.Theme.ScrollThumb;
+        float y = 0f;
+        using (ui.Scroll(ui.GetId("outer"), ScrollAxes.Horizontal, new Box { Width = 200f, Height = 120f }))
+        using (ui.Box(new Box { Width = 600f, Height = 100f, ScrollX = 0f }))
+        {
+            var x = 0f;
+            using var inner = ui.VirtualScroll(ui.GetId("inner"), 3, 20f, ref x, ref y, new Box { Width = 600f, Height = 100f, Gap = 0f });
+            for (var i = inner.First; i < inner.End; i++)
+                ui.Leaf(new Box { Width = 2000f, Height = 20f });
+        }
+        ui.ScrollTo(ui.GetId("outer"), _outerX, 0f);
+    }
+
+    [Fact]
+    public void A_scroll_inside_a_scrolled_one_keeps_its_bar_within_the_outer_view()
+    {
+        _frames.Run(0f, Body);
+        _outerX = 100f;
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+        var outer = _frames.RectOf(Body, ui => ui.GetId("outer"));
+        var thumbs = _frames.Canvas.Rects.Where(r => r.Inputs.Style.BackgroundColor == _thumb).ToList();
+
+        Assert.NotEmpty(thumbs);
+        Assert.All(thumbs, r =>
+        {
+            Assert.NotNull(r.Clip);
+            Assert.True(r.Clip!.Value.Left >= outer.X - 0.5f && r.Clip.Value.Right <= outer.Right + 0.5f, $"{r.Clip} outside {outer}");
+        });
+    }
+}

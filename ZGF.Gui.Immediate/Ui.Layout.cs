@@ -403,7 +403,7 @@ public sealed partial class Ui
             var viewport = state.ViewportY - crossBar;
             var length = ThumbLength(viewport, state.ContentY, bar.MinThumb);
             var start = (viewport - length) * MathF.Min(1f, state.OffsetY / state.MaxY);
-            OpenFloating(scroll.ThumbY.Id, new Box { Width = hit, Height = length }, 1f, 0f, -hit, start, 1);
+            _tree[OpenFloating(scroll.ThumbY.Id, new Box { Width = hit, Height = length }, 1f, 0f, -hit, start, 1)].KeepsClip = true;
             Paint((ThumbColor(scroll.ThumbY), bar, false), PaintThumb);
             Close();
         }
@@ -412,7 +412,7 @@ public sealed partial class Ui
             var viewport = state.ViewportX - crossBar;
             var length = ThumbLength(viewport, state.ContentX, bar.MinThumb);
             var start = (viewport - length) * MathF.Min(1f, state.OffsetX / state.MaxX);
-            OpenFloating(scroll.ThumbX.Id, new Box { Width = length, Height = hit }, 0f, 1f, start, -hit, 1);
+            _tree[OpenFloating(scroll.ThumbX.Id, new Box { Width = length, Height = hit }, 0f, 1f, start, -hit, 1)].KeepsClip = true;
             Paint((ThumbColor(scroll.ThumbX), bar, true), PaintThumb);
             Close();
         }
