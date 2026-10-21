@@ -6,6 +6,8 @@
   "action.add": "Add",
   "action.delete": "Delete",
   "action.clear_completed": "Clear completed",
+  "action.add_many": "Add 1,000",
+  "tasks.generated": "Task {number}",
   "filter.hide_completed": "Hide completed",
   "settings.title": "Settings",
   "settings.volume": "Volume",

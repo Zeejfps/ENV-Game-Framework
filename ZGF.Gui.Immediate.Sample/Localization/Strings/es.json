@@ -6,6 +6,8 @@
   "action.add": "Añadir",
   "action.delete": "Eliminar",
   "action.clear_completed": "Borrar completadas",
+  "action.add_many": "Añadir 1.000",
+  "tasks.generated": "Tarea {number}",
   "filter.hide_completed": "Ocultar completadas",
   "settings.title": "Ajustes",
   "settings.volume": "Volumen",

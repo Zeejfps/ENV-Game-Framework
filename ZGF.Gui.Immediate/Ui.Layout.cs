@@ -24,7 +24,7 @@ public sealed partial class Ui
         public void Dispose() => _ui.EndScope(_kind);
     }
 
-    private sealed class ScrollState
+    internal sealed class ScrollState
     {
         public float Offset;
         public float Max;

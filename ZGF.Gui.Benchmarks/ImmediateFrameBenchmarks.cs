@@ -7,26 +7,32 @@ using ZGF.Gui.Immediate.Widgets;
 
 /// <summary>
 /// One immediate-mode frame end to end — record, solve, emit into the canvas — for a screen
-/// shaped like the todo sample with a long scrolling list. Every other row is checked so the
-/// checkmark paint path runs.
+/// shaped like the todo sample with a long scrolling list, recorded whole or virtualized. Every
+/// other row is checked so the checkmark paint path runs.
 /// </summary>
 [MemoryDiagnoser]
 public class ImmediateFrameBenchmarks
 {
-    private const int Rows = 200;
-
     private readonly UiInput _input = new();
-    private readonly bool[] _done = new bool[Rows];
-    private readonly string[] _labels = new string[Rows];
+    private bool[] _done = null!;
+    private string[] _labels = null!;
     private BenchCanvas _canvas = null!;
     private Ui _ui = null!;
     private string _draft = "Draft text";
     private bool _hideCompleted;
     private float _volume = 0.4f;
 
+    [Params(200, 10_000)]
+    public int Rows { get; set; } = 200;
+
+    [Params(false, true)]
+    public bool Virtual { get; set; }
+
     [GlobalSetup]
     public void Setup()
     {
+        _done = new bool[Rows];
+        _labels = new string[Rows];
         var fonts = new FreeTypeFontBackend();
         var font = fonts.LoadFontFromFile(ResolveFontPath(), 16);
         _canvas = new BenchCanvas(520, 640, fonts, font);
@@ -77,7 +83,7 @@ public class ImmediateFrameBenchmarks
     {
         var style = ui.Style;
         ui.Heading("Todos");
-        ui.Label(ui.Memo("remaining", Rows / 2, static remaining => $"{remaining} of {Rows} remaining"), style.TextMuted);
+        ui.Label(ui.Memo("remaining", (Remaining: Rows / 2, Rows), static a => $"{a.Remaining} of {a.Rows} remaining"), style.TextMuted);
         ui.ProgressBar(0.5f);
 
         using (ui.Row())
@@ -106,18 +112,30 @@ public class ImmediateFrameBenchmarks
 
         ui.Separator();
 
-        using (ui.Scroll("items"))
+        if (Virtual)
         {
-            for (var i = 0; i < Rows; i++)
+            using var list = ui.VirtualScroll("items", Rows, WidgetTheme.For(ui).ControlHeight);
+            for (var i = list.First; i < list.End; i++)
+                Row(ui, i);
+        }
+        else
+        {
+            using (ui.Scroll("items"))
             {
-                using (ui.Id(i))
-                using (ui.Row())
-                {
-                    ui.Checkbox(_labels[i], ref _done[i]);
-                    ui.Spacer();
-                    ui.Button("Delete");
-                }
+                for (var i = 0; i < Rows; i++)
+                    Row(ui, i);
             }
+        }
+    }
+
+    private void Row(Ui ui, int i)
+    {
+        using (ui.Id(i))
+        using (ui.Row())
+        {
+            ui.Checkbox(_labels[i], ref _done[i]);
+            ui.Spacer();
+            ui.Button("Delete");
         }
     }
 

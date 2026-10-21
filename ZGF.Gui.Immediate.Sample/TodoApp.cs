@@ -36,6 +36,8 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         (Locale.Pseudo, "Pseudo"),
     ];
 
+    private readonly List<TodoItem> _shown = new();
+
     protected override void Render(Ui ui, TodoState s)
     {
         var style = ui.UseStyle(s.DarkMode ? UiStyle.Dark : UiStyle.Light);
@@ -62,6 +64,11 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             {
                 s.Add(s.Draft.Trim());
                 s.Draft = "";
+            }
+            if (ui.Button(t.ActionAddMany, id: "add-many"))
+            {
+                for (var i = 0; i < 1000; i++)
+                    s.Add(t.TasksGenerated(s.NextId));
             }
         }
 
@@ -104,12 +111,19 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
 
         ui.Separator();
 
-        TodoItem? removed = null;
-        using (ui.Scroll("items"))
+        _shown.Clear();
+        foreach (var item in s.Items)
         {
-            foreach (var item in s.Items)
+            if (!s.HideCompleted || !item.Done)
+                _shown.Add(item);
+        }
+
+        TodoItem? removed = null;
+        using (var list = ui.VirtualScroll("items", _shown.Count, WidgetTheme.For(ui).ControlHeight))
+        {
+            for (var i = list.First; i < list.End; i++)
             {
-                if (s.HideCompleted && item.Done) continue;
+                var item = _shown[i];
                 using (ui.Id(item.Id))
                 using (ui.Row())
                 {

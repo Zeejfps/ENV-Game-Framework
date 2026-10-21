@@ -11,6 +11,8 @@
   "action.add": "Добавить",
   "action.delete": "Удалить",
   "action.clear_completed": "Очистить выполненные",
+  "action.add_many": "Добавить 1000",
+  "tasks.generated": "Задача {number}",
   "filter.hide_completed": "Скрыть выполненные",
   "settings.title": "Настройки",
   "settings.volume": "Громкость",

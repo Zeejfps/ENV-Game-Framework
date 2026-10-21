@@ -59,6 +59,8 @@ internal sealed class UiFrames
 
     public void Release() => _pending.Button(0, InputAction.Release, KeyModifiers.None);
 
+    public void Wheel(double y) => _pending.Scroll(0, y);
+
     public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => _pending.Key(key, InputAction.Press, modifiers);
 
     public void Type(string text)
