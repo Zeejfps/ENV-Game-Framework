@@ -19,6 +19,7 @@
   "view.language": "Idioma",
   "view.bookmarks": "Indicadores",
   "view.empty_hint": "Tudo está fechado. Abra os assemblies pelo menu Exibir.",
+  "view.reset_layout": "Redefinir layout",
   "navigate.back": "Voltar",
   "navigate.forward": "Avançar",
   "navigate.search": "Pesquisar",

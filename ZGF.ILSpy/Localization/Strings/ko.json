@@ -19,6 +19,7 @@
   "view.language": "언어",
   "view.bookmarks": "책갈피",
   "view.empty_hint": "모두 닫혀 있습니다. 보기 메뉴에서 어셈블리를 여세요.",
+  "view.reset_layout": "레이아웃 다시 설정",
   "navigate.back": "뒤로",
   "navigate.forward": "앞으로",
   "navigate.search": "검색",

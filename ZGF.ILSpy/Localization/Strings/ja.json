@@ -19,6 +19,7 @@
   "view.language": "言語",
   "view.bookmarks": "ブックマーク",
   "view.empty_hint": "すべて閉じています。[表示] メニューからアセンブリを開いてください。",
+  "view.reset_layout": "レイアウトのリセット",
   "navigate.back": "戻る",
   "navigate.forward": "進む",
   "navigate.search": "検索",

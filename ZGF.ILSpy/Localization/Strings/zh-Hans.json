@@ -19,6 +19,7 @@
   "view.language": "语言",
   "view.bookmarks": "书签",
   "view.empty_hint": "所有视图均已关闭。请从“视图”菜单打开程序集。",
+  "view.reset_layout": "重置布局",
   "navigate.back": "后退",
   "navigate.forward": "前进",
   "navigate.search": "搜索",

@@ -21,6 +21,7 @@
   "view.language": "Language",
   "view.bookmarks": "Bookmarks",
   "view.empty_hint": "Everything is closed. Open the assemblies from the View menu.",
+  "view.reset_layout": "Reset layout",
 
   "navigate.back": "Back",
   "navigate.forward": "Forward",

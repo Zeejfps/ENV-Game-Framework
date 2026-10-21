@@ -429,6 +429,28 @@ public sealed class Workspace
 
     public void CloseTab(DocumentTab tab) => Layout.Close(tab.Panel);
 
+    /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
+    /// tabbed together in one group, with the search results under them while a search is open.
+    /// Floating windows and the other views close; the documents stay open.</summary>
+    public void ResetLayout()
+    {
+        var documents = Layout.AllGroups().SelectMany(static g => g.Panels).Where(p => FindTab(p) != null).ToList();
+        Layout.Windows.Clear();
+        Layout.Root = new DockGroup { Id = Layout.NextId++, Panels = { DockPanels.Assemblies }, Active = DockPanels.Assemblies };
+        if (documents.Count == 0)
+        {
+            _active = AddTab();
+            documents.Add(_active.Panel);
+        }
+        DockBeside(documents[0], Layout.Root, DockEdge.Right, 0.66f);
+        var group = Layout.GroupOf(documents[0])!;
+        foreach (var panel in documents.Skip(1))
+            Layout.Dock(panel, group, DockEdge.Center);
+        if (_active != null && Layout.Contains(_active.Panel))
+            Layout.Activate(_active.Panel);
+        SyncSearchPanel();
+    }
+
     /// <summary>Docks the assemblies view where it starts out, left of everything, if it is closed,
     /// and brings it to the front.</summary>
     public void OpenAssemblies()

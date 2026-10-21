@@ -19,6 +19,7 @@
   "view.language": "Idioma",
   "view.bookmarks": "Marcadores",
   "view.empty_hint": "Todo está cerrado. Abre los ensamblados desde el menú Ver.",
+  "view.reset_layout": "Restablecer diseño",
   "navigate.back": "Atrás",
   "navigate.forward": "Adelante",
   "navigate.search": "Buscar",

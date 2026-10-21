@@ -19,6 +19,7 @@
   "view.language": "Langue",
   "view.bookmarks": "Signets",
   "view.empty_hint": "Tout est fermé. Ouvrez les assemblys depuis le menu Affichage.",
+  "view.reset_layout": "Réinitialiser la disposition",
   "navigate.back": "Précédent",
   "navigate.forward": "Suivant",
   "navigate.search": "Rechercher",

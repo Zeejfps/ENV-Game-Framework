@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -73,5 +74,34 @@ public sealed class DockingTests
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Everything is closed. Open the assemblies from the View menu."));
+    }
+
+    [Fact]
+    public void Reset_layout_in_the_View_menu_puts_the_assemblies_left_of_every_open_document_and_closes_the_rest()
+    {
+        var app = new AppDriver();
+        var d = app.Driver;
+        d.OpenFixtures();
+        d.Show(d.Fixture("Greeter"));
+        d.Show(d.Fixture("Farewell"), inNewTab: true);
+        var farewell = d.Workspace.ActiveTab!;
+        var layout = d.Workspace.Layout;
+        layout.Dock(farewell.Panel, layout.Root, DockEdge.Bottom);
+        layout.Float(DockPanels.Assemblies, new UiRect(40f, 40f, 300f, 300f));
+        d.Workspace.OpenBookmarks();
+        app.Run(2);
+
+        app.Click("View");
+        app.ClickMenuItem("Reset layout");
+        app.Run(2);
+
+        var split = Assert.IsType<DockSplit>(layout.Root);
+        Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(split.First).Panels);
+        var documents = Assert.IsType<DockGroup>(split.Second);
+        Assert.Equal(d.Workspace.Tabs.Select(t => t.Panel).Order(), documents.Panels.Order());
+        Assert.Equal(farewell.Panel, documents.Active);
+        Assert.Same(farewell, d.Workspace.ActiveTab);
+        Assert.Empty(layout.Windows);
+        Assert.False(layout.Contains(DockPanels.Bookmarks));
     }
 }

@@ -19,6 +19,7 @@
   "view.language": "Язык",
   "view.bookmarks": "Закладки",
   "view.empty_hint": "Всё закрыто. Откройте сборки через меню «Вид».",
+  "view.reset_layout": "Сбросить макет",
   "navigate.back": "Назад",
   "navigate.forward": "Вперёд",
   "navigate.search": "Поиск",
