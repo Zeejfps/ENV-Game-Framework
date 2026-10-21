@@ -65,6 +65,9 @@
   "metadata.filter_all": "Todos",
   "metadata.filter_any": "Alguno",
   "metadata.filter_any_value": "<Cualquiera>",
+  "resource.save": "Guardar…",
+  "resource.save_title": "Guardar recurso",
+  "resource.image_info": "{format}, {width} × {height} píxeles",
   "find.placeholder": "Buscar",
   "find.no_results": "Sin resultados",
   "find.position": "{current} de {total}",
@@ -146,6 +149,7 @@
   "error.search": "Error en la búsqueda",
   "error.go_to_bookmark": "No se puede ir a {name}",
   "error.export_bookmarks": "No se pueden exportar los marcadores",
+  "error.save_resource": "No se puede guardar {name}",
   "error.import_bookmarks": "No se pueden importar marcadores de {file}",
   "error.bookmarks_not_found": "Algunos marcadores de {file} no se encontraron y se omitieron"
 }

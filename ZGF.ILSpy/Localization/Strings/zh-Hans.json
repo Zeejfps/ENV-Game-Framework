@@ -65,6 +65,9 @@
   "metadata.filter_all": "全部",
   "metadata.filter_any": "任一",
   "metadata.filter_any_value": "<任意>",
+  "resource.save": "保存…",
+  "resource.save_title": "保存资源",
+  "resource.image_info": "{format}，{width} × {height} 像素",
   "find.placeholder": "查找",
   "find.no_results": "无结果",
   "find.position": "第 {current} 个，共 {total} 个",
@@ -146,6 +149,7 @@
   "error.search": "搜索失败",
   "error.go_to_bookmark": "无法转到 {name}",
   "error.export_bookmarks": "无法导出书签",
+  "error.save_resource": "无法保存 {name}",
   "error.import_bookmarks": "无法从 {file} 导入书签",
   "error.bookmarks_not_found": "{file} 中的部分书签未找到，已略过"
 }

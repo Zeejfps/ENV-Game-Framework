@@ -278,6 +278,17 @@ public sealed class RecordingCanvas : ICanvas
     public int GetImageHeight(string imageId) =>
         _imageSizes.TryGetValue(imageId, out var size) ? size.Height : DefaultImageHeight;
 
+    /// <summary>Remembers the image's size, as a rendering canvas keeps its pixels.</summary>
+    public bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown)
+    {
+        _imageSizes[imageId] = (widthPx, heightPx);
+        return true;
+    }
+
+    public bool HasImage(string imageId) => _imageSizes.ContainsKey(imageId);
+
+    public void RemoveImage(string imageId) => _imageSizes.Remove(imageId);
+
     /// <summary>Every captured command merged in draw order.</summary>
     public IReadOnlyList<DrawCommand> InDrawOrder() => _all;
 

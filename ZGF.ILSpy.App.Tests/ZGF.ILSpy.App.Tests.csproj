@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\ZGF.ILSpy.Tests\Fixtures\Resources\*" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ZGF.ILSpy\ZGF.ILSpy.csproj" />
     <ProjectReference Include="..\ZGF.ILSpy.Core\ZGF.ILSpy.Core.csproj" />
     <ProjectReference Include="..\ZGF.Gui.Immediate.Testing\ZGF.Gui.Immediate.Testing.csproj" />

@@ -65,6 +65,9 @@
   "metadata.filter_all": "すべて",
   "metadata.filter_any": "いずれか",
   "metadata.filter_any_value": "<すべて>",
+  "resource.save": "保存…",
+  "resource.save_title": "リソースを保存",
+  "resource.image_info": "{format}、{width} × {height} ピクセル",
   "find.placeholder": "検索",
   "find.no_results": "一致なし",
   "find.position": "{current} / {total}",
@@ -146,6 +149,7 @@
   "error.search": "検索に失敗しました",
   "error.go_to_bookmark": "{name} に移動できません",
   "error.export_bookmarks": "ブックマークをエクスポートできません",
+  "error.save_resource": "{name} を保存できません",
   "error.import_bookmarks": "{file} からブックマークをインポートできません",
   "error.bookmarks_not_found": "{file} の一部のブックマークが見つからなかったため、除外しました"
 }

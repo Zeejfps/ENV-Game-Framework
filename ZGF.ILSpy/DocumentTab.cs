@@ -1,5 +1,6 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
+using ZGF.ILSpy.Core.Resources;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -52,6 +53,13 @@ public sealed class DocumentTab
 
     public MetadataGridState GridView { get; } = new();
 
+    /// <summary>The picture of a node that <see cref="BrowseNode.ShowsImage"/>, once decoded; shown
+    /// instead of <see cref="Document"/>.</summary>
+    public ResourceImage? Image { get; private set; }
+
+    /// <summary>The image this tab draws <see cref="Image"/> as, one per tab.</summary>
+    public string ImageId => $"{Panel}-image";
+
     /// <summary>Where the view of the shown node stands, or null while there is none.</summary>
     public CodeViewPosition? Position => IsBusy || Node == null ? null : Grid != null ? GridView.Position : View.Position;
 
@@ -73,7 +81,7 @@ public sealed class DocumentTab
         int row = MetadataGridState.None)
     {
         Version++;
-        if (ReferenceEquals(node, Node) && (language == Language || node.ShowsGrid) && !IsBusy)
+        if (ReferenceEquals(node, Node) && (language == Language || node.ShowsGrid || node.ShowsImage) && !IsBusy)
         {
             Arrive(position, target, row);
             return;
@@ -89,9 +97,13 @@ public sealed class DocumentTab
         _title = NodeText.Name(node);
         Language = language;
         Grid = null;
+        Image = null;
         Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
 
-        if (node.ShowsGrid)
+        if (node.ShowsImage)
+            node.LoadImageAsync(work.Token).ContinueWith(task => _post(() => CompleteImage(work, node, task)),
+                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        else if (node.ShowsGrid)
             node.LoadGridAsync(work.Token).ContinueWith(task => _post(() => CompleteGrid(work, node, task)),
                 CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         else
@@ -103,7 +115,7 @@ public sealed class DocumentTab
     /// another one.</summary>
     public void EnsureLanguage(DecompilationLanguage language)
     {
-        if (Node is { ShowsGrid: false } && Language != language)
+        if (Node is { ShowsGrid: false, ShowsImage: false } && Language != language)
             Show(Node, language);
     }
 
@@ -115,6 +127,7 @@ public sealed class DocumentTab
         Cancel();
         Node = null;
         Grid = null;
+        Image = null;
         Document = DecompiledDocument.FromText(Title, $"// {message}", Language);
     }
 
@@ -159,6 +172,24 @@ public sealed class DocumentTab
         Arrive(failed ? null : _restore, failed ? null : _target, MetadataGridState.None);
         _restore = null;
         _target = null;
+    }
+
+    /// <summary>Shows the decoded picture, or when it cannot be read, the resource as a document
+    /// with why first.</summary>
+    private void CompleteImage(CancellationTokenSource work, BrowseNode node, Task<ResourceImage> task)
+    {
+        work.Dispose();
+        if (_work != work) return;
+        _work = null;
+        if (task.IsCanceled) return;
+        if (task.IsFaulted)
+        {
+            var reason = DecompiledDocument.FromText(node.Text, $"// {task.Exception!.GetBaseException().Message}", Language);
+            var content = node.Decompile(Language);
+            Document = DecompiledDocument.FromText(node.Text, reason.GetText() + "\n" + content.GetText(), Language);
+            return;
+        }
+        Image = task.Result;
     }
 
     private void CompleteGrid(CancellationTokenSource work, BrowseNode node, Task<MetadataGrid> task)

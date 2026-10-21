@@ -65,6 +65,9 @@
   "metadata.filter_all": "Alle",
   "metadata.filter_any": "Eines",
   "metadata.filter_any_value": "<Beliebig>",
+  "resource.save": "Speichern…",
+  "resource.save_title": "Ressource speichern",
+  "resource.image_info": "{format}, {width} × {height} Pixel",
   "find.placeholder": "Suchen",
   "find.no_results": "Keine Ergebnisse",
   "find.position": "{current} von {total}",
@@ -146,6 +149,7 @@
   "error.search": "Suche fehlgeschlagen",
   "error.go_to_bookmark": "{name} kann nicht angesprungen werden",
   "error.export_bookmarks": "Die Lesezeichen können nicht exportiert werden",
+  "error.save_resource": "{name} kann nicht gespeichert werden",
   "error.import_bookmarks": "Lesezeichen aus {file} können nicht importiert werden",
   "error.bookmarks_not_found": "Einige Lesezeichen aus {file} wurden nicht gefunden und ausgelassen"
 }

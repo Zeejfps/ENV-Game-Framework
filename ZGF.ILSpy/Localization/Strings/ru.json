@@ -65,6 +65,9 @@
   "metadata.filter_all": "Все",
   "metadata.filter_any": "Любой",
   "metadata.filter_any_value": "<Любое>",
+  "resource.save": "Сохранить…",
+  "resource.save_title": "Сохранить ресурс",
+  "resource.image_info": "{format}, {width} × {height} пикс.",
   "find.placeholder": "Найти",
   "find.no_results": "Нет результатов",
   "find.position": "{current} из {total}",
@@ -146,6 +149,7 @@
   "error.search": "Ошибка поиска",
   "error.go_to_bookmark": "Не удаётся перейти к {name}",
   "error.export_bookmarks": "Не удаётся экспортировать закладки",
+  "error.save_resource": "Не удалось сохранить {name}",
   "error.import_bookmarks": "Не удаётся импортировать закладки из {file}",
   "error.bookmarks_not_found": "Некоторые закладки из {file} не найдены и пропущены"
 }

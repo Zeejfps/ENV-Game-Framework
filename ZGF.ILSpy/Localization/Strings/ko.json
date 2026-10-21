@@ -65,6 +65,9 @@
   "metadata.filter_all": "모두",
   "metadata.filter_any": "하나 이상",
   "metadata.filter_any_value": "<모두>",
+  "resource.save": "저장…",
+  "resource.save_title": "리소스 저장",
+  "resource.image_info": "{format}, {width} × {height} 픽셀",
   "find.placeholder": "찾기",
   "find.no_results": "결과 없음",
   "find.position": "{current}/{total}",
@@ -146,6 +149,7 @@
   "error.search": "검색하지 못했습니다",
   "error.go_to_bookmark": "{name}(으)로 이동할 수 없습니다",
   "error.export_bookmarks": "책갈피를 내보낼 수 없습니다",
+  "error.save_resource": "{name}을(를) 저장할 수 없습니다",
   "error.import_bookmarks": "{file}에서 책갈피를 가져올 수 없습니다",
   "error.bookmarks_not_found": "{file}의 일부 책갈피를 찾지 못해 제외했습니다"
 }

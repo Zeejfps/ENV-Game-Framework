@@ -75,6 +75,15 @@ public sealed class UiPainter
 
     /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
     /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
+    /// <summary>Draws the image <paramref name="imageId"/>, set with <see cref="Ui.SetImage"/>,
+    /// fitted into <paramref name="rect"/> keeping its aspect and multiplied by
+    /// <paramref name="tint"/>; nothing when there is no such image.</summary>
+    public void Image(UiRect rect, string imageId, uint tint = 0xFFFFFFFF)
+    {
+        if (_canvas.HasImage(imageId))
+            _canvas.DrawImage(new DrawImageInputs { Position = ToCanvas(rect), ImageId = imageId, TintColor = tint, Rotation = 0f, ZIndex = _z });
+    }
+
     public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null)
     {
         if (string.IsNullOrEmpty(text)) return;

@@ -73,6 +73,9 @@
   "metadata.filter_all": "All",
   "metadata.filter_any": "Any",
   "metadata.filter_any_value": "<Any>",
+  "resource.save": "Save…",
+  "resource.save_title": "Save resource",
+  "resource.image_info": "{format}, {width} × {height} pixels",
 
   "find.placeholder": "Find",
   "find.no_results": "No results",
@@ -160,6 +163,7 @@
   "error.search": "Search failed",
   "error.go_to_bookmark": "Cannot go to {name}",
   "error.export_bookmarks": "Cannot export the bookmarks",
+  "error.save_resource": "Cannot save {name}",
   "error.import_bookmarks": "Cannot import bookmarks from {file}",
   "error.bookmarks_not_found": "Some bookmarks from {file} were not found and were left out"
 }

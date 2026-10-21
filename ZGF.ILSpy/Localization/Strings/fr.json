@@ -65,6 +65,9 @@
   "metadata.filter_all": "Tous",
   "metadata.filter_any": "Au moins un",
   "metadata.filter_any_value": "<Toutes>",
+  "resource.save": "Enregistrer…",
+  "resource.save_title": "Enregistrer la ressource",
+  "resource.image_info": "{format}, {width} × {height} pixels",
   "find.placeholder": "Rechercher",
   "find.no_results": "Aucun résultat",
   "find.position": "{current} sur {total}",
@@ -146,6 +149,7 @@
   "error.search": "Échec de la recherche",
   "error.go_to_bookmark": "Impossible d’aller à {name}",
   "error.export_bookmarks": "Impossible d’exporter les signets",
+  "error.save_resource": "Impossible d’enregistrer {name}",
   "error.import_bookmarks": "Impossible d’importer les signets de {file}",
   "error.bookmarks_not_found": "Certains signets de {file} sont introuvables et ont été ignorés"
 }

@@ -9,6 +9,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\JpegSharp\JpegSharp.csproj" />
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
       <InternalsVisibleTo Include="ZGF.ILSpy.Tests" />
       <InternalsVisibleTo Include="ZGF.ILSpy.App.Tests" />
     </ItemGroup>

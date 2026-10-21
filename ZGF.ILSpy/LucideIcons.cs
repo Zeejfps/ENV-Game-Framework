@@ -26,6 +26,8 @@ public static class LucideIcons
     public const string Diff = "\uE30C";
     public const string Download = "\uE0B2";
     public const string FileIcon = "\uE0C0";
+    public const string FileImage = "\uE31C";
+    public const string FileSpreadsheet = "\uE326";
     public const string FileText = "\uE0CC";
     public const string Filter = "\uE0DC";
     public const string FilterX = "\uE3B5";

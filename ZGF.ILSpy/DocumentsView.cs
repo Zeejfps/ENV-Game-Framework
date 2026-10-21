@@ -14,6 +14,11 @@ internal static class DocumentsView
             Hint(ui, t.DocumentsHint);
             return;
         }
+        if (tab.Image is { } image)
+        {
+            ResourceImageView.Render(ui, w, t, tab, image);
+            return;
+        }
         if (tab.Grid is { } grid)
         {
             var picked = ui.MetadataGridView("grid", grid, tab.GridView, w.MetadataFilters, t);
@@ -23,7 +28,7 @@ internal static class DocumentsView
                 w.Navigate(definition, picked.InNewTab);
             return;
         }
-        if (tab is { IsBusy: true, Node.ShowsGrid: true })
+        if (tab is { IsBusy: true, Node.ShowsGrid: true } or { IsBusy: true, Node.ShowsImage: true })
         {
             Hint(ui, t.MetadataLoading);
             return;

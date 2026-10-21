@@ -1,0 +1,62 @@
+using ZGF.Desktop;
+using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Resources;
+using ZGF.ILSpy.Localization;
+
+namespace ZGF.ILSpy;
+
+/// <summary>A picture resource's tab: what it is and a Save button above the picture, at its
+/// own size on a framed surface, scrolling when larger than the view.</summary>
+internal static class ResourceImageView
+{
+    private sealed class Uploaded
+    {
+        public ResourceImage? Image;
+    }
+
+    public static void Render(Ui ui, Workspace w, Strings t, DocumentTab tab, ResourceImage image)
+    {
+        var theme = ui.Theme;
+        var uploaded = ui.GetState<Uploaded>(ui.GetId(tab.ImageId));
+        if (!ReferenceEquals(uploaded.Image, image) || !ui.HasImage(tab.ImageId))
+        {
+            ui.SetImage(tab.ImageId, image.Width, image.Height, image.Rgba);
+            uploaded.Image = image;
+        }
+
+        using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground });
+        using (ui.Row(new Box
+        {
+            Height = theme.PaneHeaderHeight,
+            Padding = new Spacing(theme.ShellPaddingX, 0f),
+            Gap = theme.Gap,
+            AlignY = Align.Center,
+            Background = theme.Surface,
+        }))
+        {
+            ui.Text(t.ResourceImageInfo(image.Format, image.Width, image.Height), new Box { Width = Sizing.Grow() }, color: theme.TextMuted,
+                overflow: TextOverflow.Ellipsis);
+            if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceSave, id: "save"))
+                PickSave(ui, w, t, node);
+        }
+        ui.Separator();
+        using (ui.Scroll("image", ScrollAxes.Both, new Box { Height = Sizing.Grow(), Padding = theme.ShellPaddingX }))
+        {
+            using (ui.Box(new Box
+            {
+                Padding = theme.GapTight,
+                Background = theme.Surface,
+                BorderColor = theme.Border,
+                BorderWidth = theme.BorderWidth,
+            }))
+                ui.Image(tab.ImageId, image.Width, image.Height);
+        }
+    }
+
+    /// <summary>Asks where to save the resource <paramref name="node"/> stands for, then saves it.</summary>
+    public static void PickSave(Ui ui, Workspace w, Strings t, BrowseNode node) =>
+        ui.PickSaveFile(t.ResourceSaveTitle, null, Path.GetFileName(node.Text), [new FileFilter(t.FileFilterAll, ["*.*"])],
+            path => w.SaveResource(node, path));
+}

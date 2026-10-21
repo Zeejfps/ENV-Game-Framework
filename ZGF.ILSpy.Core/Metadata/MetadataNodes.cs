@@ -143,16 +143,17 @@ internal sealed class UnsupportedTableNode(LoadedAssembly assembly, BrowseNode p
     internal override IEnumerable<string> Lines() => [$"{table}: {rows} rows"];
 }
 
-/// <summary>A metadata node shown as a grid: a header, a directory, a table or a heap.</summary>
+/// <summary>A node shown as a grid: a metadata header, directory, table or heap, or the entries
+/// of a <c>.resources</c> file.</summary>
 internal class MetadataGridNode : BrowseNode
 {
     private readonly Type _entryType;
-    private readonly Func<IReadOnlyList<object>> _rows;
+    private readonly Func<IReadOnlyList<object>>? _rows;
     private readonly Lock _gate = new();
     private MetadataGrid? _grid;
 
     public MetadataGridNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, string text, MetadataFile file, Type entryType,
-        Func<IReadOnlyList<object>> rows)
+        Func<IReadOnlyList<object>>? rows)
         : base(assembly, parent, kind, text)
     {
         File = file;
@@ -183,9 +184,12 @@ internal class MetadataGridNode : BrowseNode
         get
         {
             lock (_gate)
-                return _grid ??= new MetadataGrid(this, _entryType, _rows());
+                return _grid ??= new MetadataGrid(this, _entryType, LoadRows());
         }
     }
+
+    /// <summary>The rows, read once.</summary>
+    private protected virtual IReadOnlyList<object> LoadRows() => _rows?.Invoke() ?? [];
 }
 
 /// <summary>ILSpy's "Debug Directory": its entries as a grid, and each as a node of its own.</summary>

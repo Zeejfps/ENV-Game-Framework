@@ -5,6 +5,7 @@ using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
 using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Core.Metadata;
+using ZGF.ILSpy.Core.Resources;
 using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
 using MetadataResource = ICSharpCode.Decompiler.Metadata.Resource;
 
@@ -101,22 +102,8 @@ internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode pa
     private protected override BrowseNode[] CreateChildren() =>
         Assembly.File.Resources
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => (BrowseNode)new ResourceNode(Assembly, this, r))
+            .Select(r => ResourceNodes.Create(Assembly, this, r))
             .ToArray();
-}
-
-internal sealed class ResourceNode : BrowseNode
-{
-    public ResourceNode(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource)
-        : base(assembly, parent, NodeKind.Resource, resource.Name)
-    {
-        Resource = resource;
-        var isPublic = (resource.Attributes & ManifestResourceAttributes.VisibilityMask) == ManifestResourceAttributes.Public;
-        Accessibility = isPublic ? NodeAccessibility.Public : NodeAccessibility.Private;
-        IsPublicApi = isPublic;
-    }
-
-    public MetadataResource Resource { get; }
 }
 
 internal sealed class NamespaceNode : BrowseNode

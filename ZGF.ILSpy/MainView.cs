@@ -67,6 +67,8 @@ public static class MainView
             }
         }
         w.SyncActiveTab();
+        foreach (var image in w.TakeReleasedImages())
+            ui.RemoveImage(image);
     }
 
     private static DockTab Tab(Workspace w, Strings t, string panel) =>

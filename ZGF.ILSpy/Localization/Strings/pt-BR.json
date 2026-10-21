@@ -65,6 +65,9 @@
   "metadata.filter_all": "Todos",
   "metadata.filter_any": "Algum",
   "metadata.filter_any_value": "<Qualquer>",
+  "resource.save": "Salvar…",
+  "resource.save_title": "Salvar recurso",
+  "resource.image_info": "{format}, {width} × {height} pixels",
   "find.placeholder": "Localizar",
   "find.no_results": "Nenhum resultado",
   "find.position": "{current} de {total}",
@@ -146,6 +149,7 @@
   "error.search": "Falha na pesquisa",
   "error.go_to_bookmark": "Não é possível ir para {name}",
   "error.export_bookmarks": "Não é possível exportar os indicadores",
+  "error.save_resource": "Não é possível salvar {name}",
   "error.import_bookmarks": "Não é possível importar indicadores de {file}",
   "error.bookmarks_not_found": "Alguns indicadores de {file} não foram encontrados e foram ignorados"
 }

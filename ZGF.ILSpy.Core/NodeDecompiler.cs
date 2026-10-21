@@ -12,6 +12,7 @@ using ICSharpCode.Decompiler.Output;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
 using ZGF.ILSpy.Core.Metadata;
+using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
@@ -234,12 +235,12 @@ internal static class NodeDecompiler
             case ResourcesFolderNode:
                 foreach (var child in node.Children)
                 {
-                    if (child is ResourceNode resource)
-                        WriteComment(output, comment, Describe(resource.Resource));
+                    if (child is IResourceData resource)
+                        WriteComment(output, comment, resource.Description);
                 }
                 break;
-            case ResourceNode resource:
-                WriteResource(resource.Resource, output, comment, cancellationToken);
+            case IResourceData resource:
+                WriteResource(node.Text, resource, output, comment);
                 break;
             case MetadataTextNode metadata:
                 foreach (var line in metadata.Lines())
@@ -290,90 +291,22 @@ internal static class NodeDecompiler
         output.WriteLine();
     }
 
-    private static void WriteResource(Resource resource, DocumentBuilder output, string comment, CancellationToken cancellationToken)
+    /// <summary>A text resource as its text, colored as XML or JSON when it is that, as ILSpy shows
+    /// it; anything else as a description and a hex dump of its first bytes.</summary>
+    private static void WriteResource(string name, IResourceData resource, DocumentBuilder output, string comment)
     {
-        WriteComment(output, comment, Describe(resource));
-        output.WriteLine();
-        using var stream = resource.TryOpenStream();
-        if (stream is null) return;
-
-        if (resource.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
+        var data = resource.ReadData();
+        if (ResourceText.Detect(name, data) is var (text, syntax))
         {
-            try
-            {
-                using var file = new ResourcesFile(stream, leaveOpen: true);
-                foreach (var (key, value) in file)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    output.Write(key, SpanKind.Field);
-                    switch (value)
-                    {
-                        case string text:
-                            output.Write(" = ");
-                            output.Write($"\"{TextWriterTokenWriter.ConvertString(text)}\"", SpanKind.String);
-                            break;
-                        case ResourceSerializedObject serialized:
-                            output.Write(" : ");
-                            output.Write(serialized.TypeName ?? "object", SpanKind.Type);
-                            break;
-                        case byte[] bytes:
-                            output.Write(" : ");
-                            output.Write($"byte[{bytes.Length}]", SpanKind.Type);
-                            break;
-                        case null:
-                            output.Write(" = ");
-                            output.Write("null", SpanKind.Keyword);
-                            break;
-                        default:
-                            output.Write(" = ");
-                            output.Write(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "", SpanKind.Plain);
-                            output.Write(" : ");
-                            output.Write(value.GetType().Name, SpanKind.Type);
-                            break;
-                    }
-                    output.WriteLine();
-                }
-                return;
-            }
-            catch (Exception e) when (e is BadImageFormatException or EndOfStreamException or InvalidDataException or ArgumentException)
-            {
-                stream.Position = 0;
-            }
-        }
-
-        var buffer = new byte[MaxResourceBytes];
-        var length = stream.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
-        if (TryDecodeText(buffer.AsSpan(0, length), out var decoded))
-        {
-            output.Write(decoded, SpanKind.Plain);
+            ResourceText.Write(output, text, syntax);
             output.WriteLine();
+            return;
         }
-        else
-        {
-            WriteHexDump(buffer.AsSpan(0, length), output);
-        }
-        if (length == buffer.Length && stream.ReadByte() >= 0)
+        WriteComment(output, comment, resource.Description);
+        output.WriteLine();
+        WriteHexDump(data.AsSpan(0, Math.Min(data.Length, MaxResourceBytes)), output);
+        if (data.Length > MaxResourceBytes)
             WriteComment(output, comment, $"Truncated after {MaxResourceBytes} bytes.");
-    }
-
-    private static bool TryDecodeText(ReadOnlySpan<byte> bytes, out string text)
-    {
-        text = "";
-        if (bytes.IndexOf((byte)0) >= 0) return false;
-        try
-        {
-            text = new UTF8Encoding(false, true).GetString(bytes);
-        }
-        catch (DecoderFallbackException)
-        {
-            return bytes.Length == MaxResourceBytes && TryDecodeText(bytes[..^4], out text);
-        }
-        foreach (var c in text)
-        {
-            if (char.IsControl(c) && c is not ('\r' or '\n' or '\t' or '﻿')) return false;
-        }
-        text = text.TrimStart('﻿');
-        return true;
     }
 
     private static void WriteHexDump(ReadOnlySpan<byte> bytes, DocumentBuilder output)
@@ -394,12 +327,6 @@ internal static class NodeDecompiler
             output.Write(" " + line, SpanKind.String);
             output.WriteLine();
         }
-    }
-
-    private static string Describe(Resource resource)
-    {
-        var size = resource.TryGetLength() is { } length ? $", {length} bytes" : "";
-        return $"{resource.Name} ({resource.ResourceType}{size})";
     }
 
     private static void WriteComment(DocumentBuilder output, string comment, string text)

@@ -25,6 +25,7 @@ public sealed class Workspace
     private int _savedBookmarks;
     private int _savedAnalyzer;
     private int _savedFilters;
+    private readonly List<string> _releasedImages = new();
     private List<CodeAnchor>? _analyzed;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
@@ -368,6 +369,29 @@ public sealed class Workspace
     /// <summary>True while imported bookmarks' places are being found in the background.</summary>
     public bool IsImporting { get; private set; }
 
+    /// <summary>The images of tabs closed since the last call, for the view to free.</summary>
+    public IEnumerable<string> TakeReleasedImages()
+    {
+        if (_releasedImages.Count == 0) return [];
+        var released = _releasedImages.ToArray();
+        _releasedImages.Clear();
+        return released;
+    }
+
+    /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
+    /// <paramref name="path"/>.</summary>
+    public void SaveResource(BrowseNode node, string path)
+    {
+        try
+        {
+            File.WriteAllBytes(path, node.ReadResource());
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            ReportError(Strings.For(Locale).ErrorSaveResource(node.Text), e.Message);
+        }
+    }
+
     public void ExportBookmarks(string path)
     {
         if (BookmarkFile.Write(path, Bookmarks.Save()) is { } error)
@@ -617,6 +641,7 @@ public sealed class Workspace
         Intend();
         tab.Cancel();
         _tabs.Remove(tab);
+        _releasedImages.Add(tab.ImageId);
         if (tab != _active) return;
         _active = null;
         if ((FindTab(Layout.Focused) ?? FrontTab()) is { } next)

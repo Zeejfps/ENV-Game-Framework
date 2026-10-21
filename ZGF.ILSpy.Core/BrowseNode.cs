@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core.Metadata;
+using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
@@ -38,6 +39,8 @@ public enum NodeKind
     MetadataHeap,
     DerivedTypes,
     DerivedType,
+    ResourcesFile,
+    ResourceImage,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -155,6 +158,25 @@ public abstract class BrowseNode
     /// <summary><see cref="Decompile"/> on the thread pool.</summary>
     public Task<DecompiledDocument> DecompileAsync(DecompilationLanguage language, CancellationToken cancellationToken = default) =>
         Task.Run(() => Decompile(language, cancellationToken), cancellationToken);
+
+    /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
+    /// reads, to save them.</summary>
+    public bool HasResource => this is IResourceData;
+
+    /// <summary>The bytes of the resource this node stands for.</summary>
+    public byte[] ReadResource() =>
+        this is IResourceData data ? data.ReadData() : throw new InvalidOperationException($"{Text} is no resource.");
+
+    /// <summary>Whether this node shows as a picture, from <see cref="LoadImageAsync"/>, rather than
+    /// as a decompiled document: a resource named as a PNG, JPEG, BMP, GIF, ICO or CUR file.</summary>
+    public bool ShowsImage => Kind == NodeKind.ResourceImage && this is IResourceData;
+
+    /// <summary>The picture of a node that <see cref="ShowsImage"/>, decoded on the thread pool.
+    /// Fails with <see cref="InvalidDataException"/> when it cannot be read.</summary>
+    public Task<ResourceImage> LoadImageAsync(CancellationToken cancellationToken = default) =>
+        this is IResourceData data && ShowsImage
+            ? Task.Run(() => ResourceImage.Decode(data.ReadData()), cancellationToken)
+            : throw new InvalidOperationException($"{Text} does not show as a picture.");
 
     /// <summary>Whether this node shows as a grid of metadata rows, from <see cref="LoadGridAsync"/>,
     /// rather than as a decompiled document; the same in every language.</summary>
