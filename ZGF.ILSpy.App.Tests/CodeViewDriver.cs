@@ -9,13 +9,21 @@ using ZGF.KeyboardModule;
 namespace ZGF.ILSpy.App.Tests;
 
 /// <summary>Runs a code view filling a window, with the synthetic metrics of <see cref="UiFrames"/>:
-/// cells 8 by 16, the view's top-left at the window padding (16, 16).</summary>
+/// cells 8 by 16 centered in rows of the theme's code line height, the view's top-left at the window
+/// padding (16, 16), and a gutter of 8 + digits + 8 (+ a 16 wide fold column), then 12 before the
+/// text.</summary>
 internal sealed class CodeViewDriver
 {
     public const float Origin = 16f;
     public const float Cell = 8f;
-    public const float Row = 16f;
+    private const float CellHeight = 16f;
+    private const float GutterPadding = 8f;
+    private const float FoldColumn = 16f;
+    private const float CodePadding = 12f;
     private const float Frame = 1f / 60f;
+
+    public static readonly float Row = UiTheme.Dark.CodeLineHeight;
+    private static readonly float CellInset = MathF.Floor((Row - CellHeight) / 2);
 
     private readonly Func<Ui, CodeViewResult> _body;
 
@@ -35,10 +43,12 @@ internal sealed class CodeViewDriver
     public DecompiledDocument Document { get; set; }
     public CodeViewResult Last { get; private set; }
 
-    public float TextLeft => Origin + (Math.Max(3, CodeTextDigits(Document.Lines.Length)) + (Document.Folds.Length > 0 ? 4 : 3)) * Cell;
+    private float FoldLeft => Origin + GutterPadding + Math.Max(3, CodeTextDigits(Document.Lines.Length)) * Cell + GutterPadding;
+
+    public float TextLeft => FoldLeft + (Document.Folds.Length > 0 ? FoldColumn : 0f) + CodePadding;
 
     /// <summary>Where the fold chevron of the row at <paramref name="row"/> is.</summary>
-    public (float X, float Y) ChevronOf(int row) => (Origin + (Math.Max(3, CodeTextDigits(Document.Lines.Length)) + 2) * Cell, Origin + row * Row + Row / 2);
+    public (float X, float Y) ChevronOf(int row) => (FoldLeft + FoldColumn / 2, Origin + row * Row + Row / 2);
 
     public CodeViewResult Run()
     {
@@ -72,9 +82,12 @@ internal sealed class CodeViewDriver
         Run();
     }
 
-    /// <summary>The lines whose text was drawn, by the row they were drawn in.</summary>
+    /// <summary>The lines whose text was drawn, by the top of the row they were drawn in.</summary>
     public IEnumerable<(string Text, float Top)> DrawnText() =>
-        Frames.Canvas.GlyphRuns.Where(r => r.Origin.X >= TextLeft - 0.5f).Select(r => (r.Text, Frames.Height - r.Origin.Y));
+        Frames.Canvas.GlyphRuns.Where(r => r.Origin.X >= TextLeft - 0.5f).Select(r => (r.Text, RowTop(r.Origin.Y)));
+
+    /// <summary>The top of the row a glyph run drawn at canvas height <paramref name="y"/> sits in.</summary>
+    public float RowTop(float y) => Frames.Height - y - CellInset;
 
     public static DecompiledDocument Numbered(int count, string prefix = "line ") =>
         DecompiledDocument.FromText("numbered", string.Join('\n', Enumerable.Range(0, count).Select(i => prefix + i)));

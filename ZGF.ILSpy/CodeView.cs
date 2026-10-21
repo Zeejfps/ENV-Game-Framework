@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
+using TextOverflow = ZGF.Gui.Immediate.TextOverflow;
 
 namespace ZGF.ILSpy;
 
@@ -186,7 +187,9 @@ public static class CodeViewWidget
     private const float FlashSeconds = 1.2f;
     private const float AutoScrollSpeed = 12f;
     private const int KeyScrollColumns = 4;
-    private const int FoldCells = 2;
+    private const float GutterPaddingLeft = 8f;
+    private const float GutterPaddingRight = 8f;
+    private const float CodePaddingLeft = 12f;
 
     /// <summary>
     /// A read-only, virtualized, syntax-colored view of <paramref name="document"/> with line
@@ -198,17 +201,18 @@ public static class CodeViewWidget
         using var scope = ui.Id(id);
         state.Show(document);
         var theme = ui.Theme;
-        var cell = ui.MeasureCell(family: MonoFonts.Regular);
+        var palette = ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark;
+        var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
         var advance = cell.Advance;
-        var rowHeight = MathF.Ceiling(cell.Height);
+        var rowHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
         state.RowHeight = rowHeight;
         var folds = state.Folds;
         var digits = Math.Max(3, CodeText.Digits(document.Lines.Length));
-        var numbersWidth = (digits + 1) * advance;
-        var foldWidth = document.Folds.Length > 0 ? FoldCells * advance : 0f;
-        var gutterWidth = numbersWidth + (foldWidth > 0f ? foldWidth : advance);
-        var textLeft = gutterWidth + advance;
-        var contentWidth = textLeft + state.MaxColumns * advance + advance;
+        var foldLeft = GutterPaddingLeft + digits * advance + GutterPaddingRight;
+        var foldWidth = document.Folds.Length > 0 ? theme.IconSize : 0f;
+        var gutterWidth = foldLeft + foldWidth;
+        var textLeft = gutterWidth + CodePaddingLeft;
+        var contentWidth = textLeft + state.MaxColumns * advance + CodePaddingLeft;
 
         var focusId = ui.GetId("focus");
         var findId = ui.GetId("find");
@@ -220,7 +224,7 @@ public static class CodeViewWidget
         if (focused || findFocused)
             HandleKeys(ui, state, document, focusId, focused, advance);
 
-        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.Field }))
+        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground }))
         {
             if (state.FindOpen)
                 FindBar(ui, state, document, focusId, findId);
@@ -269,7 +273,7 @@ public static class CodeViewWidget
                                 hoverChip = collapsed;
                         }
                     }
-                    else if (foldWidth > 0f && pointer.X >= rect.X + numbersWidth)
+                    else if (foldWidth > 0f && pointer.X >= rect.X + foldLeft)
                     {
                         hoverFold = document.FoldStartingAt(line);
                     }
@@ -344,11 +348,11 @@ public static class CodeViewWidget
             }
 
             Scroll(ui, state, document, rowHeight, advance, textLeft, content, scrollDeltaY);
-            FillFrame(ui, state, document, theme, cell, rowHeight, numbersWidth, foldWidth, gutterWidth, textLeft, digits,
+            FillFrame(ui, state, document, theme, palette, cell, rowHeight, foldLeft, foldWidth, gutterWidth, textLeft, digits, focused || findFocused,
                 hoverLine, hoverSpan, hoverReference, hoverNavigable, hoverFold, hoverChip);
 
             using (var list = ui.VirtualScroll(codeId, folds.RowCount, rowHeight, ref state.ScrollX, ref state.ScrollY,
-                       new Box { Gap = 0f, Background = theme.Field }))
+                       new Box { Gap = 0f, Background = theme.EditorBackground }))
             {
                 for (var row = list.First; row < list.End; row++)
                 {
@@ -368,27 +372,28 @@ public static class CodeViewWidget
     private static float AutoScroll(float distance, float unit, float deltaTime) =>
         distance == 0f ? 0f : (distance * AutoScrollSpeed + MathF.Sign(distance) * unit * AutoScrollSpeed) * deltaTime;
 
-    private static void FillFrame(Ui ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CellMetrics cell, float rowHeight,
-        float numbersWidth, float foldWidth, float gutterWidth, float textLeft, int digits, int hoverLine, int hoverSpan,
+    private static void FillFrame(Ui ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CodeViewPalette palette, CellMetrics cell,
+        float rowHeight, float foldLeft, float foldWidth, float gutterWidth, float textLeft, int digits, bool active, int hoverLine, int hoverSpan,
         CodeReference? hoverReference, bool hoverNavigable, int hoverFold, int hoverChip)
     {
         var frame = state.Frame;
         var (start, end) = state.Selection;
         frame.Document = document;
         frame.Folds = state.Folds;
-        frame.Palette = CodeViewPalette.For(theme);
-        frame.Background = theme.Field;
-        frame.GutterText = theme.TextMuted;
+        frame.Palette = palette;
+        frame.Background = theme.EditorBackground;
         frame.GutterHover = theme.Text;
-        frame.GutterBorder = UiColor.Mix(theme.Field, theme.Border, 0.6f);
-        frame.Selection = theme.Selection;
-        frame.Occurrence = UiColor.Mix(theme.Field, theme.Accent, 0.2f);
-        frame.Chip = UiColor.Mix(theme.Field, theme.Text, 0.12f);
-        frame.ChipHover = UiColor.Mix(theme.Field, theme.Text, 0.22f);
+        frame.Selection = active ? theme.Selection : theme.SelectionInactive;
+        frame.ErrorText = theme.Danger;
+        frame.FontSize = theme.MonoFontSize;
+        frame.SeparatorWidth = theme.SeparatorWidth;
+        frame.OutlineWidth = theme.BorderWidth;
+        frame.ChipRadius = theme.RadiusSmall;
+        frame.GutterPaddingLeft = GutterPaddingLeft;
         frame.Advance = cell.Advance;
         frame.CellHeight = cell.Height;
         frame.RowHeight = rowHeight;
-        frame.FoldLeft = numbersWidth;
+        frame.FoldLeft = foldLeft;
         frame.FoldWidth = foldWidth;
         frame.GutterWidth = gutterWidth;
         frame.TextLeft = textLeft;
@@ -416,7 +421,7 @@ public static class CodeViewWidget
             else
             {
                 frame.FlashLine = state.FlashLine;
-                frame.Flash = UiColor.Mix(theme.Field, theme.Accent, 0.45f * (1f - t));
+                frame.Flash = UiColor.Mix(theme.EditorBackground, palette.Flash, 1f - t);
                 ui.RequestFrame();
             }
         }
@@ -629,7 +634,14 @@ public static class CodeViewWidget
     private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId)
     {
         var theme = ui.Theme;
-        using (ui.Row(new Box { Padding = new Spacing(6f, 4f), Gap = 6f, Background = theme.Surface }))
+        using (ui.Row(new Box
+        {
+            Height = theme.ToolbarHeight,
+            Padding = new Spacing(theme.ShellPaddingX, theme.ToolbarPaddingY),
+            Gap = theme.GapTight,
+            AlignY = Align.Center,
+            Background = theme.Surface,
+        }))
         {
             if (state.FocusFind)
             {
@@ -637,7 +649,7 @@ public static class CodeViewWidget
                 state.FocusFind = false;
             }
 
-            var submitted = ui.TextField("find", ref state.Query, "Find", Sizing.Fixed(260f));
+            var submitted = ui.TextField("find", ref state.Query, "Find", Sizing.Grow(AppLayout.FindMinWidth, AppLayout.FindWidth));
             var queryChanged = !string.Equals(state.Query, state.Find.Query, StringComparison.Ordinal);
             if (state.Find.Update(document, state.Query))
             {
@@ -651,13 +663,13 @@ public static class CodeViewWidget
             var label = state.Query.Length == 0 ? ""
                 : count == 0 ? "No results"
                 : ui.Memo("count", (state.CurrentMatch, count), static a => a.CurrentMatch >= 0 ? $"{a.CurrentMatch + 1} of {a.count}" : $"{a.count} matches");
-            ui.Text(label, color: count == 0 && state.Query.Length > 0 ? CodeViewPalette.For(theme).Error : theme.TextMuted);
-            ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
-            if (ui.Button("Previous", enabled: count > 0))
+            ui.Text(label, new Box { Width = Sizing.Grow() }, color: count == 0 && state.Query.Length > 0 ? theme.Warning : theme.TextMuted,
+                size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
+            if (ui.IconButton("previous", LucideIcons.ChevronUp, LucideIcons.Family, "Previous match (Shift+F3)", count > 0))
                 Step(state, document, -1);
-            if (ui.Button("Next", enabled: count > 0))
+            if (ui.IconButton("next", LucideIcons.ChevronDown, LucideIcons.Family, "Next match (F3)", count > 0))
                 Step(state, document, 1);
-            if (ui.Button("Close"))
+            if (ui.IconButton("close", LucideIcons.X, LucideIcons.Family, "Close (Esc)"))
             {
                 state.FindOpen = false;
                 ui.Focus(focusId, takesText: false);

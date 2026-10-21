@@ -15,13 +15,21 @@ internal static class SearchPanelView
     {
         var theme = ui.Theme;
         var search = w.Search;
-        using (ui.Row(new Box { Height = AppThemes.BarHeight + 4f, Padding = new Spacing(8f, 0f, 4f, 0f), Background = theme.Surface }))
+        using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
+        using (ui.Row(new Box
+        {
+            Height = theme.PaneHeaderHeight,
+            Padding = new Spacing(theme.ShellPaddingX, 0f),
+            Gap = theme.GapTight,
+            AlignY = Align.Center,
+            Background = theme.Surface,
+        }))
         {
             ui.Text("Search results", bold: true);
             ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy), static a => a.IsBusy ? $"{a.Count:N0} so far…" : $"{a.Count:N0}"),
-                color: theme.TextMuted);
+                color: theme.TextMuted, size: theme.FontSizeSmall);
             ui.Spacer();
-            if (ui.Button("Close", id: "close-search"))
+            if (ui.IconButton("close-search", LucideIcons.X, LucideIcons.Family, "Close search results"))
                 search.Clear();
         }
 
@@ -33,6 +41,7 @@ internal static class SearchPanelView
         if (focused)
             Keys(ui, w, rowHeight);
 
+        var labelShare = ui.TryGetRect(ResultsId, out var results) ? results.Width * AppLayout.PrimaryLabelShare : 0f;
         using var list = ui.VirtualScroll(ResultsId, search.Rows.Count, rowHeight, new Box { Gap = 0f });
         if (search.ScrollToSelected && list.ScrollIntoView(search.Selected))
             search.ScrollToSelected = false;
@@ -52,15 +61,28 @@ internal static class SearchPanelView
                     w.Show(node, newTab);
                 }
 
-                var background = i == search.Selected
-                    ? focused ? theme.Selection : UiColor.Mix(theme.Background, theme.Text, 0.12f)
-                    : item.Hovered ? theme.Hovered(theme.Background) : 0u;
-                using (ui.Row(item.Id, new Box { Height = rowHeight, Gap = 6f, Padding = new Spacing(8f, 0f), Background = background }))
+                var selected = i == search.Selected;
+                var background = selected ? focused ? theme.Selection : theme.SelectionInactive : item.Hovered ? theme.RowHover : 0u;
+                var label = row.Result.Text;
+                using (ui.Row(item.Id, new Box
                 {
-                    ui.Text(NodeIcons.Glyph(node.Kind), color: NodeIcons.Color(node.Kind, w.DarkMode), family: NodeIcons.Family);
-                    ui.Text(row.Result.Text, color: node.IsPublicApi ? theme.Text : theme.TextMuted);
-                    ui.Text(row.Location, color: theme.TextMuted);
+                    Height = rowHeight,
+                    Gap = theme.GapTight,
+                    Padding = new Spacing(theme.ShellPaddingX, 0f),
+                    Background = background,
+                }))
+                {
+                    NodeIcons.Draw(ui, node.Kind);
+                    using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
+                    {
+                        var labelWidth = ui.MeasureText(label);
+                        ui.Text(label, new Box { Width = Sizing.Grow(MathF.Min(labelWidth, labelShare), labelWidth) },
+                            color: !node.IsPublicApi ? theme.TextMuted : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
+                        ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall,
+                            overflow: TextOverflow.EllipsisMiddle);
+                    }
                 }
+                ui.Tooltip(item.Id, NodeText.Tooltip(node));
             }
         }
     }

@@ -25,12 +25,15 @@ tests in `ZGF.Gui.Immediate.Tests`, and are general-purpose — nothing ILSpy-sp
   list, theme, language, pane sizes and window bounds persist between runs (`--settings=<path>`
   points at another settings file).
 - Browse tree: assembly → references / namespaces → types → nested types and members, lazily
-  expanded (large expansions in the background behind a Loading row), with kind icons/colors, and
-  member signatures as labels.
+  expanded (large expansions in the background behind a Loading row), with Lucide kind pictograms
+  (bundled in `ZGF.ILSpy/Assets/Fonts/Lucide`) colored by role from a per-theme `NodeIconPalette`,
+  member signatures as labels, assemblies by simple name (version or folder added when two share
+  one), and full identity and file in each row's tooltip.
 - Decompile the selected node to C# or IL (segmented switch), off the UI thread, with a busy
   indicator and cancellation when the selection changes. Reload (F5) reopens every assembly in the
   background and puts the tree, the tabs and their scroll positions back.
-- Code view: monospace, syntax colored per theme, line numbers, virtualized for 100k-line documents
+- Code view: monospace at the theme's `MonoFontSize`/`CodeLineHeight`, syntax colored from an
+  explicitly provided `CodeViewPalette`, line numbers, virtualized for 100k-line documents
   with an allocation-free paint path, text selection + copy, find in document, both scrollbars
   reserving their own gutters, scroll kept per tab.
 - Folding: the decompiler's fold regions (type and member bodies, the using block — collapsed by

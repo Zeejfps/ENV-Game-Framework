@@ -118,6 +118,24 @@ internal sealed class AppDriver
         return new UiRect(p.Left, Frames.Height - p.Top, p.Width, p.Height);
     }
 
+    /// <summary>The texts drawn in the status bar, the window's bottom row.</summary>
+    public IEnumerable<UiRect> StatusTexts()
+    {
+        var bottom = Frames.Height - AppThemes.For(Workspace.DarkMode).Ui.StatusBarHeight;
+        return Frames.Canvas.Texts.Select(t => t.Inputs.Position).Where(p => Frames.Height - p.Top >= bottom - 0.5f)
+            .Select(p => new UiRect(p.Left, Frames.Height - p.Top, p.Width, p.Height));
+    }
+
+    /// <summary>Where <paramref name="text"/> was drawn in the status bar on the last frame.</summary>
+    public UiRect StatusText(string text)
+    {
+        var bottom = Frames.Height - AppThemes.For(Workspace.DarkMode).Ui.StatusBarHeight;
+        var drawn = Frames.Canvas.Texts.LastOrDefault(t => t.Inputs.Text == text && Frames.Height - t.Inputs.Position.Top >= bottom - 0.5f)
+                    ?? throw new InvalidOperationException($"'{text}' was not drawn in the status bar.");
+        var p = drawn.Inputs.Position;
+        return new UiRect(p.Left, Frames.Height - p.Top, p.Width, p.Height);
+    }
+
     public void MoveTo(string text)
     {
         var rect = TextRect(text);

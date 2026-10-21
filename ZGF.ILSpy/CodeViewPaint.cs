@@ -13,14 +13,15 @@ internal sealed class CodeViewFrame
     public CodeFolds Folds = new();
     public CodeViewPalette Palette = CodeViewPalette.Dark;
     public uint Background;
-    public uint GutterText;
     public uint GutterHover;
-    public uint Chip;
-    public uint ChipHover;
-    public uint GutterBorder;
     public uint Selection;
-    public uint Occurrence;
+    public uint ErrorText;
     public uint Flash;
+    public float FontSize;
+    public float SeparatorWidth;
+    public float OutlineWidth;
+    public float ChipRadius;
+    public float GutterPaddingLeft;
     public float Advance;
     public float RowHeight;
     public float CellHeight;
@@ -69,14 +70,19 @@ internal sealed class CodeViewFrame
             foreach (var span in line.Spans)
             {
                 if (span.Reference is { } reference && reference.Equals(highlight))
-                    Fill(p, x0, textAreaLeft, r, span.Start, span.End, Occurrence);
+                    Fill(p, x0, textAreaLeft, r, span.Start, span.End, Palette.Occurrence);
             }
         }
 
         if (MatchLength > 0)
         {
             for (var m = FirstMatchOn(index); m < Matches.Count && Matches[m].Line == index; m++)
-                Fill(p, x0, textAreaLeft, r, Matches[m].Column, Matches[m].Column + MatchLength, m == CurrentMatch ? Palette.CurrentMatch : Palette.Match);
+            {
+                if (m == CurrentMatch)
+                    Fill(p, x0, textAreaLeft, r, Matches[m].Column, Matches[m].Column + MatchLength, Palette.CurrentFind, Palette.CurrentFindOutline, OutlineWidth);
+                else
+                    Fill(p, x0, textAreaLeft, r, Matches[m].Column, Matches[m].Column + MatchLength, Palette.FindMatch);
+            }
         }
 
         if (SelectionStart < SelectionEnd && index >= SelectionStart.Line && index <= SelectionEnd.Line)
@@ -91,9 +97,10 @@ internal sealed class CodeViewFrame
         if (collapsed)
         {
             var chipLeft = x0 + chipStart * Advance;
-            p.FillRect(new UiRect(chipLeft - Advance / 2, r.Y + 1f, (chipText.Length + 1) * Advance, r.Height - 2f), fold == HoverChip ? ChipHover : Chip, 3f);
-            p.GlyphRun(new PointF(chipLeft, cellTop), Cells(chipText, 0, chipText.Length), Advance, fold == HoverChip ? GutterHover : GutterText,
-                family: MonoFonts.Regular);
+            p.FillRect(new UiRect(chipLeft - Advance / 2, cellTop, (chipText.Length + 1) * Advance, CellHeight),
+                fold == HoverChip ? Palette.FoldChipHovered : Palette.FoldChip, ChipRadius);
+            p.GlyphRun(new PointF(chipLeft, cellTop), Cells(chipText, 0, chipText.Length), Advance, fold == HoverChip ? GutterHover : Palette.GutterText,
+                FontSize, family: MonoFonts.Regular);
         }
 
         if (endVisible > firstVisible)
@@ -108,17 +115,18 @@ internal sealed class CodeViewFrame
                 var end = Math.Min(span.End, endVisible);
                 if (end <= start) continue;
                 var cells = Cells(text, start, end);
-                p.GlyphRun(new PointF(x0 + start * Advance, cellTop), cells, Advance, error ? Palette.Error : Palette[span.Kind],
-                    family: MonoFonts.Regular, underline: index == UnderlineLine && s == UnderlineSpan);
+                p.GlyphRun(new PointF(x0 + start * Advance, cellTop), cells, Advance, error ? ErrorText : Palette[span.Kind],
+                    FontSize, family: MonoFonts.Regular, underline: index == UnderlineLine && s == UnderlineSpan);
             }
         }
 
         p.FillRect(new UiRect(left, r.Y, GutterWidth, r.Height), Background);
-        p.FillRect(new UiRect(left + GutterWidth - 1f, r.Y, 1f, r.Height), GutterBorder);
+        p.FillRect(new UiRect(left + GutterWidth - SeparatorWidth, r.Y, SeparatorWidth, r.Height), Palette.GutterSeparator);
         var number = Number(index + 1);
-        p.GlyphRun(new PointF(left + (Digits + 1 - number.Length) * Advance, cellTop), number, Advance, GutterText, family: MonoFonts.Regular);
+        p.GlyphRun(new PointF(left + GutterPaddingLeft + (Digits - number.Length) * Advance, cellTop), number, Advance, Palette.GutterText, FontSize,
+            family: MonoFonts.Regular);
         if (fold >= 0 && FoldWidth > 0f)
-            Chevron(p, left + FoldLeft + FoldWidth / 2, r.Y + r.Height / 2, collapsed, fold == HoverFold ? GutterHover : GutterText);
+            Chevron(p, left + FoldLeft + FoldWidth / 2, r.Y + r.Height / 2, collapsed, fold == HoverFold ? GutterHover : Palette.GutterText);
     }
 
     private void Chevron(UiPainter p, float cx, float cy, bool collapsed, uint color)
@@ -136,12 +144,12 @@ internal sealed class CodeViewFrame
         }
     }
 
-    private void Fill(UiPainter p, float x0, float left, UiRect row, int from, int to, uint color)
+    private void Fill(UiPainter p, float x0, float left, UiRect row, int from, int to, uint color, uint outline = 0, float outlineWidth = 0f)
     {
         var x = MathF.Max(left, x0 + from * Advance);
         var right = x0 + to * Advance;
         if (right > x)
-            p.FillRect(new UiRect(x, row.Y, right - x, row.Height), color);
+            p.FillRect(new UiRect(x, row.Y, right - x, row.Height), color, 0f, outline, outlineWidth);
     }
 
     private int FirstMatchOn(int line)

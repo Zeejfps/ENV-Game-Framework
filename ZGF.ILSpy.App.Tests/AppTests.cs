@@ -5,9 +5,9 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class AppTests
 {
-    private static AppDriver OpenFixtures()
+    private static AppDriver OpenFixtures(float width = 1000f)
     {
-        var app = new AppDriver();
+        var app = new AppDriver(width);
         app.Workspace.Open(WorkspaceDriver.FixturePath);
         for (var i = 0; i < 2000 && app.Workspace.ActiveTab?.Node == null; i++)
         {
@@ -56,6 +56,27 @@ public sealed class AppTests
 
         Assert.True(app.TextRect("1 error").Right <= app.Frames.Width);
         Assert.True(app.TextRect("0 assemblies").Right <= app.Frames.Width);
+    }
+
+    [Fact]
+    public void At_a_narrow_width_the_error_indicator_joins_the_right_cluster_and_the_node_name_gives_way()
+    {
+        const float width = 480f;
+        var app = OpenFixtures(width);
+        var theme = AppThemes.Dark.Ui;
+        app.Run(2);
+        var count = app.StatusText("1 assembly");
+
+        app.Workspace.ReportError("Cannot open broken.dll", "details");
+        app.Run(2);
+        var errors = app.StatusText("1 error");
+        var language = app.StatusText("C#");
+        var name = app.StatusTexts().MinBy(static r => r.X);
+
+        Assert.Equal(count, app.StatusText("1 assembly"));
+        Assert.True(width - count.Right <= theme.ShellPaddingX + 0.5f, $"the cluster ends at {count.Right}");
+        Assert.True(errors.Right < language.X && language.X - errors.Right <= 3 * theme.GroupGap, $"'1 error' ends at {errors.Right}, 'C#' starts at {language.X}");
+        Assert.True(name.X < errors.X && name.Right <= errors.X - theme.GapTight, $"the node name ends at {name.Right}, the indicator starts at {errors.X}");
     }
 
     [Fact]

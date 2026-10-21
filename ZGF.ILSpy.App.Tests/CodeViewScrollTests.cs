@@ -8,7 +8,7 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class CodeViewScrollTests
 {
-    private const int FitColumns = 38;
+    private const int FitColumns = 37;
 
     private static DecompiledDocument Document(int widest) =>
         DecompiledDocument.FromText("t", string.Join('\n', Enumerable.Range(0, 1000).Select(i => i == 999 ? new string('w', widest) : $"line {i}")));

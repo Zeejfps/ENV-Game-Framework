@@ -9,7 +9,10 @@ public static class MainView
 {
     public static void Render(Ui ui, Workspace w)
     {
-        using var screen = ui.Screen(w.DarkMode ? AppThemes.Dark : AppThemes.Light);
+        var theme = AppThemes.For(w.DarkMode);
+        using var screen = ui.Screen(theme.Ui);
+        using var code = ui.Provide(theme.Code);
+        using var icons = ui.Provide(theme.Icons);
         w.Sync();
         Shortcuts.Handle(ui, w);
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
@@ -17,7 +20,8 @@ public static class MainView
             MainMenuView.Render(ui, w);
             ToolbarView.Render(ui, w);
             ui.Separator();
-            using (var split = ui.SplitPane("main", Direction.Horizontal, ref w.TreeWidth, minFirst: 160f, minSecond: 240f))
+            using (var split = ui.SplitPane("main", Direction.Horizontal, ref w.TreeWidth, minFirst: AppLayout.TreeMinWidth,
+                       minSecond: AppLayout.DocumentsMinWidth))
             {
                 using (split.First())
                     TreePaneView.Render(ui, w);
@@ -43,7 +47,8 @@ public static class MainView
             return;
         }
 
-        using var split = ui.SplitPane("search-split", Direction.Vertical, ref w.SearchHeight, minFirst: 120f, minSecond: 80f, sized: SplitSide.Second);
+        using var split = ui.SplitPane("search-split", Direction.Vertical, ref w.SearchHeight, minFirst: AppLayout.DocumentsMinHeight,
+            minSecond: AppLayout.SearchPanelMinHeight, sized: SplitSide.Second);
         using (split.First())
             DocumentsView.Render(ui, w);
         using (split.Second())

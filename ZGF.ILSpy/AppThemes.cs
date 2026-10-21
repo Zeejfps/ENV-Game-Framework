@@ -1,23 +1,41 @@
 using ZGF.Gui.Immediate;
-using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.ILSpy;
 
+/// <summary>Everything the app is drawn with in one theme: the UI theme, the editor's colors and
+/// the tree's icon colors.</summary>
+public sealed record AppTheme(UiTheme Ui, CodeViewPalette Code, NodeIconPalette Icons);
+
 internal static class AppThemes
 {
-    public static readonly UiTheme Dark = Compact(UiTheme.Dark);
-    public static readonly UiTheme Light = Compact(UiTheme.Light);
+    public static readonly AppTheme Dark = new(Shell(UiTheme.Dark), CodeViewPalette.Dark, NodeIconPalette.Dark);
+    public static readonly AppTheme Light = new(Shell(UiTheme.Light), CodeViewPalette.Light, NodeIconPalette.Light);
 
-    public const float BarHeight = 24f;
+    public static AppTheme For(bool dark) => dark ? Dark : Light;
 
-    private static UiTheme Compact(UiTheme theme) => theme with
+    private static UiTheme Shell(UiTheme theme) => theme.WithDensity(UiDensity.Compact) with
     {
-        FontSize = 13f,
         ScreenPadding = 0f,
-        ControlHeight = 26f,
-        ControlPaddingX = 10f,
-        CornerRadius = 4f,
-        RowHeight = 22f,
-        MenuItemHeight = 24f,
+        TabMinWidth = 120f,
+        TabMaxWidth = 240f,
     };
+}
+
+/// <summary>Sizes that belong to this app's layout rather than to the theme.</summary>
+internal static class AppLayout
+{
+    public const float TreeMinWidth = 160f;
+    public const float DocumentsMinWidth = 240f;
+    public const float DocumentsMinHeight = 120f;
+    public const float SearchPanelMinHeight = 80f;
+    public const float SearchWidth = 360f;
+    public const float SearchMinWidth = 220f;
+    public const float PrimaryLabelShare = 0.6f;
+    public const float FindWidth = 260f;
+    public const float FindMinWidth = 140f;
+    public const float ErrorDialogWidth = 760f;
+    public const float ErrorDialogHeight = 480f;
+    public const int ErrorListRows = 5;
+    public const float PickerWidth = 560f;
+    public const float PickerHeight = 0.75f;
 }

@@ -12,6 +12,7 @@ public sealed class IlSpyApp : Gui<Workspace>
         (MonoFonts.Bold, "JetBrainsMono-Bold.ttf"),
         (MonoFonts.Italic, "JetBrainsMono-Italic.ttf"),
         (MonoFonts.BoldItalic, "JetBrainsMono-BoldItalic.ttf"),
+        (LucideIcons.Family, LucideIcons.File),
     ];
 
     public IlSpyApp(Workspace workspace) : base(workspace)

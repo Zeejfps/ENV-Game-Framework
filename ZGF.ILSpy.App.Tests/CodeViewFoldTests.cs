@@ -24,7 +24,7 @@ public sealed class CodeViewFoldTests
 
     private static List<string> Rows(CodeViewDriver view) =>
         view.Frames.Canvas.GlyphRuns
-            .Select(r => (r.Text, r.Origin.X, Top: view.Frames.Height - r.Origin.Y))
+            .Select(r => (r.Text, r.Origin.X, Top: view.RowTop(r.Origin.Y)))
             .Where(r => r.X >= view.TextLeft - 0.5f && r.Top >= CodeViewDriver.Origin - 0.5f)
             .GroupBy(r => r.Top).OrderBy(g => g.Key)
             .Select(g => string.Concat(g.OrderBy(r => r.X).Select(r => r.Text))).ToList();
@@ -191,7 +191,7 @@ public sealed class CodeViewFoldTests
         view.Run();
 
         Assert.False(view.State.IsCollapsed(second));
-        Assert.Contains(Rows(view), r => r.Contains("stringBuilder.Append(\"needle\");"));
+        Assert.Contains(Rows(view), r => r.Contains("stringBuilder.Append(\"needle\")"));
         Assert.Equal(document.Find("\"needle\"").Line, view.State.Selection.Start.Line);
     }
 

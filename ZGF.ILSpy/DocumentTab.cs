@@ -35,7 +35,10 @@ public sealed class DocumentTab
     public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
     public CodeViewState View { get; } = new();
     public bool IsBusy => _work != null;
-    public string Title => Node?.Text ?? _title;
+    public string Title => Node != null ? NodeText.Name(Node) : _title;
+
+    /// <summary>The full identity of what the tab shows.</summary>
+    public string Tooltip => Node != null ? NodeText.Tooltip(Node) : _title;
 
     /// <summary>Changes whenever the tab is pointed somewhere, or loses its node.</summary>
     public int Version { get; private set; }
@@ -58,7 +61,7 @@ public sealed class DocumentTab
         _work = work;
         Node = node;
         Location = node.Path;
-        _title = node.Text;
+        _title = NodeText.Name(node);
         Language = language;
         Document = DecompiledDocument.FromText(node.Text, "// Decompiling…", language);
 

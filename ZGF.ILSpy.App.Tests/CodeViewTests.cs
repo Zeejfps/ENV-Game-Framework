@@ -24,7 +24,7 @@ public sealed class CodeViewTests
     }
 
     [Fact]
-    public void Lines_are_drawn_in_syntax_colors_for_the_theme()
+    public void Lines_are_drawn_in_the_syntax_colors_of_the_provided_palette()
     {
         var document = CodeViewDriver.Greeter();
         var view = new CodeViewDriver(document, height: 1200f);
@@ -36,6 +36,7 @@ public sealed class CodeViewTests
         view.Frames.Run(1f / 60f, ui =>
         {
             using (ui.Provide(UiTheme.Light))
+            using (ui.Provide(CodeViewPalette.Light))
                 ui.CodeView("code", document, view.State);
         });
         var light = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
@@ -107,7 +108,7 @@ public sealed class CodeViewTests
         view.Run();
 
         Assert.Null(result.Navigate);
-        var occurrence = UiColor.Mix(UiTheme.Dark.Field, UiTheme.Dark.Accent, 0.2f);
+        var occurrence = CodeViewPalette.Dark.Occurrence;
         var expected = document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
         Assert.True(expected >= 3);
         Assert.Equal(expected, view.Frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == occurrence));
@@ -281,9 +282,11 @@ public sealed class CodeViewTests
         view.Run();
         view.Click(0, 0);
 
+        var page = (int)MathF.Floor(ViewHeight / CodeViewDriver.Row) - 1;
+
         view.Key(KeyboardKey.PageDown);
         view.Run();
-        var paged = view.DrawnText().Single(d => d.Text == "line 15").Top;
+        var paged = view.DrawnText().Single(d => d.Text == $"line {page}").Top;
         view.Key(KeyboardKey.End);
         view.Run();
         var end = view.DrawnText().Any(d => d.Text == "line 999");
