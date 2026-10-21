@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Xunit.Abstractions;
+using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -11,11 +12,19 @@ public sealed class CodeViewFrameCostTests(ITestOutputHelper output)
     private const float Height = 900f;
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void A_100k_line_document_costs_only_its_visible_lines_per_frame(bool scrolling)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void A_100k_line_document_costs_only_its_visible_lines_per_frame(bool scrolling, bool folded)
     {
-        var view = new CodeViewDriver(CodeViewDriver.Numbered(Lines), Height);
+        var view = new CodeViewDriver(folded ? Folded(Lines) : CodeViewDriver.Numbered(Lines), Height);
+        if (folded)
+        {
+            view.Run();
+            for (var f = 0; f < view.Document.Folds.Length; f += 2)
+                view.State.SetCollapsed(f, true);
+        }
         view.Frames.MovePointer(200f, 200f);
         var visibleRows = (int)MathF.Ceiling((Height - 2 * CodeViewDriver.Origin) / CodeViewDriver.Row) + 1;
 
@@ -24,8 +33,6 @@ public sealed class CodeViewFrameCostTests(ITestOutputHelper output)
 
         var maxElements = 0;
         var totalElements = 0L;
-        var allocated = GC.GetAllocatedBytesForCurrentThread();
-        var clock = Stopwatch.StartNew();
         for (var i = 0; i < MeasuredFrames; i++)
         {
             Frame(view, scrolling);
@@ -33,16 +40,47 @@ public sealed class CodeViewFrameCostTests(ITestOutputHelper output)
             maxElements = Math.Max(maxElements, elements);
             totalElements += elements;
         }
+        var glyphRuns = view.Frames.Canvas.GlyphRuns.Count;
+
+        view.Frames.Canvas.Recording = false;
+        for (var i = 0; i < WarmUpFrames; i++)
+            Frame(view, scrolling);
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        var clock = Stopwatch.StartNew();
+        for (var i = 0; i < MeasuredFrames; i++)
+            Frame(view, scrolling);
         clock.Stop();
         allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
 
-        var glyphRuns = view.Frames.Canvas.GlyphRuns.Count;
-        output.WriteLine($"{(scrolling ? "scrolling" : "static")}: {clock.Elapsed.TotalMilliseconds / MeasuredFrames:F3} ms/frame, " +
-                         $"{allocated / MeasuredFrames:N0} B/frame allocated (recording canvas included), " +
+        output.WriteLine($"{(scrolling ? "scrolling" : "static")}{(folded ? ", half the folds collapsed" : "")}: " +
+                         $"{clock.Elapsed.TotalMilliseconds / MeasuredFrames:F3} ms/frame, {allocated / MeasuredFrames:N0} B/frame allocated, " +
                          $"{(double)totalElements / MeasuredFrames:F1} elements/frame (max {maxElements}), {glyphRuns} glyph runs, {visibleRows} rows in view");
 
-        Assert.InRange(glyphRuns, visibleRows - 2, 2 * visibleRows + 4);
-        Assert.True(maxElements <= 4 * visibleRows + 32, $"{maxElements} elements for {visibleRows} visible rows");
+        Assert.InRange(glyphRuns, visibleRows - 2, (folded ? 3 : 2) * visibleRows + 4);
+        Assert.True(maxElements <= (folded ? 5 : 4) * visibleRows + 32, $"{maxElements} elements for {visibleRows} visible rows");
+        Assert.Equal(0, allocated / MeasuredFrames);
+    }
+
+    private static DecompiledDocument Folded(int lines)
+    {
+        var builder = new DocumentBuilder(DecompilationLanguage.CSharp);
+        for (var member = 0; member < lines / 10; member++)
+        {
+            builder.Write($"    public void Member{member}()", SpanKind.Plain);
+            builder.WriteLine();
+            builder.MarkFoldStart(isDefinition: true);
+            builder.Write("    {", SpanKind.Plain);
+            builder.WriteLine();
+            for (var i = 0; i < 7; i++)
+            {
+                builder.Write($"        Call({member}, {i});", SpanKind.Plain);
+                builder.WriteLine();
+            }
+            builder.Write("    }", SpanKind.Plain);
+            builder.MarkFoldEnd();
+            builder.WriteLine();
+        }
+        return builder.Build("folded");
     }
 
     private static void Frame(CodeViewDriver view, bool scrolling)

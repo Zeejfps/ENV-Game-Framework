@@ -70,7 +70,6 @@ internal sealed class DockWalker
     private const int WindowZStep = 10_000;
     private const int OverlayZ = 400_000;
     private const float MinPane = 60f;
-    private const float TitleHeight = 24f;
     private const float Grip = 5f;
     private const float MinWindowWidth = 160f;
     private const float MinWindowHeight = 100f;
@@ -397,7 +396,7 @@ internal sealed class DockWalker
         var size = _ui.TryGetRect(groupElementId, out var group) ? group : new UiRect(pointer.X, pointer.Y, 360f, 260f);
         _ui.BeginDrag(new DockDrag(_dockId, panel, null, grab,
             Math.Clamp(size.Width, MinWindowWidth * 1.5f, 640f),
-            Math.Clamp(size.Height + TitleHeight, MinWindowHeight * 1.5f, 480f)));
+            Math.Clamp(size.Height + _theme.PaneHeaderHeight, MinWindowHeight * 1.5f, 480f)));
     }
 
     private void OpenWindow(ref Frame frame, int index)
@@ -408,7 +407,7 @@ internal sealed class DockWalker
             window.Width = Math.Clamp(window.Width, MinWindowWidth, MathF.Max(MinWindowWidth, dock.Width));
             window.Height = Math.Clamp(window.Height, MinWindowHeight, MathF.Max(MinWindowHeight, dock.Height));
             window.X = Math.Clamp(window.X, WindowReach - window.Width, MathF.Max(0f, dock.Width - WindowReach));
-            window.Y = Math.Clamp(window.Y, 0f, MathF.Max(0f, dock.Height - TitleHeight));
+            window.Y = Math.Clamp(window.Y, 0f, MathF.Max(0f, dock.Height - _theme.PaneHeaderHeight));
         }
 
         var windowId = WindowElementId(window);
@@ -417,10 +416,11 @@ internal sealed class DockWalker
             Direction = Direction.Vertical,
             Width = window.Width,
             Height = window.Height,
-            Padding = 1f,
+            Padding = _theme.BorderWidth,
             Background = _theme.Background,
             BorderColor = _theme.Border,
-            BorderWidth = 1f,
+            BorderWidth = _theme.BorderWidth,
+            Shadow = _theme.PopupShadow,
         }, WindowZ + index * WindowZStep, windowId);
 
         TitleBar(window, windowId);
@@ -447,23 +447,23 @@ internal sealed class DockWalker
 
         using (_ui.Row(title.Id, new Box
         {
-            Height = TitleHeight,
-            Padding = new Spacing(8f, 0f, 3f, 0f),
-            Gap = 4f,
-            Background = title.Held ? _theme.Pressed(_theme.Surface) : _theme.Surface,
+            Height = _theme.PaneHeaderHeight,
+            Padding = new Spacing(_theme.ShellPaddingX, 0f, _theme.GapTight, 0f),
+            Gap = _theme.GapTight,
+            Background = title.Held ? _theme.Pressed(_theme.SurfaceRaised) : _theme.SurfaceRaised,
         }))
         {
             _ui.Text(caption ?? "", new Box { Width = Sizing.Grow() }, color: _theme.TextMuted, bold: true);
             if (!closable) return;
             using (_ui.Box(close.Id, new Box
             {
-                Width = 18f,
-                Height = 18f,
-                Radius = 4f,
-                Background = close.Held ? _theme.Pressed(_theme.Control) : close.Hovered ? _theme.Control : 0u,
+                Width = _theme.TabCloseSize,
+                Height = _theme.TabCloseSize,
+                Radius = _theme.CornerRadius,
+                Background = close.Held ? _theme.ControlPressed : close.Hovered ? _theme.ControlHovered : 0u,
             }))
             {
-                _ui.Paint(close.Hovered ? _theme.Text : _theme.TextMuted, static (p, color) => UiWidgets.DrawCross(p, color));
+                _ui.Paint((close.Hovered ? _theme.Text : _theme.TextMuted, _theme.IconStrokeWidth), static (p, s) => UiWidgets.DrawCross(p, s.Item1, s.IconStrokeWidth));
             }
         }
     }
@@ -676,15 +676,15 @@ internal sealed class DockWalker
     {
         var accent = _theme.Accent;
         if (_preview is { } preview)
-            p.FillRect(preview, (accent & 0x00FFFFFFu) | 0x40000000u, 0f, accent, 1f);
+            p.FillRect(preview, (accent & 0x00FFFFFFu) | 0x40000000u, 0f, accent, _theme.BorderWidth);
         if (_caret is { } caret)
             p.FillRect(caret, accent);
         foreach (var marker in _markers)
         {
             var color = marker.Hovered ? accent : _theme.TextMuted;
-            p.FillRect(marker.Rect, _theme.Surface, 4f, marker.Hovered ? accent : _theme.Border, 1f);
+            p.FillRect(marker.Rect, _theme.SurfaceRaised, _theme.CornerRadius, marker.Hovered ? accent : _theme.Border, _theme.BorderWidth);
             var inner = new UiRect(marker.Rect.X + 6f, marker.Rect.Y + 6f, marker.Rect.Width - 12f, marker.Rect.Height - 12f);
-            p.FillRect(inner, 0, 0f, color, 1f);
+            p.FillRect(inner, 0, 0f, color, _theme.BorderWidth);
             p.FillRect(marker.Edge == DockEdge.Center ? inner : Part(inner, marker.Edge, 0.4f), color);
         }
     }

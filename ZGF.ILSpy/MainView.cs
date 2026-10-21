@@ -9,7 +9,10 @@ public static class MainView
 {
     public static void Render(Ui ui, Workspace w)
     {
-        using var screen = ui.Screen(w.DarkMode ? AppThemes.Dark : AppThemes.Light);
+        var theme = AppThemes.For(w.DarkMode);
+        using var screen = ui.Screen(theme.Ui);
+        using var code = ui.Provide(theme.Code);
+        using var icons = ui.Provide(theme.Icons);
         w.Sync();
         Shortcuts.Handle(ui, w);
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))

@@ -56,6 +56,7 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
         ex |= WS_EX_NOACTIVATE;
         ex |= WS_EX_TOPMOST;
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(ex));
+        WindowsDwm.KeepSquareCorners(hwnd);
         SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
     }

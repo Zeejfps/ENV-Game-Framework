@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy;
@@ -15,7 +16,8 @@ internal static class FrameworkPickerView
         var theme = ui.Theme;
         var open = false;
         var close = false;
-        using (var dialog = ui.Dialog("picker", "Open from framework", ref picker.IsOpen, new Box { Width = 560f, Height = Sizing.Percent(0.75f) }))
+        var card = new Box { Width = Sizing.Grow(0f, AppLayout.PickerWidth), Height = Sizing.Percent(AppLayout.PickerHeight) };
+        using (var dialog = ui.Dialog("picker", "Open from framework", ref picker.IsOpen, card))
         {
             if (!dialog.IsOpen) return;
 
@@ -44,25 +46,27 @@ internal static class FrameworkPickerView
                 Height = Sizing.Grow(),
                 Background = theme.Field,
                 BorderColor = theme.Border,
-                BorderWidth = 1f,
-                Radius = theme.CornerRadius,
-                Padding = 2f,
+                BorderWidth = theme.BorderWidth,
+                Radius = theme.PanelRadius,
+                Padding = theme.BorderWidth,
+                Clip = true,
             }))
             {
                 if (picker.IsLoading)
-                    ui.Text("Scanning the runtime…", new Box { Padding = 8f }, color: theme.TextMuted);
+                    ui.Text("Scanning the runtime…", new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted);
                 else if (picker.Error != null)
-                    ui.Text("The runtime could not be scanned; see the error in the status bar.", new Box { Padding = 8f }, color: theme.TextMuted);
+                    ui.Text("The runtime could not be scanned; see the error in the status bar.", new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
+                        color: theme.TextMuted, wrap: true);
                 else
                     open |= Rows(ui, picker);
             }
 
-            using (ui.Row())
+            using (ui.Row(new Box { Gap = theme.GapTight }))
             {
-                ui.Text(ui.Memo("picker-count", picker.Filtered.Count, static n => $"{n} assemblies"), color: theme.TextMuted);
+                ui.Text(ui.Memo("picker-count", picker.Filtered.Count, static n => $"{n} assemblies"), color: theme.TextMuted, size: theme.FontSizeSmall);
                 ui.Spacer();
-                open |= ui.Button("Open", enabled: picker.Selected != null, id: "picker-open");
                 close |= ui.Button("Cancel", id: "picker-cancel");
+                open |= ui.Button("Open", enabled: picker.Selected != null, id: "picker-open", variant: ButtonVariant.Primary);
             }
         }
 
@@ -93,13 +97,23 @@ internal static class FrameworkPickerView
                     picker.SelectedIndex = i;
                     open |= row.DoubleClicked;
                 }
-                var background = selected ? theme.Selection : row.Hovered ? theme.Hovered(theme.Field) : 0u;
-                using (ui.Row(row.Id, new Box { Height = rowHeight, Gap = 8f, Padding = new Spacing(8f, 0f), Background = background }))
+                var background = selected ? theme.Selection : row.Hovered ? theme.RowHover : 0u;
+                using (ui.Row(row.Id, new Box
+                {
+                    Height = rowHeight,
+                    Gap = theme.GapTight,
+                    Padding = new Spacing(theme.ShellPaddingX, 0f),
+                    Background = background,
+                }))
                 {
                     var listed = picker.IsListed(assembly);
-                    ui.Text(assembly.Name, color: listed ? theme.TextMuted : theme.Text);
-                    ui.Spacer();
-                    ui.Text(listed ? "open" : assembly.Framework, color: theme.TextMuted);
+                    NodeIcons.Draw(ui, NodeKind.Assembly);
+                    using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
+                    {
+                        ui.Text(assembly.Name, new Box { Width = Sizing.Grow() }, color: listed ? theme.TextMuted : selected ? theme.SelectionText : theme.Text,
+                            overflow: TextOverflow.Ellipsis);
+                        ui.Text(listed ? "open" : assembly.Framework, color: theme.TextMuted, size: theme.FontSizeSmall);
+                    }
                 }
             }
         }

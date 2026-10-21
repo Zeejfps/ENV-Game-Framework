@@ -25,11 +25,16 @@ public sealed class UiPainter
 
     public UiRect Rect { get; private set; }
 
+    /// <summary>The part of the window the element is drawn inside: its scrolls' and clipping
+    /// ancestors' visible area, which stays put while a scroll moves <see cref="Rect"/>.</summary>
+    public UiRect Clip { get; private set; }
+
     public int ZIndex => _z;
 
-    internal void Begin(UiRect rect, int z, ICanvas canvas, float originX, float originY, float canvasHeight)
+    internal void Begin(UiRect rect, UiRect clip, int z, ICanvas canvas, float originX, float originY, float canvasHeight)
     {
         Rect = rect;
+        Clip = clip;
         _z = z;
         _canvas = canvas;
         _originX = originX;

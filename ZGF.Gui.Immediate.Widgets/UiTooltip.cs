@@ -3,7 +3,6 @@ namespace ZGF.Gui.Immediate.Widgets;
 public static partial class UiWidgets
 {
     private const int TooltipId = 0x544F4F4C;
-    private const float TooltipMaxWidth = 360f;
 
     private sealed class TooltipState
     {
@@ -48,15 +47,16 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         using (ui.Popup(TooltipId, anchor, new Box
         {
-            Width = Sizing.Fit(0f, TooltipMaxWidth),
-            Padding = new Spacing(8f, 4f),
-            Background = theme.Surface,
+            Width = Sizing.Fit(0f, theme.TooltipMaxWidth),
+            Padding = new Spacing(theme.TooltipPaddingX, theme.TooltipPaddingY),
+            Background = theme.SurfaceRaised,
             BorderColor = theme.Border,
-            BorderWidth = 1f,
-            Radius = 4f,
-        }, Align.Center, gap: 6f, passThrough: true))
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.PopupRadius,
+            Shadow = theme.PopupShadow,
+        }, Align.Center, gap: theme.TooltipGap, passThrough: true))
         {
-            ui.Text(text, color: theme.Text, size: MathF.Round(theme.FontSize * 0.9f), wrap: true);
+            ui.Text(text, color: theme.Text, size: theme.FontSizeSmall, wrap: true);
         }
     }
 }

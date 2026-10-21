@@ -16,8 +16,9 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private BrowseNode[] _roots = [];
     private int _rootsVersion = -1;
     private bool _showNonPublic = true;
+    private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
-    private bool _dark = true;
+    private NodeIconPalette _icons = NodeIconPalette.Dark;
 
     /// <param name="post">Runs an action on the UI thread.</param>
     public BrowseTree(Action<Action> post)
@@ -26,7 +27,6 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     }
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
-
     public IReadOnlyList<BrowseNode> Roots => _roots;
 
     /// <summary>Rebuilds the roots when the assembly list changed. Returns true when it did.</summary>
@@ -40,8 +40,19 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         for (var i = 0; i < roots.Length; i++)
             roots[i] = listed[i].Root;
         _roots = roots;
+        _rootLabels = RootLabels(roots);
         return true;
     }
+
+    /// <summary>The node's name as tabs show it: assemblies listed more than once under one name
+    /// also show their version, or their folder when that is the same too.</summary>
+    public string Label(BrowseNode node) =>
+        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Title : NodeText.Name(node);
+
+    /// <summary>The node's name as its row shows it, beside <see cref="NodeText.Secondary"/>: an
+    /// assembly's folder is added only when the version and framework there do not tell it apart.</summary>
+    public string RowLabel(BrowseNode node) =>
+        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
 
     public void SetShowNonPublic(bool show)
     {
@@ -51,10 +62,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.Refresh();
     }
 
-    public void SetTheme(UiTheme theme, bool dark)
+    public void SetStyle(UiTheme theme, NodeIconPalette icons)
     {
         _theme = theme;
-        _dark = dark;
+        _icons = icons;
     }
 
     /// <summary>Expands the tree down to <paramref name="node"/>, selects it and scrolls to it. When
@@ -121,11 +132,59 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     }
 
     public TreeRow Row(BrowseNode node) => new(
-        node.Text,
+        RowLabel(node),
         NodeIcons.Glyph(node.Kind),
-        NodeIcons.Color(node.Kind, _dark),
+        _icons.For(node.Kind),
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
-        NodeIcons.Family);
+        NodeIcons.Family,
+        Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
+        Secondary: NodeText.Secondary(node),
+        IconOverlay: NodeIcons.Overlay(node.Accessibility),
+        IconOverlayColor: _icons.Restricted,
+        IconOverlayFamily: NodeIcons.Family);
+
+    private readonly record struct RootLabel(string Title, string Row);
+
+    private static Dictionary<BrowseNode, RootLabel> RootLabels(BrowseNode[] roots)
+    {
+        var labels = new Dictionary<BrowseNode, RootLabel>(ReferenceEqualityComparer.Instance);
+        foreach (var group in roots.GroupBy(static r => r.Assembly.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            var nodes = group.ToList();
+            if (nodes.Count == 1)
+            {
+                labels[nodes[0]] = new RootLabel(nodes[0].Assembly.Name, nodes[0].Assembly.Name);
+                continue;
+            }
+            var versions = nodes.Select(static n => n.Assembly.Version?.ToString() ?? "").ToArray();
+            if (versions.Distinct().Count() == nodes.Count)
+            {
+                for (var i = 0; i < nodes.Count; i++)
+                    labels[nodes[i]] = new RootLabel($"{nodes[i].Assembly.Name} ({versions[i]})", nodes[i].Assembly.Name);
+                continue;
+            }
+            var hints = FolderHints(nodes);
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                var label = $"{nodes[i].Assembly.Name} ({hints[i]})";
+                labels[nodes[i]] = new RootLabel(label, label);
+            }
+        }
+        return labels;
+    }
+
+    private static string[] FolderHints(List<BrowseNode> nodes)
+    {
+        var folders = nodes.Select(static n => (Path.GetDirectoryName(n.Assembly.FilePath) ?? "").Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)).ToArray();
+        var deepest = folders.Max(static f => f.Length);
+        for (var depth = 1; depth <= deepest; depth++)
+        {
+            var hints = folders.Select(f => string.Join(Path.DirectorySeparatorChar, f[Math.Max(0, f.Length - depth)..])).ToArray();
+            if (hints.Distinct(StringComparer.OrdinalIgnoreCase).Count() == hints.Length)
+                return hints;
+        }
+        return nodes.Select(static n => n.Assembly.FilePath).ToArray();
+    }
 
     private void Build(BrowseNode node)
     {

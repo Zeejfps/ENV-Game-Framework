@@ -12,6 +12,7 @@ internal static class Settings
         {
             ThrowOnAssemblyResolveErrors = false,
             ShowXmlDocumentation = false,
+            ExpandMemberDefinitions = true,
         };
         settings.CSharpFormattingOptions.IndentationString = Indentation;
         return settings;

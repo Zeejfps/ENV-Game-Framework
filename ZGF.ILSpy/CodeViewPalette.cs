@@ -1,48 +1,100 @@
-using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Syntax colors for the code view, one per <see cref="SpanKind"/>, close to Visual
-/// Studio's defaults.</summary>
+/// <summary>The code view's editor colors: syntax by role, mapped to each <see cref="SpanKind"/>,
+/// and the gutter, fold chip and highlight states. Provided per theme with <c>ui.Provide</c>.</summary>
 public sealed class CodeViewPalette
 {
-    private readonly uint[] _kinds;
+    public required uint Plain { get; init; }
+    public required uint Keyword { get; init; }
+    public required uint Type { get; init; }
+    public required uint Namespace { get; init; }
+    public required uint Method { get; init; }
+    public required uint Member { get; init; }
+    public required uint Parameter { get; init; }
+    public required uint String { get; init; }
+    public required uint Number { get; init; }
+    public required uint Comment { get; init; }
+    public required uint Preprocessor { get; init; }
+    public required uint ILOpcode { get; init; }
+    public required uint ILLabel { get; init; }
+    public required uint GutterText { get; init; }
+    public required uint GutterSeparator { get; init; }
+    public required uint FoldChip { get; init; }
+    public required uint FoldChipHovered { get; init; }
+    public required uint Occurrence { get; init; }
+    public required uint FindMatch { get; init; }
+    public required uint CurrentFind { get; init; }
+    public required uint CurrentFindOutline { get; init; }
+    public required uint Flash { get; init; }
 
-    private CodeViewPalette(uint[] kinds, uint error, uint match, uint currentMatch)
+    public uint this[SpanKind kind] => kind switch
     {
-        _kinds = kinds;
-        Error = error;
-        Match = match;
-        CurrentMatch = currentMatch;
-    }
+        SpanKind.Keyword => Keyword,
+        SpanKind.Type => Type,
+        SpanKind.Namespace => Namespace,
+        SpanKind.Method => Method,
+        SpanKind.Field or SpanKind.Property or SpanKind.Event => Member,
+        SpanKind.Parameter or SpanKind.Local => Parameter,
+        SpanKind.String => String,
+        SpanKind.Number => Number,
+        SpanKind.Comment => Comment,
+        SpanKind.Preprocessor => Preprocessor,
+        SpanKind.ILOpcode => ILOpcode,
+        SpanKind.ILLabel => ILLabel,
+        _ => Plain,
+    };
 
-    public uint Error { get; }
-    public uint Match { get; }
-    public uint CurrentMatch { get; }
-
-    public uint this[SpanKind kind] => _kinds[(int)kind];
-
-    public static CodeViewPalette Dark { get; } = new(
-    [
-        0xFFDCDCDC, 0xFF569CD6, 0xFF4EC9B0, 0xFFC8C8C8, 0xFFDCDCAA, 0xFFDCDCDC, 0xFFDCDCDC, 0xFFDCDCDC,
-        0xFF9CDCFE, 0xFF9CDCFE, 0xFFD69D85, 0xFFB5CEA8, 0xFF57A64A, 0xFF9B9B9B, 0xFF569CD6, 0xFFB8D7A3,
-    ], 0xFFF48771, 0xFF5C4426, 0xFF9E6A1E);
-
-    public static CodeViewPalette Light { get; } = new(
-    [
-        0xFF000000, 0xFF0000FF, 0xFF2B91AF, 0xFF000000, 0xFF74531F, 0xFF000000, 0xFF000000, 0xFF000000,
-        0xFF1F377F, 0xFF1F377F, 0xFFA31515, 0xFF098658, 0xFF008000, 0xFF808080, 0xFF0000FF, 0xFF1F377F,
-    ], 0xFFC72E2E, 0xFFF8E2B8, 0xFFF2B866);
-
-    /// <summary><see cref="Dark"/> on a dark background, else <see cref="Light"/>.</summary>
-    public static CodeViewPalette For(UiTheme theme) => IsDark(theme.Background) ? Dark : Light;
-
-    private static bool IsDark(uint color)
+    public static CodeViewPalette Dark { get; } = new()
     {
-        var r = (color >> 16) & 0xFF;
-        var g = (color >> 8) & 0xFF;
-        var b = color & 0xFF;
-        return 0.2126f * r + 0.7152f * g + 0.0722f * b < 128f;
-    }
+        Plain = 0xFFD8DEE9,
+        Keyword = 0xFF8FB8FF,
+        Type = 0xFF88CEC3,
+        Namespace = 0xFFD8DEE9,
+        Method = 0xFFD7C58F,
+        Member = 0xFFD8DEE9,
+        Parameter = 0xFFB4C9E8,
+        String = 0xFFDDB293,
+        Number = 0xFFBACD9B,
+        Comment = 0xFF879E84,
+        Preprocessor = 0xFFA6ACB8,
+        ILOpcode = 0xFF8FB8FF,
+        ILLabel = 0xFFC3AADF,
+        GutterText = 0xFF919BAA,
+        GutterSeparator = 0xFF2D333D,
+        FoldChip = 0xFF2A303A,
+        FoldChipHovered = 0xFF363D49,
+        Occurrence = 0xFF29354A,
+        FindMatch = 0xFF493C25,
+        CurrentFind = 0xFF5C4824,
+        CurrentFindOutline = 0xFFE6BE73,
+        Flash = 0xFF2E4470,
+    };
+
+    public static CodeViewPalette Light { get; } = new()
+    {
+        Plain = 0xFF293241,
+        Keyword = 0xFF285CC4,
+        Type = 0xFF146E68,
+        Namespace = 0xFF293241,
+        Method = 0xFF79551D,
+        Member = 0xFF293241,
+        Parameter = 0xFF365A88,
+        String = 0xFF974322,
+        Number = 0xFF526D27,
+        Comment = 0xFF58704E,
+        Preprocessor = 0xFF626A78,
+        ILOpcode = 0xFF285CC4,
+        ILLabel = 0xFF74449A,
+        GutterText = 0xFF687487,
+        GutterSeparator = 0xFFE3E7ED,
+        FoldChip = 0xFFECEFF4,
+        FoldChipHovered = 0xFFDFE4EB,
+        Occurrence = 0xFFE5EDFA,
+        FindMatch = 0xFFFFF0BF,
+        CurrentFind = 0xFFFFE09A,
+        CurrentFindOutline = 0xFF805500,
+        Flash = 0xFFCFE0FF,
+    };
 }

@@ -33,8 +33,12 @@ public sealed partial class Ui
         /// <summary>How far the list is scrolled, in points from the top of its content.</summary>
         public float Offset => _state.OffsetY;
 
-        /// <summary>The list's height as last laid out; zero until it has been laid out once.</summary>
-        public float Viewport => _state.ViewportY;
+        /// <summary>How far the list is scrolled sideways, for a list whose rows scroll both ways.</summary>
+        public float OffsetX => _state.OffsetX;
+
+        /// <summary>The height rows show in as last laid out, less a horizontal bar's gutter; zero
+        /// until it has been laid out once.</summary>
+        public float Viewport => VisibleHeight(_state);
 
         /// <summary>Scrolls to <paramref name="offset"/> points from the top of the content, from
         /// the next frame, clamped to the content then.</summary>
@@ -52,14 +56,15 @@ public sealed partial class Ui
         public bool ScrollIntoView(int index)
         {
             if (index < 0 || index >= Count) return true;
-            if (_state.ViewportY <= 0f) return false;
+            var viewport = VisibleHeight(_state);
+            if (viewport <= 0f) return false;
             var top = _top + index * (_rowHeight + _gap);
             var bottom = top + _rowHeight;
             var offset = _state.OffsetY;
             if (top < offset)
                 offset = top;
-            else if (bottom > offset + _state.ViewportY)
-                offset = bottom - _state.ViewportY;
+            else if (bottom > offset + viewport)
+                offset = bottom - viewport;
             if (offset == _state.OffsetY) return true;
             _state.OffsetY = offset;
             _ui.RequestFrame();
@@ -81,6 +86,9 @@ public sealed partial class Ui
     public VirtualList VirtualScroll(string id, int count, float rowHeight, ref float offset, Box box = default) =>
         VirtualScroll(GetId(id), count, rowHeight, ref offset, box);
 
+    public VirtualList VirtualScroll(string id, int count, float rowHeight, ref float offsetX, ref float offsetY, Box box = default) =>
+        VirtualScroll(GetId(id), count, rowHeight, ref offsetX, ref offsetY, box);
+
     /// <summary>A <see cref="VirtualScroll(int, int, float, Box)"/> whose offset the app owns, as
     /// <c>SplitPane</c>'s size is: a changed <paramref name="offset"/> scrolls the list, and the
     /// wheel, the bar and <see cref="VirtualList.ScrollTo"/> write it back — so several documents
@@ -90,8 +98,25 @@ public sealed partial class Ui
         var state = GetState<ScrollState>(id);
         if (offset != state.Synced)
             state.OffsetY = MathF.Max(0f, offset);
-        var list = VirtualScroll(id, count, rowHeight, box);
+        var list = VirtualScroll(id, ScrollAxes.Vertical, count, rowHeight, box);
         offset = state.Synced = state.OffsetY;
+        return list;
+    }
+
+    /// <summary>A <see cref="VirtualScroll(int, int, float, ref float, Box)"/> whose rows also scroll
+    /// sideways when wider than it, as a code view's lines do: size rows at least as wide as the
+    /// widest. Both offsets are the app's; each axis reserves its bar's gutter only while it
+    /// overflows, so the last row and the last column are never under a bar.</summary>
+    public VirtualList VirtualScroll(int id, int count, float rowHeight, ref float offsetX, ref float offsetY, Box box = default)
+    {
+        var state = GetState<ScrollState>(id);
+        if (offsetX != state.SyncedX)
+            state.OffsetX = MathF.Max(0f, offsetX);
+        if (offsetY != state.Synced)
+            state.OffsetY = MathF.Max(0f, offsetY);
+        var list = VirtualScroll(id, ScrollAxes.Both, count, rowHeight, box);
+        offsetX = state.SyncedX = state.OffsetX;
+        offsetY = state.Synced = state.OffsetY;
         return list;
     }
 
@@ -102,25 +127,29 @@ public sealed partial class Ui
     /// Rows out of view are stood in for by spacers, so the scrollbar still spans them all. Scope
     /// row ids by item, not index, so their state follows the item.
     /// </summary>
-    public VirtualList VirtualScroll(int id, int count, float rowHeight, Box box = default)
+    public VirtualList VirtualScroll(int id, int count, float rowHeight, Box box = default) =>
+        VirtualScroll(id, ScrollAxes.Vertical, count, rowHeight, box);
+
+    private VirtualList VirtualScroll(int id, ScrollAxes axes, int count, float rowHeight, Box box)
     {
         var gap = box.Gap ?? Theme.Gap;
-        Scroll(id, ScrollAxes.Vertical, box with { Direction = Direction.Vertical, Gap = gap });
+        Scroll(id, axes, box with { Direction = Direction.Vertical, Gap = gap });
         var state = GetState<ScrollState>(id);
 
         var stride = rowHeight + gap;
         var top = box.Padding?.Top ?? 0f;
-        if (state.ViewportY > 0f)
+        var viewportY = VisibleHeight(state);
+        if (viewportY > 0f)
         {
             var content = top + (box.Padding?.Bottom ?? 0f) + MathF.Max(0f, count * stride - gap);
-            var clamped = Math.Clamp(state.OffsetY, 0f, MathF.Max(0f, content - state.ViewportY));
+            var clamped = Math.Clamp(state.OffsetY, 0f, MathF.Max(0f, content - viewportY));
             if (clamped != state.OffsetY)
             {
                 state.OffsetY = clamped;
                 _tree[_openScrolls.Peek().Element].ScrollY = clamped;
             }
         }
-        var viewport = state.ViewportY > 0f ? state.ViewportY : Height;
+        var viewport = viewportY > 0f ? viewportY : Height;
         var first = Math.Clamp((int)MathF.Floor((state.OffsetY - top) / stride) - VirtualOverscan, 0, count);
         var end = Math.Clamp(first + (int)MathF.Ceiling(viewport / stride) + 1 + VirtualOverscan * 2, first, count);
 
@@ -128,4 +157,7 @@ public sealed partial class Ui
             Leaf(new Box { Width = 0f, Height = first * stride - gap });
         return new VirtualList(this, state, count, first, end, rowHeight, gap, top);
     }
+
+    private static float VisibleHeight(ScrollState state) =>
+        state.ViewportY <= 0f ? 0f : MathF.Max(0f, state.ViewportY - Gutter(state.ScrollsX && state.MaxX > 0f, state.Bar));
 }

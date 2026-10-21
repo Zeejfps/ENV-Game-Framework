@@ -106,7 +106,7 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
-    public void Going_back_to_what_the_tab_shows_reveals_it_without_decompiling_again()
+    public void Going_back_to_what_the_tab_shows_returns_to_where_it_was_left_without_decompiling_again()
     {
         var d = new WorkspaceDriver();
         d.OpenFixtures();
@@ -121,7 +121,8 @@ public sealed class WorkspaceTests
 
         Assert.False(tab.IsBusy);
         Assert.Same(document, tab.Document);
-        Assert.Equal(document.FindDefinitionLine(tab.Node!), tab.View.PendingReveal);
+        Assert.NotNull(tab.View.PendingRestore);
+        Assert.Equal(CodeViewState.NoLine, tab.View.PendingReveal);
     }
 
     [Fact]

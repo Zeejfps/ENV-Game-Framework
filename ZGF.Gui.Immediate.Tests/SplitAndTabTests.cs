@@ -38,7 +38,7 @@ public sealed class SplitPaneTests
         _frames.Run(0f, Body);
 
         Assert.Equal(100f, _frames.RectOf(Body, ui => ui.GetId("left")).Width);
-        Assert.Equal(368f - 105f, _frames.RectOf(Body, ui => ui.GetId("right")).Width);
+        Assert.Equal(368f - 106f, _frames.RectOf(Body, ui => ui.GetId("right")).Width);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class SplitPaneTests
 
     [Theory]
     [InlineData(0f, 50f)]
-    [InlineData(400f, 368f - 5f - 100f)]
+    [InlineData(400f, 368f - 6f - 100f)]
     public void Dragging_stops_at_the_minimum_sizes(float toX, float expected)
     {
         Drag(toX);

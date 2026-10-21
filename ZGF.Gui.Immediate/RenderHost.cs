@@ -86,8 +86,18 @@ internal abstract class RenderHost : IDisposable
         MakeMainCurrent();
     }
 
-    public void RegisterFont(string family, byte[] data) =>
-        Canvas.RegisterFont(family, _fonts.LoadFontFromMemory(data, PixelSize(Canvas.DpiScale)));
+    public void RegisterFont(string family, byte[] data, bool bold)
+    {
+        var handle = _fonts.LoadFontFromMemory(data, PixelSize(Canvas.DpiScale));
+        if (bold)
+            Canvas.RegisterBoldFont(family, handle);
+        else
+            Canvas.RegisterFont(family, handle);
+    }
+
+    /// <summary>Makes the default font's bold text Inter SemiBold rather than synthesized.</summary>
+    protected void RegisterDefaultBold() =>
+        Canvas.RegisterBoldFont(null, _fonts.LoadFontFromMemory(EmbeddedAssets.LoadFontBytes("Inter-SemiBold.ttf"), PixelSize(Canvas.DpiScale)));
 
     protected abstract RenderedCanvasBase CreatePopupCanvas(IWindow window, int width, int height);
 
@@ -135,6 +145,7 @@ internal sealed class GlRenderHost : RenderHost
         _font = LoadDefaultFont(fonts, _window.DpiScale);
         _shared = new GlSharedResources(fonts, new GlImageManager());
         _canvas = new OpenGlRenderedCanvas(config.WindowWidth, config.WindowHeight, fonts, _font, _shared, _window.DpiScale);
+        RegisterDefaultBold();
     }
 
     public override IWindowedApp App => _app;
@@ -208,6 +219,7 @@ internal sealed class MetalRenderHost : RenderHost
         _font = LoadDefaultFont(fonts, _window.DpiScale);
         _shared = new MetalSharedResources(_app.Device, _app.CommandQueue, fonts, new MetalImageManager(_app.Device));
         _canvas = new MetalRenderedCanvas(config.WindowWidth, config.WindowHeight, fonts, _font, _shared, _window.DpiScale);
+        RegisterDefaultBold();
     }
 
     public override IWindowedApp App => _app;

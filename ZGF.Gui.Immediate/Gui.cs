@@ -10,7 +10,7 @@ namespace ZGF.Gui.Immediate;
 /// </summary>
 public abstract class Gui<T> where T : class
 {
-    private readonly List<(string Family, byte[] Data)> _fonts = new();
+    private readonly List<(string Family, byte[] Data, bool Bold)> _fonts = new();
     private readonly ConcurrentQueue<Action> _posted = new();
     private volatile ImmediateHost? _host;
     private volatile bool _stopped;
@@ -31,11 +31,13 @@ public abstract class Gui<T> where T : class
 
     /// <summary>Makes the font in <paramref name="data"/> (TTF/OTF bytes) drawable as
     /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiTheme.FontFamily"/>.
-    /// One family is one face: register bold or italic faces under names of their own.</summary>
-    public void RegisterFont(string family, byte[] data)
+    /// With <paramref name="bold"/> it is the face the family's bold text is drawn in, which is
+    /// otherwise synthesized from the regular face; the default font's bold is Inter SemiBold.
+    /// Register italic faces under names of their own.</summary>
+    public void RegisterFont(string family, byte[] data, bool bold = false)
     {
-        _fonts.Add((family, data));
-        _host?.RegisterFont(family, data);
+        _fonts.Add((family, data, bold));
+        _host?.RegisterFont(family, data, bold);
     }
 
     /// <summary>Schedules a frame after <see cref="State"/> changed outside <see cref="Render"/>.

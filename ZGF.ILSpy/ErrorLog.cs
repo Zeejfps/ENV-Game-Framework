@@ -81,7 +81,8 @@ public sealed class ErrorLog
         _document = DecompiledDocument.Empty;
     }
 
-    /// <summary><see cref="SelectedError"/>'s full text as a document for the dialog's code view.</summary>
+    /// <summary><see cref="SelectedError"/>'s details, or its title when it has none, as a document
+    /// for the dialog's code view.</summary>
     public DecompiledDocument SelectedDocument()
     {
         var error = SelectedError;
@@ -89,7 +90,7 @@ public sealed class ErrorLog
         if (!ReferenceEquals(error, _documentFor))
         {
             _documentFor = error;
-            _document = DecompiledDocument.FromText(error.Title, error.FullText);
+            _document = DecompiledDocument.FromText(error.Title, error.Details.Length > 0 ? error.Details : error.Title);
         }
         return _document;
     }

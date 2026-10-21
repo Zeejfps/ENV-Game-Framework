@@ -5,37 +5,53 @@ using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
+/// <summary>The shown node's full name at the left, ellipsized, and a content-sized cluster at the
+/// right: activity, errors, language and the assembly count.</summary>
 internal static class StatusBarView
 {
-    private const float BadgeSize = 14f;
-
     public static void Render(Ui ui, Workspace w)
     {
         var theme = ui.Theme;
-        using (ui.Row(new Box { Height = AppThemes.BarHeight, Padding = new Spacing(10f, 0f), Gap = 16f, Background = theme.Surface }))
+        var size = theme.FontSizeSmall;
+        using (ui.Row(new Box
         {
-            using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), AlignY = Align.Center, Clip = true }))
+            Height = theme.StatusBarHeight,
+            Padding = new Spacing(theme.ShellPaddingX, 0f),
+            Gap = theme.GroupGap,
+            AlignY = Align.Center,
+            Background = theme.Surface,
+        }))
+        {
+            var selected = w.ActiveTab?.Node;
+            ui.Text(ui.Memo("status-node", selected, static n => n?.FullName ?? ""), new Box { Width = Sizing.Grow() }, color: theme.TextMuted,
+                size: size, overflow: TextOverflow.Ellipsis);
+
+            using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                var selected = w.ActiveTab?.Node;
-                ui.Text(ui.Memo("status-node", selected, static n => n?.FullName ?? ""), color: theme.TextMuted);
+                var activity = w.IsReloading ? "Reloading…" : w.ActiveTab is { IsBusy: true } ? "Decompiling…" : w.IsResolving ? "Resolving…" : null;
+                if (activity != null)
+                {
+                    ui.Text(activity, color: theme.AccentText, size: size);
+                    Dot(ui);
+                }
+                if (w.Errors.Entries.Count > 0)
+                {
+                    ErrorIndicator(ui, w);
+                    Dot(ui);
+                }
+                ui.Text(w.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
+                Dot(ui);
+                ui.Text(ui.Memo("status-count", w.Tree.Roots.Count, static n => n == 1 ? "1 assembly" : $"{n} assemblies"), color: theme.TextMuted, size: size);
             }
-
-            var activity = w.IsReloading ? "Reloading…" : w.ActiveTab is { IsBusy: true } ? "Decompiling…" : w.IsResolving ? "Resolving…" : null;
-            if (activity != null)
-                ui.Text(activity, color: theme.Accent);
-            if (w.Errors.Entries.Count > 0)
-                ErrorIndicator(ui, w);
-
-            ui.Text(w.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted);
-            ui.Text(ui.Memo("status-count", w.Tree.Roots.Count, static n => n == 1 ? "1 assembly" : $"{n} assemblies"), color: theme.TextMuted);
         }
     }
+
+    private static void Dot(Ui ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
 
     private static void ErrorIndicator(Ui ui, Workspace w)
     {
         var theme = ui.Theme;
         var errors = w.Errors;
-        var color = CodeViewPalette.For(theme).Error;
         var i = ui.Interact("errors");
         if (i.Hovered)
             ui.SetCursor(MouseCursor.Hand);
@@ -44,16 +60,17 @@ internal static class StatusBarView
 
         using (ui.Row(i.Id, new Box
         {
+            Width = Sizing.Fit(),
             Height = Sizing.Grow(),
-            Gap = 6f,
-            Padding = new Spacing(6f, 0f),
+            Gap = theme.GapTight,
+            Padding = new Spacing(theme.GapTight, 0f),
             AlignY = Align.Center,
-            Background = i.Hovered ? theme.Hovered(theme.Surface) : 0u,
+            Background = i.Held ? theme.Pressed(theme.DangerSurface) : i.Hovered ? theme.DangerSurface : 0u,
         }))
         {
-            ui.Text("!", new Box { Width = BadgeSize, Height = BadgeSize, Radius = BadgeSize / 2, Background = color }, color: theme.OnAccent,
-                bold: true, align: Align.Center, size: MathF.Round(theme.FontSize * 0.85f));
-            ui.Text(ui.Memo("status-errors", errors.Entries.Count, static n => n == 1 ? "1 error" : $"{n} errors"), color: color);
+            ui.Text(LucideIcons.AlertCircle, color: theme.Danger, size: theme.IconSize, family: LucideIcons.Family);
+            ui.Text(ui.Memo("status-errors", errors.Entries.Count, static n => n == 1 ? "1 error" : $"{n} errors"), color: theme.Danger,
+                size: theme.FontSizeSmall);
         }
         ui.Tooltip(i.Id, errors.Entries[^1].Summary);
     }

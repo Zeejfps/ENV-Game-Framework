@@ -154,6 +154,12 @@ public abstract class GlfwWindowBase : IWindow
         GLFW.Glfw.SetCursor(GlfwWindow, GlfwStandardCursors.Get(cursor));
     }
 
+    public void SetTitleBarTheme(bool dark)
+    {
+        if (OperatingSystem.IsWindows())
+            WindowsDwm.SetDarkTitleBar(NativeHandle, dark);
+    }
+
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
         var images = new Image[icons.Count];

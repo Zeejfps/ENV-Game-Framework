@@ -84,6 +84,9 @@ public interface IWindow : IDisposable
     // Lets every pointer event fall through to whatever is behind the window — for a tooltip.
     void SetMousePassThrough(bool passThrough);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);
+    // Matches the native title bar to a dark or light client area where the platform draws one
+    // (Windows' immersive dark caption); a no-op elsewhere.
+    void SetTitleBarTheme(bool dark);
     void RequestRedraw();
 
     string GetClipboardText();

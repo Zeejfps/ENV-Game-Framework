@@ -6,8 +6,6 @@ namespace ZGF.Gui.Immediate.Widgets;
 
 public static partial class UiWidgets
 {
-    private const float FieldPaddingX = 8f;
-    private const float CaretWidth = 1.5f;
     private const double CaretBlinkSeconds = 0.53;
     private const int MaxUndo = 100;
 
@@ -48,10 +46,15 @@ public static partial class UiWidgets
 
     /// <summary>Edits <paramref name="text"/> in place. Returns true when Enter is pressed while
     /// the field has focus. Supports mouse selection (drag, shift-click, double-click for a word,
-    /// triple-click for everything), word-wise movement and deletion, the clipboard, and undo.</summary>
-    public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null)
+    /// triple-click for everything), word-wise movement and deletion, the clipboard, and undo. The
+    /// field is a Tab stop. <paramref name="leadingIcon"/> is a glyph drawn before the text in
+    /// <paramref name="iconFamily"/>; <paramref name="hint"/> is muted text at the end — a shortcut —
+    /// left out while the field is too narrow to keep room for typing.</summary>
+    public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, string? leadingIcon = null,
+        string? iconFamily = null, string? hint = null)
     {
         var theme = ui.Theme;
+        var padding = theme.FieldPaddingX;
         var i = ui.Interact(id);
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
@@ -64,23 +67,28 @@ public static partial class UiWidgets
             state.Select(Math.Min(state.Anchor, text.Length), Math.Min(state.Caret, text.Length));
         }
 
-        var focused = ui.HasFocus(i.Id);
+        var focused = ui.TabStop(i.Id, takesText: true);
         var (caretBefore, anchorBefore, textBefore) = (state.Caret, state.Anchor, text);
         var hasRect = ui.TryGetRect(i.Id, out var rect);
-        var innerWidth = hasRect ? rect.Width - FieldPaddingX * 2 : float.PositiveInfinity;
+        var lead = leadingIcon != null ? theme.IconSize + theme.GapTight : 0f;
+        var hintWidth = hint != null ? ui.MeasureText(hint, theme.FontSizeSmall) + theme.GapTight : 0f;
+        var showHint = hint != null && (!hasRect || rect.Width - padding * 2 - lead - hintWidth >= MinFieldWidth);
+        var trail = showHint ? hintWidth : 0f;
+        var textLeft = rect.X + padding + lead;
+        var innerWidth = hasRect ? rect.Width - padding * 2 - lead - trail : float.PositiveInfinity;
 
         if (i.Pressed)
         {
             if (!focused) state.Shift = 0f;
-            Press(ui, state, text, CaretAt(ui, text, ui.Input.Pointer.X - rect.X - FieldPaddingX + state.Shift), i.ClickCount, extend: focused);
+            Press(ui, state, text, CaretAt(ui, text, ui.Input.Pointer.X - textLeft + state.Shift), i.ClickCount, extend: focused);
             ui.Focus(i.Id);
             focused = true;
         }
         else if (i.Held && focused && hasRect)
         {
-            Drag(state, text, CaretAt(ui, text, ui.Input.Pointer.X - rect.X - FieldPaddingX + state.Shift));
+            Drag(state, text, CaretAt(ui, text, ui.Input.Pointer.X - textLeft + state.Shift));
             var pointerX = ui.Input.Pointer.X;
-            if (pointerX < rect.X + FieldPaddingX || pointerX > rect.Right - FieldPaddingX)
+            if (pointerX < textLeft || pointerX > textLeft + innerWidth)
                 ui.RequestFrame();
         }
 
@@ -110,40 +118,48 @@ public static partial class UiWidgets
         {
             Width = width ?? Sizing.Grow(MinFieldWidth),
             Height = theme.ControlHeight,
-            Padding = new Spacing(FieldPaddingX, 0f),
-            Clip = true,
-            ScrollX = shift,
+            Padding = new Spacing(padding, 0f),
+            Gap = theme.GapTight,
             Background = theme.Field,
-            BorderColor = focused ? theme.Accent : i.Hovered ? theme.TextMuted : theme.Border,
-            BorderWidth = 1f,
+            BorderColor = focused ? theme.FocusRing : i.Hovered ? theme.BorderStrong : theme.Border,
+            BorderWidth = theme.BorderWidth,
             Radius = theme.CornerRadius,
         }))
         {
+            if (leadingIcon != null)
+                ui.Text(leadingIcon, new Box { Width = theme.IconSize }, color: theme.TextMuted, size: theme.IconSize, align: Align.Center, family: iconFamily);
+
             var lineHeight = ui.LineHeight();
-            if (focused && state.HasSelection)
+            using (ui.Row(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true, ScrollX = shift }))
             {
-                var from = MathF.Min(caretX, anchorX) - shift;
-                var to = MathF.Max(caretX, anchorX) - shift;
-                ui.Paint((from, to, lineHeight, theme.Selection), static (p, s) =>
+                if (focused && state.HasSelection)
                 {
-                    var r = p.Rect;
-                    var left = MathF.Max(r.X + FieldPaddingX + s.from, r.X + 1f);
-                    var right = MathF.Min(r.X + FieldPaddingX + s.to, r.Right - 1f);
-                    if (right > left)
-                        p.FillRect(new UiRect(left, r.Y + (r.Height - s.lineHeight) / 2, right - left, s.lineHeight), s.Selection);
-                });
+                    var from = MathF.Min(caretX, anchorX) - shift;
+                    var to = MathF.Max(caretX, anchorX) - shift;
+                    ui.Paint((from, to, lineHeight, theme.Selection), static (p, s) =>
+                    {
+                        var r = p.Rect;
+                        var left = MathF.Max(r.X + s.from, r.X);
+                        var right = MathF.Min(r.X + s.to, r.Right);
+                        if (right > left)
+                            p.FillRect(new UiRect(left, r.Y + (r.Height - s.lineHeight) / 2, right - left, s.lineHeight), s.Selection);
+                    });
+                }
+
+                if (text.Length > 0)
+                    ui.Text(text);
+                else if (placeholder != null)
+                    ui.Text(placeholder, color: theme.TextMuted);
+
+                if (focused && !state.HasSelection && CaretVisible(ui, state))
+                {
+                    using (ui.Float(0f, 0.5f, caretX - shift, -lineHeight / 2,
+                        new Box { Width = theme.CaretWidth, Height = lineHeight, Background = theme.Text }, z: 1)) { }
+                }
             }
 
-            if (text.Length > 0)
-                ui.Text(text);
-            else if (placeholder != null)
-                ui.Text(placeholder, color: theme.TextMuted);
-
-            if (focused && !state.HasSelection && CaretVisible(ui, state))
-            {
-                using (ui.Float(0f, 0.5f, FieldPaddingX + caretX - shift, -lineHeight / 2,
-                    new Box { Width = CaretWidth, Height = lineHeight, Background = theme.Text }, z: 1)) { }
-            }
+            if (showHint)
+                ui.Text(hint!, color: theme.TextMuted, size: theme.FontSizeSmall);
         }
         return submitted;
     }

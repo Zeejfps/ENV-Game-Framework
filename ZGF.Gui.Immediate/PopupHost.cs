@@ -8,9 +8,12 @@ internal interface IPopupHost
     /// <paramref name="fallback"/>, ends up.</summary>
     UiRect Place(UiRect preferred, UiRect fallback);
 
-    /// <summary>Shows popup <paramref name="id"/> at <paramref name="rect"/> this frame and returns
-    /// the canvas to draw it on, origin at the rect's top-left; null draws it over the main window.</summary>
-    ICanvas? Show(int id, UiRect rect, bool passThrough);
+    /// <summary>Shows popup <paramref name="id"/>, whose content is <paramref name="rect"/>, in a
+    /// window covering <paramref name="surface"/> — the rect plus what it paints around itself, a
+    /// shadow — this frame, and returns the canvas to draw it on, origin at the surface's top-left;
+    /// null draws it over the main window. Only <paramref name="rect"/> keeps the pointer from what
+    /// is under the popup.</summary>
+    ICanvas? Show(int id, UiRect rect, UiRect surface, bool passThrough);
 
     /// <summary>Hides every popup now, before something modal of the platform's takes over.</summary>
     void HideAll();

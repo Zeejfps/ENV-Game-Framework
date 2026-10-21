@@ -23,13 +23,13 @@ public static class DockPanels
     {
         var layout = saved ?? new DockLayout
         {
-            Root = DockLayout.Split(Direction.Horizontal, 0.28f, DockLayout.Group(Assemblies), DockLayout.Group(Documents)),
+            Root = DockLayout.Split(Direction.Horizontal, 0.34f, DockLayout.Group(Assemblies), DockLayout.Group(Documents)),
         };
         layout.Retain(static panel => panel is Assemblies or Documents);
         if (!layout.Contains(Documents))
-            layout.Dock(Documents, layout.Root, DockEdge.Right, 0.72f);
+            layout.Dock(Documents, layout.Root, DockEdge.Right, 0.66f);
         if (!layout.Contains(Assemblies))
-            layout.Dock(Assemblies, layout.GroupOf(Documents)!, DockEdge.Left, 0.28f);
+            layout.Dock(Assemblies, layout.GroupOf(Documents)!, DockEdge.Left, 0.34f);
         return layout;
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -97,6 +98,45 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal(["a.dll", "b.dll"], loaded.Assemblies);
         Assert.Equal(DecompilationLanguage.IL, loaded.Language);
         Assert.Equal([SettingsFile], Directory.GetFiles(_directory));
+    }
+
+    [Fact]
+    public void Window_bounds_round_trip_and_open_the_window_where_it_was_left()
+    {
+        var settings = AppSettings.Load(SettingsFile);
+        settings.Window = new WindowBounds(-1200, 80, 1600, 1000, Maximized: true);
+        Assert.Null(settings.Save());
+
+        var loaded = AppSettings.Load(SettingsFile);
+        var config = loaded.Window!.Value.ApplyTo(new StartupConfig { WindowWidth = 1400, WindowHeight = 900, WindowTitle = "ILSpy" });
+
+        Assert.Equal(new WindowBounds(-1200, 80, 1600, 1000, true), loaded.Window);
+        Assert.Equal((-1200, 80, 1600, 1000, true), (config.WindowX, config.WindowY, config.WindowWidth, config.WindowHeight, config.StartMaximized));
+        Assert.Null(AppSettings.Load(Path.Combine(_directory, "missing.json")).Window);
+    }
+
+    [Theory]
+    [InlineData(10, 20, AppSettings.MinWindowWidth, AppSettings.MinWindowHeight)]
+    [InlineData(100_000, 90_000, AppSettings.MaxWindowSize, AppSettings.MaxWindowSize)]
+    [InlineData(1200, 800, 1200, 800)]
+    public void Saved_window_sizes_load_within_reason(int width, int height, int expectedWidth, int expectedHeight)
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(SettingsFile, $$"""{ "Window": { "X": 5, "Y": 6, "Width": {{width}}, "Height": {{height}}, "Maximized": false } }""");
+
+        var loaded = AppSettings.Load(SettingsFile);
+
+        Assert.Equal(new WindowBounds(5, 6, expectedWidth, expectedHeight, false), loaded.Window);
+    }
+
+    [Fact]
+    public void Window_bounds_without_a_size_load_as_none()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(SettingsFile, """{ "Window": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""");
+
+        Assert.Null(AppSettings.Load(SettingsFile).Window);
+        Assert.Null(AppSettings.Sanitize(default(WindowBounds)));
     }
 
     [Fact]

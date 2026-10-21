@@ -43,23 +43,27 @@ public readonly struct SplitPane : IDisposable
     /// <summary>The first pane — left or top — a clipped column.</summary>
     public Ui.Scope First() => Pane(SplitSide.First);
 
-    /// <summary>Records the divider, then opens the second pane, a clipped column.</summary>
+    /// <summary>Records the divider — a <see cref="UiTheme.SeparatorWidth"/> line in a
+    /// <see cref="UiTheme.SplitterSize"/> strip, stronger while hovered and accented while dragged —
+    /// then opens the second pane, a clipped column.</summary>
     public Ui.Scope Second()
     {
         var theme = _ui.Theme;
         var thickness = theme.SplitterSize;
-        var color = _divider.Held ? theme.Accent : _divider.Hovered ? theme.TextMuted : theme.Border;
+        var held = _divider.Held;
+        var color = held ? theme.Accent : _divider.Hovered ? theme.BorderStrong : theme.Separator;
+        var line = held || _divider.Hovered ? MathF.Max(theme.SeparatorWidth, theme.FocusRingWidth) : theme.SeparatorWidth;
         using (_ui.Box(_divider.Id, _horizontal
             ? new Box { Width = thickness, Height = Sizing.Grow() }
             : new Box { Width = Sizing.Grow(), Height = thickness }))
         {
-            _ui.Paint((color, _horizontal), static (p, s) =>
+            _ui.Paint((color, line, _horizontal), static (p, s) =>
             {
                 var r = p.Rect;
                 if (s._horizontal)
-                    p.FillRect(new UiRect(r.X + MathF.Floor(r.Width / 2), r.Y, 1f, r.Height), s.color);
+                    p.FillRect(new UiRect(r.X + MathF.Floor((r.Width - s.line) / 2), r.Y, s.line, r.Height), s.color);
                 else
-                    p.FillRect(new UiRect(r.X, r.Y + MathF.Floor(r.Height / 2), r.Width, 1f), s.color);
+                    p.FillRect(new UiRect(r.X, r.Y + MathF.Floor((r.Height - s.line) / 2), r.Width, s.line), s.color);
             });
         }
         return Pane(SplitSide.Second);

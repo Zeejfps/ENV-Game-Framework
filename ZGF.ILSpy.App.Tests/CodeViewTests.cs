@@ -24,7 +24,7 @@ public sealed class CodeViewTests
     }
 
     [Fact]
-    public void Lines_are_drawn_in_syntax_colors_for_the_theme()
+    public void Lines_are_drawn_in_the_syntax_colors_of_the_provided_palette()
     {
         var document = CodeViewDriver.Greeter();
         var view = new CodeViewDriver(document, height: 1200f);
@@ -36,6 +36,7 @@ public sealed class CodeViewTests
         view.Frames.Run(1f / 60f, ui =>
         {
             using (ui.Provide(UiTheme.Light))
+            using (ui.Provide(CodeViewPalette.Light))
                 ui.CodeView("code", document, view.State);
         });
         var light = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
@@ -43,6 +44,26 @@ public sealed class CodeViewTests
         Assert.Equal(SpanKind.Keyword, document.SpanAt(line, column).Kind);
         Assert.Equal(CodeViewPalette.Dark[SpanKind.Keyword], dark);
         Assert.Equal(CodeViewPalette.Light[SpanKind.Keyword], light);
+    }
+
+    [Fact]
+    public void Tab_reaches_the_code_view_with_a_focus_ring_that_a_click_does_not_show()
+    {
+        var view = new CodeViewDriver(CodeViewDriver.Numbered(20));
+        view.Run();
+        static bool Ring(CodeViewDriver v) => v.Frames.Canvas.Rects.Any(r => r.Inputs.Style.BorderColor.Top.Value == UiTheme.Dark.FocusRing);
+        Assert.False(Ring(view));
+
+        view.Key(KeyboardKey.Tab);
+        view.Run();
+        Assert.True(Ring(view));
+        view.Key(KeyboardKey.A, KeyModifiers.Control);
+        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        Assert.StartsWith("line 0", view.Frames.Clipboard.Text);
+
+        view.Click(2, 1);
+        view.Run();
+        Assert.False(Ring(view));
     }
 
     [Fact]
@@ -107,7 +128,7 @@ public sealed class CodeViewTests
         view.Run();
 
         Assert.Null(result.Navigate);
-        var occurrence = UiColor.Mix(UiTheme.Dark.Field, UiTheme.Dark.Accent, 0.2f);
+        var occurrence = CodeViewPalette.Dark.Occurrence;
         var expected = document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
         Assert.True(expected >= 3);
         Assert.Equal(expected, view.Frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == occurrence));
@@ -281,9 +302,11 @@ public sealed class CodeViewTests
         view.Run();
         view.Click(0, 0);
 
+        var page = (int)MathF.Floor(ViewHeight / CodeViewDriver.Row) - 1;
+
         view.Key(KeyboardKey.PageDown);
         view.Run();
-        var paged = view.DrawnText().Single(d => d.Text == "line 15").Top;
+        var paged = view.DrawnText().Single(d => d.Text == $"line {page}").Top;
         view.Key(KeyboardKey.End);
         view.Run();
         var end = view.DrawnText().Any(d => d.Text == "line 999");

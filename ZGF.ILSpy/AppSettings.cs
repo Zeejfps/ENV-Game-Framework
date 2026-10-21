@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
@@ -25,6 +26,24 @@ public sealed class AppSettings
     public bool ShowNonPublic { get; set; } = true;
     public DockLayout? Layout { get; set; }
 
+    /// <summary>The main window as it was left; null opens it at the default size, centered.</summary>
+    public WindowBounds? Window { get; set; }
+
+    public const int MinWindowWidth = 480;
+    public const int MinWindowHeight = 320;
+    public const int MaxWindowSize = 16384;
+
+    /// <summary><paramref name="bounds"/> with its size kept within reason, or null when it has none.
+    /// A position off every monitor is the window system's to correct when the window opens.</summary>
+    public static WindowBounds? Sanitize(WindowBounds? bounds) =>
+        bounds is { Width: > 0, Height: > 0 } b
+            ? b with
+            {
+                Width = Math.Clamp(b.Width, MinWindowWidth, MaxWindowSize),
+                Height = Math.Clamp(b.Height, MinWindowHeight, MaxWindowSize),
+            }
+            : null;
+
     public static AppSettings Load(string path)
     {
         AppSettings? settings = null;
@@ -41,6 +60,7 @@ public sealed class AppSettings
         settings ??= new AppSettings();
         settings.Assemblies ??= new List<string>();
         settings.Assemblies.RemoveAll(static p => string.IsNullOrWhiteSpace(p));
+        settings.Window = Sanitize(settings.Window);
         settings.FilePath = path;
         settings.LoadError = error;
         return settings;

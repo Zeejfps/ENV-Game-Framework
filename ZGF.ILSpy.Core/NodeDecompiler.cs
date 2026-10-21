@@ -70,6 +70,7 @@ internal static class NodeDecompiler
         var disassembler = new ReflectionDisassembler(output, cancellationToken)
         {
             DetectControlStructure = true,
+            ExpandMemberDefinitions = true,
             AssemblyResolver = node.Assembly.Resolver,
         };
         switch (node)

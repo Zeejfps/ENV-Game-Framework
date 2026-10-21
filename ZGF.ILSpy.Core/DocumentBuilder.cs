@@ -11,6 +11,8 @@ namespace ZGF.ILSpy.Core;
 
 internal sealed class DocumentBuilder : ITextOutput
 {
+    private const int MaxSignatureLines = 8;
+
     private readonly DecompilationLanguage _language;
     private readonly StringBuilder _line = new();
     private readonly List<DocumentSpan> _spans = new();
@@ -18,6 +20,8 @@ internal sealed class DocumentBuilder : ITextOutput
     private readonly Dictionary<CodeReference, int> _definitions = new();
     private readonly List<DocumentSpan> _lexed = new();
     private readonly Dictionary<object, int> _localKeys = new();
+    private readonly Stack<OpenFold> _openFolds = new();
+    private readonly List<(OpenFold Start, int EndLine)> _folds = new();
     private readonly LoadedAssembly? _assembly;
     private int _lineFirstSpan;
     private int _indent;
@@ -42,7 +46,8 @@ internal sealed class DocumentBuilder : ITextOutput
         var lines = ImmutableArray.CreateBuilder<DocumentLine>(_lines.Count);
         foreach (var (text, first, count) in _lines)
             lines.Add(new DocumentLine(text, spans, first, count));
-        return new DecompiledDocument(title, _language, isError, lines.MoveToImmutable(), _definitions);
+        var built = lines.MoveToImmutable();
+        return new DecompiledDocument(title, _language, isError, built, _definitions, FoldRegions(built));
     }
 
     public void Write(string text, SpanKind kind, CodeReference? reference = null, bool isDefinition = false)
@@ -133,12 +138,79 @@ internal sealed class DocumentBuilder : ITextOutput
         Write(text, Kind ?? spanKind, CodeReference.ToLocal(referenceKind, text, key, scope), isDefinition);
     }
 
-    public void MarkFoldStart(string collapsedText = "...", bool defaultCollapsed = false, bool isDefinition = false)
-    {
-    }
+    public void MarkFoldStart(string collapsedText = "...", bool defaultCollapsed = false, bool isDefinition = false) =>
+        _openFolds.Push(new OpenFold(_lines.Count, _lineStarted ? _line.Length : 0, collapsedText, defaultCollapsed, isDefinition));
 
     public void MarkFoldEnd()
     {
+        if (_openFolds.TryPop(out var start))
+            _folds.Add((start, _lineStarted ? _lines.Count : _lines.Count - 1));
+    }
+
+    private readonly record struct OpenFold(int Line, int Column, string Text, bool DefaultCollapsed, bool IsDefinition);
+
+    private ImmutableArray<FoldRegion> FoldRegions(ImmutableArray<DocumentLine> lines)
+    {
+        if (_folds.Count == 0) return ImmutableArray<FoldRegion>.Empty;
+        var regions = new List<FoldRegion>(_folds.Count);
+        foreach (var (start, endLine) in _folds)
+        {
+            if (endLine <= start.Line - 1 || endLine >= lines.Length) continue;
+            var closes = lines[endLine].Text.AsSpan().TrimStart().StartsWith("}");
+            var opening = FirstCharFrom(lines, start.Line, start.Column, endLine, out var openingLine);
+            var ownLine = lines[start.Line].Text.AsSpan(0, Math.Min(start.Column, lines[start.Line].Text.Length)).IsWhiteSpace();
+            if (opening != '{' && closes)
+                openingLine = BodyAfterSignature(lines, start.Line, endLine);
+            var brace = closes && openingLine >= 0;
+            var header = !brace ? start.Line
+                : openingLine > start.Line ? openingLine - 1
+                : ownLine && start.Line > 0 ? start.Line - 1
+                : start.Line;
+            if (endLine <= header) continue;
+            var text = start.Text != "..." ? start.Text
+                : !brace ? "…"
+                : openingLine > header ? "{ … }"
+                : "… " + lines[endLine].Text.Trim();
+            regions.Add(new FoldRegion(header, endLine, text, start.DefaultCollapsed, start.IsDefinition));
+        }
+        regions.Sort(static (a, b) => a.StartLine != b.StartLine ? a.StartLine.CompareTo(b.StartLine) : b.EndLine.CompareTo(a.EndLine));
+
+        var nested = ImmutableArray.CreateBuilder<FoldRegion>(regions.Count);
+        var open = new Stack<FoldRegion>();
+        foreach (var region in regions)
+        {
+            while (open.Count > 0 && open.Peek().EndLine < region.StartLine)
+                open.Pop();
+            if (nested.Count > 0 && nested[^1].StartLine == region.StartLine) continue;
+            if (open.Count > 0 && region.EndLine > open.Peek().EndLine) continue;
+            nested.Add(region);
+            open.Push(region);
+        }
+        return nested.ToImmutable();
+    }
+
+    private static int BodyAfterSignature(ImmutableArray<DocumentLine> lines, int start, int endLine)
+    {
+        for (var line = start + 1; line < endLine && line <= start + MaxSignatureLines; line++)
+        {
+            var text = lines[line].Text.AsSpan().Trim();
+            if (text.StartsWith("{")) return text.Length == 1 ? line : -1;
+        }
+        return -1;
+    }
+
+    private static char FirstCharFrom(ImmutableArray<DocumentLine> lines, int line, int column, int lastLine, out int foundLine)
+    {
+        for (foundLine = line; foundLine <= lastLine; foundLine++, column = 0)
+        {
+            var text = lines[foundLine].Text;
+            for (var i = column; i < text.Length; i++)
+            {
+                if (!char.IsWhiteSpace(text[i])) return text[i];
+            }
+        }
+        foundLine = -1;
+        return ' ';
     }
 
     private void WriteReferenceSpan(string text, SpanKind kind, CodeReference? reference, bool isDefinition)

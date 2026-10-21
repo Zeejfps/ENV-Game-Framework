@@ -36,15 +36,21 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         (Locale.Pseudo, "Pseudo"),
     ];
 
+    private static readonly Segment<Locale>[] LanguageSegments =
+        Array.ConvertAll(Languages, language => new Segment<Locale>(language.Locale, language.Endonym));
+
     private readonly List<TodoItem> _shown = new();
     private TodoItem? _menuTarget;
 
     protected override void Render(Ui ui, TodoState s)
     {
-        using var screen = ui.Screen(s.DarkMode ? UiTheme.Dark : UiTheme.Light);
+        var palette = s.DarkMode ? UiTheme.Dark : UiTheme.Light;
+        using var screen = ui.Screen(palette with { ScreenPadding = 0f });
         var theme = ui.Theme;
         var t = Strings.For(s.Locale);
         MenuBar(ui, s, t);
+        var inset = palette.ScreenPadding;
+        using var content = ui.Column(new Box { Height = Sizing.Grow(), Padding = new Spacing(inset, inset - theme.Gap, inset, inset) });
         ui.Heading(t.AppTitle);
 
         var remaining = 0;
@@ -62,7 +68,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         {
             var add = ui.TextField("draft", ref s.Draft, t.DraftPlaceholder);
             var canAdd = !string.IsNullOrWhiteSpace(s.Draft);
-            add |= ui.Button(t.ActionAdd, enabled: canAdd, id: "add");
+            add |= ui.Button(t.ActionAdd, enabled: canAdd, id: "add", variant: ButtonVariant.Primary);
             if (add && canAdd)
             {
                 s.Add(s.Draft.Trim());
@@ -77,7 +83,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         {
             ui.Checkbox(t.FilterHideCompleted, ref s.HideCompleted, id: "hide-completed");
             ui.Spacer();
-            if (ui.Button(t.ActionClearCompleted, id: "clear-completed"))
+            if (ui.Button(t.ActionClearCompleted, id: "clear-completed", variant: ButtonVariant.Ghost))
                 s.Items.RemoveAll(item => item.Done);
         }
 
@@ -100,14 +106,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             }
             ui.Toggle(t.SettingsDarkMode, ref s.DarkMode, id: "dark-mode");
             ui.Label(t.SettingsLanguage, theme.TextMuted);
-            using (ui.Row())
-            {
-                foreach (var (locale, endonym) in Languages)
-                {
-                    if (ui.Button(endonym, enabled: s.Locale != locale))
-                        s.Locale = locale;
-                }
-            }
+            ui.SegmentedControl("language", ref s.Locale, LanguageSegments);
         }
 
         ui.Separator();
@@ -136,7 +135,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                     using var _ = ui.Row(row.Id);
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");
                     ui.Spacer();
-                    if (ui.Button(t.ActionDelete, id: "delete"))
+                    if (ui.IconButton("delete", "×", tooltip: t.ActionDelete))
                         removed = item;
                 }
             }

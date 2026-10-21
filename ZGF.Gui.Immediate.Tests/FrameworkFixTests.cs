@@ -380,3 +380,149 @@ public sealed class HarnessTests
         Assert.Equal((10, 20, 800, 600, true), (config.WindowX, config.WindowY, config.WindowWidth, config.WindowHeight, config.StartMaximized));
     }
 }
+
+public sealed class TwoAxisVirtualScrollTests
+{
+    private const float RowHeight = 20f;
+    private const int Rows = 1_000;
+
+    private float _x;
+    private float _y;
+    private UiRect _clip;
+    private UiRect _lastRow;
+
+    private void Body(Ui ui, float rowWidth)
+    {
+        using var screen = ui.Screen();
+        using var list = ui.VirtualScroll("code", Rows, RowHeight, ref _x, ref _y, new Box { Gap = 0f });
+        for (var i = list.First; i < list.End; i++)
+        {
+            using (ui.Box(ui.GetId(i), new Box { Width = Sizing.Grow(min: rowWidth), Height = RowHeight }))
+            {
+                if (i == Rows - 1)
+                    ui.Paint(this, static (p, t) => (t._clip, t._lastRow) = (p.Clip, p.Rect));
+            }
+        }
+    }
+
+    private UiRect Content(UiFrames frames, float rowWidth) => frames.Run(0f, ui =>
+    {
+        Body(ui, rowWidth);
+        return ui.TryGetContentRect(ui.GetId("code"), out var rect) ? rect : default;
+    });
+
+    private UiFrames Settled(float rowWidth)
+    {
+        var frames = new UiFrames();
+        for (var i = 0; i < 4; i++)
+            frames.Run(0f, ui => Body(ui, rowWidth));
+        return frames;
+    }
+
+    [Fact]
+    public void The_last_row_scrolled_to_sits_above_the_horizontal_bar()
+    {
+        var frames = Settled(2_000f);
+
+        _y = 1e9f;
+        for (var i = 0; i < 3; i++)
+            frames.Run(0f, ui => Body(ui, 2_000f));
+        var content = Content(frames, 2_000f);
+
+        Assert.True(content.Height < frames.Height);
+        Assert.Equal(content.Bottom, _lastRow.Bottom, 0.01f);
+        Assert.Equal(Rows * RowHeight - content.Height, _y, 0.01f);
+    }
+
+    [Fact]
+    public void Rows_exactly_as_wide_as_the_view_scroll_sideways_past_the_vertical_bar()
+    {
+        var frames = Settled(400f);
+
+        _x = 1e9f;
+        _y = 1e9f;
+        for (var i = 0; i < 3; i++)
+            frames.Run(0f, ui => Body(ui, 400f));
+        var content = Content(frames, 400f);
+
+        Assert.True(content.Width < 400f);
+        Assert.Equal(400f - content.Width, _x, 0.01f);
+        Assert.Equal(content.Right, _lastRow.Right, 0.01f);
+        Assert.Equal(content.Bottom, _lastRow.Bottom, 0.01f);
+    }
+
+    [Fact]
+    public void The_bars_do_not_meet_in_the_corner()
+    {
+        var frames = Settled(2_000f);
+        _x = _y = 1e9f;
+        for (var i = 0; i < 3; i++)
+            frames.Run(0f, ui => Body(ui, 2_000f));
+
+        var thumb = UiTheme.Dark.ScrollThumb;
+        var thumbs = frames.Canvas.Rects.Where(r => r.Inputs.Style.BackgroundColor == thumb).Select(r => r.Inputs.Position).ToList();
+
+        Assert.Equal(2, thumbs.Count);
+        var (a, b) = (thumbs[0], thumbs[1]);
+        var overlaps = a.Left < b.Left + b.Width && b.Left < a.Left + a.Width && a.Bottom < b.Bottom + b.Height && b.Bottom < a.Bottom + a.Height;
+        Assert.False(overlaps);
+    }
+
+    [Fact]
+    public void App_owned_offsets_scroll_both_axes_and_take_the_wheel_back()
+    {
+        var frames = Settled(2_000f);
+        _x = 300f;
+        _y = 500f;
+        frames.Run(0f, ui => Body(ui, 2_000f));
+        frames.Run(0f, ui => Body(ui, 2_000f));
+
+        frames.MovePointer(100f, 100f);
+        frames.Run(0f, ui => Body(ui, 2_000f));
+        frames.Wheel(1, 1);
+        frames.Run(0f, ui => Body(ui, 2_000f));
+
+        var step = UiTheme.Dark.ScrollWheelStep;
+        Assert.Equal((300f - step, 500f - step), (_x, _y));
+        Assert.Equal((_x, _y), frames.Run(0f, ui => { Body(ui, 2_000f); return ui.ScrollOffset(ui.GetId("code")); }));
+    }
+
+    [Fact]
+    public void A_painter_knows_the_clip_a_scrolled_row_is_drawn_in()
+    {
+        var frames = Settled(2_000f);
+        _x = 250f;
+        _y = 1e9f;
+        for (var i = 0; i < 3; i++)
+            frames.Run(0f, ui => Body(ui, 2_000f));
+        var rect = frames.Run(0f, ui =>
+        {
+            Body(ui, 2_000f);
+            return ui.TryGetRect(ui.GetId("code"), out var r) ? r : default;
+        });
+
+        Assert.Equal(rect, _clip);
+        Assert.Equal(rect.X - 250f, _lastRow.X, 0.01f);
+    }
+}
+
+public sealed class RecordingCanvasTests
+{
+    [Fact]
+    public void With_recording_off_draws_are_counted_and_not_kept()
+    {
+        var frames = new UiFrames();
+        frames.Canvas.Recording = false;
+
+        frames.Run(0f, ui =>
+        {
+            using var screen = ui.Screen();
+            ui.Text("hello");
+            ui.Leaf(new Box { Width = 10f, Height = 10f, Background = 0xFFFF0000 });
+        });
+
+        Assert.Empty(frames.Canvas.Texts);
+        Assert.Empty(frames.Canvas.Rects);
+        Assert.True(frames.Canvas.CommandCount >= 2);
+    }
+}

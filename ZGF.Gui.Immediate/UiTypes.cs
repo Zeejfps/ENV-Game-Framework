@@ -33,6 +33,12 @@ public enum SizingKind
 /// fraction of the parent's inner size.</summary>
 public readonly record struct Sizing(SizingKind Kind, float Value, float Min, float Max)
 {
+    /// <summary>How long a growable element keeps its room when its parent runs out: siblings of
+    /// the lowest priority shrink to their minimum before any of a higher one shrinks at all. Zero
+    /// unless set — <c>Sizing.Grow() with { Priority = 1 }</c> for a primary label beside a
+    /// secondary one.</summary>
+    public int Priority { get; init; }
+
     public static Sizing Fit(float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Fit, 0f, min, max);
     public static Sizing Grow(float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Grow, 0f, min, max);
     public static Sizing Fixed(float size) => new(SizingKind.Fixed, size, size, size);
@@ -48,6 +54,28 @@ public readonly record struct Spacing(float Left, float Top, float Right, float 
     public Spacing(float horizontal, float vertical) : this(horizontal, vertical, horizontal, vertical) { }
 
     public static implicit operator Spacing(float all) => new(all);
+}
+
+/// <summary>A drop shadow: <see cref="Blur"/> is a CSS-style blur radius, <see cref="Spread"/>
+/// grows the shadow's rect before blurring, and <see cref="Color"/> is 0xAARRGGBB.</summary>
+public readonly record struct UiShadow(float OffsetX, float OffsetY, float Blur, float Spread, uint Color)
+{
+    public bool IsVisible => (Color >> 24) != 0;
+
+    /// <summary>How far the shadow reaches past each edge of its box.</summary>
+    public Spacing Extent
+    {
+        get
+        {
+            if (!IsVisible) return default;
+            var reach = MathF.Max(0f, Spread + Blur * 1.5f + 1f);
+            return new Spacing(
+                MathF.Ceiling(MathF.Max(0f, reach - OffsetX)),
+                MathF.Ceiling(MathF.Max(0f, reach - OffsetY)),
+                MathF.Ceiling(MathF.Max(0f, reach + OffsetX)),
+                MathF.Ceiling(MathF.Max(0f, reach + OffsetY)));
+        }
+    }
 }
 
 /// <summary>A radius per corner, for a rect rounded only on some.</summary>
@@ -88,7 +116,8 @@ public enum ScrollAxes
 }
 
 /// <summary>Declares one element: how it sizes, lays out its children and paints its box.
-/// Unset values take the defaults of the method it is passed to.</summary>
+/// Unset values take the defaults of the method it is passed to; set ones, zero included, are kept,
+/// so <c>Radius = 0f</c> asks a widget for square corners and <c>BorderWidth = 0f</c> for none.</summary>
 public readonly record struct Box
 {
     public Direction Direction { get; init; }
@@ -98,10 +127,13 @@ public readonly record struct Box
     public float? Gap { get; init; }
     public Align? AlignX { get; init; }
     public Align? AlignY { get; init; }
-    public uint Background { get; init; }
-    public uint BorderColor { get; init; }
-    public float BorderWidth { get; init; }
-    public float Radius { get; init; }
+    public uint? Background { get; init; }
+    public uint? BorderColor { get; init; }
+    public float? BorderWidth { get; init; }
+    public float? Radius { get; init; }
+
+    /// <summary>A shadow drawn under the box, outside it. A popup's window grows to hold it.</summary>
+    public UiShadow? Shadow { get; init; }
     public bool Clip { get; init; }
 
     /// <summary>Shifts the children left/up by this much, for content scrolled inside a clip.</summary>
@@ -135,4 +167,12 @@ public readonly record struct Interaction(int Id, bool Hovered, bool Pressed, bo
         button == PointerButton.Left ? Clicked : (_otherClicks & (1 << (int)button)) != 0;
 
     public static Interaction Inert(int id) => new(id, false, false, false, false);
+}
+
+/// <summary>What a single-line text does when it is wider than its element.</summary>
+public enum TextOverflow
+{
+    Clip,
+    Ellipsis,
+    EllipsisMiddle,
 }

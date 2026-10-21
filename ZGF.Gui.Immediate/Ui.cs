@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ZGF.Desktop;
 using ZGF.Geometry;
+using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate;
 
@@ -55,6 +56,8 @@ public sealed partial class Ui
     private bool _focusSeen;
     private bool _focusClaimed;
     private bool _focusTakesText;
+    private bool _focusVisible;
+    private readonly List<(int Id, bool TakesText)> _tabStops = new();
     private readonly int[] _pressTargets = new int[UiInput.ButtonCount];
     private int _lastPressTarget;
     private double _lastPressTime = double.NegativeInfinity;
@@ -96,12 +99,17 @@ public sealed partial class Ui
     public WindowBounds WindowBounds { get; internal set; }
 
     /// <summary>The color the window is cleared to under everything drawn, and shown while it
-    /// resizes. Kept until set again; <see cref="UiTheme.Dark"/>'s background until then.</summary>
+    /// resizes. Kept until set again; <see cref="UiTheme.Dark"/>'s background until then. The native
+    /// title bar follows it: dark on a dark background where the platform allows.</summary>
     public uint WindowBackground { get; set; } = UiTheme.Dark.Background;
 
     /// <summary>True while a widget that takes text holds keyboard focus; app shortcuts should
     /// stand down.</summary>
     public bool WantsTextInput => _focused != 0 && _focusTakesText;
+
+    /// <summary>True while focus was last moved by the keyboard — Tab, or a shortcut — rather than
+    /// a press, so the widget holding it should draw <see cref="UiTheme.FocusRing"/>.</summary>
+    public bool FocusVisible => _focused != 0 && _focusVisible;
 
     public string ClipboardText
     {
@@ -212,6 +220,9 @@ public sealed partial class Ui
         _activeSeen = false;
         _focusSeen = false;
         _focusClaimed = false;
+        _tabStops.Clear();
+        if (input.WasPressed(PointerButton.Left) || input.WasPressed(PointerButton.Right) || input.WasPressed(PointerButton.Middle))
+            _focusVisible = false;
 
         (_hits, _previousHits) = (_previousHits, _hits);
         (_rects, _previousRects) = (_previousRects, _rects);
@@ -272,6 +283,7 @@ public sealed partial class Ui
             _active = 0;
         if (_focused != 0 && (!_focusSeen || (_input.WasPressed(PointerButton.Left) && !_focusClaimed)))
             _focused = 0;
+        TraverseFocus();
         EndLayers();
         for (var button = 1; button < UiInput.ButtonCount; button++)
         {
@@ -421,9 +433,47 @@ public sealed partial class Ui
         _focusTakesText = takesText;
         _focusClaimed = true;
         _focusSeen = true;
+        _focusVisible = !_input.WasPressed(PointerButton.Left) && !_input.WasPressed(PointerButton.Right) && !_input.WasPressed(PointerButton.Middle);
     }
 
     public void ClearFocus() => _focused = 0;
+
+    /// <summary>Puts <paramref name="id"/> in this frame's Tab order, the order stops are recorded
+    /// in, and answers <see cref="HasFocus"/>. Tab and Shift+Tab left over once the frame is recorded
+    /// move focus to the next or previous stop of the topmost <see cref="Layer"/>; a widget that
+    /// wants Tab for itself takes the key first. <paramref name="takesText"/> is as for
+    /// <see cref="Focus"/>.</summary>
+    public bool TabStop(int id, bool takesText = false)
+    {
+        if (_block == InputBlock.None)
+            _tabStops.Add((id, takesText));
+        return HasFocus(id);
+    }
+
+    private void TraverseFocus()
+    {
+        var direction = 0;
+        foreach (var stroke in _input.Keys)
+        {
+            if (stroke.Key != KeyboardKey.Tab || (stroke.Modifiers & ~KeyModifiers.Shift) != 0) continue;
+            direction = (stroke.Modifiers & KeyModifiers.Shift) != 0 ? -1 : 1;
+        }
+        if (direction == 0 || _tabStops.Count == 0) return;
+        _input.TakeKey(KeyboardKey.Tab);
+
+        var at = -1;
+        for (var i = 0; i < _tabStops.Count; i++)
+        {
+            if (_tabStops[i].Id != _focused) continue;
+            at = i;
+            break;
+        }
+        var count = _tabStops.Count;
+        var next = at < 0 ? (direction > 0 ? 0 : count - 1) : (at + direction + count) % count;
+        (_focused, _focusTakesText) = _tabStops[next];
+        _focusVisible = true;
+        RequestFrame();
+    }
 
     /// <summary>Width of <paramref name="text"/> as <see cref="Text"/> draws it. A null
     /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
@@ -582,7 +632,9 @@ public sealed partial class Ui
             var rect = _popupHost?.Place(preferred, fallback) ?? PopupPlacement.Fit(preferred, fallback, new UiRect(0f, 0f, Width, Height));
             e.OffsetX = rect.X;
             e.OffsetY = rect.Y;
-            _tree.SetLayer(e.Layer, _popupHost?.Show(popup.Id, rect, e.PassThrough), rect);
+            var reach = e.Shadow.Extent;
+            var surface = new UiRect(rect.X - reach.Left, rect.Y - reach.Top, rect.Width + reach.Left + reach.Right, rect.Height + reach.Top + reach.Bottom);
+            _tree.SetLayer(e.Layer, _popupHost?.Show(popup.Id, rect, surface, e.PassThrough), surface);
         }
     }
 
