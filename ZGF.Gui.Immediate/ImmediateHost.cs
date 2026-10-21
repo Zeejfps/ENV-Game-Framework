@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
+using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
@@ -81,6 +82,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         HotReload.Applied += Invalidate;
 
         SyncScale();
+        LoadSystemFallbackFonts();
     }
 
     public void Run()
@@ -108,6 +110,40 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         foreach (var popup in _pool)
             popup.Surface.Canvas.CopyFontsFrom(_render.Canvas);
         Invalidate();
+    }
+
+    private void LoadSystemFallbackFonts() => Task.Run(() =>
+    {
+        foreach (var font in SystemFallbackFonts.Find())
+        {
+            if (_disposed) return;
+            byte[] data;
+            try
+            {
+                data = File.ReadAllBytes(font.Path);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[ImmediateHost] Could not read fallback font {font.Path}: {e.Message}");
+                continue;
+            }
+            _ui.Post(() => RegisterFallbackFont(data, font));
+        }
+    });
+
+    private void RegisterFallbackFont(byte[] data, SystemFontFile font)
+    {
+        if (_disposed) return;
+        try
+        {
+            _render.RegisterFallbackFont(data, font.FaceIndex);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[ImmediateHost] Could not load fallback font {font.Path}: {e.Message}");
+            return;
+        }
+        _ui.InvalidateMeasurements();
     }
 
     private void DrawFrame()

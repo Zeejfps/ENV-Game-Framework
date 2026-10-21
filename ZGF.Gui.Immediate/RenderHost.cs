@@ -95,6 +95,11 @@ internal abstract class RenderHost : IDisposable
             Canvas.RegisterFont(family, handle);
     }
 
+    /// <summary>Draws code points no registered font covers from the font in <paramref name="data"/>,
+    /// after the fallbacks registered before it.</summary>
+    public void RegisterFallbackFont(byte[] data, int faceIndex) =>
+        _fonts.RegisterFallbackFont(_fonts.LoadFontFromMemory(data, PixelSize(Canvas.DpiScale), faceIndex));
+
     /// <summary>Makes the default font's bold text Inter SemiBold rather than synthesized.</summary>
     protected void RegisterDefaultBold() =>
         Canvas.RegisterBoldFont(null, _fonts.LoadFontFromMemory(EmbeddedAssets.LoadFontBytes("Inter-SemiBold.ttf"), PixelSize(Canvas.DpiScale)));
