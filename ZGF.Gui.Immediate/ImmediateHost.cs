@@ -44,6 +44,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private bool _backgroundPending;
     private MouseCursor _cursor;
     private uint _clearColor;
+    private bool? _titleBarDark;
     private volatile bool _disposed;
     private (int X, int Y, int Width, int Height) _normalBounds;
 
@@ -64,7 +65,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
         _render.SetFrame(DrawFrame, _clearColor);
-        _window.SetTitleBarTheme(UiColor.IsDark(_clearColor));
         _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
 
         _window.OnKey += HandleKey;
@@ -88,6 +88,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     public void Run()
     {
         TrackBounds();
+        _render.RenderNow();
         _render.App.Run();
     }
 
@@ -165,11 +166,14 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _render.App.Quit();
         if (_ui.WindowBackground != _clearColor)
         {
-            var wasDark = UiColor.IsDark(_clearColor);
             _clearColor = _ui.WindowBackground;
             _render.SetFrame(DrawFrame, _clearColor);
-            if (UiColor.IsDark(_clearColor) != wasDark)
-                _window.SetTitleBarTheme(!wasDark);
+        }
+        var dark = UiColor.IsDark(_clearColor);
+        if (dark != _titleBarDark)
+        {
+            _titleBarDark = dark;
+            _window.SetTitleBarTheme(dark);
         }
 
         if (_ui.Cursor != _cursor)

@@ -11,20 +11,19 @@ internal static class WindowsDwm
     private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     private const int DWMWCP_DONOTROUND = 1;
 
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_NOMOVE = 0x0002;
-    private const uint SWP_NOZORDER = 0x0004;
-    private const uint SWP_NOACTIVATE = 0x0010;
-    private const uint SWP_FRAMECHANGED = 0x0020;
+    private const uint WM_NCACTIVATE = 0x0086;
 
-    /// <summary>Asks DWM for the dark or light caption on <paramref name="hwnd"/> and repaints its frame.</summary>
+    /// <summary>Asks DWM for the dark or light caption on <paramref name="hwnd"/> and repaints it if shown.</summary>
     public static void SetDarkTitleBar(IntPtr hwnd, bool dark)
     {
         if (hwnd == IntPtr.Zero) return;
         var value = dark ? 1 : 0;
         if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int)) != 0)
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref value, sizeof(int));
-        SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        if (!IsWindowVisible(hwnd)) return;
+        var active = GetActiveWindow() == hwnd;
+        SendMessage(hwnd, WM_NCACTIVATE, active ? 0 : 1, IntPtr.Zero);
+        SendMessage(hwnd, WM_NCACTIVATE, active ? 1 : 0, IntPtr.Zero);
     }
 
     /// <summary>Keeps Windows 11 from rounding or outlining <paramref name="hwnd"/>, whose
@@ -39,6 +38,12 @@ internal static class WindowsDwm
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr hwndAfter, int x, int y, int cx, int cy, uint flags);
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetActiveWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hwnd, uint msg, nint wParam, IntPtr lParam);
 }
