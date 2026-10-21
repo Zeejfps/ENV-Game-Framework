@@ -433,7 +433,7 @@ public sealed class SplitIconButtonTests
         _frames.ClickOn(Body, ui => ui.GetId("First"));
         _frames.Run(0f, Body);
 
-        Assert.Equal(main.X, shell.X);
+        Assert.Equal(main.X - UiTheme.Dark.BorderWidth, shell.X);
         Assert.Equal(shell.X, popup.X);
         Assert.True(popup.Y >= shell.Y + shell.Height);
         Assert.Equal(["First"], _events);

@@ -74,8 +74,9 @@ public static partial class UiWidgets
         return DropdownMenu(ui, state, anchor);
     }
 
-    /// <summary>An <see cref="IconButton"/> joined to a <see cref="DropdownButton"/> on its right, drawn
-    /// as one control: hovering either half lights the whole, and the half pressed is darker. The
+    /// <summary>An icon button joined to a dropdown arrow on its right, drawn as one outlined control
+    /// with a divider between the halves, like a <see cref="SegmentedControl{T}"/>; each half lights
+    /// when hovered and darkens when pressed, the arrow also while its menu is open. The
     /// menu opens below the whole control and closes as a dropdown's does; <paramref name="revision"/>
     /// is as there. The control is one Tab stop: Enter or Space clicks it, Down or Alt+Down opens its
     /// menu. <paramref name="tooltip"/> is for the main half, <paramref name="menuTooltip"/> for the arrow.</summary>
@@ -94,22 +95,25 @@ public static partial class UiWidgets
             ToggleDropdown(state, revision, keyed);
         var open = state.Open;
 
-        var radius = theme.CornerRadius;
-        var lit = enabled && (main.Hovered || arrow.Hovered || open);
-        var mainFill = enabled && (main.Held || activated) ? theme.ControlPressed : 0u;
-        var arrowFill = enabled && (arrow.Held || open) ? theme.ControlPressed : 0u;
+        var border = theme.BorderWidth;
+        var inner = MathF.Max(0f, theme.CornerRadius - border);
+        var mainFill = HalfFill(theme, enabled, main.Held || activated, main.Hovered);
+        var arrowFill = HalfFill(theme, enabled, arrow.Held || open, arrow.Hovered);
         var color = enabled ? theme.Text : theme.TextDisabled;
-        var divider = lit ? theme.Border : 0u;
 
         using (ui.Row(shellId, new Box
         {
             Width = Sizing.Fit(),
             Height = theme.IconButtonSize,
             Gap = 0f,
-            Radius = radius,
-            Background = lit ? theme.ControlHovered : 0u,
+            Padding = border,
+            Background = theme.Control,
+            BorderColor = theme.Border,
+            BorderWidth = border,
+            Radius = theme.CornerRadius,
         }))
         {
+            if (ring) FocusRing(ui, theme.CornerRadius);
             using (ui.Box(main.Id, new Box
             {
                 Width = theme.IconButtonSize,
@@ -119,23 +123,20 @@ public static partial class UiWidgets
             }))
             {
                 if (mainFill != 0)
-                    ui.Paint((mainFill, radius), static (p, s) => p.FillRect(p.Rect, s.mainFill, Corners.Left(s.radius)));
+                    ui.Paint((mainFill, inner), static (p, s) => p.FillRect(p.Rect, s.mainFill, Corners.Left(s.inner)));
                 ui.Text(glyph, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize }, color: color, size: theme.IconSize,
                     align: Align.Center, family: family);
             }
+            ui.Leaf(new Box { Width = border, Height = Sizing.Grow(), Background = theme.Border });
             using (ui.Box(arrowId, new Box { Width = theme.DropdownButtonWidth, Height = Sizing.Grow() }))
             {
-                ui.Paint((arrowFill, radius, divider, theme.BorderWidth, color, theme.DropdownArrowWidth), static (p, s) =>
+                ui.Paint((arrowFill, inner, color, theme.DropdownArrowWidth), static (p, s) =>
                 {
-                    var r = p.Rect;
                     if (s.arrowFill != 0)
-                        p.FillRect(r, s.arrowFill, Corners.Right(s.radius));
-                    if (s.divider != 0)
-                        p.FillRect(new UiRect(r.X, r.Y + r.Height / 4, s.BorderWidth, r.Height / 2), s.divider);
+                        p.FillRect(p.Rect, s.arrowFill, Corners.Right(s.inner));
                     DrawDropdownArrow(p, s.color, s.DropdownArrowWidth);
                 });
             }
-            if (ring) FocusRing(ui, radius);
         }
         if (tooltip != null)
             ui.Tooltip(main.Id, tooltip);
@@ -144,6 +145,9 @@ public static partial class UiWidgets
         ui.TryGetRect(shellId, out var anchor);
         return new SplitButtonScope(main.Clicked || activated, DropdownMenu(ui, state, anchor));
     }
+
+    private static uint HalfFill(UiTheme theme, bool enabled, bool pressed, bool hovered) =>
+        !enabled ? 0u : pressed ? theme.ControlPressed : hovered ? theme.ControlHovered : 0u;
 
     private static DropdownState DropdownMenuState(Ui ui, int ownerId, bool enabled, int revision)
     {
