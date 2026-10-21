@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 
@@ -153,5 +154,58 @@ public sealed class AppTests
         app.Driver.Settle();
 
         Assert.Same(app.Workspace.Search.Rows[1].Result.Node, app.Workspace.ActiveTab!.Node);
+    }
+
+    [Fact]
+    public void The_search_box_draws_its_icon_and_shortcut_hint_inside_the_field()
+    {
+        var app = new AppDriver();
+        app.Run(2);
+
+        var icon = app.TextRect(LucideIcons.Search);
+        var placeholder = app.TextRect("Search types and members");
+        var hint = app.TextRect("Ctrl+Shift+F");
+
+        Assert.True(icon.Right <= placeholder.X, $"the icon ends at {icon.Right}, the placeholder starts at {placeholder.X}");
+        Assert.True(hint.X >= placeholder.X && hint.Right <= app.Frames.Width, $"the hint spans {hint.X}..{hint.Right}");
+        Assert.Equal(icon.Y + icon.Height / 2, hint.Y + hint.Height / 2, 1f);
+    }
+
+    [Fact]
+    public void Tree_rows_show_assembly_secondary_text_and_an_overlay_on_non_public_types()
+    {
+        var app = OpenFixtures();
+        var view = app.Workspace.Tree.View;
+        view.SetExpanded(app.Driver.Node(), true);
+        view.SetExpanded(app.Driver.Node(WorkspaceDriver.FixturesNamespace), true);
+        view.Refresh();
+        RunUntil(app, () => app.Frames.Drew("Hidden"));
+
+        var secondary = NodeText.Secondary(app.Driver.Node())!;
+        Assert.True(app.TextRect(secondary).X > app.TextRect(app.Workspace.Assemblies.Assemblies[0].Name).Right);
+        Assert.True(app.Frames.Drew(LucideIcons.Shield));
+    }
+
+    [Fact]
+    public void At_a_narrow_width_a_search_result_keeps_its_name_and_its_location_gives_way()
+    {
+        var app = OpenFixtures(560f);
+        app.Workspace.OpenSearch();
+        app.Run();
+        app.Frames.Type("Greeter");
+        app.Run();
+        app.Frames.Wait(1);
+        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+        app.Run(2);
+
+        var row = app.Workspace.Search.Rows.First(r => r.Result.Node.Kind == NodeKind.Class);
+        var header = app.TextRect("Search results");
+        var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).Select(t => (t.Text, Rect: new UiRect(t.Position.Left, app.Frames.Height - t.Position.Top, t.Position.Width, t.Position.Height))).ToList();
+        var name = texts.Single(t => t.Text == row.Result.Text && t.Rect.Y > header.Bottom).Rect;
+        var location = texts.Single(t => t.Rect.Y == name.Y && t.Rect.X > name.Right);
+
+        Assert.False(app.Frames.Drew(row.Location), $"'{row.Location}' was drawn in full");
+        Assert.Contains('…', location.Text);
+        Assert.True(location.Rect.Right <= app.Frames.Width, $"the location ends at {location.Rect.Right}");
     }
 }

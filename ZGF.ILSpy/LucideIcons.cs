@@ -26,12 +26,14 @@ public static class LucideIcons
     public const string Link2 = "\uE103";
     public const string ListOrdered = "\uE1D1";
     public const string Loader2 = "\uE10A";
+    public const string Lock = "\uE10B";
     public const string Network = "\uE125";
     public const string NotebookText = "\uE598";
     public const string NotepadText = "\uE599";
     public const string Package = "\uE129";
     public const string Pi = "\uE472";
     public const string Search = "\uE151";
+    public const string Shield = "\uE158";
     public const string Variable = "\uE473";
     public const string Webhook = "\uE374";
     public const string Wrench = "\uE1B1";

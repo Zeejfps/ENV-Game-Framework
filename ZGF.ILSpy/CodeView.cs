@@ -228,6 +228,7 @@ public static class CodeViewWidget
         {
             if (state.FindOpen)
                 FindBar(ui, state, document, focusId, findId);
+            ui.TabStop(focusId);
 
             var i = ui.Interact(codeId);
             var hasRect = ui.TryGetRect(codeId, out var rect);
@@ -351,13 +352,21 @@ public static class CodeViewWidget
             FillFrame(ui, state, document, theme, palette, cell, rowHeight, foldLeft, foldWidth, gutterWidth, textLeft, digits, focused || findFocused,
                 hoverLine, hoverSpan, hoverReference, hoverNavigable, hoverFold, hoverChip);
 
-            using (var list = ui.VirtualScroll(codeId, folds.RowCount, rowHeight, ref state.ScrollX, ref state.ScrollY,
-                       new Box { Gap = 0f, Background = theme.EditorBackground }))
+            using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f }))
             {
-                for (var row = list.First; row < list.End; row++)
+                using (var list = ui.VirtualScroll(codeId, folds.RowCount, rowHeight, ref state.ScrollX, ref state.ScrollY,
+                           new Box { Gap = 0f, Background = theme.EditorBackground }))
                 {
-                    using (ui.Box(new Box { Width = Sizing.Grow(min: contentWidth), Height = rowHeight }))
-                        ui.Paint((state.Frame, row), CodeViewFrame.PaintRow);
+                    for (var row = list.First; row < list.End; row++)
+                    {
+                        using (ui.Box(new Box { Width = Sizing.Grow(min: contentWidth), Height = rowHeight }))
+                            ui.Paint((state.Frame, row), CodeViewFrame.PaintRow);
+                    }
+                }
+                if (focused && ui.FocusVisible)
+                {
+                    using (ui.Float(0f, 0f, box: new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }, z: 1))
+                        ui.FocusRing(0f);
                 }
             }
             state.LaidOutScrollX = state.ScrollX;

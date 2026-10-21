@@ -41,7 +41,6 @@ internal static class SearchPanelView
         if (focused)
             Keys(ui, w, rowHeight);
 
-        var labelShare = ui.TryGetRect(ResultsId, out var results) ? results.Width * AppLayout.PrimaryLabelShare : 0f;
         using var list = ui.VirtualScroll(ResultsId, search.Rows.Count, rowHeight, new Box { Gap = 0f });
         if (search.ScrollToSelected && list.ScrollIntoView(search.Selected))
             search.ScrollToSelected = false;
@@ -75,10 +74,9 @@ internal static class SearchPanelView
                     NodeIcons.Draw(ui, node.Kind);
                     using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
                     {
-                        var labelWidth = ui.MeasureText(label);
-                        ui.Text(label, new Box { Width = Sizing.Grow(MathF.Min(labelWidth, labelShare), labelWidth) },
+                        ui.Text(label, new Box { Width = Sizing.Fit() with { Priority = 1 } },
                             color: !node.IsPublicApi ? theme.TextMuted : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
-                        ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall,
+                        ui.Text(row.Location, new Box { Width = Sizing.Fit() with { Priority = 0 } }, color: theme.TextMuted, size: theme.FontSizeSmall,
                             overflow: TextOverflow.EllipsisMiddle);
                     }
                 }

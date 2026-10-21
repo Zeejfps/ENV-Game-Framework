@@ -16,7 +16,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private BrowseNode[] _roots = [];
     private int _rootsVersion = -1;
     private bool _showNonPublic = true;
-    private Dictionary<BrowseNode, string> _rootLabels = new(ReferenceEqualityComparer.Instance);
+    private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _icons = NodeIconPalette.Dark;
 
@@ -44,10 +44,15 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         return true;
     }
 
-    /// <summary>The node's name as rows and tabs show it: assemblies listed more than once under
-    /// one name also show their version, or their folder when that is the same too.</summary>
+    /// <summary>The node's name as tabs show it: assemblies listed more than once under one name
+    /// also show their version, or their folder when that is the same too.</summary>
     public string Label(BrowseNode node) =>
-        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label : NodeText.Name(node);
+        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Title : NodeText.Name(node);
+
+    /// <summary>The node's name as its row shows it, beside <see cref="NodeText.Secondary"/>: an
+    /// assembly's folder is added only when the version and framework there do not tell it apart.</summary>
+    public string RowLabel(BrowseNode node) =>
+        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
 
     public void SetShowNonPublic(bool show)
     {
@@ -127,28 +132,43 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     }
 
     public TreeRow Row(BrowseNode node) => new(
-        Label(node),
+        RowLabel(node),
         NodeIcons.Glyph(node.Kind),
         _icons.For(node.Kind),
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
         NodeIcons.Family,
-        Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node));
+        Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
+        Secondary: NodeText.Secondary(node),
+        IconOverlay: NodeIcons.Overlay(node.Accessibility),
+        IconOverlayColor: _icons.Restricted,
+        IconOverlayFamily: NodeIcons.Family);
 
-    private static Dictionary<BrowseNode, string> RootLabels(BrowseNode[] roots)
+    private readonly record struct RootLabel(string Title, string Row);
+
+    private static Dictionary<BrowseNode, RootLabel> RootLabels(BrowseNode[] roots)
     {
-        var labels = new Dictionary<BrowseNode, string>(ReferenceEqualityComparer.Instance);
+        var labels = new Dictionary<BrowseNode, RootLabel>(ReferenceEqualityComparer.Instance);
         foreach (var group in roots.GroupBy(static r => r.Assembly.Name, StringComparer.OrdinalIgnoreCase))
         {
             var nodes = group.ToList();
             if (nodes.Count == 1)
             {
-                labels[nodes[0]] = nodes[0].Assembly.Name;
+                labels[nodes[0]] = new RootLabel(nodes[0].Assembly.Name, nodes[0].Assembly.Name);
                 continue;
             }
             var versions = nodes.Select(static n => n.Assembly.Version?.ToString() ?? "").ToArray();
-            var hints = versions.Distinct().Count() == nodes.Count ? versions : FolderHints(nodes);
+            if (versions.Distinct().Count() == nodes.Count)
+            {
+                for (var i = 0; i < nodes.Count; i++)
+                    labels[nodes[i]] = new RootLabel($"{nodes[i].Assembly.Name} ({versions[i]})", nodes[i].Assembly.Name);
+                continue;
+            }
+            var hints = FolderHints(nodes);
             for (var i = 0; i < nodes.Count; i++)
-                labels[nodes[i]] = $"{nodes[i].Assembly.Name} ({hints[i]})";
+            {
+                var label = $"{nodes[i].Assembly.Name} ({hints[i]})";
+                labels[nodes[i]] = new RootLabel(label, label);
+            }
         }
         return labels;
     }

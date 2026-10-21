@@ -30,7 +30,6 @@ internal static class AppLayout
     public const float SearchPanelMinHeight = 80f;
     public const float SearchWidth = 360f;
     public const float SearchMinWidth = 220f;
-    public const float PrimaryLabelShare = 0.6f;
     public const float FindWidth = 260f;
     public const float FindMinWidth = 140f;
     public const float ErrorDialogWidth = 760f;

@@ -53,29 +53,15 @@ internal static class ToolbarView
 
     private static void Search(Ui ui, Workspace w)
     {
-        var theme = ui.Theme;
-        var groupId = ui.GetId("search-group");
         var searchId = ui.GetId("search");
-        var roomy = !ui.TryGetRect(groupId, out var last) || last.Width >= AppLayout.SearchWidth - 0.5f;
-        using (ui.Row(groupId, new Box
-        {
-            Width = Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
-            Gap = theme.GapTight,
-            AlignY = Align.Center,
-        }))
-        {
-            ui.Text(LucideIcons.Search, new Box { Width = theme.IconSize }, color: theme.TextMuted, size: theme.IconSize,
-                align: Align.Center, family: LucideIcons.Family);
-            if (w.TakeSearchFocus())
-                ui.Focus(searchId);
-            var submitted = ui.TextField("search", ref w.Search.Query, "Search types and members", Sizing.Grow());
-            if (roomy)
-                ui.Text(SearchShortcut, color: theme.TextMuted, size: theme.FontSizeSmall);
-            if (w.Search.Query.Length > 0)
-                w.Search.IsOpen = true;
-            if (ui.HasFocus(searchId))
-                SearchFieldKeys(ui, w, submitted);
-        }
+        if (w.TakeSearchFocus())
+            ui.Focus(searchId);
+        var submitted = ui.TextField("search", ref w.Search.Query, "Search types and members", Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
+            LucideIcons.Search, LucideIcons.Family, SearchShortcut);
+        if (w.Search.Query.Length > 0)
+            w.Search.IsOpen = true;
+        if (ui.HasFocus(searchId))
+            SearchFieldKeys(ui, w, submitted);
         ui.Tooltip(searchId, SearchTooltip);
     }
 

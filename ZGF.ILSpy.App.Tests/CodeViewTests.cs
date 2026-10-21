@@ -47,6 +47,26 @@ public sealed class CodeViewTests
     }
 
     [Fact]
+    public void Tab_reaches_the_code_view_with_a_focus_ring_that_a_click_does_not_show()
+    {
+        var view = new CodeViewDriver(CodeViewDriver.Numbered(20));
+        view.Run();
+        static bool Ring(CodeViewDriver v) => v.Frames.Canvas.Rects.Any(r => r.Inputs.Style.BorderColor.Top.Value == UiTheme.Dark.FocusRing);
+        Assert.False(Ring(view));
+
+        view.Key(KeyboardKey.Tab);
+        view.Run();
+        Assert.True(Ring(view));
+        view.Key(KeyboardKey.A, KeyModifiers.Control);
+        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        Assert.StartsWith("line 0", view.Frames.Clipboard.Text);
+
+        view.Click(2, 1);
+        view.Run();
+        Assert.False(Ring(view));
+    }
+
+    [Fact]
     public void Hovering_a_reference_underlines_it_with_a_hand_cursor()
     {
         var document = CodeViewDriver.Greeter();

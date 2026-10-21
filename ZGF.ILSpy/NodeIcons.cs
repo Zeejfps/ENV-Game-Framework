@@ -26,6 +26,15 @@ public static class NodeIcons
 
     public static NodeIconRole Role(NodeKind kind) => Icons[(int)kind].Role;
 
+    /// <summary>The small pictogram over a node's icon that marks it as not visible outside its
+    /// assembly or type: a shield for internal, a lock for private. Null for anything wider.</summary>
+    public static string? Overlay(NodeAccessibility accessibility) => accessibility switch
+    {
+        NodeAccessibility.Internal => LucideIcons.Shield,
+        NodeAccessibility.Private or NodeAccessibility.PrivateProtected => LucideIcons.Lock,
+        _ => null,
+    };
+
     /// <summary>Records <paramref name="kind"/>'s icon in a slot as wide as the theme's icon size,
     /// colored from the provided <see cref="NodeIconPalette"/>.</summary>
     public static void Draw(Ui ui, NodeKind kind)
@@ -80,6 +89,9 @@ public sealed class NodeIconPalette
     public required uint Data { get; init; }
     public required uint Error { get; init; }
 
+    /// <summary>The color of the accessibility overlay on non-public nodes' icons.</summary>
+    public required uint Restricted { get; init; }
+
     public uint this[NodeIconRole role] => role switch
     {
         NodeIconRole.Type => Type,
@@ -98,6 +110,7 @@ public sealed class NodeIconPalette
         Method = 0xFFD7C58F,
         Data = 0xFFB4C9E8,
         Error = 0xFFFF9A9A,
+        Restricted = 0xFFE3A57A,
     };
 
     public static NodeIconPalette Light { get; } = new()
@@ -107,5 +120,6 @@ public sealed class NodeIconPalette
         Method = 0xFF79551D,
         Data = 0xFF365A88,
         Error = 0xFFB42332,
+        Restricted = 0xFF9A4F1C,
     };
 }
