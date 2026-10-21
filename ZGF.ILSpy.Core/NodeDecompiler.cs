@@ -20,7 +20,7 @@ internal static class NodeDecompiler
     public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var builder = new DocumentBuilder(language);
+        var builder = new DocumentBuilder(language, node.Assembly);
         try
         {
             if (language == DecompilationLanguage.CSharp)

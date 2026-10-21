@@ -1,11 +1,18 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy;
 
 internal static class ToolbarView
 {
+    private static readonly Segment<DecompilationLanguage>[] Languages =
+    [
+        new(DecompilationLanguage.CSharp, "C#", "Decompile to C#"),
+        new(DecompilationLanguage.IL, "IL", "Disassemble to IL"),
+    ];
+
     public static void Render(Ui ui, Workspace w)
     {
         var theme = ui.Theme;
@@ -19,20 +26,34 @@ internal static class ToolbarView
             ui.Tooltip(ui.GetId("forward"), "Forward (Alt+Right)");
 
             ui.Spacer(8f);
-            if (ui.ToggleButton("C#", w.Language == DecompilationLanguage.CSharp, "csharp"))
-                w.SetLanguage(DecompilationLanguage.CSharp);
-            if (ui.ToggleButton("IL", w.Language == DecompilationLanguage.IL, "il"))
-                w.SetLanguage(DecompilationLanguage.IL);
+            var language = w.Language;
+            if (ui.SegmentedControl("language", ref language, Languages))
+                w.SetLanguage(language);
 
             ui.Spacer();
-            if (w.FocusSearch)
-            {
-                w.FocusSearch = false;
-                ui.Focus(ui.GetId("search"));
-            }
-            ui.TextField("search", ref w.Search.Query, "Search types and members (Ctrl+Shift+F)", width: 380f);
+            var searchId = ui.GetId("search");
+            if (w.TakeSearchFocus())
+                ui.Focus(searchId);
+            var submitted = ui.TextField("search", ref w.Search.Query, "Search types and members (Ctrl+Shift+F)", width: 380f);
             if (w.Search.Query.Length > 0)
                 w.Search.IsOpen = true;
+            if (ui.HasFocus(searchId))
+                SearchFieldKeys(ui, w, submitted);
         }
+    }
+
+    private static void SearchFieldKeys(Ui ui, Workspace w, bool submitted)
+    {
+        var search = w.Search;
+        if (submitted)
+        {
+            if (search.Selected < 0)
+                search.Move(1);
+            if (search.SelectedRow is { } row)
+                w.Show(row.Result.Node);
+            return;
+        }
+        if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
+            ui.Focus(SearchPanelView.ResultsId, takesText: false);
     }
 }

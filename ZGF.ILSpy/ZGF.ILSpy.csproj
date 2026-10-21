@@ -12,6 +12,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.ILSpy.App.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <None Remove="Assets\Fonts\**\*.ttf" />
       <EmbeddedResource Include="Assets\Fonts\**\*.ttf">
         <LogicalName>%(Filename)%(Extension)</LogicalName>

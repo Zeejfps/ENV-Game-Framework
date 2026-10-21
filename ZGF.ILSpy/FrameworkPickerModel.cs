@@ -6,12 +6,22 @@ namespace ZGF.ILSpy;
 /// background, filtered by name.</summary>
 public sealed class FrameworkPickerModel
 {
+    private readonly Action<string, string> _reportError;
+    private readonly Func<IReadOnlyList<RuntimeAssembly>> _scan;
     private readonly List<RuntimeAssembly> _filtered = new();
     private readonly HashSet<string> _listed = new(StringComparer.OrdinalIgnoreCase);
     private int _listedVersion = -1;
     private IReadOnlyList<RuntimeAssembly>? _all;
     private bool _loading;
     private string? _appliedFilter;
+
+    /// <param name="reportError">Tells the user the runtime could not be scanned: a title and details.</param>
+    /// <param name="scan">Lists the assemblies to offer; the running runtime's by default.</param>
+    public FrameworkPickerModel(Action<string, string> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
+    {
+        _reportError = reportError;
+        _scan = scan ?? (static () => RuntimeAssemblies.All);
+    }
 
     public bool IsOpen;
     public bool FocusFilter;
@@ -21,8 +31,11 @@ public sealed class FrameworkPickerModel
 
     public RuntimeAssembly? Selected => SelectedIndex >= 0 && SelectedIndex < _filtered.Count ? _filtered[SelectedIndex] : null;
 
-    public bool IsLoading => _all == null;
+    public bool IsLoading => _loading;
     public IReadOnlyList<RuntimeAssembly> Filtered => _filtered;
+
+    /// <summary>Why the runtime could not be scanned, or null.</summary>
+    public string? Error { get; private set; }
 
     public void Open(Action<Action> post)
     {
@@ -31,22 +44,27 @@ public sealed class FrameworkPickerModel
         _appliedFilter = null;
         if (_all != null || _loading) return;
         _loading = true;
+        Error = null;
         Task.Run(() =>
         {
-            IReadOnlyList<RuntimeAssembly> all;
+            IReadOnlyList<RuntimeAssembly>? all = null;
+            string? error = null;
             try
             {
-                all = RuntimeAssemblies.All;
+                all = _scan();
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            catch (Exception e)
             {
-                all = [];
+                error = e.ToString();
             }
             post(() =>
             {
-                _all = all;
                 _loading = false;
+                _all = all;
+                Error = error;
                 _appliedFilter = null;
+                if (error != null)
+                    _reportError("Cannot scan the runtime's assemblies", error);
             });
         });
     }

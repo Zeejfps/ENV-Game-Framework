@@ -6,46 +6,31 @@ namespace ZGF.ILSpy;
 
 internal static class FrameworkPickerView
 {
-    private const uint Scrim = 0x99000000;
-
     public static void Render(Ui ui, Workspace w)
     {
         var picker = w.Picker;
-        if (!picker.IsOpen) return;
-        picker.Update(w.Assemblies);
+        if (picker.IsOpen)
+            picker.Update(w.Assemblies);
 
         var theme = ui.Theme;
         var open = false;
-        var backdrop = ui.Interact("picker-backdrop");
-        var close = backdrop.Clicked || ui.Input.IsKeyPressed(KeyboardKey.Escape);
-        foreach (var stroke in ui.Input.Keys)
+        var close = false;
+        using (var dialog = ui.Dialog("picker", "Open from framework", ref picker.IsOpen, new Box { Width = 560f, Height = Sizing.Percent(0.75f) }))
         {
-            if (stroke.Key == KeyboardKey.UpArrow) picker.Move(-1);
-            else if (stroke.Key == KeyboardKey.DownArrow) picker.Move(1);
-            else if (stroke.Key == KeyboardKey.PageUp) picker.Move(-10);
-            else if (stroke.Key == KeyboardKey.PageDown) picker.Move(10);
-        }
+            if (!dialog.IsOpen) return;
 
-        using (ui.Float(0f, 0f, box: new Box
-        {
-            Width = Sizing.Grow(),
-            Height = Sizing.Grow(),
-            Background = Scrim,
-            AlignX = Align.Center,
-            AlignY = Align.Center,
-        }, z: 500, id: backdrop.Id))
-        using (ui.Column(ui.Interact("picker").Id, new Box
-        {
-            Width = 560f,
-            Height = Sizing.Percent(0.75f),
-            Padding = theme.PanelPadding,
-            Background = theme.Surface,
-            BorderColor = theme.Border,
-            BorderWidth = 1f,
-            Radius = theme.CornerRadius,
-        }))
-        {
-            ui.Text("Open from framework", bold: true);
+            var keys = ui.Input.Keys;
+            for (var i = 0; i < keys.Count; i++)
+            {
+                switch (keys[i].Key)
+                {
+                    case KeyboardKey.UpArrow: picker.Move(-1); break;
+                    case KeyboardKey.DownArrow: picker.Move(1); break;
+                    case KeyboardKey.PageUp: picker.Move(-10); break;
+                    case KeyboardKey.PageDown: picker.Move(10); break;
+                }
+            }
+
             if (picker.FocusFilter)
             {
                 picker.FocusFilter = false;
@@ -66,6 +51,8 @@ internal static class FrameworkPickerView
             {
                 if (picker.IsLoading)
                     ui.Text("Scanning the runtime…", new Box { Padding = 8f }, color: theme.TextMuted);
+                else if (picker.Error != null)
+                    ui.Text("The runtime could not be scanned; see the error in the status bar.", new Box { Padding = 8f }, color: theme.TextMuted);
                 else
                     open |= Rows(ui, picker);
             }
@@ -91,7 +78,7 @@ internal static class FrameworkPickerView
     private static bool Rows(Ui ui, FrameworkPickerModel picker)
     {
         var theme = ui.Theme;
-        var rowHeight = ui.Theme.RowHeight;
+        var rowHeight = theme.RowHeight;
         var open = false;
         using var list = ui.VirtualScroll("picker-list", picker.Filtered.Count, rowHeight, new Box { Gap = 0f });
         for (var i = list.First; i < list.End; i++)

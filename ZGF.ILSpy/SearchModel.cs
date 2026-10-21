@@ -5,28 +5,46 @@ namespace ZGF.ILSpy;
 /// <summary>A search hit with its location text formatted once, off the UI thread.</summary>
 public sealed record SearchRow(SearchResult Result, string Location);
 
-/// <summary>The search panel's query and streamed results. A query runs once typing pauses, and
-/// again when the assembly list changes; a newer run cancels the older.</summary>
+/// <summary>The search panel's query, streamed results and selection. While the panel is open a
+/// query runs once typing pauses; assemblies opened later are searched and their hits added, and
+/// hits in closed ones dropped, keeping the selection.</summary>
 public sealed class SearchModel
 {
     private const double DebounceSeconds = 0.15;
 
+    private readonly Action<string, string> _reportError;
     private readonly List<SearchRow> _rows = new();
+    private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
+    private readonly List<CancellationTokenSource> _runs = new();
     private string _typed = "";
     private double _typedAt;
-    private string _searched = "";
-    private int _searchedVersion = -1;
-    private CancellationTokenSource? _work;
+    private string? _query;
+    private int _version = -1;
+    private BrowseNode? _selected;
+
+    /// <param name="reportError">Tells the user a search failed: a title and details.</param>
+    public SearchModel(Action<string, string> reportError)
+    {
+        _reportError = reportError;
+    }
 
     public string Query = "";
     public bool IsOpen;
-    public int Selected = -1;
 
     public IReadOnlyList<SearchRow> Rows => _rows;
-    public bool IsBusy => _work != null;
+    public bool IsBusy => _runs.Count > 0;
 
-    /// <summary>Starts a search when the query settled or the list changed. Returns the seconds
-    /// left before a typed query settles, or 0.</summary>
+    /// <summary>The selected row, or -1.</summary>
+    public int Selected { get; private set; } = -1;
+
+    public SearchRow? SelectedRow => Selected >= 0 ? _rows[Selected] : null;
+
+    /// <summary>Set when the selection moved and should be scrolled into view.</summary>
+    public bool ScrollToSelected;
+
+    /// <summary>Starts a search when the query settled, or searches assemblies opened since. Does
+    /// nothing while the panel is closed. Returns the seconds left before a typed query settles,
+    /// or 0.</summary>
     public double Update(AssemblyList assemblies, double now, Action<Action> post)
     {
         if (Query != _typed)
@@ -34,12 +52,32 @@ public sealed class SearchModel
             _typed = Query;
             _typedAt = now;
         }
-        if (_typed == _searched && assemblies.Version == _searchedVersion) return 0;
-
-        var remaining = DebounceSeconds - (now - _typedAt);
-        if (remaining > 0) return remaining;
-        Start(assemblies, post);
+        if (!IsOpen) return 0;
+        if (_typed != _query)
+        {
+            var remaining = DebounceSeconds - (now - _typedAt);
+            if (remaining > 0) return remaining;
+            Restart(assemblies, post);
+        }
+        else if (assemblies.Version != _version)
+        {
+            Extend(assemblies, post);
+        }
         return 0;
+    }
+
+    public void Select(int index)
+    {
+        if (index < 0 || index >= _rows.Count) return;
+        Selected = index;
+        _selected = _rows[index].Result.Node;
+        ScrollToSelected = true;
+    }
+
+    public void Move(int by)
+    {
+        if (_rows.Count > 0)
+            Select(Math.Clamp(Selected < 0 && by < 0 ? 0 : Selected + by, 0, _rows.Count - 1));
     }
 
     public void Clear()
@@ -48,37 +86,68 @@ public sealed class SearchModel
         IsOpen = false;
     }
 
-    private void Start(AssemblyList assemblies, Action<Action> post)
+    private void Restart(AssemblyList assemblies, Action<Action> post)
     {
-        _work?.Cancel();
-        _searched = _typed;
-        _searchedVersion = assemblies.Version;
+        foreach (var run in _runs)
+            run.Cancel();
+        _runs.Clear();
+        _query = _typed;
+        _version = assemblies.Version;
         _rows.Clear();
+        _searched.Clear();
         Selected = -1;
-        if (_searched.Trim().Length == 0)
-        {
-            _work = null;
-            return;
-        }
-
-        var work = new CancellationTokenSource();
-        _work = work;
-        _ = Run(assemblies, _searched, work, post);
+        _selected = null;
+        var listed = assemblies.Assemblies;
+        _searched.UnionWith(listed);
+        if (_query.Trim().Length > 0)
+            Start(assemblies, listed, post);
     }
 
-    private async Task Run(AssemblyList assemblies, string text, CancellationTokenSource work, Action<Action> post)
+    private void Extend(AssemblyList assemblies, Action<Action> post)
+    {
+        _version = assemblies.Version;
+        var listed = assemblies.Assemblies;
+        if (_searched.RemoveWhere(a => !listed.Contains(a)) > 0)
+        {
+            _rows.RemoveAll(r => !_searched.Contains(r.Result.Node.Assembly));
+            Reselect();
+        }
+        var added = listed.Where(_searched.Add).ToArray();
+        if (added.Length > 0 && _query!.Trim().Length > 0)
+            Start(assemblies, added, post);
+    }
+
+    private void Reselect()
+    {
+        Selected = _selected is null ? -1 : _rows.FindIndex(r => ReferenceEquals(r.Result.Node, _selected));
+        if (Selected < 0)
+            _selected = null;
+    }
+
+    private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within, Action<Action> post)
+    {
+        var work = new CancellationTokenSource();
+        _runs.Add(work);
+        _ = Run(assemblies.SearchAsync(_query!, within, cancellationToken: work.Token), work, post);
+    }
+
+    private async Task Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work, Action<Action> post)
     {
         try
         {
-            await foreach (var batch in assemblies.SearchAsync(text, cancellationToken: work.Token).ConfigureAwait(false))
+            await foreach (var batch in search.ConfigureAwait(false))
             {
                 var rows = new SearchRow[batch.Count];
                 for (var i = 0; i < rows.Length; i++)
                     rows[i] = new SearchRow(batch[i], Locate(batch[i]));
                 post(() =>
                 {
-                    if (_work == work)
-                        _rows.AddRange(rows);
+                    if (!_runs.Contains(work)) return;
+                    foreach (var row in rows)
+                    {
+                        if (_searched.Contains(row.Result.Node.Assembly))
+                            _rows.Add(row);
+                    }
                 });
             }
         }
@@ -87,12 +156,11 @@ public sealed class SearchModel
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine($"[ILSpy] Search failed: {e}");
+            post(() => _reportError("Search failed", e.ToString()));
         }
         post(() =>
         {
-            if (_work != work) return;
-            _work = null;
+            _runs.Remove(work);
             work.Dispose();
         });
     }

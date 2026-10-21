@@ -17,14 +17,17 @@ internal sealed class DocumentBuilder : ITextOutput
     private readonly List<(string Text, int First, int Count)> _lines = new();
     private readonly Dictionary<CodeReference, int> _definitions = new();
     private readonly List<DocumentSpan> _lexed = new();
+    private readonly Dictionary<object, int> _localKeys = new();
+    private readonly LoadedAssembly? _assembly;
     private int _lineFirstSpan;
     private int _indent;
     private bool _lineStarted;
     private CodeReference? _scope;
 
-    public DocumentBuilder(DecompilationLanguage language)
+    public DocumentBuilder(DecompilationLanguage language, LoadedAssembly? assembly = null)
     {
         _language = language;
+        _assembly = assembly;
     }
 
     public string IndentationString { get; set; } = "    ";
@@ -61,7 +64,13 @@ internal sealed class DocumentBuilder : ITextOutput
 
     public void Unindent() => _indent = Math.Max(0, _indent - 1);
 
-    public void Write(char ch) => Write(ch.ToString(), Kind ?? SpanKind.Plain);
+    public void Write(char ch)
+    {
+        if (ch == '\n')
+            WriteLine();
+        else if (ch != '\r')
+            Append(new ReadOnlySpan<char>(in ch), Kind ?? SpanKind.Plain, null, false);
+    }
 
     public void Write(string text) => Write(text, Kind ?? SpanKind.Plain);
 
@@ -119,7 +128,9 @@ internal sealed class DocumentBuilder : ITextOutput
             _ => (CodeReferenceKind.Local, SpanKind.Local),
         };
         var scope = reference is ILVariable ? null : _scope;
-        Write(text, Kind ?? spanKind, CodeReference.ToLocal(referenceKind, text, reference, scope), isDefinition);
+        if (!_localKeys.TryGetValue(reference, out var key))
+            _localKeys.Add(reference, key = _localKeys.Count);
+        Write(text, Kind ?? spanKind, CodeReference.ToLocal(referenceKind, text, key, scope), isDefinition);
     }
 
     public void MarkFoldStart(string collapsedText = "...", bool defaultCollapsed = false, bool isDefinition = false)
@@ -200,9 +211,12 @@ internal sealed class DocumentBuilder : ITextOutput
         return CodeReference.ToEntity(kind, text, file.FileName, definition.MetadataToken);
     }
 
-    private static CodeReference? ReferenceTo(MetadataFile metadata, Handle handle, string text)
+    private CodeReference? ReferenceTo(MetadataFile metadata, Handle handle, string text)
     {
         if (handle.IsNil) return null;
+        if (handle.Kind is HandleKind.TypeReference or HandleKind.TypeSpecification or HandleKind.MemberReference or HandleKind.MethodSpecification
+            && ResolveDefinition(metadata, (EntityHandle)handle) is { } definition)
+            return ReferenceTo(definition, ReferenceKindOf(definition.SymbolKind), text);
         return handle.Kind switch
         {
             HandleKind.AssemblyReference =>
@@ -222,6 +236,19 @@ internal sealed class DocumentBuilder : ITextOutput
             HandleKind.EventDefinition => CodeReference.ToEntity(CodeReferenceKind.Event, text, metadata.FileName, (EntityHandle)handle),
             _ => null,
         };
+    }
+
+    private IEntity? ResolveDefinition(MetadataFile metadata, EntityHandle handle)
+    {
+        if (_assembly is null || !ReferenceEquals(metadata, _assembly.File)) return null;
+        try
+        {
+            return Definitions.Resolve(_assembly.Module, handle);
+        }
+        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or NotSupportedException)
+        {
+            return null;
+        }
     }
 
     private static SpanKind SpanKindOf(MetadataFile metadata, Handle handle) =>

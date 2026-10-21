@@ -24,10 +24,10 @@ public enum CodeReferenceKind
 /// </summary>
 public sealed class CodeReference : IEquatable<CodeReference>
 {
-    private readonly object? _localKey;
+    private readonly int _localKey;
     private readonly CodeReference? _scope;
 
-    private CodeReference(CodeReferenceKind kind, string name, string? filePath, EntityHandle handle, object? localKey, CodeReference? scope)
+    private CodeReference(CodeReferenceKind kind, string name, string? filePath, EntityHandle handle, int localKey, CodeReference? scope)
     {
         Kind = kind;
         Name = name;
@@ -50,9 +50,9 @@ public sealed class CodeReference : IEquatable<CodeReference>
     internal EntityHandle Handle { get; }
 
     internal static CodeReference ToEntity(CodeReferenceKind kind, string name, string filePath, EntityHandle handle) =>
-        new(kind, name, filePath, handle, null, null);
+        new(kind, name, filePath, handle, 0, null);
 
-    internal static CodeReference ToLocal(CodeReferenceKind kind, string name, object key, CodeReference? scope) =>
+    internal static CodeReference ToLocal(CodeReferenceKind kind, string name, int key, CodeReference? scope) =>
         new(kind, name, null, default, key, scope);
 
     public bool Equals(CodeReference? other)
@@ -61,7 +61,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
         if (other is null) return false;
         if (FilePath != null || other.FilePath != null)
             return Handle == other.Handle && string.Equals(FilePath, other.FilePath, StringComparison.OrdinalIgnoreCase);
-        return Kind == other.Kind && Equals(_localKey, other._localKey) && Equals(_scope, other._scope);
+        return Kind == other.Kind && _localKey == other._localKey && Equals(_scope, other._scope);
     }
 
     public override bool Equals(object? obj) => obj is CodeReference other && Equals(other);

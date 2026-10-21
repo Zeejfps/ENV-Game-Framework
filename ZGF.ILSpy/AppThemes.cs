@@ -1,4 +1,3 @@
-using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 
@@ -21,28 +20,4 @@ internal static class AppThemes
         RowHeight = 22f,
         MenuItemHeight = 24f,
     };
-}
-
-internal static class AppWidgets
-{
-    /// <summary>A button that stays highlighted while <paramref name="selected"/>, for one of a set
-    /// of choices.</summary>
-    public static bool ToggleButton(this Ui ui, string label, bool selected, string id)
-    {
-        var theme = ui.Theme;
-        var i = ui.Interact(id);
-        if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
-        var background = selected ? theme.Accent : i.Held ? theme.Pressed(theme.Control) : i.Hovered ? theme.Hovered(theme.Control) : theme.Control;
-        ui.Text(label, new Box
-        {
-            Width = Sizing.Fit(36f),
-            Height = theme.ControlHeight,
-            Padding = new Spacing(theme.ControlPaddingX, 0f),
-            Background = background,
-            BorderColor = selected ? theme.Accent : theme.Border,
-            BorderWidth = 1f,
-            Radius = theme.CornerRadius,
-        }, color: selected ? theme.OnAccent : theme.Text, align: Align.Center, id: i.Id);
-        return i.Clicked && !selected;
-    }
 }

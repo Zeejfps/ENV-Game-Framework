@@ -44,9 +44,12 @@ public sealed class AssemblyList
     /// <exception cref="AssemblyLoadException">The file is missing or not a .NET assembly.</exception>
     public LoadedAssembly Open(string path)
     {
-        var assembly = Load(Path.GetFullPath(path));
-        List(assembly);
-        return assembly;
+        path = Path.GetFullPath(path);
+        while (true)
+        {
+            var assembly = Load(path);
+            if (TryList(assembly)) return assembly;
+        }
     }
 
     /// <summary>Removes <paramref name="assembly"/> from the list. Documents and nodes already handed
@@ -97,15 +100,29 @@ public sealed class AssemblyList
             if (reference.Kind == CodeReferenceKind.Assembly)
             {
                 var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, (AssemblyReferenceHandle)reference.Handle));
-                if (target is null) return null;
-                List(target);
-                return target.Root;
+                return target is not null && TryList(target) ? target.Root : null;
             }
 
             var (assembly, handle) = ResolveDefinition(owner, reference.Handle);
-            if (assembly is null) return null;
-            List(assembly);
-            return assembly.FindNodeOrAncestor(handle);
+            return assembly is not null && TryList(assembly) ? assembly.FindNodeOrAncestor(handle) : null;
+        }
+        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The node <paramref name="path"/> names, opening its assembly if it is not open and its file
+    /// still exists. Null if the file cannot be opened or no longer has that node. May load files
+    /// and build children: prefer calling it off the UI thread.
+    /// </summary>
+    public BrowseNode? FindNode(NodePath path)
+    {
+        try
+        {
+            var assembly = TryLoad(path.FilePath);
+            return assembly is not null && TryList(assembly) ? path.Resolve(assembly.Root) : null;
         }
         catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
         {
@@ -120,6 +137,12 @@ public sealed class AssemblyList
     public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(string text, SearchTargets targets = SearchTargets.All,
         CancellationToken cancellationToken = default) =>
         AssemblySearch.Run(_listed, text, targets, cancellationToken);
+
+    /// <summary><see cref="SearchAsync(string, SearchTargets, CancellationToken)"/> over
+    /// <paramref name="assemblies"/> only, e.g. those opened since the last search.</summary>
+    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(string text, IEnumerable<LoadedAssembly> assemblies,
+        SearchTargets targets = SearchTargets.All, CancellationToken cancellationToken = default) =>
+        AssemblySearch.Run([..assemblies], text, targets, cancellationToken);
 
     internal LoadedAssembly? TryLoad(string path)
     {
@@ -165,18 +188,19 @@ public sealed class AssemblyList
         return assembly;
     }
 
-    private void List(LoadedAssembly assembly)
+    internal bool TryList(LoadedAssembly assembly)
     {
         lock (_gate)
         {
-            if (assembly.IsListed) return;
-            _known.TryAdd(assembly.FilePath, assembly);
+            if (!_known.TryGetValue(assembly.FilePath, out var known) || known != assembly) return false;
+            if (assembly.IsListed) return true;
             assembly.IsListed = true;
             _listed = _listed.Add(assembly);
             _version++;
         }
         ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
         Changed?.Invoke();
+        return true;
     }
 
     private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveDefinition(LoadedAssembly owner, EntityHandle handle)
@@ -188,15 +212,9 @@ public sealed class AssemblyList
                 return (owner, handle);
         }
 
-        IEntity? definition = owner.Module.ResolveEntity(handle) switch
-        {
-            IType type => type.GetDefinition(),
-            IMember member => member.MemberDefinition,
-            _ => null,
-        };
-        var file = definition?.ParentModule?.MetadataFile;
-        if (definition is null || file is null || definition.MetadataToken.IsNil) return (null, default);
-        return (TryLoad(file.FileName), definition.MetadataToken);
+        return Definitions.Resolve(owner.Module, handle) is { } definition
+            ? (TryLoad(definition.ParentModule!.MetadataFile!.FileName), definition.MetadataToken)
+            : (null, default);
     }
 
     private static PEFile ReadFile(string path)

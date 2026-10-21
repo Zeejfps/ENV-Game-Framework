@@ -112,4 +112,20 @@ public sealed class NavigationTests
 
         Assert.Same(lambdaOwner.Child("Count : int"), node);
     }
+
+    [Fact]
+    public void IL_uses_through_member_references_match_their_definitions()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var calculator = assembly.Calculator();
+        var document = calculator.Decompile(DecompilationLanguage.IL);
+        var add = calculator.Child("Add(T) : void").Reference!;
+        var items = calculator.Child("_items : List<T>").Reference!;
+
+        var uses = document.SpansOf().Where(s => s.Span is { IsDefinition: false, Reference: not null }).Select(s => s.Span.Reference).ToArray();
+
+        Assert.Contains(add, uses);
+        Assert.Contains(items, uses);
+        Assert.Contains(".method", document.Lines[document.FindDefinitionLine(add)].Text);
+    }
 }

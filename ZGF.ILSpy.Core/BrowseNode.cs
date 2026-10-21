@@ -27,6 +27,7 @@ public enum NodeKind
     Constructor,
     Operator,
     Error,
+    Loading,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -52,6 +53,8 @@ public abstract class BrowseNode
 
     private readonly Lock _gate = new();
     private BrowseNode[]? _children;
+    private NodePath? _path;
+    private BrowseNode? _loading;
 
     private protected BrowseNode(LoadedAssembly assembly, BrowseNode? parent, NodeKind kind, string text)
     {
@@ -115,6 +118,21 @@ public abstract class BrowseNode
         }
     }
 
+    /// <summary>The children if they are built already; never blocks.</summary>
+    public bool TryGetChildren(out IReadOnlyList<BrowseNode> children)
+    {
+        children = Volatile.Read(ref _children)!;
+        return children != null;
+    }
+
+    /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
+    public NodePath Path => _path ??= NodePath.Of(this);
+
+    /// <summary>A child of kind <see cref="NodeKind.Loading"/> to show while <see cref="Children"/>
+    /// are being built; the same node every time.</summary>
+    public BrowseNode LoadingChild =>
+        Volatile.Read(ref _loading) ?? Interlocked.CompareExchange(ref _loading, new LoadingNode(Assembly, this), null) ?? _loading!;
+
     private protected virtual bool MayHaveChildren => false;
 
     private protected virtual BrowseNode[] CreateChildren() => NoChildren;
@@ -130,3 +148,5 @@ public abstract class BrowseNode
 
     public override string ToString() => Text;
 }
+
+internal sealed class LoadingNode(LoadedAssembly assembly, BrowseNode parent) : BrowseNode(assembly, parent, NodeKind.Loading, "Loading…");

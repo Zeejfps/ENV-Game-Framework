@@ -402,8 +402,10 @@ public static class CodeViewWidget
 
     private static void HandleKeys(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, bool focused, float advance)
     {
-        foreach (var stroke in ui.Input.Keys)
+        var keys = ui.Input.Keys;
+        for (var k = 0; k < keys.Count; k++)
         {
+            var stroke = keys[k];
             var shortcut = (stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
             var shift = (stroke.Modifiers & KeyModifiers.Shift) != 0;
             switch (stroke.Key)

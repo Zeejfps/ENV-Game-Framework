@@ -14,8 +14,12 @@ public sealed class IlSpyApp : Gui<Workspace>
         (MonoFonts.BoldItalic, "JetBrainsMono-BoldItalic.ttf"),
     ];
 
-    public IlSpyApp(Workspace workspace) : base(workspace)
+    private IReadOnlyList<string>? _startup;
+
+    /// <param name="startup">Files to open once the window is up.</param>
+    public IlSpyApp(Workspace workspace, IReadOnlyList<string> startup) : base(workspace)
     {
+        _startup = startup;
         foreach (var (family, file) in Fonts)
             RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
         workspace.Attach(Post);
@@ -24,43 +28,11 @@ public sealed class IlSpyApp : Gui<Workspace>
 
     protected override void Render(Ui ui, Workspace w)
     {
-        using var screen = ui.Screen(w.DarkMode ? AppThemes.Dark : AppThemes.Light);
-        w.Sync();
-        Shortcuts.Handle(ui, w);
-        using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
+        if (_startup != null)
         {
-            MainMenuView.Render(ui, w);
-            ToolbarView.Render(ui, w);
-            ui.Separator();
-            using (var split = ui.SplitPane("main", Direction.Horizontal, ref w.TreeWidth, minFirst: 160f, minSecond: 240f))
-            {
-                using (split.First())
-                    TreePaneView.Render(ui, w);
-                using (split.Second())
-                    ContentPane(ui, w);
-            }
-            ui.Separator();
-            StatusBarView.Render(ui, w);
+            w.Open(_startup);
+            _startup = null;
         }
-        FrameworkPickerView.Render(ui, w);
-    }
-
-    private static void ContentPane(Ui ui, Workspace w)
-    {
-        var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Post);
-        if (wait > 0)
-            ui.RequestFrameIn(wait);
-
-        if (!w.Search.IsOpen)
-        {
-            DocumentsView.Render(ui, w);
-            return;
-        }
-
-        using var split = ui.SplitPane("search-split", Direction.Vertical, ref w.SearchHeight, minFirst: 120f, minSecond: 80f, sized: SplitSide.Second);
-        using (split.First())
-            DocumentsView.Render(ui, w);
-        using (split.Second())
-            SearchPanelView.Render(ui, w);
+        MainView.Render(ui, w);
     }
 }

@@ -17,16 +17,11 @@ internal static class TreePaneView
         var result = ui.TreeView("tree", w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, 4f) });
         if (result.SelectionChanged && result.Node is { } selected)
             w.Show(selected);
-        if (result.Activated && result.Node is { } activated)
-        {
-            if (activated.Target != null)
-                w.GoToTarget(activated);
-            else if (activated.Reference != null)
-                w.Show(activated, inNewTab: true);
-        }
+        if (result.Activated && result.Node is { Target: not null } activated)
+            w.GoToTarget(activated);
         if (result.ContextMenuRequested && result.Node is { } target)
         {
-            w.MenuTarget = target;
+            w.SetMenuTarget(target);
             ui.OpenContextMenu("tree-menu", result.ContextMenuAt);
         }
 

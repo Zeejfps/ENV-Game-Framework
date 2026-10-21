@@ -10,7 +10,7 @@ internal static class Shortcuts
 
     public static void Handle(Ui ui, Workspace w)
     {
-        if (w.Picker.IsOpen) return;
+        if (w.Picker.IsOpen || w.Errors.IsOpen) return;
 
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
@@ -18,8 +18,10 @@ internal static class Shortcuts
         if (input.WasPressed(PointerButton.Forward))
             w.GoForward();
 
-        foreach (var stroke in input.Keys)
+        var keys = input.Keys;
+        for (var i = 0; i < keys.Count; i++)
         {
+            var stroke = keys[i];
             switch (stroke.Modifiers & Chord, stroke.Key)
             {
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.F):

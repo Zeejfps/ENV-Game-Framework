@@ -43,6 +43,7 @@ public static class NodeIcons
         Set(NodeKind.Constructor, "c", 0xFFC890F0, 0xFF7E3FB0);
         Set(NodeKind.Operator, "o", 0xFFC890F0, 0xFF7E3FB0);
         Set(NodeKind.Error, "!", 0xFFFF6B6B, 0xFFC62828);
+        Set(NodeKind.Loading, "…", 0xFF8C8F98, 0xFF6B7079);
         return icons;
 
         void Set(NodeKind kind, string glyph, uint dark, uint light) => icons[(int)kind] = new Icon(glyph, dark, light);
