@@ -34,7 +34,7 @@ public static partial class UiWidgets
             if (icon.Overlay != null)
             {
                 var overlay = theme.IconOverlaySize;
-                using (ui.Float(1f, 1f, -overlay * 0.75f, -overlay * 0.75f, new Box { Width = overlay, Height = overlay }, z: 1))
+                using (ui.Float(1f, 1f, -overlay * 0.75f, -overlay * 0.75f, new Box { Width = overlay, Height = overlay }, z: 1, clipped: true))
                     ui.Text(icon.Overlay, new Box { Width = overlay, Height = overlay },
                         color: icon.OverlayColor != 0 ? icon.OverlayColor : theme.TextMuted, size: overlay, align: Align.Center,
                         family: icon.OverlayFamily ?? icon.Family);

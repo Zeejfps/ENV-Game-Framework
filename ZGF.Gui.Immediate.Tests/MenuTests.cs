@@ -554,3 +554,37 @@ public sealed class MenuScrollTests
         Assert.True(last.Y >= popup.Y && last.Bottom <= popup.Bottom, $"{last} outside {popup}");
     }
 }
+
+public sealed class IconOverlayTests
+{
+    private readonly UiFrames _frames = new();
+
+    private static void Body(Ui ui)
+    {
+        using var screen = ui.Screen();
+        using (ui.Scroll("list", new Box { Height = 100f, Gap = 0f }))
+        {
+            for (var i = 0; i < 30; i++)
+            {
+                using (ui.Row(new Box { Height = 24f }))
+                {
+                    ui.Icon(new UiIcon("I", Overlay: "o"));
+                    ui.Text($"row {i}");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void An_icons_overlay_is_clipped_with_its_row_by_the_list_it_scrolls_in()
+    {
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+        var list = _frames.RectOf(Body, ui => ui.GetId("list"));
+
+        var overlays = _frames.Canvas.Texts.Where(t => t.Inputs.Text == "o").ToList();
+
+        Assert.InRange(overlays.Count, 1, 6);
+        Assert.All(overlays, t => Assert.True(_frames.Height - t.Inputs.Position.Top <= list.Bottom, $"{_frames.Height - t.Inputs.Position.Top} > {list.Bottom}"));
+    }
+}

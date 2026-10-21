@@ -118,11 +118,14 @@ public sealed partial class Ui
 
     /// <summary>An element taken out of the flow and placed over its parent: its top-left sits at
     /// (<paramref name="anchorX"/>, <paramref name="anchorY"/>) — fractions of the parent's rect —
-    /// plus the offset. Drawn above the rest of the tree and unclipped, inside the window; menus and
-    /// tooltips use <see cref="Popup"/> instead.</summary>
-    public Scope Float(float anchorX, float anchorY, float offsetX = 0f, float offsetY = 0f, Box box = default, int z = 100, int id = 0)
+    /// plus the offset. Drawn above the rest of the tree and unclipped, inside the window, unless
+    /// <paramref name="clipped"/>, which keeps the clip of the scroll or clipped element it is
+    /// recorded in — for a badge on a row of a list. Menus and tooltips use <see cref="Popup"/> instead.</summary>
+    public Scope Float(float anchorX, float anchorY, float offsetX = 0f, float offsetY = 0f, Box box = default, int z = 100, int id = 0,
+        bool clipped = false)
     {
-        OpenFloating(id, box, anchorX, anchorY, offsetX, offsetY, z);
+        var index = OpenFloating(id, box, anchorX, anchorY, offsetX, offsetY, z);
+        _tree[index].KeepsClip = clipped;
         return new Scope(this, ScopeKind.Element);
     }
 

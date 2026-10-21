@@ -41,6 +41,7 @@ internal struct Element
     public string? Shown;
 
     public bool Floating;
+    public bool KeepsClip;
     public float AnchorX;
     public float AnchorY;
     public float OffsetX;
@@ -104,7 +105,7 @@ internal sealed class LayoutTree
 {
     private readonly List<Element> _elements = new();
     private readonly List<PaintEntry> _paints = new();
-    private readonly List<(int Index, int Z, int Layer, bool PassThrough)> _floating = new();
+    private readonly List<(int Index, int Z, int Layer, bool PassThrough, UiRect? Clip)> _floating = new();
     private readonly List<(ICanvas? Canvas, UiRect Rect)> _layers = new();
     private readonly List<UiRect> _clips = new();
     private readonly RectStyle _rectStyle = new();
@@ -272,9 +273,20 @@ internal sealed class LayoutTree
 
         for (var k = 0; k < _floating.Count; k++)
         {
-            var (index, z, layer, passThrough) = _floating[k];
+            var (index, z, layer, passThrough, clip) = _floating[k];
             UseSurface(layer);
+            if (clip is { } kept)
+            {
+                var inner = _clips[^1].Intersect(kept);
+                _clips.Add(inner);
+                _canvas.PushClip(ToCanvas(inner));
+            }
             EmitElement(index, z, layer, passThrough, hits, rects);
+            if (clip != null)
+            {
+                _clips.RemoveAt(_clips.Count - 1);
+                _canvas.PopClip();
+            }
         }
     }
 
@@ -330,9 +342,9 @@ internal sealed class LayoutTree
         {
             ref var child = ref this[c];
             if (child.Layer != 0)
-                _floating.Add((c, child.Z, child.Layer, child.PassThrough));
+                _floating.Add((c, child.Z, child.Layer, child.PassThrough, null));
             else if (child.Floating)
-                _floating.Add((c, z + child.Z, layer, passThrough));
+                _floating.Add((c, z + child.Z, layer, passThrough, child.KeepsClip ? _clips[^1] : null));
             else
                 EmitElement(c, z, layer, passThrough, hits, rects);
         }
