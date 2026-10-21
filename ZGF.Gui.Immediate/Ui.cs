@@ -8,7 +8,7 @@ namespace ZGF.Gui.Immediate;
 /// The per-frame surface handed to <see cref="Gui{T}"/>.Render. Calls record elements; once
 /// Render returns the tree is laid out and drawn. Interaction is answered during the call from
 /// where each element was laid out on the previous frame, matched by id. Widgets are extension
-/// methods built on this surface (see <see cref="UiWidgets"/>).
+/// methods built on this surface.
 /// </summary>
 public sealed partial class Ui
 {
@@ -42,15 +42,15 @@ public sealed partial class Ui
     private bool _focusSeen;
     private bool _focusClaimed;
 
-    internal Ui(ICanvas canvas, UiTheme theme, IClipboard clipboard)
+    internal Ui(ICanvas canvas, UiStyle style, IClipboard clipboard)
     {
         _canvas = canvas;
         _clipboard = clipboard;
         _painter = new UiPainter(this, canvas);
-        Theme = theme;
+        Style = style;
     }
 
-    public UiTheme Theme { get; }
+    public UiStyle Style { get; }
     public UiInput Input { get; private set; } = new();
     public float Width { get; private set; }
     public float Height { get; private set; }
@@ -115,6 +115,7 @@ public sealed partial class Ui
 
         _ids.Clear();
         _ids.Push(RootId);
+        ResetContext();
         _tree.Clear();
         _open.Clear();
         BeginScrolls();
@@ -123,8 +124,8 @@ public sealed partial class Ui
         {
             Width = Sizing.Fixed(Width),
             Height = Sizing.Fixed(Height),
-            Padding = Theme.WindowPadding,
-            Gap = Theme.Gap,
+            Padding = Style.WindowPadding,
+            Gap = Style.Gap,
         });
     }
 
@@ -135,6 +136,8 @@ public sealed partial class Ui
             throw new InvalidOperationException("A layout scope was not disposed.");
         if (_ids.Count != 1)
             throw new InvalidOperationException("An Id scope was not disposed.");
+        if (_provided.Count != 0)
+            throw new InvalidOperationException("A Provide scope was not disposed.");
 
         _tree.Solve();
         switch (SettleScrolls())
@@ -244,14 +247,14 @@ public sealed partial class Ui
     public void ClearFocus() => _focused = 0;
 
     public float MeasureText(string text, float? size = null, bool bold = false) =>
-        MeasureWidth(text, Style(size, Theme.Text, bold, Align.Start));
+        MeasureWidth(text, TextStyleFor(size, Style.Text, bold, Align.Start));
 
     /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
     /// whole line — for placing a caret.</summary>
     public float MeasureText(string text, int length, float? size = null, bool bold = false) =>
-        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, Style(size, Theme.Text, bold, Align.Start));
+        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, TextStyleFor(size, Style.Text, bold, Align.Start));
 
-    public float LineHeight(float? size = null) => MeasureLineHeight(Style(size, Theme.Text, false, Align.Start));
+    public float LineHeight(float? size = null) => MeasureLineHeight(TextStyleFor(size, Style.Text, false, Align.Start));
 
     internal float MeasureWidth(string text, TextStyle style)
     {
@@ -306,9 +309,9 @@ public sealed partial class Ui
         public override int GetHashCode() => HashCode.Combine(_text, RuntimeHelpers.GetHashCode(_style));
     }
 
-    internal TextStyle Style(float? size, uint color, bool bold, Align align)
+    internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align)
     {
-        var key = (size ?? Theme.FontSize, color, bold, align);
+        var key = (size ?? Style.FontSize, color, bold, align);
         if (_textStyles.TryGetValue(key, out var style))
             return style;
 

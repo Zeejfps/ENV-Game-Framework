@@ -22,13 +22,13 @@ internal sealed class ImmediateHost : IDisposable
     private bool _animating;
     private MouseCursor _cursor;
 
-    public ImmediateHost(StartupConfig config, RenderBackendKind backend, UiTheme theme, Action<Ui> renderUi)
+    public ImmediateHost(StartupConfig config, RenderBackendKind backend, UiStyle style, Action<Ui> renderUi)
     {
         _render = RenderHost.Create(config, backend);
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
-        _ui = new Ui(_render.Canvas, theme, new WindowClipboard(_window));
-        _render.SetFrame(DrawFrame, theme.Background);
+        _ui = new Ui(_render.Canvas, style, new WindowClipboard(_window));
+        _render.SetFrame(DrawFrame, style.Background);
 
         _window.OnKey += HandleKey;
         _window.OnText += HandleText;

@@ -2,7 +2,7 @@ using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
-namespace ZGF.Gui.Immediate;
+namespace ZGF.Gui.Immediate.Widgets;
 
 public static partial class UiWidgets
 {
@@ -55,7 +55,7 @@ public static partial class UiWidgets
     /// triple-click for everything), word-wise movement and deletion, the clipboard, and undo.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         var i = ui.Interact(id);
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
@@ -146,7 +146,7 @@ public static partial class UiWidgets
             if (focused && !state.HasSelection && CaretVisible(ui, state))
             {
                 using (ui.Float(0f, 0.5f, FieldPaddingX + caretX - shift, -lineHeight / 2,
-                    new Box { Width = CaretWidth, Height = lineHeight, Background = theme.Text }, z: 1)) { }
+                    new Box { Width = CaretWidth, Height = lineHeight, Background = ui.Style.Text }, z: 1)) { }
             }
         }
         return submitted;

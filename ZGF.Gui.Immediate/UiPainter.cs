@@ -55,7 +55,7 @@ public sealed class UiPainter
     public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start)
     {
         if (string.IsNullOrEmpty(text)) return;
-        _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.Style(size, color, bold, align), ZIndex = _z });
+        _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align), ZIndex = _z });
     }
 
     public RectF ToCanvas(UiRect rect) => new(rect.X, _canvasHeight - rect.Y - rect.Height, rect.Width, rect.Height);

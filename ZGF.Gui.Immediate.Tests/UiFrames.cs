@@ -16,7 +16,7 @@ internal sealed class UiFrames
 
     public UiFrames()
     {
-        _ui = new Ui(new RecordingCanvas(new SyntheticTextMeasurer()), UiTheme.Dark, Clipboard);
+        _ui = new Ui(new RecordingCanvas(new SyntheticTextMeasurer()), UiStyle.Dark, Clipboard);
     }
 
     public TestClipboard Clipboard { get; } = new();

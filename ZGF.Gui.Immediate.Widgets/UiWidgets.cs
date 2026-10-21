@@ -1,7 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Geometry;
 
-namespace ZGF.Gui.Immediate;
+namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>
 /// The built-in widgets. Each is an extension method over the public <see cref="Ui"/> surface
@@ -22,17 +22,21 @@ public static partial class UiWidgets
         ui.Text(text, color: color, size: size, bold: bold);
 
     public static void Heading(this Ui ui, string text) =>
-        ui.Label(text, size: MathF.Round(ui.Theme.FontSize * 1.5f), bold: true);
+        ui.Label(text, size: MathF.Round(ui.Style.FontSize * 1.5f), bold: true);
 
     /// <summary>A padded column on a raised background.</summary>
-    public static Ui.Scope Panel(this Ui ui, Box box = default) => ui.Column(box with
+    public static Ui.Scope Panel(this Ui ui, Box box = default)
     {
-        Padding = box.Padding ?? ui.Theme.PanelPadding,
-        Background = box.Background != 0 ? box.Background : ui.Theme.Panel,
-        BorderColor = box.BorderColor != 0 ? box.BorderColor : ui.Theme.PanelBorder,
-        BorderWidth = box.BorderWidth > 0f ? box.BorderWidth : 1f,
-        Radius = box.Radius > 0f ? box.Radius : ui.Theme.CornerRadius,
-    });
+        var theme = WidgetTheme.For(ui);
+        return ui.Column(box with
+        {
+            Padding = box.Padding ?? theme.PanelPadding,
+            Background = box.Background != 0 ? box.Background : theme.Panel,
+            BorderColor = box.BorderColor != 0 ? box.BorderColor : theme.PanelBorder,
+            BorderWidth = box.BorderWidth > 0f ? box.BorderWidth : 1f,
+            Radius = box.Radius > 0f ? box.Radius : theme.CornerRadius,
+        });
+    }
 
     /// <summary>Pushes what follows to the end of the row or column, or leaves a fixed gap.</summary>
     public static void Spacer(this Ui ui, float? size = null)
@@ -43,7 +47,7 @@ public static partial class UiWidgets
 
     public static void Separator(this Ui ui)
     {
-        var color = ui.Theme.PanelBorder;
+        var color = WidgetTheme.For(ui).PanelBorder;
         ui.Leaf(ui.InRow
             ? new Box { Width = 1f, Height = Sizing.Grow(), Background = color }
             : new Box { Width = Sizing.Grow(), Height = 1f, Background = color });
@@ -54,7 +58,7 @@ public static partial class UiWidgets
     /// <c>"Save##toolbar"</c>.</summary>
     public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true, string? id = null)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
@@ -68,7 +72,7 @@ public static partial class UiWidgets
             BorderColor = enabled ? theme.ControlBorder : theme.Control,
             BorderWidth = 1f,
             Radius = theme.CornerRadius,
-        }, color: enabled ? theme.Text : theme.TextMuted, align: Align.Center, id: i.Id);
+        }, color: enabled ? ui.Style.Text : theme.TextMuted, align: Align.Center, id: i.Id);
         return i.Clicked;
     }
 
@@ -76,7 +80,7 @@ public static partial class UiWidgets
     /// <see cref="Button"/>.</summary>
     public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         var i = ui.Interact(id ?? label);
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Clicked) value = !value;
@@ -96,7 +100,7 @@ public static partial class UiWidgets
                 if (value)
                     ui.Paint(theme.OnAccent, static (p, color) => DrawCheckmark(p, color));
             }
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: textColor ?? theme.Text);
+            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: textColor ?? ui.Style.Text);
         }
         return i.Clicked;
     }
@@ -104,7 +108,7 @@ public static partial class UiWidgets
     /// <summary>Returns true on frames where <paramref name="value"/> changes.</summary>
     public static bool Slider(this Ui ui, string id, ref float value, float min, float max, Sizing? width = null)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         var i = ui.Interact(id);
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Hand);
 
@@ -132,7 +136,7 @@ public static partial class UiWidgets
             {
                 Width = SliderThumbRadius * 2,
                 Height = SliderThumbRadius * 2,
-                Background = i.Held || i.Hovered ? theme.OnAccent : theme.Text,
+                Background = i.Held || i.Hovered ? theme.OnAccent : ui.Style.Text,
                 Radius = SliderThumbRadius,
             }, z: 1)) { }
         }
@@ -141,7 +145,7 @@ public static partial class UiWidgets
 
     public static void ProgressBar(this Ui ui, float fraction, Sizing? width = null)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         using (ui.Box(new Box { Width = width ?? Sizing.Grow(), Height = 8f, Background = theme.Control, Radius = 4f }))
             ui.Leaf(new Box { Width = Sizing.Percent(Math.Clamp(fraction, 0f, 1f)), Height = Sizing.Grow(), Background = theme.Accent, Radius = 4f });
     }

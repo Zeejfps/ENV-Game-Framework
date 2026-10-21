@@ -3,6 +3,7 @@ using ZGF.Fonts;
 using ZGF.Gui;
 using ZGF.Gui.Benchmarks;
 using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Widgets;
 
 /// <summary>
 /// One immediate-mode frame end to end — record, solve, emit into the canvas — for a screen
@@ -29,7 +30,7 @@ public class ImmediateFrameBenchmarks
         var fonts = new FreeTypeFontBackend();
         var font = fonts.LoadFontFromFile(ResolveFontPath(), 16);
         _canvas = new BenchCanvas(520, 640, fonts, font);
-        _ui = new Ui(_canvas, UiTheme.Dark, new NullClipboard());
+        _ui = new Ui(_canvas, UiStyle.Dark, new NullClipboard());
         for (var i = 0; i < Rows; i++)
         {
             _labels[i] = $"Task number {i}##done";
@@ -74,8 +75,9 @@ public class ImmediateFrameBenchmarks
 
     private void Render(Ui ui)
     {
+        var theme = WidgetTheme.For(ui);
         ui.Heading("Todos");
-        ui.Label(ui.Memo("remaining", Rows / 2, static remaining => $"{remaining} of {Rows} remaining"), ui.Theme.TextMuted);
+        ui.Label(ui.Memo("remaining", Rows / 2, static remaining => $"{remaining} of {Rows} remaining"), theme.TextMuted);
         ui.ProgressBar(0.5f);
 
         using (ui.Row())
@@ -96,7 +98,7 @@ public class ImmediateFrameBenchmarks
             ui.Label("Settings", bold: true);
             using (ui.Row())
             {
-                ui.Label("Volume", ui.Theme.TextMuted);
+                ui.Label("Volume", theme.TextMuted);
                 ui.Slider("volume", ref _volume, 0f, 1f);
                 ui.Label(ui.Memo("volume", (int)MathF.Round(_volume * 100), static percent => $"{percent}%"));
             }

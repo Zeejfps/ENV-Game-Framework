@@ -7,6 +7,7 @@ public sealed partial class Ui
         Id,
         Element,
         Scroll,
+        Context,
     }
 
     public readonly struct Scope : IDisposable
@@ -68,7 +69,7 @@ public sealed partial class Ui
     {
         Direction = Direction.Vertical,
         Width = box.Width ?? Sizing.Grow(),
-        Gap = box.Gap ?? Theme.Gap,
+        Gap = box.Gap ?? Style.Gap,
     });
 
     public Scope Row(Box box = default) => Row(0, box);
@@ -77,7 +78,7 @@ public sealed partial class Ui
     {
         Direction = Direction.Horizontal,
         Width = box.Width ?? Sizing.Grow(),
-        Gap = box.Gap ?? Theme.Gap,
+        Gap = box.Gap ?? Style.Gap,
         AlignY = box.AlignY ?? Align.Center,
     });
 
@@ -103,7 +104,7 @@ public sealed partial class Ui
     /// with the text vertically centered and aligned by <paramref name="align"/>.</summary>
     public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0)
     {
-        Open(id, box, text, Style(size, color ?? Theme.Text, bold, align));
+        Open(id, box, text, TextStyleFor(size, color ?? Style.Text, bold, align));
         Close();
     }
 
@@ -125,7 +126,7 @@ public sealed partial class Ui
     {
         var state = GetState<ScrollState>(id);
         if (id == _wheelTarget)
-            state.Offset -= Input.ScrollY * Theme.ScrollWheelStep;
+            state.Offset -= Input.ScrollY * Style.ScrollWheelStep;
 
         var thumb = Interact(HashCode.Combine(id, "thumb"));
         if (thumb.Pressed)
@@ -147,7 +148,7 @@ public sealed partial class Ui
             Direction = Direction.Vertical,
             Width = box.Width ?? Sizing.Grow(),
             Height = box.Height ?? Sizing.Grow(),
-            Gap = box.Gap ?? Theme.Gap,
+            Gap = box.Gap ?? Style.Gap,
             Padding = padding with { Right = padding.Right + Gutter(state.Max > 0f) },
             Clip = true,
             ScrollY = state.Offset,
@@ -170,6 +171,9 @@ public sealed partial class Ui
             case ScopeKind.Scroll:
                 EndScroll();
                 break;
+            case ScopeKind.Context:
+                EndProvide();
+                break;
         }
     }
 
@@ -181,14 +185,14 @@ public sealed partial class Ui
         {
             var thumbHeight = ThumbHeight(state);
             var top = (state.Viewport - thumbHeight) * (state.Offset / state.Max);
-            var color = scroll.Thumb.Held ? Theme.TextMuted : scroll.Thumb.Hovered ? Theme.ControlBorder : Theme.Control;
+            var color = scroll.Thumb.Held ? Style.ScrollThumbHeld : scroll.Thumb.Hovered ? Style.ScrollThumbHovered : Style.ScrollThumb;
             OpenFloating(scroll.Thumb.Id, new Box
             {
-                Width = Theme.ScrollBarWidth,
+                Width = Style.ScrollBarWidth,
                 Height = thumbHeight,
                 Background = color,
-                Radius = Theme.ScrollBarWidth / 2,
-            }, 1f, 0f, -Theme.ScrollBarWidth - 2f, top, 1);
+                Radius = Style.ScrollBarWidth / 2,
+            }, 1f, 0f, -Style.ScrollBarWidth - 2f, top, 1);
             Close();
         }
         Close();
@@ -235,7 +239,7 @@ public sealed partial class Ui
         return result;
     }
 
-    private float Gutter(bool overflowing) => overflowing ? Theme.ScrollBarWidth + 6f : 0f;
+    private float Gutter(bool overflowing) => overflowing ? Style.ScrollBarWidth + 6f : 0f;
 
     private static float ThumbHeight(ScrollState state) =>
         state.Content <= 0f ? 0f : MathF.Min(state.Viewport, MathF.Max(24f, state.Viewport * state.Viewport / state.Content));

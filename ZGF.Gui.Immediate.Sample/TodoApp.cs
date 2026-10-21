@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Sample.Localization;
+using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Sample;
 
@@ -37,6 +38,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
     protected override void Render(Ui ui, TodoState s)
     {
         var t = Strings.For(s.Locale);
+        var theme = WidgetTheme.For(ui);
         ui.Heading(t.AppTitle);
 
         var remaining = 0;
@@ -44,7 +46,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         {
             if (!item.Done) remaining++;
         }
-        ui.Label(ui.Memo("remaining", (t, remaining), static a => a.t.TasksRemaining(a.remaining)), ui.Theme.TextMuted);
+        ui.Label(ui.Memo("remaining", (t, remaining), static a => a.t.TasksRemaining(a.remaining)), theme.TextMuted);
         ui.ProgressBar(ui.Animate("progress", s.Items.Count == 0 ? 0f : 1f - remaining / (float)s.Items.Count, Tween.OutCubic(0.35f)));
 
         using (ui.Row())
@@ -72,7 +74,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             ui.Label(t.SettingsTitle, bold: true);
             using (ui.Row())
             {
-                ui.Label(t.SettingsVolume, ui.Theme.TextMuted);
+                ui.Label(t.SettingsVolume, theme.TextMuted);
                 ui.Slider("volume", ref s.Volume, 0f, 1f);
                 var percent = (int)MathF.Round(s.Volume * 100);
                 ui.Label(ui.Memo("volume", (t, percent), static a => a.t.SettingsVolumeValue(a.percent)));
@@ -81,10 +83,10 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             {
                 ui.Toggle(t.SettingsNotifications, ref s.Notifications, id: "notifications");
                 ui.Spacer();
-                ui.Label(t.SettingsPriority, ui.Theme.TextMuted);
+                ui.Label(t.SettingsPriority, theme.TextMuted);
                 ui.Stepper("priority", ref s.Priority, 1, 5);
             }
-            ui.Label(t.SettingsLanguage, ui.Theme.TextMuted);
+            ui.Label(t.SettingsLanguage, theme.TextMuted);
             using (ui.Row())
             {
                 foreach (var (locale, endonym) in Languages)
@@ -106,7 +108,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 using (ui.Id(item.Id))
                 using (ui.Row())
                 {
-                    ui.Checkbox(item.Title, ref item.Done, item.Done ? ui.Theme.TextMuted : null, id: "done");
+                    ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");
                     ui.Spacer();
                     if (ui.Button(t.ActionDelete, id: "delete"))
                         removed = item;
@@ -114,7 +116,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             }
 
             if (s.Items.Count == 0)
-                ui.Label(t.TasksEmpty, ui.Theme.TextMuted);
+                ui.Label(t.TasksEmpty, theme.TextMuted);
         }
 
         if (removed != null)

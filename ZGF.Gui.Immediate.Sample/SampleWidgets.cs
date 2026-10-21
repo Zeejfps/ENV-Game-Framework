@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
+using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Sample;
 
@@ -8,7 +9,7 @@ public static class SampleWidgets
 {
     public static bool Toggle(this Ui ui, string label, ref bool on, string? id = null)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         var i = ui.Interact(id ?? label);
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Clicked) on = !on;
@@ -26,7 +27,7 @@ public static class SampleWidgets
 
     public static bool Stepper(this Ui ui, string id, ref int value, int min, int max)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         var i = ui.Interact(id);
         Interaction decrement, increment;
         using (ui.Id(id))
@@ -73,13 +74,13 @@ public static class SampleWidgets
 
     private static void Chevron(Ui ui, string glyph, Interaction i, bool enabled)
     {
-        var theme = ui.Theme;
+        var theme = WidgetTheme.For(ui);
         ui.Text(glyph, new Box
         {
             Width = 22f,
             Height = 22f,
             Radius = 4f,
             Background = i.Held ? theme.ControlActive : i.Hovered ? theme.ControlHovered : 0u,
-        }, color: enabled ? theme.Text : theme.TextMuted, align: Align.Center, id: i.Id);
+        }, color: enabled ? ui.Style.Text : theme.TextMuted, align: Align.Center, id: i.Id);
     }
 }

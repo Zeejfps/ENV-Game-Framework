@@ -18,7 +18,7 @@ public abstract class Gui<T> where T : class
 
     public T State { get; }
 
-    public UiTheme Theme { get; init; } = UiTheme.Dark;
+    public UiStyle Style { get; init; } = UiStyle.Dark;
 
     protected abstract void Render(Ui ui, T state);
 
@@ -28,7 +28,7 @@ public abstract class Gui<T> where T : class
 
     public void Run(StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
     {
-        using var host = new ImmediateHost(config, backend, Theme, ui => Render(ui, State));
+        using var host = new ImmediateHost(config, backend, Style, ui => Render(ui, State));
         _host = host;
         try
         {

@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.KeyboardModule;
+using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
 

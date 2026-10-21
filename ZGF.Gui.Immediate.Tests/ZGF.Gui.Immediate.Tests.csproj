@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ZGF.Gui.Immediate\ZGF.Gui.Immediate.csproj" />
     <ProjectReference Include="..\ZGF.Gui.Testing\ZGF.Gui.Testing.csproj" />
+    <ProjectReference Include="..\ZGF.Gui.Immediate.Widgets\ZGF.Gui.Immediate.Widgets.csproj" />
   </ItemGroup>
 
 </Project>
