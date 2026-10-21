@@ -242,3 +242,48 @@ public sealed class TooltipTests
         Assert.False(_frames.Drew("Tip"));
     }
 }
+
+public sealed class MenuRadioItemTests
+{
+    private readonly UiFrames _frames = new();
+    private string _theme = "Dark";
+
+    private void Body(Ui ui)
+    {
+        using var bar = ui.MenuBar("bar");
+        using var menu = ui.Menu("Theme");
+        if (!menu.IsOpen) return;
+        foreach (var choice in new[] { "Dark", "Light" })
+        {
+            if (ui.MenuRadioItem(choice, _theme == choice))
+                _theme = choice;
+        }
+    }
+
+    private void OpenMenu()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("Theme"));
+        _frames.Run(0f, Body);
+    }
+
+    [Fact]
+    public void Only_the_selected_choice_shows_a_dot()
+    {
+        OpenMenu();
+
+        var dot = Assert.Single(_frames.Canvas.Circles);
+        var row = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Dark").Inputs.Position;
+        Assert.InRange(dot.Inputs.Center.Y, MathF.Min(row.Top, row.Bottom), MathF.Max(row.Top, row.Bottom));
+    }
+
+    [Fact]
+    public void Picking_a_choice_selects_it()
+    {
+        OpenMenu();
+
+        _frames.ClickOn(Body, ui => ui.GetId("Light"));
+
+        Assert.Equal("Light", _theme);
+    }
+}

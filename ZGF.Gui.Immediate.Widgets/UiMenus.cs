@@ -401,7 +401,22 @@ public static partial class UiWidgets
     /// <summary>Returns true on the frame the item is picked, which also closes its menu.
     /// <paramref name="check"/> shows a check mark when true and leaves room for one when false;
     /// <paramref name="shortcut"/> is only displayed. Ids work as for <see cref="Button"/>.</summary>
-    public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null)
+    public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null) =>
+        ui.MenuItem(label, shortcut, enabled, check == true ? MenuMark.Check : MenuMark.None, id);
+
+    /// <summary>One choice of a set: shows a dot when <paramref name="selected"/> and leaves room
+    /// for one otherwise. Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, string?, bool, bool?, string?)"/>.</summary>
+    public static bool MenuRadioItem(this Ui ui, string label, bool selected, string? shortcut = null, bool enabled = true, string? id = null) =>
+        ui.MenuItem(label, shortcut, enabled, selected ? MenuMark.Dot : MenuMark.None, id);
+
+    private enum MenuMark
+    {
+        None,
+        Check,
+        Dot,
+    }
+
+    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id)
     {
         var theme = ui.Theme;
         var menu = ui.Get<MenuPopup>();
@@ -426,8 +441,10 @@ public static partial class UiWidgets
             using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
             using (ui.Box(new Box { Width = theme.IconSize, Height = theme.IconSize }))
             {
-                if (check == true)
+                if (mark == MenuMark.Check)
                     ui.Paint((color, theme.IconStrokeWidth), static (p, s) => DrawCheckmark(p, s.color, s.IconStrokeWidth));
+                else if (mark == MenuMark.Dot)
+                    ui.Paint(color, static (p, c) => p.Circle(new PointF(p.Rect.X + p.Rect.Width / 2, p.Rect.Y + p.Rect.Height / 2), p.Rect.Height * 0.2f, c));
             }
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
