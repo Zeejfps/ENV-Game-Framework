@@ -17,10 +17,17 @@ internal sealed class CodeViewDriver
     public const float Row = 16f;
     private const float Frame = 1f / 60f;
 
+    private readonly Func<Ui, CodeViewResult> _body;
+
     public CodeViewDriver(DecompiledDocument document, float height = 300f)
     {
         Document = document;
         Frames = new UiFrames(height: height);
+        _body = ui =>
+        {
+            using var screen = ui.Screen();
+            return ui.CodeView("code", Document, State);
+        };
     }
 
     public UiFrames Frames { get; }
@@ -28,15 +35,14 @@ internal sealed class CodeViewDriver
     public DecompiledDocument Document { get; set; }
     public CodeViewResult Last { get; private set; }
 
-    public float TextLeft => Origin + (Math.Max(3, CodeTextDigits(Document.Lines.Length)) + 3) * Cell;
+    public float TextLeft => Origin + (Math.Max(3, CodeTextDigits(Document.Lines.Length)) + (Document.Folds.Length > 0 ? 4 : 3)) * Cell;
+
+    /// <summary>Where the fold chevron of the row at <paramref name="row"/> is.</summary>
+    public (float X, float Y) ChevronOf(int row) => (Origin + (Math.Max(3, CodeTextDigits(Document.Lines.Length)) + 2) * Cell, Origin + row * Row + Row / 2);
 
     public CodeViewResult Run()
     {
-        Last = Frames.Run(Frame, ui =>
-        {
-            using var screen = ui.Screen();
-            return ui.CodeView("code", Document, State);
-        });
+        Last = Frames.Run(Frame, _body);
         return Last;
     }
 
@@ -73,12 +79,16 @@ internal sealed class CodeViewDriver
     public static DecompiledDocument Numbered(int count, string prefix = "line ") =>
         DecompiledDocument.FromText("numbered", string.Join('\n', Enumerable.Range(0, count).Select(i => prefix + i)));
 
-    public static DecompiledDocument Greeter()
+    public static DecompiledDocument Greeter() => Decompile(typeof(Greeter));
+
+    public static DecompiledDocument Outline() => Decompile(typeof(Outline));
+
+    private static DecompiledDocument Decompile(Type type)
     {
         var list = new AssemblyList();
-        var assembly = list.Open(typeof(Greeter).Assembly.Location);
-        var ns = assembly.Root.Children.Single(c => c.Text == typeof(Greeter).Namespace);
-        return ns.Children.Single(c => c.Text == nameof(Fixtures.Greeter)).Decompile(DecompilationLanguage.CSharp);
+        var assembly = list.Open(type.Assembly.Location);
+        var ns = assembly.Root.Children.Single(c => c.Text == type.Namespace);
+        return ns.Children.Single(c => c.Text == type.Name).Decompile(DecompilationLanguage.CSharp);
     }
 
     private static int CodeTextDigits(int value) => value.ToString().Length;

@@ -61,6 +61,13 @@ public readonly struct DocumentLine
     public override string ToString() => Text;
 }
 
+/// <summary>A foldable range of a <see cref="DecompiledDocument"/>. Collapsed, line
+/// <see cref="StartLine"/> stays in view followed by <see cref="CollapsedText"/>, and the lines after
+/// it up to and including <see cref="EndLine"/> are hidden.</summary>
+/// <param name="DefaultCollapsed">Whether the region starts out collapsed, as the using directives do.</param>
+/// <param name="IsDefinition">Whether the region is the body of a type or member definition.</param>
+public readonly record struct FoldRegion(int StartLine, int EndLine, string CollapsedText, bool DefaultCollapsed, bool IsDefinition);
+
 /// <summary>
 /// The immutable result of decompiling a node: lines of classified, referencing text. Safe to read
 /// from any thread while other documents are being produced.
@@ -70,13 +77,14 @@ public sealed class DecompiledDocument
     private readonly IReadOnlyDictionary<CodeReference, int> _definitions;
 
     internal DecompiledDocument(string title, DecompilationLanguage language, bool isError, ImmutableArray<DocumentLine> lines,
-        IReadOnlyDictionary<CodeReference, int> definitions)
+        IReadOnlyDictionary<CodeReference, int> definitions, ImmutableArray<FoldRegion> folds)
     {
         Title = title;
         Language = language;
         IsError = isError;
         Lines = lines;
         _definitions = definitions;
+        Folds = folds;
     }
 
     /// <summary>A document with no lines.</summary>
@@ -91,6 +99,25 @@ public sealed class DecompiledDocument
     public bool IsError { get; }
 
     public ImmutableArray<DocumentLine> Lines { get; }
+
+    /// <summary>The foldable regions, ordered by <see cref="FoldRegion.StartLine"/>, each starting on
+    /// a line of its own and nested whole inside any region it starts in.</summary>
+    public ImmutableArray<FoldRegion> Folds { get; }
+
+    /// <summary>The index in <see cref="Folds"/> of the region starting on <paramref name="line"/>, or -1.</summary>
+    public int FoldStartingAt(int line)
+    {
+        int low = 0, high = Folds.Length - 1;
+        while (low <= high)
+        {
+            var mid = (low + high) >> 1;
+            var start = Folds[mid].StartLine;
+            if (start < line) low = mid + 1;
+            else if (start > line) high = mid - 1;
+            else return mid;
+        }
+        return -1;
+    }
 
     /// <summary>A document of plain lines, e.g. a placeholder while decompiling.</summary>
     public static DecompiledDocument FromText(string title, string text, DecompilationLanguage language = DecompilationLanguage.CSharp)

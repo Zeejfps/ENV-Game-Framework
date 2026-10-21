@@ -14,25 +14,13 @@ public sealed class IlSpyApp : Gui<Workspace>
         (MonoFonts.BoldItalic, "JetBrainsMono-BoldItalic.ttf"),
     ];
 
-    private IReadOnlyList<string>? _startup;
-
-    /// <param name="startup">Files to open once the window is up.</param>
-    public IlSpyApp(Workspace workspace, IReadOnlyList<string> startup) : base(workspace)
+    public IlSpyApp(Workspace workspace) : base(workspace)
     {
-        _startup = startup;
         foreach (var (family, file) in Fonts)
             RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
         workspace.Attach(Post);
         workspace.Assemblies.Changed += Invalidate;
     }
 
-    protected override void Render(Ui ui, Workspace w)
-    {
-        if (_startup != null)
-        {
-            w.Open(_startup);
-            _startup = null;
-        }
-        MainView.Render(ui, w);
-    }
+    protected override void Render(Ui ui, Workspace w) => MainView.Render(ui, w);
 }

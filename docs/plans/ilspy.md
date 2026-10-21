@@ -21,28 +21,39 @@ tests in `ZGF.Gui.Immediate.Tests`, and are general-purpose — nothing ILSpy-sp
 ## Features
 
 - Open assemblies from the command line, the native file picker (`IFilePicker`, shared with the
-  retained framework), and a picker over the running .NET runtime's directory. The assembly list
-  persists between runs.
+  retained framework), and a dialog over the running .NET runtime's assemblies. The assembly
+  list, theme, language, pane sizes and window bounds persist between runs (`--settings=<path>`
+  points at another settings file).
 - Browse tree: assembly → references / namespaces → types → nested types and members, lazily
-  expanded, with kind icons/colors, and member signatures as labels.
-- Decompile the selected node to C# or IL, off the UI thread, with a busy indicator and cancellation
-  when the selection changes.
-- Code view: monospace, syntax colored per theme, line numbers, virtualized for 100k-line documents,
-  text selection + copy, find in document.
+  expanded (large expansions in the background behind a Loading row), with kind icons/colors, and
+  member signatures as labels.
+- Decompile the selected node to C# or IL (segmented switch), off the UI thread, with a busy
+  indicator and cancellation when the selection changes. Reload (F5) reopens every assembly in the
+  background and puts the tree, the tabs and their scroll positions back.
+- Code view: monospace, syntax colored per theme, line numbers, virtualized for 100k-line documents
+  with an allocation-free paint path, text selection + copy, find in document, both scrollbars
+  reserving their own gutters, scroll kept per tab.
+- Folding: the decompiler's fold regions (type and member bodies, the using block — collapsed by
+  default — and IL blocks) become `DecompiledDocument.Folds`. Chevrons in the gutter, a collapsed
+  fold reads as its signature followed by a `{ … }` chip that unfolds it, Ctrl+M,M / Ctrl+M,L /
+  Ctrl+Shift+[ ] and context-menu Toggle fold / Collapse all / Expand all. Copy takes folded text
+  along; find, reveal and history unfold what they land in.
 - Navigation: click a reference in code to go to its definition (loading the referenced assembly if
-  needed), tree syncs to it; back/forward history (toolbar, Alt+Left/Right, mouse buttons 4/5).
-- Tabs: open results in tabs, middle-click/close button closes.
+  needed), tree syncs to it; back/forward history (toolbar, Alt+Left/Right, mouse buttons 4/5)
+  returns each place to the scroll position and selection it was left at.
+- Tabs: open results in tabs, middle-click/close button closes; tabs and history hold `NodePath`s,
+  so they survive reloads and pin no assembly.
 - Search panel: type/member search across loaded assemblies, results virtualized, live as you type
-  on a background thread.
+  on a background thread, keyboard navigable.
 - Menu bar, context menus on tree nodes (copy name, open in new tab, remove assembly), dark/light
-  theme toggle, status bar.
+  theme toggle, status bar with an error badge that opens a dialog of copyable error details.
 
 ## Phases
 
 At most two agents run at once. Agents do not commit; each phase is reviewed and committed before the
 next one starts.
 
-### Phase 1 (parallel)
+### Phase 1 (parallel) — done
 
 **Framework agent** — `ZGF.Gui.Immediate`, `ZGF.Gui.Immediate.Widgets`, `ZGF.Gui.Immediate.Tests`:
 
@@ -77,7 +88,7 @@ one family per face as GitBench's `MonoFonts` does.
    in a document.
 5. Search over types and members across loaded assemblies, cancellable, streaming results.
 
-### Phase 2 (parallel)
+### Phase 2 (parallel) — done
 
 **Shell agent** — `ZGF.ILSpy` except the code view: `Program`, app state, window layout (menu bar,
 toolbar, split tree | tabs, search panel, status bar), open flows (args, native file picker,
@@ -94,7 +105,10 @@ public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument 
 public static void RevealLine(this CodeViewState state, int line);
 ```
 
-### Phase 3
+### Phase 3 — done
 
-Code review of the whole feature, fixes, run the app against real assemblies, then the benchmark
-suite gets a frame benchmark for a large code document and a fully expanded tree.
+Code review of the whole feature and fixes, run against real assemblies; the benchmark suite has
+frame benchmarks for a fully expanded tree and menus, and `CodeViewFrameCostTests` measures a
+100k-line document per frame (plain and with folds collapsed). Then folding, scroll owned by the
+tab (`VirtualScroll` over app-owned X and Y offsets with gutters for both bars), positions in the
+history, window bounds persistence and startup files posted before `Run`.

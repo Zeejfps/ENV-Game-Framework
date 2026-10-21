@@ -121,12 +121,13 @@ public sealed class Workspace
 
         var paths = Assemblies.FilePaths;
         var expanded = Tree.ExpandedPaths();
-        var tabs = new List<(DocumentTab Tab, NodePath Location, int Version)>();
+        var tabs = new List<(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position)>();
         foreach (var tab in _tabs)
         {
             if (tab.Location is not { } location) continue;
+            CodeViewPosition? position = tab.IsBusy || tab.Node == null || tab.Language != Language ? null : tab.View.Position;
             tab.Release("Reloading…");
-            tabs.Add((tab, location, tab.Version));
+            tabs.Add((tab, location, tab.Version, position));
         }
         var places = tabs.ConvertAll(t => t.Location);
 
@@ -150,11 +151,11 @@ public sealed class Workspace
             Tree.Expand(reloaded.Expanded);
             for (var i = 0; i < tabs.Count; i++)
             {
-                var (tab, location, version) = tabs[i];
+                var (tab, location, version, position) = tabs[i];
                 if (!_tabs.Contains(tab) || tab.Version != version) continue;
                 if (reloaded.Places[i] is { } node)
                 {
-                    tab.Show(node, Language);
+                    tab.Show(node, Language, position);
                     if (tab == ActiveTab && intent == _intent)
                         Tree.Reveal(node);
                 }
@@ -181,8 +182,9 @@ public sealed class Workspace
     {
         if (node.Kind == NodeKind.Loading) return;
         Intend();
+        LeaveActive();
         ShowIn(inNewTab ? null : ActiveTab, node);
-        History.Push(node.Path);
+        History.Push(node.Path, Language);
     }
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
@@ -202,8 +204,9 @@ public sealed class Workspace
                 ReportError($"Cannot resolve {reference.Name}", error?.ToString() ?? $"No definition of {reference} was found in the open assemblies or their references.");
                 return;
             }
+            LeaveActive();
             ShowIn(origin != null && _tabs.Contains(origin) ? origin : null, node);
-            History.Push(node.Path);
+            History.Push(node.Path, Language);
         });
     }
 
@@ -216,14 +219,16 @@ public sealed class Workspace
 
     public void GoBack()
     {
-        if (History.Back() is { } place)
-            Restore(place);
+        if (!History.CanGoBack) return;
+        LeaveActive();
+        Restore(History.Back()!.Value);
     }
 
     public void GoForward()
     {
-        if (History.Forward() is { } place)
-            Restore(place);
+        if (!History.CanGoForward) return;
+        LeaveActive();
+        Restore(History.Forward()!.Value);
     }
 
     public void Activate(int index)
@@ -292,13 +297,21 @@ public sealed class Workspace
 
     private bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
-    private void Restore(NodePath place)
+    private void LeaveActive()
+    {
+        if (ActiveTab is { IsBusy: false, Node: not null } tab && History.Current is { } current && current.Place.Equals(tab.Location))
+            History.Leave(tab.Language, tab.View.Position);
+    }
+
+    private void Restore(HistoryEntry entry)
     {
         var ticket = Intend();
         var tab = ActiveTab;
+        var place = entry.Place;
+        var position = entry.Language == Language ? entry.Position : null;
         if (tab is { Node: { } shown } && place.Equals(tab.Location) && IsListed(shown))
         {
-            ShowIn(tab, shown);
+            ShowIn(tab, shown, position);
             return;
         }
         _resolving = ticket;
@@ -311,11 +324,11 @@ public sealed class Workspace
                 ReportError($"Cannot go back to {place.Text}", error?.ToString() ?? $"{place} is no longer there.");
                 return;
             }
-            ShowIn(tab != null && _tabs.Contains(tab) ? tab : null, node);
+            ShowIn(tab != null && _tabs.Contains(tab) ? tab : null, node, position);
         });
     }
 
-    private void ShowIn(DocumentTab? tab, BrowseNode node)
+    private void ShowIn(DocumentTab? tab, BrowseNode node, CodeViewPosition? position = null)
     {
         if (tab == null)
         {
@@ -323,7 +336,7 @@ public sealed class Workspace
             _tabs.Add(tab);
         }
         ActiveIndex = _tabs.IndexOf(tab);
-        tab.Show(node, Language);
+        tab.Show(node, Language, position);
         Tree.Reveal(node);
     }
 

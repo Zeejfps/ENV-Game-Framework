@@ -11,6 +11,7 @@ public sealed class DocumentTab
     private readonly Action<Action> _post;
     private readonly Action<string, string> _reportError;
     private CancellationTokenSource? _work;
+    private CodeViewPosition? _restore;
     private string _title = "New tab";
 
     /// <param name="post">Runs an action on the UI thread.</param>
@@ -40,17 +41,19 @@ public sealed class DocumentTab
     public int Version { get; private set; }
 
     /// <summary>Starts decompiling <paramref name="node"/>, cancelling what was in flight, and shows a
-    /// placeholder until it is done, then reveals the node's definition. When the tab already shows
-    /// <paramref name="node"/> in <paramref name="language"/>, only reveals it.</summary>
-    public void Show(BrowseNode node, DecompilationLanguage language)
+    /// placeholder until it is done, then returns the view to <paramref name="position"/> or, without
+    /// one, reveals the node's definition. When the tab already shows <paramref name="node"/> in
+    /// <paramref name="language"/>, only does the latter.</summary>
+    public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null)
     {
         Version++;
         if (ReferenceEquals(node, Node) && language == Language && !IsBusy)
         {
-            RevealDefinition();
+            Arrive(position);
             return;
         }
         Cancel();
+        _restore = position;
         var work = new CancellationTokenSource();
         _work = work;
         Node = node;
@@ -87,9 +90,11 @@ public sealed class DocumentTab
         _work = null;
     }
 
-    private void RevealDefinition()
+    private void Arrive(CodeViewPosition? position)
     {
-        if (Node != null && Document.FindDefinitionLine(Node) is var line and >= 0)
+        if (position is { } p)
+            View.Restore(p);
+        else if (Node != null && Document.FindDefinitionLine(Node) is var line and >= 0)
             View.RevealLine(line);
     }
 
@@ -103,8 +108,10 @@ public sealed class DocumentTab
         Document = task.IsFaulted
             ? DecompiledDocument.FromText(node.Text, $"// Decompilation failed: {task.Exception!.GetBaseException().Message}", Language)
             : task.Result;
-        if (task.IsFaulted || Document.IsError)
+        var failed = task.IsFaulted || Document.IsError;
+        if (failed)
             _reportError($"Cannot decompile {node.FullName}", task.IsFaulted ? task.Exception!.GetBaseException().ToString() : Document.GetText());
-        RevealDefinition();
+        Arrive(failed ? null : _restore);
+        _restore = null;
     }
 }
