@@ -8,6 +8,7 @@ using ICSharpCode.Decompiler.CSharp.OutputVisitor;
 using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.Disassembler;
 using ICSharpCode.Decompiler.Metadata;
+using ICSharpCode.Decompiler.Output;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
 
@@ -16,6 +17,9 @@ namespace ZGF.ILSpy.Core;
 internal static class NodeDecompiler
 {
     private const int MaxResourceBytes = 64 * 1024;
+    private const string ReferenceAssemblyAttribute = "System.Runtime.CompilerServices.ReferenceAssemblyAttribute";
+    private const string ReferenceAssemblyWarning =
+        "This assembly is marked as 'reference assembly', which means that it only contains metadata and no executable code.";
 
     public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, CancellationToken cancellationToken)
     {
@@ -53,7 +57,12 @@ internal static class NodeDecompiler
                 WriteSyntaxTree(node.Assembly, output, d => d.DecompileModuleAndAssemblyAttributes(), cancellationToken);
                 break;
             case TypeNode type:
-                WriteSyntaxTree(node.Assembly, output, d => d.DecompileTypes([(TypeDefinitionHandle)type.Type.MetadataToken]), cancellationToken);
+                WriteHeader(node.Assembly, output, type.Type, ConversionFlags.UseFullyQualifiedTypeNames | ConversionFlags.UseFullyQualifiedEntityNames);
+                WriteSyntaxTree(node.Assembly, output, d => d.Decompile(type.Type.MetadataToken), cancellationToken);
+                break;
+            case MemberNode { Member: { DeclaringTypeDefinition: { } declaring } member }:
+                WriteHeader(node.Assembly, output, member.DeclaringType, ConversionFlags.UseFullyQualifiedEntityNames | ConversionFlags.UseFullyQualifiedTypeNames);
+                WriteSyntaxTree(node.Assembly, output, d => DecompileMember(d, member, declaring), cancellationToken);
                 break;
             case EntityNode entity:
                 WriteSyntaxTree(node.Assembly, output, d => d.Decompile(entity.Entity.MetadataToken), cancellationToken);
@@ -108,6 +117,34 @@ internal static class NodeDecompiler
             default:
                 WriteSummary(node, output, "//", cancellationToken);
                 break;
+        }
+    }
+
+    /// <summary>The comments ILSpy opens a type or member with: a warning for a reference assembly,
+    /// the assembly's full name, and the type.</summary>
+    private static void WriteHeader(LoadedAssembly assembly, DocumentBuilder output, IType type, ConversionFlags flags)
+    {
+        if (assembly.Module.GetAssemblyAttributes().Any(static a => a.AttributeType.FullName == ReferenceAssemblyAttribute))
+            WriteComment(output, "//", ReferenceAssemblyWarning);
+        WriteComment(output, "//", assembly.FullName);
+        var ambience = new CSharpAmbience { ConversionFlags = ConversionFlags.ShowTypeParameterList | ConversionFlags.PlaceReturnTypeAfterParameterList | flags };
+        WriteComment(output, "//", type is ITypeDefinition definition ? ambience.ConvertSymbol(definition) : ambience.ConvertType(type));
+    }
+
+    /// <summary>Decompiles <paramref name="member"/> as ILSpy shows it on its own: a constructor of a
+    /// class or a field that is not constant with the members whose initializers it shares.</summary>
+    private static SyntaxTree DecompileMember(CSharpDecompiler decompiler, IMember member, ITypeDefinition declaring)
+    {
+        switch (member)
+        {
+            case IMethod { IsConstructor: true } ctor when ctor.DeclaringType.IsReferenceType != false:
+                decompiler.AstTransforms.Add(new MemberSelection.Constructor(ctor));
+                return decompiler.Decompile(MemberSelection.FieldsAndConstructors(declaring, ctor.IsStatic));
+            case IField { IsConst: false } field:
+                decompiler.AstTransforms.Add(new MemberSelection.Field(field));
+                return decompiler.Decompile(MemberSelection.FieldsAndConstructors(declaring, field.IsStatic));
+            default:
+                return decompiler.Decompile(member.MetadataToken);
         }
     }
 

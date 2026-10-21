@@ -50,8 +50,9 @@ public sealed class CodeViewFoldTests
         var numbers = Numbers(view);
         var rows = Rows(view);
 
-        Assert.Equal(["1", "3", "4"], numbers.Take(3));
-        Assert.Equal("using System.Collections.Generic;…", rows[0]);
+        var usings = document.Folds[Fold(document, "using System.Collections.Generic;")];
+        Assert.Equal(["1", "2", (usings.StartLine + 1).ToString(), (usings.EndLine + 2).ToString()], numbers.Take(4));
+        Assert.Equal("using System.Collections.Generic;…", rows[usings.StartLine]);
         Assert.DoesNotContain(rows, r => r.Contains("using System.Text;"));
         Assert.True(view.State.IsCollapsed(Fold(document, "using System.Collections.Generic;")));
     }
@@ -148,7 +149,7 @@ public sealed class CodeViewFoldTests
         Pick(third, "Toggle fold");
 
         Assert.True(all);
-        Assert.Equal(3, rowsCollapsed);
+        Assert.Equal(4, rowsCollapsed);
         Assert.True(none);
         Assert.Equal(document.Lines.Count(l => l.Text.Length > 0), rowsExpanded);
         Assert.True(view.State.IsCollapsed(Fold(document, "public int Third()")));

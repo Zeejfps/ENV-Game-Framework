@@ -12,7 +12,7 @@ public sealed class FoldingTests
         var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
 
         var usings = document.FoldAt("using System;");
-        Assert.Equal(document.LineContaining("using System.ComponentModel;"), usings.EndLine);
+        Assert.Equal(document.LineContaining("using ZGF.ILSpy.Tests.Fixtures;"), usings.EndLine);
         Assert.True(usings.DefaultCollapsed);
         Assert.Equal("…", usings.CollapsedText);
 

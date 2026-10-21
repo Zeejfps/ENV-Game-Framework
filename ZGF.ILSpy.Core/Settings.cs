@@ -11,7 +11,6 @@ internal static class Settings
         var settings = new DecompilerSettings
         {
             ThrowOnAssemblyResolveErrors = false,
-            ShowXmlDocumentation = false,
             ExpandMemberDefinitions = true,
         };
         settings.CSharpFormattingOptions.IndentationString = Indentation;
