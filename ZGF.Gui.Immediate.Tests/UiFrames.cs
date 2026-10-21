@@ -21,7 +21,6 @@ internal sealed class UiFrames
     }
 
     public TestClipboard Clipboard { get; } = new();
-    public UiStyle Style { get; set; } = UiStyle.Dark;
     public double RealTime { get; private set; }
     public bool RequestedFrame { get; private set; }
     public double WakeAt { get; private set; }
@@ -34,7 +33,7 @@ internal sealed class UiFrames
         RealTime += deltaTime;
         _canvas.Reset();
 
-        _ui.BeginFrame(_frame, Style, deltaTime, RealTime, 400f, 300f);
+        _ui.BeginFrame(_frame, deltaTime, RealTime, 400f, 300f);
         var value = body(_ui);
         _ui.EndFrame();
         RequestedFrame = _ui.FrameRequested;
@@ -47,6 +46,8 @@ internal sealed class UiFrames
         body(ui);
         return 0;
     });
+
+    public uint WindowBackground => _canvas.Rects[0].Inputs.Style.BackgroundColor;
 
     public uint TextColor(string text) => _canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style.TextColor;
 

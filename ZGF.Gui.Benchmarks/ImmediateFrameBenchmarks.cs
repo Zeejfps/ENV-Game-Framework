@@ -43,7 +43,7 @@ public class ImmediateFrameBenchmarks
     public void Frame()
     {
         _canvas.BeginFrame();
-        _ui.BeginFrame(_input, UiStyle.Dark, 1f / 60f, 0, _canvas.Width, _canvas.Height);
+        _ui.BeginFrame(_input, 1f / 60f, 0, _canvas.Width, _canvas.Height);
         Render(_ui);
         _ui.EndFrame();
         _canvas.EndFrame();
@@ -58,7 +58,7 @@ public class ImmediateFrameBenchmarks
         var before = GC.GetAllocatedBytesForCurrentThread();
         _canvas.BeginFrame();
         var t1 = GC.GetAllocatedBytesForCurrentThread();
-        _ui.BeginFrame(_input, UiStyle.Dark, 1f / 60f, 0, _canvas.Width, _canvas.Height);
+        _ui.BeginFrame(_input, 1f / 60f, 0, _canvas.Width, _canvas.Height);
         var t2 = GC.GetAllocatedBytesForCurrentThread();
         Render(_ui);
         var t3 = GC.GetAllocatedBytesForCurrentThread();

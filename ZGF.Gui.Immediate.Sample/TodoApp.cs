@@ -36,12 +36,10 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         (Locale.Pseudo, "Pseudo"),
     ];
 
-    protected override UiStyle StyleFor(TodoState s) => s.DarkMode ? UiStyle.Dark : UiStyle.Light;
-
     protected override void Render(Ui ui, TodoState s)
     {
+        var style = ui.UseStyle(s.DarkMode ? UiStyle.Dark : UiStyle.Light);
         var t = Strings.For(s.Locale);
-        var style = ui.Style;
         ui.Heading(t.AppTitle);
 
         var remaining = 0;

@@ -3,8 +3,8 @@ namespace ZGF.Gui.Immediate;
 /// <summary>
 /// The palette and metrics a UI is drawn with. Colors are named by role, not by widget; hover,
 /// pressed, selection and scrollbar tones are derived from them, so a theme is just the roles.
-/// The app picks the window's style each frame with <see cref="Gui{T}"/>.StyleFor, and a subtree
-/// can use another with <c>ui.Provide(style)</c>.
+/// The app picks the window's style each frame with <c>ui.UseStyle(style)</c>, and a subtree can
+/// use another with <c>ui.Provide(style)</c>.
 /// </summary>
 public sealed record UiStyle
 {

@@ -3,16 +3,38 @@ namespace ZGF.Gui.Immediate.Tests;
 public sealed class StyleTests
 {
     [Fact]
-    public void The_window_style_can_change_from_one_frame_to_the_next()
+    public void Each_frame_starts_on_the_dark_style_until_the_app_picks_one()
     {
         var frames = new UiFrames();
 
-        var first = frames.Run(0f, ui => ui.Style);
-        frames.Style = UiStyle.Light;
-        var second = frames.Run(0f, ui => ui.Style);
+        var first = frames.Run(0f, ui =>
+        {
+            var before = ui.Style;
+            ui.UseStyle(UiStyle.Light);
+            return (before, after: ui.Style);
+        });
+        var next = frames.Run(0f, ui => ui.Style);
 
-        Assert.Same(UiStyle.Dark, first);
-        Assert.Same(UiStyle.Light, second);
+        Assert.Same(UiStyle.Dark, first.before);
+        Assert.Same(UiStyle.Light, first.after);
+        Assert.Same(UiStyle.Dark, next);
+    }
+
+    [Fact]
+    public void The_window_takes_the_last_style_set_while_earlier_text_keeps_its_own()
+    {
+        var frames = new UiFrames();
+
+        frames.Run(0f, ui =>
+        {
+            ui.Text("early");
+            ui.UseStyle(UiStyle.Light);
+            ui.Text("late");
+        });
+
+        Assert.Equal(UiStyle.Dark.Text, frames.TextColor("early"));
+        Assert.Equal(UiStyle.Light.Text, frames.TextColor("late"));
+        Assert.Equal(UiStyle.Light.Background, frames.WindowBackground);
     }
 
     [Fact]

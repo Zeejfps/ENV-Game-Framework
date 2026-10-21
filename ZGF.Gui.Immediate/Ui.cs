@@ -42,7 +42,7 @@ public sealed partial class Ui
     private bool _focusSeen;
     private bool _focusClaimed;
 
-    private UiStyle _rootStyle = UiStyle.Dark;
+    private UiStyle _windowStyle = UiStyle.Dark;
 
     internal Ui(ICanvas canvas, IClipboard clipboard)
     {
@@ -51,8 +51,8 @@ public sealed partial class Ui
         _painter = new UiPainter(this, canvas);
     }
 
-    /// <summary>The style provided around this point, or the window's style for this frame.</summary>
-    public UiStyle Style => Get<UiStyle>() ?? _rootStyle;
+    /// <summary>The style provided around this point, or the window's style.</summary>
+    public UiStyle Style => Get<UiStyle>() ?? _windowStyle;
     public UiInput Input { get; private set; } = new();
     public float Width { get; private set; }
     public float Height { get; private set; }
@@ -92,10 +92,16 @@ public sealed partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
-    internal void BeginFrame(UiInput input, UiStyle style, float deltaTime, double realTime, float width, float height)
+    /// <summary>Sets the window's style for what is recorded from here on; the window's own
+    /// background, padding and gap take the last one set. Each frame starts on
+    /// <see cref="UiStyle.Dark"/>. <see cref="Provide{T}"/> still overrides it inside a scope.</summary>
+    /// <returns><paramref name="style"/>, for <c>var style = ui.UseStyle(...)</c>.</returns>
+    public UiStyle UseStyle(UiStyle style) => _windowStyle = style;
+
+    internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
-        _rootStyle = style;
+        _windowStyle = UiStyle.Dark;
         Width = width;
         Height = height;
         BeginMeasurements();
@@ -123,14 +129,7 @@ public sealed partial class Ui
         _open.Clear();
         BeginScrolls();
 
-        Open(0, new Box
-        {
-            Width = Sizing.Fixed(Width),
-            Height = Sizing.Fixed(Height),
-            Padding = style.WindowPadding,
-            Gap = style.Gap,
-            Background = style.Background,
-        });
+        Open(0, new Box { Width = Sizing.Fixed(Width), Height = Sizing.Fixed(Height) });
     }
 
     internal void EndFrame()
@@ -142,6 +141,11 @@ public sealed partial class Ui
             throw new InvalidOperationException("An Id scope was not disposed.");
         if (_provided.Count != 0)
             throw new InvalidOperationException("A Provide scope was not disposed.");
+
+        ref var window = ref _tree[0];
+        window.Padding = _windowStyle.WindowPadding;
+        window.Gap = _windowStyle.Gap;
+        window.Background = _windowStyle.Background;
 
         _tree.Solve();
         switch (SettleScrolls())
