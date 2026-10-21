@@ -81,9 +81,10 @@ public class ImmediateFrameBenchmarks
 
     private void Render(Ui ui)
     {
-        var style = ui.Style;
+        using var screen = ui.Screen();
+        var theme = ui.Theme;
         ui.Heading("Todos");
-        ui.Label(ui.Memo("remaining", (Remaining: Rows / 2, Rows), static a => $"{a.Remaining} of {a.Rows} remaining"), style.TextMuted);
+        ui.Label(ui.Memo("remaining", (Remaining: Rows / 2, Rows), static a => $"{a.Remaining} of {a.Rows} remaining"), theme.TextMuted);
         ui.ProgressBar(0.5f);
 
         using (ui.Row())
@@ -104,7 +105,7 @@ public class ImmediateFrameBenchmarks
             ui.Label("Settings", bold: true);
             using (ui.Row())
             {
-                ui.Label("Volume", style.TextMuted);
+                ui.Label("Volume", theme.TextMuted);
                 ui.Slider("volume", ref _volume, 0f, 1f);
                 ui.Label(ui.Memo("volume", (int)MathF.Round(_volume * 100), static percent => $"{percent}%"));
             }
@@ -114,7 +115,7 @@ public class ImmediateFrameBenchmarks
 
         if (Virtual)
         {
-            using var list = ui.VirtualScroll("items", Rows, WidgetTheme.For(ui).ControlHeight);
+            using var list = ui.VirtualScroll("items", Rows, theme.ControlHeight);
             for (var i = list.First; i < list.End; i++)
                 Row(ui, i);
         }

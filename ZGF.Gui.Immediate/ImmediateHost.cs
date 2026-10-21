@@ -28,7 +28,7 @@ internal sealed class ImmediateHost : IDisposable
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
         _ui = new Ui(_render.Canvas, new WindowClipboard(_window));
-        _render.SetFrame(DrawFrame, UiStyle.Dark.Background);
+        _render.SetFrame(DrawFrame, UiTheme.Dark.Background);
 
         _window.OnKey += HandleKey;
         _window.OnText += HandleText;

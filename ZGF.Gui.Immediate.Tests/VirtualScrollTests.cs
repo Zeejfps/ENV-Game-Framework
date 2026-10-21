@@ -15,7 +15,7 @@ public sealed class VirtualScrollTests
         var (first, end) = Frame(frames);
 
         Assert.Equal(0, first);
-        Assert.Equal((int)MathF.Ceiling(268f / Stride) + 3, end);
+        Assert.Equal((int)MathF.Ceiling(300f / Stride) + 3, end);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class VirtualScrollTests
 
         Assert.Equal((int)(4000f / Stride) - 1, first);
         var top = frames.Run(0f, ui => ui.TryGetRect(ui.GetId(first + 1), out var rect) ? rect.Y : float.NaN);
-        Assert.Equal(16f + (first + 1) * Stride - 4000f, top, 0.01f);
+        Assert.Equal((first + 1) * Stride - 4000f, top, 0.01f);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class VirtualScrollTests
 
         Assert.Equal(Count, end);
         var bottom = frames.Run(0f, ui => ui.TryGetRect(ui.GetId(Count - 1), out var rect) ? rect.Bottom : float.NaN);
-        Assert.Equal(300f - 16f, bottom, 0.01f);
+        Assert.Equal(300f, bottom, 0.01f);
     }
 
     private static (int First, int End) Frame(UiFrames frames, Action<Ui.VirtualList>? inside = null) =>

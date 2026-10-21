@@ -42,8 +42,6 @@ public sealed partial class Ui
     private bool _focusSeen;
     private bool _focusClaimed;
 
-    private UiStyle _windowStyle = UiStyle.Dark;
-
     internal Ui(ICanvas canvas, IClipboard clipboard)
     {
         _canvas = canvas;
@@ -51,8 +49,8 @@ public sealed partial class Ui
         _painter = new UiPainter(this, canvas);
     }
 
-    /// <summary>The style provided around this point, or the window's style.</summary>
-    public UiStyle Style => Get<UiStyle>() ?? _windowStyle;
+    /// <summary>The theme provided around this point, or <see cref="UiTheme.Dark"/>.</summary>
+    public UiTheme Theme => Get<UiTheme>() ?? UiTheme.Dark;
     public UiInput Input { get; private set; } = new();
     public float Width { get; private set; }
     public float Height { get; private set; }
@@ -92,16 +90,9 @@ public sealed partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
-    /// <summary>Sets the window's style for what is recorded from here on; the window's own
-    /// background, padding and gap take the last one set. Each frame starts on
-    /// <see cref="UiStyle.Dark"/>. <see cref="Provide{T}"/> still overrides it inside a scope.</summary>
-    /// <returns><paramref name="style"/>, for <c>var style = ui.UseStyle(...)</c>.</returns>
-    public UiStyle UseStyle(UiStyle style) => _windowStyle = style;
-
     internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
-        _windowStyle = UiStyle.Dark;
         Width = width;
         Height = height;
         BeginMeasurements();
@@ -141,11 +132,6 @@ public sealed partial class Ui
             throw new InvalidOperationException("An Id scope was not disposed.");
         if (_provided.Count != 0)
             throw new InvalidOperationException("A Provide scope was not disposed.");
-
-        ref var window = ref _tree[0];
-        window.Padding = _windowStyle.WindowPadding;
-        window.Gap = _windowStyle.Gap;
-        window.Background = _windowStyle.Background;
 
         _tree.Solve();
         switch (SettleScrolls())
@@ -255,14 +241,14 @@ public sealed partial class Ui
     public void ClearFocus() => _focused = 0;
 
     public float MeasureText(string text, float? size = null, bool bold = false) =>
-        MeasureWidth(text, TextStyleFor(size, Style.Text, bold, Align.Start));
+        MeasureWidth(text, TextStyleFor(size, Theme.Text, bold, Align.Start));
 
     /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
     /// whole line — for placing a caret.</summary>
     public float MeasureText(string text, int length, float? size = null, bool bold = false) =>
-        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, TextStyleFor(size, Style.Text, bold, Align.Start));
+        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, TextStyleFor(size, Theme.Text, bold, Align.Start));
 
-    public float LineHeight(float? size = null) => MeasureLineHeight(TextStyleFor(size, Style.Text, false, Align.Start));
+    public float LineHeight(float? size = null) => MeasureLineHeight(TextStyleFor(size, Theme.Text, false, Align.Start));
 
     internal float MeasureWidth(string text, TextStyle style)
     {
@@ -319,7 +305,7 @@ public sealed partial class Ui
 
     internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align)
     {
-        var key = (size ?? Style.FontSize, color, bold, align);
+        var key = (size ?? Theme.FontSize, color, bold, align);
         if (_textStyles.TryGetValue(key, out var style))
             return style;
 

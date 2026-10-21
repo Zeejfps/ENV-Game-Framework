@@ -68,7 +68,7 @@ public sealed partial class Ui
     /// </summary>
     public VirtualList VirtualScroll(int id, int count, float rowHeight, Box box = default)
     {
-        var gap = box.Gap ?? Style.Gap;
+        var gap = box.Gap ?? Theme.Gap;
         Scroll(id, box with { Gap = gap });
         var state = GetState<ScrollState>(id);
 

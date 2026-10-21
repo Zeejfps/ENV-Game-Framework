@@ -9,17 +9,16 @@ public static class SampleWidgets
 {
     public static bool Toggle(this Ui ui, string label, ref bool on, string? id = null)
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var i = ui.Interact(id ?? label);
         if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Clicked) on = !on;
 
         var t = ui.Animate(i.Id, on ? 1f : 0f, Spring.Wobbly);
-        var knobColor = style.OnAccent;
+        var knobColor = theme.OnAccent;
         using (ui.Row(i.Id, new Box { Width = Sizing.Fit(), Height = theme.ControlHeight }))
         {
-            using (ui.Box(new Box { Width = 36f, Height = 20f, Radius = 10f, Background = on ? style.Accent : i.Hovered ? style.Hovered(style.Border) : style.Border }))
+            using (ui.Box(new Box { Width = 36f, Height = 20f, Radius = 10f, Background = on ? theme.Accent : i.Hovered ? theme.Hovered(theme.Border) : theme.Border }))
                 ui.Paint((t, knobColor), static (p, knob) => p.Circle(new PointF(p.Rect.X + 10f + knob.t * 16f, p.Rect.Y + 10f), 7f, knob.knobColor));
             ui.Text(label);
         }
@@ -28,8 +27,7 @@ public static class SampleWidgets
 
     public static bool Stepper(this Ui ui, string id, ref int value, int min, int max)
     {
-        var theme = WidgetTheme.For(ui);
-        var style = ui.Style;
+        var theme = ui.Theme;
         var i = ui.Interact(id);
         Interaction decrement, increment;
         using (ui.Id(id))
@@ -62,8 +60,8 @@ public static class SampleWidgets
             Padding = new Spacing(3f, 0f),
             Gap = 2f,
             Radius = theme.CornerRadius,
-            Background = style.Field,
-            BorderColor = focused ? style.Accent : style.Border,
+            Background = theme.Field,
+            BorderColor = focused ? theme.Accent : theme.Border,
             BorderWidth = 1f,
         }))
         {
@@ -76,13 +74,13 @@ public static class SampleWidgets
 
     private static void Chevron(Ui ui, string glyph, Interaction i, bool enabled)
     {
-        var style = ui.Style;
+        var theme = ui.Theme;
         ui.Text(glyph, new Box
         {
             Width = 22f,
             Height = 22f,
             Radius = 4f,
-            Background = i.Held ? style.Pressed(style.Field) : i.Hovered ? style.Hovered(style.Field) : 0u,
-        }, color: enabled ? style.Text : style.TextMuted, align: Align.Center, id: i.Id);
+            Background = i.Held ? theme.Pressed(theme.Field) : i.Hovered ? theme.Hovered(theme.Field) : 0u,
+        }, color: enabled ? theme.Text : theme.TextMuted, align: Align.Center, id: i.Id);
     }
 }
