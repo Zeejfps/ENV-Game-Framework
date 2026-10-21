@@ -124,6 +124,7 @@ internal sealed class CodeViewFrame
             }
         }
 
+        if (GutterWidth <= 0f) return;
         p.FillRect(new UiRect(left, r.Y, GutterWidth, r.Height), Background);
         p.FillRect(new UiRect(left + GutterWidth - SeparatorWidth, r.Y, SeparatorWidth, r.Height), Palette.GutterSeparator);
         var number = Number(index + 1);

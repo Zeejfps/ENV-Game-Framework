@@ -58,6 +58,7 @@
   "metadata.loading": "로드 중…",
   "metadata.copy_row": "행 복사",
   "metadata.go_to_token": "토큰으로 이동",
+  "metadata.more_lines": "+{count}줄",
   "metadata.filter": "{column} 필터",
   "metadata.filter_clear": "지우기",
   "metadata.filter_hint": "값을 클릭하면 그 값만 선택 · Shift+클릭으로 추가하거나 제거 · <모두>로 그룹 초기화",

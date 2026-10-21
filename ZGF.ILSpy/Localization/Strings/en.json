@@ -66,6 +66,7 @@
   "metadata.loading": "Loading…",
   "metadata.copy_row": "Copy row",
   "metadata.go_to_token": "Go to token",
+  "metadata.more_lines": "+{count} lines",
   "metadata.filter": "Filter {column}",
   "metadata.filter_clear": "Clear",
   "metadata.filter_hint": "Click a value to select only it · Shift+click to add or remove it · <Any> clears the group",

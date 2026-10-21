@@ -148,6 +148,11 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
 
         public string Type { get; }
 
-        public string? ValueTooltip => Value.Length > 80 || Value.Contains('\n') ? Value : null;
+        public string? ValueTooltip => IsLong ? Value : null;
+
+        /// <summary>A long or multi-line string in full, folded out under its row.</summary>
+        public object? RowDetails => IsLong && Type == "System.String" ? new TextBlobDetail(Value) : null;
+
+        private bool IsLong => Value.Length > 80 || Value.Contains('\n');
     }
 }

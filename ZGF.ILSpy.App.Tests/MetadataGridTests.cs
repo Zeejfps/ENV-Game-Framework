@@ -271,7 +271,7 @@ public sealed class MetadataGridTests
         app.TextRect("<2000> DLL");
         Assert.True(app.TextRect("<0001> Relocation info stripped from file").Y > app.TextRect("Characteristics").Y);
 
-        Click(app, app.TextRect("Characteristics"));
+        Click(app, TextBeside(app, "150", "Characteristics"));
         app.Frames.Key(KeyboardKey.Space);
         app.Run(2);
         Assert.Throws<InvalidOperationException>(() => app.TextRect("<0002> File is executable"));

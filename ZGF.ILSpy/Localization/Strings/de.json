@@ -58,6 +58,7 @@
   "metadata.loading": "Wird geladen…",
   "metadata.copy_row": "Zeile kopieren",
   "metadata.go_to_token": "Zum Token springen",
+  "metadata.more_lines": "+{count} Zeilen",
   "metadata.filter": "{column} filtern",
   "metadata.filter_clear": "Leeren",
   "metadata.filter_hint": "Klicken wählt nur diesen Wert · Umschalt+Klick fügt ihn hinzu oder entfernt ihn · <Beliebig> setzt die Gruppe zurück",

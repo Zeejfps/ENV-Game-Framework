@@ -58,6 +58,7 @@
   "metadata.loading": "正在加载…",
   "metadata.copy_row": "复制行",
   "metadata.go_to_token": "转到令牌",
+  "metadata.more_lines": "+{count} 行",
   "metadata.filter": "筛选 {column}",
   "metadata.filter_clear": "清除",
   "metadata.filter_hint": "单击某个值只选它 · Shift+单击添加或移除 · <任意> 清除该组",

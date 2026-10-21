@@ -58,6 +58,7 @@
   "metadata.loading": "Chargement…",
   "metadata.copy_row": "Copier la ligne",
   "metadata.go_to_token": "Aller au jeton",
+  "metadata.more_lines": "+{count} lignes",
   "metadata.filter": "Filtrer {column}",
   "metadata.filter_clear": "Effacer",
   "metadata.filter_hint": "Cliquez sur une valeur pour ne garder qu’elle · Maj+clic l’ajoute ou la retire · <Toutes> réinitialise le groupe",

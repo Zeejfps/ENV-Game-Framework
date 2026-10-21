@@ -58,6 +58,7 @@
   "metadata.loading": "読み込み中…",
   "metadata.copy_row": "行をコピー",
   "metadata.go_to_token": "トークンへ移動",
+  "metadata.more_lines": "+{count} 行",
   "metadata.filter": "{column} で絞り込む",
   "metadata.filter_clear": "クリア",
   "metadata.filter_hint": "値をクリックするとその値だけを選択 · Shift+クリックで追加・削除 · <すべて> でグループを解除",

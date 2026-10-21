@@ -199,10 +199,11 @@ public static class CodeViewWidget
     /// reference asks to navigate to it, a Ctrl+click or middle click asks for a new tab. The lines in
     /// <paramref name="bookmarks"/> are marked in the gutter, dimmed when not enabled; a click in the
     /// margin before the line numbers, or Toggle bookmark in the context menu, asks to toggle one.
-    /// Without <paramref name="bookmarks"/>, no line can be.
+    /// Without <paramref name="bookmarks"/>, no line can be. Without a <paramref name="gutter"/>, there
+    /// are no line numbers, fold chevrons or bookmark marks, only the text.
     /// </summary>
     public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state, Strings t,
-        IReadOnlyDictionary<int, bool>? bookmarks = null)
+        IReadOnlyDictionary<int, bool>? bookmarks = null, bool gutter = true)
     {
         using var scope = ui.Id(id);
         state.Show(document);
@@ -214,9 +215,9 @@ public static class CodeViewWidget
         state.RowHeight = rowHeight;
         var folds = state.Folds;
         var digits = Math.Max(3, CodeText.Digits(document.Lines.Length));
-        var markWidth = theme.IconSize + GutterPaddingLeft;
-        var foldLeft = markWidth + digits * advance + GutterPaddingRight;
-        var foldWidth = document.Folds.Length > 0 ? theme.IconSize : 0f;
+        var markWidth = gutter ? theme.IconSize + GutterPaddingLeft : 0f;
+        var foldLeft = gutter ? markWidth + digits * advance + GutterPaddingRight : 0f;
+        var foldWidth = gutter && document.Folds.Length > 0 ? theme.IconSize : 0f;
         var gutterWidth = foldLeft + foldWidth;
         var textLeft = gutterWidth + CodePaddingLeft;
         var contentWidth = textLeft + state.MaxColumns * advance + CodePaddingLeft;

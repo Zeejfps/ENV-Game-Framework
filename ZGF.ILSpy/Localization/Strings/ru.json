@@ -58,6 +58,7 @@
   "metadata.loading": "Загрузка…",
   "metadata.copy_row": "Копировать строку",
   "metadata.go_to_token": "Перейти к токену",
+  "metadata.more_lines": "+{count} стр.",
   "metadata.filter": "Фильтр по {column}",
   "metadata.filter_clear": "Сбросить",
   "metadata.filter_hint": "Щелчок выбирает только это значение · Shift+щелчок добавляет или убирает его · <Любое> сбрасывает группу",

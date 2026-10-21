@@ -36,10 +36,11 @@ public enum MetadataDetailsMode
     None,
 
     /// <summary>Each row that has details folds them out under it on demand, as a header's
-    /// flags do.</summary>
+    /// flags and a resource's long strings do.</summary>
     Foldable,
 
-    /// <summary>The selected row shows its details under it.</summary>
+    /// <summary>The selected row shows its details under it, as a debug information's decoded
+    /// value does.</summary>
     WhenSelected,
 }
 
@@ -84,6 +85,7 @@ public sealed class MetadataGrid
     private readonly Descriptor[] _descriptors;
     private readonly PropertyInfo? _details;
     private string?[]? _text;
+    private (string FirstLine, int MoreLines)?[]? _lines;
 
     internal MetadataGrid(MetadataGridNode owner, Type entryType, IReadOnlyList<object> rows)
     {
@@ -93,7 +95,9 @@ public sealed class MetadataGrid
         Columns = _descriptors.Select(static d => d.Column).ToArray();
         Key = entryType.FullName ?? entryType.Name;
         _details = entryType.GetProperty(nameof(Entry.RowDetails), BindingFlags.Public | BindingFlags.Instance);
-        DetailsMode = _details == null ? MetadataDetailsMode.None : entryType == typeof(Entry) ? MetadataDetailsMode.Foldable : MetadataDetailsMode.WhenSelected;
+        DetailsMode = _details == null ? MetadataDetailsMode.None
+            : entryType == typeof(CustomDebugInformationTable.CustomDebugInformationEntry) ? MetadataDetailsMode.WhenSelected
+            : MetadataDetailsMode.Foldable;
     }
 
     /// <summary>What names the kind of rows, the same for a table in any assembly: where a
@@ -163,6 +167,20 @@ public sealed class MetadataGrid
         static MetadataTableDetails Table<T>(IReadOnlyList<T> rows, params (string Header, Func<T, object?> Value)[] columns) =>
             new(columns.Select(static c => c.Header).ToArray(),
                 rows.Select(r => (IReadOnlyList<string>)columns.Select(c => c.Value(r)?.ToString() ?? "").ToArray()).ToArray());
+    }
+
+    /// <summary>A cell's text up to its first line break, and how many lines follow it — none for
+    /// text on one line.</summary>
+    public (string FirstLine, int MoreLines) Lines(int row, int column)
+    {
+        var lines = _lines ??= new (string, int)?[_rows.Count * _descriptors.Length];
+        var index = row * _descriptors.Length + column;
+        if (lines[index] is { } known) return known;
+        var text = Text(row, column).TrimEnd('\r', '\n');
+        var end = text.IndexOf('\n');
+        var result = end < 0 ? (text, 0) : (text[..end].TrimEnd('\r'), text.AsSpan(end).Count('\n'));
+        lines[index] = result;
+        return result;
     }
 
     /// <summary>The order that sorts the rows by <paramref name="column"/>, as row indices; ties

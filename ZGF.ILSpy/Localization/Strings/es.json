@@ -58,6 +58,7 @@
   "metadata.loading": "Cargando…",
   "metadata.copy_row": "Copiar fila",
   "metadata.go_to_token": "Ir al token",
+  "metadata.more_lines": "+{count} líneas",
   "metadata.filter": "Filtrar {column}",
   "metadata.filter_clear": "Borrar",
   "metadata.filter_hint": "Haz clic en un valor para elegir solo ese · Mayús+clic lo añade o lo quita · <Cualquiera> restablece el grupo",

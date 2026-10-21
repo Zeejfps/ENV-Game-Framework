@@ -151,9 +151,15 @@ public sealed class ResourceTests
             [
                 ("Count", "42", "System.Int32"), ("Greeting", "Hello", "System.String"), ("Multiline", "first line\nsecond line", "System.String"),
                 ("Notes.xml", "95 bytes", "System.Byte[]"), ("Picture.png", "76 bytes", "System.Byte[]"),
+                ("Poem", "roses\nviolets\nsugar", "System.String"),
             ],
             rows);
         Assert.Equal("first line\nsecond line", grid.Tooltip(2, 1)!.Text);
+        Assert.Equal(("first line", 1), grid.Lines(2, 1));
+        Assert.Equal(("Hello", 0), grid.Lines(1, 1));
+        Assert.Equal(MetadataDetailsMode.Foldable, grid.DetailsMode);
+        Assert.Equal("first line\nsecond line", Assert.IsType<MetadataTextDetails>(grid.Details(2)).Text);
+        Assert.Null(grid.Details(1));
         Assert.Null(grid.Tooltip(1, 1));
         Assert.Equal([("Notes.xml", NodeKind.Resource), ("Picture.png", NodeKind.ResourceImage)], file.Children.Select(c => (c.Text, c.Kind)));
         Assert.Equal(Expected, file.Child("Picture.png").LoadImageAsync().GetAwaiter().GetResult().Rgba);

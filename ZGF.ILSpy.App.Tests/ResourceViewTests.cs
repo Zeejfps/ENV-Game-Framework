@@ -69,6 +69,102 @@ public sealed class ResourceViewTests
     }
 
     [Fact]
+    public void A_multi_line_string_shows_its_first_line_and_folds_out_in_full_from_its_chevron()
+    {
+        var (app, tab) = ShowResource("Mixed.resources");
+        var first = app.TextRect("first line");
+        var more = app.TextRect("+1 lines");
+        Assert.Throws<InvalidOperationException>(() => app.TextRect("second line"));
+
+        var chevron = app.Frames.Canvas.Texts.Select(t => t.Inputs)
+            .Single(t => t.Text == LucideIcons.ChevronRight && Math.Abs(app.Frames.Height - t.Position.Top - first.Y) < 4f).Position;
+        app.Frames.MovePointer(chevron.Left + chevron.Width / 2, app.Frames.Height - chevron.Top + chevron.Height / 2);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.Release();
+        app.Run(3);
+
+        Assert.True(more.X > first.X + first.Width);
+        Assert.Equal(first.Y, more.Y, 4f);
+        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
+    }
+
+    private static void Unfold(AppDriver app, string firstLine)
+    {
+        var row = app.TextRect(firstLine);
+        var chevron = app.Frames.Canvas.Texts.Select(t => t.Inputs)
+            .Single(t => t.Text == LucideIcons.ChevronRight && Math.Abs(app.Frames.Height - t.Position.Top - row.Y) < 4f).Position;
+        app.Frames.MovePointer(chevron.Left + chevron.Width / 2, app.Frames.Height - chevron.Top + chevron.Height / 2);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.Release();
+        app.Run(3);
+    }
+
+    [Fact]
+    public void Several_strings_fold_out_at_once_each_with_its_own_text()
+    {
+        var (app, _) = ShowResource("Mixed.resources");
+
+        Unfold(app, "first line");
+        Unfold(app, "roses");
+
+        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
+        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "violets");
+    }
+
+    [Fact]
+    public void Clicking_a_rows_name_folds_it_out_and_in()
+    {
+        var (app, _) = ShowResource("Mixed.resources");
+        var name = app.TextRect("Multiline");
+
+        void ClickName()
+        {
+            app.Frames.MovePointer(name.X + name.Width / 2, name.Y + name.Height / 2);
+            app.Run();
+            app.Frames.Press();
+            app.Run();
+            app.Frames.Release();
+            app.Run(3);
+        }
+
+        ClickName();
+        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
+        app.Frames.Wait(1);
+        ClickName();
+        Assert.DoesNotContain(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
+    }
+
+    [Fact]
+    public void A_folded_out_string_is_as_tall_as_its_lines()
+    {
+        var (app, _) = ShowResource("Mixed.resources");
+        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+
+        Unfold(app, "first line");
+        var row = app.TextRect("first line").Y;
+        var lines = app.Frames.Canvas.GlyphRuns.Where(r => r.Text is "first line" or "second line").Select(r => app.Frames.Height - r.Origin.Y).Order().ToArray();
+        var next = app.TextRect("Notes.xml").Y;
+
+        Assert.Equal(2, lines.Length);
+        Assert.Equal(theme.RowHeight + 2 * MathF.Abs(lines[1] - lines[0]) + theme.GapTight, next - row, 0.5f);
+    }
+
+    [Fact]
+    public void A_folded_out_string_shows_only_its_text_without_line_numbers()
+    {
+        var (app, _) = ShowResource("Mixed.resources");
+
+        Unfold(app, "first line");
+
+        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
+        Assert.DoesNotContain(app.Frames.Canvas.GlyphRuns, r => r.Text.Trim() is "1" or "2");
+    }
+
+    [Fact]
     public void Saving_a_resource_writes_its_bytes()
     {
         var (app, _) = ShowResource("data.json");
