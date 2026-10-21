@@ -105,3 +105,61 @@ public sealed class DockingTests
         Assert.False(layout.Contains(DockPanels.Bookmarks));
     }
 }
+
+public sealed class LayoutPersistenceTests : IDisposable
+{
+    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-layout-{Guid.NewGuid():N}");
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_directory))
+            Directory.Delete(_directory, recursive: true);
+    }
+
+    private static DockSplit? ParentOf(DockNode node, DockNode target) => node switch
+    {
+        DockSplit split when split.First == target || split.Second == target => split,
+        DockSplit split => ParentOf(split.First, target) ?? ParentOf(split.Second, target),
+        _ => null,
+    };
+
+    [Fact]
+    public void Views_docked_below_the_documents_are_still_below_them_after_a_restart()
+    {
+        var file = Path.Combine(_directory, "settings.json");
+        var first = new WorkspaceDriver(AppSettings.Load(file));
+        first.OpenFixtures();
+        var w = first.Workspace;
+        w.OpenAnalyzer();
+        w.Layout.Dock(DockPanels.Bookmarks, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
+        w.SaveSettings();
+
+        var next = new WorkspaceDriver(AppSettings.Load(file)).Workspace;
+        var layout = next.Layout;
+        var documents = layout.GroupOf(next.ActiveTab!.Panel)!;
+        var views = layout.GroupOf(DockPanels.Analyzer)!;
+        var split = ParentOf(layout.Root, views)!;
+
+        Assert.Same(views, layout.GroupOf(DockPanels.Bookmarks));
+        Assert.Equal(Direction.Vertical, split.Direction);
+        Assert.Same(documents, split.First);
+        Assert.Same(views, split.Second);
+        Assert.Single(next.Tabs);
+    }
+
+    [Fact]
+    public void The_symbols_being_analyzed_are_analyzed_again_after_a_restart()
+    {
+        var file = Path.Combine(_directory, "settings.json");
+        var first = new WorkspaceDriver(AppSettings.Load(file));
+        first.OpenFixtures();
+        first.Workspace.Analyze(first.Fixture("Outline").Children.Single(c => c.Text.StartsWith("First()")));
+        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Pump();
+
+        var next = new WorkspaceDriver(AppSettings.Load(file));
+        next.PumpUntil(() => next.Workspace.Analyzer.Roots.Count == 2);
+
+        Assert.Equal(["First() : int", "Greeter"], next.Workspace.Analyzer.Roots.Select(r => r.Symbol.Label));
+    }
+}

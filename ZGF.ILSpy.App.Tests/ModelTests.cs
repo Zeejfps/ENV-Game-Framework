@@ -216,11 +216,13 @@ public sealed class DockPanelsTests : IDisposable
     {
         var saved = new DockLayout { Root = DockLayout.Group("document-7", DockPanels.Search, "gone", DockPanels.Bookmarks) };
 
-        var layout = DockPanels.Restore(saved);
-        var fresh = DockPanels.Restore(null);
+        var layout = DockPanels.Restore(saved, "document-99", out var placed);
+        var fresh = DockPanels.Restore(null, "document-99", out var freshPlaced);
 
-        Assert.Equal([DockPanels.Bookmarks], Assert.IsType<DockGroup>(layout.Root).Panels);
+        Assert.True(placed);
+        Assert.Equal(["document-99", DockPanels.Bookmarks], Assert.IsType<DockGroup>(layout.Root).Panels);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(fresh.Root).Panels);
+        Assert.False(freshPlaced);
     }
 
     [Fact]

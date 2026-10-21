@@ -32,6 +32,9 @@ public sealed class AppSettings
 
     public List<BookmarkRecord> Bookmarks { get; set; } = new();
 
+    /// <summary>The symbols the analyzer was analyzing, by assembly file and metadata token.</summary>
+    public List<CodeAnchor>? Analyzed { get; set; }
+
     /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
     public List<float>? BookmarkColumns { get; set; }
 

@@ -72,6 +72,9 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
 
     public IReadOnlyList<AnalyzerSymbolNode> Roots => _roots;
 
+    /// <summary>Changes whenever a root is added or removed.</summary>
+    public int Revision { get; private set; }
+
     public void SetStyle(UiTheme theme, NodeIconPalette icons, Strings strings)
     {
         _theme = theme;
@@ -88,6 +91,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         {
             root = new AnalyzerSymbolNode(symbol);
             _roots.Add(root);
+            Revision++;
         }
         View.SetExpanded(root, true);
         View.Refresh();
@@ -97,6 +101,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     public void Remove(AnalyzerSymbolNode root)
     {
         if (!_roots.Remove(root)) return;
+        Revision++;
         Cancel(root);
         View.ClearSelection();
         View.Refresh();
@@ -107,6 +112,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         foreach (var root in _roots)
             Cancel(root);
         _roots.Clear();
+        Revision++;
         View.ClearSelection();
         View.Refresh();
     }

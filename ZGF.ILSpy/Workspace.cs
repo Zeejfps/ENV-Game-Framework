@@ -22,6 +22,8 @@ public sealed class Workspace
     private int _resolving = NoTicket;
     private int _reload;
     private int _savedBookmarks;
+    private int _savedAnalyzer;
+    private List<CodeAnchor>? _analyzed;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
     private DocumentTab? _active;
@@ -33,7 +35,8 @@ public sealed class Workspace
         Language = settings.Language;
         Locale = settings.Locale ?? Locales.For(CultureInfo.CurrentUICulture);
         ShowNonPublic = settings.ShowNonPublic;
-        Layout = DockPanels.Restore(settings.Layout);
+        _active = AddTab();
+        Layout = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
         Tree = new BrowseTree(Post);
         Analyzer = new AnalyzerTree(Post, () => Assemblies);
         Search = new SearchModel(() => Strings.For(Locale), ReportError);
@@ -48,8 +51,9 @@ public sealed class Workspace
         BookmarkColumns.Restore(settings.BookmarkColumns);
         _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
-        _active = AddTab();
-        DockDocument(_active.Panel);
+        if (!placed)
+            DockDocument(_active.Panel);
+        _analyzed = settings.Analyzed is { Count: > 0 } analyzed ? analyzed : null;
         if (settings.LoadError is { } error)
             ReportError(Strings.For(Locale).ErrorReadSettings, error);
     }
@@ -103,8 +107,27 @@ public sealed class Workspace
     /// <summary>Called at the start of every frame.</summary>
     public void Sync()
     {
-        if ((Tree.Sync(Assemblies) || Bookmarks.Revision != _savedBookmarks) && !IsReloading)
+        if (_analyzed is { Count: > 0 } analyzed)
+            RestoreAnalyzed(analyzed);
+        if ((Tree.Sync(Assemblies) || Bookmarks.Revision != _savedBookmarks || Analyzer.Revision != _savedAnalyzer) && !IsReloading)
             SaveSettings();
+    }
+
+    /// <summary>Finds the symbols analyzed in the last run again in the background, opening their
+    /// assemblies' files without listing them, and analyzes those still there, in their order.</summary>
+    private void RestoreAnalyzed(List<CodeAnchor> analyzed)
+    {
+        RunInBackground(() => analyzed.ConvertAll(a => Analysis.Find(Assemblies, a)), (found, _) =>
+        {
+            _analyzed = null;
+            foreach (var symbol in found ?? [])
+            {
+                if (symbol != null)
+                    Analyzer.Analyze(symbol);
+            }
+            _savedAnalyzer = Analyzer.Revision;
+        });
+        _analyzed = [];
     }
 
     /// <summary>Opens the files in the background, then shows the last one opened.</summary>
@@ -548,6 +571,9 @@ public sealed class Workspace
         _settings.Locale = Locale;
         _settings.Layout = Layout;
         _settings.Bookmarks = Bookmarks.Save();
+        if (_analyzed is not { Count: 0 })
+            _settings.Analyzed = _analyzed ?? Analyzer.Roots.Select(static r => r.Symbol.Definition).OfType<CodeAnchor>().ToList();
+        _savedAnalyzer = Analyzer.Revision;
         _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
         _savedBookmarks = Bookmarks.Revision;
         if (_settings.Save() is { } error)

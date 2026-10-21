@@ -1,3 +1,4 @@
+using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core.Analysis;
@@ -52,6 +53,13 @@ public sealed class AnalysisSymbol
     /// <summary>What to navigate to it by; null when it cannot be shown.</summary>
     public CodeReference? Reference { get; }
 
+    /// <summary>Its assembly file and metadata token, to find it again with
+    /// <see cref="Analysis.Find"/> in a later run; null for an assembly.</summary>
+    public CodeAnchor? Definition =>
+        Symbol is IEntity { ParentModule.MetadataFile: { } file } entity && !entity.MetadataToken.IsNil
+            ? new CodeAnchor(CodeAnchorKind.Definition, file.FileName, MetadataTokens.GetToken(entity.MetadataToken))
+            : null;
+
     public override string ToString() => Label;
 }
 
@@ -86,6 +94,21 @@ public static class Analysis
 
     /// <summary>The type or member <paramref name="node"/> stands for, or null for any other node.</summary>
     public static AnalysisSymbol? Of(BrowseNode node) => node is EntityNode entity ? Describe(entity.Entity) : null;
+
+    /// <summary>The type or member <paramref name="definition"/> names, loading its assembly's file
+    /// without listing it; null when the file or the entity is gone.</summary>
+    public static AnalysisSymbol? Find(AssemblyList list, CodeAnchor definition)
+    {
+        try
+        {
+            if (list.TryLoad(definition.FilePath) is not { } assembly) return null;
+            return assembly.Module.ResolveEntity(MetadataTokens.EntityHandle(definition.Token)) is { } entity ? Describe(entity) : null;
+        }
+        catch (Exception e) when (e is ArgumentException or BadImageFormatException or InvalidOperationException or IOException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>The analyses that apply to <paramref name="symbol"/>, in ILSpy's order.</summary>
     public static IReadOnlyList<AnalysisKind> KindsFor(AnalysisSymbol symbol) =>

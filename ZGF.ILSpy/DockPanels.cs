@@ -25,11 +25,25 @@ public static class DockPanels
     };
 
     /// <summary>The saved layout with only the views that outlive a run — documents and search
-    /// results do not; the assemblies alone when none was saved.</summary>
-    public static DockLayout Restore(DockLayout? saved)
+    /// results do not — and <paramref name="document"/> in the place of the documents: in the first
+    /// group that held one, so the views docked around them stay where they were. The assemblies
+    /// alone when none was saved. <paramref name="placed"/> tells whether the document has a place.</summary>
+    public static DockLayout Restore(DockLayout? saved, string document, out bool placed)
     {
         var layout = saved ?? new DockLayout { Root = DockLayout.Group(Assemblies) };
-        layout.Retain(static panel => panel is Assemblies or Bookmarks or Analyzer);
+        placed = false;
+        foreach (var group in layout.AllGroups())
+        {
+            var index = group.Panels.FindIndex(static p => !IsView(p));
+            if (index < 0) continue;
+            var replaced = group.Panels[index];
+            group.Panels[index] = document;
+            if (group.Active == replaced || group.Active is null || !IsView(group.Active))
+                group.Active = document;
+            placed = true;
+            break;
+        }
+        layout.Retain(panel => panel is Assemblies or Bookmarks or Analyzer || panel == document);
         return layout;
     }
 }
