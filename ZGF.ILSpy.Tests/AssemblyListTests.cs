@@ -87,6 +87,34 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
+    public void A_native_build_finds_the_newest_installed_runtime_of_its_major_version()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"dotnet-{Guid.NewGuid():N}");
+        try
+        {
+            string Runtime(string version)
+            {
+                var dir = Path.Combine(root, "shared", "Microsoft.NETCore.App", version);
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(Path.Combine(dir, "System.Private.CoreLib.dll"), "");
+                return dir;
+            }
+            Runtime("9.0.11");
+            var newest = Runtime("10.0.2");
+            Runtime("10.0.1");
+            Runtime("11.0.0-preview.1");
+            Directory.CreateDirectory(Path.Combine(root, "shared", "Microsoft.NETCore.App", "10.0.9"));
+
+            Assert.Equal(newest, RuntimeAssemblies.FindInstalledRuntime([Path.Combine(root, "missing"), root], 10));
+            Assert.Equal(Path.Combine(root, "shared", "Microsoft.NETCore.App", "11.0.0-preview.1"), RuntimeAssemblies.FindInstalledRuntime([root], 12));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void References_resolve_from_the_runtime_directory_and_next_to_the_assembly()
     {
         var (list, assembly) = Trees.OpenTestAssembly();

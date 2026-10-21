@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
+        <PublishAot>true</PublishAot>
+        <OutputType Condition="'$(_IsPublishing)' == 'true'">WinExe</OutputType>
     </PropertyGroup>
 
     <ItemGroup>

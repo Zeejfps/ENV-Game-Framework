@@ -8,7 +8,8 @@ namespace ZGF.ILSpy.Core;
 /// <summary>An assembly of the running .NET runtime, offered to open from a picker.</summary>
 public sealed record RuntimeAssembly(string Name, string Framework, string FilePath);
 
-/// <summary>The running .NET runtime's shared framework directories and the assemblies in them.</summary>
+/// <summary>The running .NET runtime's shared framework directories and the assemblies in them; for a
+/// native build, which runs on no shared framework, those of the newest installed runtime.</summary>
 public static class RuntimeAssemblies
 {
     private static readonly Lazy<ImmutableArray<(string Framework, string Path)>> LazyDirectories = new(FindDirectories);
@@ -26,9 +27,58 @@ public static class RuntimeAssemblies
 
     internal static string? Find(string simpleName) => LazyFilesByName.Value.GetValueOrDefault(simpleName);
 
+    /// <summary>The newest <c>Microsoft.NETCore.App</c> directory under the first of
+    /// <paramref name="dotnetRoots"/> that has one, preferring version <paramref name="major"/>.</summary>
+    internal static string? FindInstalledRuntime(IEnumerable<string> dotnetRoots, int major)
+    {
+        foreach (var root in dotnetRoots)
+        {
+            var frameworks = Path.Combine(root, "shared", "Microsoft.NETCore.App");
+            if (!Directory.Exists(frameworks)) continue;
+            var versions = Directory.EnumerateDirectories(frameworks)
+                .Select(dir => (Dir: dir, Version: ParseVersion(Path.GetFileName(dir))))
+                .Where(d => d.Version is not null && File.Exists(Path.Combine(d.Dir, "System.Private.CoreLib.dll")))
+                .ToList();
+            var best = versions.OrderByDescending(d => d.Version!.Major == major).ThenByDescending(d => d.Version).Select(d => d.Dir).FirstOrDefault();
+            if (best is not null) return best;
+        }
+        return null;
+    }
+
+    private static string RuntimeDirectory()
+    {
+        var running = Path.TrimEndingDirectorySeparator(RuntimeEnvironment.GetRuntimeDirectory());
+        if (File.Exists(Path.Combine(running, "System.Private.CoreLib.dll"))) return running;
+        return FindInstalledRuntime(DotNetRoots(), Environment.Version.Major) ?? running;
+    }
+
+    private static IEnumerable<string> DotNetRoots()
+    {
+        if (Environment.GetEnvironmentVariable("DOTNET_ROOT") is { Length: > 0 } root)
+            yield return root;
+        var exe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = new FileInfo(Path.Combine(dir, exe));
+            if (!candidate.Exists) continue;
+            var target = candidate.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? candidate.FullName;
+            if (Path.GetDirectoryName(target) is { } resolved)
+                yield return resolved;
+        }
+        if (OperatingSystem.IsWindows())
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet");
+        else if (OperatingSystem.IsMacOS())
+            yield return "/usr/local/share/dotnet";
+        else
+        {
+            yield return "/usr/share/dotnet";
+            yield return "/usr/lib/dotnet";
+        }
+    }
+
     private static ImmutableArray<(string Framework, string Path)> FindDirectories()
     {
-        var runtime = Path.TrimEndingDirectorySeparator(RuntimeEnvironment.GetRuntimeDirectory());
+        var runtime = RuntimeDirectory();
         var frameworkDir = Path.GetDirectoryName(runtime);
         var sharedDir = frameworkDir is null ? null : Path.GetDirectoryName(frameworkDir);
         var result = ImmutableArray.CreateBuilder<(string, string)>();
