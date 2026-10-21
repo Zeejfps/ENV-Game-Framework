@@ -66,7 +66,9 @@ internal static class MainMenuView
         ui.MenuSeparator();
         ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
         ui.MenuSeparator();
-        if (ui.MenuItem(t.ViewBookmarks, id: "bookmarks"))
+        if (ui.MenuItem(t.PanelAssemblies, check: w.Layout.Contains(DockPanels.Assemblies), id: "assemblies"))
+            w.OpenAssemblies();
+        if (ui.MenuItem(t.ViewBookmarks, check: w.Layout.Contains(DockPanels.Bookmarks), id: "bookmarks"))
             w.OpenBookmarks();
         ui.MenuSeparator();
         ThemeMenu(ui, w, t);

@@ -30,7 +30,7 @@ public sealed class DocumentTab
 
     public int Id { get; } = Interlocked.Increment(ref _nextId);
 
-    /// <summary>The tab's panel in <see cref="Workspace.Documents"/>.</summary>
+    /// <summary>The tab's panel in <see cref="Workspace.Layout"/>.</summary>
     public string Panel { get; }
 
     /// <summary>Where the tab points; outlives reloads of the assembly.</summary>

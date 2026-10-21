@@ -20,6 +20,7 @@
   "view.show_non_public": "Show non-public members",
   "view.language": "Language",
   "view.bookmarks": "Bookmarks",
+  "view.empty_hint": "Everything is closed. Open the assemblies from the View menu.",
 
   "navigate.back": "Back",
   "navigate.forward": "Forward",
@@ -35,7 +36,6 @@
   "toolbar.search_tooltip": "Search types and members ({shortcut})",
 
   "panel.assemblies": "Assemblies",
-  "panel.documents": "Documents",
   "panel.search": "Search",
   "panel.bookmarks": "Bookmarks",
 

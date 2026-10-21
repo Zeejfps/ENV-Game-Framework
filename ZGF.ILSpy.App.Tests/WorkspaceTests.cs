@@ -12,8 +12,8 @@ public sealed class WorkspaceTests
 
         d.Workspace.Open(WorkspaceDriver.FixturePath);
 
-        Assert.Empty(d.Workspace.Tabs);
-        d.PumpUntil(() => d.Workspace.ActiveTab != null);
+        Assert.Null(Assert.Single(d.Workspace.Tabs).Location);
+        d.PumpUntil(() => d.Workspace.ActiveTab?.Node != null);
         Assert.Equal(NodeKind.Assembly, d.Workspace.ActiveTab!.Node!.Kind);
     }
 
@@ -25,7 +25,7 @@ public sealed class WorkspaceTests
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var greeter = d.Workspace.Tabs[^2];
-        var documents = d.Workspace.Documents;
+        var documents = d.Workspace.Layout;
         documents.Dock(d.Workspace.ActiveTab!.Panel, documents.Root, DockEdge.Right);
         d.Workspace.Activate(greeter);
 
@@ -42,7 +42,7 @@ public sealed class WorkspaceTests
         d.OpenFixtures();
         d.Show(d.Fixture("Greeter"));
         var greeter = d.Workspace.ActiveTab!;
-        var documents = d.Workspace.Documents;
+        var documents = d.Workspace.Layout;
 
         documents.Dock(greeter.Panel, documents.GroupOf(greeter.Panel)!, DockEdge.Right);
         d.Workspace.SyncActiveTab();
@@ -72,7 +72,7 @@ public sealed class WorkspaceTests
 
         Assert.Same(greeter, d.Workspace.ActiveTab);
         Assert.DoesNotContain(d.Workspace.Tabs, t => t.Node?.Text == "Farewell");
-        Assert.Equal([greeter.Panel], d.Workspace.Documents.GroupOf(greeter.Panel)!.Panels);
+        Assert.Equal([greeter.Panel], d.Workspace.Layout.GroupOf(greeter.Panel)!.Panels);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class WorkspaceTests
 
         var error = Assert.Single(d.Workspace.Errors.Entries);
         Assert.Contains(Path.GetFileName(missing), error.Title);
-        Assert.Empty(d.Workspace.Tabs);
+        Assert.Null(Assert.Single(d.Workspace.Tabs).Location);
     }
 
     [Fact]

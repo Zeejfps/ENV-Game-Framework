@@ -35,17 +35,19 @@ public sealed class Workspace
         Layout = DockPanels.Restore(settings.Layout);
         Tree = new BrowseTree(Post);
         Search = new SearchModel(() => Strings.For(Locale), ReportError);
+        Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += panel =>
         {
             if (panel == DockPanels.Search)
                 Search.Clear();
+            RemoveTab(panel);
         };
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
-        Documents = new DockLayout { NewPanel = () => AddTab().Panel };
-        Documents.PanelClosed += RemoveTab;
+        _active = AddTab();
+        DockDocument(_active.Panel);
         if (settings.LoadError is { } error)
             ReportError(Strings.For(Locale).ErrorReadSettings, error);
     }
@@ -69,12 +71,9 @@ public sealed class Workspace
     /// <summary>The interface language.</summary>
     public Locale Locale;
 
-    /// <summary>Where the tree, documents and search results are docked.</summary>
+    /// <summary>Where the views and the open documents are docked, all as tabs: side by side,
+    /// stacked or in floating windows.</summary>
     public DockLayout Layout { get; }
-
-    /// <summary>Where the open tabs are docked inside the documents area: side by side, stacked or
-    /// in floating windows.</summary>
-    public DockLayout Documents { get; }
 
     public DecompilationLanguage Language { get; private set; }
 
@@ -208,7 +207,7 @@ public sealed class Workspace
     {
         if (language == Language) return;
         Language = language;
-        foreach (var group in Documents.AllGroups())
+        foreach (var group in Layout.AllGroups())
             FindTab(group.Active)?.EnsureLanguage(language);
     }
 
@@ -377,9 +376,17 @@ public sealed class Workspace
     /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>
     public void OpenBookmarks()
     {
-        if (!Layout.Contains(DockPanels.Bookmarks))
-            Layout.Dock(DockPanels.Bookmarks, Layout.GroupOf(DockPanels.Search) ?? Layout.GroupOf(DockPanels.Documents) ?? Layout.Root,
-                Layout.Contains(DockPanels.Search) ? DockEdge.Center : DockEdge.Bottom, 0.3f);
+        if (Layout.Contains(DockPanels.Bookmarks))
+        {
+        }
+        else if (Layout.GroupOf(DockPanels.Search) is { } search)
+        {
+            Layout.Dock(DockPanels.Bookmarks, search, DockEdge.Center);
+        }
+        else
+        {
+            DockBeside(DockPanels.Bookmarks, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
+        }
         Layout.Activate(DockPanels.Bookmarks);
     }
 
@@ -397,7 +404,7 @@ public sealed class Workspace
     public void Activate(DocumentTab tab)
     {
         if (!_tabs.Contains(tab)) return;
-        Documents.Activate(tab.Panel);
+        Layout.Activate(tab.Panel);
         Focus(tab);
     }
 
@@ -405,21 +412,31 @@ public sealed class Workspace
     /// or brought to front the active one.</summary>
     public void SyncActiveTab()
     {
-        if (FindTab(Documents.Focused) is { } tab && tab != _active)
+        if (FindTab(Layout.Focused) is { } tab && tab != _active)
             Focus(tab);
     }
 
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
     public void CycleTab(int by)
     {
-        if (_active == null || Documents.GroupOf(_active.Panel) is not { Panels.Count: > 1 } group) return;
-        var count = group.Panels.Count;
-        var next = group.Panels[((group.Panels.IndexOf(_active.Panel) + by) % count + count) % count];
+        if (_active == null || Layout.GroupOf(_active.Panel) is not { } group) return;
+        var tabs = group.Panels.FindAll(p => FindTab(p) != null);
+        if (tabs.Count < 2) return;
+        var next = tabs[((tabs.IndexOf(_active.Panel) + by) % tabs.Count + tabs.Count) % tabs.Count];
         if (FindTab(next) is { } tab)
             Activate(tab);
     }
 
-    public void CloseTab(DocumentTab tab) => Documents.Close(tab.Panel);
+    public void CloseTab(DocumentTab tab) => Layout.Close(tab.Panel);
+
+    /// <summary>Docks the assemblies view where it starts out, left of everything, if it is closed,
+    /// and brings it to the front.</summary>
+    public void OpenAssemblies()
+    {
+        if (!Layout.Contains(DockPanels.Assemblies))
+            DockBeside(DockPanels.Assemblies, Layout.Root, DockEdge.Left, 0.34f);
+        Layout.Activate(DockPanels.Assemblies);
+    }
 
     public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
 
@@ -435,7 +452,7 @@ public sealed class Workspace
     public void SyncSearchPanel()
     {
         if (Search.IsOpen && !Layout.Contains(DockPanels.Search))
-            Layout.Dock(DockPanels.Search, Layout.GroupOf(DockPanels.Documents) ?? Layout.Root, DockEdge.Bottom, 0.3f);
+            DockBeside(DockPanels.Search, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
         else if (!Search.IsOpen && Layout.Contains(DockPanels.Search))
             Layout.Close(DockPanels.Search);
     }
@@ -484,18 +501,51 @@ public sealed class Workspace
         _tabs.Remove(tab);
         if (tab != _active) return;
         _active = null;
-        if ((FindTab(Documents.Focused) ?? FrontTab()) is { } next)
+        if ((FindTab(Layout.Focused) ?? FrontTab()) is { } next)
             Focus(next);
     }
 
     private DocumentTab? FrontTab()
     {
-        foreach (var group in Documents.AllGroups())
+        foreach (var group in Layout.AllGroups())
         {
             if (FindTab(group.Active) is { } tab)
                 return tab;
         }
         return null;
+    }
+
+    /// <summary>The group a new document joins: the active document's, else the first holding one.</summary>
+    private DockGroup? DocumentGroup()
+    {
+        if (_active != null && Layout.GroupOf(_active.Panel) is { } active)
+            return active;
+        foreach (var group in Layout.AllGroups())
+        {
+            if (group.Panels.Exists(p => FindTab(p) != null))
+                return group;
+        }
+        return null;
+    }
+
+    /// <summary>Docks a new document into the <see cref="DocumentGroup"/>, or where documents start
+    /// out, right of everything, when there is none.</summary>
+    private void DockDocument(string panel)
+    {
+        if (DocumentGroup() is { } group)
+            Layout.Dock(panel, group, DockEdge.Center);
+        else
+            DockBeside(panel, Layout.Root, DockEdge.Right, 0.66f);
+    }
+
+    /// <summary>Docks <paramref name="panel"/> beside <paramref name="target"/>, or into it when the
+    /// layout is empty.</summary>
+    private void DockBeside(string panel, DockNode target, DockEdge edge, float share)
+    {
+        if (Layout.Root is DockGroup { Panels.Count: 0 } root)
+            Layout.Dock(panel, root, DockEdge.Center);
+        else
+            Layout.Dock(panel, target, edge, share);
     }
 
     private void Focus(DocumentTab tab)
@@ -543,13 +593,12 @@ public sealed class Workspace
     {
         if (tab == null)
         {
-            var group = (_active != null ? Documents.GroupOf(_active.Panel) : null) ?? Documents.AllGroups().First();
             tab = AddTab();
-            Documents.Dock(tab.Panel, group, DockEdge.Center);
+            DockDocument(tab.Panel);
         }
         else
         {
-            Documents.Activate(tab.Panel);
+            Layout.Activate(tab.Panel);
         }
         _active = tab;
         tab.Show(node, Language, position, target);

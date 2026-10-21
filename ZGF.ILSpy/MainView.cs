@@ -36,25 +36,38 @@ public static class MainView
         if (wait > 0)
             ui.RequestFrameIn(wait);
         w.SyncSearchPanel();
-
-        using var dock = ui.DockSpace("dock", w.Layout, t, DockPanels.Tab);
-        while (dock.Next(out var panel))
+        if (!w.Layout.AllGroups().Any(static g => g.Panels.Count > 0))
         {
-            switch (panel)
+            DocumentsView.Hint(ui, t.ViewEmptyHint);
+            return;
+        }
+        using (var dock = ui.DockSpace("dock", w.Layout, (w, t), static (s, panel) => Tab(s.w, s.t, panel)))
+        {
+            while (dock.Next(out var panel))
             {
-                case DockPanels.Assemblies:
-                    TreePaneView.Render(ui, w, t);
-                    break;
-                case DockPanels.Documents:
-                    DocumentsView.Render(ui, w, t);
-                    break;
-                case DockPanels.Search:
-                    SearchPanelView.Render(ui, w, t);
-                    break;
-                case DockPanels.Bookmarks:
-                    BookmarksPanelView.Render(ui, w, t);
-                    break;
+                switch (panel)
+                {
+                    case DockPanels.Assemblies:
+                        TreePaneView.Render(ui, w, t);
+                        break;
+                    case DockPanels.Search:
+                        SearchPanelView.Render(ui, w, t);
+                        break;
+                    case DockPanels.Bookmarks:
+                        BookmarksPanelView.Render(ui, w, t);
+                        break;
+                    default:
+                        if (w.FindTab(panel) is { } tab)
+                            DocumentsView.Render(ui, w, t, tab);
+                        break;
+                }
             }
         }
+        w.SyncActiveTab();
     }
+
+    private static DockTab Tab(Workspace w, Strings t, string panel) =>
+        DockPanels.IsView(panel) ? DockPanels.Tab(t, panel)
+        : w.FindTab(panel) is { } tab ? DocumentsView.Tab(w, tab)
+        : new DockTab(panel);
 }

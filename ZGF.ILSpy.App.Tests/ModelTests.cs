@@ -202,24 +202,25 @@ public sealed class DockPanelsTests : IDisposable
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 50f, 300f, 400f));
         workspace.SaveSettings();
 
-        var restored = new Workspace(AppSettings.Load(file)).Layout;
+        var next = new Workspace(AppSettings.Load(file));
+        var restored = next.Layout;
 
-        Assert.Equal(["documents"], Assert.IsType<DockGroup>(restored.Root).Panels);
+        Assert.Same(next.ActiveTab, next.FindTab(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
         var window = Assert.Single(restored.Windows);
         Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
         Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
     }
 
     [Fact]
-    public void A_saved_layout_missing_a_panel_gets_it_back_and_drops_the_search()
+    public void A_saved_layout_keeps_the_views_left_open_and_drops_documents_and_search_results()
     {
-        var saved = new DockLayout { Root = DockLayout.Group(DockPanels.Documents, DockPanels.Search, "gone") };
+        var saved = new DockLayout { Root = DockLayout.Group("document-7", DockPanels.Search, "gone", DockPanels.Bookmarks) };
 
         var layout = DockPanels.Restore(saved);
+        var fresh = DockPanels.Restore(null);
 
-        Assert.True(layout.Contains(DockPanels.Assemblies));
-        Assert.False(layout.Contains(DockPanels.Search));
-        Assert.False(layout.Contains("gone"));
+        Assert.Equal([DockPanels.Bookmarks], Assert.IsType<DockGroup>(layout.Root).Panels);
+        Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(fresh.Root).Panels);
     }
 
     [Fact]
@@ -232,7 +233,7 @@ public sealed class DockPanelsTests : IDisposable
 
         var search = workspace.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
-        Assert.NotSame(search, workspace.Layout.GroupOf(DockPanels.Documents));
+        Assert.NotSame(search, workspace.Layout.GroupOf(workspace.ActiveTab!.Panel));
 
         workspace.Layout.Close(DockPanels.Search);
 

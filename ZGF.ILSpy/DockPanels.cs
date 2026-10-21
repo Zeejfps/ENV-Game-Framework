@@ -4,35 +4,30 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The panels of the main window's dock space and the layout they start in.</summary>
+/// <summary>The views of the main window's dock space besides the open documents, which share it
+/// with them as tabs, and the layout they start in.</summary>
 public static class DockPanels
 {
     public const string Assemblies = "assemblies";
-    public const string Documents = "documents";
     public const string Search = "search";
     public const string Bookmarks = "bookmarks";
 
+    /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
+    public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks;
+
     public static DockTab Tab(Strings t, string panel) => panel switch
     {
-        Assemblies => new DockTab(t.PanelAssemblies, Closable: false),
-        Documents => new DockTab(t.PanelDocuments, Closable: false, Movable: false),
+        Assemblies => new DockTab(t.PanelAssemblies),
         Bookmarks => new DockTab(t.PanelBookmarks),
         _ => new DockTab(t.PanelSearch),
     };
 
-    /// <summary>The saved layout without the panels this version does not have or that start
-    /// closed, and with the ones it cannot do without; the default layout when none was saved.</summary>
+    /// <summary>The saved layout with only the views that outlive a run — documents and search
+    /// results do not; the assemblies alone when none was saved.</summary>
     public static DockLayout Restore(DockLayout? saved)
     {
-        var layout = saved ?? new DockLayout
-        {
-            Root = DockLayout.Split(Direction.Horizontal, 0.34f, DockLayout.Group(Assemblies), DockLayout.Group(Documents)),
-        };
-        layout.Retain(static panel => panel is Assemblies or Documents or Bookmarks);
-        if (!layout.Contains(Documents))
-            layout.Dock(Documents, layout.Root, DockEdge.Right, 0.66f);
-        if (!layout.Contains(Assemblies))
-            layout.Dock(Assemblies, layout.GroupOf(Documents)!, DockEdge.Left, 0.34f);
+        var layout = saved ?? new DockLayout { Root = DockLayout.Group(Assemblies) };
+        layout.Retain(static panel => panel is Assemblies or Bookmarks);
         return layout;
     }
 }
