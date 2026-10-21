@@ -31,10 +31,12 @@ public sealed partial class Ui
         public int End { get; }
 
         /// <summary>Scrolls the least distance that shows row <paramref name="index"/> whole, from
-        /// the next frame.</summary>
-        public void ScrollIntoView(int index)
+        /// the next frame. Returns false, doing nothing, until the list has been laid out once and
+        /// its viewport is known.</summary>
+        public bool ScrollIntoView(int index)
         {
-            if (index < 0 || index >= Count) return;
+            if (index < 0 || index >= Count) return true;
+            if (_state.Viewport <= 0f) return false;
             var top = _top + index * (_rowHeight + _gap);
             var bottom = top + _rowHeight;
             var offset = _state.Offset;
@@ -42,9 +44,10 @@ public sealed partial class Ui
                 offset = top;
             else if (bottom > offset + _state.Viewport)
                 offset = bottom - _state.Viewport;
-            if (offset == _state.Offset) return;
+            if (offset == _state.Offset) return true;
             _state.Offset = offset;
             _ui.RequestFrame();
+            return true;
         }
 
         public void Dispose()
@@ -69,7 +72,7 @@ public sealed partial class Ui
     public VirtualList VirtualScroll(int id, int count, float rowHeight, Box box = default)
     {
         var gap = box.Gap ?? Style.Gap;
-        Scroll(id, box with { Gap = gap });
+        Scroll(id, box with { Direction = Direction.Vertical, Gap = gap });
         var state = GetState<ScrollState>(id);
 
         var stride = rowHeight + gap;

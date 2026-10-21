@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Desktop;
 
 /// <summary>
 /// A named group of glob patterns for <see cref="IFilePicker.PickFile"/>, e.g.

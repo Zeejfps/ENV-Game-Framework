@@ -1,9 +1,8 @@
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Desktop;
 
 /// <summary>
-/// Shows the OS-native file and folder dialogs. Register a platform implementation with
-/// <see cref="FilePickerServices.AddNativeFilePicker"/>, then resolve <c>IFilePicker</c> from the
-/// <see cref="Context"/> where a Browse button or an "Open…" / "Save as…" action needs one.
+/// Shows the OS-native file and folder dialogs. <see cref="NativeFilePicker.Create"/> makes the
+/// one for the current OS.
 /// </summary>
 public interface IFilePicker
 {

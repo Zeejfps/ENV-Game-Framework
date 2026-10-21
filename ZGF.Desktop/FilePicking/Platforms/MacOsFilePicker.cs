@@ -1,19 +1,18 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
-using ZGF.Observable;
 
-namespace ZGF.Gui.Desktop.Platforms.Osx;
+namespace ZGF.Desktop.FilePicking;
 
 [SupportedOSPlatform("macos")]
-public sealed class MacOsFilePicker : IFilePicker
+internal sealed class MacOsFilePicker : IFilePicker
 {
-    private readonly Context _context;
+    private readonly Action<Action> _post;
     private int _pickerOpen;
 
-    public MacOsFilePicker(Context context)
+    public MacOsFilePicker(Action<Action> post)
     {
-        _context = context;
+        _post = post;
     }
 
     /// <summary>Which of AppleScript's three choosers to run.</summary>
@@ -51,7 +50,6 @@ public sealed class MacOsFilePicker : IFilePicker
 
         // osascript blocks until the user closes the dialog; waiting for it on the UI thread
         // stalls the event loop (beachball). Wait on a worker and post the result back.
-        var dispatcher = _context.Require<IUiDispatcher>();
         Task.Run(() =>
         {
             try
@@ -61,7 +59,7 @@ public sealed class MacOsFilePicker : IFilePicker
                     path = SaveFileNaming.ApplyDefaultExtension(path ?? "", suggestedFileName);
 
                 if (!string.IsNullOrEmpty(path))
-                    dispatcher.Post(() => onPicked(path));
+                    _post(() => onPicked(path));
             }
             finally
             {

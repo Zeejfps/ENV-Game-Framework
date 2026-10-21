@@ -40,6 +40,8 @@ internal struct Element
     public float OffsetX;
     public float OffsetY;
     public int Z;
+    public int Layer;
+    public bool PassThrough;
 
     public float X;
     public float Y;
@@ -95,12 +97,17 @@ internal sealed class LayoutTree
 {
     private readonly List<Element> _elements = new();
     private readonly List<PaintEntry> _paints = new();
-    private readonly List<(int Index, int Z)> _floating = new();
+    private readonly List<(int Index, int Z, int Layer, bool PassThrough)> _floating = new();
+    private readonly List<(ICanvas? Canvas, UiRect Rect)> _layers = new();
     private readonly List<UiRect> _clips = new();
     private readonly RectStyle _rectStyle = new();
+    private ICanvas _mainCanvas = null!;
     private ICanvas _canvas = null!;
     private UiPainter _painter = null!;
-    private float _canvasHeight;
+    private UiRect _screen;
+    private float _originX;
+    private float _originY;
+    private float _surfaceHeight;
     private int _order;
 
     public ref Element this[int index] => ref CollectionsMarshal.AsSpan(_elements)[index];
@@ -108,6 +115,7 @@ internal sealed class LayoutTree
     public void Clear()
     {
         _elements.Clear();
+        _layers.Clear();
         foreach (var entry in _paints)
             entry.Command.Release();
         _paints.Clear();
@@ -141,6 +149,15 @@ internal sealed class LayoutTree
         else
             e.FirstPaint = index;
         e.LastPaint = index;
+    }
+
+    /// <summary>Where popup <paramref name="layer"/> is drawn: onto its own canvas, whose origin
+    /// is the top-left of <paramref name="rect"/>, or with the main tree when null.</summary>
+    public void SetLayer(int layer, ICanvas? canvas, UiRect rect)
+    {
+        while (_layers.Count < layer)
+            _layers.Add(default);
+        _layers[layer - 1] = (canvas, rect);
     }
 
     public void Solve()
@@ -208,27 +225,43 @@ internal sealed class LayoutTree
 
     public void Emit(ICanvas canvas, UiPainter painter, float canvasWidth, float canvasHeight, List<HitRegion> hits, Dictionary<int, UiRect> rects)
     {
-        _canvas = canvas;
+        _mainCanvas = canvas;
         _painter = painter;
-        _canvasHeight = canvasHeight;
+        _screen = new UiRect(0f, 0f, canvasWidth, canvasHeight);
         _order = 0;
         _floating.Clear();
-        _clips.Clear();
-        var screen = new UiRect(0f, 0f, canvasWidth, canvasHeight);
-        _clips.Add(screen);
 
+        UseSurface(0);
         if (_elements.Count > 0)
-            EmitElement(0, 0, hits, rects);
+            EmitElement(0, 0, 0, false, hits, rects);
 
         for (var k = 0; k < _floating.Count; k++)
         {
-            _clips.Clear();
-            _clips.Add(screen);
-            EmitElement(_floating[k].Index, _floating[k].Z, hits, rects);
+            var (index, z, layer, passThrough) = _floating[k];
+            UseSurface(layer);
+            EmitElement(index, z, layer, passThrough, hits, rects);
         }
     }
 
-    private void EmitElement(int index, int z, List<HitRegion> hits, Dictionary<int, UiRect> rects)
+    private void UseSurface(int layer)
+    {
+        var (canvas, rect) = layer > 0 && layer <= _layers.Count ? _layers[layer - 1] : default;
+        _clips.Clear();
+        if (canvas == null)
+        {
+            _canvas = _mainCanvas;
+            (_originX, _originY, _surfaceHeight) = (0f, 0f, _screen.Height);
+            _clips.Add(_screen);
+        }
+        else
+        {
+            _canvas = canvas;
+            (_originX, _originY, _surfaceHeight) = (rect.X, rect.Y, rect.Height);
+            _clips.Add(rect);
+        }
+    }
+
+    private void EmitElement(int index, int z, int layer, bool passThrough, List<HitRegion> hits, Dictionary<int, UiRect> rects)
     {
         ref var e = ref this[index];
         var rect = new UiRect(e.X, e.Y, e.W, e.H);
@@ -238,7 +271,7 @@ internal sealed class LayoutTree
         if (e.Id != 0)
         {
             rects[e.Id] = rect;
-            if (visible)
+            if (visible && !passThrough)
                 hits.Add(new HitRegion(e.Id, clip.Intersect(rect), z, _order++));
         }
 
@@ -255,10 +288,12 @@ internal sealed class LayoutTree
         for (var c = e.FirstChild; c >= 0; c = this[c].NextSibling)
         {
             ref var child = ref this[c];
-            if (child.Floating)
-                _floating.Add((c, z + child.Z));
+            if (child.Layer != 0)
+                _floating.Add((c, child.Z, child.Layer, child.PassThrough));
+            else if (child.Floating)
+                _floating.Add((c, z + child.Z, layer, passThrough));
             else
-                EmitElement(c, z, hits, rects);
+                EmitElement(c, z, layer, passThrough, hits, rects);
         }
 
         if (e.Clip)
@@ -291,7 +326,7 @@ internal sealed class LayoutTree
 
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
-            _painter.Begin(rect, z, _canvasHeight);
+            _painter.Begin(rect, z, _canvas, _originX, _originY, _surfaceHeight);
             _paints[p].Command.Run(_painter);
         }
     }
@@ -422,5 +457,5 @@ internal sealed class LayoutTree
         _ => 0f,
     };
 
-    private RectF ToCanvas(UiRect rect) => new(rect.X, _canvasHeight - rect.Y - rect.Height, rect.Width, rect.Height);
+    private RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _surfaceHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
 }

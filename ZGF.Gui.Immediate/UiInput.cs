@@ -10,6 +10,8 @@ public enum PointerButton
     Left,
     Right,
     Middle,
+    Back,
+    Forward,
 }
 
 public readonly record struct KeyStroke(KeyboardKey Key, bool IsRepeat, KeyModifiers Modifiers);
@@ -18,7 +20,7 @@ public readonly record struct KeyStroke(KeyboardKey Key, bool IsRepeat, KeyModif
 /// across frames. Coordinates are UI points, origin top-left.</summary>
 public sealed class UiInput
 {
-    private const int ButtonCount = 3;
+    internal const int ButtonCount = 5;
 
     private readonly bool[] _down = new bool[ButtonCount];
     private readonly bool[] _pressed = new bool[ButtonCount];
@@ -34,9 +36,15 @@ public sealed class UiInput
     public IReadOnlyList<KeyStroke> Keys => _keys;
     public bool HasEvents { get; private set; }
 
+    /// <summary>The platform asked open popups to close since the previous frame: the app lost
+    /// focus, or a press landed outside every part of the app a frame sees.</summary>
+    public bool PopupsDismissed { get; private set; }
+
     public bool IsDown(PointerButton button) => _down[(int)button];
     public bool WasPressed(PointerButton button) => _pressed[(int)button];
     public bool WasReleased(PointerButton button) => _released[(int)button];
+
+    internal bool AnyDown => Array.IndexOf(_down, true) >= 0;
 
     public bool IsKeyPressed(KeyboardKey key)
     {
@@ -96,6 +104,12 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    internal void DismissPopups()
+    {
+        PopupsDismissed = true;
+        HasEvents = true;
+    }
+
     internal void ReleaseAll()
     {
         for (var i = 0; i < ButtonCount; i++)
@@ -122,6 +136,7 @@ public sealed class UiInput
         Modifiers = previous.Modifiers;
         ScrollX = 0;
         ScrollY = 0;
+        PopupsDismissed = false;
         HasEvents = false;
     }
 }

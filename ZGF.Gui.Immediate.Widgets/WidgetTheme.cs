@@ -8,6 +8,11 @@ public sealed record WidgetTheme
     public float ControlPaddingX { get; init; } = 12f;
     public float CornerRadius { get; init; } = 6f;
     public float PanelPadding { get; init; } = 12f;
+    public float RowHeight { get; init; } = 22f;
+    public float TreeIndent { get; init; } = 16f;
+    public float MenuItemHeight { get; init; } = 26f;
+    public float SplitterSize { get; init; } = 5f;
+    public double TooltipDelaySeconds { get; init; } = 0.5;
 
     /// <summary>The theme provided around this point in <paramref name="ui"/>, or
     /// <see cref="Default"/>.</summary>

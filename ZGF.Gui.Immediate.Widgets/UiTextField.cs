@@ -9,8 +9,6 @@ public static partial class UiWidgets
     private const float FieldPaddingX = 8f;
     private const float CaretWidth = 1.5f;
     private const double CaretBlinkSeconds = 0.53;
-    private const double MultiClickSeconds = 0.4;
-    private const float MultiClickDistance = 4f;
     private const int MaxUndo = 100;
 
     private enum EditKind
@@ -31,8 +29,6 @@ public static partial class UiWidgets
         public EditKind LastEdit;
         public readonly List<TextSnapshot> Undo = new();
         public readonly List<TextSnapshot> Redo = new();
-        public double LastPress = double.NegativeInfinity;
-        public PointF PressAt;
         public int Clicks;
         public int UnitStart;
         public int UnitEnd;
@@ -77,7 +73,7 @@ public static partial class UiWidgets
         if (i.Pressed)
         {
             if (!focused) state.Shift = 0f;
-            Press(ui, state, text, CaretAt(ui, text, ui.Input.Pointer.X - rect.X - FieldPaddingX + state.Shift), extend: focused);
+            Press(ui, state, text, CaretAt(ui, text, ui.Input.Pointer.X - rect.X - FieldPaddingX + state.Shift), i.ClickCount, extend: focused);
             ui.Focus(i.Id);
             focused = true;
         }
@@ -160,15 +156,9 @@ public static partial class UiWidgets
         return phase < CaretBlinkSeconds;
     }
 
-    private static void Press(Ui ui, TextFieldState state, string text, int at, bool extend)
+    private static void Press(Ui ui, TextFieldState state, string text, int at, int clickCount, bool extend)
     {
-        var pointer = ui.Input.Pointer;
-        var repeated = ui.RealTime - state.LastPress <= MultiClickSeconds
-            && MathF.Abs(pointer.X - state.PressAt.X) <= MultiClickDistance
-            && MathF.Abs(pointer.Y - state.PressAt.Y) <= MultiClickDistance;
-        state.Clicks = repeated ? state.Clicks % 3 + 1 : 1;
-        state.LastPress = ui.RealTime;
-        state.PressAt = pointer;
+        state.Clicks = (clickCount - 1) % 3 + 1;
 
         switch (state.Clicks)
         {

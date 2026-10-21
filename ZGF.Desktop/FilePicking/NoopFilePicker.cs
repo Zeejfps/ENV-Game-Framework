@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Desktop;
 
 /// <summary>
 /// Fallback <see cref="IFilePicker"/> for platforms without a native picker. Logs the request

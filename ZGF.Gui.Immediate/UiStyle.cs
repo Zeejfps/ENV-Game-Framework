@@ -19,6 +19,10 @@ public sealed record UiStyle
     public uint OnAccent { get; init; }
 
     public float FontSize { get; init; } = 14f;
+
+    /// <summary>The family text is drawn in unless a call names one; null is the default font.
+    /// Families are registered on <see cref="Gui{T}"/> before it runs.</summary>
+    public string? FontFamily { get; init; }
     public float Gap { get; init; } = 8f;
     public float WindowPadding { get; init; } = 16f;
     public float ScrollBarWidth { get; init; } = 6f;

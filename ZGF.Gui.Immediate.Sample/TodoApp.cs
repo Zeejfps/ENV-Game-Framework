@@ -37,11 +37,13 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
     ];
 
     private readonly List<TodoItem> _shown = new();
+    private TodoItem? _menuTarget;
 
     protected override void Render(Ui ui, TodoState s)
     {
         var style = ui.UseStyle(s.DarkMode ? UiStyle.Dark : UiStyle.Light);
         var t = Strings.For(s.Locale);
+        MenuBar(ui, s, t);
         ui.Heading(t.AppTitle);
 
         var remaining = 0;
@@ -66,10 +68,8 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 s.Draft = "";
             }
             if (ui.Button(t.ActionAddMany, id: "add-many"))
-            {
-                for (var i = 0; i < 1000; i++)
-                    s.Add(t.TasksGenerated(s.NextId));
-            }
+                AddMany(s, t);
+            ui.Tooltip(ui.GetId("add-many"), t.TooltipAddMany);
         }
 
         using (ui.Row())
@@ -125,8 +125,14 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             {
                 var item = _shown[i];
                 using (ui.Id(item.Id))
-                using (ui.Row())
                 {
+                    var row = ui.Interact("row");
+                    if (row.ClickedWith(PointerButton.Right))
+                    {
+                        _menuTarget = item;
+                        ui.OpenContextMenu("item-menu");
+                    }
+                    using var _ = ui.Row(row.Id);
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? style.TextMuted : null, id: "done");
                     ui.Spacer();
                     if (ui.Button(t.ActionDelete, id: "delete"))
@@ -138,7 +144,58 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 ui.Label(t.TasksEmpty, style.TextMuted);
         }
 
+        using (var menu = ui.ContextMenu("item-menu"))
+        {
+            if (menu.IsOpen && _menuTarget != null)
+            {
+                if (ui.MenuItem(t.ActionToggleDone))
+                    _menuTarget.Done = !_menuTarget.Done;
+                if (ui.MenuItem(t.ActionDelete, id: "menu-delete"))
+                    removed = _menuTarget;
+            }
+        }
+
         if (removed != null)
             s.Items.Remove(removed);
+    }
+
+    private static void MenuBar(Ui ui, TodoState s, Strings t)
+    {
+        using (ui.MenuBar("menu"))
+        {
+            using (var file = ui.Menu(t.MenuFile, id: "file"))
+            {
+                if (file.IsOpen)
+                {
+                    if (ui.MenuItem(t.ActionAddMany, id: "menu-add-many"))
+                        AddMany(s, t);
+                    if (ui.MenuItem(t.ActionClearCompleted, id: "menu-clear-completed"))
+                        s.Items.RemoveAll(item => item.Done);
+                }
+            }
+            using (var view = ui.Menu(t.MenuView, id: "view"))
+            {
+                if (view.IsOpen)
+                {
+                    ui.MenuItem(t.SettingsDarkMode, ref s.DarkMode, id: "menu-dark-mode");
+                    ui.MenuItem(t.FilterHideCompleted, ref s.HideCompleted, id: "menu-hide-completed");
+                    ui.MenuSeparator();
+                    using (ui.Id("languages"))
+                    {
+                        foreach (var (locale, endonym) in Languages)
+                        {
+                            if (ui.MenuItem(endonym, check: s.Locale == locale))
+                                s.Locale = locale;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void AddMany(TodoState s, Strings t)
+    {
+        for (var i = 0; i < 1000; i++)
+            s.Add(t.TasksGenerated(s.NextId));
     }
 }

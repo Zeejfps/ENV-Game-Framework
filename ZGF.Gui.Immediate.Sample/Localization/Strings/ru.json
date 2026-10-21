@@ -20,5 +20,9 @@
   "settings.notifications": "Уведомления",
   "settings.dark_mode": "Тёмная тема",
   "settings.priority": "Приоритет",
-  "settings.language": "Язык"
+  "settings.language": "Язык",
+  "menu.file": "Файл",
+  "menu.view": "Вид",
+  "action.toggle_done": "Отметить выполненной",
+  "tooltip.add_many": "Добавляет тысячу сгенерированных задач"
 }

@@ -15,5 +15,9 @@
   "settings.notifications": "Notifications",
   "settings.dark_mode": "Dark mode",
   "settings.priority": "Priority",
-  "settings.language": "Language"
+  "settings.language": "Language",
+  "menu.file": "File",
+  "menu.view": "View",
+  "action.toggle_done": "Toggle done",
+  "tooltip.add_many": "Adds a thousand generated tasks"
 }

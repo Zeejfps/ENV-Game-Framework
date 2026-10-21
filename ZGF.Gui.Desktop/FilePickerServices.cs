@@ -1,7 +1,5 @@
-using System.Runtime.InteropServices;
-using ZGF.Gui.Desktop.Platforms.Linux;
-using ZGF.Gui.Desktop.Platforms.Osx;
-using ZGF.Gui.Desktop.Platforms.Windows;
+using ZGF.Desktop;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Desktop;
 
@@ -15,20 +13,10 @@ public static class FilePickerServices
     extension(Context context)
     {
         /// <summary>
-        /// Registers the file/folder picker for the current OS: the Windows COM open dialog,
-        /// the macOS <c>osascript</c> chooser, or the Linux <c>zenity</c>/<c>kdialog</c> chooser.
-        /// Falls back to a <see cref="NoopFilePicker"/> on any other platform.
+        /// Registers <see cref="NativeFilePicker.Create"/>'s picker for the current OS, posting
+        /// results through the context's <c>IUiDispatcher</c>.
         /// </summary>
-        public void AddNativeFilePicker()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                context.AddService<IFilePicker>(new WindowsFilePicker());
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                context.AddService<IFilePicker>(new MacOsFilePicker(context));
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                context.AddService<IFilePicker>(new LinuxFilePicker(context));
-            else
-                context.AddService<IFilePicker>(new NoopFilePicker());
-        }
+        public void AddNativeFilePicker() =>
+            context.AddService(NativeFilePicker.Create(action => context.Require<IUiDispatcher>().Post(action)));
     }
 }

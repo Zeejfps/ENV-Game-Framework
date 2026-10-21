@@ -1,6 +1,8 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ZGF.Desktop;
+using ZGF.Geometry;
 
 namespace ZGF.Gui.Immediate;
 
@@ -15,14 +17,20 @@ public sealed partial class Ui
     private const int RootId = 17;
     private const long StateLifetimeFrames = 1000;
     private const long StatePruneInterval = 256;
+    private const double MultiClickSeconds = 0.4;
+    private const int PopupZ = 1_000_000;
+    private const float MultiClickDistance = 4f;
 
     private readonly ICanvas _canvas;
     private readonly IClipboard _clipboard;
+    private readonly IPopupHost? _popupHost;
+    private readonly ConcurrentQueue<Action> _posted = new();
+    private readonly List<Action<IFilePicker>> _dialogs = new();
     private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
     private readonly Stack<int> _ids = new();
-    private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align), TextStyle> _textStyles = new();
+    private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align, string? Family), TextStyle> _textStyles = new();
     private readonly Dictionary<int, (object State, long LastFrame)> _states = new();
     private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
     private Dictionary<MeasureKey, float> _widths = new();
@@ -41,13 +49,20 @@ public sealed partial class Ui
     private int _focused;
     private bool _focusSeen;
     private bool _focusClaimed;
+    private bool _focusTakesText;
+    private readonly int[] _pressTargets = new int[UiInput.ButtonCount];
+    private int _lastPressTarget;
+    private double _lastPressTime = double.NegativeInfinity;
+    private PointF _lastPressAt;
+    private int _clickCount;
 
     private UiStyle _windowStyle = UiStyle.Dark;
 
-    internal Ui(ICanvas canvas, IClipboard clipboard)
+    internal Ui(ICanvas canvas, IClipboard clipboard, IPopupHost? popupHost = null)
     {
         _canvas = canvas;
         _clipboard = clipboard;
+        _popupHost = popupHost;
         _painter = new UiPainter(this, canvas);
     }
 
@@ -63,8 +78,9 @@ public sealed partial class Ui
     /// so it can time things like a caret blink.</summary>
     public double RealTime { get; private set; }
 
-    /// <summary>True while a widget holds keyboard focus; app shortcuts should stand down.</summary>
-    public bool WantsTextInput => _focused != 0;
+    /// <summary>True while a widget that takes text holds keyboard focus; app shortcuts should
+    /// stand down.</summary>
+    public bool WantsTextInput => _focused != 0 && _focusTakesText;
 
     public string ClipboardText
     {
@@ -72,6 +88,8 @@ public sealed partial class Ui
         set => _clipboard.SetText(value);
     }
 
+    /// <summary>Called, from any thread, when <see cref="Post"/> queues work.</summary>
+    internal Action? Wake { get; set; }
     internal MouseCursor Cursor { get; private set; }
     internal bool FrameRequested { get; private set; }
     internal double WakeAt { get; private set; } = double.PositiveInfinity;
@@ -92,6 +110,42 @@ public sealed partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
+    /// <summary>Runs <paramref name="action"/> on the UI thread at the start of the next frame, and
+    /// makes sure there is one. Safe from any thread — the way background work hands back results.</summary>
+    public void Post(Action action)
+    {
+        _posted.Enqueue(action);
+        Wake?.Invoke();
+    }
+
+    /// <summary>Shows the OS file picker once this frame is drawn. <paramref name="onPicked"/> runs
+    /// at the start of a later frame with the chosen path, and not at all when the user cancels.
+    /// See <see cref="IFilePicker.PickFile"/> for <paramref name="filters"/>.</summary>
+    public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
+        _dialogs.Add(picker => picker.PickFile(title, initialDirectory, filters, path => Post(() => onPicked(path))));
+
+    /// <summary>Shows the OS folder picker, as <see cref="PickFile"/> does.</summary>
+    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
+        _dialogs.Add(picker => picker.PickFolder(title, initialDirectory, path => Post(() => onPicked(path))));
+
+    /// <summary>Shows the OS save dialog, as <see cref="PickFile"/> does. See
+    /// <see cref="IFilePicker.PickSaveFile"/>.</summary>
+    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
+        _dialogs.Add(picker => picker.PickSaveFile(title, initialDirectory, suggestedFileName, filters, path => Post(() => onPicked(path))));
+
+    /// <summary>Runs the dialogs asked for during the last frame. The host calls it outside any
+    /// frame, since a modal dialog pumps the window's events.</summary>
+    internal void ShowDialogs(IFilePicker picker)
+    {
+        if (_dialogs.Count == 0) return;
+        var dialogs = _dialogs.ToArray();
+        _dialogs.Clear();
+        foreach (var dialog in dialogs)
+            dialog(picker);
+    }
+
+    internal bool HasDialogs => _dialogs.Count > 0;
+
     /// <summary>Sets the window's style for what is recorded from here on; the window's own
     /// background, padding and gap take the last one set. Each frame starts on
     /// <see cref="UiStyle.Dark"/>. <see cref="Provide{T}"/> still overrides it inside a scope.</summary>
@@ -101,6 +155,8 @@ public sealed partial class Ui
     internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
+        while (_posted.TryDequeue(out var action))
+            action();
         _windowStyle = UiStyle.Dark;
         Width = width;
         Height = height;
@@ -120,7 +176,8 @@ public sealed partial class Ui
         (_rects, _previousRects) = (_previousRects, _rects);
         _hits.Clear();
         _rects.Clear();
-        _hovered = Topmost(_previousHits, null);
+        _hovered = Topmost(_previousHits, null, out _);
+        TrackPresses();
 
         _ids.Clear();
         _ids.Push(RootId);
@@ -159,12 +216,22 @@ public sealed partial class Ui
                 _tree.Position();
                 break;
         }
+        if (_popups.Count > 0)
+        {
+            PlacePopups();
+            _tree.Position();
+        }
         _tree.Emit(_canvas, _painter, Width, Height, _hits, _rects);
 
         if (_active != 0 && !_activeSeen)
             _active = 0;
         if (_focused != 0 && (!_focusSeen || (Input.WasPressed(PointerButton.Left) && !_focusClaimed)))
             _focused = 0;
+        for (var button = 1; button < UiInput.ButtonCount; button++)
+        {
+            if (!Input.IsDown((PointerButton)button))
+                _pressTargets[button] = 0;
+        }
         if (_frame % StatePruneInterval == 0)
             PruneStates();
     }
@@ -208,12 +275,16 @@ public sealed partial class Ui
 
     public Interaction Interact(string label) => Interact(GetId(label));
 
+    /// <summary>Whether the pointer is over the element with <paramref name="id"/>, as
+    /// <see cref="Interaction.Hovered"/> would say, without interacting with it.</summary>
+    public bool IsHovered(int id) => _hovered == id && (_active == 0 || _active == id);
+
     /// <summary>The click behavior every widget is built on: hover, press, hold-while-dragging and a
     /// click on release over the same element. Record an element with the returned
     /// <see cref="Interaction.Id"/> so it can be hit-tested next frame.</summary>
     public Interaction Interact(int id)
     {
-        var hovered = _hovered == id && (_active == 0 || _active == id);
+        var hovered = IsHovered(id);
         var pressed = false;
         if (hovered && Input.WasPressed(PointerButton.Left))
         {
@@ -233,7 +304,37 @@ public sealed partial class Ui
             }
         }
 
-        return new Interaction(id, hovered, pressed, held, clicked);
+        var otherClicks = 0;
+        if (hovered)
+        {
+            for (var button = 1; button < UiInput.ButtonCount; button++)
+            {
+                if (_pressTargets[button] == id && Input.WasReleased((PointerButton)button))
+                    otherClicks |= 1 << button;
+            }
+        }
+
+        return new Interaction(id, hovered, pressed, held, clicked, pressed ? _clickCount : 0, otherClicks);
+    }
+
+    private void TrackPresses()
+    {
+        for (var button = 1; button < UiInput.ButtonCount; button++)
+        {
+            if (Input.WasPressed((PointerButton)button))
+                _pressTargets[button] = _hovered;
+        }
+
+        if (!Input.WasPressed(PointerButton.Left)) return;
+        var pointer = Input.Pointer;
+        var repeated = _hovered == _lastPressTarget
+            && RealTime - _lastPressTime <= MultiClickSeconds
+            && MathF.Abs(pointer.X - _lastPressAt.X) <= MultiClickDistance
+            && MathF.Abs(pointer.Y - _lastPressAt.Y) <= MultiClickDistance;
+        _clickCount = repeated ? _clickCount + 1 : 1;
+        _lastPressTarget = _hovered;
+        _lastPressTime = RealTime;
+        _lastPressAt = pointer;
     }
 
     /// <summary>Whether <paramref name="id"/> holds keyboard focus. Asking keeps it: focus is
@@ -245,24 +346,31 @@ public sealed partial class Ui
         return true;
     }
 
-    public void Focus(int id)
+    /// <summary>Gives <paramref name="id"/> keyboard focus. A widget that only navigates with keys
+    /// (a list, a tree) passes <paramref name="takesText"/> false, so app shortcuts keep working
+    /// and the window is not asked for text input.</summary>
+    public void Focus(int id, bool takesText = true)
     {
         _focused = id;
+        _focusTakesText = takesText;
         _focusClaimed = true;
         _focusSeen = true;
     }
 
     public void ClearFocus() => _focused = 0;
 
-    public float MeasureText(string text, float? size = null, bool bold = false) =>
-        MeasureWidth(text, TextStyleFor(size, Style.Text, bold, Align.Start));
+    /// <summary>Width of <paramref name="text"/> as <see cref="Text"/> draws it. A null
+    /// <paramref name="family"/> means the style's <see cref="UiStyle.FontFamily"/>.</summary>
+    public float MeasureText(string text, float? size = null, bool bold = false, string? family = null) =>
+        MeasureWidth(text, TextStyleFor(size, Style.Text, bold, Align.Start, family));
 
     /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
     /// whole line — for placing a caret.</summary>
-    public float MeasureText(string text, int length, float? size = null, bool bold = false) =>
-        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, TextStyleFor(size, Style.Text, bold, Align.Start));
+    public float MeasureText(string text, int length, float? size = null, bool bold = false, string? family = null) =>
+        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, TextStyleFor(size, Style.Text, bold, Align.Start, family));
 
-    public float LineHeight(float? size = null) => MeasureLineHeight(TextStyleFor(size, Style.Text, false, Align.Start));
+    public float LineHeight(float? size = null, string? family = null) =>
+        MeasureLineHeight(TextStyleFor(size, Style.Text, false, Align.Start, family));
 
     internal float MeasureWidth(string text, TextStyle style)
     {
@@ -317,15 +425,16 @@ public sealed partial class Ui
         public override int GetHashCode() => HashCode.Combine(_text, RuntimeHelpers.GetHashCode(_style));
     }
 
-    internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align)
+    internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align, string? family)
     {
-        var key = (size ?? Style.FontSize, color, bold, align);
+        var key = (size ?? Style.FontSize, color, bold, align, family ?? Style.FontFamily);
         if (_textStyles.TryGetValue(key, out var style))
             return style;
 
         style = new TextStyle
         {
             TextColor = color,
+            FontFamily = new StyleValue<string>(key.Item5, key.Item5 != null),
             FontSize = key.Item1,
             FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
             HorizontalAlignment = align switch
@@ -340,7 +449,7 @@ public sealed partial class Ui
         return style;
     }
 
-    private int Topmost(List<HitRegion> hits, HashSet<int>? among)
+    private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z)
     {
         var pointer = Input.Pointer;
         var best = 0;
@@ -355,7 +464,31 @@ public sealed partial class Ui
             bestZ = hit.Z;
             bestOrder = hit.Order;
         }
+        z = bestZ;
         return best;
+    }
+
+    private void PlacePopups()
+    {
+        foreach (var popup in _popups)
+        {
+            ref var e = ref _tree[popup.Element];
+            e.W = MathF.Ceiling(e.W);
+            e.H = MathF.Ceiling(e.H);
+            var anchor = popup.Anchor;
+            var x = popup.Align switch
+            {
+                Align.Center => anchor.X + (anchor.Width - e.W) / 2,
+                Align.End => anchor.Right - e.W,
+                _ => anchor.X,
+            };
+            var below = new UiRect(x, anchor.Bottom + popup.Gap, e.W, e.H);
+            var above = below with { Y = anchor.Y - popup.Gap - e.H };
+            var rect = _popupHost?.Place(below, above) ?? PopupPlacement.Fit(below, above, new UiRect(0f, 0f, Width, Height));
+            e.OffsetX = rect.X;
+            e.OffsetY = rect.Y;
+            _tree.SetLayer(e.Layer, _popupHost?.Show(popup.Id, rect, e.PassThrough), rect);
+        }
     }
 
     private void PruneStates()

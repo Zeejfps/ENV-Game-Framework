@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Desktop;
 
 /// <summary>
 /// The one rule every <see cref="IFilePicker.PickSaveFile"/> implementation applies to what the

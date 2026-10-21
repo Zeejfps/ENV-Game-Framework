@@ -6,7 +6,7 @@ namespace ZGF.Gui.Desktop.Platforms.Linux;
 
 /// <summary>
 /// Linux <see cref="ISecretStore"/> over the Secret Service (GNOME Keyring, KWallet's D-Bus
-/// bridge), driven through <c>secret-tool</c> the way <see cref="LinuxFilePicker"/> drives
+/// bridge), driven through <c>secret-tool</c> the way <c>LinuxFilePicker</c> drives
 /// zenity/kdialog. Secrets are looked up by a <c>service</c>/<c>account</c> attribute pair.
 /// Distributions that ship no <c>secret-tool</c> and sessions with no Secret Service provider
 /// report "no secret" rather than failing, leaving the caller on its own fallback.

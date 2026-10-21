@@ -10,8 +10,10 @@ namespace ZGF.Gui.Immediate;
 public sealed class UiPainter
 {
     private readonly Ui _ui;
-    private readonly ICanvas _canvas;
     private readonly RectStyle _rectStyle = new();
+    private ICanvas _canvas;
+    private float _originX;
+    private float _originY;
     private float _canvasHeight;
     private int _z;
 
@@ -23,16 +25,19 @@ public sealed class UiPainter
 
     public UiRect Rect { get; private set; }
 
-    /// <summary>The underlying canvas, for drawing the painter has no method for. Convert
-    /// coordinates with <see cref="ToCanvas(UiRect)"/>.</summary>
+    /// <summary>The canvas the element is drawn on — the main window's, or a popup's — for drawing
+    /// the painter has no method for. Convert coordinates with <see cref="ToCanvas(UiRect)"/>.</summary>
     public ICanvas Canvas => _canvas;
 
     public int ZIndex => _z;
 
-    internal void Begin(UiRect rect, int z, float canvasHeight)
+    internal void Begin(UiRect rect, int z, ICanvas canvas, float originX, float originY, float canvasHeight)
     {
         Rect = rect;
         _z = z;
+        _canvas = canvas;
+        _originX = originX;
+        _originY = originY;
         _canvasHeight = canvasHeight;
     }
 
@@ -52,13 +57,15 @@ public sealed class UiPainter
     public void Circle(PointF center, float radius, uint color, float thickness = 0f) =>
         _canvas.DrawCircle(new DrawCircleInputs { Center = ToCanvas(center), Radius = radius, Color = color, Thickness = thickness, ZIndex = _z });
 
-    public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start)
+    /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
+    /// <paramref name="family"/> means the style's <see cref="UiStyle.FontFamily"/>.</summary>
+    public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null)
     {
         if (string.IsNullOrEmpty(text)) return;
-        _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align), ZIndex = _z });
+        _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align, family), ZIndex = _z });
     }
 
-    public RectF ToCanvas(UiRect rect) => new(rect.X, _canvasHeight - rect.Y - rect.Height, rect.Width, rect.Height);
+    public RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _canvasHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
 
-    public PointF ToCanvas(PointF point) => new(point.X, _canvasHeight - point.Y);
+    public PointF ToCanvas(PointF point) => new(point.X - _originX, _canvasHeight - (point.Y - _originY));
 }

@@ -15,5 +15,9 @@
   "settings.notifications": "Notificaciones",
   "settings.dark_mode": "Modo oscuro",
   "settings.priority": "Prioridad",
-  "settings.language": "Idioma"
+  "settings.language": "Idioma",
+  "menu.file": "Archivo",
+  "menu.view": "Ver",
+  "action.toggle_done": "Marcar como hecha",
+  "tooltip.add_many": "Añade mil tareas generadas"
 }

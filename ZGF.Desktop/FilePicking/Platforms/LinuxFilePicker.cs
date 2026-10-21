@@ -1,21 +1,20 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
-using ZGF.Observable;
 
-namespace ZGF.Gui.Desktop.Platforms.Linux;
+namespace ZGF.Desktop.FilePicking;
 
 [SupportedOSPlatform("linux")]
-public sealed class LinuxFilePicker : IFilePicker
+internal sealed class LinuxFilePicker : IFilePicker
 {
-    private readonly Context _context;
+    private readonly Action<Action> _post;
     private readonly string? _zenity;
     private readonly string? _kdialog;
     private int _pickerOpen;
 
-    public LinuxFilePicker(Context context)
+    public LinuxFilePicker(Action<Action> post)
     {
-        _context = context;
+        _post = post;
         _zenity = FindOnPath("zenity");
         _kdialog = FindOnPath("kdialog");
 
@@ -131,7 +130,6 @@ public sealed class LinuxFilePicker : IFilePicker
         // The picker is a separate process the user can leave open indefinitely. Waiting for it
         // on the UI thread stalls the event loop, so the window manager marks the app
         // unresponsive and offers to kill it. Wait on a worker and post the result back.
-        var dispatcher = _context.Require<IUiDispatcher>();
         Task.Run(() =>
         {
             try
@@ -141,7 +139,7 @@ public sealed class LinuxFilePicker : IFilePicker
                     path = SaveFileNaming.ApplyDefaultExtension(path ?? "", suggestedFileName);
 
                 if (!string.IsNullOrEmpty(path))
-                    dispatcher.Post(() => onPicked(path));
+                    _post(() => onPicked(path));
             }
             finally
             {

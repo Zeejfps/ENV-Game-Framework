@@ -6,7 +6,7 @@ namespace ZGF.Gui.Desktop.Platforms.Osx;
 
 /// <summary>
 /// macOS <see cref="ISecretStore"/> over the login Keychain, driven through <c>/usr/bin/security</c>
-/// the way <see cref="MacOsFilePicker"/> drives <c>osascript</c>. Secrets are generic passwords
+/// the way <c>MacOsFilePicker</c> drives <c>osascript</c>. Secrets are generic passwords
 /// whose service is the app and whose account is the secret name.
 /// </summary>
 [SupportedOSPlatform("macos")]

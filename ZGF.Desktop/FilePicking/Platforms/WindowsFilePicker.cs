@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace ZGF.Gui.Desktop.Platforms.Windows;
+namespace ZGF.Desktop.FilePicking;
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsFilePicker : IFilePicker
+internal sealed class WindowsFilePicker : IFilePicker
 {
     private const uint FOS_OVERWRITEPROMPT = 0x00000002;
     private const uint FOS_PICKFOLDERS = 0x00000020;

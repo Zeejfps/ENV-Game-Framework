@@ -86,8 +86,29 @@ public readonly record struct Box
 }
 
 /// <summary>What the pointer did to element <see cref="Id"/> this frame. Record the element with
-/// that id so the next frame can hit-test it.</summary>
+/// that id so the next frame can hit-test it. <see cref="Pressed"/>, <see cref="Held"/> and
+/// <see cref="Clicked"/> are for the left button; <see cref="ClickedWith"/> answers for any.</summary>
 public readonly record struct Interaction(int Id, bool Hovered, bool Pressed, bool Held, bool Clicked)
 {
+    private readonly int _otherClicks;
+
+    internal Interaction(int id, bool hovered, bool pressed, bool held, bool clicked, int clickCount, int otherClicks)
+        : this(id, hovered, pressed, held, clicked)
+    {
+        ClickCount = clickCount;
+        _otherClicks = otherClicks;
+    }
+
+    /// <summary>On the frame of <see cref="Pressed"/>, how many presses in quick succession landed
+    /// on this element: 1, then 2 for a double-click, 3 for a triple. Zero on other frames.</summary>
+    public int ClickCount { get; }
+
+    public bool DoubleClicked => Pressed && ClickCount == 2;
+
+    /// <summary>True on the frame <paramref name="button"/> is released over this element after
+    /// being pressed on it.</summary>
+    public bool ClickedWith(PointerButton button) =>
+        button == PointerButton.Left ? Clicked : (_otherClicks & (1 << (int)button)) != 0;
+
     public static Interaction Inert(int id) => new(id, false, false, false, false);
 }

@@ -1,4 +1,4 @@
-using ZGF.Gui.Desktop;
+using ZGF.Desktop;
 
 namespace ZGF.Gui.Tests;
 

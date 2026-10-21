@@ -26,15 +26,18 @@ public sealed partial class Ui
 
     internal sealed class ScrollState
     {
+        public bool Horizontal;
         public float Offset;
         public float Max;
         public float Content;
         public float Viewport;
-        public float DragAnchorY;
+        public float DragAnchor;
         public float DragStartOffset;
     }
 
     private readonly record struct OpenScroll(int Element, ScrollState State, Interaction Thumb, float PaddingRight, float BarWidth);
+
+    private readonly record struct OpenPopup(int Element, int Id, UiRect Anchor, Align Align, float Gap);
 
     private enum ScrollSettle
     {
@@ -47,6 +50,7 @@ public sealed partial class Ui
     private readonly List<OpenScroll> _frameScrolls = new();
     private HashSet<int> _scrollIds = new();
     private HashSet<int> _previousScrollIds = new();
+    private readonly List<OpenPopup> _popups = new();
     private int _wheelTarget;
 
     /// <summary>True when the element being recorded lays its children out left to right.</summary>
@@ -84,7 +88,8 @@ public sealed partial class Ui
 
     /// <summary>An element taken out of the flow and placed over its parent: its top-left sits at
     /// (<paramref name="anchorX"/>, <paramref name="anchorY"/>) — fractions of the parent's rect —
-    /// plus the offset. Drawn above the rest of the tree and unclipped; the basis for popups.</summary>
+    /// plus the offset. Drawn above the rest of the tree and unclipped, inside the window; menus and
+    /// tooltips use <see cref="Popup"/> instead.</summary>
     public Scope Float(float anchorX, float anchorY, float offsetX = 0f, float offsetY = 0f, Box box = default, int z = 100, int id = 0)
     {
         OpenFloating(id, box, anchorX, anchorY, offsetX, offsetY, z);
@@ -100,11 +105,39 @@ public sealed partial class Ui
         Close();
     }
 
-    /// <summary>A text element: sized to its text plus the box's padding unless the box sizes it,
-    /// with the text vertically centered and aligned by <paramref name="align"/>.</summary>
-    public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0)
+    /// <summary>
+    /// Opens a popup: what is recorded inside is laid out at its own size and shown below
+    /// <paramref name="anchor"/>, or above it when there is no room below, aligned to its start,
+    /// center or end. It is shown in a window of its own where the platform allows, so it can
+    /// extend past the main window, and over the main window otherwise. Coordinates stay the main
+    /// window's UI space, so <paramref name="anchor"/> is usually a <see cref="TryGetRect"/> result
+    /// and interaction inside works as anywhere else. The popup is hit-testable as
+    /// <paramref name="id"/> and keeps the pointer from what is under it, unless
+    /// <paramref name="passThrough"/>, which takes no pointer input at all — for a tooltip.
+    /// </summary>
+    public Scope Popup(int id, UiRect anchor, Box box = default, Align align = Align.Start, float gap = 0f, bool passThrough = false)
     {
-        Open(id, box, text, TextStyleFor(size, color ?? Style.Text, bold, align));
+        var e = Describe(passThrough ? 0 : id, box with
+        {
+            Width = box.Width ?? Sizing.Fit(),
+            Height = box.Height ?? Sizing.Fit(),
+        }, null, null);
+        e.Parent = 0;
+        e.Floating = true;
+        e.Layer = _popups.Count + 1;
+        e.PassThrough = passThrough;
+        e.Z = PopupZ + _popups.Count;
+        var element = Push(e);
+        _popups.Add(new OpenPopup(element, id, anchor, align, gap));
+        return new Scope(this, ScopeKind.Element);
+    }
+
+    /// <summary>A text element: sized to its text plus the box's padding unless the box sizes it,
+    /// with the text vertically centered and aligned by <paramref name="align"/>. A null
+    /// <paramref name="family"/> means the style's <see cref="UiStyle.FontFamily"/>.</summary>
+    public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0, string? family = null)
+    {
+        Open(id, box, text, TextStyleFor(size, color ?? Style.Text, bold, align, family));
         Close();
     }
 
@@ -120,43 +153,77 @@ public sealed partial class Ui
 
     public Scope Scroll(string id, Box box = default) => Scroll(GetId(id), box);
 
-    /// <summary>A vertically scrolling, clipped column. Fills the space it is given unless sized.
-    /// The scrollbar gutter is only reserved while the content overflows.</summary>
+    /// <summary>A scrolling, clipped column — or row, when <paramref name="box"/> is
+    /// <see cref="Direction.Horizontal"/>, which the wheel also scrolls. A column fills the space it
+    /// is given unless sized and reserves its scrollbar gutter only while the content overflows; a
+    /// row fills the width, fits its content's height and draws its bar over the content.</summary>
     public Scope Scroll(int id, Box box = default)
     {
         var state = GetState<ScrollState>(id);
+        var horizontal = box.Direction == Direction.Horizontal;
+        state.Horizontal = horizontal;
         if (id == _wheelTarget)
-            state.Offset -= Input.ScrollY * Style.ScrollWheelStep;
+            state.Offset -= (horizontal ? Input.ScrollY + Input.ScrollX : Input.ScrollY) * Style.ScrollWheelStep;
 
         var thumb = Interact(HashCode.Combine(id, "thumb"));
+        var pointer = horizontal ? Input.Pointer.X : Input.Pointer.Y;
         if (thumb.Pressed)
         {
-            state.DragAnchorY = Input.Pointer.Y;
+            state.DragAnchor = pointer;
             state.DragStartOffset = state.Offset;
         }
         else if (thumb.Held)
         {
-            var travel = state.Viewport - ThumbHeight(state);
+            var travel = state.Viewport - ThumbLength(state);
             if (travel > 0f)
-                state.Offset = state.DragStartOffset + (Input.Pointer.Y - state.DragAnchorY) * state.Max / travel;
+                state.Offset = state.DragStartOffset + (pointer - state.DragAnchor) * state.Max / travel;
         }
         state.Offset = Math.Clamp(state.Offset, 0f, state.Max);
 
         var padding = box.Padding ?? default;
         var bar = Style.ScrollBarWidth;
-        var element = Open(id, box with
-        {
-            Direction = Direction.Vertical,
-            Width = box.Width ?? Sizing.Grow(),
-            Height = box.Height ?? Sizing.Grow(),
-            Gap = box.Gap ?? Style.Gap,
-            Padding = padding with { Right = padding.Right + Gutter(state.Max > 0f, bar) },
-            Clip = true,
-            ScrollY = state.Offset,
-        });
+        var element = Open(id, horizontal
+            ? box with
+            {
+                Width = box.Width ?? Sizing.Grow(),
+                Height = box.Height ?? Sizing.Fit(),
+                Gap = box.Gap ?? Style.Gap,
+                AlignY = box.AlignY ?? Align.Center,
+                Clip = true,
+                ScrollX = state.Offset,
+            }
+            : box with
+            {
+                Direction = Direction.Vertical,
+                Width = box.Width ?? Sizing.Grow(),
+                Height = box.Height ?? Sizing.Grow(),
+                Gap = box.Gap ?? Style.Gap,
+                Padding = padding with { Right = padding.Right + Gutter(state.Max > 0f, bar) },
+                Clip = true,
+                ScrollY = state.Offset,
+            });
         _scrollIds.Add(id);
         _openScrolls.Push(new OpenScroll(element, state, thumb, padding.Right, bar));
         return new Scope(this, ScopeKind.Scroll);
+    }
+
+    /// <summary>Scrolls the <see cref="Scroll(int, Box)"/> with <paramref name="scrollId"/> the least
+    /// distance that shows the element with <paramref name="id"/> whole, from the next frame. Both
+    /// must have been laid out on the previous frame; returns false when either was not.</summary>
+    public bool ScrollIntoView(int scrollId, int id)
+    {
+        if (!_previousRects.TryGetValue(scrollId, out var view) || !_previousRects.TryGetValue(id, out var item))
+            return false;
+
+        var state = GetState<ScrollState>(scrollId);
+        var (viewStart, viewEnd, itemStart, itemEnd) = state.Horizontal
+            ? (view.X, view.Right, item.X, item.Right)
+            : (view.Y, view.Bottom, item.Y, item.Bottom);
+        var delta = itemStart < viewStart ? itemStart - viewStart : itemEnd > viewEnd ? MathF.Min(itemEnd - viewEnd, itemStart - viewStart) : 0f;
+        if (delta == 0f) return true;
+        state.Offset += delta;
+        RequestFrame();
+        return true;
     }
 
     private void EndScope(ScopeKind kind)
@@ -184,16 +251,14 @@ public sealed partial class Ui
         var state = scroll.State;
         if (state.Max > 0f)
         {
-            var thumbHeight = ThumbHeight(state);
-            var top = (state.Viewport - thumbHeight) * (state.Offset / state.Max);
+            var length = ThumbLength(state);
+            var start = (state.Viewport - length) * (state.Offset / state.Max);
             var color = scroll.Thumb.Held ? Style.ScrollThumbHeld : scroll.Thumb.Hovered ? Style.ScrollThumbHovered : Style.ScrollThumb;
-            OpenFloating(scroll.Thumb.Id, new Box
-            {
-                Width = scroll.BarWidth,
-                Height = thumbHeight,
-                Background = color,
-                Radius = scroll.BarWidth / 2,
-            }, 1f, 0f, -scroll.BarWidth - 2f, top, 1);
+            var bar = scroll.BarWidth;
+            if (state.Horizontal)
+                OpenFloating(scroll.Thumb.Id, new Box { Width = length, Height = bar, Background = color, Radius = bar / 2 }, 0f, 1f, start, -bar - 1f, 1);
+            else
+                OpenFloating(scroll.Thumb.Id, new Box { Width = bar, Height = length, Background = color, Radius = bar / 2 }, 1f, 0f, -bar - 2f, start, 1);
             Close();
         }
         Close();
@@ -204,9 +269,14 @@ public sealed partial class Ui
     {
         _openScrolls.Clear();
         _frameScrolls.Clear();
+        _popups.Clear();
         (_scrollIds, _previousScrollIds) = (_previousScrollIds, _scrollIds);
         _scrollIds.Clear();
-        _wheelTarget = Input.ScrollY != 0f ? Topmost(_previousHits, _previousScrollIds) : 0;
+        _wheelTarget = 0;
+        if (Input.ScrollY == 0f && Input.ScrollX == 0f) return;
+        Topmost(_previousHits, null, out var topZ);
+        var target = Topmost(_previousHits, _previousScrollIds, out var targetZ);
+        _wheelTarget = targetZ >= topZ ? target : 0;
     }
 
     private ScrollSettle SettleScrolls()
@@ -216,15 +286,16 @@ public sealed partial class Ui
         {
             ref var e = ref _tree[scroll.Element];
             var state = scroll.State;
-            var max = MathF.Max(0f, e.ChildExtent - e.H);
-            if (max != state.Max || e.H != state.Viewport || e.ChildExtent != state.Content)
+            var viewport = state.Horizontal ? e.W : e.H;
+            var max = MathF.Max(0f, e.ChildExtent - viewport);
+            if (max != state.Max || viewport != state.Viewport || e.ChildExtent != state.Content)
                 RequestFrame();
             state.Content = e.ChildExtent;
-            state.Viewport = e.H;
+            state.Viewport = viewport;
             state.Max = max;
 
             var paddingRight = scroll.PaddingRight + Gutter(max > 0f, scroll.BarWidth);
-            if (e.Padding.Right != paddingRight)
+            if (!state.Horizontal && e.Padding.Right != paddingRight)
             {
                 e.Padding = e.Padding with { Right = paddingRight };
                 result = ScrollSettle.Relayout;
@@ -233,7 +304,10 @@ public sealed partial class Ui
             var clamped = Math.Clamp(state.Offset, 0f, max);
             if (clamped == state.Offset) continue;
             state.Offset = clamped;
-            e.ScrollY = clamped;
+            if (state.Horizontal)
+                e.ScrollX = clamped;
+            else
+                e.ScrollY = clamped;
             if (result == ScrollSettle.None)
                 result = ScrollSettle.Reposition;
         }
@@ -242,7 +316,7 @@ public sealed partial class Ui
 
     private static float Gutter(bool overflowing, float barWidth) => overflowing ? barWidth + 6f : 0f;
 
-    private static float ThumbHeight(ScrollState state) =>
+    private static float ThumbLength(ScrollState state) =>
         state.Content <= 0f ? 0f : MathF.Min(state.Viewport, MathF.Max(24f, state.Viewport * state.Viewport / state.Content));
 
     private int Open(int id, in Box box, string? text = null, TextStyle? style = null) =>
