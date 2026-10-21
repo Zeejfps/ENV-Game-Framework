@@ -11,14 +11,16 @@ public static class DockPanels
     public const string Assemblies = "assemblies";
     public const string Search = "search";
     public const string Bookmarks = "bookmarks";
+    public const string Analyzer = "analyzer";
 
     /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
-    public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks;
+    public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer;
 
     public static DockTab Tab(Strings t, string panel) => panel switch
     {
         Assemblies => new DockTab(t.PanelAssemblies),
         Bookmarks => new DockTab(t.PanelBookmarks),
+        Analyzer => new DockTab(t.PanelAnalyzer),
         _ => new DockTab(t.PanelSearch),
     };
 
@@ -27,7 +29,7 @@ public static class DockPanels
     public static DockLayout Restore(DockLayout? saved)
     {
         var layout = saved ?? new DockLayout { Root = DockLayout.Group(Assemblies) };
-        layout.Retain(static panel => panel is Assemblies or Bookmarks);
+        layout.Retain(static panel => panel is Assemblies or Bookmarks or Analyzer);
         return layout;
     }
 }

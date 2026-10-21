@@ -43,6 +43,7 @@ public sealed class CodeViewState
     internal float LaidOutScrollX;
     internal CodeReference? Marked;
     internal CodeReference? MenuReference;
+    internal CodeReference? MenuAnalyze;
     internal int MenuLine = NoLine;
     internal int PendingReveal = NoLine;
     internal int PendingShowLine = NoLine;
@@ -181,7 +182,7 @@ public sealed class CodeViewState
     }
 }
 
-public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null);
+public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null);
 
 public static class CodeViewWidget
 {
@@ -359,6 +360,7 @@ public static class CodeViewWidget
             {
                 ui.Focus(focusId, takesText: false);
                 state.MenuReference = hoverNavigable ? hoverReference : null;
+                state.MenuAnalyze = hoverReference is { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } ? hoverReference : null;
                 state.MenuLine = hasRect ? PositionAt(pointer.X, pointer.Y).Line : CodeViewState.NoLine;
                 ui.OpenContextMenu("menu");
             }
@@ -393,6 +395,8 @@ public static class CodeViewWidget
             result = picked;
         if (picked.ToggleBookmark != null)
             result = result with { ToggleBookmark = picked.ToggleBookmark };
+        if (picked.Analyze != null)
+            result = result with { Analyze = picked.Analyze };
         return result;
     }
 
@@ -768,6 +772,13 @@ public static class CodeViewWidget
                 result = new CodeViewResult(reference, false);
             if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
                 result = new CodeViewResult(reference, true);
+        }
+        if (state.MenuAnalyze is { } analyzed)
+        {
+            if (state.MenuReference == null)
+                ui.MenuSeparator();
+            if (ui.MenuItem(t.TreeAnalyze, id: "analyze"))
+                result = result with { Analyze = analyzed };
         }
         return result;
     }

@@ -97,6 +97,9 @@ public sealed class AssemblyList
             var owner = TryLoad(reference.FilePath);
             if (owner is null) return null;
 
+            if (reference.Kind == CodeReferenceKind.Assembly && reference.Handle.Kind == HandleKind.AssemblyDefinition)
+                return TryList(owner) ? owner.Root : null;
+
             if (reference.Kind == CodeReferenceKind.Assembly)
             {
                 var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, (AssemblyReferenceHandle)reference.Handle));
@@ -154,6 +157,20 @@ public sealed class AssemblyList
         {
             return null;
         }
+    }
+
+    /// <summary>The type system of the assembly loaded from <paramref name="module"/>.</summary>
+    internal DecompilerTypeSystem TypeSystemOf(MetadataFile module)
+    {
+        lock (_gate)
+        {
+            foreach (var assembly in _known.Values)
+            {
+                if (assembly.File == module)
+                    return assembly.TypeSystem;
+            }
+        }
+        throw new InvalidOperationException($"{module.FileName} was not loaded by this list.");
     }
 
     internal LoadedAssembly? FindKnown(IAssemblyReference reference, bool exactOrNewer)

@@ -20,6 +20,8 @@ internal static class DocumentsView
             w.Navigate(reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)
             w.ToggleBookmark(tab, line);
+        if (result.Analyze is { } analyzed)
+            w.Analyze(analyzed);
     }
 
     public static DockTab Tab(Workspace w, DocumentTab tab) =>

@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate.Widgets;
 using System.Globalization;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -34,6 +35,7 @@ public sealed class Workspace
         ShowNonPublic = settings.ShowNonPublic;
         Layout = DockPanels.Restore(settings.Layout);
         Tree = new BrowseTree(Post);
+        Analyzer = new AnalyzerTree(Post, () => Assemblies);
         Search = new SearchModel(() => Strings.For(Locale), ReportError);
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += panel =>
@@ -56,6 +58,9 @@ public sealed class Workspace
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
     public BookmarkList Bookmarks { get; } = new();
+
+    /// <summary>The symbols being analyzed and what the analyses found.</summary>
+    public AnalyzerTree Analyzer { get; }
 
     /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
     public TableColumns BookmarkColumns { get; } = new(new TableColumn(Fixed: 28f), new TableColumn(2f, 80f), new TableColumn(3f, 80f),
@@ -132,6 +137,7 @@ public sealed class Workspace
         Assemblies.Clear();
         Tree.View.ClearSelection();
         Tree.View.CollapseAll();
+        Analyzer.Clear();
         MenuTarget = null;
     }
 
@@ -160,6 +166,7 @@ public sealed class Workspace
         Assemblies.Clear();
         Tree.View.CollapseAll();
         Tree.View.ClearSelection();
+        Analyzer.Clear();
         MenuTarget = null;
 
         var token = work.Token;
@@ -371,6 +378,49 @@ public sealed class Workspace
         if (mode is { } how && PendingImport is { } saved)
             Bookmarks.Import(saved, how);
         PendingImport = null;
+    }
+
+    /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer, which is
+    /// opened if it is not.</summary>
+    public void Analyze(BrowseNode node)
+    {
+        if (Analysis.Of(node) is not { } symbol) return;
+        OpenAnalyzer();
+        Analyzer.Analyze(symbol);
+    }
+
+    /// <summary>Finds what <paramref name="reference"/> points at in the background, opening its
+    /// assembly if it is not, and analyzes it.</summary>
+    public void Analyze(CodeReference reference)
+    {
+        RunInBackground(() => Assemblies.FindNode(reference), (node, error) =>
+        {
+            if (node != null)
+            {
+                Analyze(node);
+                return;
+            }
+            var t = Strings.For(Locale);
+            ReportError(t.ErrorResolve(reference.Name), error?.ToString() ?? t.ErrorNoDefinition(reference));
+        });
+    }
+
+    /// <summary>Docks the analyzer beside the search results or bookmarks, or below the documents,
+    /// if it is not docked, and brings it to the front.</summary>
+    public void OpenAnalyzer()
+    {
+        if (Layout.Contains(DockPanels.Analyzer))
+        {
+        }
+        else if ((Layout.GroupOf(DockPanels.Search) ?? Layout.GroupOf(DockPanels.Bookmarks)) is { } beside)
+        {
+            Layout.Dock(DockPanels.Analyzer, beside, DockEdge.Center);
+        }
+        else
+        {
+            DockBeside(DockPanels.Analyzer, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
+        }
+        Layout.Activate(DockPanels.Analyzer);
     }
 
     /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>

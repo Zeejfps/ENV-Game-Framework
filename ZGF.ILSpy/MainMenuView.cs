@@ -70,6 +70,8 @@ internal static class MainMenuView
             w.OpenAssemblies();
         if (ui.MenuItem(t.ViewBookmarks, check: w.Layout.Contains(DockPanels.Bookmarks), id: "bookmarks"))
             w.OpenBookmarks();
+        if (ui.MenuItem(t.PanelAnalyzer, check: w.Layout.Contains(DockPanels.Analyzer), id: "analyzer"))
+            w.OpenAnalyzer();
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             w.ResetLayout();
         ui.MenuSeparator();

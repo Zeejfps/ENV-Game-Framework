@@ -52,6 +52,10 @@ public sealed class CodeReference : IEquatable<CodeReference>
     internal static CodeReference ToEntity(CodeReferenceKind kind, string name, string filePath, EntityHandle handle) =>
         new(kind, name, filePath, handle, 0, null);
 
+    /// <summary>A reference to the assembly in the file at <paramref name="filePath"/> itself.</summary>
+    internal static CodeReference ToAssembly(string name, string filePath) =>
+        new(CodeReferenceKind.Assembly, name, filePath, EntityHandle.AssemblyDefinition, 0, null);
+
     internal static CodeReference ToLocal(CodeReferenceKind kind, string name, int key, CodeReference? scope) =>
         new(kind, name, null, default, key, scope);
 

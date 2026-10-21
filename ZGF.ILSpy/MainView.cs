@@ -56,6 +56,9 @@ public static class MainView
                     case DockPanels.Bookmarks:
                         BookmarksPanelView.Render(ui, w, t);
                         break;
+                    case DockPanels.Analyzer:
+                        AnalyzerPanelView.Render(ui, w, t);
+                        break;
                     default:
                         if (w.FindTab(panel) is { } tab)
                             DocumentsView.Render(ui, w, t, tab);

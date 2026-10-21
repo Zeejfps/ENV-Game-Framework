@@ -202,7 +202,7 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
         return result.ToArray();
     }
 
-    private static NodeKind KindOf(ITypeDefinition type) =>
+    internal static NodeKind KindOf(ITypeDefinition type) =>
         type.Kind switch
         {
             TypeKind.Interface => NodeKind.Interface,
@@ -234,7 +234,7 @@ internal sealed class MemberNode(LoadedAssembly assembly, BrowseNode parent, IMe
             .ToArray();
     }
 
-    private static NodeKind KindOf(IMember member) =>
+    internal static NodeKind KindOf(IMember member) =>
         member switch
         {
             IField { IsConst: true } => NodeKind.Constant,

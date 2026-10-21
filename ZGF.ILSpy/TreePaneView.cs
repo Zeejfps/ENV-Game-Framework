@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -43,6 +44,8 @@ internal static class TreePaneView
             w.GoToTarget(node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
+        if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, "Ctrl+R", id: "analyze"))
+            w.Analyze(node);
         if (node.Kind == NodeKind.Assembly)
         {
             ui.MenuSeparator();

@@ -44,6 +44,10 @@ internal static class Shortcuts
                 case (KeyModifiers.None, KeyboardKey.F5):
                     w.Refresh();
                     break;
+                case (KeyModifiers.Control, KeyboardKey.R):
+                    if (w.Tree.View.Selected is { } selected)
+                        w.Analyze(selected);
+                    break;
                 case (KeyModifiers.Control, KeyboardKey.W):
                     if (w.ActiveTab is { } tab) w.CloseTab(tab);
                     break;
