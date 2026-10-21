@@ -5,20 +5,62 @@ namespace ZGF.ILSpy;
 
 /// <summary>A marked line of code: the place whose document it was made in, what names the line
 /// there, and what the user calls it. With an <see cref="Anchor"/> it finds its line in any document
-/// showing it, in either language; without one, only where it was made.</summary>
+/// showing it, in either language; without one, only where it was made. <see cref="ILSpy"/> and
+/// <see cref="ViewState"/> are what the real ILSpy keeps besides, so it can be written to its
+/// bookmarks file and read back from one.</summary>
 public sealed class Bookmark
 {
-    public Bookmark(NodePath place, DecompilationLanguage language, int line, CodeAnchor? anchor, string name, bool enabled = true)
+    public Bookmark(NodePath place, DecompilationLanguage language, int line, CodeAnchor? anchor, string name, ILSpyBookmarkInfo ilspy,
+        BookmarkViewState? viewState = null, bool enabled = true)
     {
         Place = place;
         Language = language;
         Line = line;
         Anchor = anchor;
         Name = name;
+        ILSpy = ilspy;
+        ViewState = viewState;
         Enabled = enabled;
         Location = $"{place.Text}:{line + 1}";
         Module = Path.GetFileName(place.FilePath);
     }
+
+    /// <summary>The bookmark <paramref name="record"/> describes, made in the document of <paramref name="place"/>.</summary>
+    public static Bookmark FromRecord(BookmarkRecord record, NodePath place)
+    {
+        CodeAnchor? anchor = record.Kind switch
+        {
+            BookmarkKind.Token => new CodeAnchor(CodeAnchorKind.Definition, record.FileName, (int)record.Token),
+            BookmarkKind.Body => new CodeAnchor(CodeAnchorKind.Statement, record.FileName, (int)record.Token, record.ILOffset),
+            _ => null,
+        };
+        var ilspy = new ILSpyBookmarkInfo(record.AssemblyFullName ?? "", record.ModuleName ?? Path.GetFileName(record.FileName), record.Token,
+            record.MemberName ?? "", record.LocationNodeName, record.ViewState?.SelectedTreeNodePath);
+        return new Bookmark(place, record.Language ?? DecompilationLanguage.CSharp, Math.Max(0, record.LineNumber - 1), anchor, record.Name ?? "", ilspy,
+            record.ViewState, record.Enabled);
+    }
+
+    /// <summary>This bookmark as ILSpy's bookmarks file holds it, with this app's place and language.</summary>
+    public BookmarkRecord ToRecord() => new(
+        Name,
+        Enabled,
+        Anchor?.FilePath ?? Place.FilePath,
+        ILSpy.AssemblyFullName,
+        ILSpy.ModuleName,
+        ILSpy.Token,
+        Anchor?.Kind switch
+        {
+            CodeAnchorKind.Definition => BookmarkKind.Token,
+            CodeAnchorKind.Statement => BookmarkKind.Body,
+            _ => BookmarkKind.Line,
+        },
+        Anchor is { Kind: CodeAnchorKind.Statement } statement ? statement.ILOffset : 0,
+        Line + 1,
+        ILSpy.MemberName,
+        ILSpy.LocationNodeName,
+        ViewState ?? new BookmarkViewState(1, 0, 0d, 0d, null, null, null, ILSpy.TreePath?.ToList()),
+        Place.Segments.ToList(),
+        Language);
 
     public NodePath Place { get; }
 
@@ -29,6 +71,13 @@ public sealed class Bookmark
     public int Line { get; }
 
     public CodeAnchor? Anchor { get; }
+
+    /// <summary>What the real ILSpy records about it besides its line.</summary>
+    public ILSpyBookmarkInfo ILSpy { get; }
+
+    /// <summary>ILSpy's view state, kept as it came from an ILSpy file to give back to one; null for a
+    /// bookmark made here, which writes one holding only the tree path.</summary>
+    public BookmarkViewState? ViewState { get; }
 
     public string Name { get; internal set; }
 
@@ -41,11 +90,27 @@ public sealed class Bookmark
     /// <summary>The file name of the assembly it is in.</summary>
     public string Module { get; }
 
+    /// <summary>Whether <paramref name="other"/> marks the same line: the same anchor, or for one
+    /// without, the same line of the same place in the same language.</summary>
+    public bool MarksSameLine(Bookmark other) =>
+        Anchor is { } anchor ? other.Anchor == anchor
+        : other.Anchor == null && Language == other.Language && Line == other.Line && Place.Equals(other.Place);
+
     /// <summary>The line it marks in <paramref name="document"/>, shown for <paramref name="place"/>, or -1.</summary>
     public int FindLine(DecompiledDocument document, NodePath place) =>
         Anchor is { } anchor ? document.FindLine(anchor)
         : Language == document.Language && Place.Equals(place) && Line < document.Lines.Length ? Line
         : -1;
+}
+
+/// <summary>What importing bookmarks does with the ones there are.</summary>
+public enum BookmarkImportMode
+{
+    /// <summary>Drops them for the imported ones.</summary>
+    Replace,
+
+    /// <summary>Keeps them, adding the imported ones that mark a line none of them does.</summary>
+    Merge,
 }
 
 /// <summary>The user's bookmarks in the order they were made, the one selected in the panel, and the
@@ -190,20 +255,31 @@ public sealed class BookmarkList
         }
     }
 
-    public List<SavedBookmark> Save() =>
-        _items.Select(static b => new SavedBookmark(b.Name, b.Enabled, b.Place.FilePath, b.Place.Segments.ToList(), b.Language, b.Line, b.Anchor))
-            .ToList();
+    public List<BookmarkRecord> Save() => _items.ConvertAll(static b => b.ToRecord());
 
-    public void Load(IEnumerable<SavedBookmark>? saved)
+    /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.</summary>
+    public void Load(IEnumerable<BookmarkRecord>? saved) =>
+        Import((saved ?? []).Where(static r => r is { Place: not null } && !string.IsNullOrEmpty(r.FileName))
+            .Select(static r => Bookmark.FromRecord(r, NodePath.From(r.FileName, r.Place!))), BookmarkImportMode.Replace);
+
+    /// <summary>Adds <paramref name="bookmarks"/>, after dropping every bookmark first when replacing,
+    /// or skipping the ones that mark a line already marked when merging. Returns how many were added.</summary>
+    public int Import(IEnumerable<Bookmark> bookmarks, BookmarkImportMode mode)
     {
-        _items.Clear();
-        foreach (var b in saved ?? [])
+        if (mode == BookmarkImportMode.Replace)
         {
-            if (string.IsNullOrEmpty(b.File) || b.Place == null || b.Line < 0) continue;
-            _items.Add(new Bookmark(NodePath.From(b.File, b.Place), b.Language, b.Line, b.Anchor, b.Name ?? "", b.Enabled));
+            _items.Clear();
+            Selected = -1;
+            Renaming = null;
         }
-        Selected = -1;
-        Renaming = null;
+        var added = 0;
+        foreach (var bookmark in bookmarks)
+        {
+            if (mode == BookmarkImportMode.Merge && _items.Exists(bookmark.MarksSameLine)) continue;
+            _items.Add(bookmark);
+            added++;
+        }
         Revision++;
+        return added;
     }
 }

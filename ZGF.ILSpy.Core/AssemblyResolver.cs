@@ -22,6 +22,8 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     public MetadataFile? Resolve(IAssemblyReference reference) => ResolveAssembly(reference)?.File;
 
+    public IDisposable? BeginSnapshot() => null;
+
     public LoadedAssembly? ResolveAssembly(IAssemblyReference reference)
     {
         if (_list.FindKnown(reference, exactOrNewer: true) is { } known) return known;

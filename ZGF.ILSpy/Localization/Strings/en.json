@@ -83,6 +83,15 @@
   "bookmarks.column_name": "Name",
   "bookmarks.column_location": "Location",
   "bookmarks.column_module": "Module",
+  "bookmarks.export": "Export bookmarks…",
+  "bookmarks.import": "Import bookmarks…",
+  "bookmarks.file_filter": "Bookmarks",
+  "bookmarks.export_title": "Export bookmarks",
+  "bookmarks.import_title": "Import bookmarks",
+  "bookmarks.import_question": "Replace your bookmarks with the imported ones, or merge in only those that mark lines you have not bookmarked?",
+  "bookmarks.import_replace": "Replace",
+  "bookmarks.import_merge": "Merge",
+  "bookmarks.import_cancel": "Cancel",
 
   "status.reloading": "Reloading…",
   "status.decompiling": "Decompiling…",
@@ -118,5 +127,8 @@
   "error.decompile": "Cannot decompile {name}",
   "error.scan_runtime": "Cannot scan the runtime's assemblies",
   "error.search": "Search failed",
-  "error.go_to_bookmark": "Cannot go to {name}"
+  "error.go_to_bookmark": "Cannot go to {name}",
+  "error.export_bookmarks": "Cannot export the bookmarks",
+  "error.import_bookmarks": "Cannot import bookmarks from {file}",
+  "error.bookmarks_not_found": "Some bookmarks from {file} were not found and were left out"
 }

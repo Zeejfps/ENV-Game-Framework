@@ -73,6 +73,15 @@
   "bookmarks.column_name": "名称",
   "bookmarks.column_location": "位置",
   "bookmarks.column_module": "模块",
+  "bookmarks.export": "导出书签…",
+  "bookmarks.import": "导入书签…",
+  "bookmarks.file_filter": "书签",
+  "bookmarks.export_title": "导出书签",
+  "bookmarks.import_title": "导入书签",
+  "bookmarks.import_question": "用导入的书签替换现有书签，还是只合并标记了尚无书签的行的书签？",
+  "bookmarks.import_replace": "替换",
+  "bookmarks.import_merge": "合并",
+  "bookmarks.import_cancel": "取消",
   "status.reloading": "正在重新加载…",
   "status.decompiling": "正在反编译…",
   "status.resolving": "正在解析…",
@@ -104,5 +113,8 @@
   "error.decompile": "无法反编译 {name}",
   "error.scan_runtime": "无法扫描运行时的程序集",
   "error.search": "搜索失败",
-  "error.go_to_bookmark": "无法转到 {name}"
+  "error.go_to_bookmark": "无法转到 {name}",
+  "error.export_bookmarks": "无法导出书签",
+  "error.import_bookmarks": "无法从 {file} 导入书签",
+  "error.bookmarks_not_found": "{file} 中的部分书签未找到，已略过"
 }

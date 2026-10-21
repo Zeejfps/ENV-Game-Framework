@@ -73,6 +73,15 @@
   "bookmarks.column_name": "Nom",
   "bookmarks.column_location": "Emplacement",
   "bookmarks.column_module": "Module",
+  "bookmarks.export": "Exporter les signets…",
+  "bookmarks.import": "Importer des signets…",
+  "bookmarks.file_filter": "Signets",
+  "bookmarks.export_title": "Exporter les signets",
+  "bookmarks.import_title": "Importer des signets",
+  "bookmarks.import_question": "Remplacer vos signets par ceux importés, ou fusionner seulement ceux qui marquent des lignes sans signet ?",
+  "bookmarks.import_replace": "Remplacer",
+  "bookmarks.import_merge": "Fusionner",
+  "bookmarks.import_cancel": "Annuler",
   "status.reloading": "Rechargement…",
   "status.decompiling": "Décompilation…",
   "status.resolving": "Résolution…",
@@ -104,5 +113,8 @@
   "error.decompile": "Impossible de décompiler {name}",
   "error.scan_runtime": "Impossible d’analyser les assemblys du runtime",
   "error.search": "Échec de la recherche",
-  "error.go_to_bookmark": "Impossible d’aller à {name}"
+  "error.go_to_bookmark": "Impossible d’aller à {name}",
+  "error.export_bookmarks": "Impossible d’exporter les signets",
+  "error.import_bookmarks": "Impossible d’importer les signets de {file}",
+  "error.bookmarks_not_found": "Certains signets de {file} sont introuvables et ont été ignorés"
 }

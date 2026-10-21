@@ -30,7 +30,7 @@ public sealed class AppSettings
     public bool ShowNonPublic { get; set; } = true;
     public DockLayout? Layout { get; set; }
 
-    public List<SavedBookmark> Bookmarks { get; set; } = new();
+    public List<BookmarkRecord> Bookmarks { get; set; } = new();
 
     /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
     public List<float>? BookmarkColumns { get; set; }
@@ -95,11 +95,7 @@ public sealed class AppSettings
     }
 }
 
-/// <summary>A <see cref="Bookmark"/> as the settings keep it: its place as the assembly file and
-/// the steps down from its root.</summary>
-public sealed record SavedBookmark(
-    string Name, bool Enabled, string File, List<NodePathSegment> Place, DecompilationLanguage Language, int Line, CodeAnchor? Anchor);
-
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(AppSettings))]
+[JsonSerializable(typeof(BookmarkFile))]
 internal sealed partial class AppSettingsJson : JsonSerializerContext;

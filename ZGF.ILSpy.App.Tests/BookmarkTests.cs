@@ -248,4 +248,186 @@ public sealed class BookmarkTests : IDisposable
 
         Assert.Equal([1f, 1f, 4f, 1f], restored);
     }
+
+    private string Exported(params string[] lines)
+    {
+        Directory.CreateDirectory(_directory);
+        var path = Path.Combine(_directory, "exported.json");
+        var (d, tab, _) = OutlineAt("return First();");
+        foreach (var text in lines)
+            d.Workspace.ToggleBookmark(tab, tab.Document.Find(text).Line);
+        d.Workspace.ExportBookmarks(path);
+        Assert.Empty(d.Workspace.Errors.Entries);
+        return path;
+    }
+
+    [Fact]
+    public void Exported_bookmarks_import_at_once_into_a_workspace_with_none()
+    {
+        var path = Exported("return First();", "foreach");
+        var (d, tab, line) = OutlineAt("return First();");
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+
+        Assert.Null(d.Workspace.PendingImport);
+        Assert.Equal(["Bookmark 1", "Bookmark 2"], d.Workspace.Bookmarks.Items.Select(b => b.Name));
+        Assert.True(d.Workspace.Bookmarks.LinesIn(tab.Document, tab.Location!)[line]);
+    }
+
+    [Fact]
+    public void Importing_beside_bookmarks_asks_then_merges_only_new_lines_or_replaces()
+    {
+        var path = Exported("return First();", "foreach");
+        var (d, tab, line) = OutlineAt("return First();");
+        var bookmarks = d.Workspace.Bookmarks;
+        d.Workspace.ToggleBookmark(tab, line);
+        bookmarks.StartRename(bookmarks.Items[0]);
+        bookmarks.RenameText = "Mine";
+        bookmarks.CommitRename();
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+        var asked = d.Workspace.PendingImport != null;
+        d.Workspace.FinishImport(BookmarkImportMode.Merge);
+        var merged = bookmarks.Items.Select(b => b.Name).ToList();
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+        d.Workspace.FinishImport(BookmarkImportMode.Replace);
+
+        Assert.True(asked);
+        Assert.Equal(["Mine", "Bookmark 2"], merged);
+        Assert.Equal(["Bookmark 1", "Bookmark 2"], bookmarks.Items.Select(b => b.Name));
+        Assert.Null(d.Workspace.PendingImport);
+    }
+
+    [Fact]
+    public void A_file_that_is_not_a_bookmarks_file_is_reported_and_changes_nothing()
+    {
+        Directory.CreateDirectory(_directory);
+        var path = Path.Combine(_directory, "other.json");
+        File.WriteAllText(path, "{ \"assemblies\": [] }");
+        var (d, tab, line) = OutlineAt("return First();");
+        d.Workspace.ToggleBookmark(tab, line);
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+
+        Assert.Single(d.Workspace.Bookmarks.Items);
+        Assert.Null(d.Workspace.PendingImport);
+        Assert.Equal("Cannot import bookmarks from other.json", Assert.Single(d.Workspace.Errors.Entries).Title);
+    }
+
+    [Fact]
+    public void Import_in_the_panel_picks_a_file_and_the_dialog_merges_it()
+    {
+        var path = Exported("foreach");
+        var app = new AppDriver(height: 500f);
+        var (d, tab, line) = OutlineAt("return First();", app.Driver);
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.OpenBookmarks();
+        app.Run(3);
+        app.Frames.FilePicker.Answer = path;
+
+        app.Click(LucideIcons.Download);
+        d.Settle();
+        app.Run(2);
+        var asked = app.Frames.Drew("Import bookmarks");
+        app.Click("Merge");
+        app.Run(2);
+
+        Assert.True(asked);
+        Assert.Equal(2, d.Workspace.Bookmarks.Items.Count);
+        Assert.False(app.Frames.Drew("Merge"));
+    }
+
+    private const string Fixtures = WorkspaceDriver.FixturesNamespace;
+
+    private static int TokenOf(string method) => typeof(Fixtures.Outline).GetMethod(method)!.MetadataToken;
+
+    private string ILSpyFile(string records)
+    {
+        Directory.CreateDirectory(_directory);
+        var path = Path.Combine(_directory, "ILSpy.Bookmarks.json");
+        File.WriteAllText(path, $$"""{ "Version": 1, "Bookmarks": [ {{records}} ] }""");
+        return path;
+    }
+
+    private static string Record(string name, string kind, int token, int ilOffset, int lineNumber, string treePath, string? file = null) =>
+        System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["Name"] = name, ["Enabled"] = true, ["FileName"] = file ?? WorkspaceDriver.FixturePath, ["AssemblyFullName"] = "ZGF.ILSpy.App.Tests",
+            ["ModuleName"] = "ZGF.ILSpy.App.Tests.dll", ["Token"] = token, ["Kind"] = kind, ["ILOffset"] = ilOffset, ["LineNumber"] = lineNumber,
+            ["MemberName"] = Fixtures + ".Outline", ["LocationNodeName"] = Fixtures + ".Outline",
+            ["ViewState"] = new Dictionary<string, object?>
+            {
+                ["Version"] = 1, ["CaretOffset"] = 0, ["VerticalOffset"] = 0.0, ["HorizontalOffset"] = 0.0, ["FoldingChecksum"] = null,
+                ["ExpandedFoldings"] = null, ["RenderedLayoutSettings"] = null,
+                ["SelectedTreeNodePath"] = new[] { file ?? WorkspaceDriver.FixturePath, Fixtures, treePath },
+            },
+        });
+
+    [Fact]
+    public void Exports_are_written_in_ILSpys_bookmark_format()
+    {
+        Directory.CreateDirectory(_directory);
+        var path = Path.Combine(_directory, "exported.json");
+        var (d, tab, line) = OutlineAt("return First();");
+        d.Workspace.ToggleBookmark(tab, line);
+
+        d.Workspace.ExportBookmarks(path);
+        using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+        var root = json.RootElement;
+        var entry = root.GetProperty("Bookmarks")[0];
+
+        Assert.Equal(1, root.GetProperty("Version").GetInt32());
+        Assert.Equal(
+            ["Name", "Enabled", "FileName", "AssemblyFullName", "ModuleName", "Token", "Kind", "ILOffset", "LineNumber", "MemberName", "LocationNodeName",
+                "ViewState", "Place", "Language"],
+            entry.EnumerateObject().Select(p => p.Name));
+        Assert.Equal("Body", entry.GetProperty("Kind").GetString());
+        Assert.Equal((uint)TokenOf("Third"), entry.GetProperty("Token").GetUInt32());
+        Assert.Equal(line + 1, entry.GetProperty("LineNumber").GetInt32());
+        Assert.Equal(WorkspaceDriver.FixturePath, entry.GetProperty("FileName").GetString());
+        Assert.Equal("ZGF.ILSpy.App.Tests.dll", entry.GetProperty("ModuleName").GetString());
+        Assert.Equal(Fixtures + ".Outline.Third", entry.GetProperty("MemberName").GetString());
+        Assert.Equal(Fixtures + ".Outline", entry.GetProperty("LocationNodeName").GetString());
+        Assert.Equal([WorkspaceDriver.FixturePath, Fixtures, Fixtures + ".Outline"],
+            entry.GetProperty("ViewState").GetProperty("SelectedTreeNodePath").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact]
+    public void A_file_ILSpy_wrote_imports_with_each_bookmark_placed_by_ILSpys_tree_path()
+    {
+        var path = ILSpyFile(Record("Bookmark0", "Body", TokenOf("Third"), 0, 99, Fixtures + ".Outline") + "," +
+                             Record("Bookmark1", "Line", TokenOf("Third"), 0, 3, Fixtures + ".Outline"));
+        var (d, tab, line) = OutlineAt("return First();");
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+        var bookmarks = d.Workspace.Bookmarks.Items;
+        var marked = d.Workspace.Bookmarks.LinesIn(tab.Document, tab.Location!);
+
+        Assert.Equal(["Bookmark0", "Bookmark1"], bookmarks.Select(b => b.Name));
+        Assert.All(bookmarks, b => Assert.Equal(tab.Location, b.Place));
+        Assert.True(marked[line]);
+        Assert.True(marked[2]);
+        Assert.Equal("Bookmark0", Assert.Single(d.Workspace.Bookmarks.Save(), r => r.Kind == BookmarkKind.Body).Name);
+    }
+
+    [Fact]
+    public void A_bookmark_whose_tree_path_is_stale_is_placed_by_its_token_and_one_with_no_file_is_reported()
+    {
+        var gone = Record("Gone", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Outline", Path.Combine(_directory, "gone.dll"));
+        var path = ILSpyFile(Record("Moved", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Renamed") + "," + gone);
+        var d = new WorkspaceDriver();
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+
+        var moved = Assert.Single(d.Workspace.Bookmarks.Items);
+        Assert.Equal("Moved", moved.Name);
+        Assert.StartsWith("Third()", moved.Place.Text);
+        Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.Workspace.Errors.Entries).Title);
+    }
 }

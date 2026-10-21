@@ -73,6 +73,15 @@
   "bookmarks.column_name": "名前",
   "bookmarks.column_location": "場所",
   "bookmarks.column_module": "モジュール",
+  "bookmarks.export": "ブックマークをエクスポート…",
+  "bookmarks.import": "ブックマークをインポート…",
+  "bookmarks.file_filter": "ブックマーク",
+  "bookmarks.export_title": "ブックマークのエクスポート",
+  "bookmarks.import_title": "ブックマークのインポート",
+  "bookmarks.import_question": "現在のブックマークをインポートしたもので置き換えますか？それとも、まだブックマークのない行のものだけを追加しますか？",
+  "bookmarks.import_replace": "置き換え",
+  "bookmarks.import_merge": "マージ",
+  "bookmarks.import_cancel": "キャンセル",
   "status.reloading": "再読み込み中…",
   "status.decompiling": "逆コンパイル中…",
   "status.resolving": "解決中…",
@@ -104,5 +113,8 @@
   "error.decompile": "{name} を逆コンパイルできません",
   "error.scan_runtime": "ランタイムのアセンブリをスキャンできません",
   "error.search": "検索に失敗しました",
-  "error.go_to_bookmark": "{name} に移動できません"
+  "error.go_to_bookmark": "{name} に移動できません",
+  "error.export_bookmarks": "ブックマークをエクスポートできません",
+  "error.import_bookmarks": "{file} からブックマークをインポートできません",
+  "error.bookmarks_not_found": "{file} の一部のブックマークが見つからなかったため、除外しました"
 }

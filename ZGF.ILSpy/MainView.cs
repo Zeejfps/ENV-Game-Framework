@@ -26,6 +26,7 @@ public static class MainView
             StatusBarView.Render(ui, w, t);
         }
         FrameworkPickerView.Render(ui, w, t);
+        BookmarkImportDialogView.Render(ui, w, t);
         ErrorDialogView.Render(ui, w, t);
     }
 

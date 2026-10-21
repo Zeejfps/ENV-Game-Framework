@@ -73,6 +73,15 @@
   "bookmarks.column_name": "Nombre",
   "bookmarks.column_location": "Ubicación",
   "bookmarks.column_module": "Módulo",
+  "bookmarks.export": "Exportar marcadores…",
+  "bookmarks.import": "Importar marcadores…",
+  "bookmarks.file_filter": "Marcadores",
+  "bookmarks.export_title": "Exportar marcadores",
+  "bookmarks.import_title": "Importar marcadores",
+  "bookmarks.import_question": "¿Reemplazar tus marcadores por los importados o combinar solo los que marcan líneas que aún no tienen marcador?",
+  "bookmarks.import_replace": "Reemplazar",
+  "bookmarks.import_merge": "Combinar",
+  "bookmarks.import_cancel": "Cancelar",
   "status.reloading": "Recargando…",
   "status.decompiling": "Descompilando…",
   "status.resolving": "Resolviendo…",
@@ -104,5 +113,8 @@
   "error.decompile": "No se puede descompilar {name}",
   "error.scan_runtime": "No se pueden examinar los ensamblados del runtime",
   "error.search": "Error en la búsqueda",
-  "error.go_to_bookmark": "No se puede ir a {name}"
+  "error.go_to_bookmark": "No se puede ir a {name}",
+  "error.export_bookmarks": "No se pueden exportar los marcadores",
+  "error.import_bookmarks": "No se pueden importar marcadores de {file}",
+  "error.bookmarks_not_found": "Algunos marcadores de {file} no se encontraron y se omitieron"
 }

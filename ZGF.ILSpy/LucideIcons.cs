@@ -19,6 +19,7 @@ public static class LucideIcons
     public const string Braces = "\uE36A";
     public const string Brackets = "\uE443";
     public const string Diff = "\uE30C";
+    public const string Download = "\uE0B2";
     public const string FileIcon = "\uE0C0";
     public const string Folder = "\uE0D7";
     public const string FunctionSquare = "\uE22D";
@@ -39,6 +40,7 @@ public static class LucideIcons
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
     public const string Trash2 = "\uE18E";
+    public const string Upload = "\uE19E";
     public const string Variable = "\uE473";
     public const string Webhook = "\uE374";
     public const string Wrench = "\uE1B1";

@@ -278,7 +278,8 @@ public sealed class Workspace
             return;
         }
         var t = Strings.For(Locale);
-        Bookmarks.Add(new Bookmark(node.Path, tab.Language, line, tab.Document.AnchorAt(line), Bookmarks.NextName(n => t.BookmarksDefaultName(n))));
+        var anchor = tab.Document.AnchorAt(line);
+        Bookmarks.Add(new Bookmark(node.Path, tab.Language, line, anchor, Bookmarks.NextName(n => t.BookmarksDefaultName(n)), ILSpyTree.Describe(node, anchor)));
     }
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
@@ -311,6 +312,66 @@ public sealed class Workspace
     {
         if (Bookmarks.Step(direction) is { } bookmark)
             GoTo(bookmark);
+    }
+
+    /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
+    /// ones there are or merge in beside them.</summary>
+    public List<Bookmark>? PendingImport { get; private set; }
+
+    /// <summary>True while imported bookmarks' places are being found in the background.</summary>
+    public bool IsImporting { get; private set; }
+
+    public void ExportBookmarks(string path)
+    {
+        if (BookmarkFile.Write(path, Bookmarks.Save()) is { } error)
+            ReportError(Strings.For(Locale).ErrorExportBookmarks, error);
+    }
+
+    /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
+    /// ILSpy's — and finds the place of each in the background: takes them at once when there are
+    /// none yet, and otherwise asks how through <see cref="PendingImport"/>. Bookmarks whose place
+    /// is not found are left out and reported.</summary>
+    public void ImportBookmarks(string path)
+    {
+        var t = Strings.For(Locale);
+        var file = Path.GetFileName(path);
+        if (BookmarkFile.Read(path, out var error) is not { } records)
+        {
+            ReportError(t.ErrorImportBookmarks(file), error);
+            return;
+        }
+        IsImporting = true;
+        RunInBackground(() => records.ConvertAll(r => (Record: r, Place: PlaceOf(r))), (found, failure) =>
+        {
+            IsImporting = false;
+            if (failure != null)
+            {
+                ReportError(t.ErrorImportBookmarks(file), failure.ToString());
+                return;
+            }
+            var lost = found!.FindAll(static f => f.Place == null);
+            if (lost.Count > 0)
+                ReportError(t.ErrorBookmarksNotFound(file), string.Join(Environment.NewLine,
+                    lost.Select(static f => $"{f.Record.Name}: {f.Record.LocationNodeName ?? f.Record.MemberName} ({f.Record.FileName})")));
+            var bookmarks = found.Where(static f => f.Place != null).Select(static f => Bookmark.FromRecord(f.Record, f.Place!)).ToList();
+            if (Bookmarks.Items.Count == 0)
+                Bookmarks.Import(bookmarks, BookmarkImportMode.Replace);
+            else if (bookmarks.Count > 0)
+                PendingImport = bookmarks;
+        });
+    }
+
+    private NodePath? PlaceOf(BookmarkRecord record) =>
+        record.Place is { } place ? NodePath.From(record.FileName, place)
+        : record.ViewState?.SelectedTreeNodePath is { Count: > 0 } path && ILSpyTree.Find(Assemblies, path) is { } found ? found
+        : ILSpyTree.FindEntity(Assemblies, record.FileName, record.Token);
+
+    /// <summary>Imports the <see cref="PendingImport"/> as <paramref name="mode"/> says, or drops it when null.</summary>
+    public void FinishImport(BookmarkImportMode? mode)
+    {
+        if (mode is { } how && PendingImport is { } saved)
+            Bookmarks.Import(saved, how);
+        PendingImport = null;
     }
 
     /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>

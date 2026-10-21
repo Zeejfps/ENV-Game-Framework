@@ -73,6 +73,15 @@
   "bookmarks.column_name": "Nome",
   "bookmarks.column_location": "Local",
   "bookmarks.column_module": "Módulo",
+  "bookmarks.export": "Exportar indicadores…",
+  "bookmarks.import": "Importar indicadores…",
+  "bookmarks.file_filter": "Indicadores",
+  "bookmarks.export_title": "Exportar indicadores",
+  "bookmarks.import_title": "Importar indicadores",
+  "bookmarks.import_question": "Substituir seus indicadores pelos importados ou mesclar apenas os que marcam linhas ainda sem indicador?",
+  "bookmarks.import_replace": "Substituir",
+  "bookmarks.import_merge": "Mesclar",
+  "bookmarks.import_cancel": "Cancelar",
   "status.reloading": "Recarregando…",
   "status.decompiling": "Descompilando…",
   "status.resolving": "Resolvendo…",
@@ -104,5 +113,8 @@
   "error.decompile": "Não é possível descompilar {name}",
   "error.scan_runtime": "Não é possível examinar os assemblies do runtime",
   "error.search": "Falha na pesquisa",
-  "error.go_to_bookmark": "Não é possível ir para {name}"
+  "error.go_to_bookmark": "Não é possível ir para {name}",
+  "error.export_bookmarks": "Não é possível exportar os indicadores",
+  "error.import_bookmarks": "Não é possível importar indicadores de {file}",
+  "error.bookmarks_not_found": "Alguns indicadores de {file} não foram encontrados e foram ignorados"
 }

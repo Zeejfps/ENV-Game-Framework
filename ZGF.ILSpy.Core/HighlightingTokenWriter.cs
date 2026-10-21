@@ -36,10 +36,10 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
         _nodes.Pop();
     }
 
-    public override void WriteKeyword(Role role, string keyword)
+    public override void WriteKeyword(string keyword)
     {
         _builder.Kind = SpanKind.Keyword;
-        base.WriteKeyword(role, keyword);
+        base.WriteKeyword(keyword);
         _builder.Kind = null;
     }
 
@@ -50,7 +50,7 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
         _builder.Kind = null;
     }
 
-    public override void WritePrimitiveValue(object value, LiteralFormat format = LiteralFormat.None)
+    public override void WritePrimitiveValue(object? value, LiteralFormat format = LiteralFormat.None)
     {
         _builder.Kind = value switch
         {
@@ -69,10 +69,10 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
         _builder.Kind = null;
     }
 
-    public override void WriteToken(Role role, string token)
+    public override void WriteToken(string token)
     {
         _builder.Kind = IsStringDelimiter(token) ? SpanKind.String : SpanKind.Plain;
-        base.WriteToken(role, token);
+        base.WriteToken(token);
         _builder.Kind = null;
     }
 
@@ -83,7 +83,7 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
         _builder.Kind = null;
     }
 
-    public override void WritePreProcessorDirective(PreProcessorDirectiveType type, string argument)
+    public override void WritePreProcessorDirective(PreProcessorDirectiveType type, string? argument)
     {
         _builder.Kind = SpanKind.Preprocessor;
         base.WritePreProcessorDirective(type, argument);

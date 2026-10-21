@@ -73,6 +73,15 @@
   "bookmarks.column_name": "Name",
   "bookmarks.column_location": "Ort",
   "bookmarks.column_module": "Modul",
+  "bookmarks.export": "Lesezeichen exportieren…",
+  "bookmarks.import": "Lesezeichen importieren…",
+  "bookmarks.file_filter": "Lesezeichen",
+  "bookmarks.export_title": "Lesezeichen exportieren",
+  "bookmarks.import_title": "Lesezeichen importieren",
+  "bookmarks.import_question": "Ihre Lesezeichen durch die importierten ersetzen oder nur die hinzufügen, die Zeilen markieren, die noch kein Lesezeichen haben?",
+  "bookmarks.import_replace": "Ersetzen",
+  "bookmarks.import_merge": "Zusammenführen",
+  "bookmarks.import_cancel": "Abbrechen",
   "status.reloading": "Wird neu geladen…",
   "status.decompiling": "Wird dekompiliert…",
   "status.resolving": "Wird aufgelöst…",
@@ -104,5 +113,8 @@
   "error.decompile": "{name} kann nicht dekompiliert werden",
   "error.scan_runtime": "Die Assemblys der Laufzeit können nicht durchsucht werden",
   "error.search": "Suche fehlgeschlagen",
-  "error.go_to_bookmark": "{name} kann nicht angesprungen werden"
+  "error.go_to_bookmark": "{name} kann nicht angesprungen werden",
+  "error.export_bookmarks": "Die Lesezeichen können nicht exportiert werden",
+  "error.import_bookmarks": "Lesezeichen aus {file} können nicht importiert werden",
+  "error.bookmarks_not_found": "Einige Lesezeichen aus {file} wurden nicht gefunden und ausgelassen"
 }

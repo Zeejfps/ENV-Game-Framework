@@ -73,6 +73,15 @@
   "bookmarks.column_name": "Имя",
   "bookmarks.column_location": "Расположение",
   "bookmarks.column_module": "Модуль",
+  "bookmarks.export": "Экспортировать закладки…",
+  "bookmarks.import": "Импортировать закладки…",
+  "bookmarks.file_filter": "Закладки",
+  "bookmarks.export_title": "Экспорт закладок",
+  "bookmarks.import_title": "Импорт закладок",
+  "bookmarks.import_question": "Заменить ваши закладки импортированными или добавить только те, что отмечают строки без закладок?",
+  "bookmarks.import_replace": "Заменить",
+  "bookmarks.import_merge": "Объединить",
+  "bookmarks.import_cancel": "Отмена",
   "status.reloading": "Перезагрузка…",
   "status.decompiling": "Декомпиляция…",
   "status.resolving": "Поиск определения…",
@@ -104,5 +113,8 @@
   "error.decompile": "Не удалось декомпилировать {name}",
   "error.scan_runtime": "Не удалось просканировать сборки среды выполнения",
   "error.search": "Ошибка поиска",
-  "error.go_to_bookmark": "Не удаётся перейти к {name}"
+  "error.go_to_bookmark": "Не удаётся перейти к {name}",
+  "error.export_bookmarks": "Не удаётся экспортировать закладки",
+  "error.import_bookmarks": "Не удаётся импортировать закладки из {file}",
+  "error.bookmarks_not_found": "Некоторые закладки из {file} не найдены и пропущены"
 }

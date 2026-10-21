@@ -73,6 +73,15 @@
   "bookmarks.column_name": "이름",
   "bookmarks.column_location": "위치",
   "bookmarks.column_module": "모듈",
+  "bookmarks.export": "책갈피 내보내기…",
+  "bookmarks.import": "책갈피 가져오기…",
+  "bookmarks.file_filter": "책갈피",
+  "bookmarks.export_title": "책갈피 내보내기",
+  "bookmarks.import_title": "책갈피 가져오기",
+  "bookmarks.import_question": "현재 책갈피를 가져온 책갈피로 바꿀까요, 아니면 아직 책갈피가 없는 줄의 책갈피만 추가할까요?",
+  "bookmarks.import_replace": "바꾸기",
+  "bookmarks.import_merge": "병합",
+  "bookmarks.import_cancel": "취소",
   "status.reloading": "다시 로드하는 중…",
   "status.decompiling": "디컴파일하는 중…",
   "status.resolving": "확인하는 중…",
@@ -104,5 +113,8 @@
   "error.decompile": "{name}을(를) 디컴파일할 수 없습니다",
   "error.scan_runtime": "런타임 어셈블리를 검사할 수 없습니다",
   "error.search": "검색하지 못했습니다",
-  "error.go_to_bookmark": "{name}(으)로 이동할 수 없습니다"
+  "error.go_to_bookmark": "{name}(으)로 이동할 수 없습니다",
+  "error.export_bookmarks": "책갈피를 내보낼 수 없습니다",
+  "error.import_bookmarks": "{file}에서 책갈피를 가져올 수 없습니다",
+  "error.bookmarks_not_found": "{file}의 일부 책갈피를 찾지 못해 제외했습니다"
 }

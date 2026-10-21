@@ -54,7 +54,7 @@ internal sealed class WorkspaceDriver
     public void Settle() => PumpUntil(() =>
     {
         var w = Workspace;
-        return !w.IsReloading && !w.IsResolving && !w.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+        return !w.IsReloading && !w.IsResolving && !w.IsImporting && !w.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
     });
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>

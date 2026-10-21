@@ -60,6 +60,12 @@ internal static class BookmarksPanelView
         return _headers;
     }
 
+    private static FileFilter[] Filters(Strings t) =>
+    [
+        new(t.BookmarksFileFilter, ["*.json"]),
+        new(t.FileFilterAll, ["*.*"]),
+    ];
+
     private static void Toolbar(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
@@ -84,6 +90,11 @@ internal static class BookmarksPanelView
                 bookmarks.StartRename(selected!);
             if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.BookmarksDelete, selected != null))
                 bookmarks.Remove(selected!);
+            ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = theme.IconSize, Background = theme.Separator });
+            if (ui.IconButton("export", LucideIcons.Upload, LucideIcons.Family, t.BookmarksExport, bookmarks.Items.Count > 0))
+                ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), w.ExportBookmarks);
+            if (ui.IconButton("import", LucideIcons.Download, LucideIcons.Family, t.BookmarksImport))
+                ui.PickFile(t.BookmarksImportTitle, null, Filters(t), w.ImportBookmarks);
         }
     }
 

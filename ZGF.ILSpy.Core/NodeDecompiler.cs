@@ -121,7 +121,7 @@ internal static class NodeDecompiler
         cancellationToken.ThrowIfCancellationRequested();
         syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
         output.IndentationString = settings.CSharpFormattingOptions.IndentationString;
-        TokenWriter writer = new TextTokenWriter(output, settings, typeSystem);
+        TokenWriter writer = new TextTokenWriter(output, settings);
         writer = new HighlightingTokenWriter(writer, output);
         syntaxTree.AcceptVisitor(new CSharpOutputVisitor(writer, settings.CSharpFormattingOptions));
     }

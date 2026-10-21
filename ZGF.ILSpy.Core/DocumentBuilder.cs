@@ -124,7 +124,7 @@ internal sealed class DocumentBuilder : ITextOutput
         WriteReferenceSpan(text, Kind ?? SpanKindOf(kind), reference, isDefinition);
     }
 
-    public void WriteLocalReference(string text, object reference, bool isDefinition = false)
+    public void WriteLocalReference(string text, object reference, bool isDefinition = false, bool isHoverOnly = false)
     {
         var (referenceKind, spanKind) = reference switch
         {
@@ -166,6 +166,10 @@ internal sealed class DocumentBuilder : ITextOutput
                 anchors[line] = new CodeAnchor(CodeAnchorKind.Statement, file, MetadataTokens.GetToken(method.Handle), offset);
         }
         return anchors;
+    }
+
+    public void MarkDefinitionStart()
+    {
     }
 
     public void MarkFoldStart(string collapsedText = "...", bool defaultCollapsed = false, bool isDefinition = false) =>
