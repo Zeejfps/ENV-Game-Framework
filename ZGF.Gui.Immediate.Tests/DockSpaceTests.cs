@@ -246,6 +246,35 @@ public sealed class DockSpaceTests
     }
 
     [Fact]
+    public void Pressing_inside_a_group_focuses_its_front_panel()
+    {
+        _frames.Run(0f, Body);
+
+        _frames.Click(Center(GroupRect("c")).X, Center(GroupRect("c")).Y, Body);
+
+        Assert.Equal("c", _layout.Focused);
+    }
+
+    [Fact]
+    public void Dragging_a_groups_only_tab_onto_its_own_right_target_moves_it_there_beside_a_new_focused_panel()
+    {
+        _layout.Root = DockLayout.Group("a");
+        _layout.NewPanel = () => "new";
+        _frames.Run(0f, Body);
+        var target = Center(GroupRect("a"));
+
+        Drag(Center(TabRect("a")), target, target with { X = target.X + 32f });
+        Drop();
+
+        var root = Assert.IsType<DockSplit>(_layout.Root);
+        Assert.Equal(["new"], Assert.IsType<DockGroup>(root.First).Panels);
+        Assert.Equal(["a"], Assert.IsType<DockGroup>(root.Second).Panels);
+        Assert.Equal("new", _layout.Focused);
+        Assert.True(_frames.Drew("content:new"));
+        Assert.True(_frames.Drew("content:a"));
+    }
+
+    [Fact]
     public void Dragging_a_divider_writes_the_splits_ratio()
     {
         _frames.Run(0f, Body);

@@ -91,6 +91,52 @@ public sealed class DockLayoutTests
     }
 
     [Fact]
+    public void Docking_a_groups_only_panel_beside_it_moves_it_there_and_leaves_a_new_focused_panel_when_the_layout_makes_them()
+    {
+        var layout = TwoGroups();
+        layout.NewPanel = () => "new";
+        var right = layout.GroupOf("c")!;
+
+        layout.Dock("c", right, DockEdge.Right, 0.4f);
+
+        var split = Assert.IsType<DockSplit>(((DockSplit)layout.Root).Second);
+        Assert.Same(right, split.First);
+        Assert.Equal(["new"], right.Panels);
+        Assert.Equal(["c"], Assert.IsType<DockGroup>(split.Second).Panels);
+        Assert.Equal(0.6f, split.Ratio, 3);
+        Assert.Equal("new", layout.Focused);
+    }
+
+    [Fact]
+    public void Moving_the_roots_only_panel_away_leaves_a_new_panel_in_the_root_when_the_layout_makes_them()
+    {
+        var layout = new DockLayout { Root = DockLayout.Group("a"), NewPanel = () => "new" };
+
+        layout.Float("a", new UiRect(0f, 0f, 200f, 200f));
+
+        Assert.Equal(["new"], Assert.IsType<DockGroup>(layout.Root).Panels);
+        Assert.Equal(["a"], layout.GroupOf("a")!.Panels);
+    }
+
+    [Fact]
+    public void Focus_follows_the_panel_last_activated_docked_or_floated_and_moves_to_the_front_one_when_it_closes()
+    {
+        var layout = TwoGroups();
+
+        layout.Activate("b");
+        Assert.Equal("b", layout.Focused);
+        layout.Dock("a", layout.GroupOf("c")!, DockEdge.Center);
+        Assert.Equal("a", layout.Focused);
+        layout.Float("b", new UiRect(0f, 0f, 200f, 200f));
+        Assert.Equal("b", layout.Focused);
+
+        layout.Activate("a");
+        layout.Close("a");
+
+        Assert.Equal("c", layout.Focused);
+    }
+
+    [Fact]
     public void A_floated_panel_gets_a_window_in_front_and_docking_the_window_back_removes_it()
     {
         var layout = TwoGroups();

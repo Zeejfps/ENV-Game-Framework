@@ -20,9 +20,13 @@ public sealed class DocumentTab
     {
         _post = post;
         _reportError = reportError;
+        Panel = $"document-{Id}";
     }
 
     public int Id { get; } = Interlocked.Increment(ref _nextId);
+
+    /// <summary>The tab's panel in <see cref="Workspace.Documents"/>.</summary>
+    public string Panel { get; }
 
     /// <summary>Where the tab points; outlives reloads of the assembly.</summary>
     public NodePath? Location { get; private set; }

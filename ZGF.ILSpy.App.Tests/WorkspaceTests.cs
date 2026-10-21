@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -14,6 +15,64 @@ public sealed class WorkspaceTests
         Assert.Empty(d.Workspace.Tabs);
         d.PumpUntil(() => d.Workspace.ActiveTab != null);
         Assert.Equal(NodeKind.Assembly, d.Workspace.ActiveTab!.Node!.Kind);
+    }
+
+    [Fact]
+    public void A_new_tab_opens_in_the_active_tabs_group()
+    {
+        var d = new WorkspaceDriver();
+        d.OpenFixtures();
+        d.Show(d.Fixture("Greeter"));
+        d.Show(d.Fixture("Farewell"), inNewTab: true);
+        var greeter = d.Workspace.Tabs[^2];
+        var documents = d.Workspace.Documents;
+        documents.Dock(d.Workspace.ActiveTab!.Panel, documents.Root, DockEdge.Right);
+        d.Workspace.Activate(greeter);
+
+        d.Show(d.Fixture("Outline"), inNewTab: true);
+
+        Assert.Same(documents.GroupOf(greeter.Panel), documents.GroupOf(d.Workspace.ActiveTab!.Panel));
+        Assert.Equal("Outline", d.Workspace.ActiveTab.Node!.Text);
+    }
+
+    [Fact]
+    public void Docking_the_only_tab_beside_itself_moves_it_there_and_leaves_a_new_empty_tab_that_shows_what_is_picked_next()
+    {
+        var d = new WorkspaceDriver();
+        d.OpenFixtures();
+        d.Show(d.Fixture("Greeter"));
+        var greeter = d.Workspace.ActiveTab!;
+        var documents = d.Workspace.Documents;
+
+        documents.Dock(greeter.Panel, documents.GroupOf(greeter.Panel)!, DockEdge.Right);
+        d.Workspace.SyncActiveTab();
+
+        Assert.Equal(2, d.Workspace.Tabs.Count);
+        var empty = d.Workspace.Tabs.Single(t => t != greeter);
+        Assert.Null(empty.Location);
+        Assert.NotSame(documents.GroupOf(greeter.Panel), documents.GroupOf(empty.Panel));
+        Assert.Same(empty, d.Workspace.ActiveTab);
+
+        d.Show(d.Fixture("Farewell"));
+
+        Assert.Equal("Farewell", empty.Node!.Text);
+        Assert.Equal("Greeter", greeter.Node!.Text);
+    }
+
+    [Fact]
+    public void Closing_the_active_tab_activates_the_one_in_front_of_its_group()
+    {
+        var d = new WorkspaceDriver();
+        d.OpenFixtures();
+        d.Show(d.Fixture("Greeter"));
+        d.Show(d.Fixture("Farewell"), inNewTab: true);
+        var greeter = d.Workspace.Tabs[^2];
+
+        d.Workspace.CloseTab(d.Workspace.ActiveTab!);
+
+        Assert.Same(greeter, d.Workspace.ActiveTab);
+        Assert.DoesNotContain(d.Workspace.Tabs, t => t.Node?.Text == "Farewell");
+        Assert.Equal([greeter.Panel], d.Workspace.Documents.GroupOf(greeter.Panel)!.Panels);
     }
 
     [Fact]
@@ -112,7 +171,7 @@ public sealed class WorkspaceTests
         d.OpenFixtures();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
-        d.Workspace.Activate(0);
+        d.Workspace.Activate(d.Workspace.Tabs[0]);
         d.Settle();
         var tab = d.Workspace.ActiveTab!;
         var document = tab.Document;
@@ -139,7 +198,7 @@ public sealed class WorkspaceTests
         d.Workspace.Navigate(reference, inNewTab: false);
         d.Workspace.Show(farewell);
         d.Workspace.Navigate(reference, inNewTab: true);
-        d.Workspace.Activate(0);
+        d.Workspace.Activate(d.Workspace.Tabs[0]);
         d.Settle();
 
         var tab = Assert.Single(d.Workspace.Tabs);

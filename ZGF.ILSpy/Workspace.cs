@@ -20,6 +20,7 @@ public sealed class Workspace
     private int _reload;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
+    private DocumentTab? _active;
 
     public Workspace(AppSettings settings)
     {
@@ -36,6 +37,8 @@ public sealed class Workspace
                 Search.Clear();
         };
         Picker = new FrameworkPickerModel(ReportError);
+        Documents = new DockLayout { NewPanel = () => AddTab().Panel };
+        Documents.PanelClosed += RemoveTab;
         if (settings.LoadError is { } error)
             ReportError("Cannot read the settings; starting with defaults", error);
     }
@@ -54,14 +57,17 @@ public sealed class Workspace
     /// <summary>Where the tree, documents and search results are docked.</summary>
     public DockLayout Layout { get; }
 
-    public int ActiveIndex { get; private set; } = -1;
+    /// <summary>Where the open tabs are docked inside the documents area: side by side, stacked or
+    /// in floating windows.</summary>
+    public DockLayout Documents { get; }
 
     public DecompilationLanguage Language { get; private set; }
 
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget { get; private set; }
 
-    public DocumentTab? ActiveTab => ActiveIndex >= 0 && ActiveIndex < _tabs.Count ? _tabs[ActiveIndex] : null;
+    /// <summary>The tab the user last worked in, where the tree and navigation show what they pick.</summary>
+    public DocumentTab? ActiveTab => _active;
 
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
     public bool IsResolving => _resolving == _intent;
@@ -179,7 +185,8 @@ public sealed class Workspace
     {
         if (language == Language) return;
         Language = language;
-        ActiveTab?.EnsureLanguage(language);
+        foreach (var group in Documents.AllGroups())
+            FindTab(group.Active)?.EnsureLanguage(language);
     }
 
     /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
@@ -237,37 +244,43 @@ public sealed class Workspace
         Restore(History.Forward()!.Value);
     }
 
-    public void Activate(int index)
+    /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>
+    public DocumentTab? FindTab(string? panel)
     {
-        if (index < 0 || index >= _tabs.Count) return;
-        Intend();
-        ActiveIndex = index;
-        var tab = _tabs[index];
-        tab.EnsureLanguage(Language);
-        if (tab.Node is { } node && IsListed(node))
-            Tree.Reveal(node);
+        foreach (var tab in _tabs)
+        {
+            if (tab.Panel == panel)
+                return tab;
+        }
+        return null;
     }
 
+    public void Activate(DocumentTab tab)
+    {
+        if (!_tabs.Contains(tab)) return;
+        Documents.Activate(tab.Panel);
+        Focus(tab);
+    }
+
+    /// <summary>Called after the documents are recorded: makes the tab the user last pressed, docked
+    /// or brought to front the active one.</summary>
+    public void SyncActiveTab()
+    {
+        if (FindTab(Documents.Focused) is { } tab && tab != _active)
+            Focus(tab);
+    }
+
+    /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
     public void CycleTab(int by)
     {
-        if (_tabs.Count > 1)
-            Activate(((ActiveIndex + by) % _tabs.Count + _tabs.Count) % _tabs.Count);
+        if (_active == null || Documents.GroupOf(_active.Panel) is not { Panels.Count: > 1 } group) return;
+        var count = group.Panels.Count;
+        var next = group.Panels[((group.Panels.IndexOf(_active.Panel) + by) % count + count) % count];
+        if (FindTab(next) is { } tab)
+            Activate(tab);
     }
 
-    public void CloseTab(DocumentTab tab)
-    {
-        var index = _tabs.IndexOf(tab);
-        if (index < 0) return;
-        Intend();
-        tab.Cancel();
-        _tabs.RemoveAt(index);
-        if (_tabs.Count == 0)
-            ActiveIndex = -1;
-        else if (index < ActiveIndex || ActiveIndex >= _tabs.Count)
-            Activate(ActiveIndex - 1);
-        else if (index == ActiveIndex)
-            Activate(ActiveIndex);
-    }
+    public void CloseTab(DocumentTab tab) => Documents.Close(tab.Panel);
 
     public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
 
@@ -313,6 +326,44 @@ public sealed class Workspace
 
     private bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
+    private DocumentTab AddTab()
+    {
+        var tab = new DocumentTab(Post, ReportError);
+        _tabs.Add(tab);
+        return tab;
+    }
+
+    private void RemoveTab(string panel)
+    {
+        if (FindTab(panel) is not { } tab) return;
+        Intend();
+        tab.Cancel();
+        _tabs.Remove(tab);
+        if (tab != _active) return;
+        _active = null;
+        if ((FindTab(Documents.Focused) ?? FrontTab()) is { } next)
+            Focus(next);
+    }
+
+    private DocumentTab? FrontTab()
+    {
+        foreach (var group in Documents.AllGroups())
+        {
+            if (FindTab(group.Active) is { } tab)
+                return tab;
+        }
+        return null;
+    }
+
+    private void Focus(DocumentTab tab)
+    {
+        Intend();
+        _active = tab;
+        tab.EnsureLanguage(Language);
+        if (tab.Node is { } node && IsListed(node))
+            Tree.Reveal(node);
+    }
+
     private void LeaveActive()
     {
         if (ActiveTab is { IsBusy: false, Node: not null } tab && History.Current is { } current && current.Place.Equals(tab.Location))
@@ -348,10 +399,15 @@ public sealed class Workspace
     {
         if (tab == null)
         {
-            tab = new DocumentTab(Post, ReportError);
-            _tabs.Add(tab);
+            var group = (_active != null ? Documents.GroupOf(_active.Panel) : null) ?? Documents.AllGroups().First();
+            tab = AddTab();
+            Documents.Dock(tab.Panel, group, DockEdge.Center);
         }
-        ActiveIndex = _tabs.IndexOf(tab);
+        else
+        {
+            Documents.Activate(tab.Panel);
+        }
+        _active = tab;
         tab.Show(node, Language, position);
         Tree.Reveal(node);
     }

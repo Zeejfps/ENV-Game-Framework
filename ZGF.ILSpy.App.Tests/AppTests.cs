@@ -48,6 +48,45 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void Dragging_the_only_tab_onto_the_documents_right_target_moves_it_there_and_tree_picks_go_to_the_new_tab_left_behind()
+    {
+        var app = OpenFixtures();
+        app.Run(2);
+        var shown = app.Workspace.ActiveTab!;
+        var label = app.Workspace.Tree.Label(shown.Node!);
+        var tab = app.Frames.Canvas.Texts.Where(t => t.Inputs.Text == label).Select(t => t.Inputs.Position).MaxBy(p => p.Left)!;
+        var (x, y) = (tab.Left + tab.Width / 2, app.Frames.Height - tab.Top + tab.Height / 2);
+        var bottom = app.Frames.Height - AppThemes.For(app.Workspace.DarkMode).Ui.StatusBarHeight;
+
+        app.Frames.MovePointer(x, y);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.MovePointer(x + 20f, y + 20f);
+        app.Run();
+        app.Frames.MovePointer(app.Frames.Width - 22f, (y + bottom) / 2);
+        app.Run(2);
+        app.Frames.Release();
+        app.Run(2);
+
+        Assert.Equal(2, app.Workspace.Tabs.Count);
+        var opened = app.Workspace.ActiveTab!;
+        Assert.NotSame(shown, opened);
+        Assert.Null(opened.Location);
+        Assert.True(app.TextRect("New tab").X < app.Frames.Canvas.Texts.Where(t => t.Inputs.Text == label).Max(t => t.Inputs.Position.Left));
+        Assert.True(app.Frames.Drew("Select a node in the tree to decompile it."));
+
+        app.Workspace.Tree.View.SetExpanded(app.Driver.Node(), true);
+        app.Workspace.Tree.View.Refresh();
+        RunUntil(app, () => app.Frames.Drew(WorkspaceDriver.FixturesNamespace));
+        app.Click(WorkspaceDriver.FixturesNamespace);
+        app.Driver.Settle();
+
+        Assert.Equal(WorkspaceDriver.FixturesNamespace, opened.Node?.Text);
+        Assert.Equal(label, app.Workspace.Tree.Label(shown.Node!));
+    }
+
+    [Fact]
     public void A_long_error_never_pushes_the_status_bar_off_screen()
     {
         var app = new AppDriver();

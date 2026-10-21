@@ -72,6 +72,18 @@ public sealed class DockLayout
     public List<DockWindow> Windows { get; set; } = new();
     public int NextId { get; set; } = 1;
 
+    /// <summary>The panel the user last worked in: the front panel of the group last pressed, or the
+    /// panel last activated, docked or floated. Moves to the panel in front of it when it closes.</summary>
+    [JsonIgnore]
+    public string? Focused { get; private set; }
+
+    /// <summary>Makes a new panel to stay behind when a group's only panel moves out of a group that
+    /// must not go away: the group it is docked beside, which is then split, with the new panel
+    /// focused; or the root group. Without it, docking a group's only panel beside the group does
+    /// nothing and moving the root's only panel away leaves the root empty.</summary>
+    [JsonIgnore]
+    public Func<string>? NewPanel { get; set; }
+
     /// <summary>Raised when the user closes a panel, or <see cref="Close"/> is called.</summary>
     public event Action<string>? PanelClosed;
 
@@ -103,11 +115,12 @@ public sealed class DockLayout
     }
 
     /// <summary>Brings <paramref name="panel"/> to the front of its group, and its window to the
-    /// front of the others.</summary>
+    /// front of the others, and focuses it.</summary>
     public void Activate(string panel)
     {
         if (GroupOf(panel) is not { } group) return;
         group.Active = panel;
+        Focused = panel;
         if (WindowOf(group) is { } window)
             BringToFront(window);
     }
@@ -132,14 +145,19 @@ public sealed class DockLayout
     public void Dock(string panel, DockNode target, DockEdge edge, float share = 0.5f, int index = -1)
     {
         var source = GroupOf(panel);
-        if (source != null && source == target)
+        if (source != null && source == target && edge == DockEdge.Center)
         {
-            if (edge == DockEdge.Center)
-            {
-                Reorder(source, panel, index);
-                return;
-            }
-            if (source.Panels.Count == 1) return;
+            Reorder(source, panel, index);
+            Focused = panel;
+            return;
+        }
+        string? refill = null;
+        if (source is { Panels.Count: 1 } && (source == target || source == Root))
+        {
+            refill = NewPanel?.Invoke();
+            if (refill == null && source == target) return;
+            if (refill != null)
+                source.Panels.Add(refill);
         }
         if (source != null)
         {
@@ -147,6 +165,7 @@ public sealed class DockLayout
             if (collapsed == target)
                 target = replacement!;
         }
+        Focused = source == target && refill != null ? refill : panel;
         if (edge == DockEdge.Center && target is DockGroup group)
         {
             Insert(group, panel, index);
@@ -163,6 +182,7 @@ public sealed class DockLayout
     public void Dock(DockWindow window, DockNode target, DockEdge edge, float share = 0.5f, int index = -1)
     {
         if (Holds(window.Root, target) || !Windows.Remove(window)) return;
+        Focused = Groups(window.Root).First().Active ?? Focused;
         if (edge == DockEdge.Center && target is DockGroup group)
         {
             var first = true;
@@ -181,7 +201,10 @@ public sealed class DockLayout
     /// <paramref name="rect"/>, in front of the others.</summary>
     public DockWindow Float(string panel, UiRect rect)
     {
+        if (GroupOf(panel) is { Panels.Count: 1 } source && source == Root)
+            Refill(source);
         Detach(panel, out _, out _);
+        Focused = panel;
         var window = new DockWindow
         {
             Id = NextId++,
@@ -206,6 +229,8 @@ public sealed class DockLayout
 
     /// <summary>Every panel under <paramref name="node"/>, group by group.</summary>
     public static List<string> PanelsIn(DockNode node) => Groups(node).SelectMany(g => g.Panels).ToList();
+
+    internal void Focus(string panel) => Focused = panel;
 
     internal void AssignIds()
     {
@@ -243,6 +268,8 @@ public sealed class DockLayout
         group.Panels.RemoveAt(at);
         if (group.Active == panel)
             group.Active = group.Panels.Count == 0 ? null : group.Panels[Math.Min(at, group.Panels.Count - 1)];
+        if (Focused == panel)
+            Focused = group.Active;
         if (group.Panels.Count > 0) return true;
 
         if (Root == group) return true;
@@ -257,6 +284,12 @@ public sealed class DockLayout
             Windows.Remove(window);
         }
         return true;
+    }
+
+    private void Refill(DockGroup group)
+    {
+        if (NewPanel?.Invoke() is { } panel)
+            group.Panels.Add(panel);
     }
 
     private void PlaceBeside(DockNode node, DockNode target, DockEdge edge, float share)

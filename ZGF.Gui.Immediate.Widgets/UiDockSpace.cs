@@ -5,10 +5,11 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>How a panel's tab reads in a <see cref="UiWidgets.DockSpace"/>. A panel that is not
+/// <summary>How a panel's tab reads in a <see cref="UiWidgets.DockSpace"/>, with
+/// <see cref="Tooltip"/> shown while the pointer rests on it. A panel that is not
 /// <see cref="Movable"/> — an editor area the others dock around — shows no tab while alone in its
 /// group, cannot be dragged, and takes other panels only beside it, not as tabs.</summary>
-public readonly record struct DockTab(string Title, bool Closable = true, bool Movable = true);
+public readonly record struct DockTab(string Title, bool Closable = true, bool Movable = true, string? Tooltip = null);
 
 /// <summary>An open <see cref="UiWidgets.DockSpace"/>: call <see cref="Next"/> until it returns
 /// false, recording each panel it names, then dispose.</summary>
@@ -41,16 +42,36 @@ public static partial class UiWidgets
     /// arranges them. <paramref name="tab"/> names each panel's tab. The user drags a tab onto
     /// another group's tabs, onto the targets shown over a group or the dock space's edges, or off
     /// into a window of its own; drags a window by its title bar to move it or dock it, and its
-    /// edges to resize it; and drags dividers. Every change is written to
-    /// <paramref name="layout"/> when the scope ends. Escape cancels a drag.
+    /// edges to resize it; and drags dividers. Pressing a group focuses its front panel
+    /// (<see cref="DockLayout.Focused"/>). Every change is written to <paramref name="layout"/> when
+    /// the scope ends. Escape cancels a drag.
     /// </summary>
-    public static DockSpace DockSpace(this Ui ui, string id, DockLayout layout, Func<string, DockTab> tab, Box box = default)
+    public static DockSpace DockSpace(this Ui ui, string id, DockLayout layout, Func<string, DockTab> tab, Box box = default) =>
+        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box);
+
+    /// <summary>A <see cref="DockSpace(Ui, string, DockLayout, Func{string, DockTab}, Box)"/> whose
+    /// tabs are named by <paramref name="tab"/> from <paramref name="state"/>, so a static lambda
+    /// can name them without allocating.</summary>
+    public static DockSpace DockSpace<TState>(this Ui ui, string id, DockLayout layout, TState state, Func<TState, string, DockTab> tab, Box box = default)
     {
         var dockId = ui.GetId(id);
         var walker = ui.GetState<DockWalker>(HashCode.Combine(dockId, DockWalkerSalt));
-        walker.Begin(ui, id, dockId, layout, tab, box);
+        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box);
         return new DockSpace(walker);
     }
+}
+
+internal interface IDockTabs
+{
+    DockTab Tab(string panel);
+}
+
+internal sealed class DockTabs<TState> : IDockTabs
+{
+    public TState State = default!;
+    public Func<TState, string, DockTab> Name = null!;
+
+    public DockTab Tab(string panel) => Name(State, panel);
 }
 
 internal sealed class DockDrag(int dock, string? panel, DockWindow? window, PointF grab, float width, float height)
@@ -118,7 +139,8 @@ internal sealed class DockWalker
     private Ui _ui = null!;
     private UiTheme _theme = null!;
     private DockLayout _layout = null!;
-    private Func<string, DockTab> _tab = null!;
+    private IDockTabs _tab = null!;
+    private IDockTabs? _source;
     private Ui.Scope _idScope;
     private Ui.Scope _root;
     private int _dockId;
@@ -127,7 +149,16 @@ internal sealed class DockWalker
     private UiRect? _preview;
     private UiRect? _caret;
 
-    public void Begin(Ui ui, string id, int dockId, DockLayout layout, Func<string, DockTab> tab, Box box)
+    public IDockTabs Tabs<TState>(TState state, Func<TState, string, DockTab> name)
+    {
+        if (_source is not DockTabs<TState> tabs)
+            _source = tabs = new DockTabs<TState>();
+        tabs.State = state;
+        tabs.Name = name;
+        return tabs;
+    }
+
+    public void Begin(Ui ui, string id, int dockId, DockLayout layout, IDockTabs tab, Box box)
     {
         _ui = ui;
         _theme = ui.Theme;
@@ -277,6 +308,9 @@ internal sealed class DockWalker
                 RecordOverlay(drag!, dockRect, target);
         }
 
+        if (_ui.Input.WasPressed(PointerButton.Left) && GroupAt(_ui.Input.Pointer, null) is { Group.Active: { } focused })
+            _layout.Focus(focused);
+
         _root.Dispose();
         _idScope.Dispose();
 
@@ -358,8 +392,8 @@ internal sealed class DockWalker
                 for (var i = 0; i < group.Panels.Count; i++)
                 {
                     var panel = group.Panels[i];
-                    var info = _tab(panel);
-                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, draggable: info.Movable);
+                    var info = _tab.Tab(panel);
+                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable);
                     _tabs.Add(tab.Id);
                     if (tab.Selected)
                     {
@@ -387,7 +421,7 @@ internal sealed class DockWalker
         return group.Active;
     }
 
-    private bool IsFixed(DockGroup group) => group.Panels.Count == 1 && !_tab(group.Panels[0]).Movable;
+    private bool IsFixed(DockGroup group) => group.Panels.Count == 1 && !_tab.Tab(group.Panels[0]).Movable;
 
     private void BeginPanelDrag(string panel, int groupElementId, int tabId)
     {
@@ -479,7 +513,7 @@ internal sealed class DockWalker
         var group = (DockGroup)node;
         foreach (var panel in group.Panels)
         {
-            var info = _tab(panel);
+            var info = _tab.Tab(panel);
             closable &= info.Closable;
             if (panel == group.Active)
                 caption ??= info.Title;
@@ -562,7 +596,7 @@ internal sealed class DockWalker
         }
         var rootMarkers = _markers.Count;
 
-        if (HoveredGroup(drag, pointer) is not { } entry || !_ui.TryGetRect(entry.ElementId, out var rect))
+        if (GroupAt(pointer, drag.Window) is not { } entry || !_ui.TryGetRect(entry.ElementId, out var rect))
             return null;
         var group = entry.Group;
 
@@ -585,10 +619,10 @@ internal sealed class DockWalker
         }
 
         var alone = source == group && group.Panels.Count == 1;
-        if (alone) return null;
+        if (alone && _layout.NewPanel == null) return null;
         var center = new PointF(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
         var step = TargetSize + TargetGap;
-        if (entry.StripId != 0)
+        if (entry.StripId != 0 && !alone)
             AddMarker(Square(center, 0f, 0f), DockEdge.Center, pointer);
         AddMarker(Square(center, -step, 0f), DockEdge.Left, pointer);
         AddMarker(Square(center, 0f, -step), DockEdge.Top, pointer);
@@ -604,13 +638,13 @@ internal sealed class DockWalker
         return null;
     }
 
-    private GroupEntry? HoveredGroup(DockDrag drag, PointF pointer)
+    private GroupEntry? GroupAt(PointF pointer, DockWindow? skip)
     {
         DockWindow? over = null;
         for (var i = _layout.Windows.Count - 1; i >= 0; i--)
         {
             var window = _layout.Windows[i];
-            if (window == drag.Window) continue;
+            if (window == skip) continue;
             if (!_ui.TryGetRect(WindowElementId(window), out var rect) || !rect.Contains(pointer)) continue;
             over = window;
             break;
