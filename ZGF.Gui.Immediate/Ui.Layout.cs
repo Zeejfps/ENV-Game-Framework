@@ -34,7 +34,7 @@ public sealed partial class Ui
         public float DragStartOffset;
     }
 
-    private readonly record struct OpenScroll(int Element, ScrollState State, Interaction Thumb, float PaddingRight);
+    private readonly record struct OpenScroll(int Element, ScrollState State, Interaction Thumb, float PaddingRight, float BarWidth);
 
     private enum ScrollSettle
     {
@@ -143,18 +143,19 @@ public sealed partial class Ui
         state.Offset = Math.Clamp(state.Offset, 0f, state.Max);
 
         var padding = box.Padding ?? default;
+        var bar = Style.ScrollBarWidth;
         var element = Open(id, box with
         {
             Direction = Direction.Vertical,
             Width = box.Width ?? Sizing.Grow(),
             Height = box.Height ?? Sizing.Grow(),
             Gap = box.Gap ?? Style.Gap,
-            Padding = padding with { Right = padding.Right + Gutter(state.Max > 0f) },
+            Padding = padding with { Right = padding.Right + Gutter(state.Max > 0f, bar) },
             Clip = true,
             ScrollY = state.Offset,
         });
         _scrollIds.Add(id);
-        _openScrolls.Push(new OpenScroll(element, state, thumb, padding.Right));
+        _openScrolls.Push(new OpenScroll(element, state, thumb, padding.Right, bar));
         return new Scope(this, ScopeKind.Scroll);
     }
 
@@ -188,11 +189,11 @@ public sealed partial class Ui
             var color = scroll.Thumb.Held ? Style.ScrollThumbHeld : scroll.Thumb.Hovered ? Style.ScrollThumbHovered : Style.ScrollThumb;
             OpenFloating(scroll.Thumb.Id, new Box
             {
-                Width = Style.ScrollBarWidth,
+                Width = scroll.BarWidth,
                 Height = thumbHeight,
                 Background = color,
-                Radius = Style.ScrollBarWidth / 2,
-            }, 1f, 0f, -Style.ScrollBarWidth - 2f, top, 1);
+                Radius = scroll.BarWidth / 2,
+            }, 1f, 0f, -scroll.BarWidth - 2f, top, 1);
             Close();
         }
         Close();
@@ -222,7 +223,7 @@ public sealed partial class Ui
             state.Viewport = e.H;
             state.Max = max;
 
-            var paddingRight = scroll.PaddingRight + Gutter(max > 0f);
+            var paddingRight = scroll.PaddingRight + Gutter(max > 0f, scroll.BarWidth);
             if (e.Padding.Right != paddingRight)
             {
                 e.Padding = e.Padding with { Right = paddingRight };
@@ -239,7 +240,7 @@ public sealed partial class Ui
         return result;
     }
 
-    private float Gutter(bool overflowing) => overflowing ? Style.ScrollBarWidth + 6f : 0f;
+    private static float Gutter(bool overflowing, float barWidth) => overflowing ? barWidth + 6f : 0f;
 
     private static float ThumbHeight(ScrollState state) =>
         state.Content <= 0f ? 0f : MathF.Min(state.Viewport, MathF.Max(24f, state.Viewport * state.Viewport / state.Content));

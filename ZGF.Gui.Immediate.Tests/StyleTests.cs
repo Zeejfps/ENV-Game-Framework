@@ -71,6 +71,29 @@ public sealed class StyleTests
         Assert.Equal(UiStyle.Dark.Text, frames.TextColor("plain"));
     }
 
+    [Fact]
+    public void A_scroll_keeps_the_gutter_of_the_style_it_was_recorded_in()
+    {
+        var frames = new UiFrames();
+        var wide = UiStyle.Dark with { ScrollBarWidth = 20f };
+
+        float RowWidth() => frames.Run(1f / 60f, ui =>
+        {
+            using (ui.Provide(wide))
+            using (ui.Scroll("wide"))
+            {
+                for (var i = 0; i < 20; i++)
+                    ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = 40f });
+            }
+            return ui.TryGetRect(ui.GetId(0), out var rect) ? rect.Width : float.NaN;
+        });
+
+        RowWidth();
+        RowWidth();
+
+        Assert.Equal(400f - 2 * UiStyle.Dark.WindowPadding - (20f + 6f), RowWidth(), 0.01f);
+    }
+
     [Theory]
     [InlineData(0xFF000000u, 0xFFFFFFFFu, 0f, 0xFF000000u)]
     [InlineData(0xFF000000u, 0xFFFFFFFFu, 1f, 0xFFFFFFFFu)]
