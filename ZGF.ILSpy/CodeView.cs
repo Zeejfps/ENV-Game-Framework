@@ -229,7 +229,11 @@ public static class CodeViewWidget
         var result = default(CodeViewResult);
 
         if (focused || findFocused)
+        {
             HandleKeys(ui, state, document, focusId, focused, advance);
+            if (focused && Shortcuts.AnalyzePressed(ui) && AnalyzableAt(document, state.Caret) is { } analyzed)
+                result = result with { Analyze = analyzed };
+        }
 
         using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground }))
         {
@@ -584,6 +588,21 @@ public static class CodeViewWidget
             : (new TextPosition(first, 0), CodeText.End(document));
     }
 
+    /// <summary>The type or member named at <paramref name="at"/> or just before it, as the caret
+    /// sits after a word as often as in it; punctuation linked to a member does not count.</summary>
+    private static CodeReference? AnalyzableAt(DecompiledDocument document, TextPosition at)
+    {
+        if (at.Line < 0 || at.Line >= document.Lines.Length) return null;
+        var spans = document.Lines[at.Line].Spans;
+        foreach (var column in (ReadOnlySpan<int>)[at.Column, at.Column - 1])
+        {
+            if (column >= 0 && CodeText.SpanAt(spans, column) is >= 0 and var index
+                && spans[index] is { Kind: not SpanKind.Plain, Reference: { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } reference })
+                return reference;
+        }
+        return null;
+    }
+
     private static void HandleKeys(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, bool focused, float advance)
     {
         var keys = ui.Input.Keys;
@@ -777,7 +796,7 @@ public static class CodeViewWidget
         {
             if (state.MenuReference == null)
                 ui.MenuSeparator();
-            if (ui.MenuItem(t.TreeAnalyze, id: "analyze"))
+            if (ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
                 result = result with { Analyze = analyzed };
         }
         return result;

@@ -8,6 +8,21 @@ internal static class Shortcuts
 {
     private const KeyModifiers Chord = KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt;
 
+    /// <summary>The key that analyzes what the focused view has picked: the tree's node, the code's
+    /// reference at the caret, the analyzer's result.</summary>
+    public const string Analyze = "Ctrl+R";
+
+    /// <summary>Whether Ctrl+R was pressed this frame, for the focused view to analyze its pick.</summary>
+    public static bool AnalyzePressed(Ui ui)
+    {
+        foreach (var stroke in ui.Input.Keys)
+        {
+            if (stroke.Key == KeyboardKey.R && (stroke.Modifiers & Chord) == KeyModifiers.Control)
+                return true;
+        }
+        return false;
+    }
+
     public static void Handle(Ui ui, Workspace w)
     {
         if (w.Picker.IsOpen || w.Errors.IsOpen) return;
@@ -43,10 +58,6 @@ internal static class Shortcuts
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
                     w.Refresh();
-                    break;
-                case (KeyModifiers.Control, KeyboardKey.R):
-                    if (w.Tree.View.Selected is { } selected)
-                        w.Analyze(selected);
                     break;
                 case (KeyModifiers.Control, KeyboardKey.W):
                     if (w.ActiveTab is { } tab) w.CloseTab(tab);

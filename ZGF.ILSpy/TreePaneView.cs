@@ -19,6 +19,8 @@ internal static class TreePaneView
                 color: theme.TextMuted, wrap: true);
 
         var result = ui.TreeView("tree", w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
+        if (ui.HasFocus(ui.GetId("tree")) && Shortcuts.AnalyzePressed(ui) && w.Tree.View.Selected is { } picked)
+            w.Analyze(picked);
         if (result.SelectionChanged && result.Node is { } selected)
             w.Show(selected);
         if (result.Activated && result.Node is { Target: not null } activated)
@@ -44,7 +46,7 @@ internal static class TreePaneView
             w.GoToTarget(node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
-        if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, "Ctrl+R", id: "analyze"))
+        if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             w.Analyze(node);
         if (node.Kind == NodeKind.Assembly)
         {
