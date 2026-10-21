@@ -11,6 +11,9 @@ internal static class BookmarksPanelView
     /// <summary>The bookmark list's focus and scroll id.</summary>
     public const int ListId = 0x424D524B;
 
+    private static Strings? _headersFor;
+    private static string[] _headers = [];
+
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
@@ -34,6 +37,7 @@ internal static class BookmarksPanelView
             Keys(ui, w, rowHeight);
 
         var palette = ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark;
+        ui.TableHeader("header", w.BookmarkColumns, ListId, Headers(t), theme.ShellPaddingX);
         using (var list = ui.VirtualScroll(ListId, bookmarks.Items.Count, rowHeight, new Box { Gap = 0f }))
         {
             if (bookmarks.ScrollToSelected && list.ScrollIntoView(bookmarks.Selected))
@@ -46,6 +50,14 @@ internal static class BookmarksPanelView
             }
         }
         Menu(ui, w, t);
+    }
+
+    private static string[] Headers(Strings t)
+    {
+        if (ReferenceEquals(t, _headersFor)) return _headers;
+        _headersFor = t;
+        _headers = ["", t.BookmarksColumnName, t.BookmarksColumnLocation, t.BookmarksColumnModule];
+        return _headers;
     }
 
     private static void Toolbar(Ui ui, Workspace w, Strings t)
@@ -100,27 +112,34 @@ internal static class BookmarksPanelView
         using (ui.Row(item.Id, new Box
         {
             Height = theme.RowHeight,
-            Gap = theme.Gap,
+            Gap = 0f,
             Padding = new Spacing(theme.ShellPaddingX, 0f),
             AlignY = Align.Center,
             Background = background,
         }))
         {
-            var mark = ui.Interact("mark");
-            if (mark.Hovered) ui.SetCursor(MouseCursor.Hand);
-            if (mark.Clicked)
-                bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
-            using (ui.Box(mark.Id, new Box { Height = Sizing.Grow() }))
-                ui.Icon(new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, bookmark.Enabled ? palette.Bookmark : palette.GutterText));
-            ui.Tooltip(mark.Id, bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable);
-
-            if (bookmarks.Renaming == bookmark)
-                RenameField(ui, bookmarks);
-            else
-                ui.Text(bookmark.Name, new Box { Width = Sizing.Fit() with { Priority = 2 } }, color: text, overflow: TextOverflow.Ellipsis);
-            ui.Text(bookmark.Location, new Box { Width = Sizing.Fit() with { Priority = 1 } }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
-            ui.Text(bookmark.Module, new Box { Width = Sizing.Fit() with { Priority = 0 } }, color: theme.TextMuted, size: theme.FontSizeSmall,
-                overflow: TextOverflow.EllipsisMiddle);
+            var columns = w.BookmarkColumns;
+            using (ui.TableCell(columns, 0))
+            {
+                var mark = ui.Interact("mark");
+                if (mark.Hovered) ui.SetCursor(MouseCursor.Hand);
+                if (mark.Clicked)
+                    bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
+                using (ui.Box(mark.Id, new Box { Height = Sizing.Grow() }))
+                    ui.Icon(new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, bookmark.Enabled ? palette.Bookmark : palette.GutterText));
+                ui.Tooltip(mark.Id, bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable);
+            }
+            using (ui.TableCell(columns, 1))
+            {
+                if (bookmarks.Renaming == bookmark)
+                    RenameField(ui, bookmarks);
+                else
+                    ui.Text(bookmark.Name, new Box { Width = Sizing.Fit() }, color: text, overflow: TextOverflow.Ellipsis);
+            }
+            using (ui.TableCell(columns, 2))
+                ui.Text(bookmark.Location, new Box { Width = Sizing.Fit() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
+            using (ui.TableCell(columns, 3))
+                ui.Text(bookmark.Module, new Box { Width = Sizing.Fit() }, color: theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
         }
         ui.Tooltip(item.Id, bookmark.Place.ToString());
     }
@@ -129,7 +148,7 @@ internal static class BookmarksPanelView
     {
         var begin = bookmarks.FocusRename;
         bookmarks.FocusRename = false;
-        var result = ui.InlineEdit("name", ref bookmarks.RenameText, begin, Sizing.Grow(ui.Theme.MenuMinWidth / 2, ui.Theme.MenuMinWidth * 1.5f));
+        var result = ui.InlineEdit("name", ref bookmarks.RenameText, begin, Sizing.Grow());
         if (result == InlineEditResult.Editing) return;
         var stillHere = ui.HasFocus(ui.GetId("name"));
         if (result == InlineEditResult.Committed)

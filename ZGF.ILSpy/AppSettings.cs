@@ -32,6 +32,9 @@ public sealed class AppSettings
 
     public List<SavedBookmark> Bookmarks { get; set; } = new();
 
+    /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
+    public List<float>? BookmarkColumns { get; set; }
+
     /// <summary>The main window as it was left; null opens it at the default size, centered.</summary>
     public WindowBounds? Window { get; set; }
 

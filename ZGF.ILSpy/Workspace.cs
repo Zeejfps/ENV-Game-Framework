@@ -41,6 +41,7 @@ public sealed class Workspace
                 Search.Clear();
         };
         Bookmarks.Load(settings.Bookmarks);
+        BookmarkColumns.Restore(settings.BookmarkColumns);
         _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
         Documents = new DockLayout { NewPanel = () => AddTab().Panel };
@@ -53,6 +54,10 @@ public sealed class Workspace
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
     public BookmarkList Bookmarks { get; } = new();
+
+    /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
+    public TableColumns BookmarkColumns { get; } = new(new TableColumn(Fixed: 28f), new TableColumn(2f, 80f), new TableColumn(3f, 80f),
+        new TableColumn(2f, 60f));
     public SearchModel Search { get; }
     public FrameworkPickerModel Picker { get; }
     public ErrorLog Errors { get; } = new();
@@ -393,6 +398,7 @@ public sealed class Workspace
         _settings.Locale = Locale;
         _settings.Layout = Layout;
         _settings.Bookmarks = Bookmarks.Save();
+        _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
         _savedBookmarks = Bookmarks.Revision;
         if (_settings.Save() is { } error)
             ReportError(Strings.For(Locale).ErrorSaveSettings, error);

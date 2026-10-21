@@ -218,4 +218,34 @@ public sealed class BookmarkTests : IDisposable
         Assert.Null(d.Workspace.Bookmarks.Renaming);
         Assert.True(app.Frames.Drew("Calls First"));
     }
+
+    [Fact]
+    public void The_bookmarks_panel_is_a_table_whose_header_lines_up_with_its_rows()
+    {
+        var app = new AppDriver(height: 500f);
+        var (d, tab, line) = OutlineAt("return First();", app.Driver);
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.OpenBookmarks();
+        app.Run(4);
+
+        Assert.Equal(app.TextRect("Name").X, app.TextRect("Bookmark 1").X);
+        Assert.Equal(app.TextRect("Location").X, app.TextRect("Outline:" + (line + 1)).X);
+        var module = app.Frames.Canvas.Texts.Single(t => t.Inputs.Text.EndsWith(".dll", StringComparison.Ordinal)).Inputs.Position.Left;
+        Assert.Equal(app.TextRect("Module").X, module);
+    }
+
+    [Fact]
+    public void The_bookmark_column_widths_are_saved_with_the_settings()
+    {
+        var path = Path.Combine(_directory, "settings.json");
+        var settings = AppSettings.Load(path);
+        settings.Locale = Locale.En;
+        var w = new WorkspaceDriver(settings).Workspace;
+        w.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
+        w.SaveSettings();
+
+        var restored = new WorkspaceDriver(AppSettings.Load(path)).Workspace.BookmarkColumns.Weights;
+
+        Assert.Equal([1f, 1f, 4f, 1f], restored);
+    }
 }

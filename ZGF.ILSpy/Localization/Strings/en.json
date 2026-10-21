@@ -80,6 +80,9 @@
   "bookmarks.enable": "Enable",
   "bookmarks.disable": "Disable",
   "bookmarks.go_to": "Go to bookmark",
+  "bookmarks.column_name": "Name",
+  "bookmarks.column_location": "Location",
+  "bookmarks.column_module": "Module",
 
   "status.reloading": "Reloading…",
   "status.decompiling": "Decompiling…",
