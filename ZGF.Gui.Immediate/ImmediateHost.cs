@@ -11,6 +11,7 @@ internal sealed class ImmediateHost : IDisposable
 
     private readonly RenderHost _render;
     private readonly IWindow _window;
+    private readonly Func<UiStyle> _styleFor;
     private readonly Action<Ui> _renderUi;
     private readonly Ui _ui;
     private UiInput _pending = new();
@@ -22,13 +23,14 @@ internal sealed class ImmediateHost : IDisposable
     private bool _animating;
     private MouseCursor _cursor;
 
-    public ImmediateHost(StartupConfig config, RenderBackendKind backend, UiStyle style, Action<Ui> renderUi)
+    public ImmediateHost(StartupConfig config, RenderBackendKind backend, Func<UiStyle> styleFor, Action<Ui> renderUi)
     {
         _render = RenderHost.Create(config, backend);
         _window = _render.App.MainWindow;
+        _styleFor = styleFor;
         _renderUi = renderUi;
-        _ui = new Ui(_render.Canvas, style, new WindowClipboard(_window));
-        _render.SetFrame(DrawFrame, style.Background);
+        _ui = new Ui(_render.Canvas, new WindowClipboard(_window));
+        _render.SetFrame(DrawFrame, styleFor().Background);
 
         _window.OnKey += HandleKey;
         _window.OnText += HandleText;
@@ -62,7 +64,7 @@ internal sealed class ImmediateHost : IDisposable
         var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
         _lastFrameTimestamp = now;
 
-        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.Canvas.Width, _render.Canvas.Height);
+        _ui.BeginFrame(_frame, _styleFor(), MathF.Min(dt, MaxFrameStep), Seconds(now), _render.Canvas.Width, _render.Canvas.Height);
         _renderUi(_ui);
         _ui.EndFrame();
 

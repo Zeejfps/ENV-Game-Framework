@@ -16,6 +16,7 @@
   "settings.volume": "Громкость",
   "settings.volume_value": "{percent} %",
   "settings.notifications": "Уведомления",
+  "settings.dark_mode": "Тёмная тема",
   "settings.priority": "Приоритет",
   "settings.language": "Язык"
 }

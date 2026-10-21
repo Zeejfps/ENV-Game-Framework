@@ -18,9 +18,10 @@ public abstract class Gui<T> where T : class
 
     public T State { get; }
 
-    public UiStyle Style { get; init; } = UiStyle.Dark;
-
     protected abstract void Render(Ui ui, T state);
+
+    /// <summary>The window's style, asked before every frame so it can follow the state.</summary>
+    protected virtual UiStyle StyleFor(T state) => UiStyle.Dark;
 
     /// <summary>Schedules a frame after <see cref="State"/> changed outside <see cref="Render"/>.
     /// Safe from any thread.</summary>
@@ -28,7 +29,7 @@ public abstract class Gui<T> where T : class
 
     public void Run(StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
     {
-        using var host = new ImmediateHost(config, backend, Style, ui => Render(ui, State));
+        using var host = new ImmediateHost(config, backend, () => StyleFor(State), ui => Render(ui, State));
         _host = host;
         try
         {

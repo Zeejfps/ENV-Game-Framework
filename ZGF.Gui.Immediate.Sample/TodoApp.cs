@@ -18,6 +18,7 @@ public sealed class TodoState
     public bool HideCompleted;
     public float Volume = 0.4f;
     public bool Notifications = true;
+    public bool DarkMode = true;
     public int Priority = 2;
     public int NextId = 1;
     public List<TodoItem> Items { get; } = new();
@@ -35,10 +36,12 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         (Locale.Pseudo, "Pseudo"),
     ];
 
+    protected override UiStyle StyleFor(TodoState s) => s.DarkMode ? UiStyle.Dark : UiStyle.Light;
+
     protected override void Render(Ui ui, TodoState s)
     {
         var t = Strings.For(s.Locale);
-        var theme = WidgetTheme.For(ui);
+        var style = ui.Style;
         ui.Heading(t.AppTitle);
 
         var remaining = 0;
@@ -46,8 +49,11 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         {
             if (!item.Done) remaining++;
         }
-        ui.Label(ui.Memo("remaining", (t, remaining), static a => a.t.TasksRemaining(a.remaining)), theme.TextMuted);
-        ui.ProgressBar(ui.Animate("progress", s.Items.Count == 0 ? 0f : 1f - remaining / (float)s.Items.Count, Tween.OutCubic(0.35f)));
+        ui.Label(ui.Memo("remaining", (t, remaining), static a => a.t.TasksRemaining(a.remaining)), style.TextMuted);
+
+        var progress = s.Items.Count == 0 ? 0f : 1f - remaining / (float)s.Items.Count;
+        var animatedProgress = ui.Animate("progress", progress, Tween.OutCubic(0.35f));
+        ui.ProgressBar(animatedProgress);
 
         using (ui.Row())
         {
@@ -74,7 +80,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             ui.Label(t.SettingsTitle, bold: true);
             using (ui.Row())
             {
-                ui.Label(t.SettingsVolume, theme.TextMuted);
+                ui.Label(t.SettingsVolume, style.TextMuted);
                 ui.Slider("volume", ref s.Volume, 0f, 1f);
                 var percent = (int)MathF.Round(s.Volume * 100);
                 ui.Label(ui.Memo("volume", (t, percent), static a => a.t.SettingsVolumeValue(a.percent)));
@@ -83,10 +89,11 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             {
                 ui.Toggle(t.SettingsNotifications, ref s.Notifications, id: "notifications");
                 ui.Spacer();
-                ui.Label(t.SettingsPriority, theme.TextMuted);
+                ui.Label(t.SettingsPriority, style.TextMuted);
                 ui.Stepper("priority", ref s.Priority, 1, 5);
             }
-            ui.Label(t.SettingsLanguage, theme.TextMuted);
+            ui.Toggle(t.SettingsDarkMode, ref s.DarkMode, id: "dark-mode");
+            ui.Label(t.SettingsLanguage, style.TextMuted);
             using (ui.Row())
             {
                 foreach (var (locale, endonym) in Languages)
@@ -108,7 +115,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
                 using (ui.Id(item.Id))
                 using (ui.Row())
                 {
-                    ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");
+                    ui.Checkbox(item.Title, ref item.Done, item.Done ? style.TextMuted : null, id: "done");
                     ui.Spacer();
                     if (ui.Button(t.ActionDelete, id: "delete"))
                         removed = item;
@@ -116,7 +123,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
             }
 
             if (s.Items.Count == 0)
-                ui.Label(t.TasksEmpty, theme.TextMuted);
+                ui.Label(t.TasksEmpty, style.TextMuted);
         }
 
         if (removed != null)

@@ -42,15 +42,17 @@ public sealed partial class Ui
     private bool _focusSeen;
     private bool _focusClaimed;
 
-    internal Ui(ICanvas canvas, UiStyle style, IClipboard clipboard)
+    private UiStyle _rootStyle = UiStyle.Dark;
+
+    internal Ui(ICanvas canvas, IClipboard clipboard)
     {
         _canvas = canvas;
         _clipboard = clipboard;
         _painter = new UiPainter(this, canvas);
-        Style = style;
     }
 
-    public UiStyle Style { get; }
+    /// <summary>The style provided around this point, or the window's style for this frame.</summary>
+    public UiStyle Style => Get<UiStyle>() ?? _rootStyle;
     public UiInput Input { get; private set; } = new();
     public float Width { get; private set; }
     public float Height { get; private set; }
@@ -90,9 +92,10 @@ public sealed partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
-    internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
+    internal void BeginFrame(UiInput input, UiStyle style, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
+        _rootStyle = style;
         Width = width;
         Height = height;
         BeginMeasurements();
@@ -124,8 +127,9 @@ public sealed partial class Ui
         {
             Width = Sizing.Fixed(Width),
             Height = Sizing.Fixed(Height),
-            Padding = Style.WindowPadding,
-            Gap = Style.Gap,
+            Padding = style.WindowPadding,
+            Gap = style.Gap,
+            Background = style.Background,
         });
     }
 

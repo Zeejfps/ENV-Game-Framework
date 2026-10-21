@@ -30,7 +30,7 @@ public class ImmediateFrameBenchmarks
         var fonts = new FreeTypeFontBackend();
         var font = fonts.LoadFontFromFile(ResolveFontPath(), 16);
         _canvas = new BenchCanvas(520, 640, fonts, font);
-        _ui = new Ui(_canvas, UiStyle.Dark, new NullClipboard());
+        _ui = new Ui(_canvas, new NullClipboard());
         for (var i = 0; i < Rows; i++)
         {
             _labels[i] = $"Task number {i}##done";
@@ -43,7 +43,7 @@ public class ImmediateFrameBenchmarks
     public void Frame()
     {
         _canvas.BeginFrame();
-        _ui.BeginFrame(_input, 1f / 60f, 0, _canvas.Width, _canvas.Height);
+        _ui.BeginFrame(_input, UiStyle.Dark, 1f / 60f, 0, _canvas.Width, _canvas.Height);
         Render(_ui);
         _ui.EndFrame();
         _canvas.EndFrame();
@@ -58,7 +58,7 @@ public class ImmediateFrameBenchmarks
         var before = GC.GetAllocatedBytesForCurrentThread();
         _canvas.BeginFrame();
         var t1 = GC.GetAllocatedBytesForCurrentThread();
-        _ui.BeginFrame(_input, 1f / 60f, 0, _canvas.Width, _canvas.Height);
+        _ui.BeginFrame(_input, UiStyle.Dark, 1f / 60f, 0, _canvas.Width, _canvas.Height);
         var t2 = GC.GetAllocatedBytesForCurrentThread();
         Render(_ui);
         var t3 = GC.GetAllocatedBytesForCurrentThread();
@@ -75,9 +75,9 @@ public class ImmediateFrameBenchmarks
 
     private void Render(Ui ui)
     {
-        var theme = WidgetTheme.For(ui);
+        var style = ui.Style;
         ui.Heading("Todos");
-        ui.Label(ui.Memo("remaining", Rows / 2, static remaining => $"{remaining} of {Rows} remaining"), theme.TextMuted);
+        ui.Label(ui.Memo("remaining", Rows / 2, static remaining => $"{remaining} of {Rows} remaining"), style.TextMuted);
         ui.ProgressBar(0.5f);
 
         using (ui.Row())
@@ -98,7 +98,7 @@ public class ImmediateFrameBenchmarks
             ui.Label("Settings", bold: true);
             using (ui.Row())
             {
-                ui.Label("Volume", theme.TextMuted);
+                ui.Label("Volume", style.TextMuted);
                 ui.Slider("volume", ref _volume, 0f, 1f);
                 ui.Label(ui.Memo("volume", (int)MathF.Round(_volume * 100), static percent => $"{percent}%"));
             }

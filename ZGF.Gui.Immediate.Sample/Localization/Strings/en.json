@@ -11,6 +11,7 @@
   "settings.volume": "Volume",
   "settings.volume_value": "{percent}%",
   "settings.notifications": "Notifications",
+  "settings.dark_mode": "Dark mode",
   "settings.priority": "Priority",
   "settings.language": "Language"
 }

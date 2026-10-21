@@ -52,10 +52,10 @@ public sealed class ContextTests
     }
 
     [Fact]
-    public void Widgets_fall_back_to_the_dark_theme_and_follow_a_provided_one()
+    public void Widgets_fall_back_to_the_default_theme_and_follow_a_provided_one()
     {
         var frames = new UiFrames();
-        var custom = WidgetTheme.Dark with { Accent = 0xFF00FF00 };
+        var custom = WidgetTheme.Default with { CornerRadius = 2f };
 
         var (fallback, provided) = frames.Run(0f, ui =>
         {
@@ -64,7 +64,7 @@ public sealed class ContextTests
                 return (before, WidgetTheme.For(ui));
         });
 
-        Assert.Same(WidgetTheme.Dark, fallback);
+        Assert.Same(WidgetTheme.Default, fallback);
         Assert.Same(custom, provided);
     }
 }

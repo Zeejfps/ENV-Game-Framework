@@ -56,6 +56,7 @@ public static partial class UiWidgets
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null)
     {
         var theme = WidgetTheme.For(ui);
+        var style = ui.Style;
         var i = ui.Interact(id);
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
@@ -117,8 +118,8 @@ public static partial class UiWidgets
             Padding = new Spacing(FieldPaddingX, 0f),
             Clip = true,
             ScrollX = shift,
-            Background = theme.FieldBackground,
-            BorderColor = focused ? theme.Accent : i.Hovered ? theme.TextMuted : theme.ControlBorder,
+            Background = style.Field,
+            BorderColor = focused ? style.Accent : i.Hovered ? style.TextMuted : style.Border,
             BorderWidth = 1f,
             Radius = theme.CornerRadius,
         }))
@@ -128,7 +129,7 @@ public static partial class UiWidgets
             {
                 var from = MathF.Min(caretX, anchorX) - shift;
                 var to = MathF.Max(caretX, anchorX) - shift;
-                ui.Paint((from, to, lineHeight, theme.Selection), static (p, s) =>
+                ui.Paint((from, to, lineHeight, style.Selection), static (p, s) =>
                 {
                     var r = p.Rect;
                     var left = MathF.Max(r.X + FieldPaddingX + s.from, r.X + 1f);
@@ -141,12 +142,12 @@ public static partial class UiWidgets
             if (text.Length > 0)
                 ui.Text(text);
             else if (placeholder != null)
-                ui.Text(placeholder, color: theme.TextMuted);
+                ui.Text(placeholder, color: style.TextMuted);
 
             if (focused && !state.HasSelection && CaretVisible(ui, state))
             {
                 using (ui.Float(0f, 0.5f, FieldPaddingX + caretX - shift, -lineHeight / 2,
-                    new Box { Width = CaretWidth, Height = lineHeight, Background = ui.Style.Text }, z: 1)) { }
+                    new Box { Width = CaretWidth, Height = lineHeight, Background = style.Text }, z: 1)) { }
             }
         }
         return submitted;

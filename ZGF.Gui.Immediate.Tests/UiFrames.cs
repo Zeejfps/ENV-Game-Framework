@@ -10,16 +10,18 @@ namespace ZGF.Gui.Immediate.Tests;
 /// one.</summary>
 internal sealed class UiFrames
 {
+    private readonly RecordingCanvas _canvas = new(new SyntheticTextMeasurer());
     private readonly Ui _ui;
     private UiInput _frame = new();
     private UiInput _pending = new();
 
     public UiFrames()
     {
-        _ui = new Ui(new RecordingCanvas(new SyntheticTextMeasurer()), UiStyle.Dark, Clipboard);
+        _ui = new Ui(_canvas, Clipboard);
     }
 
     public TestClipboard Clipboard { get; } = new();
+    public UiStyle Style { get; set; } = UiStyle.Dark;
     public double RealTime { get; private set; }
     public bool RequestedFrame { get; private set; }
     public double WakeAt { get; private set; }
@@ -30,8 +32,9 @@ internal sealed class UiFrames
         _frame.Seal();
         _pending.BeginAfter(_frame);
         RealTime += deltaTime;
+        _canvas.Reset();
 
-        _ui.BeginFrame(_frame, deltaTime, RealTime, 400f, 300f);
+        _ui.BeginFrame(_frame, Style, deltaTime, RealTime, 400f, 300f);
         var value = body(_ui);
         _ui.EndFrame();
         RequestedFrame = _ui.FrameRequested;
@@ -44,6 +47,8 @@ internal sealed class UiFrames
         body(ui);
         return 0;
     });
+
+    public uint TextColor(string text) => _canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style.TextColor;
 
     public void Wait(double seconds) => RealTime += seconds;
 
