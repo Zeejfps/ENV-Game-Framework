@@ -52,8 +52,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.OpenGL", "ZGF.Gui.O
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGL.NET.Abstractions", "OpenGL.NET.Abstractions\OpenGL.NET.Abstractions.csproj", "{104B149E-552C-4166-86E8-A379C8EF54D3}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PngSharp", "PngSharp", "{2290DFFB-5742-4A2F-AC1D-92FCE58C46F6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp", "JpegSharp\JpegSharp.csproj", "{8ECB26B8-FFEE-4FC7-B6A3-3A2B7212E000}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp.Tests", "JpegSharp.Tests\JpegSharp.Tests.csproj", "{EEFFC27B-0DE7-4EC3-815F-6D5BFCA8D05B}"
@@ -69,6 +67,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Immediate.Tests", "ZGF.Gui.Immediate.Tests\ZGF.Gui.Immediate.Tests.csproj", "{ADF69ECD-2A88-41CD-8703-9D1767AC1F97}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Immediate.Widgets", "ZGF.Gui.Immediate.Widgets\ZGF.Gui.Immediate.Widgets.csproj", "{0BA24FA4-CA4D-4120-B88A-314B0DE4D0BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.ILSpy.Core", "ZGF.ILSpy.Core\ZGF.ILSpy.Core.csproj", "{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests\ZGF.ILSpy.Tests.csproj", "{35312B58-22DD-49DB-A88C-F419B235A53E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -476,6 +478,30 @@ Global
 		{0BA24FA4-CA4D-4120-B88A-314B0DE4D0BF}.Release|x64.Build.0 = Release|Any CPU
 		{0BA24FA4-CA4D-4120-B88A-314B0DE4D0BF}.Release|x86.ActiveCfg = Release|Any CPU
 		{0BA24FA4-CA4D-4120-B88A-314B0DE4D0BF}.Release|x86.Build.0 = Release|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Debug|x64.Build.0 = Debug|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Debug|x86.Build.0 = Debug|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Release|x64.ActiveCfg = Release|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Release|x64.Build.0 = Release|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Release|x86.ActiveCfg = Release|Any CPU
+		{2D7D377D-C7A3-4422-B2C3-A6931A0386B3}.Release|x86.Build.0 = Release|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Debug|x64.Build.0 = Debug|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Debug|x86.Build.0 = Debug|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Release|x64.ActiveCfg = Release|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Release|x64.Build.0 = Release|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Release|x86.ActiveCfg = Release|Any CPU
+		{35312B58-22DD-49DB-A88C-F419B235A53E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,291 @@
+using System.Reflection;
+using System.Reflection.Metadata;
+using ICSharpCode.Decompiler;
+using ICSharpCode.Decompiler.CSharp;
+using ICSharpCode.Decompiler.TypeSystem;
+using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
+using MetadataResource = ICSharpCode.Decompiler.Metadata.Resource;
+
+namespace ZGF.ILSpy.Core;
+
+internal sealed class AssemblyNode : BrowseNode
+{
+    private Dictionary<string, NamespaceNode>? _namespaces;
+
+    public AssemblyNode(LoadedAssembly assembly) : base(assembly, null, NodeKind.Assembly, LabelOf(assembly))
+    {
+    }
+
+    public override string FullName => Assembly.FullName;
+
+    private protected override bool MayHaveChildren => true;
+
+    public NamespaceNode? FindNamespace(string name)
+    {
+        _ = Children;
+        return Volatile.Read(ref _namespaces)?.GetValueOrDefault(name);
+    }
+
+    private protected override BrowseNode[] CreateChildren()
+    {
+        var file = Assembly.File;
+        var result = new List<BrowseNode> { new ReferencesFolderNode(Assembly, this) };
+        if (!file.Resources.IsEmpty)
+            result.Add(new ResourcesFolderNode(Assembly, this));
+
+        var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
+        foreach (var type in Assembly.Module.TopLevelTypeDefinitions)
+        {
+            if (Members.IsHidden(Assembly, type)) continue;
+            if (!byNamespace.TryGetValue(type.Namespace, out var types))
+                byNamespace.Add(type.Namespace, types = new List<ITypeDefinition>());
+            types.Add(type);
+        }
+
+        var namespaces = new Dictionary<string, NamespaceNode>(StringComparer.Ordinal);
+        foreach (var name in byNamespace.Keys.Order(NaturalStringComparer.Instance))
+        {
+            var node = new NamespaceNode(Assembly, this, name, byNamespace[name]);
+            namespaces.Add(name, node);
+            result.Add(node);
+        }
+        Volatile.Write(ref _namespaces, namespaces);
+        return result.ToArray();
+    }
+
+    private static string LabelOf(LoadedAssembly assembly)
+    {
+        var parts = new List<string>();
+        if (assembly.Version is { } version) parts.Add(version.ToString());
+        if (assembly.TargetFramework is { } framework) parts.Add(framework.Replace(",Version=", ", "));
+        return parts.Count == 0 ? assembly.Name : $"{assembly.Name} ({string.Join(", ", parts)})";
+    }
+}
+
+internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode parent)
+    : BrowseNode(assembly, parent, NodeKind.ReferencesFolder, "References")
+{
+    private protected override bool MayHaveChildren => !Assembly.File.AssemblyReferences.IsEmpty;
+
+    private protected override BrowseNode[] CreateChildren() =>
+        Assembly.File.AssemblyReferences
+            .OrderBy(r => r.Name, NaturalStringComparer.Instance)
+            .Select(r => (BrowseNode)new AssemblyReferenceNode(Assembly, this, r))
+            .ToArray();
+}
+
+internal sealed class AssemblyReferenceNode : BrowseNode
+{
+    public AssemblyReferenceNode(LoadedAssembly assembly, BrowseNode parent, AssemblyReference reference)
+        : base(assembly, parent, NodeKind.AssemblyReference, reference.Name)
+    {
+        AssemblyReference = reference;
+        Target = CodeReference.ToEntity(CodeReferenceKind.Assembly, reference.Name, assembly.FilePath, reference.Handle);
+    }
+
+    public AssemblyReference AssemblyReference { get; }
+
+    public override string FullName => AssemblyReference.FullName;
+}
+
+internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode parent)
+    : BrowseNode(assembly, parent, NodeKind.ResourcesFolder, "Resources")
+{
+    private protected override bool MayHaveChildren => true;
+
+    private protected override BrowseNode[] CreateChildren() =>
+        Assembly.File.Resources
+            .OrderBy(r => r.Name, NaturalStringComparer.Instance)
+            .Select(r => (BrowseNode)new ResourceNode(Assembly, this, r))
+            .ToArray();
+}
+
+internal sealed class ResourceNode : BrowseNode
+{
+    public ResourceNode(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource)
+        : base(assembly, parent, NodeKind.Resource, resource.Name)
+    {
+        Resource = resource;
+        var isPublic = (resource.Attributes & ManifestResourceAttributes.VisibilityMask) == ManifestResourceAttributes.Public;
+        Accessibility = isPublic ? NodeAccessibility.Public : NodeAccessibility.Private;
+        IsPublicApi = isPublic;
+    }
+
+    public MetadataResource Resource { get; }
+}
+
+internal sealed class NamespaceNode : BrowseNode
+{
+    private readonly List<ITypeDefinition> _types;
+
+    public NamespaceNode(LoadedAssembly assembly, BrowseNode parent, string name, List<ITypeDefinition> types)
+        : base(assembly, parent, NodeKind.Namespace, name.Length == 0 ? "-" : name)
+    {
+        Name = name;
+        _types = types;
+        IsPublicApi = types.Exists(EntityText.IsPublicApi);
+    }
+
+    public string Name { get; }
+
+    public IEnumerable<ITypeDefinition> Types => _types;
+
+    public override string FullName => Name;
+
+    private protected override bool MayHaveChildren => true;
+
+    private protected override BrowseNode[] CreateChildren() =>
+        _types
+            .OrderBy(t => t.Name, NaturalStringComparer.Instance)
+            .Select(t => (BrowseNode)new TypeNode(Assembly, this, t))
+            .ToArray();
+}
+
+internal abstract class EntityNode : BrowseNode
+{
+    private protected EntityNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, IEntity entity)
+        : base(assembly, parent, kind, EntityText.Label(entity))
+    {
+        Entity = entity;
+        Accessibility = EntityText.Map(entity.Accessibility);
+        IsPublicApi = EntityText.IsPublicApi(entity);
+        Reference = CodeReference.ToEntity(DocumentBuilder.ReferenceKindOf(entity.SymbolKind), entity.Name, assembly.FilePath, entity.MetadataToken);
+        assembly.Register(entity.MetadataToken, this);
+    }
+
+    public IEntity Entity { get; }
+
+    public override string FullName => EntityText.FullName(Entity);
+}
+
+internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+    : EntityNode(assembly, parent, KindOf(type), type)
+{
+    public ITypeDefinition Type => (ITypeDefinition)Entity;
+
+    private protected override bool MayHaveChildren
+    {
+        get
+        {
+            var definition = Assembly.File.Metadata.GetTypeDefinition((TypeDefinitionHandle)Type.MetadataToken);
+            return !definition.BaseType.IsNil || definition.GetInterfaceImplementations().Count > 0 || definition.GetNestedTypes().Length > 0 ||
+                   definition.GetFields().Count > 0 || definition.GetMethods().Count > 0 || definition.GetProperties().Count > 0 ||
+                   definition.GetEvents().Count > 0;
+        }
+    }
+
+    private protected override BrowseNode[] CreateChildren()
+    {
+        var type = Type;
+        var result = new List<BrowseNode>();
+        if (type.DirectBaseTypes.Any())
+            result.Add(new BaseTypesNode(Assembly, this, type));
+
+        foreach (var nested in type.NestedTypes.Where(t => !Members.IsHidden(Assembly, t)).OrderBy(t => t.Name, NaturalStringComparer.Instance))
+            result.Add(new TypeNode(Assembly, this, nested));
+
+        var fields = type.Fields.Where(f => !Members.IsHidden(Assembly, f) && !(type.Kind == TypeKind.Enum && !f.IsStatic));
+        if (type.Kind != TypeKind.Enum)
+            fields = fields.OrderBy(f => f.Name, NaturalStringComparer.Instance);
+        foreach (var field in fields)
+            result.Add(new MemberNode(Assembly, this, field));
+
+        foreach (var property in type.Properties.Where(p => !Members.IsHidden(Assembly, p)).OrderBy(p => p.Name, NaturalStringComparer.Instance))
+            result.Add(new MemberNode(Assembly, this, property));
+
+        foreach (var @event in type.Events.Where(e => !Members.IsHidden(Assembly, e)).OrderBy(e => e.Name, NaturalStringComparer.Instance))
+            result.Add(new MemberNode(Assembly, this, @event));
+
+        foreach (var method in type.Methods.Where(m => !m.IsAccessor && !Members.IsHidden(Assembly, m)).OrderBy(m => m.Name, NaturalStringComparer.Instance))
+            result.Add(new MemberNode(Assembly, this, method));
+
+        return result.ToArray();
+    }
+
+    private static NodeKind KindOf(ITypeDefinition type) =>
+        type.Kind switch
+        {
+            TypeKind.Interface => NodeKind.Interface,
+            TypeKind.Struct => type.IsRecord ? NodeKind.RecordStruct : NodeKind.Struct,
+            TypeKind.Enum => NodeKind.Enum,
+            TypeKind.Delegate => NodeKind.Delegate,
+            _ => type.IsRecord ? NodeKind.Record : NodeKind.Class,
+        };
+}
+
+internal sealed class MemberNode(LoadedAssembly assembly, BrowseNode parent, IMember member)
+    : EntityNode(assembly, parent, KindOf(member), member)
+{
+    public IMember Member => (IMember)Entity;
+
+    private protected override bool MayHaveChildren => Member is IProperty or IEvent;
+
+    private protected override BrowseNode[] CreateChildren()
+    {
+        IEnumerable<IMethod?> accessors = Member switch
+        {
+            IProperty property => [property.Getter, property.Setter],
+            IEvent @event => [@event.AddAccessor, @event.RemoveAccessor, @event.InvokeAccessor],
+            _ => [],
+        };
+        return accessors
+            .Where(a => a is not null && !a.MetadataToken.IsNil)
+            .Select(a => (BrowseNode)new MemberNode(Assembly, this, a!))
+            .ToArray();
+    }
+
+    private static NodeKind KindOf(IMember member) =>
+        member switch
+        {
+            IField { IsConst: true } => NodeKind.Constant,
+            IField => NodeKind.Field,
+            IProperty { IsIndexer: true } => NodeKind.Indexer,
+            IProperty => NodeKind.Property,
+            IEvent => NodeKind.Event,
+            IMethod { IsConstructor: true } => NodeKind.Constructor,
+            IMethod { IsOperator: true } => NodeKind.Operator,
+            _ => NodeKind.Method,
+        };
+}
+
+internal sealed class BaseTypesNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+    : BrowseNode(assembly, parent, NodeKind.BaseTypes, "Base Types")
+{
+    public ITypeDefinition Type { get; } = type;
+
+    private protected override bool MayHaveChildren => true;
+
+    private protected override BrowseNode[] CreateChildren() =>
+        Type.DirectBaseTypes.Select(t => (BrowseNode)new BaseTypeNode(Assembly, this, t)).ToArray();
+}
+
+internal sealed class BaseTypeNode : BrowseNode
+{
+    public BaseTypeNode(LoadedAssembly assembly, BrowseNode parent, IType type)
+        : base(assembly, parent, NodeKind.BaseType, EntityText.TypeName(type))
+    {
+        Type = type;
+        if (type.GetDefinition() is { ParentModule.MetadataFile: { } file } definition && !definition.MetadataToken.IsNil)
+        {
+            Target = CodeReference.ToEntity(CodeReferenceKind.Type, definition.Name, file.FileName, definition.MetadataToken);
+            Accessibility = EntityText.Map(definition.Accessibility);
+            IsPublicApi = EntityText.IsPublicApi(definition);
+        }
+    }
+
+    public IType Type { get; }
+}
+
+internal sealed class ErrorNode(LoadedAssembly assembly, BrowseNode parent, Exception error)
+    : BrowseNode(assembly, parent, NodeKind.Error, $"Error: {error.Message}")
+{
+    public Exception Error { get; } = error;
+}
+
+internal static class Members
+{
+    private static readonly DecompilerSettings Settings = Core.Settings.Create();
+
+    public static bool IsHidden(LoadedAssembly assembly, IEntity entity) =>
+        entity.MetadataToken.IsNil || CSharpDecompiler.MemberIsHidden(assembly.File, entity.MetadataToken, Settings);
+}

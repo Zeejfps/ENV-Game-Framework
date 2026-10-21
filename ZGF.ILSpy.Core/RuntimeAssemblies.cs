@@ -1,0 +1,96 @@
+using System.Collections.Immutable;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
+
+namespace ZGF.ILSpy.Core;
+
+/// <summary>An assembly of the running .NET runtime, offered to open from a picker.</summary>
+public sealed record RuntimeAssembly(string Name, string Framework, string FilePath);
+
+/// <summary>The running .NET runtime's shared framework directories and the assemblies in them.</summary>
+public static class RuntimeAssemblies
+{
+    private static readonly Lazy<ImmutableArray<(string Framework, string Path)>> LazyDirectories = new(FindDirectories);
+    private static readonly Lazy<ImmutableArray<string>> LazyDirectoryPaths = new(() => LazyDirectories.Value.Select(d => d.Path).ToImmutableArray());
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> LazyFilesByName = new(IndexFiles);
+    private static readonly Lazy<ImmutableArray<RuntimeAssembly>> LazyAll = new(ScanAssemblies);
+
+    /// <summary>The runtime's own directory first, then the sibling shared frameworks of the same
+    /// version (ASP.NET Core, Windows Desktop) that are installed.</summary>
+    public static IReadOnlyList<string> Directories => LazyDirectoryPaths.Value;
+
+    /// <summary>Every managed assembly in <see cref="Directories"/>, sorted by name. Scanned once, on
+    /// first use.</summary>
+    public static IReadOnlyList<RuntimeAssembly> All => LazyAll.Value;
+
+    internal static string? Find(string simpleName) => LazyFilesByName.Value.GetValueOrDefault(simpleName);
+
+    private static ImmutableArray<(string Framework, string Path)> FindDirectories()
+    {
+        var runtime = Path.TrimEndingDirectorySeparator(RuntimeEnvironment.GetRuntimeDirectory());
+        var frameworkDir = Path.GetDirectoryName(runtime);
+        var sharedDir = frameworkDir is null ? null : Path.GetDirectoryName(frameworkDir);
+        var result = ImmutableArray.CreateBuilder<(string, string)>();
+        result.Add((frameworkDir is null ? "Microsoft.NETCore.App" : Path.GetFileName(frameworkDir), runtime));
+        if (sharedDir is null || frameworkDir is null || !Directory.Exists(sharedDir)) return result.ToImmutable();
+
+        var version = ParseVersion(Path.GetFileName(runtime));
+        foreach (var sibling in Directory.EnumerateDirectories(sharedDir).Order(StringComparer.OrdinalIgnoreCase))
+        {
+            if (string.Equals(sibling, frameworkDir, StringComparison.OrdinalIgnoreCase)) continue;
+            var best = Directory.EnumerateDirectories(sibling)
+                .Select(dir => (Dir: dir, Version: ParseVersion(Path.GetFileName(dir))))
+                .Where(d => d.Version is not null && version is not null && d.Version.Major == version.Major && d.Version.Minor == version.Minor)
+                .MaxBy(d => d.Version);
+            if (best.Dir is not null)
+                result.Add((Path.GetFileName(sibling), best.Dir));
+        }
+        return result.ToImmutable();
+    }
+
+    private static Version? ParseVersion(string name)
+    {
+        var dash = name.IndexOf('-');
+        return Version.TryParse(dash < 0 ? name : name[..dash], out var version) ? version : null;
+    }
+
+    private static IReadOnlyDictionary<string, string> IndexFiles()
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (_, dir) in LazyDirectories.Value)
+        foreach (var file in Directory.EnumerateFiles(dir, "*.dll"))
+            result.TryAdd(Path.GetFileNameWithoutExtension(file), file);
+        return result;
+    }
+
+    private static ImmutableArray<RuntimeAssembly> ScanAssemblies()
+    {
+        var result = new List<RuntimeAssembly>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (framework, dir) in LazyDirectories.Value)
+        foreach (var file in Directory.EnumerateFiles(dir, "*.dll"))
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            if (seen.Contains(name) || !IsManagedAssembly(file)) continue;
+            seen.Add(name);
+            result.Add(new RuntimeAssembly(name, framework, file));
+        }
+        result.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
+        return result.ToImmutableArray();
+    }
+
+    private static bool IsManagedAssembly(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            using var reader = new PEReader(stream);
+            return reader.HasMetadata && reader.GetMetadataReader().IsAssembly;
+        }
+        catch (Exception e) when (e is IOException or BadImageFormatException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+}
