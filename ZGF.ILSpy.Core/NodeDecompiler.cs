@@ -268,12 +268,12 @@ internal static class NodeDecompiler
         var nameAt = declaration.LastIndexOf(label, StringComparison.Ordinal);
         if (nameAt < 0)
         {
-            output.Write(declaration, SpanKind.Plain, node.Reference, isDefinition: true);
+            output.Write(declaration, SpanKind.Plain, node.Reference);
         }
         else
         {
             output.Write(declaration[..nameAt], SpanKind.Keyword);
-            output.Write(label, SpanKind.Type, node.Reference, isDefinition: true);
+            output.Write(label, SpanKind.Type, node.Reference);
             output.Write(declaration[(nameAt + label.Length)..], SpanKind.Plain);
         }
         output.WriteLine();

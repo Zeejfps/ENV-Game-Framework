@@ -103,16 +103,18 @@ public sealed class DecompilationTests
     }
 
     [Fact]
-    public void A_namespace_lists_its_types_as_definitions()
+    public void A_namespace_lists_its_types_as_links_to_them()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var (list, assembly) = Trees.OpenTestAssembly();
         var fixtures = assembly.Fixtures();
 
         var document = fixtures.Decompile(DecompilationLanguage.CSharp);
+        var line = document.Lines[document.LineContaining("internal sealed class Circle")];
+        var circle = line.SpanAt("Circle");
 
         Assert.Equal("namespace ZGF.ILSpy.Tests.Fixtures", document.Lines[0].Text);
-        var line = document.FindDefinitionLine(fixtures.Child("Circle"));
-        Assert.Equal("internal sealed class Circle", document.Lines[line].Text);
+        Assert.False(circle.IsDefinition);
+        Assert.Same(fixtures.Child("Circle"), list.FindNode(circle.Reference!));
     }
 
     [Fact]
