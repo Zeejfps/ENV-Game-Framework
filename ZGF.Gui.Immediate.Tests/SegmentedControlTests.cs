@@ -1,0 +1,117 @@
+using ZGF.Gui.Immediate.Widgets;
+using ZGF.KeyboardModule;
+
+namespace ZGF.Gui.Immediate.Tests;
+
+public sealed class SegmentedControlTests
+{
+    private enum Language
+    {
+        CSharp,
+        IL,
+        Both,
+    }
+
+    private static readonly Segment<Language>[] Segments =
+    [
+        new(Language.CSharp, "C#", "Decompile to C#"),
+        new(Language.IL, "IL"),
+        new(Language.Both, "Both"),
+    ];
+
+    private readonly UiFrames _frames = new();
+    private Language _language;
+    private int _changes;
+
+    private void Body(Ui ui)
+    {
+        using var screen = ui.Screen();
+        if (ui.SegmentedControl("lang", ref _language, Segments))
+            _changes++;
+    }
+
+    private static int SegmentId(Ui ui, int index)
+    {
+        using (ui.Id(ui.GetId("lang")))
+            return ui.GetId(index);
+    }
+
+    [Fact]
+    public void The_selected_segment_is_drawn_on_the_accent()
+    {
+        _frames.Run(0f, Body);
+
+        Assert.Equal(UiTheme.Dark.OnAccent, _frames.TextColor("C#"));
+        Assert.Equal(UiTheme.Dark.Text, _frames.TextColor("IL"));
+        Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.Accent);
+    }
+
+    [Fact]
+    public void Clicking_a_segment_selects_it_and_reports_the_change_once()
+    {
+        _frames.Run(0f, Body);
+
+        _frames.ClickOn(Body, ui => SegmentId(ui, 1));
+        _frames.Run(0f, Body);
+
+        Assert.Equal(Language.IL, _language);
+        Assert.Equal(1, _changes);
+    }
+
+    [Fact]
+    public void Clicking_the_selected_segment_reports_nothing()
+    {
+        _frames.Run(0f, Body);
+
+        _frames.ClickOn(Body, ui => SegmentId(ui, 0));
+
+        Assert.Equal(0, _changes);
+    }
+
+    [Fact]
+    public void Arrow_keys_step_through_the_segments_once_focused()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => SegmentId(ui, 0));
+
+        _frames.Key(KeyboardKey.RightArrow);
+        _frames.Run(0f, Body);
+        Assert.Equal(Language.IL, _language);
+
+        _frames.Key(KeyboardKey.End);
+        _frames.Run(0f, Body);
+        Assert.Equal(Language.Both, _language);
+
+        _frames.Key(KeyboardKey.RightArrow);
+        _frames.Run(0f, Body);
+        Assert.Equal(Language.Both, _language);
+
+        _frames.Key(KeyboardKey.LeftArrow);
+        _frames.Run(0f, Body);
+        Assert.Equal(Language.IL, _language);
+    }
+
+    [Fact]
+    public void Arrow_keys_do_nothing_unfocused()
+    {
+        _frames.Run(0f, Body);
+
+        _frames.Key(KeyboardKey.RightArrow);
+        _frames.Run(0f, Body);
+
+        Assert.Equal(Language.CSharp, _language);
+    }
+
+    [Fact]
+    public void A_segment_shows_its_tooltip_on_hover()
+    {
+        _frames.Run(0f, Body);
+        var rect = _frames.RectOf(Body, ui => SegmentId(ui, 0));
+        _frames.MovePointer(rect.X + 2f, rect.Y + 2f);
+        _frames.Run(0f, Body);
+        _frames.Wait(0.6);
+        _frames.Run(0f, Body);
+
+        Assert.True(_frames.Drew("Decompile to C#"));
+    }
+}

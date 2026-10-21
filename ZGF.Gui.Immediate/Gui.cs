@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ZGF.Desktop;
 
 namespace ZGF.Gui.Immediate;
@@ -10,7 +11,10 @@ namespace ZGF.Gui.Immediate;
 public abstract class Gui<T> where T : class
 {
     private readonly List<(string Family, byte[] Data)> _fonts = new();
-    private ImmediateHost? _host;
+    private readonly ConcurrentQueue<Action> _posted = new();
+    private volatile ImmediateHost? _host;
+    private volatile bool _stopped;
+    private WindowBounds _bounds;
 
     protected Gui(T state)
     {
@@ -19,10 +23,9 @@ public abstract class Gui<T> where T : class
 
     public T State { get; }
 
-    /// <summary>Gives popup windows their native look and behavior (no taskbar entry, no
-    /// activation, click-through tooltips, dismissal on title-bar presses). Set before
-    /// <see cref="Run"/>; without one, popups are plain borderless windows.</summary>
-    public IPopupNativeDecorator? PopupDecorator { get; set; }
+    /// <summary>The main window's bounds while running, and as it was left once <see cref="Run"/>
+    /// returns — save them and reopen with <see cref="WindowBounds.ApplyTo"/>.</summary>
+    public WindowBounds WindowBounds => _host?.Bounds ?? _bounds;
 
     protected abstract void Render(Ui ui, T state);
 
@@ -40,14 +43,19 @@ public abstract class Gui<T> where T : class
     public void Invalidate() => _host?.Invalidate();
 
     /// <summary>Runs <paramref name="action"/> on the UI thread before the next frame, which it
-    /// schedules. Safe from any thread while running — the way background work hands back
-    /// results.</summary>
-    public void Post(Action action) =>
-        (_host ?? throw new InvalidOperationException("The app is not running.")).Post(action);
+    /// schedules — the way background work hands back results. Safe from any thread at any time:
+    /// before <see cref="Run"/> it waits for the first frame, after it returns it is dropped.</summary>
+    public void Post(Action action)
+    {
+        if (_stopped) return;
+        _posted.Enqueue(action);
+        _host?.Invalidate();
+    }
 
     public void Run(StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
     {
-        using var host = new ImmediateHost(config, backend, _fonts, PopupDecorator, ui => Render(ui, State));
+        _stopped = false;
+        using var host = new ImmediateHost(config, backend, _fonts, _posted, ui => Render(ui, State));
         _host = host;
         try
         {
@@ -55,7 +63,10 @@ public abstract class Gui<T> where T : class
         }
         finally
         {
+            _bounds = host.Bounds;
             _host = null;
+            _stopped = true;
+            _posted.Clear();
         }
     }
 }

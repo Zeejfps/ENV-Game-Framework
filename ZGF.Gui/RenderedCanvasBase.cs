@@ -553,8 +553,10 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public void DrawText(in DrawTextInputs inputs)
     {
-        var text = inputs.Text;
-        if (string.IsNullOrEmpty(text))
+        if (inputs.Text is null)
+            return;
+        var textSpan = inputs.Span;
+        if (textSpan.IsEmpty)
             return;
 
         var style = inputs.Style;
@@ -590,7 +592,6 @@ public abstract class RenderedCanvasBase : ICanvas
         var hAlign = style.HorizontalAlignment.IsSet ? style.HorizontalAlignment.Value : TextAlignment.Start;
         var placement = TextLayout.ResolveHorizontal(hAlign, baseDir == BidiDirection.Rtl);
         var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
-        var textSpan = text.AsSpan();
 
         var sliceStart = 0;
         while (sliceStart <= textSpan.Length)

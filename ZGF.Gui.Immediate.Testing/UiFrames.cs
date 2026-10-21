@@ -41,6 +41,15 @@ public sealed class UiFrames
     /// <summary>Whether a widget that takes text held focus at the end of the last frame.</summary>
     public bool WantsTextInput { get; private set; }
 
+    /// <summary>Whether a frame asked the app to close with <see cref="Ui.Quit"/>.</summary>
+    public bool QuitRequested { get; private set; }
+
+    /// <summary>The window background the last frame asked for.</summary>
+    public uint WindowBackground { get; private set; }
+
+    /// <summary>What <see cref="Ui.WindowBounds"/> reports from the next frame.</summary>
+    public WindowBounds WindowBounds { get; set; }
+
     public T Run<T>(float deltaTime, Func<Ui, T> body)
     {
         (_frame, _pending) = (_pending, _frame);
@@ -50,6 +59,7 @@ public sealed class UiFrames
         _canvas.Reset();
         Popups?.BeginFrame();
 
+        _ui.WindowBounds = WindowBounds;
         _ui.BeginFrame(_frame, deltaTime, RealTime, Width, Height);
         var value = body(_ui);
         _ui.EndFrame();
@@ -57,7 +67,10 @@ public sealed class UiFrames
         WakeAt = _ui.WakeAt;
         Cursor = _ui.Cursor;
         WantsTextInput = _ui.WantsTextInput;
-        _ui.ShowDialogs(FilePicker);
+        QuitRequested = _ui.QuitRequested;
+        WindowBackground = _ui.WindowBackground;
+        if (_ui.ShowDialogs(FilePicker))
+            _pending.DismissPopups();
         return value;
     }
 
@@ -89,6 +102,13 @@ public sealed class UiFrames
     public void Wheel(double y, double x = 0) => _pending.Scroll(x, y);
 
     public void DismissPopups() => _pending.DismissPopups();
+
+    /// <summary>The app lost focus: held buttons come up without the user releasing them.</summary>
+    public void LoseFocus()
+    {
+        _pending.ReleaseAll();
+        _pending.DismissPopups();
+    }
 
     public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => _pending.Key(key, InputAction.Press, modifiers);
 

@@ -41,6 +41,8 @@ internal sealed class FakeWindow : IWindow
     public bool IsVisible { get; private set; } = true;
     public bool IsFocused { get; set; } = true;
     public bool IsPointerOver { get; set; } = true;
+    public bool IsMaximized { get; set; }
+    public bool MousePassThrough { get; private set; }
     public bool NeedsRedraw { get; private set; } = true;
     public bool InputEnabled { get; private set; } = true;
     public IWindow? Owner { get; private set; }
@@ -104,6 +106,8 @@ internal sealed class FakeWindow : IWindow
     public void Show() => IsVisible = true;
     public void Hide() => IsVisible = false;
     public void Focus() { IsFocused = true; OnFocusChanged?.Invoke(true); }
+
+    public void SetMousePassThrough(bool passThrough) => MousePassThrough = passThrough;
 
     public void SetPosition(int screenX, int screenY)
     {

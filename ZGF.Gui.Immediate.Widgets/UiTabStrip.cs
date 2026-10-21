@@ -63,9 +63,10 @@ public static partial class UiWidgets
         if (close.Hovered) ui.SetCursor(MouseCursor.Hand);
 
         var state = ui.GetState<TabState>(HashCode.Combine(tab.Id, "tab"));
-        if (selected && !state.WasSelected)
-            ui.ScrollIntoView(stripId, tab.Id);
-        state.WasSelected = selected;
+        if (!selected)
+            state.WasSelected = false;
+        else if (!state.WasSelected)
+            state.WasSelected = ui.ScrollIntoView(stripId, tab.Id);
 
         var closed = closable && (close.Clicked || tab.ClickedWith(PointerButton.Middle) || close.ClickedWith(PointerButton.Middle));
         var hovered = tab.Hovered || close.Hovered;

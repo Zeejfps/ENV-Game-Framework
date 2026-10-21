@@ -31,6 +31,7 @@ public interface IWindow : IDisposable
     bool IsVisible { get; }
     bool IsFocused { get; }
     bool IsPointerOver { get; }
+    bool IsMaximized { get; }
     bool NeedsRedraw { get; }
 
     event Action<int, int> OnResize;
@@ -80,6 +81,8 @@ public interface IWindow : IDisposable
     void GetFrameSize(out int left, out int top, out int right, out int bottom);
     void GetCursorPosition(out double x, out double y);
     void SetCursor(MouseCursor cursor);
+    // Lets every pointer event fall through to whatever is behind the window — for a tooltip.
+    void SetMousePassThrough(bool passThrough);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);
     void RequestRedraw();
 

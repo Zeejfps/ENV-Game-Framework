@@ -25,10 +25,6 @@ public sealed class UiPainter
 
     public UiRect Rect { get; private set; }
 
-    /// <summary>The canvas the element is drawn on — the main window's, or a popup's — for drawing
-    /// the painter has no method for. Convert coordinates with <see cref="ToCanvas(UiRect)"/>.</summary>
-    public ICanvas Canvas => _canvas;
-
     public int ZIndex => _z;
 
     internal void Begin(UiRect rect, int z, ICanvas canvas, float originX, float originY, float canvasHeight)
@@ -50,6 +46,21 @@ public sealed class UiPainter
         _canvas.DrawRect(new DrawRectInputs { Position = ToCanvas(rect), Style = _rectStyle, ZIndex = _z });
     }
 
+    public void FillRect(UiRect rect, uint color, Corners radii, uint borderColor = 0, float borderWidth = 0f)
+    {
+        _rectStyle.BackgroundColor = color;
+        _rectStyle.BorderColor = BorderColorStyle.All(borderColor);
+        _rectStyle.BorderSize = BorderSizeStyle.All(borderWidth);
+        _rectStyle.BorderRadius = new BorderRadiusStyle
+        {
+            TopLeft = radii.TopLeft,
+            TopRight = radii.TopRight,
+            BottomRight = radii.BottomRight,
+            BottomLeft = radii.BottomLeft,
+        };
+        _canvas.DrawRect(new DrawRectInputs { Position = ToCanvas(rect), Style = _rectStyle, ZIndex = _z });
+    }
+
     public void Line(PointF from, PointF to, float thickness, uint color) =>
         _canvas.DrawLine(new DrawLineInputs { Start = ToCanvas(from), End = ToCanvas(to), Thickness = thickness, Color = color, ZIndex = _z });
 
@@ -63,6 +74,23 @@ public sealed class UiPainter
     {
         if (string.IsNullOrEmpty(text)) return;
         _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align, family), ZIndex = _z });
+    }
+
+    /// <summary>Draws <paramref name="length"/> characters of <paramref name="text"/> from
+    /// <paramref name="start"/>, shaped on their own, as <see cref="Text(UiRect, string, uint, float?, bool, Align, string?)"/>
+    /// does — a slice of a longer line, with nothing allocated. See <see cref="Ui.MeasureText(ReadOnlySpan{char}, float?, bool, string?)"/>.</summary>
+    public void Text(UiRect rect, string text, int start, int length, uint color, float? size = null, bool bold = false, Align align = Align.Start,
+        string? family = null)
+    {
+        if (length <= 0) return;
+        _canvas.DrawText(new DrawTextInputs
+        {
+            Position = ToCanvas(rect),
+            Text = text,
+            Slice = new Range(start, start + length),
+            Style = _ui.TextStyleFor(size, color, bold, align, family),
+            ZIndex = _z,
+        });
     }
 
     /// <summary>Draws one code point per column of a monospaced grid whose first cell's top-left
@@ -84,7 +112,7 @@ public sealed class UiPainter
         });
     }
 
-    public RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _canvasHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
+    private RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _canvasHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
 
-    public PointF ToCanvas(PointF point) => new(point.X - _originX, _canvasHeight - (point.Y - _originY));
+    private PointF ToCanvas(PointF point) => new(point.X - _originX, _canvasHeight - (point.Y - _originY));
 }

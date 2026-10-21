@@ -78,6 +78,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         Glfw.WindowHint(Hint.Floating, true);
         Glfw.WindowHint(Hint.FocusOnShow, false);
         Glfw.WindowHint(Hint.Resizable, false);
+        Glfw.WindowHint(Hint.MousePassthrough, options.MousePassThrough);
         ApplyClientApiHints();
         // Popups paint their own silhouette — rounded corners, borders, shadows — over a
         // framebuffer cleared to transparent. Without transparency the compositor discards
@@ -135,6 +136,8 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
             Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
         Glfw.SetWindowPosition(Main.GlfwWindow, px, py);
         Main.Show();
+        if (_startupConfig.StartMaximized)
+            Glfw.MaximizeWindow(Main.GlfwWindow);
 
         while (!Glfw.WindowShouldClose(Main.GlfwWindow))
         {

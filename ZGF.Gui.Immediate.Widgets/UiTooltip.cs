@@ -3,6 +3,7 @@ namespace ZGF.Gui.Immediate.Widgets;
 public static partial class UiWidgets
 {
     private const int TooltipId = 0x544F4F4C;
+    private const float TooltipMaxWidth = 360f;
 
     private sealed class TooltipState
     {
@@ -15,7 +16,8 @@ public static partial class UiWidgets
 
     /// <summary>Shows <paramref name="text"/> under the element with <paramref name="id"/> once the
     /// pointer has rested on it for the theme's tooltip delay, until it leaves or a button is
-    /// pressed. Call it every frame the element is recorded.</summary>
+    /// pressed. Long text wraps into a block; <c>\n</c> breaks lines. Call it every frame the
+    /// element is recorded.</summary>
     public static void Tooltip(this Ui ui, int id, string text)
     {
         var state = ui.GetState<TooltipState>(TooltipId);
@@ -46,6 +48,7 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         using (ui.Popup(TooltipId, anchor, new Box
         {
+            Width = Sizing.Fit(0f, TooltipMaxWidth),
             Padding = new Spacing(8f, 4f),
             Background = theme.Surface,
             BorderColor = theme.Border,
@@ -53,7 +56,7 @@ public static partial class UiWidgets
             Radius = 4f,
         }, Align.Center, gap: 6f, passThrough: true))
         {
-            ui.Text(text, color: theme.Text, size: MathF.Round(theme.FontSize * 0.9f));
+            ui.Text(text, color: theme.Text, size: MathF.Round(theme.FontSize * 0.9f), wrap: true);
         }
     }
 }

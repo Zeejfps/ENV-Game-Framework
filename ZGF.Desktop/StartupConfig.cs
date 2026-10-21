@@ -16,4 +16,8 @@ public readonly struct StartupConfig
     // on the primary monitor. Clamped back on-screen at show time — see WindowPlacement.
     public int? WindowX { get; init; }
     public int? WindowY { get; init; }
+
+    // Opens the main window maximized; WindowX/WindowY/WindowWidth/WindowHeight are then the bounds
+    // it restores to.
+    public bool StartMaximized { get; init; }
 }

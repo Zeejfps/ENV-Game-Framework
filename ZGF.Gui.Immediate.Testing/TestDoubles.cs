@@ -18,6 +18,9 @@ public sealed class TestFilePicker : IFilePicker
     public string? Answer { get; set; }
     public List<string> Titles { get; } = new();
 
+    /// <summary>Runs as each picker opens, as the platform's modal dialog would take over.</summary>
+    public Action? OnOpen { get; set; }
+
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) => Pick(title, onPicked);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) => Pick(title, onPicked);
@@ -28,6 +31,7 @@ public sealed class TestFilePicker : IFilePicker
     private void Pick(string title, Action<string> onPicked)
     {
         Titles.Add(title);
+        OnOpen?.Invoke();
         if (Answer != null)
             onPicked(Answer);
     }
@@ -41,6 +45,9 @@ public sealed class TestPopupHost : IPopupHost
 
     public UiRect Area { get; set; } = new(-200f, -200f, 800f, 700f);
     public Dictionary<int, UiRect> Shown { get; } = new();
+
+    /// <summary>How many times every popup was hidden at once, as before a native dialog.</summary>
+    public int HideAllCount { get; private set; }
 
     public RecordingCanvas CanvasOf(int id) => _canvases[id];
 
@@ -59,5 +66,11 @@ public sealed class TestPopupHost : IPopupHost
         if (!_canvases.TryGetValue(id, out var canvas))
             _canvases[id] = canvas = new RecordingCanvas(new SyntheticTextMeasurer());
         return canvas;
+    }
+
+    public void HideAll()
+    {
+        HideAllCount++;
+        Shown.Clear();
     }
 }

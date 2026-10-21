@@ -50,6 +50,15 @@ public readonly record struct Spacing(float Left, float Top, float Right, float 
     public static implicit operator Spacing(float all) => new(all);
 }
 
+/// <summary>A radius per corner, for a rect rounded only on some.</summary>
+public readonly record struct Corners(float TopLeft, float TopRight, float BottomRight, float BottomLeft)
+{
+    public Corners(float all) : this(all, all, all, all) { }
+
+    public static Corners Left(float radius) => new(radius, 0f, 0f, radius);
+    public static Corners Right(float radius) => new(0f, radius, radius, 0f);
+}
+
 public enum Align
 {
     Start,
@@ -61,6 +70,21 @@ public enum Direction
 {
     Vertical,
     Horizontal,
+}
+
+/// <summary>Where a <see cref="Ui.Popup"/> sits against its anchor.</summary>
+public enum PopupSide
+{
+    Below,
+    End,
+}
+
+/// <summary>Which ways a <see cref="Ui.Scroll(int, ScrollAxes, Box)"/> scrolls.</summary>
+public enum ScrollAxes
+{
+    Vertical,
+    Horizontal,
+    Both,
 }
 
 /// <summary>Declares one element: how it sizes, lays out its children and paints its box.

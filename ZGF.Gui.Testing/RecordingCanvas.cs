@@ -129,7 +129,7 @@ public sealed class RecordingCanvas : ICanvas
         var recorded = new DrawTextInputs
         {
             Position = inputs.Position,
-            Text = inputs.Text,
+            Text = inputs.Slice is null ? inputs.Text : inputs.Span.ToString(),
             Style = Snapshot(inputs.Style),
             ZIndex = inputs.ZIndex,
         };

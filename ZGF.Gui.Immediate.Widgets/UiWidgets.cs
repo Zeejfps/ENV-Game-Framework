@@ -29,6 +29,7 @@ public static partial class UiWidgets
     public static Ui.Scope Screen(this Ui ui)
     {
         var theme = ui.Theme;
+        ui.WindowBackground = theme.Background;
         return ui.Column(new Box
         {
             Width = Sizing.Grow(),
@@ -46,10 +47,13 @@ public static partial class UiWidgets
     }
 
     /// <summary>A padded column on a raised background.</summary>
-    public static Ui.Scope Panel(this Ui ui, Box box = default)
+    public static Ui.Scope Panel(this Ui ui, Box box = default) => ui.Panel(0, box);
+
+    /// <summary>A <see cref="Panel(Ui, Box)"/> hit-testable and measurable as <paramref name="id"/>.</summary>
+    public static Ui.Scope Panel(this Ui ui, int id, Box box = default)
     {
         var theme = ui.Theme;
-        return ui.Column(box with
+        return ui.Column(id, box with
         {
             Padding = box.Padding ?? theme.PanelPadding,
             Background = box.Background != 0 ? box.Background : theme.Surface,

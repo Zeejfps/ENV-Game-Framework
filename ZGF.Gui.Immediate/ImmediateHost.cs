@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Geometry;
@@ -26,7 +27,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private readonly Action<Ui> _renderUi;
     private readonly Ui _ui;
     private readonly IFilePicker _filePicker;
-    private readonly IPopupNativeDecorator? _decorator;
+    private readonly IPopupNativeDecorator _decorator;
     private readonly List<Popup> _popups = new();
     private readonly List<Popup> _pool = new();
     private UiInput _pending = new();
@@ -39,12 +40,15 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private bool _popupWindowsUnavailable;
     private bool _backgroundPending;
     private MouseCursor _cursor;
+    private uint _clearColor;
+    private volatile bool _disposed;
+    private (int X, int Y, int Width, int Height) _normalBounds;
 
     public ImmediateHost(
         StartupConfig config,
         RenderBackendKind backend,
         IReadOnlyList<(string Family, byte[] Data)> fonts,
-        IPopupNativeDecorator? decorator,
+        ConcurrentQueue<Action> posted,
         Action<Ui> renderUi)
     {
         _render = RenderHost.Create(config, backend);
@@ -52,10 +56,12 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _render.RegisterFont(family, data);
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
-        _decorator = decorator;
-        _ui = new Ui(_render.Canvas, new WindowClipboard(_window), this) { Wake = Invalidate };
+        _decorator = PopupDecorator.ForCurrentPlatform();
+        _ui = new Ui(_render.Canvas, new WindowClipboard(_window), this, posted) { Wake = Invalidate };
         _filePicker = NativeFilePicker.Create(_ui.Post);
-        _render.SetFrame(DrawFrame, UiTheme.Dark.Background);
+        _clearColor = _ui.WindowBackground;
+        _render.SetFrame(DrawFrame, _clearColor);
+        _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
 
         _window.OnKey += HandleKey;
         _window.OnText += HandleText;
@@ -64,27 +70,35 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.OnResize += HandleResize;
         _window.OnFramebufferResize += HandleResize;
         _window.OnContentScaleChanged += HandleContentScaleChanged;
+        _window.OnMove += HandleMove;
         _render.App.OnForegroundChanged += HandleForegroundChanged;
         _render.App.OnTick += Tick;
-        _decorator?.WatchWindowNonClientPress(_window.NativeHandle, HandleNonClientPress);
+        _decorator.WatchWindowNonClientPress(_window.NativeHandle, HandleNonClientPress);
         HotReload.Applied += Invalidate;
 
         SyncScale();
     }
 
-    public void Run() => _render.App.Run();
+    public void Run()
+    {
+        TrackBounds();
+        _render.App.Run();
+    }
+
+    /// <summary>The main window's bounds: where it sits and how big it is when not maximized.</summary>
+    public WindowBounds Bounds => new(_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height, _window.IsMaximized);
 
     public void Invalidate()
     {
+        if (_disposed) return;
         _window.RequestRedraw();
         _render.App.Wake();
     }
 
-    public void Post(Action action) => _ui.Post(action);
-
     public void RegisterFont(string family, byte[] data)
     {
         _render.RegisterFont(family, data);
+        _ui.InvalidateMeasurements();
         foreach (var popup in _popups)
             popup.Surface.Canvas.CopyFontsFrom(_render.Canvas);
         foreach (var popup in _pool)
@@ -102,12 +116,18 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
         _lastFrameTimestamp = now;
 
+        _ui.WindowBounds = Bounds;
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.Canvas.Width, _render.Canvas.Height);
         _renderUi(_ui);
         _ui.EndFrame();
         PresentPopups();
         if (_ui.QuitRequested)
             _render.App.Quit();
+        if (_ui.WindowBackground != _clearColor)
+        {
+            _clearColor = _ui.WindowBackground;
+            _render.SetFrame(DrawFrame, _clearColor);
+        }
 
         if (_ui.Cursor != _cursor)
         {
@@ -141,8 +161,11 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
                 _window.RequestRedraw();
             }
         }
-        if (_ui.HasDialogs)
-            _ui.ShowDialogs(_filePicker);
+        if (_ui.HasDialogs && _ui.ShowDialogs(_filePicker))
+        {
+            _pending.DismissPopups();
+            _window.RequestRedraw();
+        }
         if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
         {
             _wakeAt = double.PositiveInfinity;
@@ -189,8 +212,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             return PopupPlacement.Fit(preferred, fallback, window);
 
         var area = MonitorArea(preferred) ?? window;
-        var rect = PopupPlacement.Fit(preferred, fallback, area);
-        return rect with { X = MathF.Round(rect.X), Y = MathF.Round(rect.Y) };
+        return PopupPlacement.SnapToPixels(PopupPlacement.Fit(preferred, fallback, area), _render.Canvas.DpiScale);
     }
 
     private UiRect? MonitorArea(UiRect rect)
@@ -229,16 +251,20 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         if (popup.PassThrough != passThrough || !popup.Shown)
         {
             popup.PassThrough = passThrough;
-            _decorator?.SetMousePassThrough(popup.Surface.Window.NativeHandle, passThrough);
+            popup.Surface.Window.SetMousePassThrough(passThrough);
         }
 
         var s = ScreenPerPoint;
+        var dpi = _render.Canvas.DpiScale;
+        var pixelsPerScreen = _window.DpiScale > 0f ? _window.DpiScale : 1f;
+        var widthPoints = Math.Max(1, (int)MathF.Ceiling(rect.Width));
+        var heightPoints = Math.Max(1, (int)MathF.Ceiling(rect.Height));
         _window.GetPosition(out var originX, out var originY);
         var screen = (
             X: originX + (int)MathF.Round(rect.X * s),
             Y: originY + (int)MathF.Round(rect.Y * s),
-            Width: Math.Max(1, (int)MathF.Ceiling(rect.Width * s)),
-            Height: Math.Max(1, (int)MathF.Ceiling(rect.Height * s)));
+            Width: PopupPlacement.ScreenSize(widthPoints, dpi, pixelsPerScreen),
+            Height: PopupPlacement.ScreenSize(heightPoints, dpi, pixelsPerScreen));
         var window = popup.Surface.Window;
         if (screen.Width != popup.Screen.Width || screen.Height != popup.Screen.Height)
             window.SetSize(screen.Width, screen.Height);
@@ -246,7 +272,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             window.SetPosition(screen.X, screen.Y);
         popup.Screen = screen;
 
-        _render.ResizePopup(popup.Surface, (int)MathF.Ceiling(rect.Width), (int)MathF.Ceiling(rect.Height), _render.Canvas.DpiScale);
+        _render.ResizePopup(popup.Surface, widthPoints, heightPoints, dpi);
         popup.Surface.Canvas.BeginFrame();
         return popup.Surface.Canvas;
     }
@@ -268,6 +294,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         {
             popup = _pool[^1];
             _pool.RemoveAt(_pool.Count - 1);
+            popup.Surface.Window.SetCursor(_cursor);
         }
         else
         {
@@ -282,7 +309,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
                 _popupWindowsUnavailable = true;
                 return null;
             }
-            _decorator?.DecoratePopup(surface.Window.NativeHandle);
+            _decorator.DecoratePopup(surface.Window.NativeHandle);
             var window = surface.Window;
             window.OnKey += HandleKey;
             window.OnText += HandleText;
@@ -293,6 +320,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         }
         _popups.Add(popup);
         return popup;
+    }
+
+    public void HideAll()
+    {
+        foreach (var popup in _popups)
+            Release(popup);
+        _popups.Clear();
     }
 
     private void PresentPopups()
@@ -382,8 +416,23 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.RequestRedraw();
     }
 
+    private void HandleMove(int x, int y)
+    {
+        TrackBounds();
+        _pending.DismissPopups();
+        _window.RequestRedraw();
+    }
+
+    private void TrackBounds()
+    {
+        if (_window.IsMaximized || _window.Width <= 0 || _window.Height <= 0) return;
+        _window.GetPosition(out var x, out var y);
+        _normalBounds = (x, y, _window.Width, _window.Height);
+    }
+
     private void HandleResize(int width, int height)
     {
+        TrackBounds();
         SyncScale();
         _render.RenderNow();
     }
@@ -406,8 +455,10 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
     public void Dispose()
     {
+        _disposed = true;
+        _ui.Wake = null;
         HotReload.Applied -= Invalidate;
-        _decorator?.UnwatchWindow(_window.NativeHandle);
+        _decorator.UnwatchWindow(_window.NativeHandle);
         _render.App.OnTick -= Tick;
         _render.App.OnForegroundChanged -= HandleForegroundChanged;
         _window.OnKey -= HandleKey;
@@ -417,6 +468,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.OnResize -= HandleResize;
         _window.OnFramebufferResize -= HandleResize;
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
+        _window.OnMove -= HandleMove;
         foreach (var popup in _popups)
         {
             Unsubscribe(popup.Surface.Window);

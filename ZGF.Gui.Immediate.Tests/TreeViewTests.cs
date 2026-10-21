@@ -20,6 +20,7 @@ public sealed class TreeViewTests
     {
         public int RowCalls;
         public int ChildCalls;
+        public uint IconBackground;
 
         public bool HasChildren(Node node) => node.Children.Count > 0;
 
@@ -32,7 +33,7 @@ public sealed class TreeViewTests
         public TreeRow Row(Node node)
         {
             RowCalls++;
-            return new TreeRow(node.Name, Icon: "#", IconColor: 0xFF00FF00, IconFamily: "Icons");
+            return new TreeRow(node.Name, Icon: "#", IconColor: 0xFF00FF00, IconFamily: "Icons", IconBackground: IconBackground);
         }
     }
 
@@ -43,6 +44,7 @@ public sealed class TreeViewTests
         public readonly TreeViewState<Node> State = new(ReferenceEqualityComparer.Instance);
         public readonly List<Node> Roots;
         public TreeViewResult<Node> Last;
+        public bool ToggleOnActivate = true;
         public readonly List<TreeViewResult<Node>> Results = new();
 
         public Tree(params Node[] roots)
@@ -54,7 +56,7 @@ public sealed class TreeViewTests
         public void Body(Ui ui)
         {
             using var screen = ui.Screen();
-            Last = ui.TreeView("tree", Roots, Model, State);
+            Last = ui.TreeView("tree", Roots, Model, State, toggleOnActivate: ToggleOnActivate);
             Results.Add(Last);
         }
 
@@ -266,5 +268,145 @@ public sealed class TreeViewTests
 
         Assert.Equal(3, tree.State.VisibleCount);
         Assert.True(tree.Frames.Drew("B1"));
+    }
+
+    [Fact]
+    public void Collapsing_from_the_app_moves_the_selection_to_the_nearest_showing_ancestor()
+    {
+        var tree = new Tree(Sample());
+        var a = tree.Roots[0];
+        tree.State.Reveal([a, a.Children[0], a.Children[0].Children[0]]);
+        tree.Frame();
+        tree.Results.Clear();
+
+        tree.State.SetExpanded(a.Children[0], false);
+        var result = tree.Frame();
+
+        Assert.Equal("A1", tree.Selected);
+        Assert.True(result.SelectionChanged);
+        Assert.Equal("A1", result.Node!.Name);
+
+        tree.State.CollapseAll();
+        tree.Frame();
+        Assert.Equal("A", tree.Selected);
+    }
+
+    [Fact]
+    public void Removing_the_selected_node_moves_the_selection_to_its_parent_or_clears_it()
+    {
+        var tree = new Tree(Sample());
+        var b = tree.Roots[1];
+        tree.State.Reveal([b, b.Children[0]]);
+        tree.Frame();
+
+        b.Children.Clear();
+        tree.State.Refresh();
+        Assert.True(tree.Frame().SelectionChanged);
+        Assert.Equal("B", tree.Selected);
+
+        tree.Roots.Remove(b);
+        var result = tree.Frame();
+        Assert.True(result.SelectionChanged);
+        Assert.False(tree.State.HasSelection);
+    }
+
+    [Fact]
+    public void Selecting_a_hidden_node_scrolls_to_it_once_its_parent_expands()
+    {
+        var children = Enumerable.Range(0, 100).Select(i => new Node($"child {i}")).ToArray();
+        var tree = new Tree(new Node("root", children));
+
+        tree.State.Select(children[80]);
+        tree.Frame();
+        tree.Frame();
+        Assert.False(tree.Frames.Drew("child 80"));
+
+        tree.State.SetExpanded(tree.Roots[0], true);
+        tree.Frame();
+        tree.Frame();
+        tree.Frame();
+
+        Assert.True(tree.Frames.Drew("child 80"));
+        Assert.Equal("child 80", tree.Selected);
+    }
+
+    [Fact]
+    public void A_hidden_selection_is_not_searched_for_every_frame()
+    {
+        var comparer = new CountingComparer();
+        var state = new TreeViewState<int>(comparer);
+        var roots = Enumerable.Range(0, 10_000).ToArray();
+        var model = new FlatModel();
+        var frames = new UiFrames();
+        void Body(Ui ui) => ui.TreeView("tree", roots, model, state);
+        frames.Run(0f, Body);
+
+        state.Select(-1);
+        frames.Run(0f, Body);
+        frames.Run(0f, Body);
+        comparer.Calls = 0;
+        frames.Run(0f, Body);
+
+        Assert.True(comparer.Calls < 1_000, $"{comparer.Calls} comparisons");
+    }
+
+    [Fact]
+    public void Toggling_reports_the_toggled_node()
+    {
+        var tree = new Tree(Sample());
+
+        tree.ClickArrow(1, 0);
+
+        var toggled = Assert.Single(tree.Results, r => r.Toggled);
+        Assert.Equal("B", toggled.ToggledNode!.Name);
+        Assert.False(toggled.SelectionChanged);
+    }
+
+    [Fact]
+    public void Double_click_can_activate_without_toggling()
+    {
+        var tree = new Tree(Sample()) { ToggleOnActivate = false };
+        tree.Click(0);
+        tree.Results.Clear();
+
+        tree.Frames.Press();
+        tree.Frame();
+        tree.Frames.Release();
+        tree.Frame();
+
+        Assert.Contains(tree.Results, r => r.Activated && r.Node!.Name == "A");
+        Assert.False(tree.State.IsExpanded(tree.Roots[0]));
+        Assert.DoesNotContain(tree.Results, r => r.Toggled);
+    }
+
+    [Fact]
+    public void An_icon_background_draws_a_badge_behind_the_icon()
+    {
+        var tree = new Tree(Sample());
+        tree.Model.IconBackground = 0xFF123456;
+
+        tree.Frame();
+
+        Assert.Contains(tree.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFF123456u);
+    }
+
+    private sealed class CountingComparer : IEqualityComparer<int>
+    {
+        public int Calls;
+
+        public bool Equals(int x, int y)
+        {
+            Calls++;
+            return x == y;
+        }
+
+        public int GetHashCode(int obj) => obj;
+    }
+
+    private sealed class FlatModel : ITreeModel<int>
+    {
+        public bool HasChildren(int node) => false;
+        public IReadOnlyList<int> GetChildren(int node) => [];
+        public TreeRow Row(int node) => new("row");
     }
 }

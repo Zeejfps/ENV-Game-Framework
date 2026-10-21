@@ -5,13 +5,18 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>What a <see cref="UiWidgets.TreeView{TNode}"/> call did. <see cref="Node"/> is the
-/// selected node whenever a flag is set.</summary>
+/// selected node whenever a flag is set; <see cref="Toggled"/> says the user expanded or collapsed
+/// <see cref="ToggledNode"/>.</summary>
 public readonly record struct TreeViewResult<TNode>(
     bool SelectionChanged,
     bool Activated,
     bool ContextMenuRequested,
     PointF ContextMenuAt,
-    TNode? Node);
+    TNode? Node)
+{
+    public bool Toggled { get; init; }
+    public TNode? ToggledNode { get; init; }
+}
 
 public static partial class UiWidgets
 {
@@ -21,23 +26,28 @@ public static partial class UiWidgets
     /// <summary>
     /// A virtualized tree over <paramref name="roots"/> and the hierarchy <paramref name="model"/>
     /// describes. Click selects, double-click or Enter activates (a double-click also expands or
-    /// collapses), the disclosure arrow toggles, and a right-click or the Menu key asks for a
-    /// context menu at the pointer or the row. While focused, Up/Down/Home/End/PageUp/PageDown move
-    /// the selection and Left/Right collapse, expand, or step to the parent or first child.
+    /// collapses unless <paramref name="toggleOnActivate"/> is false), the disclosure arrow toggles,
+    /// and a right-click or the Menu key asks for a context menu at the pointer or the row. While
+    /// focused, Up/Down/Home/End/PageUp/PageDown move the selection and Left/Right collapse, expand,
+    /// or step to the parent or first child.
     /// </summary>
     public static TreeViewResult<TNode> TreeView<TNode>(
-        this Ui ui, string id, IReadOnlyList<TNode> roots, ITreeModel<TNode> model, TreeViewState<TNode> state, Box box = default)
+        this Ui ui, string id, IReadOnlyList<TNode> roots, ITreeModel<TNode> model, TreeViewState<TNode> state, Box box = default,
+        bool toggleOnActivate = true)
         where TNode : notnull
     {
         var theme = ui.Theme;
         var treeId = ui.GetId(id);
         var rowHeight = theme.RowHeight;
         state.Sync(roots, model);
+        var selectionMoved = state.TakeSelectionMoved();
 
         var before = state.SelectedIndex;
         var selection = before;
         var activated = false;
         var contextMenu = false;
+        var toggled = default(TNode);
+        var hasToggled = false;
         var menuAt = default(PointF);
 
         var area = ui.Interact(treeId);
@@ -47,7 +57,7 @@ public static partial class UiWidgets
         if (focused)
         {
             var page = ui.TryGetRect(treeId, out var view) ? Math.Max(1, (int)(view.Height / rowHeight) - 1) : 10;
-            TreeKeys(ui, state, model, page, ref selection, ref activated, ref contextMenu);
+            TreeKeys(ui, state, model, page, ref selection, ref activated, ref contextMenu, ref toggled, ref hasToggled);
             if (contextMenu && selection >= 0 && ui.TryGetRect(RowId(treeId, state, state.Rows[selection].Node), out var row))
                 menuAt = new PointF(row.X + row.Height, row.Bottom);
         }
@@ -80,7 +90,7 @@ public static partial class UiWidgets
                     if (row.DoubleClicked)
                     {
                         activated = true;
-                        if (hasChildren) toggle = i;
+                        if (hasChildren && toggleOnActivate) toggle = i;
                     }
                 }
                 if (row.ClickedWith(PointerButton.Right))
@@ -112,7 +122,10 @@ public static partial class UiWidgets
                             ui.Paint((expanded, arrow.Hovered ? theme.Text : theme.TextMuted), static (p, s) => DrawDisclosure(p, s.expanded, s.Item2));
                     }
                     if (content.Icon != null)
-                        ui.Text(content.Icon, color: content.IconColor != 0 ? content.IconColor : theme.TextMuted, family: content.IconFamily);
+                        ui.Text(content.Icon, content.IconBackground != 0
+                            ? new Box { Padding = new Spacing(3f, 0f), Height = rowHeight - 4f, Background = content.IconBackground, Radius = 3f }
+                            : default,
+                            color: content.IconColor != 0 ? content.IconColor : theme.TextMuted, family: content.IconFamily);
                     ui.Text(content.Label, color: content.LabelColor != 0 ? content.LabelColor : theme.Text);
                 }
             }
@@ -123,6 +136,8 @@ public static partial class UiWidgets
         var moved = false;
         if (toggle >= 0)
         {
+            toggled = state.Rows[toggle].Node;
+            hasToggled = true;
             if (state.IsExpanded(state.Rows[toggle].Node))
                 moved = state.Collapse(toggle);
             else
@@ -130,10 +145,14 @@ public static partial class UiWidgets
             ui.RequestFrame();
         }
 
-        var changed = selection != before || moved;
-        if (!changed && !activated && !contextMenu)
+        var changed = selection != before || moved || selectionMoved;
+        if (!changed && !activated && !contextMenu && !hasToggled)
             return default;
-        return new TreeViewResult<TNode>(changed, activated && state.HasSelection, contextMenu && state.HasSelection, menuAt, state.Selected);
+        return new TreeViewResult<TNode>(changed, activated && state.HasSelection, contextMenu && state.HasSelection, menuAt, state.Selected)
+        {
+            Toggled = hasToggled,
+            ToggledNode = hasToggled ? toggled : default,
+        };
     }
 
     private static int RowId<TNode>(int treeId, TreeViewState<TNode> state, TNode node) where TNode : notnull =>
@@ -141,7 +160,7 @@ public static partial class UiWidgets
 
     private static void TreeKeys<TNode>(
         Ui ui, TreeViewState<TNode> state, ITreeModel<TNode> model, int page,
-        ref int selection, ref bool activated, ref bool contextMenu)
+        ref int selection, ref bool activated, ref bool contextMenu, ref TNode? toggled, ref bool hasToggled)
         where TNode : notnull
     {
         foreach (var stroke in ui.Input.Keys)
@@ -173,7 +192,11 @@ public static partial class UiWidgets
                 case KeyboardKey.LeftArrow when current >= 0:
                     var node = state.Rows[current].Node;
                     if (state.IsExpanded(node) && model.HasChildren(node))
+                    {
                         state.Collapse(current);
+                        toggled = node;
+                        hasToggled = true;
+                    }
                     else if (state.ParentIndex(current) is var parent and >= 0)
                         selection = parent;
                     break;
@@ -181,7 +204,11 @@ public static partial class UiWidgets
                     var row = state.Rows[current];
                     if (!model.HasChildren(row.Node)) break;
                     if (!state.IsExpanded(row.Node))
+                    {
                         state.Expand(current, model);
+                        toggled = row.Node;
+                        hasToggled = true;
+                    }
                     else if (current + 1 < state.Rows.Count && state.Rows[current + 1].Depth > row.Depth)
                         selection = current + 1;
                     break;

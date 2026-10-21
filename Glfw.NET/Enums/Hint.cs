@@ -349,6 +349,12 @@ namespace GLFW
 	    FocusOnShow = 0x0002000C,
 
 	    /// <summary>
+	    ///     Specifies whether the window is transparent to mouse input, letting any mouse events pass through to
+	    ///     whatever window is behind it. Requires GLFW 3.4.
+	    /// </summary>
+	    MousePassthrough = 0x0002000D,
+
+	    /// <summary>
 	    ///     Specifies whether the window content area should be resized based on the monitor content scale of any
 	    ///     monitor it is placed on. This includes the initial placement when the window is created.
 	    ///     <para>Possible values are <c>true</c> and <c>false</c>.</para>

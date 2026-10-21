@@ -74,7 +74,7 @@ public sealed class GuiApp : IDisposable
         _frameTicker = new FrameTicker(onActivated: app.MainWindow.RequestRedraw);
         _lastAnimationTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var decorator = context.Get<IPopupNativeDecorator>() ?? new DefaultNoopDecorator();
+        var decorator = context.Get<IPopupNativeDecorator>() ?? PopupDecorator.ForCurrentPlatform();
         _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
         var coordinates = new WindowCoordinates(app.MainWindow, _uiScale);
         _popupFactory = new PopupWindowFactory(

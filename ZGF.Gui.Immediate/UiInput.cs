@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using ZGF.Desktop;
 using ZGF.Geometry;
@@ -16,6 +17,22 @@ public enum PointerButton
 
 public readonly record struct KeyStroke(KeyboardKey Key, bool IsRepeat, KeyModifiers Modifiers);
 
+/// <summary>This frame's key presses, in order. <c>foreach</c> over it allocates nothing.</summary>
+public readonly struct KeyStrokes
+{
+    private readonly List<KeyStroke> _keys;
+
+    internal KeyStrokes(List<KeyStroke> keys) => _keys = keys;
+
+    public int Count => _keys.Count;
+
+    public KeyStroke this[int index] => _keys[index];
+
+    public ReadOnlySpan<KeyStroke> AsSpan() => CollectionsMarshal.AsSpan(_keys);
+
+    public ReadOnlySpan<KeyStroke>.Enumerator GetEnumerator() => AsSpan().GetEnumerator();
+}
+
 /// <summary>Everything that happened since the previous frame, plus the held state that carries
 /// across frames. Coordinates are UI points, origin top-left.</summary>
 public sealed class UiInput
@@ -25,6 +42,7 @@ public sealed class UiInput
     private readonly bool[] _down = new bool[ButtonCount];
     private readonly bool[] _pressed = new bool[ButtonCount];
     private readonly bool[] _released = new bool[ButtonCount];
+    private readonly bool[] _cancelled = new bool[ButtonCount];
     private readonly List<KeyStroke> _keys = new();
     private readonly StringBuilder _text = new();
 
@@ -33,7 +51,7 @@ public sealed class UiInput
     public float ScrollY { get; private set; }
     public KeyModifiers Modifiers { get; private set; }
     public string Text { get; private set; } = "";
-    public IReadOnlyList<KeyStroke> Keys => _keys;
+    public KeyStrokes Keys => new(_keys);
     public bool HasEvents { get; private set; }
 
     /// <summary>The platform asked open popups to close since the previous frame: the app lost
@@ -41,8 +59,15 @@ public sealed class UiInput
     public bool PopupsDismissed { get; private set; }
 
     public bool IsDown(PointerButton button) => _down[(int)button];
+    /// <summary>Whether <paramref name="button"/> went down this frame, wherever the pointer is —
+    /// the app-wide hook for <see cref="PointerButton.Back"/>/<see cref="PointerButton.Forward"/>
+    /// navigation. <see cref="Interaction.ClickedWith"/> answers only for the element under the pointer.</summary>
     public bool WasPressed(PointerButton button) => _pressed[(int)button];
     public bool WasReleased(PointerButton button) => _released[(int)button];
+
+    /// <summary>True when the release this frame came from the app losing focus rather than the
+    /// user: it ends drags but must not click or pick anything.</summary>
+    public bool WasCancelled(PointerButton button) => _cancelled[(int)button];
 
     internal bool AnyDown => Array.IndexOf(_down, true) >= 0;
 
@@ -54,6 +79,20 @@ public sealed class UiInput
                 return true;
         }
         return false;
+    }
+
+    /// <summary>Whether <paramref name="key"/> was pressed this frame; removes it, so nothing
+    /// that reads the input afterwards sees it. Don't call it while iterating <see cref="Keys"/>.</summary>
+    public bool TakeKey(KeyboardKey key)
+    {
+        var taken = false;
+        for (var i = _keys.Count - 1; i >= 0; i--)
+        {
+            if (_keys[i].Key != key) continue;
+            _keys.RemoveAt(i);
+            taken = true;
+        }
+        return taken;
     }
 
     internal static PointF Offscreen => new(float.MinValue, float.MinValue);
@@ -117,9 +156,44 @@ public sealed class UiInput
             if (!_down[i]) continue;
             _down[i] = false;
             _released[i] = true;
+            _cancelled[i] = true;
         }
         Modifiers = KeyModifiers.None;
         HasEvents = true;
+    }
+
+    internal void CopyPointerFrom(UiInput source)
+    {
+        Array.Copy(source._down, _down, ButtonCount);
+        Array.Copy(source._pressed, _pressed, ButtonCount);
+        Array.Copy(source._released, _released, ButtonCount);
+        Array.Copy(source._cancelled, _cancelled, ButtonCount);
+        _keys.Clear();
+        _text.Clear();
+        Text = "";
+        Pointer = source.Pointer;
+        ScrollX = source.ScrollX;
+        ScrollY = source.ScrollY;
+        Modifiers = source.Modifiers;
+        PopupsDismissed = source.PopupsDismissed;
+        HasEvents = source.HasEvents;
+    }
+
+    internal void CopyInertFrom(UiInput source)
+    {
+        Array.Clear(_down);
+        Array.Clear(_pressed);
+        Array.Clear(_released);
+        Array.Clear(_cancelled);
+        _keys.Clear();
+        _text.Clear();
+        Text = "";
+        Pointer = Offscreen;
+        ScrollX = 0;
+        ScrollY = 0;
+        Modifiers = KeyModifiers.None;
+        PopupsDismissed = source.PopupsDismissed;
+        HasEvents = source.HasEvents;
     }
 
     internal void Seal() => Text = _text.Length == 0 ? "" : _text.ToString();
@@ -129,6 +203,7 @@ public sealed class UiInput
         Array.Copy(previous._down, _down, ButtonCount);
         Array.Clear(_pressed);
         Array.Clear(_released);
+        Array.Clear(_cancelled);
         _keys.Clear();
         _text.Clear();
         Text = "";

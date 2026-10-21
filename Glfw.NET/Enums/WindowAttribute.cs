@@ -53,6 +53,11 @@
 	    Floating = 0x00020007,
 
 	    /// <summary>
+	    ///     Indicates whether the window is transparent to mouse input. Requires GLFW 3.4.
+	    /// </summary>
+	    MousePassthrough = 0x0002000D,
+
+	    /// <summary>
 	    ///     Indicates whether the cursor is currently directly over the content area of the window, with no other
 	    ///     windows between.
 	    /// </summary>

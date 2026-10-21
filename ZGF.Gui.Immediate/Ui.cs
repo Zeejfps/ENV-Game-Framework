@@ -24,7 +24,7 @@ public sealed partial class Ui
     private readonly ICanvas _canvas;
     private readonly IClipboard _clipboard;
     private readonly IPopupHost? _popupHost;
-    private readonly ConcurrentQueue<Action> _posted = new();
+    private readonly ConcurrentQueue<Action> _posted;
     private readonly List<Action<IFilePicker>> _dialogs = new();
     private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
@@ -42,6 +42,8 @@ public sealed partial class Ui
     private List<HitRegion> _previousHits = new();
     private Dictionary<int, UiRect> _rects = new();
     private Dictionary<int, UiRect> _previousRects = new();
+    private Dictionary<int, UiRect> _contentRects = new();
+    private Dictionary<int, UiRect> _previousContentRects = new();
 
     private long _frame;
     private int _hovered;
@@ -56,9 +58,11 @@ public sealed partial class Ui
     private double _lastPressTime = double.NegativeInfinity;
     private PointF _lastPressAt;
     private int _clickCount;
+    private bool _showingDialogs;
 
-    internal Ui(ICanvas canvas, IClipboard clipboard, IPopupHost? popupHost = null)
+    internal Ui(ICanvas canvas, IClipboard clipboard, IPopupHost? popupHost = null, ConcurrentQueue<Action>? posted = null)
     {
+        _posted = posted ?? new ConcurrentQueue<Action>();
         _canvas = canvas;
         _clipboard = clipboard;
         _popupHost = popupHost;
@@ -67,7 +71,16 @@ public sealed partial class Ui
 
     /// <summary>The theme provided around this point, or <see cref="UiTheme.Dark"/>.</summary>
     public UiTheme Theme => Get<UiTheme>() ?? UiTheme.Dark;
-    public UiInput Input { get; private set; } = new();
+    private UiInput _input = new();
+
+    /// <summary>This frame's input as the code being recorded sees it: empty of keys outside the
+    /// topmost <see cref="Layer"/>, and of everything outside the topmost <see cref="Modal"/>.</summary>
+    public UiInput Input => _block switch
+    {
+        InputBlock.None => _input,
+        InputBlock.Keys => _keyless,
+        _ => _inert,
+    };
     public float Width { get; private set; }
     public float Height { get; private set; }
     public float DeltaTime { get; private set; }
@@ -76,6 +89,13 @@ public sealed partial class Ui
     /// <summary>Wall-clock seconds. Unlike <see cref="Time"/> it keeps running while the UI is idle,
     /// so it can time things like a caret blink.</summary>
     public double RealTime { get; private set; }
+
+    /// <summary>The main window's bounds as of this frame; see <see cref="Gui{T}.WindowBounds"/>.</summary>
+    public WindowBounds WindowBounds { get; internal set; }
+
+    /// <summary>The color the window is cleared to under everything drawn, and shown while it
+    /// resizes. Kept until set again; <see cref="UiTheme.Dark"/>'s background until then.</summary>
+    public uint WindowBackground { get; set; } = UiTheme.Dark.Background;
 
     /// <summary>True while a widget that takes text holds keyboard focus; app shortcuts should
     /// stand down.</summary>
@@ -121,27 +141,49 @@ public sealed partial class Ui
     /// at the start of a later frame with the chosen path, and not at all when the user cancels.
     /// See <see cref="IFilePicker.PickFile"/> for <paramref name="filters"/>.</summary>
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        _dialogs.Add(picker => picker.PickFile(title, initialDirectory, filters, path => Post(() => onPicked(path))));
+        _dialogs.Add(picker => picker.PickFile(title, initialDirectory, filters, InFrame(onPicked)));
 
     /// <summary>Shows the OS folder picker, as <see cref="PickFile"/> does.</summary>
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
-        _dialogs.Add(picker => picker.PickFolder(title, initialDirectory, path => Post(() => onPicked(path))));
+        _dialogs.Add(picker => picker.PickFolder(title, initialDirectory, InFrame(onPicked)));
 
     /// <summary>Shows the OS save dialog, as <see cref="PickFile"/> does. See
     /// <see cref="IFilePicker.PickSaveFile"/>.</summary>
     public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        _dialogs.Add(picker => picker.PickSaveFile(title, initialDirectory, suggestedFileName, filters, path => Post(() => onPicked(path))));
+        _dialogs.Add(picker => picker.PickSaveFile(title, initialDirectory, suggestedFileName, filters, InFrame(onPicked)));
 
-    /// <summary>Runs the dialogs asked for during the last frame. The host calls it outside any
-    /// frame, since a modal dialog pumps the window's events.</summary>
-    internal void ShowDialogs(IFilePicker picker)
+    private Action<string> InFrame(Action<string> onPicked) => path =>
     {
-        if (_dialogs.Count == 0) return;
+        if (_showingDialogs)
+            Post(() => onPicked(path));
+        else
+            onPicked(path);
+    };
+
+    /// <summary>Hides every popup, then runs the dialogs asked for during the last frame. The host
+    /// calls it outside any frame, since a modal dialog pumps the window's events. Returns whether
+    /// any ran, after which open popups should be dismissed.</summary>
+    internal bool ShowDialogs(IFilePicker picker)
+    {
+        if (_dialogs.Count == 0) return false;
+        _popupHost?.HideAll();
         var dialogs = _dialogs.ToArray();
         _dialogs.Clear();
-        foreach (var dialog in dialogs)
-            dialog(picker);
+        _showingDialogs = true;
+        try
+        {
+            foreach (var dialog in dialogs)
+                dialog(picker);
+        }
+        finally
+        {
+            _showingDialogs = false;
+        }
+        return true;
     }
+
+    /// <summary>Forgets every measured width, line height and cell: fonts changed.</summary>
+    internal void InvalidateMeasurements() => _measuredScale = 0f;
 
     internal bool HasDialogs => _dialogs.Count > 0;
 
@@ -158,7 +200,7 @@ public sealed partial class Ui
         Width = width;
         Height = height;
         BeginMeasurements();
-        Input = input;
+        _input = input;
         DeltaTime = deltaTime;
         Time += deltaTime;
         RealTime = realTime;
@@ -171,13 +213,16 @@ public sealed partial class Ui
 
         (_hits, _previousHits) = (_previousHits, _hits);
         (_rects, _previousRects) = (_previousRects, _rects);
+        (_contentRects, _previousContentRects) = (_previousContentRects, _contentRects);
         _hits.Clear();
         _rects.Clear();
+        _contentRects.Clear();
         _hovered = Topmost(_previousHits, null, out _);
         TrackPresses();
 
         _ids.Clear();
         _ids.Push(RootId);
+        BeginLayers(input);
         ResetContext();
         _tree.Clear();
         _open.Clear();
@@ -195,12 +240,14 @@ public sealed partial class Ui
             throw new InvalidOperationException("An Id scope was not disposed.");
         if (_provided.Count != 0)
             throw new InvalidOperationException("A Provide scope was not disposed.");
+        if (_openLayers.Count != 0)
+            throw new InvalidOperationException("A Layer scope was not disposed.");
 
-        _tree.Solve();
+        _tree.Solve(this);
         switch (SettleScrolls())
         {
             case ScrollSettle.Relayout:
-                _tree.Solve();
+                _tree.Solve(this);
                 if (SettleScrolls() != ScrollSettle.None)
                     _tree.Position();
                 break;
@@ -213,15 +260,16 @@ public sealed partial class Ui
             PlacePopups();
             _tree.Position();
         }
-        _tree.Emit(_canvas, _painter, Width, Height, _hits, _rects);
+        _tree.Emit(_canvas, _painter, Width, Height, _hits, _rects, _contentRects);
 
         if (_active != 0 && !_activeSeen)
             _active = 0;
-        if (_focused != 0 && (!_focusSeen || (Input.WasPressed(PointerButton.Left) && !_focusClaimed)))
+        if (_focused != 0 && (!_focusSeen || (_input.WasPressed(PointerButton.Left) && !_focusClaimed)))
             _focused = 0;
+        EndLayers();
         for (var button = 1; button < UiInput.ButtonCount; button++)
         {
-            if (!Input.IsDown((PointerButton)button))
+            if (!_input.IsDown((PointerButton)button))
                 _pressTargets[button] = 0;
         }
         if (_frame % StatePruneInterval == 0)
@@ -291,7 +339,7 @@ public sealed partial class Ui
             _activeSeen = true;
             if (Input.WasReleased(PointerButton.Left) || !Input.IsDown(PointerButton.Left))
             {
-                clicked = _hovered == id && Input.WasReleased(PointerButton.Left);
+                clicked = _hovered == id && Input.WasReleased(PointerButton.Left) && !Input.WasCancelled(PointerButton.Left);
                 _active = 0;
             }
         }
@@ -301,7 +349,7 @@ public sealed partial class Ui
         {
             for (var button = 1; button < UiInput.ButtonCount; button++)
             {
-                if (_pressTargets[button] == id && Input.WasReleased((PointerButton)button))
+                if (_pressTargets[button] == id && Input.WasReleased((PointerButton)button) && !Input.WasCancelled((PointerButton)button))
                     otherClicks |= 1 << button;
             }
         }
@@ -313,12 +361,12 @@ public sealed partial class Ui
     {
         for (var button = 1; button < UiInput.ButtonCount; button++)
         {
-            if (Input.WasPressed((PointerButton)button))
+            if (_input.WasPressed((PointerButton)button))
                 _pressTargets[button] = _hovered;
         }
 
-        if (!Input.WasPressed(PointerButton.Left)) return;
-        var pointer = Input.Pointer;
+        if (!_input.WasPressed(PointerButton.Left)) return;
+        var pointer = _input.Pointer;
         var repeated = _hovered == _lastPressTarget
             && RealTime - _lastPressTime <= MultiClickSeconds
             && MathF.Abs(pointer.X - _lastPressAt.X) <= MultiClickDistance
@@ -399,7 +447,8 @@ public sealed partial class Ui
     // change re-rasterizes every font, so it invalidates everything.
     private void BeginMeasurements()
     {
-        if (_canvas.DpiScale != _measuredScale)
+        var invalidate = _canvas.DpiScale != _measuredScale;
+        if (invalidate)
         {
             _measuredScale = _canvas.DpiScale;
             _widths.Clear();
@@ -407,6 +456,7 @@ public sealed partial class Ui
             _lineHeights.Clear();
             _cells.Clear();
         }
+        BeginLines(invalidate);
         (_widths, _previousWidths) = (_previousWidths, _widths);
         _widths.Clear();
     }
@@ -455,7 +505,7 @@ public sealed partial class Ui
 
     private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z)
     {
-        var pointer = Input.Pointer;
+        var pointer = _input.Pointer;
         var best = 0;
         var bestZ = int.MinValue;
         var bestOrder = int.MinValue;
@@ -480,15 +530,30 @@ public sealed partial class Ui
             e.W = MathF.Ceiling(e.W);
             e.H = MathF.Ceiling(e.H);
             var anchor = popup.Anchor;
-            var x = popup.Align switch
+            UiRect preferred, fallback;
+            if (popup.Side == PopupSide.End)
             {
-                Align.Center => anchor.X + (anchor.Width - e.W) / 2,
-                Align.End => anchor.Right - e.W,
-                _ => anchor.X,
-            };
-            var below = new UiRect(x, anchor.Bottom + popup.Gap, e.W, e.H);
-            var above = below with { Y = anchor.Y - popup.Gap - e.H };
-            var rect = _popupHost?.Place(below, above) ?? PopupPlacement.Fit(below, above, new UiRect(0f, 0f, Width, Height));
+                var y = popup.Align switch
+                {
+                    Align.Center => anchor.Y + (anchor.Height - e.H) / 2,
+                    Align.End => anchor.Bottom - e.H,
+                    _ => anchor.Y,
+                };
+                preferred = new UiRect(anchor.Right + popup.Gap, y, e.W, e.H);
+                fallback = preferred with { X = anchor.X - popup.Gap - e.W };
+            }
+            else
+            {
+                var x = popup.Align switch
+                {
+                    Align.Center => anchor.X + (anchor.Width - e.W) / 2,
+                    Align.End => anchor.Right - e.W,
+                    _ => anchor.X,
+                };
+                preferred = new UiRect(x, anchor.Bottom + popup.Gap, e.W, e.H);
+                fallback = preferred with { Y = anchor.Y - popup.Gap - e.H };
+            }
+            var rect = _popupHost?.Place(preferred, fallback) ?? PopupPlacement.Fit(preferred, fallback, new UiRect(0f, 0f, Width, Height));
             e.OffsetX = rect.X;
             e.OffsetY = rect.Y;
             _tree.SetLayer(e.Layer, _popupHost?.Show(popup.Id, rect, e.PassThrough), rect);

@@ -92,6 +92,7 @@ public abstract class GlfwWindowBase : IWindow
     public bool IsFocused => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Focused);
     public bool IsPointerOver => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.MouseHover);
     public bool NeedsRedraw { get; private set; } = true;
+    public bool IsMaximized => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Maximized);
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;
@@ -139,6 +140,9 @@ public abstract class GlfwWindowBase : IWindow
 
     public void GetFrameSize(out int left, out int top, out int right, out int bottom) =>
         GLFW.Glfw.GetWindowFrameSize(GlfwWindow, out left, out top, out right, out bottom);
+
+    public void SetMousePassThrough(bool passThrough) =>
+        GLFW.Glfw.SetWindowAttribute(GlfwWindow, WindowAttribute.MousePassthrough, passThrough);
 
     public void GetCursorPosition(out double x, out double y) =>
         GLFW.Glfw.GetCursorPosition(GlfwWindow, out x, out y);

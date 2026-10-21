@@ -33,6 +33,9 @@ internal struct Element
     public TextStyle? TextStyle;
     public float ContentWidth;
     public float ContentHeight;
+    public float LineHeight;
+    public TextLines? Lines;
+    public bool Wrap;
 
     public bool Floating;
     public float AnchorX;
@@ -48,6 +51,7 @@ internal struct Element
     public float W;
     public float H;
     public float ChildExtent;
+    public float CrossExtent;
 }
 
 internal struct PaintEntry
@@ -109,6 +113,7 @@ internal sealed class LayoutTree
     private float _originY;
     private float _surfaceHeight;
     private int _order;
+    private Dictionary<int, UiRect> _contentRects = null!;
 
     public ref Element this[int index] => ref CollectionsMarshal.AsSpan(_elements)[index];
 
@@ -160,13 +165,27 @@ internal sealed class LayoutTree
         _layers[layer - 1] = (canvas, rect);
     }
 
-    public void Solve()
+    public void Solve(ITextLayout text)
     {
         Fit(true);
         Distribute(true);
+        WrapText(text);
         Fit(false);
         Distribute(false);
         Position();
+    }
+
+    private void WrapText(ITextLayout text)
+    {
+        var span = CollectionsMarshal.AsSpan(_elements);
+        for (var i = 0; i < span.Length; i++)
+        {
+            ref var e = ref span[i];
+            if (!e.Wrap) continue;
+            var inner = MathF.Max(0f, e.W - e.Padding.Left - e.Padding.Right);
+            e.Lines = text.BreakLines(e.Text!, e.TextStyle!, inner);
+            e.ContentHeight = e.Lines.Count * e.LineHeight;
+        }
     }
 
     public void Position()
@@ -183,15 +202,18 @@ internal sealed class LayoutTree
             var startY = e.Y + e.Padding.Top - e.ScrollY;
 
             var used = 0f;
+            var cross = 0f;
             var count = 0;
             for (var c = e.FirstChild; c >= 0; c = span[c].NextSibling)
             {
                 if (span[c].Floating) continue;
                 used += e.Horizontal ? span[c].W : span[c].H;
+                cross = MathF.Max(cross, e.Horizontal ? span[c].H : span[c].W);
                 count++;
             }
             used += e.Gap * Math.Max(0, count - 1);
             e.ChildExtent = used + (e.Horizontal ? e.Padding.Left + e.Padding.Right : e.Padding.Top + e.Padding.Bottom);
+            e.CrossExtent = cross + (e.Horizontal ? e.Padding.Top + e.Padding.Bottom : e.Padding.Left + e.Padding.Right);
 
             var free = (e.Horizontal ? innerW : innerH) - used;
             var cursor = MathF.Max(0f, free) * Factor(e.Horizontal ? e.AlignX : e.AlignY);
@@ -223,8 +245,10 @@ internal sealed class LayoutTree
         }
     }
 
-    public void Emit(ICanvas canvas, UiPainter painter, float canvasWidth, float canvasHeight, List<HitRegion> hits, Dictionary<int, UiRect> rects)
+    public void Emit(ICanvas canvas, UiPainter painter, float canvasWidth, float canvasHeight, List<HitRegion> hits, Dictionary<int, UiRect> rects,
+        Dictionary<int, UiRect> contentRects)
     {
+        _contentRects = contentRects;
         _mainCanvas = canvas;
         _painter = painter;
         _screen = new UiRect(0f, 0f, canvasWidth, canvasHeight);
@@ -271,6 +295,12 @@ internal sealed class LayoutTree
         if (e.Id != 0)
         {
             rects[e.Id] = rect;
+            if (e.Padding != default)
+                _contentRects[e.Id] = new UiRect(
+                    rect.X + e.Padding.Left,
+                    rect.Y + e.Padding.Top,
+                    MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
+                    MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
             if (visible && !passThrough)
                 hits.Add(new HitRegion(e.Id, clip.Intersect(rect), z, _order++));
         }
@@ -321,13 +351,41 @@ internal sealed class LayoutTree
                 rect.Y + e.Padding.Top,
                 MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
                 MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
-            _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(content), Text = e.Text, Style = e.TextStyle, ZIndex = z });
+            if (e.Lines == null)
+                _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(content), Text = e.Text, Style = e.TextStyle, ZIndex = z });
+            else
+                PaintLines(ref e, content, z);
         }
 
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
             _painter.Begin(rect, z, _canvas, _originX, _originY, _surfaceHeight);
             _paints[p].Command.Run(_painter);
+        }
+    }
+
+    private void PaintLines(ref Element e, UiRect content, int z)
+    {
+        var lines = e.Lines!;
+        var height = e.LineHeight;
+        var top = content.Y + MathF.Max(0f, (content.Height - lines.Count * height) / 2);
+        var clip = _clips[^1];
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var length = lines.Length(i);
+            if (length == 0) continue;
+            var line = new UiRect(content.X, top + i * height, content.Width, height);
+            if (line.Y >= clip.Bottom) break;
+            if (!line.Intersects(clip)) continue;
+            var start = lines.Start(i);
+            _canvas.DrawText(new DrawTextInputs
+            {
+                Position = ToCanvas(line),
+                Text = e.Text!,
+                Slice = new Range(start, start + length),
+                Style = e.TextStyle!,
+                ZIndex = z,
+            });
         }
     }
 
