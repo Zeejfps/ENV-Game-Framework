@@ -492,6 +492,33 @@ public sealed class SplitIconButtonTests
     }
 }
 
+public sealed class MenuItemIconTests
+{
+    private readonly UiFrames _frames = new();
+
+    private static void Body(Ui ui)
+    {
+        using var menu = ui.DropdownButton("more");
+        if (!menu.IsOpen) return;
+        ui.MenuItem("Plain");
+        ui.MenuItem("Iconic", icon: new UiIcon("I", Color: 0xFF00FF00, Overlay: "o"));
+        ui.MenuItem("Checked", check: true, icon: new UiIcon("X"));
+    }
+
+    [Fact]
+    public void An_icon_sits_in_the_mark_column_with_its_overlay_unless_the_item_is_checked()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("more"));
+        _frames.Run(0f, Body);
+
+        Assert.True(_frames.Drew("I"));
+        Assert.Equal(0xFF00FF00u, _frames.TextColor("I"));
+        Assert.True(_frames.Drew("o"));
+        Assert.False(_frames.Drew("X"));
+    }
+}
+
 public sealed class MenuScrollTests
 {
     private const int ItemCount = 60;

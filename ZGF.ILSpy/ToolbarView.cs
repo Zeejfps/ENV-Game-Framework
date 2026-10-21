@@ -76,11 +76,13 @@ internal static class ToolbarView
     private static void HistoryItems(Ui ui, Workspace w, int direction)
     {
         var entries = w.History.Entries;
+        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
         for (var i = w.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
         {
             using (ui.Id(i))
             {
-                if (ui.MenuItem(entries[i].Place.Text, id: "entry"))
+                var entry = entries[i];
+                if (ui.MenuItem(entry.Place.Text, id: "entry", icon: NodeIcons.Icon(entry.Place.Kind, entry.Accessibility, palette)))
                 {
                     w.GoTo(i);
                     return;

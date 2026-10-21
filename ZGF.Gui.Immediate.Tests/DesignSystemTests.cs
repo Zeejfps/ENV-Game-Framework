@@ -488,7 +488,7 @@ public sealed class TreeRowSlotTests
     public void The_secondary_text_ellipsizes_before_the_label_and_the_overlay_is_drawn()
     {
         var frames = new UiFrames(width: 200f);
-        var model = new Flat(new TreeRow("System.Runtime", Icon: "A", Secondary: "C:/dotnet/shared/System.Runtime.dll", IconOverlay: "L", Tooltip: "full"));
+        var model = new Flat(new TreeRow("System.Runtime", new UiIcon("A", Overlay: "L"), Secondary: "C:/dotnet/shared/System.Runtime.dll", Tooltip: "full"));
         var state = new TreeViewState<string>(StringComparer.Ordinal);
         string[] roots = ["root"];
         void Body(Ui ui) => ui.TreeView("tree", roots, model, state);

@@ -211,7 +211,7 @@ public sealed class Workspace
         Intend();
         LeaveActive();
         ShowIn(inNewTab ? null : ActiveTab, node);
-        History.Push(node.Path, Language);
+        History.Push(node, Language);
     }
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
@@ -234,7 +234,7 @@ public sealed class Workspace
             }
             LeaveActive();
             ShowIn(origin != null && _tabs.Contains(origin) ? origin : null, node);
-            History.Push(node.Path, Language);
+            History.Push(node, Language);
         });
     }
 

@@ -186,7 +186,7 @@ public class ImmediateTreeBenchmarks
     {
         public bool HasChildren(Node node) => node.Children.Length > 0;
         public IReadOnlyList<Node> GetChildren(Node node) => node.Children;
-        public TreeRow Row(Node node) => new(node.Label, Icon: "#", IconColor: 0xFF4C8DFF, IconBackground: 0x334C8DFF);
+        public TreeRow Row(Node node) => new(node.Label, new UiIcon("#", Color: 0xFF4C8DFF, Background: 0x334C8DFF));
     }
 
     [GlobalSetup]

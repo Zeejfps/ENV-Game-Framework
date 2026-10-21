@@ -21,6 +21,9 @@ public sealed class NodePath : IEquatable<NodePath>
     /// <summary>How many nodes lie below the root on the way down, the node itself included.</summary>
     public int Depth => _segments.Length;
 
+    /// <summary>The kind of the node this names.</summary>
+    public NodeKind Kind => _segments.Length == 0 ? NodeKind.Assembly : _segments[^1].Kind;
+
     /// <summary>The label of the node this names.</summary>
     public string Text => _segments.Length == 0 ? Path.GetFileName(FilePath) : _segments[^1].Text;
 

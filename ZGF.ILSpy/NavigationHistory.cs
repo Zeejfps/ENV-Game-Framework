@@ -2,9 +2,9 @@ using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A place navigated to, the language it was shown in, and where its view stood when it
-/// was left.</summary>
-public readonly record struct HistoryEntry(NodePath Place, DecompilationLanguage Language, CodeViewPosition? Position);
+/// <summary>A place navigated to, how visible its node was, the language it was shown in, and
+/// where its view stood when it was left.</summary>
+public readonly record struct HistoryEntry(NodePath Place, NodeAccessibility Accessibility, DecompilationLanguage Language, CodeViewPosition? Position);
 
 /// <summary>Back/forward over the places navigated to, kept as paths so they outlive reloads and
 /// pin no assembly.</summary>
@@ -30,11 +30,12 @@ public sealed class NavigationHistory
     public HistoryEntry? Current => _current >= 0 ? _entries[_current] : null;
 
     /// <summary>Records a new place, dropping what was forward of the current one.</summary>
-    public void Push(NodePath place, DecompilationLanguage language)
+    public void Push(BrowseNode node, DecompilationLanguage language)
     {
+        var place = node.Path;
         if (_current >= 0 && _entries[_current].Place.Equals(place)) return;
         _entries.RemoveRange(_current + 1, _entries.Count - _current - 1);
-        _entries.Add(new HistoryEntry(place, language, null));
+        _entries.Add(new HistoryEntry(place, node.Accessibility, language, null));
         if (_entries.Count > Capacity)
             _entries.RemoveAt(0);
         _current = _entries.Count - 1;

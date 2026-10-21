@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -16,9 +17,9 @@ public enum NodeIconRole
 /// <summary>Each node kind's pictogram in the Lucide icon font and the role that colors it.</summary>
 public static class NodeIcons
 {
-    private readonly record struct Icon(string Glyph, NodeIconRole Role);
+    private readonly record struct KindIcon(string Glyph, NodeIconRole Role);
 
-    private static readonly Icon[] Icons = BuildIcons();
+    private static readonly KindIcon[] Icons = BuildIcons();
 
     public const string Family = LucideIcons.Family;
 
@@ -35,6 +36,11 @@ public static class NodeIcons
         _ => null,
     };
 
+    /// <summary>The icon of a node of <paramref name="kind"/> as the tree shows it: colored from
+    /// <paramref name="palette"/>, with the overlay of its <paramref name="accessibility"/>.</summary>
+    public static UiIcon Icon(NodeKind kind, NodeAccessibility accessibility, NodeIconPalette palette) =>
+        new(Glyph(kind), Family, palette.For(kind), Overlay: Overlay(accessibility), OverlayColor: palette.Restricted);
+
     /// <summary>Records <paramref name="kind"/>'s icon in a slot as wide as the theme's icon size,
     /// colored from the provided <see cref="NodeIconPalette"/>.</summary>
     public static void Draw(Ui ui, NodeKind kind)
@@ -44,9 +50,9 @@ public static class NodeIcons
         ui.Text(Glyph(kind), new Box { Width = theme.IconSize }, color: palette.For(kind), size: theme.IconSize, align: Align.Center, family: Family);
     }
 
-    private static Icon[] BuildIcons()
+    private static KindIcon[] BuildIcons()
     {
-        var icons = new Icon[Enum.GetValues<NodeKind>().Length];
+        var icons = new KindIcon[Enum.GetValues<NodeKind>().Length];
         Set(NodeKind.Assembly, LucideIcons.Package, NodeIconRole.Neutral);
         Set(NodeKind.ReferencesFolder, LucideIcons.Library, NodeIconRole.Neutral);
         Set(NodeKind.AssemblyReference, LucideIcons.Link2, NodeIconRole.Neutral);
@@ -74,7 +80,7 @@ public static class NodeIcons
         Set(NodeKind.Loading, LucideIcons.Loader2, NodeIconRole.Neutral);
         return icons;
 
-        void Set(NodeKind kind, string glyph, NodeIconRole role) => icons[(int)kind] = new Icon(glyph, role);
+        void Set(NodeKind kind, string glyph, NodeIconRole role) => icons[(int)kind] = new KindIcon(glyph, role);
     }
 }
 

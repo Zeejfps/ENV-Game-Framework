@@ -21,7 +21,6 @@ public readonly record struct TreeViewResult<TNode>(
 public static partial class UiWidgets
 {
     private const int DisclosureSalt = 0x44495343;
-    private const float BadgePaddingX = 2f;
 
     /// <summary>
     /// A virtualized tree over <paramref name="roots"/> and the hierarchy <paramref name="model"/>
@@ -128,32 +127,8 @@ public static partial class UiWidgets
                             ui.Paint((expanded, arrow.Hovered ? theme.Text : theme.TextMuted, theme.IconStrokeWidth),
                                 static (p, s) => DrawDisclosure(p, s.expanded, s.Item2, s.IconStrokeWidth));
                     }
-                    if (content.Icon != null)
-                    {
-                        using (ui.Box(new Box { Width = Sizing.Fit(theme.IconSize), Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
-                        using (ui.Box())
-                        {
-                            ui.Text(content.Icon, content.IconBackground != 0
-                                ? new Box
-                                {
-                                    Width = Sizing.Fit(theme.IconSize),
-                                    Height = theme.IconSize,
-                                    Padding = new Spacing(BadgePaddingX, 0f),
-                                    Background = content.IconBackground,
-                                    Radius = theme.RadiusSmall,
-                                }
-                                : default,
-                                color: content.IconColor != 0 ? content.IconColor : theme.TextMuted, align: Align.Center, family: content.IconFamily);
-                            if (content.IconOverlay != null)
-                            {
-                                var overlay = theme.IconOverlaySize;
-                                using (ui.Float(1f, 1f, -overlay * 0.75f, -overlay * 0.75f, new Box { Width = overlay, Height = overlay }, z: 1))
-                                    ui.Text(content.IconOverlay, new Box { Width = overlay, Height = overlay },
-                                        color: content.IconOverlayColor != 0 ? content.IconOverlayColor : theme.TextMuted, size: overlay, align: Align.Center,
-                                        family: content.IconOverlayFamily ?? content.IconFamily);
-                            }
-                        }
-                    }
+                    if (content.Icon is { } icon)
+                        ui.Icon(icon);
                     ui.Text(content.Label, new Box { Width = Sizing.Fit() with { Priority = 1 } },
                         color: content.LabelColor != 0 ? content.LabelColor : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
                     if (content.Secondary != null)

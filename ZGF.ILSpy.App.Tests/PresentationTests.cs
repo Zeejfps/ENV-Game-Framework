@@ -103,12 +103,12 @@ public sealed class PresentationTests
         var hidden = tree.Row(ns.Children.Single(c => c.Text == "Hidden"));
         var greeter = tree.Row(ns.Children.Single(c => c.Text == "Greeter"));
 
-        Assert.Equal(LucideIcons.Lock, field.IconOverlay);
-        Assert.Equal(NodeIconPalette.Light.Restricted, field.IconOverlayColor);
-        Assert.Equal(NodeIcons.Family, field.IconOverlayFamily);
+        Assert.Equal(LucideIcons.Lock, field.Icon!.Value.Overlay);
+        Assert.Equal(NodeIconPalette.Light.Restricted, field.Icon!.Value.OverlayColor);
+        Assert.Equal(NodeIcons.Family, field.Icon!.Value.Family);
         Assert.Equal(UiTheme.Light.TextMuted, field.LabelColor);
-        Assert.Equal(LucideIcons.Shield, hidden.IconOverlay);
-        Assert.Null(greeter.IconOverlay);
+        Assert.Equal(LucideIcons.Shield, hidden.Icon!.Value.Overlay);
+        Assert.Null(greeter.Icon!.Value.Overlay);
         Assert.Null(greeter.Secondary);
     }
 

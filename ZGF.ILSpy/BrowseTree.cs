@@ -133,15 +133,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     public TreeRow Row(BrowseNode node) => new(
         RowLabel(node),
-        NodeIcons.Glyph(node.Kind),
-        _icons.For(node.Kind),
+        NodeIcons.Icon(node.Kind, node.Accessibility, _icons),
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
-        NodeIcons.Family,
         Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
-        Secondary: NodeText.Secondary(node),
-        IconOverlay: NodeIcons.Overlay(node.Accessibility),
-        IconOverlayColor: _icons.Restricted,
-        IconOverlayFamily: NodeIcons.Family);
+        Secondary: NodeText.Secondary(node));
 
     private readonly record struct RootLabel(string Title, string Row);
 

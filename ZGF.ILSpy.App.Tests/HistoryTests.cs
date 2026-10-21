@@ -153,6 +153,22 @@ public sealed class HistoryTests
         Assert.Equal("Outline", app.Workspace.ActiveTab!.Node!.Text);
     }
 
+    [Fact]
+    public void The_back_dropdown_shows_each_place_with_its_tree_icon()
+    {
+        var app = Opened();
+        var outline = app.Driver.Fixture("Outline");
+        Show(app, outline);
+        Show(app, app.Driver.Fixture("Greeter"));
+
+        ClickBackDropdown(app);
+        var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
+        var glyph = NodeIcons.Glyph(outline.Kind);
+
+        Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text == glyph && t.Inputs.Position.Left < row.Left
+            && MathF.Abs(t.Inputs.Position.Top - t.Inputs.Position.Height / 2 - (row.Top - row.Height / 2)) < 2f);
+    }
+
     private static void ClickBackDropdown(AppDriver app)
     {
         var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
