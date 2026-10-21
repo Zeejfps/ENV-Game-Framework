@@ -237,9 +237,9 @@ public sealed partial class Ui
         state.Parent = _openScrolls.Count > 0 ? _openScrolls.Peek().Id : 0;
         var step = Theme.ScrollWheelStep;
         if (id == _wheelX)
-            state.OffsetX -= _wheelDeltaX * step;
+            state.OffsetX = Wheel(state.OffsetX, _wheelDeltaX * step, state.MaxX);
         if (id == _wheelY)
-            state.OffsetY -= _wheelDeltaY * step;
+            state.OffsetY = Wheel(state.OffsetY, _wheelDeltaY * step, state.MaxY);
 
         var thumbX = state.ScrollsX ? Interact(HashCode.Combine(id, horizontal ? "thumb" : "thumbx")) : default;
         var thumbY = state.ScrollsY ? Interact(HashCode.Combine(id, "thumb")) : default;
@@ -324,6 +324,12 @@ public sealed partial class Ui
         return _previousRects.TryGetValue(id, out rect);
     }
 
+    /// <summary>Where a wheel moving <paramref name="by"/> takes <paramref name="offset"/>: never
+    /// past <paramref name="max"/> as last laid out, though an offset already beyond it, waiting
+    /// for content still to come, is left there.</summary>
+    private static float Wheel(float offset, float by, float max) =>
+        by < 0f ? MathF.Max(offset, MathF.Min(offset - by, max)) : offset - by;
+
     private static float IntoView(float viewStart, float viewEnd, float itemStart, float itemEnd) =>
         itemStart < viewStart ? itemStart - viewStart : itemEnd > viewEnd ? MathF.Min(itemEnd - viewEnd, itemStart - viewStart) : 0f;
 
@@ -343,7 +349,7 @@ public sealed partial class Ui
             var max = x ? state.MaxX : state.MaxY;
             var travel = viewport - ThumbLength(viewport, content, state.Bar.MinThumb);
             if (travel <= 0f) return;
-            var offset = state.DragStartOffset + (pointer - state.DragAnchor) * max / travel;
+            var offset = Math.Clamp(state.DragStartOffset + (pointer - state.DragAnchor) * max / travel, 0f, max);
             if (x) state.OffsetX = offset;
             else state.OffsetY = offset;
         }
