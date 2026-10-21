@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Desktop.Input;
 using ZGF.Geometry;
 using ZGF.Gui.Testing;
 using ZGF.KeyboardModule;
@@ -41,6 +42,12 @@ public sealed class UiFrames
     /// <summary>Whether a widget that takes text held focus at the end of the last frame.</summary>
     public bool WantsTextInput { get; private set; }
 
+    /// <summary>Where the last frame put the IME caret, in UI points.</summary>
+    public UiRect? ImeCaret { get; private set; }
+
+    /// <summary>How many frames discarded the in-flight composition.</summary>
+    public int CompositionResets { get; private set; }
+
     /// <summary>Whether a frame asked the app to close with <see cref="Ui.Quit"/>.</summary>
     public bool QuitRequested { get; private set; }
 
@@ -67,6 +74,12 @@ public sealed class UiFrames
         WakeAt = _ui.WakeAt;
         Cursor = _ui.Cursor;
         WantsTextInput = _ui.WantsTextInput;
+        ImeCaret = _ui.ImeCaret;
+        if (_ui.CompositionReset)
+        {
+            CompositionResets++;
+            _pending.Compose(PreeditText.Empty);
+        }
         QuitRequested = _ui.QuitRequested;
         WindowBackground = _ui.WindowBackground;
         if (_ui.ShowDialogs(FilePicker))
@@ -117,6 +130,11 @@ public sealed class UiFrames
         foreach (var rune in text.EnumerateRunes())
             _pending.Character((uint)rune.Value);
     }
+
+    /// <summary>The IME replaces its composition with <paramref name="text"/>, caret at
+    /// <paramref name="caret"/> (the end by default); an empty text ends it.</summary>
+    public void Compose(string text, int? caret = null, IReadOnlyList<PreeditBlock>? blocks = null, int focusedBlock = -1) =>
+        _pending.Compose(text.Length == 0 ? PreeditText.Empty : new PreeditText(text, caret ?? text.Length, blocks ?? [], focusedBlock));
 
     /// <summary>Runs a frame of <paramref name="body"/> and returns where the element with the id
     /// <paramref name="id"/> gives was laid out on the frame before.</summary>

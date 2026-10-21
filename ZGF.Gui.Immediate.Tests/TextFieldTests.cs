@@ -209,6 +209,79 @@ public sealed class TextFieldTests
         Assert.InRange(field.Frames.WakeAt, field.Frames.RealTime, field.Frames.RealTime + 0.53);
     }
 
+    [Fact]
+    public void A_composition_shows_at_the_caret_without_entering_the_text()
+    {
+        var field = new Field("ab");
+        field.Click(1);
+
+        field.Compose("xy");
+
+        Assert.True(field.Frames.Drew("axyb"));
+        Assert.Equal("ab", field.Text);
+
+        field.Frames.Compose("");
+        field.Type("Z");
+
+        Assert.Equal("aZb", field.Text);
+        Assert.True(field.Frames.Drew("aZb"));
+    }
+
+    [Fact]
+    public void A_composition_replaces_the_selection()
+    {
+        var field = new Field("hello world");
+        field.Click(11);
+        for (var i = 0; i < 5; i++) field.Key(KeyboardKey.LeftArrow, KeyModifiers.Shift);
+
+        field.Compose("x");
+
+        Assert.Equal("hello ", field.Text);
+        Assert.True(field.Frames.Drew("hello x"));
+    }
+
+    [Fact]
+    public void The_ime_caret_follows_the_caret_inside_the_composition()
+    {
+        var field = new Field("ab");
+        field.Click(1);
+        Assert.Equal(TextLeft + 1 * CharWidth, field.Frames.ImeCaret?.X);
+
+        field.Compose("xyz", caret: 2);
+
+        Assert.Equal(TextLeft + 3 * CharWidth, field.Frames.ImeCaret?.X);
+    }
+
+    [Fact]
+    public void Losing_focus_discards_the_composition()
+    {
+        var field = new Field("ab");
+        field.Click(1);
+        field.Compose("xy");
+
+        field.Key(KeyboardKey.Escape);
+        field.Frame();
+
+        Assert.Equal(1, field.Frames.CompositionResets);
+        Assert.Null(field.Frames.ImeCaret);
+        Assert.Equal("ab", field.Text);
+        Assert.False(field.Frames.Drew("axyb"));
+    }
+
+    [Fact]
+    public void Pressing_in_the_field_discards_the_composition()
+    {
+        var field = new Field("ab");
+        field.Click(1);
+        field.Compose("xy");
+
+        field.Click(0);
+
+        Assert.Equal(1, field.Frames.CompositionResets);
+        Assert.True(field.Frames.Drew("ab"));
+        Assert.Equal("ab", field.Text);
+    }
+
     [Theory]
     [InlineData("foo.bar  baz", 1, 0, 3)]
     [InlineData("foo.bar  baz", 3, 3, 4)]
@@ -239,10 +312,11 @@ public sealed class TextFieldTests
         Assert.Equal(expected, UiWidgets.NextWord(text, index));
     }
 
+    private const float TextLeft = 24f;
+    private const float CharWidth = 8f;
+
     private sealed class Field
     {
-        private const float TextLeft = 24f;
-        private const float CharWidth = 8f;
         private const float MiddleY = 31f;
 
         private string _text;
@@ -303,6 +377,12 @@ public sealed class TextFieldTests
         public void Type(string text)
         {
             Frames.Type(text);
+            Frame();
+        }
+
+        public void Compose(string text, int? caret = null)
+        {
+            Frames.Compose(text, caret);
             Frame();
         }
 

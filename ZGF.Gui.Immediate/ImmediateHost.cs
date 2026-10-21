@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using ZGF.Desktop;
+using ZGF.Desktop.Input;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
@@ -36,6 +37,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private long _lastFrameTimestamp = Stopwatch.GetTimestamp();
     private double _wakeAt = double.PositiveInfinity;
     private bool _textInputFocus;
+    private (int X, int Y, int Width, int Height)? _imeCaret;
     private bool _animating;
     private bool _popupWindowsUnavailable;
     private bool _backgroundPending;
@@ -66,6 +68,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
         _window.OnKey += HandleKey;
         _window.OnText += HandleText;
+        _window.OnPreedit += HandlePreedit;
         _window.OnMouseButton += HandleMouseButton;
         _window.OnScroll += HandleScroll;
         _window.OnResize += HandleResize;
@@ -140,15 +143,36 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             foreach (var popup in _popups)
                 popup.Surface.Window.SetCursor(_cursor);
         }
+        if (_ui.CompositionReset)
+        {
+            _window.ResetPreedit();
+            _pending.Compose(PreeditText.Empty);
+        }
         if (_ui.WantsTextInput != _textInputFocus)
         {
             _textInputFocus = _ui.WantsTextInput;
             _window.SetTextInputFocus(_textInputFocus);
+            _imeCaret = null;
         }
+        if (_textInputFocus && _ui.ImeCaret is { } caret)
+            PlaceImeCaret(caret);
         _animating = _ui.FrameRequested;
         _wakeAt = _ui.WakeAt;
         if (_frame.HasEvents || _ui.FrameRequested)
             _window.RequestRedraw();
+    }
+
+    private void PlaceImeCaret(UiRect caret)
+    {
+        var s = ScreenPerPoint;
+        var x = (int)MathF.Floor(caret.X * s);
+        var y = (int)MathF.Floor(caret.Y * s);
+        var rect = (X: x, Y: y,
+            Width: Math.Max(1, (int)MathF.Ceiling(caret.Right * s) - x),
+            Height: Math.Max(1, (int)MathF.Ceiling(caret.Bottom * s) - y));
+        if (rect == _imeCaret) return;
+        _imeCaret = rect;
+        _window.SetPreeditCursorRect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 
     private double Seconds(long timestamp) => (timestamp - _startTimestamp) / (double)Stopwatch.Frequency;
@@ -317,6 +341,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             var window = surface.Window;
             window.OnKey += HandleKey;
             window.OnText += HandleText;
+            window.OnPreedit += HandlePreedit;
             window.OnMouseButton += HandleMouseButton;
             window.OnScroll += HandleScroll;
             window.SetCursor(_cursor);
@@ -379,6 +404,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     {
         window.OnKey -= HandleKey;
         window.OnText -= HandleText;
+        window.OnPreedit -= HandlePreedit;
         window.OnMouseButton -= HandleMouseButton;
         window.OnScroll -= HandleScroll;
     }
@@ -392,6 +418,12 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private void HandleText(uint codePoint)
     {
         _pending.Character(codePoint);
+        _window.RequestRedraw();
+    }
+
+    private void HandlePreedit(PreeditText preedit)
+    {
+        _pending.Compose(preedit);
         _window.RequestRedraw();
     }
 
@@ -467,6 +499,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _render.App.OnForegroundChanged -= HandleForegroundChanged;
         _window.OnKey -= HandleKey;
         _window.OnText -= HandleText;
+        _window.OnPreedit -= HandlePreedit;
         _window.OnMouseButton -= HandleMouseButton;
         _window.OnScroll -= HandleScroll;
         _window.OnResize -= HandleResize;

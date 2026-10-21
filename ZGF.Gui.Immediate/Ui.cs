@@ -221,6 +221,7 @@ public sealed partial class Ui
         _focusSeen = false;
         _focusClaimed = false;
         _tabStops.Clear();
+        BeginIme();
         if (input.WasPressed(PointerButton.Left) || input.WasPressed(PointerButton.Right) || input.WasPressed(PointerButton.Middle))
             _focusVisible = false;
 
@@ -285,6 +286,7 @@ public sealed partial class Ui
             _focused = 0;
         TraverseFocus();
         EndLayers();
+        EndIme();
         for (var button = 1; button < UiInput.ButtonCount; button++)
         {
             if (!_input.IsDown((PointerButton)button))

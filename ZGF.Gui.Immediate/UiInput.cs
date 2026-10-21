@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using ZGF.Desktop;
+using ZGF.Desktop.Input;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
@@ -53,6 +54,10 @@ public sealed class UiInput
     public string Text { get; private set; } = "";
     public KeyStrokes Keys => new(_keys);
     public bool HasEvents { get; private set; }
+
+    /// <summary>The IME composition in flight, kept across frames until the platform replaces or
+    /// ends it. It is not entered text: what the user commits arrives on <see cref="Text"/>.</summary>
+    public PreeditText Composition { get; private set; } = PreeditText.Empty;
 
     /// <summary>The platform asked open popups to close since the previous frame: the app lost
     /// focus, or a press landed outside every part of the app a frame sees.</summary>
@@ -136,6 +141,12 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    internal void Compose(PreeditText preedit)
+    {
+        Composition = preedit;
+        HasEvents = true;
+    }
+
     internal void Scroll(double x, double y)
     {
         ScrollX += (float)x;
@@ -171,6 +182,7 @@ public sealed class UiInput
         _keys.Clear();
         _text.Clear();
         Text = "";
+        Composition = PreeditText.Empty;
         Pointer = source.Pointer;
         ScrollX = source.ScrollX;
         ScrollY = source.ScrollY;
@@ -188,6 +200,7 @@ public sealed class UiInput
         _keys.Clear();
         _text.Clear();
         Text = "";
+        Composition = PreeditText.Empty;
         Pointer = Offscreen;
         ScrollX = 0;
         ScrollY = 0;
@@ -207,6 +220,7 @@ public sealed class UiInput
         _keys.Clear();
         _text.Clear();
         Text = "";
+        Composition = previous.Composition;
         Pointer = previous.Pointer;
         Modifiers = previous.Modifiers;
         ScrollX = 0;

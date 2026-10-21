@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Desktop.Input;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
@@ -76,9 +77,15 @@ public static partial class UiWidgets
         var trail = showHint ? hintWidth : 0f;
         var textLeft = rect.X + padding + lead;
         var innerWidth = hasRect ? rect.Width - padding * 2 - lead - trail : float.PositiveInfinity;
+        var preedit = focused ? ui.Input.Composition : PreeditText.Empty;
 
         if (i.Pressed)
         {
+            if (!preedit.IsEmpty)
+            {
+                ui.ResetComposition();
+                preedit = PreeditText.Empty;
+            }
             if (!focused) state.Shift = 0f;
             Press(ui, state, text, CaretAt(ui, text, ui.Input.Pointer.X - textLeft + state.Shift), i.ClickCount, extend: focused);
             ui.Focus(i.Id);
@@ -95,22 +102,30 @@ public static partial class UiWidgets
         var submitted = false;
         if (focused)
         {
+            if (!preedit.IsEmpty && state.HasSelection)
+                Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
             submitted = Edit(ui, state, ref text);
             focused = ui.HasFocus(i.Id);
         }
+        if (!focused)
+            preedit = PreeditText.Empty;
 
+        var shown = preedit.IsEmpty ? text : text.Insert(state.Caret, preedit.Text);
         var caretX = 0f;
         var anchorX = 0f;
+        var lineHeight = ui.LineHeight();
         if (focused)
         {
-            caretX = ui.MeasureText(text, state.Caret);
+            caretX = ui.MeasureText(shown, state.Caret + preedit.Caret);
             anchorX = state.HasSelection ? ui.MeasureText(text, state.Anchor) : caretX;
             if (caretX - state.Shift > innerWidth) state.Shift = caretX - innerWidth;
             if (caretX < state.Shift) state.Shift = caretX;
-            state.Shift = MathF.Max(0f, MathF.Min(state.Shift, ui.MeasureText(text) - innerWidth));
+            state.Shift = MathF.Max(0f, MathF.Min(state.Shift, ui.MeasureText(shown) - innerWidth));
 
             if (state.Caret != caretBefore || state.Anchor != anchorBefore || !ReferenceEquals(text, textBefore) || i.Pressed)
                 state.BlinkFrom = ui.RealTime;
+            if (hasRect)
+                ui.SetImeCaret(new UiRect(textLeft + caretX - state.Shift, rect.Y + (rect.Height - lineHeight) / 2, theme.CaretWidth, lineHeight));
         }
         var shift = focused ? state.Shift : 0f;
 
@@ -129,7 +144,6 @@ public static partial class UiWidgets
             if (leadingIcon != null)
                 ui.Text(leadingIcon, new Box { Width = theme.IconSize }, color: theme.TextMuted, size: theme.IconSize, align: Align.Center, family: iconFamily);
 
-            var lineHeight = ui.LineHeight();
             using (ui.Row(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true, ScrollX = shift }))
             {
                 if (focused && state.HasSelection)
@@ -146,8 +160,11 @@ public static partial class UiWidgets
                     });
                 }
 
-                if (text.Length > 0)
-                    ui.Text(text);
+                if (!preedit.IsEmpty)
+                    UnderlineComposition(ui, shown, state.Caret, preedit, shift, lineHeight);
+
+                if (shown.Length > 0)
+                    ui.Text(shown);
                 else if (placeholder != null)
                     ui.Text(placeholder, color: theme.TextMuted);
 
@@ -162,6 +179,37 @@ public static partial class UiWidgets
                 ui.Text(hint!, color: theme.TextMuted, size: theme.FontSizeSmall);
         }
         return submitted;
+    }
+
+    private static void UnderlineComposition(Ui ui, string shown, int start, PreeditText preedit, float shift, float lineHeight)
+    {
+        var theme = ui.Theme;
+        var blocks = preedit.Blocks;
+        if (blocks.Count == 0)
+        {
+            Underline(ui, shown, start, start + preedit.Text.Length, shift, lineHeight, theme.BorderWidth);
+            return;
+        }
+        for (var b = 0; b < blocks.Count; b++)
+        {
+            var from = start + blocks[b].Start;
+            Underline(ui, shown, from, from + blocks[b].Length, shift, lineHeight,
+                b == preedit.FocusedBlock ? theme.FocusRingWidth : theme.BorderWidth);
+        }
+    }
+
+    private static void Underline(Ui ui, string shown, int from, int to, float shift, float lineHeight, float thickness)
+    {
+        var left = ui.MeasureText(shown, from) - shift;
+        var right = ui.MeasureText(shown, to) - shift;
+        ui.Paint((left, right, lineHeight, thickness, ui.Theme.Text), static (p, s) =>
+        {
+            var r = p.Rect;
+            var x0 = MathF.Max(r.X + s.left, r.X);
+            var x1 = MathF.Min(r.X + s.right, r.Right);
+            if (x1 > x0)
+                p.FillRect(new UiRect(x0, r.Y + (r.Height + s.lineHeight) / 2 - s.thickness, x1 - x0, s.thickness), s.Text);
+        });
     }
 
     private static bool CaretVisible(Ui ui, TextFieldState state)
