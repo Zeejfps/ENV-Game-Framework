@@ -359,7 +359,7 @@ internal sealed class LayoutTree
 
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
-            _painter.Begin(rect, z, _canvas, _originX, _originY, _surfaceHeight);
+            _painter.Begin(rect, _clips[^1], z, _canvas, _originX, _originY, _surfaceHeight);
             _paints[p].Command.Run(_painter);
         }
     }

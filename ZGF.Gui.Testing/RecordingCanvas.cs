@@ -74,6 +74,14 @@ public sealed class RecordingCanvas : ICanvas
     public IReadOnlyList<RecordedBezier> Beziers => _beziers;
     public IReadOnlyList<RecordedCubicBezier> CubicBeziers => _cubicBeziers;
 
+    /// <summary>Whether draw commands are kept. Off, they are only counted in
+    /// <see cref="CommandCount"/> and nothing is allocated — for measuring what a frame itself
+    /// allocates.</summary>
+    public bool Recording { get; set; } = true;
+
+    /// <summary>How many draw commands arrived since the last <see cref="Reset"/>, recorded or not.</summary>
+    public int CommandCount => _sequence;
+
     public int DefaultImageWidth { get; set; }
     public int DefaultImageHeight { get; set; }
 
@@ -109,6 +117,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawRect(in DrawRectInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var recorded = new DrawRectInputs
@@ -124,6 +133,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawText(in DrawTextInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var recorded = new DrawTextInputs
@@ -140,6 +150,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawGlyphRun(in DrawGlyphRunInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedGlyphRun(
@@ -152,6 +163,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawImage(in DrawImageInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedImage(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
@@ -161,6 +173,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawBoxShadow(in DrawBoxShadowInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedBoxShadow(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
@@ -170,6 +183,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawLine(in DrawLineInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedLine(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
@@ -179,6 +193,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawCircle(in DrawCircleInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedCircle(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
@@ -188,6 +203,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawBezier(in DrawBezierInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
@@ -197,6 +213,7 @@ public sealed class RecordingCanvas : ICanvas
 
     public void DrawCubicBezier(in DrawCubicBezierInputs inputs)
     {
+        if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
         var cmd = new RecordedCubicBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
@@ -265,6 +282,13 @@ public sealed class RecordingCanvas : ICanvas
     public IReadOnlyList<DrawCommand> InDrawOrder() => _all;
 
     /// <summary>Clears all captured commands, the clip stack, and the sequence; called per render.</summary>
+    private bool Skip()
+    {
+        if (Recording) return false;
+        _sequence++;
+        return true;
+    }
+
     public void Reset()
     {
         _rects.Clear();

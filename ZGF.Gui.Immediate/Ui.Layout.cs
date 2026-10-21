@@ -43,6 +43,8 @@ public sealed partial class Ui
         public float DragAnchor;
         public float DragStartOffset;
         public float Synced = float.NaN;
+        public float SyncedX = float.NaN;
+        public float BarWidth;
 
         public float Offset => Horizontal ? OffsetX : OffsetY;
         public float Max => Horizontal ? MaxX : MaxY;
@@ -215,6 +217,7 @@ public sealed partial class Ui
 
         var padding = box.Padding ?? default;
         var bar = Theme.ScrollBarWidth;
+        state.BarWidth = bar;
         var element = Open(id, horizontal
             ? box with
             {
