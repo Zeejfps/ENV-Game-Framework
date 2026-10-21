@@ -33,6 +33,7 @@ public sealed partial class Ui
     private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align, string? Family), TextStyle> _textStyles = new();
     private readonly Dictionary<int, (object State, long LastFrame)> _states = new();
     private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<TextStyle, CellMetrics> _cells = new(ReferenceEqualityComparer.Instance);
     private Dictionary<MeasureKey, float> _widths = new();
     private Dictionary<MeasureKey, float> _previousWidths = new();
     private float _measuredScale;
@@ -145,6 +146,11 @@ public sealed partial class Ui
     }
 
     internal bool HasDialogs => _dialogs.Count > 0;
+
+    /// <summary>Closes the app once this frame is drawn: <c>Run</c> returns.</summary>
+    public void Quit() => QuitRequested = true;
+
+    internal bool QuitRequested { get; private set; }
 
     /// <summary>Sets the window's style for what is recorded from here on; the window's own
     /// background, padding and gap take the last one set. Each frame starts on
@@ -372,6 +378,17 @@ public sealed partial class Ui
     public float LineHeight(float? size = null, string? family = null) =>
         MeasureLineHeight(TextStyleFor(size, Style.Text, false, Align.Start, family));
 
+    /// <summary>The cell of a monospaced grid in this font: the pitch
+    /// <see cref="UiPainter.GlyphRun"/> places columns at, and the line height.</summary>
+    public CellMetrics MeasureCell(float? size = null, bool bold = false, string? family = null)
+    {
+        var style = TextStyleFor(size, Style.Text, bold, Align.Start, family);
+        ref var cell = ref CollectionsMarshal.GetValueRefOrAddDefault(_cells, style, out var exists);
+        if (!exists)
+            cell = _canvas.MeasureCellSize(style);
+        return cell;
+    }
+
     internal float MeasureWidth(string text, TextStyle style)
     {
         var key = new MeasureKey(text, style);
@@ -402,6 +419,7 @@ public sealed partial class Ui
             _widths.Clear();
             _previousWidths.Clear();
             _lineHeights.Clear();
+            _cells.Clear();
         }
         (_widths, _previousWidths) = (_previousWidths, _widths);
         _widths.Clear();

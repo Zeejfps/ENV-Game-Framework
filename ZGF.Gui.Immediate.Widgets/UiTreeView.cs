@@ -147,6 +147,7 @@ public static partial class UiWidgets
     {
         foreach (var stroke in ui.Input.Keys)
         {
+            if ((stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Super)) != 0) continue;
             var count = state.Rows.Count;
             if (count == 0) return;
             var current = selection;

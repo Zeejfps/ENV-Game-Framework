@@ -106,6 +106,8 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _renderUi(_ui);
         _ui.EndFrame();
         PresentPopups();
+        if (_ui.QuitRequested)
+            _render.App.Quit();
 
         if (_ui.Cursor != _cursor)
         {

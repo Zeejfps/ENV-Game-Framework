@@ -7,6 +7,7 @@
     <ItemGroup>
       <InternalsVisibleTo Include="ZGF.Gui.Benchmarks" />
       <InternalsVisibleTo Include="ZGF.Gui.Immediate.Tests" />
+      <InternalsVisibleTo Include="ZGF.Gui.Immediate.Testing" />
     </ItemGroup>
 
     <ItemGroup>

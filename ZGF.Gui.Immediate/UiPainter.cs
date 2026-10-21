@@ -65,6 +65,25 @@ public sealed class UiPainter
         _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align, family), ZIndex = _z });
     }
 
+    /// <summary>Draws one code point per column of a monospaced grid whose first cell's top-left
+    /// is <paramref name="origin"/>, <paramref name="cellAdvance"/> apart — see
+    /// <see cref="Ui.MeasureCell"/>. Nothing is shaped and nothing is allocated, so a code or
+    /// terminal view can draw slices of its lines directly.</summary>
+    public void GlyphRun(PointF origin, ReadOnlySpan<int> codePoints, float cellAdvance, uint color, float? size = null, bool bold = false,
+        string? family = null, bool underline = false)
+    {
+        if (codePoints.IsEmpty) return;
+        _canvas.DrawGlyphRun(new DrawGlyphRunInputs
+        {
+            Origin = ToCanvas(origin),
+            CodePoints = codePoints,
+            CellAdvance = cellAdvance,
+            Style = _ui.TextStyleFor(size, color, bold, Align.Start, family),
+            ZIndex = _z,
+            Underline = underline,
+        });
+    }
+
     public RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _canvasHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
 
     public PointF ToCanvas(PointF point) => new(point.X - _originX, _canvasHeight - (point.Y - _originY));

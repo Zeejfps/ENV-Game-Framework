@@ -30,6 +30,22 @@ public sealed partial class Ui
         public int First { get; }
         public int End { get; }
 
+        /// <summary>How far the list is scrolled, in points from the top of its content.</summary>
+        public float Offset => _state.Offset;
+
+        /// <summary>The list's height as last laid out; zero until it has been laid out once.</summary>
+        public float Viewport => _state.Viewport;
+
+        /// <summary>Scrolls to <paramref name="offset"/> points from the top of the content, from
+        /// the next frame, clamped to the content.</summary>
+        public void ScrollTo(float offset)
+        {
+            offset = Math.Clamp(offset, 0f, MathF.Max(_state.Max, 0f));
+            if (offset == _state.Offset) return;
+            _state.Offset = offset;
+            _ui.RequestFrame();
+        }
+
         /// <summary>Scrolls the least distance that shows row <paramref name="index"/> whole, from
         /// the next frame. Returns false, doing nothing, until the list has been laid out once and
         /// its viewport is known.</summary>

@@ -3,23 +3,25 @@ using ZGF.Geometry;
 using ZGF.Gui.Testing;
 using ZGF.KeyboardModule;
 
-namespace ZGF.Gui.Immediate.Tests;
+namespace ZGF.Gui.Immediate.Testing;
 
 /// <summary>Drives a <see cref="Ui"/> frame by frame against a recording canvas with synthetic
-/// text metrics (8px per char, 16px per line) unless given others. Input queued between frames
-/// arrives in the next one. Popups draw over the window unless a <see cref="TestPopupHost"/> is
-/// given.</summary>
-internal sealed class UiFrames
+/// text metrics (8px per char, 16px per line) unless given others, in a window of
+/// <see cref="Width"/> by <see cref="Height"/>. Input queued between frames arrives in the next one.
+/// Popups draw over the window unless a <see cref="TestPopupHost"/> is given.</summary>
+public sealed class UiFrames
 {
     private readonly RecordingCanvas _canvas;
     private readonly Ui _ui;
     private UiInput _frame = new();
     private UiInput _pending = new();
 
-    public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null)
+    public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f)
     {
         _canvas = new RecordingCanvas(measurer ?? new SyntheticTextMeasurer());
         Popups = popups;
+        Width = width;
+        Height = height;
         _ui = new Ui(_canvas, Clipboard, popups);
     }
 
@@ -27,9 +29,17 @@ internal sealed class UiFrames
     public TestFilePicker FilePicker { get; } = new();
     public TestPopupHost? Popups { get; }
     public RecordingCanvas Canvas => _canvas;
+    public float Width { get; set; }
+    public float Height { get; set; }
     public double RealTime { get; private set; }
     public bool RequestedFrame { get; private set; }
     public double WakeAt { get; private set; }
+
+    /// <summary>The cursor the last frame asked for.</summary>
+    public MouseCursor Cursor { get; private set; }
+
+    /// <summary>Whether a widget that takes text held focus at the end of the last frame.</summary>
+    public bool WantsTextInput { get; private set; }
 
     public T Run<T>(float deltaTime, Func<Ui, T> body)
     {
@@ -40,11 +50,13 @@ internal sealed class UiFrames
         _canvas.Reset();
         Popups?.BeginFrame();
 
-        _ui.BeginFrame(_frame, deltaTime, RealTime, 400f, 300f);
+        _ui.BeginFrame(_frame, deltaTime, RealTime, Width, Height);
         var value = body(_ui);
         _ui.EndFrame();
         RequestedFrame = _ui.FrameRequested;
         WakeAt = _ui.WakeAt;
+        Cursor = _ui.Cursor;
+        WantsTextInput = _ui.WantsTextInput;
         _ui.ShowDialogs(FilePicker);
         return value;
     }
@@ -69,7 +81,8 @@ internal sealed class UiFrames
 
     public void Press(PointerButton button, KeyModifiers modifiers = KeyModifiers.None) => _pending.Button((int)button, InputAction.Press, modifiers);
 
-    public void Release(PointerButton button = PointerButton.Left) => _pending.Button((int)button, InputAction.Release, KeyModifiers.None);
+    public void Release(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+        _pending.Button((int)button, InputAction.Release, modifiers);
 
     public void Wheel(double y, double x = 0) => _pending.Scroll(x, y);
 
@@ -100,71 +113,13 @@ internal sealed class UiFrames
 
     /// <summary>Moves to (x, y), lets a frame see the pointer there, then presses and releases
     /// <paramref name="button"/> over two more frames, running <paramref name="body"/> each time.</summary>
-    public void Click(float x, float y, Action<Ui> body, PointerButton button = PointerButton.Left)
+    public void Click(float x, float y, Action<Ui> body, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
     {
         MovePointer(x, y);
         Run(1f / 60f, body);
-        Press(button);
+        Press(button, modifiers);
         Run(1f / 60f, body);
-        Release(button);
+        Release(button, modifiers);
         Run(1f / 60f, body);
-    }
-}
-
-internal sealed class TestClipboard : IClipboard
-{
-    public string? Text { get; set; }
-
-    public void SetText(string text) => Text = text;
-
-    public string? GetText() => Text;
-}
-
-internal sealed class TestFilePicker : IFilePicker
-{
-    public string? Answer { get; set; }
-    public List<string> Titles { get; } = new();
-
-    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) => Pick(title, onPicked);
-
-    public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) => Pick(title, onPicked);
-
-    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(title, onPicked);
-
-    private void Pick(string title, Action<string> onPicked)
-    {
-        Titles.Add(title);
-        if (Answer != null)
-            onPicked(Answer);
-    }
-}
-
-/// <summary>Gives every popup a recording canvas of its own, as windows would, inside a screen
-/// <see cref="Area"/> in UI space.</summary>
-internal sealed class TestPopupHost : IPopupHost
-{
-    private readonly Dictionary<int, RecordingCanvas> _canvases = new();
-
-    public UiRect Area { get; set; } = new(-200f, -200f, 800f, 700f);
-    public Dictionary<int, UiRect> Shown { get; } = new();
-
-    public RecordingCanvas CanvasOf(int id) => _canvases[id];
-
-    public void BeginFrame()
-    {
-        Shown.Clear();
-        foreach (var canvas in _canvases.Values)
-            canvas.Reset();
-    }
-
-    public UiRect Place(UiRect preferred, UiRect fallback) => PopupPlacement.Fit(preferred, fallback, Area);
-
-    public ICanvas Show(int id, UiRect rect, bool passThrough)
-    {
-        Shown[id] = rect;
-        if (!_canvases.TryGetValue(id, out var canvas))
-            _canvases[id] = canvas = new RecordingCanvas(new SyntheticTextMeasurer());
-        return canvas;
     }
 }
