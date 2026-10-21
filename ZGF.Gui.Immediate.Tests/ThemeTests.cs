@@ -103,7 +103,7 @@ public sealed class ThemeTests
         RowWidth();
         RowWidth();
 
-        Assert.Equal(400f - (20f + 6f), RowWidth(), 0.01f);
+        Assert.Equal(400f - (20f + 2 * UiTheme.Dark.ScrollBarInset), RowWidth(), 0.01f);
     }
 
     [Theory]

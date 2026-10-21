@@ -146,6 +146,7 @@ internal sealed class FakeWindow : IWindow
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
     public void SetIcon(IReadOnlyList<WindowIconImage> icons) { }
+    public void SetTitleBarTheme(bool dark) { }
     public void RequestRedraw() => NeedsRedraw = true;
 
     public string GetClipboardText() => string.Empty;

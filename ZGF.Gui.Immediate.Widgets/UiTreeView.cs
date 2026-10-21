@@ -21,7 +21,7 @@ public readonly record struct TreeViewResult<TNode>(
 public static partial class UiWidgets
 {
     private const int DisclosureSalt = 0x44495343;
-    private const float DisclosureWidth = 16f;
+    private const float BadgePaddingX = 2f;
 
     /// <summary>
     /// A virtualized tree over <paramref name="roots"/> and the hierarchy <paramref name="model"/>
@@ -29,7 +29,10 @@ public static partial class UiWidgets
     /// collapses unless <paramref name="toggleOnActivate"/> is false), the disclosure arrow toggles,
     /// and a right-click or the Menu key asks for a context menu at the pointer or the row. While
     /// focused, Up/Down/Home/End/PageUp/PageDown move the selection and Left/Right collapse, expand,
-    /// or step to the parent or first child.
+    /// or step to the parent or first child. The selection is drawn in <see cref="UiTheme.Selection"/>
+    /// while the tree holds focus and <see cref="UiTheme.SelectionInactive"/> otherwise; labels end
+    /// in an ellipsis where the pane is too narrow, and a row's <see cref="TreeRow.Tooltip"/> shows
+    /// while the pointer rests on it. The tree is a Tab stop.
     /// </summary>
     public static TreeViewResult<TNode> TreeView<TNode>(
         this Ui ui, string id, IReadOnlyList<TNode> roots, ITreeModel<TNode> model, TreeViewState<TNode> state, Box box = default,
@@ -53,7 +56,8 @@ public static partial class UiWidgets
         var area = ui.Interact(treeId);
         if (area.Pressed || area.ClickedWith(PointerButton.Right))
             ui.Focus(treeId, takesText: false);
-        var focused = ui.HasFocus(treeId);
+        var focused = ui.TabStop(treeId);
+        var ring = focused && ui.FocusVisible;
         if (focused)
         {
             var page = ui.TryGetRect(treeId, out var view) ? Math.Max(1, (int)(view.Height / rowHeight) - 1) : 10;
@@ -103,31 +107,60 @@ public static partial class UiWidgets
 
                 var content = model.Row(flat.Node);
                 var expanded = hasChildren && state.IsExpanded(flat.Node);
-                var background = i == selection
-                    ? focused ? theme.Selection : UiColor.Mix(theme.Background, theme.Text, 0.12f)
-                    : row.Hovered ? theme.Hovered(theme.Background) : 0u;
+                var selected = i == selection;
+                var background = selected
+                    ? focused ? theme.Selection : theme.SelectionInactive
+                    : row.Hovered ? theme.RowHover : 0u;
 
                 using (ui.Row(rowId, new Box
                 {
                     Width = Sizing.Grow(),
                     Height = rowHeight,
-                    Gap = 4f,
-                    Padding = new Spacing(4f + flat.Depth * theme.TreeIndent, 0f, 4f, 0f),
+                    Gap = theme.GapTight,
+                    Padding = new Spacing(theme.TreePaddingX + flat.Depth * theme.TreeIndent, 0f, theme.TreePaddingX, 0f),
                     Background = background,
                 }))
                 {
-                    using (ui.Box(hasChildren ? arrowId : 0, new Box { Width = DisclosureWidth, Height = Sizing.Grow() }))
+                    if (selected && ring) ui.FocusRing(0f);
+                    using (ui.Box(hasChildren ? arrowId : 0, new Box { Width = theme.DisclosureWidth, Height = Sizing.Grow() }))
                     {
                         if (hasChildren)
-                            ui.Paint((expanded, arrow.Hovered ? theme.Text : theme.TextMuted), static (p, s) => DrawDisclosure(p, s.expanded, s.Item2));
+                            ui.Paint((expanded, arrow.Hovered ? theme.Text : theme.TextMuted, theme.IconStrokeWidth),
+                                static (p, s) => DrawDisclosure(p, s.expanded, s.Item2, s.IconStrokeWidth));
                     }
                     if (content.Icon != null)
-                        ui.Text(content.Icon, content.IconBackground != 0
-                            ? new Box { Padding = new Spacing(3f, 0f), Height = rowHeight - 4f, Background = content.IconBackground, Radius = 3f }
-                            : default,
-                            color: content.IconColor != 0 ? content.IconColor : theme.TextMuted, family: content.IconFamily);
-                    ui.Text(content.Label, color: content.LabelColor != 0 ? content.LabelColor : theme.Text);
+                    {
+                        using (ui.Box(new Box { Width = Sizing.Fit(theme.IconSize), Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
+                        using (ui.Box())
+                        {
+                            ui.Text(content.Icon, content.IconBackground != 0
+                                ? new Box
+                                {
+                                    Width = Sizing.Fit(theme.IconSize),
+                                    Height = theme.IconSize,
+                                    Padding = new Spacing(BadgePaddingX, 0f),
+                                    Background = content.IconBackground,
+                                    Radius = theme.RadiusSmall,
+                                }
+                                : default,
+                                color: content.IconColor != 0 ? content.IconColor : theme.TextMuted, align: Align.Center, family: content.IconFamily);
+                            if (content.IconOverlay != null)
+                            {
+                                var overlay = theme.IconOverlaySize;
+                                using (ui.Float(1f, 1f, -overlay * 0.75f, -overlay * 0.75f, new Box { Width = overlay, Height = overlay }, z: 1))
+                                    ui.Text(content.IconOverlay, new Box { Width = overlay, Height = overlay },
+                                        color: content.IconOverlayColor != 0 ? content.IconOverlayColor : theme.TextMuted, size: overlay, align: Align.Center,
+                                        family: content.IconOverlayFamily ?? content.IconFamily);
+                            }
+                        }
+                    }
+                    ui.Text(content.Label, new Box { Width = Sizing.Fit() with { Priority = 1 } },
+                        color: content.LabelColor != 0 ? content.LabelColor : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
+                    if (content.Secondary != null)
+                        ui.Text(content.Secondary, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
                 }
+                if (content.Tooltip != null)
+                    ui.Tooltip(rowId, content.Tooltip);
             }
         }
 
@@ -225,7 +258,7 @@ public static partial class UiWidgets
         }
     }
 
-    private static void DrawDisclosure(UiPainter p, bool expanded, uint color)
+    private static void DrawDisclosure(UiPainter p, bool expanded, uint color, float stroke)
     {
         var r = p.Rect;
         var cx = r.X + r.Width / 2;
@@ -233,13 +266,13 @@ public static partial class UiWidgets
         const float h = 3.5f;
         if (expanded)
         {
-            p.Line(new PointF(cx - h, cy - h / 2), new PointF(cx, cy + h / 2), 1.5f, color);
-            p.Line(new PointF(cx, cy + h / 2), new PointF(cx + h, cy - h / 2), 1.5f, color);
+            p.Line(new PointF(cx - h, cy - h / 2), new PointF(cx, cy + h / 2), stroke, color);
+            p.Line(new PointF(cx, cy + h / 2), new PointF(cx + h, cy - h / 2), stroke, color);
         }
         else
         {
-            p.Line(new PointF(cx - h / 2, cy - h), new PointF(cx + h / 2, cy), 1.5f, color);
-            p.Line(new PointF(cx + h / 2, cy), new PointF(cx - h / 2, cy + h), 1.5f, color);
+            p.Line(new PointF(cx - h / 2, cy - h), new PointF(cx + h / 2, cy), stroke, color);
+            p.Line(new PointF(cx + h / 2, cy), new PointF(cx - h / 2, cy + h), stroke, color);
         }
     }
 }

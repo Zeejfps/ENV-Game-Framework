@@ -6,7 +6,7 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class TreeViewTests
 {
-    private const float RowHeight = 22f;
+    private static readonly float RowHeight = UiTheme.Dark.RowHeight;
 
     private sealed class Node(string name, params Node[] children)
     {

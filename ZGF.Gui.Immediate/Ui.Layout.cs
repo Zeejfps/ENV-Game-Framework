@@ -44,14 +44,24 @@ public sealed partial class Ui
         public float DragStartOffset;
         public float Synced = float.NaN;
         public float SyncedX = float.NaN;
-        public float BarWidth;
+        public ScrollBar Bar;
 
         public float Offset => Horizontal ? OffsetX : OffsetY;
         public float Max => Horizontal ? MaxX : MaxY;
         public float Viewport => Horizontal ? ViewportX : ViewportY;
     }
 
-    private readonly record struct OpenScroll(int Id, int Element, ScrollState State, Interaction ThumbX, Interaction ThumbY, Spacing Padding, float BarWidth);
+    private readonly record struct OpenScroll(int Id, int Element, ScrollState State, Interaction ThumbX, Interaction ThumbY, Spacing Padding);
+
+    /// <summary>A scroll's bar geometry, from the theme: the painted thumb, the thumb the pointer
+    /// grabs, and the gutter reserved for it.</summary>
+    internal readonly record struct ScrollBar(float Paint, float Hit, float Inset, float MinThumb)
+    {
+        public float Gutter => Paint + Inset * 2;
+
+        public static ScrollBar From(UiTheme theme) =>
+            new(theme.ScrollBarWidth, theme.ScrollBarHitWidth, theme.ScrollBarInset, theme.ScrollThumbMinLength);
+    }
 
     private readonly record struct OpenPopup(int Element, int Id, UiRect Anchor, Align Align, float Gap, PopupSide Side);
 
@@ -158,13 +168,31 @@ public sealed partial class Ui
     /// with the text vertically centered and aligned by <paramref name="align"/>. A null
     /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>. Each <c>\n</c>
     /// starts a new line; with <paramref name="wrap"/>, lines also break between words to fit the
-    /// element's width, which then grows to fill its parent unless the box sizes it.</summary>
+    /// element's width, which then grows to fill its parent unless the box sizes it. A single line
+    /// with an <paramref name="overflow"/> other than <see cref="TextOverflow.Clip"/> shrinks below
+    /// its text's width when its parent runs out of room, down to its fit minimum, unless the box
+    /// gives it a fixed, grow or percent width — <see cref="Sizing.Priority"/> on a fit width orders
+    /// which text gives up room first — and is shortened around an ellipsis to the width it is laid
+    /// out at.</summary>
     public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0,
-        string? family = null, bool wrap = false)
+        string? family = null, bool wrap = false, TextOverflow overflow = TextOverflow.Clip)
     {
         if (wrap && box.Width == null)
             box = box with { Width = Sizing.Grow() };
-        Push(Describe(id, box, text, TextStyleFor(size, color ?? Theme.Text, bold, align, family), wrap));
+        var e = Describe(id, box, text, TextStyleFor(size, color ?? Theme.Text, bold, align, family), wrap);
+        if (!wrap && overflow != TextOverflow.Clip && e.Lines == null)
+        {
+            e.Overflow = overflow;
+            if (box.Width is not { } width || width.Kind == SizingKind.Fit)
+            {
+                var fit = box.Width ?? Sizing.Fit();
+                e.Width = Sizing.Grow(fit.Min, MathF.Max(fit.Min, MathF.Min(fit.Max, e.ContentWidth + e.Padding.Left + e.Padding.Right))) with
+                {
+                    Priority = fit.Priority,
+                };
+            }
+        }
+        Push(e);
         Close();
     }
 
@@ -183,7 +211,8 @@ public sealed partial class Ui
     /// <summary>A scrolling, clipped column — or row, when <paramref name="box"/> is
     /// <see cref="Direction.Horizontal"/>, which the wheel also scrolls. A column fills the space it
     /// is given unless sized and reserves its scrollbar gutter only while the content overflows; a
-    /// row fills the width, fits its content's height and draws its bar over the content.</summary>
+    /// row fills the width, fits its content's height and draws its bar over the content, only while
+    /// the pointer is over it.</summary>
     public Scope Scroll(int id, Box box = default) =>
         Scroll(id, box.Direction == Direction.Horizontal ? ScrollAxes.Horizontal : ScrollAxes.Vertical, box);
 
@@ -216,8 +245,8 @@ public sealed partial class Ui
         state.OffsetY = MathF.Max(0f, state.OffsetY);
 
         var padding = box.Padding ?? default;
-        var bar = Theme.ScrollBarWidth;
-        state.BarWidth = bar;
+        var bar = ScrollBar.From(Theme);
+        state.Bar = bar;
         var element = Open(id, horizontal
             ? box with
             {
@@ -241,7 +270,7 @@ public sealed partial class Ui
                 ScrollY = state.OffsetY,
             });
         _scrollIds.Add(id);
-        _openScrolls.Push(new OpenScroll(id, element, state, thumbX, thumbY, padding, bar));
+        _openScrolls.Push(new OpenScroll(id, element, state, thumbX, thumbY, padding));
         return new Scope(this, ScopeKind.Scroll);
     }
 
@@ -308,7 +337,7 @@ public sealed partial class Ui
             var viewport = x ? state.ViewportX : state.ViewportY;
             var content = x ? state.ContentX : state.ContentY;
             var max = x ? state.MaxX : state.MaxY;
-            var travel = viewport - ThumbLength(viewport, content);
+            var travel = viewport - ThumbLength(viewport, content, state.Bar.MinThumb);
             if (travel <= 0f) return;
             var offset = state.DragStartOffset + (pointer - state.DragAnchor) * max / travel;
             if (x) state.OffsetX = offset;
@@ -316,7 +345,7 @@ public sealed partial class Ui
         }
     }
 
-    private static Spacing WithGutters(Spacing padding, ScrollState state, float bar) => padding with
+    private static Spacing WithGutters(Spacing padding, ScrollState state, ScrollBar bar) => padding with
     {
         Right = padding.Right + Gutter(state.ScrollsY && state.MaxY > 0f, bar),
         Bottom = padding.Bottom + Gutter(state.ScrollsX && state.MaxX > 0f, bar),
@@ -352,27 +381,41 @@ public sealed partial class Ui
     {
         var scroll = _openScrolls.Pop();
         var state = scroll.State;
-        var bar = scroll.BarWidth;
-        var crossBar = state.ScrollsX && state.ScrollsY && state.MaxX > 0f && state.MaxY > 0f ? bar + 2f : 0f;
+        var bar = state.Bar;
+        var hit = state.Horizontal ? bar.Paint + bar.Inset : MathF.Max(bar.Hit, bar.Gutter);
+        var crossBar = state.ScrollsX && state.ScrollsY && state.MaxX > 0f && state.MaxY > 0f ? bar.Gutter : 0f;
         if (state.ScrollsY && state.MaxY > 0f)
         {
             var viewport = state.ViewportY - crossBar;
-            var length = ThumbLength(viewport, state.ContentY);
+            var length = ThumbLength(viewport, state.ContentY, bar.MinThumb);
             var start = (viewport - length) * MathF.Min(1f, state.OffsetY / state.MaxY);
-            OpenFloating(scroll.ThumbY.Id, new Box { Width = bar, Height = length, Background = ThumbColor(scroll.ThumbY), Radius = bar / 2 }, 1f, 0f, -bar - 2f, start, 1);
+            OpenFloating(scroll.ThumbY.Id, new Box { Width = hit, Height = length }, 1f, 0f, -hit, start, 1);
+            Paint((ThumbColor(scroll.ThumbY), bar, false), PaintThumb);
             Close();
         }
-        if (state.ScrollsX && state.MaxX > 0f)
+        if (state.ScrollsX && state.MaxX > 0f && (!state.Horizontal || scroll.ThumbX.Held || PointerWithin(scroll.Id)))
         {
             var viewport = state.ViewportX - crossBar;
-            var length = ThumbLength(viewport, state.ContentX);
+            var length = ThumbLength(viewport, state.ContentX, bar.MinThumb);
             var start = (viewport - length) * MathF.Min(1f, state.OffsetX / state.MaxX);
-            OpenFloating(scroll.ThumbX.Id, new Box { Width = length, Height = bar, Background = ThumbColor(scroll.ThumbX), Radius = bar / 2 }, 0f, 1f, start, -bar - 1f, 1);
+            OpenFloating(scroll.ThumbX.Id, new Box { Width = length, Height = hit }, 0f, 1f, start, -hit, 1);
+            Paint((ThumbColor(scroll.ThumbX), bar, true), PaintThumb);
             Close();
         }
         Close();
         _frameScrolls.Add(scroll);
     }
+
+    private bool PointerWithin(int id) => _previousRects.TryGetValue(id, out var rect) && rect.Contains(Input.Pointer);
+
+    private static readonly Action<UiPainter, (uint Color, ScrollBar Bar, bool Horizontal)> PaintThumb = static (p, s) =>
+    {
+        var r = p.Rect;
+        var thumb = s.Horizontal
+            ? new UiRect(r.X, r.Bottom - s.Bar.Inset - s.Bar.Paint, r.Width, s.Bar.Paint)
+            : new UiRect(r.Right - s.Bar.Inset - s.Bar.Paint, r.Y, s.Bar.Paint, r.Height);
+        p.FillRect(thumb, s.Color, s.Bar.Paint / 2);
+    };
 
     private uint ThumbColor(Interaction thumb) =>
         thumb.Held ? Theme.ScrollThumbHeld : thumb.Hovered ? Theme.ScrollThumbHovered : Theme.ScrollThumb;
@@ -445,7 +488,7 @@ public sealed partial class Ui
 
             if (!state.Horizontal)
             {
-                var padding = WithGutters(scroll.Padding, state, scroll.BarWidth);
+                var padding = WithGutters(scroll.Padding, state, state.Bar);
                 if (e.Padding != padding)
                 {
                     e.Padding = padding;
@@ -466,10 +509,10 @@ public sealed partial class Ui
         return result;
     }
 
-    private static float Gutter(bool overflowing, float barWidth) => overflowing ? barWidth + 6f : 0f;
+    private static float Gutter(bool overflowing, ScrollBar bar) => overflowing ? bar.Gutter : 0f;
 
-    private static float ThumbLength(float viewport, float content) =>
-        content <= 0f ? 0f : MathF.Min(viewport, MathF.Max(24f, viewport * viewport / content));
+    private static float ThumbLength(float viewport, float content, float minThumb) =>
+        content <= 0f ? 0f : MathF.Min(viewport, MathF.Max(minThumb, viewport * viewport / content));
 
     private int Open(int id, in Box box, string? text = null, TextStyle? style = null) =>
         Push(Describe(id, box, text, style));
@@ -510,10 +553,11 @@ public sealed partial class Ui
             AlignY = box.AlignY ?? Align.Start,
             ScrollX = box.ScrollX,
             ScrollY = box.ScrollY,
-            Background = box.Background,
-            BorderColor = box.BorderColor,
-            BorderWidth = box.BorderWidth,
-            Radius = box.Radius,
+            Background = box.Background ?? 0u,
+            BorderColor = box.BorderColor ?? 0u,
+            BorderWidth = box.BorderWidth ?? 0f,
+            Radius = box.Radius ?? 0f,
+            Shadow = box.Shadow ?? default,
             Clip = box.Clip,
         };
 

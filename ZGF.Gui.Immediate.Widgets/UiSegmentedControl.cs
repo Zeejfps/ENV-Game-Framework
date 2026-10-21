@@ -8,9 +8,10 @@ public readonly record struct Segment<T>(T Value, string Label, string? Tooltip 
 
 public static partial class UiWidgets
 {
-    /// <summary>A row of joined segments with the one matching <paramref name="value"/> selected.
-    /// Clicking a segment selects it; once focused, Left/Right/Home/End step through them. Returns
-    /// true on the frame <paramref name="value"/> changes.</summary>
+    /// <summary>A row of joined segments with the one matching <paramref name="value"/> selected,
+    /// drawn in the theme's selection roles. Clicking a segment selects it; the group is a Tab stop,
+    /// and once focused Left/Right/Home/End step through them. Returns true on the frame
+    /// <paramref name="value"/> changes.</summary>
     public static bool SegmentedControl<T>(this Ui ui, string id, ref T value, ReadOnlySpan<Segment<T>> segments)
     {
         var theme = ui.Theme;
@@ -26,24 +27,26 @@ public static partial class UiWidgets
         }
 
         var next = selected;
-        var focused = ui.HasFocus(groupId);
+        var focused = ui.TabStop(groupId);
         if (focused && segments.Length > 0)
             next = SegmentKeys(ui, selected, segments.Length);
 
-        var inner = MathF.Max(0f, theme.CornerRadius - 1f);
+        var border = theme.BorderWidth;
+        var inner = MathF.Max(0f, theme.CornerRadius - border);
         using (ui.Id(groupId))
         using (ui.Row(groupId, new Box
         {
             Width = Sizing.Fit(),
             Height = theme.ControlHeight,
             Gap = 0f,
-            Padding = 1f,
+            Padding = border,
             Background = theme.Control,
-            BorderColor = focused ? theme.Accent : theme.Border,
-            BorderWidth = 1f,
+            BorderColor = theme.Border,
+            BorderWidth = border,
             Radius = theme.CornerRadius,
         }))
         {
+            if (focused && ui.FocusVisible) ui.FocusRing(theme.CornerRadius);
             for (var i = 0; i < segments.Length; i++)
             {
                 var segment = ui.Interact(ui.GetId(i));
@@ -54,13 +57,13 @@ public static partial class UiWidgets
                 if (i > 0)
                 {
                     var touchesSelection = i == selected || i - 1 == selected;
-                    ui.Leaf(new Box { Width = 1f, Height = Sizing.Grow(), Background = touchesSelection ? 0u : theme.Border });
+                    ui.Leaf(new Box { Width = border, Height = Sizing.Grow(), Background = touchesSelection ? 0u : theme.Border });
                 }
 
                 var isSelected = i == selected;
-                var background = isSelected ? theme.Accent
-                    : segment.Held ? theme.Pressed(theme.Control)
-                    : segment.Hovered ? theme.Hovered(theme.Control)
+                var background = isSelected ? theme.Selection
+                    : segment.Held ? theme.ControlPressed
+                    : segment.Hovered ? theme.ControlHovered
                     : 0u;
                 var corners = segments.Length == 1 ? new Corners(inner)
                     : i == 0 ? Corners.Left(inner)
@@ -76,7 +79,7 @@ public static partial class UiWidgets
                 {
                     if (background != 0)
                         ui.Paint((background, corners), static (p, s) => p.FillRect(p.Rect, s.background, s.corners));
-                    ui.Text(segments[i].Label, color: isSelected ? theme.OnAccent : theme.Text);
+                    ui.Text(segments[i].Label, color: isSelected ? theme.SelectionText : theme.TextMuted);
                 }
 
                 if (segments[i].Tooltip is { } tooltip)

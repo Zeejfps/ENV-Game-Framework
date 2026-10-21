@@ -37,13 +37,14 @@ public sealed class SegmentedControlTests
     }
 
     [Fact]
-    public void The_selected_segment_is_drawn_on_the_accent()
+    public void The_selected_segment_is_drawn_in_the_selection_roles()
     {
         _frames.Run(0f, Body);
 
-        Assert.Equal(UiTheme.Dark.OnAccent, _frames.TextColor("C#"));
-        Assert.Equal(UiTheme.Dark.Text, _frames.TextColor("IL"));
-        Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.Accent);
+        Assert.Equal(UiTheme.Dark.SelectionText, _frames.TextColor("C#"));
+        Assert.Equal(UiTheme.Dark.TextMuted, _frames.TextColor("IL"));
+        Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.Selection);
+        Assert.DoesNotContain(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.Accent);
     }
 
     [Fact]

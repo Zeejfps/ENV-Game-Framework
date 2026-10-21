@@ -2,7 +2,7 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Sample;
 
-var state = new TodoState();
+var state = new TodoState { DarkMode = !args.Contains("--light") };
 state.Add("Sketch the immediate-mode API");
 state.Add("Render through the canvas");
 state.Add("Decide if this beats the retained tree");

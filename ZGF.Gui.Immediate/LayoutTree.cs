@@ -27,6 +27,7 @@ internal struct Element
     public uint BorderColor;
     public float BorderWidth;
     public float Radius;
+    public UiShadow Shadow;
     public bool Clip;
 
     public string? Text;
@@ -36,6 +37,8 @@ internal struct Element
     public float LineHeight;
     public TextLines? Lines;
     public bool Wrap;
+    public TextOverflow Overflow;
+    public string? Shown;
 
     public bool Floating;
     public float AnchorX;
@@ -169,23 +172,31 @@ internal sealed class LayoutTree
     {
         Fit(true);
         Distribute(true);
-        WrapText(text);
+        LayOutText(text);
         Fit(false);
         Distribute(false);
         Position();
     }
 
-    private void WrapText(ITextLayout text)
+    private void LayOutText(ITextLayout text)
     {
         var span = CollectionsMarshal.AsSpan(_elements);
         for (var i = 0; i < span.Length; i++)
         {
             ref var e = ref span[i];
-            if (!e.Wrap) continue;
-            var inner = MathF.Max(0f, e.W - e.Padding.Left - e.Padding.Right);
-            e.Lines = text.BreakLines(e.Text!, e.TextStyle!, inner);
-            e.ContentHeight = e.Lines.Count * e.LineHeight;
+            if (e.Wrap)
+            {
+                e.Lines = text.BreakLines(e.Text!, e.TextStyle!, Inner(ref e));
+                e.ContentHeight = e.Lines.Count * e.LineHeight;
+            }
+            else if (e.Overflow != TextOverflow.Clip && e.Lines == null && e.Text is { } value)
+            {
+                var inner = Inner(ref e);
+                e.Shown = e.ContentWidth <= inner + 0.5f ? null : text.Ellipsize(value, e.TextStyle!, inner, e.Overflow);
+            }
         }
+
+        static float Inner(ref Element e) => MathF.Max(0f, e.W - e.Padding.Left - e.Padding.Right);
     }
 
     public void Position()
@@ -335,6 +346,17 @@ internal sealed class LayoutTree
 
     private void Paint(ref Element e, UiRect rect, int z)
     {
+        if (e.Shadow.IsVisible)
+        {
+            _canvas.DrawBoxShadow(new DrawBoxShadowInputs
+            {
+                Position = ToCanvas(rect),
+                BorderRadius = BorderRadiusStyle.All(e.Radius),
+                Shadow = ToStyle(e.Shadow),
+                ZIndex = z,
+            });
+        }
+
         if ((e.Background >> 24) != 0 || e.BorderWidth > 0f)
         {
             _rectStyle.BackgroundColor = e.Background;
@@ -352,7 +374,7 @@ internal sealed class LayoutTree
                 MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
                 MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
             if (e.Lines == null)
-                _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(content), Text = e.Text, Style = e.TextStyle, ZIndex = z });
+                _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(content), Text = e.Shown ?? e.Text, Style = e.TextStyle, ZIndex = z });
             else
                 PaintLines(ref e, content, z);
         }
@@ -475,12 +497,20 @@ internal sealed class LayoutTree
 
     private static void Resize(Span<Element> span, ref Element parent, bool x, float amount, bool grow)
     {
-        for (var pass = 0; pass < 8 && amount > 0.01f; pass++)
+        for (var pass = 0; pass < 32 && amount > 0.01f; pass++)
         {
             var candidates = 0;
+            var priority = int.MaxValue;
             for (var c = parent.FirstChild; c >= 0; c = span[c].NextSibling)
             {
-                if (CanResize(ref span[c], x, grow)) candidates++;
+                if (!CanResize(ref span[c], x, grow)) continue;
+                var own = grow ? 0 : (x ? span[c].Width : span[c].Height).Priority;
+                if (own < priority)
+                {
+                    priority = own;
+                    candidates = 0;
+                }
+                if (own == priority) candidates++;
             }
             if (candidates == 0) return;
 
@@ -489,6 +519,7 @@ internal sealed class LayoutTree
             {
                 ref var child = ref span[c];
                 if (!CanResize(ref child, x, grow)) continue;
+                if (!grow && (x ? child.Width : child.Height).Priority != priority) continue;
                 var sizing = x ? child.Width : child.Height;
                 var size = x ? child.W : child.H;
                 var next = grow ? MathF.Min(size + share, sizing.Max) : MathF.Max(size - share, sizing.Min);
@@ -507,6 +538,15 @@ internal sealed class LayoutTree
         var size = x ? child.W : child.H;
         return grow ? size < sizing.Max : size > sizing.Min;
     }
+
+    internal static BoxShadowStyle ToStyle(UiShadow shadow) => new()
+    {
+        OffsetX = shadow.OffsetX,
+        OffsetY = -shadow.OffsetY,
+        Blur = shadow.Blur,
+        Spread = shadow.Spread,
+        Color = shadow.Color,
+    };
 
     private static float Factor(Align align) => align switch
     {

@@ -26,7 +26,7 @@ public sealed class SplitPaneSecondSideTests
         _frames.Run(0f, Body);
 
         Assert.Equal(100f, _frames.RectOf(Body, ui => ui.GetId("bottom")).Height);
-        Assert.Equal(100f - 5f, _frames.RectOf(Body, ui => ui.GetId("top")).Height);
+        Assert.Equal(100f - 6f, _frames.RectOf(Body, ui => ui.GetId("top")).Height);
     }
 
     [Fact]
@@ -37,12 +37,12 @@ public sealed class SplitPaneSecondSideTests
         _frames.Run(0f, Body);
 
         Assert.Equal(100f, _frames.RectOf(Body, ui => ui.GetId("bottom")).Height);
-        Assert.Equal(80f - 5f, _frames.RectOf(Body, ui => ui.GetId("top")).Height);
+        Assert.Equal(80f - 6f, _frames.RectOf(Body, ui => ui.GetId("top")).Height);
     }
 
     [Theory]
     [InlineData(-30f, 130f)]
-    [InlineData(-1000f, 200f - 5f - 50f)]
+    [InlineData(-1000f, 200f - 6f - 50f)]
     [InlineData(1000f, 40f)]
     public void Dragging_the_divider_writes_the_second_panes_size_within_the_minimums(float by, float expected)
     {

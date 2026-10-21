@@ -159,5 +159,5 @@ public sealed partial class Ui
     }
 
     private static float VisibleHeight(ScrollState state) =>
-        state.ViewportY <= 0f ? 0f : MathF.Max(0f, state.ViewportY - Gutter(state.ScrollsX && state.MaxX > 0f, state.BarWidth));
+        state.ViewportY <= 0f ? 0f : MathF.Max(0f, state.ViewportY - Gutter(state.ScrollsX && state.MaxX > 0f, state.Bar));
 }

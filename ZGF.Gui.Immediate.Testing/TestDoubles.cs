@@ -46,6 +46,9 @@ public sealed class TestPopupHost : IPopupHost
     public UiRect Area { get; set; } = new(-200f, -200f, 800f, 700f);
     public Dictionary<int, UiRect> Shown { get; } = new();
 
+    /// <summary>Each shown popup's window: its rect plus the shadow around it.</summary>
+    public Dictionary<int, UiRect> Surfaces { get; } = new();
+
     /// <summary>How many times every popup was hidden at once, as before a native dialog.</summary>
     public int HideAllCount { get; private set; }
 
@@ -54,15 +57,17 @@ public sealed class TestPopupHost : IPopupHost
     public void BeginFrame()
     {
         Shown.Clear();
+        Surfaces.Clear();
         foreach (var canvas in _canvases.Values)
             canvas.Reset();
     }
 
     public UiRect Place(UiRect preferred, UiRect fallback) => PopupPlacement.Fit(preferred, fallback, Area);
 
-    public ICanvas Show(int id, UiRect rect, bool passThrough)
+    public ICanvas Show(int id, UiRect rect, UiRect surface, bool passThrough)
     {
         Shown[id] = rect;
+        Surfaces[id] = surface;
         if (!_canvases.TryGetValue(id, out var canvas))
             _canvases[id] = canvas = new RecordingCanvas(new SyntheticTextMeasurer());
         return canvas;
@@ -72,5 +77,6 @@ public sealed class TestPopupHost : IPopupHost
     {
         HideAllCount++;
         Shown.Clear();
+        Surfaces.Clear();
     }
 }

@@ -47,13 +47,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     public ImmediateHost(
         StartupConfig config,
         RenderBackendKind backend,
-        IReadOnlyList<(string Family, byte[] Data)> fonts,
+        IReadOnlyList<(string Family, byte[] Data, bool Bold)> fonts,
         ConcurrentQueue<Action> posted,
         Action<Ui> renderUi)
     {
         _render = RenderHost.Create(config, backend);
-        foreach (var (family, data) in fonts)
-            _render.RegisterFont(family, data);
+        foreach (var (family, data, bold) in fonts)
+            _render.RegisterFont(family, data, bold);
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
         _decorator = PopupDecorator.ForCurrentPlatform();
@@ -61,6 +61,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
         _render.SetFrame(DrawFrame, _clearColor);
+        _window.SetTitleBarTheme(UiColor.IsDark(_clearColor));
         _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
 
         _window.OnKey += HandleKey;
@@ -95,9 +96,9 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _render.App.Wake();
     }
 
-    public void RegisterFont(string family, byte[] data)
+    public void RegisterFont(string family, byte[] data, bool bold)
     {
-        _render.RegisterFont(family, data);
+        _render.RegisterFont(family, data, bold);
         _ui.InvalidateMeasurements();
         foreach (var popup in _popups)
             popup.Surface.Canvas.CopyFontsFrom(_render.Canvas);
@@ -125,8 +126,11 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _render.App.Quit();
         if (_ui.WindowBackground != _clearColor)
         {
+            var wasDark = UiColor.IsDark(_clearColor);
             _clearColor = _ui.WindowBackground;
             _render.SetFrame(DrawFrame, _clearColor);
+            if (UiColor.IsDark(_clearColor) != wasDark)
+                _window.SetTitleBarTheme(!wasDark);
         }
 
         if (_ui.Cursor != _cursor)
@@ -238,7 +242,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         return new UiRect((best.X - originX) / s, (best.Y - originY) / s, best.Width / s, best.Height / s);
     }
 
-    public ICanvas? Show(int id, UiRect rect, bool passThrough)
+    public ICanvas? Show(int id, UiRect rect, UiRect surface, bool passThrough)
     {
         if (_popupWindowsUnavailable) return null;
 
@@ -257,12 +261,12 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         var s = ScreenPerPoint;
         var dpi = _render.Canvas.DpiScale;
         var pixelsPerScreen = _window.DpiScale > 0f ? _window.DpiScale : 1f;
-        var widthPoints = Math.Max(1, (int)MathF.Ceiling(rect.Width));
-        var heightPoints = Math.Max(1, (int)MathF.Ceiling(rect.Height));
+        var widthPoints = Math.Max(1, (int)MathF.Ceiling(surface.Width));
+        var heightPoints = Math.Max(1, (int)MathF.Ceiling(surface.Height));
         _window.GetPosition(out var originX, out var originY);
         var screen = (
-            X: originX + (int)MathF.Round(rect.X * s),
-            Y: originY + (int)MathF.Round(rect.Y * s),
+            X: originX + (int)MathF.Round(surface.X * s),
+            Y: originY + (int)MathF.Round(surface.Y * s),
             Width: PopupPlacement.ScreenSize(widthPoints, dpi, pixelsPerScreen),
             Height: PopupPlacement.ScreenSize(heightPoints, dpi, pixelsPerScreen));
         var window = popup.Surface.Window;

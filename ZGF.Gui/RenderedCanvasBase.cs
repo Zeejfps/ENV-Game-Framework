@@ -195,6 +195,9 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly FreeTypeFontBackend _fonts;
     private readonly FontHandle _defaultFont;
     private readonly Dictionary<string, FontHandle> _fontsByFamily = new();
+    // Real bold faces, by family; the empty name is the default font's. Bold text in a family
+    // without one is synthesized.
+    private readonly Dictionary<string, FontHandle> _boldByFamily = new();
     // The logical size each font was registered at — the size text that names no FontSize of its own
     // is drawn at, re-derived into device pixels whenever the scale moves.
     private readonly Dictionary<string, float> _familyPointSizes = new();
@@ -872,6 +875,10 @@ public abstract class RenderedCanvasBase : ICanvas
         _familyPointSizes[family] = ToPointSize(handle);
     }
 
+    /// <summary>Draws bold text in <paramref name="family"/> — or in the default font when null —
+    /// with <paramref name="handle"/>'s face instead of synthesizing it from the regular face.</summary>
+    public void RegisterBoldFont(string? family, FontHandle handle) => _boldByFamily[family ?? ""] = handle;
+
     /// <summary>
     /// Copies the source canvas's font-family registry onto this canvas. Popup
     /// canvases need this so views using non-default font families (e.g. icons,
@@ -885,6 +892,8 @@ public abstract class RenderedCanvasBase : ICanvas
             _fontsByFamily[kv.Key] = kv.Value;
         foreach (var kv in source._familyPointSizes)
             _familyPointSizes[kv.Key] = kv.Value;
+        foreach (var kv in source._boldByFamily)
+            _boldByFamily[kv.Key] = kv.Value;
         _defaultPointSize = source._defaultPointSize;
         DefaultBaseDirection = source.DefaultBaseDirection;
     }
@@ -893,11 +902,21 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         var baseFont = _defaultFont;
         var pointSize = _defaultPointSize;
+        var familyKey = "";
         if (style.FontFamily.IsSet && style.FontFamily.Value is { } family &&
             _fontsByFamily.TryGetValue(family, out var resolved))
         {
             baseFont = resolved;
+            familyKey = family;
             pointSize = _familyPointSizes.TryGetValue(family, out var familySize) ? familySize : pointSize;
+        }
+
+        var bold = style.FontWeight.IsSet && style.FontWeight.Value == FontWeight.Bold;
+        var realBold = false;
+        if (bold && _boldByFamily.TryGetValue(familyKey, out var boldFace))
+        {
+            baseFont = boldFace;
+            realBold = true;
         }
 
         // The caller's FontSize is in logical points, and so is the size a font was registered at —
@@ -913,7 +932,7 @@ public abstract class RenderedCanvasBase : ICanvas
         if (pixelSize > 0)
             baseFont = _fonts.GetSizedVariant(baseFont, pixelSize);
 
-        if (style.FontWeight.IsSet && style.FontWeight.Value == FontWeight.Bold)
+        if (bold && !realBold)
             baseFont = _fonts.GetEmboldenedVariant(baseFont);
 
         return baseFont;

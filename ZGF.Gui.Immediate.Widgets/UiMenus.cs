@@ -76,9 +76,6 @@ public readonly struct MenuScope : IDisposable
 public static partial class UiWidgets
 {
     private const int MenuSalt = 0x4D454E55;
-    private const float MenuMinWidth = 160f;
-    private const float MenuCheckWidth = 22f;
-    private const float MenuShortcutGap = 32f;
 
     private static readonly KeyboardKey[] MenuKeySet =
     [
@@ -253,10 +250,10 @@ public static partial class UiWidgets
 
         var row = ui.Row(barId, box with
         {
-            Height = box.Height ?? theme.ControlHeight,
+            Height = box.Height ?? theme.MenuBarHeight,
             Gap = box.Gap ?? 0f,
-            Padding = box.Padding ?? new Spacing(4f, 2f),
-            Background = box.Background != 0 ? box.Background : theme.Surface,
+            Padding = box.Padding ?? new Spacing(theme.GapTight, theme.GapTight / 2),
+            Background = box.Background ?? theme.Surface,
         });
         return new MenuBar(row, ui.Provide(state), state);
     }
@@ -285,12 +282,12 @@ public static partial class UiWidgets
         var title = ui.Box(i.Id, new Box
         {
             Height = Sizing.Grow(),
-            Padding = new Spacing(10f, 0f),
+            Padding = new Spacing(theme.MenuItemPaddingX, 0f),
             AlignY = Align.Center,
-            Radius = 4f,
-            Background = open ? theme.Pressed(theme.Surface) : i.Hovered ? theme.Hovered(theme.Surface) : 0u,
+            Radius = theme.CornerRadius,
+            Background = open ? theme.Selection : i.Hovered ? theme.ControlHovered : 0u,
         });
-        ui.Text(id != null ? label : Visible(ui, i.Id, label));
+        ui.Text(id != null ? label : Visible(ui, i.Id, label), color: open ? theme.SelectionText : theme.Text);
         if (!open)
             return new MenuScope(title);
 
@@ -365,15 +362,15 @@ public static partial class UiWidgets
         }
         var open = enabled && parent.OpenSub == index;
         var highlighted = enabled && (index == parent.Highlight || open);
-        var color = highlighted ? theme.OnAccent : enabled ? theme.Text : theme.TextMuted;
+        var color = highlighted ? theme.SelectionText : enabled ? theme.Text : theme.TextDisabled;
 
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
-            ui.Leaf(new Box { Width = MenuCheckWidth, Height = 0f });
+            ui.Leaf(new Box { Width = theme.MenuIconColumnWidth, Height = 0f });
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
-            ui.Leaf(new Box { Width = Sizing.Grow(MenuShortcutGap), Height = 0f });
-            using (ui.Box(new Box { Width = 10f, Height = Sizing.Grow() }))
-                ui.Paint(color, static (p, c) => DrawDisclosure(p, false, c));
+            ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
+            using (ui.Box(new Box { Width = theme.IconSize, Height = Sizing.Grow() }))
+                ui.Paint((color, theme.IconStrokeWidth), static (p, s) => DrawDisclosure(p, false, s.color, s.IconStrokeWidth));
         }
         if (!open)
             return default;
@@ -391,9 +388,11 @@ public static partial class UiWidgets
         state.PopupId = popupId;
         parent.ChildSeen(state);
         state.BeginItems(popupId);
-        ui.TryGetRect(i.Id, out var anchor);
+        ui.TryGetRect(i.Id, out var row);
+        var inset = theme.MenuPadding + theme.BorderWidth;
+        var anchor = row with { Y = row.Y - inset, Height = row.Height + inset * 2 };
         var layer = ui.Layer(popupId);
-        var popup = ui.Popup(popupId, anchor, MenuBox(theme), gap: 2f, side: PopupSide.End);
+        var popup = ui.Popup(popupId, anchor, MenuBox(theme), gap: inset, side: PopupSide.End);
         var provided = ui.Provide<MenuPopup>(state);
         MenuKeys(ui, state, isSubMenu: true);
         return new MenuScope(layer, popup, provided, state);
@@ -420,19 +419,20 @@ public static partial class UiWidgets
             || (over && input.WasReleased(PointerButton.Left) && !input.WasCancelled(PointerButton.Left))
             || (menu != null && index == menu.PickIndex));
         var highlighted = enabled && (i.Held || (menu != null ? index == menu.Highlight : i.Hovered));
-        var color = highlighted ? theme.OnAccent : enabled ? theme.Text : theme.TextMuted;
+        var color = highlighted ? theme.SelectionText : enabled ? theme.Text : theme.TextDisabled;
 
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
-            using (ui.Box(new Box { Width = MenuCheckWidth, Height = Sizing.Grow(), Padding = new Spacing(5f, 6f) }))
+            using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
+            using (ui.Box(new Box { Width = theme.IconSize, Height = theme.IconSize }))
             {
                 if (check == true)
-                    ui.Paint(color, static (p, c) => DrawCheckmark(p, c));
+                    ui.Paint((color, theme.IconStrokeWidth), static (p, s) => DrawCheckmark(p, s.color, s.IconStrokeWidth));
             }
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
-            ui.Leaf(new Box { Width = Sizing.Grow(MenuShortcutGap), Height = 0f });
+            ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
             if (shortcut != null)
-                ui.Text(shortcut, color: highlighted ? color : theme.TextMuted);
+                ui.Text(shortcut, color: enabled ? theme.TextMuted : theme.TextDisabled);
         }
 
         if (picked)
@@ -450,18 +450,20 @@ public static partial class UiWidgets
 
     public static void MenuSeparator(this Ui ui)
     {
-        using (ui.Box(new Box { Width = Sizing.Grow(), Padding = new Spacing(6f, 4f) }))
-            ui.Leaf(new Box { Width = Sizing.Grow(), Height = 1f, Background = ui.Theme.Border });
+        var theme = ui.Theme;
+        using (ui.Box(new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.MenuItemPaddingX, theme.GapTight) }))
+            ui.Leaf(new Box { Width = Sizing.Grow(), Height = theme.SeparatorWidth, Background = theme.Separator });
     }
 
     private static Box MenuBox(UiTheme theme) => new()
     {
-        Width = Sizing.Fit(MenuMinWidth),
-        Padding = 4f,
-        Background = theme.Surface,
+        Width = Sizing.Fit(theme.MenuMinWidth),
+        Padding = theme.MenuPadding,
+        Background = theme.SurfaceRaised,
         BorderColor = theme.Border,
-        BorderWidth = 1f,
-        Radius = theme.CornerRadius,
+        BorderWidth = theme.BorderWidth,
+        Radius = theme.PopupRadius,
+        Shadow = theme.PopupShadow,
     };
 
     private static Box MenuRowBox(UiTheme theme, bool highlighted) => new()
@@ -469,9 +471,9 @@ public static partial class UiWidgets
         Width = Sizing.Grow(),
         Height = theme.MenuItemHeight,
         Gap = 0f,
-        Padding = new Spacing(2f, 0f, 10f, 0f),
-        Radius = 4f,
-        Background = highlighted ? theme.Accent : 0u,
+        Padding = new Spacing(0f, 0f, theme.MenuItemPaddingX, 0f),
+        Radius = theme.CornerRadius,
+        Background = highlighted ? theme.Selection : 0u,
     };
 
     /// <summary>Acts on this frame's keys for <paramref name="menu"/>, which only reach it while it is
