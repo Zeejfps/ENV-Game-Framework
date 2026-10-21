@@ -10,6 +10,7 @@ public sealed partial class Ui
         Context,
         Layer,
         Modal,
+        StateScope,
     }
 
     public readonly struct Scope : IDisposable
@@ -341,6 +342,10 @@ public sealed partial class Ui
             case ScopeKind.Modal:
                 Close();
                 EndLayer();
+                break;
+            case ScopeKind.StateScope:
+                _stateOwners.Pop();
+                _ids.Pop();
                 break;
         }
     }

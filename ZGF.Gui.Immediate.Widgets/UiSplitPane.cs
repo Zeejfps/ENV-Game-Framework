@@ -10,6 +10,15 @@ public enum SplitSide
     Second,
 }
 
+/// <summary>What the size of a <see cref="UiWidgets.SplitPane"/> is measured in: points, or the
+/// fraction of the split's length, so the split keeps its proportions as the container
+/// resizes.</summary>
+public enum SplitUnit
+{
+    Points,
+    Fraction,
+}
+
 /// <summary>An open <see cref="UiWidgets.SplitPane"/>: record <see cref="First"/>, then
 /// <see cref="Second"/>, each in its own scope, then dispose.</summary>
 public readonly struct SplitPane : IDisposable
@@ -19,9 +28,9 @@ public readonly struct SplitPane : IDisposable
     private readonly Interaction _divider;
     private readonly bool _horizontal;
     private readonly SplitSide _sized;
-    private readonly float _size;
+    private readonly Sizing _size;
 
-    internal SplitPane(Ui ui, Ui.Scope container, Interaction divider, bool horizontal, SplitSide sized, float size)
+    internal SplitPane(Ui ui, Ui.Scope container, Interaction divider, bool horizontal, SplitSide sized, Sizing size)
     {
         _ui = ui;
         _container = container;
@@ -58,7 +67,7 @@ public readonly struct SplitPane : IDisposable
 
     private Ui.Scope Pane(SplitSide side)
     {
-        var main = side == _sized ? Sizing.Fixed(_size) : Sizing.Grow();
+        var main = side == _sized ? _size : Sizing.Grow();
         return _ui.Column(_horizontal
             ? new Box { Width = main, Height = Sizing.Grow(), Clip = true }
             : new Box { Width = Sizing.Grow(), Height = main, Clip = true });
@@ -78,14 +87,20 @@ public static partial class UiWidgets
     /// Two panes side by side (<see cref="Direction.Horizontal"/>) or stacked, split by a divider
     /// the user drags. <paramref name="size"/> is the width or height of the <paramref name="sized"/>
     /// pane, owned by the app and written while dragging; the other pane takes the rest, so it is
-    /// the one that follows the container's size. The size is shown kept between the panes'
-    /// minimums. Fills the space it is given unless <paramref name="box"/> sizes it.
+    /// the one that follows the container's size — unless <paramref name="unit"/> is
+    /// <see cref="SplitUnit.Fraction"/>, where the size is the sized pane's share of the space and
+    /// both follow. The size is shown kept between the panes' minimums, in points. Fills the space
+    /// it is given unless <paramref name="box"/> sizes it.
     /// </summary>
     public static SplitPane SplitPane(this Ui ui, string id, Direction direction, ref float size, float minFirst = 0f, float minSecond = 0f,
-        Box box = default, SplitSide sized = SplitSide.First)
+        Box box = default, SplitSide sized = SplitSide.First, SplitUnit unit = SplitUnit.Points) =>
+        ui.SplitPane(ui.GetId(id), direction, ref size, minFirst, minSecond, box, sized, unit);
+
+    public static SplitPane SplitPane(this Ui ui, int id, Direction direction, ref float size, float minFirst = 0f, float minSecond = 0f,
+        Box box = default, SplitSide sized = SplitSide.First, SplitUnit unit = SplitUnit.Points)
     {
         var horizontal = direction == Direction.Horizontal;
-        var containerId = ui.GetId(id);
+        var containerId = id;
         var divider = ui.Interact(HashCode.Combine(containerId, "divider"));
         if (divider.Hovered || divider.Held)
             ui.SetCursor(horizontal ? MouseCursor.ResizeHorizontal : MouseCursor.ResizeVertical);
@@ -94,6 +109,8 @@ public static partial class UiWidgets
         var thickness = ui.Theme.SplitterSize;
         var extent = hasContainer ? (horizontal ? container.Width : container.Height) : float.PositiveInfinity;
         var pointer = horizontal ? ui.Input.Pointer.X : ui.Input.Pointer.Y;
+        var fraction = unit == SplitUnit.Fraction;
+        var points = !fraction ? size : hasContainer ? size * extent : 0f;
         var state = ui.GetState<SplitState>(divider.Id);
         if (divider.Pressed && ui.TryGetRect(divider.Id, out var bar))
             state.Grab = pointer - (horizontal ? bar.X : bar.Y);
@@ -101,13 +118,15 @@ public static partial class UiWidgets
         {
             var start = horizontal ? container.X : container.Y;
             var dividerAt = pointer - state.Grab;
-            size = sized == SplitSide.First ? dividerAt - start : start + extent - dividerAt - thickness;
+            points = sized == SplitSide.First ? dividerAt - start : start + extent - dividerAt - thickness;
         }
 
         var (minSized, minOther) = sized == SplitSide.First ? (minFirst, minSecond) : (minSecond, minFirst);
-        var shown = Math.Clamp(size, minSized, MathF.Max(minSized, extent - thickness - minOther));
+        var shown = Math.Clamp(points, minSized, MathF.Max(minSized, extent - thickness - minOther));
         if (divider.Held)
-            size = shown;
+            size = fraction ? shown / MathF.Max(1f, extent) : shown;
+        var main = !fraction ? Sizing.Fixed(shown)
+            : Sizing.Percent(hasContainer ? shown / MathF.Max(1f, extent) : Math.Clamp(size, 0f, 1f));
 
         var scope = ui.Box(containerId, box with
         {
@@ -115,6 +134,6 @@ public static partial class UiWidgets
             Width = box.Width ?? Sizing.Grow(),
             Height = box.Height ?? Sizing.Grow(),
         });
-        return new SplitPane(ui, scope, divider, horizontal, sized, shown);
+        return new SplitPane(ui, scope, divider, horizontal, sized, main);
     }
 }

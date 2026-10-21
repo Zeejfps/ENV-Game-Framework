@@ -1,0 +1,183 @@
+using System.Text.Json;
+using ZGF.Gui.Immediate.Widgets;
+
+namespace ZGF.Gui.Immediate.Tests;
+
+public sealed class DockLayoutTests
+{
+    private static DockLayout TwoGroups() => new()
+    {
+        Root = DockLayout.Split(Direction.Horizontal, 0.5f, DockLayout.Group("a", "b"), DockLayout.Group("c")),
+    };
+
+    [Fact]
+    public void Docking_beside_a_group_splits_it_and_gives_the_panel_its_share()
+    {
+        var layout = TwoGroups();
+        var right = layout.GroupOf("c")!;
+
+        layout.Dock("b", right, DockEdge.Bottom, 0.3f);
+
+        var root = Assert.IsType<DockSplit>(layout.Root);
+        var split = Assert.IsType<DockSplit>(root.Second);
+        Assert.Equal(Direction.Vertical, split.Direction);
+        Assert.Same(right, split.First);
+        Assert.Equal(["b"], Assert.IsType<DockGroup>(split.Second).Panels);
+        Assert.Equal(0.7f, split.Ratio, 3);
+        Assert.Equal(["a"], layout.GroupOf("a")!.Panels);
+    }
+
+    [Fact]
+    public void Moving_the_last_panel_out_of_a_group_collapses_its_split()
+    {
+        var layout = TwoGroups();
+
+        layout.Dock("c", layout.GroupOf("a")!, DockEdge.Center);
+
+        var group = Assert.IsType<DockGroup>(layout.Root);
+        Assert.Equal(["a", "b", "c"], group.Panels);
+        Assert.Equal("c", group.Active);
+    }
+
+    [Fact]
+    public void Docking_against_a_split_the_move_collapses_docks_against_what_replaced_it()
+    {
+        var layout = TwoGroups();
+        var left = layout.GroupOf("a")!;
+
+        layout.Dock("c", layout.Root, DockEdge.Left, 0.25f);
+
+        var root = Assert.IsType<DockSplit>(layout.Root);
+        Assert.Equal(["c"], Assert.IsType<DockGroup>(root.First).Panels);
+        Assert.Same(left, root.Second);
+        Assert.Equal(0.25f, root.Ratio);
+    }
+
+    [Theory]
+    [InlineData(0, new[] { "c", "a", "b" })]
+    [InlineData(1, new[] { "a", "c", "b" })]
+    [InlineData(-1, new[] { "a", "b", "c" })]
+    public void Docking_into_a_group_inserts_at_the_index(int index, string[] expected)
+    {
+        var layout = TwoGroups();
+
+        layout.Dock("c", layout.GroupOf("a")!, DockEdge.Center, index: index);
+
+        Assert.Equal(expected, layout.GroupOf("a")!.Panels);
+    }
+
+    [Fact]
+    public void Docking_a_panel_into_its_own_group_reorders_it()
+    {
+        var layout = TwoGroups();
+        var group = layout.GroupOf("a")!;
+
+        layout.Dock("a", group, DockEdge.Center, index: 2);
+
+        Assert.Equal(["b", "a"], group.Panels);
+        Assert.Equal("a", group.Active);
+    }
+
+    [Fact]
+    public void Docking_a_lone_panel_beside_its_own_group_changes_nothing()
+    {
+        var layout = TwoGroups();
+        var root = layout.Root;
+
+        layout.Dock("c", layout.GroupOf("c")!, DockEdge.Left);
+
+        Assert.Same(root, layout.Root);
+        Assert.Equal(["c"], layout.GroupOf("c")!.Panels);
+    }
+
+    [Fact]
+    public void A_floated_panel_gets_a_window_in_front_and_docking_the_window_back_removes_it()
+    {
+        var layout = TwoGroups();
+
+        var window = layout.Float("b", new UiRect(10f, 20f, 300f, 200f));
+        layout.Float("a", new UiRect(30f, 40f, 300f, 200f));
+
+        Assert.Equal(2, layout.Windows.Count);
+        Assert.Same(window, layout.WindowOf(layout.GroupOf("b")!));
+        Assert.Equal(["c"], Assert.IsType<DockGroup>(layout.Root).Panels);
+
+        layout.BringToFront(window);
+        Assert.Same(window, layout.Windows[^1]);
+
+        layout.Dock(window, layout.Root, DockEdge.Center);
+        Assert.Single(layout.Windows);
+        Assert.Equal(["c", "b"], Assert.IsType<DockGroup>(layout.Root).Panels);
+    }
+
+    [Fact]
+    public void Closing_the_last_panel_of_a_window_removes_it_and_raises_PanelClosed()
+    {
+        var layout = TwoGroups();
+        var closed = new List<string>();
+        layout.PanelClosed += closed.Add;
+        layout.Float("b", new UiRect(0f, 0f, 200f, 200f));
+
+        layout.Close("b");
+
+        Assert.Empty(layout.Windows);
+        Assert.Equal(["b"], closed);
+        Assert.False(layout.Contains("b"));
+    }
+
+    [Fact]
+    public void Closing_every_docked_panel_leaves_an_empty_root_group()
+    {
+        var layout = TwoGroups();
+
+        layout.Close("a");
+        layout.Close("b");
+        layout.Close("c");
+
+        Assert.Empty(Assert.IsType<DockGroup>(layout.Root).Panels);
+    }
+
+    [Fact]
+    public void Retain_drops_unknown_panels_quietly()
+    {
+        var layout = TwoGroups();
+        var closed = new List<string>();
+        layout.PanelClosed += closed.Add;
+
+        layout.Retain(p => p != "c");
+
+        Assert.Equal(["a", "b"], Assert.IsType<DockGroup>(layout.Root).Panels);
+        Assert.Empty(closed);
+    }
+
+    [Fact]
+    public void A_layout_round_trips_through_json_with_its_ids()
+    {
+        var layout = TwoGroups();
+        layout.Float("b", new UiRect(10f, 20f, 300f, 200f));
+        layout.AssignIds();
+
+        var copy = JsonSerializer.Deserialize<DockLayout>(JsonSerializer.Serialize(layout))!;
+
+        var root = Assert.IsType<DockSplit>(copy.Root);
+        Assert.Equal(layout.Root.Id, root.Id);
+        Assert.Equal(["a"], Assert.IsType<DockGroup>(root.First).Panels);
+        Assert.Equal(new UiRect(10f, 20f, 300f, 200f), copy.Windows.Single().Rect);
+        Assert.Equal(layout.NextId, copy.NextId);
+    }
+
+    [Fact]
+    public void Ids_are_given_to_new_nodes_without_reusing_saved_ones()
+    {
+        var layout = new DockLayout
+        {
+            Root = DockLayout.Split(Direction.Horizontal, 0.5f, new DockGroup { Id = 7, Panels = { "a" } }, DockLayout.Group("b")),
+        };
+
+        layout.AssignIds();
+
+        var root = (DockSplit)layout.Root;
+        Assert.Equal(7, root.First.Id);
+        Assert.True(root.Id > 7 && root.Second.Id > 7 && root.Id != root.Second.Id);
+    }
+}

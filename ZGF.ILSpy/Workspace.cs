@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -26,8 +27,12 @@ public sealed class Workspace
         DarkMode = settings.DarkMode;
         Language = settings.Language;
         ShowNonPublic = settings.ShowNonPublic;
-        TreeWidth = settings.TreeWidth;
-        SearchHeight = settings.SearchHeight;
+        Layout = DockPanels.Restore(settings.Layout);
+        Layout.PanelClosed += panel =>
+        {
+            if (panel == DockPanels.Search)
+                Search.Clear();
+        };
         Tree = new BrowseTree(Post);
         Search = new SearchModel(ReportError);
         Picker = new FrameworkPickerModel(ReportError);
@@ -45,8 +50,9 @@ public sealed class Workspace
 
     public bool DarkMode;
     public bool ShowNonPublic;
-    public float TreeWidth;
-    public float SearchHeight;
+
+    /// <summary>Where the tree, documents and search results are docked.</summary>
+    public DockLayout Layout { get; }
 
     public int ActiveIndex { get; private set; } = -1;
 
@@ -264,6 +270,17 @@ public sealed class Workspace
     {
         Search.IsOpen = true;
         _focusSearch = true;
+        SyncSearchPanel();
+        Layout.Activate(DockPanels.Search);
+    }
+
+    /// <summary>Docks the search results while a search is open and closes them once it is not.</summary>
+    public void SyncSearchPanel()
+    {
+        if (Search.IsOpen && !Layout.Contains(DockPanels.Search))
+            Layout.Dock(DockPanels.Search, Layout.GroupOf(DockPanels.Documents) ?? Layout.Root, DockEdge.Bottom, 0.3f);
+        else if (!Search.IsOpen && Layout.Contains(DockPanels.Search))
+            Layout.Close(DockPanels.Search);
     }
 
     /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>
@@ -282,8 +299,7 @@ public sealed class Workspace
         _settings.DarkMode = DarkMode;
         _settings.Language = Language;
         _settings.ShowNonPublic = ShowNonPublic;
-        _settings.TreeWidth = TreeWidth;
-        _settings.SearchHeight = SearchHeight;
+        _settings.Layout = Layout;
         if (_settings.Save() is { } error)
             ReportError("Cannot save the settings", error);
     }

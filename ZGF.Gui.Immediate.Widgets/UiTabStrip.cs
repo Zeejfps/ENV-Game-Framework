@@ -4,7 +4,15 @@ namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>What the pointer did to one tab: <see cref="Selected"/> when it is pressed while not
 /// selected, so the app selects it; <see cref="Closed"/> on its close button or a middle click.</summary>
-public readonly record struct TabResult(bool Selected, bool Closed);
+public readonly record struct TabResult(bool Selected, bool Closed)
+{
+    /// <summary>The tab's element id, for <see cref="Ui.TryGetRect"/>.</summary>
+    public int Id { get; init; }
+
+    /// <summary>The tab is held and the pointer has moved far enough to drag it off: the cue to
+    /// <see cref="Ui.BeginDrag"/>. Only for a tab recorded as draggable.</summary>
+    public bool Dragged { get; init; }
+}
 
 /// <summary>An open <see cref="UiWidgets.TabStrip"/>: record each tab with <see cref="Tab"/>, then
 /// dispose.</summary>
@@ -24,8 +32,8 @@ public readonly struct TabStrip : IDisposable
     /// <summary>One tab. The label doubles as the id unless <paramref name="id"/> is given; scope
     /// tabs by document with <c>ui.Id</c> when labels repeat. A tab that becomes selected is
     /// scrolled into view.</summary>
-    public TabResult Tab(string label, bool selected, bool closable = true, string? id = null) =>
-        UiWidgets.Tab(_ui, _id, label, selected, closable, id);
+    public TabResult Tab(string label, bool selected, bool closable = true, string? id = null, bool draggable = false) =>
+        UiWidgets.Tab(_ui, _id, label, selected, closable, id, draggable);
 
     public void Dispose() => _scroll.Dispose();
 }
@@ -40,10 +48,11 @@ public static partial class UiWidgets
     }
 
     /// <summary>A row of tabs that scrolls sideways, by wheel or its bar, when they overflow.</summary>
-    public static TabStrip TabStrip(this Ui ui, string id, Box box = default)
+    public static TabStrip TabStrip(this Ui ui, string id, Box box = default) => ui.TabStrip(ui.GetId(id), box);
+
+    public static TabStrip TabStrip(this Ui ui, int stripId, Box box = default)
     {
         var theme = ui.Theme;
-        var stripId = ui.GetId(id);
         var scroll = ui.Scroll(stripId, box with
         {
             Direction = Direction.Horizontal,
@@ -54,7 +63,7 @@ public static partial class UiWidgets
         return new TabStrip(ui, scroll, stripId);
     }
 
-    internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id)
+    internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, bool draggable)
     {
         var theme = ui.Theme;
         var tab = ui.Interact(id ?? label);
@@ -98,10 +107,10 @@ public static partial class UiWidgets
                 }
             }
         }
-        return new TabResult(tab.Pressed && !selected, closed);
+        return new TabResult(tab.Pressed && !selected, closed) { Id = tab.Id, Dragged = draggable && ui.ShouldBeginDrag(tab) };
     }
 
-    private static void DrawCross(UiPainter p, uint color)
+    internal static void DrawCross(UiPainter p, uint color)
     {
         var r = p.Rect;
         var cx = r.X + r.Width / 2;

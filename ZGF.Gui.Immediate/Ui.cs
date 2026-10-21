@@ -31,7 +31,9 @@ public sealed partial class Ui
     private readonly Stack<int> _open = new();
     private readonly Stack<int> _ids = new();
     private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align, string? Family), TextStyle> _textStyles = new();
-    private readonly Dictionary<int, (object State, long LastFrame)> _states = new();
+    private readonly Dictionary<int, (object State, long LastFrame, int Owner)> _states = new();
+    private readonly Dictionary<int, long> _keptStates = new();
+    private readonly Stack<int> _stateOwners = new();
     private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<TextStyle, CellMetrics> _cells = new(ReferenceEqualityComparer.Instance);
     private Dictionary<MeasureKey, float> _widths = new();
@@ -222,6 +224,8 @@ public sealed partial class Ui
 
         _ids.Clear();
         _ids.Push(RootId);
+        _stateOwners.Clear();
+        AdvanceDrag();
         BeginLayers(input);
         ResetContext();
         _tree.Clear();
@@ -238,6 +242,8 @@ public sealed partial class Ui
             throw new InvalidOperationException("A layout scope was not disposed.");
         if (_ids.Count != 1)
             throw new InvalidOperationException("An Id scope was not disposed.");
+        if (_stateOwners.Count != 0)
+            throw new InvalidOperationException("A StateScope was not disposed.");
         if (_provided.Count != 0)
             throw new InvalidOperationException("A Provide scope was not disposed.");
         if (_openLayers.Count != 0)
@@ -293,18 +299,38 @@ public sealed partial class Ui
         return new Scope(this, ScopeKind.Id);
     }
 
+    /// <summary>
+    /// An <see cref="Id(string)"/> scope whose widget state outlives the frames in which its content
+    /// is not recorded, for as long as <see cref="KeepState"/> is called with the same id instead —
+    /// the content of a hidden tab keeps its scroll offsets, carets and expanded rows.
+    /// </summary>
+    public Scope StateScope(string id)
+    {
+        var scope = GetId(id);
+        _ids.Push(scope);
+        _stateOwners.Push(scope);
+        _keptStates[scope] = _frame;
+        return new Scope(this, ScopeKind.StateScope);
+    }
+
+    /// <summary>Keeps the state of the <see cref="StateScope"/> with <paramref name="id"/> alive
+    /// through a frame in which its content is not recorded.</summary>
+    public void KeepState(string id) => _keptStates[GetId(id)] = _frame;
+
     /// <summary>Where the element with <paramref name="id"/> was laid out on the previous frame.</summary>
     public bool TryGetRect(int id, out UiRect rect) => _previousRects.TryGetValue(id, out rect);
 
     /// <summary>
     /// Widget-owned state that outlives a frame (a caret, an open dropdown), created on first use
     /// and kept while <paramref name="id"/> keeps being asked for. App state belongs in the
-    /// <see cref="Gui{T}"/> state instead. Dropped after about a thousand frames unused.
+    /// <see cref="Gui{T}"/> state instead. Dropped after about a thousand frames unused, unless it
+    /// belongs to a <see cref="StateScope"/> that is being kept.
     /// </summary>
     public TState GetState<TState>(int id) where TState : class, new()
     {
         ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_states, id, out _);
         entry.LastFrame = _frame;
+        entry.Owner = _stateOwners.Count > 0 ? _stateOwners.Peek() : 0;
         if (entry.State is TState existing)
             return existing;
 
@@ -563,9 +589,18 @@ public sealed partial class Ui
     private void PruneStates()
     {
         _expiredStates.Clear();
+        foreach (var (owner, lastFrame) in _keptStates)
+        {
+            if (_frame - lastFrame > StateLifetimeFrames)
+                _expiredStates.Add(owner);
+        }
+        foreach (var owner in _expiredStates)
+            _keptStates.Remove(owner);
+
+        _expiredStates.Clear();
         foreach (var (id, entry) in _states)
         {
-            if (_frame - entry.LastFrame > StateLifetimeFrames)
+            if (_frame - entry.LastFrame > StateLifetimeFrames && (entry.Owner == 0 || !_keptStates.ContainsKey(entry.Owner)))
                 _expiredStates.Add(id);
         }
         foreach (var id in _expiredStates)

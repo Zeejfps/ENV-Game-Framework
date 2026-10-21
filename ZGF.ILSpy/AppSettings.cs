@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -22,8 +23,7 @@ public sealed class AppSettings
     public bool DarkMode { get; set; } = true;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public bool ShowNonPublic { get; set; } = true;
-    public float TreeWidth { get; set; } = 340f;
-    public float SearchHeight { get; set; } = 240f;
+    public DockLayout? Layout { get; set; }
 
     public static AppSettings Load(string path)
     {

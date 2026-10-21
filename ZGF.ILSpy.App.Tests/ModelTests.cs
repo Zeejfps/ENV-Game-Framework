@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -137,6 +139,64 @@ public sealed class AppSettingsTests : IDisposable
 
         var json = JsonDocument.Parse(File.ReadAllText(SettingsFile));
         Assert.Equal(1, json.RootElement.GetProperty("Assemblies").GetArrayLength());
+    }
+}
+
+public sealed class DockPanelsTests : IDisposable
+{
+    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-dock-{Guid.NewGuid():N}");
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_directory))
+            Directory.Delete(_directory, recursive: true);
+    }
+
+    [Fact]
+    public void A_rearranged_layout_is_saved_and_restored_with_the_settings()
+    {
+        var file = Path.Combine(_directory, "settings.json");
+        var workspace = new Workspace(AppSettings.Load(file));
+        var layout = workspace.Layout;
+        layout.Float(DockPanels.Assemblies, new UiRect(40f, 50f, 300f, 400f));
+        workspace.SaveSettings();
+
+        var restored = new Workspace(AppSettings.Load(file)).Layout;
+
+        Assert.Equal(["documents"], Assert.IsType<DockGroup>(restored.Root).Panels);
+        var window = Assert.Single(restored.Windows);
+        Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
+        Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
+    }
+
+    [Fact]
+    public void A_saved_layout_missing_a_panel_gets_it_back_and_drops_the_search()
+    {
+        var saved = new DockLayout { Root = DockLayout.Group(DockPanels.Documents, DockPanels.Search, "gone") };
+
+        var layout = DockPanels.Restore(saved);
+
+        Assert.True(layout.Contains(DockPanels.Assemblies));
+        Assert.False(layout.Contains(DockPanels.Search));
+        Assert.False(layout.Contains("gone"));
+    }
+
+    [Fact]
+    public void Opening_a_search_docks_its_results_and_closing_the_panel_ends_the_search()
+    {
+        var workspace = new Workspace(new AppSettings());
+
+        workspace.OpenSearch();
+        workspace.Search.Query = "Greeter";
+
+        var search = workspace.Layout.GroupOf(DockPanels.Search);
+        Assert.NotNull(search);
+        Assert.NotSame(search, workspace.Layout.GroupOf(DockPanels.Documents));
+
+        workspace.Layout.Close(DockPanels.Search);
+
+        Assert.False(workspace.Search.IsOpen);
+        Assert.Equal("", workspace.Search.Query);
     }
 }
 

@@ -17,13 +17,7 @@ public static class MainView
             MainMenuView.Render(ui, w);
             ToolbarView.Render(ui, w);
             ui.Separator();
-            using (var split = ui.SplitPane("main", Direction.Horizontal, ref w.TreeWidth, minFirst: 160f, minSecond: 240f))
-            {
-                using (split.First())
-                    TreePaneView.Render(ui, w);
-                using (split.Second())
-                    ContentPane(ui, w);
-            }
+            Panels(ui, w);
             ui.Separator();
             StatusBarView.Render(ui, w);
         }
@@ -31,22 +25,28 @@ public static class MainView
         ErrorDialogView.Render(ui, w);
     }
 
-    private static void ContentPane(Ui ui, Workspace w)
+    private static void Panels(Ui ui, Workspace w)
     {
         var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Post);
         if (wait > 0)
             ui.RequestFrameIn(wait);
+        w.SyncSearchPanel();
 
-        if (!w.Search.IsOpen)
+        using var dock = ui.DockSpace("dock", w.Layout, DockPanels.Tab);
+        while (dock.Next(out var panel))
         {
-            DocumentsView.Render(ui, w);
-            return;
+            switch (panel)
+            {
+                case DockPanels.Assemblies:
+                    TreePaneView.Render(ui, w);
+                    break;
+                case DockPanels.Documents:
+                    DocumentsView.Render(ui, w);
+                    break;
+                case DockPanels.Search:
+                    SearchPanelView.Render(ui, w);
+                    break;
+            }
         }
-
-        using var split = ui.SplitPane("search-split", Direction.Vertical, ref w.SearchHeight, minFirst: 120f, minSecond: 80f, sized: SplitSide.Second);
-        using (split.First())
-            DocumentsView.Render(ui, w);
-        using (split.Second())
-            SearchPanelView.Render(ui, w);
     }
 }
