@@ -78,6 +78,12 @@ public static class NodeIcons
         Set(NodeKind.Operator, LucideIcons.Diff, NodeIconRole.Method);
         Set(NodeKind.Error, LucideIcons.AlertCircle, NodeIconRole.Error);
         Set(NodeKind.Loading, LucideIcons.Loader2, NodeIconRole.Neutral);
+        Set(NodeKind.Metadata, LucideIcons.Database, NodeIconRole.Neutral);
+        Set(NodeKind.MetadataHeader, LucideIcons.FileText, NodeIconRole.Neutral);
+        Set(NodeKind.MetadataDirectory, LucideIcons.List, NodeIconRole.Neutral);
+        Set(NodeKind.MetadataTables, LucideIcons.Table2, NodeIconRole.Neutral);
+        Set(NodeKind.MetadataTable, LucideIcons.Table, NodeIconRole.Data);
+        Set(NodeKind.MetadataHeap, LucideIcons.Layers3, NodeIconRole.Data);
         return icons;
 
         void Set(NodeKind kind, string glyph, NodeIconRole role) => icons[(int)kind] = new KindIcon(glyph, role);

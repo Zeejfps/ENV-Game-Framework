@@ -6,11 +6,17 @@ namespace ZGF.Gui.Immediate.Widgets;
 /// leave, and the least it shrinks to. A <see cref="Fixed"/> width neither grows nor resizes.</summary>
 public readonly record struct TableColumn(float Weight = 1f, float MinWidth = 48f, float? Fixed = null);
 
+/// <summary>How a <see cref="UiWidgets.TableHeader"/> shows and changes the sort: the column the
+/// rows are sorted by, or -1, and the icon drawn after its label. Passing one makes every header
+/// clickable.</summary>
+public readonly record struct TableSort(int Column, UiIcon? Icon = null);
+
 /// <summary>
 /// The column widths of a table, shared by its <see cref="UiWidgets.TableHeader"/> and the
 /// <see cref="UiWidgets.TableCell"/>s of its rows so they line up. Owned by the app; dragging a
 /// border in the header moves width between the columns either side, and <see cref="Weights"/>
-/// gives the result to save and <see cref="Restore"/> takes it back.
+/// gives the result to save and <see cref="Restore"/> takes it back. <see cref="Sized"/> columns
+/// instead keep their own widths, however wide together, for a table that scrolls sideways.
 /// </summary>
 public sealed class TableColumns
 {
@@ -26,10 +32,28 @@ public sealed class TableColumns
         _widths = new float[columns.Length];
     }
 
+    private TableColumns(IReadOnlyList<float> widths, float minWidth)
+    {
+        _columns = widths.Select(_ => new TableColumn(MinWidth: minWidth)).ToArray();
+        _weights = widths.Select(w => MathF.Max(minWidth, w)).ToArray();
+        _widths = _weights.ToArray();
+        IsSized = true;
+    }
+
+    /// <summary>Columns <paramref name="widths"/> wide, each resized on its own by dragging its
+    /// right border, down to <paramref name="minWidth"/>; <see cref="Weights"/> are their widths.</summary>
+    public static TableColumns Sized(IReadOnlyList<float> widths, float minWidth = 32f) => new(widths, minWidth);
+
     public int Count => _columns.Length;
+
+    /// <summary>Whether the columns keep their own widths rather than share the table's.</summary>
+    public bool IsSized { get; }
 
     /// <summary>How wide column <paramref name="index"/> was laid out this frame.</summary>
     public float Width(int index) => _widths[index];
+
+    /// <summary>How wide the columns are together.</summary>
+    public float TotalWidth => _widths.Sum();
 
     /// <summary>Every column's share of the width left to the resizable ones, as dragged.</summary>
     public IReadOnlyList<float> Weights => _weights;
@@ -40,13 +64,22 @@ public sealed class TableColumns
     {
         if (weights == null || weights.Count != _weights.Length || weights.Any(static w => !(w > 0f) || float.IsInfinity(w))) return;
         for (var i = 0; i < _weights.Length; i++)
-            _weights[i] = weights[i];
+        {
+            _weights[i] = IsSized ? MathF.Max(_columns[i].MinWidth, weights[i]) : weights[i];
+            if (IsSized)
+                _widths[i] = _weights[i];
+        }
     }
 
     internal bool Resizable(int index) => _columns[index].Fixed == null;
 
+    /// <summary>Whether the border after column <paramref name="index"/> can be dragged.</summary>
+    internal bool HasBorder(int index) =>
+        IsSized || (index < _columns.Length - 1 && Resizable(index) && Resizable(index + 1));
+
     internal void Layout(float width)
     {
+        if (IsSized) return;
         var flexible = width;
         var total = 0f;
         for (var i = 0; i < _columns.Length; i++)
@@ -64,11 +97,18 @@ public sealed class TableColumns
     internal void Grab(float offset) => _grab = offset;
 
     /// <summary>Moves the border after column <paramref name="left"/> to <paramref name="pointer"/>
-    /// less the grab offset, giving the width to or taking it from column <paramref name="right"/>.</summary>
-    internal void Drag(int left, int right, float leftStart, float pointer)
+    /// less the grab offset: a sized column alone takes the width; otherwise it is given to or
+    /// taken from the column after it.</summary>
+    internal void Drag(int left, float leftStart, float pointer)
     {
-        var pair = _widths[left] + _widths[right];
         var minLeft = _columns[left].MinWidth;
+        if (IsSized)
+        {
+            _widths[left] = _weights[left] = MathF.Max(minLeft, pointer - _grab - leftStart);
+            return;
+        }
+        var right = left + 1;
+        var pair = _widths[left] + _widths[right];
         var minRight = _columns[right].MinWidth;
         var leftWidth = Math.Clamp(pointer - _grab - leftStart, minLeft, MathF.Max(minLeft, pair - minRight));
         _widths[left] = leftWidth;
@@ -84,15 +124,19 @@ public sealed class TableColumns
 public static partial class UiWidgets
 {
     private const int TableBorderSalt = 0x54424C42;
+    private const int TableHeadingSalt = 0x54424C48;
 
     /// <summary>
     /// Lays <paramref name="columns"/> out across the content of the element with
     /// <paramref name="bodyId"/> as last laid out — a scroll's content less its gutter — less
     /// <paramref name="paddingX"/> each side, which the rows should pad by too, then records a header
     /// row with each column's label in <paramref name="headers"/>. A border between two resizable
-    /// columns can be dragged.
+    /// columns can be dragged. <see cref="TableColumns.Sized"/> columns keep their widths instead,
+    /// and the header shows them scrolled by <paramref name="scrollX"/>, as the rows are. With a
+    /// <paramref name="sort"/>, returns the column whose header was clicked, else -1.
     /// </summary>
-    public static void TableHeader(this Ui ui, string id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX = 0f)
+    public static int TableHeader(this Ui ui, string id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX = 0f,
+        float scrollX = 0f, TableSort? sort = null)
     {
         var theme = ui.Theme;
         var headerId = ui.GetId(id);
@@ -100,13 +144,12 @@ public static partial class UiWidgets
             columns.Layout(body.Width - paddingX * 2);
 
         var hasRect = ui.TryGetRect(headerId, out var header);
-        var start = header.X + paddingX;
+        var start = header.X + paddingX - scrollX;
         var pointer = ui.Input.Pointer.X;
         Span<bool> hot = stackalloc bool[columns.Count];
-        for (var i = 0; i < columns.Count - 1; i++)
+        for (var i = 0; i < columns.Count; i++)
         {
-            var right = i + 1;
-            if (!columns.Resizable(i) || !columns.Resizable(right))
+            if (!columns.HasBorder(i))
             {
                 start += columns.Width(i);
                 continue;
@@ -118,10 +161,11 @@ public static partial class UiWidgets
             if (border.Pressed)
                 columns.Grab(pointer - (start + columns.Width(i)));
             else if (border.Held && hasRect)
-                columns.Drag(i, right, start, pointer);
+                columns.Drag(i, start, pointer);
             start += columns.Width(i);
         }
 
+        var clicked = -1;
         using (ui.Row(headerId, new Box
         {
             Width = Sizing.Grow(),
@@ -130,32 +174,53 @@ public static partial class UiWidgets
             Padding = new Spacing(paddingX, 0f),
             AlignY = Align.Center,
             Background = theme.Surface,
+            Clip = columns.IsSized,
+            ScrollX = scrollX,
         }))
         {
             for (var i = 0; i < columns.Count; i++)
             {
-                using (ui.TableCell(columns, i))
+                var heading = sort is null ? default : ui.Interact(HashCode.Combine(headerId, TableHeadingSalt, i));
+                if (heading.Hovered)
+                    ui.SetCursor(MouseCursor.Hand);
+                if (heading.Clicked)
+                    clicked = i;
+                using (sort is null ? ui.TableCell(columns, i) : ui.TableCell(columns, i, heading.Id))
                 {
                     if (i < headers.Length && headers[i].Length > 0)
-                        ui.Text(headers[i], new Box { Width = Sizing.Fit() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-                    if (i < columns.Count - 1 && columns.Resizable(i) && columns.Resizable(i + 1))
-                    {
-                        var borderId = HashCode.Combine(headerId, TableBorderSalt, i);
-                        var grip = theme.SplitterSize;
-                        using (ui.Float(1f, 0f, -grip / 2, 0f, new Box { Width = grip, Height = Sizing.Grow(), AlignX = Align.Center }, id: borderId))
-                            ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = Sizing.Grow(), Background = hot[i] ? theme.Accent : theme.Separator });
-                    }
+                        ui.Text(headers[i], new Box { Width = Sizing.Fit() }, color: heading.Hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
+                            overflow: TextOverflow.Ellipsis);
+                    if (sort is { Icon: { } icon } && sort.Value.Column == i)
+                        ui.Icon(icon);
                 }
+            }
+
+            var grip = theme.SplitterSize;
+            var edge = paddingX - scrollX;
+            for (var i = 0; i < columns.Count; i++)
+            {
+                edge += columns.Width(i);
+                if (!columns.HasBorder(i)) continue;
+                using (ui.Float(0f, 0f, edge - grip / 2, 0f, new Box { Width = grip, Height = theme.RowHeight, AlignX = Align.Center },
+                           id: HashCode.Combine(headerId, TableBorderSalt, i), clipped: columns.IsSized))
+                    ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = Sizing.Grow(), Background = hot[i] ? theme.Accent : theme.Separator });
             }
         }
         ui.Separator();
+        return clicked;
     }
 
     /// <summary>A cell of the row being recorded, as wide as column <paramref name="index"/> of
     /// <paramref name="columns"/>: its content clipped, vertically centered and inset from the
     /// borders.</summary>
-    public static Ui.Scope TableCell(this Ui ui, TableColumns columns, int index) =>
-        ui.Row(new Box
+    public static Ui.Scope TableCell(this Ui ui, TableColumns columns, int index) => ui.Row(CellBox(ui, columns, index));
+
+    /// <summary>A <see cref="TableCell(Ui, TableColumns, int)"/> recorded as element <paramref name="id"/>,
+    /// for a cell that is hovered or clicked on its own.</summary>
+    public static Ui.Scope TableCell(this Ui ui, TableColumns columns, int index, int id) => ui.Row(id, CellBox(ui, columns, index));
+
+    private static Box CellBox(Ui ui, TableColumns columns, int index) =>
+        new()
         {
             Width = columns.Width(index),
             Height = Sizing.Grow(),
@@ -163,5 +228,5 @@ public static partial class UiWidgets
             Padding = new Spacing(ui.Theme.GapTight, 0f),
             AlignY = Align.Center,
             Clip = true,
-        });
+        };
 }

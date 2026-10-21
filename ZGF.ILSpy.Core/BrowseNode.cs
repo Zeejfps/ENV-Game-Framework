@@ -1,3 +1,5 @@
+using ZGF.ILSpy.Core.Metadata;
+
 namespace ZGF.ILSpy.Core;
 
 /// <summary>What a <see cref="BrowseNode"/> stands for; picks its icon.</summary>
@@ -28,6 +30,12 @@ public enum NodeKind
     Operator,
     Error,
     Loading,
+    Metadata,
+    MetadataHeader,
+    MetadataDirectory,
+    MetadataTables,
+    MetadataTable,
+    MetadataHeap,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -145,6 +153,17 @@ public abstract class BrowseNode
     /// <summary><see cref="Decompile"/> on the thread pool.</summary>
     public Task<DecompiledDocument> DecompileAsync(DecompilationLanguage language, CancellationToken cancellationToken = default) =>
         Task.Run(() => Decompile(language, cancellationToken), cancellationToken);
+
+    /// <summary>Whether this node shows as a grid of metadata rows, from <see cref="LoadGridAsync"/>,
+    /// rather than as a decompiled document; the same in every language.</summary>
+    public bool ShowsGrid => this is MetadataGridNode;
+
+    /// <summary>The rows of a node that <see cref="ShowsGrid"/>, read on the thread pool the first
+    /// time and kept.</summary>
+    public Task<MetadataGrid> LoadGridAsync(CancellationToken cancellationToken = default) =>
+        this is MetadataGridNode node
+            ? Task.Run(() => node.Grid, cancellationToken)
+            : throw new InvalidOperationException($"{Text} does not show as a grid.");
 
     public override string ToString() => Text;
 }

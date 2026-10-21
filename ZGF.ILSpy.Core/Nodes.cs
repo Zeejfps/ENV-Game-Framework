@@ -3,6 +3,7 @@ using System.Reflection.Metadata;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
+using ZGF.ILSpy.Core.Metadata;
 using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
 using MetadataResource = ICSharpCode.Decompiler.Metadata.Resource;
 
@@ -29,7 +30,10 @@ internal sealed class AssemblyNode : BrowseNode
     private protected override BrowseNode[] CreateChildren()
     {
         var file = Assembly.File;
-        var result = new List<BrowseNode> { new ReferencesFolderNode(Assembly, this) };
+        var result = new List<BrowseNode> { new MetadataFolderNode(Assembly, this, file, "Metadata") };
+        if (MetadataFolderNode.DebugMetadataOf(file) is var (pdb, title))
+            result.Add(new MetadataFolderNode(Assembly, this, pdb, title));
+        result.Add(new ReferencesFolderNode(Assembly, this));
         if (!file.Resources.IsEmpty)
             result.Add(new ResourcesFolderNode(Assembly, this));
 

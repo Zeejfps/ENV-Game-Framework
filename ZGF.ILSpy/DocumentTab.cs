@@ -1,10 +1,11 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An open tab: where it points, the node found there, and its decompiled document, which
-/// arrives from a background decompilation. Mutated on the UI thread only.</summary>
+/// <summary>An open tab: where it points, the node found there, and its decompiled document — or
+/// for a metadata node its grid — which arrives from the background. Mutated on the UI thread only.</summary>
 public sealed class DocumentTab
 {
     private static int _nextId;
@@ -15,6 +16,7 @@ public sealed class DocumentTab
     private CancellationTokenSource? _work;
     private CodeViewPosition? _restore;
     private Bookmark? _target;
+    private int _row = MetadataGridState.None;
     private string? _title;
 
     /// <param name="post">Runs an action on the UI thread.</param>
@@ -43,6 +45,16 @@ public sealed class DocumentTab
     public DecompilationLanguage Language { get; private set; }
     public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
     public CodeViewState View { get; } = new();
+
+    /// <summary>The rows of a node that <see cref="BrowseNode.ShowsGrid"/>, once read; shown
+    /// instead of <see cref="Document"/>.</summary>
+    public MetadataGrid? Grid { get; private set; }
+
+    public MetadataGridState GridView { get; } = new();
+
+    /// <summary>Where the view of the shown node stands, or null while there is none.</summary>
+    public CodeViewPosition? Position => IsBusy || Node == null ? null : Grid != null ? GridView.Position : View.Position;
+
     public bool IsBusy => _work != null;
     public string Title => Node != null ? NodeText.Name(Node) : _title ?? _strings().DocumentNewTab;
 
@@ -52,38 +64,46 @@ public sealed class DocumentTab
     /// <summary>Changes whenever the tab is pointed somewhere, or loses its node.</summary>
     public int Version { get; private set; }
 
-    /// <summary>Starts decompiling <paramref name="node"/>, cancelling what was in flight, and shows a
-    /// placeholder until it is done, then returns the view to <paramref name="position"/>, else
-    /// reveals the line <paramref name="target"/> marks, else the node's definition. When the tab
-    /// already shows <paramref name="node"/> in <paramref name="language"/>, only does the latter.</summary>
-    public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null, Bookmark? target = null)
+    /// <summary>Starts decompiling <paramref name="node"/>, or reading its grid, cancelling what was
+    /// in flight, and shows a placeholder until it is done, then returns the view to
+    /// <paramref name="position"/>, else reveals the line <paramref name="target"/> marks or the grid's
+    /// <paramref name="row"/>, else the node's definition. When the tab already shows
+    /// <paramref name="node"/> in <paramref name="language"/>, only does the latter.</summary>
+    public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null, Bookmark? target = null,
+        int row = MetadataGridState.None)
     {
         Version++;
-        if (ReferenceEquals(node, Node) && language == Language && !IsBusy)
+        if (ReferenceEquals(node, Node) && (language == Language || node.ShowsGrid) && !IsBusy)
         {
-            Arrive(position, target);
+            Arrive(position, target, row);
             return;
         }
         Cancel();
         _restore = position;
         _target = target;
+        _row = row;
         var work = new CancellationTokenSource();
         _work = work;
         Node = node;
         Location = node.Path;
         _title = NodeText.Name(node);
         Language = language;
+        Grid = null;
         Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
 
-        node.DecompileAsync(language, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
-            CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        if (node.ShowsGrid)
+            node.LoadGridAsync(work.Token).ContinueWith(task => _post(() => CompleteGrid(work, node, task)),
+                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        else
+            node.DecompileAsync(language, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
+                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
     /// <summary>Decompiles the shown node again in <paramref name="language"/> if it was shown in
     /// another one.</summary>
     public void EnsureLanguage(DecompilationLanguage language)
     {
-        if (Node != null && Language != language)
+        if (Node is { ShowsGrid: false } && Language != language)
             Show(Node, language);
     }
 
@@ -94,6 +114,7 @@ public sealed class DocumentTab
         Version++;
         Cancel();
         Node = null;
+        Grid = null;
         Document = DecompiledDocument.FromText(Title, $"// {message}", Language);
     }
 
@@ -103,8 +124,16 @@ public sealed class DocumentTab
         _work = null;
     }
 
-    private void Arrive(CodeViewPosition? position, Bookmark? target)
+    private void Arrive(CodeViewPosition? position, Bookmark? target, int row)
     {
+        if (Grid != null)
+        {
+            if (position is { } at)
+                GridView.Restore(at);
+            else if (row >= 0)
+                GridView.Reveal(row);
+            return;
+        }
         if (position is { } p)
             View.Restore(p);
         else if (Node != null && target?.FindLine(Document, Node.Path) is >= 0 and var marked)
@@ -127,8 +156,33 @@ public sealed class DocumentTab
         var failed = task.IsFaulted || Document.IsError;
         if (failed)
             _reportError(t.ErrorDecompile(node.FullName), task.IsFaulted ? task.Exception!.GetBaseException().ToString() : Document.GetText());
-        Arrive(failed ? null : _restore, failed ? null : _target);
+        Arrive(failed ? null : _restore, failed ? null : _target, MetadataGridState.None);
         _restore = null;
         _target = null;
+    }
+
+    private void CompleteGrid(CancellationTokenSource work, BrowseNode node, Task<MetadataGrid> task)
+    {
+        work.Dispose();
+        if (_work != work) return;
+        _work = null;
+        if (task.IsCanceled) return;
+
+        if (task.IsFaulted)
+        {
+            var t = _strings();
+            var error = task.Exception!.GetBaseException();
+            Document = DecompiledDocument.FromText(node.Text, $"// {t.DocumentDecompilationFailed(error.Message)}", Language);
+            _reportError(t.ErrorDecompile(node.FullName), error.ToString());
+        }
+        else
+        {
+            Grid = task.Result;
+            GridView.Show(Grid);
+            Arrive(_restore, null, _row);
+        }
+        _restore = null;
+        _target = null;
+        _row = MetadataGridState.None;
     }
 }

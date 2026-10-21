@@ -11,6 +11,7 @@ using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.Output;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
+using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy.Core;
 
@@ -239,6 +240,16 @@ internal static class NodeDecompiler
                 break;
             case ResourceNode resource:
                 WriteResource(resource.Resource, output, comment, cancellationToken);
+                break;
+            case MetadataTextNode metadata:
+                foreach (var line in metadata.Lines())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (line.Length == 0)
+                        output.WriteLine();
+                    else
+                        WriteComment(output, comment, line);
+                }
                 break;
             case BaseTypesNode:
                 foreach (var child in node.Children)

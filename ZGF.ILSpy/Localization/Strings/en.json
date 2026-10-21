@@ -63,6 +63,9 @@
   "code.go_to_definition": "Go to definition",
   "code.open_in_new_tab": "Open in new tab",
   "code.toggle_bookmark": "Toggle bookmark",
+  "metadata.loading": "Loading…",
+  "metadata.copy_row": "Copy row",
+  "metadata.go_to_token": "Go to token",
 
   "find.placeholder": "Find",
   "find.no_results": "No results",

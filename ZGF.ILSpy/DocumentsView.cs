@@ -14,6 +14,20 @@ internal static class DocumentsView
             Hint(ui, t.DocumentsHint);
             return;
         }
+        if (tab.Grid is { } grid)
+        {
+            var picked = ui.MetadataGridView("grid", grid, tab.GridView, t);
+            if (picked.Target is { } target)
+                w.Show(target, picked.InNewTab);
+            if (picked.Definition is { } definition)
+                w.Navigate(definition, picked.InNewTab);
+            return;
+        }
+        if (tab is { IsBusy: true, Node.ShowsGrid: true })
+        {
+            Hint(ui, t.MetadataLoading);
+            return;
+        }
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? w.Bookmarks.LinesIn(tab.Document, node.Path) : null;
         var result = ui.CodeView("code", tab.Document, tab.View, t, bookmarks);
         if (result.Navigate is { } reference)

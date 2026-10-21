@@ -2,6 +2,7 @@ using ZGF.Gui.Immediate.Widgets;
 using System.Globalization;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
+using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -180,7 +181,7 @@ public sealed class Workspace
         foreach (var tab in _tabs)
         {
             if (tab.Location is not { } location) continue;
-            CodeViewPosition? position = tab.IsBusy || tab.Node == null || tab.Language != Language ? null : tab.View.Position;
+            var position = tab.Language != Language && tab.Grid == null ? null : tab.Position;
             tab.Release(Strings.For(Locale).DocumentReloading);
             tabs.Add((tab, location, tab.Version, position));
         }
@@ -274,6 +275,16 @@ public sealed class Workspace
             ShowIn(origin != null && _tabs.Contains(origin) ? origin : null, node);
             History.Push(node, Language);
         });
+    }
+
+    /// <summary>Shows the table row a metadata token leads to in the active tab, or a new one, and
+    /// records it in the history.</summary>
+    public void Show(MetadataTarget target, bool inNewTab)
+    {
+        Intend();
+        LeaveActive();
+        ShowIn(inNewTab ? null : ActiveTab, target.Node, row: target.Row);
+        History.Push(target.Node, Language);
     }
 
     /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
@@ -657,8 +668,8 @@ public sealed class Workspace
 
     private void LeaveActive()
     {
-        if (ActiveTab is { IsBusy: false, Node: not null } tab && History.Current is { } current && current.Place.Equals(tab.Location))
-            History.Leave(tab.Language, tab.View.Position);
+        if (ActiveTab is { Position: { } position } tab && History.Current is { } current && current.Place.Equals(tab.Location))
+            History.Leave(tab.Language, position);
     }
 
     private void Restore(HistoryEntry entry)
@@ -687,7 +698,7 @@ public sealed class Workspace
         });
     }
 
-    private void ShowIn(DocumentTab? tab, BrowseNode node, CodeViewPosition? position = null, Bookmark? target = null)
+    private void ShowIn(DocumentTab? tab, BrowseNode node, CodeViewPosition? position = null, Bookmark? target = null, int row = MetadataGridState.None)
     {
         if (tab == null)
         {
@@ -699,7 +710,7 @@ public sealed class Workspace
             Layout.Activate(tab.Panel);
         }
         _active = tab;
-        tab.Show(node, Language, position, target);
+        tab.Show(node, Language, position, target, row);
         Tree.Reveal(node);
     }
 

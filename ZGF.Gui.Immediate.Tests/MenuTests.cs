@@ -241,6 +241,33 @@ public sealed class TooltipTests
         _frames.Run(0f, Body);
         Assert.False(_frames.Drew("Tip"));
     }
+
+    [Fact]
+    public void A_tooltip_scope_records_its_own_content_once_open()
+    {
+        var opened = new List<bool>();
+        void Rich(Ui ui)
+        {
+            using var screen = ui.Screen();
+            var b = ui.Interact("b");
+            ui.Leaf(b.Id, new Box { Width = 100f, Height = 30f });
+            using var tooltip = ui.TooltipContent(b.Id);
+            opened.Add(tooltip.IsOpen);
+            if (!tooltip.IsOpen) return;
+            ui.Text("Header", bold: true);
+            ui.Text("Line");
+        }
+
+        _frames.Run(0f, Rich);
+        _frames.MovePointer(50f, 30f);
+        _frames.Run(0f, Rich);
+        _frames.Wait(0.6);
+        _frames.Run(0f, Rich);
+
+        Assert.Equal([false, false, true], opened);
+        Assert.True(_frames.Drew("Header"));
+        Assert.True(_frames.Drew("Line"));
+    }
 }
 
 public sealed class MenuRadioItemTests

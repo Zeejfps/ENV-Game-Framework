@@ -75,6 +75,66 @@ public sealed class TableTests
     }
 
     [Fact]
+    public void Sized_columns_keep_their_widths_scroll_with_the_header_and_resize_alone()
+    {
+        var columns = TableColumns.Sized([300f, 250f, 200f]);
+        var scroll = 0f;
+        var clicked = -1;
+        void Wide(Ui ui)
+        {
+            using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
+            {
+                var at = ui.TableHeader("header", columns, ui.GetId("body"), ["A", "B", "C"], Padding, scroll, new TableSort(1));
+                if (at >= 0) clicked = at;
+                using (ui.Scroll("body", new Box { Gap = 0f }))
+                {
+                    using (ui.Row(new Box { Width = columns.TotalWidth + Padding * 2, Height = 24f, Gap = 0f, Padding = new Spacing(Padding, 0f), ScrollX = scroll }))
+                    {
+                        using (ui.TableCell(columns, 0)) ui.Text("a");
+                        using (ui.TableCell(columns, 1)) ui.Text("b");
+                        using (ui.TableCell(columns, 2)) ui.Text("c");
+                    }
+                }
+            }
+        }
+        _frames.Run(0f, Wide);
+        _frames.Run(0f, Wide);
+        Assert.Equal(750f, columns.TotalWidth);
+        var unscrolled = LeftOf("B");
+
+        scroll = 200f;
+        _frames.Run(0f, Wide);
+        Assert.Equal(unscrolled - 200f, LeftOf("B"), 0);
+        Assert.Equal(LeftOf("b"), LeftOf("B"));
+        Assert.Equal(LeftOf("c"), LeftOf("C"));
+
+        var border = _frames.RectOf(Wide, ui => BorderOf(ui, 0));
+        var x = border.X + border.Width / 2;
+        var y = border.Y + border.Height / 2;
+        _frames.MovePointer(x, y);
+        _frames.Run(0f, Wide);
+        _frames.Press();
+        _frames.Run(0f, Wide);
+        _frames.MovePointer(x + 40f, y);
+        _frames.Run(0f, Wide);
+        _frames.Release();
+        _frames.Run(0f, Wide);
+
+        Assert.Equal(340f, columns.Width(0), 0);
+        Assert.Equal(250f, columns.Width(1));
+        Assert.Equal([340f, 250f, 200f], columns.Weights.Select(w => MathF.Round(w)));
+
+        var heading = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "B").Inputs.Position;
+        _frames.MovePointer(heading.Left + 1f, 300f - heading.Top + heading.Height / 2);
+        _frames.Run(0f, Wide);
+        _frames.Press();
+        _frames.Run(0f, Wide);
+        _frames.Release();
+        _frames.Run(0f, Wide);
+        Assert.Equal(1, clicked);
+    }
+
+    [Fact]
     public void Saved_weights_are_restored_and_mismatched_ones_ignored()
     {
         _columns.Restore([1f, 3f, 1f]);

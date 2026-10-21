@@ -5,14 +5,15 @@ namespace ZGF.ILSpy.Tests;
 public sealed class BrowseTreeTests
 {
     [Fact]
-    public void An_assembly_lists_references_then_flat_sorted_namespaces()
+    public void An_assembly_lists_metadata_references_then_flat_sorted_namespaces()
     {
         var (_, assembly) = Trees.OpenTestAssembly();
         var root = assembly.Root;
 
         Assert.Equal(NodeKind.Assembly, root.Kind);
         Assert.Equal("ZGF.ILSpy.Tests (0.0.0.0, .NETCoreApp, v10.0)", root.Text);
-        Assert.Equal(NodeKind.ReferencesFolder, root.Children[0].Kind);
+        Assert.Equal(NodeKind.Metadata, root.Children[0].Kind);
+        Assert.Equal(NodeKind.ReferencesFolder, root.Children.First(c => c.Kind != NodeKind.Metadata).Kind);
         var namespaces = root.Children.Where(c => c.Kind == NodeKind.Namespace).Select(c => c.Text).ToArray();
         Assert.Equal(["-", "ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests.Fixtures"], namespaces);
         Assert.Contains(root.Child("References").Children, r => r.Kind == NodeKind.AssemblyReference && r.Text == "System.Runtime");
