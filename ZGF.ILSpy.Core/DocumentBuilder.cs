@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Disassembler;
@@ -18,6 +19,7 @@ internal sealed class DocumentBuilder : ITextOutput
     private readonly List<DocumentSpan> _spans = new();
     private readonly List<(string Text, int First, int Count)> _lines = new();
     private readonly Dictionary<CodeReference, int> _definitions = new();
+    private readonly Dictionary<int, (CodeReference Method, int Offset)> _statements = new();
     private readonly List<DocumentSpan> _lexed = new();
     private readonly Dictionary<object, int> _localKeys = new();
     private readonly Stack<OpenFold> _openFolds = new();
@@ -47,7 +49,7 @@ internal sealed class DocumentBuilder : ITextOutput
         foreach (var (text, first, count) in _lines)
             lines.Add(new DocumentLine(text, spans, first, count));
         var built = lines.MoveToImmutable();
-        return new DecompiledDocument(title, _language, isError, built, _definitions, FoldRegions(built));
+        return new DecompiledDocument(title, _language, isError, built, _definitions, Statements(), FoldRegions(built));
     }
 
     public void Write(string text, SpanKind kind, CodeReference? reference = null, bool isDefinition = false)
@@ -132,10 +134,38 @@ internal sealed class DocumentBuilder : ITextOutput
             IParameter => (CodeReferenceKind.Local, SpanKind.Parameter),
             _ => (CodeReferenceKind.Local, SpanKind.Local),
         };
+        if (isDefinition && reference is int offset && _scope is { Kind: CodeReferenceKind.Method } method)
+            MarkStatement(method, offset);
         var scope = reference is ILVariable ? null : _scope;
         if (!_localKeys.TryGetValue(reference, out var key))
             _localKeys.Add(reference, key = _localKeys.Count);
         Write(text, Kind ?? spanKind, CodeReference.ToLocal(referenceKind, text, key, scope), isDefinition);
+    }
+
+    /// <summary>Marks the line being written as where the statement at <paramref name="ilOffset"/> of
+    /// <paramref name="method"/> starts. A line keeps the first method marked on it and its lowest offset.</summary>
+    public void MarkStatement(IMethod method, int ilOffset)
+    {
+        if (ReferenceTo(method, CodeReferenceKind.Method, method.Name) is { } reference)
+            MarkStatement(reference, ilOffset);
+    }
+
+    private void MarkStatement(CodeReference method, int ilOffset)
+    {
+        var line = _lines.Count;
+        if (_statements.TryGetValue(line, out var marked) && (marked.Method != method || marked.Offset <= ilOffset)) return;
+        _statements[line] = (method, ilOffset);
+    }
+
+    private Dictionary<int, CodeAnchor> Statements()
+    {
+        var anchors = new Dictionary<int, CodeAnchor>(_statements.Count);
+        foreach (var (line, (method, offset)) in _statements)
+        {
+            if (method.FilePath is { } file)
+                anchors[line] = new CodeAnchor(CodeAnchorKind.Statement, file, MetadataTokens.GetToken(method.Handle), offset);
+        }
+        return anchors;
     }
 
     public void MarkFoldStart(string collapsedText = "...", bool defaultCollapsed = false, bool isDefinition = false) =>

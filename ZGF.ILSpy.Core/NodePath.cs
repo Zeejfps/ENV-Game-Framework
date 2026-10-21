@@ -1,5 +1,8 @@
 namespace ZGF.ILSpy.Core;
 
+/// <summary>One step of a <see cref="NodePath"/>: the kind and label of a node.</summary>
+public readonly record struct NodePathSegment(NodeKind Kind, string Text);
+
 /// <summary>
 /// Where a <see cref="BrowseNode"/> sits: its assembly's file and the kind and label of each node
 /// down from the root. Unlike the node, it stays meaningful after the assembly is closed or
@@ -7,9 +10,9 @@ namespace ZGF.ILSpy.Core;
 /// </summary>
 public sealed class NodePath : IEquatable<NodePath>
 {
-    private readonly (NodeKind Kind, string Text)[] _segments;
+    private readonly NodePathSegment[] _segments;
 
-    private NodePath(string filePath, (NodeKind Kind, string Text)[] segments)
+    private NodePath(string filePath, NodePathSegment[] segments)
     {
         FilePath = filePath;
         _segments = segments;
@@ -24,6 +27,9 @@ public sealed class NodePath : IEquatable<NodePath>
     /// <summary>The kind of the node this names.</summary>
     public NodeKind Kind => _segments.Length == 0 ? NodeKind.Assembly : _segments[^1].Kind;
 
+    /// <summary>The kind and label of each node down from the root, the node itself last.</summary>
+    public IReadOnlyList<NodePathSegment> Segments => _segments;
+
     /// <summary>The label of the node this names.</summary>
     public string Text => _segments.Length == 0 ? Path.GetFileName(FilePath) : _segments[^1].Text;
 
@@ -32,11 +38,15 @@ public sealed class NodePath : IEquatable<NodePath>
         var depth = 0;
         for (var n = node; n.Parent != null; n = n.Parent)
             depth++;
-        var segments = new (NodeKind, string)[depth];
+        var segments = new NodePathSegment[depth];
         for (var n = node; n.Parent != null; n = n.Parent)
-            segments[--depth] = (n.Kind, n.Text);
+            segments[--depth] = new NodePathSegment(n.Kind, n.Text);
         return new NodePath(node.Assembly.FilePath, segments);
     }
+
+    /// <summary>The path to the node reached from the root of the assembly at
+    /// <paramref name="filePath"/> through <paramref name="segments"/>, as <see cref="Segments"/> gives them.</summary>
+    public static NodePath From(string filePath, IEnumerable<NodePathSegment> segments) => new(filePath, segments.ToArray());
 
     internal BrowseNode? Resolve(BrowseNode root)
     {

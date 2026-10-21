@@ -11,8 +11,8 @@ namespace ZGF.ILSpy.App.Tests;
 
 /// <summary>Runs a code view filling a window, with the synthetic metrics of <see cref="UiFrames"/>:
 /// cells 8 by 16 centered in rows of the theme's code line height, the view's top-left at the window
-/// padding (16, 16), and a gutter of 8 + digits + 8 (+ a 16 wide fold column), then 12 before the
-/// text.</summary>
+/// padding (16, 16), and a gutter of a 16 wide bookmark column + 8 + digits + 8 (+ a 16 wide fold
+/// column), then 12 before the text.</summary>
 internal sealed class CodeViewDriver
 {
     public const float Origin = 16f;
@@ -20,6 +20,7 @@ internal sealed class CodeViewDriver
     private const float CellHeight = 16f;
     private const float GutterPadding = 8f;
     private const float FoldColumn = 16f;
+    private const float MarkColumn = 16f;
     private const float CodePadding = 12f;
     private const float Frame = 1f / 60f;
 
@@ -35,18 +36,22 @@ internal sealed class CodeViewDriver
         _body = ui =>
         {
             using var screen = ui.Screen();
-            return ui.CodeView("code", Document, State, Strings.En);
+            return ui.CodeView("code", Document, State, Strings.En, Bookmarks);
         };
     }
 
     public UiFrames Frames { get; }
     public CodeViewState State { get; } = new();
     public DecompiledDocument Document { get; set; }
+    public IReadOnlyDictionary<int, bool>? Bookmarks { get; set; }
     public CodeViewResult Last { get; private set; }
 
-    private float FoldLeft => Origin + GutterPadding + Math.Max(3, CodeTextDigits(Document.Lines.Length)) * Cell + GutterPadding;
+    private float FoldLeft => Origin + MarkColumn + GutterPadding + Math.Max(3, CodeTextDigits(Document.Lines.Length)) * Cell + GutterPadding;
 
     public float TextLeft => FoldLeft + (Document.Folds.Length > 0 ? FoldColumn : 0f) + CodePadding;
+
+    /// <summary>Where the bookmark mark of the row at <paramref name="row"/> is.</summary>
+    public (float X, float Y) MarkOf(int row) => (Origin + (MarkColumn + GutterPadding) / 2, Origin + row * Row + Row / 2);
 
     /// <summary>Where the fold chevron of the row at <paramref name="row"/> is.</summary>
     public (float X, float Y) ChevronOf(int row) => (FoldLeft + FoldColumn / 2, Origin + row * Row + Row / 2);

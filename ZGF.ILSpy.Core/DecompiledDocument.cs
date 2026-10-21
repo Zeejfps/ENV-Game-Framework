@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reflection.Metadata.Ecma335;
 
 namespace ZGF.ILSpy.Core;
 
@@ -75,15 +76,19 @@ public readonly record struct FoldRegion(int StartLine, int EndLine, string Coll
 public sealed class DecompiledDocument
 {
     private readonly IReadOnlyDictionary<CodeReference, int> _definitions;
+    private readonly IReadOnlyDictionary<int, CodeAnchor> _statements;
+    private Dictionary<CodeAnchor, int>? _definitionLines;
+    private Dictionary<(string File, int Token), (int Offset, int Line)[]>? _statementLines;
 
     internal DecompiledDocument(string title, DecompilationLanguage language, bool isError, ImmutableArray<DocumentLine> lines,
-        IReadOnlyDictionary<CodeReference, int> definitions, ImmutableArray<FoldRegion> folds)
+        IReadOnlyDictionary<CodeReference, int> definitions, IReadOnlyDictionary<int, CodeAnchor> statements, ImmutableArray<FoldRegion> folds)
     {
         Title = title;
         Language = language;
         IsError = isError;
         Lines = lines;
         _definitions = definitions;
+        _statements = statements;
         Folds = folds;
     }
 
@@ -133,6 +138,56 @@ public sealed class DecompiledDocument
     /// <summary>The index of the line that defines the entity <paramref name="node"/> stands for, or -1
     /// if it has none or this document does not define it.</summary>
     public int FindDefinitionLine(BrowseNode node) => node.Reference is { } reference ? FindDefinitionLine(reference) : -1;
+
+    /// <summary>What names <paramref name="line"/> so it can be found again: the statement starting on
+    /// it, else the entity it defines; null for a line with neither, such as a brace or a blank line.</summary>
+    public CodeAnchor? AnchorAt(int line)
+    {
+        if (line < 0 || line >= Lines.Length) return null;
+        if (_statements.TryGetValue(line, out var statement)) return statement;
+        foreach (var span in Lines[line].Spans)
+        {
+            if (span is { IsDefinition: true, Reference: { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } reference })
+                return DefinitionOf(reference);
+        }
+        return null;
+    }
+
+    /// <summary>The line <paramref name="anchor"/> names in this document, or -1 if it shows no such
+    /// line. A statement no longer starting a line of its own finds the last one before it in its
+    /// method, or the method's first.</summary>
+    public int FindLine(CodeAnchor anchor)
+    {
+        if (anchor.Kind == CodeAnchorKind.Definition)
+        {
+            if (_definitionLines == null)
+            {
+                var lines = new Dictionary<CodeAnchor, int>(_definitions.Count);
+                foreach (var (reference, line) in _definitions)
+                {
+                    if (reference.Kind != CodeReferenceKind.Assembly)
+                        lines.TryAdd(DefinitionOf(reference), line);
+                }
+                _definitionLines = lines;
+            }
+            return _definitionLines.GetValueOrDefault(anchor, -1);
+        }
+
+        _statementLines ??= _statements
+            .GroupBy(static s => (s.Value.FilePath, s.Value.Token))
+            .ToDictionary(static g => g.Key, static g => g.Select(static s => (s.Value.ILOffset, s.Key)).Order().ToArray());
+        if (!_statementLines.TryGetValue((anchor.FilePath, anchor.Token), out var points)) return -1;
+        var found = points[0].Line;
+        foreach (var (offset, line) in points)
+        {
+            if (offset > anchor.ILOffset) break;
+            found = line;
+        }
+        return found;
+    }
+
+    private static CodeAnchor DefinitionOf(CodeReference reference) =>
+        new(CodeAnchorKind.Definition, reference.FilePath!, MetadataTokens.GetToken(reference.Handle));
 
     /// <summary>The whole text, lines joined by '\n'.</summary>
     public string GetText() => GetText(0, Lines.Length);

@@ -8,9 +8,12 @@ public static class LucideIcons
 
     public const string AlertCircle = "\uE077";
     public const string ArrowLeft = "\uE048";
+    public const string ArrowDown = "\uE042";
     public const string ArrowRight = "\uE049";
+    public const string ArrowUp = "\uE04A";
     public const string ArrowUpFromDot = "\uE44E";
     public const string Box = "\uE061";
+    public const string Bookmark = "\uE060";
     public const string ChevronDown = "\uE06D";
     public const string ChevronUp = "\uE070";
     public const string Braces = "\uE36A";
@@ -31,9 +34,11 @@ public static class LucideIcons
     public const string NotebookText = "\uE598";
     public const string NotepadText = "\uE599";
     public const string Package = "\uE129";
+    public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
+    public const string Trash2 = "\uE18E";
     public const string Variable = "\uE473";
     public const string Webhook = "\uE374";
     public const string Wrench = "\uE1B1";

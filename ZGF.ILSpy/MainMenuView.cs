@@ -66,6 +66,9 @@ internal static class MainMenuView
         ui.MenuSeparator();
         ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
         ui.MenuSeparator();
+        if (ui.MenuItem(t.ViewBookmarks, id: "bookmarks"))
+            w.OpenBookmarks();
+        ui.MenuSeparator();
         ThemeMenu(ui, w, t);
         LanguageMenu(ui, w, t);
     }

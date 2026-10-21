@@ -50,6 +50,9 @@ public static class MainView
                 case DockPanels.Search:
                     SearchPanelView.Render(ui, w, t);
                     break;
+                case DockPanels.Bookmarks:
+                    BookmarksPanelView.Render(ui, w, t);
+                    break;
             }
         }
     }

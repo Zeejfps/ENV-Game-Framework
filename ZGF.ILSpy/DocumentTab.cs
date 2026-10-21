@@ -14,6 +14,7 @@ public sealed class DocumentTab
     private readonly Action<string, string> _reportError;
     private CancellationTokenSource? _work;
     private CodeViewPosition? _restore;
+    private Bookmark? _target;
     private string? _title;
 
     /// <param name="post">Runs an action on the UI thread.</param>
@@ -52,19 +53,20 @@ public sealed class DocumentTab
     public int Version { get; private set; }
 
     /// <summary>Starts decompiling <paramref name="node"/>, cancelling what was in flight, and shows a
-    /// placeholder until it is done, then returns the view to <paramref name="position"/> or, without
-    /// one, reveals the node's definition. When the tab already shows <paramref name="node"/> in
-    /// <paramref name="language"/>, only does the latter.</summary>
-    public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null)
+    /// placeholder until it is done, then returns the view to <paramref name="position"/>, else
+    /// reveals the line <paramref name="target"/> marks, else the node's definition. When the tab
+    /// already shows <paramref name="node"/> in <paramref name="language"/>, only does the latter.</summary>
+    public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null, Bookmark? target = null)
     {
         Version++;
         if (ReferenceEquals(node, Node) && language == Language && !IsBusy)
         {
-            Arrive(position);
+            Arrive(position, target);
             return;
         }
         Cancel();
         _restore = position;
+        _target = target;
         var work = new CancellationTokenSource();
         _work = work;
         Node = node;
@@ -101,10 +103,12 @@ public sealed class DocumentTab
         _work = null;
     }
 
-    private void Arrive(CodeViewPosition? position)
+    private void Arrive(CodeViewPosition? position, Bookmark? target)
     {
         if (position is { } p)
             View.Restore(p);
+        else if (Node != null && target?.FindLine(Document, Node.Path) is >= 0 and var marked)
+            View.RevealLine(marked);
         else if (Node != null && Document.FindDefinitionLine(Node) is var line and >= 0)
             View.RevealLine(line);
     }
@@ -123,7 +127,8 @@ public sealed class DocumentTab
         var failed = task.IsFaulted || Document.IsError;
         if (failed)
             _reportError(t.ErrorDecompile(node.FullName), task.IsFaulted ? task.Exception!.GetBaseException().ToString() : Document.GetText());
-        Arrive(failed ? null : _restore);
+        Arrive(failed ? null : _restore, failed ? null : _target);
         _restore = null;
+        _target = null;
     }
 }

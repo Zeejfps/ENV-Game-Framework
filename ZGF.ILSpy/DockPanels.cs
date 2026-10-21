@@ -10,11 +10,13 @@ public static class DockPanels
     public const string Assemblies = "assemblies";
     public const string Documents = "documents";
     public const string Search = "search";
+    public const string Bookmarks = "bookmarks";
 
     public static DockTab Tab(Strings t, string panel) => panel switch
     {
         Assemblies => new DockTab(t.PanelAssemblies, Closable: false),
         Documents => new DockTab(t.PanelDocuments, Closable: false, Movable: false),
+        Bookmarks => new DockTab(t.PanelBookmarks),
         _ => new DockTab(t.PanelSearch),
     };
 
@@ -26,7 +28,7 @@ public static class DockPanels
         {
             Root = DockLayout.Split(Direction.Horizontal, 0.34f, DockLayout.Group(Assemblies), DockLayout.Group(Documents)),
         };
-        layout.Retain(static panel => panel is Assemblies or Documents);
+        layout.Retain(static panel => panel is Assemblies or Documents or Bookmarks);
         if (!layout.Contains(Documents))
             layout.Dock(Documents, layout.Root, DockEdge.Right, 0.66f);
         if (!layout.Contains(Assemblies))

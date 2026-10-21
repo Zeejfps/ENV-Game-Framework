@@ -27,9 +27,12 @@ internal static class DocumentsView
                     Hint(ui, t);
                     continue;
                 }
-                var result = ui.CodeView("code", tab.Document, tab.View, t);
+                var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? w.Bookmarks.LinesIn(tab.Document, node.Path) : null;
+                var result = ui.CodeView("code", tab.Document, tab.View, t, bookmarks);
                 if (result.Navigate is { } reference)
                     w.Navigate(reference, result.NavigateInNewTab);
+                if (result.ToggleBookmark is { } line)
+                    w.ToggleBookmark(tab, line);
             }
         }
         w.SyncActiveTab();

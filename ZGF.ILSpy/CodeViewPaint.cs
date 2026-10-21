@@ -41,6 +41,10 @@ internal sealed class CodeViewFrame
     public int FlashLine = -1;
     public int HoverFold = -1;
     public int HoverChip = -1;
+    public float MarkWidth;
+    public float IconSize;
+    public IReadOnlyDictionary<int, bool>? Bookmarks;
+    public int HoverMark = -1;
 
     public static void PaintRow(UiPainter p, (CodeViewFrame Frame, int Row) row) => row.Frame.Paint(p, row.Row);
 
@@ -125,6 +129,13 @@ internal sealed class CodeViewFrame
         var number = Number(index + 1);
         p.GlyphRun(new PointF(left + GutterPaddingLeft + (Digits - number.Length) * Advance, cellTop), number, Advance, Palette.GutterText, FontSize,
             family: MonoFonts.Regular);
+        if (Bookmarks != null && (Bookmarks.TryGetValue(index, out var enabled) || index == HoverMark))
+        {
+            var color = !Bookmarks.ContainsKey(index) ? Palette.GutterText : enabled ? Palette.Bookmark : Palette.GutterText;
+            var size = MathF.Min(IconSize, RowHeight);
+            p.Text(new UiRect(left + (MarkWidth - size) / 2, r.Y + (r.Height - size) / 2, size, size), LucideIcons.Bookmark,
+                color, size, align: Align.Center, family: LucideIcons.Family);
+        }
         if (fold >= 0 && FoldWidth > 0f)
             Chevron(p, left + FoldLeft + FoldWidth / 2, r.Y + r.Height / 2, collapsed, fold == HoverFold ? GutterHover : Palette.GutterText);
     }

@@ -29,6 +29,9 @@ public sealed class CodeViewPalette
     public required uint CurrentFindOutline { get; init; }
     public required uint Flash { get; init; }
 
+    /// <summary>The gutter mark of an enabled bookmark.</summary>
+    public required uint Bookmark { get; init; }
+
     public uint this[SpanKind kind] => kind switch
     {
         SpanKind.Keyword => Keyword,
@@ -70,6 +73,7 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF5C4824,
         CurrentFindOutline = 0xFFE6BE73,
         Flash = 0xFF2E4470,
+        Bookmark = 0xFF6CA6F0,
     };
 
     public static CodeViewPalette Light { get; } = new()
@@ -96,5 +100,6 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFFFFE09A,
         CurrentFindOutline = 0xFF805500,
         Flash = 0xFFCFE0FF,
+        Bookmark = 0xFF2F6FCF,
     };
 }

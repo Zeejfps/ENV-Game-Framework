@@ -20,6 +20,7 @@ public sealed class Workspace
     private int _intent;
     private int _resolving = NoTicket;
     private int _reload;
+    private int _savedBookmarks;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
     private DocumentTab? _active;
@@ -39,6 +40,8 @@ public sealed class Workspace
             if (panel == DockPanels.Search)
                 Search.Clear();
         };
+        Bookmarks.Load(settings.Bookmarks);
+        _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
         Documents = new DockLayout { NewPanel = () => AddTab().Panel };
         Documents.PanelClosed += RemoveTab;
@@ -49,6 +52,7 @@ public sealed class Workspace
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
+    public BookmarkList Bookmarks { get; } = new();
     public SearchModel Search { get; }
     public FrameworkPickerModel Picker { get; }
     public ErrorLog Errors { get; } = new();
@@ -90,7 +94,7 @@ public sealed class Workspace
     /// <summary>Called at the start of every frame.</summary>
     public void Sync()
     {
-        if (Tree.Sync(Assemblies) && !IsReloading)
+        if ((Tree.Sync(Assemblies) || Bookmarks.Revision != _savedBookmarks) && !IsReloading)
             SaveSettings();
     }
 
@@ -257,6 +261,62 @@ public sealed class Workspace
         Restore(History.MoveTo(index)!.Value);
     }
 
+    /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
+    /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
+    /// when it has one.</summary>
+    public void ToggleBookmark(DocumentTab tab, int line)
+    {
+        if (tab is not { IsBusy: false, Node: { } node } || tab.Document.IsError || line < 0 || line >= tab.Document.Lines.Length) return;
+        if (Bookmarks.At(tab.Document, node.Path, line) is { } existing)
+        {
+            Bookmarks.Remove(existing);
+            return;
+        }
+        var t = Strings.For(Locale);
+        Bookmarks.Add(new Bookmark(node.Path, tab.Language, line, tab.Document.AnchorAt(line), Bookmarks.NextName(n => t.BookmarksDefaultName(n))));
+    }
+
+    /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
+    /// assembly first if it is not open, and records it in the history.</summary>
+    public void GoTo(Bookmark bookmark)
+    {
+        var ticket = Intend();
+        var tab = ActiveTab;
+        var place = bookmark.Place;
+        _resolving = ticket;
+        RunInBackground(() => Assemblies.FindNode(place), (node, error) =>
+        {
+            if (ticket != _intent) return;
+            _resolving = NoTicket;
+            if (node is null)
+            {
+                var t = Strings.For(Locale);
+                ReportError(t.ErrorGoToBookmark(bookmark.Name), error?.ToString() ?? t.ErrorNoLongerThere(place));
+                return;
+            }
+            LeaveActive();
+            ShowIn(tab != null && _tabs.Contains(tab) ? tab : null, node, target: bookmark);
+            History.Push(node, Language);
+        });
+    }
+
+    /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
+    /// <paramref name="direction"/> is negative.</summary>
+    public void StepBookmark(int direction)
+    {
+        if (Bookmarks.Step(direction) is { } bookmark)
+            GoTo(bookmark);
+    }
+
+    /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>
+    public void OpenBookmarks()
+    {
+        if (!Layout.Contains(DockPanels.Bookmarks))
+            Layout.Dock(DockPanels.Bookmarks, Layout.GroupOf(DockPanels.Search) ?? Layout.GroupOf(DockPanels.Documents) ?? Layout.Root,
+                Layout.Contains(DockPanels.Search) ? DockEdge.Center : DockEdge.Bottom, 0.3f);
+        Layout.Activate(DockPanels.Bookmarks);
+    }
+
     /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>
     public DocumentTab? FindTab(string? panel)
     {
@@ -332,6 +392,8 @@ public sealed class Workspace
         _settings.ShowNonPublic = ShowNonPublic;
         _settings.Locale = Locale;
         _settings.Layout = Layout;
+        _settings.Bookmarks = Bookmarks.Save();
+        _savedBookmarks = Bookmarks.Revision;
         if (_settings.Save() is { } error)
             ReportError(Strings.For(Locale).ErrorSaveSettings, error);
     }
@@ -410,7 +472,7 @@ public sealed class Workspace
         });
     }
 
-    private void ShowIn(DocumentTab? tab, BrowseNode node, CodeViewPosition? position = null)
+    private void ShowIn(DocumentTab? tab, BrowseNode node, CodeViewPosition? position = null, Bookmark? target = null)
     {
         if (tab == null)
         {
@@ -423,7 +485,7 @@ public sealed class Workspace
             Documents.Activate(tab.Panel);
         }
         _active = tab;
-        tab.Show(node, Language, position);
+        tab.Show(node, Language, position, target);
         Tree.Reveal(node);
     }
 

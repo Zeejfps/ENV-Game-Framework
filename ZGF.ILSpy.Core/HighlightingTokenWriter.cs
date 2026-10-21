@@ -21,6 +21,13 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
     {
         _nodes.Push(node);
         base.StartNode(node);
+        foreach (var instruction in node.Annotations.OfType<ILInstruction>())
+        {
+            if (instruction.ILRangeIsEmpty || instruction.Parent is null || instruction is BlockContainer or Block) continue;
+            var function = instruction.Parent.Ancestors.OfType<ILFunction>().FirstOrDefault();
+            if (function is { Kind: ILFunctionKind.TopLevelFunction, Method: { } method })
+                _builder.MarkStatement(method, instruction.StartILOffset);
+        }
     }
 
     public override void EndNode(AstNode node)

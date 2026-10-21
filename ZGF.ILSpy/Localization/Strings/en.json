@@ -19,6 +19,7 @@
   "view.decompiler": "Decompiler",
   "view.show_non_public": "Show non-public members",
   "view.language": "Language",
+  "view.bookmarks": "Bookmarks",
 
   "navigate.back": "Back",
   "navigate.forward": "Forward",
@@ -36,6 +37,7 @@
   "panel.assemblies": "Assemblies",
   "panel.documents": "Documents",
   "panel.search": "Search",
+  "panel.bookmarks": "Bookmarks",
 
   "tree.empty": "Open an assembly with File › Open… ({shortcut})",
   "tree.open_in_new_tab": "Open in new tab",
@@ -57,6 +59,7 @@
   "code.expand_all": "Expand all",
   "code.go_to_definition": "Go to definition",
   "code.open_in_new_tab": "Open in new tab",
+  "code.toggle_bookmark": "Toggle bookmark",
 
   "find.placeholder": "Find",
   "find.no_results": "No results",
@@ -68,6 +71,15 @@
 
   "search.results": { "one": "{count:N0} result", "other": "{count:N0} results" },
   "search.results_so_far": { "one": "{count:N0} result so far…", "other": "{count:N0} results so far…" },
+  "bookmarks.default_name": "Bookmark {number}",
+  "bookmarks.hint": "Click the margin beside a line number to bookmark it.",
+  "bookmarks.previous": "Previous bookmark",
+  "bookmarks.next": "Next bookmark",
+  "bookmarks.rename": "Rename",
+  "bookmarks.delete": "Delete",
+  "bookmarks.enable": "Enable",
+  "bookmarks.disable": "Disable",
+  "bookmarks.go_to": "Go to bookmark",
 
   "status.reloading": "Reloading…",
   "status.decompiling": "Decompiling…",
@@ -102,5 +114,6 @@
   "error.no_longer_there": "{place} is no longer there.",
   "error.decompile": "Cannot decompile {name}",
   "error.scan_runtime": "Cannot scan the runtime's assemblies",
-  "error.search": "Search failed"
+  "error.search": "Search failed",
+  "error.go_to_bookmark": "Cannot go to {name}"
 }

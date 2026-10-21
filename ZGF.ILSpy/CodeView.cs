@@ -181,7 +181,7 @@ public sealed class CodeViewState
     }
 }
 
-public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab);
+public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null);
 
 public static class CodeViewWidget
 {
@@ -195,9 +195,13 @@ public static class CodeViewWidget
     /// <summary>
     /// A read-only, virtualized, syntax-colored view of <paramref name="document"/> with line
     /// numbers, folding, selection and copy, find (Ctrl+F) and reference navigation: a click on a
-    /// reference asks to navigate to it, a Ctrl+click or middle click asks for a new tab.
+    /// reference asks to navigate to it, a Ctrl+click or middle click asks for a new tab. The lines in
+    /// <paramref name="bookmarks"/> are marked in the gutter, dimmed when not enabled; a click in the
+    /// margin before the line numbers, or Toggle bookmark in the context menu, asks to toggle one.
+    /// Without <paramref name="bookmarks"/>, no line can be.
     /// </summary>
-    public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state, Strings t)
+    public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state, Strings t,
+        IReadOnlyDictionary<int, bool>? bookmarks = null)
     {
         using var scope = ui.Id(id);
         state.Show(document);
@@ -209,7 +213,8 @@ public static class CodeViewWidget
         state.RowHeight = rowHeight;
         var folds = state.Folds;
         var digits = Math.Max(3, CodeText.Digits(document.Lines.Length));
-        var foldLeft = GutterPaddingLeft + digits * advance + GutterPaddingRight;
+        var markWidth = theme.IconSize + GutterPaddingLeft;
+        var foldLeft = markWidth + digits * advance + GutterPaddingRight;
         var foldWidth = document.Folds.Length > 0 ? theme.IconSize : 0f;
         var gutterWidth = foldLeft + foldWidth;
         var textLeft = gutterWidth + CodePaddingLeft;
@@ -256,6 +261,7 @@ public static class CodeViewWidget
             var hoverSpan = CodeViewState.NoLine;
             var hoverFold = CodeViewState.NoLine;
             var hoverChip = CodeViewState.NoLine;
+            var hoverMark = CodeViewState.NoLine;
             if (hasRect && folds.RowCount > 0 && (i.Hovered || i.Held) && pointer.X < content.Right && pointer.Y < content.Bottom)
             {
                 var row = (int)MathF.Floor((pointer.Y - rect.Y + state.LaidOutScrollY) / rowHeight);
@@ -279,11 +285,15 @@ public static class CodeViewWidget
                     {
                         hoverFold = document.FoldStartingAt(line);
                     }
+                    else if (bookmarks != null && pointer.X < rect.X + markWidth)
+                    {
+                        hoverMark = line;
+                    }
                 }
             }
             var hoverReference = hoverSpan >= 0 ? document.Lines[hoverLine].Spans[hoverSpan].Reference : null;
             var hoverNavigable = hoverReference is { IsNavigable: true } && !document.Lines[hoverLine].Spans[hoverSpan].IsDefinition;
-            var hoverToggle = hoverFold >= 0 || hoverChip >= 0;
+            var hoverToggle = hoverFold >= 0 || hoverChip >= 0 || hoverMark >= 0;
 
             if (i.Hovered || i.Held)
                 ui.SetCursor((hoverNavigable || hoverToggle) && !state.PressMoved ? MouseCursor.Hand : MouseCursor.Text);
@@ -295,7 +305,11 @@ public static class CodeViewWidget
                 state.PressMoved = false;
                 state.PressedOnFold = hoverToggle;
                 state.PressedSpanLine = state.PressedSpan = CodeViewState.NoLine;
-                if (hoverFold >= 0)
+                if (hoverMark >= 0)
+                {
+                    result = result with { ToggleBookmark = hoverMark };
+                }
+                else if (hoverFold >= 0)
                 {
                     state.SetCollapsed(hoverFold, !folds.IsCollapsed(hoverFold));
                 }
@@ -350,8 +364,8 @@ public static class CodeViewWidget
             }
 
             Scroll(ui, state, document, rowHeight, advance, textLeft, content, scrollDeltaY);
-            FillFrame(ui, state, document, theme, palette, cell, rowHeight, foldLeft, foldWidth, gutterWidth, textLeft, digits, focused || findFocused,
-                hoverLine, hoverSpan, hoverReference, hoverNavigable, hoverFold, hoverChip);
+            FillFrame(ui, state, document, theme, palette, cell, rowHeight, markWidth, foldLeft, foldWidth, gutterWidth, textLeft, digits,
+                focused || findFocused, bookmarks, hoverLine, hoverSpan, hoverReference, hoverNavigable, hoverFold, hoverChip, hoverMark);
 
             using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f }))
             {
@@ -374,8 +388,11 @@ public static class CodeViewWidget
             state.LaidOutScrollY = state.ScrollY;
         }
 
-        if (ContextMenu(ui, state, document, t) is { Navigate: not null } picked)
+        var picked = ContextMenu(ui, state, document, t, bookmarks != null);
+        if (picked.Navigate != null)
             result = picked;
+        if (picked.ToggleBookmark != null)
+            result = result with { ToggleBookmark = picked.ToggleBookmark };
         return result;
     }
 
@@ -383,8 +400,9 @@ public static class CodeViewWidget
         distance == 0f ? 0f : (distance * AutoScrollSpeed + MathF.Sign(distance) * unit * AutoScrollSpeed) * deltaTime;
 
     private static void FillFrame(Ui ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CodeViewPalette palette, CellMetrics cell,
-        float rowHeight, float foldLeft, float foldWidth, float gutterWidth, float textLeft, int digits, bool active, int hoverLine, int hoverSpan,
-        CodeReference? hoverReference, bool hoverNavigable, int hoverFold, int hoverChip)
+        float rowHeight, float markWidth, float foldLeft, float foldWidth, float gutterWidth, float textLeft, int digits, bool active,
+        IReadOnlyDictionary<int, bool>? bookmarks, int hoverLine, int hoverSpan, CodeReference? hoverReference, bool hoverNavigable, int hoverFold,
+        int hoverChip, int hoverMark)
     {
         var frame = state.Frame;
         var (start, end) = state.Selection;
@@ -399,7 +417,11 @@ public static class CodeViewWidget
         frame.SeparatorWidth = theme.SeparatorWidth;
         frame.OutlineWidth = theme.BorderWidth;
         frame.ChipRadius = theme.RadiusSmall;
-        frame.GutterPaddingLeft = GutterPaddingLeft;
+        frame.GutterPaddingLeft = markWidth;
+        frame.MarkWidth = markWidth;
+        frame.IconSize = theme.IconSize;
+        frame.Bookmarks = bookmarks;
+        frame.HoverMark = hoverMark;
         frame.Advance = cell.Advance;
         frame.CellHeight = cell.Height;
         frame.RowHeight = rowHeight;
@@ -712,7 +734,7 @@ public static class CodeViewWidget
         state.ShowColumns(match.Column, match.Column + state.Find.Length);
     }
 
-    private static CodeViewResult ContextMenu(Ui ui, CodeViewState state, DecompiledDocument document, Strings t)
+    private static CodeViewResult ContextMenu(Ui ui, CodeViewState state, DecompiledDocument document, Strings t, bool bookmarkable)
     {
         var result = default(CodeViewResult);
         using var menu = ui.ContextMenu("menu");
@@ -722,6 +744,13 @@ public static class CodeViewWidget
             ui.ClipboardText = state.SelectedText;
         if (ui.MenuItem(t.CodeSelectAll, "Ctrl+A", id: "select-all"))
             state.Select(default, CodeText.End(document));
+        if (bookmarkable && state.MenuLine >= 0)
+        {
+            ui.MenuSeparator();
+            if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
+                    icon: new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, (ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark).Bookmark)))
+                result = result with { ToggleBookmark = state.MenuLine };
+        }
         if (document.Folds.Length > 0)
         {
             ui.MenuSeparator();
