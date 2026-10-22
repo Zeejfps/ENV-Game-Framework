@@ -26,11 +26,8 @@ internal static class FrameworkPickerView
             if (!ui.HasFocus(listId))
                 MoveSelectionFromFilter(ui, picker, listId);
 
-            if (picker.FocusFilter)
-            {
-                picker.FocusFilter = false;
+            if (picker.TakeFilterFocus())
                 ui.Focus(ui.GetId("picker-filter"));
-            }
             open |= ui.TextField("picker-filter", ref picker.Filter, t.PickerFilter);
 
             using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.Field, Clip = true }))
@@ -53,7 +50,8 @@ internal static class FrameworkPickerView
             }
         }
 
-        if (open && picker.Selected is { } selected)
+        var selected = picker.Selected;
+        if (open && selected != null)
         {
             w.Open(selected.FilePath);
             close = true;

@@ -15,8 +15,8 @@ public sealed class FrameworkPicker
     private readonly HashSet<string> _listed = new(StringComparer.OrdinalIgnoreCase);
     private int _listedVersion = -1;
     private IReadOnlyList<RuntimeAssembly>? _all;
-    private bool _loading;
     private string? _appliedFilter;
+    private bool _focusFilter;
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user the runtime could not be scanned: a title and details.</param>
@@ -25,17 +25,29 @@ public sealed class FrameworkPicker
     {
         _strings = strings;
         _reportError = reportError;
-        _scan = scan ?? (static () => RuntimeAssemblies.All);
+        _scan = scan ?? ScanRuntime;
     }
 
+    private static IReadOnlyList<RuntimeAssembly> ScanRuntime() => RuntimeAssemblies.All;
+
     public bool IsOpen;
-    public bool FocusFilter;
     public string Filter = "";
     public ListSelection Selection { get; } = new();
 
-    public RuntimeAssembly? Selected => Selection.Index >= 0 && Selection.Index < _filtered.Count ? _filtered[Selection.Index] : null;
+    public RuntimeAssembly? Selected
+    {
+        get
+        {
+            var index = Selection.Index;
+            if (index < 0)
+                return null;
+            if (index >= _filtered.Count)
+                return null;
+            return _filtered[index];
+        }
+    }
 
-    public bool IsLoading => _loading;
+    public bool IsLoading { get; private set; }
     public IReadOnlyList<RuntimeAssembly> Filtered => _filtered;
 
     /// <summary>Why the runtime could not be scanned, or null.</summary>
@@ -44,13 +56,16 @@ public sealed class FrameworkPicker
     public async void Open()
     {
         IsOpen = true;
-        FocusFilter = true;
+        _focusFilter = true;
         _appliedFilter = null;
-        if (_all != null || _loading) return;
-        _loading = true;
+        if (_all != null)
+            return;
+        if (IsLoading)
+            return;
+        IsLoading = true;
         Error = null;
         var scanned = await Background.Run(_scan);
-        _loading = false;
+        IsLoading = false;
         _all = scanned.Value;
         Error = scanned.Error?.ToString();
         _appliedFilter = null;
@@ -60,19 +75,40 @@ public sealed class FrameworkPicker
 
     public void Close() => IsOpen = false;
 
+    /// <summary>True once after <see cref="Open"/>: the filter box should take focus.</summary>
+    public bool TakeFilterFocus()
+    {
+        var focus = _focusFilter;
+        _focusFilter = false;
+        return focus;
+    }
+
     /// <summary>Whether <paramref name="assembly"/> is already in the assembly list.</summary>
     public bool IsListed(RuntimeAssembly assembly) => _listed.Contains(assembly.FilePath);
 
-    /// <summary>Re-filters when the filter text changed since the last frame.</summary>
+    /// <summary>Catches up with the assembly list and re-filters when the filter text changed since
+    /// the last frame.</summary>
     public void Update(AssemblyList assemblies)
     {
-        if (assemblies.Version != _listedVersion)
-        {
-            _listedVersion = assemblies.Version;
-            _listed.Clear();
-            _listed.UnionWith(assemblies.FilePaths);
-        }
-        if (_all == null || Filter == _appliedFilter) return;
+        RefreshListed(assemblies);
+        ApplyFilter();
+    }
+
+    private void RefreshListed(AssemblyList assemblies)
+    {
+        if (assemblies.Version == _listedVersion)
+            return;
+        _listedVersion = assemblies.Version;
+        _listed.Clear();
+        _listed.UnionWith(assemblies.FilePaths);
+    }
+
+    private void ApplyFilter()
+    {
+        if (_all == null)
+            return;
+        if (Filter == _appliedFilter)
+            return;
         _appliedFilter = Filter;
         var selected = Selected;
         _filtered.Clear();
