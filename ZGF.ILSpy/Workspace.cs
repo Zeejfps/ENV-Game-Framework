@@ -14,9 +14,6 @@ namespace ZGF.ILSpy;
 /// </summary>
 public sealed class Workspace
 {
-    private const float ToolShare = 0.3f;
-    private const float DocumentShare = 0.66f;
-    private const float AssembliesShare = 0.34f;
     private const string NamespaceScope = "innamespace";
     private const string AssemblyScope = "inassembly";
 
@@ -25,6 +22,7 @@ public sealed class Workspace
     private readonly List<string> _releasedImages = new();
     private Action<Action> _post = ThrowNotAttached;
     private readonly UserIntent _intent = new();
+    private readonly MainLayout _mainLayout;
     private int _reload;
     private int _savedBookmarks;
     private int _savedAnalyzer;
@@ -72,7 +70,7 @@ public sealed class Workspace
 
     /// <summary>Where the views and the open documents are docked, all as tabs: side by side,
     /// stacked or in floating windows.</summary>
-    public DockLayout Layout { get; }
+    public DockLayout Layout => _mainLayout.Dock;
 
     public DecompilationLanguage Language { get; private set; }
 
@@ -114,7 +112,8 @@ public sealed class Workspace
         Locale = ChooseLocale(settings);
         ShowNonPublic = settings.ShowNonPublic;
         _active = AddTab();
-        Layout = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
+        var dock = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
+        _mainLayout = new MainLayout(dock);
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += OnPanelClosed;
         Tree = new BrowseTree(Post);
@@ -128,7 +127,7 @@ public sealed class Workspace
         _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(GetStrings, ReportError);
         if (!placed)
-            DockDocument(_active.Panel);
+            _mainLayout.DockDocument(_active.Panel, _active.Panel);
         _analyzedToRestore = LoadAnalyzedToRestore(settings);
         ReportSettingsLoadError(settings);
     }
@@ -826,60 +825,11 @@ public sealed class Workspace
         Analyze(node);
     }
 
-    /// <summary>Docks the analyzer beside the search results or bookmarks, or below the documents,
-    /// if it is not docked, and brings it to the front.</summary>
-    public void OpenAnalyzer()
-    {
-        if (!Layout.Contains(DockPanels.Analyzer))
-            DockAnalyzer();
-        Layout.Activate(DockPanels.Analyzer);
-    }
+    public void OpenAnalyzer() => _mainLayout.OpenAnalyzer(FindActivePanel());
 
-    private void DockAnalyzer()
-    {
-        var beside = FindSearchOrBookmarksGroup();
-        if (beside != null)
-        {
-            Layout.Dock(DockPanels.Analyzer, beside, DockEdge.Center);
-            return;
-        }
-        DockBelowDocuments(DockPanels.Analyzer);
-    }
+    public void OpenDecompilerOptions() => _mainLayout.OpenDecompilerOptions(FindActivePanel());
 
-    private DockGroup? FindSearchOrBookmarksGroup()
-    {
-        var search = Layout.GroupOf(DockPanels.Search);
-        if (search != null)
-            return search;
-        return Layout.GroupOf(DockPanels.Bookmarks);
-    }
-
-    /// <summary>Docks the decompiler options beside the documents if they are not, and brings them to the front.</summary>
-    public void OpenDecompilerOptions()
-    {
-        if (!Layout.Contains(DockPanels.DecompilerOptions))
-            DockBeside(DockPanels.DecompilerOptions, FindDocumentArea(), DockEdge.Right, ToolShare);
-        Layout.Activate(DockPanels.DecompilerOptions);
-    }
-
-    /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>
-    public void OpenBookmarks()
-    {
-        if (!Layout.Contains(DockPanels.Bookmarks))
-            DockBookmarks();
-        Layout.Activate(DockPanels.Bookmarks);
-    }
-
-    private void DockBookmarks()
-    {
-        var search = Layout.GroupOf(DockPanels.Search);
-        if (search != null)
-        {
-            Layout.Dock(DockPanels.Bookmarks, search, DockEdge.Center);
-            return;
-        }
-        DockBelowDocuments(DockPanels.Bookmarks);
-    }
+    public void OpenBookmarks() => _mainLayout.OpenBookmarks(FindActivePanel());
 
     /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>
     public DocumentTab? FindTab(string? panel)
@@ -953,60 +903,21 @@ public sealed class Workspace
     }
 
     /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
-    /// tabbed together in one group, with the search results under them while a search is open.
-    /// Floating windows and the other views close; the documents stay open.</summary>
+    /// tabbed together in one group. Floating windows and the other views close; the documents stay open.</summary>
     public void ResetLayout()
     {
-        var documents = ListDocumentPanels();
-        Layout.Windows.Clear();
-        Layout.Root = CreateAssembliesGroup();
+        var documents = _mainLayout.ListDocuments();
         if (documents.Count == 0)
         {
             _active = AddTab();
             documents.Add(_active.Panel);
         }
-        DockDocumentsTogether(documents);
+        _mainLayout.Reset(documents);
         if (_active != null && Layout.Contains(_active.Panel))
             Layout.Activate(_active.Panel);
     }
 
-    private List<string> ListDocumentPanels()
-    {
-        return Layout.AllGroups()
-            .SelectMany(g => g.Panels)
-            .Where(IsTabPanel)
-            .ToList();
-    }
-
-    private DockGroup CreateAssembliesGroup()
-    {
-        var id = Layout.NextId;
-        Layout.NextId++;
-        return new DockGroup
-        {
-            Id = id,
-            Panels = { DockPanels.Assemblies },
-            Active = DockPanels.Assemblies,
-        };
-    }
-
-    private void DockDocumentsTogether(List<string> documents)
-    {
-        var first = documents[0];
-        DockBeside(first, Layout.Root, DockEdge.Right, DocumentShare);
-        var group = Layout.GroupOf(first)!;
-        foreach (var panel in documents.Skip(1))
-            Layout.Dock(panel, group, DockEdge.Center);
-    }
-
-    /// <summary>Docks the assemblies view where it starts out, left of everything, if it is closed,
-    /// and brings it to the front.</summary>
-    public void OpenAssemblies()
-    {
-        if (!Layout.Contains(DockPanels.Assemblies))
-            DockBeside(DockPanels.Assemblies, Layout.Root, DockEdge.Left, AssembliesShare);
-        Layout.Activate(DockPanels.Assemblies);
-    }
+    public void OpenAssemblies() => _mainLayout.OpenAssemblies();
 
     public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
 
@@ -1014,10 +925,8 @@ public sealed class Workspace
     /// and puts the caret in its search box.</summary>
     public void OpenSearch()
     {
-        if (!Layout.Contains(DockPanels.Search))
-            DockBelowDocuments(DockPanels.Search);
+        _mainLayout.OpenSearch(FindActivePanel());
         _focusSearch = true;
-        Layout.Activate(DockPanels.Search);
     }
 
     /// <summary>Opens the search panel with its query kept to <paramref name="node"/>'s assembly, or to
@@ -1156,64 +1065,11 @@ public sealed class Workspace
         return null;
     }
 
-    /// <summary>The group a new document joins: the active document's, else the first holding one.</summary>
-    private DockGroup? FindDocumentGroup()
-    {
-        var active = FindActiveGroup();
-        if (active != null)
-            return active;
-        foreach (var group in Layout.AllGroups())
-        {
-            if (group.Panels.Exists(IsTabPanel))
-                return group;
-        }
-        return null;
-    }
-
-    private DockGroup? FindActiveGroup()
+    private string? FindActivePanel()
     {
         if (_active == null)
             return null;
-        return Layout.GroupOf(_active.Panel);
-    }
-
-    private DockNode FindDocumentArea()
-    {
-        var group = FindDocumentGroup();
-        if (group != null)
-            return group;
-        return Layout.Root;
-    }
-
-    /// <summary>Docks a new document into the <see cref="FindDocumentGroup"/>, or where documents start
-    /// out, right of everything, when there is none.</summary>
-    private void DockDocument(string panel)
-    {
-        var group = FindDocumentGroup();
-        if (group != null)
-        {
-            Layout.Dock(panel, group, DockEdge.Center);
-            return;
-        }
-        DockBeside(panel, Layout.Root, DockEdge.Right, DocumentShare);
-    }
-
-    private void DockBelowDocuments(string panel)
-    {
-        DockBeside(panel, FindDocumentArea(), DockEdge.Bottom, ToolShare);
-    }
-
-    /// <summary>Docks <paramref name="panel"/> beside <paramref name="target"/>, or into it when the
-    /// layout is empty.</summary>
-    private void DockBeside(string panel, DockNode target, DockEdge edge, float share)
-    {
-        var root = Layout.Root as DockGroup;
-        if (root != null && root.Panels.Count == 0)
-        {
-            Layout.Dock(panel, root, DockEdge.Center);
-            return;
-        }
-        Layout.Dock(panel, target, edge, share);
+        return _active.Panel;
     }
 
     private void Focus(DocumentTab tab)
@@ -1271,7 +1127,7 @@ public sealed class Workspace
     private DocumentTab OpenNewTab()
     {
         var tab = AddTab();
-        DockDocument(tab.Panel);
+        _mainLayout.DockDocument(tab.Panel, FindActivePanel());
         return tab;
     }
 
