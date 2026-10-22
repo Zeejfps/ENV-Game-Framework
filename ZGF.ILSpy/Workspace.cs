@@ -14,13 +14,8 @@ namespace ZGF.ILSpy;
 /// </summary>
 public sealed class Workspace
 {
-    private const string NamespaceScope = "innamespace";
-    private const string AssemblyScope = "inassembly";
-
     private readonly AppSettings _settings;
     private Action<Action> _post = ThrowNotAttached;
-    private readonly MainLayout _mainLayout;
-    private bool _focusSearch;
 
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
@@ -63,7 +58,9 @@ public sealed class Workspace
 
     /// <summary>Where the views and the open documents are docked, all as tabs: side by side,
     /// stacked or in floating windows.</summary>
-    public DockLayout Layout => _mainLayout.Dock;
+    public MainLayout MainLayout { get; }
+
+    public DockLayout Layout => MainLayout.Dock;
 
     public DecompilationLanguage Language { get; set; }
 
@@ -89,6 +86,9 @@ public sealed class Workspace
     /// <summary>True while imported bookmarks' places are being found in the background.</summary>
     public bool IsImporting { get; set; }
 
+    /// <summary>Set by <see cref="Searching.OpenSearch"/> until the search box takes focus.</summary>
+    public bool IsSearchFocusPending { get; set; }
+
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
     public bool ConfirmingLayoutReset { get; private set; }
 
@@ -104,7 +104,7 @@ public sealed class Workspace
         var first = AddTab();
         Tabs.MakeActive(first);
         var dock = DockPanels.Restore(settings.Layout, first.Panel, out var placed);
-        _mainLayout = new MainLayout(dock);
+        MainLayout = new MainLayout(dock);
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += OnPanelClosed;
         Tree = new BrowseTree(Post);
@@ -118,7 +118,7 @@ public sealed class Workspace
         LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
         Picker = new FrameworkPickerModel(GetStrings, ReportError);
         if (!placed)
-            _mainLayout.DockDocument(first.Panel, first.Panel);
+            MainLayout.DockDocument(first.Panel, first.Panel);
         LastSessionAnalyses = new LastSessionAnalyses(settings.Analyzed);
         ReportSettingsLoadError(settings);
     }
@@ -206,11 +206,11 @@ public sealed class Workspace
         ReportError(t.ErrorResolve(reference.Name), details);
     }
 
-    public void OpenAnalyzer() => _mainLayout.OpenAnalyzer(Tabs.ActivePanel);
+    public void OpenAnalyzer() => MainLayout.OpenAnalyzer(Tabs.ActivePanel);
 
-    public void OpenDecompilerOptions() => _mainLayout.OpenDecompilerOptions(Tabs.ActivePanel);
+    public void OpenDecompilerOptions() => MainLayout.OpenDecompilerOptions(Tabs.ActivePanel);
 
-    public void OpenBookmarks() => _mainLayout.OpenBookmarks(Tabs.ActivePanel);
+    public void OpenBookmarks() => MainLayout.OpenBookmarks(Tabs.ActivePanel);
 
     public void Activate(DocumentTab tab)
     {
@@ -277,10 +277,10 @@ public sealed class Workspace
     /// tabbed together in one group. Floating windows and the other views close; the documents stay open.</summary>
     public void ResetLayout()
     {
-        var documents = _mainLayout.ListDocuments();
+        var documents = MainLayout.ListDocuments();
         if (documents.Count == 0)
             documents.Add(AddActiveTab().Panel);
-        _mainLayout.Reset(documents);
+        MainLayout.Reset(documents);
         ActivateActivePanel();
     }
 
@@ -301,40 +301,9 @@ public sealed class Workspace
         Layout.Activate(panel);
     }
 
-    public void OpenAssemblies() => _mainLayout.OpenAssemblies();
+    public void OpenAssemblies() => MainLayout.OpenAssemblies();
 
     public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
-
-    /// <summary>Docks the search panel under the documents if it is closed, brings it to the front
-    /// and puts the caret in its search box.</summary>
-    public void OpenSearch()
-    {
-        _mainLayout.OpenSearch(Tabs.ActivePanel);
-        _focusSearch = true;
-    }
-
-    /// <summary>Opens the search panel with its query kept to <paramref name="node"/>'s assembly, or to
-    /// the namespace it is.</summary>
-    public void ScopeSearch(BrowseNode node)
-    {
-        Search.Query = ScopeQueryTo(node);
-        OpenSearch();
-    }
-
-    private string ScopeQueryTo(BrowseNode node)
-    {
-        if (node.Kind == NodeKind.Namespace)
-            return SearchQuery.WithScope(Search.Query, NamespaceScope, node.FullName);
-        return SearchQuery.WithScope(Search.Query, AssemblyScope, node.Assembly.Name);
-    }
-
-    /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>
-    public bool TakeSearchFocus()
-    {
-        var focus = _focusSearch;
-        _focusSearch = false;
-        return focus;
-    }
 
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
 
@@ -475,7 +444,7 @@ public sealed class Workspace
     private DocumentTab OpenNewTab()
     {
         var tab = AddTab();
-        _mainLayout.DockDocument(tab.Panel, Tabs.ActivePanel);
+        MainLayout.DockDocument(tab.Panel, Tabs.ActivePanel);
         return tab;
     }
 
