@@ -2,7 +2,7 @@ using ZGF.Desktop;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>A caret and the anchor a selection runs to from it in one line of text, and how the
+/// <summary>A caret and the anchor a selection runs to from it in a text, and how the
 /// pointer extends it while held: by character, word or the whole text after a single, double or
 /// triple press.</summary>
 public sealed class TextSelection
@@ -80,19 +80,25 @@ public static partial class UiWidgets
     /// Shows <paramref name="text"/> on one line, read-only, in the element <paramref name="i"/>
     /// interacts with, where it is the first content: the pointer selects part of it as in a
     /// <see cref="TextField"/> — dragging, double-clicking a word, triple-clicking all of it,
-    /// shift-clicking. Only an <paramref name="active"/> text presses and drags move
-    /// <paramref name="selection"/>, which it shows, scrolled by <paramref name="shift"/> to follow
-    /// the caret past its edge; otherwise, or while nothing is selected and it is not scrolled, it
-    /// is shortened by <paramref name="overflow"/>.
+    /// shift-clicking. Only an <paramref name="active"/> text reads or moves <paramref name="selection"/>
+    /// and <paramref name="shift"/>, which it shows, scrolled to follow the caret past its edge; so
+    /// texts can share them while one is active at a time. Otherwise, or while nothing is selected
+    /// and it is not scrolled, it is shortened by <paramref name="overflow"/>.
     /// </summary>
     public static void SelectableText(this Ui ui, Interaction i, string text, TextSelection selection, ref float shift, bool active, uint? color = null,
         float? size = null, string? family = null, TextOverflow overflow = TextOverflow.Ellipsis)
     {
+        if (!active)
+        {
+            ui.Text(text, new Box { Width = Sizing.Fit() }, color: color, size: size, family: family, overflow: overflow);
+            return;
+        }
+
         var theme = ui.Theme;
         var hasRect = ui.TryGetContentRect(i.Id, out var rect);
-        if (!active)
-            shift = 0f;
-        else if (hasRect && (i.Pressed || i.Held))
+        if (selection.End > text.Length)
+            selection.Select(0, 0);
+        if (hasRect && (i.Pressed || i.Held))
         {
             var at = ui.CaretAt(text, ui.Input.Pointer.X - rect.X + shift, size, family);
             if (i.Pressed)
@@ -105,7 +111,7 @@ public static partial class UiWidgets
         }
 
         var width = ui.MeasureText(text, size, family: family);
-        if (active && hasRect)
+        if (hasRect)
         {
             var caretX = ui.MeasureText(text, selection.Caret, size, family: family);
             if (caretX - shift > rect.Width) shift = caretX - rect.Width;
@@ -113,7 +119,7 @@ public static partial class UiWidgets
             shift = MathF.Max(0f, MathF.Min(shift, width - rect.Width));
         }
 
-        if (!active || !selection.HasSelection && shift == 0f)
+        if (!selection.HasSelection && shift == 0f)
         {
             ui.Text(text, new Box { Width = Sizing.Fit() }, color: color, size: size, family: family, overflow: overflow);
             return;

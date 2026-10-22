@@ -136,3 +136,67 @@ public sealed class SelectableTextTests
         }
     }
 }
+
+public sealed class SelectableTextAreaTests
+{
+    private const float CharWidth = 8f;
+    private const float LineHeight = 20f;
+
+    private readonly UiFrames _frames = new();
+    private readonly TextSelection _selection = new();
+    private float _shift;
+    private const string Text = "one two\r\nthree four\nfive";
+
+    public SelectableTextAreaTests() => Frame();
+
+    private void Frame() => _frames.Run(1f / 60f, ui =>
+    {
+        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }))
+        {
+            var i = ui.Interact("area");
+            using (ui.Column(i.Id, new Box { Width = 200f, Height = LineHeight * 3, Gap = 0f }))
+                ui.SelectableTextArea(i, Text, _selection, ref _shift, LineHeight);
+        }
+    });
+
+    private void At(int column, int line) => _frames.MovePointer(column * CharWidth, line * LineHeight + LineHeight / 2);
+
+    [Fact]
+    public void Each_line_is_drawn_a_line_height_below_the_last_without_its_line_break()
+    {
+        Assert.True(_frames.Drew("one two"));
+        Assert.True(_frames.Drew("three four"));
+        Assert.True(_frames.Drew("five"));
+    }
+
+    [Fact]
+    public void Dragging_from_one_line_to_another_selects_across_the_break()
+    {
+        _frames.Wait(1);
+        At(4, 0);
+        _frames.Press();
+        Frame();
+        At(5, 1);
+        Frame();
+        _frames.Release();
+        Frame();
+
+        Assert.Equal("two\r\nthree", _selection.Of(Text));
+    }
+
+    [Fact]
+    public void A_double_click_on_a_later_line_selects_its_word()
+    {
+        _frames.Wait(1);
+        At(1, 2);
+        for (var click = 0; click < 2; click++)
+        {
+            _frames.Press();
+            Frame();
+            _frames.Release();
+            Frame();
+        }
+
+        Assert.Equal("five", _selection.Of(Text));
+    }
+}

@@ -223,17 +223,19 @@ public static partial class UiWidgets
     public static Ui.Scope TableCell(this Ui ui, TableColumns columns, int index) => ui.Row(CellBox(ui, columns, index));
 
     /// <summary>A <see cref="TableCell(Ui, TableColumns, int)"/> recorded as element <paramref name="id"/>,
-    /// for a cell that is hovered or clicked on its own.</summary>
-    public static Ui.Scope TableCell(this Ui ui, TableColumns columns, int index, int id) => ui.Row(id, CellBox(ui, columns, index));
+    /// for a cell that is hovered or clicked on its own, its content placed by <paramref name="alignY"/>
+    /// in a row taller than it.</summary>
+    public static Ui.Scope TableCell(this Ui ui, TableColumns columns, int index, int id, Align alignY = Align.Center) =>
+        ui.Row(id, CellBox(ui, columns, index, alignY));
 
-    private static Box CellBox(Ui ui, TableColumns columns, int index) =>
+    private static Box CellBox(Ui ui, TableColumns columns, int index, Align alignY = Align.Center) =>
         new()
         {
             Width = columns.Width(index),
             Height = Sizing.Grow(),
             Gap = ui.Theme.GapTight,
             Padding = new Spacing(ui.Theme.GapTight, 0f),
-            AlignY = Align.Center,
+            AlignY = alignY,
             Clip = true,
         };
 }
