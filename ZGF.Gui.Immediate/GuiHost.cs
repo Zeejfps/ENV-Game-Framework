@@ -29,8 +29,12 @@ public sealed class GuiHost
         var guiHost = new GuiHost(host);
         host.Post(() => app.Startup(guiHost));
         host.Run();
-        app.Shutdown(host.Bounds);
+        app.Shutdown(guiHost);
     }
+
+    /// <summary>The window's bounds, and once it has closed, where it was left — save them and
+    /// reopen with <see cref="WindowBounds.ApplyTo"/>.</summary>
+    public WindowBounds WindowBounds => _host.Bounds;
 
     /// <summary>Schedules a frame after the app's state changed outside a frame. Safe from any thread,
     /// and does nothing once the window has closed.</summary>

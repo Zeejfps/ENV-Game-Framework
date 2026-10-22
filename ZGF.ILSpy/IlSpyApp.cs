@@ -1,5 +1,4 @@
 using ZGF.AppUtils;
-using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Localization;
 
@@ -47,9 +46,10 @@ public sealed class IlSpyApp : Gui<Workspace>
         State.Open(paths);
     }
 
-    protected override void OnShutdown(WindowBounds bounds)
+    protected override void OnShutdown(GuiHost host)
     {
-        State.Settings.RememberWindow(bounds);
+        State.Assemblies.Changed -= host.Invalidate;
+        State.Settings.RememberWindow(host.WindowBounds);
         State.SaveSettings();
     }
 

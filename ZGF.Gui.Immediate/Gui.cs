@@ -1,5 +1,3 @@
-using ZGF.Desktop;
-
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
@@ -30,9 +28,9 @@ public abstract class Gui<T> where T : class
         OnRender(ui, State);
     }
 
-    public void Shutdown(WindowBounds bounds)
+    public void Shutdown(GuiHost host)
     {
-        OnShutdown(bounds);
+        OnShutdown(host);
     }
 
     /// <summary>Runs on the UI thread before the first frame.</summary>
@@ -40,9 +38,8 @@ public abstract class Gui<T> where T : class
 
     protected abstract void OnRender(Ui ui, T state);
 
-    /// <summary>Runs once the window has closed, with the <paramref name="bounds"/> it was left at —
-    /// save them and reopen with <see cref="WindowBounds.ApplyTo"/>.</summary>
-    protected virtual void OnShutdown(WindowBounds bounds) { }
+    /// <summary>Runs once the window has closed.</summary>
+    protected virtual void OnShutdown(GuiHost host) { }
 
     /// <summary>Makes the font in <paramref name="data"/> (TTF/OTF bytes) drawable as
     /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiTheme.FontFamily"/>.
