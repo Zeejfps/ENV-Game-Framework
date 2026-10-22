@@ -81,6 +81,9 @@ public static partial class UiWidgets
     private const int MenuSalt = 0x4D454E55;
     private const int MenuScrollSalt = 0x4D534352;
 
+    /// <summary>The id of the popup the menu title, dropdown or submenu item with <paramref name="ownerId"/> opens.</summary>
+    internal static int MenuPopupId(int ownerId) => HashCode.Combine(ownerId, MenuSalt);
+
     private static readonly KeyboardKey[] MenuKeySet =
     [
         KeyboardKey.DownArrow, KeyboardKey.UpArrow, KeyboardKey.Home, KeyboardKey.End,
@@ -317,7 +320,7 @@ public static partial class UiWidgets
             return new MenuScope(title);
 
         bar.OpenSeen = true;
-        bar.PopupId = HashCode.Combine(i.Id, MenuSalt);
+        bar.PopupId = MenuPopupId(i.Id);
         bar.BeginItems(i.Id);
         ui.TryGetRect(i.Id, out var anchor);
         var menu = OpenMenu(ui, bar, anchor, title: title, hasTitle: true);
@@ -396,7 +399,7 @@ public static partial class UiWidgets
         if (!open)
             return default;
 
-        var popupId = HashCode.Combine(i.Id, MenuSalt);
+        var popupId = MenuPopupId(i.Id);
         var state = ui.GetState<SubMenuState>(popupId);
         if (parent.OpenChild != state)
             state.Reset();

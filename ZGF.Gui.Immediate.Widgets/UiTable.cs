@@ -130,6 +130,8 @@ public static partial class UiWidgets
     private const int TableBorderSalt = 0x54424C42;
     private const int TableHeadingSalt = 0x54424C48;
 
+    internal static int TableBorderId(int headerId, int column) => HashCode.Combine(headerId, TableBorderSalt, column);
+
     /// <summary>
     /// Lays <paramref name="columns"/> out across the content of the element with
     /// <paramref name="bodyId"/> as last laid out — a scroll's content less its gutter — less
@@ -159,7 +161,7 @@ public static partial class UiWidgets
                 start += columns.Width(i);
                 continue;
             }
-            var border = ui.Interact(HashCode.Combine(headerId, TableBorderSalt, i));
+            var border = ui.Interact(TableBorderId(headerId, i));
             hot[i] = border.Hovered || border.Held;
             if (hot[i])
                 ui.SetCursor(MouseCursor.ResizeHorizontal);
@@ -209,7 +211,7 @@ public static partial class UiWidgets
                 edge += columns.Width(i);
                 if (!columns.HasBorder(i)) continue;
                 using (ui.Float(0f, 0f, edge - grip / 2, 0f, new Box { Width = grip, Height = theme.RowHeight, AlignX = Align.Center },
-                           id: HashCode.Combine(headerId, TableBorderSalt, i), clipped: columns.IsSized))
+                           id: TableBorderId(headerId, i), clipped: columns.IsSized))
                     ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = Sizing.Grow(), Background = hot[i] ? theme.Accent : theme.Separator });
             }
         }

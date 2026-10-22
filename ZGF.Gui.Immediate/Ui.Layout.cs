@@ -222,6 +222,10 @@ public sealed partial class Ui
 
     public Scope Scroll(string id, ScrollAxes axes, Box box = default) => Scroll(GetId(id), axes, box);
 
+    internal static int HorizontalThumbId(int scrollId, ScrollAxes axes) => HashCode.Combine(scrollId, axes == ScrollAxes.Horizontal ? "thumb" : "thumbx");
+
+    internal static int VerticalThumbId(int scrollId) => HashCode.Combine(scrollId, "thumb");
+
     /// <summary>A scrolling, clipped element along <paramref name="axes"/>. <see cref="ScrollAxes.Both"/>
     /// is a column whose content also scrolls sideways when wider than it, as a code or image view
     /// does; it fills the space it is given unless sized and reserves a gutter for each bar only while
@@ -241,8 +245,8 @@ public sealed partial class Ui
         if (id == _wheelY)
             state.OffsetY = Wheel(state.OffsetY, _wheelDeltaY * step, state.MaxY);
 
-        var thumbX = state.ScrollsX ? Interact(HashCode.Combine(id, horizontal ? "thumb" : "thumbx")) : default;
-        var thumbY = state.ScrollsY ? Interact(HashCode.Combine(id, "thumb")) : default;
+        var thumbX = state.ScrollsX ? Interact(HorizontalThumbId(id, axes)) : default;
+        var thumbY = state.ScrollsY ? Interact(VerticalThumbId(id)) : default;
         DragThumb(state, thumbX, true);
         DragThumb(state, thumbY, false);
         state.OffsetX = MathF.Max(0f, state.OffsetX);

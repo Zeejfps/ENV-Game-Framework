@@ -29,6 +29,12 @@ public static partial class UiWidgets
     private const int SplitArrowSalt = 0x53504C41;
     private const int SplitShellSalt = 0x53504C53;
 
+    internal static int SplitArrowId(int buttonId) => HashCode.Combine(buttonId, SplitArrowSalt);
+
+    internal static int SplitShellId(int buttonId) => HashCode.Combine(buttonId, SplitShellSalt);
+
+    internal static int SplitMenuPopupId(int buttonId) => MenuPopupId(SplitArrowId(buttonId));
+
     private sealed class DropdownState : MenuPopup
     {
         public bool Open;
@@ -85,8 +91,8 @@ public static partial class UiWidgets
     {
         var theme = ui.Theme;
         var main = Pressable(ui, id, enabled, out var activated, out var ring);
-        var arrowId = HashCode.Combine(main.Id, SplitArrowSalt);
-        var shellId = HashCode.Combine(main.Id, SplitShellSalt);
+        var arrowId = SplitArrowId(main.Id);
+        var shellId = SplitShellId(main.Id);
         var arrow = enabled ? ui.Interact(arrowId) : Interaction.Inert(arrowId);
         if (arrow.Hovered) ui.SetCursor(MouseCursor.Hand);
         var keyed = enabled && ui.HasFocus(main.Id) && ui.Input.TakeKey(KeyboardKey.DownArrow);
@@ -221,8 +227,9 @@ public static partial class UiWidgets
 
     private static DropdownState DropdownMenuState(Ui ui, int ownerId, bool enabled, int revision)
     {
-        var state = ui.GetState<DropdownState>(HashCode.Combine(ownerId, MenuSalt));
-        state.PopupId = HashCode.Combine(ownerId, MenuSalt);
+        var popupId = MenuPopupId(ownerId);
+        var state = ui.GetState<DropdownState>(popupId);
+        state.PopupId = popupId;
         if (state.Open && (!enabled || revision != state.Revision || ShouldCloseMenu(ui, ownerId, state)))
             state.Close();
         return state;

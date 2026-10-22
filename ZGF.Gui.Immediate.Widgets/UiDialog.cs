@@ -32,6 +32,11 @@ public readonly struct DialogScope : IDisposable
 
 public static partial class UiWidgets
 {
+    internal static int DialogCardId(int dialogId) => HashCode.Combine(dialogId, "card");
+
+    /// <summary>The id of the close button of the dialog, tab or window with <paramref name="ownerId"/>.</summary>
+    internal static int CloseButtonId(int ownerId) => HashCode.Combine(ownerId, "close");
+
     /// <summary>
     /// A modal dialog while <paramref name="open"/>: a titled card centered over the window on a
     /// dimmed backdrop that takes every pointer, wheel and key event from what is behind it. What is
@@ -62,7 +67,7 @@ public static partial class UiWidgets
         var closeKeyed = false;
         var closeRing = false;
         if (closeButton)
-            close = Pressable(ui, HashCode.Combine(dialogId, "close"), true, out closeKeyed, out closeRing);
+            close = Pressable(ui, CloseButtonId(dialogId), true, out closeKeyed, out closeRing);
         if (ui.Input.TakeKey(KeyboardKey.Escape) || close.Clicked || closeKeyed || backdrop.Pressed)
         {
             open = false;
@@ -70,7 +75,7 @@ public static partial class UiWidgets
         }
 
         var radius = box.Radius ?? theme.DialogRadius;
-        var card = ui.Column(HashCode.Combine(dialogId, "card"), box with
+        var card = ui.Column(DialogCardId(dialogId), box with
         {
             Width = box.Width ?? theme.DialogWidth,
             Height = box.Height ?? Sizing.Fit(0f, MathF.Max(0f, ui.Height - theme.DialogMargin * 2)),

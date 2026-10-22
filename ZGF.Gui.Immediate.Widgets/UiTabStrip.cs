@@ -71,7 +71,7 @@ public static partial class UiWidgets
     {
         var theme = ui.Theme;
         var tab = Pressable(ui, ui.GetId(id ?? label), true, out var picked, out var tabRing, hand: false);
-        var closeId = HashCode.Combine(tab.Id, "close");
+        var closeId = CloseButtonId(tab.Id);
         var close = Pressable(ui, closeId, closable, out var closeKeyed, out var closeRing);
 
         var state = ui.GetState<TabState>(HashCode.Combine(tab.Id, "tab"));

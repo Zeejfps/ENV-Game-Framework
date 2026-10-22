@@ -8,6 +8,12 @@ public readonly record struct Segment<T>(T Value, string Label, string? Tooltip 
 
 public static partial class UiWidgets
 {
+    internal static int SegmentId(Ui ui, int groupId, int index)
+    {
+        using (ui.Id(groupId))
+            return ui.GetId(index);
+    }
+
     /// <summary>A row of joined segments with the one matching <paramref name="value"/> selected,
     /// drawn in the theme's selection roles. Clicking a segment selects it; the group is a Tab stop,
     /// and once focused Left/Right/Home/End step through them. Returns true on the frame

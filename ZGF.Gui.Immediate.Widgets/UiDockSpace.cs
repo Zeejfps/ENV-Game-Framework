@@ -474,7 +474,8 @@ internal sealed class DockWalker
         string? caption = null;
         Describe(window.Root, ref closable, ref caption);
 
-        var close = closable ? _ui.Interact(HashCode.Combine(windowId, "close")) : Interaction.Inert(HashCode.Combine(windowId, "close"));
+        var closeId = UiWidgets.CloseButtonId(windowId);
+        var close = closable ? _ui.Interact(closeId) : Interaction.Inert(closeId);
         if (close.Hovered) _ui.SetCursor(MouseCursor.Hand);
         if (close.Clicked)
             _closedWindows.Add(window);
