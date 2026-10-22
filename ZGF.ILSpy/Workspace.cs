@@ -1,14 +1,13 @@
 using ZGF.Gui.Immediate.Widgets;
 using System.Globalization;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Core.Analysis;
-using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
 /// <summary>
-/// The app's state and what the user can do to it. Lives on the UI thread: background work
+/// The app's state. What the user can do to it are extension methods grouped by feature, such as
+/// <see cref="Navigation"/> and <see cref="Bookmarking"/>. Lives on the UI thread: background work
 /// (opening, decompiling, resolving, searching) hands results back through <see cref="Post"/>.
 /// A result is dropped when the user asked for something else in the meantime.
 /// </summary>
@@ -155,13 +154,6 @@ public sealed class Workspace
         throw new InvalidOperationException("The workspace is not attached to a running app.");
     }
 
-    internal void ReportUnresolved(CodeReference reference, Exception? error)
-    {
-        var t = GetStrings();
-        var details = DescribeFailure(error, t.ErrorNoDefinition(reference));
-        ReportError(t.ErrorResolve(reference.Name), details);
-    }
-
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
 
     internal Strings GetStrings() => Strings.For(Locale);
@@ -172,55 +164,6 @@ public sealed class Workspace
     {
         var tab = new DocumentTab(Post, GetStrings, () => DecompilerOptions, ReportError);
         Tabs.Add(tab);
-        return tab;
-    }
-
-    internal void LeaveActive()
-    {
-        var tab = Tabs.Active;
-        if (tab == null)
-            return;
-        var position = tab.Position;
-        if (position == null)
-            return;
-        if (!IsCurrentHistoryPlace(tab.Location))
-            return;
-        History.Leave(tab.Language, position.Value);
-    }
-
-    private bool IsCurrentHistoryPlace(NodePath? place)
-    {
-        var current = History.Current;
-        if (current == null)
-            return false;
-        return current.Value.Place.Equals(place);
-    }
-
-    internal void ShowIn(
-        DocumentTab? tab,
-        BrowseNode node,
-        CodeViewPosition? position = null,
-        Bookmark? target = null,
-        int row = MetadataGridState.None)
-    {
-        var shownIn = ActivateOrOpenTab(tab);
-        Tabs.MakeActive(shownIn);
-        shownIn.Show(node, Language, position, target, row);
-        Tree.Reveal(node);
-    }
-
-    private DocumentTab ActivateOrOpenTab(DocumentTab? tab)
-    {
-        if (tab == null)
-            return OpenNewTab();
-        Layout.Activate(tab.Panel);
-        return tab;
-    }
-
-    private DocumentTab OpenNewTab()
-    {
-        var tab = AddTab();
-        MainLayout.DockDocument(tab.Panel, Tabs.ActivePanel);
         return tab;
     }
 

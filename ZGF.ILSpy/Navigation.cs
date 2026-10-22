@@ -135,4 +135,65 @@ public static class Navigation
         }
         w.ShowIn(w.Tabs.KeepIfOpen(tab), node, position);
     }
+
+    internal static void ReportUnresolved(this Workspace w, CodeReference reference, Exception? error)
+    {
+        var t = w.GetStrings();
+        var details = Workspace.DescribeFailure(error, t.ErrorNoDefinition(reference));
+        w.ReportError(t.ErrorResolve(reference.Name), details);
+    }
+
+    /// <summary>Records where the active tab's view is in the history entry it shows, before it shows
+    /// something else.</summary>
+    internal static void LeaveActive(this Workspace w)
+    {
+        var tab = w.Tabs.Active;
+        if (tab == null)
+            return;
+        var position = tab.Position;
+        if (position == null)
+            return;
+        if (!w.IsCurrentHistoryPlace(tab.Location))
+            return;
+        w.History.Leave(tab.Language, position.Value);
+    }
+
+    private static bool IsCurrentHistoryPlace(this Workspace w, NodePath? place)
+    {
+        var current = w.History.Current;
+        if (current == null)
+            return false;
+        return current.Value.Place.Equals(place);
+    }
+
+    /// <summary>Shows <paramref name="node"/> in <paramref name="tab"/>, or a new tab when null, makes
+    /// that tab active and reveals the node in the tree.</summary>
+    internal static void ShowIn(
+        this Workspace w,
+        DocumentTab? tab,
+        BrowseNode node,
+        CodeViewPosition? position = null,
+        Bookmark? target = null,
+        int row = MetadataGridState.None)
+    {
+        var shownIn = w.ActivateOrOpenTab(tab);
+        w.Tabs.MakeActive(shownIn);
+        shownIn.Show(node, w.Language, position, target, row);
+        w.Tree.Reveal(node);
+    }
+
+    private static DocumentTab ActivateOrOpenTab(this Workspace w, DocumentTab? tab)
+    {
+        if (tab == null)
+            return w.OpenNewTab();
+        w.Layout.Activate(tab.Panel);
+        return tab;
+    }
+
+    private static DocumentTab OpenNewTab(this Workspace w)
+    {
+        var tab = w.AddTab();
+        w.MainLayout.DockDocument(tab.Panel, w.Tabs.ActivePanel);
+        return tab;
+    }
 }
