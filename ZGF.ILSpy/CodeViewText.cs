@@ -1,4 +1,5 @@
 using System.Text;
+using ZGF.Gui;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -13,21 +14,10 @@ public readonly record struct TextPosition(int Line, int Column) : IComparable<T
     public static bool operator >(TextPosition a, TextPosition b) => a.CompareTo(b) > 0;
     public static bool operator <=(TextPosition a, TextPosition b) => a.CompareTo(b) <= 0;
     public static bool operator >=(TextPosition a, TextPosition b) => a.CompareTo(b) >= 0;
-
-    public static TextPosition Min(TextPosition a, TextPosition b) => a <= b ? a : b;
-
-    public static TextPosition Max(TextPosition a, TextPosition b) => a >= b ? a : b;
 }
 
 internal static class CodeText
 {
-    private enum CharClass
-    {
-        Space,
-        Word,
-        Symbol,
-    }
-
     public static string Between(DecompiledDocument document, TextPosition start, TextPosition end)
     {
         var lines = document.Lines;
@@ -57,22 +47,10 @@ internal static class CodeText
     public static TextPosition End(DecompiledDocument document) =>
         document.Lines.Length == 0 ? default : new TextPosition(document.Lines.Length - 1, document.Lines[^1].Text.Length);
 
-    public static (TextPosition Start, TextPosition End) LineAt(DecompiledDocument document, int line) =>
-        line + 1 < document.Lines.Length
-            ? (new TextPosition(line, 0), new TextPosition(line + 1, 0))
-            : (new TextPosition(line, 0), new TextPosition(line, document.Lines[line].Text.Length));
-
     public static (TextPosition Start, TextPosition End) WordAt(DecompiledDocument document, TextPosition at)
     {
-        var text = document.Lines[at.Line].Text;
-        if (text.Length == 0) return (at, at);
-        var probe = at.Column < text.Length ? at.Column : at.Column - 1;
-        var kind = Classify(text[probe]);
-        var start = probe;
-        while (start > 0 && Classify(text[start - 1]) == kind) start--;
-        var end = probe + 1;
-        while (end < text.Length && Classify(text[end]) == kind) end++;
-        return (new TextPosition(at.Line, start), new TextPosition(at.Line, end));
+        TextBoundaries.WordAt(document.Lines[at.Line].Text, at.Column, out var start, out var end, splitPunctuation: true);
+        return (at with { Column = start }, at with { Column = end });
     }
 
     public static int SpanAt(ReadOnlySpan<DocumentSpan> spans, int column)
@@ -98,9 +76,4 @@ internal static class CodeText
         }
         return digits;
     }
-
-    private static CharClass Classify(char c) =>
-        char.IsWhiteSpace(c) ? CharClass.Space
-        : char.IsLetterOrDigit(c) || c == '_' || char.IsSurrogate(c) ? CharClass.Word
-        : CharClass.Symbol;
 }

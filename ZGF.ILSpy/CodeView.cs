@@ -13,6 +13,26 @@ namespace ZGF.ILSpy;
 /// what going back to a place restores.</summary>
 public readonly record struct CodeViewPosition(int TopLine, float ScrollX, TextPosition Anchor, TextPosition Caret);
 
+/// <summary>The selection in a code view, whose triple press selects the row there: a line, or a
+/// collapsed fold with the lines it hides.</summary>
+public sealed class CodeSelection : TextSelection<DecompiledDocument, TextPosition>
+{
+    private readonly CodeFolds _folds;
+
+    internal CodeSelection(CodeFolds folds) => _folds = folds;
+
+    protected override (TextPosition Start, TextPosition End) WordAt(DecompiledDocument document, TextPosition at) => CodeText.WordAt(document, at);
+
+    protected override (TextPosition Start, TextPosition End) BlockAt(DecompiledDocument document, TextPosition at)
+    {
+        var first = new TextPosition(_folds.VisibleLine(at.Line), 0);
+        var next = _folds.NextLine(first.Line);
+        if (next >= document.Lines.Length)
+            return (first, CodeText.End(document));
+        return (first, new TextPosition(next, 0));
+    }
+}
+
 /// <summary>Everything a <see cref="CodeViewWidget.CodeView"/> keeps between frames: scroll,
 /// selection, folds, find. One per open tab, owned by the app.</summary>
 public sealed class CodeViewState
@@ -25,11 +45,6 @@ public sealed class CodeViewState
 
     internal DecompiledDocument? Document;
     internal int MaxColumns;
-    internal TextPosition Anchor;
-    internal TextPosition Caret;
-    internal int Clicks;
-    internal TextPosition UnitStart;
-    internal TextPosition UnitEnd;
     internal TextPosition PressedAt;
     internal bool PressMoved;
     internal bool PressedForNewTab;
@@ -60,6 +75,10 @@ public sealed class CodeViewState
     internal int KeyScrollRows;
     internal int KeyScrollPages;
 
+    public CodeViewState() => Selection = new CodeSelection(Folds);
+
+    public CodeSelection Selection { get; }
+
     /// <summary>Scrolls <paramref name="line"/> to about a third from the top of the view and
     /// flashes it, expanding the folds that hide it, once the view has been laid out.</summary>
     public void RevealLine(int line)
@@ -74,7 +93,7 @@ public sealed class CodeViewState
         get
         {
             var top = RowHeight > 0f && Folds.RowCount > 0 ? Folds.LineAt(Math.Clamp((int)(ScrollY / RowHeight), 0, Folds.RowCount - 1)) : 0;
-            return new CodeViewPosition(top, ScrollX, Anchor, Caret);
+            return new CodeViewPosition(top, ScrollX, Selection.Anchor, Selection.Caret);
         }
     }
 
@@ -86,10 +105,7 @@ public sealed class CodeViewState
         PendingReveal = NoLine;
     }
 
-    public bool HasSelection => Anchor != Caret;
-
-    /// <summary>The selection, start before end.</summary>
-    public (TextPosition Start, TextPosition End) Selection => (TextPosition.Min(Anchor, Caret), TextPosition.Max(Anchor, Caret));
+    public bool HasSelection => Selection.HasSelection;
 
     /// <summary>The selected text of the document last shown, lines joined by '\n', folded lines included.</summary>
     public string SelectedText => Document == null ? "" : CodeText.Between(Document, Selection.Start, Selection.End);
@@ -128,8 +144,8 @@ public sealed class CodeViewState
         foreach (var fold in document.Folds)
             max = Math.Max(max, document.Lines[fold.StartLine].Text.Length + 1 + fold.CollapsedText.Length);
         MaxColumns = max;
-        Anchor = Caret = UnitStart = UnitEnd = PressedAt = default;
-        Clicks = 0;
+        Selection.Select(default, default);
+        PressedAt = default;
         PressedSpanLine = PressedSpan = NoLine;
         PressedOnFold = false;
         ScrollX = ScrollY = LaidOutScrollX = LaidOutScrollY = 0f;
@@ -153,12 +169,6 @@ public sealed class CodeViewState
     {
         PendingColumnStart = start;
         PendingColumnEnd = end;
-    }
-
-    internal void Select(TextPosition anchor, TextPosition caret)
-    {
-        Anchor = anchor;
-        Caret = caret;
     }
 
     private void SetAll(bool collapsed)
@@ -232,7 +242,7 @@ public static class CodeViewWidget
         if (focused || findFocused)
         {
             HandleKeys(ui, state, document, focusId, focused, advance);
-            if (focused && Shortcuts.AnalyzePressed(ui) && AnalyzableAt(document, state.Caret) is { } analyzed)
+            if (focused && Shortcuts.AnalyzePressed(ui) && AnalyzableAt(document, state.Selection.Caret) is { } analyzed)
                 result = result with { Analyze = analyzed };
         }
 
@@ -332,7 +342,7 @@ public static class CodeViewWidget
                     state.PressedAt = at;
                     state.PressedForNewTab = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
                     (state.PressedSpanLine, state.PressedSpan) = (hoverLine, hoverSpan);
-                    Press(state, document, at, i.ClickCount, (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
+                    state.Selection.Press(document, at, i.ClickCount, (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
                 }
             }
             else if (i.Held && hasRect && !state.PressedOnFold)
@@ -341,7 +351,7 @@ public static class CodeViewWidget
                 if (!state.PressMoved && at != state.PressedAt)
                     state.PressMoved = true;
                 if (state.PressMoved)
-                    Drag(state, document, at);
+                    state.Selection.Drag(document, at);
 
                 var dy = pointer.Y < content.Y ? pointer.Y - content.Y : pointer.Y > content.Bottom ? pointer.Y - content.Bottom : 0f;
                 var left = rect.X + gutterWidth;
@@ -354,7 +364,7 @@ public static class CodeViewWidget
                 }
             }
 
-            if (i.Clicked && !state.PressMoved && !state.PressedOnFold && state.Clicks == 1 && (ui.Input.Modifiers & KeyModifiers.Shift) == 0)
+            if (i.Clicked && !state.PressMoved && !state.PressedOnFold && state.Selection.Clicks == 1 && (ui.Input.Modifiers & KeyModifiers.Shift) == 0)
             {
                 var reference = state.PressedSpan >= 0 ? document.Lines[state.PressedSpanLine].Spans[state.PressedSpan] : default;
                 if (reference.Reference is { IsNavigable: true } target && !reference.IsDefinition)
@@ -417,7 +427,6 @@ public static class CodeViewWidget
         int hoverChip, int hoverMark)
     {
         var frame = state.Frame;
-        var (start, end) = state.Selection;
         frame.Document = document;
         frame.Folds = state.Folds;
         frame.Palette = palette;
@@ -442,8 +451,8 @@ public static class CodeViewWidget
         frame.GutterWidth = gutterWidth;
         frame.TextLeft = textLeft;
         frame.Digits = digits;
-        frame.SelectionStart = start;
-        frame.SelectionEnd = end;
+        frame.SelectionStart = state.Selection.Start;
+        frame.SelectionEnd = state.Selection.End;
         frame.Highlight = hoverReference ?? state.Marked;
         (frame.UnderlineLine, frame.UnderlineSpan) = hoverNavigable && !state.PressMoved ? (hoverLine, hoverSpan) : (CodeViewState.NoLine, CodeViewState.NoLine);
         frame.HoverFold = hoverFold;
@@ -489,7 +498,7 @@ public static class CodeViewWidget
                 state.RevealFolds(top);
                 state.ScrollY = folds.RowOf(top) * rowHeight;
                 state.ScrollX = restore.ScrollX;
-                state.Select(CodeText.Clamp(document, restore.Anchor), CodeText.Clamp(document, restore.Caret));
+                state.Selection.Select(CodeText.Clamp(document, restore.Anchor), CodeText.Clamp(document, restore.Caret));
             }
         }
 
@@ -543,55 +552,6 @@ public static class CodeViewWidget
         }
     }
 
-    private static void Press(CodeViewState state, DecompiledDocument document, TextPosition at, int clickCount, bool extend)
-    {
-        state.Clicks = (Math.Max(1, clickCount) - 1) % 3 + 1;
-        switch (state.Clicks)
-        {
-            case 1 when extend:
-                state.Select(state.Anchor, at);
-                state.UnitStart = state.UnitEnd = state.Anchor;
-                break;
-            case 1:
-                state.Select(at, at);
-                state.UnitStart = state.UnitEnd = at;
-                break;
-            case 2:
-                (state.UnitStart, state.UnitEnd) = CodeText.WordAt(document, at);
-                state.Select(state.UnitStart, state.UnitEnd);
-                break;
-            default:
-                (state.UnitStart, state.UnitEnd) = RowAt(state, document, at.Line);
-                state.Select(state.UnitStart, state.UnitEnd);
-                break;
-        }
-    }
-
-    private static void Drag(CodeViewState state, DecompiledDocument document, TextPosition at)
-    {
-        var (start, end) = state.Clicks switch
-        {
-            1 => (at, at),
-            2 => CodeText.WordAt(document, at),
-            _ => RowAt(state, document, at.Line),
-        };
-        if (state.Clicks == 1)
-            state.Select(state.Anchor, at);
-        else if (start < state.UnitStart)
-            state.Select(state.UnitEnd, start);
-        else
-            state.Select(state.UnitStart, TextPosition.Max(end, state.UnitEnd));
-    }
-
-    private static (TextPosition Start, TextPosition End) RowAt(CodeViewState state, DecompiledDocument document, int line)
-    {
-        var first = state.Folds.VisibleLine(line);
-        var next = state.Folds.NextLine(first);
-        return next < document.Lines.Length
-            ? (new TextPosition(first, 0), new TextPosition(next, 0))
-            : (new TextPosition(first, 0), CodeText.End(document));
-    }
-
     /// <summary>The type or member named at <paramref name="at"/> or just before it, as the caret
     /// sits after a word as often as in it; punctuation linked to a member does not count.</summary>
     private static CodeReference? AnalyzableAt(DecompiledDocument document, TextPosition at)
@@ -620,7 +580,7 @@ public static class CodeViewWidget
             switch (stroke.Key)
             {
                 case KeyboardKey.F when shortcut && !shift && (stroke.Modifiers & KeyModifiers.Alt) == 0:
-                    if (!state.FindOpen && state.HasSelection && state.Anchor.Line == state.Caret.Line)
+                    if (!state.FindOpen && state.HasSelection && state.Selection.Anchor.Line == state.Selection.Caret.Line)
                         state.Query = state.SelectedText;
                     state.FindOpen = true;
                     state.FocusFind = true;
@@ -634,7 +594,7 @@ public static class CodeViewWidget
                     ui.Focus(focusId, takesText: false);
                     break;
                 case KeyboardKey.M when focused && chord:
-                    state.ToggleFold(state.Caret.Line);
+                    state.ToggleFold(state.Selection.Caret.Line);
                     break;
                 case KeyboardKey.L when focused && chord:
                     if (state.Folds.AnyCollapsed) state.ExpandAll();
@@ -650,7 +610,7 @@ public static class CodeViewWidget
                     FoldAtCaret(state, collapse: false);
                     break;
                 case KeyboardKey.A when shortcut && focused:
-                    state.Select(default, CodeText.End(document));
+                    state.Selection.Select(default, CodeText.End(document));
                     break;
                 case KeyboardKey.C when shortcut && focused && state.HasSelection:
                     ui.ClipboardText = state.SelectedText;
@@ -685,7 +645,7 @@ public static class CodeViewWidget
 
     private static void FoldAtCaret(CodeViewState state, bool collapse)
     {
-        var fold = state.Folds.Innermost(state.Caret.Line, collapsed: !collapse);
+        var fold = state.Folds.Innermost(state.Selection.Caret.Line, collapsed: !collapse);
         if (fold >= 0)
             state.SetCollapsed(fold, collapse);
     }
@@ -739,7 +699,7 @@ public static class CodeViewWidget
             return;
         }
         state.CurrentMatch = state.CurrentMatch < 0
-            ? direction > 0 ? state.Find.FirstFrom(state.Caret) : (state.Find.FirstOnOrAfter(state.Caret) - 1 + count) % count
+            ? direction > 0 ? state.Find.FirstFrom(state.Selection.Caret) : (state.Find.FirstOnOrAfter(state.Selection.Caret) - 1 + count) % count
             : (state.CurrentMatch + direction + count) % count;
         ShowMatch(state);
     }
@@ -748,7 +708,7 @@ public static class CodeViewWidget
     {
         if (state.CurrentMatch < 0) return;
         var match = state.Find.Matches[state.CurrentMatch];
-        state.Select(match, match with { Column = match.Column + state.Find.Length });
+        state.Selection.Select(match, match with { Column = match.Column + state.Find.Length });
         state.RevealFolds(match.Line);
         state.PendingShowLine = match.Line;
         state.ShowColumns(match.Column, match.Column + state.Find.Length);
@@ -763,7 +723,7 @@ public static class CodeViewWidget
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: state.HasSelection, id: "copy"))
             ui.ClipboardText = state.SelectedText;
         if (ui.MenuItem(t.CodeSelectAll, "Ctrl+A", id: "select-all"))
-            state.Select(default, CodeText.End(document));
+            state.Selection.Select(default, CodeText.End(document));
         if (bookmarkable && state.MenuLine >= 0)
         {
             ui.MenuSeparator();
