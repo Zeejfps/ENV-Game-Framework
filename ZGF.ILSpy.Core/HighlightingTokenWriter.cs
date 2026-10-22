@@ -36,38 +36,70 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
         _nodes.Pop();
     }
 
-    public override void WriteKeyword(string keyword) { using (Kind(SpanKind.Keyword)) base.WriteKeyword(keyword); }
+    public override void WriteKeyword(string keyword)
+    {
+        using var span = StartSpan(SpanKind.Keyword);
+        base.WriteKeyword(keyword);
+    }
 
-    public override void WritePrimitiveType(string type) { using (Kind(SpanKind.Keyword)) base.WritePrimitiveType(type); }
+    public override void WritePrimitiveType(string type)
+    {
+        using var span = StartSpan(SpanKind.Keyword);
+        base.WritePrimitiveType(type);
+    }
 
     public override void WritePrimitiveValue(object? value, LiteralFormat format = LiteralFormat.None)
     {
-        using (Kind(value switch
-        {
-            null or bool => SpanKind.Keyword,
-            string or char => SpanKind.String,
-            _ => SpanKind.Number,
-        }))
-            base.WritePrimitiveValue(value, format);
+        using var span = StartSpan(KindOfValue(value));
+        base.WritePrimitiveValue(value, format);
     }
 
-    public override void WriteInterpolatedText(string text) { using (Kind(SpanKind.String)) base.WriteInterpolatedText(text); }
+    private static SpanKind KindOfValue(object? value) => value switch
+    {
+        null or bool => SpanKind.Keyword,
+        string or char => SpanKind.String,
+        _ => SpanKind.Number,
+    };
 
-    public override void WriteToken(string token) { using (Kind(IsStringDelimiter(token) ? SpanKind.String : SpanKind.Plain)) base.WriteToken(token); }
+    public override void WriteInterpolatedText(string text)
+    {
+        using var span = StartSpan(SpanKind.String);
+        base.WriteInterpolatedText(text);
+    }
 
-    public override void WriteComment(CommentType commentType, string content) { using (Kind(SpanKind.Comment)) base.WriteComment(commentType, content); }
+    public override void WriteToken(string token)
+    {
+        using var span = StartSpan(KindOfToken(token));
+        base.WriteToken(token);
+    }
 
-    public override void WritePreProcessorDirective(PreProcessorDirectiveType type, string? argument) { using (Kind(SpanKind.Preprocessor)) base.WritePreProcessorDirective(type, argument); }
+    private SpanKind KindOfToken(string token) => IsStringDelimiter(token) ? SpanKind.String : SpanKind.Plain;
 
-    public override void WriteIdentifier(Identifier identifier) { using (Kind(Classify(identifier))) base.WriteIdentifier(identifier); }
+    public override void WriteComment(CommentType commentType, string content)
+    {
+        using var span = StartSpan(SpanKind.Comment);
+        base.WriteComment(commentType, content);
+    }
 
-    private KindScope Kind(SpanKind? kind)
+    public override void WritePreProcessorDirective(PreProcessorDirectiveType type, string? argument)
+    {
+        using var span = StartSpan(SpanKind.Preprocessor);
+        base.WritePreProcessorDirective(type, argument);
+    }
+
+    public override void WriteIdentifier(Identifier identifier)
+    {
+        using var span = StartSpan(Classify(identifier));
+        base.WriteIdentifier(identifier);
+    }
+
+    private SpanScope StartSpan(SpanKind? kind)
     {
         _builder.Kind = kind;
-        return new KindScope(_builder);
+        return new SpanScope(_builder);
     }
 
-    private ref struct KindScope(DocumentBuilder builder)
+    private ref struct SpanScope(DocumentBuilder builder)
     {
         public void Dispose() => builder.Kind = null;
     }
