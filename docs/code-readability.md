@@ -10,7 +10,7 @@ Code should be digestible at a glance: no decoding lines, details one jump away.
 - Method names are verbs (`CreateWindowConfig`, `ListExistingAssemblies`), not nouns (`WindowConfig`, `StartupAssemblies`).
 - Type names are nouns for what the type holds or is (`NavigationHistory`, `ErrorLog`, `BrowseTree`). No action names (`BookmarkImport`, `SettingsSync`) and no role suffixes like `-er`, `-Manager` or `-Model` (`IntentTracker`, `SearchModel`); name it `Search`, `Bookmarks`, `FrameworkPicker`. Feature files are the exception: they are named for the activity they cover (`Navigation`, `Bookmarking`, `Searching`).
 - Extract small intent-named helpers even when only a few lines long (`ReportOpenFailure(error)`, `IsStale(ticket)`), so a caller never mixes plumbing or lookup details with intent.
-- Name the intent and hide the mechanism: `settings.RememberWindow(bounds)`, not `settings.Window = AppSettings.Sanitize(bounds)`. Prefer `app.OpenOnStartup(paths)` over `app.Post(() => ...)` in top-level code.
+- Name the intent and hide the mechanism: `settings.RememberWindow(bounds)`, not `settings.Window = AppSettings.Sanitize(bounds)`. Prefer `IlSpyApp.Launch(commandLine)` over wiring settings, workspace and app together in top-level code.
 - Replace tricks with intent-named calls (`node.LoadChildren()`, not `_ = node.Children`).
 - Magic strings and numbers become named constants next to their use.
 
