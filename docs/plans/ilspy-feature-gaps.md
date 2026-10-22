@@ -10,8 +10,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 1. **Decompiler options.** Settings are hard-coded in `ZGF.ILSpy.Core/Settings.cs`. Upstream has a
    C# version picker (1.0–14) and ~110 decompiler toggles (async/yield/LINQ/pattern detection,
    nullable, `field` keyword, remove dead code, auto-load references, …).
-2. **Search leftovers.** Modes, prefixes, operators, regex and scoping are done. Still missing:
-   sort by relevance, and matching C#-style generic names (`List<T>`).
+2. **Search.** Sort by relevance, and matching C#-style generic names (`List<T>`).
 3. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
    (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
    batch).
@@ -45,16 +44,9 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).
 
-## Where we're ahead
-
-- 9 interface languages (upstream removed translations in 10.0).
-- Metadata grid: column sorting, numeric-comparison filters, flags filter popup, expandable
-  multi-line cells.
-- History dropdowns on the Back/Forward buttons.
-
 ## Suggested order
 
-1. Search modes (Core support exists).
+1. Search relevance sort and generic-name matching.
 2. Decompiler options with the C# version picker.
 3. Save code and project export.
 4. XML-doc tooltips.
