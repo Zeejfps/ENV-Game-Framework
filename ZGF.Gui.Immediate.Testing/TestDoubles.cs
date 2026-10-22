@@ -3,15 +3,6 @@ using ZGF.Gui.Testing;
 
 namespace ZGF.Gui.Immediate.Testing;
 
-public sealed class TestClipboard : IClipboard
-{
-    public string? Text { get; set; }
-
-    public void SetText(string text) => Text = text;
-
-    public string? GetText() => Text;
-}
-
 /// <summary>Answers every picker with <see cref="Answer"/>, or cancels when it is null.</summary>
 public sealed class TestFilePicker : IFilePicker
 {
@@ -43,7 +34,7 @@ public sealed class TestPopupHost : IPopupHost
 {
     private readonly Dictionary<int, RecordingCanvas> _canvases = new();
 
-    public UiRect Area { get; set; } = new(-200f, -200f, 800f, 700f);
+    public UiRect Area { get; } = new(-200f, -200f, 800f, 700f);
     public Dictionary<int, UiRect> Shown { get; } = new();
 
     /// <summary>Each shown popup's window: its rect plus the shadow around it.</summary>

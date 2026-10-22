@@ -10,31 +10,27 @@ public sealed class MultiLineTextTests
     [Fact]
     public void Newlines_break_lines_and_the_element_is_as_tall_as_its_lines()
     {
-        var frames = new UiFrames();
-        void Body(Ui ui) => ui.Text("first\nsecond line\nthird", id: ui.GetId("t"));
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: ui => ui.Text("first\nsecond line\nthird", id: ui.GetId("t"))).Frame();
 
-        var rect = frames.RectOf(Body, ui => ui.GetId("t"));
+        var rect = frames.RectOf("t");
 
         Assert.Equal(["first", "second line", "third"], Drawn(frames));
         Assert.Equal(3 * 16f, rect.Height);
         Assert.Equal(11 * 8f, rect.Width);
-        var tops = frames.Canvas.Texts.Select(t => 300f - t.Inputs.Position.Top).ToArray();
+        var tops = frames.TextRects().Select(t => t.Rect.Y).ToArray();
         Assert.Equal([0f, 16f, 32f], tops);
     }
 
     [Fact]
     public void Wrapped_text_breaks_between_words_to_fit_its_width()
     {
-        var frames = new UiFrames();
-        void Body(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Column(new Box { Width = 100f }))
                 ui.Text("the quick brown fox jumps", id: ui.GetId("t"), wrap: true);
-        }
-        frames.Run(0f, Body);
+        }).Frame();
 
-        var rect = frames.RectOf(Body, ui => ui.GetId("t"));
+        var rect = frames.RectOf("t");
 
         Assert.Equal(["the quick", "brown fox", "jumps"], Drawn(frames));
         Assert.Equal(100f, rect.Width);
@@ -44,12 +40,11 @@ public sealed class MultiLineTextTests
     [Fact]
     public void A_word_longer_than_the_width_breaks_between_its_characters()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Column(new Box { Width = 40f }))
                 ui.Text("a enormousword b", wrap: true);
-        });
+        }).Frame();
 
         Assert.Equal(["a", "enorm", "ouswo", "rd b"], Drawn(frames));
     }
@@ -57,12 +52,11 @@ public sealed class MultiLineTextTests
     [Fact]
     public void A_path_wraps_after_its_separators()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Column(new Box { Width = 120f }))
                 ui.Text(@"C:\Program Files\dotnet\shared\Microsoft.NETCore.App", wrap: true);
-        });
+        }).Frame();
 
         Assert.Equal([@"C:\Program", @"Files\dotnet\", @"shared\", "Microsoft.", "NETCore.App"], Drawn(frames));
     }
@@ -70,20 +64,15 @@ public sealed class MultiLineTextTests
     [Fact]
     public void A_long_tooltip_wraps_into_a_block()
     {
-        var frames = new UiFrames(width: 800f, height: 600f);
         var message = string.Join(' ', Enumerable.Repeat("word", 40));
-        void Body(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             var b = ui.Interact("b");
             ui.Leaf(b.Id, new Box { Width = 100f, Height = 30f });
             ui.Tooltip(b, message);
-        }
-        frames.Run(0f, Body);
-        frames.MovePointer(50f, 15f);
-        frames.Run(0f, Body);
-        frames.Wait(0.6);
-        frames.Run(0f, Body);
-        frames.Run(0f, Body);
+        }, width: 800f, height: 600f).Frame();
+        frames.MovePointer(50f, 15f).Frame();
+        frames.Wait(0.6).Frame(2);
 
         var lines = frames.Canvas.Texts.Where(t => t.Inputs.Text.StartsWith("word")).ToArray();
         Assert.True(lines.Length > 1);
@@ -113,10 +102,7 @@ public sealed class KeyStrokesTests
     [Fact]
     public void Keys_iterate_in_order_and_take_removes_them()
     {
-        var frames = new UiFrames();
-        frames.Key(KeyboardKey.A);
-        frames.Key(KeyboardKey.Escape);
-        frames.Key(KeyboardKey.B);
+        var frames = new UiFrames().Key(KeyboardKey.A).Key(KeyboardKey.Escape).Key(KeyboardKey.B);
 
         var (seen, taken, after) = frames.Run(0f, ui =>
         {

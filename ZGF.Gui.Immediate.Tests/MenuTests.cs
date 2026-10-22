@@ -5,10 +5,12 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class MenuTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _picks = new();
     private bool _dark;
     private int _underClicks;
+
+    public MenuTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -35,18 +37,9 @@ public sealed class MenuTests
         ui.Leaf(under.Id, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
     }
 
-    private void OpenFile()
-    {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("File"));
-        _frames.Run(0f, Body);
-    }
+    private void OpenFile() => _frames.Frame().ClickOn("File").Frame();
 
-    private bool Open(string item)
-    {
-        _frames.Run(0f, Body);
-        return _frames.Drew(item);
-    }
+    private bool Open(string item) => _frames.Frame().Drew(item);
 
     [Fact]
     public void Clicking_a_title_opens_its_dropdown_with_shortcuts()
@@ -63,7 +56,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.ClickOn(Body, ui => ui.GetId("Open"));
+        _frames.ClickOn("Open");
 
         Assert.Equal(["Open"], _picks);
         Assert.False(Open("Open"));
@@ -75,7 +68,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.ClickOn(Body, ui => ui.GetId("Save"));
+        _frames.ClickOn("Save");
 
         Assert.Empty(_picks);
         Assert.True(Open("Open"));
@@ -85,11 +78,9 @@ public sealed class MenuTests
     public void Hovering_another_title_switches_the_open_menu()
     {
         OpenFile();
-        var view = _frames.RectOf(Body, ui => ui.GetId("View"));
+        var view = _frames.RectOf("View");
 
-        _frames.MovePointer(view.X + 5f, view.Y + 5f);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.MovePointer(view.X + 5f, view.Y + 5f).Frame(2);
 
         Assert.True(Open("Dark"));
         Assert.False(_frames.Drew("Open"));
@@ -100,8 +91,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.Key(KeyboardKey.Escape);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Escape).Frame();
 
         Assert.False(Open("Open"));
     }
@@ -111,7 +101,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.Click(350f, 250f, Body);
+        _frames.Click(350f, 250f);
 
         Assert.False(Open("Open"));
         Assert.Equal(1, _underClicks);
@@ -122,8 +112,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.DismissPopups();
-        _frames.Run(0f, Body);
+        _frames.DismissPopups().Frame();
 
         Assert.False(Open("Open"));
     }
@@ -131,11 +120,9 @@ public sealed class MenuTests
     [Fact]
     public void A_checkable_item_flips_its_value()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("View"));
-        _frames.Run(0f, Body);
+        _frames.Frame().ClickOn("View").Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("Dark"));
+        _frames.ClickOn("Dark");
 
         Assert.True(_dark);
     }
@@ -143,8 +130,10 @@ public sealed class MenuTests
 
 public sealed class ContextMenuTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _picks = new();
+
+    public ContextMenuTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -160,15 +149,11 @@ public sealed class ContextMenuTests
     [Fact]
     public void A_right_click_opens_the_menu_at_the_pointer_and_a_pick_closes_it()
     {
-        _frames.Run(0f, Body);
-
-        _frames.Click(50f, 40f, Body, PointerButton.Right);
-        _frames.Run(0f, Body);
-        var rect = _frames.RectOf(Body, ui => ui.GetId("ctx"));
+        _frames.Frame().Click(50f, 40f, PointerButton.Right).Frame();
+        var rect = _frames.RectOf("ctx");
         Assert.Equal((50f, 40f), (rect.X, rect.Y));
 
-        _frames.ClickOn(Body, ui => ui.GetId("Copy"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn("Copy").Frame();
 
         Assert.Equal(["Copy"], _picks);
         Assert.False(_frames.Drew("Copy"));
@@ -177,12 +162,10 @@ public sealed class ContextMenuTests
     [Fact]
     public void A_press_outside_closes_the_menu()
     {
-        _frames.Run(0f, Body);
-        _frames.Click(50f, 40f, Body, PointerButton.Right);
-        _frames.Run(0f, Body);
+        _frames.Frame().Click(50f, 40f, PointerButton.Right).Frame();
         Assert.True(_frames.Drew("Copy"));
 
-        _frames.Click(350f, 250f, Body);
+        _frames.Click(350f, 250f);
 
         Assert.False(_frames.Drew("Copy"));
         Assert.Empty(_picks);
@@ -191,7 +174,7 @@ public sealed class ContextMenuTests
 
 public sealed class TooltipTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames = new(body: Body);
 
     private static void Body(Ui ui)
     {
@@ -204,41 +187,29 @@ public sealed class TooltipTests
     [Fact]
     public void A_tooltip_waits_for_the_hover_delay_then_shows_under_its_target()
     {
-        _frames.Run(0f, Body);
-        _frames.MovePointer(50f, 30f);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Frame().MovePointer(50f, 30f).Frame(2);
 
         Assert.False(_frames.Drew("Tip"));
         Assert.Equal(_frames.RealTime + 0.5, _frames.WakeAt, 3);
 
-        _frames.Wait(0.6);
-        _frames.Run(0f, Body);
+        _frames.Wait(0.6).Frame();
 
         Assert.True(_frames.Drew("Tip"));
-        var tip = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Tip").Inputs.Position;
-        Assert.True(300f - tip.Top >= 46f + 6f);
+        Assert.True(_frames.TextRect("Tip").Y >= 46f + 6f);
     }
 
     [Fact]
     public void Leaving_or_pressing_hides_the_tooltip()
     {
-        _frames.Run(0f, Body);
-        _frames.MovePointer(50f, 30f);
-        _frames.Run(0f, Body);
-        _frames.Wait(0.6);
-        _frames.Run(0f, Body);
+        _frames.Frame().MovePointer(50f, 30f).Frame();
+        _frames.Wait(0.6).Frame();
         Assert.True(_frames.Drew("Tip"));
 
-        _frames.Press();
-        _frames.Run(0f, Body);
+        _frames.Press().Frame();
         Assert.False(_frames.Drew("Tip"));
-        _frames.Release();
 
-        _frames.MovePointer(300f, 200f);
-        _frames.Run(0f, Body);
-        _frames.MovePointer(50f, 30f);
-        _frames.Run(0f, Body);
+        _frames.Release().MovePointer(300f, 200f).Frame();
+        _frames.MovePointer(50f, 30f).Frame();
         Assert.False(_frames.Drew("Tip"));
     }
 
@@ -246,7 +217,7 @@ public sealed class TooltipTests
     public void A_tooltip_scope_records_its_own_content_once_open()
     {
         var opened = new List<bool>();
-        void Rich(Ui ui)
+        _frames.Body = ui =>
         {
             using var screen = ui.Screen();
             var b = ui.Interact("b");
@@ -256,13 +227,10 @@ public sealed class TooltipTests
             if (!tooltip.IsOpen) return;
             ui.Text("Header", bold: true);
             ui.Text("Line");
-        }
+        };
 
-        _frames.Run(0f, Rich);
-        _frames.MovePointer(50f, 30f);
-        _frames.Run(0f, Rich);
-        _frames.Wait(0.6);
-        _frames.Run(0f, Rich);
+        _frames.Frame().MovePointer(50f, 30f).Frame();
+        _frames.Wait(0.6).Frame();
 
         Assert.Equal([false, false, true], opened);
         Assert.True(_frames.Drew("Header"));
@@ -272,9 +240,11 @@ public sealed class TooltipTests
 
 public sealed class FlyoutTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private bool _open;
     private int _clicks;
+
+    public FlyoutTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -287,52 +257,33 @@ public sealed class FlyoutTests
         if (ui.Button("Inside")) _clicks++;
     }
 
-    private void Click(float x, float y)
-    {
-        _frames.MovePointer(x, y);
-        _frames.Run(0f, Body);
-        _frames.Press();
-        _frames.Run(0f, Body);
-        _frames.Release();
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-    }
-
-    private (float X, float Y) Center(string text)
-    {
-        var p = _frames.Canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Position;
-        return (p.Left + p.Width / 2, 300f - p.Top + p.Height / 2);
-    }
-
     [Fact]
     public void A_flyout_keeps_open_for_clicks_inside_and_closes_on_a_press_outside_or_Escape()
     {
-        _frames.Run(0f, Body);
-        var owner = _frames.RectOf(Body, ui => ui.GetId("owner"));
-        Click(owner.X + owner.Width / 2, owner.Y + owner.Height / 2);
+        _frames.Frame().ClickOn("owner").Frame();
         Assert.True(_frames.Drew("Inside"));
 
-        var (x, y) = Center("Inside");
-        Click(x, y);
+        _frames.Click(_frames.TextRect("Inside")).Frame();
         Assert.Equal(1, _clicks);
         Assert.True(_open);
 
-        Click(350f, 250f);
+        _frames.Click(350f, 250f).Frame();
         Assert.False(_open);
         Assert.False(_frames.Drew("Inside"));
 
-        Click(owner.X + owner.Width / 2, owner.Y + owner.Height / 2);
+        _frames.ClickOn("owner").Frame();
         Assert.True(_open);
-        _frames.Key(KeyboardModule.KeyboardKey.Escape);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Escape).Frame();
         Assert.False(_open);
     }
 }
 
 public sealed class MenuRadioItemTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private string _theme = "Dark";
+
+    public MenuRadioItemTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -346,17 +297,10 @@ public sealed class MenuRadioItemTests
         }
     }
 
-    private void OpenMenu()
-    {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("Theme"));
-        _frames.Run(0f, Body);
-    }
-
     [Fact]
     public void Only_the_selected_choice_shows_a_dot()
     {
-        OpenMenu();
+        _frames.Frame().ClickOn("Theme").Frame();
 
         var dot = Assert.Single(_frames.Canvas.Circles);
         var row = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Dark").Inputs.Position;
@@ -366,9 +310,9 @@ public sealed class MenuRadioItemTests
     [Fact]
     public void Picking_a_choice_selects_it()
     {
-        OpenMenu();
+        _frames.Frame().ClickOn("Theme").Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("Light"));
+        _frames.ClickOn("Light");
 
         Assert.Equal("Light", _theme);
     }
@@ -376,9 +320,11 @@ public sealed class MenuRadioItemTests
 
 public sealed class DropdownButtonTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _picks = new();
     private bool _enabled = true;
+
+    public DropdownButtonTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -388,26 +334,21 @@ public sealed class DropdownButtonTests
         if (ui.MenuItem("Second")) _picks.Add("Second");
     }
 
-    private void ClickButton()
-    {
-        _frames.ClickOn(Body, ui => ui.GetId("more"));
-        _frames.Run(0f, Body);
-    }
+    private void ClickButton() => _frames.ClickOn("more").Frame();
 
     [Fact]
     public void Clicking_opens_the_menu_below_the_button_and_a_pick_closes_it()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         ClickButton();
-        var button = _frames.RectOf(Body, ui => ui.GetId("more"));
-        var popup = _frames.RectOf(Body, ui => HashCode.Combine(ui.GetId("more"), 0x4D454E55));
+        var button = _frames.RectOf("more");
+        var popup = _frames.RectOf(ui => UiWidgets.MenuPopupId(ui.GetId("more")));
         Assert.True(_frames.Drew("First"));
         Assert.Equal(button.X, popup.X);
         Assert.True(popup.Y >= button.Y + button.Height);
 
-        _frames.ClickOn(Body, ui => ui.GetId("Second"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn("Second").Frame();
 
         Assert.Equal(["Second"], _picks);
         Assert.False(_frames.Drew("First"));
@@ -416,7 +357,7 @@ public sealed class DropdownButtonTests
     [Fact]
     public void Clicking_the_button_again_closes_the_menu()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         ClickButton();
 
         ClickButton();
@@ -429,7 +370,7 @@ public sealed class DropdownButtonTests
     public void A_disabled_button_does_not_open()
     {
         _enabled = false;
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         ClickButton();
 
@@ -439,18 +380,11 @@ public sealed class DropdownButtonTests
     [Fact]
     public void Keys_open_the_menu_and_pick_from_it()
     {
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Tab);
-        _frames.Run(0f, Body);
+        _frames.Frame().Key(KeyboardKey.Tab).Frame();
 
-        _frames.Key(KeyboardKey.Enter);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.DownArrow);
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Enter);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
+        _frames.Key(KeyboardKey.DownArrow).Frame();
+        _frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal(["Second"], _picks);
         Assert.False(_frames.Drew("First"));
@@ -459,17 +393,13 @@ public sealed class DropdownButtonTests
     [Fact]
     public void A_resting_pointer_does_not_take_the_highlight_back_from_the_keys()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         ClickButton();
-        var first = _frames.RectOf(Body, ui => ui.GetId("First"));
-        _frames.MovePointer(first.X + 4f, first.Y + first.Height / 2);
-        _frames.Run(0f, Body);
+        var first = _frames.RectOf("First");
+        _frames.MovePointer(first.X + 4f, first.Y + first.Height / 2).Frame();
 
-        _frames.Key(KeyboardKey.DownArrow);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Enter);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
+        _frames.Key(KeyboardKey.Enter).Frame();
 
         Assert.Equal(["Second"], _picks);
     }
@@ -479,9 +409,11 @@ public sealed class SelectTests
 {
     private static readonly string[] Options = ["Apple", "Banana", "Cherry"];
 
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private string _value = "Apple";
     private int _changes;
+
+    public SelectTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -489,45 +421,33 @@ public sealed class SelectTests
             _changes++;
     }
 
-    [Fact]
-    public void The_button_shows_the_current_option_and_a_pick_changes_it()
+    [Theory]
+    [InlineData("Cherry", 1)]
+    [InlineData("Apple", 0)]
+    public void The_button_shows_the_current_option_and_a_pick_closes_the_menu_and_changes_it_unless_current(string pick, int changes)
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         Assert.True(_frames.Drew("Apple"));
         Assert.False(_frames.Drew("Cherry"));
 
-        _frames.ClickOn(Body, ui => ui.GetId("fruit"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn("fruit").Frame();
         Assert.True(_frames.Drew("Cherry"));
 
-        _frames.ClickOn(Body, ui => ui.GetId("Cherry"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn(pick).Frame();
 
-        Assert.Equal("Cherry", _value);
-        Assert.Equal(1, _changes);
+        Assert.Equal(pick, _value);
+        Assert.Equal(changes, _changes);
         Assert.False(_frames.Drew("Banana"));
-    }
-
-    [Fact]
-    public void Picking_the_current_option_changes_nothing()
-    {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("fruit"));
-        _frames.Run(0f, Body);
-
-        _frames.ClickOn(Body, ui => ui.GetId("Apple"));
-        _frames.Run(0f, Body);
-
-        Assert.Equal("Apple", _value);
-        Assert.Equal(0, _changes);
     }
 }
 
 public sealed class SelectButtonTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private bool _red = true;
     private bool _green;
+
+    public SelectButtonTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -541,43 +461,32 @@ public sealed class SelectButtonTests
     [Fact]
     public void A_check_items_icon_sits_between_the_check_and_the_label_whether_checked_or_not()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("colors"));
-        _frames.Run(0f, Body);
+        _frames.Frame().ClickOn("colors").Frame();
         Assert.True(IsLeftOf("B", "Blue"));
         Assert.True(IsLeftOf("Red", "Blue"));
 
-        _frames.ClickOn(Body, ui => ui.GetId("Blue"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn("Blue").Frame();
 
         Assert.False(_red);
         Assert.Equal(0xFF0000FFu, _frames.TextColor("B"));
         Assert.True(IsLeftOf("B", "Blue"));
     }
 
-    private bool IsLeftOf(string left, string right) =>
-        _frames.Canvas.Texts.Single(t => t.Inputs.Text == left).Inputs.Position.Right <=
-        _frames.Canvas.Texts.Single(t => t.Inputs.Text == right).Inputs.Position.Left;
+    private bool IsLeftOf(string left, string right) => _frames.TextRect(left).Right <= _frames.TextRect(right).X;
 
     [Fact]
     public void Kept_open_check_items_flip_one_after_another_without_closing_the_menu()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("colors"));
-        _frames.Run(0f, Body);
+        _frames.Frame().ClickOn("colors").Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("Red"));
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("Green"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn("Red").Frame();
+        _frames.ClickOn("Green").Frame();
 
         Assert.False(_red);
         Assert.True(_green);
         Assert.True(_frames.Drew("Red"));
 
-        _frames.Key(KeyboardKey.Escape);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.False(_frames.Drew("Red"));
     }
@@ -585,14 +494,12 @@ public sealed class SelectButtonTests
 
 public sealed class SplitIconButtonTests
 {
-    private const int ArrowSalt = 0x53504C41;
-    private const int ShellSalt = 0x53504C53;
-    private const int MenuSalt = 0x4D454E55;
-
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _events = new();
     private int _revision;
     private bool _nextFocused;
+
+    public SplitIconButtonTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -612,21 +519,14 @@ public sealed class SplitIconButtonTests
         }
     }
 
-    private static int Arrow(Ui ui) => HashCode.Combine(ui.GetId("go"), ArrowSalt);
-
-    private void Settle()
-    {
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-    }
+    private static int Arrow(Ui ui) => UiWidgets.SplitArrowId(ui.GetId("go"));
 
     [Fact]
     public void Clicking_the_main_half_clicks_without_opening_the_menu()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("go"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn("go").Frame();
 
         Assert.Equal(["clicked"], _events);
         Assert.False(_frames.Drew("First"));
@@ -635,15 +535,13 @@ public sealed class SplitIconButtonTests
     [Fact]
     public void Clicking_the_arrow_opens_the_menu_below_the_whole_control()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, Arrow);
-        _frames.Run(0f, Body);
-        var shell = _frames.RectOf(Body, ui => HashCode.Combine(ui.GetId("go"), ShellSalt));
-        var main = _frames.RectOf(Body, ui => ui.GetId("go"));
-        var popup = _frames.RectOf(Body, ui => HashCode.Combine(Arrow(ui), MenuSalt));
-        _frames.ClickOn(Body, ui => ui.GetId("First"));
-        _frames.Run(0f, Body);
+        _frames.ClickOn(Arrow).Frame();
+        var shell = _frames.RectOf(ui => UiWidgets.SplitShellId(ui.GetId("go")));
+        var main = _frames.RectOf("go");
+        var popup = _frames.RectOf(ui => UiWidgets.SplitMenuPopupId(ui.GetId("go")));
+        _frames.ClickOn("First").Frame();
 
         Assert.Equal(main.X - UiTheme.Dark.BorderWidth, shell.X);
         Assert.Equal(shell.X, popup.X);
@@ -655,16 +553,11 @@ public sealed class SplitIconButtonTests
     [Fact]
     public void Down_opens_the_menu_of_the_focused_control_and_Enter_clicks_it()
     {
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Tab);
-        _frames.Run(0f, Body);
+        _frames.Frame().Key(KeyboardKey.Tab).Frame();
 
-        _frames.Key(KeyboardKey.Enter);
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.DownArrow);
-        Settle();
-        _frames.Key(KeyboardKey.Enter);
-        Settle();
+        _frames.Key(KeyboardKey.Enter).Frame();
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal(["clicked", "First"], _events);
     }
@@ -672,13 +565,11 @@ public sealed class SplitIconButtonTests
     [Fact]
     public void A_change_of_revision_closes_the_open_menu()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, Arrow);
-        _frames.Run(0f, Body);
+        _frames.Frame().ClickOn(Arrow).Frame();
         Assert.True(_frames.Drew("First"));
 
         _revision++;
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         Assert.False(_frames.Drew("First"));
         Assert.Empty(_events);
@@ -687,16 +578,11 @@ public sealed class SplitIconButtonTests
     [Fact]
     public void Tab_closes_the_menu_and_moves_focus_on_from_the_control()
     {
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Tab);
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.DownArrow);
-        Settle();
+        _frames.Frame().Key(KeyboardKey.Tab).Frame();
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
         Assert.True(_frames.Drew("First"));
 
-        _frames.Key(KeyboardKey.Tab);
-        Settle();
-        Settle();
+        _frames.Key(KeyboardKey.Tab).Frame(4);
 
         Assert.False(_frames.Drew("First"));
         Assert.True(_nextFocused);
@@ -706,7 +592,7 @@ public sealed class SplitIconButtonTests
 
 public sealed class MenuItemIconTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames = new(body: Body);
 
     private static void Body(Ui ui)
     {
@@ -720,9 +606,7 @@ public sealed class MenuItemIconTests
     [Fact]
     public void An_icon_sits_in_the_mark_column_with_its_overlay_unless_the_item_is_checked()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("more"));
-        _frames.Run(0f, Body);
+        _frames.Frame().ClickOn("more").Frame();
 
         Assert.True(_frames.Drew("I"));
         Assert.Equal(0xFF00FF00u, _frames.TextColor("I"));
@@ -735,7 +619,7 @@ public sealed class MenuScrollTests
 {
     private const int ItemCount = 60;
 
-    private readonly UiFrames _frames = new(height: 2400f);
+    private readonly UiFrames _frames = new(height: 2400f, body: Body);
 
     private static void Body(Ui ui)
     {
@@ -745,22 +629,16 @@ public sealed class MenuScrollTests
             ui.MenuItem($"Item {i}");
     }
 
-    private static int Popup(Ui ui) => HashCode.Combine(ui.GetId("more"), 0x4D454E55);
-
     [Fact]
     public void A_long_menu_stops_at_the_theme_height_and_End_scrolls_its_last_item_into_view()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => ui.GetId("more"));
-        _frames.Run(0f, Body);
-        var popup = _frames.RectOf(Body, Popup);
+        _frames.Frame().ClickOn("more").Frame();
+        var popup = _frames.RectOf(ui => UiWidgets.MenuPopupId(ui.GetId("more")));
         var theme = UiTheme.Dark;
         var chrome = (theme.MenuPadding + theme.BorderWidth) * 2;
 
-        _frames.Key(KeyboardKey.End);
-        for (var i = 0; i < 3; i++)
-            _frames.Run(0f, Body);
-        var last = _frames.RectOf(Body, ui => ui.GetId($"Item {ItemCount - 1}"));
+        _frames.Key(KeyboardKey.End).Frame(3);
+        var last = _frames.RectOf($"Item {ItemCount - 1}");
 
         Assert.True(popup.Height <= theme.MenuMaxHeight + chrome, $"{popup.Height}");
         Assert.True(last.Y >= popup.Y && last.Bottom <= popup.Bottom, $"{last} outside {popup}");
@@ -769,43 +647,40 @@ public sealed class MenuScrollTests
 
 public sealed class IconOverlayTests
 {
-    private readonly UiFrames _frames = new();
-
-    private static void Body(Ui ui)
-    {
-        using var screen = ui.Screen();
-        using (ui.Scroll("list", new Box { Height = 100f, Gap = 0f }))
-        {
-            for (var i = 0; i < 30; i++)
-            {
-                using (ui.Row(new Box { Height = 24f }))
-                {
-                    ui.Icon(new UiIcon("I", Overlay: "o"));
-                    ui.Text($"row {i}");
-                }
-            }
-        }
-    }
-
     [Fact]
     public void An_icons_overlay_is_clipped_with_its_row_by_the_list_it_scrolls_in()
     {
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        var list = _frames.RectOf(Body, ui => ui.GetId("list"));
+        var frames = new UiFrames(body: ui =>
+        {
+            using var screen = ui.Screen();
+            using (ui.Scroll("list", new Box { Height = 100f, Gap = 0f }))
+            {
+                for (var i = 0; i < 30; i++)
+                {
+                    using (ui.Row(new Box { Height = 24f }))
+                    {
+                        ui.Icon(new UiIcon("I", Overlay: "o"));
+                        ui.Text($"row {i}");
+                    }
+                }
+            }
+        }).Frame(2);
+        var list = frames.RectOf("list");
 
-        var overlays = _frames.Canvas.Texts.Where(t => t.Inputs.Text == "o").ToList();
+        var overlays = frames.TextRects().Where(t => t.Text == "o").ToList();
 
         Assert.InRange(overlays.Count, 1, 6);
-        Assert.All(overlays, t => Assert.True(_frames.Height - t.Inputs.Position.Top <= list.Bottom, $"{_frames.Height - t.Inputs.Position.Top} > {list.Bottom}"));
+        Assert.All(overlays, t => Assert.True(t.Rect.Y <= list.Bottom, $"{t.Rect.Y} > {list.Bottom}"));
     }
 }
 
 public sealed class NestedScrollbarTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private float _outerX;
     private uint _thumb;
+
+    public NestedScrollbarTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -826,11 +701,10 @@ public sealed class NestedScrollbarTests
     [Fact]
     public void A_scroll_inside_a_scrolled_one_keeps_its_bar_within_the_outer_view()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         _outerX = 100f;
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        var outer = _frames.RectOf(Body, ui => ui.GetId("outer"));
+        _frames.Frame(2);
+        var outer = _frames.RectOf("outer");
         var thumbs = _frames.Canvas.Rects.Where(r => r.Inputs.Style.BackgroundColor == _thumb).ToList();
 
         Assert.NotEmpty(thumbs);

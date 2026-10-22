@@ -10,9 +10,7 @@ public sealed class ContextTests
     [Fact]
     public void Get_returns_null_outside_any_provide()
     {
-        var frames = new UiFrames();
-
-        var found = frames.Run(0f, ui => ui.Get<Service>());
+        var found = new UiFrames().Run(0f, ui => ui.Get<Service>());
 
         Assert.Null(found);
     }
@@ -20,10 +18,9 @@ public sealed class ContextTests
     [Fact]
     public void An_inner_provide_overrides_the_outer_until_it_is_disposed()
     {
-        var frames = new UiFrames();
         var seen = new List<string?>();
 
-        frames.Run(0f, ui =>
+        new UiFrames(body: ui =>
         {
             using (ui.Provide(new Service("outer")))
             {
@@ -33,7 +30,7 @@ public sealed class ContextTests
                 seen.Add(ui.Get<Service>()?.Name);
             }
             seen.Add(ui.Get<Service>()?.Name);
-        });
+        }).Frame();
 
         Assert.Equal(["outer", "inner", "outer", null], seen);
     }

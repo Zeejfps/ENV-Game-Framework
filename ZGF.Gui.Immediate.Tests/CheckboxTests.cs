@@ -4,11 +4,13 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class CheckboxTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private bool? _group;
     private bool _single = true;
     private bool _enabled = true;
     private int _changes;
+
+    public CheckboxTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -22,13 +24,13 @@ public sealed class CheckboxTests
     [Fact]
     public void A_mixed_group_turns_on_then_off()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("group"));
+        _frames.ClickOn("group");
         Assert.True(_group);
-        _frames.ClickOn(Body, ui => ui.GetId("group"));
+        _frames.ClickOn("group");
         Assert.False(_group);
-        _frames.ClickOn(Body, ui => ui.GetId("group"));
+        _frames.ClickOn("group");
         Assert.True(_group);
         Assert.Equal(3, _changes);
     }
@@ -37,7 +39,7 @@ public sealed class CheckboxTests
     public void A_mixed_group_draws_an_accent_square_and_no_checkmark()
     {
         _single = false;
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         Assert.Single(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.Accent);
     }
@@ -60,10 +62,10 @@ public sealed class CheckboxTests
     public void Disabled_checkboxes_ignore_clicks()
     {
         _enabled = false;
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("group"));
-        _frames.ClickOn(Body, ui => ui.GetId("single"));
+        _frames.ClickOn("group");
+        _frames.ClickOn("single");
 
         Assert.Null(_group);
         Assert.True(_single);

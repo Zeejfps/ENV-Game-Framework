@@ -39,7 +39,7 @@ public sealed class TreeViewTests
 
     private sealed class Tree
     {
-        public readonly UiFrames Frames = new();
+        public readonly UiFrames Frames;
         public readonly Model Model = new();
         public readonly TreeViewState<Node> State = new(ReferenceEqualityComparer.Instance);
         public readonly List<Node> Roots;
@@ -50,10 +50,11 @@ public sealed class TreeViewTests
         public Tree(params Node[] roots)
         {
             Roots = roots.ToList();
+            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
             Frame();
         }
 
-        public void Body(Ui ui)
+        private void Body(Ui ui)
         {
             using var screen = ui.Screen();
             Last = ui.TreeView("tree", Roots, Model, State, toggleOnActivate: ToggleOnActivate);
@@ -62,20 +63,16 @@ public sealed class TreeViewTests
 
         public TreeViewResult<Node> Frame()
         {
-            Frames.Run(1f / 60f, Body);
+            Frames.Frame();
             return Last;
         }
 
         public void Click(int row, float x = 200f, PointerButton button = PointerButton.Left) =>
-            Frames.Click(x, 16f + row * RowHeight + RowHeight / 2, Body, button);
+            Frames.Click(x, 16f + row * RowHeight + RowHeight / 2, button);
 
         public void ClickArrow(int row, int depth) => Click(row, 28f + depth * 16f);
 
-        public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
-        {
-            Frames.Key(key, modifiers);
-            Frame();
-        }
+        public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => Frames.Key(key, modifiers).Frame();
 
         public string Selected => State.HasSelection ? State.Selected!.Name : "";
     }
@@ -126,10 +123,8 @@ public sealed class TreeViewTests
         tree.Click(0);
         tree.Results.Clear();
 
-        tree.Frames.Press();
-        tree.Frame();
-        tree.Frames.Release();
-        tree.Frame();
+        tree.Frames.Press().Frame();
+        tree.Frames.Release().Frame();
 
         Assert.Contains(tree.Results, r => r.Activated && r.Node!.Name == "A");
         Assert.True(tree.State.IsExpanded(tree.Roots[0]));
@@ -161,6 +156,33 @@ public sealed class TreeViewTests
         tree.Results.Clear();
         tree.Key(KeyboardKey.Enter);
         Assert.Contains(tree.Results, r => r.Activated && r.Node!.Name == "C");
+    }
+
+    [Theory]
+    [InlineData(KeyboardKey.RightArrow, KeyModifiers.Alt)]
+    [InlineData(KeyboardKey.DownArrow, KeyModifiers.Control)]
+    [InlineData(KeyboardKey.End, KeyModifiers.Super)]
+    public void Keys_chorded_with_app_modifiers_are_left_to_the_app(KeyboardKey key, KeyModifiers modifiers)
+    {
+        var tree = new Tree(Sample());
+        tree.Click(0);
+        Assert.Equal("A", tree.Selected);
+
+        tree.Key(key, modifiers);
+
+        Assert.Equal("A", tree.Selected);
+        Assert.False(tree.State.IsExpanded(tree.Roots[0]));
+    }
+
+    [Fact]
+    public void Shift_does_not_stop_navigation()
+    {
+        var tree = new Tree(Sample());
+        tree.Click(0);
+
+        tree.Key(KeyboardKey.DownArrow, KeyModifiers.Shift);
+
+        Assert.Equal("B", tree.Selected);
     }
 
     [Fact]
@@ -220,9 +242,7 @@ public sealed class TreeViewTests
         var tree = new Tree(big);
 
         tree.State.Reveal([big, big.Children[700]]);
-        tree.Frame();
-        tree.Frame();
-        tree.Frame();
+        tree.Frames.Frame(3);
 
         Assert.Equal("n700", tree.Selected);
         Assert.True(tree.Frames.Drew("n700"));
@@ -235,8 +255,7 @@ public sealed class TreeViewTests
         var big = new Node("big", Enumerable.Range(0, 100_000).Select(i => new Node($"n{i}")).ToArray());
         var tree = new Tree(big);
         tree.State.SetExpanded(big, true);
-        tree.Frame();
-        tree.Frame();
+        tree.Frames.Frame(2);
 
         tree.Model.RowCalls = 0;
         tree.Model.ChildCalls = 0;
@@ -248,8 +267,7 @@ public sealed class TreeViewTests
 
         tree.Click(0);
         tree.Key(KeyboardKey.End);
-        tree.Frame();
-        tree.Frame();
+        tree.Frames.Frame(2);
         Assert.Equal("n99999", tree.Selected);
         Assert.True(tree.Frames.Drew("n99999"));
     }
@@ -317,14 +335,11 @@ public sealed class TreeViewTests
         var tree = new Tree(new Node("root", children));
 
         tree.State.Select(children[80]);
-        tree.Frame();
-        tree.Frame();
+        tree.Frames.Frame(2);
         Assert.False(tree.Frames.Drew("child 80"));
 
         tree.State.SetExpanded(tree.Roots[0], true);
-        tree.Frame();
-        tree.Frame();
-        tree.Frame();
+        tree.Frames.Frame(3);
 
         Assert.True(tree.Frames.Drew("child 80"));
         Assert.Equal("child 80", tree.Selected);
@@ -337,15 +352,12 @@ public sealed class TreeViewTests
         var state = new TreeViewState<int>(comparer);
         var roots = Enumerable.Range(0, 10_000).ToArray();
         var model = new FlatModel();
-        var frames = new UiFrames();
-        void Body(Ui ui) => ui.TreeView("tree", roots, model, state);
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: ui => ui.TreeView("tree", roots, model, state)).Frame();
 
         state.Select(-1);
-        frames.Run(0f, Body);
-        frames.Run(0f, Body);
+        frames.Frame(2);
         comparer.Calls = 0;
-        frames.Run(0f, Body);
+        frames.Frame();
 
         Assert.True(comparer.Calls < 1_000, $"{comparer.Calls} comparisons");
     }
@@ -369,10 +381,8 @@ public sealed class TreeViewTests
         tree.Click(0);
         tree.Results.Clear();
 
-        tree.Frames.Press();
-        tree.Frame();
-        tree.Frames.Release();
-        tree.Frame();
+        tree.Frames.Press().Frame();
+        tree.Frames.Release().Frame();
 
         Assert.Contains(tree.Results, r => r.Activated && r.Node!.Name == "A");
         Assert.False(tree.State.IsExpanded(tree.Roots[0]));

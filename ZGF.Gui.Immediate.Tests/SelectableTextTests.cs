@@ -74,9 +74,7 @@ public sealed class SelectableTextTests
     [Fact]
     public void The_caret_lands_on_the_nearest_boundary()
     {
-        var frames = new UiFrames();
-
-        var (before, after) = frames.Run(0f, ui => (ui.CaretAt("abc", CharWidth * 1.4f), ui.CaretAt("abc", CharWidth * 1.6f)));
+        var (before, after) = new UiFrames().Run(0f, ui => (ui.CaretAt("abc", CharWidth * 1.4f), ui.CaretAt("abc", CharWidth * 1.6f)));
 
         Assert.Equal((1, 2), (before, after));
     }
@@ -91,16 +89,17 @@ public sealed class SelectableTextTests
         {
             _text = text;
             _width = width;
-            Frame();
+            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+            Frames.Frame();
         }
 
-        public UiFrames Frames { get; } = new();
+        public UiFrames Frames { get; }
         public TextSelection Selection { get; } = new();
         public bool Active { get; init; } = true;
         public float Shift => _shift;
         public string Selected => Selection.Of(_text);
 
-        private void Frame() => Frames.Run(1f / 60f, ui =>
+        private void Body(Ui ui)
         {
             using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }))
             {
@@ -108,27 +107,13 @@ public sealed class SelectableTextTests
                 using (ui.Row(i.Id, new Box { Width = _width, Height = MiddleY * 2, Gap = 0f }))
                     ui.SelectableText(i, _text, Selection, ref _shift, Active);
             }
-        });
-
-        public void Press(int index, bool fresh = true)
-        {
-            if (fresh) Frames.Wait(1);
-            Frames.MovePointer(index * CharWidth, MiddleY);
-            Frames.Press();
-            Frame();
         }
 
-        public void MoveTo(int index)
-        {
-            Frames.MovePointer(index * CharWidth, MiddleY);
-            Frame();
-        }
+        public void Press(int index, bool fresh = true) => Frames.Wait(fresh ? 1 : 0).MovePointer(index * CharWidth, MiddleY).Press().Frame();
 
-        public void Release()
-        {
-            Frames.Release();
-            Frame();
-        }
+        public void MoveTo(int index) => Frames.MovePointer(index * CharWidth, MiddleY).Frame();
+
+        public void Release() => Frames.Release().Frame();
 
         public void Click(int index, bool fresh = true)
         {
@@ -143,14 +128,18 @@ public sealed class SelectableTextAreaTests
     private const float CharWidth = 8f;
     private const float LineHeight = 20f;
 
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly TextSelection _selection = new();
     private float _shift;
     private const string Text = "one two\r\nthree four\nfive";
 
-    public SelectableTextAreaTests() => Frame();
+    public SelectableTextAreaTests()
+    {
+        _frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+        _frames.Frame();
+    }
 
-    private void Frame() => _frames.Run(1f / 60f, ui =>
+    private void Body(Ui ui)
     {
         using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }))
         {
@@ -158,9 +147,9 @@ public sealed class SelectableTextAreaTests
             using (ui.Column(i.Id, new Box { Width = 200f, Height = LineHeight * 3, Gap = 0f }))
                 ui.SelectableTextArea(i, Text, _selection, ref _shift, true, LineHeight);
         }
-    });
+    }
 
-    private void At(int column, int line) => _frames.MovePointer(column * CharWidth, line * LineHeight + LineHeight / 2);
+    private UiFrames At(int column, int line) => _frames.MovePointer(column * CharWidth, line * LineHeight + LineHeight / 2);
 
     [Fact]
     public void Each_line_is_drawn_a_line_height_below_the_last_without_its_line_break()
@@ -174,13 +163,9 @@ public sealed class SelectableTextAreaTests
     public void Dragging_from_one_line_to_another_selects_across_the_break()
     {
         _frames.Wait(1);
-        At(4, 0);
-        _frames.Press();
-        Frame();
-        At(5, 1);
-        Frame();
-        _frames.Release();
-        Frame();
+        At(4, 0).Press().Frame();
+        At(5, 1).Frame();
+        _frames.Release().Frame();
 
         Assert.Equal("two\r\nthree", _selection.Of(Text));
     }
@@ -192,10 +177,8 @@ public sealed class SelectableTextAreaTests
         At(1, 2);
         for (var click = 0; click < 2; click++)
         {
-            _frames.Press();
-            Frame();
-            _frames.Release();
-            Frame();
+            _frames.Press().Frame();
+            _frames.Release().Frame();
         }
 
         Assert.Equal("five", _selection.Of(Text));
@@ -207,14 +190,18 @@ public sealed class SelectableLinkTests
     private const float CharWidth = 8f;
     private const string Glyph = "@";
 
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly TextSelection _selection = new();
     private float _shift;
     private bool _followed;
 
-    public SelectableLinkTests() => Frame();
+    public SelectableLinkTests()
+    {
+        _frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+        _frames.Frame();
+    }
 
-    private void Frame() => _frames.Run(1f / 60f, ui =>
+    private void Body(Ui ui)
     {
         using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }))
         {
@@ -222,28 +209,17 @@ public sealed class SelectableLinkTests
             using (ui.Row(i.Id, new Box { Width = 200f, Height = 20f, Gap = 0f }))
                 _followed |= ui.SelectableLink(i, "target", _selection, ref _shift, true, new UiIcon(Glyph), "Go");
         }
-    });
-
-    private void Click(float x, KeyModifiers modifiers = KeyModifiers.None)
-    {
-        _frames.Wait(1);
-        _frames.MovePointer(x, 10f);
-        Frame();
-        Frame();
-        _frames.Press(modifiers);
-        Frame();
-        _frames.Release(modifiers: modifiers);
-        Frame();
     }
+
+    private void Click(float x, KeyModifiers modifiers = KeyModifiers.None) =>
+        _frames.Wait(1).MovePointer(x, 10f).Frame().Click(x, 10f, modifiers: modifiers);
 
     [Fact]
     public void Its_icon_shows_only_while_it_is_hovered()
     {
         Assert.False(_frames.Drew(Glyph));
 
-        _frames.MovePointer(CharWidth, 10f);
-        Frame();
-        Frame();
+        _frames.MovePointer(CharWidth, 10f).Frame(2);
 
         Assert.True(_frames.Drew(Glyph));
     }
@@ -259,12 +235,10 @@ public sealed class SelectableLinkTests
     [Fact]
     public void A_click_on_its_icon_follows_it()
     {
-        _frames.MovePointer(CharWidth, 10f);
-        Frame();
-        Frame();
-        var icon = _frames.Canvas.Texts.Single(t => t.Inputs.Text == Glyph).Inputs.Position;
+        _frames.MovePointer(CharWidth, 10f).Frame(2);
+        var icon = _frames.TextRect(Glyph);
 
-        Click(icon.Left + icon.Width / 2);
+        Click(icon.X + icon.Width / 2);
 
         Assert.True(_followed);
     }

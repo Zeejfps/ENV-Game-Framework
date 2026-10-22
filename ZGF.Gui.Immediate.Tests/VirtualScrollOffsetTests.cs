@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -40,39 +41,29 @@ public sealed class VirtualScrollOffsetTests
     [Fact]
     public void Dragging_or_wheeling_past_the_end_never_hands_back_an_offset_beyond_it()
     {
-        var frames = new UiFrames();
         float x = 0f, y = 0f;
-        void Wide(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using var screen = ui.Screen();
             using var list = ui.VirtualScroll(ui.GetId("wide"), Count, RowHeight, ref x, ref y, new Box { Gap = 0f });
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(new Box { Width = 1000f, Height = RowHeight });
-        }
-        frames.Run(0f, Wide);
-        frames.Run(0f, Wide);
-        var thumb = frames.RectOf(Wide, ui => HashCode.Combine(ui.GetId("wide"), "thumbx"));
+        }).Frame(2);
+        var thumb = frames.RectOf(ui => Ui.HorizontalThumbId(ui.GetId("wide"), ScrollAxes.Both));
         var max = 1000f - frames.Run(0f, ui => ui.TryGetContentRect(ui.GetId("wide"), out var rect) ? rect.Width : 0f);
 
-        frames.MovePointer(thumb.X + 2f, thumb.Y + thumb.Height / 2);
-        frames.Run(0f, Wide);
-        frames.Press();
-        frames.Run(0f, Wide);
+        frames.Drag(new PointF(thumb.X + 2f, thumb.Y + thumb.Height / 2));
         var reported = new List<float>();
         for (var step = 1; step <= 10; step++)
         {
-            frames.MovePointer(thumb.X + 2f + step * 200f, thumb.Y + thumb.Height / 2);
-            frames.Run(0f, Wide);
+            frames.MovePointer(thumb.X + 2f + step * 200f, thumb.Y + thumb.Height / 2).Frame();
             reported.Add(x);
         }
-        frames.Release();
-        frames.Run(0f, Wide);
-        frames.MovePointer(100f, 100f);
-        frames.Run(0f, Wide);
+        frames.Release().Frame();
+        frames.MovePointer(100f, 100f).Frame();
         for (var i = 0; i < 5; i++)
         {
-            frames.Wheel(0, -3);
-            frames.Run(0f, Wide);
+            frames.Wheel(0, -3).Frame();
             reported.Add(x);
         }
 

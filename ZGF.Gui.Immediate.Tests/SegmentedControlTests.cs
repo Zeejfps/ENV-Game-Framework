@@ -19,9 +19,11 @@ public sealed class SegmentedControlTests
         new(Language.Both, "Both"),
     ];
 
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private Language _language;
     private int _changes;
+
+    public SegmentedControlTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -30,16 +32,12 @@ public sealed class SegmentedControlTests
             _changes++;
     }
 
-    private static int SegmentId(Ui ui, int index)
-    {
-        using (ui.Id(ui.GetId("lang")))
-            return ui.GetId(index);
-    }
+    private static Func<Ui, int> Segment(int index) => ui => UiWidgets.SegmentId(ui, ui.GetId("lang"), index);
 
     [Fact]
     public void The_selected_segment_is_drawn_in_the_selection_roles()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         Assert.Equal(UiTheme.Dark.SelectionText, _frames.TextColor("C#"));
         Assert.Equal(UiTheme.Dark.TextMuted, _frames.TextColor("IL"));
@@ -50,10 +48,9 @@ public sealed class SegmentedControlTests
     [Fact]
     public void Clicking_a_segment_selects_it_and_reports_the_change_once()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => SegmentId(ui, 1));
-        _frames.Run(0f, Body);
+        _frames.ClickOn(Segment(1)).Frame();
 
         Assert.Equal(Language.IL, _language);
         Assert.Equal(1, _changes);
@@ -62,9 +59,9 @@ public sealed class SegmentedControlTests
     [Fact]
     public void Clicking_the_selected_segment_reports_nothing()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => SegmentId(ui, 0));
+        _frames.ClickOn(Segment(0));
 
         Assert.Equal(0, _changes);
     }
@@ -72,33 +69,28 @@ public sealed class SegmentedControlTests
     [Fact]
     public void Arrow_keys_step_through_the_segments_once_focused()
     {
-        _frames.Run(0f, Body);
-        _frames.ClickOn(Body, ui => SegmentId(ui, 0));
+        _frames.Frame();
+        _frames.ClickOn(Segment(0));
 
-        _frames.Key(KeyboardKey.RightArrow);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.RightArrow).Frame();
         Assert.Equal(Language.IL, _language);
 
-        _frames.Key(KeyboardKey.End);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.End).Frame();
         Assert.Equal(Language.Both, _language);
 
-        _frames.Key(KeyboardKey.RightArrow);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.RightArrow).Frame();
         Assert.Equal(Language.Both, _language);
 
-        _frames.Key(KeyboardKey.LeftArrow);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.LeftArrow).Frame();
         Assert.Equal(Language.IL, _language);
     }
 
     [Fact]
     public void Arrow_keys_do_nothing_unfocused()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.Key(KeyboardKey.RightArrow);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.RightArrow).Frame();
 
         Assert.Equal(Language.CSharp, _language);
     }
@@ -106,12 +98,10 @@ public sealed class SegmentedControlTests
     [Fact]
     public void A_segment_shows_its_tooltip_on_hover()
     {
-        _frames.Run(0f, Body);
-        var rect = _frames.RectOf(Body, ui => SegmentId(ui, 0));
-        _frames.MovePointer(rect.X + 2f, rect.Y + 2f);
-        _frames.Run(0f, Body);
-        _frames.Wait(0.6);
-        _frames.Run(0f, Body);
+        _frames.Frame();
+        var rect = _frames.RectOf(Segment(0));
+        _frames.MovePointer(rect.X + 2f, rect.Y + 2f).Frame();
+        _frames.Wait(0.6).Frame();
 
         Assert.True(_frames.Drew("Decompile to C#"));
     }

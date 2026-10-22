@@ -20,20 +20,13 @@ namespace ZGF.Gui.Tests;
 /// </summary>
 public class TextInputReadOnlyTests
 {
-    private sealed class FakeClipboard : IClipboard
-    {
-        public string? Text;
-        public void SetText(string text) => Text = text;
-        public string? GetText() => Text;
-    }
-
     // Cmd on macOS, Ctrl elsewhere — the same split the controller makes, so the chord tests exercise
     // the real key path on whichever machine runs them.
     private static readonly InputModifiers CommandModifier =
         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? InputModifiers.Super : InputModifiers.Control;
 
     private static GuiTestHarness Field(
-        State<string> value, bool readOnly, FakeClipboard clipboard, out TextInputView view,
+        State<string> value, bool readOnly, TestClipboard clipboard, out TextInputView view,
         TextWrap wrap = TextWrap.NoWrap)
     {
         var h = GuiTestHarness.Create(
@@ -55,7 +48,7 @@ public class TextInputReadOnlyTests
     public void TypingDoesNotReachAReadOnlyField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out var view);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out var view);
 
         h.Type("XYZ");
 
@@ -67,7 +60,7 @@ public class TextInputReadOnlyTests
     public void TypingStillEditsAnOrdinaryField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: false, new FakeClipboard(), out _);
+        using var h = Field(value, readOnly: false, new TestClipboard(), out _);
 
         h.Type("XYZ");
 
@@ -78,7 +71,7 @@ public class TextInputReadOnlyTests
     public void PasteDoesNotReachAReadOnlyField()
     {
         var value = new State<string>("hello");
-        var clipboard = new FakeClipboard { Text = "pasted" };
+        var clipboard = new TestClipboard { Text = "pasted" };
         using var h = Field(value, readOnly: true, clipboard, out _);
 
         h.PressKey(KeyboardKey.V, CommandModifier);
@@ -90,7 +83,7 @@ public class TextInputReadOnlyTests
     public void PasteStillEditsAnOrdinaryField()
     {
         var value = new State<string>("hello");
-        var clipboard = new FakeClipboard { Text = "pasted" };
+        var clipboard = new TestClipboard { Text = "pasted" };
         using var h = Field(value, readOnly: false, clipboard, out _);
 
         h.PressKey(KeyboardKey.V, CommandModifier);
@@ -102,7 +95,7 @@ public class TextInputReadOnlyTests
     public void BackspaceAndWordDeleteDoNotReachAReadOnlyField()
     {
         var value = new State<string>("hello world");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out var view);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out var view);
 
         h.PressKey(KeyboardKey.Backspace);
         h.PressKey(KeyboardKey.Backspace, InputModifiers.Control);
@@ -116,7 +109,7 @@ public class TextInputReadOnlyTests
     public void BackspaceStillEditsAnOrdinaryField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: false, new FakeClipboard(), out _);
+        using var h = Field(value, readOnly: false, new TestClipboard(), out _);
 
         h.PressKey(KeyboardKey.Backspace);
 
@@ -127,7 +120,7 @@ public class TextInputReadOnlyTests
     public void CutIsInertInAReadOnlyFieldAndDoesNotTouchTheClipboard()
     {
         var value = new State<string>("hello");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, readOnly: true, clipboard, out var view);
 
         view.SelectAll();
@@ -143,7 +136,7 @@ public class TextInputReadOnlyTests
     public void EnterDoesNotBreakTheLineInAReadOnlyMultiLineField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out _, wrap: TextWrap.Wrap);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out _, wrap: TextWrap.Wrap);
 
         h.PressKey(KeyboardKey.Enter);
 
@@ -154,7 +147,7 @@ public class TextInputReadOnlyTests
     public void EnterStillBreaksTheLineInAnOrdinaryMultiLineField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: false, new FakeClipboard(), out _, wrap: TextWrap.Wrap);
+        using var h = Field(value, readOnly: false, new TestClipboard(), out _, wrap: TextWrap.Wrap);
 
         h.PressKey(KeyboardKey.Enter);
 
@@ -165,7 +158,7 @@ public class TextInputReadOnlyTests
     public void ImeCompositionDoesNotReachAReadOnlyField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out var view);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out var view);
 
         h.Compose("ni", "你");
 
@@ -177,7 +170,7 @@ public class TextInputReadOnlyTests
     public void ImeCompositionStillReachesAnOrdinaryField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: false, new FakeClipboard(), out _);
+        using var h = Field(value, readOnly: false, new TestClipboard(), out _);
 
         h.Compose("ni", "你");
 
@@ -188,7 +181,7 @@ public class TextInputReadOnlyTests
     public void UndoAndRedoAreInertInAReadOnlyField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out var view);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out var view);
 
         h.Type("X");
         h.PressKey(KeyboardKey.Z, CommandModifier);
@@ -202,7 +195,7 @@ public class TextInputReadOnlyTests
     public void SelectionAndCopyStillWorkInAReadOnlyField()
     {
         var value = new State<string>("hello");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, readOnly: true, clipboard, out var view);
 
         // The caret sits at the end after the bound value lands, so Shift+Left three times selects
@@ -221,7 +214,7 @@ public class TextInputReadOnlyTests
     public void SelectAllAndCopyStillWorkInAReadOnlyField()
     {
         var value = new State<string>("hello");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, readOnly: true, clipboard, out _);
 
         h.PressKey(KeyboardKey.A, CommandModifier);
@@ -234,7 +227,7 @@ public class TextInputReadOnlyTests
     public void CaretNavigationStillMovesInAReadOnlyField()
     {
         var value = new State<string>("hello world");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out var view);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out var view);
         h.Layout();
 
         var atEnd = view.GetCaretRect().Left;
@@ -260,7 +253,7 @@ public class TextInputReadOnlyTests
     public void DragSelectsTextInAReadOnlyField()
     {
         var value = new State<string>("hello world");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, readOnly: true, clipboard, out var view);
         h.Layout();
 
@@ -284,13 +277,13 @@ public class TextInputReadOnlyTests
     {
         var value = new State<string>("hello");
 
-        using (var editable = Field(value, readOnly: false, new FakeClipboard(), out _))
+        using (var editable = Field(value, readOnly: false, new TestClipboard(), out _))
         {
             editable.Render();
             Assert.Contains(editable.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFFFF0000);
         }
 
-        using var readOnly = Field(new State<string>("hello"), readOnly: true, new FakeClipboard(), out _);
+        using var readOnly = Field(new State<string>("hello"), readOnly: true, new TestClipboard(), out _);
         readOnly.Render();
         Assert.DoesNotContain(readOnly.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFFFF0000);
     }
@@ -299,7 +292,7 @@ public class TextInputReadOnlyTests
     public void AReadOnlyFieldSelectionStillDraws()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, readOnly: true, new FakeClipboard(), out var view);
+        using var h = Field(value, readOnly: true, new TestClipboard(), out var view);
 
         view.SelectAll();
         h.Render();

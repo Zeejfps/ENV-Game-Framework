@@ -5,7 +5,7 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class DialogTests
 {
-    private readonly UiFrames _frames = new(width: 800f, height: 600f);
+    private readonly UiFrames _frames;
     private bool _open;
     private bool _innerOpen;
     private int _underClicks;
@@ -13,6 +13,8 @@ public sealed class DialogTests
     private int _innerClicks;
     private int _escapesBehind;
     private bool _underFocused;
+
+    public DialogTests() => _frames = new UiFrames(width: 800f, height: 600f, body: Body);
 
     private void Body(Ui ui)
     {
@@ -42,10 +44,9 @@ public sealed class DialogTests
 
     private void Open()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         _open = true;
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Frame(2);
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public sealed class DialogTests
 
         Assert.True(_frames.Drew("Settings"));
         Assert.True(_frames.Drew("OK"));
-        var card = _frames.RectOf(Body, ui => HashCode.Combine(ui.GetId("dialog"), "card"));
+        var card = _frames.RectOf(ui => UiWidgets.DialogCardId(ui.GetId("dialog")));
         Assert.Equal(480f, card.Width);
         Assert.Equal(400f, card.X + card.Width / 2, 1);
         Assert.Equal(300f, card.Y + card.Height / 2, 1);
@@ -66,11 +67,8 @@ public sealed class DialogTests
     {
         Open();
 
-        _frames.MovePointer(20f, 20f);
-        _frames.Run(0f, Body);
-        _frames.Wheel(-3);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.MovePointer(20f, 20f).Frame();
+        _frames.Wheel(-3).Frame(2);
 
         Assert.True(_open);
         Assert.Equal(0f, _frames.Run(0f, ui => ui.ScrollOffset(ui.GetId("behind")).Y));
@@ -81,8 +79,7 @@ public sealed class DialogTests
     {
         Open();
 
-        _frames.Click(20f, 20f, Body);
-        _frames.Run(0f, Body);
+        _frames.Click(20f, 20f).Frame();
 
         Assert.False(_open);
         Assert.False(_frames.Drew("Settings"));
@@ -94,9 +91,7 @@ public sealed class DialogTests
     {
         Open();
 
-        _frames.Key(KeyboardKey.Escape);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.False(_open);
         Assert.Equal(0, _escapesBehind);
@@ -108,7 +103,7 @@ public sealed class DialogTests
     {
         Open();
 
-        _frames.ClickOn(Body, ui => HashCode.Combine(ui.GetId("dialog"), "close"));
+        _frames.ClickOn(ui => UiWidgets.CloseButtonId(ui.GetId("dialog")));
 
         Assert.False(_open);
     }
@@ -118,7 +113,7 @@ public sealed class DialogTests
     {
         Open();
 
-        _frames.ClickOn(Body, ui => ui.GetId("OK"));
+        _frames.ClickOn("OK");
 
         Assert.Equal(1, _okClicks);
         Assert.True(_open);
@@ -127,19 +122,14 @@ public sealed class DialogTests
     [Fact]
     public void Focus_behind_is_put_aside_while_open_and_restored_on_close()
     {
-        _frames.Run(0f, Body);
-        _frames.Click(20f, 20f, Body);
+        _frames.Frame().Click(20f, 20f);
         Assert.True(_underFocused);
 
         _open = true;
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Frame(2);
         Assert.False(_underFocused);
 
-        _frames.Key(KeyboardKey.Escape);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Escape).Frame(3);
 
         Assert.True(_underFocused);
     }
@@ -148,14 +138,10 @@ public sealed class DialogTests
     public void A_dialog_opened_from_a_dialog_stacks_on_top_and_escape_closes_only_it()
     {
         Open();
-        _frames.ClickOn(Body, ui => ui.GetId("More"));
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.ClickOn("More").Frame(2);
         Assert.True(_frames.Drew("Inner"));
 
-        _frames.Key(KeyboardKey.Escape);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.False(_innerOpen);
         Assert.True(_open);

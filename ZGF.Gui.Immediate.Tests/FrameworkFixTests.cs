@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
-using ZGF.Gui.Testing;
 
 namespace ZGF.Gui.Immediate.Tests;
 
@@ -96,25 +95,18 @@ public sealed class WheelRoutingTests
         }
     }
 
-    private static (float Outer, float Strip) Wheel(UiFrames frames, float x, float y, double wheelY, double wheelX = 0)
+    private static (float Outer, float Strip) Wheel(float x, float y, double wheelY, double wheelX = 0)
     {
-        frames.Run(0f, Nested);
-        frames.Run(0f, Nested);
-        frames.MovePointer(x, y);
-        frames.Run(0f, Nested);
-        frames.Wheel(wheelY, wheelX);
-        frames.Run(0f, Nested);
-        return frames.Run(0f, ui =>
-        {
-            Nested(ui);
-            return (ui.ScrollOffset(ui.GetId("outer")).Y, ui.ScrollOffset(ui.GetId("strip")).X);
-        });
+        var frames = new UiFrames(body: Nested).Frame(2);
+        frames.MovePointer(x, y).Frame();
+        frames.Wheel(wheelY, wheelX).Frame();
+        return frames.Frame(ui => (ui.ScrollOffset(ui.GetId("outer")).Y, ui.ScrollOffset(ui.GetId("strip")).X));
     }
 
     [Fact]
     public void A_vertical_wheel_over_a_horizontal_strip_scrolls_the_column_around_it()
     {
-        var (outer, strip) = Wheel(new UiFrames(), 100f, 30f, -1);
+        var (outer, strip) = Wheel(100f, 30f, -1);
 
         Assert.Equal(40f, outer);
         Assert.Equal(0f, strip);
@@ -123,7 +115,7 @@ public sealed class WheelRoutingTests
     [Fact]
     public void A_horizontal_wheel_over_the_strip_scrolls_the_strip()
     {
-        var (outer, strip) = Wheel(new UiFrames(), 100f, 30f, 0, -1);
+        var (outer, strip) = Wheel(100f, 30f, 0, -1);
 
         Assert.Equal(0f, outer);
         Assert.Equal(40f, strip);
@@ -132,7 +124,7 @@ public sealed class WheelRoutingTests
     [Fact]
     public void A_scroll_that_does_not_overflow_lets_the_wheel_through()
     {
-        var (outer, _) = Wheel(new UiFrames(), 100f, 70f, -1);
+        var (outer, _) = Wheel(100f, 70f, -1);
 
         Assert.Equal(40f, outer);
     }
@@ -147,26 +139,19 @@ public sealed class TwoAxisScrollTests
             ui.Leaf(new Box { Width = 1_000f, Height = 2_000f });
     }
 
-    private static UiFrames Settled()
-    {
-        var frames = new UiFrames();
-        frames.Run(0f, Body);
-        frames.Run(0f, Body);
-        frames.Run(0f, Body);
-        return frames;
-    }
+    private static UiFrames Settled() => new UiFrames(body: Body).Frame(3);
+
+    private static (float X, float Y) Offset(UiFrames frames) => frames.Frame(ui => ui.ScrollOffset(ui.GetId("both")));
 
     [Fact]
     public void The_wheel_scrolls_each_axis()
     {
         var frames = Settled();
-        frames.MovePointer(100f, 100f);
-        frames.Run(0f, Body);
+        frames.MovePointer(100f, 100f).Frame();
 
-        frames.Wheel(-1, -2);
-        frames.Run(0f, Body);
+        frames.Wheel(-1, -2).Frame();
 
-        Assert.Equal((80f, 40f), frames.Run(0f, ui => { Body(ui); return ui.ScrollOffset(ui.GetId("both")); }));
+        Assert.Equal((80f, 40f), Offset(frames));
     }
 
     [Fact]
@@ -174,19 +159,15 @@ public sealed class TwoAxisScrollTests
     {
         var frames = Settled();
 
-        frames.Run(0f, ui => { Body(ui); ui.ScrollTo(ui.GetId("both"), 100f, 50f); });
+        frames.Frame(ui => ui.ScrollTo(ui.GetId("both"), 100f, 50f));
         Assert.True(frames.RequestedFrame);
-        frames.Run(0f, Body);
-        Assert.Equal((100f, 50f), frames.Run(0f, ui => { Body(ui); return ui.ScrollOffset(ui.GetId("both")); }));
+        frames.Frame();
+        Assert.Equal((100f, 50f), Offset(frames));
 
-        frames.Run(0f, ui => { Body(ui); ui.ScrollTo(ui.GetId("both"), 1e6f, 1e6f); });
-        frames.Run(0f, Body);
-        var (x, y) = frames.Run(0f, ui => { Body(ui); return ui.ScrollOffset(ui.GetId("both")); });
-        var content = frames.Run(0f, ui =>
-        {
-            Body(ui);
-            return ui.TryGetContentRect(ui.GetId("both"), out var rect) ? rect : default;
-        });
+        frames.Frame(ui => ui.ScrollTo(ui.GetId("both"), 1e6f, 1e6f));
+        frames.Frame();
+        var (x, y) = Offset(frames);
+        var content = frames.Frame(ui => ui.TryGetContentRect(ui.GetId("both"), out var rect) ? rect : default);
 
         Assert.Equal(1_000f - content.Width, x, 0.01f);
         Assert.Equal(2_000f - content.Height, y, 0.01f);
@@ -197,9 +178,8 @@ public sealed class TwoAxisScrollTests
     {
         var frames = Settled();
 
-        var (rect, content) = frames.Run(0f, ui =>
+        var (rect, content) = frames.Frame(ui =>
         {
-            Body(ui);
             ui.TryGetRect(ui.GetId("both"), out var r);
             ui.TryGetContentRect(ui.GetId("both"), out var c);
             return (r, c);
@@ -227,17 +207,14 @@ public sealed class TabScrollTests
     [Fact]
     public void A_tab_added_selected_in_one_frame_is_scrolled_into_view()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, Body);
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: Body).Frame(2);
 
         _tabs.Add("Newest");
         _selected = _tabs.Count - 1;
-        for (var i = 0; i < 4; i++)
-            frames.Run(0f, Body);
+        frames.Frame(4);
 
-        var strip = frames.RectOf(Body, ui => ui.GetId("tabs"));
-        var tab = frames.RectOf(Body, ui => ui.GetId("Newest"));
+        var strip = frames.RectOf("tabs");
+        var tab = frames.RectOf("Newest");
         Assert.True(tab.Right <= strip.Right + 0.01f, $"{tab.Right} > {strip.Right}");
     }
 }
@@ -260,15 +237,11 @@ public sealed class CancelledReleaseTests
     [InlineData(PointerButton.Right)]
     public void Losing_focus_mid_press_clicks_nothing(PointerButton button)
     {
-        var frames = new UiFrames();
-        frames.Run(0f, Body);
-        frames.MovePointer(50f, 50f);
-        frames.Run(0f, Body);
-        frames.Press(button);
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: Body).Frame();
+        frames.MovePointer(50f, 50f).Frame();
+        frames.Press(button).Frame();
 
-        frames.LoseFocus();
-        frames.Run(0f, Body);
+        frames.LoseFocus().Frame();
 
         Assert.Equal(0, _clicks);
         Assert.Equal(0, _rightClicks);
@@ -405,19 +378,9 @@ public sealed class TwoAxisVirtualScrollTests
         }
     }
 
-    private UiRect Content(UiFrames frames, float rowWidth) => frames.Run(0f, ui =>
-    {
-        Body(ui, rowWidth);
-        return ui.TryGetContentRect(ui.GetId("code"), out var rect) ? rect : default;
-    });
+    private static UiRect Content(UiFrames frames) => frames.Frame(ui => ui.TryGetContentRect(ui.GetId("code"), out var rect) ? rect : default);
 
-    private UiFrames Settled(float rowWidth)
-    {
-        var frames = new UiFrames();
-        for (var i = 0; i < 4; i++)
-            frames.Run(0f, ui => Body(ui, rowWidth));
-        return frames;
-    }
+    private UiFrames Settled(float rowWidth) => new UiFrames(body: ui => Body(ui, rowWidth)).Frame(4);
 
     [Fact]
     public void The_last_row_scrolled_to_sits_above_the_horizontal_bar()
@@ -425,9 +388,8 @@ public sealed class TwoAxisVirtualScrollTests
         var frames = Settled(2_000f);
 
         _y = 1e9f;
-        for (var i = 0; i < 3; i++)
-            frames.Run(0f, ui => Body(ui, 2_000f));
-        var content = Content(frames, 2_000f);
+        frames.Frame(3);
+        var content = Content(frames);
 
         Assert.True(content.Height < frames.Height);
         Assert.Equal(content.Bottom, _lastRow.Bottom, 0.01f);
@@ -441,9 +403,8 @@ public sealed class TwoAxisVirtualScrollTests
 
         _x = 1e9f;
         _y = 1e9f;
-        for (var i = 0; i < 3; i++)
-            frames.Run(0f, ui => Body(ui, 400f));
-        var content = Content(frames, 400f);
+        frames.Frame(3);
+        var content = Content(frames);
 
         Assert.True(content.Width < 400f);
         Assert.Equal(400f - content.Width, _x, 0.01f);
@@ -456,8 +417,7 @@ public sealed class TwoAxisVirtualScrollTests
     {
         var frames = Settled(2_000f);
         _x = _y = 1e9f;
-        for (var i = 0; i < 3; i++)
-            frames.Run(0f, ui => Body(ui, 2_000f));
+        frames.Frame(3);
 
         var thumb = UiTheme.Dark.ScrollThumb;
         var thumbs = frames.Canvas.Rects.Where(r => r.Inputs.Style.BackgroundColor == thumb).Select(r => r.Inputs.Position).ToList();
@@ -474,17 +434,14 @@ public sealed class TwoAxisVirtualScrollTests
         var frames = Settled(2_000f);
         _x = 300f;
         _y = 500f;
-        frames.Run(0f, ui => Body(ui, 2_000f));
-        frames.Run(0f, ui => Body(ui, 2_000f));
+        frames.Frame(2);
 
-        frames.MovePointer(100f, 100f);
-        frames.Run(0f, ui => Body(ui, 2_000f));
-        frames.Wheel(1, 1);
-        frames.Run(0f, ui => Body(ui, 2_000f));
+        frames.MovePointer(100f, 100f).Frame();
+        frames.Wheel(1, 1).Frame();
 
         var step = UiTheme.Dark.ScrollWheelStep;
         Assert.Equal((300f - step, 500f - step), (_x, _y));
-        Assert.Equal((_x, _y), frames.Run(0f, ui => { Body(ui, 2_000f); return ui.ScrollOffset(ui.GetId("code")); }));
+        Assert.Equal((_x, _y), frames.Frame(ui => ui.ScrollOffset(ui.GetId("code"))));
     }
 
     [Fact]
@@ -493,13 +450,8 @@ public sealed class TwoAxisVirtualScrollTests
         var frames = Settled(2_000f);
         _x = 250f;
         _y = 1e9f;
-        for (var i = 0; i < 3; i++)
-            frames.Run(0f, ui => Body(ui, 2_000f));
-        var rect = frames.Run(0f, ui =>
-        {
-            Body(ui, 2_000f);
-            return ui.TryGetRect(ui.GetId("code"), out var r) ? r : default;
-        });
+        frames.Frame(3);
+        var rect = frames.RectOf("code");
 
         Assert.Equal(rect, _clip);
         Assert.Equal(rect.X - 250f, _lastRow.X, 0.01f);

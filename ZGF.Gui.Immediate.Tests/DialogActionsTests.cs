@@ -5,9 +5,11 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class DialogActionsTests
 {
-    private readonly UiFrames _frames = new(width: 800f, height: 600f);
+    private readonly UiFrames _frames;
     private bool _open = true;
     private bool _closeButton;
+
+    public DialogActionsTests() => _frames = new UiFrames(width: 800f, height: 600f, body: Body);
 
     private void Body(Ui ui)
     {
@@ -21,24 +23,18 @@ public sealed class DialogActionsTests
         }
     }
 
-    private float CardHeight()
-    {
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        return _frames.RectOf(Body, ui => HashCode.Combine(ui.GetId("confirm"), "card")).Height;
-    }
+    private float CardHeight() => _frames.Frame(2).RectOf(ui => UiWidgets.DialogCardId(ui.GetId("confirm"))).Height;
 
     [Fact]
     public void Actions_sit_at_the_end_set_apart_from_the_content_by_the_dialog_gap()
     {
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Frame(2);
         var theme = UiTheme.Dark;
         var text = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Are you sure?").Inputs.Position;
-        var cancel = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Cancel").Inputs.Position;
-        var reset = _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Reset it").Inputs.Position;
+        var cancel = _frames.TextRect("Cancel");
+        var reset = _frames.TextRect("Reset it");
 
-        Assert.True(cancel.Left < reset.Left);
+        Assert.True(cancel.X < reset.X);
         var button = _frames.Canvas.Rects.Select(r => r.Inputs).Where(r => r.Style.BackgroundColor == theme.Control).Max(r => r.Position.Top);
         var gap = text.Top - text.Height - button;
         Assert.True(gap >= theme.DialogGap, $"the buttons start {gap} below the text");
@@ -57,9 +53,7 @@ public sealed class DialogActionsTests
     [Fact]
     public void Escape_still_closes_a_dialog_without_a_close_button()
     {
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Escape);
-        _frames.Run(0f, Body);
+        _frames.Frame().Key(KeyboardKey.Escape).Frame();
 
         Assert.False(_open);
     }

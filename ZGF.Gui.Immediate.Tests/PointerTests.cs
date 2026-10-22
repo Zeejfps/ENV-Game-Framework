@@ -101,9 +101,7 @@ public sealed class PointerTests
     [Fact]
     public void Focus_that_takes_no_text_leaves_app_shortcuts_alone()
     {
-        var frames = new UiFrames();
-
-        var (navigating, typing) = frames.Run(0f, ui =>
+        var (navigating, typing) = new UiFrames().Run(0f, ui =>
         {
             ui.Focus(1, takesText: false);
             var navigatingWants = ui.WantsTextInput;

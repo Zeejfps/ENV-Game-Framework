@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Geometry;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -6,7 +7,9 @@ namespace ZGF.Gui.Immediate.Tests;
 public sealed class SplitPaneTests
 {
     private float _size = 100f;
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
+
+    public SplitPaneTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -18,45 +21,27 @@ public sealed class SplitPaneTests
             ui.Leaf(ui.GetId("right"), new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
     }
 
-    private void Drag(float toX)
-    {
-        _frames.Run(0f, Body);
-        _frames.MovePointer(118.5f, 150f);
-        _frames.Run(0f, Body);
-        _frames.Press();
-        _frames.Run(0f, Body);
-        _frames.MovePointer(toX, 150f);
-        _frames.Run(0f, Body);
-        _frames.Release();
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-    }
+    private void Drag(float toX) => _frames.Frame().Drag(new PointF(118.5f, 150f), new PointF(toX, 150f)).Release().Frame(2);
 
     [Fact]
     public void Panes_split_the_space_at_the_apps_size()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        Assert.Equal(100f, _frames.RectOf(Body, ui => ui.GetId("left")).Width);
-        Assert.Equal(368f - 106f, _frames.RectOf(Body, ui => ui.GetId("right")).Width);
+        Assert.Equal(100f, _frames.RectOf("left").Width);
+        Assert.Equal(368f - 106f, _frames.RectOf("right").Width);
     }
 
     [Fact]
     public void Dragging_the_divider_writes_the_size_and_shows_a_resize_cursor()
     {
-        _frames.Run(0f, Body);
-        _frames.MovePointer(118.5f, 150f);
-        _frames.Run(0f, Body);
-        Assert.Equal(MouseCursor.ResizeHorizontal, _frames.Run(0f, ui =>
-        {
-            Body(ui);
-            return ui.Cursor;
-        }));
+        _frames.Frame().MovePointer(118.5f, 150f).Frame();
+        Assert.Equal(MouseCursor.ResizeHorizontal, _frames.Frame(ui => ui.Cursor));
 
         Drag(218.5f);
 
         Assert.Equal(200f, _size);
-        Assert.Equal(200f, _frames.RectOf(Body, ui => ui.GetId("left")).Width);
+        Assert.Equal(200f, _frames.RectOf("left").Width);
     }
 
     [Theory]
@@ -72,10 +57,12 @@ public sealed class SplitPaneTests
 
 public sealed class TabStripTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _tabs = Enumerable.Range(1, 3).Select(i => $"Doc{i}").ToList();
     private readonly List<string> _closed = new();
     private int _selected;
+
+    public TabStripTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -96,9 +83,9 @@ public sealed class TabStripTests
     [Fact]
     public void Pressing_a_tab_selects_it()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => ui.GetId("Doc2"));
+        _frames.ClickOn("Doc2");
 
         Assert.Equal(1, _selected);
         Assert.Empty(_closed);
@@ -107,10 +94,10 @@ public sealed class TabStripTests
     [Fact]
     public void The_close_button_and_a_middle_click_close_a_tab()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        _frames.ClickOn(Body, ui => HashCode.Combine(ui.GetId("Doc3"), "close"));
-        _frames.ClickOn(Body, ui => ui.GetId("Doc2"), PointerButton.Middle);
+        _frames.ClickOn(ui => UiWidgets.CloseButtonId(ui.GetId("Doc3")));
+        _frames.ClickOn("Doc2", PointerButton.Middle);
 
         Assert.Equal(["Doc3", "Doc2"], _closed);
         Assert.Equal(0, _selected);
@@ -120,22 +107,16 @@ public sealed class TabStripTests
     public void Overflowing_tabs_scroll_and_a_newly_selected_tab_scrolls_into_view()
     {
         _tabs.AddRange(Enumerable.Range(4, 7).Select(i => $"Doc{i}"));
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        Assert.True(_frames.RectOf(Body, ui => ui.GetId("Doc10")).Right > 384f);
+        _frames.Frame(2);
+        Assert.True(_frames.RectOf("Doc10").Right > 384f);
 
         _selected = 9;
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Frame(3);
 
-        Assert.Equal(384f, _frames.RectOf(Body, ui => ui.GetId("Doc10")).Right, 0.01f);
+        Assert.Equal(384f, _frames.RectOf("Doc10").Right, 0.01f);
 
-        _frames.MovePointer(100f, 30f);
-        _frames.Run(0f, Body);
-        _frames.Wheel(2);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-        Assert.True(_frames.RectOf(Body, ui => ui.GetId("Doc10")).Right > 384f);
+        _frames.MovePointer(100f, 30f).Frame();
+        _frames.Wheel(2).Frame(2);
+        Assert.True(_frames.RectOf("Doc10").Right > 384f);
     }
 }

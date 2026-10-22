@@ -6,7 +6,6 @@ namespace ZGF.Gui.Immediate.Tests;
 public sealed class MenuKeyboardTests
 {
     private readonly UiFrames _frames;
-    private readonly TestPopupHost? _popups;
     private readonly List<string> _picks = new();
     private int _escapesOutside;
     private int _arrowsOutside;
@@ -14,11 +13,7 @@ public sealed class MenuKeyboardTests
 
     public MenuKeyboardTests() : this(null) { }
 
-    private MenuKeyboardTests(TestPopupHost? popups)
-    {
-        _popups = popups;
-        _frames = new UiFrames(popups: popups);
-    }
+    private MenuKeyboardTests(TestPopupHost? popups) => _frames = new UiFrames(popups: popups, body: Body) { FrameTime = 1f / 60f };
 
     private void Body(Ui ui)
     {
@@ -60,22 +55,10 @@ public sealed class MenuKeyboardTests
         ui.Leaf(list.Id, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
     }
 
-    private void Frame() => _frames.Run(1f / 60f, Body);
-
-    private void Key(KeyboardKey key)
-    {
-        _frames.Key(key);
-        Frame();
-        Frame();
-    }
-
     private void OpenFile()
     {
-        Frame();
-        _frames.ClickOn(Body, ui => ui.GetId("File"));
-        Frame();
-        _frames.MovePointer(390f, 290f);
-        Frame();
+        _frames.Frame().ClickOn("File").Frame();
+        _frames.MovePointer(390f, 290f).Frame();
     }
 
     [Fact]
@@ -83,20 +66,20 @@ public sealed class MenuKeyboardTests
     {
         OpenFile();
 
-        Key(KeyboardKey.DownArrow);
-        Key(KeyboardKey.DownArrow);
-        Key(KeyboardKey.DownArrow);
-        Key(KeyboardKey.UpArrow);
-        Key(KeyboardKey.Enter);
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
+        _frames.Key(KeyboardKey.UpArrow).Frame(2);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Empty(_picks);
         Assert.True(_frames.Drew("One"));
-        Key(KeyboardKey.Escape);
+        _frames.Key(KeyboardKey.Escape).Frame(2);
         Assert.False(_frames.Drew("One"));
         Assert.True(_frames.Drew("Open"));
 
-        Key(KeyboardKey.Home);
-        Key(KeyboardKey.Enter);
+        _frames.Key(KeyboardKey.Home).Frame(2);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
         Assert.Equal(["Open"], _picks);
         Assert.False(_frames.Drew("Open"));
         Assert.Equal(0, _arrowsOutside);
@@ -106,22 +89,22 @@ public sealed class MenuKeyboardTests
     public void Right_opens_a_submenu_on_its_first_item_and_left_closes_only_it()
     {
         OpenFile();
-        Key(KeyboardKey.End);
-        Key(KeyboardKey.UpArrow);
+        _frames.Key(KeyboardKey.End).Frame(2);
+        _frames.Key(KeyboardKey.UpArrow).Frame(2);
 
-        Key(KeyboardKey.RightArrow);
+        _frames.Key(KeyboardKey.RightArrow).Frame(2);
         Assert.True(_frames.Drew("One"));
-        Key(KeyboardKey.DownArrow);
-        Key(KeyboardKey.Enter);
+        _frames.Key(KeyboardKey.DownArrow).Frame(2);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal(["Two"], _picks);
         Assert.False(_frames.Drew("Open"));
 
         OpenFile();
-        Key(KeyboardKey.End);
-        Key(KeyboardKey.UpArrow);
-        Key(KeyboardKey.RightArrow);
-        Key(KeyboardKey.LeftArrow);
+        _frames.Key(KeyboardKey.End).Frame(2);
+        _frames.Key(KeyboardKey.UpArrow).Frame(2);
+        _frames.Key(KeyboardKey.RightArrow).Frame(2);
+        _frames.Key(KeyboardKey.LeftArrow).Frame(2);
         Assert.False(_frames.Drew("One"));
         Assert.True(_frames.Drew("Open"));
     }
@@ -131,14 +114,14 @@ public sealed class MenuKeyboardTests
     {
         OpenFile();
 
-        Key(KeyboardKey.RightArrow);
+        _frames.Key(KeyboardKey.RightArrow).Frame(2);
         Assert.True(_frames.Drew("Dark"));
         Assert.False(_frames.Drew("Open"));
-        Key(KeyboardKey.Enter);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
         Assert.Equal(["Dark"], _picks);
 
         OpenFile();
-        Key(KeyboardKey.LeftArrow);
+        _frames.Key(KeyboardKey.LeftArrow).Frame(2);
         Assert.True(_frames.Drew("Dark"));
     }
 
@@ -146,39 +129,31 @@ public sealed class MenuKeyboardTests
     public void Hovering_a_submenu_opens_it_beside_its_item()
     {
         OpenFile();
-        var recent = _frames.RectOf(Body, ui => ui.GetId("Recent"));
+        var recent = _frames.RectOf("Recent");
 
-        _frames.MovePointer(recent.X + 10f, recent.Y + 5f);
-        Frame();
-        Frame();
-        Frame();
+        _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
 
         Assert.True(_frames.Drew("One"));
-        var one = _frames.RectOf(Body, ui => ui.GetId("One"));
+        var one = _frames.RectOf("One");
         Assert.True(one.X >= recent.Right);
 
-        _frames.ClickOn(Body, ui => ui.GetId("One"));
+        _frames.ClickOn("One");
         Assert.Equal(["One"], _picks);
-        Frame();
+        _frames.Frame();
         Assert.False(_frames.Drew("Open"));
     }
 
     [Fact]
     public void Pressing_a_title_and_releasing_over_an_item_picks_it()
     {
-        Frame();
-        var title = _frames.RectOf(Body, ui => ui.GetId("File"));
-        _frames.MovePointer(title.X + 5f, title.Y + 5f);
-        Frame();
-        _frames.Press();
-        Frame();
-        Frame();
-        var open = _frames.RectOf(Body, ui => ui.GetId("Open"));
+        _frames.Frame();
+        var title = _frames.RectOf("File");
+        _frames.MovePointer(title.X + 5f, title.Y + 5f).Frame();
+        _frames.Press().Frame(2);
+        var open = _frames.RectOf("Open");
 
-        _frames.MovePointer(open.X + 20f, open.Y + 5f);
-        Frame();
-        _frames.Release();
-        Frame();
+        _frames.MovePointer(open.X + 20f, open.Y + 5f).Frame();
+        _frames.Release().Frame();
 
         Assert.Equal(["Open"], _picks);
     }
@@ -188,7 +163,7 @@ public sealed class MenuKeyboardTests
     {
         OpenFile();
 
-        Key(KeyboardKey.Escape);
+        _frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.False(_frames.Drew("Open"));
         Assert.Equal(0, _escapesOutside);
@@ -197,15 +172,12 @@ public sealed class MenuKeyboardTests
     [Fact]
     public void Keyboard_focus_comes_back_after_a_pick()
     {
-        Frame();
-        _frames.Click(200f, 200f, Body);
+        _frames.Frame().Click(200f, 200f);
         Assert.True(_listFocused);
 
         OpenFile();
         Assert.False(_listFocused);
-        _frames.ClickOn(Body, ui => ui.GetId("Open"));
-        Frame();
-        Frame();
+        _frames.ClickOn("Open").Frame(2);
 
         Assert.Equal(["Open"], _picks);
         Assert.True(_listFocused);
@@ -222,9 +194,7 @@ public sealed class MenuKeyboardTests
 
         test.OpenFile();
         Assert.NotEmpty(popups.Shown);
-        test._frames.ClickOn(test.Body, ui => ui.GetId("Pick…"));
-        test.Frame();
-        test.Frame();
+        test._frames.ClickOn("Pick…").Frame(2);
 
         Assert.Equal(0, shownAtOpen);
         Assert.Equal(1, popups.HideAllCount);
@@ -235,8 +205,10 @@ public sealed class MenuKeyboardTests
 
 public sealed class ContextMenuIdTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _picks = new();
+
+    public ContextMenuIdTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -256,10 +228,7 @@ public sealed class ContextMenuIdTests
     [Fact]
     public void A_context_menu_opened_by_id_from_another_scope_opens()
     {
-        _frames.Run(0f, Body);
-
-        _frames.Click(50f, 40f, Body, PointerButton.Right);
-        _frames.Run(0f, Body);
+        _frames.Frame().Click(50f, 40f, PointerButton.Right).Frame();
 
         Assert.True(_frames.Drew("Copy"));
     }
@@ -267,15 +236,10 @@ public sealed class ContextMenuIdTests
     [Fact]
     public void Keys_pick_from_a_context_menu()
     {
-        _frames.Run(0f, Body);
-        _frames.Click(50f, 40f, Body, PointerButton.Right);
-        _frames.Run(0f, Body);
+        _frames.Frame().Click(50f, 40f, PointerButton.Right).Frame();
 
-        _frames.Key(KeyboardKey.DownArrow);
-        _frames.Run(0f, Body);
-        _frames.Key(KeyboardKey.Enter);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.DownArrow).Frame();
+        _frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal(["Copy"], _picks);
         Assert.False(_frames.Drew("Copy"));

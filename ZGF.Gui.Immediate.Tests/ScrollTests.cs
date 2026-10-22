@@ -17,57 +17,40 @@ public sealed class ScrollTests
     [Fact]
     public void A_horizontal_scroll_fits_its_contents_height_and_the_wheel_moves_it_sideways()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, Strip);
-        frames.Run(0f, Strip);
-        Assert.Equal(30f, frames.RectOf(Strip, ui => ui.GetId("strip")).Height);
+        var frames = new UiFrames(body: Strip).Frame(2);
+        Assert.Equal(30f, frames.RectOf("strip").Height);
 
-        frames.MovePointer(100f, 30f);
-        frames.Run(0f, Strip);
-        frames.Wheel(-1);
-        frames.Run(0f, Strip);
-        frames.Run(0f, Strip);
+        frames.MovePointer(100f, 30f).Frame();
+        frames.Wheel(-1).Frame(2);
 
-        Assert.Equal(16f - 40f, frames.RectOf(Strip, ui => ui.GetId(0)).X);
+        Assert.Equal(16f - 40f, frames.RectOf(ui => ui.GetId(0)).X);
     }
 
     [Fact]
     public void A_horizontal_scroll_stops_at_its_last_item()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, Strip);
-        frames.MovePointer(100f, 30f);
-        frames.Run(0f, Strip);
-        frames.Wheel(-100);
-        frames.Run(0f, Strip);
-        frames.Run(0f, Strip);
+        var frames = new UiFrames(body: Strip).Frame();
+        frames.MovePointer(100f, 30f).Frame();
+        frames.Wheel(-100).Frame(2);
 
-        Assert.Equal(384f, frames.RectOf(Strip, ui => ui.GetId(9)).Right, 0.01f);
+        Assert.Equal(384f, frames.RectOf(ui => ui.GetId(9)).Right, 0.01f);
     }
 
     [Fact]
     public void ScrollIntoView_brings_an_element_into_a_horizontal_scroll()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, Strip);
-        frames.Run(0f, Strip);
+        var frames = new UiFrames(body: Strip).Frame(2);
 
-        Assert.True(frames.Run(0f, ui =>
-        {
-            Strip(ui);
-            return ui.ScrollIntoView(ui.GetId("strip"), ui.GetId(6));
-        }));
-        frames.Run(0f, Strip);
-        frames.Run(0f, Strip);
+        Assert.True(frames.Frame(ui => ui.ScrollIntoView(ui.GetId("strip"), ui.GetId(6))));
+        frames.Frame(2);
 
-        Assert.Equal(384f, frames.RectOf(Strip, ui => ui.GetId(6)).Right, 0.01f);
+        Assert.Equal(384f, frames.RectOf(ui => ui.GetId(6)).Right, 0.01f);
     }
 
     [Fact]
     public void ScrollIntoView_brings_an_element_into_a_vertical_scroll()
     {
-        var frames = new UiFrames();
-        void Column(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using var screen = ui.Screen();
             using (ui.Scroll("column", new Box { Gap = 0f }))
@@ -75,19 +58,12 @@ public sealed class ScrollTests
                 for (var i = 0; i < 40; i++)
                     ui.Leaf(ui.GetId(i), new Box { Width = 10f, Height = 30f });
             }
-        }
-        frames.Run(0f, Column);
-        frames.Run(0f, Column);
+        }).Frame(2);
 
-        frames.Run(0f, ui =>
-        {
-            Column(ui);
-            ui.ScrollIntoView(ui.GetId("column"), ui.GetId(20));
-        });
-        frames.Run(0f, Column);
-        frames.Run(0f, Column);
+        frames.Frame(ui => ui.ScrollIntoView(ui.GetId("column"), ui.GetId(20)));
+        frames.Frame(2);
 
-        Assert.Equal(284f, frames.RectOf(Column, ui => ui.GetId(20)).Bottom, 0.01f);
+        Assert.Equal(284f, frames.RectOf(ui => ui.GetId(20)).Bottom, 0.01f);
     }
 
     [Fact]

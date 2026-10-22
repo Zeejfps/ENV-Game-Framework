@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -6,7 +7,9 @@ public sealed class SplitPaneSecondSideTests
 {
     private float _size = 100f;
     private float _height = 200f;
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
+
+    public SplitPaneSecondSideTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -23,21 +26,21 @@ public sealed class SplitPaneSecondSideTests
     [Fact]
     public void The_second_pane_takes_the_apps_size_and_the_first_the_rest()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        Assert.Equal(100f, _frames.RectOf(Body, ui => ui.GetId("bottom")).Height);
-        Assert.Equal(100f - 6f, _frames.RectOf(Body, ui => ui.GetId("top")).Height);
+        Assert.Equal(100f, _frames.RectOf("bottom").Height);
+        Assert.Equal(100f - 6f, _frames.RectOf("top").Height);
     }
 
     [Fact]
     public void The_second_pane_keeps_its_size_when_the_container_shrinks()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         _height = 180f;
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        Assert.Equal(100f, _frames.RectOf(Body, ui => ui.GetId("bottom")).Height);
-        Assert.Equal(80f - 6f, _frames.RectOf(Body, ui => ui.GetId("top")).Height);
+        Assert.Equal(100f, _frames.RectOf("bottom").Height);
+        Assert.Equal(80f - 6f, _frames.RectOf("top").Height);
     }
 
     [Theory]
@@ -46,16 +49,9 @@ public sealed class SplitPaneSecondSideTests
     [InlineData(1000f, 40f)]
     public void Dragging_the_divider_writes_the_second_panes_size_within_the_minimums(float by, float expected)
     {
-        _frames.Run(0f, Body);
-        var divider = _frames.RectOf(Body, ui => ui.GetId("top")).Bottom + 2.5f;
-        _frames.MovePointer(100f, divider);
-        _frames.Run(0f, Body);
-        _frames.Press();
-        _frames.Run(0f, Body);
-        _frames.MovePointer(100f, divider + by);
-        _frames.Run(0f, Body);
-        _frames.Release();
-        _frames.Run(0f, Body);
+        _frames.Frame();
+        var divider = _frames.RectOf("top").Bottom + 2.5f;
+        _frames.Drag(new PointF(100f, divider), new PointF(100f, divider + by)).Release().Frame();
 
         Assert.Equal(expected, _size);
     }

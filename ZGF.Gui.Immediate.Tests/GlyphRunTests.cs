@@ -7,9 +7,7 @@ public sealed class GlyphRunTests
     [Fact]
     public void MeasureCell_answers_the_canvas_cell_for_the_font()
     {
-        var frames = new UiFrames();
-
-        var cell = frames.Run(0f, ui => ui.MeasureCell(family: "mono"));
+        var cell = new UiFrames().Run(0f, ui => ui.MeasureCell(family: "mono"));
 
         Assert.Equal(8f, cell.Advance);
         Assert.Equal(16f, cell.Height);
@@ -18,17 +16,16 @@ public sealed class GlyphRunTests
     [Fact]
     public void A_glyph_run_is_drawn_at_the_element_in_canvas_space_with_its_style()
     {
-        var frames = new UiFrames();
         int[] codePoints = ['a', 'b', 'c'];
 
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using var screen = ui.Screen();
             ui.Leaf(new Box { Width = 100f, Height = 20f });
             using (ui.Box(new Box { Width = 100f, Height = 20f }))
                 ui.Paint(codePoints, static (p, cps) =>
                     p.GlyphRun(new ZGF.Geometry.PointF(p.Rect.X + 4f, p.Rect.Y), cps, 8f, 0xFF112233, family: "mono", underline: true));
-        });
+        }).Frame();
 
         var run = Assert.Single(frames.Canvas.GlyphRuns);
         Assert.Equal("abc", run.Text);

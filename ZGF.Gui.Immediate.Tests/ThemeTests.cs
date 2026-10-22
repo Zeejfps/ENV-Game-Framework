@@ -31,9 +31,7 @@ public sealed class ThemeTests
     [Fact]
     public void A_provided_theme_applies_only_inside_its_scope_and_dark_outside_any()
     {
-        var frames = new UiFrames();
-
-        var seen = frames.Run(0f, ui =>
+        var seen = new UiFrames().Run(0f, ui =>
         {
             var before = ui.Theme;
             UiTheme inside;
@@ -50,15 +48,14 @@ public sealed class ThemeTests
     [Fact]
     public void Text_takes_the_color_of_the_theme_it_was_recorded_in()
     {
-        var frames = new UiFrames();
         var red = UiTheme.Dark with { Text = 0xFFFF0000 };
 
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Provide(red))
                 ui.Text("tinted");
             ui.Text("plain");
-        });
+        }).Frame();
 
         Assert.Equal(0xFFFF0000u, frames.TextColor("tinted"));
         Assert.Equal(UiTheme.Dark.Text, frames.TextColor("plain"));
@@ -67,16 +64,9 @@ public sealed class ThemeTests
     [Fact]
     public void The_window_itself_draws_nothing_and_adds_no_padding()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(body: ui => ui.Leaf(ui.GetId("a"), new Box { Width = 10f, Height = 10f })).Frame();
 
-        UiRect Frame() => frames.Run(0f, ui =>
-        {
-            ui.Leaf(ui.GetId("a"), new Box { Width = 10f, Height = 10f });
-            return ui.TryGetRect(ui.GetId("a"), out var r) ? r : default;
-        });
-
-        Frame();
-        var rect = Frame();
+        var rect = frames.RectOf("a");
 
         Assert.Equal(0, frames.RectCount);
         Assert.Equal((0f, 0f), (rect.X, rect.Y));
@@ -85,21 +75,17 @@ public sealed class ThemeTests
     [Fact]
     public void A_screen_fills_the_window_with_its_theme_and_pads_its_content()
     {
-        var frames = new UiFrames();
         var theme = UiTheme.Light with { ScreenPadding = 10f };
-
-        UiRect Frame() => frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Screen(theme))
             {
                 ui.Text("inside");
                 ui.Leaf(ui.GetId("a"), new Box { Width = 10f, Height = 10f });
             }
-            return ui.TryGetRect(ui.GetId("a"), out var r) ? r : default;
-        });
+        }).Frame();
 
-        Frame();
-        var rect = Frame();
+        var rect = frames.RectOf("a");
 
         Assert.Equal(theme.Background, frames.FirstRect.Style.BackgroundColor);
         Assert.Equal((400f, 300f), (frames.FirstRect.Position.Width, frames.FirstRect.Position.Height));

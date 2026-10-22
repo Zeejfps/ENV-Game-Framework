@@ -8,14 +8,14 @@ public sealed class EllipsisTests
 {
     private readonly UiFrames _frames = new();
 
-    private string[] Drawn() => _frames.Canvas.Texts.Select(t => t.Inputs.Text).ToArray();
+    private static string[] Drawn(UiFrames frames) => frames.Canvas.Texts.Select(t => t.Inputs.Text).ToArray();
 
     [Fact]
     public void Text_wider_than_its_box_ends_in_an_ellipsis_on_the_first_frame()
     {
         _frames.Run(0f, ui => ui.Text("abcdefghijklmnop", new Box { Width = 80f }, overflow: TextOverflow.Ellipsis));
 
-        Assert.Contains("abcdefghi…", Drawn());
+        Assert.Contains("abcdefghi…", Drawn(_frames));
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public sealed class EllipsisTests
     {
         _frames.Run(0f, ui => ui.Text("abcdefghijklmnop", new Box { Width = 80f }, overflow: TextOverflow.EllipsisMiddle));
 
-        Assert.Contains("abcde…mnop", Drawn());
+        Assert.Contains("abcde…mnop", Drawn(_frames));
     }
 
     [Fact]
@@ -31,39 +31,35 @@ public sealed class EllipsisTests
     {
         _frames.Run(0f, ui => ui.Text("short", new Box { Width = 80f }, overflow: TextOverflow.Ellipsis));
 
-        Assert.Contains("short", Drawn());
+        Assert.Contains("short", Drawn(_frames));
     }
 
     [Fact]
     public void Text_with_an_overflow_shrinks_to_the_room_its_row_has_left()
     {
-        void Body(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Row(new Box { Width = 100f, Gap = 0f }))
             {
                 ui.Leaf(new Box { Width = 20f, Height = 10f });
                 ui.Text("abcdefghijklmnop", id: ui.GetId("label"), overflow: TextOverflow.Ellipsis);
             }
-        }
+        }).Frame();
 
-        _frames.Run(0f, Body);
-
-        Assert.Equal(80f, _frames.RectOf(Body, ui => ui.GetId("label")).Width);
-        Assert.Contains("abcdefghi…", Drawn());
+        Assert.Equal(80f, frames.RectOf("label").Width);
+        Assert.Contains("abcdefghi…", Drawn(frames));
     }
 
     [Fact]
     public void Text_with_an_overflow_keeps_its_own_width_when_there_is_room()
     {
-        void Body(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Row(new Box { Width = 300f }))
                 ui.Text("abc", id: ui.GetId("label"), overflow: TextOverflow.Ellipsis);
-        }
+        }).Frame();
 
-        _frames.Run(0f, Body);
-
-        Assert.Equal(24f, _frames.RectOf(Body, ui => ui.GetId("label")).Width);
+        Assert.Equal(24f, frames.RectOf("label").Width);
     }
 
     [Fact]
@@ -99,12 +95,10 @@ public sealed class BoxOverrideTests
     [Fact]
     public void A_panel_can_be_asked_for_square_corners_and_no_border()
     {
-        var frames = new UiFrames();
-
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Panel(new Box { Radius = 0f, BorderWidth = 0f })) { }
-        });
+        }).Frame();
 
         var panel = frames.FirstRect.Style;
         Assert.Equal(0f, panel.BorderRadius.TopLeft.Value);
@@ -114,12 +108,10 @@ public sealed class BoxOverrideTests
     [Fact]
     public void An_unset_panel_takes_the_themes_border_and_panel_radius()
     {
-        var frames = new UiFrames();
-
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Panel()) { }
-        });
+        }).Frame();
 
         var panel = frames.FirstRect.Style;
         Assert.Equal(UiTheme.Dark.PanelRadius, panel.BorderRadius.TopLeft.Value);
@@ -180,15 +172,14 @@ public sealed class ThemeRoleTests
     [Fact]
     public void A_pane_toolbar_is_painted_with_the_pane_surface()
     {
-        var frames = new UiFrames();
         var theme = UiTheme.Dark with { PaneToolbarBackground = 0xFF0A0B0C };
 
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Provide(theme))
             using (ui.PaneToolbar())
                 ui.Text("tools");
-        });
+        }).Frame();
 
         var bar = Assert.Single(frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFF0A0B0Cu);
         Assert.Equal(theme.ToolbarHeight, bar.Inputs.Position.Height);
@@ -197,9 +188,11 @@ public sealed class ThemeRoleTests
 
 public sealed class FocusTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<string> _clicked = new();
     private bool _enabled = true;
+
+    public FocusTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -208,22 +201,14 @@ public sealed class FocusTests
         if (ui.IconButton("three", "+", tooltip: "Three")) _clicked.Add("Three");
     }
 
-    private void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
-    {
-        _frames.Key(key, modifiers);
-        _frames.Run(0f, Body);
-    }
+    private void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => _frames.Key(key, modifiers).Frame();
 
-    private bool Focused(string label) => _frames.Run(0f, ui =>
-    {
-        Body(ui);
-        return ui.HasFocus(ui.GetId(label));
-    });
+    private bool Focused(string label) => _frames.Frame(ui => ui.HasFocus(ui.GetId(label)));
 
     [Fact]
     public void Tab_walks_the_controls_in_recording_order_and_wraps()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         Key(KeyboardKey.Tab);
         Assert.True(Focused("One"));
@@ -239,7 +224,7 @@ public sealed class FocusTests
     [Fact]
     public void Enter_and_space_activate_the_focused_button()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         Key(KeyboardKey.Tab);
 
         Key(KeyboardKey.Enter);
@@ -253,7 +238,7 @@ public sealed class FocusTests
     public void A_disabled_button_is_skipped()
     {
         _enabled = false;
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         Key(KeyboardKey.Tab);
         Key(KeyboardKey.Tab);
@@ -264,20 +249,14 @@ public sealed class FocusTests
     [Fact]
     public void Focus_moved_by_tab_is_visible_and_a_press_hides_it()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
         Key(KeyboardKey.Tab);
 
-        Assert.True(_frames.Run(0f, ui =>
-        {
-            Body(ui);
-            return ui.FocusVisible;
-        }));
+        Assert.True(_frames.Frame(ui => ui.FocusVisible));
         Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BorderColor.Top.Value == UiTheme.Dark.FocusRing);
 
-        _frames.Press();
-        _frames.Run(0f, Body);
-        _frames.Release();
-        _frames.Run(0f, Body);
+        _frames.Press().Frame();
+        _frames.Release().Frame();
 
         Assert.DoesNotContain(_frames.Canvas.Rects, r => r.Inputs.Style.BorderColor.Top.Value == UiTheme.Dark.FocusRing);
     }
@@ -286,17 +265,15 @@ public sealed class FocusTests
     public void A_text_field_takes_text_when_tab_reaches_it()
     {
         var text = "";
-        void Fields(Ui ui)
+        _frames.Body = ui =>
         {
             ui.Button("Before");
             ui.TextField("field", ref text);
-        }
+        };
 
-        _frames.Run(0f, Fields);
-        _frames.Key(KeyboardKey.Tab);
-        _frames.Run(0f, Fields);
-        _frames.Key(KeyboardKey.Tab);
-        _frames.Run(0f, Fields);
+        _frames.Frame();
+        Key(KeyboardKey.Tab);
+        Key(KeyboardKey.Tab);
 
         Assert.True(_frames.WantsTextInput);
     }
@@ -304,61 +281,53 @@ public sealed class FocusTests
 
 public sealed class ButtonStyleTests
 {
-    private readonly UiFrames _frames = new();
-
     [Fact]
     public void A_primary_button_is_filled_with_the_accent()
     {
-        _frames.Run(0f, ui => ui.Button("Open", variant: ButtonVariant.Primary));
+        var frames = new UiFrames(body: ui => ui.Button("Open", variant: ButtonVariant.Primary)).Frame();
 
-        Assert.Equal(UiTheme.Dark.Accent, _frames.FirstRect.Style.BackgroundColor);
-        Assert.Equal(UiTheme.Dark.OnAccent, _frames.TextColor("Open"));
+        Assert.Equal(UiTheme.Dark.Accent, frames.FirstRect.Style.BackgroundColor);
+        Assert.Equal(UiTheme.Dark.OnAccent, frames.TextColor("Open"));
     }
 
     [Fact]
     public void A_ghost_button_has_no_fill_until_hovered()
     {
-        _frames.Run(0f, ui => ui.Button("Back", variant: ButtonVariant.Ghost));
+        var frames = new UiFrames(body: ui => ui.Button("Back", variant: ButtonVariant.Ghost)).Frame();
 
-        Assert.Equal(0, _frames.RectCount);
+        Assert.Equal(0, frames.RectCount);
     }
 
     [Fact]
     public void A_disabled_button_uses_disabled_text_and_no_hand_cursor()
     {
-        void Body(Ui ui) => ui.Button("Save", enabled: false);
-        _frames.Run(0f, Body);
-        _frames.MovePointer(10f, 10f);
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
+        var frames = new UiFrames(body: ui => ui.Button("Save", enabled: false)).Frame();
+        frames.MovePointer(10f, 10f).Frame(2);
 
-        Assert.Equal(UiTheme.Dark.TextDisabled, _frames.TextColor("Save"));
-        Assert.Equal(MouseCursor.Default, _frames.Cursor);
+        Assert.Equal(UiTheme.Dark.TextDisabled, frames.TextColor("Save"));
+        Assert.Equal(MouseCursor.Default, frames.Cursor);
     }
 
     [Fact]
     public void An_icon_button_is_a_square_of_the_icon_button_size_with_a_tooltip()
     {
-        void Body(Ui ui) => ui.IconButton("back", "<", tooltip: "Back");
+        var frames = new UiFrames(body: ui => ui.IconButton("back", "<", tooltip: "Back")).Frame();
 
-        _frames.Run(0f, Body);
-        var rect = _frames.RectOf(Body, ui => ui.GetId("back"));
+        var rect = frames.RectOf("back");
         Assert.Equal(UiTheme.Dark.IconButtonSize, rect.Width);
         Assert.Equal(UiTheme.Dark.IconButtonSize, rect.Height);
 
-        _frames.MovePointer(rect.X + 4f, rect.Y + 4f);
-        _frames.Run(0f, Body);
-        _frames.Wait(1.0);
-        _frames.Run(0f, Body);
-        Assert.True(_frames.Drew("Back"));
+        frames.MovePointer(rect.X + 4f, rect.Y + 4f).Frame();
+        frames.Wait(1.0).Frame();
+        Assert.True(frames.Drew("Back"));
     }
 }
 
 public sealed class TabStyleTests
 {
-    private readonly UiFrames _frames = new(width: 1200f);
+    private readonly UiFrames _frames = new(width: 1200f, body: Body);
 
-    private void Body(Ui ui)
+    private static void Body(Ui ui)
     {
         using var strip = ui.TabStrip("tabs");
         strip.Tab(new string('x', 100), selected: true, tooltip: "Everything");
@@ -368,8 +337,8 @@ public sealed class TabStyleTests
     [Fact]
     public void A_long_tab_is_capped_at_the_max_width_and_ellipsized()
     {
-        _frames.Run(0f, Body);
-        var rect = _frames.RectOf(Body, ui => ui.GetId(new string('x', 100)));
+        _frames.Frame();
+        var rect = _frames.RectOf(new string('x', 100));
 
         Assert.Equal(UiTheme.Dark.TabMaxWidth, rect.Width);
         Assert.Contains(_frames.Canvas.Texts, t => t.Inputs.Text.EndsWith('…'));
@@ -378,15 +347,15 @@ public sealed class TabStyleTests
     [Fact]
     public void A_short_tab_is_at_least_the_min_width()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
-        Assert.Equal(UiTheme.Dark.TabMinWidth, _frames.RectOf(Body, ui => ui.GetId("b")).Width);
+        Assert.Equal(UiTheme.Dark.TabMinWidth, _frames.RectOf("b").Width);
     }
 
     [Fact]
     public void The_selected_tab_is_filled_like_the_pane_below_it()
     {
-        _frames.Run(0f, Body);
+        _frames.Frame();
 
         Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.PaneBackground);
     }
@@ -428,40 +397,34 @@ public sealed class ShrinkPriorityTests
     [Fact]
     public void A_lower_priority_text_gives_up_its_room_before_a_higher_one_shrinks()
     {
-        var frames = new UiFrames();
-        void Body(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Row(new Box { Width = 100f, Gap = 0f }))
             {
                 ui.Text("primary12", new Box { Width = Sizing.Fit() with { Priority = 1 } }, id: ui.GetId("primary"), overflow: TextOverflow.Ellipsis);
                 ui.Text("secondary", id: ui.GetId("secondary"), overflow: TextOverflow.Ellipsis);
             }
-        }
+        }).Frame();
 
-        frames.Run(0f, Body);
-
-        Assert.Equal(72f, frames.RectOf(Body, ui => ui.GetId("primary")).Width);
-        Assert.Equal(28f, frames.RectOf(Body, ui => ui.GetId("secondary")).Width);
+        Assert.Equal(72f, frames.RectOf("primary").Width);
+        Assert.Equal(28f, frames.RectOf("secondary").Width);
         Assert.True(frames.Drew("primary12"));
     }
 
     [Fact]
     public void Equal_priorities_share_the_shortfall()
     {
-        var frames = new UiFrames();
-        void Body(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Row(new Box { Width = 100f, Gap = 0f }))
             {
                 ui.Text("aaaaaaaaaa", id: ui.GetId("a"), overflow: TextOverflow.Ellipsis);
                 ui.Text("bbbbbbbbbb", id: ui.GetId("b"), overflow: TextOverflow.Ellipsis);
             }
-        }
+        }).Frame();
 
-        frames.Run(0f, Body);
-
-        Assert.Equal(50f, frames.RectOf(Body, ui => ui.GetId("a")).Width);
-        Assert.Equal(50f, frames.RectOf(Body, ui => ui.GetId("b")).Width);
+        Assert.Equal(50f, frames.RectOf("a").Width);
+        Assert.Equal(50f, frames.RectOf("b").Width);
     }
 }
 
@@ -476,14 +439,13 @@ public sealed class TextFieldSlotTests
     [Fact]
     public void A_click_places_the_caret_after_the_leading_icon()
     {
-        void Field(Ui ui) => Body(ui, 300f, null);
-        _frames.Run(0f, Field);
-        var rect = _frames.RectOf(Field, ui => ui.GetId("field"));
+        _frames.Body = ui => Body(ui, 300f, null);
+        _frames.Frame();
+        var rect = _frames.RectOf("field");
         var textLeft = rect.X + UiTheme.Dark.FieldPaddingX + UiTheme.Dark.IconSize + UiTheme.Dark.GapTight;
 
-        _frames.Click(textLeft + 2 * 8f + 1f, rect.Y + rect.Height / 2, Field);
-        _frames.Type("X");
-        _frames.Run(0f, Field);
+        _frames.Click(textLeft + 2 * 8f + 1f, rect.Y + rect.Height / 2);
+        _frames.Type("X").Frame();
 
         Assert.Equal("heXllo", _text);
         Assert.True(_frames.Drew("Q"));
@@ -517,14 +479,11 @@ public sealed class TreeRowSlotTests
     [Fact]
     public void The_secondary_text_ellipsizes_before_the_label_and_the_overlay_is_drawn()
     {
-        var frames = new UiFrames(width: 200f);
         var model = new Flat(new TreeRow("System.Runtime", new UiIcon("A", Overlay: "L"), Secondary: "C:/dotnet/shared/System.Runtime.dll", Tooltip: "full"));
         var state = new TreeViewState<string>(StringComparer.Ordinal);
         string[] roots = ["root"];
-        void Body(Ui ui) => ui.TreeView("tree", roots, model, state);
 
-        frames.Run(0f, Body);
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: ui => ui.TreeView("tree", roots, model, state), width: 200f).Frame(2);
 
         Assert.True(frames.Drew("System.Runtime"));
         Assert.True(frames.Drew("L"));

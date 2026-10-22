@@ -10,10 +10,9 @@ public sealed class PopupTests
     [Fact]
     public void A_popup_sits_below_its_anchor_at_its_own_size()
     {
-        var frames = new UiFrames();
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: Body).Frame();
 
-        var rect = frames.RectOf(Body, ui => ui.GetId("popup"));
+        var rect = frames.RectOf("popup");
 
         Assert.Equal(new UiRect(50f, 80f, 120f, 40f), rect);
     }
@@ -21,12 +20,9 @@ public sealed class PopupTests
     [Fact]
     public void Over_the_window_a_popup_flips_above_when_there_is_no_room_below()
     {
-        var frames = new UiFrames();
-        var low = new UiRect(50f, 270f, 80f, 20f);
-        void Low(Ui ui) => Popup(ui, low);
-        frames.Run(0f, Low);
+        var frames = new UiFrames(body: ui => Popup(ui, new UiRect(50f, 270f, 80f, 20f))).Frame();
 
-        var rect = frames.RectOf(Low, ui => ui.GetId("popup"));
+        var rect = frames.RectOf("popup");
 
         Assert.Equal(270f - 40f, rect.Y);
     }
@@ -74,8 +70,7 @@ public sealed class PopupTests
     [Fact]
     public void The_wheel_over_a_popup_does_not_scroll_the_list_under_it()
     {
-        var frames = new UiFrames();
-        void Covered(Ui ui)
+        var frames = new UiFrames(body: ui =>
         {
             using var screen = ui.Screen();
             using (ui.Scroll("list"))
@@ -84,22 +79,15 @@ public sealed class PopupTests
                     ui.Leaf(ui.GetId(i), new Box { Width = 10f, Height = 30f });
             }
             Popup(ui, Anchor);
-        }
-        float FirstRowY() => frames.RectOf(Covered, ui => ui.GetId(0)).Y;
-        frames.Run(0f, Covered);
+        }).Frame();
+        float FirstRowY() => frames.RectOf(ui => ui.GetId(0)).Y;
 
-        frames.MovePointer(100f, 100f);
-        frames.Run(0f, Covered);
-        frames.Wheel(-2);
-        frames.Run(0f, Covered);
-        frames.Run(0f, Covered);
+        frames.MovePointer(100f, 100f).Frame();
+        frames.Wheel(-2).Frame(2);
         var underPopup = FirstRowY();
 
-        frames.MovePointer(300f, 250f);
-        frames.Run(0f, Covered);
-        frames.Wheel(-2);
-        frames.Run(0f, Covered);
-        frames.Run(0f, Covered);
+        frames.MovePointer(300f, 250f).Frame();
+        frames.Wheel(-2).Frame(2);
         var beside = FirstRowY();
 
         Assert.Equal(16f, underPopup);
@@ -110,14 +98,9 @@ public sealed class PopupTests
     public void With_popup_windows_content_draws_on_the_popups_own_canvas_in_its_own_coordinates()
     {
         var host = new TestPopupHost();
-        var frames = new UiFrames(popups: host);
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: Body, popups: host).Frame();
 
-        var id = frames.Run(0f, ui =>
-        {
-            Body(ui);
-            return ui.GetId("popup");
-        });
+        var id = frames.Frame(ui => ui.GetId("popup"));
         var canvas = host.CanvasOf(id);
         var text = canvas.Texts.Single(t => t.Inputs.Text == "item");
 
@@ -131,16 +114,9 @@ public sealed class PopupTests
     public void With_popup_windows_a_popup_may_extend_past_the_main_window()
     {
         var host = new TestPopupHost();
-        var frames = new UiFrames(popups: host);
-        var low = new UiRect(50f, 290f, 80f, 20f);
-        void Low(Ui ui) => Popup(ui, low);
-        frames.Run(0f, Low);
+        var frames = new UiFrames(body: ui => Popup(ui, new UiRect(50f, 290f, 80f, 20f)), popups: host).Frame();
 
-        var id = frames.Run(0f, ui =>
-        {
-            Low(ui);
-            return ui.GetId("popup");
-        });
+        var id = frames.Frame(ui => ui.GetId("popup"));
 
         Assert.Equal(310f, host.Shown[id].Y);
     }

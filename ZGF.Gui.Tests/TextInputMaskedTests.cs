@@ -22,13 +22,6 @@ public class TextInputMaskedTests
 {
     private const char Bullet = TextInputView.MaskCharacter;
 
-    private sealed class FakeClipboard : IClipboard
-    {
-        public string? Text;
-        public void SetText(string text) => Text = text;
-        public string? GetText() => Text;
-    }
-
     private static readonly InputModifiers CommandModifier =
         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? InputModifiers.Super : InputModifiers.Control;
 
@@ -57,7 +50,7 @@ public class TextInputMaskedTests
     }
 
     private static GuiTestHarness Field(
-        State<string> value, bool masked, FakeClipboard clipboard, out TextInputView view,
+        State<string> value, bool masked, TestClipboard clipboard, out TextInputView view,
         bool readOnly = false, ITextMeasurer? measurer = null)
     {
         var h = GuiTestHarness.Create(
@@ -85,7 +78,7 @@ public class TextInputMaskedTests
     public void AMaskedFieldDrawsBulletsAndNeverItsText()
     {
         var value = new State<string>("sk-secret");
-        using var h = Field(value, masked: true, new FakeClipboard(), out _);
+        using var h = Field(value, masked: true, new TestClipboard(), out _);
 
         h.Render();
 
@@ -100,7 +93,7 @@ public class TextInputMaskedTests
     public void AnOrdinaryFieldStillDrawsItsRealText()
     {
         var value = new State<string>("sk-secret");
-        using var h = Field(value, masked: false, new FakeClipboard(), out _);
+        using var h = Field(value, masked: false, new TestClipboard(), out _);
 
         h.Render();
 
@@ -111,7 +104,7 @@ public class TextInputMaskedTests
     public void TypingIntoAMaskedFieldDrawsOneMoreBulletAndNotTheCharacter()
     {
         var value = new State<string>(string.Empty);
-        using var h = Field(value, masked: true, new FakeClipboard(), out _);
+        using var h = Field(value, masked: true, new TestClipboard(), out _);
 
         h.Type("abc");
         h.Render();
@@ -145,7 +138,7 @@ public class TextInputMaskedTests
     public void DraggingOverAMaskedFieldSelectsByTheBulletWidths()
     {
         var value = new State<string>("WWWWWWWW");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view,
+        using var h = Field(value, masked: true, new TestClipboard(), out var view,
             measurer: new ProportionalMeasurer());
         h.Layout();
 
@@ -160,7 +153,7 @@ public class TextInputMaskedTests
     public void AnOrdinaryFieldStillSelectsByItsOwnGlyphWidths()
     {
         var value = new State<string>("WWWWWWWW");
-        using var h = Field(value, masked: false, new FakeClipboard(), out var view,
+        using var h = Field(value, masked: false, new TestClipboard(), out var view,
             measurer: new ProportionalMeasurer());
         h.Layout();
 
@@ -173,7 +166,7 @@ public class TextInputMaskedTests
     public void TheCaretLandsOnTheBulletBoundaryItWasClickedAt()
     {
         var value = new State<string>("WWWWWWWW");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view,
+        using var h = Field(value, masked: true, new TestClipboard(), out var view,
             measurer: new ProportionalMeasurer());
         h.Layout();
 
@@ -189,7 +182,7 @@ public class TextInputMaskedTests
     public void TheSelectionHighlightCoversTheBulletsAndNotThePlaintextsWidth()
     {
         var value = new State<string>("WWWWWWWW");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view,
+        using var h = Field(value, masked: true, new TestClipboard(), out var view,
             measurer: new ProportionalMeasurer());
 
         view.SelectAll();
@@ -203,7 +196,7 @@ public class TextInputMaskedTests
     public void CaretNavigationStillStepsOneCharacterAtATimeInAMaskedField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: true, new TestClipboard(), out var view);
 
         h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Shift);
         h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Shift);
@@ -217,7 +210,7 @@ public class TextInputMaskedTests
     public void TypingPastingAndDeletingStillEditAMaskedField()
     {
         var value = new State<string>(string.Empty);
-        var clipboard = new FakeClipboard { Text = "-tail" };
+        var clipboard = new TestClipboard { Text = "-tail" };
         using var h = Field(value, masked: true, clipboard, out var view);
 
         h.Type("head");
@@ -238,7 +231,7 @@ public class TextInputMaskedTests
     public void UndoStillRewindsAMaskedField()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, masked: true, new FakeClipboard(), out _);
+        using var h = Field(value, masked: true, new TestClipboard(), out _);
 
         h.Type("XYZ");
         h.PressKey(KeyboardKey.Z, CommandModifier);
@@ -250,7 +243,7 @@ public class TextInputMaskedTests
     public void MaskedAndReadOnlyTogetherMaskAndRefuseEdits()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, masked: true, new FakeClipboard(), out _, readOnly: true);
+        using var h = Field(value, masked: true, new TestClipboard(), out _, readOnly: true);
 
         h.Type("XYZ");
         h.Render();
@@ -265,7 +258,7 @@ public class TextInputMaskedTests
     public void AMaskedFieldStillDrawsItsCaretWhenItIsEditable()
     {
         var value = new State<string>("hello");
-        using var h = Field(value, masked: true, new FakeClipboard(), out _);
+        using var h = Field(value, masked: true, new TestClipboard(), out _);
 
         h.Render();
 
@@ -280,7 +273,7 @@ public class TextInputMaskedTests
         // Masking is there because the value is a secret, and a clipboard is where secrets get pasted
         // somewhere they persist. The chord is declined rather than consumed, so it bubbles.
         var value = new State<string>("sk-live-1234");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, masked: true, clipboard, out _);
 
         h.PressKey(KeyboardKey.A, CommandModifier);
@@ -295,7 +288,7 @@ public class TextInputMaskedTests
     public void CuttingFromAMaskedFieldNeitherCopiesNorDeletes()
     {
         var value = new State<string>("sk-live-1234");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, masked: true, clipboard, out _);
 
         h.PressKey(KeyboardKey.A, CommandModifier);
@@ -309,7 +302,7 @@ public class TextInputMaskedTests
     public void AnOrdinaryFieldStillCopies()
     {
         var value = new State<string>("not-a-secret");
-        var clipboard = new FakeClipboard();
+        var clipboard = new TestClipboard();
         using var h = Field(value, masked: false, clipboard, out _);
 
         h.PressKey(KeyboardKey.A, CommandModifier);
@@ -324,7 +317,7 @@ public class TextInputMaskedTests
     public void DoubleClickTakesTheWholeMaskedValueRatherThanAWordOfIt()
     {
         var value = new State<string>("key-with-parts");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: true, new TestClipboard(), out var view);
         h.Layout();
 
         var point = (X: view.Position.Left + 12f, Y: view.Position.Top - 8f);
@@ -338,7 +331,7 @@ public class TextInputMaskedTests
     public void DoubleClickStillTakesOneWordFromAnOrdinaryField()
     {
         var value = new State<string>("key-with-parts");
-        using var h = Field(value, masked: false, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: false, new TestClipboard(), out var view);
         h.Layout();
 
         var point = (X: view.Position.Left + 12f, Y: view.Position.Top - 8f);
@@ -352,7 +345,7 @@ public class TextInputMaskedTests
     public void WordJumpingSpansTheWholeMaskedValue()
     {
         var value = new State<string>("key-with-parts");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: true, new TestClipboard(), out var view);
 
         var wordModifier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
             ? InputModifiers.Alt
@@ -366,7 +359,7 @@ public class TextInputMaskedTests
     public void WordJumpingStillStopsAtWordBoundariesInAnOrdinaryField()
     {
         var value = new State<string>("key-with-parts");
-        using var h = Field(value, masked: false, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: false, new TestClipboard(), out var view);
 
         var wordModifier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
             ? InputModifiers.Alt
@@ -382,7 +375,7 @@ public class TextInputMaskedTests
     public void VisibleTextIsMaskedWhileTheBoundValueIsNot()
     {
         var value = new State<string>("sk-secret");
-        using var h = Field(value, masked: true, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: true, new TestClipboard(), out var view);
 
         // VisibleText is what automation (GuiDriver.TextOf) reports, so a scripted run's log holds
         // bullets. Text stays real — the binding that writes the key back through Value needs it.
@@ -395,7 +388,7 @@ public class TextInputMaskedTests
     public void VisibleTextIsTheRealTextInAnOrdinaryField()
     {
         var value = new State<string>("sk-secret");
-        using var h = Field(value, masked: false, new FakeClipboard(), out var view);
+        using var h = Field(value, masked: false, new TestClipboard(), out var view);
 
         Assert.Equal("sk-secret", view.VisibleText);
     }
@@ -404,7 +397,7 @@ public class TextInputMaskedTests
     public void TheUiSnapshotNeverCarriesAFieldsValue()
     {
         var value = new State<string>("sk-secret");
-        using var h = Field(value, masked: true, new FakeClipboard(), out _);
+        using var h = Field(value, masked: true, new TestClipboard(), out _);
         h.Render();
 
         // Snapshots (and so the MCP server's gui_snapshot) read text off TextViews only, and a text

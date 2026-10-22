@@ -15,6 +15,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="ZGF.Gui.Immediate.Testing" />
+    <Using Include="ZGF.Gui.Testing" />
   </ItemGroup>
 
   <ItemGroup>

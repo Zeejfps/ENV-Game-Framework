@@ -324,10 +324,11 @@ public sealed class TextFieldTests
         public Field(string text = "")
         {
             _text = text;
+            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
             Frame();
         }
 
-        public UiFrames Frames { get; } = new();
+        public UiFrames Frames { get; }
         public TestClipboard Clipboard => Frames.Clipboard;
 
         public string Text
@@ -336,31 +337,20 @@ public sealed class TextFieldTests
             set => _text = value;
         }
 
-        public void Frame() => Frames.Run(1f / 60f, ui =>
+        public void Frame() => Frames.Frame();
+
+        private void Body(Ui ui)
         {
             using (ui.Screen())
                 ui.TextField("field", ref _text);
-        });
-
-        public void Press(int index, KeyModifiers modifiers = KeyModifiers.None, bool fresh = true)
-        {
-            if (fresh) Frames.Wait(1);
-            Frames.MovePointer(TextLeft + index * CharWidth, MiddleY);
-            Frames.Press(modifiers);
-            Frame();
         }
 
-        public void MoveTo(int index)
-        {
-            Frames.MovePointer(TextLeft + index * CharWidth, MiddleY);
-            Frame();
-        }
+        public void Press(int index, KeyModifiers modifiers = KeyModifiers.None, bool fresh = true) =>
+            Frames.Wait(fresh ? 1 : 0).MovePointer(TextLeft + index * CharWidth, MiddleY).Press(modifiers).Frame();
 
-        public void Release()
-        {
-            Frames.Release();
-            Frame();
-        }
+        public void MoveTo(int index) => Frames.MovePointer(TextLeft + index * CharWidth, MiddleY).Frame();
+
+        public void Release() => Frames.Release().Frame();
 
         public void Click(int index, KeyModifiers modifiers = KeyModifiers.None)
         {
@@ -368,23 +358,11 @@ public sealed class TextFieldTests
             Release();
         }
 
-        public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
-        {
-            Frames.Key(key, modifiers);
-            Frame();
-        }
+        public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => Frames.Key(key, modifiers).Frame();
 
-        public void Type(string text)
-        {
-            Frames.Type(text);
-            Frame();
-        }
+        public void Type(string text) => Frames.Type(text).Frame();
 
-        public void Compose(string text, int? caret = null)
-        {
-            Frames.Compose(text, caret);
-            Frame();
-        }
+        public void Compose(string text, int? caret = null) => Frames.Compose(text, caret).Frame();
 
         public string Selection()
         {
@@ -397,11 +375,13 @@ public sealed class TextFieldTests
 
 public sealed class InlineEditTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames;
     private readonly List<InlineEditResult> _results = new();
     private string _text = "Bookmark 1";
     private bool _begin = true;
     private bool _editing = true;
+
+    public InlineEditTests() => _frames = new UiFrames(body: Body);
 
     private void Body(Ui ui)
     {
@@ -422,21 +402,13 @@ public sealed class InlineEditTests
         }
     }
 
-    private void Run()
-    {
-        _frames.Run(0f, Body);
-        _frames.Run(0f, Body);
-    }
-
     [Fact]
     public void It_starts_with_the_whole_text_selected_so_typing_replaces_it_and_Enter_commits()
     {
-        Run();
+        _frames.Frame(2);
 
-        _frames.Type("Calls First");
-        Run();
-        _frames.Key(KeyboardKey.Enter);
-        Run();
+        _frames.Type("Calls First").Frame(2);
+        _frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal("Calls First", _text);
         Assert.Equal([InlineEditResult.Committed], _results);
@@ -445,12 +417,10 @@ public sealed class InlineEditTests
     [Fact]
     public void Escape_cancels()
     {
-        Run();
-        _frames.Type("x");
-        Run();
+        _frames.Frame(2);
+        _frames.Type("x").Frame(2);
 
-        _frames.Key(KeyboardKey.Escape);
-        Run();
+        _frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Equal([InlineEditResult.Cancelled], _results);
     }
@@ -458,10 +428,9 @@ public sealed class InlineEditTests
     [Fact]
     public void Clicking_elsewhere_commits()
     {
-        Run();
+        _frames.Frame(2);
 
-        _frames.ClickOn(Body, ui => ui.GetId("other"));
-        Run();
+        _frames.ClickOn("other").Frame(2);
 
         Assert.Equal([InlineEditResult.Committed], _results);
     }
@@ -469,9 +438,9 @@ public sealed class InlineEditTests
     [Fact]
     public void It_is_one_line_tall_rather_than_a_control_tall()
     {
-        Run();
+        _frames.Frame(2);
 
-        var rect = _frames.RectOf(Body, ui => ui.GetId("name"));
+        var rect = _frames.RectOf("name");
 
         Assert.True(rect.Height < UiTheme.Dark.ControlHeight, $"{rect.Height}");
         Assert.True(rect.Height <= 28f);

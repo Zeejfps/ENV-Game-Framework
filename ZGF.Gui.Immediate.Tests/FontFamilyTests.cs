@@ -1,5 +1,3 @@
-using ZGF.Gui.Testing;
-
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class FontFamilyTests
@@ -7,13 +5,11 @@ public sealed class FontFamilyTests
     [Fact]
     public void Text_is_drawn_in_the_family_it_names()
     {
-        var frames = new UiFrames();
-
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             ui.Text("mono", family: "Mono");
             ui.Text("plain");
-        });
+        }).Frame();
 
         Assert.Equal("Mono", Family(frames, "mono"));
         Assert.Null(Family(frames, "plain"));
@@ -42,11 +38,9 @@ public sealed class FontFamilyTests
     [Fact]
     public void Text_is_laid_out_with_its_familys_metrics()
     {
-        var frames = new UiFrames(new FamilyMeasurer());
-        void Body(Ui ui) => ui.Text("abcd", family: "Mono", id: ui.GetId("t"));
-        frames.Run(0f, Body);
+        var frames = new UiFrames(body: ui => ui.Text("abcd", family: "Mono", id: ui.GetId("t")), measurer: new FamilyMeasurer()).Frame();
 
-        var rect = frames.RectOf(Body, ui => ui.GetId("t"));
+        var rect = frames.RectOf("t");
 
         Assert.Equal(40f, rect.Width);
         Assert.Equal(20f, rect.Height);
@@ -55,10 +49,9 @@ public sealed class FontFamilyTests
     [Fact]
     public void A_styles_family_is_the_default_inside_its_scope()
     {
-        var frames = new UiFrames();
         var mono = UiTheme.Dark with { FontFamily = "Mono" };
 
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Provide(mono))
             {
@@ -66,7 +59,7 @@ public sealed class FontFamilyTests
                 ui.Text("override", family: "Icons");
             }
             ui.Text("outside");
-        });
+        }).Frame();
 
         Assert.Equal("Mono", Family(frames, "styled"));
         Assert.Equal("Icons", Family(frames, "override"));
@@ -76,13 +69,11 @@ public sealed class FontFamilyTests
     [Fact]
     public void Painted_text_takes_a_family()
     {
-        var frames = new UiFrames();
-
-        frames.Run(0f, ui =>
+        var frames = new UiFrames(body: ui =>
         {
             using (ui.Box(new Box { Width = 100f, Height = 20f }))
                 ui.Paint(static p => p.Text(p.Rect, "painted", 0xFFFFFFFF, family: "Mono"));
-        });
+        }).Frame();
 
         Assert.Equal("Mono", Family(frames, "painted"));
     }
