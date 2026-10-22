@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -261,12 +262,20 @@ public sealed class AppTests
         app.Click("switch expressions");
         app.Run();
         Assert.Equal(csharp8.Length - 1, app.Workspace.DecompilerOptions.Toggles.Count);
+        Assert.False(IsBold(app, "switch expressions"));
+        Assert.True(IsBold(app, "Async iterators"));
+        Assert.True(IsBold(app, "C# 8.0 / VS 2019"));
+        Assert.False(IsBold(app, "C# 7.3 / VS 2017.7"));
 
         app.Click("C# 8.0 / VS 2019");
         app.Driver.Settle();
         app.Run();
         Assert.Equal(DecompilerOptions.Default, app.Workspace.DecompilerOptions);
+        Assert.False(IsBold(app, "C# 8.0 / VS 2019"));
     }
+
+    private static bool IsBold(AppDriver app, string text) =>
+        app.Frames.Canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style.FontWeight.Value == FontWeight.Bold;
 
     /// <summary>Clicks the fold chevron drawn just before a decompiler options group's title.</summary>
     private static void ClickChevronOf(AppDriver app, string title)

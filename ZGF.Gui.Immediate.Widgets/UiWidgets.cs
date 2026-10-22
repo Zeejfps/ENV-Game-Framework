@@ -123,27 +123,28 @@ public static partial class UiWidgets
     /// <summary>Returns true on the frame <paramref name="value"/> changes, by a click or by Space
     /// while focused. Ids work as for <see cref="Button"/>. When not <paramref name="enabled"/> it
     /// shows <paramref name="value"/> greyed out and ignores input. Given a <paramref name="width"/>,
-    /// a label too long for it ends in an ellipsis.</summary>
+    /// a label too long for it ends in an ellipsis. A <paramref name="bold"/> label stands out, e.g.
+    /// as a choice changed from its default.</summary>
     public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null, bool enabled = true,
-        Sizing? width = null)
+        Sizing? width = null, bool bold = false)
     {
-        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width)) return false;
+        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold)) return false;
         value = !value;
         return true;
     }
 
     /// <summary>A checkbox for a group of choices: <paramref name="value"/> is null when only some
     /// are on, shown as a filled square. A click turns it on unless it is already, then off; returns
-    /// true on that frame. Otherwise as the two-state <see cref="Checkbox(Ui, string, ref bool, uint?, string?, bool, Sizing?)"/>.</summary>
+    /// true on that frame. Otherwise as the two-state <see cref="Checkbox(Ui, string, ref bool, uint?, string?, bool, Sizing?, bool)"/>.</summary>
     public static bool Checkbox(this Ui ui, string label, ref bool? value, uint? textColor = null, string? id = null, bool enabled = true,
-        Sizing? width = null)
+        Sizing? width = null, bool bold = false)
     {
-        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width)) return false;
+        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold)) return false;
         value = value != true;
         return true;
     }
 
-    private static bool DrawCheckbox(Ui ui, string label, bool? value, uint? textColor, string? id, bool enabled, Sizing? width)
+    private static bool DrawCheckbox(Ui ui, string label, bool? value, uint? textColor, string? id, bool enabled, Sizing? width, bool bold)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id ?? label, enabled, out var activated, out var ring);
@@ -172,7 +173,7 @@ public static partial class UiWidgets
                     ui.Leaf(new Box { Width = size / 2f, Height = size / 2f, Background = accent, Radius = theme.RadiusSmall / 2f });
                 if (ring) FocusRing(ui, theme.RadiusSmall);
             }
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: !enabled ? theme.TextDisabled : textColor ?? theme.Text,
+            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: !enabled ? theme.TextDisabled : textColor ?? theme.Text, bold: bold,
                 overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
         }
         return i.Clicked || activated;

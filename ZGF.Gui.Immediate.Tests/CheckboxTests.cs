@@ -43,6 +43,20 @@ public sealed class CheckboxTests
     }
 
     [Fact]
+    public void A_bold_checkbox_draws_its_label_bold()
+    {
+        _frames.Run(0f, ui =>
+        {
+            using var screen = ui.Screen();
+            ui.Checkbox("Plain", ref _single);
+            ui.Checkbox("Changed", ref _single, bold: true);
+        });
+
+        Assert.Equal(FontWeight.Normal, _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Plain").Inputs.Style.FontWeight.Value);
+        Assert.Equal(FontWeight.Bold, _frames.Canvas.Texts.Single(t => t.Inputs.Text == "Changed").Inputs.Style.FontWeight.Value);
+    }
+
+    [Fact]
     public void Disabled_checkboxes_ignore_clicks()
     {
         _enabled = false;

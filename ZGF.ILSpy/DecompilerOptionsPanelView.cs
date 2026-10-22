@@ -81,7 +81,7 @@ internal static class DecompilerOptionsPanelView
         {
             ui.Icon(new UiIcon(folded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
             var all = State(section, options);
-            if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow()))
+            if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow(), bold: Changed(section, options)))
                 w.SetDecompilerToggles(section.Toggles, all == true);
         }
         if (!allowed && tooNew != null)
@@ -94,6 +94,16 @@ internal static class DecompilerOptionsPanelView
     {
         var on = section.Toggles.Count(options.IsOn);
         return on == section.Toggles.Length ? true : on == 0 ? false : null;
+    }
+
+    /// <summary>Whether any toggle in <paramref name="section"/> is set away from its default.</summary>
+    private static bool Changed(Section section, DecompilerOptions options)
+    {
+        foreach (var toggle in section.Toggles)
+        {
+            if (options.Toggles.ContainsKey(toggle.Name)) return true;
+        }
+        return false;
     }
 
     private static void Toggle(Ui ui, Workspace w, Strings t, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
@@ -109,7 +119,7 @@ internal static class DecompilerOptionsPanelView
         {
             var on = options.IsOn(toggle);
             if (ui.Checkbox(DecompilerOptionLabels.Label(t, toggle.Name) ?? toggle.Name, ref on, id: toggle.Name, enabled: options.Allows(toggle),
-                    width: Sizing.Grow()))
+                    width: Sizing.Grow(), bold: options.Toggles.ContainsKey(toggle.Name)))
                 w.SetDecompilerToggle(toggle, on);
         }
     }
