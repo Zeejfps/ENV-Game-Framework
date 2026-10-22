@@ -1,140 +1,74 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection.Metadata;
-
-using ICSharpCode.Decompiler;
-using ICSharpCode.Decompiler.Disassembler;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 
-namespace ZGF.ILSpy.Core.Analysis
+namespace ZGF.ILSpy.Core.Analysis;
+
+/// <summary>Shows the members and types a method's code, compiler-generated parts included, uses.</summary>
+internal sealed class MethodUsesAnalyzer : IAnalyzer
 {
-	/// <summary>
-	/// Shows entities that are used by a method.
-	/// </summary>
-	class MethodUsesAnalyzer : IAnalyzer
-	{
-		public bool Show(ISymbol? symbol) => symbol is IMethod method && method.HasBody;
+    public bool Show(ISymbol? symbol) => symbol is IMethod method && method.HasBody;
 
-		public IEnumerable<ISymbol> Analyze(ISymbol symbol, AnalyzerContext context)
-		{
-			if (symbol is IMethod method && method.ParentModule?.MetadataFile is MetadataFile corFile)
-			{
-				var typeSystem = context.GetOrCreateTypeSystem(corFile);
-				return context.Language.GetCodeMappingInfo(corFile, method.MetadataToken)
-					.GetMethodParts((MethodDefinitionHandle)method.MetadataToken)
-					.SelectMany(h => ScanMethod(h, typeSystem)).Distinct();
-			}
-			throw new InvalidOperationException("Should never happen.");
-		}
+    public IEnumerable<ISymbol> Analyze(ISymbol symbol, AnalyzerContext context)
+    {
+        if (symbol is not IMethod { ParentModule.MetadataFile: { } file } method)
+            throw new InvalidOperationException("Should never happen.");
+        var module = context.AssemblyList.TypeSystemOf(file).MainModule;
+        return context.MappingOf(method).GetMethodParts((MethodDefinitionHandle)method.MetadataToken)
+            .SelectMany(part => ScanMethod(module, part)).Distinct();
+    }
 
-		IEnumerable<IEntity> ScanMethod(MethodDefinitionHandle handle, DecompilerTypeSystem typeSystem)
-		{
-			var module = typeSystem.MainModule;
-			var md = module.MetadataFile.Metadata.GetMethodDefinition(handle);
-			if (!md.HasBody())
-				yield break;
+    private static IEnumerable<IEntity> ScanMethod(MetadataModule module, MethodDefinitionHandle handle)
+    {
+        if (module.MetadataFile.ReadBody(handle) is not { } body)
+            yield break;
+        var types = new TypeDefinitionCollector();
+        foreach (var (opCode, token) in body.Tokens())
+        {
+            if (opCode.GetOperandType() == OperandType.Type)
+                continue;
+            switch (Resolve(module, token))
+            {
+                case IType type:
+                    type.AcceptVisitor(types);
+                    break;
+                case IEntity entity:
+                    yield return entity;
+                    break;
+            }
+        }
+        foreach (var type in types.UsedTypes)
+            yield return type;
+    }
 
-			BlobReader blob;
-			try
-			{
-				blob = module.MetadataFile.GetMethodBody(md.RelativeVirtualAddress).GetILReader();
-			}
-			catch (BadImageFormatException)
-			{
-				yield break;
-			}
-			var visitor = new TypeDefinitionCollector();
-			var genericContext = new ICSharpCode.Decompiler.TypeSystem.GenericContext(); // type parameters don't matter for this analyzer
+    private static object? Resolve(MetadataModule module, EntityHandle token)
+    {
+        try
+        {
+            return token.Kind switch
+            {
+                HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification => module.ResolveType(token, default),
+                HandleKind.MethodDefinition or HandleKind.MethodSpecification or HandleKind.MemberReference or HandleKind.FieldDefinition =>
+                    module.ResolveEntity(token, default),
+                _ => null,
+            };
+        }
+        catch (BadImageFormatException)
+        {
+            return null;
+        }
+    }
 
-			while (blob.RemainingBytes > 0)
-			{
-				ILOpCode opCode;
-				try
-				{
-					opCode = blob.DecodeOpCode();
-				}
-				catch (BadImageFormatException)
-				{
-					yield break;
-				}
-				switch (opCode.GetOperandType())
-				{
-					case OperandType.Field:
-					case OperandType.Method:
-					case OperandType.Sig:
-					case OperandType.Tok:
-						var member = MetadataTokenHelpers.EntityHandleOrNil(blob.ReadInt32());
-						if (member.IsNil)
-							continue;
+    private sealed class TypeDefinitionCollector : TypeVisitor
+    {
+        public readonly List<ITypeDefinition> UsedTypes = new();
 
-						switch (member.Kind)
-						{
-							case HandleKind.StandaloneSignature:
-								break;
-							case HandleKind.TypeDefinition:
-							case HandleKind.TypeReference:
-							case HandleKind.TypeSpecification:
-								IType? ty;
-								try
-								{
-									ty = module.ResolveType(member, genericContext);
-								}
-								catch (BadImageFormatException)
-								{
-									ty = null;
-								}
-								ty?.AcceptVisitor(visitor);
-								break;
-							case HandleKind.MethodDefinition:
-							case HandleKind.MethodSpecification:
-							case HandleKind.MemberReference:
-							case HandleKind.FieldDefinition:
-								IEntity? m;
-								try
-								{
-									m = module.ResolveEntity(member, genericContext);
-								}
-								catch (BadImageFormatException)
-								{
-									m = null;
-								}
-								if (m != null)
-									yield return m;
-								break;
-						}
-						break;
-					default:
-						try
-						{
-							ILParser.SkipOperand(ref blob, opCode);
-						}
-						catch (BadImageFormatException)
-						{
-							yield break;
-						}
-						break;
-				}
-			}
-
-			foreach (var type in visitor.UsedTypes)
-			{
-				yield return type;
-			}
-		}
-
-		class TypeDefinitionCollector : TypeVisitor
-		{
-			public readonly List<ITypeDefinition> UsedTypes = new List<ITypeDefinition>();
-
-			public override IType VisitTypeDefinition(ITypeDefinition type)
-			{
-				UsedTypes.Add(type);
-				return base.VisitTypeDefinition(type);
-			}
-		}
-	}
+        public override IType VisitTypeDefinition(ITypeDefinition type)
+        {
+            UsedTypes.Add(type);
+            return base.VisitTypeDefinition(type);
+        }
+    }
 }

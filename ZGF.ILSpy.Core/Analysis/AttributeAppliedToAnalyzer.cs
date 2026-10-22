@@ -1,180 +1,57 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Threading;
-
-using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
-using ICSharpCode.Decompiler.Util;
 
-namespace ZGF.ILSpy.Core.Analysis
+namespace ZGF.ILSpy.Core.Analysis;
+
+/// <summary>Shows the symbols an attribute is applied to.</summary>
+internal sealed class AttributeAppliedToAnalyzer : IAnalyzer
 {
-	class AttributeAppliedToAnalyzer : IAnalyzer
-	{
-		public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
-		{
-			if (!(analyzedSymbol is ITypeDefinition attributeType))
-				return Empty<ISymbol>.Array;
+    public bool Show(ISymbol? symbol) =>
+        symbol is ITypeDefinition type && type.GetNonInterfaceBaseTypes().Any(t => t.IsKnownType(KnownTypeCode.Attribute));
 
-			var scope = context.GetScopeOf(attributeType);
-			// TODO: DeclSecurity attributes are not supported.
-			if (!IsBuiltinAttribute(attributeType, out var knownAttribute))
-			{
-				return HandleCustomAttribute(attributeType, scope, context.CancellationToken).Distinct();
-			}
-			else
-			{
-				return HandleBuiltinAttribute(knownAttribute, scope, context.CancellationToken).SelectMany(s => s);
-			}
-		}
+    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    {
+        if (analyzedSymbol is not ITypeDefinition attributeType)
+            return [];
+        var scope = context.GetScopeOf(attributeType);
+        var known = attributeType.IsBuiltinAttribute();
+        var found = scope.GetModulesInScope(context.CancellationToken).SelectMany(module =>
+        {
+            var ts = scope.ConstructTypeSystem(module);
+            context.CancellationToken.ThrowIfCancellationRequested();
+            return known.IsCustomAttribute() ? CustomAppliedTo(attributeType, ts) : BuiltinAppliedTo(known, ts);
+        });
+        return known.IsCustomAttribute() ? found.Distinct() : found;
+    }
 
-		bool IsBuiltinAttribute(ITypeDefinition attributeType, out KnownAttribute knownAttribute)
-		{
-			knownAttribute = attributeType.IsBuiltinAttribute();
-			return !knownAttribute.IsCustomAttribute();
-		}
+    private static IEnumerable<ISymbol> CustomAppliedTo(ITypeDefinition attributeType, DecompilerTypeSystem ts)
+    {
+        var metadata = ts.MainModule.MetadataFile.Metadata;
+        var decoder = new FindTypeDecoder(ts.MainModule, attributeType);
+        return AnalyzerHelpers.AttributeOwners(ts, a => AnalyzerHelpers.IsCustomAttributeOfType(a.Constructor, metadata, decoder));
+    }
 
-		IEnumerable<IEnumerable<ISymbol>> HandleBuiltinAttribute(KnownAttribute attribute, AnalyzerScope scope, CancellationToken ct)
-		{
-			IEnumerable<ISymbol> ScanTypes(DecompilerTypeSystem ts)
-			{
-				return ts.MainModule.TypeDefinitions
-					.Where(t => t.HasAttribute(attribute));
-			}
+    private static IEnumerable<ISymbol> BuiltinAppliedTo(KnownAttribute attribute, DecompilerTypeSystem ts)
+    {
+        var types = ts.MainModule.TypeDefinitions;
+        var methods = types.SelectMany(static t => t.Members.OfType<IMethod>());
+        return attribute switch
+        {
+            KnownAttribute.Serializable or KnownAttribute.ComImport or KnownAttribute.StructLayout => types.Where(t => t.HasAttribute(attribute)),
+            KnownAttribute.DllImport or KnownAttribute.PreserveSig or KnownAttribute.MethodImpl =>
+                methods.Where(m => m.HasAttribute(attribute)).Select(static m => m.AccessorOwner ?? m),
+            KnownAttribute.FieldOffset or KnownAttribute.NonSerialized => Fields(),
+            KnownAttribute.MarshalAs => Fields().Concat(Parameters()).Concat(Parameters()),
+            KnownAttribute.Optional or KnownAttribute.In or KnownAttribute.Out => Parameters(),
+            KnownAttribute.IndexerName => types.SelectMany(static t => t.Properties).Where(p => p.HasAttribute(attribute)),
+            _ => [],
+        };
 
-			IEnumerable<ISymbol> ScanMethods(DecompilerTypeSystem ts)
-			{
-				return ts.MainModule.TypeDefinitions
-					.SelectMany(t => t.Members.OfType<IMethod>())
-					.Where(m => m.HasAttribute(attribute))
-					.Select(m => m.AccessorOwner ?? m);
-			}
+        IEnumerable<ISymbol> Fields() => types.SelectMany(static t => t.Fields).Where(f => f.HasAttribute(attribute));
 
-			IEnumerable<ISymbol> ScanFields(DecompilerTypeSystem ts)
-			{
-				return ts.MainModule.TypeDefinitions
-					.SelectMany(t => t.Fields)
-					.Where(f => f.HasAttribute(attribute));
-			}
-
-			IEnumerable<ISymbol> ScanProperties(DecompilerTypeSystem ts)
-			{
-				return ts.MainModule.TypeDefinitions
-					.SelectMany(t => t.Properties)
-					.Where(p => p.HasAttribute(attribute));
-			}
-
-			IEnumerable<ISymbol> ScanParameters(DecompilerTypeSystem ts)
-			{
-				return ts.MainModule.TypeDefinitions
-					.SelectMany(t => t.Members.OfType<IMethod>())
-					.Where(m => m.Parameters.Any(p => p.HasAttribute(attribute)))
-					.Select(m => m.AccessorOwner ?? m);
-			}
-
-			foreach (ICSharpCode.Decompiler.Metadata.PEFile module in scope.GetModulesInScope(ct))
-			{
-				var ts = scope.ConstructTypeSystem(module);
-				ct.ThrowIfCancellationRequested();
-
-				switch (attribute)
-				{
-					case KnownAttribute.Serializable:
-					case KnownAttribute.ComImport:
-					case KnownAttribute.StructLayout:
-						yield return ScanTypes(ts);
-						break;
-					case KnownAttribute.DllImport:
-					case KnownAttribute.PreserveSig:
-					case KnownAttribute.MethodImpl:
-						yield return ScanMethods(ts);
-						break;
-					case KnownAttribute.FieldOffset:
-					case KnownAttribute.NonSerialized:
-						yield return ScanFields(ts);
-						break;
-					case KnownAttribute.MarshalAs:
-						yield return ScanFields(ts);
-						yield return ScanParameters(ts);
-						goto case KnownAttribute.Out;
-					case KnownAttribute.Optional:
-					case KnownAttribute.In:
-					case KnownAttribute.Out:
-						yield return ScanParameters(ts);
-						break;
-					case KnownAttribute.IndexerName:
-						yield return ScanProperties(ts);
-						break;
-				}
-			}
-		}
-
-		IEnumerable<ISymbol> HandleCustomAttribute(ITypeDefinition attributeType, AnalyzerScope scope, CancellationToken ct)
-		{
-			var genericContext = new ICSharpCode.Decompiler.TypeSystem.GenericContext(); // type arguments do not matter for this analyzer.
-
-			foreach (var module in scope.GetModulesInScope(ct))
-			{
-				var ts = scope.ConstructTypeSystem(module);
-				ct.ThrowIfCancellationRequested();
-				var decoder = new FindTypeDecoder(ts.MainModule, attributeType);
-
-				var referencedParameters = new HashSet<ParameterHandle>();
-				foreach (var h in module.Metadata.CustomAttributes)
-				{
-					var customAttribute = module.Metadata.GetCustomAttribute(h);
-					if (IsCustomAttributeOfType(customAttribute.Constructor, module.Metadata, decoder))
-					{
-						if (customAttribute.Parent.Kind == HandleKind.Parameter)
-						{
-							referencedParameters.Add((ParameterHandle)customAttribute.Parent);
-						}
-						else
-						{
-							var parent = AnalyzerHelpers.GetParentEntity(ts, customAttribute);
-							if (parent != null)
-								yield return parent;
-						}
-					}
-				}
-				if (referencedParameters.Count > 0)
-				{
-					foreach (var h in module.Metadata.MethodDefinitions)
-					{
-						var md = module.Metadata.GetMethodDefinition(h);
-						foreach (var p in md.GetParameters())
-						{
-							if (referencedParameters.Contains(p))
-							{
-								var method = ts.MainModule.ResolveMethod(h, genericContext);
-								if (method != null)
-								{
-									if (method.IsAccessor)
-										yield return method.AccessorOwner;
-									else
-										yield return method;
-								}
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-
-		internal static bool IsCustomAttributeOfType(EntityHandle customAttributeCtor, MetadataReader metadata, FindTypeDecoder decoder)
-		{
-			var declaringAttributeType = customAttributeCtor.GetDeclaringType(metadata);
-			return decoder.GetTypeFromEntity(metadata, declaringAttributeType);
-		}
-
-		public bool Show(ISymbol? symbol)
-		{
-			return symbol is ITypeDefinition type && type.GetNonInterfaceBaseTypes()
-				.Any(t => t.IsKnownType(KnownTypeCode.Attribute));
-		}
-	}
+        IEnumerable<ISymbol> Parameters() =>
+            methods.Where(m => m.Parameters.Any(p => p.HasAttribute(attribute))).Select(static m => m.AccessorOwner ?? m);
+    }
 }

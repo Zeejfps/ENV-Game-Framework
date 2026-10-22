@@ -1,141 +1,95 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
-#nullable enable
-
-using System;
 using System.Reflection.Metadata;
-
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 
-namespace ZGF.ILSpy.Core.Analysis
+namespace ZGF.ILSpy.Core.Analysis;
+
+/// <summary>What decoding an attribute type found: <see cref="Found"/> when it is the type searched
+/// for, plus while decoding an enum its underlying <see cref="PrimitiveTypeCode"/>, or
+/// <see cref="SystemType"/> for <see cref="System.Type"/>.</summary>
+internal enum TokenSearchResult : byte
 {
-	public enum TokenSearchResult : byte
-	{
-		NoResult = 0,
-		Byte = PrimitiveTypeCode.Byte,
-		SByte = PrimitiveTypeCode.SByte,
-		Int16 = PrimitiveTypeCode.Int16,
-		UInt16 = PrimitiveTypeCode.UInt16,
-		Int32 = PrimitiveTypeCode.Int32,
-		UInt32 = PrimitiveTypeCode.UInt32,
-		Int64 = PrimitiveTypeCode.Int64,
-		UInt64 = PrimitiveTypeCode.UInt64,
-		IntPtr = PrimitiveTypeCode.IntPtr,
-		UIntPtr = PrimitiveTypeCode.UIntPtr,
+    NoResult = 0,
+    TypeCodeMask = 0b0111_1111,
+    Found = 0b1000_0000,
+    SystemType = 127,
+}
 
-		// lowest PrimitiveTypeCode is 1
-		// highest PrimitiveTypeCode is 28 (0b0001_1100)
-		// TokenSearchResult with a PrimitiveTypeCode set is only used when decoding an enum-type.
-		// It is used for GetUnderlyingEnumType and should be masked out in all other uses.
-		// MSB = Found
-		// 127 = System.Type
-		TypeCodeMask = 0b0111_1111,
-		Found = 0b1000_0000,
-		SystemType = 127,
-	}
+/// <summary>Finds a type in the attribute values of a module.</summary>
+internal sealed class FindTypeInAttributeDecoder : ICustomAttributeTypeProvider<TokenSearchResult>
+{
+    private readonly MetadataFile _declaringModule;
+    private readonly MetadataModule _currentModule;
+    private readonly TypeDefinitionHandle _handle;
+    private readonly PrimitiveTypeCode _primitiveType;
 
-	class FindTypeInAttributeDecoder : ICustomAttributeTypeProvider<TokenSearchResult>
-	{
-		readonly MetadataFile declaringModule;
-		readonly MetadataModule currentModule;
-		readonly TypeDefinitionHandle handle;
-		readonly PrimitiveTypeCode primitiveType;
+    public FindTypeInAttributeDecoder(MetadataModule currentModule, ITypeDefinition type)
+    {
+        _currentModule = currentModule;
+        _declaringModule = type.ParentModule?.MetadataFile ?? throw new InvalidOperationException("Cannot use MetadataModule without PEFile as context.");
+        _handle = (TypeDefinitionHandle)type.MetadataToken;
+        _primitiveType = type.KnownTypeCode == KnownTypeCode.None ? 0 : type.KnownTypeCode.ToPrimitiveTypeCode();
+    }
 
-		/// <summary>
-		/// Constructs a FindTypeInAttributeDecoder that can be used to find <paramref name="type"/> in signatures from <paramref name="currentModule"/>.
-		/// </summary>
-		public FindTypeInAttributeDecoder(MetadataModule currentModule, ITypeDefinition type)
-		{
-			this.currentModule = currentModule;
-			this.declaringModule = type.ParentModule?.MetadataFile ?? throw new InvalidOperationException("Cannot use MetadataModule without PEFile as context.");
-			this.handle = (TypeDefinitionHandle)type.MetadataToken;
-			this.primitiveType = type.KnownTypeCode == KnownTypeCode.None ? 0 : type.KnownTypeCode.ToPrimitiveTypeCode();
-		}
+    public TokenSearchResult GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode == _primitiveType ? TokenSearchResult.Found : 0;
 
-		public TokenSearchResult GetPrimitiveType(PrimitiveTypeCode typeCode)
-		{
-			return typeCode == primitiveType ? TokenSearchResult.Found : 0;
-		}
+    public TokenSearchResult GetSystemType() => TokenSearchResult.SystemType;
 
-		public TokenSearchResult GetSystemType() => TokenSearchResult.SystemType;
+    public TokenSearchResult GetSZArrayType(TokenSearchResult elementType) => elementType & TokenSearchResult.Found;
 
-		public TokenSearchResult GetSZArrayType(TokenSearchResult elementType) => elementType & TokenSearchResult.Found;
+    public TokenSearchResult GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
+    {
+        var result = TokenSearchResult.NoResult;
+        if (handle.IsEnum(reader, out var underlyingType))
+            result = (TokenSearchResult)underlyingType;
+        else if (((EntityHandle)handle).IsKnownType(reader, KnownTypeCode.Type))
+            result = TokenSearchResult.SystemType;
+        if (_handle == handle && reader == _declaringModule.Metadata)
+            result |= TokenSearchResult.Found;
+        return result;
+    }
 
-		public TokenSearchResult GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
-		{
-			TokenSearchResult result = TokenSearchResult.NoResult;
+    public TokenSearchResult GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) =>
+        GetResultFromResolvedType(_currentModule.ResolveType(handle, default));
 
-			if (handle.IsEnum(reader, out PrimitiveTypeCode underlyingType))
-			{
-				result = (TokenSearchResult)underlyingType;
-			}
-			else if (((EntityHandle)handle).IsKnownType(reader, KnownTypeCode.Type))
-			{
-				result = TokenSearchResult.SystemType;
-			}
-			if (this.handle == handle && reader == declaringModule.Metadata)
-			{
-				result |= TokenSearchResult.Found;
-			}
-			return result;
-		}
+    public TokenSearchResult GetTypeFromSerializedName(string name)
+    {
+        if (name == null)
+            return TokenSearchResult.NoResult;
+        try
+        {
+            return GetResultFromResolvedType(ReflectionHelper.ParseReflectionName(name, new SimpleTypeResolveContext(_currentModule)));
+        }
+        catch (ReflectionNameParseException)
+        {
+            return TokenSearchResult.NoResult;
+        }
+    }
 
-		public TokenSearchResult GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
-		{
-			var t = currentModule.ResolveType(handle, default);
-			return GetResultFromResolvedType(t);
-		}
+    private TokenSearchResult GetResultFromResolvedType(IType type)
+    {
+        if (type.GetDefinition() is not { } definition)
+            return TokenSearchResult.NoResult;
+        var result = TokenSearchResult.NoResult;
+        if (definition.EnumUnderlyingType?.GetDefinition() is { } underlyingType)
+            result = (TokenSearchResult)underlyingType.KnownTypeCode.ToPrimitiveTypeCode();
+        else if (definition.KnownTypeCode == KnownTypeCode.Type)
+            result = TokenSearchResult.SystemType;
+        if (definition.MetadataToken == _handle && definition.ParentModule?.MetadataFile == _declaringModule)
+            result |= TokenSearchResult.Found;
+        return result;
+    }
 
-		public TokenSearchResult GetTypeFromSerializedName(string name)
-		{
-			if (name == null)
-			{
-				return TokenSearchResult.NoResult;
-			}
-			try
-			{
-				IType type = ReflectionHelper.ParseReflectionName(name, new SimpleTypeResolveContext(currentModule));
-				return GetResultFromResolvedType(type);
-			}
-			catch (ReflectionNameParseException)
-			{
-				return TokenSearchResult.NoResult;
-			}
-		}
+    public PrimitiveTypeCode GetUnderlyingEnumType(TokenSearchResult type)
+    {
+        var typeCode = type & TokenSearchResult.TypeCodeMask;
+        if (typeCode == 0 || typeCode == TokenSearchResult.SystemType)
+            throw new EnumUnderlyingTypeResolveException();
+        return (PrimitiveTypeCode)typeCode;
+    }
 
-		private TokenSearchResult GetResultFromResolvedType(IType type)
-		{
-			var td = type.GetDefinition();
-			if (td == null)
-				return TokenSearchResult.NoResult;
-
-			TokenSearchResult result = TokenSearchResult.NoResult;
-			var underlyingType = td.EnumUnderlyingType?.GetDefinition();
-			if (underlyingType != null)
-			{
-				result = (TokenSearchResult)underlyingType.KnownTypeCode.ToPrimitiveTypeCode();
-			}
-			else if (td.KnownTypeCode == KnownTypeCode.Type)
-			{
-				result = TokenSearchResult.SystemType;
-			}
-			if (td.MetadataToken == this.handle && td.ParentModule?.MetadataFile == declaringModule)
-			{
-				result |= TokenSearchResult.Found;
-			}
-			return result;
-		}
-
-		public PrimitiveTypeCode GetUnderlyingEnumType(TokenSearchResult type)
-		{
-			TokenSearchResult typeCode = type & TokenSearchResult.TypeCodeMask;
-			if (typeCode == 0 || typeCode == TokenSearchResult.SystemType)
-				throw new EnumUnderlyingTypeResolveException();
-			return (PrimitiveTypeCode)typeCode;
-		}
-
-		public bool IsSystemType(TokenSearchResult type) => (type & TokenSearchResult.TypeCodeMask) == TokenSearchResult.SystemType;
-	}
+    public bool IsSystemType(TokenSearchResult type) => (type & TokenSearchResult.TypeCodeMask) == TokenSearchResult.SystemType;
 }

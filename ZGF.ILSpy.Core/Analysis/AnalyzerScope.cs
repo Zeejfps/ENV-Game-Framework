@@ -1,4 +1,4 @@
-// Adapted from ILSpyX's analyzer framework (MIT License, Copyright (c) AlphaSierraPapa for the SharpDevelop Team).
+// Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
 using System.Reflection.Metadata;
 using ICSharpCode.Decompiler.Metadata;
@@ -14,6 +14,8 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// </summary>
 internal sealed class AnalyzerScope
 {
+    private const GetMemberOptions MemberDefinitions = GetMemberOptions.IgnoreInheritedMembers | GetMemberOptions.ReturnMemberDefinitions;
+
     private readonly AssemblyList _list;
     private readonly IReadOnlyList<LoadedAssembly> _assemblies;
     private readonly Accessibility _effectiveAccessibility;
@@ -22,7 +24,6 @@ internal sealed class AnalyzerScope
     {
         _list = list;
         _assemblies = list.Assemblies;
-        AnalyzedSymbol = entity;
         DetermineEffectiveAccessibility(entity, out var typeScope, out _effectiveAccessibility);
         TypeScope = typeScope;
         IsLocal = _effectiveAccessibility.LessThanOrEqual(Accessibility.Private);
@@ -30,8 +31,6 @@ internal sealed class AnalyzerScope
 
     /// <summary>Whether the analyzed symbol is reachable only from inside <see cref="TypeScope"/>.</summary>
     public bool IsLocal { get; }
-
-    public ISymbol AnalyzedSymbol { get; }
 
     public ITypeDefinition TypeScope { get; }
 
@@ -43,9 +42,6 @@ internal sealed class AnalyzerScope
             return GetModuleAndAnyFriends(TypeScope, ct);
         return GetReferencingModules(TypeScope.ParentModule!.MetadataFile!, ct);
     }
-
-    public IEnumerable<MetadataFile> GetAllModules() =>
-        _assemblies.Select(static a => (MetadataFile)a.File).Where(static f => !f.IsMetadataOnly);
 
     public DecompilerTypeSystem ConstructTypeSystem(MetadataFile module) => _list.TypeSystemOf(module);
 
@@ -62,6 +58,33 @@ internal sealed class AnalyzerScope
             {
                 foreach (var type in ConstructTypeSystem(module).MainModule.TypeDefinitions)
                     yield return type;
+            }
+        }
+    }
+
+    /// <summary>The members in scope with code <paramref name="matches"/> accepts, type by type:
+    /// each such method, then each property and event with such an accessor.</summary>
+    public IEnumerable<IEntity> MembersWhoseCode(Func<IMethod, bool> matches, CancellationToken ct)
+    {
+        foreach (var type in GetTypesInScope(ct))
+        {
+            if (type.ParentModule?.MetadataFile == null)
+                continue;
+            foreach (var method in type.GetMembers(static m => m is IMethod, MemberDefinitions).OfType<IMethod>())
+            {
+                if (matches(method))
+                    yield return method;
+            }
+            foreach (var property in type.Properties)
+            {
+                if (property.CanGet && matches(property.Getter) || property.CanSet && matches(property.Setter))
+                    yield return property;
+            }
+            foreach (var @event in type.Events)
+            {
+                if (@event.CanAdd && matches(@event.AddAccessor) || @event.CanRemove && matches(@event.RemoveAccessor)
+                    || @event.CanInvoke && matches(@event.InvokeAccessor))
+                    yield return @event;
             }
         }
     }

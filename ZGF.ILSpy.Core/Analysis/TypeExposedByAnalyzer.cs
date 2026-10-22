@@ -1,128 +1,54 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
-using System.Collections.Generic;
-using System.Diagnostics;
-
 using ICSharpCode.Decompiler.TypeSystem;
 
-namespace ZGF.ILSpy.Core.Analysis
+namespace ZGF.ILSpy.Core.Analysis;
+
+/// <summary>Finds the visible members whose signature exposes a type.</summary>
+internal sealed class TypeExposedByAnalyzer : IAnalyzer
 {
-	/// <summary>
-	/// Finds all entities that expose a type.
-	/// </summary>
-	class TypeExposedByAnalyzer : IAnalyzer
-	{
-		public bool Show(ISymbol? entity) => entity is ITypeDefinition;
+    public bool Show(ISymbol? symbol) => symbol is ITypeDefinition;
 
-		public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
-		{
-			Debug.Assert(analyzedSymbol is ITypeDefinition);
-			var scope = context.GetScopeOf((ITypeDefinition)analyzedSymbol);
-			foreach (var type in scope.GetTypesInScope(context.CancellationToken))
-			{
-				foreach (var result in ScanType((ITypeDefinition)analyzedSymbol, type, context))
-					yield return result;
-			}
-		}
+    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    {
+        var analyzed = (ITypeDefinition)analyzedSymbol;
+        var visitor = new TypeDefinitionUsedVisitor(analyzed);
+        foreach (var type in context.GetScopeOf(analyzed).GetTypesInScope(context.CancellationToken))
+        {
+            if (analyzed.Kind == TypeKind.Enum && type.IsSame(analyzed) || Members.IsHidden(type))
+                continue;
+            foreach (var member in type.Fields.Concat<IMember>(type.Properties).Concat(type.Events).Concat(type.Methods))
+            {
+                if (visitor.IsExposedBy(member))
+                    yield return member;
+            }
+        }
+    }
 
-		IEnumerable<IEntity> ScanType(ITypeDefinition analyzedType, ITypeDefinition type, AnalyzerContext context)
-		{
-			if (analyzedType.Kind == TypeKind.Enum
-				&& type.MetadataToken == analyzedType.MetadataToken
-				&& type.ParentModule?.MetadataFile == analyzedType.ParentModule?.MetadataFile)
-				yield break;
+    private sealed class TypeDefinitionUsedVisitor(ITypeDefinition definition) : TypeVisitor
+    {
+        private bool _found;
 
-			if (!context.Language.ShowMember(type))
-				yield break;
+        public bool IsExposedBy(IMember member)
+        {
+            if (member.Accessibility == Accessibility.Private && !member.IsExplicitInterfaceImplementation)
+                return false;
+            _found = false;
+            member.ReturnType.AcceptVisitor(this);
+            if (member is IParameterizedMember parameterized)
+            {
+                foreach (var parameter in parameterized.Parameters)
+                    parameter.Type.AcceptVisitor(this);
+            }
+            return _found;
+        }
 
-			var visitor = new TypeDefinitionUsedVisitor(analyzedType, true);
+        public override IType VisitTypeDefinition(ITypeDefinition type)
+        {
+            _found |= type.IsSame(definition);
+            return base.VisitTypeDefinition(type);
+        }
 
-			foreach (IField field in type.Fields)
-			{
-				if (TypeIsExposedBy(visitor, field))
-					yield return field;
-			}
-
-			foreach (IProperty property in type.Properties)
-			{
-				if (TypeIsExposedBy(visitor, property))
-					yield return property;
-			}
-
-			foreach (IEvent @event in type.Events)
-			{
-				if (TypeIsExposedBy(visitor, @event))
-					yield return @event;
-			}
-
-			foreach (IMethod method in type.Methods)
-			{
-				if (TypeIsExposedBy(visitor, method))
-					yield return method;
-			}
-		}
-
-		bool TypeIsExposedBy(TypeDefinitionUsedVisitor visitor, IField field)
-		{
-			if (field.Accessibility == Accessibility.Private)
-				return false;
-
-			visitor.Found = false;
-			field.ReturnType.AcceptVisitor(visitor);
-
-			return visitor.Found;
-		}
-
-		bool TypeIsExposedBy(TypeDefinitionUsedVisitor visitor, IProperty property)
-		{
-			if (property.Accessibility == Accessibility.Private)
-			{
-				if (!property.IsExplicitInterfaceImplementation)
-					return false;
-			}
-
-			visitor.Found = false;
-			property.ReturnType.AcceptVisitor(visitor);
-
-			foreach (var p in property.Parameters)
-			{
-				p.Type.AcceptVisitor(visitor);
-			}
-
-			return visitor.Found;
-		}
-
-		bool TypeIsExposedBy(TypeDefinitionUsedVisitor visitor, IEvent @event)
-		{
-			if (@event.Accessibility == Accessibility.Private)
-			{
-				if (!@event.IsExplicitInterfaceImplementation)
-					return false;
-			}
-
-			visitor.Found = false;
-			@event.ReturnType.AcceptVisitor(visitor);
-
-			return visitor.Found;
-		}
-
-		bool TypeIsExposedBy(TypeDefinitionUsedVisitor visitor, IMethod method)
-		{
-			if (method.Accessibility == Accessibility.Private)
-			{
-				if (!method.IsExplicitInterfaceImplementation)
-					return false;
-			}
-
-			visitor.Found = false;
-			method.ReturnType.AcceptVisitor(visitor);
-
-			foreach (var p in method.Parameters)
-			{
-				p.Type.AcceptVisitor(visitor);
-			}
-
-			return visitor.Found;
-		}
-	}
+        public override IType VisitParameterizedType(ParameterizedType type) => type.GenericType.AcceptVisitor(this);
+    }
 }

@@ -1,4 +1,4 @@
-// Adapted from ILSpyX's analyzer framework (MIT License, Copyright (c) AlphaSierraPapa for the SharpDevelop Team).
+// Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
 using System.Reflection.Metadata;
 using ICSharpCode.Decompiler.CSharp;
@@ -17,47 +17,29 @@ internal interface IAnalyzer
     IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context);
 }
 
-/// <summary>What the analyzers consult, as ILSpy's Language does: how C# maps compiler-generated
-/// code to the member it came from, and which members it hides.</summary>
-internal sealed class AnalyzerLanguage
-{
-    public static AnalyzerLanguage CSharp { get; } = new();
-
-    public CodeMappingInfo GetCodeMappingInfo(MetadataFile module, EntityHandle member) => CSharpDecompiler.GetCodeMappingInfo(module, member);
-
-    public bool ShowMember(IEntity member) =>
-        member.ParentModule?.MetadataFile is not { } module || !CSharpDecompiler.MemberIsHidden(module, member.MetadataToken, Settings.Create());
-}
-
-/// <summary>What an analysis runs against: the open assemblies, the language, and cancellation.</summary>
+/// <summary>What an analysis runs against: the open assemblies and cancellation.</summary>
 internal sealed class AnalyzerContext
 {
+    private (MetadataFile File, EntityHandle Handle, CodeMappingInfo Mapping)? _mapping;
+
     public required AssemblyList AssemblyList { get; init; }
 
     public CancellationToken CancellationToken { get; init; }
 
-    public AnalyzerLanguage Language { get; init; } = AnalyzerLanguage.CSharp;
-
-    /// <summary>Set by an analyzer whose results read best sorted.</summary>
-    public bool SortResults { get; set; }
-
-    public MethodBodyBlock? GetMethodBody(IMethod method)
-    {
-        if (!method.HasBody || method.MetadataToken.IsNil || method.ParentModule?.MetadataFile == null)
-            return null;
-        var module = method.ParentModule.MetadataFile;
-        var md = module.Metadata.GetMethodDefinition((MethodDefinitionHandle)method.MetadataToken);
-        try
-        {
-            return module.GetMethodBody(md.RelativeVirtualAddress);
-        }
-        catch (BadImageFormatException)
-        {
-            return null;
-        }
-    }
-
     public AnalyzerScope GetScopeOf(IEntity entity) => new(AssemblyList, entity);
 
-    public DecompilerTypeSystem GetOrCreateTypeSystem(MetadataFile module) => AssemblyList.TypeSystemOf(module);
+    public MethodBodyBlock? GetMethodBody(IMethod method) =>
+        method.HasBody && !method.MetadataToken.IsNil && method.ParentModule?.MetadataFile is { } module
+            ? module.ReadBody((MethodDefinitionHandle)method.MetadataToken)
+            : null;
+
+    /// <summary>How C# maps the compiler-generated code around <paramref name="entity"/> to the
+    /// methods it came from; the last one asked for is kept.</summary>
+    public CodeMappingInfo MappingOf(IEntity entity)
+    {
+        var file = entity.ParentModule!.MetadataFile!;
+        if (_mapping is not { } mapping || mapping.File != file || mapping.Handle != entity.MetadataToken)
+            _mapping = mapping = (file, entity.MetadataToken, CSharpDecompiler.GetCodeMappingInfo(file, entity.MetadataToken));
+        return mapping.Mapping;
+    }
 }

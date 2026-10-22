@@ -7,11 +7,12 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// offers it: its header and its place among the others.</summary>
 public sealed class AnalysisKind
 {
-    internal AnalysisKind(string header, int order, IAnalyzer analyzer)
+    internal AnalysisKind(string header, int order, IAnalyzer analyzer, bool sortsResults = false)
     {
         Header = header;
         Order = order;
         Analyzer = analyzer;
+        SortsResults = sortsResults;
     }
 
     /// <summary>ILSpy's name for it, which also keys its translation.</summary>
@@ -20,6 +21,9 @@ public sealed class AnalysisKind
     public int Order { get; }
 
     internal IAnalyzer Analyzer { get; }
+
+    /// <summary>Whether its results read best sorted by label, so come only once all are found.</summary>
+    internal bool SortsResults { get; }
 
     public override string ToString() => Header;
 }
@@ -72,24 +76,23 @@ public static class Analysis
     private static readonly AnalysisKind[] Kinds =
     [
         new("Applied To", 10, new AttributeAppliedToAnalyzer()),
-        new("Implemented By", 10, new EventImplementedByAnalyzer()),
-        new("Overridden By", 20, new EventOverriddenByAnalyzer()),
-        new("Read By", 10, new ReadByFieldAccessAnalyzer()),
-        new("Assigned By", 20, new AssignedByFieldAccessAnalyzer()),
-        new("Address Taken By", 30, new AddressTakenByFieldAccessAnalyzer()),
+        new("Implemented By", 10, new InheritorsAnalyzer<IEvent>(overrides: false)),
+        new("Overridden By", 20, new InheritorsAnalyzer<IEvent>(overrides: true)),
+        new("Read By", 10, new FieldAccessAnalyzer(FieldAccessKind.Read)),
+        new("Assigned By", 20, new FieldAccessAnalyzer(FieldAccessKind.Write)),
+        new("Address Taken By", 30, new FieldAccessAnalyzer(FieldAccessKind.AddressOf)),
         new("Implements", 40, new MemberImplementsInterfaceAnalyzer()),
         new("Overrides", 35, new MemberOverridesAnalyzer()),
-        new("Implemented By", 40, new MethodImplementedByAnalyzer()),
-        new("Overridden By", 30, new MethodOverriddenByAnalyzer()),
+        new("Implemented By", 40, new InheritorsAnalyzer<IMethod>(overrides: false)),
+        new("Overridden By", 30, new InheritorsAnalyzer<IMethod>(overrides: true)),
         new("Used By", 20, new MethodUsedByAnalyzer()),
         new("Uses", 10, new MethodUsesAnalyzer()),
-        new("Used By", 20, new MethodVirtualUsedByAnalyzer()),
-        new("Implemented By", 10, new PropertyImplementedByAnalyzer()),
-        new("Overridden By", 20, new PropertyOverriddenByAnalyzer()),
+        new("Implemented By", 10, new InheritorsAnalyzer<IProperty>(overrides: false)),
+        new("Overridden By", 20, new InheritorsAnalyzer<IProperty>(overrides: true)),
         new("Exposed By", 40, new TypeExposedByAnalyzer()),
         new("Extension Methods", 50, new TypeExtensionMethodsAnalyzer()),
         new("Instantiated By", 20, new TypeInstantiatedByAnalyzer()),
-        new("Used By", 30, new TypeUsedByAnalyzer()),
+        new("Used By", 30, new TypeUsedByAnalyzer(), sortsResults: true),
     ];
 
     /// <summary>The type or member <paramref name="node"/> stands for — for a base or derived type
@@ -139,9 +142,8 @@ public static class Analysis
     /// analysis asks for it, after all are found.</summary>
     public static IEnumerable<AnalysisSymbol> Run(AssemblyList list, AnalysisSymbol symbol, AnalysisKind kind, CancellationToken cancellationToken)
     {
-        var context = new AnalyzerContext { AssemblyList = list, CancellationToken = cancellationToken };
-        var found = kind.Analyzer.Analyze(symbol.Symbol, context);
-        if (context.SortResults)
+        var found = kind.Analyzer.Analyze(symbol.Symbol, new AnalyzerContext { AssemblyList = list, CancellationToken = cancellationToken });
+        if (kind.SortsResults)
             return found.Select(Describe).OfType<AnalysisSymbol>().OrderBy(static s => s.Label, StringComparer.OrdinalIgnoreCase).ToList();
         return Lazy(found);
 
