@@ -52,26 +52,21 @@ public static partial class UiWidgets
         var hasToggled = false;
         var menuAt = default(PointF);
 
-        var area = ui.Interact(treeId);
-        if (area.Pressed || area.ClickedWith(PointerButton.Right))
-            ui.Focus(treeId, takesText: false);
-        var focused = ui.TabStop(treeId);
+        var focused = ui.ListArea(treeId);
         var ring = focused && ui.FocusVisible;
         if (focused)
         {
-            var page = ui.TryGetRect(treeId, out var view) ? Math.Max(1, (int)(view.Height / rowHeight) - 1) : 10;
-            TreeKeys(ui, state, model, page, ref selection, ref activated, ref contextMenu, ref toggled, ref hasToggled);
+            TreeKeys(ui, state, model, ui.MeasureListPage(treeId, rowHeight), ref selection, ref activated, ref contextMenu, ref toggled, ref hasToggled);
             if (contextMenu && selection >= 0 && ui.TryGetRect(RowId(treeId, state, state.Rows[selection].Node), out var row))
                 menuAt = new PointF(row.X + row.Height, row.Bottom);
         }
 
         var toggle = -1;
-        using (var list = ui.VirtualScroll(treeId, state.Rows.Count, rowHeight, box with { Gap = 0f }))
+        var requested = state.TakeScrollRequest();
+        if (requested >= 0)
+            ui.ScrollRowIntoView(treeId, requested);
+        using (var list = ui.VirtualScroll(treeId, state.Rows.Count, rowHeight, box))
         {
-            var scrollTo = state.TakeScrollIndex();
-            if (scrollTo >= 0 && list.ScrollIntoView(scrollTo))
-                state.ScrollIndex = -1;
-
             for (var i = list.First; i < list.End; i++)
             {
                 var flat = state.Rows[i];
@@ -107,9 +102,7 @@ public static partial class UiWidgets
                 var content = model.Row(flat.Node);
                 var expanded = hasChildren && state.IsExpanded(flat.Node);
                 var selected = i == selection;
-                var background = selected
-                    ? focused ? theme.Selection : theme.SelectionInactive
-                    : row.Hovered ? theme.RowHover : 0u;
+                var background = theme.PickRowBackground(selected, focused, row.Hovered);
 
                 using (ui.Row(rowId, new Box
                 {
@@ -154,6 +147,8 @@ public static partial class UiWidgets
         }
 
         var changed = selection != before || moved || selectionMoved;
+        if (changed)
+            ui.ScrollRowIntoView(treeId, state.SelectedIndex);
         if (!changed && !activated && !contextMenu && !hasToggled)
             return default;
         return new TreeViewResult<TNode>(changed, activated && state.HasSelection, contextMenu && state.HasSelection, menuAt, state.Selected)
@@ -173,30 +168,18 @@ public static partial class UiWidgets
     {
         foreach (var stroke in ui.Input.Keys)
         {
-            if ((stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Super)) != 0) continue;
             var count = state.Rows.Count;
             if (count == 0) return;
             var current = selection;
+            if (ApplyListKey(stroke, ref selection, count, page))
+            {
+                if (selection != current)
+                    state.SelectAt(selection);
+                continue;
+            }
+            if ((stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Super)) != 0) continue;
             switch (stroke.Key)
             {
-                case KeyboardKey.UpArrow:
-                    selection = current < 0 ? 0 : Math.Max(0, current - 1);
-                    break;
-                case KeyboardKey.DownArrow:
-                    selection = current < 0 ? 0 : Math.Min(count - 1, current + 1);
-                    break;
-                case KeyboardKey.PageUp:
-                    selection = Math.Max(0, current - page);
-                    break;
-                case KeyboardKey.PageDown:
-                    selection = Math.Min(count - 1, Math.Max(0, current) + page);
-                    break;
-                case KeyboardKey.Home:
-                    selection = 0;
-                    break;
-                case KeyboardKey.End:
-                    selection = count - 1;
-                    break;
                 case KeyboardKey.LeftArrow when current >= 0:
                     var node = state.Rows[current].Node;
                     if (state.IsExpanded(node) && model.HasChildren(node))

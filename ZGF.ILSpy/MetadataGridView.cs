@@ -158,8 +158,11 @@ public static class MetadataGridWidget
         using (var list = ui.VirtualScroll(listId, state.View.Length, rowHeight, ref state.ScrollX, ref state.ScrollY, new Box { Gap = 0f }, tall))
         {
             Arrive(state, list, rowHeight);
-            if (state.ScrollToSelected && list.ScrollIntoView(state.IndexOf(state.Selected)))
+            if (state.ScrollToSelected)
+            {
+                list.ScrollIntoView(state.IndexOf(state.Selected));
                 state.ScrollToSelected = false;
+            }
             for (var index = list.First; index < list.End; index++)
             {
                 var row = state.RowAt(index);

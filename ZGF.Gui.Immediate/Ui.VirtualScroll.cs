@@ -59,25 +59,14 @@ public sealed partial class Ui
         /// <summary>Where row <paramref name="index"/> starts, in points from the top of the content.</summary>
         public float TopOf(int index) => _top + RowTop(index, _rowHeight, _gap, _tall);
 
-        /// <summary>Scrolls the least distance that shows row <paramref name="index"/> whole, from
-        /// the next frame. Returns false, doing nothing, until the list has been laid out once and
-        /// its viewport is known.</summary>
-        public bool ScrollIntoView(int index)
+        /// <summary>Scrolls the least distance that shows row <paramref name="index"/> whole, from the
+        /// next frame, or from the first one after the list has been laid out and its viewport is known.</summary>
+        public void ScrollIntoView(int index)
         {
-            if (index < 0 || index >= Count) return true;
-            var viewport = VisibleHeight(_state);
-            if (viewport <= 0f) return false;
-            var top = _top + RowTop(index, _rowHeight, _gap, _tall);
-            var bottom = top + RowSize(index, _rowHeight, _tall);
-            var offset = _state.OffsetY;
-            if (top < offset)
-                offset = top;
-            else if (bottom > offset + viewport)
-                offset = bottom - viewport;
-            if (offset == _state.OffsetY) return true;
-            _state.OffsetY = offset;
-            _ui.RequestFrame();
-            return true;
+            if (index < 0 || index >= Count) return;
+            _state.RevealRow = index;
+            if (Reveal(_state, Count, _rowHeight, _gap, _top, _tall))
+                _ui.RequestFrame();
         }
 
         public void Dispose()
@@ -134,9 +123,10 @@ public sealed partial class Ui
     /// <summary>
     /// A <see cref="Scroll(int, Box)"/> over <paramref name="count"/> rows of which only those in
     /// view are recorded: record rows <see cref="VirtualList.First"/> to
-    /// <see cref="VirtualList.End"/>, each one element exactly <paramref name="rowHeight"/> tall.
-    /// Rows out of view are stood in for by spacers, so the scrollbar still spans them all. Scope
-    /// row ids by item, not index, so their state follows the item.
+    /// <see cref="VirtualList.End"/>, each one element exactly <paramref name="rowHeight"/> tall,
+    /// touching unless <paramref name="box"/> gives a gap. Rows out of view are stood in for by
+    /// spacers, so the scrollbar still spans them all. Scope row ids by item, not index, so their
+    /// state follows the item.
     /// </summary>
     public VirtualList VirtualScroll(int id, int count, float rowHeight, Box box = default) =>
         VirtualScroll(id, ScrollAxes.Vertical, count, rowHeight, box);
@@ -145,7 +135,7 @@ public sealed partial class Ui
     {
         if (tall is { Count: 0 })
             tall = null;
-        var gap = box.Gap ?? Theme.Gap;
+        var gap = box.Gap ?? 0f;
         Scroll(id, axes, box with { Direction = Direction.Vertical, Gap = gap });
         var state = GetState<ScrollState>(id);
 
@@ -154,13 +144,10 @@ public sealed partial class Ui
         var viewportY = VisibleHeight(state);
         if (viewportY > 0f)
         {
+            Reveal(state, count, rowHeight, gap, top, tall);
             var content = top + (box.Padding?.Bottom ?? 0f) + MathF.Max(0f, RowTop(count, rowHeight, gap, tall) - gap);
-            var clamped = Math.Clamp(state.OffsetY, 0f, MathF.Max(0f, content - viewportY));
-            if (clamped != state.OffsetY)
-            {
-                state.OffsetY = clamped;
-                _tree[_openScrolls.Peek().Element].ScrollY = clamped;
-            }
+            state.OffsetY = Math.Clamp(state.OffsetY, 0f, MathF.Max(0f, content - viewportY));
+            _tree[_openScrolls.Peek().Element].ScrollY = state.OffsetY;
         }
         var viewport = viewportY > 0f ? viewportY : Height;
         int first, end;
@@ -178,6 +165,38 @@ public sealed partial class Ui
         if (first > 0)
             Leaf(new Box { Width = 0f, Height = RowTop(first, rowHeight, gap, tall) - gap });
         return new VirtualList(this, state, count, first, end, rowHeight, gap, top, tall);
+    }
+
+    /// <summary>Scrolls the least distance that shows <see cref="ScrollState.RevealRow"/> whole once
+    /// the viewport is known, and forgets it. Returns whether the offset changed.</summary>
+    private static bool Reveal(ScrollState state, int count, float rowHeight, float gap, float top, IReadOnlyList<TallRow>? tall)
+    {
+        var index = state.RevealRow;
+        if (index < 0) return false;
+        var viewport = VisibleHeight(state);
+        if (viewport <= 0f) return false;
+        state.RevealRow = -1;
+        if (index >= count) return false;
+        var rowTop = top + RowTop(index, rowHeight, gap, tall);
+        var rowBottom = rowTop + RowSize(index, rowHeight, tall);
+        var offset = state.OffsetY;
+        if (rowTop < offset)
+            offset = rowTop;
+        else if (rowBottom > offset + viewport)
+            offset = rowBottom - viewport;
+        if (offset == state.OffsetY) return false;
+        state.OffsetY = offset;
+        return true;
+    }
+
+    /// <summary>Scrolls the <see cref="VirtualScroll(int, int, float, Box)"/> with <paramref name="id"/>
+    /// the least distance that shows row <paramref name="index"/> whole, from the next frame it is
+    /// recorded in with its viewport known.</summary>
+    public void ScrollRowIntoView(int id, int index)
+    {
+        if (index < 0) return;
+        GetState<ScrollState>(id).RevealRow = index;
+        RequestFrame();
     }
 
     /// <summary>How far row <paramref name="index"/> starts below the first.</summary>

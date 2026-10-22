@@ -58,8 +58,11 @@ internal static class SearchPanelView
         if (clicked >= 0)
             search.SortBy((SearchSort)(clicked + 1));
         using var list = ui.VirtualScroll(ResultsId, search.Rows.Count, rowHeight, new Box { Gap = 0f });
-        if (search.ScrollToSelected && list.ScrollIntoView(search.Selected))
+        if (search.ScrollToSelected)
+        {
+            list.ScrollIntoView(search.Selected);
             search.ScrollToSelected = false;
+        }
         for (var i = list.First; i < list.End; i++)
         {
             var row = search.Rows[i];

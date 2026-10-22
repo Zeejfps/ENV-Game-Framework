@@ -691,7 +691,7 @@ public sealed class NestedScrollbarTests
         using (ui.Box(new Box { Width = 600f, Height = 100f, ScrollX = 0f }))
         {
             var x = 0f;
-            using var inner = ui.VirtualScroll(ui.GetId("inner"), 3, 20f, ref x, ref y, new Box { Width = 600f, Height = 100f, Gap = 0f });
+            using var inner = ui.VirtualScroll(ui.GetId("inner"), 3, 20f, ref x, ref y, new Box { Width = 600f, Height = 100f });
             for (var i = inner.First; i < inner.End; i++)
                 ui.Leaf(new Box { Width = 2000f, Height = 20f });
         }

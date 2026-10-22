@@ -118,8 +118,11 @@ internal static class FrameworkPickerView
                 }
             }
         }
-        if (picker.ScrollToSelected && list.ScrollIntoView(picker.SelectedIndex))
+        if (picker.ScrollToSelected)
+        {
+            list.ScrollIntoView(picker.SelectedIndex);
             picker.ScrollToSelected = false;
+        }
         return open;
     }
 }

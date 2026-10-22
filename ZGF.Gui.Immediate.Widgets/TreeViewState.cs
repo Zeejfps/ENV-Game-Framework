@@ -59,8 +59,6 @@ public sealed class TreeViewState<TNode> where TNode : notnull
 
     internal List<FlatRow> Rows { get; } = new();
 
-    internal int ScrollIndex { get; set; } = -1;
-
     public bool IsExpanded(TNode node) => _expanded.Contains(node);
 
     public void SetExpanded(TNode node, bool expanded)
@@ -135,7 +133,6 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         _roots = roots;
         _rootCount = roots.Count;
         _model = model;
-        ScrollIndex = -1;
         Rows.Clear();
         Append(Rows, roots, 0, model);
         RowsChanged();
@@ -192,26 +189,22 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         HasSelection = true;
         _selectedIndex = index;
         _selectionMissingAt = -1;
-        ScrollIndex = index;
     }
 
-    internal int TakeScrollIndex()
+    /// <summary>The row of the node <see cref="ScrollIntoView"/> asked for, once, when it shows; else -1.</summary>
+    internal int TakeScrollRequest()
     {
-        if (_hasScrollNode && _scrollMissingAt != _rowsVersion)
+        if (!_hasScrollNode) return -1;
+        if (_scrollMissingAt == _rowsVersion) return -1;
+        var index = IndexOf(_scrollNode!);
+        if (index < 0)
         {
-            var index = IndexOf(_scrollNode!);
-            if (index >= 0)
-            {
-                _hasScrollNode = false;
-                _scrollNode = default;
-                ScrollIndex = index;
-            }
-            else
-            {
-                _scrollMissingAt = _rowsVersion;
-            }
+            _scrollMissingAt = _rowsVersion;
+            return -1;
         }
-        return ScrollIndex;
+        _hasScrollNode = false;
+        _scrollNode = default;
+        return index;
     }
 
     private void RowsChanged() => _rowsVersion++;

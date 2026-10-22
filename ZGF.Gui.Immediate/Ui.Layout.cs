@@ -46,6 +46,7 @@ public sealed partial class Ui
         public float Synced = float.NaN;
         public float SyncedX = float.NaN;
         public ScrollBar Bar;
+        public int RevealRow = -1;
 
         public float Offset => Horizontal ? OffsetX : OffsetY;
         public float Max => Horizontal ? MaxX : MaxY;

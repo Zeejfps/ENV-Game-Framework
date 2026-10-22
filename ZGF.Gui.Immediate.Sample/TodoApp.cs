@@ -40,6 +40,7 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         Array.ConvertAll(Languages, language => new Segment<Locale>(language.Locale, language.Endonym));
 
     private readonly List<TodoItem> _shown = new();
+    private readonly ListSelection _selection = new();
     private TodoItem? _menuTarget;
 
     protected override void Render(Ui ui, TodoState s)
@@ -119,25 +120,24 @@ public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
         }
 
         TodoItem? removed = null;
-        using (var list = ui.VirtualScroll("items", _shown.Count, theme.ControlHeight))
+        using (var list = ui.SelectableList(ui.GetId("items"), _shown.Count, _selection, theme.ControlHeight, new Box { Gap = theme.Gap }))
         {
             for (var i = list.First; i < list.End; i++)
             {
                 var item = _shown[i];
                 using (ui.Id(item.Id))
+                using (list.Row(i, ui.GetId("row"), new Box { Padding = 0f }))
                 {
-                    var row = ui.Interact("row");
-                    if (row.ClickedWith(PointerButton.Right))
-                    {
-                        _menuTarget = item;
-                        ui.OpenContextMenu("item-menu");
-                    }
-                    using var _ = ui.Row(row.Id);
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");
                     ui.Spacer();
                     if (ui.IconButton("delete", "×", tooltip: t.ActionDelete))
                         removed = item;
                 }
+            }
+            if (list.ContextMenuRequested)
+            {
+                _menuTarget = _shown[list.Index];
+                ui.OpenContextMenu("item-menu", list.ContextMenuAt);
             }
 
             if (s.Items.Count == 0)

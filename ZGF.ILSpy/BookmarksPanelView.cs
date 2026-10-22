@@ -51,8 +51,11 @@ internal static class BookmarksPanelView
         ui.TableHeader("header", w.BookmarkColumns, ListId, Headers(t), theme.ShellPaddingX);
         using (var list = ui.VirtualScroll(ListId, bookmarks.Items.Count, rowHeight, new Box { Gap = 0f }))
         {
-            if (bookmarks.ScrollToSelected && list.ScrollIntoView(bookmarks.Selected))
+            if (bookmarks.ScrollToSelected)
+            {
+                list.ScrollIntoView(bookmarks.Selected);
                 bookmarks.ScrollToSelected = false;
+            }
             for (var i = list.First; i < list.End; i++)
             {
                 var bookmark = bookmarks.Items[i];

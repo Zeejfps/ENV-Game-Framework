@@ -45,7 +45,7 @@ public sealed class VirtualScrollOffsetTests
         var frames = new UiFrames(body: ui =>
         {
             using var screen = ui.Screen();
-            using var list = ui.VirtualScroll(ui.GetId("wide"), Count, RowHeight, ref x, ref y, new Box { Gap = 0f });
+            using var list = ui.VirtualScroll(ui.GetId("wide"), Count, RowHeight, ref x, ref y);
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(new Box { Width = 1000f, Height = RowHeight });
         }).Frame(2);
@@ -76,7 +76,7 @@ public sealed class VirtualScrollOffsetTests
         frames.Run(1f / 60f, ui =>
         {
             using var screen = ui.Screen();
-            using var list = ui.VirtualScroll("rows", Count, RowHeight, new Box { Gap = 0f });
+            using var list = ui.VirtualScroll("rows", Count, RowHeight);
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = RowHeight });
             inside?.Invoke(list);

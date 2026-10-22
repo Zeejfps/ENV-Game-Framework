@@ -10,7 +10,7 @@ public sealed class VirtualScrollRequestTests
         frames.Run(1f / 60f, ui =>
         {
             using var screen = ui.Screen();
-            using var list = ui.VirtualScroll("rows", count, 20f, new Box { Gap = 0f });
+            using var list = ui.VirtualScroll("rows", count, 20f);
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = 20f });
             inside?.Invoke(list);
@@ -58,7 +58,7 @@ public sealed class VirtualScrollRequestTests
             frames.Run(1f / 60f, ui =>
             {
                 using var screen = ui.Screen();
-                using var list = ui.VirtualScroll("code", 1_000, 20f, ref offsets[document], new Box { Gap = 0f });
+                using var list = ui.VirtualScroll("code", 1_000, 20f, ref offsets[document]);
                 for (var i = list.First; i < list.End; i++)
                     ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = 20f });
             });
@@ -367,7 +367,7 @@ public sealed class TwoAxisVirtualScrollTests
     private void Body(Ui ui, float rowWidth)
     {
         using var screen = ui.Screen();
-        using var list = ui.VirtualScroll("code", Rows, RowHeight, ref _x, ref _y, new Box { Gap = 0f });
+        using var list = ui.VirtualScroll("code", Rows, RowHeight, ref _x, ref _y);
         for (var i = list.First; i < list.End; i++)
         {
             using (ui.Box(ui.GetId(i), new Box { Width = Sizing.Grow(min: rowWidth), Height = RowHeight }))

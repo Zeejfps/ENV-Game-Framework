@@ -4,7 +4,8 @@ public sealed class VirtualScrollTests
 {
     private const int Count = 10_000;
     private const float RowHeight = 20f;
-    private const float Stride = RowHeight + 8f;
+    private const float Gap = 8f;
+    private const float Stride = RowHeight + Gap;
 
     [Fact]
     public void Only_the_rows_in_view_are_recorded()
@@ -58,7 +59,7 @@ public sealed class VirtualScrollTests
         float x = 0f, y = 0f;
         (int First, int End) Tall(Action<Ui.VirtualList>? inside = null) => frames.Run(1f / 60f, ui =>
         {
-            using var list = ui.VirtualScroll(ui.GetId("rows"), Count, RowHeight, ref x, ref y, default, tall);
+            using var list = ui.VirtualScroll(ui.GetId("rows"), Count, RowHeight, ref x, ref y, new Box { Gap = Gap }, tall);
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = i == 2 ? 100f : i == 5000 ? 300f : RowHeight });
             inside?.Invoke(list);
@@ -89,7 +90,7 @@ public sealed class VirtualScrollTests
     private static (int First, int End) Frame(UiFrames frames, Action<Ui.VirtualList>? inside = null) =>
         frames.Run(1f / 60f, ui =>
         {
-            using var list = ui.VirtualScroll("rows", Count, RowHeight);
+            using var list = ui.VirtualScroll("rows", Count, RowHeight, new Box { Gap = Gap });
             for (var i = list.First; i < list.End; i++)
                 ui.Leaf(ui.GetId(i), new Box { Width = Sizing.Grow(), Height = RowHeight });
             inside?.Invoke(list);

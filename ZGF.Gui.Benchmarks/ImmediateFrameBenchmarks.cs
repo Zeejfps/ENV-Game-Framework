@@ -117,7 +117,7 @@ public class ImmediateFrameBenchmarks
 
         if (Virtual)
         {
-            using var list = ui.VirtualScroll("items", Rows, theme.ControlHeight);
+            using var list = ui.VirtualScroll("items", Rows, theme.ControlHeight, new Box { Gap = theme.Gap });
             for (var i = list.First; i < list.End; i++)
                 Row(ui, i);
         }
