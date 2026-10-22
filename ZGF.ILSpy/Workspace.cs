@@ -75,12 +75,12 @@ public sealed class Workspace
     public HashSet<string> FoldedOptionGroups { get; }
 
     /// <summary>The node the tree's context menu was opened on.</summary>
-    public BrowseNode? MenuTarget { get; private set; }
+    public BrowseNode? MenuTarget { get; set; }
 
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
     public bool IsResolving => Intent.IsResolving;
 
-    /// <summary>True while <see cref="Refresh"/> reopens the assemblies.</summary>
+    /// <summary>True while <see cref="AssemblyLoading.Refresh"/> reopens the assemblies.</summary>
     public bool IsReloading => Reload.IsRunning;
 
     /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
@@ -215,171 +215,6 @@ public sealed class Workspace
             if (symbol != null)
                 Analyzer.Analyze(symbol);
         }
-    }
-
-    /// <summary>Opens the files in the background, then shows the last one opened.</summary>
-    public void Open(IEnumerable<string> paths)
-    {
-        var files = paths.ToArray();
-        if (files.Length == 0)
-            return;
-        OpenInBackground(files);
-    }
-
-    private void OpenInBackground(string[] files)
-    {
-        var ticket = Intent.Begin();
-        RunInBackground(() => OpenFiles(files, CancellationToken.None), (opened, error) => OnFilesOpened(opened, error, ticket));
-    }
-
-    private void OnFilesOpened(Opened? opened, Exception? error, int ticket)
-    {
-        if (error != null)
-        {
-            ReportError(GetStrings().ErrorOpenAssemblies, error.ToString());
-            return;
-        }
-        ReportAll(opened!.Errors);
-        if (opened.Last == null)
-            return;
-        if (Intent.IsStale(ticket))
-            return;
-        this.Show(opened.Last.Root);
-    }
-
-    public void Open(string path) => Open([path]);
-
-    public void Close(LoadedAssembly assembly) => Assemblies.Close(assembly);
-
-    public void ClearList()
-    {
-        Intent.Begin();
-        Reload.Stop();
-        ClearAssemblies();
-    }
-
-    private void ClearAssemblies()
-    {
-        Assemblies.Clear();
-        Tree.View.ClearSelection();
-        Tree.View.CollapseAll();
-        Analyzer.Clear();
-        MenuTarget = null;
-    }
-
-    /// <summary>Reloads every assembly from disk in the background, then expands the tree as it was
-    /// and shows each tab's place again, decompiled from the fresh files.</summary>
-    public void Refresh()
-    {
-        var intent = Intent.Begin();
-        var ticket = Reload.Start();
-
-        var paths = Assemblies.FilePaths;
-        var expanded = Tree.ExpandedPaths();
-        var tabs = ReleaseShownTabs();
-        var places = tabs.ConvertAll(t => t.Location);
-        ClearAssemblies();
-
-        var request = new ReloadRequest(ticket, intent, tabs);
-        RunInBackground(() => ReopenFiles(paths, expanded, places, ticket.Token), (reloaded, error) => OnReloaded(reloaded, error, request));
-    }
-
-    private List<ReloadingTab> ReleaseShownTabs()
-    {
-        var reloading = new List<ReloadingTab>();
-        foreach (var tab in Tabs)
-        {
-            var location = tab.Location;
-            if (location == null)
-                continue;
-            var position = FindPositionToKeep(tab);
-            tab.Release(GetStrings().DocumentReloading);
-            reloading.Add(new ReloadingTab(tab, location, tab.Version, position));
-        }
-        return reloading;
-    }
-
-    private CodeViewPosition? FindPositionToKeep(DocumentTab tab)
-    {
-        if (tab.Grid != null)
-            return tab.Position;
-        if (tab.Language != Language)
-            return null;
-        return tab.Position;
-    }
-
-    private Reloaded ReopenFiles(IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
-    {
-        var opened = OpenFiles(paths, cancellationToken);
-        var expandedNodes = LoadExpandedNodes(expanded, cancellationToken);
-        var placeNodes = FindNodes(places, cancellationToken);
-        return new Reloaded(opened.Errors, expandedNodes, placeNodes);
-    }
-
-    private List<BrowseNode> LoadExpandedNodes(List<NodePath> expanded, CancellationToken cancellationToken)
-    {
-        var nodes = new List<BrowseNode>();
-        foreach (var path in expanded)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var node = Assemblies.FindNode(path);
-            if (node == null)
-                continue;
-            node.LoadChildren();
-            nodes.Add(node);
-        }
-        return nodes;
-    }
-
-    private BrowseNode?[] FindNodes(List<NodePath> places, CancellationToken cancellationToken)
-    {
-        var found = new BrowseNode?[places.Count];
-        for (var i = 0; i < found.Length; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            found[i] = Assemblies.FindNode(places[i]);
-        }
-        return found;
-    }
-
-    private void OnReloaded(Reloaded? reloaded, Exception? error, ReloadRequest request)
-    {
-        if (!Reload.Finish(request.Ticket))
-            return;
-        if (error != null)
-        {
-            ReportError(GetStrings().ErrorReloadAssemblies, error.ToString());
-            return;
-        }
-        ReportAll(reloaded!.Errors);
-        Tree.Expand(reloaded.Expanded);
-        for (var i = 0; i < request.Tabs.Count; i++)
-            ReshowTab(request.Tabs[i], reloaded.Places[i], request.Intent);
-        SaveSettings();
-    }
-
-    private void ReshowTab(ReloadingTab reloading, BrowseNode? node, int intent)
-    {
-        var tab = reloading.Tab;
-        if (!Tabs.Contains(tab))
-            return;
-        if (tab.Version != reloading.Version)
-            return;
-        if (node == null)
-        {
-            ReleaseGoneTab(tab, reloading.Location);
-            return;
-        }
-        tab.Show(node, Language, reloading.Position);
-        if (tab == Tabs.Active && Intent.IsCurrent(intent))
-            Tree.Reveal(node);
-    }
-
-    private void ReleaseGoneTab(DocumentTab tab, NodePath location)
-    {
-        var t = GetStrings();
-        tab.Release(t.DocumentGone(location.Text));
-        ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
     }
 
     public void SetLocale(Locale locale)
@@ -781,12 +616,6 @@ public sealed class Workspace
         return tab;
     }
 
-    private void ReportAll(List<(string Title, string Details)> errors)
-    {
-        foreach (var (title, details) in errors)
-            ReportError(title, details);
-    }
-
     internal static string DescribeFailure(Exception? error, string fallback)
     {
         if (error == null)
@@ -817,39 +646,4 @@ public sealed class Workspace
         var error = task.Exception!.GetBaseException();
         done(default, error);
     }
-
-    private Opened OpenFiles(IEnumerable<string> paths, CancellationToken cancellationToken)
-    {
-        LoadedAssembly? last = null;
-        var errors = new List<(string, string)>();
-        foreach (var path in paths)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                last = Assemblies.Open(path);
-            }
-            catch (AssemblyLoadException e)
-            {
-                errors.Add(DescribeLoadFailure(path, e));
-            }
-        }
-        return new Opened(last, errors);
-    }
-
-    private (string Title, string Details) DescribeLoadFailure(string path, AssemblyLoadException e)
-    {
-        var file = Path.GetFileName(path);
-        var title = GetStrings().ErrorOpenFile(file);
-        var details = DescribeFailure(e.InnerException, e.Message);
-        return (title, details);
-    }
-
-    private sealed record Opened(LoadedAssembly? Last, List<(string Title, string Details)> Errors);
-
-    private sealed record Reloaded(List<(string Title, string Details)> Errors, List<BrowseNode> Expanded, BrowseNode?[] Places);
-
-    private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
-
-    private sealed record ReloadRequest(ReloadTicket Ticket, int Intent, List<ReloadingTab> Tabs);
 }
