@@ -28,6 +28,10 @@
       <EmbeddedResource Include="Assets\Fonts\**\*.ttf">
         <LogicalName>%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
+      <Content Include="Assets\Fonts\**\LICENSE-*.txt">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <TargetPath>licenses\%(Filename)%(Extension)</TargetPath>
+      </Content>
     </ItemGroup>
 
 </Project>

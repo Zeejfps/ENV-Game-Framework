@@ -45,5 +45,10 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>glfw3</TargetPath>
         </Content>
+
+        <Content Include="Native/LICENSE.glfw">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>licenses\LICENSE-glfw.txt</TargetPath>
+        </Content>
     </ItemGroup>
 </Project>

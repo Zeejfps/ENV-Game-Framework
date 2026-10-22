@@ -9,6 +9,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Content Include="LICENSE-ILSpy.txt">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <TargetPath>licenses\LICENSE-ILSpy.txt</TargetPath>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\JpegSharp\JpegSharp.csproj" />
       <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
     </ItemGroup>
