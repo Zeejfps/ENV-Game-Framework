@@ -35,49 +35,83 @@ public static class MainView
 
     private static void Panels(Ui ui, Workspace w, Strings t)
     {
-        var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Layout.Contains(DockPanels.Search));
-        if (wait > 0)
-            ui.RequestFrameIn(wait);
-        if (!w.Layout.AllGroups().Any(static g => g.Panels.Count > 0))
+        UpdateSearch(ui, w);
+        if (IsLayoutEmpty(w))
         {
             DocumentsView.Hint(ui, t.ViewEmptyHint);
             return;
         }
-        using (var dock = ui.DockSpace("dock", w.Layout, (w, t), static (s, panel) => Tab(s.w, s.t, panel)))
-        {
-            while (dock.Next(out var panel))
-            {
-                switch (panel)
-                {
-                    case DockPanels.Assemblies:
-                        TreePaneView.Render(ui, w, t);
-                        break;
-                    case DockPanels.Search:
-                        SearchPanelView.Render(ui, w, t);
-                        break;
-                    case DockPanels.Bookmarks:
-                        BookmarksPanelView.Render(ui, w, t);
-                        break;
-                    case DockPanels.Analyzer:
-                        AnalyzerPanelView.Render(ui, w, t);
-                        break;
-                    case DockPanels.DecompilerOptions:
-                        DecompilerOptionsPanelView.Render(ui, w, t);
-                        break;
-                    default:
-                        if (w.Tabs.Find(panel) is { } tab)
-                            DocumentsView.Render(ui, w, t, tab);
-                        break;
-                }
-            }
-        }
+        DockSpace(ui, w, t);
         w.SyncActiveTab();
+        RemoveReleasedImages(ui, w);
+    }
+
+    private static void UpdateSearch(Ui ui, Workspace w)
+    {
+        var shown = w.Layout.Contains(DockPanels.Search);
+        var wait = w.Search.Update(w.Assemblies, ui.RealTime, shown);
+        if (wait > 0)
+            ui.RequestFrameIn(wait);
+    }
+
+    private static bool IsLayoutEmpty(Workspace w)
+    {
+        return !w.Layout.AllGroups().Any(static g => g.Panels.Count > 0);
+    }
+
+    private static void DockSpace(Ui ui, Workspace w, Strings t)
+    {
+        using var dock = ui.DockSpace("dock", w.Layout, (w, t), static (s, panel) => Tab(s.w, s.t, panel));
+        while (dock.Next(out var panel))
+            Panel(ui, w, t, panel);
+    }
+
+    private static DockTab Tab(Workspace w, Strings t, string panel)
+    {
+        if (DockPanels.IsView(panel))
+            return DockPanels.Tab(t, panel);
+        var tab = w.Tabs.Find(panel);
+        if (tab != null)
+            return DocumentsView.Tab(w, tab);
+        return new DockTab(panel);
+    }
+
+    private static void Panel(Ui ui, Workspace w, Strings t, string panel)
+    {
+        switch (panel)
+        {
+            case DockPanels.Assemblies:
+                TreePaneView.Render(ui, w, t);
+                break;
+            case DockPanels.Search:
+                SearchPanelView.Render(ui, w, t);
+                break;
+            case DockPanels.Bookmarks:
+                BookmarksPanelView.Render(ui, w, t);
+                break;
+            case DockPanels.Analyzer:
+                AnalyzerPanelView.Render(ui, w, t);
+                break;
+            case DockPanels.DecompilerOptions:
+                DecompilerOptionsPanelView.Render(ui, w, t);
+                break;
+            default:
+                Document(ui, w, t, panel);
+                break;
+        }
+    }
+
+    private static void Document(Ui ui, Workspace w, Strings t, string panel)
+    {
+        var tab = w.Tabs.Find(panel);
+        if (tab == null)
+            return;
+        DocumentsView.Render(ui, w, t, tab);
+    }
+
+    private static void RemoveReleasedImages(Ui ui, Workspace w)
+    {
         foreach (var image in w.Tabs.TakeReleasedImages())
             ui.RemoveImage(image);
     }
-
-    private static DockTab Tab(Workspace w, Strings t, string panel) =>
-        DockPanels.IsView(panel) ? DockPanels.Tab(t, panel)
-        : w.Tabs.Find(panel) is { } tab ? DocumentsView.Tab(w, tab)
-        : new DockTab(panel);
 }
