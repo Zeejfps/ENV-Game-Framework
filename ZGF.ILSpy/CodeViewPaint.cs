@@ -141,19 +141,12 @@ internal sealed class CodeViewFrame
             Chevron(p, left + FoldLeft + FoldWidth / 2, r.Y + r.Height / 2, collapsed, fold == HoverFold ? GutterHover : Palette.GutterText);
     }
 
+    private const float ChevronStroke = 1.5f;
+
     private void Chevron(UiPainter p, float cx, float cy, bool collapsed, uint color)
     {
-        var h = MathF.Max(2f, MathF.Floor(Advance * 0.4f));
-        if (collapsed)
-        {
-            p.Line(new PointF(cx - h / 2, cy - h), new PointF(cx + h / 2, cy), 1.5f, color);
-            p.Line(new PointF(cx + h / 2, cy), new PointF(cx - h / 2, cy + h), 1.5f, color);
-        }
-        else
-        {
-            p.Line(new PointF(cx - h, cy - h / 2), new PointF(cx, cy + h / 2), 1.5f, color);
-            p.Line(new PointF(cx, cy + h / 2), new PointF(cx + h, cy - h / 2), 1.5f, color);
-        }
+        var half = MathF.Max(2f, MathF.Floor(Advance * 0.4f));
+        p.DrawDisclosure(new PointF(cx, cy), half, !collapsed, color, ChevronStroke);
     }
 
     private void Fill(UiPainter p, float x0, float left, UiRect row, int from, int to, uint color, uint outline = 0, float outlineWidth = 0f)
