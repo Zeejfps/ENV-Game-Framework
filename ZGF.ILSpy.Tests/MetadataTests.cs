@@ -121,13 +121,34 @@ public sealed class MetadataTests
 
         var tooltip = grid.Tooltip(RowNamed(grid, "Calculator`1"), Column(grid, "Attributes"))!;
 
-        var visibility = tooltip.Groups.Single(g => g.Header == "Visibility: ");
+        Assert.Equal(["Visibility", "Layout", "ClassSemantics", "StringFormat", "Flags"], tooltip.Groups.Select(g => g.Header));
+        var visibility = tooltip.Groups[0];
         Assert.True(visibility.IsChoice);
         Assert.Equal("Public (0001)", Assert.Single(visibility.Flags).Name);
-        var flags = tooltip.Groups.Single(g => g.Header == "Flags:");
+        Assert.Equal("AutoLayout (0000)", Assert.Single(tooltip.Groups[1].Flags).Name);
+        var flags = tooltip.Groups[^1];
         Assert.False(flags.IsChoice);
-        Assert.Contains(flags.Flags, f => f.Name.StartsWith("BeforeFieldInit") && f.IsSet);
-        Assert.Contains(flags.Flags, f => f.Name.StartsWith("Abstract") && !f.IsSet);
+        Assert.Contains(new MetadataFlag("BeforeFieldInit (100000)", true), flags.Flags);
+        Assert.Contains(new MetadataFlag("Abstract (0080)", false), flags.Flags);
+        Assert.Contains(new MetadataFlag("IsTypeForwarder (200000)", false), flags.Flags);
+    }
+
+    [Fact]
+    public void A_flags_schema_keeps_bits_that_combine_out_of_its_choice_groups()
+    {
+        var method = FlagsSchemaInferer.For(typeof(System.Reflection.MethodAttributes));
+        var generic = FlagsSchemaInferer.For(typeof(System.Reflection.GenericParameterAttributes));
+        var import = FlagsSchemaInferer.For(typeof(System.Reflection.MethodImportAttributes));
+
+        Assert.Equal(["MemberAccess", "VtableLayout"], method.MutexGroups.Select(g => g.Name));
+        Assert.Contains(method.IndependentFlags, f => f.Name == "RTSpecialName");
+        Assert.Equal(["Variance"], generic.MutexGroups.Select(g => g.Name));
+        Assert.Equal("None (0000)", generic.MutexGroups[0].Values[0].Label);
+        Assert.Contains(generic.IndependentFlags, f => f.Name == "DefaultConstructorConstraint");
+        Assert.Equal(["None (0000)", "Ansi (0002)", "Unicode (0004)", "Auto (0006)"], import.MutexGroups.Single(g => g.Name == "CharSet").Values.Select(v => v.Label));
+        Assert.True(FlagsSchemaInferer.IsFlags(typeof(System.Reflection.MethodImplAttributes)));
+        Assert.DoesNotContain(FlagsSchemaInferer.For(typeof(System.Reflection.MethodImplAttributes)).IndependentFlags, f => f.Name == "MaxMethodImplVal");
+        Assert.False(FlagsSchemaInferer.IsFlags(typeof(System.Reflection.AssemblyHashAlgorithm)));
     }
 
     [Fact]
@@ -296,7 +317,7 @@ public sealed class MetadataTests
 
         Assert.False(coff.HasDetails);
         Assert.Equal(16, bits.Count);
-        Assert.Contains(bits, b => b.Name == "<0002> File is executable" && b.IsSet);
+        Assert.Contains(new MetadataFlag("File is executable (0002)", true), bits);
         Assert.Null(coff.Tooltip(0, Column(coff, "Value")));
         Assert.False(Grid(Table(assembly, "TypeDef")).HasDetails);
     }

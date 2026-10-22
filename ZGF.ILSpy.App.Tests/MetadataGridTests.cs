@@ -226,7 +226,7 @@ public sealed class MetadataGridTests
         for (var i = 0; i < 90; i++)
             app.Run();
 
-        app.TextRect("Visibility: ");
+        app.TextRect("Visibility");
         app.TextRect("Public (0001)");
         app.TextRect("BeforeFieldInit (100000)");
     }
@@ -306,8 +306,8 @@ public sealed class MetadataGridTests
         for (var i = 0; i < 90; i++)
             app.Run();
 
-        app.TextRect("<0002> File is executable");
-        app.TextRect("<2000> DLL");
+        app.TextRect("File is executable (0002)");
+        app.TextRect("DLL (2000)");
     }
 
     private static void Drag(AppDriver app, float fromX, float toX, float y)

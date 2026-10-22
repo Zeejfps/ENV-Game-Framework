@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 
 namespace ZGF.ILSpy.Core.Metadata
@@ -30,6 +31,16 @@ namespace ZGF.ILSpy.Core.Metadata
 			[typeof(TypeAttributes)] = [new IndependentFlag("IsTypeForwarder", 0x00200000)],
 		};
 
+		/// <summary>Masks that gather independent flags rather than mutually exclusive values.</summary>
+		static readonly HashSet<string> flagMasks = ["ReservedMask", "SpecialConstraintMask"];
+
+		/// <summary>Whether <paramref name="type"/> is an enum of bits: one marked
+		/// <see cref="FlagsAttribute"/>, or one whose <c>*Mask</c> fields carve its bits up, as
+		/// <see cref="MethodImplAttributes"/> does.</summary>
+		public static bool IsFlags(Type type) =>
+			type.IsEnum && (type.IsDefined(typeof(FlagsAttribute), false)
+				|| type.GetFields(BindingFlags.Public | BindingFlags.Static).Any(static f => IsMask(f.Name)));
+
 		public static FlagsSchema For(Type enumType)
 		{
 			ArgumentNullException.ThrowIfNull(enumType);
@@ -46,14 +57,18 @@ namespace ZGF.ILSpy.Core.Metadata
 			// A zero-valued member fits every mask, so value alone cannot attribute it to a
 			// group. ECMA-335 and the reflection enums declare each mask followed directly by
 			// its members (VisibilityMask, NotPublic, Public, ...), so a zero member is
-			// claimed as the zero label of the most recently declared mask. First wins.
+			// claimed as the zero label of the most recently declared mask. First wins; a zero
+			// member no mask claims (None) labels every group left without one.
 			var zeroNames = new Dictionary<uint, string>();
 			uint? currentMask = null;
+			string? unclaimedZero = null;
 			foreach (var f in fields)
 			{
 				uint v = ToUInt32(f.GetRawConstantValue());
-				if (f.Name.EndsWith("Mask", StringComparison.Ordinal))
+				if (IsMask(f.Name))
 				{
+					if (flagMasks.Contains(f.Name))
+						continue;
 					maskFields.Add((f.Name, v));
 					currentMask = v;
 				}
@@ -62,6 +77,8 @@ namespace ZGF.ILSpy.Core.Metadata
 					valueFields.Add((f.Name, v));
 					if (v == 0 && currentMask is uint mask && !zeroNames.ContainsKey(mask))
 						zeroNames[mask] = f.Name;
+					else if (v == 0)
+						unclaimedZero ??= f.Name;
 				}
 			}
 
@@ -84,42 +101,52 @@ namespace ZGF.ILSpy.Core.Metadata
 				if (!seenValues.Add(value))
 					continue; // skip aliases (multiple names for the same bits)
 				bool placed = false;
-				foreach (var (_, mask) in maskFields)
+				foreach (var (maskName, mask) in maskFields)
 				{
 					if ((value & ~mask) != 0)
 						continue;
-					groupBuckets[mask].Add(new MutexValue($"{name} ({value:X4})", value));
+					groupBuckets[mask].Add(new MutexValue($"{ValueName(name, maskName)} ({value:X4})", value));
 					placed = true;
 					break;
 				}
-				if (!placed)
+				if (!placed && BitOperations.IsPow2(value))
 					independentFlags.Add(new IndependentFlag(name, value));
 			}
 
 			if (extraFlags.TryGetValue(enumType, out var extras))
 				independentFlags.AddRange(extras);
+			independentFlags.Sort(static (a, b) => a.Bit.CompareTo(b.Bit));
 
 			// Build the final mutex groups. Drop empty buckets — a *Mask field whose
 			// values weren't named in the enum (or were aliased away) doesn't earn a
 			// dropdown section. Each group leads with its zero entry: the enum's declared
-			// zero member (NotPublic, AutoLayout, ...) when one was claimed for the mask,
-			// a synthesised "(none)" otherwise.
+			// zero member (NotPublic, AutoLayout, None, ...), or a synthesised "(none)" for
+			// an enum without one.
 			var groups = new List<MutexGroup>();
 			foreach (var (maskName, mask) in maskFields)
 			{
 				var values = groupBuckets[mask];
 				if (values.Count == 0)
 					continue;
-				var groupName = maskName.EndsWith("Mask", StringComparison.Ordinal)
-					? maskName[..^"Mask".Length]
-					: maskName;
-				values.Insert(0, zeroNames.TryGetValue(mask, out var zeroName)
-					? new MutexValue($"{zeroName} (0000)", 0)
+				values.Sort(static (a, b) => a.Value.CompareTo(b.Value));
+				values.Insert(0, (zeroNames.GetValueOrDefault(mask) ?? unclaimedZero) is { } zeroName
+					? new MutexValue($"{ValueName(zeroName, maskName)} (0000)", 0)
 					: new MutexValue("(none)", 0));
-				groups.Add(new MutexGroup(groupName, mask, values));
+				groups.Add(new MutexGroup(GroupName(maskName), mask, values));
 			}
 
 			return new FlagsSchema(enumType, groups, independentFlags);
+		}
+
+		static bool IsMask(string name) => name.EndsWith("Mask", StringComparison.Ordinal);
+
+		static string GroupName(string maskName) => maskName[..^"Mask".Length];
+
+		/// <summary>A value's name without its group's prefix: <c>Ansi</c> of <c>CharSetAnsi</c>.</summary>
+		static string ValueName(string name, string maskName)
+		{
+			var group = GroupName(maskName);
+			return name.Length > group.Length && name.StartsWith(group, StringComparison.Ordinal) ? name[group.Length..] : name;
 		}
 
 		static uint ToUInt32(object? raw)

@@ -169,13 +169,16 @@ public sealed class MetadataGrid
     /// <summary>What hovering a cell explains, or null when its column has nothing to say.</summary>
     public MetadataTooltip? Tooltip(int row, int column)
     {
-        if (_columns[column].Tooltip is not { } tooltip) return null;
+        var info = _columns[column];
+        if (info.Column.Flags == null && info.Tooltip == null) return null;
         var index = row * _columns.Count + column;
         if (_tooltips.TryGetValue(index, out var known)) return known;
         object? value;
         try
         {
-            value = tooltip(_rows[row], row + 1);
+            value = info.Column.Flags is { } flags
+                ? Value(row, column) is { } cell ? flags.Explain(Bits(cell)) : null
+                : info.Tooltip!(_rows[row], row + 1);
         }
         catch (Exception e) when (IsUnreadable(e))
         {
@@ -183,7 +186,6 @@ public sealed class MetadataGrid
         }
         var result = value switch
         {
-            FlagsTooltip flags => new MetadataTooltip(null, flags.Groups.Select(Group).ToArray()),
             MetadataTooltip given => given,
             string text when !string.IsNullOrWhiteSpace(text) => new MetadataTooltip(text, []),
             _ => null,
@@ -243,7 +245,7 @@ public sealed class MetadataGrid
     {
         var value = Value(row, column);
         if (value is null) return false;
-        if (flags != null && !flags.Matches(unchecked((uint)Convert.ToInt64(value, CultureInfo.InvariantCulture))))
+        if (flags != null && !flags.Matches(Bits(value)))
             return false;
         if (text.Length == 0) return true;
         if (Pattern(text) is { } pattern)
@@ -344,8 +346,5 @@ public sealed class MetadataGrid
 
     private static bool IsNumber(object value) => value is Enum || Type.GetTypeCode(value.GetType()) is >= TypeCode.SByte and <= TypeCode.Decimal;
 
-    private static MetadataFlagGroup Group(FlagGroup group) =>
-        group is SingleChoiceGroup single
-            ? new MetadataFlagGroup(group.Header, true, single.SelectedFlag.Name is { } name ? [new MetadataFlag(name, true)] : [])
-            : new MetadataFlagGroup(group.Header, false, group.Flags.Where(static f => f.Value != -1).Select(static f => new MetadataFlag(f.Name, f.IsSelected)).ToArray());
+    private static uint Bits(object value) => unchecked((uint)Convert.ToInt64(value, CultureInfo.InvariantCulture));
 }

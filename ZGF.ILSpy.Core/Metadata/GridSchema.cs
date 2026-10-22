@@ -184,7 +184,7 @@ internal sealed class GridSchema<TRow> : GridSchema
     {
         var type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
         var numeric = type.IsEnum || Type.GetTypeCode(type) is >= TypeCode.SByte and <= TypeCode.Decimal;
-        var flags = type.IsEnum && type.IsDefined(typeof(FlagsAttribute), false) ? FlagsSchemaInferer.For(type) : null;
+        var flags = FlagsSchemaInferer.IsFlags(type) ? FlagsSchemaInferer.For(type) : null;
         Add(new GridColumn(new MetadataColumn(name, isToken, numeric, flags), format,
             (r, rid) => value((TRow)r, rid),
             tooltip == null ? null : (r, rid) => tooltip((TRow)r, rid)));

@@ -1,6 +1,5 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
@@ -50,7 +49,7 @@ internal static class MetadataTables
                 .String("Namespace", r => r.Namespace),
 
             TableIndex.TypeDef => Table(() => m.GetTypeDefListColumns().Select(c => (Type: m.GetTypeDefinition(c.Type), c.FieldList, c.MethodList))).Offset()
-                .Value("Attributes", r => r.Type.Attributes, "X8", r => FlagsTooltip.ForTypeAttributes(r.Type.Attributes))
+                .Value("Attributes", r => r.Type.Attributes, "X8")
                 .Name(r => r.Type.Name)
                 .String("Namespace", r => r.Type.Namespace)
                 .Handle("BaseType", r => r.Type.BaseType, r => BaseTypeTooltip(file, r.Type.BaseType))
@@ -60,19 +59,13 @@ internal static class MetadataTables
                     "(type has no methods; the stored value is the start of its empty method list: the next type's first method row, or one past the end of the MethodDef table)"),
 
             TableIndex.Field => Table(() => m.FieldDefinitions.Select(m.GetFieldDefinition)).Offset()
-                .Value("Attributes", r => r.Attributes, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateSingleChoiceGroup(typeof(FieldAttributes), "Field access: ", (int)FieldAttributes.FieldAccessMask, (int)(r.Attributes & FieldAttributes.FieldAccessMask), new Flag("CompilerControlled (0000)", 0, false), includeAny: false),
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(FieldAttributes), "Flags:", (int)~FieldAttributes.FieldAccessMask, (int)(r.Attributes & ~FieldAttributes.FieldAccessMask), includeAll: false),
-                })
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Name(r => r.Name)
                 .Signature("Signature", r => r.Signature),
 
             TableIndex.MethodDef => Table(() => m.GetMethodDefParamLists().Select(c => (Method: m.GetMethodDefinition(c.Method), c.ParamList))).Offset()
-                .Value("Attributes", r => r.Method.Attributes, "X8", r => MethodAttributesTooltip(r.Method.Attributes))
-                .Value("ImplAttributes", r => r.Method.ImplAttributes, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateSingleChoiceGroup(typeof(MethodImplAttributes), "Code type: ", (int)MethodImplAttributes.CodeTypeMask, (int)(r.Method.ImplAttributes & MethodImplAttributes.CodeTypeMask), new Flag("IL (0000)", 0, false), includeAny: false),
-                    FlagGroup.CreateSingleChoiceGroup(typeof(MethodImplAttributes), "Managed type: ", (int)MethodImplAttributes.ManagedMask, (int)(r.Method.ImplAttributes & MethodImplAttributes.ManagedMask), new Flag("Managed (0000)", 0, false), includeAny: false),
-                })
+                .Value("Attributes", r => r.Method.Attributes, "X8")
+                .Value("ImplAttributes", r => r.Method.ImplAttributes, "X8")
                 .Value("RVA", r => r.Method.RelativeVirtualAddress, "X8")
                 .Name(r => r.Method.Name)
                 .Signature("Signature", r => r.Method.Signature)
@@ -80,9 +73,7 @@ internal static class MetadataTables
                     "(method has no Param rows; the stored value is the start of its empty parameter list: the next method's first Param row, or one past the end of the Param table)"),
 
             TableIndex.Param => Table(() => Rids().Select(rid => m.GetParameter(MetadataTokens.ParameterHandle(rid)))).Offset()
-                .Value("Attributes", r => r.Attributes, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(ParameterAttributes), selectedValue: (int)r.Attributes, includeAll: false)
-                })
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Value("Sequence", r => r.SequenceNumber)
                 .Name(r => r.Name),
 
@@ -131,9 +122,7 @@ internal static class MetadataTables
                 .Handle("EventList", r => r.EventList),
 
             TableIndex.Event => Table(() => m.EventDefinitions.Select(m.GetEventDefinition)).Offset()
-                .Value("Attributes", r => r.Attributes, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(EventAttributes), selectedValue: (int)r.Attributes, includeAll: false),
-                })
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Name(r => r.Name)
                 .Handle("Type", r => r.Type),
 
@@ -142,14 +131,12 @@ internal static class MetadataTables
                 .Handle("PropertyList", r => r.PropertyList),
 
             TableIndex.Property => Table(() => m.PropertyDefinitions.Select(m.GetPropertyDefinition)).Offset()
-                .Value("Attributes", r => r.Attributes, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(PropertyAttributes), selectedValue: (int)r.Attributes, includeAll: false),
-                })
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Name(r => r.Name)
                 .Signature("Signature", r => r.Signature),
 
             TableIndex.MethodSemantics => Table(m.GetMethodSemantics)
-                .Value("Semantics", r => r.Semantics, "X8", r => r.Semantics.ToString())
+                .Value("Semantics", r => r.Semantics, "X8")
                 .Handle("Method", r => r.Method)
                 .Handle("Association", r => r.Association),
 
@@ -170,11 +157,7 @@ internal static class MetadataTables
                 }),
 
             TableIndex.ImplMap => Table(m.GetImplMaps)
-                .Value("MappingFlags", r => r.MappingFlags, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateSingleChoiceGroup(typeof(MethodImportAttributes), "Character set: ", (int)MethodImportAttributes.CharSetMask, (int)(r.MappingFlags & MethodImportAttributes.CharSetMask), new Flag("CharSetNotSpec (0000)", 0, false), includeAny: false),
-                    FlagGroup.CreateSingleChoiceGroup(typeof(MethodImportAttributes), "Calling convention: ", (int)MethodImportAttributes.CallingConventionMask, (int)(r.MappingFlags & MethodImportAttributes.CallingConventionMask), new Flag("Invalid (0000)", 0, false), includeAny: false),
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(MethodImportAttributes), "Flags:", (int)ImplMapOtherFlags, (int)(r.MappingFlags & ImplMapOtherFlags), includeAll: false),
-                })
+                .Value("MappingFlags", r => r.MappingFlags, "X8")
                 .Handle("MemberForwarded", r => r.MemberForwarded)
                 .String("ImportName", r => r.ImportName)
                 .Handle("ImportScope", r => r.ImportScope),
@@ -184,21 +167,15 @@ internal static class MetadataTables
                 .Value("RVA", r => r.RelativeVirtualAddress, "X8"),
 
             TableIndex.Assembly => Table<AssemblyDefinition>(() => m.IsAssembly ? [m.GetAssemblyDefinition()] : []).Offset()
-                .Value("HashAlgorithm", r => r.HashAlgorithm, "X4", r => new FlagsTooltip {
-                    FlagGroup.CreateSingleChoiceGroup(typeof(AssemblyHashAlgorithm), selectedValue: (int)r.HashAlgorithm, defaultFlag: new Flag("None (0000)", 0, false), includeAny: false)
-                })
-                .Value("Flags", r => r.Flags, "X4", r => new FlagsTooltip {
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(AssemblyFlags), selectedValue: (int)r.Flags, includeAll: false)
-                })
+                .Value("HashAlgorithm", r => r.HashAlgorithm, "X4", r => r.HashAlgorithm.ToString())
+                .Value("Flags", r => r.Flags, "X4")
                 .Value("Version", r => r.Version)
                 .Name(r => r.Name)
                 .String("Culture", r => r.Culture),
 
             TableIndex.AssemblyRef => Table(() => m.AssemblyReferences.Select(m.GetAssemblyReference)).Offset()
                 .Value("Version", r => r.Version)
-                .Value("Flags", r => r.Flags, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(AssemblyFlags), selectedValue: (int)r.Flags, includeAll: false)
-                })
+                .Value("Flags", r => r.Flags, "X8")
                 .Blob("PublicKeyOrToken", r => r.PublicKeyOrToken, r => Hex(r.PublicKeyOrToken))
                 .Name(r => r.Name)
                 .String("Culture", r => r.Culture),
@@ -209,14 +186,14 @@ internal static class MetadataTables
                 .Blob("HashValue", r => r.HashValue, r => Hex(r.HashValue)),
 
             TableIndex.ExportedType => Table(() => m.ExportedTypes.Select(m.GetExportedType)).Offset()
-                .Value("Attributes", r => r.Attributes, "X8", r => FlagsTooltip.ForTypeAttributes(r.Attributes))
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Value("TypeDefId", r => r.GetTypeDefinitionId(), "X8")
                 .String("TypeName", r => r.Name)
                 .String("TypeNamespace", r => r.Namespace)
                 .Handle("Implementation", r => r.Implementation),
 
             TableIndex.ManifestResource => Table(() => m.ManifestResources.Select(m.GetManifestResource)).Offset()
-                .Value("Attributes", r => r.Attributes, "X8", r => r.Attributes.ToString())
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Name(r => r.Name)
                 .Handle("Implementation", r => r.Implementation),
 
@@ -226,10 +203,7 @@ internal static class MetadataTables
 
             TableIndex.GenericParam => Table(() => Rids().Select(rid => m.GetGenericParameter(MetadataTokens.GenericParameterHandle(rid)))).Offset()
                 .Value("Number", r => r.Index)
-                .Value("Attributes", r => r.Attributes, "X8", r => new FlagsTooltip {
-                    FlagGroup.CreateSingleChoiceGroup(typeof(GenericParameterAttributes), "Variance: ", (int)GenericParameterAttributes.VarianceMask, (int)(r.Attributes & GenericParameterAttributes.VarianceMask), new Flag("None (0000)", 0, false), includeAny: false),
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(GenericParameterAttributes), "Special Constraint: ", (int)GenericParameterAttributes.SpecialConstraintMask, (int)(r.Attributes & GenericParameterAttributes.SpecialConstraintMask), includeAll: false),
-                })
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Handle("Owner", r => r.Parent)
                 .Name(r => r.Name),
 
@@ -334,9 +308,7 @@ internal static class MetadataTables
                 .Value("Length", r => r.Length),
 
             TableIndex.LocalVariable => Table(() => m.LocalVariables.Select(m.GetLocalVariable))
-                .Value("Attributes", r => r.Attributes, "X8", _ => new FlagsTooltip {
-                    FlagGroup.CreateMultipleChoiceGroup(typeof(LocalVariableAttributes)),
-                })
+                .Value("Attributes", r => r.Attributes, "X8")
                 .Value("Index", r => r.Index)
                 .Name(r => r.Name),
 
@@ -361,19 +333,7 @@ internal static class MetadataTables
         };
     }
 
-    private const MethodImportAttributes ImplMapOtherFlags = ~(MethodImportAttributes.CallingConventionMask | MethodImportAttributes.CharSetMask);
-
     private static object? NoTooltip<T>(T row) => null;
-
-    private static FlagsTooltip MethodAttributesTooltip(MethodAttributes attributes)
-    {
-        const MethodAttributes otherFlagsMask = ~(MethodAttributes.MemberAccessMask | MethodAttributes.VtableLayoutMask);
-        return new FlagsTooltip {
-            FlagGroup.CreateSingleChoiceGroup(typeof(MethodAttributes), "Member access: ", (int)MethodAttributes.MemberAccessMask, (int)(attributes & MethodAttributes.MemberAccessMask), new Flag("CompilerControlled (0000)", 0, false), includeAny: false),
-            FlagGroup.CreateSingleChoiceGroup(typeof(MethodAttributes), "Vtable layout: ", (int)MethodAttributes.VtableLayoutMask, (int)(attributes & MethodAttributes.VtableLayoutMask), new Flag("ReuseSlot (0000)", 0, false), includeAny: false),
-            FlagGroup.CreateMultipleChoiceGroup(typeof(MethodAttributes), "Flags:", (int)otherFlagsMask, (int)(attributes & otherFlagsMask), includeAll: false),
-        };
-    }
 
     private static string? BaseTypeTooltip(MetadataFile file, EntityHandle baseType)
     {

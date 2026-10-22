@@ -30,10 +30,49 @@ namespace ZGF.ILSpy.Core.Metadata
 				.Value("Member", e => e.Member)
 				.Value("Offset", e => e.Offset)
 				.Value("Size", e => e.Size)
-				.Value("Value", e => e.Value, tooltip: e => e.Bits is { } bits
-					? new MetadataTooltip(null, [new MetadataFlagGroup(null, false, bits.Select(static b => new MetadataFlag(b.Meaning, b.Value)).ToArray())])
-					: null)
+				.Value("Value", e => e.Value, tooltip: e => e.Flags?.Explain(Convert.ToUInt32(e.Value)))
 				.Value("Meaning", e => e.Meaning);
+
+		static readonly FlagsSchema CharacteristicsBits = Bits(typeof(Characteristics), [
+			"Relocation info stripped from file",
+			"File is executable",
+			"Line numbers stripped from file",
+			"Local symbols stripped from file",
+			"Aggressively trim working set",
+			"Large address aware",
+			"Reserved",
+			"Bytes of machine words are reversed (Low)",
+			"32-bit word machine",
+			"Debugging info stripped from file in .DBG file",
+			"If image is on removable media, copy and run from the swap file",
+			"If image is on Net, copy and run from the swap file",
+			"System",
+			"DLL",
+			"File should only be run on a UP machine",
+			"Bytes of machine words are reversed (High)",
+		]);
+
+		static readonly FlagsSchema DllCharacteristicsBits = Bits(typeof(DllCharacteristics), [
+			"Process Init (Reserved)",
+			"Process Term (Reserved)",
+			"Thread Init (Reserved)",
+			"Thread Term (Reserved)",
+			"Unused",
+			"Image can handle a high entropy 64-bit virtual address space (ASLR)",
+			"DLL can be relocated at load time",
+			"Code integrity checks are enforced",
+			"Image is NX compatible",
+			"Isolation aware, but do not isolate the image",
+			"Does not use structured exception handling (SEH)",
+			"Do not bind the image",
+			"Image must execute in an AppContainer",
+			"Driver is a WDM Driver",
+			"Image supports Control Flow Guard",
+			"Image is Terminal Server aware",
+		]);
+
+		static FlagsSchema Bits(Type type, string[] meanings) =>
+			new(type, [], meanings.Select(static (m, i) => new IndependentFlag(m, 1u << i)).ToArray());
 
 		static List<Entry> DosEntries(PEFile module)
 		{
@@ -79,7 +118,6 @@ namespace ZGF.ILSpy.Core.Metadata
 			var headers = module.Reader.PEHeaders;
 			var header = headers.CoffHeader;
 			var linkerDateTime = DateTimeOffset.FromUnixTimeSeconds(unchecked((uint)header.TimeDateStamp)).DateTime;
-			int characteristics = (int)header.Characteristics;
 			return new List<Entry> {
 				new(headers.CoffHeaderStartOffset, (int)header.Machine, 2, "Machine", header.Machine.ToString()),
 				new(headers.CoffHeaderStartOffset + 2, (int)header.NumberOfSections, 2, "Number of Sections", "Number of sections; indicates size of the Section Table, which immediately follows the headers."),
@@ -87,24 +125,7 @@ namespace ZGF.ILSpy.Core.Metadata
 				new(headers.CoffHeaderStartOffset + 8, header.PointerToSymbolTable, 4, "Pointer to Symbol Table", "Always 0 in .NET executables."),
 				new(headers.CoffHeaderStartOffset + 12, header.NumberOfSymbols, 4, "Number of Symbols", "Always 0 in .NET executables."),
 				new(headers.CoffHeaderStartOffset + 16, (int)header.SizeOfOptionalHeader, 2, "Optional Header Size", "Size of the optional header."),
-				new(headers.CoffHeaderStartOffset + 18, characteristics, 2, "Characteristics", "Flags indicating attributes of the file.", new BitEntry[] {
-					new((characteristics & 0x0001) != 0, "<0001> Relocation info stripped from file"),
-					new((characteristics & 0x0002) != 0, "<0002> File is executable"),
-					new((characteristics & 0x0004) != 0, "<0004> Line numbers stripped from file"),
-					new((characteristics & 0x0008) != 0, "<0008> Local symbols stripped from file"),
-					new((characteristics & 0x0010) != 0, "<0010> Aggressively trim working set"),
-					new((characteristics & 0x0020) != 0, "<0020> Large address aware"),
-					new((characteristics & 0x0040) != 0, "<0040> Reserved"),
-					new((characteristics & 0x0080) != 0, "<0080> Bytes of machine words are reversed (Low)"),
-					new((characteristics & 0x0100) != 0, "<0100> 32-bit word machine"),
-					new((characteristics & 0x0200) != 0, "<0200> Debugging info stripped from file in .DBG file"),
-					new((characteristics & 0x0400) != 0, "<0400> If image is on removable media, copy and run from the swap file"),
-					new((characteristics & 0x0800) != 0, "<0800> If image is on Net, copy and run from the swap file"),
-					new((characteristics & 0x1000) != 0, "<1000> System"),
-					new((characteristics & 0x2000) != 0, "<2000> DLL"),
-					new((characteristics & 0x4000) != 0, "<4000> File should only be run on a UP machine"),
-					new((characteristics & 0x8000) != 0, "<8000> Bytes of machine words are reversed (High)"),
-				}),
+				new(headers.CoffHeaderStartOffset + 18, (int)header.Characteristics, 2, "Characteristics", "Flags indicating attributes of the file.", CharacteristicsBits),
 			};
 		}
 
@@ -140,24 +161,7 @@ namespace ZGF.ILSpy.Core.Metadata
 			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset, reader.ReadInt32(), 4, "File Checksum", ""));
 			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset, reader.ReadUInt16(), 2, "Subsystem", header.Subsystem.ToString()));
 			ushort dllCharacteristics = reader.ReadUInt16();
-			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset - 2, dllCharacteristics, 2, "DLL Characteristics", header.DllCharacteristics.ToString(), new BitEntry[] {
-				new((dllCharacteristics & 0x0001) != 0, "<0001> Process Init (Reserved)"),
-				new((dllCharacteristics & 0x0002) != 0, "<0002> Process Term (Reserved)"),
-				new((dllCharacteristics & 0x0004) != 0, "<0004> Thread Init (Reserved)"),
-				new((dllCharacteristics & 0x0008) != 0, "<0008> Thread Term (Reserved)"),
-				new((dllCharacteristics & 0x0010) != 0, "<0010> Unused"),
-				new((dllCharacteristics & 0x0020) != 0, "<0020> Image can handle a high entropy 64-bit virtual address space (ASLR)"),
-				new((dllCharacteristics & 0x0040) != 0, "<0040> DLL can be relocated at load time"),
-				new((dllCharacteristics & 0x0080) != 0, "<0080> Code integrity checks are enforced"),
-				new((dllCharacteristics & 0x0100) != 0, "<0100> Image is NX compatible"),
-				new((dllCharacteristics & 0x0200) != 0, "<0200> Isolation aware, but do not isolate the image"),
-				new((dllCharacteristics & 0x0400) != 0, "<0400> Does not use structured exception handling (SEH)"),
-				new((dllCharacteristics & 0x0800) != 0, "<0800> Do not bind the image"),
-				new((dllCharacteristics & 0x1000) != 0, "<1000> Image must execute in an AppContainer"),
-				new((dllCharacteristics & 0x2000) != 0, "<2000> Driver is a WDM Driver"),
-				new((dllCharacteristics & 0x4000) != 0, "<4000> Image supports Control Flow Guard"),
-				new((dllCharacteristics & 0x8000) != 0, "<8000> Image is Terminal Server aware"),
-			}));
+			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset - 2, dllCharacteristics, 2, "DLL Characteristics", header.DllCharacteristics.ToString(), DllCharacteristicsBits));
 			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset, isPE32Plus ? reader.ReadUInt64() : reader.ReadUInt32(), isPE32Plus ? 8 : 4, "Stack Reserve Size", ""));
 			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset, isPE32Plus ? reader.ReadUInt64() : reader.ReadUInt32(), isPE32Plus ? 8 : 4, "Stack Commit Size", ""));
 			entries.Add(new Entry(headers.PEHeaderStartOffset + reader.Offset, isPE32Plus ? reader.ReadUInt64() : reader.ReadUInt32(), isPE32Plus ? 8 : 4, "Heap Reserve Size", ""));
@@ -224,9 +228,6 @@ namespace ZGF.ILSpy.Core.Metadata
 	}
 
 	/// <summary>One row of a PE header: <see cref="Value"/> is <see cref="Size"/> bytes at
-	/// <see cref="Offset"/>, and <see cref="Bits"/> breaks a flags value down.</summary>
-	internal sealed record Entry(int Offset, object? Value, int Size, string Member, string Meaning, IReadOnlyList<BitEntry>? Bits = null);
-
-	/// <summary>One bit (or bit-group) of a flags <see cref="Entry"/>, and whether it is set.</summary>
-	internal readonly record struct BitEntry(bool Value, string Meaning);
+	/// <see cref="Offset"/>, and <see cref="Flags"/> breaks a flags value down.</summary>
+	internal sealed record Entry(int Offset, object? Value, int Size, string Member, string Meaning, FlagsSchema? Flags = null);
 }
