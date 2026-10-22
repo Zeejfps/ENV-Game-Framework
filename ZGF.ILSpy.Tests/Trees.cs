@@ -6,54 +6,33 @@ internal static class Trees
 {
     public const string FixturesNamespace = "ZGF.ILSpy.Tests.Fixtures";
 
+    private static readonly Lazy<LoadedAssembly> s_testAssembly = new(() => new AssemblyList().Open(TestAssemblyPath));
+    private static readonly Lazy<DecompiledDocument> s_calculatorCSharp = new(() => TestAssembly.Calculator().Decompile(DecompilationLanguage.CSharp));
+    private static readonly Lazy<DecompiledDocument> s_calculatorIL = new(() => TestAssembly.Calculator().Decompile(DecompilationLanguage.IL));
+
     public static string TestAssemblyPath => typeof(Trees).Assembly.Location;
 
     public static string CoreLibPath => typeof(object).Assembly.Location;
 
-    public static BrowseNode Child(this BrowseNode node, string text) =>
-        node.Children.FirstOrDefault(c => c.Text == text) ??
-        throw new InvalidOperationException($"'{node.Text}' has no child '{text}': {string.Join(", ", node.Children.Select(c => c.Text))}");
+    /// <summary>The test assembly, opened once for the tests that only read it. Its list is out of
+    /// reach; a test that needs the list, or nodes no other test has built, opens its own with
+    /// <see cref="OpenTestAssembly"/>.</summary>
+    public static LoadedAssembly TestAssembly => s_testAssembly.Value;
+
+    public static DecompiledDocument CalculatorDocument(DecompilationLanguage language) => language switch
+    {
+        DecompilationLanguage.CSharp => s_calculatorCSharp.Value,
+        DecompilationLanguage.IL => s_calculatorIL.Value,
+        _ => throw new ArgumentOutOfRangeException(nameof(language)),
+    };
 
     public static BrowseNode Fixtures(this LoadedAssembly assembly) => assembly.Root.Child(FixturesNamespace);
 
     public static BrowseNode Calculator(this LoadedAssembly assembly) => assembly.Fixtures().Child("Calculator<T>");
 
-    public static NodeContent Content(this BrowseNode node, DecompilationLanguage language = DecompilationLanguage.CSharp) =>
-        node.LoadContentAsync(language, DecompilerOptions.Default).GetAwaiter().GetResult();
-
     public static (AssemblyList List, LoadedAssembly Assembly) OpenTestAssembly()
     {
         var list = new AssemblyList();
         return (list, list.Open(TestAssemblyPath));
-    }
-
-    public static int LineContaining(this DecompiledDocument document, string text)
-    {
-        for (var i = 0; i < document.Lines.Length; i++)
-        {
-            if (document.Lines[i].Text.Contains(text, StringComparison.Ordinal)) return i;
-        }
-        return -1;
-    }
-
-    public static DocumentSpan SpanAt(this DocumentLine line, string token)
-    {
-        var start = line.Text.IndexOf(token, StringComparison.Ordinal);
-        foreach (var span in line.Spans)
-        {
-            if (span.Start == start && span.Length == token.Length) return span;
-        }
-        throw new InvalidOperationException($"No span '{token}' in '{line.Text}'");
-    }
-
-    public static IEnumerable<(string Text, DocumentSpan Span)> SpansOf(this DecompiledDocument document)
-    {
-        foreach (var line in document.Lines)
-        {
-            var text = line.Text;
-            var spans = line.Spans.ToArray();
-            foreach (var span in spans)
-                yield return (text.Substring(span.Start, span.Length), span);
-        }
     }
 }

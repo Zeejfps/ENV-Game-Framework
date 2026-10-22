@@ -7,7 +7,7 @@ public sealed class BrowseTreeTests
     [Fact]
     public void An_assembly_lists_metadata_references_then_flat_sorted_namespaces()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var root = assembly.Root;
 
         Assert.Equal(NodeKind.Assembly, root.Kind);
@@ -22,7 +22,7 @@ public sealed class BrowseTreeTests
     [Fact]
     public void Types_have_kinds_labels_and_accessibility()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var fixtures = assembly.Fixtures();
 
         Assert.Equal(
@@ -42,7 +42,7 @@ public sealed class BrowseTreeTests
     [Fact]
     public void Type_members_come_in_ILSpy_order_with_signatures()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var children = assembly.Calculator().Children.Select(c => (c.Kind, c.Text)).ToArray();
 
@@ -68,7 +68,7 @@ public sealed class BrowseTreeTests
     [Fact]
     public void Enum_members_keep_declaration_order_without_the_value_field()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var mode = assembly.Calculator().Child("Mode");
 
@@ -78,7 +78,7 @@ public sealed class BrowseTreeTests
     [Fact]
     public void Properties_and_events_hold_their_accessors()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var calculator = assembly.Calculator();
 
         Assert.Equal(["get_Count"], calculator.Child("Count : int").Children.Select(c => c.Text));

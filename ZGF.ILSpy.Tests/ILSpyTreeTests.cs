@@ -7,7 +7,7 @@ public sealed class ILSpyTreeTests
     [Fact]
     public void Nodes_are_named_as_ILSpys_tree_names_them()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var calculator = assembly.Calculator();
 
         Assert.Equal(assembly.FilePath, ILSpyTree.NameOf(assembly.Root));
@@ -46,9 +46,9 @@ public sealed class ILSpyTreeTests
     [Fact]
     public void A_bookmark_is_described_as_ILSpy_records_it()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var calculator = assembly.Calculator();
-        var document = calculator.Decompile(DecompilationLanguage.CSharp);
+        var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
         var anchor = document.AnchorAt(document.LineContaining("Changed?.Invoke(this, EventArgs.Empty);"));
 
         var info = ILSpyTree.Describe(calculator, anchor);

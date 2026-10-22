@@ -35,18 +35,10 @@ public sealed class NodePathTests
     [Fact]
     public void A_path_into_a_file_that_is_gone_finds_nothing()
     {
-        var copy = Path.Combine(Path.GetTempPath(), $"fixture-{Guid.NewGuid():N}.dll");
-        File.Copy(Trees.TestAssemblyPath, copy);
-        NodePath path;
-        try
-        {
-            var list = new AssemblyList();
-            path = list.Open(copy).Calculator().Path;
-        }
-        finally
-        {
-            File.Delete(copy);
-        }
+        using var temp = new TempDir();
+        var copy = temp.Copy(Trees.TestAssemblyPath, "fixture.dll");
+        var path = new AssemblyList().Open(copy).Calculator().Path;
+        File.Delete(copy);
 
         Assert.Null(new AssemblyList().FindNode(path));
     }

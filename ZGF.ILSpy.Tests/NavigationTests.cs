@@ -52,11 +52,11 @@ public sealed class NavigationTests
     [Fact]
     public void A_node_finds_its_definition_line_in_its_parents_document()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var calculator = assembly.Calculator();
 
-        var csharp = calculator.Decompile(DecompilationLanguage.CSharp);
-        var il = calculator.Decompile(DecompilationLanguage.IL);
+        var csharp = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
+        var il = Trees.CalculatorDocument(DecompilationLanguage.IL);
 
         Assert.Contains("public void Add(T item)", csharp.Lines[csharp.FindDefinitionLine(calculator.Child("Add(T) : void"))].Text);
         Assert.Contains("public int Count", csharp.Lines[csharp.FindDefinitionLine(calculator.Child("Count : int"))].Text);
@@ -70,9 +70,8 @@ public sealed class NavigationTests
     [Fact]
     public void References_to_the_same_entity_are_equal_across_documents()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var calculator = assembly.Calculator();
-        var typeDocument = calculator.Decompile(DecompilationLanguage.CSharp);
+        var calculator = Trees.TestAssembly.Calculator();
+        var typeDocument = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
         var memberDocument = calculator.Child("Describe() : string").Decompile(DecompilationLanguage.CSharp);
 
         var count = calculator.Child("Count : int").Reference;
@@ -116,9 +115,8 @@ public sealed class NavigationTests
     [Fact]
     public void IL_uses_through_member_references_match_their_definitions()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var calculator = assembly.Calculator();
-        var document = calculator.Decompile(DecompilationLanguage.IL);
+        var calculator = Trees.TestAssembly.Calculator();
+        var document = Trees.CalculatorDocument(DecompilationLanguage.IL);
         var add = calculator.Child("Add(T) : void").Reference!;
         var items = calculator.Child("_items : List<T>").Reference!;
 

@@ -10,27 +10,16 @@ public sealed class MetadataTests
 {
     private static BrowseNode Metadata(LoadedAssembly assembly) => assembly.Root.Child("Metadata");
 
-    private static BrowseNode Table(LoadedAssembly assembly, string name) =>
-        Metadata(assembly).Child("Tables").Children.Single(c => c.Text.Split(' ')[1] == name);
+    private static BrowseNode Table(LoadedAssembly assembly, string name) => Metadata(assembly).Child("Tables").Table(name);
 
     private static MetadataGrid Grid(BrowseNode node) => Assert.IsType<GridContent>(node.Content()).Grid;
 
-    private static int Column(MetadataGrid grid, string name) => grid.Columns.Select(c => c.Name).ToList().IndexOf(name);
-
-    private static int RowNamed(MetadataGrid grid, string name)
-    {
-        var column = Column(grid, "Name");
-        for (var row = 0; row < grid.RowCount; row++)
-        {
-            if (grid.Text(row, column) == name) return row;
-        }
-        throw new InvalidOperationException($"No row named {name}");
-    }
+    private static MetadataGrid TypeDefs() => Grid(Table(Trees.TestAssembly, "TypeDef"));
 
     [Fact]
     public void An_assembly_lists_its_metadata_and_its_portable_pdb_first()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var first = assembly.Root.Children.Take(3).Select(c => (c.Kind, c.Text));
 
@@ -42,7 +31,7 @@ public sealed class MetadataTests
     [Fact]
     public void The_metadata_folder_lists_headers_directories_tables_and_heaps_in_ILSpys_order()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var children = Metadata(assembly).Children;
 
@@ -60,7 +49,7 @@ public sealed class MetadataTests
     [Fact]
     public void Every_grid_reads_every_cell_tooltip_and_link()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var grids = 0;
 
         foreach (var root in assembly.Root.Children.Where(c => c.Kind == NodeKind.Metadata))
@@ -100,26 +89,23 @@ public sealed class MetadataTests
     [Fact]
     public void The_TypeDef_table_shows_ILSpys_columns_in_hex()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var grid = Grid(Table(assembly, "TypeDef"));
-        var row = RowNamed(grid, "Calculator`1");
+        var grid = TypeDefs();
+        var row = grid.RowNamed("Calculator`1");
 
         Assert.Equal(["RID", "Token", "Offset", "Attributes", "Name", "Namespace", "BaseType", "FieldList", "MethodList"], grid.Columns.Select(c => c.Name));
-        Assert.Equal((row + 1).ToString(), grid.Text(row, Column(grid, "RID")));
-        Assert.Equal($"02{row + 1:X6}", grid.Text(row, Column(grid, "Token")));
-        Assert.Equal(Trees.FixturesNamespace, grid.Text(row, Column(grid, "Namespace")));
-        Assert.True(grid.Columns[Column(grid, "BaseType")].IsToken);
-        Assert.False(grid.Columns[Column(grid, "Name")].IsToken);
+        Assert.Equal((row + 1).ToString(), grid.Text(row, grid.Column("RID")));
+        Assert.Equal($"02{row + 1:X6}", grid.Text(row, grid.Column("Token")));
+        Assert.Equal(Trees.FixturesNamespace, grid.Text(row, grid.Column("Namespace")));
+        Assert.True(grid.Columns[grid.Column("BaseType")].IsToken);
+        Assert.False(grid.Columns[grid.Column("Name")].IsToken);
     }
 
     [Fact]
     public void A_flags_cell_explains_each_group_of_its_bits()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var grid = Grid(Table(assembly, "TypeDef"));
+        var grid = TypeDefs();
 
-        var tooltip = grid.Tooltip(RowNamed(grid, "Calculator`1"), Column(grid, "Attributes"))!;
+        var tooltip = grid.Tooltip(grid.RowNamed("Calculator`1"), grid.Column("Attributes"))!;
 
         Assert.Equal(["Visibility", "Layout", "ClassSemantics", "StringFormat", "Flags"], tooltip.Groups.Select(g => g.Header));
         var visibility = tooltip.Groups[0];
@@ -154,16 +140,16 @@ public sealed class MetadataTests
     [Fact]
     public void A_token_cell_links_to_the_row_of_the_table_it_names()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var grid = Grid(Table(assembly, "TypeDef"));
-        var row = RowNamed(grid, "Calculator`1");
+        var row = grid.RowNamed("Calculator`1");
 
-        var target = grid.Link(row, Column(grid, "BaseType"))!.Value;
+        var target = grid.Link(row, grid.Column("BaseType"))!.Value;
 
         Assert.Same(Table(assembly, "TypeRef"), target.Node);
         var typeRefs = Grid(target.Node);
-        Assert.Equal("Object", typeRefs.Text(target.Row, Column(typeRefs, "Name")));
-        Assert.Equal(target.Row, typeRefs.RowOf(Convert.ToInt32(grid.Text(row, Column(grid, "BaseType")), 16)));
+        Assert.Equal("Object", typeRefs.Text(target.Row, typeRefs.Column("Name")));
+        Assert.Equal(target.Row, typeRefs.RowOf(Convert.ToInt32(grid.Text(row, grid.Column("BaseType")), 16)));
     }
 
     [Fact]
@@ -173,8 +159,8 @@ public sealed class MetadataTests
         var types = Grid(Table(assembly, "TypeDef"));
         var references = Grid(Table(assembly, "TypeRef"));
 
-        var calculator = types.Definition(RowNamed(types, "Calculator`1"))!;
-        var obj = references.Definition(RowNamed(references, "Object"))!;
+        var calculator = types.Definition(types.RowNamed("Calculator`1"))!;
+        var obj = references.Definition(references.RowNamed("Object"))!;
 
         Assert.Same(assembly.Calculator(), list.FindNode(calculator));
         Assert.Equal("Object", list.FindNode(obj)!.Text);
@@ -184,9 +170,8 @@ public sealed class MetadataTests
     [Fact]
     public void Sorting_orders_rows_by_a_column_keeping_ties_in_table_order()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var grid = Grid(Table(assembly, "TypeDef"));
-        var name = Column(grid, "Name");
+        var grid = TypeDefs();
+        var name = grid.Column("Name");
 
         var ascending = grid.Order(name, descending: false).Select(r => grid.Text(r, name)).ToList();
         var descending = grid.Order(name, descending: true).Select(r => grid.Text(r, name)).ToList();
@@ -200,20 +185,20 @@ public sealed class MetadataTests
     [Fact]
     public void The_debug_directory_decodes_its_CodeView_entry()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var directory = Metadata(assembly).Child("Debug Directory");
 
         var codeView = directory.Child("CodeView").Decompile(DecompilationLanguage.CSharp).GetText();
 
         Assert.Contains("// GUID: ", codeView);
         Assert.Contains("// Path: ", codeView);
-        Assert.Contains("CodeView", Enumerable.Range(0, Grid(directory).RowCount).Select(r => Grid(directory).Text(r, Column(Grid(directory), "Type"))));
+        Assert.Contains("CodeView", Enumerable.Range(0, Grid(directory).RowCount).Select(r => Grid(directory).Text(r, Grid(directory).Column("Type"))));
     }
 
     [Fact]
     public void The_tables_folder_counts_the_rows_of_each_table()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var text = Metadata(assembly).Child("Tables").Decompile(DecompilationLanguage.CSharp).GetText();
 
@@ -221,20 +206,19 @@ public sealed class MetadataTests
         Assert.Contains("// 02 TypeDef: ", text);
     }
 
-    private static string[] NamesOf(MetadataGrid grid, int[] rows) => rows.Select(r => grid.Text(r, Column(grid, "Name"))).ToArray();
+    private static string[] NamesOf(MetadataGrid grid, int[] rows) => rows.Select(r => grid.Text(r, grid.Column("Name"))).ToArray();
 
     private static MetadataColumnFilter?[] Filters(MetadataGrid grid, string column, MetadataColumnFilter filter)
     {
         var filters = new MetadataColumnFilter?[grid.Columns.Count];
-        filters[Column(grid, column)] = filter;
+        filters[grid.Column(column)] = filter;
         return filters;
     }
 
     [Fact]
     public void A_text_filter_matches_part_of_a_cell_ignoring_case_or_a_regex()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var grid = Grid(Table(assembly, "TypeDef"));
+        var grid = TypeDefs();
 
         var part = NamesOf(grid, grid.Filter(null, Filters(grid, "Name", new MetadataColumnFilter { Text = "calcULATOR" })));
         var regex = NamesOf(grid, grid.Filter(null, Filters(grid, "Name", new MetadataColumnFilter { Text = "/^(Circle|Size)$/" })));
@@ -247,9 +231,8 @@ public sealed class MetadataTests
     [Fact]
     public void A_number_filter_compares_with_an_operator_and_otherwise_matches_the_hex_shown()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var grid = Grid(Table(assembly, "TypeDef"));
-        var rid = Column(grid, "RID");
+        var grid = TypeDefs();
+        var rid = grid.Column("RID");
 
         var above = grid.Filter(null, Filters(grid, "RID", new MetadataColumnFilter { Text = "> 0x3" }));
         var shown = grid.Filter(null, Filters(grid, "Token", new MetadataColumnFilter { Text = "02000002" }));
@@ -262,9 +245,8 @@ public sealed class MetadataTests
     [Fact]
     public void A_flags_filter_picks_values_of_a_group_and_requires_or_excludes_flags()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var grid = Grid(Table(assembly, "TypeDef"));
-        var schema = grid.Columns[Column(grid, "Attributes")].Flags!;
+        var grid = TypeDefs();
+        var schema = grid.Columns[grid.Column("Attributes")].Flags!;
         var state = new FilterState(schema);
         var filters = Filters(grid, "Attributes", new MetadataColumnFilter { Flags = state });
 
@@ -282,9 +264,8 @@ public sealed class MetadataTests
     [Fact]
     public void Filters_keep_the_sorted_order()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-        var grid = Grid(Table(assembly, "TypeDef"));
-        var order = grid.Order(Column(grid, "Name"), descending: true);
+        var grid = TypeDefs();
+        var order = grid.Order(grid.Column("Name"), descending: true);
 
         var rows = grid.Filter(order, Filters(grid, "Namespace", new MetadataColumnFilter { Text = "Fixtures" }));
 
@@ -314,26 +295,26 @@ public sealed class MetadataTests
     [Fact]
     public void A_header_breaks_the_bits_of_its_flags_down_on_hovering_their_value()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var coff = Grid(Metadata(assembly).Child("COFF Header"));
-        var characteristics = Enumerable.Range(0, coff.RowCount).Single(r => coff.Text(r, Column(coff, "Member")) == "Characteristics");
+        var characteristics = Enumerable.Range(0, coff.RowCount).Single(r => coff.Text(r, coff.Column("Member")) == "Characteristics");
 
-        var bits = Assert.Single(coff.Tooltip(characteristics, Column(coff, "Value"))!.Groups).Flags;
+        var bits = Assert.Single(coff.Tooltip(characteristics, coff.Column("Value"))!.Groups).Flags;
 
         Assert.False(coff.HasDetails);
         Assert.Equal(16, bits.Count);
         Assert.Contains(new MetadataFlag("File is executable (0002)", true), bits);
-        Assert.Null(coff.Tooltip(0, Column(coff, "Value")));
+        Assert.Null(coff.Tooltip(0, coff.Column("Value")));
         Assert.False(Grid(Table(assembly, "TypeDef")).HasDetails);
     }
 
     [Fact]
     public void Debug_information_shows_its_decoded_value_under_the_selected_row()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var pdb = assembly.Root.Child("Debug Metadata (From portable PDB)").Child("Tables");
-        var grid = Grid(pdb.Children.Single(c => c.Text.Split(' ')[1] == "CustomDebugInformation"));
-        var kind = Column(grid, "KindString");
+        var grid = Grid(pdb.Table("CustomDebugInformation"));
+        var kind = grid.Column("KindString");
 
         var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));
         var table = Assert.IsType<MetadataTableDetails>(grid.Details(options));
@@ -349,7 +330,7 @@ public sealed class MetadataTests
         return Enumerable.Range(0, grid.RowCount).Select(r => (Hex(grid, r, first), Hex(grid, r, second))).ToArray();
     }
 
-    private static int Hex(MetadataGrid grid, int row, string column) => Convert.ToInt32(grid.Text(row, Column(grid, column)), 16);
+    private static int Hex(MetadataGrid grid, int row, string column) => Convert.ToInt32(grid.Text(row, grid.Column(column)), 16);
 
     private static int Token(EntityHandle handle) => MetadataTokens.GetToken(handle);
 
@@ -390,19 +371,19 @@ public sealed class MetadataTests
         for (var row = 0; row < layouts.RowCount; row++)
         {
             var layout = md.GetTypeDefinition((TypeDefinitionHandle)MetadataTokens.EntityHandle(Hex(layouts, row, "Parent"))).GetLayout();
-            Assert.Equal((int.Parse(layouts.Text(row, Column(layouts, "PackingSize"))), int.Parse(layouts.Text(row, Column(layouts, "ClassSize")))), (layout.PackingSize, layout.Size));
+            Assert.Equal((int.Parse(layouts.Text(row, layouts.Column("PackingSize"))), int.Parse(layouts.Text(row, layouts.Column("ClassSize")))), (layout.PackingSize, layout.Size));
         }
     }
 
     [Fact]
     public void The_StateMachineMethod_table_pairs_each_MoveNext_with_its_kickoff_method()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         using var stream = File.OpenRead(Path.ChangeExtension(Trees.TestAssemblyPath, ".pdb"));
         var md = MetadataReaderProvider.FromPortablePdbStream(stream).GetMetadataReader();
         var tables = assembly.Root.Child("Debug Metadata (From portable PDB)").Child("Tables");
 
-        var rows = Cells(tables.Children.Single(c => c.Text.Split(' ')[1] == "StateMachineMethod"), "MoveNextMethod", "KickoffMethod");
+        var rows = Cells(tables.Table("StateMachineMethod"), "MoveNextMethod", "KickoffMethod");
 
         Assert.NotEmpty(rows);
         Assert.Equal(

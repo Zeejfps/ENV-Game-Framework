@@ -10,9 +10,7 @@ public sealed class DecompilationTests
     [Fact]
     public void CSharp_spans_are_classified()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
+        var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
 
         Assert.False(document.IsError);
         Assert.Equal("Calculator<T>", document.Title);
@@ -40,11 +38,9 @@ public sealed class DecompilationTests
     [Fact]
     public void Spans_cover_every_line_exactly()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
         foreach (var language in new[] { DecompilationLanguage.CSharp, DecompilationLanguage.IL })
         {
-            var document = assembly.Calculator().Decompile(language);
+            var document = Trees.CalculatorDocument(language);
             foreach (var line in document.Lines)
             {
                 var position = 0;
@@ -63,7 +59,7 @@ public sealed class DecompilationTests
     [Fact]
     public void Member_nodes_decompile_on_their_own()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var document = assembly.Calculator().Child("Describe() : string").Decompile(DecompilationLanguage.CSharp);
 
@@ -74,7 +70,7 @@ public sealed class DecompilationTests
     [Fact]
     public void An_older_language_version_avoids_newer_syntax()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var calculator = assembly.Calculator();
         var csharp5 = new DecompilerOptions { LanguageVersion = CSharpVersion.CSharp5 };
 
@@ -103,7 +99,7 @@ public sealed class DecompilationTests
     [Fact]
     public void A_toggle_changes_the_code_until_the_version_is_too_old_for_it_and_keeps_its_state()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var count = assembly.Calculator().Child("Count : int");
         var bodies = DecompilerToggle.Find("UseExpressionBodyForCalculatedGetterOnlyProperties")!;
         var off = DecompilerOptions.Default.With(bodies, false);
@@ -120,7 +116,7 @@ public sealed class DecompilationTests
     [Fact]
     public void IL_shows_opcodes_labels_and_directives()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var document = assembly.Calculator().Child("Describe() : string").Decompile(DecompilationLanguage.IL);
 
@@ -137,7 +133,7 @@ public sealed class DecompilationTests
     [Fact]
     public void The_assembly_node_shows_a_summary_and_assembly_attributes()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var csharp = assembly.Root.Decompile(DecompilationLanguage.CSharp).GetText();
         var il = assembly.Root.Decompile(DecompilationLanguage.IL).GetText();
@@ -166,10 +162,9 @@ public sealed class DecompilationTests
     [Fact]
     public void Folders_and_resources_decompile_to_summaries()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
         var coreLib = new AssemblyList().Open(Trees.CoreLibPath);
 
-        var references = assembly.Root.Child("References").Decompile(DecompilationLanguage.CSharp);
+        var references = Trees.TestAssembly.Root.Child("References").Decompile(DecompilationLanguage.CSharp);
         var resources = coreLib.Root.Child("Resources");
         var strings = resources.Children.First(r => r.Text.EndsWith(".resources")).Decompile(DecompilationLanguage.CSharp);
 
@@ -209,27 +204,19 @@ public sealed class DecompilationTests
     [Fact]
     public void Failures_become_an_error_document()
     {
-        var corrupt = Path.Combine(Path.GetTempPath(), $"zgf-ilspy-{Guid.NewGuid():N}.dll");
-        File.WriteAllBytes(corrupt, WithBrokenAttribute(File.ReadAllBytes(Trees.TestAssemblyPath), "Describe"));
-        try
-        {
-            var assembly = new AssemblyList().Open(corrupt);
-            var describe = assembly.Calculator().Child("Describe() : string");
+        using var temp = new TempDir();
+        var corrupt = temp.Write("corrupt.dll", WithBrokenAttribute(File.ReadAllBytes(Trees.TestAssemblyPath), "Describe"));
+        var describe = new AssemblyList().Open(corrupt).Calculator().Child("Describe() : string");
 
-            var il = describe.Decompile(DecompilationLanguage.IL);
-            var csharp = describe.Decompile(DecompilationLanguage.CSharp);
+        var il = describe.Decompile(DecompilationLanguage.IL);
+        var csharp = describe.Decompile(DecompilationLanguage.CSharp);
 
-            Assert.True(il.IsError);
-            Assert.Equal("Describe() : string", il.Title);
-            Assert.StartsWith("// Error decompiling", il.Lines[0].Text);
-            Assert.Contains(il.SpansOf(), s => s.Text.Contains(nameof(BadImageFormatException)));
-            Assert.False(csharp.IsError);
-            Assert.Contains("Could not decode attribute arguments", csharp.GetText());
-        }
-        finally
-        {
-            File.Delete(corrupt);
-        }
+        Assert.True(il.IsError);
+        Assert.Equal("Describe() : string", il.Title);
+        Assert.StartsWith("// Error decompiling", il.Lines[0].Text);
+        Assert.Contains(il.SpansOf(), s => s.Text.Contains(nameof(BadImageFormatException)));
+        Assert.False(csharp.IsError);
+        Assert.Contains("Could not decode attribute arguments", csharp.GetText());
     }
 
     private static byte[] WithBrokenAttribute(byte[] image, string methodName)

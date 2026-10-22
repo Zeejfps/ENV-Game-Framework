@@ -57,21 +57,15 @@ public sealed class AssemblyListTests
     public void Files_that_are_not_assemblies_fail_with_a_load_exception()
     {
         var list = new AssemblyList();
-        var text = Path.Combine(Path.GetTempPath(), $"zgf-ilspy-{Guid.NewGuid():N}.dll");
-        File.WriteAllText(text, "not a PE file");
-        try
-        {
-            var notPe = Assert.Throws<AssemblyLoadException>(() => list.Open(text));
-            var missing = Assert.Throws<AssemblyLoadException>(() => list.Open(text + ".missing"));
+        using var temp = new TempDir();
+        var text = temp.Write("text.dll", "not a PE file");
 
-            Assert.Equal(text, notPe.FilePath);
-            Assert.Equal(text + ".missing", missing.FilePath);
-            Assert.Empty(list.Assemblies);
-        }
-        finally
-        {
-            File.Delete(text);
-        }
+        var notPe = Assert.Throws<AssemblyLoadException>(() => list.Open(text));
+        var missing = Assert.Throws<AssemblyLoadException>(() => list.Open(text + ".missing"));
+
+        Assert.Equal(text, notPe.FilePath);
+        Assert.Equal(text + ".missing", missing.FilePath);
+        Assert.Empty(list.Assemblies);
     }
 
     [Fact]
@@ -89,29 +83,18 @@ public sealed class AssemblyListTests
     [Fact]
     public void A_native_build_finds_the_newest_installed_runtime_of_its_major_version()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"dotnet-{Guid.NewGuid():N}");
-        try
-        {
-            string Runtime(string version)
-            {
-                var dir = Path.Combine(root, "shared", "Microsoft.NETCore.App", version);
-                Directory.CreateDirectory(dir);
-                File.WriteAllText(Path.Combine(dir, "System.Private.CoreLib.dll"), "");
-                return dir;
-            }
-            Runtime("9.0.11");
-            var newest = Runtime("10.0.2");
-            Runtime("10.0.1");
-            Runtime("11.0.0-preview.1");
-            Directory.CreateDirectory(Path.Combine(root, "shared", "Microsoft.NETCore.App", "10.0.9"));
+        using var temp = new TempDir();
+        var root = temp.Path;
+        string Runtime(string version) =>
+            Path.GetDirectoryName(temp.Write(Path.Combine("shared", "Microsoft.NETCore.App", version, "System.Private.CoreLib.dll"), ""))!;
+        Runtime("9.0.11");
+        var newest = Runtime("10.0.2");
+        Runtime("10.0.1");
+        Runtime("11.0.0-preview.1");
+        Directory.CreateDirectory(temp.PathOf(Path.Combine("shared", "Microsoft.NETCore.App", "10.0.9")));
 
-            Assert.Equal(newest, RuntimeAssemblies.FindInstalledRuntime([Path.Combine(root, "missing"), root], 10));
-            Assert.Equal(Path.Combine(root, "shared", "Microsoft.NETCore.App", "11.0.0-preview.1"), RuntimeAssemblies.FindInstalledRuntime([root], 12));
-        }
-        finally
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        Assert.Equal(newest, RuntimeAssemblies.FindInstalledRuntime([Path.Combine(root, "missing"), root], 10));
+        Assert.Equal(Path.Combine(root, "shared", "Microsoft.NETCore.App", "11.0.0-preview.1"), RuntimeAssemblies.FindInstalledRuntime([root], 12));
     }
 
     [Fact]

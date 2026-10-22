@@ -73,7 +73,7 @@ public sealed class ResourceTests
     [Fact]
     public void Pictures_show_as_pictures_and_the_rest_as_documents()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var resources = Resources(assembly);
 
         Assert.Equal(NodeKind.ResourceImage, resources.Child("logo.png").Kind);
@@ -92,7 +92,7 @@ public sealed class ResourceTests
     [Fact]
     public void A_picture_that_cannot_be_read_says_so()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var broken = Resources(assembly).Child("broken.png");
 
         var document = Assert.IsType<DocumentContent>(broken.Content(DecompilationLanguage.IL)).Document;
@@ -106,7 +106,7 @@ public sealed class ResourceTests
     [Fact]
     public void Xml_is_colored_as_markup()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var document = Resources(assembly).Child("sample.xml").Decompile(DecompilationLanguage.CSharp);
         var spans = document.SpansOf().ToList();
@@ -122,7 +122,7 @@ public sealed class ResourceTests
     [Fact]
     public void Json_is_colored_by_what_each_token_is()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var spans = Resources(assembly).Child("data.json").Decompile(DecompilationLanguage.CSharp).SpansOf().Select(s => (s.Text, s.Span.Kind)).ToList();
 
@@ -135,7 +135,7 @@ public sealed class ResourceTests
     [Fact]
     public void Binary_resources_show_as_a_hex_dump()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var text = Resources(assembly).Child("blob.bin").Decompile(DecompilationLanguage.CSharp).GetText();
 
@@ -146,7 +146,7 @@ public sealed class ResourceTests
     [Fact]
     public void A_resources_file_lists_its_entries_in_a_grid_and_its_byte_entries_as_nodes()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
         var file = Resources(assembly).Child("Mixed.resources");
 
         var grid = Assert.IsType<GridContent>(file.Content()).Grid;
@@ -173,7 +173,7 @@ public sealed class ResourceTests
     [Fact]
     public void The_resources_folder_describes_each_resource()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
+        var assembly = Trees.TestAssembly;
 
         var text = Resources(assembly).Decompile(DecompilationLanguage.CSharp).GetText();
 

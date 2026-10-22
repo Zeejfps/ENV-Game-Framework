@@ -146,6 +146,9 @@ public sealed class UiFrames
 
     public UiFrames MovePointer(PointF at) => MovePointer(at.X, at.Y);
 
+    /// <summary>Moves to the middle of <paramref name="rect"/>.</summary>
+    public UiFrames MovePointer(UiRect rect) => MovePointer(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+
     public UiFrames Press(KeyModifiers modifiers = KeyModifiers.None) => Press(PointerButton.Left, modifiers);
 
     public UiFrames Press(PointerButton button, KeyModifiers modifiers = KeyModifiers.None)
@@ -258,6 +261,23 @@ public sealed class UiFrames
     /// <summary>Clicks the middle of <paramref name="rect"/>, as <see cref="Click(float, float, PointerButton, KeyModifiers)"/>.</summary>
     public UiFrames Click(UiRect rect, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
         Click(rect, BoundBody, button, modifiers);
+
+    /// <summary>Clicks at (x, y) as <see cref="Click(float, float, PointerButton, KeyModifiers)"/>, then
+    /// presses and releases <paramref name="button"/> again over two more frames.</summary>
+    public UiFrames DoubleClick(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        var body = BoundBody;
+        Click(x, y, body, button, modifiers);
+        Press(button, modifiers);
+        Run(1f / 60f, body);
+        Release(button, modifiers);
+        Run(1f / 60f, body);
+        return this;
+    }
+
+    /// <summary>Double-clicks the middle of <paramref name="rect"/>, as <see cref="DoubleClick(float, float, PointerButton, KeyModifiers)"/>.</summary>
+    public UiFrames DoubleClick(UiRect rect, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+        DoubleClick(rect.X + rect.Width / 2, rect.Y + rect.Height / 2, button, modifiers);
 
     /// <summary>Moves to <paramref name="from"/> and presses there, then moves through
     /// <paramref name="path"/>, a frame of <see cref="Body"/> after each step; release to drop.</summary>

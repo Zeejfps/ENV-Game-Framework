@@ -7,9 +7,7 @@ public sealed class FoldingTests
     [Fact]
     public void CSharp_folds_the_usings_collapsed_and_type_and_member_bodies_open()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
+        var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
 
         var usings = document.FoldAt("using System;");
         Assert.Equal(document.LineContaining("using ZGF.ILSpy.Tests.Fixtures;"), usings.EndLine);
@@ -37,9 +35,7 @@ public sealed class FoldingTests
     [Fact]
     public void IL_folds_types_and_methods_from_their_signatures()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var document = assembly.Calculator().Decompile(DecompilationLanguage.IL);
+        var document = Trees.CalculatorDocument(DecompilationLanguage.IL);
 
         var type = document.FoldAt("extends [System.Runtime]System.Object");
         Assert.StartsWith("} // end of class", document.Lines[type.EndLine].Text);
@@ -61,9 +57,7 @@ public sealed class FoldingTests
     [InlineData(DecompilationLanguage.IL)]
     public void Folds_are_ordered_on_lines_of_their_own_and_nest_whole(DecompilationLanguage language)
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var document = assembly.Calculator().Decompile(language);
+        var document = Trees.CalculatorDocument(language);
 
         Assert.True(document.Folds.Length >= 5);
         var open = new Stack<FoldRegion>();
@@ -86,22 +80,10 @@ public sealed class FoldingTests
     [Fact]
     public void A_member_on_its_own_folds_its_body_and_plain_text_folds_nothing()
     {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var document = assembly.Calculator().Child("Describe() : string").Decompile(DecompilationLanguage.CSharp);
+        var document = Trees.TestAssembly.Calculator().Child("Describe() : string").Decompile(DecompilationLanguage.CSharp);
 
         var body = Assert.Single(document.Folds);
         Assert.Equal(document.LineContaining("internal string Describe()"), body.StartLine);
         Assert.Empty(DecompiledDocument.FromText("t", "a\n{\nb\n}").Folds);
-    }
-}
-
-internal static class FoldQueries
-{
-    public static FoldRegion FoldAt(this DecompiledDocument document, string text)
-    {
-        var index = document.FoldStartingAt(document.LineContaining(text));
-        Assert.True(index >= 0, $"No fold starts at '{text}'");
-        return document.Folds[index];
     }
 }
