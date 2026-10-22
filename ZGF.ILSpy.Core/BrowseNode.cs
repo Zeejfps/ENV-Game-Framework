@@ -131,6 +131,11 @@ public abstract class BrowseNode
         }
     }
 
+    public void LoadChildren()
+    {
+        _ = Children;
+    }
+
     /// <summary>The children if they are built already; never blocks.</summary>
     public bool TryGetChildren(out IReadOnlyList<BrowseNode> children)
     {

@@ -15,55 +15,27 @@ namespace ZGF.ILSpy;
 public sealed class Workspace
 {
     private const int NoTicket = -1;
+    private const float ToolShare = 0.3f;
+    private const float DocumentShare = 0.66f;
+    private const float AssembliesShare = 0.34f;
+    private const string NamespaceScope = "innamespace";
+    private const string AssemblyScope = "inassembly";
 
     private readonly AppSettings _settings;
     private readonly List<DocumentTab> _tabs = new();
-    private Action<Action> _post = static _ => throw new InvalidOperationException("The workspace is not attached to a running app.");
+    private readonly List<string> _releasedImages = new();
+    private Action<Action> _post = ThrowNotAttached;
     private int _intent;
     private int _resolving = NoTicket;
     private int _reload;
     private int _savedBookmarks;
     private int _savedAnalyzer;
     private int _savedFilters;
-    private readonly List<string> _releasedImages = new();
-    private List<CodeAnchor>? _analyzed;
+    private List<CodeAnchor>? _analyzedToRestore;
+    private bool _isRestoringAnalyzed;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
     private DocumentTab? _active;
-
-    public Workspace(AppSettings settings)
-    {
-        _settings = settings;
-        Theme = settings.Theme;
-        Language = settings.Language;
-        DecompilerOptions = settings.Decompiler;
-        FoldedOptionGroups = new HashSet<string>(settings.FoldedOptionGroups ?? []);
-        Locale = settings.Locale ?? Locales.For(CultureInfo.CurrentUICulture);
-        ShowNonPublic = settings.ShowNonPublic;
-        _active = AddTab();
-        Layout = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
-        Tree = new BrowseTree(Post);
-        Analyzer = new AnalyzerTree(Post, () => Assemblies);
-        Search = new SearchModel(() => Strings.For(Locale), ReportError) { Kinds = settings.SearchKinds };
-        Layout.NewPanel = () => AddTab().Panel;
-        Layout.PanelClosed += panel =>
-        {
-            if (panel == DockPanels.Search)
-                Search.Clear();
-            RemoveTab(panel);
-        };
-        MetadataFilters = new MetadataFilters(settings.FlagsFilters);
-        Bookmarks.Load(settings.Bookmarks);
-        BookmarkColumns.Restore(settings.BookmarkColumns);
-        SearchColumns.Restore(settings.SearchColumns);
-        _savedBookmarks = Bookmarks.Revision;
-        Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
-        if (!placed)
-            DockDocument(_active.Panel);
-        _analyzed = settings.Analyzed is { Count: > 0 } analyzed ? analyzed : null;
-        if (settings.LoadError is { } error)
-            ReportError(Strings.For(Locale).ErrorReadSettings, error);
-    }
 
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
@@ -74,11 +46,18 @@ public sealed class Workspace
     public AnalyzerTree Analyzer { get; }
 
     /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
-    public TableColumns BookmarkColumns { get; } = new(new TableColumn(Fixed: 28f), new TableColumn(2f, 80f), new TableColumn(3f, 80f),
+    public TableColumns BookmarkColumns { get; } = new(
+        new TableColumn(Fixed: 28f),
+        new TableColumn(2f, 80f),
+        new TableColumn(3f, 80f),
         new TableColumn(2f, 60f));
 
     /// <summary>The columns of the search results: name, location and assembly.</summary>
-    public TableColumns SearchColumns { get; } = new(new TableColumn(3f, 120f), new TableColumn(3f, 80f), new TableColumn(2f, 60f));
+    public TableColumns SearchColumns { get; } = new(
+        new TableColumn(3f, 120f),
+        new TableColumn(3f, 80f),
+        new TableColumn(2f, 60f));
+
     public SearchModel Search { get; }
 
     /// <summary>The metadata grids' flags filters.</summary>
@@ -117,57 +96,175 @@ public sealed class Workspace
     /// <summary>True while <see cref="Refresh"/> reopens the assemblies.</summary>
     public bool IsReloading => _reloadWork != null;
 
+    /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
+    /// ones there are or merge in beside them.</summary>
+    public List<Bookmark>? PendingImport { get; private set; }
+
+    /// <summary>True while imported bookmarks' places are being found in the background.</summary>
+    public bool IsImporting { get; private set; }
+
+    /// <summary>Set while the user is asked whether to reset the layout.</summary>
+    public bool ConfirmingLayoutReset { get; private set; }
+
+    public Workspace(AppSettings settings)
+    {
+        _settings = settings;
+        Theme = settings.Theme;
+        Language = settings.Language;
+        DecompilerOptions = settings.Decompiler;
+        FoldedOptionGroups = LoadFoldedOptionGroups(settings);
+        Locale = ChooseLocale(settings);
+        ShowNonPublic = settings.ShowNonPublic;
+        _active = AddTab();
+        Layout = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
+        Layout.NewPanel = () => AddTab().Panel;
+        Layout.PanelClosed += OnPanelClosed;
+        Tree = new BrowseTree(Post);
+        Analyzer = new AnalyzerTree(Post, () => Assemblies);
+        Search = new SearchModel(GetStrings, ReportError);
+        Search.Kinds = settings.SearchKinds;
+        MetadataFilters = new MetadataFilters(settings.FlagsFilters);
+        Bookmarks.Load(settings.Bookmarks);
+        BookmarkColumns.Restore(settings.BookmarkColumns);
+        SearchColumns.Restore(settings.SearchColumns);
+        _savedBookmarks = Bookmarks.Revision;
+        Picker = new FrameworkPickerModel(GetStrings, ReportError);
+        if (!placed)
+            DockDocument(_active.Panel);
+        _analyzedToRestore = LoadAnalyzedToRestore(settings);
+        ReportSettingsLoadError(settings);
+    }
+
+    private static HashSet<string> LoadFoldedOptionGroups(AppSettings settings)
+    {
+        if (settings.FoldedOptionGroups == null)
+            return new HashSet<string>();
+        return new HashSet<string>(settings.FoldedOptionGroups);
+    }
+
+    private static Locale ChooseLocale(AppSettings settings)
+    {
+        if (settings.Locale != null)
+            return settings.Locale.Value;
+        return Locales.For(CultureInfo.CurrentUICulture);
+    }
+
+    private void OnPanelClosed(string panel)
+    {
+        if (panel == DockPanels.Search)
+            Search.Clear();
+        RemoveTab(panel);
+    }
+
+    private static List<CodeAnchor>? LoadAnalyzedToRestore(AppSettings settings)
+    {
+        if (settings.Analyzed == null)
+            return null;
+        if (settings.Analyzed.Count == 0)
+            return null;
+        return settings.Analyzed;
+    }
+
+    private void ReportSettingsLoadError(AppSettings settings)
+    {
+        if (settings.LoadError == null)
+            return;
+        ReportError(GetStrings().ErrorReadSettings, settings.LoadError);
+    }
+
     /// <summary>Connects the workspace to the running app: <paramref name="post"/> runs an action on
     /// the UI thread.</summary>
     public void Attach(Action<Action> post) => _post = post;
 
     public void Post(Action action) => _post(action);
 
+    private static void ThrowNotAttached(Action action)
+    {
+        throw new InvalidOperationException("The workspace is not attached to a running app.");
+    }
+
     /// <summary>Called at the start of every frame.</summary>
     public void Sync()
     {
-        if (_analyzed is { Count: > 0 } analyzed)
-            RestoreAnalyzed(analyzed);
+        if (_analyzedToRestore != null)
+            RestoreAnalyzed(_analyzedToRestore);
         MetadataFilters.Sync();
-        if ((Tree.Sync(Assemblies) || Bookmarks.Revision != _savedBookmarks || Analyzer.Revision != _savedAnalyzer
-             || MetadataFilters.Revision != _savedFilters) && !IsReloading)
-            SaveSettings();
+        var treeChanged = Tree.Sync(Assemblies);
+        if (IsReloading)
+            return;
+        if (!treeChanged && !HasUnsavedRevisions())
+            return;
+        SaveSettings();
     }
 
     /// <summary>Finds the symbols analyzed in the last run again in the background, opening their
     /// assemblies' files without listing them, and analyzes those still there, in their order.</summary>
     private void RestoreAnalyzed(List<CodeAnchor> analyzed)
     {
-        RunInBackground(() => analyzed.ConvertAll(a => Analysis.Find(Assemblies, a)), (found, _) =>
+        _analyzedToRestore = null;
+        _isRestoringAnalyzed = true;
+        RunInBackground(() => FindAnalyzed(analyzed), (found, _) => OnAnalyzedFound(found));
+    }
+
+    private List<AnalysisSymbol?> FindAnalyzed(List<CodeAnchor> analyzed)
+    {
+        return analyzed.ConvertAll(a => Analysis.Find(Assemblies, a));
+    }
+
+    private void OnAnalyzedFound(List<AnalysisSymbol?>? found)
+    {
+        _isRestoringAnalyzed = false;
+        if (found != null)
+            AnalyzeAll(found);
+        _savedAnalyzer = Analyzer.Revision;
+    }
+
+    private void AnalyzeAll(List<AnalysisSymbol?> symbols)
+    {
+        foreach (var symbol in symbols)
         {
-            _analyzed = null;
-            foreach (var symbol in found ?? [])
-            {
-                if (symbol != null)
-                    Analyzer.Analyze(symbol);
-            }
-            _savedAnalyzer = Analyzer.Revision;
-        });
-        _analyzed = [];
+            if (symbol != null)
+                Analyzer.Analyze(symbol);
+        }
+    }
+
+    private bool HasUnsavedRevisions()
+    {
+        if (Bookmarks.Revision != _savedBookmarks)
+            return true;
+        if (Analyzer.Revision != _savedAnalyzer)
+            return true;
+        return MetadataFilters.Revision != _savedFilters;
     }
 
     /// <summary>Opens the files in the background, then shows the last one opened.</summary>
     public void Open(IEnumerable<string> paths)
     {
         var files = paths.ToArray();
-        if (files.Length == 0) return;
+        if (files.Length == 0)
+            return;
+        OpenInBackground(files);
+    }
+
+    private void OpenInBackground(string[] files)
+    {
         var ticket = Intend();
-        RunInBackground(() => OpenFiles(files, CancellationToken.None), (opened, error) =>
+        RunInBackground(() => OpenFiles(files, CancellationToken.None), (opened, error) => OnFilesOpened(opened, error, ticket));
+    }
+
+    private void OnFilesOpened(Opened? opened, Exception? error, int ticket)
+    {
+        if (error != null)
         {
-            if (error != null)
-            {
-                ReportError(Strings.For(Locale).ErrorOpenAssemblies, error.ToString());
-                return;
-            }
-            ReportAll(opened!.Errors);
-            if (opened.Last is { } last && ticket == _intent)
-                Show(last.Root);
-        });
+            ReportError(GetStrings().ErrorOpenAssemblies, error.ToString());
+            return;
+        }
+        ReportAll(opened!.Errors);
+        if (opened.Last == null)
+            return;
+        if (IsStale(ticket))
+            return;
+        Show(opened.Last.Root);
     }
 
     public void Open(string path) => Open([path]);
@@ -178,6 +275,11 @@ public sealed class Workspace
     {
         Intend();
         StopReload();
+        ClearAssemblies();
+    }
+
+    private void ClearAssemblies()
+    {
         Assemblies.Clear();
         Tree.View.ClearSelection();
         Tree.View.CollapseAll();
@@ -191,89 +293,167 @@ public sealed class Workspace
     {
         var intent = Intend();
         StopReload();
-        var reload = ++_reload;
+        _reload++;
         var work = new CancellationTokenSource();
         _reloadWork = work;
 
         var paths = Assemblies.FilePaths;
         var expanded = Tree.ExpandedPaths();
-        var tabs = new List<(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position)>();
+        var tabs = ReleaseShownTabs();
+        var places = tabs.ConvertAll(t => t.Location);
+        ClearAssemblies();
+
+        var request = new ReloadRequest(work, _reload, intent, tabs);
+        var token = work.Token;
+        RunInBackground(() => Reload(paths, expanded, places, token), (reloaded, error) => OnReloaded(reloaded, error, request));
+    }
+
+    private List<ReloadingTab> ReleaseShownTabs()
+    {
+        var reloading = new List<ReloadingTab>();
         foreach (var tab in _tabs)
         {
-            if (tab.Location is not { } location) continue;
-            var position = tab.Language != Language && tab.Grid == null ? null : tab.Position;
-            tab.Release(Strings.For(Locale).DocumentReloading);
-            tabs.Add((tab, location, tab.Version, position));
+            var location = tab.Location;
+            if (location == null)
+                continue;
+            var position = FindPositionToKeep(tab);
+            tab.Release(GetStrings().DocumentReloading);
+            reloading.Add(new ReloadingTab(tab, location, tab.Version, position));
         }
-        var places = tabs.ConvertAll(t => t.Location);
+        return reloading;
+    }
 
-        Assemblies.Clear();
-        Tree.View.CollapseAll();
-        Tree.View.ClearSelection();
-        Analyzer.Clear();
-        MenuTarget = null;
+    private CodeViewPosition? FindPositionToKeep(DocumentTab tab)
+    {
+        if (tab.Grid != null)
+            return tab.Position;
+        if (tab.Language != Language)
+            return null;
+        return tab.Position;
+    }
 
-        var token = work.Token;
-        RunInBackground(() => Reload(paths, expanded, places, token), (reloaded, error) =>
+    private Reloaded Reload(IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
+    {
+        var opened = OpenFiles(paths, cancellationToken);
+        var expandedNodes = LoadExpandedNodes(expanded, cancellationToken);
+        var placeNodes = FindNodes(places, cancellationToken);
+        return new Reloaded(opened.Errors, expandedNodes, placeNodes);
+    }
+
+    private List<BrowseNode> LoadExpandedNodes(List<NodePath> expanded, CancellationToken cancellationToken)
+    {
+        var nodes = new List<BrowseNode>();
+        foreach (var path in expanded)
         {
-            work.Dispose();
-            if (reload != _reload) return;
-            _reloadWork = null;
-            if (error != null)
-            {
-                ReportError(Strings.For(Locale).ErrorReloadAssemblies, error.ToString());
-                return;
-            }
-            ReportAll(reloaded!.Errors);
-            Tree.Expand(reloaded.Expanded);
-            for (var i = 0; i < tabs.Count; i++)
-            {
-                var (tab, location, version, position) = tabs[i];
-                if (!_tabs.Contains(tab) || tab.Version != version) continue;
-                if (reloaded.Places[i] is { } node)
-                {
-                    tab.Show(node, Language, position);
-                    if (tab == ActiveTab && intent == _intent)
-                        Tree.Reveal(node);
-                }
-                else
-                {
-                    var t = Strings.For(Locale);
-                    tab.Release(t.DocumentGone(location.Text));
-                    ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
-                }
-            }
-            SaveSettings();
-        });
+            cancellationToken.ThrowIfCancellationRequested();
+            var node = Assemblies.FindNode(path);
+            if (node == null)
+                continue;
+            node.LoadChildren();
+            nodes.Add(node);
+        }
+        return nodes;
+    }
+
+    private BrowseNode?[] FindNodes(List<NodePath> places, CancellationToken cancellationToken)
+    {
+        var found = new BrowseNode?[places.Count];
+        for (var i = 0; i < found.Length; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            found[i] = Assemblies.FindNode(places[i]);
+        }
+        return found;
+    }
+
+    private void OnReloaded(Reloaded? reloaded, Exception? error, ReloadRequest request)
+    {
+        request.Work.Dispose();
+        if (request.Reload != _reload)
+            return;
+        _reloadWork = null;
+        if (error != null)
+        {
+            ReportError(GetStrings().ErrorReloadAssemblies, error.ToString());
+            return;
+        }
+        ReportAll(reloaded!.Errors);
+        Tree.Expand(reloaded.Expanded);
+        for (var i = 0; i < request.Tabs.Count; i++)
+            ReshowTab(request.Tabs[i], reloaded.Places[i], request.Intent);
+        SaveSettings();
+    }
+
+    private void ReshowTab(ReloadingTab reloading, BrowseNode? node, int intent)
+    {
+        var tab = reloading.Tab;
+        if (!_tabs.Contains(tab))
+            return;
+        if (tab.Version != reloading.Version)
+            return;
+        if (node == null)
+        {
+            ReleaseGoneTab(tab, reloading.Location);
+            return;
+        }
+        tab.Show(node, Language, reloading.Position);
+        if (tab == ActiveTab && intent == _intent)
+            Tree.Reveal(node);
+    }
+
+    private void ReleaseGoneTab(DocumentTab tab, NodePath location)
+    {
+        var t = GetStrings();
+        tab.Release(t.DocumentGone(location.Text));
+        ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
     }
 
     public void SetLocale(Locale locale)
     {
-        if (locale == Locale) return;
+        if (locale == Locale)
+            return;
         Locale = locale;
         SaveSettings();
     }
 
     public void SetLanguage(DecompilationLanguage language)
     {
-        if (language == Language) return;
+        if (language == Language)
+            return;
         Language = language;
         EnsureCurrent();
     }
 
-    public void SetLanguageVersion(CSharpVersion version) => SetDecompilerOptions(DecompilerOptions with { LanguageVersion = version });
+    public void SetLanguageVersion(CSharpVersion version)
+    {
+        var options = DecompilerOptions with { LanguageVersion = version };
+        SetDecompilerOptions(options);
+    }
 
-    public void SetDecompilerToggle(DecompilerToggle toggle, bool value) => SetDecompilerOptions(DecompilerOptions.With(toggle, value));
+    public void SetDecompilerToggle(DecompilerToggle toggle, bool value)
+    {
+        var options = DecompilerOptions.With(toggle, value);
+        SetDecompilerOptions(options);
+    }
 
-    public void SetDecompilerToggles(IEnumerable<DecompilerToggle> toggles, bool value) => SetDecompilerOptions(DecompilerOptions.With(toggles, value));
+    public void SetDecompilerToggles(IEnumerable<DecompilerToggle> toggles, bool value)
+    {
+        var options = DecompilerOptions.With(toggles, value);
+        SetDecompilerOptions(options);
+    }
 
     /// <summary>Turns every toggle back to its default, keeping the language version.</summary>
-    public void ResetDecompilerToggles() => SetDecompilerOptions(DecompilerOptions with { Toggles = DecompilerOptions.Default.Toggles });
+    public void ResetDecompilerToggles()
+    {
+        var options = DecompilerOptions with { Toggles = DecompilerOptions.Default.Toggles };
+        SetDecompilerOptions(options);
+    }
 
     /// <summary>Makes <paramref name="options"/> current and decompiles the shown C# documents again with them.</summary>
     private void SetDecompilerOptions(DecompilerOptions options)
     {
-        if (options == DecompilerOptions) return;
+        if (options == DecompilerOptions)
+            return;
         DecompilerOptions = options;
         EnsureCurrent();
     }
@@ -288,10 +468,12 @@ public sealed class Workspace
     /// and records it in the history.</summary>
     public void Show(BrowseNode node, bool inNewTab = false)
     {
-        if (node.Kind == NodeKind.Loading) return;
+        if (node.Kind == NodeKind.Loading)
+            return;
         Intend();
         LeaveActive();
-        ShowIn(inNewTab ? null : ActiveTab, node);
+        var tab = inNewTab ? null : ActiveTab;
+        ShowIn(tab, node);
         History.Push(node, Language);
     }
 
@@ -299,24 +481,34 @@ public sealed class Workspace
     /// then shows it in the tab it was asked from, or a new one.</summary>
     public void Navigate(CodeReference reference, bool inNewTab)
     {
-        if (!reference.IsNavigable) return;
+        if (!reference.IsNavigable)
+            return;
         var ticket = Intend();
         var origin = inNewTab ? null : ActiveTab;
         _resolving = ticket;
-        RunInBackground(() => Assemblies.FindNode(reference), (node, error) =>
+        RunInBackground(() => Assemblies.FindNode(reference), (node, error) => OnReferenceFound(reference, node, error, origin, ticket));
+    }
+
+    private void OnReferenceFound(CodeReference reference, BrowseNode? node, Exception? error, DocumentTab? origin, int ticket)
+    {
+        if (IsStale(ticket))
+            return;
+        _resolving = NoTicket;
+        if (node == null)
         {
-            if (ticket != _intent) return;
-            _resolving = NoTicket;
-            if (node is null)
-            {
-                var t = Strings.For(Locale);
-                ReportError(t.ErrorResolve(reference.Name), error?.ToString() ?? t.ErrorNoDefinition(reference));
-                return;
-            }
-            LeaveActive();
-            ShowIn(origin != null && _tabs.Contains(origin) ? origin : null, node);
-            History.Push(node, Language);
-        });
+            ReportUnresolved(reference, error);
+            return;
+        }
+        LeaveActive();
+        ShowIn(KeepIfOpen(origin), node);
+        History.Push(node, Language);
+    }
+
+    private void ReportUnresolved(CodeReference reference, Exception? error)
+    {
+        var t = GetStrings();
+        var details = DescribeFailure(error, t.ErrorNoDefinition(reference));
+        ReportError(t.ErrorResolve(reference.Name), details);
     }
 
     /// <summary>Shows the table row a metadata token leads to in the active tab, or a new one, and
@@ -325,15 +517,17 @@ public sealed class Workspace
     {
         Intend();
         LeaveActive();
-        ShowIn(inNewTab ? null : ActiveTab, target.Node, row: target.Row);
+        var tab = inNewTab ? null : ActiveTab;
+        ShowIn(tab, target.Node, row: target.Row);
         History.Push(target.Node, Language);
     }
 
     /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
     public void GoToTarget(BrowseNode node)
     {
-        if (node.Target is { } target)
-            Navigate(target, inNewTab: false);
+        if (node.Target == null)
+            return;
+        Navigate(node.Target, inNewTab: false);
     }
 
     public void GoBack() => GoTo(History.CurrentIndex - 1);
@@ -343,9 +537,67 @@ public sealed class Workspace
     /// <summary>Goes to the history entry at <paramref name="index"/>, however far back or forward.</summary>
     public void GoTo(int index)
     {
-        if (index < 0 || index >= History.Entries.Count || index == History.CurrentIndex) return;
+        if (!CanGoTo(index))
+            return;
         LeaveActive();
-        Restore(History.MoveTo(index)!.Value);
+        var entry = History.MoveTo(index);
+        if (entry == null)
+            return;
+        Restore(entry.Value);
+    }
+
+    private bool CanGoTo(int index)
+    {
+        if (index < 0)
+            return false;
+        if (index >= History.Entries.Count)
+            return false;
+        return index != History.CurrentIndex;
+    }
+
+    private void Restore(HistoryEntry entry)
+    {
+        var ticket = Intend();
+        var tab = ActiveTab;
+        var place = entry.Place;
+        var position = entry.Language == Language ? entry.Position : null;
+        var shown = FindShownNode(tab, place);
+        if (shown != null)
+        {
+            ShowIn(tab, shown, position);
+            return;
+        }
+        _resolving = ticket;
+        RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnHistoryPlaceFound(place, position, node, error, tab, ticket));
+    }
+
+    private BrowseNode? FindShownNode(DocumentTab? tab, NodePath place)
+    {
+        if (tab == null)
+            return null;
+        var node = tab.Node;
+        if (node == null)
+            return null;
+        if (!place.Equals(tab.Location))
+            return null;
+        if (!IsListed(node))
+            return null;
+        return node;
+    }
+
+    private void OnHistoryPlaceFound(NodePath place, CodeViewPosition? position, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
+    {
+        if (IsStale(ticket))
+            return;
+        _resolving = NoTicket;
+        if (node == null)
+        {
+            var t = GetStrings();
+            var details = DescribeFailure(error, t.ErrorNoLongerThere(place));
+            ReportError(t.ErrorGoBack(place.Text), details);
+            return;
+        }
+        ShowIn(KeepIfOpen(tab), node, position);
     }
 
     /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
@@ -353,16 +605,41 @@ public sealed class Workspace
     /// when it has one.</summary>
     public void ToggleBookmark(DocumentTab tab, int line)
     {
-        if (tab is not { IsBusy: false, Node: { } node } || tab.Document.IsError || line < 0 || line >= tab.Document.Lines.Length) return;
-        if (Bookmarks.At(tab.Document, node.Path, line) is { } existing)
+        var node = tab.Node;
+        if (node == null)
+            return;
+        if (!CanBookmarkLine(tab, line))
+            return;
+        var existing = Bookmarks.At(tab.Document, node.Path, line);
+        if (existing != null)
         {
             Bookmarks.Remove(existing);
             return;
         }
-        var t = Strings.For(Locale);
-        var anchor = tab.Document.AnchorAt(line);
-        Bookmarks.Add(new Bookmark(node.Path, tab.Language, line, anchor, Bookmarks.NextName(n => t.BookmarksDefaultName(n)), ILSpyTree.Describe(node, anchor)));
+        AddBookmark(tab, node, line);
     }
+
+    private static bool CanBookmarkLine(DocumentTab tab, int line)
+    {
+        if (tab.IsBusy)
+            return false;
+        if (tab.Document.IsError)
+            return false;
+        if (line < 0)
+            return false;
+        return line < tab.Document.Lines.Length;
+    }
+
+    private void AddBookmark(DocumentTab tab, BrowseNode node, int line)
+    {
+        var anchor = tab.Document.AnchorAt(line);
+        var name = Bookmarks.NextName(FormatBookmarkName);
+        var info = ILSpyTree.Describe(node, anchor);
+        var bookmark = new Bookmark(node.Path, tab.Language, line, anchor, name, info);
+        Bookmarks.Add(bookmark);
+    }
+
+    private string FormatBookmarkName(int number) => GetStrings().BookmarksDefaultName(number);
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
     /// assembly first if it is not open, and records it in the history.</summary>
@@ -372,41 +649,41 @@ public sealed class Workspace
         var tab = ActiveTab;
         var place = bookmark.Place;
         _resolving = ticket;
-        RunInBackground(() => Assemblies.FindNode(place), (node, error) =>
+        RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnBookmarkPlaceFound(bookmark, node, error, tab, ticket));
+    }
+
+    private void OnBookmarkPlaceFound(Bookmark bookmark, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
+    {
+        if (IsStale(ticket))
+            return;
+        _resolving = NoTicket;
+        if (node == null)
         {
-            if (ticket != _intent) return;
-            _resolving = NoTicket;
-            if (node is null)
-            {
-                var t = Strings.For(Locale);
-                ReportError(t.ErrorGoToBookmark(bookmark.Name), error?.ToString() ?? t.ErrorNoLongerThere(place));
-                return;
-            }
-            LeaveActive();
-            ShowIn(tab != null && _tabs.Contains(tab) ? tab : null, node, target: bookmark);
-            History.Push(node, Language);
-        });
+            var t = GetStrings();
+            var details = DescribeFailure(error, t.ErrorNoLongerThere(bookmark.Place));
+            ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
+            return;
+        }
+        LeaveActive();
+        ShowIn(KeepIfOpen(tab), node, target: bookmark);
+        History.Push(node, Language);
     }
 
     /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
     /// <paramref name="direction"/> is negative.</summary>
     public void StepBookmark(int direction)
     {
-        if (Bookmarks.Step(direction) is { } bookmark)
-            GoTo(bookmark);
+        var bookmark = Bookmarks.Step(direction);
+        if (bookmark == null)
+            return;
+        GoTo(bookmark);
     }
-
-    /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
-    /// ones there are or merge in beside them.</summary>
-    public List<Bookmark>? PendingImport { get; private set; }
-
-    /// <summary>True while imported bookmarks' places are being found in the background.</summary>
-    public bool IsImporting { get; private set; }
 
     /// <summary>The images of tabs closed since the last call, for the view to free.</summary>
     public IEnumerable<string> TakeReleasedImages()
     {
-        if (_releasedImages.Count == 0) return [];
+        if (_releasedImages.Count == 0)
+            return Array.Empty<string>();
         var released = _releasedImages.ToArray();
         _releasedImages.Clear();
         return released;
@@ -418,18 +695,31 @@ public sealed class Workspace
     {
         try
         {
-            File.WriteAllBytes(path, node.ReadResource());
+            var bytes = node.ReadResource();
+            File.WriteAllBytes(path, bytes);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception e) when (IsFileError(e))
         {
-            ReportError(Strings.For(Locale).ErrorSaveResource(node.Text), e.Message);
+            ReportError(GetStrings().ErrorSaveResource(node.Text), e.Message);
         }
+    }
+
+    private static bool IsFileError(Exception e)
+    {
+        if (e is IOException)
+            return true;
+        if (e is UnauthorizedAccessException)
+            return true;
+        return e is InvalidDataException;
     }
 
     public void ExportBookmarks(string path)
     {
-        if (BookmarkFile.Write(path, Bookmarks.Save()) is { } error)
-            ReportError(Strings.For(Locale).ErrorExportBookmarks, error);
+        var records = Bookmarks.Save();
+        var error = BookmarkFile.Write(path, records);
+        if (error == null)
+            return;
+        ReportError(GetStrings().ErrorExportBookmarks, error);
     }
 
     /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
@@ -438,43 +728,75 @@ public sealed class Workspace
     /// is not found are left out and reported.</summary>
     public void ImportBookmarks(string path)
     {
-        var t = Strings.For(Locale);
         var file = Path.GetFileName(path);
-        if (BookmarkFile.Read(path, out var error) is not { } records)
+        var records = BookmarkFile.Read(path, out var error);
+        if (records == null)
         {
-            ReportError(t.ErrorImportBookmarks(file), error);
+            ReportError(GetStrings().ErrorImportBookmarks(file), error);
             return;
         }
         IsImporting = true;
-        RunInBackground(() => records.ConvertAll(r => (Record: r, Place: PlaceOf(r))), (found, failure) =>
-        {
-            IsImporting = false;
-            if (failure != null)
-            {
-                ReportError(t.ErrorImportBookmarks(file), failure.ToString());
-                return;
-            }
-            var lost = found!.FindAll(static f => f.Place == null);
-            if (lost.Count > 0)
-                ReportError(t.ErrorBookmarksNotFound(file), string.Join(Environment.NewLine,
-                    lost.Select(static f => $"{f.Record.Name}: {f.Record.LocationNodeName ?? f.Record.MemberName} ({f.Record.FileName})")));
-            var bookmarks = found.Where(static f => f.Place != null).Select(static f => Bookmark.FromRecord(f.Record, f.Place!)).ToList();
-            if (Bookmarks.Items.Count == 0)
-                Bookmarks.Import(bookmarks, BookmarkImportMode.Replace);
-            else if (bookmarks.Count > 0)
-                PendingImport = bookmarks;
-        });
+        RunInBackground(() => FindPlaces(records), (found, failure) => OnBookmarkPlacesFound(found, failure, file));
     }
 
-    private NodePath? PlaceOf(BookmarkRecord record) =>
-        record.Place is { } place ? NodePath.From(record.FileName, place)
-        : ILSpyTree.Locate(Assemblies, record.FileName, record.ViewState?.SelectedTreeNodePath, record.Token);
+    private List<FoundBookmark> FindPlaces(List<BookmarkRecord> records)
+    {
+        return records.ConvertAll(r => new FoundBookmark(r, FindPlace(r)));
+    }
+
+    private NodePath? FindPlace(BookmarkRecord record)
+    {
+        if (record.Place != null)
+            return NodePath.From(record.FileName, record.Place);
+        var treePath = record.ViewState?.SelectedTreeNodePath;
+        return ILSpyTree.Locate(Assemblies, record.FileName, treePath, record.Token);
+    }
+
+    private void OnBookmarkPlacesFound(List<FoundBookmark>? found, Exception? failure, string file)
+    {
+        IsImporting = false;
+        if (failure != null)
+        {
+            ReportError(GetStrings().ErrorImportBookmarks(file), failure.ToString());
+            return;
+        }
+        ReportLostBookmarks(found!, file);
+        var bookmarks = found!
+            .Where(f => f.Place != null)
+            .Select(f => Bookmark.FromRecord(f.Record, f.Place!))
+            .ToList();
+        if (Bookmarks.Items.Count == 0)
+        {
+            Bookmarks.Import(bookmarks, BookmarkImportMode.Replace);
+            return;
+        }
+        if (bookmarks.Count == 0)
+            return;
+        PendingImport = bookmarks;
+    }
+
+    private void ReportLostBookmarks(List<FoundBookmark> found, string file)
+    {
+        var lost = found.FindAll(f => f.Place == null);
+        if (lost.Count == 0)
+            return;
+        var lines = lost.Select(DescribeLostBookmark);
+        var details = string.Join(Environment.NewLine, lines);
+        ReportError(GetStrings().ErrorBookmarksNotFound(file), details);
+    }
+
+    private static string DescribeLostBookmark(FoundBookmark lost)
+    {
+        var record = lost.Record;
+        var location = record.LocationNodeName ?? record.MemberName;
+        return $"{record.Name}: {location} ({record.FileName})";
+    }
 
     /// <summary>Imports the <see cref="PendingImport"/> as <paramref name="mode"/> says, or drops it when null.</summary>
     public void FinishImport(BookmarkImportMode? mode)
     {
-        if (mode is { } how && PendingImport is { } saved)
-            Bookmarks.Import(saved, how);
+        if (mode != null && PendingImport != null)
+            Bookmarks.Import(PendingImport, mode.Value);
         PendingImport = null;
     }
 
@@ -482,7 +804,9 @@ public sealed class Workspace
     /// opened if it is not.</summary>
     public void Analyze(BrowseNode node)
     {
-        if (Analysis.Of(node) is not { } symbol) return;
+        var symbol = Analysis.Of(node);
+        if (symbol == null)
+            return;
         OpenAnalyzer();
         Analyzer.Analyze(symbol);
     }
@@ -491,59 +815,72 @@ public sealed class Workspace
     /// assembly if it is not, and analyzes it.</summary>
     public void Analyze(CodeReference reference)
     {
-        RunInBackground(() => Assemblies.FindNode(reference), (node, error) =>
+        RunInBackground(() => Assemblies.FindNode(reference), (node, error) => OnAnalyzeTargetFound(reference, node, error));
+    }
+
+    private void OnAnalyzeTargetFound(CodeReference reference, BrowseNode? node, Exception? error)
+    {
+        if (node == null)
         {
-            if (node != null)
-            {
-                Analyze(node);
-                return;
-            }
-            var t = Strings.For(Locale);
-            ReportError(t.ErrorResolve(reference.Name), error?.ToString() ?? t.ErrorNoDefinition(reference));
-        });
+            ReportUnresolved(reference, error);
+            return;
+        }
+        Analyze(node);
     }
 
     /// <summary>Docks the analyzer beside the search results or bookmarks, or below the documents,
     /// if it is not docked, and brings it to the front.</summary>
     public void OpenAnalyzer()
     {
-        if (Layout.Contains(DockPanels.Analyzer))
-        {
-        }
-        else if ((Layout.GroupOf(DockPanels.Search) ?? Layout.GroupOf(DockPanels.Bookmarks)) is { } beside)
+        if (!Layout.Contains(DockPanels.Analyzer))
+            DockAnalyzer();
+        Layout.Activate(DockPanels.Analyzer);
+    }
+
+    private void DockAnalyzer()
+    {
+        var beside = FindSearchOrBookmarksGroup();
+        if (beside != null)
         {
             Layout.Dock(DockPanels.Analyzer, beside, DockEdge.Center);
+            return;
         }
-        else
-        {
-            DockBeside(DockPanels.Analyzer, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
-        }
-        Layout.Activate(DockPanels.Analyzer);
+        DockBelowDocuments(DockPanels.Analyzer);
+    }
+
+    private DockGroup? FindSearchOrBookmarksGroup()
+    {
+        var search = Layout.GroupOf(DockPanels.Search);
+        if (search != null)
+            return search;
+        return Layout.GroupOf(DockPanels.Bookmarks);
     }
 
     /// <summary>Docks the decompiler options beside the documents if they are not, and brings them to the front.</summary>
     public void OpenDecompilerOptions()
     {
         if (!Layout.Contains(DockPanels.DecompilerOptions))
-            DockBeside(DockPanels.DecompilerOptions, DocumentGroup() ?? Layout.Root, DockEdge.Right, 0.3f);
+            DockBeside(DockPanels.DecompilerOptions, FindDocumentArea(), DockEdge.Right, ToolShare);
         Layout.Activate(DockPanels.DecompilerOptions);
     }
 
     /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>
     public void OpenBookmarks()
     {
-        if (Layout.Contains(DockPanels.Bookmarks))
-        {
-        }
-        else if (Layout.GroupOf(DockPanels.Search) is { } search)
+        if (!Layout.Contains(DockPanels.Bookmarks))
+            DockBookmarks();
+        Layout.Activate(DockPanels.Bookmarks);
+    }
+
+    private void DockBookmarks()
+    {
+        var search = Layout.GroupOf(DockPanels.Search);
+        if (search != null)
         {
             Layout.Dock(DockPanels.Bookmarks, search, DockEdge.Center);
+            return;
         }
-        else
-        {
-            DockBeside(DockPanels.Bookmarks, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
-        }
-        Layout.Activate(DockPanels.Bookmarks);
+        DockBelowDocuments(DockPanels.Bookmarks);
     }
 
     /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>
@@ -559,7 +896,8 @@ public sealed class Workspace
 
     public void Activate(DocumentTab tab)
     {
-        if (!_tabs.Contains(tab)) return;
+        if (!_tabs.Contains(tab))
+            return;
         Layout.Activate(tab.Panel);
         Focus(tab);
     }
@@ -568,28 +906,42 @@ public sealed class Workspace
     /// or brought to front the active one.</summary>
     public void SyncActiveTab()
     {
-        if (FindTab(Layout.Focused) is { } tab && tab != _active)
-            Focus(tab);
+        var tab = FindTab(Layout.Focused);
+        if (tab == null)
+            return;
+        if (tab == _active)
+            return;
+        Focus(tab);
     }
 
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
     public void CycleTab(int by)
     {
-        if (_active == null || Layout.GroupOf(_active.Panel) is not { } group) return;
-        var tabs = group.Panels.FindAll(p => FindTab(p) != null);
-        if (tabs.Count < 2) return;
-        var next = tabs[((tabs.IndexOf(_active.Panel) + by) % tabs.Count + tabs.Count) % tabs.Count];
-        if (FindTab(next) is { } tab)
-            Activate(tab);
+        if (_active == null)
+            return;
+        var group = Layout.GroupOf(_active.Panel);
+        if (group == null)
+            return;
+        var panels = group.Panels.FindAll(IsTabPanel);
+        if (panels.Count < 2)
+            return;
+        var index = panels.IndexOf(_active.Panel);
+        var next = panels[WrapIndex(index + by, panels.Count)];
+        var tab = FindTab(next);
+        if (tab == null)
+            return;
+        Activate(tab);
+    }
+
+    private static int WrapIndex(int index, int count)
+    {
+        var wrapped = index % count;
+        if (wrapped < 0)
+            wrapped += count;
+        return wrapped;
     }
 
     public void CloseTab(DocumentTab tab) => Layout.Close(tab.Panel);
-
-    /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
-    /// tabbed together in one group, with the search results under them while a search is open.
-    /// Floating windows and the other views close; the documents stay open.</summary>
-    /// <summary>Set while the user is asked whether to reset the layout.</summary>
-    public bool ConfirmingLayoutReset { get; private set; }
 
     /// <summary>Asks the user whether to reset the layout before <see cref="ResetLayout"/> does.</summary>
     public void AskToResetLayout() => ConfirmingLayoutReset = true;
@@ -602,22 +954,51 @@ public sealed class Workspace
             ResetLayout();
     }
 
+    /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
+    /// tabbed together in one group, with the search results under them while a search is open.
+    /// Floating windows and the other views close; the documents stay open.</summary>
     public void ResetLayout()
     {
-        var documents = Layout.AllGroups().SelectMany(static g => g.Panels).Where(p => FindTab(p) != null).ToList();
+        var documents = ListDocumentPanels();
         Layout.Windows.Clear();
-        Layout.Root = new DockGroup { Id = Layout.NextId++, Panels = { DockPanels.Assemblies }, Active = DockPanels.Assemblies };
+        Layout.Root = CreateAssembliesGroup();
         if (documents.Count == 0)
         {
             _active = AddTab();
             documents.Add(_active.Panel);
         }
-        DockBeside(documents[0], Layout.Root, DockEdge.Right, 0.66f);
-        var group = Layout.GroupOf(documents[0])!;
-        foreach (var panel in documents.Skip(1))
-            Layout.Dock(panel, group, DockEdge.Center);
+        DockDocumentsTogether(documents);
         if (_active != null && Layout.Contains(_active.Panel))
             Layout.Activate(_active.Panel);
+    }
+
+    private List<string> ListDocumentPanels()
+    {
+        return Layout.AllGroups()
+            .SelectMany(g => g.Panels)
+            .Where(IsTabPanel)
+            .ToList();
+    }
+
+    private DockGroup CreateAssembliesGroup()
+    {
+        var id = Layout.NextId;
+        Layout.NextId++;
+        return new DockGroup
+        {
+            Id = id,
+            Panels = { DockPanels.Assemblies },
+            Active = DockPanels.Assemblies,
+        };
+    }
+
+    private void DockDocumentsTogether(List<string> documents)
+    {
+        var first = documents[0];
+        DockBeside(first, Layout.Root, DockEdge.Right, DocumentShare);
+        var group = Layout.GroupOf(first)!;
+        foreach (var panel in documents.Skip(1))
+            Layout.Dock(panel, group, DockEdge.Center);
     }
 
     /// <summary>Docks the assemblies view where it starts out, left of everything, if it is closed,
@@ -625,7 +1006,7 @@ public sealed class Workspace
     public void OpenAssemblies()
     {
         if (!Layout.Contains(DockPanels.Assemblies))
-            DockBeside(DockPanels.Assemblies, Layout.Root, DockEdge.Left, 0.34f);
+            DockBeside(DockPanels.Assemblies, Layout.Root, DockEdge.Left, AssembliesShare);
         Layout.Activate(DockPanels.Assemblies);
     }
 
@@ -636,7 +1017,7 @@ public sealed class Workspace
     public void OpenSearch()
     {
         if (!Layout.Contains(DockPanels.Search))
-            DockBeside(DockPanels.Search, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
+            DockBelowDocuments(DockPanels.Search);
         _focusSearch = true;
         Layout.Activate(DockPanels.Search);
     }
@@ -645,10 +1026,15 @@ public sealed class Workspace
     /// the namespace it is.</summary>
     public void ScopeSearch(BrowseNode node)
     {
-        Search.Query = node.Kind == NodeKind.Namespace
-            ? SearchQuery.WithScope(Search.Query, "innamespace", node.FullName)
-            : SearchQuery.WithScope(Search.Query, "inassembly", node.Assembly.Name);
+        Search.Query = ScopeQueryTo(node);
         OpenSearch();
+    }
+
+    private string ScopeQueryTo(BrowseNode node)
+    {
+        if (node.Kind == NodeKind.Namespace)
+            return SearchQuery.WithScope(Search.Query, NamespaceScope, node.FullName);
+        return SearchQuery.WithScope(Search.Query, AssemblyScope, node.Assembly.Name);
     }
 
     /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>
@@ -663,93 +1049,181 @@ public sealed class Workspace
 
     public void SaveSettings()
     {
+        CopyStateToSettings();
+        MarkRevisionsSaved();
+        WriteSettingsFile();
+    }
+
+    private void CopyStateToSettings()
+    {
         _settings.Assemblies = Assemblies.FilePaths.ToList();
         _settings.Theme = Theme;
         _settings.Language = Language;
         _settings.Decompiler = DecompilerOptions;
-        _settings.FoldedOptionGroups = FoldedOptionGroups.Order().ToList();
+        _settings.FoldedOptionGroups = FoldedOptionGroups
+            .Order()
+            .ToList();
         _settings.ShowNonPublic = ShowNonPublic;
         _settings.SearchKinds = Search.Kinds;
         _settings.Locale = Locale;
         _settings.Layout = Layout;
         _settings.Bookmarks = Bookmarks.Save();
-        if (_analyzed is not { Count: 0 })
-            _settings.Analyzed = _analyzed ?? Analyzer.Roots.Select(static r => r.Symbol.Definition).OfType<CodeAnchor>().ToList();
-        _savedAnalyzer = Analyzer.Revision;
+        if (!_isRestoringAnalyzed)
+            _settings.Analyzed = ListAnalyzedToSave();
         _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
         _settings.SearchColumns = SearchColumns.Weights.ToList();
         _settings.FlagsFilters = MetadataFilters.Save();
-        _savedFilters = MetadataFilters.Revision;
-        _savedBookmarks = Bookmarks.Revision;
-        if (_settings.Save() is { } error)
-            ReportError(Strings.For(Locale).ErrorSaveSettings, error);
     }
 
-    private int Intend() => ++_intent;
+    private List<CodeAnchor> ListAnalyzedToSave()
+    {
+        if (_analyzedToRestore != null)
+            return _analyzedToRestore;
+        return Analyzer.Roots
+            .Select(r => r.Symbol.Definition)
+            .OfType<CodeAnchor>()
+            .ToList();
+    }
+
+    private void MarkRevisionsSaved()
+    {
+        _savedAnalyzer = Analyzer.Revision;
+        _savedFilters = MetadataFilters.Revision;
+        _savedBookmarks = Bookmarks.Revision;
+    }
+
+    private void WriteSettingsFile()
+    {
+        var error = _settings.Save();
+        if (error == null)
+            return;
+        ReportError(GetStrings().ErrorSaveSettings, error);
+    }
+
+    private Strings GetStrings() => Strings.For(Locale);
+
+    private int Intend()
+    {
+        _intent++;
+        return _intent;
+    }
+
+    private bool IsStale(int ticket) => ticket != _intent;
 
     private bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
+    private bool IsTabPanel(string panel) => FindTab(panel) != null;
+
+    private DocumentTab? KeepIfOpen(DocumentTab? tab)
+    {
+        if (tab == null)
+            return null;
+        if (!_tabs.Contains(tab))
+            return null;
+        return tab;
+    }
+
     private DocumentTab AddTab()
     {
-        var tab = new DocumentTab(Post, () => Strings.For(Locale), () => DecompilerOptions, ReportError);
+        var tab = new DocumentTab(Post, GetStrings, () => DecompilerOptions, ReportError);
         _tabs.Add(tab);
         return tab;
     }
 
     private void RemoveTab(string panel)
     {
-        if (FindTab(panel) is not { } tab) return;
+        var tab = FindTab(panel);
+        if (tab == null)
+            return;
         Intend();
         tab.Cancel();
         _tabs.Remove(tab);
         _releasedImages.Add(tab.ImageId);
-        if (tab != _active) return;
+        if (tab != _active)
+            return;
         _active = null;
-        if ((FindTab(Layout.Focused) ?? FrontTab()) is { } next)
-            Focus(next);
+        FocusNextTab();
     }
 
-    private DocumentTab? FrontTab()
+    private void FocusNextTab()
+    {
+        var next = FindTab(Layout.Focused);
+        if (next == null)
+            next = FindFrontTab();
+        if (next == null)
+            return;
+        Focus(next);
+    }
+
+    private DocumentTab? FindFrontTab()
     {
         foreach (var group in Layout.AllGroups())
         {
-            if (FindTab(group.Active) is { } tab)
+            var tab = FindTab(group.Active);
+            if (tab != null)
                 return tab;
         }
         return null;
     }
 
     /// <summary>The group a new document joins: the active document's, else the first holding one.</summary>
-    private DockGroup? DocumentGroup()
+    private DockGroup? FindDocumentGroup()
     {
-        if (_active != null && Layout.GroupOf(_active.Panel) is { } active)
+        var active = FindActiveGroup();
+        if (active != null)
             return active;
         foreach (var group in Layout.AllGroups())
         {
-            if (group.Panels.Exists(p => FindTab(p) != null))
+            if (group.Panels.Exists(IsTabPanel))
                 return group;
         }
         return null;
     }
 
-    /// <summary>Docks a new document into the <see cref="DocumentGroup"/>, or where documents start
+    private DockGroup? FindActiveGroup()
+    {
+        if (_active == null)
+            return null;
+        return Layout.GroupOf(_active.Panel);
+    }
+
+    private DockNode FindDocumentArea()
+    {
+        var group = FindDocumentGroup();
+        if (group != null)
+            return group;
+        return Layout.Root;
+    }
+
+    /// <summary>Docks a new document into the <see cref="FindDocumentGroup"/>, or where documents start
     /// out, right of everything, when there is none.</summary>
     private void DockDocument(string panel)
     {
-        if (DocumentGroup() is { } group)
+        var group = FindDocumentGroup();
+        if (group != null)
+        {
             Layout.Dock(panel, group, DockEdge.Center);
-        else
-            DockBeside(panel, Layout.Root, DockEdge.Right, 0.66f);
+            return;
+        }
+        DockBeside(panel, Layout.Root, DockEdge.Right, DocumentShare);
+    }
+
+    private void DockBelowDocuments(string panel)
+    {
+        DockBeside(panel, FindDocumentArea(), DockEdge.Bottom, ToolShare);
     }
 
     /// <summary>Docks <paramref name="panel"/> beside <paramref name="target"/>, or into it when the
     /// layout is empty.</summary>
     private void DockBeside(string panel, DockNode target, DockEdge edge, float share)
     {
-        if (Layout.Root is DockGroup { Panels.Count: 0 } root)
+        var root = Layout.Root as DockGroup;
+        if (root != null && root.Panels.Count == 0)
+        {
             Layout.Dock(panel, root, DockEdge.Center);
-        else
-            Layout.Dock(panel, target, edge, share);
+            return;
+        }
+        Layout.Dock(panel, target, edge, share);
     }
 
     private void Focus(DocumentTab tab)
@@ -757,56 +1231,58 @@ public sealed class Workspace
         Intend();
         _active = tab;
         tab.EnsureCurrent(Language);
-        if (tab.Node is { } node && IsListed(node))
+        var node = tab.Node;
+        if (node != null && IsListed(node))
             Tree.Reveal(node);
     }
 
     private void LeaveActive()
     {
-        if (ActiveTab is { Position: { } position } tab && History.Current is { } current && current.Place.Equals(tab.Location))
-            History.Leave(tab.Language, position);
-    }
-
-    private void Restore(HistoryEntry entry)
-    {
-        var ticket = Intend();
         var tab = ActiveTab;
-        var place = entry.Place;
-        var position = entry.Language == Language ? entry.Position : null;
-        if (tab is { Node: { } shown } && place.Equals(tab.Location) && IsListed(shown))
-        {
-            ShowIn(tab, shown, position);
+        if (tab == null)
             return;
-        }
-        _resolving = ticket;
-        RunInBackground(() => Assemblies.FindNode(place), (node, error) =>
-        {
-            if (ticket != _intent) return;
-            _resolving = NoTicket;
-            if (node is null)
-            {
-                var t = Strings.For(Locale);
-                ReportError(t.ErrorGoBack(place.Text), error?.ToString() ?? t.ErrorNoLongerThere(place));
-                return;
-            }
-            ShowIn(tab != null && _tabs.Contains(tab) ? tab : null, node, position);
-        });
+        var position = tab.Position;
+        if (position == null)
+            return;
+        if (!IsCurrentHistoryPlace(tab.Location))
+            return;
+        History.Leave(tab.Language, position.Value);
     }
 
-    private void ShowIn(DocumentTab? tab, BrowseNode node, CodeViewPosition? position = null, Bookmark? target = null, int row = MetadataGridState.None)
+    private bool IsCurrentHistoryPlace(NodePath? place)
+    {
+        var current = History.Current;
+        if (current == null)
+            return false;
+        return current.Value.Place.Equals(place);
+    }
+
+    private void ShowIn(
+        DocumentTab? tab,
+        BrowseNode node,
+        CodeViewPosition? position = null,
+        Bookmark? target = null,
+        int row = MetadataGridState.None)
+    {
+        var shownIn = ActivateOrOpenTab(tab);
+        _active = shownIn;
+        shownIn.Show(node, Language, position, target, row);
+        Tree.Reveal(node);
+    }
+
+    private DocumentTab ActivateOrOpenTab(DocumentTab? tab)
     {
         if (tab == null)
-        {
-            tab = AddTab();
-            DockDocument(tab.Panel);
-        }
-        else
-        {
-            Layout.Activate(tab.Panel);
-        }
-        _active = tab;
-        tab.Show(node, Language, position, target, row);
-        Tree.Reveal(node);
+            return OpenNewTab();
+        Layout.Activate(tab.Panel);
+        return tab;
+    }
+
+    private DocumentTab OpenNewTab()
+    {
+        var tab = AddTab();
+        DockDocument(tab.Panel);
+        return tab;
     }
 
     private void StopReload()
@@ -822,18 +1298,36 @@ public sealed class Workspace
             ReportError(title, details);
     }
 
-    private void RunInBackground<T>(Func<T> work, Action<T?, Exception?> done) =>
-        Task.Run(work).ContinueWith(task => Post(() =>
+    private static string DescribeFailure(Exception? error, string fallback)
+    {
+        if (error == null)
+            return fallback;
+        return error.ToString();
+    }
+
+    private void RunInBackground<T>(Func<T> work, Action<T?, Exception?> done)
+    {
+        var task = Task.Run(work);
+        task.ContinueWith(finished => PostCompletion(finished, done), TaskScheduler.Default);
+    }
+
+    private void PostCompletion<T>(Task<T> task, Action<T?, Exception?> done)
+    {
+        Post(() => Complete(task, done));
+    }
+
+    private static void Complete<T>(Task<T> task, Action<T?, Exception?> done)
+    {
+        if (task.IsCompletedSuccessfully)
         {
-            if (task.IsCompletedSuccessfully)
-                done(task.Result, null);
-            else if (!task.IsCanceled)
-                done(default, task.Exception!.GetBaseException());
-        }), TaskScheduler.Default);
-
-    private sealed record Opened(LoadedAssembly? Last, List<(string Title, string Details)> Errors);
-
-    private sealed record Reloaded(List<(string Title, string Details)> Errors, List<BrowseNode> Expanded, BrowseNode?[] Places);
+            done(task.Result, null);
+            return;
+        }
+        if (task.IsCanceled)
+            return;
+        var error = task.Exception!.GetBaseException();
+        done(default, error);
+    }
 
     private Opened OpenFiles(IEnumerable<string> paths, CancellationToken cancellationToken)
     {
@@ -848,29 +1342,27 @@ public sealed class Workspace
             }
             catch (AssemblyLoadException e)
             {
-                errors.Add((Strings.For(Locale).ErrorOpenFile(Path.GetFileName(path)), e.InnerException?.ToString() ?? e.Message));
+                errors.Add(DescribeLoadFailure(path, e));
             }
         }
         return new Opened(last, errors);
     }
 
-    private Reloaded Reload(IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
+    private (string Title, string Details) DescribeLoadFailure(string path, AssemblyLoadException e)
     {
-        var opened = OpenFiles(paths, cancellationToken);
-        var nodes = new List<BrowseNode>();
-        foreach (var path in expanded)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (Assemblies.FindNode(path) is not { } node) continue;
-            _ = node.Children;
-            nodes.Add(node);
-        }
-        var found = new BrowseNode?[places.Count];
-        for (var i = 0; i < found.Length; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            found[i] = Assemblies.FindNode(places[i]);
-        }
-        return new Reloaded(opened.Errors, nodes, found);
+        var file = Path.GetFileName(path);
+        var title = GetStrings().ErrorOpenFile(file);
+        var details = DescribeFailure(e.InnerException, e.Message);
+        return (title, details);
     }
+
+    private sealed record Opened(LoadedAssembly? Last, List<(string Title, string Details)> Errors);
+
+    private sealed record Reloaded(List<(string Title, string Details)> Errors, List<BrowseNode> Expanded, BrowseNode?[] Places);
+
+    private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
+
+    private sealed record ReloadRequest(CancellationTokenSource Work, int Reload, int Intent, List<ReloadingTab> Tabs);
+
+    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);
 }
