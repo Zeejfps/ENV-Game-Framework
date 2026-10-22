@@ -25,7 +25,7 @@ public sealed class ImmediateGuiAppHost
         where T : class
     {
         using var host = new ImmediateHost(config, backend, app.Render);
-        using var context = new UiSynchronizationContext(host.Post).Install();
+        using var context = host.InstallSynchronizationContext();
         var guiHost = new ImmediateGuiAppHost(host);
         app.Startup(guiHost);
         host.Run();

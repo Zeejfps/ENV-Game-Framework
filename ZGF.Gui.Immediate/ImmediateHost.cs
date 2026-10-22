@@ -117,9 +117,12 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _render.App.Wake();
     }
 
-    public void Post(Action action)
+    /// <summary>Makes <c>await</c> on this thread continue on the UI thread before the next frame,
+    /// until the returned scope is disposed.</summary>
+    public UiSynchronizationContext.Scope InstallSynchronizationContext()
     {
-        _ui.Post(action);
+        var context = new UiSynchronizationContext(_ui.Post);
+        return context.Install();
     }
 
     public void RegisterFont(FontFace font)
