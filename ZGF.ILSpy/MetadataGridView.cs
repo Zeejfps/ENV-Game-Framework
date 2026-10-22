@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -114,7 +113,7 @@ public static class MetadataGridWidget
 {
     private const int AutoFitRows = 200;
     private const float MaxAutoWidth = 480f;
-    private const float FlyoutContentWidth = 440f;
+    private const float FlyoutMinWidth = 320f;
     private const int MaxTextLines = 12;
     private const float TextPaddingX = 24f;
     private const float MaxTableDetails = 250f;
@@ -377,132 +376,11 @@ public static class MetadataGridWidget
         if (state.FlagsColumn < 0) return;
         var theme = ui.Theme;
         var filter = flags.For(grid, state.FlagsColumn);
+        var width = FlagsFilterView.ContentWidth + theme.TooltipPaddingX * 2 + theme.ScrollBarHitWidth;
         using var flyout = ui.Flyout(HashCode.Combine(listId, FlyoutSalt), ref state.FlagsOpen, HashCode.Combine(listId, FunnelSalt, state.FlagsColumn),
-            new Box { Width = Sizing.Fit(320f, FlyoutContentWidth + theme.TooltipPaddingX * 2 + theme.ScrollBarHitWidth), Gap = theme.Gap });
+            new Box { Width = Sizing.Fit(FlyoutMinWidth, width), Gap = theme.Gap });
         if (!flyout.IsOpen) return;
-
-        using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
-        {
-            ui.Text(t.MetadataFilterHint, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
-            if (ui.Button(t.MetadataFilterClear, id: "clear"))
-                filter.Clear();
-        }
-        ui.Text(FilterStatePresenter.Describe(filter), color: theme.AccentText, size: theme.FontSizeSmall, wrap: true);
-        var shift = (ui.Input.Modifiers & KeyModifiers.Shift) != 0;
-        foreach (var group in filter.Schema.MutexGroups)
-        {
-            using (ui.Id(group.Name))
-            using (ui.Column(new Box { Gap = theme.GapTight }))
-            {
-                ui.Text(group.Name, color: theme.Text, size: theme.FontSizeSmall, bold: true);
-                var selection = filter.MutexSelections.GetValueOrDefault(group.Name);
-                var chips = new List<(string Label, uint? Value)>(group.Values.Count + 1) { (t.MetadataFilterAnyValue, null) };
-                chips.AddRange(group.Values.Select(static v => (v.Label, (uint?)v.Value)));
-                var first = 0;
-                while (first < chips.Count)
-                {
-                    var end = first + 1;
-                    var used = ChipWidth(ui, chips[first].Label);
-                    while (end < chips.Count && used + theme.GapTight + ChipWidth(ui, chips[end].Label) <= FlyoutContentWidth)
-                        used += theme.GapTight + ChipWidth(ui, chips[end++].Label);
-                    using (ui.Row(new Box { Gap = theme.GapTight }))
-                    {
-                        for (var i = first; i < end; i++)
-                        {
-                            var (label, value) = chips[i];
-                            var on = value is { } v ? selection == null || selection.Contains(v) : selection == null;
-                            if (Chip(ui, label, on, i))
-                                filter.SetMutexSelection(group.Name, Pick(group, selection, value, shift));
-                        }
-                    }
-                    first = end;
-                }
-            }
-        }
-        if (filter.Schema.IndependentFlags.Count > 0)
-        {
-            using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
-            {
-                ui.Text(t.MetadataFilterRequired, color: theme.Text, size: theme.FontSizeSmall, bold: true);
-                var mode = filter.IndependentMode;
-                if (ui.SegmentedControl("mode", ref mode, [new Segment<MatchMode>(MatchMode.All, t.MetadataFilterAll), new Segment<MatchMode>(MatchMode.Any, t.MetadataFilterAny)]))
-                    filter.IndependentMode = mode;
-            }
-            using (ui.Column(new Box { Gap = 0f }))
-            {
-                foreach (var flag in filter.Schema.IndependentFlags)
-                {
-                    using (ui.Id(flag.Name))
-                    using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center, Height = theme.RowHeight }))
-                    {
-                        var current = filter.FlagStates.GetValueOrDefault(flag.Name);
-                        if (Pill(ui, current))
-                            filter.SetFlagState(flag.Name, current switch
-                            {
-                                TriState.DontCare => TriState.Required,
-                                TriState.Required => TriState.Excluded,
-                                _ => TriState.DontCare,
-                            });
-                        ui.Text(flag.Name, color: current == TriState.DontCare ? theme.TextMuted : theme.Text, size: theme.FontSizeSmall);
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>What a group selects after a click on <paramref name="value"/>, or on its "any" chip
-    /// when null: the value alone, or with Shift the selection with it added or taken away; null for
-    /// "any", which an empty or full selection also is.</summary>
-    private static ImmutableHashSet<uint>? Pick(MutexGroup group, ImmutableHashSet<uint>? selection, uint? value, bool shift)
-    {
-        if (value is not { } picked) return null;
-        if (!shift) return [picked];
-        var current = selection ?? group.Values.Select(static v => v.Value).ToImmutableHashSet();
-        var next = current.Contains(picked) ? current.Remove(picked) : current.Add(picked);
-        return next.IsEmpty || next.Count == group.Values.Count ? null : next;
-    }
-
-    private static float ChipWidth(Ui ui, string label) =>
-        ui.MeasureText(label, ui.Theme.FontSizeSmall) + ui.Theme.Gap * 2 + ui.Theme.BorderWidth * 2;
-
-    private static bool Chip(Ui ui, string label, bool on, int index)
-    {
-        var theme = ui.Theme;
-        var chip = ui.Clickable($"chip-{index}");
-        using (ui.Row(chip.Id, new Box
-        {
-            Width = Sizing.Fit(),
-            Padding = new Spacing(theme.Gap, theme.GapTight),
-            Radius = theme.CornerRadius,
-            Background = on ? theme.Selection : chip.Hovered ? theme.RowHover : 0u,
-            BorderColor = on ? theme.Accent : theme.Border,
-            BorderWidth = theme.BorderWidth,
-        }))
-            ui.Text(label, color: on ? theme.SelectionText : theme.TextMuted, size: theme.FontSizeSmall);
-        return chip.Clicked;
-    }
-
-    private static bool Pill(Ui ui, TriState state)
-    {
-        var theme = ui.Theme;
-        var pill = ui.Clickable("pill");
-        using (ui.Box(pill.Id, new Box
-        {
-            Width = theme.IconButtonSize,
-            Height = theme.IconSize + theme.GapTight * 2,
-            AlignX = Align.Center,
-            AlignY = Align.Center,
-            Radius = theme.CornerRadius,
-            Background = pill.Hovered ? theme.RowHover : 0u,
-            BorderColor = theme.Border,
-            BorderWidth = theme.BorderWidth,
-        }))
-        {
-            if (state != TriState.DontCare)
-                ui.Text(state == TriState.Required ? LucideIcons.Check : LucideIcons.X, color: theme.AccentText, size: theme.FontSizeSmall,
-                    family: LucideIcons.Family);
-        }
-        return pill.Clicked;
+        FlagsFilterView.Render(ui, filter, t);
     }
 
     private readonly record struct RowHeights(int Index, float Cells, float Details);
