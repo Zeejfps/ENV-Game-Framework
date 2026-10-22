@@ -20,19 +20,16 @@ public sealed class Workspace
     private readonly AppSettings _settings;
     private Action<Action> _post = ThrowNotAttached;
     private readonly MainLayout _mainLayout;
-    private int _reload;
-    private int _savedBookmarks;
-    private int _savedAnalyzer;
-    private int _savedFilters;
     private List<CodeAnchor>? _analyzedToRestore;
     private bool _isRestoringAnalyzed;
-    private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
 
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
     public UserIntent Intent { get; } = new();
+    public Reload Reload { get; } = new();
+    public LastSave LastSave { get; } = new();
     public BookmarkList Bookmarks { get; } = new();
 
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
@@ -84,7 +81,7 @@ public sealed class Workspace
     public bool IsResolving => Intent.IsResolving;
 
     /// <summary>True while <see cref="Refresh"/> reopens the assemblies.</summary>
-    public bool IsReloading => _reloadWork != null;
+    public bool IsReloading => Reload.IsRunning;
 
     /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
     /// ones there are or merge in beside them.</summary>
@@ -119,7 +116,7 @@ public sealed class Workspace
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
-        _savedBookmarks = Bookmarks.Revision;
+        LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
         Picker = new FrameworkPickerModel(GetStrings, ReportError);
         if (!placed)
             _mainLayout.DockDocument(first.Panel, first.Panel);
@@ -184,7 +181,7 @@ public sealed class Workspace
         var treeChanged = Tree.Sync(Assemblies);
         if (IsReloading)
             return;
-        if (!treeChanged && !HasUnsavedRevisions())
+        if (!treeChanged && !LastSave.IsBehind(Bookmarks, Analyzer, MetadataFilters))
             return;
         SaveSettings();
     }
@@ -208,7 +205,7 @@ public sealed class Workspace
         _isRestoringAnalyzed = false;
         if (found != null)
             AnalyzeAll(found);
-        _savedAnalyzer = Analyzer.Revision;
+        LastSave.RecordAnalyzer(Analyzer);
     }
 
     private void AnalyzeAll(List<AnalysisSymbol?> symbols)
@@ -218,15 +215,6 @@ public sealed class Workspace
             if (symbol != null)
                 Analyzer.Analyze(symbol);
         }
-    }
-
-    private bool HasUnsavedRevisions()
-    {
-        if (Bookmarks.Revision != _savedBookmarks)
-            return true;
-        if (Analyzer.Revision != _savedAnalyzer)
-            return true;
-        return MetadataFilters.Revision != _savedFilters;
     }
 
     /// <summary>Opens the files in the background, then shows the last one opened.</summary>
@@ -266,7 +254,7 @@ public sealed class Workspace
     public void ClearList()
     {
         Intent.Begin();
-        StopReload();
+        Reload.Stop();
         ClearAssemblies();
     }
 
@@ -284,10 +272,7 @@ public sealed class Workspace
     public void Refresh()
     {
         var intent = Intent.Begin();
-        StopReload();
-        _reload++;
-        var work = new CancellationTokenSource();
-        _reloadWork = work;
+        var ticket = Reload.Start();
 
         var paths = Assemblies.FilePaths;
         var expanded = Tree.ExpandedPaths();
@@ -295,9 +280,8 @@ public sealed class Workspace
         var places = tabs.ConvertAll(t => t.Location);
         ClearAssemblies();
 
-        var request = new ReloadRequest(work, _reload, intent, tabs);
-        var token = work.Token;
-        RunInBackground(() => Reload(paths, expanded, places, token), (reloaded, error) => OnReloaded(reloaded, error, request));
+        var request = new ReloadRequest(ticket, intent, tabs);
+        RunInBackground(() => ReopenFiles(paths, expanded, places, ticket.Token), (reloaded, error) => OnReloaded(reloaded, error, request));
     }
 
     private List<ReloadingTab> ReleaseShownTabs()
@@ -324,7 +308,7 @@ public sealed class Workspace
         return tab.Position;
     }
 
-    private Reloaded Reload(IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
+    private Reloaded ReopenFiles(IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
     {
         var opened = OpenFiles(paths, cancellationToken);
         var expandedNodes = LoadExpandedNodes(expanded, cancellationToken);
@@ -360,10 +344,8 @@ public sealed class Workspace
 
     private void OnReloaded(Reloaded? reloaded, Exception? error, ReloadRequest request)
     {
-        request.Work.Dispose();
-        if (request.Reload != _reload)
+        if (!Reload.Finish(request.Ticket))
             return;
-        _reloadWork = null;
         if (error != null)
         {
             ReportError(GetStrings().ErrorReloadAssemblies, error.ToString());
@@ -816,7 +798,7 @@ public sealed class Workspace
     public void SaveSettings()
     {
         CopyStateToSettings();
-        MarkRevisionsSaved();
+        LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
         WriteSettingsFile();
     }
 
@@ -849,13 +831,6 @@ public sealed class Workspace
             .Select(r => r.Symbol.Definition)
             .OfType<CodeAnchor>()
             .ToList();
-    }
-
-    private void MarkRevisionsSaved()
-    {
-        _savedAnalyzer = Analyzer.Revision;
-        _savedFilters = MetadataFilters.Revision;
-        _savedBookmarks = Bookmarks.Revision;
     }
 
     private void WriteSettingsFile()
@@ -972,13 +947,6 @@ public sealed class Workspace
         return tab;
     }
 
-    private void StopReload()
-    {
-        _reload++;
-        _reloadWork?.Cancel();
-        _reloadWork = null;
-    }
-
     private void ReportAll(List<(string Title, string Details)> errors)
     {
         foreach (var (title, details) in errors)
@@ -1049,7 +1017,7 @@ public sealed class Workspace
 
     private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
 
-    private sealed record ReloadRequest(CancellationTokenSource Work, int Reload, int Intent, List<ReloadingTab> Tabs);
+    private sealed record ReloadRequest(ReloadTicket Ticket, int Intent, List<ReloadingTab> Tabs);
 
     private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);
 }
