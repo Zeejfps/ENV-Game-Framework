@@ -14,20 +14,22 @@ public static class AssemblyLoading
         w.OpenInBackground(files);
     }
 
-    private static void OpenInBackground(this Workspace w, string[] files)
+    private static async void OpenInBackground(this Workspace w, string[] files)
     {
         var ticket = w.Intent.Begin();
-        w.RunInBackground(() => w.OpenFiles(files, CancellationToken.None), (opened, error) => w.OnFilesOpened(opened, error, ticket));
+        var opened = await Background.Run(() => w.OpenFiles(files, CancellationToken.None));
+        w.ShowOpened(opened, ticket);
     }
 
-    private static void OnFilesOpened(this Workspace w, Opened? opened, Exception? error, int ticket)
+    private static void ShowOpened(this Workspace w, Outcome<Opened> outcome, int ticket)
     {
-        if (error != null)
+        var opened = outcome.Value;
+        if (opened == null)
         {
-            w.ReportError(w.GetStrings().ErrorOpenAssemblies, error.ToString());
+            w.ReportError(w.GetStrings().ErrorOpenAssemblies, outcome.Error!.ToString());
             return;
         }
-        w.ReportAll(opened!.Errors);
+        w.ReportAll(opened.Errors);
         if (opened.Last == null)
             return;
         if (w.Intent.IsStale(ticket))
@@ -57,7 +59,7 @@ public static class AssemblyLoading
 
     /// <summary>Reloads every assembly from disk in the background, then expands the tree as it was
     /// and shows each tab's place again, decompiled from the fresh files.</summary>
-    public static void Refresh(this Workspace w)
+    public static async void Refresh(this Workspace w)
     {
         var intent = w.Intent.Begin();
         var ticket = w.Reload.Start();
@@ -68,8 +70,8 @@ public static class AssemblyLoading
         var places = tabs.ConvertAll(t => t.Location);
         w.ClearAssemblies();
 
-        var request = new ReloadRequest(ticket, intent, tabs);
-        w.RunInBackground(() => w.ReopenFiles(paths, expanded, places, ticket.Token), (reloaded, error) => w.OnReloaded(reloaded, error, request));
+        var reloaded = await Background.Run(() => w.ReopenFiles(paths, expanded, places, ticket.Token));
+        w.FinishReload(reloaded, ticket, intent, tabs);
     }
 
     private static List<ReloadingTab> ReleaseShownTabs(this Workspace w)
@@ -130,19 +132,20 @@ public static class AssemblyLoading
         return found;
     }
 
-    private static void OnReloaded(this Workspace w, Reloaded? reloaded, Exception? error, ReloadRequest request)
+    private static void FinishReload(this Workspace w, Outcome<Reloaded> outcome, ReloadTicket ticket, int intent, List<ReloadingTab> tabs)
     {
-        if (!w.Reload.Finish(request.Ticket))
+        if (!w.Reload.Finish(ticket))
             return;
-        if (error != null)
+        var reloaded = outcome.Value;
+        if (reloaded == null)
         {
-            w.ReportError(w.GetStrings().ErrorReloadAssemblies, error.ToString());
+            w.ReportError(w.GetStrings().ErrorReloadAssemblies, outcome.Error!.ToString());
             return;
         }
-        w.ReportAll(reloaded!.Errors);
+        w.ReportAll(reloaded.Errors);
         w.Tree.Expand(reloaded.Expanded);
-        for (var i = 0; i < request.Tabs.Count; i++)
-            w.ReshowTab(request.Tabs[i], reloaded.Places[i], request.Intent);
+        for (var i = 0; i < tabs.Count; i++)
+            w.ReshowTab(tabs[i], reloaded.Places[i], intent);
         w.SaveSettings();
     }
 
@@ -208,6 +211,4 @@ public static class AssemblyLoading
     private sealed record Reloaded(List<(string Title, string Details)> Errors, List<BrowseNode> Expanded, BrowseNode?[] Places);
 
     private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
-
-    private sealed record ReloadRequest(ReloadTicket Ticket, int Intent, List<ReloadingTab> Tabs);
 }
