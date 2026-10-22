@@ -53,7 +53,8 @@ public abstract class Gui<T> where T : class
 
     /// <summary>Runs <paramref name="action"/> on the UI thread before the next frame, which it
     /// schedules — the way background work hands back results. Safe from any thread at any time:
-    /// before <see cref="Run"/> it waits for the first frame, after it returns it is dropped.</summary>
+    /// before <see cref="Run"/> it waits for the first frame, after it returns it is dropped. While
+    /// <see cref="Run"/> runs, <c>await</c> on the UI thread continues this way too.</summary>
     public void Post(Action action)
     {
         if (_stopped) return;
@@ -64,6 +65,7 @@ public abstract class Gui<T> where T : class
     public void Run(StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
     {
         _stopped = false;
+        using var context = new UiSynchronizationContext(Post).Install();
         using var host = new ImmediateHost(config, backend, _fonts, _posted, ui => Render(ui, State));
         _host = host;
         try

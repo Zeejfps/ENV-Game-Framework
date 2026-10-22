@@ -267,7 +267,7 @@ public sealed class FrameworkPickerTests
     [Fact]
     public void A_failed_scan_ends_loading_with_an_error_and_reports_it()
     {
-        var posted = new PostedActions();
+        var posted = PostedActions.OfThisTest();
         var reported = new List<string>();
         var picker = new FrameworkPickerModel(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
 

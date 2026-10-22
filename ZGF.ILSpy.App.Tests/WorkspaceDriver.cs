@@ -9,12 +9,34 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy.App.Tests;
 
-/// <summary>Actions posted from other threads, queued until the test runs them.</summary>
+/// <summary>Actions posted from other threads, queued until the test runs them. A test's drivers
+/// share one, which is also where <c>await</c> on the test's thread continues.</summary>
 internal sealed class PostedActions
 {
+    [ThreadStatic] private static PostedActions? _ofThisTest;
+
     private readonly ConcurrentQueue<Action> _queue = new();
+    private readonly UiSynchronizationContext _context;
+
+    private PostedActions()
+    {
+        _context = new UiSynchronizationContext(Post);
+    }
 
     public bool IsEmpty => _queue.IsEmpty;
+
+    /// <summary>The queue of the test running on this thread. xUnit gives every test a context of
+    /// its own, so a test that has not made one yet gets a new queue.</summary>
+    public static PostedActions OfThisTest()
+    {
+        var existing = _ofThisTest;
+        if (existing != null && SynchronizationContext.Current == existing._context)
+            return existing;
+        var posted = new PostedActions();
+        SynchronizationContext.SetSynchronizationContext(posted._context);
+        _ofThisTest = posted;
+        return posted;
+    }
 
     public void Post(Action action) => _queue.Enqueue(action);
 
@@ -56,7 +78,7 @@ internal sealed class WorkspaceDriver
 {
     public const string FixturesNamespace = "ZGF.ILSpy.App.Tests.Fixtures";
 
-    private readonly PostedActions _posted = new();
+    private readonly PostedActions _posted = PostedActions.OfThisTest();
 
     public WorkspaceDriver(AppSettings? settings = null)
     {
