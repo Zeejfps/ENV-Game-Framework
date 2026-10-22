@@ -6,5 +6,8 @@
       "Bash(findstr:*)",
       "Bash(Select-String -Pattern \"error|Build succeeded|Build FAILED\")"
     ]
+  },
+  "enabledPlugins": {
+    "csharp-lsp@claude-plugins-official": false
   }
 }
