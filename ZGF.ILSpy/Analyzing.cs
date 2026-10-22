@@ -19,16 +19,13 @@ public static class Analyzing
 
     /// <summary>Finds what <paramref name="reference"/> points at in the background, opening its
     /// assembly if it is not, and analyzes it.</summary>
-    public static void Analyze(this Workspace w, CodeReference reference)
+    public static async void Analyze(this Workspace w, CodeReference reference)
     {
-        w.RunInBackground(() => w.Assemblies.FindNode(reference), (node, error) => w.OnAnalyzeTargetFound(reference, node, error));
-    }
-
-    private static void OnAnalyzeTargetFound(this Workspace w, CodeReference reference, BrowseNode? node, Exception? error)
-    {
+        var found = await Background.Run(() => w.Assemblies.FindNode(reference));
+        var node = found.Value;
         if (node == null)
         {
-            w.ReportUnresolved(reference, error);
+            w.ReportUnresolved(reference, found.Error);
             return;
         }
         w.Analyze(node);
@@ -36,12 +33,13 @@ public static class Analyzing
 
     /// <summary>Finds the symbols analyzed in the last run again in the background, opening their
     /// assemblies' files without listing them, and analyzes those still there, in their order.</summary>
-    public static void RestoreLastSessionAnalyses(this Workspace w)
+    public static async void RestoreLastSessionAnalyses(this Workspace w)
     {
         var analyzed = w.LastSessionAnalyses.StartRestoring();
         if (analyzed == null)
             return;
-        w.RunInBackground(() => w.FindAnalyzed(analyzed), (found, _) => w.OnAnalyzedFound(found));
+        var found = await Background.Run(() => w.FindAnalyzed(analyzed));
+        w.AnalyzeAgain(found.Value);
     }
 
     private static List<AnalysisSymbol?> FindAnalyzed(this Workspace w, List<CodeAnchor> analyzed)
@@ -49,7 +47,7 @@ public static class Analyzing
         return analyzed.ConvertAll(a => Analysis.Find(w.Assemblies, a));
     }
 
-    private static void OnAnalyzedFound(this Workspace w, List<AnalysisSymbol?>? found)
+    private static void AnalyzeAgain(this Workspace w, List<AnalysisSymbol?>? found)
     {
         w.LastSessionAnalyses.FinishRestoring();
         if (found != null)
