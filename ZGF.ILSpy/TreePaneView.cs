@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -8,6 +9,9 @@ namespace ZGF.ILSpy;
 
 internal static class TreePaneView
 {
+    private const string TreeId = "tree";
+    private const string MenuId = "tree-menu";
+
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
@@ -15,27 +19,60 @@ internal static class TreePaneView
         w.Tree.SetShowNonPublic(w.ShowNonPublic);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         if (w.Tree.Roots.Count == 0)
-            ui.Text(ui.Memo("empty", t, static s => s.TreeEmpty(Shortcuts.Open)), new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) },
-                color: theme.TextMuted, wrap: true);
+            EmptyHint(ui, t);
+        var result = ui.TreeView(TreeId, w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
+        AnalyzeOnShortcut(ui, w);
+        Respond(ui, w, result);
+        ContextMenu(ui, w, t);
+    }
 
-        var result = ui.TreeView("tree", w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
-        if (ui.HasFocus(ui.GetId("tree")) && Shortcuts.AnalyzePressed(ui) && w.Tree.View.Selected is { } picked)
-            w.Analyze(picked);
-        if (result.SelectionChanged && result.Node is { } selected)
-            w.Show(selected);
-        if (result.Activated && result.Node is { Target: not null } activated)
-            w.GoToTarget(activated);
-        if (result.ContextMenuRequested && result.Node is { } target)
-        {
-            w.MenuTarget = target;
-            ui.OpenContextMenu("tree-menu", result.ContextMenuAt);
-        }
+    private static void EmptyHint(Ui ui, Strings t)
+    {
+        var theme = ui.Theme;
+        var text = ui.Memo("empty", t, static s => s.TreeEmpty(Shortcuts.Open));
+        ui.Text(text, new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) }, color: theme.TextMuted, wrap: true);
+    }
 
-        using (var menu = ui.ContextMenu("tree-menu"))
-        {
-            if (menu.IsOpen && w.MenuTarget is { } node)
-                NodeMenu(ui, w, t, node);
-        }
+    private static void AnalyzeOnShortcut(Ui ui, Workspace w)
+    {
+        if (!ui.HasFocus(ui.GetId(TreeId)))
+            return;
+        if (!Shortcuts.AnalyzePressed(ui))
+            return;
+        var picked = w.Tree.View.Selected;
+        if (picked == null)
+            return;
+        w.Analyze(picked);
+    }
+
+    private static void Respond(Ui ui, Workspace w, TreeViewResult<BrowseNode> result)
+    {
+        var node = result.Node;
+        if (node == null)
+            return;
+        if (result.SelectionChanged)
+            w.Show(node);
+        if (result.Activated && node.Target != null)
+            w.GoToTarget(node);
+        if (result.ContextMenuRequested)
+            OpenContextMenu(ui, w, node, result.ContextMenuAt);
+    }
+
+    private static void OpenContextMenu(Ui ui, Workspace w, BrowseNode node, PointF at)
+    {
+        w.MenuTarget = node;
+        ui.OpenContextMenu(MenuId, at);
+    }
+
+    private static void ContextMenu(Ui ui, Workspace w, Strings t)
+    {
+        using var menu = ui.ContextMenu(MenuId);
+        if (!menu.IsOpen)
+            return;
+        var node = w.MenuTarget;
+        if (node == null)
+            return;
+        NodeMenu(ui, w, t, node);
     }
 
     private static void NodeMenu(Ui ui, Workspace w, Strings t, BrowseNode node)
