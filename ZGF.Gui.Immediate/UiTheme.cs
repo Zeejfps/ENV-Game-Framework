@@ -32,6 +32,7 @@ public sealed record UiTheme
     private readonly uint _selection;
     private readonly uint _selectionInactive;
     private readonly uint _selectionText;
+    private readonly uint _textSelection;
     private readonly uint _danger;
     private readonly uint _dangerSurface;
     private readonly uint _onDanger;
@@ -127,6 +128,9 @@ public sealed record UiTheme
 
     /// <summary>Text on <see cref="Selection"/> and <see cref="SelectionInactive"/>.</summary>
     public uint SelectionText { get => Or(_selectionText, Text); init => _selectionText = value; }
+
+    /// <summary>Selected text, distinct from <see cref="Selection"/> so it shows on a selected row.</summary>
+    public uint TextSelection { get => Or(_textSelection, UiColor.Mix(Selection, Accent, 0.5f)); init => _textSelection = value; }
 
     public uint Danger { get => Or(_danger, 0xFFE5484D); init => _danger = value; }
     public uint DangerSurface { get => Or(_dangerSurface, UiColor.Mix(Background, Danger, 0.2f)); init => _dangerSurface = value; }
@@ -377,6 +381,7 @@ public sealed record UiTheme
         RowHover = 0xFF2B303A,
         Selection = 0xFF293D60,
         SelectionInactive = 0xFF303641,
+        TextSelection = 0xFF3264C4,
         SelectionText = 0xFFE4E7ED,
         Danger = 0xFFFF9A9A,
         DangerSurface = 0xFF472A32,
@@ -417,6 +422,7 @@ public sealed record UiTheme
         RowHover = 0xFFE8ECF2,
         Selection = 0xFFDCE8FF,
         SelectionInactive = 0xFFE5E8ED,
+        TextSelection = 0xFF6890DB,
         SelectionText = 0xFF242A35,
         Danger = 0xFFB42332,
         DangerSurface = 0xFFFDE7EB,
@@ -452,6 +458,7 @@ public sealed record UiTheme
         RowHover = 0xFF161B22,
         Selection = 0xFF1F3049,
         SelectionInactive = 0xFF21262D,
+        TextSelection = 0xFF1D66D6,
         Danger = 0xFFF85149,
         Warning = 0xFFD29922,
         Success = 0xFF3FB950,
@@ -480,6 +487,7 @@ public sealed record UiTheme
         RowHover = 0xFFF2F4F6,
         Selection = 0xFFDDF4FF,
         SelectionInactive = 0xFFEAEEF2,
+        TextSelection = 0xFF3E8CE3,
         SelectionText = 0xFF1F2328,
         Danger = 0xFFCF222E,
         DangerSurface = 0xFFFFEBE9,
@@ -515,6 +523,7 @@ public sealed record UiTheme
         RowHover = 0xFFF4EDD9,
         Selection = 0xFFD7E2E0,
         SelectionInactive = 0xFFE9E2CC,
+        TextSelection = 0xFF6D9EBD,
         SelectionText = 0xFF073642,
         Danger = 0xFFDC322F,
         OnDanger = 0xFFFFFFFF,
@@ -548,6 +557,7 @@ public sealed record UiTheme
         RowHover = 0xFF2C313A,
         Selection = 0xFF3E4451,
         SelectionInactive = 0xFF323842,
+        TextSelection = 0xFF354E7F,
         SelectionText = 0xFFD7DAE0,
         Danger = 0xFFE06C75,
         Warning = 0xFFE5C07B,
@@ -575,6 +585,7 @@ public sealed record UiTheme
         RowHover = 0xFF2C2E3B,
         Selection = 0xFF44475A,
         SelectionInactive = 0xFF363848,
+        TextSelection = 0xFF7A69A2,
         Danger = 0xFFFF5555,
         Warning = 0xFFFFB86C,
         Success = 0xFF50FA7B,
@@ -600,6 +611,7 @@ public sealed record UiTheme
         RowHover = 0xFF31322B,
         Selection = 0xFF49483E,
         SelectionInactive = 0xFF3A3B33,
+        TextSelection = 0xFF736F5C,
         Danger = 0xFFF92672,
         Warning = 0xFFFD971F,
         Success = 0xFFA6E22E,
@@ -626,6 +638,7 @@ public sealed record UiTheme
         RowHover = 0xFF242536,
         Selection = 0xFF45475A,
         SelectionInactive = 0xFF313244,
+        TextSelection = 0xFF686083,
         Danger = 0xFFF38BA8,
         Warning = 0xFFF9E2AF,
         Success = 0xFFA6E3A1,

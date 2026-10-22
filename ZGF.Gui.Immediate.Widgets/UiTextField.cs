@@ -192,13 +192,13 @@ public static partial class UiWidgets
                 {
                     var from = MathF.Min(caretX, anchorX) - shift;
                     var to = MathF.Max(caretX, anchorX) - shift;
-                    ui.Paint((from, to, lineHeight, theme.Selection), static (p, s) =>
+                    ui.Paint((from, to, lineHeight, theme.TextSelection), static (p, s) =>
                     {
                         var r = p.Rect;
                         var left = MathF.Max(r.X + s.from, r.X);
                         var right = MathF.Min(r.X + s.to, r.Right);
                         if (right > left)
-                            p.FillRect(new UiRect(left, r.Y + (r.Height - s.lineHeight) / 2, right - left, s.lineHeight), s.Selection);
+                            p.FillRect(new UiRect(left, r.Y + (r.Height - s.lineHeight) / 2, right - left, s.lineHeight), s.TextSelection);
                     });
                 }
 

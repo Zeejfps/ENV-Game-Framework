@@ -17,9 +17,21 @@ public sealed class ThemeTests
         Assert.InRange(Contrast(theme.TextMuted, theme.Background), 4.5f, 21f);
         Assert.InRange(Contrast(theme.TextMuted, theme.Surface), 4.5f, 21f);
         Assert.InRange(Contrast(theme.SelectionText, theme.Selection), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.Text, theme.TextSelection), 3.5f, 21f);
         Assert.InRange(Contrast(theme.OnAccent, theme.Accent), 4.5f, 21f);
         Assert.InRange(Contrast(theme.AccentText, theme.Background), 4.5f, 21f);
         Assert.Equal(!name.EndsWith("Light"), theme.IsDark);
+    }
+
+    [Theory]
+    [MemberData(nameof(Presets))]
+    public void Every_preset_shows_selected_text_on_a_selected_row(string name)
+    {
+        var theme = (UiTheme)typeof(UiTheme).GetProperty(name)!.GetValue(null)!;
+
+        Assert.InRange(Contrast(theme.TextSelection, theme.Selection), 1.15f, 21f);
+        Assert.InRange(Contrast(theme.TextSelection, theme.SelectionInactive), 1.15f, 21f);
+        Assert.InRange(Contrast(theme.TextSelection, theme.Background), 1.15f, 21f);
     }
 
     private static float Contrast(uint a, uint b)

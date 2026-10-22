@@ -423,7 +423,7 @@ public static class CodeViewWidget
         frame.Palette = palette;
         frame.Background = theme.EditorBackground;
         frame.GutterHover = theme.Text;
-        frame.Selection = active ? theme.Selection : theme.SelectionInactive;
+        frame.Selection = active ? theme.TextSelection : theme.SelectionInactive;
         frame.ErrorText = theme.Danger;
         frame.FontSize = theme.MonoFontSize;
         frame.SeparatorWidth = theme.SeparatorWidth;

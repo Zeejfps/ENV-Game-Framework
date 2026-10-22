@@ -277,7 +277,7 @@ public sealed class MetadataGridTests
         app.Run();
 
         var rects = app.Frames.Canvas.Rects;
-        var highlight = rects.Last(r => r.Inputs.Style.BackgroundColor == app.Theme.Selection).Sequence;
+        var highlight = rects.Last(r => r.Inputs.Style.BackgroundColor == app.Theme.TextSelection).Sequence;
         var outline = rects.Last(r => r.Inputs.Style.BorderColor.Top.Value == app.Theme.FocusRing).Sequence;
         Assert.True(outline > highlight);
     }

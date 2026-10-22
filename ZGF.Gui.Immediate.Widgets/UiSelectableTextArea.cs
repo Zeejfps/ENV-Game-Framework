@@ -86,13 +86,13 @@ public static partial class UiWidgets
                     {
                         var left = ui.MeasureText(line, from - start, size, family: family) - shift;
                         var right = ui.MeasureText(line, to - start, size, family: family) - shift + (selection.End > start + line.Length ? newline : 0f);
-                        ui.Paint((left, right, theme.Selection), static (p, s) =>
+                        ui.Paint((left, right, theme.TextSelection), static (p, s) =>
                         {
                             var r = p.Rect;
                             var x0 = MathF.Max(r.X + s.left, r.X);
                             var x1 = MathF.Min(r.X + s.right, r.Right);
                             if (x1 > x0)
-                                p.FillRect(new UiRect(x0, r.Y, x1 - x0, r.Height), s.Selection);
+                                p.FillRect(new UiRect(x0, r.Y, x1 - x0, r.Height), s.TextSelection);
                         });
                     }
                     if (line.Length == 0)

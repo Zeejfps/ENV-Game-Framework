@@ -130,13 +130,13 @@ public static partial class UiWidgets
         using (ui.Row(new Box { Width = Sizing.Grow(0f, width), Gap = 0f, Clip = true, ScrollX = shift }))
         {
             if (selection.HasSelection)
-                ui.Paint((from, to, theme.Selection), static (p, s) =>
+                ui.Paint((from, to, theme.TextSelection), static (p, s) =>
                 {
                     var r = p.Rect;
                     var left = MathF.Max(r.X + s.from, r.X);
                     var right = MathF.Min(r.X + s.to, r.Right);
                     if (right > left)
-                        p.FillRect(new UiRect(left, r.Y, right - left, r.Height), s.Selection);
+                        p.FillRect(new UiRect(left, r.Y, right - left, r.Height), s.TextSelection);
                 });
             ui.Text(text, color: color, size: size, family: family);
         }
