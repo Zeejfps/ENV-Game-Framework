@@ -90,7 +90,7 @@ public sealed class Workspace
     public bool IsSearchFocusPending { get; set; }
 
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
-    public bool ConfirmingLayoutReset { get; private set; }
+    public bool ConfirmingLayoutReset { get; set; }
 
     public Workspace(AppSettings settings)
     {
@@ -106,7 +106,7 @@ public sealed class Workspace
         var dock = DockPanels.Restore(settings.Layout, first.Panel, out var placed);
         MainLayout = new MainLayout(dock);
         Layout.NewPanel = () => AddTab().Panel;
-        Layout.PanelClosed += OnPanelClosed;
+        Layout.PanelClosed += this.OnPanelClosed;
         Tree = new BrowseTree(Post);
         Analyzer = new AnalyzerTree(Post, () => Assemblies);
         Search = new SearchModel(GetStrings, ReportError);
@@ -135,13 +135,6 @@ public sealed class Workspace
         if (settings.Locale != null)
             return settings.Locale.Value;
         return Locales.For(CultureInfo.CurrentUICulture);
-    }
-
-    private void OnPanelClosed(string panel)
-    {
-        if (panel == DockPanels.Search)
-            Search.Clear();
-        RemoveTab(panel);
     }
 
     private void ReportSettingsLoadError(AppSettings settings)
@@ -206,103 +199,6 @@ public sealed class Workspace
         ReportError(t.ErrorResolve(reference.Name), details);
     }
 
-    public void OpenAnalyzer() => MainLayout.OpenAnalyzer(Tabs.ActivePanel);
-
-    public void OpenDecompilerOptions() => MainLayout.OpenDecompilerOptions(Tabs.ActivePanel);
-
-    public void OpenBookmarks() => MainLayout.OpenBookmarks(Tabs.ActivePanel);
-
-    public void Activate(DocumentTab tab)
-    {
-        if (!Tabs.Contains(tab))
-            return;
-        Layout.Activate(tab.Panel);
-        Focus(tab);
-    }
-
-    /// <summary>Called after the documents are recorded: makes the tab the user last pressed, docked
-    /// or brought to front the active one.</summary>
-    public void SyncActiveTab()
-    {
-        var tab = Tabs.Find(Layout.Focused);
-        if (tab == null)
-            return;
-        if (tab == Tabs.Active)
-            return;
-        Focus(tab);
-    }
-
-    /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
-    public void CycleTab(int by)
-    {
-        var active = Tabs.Active;
-        if (active == null)
-            return;
-        var group = Layout.GroupOf(active.Panel);
-        if (group == null)
-            return;
-        var panels = group.Panels.FindAll(IsTabPanel);
-        if (panels.Count < 2)
-            return;
-        var index = panels.IndexOf(active.Panel);
-        var next = panels[WrapIndex(index + by, panels.Count)];
-        var tab = Tabs.Find(next);
-        if (tab == null)
-            return;
-        Activate(tab);
-    }
-
-    private static int WrapIndex(int index, int count)
-    {
-        var wrapped = index % count;
-        if (wrapped < 0)
-            wrapped += count;
-        return wrapped;
-    }
-
-    public void CloseTab(DocumentTab tab) => Layout.Close(tab.Panel);
-
-    /// <summary>Asks the user whether to reset the layout before <see cref="ResetLayout"/> does.</summary>
-    public void AskToResetLayout() => ConfirmingLayoutReset = true;
-
-    /// <summary>Stops asking, resetting the layout when <paramref name="confirmed"/>.</summary>
-    public void FinishLayoutReset(bool confirmed)
-    {
-        ConfirmingLayoutReset = false;
-        if (confirmed)
-            ResetLayout();
-    }
-
-    /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
-    /// tabbed together in one group. Floating windows and the other views close; the documents stay open.</summary>
-    public void ResetLayout()
-    {
-        var documents = MainLayout.ListDocuments();
-        if (documents.Count == 0)
-            documents.Add(AddActiveTab().Panel);
-        MainLayout.Reset(documents);
-        ActivateActivePanel();
-    }
-
-    private DocumentTab AddActiveTab()
-    {
-        var tab = AddTab();
-        Tabs.MakeActive(tab);
-        return tab;
-    }
-
-    private void ActivateActivePanel()
-    {
-        var panel = Tabs.ActivePanel;
-        if (panel == null)
-            return;
-        if (!Layout.Contains(panel))
-            return;
-        Layout.Activate(panel);
-    }
-
-    public void OpenAssemblies() => MainLayout.OpenAssemblies();
-
     public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
 
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
@@ -346,57 +242,11 @@ public sealed class Workspace
 
     internal bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
-    private bool IsTabPanel(string panel) => Tabs.Find(panel) != null;
-
-    private DocumentTab AddTab()
+    internal DocumentTab AddTab()
     {
         var tab = new DocumentTab(Post, GetStrings, () => DecompilerOptions, ReportError);
         Tabs.Add(tab);
         return tab;
-    }
-
-    private void RemoveTab(string panel)
-    {
-        var tab = Tabs.Find(panel);
-        if (tab == null)
-            return;
-        Intent.Begin();
-        var wasActive = tab == Tabs.Active;
-        Tabs.Remove(tab);
-        if (!wasActive)
-            return;
-        FocusNextTab();
-    }
-
-    private void FocusNextTab()
-    {
-        var next = Tabs.Find(Layout.Focused);
-        if (next == null)
-            next = FindFrontTab();
-        if (next == null)
-            return;
-        Focus(next);
-    }
-
-    private DocumentTab? FindFrontTab()
-    {
-        foreach (var group in Layout.AllGroups())
-        {
-            var tab = Tabs.Find(group.Active);
-            if (tab != null)
-                return tab;
-        }
-        return null;
-    }
-
-    private void Focus(DocumentTab tab)
-    {
-        Intent.Begin();
-        Tabs.MakeActive(tab);
-        tab.EnsureCurrent(Language);
-        var node = tab.Node;
-        if (node != null && IsListed(node))
-            Tree.Reveal(node);
     }
 
     internal void LeaveActive()
