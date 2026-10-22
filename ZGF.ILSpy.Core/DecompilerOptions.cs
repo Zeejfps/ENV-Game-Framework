@@ -129,10 +129,20 @@ public sealed record DecompilerOptions
     /// <summary>Whether <see cref="LanguageVersion"/> is new enough for <paramref name="toggle"/>.</summary>
     public bool Allows(DecompilerToggle toggle) => toggle.IntroducedIn is not { } version || version <= LanguageVersion;
 
-    public DecompilerOptions With(DecompilerToggle toggle, bool value) => this with
+    public DecompilerOptions With(DecompilerToggle toggle, bool value) => With([toggle], value);
+
+    public DecompilerOptions With(IEnumerable<DecompilerToggle> toggles, bool value)
     {
-        Toggles = value == toggle.DefaultValue ? Toggles.Remove(toggle.Name) : Toggles.SetItem(toggle.Name, value),
-    };
+        var changed = Toggles.ToBuilder();
+        foreach (var toggle in toggles)
+        {
+            if (value == toggle.DefaultValue)
+                changed.Remove(toggle.Name);
+            else
+                changed[toggle.Name] = value;
+        }
+        return this with { Toggles = changed.ToImmutable() };
+    }
 
     public bool Equals(DecompilerOptions? other) =>
         other is not null && LanguageVersion == other.LanguageVersion && Toggles.Count == other.Toggles.Count &&

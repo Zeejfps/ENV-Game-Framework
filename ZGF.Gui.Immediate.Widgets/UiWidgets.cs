@@ -127,32 +127,55 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null, bool enabled = true,
         Sizing? width = null)
     {
+        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width)) return false;
+        value = !value;
+        return true;
+    }
+
+    /// <summary>A checkbox for a group of choices: <paramref name="value"/> is null when only some
+    /// are on, shown as a filled square. A click turns it on unless it is already, then off; returns
+    /// true on that frame. Otherwise as the two-state <see cref="Checkbox(Ui, string, ref bool, uint?, string?, bool, Sizing?)"/>.</summary>
+    public static bool Checkbox(this Ui ui, string label, ref bool? value, uint? textColor = null, string? id = null, bool enabled = true,
+        Sizing? width = null)
+    {
+        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width)) return false;
+        value = value != true;
+        return true;
+    }
+
+    private static bool DrawCheckbox(Ui ui, string label, bool? value, uint? textColor, string? id, bool enabled, Sizing? width)
+    {
         var theme = ui.Theme;
         var i = Pressable(ui, id ?? label, enabled, out var activated, out var ring);
-        var toggled = i.Clicked || activated;
-        if (toggled) value = !value;
+        var on = value == true;
+        var mixed = value is null;
 
         using (ui.Row(i.Id, new Box { Width = width ?? Sizing.Fit(), Height = theme.ControlHeight, Gap = theme.Gap }))
         {
             var size = theme.CheckboxSize;
+            var accent = !enabled ? theme.TextDisabled : i.Hovered ? theme.AccentHovered : theme.Accent;
             using (ui.Box(new Box
             {
                 Width = size,
                 Height = size,
-                Background = value ? !enabled ? theme.TextDisabled : i.Hovered ? theme.AccentHovered : theme.Accent : theme.Field,
-                BorderColor = value ? 0u : i.Hovered ? theme.BorderStrong : theme.Border,
-                BorderWidth = value ? 0f : theme.BorderWidth,
+                AlignX = mixed ? Align.Center : default,
+                AlignY = mixed ? Align.Center : default,
+                Background = on ? accent : theme.Field,
+                BorderColor = on ? 0u : i.Hovered ? theme.BorderStrong : theme.Border,
+                BorderWidth = on ? 0f : theme.BorderWidth,
                 Radius = theme.RadiusSmall,
             }))
             {
-                if (value)
+                if (on)
                     ui.Paint((theme.OnAccent, theme.IconStrokeWidth), static (p, s) => DrawCheckmark(p, s.OnAccent, s.IconStrokeWidth));
+                else if (mixed)
+                    ui.Leaf(new Box { Width = size / 2f, Height = size / 2f, Background = accent, Radius = theme.RadiusSmall / 2f });
                 if (ring) FocusRing(ui, theme.RadiusSmall);
             }
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: !enabled ? theme.TextDisabled : textColor ?? theme.Text,
                 overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
         }
-        return toggled;
+        return i.Clicked || activated;
     }
 
     /// <summary>Returns true on frames where <paramref name="value"/> changes: by dragging, or by

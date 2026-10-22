@@ -60,7 +60,9 @@ internal static class DecompilerOptionsPanelView
             w.FoldedOptionGroups.Add(flipped);
     }
 
-    /// <summary>Draws a section's header; returns true when it was clicked to fold or unfold.</summary>
+    /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,
+    /// showing a square when only some are on. Returns true when the row besides the checkbox was
+    /// clicked to fold or unfold.</summary>
     private static bool Header(Ui ui, Workspace w, Strings t, Section section, DecompilerOptions options, float rowHeight, string? tooNew)
     {
         var theme = ui.Theme;
@@ -78,11 +80,20 @@ internal static class DecompilerOptionsPanelView
         }))
         {
             ui.Icon(new UiIcon(folded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
-            ui.Text(Title(t, section), color: allowed ? theme.Text : theme.TextMuted, overflow: TextOverflow.Ellipsis);
+            var all = State(section, options);
+            if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow()))
+                w.SetDecompilerToggles(section.Toggles, all == true);
         }
         if (!allowed && tooNew != null)
             ui.Tooltip(item.Id, tooNew);
         return item.Clicked;
+    }
+
+    /// <summary>True when every toggle in <paramref name="section"/> is on, false when none is, null otherwise.</summary>
+    private static bool? State(Section section, DecompilerOptions options)
+    {
+        var on = section.Toggles.Count(options.IsOn);
+        return on == section.Toggles.Length ? true : on == 0 ? false : null;
     }
 
     private static void Toggle(Ui ui, Workspace w, Strings t, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)

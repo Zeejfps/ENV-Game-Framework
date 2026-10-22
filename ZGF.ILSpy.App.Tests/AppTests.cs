@@ -237,10 +237,49 @@ public sealed class AppTests
         Assert.Equal(DecompilerOptions.Default with { LanguageVersion = CSharpVersion.CSharp7 }, app.Workspace.DecompilerOptions);
         Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("Features newer than"));
 
-        app.Click("C# 8.0 / VS 2019");
+        ClickChevronOf(app, "C# 8.0 / VS 2019");
         app.Run();
         Assert.Contains(nameof(CSharpVersion.CSharp8), app.Workspace.FoldedOptionGroups);
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "switch expressions");
+    }
+
+    [Fact]
+    public void A_group_checkbox_sets_every_option_in_it_and_shows_when_only_some_are_on()
+    {
+        var app = OpenFixtures(width: 1600f);
+        FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
+        app.Workspace.OpenDecompilerOptions();
+        app.Run();
+        var csharp8 = DecompilerToggle.All.Where(t => t.IntroducedIn == CSharpVersion.CSharp8).ToArray();
+
+        app.Click("C# 8.0 / VS 2019");
+        app.Driver.Settle();
+        app.Run();
+        Assert.All(csharp8, t => Assert.False(app.Workspace.DecompilerOptions.IsOn(t)));
+        Assert.DoesNotContain(nameof(CSharpVersion.CSharp8), app.Workspace.FoldedOptionGroups);
+
+        app.Click("switch expressions");
+        app.Run();
+        Assert.Equal(csharp8.Length - 1, app.Workspace.DecompilerOptions.Toggles.Count);
+
+        app.Click("C# 8.0 / VS 2019");
+        app.Driver.Settle();
+        app.Run();
+        Assert.Equal(DecompilerOptions.Default, app.Workspace.DecompilerOptions);
+    }
+
+    /// <summary>Clicks the fold chevron drawn just before a decompiler options group's title.</summary>
+    private static void ClickChevronOf(AppDriver app, string title)
+    {
+        var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).ToList();
+        var at = texts.FindIndex(t => t.Text == title);
+        var chevron = texts.Take(at).Last(t => t.Text is LucideIcons.ChevronDown or LucideIcons.ChevronRight).Position;
+        app.Frames.MovePointer(chevron.Left + chevron.Width / 2, app.Frames.Height - chevron.Top + chevron.Height / 2);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.Release();
+        app.Run();
     }
 
     private static void FoldOptionGroupsBut(AppDriver app, string open)

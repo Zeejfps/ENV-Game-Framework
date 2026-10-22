@@ -265,6 +265,8 @@ public sealed class Workspace
 
     public void SetDecompilerToggle(DecompilerToggle toggle, bool value) => SetDecompilerOptions(DecompilerOptions.With(toggle, value));
 
+    public void SetDecompilerToggles(IEnumerable<DecompilerToggle> toggles, bool value) => SetDecompilerOptions(DecompilerOptions.With(toggles, value));
+
     /// <summary>Turns every toggle back to its default, keeping the language version.</summary>
     public void ResetDecompilerToggles() => SetDecompilerOptions(DecompilerOptions with { Toggles = DecompilerOptions.Default.Toggles });
 
