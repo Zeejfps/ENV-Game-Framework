@@ -24,8 +24,7 @@ public sealed class MetadataGridState
     internal int[]? Order;
     internal int[] View = [];
     internal int ViewKey;
-    internal int Selected = None;
-    internal int CurrentColumn = None;
+    internal readonly TableCellSelection Cell = new();
     internal float ScrollX;
     internal float ScrollY;
     internal float RowHeight;
@@ -36,8 +35,6 @@ public sealed class MetadataGridState
     internal bool BeginEdit;
     internal int FlagsColumn = None;
     internal bool FlagsOpen;
-    internal readonly TextSelection Text = new();
-    internal float TextShift;
     internal readonly Dictionary<(int Row, int Column), int> Open = new();
     internal readonly Dictionary<int, (DecompiledDocument Document, CodeViewState View)> DetailTexts = new();
     internal readonly Dictionary<int, (int Lines, int Longest)> DetailSizes = new();
@@ -55,15 +52,14 @@ public sealed class MetadataGridState
         Grid = grid;
         Columns = null;
         Filters = new MetadataColumnFilter?[grid.Columns.Count];
-        SortColumn = Selected = CurrentColumn = PendingReveal = EditingColumn = FlagsColumn = None;
+        SortColumn = PendingReveal = EditingColumn = FlagsColumn = None;
+        Cell.Clear();
         Descending = ScrollToSelected = BeginEdit = FlagsOpen = false;
         Order = null;
         View = [];
         ViewKey = 0;
         ScrollX = ScrollY = 0f;
         PendingRestore = null;
-        Text.Select(0, 0);
-        TextShift = 0f;
         Open.Clear();
         DetailTexts.Clear();
         DetailSizes.Clear();
@@ -85,22 +81,24 @@ public sealed class MetadataGridState
 
     /// <summary>Makes <paramref name="row"/>'s cell in <paramref name="column"/> the current one
     /// with all its text selected.</summary>
-    internal void SelectCell(int row, int column)
-    {
-        if (row == Selected && column == CurrentColumn) return;
-        Selected = row;
-        CurrentColumn = column;
-        TextShift = 0f;
-        SelectAllText();
-    }
+    internal void SelectCell(int row, int column) => Cell.Select(row, column, ShownAt(row, column));
+
+    /// <summary>The selected row, or <see cref="None"/>.</summary>
+    internal int Selected => Cell.Row;
+
+    /// <summary>The current cell's column, or <see cref="None"/>.</summary>
+    internal int CurrentColumn => Cell.Column;
 
     /// <summary>Whether the current cell is a multi-line one opened in place.</summary>
     internal bool IsOpen => Open.ContainsKey((Selected, CurrentColumn));
 
     /// <summary>The current cell's text as shown: all of it while open, else its first line.</summary>
-    internal string ShownText => IsOpen ? Grid!.Text(Selected, CurrentColumn) : Grid!.Lines(Selected, CurrentColumn).FirstLine;
+    internal string ShownText => ShownAt(Selected, CurrentColumn);
 
-    internal void SelectAllText() => Text.Select(Selected >= 0 && CurrentColumn >= 0 ? ShownText.Length : 0, 0);
+    internal void SelectAllText() => Cell.SelectAll(ShownText);
+
+    private string ShownAt(int row, int column) =>
+        row < 0 || column < 0 ? "" : Open.ContainsKey((row, column)) ? Grid!.Text(row, column) : Grid!.Lines(row, column).FirstLine;
 
     internal int RowAt(int index) => View[index];
 
@@ -234,18 +232,10 @@ public static class MetadataGridWidget
                 using (ui.TableCell(columns, c, cells[c].Id, Align.Start))
                 {
                     if (current)
-                    {
-                        using (ui.Float(0f, 0f, box: new Box
-                               {
-                                   Width = Sizing.Grow(),
-                                   Height = Sizing.Grow(),
-                                   BorderColor = focused ? theme.FocusRing : theme.BorderStrong,
-                                   BorderWidth = focused ? theme.FocusRingWidth : theme.BorderWidth,
-                               }, z: 1, clipped: true)) { }
-                    }
+                        ui.TableCellOutline(focused);
                     if (state.Open.ContainsKey((row, c)))
                     {
-                        ui.SelectableTextArea(cells[c], grid.Text(row, c), state.Text, ref state.TextShift, current, rowHeight,
+                        ui.SelectableTextArea(cells[c], grid.Text(row, c), state.Cell.Text, ref state.Cell.Shift, current, rowHeight,
                             link ? theme.AccentText : theme.Text, mono ? theme.FontSize : null, mono ? MonoFonts.Regular : null);
                     }
                     else
@@ -253,7 +243,7 @@ public static class MetadataGridWidget
                         using (ui.Row(new Box { Width = Sizing.Grow(), Height = rowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
                         {
                             var (firstLine, moreLines) = grid.Lines(row, c);
-                            ui.SelectableText(cells[c], firstLine, state.Text, ref state.TextShift, current, link ? theme.AccentText : theme.Text,
+                            ui.SelectableText(cells[c], firstLine, state.Cell.Text, ref state.Cell.Shift, current, link ? theme.AccentText : theme.Text,
                                 mono ? theme.FontSize : null, mono ? MonoFonts.Regular : null);
                             if (moreLines > 0)
                             {
@@ -264,8 +254,8 @@ public static class MetadataGridWidget
                         }
                     }
                 }
-                if (current && cells[c].Clicked && !state.Text.HasSelection)
-                    state.SelectAllText();
+                if (current)
+                    state.Cell.SettleClick(cells[c], state.ShownText);
                 Tooltip(ui, grid, row, c, cells[c].Id);
             }
         }
@@ -730,13 +720,8 @@ public static class MetadataGridWidget
 
     /// <summary>What copying the current cell takes: the part of its text selected, else all of it,
     /// lines hidden while it is closed included.</summary>
-    private static string CellText(MetadataGrid grid, MetadataGridState state)
-    {
-        var shown = state.ShownText;
-        return state.Text.HasSelection && (state.Text.Start > 0 || state.Text.End < shown.Length)
-            ? state.Text.Of(shown)
-            : grid.Text(state.Selected, state.CurrentColumn);
-    }
+    private static string CellText(MetadataGrid grid, MetadataGridState state) =>
+        state.Cell.Copied(state.ShownText, grid.Text(state.Selected, state.CurrentColumn));
 
     private static string RowText(MetadataGrid grid, int row) =>
         string.Join('\t', Enumerable.Range(0, grid.Columns.Count).Select(c => grid.Text(row, c)));
@@ -786,8 +771,8 @@ public static class MetadataGridWidget
                     Expand(grid, state, state.Selected, state.CurrentColumn);
                     state.SelectAllText();
                     break;
-                case (0, KeyboardKey.Escape) when state.Text.HasSelection:
-                    state.Text.Select(state.Text.Caret, state.Text.Caret);
+                case (0, KeyboardKey.Escape) when state.Cell.Text.HasSelection:
+                    state.Cell.Text.Select(state.Cell.Text.Caret, state.Cell.Text.Caret);
                     break;
                 case (0, KeyboardKey.Escape) when state.IsOpen:
                     state.Open.Remove((state.Selected, state.CurrentColumn));
