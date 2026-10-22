@@ -16,16 +16,40 @@ public sealed class IlSpyApp : Gui<Workspace>
         (LucideIcons.Family, LucideIcons.File),
     ];
 
-    public IlSpyApp(Workspace workspace) : base(workspace)
+    private IlSpyApp(Workspace workspace) : base(workspace)
     {
         foreach (var (family, file) in Fonts)
             RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
         workspace.Assemblies.Changed += Invalidate;
     }
 
-    public void OpenOnStartup(List<string> paths)
+    public static void Launch(CommandLine commandLine)
     {
+        var app = Create(commandLine.SettingsPath);
+        app.OpenOnStartup(commandLine.AssemblyPaths);
+        var windowConfig = app.State.Settings.CreateWindowConfig();
+        app.Run(windowConfig, commandLine.RenderBackend);
+        app.SaveOnClose();
+    }
+
+    private static IlSpyApp Create(string settingsPath)
+    {
+        var settings = AppSettings.Load(settingsPath);
+        var workspace = new Workspace(settings);
+        return new IlSpyApp(workspace);
+    }
+
+    private void OpenOnStartup(List<string> commandLinePaths)
+    {
+        var paths = State.Settings.ListExistingAssemblies();
+        paths.AddRange(commandLinePaths);
         Post(() => State.Open(paths));
+    }
+
+    private void SaveOnClose()
+    {
+        State.Settings.RememberWindow(WindowBounds);
+        State.SaveSettings();
     }
 
     protected override void Render(Ui ui, Workspace w) => MainView.Render(ui, w, Strings.For(w.Locale));
