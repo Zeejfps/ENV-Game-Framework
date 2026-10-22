@@ -59,6 +59,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
 
     protected override void OnRender(Ui ui, Workspace w)
     {
+        // TODO: Check why we are passing Strings here when MainView has access to Workspace
         MainView.Render(ui, w, Strings.For(w.Locale));
     }
 }
