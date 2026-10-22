@@ -520,46 +520,12 @@ public static class MetadataGridWidget
 
     private static void Tooltip(Ui ui, MetadataGrid grid, int row, int column, int cellId)
     {
-        if (!ui.IsHovered(cellId) || grid.Tooltip(row, column) is not { } content) return;
-        var theme = ui.Theme;
+        if (!ui.IsHovered(cellId)) return;
+        var content = grid.Tooltip(row, column);
+        if (content == null) return;
         using var tooltip = ui.TooltipContent(cellId);
         if (!tooltip.IsOpen) return;
-        if (content.Text is { } text)
-        {
-            ui.Text(text, color: theme.Text, size: theme.FontSizeSmall, wrap: true);
-            return;
-        }
-        using (ui.Column(new Box { Gap = theme.GapTight }))
-        {
-            foreach (var group in content.Groups)
-            {
-                if (group.IsChoice)
-                {
-                    using (ui.Row(new Box { Gap = theme.GapTight }))
-                    {
-                        if (group.Header is { Length: > 0 } header)
-                            ui.Text(header, color: theme.Text, size: theme.FontSizeSmall, bold: true);
-                        if (group.Flags is [var flag, ..])
-                            ui.Text(flag.Name, color: theme.Text, size: theme.FontSizeSmall);
-                    }
-                    continue;
-                }
-                using (ui.Column(new Box { Gap = 0f }))
-                {
-                    if (group.Header is { Length: > 0 } header)
-                        ui.Text(header, color: theme.Text, size: theme.FontSizeSmall, bold: true);
-                    foreach (var flag in group.Flags)
-                    {
-                        using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
-                        {
-                            ui.Text(flag.IsSet ? LucideIcons.CheckSquare : LucideIcons.Square, color: flag.IsSet ? theme.AccentText : theme.TextMuted,
-                                size: theme.FontSizeSmall, family: LucideIcons.Family);
-                            ui.Text(flag.Name, color: flag.IsSet ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall);
-                        }
-                    }
-                }
-            }
-        }
+        MetadataTooltipView.Render(ui, content);
     }
 
     private static MetadataGridResult? Menu(Ui ui, string id, MetadataGrid grid, MetadataGridState state, Strings t)
