@@ -62,23 +62,143 @@ public sealed class Search
     /// typed query settles, or 0.</summary>
     public double Update(AssemblyList assemblies, double now, bool shown)
     {
-        if (Query != _typed)
-        {
-            _typed = Query;
-            _typedAt = now;
-        }
-        if (!shown) return 0;
-        if (_typed != _query || Kinds != _kinds)
-        {
-            var remaining = DebounceSeconds - (now - _typedAt);
-            if (remaining > 0 && Kinds == _kinds) return remaining;
-            Restart(assemblies);
-        }
-        else if (assemblies.Version != _version)
-        {
+        NoteTyping(now);
+        if (!shown)
+            return 0;
+        if (IsQueryChanged())
+            return RestartWhenSettled(assemblies, now);
+        if (assemblies.Version != _version)
             Extend(assemblies);
-        }
         return 0;
+    }
+
+    private void NoteTyping(double now)
+    {
+        if (Query == _typed)
+            return;
+        _typed = Query;
+        _typedAt = now;
+    }
+
+    private bool IsQueryChanged() => _typed != _query || Kinds != _kinds;
+
+    private double RestartWhenSettled(AssemblyList assemblies, double now)
+    {
+        var remaining = DebounceSeconds - (now - _typedAt);
+        if (remaining > 0 && Kinds == _kinds)
+            return remaining;
+        Restart(assemblies);
+        return 0;
+    }
+
+    private void Restart(AssemblyList assemblies)
+    {
+        CancelRuns();
+        _query = _typed;
+        _kinds = Kinds;
+        _version = assemblies.Version;
+        _rows.Clear();
+        Selection.Clear();
+        var listed = assemblies.Assemblies;
+        _searched.Clear();
+        _searched.UnionWith(listed);
+        Start(assemblies, listed);
+    }
+
+    private void CancelRuns()
+    {
+        foreach (var run in _runs)
+            run.Cancel();
+        _runs.Clear();
+    }
+
+    private void Extend(AssemblyList assemblies)
+    {
+        _version = assemblies.Version;
+        var listed = assemblies.Assemblies;
+        DropClosed(listed);
+        var added = MarkSearched(listed);
+        if (added.Count > 0)
+            Start(assemblies, added);
+    }
+
+    private void DropClosed(IReadOnlyList<LoadedAssembly> listed)
+    {
+        var closed = _searched.RemoveWhere(a => !listed.Contains(a));
+        if (closed == 0)
+            return;
+        var selected = SelectedRow?.Node;
+        _rows.RemoveAll(r => !_searched.Contains(r.Node.Assembly));
+        Reselect(selected);
+    }
+
+    private List<LoadedAssembly> MarkSearched(IReadOnlyList<LoadedAssembly> listed)
+    {
+        var added = new List<LoadedAssembly>();
+        foreach (var assembly in listed)
+        {
+            if (_searched.Add(assembly))
+                added.Add(assembly);
+        }
+        return added;
+    }
+
+    private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within)
+    {
+        var query = SearchQuery.Parse(_query!, _kinds);
+        if (query.IsEmpty)
+            return;
+        var work = new CancellationTokenSource();
+        _runs.Add(work);
+        var search = assemblies.SearchAsync(query, within, work.Token);
+        Run(search, work);
+    }
+
+    private async void Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work)
+    {
+        try
+        {
+            await foreach (var batch in search)
+                Deliver(batch, work);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception e)
+        {
+            _reportError(_strings().ErrorSearch, e.ToString());
+        }
+        _runs.Remove(work);
+        work.Dispose();
+    }
+
+    private void Deliver(IReadOnlyList<SearchResult> batch, CancellationTokenSource work)
+    {
+        if (!_runs.Contains(work))
+            return;
+        var selected = SelectedRow?.Node;
+        foreach (var row in batch)
+        {
+            if (_searched.Contains(row.Node.Assembly))
+                Insert(row);
+        }
+        if (selected != null)
+            Reselect(selected);
+    }
+
+    private void Insert(SearchResult row)
+    {
+        var low = 0;
+        var high = _rows.Count;
+        while (low < high)
+        {
+            var mid = (low + high) / 2;
+            if (Compare(_rows[mid], row) <= 0)
+                low = mid + 1;
+            else
+                high = mid;
+        }
+        _rows.Insert(low, row);
     }
 
     public void Select(int index) => Selection.Select(index, _rows.Count);
@@ -103,69 +223,46 @@ public sealed class Search
 
     private int Compare(SearchResult a, SearchResult b)
     {
-        var order = Sort switch
-        {
-            SearchSort.Name => Compare(a.Text, b.Text, a.Location, b.Location, a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion),
-            SearchSort.Location => Compare(a.Location, b.Location, a.Text, b.Text, a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion),
-            SearchSort.Assembly => Compare(a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion, a.Text, b.Text, a.Location, b.Location),
-            _ => b.Fitness.CompareTo(a.Fitness) is var fit and not 0
-                ? fit
-                : Compare(a.Text, b.Text, a.Location, b.Location, a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion),
-        };
+        var order = CompareAscending(a, b);
         return Descending ? -order : order;
     }
+
+    private int CompareAscending(SearchResult a, SearchResult b) => Sort switch
+    {
+        SearchSort.Name => CompareByName(a, b),
+        SearchSort.Location => CompareByLocation(a, b),
+        SearchSort.Assembly => CompareByAssembly(a, b),
+        _ => CompareByRelevance(a, b),
+    };
+
+    private static int CompareByName(SearchResult a, SearchResult b) =>
+        Compare(a.Text, b.Text, a.Location, b.Location, AssemblyOf(a), AssemblyOf(b));
+
+    private static int CompareByLocation(SearchResult a, SearchResult b) =>
+        Compare(a.Location, b.Location, a.Text, b.Text, AssemblyOf(a), AssemblyOf(b));
+
+    private static int CompareByAssembly(SearchResult a, SearchResult b) =>
+        Compare(AssemblyOf(a), AssemblyOf(b), a.Text, b.Text, a.Location, b.Location);
+
+    private static int CompareByRelevance(SearchResult a, SearchResult b)
+    {
+        var fit = b.Fitness.CompareTo(a.Fitness);
+        if (fit != 0)
+            return fit;
+        return CompareByName(a, b);
+    }
+
+    private static string AssemblyOf(SearchResult row) => row.Node.Assembly.NameAndVersion;
 
     private static int Compare(string a1, string b1, string a2, string b2, string a3, string b3)
     {
         var order = StringComparer.OrdinalIgnoreCase.Compare(a1, b1);
-        if (order == 0) order = StringComparer.OrdinalIgnoreCase.Compare(a2, b2);
-        return order != 0 ? order : StringComparer.OrdinalIgnoreCase.Compare(a3, b3);
-    }
-
-    private void Insert(SearchResult row)
-    {
-        int low = 0, high = _rows.Count;
-        while (low < high)
-        {
-            var mid = (low + high) / 2;
-            if (Compare(_rows[mid], row) <= 0)
-                low = mid + 1;
-            else
-                high = mid;
-        }
-        _rows.Insert(low, row);
-    }
-
-    private void Restart(AssemblyList assemblies)
-    {
-        foreach (var run in _runs)
-            run.Cancel();
-        _runs.Clear();
-        _query = _typed;
-        _kinds = Kinds;
-        _version = assemblies.Version;
-        _rows.Clear();
-        _searched.Clear();
-        Selection.Clear();
-        var listed = assemblies.Assemblies;
-        _searched.UnionWith(listed);
-        if (!SearchQuery.Parse(_query, _kinds).IsEmpty)
-            Start(assemblies, listed);
-    }
-
-    private void Extend(AssemblyList assemblies)
-    {
-        _version = assemblies.Version;
-        var listed = assemblies.Assemblies;
-        if (_searched.RemoveWhere(a => !listed.Contains(a)) > 0)
-        {
-            var selected = SelectedRow?.Node;
-            _rows.RemoveAll(r => !_searched.Contains(r.Node.Assembly));
-            Reselect(selected);
-        }
-        var added = listed.Where(_searched.Add).ToArray();
-        if (added.Length > 0 && !SearchQuery.Parse(_query!, _kinds).IsEmpty)
-            Start(assemblies, added);
+        if (order != 0)
+            return order;
+        order = StringComparer.OrdinalIgnoreCase.Compare(a2, b2);
+        if (order != 0)
+            return order;
+        return StringComparer.OrdinalIgnoreCase.Compare(a3, b3);
     }
 
     private void Reselect(BrowseNode? selected)
@@ -177,43 +274,5 @@ public sealed class Search
         }
         var index = _rows.FindIndex(r => ReferenceEquals(r.Node, selected));
         Selection.Select(index, _rows.Count, reveal: false);
-    }
-
-    private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within)
-    {
-        var work = new CancellationTokenSource();
-        _runs.Add(work);
-        _ = Run(assemblies.SearchAsync(SearchQuery.Parse(_query!, _kinds), within, work.Token), work);
-    }
-
-    private async Task Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work)
-    {
-        try
-        {
-            await foreach (var batch in search)
-                Deliver(batch, work);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception e)
-        {
-            _reportError(_strings().ErrorSearch, e.ToString());
-        }
-        _runs.Remove(work);
-        work.Dispose();
-    }
-
-    private void Deliver(IReadOnlyList<SearchResult> batch, CancellationTokenSource work)
-    {
-        if (!_runs.Contains(work)) return;
-        var selected = SelectedRow?.Node;
-        foreach (var row in batch)
-        {
-            if (_searched.Contains(row.Node.Assembly))
-                Insert(row);
-        }
-        if (selected is not null)
-            Reselect(selected);
     }
 }
