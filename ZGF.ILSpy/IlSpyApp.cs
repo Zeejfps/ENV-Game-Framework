@@ -16,8 +16,11 @@ public sealed class IlSpyApp : Gui<Workspace>
         (LucideIcons.Family, LucideIcons.File),
     ];
 
-    private IlSpyApp(Workspace workspace) : base(workspace)
+    private readonly List<string> _commandLineAssemblies;
+
+    private IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace)
     {
+        _commandLineAssemblies = commandLineAssemblies;
         foreach (var (family, file) in Fonts)
             RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
         workspace.Assemblies.Changed += Invalidate;
@@ -25,28 +28,21 @@ public sealed class IlSpyApp : Gui<Workspace>
 
     public static void Launch(CommandLine commandLine)
     {
-        var app = Create(commandLine.SettingsPath);
-        app.OpenOnStartup(commandLine.AssemblyPaths);
-        var windowConfig = app.State.Settings.CreateWindowConfig();
-        app.Run(windowConfig, commandLine.RenderBackend);
-        app.SaveOnClose();
-    }
-
-    private static IlSpyApp Create(string settingsPath)
-    {
-        var settings = AppSettings.Load(settingsPath);
+        var settings = AppSettings.Load(commandLine.SettingsPath);
         var workspace = new Workspace(settings);
-        return new IlSpyApp(workspace);
+        var app = new IlSpyApp(workspace, commandLine.AssemblyPaths);
+        var windowConfig = settings.CreateWindowConfig();
+        app.Run(windowConfig, commandLine.RenderBackend);
     }
 
-    private void OpenOnStartup(List<string> commandLinePaths)
+    protected override void OnStartup()
     {
         var paths = State.Settings.ListExistingAssemblies();
-        paths.AddRange(commandLinePaths);
-        Post(() => State.Open(paths));
+        paths.AddRange(_commandLineAssemblies);
+        State.Open(paths);
     }
 
-    private void SaveOnClose()
+    protected override void OnShutdown()
     {
         State.Settings.RememberWindow(WindowBounds);
         State.SaveSettings();

@@ -36,6 +36,12 @@ public abstract class Gui<T> where T : class
 
     protected abstract void Render(Ui ui, T state);
 
+    /// <summary>Runs on the UI thread before the first frame.</summary>
+    protected virtual void OnStartup() { }
+
+    /// <summary>Runs once the window has closed and <see cref="Run"/> is about to return.</summary>
+    protected virtual void OnShutdown() { }
+
     /// <summary>Makes the font in <paramref name="data"/> (TTF/OTF bytes) drawable as
     /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiTheme.FontFamily"/>.
     /// With <paramref name="bold"/> it is the face the family's bold text is drawn in, which is
@@ -65,6 +71,7 @@ public abstract class Gui<T> where T : class
     public void Run(StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
     {
         _stopped = false;
+        Post(OnStartup);
         using var context = new UiSynchronizationContext(Post).Install();
         using var host = new ImmediateHost(config, backend, _fonts, _posted, ui => Render(ui, State));
         _host = host;
@@ -79,5 +86,6 @@ public abstract class Gui<T> where T : class
             _stopped = true;
             _posted.Clear();
         }
+        OnShutdown();
     }
 }
