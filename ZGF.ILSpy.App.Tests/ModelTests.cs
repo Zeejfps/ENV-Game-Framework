@@ -269,7 +269,7 @@ public sealed class FrameworkPickerTests
     {
         var posted = PostedActions.OfThisTest();
         var reported = new List<string>();
-        var picker = new FrameworkPickerModel(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
+        var picker = new FrameworkPicker(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
 
         picker.Open();
         Poll.Until(() => !picker.IsLoading, posted.Run);

@@ -39,11 +39,11 @@ public sealed class Workspace
         new TableColumn(3f, 80f),
         new TableColumn(2f, 60f));
 
-    public SearchModel Search { get; }
+    public Search Search { get; }
 
     /// <summary>The metadata grids' flags filters.</summary>
     public MetadataFilters MetadataFilters { get; }
-    public FrameworkPickerModel Picker { get; }
+    public FrameworkPicker Picker { get; }
     public ErrorLog Errors { get; } = new();
     public DocumentTabs Tabs { get; } = new();
 
@@ -106,14 +106,14 @@ public sealed class Workspace
         Layout.PanelClosed += this.OnPanelClosed;
         Tree = new BrowseTree();
         Analyzer = new AnalyzerTree(() => Assemblies);
-        Search = new SearchModel(GetStrings, ReportError);
+        Search = new Search(GetStrings, ReportError);
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
-        Picker = new FrameworkPickerModel(GetStrings, ReportError);
+        Picker = new FrameworkPicker(GetStrings, ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
         LastSessionAnalyses = new LastSessionAnalyses(settings.Analyzed);

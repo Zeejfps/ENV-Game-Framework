@@ -6,7 +6,7 @@ namespace ZGF.ILSpy;
 
 /// <summary>The "open from framework" dialog: the runtime's assemblies, scanned once in the
 /// background, filtered by name.</summary>
-public sealed class FrameworkPickerModel
+public sealed class FrameworkPicker
 {
     private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
@@ -21,7 +21,7 @@ public sealed class FrameworkPickerModel
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user the runtime could not be scanned: a title and details.</param>
     /// <param name="scan">Lists the assemblies to offer; the running runtime's by default.</param>
-    public FrameworkPickerModel(Func<Strings> strings, Action<string, string> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
+    public FrameworkPicker(Func<Strings> strings, Action<string, string> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
     {
         _strings = strings;
         _reportError = reportError;

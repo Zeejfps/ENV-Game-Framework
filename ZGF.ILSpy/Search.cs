@@ -16,7 +16,7 @@ public enum SearchSort
 /// <summary>The search panel's query, streamed results and selection. While the panel is open a
 /// query runs once typing pauses; assemblies opened later are searched and their hits added, and
 /// hits in closed ones dropped, keeping the selection.</summary>
-public sealed class SearchModel
+public sealed class Search
 {
     private const double DebounceSeconds = 0.15;
 
@@ -33,7 +33,7 @@ public sealed class SearchModel
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed: a title and details.</param>
-    public SearchModel(Func<Strings> strings, Action<string, string> reportError)
+    public Search(Func<Strings> strings, Action<string, string> reportError)
     {
         _strings = strings;
         _reportError = reportError;

@@ -63,7 +63,7 @@ internal static class FrameworkPickerView
     }
 
     /// <summary>Walks the list from the filter, leaving Home and End to its text.</summary>
-    private static void MoveSelectionFromFilter(Ui ui, FrameworkPickerModel picker, int listId)
+    private static void MoveSelectionFromFilter(Ui ui, FrameworkPicker picker, int listId)
     {
         var count = picker.Filtered.Count;
         var page = ui.MeasureListPage(listId, ui.Theme.RowHeight);
@@ -78,7 +78,7 @@ internal static class FrameworkPickerView
             picker.Selection.Select(index, count);
     }
 
-    private static bool Rows(Ui ui, FrameworkPickerModel picker, Strings t, int listId)
+    private static bool Rows(Ui ui, FrameworkPicker picker, Strings t, int listId)
     {
         var theme = ui.Theme;
         using var list = ui.SelectableList(listId, picker.Filtered.Count, picker.Selection);
