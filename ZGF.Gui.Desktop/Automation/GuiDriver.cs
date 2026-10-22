@@ -95,9 +95,13 @@ public sealed class GuiDriver : ITypeSink
 
     /// <summary>Clicks the view matching <paramref name="selector"/> — an id, a clickable label, or
     /// visible text — wherever it lives across the open windows.</summary>
-    public void Click(string selector, MouseButton? button = null) =>
-        ClickTool(id: selector, label: null, text: null, exact: true, x: null, y: null,
-            button: button?.ToString(), window: null);
+    public void Click(string selector, MouseButton? button = null) => RunOnUi(() =>
+    {
+        var hit = Resolve(selector, exact: true) ?? throw NotFound(selector);
+        var pressed = button ?? MouseButton.Left;
+        InjectClick(hit.Surface.Input, hit.View.Position.Center, pressed);
+        return 0;
+    });
 
     /// <summary>Types <paramref name="text"/> into whatever holds focus. Unicode-safe: it sends the
     /// characters themselves, not decoded key positions, so Cyrillic and accented Latin type fine.</summary>
