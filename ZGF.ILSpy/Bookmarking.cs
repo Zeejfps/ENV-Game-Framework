@@ -48,24 +48,26 @@ public static class Bookmarking
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
     /// assembly first if it is not open, and records it in the history.</summary>
-    public static void GoTo(this Workspace w, Bookmark bookmark)
+    public static async void GoTo(this Workspace w, Bookmark bookmark)
     {
         var ticket = w.Intent.Begin();
         var tab = w.Tabs.Active;
         var place = bookmark.Place;
         w.Intent.StartResolving(ticket);
-        w.RunInBackground(() => w.Assemblies.FindNode(place), (node, error) => w.OnBookmarkPlaceFound(bookmark, node, error, tab, ticket));
-    }
-
-    private static void OnBookmarkPlaceFound(this Workspace w, Bookmark bookmark, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
-    {
+        var found = await Background.Run(() => w.Assemblies.FindNode(place));
         if (w.Intent.IsStale(ticket))
             return;
         w.Intent.StopResolving();
+        w.ShowBookmarkPlace(bookmark, found, tab);
+    }
+
+    private static void ShowBookmarkPlace(this Workspace w, Bookmark bookmark, Outcome<BrowseNode?> found, DocumentTab? tab)
+    {
+        var node = found.Value;
         if (node == null)
         {
             var t = w.GetStrings();
-            var details = Workspace.DescribeFailure(error, t.ErrorNoLongerThere(bookmark.Place));
+            var details = Workspace.DescribeFailure(found.Error, t.ErrorNoLongerThere(bookmark.Place));
             w.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
             return;
         }
@@ -97,7 +99,7 @@ public static class Bookmarking
     /// ILSpy's — and finds the place of each in the background: takes them at once when there are
     /// none yet, and otherwise asks how through <see cref="Workspace.PendingImport"/>. Bookmarks whose
     /// place is not found are left out and reported.</summary>
-    public static void ImportBookmarks(this Workspace w, string path)
+    public static async void ImportBookmarks(this Workspace w, string path)
     {
         var file = Path.GetFileName(path);
         var records = BookmarkFile.Read(path, out var error);
@@ -107,7 +109,9 @@ public static class Bookmarking
             return;
         }
         w.IsImporting = true;
-        w.RunInBackground(() => w.FindPlaces(records), (found, failure) => w.OnBookmarkPlacesFound(found, failure, file));
+        var found = await Background.Run(() => w.FindPlaces(records));
+        w.IsImporting = false;
+        w.TakeImported(found, file);
     }
 
     private static List<FoundBookmark> FindPlaces(this Workspace w, List<BookmarkRecord> records)
@@ -123,16 +127,16 @@ public static class Bookmarking
         return ILSpyTree.Locate(w.Assemblies, record.FileName, treePath, record.Token);
     }
 
-    private static void OnBookmarkPlacesFound(this Workspace w, List<FoundBookmark>? found, Exception? failure, string file)
+    private static void TakeImported(this Workspace w, Outcome<List<FoundBookmark>> found, string file)
     {
-        w.IsImporting = false;
-        if (failure != null)
+        var places = found.Value;
+        if (places == null)
         {
-            w.ReportError(w.GetStrings().ErrorImportBookmarks(file), failure.ToString());
+            w.ReportError(w.GetStrings().ErrorImportBookmarks(file), found.Error!.ToString());
             return;
         }
-        w.ReportLostBookmarks(found!, file);
-        var bookmarks = found!
+        w.ReportLostBookmarks(places, file);
+        var bookmarks = places
             .Where(f => f.Place != null)
             .Select(f => Bookmark.FromRecord(f.Record, f.Place!))
             .ToList();
