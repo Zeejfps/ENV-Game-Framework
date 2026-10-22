@@ -53,5 +53,8 @@ public sealed class IlSpyApp : Gui<Workspace>
         State.SaveSettings();
     }
 
-    protected override void OnRender(Ui ui, Workspace w) => MainView.Render(ui, w, Strings.For(w.Locale));
+    protected override void OnRender(Ui ui, Workspace w)
+    {
+        MainView.Render(ui, w, Strings.For(w.Locale));
+    }
 }
