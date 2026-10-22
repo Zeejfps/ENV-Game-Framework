@@ -33,8 +33,15 @@ public sealed class MetadataGridState
 
     /// <summary>Where the view stands, as a code view's position: the top row as the top line, the
     /// selected row and cell as the caret.</summary>
-    public CodeViewPosition Position =>
-        new(RowHeight > 0f ? (int)(ScrollY / RowHeight) : 0, ScrollX, default, new TextPosition(Selected, CurrentColumn));
+    public CodeViewPosition Position
+    {
+        get
+        {
+            var topLine = RowHeight > 0f ? (int)(ScrollY / RowHeight) : 0;
+            var caret = new TextPosition(Selected, CurrentColumn);
+            return new CodeViewPosition(topLine, ScrollX, default, caret);
+        }
+    }
 
     /// <summary>Starts over on <paramref name="grid"/>: unsorted, unfiltered but for the flags
     /// filters kept for its kind of rows, nothing selected, at the top.</summary>
@@ -44,13 +51,19 @@ public sealed class MetadataGridState
         Grid = grid;
         Columns = null;
         Filters = new MetadataColumnFilter?[grid.Columns.Count];
-        SortColumn = PendingReveal = EditingColumn = FlagsColumn = None;
+        SortColumn = None;
+        PendingReveal = None;
+        EditingColumn = None;
+        FlagsColumn = None;
         Cell.Clear();
-        Descending = BeginEdit = FlagsOpen = false;
+        Descending = false;
+        BeginEdit = false;
+        FlagsOpen = false;
         Order = null;
         View = [];
         ViewKey = 0;
-        ScrollX = ScrollY = 0f;
+        ScrollX = 0f;
+        ScrollY = 0f;
         PendingRestore = null;
         Open.Clear();
         Details.Clear();
@@ -70,6 +83,72 @@ public sealed class MetadataGridState
         PendingRestore = null;
     }
 
+    /// <summary>Sorts by <paramref name="column"/>, the other way when it already sorts by it, and
+    /// scrolls the selected row back into view.</summary>
+    internal void SortBy(int column)
+    {
+        Descending = SortColumn == column && !Descending;
+        SortColumn = column;
+        Order = Grid!.Order(column, Descending);
+        if (Selected != None)
+            PendingReveal = Selected;
+    }
+
+    /// <summary>The filter of <paramref name="column"/>, made on first use; a column of flags gets
+    /// the one <paramref name="flags"/> keeps for it.</summary>
+    internal MetadataColumnFilter FilterOf(int column, MetadataFilters flags)
+    {
+        var filter = Filters[column];
+        if (filter != null)
+            return filter;
+        filter = CreateFilter(column, flags);
+        Filters[column] = filter;
+        return filter;
+    }
+
+    private MetadataColumnFilter CreateFilter(int column, MetadataFilters flags)
+    {
+        if (!IsFlagsColumn(column))
+            return new MetadataColumnFilter();
+        return new MetadataColumnFilter { Flags = flags.For(Grid!, column) };
+    }
+
+    private bool IsFlagsColumn(int column) => Grid!.Columns[column].Flags != null;
+
+    /// <summary>Filters and sorts the rows again when a filter or the sort changed.</summary>
+    internal void UpdateView(MetadataFilters flags)
+    {
+        var key = ComputeViewKey(flags);
+        if (key == ViewKey) return;
+        ViewKey = key;
+        View = Grid!.Filter(Order, Filters);
+    }
+
+    private int ComputeViewKey(MetadataFilters flags)
+    {
+        var key = new HashCode();
+        key.Add(SortColumn);
+        key.Add(Descending);
+        for (var c = 0; c < Grid!.Columns.Count; c++)
+        {
+            if (IsFlagsColumn(c))
+                key.Add(FilterOf(c, flags).Flags!.Revision);
+            key.Add(Filters[c]?.Text);
+        }
+        return key.ToHashCode() | 1;
+    }
+
+    internal void StartEditingFilter(int column)
+    {
+        EditingColumn = column;
+        BeginEdit = true;
+    }
+
+    internal void StopEditingFilter()
+    {
+        EditingColumn = None;
+    }
+
     /// <summary>Makes <paramref name="row"/>'s cell in <paramref name="column"/> the current one
     /// with all its text selected.</summary>
     internal void SelectCell(int row, int column) => Cell.Select(row, column, ShownAt(row, column));
@@ -80,16 +159,54 @@ public sealed class MetadataGridState
     /// <summary>The current cell's column, or <see cref="None"/>.</summary>
     internal int CurrentColumn => Cell.Column;
 
+    internal bool HasCurrentCell => Selected >= 0 && CurrentColumn >= 0;
+
     /// <summary>Whether the current cell is a multi-line one opened in place.</summary>
-    internal bool IsOpen => Open.ContainsKey((Selected, CurrentColumn));
+    internal bool IsOpen => IsOpenAt(Selected, CurrentColumn);
+
+    internal bool IsOpenAt(int row, int column) => Open.ContainsKey((row, column));
+
+    /// <summary>Opens <paramref name="row"/>'s multi-line cell in <paramref name="column"/> in place:
+    /// the cell grown downward to show every line, which leaves the rows above where they were.</summary>
+    internal void Expand(int row, int column)
+    {
+        var lines = Grid!.Text(row, column).Count(static ch => ch == '\n') + 1;
+        Open[(row, column)] = lines;
+    }
+
+    internal void CollapseCurrent() => Open.Remove((Selected, CurrentColumn));
 
     /// <summary>The current cell's text as shown: all of it while open, else its first line.</summary>
     internal string ShownText => ShownAt(Selected, CurrentColumn);
 
     internal void SelectAllText() => Cell.SelectAll(ShownText);
 
-    internal string ShownAt(int row, int column) =>
-        row < 0 || column < 0 ? "" : Open.ContainsKey((row, column)) ? Grid!.Text(row, column) : Grid!.Lines(row, column).FirstLine;
+    internal string ShownAt(int row, int column)
+    {
+        if (row < 0) return "";
+        if (column < 0) return "";
+        if (IsOpenAt(row, column)) return Grid!.Text(row, column);
+        return Grid!.Lines(row, column).FirstLine;
+    }
+
+    /// <summary>What copying takes: the current cell's text, or the whole row's without one.</summary>
+    internal string CopiedText()
+    {
+        if (CurrentColumn < 0) return RowText(Selected);
+        return CellText();
+    }
+
+    /// <summary>What copying the current cell takes: the part of its text selected, else all of it,
+    /// lines hidden while it is closed included.</summary>
+    internal string CellText() => Cell.Copied(ShownText, Grid!.Text(Selected, CurrentColumn));
+
+    internal string RowText(int row)
+    {
+        var grid = Grid!;
+        var cells = Enumerable.Range(0, grid.Columns.Count)
+            .Select(c => grid.Text(row, c));
+        return string.Join('\t', cells);
+    }
 
     internal int RowAt(int index) => View[index];
 

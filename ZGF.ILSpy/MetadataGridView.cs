@@ -34,7 +34,7 @@ public static class MetadataGridWidget
         var columns = state.Columns ??= Measure(ui, grid);
         var rowHeight = state.RowHeight = theme.RowHeight;
         var result = default(MetadataGridResult);
-        UpdateView(grid, state, flags);
+        state.UpdateView(flags);
 
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
 
@@ -43,9 +43,9 @@ public static class MetadataGridWidget
         var clicked = ui.TableHeader($"{id}-header", columns, listId, headers, theme.ShellPaddingX, state.ScrollX, new TableSort(state.SortColumn, sortIcon),
             (u, column, hovered) => Heading(u, grid, state, flags, t, listId, column, hovered));
         if (clicked >= 0 && clicked != state.EditingColumn)
-            Sort(state, clicked);
+            state.SortBy(clicked);
         FlagsFlyout(ui, grid, state, flags, t, listId);
-        UpdateView(grid, state, flags);
+        state.UpdateView(flags);
 
         var focused = ui.ListArea(listId);
         if (focused)
@@ -92,8 +92,8 @@ public static class MetadataGridWidget
             if (cells[c].Pressed || cells[c].ClickedWith(PointerButton.Right) || cells[c].ClickedWith(PointerButton.Middle))
             {
                 state.SelectCell(row, c);
-                if (cells[c].Pressed && !state.Open.ContainsKey((row, c)) && grid.Lines(row, c).MoreLines > 0)
-                    Expand(grid, state, row, c);
+                if (cells[c].Pressed && !state.IsOpenAt(row, c) && grid.Lines(row, c).MoreLines > 0)
+                    state.Expand(row, c);
             }
             if (cells[c].DoubleClicked && grid.Definition(row) is { } definition)
                 result = new MetadataGridResult(null, definition, false);
@@ -127,7 +127,7 @@ public static class MetadataGridWidget
         var theme = ui.Theme;
         var column = grid.Columns[c];
         var target = column.IsToken ? grid.Link(row, c) : null;
-        var expanded = state.Open.ContainsKey((row, c));
+        var expanded = state.IsOpenAt(row, c);
         uint? color = theme.Text;
         UiIcon? link = null;
         if (target != null)
@@ -161,11 +161,6 @@ public static class MetadataGridWidget
             return ui.Memo("more-lines", (more, t), static a => a.t.MetadataMoreLines(a.more));
     }
 
-    /// <summary>Opens <paramref name="row"/>'s multi-line cell in <paramref name="column"/> in place:
-    /// the cell grown downward to show every line, which leaves the rows above where they were.</summary>
-    private static void Expand(MetadataGrid grid, MetadataGridState state, int row, int column) =>
-        state.Open[(row, column)] = grid.Text(row, column).Count(static ch => ch == '\n') + 1;
-
     private static TableColumns Measure(Ui ui, MetadataGrid grid)
     {
         var theme = ui.Theme;
@@ -184,32 +179,11 @@ public static class MetadataGridWidget
         return TableColumns.Sized(widths);
     }
 
-    /// <summary>Filters and sorts the rows again when a filter or the sort changed.</summary>
-    private static void UpdateView(MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
-    {
-        var key = new HashCode();
-        key.Add(state.SortColumn);
-        key.Add(state.Descending);
-        for (var c = 0; c < grid.Columns.Count; c++)
-        {
-            if (grid.Columns[c].Flags != null)
-            {
-                var filter = state.Filters[c] ??= new MetadataColumnFilter { Flags = flags.For(grid, c) };
-                key.Add(filter.Flags!.Revision);
-            }
-            key.Add(state.Filters[c]?.Text);
-        }
-        var hash = key.ToHashCode() | 1;
-        if (hash == state.ViewKey) return;
-        state.ViewKey = hash;
-        state.View = grid.Filter(state.Order, state.Filters);
-    }
-
     private static void Heading(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId, int column, bool hovered)
     {
         var theme = ui.Theme;
         var info = grid.Columns[column];
-        var filter = state.Filters[column] ??= info.Flags != null ? new MetadataColumnFilter { Flags = flags.For(grid, column) } : new MetadataColumnFilter();
+        var filter = state.FilterOf(column, flags);
         var textId = HashCode.Combine(listId, FilterTextSalt, column);
         if (state.EditingColumn == column)
         {
@@ -220,7 +194,7 @@ public static class MetadataGridWidget
                 state.BeginEdit = false;
                 filter.Text = edit == InlineEditResult.Cancelled ? "" : text;
                 if (edit != InlineEditResult.Editing)
-                    state.EditingColumn = MetadataGridState.None;
+                    state.StopEditingFilter();
             }
         }
         else if (filter.Text.Length > 0)
@@ -229,7 +203,7 @@ public static class MetadataGridWidget
             if (shown.Hovered)
                 ui.SetCursor(MouseCursor.Text);
             if (shown.Clicked)
-                StartEditing(state, column);
+                state.StartEditingFilter(column);
             ui.Text(filter.Text, new Box { Width = Sizing.Grow() }, color: theme.AccentText, size: theme.FontSizeSmall, id: shown.Id,
                 overflow: TextOverflow.Ellipsis);
         }
@@ -252,11 +226,11 @@ public static class MetadataGridWidget
             else if (filter.Text.Length > 0)
             {
                 filter.Text = "";
-                state.EditingColumn = MetadataGridState.None;
+                state.StopEditingFilter();
             }
             else
             {
-                StartEditing(state, column);
+                state.StartEditingFilter(column);
             }
         }
         var glyph = !isFlags && filter.Text.Length > 0 ? LucideIcons.FilterX : LucideIcons.Filter;
@@ -265,12 +239,6 @@ public static class MetadataGridWidget
             ui.Text(glyph, color: color, size: theme.FontSizeSmall, family: LucideIcons.Family);
         if (!(state.FlagsOpen && state.FlagsColumn == column))
             ui.Tooltip(funnel.Id, t.MetadataFilter(info.Name));
-    }
-
-    private static void StartEditing(MetadataGridState state, int column)
-    {
-        state.EditingColumn = column;
-        state.BeginEdit = true;
     }
 
     private static void FlagsFlyout(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId)
@@ -305,16 +273,6 @@ public static class MetadataGridWidget
         }
         tall.Sort(static (a, b) => a.Index.CompareTo(b.Index));
         return tall;
-    }
-
-    private static void Sort(MetadataGridState state, int column)
-    {
-        var grid = state.Grid!;
-        state.Descending = state.SortColumn == column && !state.Descending;
-        state.SortColumn = column;
-        state.Order = grid.Order(column, state.Descending);
-        if (state.Selected != MetadataGridState.None)
-            state.PendingReveal = state.Selected;
     }
 
     private static void Arrive(MetadataGridState state, Ui.VirtualList list, float rowHeight)
@@ -357,9 +315,9 @@ public static class MetadataGridWidget
         var column = state.CurrentColumn;
         MetadataGridResult? result = null;
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: column >= 0, id: "copy"))
-            ui.ClipboardText = CellText(grid, state);
+            ui.ClipboardText = state.CellText();
         if (ui.MenuItem(t.MetadataCopyRow, id: "copy-row"))
-            ui.ClipboardText = RowText(grid, row);
+            ui.ClipboardText = state.RowText(row);
         var target = column >= 0 ? grid.Link(row, column) : null;
         var definition = grid.Definition(row);
         if (target == null && definition == null) return null;
@@ -375,21 +333,6 @@ public static class MetadataGridWidget
         }
         return result;
     }
-
-    /// <summary>What copying the current cell takes: the part of its text selected, else all of it,
-    /// lines hidden while it is closed included.</summary>
-    private static string CellText(MetadataGrid grid, MetadataGridState state) =>
-        state.Cell.Copied(state.ShownText, grid.Text(state.Selected, state.CurrentColumn));
-
-    /// <summary>What copying takes: the current cell's text, or the whole row's without one.</summary>
-    private static string CopiedText(MetadataGrid grid, MetadataGridState state)
-    {
-        if (state.CurrentColumn < 0) return RowText(grid, state.Selected);
-        return CellText(grid, state);
-    }
-
-    private static string RowText(MetadataGrid grid, int row) =>
-        string.Join('\t', Enumerable.Range(0, grid.Columns.Count).Select(c => grid.Text(row, c)));
 
     private static MetadataGridResult Keys(Ui ui, MetadataGrid grid, MetadataGridState state, int listId, float rowHeight)
     {
@@ -412,7 +355,7 @@ public static class MetadataGridWidget
                     state.SelectCell(state.Selected, column);
                     continue;
                 case TableCellKey.Copy:
-                    ui.ClipboardText = CopiedText(grid, state);
+                    ui.ClipboardText = state.CopiedText();
                     continue;
                 case TableCellKey.Collapsed:
                     continue;
@@ -422,21 +365,20 @@ public static class MetadataGridWidget
             {
                 case (0, KeyboardKey.Space) when state.IsOpen:
                 case (0, KeyboardKey.Escape) when state.IsOpen:
-                    state.Open.Remove((state.Selected, state.CurrentColumn));
+                    state.CollapseCurrent();
                     state.SelectAllText();
                     break;
-                case (0, KeyboardKey.Space) when state is { Selected: >= 0, CurrentColumn: >= 0 } && grid.Lines(state.Selected, state.CurrentColumn).MoreLines > 0:
-                    Expand(grid, state, state.Selected, state.CurrentColumn);
+                case (0, KeyboardKey.Space) when state.HasCurrentCell && grid.Lines(state.Selected, state.CurrentColumn).MoreLines > 0:
+                    state.Expand(state.Selected, state.CurrentColumn);
                     state.SelectAllText();
                     break;
-                case (KeyModifiers.Control, KeyboardKey.A) when state is { Selected: >= 0, CurrentColumn: >= 0 }:
+                case (KeyModifiers.Control, KeyboardKey.A) when state.HasCurrentCell:
                     state.SelectAllText();
                     break;
                 case (0, KeyboardKey.Enter) when state.Selected >= 0 && grid.Definition(state.Selected) is { } definition:
                     result = new MetadataGridResult(null, definition, false);
                     break;
-                case (KeyModifiers.Control, KeyboardKey.G) when state is { Selected: >= 0, CurrentColumn: >= 0 }
-                                                                && grid.Link(state.Selected, state.CurrentColumn) is { } target:
+                case (KeyModifiers.Control, KeyboardKey.G) when state.HasCurrentCell && grid.Link(state.Selected, state.CurrentColumn) is { } target:
                     result = new MetadataGridResult(target, null, false);
                     break;
             }
