@@ -24,12 +24,12 @@ public sealed class GuiHost
     public static void Run<T>(Gui<T> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
         where T : class
     {
-        using var host = new ImmediateHost(config, backend, app.Fonts, ui => app.Render(ui, app.State));
+        using var host = new ImmediateHost(config, backend, app.Fonts, app.Render);
         using var context = new UiSynchronizationContext(host.Post).Install();
         var guiHost = new GuiHost(host);
-        host.Post(() => app.OnStartup(guiHost));
+        host.Post(() => app.Startup(guiHost));
         host.Run();
-        app.OnShutdown(host.Bounds);
+        app.Shutdown(host.Bounds);
     }
 
     /// <summary>Schedules a frame after the app's state changed outside a frame. Safe from any thread,

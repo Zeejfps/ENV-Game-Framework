@@ -3,7 +3,7 @@ using ZGF.Desktop;
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
-/// An immediate-mode application, run by <see cref="GuiHost.Run{T}"/>. <see cref="Render"/> describes
+/// An immediate-mode application, run by <see cref="GuiHost.Run{T}"/>. <see cref="OnRender"/> describes
 /// the entire UI from <typeparamref name="T"/> every frame; widgets report interactions as return
 /// values and the app mutates <typeparamref name="T"/> in response. There is no retained tree.
 /// </summary>
@@ -20,14 +20,29 @@ public abstract class Gui<T> where T : class
 
     internal IReadOnlyList<FontFace> Fonts => _fonts;
 
-    protected internal abstract void Render(Ui ui, T state);
+    public void Startup(GuiHost host)
+    {
+        OnStartup(host);
+    }
+
+    public void Render(Ui ui)
+    {
+        OnRender(ui, State);
+    }
+
+    public void Shutdown(WindowBounds bounds)
+    {
+        OnShutdown(bounds);
+    }
 
     /// <summary>Runs on the UI thread before the first frame.</summary>
-    protected internal virtual void OnStartup(GuiHost host) { }
+    protected virtual void OnStartup(GuiHost host) { }
+
+    protected abstract void OnRender(Ui ui, T state);
 
     /// <summary>Runs once the window has closed, with the <paramref name="bounds"/> it was left at —
     /// save them and reopen with <see cref="WindowBounds.ApplyTo"/>.</summary>
-    protected internal virtual void OnShutdown(WindowBounds bounds) { }
+    protected virtual void OnShutdown(WindowBounds bounds) { }
 
     /// <summary>Makes the font in <paramref name="data"/> (TTF/OTF bytes) drawable as
     /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiTheme.FontFamily"/>.
