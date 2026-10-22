@@ -11,7 +11,6 @@ public sealed class DocumentTab
 {
     private static int _nextId;
 
-    private readonly Action<Action> _post;
     private readonly Func<Strings> _strings;
     private readonly Func<DecompilerOptions> _options;
     private readonly Action<string, string> _reportError;
@@ -21,13 +20,11 @@ public sealed class DocumentTab
     private int _row = MetadataGridState.None;
     private string? _title;
 
-    /// <param name="post">Runs an action on the UI thread.</param>
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="options">How C# is decompiled now.</param>
     /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
-    public DocumentTab(Action<Action> post, Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError)
+    public DocumentTab(Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError)
     {
-        _post = post;
         _strings = strings;
         _options = options;
         _reportError = reportError;
@@ -105,8 +102,14 @@ public sealed class DocumentTab
         Image = null;
         Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
 
-        node.LoadContentAsync(language, Options, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
-            CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        Load(work, node, language);
+    }
+
+    private async void Load(CancellationTokenSource work, BrowseNode node, DecompilationLanguage language)
+    {
+        var loading = node.LoadContentAsync(language, Options, work.Token);
+        await Background.Wait(loading);
+        Complete(work, node, loading);
     }
 
     /// <summary>Decompiles the shown node again if it was shown in another language than

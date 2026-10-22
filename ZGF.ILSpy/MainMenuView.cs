@@ -41,7 +41,7 @@ internal static class MainMenuView
         if (ui.MenuItem(t.FileOpen, "Ctrl+O", id: "open"))
             OpenFile(ui, w);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework"))
-            w.Picker.Open(w.Post);
+            w.Picker.Open();
         ui.MenuSeparator();
         var selected = w.Tree.View.HasSelection ? w.Tree.View.Selected!.Assembly : null;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close"))

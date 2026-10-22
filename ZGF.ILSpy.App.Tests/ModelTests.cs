@@ -14,7 +14,7 @@ public sealed class BrowseTreeTests
     public void A_node_whose_children_are_not_built_shows_a_loading_row_until_they_are()
     {
         var d = new WorkspaceDriver();
-        var tree = new BrowseTree(d.Post);
+        var tree = new BrowseTree();
         var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
 
         var first = tree.GetChildren(root);
@@ -29,7 +29,7 @@ public sealed class BrowseTreeTests
     public void Revealing_a_hidden_non_public_node_selects_its_nearest_shown_ancestor()
     {
         var d = new WorkspaceDriver();
-        var tree = new BrowseTree(d.Post);
+        var tree = new BrowseTree();
         var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
         var ns = root.Child(WorkspaceDriver.FixturesNamespace);
         var secret = ns.Child("Hidden", "Secret() : int");
@@ -46,7 +46,7 @@ public sealed class BrowseTreeTests
     [Fact]
     public void The_public_children_cache_does_not_keep_closed_assemblies_alive()
     {
-        var tree = new BrowseTree(static _ => { });
+        var tree = new BrowseTree();
         tree.SetShowNonPublic(false);
         var assembly = FilterAndClose(tree);
 
@@ -271,7 +271,7 @@ public sealed class FrameworkPickerTests
         var reported = new List<string>();
         var picker = new FrameworkPickerModel(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
 
-        picker.Open(posted.Post);
+        picker.Open();
         Poll.Until(() => !picker.IsLoading, posted.Run);
 
         Assert.False(picker.IsLoading);

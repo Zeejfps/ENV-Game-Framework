@@ -41,7 +41,7 @@ public sealed class FrameworkPickerModel
     /// <summary>Why the runtime could not be scanned, or null.</summary>
     public string? Error { get; private set; }
 
-    public void Open(Action<Action> post)
+    public async void Open()
     {
         IsOpen = true;
         FocusFilter = true;
@@ -49,28 +49,13 @@ public sealed class FrameworkPickerModel
         if (_all != null || _loading) return;
         _loading = true;
         Error = null;
-        Task.Run(() =>
-        {
-            IReadOnlyList<RuntimeAssembly>? all = null;
-            string? error = null;
-            try
-            {
-                all = _scan();
-            }
-            catch (Exception e)
-            {
-                error = e.ToString();
-            }
-            post(() =>
-            {
-                _loading = false;
-                _all = all;
-                Error = error;
-                _appliedFilter = null;
-                if (error != null)
-                    _reportError(_strings().ErrorScanRuntime, error);
-            });
-        });
+        var scanned = await Background.Run(_scan);
+        _loading = false;
+        _all = scanned.Value;
+        Error = scanned.Error?.ToString();
+        _appliedFilter = null;
+        if (Error != null)
+            _reportError(_strings().ErrorScanRuntime, Error);
     }
 
     public void Close() => IsOpen = false;

@@ -9,10 +9,14 @@ public readonly record struct Outcome<T>(T? Value, Exception? Error);
 public static class Background
 {
     public static BackgroundWork<T> Run<T>(Func<T> work) => new(Task.Run(work));
+
+    /// <summary>Waits for <paramref name="task"/> as <see cref="BackgroundWork{T}"/> does.</summary>
+    public static BackgroundWork<T> Wait<T>(Task<T> task) => new(task);
 }
 
 /// <summary>Work running on the thread pool. Awaited on the UI thread, it always continues on a
-/// later turn of the UI thread, even when the work is already done, with its <see cref="Outcome{T}"/>.</summary>
+/// later turn of the UI thread, even when the work is already done, with its <see cref="Outcome{T}"/>.
+/// Awaited where there is no UI thread, it continues on the thread pool as <c>await</c> does.</summary>
 public readonly struct BackgroundWork<T>(Task<T> task)
 {
     public Awaiter GetAwaiter() => new(task);
@@ -25,7 +29,10 @@ public readonly struct BackgroundWork<T>(Task<T> task)
         {
             var ui = SynchronizationContext.Current;
             if (ui == null)
-                throw new InvalidOperationException("Background work is awaited on the UI thread.");
+            {
+                task.ContinueWith(_ => continuation(), TaskScheduler.Default);
+                return;
+            }
             task.ContinueWith(_ => ui.Post(Continue, continuation), TaskScheduler.Default);
         }
 

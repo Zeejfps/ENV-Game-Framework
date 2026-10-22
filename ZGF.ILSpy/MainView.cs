@@ -34,7 +34,7 @@ public static class MainView
 
     private static void Panels(Ui ui, Workspace w, Strings t)
     {
-        var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Post, w.Layout.Contains(DockPanels.Search));
+        var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Layout.Contains(DockPanels.Search));
         if (wait > 0)
             ui.RequestFrameIn(wait);
         if (!w.Layout.AllGroups().Any(static g => g.Panels.Count > 0))

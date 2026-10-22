@@ -60,7 +60,7 @@ public sealed class SearchModel
     /// <summary>Starts a search when the query settled, or searches assemblies opened since. Does
     /// nothing unless the results are <paramref name="shown"/>. Returns the seconds left before a
     /// typed query settles, or 0.</summary>
-    public double Update(AssemblyList assemblies, double now, Action<Action> post, bool shown)
+    public double Update(AssemblyList assemblies, double now, bool shown)
     {
         if (Query != _typed)
         {
@@ -72,11 +72,11 @@ public sealed class SearchModel
         {
             var remaining = DebounceSeconds - (now - _typedAt);
             if (remaining > 0 && Kinds == _kinds) return remaining;
-            Restart(assemblies, post);
+            Restart(assemblies);
         }
         else if (assemblies.Version != _version)
         {
-            Extend(assemblies, post);
+            Extend(assemblies);
         }
         return 0;
     }
@@ -136,7 +136,7 @@ public sealed class SearchModel
         _rows.Insert(low, row);
     }
 
-    private void Restart(AssemblyList assemblies, Action<Action> post)
+    private void Restart(AssemblyList assemblies)
     {
         foreach (var run in _runs)
             run.Cancel();
@@ -150,10 +150,10 @@ public sealed class SearchModel
         var listed = assemblies.Assemblies;
         _searched.UnionWith(listed);
         if (!SearchQuery.Parse(_query, _kinds).IsEmpty)
-            Start(assemblies, listed, post);
+            Start(assemblies, listed);
     }
 
-    private void Extend(AssemblyList assemblies, Action<Action> post)
+    private void Extend(AssemblyList assemblies)
     {
         _version = assemblies.Version;
         var listed = assemblies.Assemblies;
@@ -165,7 +165,7 @@ public sealed class SearchModel
         }
         var added = listed.Where(_searched.Add).ToArray();
         if (added.Length > 0 && !SearchQuery.Parse(_query!, _kinds).IsEmpty)
-            Start(assemblies, added, post);
+            Start(assemblies, added);
     }
 
     private void Reselect(BrowseNode? selected)
@@ -179,44 +179,41 @@ public sealed class SearchModel
         Selection.Select(index, _rows.Count, reveal: false);
     }
 
-    private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within, Action<Action> post)
+    private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within)
     {
         var work = new CancellationTokenSource();
         _runs.Add(work);
-        _ = Run(assemblies.SearchAsync(SearchQuery.Parse(_query!, _kinds), within, work.Token), work, post);
+        _ = Run(assemblies.SearchAsync(SearchQuery.Parse(_query!, _kinds), within, work.Token), work);
     }
 
-    private async Task Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work, Action<Action> post)
+    private async Task Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work)
     {
         try
         {
-            await foreach (var batch in search.ConfigureAwait(false))
-            {
-                post(() =>
-                {
-                    if (!_runs.Contains(work)) return;
-                    var selected = SelectedRow?.Node;
-                    foreach (var row in batch)
-                    {
-                        if (_searched.Contains(row.Node.Assembly))
-                            Insert(row);
-                    }
-                    if (selected is not null)
-                        Reselect(selected);
-                });
-            }
+            await foreach (var batch in search)
+                Deliver(batch, work);
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception e)
         {
-            post(() => _reportError(_strings().ErrorSearch, e.ToString()));
+            _reportError(_strings().ErrorSearch, e.ToString());
         }
-        post(() =>
+        _runs.Remove(work);
+        work.Dispose();
+    }
+
+    private void Deliver(IReadOnlyList<SearchResult> batch, CancellationTokenSource work)
+    {
+        if (!_runs.Contains(work)) return;
+        var selected = SelectedRow?.Node;
+        foreach (var row in batch)
         {
-            _runs.Remove(work);
-            work.Dispose();
-        });
+            if (_searched.Contains(row.Node.Assembly))
+                Insert(row);
+        }
+        if (selected is not null)
+            Reselect(selected);
     }
 }

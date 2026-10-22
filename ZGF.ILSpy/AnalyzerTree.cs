@@ -51,7 +51,6 @@ public sealed class AnalyzerMessageNode(string? error = null) : AnalyzerNode
 /// </summary>
 public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
 {
-    private readonly Action<Action> _post;
     private readonly Func<AssemblyList> _assemblies;
     private readonly List<AnalyzerSymbolNode> _roots = new();
     private readonly AnalyzerMessageNode _loading = new();
@@ -59,11 +58,9 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     private NodeIconPalette _icons = NodeIconPalette.Dark;
     private Strings _strings = Strings.For(Locale.En);
 
-    /// <param name="post">Runs an action on the UI thread.</param>
     /// <param name="assemblies">The open assemblies analyses run over.</param>
-    public AnalyzerTree(Action<Action> post, Func<AssemblyList> assemblies)
+    public AnalyzerTree(Func<AssemblyList> assemblies)
     {
-        _post = post;
         _assemblies = assemblies;
     }
 
@@ -156,7 +153,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         var token = work.Token;
         try
         {
-            await foreach (var batch in Analysis.RunAsync(_assemblies(), kind.Subject, kind.Kind, token).ConfigureAwait(false))
+            await foreach (var batch in Analysis.RunAsync(_assemblies(), kind.Subject, kind.Kind, token))
                 Deliver(kind, work, batch.Select(static r => (AnalyzerNode)new AnalyzerSymbolNode(r)).ToList(), done: false);
             Deliver(kind, work, [], done: true);
         }
@@ -169,19 +166,18 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         }
     }
 
-    private void Deliver(AnalyzerKindNode kind, CancellationTokenSource work, List<AnalyzerNode> found, bool done) =>
-        _post(() =>
+    private void Deliver(AnalyzerKindNode kind, CancellationTokenSource work, List<AnalyzerNode> found, bool done)
+    {
+        if (kind.Work != work) return;
+        kind.Results.AddRange(found);
+        if (done)
         {
-            if (kind.Work != work) return;
-            kind.Results.AddRange(found);
-            if (done)
-            {
-                kind.IsDone = true;
-                kind.Work = null;
-                work.Dispose();
-            }
-            View.Refresh();
-        });
+            kind.IsDone = true;
+            kind.Work = null;
+            work.Dispose();
+        }
+        View.Refresh();
+    }
 
     private static void Cancel(AnalyzerNode node)
     {

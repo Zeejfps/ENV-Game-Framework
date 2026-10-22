@@ -106,8 +106,8 @@ public sealed class Workspace
         MainLayout = new MainLayout(dock);
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += this.OnPanelClosed;
-        Tree = new BrowseTree(Post);
-        Analyzer = new AnalyzerTree(Post, () => Assemblies);
+        Tree = new BrowseTree();
+        Analyzer = new AnalyzerTree(() => Assemblies);
         Search = new SearchModel(GetStrings, ReportError);
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
@@ -162,7 +162,7 @@ public sealed class Workspace
 
     internal DocumentTab AddTab()
     {
-        var tab = new DocumentTab(Post, GetStrings, () => DecompilerOptions, ReportError);
+        var tab = new DocumentTab(GetStrings, () => DecompilerOptions, ReportError);
         Tabs.Add(tab);
         return tab;
     }

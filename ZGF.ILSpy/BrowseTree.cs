@@ -10,7 +10,6 @@ namespace ZGF.ILSpy;
 /// are built in the background.</summary>
 public sealed class BrowseTree : ITreeModel<BrowseNode>
 {
-    private readonly Action<Action> _post;
     private readonly ConditionalWeakTable<BrowseNode, BrowseNode[]> _publicChildren = new();
     private readonly HashSet<BrowseNode> _building = new(ReferenceEqualityComparer.Instance);
     private BrowseNode[] _roots = [];
@@ -19,12 +18,6 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _icons = NodeIconPalette.Dark;
-
-    /// <param name="post">Runs an action on the UI thread.</param>
-    public BrowseTree(Action<Action> post)
-    {
-        _post = post;
-    }
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
     public IReadOnlyList<BrowseNode> Roots => _roots;
@@ -181,13 +174,11 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         return nodes.Select(static n => n.Assembly.FilePath).ToArray();
     }
 
-    private void Build(BrowseNode node)
+    private async void Build(BrowseNode node)
     {
         if (!_building.Add(node)) return;
-        Task.Run(() => _ = node.Children).ContinueWith(_ => _post(() =>
-        {
-            _building.Remove(node);
-            View.Refresh();
-        }), TaskScheduler.Default);
+        await Background.Run(() => node.Children);
+        _building.Remove(node);
+        View.Refresh();
     }
 }

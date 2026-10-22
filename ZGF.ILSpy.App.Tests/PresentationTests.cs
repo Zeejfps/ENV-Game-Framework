@@ -29,7 +29,7 @@ public sealed class PresentationTests
         var list = new AssemblyList();
         var original = list.Open(WorkspaceDriver.FixturePath);
         var duplicate = list.Open(copy);
-        var tree = new BrowseTree(static _ => { });
+        var tree = new BrowseTree();
         tree.Sync(list);
 
         var first = tree.Row(original.Root);
@@ -50,7 +50,7 @@ public sealed class PresentationTests
     {
         var list = new AssemblyList();
         var assembly = list.Open(WorkspaceDriver.FixturePath);
-        var tree = new BrowseTree(static _ => { });
+        var tree = new BrowseTree();
         tree.Sync(list);
 
         Assert.Equal(assembly.Name, tree.Row(assembly.Root).Label);
@@ -61,7 +61,7 @@ public sealed class PresentationTests
     {
         var list = new AssemblyList();
         var assembly = list.Open(WorkspaceDriver.FixturePath);
-        var tree = new BrowseTree(static _ => { });
+        var tree = new BrowseTree();
         tree.Sync(list);
 
         var row = tree.Row(assembly.Root);
@@ -77,7 +77,7 @@ public sealed class PresentationTests
         var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
         var ns = root.Child(WorkspaceDriver.FixturesNamespace);
         var privateField = ns.Child("Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
-        var tree = new BrowseTree(static _ => { });
+        var tree = new BrowseTree();
         tree.SetStyle(UiTheme.Light, NodeIconPalette.Light);
 
         var field = tree.Row(privateField);
@@ -98,7 +98,7 @@ public sealed class PresentationTests
     {
         var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
         var hidden = root.Child(WorkspaceDriver.FixturesNamespace, "Hidden");
-        var tree = new BrowseTree(static _ => { });
+        var tree = new BrowseTree();
 
         var row = tree.Row(hidden);
 
