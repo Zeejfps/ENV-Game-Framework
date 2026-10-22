@@ -19,7 +19,6 @@ public sealed class Workspace
 
     private readonly AppSettings _settings;
     private Action<Action> _post = ThrowNotAttached;
-    private readonly UserIntent _intent = new();
     private readonly MainLayout _mainLayout;
     private int _reload;
     private int _savedBookmarks;
@@ -33,6 +32,7 @@ public sealed class Workspace
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
+    public UserIntent Intent { get; } = new();
     public BookmarkList Bookmarks { get; } = new();
 
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
@@ -81,7 +81,7 @@ public sealed class Workspace
     public BrowseNode? MenuTarget { get; private set; }
 
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
-    public bool IsResolving => _intent.IsResolving;
+    public bool IsResolving => Intent.IsResolving;
 
     /// <summary>True while <see cref="Refresh"/> reopens the assemblies.</summary>
     public bool IsReloading => _reloadWork != null;
@@ -240,7 +240,7 @@ public sealed class Workspace
 
     private void OpenInBackground(string[] files)
     {
-        var ticket = _intent.Begin();
+        var ticket = Intent.Begin();
         RunInBackground(() => OpenFiles(files, CancellationToken.None), (opened, error) => OnFilesOpened(opened, error, ticket));
     }
 
@@ -254,9 +254,9 @@ public sealed class Workspace
         ReportAll(opened!.Errors);
         if (opened.Last == null)
             return;
-        if (_intent.IsStale(ticket))
+        if (Intent.IsStale(ticket))
             return;
-        Show(opened.Last.Root);
+        this.Show(opened.Last.Root);
     }
 
     public void Open(string path) => Open([path]);
@@ -265,7 +265,7 @@ public sealed class Workspace
 
     public void ClearList()
     {
-        _intent.Begin();
+        Intent.Begin();
         StopReload();
         ClearAssemblies();
     }
@@ -283,7 +283,7 @@ public sealed class Workspace
     /// and shows each tab's place again, decompiled from the fresh files.</summary>
     public void Refresh()
     {
-        var intent = _intent.Begin();
+        var intent = Intent.Begin();
         StopReload();
         _reload++;
         var work = new CancellationTokenSource();
@@ -389,7 +389,7 @@ public sealed class Workspace
             return;
         }
         tab.Show(node, Language, reloading.Position);
-        if (tab == Tabs.Active && _intent.IsCurrent(intent))
+        if (tab == Tabs.Active && Intent.IsCurrent(intent))
             Tree.Reveal(node);
     }
 
@@ -456,142 +456,6 @@ public sealed class Workspace
             Tabs.Find(group.Active)?.EnsureCurrent(Language);
     }
 
-    /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
-    /// and records it in the history.</summary>
-    public void Show(BrowseNode node, bool inNewTab = false)
-    {
-        if (node.Kind == NodeKind.Loading)
-            return;
-        _intent.Begin();
-        LeaveActive();
-        var tab = inNewTab ? null : Tabs.Active;
-        ShowIn(tab, node);
-        History.Push(node, Language);
-    }
-
-    /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
-    /// then shows it in the tab it was asked from, or a new one.</summary>
-    public void Navigate(CodeReference reference, bool inNewTab)
-    {
-        if (!reference.IsNavigable)
-            return;
-        var ticket = _intent.Begin();
-        var origin = inNewTab ? null : Tabs.Active;
-        _intent.StartResolving(ticket);
-        RunInBackground(() => Assemblies.FindNode(reference), (node, error) => OnReferenceFound(reference, node, error, origin, ticket));
-    }
-
-    private void OnReferenceFound(CodeReference reference, BrowseNode? node, Exception? error, DocumentTab? origin, int ticket)
-    {
-        if (_intent.IsStale(ticket))
-            return;
-        _intent.StopResolving();
-        if (node == null)
-        {
-            ReportUnresolved(reference, error);
-            return;
-        }
-        LeaveActive();
-        ShowIn(Tabs.KeepIfOpen(origin), node);
-        History.Push(node, Language);
-    }
-
-    private void ReportUnresolved(CodeReference reference, Exception? error)
-    {
-        var t = GetStrings();
-        var details = DescribeFailure(error, t.ErrorNoDefinition(reference));
-        ReportError(t.ErrorResolve(reference.Name), details);
-    }
-
-    /// <summary>Shows the table row a metadata token leads to in the active tab, or a new one, and
-    /// records it in the history.</summary>
-    public void Show(MetadataTarget target, bool inNewTab)
-    {
-        _intent.Begin();
-        LeaveActive();
-        var tab = inNewTab ? null : Tabs.Active;
-        ShowIn(tab, target.Node, row: target.Row);
-        History.Push(target.Node, Language);
-    }
-
-    /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
-    public void GoToTarget(BrowseNode node)
-    {
-        if (node.Target == null)
-            return;
-        Navigate(node.Target, inNewTab: false);
-    }
-
-    public void GoBack() => GoTo(History.CurrentIndex - 1);
-
-    public void GoForward() => GoTo(History.CurrentIndex + 1);
-
-    /// <summary>Goes to the history entry at <paramref name="index"/>, however far back or forward.</summary>
-    public void GoTo(int index)
-    {
-        if (!CanGoTo(index))
-            return;
-        LeaveActive();
-        var entry = History.MoveTo(index);
-        if (entry == null)
-            return;
-        Restore(entry.Value);
-    }
-
-    private bool CanGoTo(int index)
-    {
-        if (index < 0)
-            return false;
-        if (index >= History.Entries.Count)
-            return false;
-        return index != History.CurrentIndex;
-    }
-
-    private void Restore(HistoryEntry entry)
-    {
-        var ticket = _intent.Begin();
-        var tab = Tabs.Active;
-        var place = entry.Place;
-        var position = entry.Language == Language ? entry.Position : null;
-        var shown = FindShownNode(tab, place);
-        if (shown != null)
-        {
-            ShowIn(tab, shown, position);
-            return;
-        }
-        _intent.StartResolving(ticket);
-        RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnHistoryPlaceFound(place, position, node, error, tab, ticket));
-    }
-
-    private BrowseNode? FindShownNode(DocumentTab? tab, NodePath place)
-    {
-        if (tab == null)
-            return null;
-        var node = tab.Node;
-        if (node == null)
-            return null;
-        if (!place.Equals(tab.Location))
-            return null;
-        if (!IsListed(node))
-            return null;
-        return node;
-    }
-
-    private void OnHistoryPlaceFound(NodePath place, CodeViewPosition? position, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
-    {
-        if (_intent.IsStale(ticket))
-            return;
-        _intent.StopResolving();
-        if (node == null)
-        {
-            var t = GetStrings();
-            var details = DescribeFailure(error, t.ErrorNoLongerThere(place));
-            ReportError(t.ErrorGoBack(place.Text), details);
-            return;
-        }
-        ShowIn(Tabs.KeepIfOpen(tab), node, position);
-    }
-
     /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
     /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
     /// when it has one.</summary>
@@ -637,18 +501,18 @@ public sealed class Workspace
     /// assembly first if it is not open, and records it in the history.</summary>
     public void GoTo(Bookmark bookmark)
     {
-        var ticket = _intent.Begin();
+        var ticket = Intent.Begin();
         var tab = Tabs.Active;
         var place = bookmark.Place;
-        _intent.StartResolving(ticket);
+        Intent.StartResolving(ticket);
         RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnBookmarkPlaceFound(bookmark, node, error, tab, ticket));
     }
 
     private void OnBookmarkPlaceFound(Bookmark bookmark, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
     {
-        if (_intent.IsStale(ticket))
+        if (Intent.IsStale(ticket))
             return;
-        _intent.StopResolving();
+        Intent.StopResolving();
         if (node == null)
         {
             var t = GetStrings();
@@ -808,6 +672,13 @@ public sealed class Workspace
             return;
         }
         Analyze(node);
+    }
+
+    internal void ReportUnresolved(CodeReference reference, Exception? error)
+    {
+        var t = GetStrings();
+        var details = DescribeFailure(error, t.ErrorNoDefinition(reference));
+        ReportError(t.ErrorResolve(reference.Name), details);
     }
 
     public void OpenAnalyzer() => _mainLayout.OpenAnalyzer(Tabs.ActivePanel);
@@ -995,9 +866,9 @@ public sealed class Workspace
         ReportError(GetStrings().ErrorSaveSettings, error);
     }
 
-    private Strings GetStrings() => Strings.For(Locale);
+    internal Strings GetStrings() => Strings.For(Locale);
 
-    private bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
+    internal bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
     private bool IsTabPanel(string panel) => Tabs.Find(panel) != null;
 
@@ -1013,7 +884,7 @@ public sealed class Workspace
         var tab = Tabs.Find(panel);
         if (tab == null)
             return;
-        _intent.Begin();
+        Intent.Begin();
         var wasActive = tab == Tabs.Active;
         Tabs.Remove(tab);
         if (!wasActive)
@@ -1044,7 +915,7 @@ public sealed class Workspace
 
     private void Focus(DocumentTab tab)
     {
-        _intent.Begin();
+        Intent.Begin();
         Tabs.MakeActive(tab);
         tab.EnsureCurrent(Language);
         var node = tab.Node;
@@ -1052,7 +923,7 @@ public sealed class Workspace
             Tree.Reveal(node);
     }
 
-    private void LeaveActive()
+    internal void LeaveActive()
     {
         var tab = Tabs.Active;
         if (tab == null)
@@ -1073,7 +944,7 @@ public sealed class Workspace
         return current.Value.Place.Equals(place);
     }
 
-    private void ShowIn(
+    internal void ShowIn(
         DocumentTab? tab,
         BrowseNode node,
         CodeViewPosition? position = null,
@@ -1114,14 +985,14 @@ public sealed class Workspace
             ReportError(title, details);
     }
 
-    private static string DescribeFailure(Exception? error, string fallback)
+    internal static string DescribeFailure(Exception? error, string fallback)
     {
         if (error == null)
             return fallback;
         return error.ToString();
     }
 
-    private void RunInBackground<T>(Func<T> work, Action<T?, Exception?> done)
+    internal void RunInBackground<T>(Func<T> work, Action<T?, Exception?> done)
     {
         var task = Task.Run(work);
         task.ContinueWith(finished => PostCompletion(finished, done), TaskScheduler.Default);
