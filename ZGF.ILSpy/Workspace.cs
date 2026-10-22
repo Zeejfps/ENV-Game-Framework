@@ -20,8 +20,6 @@ public sealed class Workspace
     private readonly AppSettings _settings;
     private Action<Action> _post = ThrowNotAttached;
     private readonly MainLayout _mainLayout;
-    private List<CodeAnchor>? _analyzedToRestore;
-    private bool _isRestoringAnalyzed;
     private bool _focusSearch;
 
     public AssemblyList Assemblies { get; } = new();
@@ -30,6 +28,7 @@ public sealed class Workspace
     public UserIntent Intent { get; } = new();
     public Reload Reload { get; } = new();
     public LastSave LastSave { get; } = new();
+    public LastSessionAnalyses LastSessionAnalyses { get; }
     public BookmarkList Bookmarks { get; } = new();
 
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
@@ -120,7 +119,7 @@ public sealed class Workspace
         Picker = new FrameworkPickerModel(GetStrings, ReportError);
         if (!placed)
             _mainLayout.DockDocument(first.Panel, first.Panel);
-        _analyzedToRestore = LoadAnalyzedToRestore(settings);
+        LastSessionAnalyses = new LastSessionAnalyses(settings.Analyzed);
         ReportSettingsLoadError(settings);
     }
 
@@ -145,15 +144,6 @@ public sealed class Workspace
         RemoveTab(panel);
     }
 
-    private static List<CodeAnchor>? LoadAnalyzedToRestore(AppSettings settings)
-    {
-        if (settings.Analyzed == null)
-            return null;
-        if (settings.Analyzed.Count == 0)
-            return null;
-        return settings.Analyzed;
-    }
-
     private void ReportSettingsLoadError(AppSettings settings)
     {
         if (settings.LoadError == null)
@@ -175,8 +165,7 @@ public sealed class Workspace
     /// <summary>Called at the start of every frame.</summary>
     public void Sync()
     {
-        if (_analyzedToRestore != null)
-            RestoreAnalyzed(_analyzedToRestore);
+        this.RestoreLastSessionAnalyses();
         MetadataFilters.Sync();
         var treeChanged = Tree.Sync(Assemblies);
         if (IsReloading)
@@ -184,37 +173,6 @@ public sealed class Workspace
         if (!treeChanged && !LastSave.IsBehind(Bookmarks, Analyzer, MetadataFilters))
             return;
         SaveSettings();
-    }
-
-    /// <summary>Finds the symbols analyzed in the last run again in the background, opening their
-    /// assemblies' files without listing them, and analyzes those still there, in their order.</summary>
-    private void RestoreAnalyzed(List<CodeAnchor> analyzed)
-    {
-        _analyzedToRestore = null;
-        _isRestoringAnalyzed = true;
-        RunInBackground(() => FindAnalyzed(analyzed), (found, _) => OnAnalyzedFound(found));
-    }
-
-    private List<AnalysisSymbol?> FindAnalyzed(List<CodeAnchor> analyzed)
-    {
-        return analyzed.ConvertAll(a => Analysis.Find(Assemblies, a));
-    }
-
-    private void OnAnalyzedFound(List<AnalysisSymbol?>? found)
-    {
-        _isRestoringAnalyzed = false;
-        if (found != null)
-            AnalyzeAll(found);
-        LastSave.RecordAnalyzer(Analyzer);
-    }
-
-    private void AnalyzeAll(List<AnalysisSymbol?> symbols)
-    {
-        foreach (var symbol in symbols)
-        {
-            if (symbol != null)
-                Analyzer.Analyze(symbol);
-        }
     }
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
@@ -239,34 +197,6 @@ public sealed class Workspace
         if (e is UnauthorizedAccessException)
             return true;
         return e is InvalidDataException;
-    }
-
-    /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer, which is
-    /// opened if it is not.</summary>
-    public void Analyze(BrowseNode node)
-    {
-        var symbol = Analysis.Of(node);
-        if (symbol == null)
-            return;
-        OpenAnalyzer();
-        Analyzer.Analyze(symbol);
-    }
-
-    /// <summary>Finds what <paramref name="reference"/> points at in the background, opening its
-    /// assembly if it is not, and analyzes it.</summary>
-    public void Analyze(CodeReference reference)
-    {
-        RunInBackground(() => Assemblies.FindNode(reference), (node, error) => OnAnalyzeTargetFound(reference, node, error));
-    }
-
-    private void OnAnalyzeTargetFound(CodeReference reference, BrowseNode? node, Exception? error)
-    {
-        if (node == null)
-        {
-            ReportUnresolved(reference, error);
-            return;
-        }
-        Analyze(node);
     }
 
     internal void ReportUnresolved(CodeReference reference, Exception? error)
@@ -429,21 +359,10 @@ public sealed class Workspace
         _settings.Locale = Locale;
         _settings.Layout = Layout;
         _settings.Bookmarks = Bookmarks.Save();
-        if (!_isRestoringAnalyzed)
-            _settings.Analyzed = ListAnalyzedToSave();
+        _settings.Analyzed = LastSessionAnalyses.ListToSave(Analyzer);
         _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
         _settings.SearchColumns = SearchColumns.Weights.ToList();
         _settings.FlagsFilters = MetadataFilters.Save();
-    }
-
-    private List<CodeAnchor> ListAnalyzedToSave()
-    {
-        if (_analyzedToRestore != null)
-            return _analyzedToRestore;
-        return Analyzer.Roots
-            .Select(r => r.Symbol.Definition)
-            .OfType<CodeAnchor>()
-            .ToList();
     }
 
     private void WriteSettingsFile()
