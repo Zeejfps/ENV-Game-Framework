@@ -200,7 +200,7 @@ public sealed class DockPanelsTests
         var next = new Workspace(temp.Settings());
         var restored = next.Layout;
 
-        Assert.Same(next.ActiveTab, next.FindTab(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
+        Assert.Same(next.Tabs.Active, next.Tabs.Find(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
         var window = Assert.Single(restored.Windows);
         Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
         Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
@@ -230,7 +230,7 @@ public sealed class DockPanelsTests
 
         var search = workspace.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
-        Assert.NotSame(search, workspace.Layout.GroupOf(workspace.ActiveTab!.Panel));
+        Assert.NotSame(search, workspace.Layout.GroupOf(workspace.Tabs.Active!.Panel));
 
         workspace.Layout.Close(DockPanels.Search);
 

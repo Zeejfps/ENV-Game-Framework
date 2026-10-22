@@ -44,7 +44,7 @@ internal static class DocumentsView
     }
 
     public static DockTab Tab(Workspace w, DocumentTab tab) =>
-        new(tab.Node is { } node ? w.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip, Current: tab == w.ActiveTab);
+        new(tab.Node is { } node ? w.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);
 
     /// <summary>Muted <paramref name="text"/> centered in a pane or area with nothing to show yet.</summary>
     public static void Hint(Ui ui, string text)

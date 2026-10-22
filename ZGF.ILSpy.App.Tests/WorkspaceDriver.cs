@@ -102,9 +102,9 @@ internal sealed class WorkspaceDriver
     public LoadedAssembly OpenFixtures()
     {
         Workspace.Open(FixturePath);
-        RunUntil(() => Workspace.ActiveTab?.Node?.Kind == NodeKind.Assembly);
+        RunUntil(() => Workspace.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
         Settle();
-        return Workspace.ActiveTab!.Node!.Assembly;
+        return Workspace.Tabs.Active!.Node!.Assembly;
     }
 
     /// <summary>The listed node at the labels under the fixture assembly's root.</summary>

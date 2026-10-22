@@ -18,8 +18,6 @@ public sealed class Workspace
     private const string AssemblyScope = "inassembly";
 
     private readonly AppSettings _settings;
-    private readonly List<DocumentTab> _tabs = new();
-    private readonly List<string> _releasedImages = new();
     private Action<Action> _post = ThrowNotAttached;
     private readonly UserIntent _intent = new();
     private readonly MainLayout _mainLayout;
@@ -31,7 +29,6 @@ public sealed class Workspace
     private bool _isRestoringAnalyzed;
     private CancellationTokenSource? _reloadWork;
     private bool _focusSearch;
-    private DocumentTab? _active;
 
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
@@ -60,7 +57,7 @@ public sealed class Workspace
     public MetadataFilters MetadataFilters { get; }
     public FrameworkPickerModel Picker { get; }
     public ErrorLog Errors { get; } = new();
-    public IReadOnlyList<DocumentTab> Tabs => _tabs;
+    public DocumentTabs Tabs { get; } = new();
 
     public AppThemeId Theme;
     public bool ShowNonPublic;
@@ -82,9 +79,6 @@ public sealed class Workspace
 
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget { get; private set; }
-
-    /// <summary>The tab the user last worked in, where the tree and navigation show what they pick.</summary>
-    public DocumentTab? ActiveTab => _active;
 
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
     public bool IsResolving => _intent.IsResolving;
@@ -111,8 +105,9 @@ public sealed class Workspace
         FoldedOptionGroups = LoadFoldedOptionGroups(settings);
         Locale = ChooseLocale(settings);
         ShowNonPublic = settings.ShowNonPublic;
-        _active = AddTab();
-        var dock = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
+        var first = AddTab();
+        Tabs.MakeActive(first);
+        var dock = DockPanels.Restore(settings.Layout, first.Panel, out var placed);
         _mainLayout = new MainLayout(dock);
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += OnPanelClosed;
@@ -127,7 +122,7 @@ public sealed class Workspace
         _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(GetStrings, ReportError);
         if (!placed)
-            _mainLayout.DockDocument(_active.Panel, _active.Panel);
+            _mainLayout.DockDocument(first.Panel, first.Panel);
         _analyzedToRestore = LoadAnalyzedToRestore(settings);
         ReportSettingsLoadError(settings);
     }
@@ -308,7 +303,7 @@ public sealed class Workspace
     private List<ReloadingTab> ReleaseShownTabs()
     {
         var reloading = new List<ReloadingTab>();
-        foreach (var tab in _tabs)
+        foreach (var tab in Tabs)
         {
             var location = tab.Location;
             if (location == null)
@@ -384,7 +379,7 @@ public sealed class Workspace
     private void ReshowTab(ReloadingTab reloading, BrowseNode? node, int intent)
     {
         var tab = reloading.Tab;
-        if (!_tabs.Contains(tab))
+        if (!Tabs.Contains(tab))
             return;
         if (tab.Version != reloading.Version)
             return;
@@ -394,7 +389,7 @@ public sealed class Workspace
             return;
         }
         tab.Show(node, Language, reloading.Position);
-        if (tab == ActiveTab && _intent.IsCurrent(intent))
+        if (tab == Tabs.Active && _intent.IsCurrent(intent))
             Tree.Reveal(node);
     }
 
@@ -458,7 +453,7 @@ public sealed class Workspace
     private void EnsureCurrent()
     {
         foreach (var group in Layout.AllGroups())
-            FindTab(group.Active)?.EnsureCurrent(Language);
+            Tabs.Find(group.Active)?.EnsureCurrent(Language);
     }
 
     /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
@@ -469,7 +464,7 @@ public sealed class Workspace
             return;
         _intent.Begin();
         LeaveActive();
-        var tab = inNewTab ? null : ActiveTab;
+        var tab = inNewTab ? null : Tabs.Active;
         ShowIn(tab, node);
         History.Push(node, Language);
     }
@@ -481,7 +476,7 @@ public sealed class Workspace
         if (!reference.IsNavigable)
             return;
         var ticket = _intent.Begin();
-        var origin = inNewTab ? null : ActiveTab;
+        var origin = inNewTab ? null : Tabs.Active;
         _intent.StartResolving(ticket);
         RunInBackground(() => Assemblies.FindNode(reference), (node, error) => OnReferenceFound(reference, node, error, origin, ticket));
     }
@@ -497,7 +492,7 @@ public sealed class Workspace
             return;
         }
         LeaveActive();
-        ShowIn(KeepIfOpen(origin), node);
+        ShowIn(Tabs.KeepIfOpen(origin), node);
         History.Push(node, Language);
     }
 
@@ -514,7 +509,7 @@ public sealed class Workspace
     {
         _intent.Begin();
         LeaveActive();
-        var tab = inNewTab ? null : ActiveTab;
+        var tab = inNewTab ? null : Tabs.Active;
         ShowIn(tab, target.Node, row: target.Row);
         History.Push(target.Node, Language);
     }
@@ -555,7 +550,7 @@ public sealed class Workspace
     private void Restore(HistoryEntry entry)
     {
         var ticket = _intent.Begin();
-        var tab = ActiveTab;
+        var tab = Tabs.Active;
         var place = entry.Place;
         var position = entry.Language == Language ? entry.Position : null;
         var shown = FindShownNode(tab, place);
@@ -594,7 +589,7 @@ public sealed class Workspace
             ReportError(t.ErrorGoBack(place.Text), details);
             return;
         }
-        ShowIn(KeepIfOpen(tab), node, position);
+        ShowIn(Tabs.KeepIfOpen(tab), node, position);
     }
 
     /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
@@ -643,7 +638,7 @@ public sealed class Workspace
     public void GoTo(Bookmark bookmark)
     {
         var ticket = _intent.Begin();
-        var tab = ActiveTab;
+        var tab = Tabs.Active;
         var place = bookmark.Place;
         _intent.StartResolving(ticket);
         RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnBookmarkPlaceFound(bookmark, node, error, tab, ticket));
@@ -662,7 +657,7 @@ public sealed class Workspace
             return;
         }
         LeaveActive();
-        ShowIn(KeepIfOpen(tab), node, target: bookmark);
+        ShowIn(Tabs.KeepIfOpen(tab), node, target: bookmark);
         History.Push(node, Language);
     }
 
@@ -674,16 +669,6 @@ public sealed class Workspace
         if (bookmark == null)
             return;
         GoTo(bookmark);
-    }
-
-    /// <summary>The images of tabs closed since the last call, for the view to free.</summary>
-    public IEnumerable<string> TakeReleasedImages()
-    {
-        if (_releasedImages.Count == 0)
-            return Array.Empty<string>();
-        var released = _releasedImages.ToArray();
-        _releasedImages.Clear();
-        return released;
     }
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
@@ -825,26 +810,15 @@ public sealed class Workspace
         Analyze(node);
     }
 
-    public void OpenAnalyzer() => _mainLayout.OpenAnalyzer(FindActivePanel());
+    public void OpenAnalyzer() => _mainLayout.OpenAnalyzer(Tabs.ActivePanel);
 
-    public void OpenDecompilerOptions() => _mainLayout.OpenDecompilerOptions(FindActivePanel());
+    public void OpenDecompilerOptions() => _mainLayout.OpenDecompilerOptions(Tabs.ActivePanel);
 
-    public void OpenBookmarks() => _mainLayout.OpenBookmarks(FindActivePanel());
-
-    /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>
-    public DocumentTab? FindTab(string? panel)
-    {
-        foreach (var tab in _tabs)
-        {
-            if (tab.Panel == panel)
-                return tab;
-        }
-        return null;
-    }
+    public void OpenBookmarks() => _mainLayout.OpenBookmarks(Tabs.ActivePanel);
 
     public void Activate(DocumentTab tab)
     {
-        if (!_tabs.Contains(tab))
+        if (!Tabs.Contains(tab))
             return;
         Layout.Activate(tab.Panel);
         Focus(tab);
@@ -854,10 +828,10 @@ public sealed class Workspace
     /// or brought to front the active one.</summary>
     public void SyncActiveTab()
     {
-        var tab = FindTab(Layout.Focused);
+        var tab = Tabs.Find(Layout.Focused);
         if (tab == null)
             return;
-        if (tab == _active)
+        if (tab == Tabs.Active)
             return;
         Focus(tab);
     }
@@ -865,17 +839,18 @@ public sealed class Workspace
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
     public void CycleTab(int by)
     {
-        if (_active == null)
+        var active = Tabs.Active;
+        if (active == null)
             return;
-        var group = Layout.GroupOf(_active.Panel);
+        var group = Layout.GroupOf(active.Panel);
         if (group == null)
             return;
         var panels = group.Panels.FindAll(IsTabPanel);
         if (panels.Count < 2)
             return;
-        var index = panels.IndexOf(_active.Panel);
+        var index = panels.IndexOf(active.Panel);
         var next = panels[WrapIndex(index + by, panels.Count)];
-        var tab = FindTab(next);
+        var tab = Tabs.Find(next);
         if (tab == null)
             return;
         Activate(tab);
@@ -908,13 +883,26 @@ public sealed class Workspace
     {
         var documents = _mainLayout.ListDocuments();
         if (documents.Count == 0)
-        {
-            _active = AddTab();
-            documents.Add(_active.Panel);
-        }
+            documents.Add(AddActiveTab().Panel);
         _mainLayout.Reset(documents);
-        if (_active != null && Layout.Contains(_active.Panel))
-            Layout.Activate(_active.Panel);
+        ActivateActivePanel();
+    }
+
+    private DocumentTab AddActiveTab()
+    {
+        var tab = AddTab();
+        Tabs.MakeActive(tab);
+        return tab;
+    }
+
+    private void ActivateActivePanel()
+    {
+        var panel = Tabs.ActivePanel;
+        if (panel == null)
+            return;
+        if (!Layout.Contains(panel))
+            return;
+        Layout.Activate(panel);
     }
 
     public void OpenAssemblies() => _mainLayout.OpenAssemblies();
@@ -925,7 +913,7 @@ public sealed class Workspace
     /// and puts the caret in its search box.</summary>
     public void OpenSearch()
     {
-        _mainLayout.OpenSearch(FindActivePanel());
+        _mainLayout.OpenSearch(Tabs.ActivePanel);
         _focusSearch = true;
     }
 
@@ -1011,42 +999,31 @@ public sealed class Workspace
 
     private bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
-    private bool IsTabPanel(string panel) => FindTab(panel) != null;
-
-    private DocumentTab? KeepIfOpen(DocumentTab? tab)
-    {
-        if (tab == null)
-            return null;
-        if (!_tabs.Contains(tab))
-            return null;
-        return tab;
-    }
+    private bool IsTabPanel(string panel) => Tabs.Find(panel) != null;
 
     private DocumentTab AddTab()
     {
         var tab = new DocumentTab(Post, GetStrings, () => DecompilerOptions, ReportError);
-        _tabs.Add(tab);
+        Tabs.Add(tab);
         return tab;
     }
 
     private void RemoveTab(string panel)
     {
-        var tab = FindTab(panel);
+        var tab = Tabs.Find(panel);
         if (tab == null)
             return;
         _intent.Begin();
-        tab.Cancel();
-        _tabs.Remove(tab);
-        _releasedImages.Add(tab.ImageId);
-        if (tab != _active)
+        var wasActive = tab == Tabs.Active;
+        Tabs.Remove(tab);
+        if (!wasActive)
             return;
-        _active = null;
         FocusNextTab();
     }
 
     private void FocusNextTab()
     {
-        var next = FindTab(Layout.Focused);
+        var next = Tabs.Find(Layout.Focused);
         if (next == null)
             next = FindFrontTab();
         if (next == null)
@@ -1058,24 +1035,17 @@ public sealed class Workspace
     {
         foreach (var group in Layout.AllGroups())
         {
-            var tab = FindTab(group.Active);
+            var tab = Tabs.Find(group.Active);
             if (tab != null)
                 return tab;
         }
         return null;
     }
 
-    private string? FindActivePanel()
-    {
-        if (_active == null)
-            return null;
-        return _active.Panel;
-    }
-
     private void Focus(DocumentTab tab)
     {
         _intent.Begin();
-        _active = tab;
+        Tabs.MakeActive(tab);
         tab.EnsureCurrent(Language);
         var node = tab.Node;
         if (node != null && IsListed(node))
@@ -1084,7 +1054,7 @@ public sealed class Workspace
 
     private void LeaveActive()
     {
-        var tab = ActiveTab;
+        var tab = Tabs.Active;
         if (tab == null)
             return;
         var position = tab.Position;
@@ -1111,7 +1081,7 @@ public sealed class Workspace
         int row = MetadataGridState.None)
     {
         var shownIn = ActivateOrOpenTab(tab);
-        _active = shownIn;
+        Tabs.MakeActive(shownIn);
         shownIn.Show(node, Language, position, target, row);
         Tree.Reveal(node);
     }
@@ -1127,7 +1097,7 @@ public sealed class Workspace
     private DocumentTab OpenNewTab()
     {
         var tab = AddTab();
-        _mainLayout.DockDocument(tab.Panel, FindActivePanel());
+        _mainLayout.DockDocument(tab.Panel, Tabs.ActivePanel);
         return tab;
     }
 

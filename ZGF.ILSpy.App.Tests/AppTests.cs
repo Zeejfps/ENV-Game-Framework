@@ -50,7 +50,7 @@ public sealed class AppTests
     {
         var app = AppDriver.Opened();
         app.Run(2);
-        var shown = app.Workspace.ActiveTab!;
+        var shown = app.Workspace.Tabs.Active!;
         var label = app.Workspace.Tree.Label(shown.Node!);
         var tab = app.Frames.TextRects()
             .Where(t => t.Text == label)
@@ -67,7 +67,7 @@ public sealed class AppTests
         Assert.Same(layout.GroupOf(DockPanels.Assemblies), layout.GroupOf(shown.Panel));
         Assert.Equal(shown.Panel, layout.GroupOf(shown.Panel)!.Active);
         Assert.IsType<DockGroup>(layout.Root);
-        Assert.Same(shown, app.Workspace.ActiveTab);
+        Assert.Same(shown, app.Workspace.Tabs.Active);
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public sealed class AppTests
         app.Settle();
 
         Assert.Equal(DecompilationLanguage.IL, app.Workspace.Language);
-        Assert.Equal(DecompilationLanguage.IL, app.Workspace.ActiveTab!.Language);
+        Assert.Equal(DecompilationLanguage.IL, app.Workspace.Tabs.Active!.Language);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public sealed class AppTests
         app.Settle(1);
 
         Assert.Equal(CSharpVersion.CSharp5, app.Workspace.DecompilerOptions.LanguageVersion);
-        Assert.Equal(CSharpVersion.CSharp5, app.Workspace.ActiveTab!.Options.LanguageVersion);
+        Assert.Equal(CSharpVersion.CSharp5, app.Workspace.Tabs.Active!.Options.LanguageVersion);
         Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text == "C# 5.0 / VS 2012");
 
         app.Click("IL");
@@ -189,7 +189,7 @@ public sealed class AppTests
         var app = AppDriver.Opened(width: 1600f);
         app.Show(app.Fixture("Greeter"), 1);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp1));
-        Assert.DoesNotContain("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
+        Assert.DoesNotContain("string.Concat", app.Workspace.Tabs.Active!.Document.GetText());
 
         app.Click("View");
         app.ClickMenuItem("Decompiler options").Frame();
@@ -197,13 +197,13 @@ public sealed class AppTests
         app.Settle(1);
 
         Assert.False(app.Workspace.DecompilerOptions.IsOn(DecompilerToggle.Find("StringConcat")!));
-        Assert.Contains("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
+        Assert.Contains("string.Concat", app.Workspace.Tabs.Active!.Document.GetText());
 
         app.Click(LucideIcons.RotateCcw);
         app.Settle(1);
 
         Assert.Equal(DecompilerOptions.Default, app.Workspace.DecompilerOptions);
-        Assert.DoesNotContain("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
+        Assert.DoesNotContain("string.Concat", app.Workspace.Tabs.Active!.Document.GetText());
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public sealed class AppTests
         app.Frames.Key(KeyboardKey.Enter).Frame();
         app.Settle();
 
-        Assert.Same(app.Workspace.Search.Rows[1].Node, app.Workspace.ActiveTab!.Node);
+        Assert.Same(app.Workspace.Search.Rows[1].Node, app.Workspace.Tabs.Active!.Node);
     }
 
     [Fact]

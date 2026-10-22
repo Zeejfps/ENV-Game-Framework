@@ -22,13 +22,13 @@ internal static class StatusBarView
             Background = theme.Surface,
         }))
         {
-            var selected = w.ActiveTab?.Node;
+            var selected = w.Tabs.Active?.Node;
             ui.Text(ui.Memo("status-node", selected, static n => n?.FullName ?? ""), new Box { Width = Sizing.Grow() }, color: theme.TextMuted,
                 size: size, overflow: TextOverflow.Ellipsis);
 
             using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                var activity = w.IsReloading ? t.StatusReloading : w.ActiveTab is { IsBusy: true } ? t.StatusDecompiling : w.IsResolving ? t.StatusResolving : null;
+                var activity = w.IsReloading ? t.StatusReloading : w.Tabs.Active is { IsBusy: true } ? t.StatusDecompiling : w.IsResolving ? t.StatusResolving : null;
                 if (activity != null)
                 {
                     ui.Text(activity, color: theme.AccentText, size: size);

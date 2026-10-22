@@ -16,7 +16,7 @@ public sealed class MetadataGridTests
     {
         var app = AppDriver.Opened(width: 1800f);
         app.Show(Table(app, name), frames);
-        var tab = app.Workspace.ActiveTab!;
+        var tab = app.Workspace.Tabs.Active!;
         return (app, tab, tab.Grid!);
     }
 
@@ -58,7 +58,7 @@ public sealed class MetadataGridTests
     {
         var app = AppDriver.Opened(width: 700f);
         app.Show(Table(app, "TypeDef"), 2);
-        var tab = app.Workspace.ActiveTab!;
+        var tab = app.Workspace.Tabs.Active!;
         var grid = tab.Grid!;
         var methodList = grid.Text(0, grid.Column("MethodList"));
 
@@ -78,8 +78,8 @@ public sealed class MetadataGridTests
 
         d.Show(d.Node("Metadata", "Tables"));
 
-        Assert.Null(d.Workspace.ActiveTab!.Grid);
-        Assert.StartsWith("// Tables", d.Workspace.ActiveTab.Document.GetText());
+        Assert.Null(d.Workspace.Tabs.Active!.Grid);
+        Assert.StartsWith("// Tables", d.Workspace.Tabs.Active.Document.GetText());
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public sealed class MetadataGridTests
     {
         var app = AppDriver.Opened(width: 1800f, height: 1200f);
         app.Show(app.Node("Metadata", "COFF Header"), 3);
-        var grid = app.Workspace.ActiveTab!.Grid!;
+        var grid = app.Workspace.Tabs.Active!.Grid!;
         var row = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, grid.Column("Member")) == "Characteristics");
         var value = TextBeside(app, grid.Text(row, grid.Column("Value")), "Characteristics");
 
@@ -316,7 +316,7 @@ public sealed class MetadataGridTests
         var app = AppDriver.Opened(width: 1800f, height: 900f);
         var table = app.Node("Debug Metadata (From portable PDB)", "Tables").Table("CustomDebugInformation");
         app.Show(table);
-        var tab = app.Workspace.ActiveTab!;
+        var tab = app.Workspace.Tabs.Active!;
         var grid = tab.Grid!;
         var kind = grid.Column("KindString");
         var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));

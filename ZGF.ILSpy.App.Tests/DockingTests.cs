@@ -10,14 +10,14 @@ public sealed class DockingTests
     {
         var app = AppDriver.Opened();
         app.Show(app.Fixture("Greeter"));
-        var greeter = app.Workspace.ActiveTab!;
+        var greeter = app.Workspace.Tabs.Active!;
         var layout = app.Workspace.Layout;
 
         layout.Dock(DockPanels.Assemblies, layout.GroupOf(greeter.Panel)!, DockEdge.Center);
         app.Run(3);
 
         Assert.Equal([greeter.Panel, DockPanels.Assemblies], layout.GroupOf(greeter.Panel)!.Panels);
-        Assert.Same(greeter, app.Workspace.ActiveTab);
+        Assert.Same(greeter, app.Workspace.Tabs.Active);
         Assert.True(app.Frames.Drew("Greeter"));
         Assert.True(app.Frames.Drew(WorkspaceDriver.FixturesNamespace));
     }
@@ -64,14 +64,14 @@ public sealed class DockingTests
         var d = WorkspaceDriver.Opened();
         var layout = d.Workspace.Layout;
 
-        d.Workspace.CloseTab(d.Workspace.ActiveTab!);
+        d.Workspace.CloseTab(d.Workspace.Tabs.Active!);
         var left = Assert.IsType<DockGroup>(layout.Root).Panels.ToList();
         d.Show(d.Fixture("Greeter"));
 
         Assert.Equal([DockPanels.Assemblies], left);
         var split = Assert.IsType<DockSplit>(layout.Root);
-        Assert.Same(layout.GroupOf(d.Workspace.ActiveTab!.Panel), split.Second);
-        Assert.Equal("Greeter", d.Workspace.ActiveTab.Node!.Text);
+        Assert.Same(layout.GroupOf(d.Workspace.Tabs.Active!.Panel), split.Second);
+        Assert.Equal("Greeter", d.Workspace.Tabs.Active.Node!.Text);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class DockingTests
         var app = new AppDriver();
         var w = app.Workspace;
         w.Layout.Close(DockPanels.Assemblies);
-        w.CloseTab(w.ActiveTab!);
+        w.CloseTab(w.Tabs.Active!);
 
         app.Run(2);
 
@@ -94,7 +94,7 @@ public sealed class DockingTests
         var d = app.Driver;
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
-        var farewell = d.Workspace.ActiveTab!;
+        var farewell = d.Workspace.Tabs.Active!;
         var layout = d.Workspace.Layout;
         layout.Dock(farewell.Panel, layout.Root, DockEdge.Bottom);
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 40f, 300f, 300f));
@@ -111,7 +111,7 @@ public sealed class DockingTests
         var documents = Assert.IsType<DockGroup>(split.Second);
         Assert.Equal(d.Workspace.Tabs.Select(t => t.Panel).Order(), documents.Panels.Order());
         Assert.Equal(farewell.Panel, documents.Active);
-        Assert.Same(farewell, d.Workspace.ActiveTab);
+        Assert.Same(farewell, d.Workspace.Tabs.Active);
         Assert.Empty(layout.Windows);
         Assert.False(layout.Contains(DockPanels.Bookmarks));
     }
@@ -160,7 +160,7 @@ public sealed class LayoutPersistenceTests : IDisposable
 
         var next = new WorkspaceDriver(_temp.Settings()).Workspace;
         var layout = next.Layout;
-        var documents = layout.GroupOf(next.ActiveTab!.Panel)!;
+        var documents = layout.GroupOf(next.Tabs.Active!.Panel)!;
         var views = layout.GroupOf(DockPanels.Analyzer)!;
         var split = ParentOf(layout.Root, views)!;
 

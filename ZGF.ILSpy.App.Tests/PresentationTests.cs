@@ -112,7 +112,7 @@ public sealed class PresentationTests
         var d = new WorkspaceDriver();
         var assembly = d.OpenFixtures();
 
-        var tab = d.Workspace.ActiveTab!;
+        var tab = d.Workspace.Tabs.Active!;
 
         Assert.Equal(assembly.Name, tab.Title);
         Assert.Contains(assembly.FullName, tab.Tooltip);

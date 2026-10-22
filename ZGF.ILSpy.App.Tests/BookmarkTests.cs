@@ -16,7 +16,7 @@ public sealed class BookmarkTests : IDisposable
         var d = driver ?? new WorkspaceDriver();
         d.OpenFixtures();
         d.Show(d.Fixture("Outline"));
-        var tab = d.Workspace.ActiveTab!;
+        var tab = d.Workspace.Tabs.Active!;
         return (d, tab, tab.Document.Find(text).Line);
     }
 

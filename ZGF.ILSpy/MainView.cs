@@ -64,19 +64,19 @@ public static class MainView
                         DecompilerOptionsPanelView.Render(ui, w, t);
                         break;
                     default:
-                        if (w.FindTab(panel) is { } tab)
+                        if (w.Tabs.Find(panel) is { } tab)
                             DocumentsView.Render(ui, w, t, tab);
                         break;
                 }
             }
         }
         w.SyncActiveTab();
-        foreach (var image in w.TakeReleasedImages())
+        foreach (var image in w.Tabs.TakeReleasedImages())
             ui.RemoveImage(image);
     }
 
     private static DockTab Tab(Workspace w, Strings t, string panel) =>
         DockPanels.IsView(panel) ? DockPanels.Tab(t, panel)
-        : w.FindTab(panel) is { } tab ? DocumentsView.Tab(w, tab)
+        : w.Tabs.Find(panel) is { } tab ? DocumentsView.Tab(w, tab)
         : new DockTab(panel);
 }

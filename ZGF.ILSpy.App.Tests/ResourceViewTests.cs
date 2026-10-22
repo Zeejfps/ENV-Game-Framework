@@ -11,7 +11,7 @@ public sealed class ResourceViewTests
     {
         var app = AppDriver.Opened(width: 1400f);
         app.Show(app.Node(["Resources", .. path]), 3);
-        return (app, app.Workspace.ActiveTab!);
+        return (app, app.Workspace.Tabs.Active!);
     }
 
     [Fact]

@@ -50,7 +50,7 @@ public sealed class AnalyzerTests
         d.Settle();
         analyzer.Analyze(caller.Symbol);
 
-        Assert.StartsWith("Third()", d.Workspace.ActiveTab!.Node!.Text);
+        Assert.StartsWith("Third()", d.Workspace.Tabs.Active!.Node!.Text);
         Assert.Equal(2, analyzer.Roots.Count);
         Assert.Same(analyzer.Roots[1], analyzer.View.Selected);
     }
@@ -112,7 +112,7 @@ public sealed class AnalyzerTests
     {
         var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Outline"));
-        var document = d.Workspace.ActiveTab!.Document;
+        var document = d.Workspace.Tabs.Active!.Document;
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
