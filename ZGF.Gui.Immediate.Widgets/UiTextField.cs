@@ -33,26 +33,23 @@ public static partial class UiWidgets
 
     private sealed class TextFieldState
     {
-        public int Caret;
-        public int Anchor;
+        public readonly TextSelection Selection = new();
         public float Shift;
         public string Known = "";
         public EditKind LastEdit;
         public readonly List<TextSnapshot> Undo = new();
         public readonly List<TextSnapshot> Redo = new();
-        public int Clicks;
-        public int UnitStart;
-        public int UnitEnd;
         public double BlinkFrom;
 
-        public bool HasSelection => Caret != Anchor;
-        public int SelectionStart => Math.Min(Caret, Anchor);
-        public int SelectionEnd => Math.Max(Caret, Anchor);
+        public int Caret => Selection.Caret;
+        public int Anchor => Selection.Anchor;
+        public bool HasSelection => Selection.HasSelection;
+        public int SelectionStart => Selection.Start;
+        public int SelectionEnd => Selection.End;
 
         public void Select(int anchor, int caret)
         {
-            Anchor = anchor;
-            Caret = caret;
+            Selection.Select(anchor, caret);
             LastEdit = EditKind.None;
         }
     }
@@ -129,13 +126,16 @@ public static partial class UiWidgets
                 preedit = PreeditText.Empty;
             }
             if (!focused) state.Shift = 0f;
-            Press(ui, state, text, CaretAt(ui, text, ui.Input.Pointer.X - textLeft + state.Shift), i.ClickCount, extend: focused);
+            state.Selection.Press(text, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift), i.ClickCount,
+                extend: focused && (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
+            state.LastEdit = EditKind.None;
             ui.Focus(i.Id);
             focused = true;
         }
         else if (i.Held && focused && hasRect)
         {
-            Drag(state, text, CaretAt(ui, text, ui.Input.Pointer.X - textLeft + state.Shift));
+            state.Selection.Drag(text, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift));
+            state.LastEdit = EditKind.None;
             var pointerX = ui.Input.Pointer.X;
             if (pointerX < textLeft || pointerX > textLeft + innerWidth)
                 ui.RequestFrame();
@@ -261,48 +261,6 @@ public static partial class UiWidgets
         return phase < CaretBlinkSeconds;
     }
 
-    private static void Press(Ui ui, TextFieldState state, string text, int at, int clickCount, bool extend)
-    {
-        state.Clicks = (clickCount - 1) % 3 + 1;
-
-        switch (state.Clicks)
-        {
-            case 1 when extend && (ui.Input.Modifiers & KeyModifiers.Shift) != 0:
-                state.Select(state.Anchor, at);
-                state.UnitStart = state.UnitEnd = state.Anchor;
-                break;
-            case 1:
-                state.Select(at, at);
-                state.UnitStart = state.UnitEnd = at;
-                break;
-            case 2:
-                (state.UnitStart, state.UnitEnd) = WordAt(text, at);
-                state.Select(state.UnitStart, state.UnitEnd);
-                break;
-            default:
-                (state.UnitStart, state.UnitEnd) = (0, text.Length);
-                state.Select(0, text.Length);
-                break;
-        }
-    }
-
-    private static void Drag(TextFieldState state, string text, int at)
-    {
-        switch (state.Clicks)
-        {
-            case 1:
-                state.Select(state.Anchor, at);
-                break;
-            case 2:
-                var (start, end) = WordAt(text, at);
-                if (start < state.UnitStart)
-                    state.Select(state.UnitEnd, start);
-                else
-                    state.Select(state.UnitStart, Math.Max(end, state.UnitEnd));
-                break;
-        }
-    }
-
     private static bool Edit(Ui ui, TextFieldState state, ref string text)
     {
         foreach (var stroke in ui.Input.Keys)
@@ -343,10 +301,10 @@ public static partial class UiWidgets
                     state.Select(0, text.Length);
                     break;
                 case KeyboardKey.C when shortcut && state.HasSelection:
-                    ui.ClipboardText = Selected(state, text);
+                    ui.ClipboardText = state.Selection.Of(text);
                     break;
                 case KeyboardKey.X when shortcut && state.HasSelection:
-                    ui.ClipboardText = Selected(state, text);
+                    ui.ClipboardText = state.Selection.Of(text);
                     Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
                     break;
                 case KeyboardKey.V when shortcut:
@@ -377,9 +335,6 @@ public static partial class UiWidgets
     private static void Move(TextFieldState state, int caret, bool extend) =>
         state.Select(extend ? state.Anchor : caret, caret);
 
-    private static string Selected(TextFieldState state, string text) =>
-        text.Substring(state.SelectionStart, state.SelectionEnd - state.SelectionStart);
-
     // Runs of typing, or of deleting, merge into one undo step until the caret moves or the kind
     // of edit changes.
     private static void Replace(TextFieldState state, ref string text, int start, int end, string insert, EditKind kind)
@@ -393,7 +348,7 @@ public static partial class UiWidgets
 
         text = string.Concat(text.AsSpan(0, start), insert, text.AsSpan(end));
         state.Known = text;
-        state.Caret = state.Anchor = start + insert.Length;
+        state.Selection.Select(start + insert.Length, start + insert.Length);
         state.LastEdit = kind;
     }
 
@@ -406,21 +361,6 @@ public static partial class UiWidgets
         text = snapshot.Text;
         state.Known = text;
         state.Select(snapshot.Anchor, snapshot.Caret);
-    }
-
-    private static int CaretAt(Ui ui, string text, float localX)
-    {
-        var best = 0;
-        var bestDistance = MathF.Abs(localX);
-        for (var index = 1; index <= text.Length; index++)
-        {
-            if (index < text.Length && char.IsLowSurrogate(text[index])) continue;
-            var distance = MathF.Abs(ui.MeasureText(text, index) - localX);
-            if (distance >= bestDistance) continue;
-            best = index;
-            bestDistance = distance;
-        }
-        return best;
     }
 
     private static int StepBack(string text, int caret) =>
