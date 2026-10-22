@@ -7,7 +7,7 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
-/// The per-frame surface handed to <see cref="Gui{T}"/>.Render. Calls record elements; once
+/// The per-frame surface handed to <see cref="ImmediateGuiApp{T}"/>.Render. Calls record elements; once
 /// Render returns the tree is laid out and drawn. Interaction is answered during the call from
 /// where each element was laid out on the previous frame, matched by id. Widgets are extension
 /// methods built on this surface.
@@ -95,7 +95,7 @@ public sealed partial class Ui
     /// so it can time things like a caret blink.</summary>
     public double RealTime { get; private set; }
 
-    /// <summary>The main window's bounds as of this frame; see <see cref="Gui{T}.WindowBounds"/>.</summary>
+    /// <summary>The main window's bounds as of this frame; see <see cref="ImmediateGuiAppHost.WindowBounds"/>.</summary>
     public WindowBounds WindowBounds { get; internal set; }
 
     /// <summary>The color the window is cleared to under everything drawn, and shown while it
@@ -328,7 +328,7 @@ public sealed partial class Ui
     /// <summary>
     /// Widget-owned state that outlives a frame (a caret, an open dropdown), created on first use
     /// and kept while <paramref name="id"/> keeps being asked for. App state belongs in the
-    /// <see cref="Gui{T}"/> state instead. Dropped after about a thousand frames unused, unless it
+    /// <see cref="ImmediateGuiApp{T}"/> state instead. Dropped after about a thousand frames unused, unless it
     /// belongs to a <see cref="StateScope"/> that is being kept.
     /// </summary>
     public TState GetState<TState>(int id) where TState : class, new()

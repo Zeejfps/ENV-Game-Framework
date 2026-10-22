@@ -26,7 +26,7 @@ public sealed class TodoState
     public void Add(string title) => Items.Add(new TodoItem { Id = NextId++, Title = title });
 }
 
-public sealed class TodoApp(TodoState state) : Gui<TodoState>(state)
+public sealed class TodoApp(TodoState state) : ImmediateGuiApp<TodoState>(state)
 {
     private static readonly (Locale Locale, string Endonym)[] Languages =
     [

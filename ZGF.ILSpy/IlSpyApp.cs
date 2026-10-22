@@ -4,7 +4,7 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-public sealed class IlSpyApp : Gui<Workspace>
+public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
 {
     private static readonly (string Family, string File)[] Fonts =
     [
@@ -30,10 +30,10 @@ public sealed class IlSpyApp : Gui<Workspace>
         var workspace = new Workspace(settings);
         var app = new IlSpyApp(workspace, commandLine.AssemblyPaths);
         var windowConfig = settings.CreateWindowConfig();
-        GuiHost.Run(app, windowConfig, commandLine.RenderBackend);
+        ImmediateGuiAppHost.Run(app, windowConfig, commandLine.RenderBackend);
     }
 
-    protected override void OnStartup(GuiHost host)
+    protected override void OnStartup(ImmediateGuiAppHost host)
     {
         State.Assemblies.Changed += host.Invalidate;
         OpenStartupAssemblies();
@@ -46,7 +46,7 @@ public sealed class IlSpyApp : Gui<Workspace>
         State.Open(paths);
     }
 
-    protected override void OnShutdown(GuiHost host)
+    protected override void OnShutdown(ImmediateGuiAppHost host)
     {
         State.Assemblies.Changed -= host.Invalidate;
         State.Settings.RememberWindow(host.WindowBounds);

@@ -9,24 +9,24 @@ public enum RenderBackendKind
     Metal,
 }
 
-/// <summary>The window, render loop and UI thread a <see cref="Gui{T}"/> runs in. While it runs,
+/// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{T}"/> runs in. While it runs,
 /// <c>await</c> on the UI thread continues before the next frame.</summary>
-public sealed class GuiHost
+public sealed class ImmediateGuiAppHost
 {
     private readonly ImmediateHost _host;
 
-    private GuiHost(ImmediateHost host)
+    private ImmediateGuiAppHost(ImmediateHost host)
     {
         _host = host;
     }
 
     /// <summary>Opens the window and runs <paramref name="app"/> in it until the window closes.</summary>
-    public static void Run<T>(Gui<T> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
+    public static void Run<T>(ImmediateGuiApp<T> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
         where T : class
     {
         using var host = new ImmediateHost(config, backend, app.Fonts, app.Render);
         using var context = new UiSynchronizationContext(host.Post).Install();
-        var guiHost = new GuiHost(host);
+        var guiHost = new ImmediateGuiAppHost(host);
         host.Post(() => app.Startup(guiHost));
         host.Run();
         app.Shutdown(guiHost);

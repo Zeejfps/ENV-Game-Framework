@@ -8,7 +8,7 @@ state.Add("Render through the canvas");
 state.Add("Decide if this beats the retained tree");
 
 var app = new TodoApp(state);
-GuiHost.Run(
+ImmediateGuiAppHost.Run(
     app,
     new StartupConfig
     {
