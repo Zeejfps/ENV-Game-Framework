@@ -234,7 +234,7 @@ public sealed class BookmarkTests : IDisposable
         for (var i = 0; i < 90; i++)
             app.Run();
         Assert.True(app.Frames.Drew(Strings.En.BookmarksGoToHint));
-        var icon = app.TextRect(LucideIcons.Link2);
+        var icon = app.TextRect(LucideIcons.ExternalLink);
 
         app.Frames.MovePointer(icon.X + icon.Width / 2, icon.Y + icon.Height / 2);
         app.Run();

@@ -243,7 +243,7 @@ public static class MetadataGridWidget
                             var (firstLine, moreLines) = grid.Lines(row, c);
                             if (target is { } token)
                             {
-                                if (ui.SelectableLink(cells[c], firstLine, state.Cell.Text, ref state.Cell.Shift, current, new UiIcon(LucideIcons.Link2, LucideIcons.Family),
+                                if (ui.SelectableLink(cells[c], firstLine, state.Cell.Text, ref state.Cell.Shift, current, new UiIcon(LucideIcons.ExternalLink, LucideIcons.Family),
                                         t.MetadataGoToToken, size: theme.FontSize, family: MonoFonts.Regular))
                                     result = new MetadataGridResult(token, null, false);
                             }

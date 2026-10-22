@@ -175,7 +175,7 @@ internal static class BookmarksPanelView
                     var shown = Shown(bookmark, c);
                     if (c == LocationColumn)
                     {
-                        if (ui.SelectableLink(cells[c], shown, cell.Text, ref cell.Shift, current, new UiIcon(LucideIcons.Link2, LucideIcons.Family),
+                        if (ui.SelectableLink(cells[c], shown, cell.Text, ref cell.Shift, current, new UiIcon(LucideIcons.ExternalLink, LucideIcons.Family),
                                 t.BookmarksGoTo, bookmark.Enabled ? null : theme.TextMuted))
                             w.GoTo(bookmark);
                     }

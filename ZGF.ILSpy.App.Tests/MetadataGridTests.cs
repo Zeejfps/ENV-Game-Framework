@@ -143,7 +143,7 @@ public sealed class MetadataGridTests
 
         app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2);
         app.Run(2);
-        var icon = TextBeside(app, LucideIcons.Link2, "Greeter");
+        var icon = TextBeside(app, LucideIcons.ExternalLink, "Greeter");
         Click(app, icon);
         app.Driver.Settle();
         app.Run(3);
