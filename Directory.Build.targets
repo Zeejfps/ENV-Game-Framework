@@ -12,4 +12,28 @@
         </ItemGroup>
     </Target>
 
+    <!-- Analyzers built from projects in this repo load from a copy named by their content, so a tool
+         that keeps one loaded, such as a language server, never blocks rebuilding it. -->
+    <Target Name="LoadLocalAnalyzersFromCopies" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <_LocalAnalyzer Include="@(Analyzer)" Condition="'%(Analyzer.MSBuildSourceProjectFile)' != ''" />
+        </ItemGroup>
+        <GetFileHash Files="@(_LocalAnalyzer)" Condition="'@(_LocalAnalyzer)' != ''">
+            <Output TaskParameter="Items" ItemName="_HashedLocalAnalyzer" />
+        </GetFileHash>
+        <ItemGroup>
+            <_LocalAnalyzerCopy Include="$(IntermediateOutputPath)analyzers\$([System.String]::Copy('%(_HashedLocalAnalyzer.FileHash)').Substring(0, 16))\%(_HashedLocalAnalyzer.Filename)%(_HashedLocalAnalyzer.Extension)"
+                                Condition="'@(_HashedLocalAnalyzer)' != ''">
+                <Source>%(_HashedLocalAnalyzer.FullPath)</Source>
+            </_LocalAnalyzerCopy>
+        </ItemGroup>
+        <Copy SourceFiles="%(_LocalAnalyzerCopy.Source)" DestinationFiles="%(_LocalAnalyzerCopy.Identity)"
+              Condition="'@(_LocalAnalyzerCopy)' != '' and !Exists('%(_LocalAnalyzerCopy.Identity)')" />
+        <ItemGroup>
+            <Analyzer Remove="@(_LocalAnalyzer)" />
+            <Analyzer Include="@(_LocalAnalyzerCopy)" />
+            <FileWrites Include="@(_LocalAnalyzerCopy)" />
+        </ItemGroup>
+    </Target>
+
 </Project>
