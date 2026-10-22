@@ -7,7 +7,12 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>A row of the analyzer: a symbol, an analysis of one, or a placeholder.</summary>
-public abstract class AnalyzerNode;
+public abstract class AnalyzerNode
+{
+    internal virtual void Cancel()
+    {
+    }
+}
 
 /// <summary>A symbol analyzed or found. Its children are its accessors, if it is a property or
 /// event, then each analysis that applies to it.</summary>
@@ -23,19 +28,97 @@ public sealed class AnalyzerSymbolNode(AnalysisSymbol symbol) : AnalyzerNode
             ..Analysis.AccessorsOf(Symbol).Select(static a => new AnalyzerSymbolNode(a)),
             ..Analysis.KindsFor(Symbol).Select(k => new AnalyzerKindNode(Symbol, k)),
         ];
+
+    internal override void Cancel()
+    {
+        foreach (var child in Children)
+            child.Cancel();
+    }
 }
 
 /// <summary>One analysis of a symbol, run in the background the first time it is expanded.</summary>
 public sealed class AnalyzerKindNode(AnalysisSymbol subject, AnalysisKind kind) : AnalyzerNode
 {
-    internal readonly List<AnalyzerNode> Results = new();
-    internal CancellationTokenSource? Work;
+    private readonly List<AnalyzerNode> _found = new();
+    private CancellationTokenSource? _work;
+    private bool _started;
 
     public AnalysisSymbol Subject { get; } = subject;
     public AnalysisKind Kind { get; } = kind;
-    public bool IsStarted { get; internal set; }
-    public bool IsDone { get; internal set; }
-    public IReadOnlyList<AnalyzerNode> Found => Results;
+    public bool IsDone { get; private set; }
+    public IReadOnlyList<AnalyzerNode> Found => _found;
+
+    /// <summary>Runs the analysis over <paramref name="assemblies"/> unless it already started,
+    /// calling <paramref name="changed"/> each time results come in.</summary>
+    internal void StartOnce(AssemblyList assemblies, Action changed)
+    {
+        if (_started)
+            return;
+        _started = true;
+        Run(assemblies, changed);
+    }
+
+    private async void Run(AssemblyList assemblies, Action changed)
+    {
+        var work = new CancellationTokenSource();
+        _work = work;
+        var token = work.Token;
+        try
+        {
+            await foreach (var batch in Analysis.RunAsync(assemblies, Subject, Kind, token))
+                Deliver(work, CreateNodes(batch), changed);
+            Finish(work, [], changed);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch (Exception e)
+        {
+            Finish(work, [new AnalyzerMessageNode(e.Message)], changed);
+        }
+    }
+
+    private static List<AnalyzerNode> CreateNodes(IReadOnlyList<AnalysisSymbol> symbols)
+    {
+        return symbols
+            .Select(static s => (AnalyzerNode)new AnalyzerSymbolNode(s))
+            .ToList();
+    }
+
+    private void Deliver(CancellationTokenSource work, List<AnalyzerNode> found, Action changed)
+    {
+        if (_work != work)
+            return;
+        _found.AddRange(found);
+        changed();
+    }
+
+    private void Finish(CancellationTokenSource work, List<AnalyzerNode> found, Action changed)
+    {
+        if (_work != work)
+            return;
+        _found.AddRange(found);
+        IsDone = true;
+        _work = null;
+        work.Dispose();
+        changed();
+    }
+
+    internal override void Cancel()
+    {
+        CancelRun();
+        foreach (var child in _found)
+            child.Cancel();
+    }
+
+    private void CancelRun()
+    {
+        var work = _work;
+        if (work == null)
+            return;
+        _work = null;
+        work.Cancel();
+    }
 }
 
 /// <summary>Stands in the results while an analysis runs, or tells why it failed.</summary>
@@ -98,7 +181,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     {
         if (!_roots.Remove(root)) return;
         Revision++;
-        Cancel(root);
+        root.Cancel();
         View.ClearSelection();
         View.Refresh();
     }
@@ -106,7 +189,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     public void Clear()
     {
         foreach (var root in _roots)
-            Cancel(root);
+            root.Cancel();
         _roots.Clear();
         Revision++;
         View.ClearSelection();
@@ -116,7 +199,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     public bool HasChildren(AnalyzerNode node) => node switch
     {
         AnalyzerSymbolNode symbol => symbol.Children.Count > 0,
-        AnalyzerKindNode kind => !kind.IsDone || kind.Results.Count > 0,
+        AnalyzerKindNode kind => !kind.IsDone || kind.Found.Count > 0,
         _ => false,
     };
 
@@ -127,9 +210,8 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
             case AnalyzerSymbolNode symbol:
                 return symbol.Children;
             case AnalyzerKindNode kind:
-                if (!kind.IsStarted)
-                    _ = Start(kind);
-                return kind.IsDone ? kind.Results : [..kind.Results, _loading];
+                kind.StartOnce(_assemblies, View.Refresh);
+                return kind.IsDone ? kind.Found : [..kind.Found, _loading];
             default:
                 return [];
         }
@@ -139,64 +221,11 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     {
         AnalyzerSymbolNode { Symbol: var s } => new TreeRow(s.Label, NodeIcons.Icon(s.Kind, s.Accessibility, _icons), Tooltip: s.Location,
             Secondary: s.Location),
-        AnalyzerKindNode kind => new TreeRow(kind.IsDone ? $"{AnalyzerText.Header(_strings, kind.Kind)} ({kind.Results.Count})" : AnalyzerText.Header(_strings, kind.Kind),
+        AnalyzerKindNode kind => new TreeRow(kind.IsDone ? $"{AnalyzerText.Header(_strings, kind.Kind)} ({kind.Found.Count})" : AnalyzerText.Header(_strings, kind.Kind),
             new UiIcon(LucideIcons.Search, LucideIcons.Family, _theme.TextMuted)),
         AnalyzerMessageNode { Error: { } error } => new TreeRow(error, new UiIcon(LucideIcons.AlertCircle, LucideIcons.Family, _theme.Danger), _theme.Danger),
         _ => new TreeRow(_strings.AnalyzerLoading, new UiIcon(LucideIcons.Loader2, LucideIcons.Family, _theme.TextMuted), _theme.TextMuted),
     };
-
-    private async Task Start(AnalyzerKindNode kind)
-    {
-        kind.IsStarted = true;
-        var work = new CancellationTokenSource();
-        kind.Work = work;
-        var token = work.Token;
-        try
-        {
-            await foreach (var batch in Analysis.RunAsync(_assemblies, kind.Subject, kind.Kind, token))
-                Deliver(kind, work, batch.Select(static r => (AnalyzerNode)new AnalyzerSymbolNode(r)).ToList(), done: false);
-            Deliver(kind, work, [], done: true);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-        }
-        catch (Exception e)
-        {
-            Deliver(kind, work, [new AnalyzerMessageNode(e.Message)], done: true);
-        }
-    }
-
-    private void Deliver(AnalyzerKindNode kind, CancellationTokenSource work, List<AnalyzerNode> found, bool done)
-    {
-        if (kind.Work != work) return;
-        kind.Results.AddRange(found);
-        if (done)
-        {
-            kind.IsDone = true;
-            kind.Work = null;
-            work.Dispose();
-        }
-        View.Refresh();
-    }
-
-    private static void Cancel(AnalyzerNode node)
-    {
-        if (node is AnalyzerKindNode { Work: { } work } kind)
-        {
-            kind.Work = null;
-            work.Cancel();
-        }
-        if (node is AnalyzerSymbolNode symbol)
-        {
-            foreach (var child in symbol.Children)
-                Cancel(child);
-        }
-        else if (node is AnalyzerKindNode results)
-        {
-            foreach (var child in results.Results)
-                Cancel(child);
-        }
-    }
 }
 
 /// <summary>The analyzer's words in the interface language.</summary>
