@@ -16,6 +16,8 @@ internal static class BookmarksPanelView
     private const int LocationColumn = 2;
     private const int ModuleColumn = 3;
 
+    private static readonly UiIcon LocationLink = new(LucideIcons.ExternalLink, LucideIcons.Family);
+
     private static Strings? _headersFor;
     private static string[] _headers = [];
 
@@ -34,36 +36,50 @@ internal static class BookmarksPanelView
             return;
         }
 
-        var rowHeight = theme.RowHeight;
-        var area = ui.Interact(ListId);
-        if (area.Pressed)
-            ui.Focus(ListId, takesText: false);
-        var focused = ui.HasFocus(ListId);
         var cell = ui.GetState<TableCellSelection>(CellsId);
-        if (focused && bookmarks.Renaming == null)
-            Keys(ui, w, cell, rowHeight);
-        if (bookmarks.SelectedBookmark is not { } selected)
-            cell.Clear();
-        else if (cell.Row != bookmarks.Selected)
-            cell.Select(bookmarks.Selected, cell.Column, Shown(selected, cell.Column));
-
-        var palette = ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark;
         ui.TableHeader("header", w.BookmarkColumns, ListId, Headers(t), theme.ShellPaddingX);
-        using (var list = ui.VirtualScroll(ListId, bookmarks.Items.Count, rowHeight, new Box { Gap = 0f }))
-        {
-            if (bookmarks.ScrollToSelected)
-            {
-                list.ScrollIntoView(bookmarks.Selected);
-                bookmarks.ScrollToSelected = false;
-            }
-            for (var i = list.First; i < list.End; i++)
-            {
-                var bookmark = bookmarks.Items[i];
-                using (ui.Id(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(bookmark)))
-                    Row(ui, w, t, cell, bookmark, i, focused, palette);
-            }
-        }
+        var removed = List(ui, w, t, cell);
         Menu(ui, w, t, cell);
+        if (removed != null)
+            bookmarks.Remove(removed);
+    }
+
+    /// <summary>Returns the bookmark Delete asked to remove.</summary>
+    private static Bookmark? List(Ui ui, Workspace w, Strings t, TableCellSelection cell)
+    {
+        var bookmarks = w.Bookmarks;
+        var palette = ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark;
+        var renaming = bookmarks.Renaming != null;
+        Bookmark? removed = null;
+        using var list = ui.SelectableList(ListId, bookmarks.Items.Count, bookmarks.Selection, keys: !renaming);
+        FollowSelection(cell, bookmarks);
+        if (list.Focused && !renaming)
+            removed = HandleKeys(ui, w, cell);
+        var activated = bookmarks.SelectedBookmark;
+        if (list.Activated && activated != null)
+            w.GoTo(activated);
+        if (list.ContextMenuRequested)
+            ui.OpenContextMenu("bookmark-menu", list.ContextMenuAt);
+        for (var i = list.First; i < list.End; i++)
+        {
+            var bookmark = bookmarks.Items[i];
+            using (ui.Id(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(bookmark)))
+                Row(ui, w, t, list, cell, bookmark, i, palette);
+        }
+        return removed;
+    }
+
+    /// <summary>Keeps the current cell on the selected bookmark, in the column it was in.</summary>
+    private static void FollowSelection(TableCellSelection cell, BookmarkList bookmarks)
+    {
+        var selected = bookmarks.SelectedBookmark;
+        if (selected == null)
+        {
+            cell.Clear();
+            return;
+        }
+        if (cell.Row == bookmarks.Selected) return;
+        cell.Select(bookmarks.Selected, cell.Column, Shown(selected, cell.Column));
     }
 
     private static string[] Headers(Strings t)
@@ -113,26 +129,20 @@ internal static class BookmarksPanelView
         _ => "",
     };
 
-    private static void Row(Ui ui, Workspace w, Strings t, TableCellSelection cell, Bookmark bookmark, int index, bool focused, CodeViewPalette palette)
+    private static void Row(Ui ui, Workspace w, Strings t, ListScope list, TableCellSelection cell, Bookmark bookmark, int index, CodeViewPalette palette)
     {
-        var theme = ui.Theme;
         var bookmarks = w.Bookmarks;
-        var mark = ui.Interact("mark");
-        var hovered = mark.Hovered;
+        var hovered = false;
+        var mark = ui.ListCell(ListId, ui.GetId("mark"), ref hovered);
         if (mark.Pressed)
-        {
-            ui.Focus(ListId, takesText: false);
-            bookmarks.Select(index);
-        }
+            bookmarks.Selection.Select(index, bookmarks.Items.Count);
         Span<Interaction> cells = stackalloc Interaction[ModuleColumn + 1];
         for (var c = NameColumn; c <= ModuleColumn; c++)
         {
-            cells[c] = ui.Interact(ui.GetId(c));
-            hovered |= cells[c].Hovered || ui.IsLinkIconHovered(cells[c]);
+            cells[c] = ui.ListCell(ListId, ui.GetId(c), ref hovered);
             if (cells[c].Pressed || cells[c].ClickedWith(PointerButton.Right))
             {
-                ui.Focus(ListId, takesText: false);
-                bookmarks.Select(index);
+                bookmarks.Selection.Select(index, bookmarks.Items.Count);
                 cell.Select(index, c, Shown(bookmark, c));
                 if (c == NameColumn && cells[c].Pressed && bookmarks.Renaming != bookmark)
                     bookmarks.StartRename(bookmark);
@@ -141,15 +151,7 @@ internal static class BookmarksPanelView
                 ui.OpenContextMenu("bookmark-menu");
         }
 
-        var selected = index == bookmarks.Selected;
-        using (ui.Row(new Box
-        {
-            Height = theme.RowHeight,
-            Gap = 0f,
-            Padding = new Spacing(theme.ShellPaddingX, 0f),
-            AlignY = Align.Center,
-            Background = selected ? theme.SelectionInactive : hovered ? theme.RowHover : 0u,
-        }))
+        using (var row = list.Row(index, 0, new Box { Gap = 0f }, hovered))
         {
             var columns = w.BookmarkColumns;
             using (ui.TableCell(columns, 0))
@@ -163,37 +165,42 @@ internal static class BookmarksPanelView
             }
             for (var c = NameColumn; c <= ModuleColumn; c++)
             {
-                var current = selected && cell.Column == c;
-                if (cells[c].Hovered && c != LocationColumn)
-                    ui.SetCursor(MouseCursor.Text);
-                using (ui.TableCell(columns, c, cells[c].Id))
+                if (c == NameColumn && bookmarks.Renaming == bookmark)
                 {
-                    if (c == NameColumn && bookmarks.Renaming == bookmark)
-                    {
+                    using (ui.TableCell(columns, c, cells[c].Id))
                         RenameField(ui, bookmarks);
-                        continue;
-                    }
-                    if (current)
-                        ui.TableCellOutline(focused);
-                    var shown = Shown(bookmark, c);
-                    if (c == LocationColumn)
-                    {
-                        if (ui.SelectableLink(cells[c], shown, cell.Text, ref cell.Shift, current, new UiIcon(LucideIcons.ExternalLink, LucideIcons.Family),
-                                t.BookmarksGoTo, bookmark.Enabled ? null : theme.TextMuted))
-                            w.GoTo(bookmark);
-                    }
-                    else
-                    {
-                        ui.SelectableText(cells[c], shown, cell.Text, ref cell.Shift, current,
-                            !bookmark.Enabled || c == ModuleColumn ? theme.TextMuted : theme.Text,
-                            overflow: c == ModuleColumn ? TextOverflow.EllipsisMiddle : TextOverflow.Ellipsis);
-                    }
-                    if (current)
-                        cell.SettleClick(cells[c], shown);
+                    continue;
                 }
+                var current = row.Selected && cell.Column == c;
+                if (c == LocationColumn)
+                    LocationCell(ui, w, t, cells[c], cell, bookmark, current, row.Focused);
+                else
+                    TextCell(ui, w, cells[c], cell, bookmark, c, current, row.Focused);
             }
         }
         LocationTooltip(ui, t, cells[LocationColumn].Id, bookmark);
+    }
+
+    private static void LocationCell(Ui ui, Workspace w, Strings t, Interaction i, TableCellSelection cell, Bookmark bookmark, bool current, bool focused)
+    {
+        uint? color = null;
+        if (!bookmark.Enabled)
+            color = ui.Theme.TextMuted;
+        var followed = ui.TableCellText(w.BookmarkColumns, LocationColumn, i, bookmark.Location, cell, current, focused, color, link: LocationLink,
+            linkTooltip: t.BookmarksGoTo);
+        if (followed)
+            w.GoTo(bookmark);
+    }
+
+    private static void TextCell(Ui ui, Workspace w, Interaction i, TableCellSelection cell, Bookmark bookmark, int column, bool current, bool focused)
+    {
+        var theme = ui.Theme;
+        var module = column == ModuleColumn;
+        var color = theme.Text;
+        if (!bookmark.Enabled || module)
+            color = theme.TextMuted;
+        var overflow = module ? TextOverflow.EllipsisMiddle : TextOverflow.Ellipsis;
+        ui.TableCellText(w.BookmarkColumns, column, i, Shown(bookmark, column), cell, current, focused, color, overflow: overflow);
     }
 
     private static void LocationTooltip(Ui ui, Strings t, int cellId, Bookmark bookmark)
@@ -247,64 +254,42 @@ internal static class BookmarksPanelView
         return cell.Copied(shown, shown);
     }
 
-    private static void Keys(Ui ui, Workspace w, TableCellSelection cell, float rowHeight)
+    /// <summary>Returns the bookmark Delete asked to remove.</summary>
+    private static Bookmark? HandleKeys(Ui ui, Workspace w, TableCellSelection cell)
     {
         var bookmarks = w.Bookmarks;
-        var page = ui.TryGetRect(ListId, out var view) ? Math.Max(1, (int)(view.Height / rowHeight) - 1) : 10;
-        var count = bookmarks.Items.Count;
-        var keys = ui.Input.Keys;
-        for (var k = 0; k < keys.Count; k++)
+        Bookmark? removed = null;
+        foreach (var stroke in ui.Input.Keys)
         {
-            var stroke = keys[k];
-            if (stroke.Key == KeyboardKey.C && (stroke.Modifiers & KeyModifiers.Control) != 0 && cell.HasCell && bookmarks.SelectedBookmark is { } copied)
-                ui.ClipboardText = Copied(copied, cell);
+            var bookmark = bookmarks.SelectedBookmark;
+            if (bookmark == null) break;
+            switch (cell.ApplyKey(stroke, NameColumn, ModuleColumn, out var column))
+            {
+                case TableCellKey.Column:
+                    cell.Select(bookmarks.Selected, column, Shown(bookmark, column));
+                    continue;
+                case TableCellKey.Copy:
+                    if (cell.HasCell)
+                        ui.ClipboardText = Copied(bookmark, cell);
+                    continue;
+                case TableCellKey.Collapsed:
+                    continue;
+            }
             if ((stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Super)) != 0) continue;
-            var selected = bookmarks.Selected;
             switch (stroke.Key)
             {
-                case KeyboardKey.UpArrow:
-                    bookmarks.Select(Math.Max(0, selected - 1));
-                    break;
-                case KeyboardKey.DownArrow:
-                    bookmarks.Select(Math.Min(count - 1, selected + 1));
-                    break;
-                case KeyboardKey.PageUp:
-                    bookmarks.Select(Math.Max(0, selected - page));
-                    break;
-                case KeyboardKey.PageDown:
-                    bookmarks.Select(Math.Min(count - 1, Math.Max(0, selected) + page));
-                    break;
-                case KeyboardKey.Home:
-                    bookmarks.Select(0);
-                    break;
-                case KeyboardKey.End:
-                    bookmarks.Select(count - 1);
-                    break;
-                case KeyboardKey.LeftArrow when bookmarks.SelectedBookmark is { } bookmark:
-                    MoveTo(Math.Max(NameColumn, cell.Column - 1), bookmark);
-                    break;
-                case KeyboardKey.RightArrow when bookmarks.SelectedBookmark is { } bookmark:
-                    MoveTo(Math.Clamp(cell.Column + 1, NameColumn, ModuleColumn), bookmark);
-                    break;
-                case KeyboardKey.Escape when cell.Text.HasSelection:
-                    cell.Text.Select(cell.Text.Caret, cell.Text.Caret);
-                    break;
-                case KeyboardKey.Enter when bookmarks.SelectedBookmark is { } bookmark:
-                    w.GoTo(bookmark);
-                    break;
-                case KeyboardKey.Space when bookmarks.SelectedBookmark is { } bookmark:
+                case KeyboardKey.Space:
                     bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
                     break;
-                case KeyboardKey.F2 when bookmarks.SelectedBookmark is { } bookmark:
-                    MoveTo(NameColumn, bookmark);
+                case KeyboardKey.F2:
+                    cell.Select(bookmarks.Selected, NameColumn, Shown(bookmark, NameColumn));
                     bookmarks.StartRename(bookmark);
                     break;
-                case KeyboardKey.Delete when bookmarks.SelectedBookmark is { } bookmark:
-                    bookmarks.Remove(bookmark);
+                case KeyboardKey.Delete:
+                    removed = bookmark;
                     break;
             }
         }
-
-        void MoveTo(int column, Bookmark bookmark) => cell.Select(bookmarks.Selected, column, Shown(bookmark, column));
+        return removed;
     }
 }

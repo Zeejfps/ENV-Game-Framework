@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -30,10 +31,9 @@ public sealed class FrameworkPickerModel
     public bool IsOpen;
     public bool FocusFilter;
     public string Filter = "";
-    public int SelectedIndex = -1;
-    public bool ScrollToSelected;
+    public ListSelection Selection { get; } = new();
 
-    public RuntimeAssembly? Selected => SelectedIndex >= 0 && SelectedIndex < _filtered.Count ? _filtered[SelectedIndex] : null;
+    public RuntimeAssembly? Selected => Selection.Index >= 0 && Selection.Index < _filtered.Count ? _filtered[Selection.Index] : null;
 
     public bool IsLoading => _loading;
     public IReadOnlyList<RuntimeAssembly> Filtered => _filtered;
@@ -97,16 +97,9 @@ public sealed class FrameworkPickerModel
             if (filter.Length == 0 || assembly.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
                 _filtered.Add(assembly);
         }
-        SelectedIndex = selected == null ? -1 : _filtered.IndexOf(selected);
-        if (SelectedIndex < 0 && _filtered.Count > 0)
-            SelectedIndex = 0;
-        ScrollToSelected = true;
-    }
-
-    public void Move(int by)
-    {
-        if (_filtered.Count == 0) return;
-        SelectedIndex = Math.Clamp(SelectedIndex + by, 0, _filtered.Count - 1);
-        ScrollToSelected = true;
+        var index = 0;
+        if (selected != null)
+            index = Math.Max(0, _filtered.IndexOf(selected));
+        Selection.Select(index, _filtered.Count);
     }
 }

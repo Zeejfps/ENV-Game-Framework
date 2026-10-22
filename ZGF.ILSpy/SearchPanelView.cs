@@ -42,68 +42,67 @@ internal static class SearchPanelView
                 color: theme.TextMuted, size: theme.FontSizeSmall);
         }
         ui.Separator();
+        Results(ui, w, t);
+    }
 
-        var rowHeight = theme.RowHeight;
-        var area = ui.Interact(ResultsId);
-        if (area.Pressed)
-            ui.Focus(ResultsId, takesText: false);
-        var focused = ui.HasFocus(ResultsId);
-        if (focused)
-            Keys(ui, w, rowHeight);
-
+    private static void Results(Ui ui, Workspace w, Strings t)
+    {
+        var search = w.Search;
         var sortIcon = new UiIcon(search.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp, LucideIcons.Family);
-        var clicked = ui.TableHeader("header", w.SearchColumns, ResultsId,
-            Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]), theme.ShellPaddingX,
-            sort: new TableSort((int)search.Sort - 1, sortIcon));
+        var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
+        var clicked = ui.TableHeader("header", w.SearchColumns, ResultsId, headers, ui.Theme.ShellPaddingX, sort: new TableSort((int)search.Sort - 1, sortIcon));
         if (clicked >= 0)
             search.SortBy((SearchSort)(clicked + 1));
-        using var list = ui.VirtualScroll(ResultsId, search.Rows.Count, rowHeight, new Box { Gap = 0f });
-        if (search.ScrollToSelected)
-        {
-            list.ScrollIntoView(search.Selected);
-            search.ScrollToSelected = false;
-        }
+        using var list = ui.SelectableList(ResultsId, search.Rows.Count, search.Selection, selectOnClick: true);
+        if (list.Focused)
+            OpenOnEnter(ui, w);
         for (var i = list.First; i < list.End; i++)
-        {
-            var row = search.Rows[i];
-            var node = row.Node;
-            using (ui.Id(RuntimeHelpers.GetHashCode(node)))
-            {
-                var item = ui.Interact("row");
-                var newTab = item.ClickedWith(PointerButton.Middle);
-                if (item.Pressed)
-                    ui.Focus(ResultsId, takesText: false);
-                if (item.Clicked || newTab)
-                {
-                    search.Select(i);
-                    w.Show(node, newTab);
-                }
+            ResultRow(ui, w, list, i);
+    }
 
-                var selected = i == search.Selected;
-                var background = selected ? focused ? theme.Selection : theme.SelectionInactive : item.Hovered ? theme.RowHover : 0u;
-                var columns = w.SearchColumns;
-                using (ui.Row(item.Id, new Box
-                {
-                    Height = rowHeight,
-                    Gap = 0f,
-                    Padding = new Spacing(theme.ShellPaddingX, 0f),
-                    AlignY = Align.Center,
-                    Background = background,
-                }))
-                {
-                    using (ui.TableCell(columns, 0))
-                    {
-                        NodeIcons.Draw(ui, node.Kind, node.Accessibility);
-                        ui.Text(row.Text, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
-                    }
-                    using (ui.TableCell(columns, 1))
-                        ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
-                    using (ui.TableCell(columns, 2))
-                        ui.Text(node.Assembly.NameAndVersion, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
-                }
-                ui.Tooltip(item.Id, NodeText.Tooltip(node));
-            }
+    private static void OpenOnEnter(Ui ui, Workspace w)
+    {
+        var selected = w.Search.SelectedRow;
+        if (selected == null) return;
+        foreach (var stroke in ui.Input.Keys)
+        {
+            if (!IsOpenKey(stroke)) continue;
+            var inNewTab = (stroke.Modifiers & KeyModifiers.Control) != 0;
+            w.Show(selected.Node, inNewTab);
         }
+    }
+
+    private static bool IsOpenKey(KeyStroke stroke) =>
+        stroke.Key == KeyboardKey.Enter && (stroke.Modifiers & (KeyModifiers.Alt | KeyModifiers.Super)) == 0;
+
+    private static void ResultRow(Ui ui, Workspace w, ListScope list, int index)
+    {
+        var theme = ui.Theme;
+        var row = w.Search.Rows[index];
+        var node = row.Node;
+        using var scope = ui.Id(RuntimeHelpers.GetHashCode(node));
+        var id = ui.GetId("row");
+        using (var item = list.Row(index, id, new Box { Gap = 0f }))
+        {
+            var newTab = item.Interaction.ClickedWith(PointerButton.Middle);
+            if (newTab)
+                w.Search.Select(index);
+            if (item.Interaction.Clicked || newTab)
+                w.Show(node, newTab);
+
+            var columns = w.SearchColumns;
+            var nameColor = item.Selected ? theme.SelectionText : theme.Text;
+            using (ui.TableCell(columns, 0))
+            {
+                NodeIcons.Draw(ui, node.Kind, node.Accessibility);
+                ui.Text(row.Text, new Box { Width = Sizing.Grow() }, color: nameColor, overflow: TextOverflow.Ellipsis);
+            }
+            using (ui.TableCell(columns, 1))
+                ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
+            using (ui.TableCell(columns, 2))
+                ui.Text(node.Assembly.NameAndVersion, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
+        }
+        ui.Tooltip(id, NodeText.Tooltip(node));
     }
 
     private static void Field(Ui ui, Workspace w, Strings t)
@@ -209,40 +208,4 @@ internal static class SearchPanelView
         SearchKinds.Assemblies => NodeKind.Assembly,
         _ => NodeKind.Namespace,
     };
-
-    private static void Keys(Ui ui, Workspace w, float rowHeight)
-    {
-        var search = w.Search;
-        var page = ui.TryGetRect(ResultsId, out var view) ? Math.Max(1, (int)(view.Height / rowHeight) - 1) : 10;
-        var keys = ui.Input.Keys;
-        for (var k = 0; k < keys.Count; k++)
-        {
-            var stroke = keys[k];
-            if ((stroke.Modifiers & (KeyModifiers.Alt | KeyModifiers.Super)) != 0) continue;
-            switch (stroke.Key)
-            {
-                case KeyboardKey.UpArrow:
-                    search.Move(-1);
-                    break;
-                case KeyboardKey.DownArrow:
-                    search.Move(1);
-                    break;
-                case KeyboardKey.PageUp:
-                    search.Move(-page);
-                    break;
-                case KeyboardKey.PageDown:
-                    search.Move(page);
-                    break;
-                case KeyboardKey.Home:
-                    search.Move(-search.Rows.Count);
-                    break;
-                case KeyboardKey.End:
-                    search.Move(search.Rows.Count);
-                    break;
-                case KeyboardKey.Enter when search.SelectedRow is { } selected:
-                    w.Show(selected.Node, inNewTab: (stroke.Modifiers & KeyModifiers.Control) != 0);
-                    break;
-            }
-        }
-    }
 }

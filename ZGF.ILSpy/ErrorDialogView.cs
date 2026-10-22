@@ -62,36 +62,21 @@ internal static class ErrorDialogView
     private static void List(Ui ui, ErrorLog errors, Strings t)
     {
         var theme = ui.Theme;
-        var rowHeight = theme.RowHeight;
         var entries = errors.Entries;
-        using var list = ui.VirtualScroll("error-list", entries.Count, rowHeight, new Box
+        using var list = ui.SelectableList(ui.GetId("error-list"), entries.Count, errors.Selection, box: new Box
         {
-            Height = Math.Min(entries.Count, AppLayout.ErrorListRows) * rowHeight,
-            Gap = 0f,
+            Height = Math.Min(entries.Count, AppLayout.ErrorListRows) * theme.RowHeight,
             Background = theme.Field,
         });
         for (var i = list.First; i < list.End; i++)
         {
             var entry = entries[i];
             using (ui.Id(i))
+            using (var row = list.Row(i, ui.GetId("row"), new Box { Gap = theme.Gap }))
             {
-                var row = ui.Interact("row");
-                if (row.Pressed)
-                    errors.Select(i);
-                var selected = i == errors.Selected;
-                var background = selected ? theme.Selection : row.Hovered ? theme.RowHover : 0u;
-                using (ui.Row(row.Id, new Box
-                {
-                    Width = Sizing.Grow(),
-                    Height = rowHeight,
-                    Gap = theme.Gap,
-                    Padding = new Spacing(theme.ShellPaddingX, 0f),
-                    Background = background,
-                }))
-                {
-                    ui.Text(ui.Memo("time", (entry.Time, t), static a => a.Time.ToString("T", a.t.Culture)), color: theme.TextMuted);
-                    ui.Text(entry.Title, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
-                }
+                var titleColor = row.Selected ? theme.SelectionText : theme.Text;
+                ui.Text(ui.Memo("time", (entry.Time, t), static a => a.Time.ToString("T", a.t.Culture)), color: theme.TextMuted);
+                ui.Text(entry.Title, new Box { Width = Sizing.Grow() }, color: titleColor, overflow: TextOverflow.Ellipsis);
             }
         }
     }

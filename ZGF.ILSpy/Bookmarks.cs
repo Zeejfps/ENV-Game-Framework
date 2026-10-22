@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -131,13 +132,13 @@ public sealed class BookmarkList
 
     public int Revision { get; private set; }
 
+    /// <summary>The bookmark selected in the panel.</summary>
+    public ListSelection Selection { get; } = new();
+
     /// <summary>The index of the bookmark selected in the panel, or -1.</summary>
-    public int Selected { get; private set; } = -1;
+    public int Selected => Selection.Index;
 
     public Bookmark? SelectedBookmark => Selected >= 0 ? _items[Selected] : null;
-
-    /// <summary>Set when the selection moves: the panel should scroll it into view.</summary>
-    public bool ScrollToSelected { get; set; }
 
     /// <summary>The bookmark whose name is being edited, and the name typed so far.</summary>
     public Bookmark? Renaming { get; private set; }
@@ -150,7 +151,7 @@ public sealed class BookmarkList
     public void Add(Bookmark bookmark)
     {
         _items.Add(bookmark);
-        Select(_items.Count - 1);
+        Selection.Select(_items.Count - 1, _items.Count);
         Revision++;
     }
 
@@ -161,14 +162,8 @@ public sealed class BookmarkList
         _items.RemoveAt(index);
         if (Renaming == bookmark)
             Renaming = null;
-        Selected = _items.Count == 0 ? -1 : Math.Min(Selected, _items.Count - 1);
+        Selection.Select(Math.Min(Selected, _items.Count - 1), _items.Count, reveal: false);
         Revision++;
-    }
-
-    public void Select(int index)
-    {
-        Selected = index >= 0 && index < _items.Count ? index : -1;
-        ScrollToSelected = Selected >= 0;
     }
 
     public void SetEnabled(Bookmark bookmark, bool enabled)
@@ -208,7 +203,7 @@ public sealed class BookmarkList
         {
             var index = ((start + Math.Sign(direction) * step) % count + count) % count;
             if (!_items[index].Enabled) continue;
-            Select(index);
+            Selection.Select(index, count);
             return _items[index];
         }
         return null;
@@ -269,7 +264,7 @@ public sealed class BookmarkList
         if (mode == BookmarkImportMode.Replace)
         {
             _items.Clear();
-            Selected = -1;
+            Selection.Clear();
             Renaming = null;
         }
         var added = 0;

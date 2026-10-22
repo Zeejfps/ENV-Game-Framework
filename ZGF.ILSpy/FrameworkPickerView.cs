@@ -22,17 +22,9 @@ internal static class FrameworkPickerView
         {
             if (!dialog.IsOpen) return;
 
-            var keys = ui.Input.Keys;
-            for (var i = 0; i < keys.Count; i++)
-            {
-                switch (keys[i].Key)
-                {
-                    case KeyboardKey.UpArrow: picker.Move(-1); break;
-                    case KeyboardKey.DownArrow: picker.Move(1); break;
-                    case KeyboardKey.PageUp: picker.Move(-10); break;
-                    case KeyboardKey.PageDown: picker.Move(10); break;
-                }
-            }
+            var listId = ui.GetId("picker-list");
+            if (!ui.HasFocus(listId))
+                MoveSelectionFromFilter(ui, picker, listId);
 
             if (picker.FocusFilter)
             {
@@ -59,7 +51,7 @@ internal static class FrameworkPickerView
                     ui.Text(t.PickerScanFailed, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
                         color: theme.TextMuted, wrap: true);
                 else
-                    open |= Rows(ui, picker, t);
+                    open |= Rows(ui, picker, t, listId);
             }
 
             using (ui.Row(new Box { Gap = theme.GapTight }))
@@ -80,49 +72,50 @@ internal static class FrameworkPickerView
             picker.Close();
     }
 
-    private static bool Rows(Ui ui, FrameworkPickerModel picker, Strings t)
+    /// <summary>Walks the list from the filter, leaving Home and End to its text.</summary>
+    private static void MoveSelectionFromFilter(Ui ui, FrameworkPickerModel picker, int listId)
+    {
+        var count = picker.Filtered.Count;
+        var page = ui.MeasureListPage(listId, ui.Theme.RowHeight);
+        var index = picker.Selection.Index;
+        foreach (var stroke in ui.Input.Keys)
+        {
+            var movesCaret = stroke.Key is KeyboardKey.Home or KeyboardKey.End;
+            if (!movesCaret)
+                UiWidgets.ApplyListKey(stroke, ref index, count, page);
+        }
+        if (index != picker.Selection.Index)
+            picker.Selection.Select(index, count);
+    }
+
+    private static bool Rows(Ui ui, FrameworkPickerModel picker, Strings t, int listId)
     {
         var theme = ui.Theme;
-        var rowHeight = theme.RowHeight;
-        var open = false;
-        using var list = ui.VirtualScroll("picker-list", picker.Filtered.Count, rowHeight, new Box { Gap = 0f });
+        using var list = ui.SelectableList(listId, picker.Filtered.Count, picker.Selection);
         for (var i = list.First; i < list.End; i++)
         {
             var assembly = picker.Filtered[i];
-            var selected = i == picker.SelectedIndex;
             using (ui.Id(assembly.FilePath))
+            using (var row = list.Row(i, ui.GetId("row"), new Box { Gap = theme.GapTight }))
             {
-                var row = ui.Interact("row");
-                if (row.Pressed)
+                var listed = picker.IsListed(assembly);
+                var nameColor = NameColor(theme, listed, row.Selected);
+                var note = listed ? t.PickerListed : assembly.Framework;
+                NodeIcons.Draw(ui, NodeKind.Assembly);
+                using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
                 {
-                    picker.SelectedIndex = i;
-                    open |= row.DoubleClicked;
-                }
-                var background = selected ? theme.Selection : row.Hovered ? theme.RowHover : 0u;
-                using (ui.Row(row.Id, new Box
-                {
-                    Height = rowHeight,
-                    Gap = theme.GapTight,
-                    Padding = new Spacing(theme.ShellPaddingX, 0f),
-                    Background = background,
-                }))
-                {
-                    var listed = picker.IsListed(assembly);
-                    NodeIcons.Draw(ui, NodeKind.Assembly);
-                    using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
-                    {
-                        ui.Text(assembly.Name, new Box { Width = Sizing.Grow() }, color: listed ? theme.TextMuted : selected ? theme.SelectionText : theme.Text,
-                            overflow: TextOverflow.Ellipsis);
-                        ui.Text(listed ? t.PickerListed : assembly.Framework, color: theme.TextMuted, size: theme.FontSizeSmall);
-                    }
+                    ui.Text(assembly.Name, new Box { Width = Sizing.Grow() }, color: nameColor, overflow: TextOverflow.Ellipsis);
+                    ui.Text(note, color: theme.TextMuted, size: theme.FontSizeSmall);
                 }
             }
         }
-        if (picker.ScrollToSelected)
-        {
-            list.ScrollIntoView(picker.SelectedIndex);
-            picker.ScrollToSelected = false;
-        }
-        return open;
+        return list.Activated;
+    }
+
+    private static uint NameColor(UiTheme theme, bool listed, bool selected)
+    {
+        if (listed) return theme.TextMuted;
+        if (selected) return theme.SelectionText;
+        return theme.Text;
     }
 }

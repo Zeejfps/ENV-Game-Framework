@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -38,9 +39,9 @@ public sealed class ErrorLog
     public IReadOnlyList<AppError> Entries => _entries;
 
     /// <summary>The entry the dialog shows, an index into <see cref="Entries"/>.</summary>
-    public int Selected { get; private set; } = -1;
+    public ListSelection Selection { get; } = new();
 
-    public AppError? SelectedError => Selected >= 0 && Selected < _entries.Count ? _entries[Selected] : null;
+    public AppError? SelectedError => Selection.Index >= 0 && Selection.Index < _entries.Count ? _entries[Selection.Index] : null;
 
     /// <summary>The dialog's view of <see cref="SelectedError"/>'s text.</summary>
     public CodeViewState View { get; } = new();
@@ -51,31 +52,25 @@ public sealed class ErrorLog
         if (_entries.Count > Capacity)
         {
             _entries.RemoveAt(0);
-            Selected = Math.Max(0, Selected - 1);
+            Selection.Select(Math.Max(0, Selection.Index - 1), _entries.Count, reveal: false);
         }
         if (!IsOpen)
-            Selected = _entries.Count - 1;
+            Selection.Select(_entries.Count - 1, _entries.Count);
     }
 
     /// <summary>Opens the dialog on the newest error.</summary>
     public void Open()
     {
         if (_entries.Count == 0) return;
-        Selected = _entries.Count - 1;
+        Selection.Select(_entries.Count - 1, _entries.Count);
         IsOpen = true;
-    }
-
-    public void Select(int index)
-    {
-        if (index >= 0 && index < _entries.Count)
-            Selected = index;
     }
 
     /// <summary>Forgets every error and closes the dialog.</summary>
     public void Clear()
     {
         _entries.Clear();
-        Selected = -1;
+        Selection.Clear();
         IsOpen = false;
         _documentFor = null;
         _document = DecompiledDocument.Empty;

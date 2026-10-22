@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -29,7 +30,6 @@ public sealed class SearchModel
     private string? _query;
     private SearchKinds _kinds;
     private int _version = -1;
-    private BrowseNode? _selected;
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed: a title and details.</param>
@@ -47,16 +47,15 @@ public sealed class SearchModel
     public IReadOnlyList<SearchResult> Rows => _rows;
     public bool IsBusy => _runs.Count > 0;
 
+    public ListSelection Selection { get; } = new();
+
     /// <summary>The selected row, or -1.</summary>
-    public int Selected { get; private set; } = -1;
+    public int Selected => Selection.Index;
 
     public SearchResult? SelectedRow => Selected >= 0 ? _rows[Selected] : null;
 
     public SearchSort Sort { get; private set; }
     public bool Descending { get; private set; }
-
-    /// <summary>Set when the selection moved and should be scrolled into view.</summary>
-    public bool ScrollToSelected;
 
     /// <summary>Starts a search when the query settled, or searches assemblies opened since. Does
     /// nothing unless the results are <paramref name="shown"/>. Returns the seconds left before a
@@ -82,19 +81,9 @@ public sealed class SearchModel
         return 0;
     }
 
-    public void Select(int index)
-    {
-        if (index < 0 || index >= _rows.Count) return;
-        Selected = index;
-        _selected = _rows[index].Node;
-        ScrollToSelected = true;
-    }
+    public void Select(int index) => Selection.Select(index, _rows.Count);
 
-    public void Move(int by)
-    {
-        if (_rows.Count > 0)
-            Select(Math.Clamp(Selected < 0 && by < 0 ? 0 : Selected + by, 0, _rows.Count - 1));
-    }
+    public void Move(int by) => Selection.Move(by, _rows.Count);
 
     public void Clear() => Query = "";
 
@@ -106,9 +95,10 @@ public sealed class SearchModel
             sort = SearchSort.Relevance;
         Descending = Sort == sort && sort != SearchSort.Relevance;
         Sort = sort;
+        var selected = SelectedRow?.Node;
         _rows.Sort(Compare);
-        Reselect();
-        ScrollToSelected = Selected >= 0;
+        Reselect(selected);
+        Selection.Reveal();
     }
 
     private int Compare(SearchResult a, SearchResult b)
@@ -156,8 +146,7 @@ public sealed class SearchModel
         _version = assemblies.Version;
         _rows.Clear();
         _searched.Clear();
-        Selected = -1;
-        _selected = null;
+        Selection.Clear();
         var listed = assemblies.Assemblies;
         _searched.UnionWith(listed);
         if (!SearchQuery.Parse(_query, _kinds).IsEmpty)
@@ -170,19 +159,24 @@ public sealed class SearchModel
         var listed = assemblies.Assemblies;
         if (_searched.RemoveWhere(a => !listed.Contains(a)) > 0)
         {
+            var selected = SelectedRow?.Node;
             _rows.RemoveAll(r => !_searched.Contains(r.Node.Assembly));
-            Reselect();
+            Reselect(selected);
         }
         var added = listed.Where(_searched.Add).ToArray();
         if (added.Length > 0 && !SearchQuery.Parse(_query!, _kinds).IsEmpty)
             Start(assemblies, added, post);
     }
 
-    private void Reselect()
+    private void Reselect(BrowseNode? selected)
     {
-        Selected = _selected is null ? -1 : _rows.FindIndex(r => ReferenceEquals(r.Node, _selected));
-        if (Selected < 0)
-            _selected = null;
+        if (selected == null)
+        {
+            Selection.Clear();
+            return;
+        }
+        var index = _rows.FindIndex(r => ReferenceEquals(r.Node, selected));
+        Selection.Select(index, _rows.Count, reveal: false);
     }
 
     private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within, Action<Action> post)
@@ -201,13 +195,14 @@ public sealed class SearchModel
                 post(() =>
                 {
                     if (!_runs.Contains(work)) return;
+                    var selected = SelectedRow?.Node;
                     foreach (var row in batch)
                     {
                         if (_searched.Contains(row.Node.Assembly))
                             Insert(row);
                     }
-                    if (_selected is not null)
-                        Reselect();
+                    if (selected is not null)
+                        Reselect(selected);
                 });
             }
         }

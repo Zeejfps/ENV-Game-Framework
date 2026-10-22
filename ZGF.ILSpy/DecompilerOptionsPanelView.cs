@@ -42,7 +42,7 @@ internal static class DecompilerOptionsPanelView
 
         var rowHeight = theme.RowHeight;
         string? flipped = null;
-        using (var list = ui.VirtualScroll("decompiler-options", RowCount(w), rowHeight, new Box { Gap = 0f }))
+        using (var list = ui.VirtualScroll("decompiler-options", RowCount(w), rowHeight))
         {
             for (var i = list.First; i < list.End; i++)
             {

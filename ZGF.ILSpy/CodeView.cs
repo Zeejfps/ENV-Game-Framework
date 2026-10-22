@@ -380,7 +380,7 @@ public static class CodeViewWidget
             using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f }))
             {
                 using (var list = ui.VirtualScroll(codeId, folds.RowCount, rowHeight, ref state.ScrollX, ref state.ScrollY,
-                           new Box { Gap = 0f, Background = theme.EditorBackground }))
+                           new Box { Background = theme.EditorBackground }))
                 {
                     for (var row = list.First; row < list.End; row++)
                     {
