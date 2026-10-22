@@ -146,13 +146,13 @@ public sealed class AppSettingsTests : IDisposable
     public void A_null_assembly_list_loads_as_empty()
     {
         Directory.CreateDirectory(_directory);
-        File.WriteAllText(SettingsFile, """{ "Assemblies": null, "DarkMode": false }""");
+        File.WriteAllText(SettingsFile, """{ "Assemblies": null, "Theme": "Monokai" }""");
 
         var loaded = AppSettings.Load(SettingsFile);
 
         Assert.Null(loaded.LoadError);
         Assert.Empty(loaded.Assemblies);
-        Assert.False(loaded.DarkMode);
+        Assert.Equal(AppThemeId.Monokai, loaded.Theme);
     }
 
     [Fact]

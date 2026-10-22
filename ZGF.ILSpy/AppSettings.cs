@@ -22,7 +22,7 @@ public sealed class AppSettings
     public string? LoadError { get; private set; }
 
     public List<string> Assemblies { get; set; } = new();
-    public bool DarkMode { get; set; } = true;
+    public AppThemeId Theme { get; set; } = AppThemeId.Dark;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
 

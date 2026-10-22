@@ -10,7 +10,7 @@ public static class MainView
 {
     public static void Render(Ui ui, Workspace w, Strings t)
     {
-        var theme = AppThemes.For(w.DarkMode);
+        var theme = AppThemes.For(w.Theme);
         using var screen = ui.Screen(theme.Ui);
         using var code = ui.Provide(theme.Code);
         using var icons = ui.Provide(theme.Icons);

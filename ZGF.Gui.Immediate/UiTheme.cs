@@ -431,6 +431,136 @@ public sealed record UiTheme
         PopupShadow = new UiShadow(0f, 4f, 12f, 0f, 0x24000000),
         DialogShadow = new UiShadow(0f, 8f, 24f, 0f, 0x33000000),
     };
+
+    /// <summary>GitHub's Primer dark palette.</summary>
+    public static UiTheme GitHubDark { get; } = new()
+    {
+        Background = 0xFF0D1117,
+        Surface = 0xFF010409,
+        SurfaceRaised = 0xFF161B22,
+        Control = 0xFF21262D,
+        Field = 0xFF0D1117,
+        Border = 0xFF30363D,
+        Separator = 0xFF21262D,
+        Text = 0xFFE6EDF3,
+        TextMuted = 0xFF8B949E,
+        TextDisabled = 0xFF6E7681,
+        Accent = 0xFF1F6FEB,
+        OnAccent = 0xFFFFFFFF,
+        AccentText = 0xFF4493F8,
+        FocusRing = 0xFF1F6FEB,
+        RowHover = 0xFF161B22,
+        Selection = 0xFF1F3049,
+        SelectionInactive = 0xFF21262D,
+        Danger = 0xFFF85149,
+        Warning = 0xFFD29922,
+        Success = 0xFF3FB950,
+        Scrim = 0x99000000,
+    };
+
+    /// <summary>Atom's One Dark, as the One Dark Pro editor theme has it.</summary>
+    public static UiTheme OneDarkPro { get; } = new()
+    {
+        Background = 0xFF21252B,
+        Surface = 0xFF21252B,
+        SurfaceRaised = 0xFF2C313A,
+        Control = 0xFF3A3F4B,
+        Field = 0xFF1D1F23,
+        EditorBackground = 0xFF282C34,
+        Border = 0xFF3E4452,
+        Separator = 0xFF181A1F,
+        Text = 0xFFABB2BF,
+        TextMuted = 0xFF8B909A,
+        Accent = 0xFF4570C4,
+        OnAccent = 0xFFFFFFFF,
+        AccentText = 0xFF61AFEF,
+        FocusRing = 0xFF528BFF,
+        RowHover = 0xFF2C313A,
+        Selection = 0xFF3E4451,
+        SelectionInactive = 0xFF323842,
+        SelectionText = 0xFFD7DAE0,
+        Danger = 0xFFE06C75,
+        Warning = 0xFFE5C07B,
+        Success = 0xFF98C379,
+        Scrim = 0x99000000,
+    };
+
+    /// <summary>The Dracula palette.</summary>
+    public static UiTheme Dracula { get; } = new()
+    {
+        Background = 0xFF21222C,
+        Surface = 0xFF191A21,
+        SurfaceRaised = 0xFF343746,
+        Control = 0xFF44475A,
+        Field = 0xFF282A36,
+        Border = 0xFF4D5066,
+        Separator = 0xFF191A21,
+        Text = 0xFFF8F8F2,
+        TextMuted = 0xFF9CA3C4,
+        TextDisabled = 0xFF6272A4,
+        Accent = 0xFFBD93F9,
+        OnAccent = 0xFF282A36,
+        AccentText = 0xFFBD93F9,
+        FocusRing = 0xFFBD93F9,
+        RowHover = 0xFF2C2E3B,
+        Selection = 0xFF44475A,
+        SelectionInactive = 0xFF363848,
+        Danger = 0xFFFF5555,
+        Warning = 0xFFFFB86C,
+        Success = 0xFF50FA7B,
+        Scrim = 0x99000000,
+    };
+
+    /// <summary>The classic Monokai palette.</summary>
+    public static UiTheme Monokai { get; } = new()
+    {
+        Background = 0xFF1E1F1C,
+        Surface = 0xFF1E1F1C,
+        SurfaceRaised = 0xFF2D2E27,
+        Control = 0xFF414339,
+        Field = 0xFF272822,
+        Border = 0xFF575950,
+        Separator = 0xFF34352F,
+        Text = 0xFFF8F8F2,
+        TextMuted = 0xFFA59F85,
+        Accent = 0xFF75715E,
+        OnAccent = 0xFFF8F8F2,
+        AccentText = 0xFF66D9EF,
+        FocusRing = 0xFF99947C,
+        RowHover = 0xFF31322B,
+        Selection = 0xFF49483E,
+        SelectionInactive = 0xFF3A3B33,
+        Danger = 0xFFF92672,
+        Warning = 0xFFFD971F,
+        Success = 0xFFA6E22E,
+        Scrim = 0x99000000,
+    };
+
+    /// <summary>Catppuccin's Mocha flavor.</summary>
+    public static UiTheme CatppuccinMocha { get; } = new()
+    {
+        Background = 0xFF181825,
+        Surface = 0xFF11111B,
+        SurfaceRaised = 0xFF1E1E2E,
+        Control = 0xFF313244,
+        Field = 0xFF1E1E2E,
+        Border = 0xFF45475A,
+        Separator = 0xFF313244,
+        Text = 0xFFCDD6F4,
+        TextMuted = 0xFFA6ADC8,
+        TextDisabled = 0xFF6C7086,
+        Accent = 0xFFCBA6F7,
+        OnAccent = 0xFF11111B,
+        AccentText = 0xFFCBA6F7,
+        FocusRing = 0xFFCBA6F7,
+        RowHover = 0xFF242536,
+        Selection = 0xFF45475A,
+        SelectionInactive = 0xFF313244,
+        Danger = 0xFFF38BA8,
+        Warning = 0xFFF9E2AF,
+        Success = 0xFFA6E3A1,
+        Scrim = 0x99000000,
+    };
 }
 
 /// <summary>A set of control geometry and type sizes for <see cref="UiTheme.WithDensity"/>.</summary>

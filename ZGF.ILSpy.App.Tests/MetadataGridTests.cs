@@ -155,7 +155,7 @@ public sealed class MetadataGridTests
     public void A_row_stays_highlighted_while_its_link_icon_is_hovered()
     {
         var (app, _, grid) = ShowTable("TypeDef");
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var baseType = Column(grid, "BaseType");
         var row = Enumerable.Range(0, grid.RowCount).First(r => grid.Link(r, baseType) != null);
         var name = grid.Text(row, Column(grid, "Name"));
@@ -342,7 +342,7 @@ public sealed class MetadataGridTests
     public void The_selected_cells_outline_is_drawn_over_the_text_selected_in_it()
     {
         var (app, _, _, _) = ShowGreeterRow();
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var name = TextBeside(app, "Greeter", "Greeter");
 
         Drag(app, name.X + 1f, name.X + name.Width - 1f, name.Y + name.Height / 2);

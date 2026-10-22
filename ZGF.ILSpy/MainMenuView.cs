@@ -95,10 +95,16 @@ internal static class MainMenuView
     {
         using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
         if (!themes.IsOpen) return;
-        if (ui.MenuRadioItem(t.ViewThemeDark, w.DarkMode, id: "theme-dark"))
-            w.DarkMode = true;
-        if (ui.MenuRadioItem(t.ViewThemeLight, !w.DarkMode, id: "theme-light"))
-            w.DarkMode = false;
+        if (ui.MenuRadioItem(t.ViewThemeDark, w.Theme == AppThemeId.Dark, id: "theme-dark"))
+            w.Theme = AppThemeId.Dark;
+        if (ui.MenuRadioItem(t.ViewThemeLight, w.Theme == AppThemeId.Light, id: "theme-light"))
+            w.Theme = AppThemeId.Light;
+        ui.MenuSeparator();
+        foreach (var (id, name) in AppThemes.Named)
+        {
+            if (ui.MenuRadioItem(name, w.Theme == id))
+                w.Theme = id;
+        }
     }
 
     private static void LanguageMenu(Ui ui, Workspace w, Strings t)

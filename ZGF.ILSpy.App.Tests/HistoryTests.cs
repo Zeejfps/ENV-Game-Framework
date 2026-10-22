@@ -171,7 +171,7 @@ public sealed class HistoryTests
 
     private static void ClickBackDropdown(AppDriver app)
     {
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var icon = app.TextRect(LucideIcons.ArrowLeft);
         var x = icon.X + icon.Width / 2 + theme.IconButtonSize / 2 + theme.DropdownButtonWidth / 2;
         app.Frames.MovePointer(x, icon.Y + icon.Height / 2);

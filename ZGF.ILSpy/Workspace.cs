@@ -34,7 +34,7 @@ public sealed class Workspace
     public Workspace(AppSettings settings)
     {
         _settings = settings;
-        DarkMode = settings.DarkMode;
+        Theme = settings.Theme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
         Locale = settings.Locale ?? Locales.For(CultureInfo.CurrentUICulture);
@@ -86,7 +86,7 @@ public sealed class Workspace
     public ErrorLog Errors { get; } = new();
     public IReadOnlyList<DocumentTab> Tabs => _tabs;
 
-    public bool DarkMode;
+    public AppThemeId Theme;
     public bool ShowNonPublic;
 
     /// <summary>The interface language.</summary>
@@ -643,7 +643,7 @@ public sealed class Workspace
     public void SaveSettings()
     {
         _settings.Assemblies = Assemblies.FilePaths.ToList();
-        _settings.DarkMode = DarkMode;
+        _settings.Theme = Theme;
         _settings.Language = Language;
         _settings.Decompiler = DecompilerOptions;
         _settings.ShowNonPublic = ShowNonPublic;

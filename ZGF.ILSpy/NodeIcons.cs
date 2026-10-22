@@ -134,4 +134,54 @@ public sealed class NodeIconPalette
         Error = 0xFFB42332,
         Restricted = 0xFF9A4F1C,
     };
+
+    public static NodeIconPalette GitHubDark { get; } = new()
+    {
+        Neutral = 0xFF8B949E,
+        Type = 0xFFFFA657,
+        Method = 0xFFD2A8FF,
+        Data = 0xFF79C0FF,
+        Error = 0xFFF85149,
+        Restricted = 0xFFD29922,
+    };
+
+    public static NodeIconPalette OneDarkPro { get; } = new()
+    {
+        Neutral = 0xFF8B909A,
+        Type = 0xFFE5C07B,
+        Method = 0xFF61AFEF,
+        Data = 0xFFE06C75,
+        Error = 0xFFF44747,
+        Restricted = 0xFFD19A66,
+    };
+
+    public static NodeIconPalette Dracula { get; } = new()
+    {
+        Neutral = 0xFF9CA3C4,
+        Type = 0xFF8BE9FD,
+        Method = 0xFF50FA7B,
+        Data = 0xFFFFB86C,
+        Error = 0xFFFF5555,
+        Restricted = 0xFFF1FA8C,
+    };
+
+    public static NodeIconPalette Monokai { get; } = new()
+    {
+        Neutral = 0xFFA59F85,
+        Type = 0xFF66D9EF,
+        Method = 0xFFA6E22E,
+        Data = 0xFFFD971F,
+        Error = 0xFFF92672,
+        Restricted = 0xFFE6DB74,
+    };
+
+    public static NodeIconPalette CatppuccinMocha { get; } = new()
+    {
+        Neutral = 0xFFA6ADC8,
+        Type = 0xFFF9E2AF,
+        Method = 0xFF89B4FA,
+        Data = 0xFFB4BEFE,
+        Error = 0xFFF38BA8,
+        Restricted = 0xFFFAB387,
+    };
 }

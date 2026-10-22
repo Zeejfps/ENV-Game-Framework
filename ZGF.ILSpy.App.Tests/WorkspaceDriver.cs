@@ -129,7 +129,7 @@ internal sealed class AppDriver
     /// <summary>The texts drawn in the status bar, the window's bottom row.</summary>
     public IEnumerable<UiRect> StatusTexts()
     {
-        var bottom = Frames.Height - AppThemes.For(Workspace.DarkMode).Ui.StatusBarHeight;
+        var bottom = Frames.Height - AppThemes.For(Workspace.Theme).Ui.StatusBarHeight;
         return Frames.Canvas.Texts.Select(t => t.Inputs.Position).Where(p => Frames.Height - p.Top >= bottom - 0.5f)
             .Select(p => new UiRect(p.Left, Frames.Height - p.Top, p.Width, p.Height));
     }
@@ -137,7 +137,7 @@ internal sealed class AppDriver
     /// <summary>Where <paramref name="text"/> was drawn in the status bar on the last frame.</summary>
     public UiRect StatusText(string text)
     {
-        var bottom = Frames.Height - AppThemes.For(Workspace.DarkMode).Ui.StatusBarHeight;
+        var bottom = Frames.Height - AppThemes.For(Workspace.Theme).Ui.StatusBarHeight;
         var drawn = Frames.Canvas.Texts.LastOrDefault(t => t.Inputs.Text == text && Frames.Height - t.Inputs.Position.Top >= bottom - 0.5f)
                     ?? throw new InvalidOperationException($"'{text}' was not drawn in the status bar.");
         var p = drawn.Inputs.Position;

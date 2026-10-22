@@ -4,6 +4,30 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class ThemeTests
 {
+    public static TheoryData<string> Presets => new() { "Dark", "Light", "GitHubDark", "OneDarkPro", "Dracula", "Monokai", "CatppuccinMocha" };
+
+    [Theory]
+    [MemberData(nameof(Presets))]
+    public void Every_preset_keeps_its_text_readable(string name)
+    {
+        var theme = (UiTheme)typeof(UiTheme).GetProperty(name)!.GetValue(null)!;
+
+        Assert.InRange(Contrast(theme.Text, theme.Background), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.Text, theme.EditorBackground), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.TextMuted, theme.Background), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.TextMuted, theme.Surface), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.SelectionText, theme.Selection), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.OnAccent, theme.Accent), 4.5f, 21f);
+        Assert.InRange(Contrast(theme.AccentText, theme.Background), 4.5f, 21f);
+        Assert.Equal(name != "Light", theme.IsDark);
+    }
+
+    private static float Contrast(uint a, uint b)
+    {
+        var (la, lb) = (UiColor.Luminance(a), UiColor.Luminance(b));
+        return (Math.Max(la, lb) + 0.05f) / (Math.Min(la, lb) + 0.05f);
+    }
+
     [Fact]
     public void A_provided_theme_applies_only_inside_its_scope_and_dark_outside_any()
     {

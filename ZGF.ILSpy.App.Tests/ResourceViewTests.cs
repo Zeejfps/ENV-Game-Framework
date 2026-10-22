@@ -105,7 +105,7 @@ public sealed class ResourceViewTests
     public void Clicking_a_multi_line_string_grows_its_cell_to_show_every_line_as_the_cell_shows_its_first()
     {
         var (app, _) = ShowResource("Mixed.resources");
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var before = app.TextRect("first line");
         var color = app.Frames.TextColor("first line");
 

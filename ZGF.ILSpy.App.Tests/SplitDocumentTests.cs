@@ -46,7 +46,7 @@ public sealed class SplitDocumentTests
     public void Only_the_active_documents_tab_is_marked_in_the_accent()
     {
         var (app, left, _) = SideBySide();
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
 
         Assert.Equal(theme.Accent, Indicator(app, app.LastTextRect("Outline")));
         Assert.Equal(theme.BorderStrong, Indicator(app, app.TextRect("Outline")));
@@ -94,7 +94,7 @@ public sealed class SplitDocumentTests
 
     private static uint Indicator(AppDriver app, UiRect title)
     {
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         return app.Frames.Canvas.Rects.Select(r => r.Inputs)
             .Where(r => Math.Abs(r.Position.Height - theme.ActiveIndicatorWidth) < 0.01f)
             .Where(r => r.Position.Left <= title.X && r.Position.Left + r.Position.Width >= title.Right)

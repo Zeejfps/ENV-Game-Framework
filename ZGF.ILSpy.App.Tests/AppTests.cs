@@ -355,7 +355,7 @@ public sealed class AppTests
     {
         var app = new AppDriver();
         app.Run(2);
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var open = app.TextRect(LucideIcons.FolderOpen);
         var search = app.TextRect(LucideIcons.Search);
         Assert.Equal(open.Y, search.Y, 1f);
@@ -380,7 +380,7 @@ public sealed class AppTests
     {
         var app = new AppDriver();
         app.Run(2);
-        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var file = app.TextRect("File");
         var open = app.TextRect(LucideIcons.FolderOpen);
         var rects = app.Frames.Canvas.Rects.Select(r => (r.Inputs.Style.BackgroundColor, Rect: new UiRect(r.Inputs.Position.Left,
@@ -436,13 +436,28 @@ public sealed class AppTests
     {
         var app = new AppDriver();
         app.Run(2);
-        Assert.True(app.Workspace.DarkMode);
+        Assert.Equal(AppThemeId.Dark, app.Workspace.Theme);
 
         app.Click("View");
         app.Click("Theme");
         app.Click("Light theme");
 
-        Assert.False(app.Workspace.DarkMode);
+        Assert.Equal(AppThemeId.Light, app.Workspace.Theme);
+    }
+
+    [Fact]
+    public void A_named_color_scheme_is_picked_from_the_theme_submenu_and_draws_the_window()
+    {
+        var app = new AppDriver();
+        app.Run(2);
+
+        app.Click("View");
+        app.Click("Theme");
+        app.Click("Dracula");
+        app.Run();
+
+        Assert.Equal(AppThemeId.Dracula, app.Workspace.Theme);
+        Assert.Equal(UiTheme.Dracula.Background, app.Frames.WindowBackground);
     }
 
     [Fact]
