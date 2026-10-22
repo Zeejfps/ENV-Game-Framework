@@ -22,20 +22,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<InterfaceImplEntry> LoadTable()
 		{
 			var list = new List<InterfaceImplEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.InterfaceImpl);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.InterfaceImpl);
-			int typeDefSize = metadata.GetTableRowCount(TableIndex.TypeDef) < ushort.MaxValue ? 2 : 4;
-			int interfaceTagSize = metadata.ComputeCodedTokenSize(32768, TableMask.TypeDef | TableMask.TypeRef | TableMask.TypeSpec);
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int classRow = typeDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				uint interfaceTag = (uint)(interfaceTagSize == 2 ? reader.ReadUInt16() : reader.ReadInt32());
-				list.Add(new InterfaceImplEntry(metadataFile, rid,
-					MetadataTokens.TypeDefinitionHandle(classRow),
-					MetadataReaderHelpers.FromTypeDefOrRefTag(interfaceTag)));
-			}
+			foreach (var (@class, @interface) in metadataFile.Metadata.GetInterfaceImplRows())
+				list.Add(new InterfaceImplEntry(metadataFile, list.Count + 1, @class, @interface));
 			return list;
 		}
 

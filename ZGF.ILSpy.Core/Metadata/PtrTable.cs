@@ -1,6 +1,5 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
-using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -17,34 +16,16 @@ namespace ZGF.ILSpy.Core.Metadata
 	/// </summary>
 	internal sealed class PtrTable : MetadataTable<PtrTable.PtrEntry>
 	{
-		readonly TableIndex referencedTableKind;
-
 		public PtrTable(TableIndex kind, MetadataFile metadataFile)
 			: base(kind, metadataFile)
 		{
-			referencedTableKind = kind switch {
-				TableIndex.EventPtr => TableIndex.Event,
-				TableIndex.FieldPtr => TableIndex.Field,
-				TableIndex.MethodPtr => TableIndex.MethodDef,
-				TableIndex.ParamPtr => TableIndex.Param,
-				TableIndex.PropertyPtr => TableIndex.Property,
-				_ => throw new ArgumentOutOfRangeException(nameof(kind), $"PtrTable does not support {kind}"),
-			};
 		}
 
 		protected override IReadOnlyList<PtrEntry> LoadTable()
 		{
 			var list = new List<PtrEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(Kind);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(Kind);
-			int handleSize = metadata.GetTableRowCount(referencedTableKind) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int handleRow = handleSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new PtrEntry(metadataFile, rid, Kind, MetadataTokens.EntityHandle(((int)referencedTableKind << 24) | handleRow)));
-			}
+			foreach (var handle in metadataFile.Metadata.GetPtrRows(Kind))
+				list.Add(new PtrEntry(metadataFile, list.Count + 1, Kind, handle));
 			return list;
 		}
 

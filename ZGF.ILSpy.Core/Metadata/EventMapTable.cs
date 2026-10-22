@@ -22,18 +22,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<EventMapEntry> LoadTable()
 		{
 			var list = new List<EventMapEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.EventMap);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.EventMap);
-			int typeDefSize = metadata.GetTableRowCount(TableIndex.TypeDef) < ushort.MaxValue ? 2 : 4;
-			int eventDefSize = metadata.GetTableRowCount(TableIndex.Event) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int parentRow = typeDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				int eventListRow = eventDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new EventMapEntry(metadataFile, rid, MetadataTokens.TypeDefinitionHandle(parentRow), MetadataTokens.EventDefinitionHandle(eventListRow)));
-			}
+			foreach (var (parent, eventList) in metadataFile.Metadata.GetEventMaps())
+				list.Add(new EventMapEntry(metadataFile, list.Count + 1, parent, eventList));
 			return list;
 		}
 

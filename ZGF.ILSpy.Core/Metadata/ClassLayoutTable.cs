@@ -10,9 +10,7 @@ namespace ZGF.ILSpy.Core.Metadata
 {
 	/// <summary>
 	/// View of the ClassLayout table — explicit field-layout overrides on TypeDefs marked
-	/// Sequential or Explicit (e.g. <c>[StructLayout(LayoutKind.Explicit)]</c>). System.Reflection.Metadata
-	/// doesn't surface these rows through a typed enumeration so we walk the table bytes
-	/// directly via a BlobReader.
+	/// Sequential or Explicit (e.g. <c>[StructLayout(LayoutKind.Explicit)]</c>).
 	/// </summary>
 	internal sealed class ClassLayoutTable : MetadataTable<ClassLayoutTable.ClassLayoutEntry>
 	{
@@ -24,18 +22,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<ClassLayoutEntry> LoadTable()
 		{
 			var list = new List<ClassLayoutEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.ClassLayout);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.ClassLayout);
-			int typeDefSize = metadata.GetTableRowCount(TableIndex.TypeDef) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				ushort packingSize = reader.ReadUInt16();
-				uint classSize = reader.ReadUInt32();
-				int parentRow = typeDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new ClassLayoutEntry(metadataFile, rid, packingSize, classSize, MetadataTokens.TypeDefinitionHandle(parentRow)));
-			}
+			foreach (var (packingSize, classSize, parent) in metadataFile.Metadata.GetClassLayouts())
+				list.Add(new ClassLayoutEntry(metadataFile, list.Count + 1, (ushort)packingSize, classSize, parent));
 			return list;
 		}
 

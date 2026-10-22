@@ -22,18 +22,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<PropertyMapEntry> LoadTable()
 		{
 			var list = new List<PropertyMapEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.PropertyMap);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.PropertyMap);
-			int typeDefSize = metadata.GetTableRowCount(TableIndex.TypeDef) < ushort.MaxValue ? 2 : 4;
-			int propertyDefSize = metadata.GetTableRowCount(TableIndex.Property) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int parentRow = typeDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				int propertyListRow = propertyDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new PropertyMapEntry(metadataFile, rid, MetadataTokens.TypeDefinitionHandle(parentRow), MetadataTokens.PropertyDefinitionHandle(propertyListRow)));
-			}
+			foreach (var (parent, propertyList) in metadataFile.Metadata.GetPropertyMaps())
+				list.Add(new PropertyMapEntry(metadataFile, list.Count + 1, parent, propertyList));
 			return list;
 		}
 

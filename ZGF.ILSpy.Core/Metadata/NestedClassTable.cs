@@ -9,9 +9,7 @@ using ICSharpCode.Decompiler.Metadata;
 namespace ZGF.ILSpy.Core.Metadata
 {
 	/// <summary>
-	/// View of the NestedClass table — pairs each nested type with its enclosing type. Walked
-	/// directly from the table bytes because System.Reflection.Metadata only exposes
-	/// nested-type discovery as a per-typedef enumeration.
+	/// View of the NestedClass table — pairs each nested type with its enclosing type.
 	/// </summary>
 	internal sealed class NestedClassTable : MetadataTable<NestedClassTable.NestedClassEntry>
 	{
@@ -23,17 +21,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<NestedClassEntry> LoadTable()
 		{
 			var list = new List<NestedClassEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.NestedClass);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.NestedClass);
-			int typeDefSize = metadata.GetTableRowCount(TableIndex.TypeDef) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int nestedRow = typeDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				int enclosingRow = typeDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new NestedClassEntry(metadataFile, rid, MetadataTokens.TypeDefinitionHandle(nestedRow), MetadataTokens.TypeDefinitionHandle(enclosingRow)));
-			}
+			foreach (var (nested, enclosing) in metadataFile.Metadata.GetNestedClasses())
+				list.Add(new NestedClassEntry(metadataFile, list.Count + 1, nested, enclosing));
 			return list;
 		}
 

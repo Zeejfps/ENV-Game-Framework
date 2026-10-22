@@ -22,17 +22,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<FieldLayoutEntry> LoadTable()
 		{
 			var list = new List<FieldLayoutEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.FieldLayout);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.FieldLayout);
-			int fieldDefSize = metadata.GetTableRowCount(TableIndex.Field) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int offset = reader.ReadInt32();
-				int fieldRow = fieldDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new FieldLayoutEntry(metadataFile, rid, offset, MetadataTokens.FieldDefinitionHandle(fieldRow)));
-			}
+			foreach (var (offset, field) in metadataFile.Metadata.GetFieldLayoutRows())
+				list.Add(new FieldLayoutEntry(metadataFile, list.Count + 1, offset, field));
 			return list;
 		}
 

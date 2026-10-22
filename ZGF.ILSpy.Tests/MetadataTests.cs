@@ -1,3 +1,6 @@
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using ICSharpCode.Decompiler.Metadata;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 
@@ -312,6 +315,67 @@ public sealed class MetadataTests
         Assert.True(grid.HasDetails);
         Assert.Equal(["Name", "Value"], table.Headers);
         Assert.Contains(table.Rows, r => r[0] == "language" && r[1] == "C#");
+    }
+
+    private static T[] Rows<T>(MetadataFile file, TableIndex table) => MetadataTables.Create(table, file)!.LoadRows().Cast<T>().ToArray();
+
+    private static int Token(EntityHandle handle) => MetadataTokens.GetToken(handle);
+
+    [Fact]
+    public void CoreLibs_relationship_tables_hold_the_rows_the_metadata_reader_decodes()
+    {
+        var file = new AssemblyList().Open(Trees.CoreLibPath).File;
+        var md = file.Metadata;
+        var types = md.TypeDefinitions.Select(t => (Handle: t, Type: md.GetTypeDefinition(t))).ToArray();
+        var fields = md.FieldDefinitions.Select(f => (Handle: f, Field: md.GetFieldDefinition(f))).ToArray();
+
+        Assert.Equal(
+            types.Where(t => !t.Type.GetDeclaringType().IsNil).Select(t => (Token(t.Handle), Token(t.Type.GetDeclaringType()))).Order(),
+            Rows<NestedClassTable.NestedClassEntry>(file, TableIndex.NestedClass).Select(r => (r.NestedClass, r.EnclosingClass)).Order());
+
+        Assert.Equal(
+            types.SelectMany(t => t.Type.GetInterfaceImplementations().Select(i => (Token(t.Handle), Token(md.GetInterfaceImplementation(i).Interface)))).Order(),
+            Rows<InterfaceImplTable.InterfaceImplEntry>(file, TableIndex.InterfaceImpl).Select(r => (r.Class, r.Interface)).Order());
+
+        Assert.Equal(
+            fields.Where(f => f.Field.GetOffset() >= 0).Select(f => (Token(f.Handle), f.Field.GetOffset())),
+            Rows<FieldLayoutTable.FieldLayoutEntry>(file, TableIndex.FieldLayout).Select(r => (r.Field, r.FieldOffset)));
+
+        Assert.Equal(
+            fields.Where(f => f.Field.GetRelativeVirtualAddress() != 0).Select(f => (Token(f.Handle), f.Field.GetRelativeVirtualAddress())),
+            Rows<FieldRVATable.FieldRVAEntry>(file, TableIndex.FieldRva).Select(r => (r.Field, r.RVA)));
+
+        Assert.Equal(
+            types.Where(t => t.Type.GetEvents().Count > 0).Select(t => (Token(t.Handle), Token(t.Type.GetEvents().First()))),
+            Rows<EventMapTable.EventMapEntry>(file, TableIndex.EventMap).Select(r => (r.Parent, r.EventList)));
+
+        Assert.Equal(
+            types.Where(t => t.Type.GetProperties().Count > 0).Select(t => (Token(t.Handle), Token(t.Type.GetProperties().First()))),
+            Rows<PropertyMapTable.PropertyMapEntry>(file, TableIndex.PropertyMap).Select(r => (r.Parent, r.PropertyList)));
+
+        var layouts = Rows<ClassLayoutTable.ClassLayoutEntry>(file, TableIndex.ClassLayout);
+        Assert.NotEmpty(layouts);
+        foreach (var row in layouts)
+        {
+            var layout = md.GetTypeDefinition((TypeDefinitionHandle)MetadataTokens.EntityHandle(row.Parent)).GetLayout();
+            Assert.Equal(((int)row.PackingSize, (int)row.ClassSize), (layout.PackingSize, layout.Size));
+        }
+    }
+
+    [Fact]
+    public void The_StateMachineMethod_table_pairs_each_MoveNext_with_its_kickoff_method()
+    {
+        using var stream = File.OpenRead(Path.ChangeExtension(Trees.TestAssemblyPath, ".pdb"));
+        var pdb = new MetadataFile(MetadataFile.MetadataFileKind.ProgramDebugDatabase, Trees.TestAssemblyPath, MetadataReaderProvider.FromPortablePdbStream(stream));
+        var md = pdb.Metadata;
+
+        var rows = Rows<StateMachineMethodTable.StateMachineMethodEntry>(pdb, TableIndex.StateMachineMethod);
+
+        Assert.NotEmpty(rows);
+        Assert.Equal(
+            md.MethodDebugInformation.Select(h => (MoveNext: h.ToDefinitionHandle(), Kickoff: md.GetMethodDebugInformation(h).GetStateMachineKickoffMethod()))
+                .Where(m => !m.Kickoff.IsNil).Select(m => (Token(m.MoveNext), Token(m.Kickoff))),
+            rows.Select(r => (r.MoveNextMethod, r.KickoffMethod)));
     }
 
     [Fact]

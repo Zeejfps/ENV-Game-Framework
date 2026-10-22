@@ -23,17 +23,8 @@ namespace ZGF.ILSpy.Core.Metadata
 		protected override IReadOnlyList<FieldRVAEntry> LoadTable()
 		{
 			var list = new List<FieldRVAEntry>();
-			var metadata = metadataFile.Metadata;
-			var length = metadata.GetTableRowCount(TableIndex.FieldRva);
-			var reader = metadata.AsBlobReader();
-			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.FieldRva);
-			int fieldDefSize = metadata.GetTableRowCount(TableIndex.Field) < ushort.MaxValue ? 2 : 4;
-			for (int rid = 1; rid <= length; rid++)
-			{
-				int rva = reader.ReadInt32();
-				int fieldRow = fieldDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32();
-				list.Add(new FieldRVAEntry(metadataFile, rid, rva, MetadataTokens.FieldDefinitionHandle(fieldRow)));
-			}
+			foreach (var (rva, field) in metadataFile.Metadata.GetFieldRvas())
+				list.Add(new FieldRVAEntry(metadataFile, list.Count + 1, rva, field));
 			return list;
 		}
 

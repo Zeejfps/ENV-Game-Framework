@@ -28,11 +28,11 @@ namespace ZGF.ILSpy.Core.Metadata
 			var length = metadata.GetTableRowCount(TableIndex.StateMachineMethod);
 			var reader = metadata.AsBlobReader();
 			reader.Offset = metadata.GetTableMetadataOffset(TableIndex.StateMachineMethod);
-			int methodDefSize = metadata.GetTableRowCount(TableIndex.MethodDef) < ushort.MaxValue ? 2 : 4;
+			int methodDefSize = metadata.GetTableRowSize(TableIndex.StateMachineMethod) / 2;
 			for (int rid = 1; rid <= length; rid++)
 			{
-				var moveNext = MetadataTokens.MethodDefinitionHandle(methodDefSize == 2 ? reader.ReadInt16() : reader.ReadInt32());
-				var kickoff = MetadataTokens.MethodDefinitionHandle(methodDefSize == 2 ? reader.ReadInt16() : reader.ReadInt32());
+				var moveNext = MetadataTokens.MethodDefinitionHandle(methodDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32());
+				var kickoff = MetadataTokens.MethodDefinitionHandle(methodDefSize == 2 ? reader.ReadUInt16() : reader.ReadInt32());
 				list.Add(new StateMachineMethodEntry(metadataFile, rid, moveNext, kickoff));
 			}
 			return list;
