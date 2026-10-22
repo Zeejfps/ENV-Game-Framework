@@ -26,33 +26,178 @@ internal static class SearchPanelView
 
     public static void Render(Ui ui, Workspace w, Strings t)
     {
-        var theme = ui.Theme;
-        var search = w.Search;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        using (ui.PaneToolbar(new Box { Gap = theme.Gap }))
+        using (ui.PaneToolbar(new Box { Gap = ui.Theme.Gap }))
         {
-            using (var menu = ui.SelectButton("search-kinds", ui.Memo("search-kinds", (search.Kinds, t), static a => Summary(a.t, a.Kinds)),
-                       ui.SelectButtonWidth(Summaries.GetValue(t, AllSummaries)), ui.Memo("search-kinds-tip", (search.Kinds, t), static a => Description(a.t, a.Kinds))))
-            {
-                if (menu.IsOpen)
-                    KindsMenu(ui, w, t);
-            }
+            KindsButton(ui, w, t);
             Field(ui, w, t);
-            ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy, t), static a => a.IsBusy ? a.t.SearchResultsSoFar(a.Count) : a.t.SearchResults(a.Count)),
-                color: theme.TextMuted, size: theme.FontSizeSmall);
+            ResultCount(ui, w.Search, t);
         }
         ui.Separator();
         Results(ui, w, t);
     }
 
+    private static void KindsButton(Ui ui, Workspace w, Strings t)
+    {
+        var kinds = w.Search.Kinds;
+        var summary = ui.Memo("search-kinds", (kinds, t), static a => Summary(a.t, a.kinds));
+        var width = ui.SelectButtonWidth(Summaries.GetValue(t, ListAllSummaries));
+        var tooltip = ui.Memo("search-kinds-tip", (kinds, t), static a => Description(a.t, a.kinds));
+        using var menu = ui.SelectButton("search-kinds", summary, width, tooltip);
+        if (menu.IsOpen)
+            KindsMenu(ui, w, t);
+    }
+
+    private static string Summary(Strings t, SearchKinds kinds)
+    {
+        switch (kinds)
+        {
+            case SearchKinds.All:
+                return t.SearchKindsAll;
+            case SearchKinds.TypesAndMembers:
+                return t.SearchModeTypesAndMembers;
+            case SearchKinds.Members:
+                return t.SearchModeMembers;
+        }
+        var picked = ListPicked(kinds);
+        if (picked.Length == 1)
+            return KindLabel(t, picked[0]);
+        return t.SearchKindsCount(picked.Length);
+    }
+
+    private static SearchKinds[] ListPicked(SearchKinds kinds)
+    {
+        return Kinds
+            .Where(k => (kinds & k) != 0)
+            .ToArray();
+    }
+
+    private static string[] ListAllSummaries(Strings t)
+    {
+        var summaries = new List<string>
+        {
+            t.SearchKindsAll, t.SearchModeTypesAndMembers, t.SearchModeMembers, t.SearchKindsCount(Kinds.Length),
+        };
+        foreach (var kind in Kinds)
+            summaries.Add(KindLabel(t, kind));
+        return summaries.ToArray();
+    }
+
+    private static string Description(Strings t, SearchKinds kinds)
+    {
+        if (kinds == SearchKinds.All)
+            return $"{t.SearchMode}: {t.SearchKindsAll}";
+        var labels = ListPicked(kinds).Select(k => KindLabel(t, k));
+        return $"{t.SearchMode}:\n{string.Join("\n", labels)}";
+    }
+
+    /// <summary>A check item for all kinds over one per kind, kept open so several can be flipped
+    /// in a row. While all is checked no kind is: checking a kind then picks it alone, and
+    /// unchecking the last one picked checks all again.</summary>
+    private static void KindsMenu(Ui ui, Workspace w, Strings t)
+    {
+        var search = w.Search;
+        var all = search.Kinds == SearchKinds.All;
+        var kinds = search.Kinds;
+        var checkAll = all;
+        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
+        var allIcon = new UiIcon(LucideIcons.Layers3, LucideIcons.Family, ui.Theme.TextMuted);
+        if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true, icon: allIcon))
+            kinds = SearchKinds.All;
+        ui.MenuSeparator();
+        foreach (var kind in Kinds)
+        {
+            var on = !all && (kinds & kind) != 0;
+            var icon = NodeIcons.Icon(KindNode(kind), NodeAccessibility.None, palette);
+            if (ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true, icon: icon))
+                kinds = Toggle(kinds, kind, all, on);
+        }
+        if (kinds == search.Kinds)
+            return;
+        search.Kinds = kinds;
+        w.SaveSettings();
+    }
+
+    private static SearchKinds Toggle(SearchKinds kinds, SearchKinds kind, bool all, bool on)
+    {
+        if (all)
+            return kind;
+        if (on)
+            return kinds | kind;
+        var left = kinds & ~kind;
+        if (left == SearchKinds.None)
+            return SearchKinds.All;
+        return left;
+    }
+
+    private static void Field(Ui ui, Workspace w, Strings t)
+    {
+        var search = w.Search;
+        var fieldId = ui.GetId("search");
+        if (w.TakeSearchFocus())
+            ui.Focus(fieldId);
+        var width = Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth);
+        var submitted = ui.TextField("search", ref search.Query, t.SearchField, width, LucideIcons.Search, LucideIcons.Family);
+        ui.Tooltip(fieldId, ui.Memo("search-syntax", t, static s => s.SearchSyntaxTooltip(SearchShortcut)));
+        if (!ui.HasFocus(fieldId))
+            return;
+        if (submitted)
+        {
+            ShowSelected(w);
+            return;
+        }
+        if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
+            ui.Focus(ResultsId, takesText: false);
+    }
+
+    private static void ShowSelected(Workspace w)
+    {
+        var search = w.Search;
+        if (search.Selected < 0)
+            search.Move(1);
+        var row = search.SelectedRow;
+        if (row != null)
+            w.Show(row.Node);
+    }
+
+    private static void ResultCount(Ui ui, Search search, Strings t)
+    {
+        var theme = ui.Theme;
+        var count = ui.Memo("search-count", (search.Rows.Count, search.IsBusy, t), static a => CountText(a.t, a.Count, a.IsBusy));
+        ui.Text(count, color: theme.TextMuted, size: theme.FontSizeSmall);
+    }
+
+    private static string CountText(Strings t, int count, bool isBusy)
+    {
+        if (isBusy)
+            return t.SearchResultsSoFar(count);
+        return t.SearchResults(count);
+    }
+
     private static void Results(Ui ui, Workspace w, Strings t)
     {
         var search = w.Search;
-        var sortIcon = new UiIcon(search.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp, LucideIcons.Family);
         var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
-        var clicked = ui.TableHeader("header", w.SearchColumns, ResultsId, headers, ui.Theme.ShellPaddingX, sort: new TableSort((int)search.Sort - 1, sortIcon));
+        var sort = new TableSort(ColumnOf(search.Sort), SortIcon(search));
+        var clicked = ui.TableHeader("header", w.SearchColumns, ResultsId, headers, ui.Theme.ShellPaddingX, sort: sort);
         if (clicked >= 0)
-            search.SortBy((SearchSort)(clicked + 1));
+            search.SortBy(SortOf(clicked));
+        ResultList(ui, w);
+    }
+
+    private static int ColumnOf(SearchSort sort) => (int)sort - 1;
+
+    private static UiIcon SortIcon(Search search)
+    {
+        var glyph = search.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp;
+        return new UiIcon(glyph, LucideIcons.Family);
+    }
+
+    private static SearchSort SortOf(int column) => (SearchSort)(column + 1);
+
+    private static void ResultList(Ui ui, Workspace w)
+    {
+        var search = w.Search;
         using var list = ui.SelectableList(ResultsId, search.Rows.Count, search.Selection, selectOnClick: true);
         if (list.Focused)
             OpenOnEnter(ui, w);
@@ -104,81 +249,6 @@ internal static class SearchPanelView
         }
         ui.Tooltip(id, NodeText.Tooltip(node));
     }
-
-    private static void Field(Ui ui, Workspace w, Strings t)
-    {
-        var search = w.Search;
-        var fieldId = ui.GetId("search");
-        if (w.TakeSearchFocus())
-            ui.Focus(fieldId);
-        var submitted = ui.TextField("search", ref search.Query, t.SearchField, Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
-            LucideIcons.Search, LucideIcons.Family);
-        ui.Tooltip(fieldId, ui.Memo("search-syntax", t, static s => s.SearchSyntaxTooltip(SearchShortcut)));
-        if (!ui.HasFocus(fieldId)) return;
-        if (submitted)
-        {
-            if (search.Selected < 0)
-                search.Move(1);
-            if (search.SelectedRow is { } row)
-                w.Show(row.Node);
-        }
-        else if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
-        {
-            ui.Focus(ResultsId, takesText: false);
-        }
-    }
-
-    /// <summary>A check item for all kinds over one per kind, kept open so several can be flipped
-    /// in a row. While all is checked no kind is: checking a kind then picks it alone, and
-    /// unchecking the last one picked checks all again.</summary>
-    private static void KindsMenu(Ui ui, Workspace w, Strings t)
-    {
-        var search = w.Search;
-        var all = search.Kinds == SearchKinds.All;
-        var kinds = search.Kinds;
-        var checkAll = all;
-        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
-        if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true, icon: new UiIcon(LucideIcons.Layers3, LucideIcons.Family, ui.Theme.TextMuted)))
-            kinds = SearchKinds.All;
-        ui.MenuSeparator();
-        foreach (var kind in Kinds)
-        {
-            var on = !all && (kinds & kind) != 0;
-            if (!ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true, icon: NodeIcons.Icon(KindNode(kind), NodeAccessibility.None, palette))) continue;
-            kinds = all ? kind : on ? kinds | kind : kinds & ~kind;
-            if (kinds == SearchKinds.None)
-                kinds = SearchKinds.All;
-        }
-        if (kinds == search.Kinds) return;
-        search.Kinds = kinds;
-        w.SaveSettings();
-    }
-
-    private static string Summary(Strings t, SearchKinds kinds)
-    {
-        switch (kinds)
-        {
-            case SearchKinds.All:
-                return t.SearchKindsAll;
-            case SearchKinds.TypesAndMembers:
-                return t.SearchModeTypesAndMembers;
-            case SearchKinds.Members:
-                return t.SearchModeMembers;
-        }
-        var picked = Kinds.Where(k => (kinds & k) != 0).ToArray();
-        return picked.Length == 1 ? KindLabel(t, picked[0]) : t.SearchKindsCount(picked.Length);
-    }
-
-    private static string[] AllSummaries(Strings t) =>
-    [
-        t.SearchKindsAll, t.SearchModeTypesAndMembers, t.SearchModeMembers, t.SearchKindsCount(Kinds.Length),
-        ..Kinds.Select(k => KindLabel(t, k)),
-    ];
-
-    private static string Description(Strings t, SearchKinds kinds) =>
-        kinds == SearchKinds.All
-            ? $"{t.SearchMode}: {t.SearchKindsAll}"
-            : $"{t.SearchMode}:\n{string.Join("\n", Kinds.Where(k => (kinds & k) != 0).Select(k => KindLabel(t, k)))}";
 
     private static string KindLabel(Strings t, SearchKinds kind) => kind switch
     {
