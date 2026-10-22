@@ -37,40 +37,24 @@ public static partial class UiWidgets
         if (focused && segments.Length > 0)
             next = SegmentKeys(ui, selected, segments.Length);
 
-        var border = theme.BorderWidth;
-        var inner = MathF.Max(0f, theme.CornerRadius - border);
-        using (ui.Id(groupId))
-        using (ui.Row(groupId, new Box
-        {
-            Width = Sizing.Fit(),
-            Height = theme.ControlHeight,
-            Gap = 0f,
-            Padding = border,
-            Background = theme.Control,
-            BorderColor = theme.Border,
-            BorderWidth = border,
-            Radius = theme.CornerRadius,
-        }))
+        var inner = JoinedInnerRadius(theme);
+        using (JoinedRow(ui, groupId, theme.ControlHeight))
         {
             if (focused && ui.FocusVisible) ui.FocusRing(theme.CornerRadius);
             for (var i = 0; i < segments.Length; i++)
             {
-                var segment = ui.Interact(ui.GetId(i));
-                if (segment.Hovered) ui.SetCursor(MouseCursor.Hand);
+                var segment = ui.Clickable(SegmentId(ui, groupId, i));
                 if (segment.Pressed) ui.Focus(groupId, takesText: false);
                 if (segment.Clicked) next = i;
 
                 if (i > 0)
                 {
                     var touchesSelection = i == selected || i - 1 == selected;
-                    ui.Leaf(new Box { Width = border, Height = Sizing.Grow(), Background = touchesSelection ? 0u : theme.Border });
+                    ui.Leaf(new Box { Width = theme.BorderWidth, Height = Sizing.Grow(), Background = touchesSelection ? 0u : theme.Border });
                 }
 
                 var isSelected = i == selected;
-                var background = isSelected ? theme.Selection
-                    : segment.Held ? theme.ControlPressed
-                    : segment.Hovered ? theme.ControlHovered
-                    : 0u;
+                var background = isSelected ? theme.Selection : theme.ControlFill(segment.Held, segment.Hovered);
                 var corners = segments.Length == 1 ? new Corners(inner)
                     : i == 0 ? Corners.Left(inner)
                     : i == segments.Length - 1 ? Corners.Right(inner)
@@ -83,8 +67,7 @@ public static partial class UiWidgets
                     AlignY = Align.Center,
                 }))
                 {
-                    if (background != 0)
-                        ui.Paint((background, corners), static (p, s) => p.FillRect(p.Rect, s.background, s.corners));
+                    PaintJoinedFill(ui, background, corners);
                     ui.Text(segments[i].Label, color: isSelected ? theme.SelectionText : theme.TextMuted);
                 }
 

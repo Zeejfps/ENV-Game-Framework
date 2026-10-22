@@ -376,15 +376,11 @@ public sealed class DockLayout
         return null;
     }
 
-    private static DockSplit? FindParent(DockNode root, DockNode node)
-    {
-        if (root is not DockSplit split) return null;
-        if (split.First == node || split.Second == node) return split;
-        return FindParent(split.First, node) ?? FindParent(split.Second, node);
-    }
+    private static DockSplit? FindParent(DockNode root, DockNode node) => Nodes(root)
+        .OfType<DockSplit>()
+        .FirstOrDefault(split => split.First == node || split.Second == node);
 
-    private static bool Holds(DockNode root, DockNode node) =>
-        root == node || (root is DockSplit split && (Holds(split.First, node) || Holds(split.Second, node)));
+    private static bool Holds(DockNode root, DockNode node) => Nodes(root).Contains(node);
 
     private static DockGroup? GroupOf(DockNode node, string panel) => node switch
     {

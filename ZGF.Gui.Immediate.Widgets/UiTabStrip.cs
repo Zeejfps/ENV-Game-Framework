@@ -1,5 +1,3 @@
-using ZGF.Desktop;
-
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>What the pointer did to one tab: <see cref="Selected"/> when it is pressed while not
@@ -72,7 +70,6 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var tab = Pressable(ui, ui.GetId(id ?? label), true, out var picked, out var tabRing, hand: false);
         var closeId = CloseButtonId(tab.Id);
-        var close = Pressable(ui, closeId, closable, out var closeKeyed, out var closeRing);
 
         var state = ui.GetState<TabState>(HashCode.Combine(tab.Id, "tab"));
         if (!selected)
@@ -80,8 +77,8 @@ public static partial class UiWidgets
         else if (!state.WasSelected)
             state.WasSelected = ui.ScrollIntoView(stripId, tab.Id);
 
-        var closed = closable && (close.Clicked || closeKeyed || tab.ClickedWith(PointerButton.Middle) || close.ClickedWith(PointerButton.Middle));
-        var hovered = tab.Hovered || close.Hovered;
+        var closed = closable && tab.ClickedWith(PointerButton.Middle);
+        var hovered = tab.Hovered || ui.IsHovered(closeId);
         using (ui.Row(tab.Id, new Box
         {
             Width = Sizing.Fit(theme.TabMinWidth, theme.TabMaxWidth),
@@ -99,37 +96,17 @@ public static partial class UiWidgets
                 p.FillRect(new UiRect(r.Right - s.SeparatorWidth, r.Y, s.SeparatorWidth, r.Height), s.Separator);
             });
             if (tabRing) FocusRing(ui, 0f);
-            ui.Text(id != null ? label : Visible(ui, tab.Id, label), color: selected ? theme.Text : theme.TextMuted, overflow: TextOverflow.Ellipsis);
+            ui.Text(label, color: selected ? theme.Text : theme.TextMuted, overflow: TextOverflow.Ellipsis);
             if (closable)
             {
                 ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
-                var glyph = close.Hovered || closeRing ? theme.Text : selected || hovered ? theme.TextMuted : 0u;
-                using (ui.Box(closeId, new Box
-                {
-                    Width = theme.TabCloseSize,
-                    Height = theme.TabCloseSize,
-                    Radius = theme.CornerRadius,
-                    Background = close.Held ? theme.ControlPressed : close.Hovered ? theme.ControlHovered : 0u,
-                }))
-                {
-                    if (glyph != 0)
-                        ui.Paint((glyph, theme.IconStrokeWidth), static (p, s) => DrawCross(p, s.glyph, s.IconStrokeWidth));
-                    if (closeRing) FocusRing(ui, theme.CornerRadius);
-                }
+                var idle = !selected && !hovered;
+                if (ui.CloseButton(closeId, hideIdle: idle))
+                    closed = true;
             }
         }
         if (tooltip != null)
             ui.Tooltip(tab.Id, tooltip);
         return new TabResult((tab.Pressed || picked) && !selected, closed) { Id = tab.Id, Dragged = draggable && ui.ShouldBeginDrag(tab) };
-    }
-
-    internal static void DrawCross(UiPainter p, uint color, float stroke)
-    {
-        var r = p.Rect;
-        var cx = r.X + r.Width / 2;
-        var cy = r.Y + r.Height / 2;
-        const float h = 3.5f;
-        p.Line(new(cx - h, cy - h), new(cx + h, cy + h), stroke, color);
-        p.Line(new(cx - h, cy + h), new(cx + h, cy - h), stroke, color);
     }
 }

@@ -126,11 +126,6 @@ internal sealed class DockWalker
 
     private readonly record struct DockTarget(DockNode Node, DockEdge Edge, float Share, int Index);
 
-    private sealed class ResizeState
-    {
-        public UiRect Start;
-    }
-
     private readonly List<Frame> _frames = new();
     private readonly List<GroupEntry> _groups = new();
     private readonly List<int> _tabs = new();
@@ -336,12 +331,12 @@ internal sealed class DockWalker
             return ui.GetId(node.Id);
     }
 
-    internal static int WindowId(Ui ui, string dock, DockWindow window) => HashCode.Combine(ui.GetId(dock), "window", window.Id);
+    internal static int WindowId(Ui ui, string dock, DockWindow window) => WindowId(ui.GetId(dock), window);
+
+    private static int WindowId(int dockId, DockWindow window) => HashCode.Combine(dockId, "window", window.Id);
 
     private void PushNode(DockNode node, DockWindow? window) =>
         _frames.Add(new Frame { Kind = node is DockSplit ? FrameKind.Split : FrameKind.Group, Node = node, Window = window });
-
-    private int WindowElementId(DockWindow window) => HashCode.Combine(_dockId, "window", window.Id);
 
     private void RaisePressedWindow()
     {
@@ -350,7 +345,7 @@ internal sealed class DockWalker
         for (var i = _layout.Windows.Count - 1; i >= 0; i--)
         {
             var window = _layout.Windows[i];
-            if (!_ui.TryGetRect(WindowElementId(window), out var rect) || !rect.Contains(pointer)) continue;
+            if (!_ui.TryGetRect(WindowId(_dockId, window), out var rect) || !rect.Contains(pointer)) continue;
             _layout.BringToFront(window);
             return;
         }
@@ -444,18 +439,16 @@ internal sealed class DockWalker
             window.Y = Math.Clamp(window.Y, 0f, MathF.Max(0f, dock.Height - _theme.PaneHeaderHeight));
         }
 
-        var windowId = WindowElementId(window);
-        frame.Outer = _ui.Float(0f, 0f, window.X, window.Y, new Box
+        var windowId = WindowId(_dockId, window);
+        frame.Outer = _ui.Float(0f, 0f, window.X, window.Y, _theme.PopupSurface(new Box
         {
             Direction = Direction.Vertical,
             Width = window.Width,
             Height = window.Height,
             Padding = _theme.BorderWidth,
             Background = _theme.Background,
-            BorderColor = _theme.Border,
-            BorderWidth = _theme.BorderWidth,
-            Shadow = _theme.PopupShadow,
-        }, WindowZ + index * WindowZStep, windowId);
+            Radius = 0f,
+        }), WindowZ + index * WindowZStep, windowId);
 
         TitleBar(window, windowId);
         frame.Inner = _ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true });
@@ -474,12 +467,6 @@ internal sealed class DockWalker
         string? caption = null;
         Describe(window.Root, ref closable, ref caption);
 
-        var closeId = UiWidgets.CloseButtonId(windowId);
-        var close = closable ? _ui.Interact(closeId) : Interaction.Inert(closeId);
-        if (close.Hovered) _ui.SetCursor(MouseCursor.Hand);
-        if (close.Clicked)
-            _closedWindows.Add(window);
-
         using (_ui.Row(title.Id, new Box
         {
             Height = _theme.PaneHeaderHeight,
@@ -489,17 +476,8 @@ internal sealed class DockWalker
         }))
         {
             _ui.Text(caption ?? "", new Box { Width = Sizing.Grow() }, color: _theme.TextMuted, bold: true);
-            if (!closable) return;
-            using (_ui.Box(close.Id, new Box
-            {
-                Width = _theme.TabCloseSize,
-                Height = _theme.TabCloseSize,
-                Radius = _theme.CornerRadius,
-                Background = close.Held ? _theme.ControlPressed : close.Hovered ? _theme.ControlHovered : 0u,
-            }))
-            {
-                _ui.Paint((close.Hovered ? _theme.Text : _theme.TextMuted, _theme.IconStrokeWidth), static (p, s) => UiWidgets.DrawCross(p, s.Item1, s.IconStrokeWidth));
-            }
+            if (closable && _ui.CloseButton(UiWidgets.CloseButtonId(windowId), tabStop: false))
+                _closedWindows.Add(window);
         }
     }
 
@@ -523,7 +501,7 @@ internal sealed class DockWalker
 
     private void ResizeHandles(DockWindow window)
     {
-        var windowId = WindowElementId(window);
+        var windowId = WindowId(_dockId, window);
         var (w, h) = (window.Width, window.Height);
         Handle(window, windowId, 1, new UiRect(0f, Grip, Grip, h - Grip * 2), MouseCursor.ResizeHorizontal);
         Handle(window, windowId, 4, new UiRect(w - Grip, Grip, Grip, h - Grip * 2), MouseCursor.ResizeHorizontal);
@@ -540,11 +518,8 @@ internal sealed class DockWalker
         var handle = _ui.Interact(HashCode.Combine(windowId, "resize", edges));
         if (handle.Hovered || handle.Held)
             _ui.SetCursor(cursor);
-        var state = _ui.GetState<ResizeState>(handle.Id);
-        if (handle.Pressed)
-            state.Start = window.Rect;
-        else if (handle.Held)
-            Resize(window, state.Start, edges);
+        if (_ui.TryGetDragStart(handle, window.Rect, out var start))
+            Resize(window, start, edges);
 
         using (_ui.Float(0f, 0f, at.X, at.Y, new Box { Width = at.Width, Height = at.Height }, 2, handle.Id)) { }
     }
@@ -643,7 +618,7 @@ internal sealed class DockWalker
         {
             var window = _layout.Windows[i];
             if (window == skip) continue;
-            if (!_ui.TryGetRect(WindowElementId(window), out var rect) || !rect.Contains(pointer)) continue;
+            if (!_ui.TryGetRect(WindowId(_dockId, window), out var rect) || !rect.Contains(pointer)) continue;
             over = window;
             break;
         }

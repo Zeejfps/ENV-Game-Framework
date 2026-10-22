@@ -27,7 +27,6 @@ public sealed class TableColumns
     private readonly TableColumn[] _columns;
     private readonly float[] _weights;
     private readonly float[] _widths;
-    private float _grab;
 
     public TableColumns(params TableColumn[] columns)
     {
@@ -98,23 +97,20 @@ public sealed class TableColumns
             _widths[i] = _columns[i].Fixed ?? MathF.Max(_columns[i].MinWidth, MathF.Floor(flexible * _weights[i] / total));
     }
 
-    internal void Grab(float offset) => _grab = offset;
-
-    /// <summary>Moves the border after column <paramref name="left"/> to <paramref name="pointer"/>
-    /// less the grab offset: a sized column alone takes the width; otherwise it is given to or
-    /// taken from the column after it.</summary>
-    internal void Drag(int left, float leftStart, float pointer)
+    /// <summary>Moves the border after column <paramref name="left"/> to <paramref name="borderAt"/>:
+    /// a sized column alone takes the width; otherwise it is given to or taken from the column after it.</summary>
+    internal void Drag(int left, float leftStart, float borderAt)
     {
         var minLeft = _columns[left].MinWidth;
         if (IsSized)
         {
-            _widths[left] = _weights[left] = MathF.Max(minLeft, pointer - _grab - leftStart);
+            _widths[left] = _weights[left] = MathF.Max(minLeft, borderAt - leftStart);
             return;
         }
         var right = left + 1;
         var pair = _widths[left] + _widths[right];
         var minRight = _columns[right].MinWidth;
-        var leftWidth = Math.Clamp(pointer - _grab - leftStart, minLeft, MathF.Max(minLeft, pair - minRight));
+        var leftWidth = Math.Clamp(borderAt - leftStart, minLeft, MathF.Max(minLeft, pair - minRight));
         _widths[left] = leftWidth;
         _widths[right] = pair - leftWidth;
         for (var i = 0; i < _columns.Length; i++)
@@ -165,10 +161,8 @@ public static partial class UiWidgets
             hot[i] = border.Hovered || border.Held;
             if (hot[i])
                 ui.SetCursor(MouseCursor.ResizeHorizontal);
-            if (border.Pressed)
-                columns.Grab(pointer - (start + columns.Width(i)));
-            else if (border.Held && hasRect)
-                columns.Drag(i, start, pointer);
+            if (ui.TryGetDragStart(border, pointer - (start + columns.Width(i)), out var grab) && hasRect)
+                columns.Drag(i, start, pointer - grab);
             start += columns.Width(i);
         }
 
@@ -187,9 +181,7 @@ public static partial class UiWidgets
         {
             for (var i = 0; i < columns.Count; i++)
             {
-                var cell = sort is null ? default : ui.Interact(HashCode.Combine(headerId, TableHeadingSalt, i));
-                if (cell.Hovered)
-                    ui.SetCursor(MouseCursor.Hand);
+                var cell = sort is null ? default : ui.Clickable(HashCode.Combine(headerId, TableHeadingSalt, i));
                 if (cell.Clicked)
                     clicked = i;
                 using (sort is null ? ui.TableCell(columns, i) : ui.TableCell(columns, i, cell.Id))

@@ -82,11 +82,6 @@ public readonly struct SplitPane : IDisposable
 
 public static partial class UiWidgets
 {
-    private sealed class SplitState
-    {
-        public float Grab;
-    }
-
     /// <summary>
     /// Two panes side by side (<see cref="Direction.Horizontal"/>) or stacked, split by a divider
     /// the user drags. <paramref name="size"/> is the width or height of the <paramref name="sized"/>
@@ -115,13 +110,12 @@ public static partial class UiWidgets
         var pointer = horizontal ? ui.Input.Pointer.X : ui.Input.Pointer.Y;
         var fraction = unit == SplitUnit.Fraction;
         var points = !fraction ? size : hasContainer ? size * extent : 0f;
-        var state = ui.GetState<SplitState>(divider.Id);
-        if (divider.Pressed && ui.TryGetRect(divider.Id, out var bar))
-            state.Grab = pointer - (horizontal ? bar.X : bar.Y);
-        else if (divider.Held && hasContainer)
+        ui.TryGetRect(divider.Id, out var bar);
+        var offset = pointer - (horizontal ? bar.X : bar.Y);
+        if (ui.TryGetDragStart(divider, offset, out var grab) && hasContainer)
         {
             var start = horizontal ? container.X : container.Y;
-            var dividerAt = pointer - state.Grab;
+            var dividerAt = pointer - grab;
             points = sized == SplitSide.First ? dividerAt - start : start + extent - dividerAt - thickness;
         }
 

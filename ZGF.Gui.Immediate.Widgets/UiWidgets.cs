@@ -1,5 +1,4 @@
 using ZGF.Desktop;
-using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
@@ -13,17 +12,8 @@ public static partial class UiWidgets
     private const float MinFieldWidth = 60f;
     private const int SliderKeySteps = 20;
 
-    private sealed class LabelState
-    {
-        public string Visible = "";
-    }
-
     public static void Label(this Ui ui, string text, uint? color = null, float? size = null, bool bold = false) =>
         ui.Text(text, color: color, size: size, bold: bold);
-
-    /// <summary>Secondary text: <see cref="UiTheme.FontSizeSmall"/> in <see cref="UiTheme.TextMuted"/>.</summary>
-    public static void Caption(this Ui ui, string text, uint? color = null) =>
-        ui.Text(text, color: color ?? ui.Theme.TextMuted, size: ui.Theme.FontSizeSmall);
 
     /// <summary>A title: <see cref="UiTheme.FontSizeTitle"/>, bold.</summary>
     public static void Heading(this Ui ui, string text) =>
@@ -45,10 +35,11 @@ public static partial class UiWidgets
     }
 
     /// <summary>Provides <paramref name="theme"/> and opens a <see cref="Screen(Ui)"/> in it.</summary>
-    public static ScreenScope Screen(this Ui ui, UiTheme theme)
+    public static Ui.Scope Screen(this Ui ui, UiTheme theme)
     {
-        var context = ui.Provide(theme);
-        return new ScreenScope(context, ui.Screen());
+        var screen = ui.Provide(theme);
+        ui.Screen();
+        return screen;
     }
 
     /// <summary>A padded, bordered column on the theme's surface. Set the box's border width or
@@ -76,20 +67,21 @@ public static partial class UiWidgets
         ui.Leaf(ui.InRow ? new Box { Width = main, Height = 0f } : new Box { Width = 0f, Height = main });
     }
 
-    /// <summary>A structural rule across the row or column, in <see cref="UiTheme.Separator"/>.</summary>
-    public static void Separator(this Ui ui)
+    /// <summary>A structural rule across the row or column, in <see cref="UiTheme.Separator"/>: all the
+    /// way across, or <paramref name="length"/> long, as between a toolbar's groups of buttons.</summary>
+    public static void Separator(this Ui ui, float? length = null)
     {
         var theme = ui.Theme;
+        var across = length != null ? Sizing.Fixed(length.Value) : Sizing.Grow();
         ui.Leaf(ui.InRow
-            ? new Box { Width = theme.SeparatorWidth, Height = Sizing.Grow(), Background = theme.Separator }
-            : new Box { Width = Sizing.Grow(), Height = theme.SeparatorWidth, Background = theme.Separator });
+            ? new Box { Width = theme.SeparatorWidth, Height = across, Background = theme.Separator }
+            : new Box { Width = across, Height = theme.SeparatorWidth, Background = theme.Separator });
     }
 
     /// <summary>Returns true on the frame the button is clicked, or activated with Enter or Space
     /// while it holds keyboard focus, which Tab gives it. The label doubles as the id unless
-    /// <paramref name="id"/> is given, or the label carries a hidden suffix after <c>##</c>:
-    /// <c>"Save##toolbar"</c>. An <paramref name="icon"/> leads the label, in the label's color
-    /// unless it has its own.</summary>
+    /// <paramref name="id"/> is given. An <paramref name="icon"/> leads the label, in the label's
+    /// color unless it has its own.</summary>
     public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true, string? id = null,
         ButtonVariant variant = ButtonVariant.Neutral, UiIcon? icon = null)
     {
@@ -114,7 +106,7 @@ public static partial class UiWidgets
         {
             if (icon is { } shown)
                 ui.Icon(shown.Color != 0 && enabled ? shown : shown with { Color = text });
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: text, overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
+            ui.Text(label, color: text, overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
         return i.Clicked || activated;
@@ -168,12 +160,12 @@ public static partial class UiWidgets
             }))
             {
                 if (on)
-                    ui.Paint((theme.OnAccent, theme.IconStrokeWidth), static (p, s) => DrawCheckmark(p, s.OnAccent, s.IconStrokeWidth));
+                    ui.PaintGlyph(UiGlyph.Checkmark, theme.OnAccent);
                 else if (mixed)
                     ui.Leaf(new Box { Width = size / 2f, Height = size / 2f, Background = accent, Radius = theme.RadiusSmall / 2f });
                 if (ring) FocusRing(ui, theme.RadiusSmall);
             }
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: !enabled ? theme.TextDisabled : textColor ?? theme.Text, bold: bold,
+            ui.Text(label, color: !enabled ? theme.TextDisabled : textColor ?? theme.Text, bold: bold,
                 overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
         }
         return i.Clicked || activated;
@@ -249,25 +241,39 @@ public static partial class UiWidgets
         });
     }
 
-    // The shared behavior of a clickable control: pointer interaction, a Tab stop, Enter/Space
-    // activation while focused, the hand cursor, and whether to draw the focus ring.
-    private static Interaction Pressable(Ui ui, string key, bool enabled, out bool activated, out bool ring) =>
-        Pressable(ui, ui.GetId(key), enabled, out activated, out ring);
-
-    private static Interaction Pressable(Ui ui, int id, bool enabled, out bool activated, out bool ring, bool hand = true)
+    /// <summary>An <see cref="Ui.Interact(int)"/> that shows the hand cursor while the pointer is
+    /// over it: a click target that takes no keyboard focus.</summary>
+    public static Interaction Clickable(this Ui ui, int id)
     {
-        if (!enabled)
-        {
-            activated = ring = false;
-            return Interaction.Inert(id);
-        }
+        var i = ui.Interact(id);
+        if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
+        return i;
+    }
+
+    public static Interaction Clickable(this Ui ui, string id) => ui.Clickable(ui.GetId(id));
+
+    /// <summary>The behavior every built-in button shares: a <see cref="Clickable(Ui, int)"/>, without
+    /// the hand cursor unless <paramref name="hand"/>, that is a Tab stop unless not
+    /// <paramref name="tabStop"/>: <paramref name="activated"/> by Enter or Space while focused, and
+    /// to draw a <see cref="FocusRing"/> while <paramref name="ring"/>. Inert when not
+    /// <paramref name="enabled"/>.</summary>
+    public static Interaction Pressable(this Ui ui, int id, bool enabled, out bool activated, out bool ring, bool hand = true,
+        bool tabStop = true)
+    {
+        activated = false;
+        ring = false;
+        if (!enabled) return Interaction.Inert(id);
         var i = ui.Interact(id);
         if (hand && i.Hovered) ui.SetCursor(MouseCursor.Hand);
+        if (!tabStop) return i;
         var focused = ui.TabStop(i.Id);
         activated = focused && Activated(ui);
         ring = focused && ui.FocusVisible;
         return i;
     }
+
+    public static Interaction Pressable(this Ui ui, string id, bool enabled, out bool activated, out bool ring) =>
+        ui.Pressable(ui.GetId(id), enabled, out activated, out ring);
 
     private static bool Activated(Ui ui)
     {
@@ -284,10 +290,31 @@ public static partial class UiWidgets
         return variant switch
         {
             ButtonVariant.Primary => (pressed ? theme.AccentPressed : hovered ? theme.AccentHovered : theme.Accent, 0u, theme.OnAccent),
-            ButtonVariant.Ghost => (pressed ? theme.ControlPressed : hovered ? theme.ControlHovered : 0u, 0u, theme.Text),
-            _ => (pressed ? theme.ControlPressed : hovered ? theme.ControlHovered : theme.Control, theme.Border, theme.Text),
+            ButtonVariant.Ghost => (theme.ControlFill(pressed, hovered), 0u, theme.Text),
+            _ => (theme.ControlFill(pressed, hovered, theme.Control), theme.Border, theme.Text),
         };
     }
+
+    /// <summary>The fill of a control: <see cref="UiTheme.ControlPressed"/> while pressed,
+    /// <see cref="UiTheme.ControlHovered"/> under the pointer, otherwise <paramref name="rest"/> — none,
+    /// for a ghost control.</summary>
+    public static uint ControlFill(this UiTheme theme, bool pressed, bool hovered, uint rest = 0u)
+    {
+        if (pressed) return theme.ControlPressed;
+        if (hovered) return theme.ControlHovered;
+        return rest;
+    }
+
+    /// <summary><paramref name="box"/> on the raised surface of a popup — its border, radius and
+    /// shadow — wherever it leaves those unset.</summary>
+    public static Box PopupSurface(this UiTheme theme, Box box) => box with
+    {
+        Background = box.Background ?? theme.SurfaceRaised,
+        BorderColor = box.BorderColor ?? theme.Border,
+        BorderWidth = box.BorderWidth ?? theme.BorderWidth,
+        Radius = box.Radius ?? theme.PopupRadius,
+        Shadow = box.Shadow ?? theme.PopupShadow,
+    };
 
     private static float SliderKeys(Ui ui, float value, float min, float max)
     {
@@ -305,28 +332,5 @@ public static partial class UiWidgets
             };
         }
         return value;
-    }
-
-    private static void DrawCheckmark(UiPainter p, uint color, float stroke)
-    {
-        var r = p.Rect;
-        var start = new PointF(r.X + r.Width * 0.25f, r.Y + r.Height * 0.5f);
-        var corner = new PointF(r.X + r.Width * 0.42f, r.Y + r.Height * 0.68f);
-        var end = new PointF(r.X + r.Width * 0.75f, r.Y + r.Height * 0.32f);
-        p.Line(start, corner, stroke, color);
-        p.Line(corner, end, stroke, color);
-    }
-
-    // Strips a "##id" suffix. The stripped text is kept in the widget's state and reused while it
-    // still matches, so a hidden-id label doesn't allocate a fresh substring every frame.
-    private static string Visible(Ui ui, int id, string label)
-    {
-        var hidden = label.IndexOf("##", StringComparison.Ordinal);
-        if (hidden < 0) return label;
-
-        var state = ui.GetState<LabelState>(id);
-        if (!state.Visible.AsSpan().SequenceEqual(label.AsSpan(0, hidden)))
-            state.Visible = label[..hidden];
-        return state.Visible;
     }
 }

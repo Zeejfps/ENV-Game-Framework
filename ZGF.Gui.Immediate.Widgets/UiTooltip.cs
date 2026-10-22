@@ -26,8 +26,9 @@ public static partial class UiWidgets
 
     /// <summary>A tooltip under the element with <paramref name="id"/>, shown as
     /// <see cref="Tooltip(Ui, int, string)"/> is, whose content is recorded inside the scope
-    /// while <see cref="TooltipScope.IsOpen"/>. Call it every frame the element is recorded.</summary>
-    public static TooltipScope TooltipContent(this Ui ui, int id)
+    /// while <see cref="Ui.Scope.IsOpen"/>; dispose the scope either way. Call it every frame the
+    /// element is recorded.</summary>
+    public static Ui.Scope TooltipContent(this Ui ui, int id)
     {
         var state = ui.GetState<TooltipState>(TooltipId);
         if (!ui.Input.IsForeground)
@@ -60,36 +61,10 @@ public static partial class UiWidgets
         if (!ui.TryGetRect(id, out var anchor)) return default;
 
         var theme = ui.Theme;
-        return new TooltipScope(ui.Popup(TooltipId, anchor, new Box
+        return ui.Popup(TooltipId, anchor, theme.PopupSurface(new Box
         {
             Width = Sizing.Fit(0f, theme.TooltipMaxWidth),
             Padding = new Spacing(theme.TooltipPaddingX, theme.TooltipPaddingY),
-            Background = theme.SurfaceRaised,
-            BorderColor = theme.Border,
-            BorderWidth = theme.BorderWidth,
-            Radius = theme.PopupRadius,
-            Shadow = theme.PopupShadow,
-        }, Align.Center, gap: theme.TooltipGap, passThrough: true));
-    }
-}
-
-/// <summary>The content of a <see cref="UiWidgets.TooltipContent"/>: record it only while
-/// <see cref="IsOpen"/>, and dispose the scope either way.</summary>
-public readonly struct TooltipScope : IDisposable
-{
-    private readonly Ui.Scope _popup;
-
-    internal TooltipScope(Ui.Scope popup)
-    {
-        _popup = popup;
-        IsOpen = true;
-    }
-
-    public bool IsOpen { get; }
-
-    public void Dispose()
-    {
-        if (IsOpen)
-            _popup.Dispose();
+        }), Align.Center, gap: theme.TooltipGap, passThrough: true);
     }
 }

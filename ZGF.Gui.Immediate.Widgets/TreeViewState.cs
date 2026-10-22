@@ -67,8 +67,6 @@ public sealed class TreeViewState<TNode> where TNode : notnull
             _dirty = true;
     }
 
-    public void Toggle(TNode node) => SetExpanded(node, !IsExpanded(node));
-
     public void CollapseAll()
     {
         _expanded.Clear();

@@ -117,8 +117,7 @@ public static partial class UiWidgets
                     using (ui.Box(hasChildren ? arrowId : 0, new Box { Width = theme.DisclosureWidth, Height = Sizing.Grow() }))
                     {
                         if (hasChildren)
-                            ui.Paint((expanded, arrow.Hovered ? theme.Text : theme.TextMuted, theme.IconStrokeWidth),
-                                static (p, s) => DrawDisclosure(p, s.expanded, s.Item2, s.IconStrokeWidth));
+                            ui.PaintGlyph(expanded ? UiGlyph.DisclosureOpen : UiGlyph.DisclosureClosed, arrow.Hovered ? theme.Text : theme.TextMuted);
                     }
                     if (content.Icon is { } icon)
                         ui.Icon(icon);
@@ -213,24 +212,6 @@ public static partial class UiWidgets
             }
             if (selection != current && selection >= 0)
                 state.SelectAt(selection);
-        }
-    }
-
-    private static void DrawDisclosure(UiPainter p, bool expanded, uint color, float stroke)
-    {
-        var r = p.Rect;
-        var cx = r.X + r.Width / 2;
-        var cy = r.Y + r.Height / 2;
-        const float h = 3.5f;
-        if (expanded)
-        {
-            p.Line(new PointF(cx - h, cy - h / 2), new PointF(cx, cy + h / 2), stroke, color);
-            p.Line(new PointF(cx, cy + h / 2), new PointF(cx + h, cy - h / 2), stroke, color);
-        }
-        else
-        {
-            p.Line(new PointF(cx - h / 2, cy - h), new PointF(cx + h / 2, cy), stroke, color);
-            p.Line(new PointF(cx + h / 2, cy), new PointF(cx - h / 2, cy + h), stroke, color);
         }
     }
 }

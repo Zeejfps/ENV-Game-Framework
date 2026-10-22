@@ -1,34 +1,6 @@
-using ZGF.Desktop;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
-
-/// <summary>Ends a <see cref="UiWidgets.Dialog"/>. Record the dialog's content only while
-/// <see cref="IsOpen"/>; dispose either way.</summary>
-public readonly struct DialogScope : IDisposable
-{
-    private readonly Ui.Scope _modal;
-    private readonly Ui.Scope _card;
-    private readonly Ui.Scope _body;
-
-    internal DialogScope(Ui.Scope modal, Ui.Scope card, Ui.Scope body)
-    {
-        IsOpen = true;
-        _modal = modal;
-        _card = card;
-        _body = body;
-    }
-
-    public bool IsOpen { get; }
-
-    public void Dispose()
-    {
-        if (!IsOpen) return;
-        _body.Dispose();
-        _card.Dispose();
-        _modal.Dispose();
-    }
-}
 
 public static partial class UiWidgets
 {
@@ -46,15 +18,15 @@ public static partial class UiWidgets
     /// stacks on top of it. The close button is a Tab stop; a dialog whose
     /// <see cref="DialogActions"/> offer a way out leaves it off with <paramref name="closeButton"/>.
     /// <paramref name="box"/> sizes and pads the card (the theme's <see cref="UiTheme.DialogWidth"/>
-    /// wide by default).
+    /// wide by default). Record the content only while <see cref="Ui.Scope.IsOpen"/>; dispose either way.
     /// </summary>
-    public static DialogScope Dialog(this Ui ui, string id, string title, ref bool open, Box box = default, bool closeButton = true)
+    public static Ui.Scope Dialog(this Ui ui, string id, string title, ref bool open, Box box = default, bool closeButton = true)
     {
         if (!open) return default;
 
         var theme = ui.Theme;
         var dialogId = ui.GetId(id);
-        var modal = ui.Modal(dialogId, new Box
+        var dialog = ui.Modal(dialogId, new Box
         {
             Background = theme.Scrim,
             AlignX = Align.Center,
@@ -63,19 +35,10 @@ public static partial class UiWidgets
         });
 
         var backdrop = ui.Interact(dialogId);
-        var close = default(Interaction);
-        var closeKeyed = false;
-        var closeRing = false;
-        if (closeButton)
-            close = Pressable(ui, CloseButtonId(dialogId), true, out closeKeyed, out closeRing);
-        if (ui.Input.TakeKey(KeyboardKey.Escape) || close.Clicked || closeKeyed || backdrop.Pressed)
-        {
-            open = false;
-            ui.RequestFrame();
-        }
+        var dismissed = ui.Input.TakeKey(KeyboardKey.Escape) || backdrop.Pressed;
 
         var radius = box.Radius ?? theme.DialogRadius;
-        var card = ui.Column(DialogCardId(dialogId), box with
+        ui.Column(DialogCardId(dialogId), box with
         {
             Width = box.Width ?? theme.DialogWidth,
             Height = box.Height ?? Sizing.Fit(0f, MathF.Max(0f, ui.Height - theme.DialogMargin * 2)),
@@ -93,25 +56,18 @@ public static partial class UiWidgets
         {
             ui.Text(title, size: theme.FontSizeTitle, bold: true, overflow: TextOverflow.Ellipsis);
             ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
-            if (closeButton)
-            {
-                using (ui.Box(close.Id, new Box
-            {
-                Width = closeSize,
-                Height = closeSize,
-                Radius = theme.CornerRadius,
-                Background = close.Held ? theme.ControlPressed : close.Hovered ? theme.ControlHovered : 0u,
-            }))
-                {
-                    ui.Paint((close.Hovered ? theme.Text : theme.TextMuted, theme.IconStrokeWidth), static (p, s) => DrawCross(p, s.Item1, s.IconStrokeWidth));
-                    if (closeRing) FocusRing(ui, theme.CornerRadius);
-                }
-            }
+            if (closeButton && ui.CloseButton(CloseButtonId(dialogId), closeSize))
+                dismissed = true;
+        }
+        if (dismissed)
+        {
+            open = false;
+            ui.RequestFrame();
         }
         ui.Leaf(new Box { Width = Sizing.Grow(), Height = theme.SeparatorWidth, Background = theme.Separator });
 
-        var body = ui.Scroll(HashCode.Combine(dialogId, "body"), new Box { Height = Sizing.Grow(), Gap = theme.Gap });
-        return new DialogScope(modal, card, body);
+        ui.Scroll(HashCode.Combine(dialogId, "body"), new Box { Height = Sizing.Grow(), Gap = theme.Gap });
+        return dialog;
     }
 
     /// <summary>The row of a dialog's buttons, last in its body: aligned to the end, set apart from

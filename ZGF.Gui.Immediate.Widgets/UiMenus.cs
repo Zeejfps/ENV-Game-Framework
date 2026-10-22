@@ -4,78 +4,6 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>An open <see cref="UiWidgets.MenuBar"/>: record its menus with
-/// <see cref="UiWidgets.Menu"/>, then dispose.</summary>
-public readonly struct MenuBar : IDisposable
-{
-    private readonly Ui.Scope _row;
-    private readonly Ui.Scope _provided;
-    private readonly UiWidgets.MenuBarState _state;
-
-    internal MenuBar(Ui.Scope row, Ui.Scope provided, UiWidgets.MenuBarState state)
-    {
-        _row = row;
-        _provided = provided;
-        _state = state;
-    }
-
-    public void Dispose()
-    {
-        _provided.Dispose();
-        _row.Dispose();
-        if (!_state.OpenSeen)
-            _state.Close();
-    }
-}
-
-/// <summary>A menu from <see cref="UiWidgets.Menu"/>, <see cref="UiWidgets.ContextMenu(Ui, int)"/> or
-/// <see cref="UiWidgets.SubMenu"/>. While <see cref="IsOpen"/>, record its items inside the scope;
-/// dispose either way.</summary>
-public readonly struct MenuScope : IDisposable
-{
-    private readonly Ui.Scope _layer;
-    private readonly Ui.Scope _popup;
-    private readonly Ui.Scope _scroll;
-    private readonly Ui.Scope _provided;
-    private readonly Ui.Scope _title;
-    private readonly bool _hasTitle;
-    private readonly UiWidgets.MenuPopup? _items;
-
-    internal MenuScope(Ui.Scope title)
-    {
-        _title = title;
-        _hasTitle = true;
-    }
-
-    internal MenuScope(Ui.Scope layer, Ui.Scope popup, Ui.Scope scroll, Ui.Scope provided, UiWidgets.MenuPopup items, Ui.Scope title, bool hasTitle)
-    {
-        IsOpen = true;
-        _layer = layer;
-        _popup = popup;
-        _scroll = scroll;
-        _provided = provided;
-        _items = items;
-        _title = title;
-        _hasTitle = hasTitle;
-    }
-
-    public bool IsOpen { get; }
-
-    public void Dispose()
-    {
-        if (IsOpen)
-        {
-            _provided.Dispose();
-            _scroll.Dispose();
-            _popup.Dispose();
-            _layer.Dispose();
-            _items!.EndItems();
-        }
-        if (_hasTitle)
-            _title.Dispose();
-    }
-}
-
 public static partial class UiWidgets
 {
     private const int MenuSalt = 0x4D454E55;
@@ -94,12 +22,10 @@ public static partial class UiWidgets
     /// keys act on last frame's items.</summary>
     internal abstract class MenuPopup
     {
-        private List<bool> _enabled = new();
-        private List<bool> _recording = new();
-        private List<bool> _subs = new();
-        private List<bool> _recordingSubs = new();
-        private List<int> _ids = new();
-        private List<int> _recordingIds = new();
+        private readonly record struct Item(int Id, bool Enabled, bool SubMenu);
+
+        private List<Item> _items = new();
+        private List<Item> _recording = new();
         private int _owner;
         private bool _childSeen;
         private PointF _pointer = new(float.NaN, float.NaN);
@@ -131,30 +57,24 @@ public static partial class UiWidgets
             if (owner != _owner)
             {
                 _owner = owner;
-                _enabled.Clear();
-                _subs.Clear();
-                _ids.Clear();
+                _items.Clear();
                 Highlight = -1;
                 OpenSub = -1;
                 OpenChild = null;
             }
             _recording.Clear();
-            _recordingSubs.Clear();
-            _recordingIds.Clear();
             _childSeen = false;
         }
 
         public int AddItem(int id, bool enabled, bool subMenu = false)
         {
-            _recording.Add(enabled);
-            _recordingSubs.Add(subMenu);
-            _recordingIds.Add(id);
+            _recording.Add(new Item(id, enabled, subMenu));
             return _recording.Count - 1;
         }
 
-        public bool SubMenuAt(int index) => index >= 0 && index < _subs.Count && _subs[index];
+        public bool SubMenuAt(int index) => IsItem(index) && _items[index].SubMenu;
 
-        public int ItemId(int index) => index >= 0 && index < _ids.Count ? _ids[index] : 0;
+        public int ItemId(int index) => IsItem(index) ? _items[index].Id : 0;
 
         public void ChildSeen(MenuPopup child)
         {
@@ -164,12 +84,10 @@ public static partial class UiWidgets
 
         public void EndItems()
         {
-            (_enabled, _recording) = (_recording, _enabled);
-            (_subs, _recordingSubs) = (_recordingSubs, _subs);
-            (_ids, _recordingIds) = (_recordingIds, _ids);
+            (_items, _recording) = (_recording, _items);
             if (!_childSeen) OpenChild = null;
             PickIndex = -1;
-            if (Highlight >= _enabled.Count) Highlight = -1;
+            if (Highlight >= _items.Count) Highlight = -1;
             if (HighlightFirstOwner != 0 && HighlightFirstOwner == _owner)
             {
                 HighlightFirstOwner = 0;
@@ -185,17 +103,19 @@ public static partial class UiWidgets
             OpenChild = null;
         }
 
-        public bool IsEnabled(int index) => index >= 0 && index < _enabled.Count && _enabled[index];
+        public bool IsEnabled(int index) => IsItem(index) && _items[index].Enabled;
+
+        private bool IsItem(int index) => index >= 0 && index < _items.Count;
 
         public int Step(int from, int direction)
         {
-            var count = _enabled.Count;
+            var count = _items.Count;
             if (count == 0) return -1;
             var index = from;
             for (var i = 0; i < count; i++)
             {
                 index = index < 0 ? (direction > 0 ? 0 : count - 1) : (index + direction + count) % count;
-                if (_enabled[index]) return index;
+                if (_items[index].Enabled) return index;
             }
             return -1;
         }
@@ -225,6 +145,12 @@ public static partial class UiWidgets
             Reset();
         }
 
+        public void CloseUnlessOpenSeen()
+        {
+            if (!OpenSeen)
+                Close();
+        }
+
         public void BeginTitles()
         {
             (_titles, _previousTitles) = (_previousTitles, _titles);
@@ -241,11 +167,14 @@ public static partial class UiWidgets
         }
     }
 
-    private sealed class ContextMenuState : MenuPopup
+    /// <summary>A menu opened on demand: a context menu shown <see cref="At"/> a point, or a
+    /// dropdown's, built from <see cref="Revision"/>.</summary>
+    private sealed class OpenedMenu : MenuPopup
     {
         public bool Open;
         public bool JustOpened;
         public PointF At;
+        public int Revision;
 
         public override void Close()
         {
@@ -265,8 +194,9 @@ public static partial class UiWidgets
     /// Once one is open, hovering another title switches to it, and pressing a title then
     /// releasing over an item picks it. While open, Up/Down/Home/End move through the items,
     /// Enter or Space picks, Left/Right switch menus or open and close submenus, and Escape closes.
-    /// A press outside or a pick closes it, and keyboard focus returns to where it was.</summary>
-    public static MenuBar MenuBar(this Ui ui, string id, Box box = default)
+    /// A press outside or a pick closes it, and keyboard focus returns to where it was. Dispose the
+    /// scope once its menus are recorded.</summary>
+    public static Ui.Scope MenuBar(this Ui ui, string id, Box box = default)
     {
         var theme = ui.Theme;
         var barId = ui.GetId(id);
@@ -276,19 +206,22 @@ public static partial class UiWidgets
         state.OpenSeen = false;
         state.BeginTitles();
 
-        var row = ui.Row(barId, box with
+        var menuBar = ui.Group(state, static bar => ((MenuBarState)bar).CloseUnlessOpenSeen());
+        ui.Row(barId, box with
         {
             Height = box.Height ?? theme.MenuBarHeight,
             Gap = box.Gap ?? 0f,
             Padding = box.Padding ?? new Spacing(theme.GapTight, theme.GapTight / 2),
             Background = box.Background ?? theme.Surface,
         });
-        return new MenuBar(row, ui.Provide(state), state);
+        ui.Provide(state);
+        return menuBar;
     }
 
-    /// <summary>A title in the enclosing <see cref="MenuBar"/> and its dropdown. Ids work as for
-    /// <see cref="Button"/>.</summary>
-    public static MenuScope Menu(this Ui ui, string label, string? id = null)
+    /// <summary>A title in the enclosing <see cref="MenuBar"/> and its dropdown. While
+    /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way. Ids work
+    /// as for <see cref="Button"/>.</summary>
+    public static Ui.Scope Menu(this Ui ui, string label, string? id = null)
     {
         var bar = ui.Get<MenuBarState>() ?? throw new InvalidOperationException("A Menu must be recorded inside a MenuBar.");
         var theme = ui.Theme;
@@ -315,21 +248,24 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
             Background = open ? theme.Selection : i.Hovered ? theme.ControlHovered : 0u,
         });
-        ui.Text(id != null ? label : Visible(ui, i.Id, label), color: open ? theme.SelectionText : theme.Text);
+        ui.Text(label, color: open ? theme.SelectionText : theme.Text);
         if (!open)
-            return new MenuScope(title);
+        {
+            title.Dispose();
+            return default;
+        }
 
         bar.OpenSeen = true;
         bar.PopupId = MenuPopupId(i.Id);
         bar.BeginItems(i.Id);
         ui.TryGetRect(i.Id, out var anchor);
-        var menu = OpenMenu(ui, bar, anchor, title: title, hasTitle: true);
+        OpenMenu(ui, bar, anchor);
         if (MenuKeys(ui, bar, isSubMenu: false) is var direction and not 0)
         {
             bar.Open = bar.Neighbor(i.Id, direction);
             bar.HighlightFirstOwner = bar.Open;
         }
-        return menu;
+        return title;
     }
 
     /// <summary>Opens the <see cref="ContextMenu(Ui, string)"/> with <paramref name="id"/>, in the same
@@ -341,20 +277,20 @@ public static partial class UiWidgets
     /// and pass it to both, and they match wherever each is recorded.</summary>
     public static void OpenContextMenu(this Ui ui, int id, PointF? at = null)
     {
-        var state = ui.GetState<ContextMenuState>(HashCode.Combine(id, MenuSalt));
+        var state = ui.GetState<OpenedMenu>(HashCode.Combine(id, MenuSalt));
         state.Open = true;
         state.JustOpened = true;
         state.At = at ?? ui.Input.Pointer;
     }
 
-    public static MenuScope ContextMenu(this Ui ui, string id) => ui.ContextMenu(ui.GetId(id));
+    public static Ui.Scope ContextMenu(this Ui ui, string id) => ui.ContextMenu(ui.GetId(id));
 
     /// <summary>A menu shown where <see cref="OpenContextMenu(Ui, int, PointF?)"/> asked, until Escape,
     /// a press outside, or a pick closes it. Record it every frame. Keys work as in a
-    /// <see cref="MenuBar"/>.</summary>
-    public static MenuScope ContextMenu(this Ui ui, int id)
+    /// <see cref="MenuBar"/>, and the scope as a <see cref="Menu"/>'s.</summary>
+    public static Ui.Scope ContextMenu(this Ui ui, int id)
     {
-        var state = ui.GetState<ContextMenuState>(HashCode.Combine(id, MenuSalt));
+        var state = ui.GetState<OpenedMenu>(HashCode.Combine(id, MenuSalt));
         state.PopupId = id;
         if (state.Open && !state.JustOpened && ShouldCloseMenu(ui, 0, state))
             state.Close();
@@ -371,8 +307,9 @@ public static partial class UiWidgets
     }
 
     /// <summary>An item that opens a nested menu beside it when hovered, clicked, or entered with
-    /// Right or Enter; Left or Escape closes just that menu. Ids work as for <see cref="Button"/>.</summary>
-    public static MenuScope SubMenu(this Ui ui, string label, bool enabled = true, string? id = null)
+    /// Right or Enter; Left or Escape closes just that menu. The scope is as a <see cref="Menu"/>'s;
+    /// ids work as for <see cref="Button"/>.</summary>
+    public static Ui.Scope SubMenu(this Ui ui, string label, bool enabled = true, string? id = null)
     {
         var parent = ui.Get<MenuPopup>() ?? throw new InvalidOperationException("A SubMenu must be recorded inside a menu.");
         var theme = ui.Theme;
@@ -391,10 +328,10 @@ public static partial class UiWidgets
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
             ui.Leaf(new Box { Width = theme.MenuIconColumnWidth, Height = 0f });
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
+            ui.Text(label, color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
             using (ui.Box(new Box { Width = theme.IconSize, Height = Sizing.Grow() }))
-                ui.Paint((color, theme.IconStrokeWidth), static (p, s) => DrawDisclosure(p, false, s.color, s.IconStrokeWidth));
+                ui.PaintGlyph(UiGlyph.DisclosureClosed, color);
         }
         if (!open)
             return default;
@@ -473,7 +410,7 @@ public static partial class UiWidgets
                     using (ui.Box(new Box { Width = theme.IconSize, Height = theme.IconSize }))
                     {
                         if (mark == MenuMark.Check)
-                            ui.Paint((color, theme.IconStrokeWidth), static (p, s) => DrawCheckmark(p, s.color, s.IconStrokeWidth));
+                            ui.PaintGlyph(UiGlyph.Checkmark, color);
                         else if (mark == MenuMark.Dot)
                             ui.Paint(color, static (p, c) => p.Circle(new PointF(p.Rect.X + p.Rect.Width / 2, p.Rect.Y + p.Rect.Height / 2), p.Rect.Height * 0.2f, c));
                     }
@@ -484,7 +421,7 @@ public static partial class UiWidgets
                 using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignY = Align.Center }))
                     ui.Icon(beside);
             }
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
+            ui.Text(label, color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
             if (shortcut != null)
                 ui.Text(shortcut, color: enabled ? theme.TextMuted : theme.TextDisabled);
@@ -515,28 +452,23 @@ public static partial class UiWidgets
 
     /// <summary>Records the popup of <paramref name="menu"/> at <paramref name="anchor"/>: an input
     /// layer holding a column of items that scrolls once taller than <see cref="UiTheme.MenuMaxHeight"/>.</summary>
-    private static MenuScope OpenMenu(Ui ui, MenuPopup menu, UiRect anchor, float gap = 0f, PopupSide side = PopupSide.Below, Ui.Scope title = default,
-        bool hasTitle = false)
+    private static Ui.Scope OpenMenu(Ui ui, MenuPopup menu, UiRect anchor, float gap = 0f, PopupSide side = PopupSide.Below)
     {
         var theme = ui.Theme;
         menu.TrackPointer(ui.Input.Pointer);
-        var layer = ui.Layer(menu.PopupId);
-        var popup = ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
-        var scroll = ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });
-        var provided = ui.Provide(menu);
-        return new MenuScope(layer, popup, scroll, provided, menu, title, hasTitle);
+        var scope = ui.Group(menu, static items => ((MenuPopup)items).EndItems());
+        ui.Layer(menu.PopupId);
+        ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
+        ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });
+        ui.Provide(menu);
+        return scope;
     }
 
-    private static Box MenuBox(UiTheme theme) => new()
+    private static Box MenuBox(UiTheme theme) => theme.PopupSurface(new Box
     {
         Width = Sizing.Fit(theme.MenuMinWidth),
         Padding = theme.MenuPadding,
-        Background = theme.SurfaceRaised,
-        BorderColor = theme.Border,
-        BorderWidth = theme.BorderWidth,
-        Radius = theme.PopupRadius,
-        Shadow = theme.PopupShadow,
-    };
+    });
 
     private static Box MenuRowBox(UiTheme theme, bool highlighted) => new()
     {

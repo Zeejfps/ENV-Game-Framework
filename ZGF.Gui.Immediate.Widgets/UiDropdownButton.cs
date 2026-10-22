@@ -1,5 +1,3 @@
-using ZGF.Desktop;
-using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
@@ -8,9 +6,9 @@ namespace ZGF.Gui.Immediate.Widgets;
 /// <see cref="IsOpen"/>, record its menu's items inside the scope; dispose either way.</summary>
 public readonly struct SplitButtonScope : IDisposable
 {
-    private readonly MenuScope _menu;
+    private readonly Ui.Scope _menu;
 
-    internal SplitButtonScope(bool clicked, MenuScope menu)
+    internal SplitButtonScope(bool clicked, Ui.Scope menu)
     {
         Clicked = clicked;
         _menu = menu;
@@ -35,25 +33,13 @@ public static partial class UiWidgets
 
     internal static int SplitMenuPopupId(int buttonId) => MenuPopupId(SplitArrowId(buttonId));
 
-    private sealed class DropdownState : MenuPopup
-    {
-        public bool Open;
-        public int Revision;
-
-        public override void Close()
-        {
-            Open = false;
-            Reset();
-        }
-    }
-
     /// <summary>A narrow <see cref="ButtonVariant.Ghost"/> button showing a down triangle that opens a
     /// menu below it. Pressing it again, a pick, Escape, Tab or a press outside closes the menu, as
     /// does a change of <paramref name="revision"/> — pass what the items are built from, so a pick
     /// never lands on a row that moved. Enter or Space while focused opens it with its first item
     /// highlighted, and keys then work as in a <see cref="MenuBar"/>. While
-    /// <see cref="MenuScope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
-    public static MenuScope DropdownButton(this Ui ui, string id, string? tooltip = null, bool enabled = true, int revision = 0)
+    /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
+    public static Ui.Scope DropdownButton(this Ui ui, string id, string? tooltip = null, bool enabled = true, int revision = 0)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id, enabled, out var activated, out var ring);
@@ -71,7 +57,7 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
-            ui.Paint((color, theme.DropdownArrowWidth), static (p, s) => DrawDropdownArrow(p, s.color, s.DropdownArrowWidth));
+            ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
         if (tooltip != null && !open)
@@ -93,31 +79,19 @@ public static partial class UiWidgets
         var main = Pressable(ui, id, enabled, out var activated, out var ring);
         var arrowId = SplitArrowId(main.Id);
         var shellId = SplitShellId(main.Id);
-        var arrow = enabled ? ui.Interact(arrowId) : Interaction.Inert(arrowId);
-        if (arrow.Hovered) ui.SetCursor(MouseCursor.Hand);
+        var arrow = enabled ? ui.Clickable(arrowId) : Interaction.Inert(arrowId);
         var keyed = enabled && ui.HasFocus(main.Id) && ui.Input.TakeKey(KeyboardKey.DownArrow);
         var state = DropdownMenuState(ui, arrowId, enabled, revision);
         if (arrow.Pressed || keyed)
             ToggleDropdown(state, revision, keyed);
         var open = state.Open;
 
-        var border = theme.BorderWidth;
-        var inner = MathF.Max(0f, theme.CornerRadius - border);
-        var mainFill = HalfFill(theme, enabled, main.Held || activated, main.Hovered);
-        var arrowFill = HalfFill(theme, enabled, arrow.Held || open, arrow.Hovered);
+        var inner = JoinedInnerRadius(theme);
+        var mainFill = ButtonColors(theme, ButtonVariant.Ghost, enabled, main.Held || activated, main.Hovered).Fill;
+        var arrowFill = ButtonColors(theme, ButtonVariant.Ghost, enabled, arrow.Held || open, arrow.Hovered).Fill;
         var color = enabled ? theme.Text : theme.TextDisabled;
 
-        using (ui.Row(shellId, new Box
-        {
-            Width = Sizing.Fit(),
-            Height = theme.IconButtonSize,
-            Gap = 0f,
-            Padding = border,
-            Background = theme.Control,
-            BorderColor = theme.Border,
-            BorderWidth = border,
-            Radius = theme.CornerRadius,
-        }))
+        using (JoinedRow(ui, shellId, theme.IconButtonSize))
         {
             if (ring) FocusRing(ui, theme.CornerRadius);
             using (ui.Box(main.Id, new Box
@@ -128,20 +102,15 @@ public static partial class UiWidgets
                 AlignY = Align.Center,
             }))
             {
-                if (mainFill != 0)
-                    ui.Paint((mainFill, inner), static (p, s) => p.FillRect(p.Rect, s.mainFill, Corners.Left(s.inner)));
+                PaintJoinedFill(ui, mainFill, Corners.Left(inner));
                 ui.Text(glyph, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize }, color: color, size: theme.IconSize,
                     align: Align.Center, family: family);
             }
-            ui.Leaf(new Box { Width = border, Height = Sizing.Grow(), Background = theme.Border });
+            ui.Leaf(new Box { Width = theme.BorderWidth, Height = Sizing.Grow(), Background = theme.Border });
             using (ui.Box(arrowId, new Box { Width = theme.DropdownButtonWidth, Height = Sizing.Grow() }))
             {
-                ui.Paint((arrowFill, inner, color, theme.DropdownArrowWidth), static (p, s) =>
-                {
-                    if (s.arrowFill != 0)
-                        p.FillRect(p.Rect, s.arrowFill, Corners.Right(s.inner));
-                    DrawDropdownArrow(p, s.color, s.DropdownArrowWidth);
-                });
+                PaintJoinedFill(ui, arrowFill, Corners.Right(inner));
+                ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             }
         }
         if (tooltip != null)
@@ -186,8 +155,8 @@ public static partial class UiWidgets
     /// it, for picking what the text names: a <see cref="Select{T}"/>, or several checked items kept
     /// open with <c>MenuItem(label, ref value, keepOpen: true)</c>. The menu closes and is keyed as a
     /// <see cref="DropdownButton"/>'s, <paramref name="revision"/> included. While
-    /// <see cref="MenuScope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
-    public static MenuScope SelectButton(this Ui ui, string id, string text, Sizing? width = null, string? tooltip = null,
+    /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
+    public static Ui.Scope SelectButton(this Ui ui, string id, string text, Sizing? width = null, string? tooltip = null,
         bool enabled = true, int revision = 0)
     {
         var theme = ui.Theme;
@@ -213,7 +182,7 @@ public static partial class UiWidgets
         {
             ui.Text(text, new Box { Width = Sizing.Grow() }, color: color, overflow: TextOverflow.Ellipsis);
             using (ui.Box(new Box { Width = theme.DropdownArrowWidth, Height = Sizing.Grow() }))
-                ui.Paint((color, theme.DropdownArrowWidth), static (p, s) => DrawDropdownArrow(p, s.color, s.DropdownArrowWidth));
+                ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
         if (tooltip != null && !open)
@@ -222,20 +191,44 @@ public static partial class UiWidgets
         return DropdownMenu(ui, state, anchor);
     }
 
-    private static uint HalfFill(UiTheme theme, bool enabled, bool pressed, bool hovered) =>
-        !enabled ? 0u : pressed ? theme.ControlPressed : hovered ? theme.ControlHovered : 0u;
+    /// <summary>Opens the outlined row that joins controls into one, as a
+    /// <see cref="SegmentedControl{T}"/>'s segments or a <see cref="SplitIconButton"/>'s halves.</summary>
+    private static Ui.Scope JoinedRow(Ui ui, int id, float height)
+    {
+        var theme = ui.Theme;
+        return ui.Row(id, new Box
+        {
+            Width = Sizing.Fit(),
+            Height = height,
+            Gap = 0f,
+            Padding = theme.BorderWidth,
+            Background = theme.Control,
+            BorderColor = theme.Border,
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.CornerRadius,
+        });
+    }
 
-    private static DropdownState DropdownMenuState(Ui ui, int ownerId, bool enabled, int revision)
+    private static float JoinedInnerRadius(UiTheme theme) => MathF.Max(0f, theme.CornerRadius - theme.BorderWidth);
+
+    /// <summary>Fills the part of a <see cref="JoinedRow"/> being recorded, rounded at the row's ends.</summary>
+    private static void PaintJoinedFill(Ui ui, uint fill, Corners corners)
+    {
+        if (fill != 0)
+            ui.Paint((fill, corners), static (p, s) => p.FillRect(p.Rect, s.fill, s.corners));
+    }
+
+    private static OpenedMenu DropdownMenuState(Ui ui, int ownerId, bool enabled, int revision)
     {
         var popupId = MenuPopupId(ownerId);
-        var state = ui.GetState<DropdownState>(popupId);
+        var state = ui.GetState<OpenedMenu>(popupId);
         state.PopupId = popupId;
         if (state.Open && (!enabled || revision != state.Revision || ShouldCloseMenu(ui, ownerId, state)))
             state.Close();
         return state;
     }
 
-    private static void ToggleDropdown(DropdownState state, int revision, bool keyed)
+    private static void ToggleDropdown(OpenedMenu state, int revision, bool keyed)
     {
         if (state.Open)
         {
@@ -248,7 +241,7 @@ public static partial class UiWidgets
             state.HighlightFirstOwner = state.PopupId;
     }
 
-    private static MenuScope DropdownMenu(Ui ui, DropdownState state, UiRect anchor)
+    private static Ui.Scope DropdownMenu(Ui ui, OpenedMenu state, UiRect anchor)
     {
         if (!state.Open)
             return default;
@@ -256,16 +249,5 @@ public static partial class UiWidgets
         var menu = OpenMenu(ui, state, anchor);
         MenuKeys(ui, state, isSubMenu: false);
         return menu;
-    }
-
-    private static void DrawDropdownArrow(UiPainter p, uint color, float width)
-    {
-        var r = p.Rect;
-        var half = width / 2;
-        var top = MathF.Round(r.Y + (r.Height - half) / 2);
-        var cx = r.X + r.Width / 2;
-        var apex = new PointF(cx, top + half);
-        for (var x = -half; x <= half; x += 0.5f)
-            p.Line(new PointF(cx + x, top), apex, 1f, color);
     }
 }
