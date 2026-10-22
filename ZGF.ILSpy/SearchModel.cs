@@ -3,8 +3,8 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A search hit with its location text formatted once, off the UI thread.</summary>
-public sealed record SearchRow(SearchResult Result, string Location);
+/// <summary>A search hit with its location and assembly text formatted once, off the UI thread.</summary>
+public sealed record SearchRow(SearchResult Result, string Location, string Assembly);
 
 /// <summary>The search panel's query, streamed results and selection. While the panel is open a
 /// query runs once typing pauses; assemblies opened later are searched and their hits added, and
@@ -143,7 +143,7 @@ public sealed class SearchModel
             {
                 var rows = new SearchRow[batch.Count];
                 for (var i = 0; i < rows.Length; i++)
-                    rows[i] = new SearchRow(batch[i], Locate(batch[i]));
+                    rows[i] = new SearchRow(batch[i], Locate(batch[i]), Describe(batch[i].Node.Assembly));
                 post(() =>
                 {
                     if (!_runs.Contains(work)) return;
@@ -169,20 +169,15 @@ public sealed class SearchModel
         });
     }
 
-    private static string Locate(SearchResult result)
+    private static string Describe(LoadedAssembly assembly) =>
+        assembly.Version is { } version ? $"{assembly.Name} ({version})" : assembly.Name;
+
+    private static string Locate(SearchResult result) => result.Node.Kind switch
     {
-        switch (result.Node.Kind)
-        {
-            case NodeKind.Assembly:
-                return result.Node.Assembly.FilePath;
-            case NodeKind.Namespace:
-                return result.AssemblyName;
-            case NodeKind.Resource or NodeKind.ResourceImage or NodeKind.ResourcesFile:
-                return result.DeclaringType is { } file ? $"{file}  ·  {result.AssemblyName}" : result.AssemblyName;
-        }
-        var ns = result.Namespace.Length == 0 ? "-" : result.Namespace;
-        return result.DeclaringType is { } type
-            ? $"{type}  ·  {ns}  ·  {result.AssemblyName}"
-            : $"{ns}  ·  {result.AssemblyName}";
-    }
+        NodeKind.Assembly => result.Node.Assembly.FilePath,
+        NodeKind.Namespace => "",
+        NodeKind.Resource or NodeKind.ResourceImage or NodeKind.ResourcesFile => result.DeclaringType ?? "",
+        _ when result.DeclaringType is { } type => result.Namespace.Length == 0 ? type : $"{result.Namespace}.{type}",
+        _ => result.Namespace.Length == 0 ? "-" : result.Namespace,
+    };
 }

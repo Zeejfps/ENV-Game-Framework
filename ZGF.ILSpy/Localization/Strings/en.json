@@ -54,6 +54,9 @@
   "search.mode.resources": "Resources",
   "search.mode.assemblies": "Assemblies",
   "search.mode.namespaces": "Namespaces",
+  "search.column_name": "Name",
+  "search.column_location": "Location",
+  "search.column_assembly": "Assembly",
 
   "panel.assemblies": "Assemblies",
   "panel.search": "Search",

@@ -339,7 +339,7 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void At_a_narrow_width_a_search_result_keeps_its_name_and_its_location_gives_way()
+    public void Search_results_are_a_table_of_name_location_and_assembly_that_truncates_at_a_narrow_width()
     {
         var app = OpenFixtures(560f);
         app.Workspace.OpenSearch();
@@ -354,11 +354,14 @@ public sealed class AppTests
         var header = app.LastTextRect(LucideIcons.Search);
         var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).Select(t => (t.Text, Rect: new UiRect(t.Position.Left, app.Frames.Height - t.Position.Top, t.Position.Width, t.Position.Height))).ToList();
         var name = texts.Single(t => t.Text == row.Result.Text && t.Rect.Y > header.Bottom).Rect;
-        var location = texts.Single(t => t.Rect.Y == name.Y && t.Rect.X > name.Right);
+        var cells = texts.Where(t => t.Rect.Y == name.Y && t.Rect.X > name.Right).OrderBy(t => t.Rect.X).ToList();
 
+        Assert.True(app.TextRect("Location").X < app.TextRect("Assembly").X);
+        Assert.Equal(2, cells.Count);
         Assert.False(app.Frames.Drew(row.Location), $"'{row.Location}' was drawn in full");
-        Assert.Contains('…', location.Text);
-        Assert.True(location.Rect.Right <= app.Frames.Width, $"the location ends at {location.Rect.Right}");
+        Assert.Contains('…', cells[0].Text);
+        Assert.StartsWith(cells[1].Text.TrimEnd('…'), row.Assembly);
+        Assert.True(cells[1].Rect.Right <= app.Frames.Width, $"the assembly ends at {cells[1].Rect.Right}");
     }
 
     [Fact]

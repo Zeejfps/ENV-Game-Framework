@@ -22,6 +22,7 @@ internal static class SearchPanelView
     ];
 
     private static readonly ConditionalWeakTable<Strings, string[]> Summaries = new();
+    private static readonly ConditionalWeakTable<Strings, string[]> Headers = new();
 
     public static void Render(Ui ui, Workspace w, Strings t)
     {
@@ -50,6 +51,8 @@ internal static class SearchPanelView
         if (focused)
             Keys(ui, w, rowHeight);
 
+        ui.TableHeader("header", w.SearchColumns, ResultsId,
+            Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]), theme.ShellPaddingX);
         using var list = ui.VirtualScroll(ResultsId, search.Rows.Count, rowHeight, new Box { Gap = 0f });
         if (search.ScrollToSelected && list.ScrollIntoView(search.Selected))
             search.ScrollToSelected = false;
@@ -71,22 +74,25 @@ internal static class SearchPanelView
 
                 var selected = i == search.Selected;
                 var background = selected ? focused ? theme.Selection : theme.SelectionInactive : item.Hovered ? theme.RowHover : 0u;
-                var label = row.Result.Text;
+                var columns = w.SearchColumns;
                 using (ui.Row(item.Id, new Box
                 {
                     Height = rowHeight,
-                    Gap = theme.GapTight,
+                    Gap = 0f,
                     Padding = new Spacing(theme.ShellPaddingX, 0f),
+                    AlignY = Align.Center,
                     Background = background,
                 }))
                 {
-                    NodeIcons.Draw(ui, node.Kind, node.Accessibility);
-                    using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
+                    using (ui.TableCell(columns, 0))
                     {
-                        ui.Text(label, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
-                        ui.Text(row.Location, new Box { Width = Sizing.Percent(AppLayout.SearchLocationShare, max: AppLayout.SearchLocationMaxWidth) },
-                            color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.EllipsisMiddle);
+                        NodeIcons.Draw(ui, node.Kind, node.Accessibility);
+                        ui.Text(row.Result.Text, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
                     }
+                    using (ui.TableCell(columns, 1))
+                        ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
+                    using (ui.TableCell(columns, 2))
+                        ui.Text(row.Assembly, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
                 }
                 ui.Tooltip(item.Id, NodeText.Tooltip(node));
             }

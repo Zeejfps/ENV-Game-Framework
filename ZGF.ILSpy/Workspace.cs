@@ -53,6 +53,7 @@ public sealed class Workspace
         MetadataFilters = new MetadataFilters(settings.MetadataFilters);
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
+        SearchColumns.Restore(settings.SearchColumns);
         _savedBookmarks = Bookmarks.Revision;
         Picker = new FrameworkPickerModel(() => Strings.For(Locale), ReportError);
         if (!placed)
@@ -73,6 +74,9 @@ public sealed class Workspace
     /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
     public TableColumns BookmarkColumns { get; } = new(new TableColumn(Fixed: 28f), new TableColumn(2f, 80f), new TableColumn(3f, 80f),
         new TableColumn(2f, 60f));
+
+    /// <summary>The columns of the search results: name, location and assembly.</summary>
+    public TableColumns SearchColumns { get; } = new(new TableColumn(3f, 120f), new TableColumn(3f, 80f), new TableColumn(2f, 60f));
     public SearchModel Search { get; }
 
     /// <summary>The metadata grids' flags filters.</summary>
@@ -634,6 +638,7 @@ public sealed class Workspace
             _settings.Analyzed = _analyzed ?? Analyzer.Roots.Select(static r => r.Symbol.Definition).OfType<CodeAnchor>().ToList();
         _savedAnalyzer = Analyzer.Revision;
         _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
+        _settings.SearchColumns = SearchColumns.Weights.ToList();
         _settings.MetadataFilters = MetadataFilters.Save();
         _savedFilters = MetadataFilters.Revision;
         _savedBookmarks = Bookmarks.Revision;

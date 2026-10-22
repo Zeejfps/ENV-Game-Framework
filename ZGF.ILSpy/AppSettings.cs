@@ -39,6 +39,9 @@ public sealed class AppSettings
     /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
     public List<float>? BookmarkColumns { get; set; }
 
+    /// <summary>The search results' column weights as last dragged; null for the defaults.</summary>
+    public List<float>? SearchColumns { get; set; }
+
     /// <summary>The metadata grids' flags filters, by kind of row and column.</summary>
     public Dictionary<string, string>? MetadataFilters { get; set; }
 
