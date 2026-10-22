@@ -11,39 +11,6 @@ namespace ZGF.Gui.Immediate;
 /// </summary>
 public sealed record UiTheme
 {
-    private readonly uint _surfaceRaised;
-    private readonly uint _editorBackground;
-    private readonly uint _paneBackground;
-    private readonly uint _paneToolbarBackground;
-    private readonly uint _tableHeaderBackground;
-    private readonly uint _tabStripBackground;
-    private readonly uint _tabActiveBackground;
-    private readonly uint _tabHoverBackground;
-    private readonly uint _borderStrong;
-    private readonly uint _separator;
-    private readonly uint _textDisabled;
-    private readonly uint _accentText;
-    private readonly uint _accentHovered;
-    private readonly uint _accentPressed;
-    private readonly uint _focusRing;
-    private readonly uint _controlHovered;
-    private readonly uint _controlPressed;
-    private readonly uint _rowHover;
-    private readonly uint _selection;
-    private readonly uint _selectionInactive;
-    private readonly uint _selectionText;
-    private readonly uint _textSelection;
-    private readonly uint _danger;
-    private readonly uint _dangerSurface;
-    private readonly uint _onDanger;
-    private readonly uint _warning;
-    private readonly uint _warningSurface;
-    private readonly uint _success;
-    private readonly uint _scrim;
-    private readonly uint _scrollThumb;
-    private readonly uint _scrollThumbHovered;
-    private readonly uint _scrollThumbHeld;
-
     /// <summary>The workspace: the window, trees and lists.</summary>
     public uint Background { get; init; }
 
@@ -52,47 +19,47 @@ public sealed record UiTheme
     public uint Surface { get; init; }
 
     /// <summary>Floating surfaces: menus, tooltips, dialogs.</summary>
-    public uint SurfaceRaised { get => Or(_surfaceRaised, Surface); init => _surfaceRaised = value; }
+    public uint SurfaceRaised { get => Or(field, Surface); init; }
 
     /// <summary>The base of neutral buttons and segments.</summary>
     public uint Control { get; init; }
 
-    public uint ControlHovered { get => Or(_controlHovered, UiColor.Mix(Control, Text, 0.06f)); init => _controlHovered = value; }
-    public uint ControlPressed { get => Or(_controlPressed, UiColor.Mix(Control, Text, 0.12f)); init => _controlPressed = value; }
+    public uint ControlHovered { get => Or(field, UiColor.Mix(Control, Text, 0.06f)); init; }
+    public uint ControlPressed { get => Or(field, UiColor.Mix(Control, Text, 0.12f)); init; }
 
     /// <summary>Editable fields.</summary>
     public uint Field { get; init; }
 
     /// <summary>A document or code view's background.</summary>
-    public uint EditorBackground { get => Or(_editorBackground, Field); init => _editorBackground = value; }
+    public uint EditorBackground { get => Or(field, Field); init; }
 
     /// <summary>A docked pane's body, which its selected tab, toolbar and table header share so the
     /// tab reads as attached to what is below it.</summary>
-    public uint PaneBackground { get => Or(_paneBackground, EditorBackground); init => _paneBackground = value; }
+    public uint PaneBackground { get => Or(field, EditorBackground); init; }
 
     /// <summary>A toolbar along the top of a pane.</summary>
-    public uint PaneToolbarBackground { get => Or(_paneToolbarBackground, PaneBackground); init => _paneToolbarBackground = value; }
+    public uint PaneToolbarBackground { get => Or(field, PaneBackground); init; }
 
     /// <summary>The column headings of a table.</summary>
-    public uint TableHeaderBackground { get => Or(_tableHeaderBackground, PaneToolbarBackground); init => _tableHeaderBackground = value; }
+    public uint TableHeaderBackground { get => Or(field, PaneToolbarBackground); init; }
 
     /// <summary>The strip behind a pane's tabs.</summary>
-    public uint TabStripBackground { get => Or(_tabStripBackground, Surface); init => _tabStripBackground = value; }
+    public uint TabStripBackground { get => Or(field, Surface); init; }
 
     /// <summary>The selected tab, joined to its pane.</summary>
-    public uint TabActiveBackground { get => Or(_tabActiveBackground, PaneBackground); init => _tabActiveBackground = value; }
+    public uint TabActiveBackground { get => Or(field, PaneBackground); init; }
 
     /// <summary>An unselected tab under the pointer.</summary>
-    public uint TabHoverBackground { get => Or(_tabHoverBackground, RowHover); init => _tabHoverBackground = value; }
+    public uint TabHoverBackground { get => Or(field, RowHover); init; }
 
     /// <summary>Component outlines.</summary>
     public uint Border { get; init; }
 
     /// <summary>An outline that answers the pointer: a hovered field, a hovered splitter.</summary>
-    public uint BorderStrong { get => Or(_borderStrong, UiColor.Mix(Border, Text, 0.4f)); init => _borderStrong = value; }
+    public uint BorderStrong { get => Or(field, UiColor.Mix(Border, Text, 0.4f)); init; }
 
     /// <summary>Structural divisions between panes and groups.</summary>
-    public uint Separator { get => Or(_separator, Border); init => _separator = value; }
+    public uint Separator { get => Or(field, Border); init; }
 
     public uint Text { get; init; }
 
@@ -100,54 +67,54 @@ public sealed record UiTheme
     public uint TextMuted { get; init; }
 
     /// <summary>Text of a control that cannot be used.</summary>
-    public uint TextDisabled { get => Or(_textDisabled, UiColor.Mix(TextMuted, Background, 0.35f)); init => _textDisabled = value; }
+    public uint TextDisabled { get => Or(field, UiColor.Mix(TextMuted, Background, 0.35f)); init; }
 
     /// <summary>Primary filled actions and checked state.</summary>
     public uint Accent { get; init; }
 
-    public uint AccentHovered { get => Or(_accentHovered, UiColor.Mix(Accent, OnAccent, 0.1f)); init => _accentHovered = value; }
-    public uint AccentPressed { get => Or(_accentPressed, UiColor.Mix(Accent, Background, 0.15f)); init => _accentPressed = value; }
+    public uint AccentHovered { get => Or(field, UiColor.Mix(Accent, OnAccent, 0.1f)); init; }
+    public uint AccentPressed { get => Or(field, UiColor.Mix(Accent, Background, 0.15f)); init; }
 
     /// <summary>Text drawn on <see cref="Accent"/>.</summary>
     public uint OnAccent { get; init; }
 
     /// <summary>Links and activity text, readable on <see cref="Background"/>.</summary>
-    public uint AccentText { get => Or(_accentText, Accent); init => _accentText = value; }
+    public uint AccentText { get => Or(field, Accent); init; }
 
     /// <summary>The ring a widget holding keyboard focus draws.</summary>
-    public uint FocusRing { get => Or(_focusRing, Accent); init => _focusRing = value; }
+    public uint FocusRing { get => Or(field, Accent); init; }
 
     /// <summary>An unselected row under the pointer.</summary>
-    public uint RowHover { get => Or(_rowHover, UiColor.Mix(Background, Text, 0.06f)); init => _rowHover = value; }
+    public uint RowHover { get => Or(field, UiColor.Mix(Background, Text, 0.06f)); init; }
 
     /// <summary>Selected rows, segments and highlighted menu items in the focused pane.</summary>
-    public uint Selection { get => Or(_selection, UiColor.Mix(Field, Accent, 0.35f)); init => _selection = value; }
+    public uint Selection { get => Or(field, UiColor.Mix(Field, Accent, 0.35f)); init; }
 
     /// <summary>A selection whose pane does not hold focus.</summary>
-    public uint SelectionInactive { get => Or(_selectionInactive, UiColor.Mix(Background, Text, 0.12f)); init => _selectionInactive = value; }
+    public uint SelectionInactive { get => Or(field, UiColor.Mix(Background, Text, 0.12f)); init; }
 
     /// <summary>Text on <see cref="Selection"/> and <see cref="SelectionInactive"/>.</summary>
-    public uint SelectionText { get => Or(_selectionText, Text); init => _selectionText = value; }
+    public uint SelectionText { get => Or(field, Text); init; }
 
     /// <summary>Selected text, distinct from <see cref="Selection"/> so it shows on a selected row.</summary>
-    public uint TextSelection { get => Or(_textSelection, UiColor.Mix(Selection, Accent, 0.5f)); init => _textSelection = value; }
+    public uint TextSelection { get => Or(field, UiColor.Mix(Selection, Accent, 0.5f)); init; }
 
-    public uint Danger { get => Or(_danger, 0xFFE5484D); init => _danger = value; }
-    public uint DangerSurface { get => Or(_dangerSurface, UiColor.Mix(Background, Danger, 0.2f)); init => _dangerSurface = value; }
+    public uint Danger { get => Or(field, 0xFFE5484D); init; }
+    public uint DangerSurface { get => Or(field, UiColor.Mix(Background, Danger, 0.2f)); init; }
 
     /// <summary>Text on a solid <see cref="Danger"/> badge.</summary>
-    public uint OnDanger { get => Or(_onDanger, Background); init => _onDanger = value; }
+    public uint OnDanger { get => Or(field, Background); init; }
 
-    public uint Warning { get => Or(_warning, 0xFFD4A03C); init => _warning = value; }
-    public uint WarningSurface { get => Or(_warningSurface, UiColor.Mix(Background, Warning, 0.2f)); init => _warningSurface = value; }
-    public uint Success { get => Or(_success, 0xFF3FA35B); init => _success = value; }
+    public uint Warning { get => Or(field, 0xFFD4A03C); init; }
+    public uint WarningSurface { get => Or(field, UiColor.Mix(Background, Warning, 0.2f)); init; }
+    public uint Success { get => Or(field, 0xFF3FA35B); init; }
 
     /// <summary>The backdrop dimming what is behind a modal dialog.</summary>
-    public uint Scrim { get => Or(_scrim, 0x80000000); init => _scrim = value; }
+    public uint Scrim { get => Or(field, 0x80000000); init; }
 
-    public uint ScrollThumb { get => Or(_scrollThumb, UiColor.Mix(Background, Text, 0.15f)); init => _scrollThumb = value; }
-    public uint ScrollThumbHovered { get => Or(_scrollThumbHovered, UiColor.Mix(Background, Text, 0.25f)); init => _scrollThumbHovered = value; }
-    public uint ScrollThumbHeld { get => Or(_scrollThumbHeld, UiColor.Mix(Background, Text, 0.5f)); init => _scrollThumbHeld = value; }
+    public uint ScrollThumb { get => Or(field, UiColor.Mix(Background, Text, 0.15f)); init; }
+    public uint ScrollThumbHovered { get => Or(field, UiColor.Mix(Background, Text, 0.25f)); init; }
+    public uint ScrollThumbHeld { get => Or(field, UiColor.Mix(Background, Text, 0.5f)); init; }
 
     /// <summary>The shadow under menus, context menus and tooltips.</summary>
     public UiShadow PopupShadow { get; init; } = new(0f, 4f, 12f, 0f, 0x66000000);

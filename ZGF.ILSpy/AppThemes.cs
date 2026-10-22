@@ -22,43 +22,39 @@ public enum AppThemeId
 
 internal static class AppThemes
 {
-    public static readonly AppTheme Dark = new(Shell(UiTheme.Dark), CodeViewPalette.Dark, NodeIconPalette.Dark);
-    public static readonly AppTheme Light = new(Shell(UiTheme.Light), CodeViewPalette.Light, NodeIconPalette.Light);
-    public static readonly AppTheme GitHubDark = new(Shell(UiTheme.GitHubDark), CodeViewPalette.GitHubDark, NodeIconPalette.GitHubDark);
-    public static readonly AppTheme OneDarkPro = new(Shell(UiTheme.OneDarkPro), CodeViewPalette.OneDarkPro, NodeIconPalette.OneDarkPro);
-    public static readonly AppTheme Dracula = new(Shell(UiTheme.Dracula), CodeViewPalette.Dracula, NodeIconPalette.Dracula);
-    public static readonly AppTheme Monokai = new(Shell(UiTheme.Monokai), CodeViewPalette.Monokai, NodeIconPalette.Monokai);
-    public static readonly AppTheme CatppuccinMocha = new(Shell(UiTheme.CatppuccinMocha), CodeViewPalette.CatppuccinMocha,
-        NodeIconPalette.CatppuccinMocha);
-    public static readonly AppTheme GitHubLight = new(Shell(UiTheme.GitHubLight), CodeViewPalette.GitHubLight, NodeIconPalette.GitHubLight);
-    public static readonly AppTheme SolarizedLight = new(Shell(UiTheme.SolarizedLight), CodeViewPalette.SolarizedLight,
-        NodeIconPalette.SolarizedLight);
-
-    /// <summary>The themes named after the color schemes they follow, by their proper names, which
-    /// are not translated.</summary>
-    public static IReadOnlyList<(AppThemeId Id, string Name)> Named { get; } =
+    /// <summary>Every theme, the first one for an unknown id. Those named after the color schemes
+    /// they follow carry their proper names, which are not translated.</summary>
+    private static readonly (AppThemeId Id, string? Name, AppTheme Theme)[] All =
     [
-        (AppThemeId.GitHubDark, "GitHub Dark"),
-        (AppThemeId.OneDarkPro, "One Dark Pro"),
-        (AppThemeId.Dracula, "Dracula"),
-        (AppThemeId.Monokai, "Monokai"),
-        (AppThemeId.CatppuccinMocha, "Catppuccin Mocha"),
-        (AppThemeId.GitHubLight, "GitHub Light"),
-        (AppThemeId.SolarizedLight, "Solarized Light"),
+        (AppThemeId.Dark, null, Create(UiTheme.Dark, CodeViewPalette.Dark, NodeIconPalette.Dark)),
+        (AppThemeId.Light, null, Create(UiTheme.Light, CodeViewPalette.Light, NodeIconPalette.Light)),
+        (AppThemeId.GitHubDark, "GitHub Dark", Create(UiTheme.GitHubDark, CodeViewPalette.GitHubDark, NodeIconPalette.GitHubDark)),
+        (AppThemeId.OneDarkPro, "One Dark Pro", Create(UiTheme.OneDarkPro, CodeViewPalette.OneDarkPro, NodeIconPalette.OneDarkPro)),
+        (AppThemeId.Dracula, "Dracula", Create(UiTheme.Dracula, CodeViewPalette.Dracula, NodeIconPalette.Dracula)),
+        (AppThemeId.Monokai, "Monokai", Create(UiTheme.Monokai, CodeViewPalette.Monokai, NodeIconPalette.Monokai)),
+        (AppThemeId.CatppuccinMocha, "Catppuccin Mocha", Create(UiTheme.CatppuccinMocha, CodeViewPalette.CatppuccinMocha, NodeIconPalette.CatppuccinMocha)),
+        (AppThemeId.GitHubLight, "GitHub Light", Create(UiTheme.GitHubLight, CodeViewPalette.GitHubLight, NodeIconPalette.GitHubLight)),
+        (AppThemeId.SolarizedLight, "Solarized Light", Create(UiTheme.SolarizedLight, CodeViewPalette.SolarizedLight, NodeIconPalette.SolarizedLight)),
     ];
 
-    public static AppTheme For(AppThemeId id) => id switch
+    /// <summary>The themes that carry a proper name, for a menu to list by it.</summary>
+    public static IReadOnlyList<(AppThemeId Id, string Name)> Named { get; } = ListNamed();
+
+    public static AppTheme For(AppThemeId id)
     {
-        AppThemeId.Light => Light,
-        AppThemeId.GitHubDark => GitHubDark,
-        AppThemeId.OneDarkPro => OneDarkPro,
-        AppThemeId.Dracula => Dracula,
-        AppThemeId.Monokai => Monokai,
-        AppThemeId.CatppuccinMocha => CatppuccinMocha,
-        AppThemeId.GitHubLight => GitHubLight,
-        AppThemeId.SolarizedLight => SolarizedLight,
-        _ => Dark,
-    };
+        foreach (var entry in All)
+        {
+            if (entry.Id == id) return entry.Theme;
+        }
+        return All[0].Theme;
+    }
+
+    private static (AppThemeId Id, string Name)[] ListNamed() => All
+        .Where(static entry => entry.Name != null)
+        .Select(static entry => (entry.Id, entry.Name!))
+        .ToArray();
+
+    private static AppTheme Create(UiTheme ui, CodeViewPalette code, NodeIconPalette icons) => new(Shell(ui), code, icons);
 
     private static UiTheme Shell(UiTheme theme) => theme.WithDensity(UiDensity.Compact) with
     {
