@@ -2,14 +2,11 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
-using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy;
 
 internal static class ToolbarView
 {
-    private const string SearchShortcut = "Ctrl+Shift+F";
-
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
@@ -52,9 +49,6 @@ internal static class ToolbarView
                 if (ui.SegmentedControl("language", ref language, Languages(t)))
                     w.SetLanguage(language);
             }
-
-            using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), AlignX = Align.End, AlignY = Align.Center }))
-                Search(ui, w, t);
         }
     }
 
@@ -89,34 +83,5 @@ internal static class ToolbarView
                 }
             }
         }
-    }
-
-    private static void Search(Ui ui, Workspace w, Strings t)
-    {
-        var searchId = ui.GetId("search");
-        if (w.TakeSearchFocus())
-            ui.Focus(searchId);
-        var submitted = ui.TextField("search", ref w.Search.Query, t.ToolbarSearch, Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
-            LucideIcons.Search, LucideIcons.Family, SearchShortcut);
-        if (w.Search.Query.Length > 0)
-            w.Search.IsOpen = true;
-        if (ui.HasFocus(searchId))
-            SearchFieldKeys(ui, w, submitted);
-        ui.Tooltip(searchId, ui.Memo("search-tip", t, static s => s.ToolbarSearchTooltip(SearchShortcut)));
-    }
-
-    private static void SearchFieldKeys(Ui ui, Workspace w, bool submitted)
-    {
-        var search = w.Search;
-        if (submitted)
-        {
-            if (search.Selected < 0)
-                search.Move(1);
-            if (search.SelectedRow is { } row)
-                w.Show(row.Result.Node);
-            return;
-        }
-        if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
-            ui.Focus(SearchPanelView.ResultsId, takesText: false);
     }
 }

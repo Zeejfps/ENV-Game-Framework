@@ -47,6 +47,24 @@ public sealed class DockingTests
     }
 
     [Fact]
+    public void View_opens_the_search_panel_and_holds_back_and_forward_with_no_navigate_menu()
+    {
+        var app = new AppDriver();
+        var layout = app.Workspace.Layout;
+        app.Run(2);
+        Assert.False(app.Frames.Drew("Navigate"));
+
+        app.Click("View");
+        Assert.True(app.Frames.Drew("Back"));
+        Assert.True(app.Frames.Drew("Forward"));
+        app.ClickMenuItem("Search");
+        app.Run(2);
+
+        Assert.True(layout.Contains(DockPanels.Search));
+        Assert.True(app.Frames.Drew("Search types and members"));
+    }
+
+    [Fact]
     public void Closing_the_last_document_frees_its_area_and_the_next_one_opens_right_of_the_views()
     {
         var d = new WorkspaceDriver();

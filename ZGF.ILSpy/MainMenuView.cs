@@ -22,11 +22,6 @@ internal static class MainMenuView
                 if (view.IsOpen)
                     ViewMenu(ui, w, t);
             }
-            using (var navigate = ui.Menu(t.MenuNavigate, id: "navigate"))
-            {
-                if (navigate.IsOpen)
-                    NavigateMenu(ui, w, t);
-            }
         }
     }
 
@@ -62,6 +57,11 @@ internal static class MainMenuView
 
     private static void ViewMenu(Ui ui, Workspace w, Strings t)
     {
+        if (ui.MenuItem(t.ViewBack, "Alt+Left", enabled: w.History.CanGoBack, id: "back"))
+            w.GoBack();
+        if (ui.MenuItem(t.ViewForward, "Alt+Right", enabled: w.History.CanGoForward, id: "forward"))
+            w.GoForward();
+        ui.MenuSeparator();
         DecompilerMenu(ui, w, t);
         ui.MenuSeparator();
         ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
@@ -72,6 +72,8 @@ internal static class MainMenuView
             w.OpenBookmarks();
         if (ui.MenuItem(t.PanelAnalyzer, check: w.Layout.Contains(DockPanels.Analyzer), id: "analyzer"))
             w.OpenAnalyzer();
+        if (ui.MenuItem(t.PanelSearch, "Ctrl+Shift+F", check: w.Layout.Contains(DockPanels.Search), id: "search"))
+            w.OpenSearch();
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             w.ResetLayout();
         ui.MenuSeparator();
@@ -108,16 +110,5 @@ internal static class MainMenuView
             if (ui.MenuRadioItem(endonym, w.Locale == locale))
                 w.SetLocale(locale);
         }
-    }
-
-    private static void NavigateMenu(Ui ui, Workspace w, Strings t)
-    {
-        if (ui.MenuItem(t.NavigateBack, "Alt+Left", enabled: w.History.CanGoBack, id: "back"))
-            w.GoBack();
-        if (ui.MenuItem(t.NavigateForward, "Alt+Right", enabled: w.History.CanGoForward, id: "forward"))
-            w.GoForward();
-        ui.MenuSeparator();
-        if (ui.MenuItem(t.NavigateSearch, "Ctrl+Shift+F", id: "search"))
-            w.OpenSearch();
     }
 }

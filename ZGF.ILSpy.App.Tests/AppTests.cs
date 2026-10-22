@@ -187,9 +187,13 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void The_search_box_draws_its_icon_and_shortcut_hint_inside_the_field()
+    public void The_search_panel_holds_the_search_box_with_its_icon_and_shortcut_hint_inside_the_field()
     {
         var app = new AppDriver();
+        app.Run(2);
+        Assert.False(app.Frames.Drew("Search types and members"));
+
+        app.Workspace.OpenSearch();
         app.Run(2);
 
         var icon = app.TextRect(LucideIcons.Search);
@@ -229,7 +233,7 @@ public sealed class AppTests
         app.Run(2);
 
         var row = app.Workspace.Search.Rows.First(r => r.Result.Node.Kind == NodeKind.Class);
-        var header = app.TextRect("Search");
+        var header = app.TextRect(LucideIcons.Search);
         var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).Select(t => (t.Text, Rect: new UiRect(t.Position.Left, app.Frames.Height - t.Position.Top, t.Position.Width, t.Position.Height))).ToList();
         var name = texts.Single(t => t.Text == row.Result.Text && t.Rect.Y > header.Bottom).Rect;
         var location = texts.Single(t => t.Rect.Y == name.Y && t.Rect.X > name.Right);

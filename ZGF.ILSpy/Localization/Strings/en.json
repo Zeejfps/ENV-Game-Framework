@@ -1,7 +1,6 @@
 {
   "menu.file": "File",
   "menu.view": "View",
-  "menu.navigate": "Navigate",
 
   "file.open": "Open…",
   "file.open_from_framework": "Open from framework…",
@@ -23,9 +22,8 @@
   "view.empty_hint": "Everything is closed. Open the assemblies from the View menu.",
   "view.reset_layout": "Reset layout",
 
-  "navigate.back": "Back",
-  "navigate.forward": "Forward",
-  "navigate.search": "Search",
+  "view.back": "Back",
+  "view.forward": "Forward",
 
   "toolbar.back": "Back ({shortcut})",
   "toolbar.forward": "Forward ({shortcut})",
@@ -33,8 +31,8 @@
   "toolbar.forward_history": "Forward history",
   "toolbar.decompile_csharp": "Decompile to C#",
   "toolbar.disassemble_il": "Disassemble to IL",
-  "toolbar.search": "Search types and members",
-  "toolbar.search_tooltip": "Search types and members ({shortcut})",
+  "search.field": "Search types and members",
+  "search.field_tooltip": "Search types and members ({shortcut})",
 
   "panel.assemblies": "Assemblies",
   "panel.search": "Search",

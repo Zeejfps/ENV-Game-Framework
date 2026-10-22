@@ -12,13 +12,16 @@ internal static class SearchPanelView
     /// <summary>The results list's focus and scroll id.</summary>
     public const int ResultsId = 0x53524C54;
 
+    private const string SearchShortcut = "Ctrl+Shift+F";
+
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
         var search = w.Search;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        using (ui.PaneToolbar())
+        using (ui.PaneToolbar(new Box { Gap = theme.Gap }))
         {
+            Field(ui, w, t);
             ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy, t), static a => a.IsBusy ? a.t.SearchResultsSoFar(a.Count) : a.t.SearchResults(a.Count)),
                 color: theme.TextMuted, size: theme.FontSizeSmall);
         }
@@ -73,6 +76,29 @@ internal static class SearchPanelView
                 }
                 ui.Tooltip(item.Id, NodeText.Tooltip(node));
             }
+        }
+    }
+
+    private static void Field(Ui ui, Workspace w, Strings t)
+    {
+        var search = w.Search;
+        var fieldId = ui.GetId("search");
+        if (w.TakeSearchFocus())
+            ui.Focus(fieldId);
+        var submitted = ui.TextField("search", ref search.Query, t.SearchField, Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
+            LucideIcons.Search, LucideIcons.Family, SearchShortcut);
+        ui.Tooltip(fieldId, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(SearchShortcut)));
+        if (!ui.HasFocus(fieldId)) return;
+        if (submitted)
+        {
+            if (search.Selected < 0)
+                search.Move(1);
+            if (search.SelectedRow is { } row)
+                w.Show(row.Result.Node);
+        }
+        else if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
+        {
+            ui.Focus(ResultsId, takesText: false);
         }
     }
 
