@@ -66,10 +66,10 @@ public sealed class Workspace
     /// stacked or in floating windows.</summary>
     public DockLayout Layout => _mainLayout.Dock;
 
-    public DecompilationLanguage Language { get; private set; }
+    public DecompilationLanguage Language { get; set; }
 
     /// <summary>How C# is decompiled.</summary>
-    public DecompilerOptions DecompilerOptions { get; private set; }
+    public DecompilerOptions DecompilerOptions { get; set; }
 
     /// <summary>The decompiler options panel's folded groups.</summary>
     public HashSet<string> FoldedOptionGroups { get; }
@@ -215,62 +215,6 @@ public sealed class Workspace
             if (symbol != null)
                 Analyzer.Analyze(symbol);
         }
-    }
-
-    public void SetLocale(Locale locale)
-    {
-        if (locale == Locale)
-            return;
-        Locale = locale;
-        SaveSettings();
-    }
-
-    public void SetLanguage(DecompilationLanguage language)
-    {
-        if (language == Language)
-            return;
-        Language = language;
-        EnsureCurrent();
-    }
-
-    public void SetLanguageVersion(CSharpVersion version)
-    {
-        var options = DecompilerOptions with { LanguageVersion = version };
-        SetDecompilerOptions(options);
-    }
-
-    public void SetDecompilerToggle(DecompilerToggle toggle, bool value)
-    {
-        var options = DecompilerOptions.With(toggle, value);
-        SetDecompilerOptions(options);
-    }
-
-    public void SetDecompilerToggles(IEnumerable<DecompilerToggle> toggles, bool value)
-    {
-        var options = DecompilerOptions.With(toggles, value);
-        SetDecompilerOptions(options);
-    }
-
-    /// <summary>Turns every toggle back to its default, keeping the language version.</summary>
-    public void ResetDecompilerToggles()
-    {
-        var options = DecompilerOptions with { Toggles = DecompilerOptions.Default.Toggles };
-        SetDecompilerOptions(options);
-    }
-
-    /// <summary>Makes <paramref name="options"/> current and decompiles the shown C# documents again with them.</summary>
-    private void SetDecompilerOptions(DecompilerOptions options)
-    {
-        if (options == DecompilerOptions)
-            return;
-        DecompilerOptions = options;
-        EnsureCurrent();
-    }
-
-    private void EnsureCurrent()
-    {
-        foreach (var group in Layout.AllGroups())
-            Tabs.Find(group.Active)?.EnsureCurrent(Language);
     }
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
