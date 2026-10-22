@@ -178,7 +178,7 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
-    public void The_bookmarks_panel_lists_bookmarks_and_a_double_click_goes_to_one()
+    public void The_bookmarks_panel_lists_bookmarks_and_Ctrl_clicking_a_location_goes_to_one()
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
@@ -188,13 +188,82 @@ public sealed class BookmarkTests : IDisposable
         app.Run(4);
 
         Assert.True(app.Frames.Drew("Bookmark 1"));
-        Assert.True(app.Frames.Drew("Outline:" + (line + 1)));
-        app.DoubleClick("Bookmark 1");
+        Click(app, "Outline:" + (line + 1));
+        d.Settle();
+        Assert.Equal("Greeter", tab.Node!.Text);
+        Click(app, "Outline:" + (line + 1), KeyModifiers.Control);
         d.Settle();
         app.Run(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, tab.View.FlashLine);
+    }
+
+    private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        var at = app.TextRect(text);
+        app.Frames.Wait(1);
+        app.Frames.MovePointer(at.X + at.Width / 2, at.Y + at.Height / 2);
+        app.Run();
+        app.Frames.Press(modifiers);
+        app.Run();
+        app.Frames.Release(modifiers: modifiers);
+        app.Run(2);
+    }
+
+    private static (AppDriver App, WorkspaceDriver Driver) ShowBookmark()
+    {
+        var app = new AppDriver(height: 500f);
+        var (d, tab, line) = OutlineAt("return First();", app.Driver);
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.OpenBookmarks();
+        app.Run(3);
+        return (app, d);
+    }
+
+    [Fact]
+    public void Clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
+    {
+        var (app, d) = ShowBookmark();
+
+        Click(app, "Bookmark 1");
+        app.Frames.Type("Calls First");
+        app.Run(2);
+        app.Frames.Key(KeyboardKey.Enter);
+        app.Run(2);
+
+        Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
+        Assert.Null(d.Workspace.Bookmarks.Renaming);
+        Assert.True(app.Frames.Drew("Calls First"));
+    }
+
+    [Fact]
+    public void Escape_leaves_a_clicked_name_as_it_was()
+    {
+        var (app, d) = ShowBookmark();
+
+        Click(app, "Bookmark 1");
+        app.Frames.Type("Gone");
+        app.Run(2);
+        app.Frames.Key(KeyboardKey.Escape);
+        app.Run(2);
+
+        Assert.Equal("Bookmark 1", d.Workspace.Bookmarks.Items[0].Name);
+        Assert.Null(d.Workspace.Bookmarks.Renaming);
+    }
+
+    [Fact]
+    public void Clicking_a_location_selects_its_text_for_Ctrl_C()
+    {
+        var (app, d) = ShowBookmark();
+        var location = d.Workspace.Bookmarks.Items[0].Location;
+
+        Click(app, location);
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
+        app.Run();
+
+        Assert.Equal(location, app.Frames.Clipboard.Text);
+        Assert.Null(d.Workspace.Bookmarks.Renaming);
     }
 
     [Fact]
@@ -205,7 +274,7 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.ToggleBookmark(tab, line);
         d.Workspace.OpenBookmarks();
         app.Run(3);
-        app.Click("Bookmark 1");
+        Click(app, d.Workspace.Bookmarks.Items[0].Location);
 
         app.Frames.Key(KeyboardKey.F2);
         app.Run(2);
