@@ -48,8 +48,8 @@ internal static class TreePaneView
             ui.ClipboardText = node.FullName;
         if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             w.Analyze(node);
-        if (node.HasResource && ui.MenuItem(t.ResourceSave, id: "save-resource"))
-            ResourceImageView.PickSave(ui, w, t, node);
+        if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
+            ResourceImageView.PickExport(ui, w, t, node);
         if (node.Kind == NodeKind.Assembly)
         {
             ui.MenuSeparator();

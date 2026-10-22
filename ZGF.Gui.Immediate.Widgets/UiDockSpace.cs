@@ -378,7 +378,7 @@ internal sealed class DockWalker
             Height = Sizing.Grow(),
             Gap = 0f,
             Clip = true,
-            Background = _theme.Background,
+            Background = _theme.PaneBackground,
         });
 
         var stripId = HashCode.Combine(elementId, "tabs");

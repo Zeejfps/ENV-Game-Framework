@@ -163,6 +163,36 @@ public sealed class ThemeRoleTests
         Assert.Equal(0xFF123456u, theme.Hovered(theme.Control));
         Assert.Equal(0xFF654321u, theme.Selection);
     }
+
+    [Fact]
+    public void A_selected_tab_its_toolbar_and_table_header_share_the_pane_surface_apart_from_the_strip()
+    {
+        var theme = UiTheme.Dark with { PaneBackground = 0xFF0A0B0C };
+
+        Assert.Equal(
+            [0xFF0A0B0Cu, 0xFF0A0B0Cu, 0xFF0A0B0Cu],
+            [theme.TabActiveBackground, theme.PaneToolbarBackground, theme.TableHeaderBackground]);
+        Assert.Equal(UiTheme.Dark.EditorBackground, UiTheme.Dark.PaneBackground);
+        Assert.Equal(theme.Surface, theme.TabStripBackground);
+        Assert.NotEqual(theme.TabStripBackground, theme.TabActiveBackground);
+    }
+
+    [Fact]
+    public void A_pane_toolbar_is_painted_with_the_pane_surface()
+    {
+        var frames = new UiFrames();
+        var theme = UiTheme.Dark with { PaneToolbarBackground = 0xFF0A0B0C };
+
+        frames.Run(0f, ui =>
+        {
+            using (ui.Provide(theme))
+            using (ui.PaneToolbar())
+                ui.Text("tools");
+        });
+
+        var bar = Assert.Single(frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFF0A0B0Cu);
+        Assert.Equal(theme.PaneHeaderHeight, bar.Inputs.Position.Height);
+    }
 }
 
 public sealed class FocusTests
@@ -354,11 +384,11 @@ public sealed class TabStyleTests
     }
 
     [Fact]
-    public void The_selected_tab_is_filled_like_the_editor_below_it()
+    public void The_selected_tab_is_filled_like_the_pane_below_it()
     {
         _frames.Run(0f, Body);
 
-        Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.EditorBackground);
+        Assert.Contains(_frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.PaneBackground);
     }
 }
 

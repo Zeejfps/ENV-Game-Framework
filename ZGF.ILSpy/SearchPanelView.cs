@@ -17,18 +17,12 @@ internal static class SearchPanelView
         var theme = ui.Theme;
         var search = w.Search;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        using (ui.Row(new Box
-        {
-            Height = theme.PaneHeaderHeight,
-            Padding = new Spacing(theme.ShellPaddingX, 0f),
-            Gap = theme.GapTight,
-            AlignY = Align.Center,
-            Background = theme.Surface,
-        }))
+        using (ui.PaneToolbar())
         {
             ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy, t), static a => a.IsBusy ? a.t.SearchResultsSoFar(a.Count) : a.t.SearchResults(a.Count)),
                 color: theme.TextMuted, size: theme.FontSizeSmall);
         }
+        ui.Separator();
 
         var rowHeight = theme.RowHeight;
         var area = ui.Interact(ResultsId);

@@ -88,20 +88,22 @@ public static partial class UiWidgets
     /// <summary>Returns true on the frame the button is clicked, or activated with Enter or Space
     /// while it holds keyboard focus, which Tab gives it. The label doubles as the id unless
     /// <paramref name="id"/> is given, or the label carries a hidden suffix after <c>##</c>:
-    /// <c>"Save##toolbar"</c>.</summary>
+    /// <c>"Save##toolbar"</c>. An <paramref name="icon"/> leads the label, in the label's color
+    /// unless it has its own.</summary>
     public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true, string? id = null,
-        ButtonVariant variant = ButtonVariant.Neutral)
+        ButtonVariant variant = ButtonVariant.Neutral, UiIcon? icon = null)
     {
         var theme = ui.Theme;
         var key = id ?? label;
         var i = Pressable(ui, key, enabled, out var activated, out var ring);
         var (fill, border, text) = ButtonColors(theme, variant, enabled, i.Held || activated, i.Hovered);
 
-        using (ui.Box(i.Id, new Box
+        using (ui.Row(i.Id, new Box
         {
             Width = width ?? Sizing.Fit(),
             Height = theme.ControlHeight,
             Padding = new Spacing(theme.ControlPaddingX, 0f),
+            Gap = theme.GapTight,
             AlignX = Align.Center,
             AlignY = Align.Center,
             Background = fill,
@@ -110,6 +112,8 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
+            if (icon is { } shown)
+                ui.Icon(shown.Color != 0 && enabled ? shown : shown with { Color = text });
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: text, overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }

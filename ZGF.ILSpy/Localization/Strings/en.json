@@ -74,8 +74,8 @@
   "metadata.filter_all": "All",
   "metadata.filter_any": "Any",
   "metadata.filter_any_value": "<Any>",
-  "resource.save": "Save…",
-  "resource.save_title": "Save resource",
+  "resource.export": "Export",
+  "resource.export_title": "Export resource",
   "resource.image_info": "{format}, {width} × {height} pixels",
 
   "find.placeholder": "Find",

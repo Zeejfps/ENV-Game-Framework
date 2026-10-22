@@ -49,7 +49,7 @@ internal static class DocumentsView
     public static void Hint(Ui ui, string text)
     {
         var theme = ui.Theme;
-        using (ui.Column(new Box { Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center, Background = theme.EditorBackground }))
+        using (ui.Column(new Box { Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center, Background = theme.PaneBackground }))
             ui.Text(text, color: theme.TextMuted);
     }
 }

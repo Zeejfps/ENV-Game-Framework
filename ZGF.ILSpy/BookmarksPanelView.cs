@@ -20,6 +20,7 @@ internal static class BookmarksPanelView
         var bookmarks = w.Bookmarks;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         Toolbar(ui, w, t);
+        ui.Separator();
 
         if (bookmarks.Items.Count == 0)
         {
@@ -72,14 +73,7 @@ internal static class BookmarksPanelView
         var bookmarks = w.Bookmarks;
         var any = bookmarks.Items.Any(static b => b.Enabled);
         var selected = bookmarks.SelectedBookmark;
-        using (ui.Row(new Box
-        {
-            Height = theme.PaneHeaderHeight,
-            Padding = new Spacing(theme.ShellPaddingX, 0f),
-            Gap = theme.GapTight,
-            AlignY = Align.Center,
-            Background = theme.Surface,
-        }))
+        using (ui.PaneToolbar())
         {
             if (ui.IconButton("previous", LucideIcons.ArrowUp, LucideIcons.Family, t.BookmarksPrevious, any))
                 w.StepBookmark(-1);

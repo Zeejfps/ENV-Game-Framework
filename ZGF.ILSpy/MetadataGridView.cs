@@ -114,7 +114,7 @@ public static class MetadataGridWidget
         var result = default(MetadataGridResult);
         UpdateView(grid, state, flags);
 
-        using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground });
+        using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
 
         var headers = grid.Columns.Select(static c => c.Name).ToArray();
         var sortIcon = new UiIcon(state.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp, LucideIcons.Family);

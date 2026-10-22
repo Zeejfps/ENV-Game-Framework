@@ -23,7 +23,10 @@ public sealed class ResourceViewTests
         Assert.NotNull(tab.Image);
         Assert.Equal((2f, 2f), (drawn.Inputs.Position.Width, drawn.Inputs.Position.Height));
         app.TextRect("PNG, 2 × 2 pixels");
-        app.TextRect("Save…");
+        var export = app.TextRect("Export");
+        var icon = app.Frames.Canvas.Texts.Select(t => t.Inputs).Single(t => t.Text == LucideIcons.Upload).Position;
+        Assert.True(icon.Left + icon.Width <= export.X);
+        Assert.Equal(export.Y + export.Height / 2, app.Frames.Height - icon.Top + icon.Height / 2, 2f);
     }
 
     [Fact]

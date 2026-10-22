@@ -60,7 +60,7 @@ public static partial class UiWidgets
             Direction = Direction.Horizontal,
             Gap = box.Gap ?? 0f,
             AlignY = box.AlignY ?? Align.End,
-            Background = box.Background ?? theme.Surface,
+            Background = box.Background ?? theme.TabStripBackground,
         });
         return new TabStrip(ui, scroll, stripId);
     }
@@ -86,7 +86,7 @@ public static partial class UiWidgets
             Height = theme.TabHeight,
             Padding = new Spacing(theme.TabPaddingX, 0f, closable ? theme.GapTight : theme.TabPaddingX, 0f),
             Gap = theme.GapTight,
-            Background = selected ? theme.EditorBackground : hovered ? theme.RowHover : 0u,
+            Background = selected ? theme.TabActiveBackground : hovered ? theme.TabHoverBackground : 0u,
         }))
         {
             ui.Paint((selected ? theme.Accent : 0u, theme.ActiveIndicatorWidth, theme.Separator, theme.SeparatorWidth), static (p, s) =>

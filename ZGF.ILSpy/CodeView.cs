@@ -239,7 +239,10 @@ public static class CodeViewWidget
         using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground }))
         {
             if (state.FindOpen)
+            {
                 FindBar(ui, state, document, focusId, findId, t);
+                ui.Separator();
+            }
             ui.TabStop(focusId);
 
             var i = ui.Interact(codeId);
@@ -690,13 +693,10 @@ public static class CodeViewWidget
     private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId, Strings t)
     {
         var theme = ui.Theme;
-        using (ui.Row(new Box
+        using (ui.PaneToolbar(new Box
         {
             Height = theme.ToolbarHeight,
             Padding = new Spacing(theme.ShellPaddingX, theme.ToolbarPaddingY),
-            Gap = theme.GapTight,
-            AlignY = Align.Center,
-            Background = theme.Surface,
         }))
         {
             if (state.FocusFind)

@@ -178,7 +178,7 @@ public static partial class UiWidgets
             Gap = 0f,
             Padding = new Spacing(paddingX, 0f),
             AlignY = Align.Center,
-            Background = theme.Surface,
+            Background = theme.TableHeaderBackground,
             Clip = columns.IsSized,
             ScrollX = scrollX,
         }))

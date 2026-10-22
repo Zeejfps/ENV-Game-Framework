@@ -13,6 +13,12 @@ public sealed record UiTheme
 {
     private readonly uint _surfaceRaised;
     private readonly uint _editorBackground;
+    private readonly uint _paneBackground;
+    private readonly uint _paneToolbarBackground;
+    private readonly uint _tableHeaderBackground;
+    private readonly uint _tabStripBackground;
+    private readonly uint _tabActiveBackground;
+    private readonly uint _tabHoverBackground;
     private readonly uint _borderStrong;
     private readonly uint _separator;
     private readonly uint _textDisabled;
@@ -40,7 +46,8 @@ public sealed record UiTheme
     /// <summary>The workspace: the window, trees and lists.</summary>
     public uint Background { get; init; }
 
-    /// <summary>Docked chrome: menu bar, toolbar, tab strip, status bar, panels.</summary>
+    /// <summary>Docked chrome: menu bar, main toolbar, tab strip, status bar. A pane's own body and
+    /// toolbar use <see cref="PaneBackground"/>.</summary>
     public uint Surface { get; init; }
 
     /// <summary>Floating surfaces: menus, tooltips, dialogs.</summary>
@@ -57,6 +64,25 @@ public sealed record UiTheme
 
     /// <summary>A document or code view's background.</summary>
     public uint EditorBackground { get => Or(_editorBackground, Field); init => _editorBackground = value; }
+
+    /// <summary>A docked pane's body, which its selected tab, toolbar and table header share so the
+    /// tab reads as attached to what is below it.</summary>
+    public uint PaneBackground { get => Or(_paneBackground, EditorBackground); init => _paneBackground = value; }
+
+    /// <summary>A toolbar along the top of a pane.</summary>
+    public uint PaneToolbarBackground { get => Or(_paneToolbarBackground, PaneBackground); init => _paneToolbarBackground = value; }
+
+    /// <summary>The column headings of a table.</summary>
+    public uint TableHeaderBackground { get => Or(_tableHeaderBackground, PaneToolbarBackground); init => _tableHeaderBackground = value; }
+
+    /// <summary>The strip behind a pane's tabs.</summary>
+    public uint TabStripBackground { get => Or(_tabStripBackground, Surface); init => _tabStripBackground = value; }
+
+    /// <summary>The selected tab, joined to its pane.</summary>
+    public uint TabActiveBackground { get => Or(_tabActiveBackground, PaneBackground); init => _tabActiveBackground = value; }
+
+    /// <summary>An unselected tab under the pointer.</summary>
+    public uint TabHoverBackground { get => Or(_tabHoverBackground, RowHover); init => _tabHoverBackground = value; }
 
     /// <summary>Component outlines.</summary>
     public uint Border { get; init; }
