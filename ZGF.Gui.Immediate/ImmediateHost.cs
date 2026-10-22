@@ -50,13 +50,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     public ImmediateHost(
         StartupConfig config,
         RenderBackendKind backend,
-        IReadOnlyList<(string Family, byte[] Data, bool Bold)> fonts,
+        IReadOnlyList<FontFace> fonts,
         Action<Ui> renderUi)
     {
         _render = CreateRenderBackend(config, backend);
         RegisterDefaultBold();
-        foreach (var (family, data, bold) in fonts)
-            AddFont(family, data, bold);
+        foreach (var font in fonts)
+            AddFont(font);
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
         _renderUi = renderUi;
@@ -91,13 +91,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private void RegisterDefaultBold() =>
         _render.MainCanvas.RegisterBoldFont(null, LoadFont(EmbeddedAssets.LoadFontBytes("Inter-SemiBold.ttf")));
 
-    private void AddFont(string family, byte[] data, bool bold)
+    private void AddFont(FontFace font)
     {
-        var handle = LoadFont(data);
-        if (bold)
-            _render.MainCanvas.RegisterBoldFont(family, handle);
+        var handle = LoadFont(font.Data);
+        if (font.Bold)
+            _render.MainCanvas.RegisterBoldFont(font.Family, handle);
         else
-            _render.MainCanvas.RegisterFont(family, handle);
+            _render.MainCanvas.RegisterFont(font.Family, handle);
     }
 
     private FontHandle LoadFont(byte[] data, int faceIndex = 0) =>

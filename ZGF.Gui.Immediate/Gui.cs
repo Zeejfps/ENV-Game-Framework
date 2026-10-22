@@ -9,7 +9,7 @@ namespace ZGF.Gui.Immediate;
 /// </summary>
 public abstract class Gui<T> where T : class
 {
-    private readonly List<(string Family, byte[] Data, bool Bold)> _fonts = new();
+    private readonly List<FontFace> _fonts = new();
 
     protected Gui(T state)
     {
@@ -18,7 +18,7 @@ public abstract class Gui<T> where T : class
 
     public T State { get; }
 
-    internal IReadOnlyList<(string Family, byte[] Data, bool Bold)> Fonts => _fonts;
+    internal IReadOnlyList<FontFace> Fonts => _fonts;
 
     protected internal abstract void Render(Ui ui, T state);
 
@@ -36,6 +36,7 @@ public abstract class Gui<T> where T : class
     /// Register italic faces under names of their own. Call it from the constructor.</summary>
     protected void RegisterFont(string family, byte[] data, bool bold = false)
     {
-        _fonts.Add((family, data, bold));
+        var font = new FontFace(family, data, bold);
+        _fonts.Add(font);
     }
 }
