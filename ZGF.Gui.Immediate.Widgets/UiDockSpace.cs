@@ -40,9 +40,10 @@ public static partial class UiWidgets
     /// Panels docked into splits and tab groups that fill the space given (unless
     /// <paramref name="box"/> sizes it), plus floating windows over it, as <paramref name="layout"/>
     /// arranges them. <paramref name="tab"/> names each panel's tab. The user drags a tab onto
-    /// another group's tabs, onto the targets shown over a group or the dock space's edges, or off
-    /// into a window of its own; drags a window by its title bar to move it or dock it, and its
-    /// edges to resize it; and drags dividers. Pressing a group focuses its front panel
+    /// another group's tabs, into a group's middle to join it, toward a group's side or the dock
+    /// space's rim to split there, or, holding Ctrl, off into a window of its own; drags a window by
+    /// its title bar to dock it the same way, or to move it while Ctrl is held, and its edges to
+    /// resize it; and drags dividers. Pressing a group focuses its front panel
     /// (<see cref="DockLayout.Focused"/>). Every change is written to <paramref name="layout"/> when
     /// the scope ends. Escape cancels a drag.
     /// </summary>
@@ -95,8 +96,8 @@ internal sealed class DockWalker
     private const float MinWindowWidth = 160f;
     private const float MinWindowHeight = 100f;
     private const float WindowReach = 48f;
-    private const float TargetSize = 28f;
-    private const float TargetGap = 4f;
+    private const float RootBand = 24f;
+    private const float EdgeZone = 0.3f;
     private const float RootShare = 0.25f;
     private const float GroupShare = 0.5f;
 
@@ -123,8 +124,6 @@ internal sealed class DockWalker
 
     private readonly record struct DockTarget(DockNode Node, DockEdge Edge, float Share, int Index);
 
-    private readonly record struct Marker(UiRect Rect, DockEdge Edge, bool Hovered);
-
     private sealed class ResizeState
     {
         public UiRect Start;
@@ -135,7 +134,6 @@ internal sealed class DockWalker
     private readonly List<int> _tabs = new();
     private readonly List<string> _closed = new();
     private readonly List<DockWindow> _closedWindows = new();
-    private readonly List<Marker> _markers = new();
     private Ui _ui = null!;
     private UiTheme _theme = null!;
     private DockLayout _layout = null!;
@@ -170,7 +168,6 @@ internal sealed class DockWalker
         _tabs.Clear();
         _closed.Clear();
         _closedWindows.Clear();
-        _markers.Clear();
         _preview = _caret = null;
         _nextWindow = -1;
         _open = true;
@@ -301,11 +298,12 @@ internal sealed class DockWalker
         }
         if (dragging && _ui.TryGetRect(_dockId, out var dockRect))
         {
-            target = FindTarget(drag!, dockRect);
+            var floating = (_ui.Input.Modifiers & KeyModifiers.Control) != 0;
+            target = floating ? null : FindTarget(drag!, dockRect);
             if (_ui.TryDrop<DockDrag>(out _))
-                Drop(drag!, target, dockRect);
+                Drop(drag!, target, floating, dockRect);
             else
-                RecordOverlay(drag!, dockRect, target);
+                RecordOverlay(drag!, dockRect, target, floating);
         }
 
         if (_ui.Input.WasPressed(PointerButton.Left) && GroupAt(_ui.Input.Pointer, null) is { Group.Active: { } focused })
@@ -578,35 +576,18 @@ internal sealed class DockWalker
     {
         var pointer = _ui.Input.Pointer;
         var source = drag.Panel != null ? _layout.GroupOf(drag.Panel) : null;
+        var over = GroupAt(pointer, drag.Window);
+        var rect = default(UiRect);
+        if (over is { } hit && !_ui.TryGetRect(hit.ElementId, out rect))
+            over = null;
 
-        if (!(_layout.Root is DockGroup { Panels.Count: 0 }))
+        if (over is { StripId: not 0 } onStrip && _ui.TryGetRect(onStrip.StripId, out var strip) && strip.Contains(pointer))
         {
-            var mid = new PointF(dock.X + dock.Width / 2, dock.Y + dock.Height / 2);
-            var edge = TargetGap * 2;
-            AddMarker(new UiRect(dock.X + edge, mid.Y - TargetSize / 2, TargetSize, TargetSize), DockEdge.Left, pointer);
-            AddMarker(new UiRect(mid.X - TargetSize / 2, dock.Y + edge, TargetSize, TargetSize), DockEdge.Top, pointer);
-            AddMarker(new UiRect(dock.Right - edge - TargetSize, mid.Y - TargetSize / 2, TargetSize, TargetSize), DockEdge.Right, pointer);
-            AddMarker(new UiRect(mid.X - TargetSize / 2, dock.Bottom - edge - TargetSize, TargetSize, TargetSize), DockEdge.Bottom, pointer);
-            foreach (var marker in _markers)
-            {
-                if (!marker.Hovered) continue;
-                _preview = Part(dock, marker.Edge, RootShare);
-                return new DockTarget(_layout.Root, marker.Edge, RootShare, -1);
-            }
-        }
-        var rootMarkers = _markers.Count;
-
-        if (GroupAt(pointer, drag.Window) is not { } entry || !_ui.TryGetRect(entry.ElementId, out var rect))
-            return null;
-        var group = entry.Group;
-
-        if (entry.StripId != 0 && _ui.TryGetRect(entry.StripId, out var strip) && strip.Contains(pointer))
-        {
-            var index = group.Panels.Count;
+            var index = onStrip.Group.Panels.Count;
             var caretX = strip.X;
-            for (var i = 0; i < entry.TabCount; i++)
+            for (var i = 0; i < onStrip.TabCount; i++)
             {
-                if (!_ui.TryGetRect(_tabs[entry.FirstTab + i], out var tab)) continue;
+                if (!_ui.TryGetRect(_tabs[onStrip.FirstTab + i], out var tab)) continue;
                 caretX = tab.Right;
                 if (pointer.X >= tab.X + tab.Width / 2) continue;
                 index = i;
@@ -615,27 +596,41 @@ internal sealed class DockWalker
             }
             _caret = new UiRect(caretX - 1f, strip.Y + 3f, 2f, strip.Height - 6f);
             _preview = rect;
-            return new DockTarget(group, DockEdge.Center, GroupShare, index);
+            return new DockTarget(onStrip.Group, DockEdge.Center, GroupShare, index);
         }
 
+        if (over is not { Window: not null } && _layout.Root is not DockGroup { Panels.Count: 0 })
+        {
+            var inset = new UiRect(dock.X + RootBand, dock.Y + RootBand, dock.Width - RootBand * 2, dock.Height - RootBand * 2);
+            if (dock.Contains(pointer) && !inset.Contains(pointer))
+            {
+                var rootEdge = NearestEdge(dock, pointer, out _);
+                _preview = Part(dock, rootEdge, RootShare);
+                return new DockTarget(_layout.Root, rootEdge, RootShare, -1);
+            }
+        }
+
+        if (over is not { } entry) return null;
+        var group = entry.Group;
         var alone = source == group && group.Panels.Count == 1;
         if (alone && _layout.NewPanel == null) return null;
-        var center = new PointF(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
-        var step = TargetSize + TargetGap;
-        if (entry.StripId != 0 && !alone)
-            AddMarker(Square(center, 0f, 0f), DockEdge.Center, pointer);
-        AddMarker(Square(center, -step, 0f), DockEdge.Left, pointer);
-        AddMarker(Square(center, 0f, -step), DockEdge.Top, pointer);
-        AddMarker(Square(center, step, 0f), DockEdge.Right, pointer);
-        AddMarker(Square(center, 0f, step), DockEdge.Bottom, pointer);
-        for (var i = rootMarkers; i < _markers.Count; i++)
-        {
-            var marker = _markers[i];
-            if (!marker.Hovered) continue;
-            _preview = marker.Edge == DockEdge.Center ? rect : Part(rect, marker.Edge, GroupShare);
-            return new DockTarget(group, marker.Edge, GroupShare, -1);
-        }
-        return null;
+        var edge = NearestEdge(rect, pointer, out var depth);
+        if (group.Panels.Count == 0 || (entry.StripId != 0 && !alone && depth > EdgeZone))
+            edge = DockEdge.Center;
+        _preview = Part(rect, edge, GroupShare);
+        return new DockTarget(group, edge, GroupShare, -1);
+    }
+
+    private static DockEdge NearestEdge(UiRect rect, PointF pointer, out float depth)
+    {
+        var u = Math.Clamp((pointer.X - rect.X) / MathF.Max(1f, rect.Width), 0f, 1f);
+        var v = Math.Clamp((pointer.Y - rect.Y) / MathF.Max(1f, rect.Height), 0f, 1f);
+        var (edge, x) = u < 0.5f ? (DockEdge.Left, u) : (DockEdge.Right, 1f - u);
+        var (vertical, y) = v < 0.5f ? (DockEdge.Top, v) : (DockEdge.Bottom, 1f - v);
+        if (y < x)
+            (edge, x) = (vertical, y);
+        depth = x;
+        return edge;
     }
 
     private GroupEntry? GroupAt(PointF pointer, DockWindow? skip)
@@ -658,11 +653,6 @@ internal sealed class DockWalker
         return null;
     }
 
-    private void AddMarker(UiRect rect, DockEdge edge, PointF pointer) => _markers.Add(new Marker(rect, edge, rect.Contains(pointer)));
-
-    private static UiRect Square(PointF center, float dx, float dy) =>
-        new(center.X + dx - TargetSize / 2, center.Y + dy - TargetSize / 2, TargetSize, TargetSize);
-
     private static UiRect Part(UiRect rect, DockEdge edge, float share) => edge switch
     {
         DockEdge.Left => rect with { Width = rect.Width * share },
@@ -678,7 +668,7 @@ internal sealed class DockWalker
         return new UiRect(pointer.X - drag.Grab.X - dock.X, pointer.Y - drag.Grab.Y - dock.Y, drag.Width, drag.Height);
     }
 
-    private void Drop(DockDrag drag, DockTarget? target, UiRect dock)
+    private void Drop(DockDrag drag, DockTarget? target, bool floating, UiRect dock)
     {
         if (target is { } t)
         {
@@ -687,16 +677,16 @@ internal sealed class DockWalker
             else
                 _layout.Dock(drag.Panel!, t.Node, t.Edge, t.Share, t.Index);
         }
-        else if (drag.Panel != null)
+        else if (floating && drag.Panel != null)
         {
             _layout.Float(drag.Panel, FloatingRect(drag, dock));
         }
         _ui.RequestFrame();
     }
 
-    private void RecordOverlay(DockDrag drag, UiRect dock, DockTarget? target)
+    private void RecordOverlay(DockDrag drag, UiRect dock, DockTarget? target, bool floating)
     {
-        if (target == null && drag.Panel != null)
+        if (floating && drag.Panel != null)
         {
             var ghost = FloatingRect(drag, dock);
             _preview = ghost with { X = ghost.X + dock.X, Y = ghost.Y + dock.Y };
@@ -713,13 +703,5 @@ internal sealed class DockWalker
             p.FillRect(preview, (accent & 0x00FFFFFFu) | 0x40000000u, 0f, accent, _theme.BorderWidth);
         if (_caret is { } caret)
             p.FillRect(caret, accent);
-        foreach (var marker in _markers)
-        {
-            var color = marker.Hovered ? accent : _theme.TextMuted;
-            p.FillRect(marker.Rect, _theme.SurfaceRaised, _theme.CornerRadius, marker.Hovered ? accent : _theme.Border, _theme.BorderWidth);
-            var inner = new UiRect(marker.Rect.X + 6f, marker.Rect.Y + 6f, marker.Rect.Width - 12f, marker.Rect.Height - 12f);
-            p.FillRect(inner, 0, 0f, color, _theme.BorderWidth);
-            p.FillRect(marker.Edge == DockEdge.Center ? inner : Part(inner, marker.Edge, 0.4f), color);
-        }
     }
 }

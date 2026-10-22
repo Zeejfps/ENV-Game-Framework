@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.KeyboardModule;
@@ -36,11 +37,13 @@ public sealed class DockSpaceTests
 
     private static PointF Center(UiRect r) => new(r.X + r.Width / 2, r.Y + r.Height / 2);
 
-    private void Drag(PointF from, params PointF[] path)
+    private void Drag(PointF from, params PointF[] path) => Drag(KeyModifiers.None, from, path);
+
+    private void Drag(KeyModifiers modifiers, PointF from, params PointF[] path)
     {
         _frames.MovePointer(from.X, from.Y);
         _frames.Run(0f, Body);
-        _frames.Press();
+        _frames.Press(modifiers);
         _frames.Run(0f, Body);
         _frames.MovePointer(from.X + 20f, from.Y + 20f);
         _frames.Run(0f, Body);
@@ -51,9 +54,9 @@ public sealed class DockSpaceTests
         }
     }
 
-    private void Drop()
+    private void Drop(KeyModifiers modifiers = KeyModifiers.None)
     {
-        _frames.Release();
+        _frames.Release(modifiers: modifiers);
         _frames.Run(0f, Body);
         _frames.Run(0f, Body);
     }
@@ -97,12 +100,13 @@ public sealed class DockSpaceTests
     }
 
     [Fact]
-    public void Dropping_a_tab_on_a_groups_right_target_splits_that_group()
+    public void Dropping_a_tab_near_a_groups_right_side_splits_that_group()
     {
         _frames.Run(0f, Body);
-        var target = Center(GroupRect("c"));
+        var group = GroupRect("c");
+        var target = Center(group);
 
-        Drag(Center(TabRect("b")), target, target with { X = target.X + 32f });
+        Drag(Center(TabRect("b")), target, target with { X = group.Right - 60f });
         Drop();
 
         var root = Assert.IsType<DockSplit>(_layout.Root);
@@ -126,12 +130,38 @@ public sealed class DockSpaceTests
     }
 
     [Fact]
-    public void Dropping_a_tab_away_from_every_target_floats_it_in_a_window()
+    public void Dropping_a_tab_in_a_groups_middle_adds_it_to_that_group()
+    {
+        _frames.Run(0f, Body);
+        var target = Center(GroupRect("c"));
+
+        Drag(Center(TabRect("b")), target, target with { X = target.X + 32f });
+        Drop();
+
+        Assert.Equal(["c", "b"], _layout.GroupOf("c")!.Panels);
+        Assert.Empty(_layout.Windows);
+    }
+
+    [Fact]
+    public void Dropping_a_tab_near_the_dock_spaces_rim_splits_the_whole_layout()
     {
         _frames.Run(0f, Body);
 
-        Drag(Center(TabRect("b")), new PointF(150f, 400f));
+        Drag(Center(TabRect("b")), new PointF(400f, 300f), new PointF(400f, 590f));
         Drop();
+
+        var root = Assert.IsType<DockSplit>(_layout.Root);
+        Assert.Equal(Direction.Vertical, root.Direction);
+        Assert.Equal(["b"], Assert.IsType<DockGroup>(root.Second).Panels);
+    }
+
+    [Fact]
+    public void Dropping_a_tab_with_ctrl_held_floats_it_in_a_window()
+    {
+        _frames.Run(0f, Body);
+
+        Drag(KeyModifiers.Control, Center(TabRect("b")), new PointF(150f, 400f));
+        Drop(KeyModifiers.Control);
 
         var window = Assert.Single(_layout.Windows);
         Assert.Same(window, _layout.WindowOf(_layout.GroupOf("b")!));
@@ -157,6 +187,19 @@ public sealed class DockSpaceTests
 
         Assert.Empty(_layout.Windows);
         Assert.Equal(["c", "b"], _layout.GroupOf("c")!.Panels);
+    }
+
+    [Fact]
+    public void Dragging_a_window_with_ctrl_held_moves_it_without_docking()
+    {
+        var window = _layout.Float("b", new UiRect(100f, 100f, 300f, 200f));
+        _frames.Run(0f, Body);
+
+        Drag(KeyModifiers.Control, new PointF(150f, 110f), new PointF(250f, 210f));
+        Drop(KeyModifiers.Control);
+
+        Assert.Same(window, Assert.Single(_layout.Windows));
+        Assert.Equal(new UiRect(200f, 200f, 300f, 200f), window.Rect);
     }
 
     [Fact]
@@ -203,8 +246,8 @@ public sealed class DockSpaceTests
         _frames.Run(0f, Body);
         _counters["c"].Value = 7;
 
-        Drag(Center(TabRect("c")), new PointF(150f, 400f));
-        Drop();
+        Drag(KeyModifiers.Control, Center(TabRect("c")), new PointF(150f, 400f));
+        Drop(KeyModifiers.Control);
 
         Assert.NotNull(_layout.WindowOf(_layout.GroupOf("c")!));
         Assert.Equal(7, _counters["c"].Value);
@@ -233,7 +276,7 @@ public sealed class DockSpaceTests
         _frames.Run(0f, Fixed);
         _frames.Press();
         _frames.Run(0f, Fixed);
-        foreach (var point in new[] { center with { X = center.X - 40f }, center })
+        foreach (var point in new[] { center with { X = center.X - 40f }, center with { X = center.X + 20f } })
         {
             _frames.MovePointer(point.X, point.Y);
             _frames.Run(0f, Fixed);
@@ -242,7 +285,10 @@ public sealed class DockSpaceTests
         _frames.Run(0f, Fixed);
 
         Assert.Equal(["editor"], layout.GroupOf("editor")!.Panels);
-        Assert.Single(layout.Windows);
+        Assert.Empty(layout.Windows);
+        var root = Assert.IsType<DockSplit>(layout.Root);
+        Assert.Equal(["editor"], Assert.IsType<DockGroup>(root.First).Panels);
+        Assert.Equal(["tool"], Assert.IsType<DockGroup>(root.Second).Panels);
     }
 
     [Fact]
@@ -256,14 +302,15 @@ public sealed class DockSpaceTests
     }
 
     [Fact]
-    public void Dragging_a_groups_only_tab_onto_its_own_right_target_moves_it_there_beside_a_new_focused_panel()
+    public void Dragging_a_groups_only_tab_toward_its_own_right_side_moves_it_there_beside_a_new_focused_panel()
     {
         _layout.Root = DockLayout.Group("a");
         _layout.NewPanel = () => "new";
         _frames.Run(0f, Body);
-        var target = Center(GroupRect("a"));
+        var group = GroupRect("a");
+        var target = Center(group);
 
-        Drag(Center(TabRect("a")), target, target with { X = target.X + 32f });
+        Drag(Center(TabRect("a")), target, target with { X = group.Right - 60f });
         Drop();
 
         var root = Assert.IsType<DockSplit>(_layout.Root);
