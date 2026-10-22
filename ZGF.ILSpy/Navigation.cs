@@ -22,24 +22,26 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
     /// then shows it in the tab it was asked from, or a new one.</summary>
-    public static void Navigate(this Workspace w, CodeReference reference, bool inNewTab)
+    public static async void Navigate(this Workspace w, CodeReference reference, bool inNewTab)
     {
         if (!reference.IsNavigable)
             return;
         var ticket = w.Intent.Begin();
         var origin = inNewTab ? null : w.Tabs.Active;
         w.Intent.StartResolving(ticket);
-        w.RunInBackground(() => w.Assemblies.FindNode(reference), (node, error) => w.OnReferenceFound(reference, node, error, origin, ticket));
-    }
-
-    private static void OnReferenceFound(this Workspace w, CodeReference reference, BrowseNode? node, Exception? error, DocumentTab? origin, int ticket)
-    {
+        var found = await Background.Run(() => w.Assemblies.FindNode(reference));
         if (w.Intent.IsStale(ticket))
             return;
         w.Intent.StopResolving();
+        w.ShowResolved(reference, found, origin);
+    }
+
+    private static void ShowResolved(this Workspace w, CodeReference reference, Outcome<BrowseNode?> found, DocumentTab? origin)
+    {
+        var node = found.Value;
         if (node == null)
         {
-            w.ReportUnresolved(reference, error);
+            w.ReportUnresolved(reference, found.Error);
             return;
         }
         w.LeaveActive();
@@ -91,7 +93,7 @@ public static class Navigation
         return index != w.History.CurrentIndex;
     }
 
-    private static void Restore(this Workspace w, HistoryEntry entry)
+    private static async void Restore(this Workspace w, HistoryEntry entry)
     {
         var ticket = w.Intent.Begin();
         var tab = w.Tabs.Active;
@@ -104,7 +106,11 @@ public static class Navigation
             return;
         }
         w.Intent.StartResolving(ticket);
-        w.RunInBackground(() => w.Assemblies.FindNode(place), (node, error) => w.OnHistoryPlaceFound(place, position, node, error, tab, ticket));
+        var found = await Background.Run(() => w.Assemblies.FindNode(place));
+        if (w.Intent.IsStale(ticket))
+            return;
+        w.Intent.StopResolving();
+        w.ShowHistoryPlace(place, position, found, tab);
     }
 
     private static BrowseNode? FindShownNode(this Workspace w, DocumentTab? tab, NodePath place)
@@ -121,15 +127,13 @@ public static class Navigation
         return node;
     }
 
-    private static void OnHistoryPlaceFound(this Workspace w, NodePath place, CodeViewPosition? position, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
+    private static void ShowHistoryPlace(this Workspace w, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found, DocumentTab? tab)
     {
-        if (w.Intent.IsStale(ticket))
-            return;
-        w.Intent.StopResolving();
+        var node = found.Value;
         if (node == null)
         {
             var t = w.GetStrings();
-            var details = Workspace.DescribeFailure(error, t.ErrorNoLongerThere(place));
+            var details = Workspace.DescribeFailure(found.Error, t.ErrorNoLongerThere(place));
             w.ReportError(t.ErrorGoBack(place.Text), details);
             return;
         }
