@@ -23,7 +23,12 @@ internal static class DecompilerOptionsPanelView
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         using (ui.PaneToolbar())
         {
-            if (ui.Button(t.DecompilerOptionsReset, enabled: options.Toggles.Count > 0, id: "reset"))
+            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, !AllFolded(w)))
+                w.FoldedOptionGroups.UnionWith(Sections.Select(static s => s.Key));
+            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, w.FoldedOptionGroups.Count > 0))
+                w.FoldedOptionGroups.Clear();
+            ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = theme.IconSize, Background = theme.Separator });
+            if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
                 w.ResetDecompilerToggles();
         }
         ui.Separator();
@@ -132,6 +137,15 @@ internal static class DecompilerOptionsPanelView
         DecompilerToggleGroup.FSharp => t.DecompilerOptionsFsharp,
         _ => t.DecompilerOptionsOther,
     };
+
+    private static bool AllFolded(Workspace w)
+    {
+        foreach (var section in Sections)
+        {
+            if (!w.FoldedOptionGroups.Contains(section.Key)) return false;
+        }
+        return true;
+    }
 
     private static int RowCount(Workspace w)
     {

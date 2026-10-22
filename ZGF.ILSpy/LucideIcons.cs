@@ -18,6 +18,8 @@ public static class LucideIcons
     public const string ChevronDown = "\uE06D";
     public const string ChevronRight = "\uE06F";
     public const string ChevronUp = "\uE070";
+    public const string ChevronsDownUp = "\uE228";
+    public const string ChevronsUpDown = "\uE211";
     public const string Braces = "\uE36A";
     public const string Check = "\uE06C";
     public const string CheckSquare = "\uE16A";
@@ -52,6 +54,7 @@ public static class LucideIcons
     public const string Package = "\uE129";
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
+    public const string RotateCcw = "\uE148";
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
     public const string Square = "\uE167";

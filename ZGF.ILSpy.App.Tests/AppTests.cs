@@ -216,7 +216,7 @@ public sealed class AppTests
         Assert.False(app.Workspace.DecompilerOptions.IsOn(DecompilerToggle.Find("StringConcat")!));
         Assert.Contains("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
 
-        app.Click("Reset to defaults");
+        app.Click(LucideIcons.RotateCcw);
         app.Driver.Settle();
         app.Run();
 
@@ -242,6 +242,22 @@ public sealed class AppTests
         app.Run();
         Assert.Contains(nameof(CSharpVersion.CSharp8), app.Workspace.FoldedOptionGroups);
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "switch expressions");
+    }
+
+    [Fact]
+    public void The_options_toolbar_collapses_and_expands_every_group()
+    {
+        var app = OpenFixtures(width: 1600f);
+        app.Workspace.OpenDecompilerOptions();
+        app.Run();
+
+        app.Click(LucideIcons.ChevronsDownUp);
+        Assert.False(app.Frames.Drew("switch expressions"));
+        Assert.True(app.Frames.Drew("C# 8.0 / VS 2019"));
+
+        app.Click(LucideIcons.ChevronsUpDown);
+        Assert.Empty(app.Workspace.FoldedOptionGroups);
+        Assert.True(app.Frames.Drew("Extension members"));
     }
 
     [Fact]
