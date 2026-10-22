@@ -74,6 +74,8 @@ internal static class MainMenuView
             w.OpenAnalyzer();
         if (ui.MenuItem(t.PanelSearch, "Ctrl+Shift+F", check: w.Layout.Contains(DockPanels.Search), id: "search"))
             w.OpenSearch();
+        if (ui.MenuItem(t.PanelDecompilerOptions, check: w.Layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
+            w.OpenDecompilerOptions();
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             w.AskToResetLayout();
         ui.MenuSeparator();

@@ -90,6 +90,34 @@ public sealed class DecompilationTests
     }
 
     [Fact]
+    public void Toggles_come_from_the_decompiler_with_the_version_that_brought_each_feature()
+    {
+        var all = DecompilerToggle.All;
+
+        Assert.Contains(all, t => t is { Name: "SwitchExpressions", Group: DecompilerToggleGroup.Language, IntroducedIn: CSharpVersion.CSharp8, DefaultValue: true });
+        Assert.Contains(all, t => t is { Name: "AlwaysUseBraces", Group: DecompilerToggleGroup.Other, IntroducedIn: null });
+        Assert.Contains(all, t => t is { Name: "RemoveDeadCode", Group: DecompilerToggleGroup.FSharp, DefaultValue: false });
+        Assert.DoesNotContain(all, t => t.Name is "UseDebugSymbols" or "ShowXmlDocumentation" or "DecompileMemberBodies");
+    }
+
+    [Fact]
+    public void A_toggle_changes_the_code_until_the_version_is_too_old_for_it_and_keeps_its_state()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var count = assembly.Calculator().Child("Count : int");
+        var bodies = DecompilerToggle.Find("UseExpressionBodyForCalculatedGetterOnlyProperties")!;
+        var off = DecompilerOptions.Default.With(bodies, false);
+        var offOnCSharp5 = off with { LanguageVersion = CSharpVersion.CSharp5 };
+
+        Assert.Contains("return _items.Count;", count.Decompile(DecompilationLanguage.CSharp, off).GetText());
+        Assert.False(offOnCSharp5.Allows(bodies));
+        Assert.False(offOnCSharp5.IsOn(bodies));
+        Assert.True(DecompilerOptions.Default.IsOn(bodies));
+        Assert.Equal(DecompilerOptions.Default, off.With(bodies, true));
+        Assert.Equal(off, DecompilerOptions.Default.With(bodies, false));
+    }
+
+    [Fact]
     public void IL_shows_opcodes_labels_and_directives()
     {
         var (_, assembly) = Trees.OpenTestAssembly();

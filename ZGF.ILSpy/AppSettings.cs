@@ -26,6 +26,9 @@ public sealed class AppSettings
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
 
+    /// <summary>The decompiler options panel's folded groups.</summary>
+    public List<string>? FoldedOptionGroups { get; set; }
+
     /// <summary>The interface language; null follows the system's.</summary>
     public Locale? Locale { get; set; }
     public bool ShowNonPublic { get; set; } = true;

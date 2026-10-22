@@ -7,9 +7,10 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Biggest gaps
 
-1. **Decompiler options.** Upstream has ~110 decompiler toggles (async/yield/LINQ/pattern detection,
-   nullable, `field` keyword, remove dead code, auto-load references, …); ours are hard-coded in
-   `ZGF.ILSpy.Core/Settings.cs`.
+1. **Debug symbols and XML docs in decompiled code.** Variable names from PDBs and XML doc comments
+   in the output; the decompiler gets no debug-info or documentation provider. Their options
+   (`UseDebugSymbols`, `ShowXmlDocumentation`) are left out of the options panel until then, as
+   are the load-time `AutoLoadAssemblyReferences` and `ApplyWindowsRuntimeProjections`.
 2. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
    (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
    batch).
@@ -45,6 +46,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Suggested order
 
-1. Decompiler option toggles.
+1. Debug symbols and XML docs in decompiled code.
 2. Save code and project export.
 3. XML-doc tooltips.

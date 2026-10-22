@@ -2,6 +2,7 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -183,6 +184,69 @@ public sealed class AppTests
         app.Run();
 
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "C# 5.0 / VS 2012");
+    }
+
+    [Fact]
+    public void Every_decompiler_toggle_has_a_label_in_every_language()
+    {
+        foreach (var (locale, _) in Locales.All)
+        {
+            var t = Strings.For(locale);
+            Assert.All(DecompilerToggle.All, toggle => Assert.False(string.IsNullOrWhiteSpace(DecompilerOptionLabels.Label(t, toggle.Name)), toggle.Name));
+        }
+    }
+
+    [Fact]
+    public void A_decompiler_option_ticked_in_its_panel_shows_in_the_open_document_and_resets()
+    {
+        var app = OpenFixtures(width: 1600f);
+        app.Workspace.Show(app.Driver.Fixture("Greeter"));
+        app.Driver.Settle();
+        FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp1));
+        Assert.DoesNotContain("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
+
+        app.Click("View");
+        app.ClickMenuItem("Decompiler options");
+        app.Run();
+        app.Click("String concatenation with +");
+        app.Driver.Settle();
+        app.Run();
+
+        Assert.False(app.Workspace.DecompilerOptions.IsOn(DecompilerToggle.Find("StringConcat")!));
+        Assert.Contains("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
+
+        app.Click("Reset to defaults");
+        app.Driver.Settle();
+        app.Run();
+
+        Assert.Equal(DecompilerOptions.Default, app.Workspace.DecompilerOptions);
+        Assert.DoesNotContain("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
+    }
+
+    [Fact]
+    public void Options_newer_than_the_version_are_greyed_out_and_groups_fold()
+    {
+        var app = OpenFixtures(width: 1600f);
+        app.Workspace.SetLanguageVersion(CSharpVersion.CSharp7);
+        FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
+        app.Workspace.OpenDecompilerOptions();
+        app.Run();
+
+        app.Click("switch expressions");
+        app.Run();
+        Assert.Equal(DecompilerOptions.Default with { LanguageVersion = CSharpVersion.CSharp7 }, app.Workspace.DecompilerOptions);
+        Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("Features newer than"));
+
+        app.Click("C# 8.0 / VS 2019");
+        app.Run();
+        Assert.Contains(nameof(CSharpVersion.CSharp8), app.Workspace.FoldedOptionGroups);
+        Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "switch expressions");
+    }
+
+    private static void FoldOptionGroupsBut(AppDriver app, string open)
+    {
+        app.Workspace.FoldedOptionGroups.UnionWith(Enum.GetNames<CSharpVersion>().Append("Other").Append("FSharp"));
+        app.Workspace.FoldedOptionGroups.Remove(open);
     }
 
     [Fact]

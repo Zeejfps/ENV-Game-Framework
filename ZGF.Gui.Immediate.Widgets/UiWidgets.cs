@@ -121,22 +121,25 @@ public static partial class UiWidgets
     }
 
     /// <summary>Returns true on the frame <paramref name="value"/> changes, by a click or by Space
-    /// while focused. Ids work as for <see cref="Button"/>.</summary>
-    public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null)
+    /// while focused. Ids work as for <see cref="Button"/>. When not <paramref name="enabled"/> it
+    /// shows <paramref name="value"/> greyed out and ignores input. Given a <paramref name="width"/>,
+    /// a label too long for it ends in an ellipsis.</summary>
+    public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null, bool enabled = true,
+        Sizing? width = null)
     {
         var theme = ui.Theme;
-        var i = Pressable(ui, id ?? label, true, out var activated, out var ring);
+        var i = Pressable(ui, id ?? label, enabled, out var activated, out var ring);
         var toggled = i.Clicked || activated;
         if (toggled) value = !value;
 
-        using (ui.Row(i.Id, new Box { Width = Sizing.Fit(), Height = theme.ControlHeight, Gap = theme.Gap }))
+        using (ui.Row(i.Id, new Box { Width = width ?? Sizing.Fit(), Height = theme.ControlHeight, Gap = theme.Gap }))
         {
             var size = theme.CheckboxSize;
             using (ui.Box(new Box
             {
                 Width = size,
                 Height = size,
-                Background = value ? i.Hovered ? theme.AccentHovered : theme.Accent : theme.Field,
+                Background = value ? !enabled ? theme.TextDisabled : i.Hovered ? theme.AccentHovered : theme.Accent : theme.Field,
                 BorderColor = value ? 0u : i.Hovered ? theme.BorderStrong : theme.Border,
                 BorderWidth = value ? 0f : theme.BorderWidth,
                 Radius = theme.RadiusSmall,
@@ -146,7 +149,8 @@ public static partial class UiWidgets
                     ui.Paint((theme.OnAccent, theme.IconStrokeWidth), static (p, s) => DrawCheckmark(p, s.OnAccent, s.IconStrokeWidth));
                 if (ring) FocusRing(ui, theme.RadiusSmall);
             }
-            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: textColor ?? theme.Text);
+            ui.Text(id != null ? label : Visible(ui, i.Id, label), color: !enabled ? theme.TextDisabled : textColor ?? theme.Text,
+                overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
         }
         return toggled;
     }

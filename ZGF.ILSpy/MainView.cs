@@ -60,6 +60,9 @@ public static class MainView
                     case DockPanels.Analyzer:
                         AnalyzerPanelView.Render(ui, w, t);
                         break;
+                    case DockPanels.DecompilerOptions:
+                        DecompilerOptionsPanelView.Render(ui, w, t);
+                        break;
                     default:
                         if (w.FindTab(panel) is { } tab)
                             DocumentsView.Render(ui, w, t, tab);

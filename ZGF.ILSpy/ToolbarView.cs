@@ -13,29 +13,6 @@ internal static class ToolbarView
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
-    private static readonly (CSharpVersion Version, string Label)[] Versions =
-    [
-        (CSharpVersion.CSharp1, "C# 1.0 / VS .NET"),
-        (CSharpVersion.CSharp2, "C# 2.0 / VS 2005"),
-        (CSharpVersion.CSharp3, "C# 3.0 / VS 2008"),
-        (CSharpVersion.CSharp4, "C# 4.0 / VS 2010"),
-        (CSharpVersion.CSharp5, "C# 5.0 / VS 2012"),
-        (CSharpVersion.CSharp6, "C# 6.0 / VS 2015"),
-        (CSharpVersion.CSharp7, "C# 7.0 / VS 2017"),
-        (CSharpVersion.CSharp7_1, "C# 7.1 / VS 2017.3"),
-        (CSharpVersion.CSharp7_2, "C# 7.2 / VS 2017.4"),
-        (CSharpVersion.CSharp7_3, "C# 7.3 / VS 2017.7"),
-        (CSharpVersion.CSharp8, "C# 8.0 / VS 2019"),
-        (CSharpVersion.CSharp9, "C# 9.0 / VS 2019.8"),
-        (CSharpVersion.CSharp10, "C# 10.0 / VS 2022"),
-        (CSharpVersion.CSharp11, "C# 11.0 / VS 2022.4"),
-        (CSharpVersion.CSharp12, "C# 12.0 / VS 2022.8"),
-        (CSharpVersion.CSharp13, "C# 13.0 / VS 2022.12"),
-        (CSharpVersion.CSharp14, "C# 14.0 / VS 2026"),
-    ];
-
-    private static readonly string[] VersionLabels = Versions.Select(static v => v.Label).ToArray();
-
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
@@ -85,7 +62,11 @@ internal static class ToolbarView
                 if (ui.SegmentedControl("language", ref language, Languages(t)))
                     w.SetLanguage(language);
                 if (language == DecompilationLanguage.CSharp)
+                {
                     LanguageVersion(ui, w, t);
+                    if (ui.IconButton("decompiler-options", LucideIcons.Wrench, LucideIcons.Family, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
+                        w.OpenDecompilerOptions();
+                }
             }
         }
     }
@@ -105,22 +86,14 @@ internal static class ToolbarView
     private static void LanguageVersion(Ui ui, Workspace w, Strings t)
     {
         var current = w.DecompilerOptions.LanguageVersion;
-        using var menu = ui.SelectButton("language-version", Label(current), ui.SelectButtonWidth(VersionLabels), t.ToolbarLanguageVersion);
+        using var menu = ui.SelectButton("language-version", CSharpVersions.Label(current), ui.SelectButtonWidth(CSharpVersions.Labels),
+            t.ToolbarLanguageVersion);
         if (!menu.IsOpen) return;
-        foreach (var (version, label) in Versions)
+        foreach (var (version, label) in CSharpVersions.All)
         {
             if (ui.MenuRadioItem(label, version == current))
                 w.SetLanguageVersion(version);
         }
-    }
-
-    private static string Label(CSharpVersion version)
-    {
-        foreach (var (v, label) in Versions)
-        {
-            if (v == version) return label;
-        }
-        return version.ToString();
     }
 
     private static Ui.Scope Group(Ui ui) =>

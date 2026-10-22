@@ -12,15 +12,17 @@ public static class DockPanels
     public const string Search = "search";
     public const string Bookmarks = "bookmarks";
     public const string Analyzer = "analyzer";
+    public const string DecompilerOptions = "decompiler-options";
 
     /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
-    public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer;
+    public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer or DecompilerOptions;
 
     public static DockTab Tab(Strings t, string panel) => panel switch
     {
         Assemblies => new DockTab(t.PanelAssemblies),
         Bookmarks => new DockTab(t.PanelBookmarks),
         Analyzer => new DockTab(t.PanelAnalyzer),
+        DecompilerOptions => new DockTab(t.PanelDecompilerOptions),
         _ => new DockTab(t.PanelSearch),
     };
 

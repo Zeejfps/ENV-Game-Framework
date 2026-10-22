@@ -37,6 +37,7 @@ public sealed class Workspace
         Theme = settings.Theme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
+        FoldedOptionGroups = new HashSet<string>(settings.FoldedOptionGroups ?? []);
         Locale = settings.Locale ?? Locales.For(CultureInfo.CurrentUICulture);
         ShowNonPublic = settings.ShowNonPublic;
         _active = AddTab();
@@ -100,6 +101,9 @@ public sealed class Workspace
 
     /// <summary>How C# is decompiled.</summary>
     public DecompilerOptions DecompilerOptions { get; private set; }
+
+    /// <summary>The decompiler options panel's folded groups.</summary>
+    public HashSet<string> FoldedOptionGroups { get; }
 
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget { get; private set; }
@@ -257,10 +261,18 @@ public sealed class Workspace
         EnsureCurrent();
     }
 
-    public void SetLanguageVersion(CSharpVersion version)
+    public void SetLanguageVersion(CSharpVersion version) => SetDecompilerOptions(DecompilerOptions with { LanguageVersion = version });
+
+    public void SetDecompilerToggle(DecompilerToggle toggle, bool value) => SetDecompilerOptions(DecompilerOptions.With(toggle, value));
+
+    /// <summary>Turns every toggle back to its default, keeping the language version.</summary>
+    public void ResetDecompilerToggles() => SetDecompilerOptions(DecompilerOptions with { Toggles = DecompilerOptions.Default.Toggles });
+
+    /// <summary>Makes <paramref name="options"/> current and decompiles the shown C# documents again with them.</summary>
+    private void SetDecompilerOptions(DecompilerOptions options)
     {
-        if (version == DecompilerOptions.LanguageVersion) return;
-        DecompilerOptions = DecompilerOptions with { LanguageVersion = version };
+        if (options == DecompilerOptions) return;
+        DecompilerOptions = options;
         EnsureCurrent();
     }
 
@@ -508,6 +520,14 @@ public sealed class Workspace
         Layout.Activate(DockPanels.Analyzer);
     }
 
+    /// <summary>Docks the decompiler options beside the documents if they are not, and brings them to the front.</summary>
+    public void OpenDecompilerOptions()
+    {
+        if (!Layout.Contains(DockPanels.DecompilerOptions))
+            DockBeside(DockPanels.DecompilerOptions, DocumentGroup() ?? Layout.Root, DockEdge.Right, 0.3f);
+        Layout.Activate(DockPanels.DecompilerOptions);
+    }
+
     /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>
     public void OpenBookmarks()
     {
@@ -646,6 +666,7 @@ public sealed class Workspace
         _settings.Theme = Theme;
         _settings.Language = Language;
         _settings.Decompiler = DecompilerOptions;
+        _settings.FoldedOptionGroups = FoldedOptionGroups.Order().ToList();
         _settings.ShowNonPublic = ShowNonPublic;
         _settings.SearchKinds = Search.Kinds;
         _settings.Locale = Locale;
