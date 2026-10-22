@@ -229,6 +229,21 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void The_menu_bar_is_set_apart_from_the_toolbar_by_its_color_and_a_line()
+    {
+        var app = new AppDriver();
+        app.Run(2);
+        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var file = app.TextRect("File");
+        var open = app.TextRect(LucideIcons.FolderOpen);
+        var rects = app.Frames.Canvas.Rects.Select(r => (r.Inputs.Style.BackgroundColor, Rect: new UiRect(r.Inputs.Position.Left,
+            app.Frames.Height - r.Inputs.Position.Top, r.Inputs.Position.Width, r.Inputs.Position.Height))).ToList();
+
+        Assert.Contains(rects, r => r.BackgroundColor == theme.Background && r.Rect.Y <= file.Y && r.Rect.Bottom >= file.Bottom && r.Rect.Bottom <= open.Y);
+        Assert.Contains(rects, r => r.BackgroundColor == theme.Separator && r.Rect.Y >= file.Bottom && r.Rect.Bottom <= open.Y);
+    }
+
+    [Fact]
     public void Tree_rows_show_assembly_secondary_text_and_an_overlay_on_non_public_types()
     {
         var app = OpenFixtures();

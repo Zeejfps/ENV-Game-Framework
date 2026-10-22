@@ -19,6 +19,7 @@ public static class MainView
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
         {
             MainMenuView.Render(ui, w, t);
+            ui.Separator();
             ToolbarView.Render(ui, w, t);
             ui.Separator();
             Panels(ui, w, t);

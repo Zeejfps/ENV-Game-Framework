@@ -10,7 +10,7 @@ internal static class MainMenuView
 {
     public static void Render(Ui ui, Workspace w, Strings t)
     {
-        using (ui.MenuBar("menu"))
+        using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
         {
             using (var file = ui.Menu(t.MenuFile, id: "file"))
             {
