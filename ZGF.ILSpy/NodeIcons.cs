@@ -145,6 +145,26 @@ public sealed class NodeIconPalette
         Restricted = 0xFFD29922,
     };
 
+    public static NodeIconPalette GitHubLight { get; } = new()
+    {
+        Neutral = 0xFF59636E,
+        Type = 0xFF953800,
+        Method = 0xFF8250DF,
+        Data = 0xFF0550AE,
+        Error = 0xFFCF222E,
+        Restricted = 0xFF9A6700,
+    };
+
+    public static NodeIconPalette SolarizedLight { get; } = new()
+    {
+        Neutral = 0xFF586E75,
+        Type = 0xFFB58900,
+        Method = 0xFF268BD2,
+        Data = 0xFF6C71C4,
+        Error = 0xFFDC322F,
+        Restricted = 0xFFCB4B16,
+    };
+
     public static NodeIconPalette OneDarkPro { get; } = new()
     {
         Neutral = 0xFF8B909A,

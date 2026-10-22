@@ -16,6 +16,8 @@ public enum AppThemeId
     Dracula,
     Monokai,
     CatppuccinMocha,
+    GitHubLight,
+    SolarizedLight,
 }
 
 internal static class AppThemes
@@ -28,6 +30,9 @@ internal static class AppThemes
     public static readonly AppTheme Monokai = new(Shell(UiTheme.Monokai), CodeViewPalette.Monokai, NodeIconPalette.Monokai);
     public static readonly AppTheme CatppuccinMocha = new(Shell(UiTheme.CatppuccinMocha), CodeViewPalette.CatppuccinMocha,
         NodeIconPalette.CatppuccinMocha);
+    public static readonly AppTheme GitHubLight = new(Shell(UiTheme.GitHubLight), CodeViewPalette.GitHubLight, NodeIconPalette.GitHubLight);
+    public static readonly AppTheme SolarizedLight = new(Shell(UiTheme.SolarizedLight), CodeViewPalette.SolarizedLight,
+        NodeIconPalette.SolarizedLight);
 
     /// <summary>The themes named after the color schemes they follow, by their proper names, which
     /// are not translated.</summary>
@@ -38,6 +43,8 @@ internal static class AppThemes
         (AppThemeId.Dracula, "Dracula"),
         (AppThemeId.Monokai, "Monokai"),
         (AppThemeId.CatppuccinMocha, "Catppuccin Mocha"),
+        (AppThemeId.GitHubLight, "GitHub Light"),
+        (AppThemeId.SolarizedLight, "Solarized Light"),
     ];
 
     public static AppTheme For(AppThemeId id) => id switch
@@ -48,6 +55,8 @@ internal static class AppThemes
         AppThemeId.Dracula => Dracula,
         AppThemeId.Monokai => Monokai,
         AppThemeId.CatppuccinMocha => CatppuccinMocha,
+        AppThemeId.GitHubLight => GitHubLight,
+        AppThemeId.SolarizedLight => SolarizedLight,
         _ => Dark,
     };
 

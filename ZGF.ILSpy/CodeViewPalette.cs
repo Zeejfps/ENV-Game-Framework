@@ -130,6 +130,60 @@ public sealed class CodeViewPalette
         Bookmark = 0xFF58A6FF,
     };
 
+    public static CodeViewPalette GitHubLight { get; } = new()
+    {
+        Plain = 0xFF1F2328,
+        Keyword = 0xFFCF222E,
+        Type = 0xFF953800,
+        Namespace = 0xFF1F2328,
+        Method = 0xFF8250DF,
+        Member = 0xFF0550AE,
+        Parameter = 0xFF1F2328,
+        String = 0xFF0A3069,
+        Number = 0xFF0550AE,
+        Comment = 0xFF6E7781,
+        Preprocessor = 0xFFCF222E,
+        ILOpcode = 0xFFCF222E,
+        ILLabel = 0xFF116329,
+        GutterText = 0xFF6E7781,
+        GutterSeparator = 0xFFEAEEF2,
+        FoldChip = 0xFFEFF2F5,
+        FoldChipHovered = 0xFFE4E8EC,
+        Occurrence = 0xFFE6EEF9,
+        FindMatch = 0xFFFFF8C5,
+        CurrentFind = 0xFFFAE17D,
+        CurrentFindOutline = 0xFF9A6700,
+        Flash = 0xFFDDF4FF,
+        Bookmark = 0xFF0969DA,
+    };
+
+    public static CodeViewPalette SolarizedLight { get; } = new()
+    {
+        Plain = 0xFF586E75,
+        Keyword = 0xFF859900,
+        Type = 0xFFB58900,
+        Namespace = 0xFF586E75,
+        Method = 0xFF268BD2,
+        Member = 0xFF6C71C4,
+        Parameter = 0xFF657B83,
+        String = 0xFF2AA198,
+        Number = 0xFFD33682,
+        Comment = 0xFF93A1A1,
+        Preprocessor = 0xFFCB4B16,
+        ILOpcode = 0xFF859900,
+        ILLabel = 0xFF6C71C4,
+        GutterText = 0xFF839496,
+        GutterSeparator = 0xFFEEE8D5,
+        FoldChip = 0xFFEEE8D5,
+        FoldChipHovered = 0xFFE4DDC8,
+        Occurrence = 0xFFE9E3CF,
+        FindMatch = 0xFFEBDBAA,
+        CurrentFind = 0xFFDCC57D,
+        CurrentFindOutline = 0xFFB58900,
+        Flash = 0xFFD2E1E1,
+        Bookmark = 0xFF268BD2,
+    };
+
     public static CodeViewPalette OneDarkPro { get; } = new()
     {
         Plain = 0xFFABB2BF,

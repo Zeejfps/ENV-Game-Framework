@@ -4,7 +4,7 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class ThemeTests
 {
-    public static TheoryData<string> Presets => new() { "Dark", "Light", "GitHubDark", "OneDarkPro", "Dracula", "Monokai", "CatppuccinMocha" };
+    public static TheoryData<string> Presets => new() { "Dark", "Light", "GitHubDark", "OneDarkPro", "Dracula", "Monokai", "CatppuccinMocha", "GitHubLight", "SolarizedLight" };
 
     [Theory]
     [MemberData(nameof(Presets))]
@@ -19,7 +19,7 @@ public sealed class ThemeTests
         Assert.InRange(Contrast(theme.SelectionText, theme.Selection), 4.5f, 21f);
         Assert.InRange(Contrast(theme.OnAccent, theme.Accent), 4.5f, 21f);
         Assert.InRange(Contrast(theme.AccentText, theme.Background), 4.5f, 21f);
-        Assert.Equal(name != "Light", theme.IsDark);
+        Assert.Equal(!name.EndsWith("Light"), theme.IsDark);
     }
 
     private static float Contrast(uint a, uint b)

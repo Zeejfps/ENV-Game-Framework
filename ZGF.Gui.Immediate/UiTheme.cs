@@ -458,6 +458,76 @@ public sealed record UiTheme
         Scrim = 0x99000000,
     };
 
+    /// <summary>GitHub's Primer light palette.</summary>
+    public static UiTheme GitHubLight { get; } = new()
+    {
+        Background = 0xFFFFFFFF,
+        Surface = 0xFFF6F8FA,
+        SurfaceRaised = 0xFFFFFFFF,
+        Control = 0xFFF6F8FA,
+        ControlHovered = 0xFFEEF1F4,
+        ControlPressed = 0xFFE6EAEF,
+        Field = 0xFFFFFFFF,
+        Border = 0xFFD0D7DE,
+        Separator = 0xFFD8DEE4,
+        Text = 0xFF1F2328,
+        TextMuted = 0xFF59636E,
+        TextDisabled = 0xFF818B98,
+        Accent = 0xFF0969DA,
+        OnAccent = 0xFFFFFFFF,
+        AccentText = 0xFF0969DA,
+        FocusRing = 0xFF0969DA,
+        RowHover = 0xFFF2F4F6,
+        Selection = 0xFFDDF4FF,
+        SelectionInactive = 0xFFEAEEF2,
+        SelectionText = 0xFF1F2328,
+        Danger = 0xFFCF222E,
+        DangerSurface = 0xFFFFEBE9,
+        OnDanger = 0xFFFFFFFF,
+        Warning = 0xFF9A6700,
+        WarningSurface = 0xFFFFF8C5,
+        Success = 0xFF1A7F37,
+        Scrim = 0x59000000,
+        ScrollThumb = 0xFF8C959F,
+        ScrollThumbHovered = 0xFF6E7781,
+        ScrollThumbHeld = 0xFF57606A,
+        PopupShadow = new UiShadow(0f, 4f, 12f, 0f, 0x24000000),
+        DialogShadow = new UiShadow(0f, 8f, 24f, 0f, 0x33000000),
+    };
+
+    /// <summary>Solarized's light palette, with its text and accent darkened enough to read.</summary>
+    public static UiTheme SolarizedLight { get; } = new()
+    {
+        Background = 0xFFFDF6E3,
+        Surface = 0xFFEEE8D5,
+        SurfaceRaised = 0xFFFDF6E3,
+        Control = 0xFFE6DFC9,
+        Field = 0xFFFDF6E3,
+        Border = 0xFFCCC4AB,
+        Separator = 0xFFE3DCC6,
+        Text = 0xFF073642,
+        TextMuted = 0xFF4E6269,
+        TextDisabled = 0xFF93A1A1,
+        Accent = 0xFF1F6FA8,
+        OnAccent = 0xFFFFFFFF,
+        AccentText = 0xFF1F6FA8,
+        FocusRing = 0xFF268BD2,
+        RowHover = 0xFFF4EDD9,
+        Selection = 0xFFD7E2E0,
+        SelectionInactive = 0xFFE9E2CC,
+        SelectionText = 0xFF073642,
+        Danger = 0xFFDC322F,
+        OnDanger = 0xFFFFFFFF,
+        Warning = 0xFF8A6800,
+        Success = 0xFF5E6D00,
+        Scrim = 0x59000000,
+        ScrollThumb = 0xFF93A1A1,
+        ScrollThumbHovered = 0xFF839496,
+        ScrollThumbHeld = 0xFF657B83,
+        PopupShadow = new UiShadow(0f, 4f, 12f, 0f, 0x24000000),
+        DialogShadow = new UiShadow(0f, 8f, 24f, 0f, 0x33000000),
+    };
+
     /// <summary>Atom's One Dark, as the One Dark Pro editor theme has it.</summary>
     public static UiTheme OneDarkPro { get; } = new()
     {
