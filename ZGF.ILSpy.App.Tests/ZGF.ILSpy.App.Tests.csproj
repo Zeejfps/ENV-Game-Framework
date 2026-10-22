@@ -14,10 +14,12 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="ZGF.ILSpy.Tests" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="..\ZGF.ILSpy.Tests\Fixtures\Resources\*" LogicalName="%(Filename)%(Extension)" />
+    <Compile Include="..\ZGF.ILSpy.Tests\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

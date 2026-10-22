@@ -10,13 +10,21 @@ public sealed class CodeViewTests
 {
     private const float ViewHeight = 300f - 2 * CodeViewDriver.Origin;
 
+    private static (CodeViewDriver View, int Line, int Column) GreeterAt(string text)
+    {
+        var view = CodeViewDriver.Showing(CodeViewDriver.Greeter(), height: 1200f);
+        var (line, column) = view.Document.Find(text);
+        return (view, line, column);
+    }
+
+    private static CodeViewDriver ThreeLines() => CodeViewDriver.Showing(DecompiledDocument.FromText("t", "alpha beta\ngamma delta\nepsilon"));
+
     [Fact]
     public void Only_the_lines_in_view_are_recorded_in_a_100k_line_document()
     {
         var view = new CodeViewDriver(CodeViewDriver.Numbered(100_000));
 
-        view.Run();
-        view.Run();
+        view.Run(2);
 
         var drawn = view.DrawnText().ToList();
         Assert.Contains(("line 0", CodeViewDriver.Origin), drawn);
@@ -27,22 +35,19 @@ public sealed class CodeViewTests
     [Fact]
     public void Lines_are_drawn_in_the_syntax_colors_of_the_provided_palette()
     {
-        var document = CodeViewDriver.Greeter();
-        var view = new CodeViewDriver(document, height: 1200f);
-        var (line, column) = document.Find("public class Greeter");
+        var (view, line, column) = GreeterAt("public class Greeter");
 
-        view.Run();
         view.Run();
         var dark = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
         view.Frames.Run(1f / 60f, ui =>
         {
             using (ui.Provide(UiTheme.Light))
             using (ui.Provide(CodeViewPalette.Light))
-                ui.CodeView("code", document, view.State, Strings.En);
+                ui.CodeView("code", view.Document, view.State, Strings.En);
         });
         var light = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
 
-        Assert.Equal(SpanKind.Keyword, document.SpanAt(line, column).Kind);
+        Assert.Equal(SpanKind.Keyword, view.Document.SpanAt(line, column).Kind);
         Assert.Equal(CodeViewPalette.Dark[SpanKind.Keyword], dark);
         Assert.Equal(CodeViewPalette.Light[SpanKind.Keyword], light);
     }
@@ -50,13 +55,11 @@ public sealed class CodeViewTests
     [Fact]
     public void Tab_reaches_the_code_view_with_a_focus_ring_that_a_click_does_not_show()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Numbered(20));
-        view.Run();
+        var view = CodeViewDriver.Showing(CodeViewDriver.Numbered(20));
         static bool Ring(CodeViewDriver v) => v.Frames.Canvas.Rects.Any(r => r.Inputs.Style.BorderColor.Top.Value == UiTheme.Dark.FocusRing);
         Assert.False(Ring(view));
 
-        view.Key(KeyboardKey.Tab);
-        view.Run();
+        view.Key(KeyboardKey.Tab).Frame();
         Assert.True(Ring(view));
         view.Key(KeyboardKey.A, KeyModifiers.Control);
         view.Key(KeyboardKey.C, KeyModifiers.Control);
@@ -70,10 +73,7 @@ public sealed class CodeViewTests
     [Fact]
     public void Hovering_a_reference_underlines_it_with_a_hand_cursor()
     {
-        var document = CodeViewDriver.Greeter();
-        var view = new CodeViewDriver(document, height: 1200f);
-        var (line, column) = document.Find("Greet(2)");
-        view.Run();
+        var (view, line, column) = GreeterAt("Greet(2)");
 
         view.MoveTo(line, column + 1);
 
@@ -85,15 +85,12 @@ public sealed class CodeViewTests
     [Fact]
     public void Clicking_a_reference_navigates_to_it()
     {
-        var document = CodeViewDriver.Greeter();
-        var view = new CodeViewDriver(document, height: 1200f);
-        var (line, column) = document.Find("Greet(2)");
-        view.Run();
+        var (view, line, column) = GreeterAt("Greet(2)");
 
         var result = view.Click(line, column + 2);
 
         Assert.NotNull(result.Navigate);
-        Assert.Equal(document.SpanAt(line, column).Reference, result.Navigate);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, result.Navigate);
         Assert.Equal(CodeReferenceKind.Method, result.Navigate!.Kind);
         Assert.False(result.NavigateInNewTab);
     }
@@ -101,36 +98,29 @@ public sealed class CodeViewTests
     [Fact]
     public void Ctrl_click_and_middle_click_navigate_in_a_new_tab()
     {
-        var document = CodeViewDriver.Greeter();
-        var view = new CodeViewDriver(document, height: 1200f);
-        var (line, column) = document.Find("Greet(2)");
-        view.Run();
+        var (view, line, column) = GreeterAt("Greet(2)");
 
         var ctrl = view.Click(line, column, modifiers: KeyModifiers.Control);
         view.Frames.Wait(1);
         var middle = view.Click(line, column, PointerButton.Middle);
 
         Assert.True(ctrl.NavigateInNewTab);
-        Assert.Equal(document.SpanAt(line, column).Reference, ctrl.Navigate);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, ctrl.Navigate);
         Assert.True(middle.NavigateInNewTab);
-        Assert.Equal(document.SpanAt(line, column).Reference, middle.Navigate);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, middle.Navigate);
     }
 
     [Fact]
     public void Clicking_a_local_highlights_its_occurrences_without_navigating()
     {
-        var document = CodeViewDriver.Greeter();
-        var view = new CodeViewDriver(document, height: 1200f);
-        var (line, column) = document.Find("text = ");
-        view.Run();
+        var (view, line, column) = GreeterAt("text = ");
 
         var result = view.Click(line, column);
-        view.Frames.MovePointer(1000f, 1000f);
-        view.Run();
+        view.Frames.MovePointer(1000f, 1000f).Frame();
 
         Assert.Null(result.Navigate);
         var occurrence = CodeViewPalette.Dark.Occurrence;
-        var expected = document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
+        var expected = view.Document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
         Assert.True(expected >= 3);
         Assert.Equal(expected, view.Frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == occurrence));
     }
@@ -138,16 +128,11 @@ public sealed class CodeViewTests
     [Fact]
     public void Dragging_selects_and_ctrl_c_copies_partial_first_and_last_lines()
     {
-        var view = new CodeViewDriver(DecompiledDocument.FromText("t", "alpha beta\ngamma delta\nepsilon"));
-        view.Run();
+        var view = ThreeLines();
 
-        view.MoveTo(0, 6);
-        view.Frames.Press();
-        view.Run();
+        view.MoveTo(0, 6).Press().Frame();
         view.MoveTo(1, 3);
-        view.MoveTo(2, 3);
-        view.Frames.Release();
-        view.Run();
+        view.MoveTo(2, 3).Release().Frame();
         view.Key(KeyboardKey.C, KeyModifiers.Control);
 
         Assert.Equal("beta\ngamma delta\neps", view.Frames.Clipboard.Text);
@@ -156,8 +141,7 @@ public sealed class CodeViewTests
     [Fact]
     public void Shift_click_extends_and_ctrl_a_selects_everything()
     {
-        var view = new CodeViewDriver(DecompiledDocument.FromText("t", "alpha beta\ngamma delta\nepsilon"));
-        view.Run();
+        var view = ThreeLines();
 
         view.Click(0, 2);
         view.Frames.Wait(1);
@@ -172,8 +156,7 @@ public sealed class CodeViewTests
     [Fact]
     public void Double_click_selects_a_word_and_triple_click_a_line()
     {
-        var view = new CodeViewDriver(DecompiledDocument.FromText("t", "alpha beta\ngamma delta\nepsilon"));
-        view.Run();
+        var view = ThreeLines();
 
         view.Click(1, 8);
         view.Click(1, 8);
@@ -188,18 +171,12 @@ public sealed class CodeViewTests
     [Fact]
     public void Dragging_past_the_bottom_scrolls_and_keeps_extending_the_selection()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Numbered(1000));
-        view.Run();
+        var view = CodeViewDriver.Showing(CodeViewDriver.Numbered(1000));
 
-        view.MoveTo(0, 0);
-        view.Frames.Press();
-        view.Run();
-        view.Frames.MovePointer(100f, 400f);
-        for (var i = 0; i < 30; i++)
-            view.Run();
+        view.MoveTo(0, 0).Press().Frame();
+        view.Frames.MovePointer(100f, 400f).Frame(30);
         var requested = view.Frames.RequestedFrame;
-        view.Frames.Release();
-        view.Run();
+        view.Frames.Release().Frame();
 
         Assert.True(requested);
         Assert.True(view.State.Selection.End.Line > ViewHeight / CodeViewDriver.Row + 5);
@@ -209,13 +186,11 @@ public sealed class CodeViewTests
     [Fact]
     public void Find_counts_matches_and_steps_with_wrap_both_ways()
     {
-        var view = new CodeViewDriver(DecompiledDocument.FromText("t", "foo\nbar foo\nbaz\nfoo foo"));
-        view.Run();
+        var view = CodeViewDriver.Showing(DecompiledDocument.FromText("t", "foo\nbar foo\nbaz\nfoo foo"));
         view.Click(2, 0);
 
         view.Key(KeyboardKey.F, KeyModifiers.Control);
-        view.Frames.Type("foo");
-        view.Run();
+        view.Frames.Type("foo").Frame();
         var first = (view.Frames.Drew("3 of 4"), view.State.Selection.Start);
         view.Key(KeyboardKey.Enter);
         var second = (view.Frames.Drew("4 of 4"), view.State.Selection.Start);
@@ -234,15 +209,11 @@ public sealed class CodeViewTests
     [Fact]
     public void Find_scrolls_the_current_match_into_view_and_escape_closes_it()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Numbered(1000));
-        view.Run();
+        var view = CodeViewDriver.Showing(CodeViewDriver.Numbered(1000));
         view.Click(0, 0);
 
         view.Key(KeyboardKey.F, KeyModifiers.Control);
-        view.Frames.Type("line 700");
-        view.Run();
-        view.Run();
-        view.Run();
+        view.Frames.Type("line 700").Frame(3);
         var shown = view.DrawnText().Any(d => d.Text == "line 700");
         var counted = view.Frames.Drew("1 of 1");
         view.Key(KeyboardKey.Escape);
@@ -259,8 +230,7 @@ public sealed class CodeViewTests
         var view = new CodeViewDriver(CodeViewDriver.Numbered(1000));
         view.State.RevealLine(500);
 
-        for (var i = 0; i < 4; i++)
-            view.Run();
+        view.Run(4);
 
         var (_, top) = view.DrawnText().Single(d => d.Text == "line 500");
         Assert.InRange(top, CodeViewDriver.Origin + ViewHeight / 3 - CodeViewDriver.Row, CodeViewDriver.Origin + ViewHeight / 3 + CodeViewDriver.Row);
@@ -270,12 +240,8 @@ public sealed class CodeViewTests
     [Fact]
     public void A_new_document_resets_selection_and_scroll_but_the_same_one_keeps_them()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Numbered(1000));
-        view.Run();
-        view.MoveTo(5, 0);
-        view.Frames.Wheel(-20);
-        view.Run();
-        view.Run();
+        var view = CodeViewDriver.Showing(CodeViewDriver.Numbered(1000));
+        view.MoveTo(5, 0).Wheel(-20).Frame(2);
         view.Click(3, 0);
         view.Frames.Wait(1);
         view.Click(3, 2, modifiers: KeyModifiers.Shift);
@@ -286,8 +252,7 @@ public sealed class CodeViewTests
         view.Run();
         var kept = view.State.HasSelection;
         view.Document = CodeViewDriver.Numbered(1000, "row ");
-        view.Run();
-        view.Run();
+        view.Run(2);
 
         Assert.True(selected);
         Assert.True(scrolled);
@@ -299,17 +264,14 @@ public sealed class CodeViewTests
     [Fact]
     public void Keys_scroll_the_focused_view_by_page_and_to_either_end()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Numbered(1000));
-        view.Run();
+        var view = CodeViewDriver.Showing(CodeViewDriver.Numbered(1000));
         view.Click(0, 0);
 
         var page = (int)MathF.Floor(ViewHeight / CodeViewDriver.Row) - 1;
 
-        view.Key(KeyboardKey.PageDown);
-        view.Run();
+        view.Key(KeyboardKey.PageDown).Frame();
         var paged = view.DrawnText().Single(d => d.Text == $"line {page}").Top;
-        view.Key(KeyboardKey.End);
-        view.Run();
+        view.Key(KeyboardKey.End).Frame();
         var end = view.DrawnText().Any(d => d.Text == "line 999");
 
         Assert.Equal(CodeViewDriver.Origin, paged);
@@ -319,22 +281,15 @@ public sealed class CodeViewTests
     [Fact]
     public void The_context_menu_goes_to_the_definition_under_the_pointer()
     {
-        var document = CodeViewDriver.Greeter();
-        var view = new CodeViewDriver(document, height: 1200f);
-        var (line, column) = document.Find("Greet(2)");
-        view.Run();
+        var (view, line, column) = GreeterAt("Greet(2)");
 
         view.Click(line, column, PointerButton.Right);
         view.Run();
         var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Go to definition").Inputs.Position;
-        view.Frames.MovePointer(item.Left + 2f, view.Frames.Height - item.Center.Y);
-        view.Run();
-        view.Frames.Press();
-        view.Run();
-        view.Frames.Release();
-        var result = view.Run();
+        view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
+        var result = view.Last;
 
-        Assert.Equal(document.SpanAt(line, column).Reference, result.Navigate);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, result.Navigate);
         Assert.False(result.NavigateInNewTab);
     }
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ZGF.Desktop;
+using ZGF.Geometry;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
@@ -9,26 +10,20 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class MetadataGridTests
 {
-    private static BrowseNode Table(WorkspaceDriver d, string name) =>
-        d.Node("Metadata", "Tables").Children.Single(c => c.Text.Split(' ')[1] == name);
+    private static BrowseNode Table(AppDriver app, string name) => app.Node("Metadata", "Tables").Table(name);
 
-    private static int Column(MetadataGrid grid, string name) => grid.Columns.Select(c => c.Name).ToList().IndexOf(name);
-
-    private static int RowNamed(MetadataGrid grid, string name)
+    private static (AppDriver App, DocumentTab Tab, MetadataGrid Grid) ShowTable(string name, int frames = 3)
     {
-        var column = Column(grid, "Name");
-        return Enumerable.Range(0, grid.RowCount).First(r => grid.Text(r, column) == name);
+        var app = AppDriver.Opened(width: 1800f);
+        app.Show(Table(app, name), frames);
+        var tab = app.Workspace.ActiveTab!;
+        return (app, tab, tab.Grid!);
     }
 
     private static (AppDriver App, DocumentTab Tab, MetadataGrid Grid, int Row) ShowGreeterRow()
     {
-        var app = new AppDriver(width: 1800f);
-        var d = app.Driver;
-        d.OpenFixtures();
-        d.Show(Table(d, "TypeDef"));
-        var tab = d.Workspace.ActiveTab!;
-        var grid = tab.Grid!;
-        var row = RowNamed(grid, "Greeter");
+        var (app, tab, grid) = ShowTable("TypeDef", frames: 0);
+        var row = grid.RowNamed("Greeter");
         tab.GridView.Reveal(row);
         app.Run(3);
         return (app, tab, grid, row);
@@ -38,39 +33,19 @@ public sealed class MetadataGridTests
     private static UiRect TextBeside(AppDriver app, string text, string besides)
     {
         var line = app.TextRect(besides);
-        var drawn = app.Frames.Canvas.Texts.Select(t => t.Inputs.Position)
-            .Select(p => new UiRect(p.Left, app.Frames.Height - p.Top, p.Width, p.Height))
-            .Zip(app.Frames.Canvas.Texts, (rect, t) => (rect, t.Inputs.Text))
-            .First(x => x.Text == text && Math.Abs(x.rect.Y - line.Y) < 1f);
-        return drawn.rect;
+        return app.Frames.TextRects().First(x => x.Text == text && Math.Abs(x.Rect.Y - line.Y) < 1f).Rect;
     }
 
-    private static void Click(AppDriver app, UiRect at, int times = 1, KeyModifiers modifiers = KeyModifiers.None)
-    {
-        app.Frames.MovePointer(at.X + at.Width / 2, at.Y + at.Height / 2);
-        app.Run();
-        for (var i = 0; i < times; i++)
-        {
-            app.Frames.Press(modifiers);
-            app.Run();
-            app.Frames.Release(modifiers: modifiers);
-            app.Run();
-        }
-    }
+    private static void Drag(AppDriver app, float fromX, float toX, float y) =>
+        app.Frames.Wait(1).Drag(new PointF(fromX, y), new PointF(toX, y)).Release().Frame();
 
     [Fact]
     public void A_table_opens_as_a_grid_of_ILSpys_columns_that_switching_language_leaves_alone()
     {
-        var app = new AppDriver(width: 1800f);
-        var d = app.Driver;
-        d.OpenFixtures();
+        var (app, tab, grid) = ShowTable("TypeDef", frames: 0);
 
-        d.Show(Table(d, "TypeDef"));
-        var tab = d.Workspace.ActiveTab!;
-        var grid = tab.Grid!;
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
-        d.Settle();
-        app.Run(2);
+        app.Workspace.SetLanguage(DecompilationLanguage.IL);
+        app.Settle(2);
 
         Assert.Same(grid, tab.Grid);
         Assert.Equal(["RID", "Token", "Offset", "Attributes", "Name", "Namespace", "BaseType", "FieldList", "MethodList"], grid.Columns.Select(c => c.Name));
@@ -81,14 +56,11 @@ public sealed class MetadataGridTests
     [Fact]
     public void Columns_wider_than_the_view_scroll_sideways_with_their_headers()
     {
-        var app = new AppDriver(width: 700f);
-        var d = app.Driver;
-        d.OpenFixtures();
-        d.Show(Table(d, "TypeDef"));
-        var tab = d.Workspace.ActiveTab!;
+        var app = AppDriver.Opened(width: 700f);
+        app.Show(Table(app, "TypeDef"), 2);
+        var tab = app.Workspace.ActiveTab!;
         var grid = tab.Grid!;
-        app.Run(2);
-        var methodList = grid.Text(0, Column(grid, "MethodList"));
+        var methodList = grid.Text(0, grid.Column("MethodList"));
 
         tab.GridView.ScrollX = 10000f;
         app.Run(3);
@@ -102,8 +74,7 @@ public sealed class MetadataGridTests
     [Fact]
     public void A_text_node_of_the_metadata_decompiles_to_comments()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
 
         d.Show(d.Node("Metadata", "Tables"));
 
@@ -115,24 +86,21 @@ public sealed class MetadataGridTests
     public void Ctrl_clicking_a_token_shows_its_row_and_going_back_returns_to_the_row_it_left()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
-        var d = app.Driver;
-        var baseType = grid.Text(row, Column(grid, "BaseType"));
-        Click(app, TextBeside(app, "Greeter", "Greeter"));
+        var baseType = grid.Text(row, grid.Column("BaseType"));
+        app.Frames.Click(TextBeside(app, "Greeter", "Greeter"));
 
-        Click(app, TextBeside(app, baseType, "Greeter"), modifiers: KeyModifiers.Control);
-        d.Settle();
-        app.Run(3);
+        app.Frames.Click(TextBeside(app, baseType, "Greeter"), modifiers: KeyModifiers.Control);
+        app.Settle(3);
 
         var typeRefs = tab.Grid!;
-        Assert.Same(Table(d, "TypeRef"), tab.Node);
-        Assert.Equal("Object", typeRefs.Text(tab.GridView.Selected, Column(typeRefs, "Name")));
+        Assert.Same(Table(app, "TypeRef"), tab.Node);
+        Assert.Equal("Object", typeRefs.Text(tab.GridView.Selected, typeRefs.Column("Name")));
         app.TextRect("Object");
 
-        d.Workspace.GoBack();
-        d.Settle();
-        app.Run(3);
+        app.Workspace.GoBack();
+        app.Settle(3);
 
-        Assert.Same(Table(d, "TypeDef"), tab.Node);
+        Assert.Same(Table(app, "TypeDef"), tab.Node);
         Assert.Equal(row, tab.GridView.Selected);
     }
 
@@ -140,36 +108,30 @@ public sealed class MetadataGridTests
     public void Clicking_the_link_icon_of_a_hovered_token_shows_its_row()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
-        var token = TextBeside(app, grid.Text(row, Column(grid, "BaseType")), "Greeter");
+        var token = TextBeside(app, grid.Text(row, grid.Column("BaseType")), "Greeter");
 
-        app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2);
-        app.Run(2);
-        var icon = TextBeside(app, LucideIcons.ExternalLink, "Greeter");
-        Click(app, icon);
-        app.Driver.Settle();
-        app.Run(3);
+        app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2).Frame(2);
+        app.Frames.Click(TextBeside(app, LucideIcons.ExternalLink, "Greeter"));
+        app.Settle(3);
 
-        Assert.Same(Table(app.Driver, "TypeRef"), tab.Node);
+        Assert.Same(Table(app, "TypeRef"), tab.Node);
     }
 
     [Fact]
     public void A_row_stays_highlighted_while_its_link_icon_is_hovered()
     {
         var (app, _, grid) = ShowTable("TypeDef");
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
-        var baseType = Column(grid, "BaseType");
+        var baseType = grid.Column("BaseType");
         var row = Enumerable.Range(0, grid.RowCount).First(r => grid.Link(r, baseType) != null);
-        var name = grid.Text(row, Column(grid, "Name"));
+        var name = grid.Text(row, grid.Column("Name"));
         var token = TextBeside(app, grid.Text(row, baseType), name);
-        app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2);
-        app.Run(2);
+        app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2).Frame(2);
         var icon = TextBeside(app, LucideIcons.ExternalLink, name);
 
-        app.Frames.MovePointer(icon.X + icon.Width / 2, icon.Y + icon.Height / 2);
-        app.Run(2);
+        app.Frames.MovePointer(icon).Frame(2);
 
         Assert.True(app.Frames.Drew(LucideIcons.ExternalLink));
-        Assert.Contains(app.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == theme.RowHover
+        Assert.Contains(app.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == app.Theme.RowHover
                                                       && Math.Abs(app.Frames.Height - r.Inputs.Position.Top + r.Inputs.Position.Height / 2 - (icon.Y + icon.Height / 2)) < 4f);
     }
 
@@ -178,39 +140,37 @@ public sealed class MetadataGridTests
     {
         var (app, tab, _, _) = ShowGreeterRow();
 
-        Click(app, TextBeside(app, "Greeter", "Greeter"), times: 2);
-        app.Driver.Settle();
+        app.Frames.DoubleClick(TextBeside(app, "Greeter", "Greeter"));
+        app.Settle();
 
-        Assert.Same(app.Driver.Fixture("Greeter"), tab.Node);
+        Assert.Same(app.Fixture("Greeter"), tab.Node);
         Assert.Null(tab.Grid);
     }
 
     [Fact]
     public void Enter_on_the_selected_row_decompiles_it_and_Ctrl_C_copies_the_current_cell()
     {
-        var (app, tab, grid, row) = ShowGreeterRow();
-        Click(app, TextBeside(app, "Greeter", "Greeter"));
+        var (app, tab, _, _) = ShowGreeterRow();
+        app.Frames.Click(TextBeside(app, "Greeter", "Greeter"));
 
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
         var copied = app.Frames.Clipboard.Text;
-        app.Frames.Key(KeyboardKey.Enter);
-        app.Run();
-        app.Driver.Settle();
+        app.Frames.Key(KeyboardKey.Enter).Frame();
+        app.Settle();
 
         Assert.Equal("Greeter", copied);
-        Assert.Same(app.Driver.Fixture("Greeter"), tab.Node);
+        Assert.Same(app.Fixture("Greeter"), tab.Node);
     }
 
     [Fact]
     public void Clicking_a_header_sorts_by_its_column_and_again_the_other_way()
     {
         var (app, tab, grid, _) = ShowGreeterRow();
-        var name = Column(grid, "Name");
+        var name = grid.Column("Name");
 
-        Click(app, app.TextRect("Name"));
+        app.Click("Name");
         var ascending = tab.GridView.Order!.Select(r => grid.Text(r, name)).ToList();
-        Click(app, app.TextRect("Name"));
+        app.Click("Name");
         var descending = tab.GridView.Order!.Select(r => grid.Text(r, name)).ToList();
 
         Assert.Equal(ascending.Order(StringComparer.CurrentCulture), ascending);
@@ -221,34 +181,22 @@ public sealed class MetadataGridTests
     public void Hovering_a_flags_cell_breaks_its_bits_down()
     {
         var (app, _, grid, row) = ShowGreeterRow();
-        var attributes = TextBeside(app, grid.Text(row, Column(grid, "Attributes")), "Greeter");
+        var attributes = TextBeside(app, grid.Text(row, grid.Column("Attributes")), "Greeter");
 
-        app.Frames.MovePointer(attributes.X + 2f, attributes.Y + attributes.Height / 2);
-        for (var i = 0; i < 90; i++)
-            app.Run();
+        app.Frames.MovePointer(attributes.X + 2f, attributes.Y + attributes.Height / 2).Frame(90);
 
         app.TextRect("Visibility");
         app.TextRect("Public (0001)");
         app.TextRect("BeforeFieldInit (100000)");
     }
 
-    private static (AppDriver App, DocumentTab Tab, MetadataGrid Grid) ShowTable(string name)
-    {
-        var app = new AppDriver(width: 1800f);
-        app.Driver.OpenFixtures();
-        app.Driver.Show(Table(app.Driver, name));
-        app.Run(3);
-        var tab = app.Workspace.ActiveTab!;
-        return (app, tab, tab.Grid!);
-    }
-
     /// <summary>The funnel drawn in the header of <paramref name="column"/>.</summary>
     private static UiRect FunnelOf(AppDriver app, string column)
     {
         var header = app.TextRect(column);
-        return app.Frames.Canvas.Texts
-            .Where(t => t.Inputs.Text == LucideIcons.Filter)
-            .Select(t => new UiRect(t.Inputs.Position.Left, app.Frames.Height - t.Inputs.Position.Top, t.Inputs.Position.Width, t.Inputs.Position.Height))
+        return app.Frames.TextRects()
+            .Where(t => t.Text == LucideIcons.Filter)
+            .Select(t => t.Rect)
             .Where(r => r.X > header.X && Math.Abs(r.Y + r.Height / 2 - (header.Y + header.Height / 2)) < 4f)
             .MinBy(r => r.X);
     }
@@ -257,14 +205,12 @@ public sealed class MetadataGridTests
     public void Typing_in_a_columns_filter_keeps_the_rows_that_match_and_Escape_clears_it()
     {
         var (app, tab, grid) = ShowTable("TypeDef");
-        var name = Column(grid, "Name");
+        var name = grid.Column("Name");
 
-        Click(app, FunnelOf(app, "Name"));
-        app.Frames.Type("greet");
-        app.Run(2);
+        app.Frames.Click(FunnelOf(app, "Name"));
+        app.Frames.Type("greet").Frame(2);
         var filtered = tab.GridView.View.Select(r => grid.Text(r, name)).ToList();
-        app.Frames.Key(KeyboardKey.Escape);
-        app.Run(2);
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Contains("Greeter", filtered);
         Assert.All(filtered, n => Assert.Contains("greet", n, StringComparison.OrdinalIgnoreCase));
@@ -275,11 +221,10 @@ public sealed class MetadataGridTests
     public void A_flags_filter_picks_values_in_its_popup_and_is_kept_for_that_column_of_every_table_of_the_kind()
     {
         var (app, tab, grid) = ShowTable("TypeDef");
-        var attributes = Column(grid, "Attributes");
+        var attributes = grid.Column("Attributes");
 
-        Click(app, FunnelOf(app, "Attributes"));
-        app.ClickMenuItem("Public (0001)");
-        app.Run(2);
+        app.Frames.Click(FunnelOf(app, "Attributes"));
+        app.ClickMenuItem("Public (0001)").Frame(2);
 
         var visibility = System.Reflection.TypeAttributes.VisibilityMask;
         Assert.NotEmpty(tab.GridView.View);
@@ -296,33 +241,16 @@ public sealed class MetadataGridTests
     [Fact]
     public void Hovering_a_headers_flags_value_breaks_its_bits_down()
     {
-        var app = new AppDriver(width: 1800f, height: 1200f);
-        app.Driver.OpenFixtures();
-        app.Driver.Show(app.Driver.Node("Metadata", "COFF Header"));
-        app.Run(3);
+        var app = AppDriver.Opened(width: 1800f, height: 1200f);
+        app.Show(app.Node("Metadata", "COFF Header"), 3);
         var grid = app.Workspace.ActiveTab!.Grid!;
-        var row = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, Column(grid, "Member")) == "Characteristics");
-        var value = TextBeside(app, grid.Text(row, Column(grid, "Value")), "Characteristics");
+        var row = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, grid.Column("Member")) == "Characteristics");
+        var value = TextBeside(app, grid.Text(row, grid.Column("Value")), "Characteristics");
 
-        app.Frames.MovePointer(value.X + 2f, value.Y + value.Height / 2);
-        for (var i = 0; i < 90; i++)
-            app.Run();
+        app.Frames.MovePointer(value.X + 2f, value.Y + value.Height / 2).Frame(90);
 
         app.TextRect("File is executable (0002)");
         app.TextRect("DLL (2000)");
-    }
-
-    private static void Drag(AppDriver app, float fromX, float toX, float y)
-    {
-        app.Frames.Wait(1);
-        app.Frames.MovePointer(fromX, y);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.MovePointer(toX, y);
-        app.Run();
-        app.Frames.Release();
-        app.Run();
     }
 
     [Fact]
@@ -333,8 +261,7 @@ public sealed class MetadataGridTests
         var advance = name.Width / "Greeter".Length;
 
         Drag(app, name.X + 1f, name.X + advance * 4, name.Y + name.Height / 2);
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
 
         Assert.Equal("Gree", app.Frames.Clipboard.Text);
         Assert.Equal(row, tab.GridView.Selected);
@@ -344,15 +271,14 @@ public sealed class MetadataGridTests
     public void The_selected_cells_outline_is_drawn_over_the_text_selected_in_it()
     {
         var (app, _, _, _) = ShowGreeterRow();
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
         var name = TextBeside(app, "Greeter", "Greeter");
 
         Drag(app, name.X + 1f, name.X + name.Width - 1f, name.Y + name.Height / 2);
         app.Run();
 
         var rects = app.Frames.Canvas.Rects;
-        var highlight = rects.Last(r => r.Inputs.Style.BackgroundColor == theme.Selection).Sequence;
-        var outline = rects.Last(r => r.Inputs.Style.BorderColor.Top.Value == theme.FocusRing).Sequence;
+        var highlight = rects.Last(r => r.Inputs.Style.BackgroundColor == app.Theme.Selection).Sequence;
+        var outline = rects.Last(r => r.Inputs.Style.BorderColor.Top.Value == app.Theme.FocusRing).Sequence;
         Assert.True(outline > highlight);
     }
 
@@ -360,14 +286,13 @@ public sealed class MetadataGridTests
     public void Clicking_a_token_selects_all_its_text_instead_of_following_it()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
-        var baseType = grid.Text(row, Column(grid, "BaseType"));
+        var baseType = grid.Text(row, grid.Column("BaseType"));
 
-        Click(app, TextBeside(app, baseType, "Greeter"));
-        app.Driver.Settle();
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        app.Frames.Click(TextBeside(app, baseType, "Greeter"));
+        app.Settle();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
 
-        Assert.Same(Table(app.Driver, "TypeDef"), tab.Node);
+        Assert.Same(Table(app, "TypeDef"), tab.Node);
         Assert.Equal(baseType, app.Frames.Clipboard.Text);
     }
 
@@ -378,12 +303,9 @@ public sealed class MetadataGridTests
         var name = TextBeside(app, "Greeter", "Greeter");
         Drag(app, name.X + 1f, name.X + name.Width / 2, name.Y + name.Height / 2);
 
-        app.Frames.Key(KeyboardKey.LeftArrow);
-        app.Run();
-        app.Frames.Key(KeyboardKey.RightArrow);
-        app.Run();
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        app.Frames.Key(KeyboardKey.LeftArrow).Frame();
+        app.Frames.Key(KeyboardKey.RightArrow).Frame();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
 
         Assert.Equal("Greeter", app.Frames.Clipboard.Text);
     }
@@ -391,14 +313,12 @@ public sealed class MetadataGridTests
     [Fact]
     public void Selecting_debug_information_shows_its_decoded_value_under_it()
     {
-        var app = new AppDriver(width: 1800f, height: 900f);
-        var d = app.Driver;
-        d.OpenFixtures();
-        var tables = d.Node("Debug Metadata (From portable PDB)", "Tables");
-        d.Show(tables.Children.Single(c => c.Text.Split(' ')[1] == "CustomDebugInformation"));
+        var app = AppDriver.Opened(width: 1800f, height: 900f);
+        var table = app.Node("Debug Metadata (From portable PDB)", "Tables").Table("CustomDebugInformation");
+        app.Show(table);
         var tab = app.Workspace.ActiveTab!;
         var grid = tab.Grid!;
-        var kind = Column(grid, "KindString");
+        var kind = grid.Column("KindString");
         var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));
 
         tab.GridView.Reveal(options);

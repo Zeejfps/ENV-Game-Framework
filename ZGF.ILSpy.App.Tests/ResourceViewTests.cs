@@ -9,10 +9,8 @@ public sealed class ResourceViewTests
 {
     private static (AppDriver App, DocumentTab Tab) ShowResource(params string[] path)
     {
-        var app = new AppDriver(width: 1400f);
-        app.Driver.OpenFixtures();
-        app.Driver.Show(app.Driver.Node(["Resources", .. path]));
-        app.Run(3);
+        var app = AppDriver.Opened(width: 1400f);
+        app.Show(app.Node(["Resources", .. path]), 3);
         return (app, app.Workspace.ActiveTab!);
     }
 
@@ -27,9 +25,9 @@ public sealed class ResourceViewTests
         Assert.Equal((2f, 2f), (drawn.Inputs.Position.Width, drawn.Inputs.Position.Height));
         app.TextRect("PNG, 2 × 2 pixels");
         var export = app.TextRect("Export");
-        var icon = app.Frames.Canvas.Texts.Select(t => t.Inputs).Single(t => t.Text == LucideIcons.Upload).Position;
-        Assert.True(icon.Left + icon.Width <= export.X);
-        Assert.Equal(export.Y + export.Height / 2, app.Frames.Height - icon.Top + icon.Height / 2, 2f);
+        var icon = app.Frames.TextRect(LucideIcons.Upload);
+        Assert.True(icon.Right <= export.X);
+        Assert.Equal(export.Y + export.Height / 2, icon.Y + icon.Height / 2, 2f);
     }
 
     [Fact]
@@ -86,30 +84,17 @@ public sealed class ResourceViewTests
         Assert.Equal(first.Y, more.Y, 4f);
     }
 
-    private static void Press(AppDriver app, UiRect at, int times = 1)
-    {
-        app.Frames.Wait(1);
-        app.Frames.MovePointer(at.X + at.Width / 2, at.Y + at.Height / 2);
-        app.Run();
-        for (var i = 0; i < times; i++)
-        {
-            app.Frames.Press();
-            app.Run();
-            app.Frames.Release();
-            app.Run();
-        }
-        app.Run(2);
-    }
+    private static void Click(AppDriver app, UiRect at) => app.Frames.Wait(1).Click(at).Frame(2);
 
     [Fact]
     public void Clicking_a_multi_line_string_grows_its_cell_to_show_every_line_as_the_cell_shows_its_first()
     {
         var (app, _) = ShowResource("Mixed.resources");
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
+        var theme = app.Theme;
         var before = app.TextRect("first line");
         var color = app.Frames.TextColor("first line");
 
-        Press(app, before);
+        Click(app, before);
 
         var first = app.TextRect("first line");
         var second = app.TextRect("second line");
@@ -126,12 +111,10 @@ public sealed class ResourceViewTests
     {
         var (app, _) = ShowResource("Mixed.resources");
 
-        Press(app, app.TextRect("first line"));
-        app.Frames.Key(KeyboardKey.Escape);
-        app.Run(2);
+        Click(app, app.TextRect("first line"));
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
         Assert.True(app.Frames.Drew("second line"));
-        app.Frames.Key(KeyboardKey.Escape);
-        app.Run(2);
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
         Assert.False(app.Frames.Drew("second line"));
     }
 
@@ -140,12 +123,12 @@ public sealed class ResourceViewTests
     {
         var (app, _) = ShowResource("Mixed.resources");
 
-        Press(app, app.TextRect("first line"));
+        Click(app, app.TextRect("first line"));
         var roses = app.TextRect("roses");
-        Press(app, roses);
+        Click(app, roses);
         Assert.Equal(roses.Y, app.TextRect("roses").Y, 0.5f);
         var greeting = app.TextRect("Greeting");
-        Press(app, greeting);
+        Click(app, greeting);
 
         Assert.Equal(greeting.Y, app.TextRect("Greeting").Y, 0.5f);
         Assert.True(app.Frames.Drew("second line"));
@@ -157,15 +140,13 @@ public sealed class ResourceViewTests
     {
         var (app, _) = ShowResource("Mixed.resources");
 
-        Press(app, app.TextRect("first line"));
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        Click(app, app.TextRect("first line"));
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
         Assert.Equal("first line\nsecond line", app.Frames.Clipboard.Text);
 
         var name = app.TextRect("Notes.xml");
-        Press(app, name with { Width = name.Width / 3 }, times: 2);
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        app.Frames.Wait(1).DoubleClick(name with { Width = name.Width / 3 }).Frame(2);
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
         Assert.Equal("Notes", app.Frames.Clipboard.Text);
     }
 
@@ -173,18 +154,14 @@ public sealed class ResourceViewTests
     public void Saving_a_resource_writes_its_bytes()
     {
         var (app, _) = ShowResource("data.json");
-        var node = app.Driver.Node("Resources", "data.json");
-        var path = Path.Combine(Path.GetTempPath(), $"zgf-ilspy-{Guid.NewGuid():N}.json");
-        try
-        {
-            app.Workspace.SaveResource(node, path);
+        var node = app.Node("Resources", "data.json");
+        using var temp = new TempDir();
+        Directory.CreateDirectory(temp.Path);
+        var path = temp.PathOf("data.json");
 
-            Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
-            Assert.Empty(app.Workspace.Errors.Entries);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        app.Workspace.SaveResource(node, path);
+
+        Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
+        Assert.Empty(app.Workspace.Errors.Entries);
     }
 }

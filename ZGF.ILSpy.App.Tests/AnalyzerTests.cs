@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Testing;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 
@@ -15,15 +16,14 @@ public sealed class AnalyzerTests
         var kind = analyzer.GetChildren(symbol).OfType<AnalyzerKindNode>().Single(k => k.Kind.Header == header);
         analyzer.View.SetExpanded(kind, true);
         analyzer.GetChildren(kind);
-        d.PumpUntil(() => kind.IsDone);
+        d.RunUntil(() => kind.IsDone);
         return kind;
     }
 
     [Fact]
     public void Analyzing_a_member_docks_the_analyzer_and_its_analyses_find_what_uses_it()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
 
         d.Workspace.Analyze(First(d));
         var root = Assert.Single(d.Workspace.Analyzer.Roots);
@@ -38,9 +38,8 @@ public sealed class AnalyzerTests
     [Fact]
     public void A_result_opens_its_member_when_activated_and_can_be_analyzed_in_turn()
     {
-        var app = new AppDriver(height: 600f);
+        var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.OpenFixtures();
         d.Workspace.Analyze(First(d));
         var analyzer = d.Workspace.Analyzer;
         var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Roots[0], "Used By").Found[0];
@@ -59,16 +58,18 @@ public sealed class AnalyzerTests
     [Fact]
     public void Ctrl_R_analyzes_the_node_selected_in_the_focused_tree()
     {
-        var app = new AppDriver();
+        var app = AppDriver.Opened();
         var d = app.Driver;
-        d.OpenFixtures();
         d.Workspace.Tree.Reveal(First(d));
         app.Run(2);
-        ClickLeftmost(app, First(d).Text);
+        var leftmost = app.Frames.TextRects()
+            .Where(t => t.Text == First(d).Text)
+            .Select(t => t.Rect)
+            .MinBy(r => r.X);
+        ClickAt(app, leftmost);
         d.Settle();
 
-        app.Frames.Key(KeyboardKey.R, KeyModifiers.Control);
-        app.Run(2);
+        app.Frames.Key(KeyboardKey.R, KeyModifiers.Control).Frame(2);
 
         Assert.StartsWith("First()", Assert.Single(d.Workspace.Analyzer.Roots).Symbol.Label);
     }
@@ -76,9 +77,7 @@ public sealed class AnalyzerTests
     [Fact]
     public void Ctrl_R_in_the_code_analyzes_the_reference_at_the_caret()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Outline(), 1200f);
-        view.Run();
-        view.Run();
+        var view = CodeViewDriver.Showing(CodeViewDriver.Outline(), 1200f, frames: 2);
         var (line, column) = view.Document.Find("return First();");
         var row = view.State.Folds.RowOf(line);
 
@@ -91,47 +90,34 @@ public sealed class AnalyzerTests
     [Fact]
     public void Ctrl_R_in_the_analyzer_analyzes_the_result_it_has_selected()
     {
-        var app = new AppDriver(height: 600f);
+        var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.OpenFixtures();
         d.Workspace.Analyze(First(d));
         Expand(d, d.Workspace.Analyzer.Roots[0], "Used By");
         app.Run(3);
-        ClickAt(app, app.Frames.Canvas.Texts.Last(t => t.Inputs.Text.StartsWith("Third()")).Inputs.Position);
-        app.Run();
+        var third = app.Frames.TextRects().Last(t => t.Text.StartsWith("Third()"));
+        ClickAt(app, third.Rect).Frame();
 
-        app.Frames.Key(KeyboardKey.R, KeyModifiers.Control);
-        app.Run(2);
+        app.Frames.Key(KeyboardKey.R, KeyModifiers.Control).Frame(2);
 
         Assert.Equal(2, d.Workspace.Analyzer.Roots.Count);
         Assert.StartsWith("Third()", d.Workspace.Analyzer.Roots[1].Symbol.Label);
     }
 
-    private static void ClickLeftmost(AppDriver app, string text) =>
-        ClickAt(app, app.Frames.Canvas.Texts.Where(t => t.Inputs.Text == text).Select(t => t.Inputs.Position).MinBy(p => p.Left)!);
-
-    private static void ClickAt(AppDriver app, ZGF.Geometry.RectF at)
-    {
-        app.Frames.MovePointer(at.Left + 4f, app.Frames.Height - at.Top + at.Height / 2);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run();
-    }
+    private static UiFrames ClickAt(AppDriver app, UiRect row, PointerButton button = PointerButton.Left) =>
+        app.Frames.Click(row.X + 4f, row.Y + row.Height / 2, button);
 
     [Fact]
     public void A_reference_in_the_code_is_analyzed_once_it_is_found()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Outline"));
         var document = d.Workspace.ActiveTab!.Document;
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
         d.Workspace.Analyze(reference);
-        d.PumpUntil(() => d.Workspace.Analyzer.Roots.Count > 0);
+        d.RunUntil(() => d.Workspace.Analyzer.Roots.Count > 0);
 
         Assert.StartsWith("First()", d.Workspace.Analyzer.Roots[0].Symbol.Label);
     }
@@ -139,8 +125,7 @@ public sealed class AnalyzerTests
     [Fact]
     public void Removing_a_root_or_clearing_the_assembly_list_empties_the_analyzer()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var analyzer = d.Workspace.Analyzer;
         d.Workspace.Analyze(First(d));
         d.Workspace.Analyze(d.Fixture("Greeter"));
@@ -156,22 +141,15 @@ public sealed class AnalyzerTests
     [Fact]
     public void The_pane_is_just_the_tree_and_its_menu_clears_it()
     {
-        var app = new AppDriver(height: 600f);
+        var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.OpenFixtures();
         d.Workspace.Analyze(First(d));
         app.Run(3);
-        var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text.StartsWith("First()")).Inputs.Position;
+        var row = app.Frames.TextRects().Last(t => t.Text.StartsWith("First()")).Rect;
         var trash = app.Frames.Drew(LucideIcons.Trash2);
 
-        app.Frames.MovePointer(row.Left + 4f, app.Frames.Height - row.Top + row.Height / 2);
-        app.Run();
-        app.Frames.Press(PointerButton.Right);
-        app.Run();
-        app.Frames.Release(PointerButton.Right);
-        app.Run(2);
-        app.ClickMenuItem("Clear");
-        app.Run(2);
+        ClickAt(app, row, PointerButton.Right).Frame();
+        app.ClickMenuItem("Clear").Frame(2);
 
         Assert.False(trash);
         Assert.Empty(d.Workspace.Analyzer.Roots);

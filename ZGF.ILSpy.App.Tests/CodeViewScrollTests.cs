@@ -26,13 +26,10 @@ public sealed class CodeViewScrollTests
     [Fact]
     public void The_last_line_scrolled_to_sits_above_the_horizontal_bar()
     {
-        var view = new CodeViewDriver(Document(200));
-        view.Run();
+        var view = CodeViewDriver.Showing(Document(200));
         view.Click(0, 0);
 
-        view.Key(KeyboardKey.End);
-        for (var i = 0; i < 4; i++)
-            view.Run();
+        view.Key(KeyboardKey.End).Frame(4);
 
         var last = view.DrawnText().Single(d => d.Text.StartsWith("www"));
         var horizontal = Thumbs(view).Single(t => t.Width > t.Height);
@@ -42,8 +39,7 @@ public sealed class CodeViewScrollTests
     [Fact]
     public void A_line_as_wide_as_the_view_scrolls_clear_of_the_vertical_bar_and_the_bars_do_not_cross()
     {
-        var view = new CodeViewDriver(Document(FitColumns));
-        view.Run();
+        var view = CodeViewDriver.Showing(Document(FitColumns));
         view.Click(0, 0);
 
         view.Key(KeyboardKey.End);

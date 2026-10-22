@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Geometry;
 using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -10,69 +11,58 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class AppTests
 {
-    private static AppDriver OpenFixtures(float width = 1000f)
+    private static AppDriver Searching(string text, int moreRowsThan, float width = 1000f)
     {
-        var app = new AppDriver(width);
-        app.Workspace.Open(WorkspaceDriver.FixturePath);
-        for (var i = 0; i < 2000 && app.Workspace.ActiveTab?.Node == null; i++)
-        {
-            app.Run();
-            Thread.Sleep(1);
-        }
-        app.Driver.Settle();
+        var app = AppDriver.Opened(width);
+        app.Workspace.OpenSearch();
+        app.Run();
+        app.Frames.Type(text).Frame().Wait(1);
+        app.RunUntil(() => !app.Workspace.Search.IsBusy && app.Workspace.Search.Rows.Count > moreRowsThan);
         return app;
     }
 
-    private static void RunUntil(AppDriver app, Func<bool> done)
+    private static AppDriver ExpandedTree(string until)
     {
-        for (var i = 0; i < 5000 && !done(); i++)
-        {
-            app.Run();
-            Thread.Sleep(1);
-        }
-        Assert.True(done());
+        var app = AppDriver.Opened();
+        var view = app.Workspace.Tree.View;
+        view.SetExpanded(app.Node(), true);
+        view.SetExpanded(app.Node(WorkspaceDriver.FixturesNamespace), true);
+        view.Refresh();
+        app.RunUntil(() => app.Frames.Drew(until));
+        return app;
     }
 
     [Fact]
     public void Double_clicking_a_type_in_the_tree_shows_it_in_one_tab()
     {
-        var app = OpenFixtures();
-        var view = app.Workspace.Tree.View;
-        view.SetExpanded(app.Driver.Node(), true);
-        view.SetExpanded(app.Driver.Node(WorkspaceDriver.FixturesNamespace), true);
-        view.Refresh();
-        RunUntil(app, () => app.Frames.Drew("Greeter"));
+        var app = ExpandedTree(until: "Greeter");
 
         app.DoubleClick("Greeter");
-        app.Driver.Settle();
+        app.Settle();
 
         var tab = Assert.Single(app.Workspace.Tabs);
         Assert.Equal("Greeter", tab.Node!.Text);
-        Assert.True(view.IsExpanded(tab.Node));
+        Assert.True(app.Workspace.Tree.View.IsExpanded(tab.Node));
     }
 
     [Fact]
     public void Dragging_a_document_tab_onto_the_assemblies_tab_docks_it_beside_the_assemblies_as_a_tab()
     {
-        var app = OpenFixtures();
+        var app = AppDriver.Opened();
         app.Run(2);
         var shown = app.Workspace.ActiveTab!;
         var label = app.Workspace.Tree.Label(shown.Node!);
-        var tab = app.Frames.Canvas.Texts.Where(t => t.Inputs.Text == label).Select(t => t.Inputs.Position).MaxBy(p => p.Left)!;
-        var (x, y) = (tab.Left + tab.Width / 2, app.Frames.Height - tab.Top + tab.Height / 2);
+        var tab = app.Frames.TextRects()
+            .Where(t => t.Text == label)
+            .Select(t => t.Rect)
+            .MaxBy(r => r.X);
         var assemblies = app.TextRect("Assemblies");
         var layout = app.Workspace.Layout;
+        var from = new PointF(tab.X + tab.Width / 2, tab.Y + tab.Height / 2);
+        var aside = new PointF(from.X - 20f, from.Y + 20f);
+        var onto = new PointF(assemblies.Right + 4f, assemblies.Y + assemblies.Height / 2);
 
-        app.Frames.MovePointer(x, y);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.MovePointer(x - 20f, y + 20f);
-        app.Run();
-        app.Frames.MovePointer(assemblies.X + assemblies.Width + 4f, assemblies.Y + assemblies.Height / 2);
-        app.Run(2);
-        app.Frames.Release();
-        app.Run(2);
+        app.Frames.Drag(from, aside, onto).Frame().Release().Frame(2);
 
         Assert.Same(layout.GroupOf(DockPanels.Assemblies), layout.GroupOf(shown.Panel));
         Assert.Equal(shown.Panel, layout.GroupOf(shown.Panel)!.Active);
@@ -96,7 +86,7 @@ public sealed class AppTests
     public void At_a_narrow_width_the_error_indicator_joins_the_right_cluster_and_the_node_name_gives_way()
     {
         const float width = 480f;
-        var app = OpenFixtures(width);
+        var app = AppDriver.Opened(width);
         var theme = AppThemes.Dark.Ui;
         app.Run(2);
         var count = app.StatusText("1 assembly");
@@ -120,9 +110,7 @@ public sealed class AppTests
         app.Workspace.ReportError("Cannot open broken.dll", "first\nsecond\nthird\nfourth");
         app.Run(2);
 
-        app.MoveTo("1 error");
-        app.Frames.Wait(2);
-        app.Run(2);
+        app.MoveTo("1 error").Wait(2).Frame(2);
 
         Assert.True(app.Frames.Drew("Cannot open broken.dll — first"));
     }
@@ -155,11 +143,11 @@ public sealed class AppTests
     [Fact]
     public void The_language_control_switches_the_active_tab_to_IL()
     {
-        var app = OpenFixtures();
+        var app = AppDriver.Opened();
         app.Run();
 
         app.Click("IL");
-        app.Driver.Settle();
+        app.Settle();
 
         Assert.Equal(DecompilationLanguage.IL, app.Workspace.Language);
         Assert.Equal(DecompilationLanguage.IL, app.Workspace.ActiveTab!.Language);
@@ -168,21 +156,19 @@ public sealed class AppTests
     [Fact]
     public void The_language_version_dropdown_decompiles_the_active_tab_again_and_hides_for_IL()
     {
-        var app = OpenFixtures();
+        var app = AppDriver.Opened();
         app.Run();
 
         app.Click("C# 14.0 / VS 2026");
         app.ClickMenuItem("C# 5.0 / VS 2012");
-        app.Driver.Settle();
-        app.Run();
+        app.Settle(1);
 
         Assert.Equal(CSharpVersion.CSharp5, app.Workspace.DecompilerOptions.LanguageVersion);
         Assert.Equal(CSharpVersion.CSharp5, app.Workspace.ActiveTab!.Options.LanguageVersion);
         Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text == "C# 5.0 / VS 2012");
 
         app.Click("IL");
-        app.Driver.Settle();
-        app.Run();
+        app.Settle(1);
 
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "C# 5.0 / VS 2012");
     }
@@ -200,25 +186,21 @@ public sealed class AppTests
     [Fact]
     public void A_decompiler_option_ticked_in_its_panel_shows_in_the_open_document_and_resets()
     {
-        var app = OpenFixtures(width: 1600f);
-        app.Workspace.Show(app.Driver.Fixture("Greeter"));
-        app.Driver.Settle();
+        var app = AppDriver.Opened(width: 1600f);
+        app.Show(app.Fixture("Greeter"), 1);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp1));
         Assert.DoesNotContain("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
 
         app.Click("View");
-        app.ClickMenuItem("Decompiler options");
-        app.Run();
+        app.ClickMenuItem("Decompiler options").Frame();
         app.ClickStartingWith("String concatenation");
-        app.Driver.Settle();
-        app.Run();
+        app.Settle(1);
 
         Assert.False(app.Workspace.DecompilerOptions.IsOn(DecompilerToggle.Find("StringConcat")!));
         Assert.Contains("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
 
         app.Click(LucideIcons.RotateCcw);
-        app.Driver.Settle();
-        app.Run();
+        app.Settle(1);
 
         Assert.Equal(DecompilerOptions.Default, app.Workspace.DecompilerOptions);
         Assert.DoesNotContain("string.Concat", app.Workspace.ActiveTab!.Document.GetText());
@@ -227,19 +209,22 @@ public sealed class AppTests
     [Fact]
     public void Options_newer_than_the_version_are_greyed_out_and_groups_fold()
     {
-        var app = OpenFixtures(width: 1600f);
+        var app = AppDriver.Opened(width: 1600f);
         app.Workspace.SetLanguageVersion(CSharpVersion.CSharp7);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
         app.Workspace.OpenDecompilerOptions();
         app.Run();
 
-        app.Click("switch expressions");
-        app.Run();
+        app.Click("switch expressions").Frame();
         Assert.Equal(DecompilerOptions.Default with { LanguageVersion = CSharpVersion.CSharp7 }, app.Workspace.DecompilerOptions);
         Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("Features newer than"));
 
-        ClickChevronOf(app, "C# 8.0 / VS 2019");
-        app.Run();
+        var texts = app.Frames.TextRects().ToList();
+        var title = texts.FindIndex(t => t.Text == "C# 8.0 / VS 2019");
+        var chevron = texts
+            .Take(title)
+            .Last(t => t.Text is LucideIcons.ChevronDown or LucideIcons.ChevronRight);
+        app.Frames.Click(chevron.Rect).Frame();
         Assert.Contains(nameof(CSharpVersion.CSharp8), app.Workspace.FoldedOptionGroups);
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "switch expressions");
     }
@@ -247,7 +232,7 @@ public sealed class AppTests
     [Fact]
     public void The_options_toolbar_collapses_and_expands_every_group()
     {
-        var app = OpenFixtures(width: 1600f);
+        var app = AppDriver.Opened(width: 1600f);
         app.Workspace.OpenDecompilerOptions();
         app.Run();
 
@@ -263,20 +248,18 @@ public sealed class AppTests
     [Fact]
     public void A_group_checkbox_sets_every_option_in_it_and_shows_when_only_some_are_on()
     {
-        var app = OpenFixtures(width: 1600f);
+        var app = AppDriver.Opened(width: 1600f);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
         app.Workspace.OpenDecompilerOptions();
         app.Run();
         var csharp8 = DecompilerToggle.All.Where(t => t.IntroducedIn == CSharpVersion.CSharp8).ToArray();
 
         app.Click("C# 8.0 / VS 2019");
-        app.Driver.Settle();
-        app.Run();
+        app.Settle(1);
         Assert.All(csharp8, t => Assert.False(app.Workspace.DecompilerOptions.IsOn(t)));
         Assert.DoesNotContain(nameof(CSharpVersion.CSharp8), app.Workspace.FoldedOptionGroups);
 
-        app.Click("switch expressions");
-        app.Run();
+        app.Click("switch expressions").Frame();
         Assert.Equal(csharp8.Length - 1, app.Workspace.DecompilerOptions.Toggles.Count);
         Assert.False(IsBold(app, "switch expressions"));
         Assert.True(IsBold(app, "Async iterators"));
@@ -284,28 +267,13 @@ public sealed class AppTests
         Assert.False(IsBold(app, "C# 7.3 / VS 2017.7"));
 
         app.Click("C# 8.0 / VS 2019");
-        app.Driver.Settle();
-        app.Run();
+        app.Settle(1);
         Assert.Equal(DecompilerOptions.Default, app.Workspace.DecompilerOptions);
         Assert.False(IsBold(app, "C# 8.0 / VS 2019"));
     }
 
     private static bool IsBold(AppDriver app, string text) =>
         app.Frames.Canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Style.FontWeight.Value == FontWeight.Bold;
-
-    /// <summary>Clicks the fold chevron drawn just before a decompiler options group's title.</summary>
-    private static void ClickChevronOf(AppDriver app, string title)
-    {
-        var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).ToList();
-        var at = texts.FindIndex(t => t.Text == title);
-        var chevron = texts.Take(at).Last(t => t.Text is LucideIcons.ChevronDown or LucideIcons.ChevronRight).Position;
-        app.Frames.MovePointer(chevron.Left + chevron.Width / 2, app.Frames.Height - chevron.Top + chevron.Height / 2);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run();
-    }
 
     private static void FoldOptionGroupsBut(AppDriver app, string open)
     {
@@ -316,23 +284,14 @@ public sealed class AppTests
     [Fact]
     public void Search_results_are_walked_with_the_keyboard_from_the_search_box()
     {
-        var app = OpenFixtures();
-        app.Workspace.OpenSearch();
-        app.Run();
-        app.Frames.Type("Greet");
-        app.Run();
-        app.Frames.Wait(1);
-        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 2 });
+        var app = Searching("Greet", moreRowsThan: 2);
 
-        app.Frames.Key(KeyboardKey.DownArrow);
-        app.Run();
+        app.Frames.Key(KeyboardKey.DownArrow).Frame();
         Assert.Equal(0, app.Workspace.Search.Selected);
-        app.Frames.Key(KeyboardKey.DownArrow);
-        app.Run();
+        app.Frames.Key(KeyboardKey.DownArrow).Frame();
         Assert.Equal(1, app.Workspace.Search.Selected);
-        app.Frames.Key(KeyboardKey.Enter);
-        app.Run();
-        app.Driver.Settle();
+        app.Frames.Key(KeyboardKey.Enter).Frame();
+        app.Settle();
 
         Assert.Same(app.Workspace.Search.Rows[1].Node, app.Workspace.ActiveTab!.Node);
     }
@@ -340,13 +299,7 @@ public sealed class AppTests
     [Fact]
     public void Clicking_a_search_header_sorts_by_it_then_reverses_it_then_goes_back_to_relevance_keeping_the_selection()
     {
-        var app = OpenFixtures();
-        app.Workspace.OpenSearch();
-        app.Run();
-        app.Frames.Type("Greet");
-        app.Run();
-        app.Frames.Wait(1);
-        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 2 });
+        var app = Searching("Greet", moreRowsThan: 2);
         var search = app.Workspace.Search;
         search.Select(search.Rows.Count - 1);
         var selected = search.SelectedRow!.Node;
@@ -354,26 +307,22 @@ public sealed class AppTests
         Assert.Equal(SearchSort.Relevance, search.Sort);
         Assert.Equal(search.Rows.Select(r => r.Fitness).OrderDescending(), search.Rows.Select(r => r.Fitness));
 
-        app.Click("Name");
-        app.Run();
+        app.Click("Name").Frame();
         Assert.Equal(names.Order(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Text));
         Assert.Same(selected, search.SelectedRow!.Node);
         Assert.True(app.Frames.Drew(LucideIcons.ChevronUp));
 
-        app.Click("Name");
-        app.Run();
+        app.Click("Name").Frame();
         Assert.Equal(names.OrderDescending(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Text));
         Assert.Same(selected, search.SelectedRow!.Node);
         Assert.True(app.Frames.Drew(LucideIcons.ChevronDown));
 
-        app.Click("Name");
-        app.Run();
+        app.Click("Name").Frame();
         Assert.Equal(SearchSort.Relevance, search.Sort);
         Assert.Equal(names, search.Rows.Select(r => r.Text));
         Assert.Same(selected, search.SelectedRow!.Node);
 
-        app.Click("Assembly");
-        app.Run();
+        app.Click("Assembly").Frame();
         Assert.Equal(SearchSort.Assembly, search.Sort);
         Assert.False(search.Descending);
     }
@@ -381,30 +330,19 @@ public sealed class AppTests
     [Fact]
     public void Search_kinds_are_checked_on_and_off_in_one_open_menu()
     {
-        var app = OpenFixtures();
-        app.Workspace.OpenSearch();
-        app.Run();
-        app.Frames.Type("Greet");
-        app.Run();
-        app.Frames.Wait(1);
-        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+        var app = Searching("Greet", moreRowsThan: 0);
         Assert.Contains(app.Workspace.Search.Rows, r => r.Node.Kind == NodeKind.Class);
 
-        app.Click("Types and members");
-        app.Run();
+        app.Click("Types and members").Frame();
         foreach (var kind in new[] { "Types", "Fields", "Properties", "Events" })
-        {
-            app.ClickMenuItem(kind);
-            app.Run();
-        }
+            app.ClickMenuItem(kind).Frame();
         Assert.True(app.Frames.Drew("Namespaces"));
         var events = app.LastTextRect("Events");
         var icon = app.LastTextRect(NodeIcons.Glyph(NodeKind.Event));
         Assert.True(icon.Right <= events.X && events.X - icon.Right < 16f, $"the events icon ends at {icon.Right}, its label starts at {events.X}");
         Assert.True(MathF.Abs(icon.Y + icon.Height / 2 - (events.Y + events.Height / 2)) < 4f);
-        app.Frames.Key(KeyboardKey.Escape);
-        app.Run(2);
-        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
+        app.RunUntil(() => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
 
         Assert.Equal(SearchKinds.Methods, app.Workspace.Search.Kinds);
         Assert.All(app.Workspace.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Node.Kind));
@@ -415,47 +353,35 @@ public sealed class AppTests
     [Fact]
     public void All_kinds_stands_alone_and_comes_back_when_the_last_kind_is_unchecked()
     {
-        var app = OpenFixtures();
+        var app = AppDriver.Opened();
         app.Workspace.OpenSearch();
         app.Run(2);
 
-        app.Click("Types and members");
-        app.Run();
-        app.ClickMenuItem("All");
-        app.Run();
+        app.Click("Types and members").Frame();
+        app.ClickMenuItem("All").Frame();
         Assert.Equal(SearchKinds.All, app.Workspace.Search.Kinds);
         Assert.True(app.Frames.Drew("All kinds"));
 
-        app.ClickMenuItem("Resources");
-        app.Run();
+        app.ClickMenuItem("Resources").Frame();
         Assert.Equal(SearchKinds.Resources, app.Workspace.Search.Kinds);
-        app.ClickMenuItem("Namespaces");
-        app.Run();
+        app.ClickMenuItem("Namespaces").Frame();
         Assert.True(app.Frames.Drew("Kinds · 2"));
 
-        app.ClickMenuItem("Resources");
-        app.Run();
-        app.ClickMenuItem("Namespaces");
-        app.Run();
+        app.ClickMenuItem("Resources").Frame();
+        app.ClickMenuItem("Namespaces").Frame();
         Assert.Equal(SearchKinds.All, app.Workspace.Search.Kinds);
     }
 
     [Fact]
     public void The_tree_menu_scopes_the_search_to_an_assembly()
     {
-        var app = OpenFixtures();
+        var app = AppDriver.Opened();
         app.Run(2);
         var name = app.Workspace.Assemblies.Assemblies[0].Name;
         var row = app.TextRect(name);
 
-        app.Frames.MovePointer(row.X + 2f, row.Y + row.Height / 2);
-        app.Run();
-        app.Frames.Press(PointerButton.Right);
-        app.Run();
-        app.Frames.Release(PointerButton.Right);
-        app.Run(2);
-        app.ClickMenuItem("Scope search to this assembly");
-        app.Run(2);
+        app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
+        app.ClickMenuItem("Scope search to this assembly").Frame(2);
 
         Assert.Equal($"inassembly:{name} ", app.Workspace.Search.Query);
         Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
@@ -483,7 +409,7 @@ public sealed class AppTests
     {
         var app = new AppDriver();
         app.Run(2);
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
+        var theme = app.Theme;
         var open = app.TextRect(LucideIcons.FolderOpen);
         var search = app.TextRect(LucideIcons.Search);
         Assert.Equal(open.Y, search.Y, 1f);
@@ -493,12 +419,10 @@ public sealed class AppTests
                                                       && r.Inputs.Position.Left <= open.X && r.Inputs.Position.Left + r.Inputs.Position.Width >= open.Right
                                                       && r.Inputs.Position.Width <= theme.IconButtonSize + 1f);
 
-        app.Click(LucideIcons.FolderOpen);
-        app.Run();
+        app.Click(LucideIcons.FolderOpen).Frame();
         Assert.Equal(["Open assembly"], app.Frames.FilePicker.Titles);
 
-        app.Click(LucideIcons.Search);
-        app.Run(2);
+        app.Click(LucideIcons.Search).Frame(2);
         Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
         Assert.True(app.Frames.Drew("Search…"));
     }
@@ -508,11 +432,10 @@ public sealed class AppTests
     {
         var app = new AppDriver();
         app.Run(2);
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
+        var theme = app.Theme;
         var file = app.TextRect("File");
         var open = app.TextRect(LucideIcons.FolderOpen);
-        var rects = app.Frames.Canvas.Rects.Select(r => (r.Inputs.Style.BackgroundColor, Rect: new UiRect(r.Inputs.Position.Left,
-            app.Frames.Height - r.Inputs.Position.Top, r.Inputs.Position.Width, r.Inputs.Position.Height))).ToList();
+        var rects = app.Frames.Canvas.Rects.Select(r => (r.Inputs.Style.BackgroundColor, Rect: app.Frames.ToUi(r.Inputs.Position))).ToList();
 
         Assert.Contains(rects, r => r.BackgroundColor == theme.Background && r.Rect.Y <= file.Y && r.Rect.Bottom >= file.Bottom && r.Rect.Bottom <= open.Y);
         Assert.Contains(rects, r => r.BackgroundColor == theme.Separator && r.Rect.Y >= file.Bottom && r.Rect.Bottom <= open.Y);
@@ -521,14 +444,9 @@ public sealed class AppTests
     [Fact]
     public void Tree_rows_show_assembly_secondary_text_and_an_overlay_on_non_public_types()
     {
-        var app = OpenFixtures();
-        var view = app.Workspace.Tree.View;
-        view.SetExpanded(app.Driver.Node(), true);
-        view.SetExpanded(app.Driver.Node(WorkspaceDriver.FixturesNamespace), true);
-        view.Refresh();
-        RunUntil(app, () => app.Frames.Drew("Hidden"));
+        var app = ExpandedTree(until: "Hidden");
 
-        var secondary = NodeText.Secondary(app.Driver.Node())!;
+        var secondary = NodeText.Secondary(app.Node())!;
         Assert.True(app.TextRect(secondary).X > app.TextRect(app.Workspace.Assemblies.Assemblies[0].Name).Right);
         Assert.True(app.Frames.Drew(LucideIcons.Shield));
     }
@@ -536,18 +454,12 @@ public sealed class AppTests
     [Fact]
     public void Search_results_are_a_table_of_name_location_and_assembly_that_truncates_at_a_narrow_width()
     {
-        var app = OpenFixtures(560f);
-        app.Workspace.OpenSearch();
-        app.Run();
-        app.Frames.Type("Greeter");
-        app.Run();
-        app.Frames.Wait(1);
-        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+        var app = Searching("Greeter", moreRowsThan: 0, width: 560f);
         app.Run(2);
 
         var row = app.Workspace.Search.Rows.First(r => r.Node.Kind == NodeKind.Class);
         var header = app.LastTextRect(LucideIcons.Search);
-        var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).Select(t => (t.Text, Rect: new UiRect(t.Position.Left, app.Frames.Height - t.Position.Top, t.Position.Width, t.Position.Height))).ToList();
+        var texts = app.Frames.TextRects().ToList();
         var name = texts.Single(t => t.Text == row.Text && t.Rect.Y > header.Bottom).Rect;
         var cells = texts.Where(t => t.Rect.Y == name.Y && t.Rect.X > name.Right).OrderBy(t => t.Rect.X).ToList();
 
@@ -581,8 +493,7 @@ public sealed class AppTests
 
         app.Click("View");
         app.Click("Theme");
-        app.Click("Dracula");
-        app.Run();
+        app.Click("Dracula").Frame();
 
         Assert.Equal(AppThemeId.Dracula, app.Workspace.Theme);
         Assert.Equal(UiTheme.Dracula.Background, app.Frames.WindowBackground);
@@ -591,13 +502,13 @@ public sealed class AppTests
     [Fact]
     public void The_decompiler_is_picked_from_the_view_menus_decompiler_submenu()
     {
-        var app = OpenFixtures();
+        var app = AppDriver.Opened();
         app.Run();
 
         app.Click("View");
         app.Click("Decompiler");
         app.ClickMenuItem("IL");
-        app.Driver.Settle();
+        app.Settle();
 
         Assert.Equal(DecompilationLanguage.IL, app.Workspace.Language);
     }

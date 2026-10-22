@@ -24,44 +24,25 @@ public sealed class PresentationTests
     [Fact]
     public void Two_copies_of_one_assembly_read_apart_by_folder_and_carry_their_files_in_their_tooltips()
     {
-        var folder = Path.Combine(Path.GetTempPath(), $"ilspy-{Guid.NewGuid():N}", "copy");
-        Directory.CreateDirectory(folder);
-        var copy = Path.Combine(folder, Path.GetFileName(WorkspaceDriver.FixturePath));
-        File.Copy(WorkspaceDriver.FixturePath, copy);
+        using var temp = new TempDir();
+        var copy = temp.Copy(WorkspaceDriver.FixturePath, Path.Combine("copy", Path.GetFileName(WorkspaceDriver.FixturePath)));
         var list = new AssemblyList();
-        try
-        {
-            var original = list.Open(WorkspaceDriver.FixturePath);
-            var duplicate = list.Open(copy);
-            var tree = new BrowseTree(static _ => { });
-            tree.Sync(list);
+        var original = list.Open(WorkspaceDriver.FixturePath);
+        var duplicate = list.Open(copy);
+        var tree = new BrowseTree(static _ => { });
+        tree.Sync(list);
 
-            var first = tree.Row(original.Root);
-            var second = tree.Row(duplicate.Root);
+        var first = tree.Row(original.Root);
+        var second = tree.Row(duplicate.Root);
 
-            Assert.NotEqual(first.Label, second.Label);
-            Assert.StartsWith(original.Name, first.Label);
-            Assert.Equal($"{duplicate.Name} (copy)", second.Label);
-            Assert.Equal(first.Secondary, second.Secondary);
-            Assert.Equal(second.Label, tree.Label(duplicate.Root));
-            Assert.Contains(original.FilePath, first.Tooltip);
-            Assert.Contains(duplicate.FilePath, second.Tooltip);
-            Assert.Contains(original.FullName, first.Tooltip);
-        }
-        finally
-        {
-            list.Clear();
-            try
-            {
-                Directory.Delete(Path.GetDirectoryName(folder)!, recursive: true);
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-        }
+        Assert.NotEqual(first.Label, second.Label);
+        Assert.StartsWith(original.Name, first.Label);
+        Assert.Equal($"{duplicate.Name} (copy)", second.Label);
+        Assert.Equal(first.Secondary, second.Secondary);
+        Assert.Equal(second.Label, tree.Label(duplicate.Root));
+        Assert.Contains(original.FilePath, first.Tooltip);
+        Assert.Contains(duplicate.FilePath, second.Tooltip);
+        Assert.Contains(original.FullName, first.Tooltip);
     }
 
     [Fact]
@@ -94,14 +75,14 @@ public sealed class PresentationTests
     public void Non_public_nodes_carry_an_accessibility_overlay_in_the_palette_color_and_dimmed_text()
     {
         var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
-        var ns = root.Children.Single(c => c.Text == WorkspaceDriver.FixturesNamespace);
-        var privateField = ns.Children.Single(c => c.Text == "Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
+        var ns = root.Child(WorkspaceDriver.FixturesNamespace);
+        var privateField = ns.Child("Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
         var tree = new BrowseTree(static _ => { });
         tree.SetStyle(UiTheme.Light, NodeIconPalette.Light);
 
         var field = tree.Row(privateField);
-        var hidden = tree.Row(ns.Children.Single(c => c.Text == "Hidden"));
-        var greeter = tree.Row(ns.Children.Single(c => c.Text == "Greeter"));
+        var hidden = tree.Row(ns.Child("Hidden"));
+        var greeter = tree.Row(ns.Child("Greeter"));
 
         Assert.Equal(LucideIcons.Lock, field.Icon!.Value.Overlay);
         Assert.Equal(NodeIconPalette.Light.Restricted, field.Icon!.Value.OverlayColor);
@@ -116,7 +97,7 @@ public sealed class PresentationTests
     public void A_non_public_type_says_its_accessibility_in_its_tooltip()
     {
         var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
-        var hidden = root.Children.Single(c => c.Text == WorkspaceDriver.FixturesNamespace).Children.Single(c => c.Text == "Hidden");
+        var hidden = root.Child(WorkspaceDriver.FixturesNamespace, "Hidden");
         var tree = new BrowseTree(static _ => { });
 
         var row = tree.Row(hidden);

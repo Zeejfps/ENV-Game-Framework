@@ -22,22 +22,31 @@ internal sealed class CodeViewDriver
     private const float FoldColumn = 16f;
     private const float MarkColumn = 16f;
     private const float CodePadding = 12f;
-    private const float Frame = 1f / 60f;
 
     public static readonly float Row = UiTheme.Dark.CodeLineHeight;
     private static readonly float CellInset = MathF.Floor((Row - CellHeight) / 2);
 
-    private readonly Func<Ui, CodeViewResult> _body;
+    private static readonly Lazy<DecompiledDocument> s_greeter = new(() => Decompile(typeof(Greeter)));
+    private static readonly Lazy<DecompiledDocument> s_outline = new(() => Decompile(typeof(Outline)));
 
     public CodeViewDriver(DecompiledDocument document, float height = 300f)
     {
         Document = document;
-        Frames = new UiFrames(height: height);
-        _body = ui =>
-        {
-            using var screen = ui.Screen();
-            return ui.CodeView("code", Document, State, Strings.En, Bookmarks);
-        };
+        Frames = new UiFrames(height: height, body: Render) { FrameTime = 1f / 60f };
+    }
+
+    private void Render(Ui ui)
+    {
+        using var screen = ui.Screen();
+        Last = ui.CodeView("code", Document, State, Strings.En, Bookmarks);
+    }
+
+    /// <summary>A driver that has run <paramref name="frames"/> frames of <paramref name="document"/>.</summary>
+    public static CodeViewDriver Showing(DecompiledDocument document, float height = 300f, int frames = 1)
+    {
+        var view = new CodeViewDriver(document, height);
+        view.Run(frames);
+        return view;
     }
 
     public UiFrames Frames { get; }
@@ -56,37 +65,35 @@ internal sealed class CodeViewDriver
     /// <summary>Where the fold chevron of the row at <paramref name="row"/> is.</summary>
     public (float X, float Y) ChevronOf(int row) => (FoldLeft + FoldColumn / 2, Origin + row * Row + Row / 2);
 
-    public CodeViewResult Run()
+    public CodeViewResult Run(int frames = 1)
     {
-        Last = Frames.Run(Frame, _body);
+        Frames.Frame(frames);
         return Last;
     }
 
     public (float X, float Y) PointOf(int line, int column) => (TextLeft + column * Cell + 1f, Origin + line * Row + Row / 2);
 
-    public void MoveTo(int line, int column)
+    public UiFrames MoveTo(int line, int column)
     {
         var (x, y) = PointOf(line, column);
-        Frames.MovePointer(x, y);
-        Run();
+        return Frames.MovePointer(x, y).Frame();
     }
 
-    /// <summary>Clicks at the cell and returns the first navigation any of the frames asked for.</summary>
-    public CodeViewResult Click(int line, int column, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    /// <summary>Clicks at the cell, as <see cref="Click((float X, float Y), PointerButton, KeyModifiers)"/>.</summary>
+    public CodeViewResult Click(int line, int column, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+        Click(PointOf(line, column), button, modifiers);
+
+    /// <summary>Clicks at <paramref name="at"/> and returns what the press asked for, or else what the release did.</summary>
+    public CodeViewResult Click((float X, float Y) at, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
     {
-        MoveTo(line, column);
-        Frames.Press(button, modifiers);
-        var pressed = Run();
-        Frames.Release(button, modifiers);
-        var released = Run();
-        return pressed.Navigate != null ? pressed : released;
+        Frames.MovePointer(at.X, at.Y).Frame();
+        Frames.Press(button, modifiers).Frame();
+        var pressed = Last;
+        Frames.Release(button, modifiers).Frame();
+        return pressed != default ? pressed : Last;
     }
 
-    public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
-    {
-        Frames.Key(key, modifiers);
-        Run();
-    }
+    public UiFrames Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => Frames.Key(key, modifiers).Frame();
 
     /// <summary>The lines whose text was drawn, by the top of the row they were drawn in.</summary>
     public IEnumerable<(string Text, float Top)> DrawnText() =>
@@ -98,40 +105,17 @@ internal sealed class CodeViewDriver
     public static DecompiledDocument Numbered(int count, string prefix = "line ") =>
         DecompiledDocument.FromText("numbered", string.Join('\n', Enumerable.Range(0, count).Select(i => prefix + i)));
 
-    public static DecompiledDocument Greeter() => Decompile(typeof(Greeter));
+    public static DecompiledDocument Greeter() => s_greeter.Value;
 
-    public static DecompiledDocument Outline() => Decompile(typeof(Outline));
+    public static DecompiledDocument Outline() => s_outline.Value;
 
-    private static DecompiledDocument Decompile(Type type)
+    /// <summary>A document of <paramref name="type"/> decompiled through an assembly list of its own.</summary>
+    public static DecompiledDocument Decompile(Type type)
     {
-        var list = new AssemblyList();
-        var assembly = list.Open(type.Assembly.Location);
-        var ns = assembly.Root.Children.Single(c => c.Text == type.Namespace);
-        return ns.Children.Single(c => c.Text == type.Name).Decompile(DecompilationLanguage.CSharp);
+        var assembly = new AssemblyList().Open(type.Assembly.Location);
+        var node = assembly.Root.Child(type.Namespace!, type.Name);
+        return node.Decompile(DecompilationLanguage.CSharp);
     }
 
     private static int CodeTextDigits(int value) => value.ToString().Length;
-}
-
-internal static class DocumentQueries
-{
-    public static (int Line, int Column) Find(this DecompiledDocument document, string text, int skip = 0)
-    {
-        for (var i = 0; i < document.Lines.Length; i++)
-        {
-            var at = document.Lines[i].Text.IndexOf(text, StringComparison.Ordinal);
-            if (at < 0) continue;
-            if (skip-- == 0) return (i, at);
-        }
-        throw new InvalidOperationException($"'{text}' is not in the document:\n{document.GetText()}");
-    }
-
-    public static DocumentSpan SpanAt(this DecompiledDocument document, int line, int column)
-    {
-        foreach (var span in document.Lines[line].Spans)
-        {
-            if (span.Start <= column && column < span.End) return span;
-        }
-        throw new InvalidOperationException("No span there.");
-    }
 }

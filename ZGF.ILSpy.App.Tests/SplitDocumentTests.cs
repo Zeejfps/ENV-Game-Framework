@@ -26,18 +26,17 @@ public sealed class SplitDocumentTests
         var (app, left, right) = SideBySide();
         var d = app.Driver;
 
-        Wheel(app, 250f, -5);
+        app.Frames.MovePointer(250f, 400f).Frame().Wheel(-5).Frame(2);
         Assert.True(left.View.ScrollY > 0f);
         Assert.Equal(0f, right.View.ScrollY);
 
-        Click(app, 750f);
+        app.Frames.Click(750f, 400f).Frame();
         Assert.Same(right, d.Workspace.ActiveTab);
-        d.Show(d.Fixture("Greeter"));
-        app.Run(2);
+        app.Show(app.Fixture("Greeter"), 2);
         Assert.Equal("Outline", left.Node!.Text);
         Assert.Equal("Greeter", right.Node!.Text);
 
-        Click(app, 250f);
+        app.Frames.Click(250f, 400f).Frame();
         Assert.Same(left, d.Workspace.ActiveTab);
         Assert.Same(left.Node, d.Workspace.Tree.View.Selected);
     }
@@ -46,12 +45,12 @@ public sealed class SplitDocumentTests
     public void Only_the_active_documents_tab_is_marked_in_the_accent()
     {
         var (app, left, _) = SideBySide();
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
+        var theme = app.Theme;
 
         Assert.Equal(theme.Accent, Indicator(app, app.LastTextRect("Outline")));
         Assert.Equal(theme.BorderStrong, Indicator(app, app.TextRect("Outline")));
 
-        Click(app, 250f);
+        app.Frames.Click(250f, 400f).Frame();
 
         Assert.Same(left, app.Workspace.ActiveTab);
         Assert.Equal(theme.Accent, Indicator(app, app.TextRect("Outline")));
@@ -60,9 +59,8 @@ public sealed class SplitDocumentTests
 
     private static (AppDriver App, DocumentTab Left, DocumentTab Right) SideBySide()
     {
-        var app = new AppDriver();
+        var app = AppDriver.Opened();
         var d = app.Driver;
-        d.OpenFixtures();
         var layout = d.Workspace.Layout;
         layout.Close(DockPanels.Assemblies);
         d.Show(d.Fixture("Outline"));
@@ -74,27 +72,9 @@ public sealed class SplitDocumentTests
         return (app, left, right);
     }
 
-    private static void Wheel(AppDriver app, float x, double by)
-    {
-        app.Frames.MovePointer(x, 400f);
-        app.Run();
-        app.Frames.Wheel(by);
-        app.Run(2);
-    }
-
-    private static void Click(AppDriver app, float x)
-    {
-        app.Frames.MovePointer(x, 400f);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run(2);
-    }
-
     private static uint Indicator(AppDriver app, UiRect title)
     {
-        var theme = AppThemes.For(app.Workspace.Theme).Ui;
+        var theme = app.Theme;
         return app.Frames.Canvas.Rects.Select(r => r.Inputs)
             .Where(r => Math.Abs(r.Position.Height - theme.ActiveIndicatorWidth) < 0.01f)
             .Where(r => r.Position.Left <= title.X && r.Position.Left + r.Position.Width >= title.Right)

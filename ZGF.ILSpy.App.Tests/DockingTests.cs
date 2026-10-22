@@ -8,18 +8,16 @@ public sealed class DockingTests
     [Fact]
     public void A_view_docks_as_a_tab_beside_a_document_and_the_document_stays_the_active_tab()
     {
-        var app = new AppDriver();
-        var d = app.Driver;
-        d.OpenFixtures();
-        d.Show(d.Fixture("Greeter"));
-        var greeter = d.Workspace.ActiveTab!;
-        var layout = d.Workspace.Layout;
+        var app = AppDriver.Opened();
+        app.Show(app.Fixture("Greeter"));
+        var greeter = app.Workspace.ActiveTab!;
+        var layout = app.Workspace.Layout;
 
         layout.Dock(DockPanels.Assemblies, layout.GroupOf(greeter.Panel)!, DockEdge.Center);
         app.Run(3);
 
         Assert.Equal([greeter.Panel, DockPanels.Assemblies], layout.GroupOf(greeter.Panel)!.Panels);
-        Assert.Same(greeter, d.Workspace.ActiveTab);
+        Assert.Same(greeter, app.Workspace.ActiveTab);
         Assert.True(app.Frames.Drew("Greeter"));
         Assert.True(app.Frames.Drew(WorkspaceDriver.FixturesNamespace));
     }
@@ -27,18 +25,15 @@ public sealed class DockingTests
     [Fact]
     public void The_assemblies_view_closes_like_a_tab_and_comes_back_on_the_left_from_the_View_menu()
     {
-        var app = new AppDriver();
-        var d = app.Driver;
-        d.OpenFixtures();
-        var layout = d.Workspace.Layout;
+        var app = AppDriver.Opened();
+        var layout = app.Workspace.Layout;
         app.Run(2);
 
         layout.Close(DockPanels.Assemblies);
         app.Run(2);
         var closed = !layout.Contains(DockPanels.Assemblies);
         app.Click("View");
-        app.ClickMenuItem("Assemblies");
-        app.Run(2);
+        app.ClickMenuItem("Assemblies").Frame(2);
 
         Assert.True(closed);
         var split = Assert.IsType<DockSplit>(layout.Root);
@@ -57,8 +52,7 @@ public sealed class DockingTests
         app.Click("View");
         Assert.True(app.Frames.Drew("Back"));
         Assert.True(app.Frames.Drew("Forward"));
-        app.ClickMenuItem("Search");
-        app.Run(2);
+        app.ClickMenuItem("Search").Frame(2);
 
         Assert.True(layout.Contains(DockPanels.Search));
         Assert.True(app.Frames.Drew("Search…"));
@@ -67,8 +61,7 @@ public sealed class DockingTests
     [Fact]
     public void Closing_the_last_document_frees_its_area_and_the_next_one_opens_right_of_the_views()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var layout = d.Workspace.Layout;
 
         d.Workspace.CloseTab(d.Workspace.ActiveTab!);
@@ -97,9 +90,8 @@ public sealed class DockingTests
     [Fact]
     public void Reset_layout_in_the_View_menu_once_confirmed_puts_the_assemblies_left_of_every_open_document_and_closes_the_rest()
     {
-        var app = new AppDriver();
+        var app = AppDriver.Opened();
         var d = app.Driver;
-        d.OpenFixtures();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var farewell = d.Workspace.ActiveTab!;
@@ -110,11 +102,9 @@ public sealed class DockingTests
         app.Run(2);
 
         app.Click("View");
-        app.ClickMenuItem("Reset layout");
-        app.Run(2);
+        app.ClickMenuItem("Reset layout").Frame(2);
         Assert.True(layout.Contains(DockPanels.Bookmarks));
-        app.Click("Reset");
-        app.Run(2);
+        app.Click("Reset").Frame(2);
 
         var split = Assert.IsType<DockSplit>(layout.Root);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(split.First).Panels);
@@ -138,11 +128,9 @@ public sealed class LayoutResetTests
         app.Run(2);
 
         app.Click("View");
-        app.ClickMenuItem("Reset layout");
-        app.Run(2);
+        app.ClickMenuItem("Reset layout").Frame(2);
         Assert.True(w.ConfirmingLayoutReset);
-        app.Click("Cancel");
-        app.Run(2);
+        app.Click("Cancel").Frame(2);
 
         Assert.False(w.ConfirmingLayoutReset);
         Assert.True(w.Layout.Contains(DockPanels.Bookmarks));
@@ -151,13 +139,9 @@ public sealed class LayoutResetTests
 
 public sealed class LayoutPersistenceTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-layout-{Guid.NewGuid():N}");
+    private readonly TempDir _temp = new();
 
-    public void Dispose()
-    {
-        if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
-    }
+    public void Dispose() => _temp.Dispose();
 
     private static DockSplit? ParentOf(DockNode node, DockNode target) => node switch
     {
@@ -169,15 +153,12 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void Views_docked_below_the_documents_are_still_below_them_after_a_restart()
     {
-        var file = Path.Combine(_directory, "settings.json");
-        var first = new WorkspaceDriver(AppSettings.Load(file));
-        first.OpenFixtures();
-        var w = first.Workspace;
+        var w = WorkspaceDriver.Opened(_temp.Settings()).Workspace;
         w.OpenAnalyzer();
         w.Layout.Dock(DockPanels.Bookmarks, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         w.SaveSettings();
 
-        var next = new WorkspaceDriver(AppSettings.Load(file)).Workspace;
+        var next = new WorkspaceDriver(_temp.Settings()).Workspace;
         var layout = next.Layout;
         var documents = layout.GroupOf(next.ActiveTab!.Panel)!;
         var views = layout.GroupOf(DockPanels.Analyzer)!;
@@ -193,14 +174,13 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void An_open_search_panel_is_still_open_where_it_was_docked_after_a_restart()
     {
-        var file = Path.Combine(_directory, "settings.json");
-        var w = new WorkspaceDriver(AppSettings.Load(file)).Workspace;
+        var w = new WorkspaceDriver(_temp.Settings()).Workspace;
         w.OpenSearch();
         w.OpenAnalyzer();
         w.Layout.Dock(DockPanels.Search, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         w.SaveSettings();
 
-        var next = new WorkspaceDriver(AppSettings.Load(file)).Workspace;
+        var next = new WorkspaceDriver(_temp.Settings()).Workspace;
 
         Assert.True(next.Layout.Contains(DockPanels.Search));
         Assert.Same(next.Layout.GroupOf(DockPanels.Analyzer), next.Layout.GroupOf(DockPanels.Search));
@@ -209,15 +189,13 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void The_symbols_being_analyzed_are_analyzed_again_after_a_restart()
     {
-        var file = Path.Combine(_directory, "settings.json");
-        var first = new WorkspaceDriver(AppSettings.Load(file));
-        first.OpenFixtures();
+        var first = WorkspaceDriver.Opened(_temp.Settings());
         first.Workspace.Analyze(first.Fixture("Outline").Children.Single(c => c.Text.StartsWith("First()")));
         first.Workspace.Analyze(first.Fixture("Greeter"));
         first.Pump();
 
-        var next = new WorkspaceDriver(AppSettings.Load(file));
-        next.PumpUntil(() => next.Workspace.Analyzer.Roots.Count == 2);
+        var next = new WorkspaceDriver(_temp.Settings());
+        next.RunUntil(() => next.Workspace.Analyzer.Roots.Count == 2);
 
         Assert.Equal(["First() : int", "Greeter"], next.Workspace.Analyzer.Roots.Select(r => r.Symbol.Label));
     }

@@ -13,15 +13,14 @@ public sealed class WorkspaceTests
         d.Workspace.Open(WorkspaceDriver.FixturePath);
 
         Assert.Null(Assert.Single(d.Workspace.Tabs).Location);
-        d.PumpUntil(() => d.Workspace.ActiveTab?.Node != null);
+        d.RunUntil(() => d.Workspace.ActiveTab?.Node != null);
         Assert.Equal(NodeKind.Assembly, d.Workspace.ActiveTab!.Node!.Kind);
     }
 
     [Fact]
     public void A_new_tab_opens_in_the_active_tabs_group()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var greeter = d.Workspace.Tabs[^2];
@@ -38,8 +37,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Docking_the_only_tab_beside_itself_moves_it_there_and_leaves_a_new_empty_tab_that_shows_what_is_picked_next()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var greeter = d.Workspace.ActiveTab!;
         var documents = d.Workspace.Layout;
@@ -62,8 +60,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Closing_the_active_tab_activates_the_one_in_front_of_its_group()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var greeter = d.Workspace.Tabs[^2];
@@ -82,7 +79,7 @@ public sealed class WorkspaceTests
         var missing = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.dll");
 
         d.Workspace.Open(missing);
-        d.PumpUntil(() => d.Workspace.Errors.Entries.Count > 0);
+        d.RunUntil(() => d.Workspace.Errors.Entries.Count > 0);
 
         var error = Assert.Single(d.Workspace.Errors.Entries);
         Assert.Contains(Path.GetFileName(missing), error.Title);
@@ -92,8 +89,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Reloading_does_not_overwrite_a_tab_the_user_pointed_elsewhere_meanwhile()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var farewell = d.Fixture("Farewell");
 
@@ -108,8 +104,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Reloading_twice_lands_every_tab_on_the_newest_assemblies()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
 
@@ -125,8 +120,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Reloading_keeps_the_tree_expanded_as_it_was()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var ns = d.Node(WorkspaceDriver.FixturesNamespace);
         d.Workspace.Tree.View.SetExpanded(d.Fixture("Greeter"), true);
@@ -145,8 +139,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Going_back_after_a_reload_lands_on_the_reloaded_node()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var before = d.Fixture("Greeter");
         d.Show(before);
         d.Show(d.Fixture("Farewell"));
@@ -167,8 +160,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Going_back_to_what_the_tab_shows_returns_to_where_it_was_left_without_decompiling_again()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         d.Workspace.Activate(d.Workspace.Tabs[0]);
@@ -187,8 +179,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void A_navigation_result_does_not_override_a_newer_choice()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var document = d.Workspace.ActiveTab!.Document;
         var (line, column) = document.Find("Name;");
@@ -209,8 +200,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void A_navigation_lands_in_the_tab_it_was_asked_from()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var document = d.Workspace.ActiveTab!.Document;
         var (line, column) = document.Find("Name;");
@@ -226,8 +216,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void A_document_is_only_scrolled_to_a_definition_it_has()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var tab = d.Workspace.ActiveTab!;
 
         d.Workspace.Show(d.Node(WorkspaceDriver.FixturesNamespace));
@@ -243,8 +232,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Search_keeps_its_results_and_selection_when_navigation_opens_an_assembly()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var search = d.Workspace.Search;
         search.Query = "IsLeapYear";
@@ -272,8 +260,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Search_drops_hits_in_a_closed_assembly_and_keeps_the_selection()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var greeter = d.Fixture("Greeter");
         var document = greeter.Decompile(DecompilationLanguage.CSharp);
         var (line, column) = document.Find("Length");
@@ -298,8 +285,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void A_closed_search_panel_does_not_search()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var search = d.Workspace.Search;
         search.Query = "Greet";
 
@@ -313,8 +299,7 @@ public sealed class WorkspaceTests
     [Fact]
     public void Search_selection_moves_by_keys_within_the_results()
     {
-        var d = new WorkspaceDriver();
-        d.OpenFixtures();
+        var d = WorkspaceDriver.Opened();
         var search = d.Workspace.Search;
         search.Query = "e";
         search.Update(d.Workspace.Assemblies, 0, d.Post, true);
@@ -336,24 +321,17 @@ public sealed class WorkspaceTests
     public void A_tab_whose_place_is_gone_after_a_reload_says_so_and_reports_it()
     {
         var d = new WorkspaceDriver();
-        var copy = Path.Combine(Path.GetTempPath(), $"fixture-{Guid.NewGuid():N}.dll");
-        File.Copy(WorkspaceDriver.FixturePath, copy);
-        try
-        {
-            d.Workspace.Open(copy);
-            d.PumpUntil(() => d.Workspace.ActiveTab?.Node != null);
-            d.Settle();
-            var ns = d.Workspace.ActiveTab!.Node!.Children.Single(c => c.Text == WorkspaceDriver.FixturesNamespace);
-            d.Show(ns.Children.Single(c => c.Text == "Greeter"));
-            File.Delete(copy);
+        using var temp = new TempDir();
+        var copy = temp.Copy(WorkspaceDriver.FixturePath, "fixture.dll");
+        d.Workspace.Open(copy);
+        d.RunUntil(() => d.Workspace.ActiveTab?.Node != null);
+        d.Settle();
+        var greeter = d.Workspace.ActiveTab!.Node!.Child(WorkspaceDriver.FixturesNamespace, "Greeter");
+        d.Show(greeter);
+        File.Delete(copy);
 
-            d.Workspace.Refresh();
-            d.Settle();
-        }
-        finally
-        {
-            File.Delete(copy);
-        }
+        d.Workspace.Refresh();
+        d.Settle();
 
         var tab = Assert.Single(d.Workspace.Tabs);
         Assert.Null(tab.Node);
@@ -369,9 +347,8 @@ public sealed class NamespacePageTests
     [Fact]
     public void A_type_named_on_its_namespaces_page_opens_when_clicked()
     {
-        var app = new AppDriver();
+        var app = AppDriver.Opened();
         var d = app.Driver;
-        d.OpenFixtures();
         d.Show(d.Node(WorkspaceDriver.FixturesNamespace));
         var tab = d.Workspace.ActiveTab!;
         var (line, column) = tab.Document.Find("Greeter");
@@ -379,12 +356,7 @@ public sealed class NamespacePageTests
         app.Run(3);
 
         var view = app.Frames.Canvas.GlyphRuns.First(r => r.Text == "Greeter");
-        app.Frames.MovePointer(view.Origin.X + 4f, app.Frames.Height - view.Origin.Y + 4f);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run();
+        app.Frames.Click(view.Origin.X + 4f, app.Frames.Height - view.Origin.Y + 4f);
         d.Settle();
 
         Assert.False(span.IsDefinition);

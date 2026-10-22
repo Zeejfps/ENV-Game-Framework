@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using ZGF.Desktop;
@@ -22,7 +21,7 @@ public sealed class BrowseTreeTests
 
         Assert.Equal([root.LoadingChild], first);
         Assert.Equal("Loading…", tree.Row(root.LoadingChild).Label);
-        d.PumpUntil(() => root.TryGetChildren(out _) && tree.GetChildren(root) is not [{ Kind: NodeKind.Loading }]);
+        d.RunUntil(() => root.TryGetChildren(out _) && tree.GetChildren(root) is not [{ Kind: NodeKind.Loading }]);
         Assert.Contains(tree.GetChildren(root), c => c.Text == WorkspaceDriver.FixturesNamespace);
     }
 
@@ -31,8 +30,9 @@ public sealed class BrowseTreeTests
     {
         var d = new WorkspaceDriver();
         var tree = new BrowseTree(d.Post);
-        var ns = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root.Children.Single(c => c.Text == WorkspaceDriver.FixturesNamespace);
-        var secret = ns.Children.Single(c => c.Text == "Hidden").Children.Single(c => c.Text == "Secret() : int");
+        var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
+        var ns = root.Child(WorkspaceDriver.FixturesNamespace);
+        var secret = ns.Child("Hidden", "Secret() : int");
         tree.SetShowNonPublic(false);
 
         tree.Reveal(secret);
@@ -75,15 +75,13 @@ public sealed class BrowseTreeTests
 
 public sealed class AppSettingsTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-settings-{Guid.NewGuid():N}");
+    private readonly TempDir _temp = new();
 
-    private string SettingsFile => Path.Combine(_directory, "settings.json");
+    private string SettingsFile => _temp.PathOf("settings.json");
 
-    public void Dispose()
-    {
-        if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
-    }
+    public void Dispose() => _temp.Dispose();
+
+    private string Written(string json) => _temp.Write("settings.json", json);
 
     [Fact]
     public void Saved_settings_load_back_and_leave_no_temporary_file()
@@ -102,7 +100,7 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal(DecompilationLanguage.IL, loaded.Language);
         Assert.Equal(settings.Decompiler, loaded.Decompiler);
         Assert.Equal(["Other"], loaded.FoldedOptionGroups);
-        Assert.Equal([SettingsFile], Directory.GetFiles(_directory));
+        Assert.Equal([SettingsFile], Directory.GetFiles(_temp.Path));
     }
 
     [Theory]
@@ -111,10 +109,7 @@ public sealed class AppSettingsTests : IDisposable
     [InlineData("""{ "Decompiler": { } }""", CSharpVersion.CSharp14)]
     public void Decompiler_options_from_older_settings_files_load_with_defaults_for_what_they_lack(string json, CSharpVersion version)
     {
-        Directory.CreateDirectory(_directory);
-        File.WriteAllText(SettingsFile, json);
-
-        var loaded = AppSettings.Load(SettingsFile);
+        var loaded = AppSettings.Load(Written(json));
 
         Assert.Null(loaded.LoadError);
         Assert.Equal(DecompilerOptions.Default with { LanguageVersion = version }, loaded.Decompiler);
@@ -133,7 +128,7 @@ public sealed class AppSettingsTests : IDisposable
 
         Assert.Equal(new WindowBounds(-1200, 80, 1600, 1000, true), loaded.Window);
         Assert.Equal((-1200, 80, 1600, 1000, true), (config.WindowX, config.WindowY, config.WindowWidth, config.WindowHeight, config.StartMaximized));
-        Assert.Null(AppSettings.Load(Path.Combine(_directory, "missing.json")).Window);
+        Assert.Null(AppSettings.Load(_temp.PathOf("missing.json")).Window);
     }
 
     [Theory]
@@ -142,10 +137,7 @@ public sealed class AppSettingsTests : IDisposable
     [InlineData(1200, 800, 1200, 800)]
     public void Saved_window_sizes_load_within_reason(int width, int height, int expectedWidth, int expectedHeight)
     {
-        Directory.CreateDirectory(_directory);
-        File.WriteAllText(SettingsFile, $$"""{ "Window": { "X": 5, "Y": 6, "Width": {{width}}, "Height": {{height}}, "Maximized": false } }""");
-
-        var loaded = AppSettings.Load(SettingsFile);
+        var loaded = AppSettings.Load(Written($$"""{ "Window": { "X": 5, "Y": 6, "Width": {{width}}, "Height": {{height}}, "Maximized": false } }"""));
 
         Assert.Equal(new WindowBounds(5, 6, expectedWidth, expectedHeight, false), loaded.Window);
     }
@@ -153,20 +145,14 @@ public sealed class AppSettingsTests : IDisposable
     [Fact]
     public void Window_bounds_without_a_size_load_as_none()
     {
-        Directory.CreateDirectory(_directory);
-        File.WriteAllText(SettingsFile, """{ "Window": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""");
-
-        Assert.Null(AppSettings.Load(SettingsFile).Window);
+        Assert.Null(AppSettings.Load(Written("""{ "Window": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""")).Window);
         Assert.Null(AppSettings.Sanitize(default(WindowBounds)));
     }
 
     [Fact]
     public void A_null_assembly_list_loads_as_empty()
     {
-        Directory.CreateDirectory(_directory);
-        File.WriteAllText(SettingsFile, """{ "Assemblies": null, "Theme": "Monokai" }""");
-
-        var loaded = AppSettings.Load(SettingsFile);
+        var loaded = AppSettings.Load(Written("""{ "Assemblies": null, "Theme": "Monokai" }"""));
 
         Assert.Null(loaded.LoadError);
         Assert.Empty(loaded.Assemblies);
@@ -176,10 +162,7 @@ public sealed class AppSettingsTests : IDisposable
     [Fact]
     public void An_unreadable_file_falls_back_to_defaults_and_is_reported()
     {
-        Directory.CreateDirectory(_directory);
-        File.WriteAllText(SettingsFile, """{ "Assemblies": [ "a.dll", """);
-
-        var loaded = AppSettings.Load(SettingsFile);
+        var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", """));
         var workspace = new Workspace(loaded);
 
         Assert.Empty(loaded.Assemblies);
@@ -203,26 +186,18 @@ public sealed class AppSettingsTests : IDisposable
     }
 }
 
-public sealed class DockPanelsTests : IDisposable
+public sealed class DockPanelsTests
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-dock-{Guid.NewGuid():N}");
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
-    }
-
     [Fact]
     public void A_rearranged_layout_is_saved_and_restored_with_the_settings()
     {
-        var file = Path.Combine(_directory, "settings.json");
-        var workspace = new Workspace(AppSettings.Load(file));
+        using var temp = new TempDir();
+        var workspace = new Workspace(temp.Settings());
         var layout = workspace.Layout;
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 50f, 300f, 400f));
         workspace.SaveSettings();
 
-        var next = new Workspace(AppSettings.Load(file));
+        var next = new Workspace(temp.Settings());
         var restored = next.Layout;
 
         Assert.Same(next.ActiveTab, next.FindTab(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
@@ -277,8 +252,7 @@ public sealed class DockPanelsTests : IDisposable
     [Fact]
     public void Scoping_the_search_to_a_namespace_keeps_the_terms_typed()
     {
-        var driver = new WorkspaceDriver();
-        driver.OpenFixtures();
+        var driver = WorkspaceDriver.Opened();
         driver.Workspace.Search.Query = "inassembly:Old Greet";
 
         driver.Workspace.ScopeSearch(driver.Node(WorkspaceDriver.FixturesNamespace));
@@ -293,18 +267,12 @@ public sealed class FrameworkPickerTests
     [Fact]
     public void A_failed_scan_ends_loading_with_an_error_and_reports_it()
     {
-        var posted = new ConcurrentQueue<Action>();
+        var posted = new PostedActions();
         var reported = new List<string>();
         var picker = new FrameworkPickerModel(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
 
-        picker.Open(posted.Enqueue);
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        while (picker.IsLoading && clock.Elapsed < TimeSpan.FromSeconds(10))
-        {
-            while (posted.TryDequeue(out var action))
-                action();
-            Thread.Sleep(1);
-        }
+        picker.Open(posted.Post);
+        Poll.Until(() => !picker.IsLoading, posted.Run);
 
         Assert.False(picker.IsLoading);
         Assert.Contains("no runtime", picker.Error);

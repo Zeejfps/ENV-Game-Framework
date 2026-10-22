@@ -4,16 +4,8 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy.App.Tests;
 
-public sealed class LocalizationTests : IDisposable
+public sealed class LocalizationTests
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-locale-{Guid.NewGuid():N}");
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
-    }
-
     public static TheoryData<Locale> AllLocales() => new(Enum.GetValues<Locale>());
 
     [Fact]
@@ -75,10 +67,10 @@ public sealed class LocalizationTests : IDisposable
     [Fact]
     public void The_chosen_language_is_restored_with_the_settings()
     {
-        var file = Path.Combine(_directory, "settings.json");
-        var workspace = new Workspace(AppSettings.Load(file));
+        using var temp = new TempDir();
+        var workspace = new Workspace(temp.Settings());
         workspace.SetLocale(Locale.Ja);
 
-        Assert.Equal(Locale.Ja, new Workspace(AppSettings.Load(file)).Locale);
+        Assert.Equal(Locale.Ja, new Workspace(temp.Settings()).Locale);
     }
 }

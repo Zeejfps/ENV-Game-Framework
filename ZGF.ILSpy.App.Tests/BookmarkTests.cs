@@ -7,13 +7,9 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class BookmarkTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), $"ilspy-bookmarks-{Guid.NewGuid():N}");
+    private readonly TempDir _temp = new();
 
-    public void Dispose()
-    {
-        if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
-    }
+    public void Dispose() => _temp.Dispose();
 
     private static (WorkspaceDriver Driver, DocumentTab Tab, int Line) OutlineAt(string text, WorkspaceDriver? driver = null)
     {
@@ -82,12 +78,10 @@ public sealed class BookmarkTests : IDisposable
         var app = new AppDriver(height: 360f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
         d.Workspace.ToggleBookmark(tab, line);
-        d.Show(d.Fixture("Greeter"));
-        app.Run(3);
+        app.Show(app.Fixture("Greeter"), 3);
 
         d.Workspace.GoTo(d.Workspace.Bookmarks.Items[0]);
-        d.Settle();
-        app.Run(4);
+        app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, tab.View.FlashLine);
@@ -117,10 +111,7 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Bookmarks_are_saved_with_the_settings_and_found_again_on_the_next_run()
     {
-        var path = Path.Combine(_directory, "settings.json");
-        var settings = AppSettings.Load(path);
-        settings.Locale = Locale.En;
-        var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(settings));
+        var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
         d.Workspace.ToggleBookmark(tab, line);
         var bookmarks = d.Workspace.Bookmarks;
         bookmarks.StartRename(bookmarks.Items[0]);
@@ -128,7 +119,7 @@ public sealed class BookmarkTests : IDisposable
         bookmarks.CommitRename();
         d.Pump();
 
-        var (next, nextTab, _) = OutlineAt("return First();", new WorkspaceDriver(AppSettings.Load(path)));
+        var (next, nextTab, _) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
         var saved = Assert.Single(next.Workspace.Bookmarks.Items);
 
         Assert.Equal("Calls First", saved.Name);
@@ -140,21 +131,13 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Clicking_the_margin_asks_to_toggle_that_line_and_a_bookmarked_line_is_marked()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Outline(), 1200f);
-        view.Run();
-        view.Run();
-        var (x, y) = view.MarkOf(3);
+        var view = CodeViewDriver.Showing(CodeViewDriver.Outline(), 1200f, frames: 2);
         var line = view.State.Folds.LineAt(3);
 
         view.Bookmarks = new Dictionary<int, bool> { [view.State.Folds.LineAt(5)] = true };
-        view.Frames.MovePointer(x, y);
-        view.Run();
-        view.Frames.Press();
-        var pressed = view.Run();
-        view.Frames.Release();
-        view.Run();
+        var clicked = view.Click(view.MarkOf(3));
 
-        Assert.Equal(line, pressed.ToggleBookmark);
+        Assert.Equal(line, clicked.ToggleBookmark);
         Assert.Equal(2, view.Frames.Canvas.Texts.Count(t => t.Inputs.Text == LucideIcons.Bookmark));
         Assert.False(view.State.HasSelection);
     }
@@ -162,86 +145,55 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Without_bookmarks_the_margin_toggles_nothing()
     {
-        var view = new CodeViewDriver(CodeViewDriver.Outline(), 1200f);
-        view.Run();
-        var (x, y) = view.MarkOf(3);
+        var view = CodeViewDriver.Showing(CodeViewDriver.Outline(), 1200f);
 
-        view.Frames.MovePointer(x, y);
-        view.Run();
-        view.Frames.Press();
-        var pressed = view.Run();
-        view.Frames.Release();
-        view.Run();
+        var clicked = view.Click(view.MarkOf(3));
 
-        Assert.Null(pressed.ToggleBookmark);
+        Assert.Null(clicked.ToggleBookmark);
         Assert.DoesNotContain(view.Frames.Canvas.Texts, t => t.Inputs.Text == LucideIcons.Bookmark);
     }
 
     [Fact]
     public void The_bookmarks_panel_lists_bookmarks_and_Ctrl_clicking_a_location_goes_to_one()
     {
-        var app = new AppDriver(height: 500f);
-        var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, line);
-        d.Show(d.Fixture("Greeter"));
-        d.Workspace.OpenBookmarks();
-        app.Run(4);
+        var (app, d, tab, line) = ShowBookmark(frames: 0);
+        app.Show(app.Fixture("Greeter"), 4);
 
         Assert.True(app.Frames.Drew("Bookmark 1"));
         Click(app, "Outline:" + (line + 1));
         d.Settle();
         Assert.Equal("Greeter", tab.Node!.Text);
         Click(app, "Outline:" + (line + 1), KeyModifiers.Control);
-        d.Settle();
-        app.Run(4);
+        app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, tab.View.FlashLine);
     }
 
-    private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None)
-    {
-        var at = app.TextRect(text);
-        app.Frames.Wait(1);
-        app.Frames.MovePointer(at.X + at.Width / 2, at.Y + at.Height / 2);
-        app.Run();
-        app.Frames.Press(modifiers);
-        app.Run();
-        app.Frames.Release(modifiers: modifiers);
-        app.Run(2);
-    }
+    private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None) =>
+        app.Frames.Wait(1).Click(app.TextRect(text), modifiers: modifiers).Frame();
 
-    private static (AppDriver App, WorkspaceDriver Driver) ShowBookmark()
+    private static (AppDriver App, WorkspaceDriver Driver, DocumentTab Tab, int Line) ShowBookmark(int frames = 3)
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
         d.Workspace.ToggleBookmark(tab, line);
         d.Workspace.OpenBookmarks();
-        app.Run(3);
-        return (app, d);
+        app.Run(frames);
+        return (app, d, tab, line);
     }
 
     [Fact]
     public void Hovering_a_location_shows_where_it_points_how_to_follow_it_and_a_link_icon_that_goes_there()
     {
-        var (app, d) = ShowBookmark();
-        var tab = d.Workspace.ActiveTab!;
-        d.Show(d.Fixture("Greeter"));
-        app.Run(2);
+        var (app, d, tab, _) = ShowBookmark();
+        app.Show(app.Fixture("Greeter"), 2);
         var location = app.TextRect(d.Workspace.Bookmarks.Items[0].Location);
 
-        app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2);
-        for (var i = 0; i < 90; i++)
-            app.Run();
+        app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2).Frame(90);
         Assert.True(app.Frames.Drew(Strings.En.BookmarksGoToHint));
-        var icon = app.TextRect(LucideIcons.ExternalLink);
 
-        app.Frames.MovePointer(icon.X + icon.Width / 2, icon.Y + icon.Height / 2);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run();
+        app.Frames.Click(app.TextRect(LucideIcons.ExternalLink));
         d.Settle();
 
         Assert.Equal("Outline", tab.Node!.Text);
@@ -250,13 +202,11 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
     {
-        var (app, d) = ShowBookmark();
+        var (app, d, _, _) = ShowBookmark();
 
         Click(app, "Bookmark 1");
-        app.Frames.Type("Calls First");
-        app.Run(2);
-        app.Frames.Key(KeyboardKey.Enter);
-        app.Run(2);
+        app.Frames.Type("Calls First").Frame(2);
+        app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
         Assert.Null(d.Workspace.Bookmarks.Renaming);
@@ -266,13 +216,11 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Escape_leaves_a_clicked_name_as_it_was()
     {
-        var (app, d) = ShowBookmark();
+        var (app, d, _, _) = ShowBookmark();
 
         Click(app, "Bookmark 1");
-        app.Frames.Type("Gone");
-        app.Run(2);
-        app.Frames.Key(KeyboardKey.Escape);
-        app.Run(2);
+        app.Frames.Type("Gone").Frame(2);
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Equal("Bookmark 1", d.Workspace.Bookmarks.Items[0].Name);
         Assert.Null(d.Workspace.Bookmarks.Renaming);
@@ -281,12 +229,11 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Clicking_a_location_selects_its_text_for_Ctrl_C()
     {
-        var (app, d) = ShowBookmark();
+        var (app, d, _, _) = ShowBookmark();
         var location = d.Workspace.Bookmarks.Items[0].Location;
 
         Click(app, location);
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
-        app.Run();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
 
         Assert.Equal(location, app.Frames.Clipboard.Text);
         Assert.Null(d.Workspace.Bookmarks.Renaming);
@@ -295,19 +242,12 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void F2_renames_the_selected_bookmark_in_place_and_Enter_keeps_the_name()
     {
-        var app = new AppDriver(height: 500f);
-        var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.OpenBookmarks();
-        app.Run(3);
+        var (app, d, _, _) = ShowBookmark();
         Click(app, d.Workspace.Bookmarks.Items[0].Location);
 
-        app.Frames.Key(KeyboardKey.F2);
-        app.Run(2);
-        app.Frames.Type("Calls First");
-        app.Run(2);
-        app.Frames.Key(KeyboardKey.Enter);
-        app.Run(2);
+        app.Frames.Key(KeyboardKey.F2).Frame(2);
+        app.Frames.Type("Calls First").Frame(2);
+        app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
         Assert.Null(d.Workspace.Bookmarks.Renaming);
@@ -317,11 +257,7 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void The_bookmarks_panel_is_a_table_whose_header_lines_up_with_its_rows()
     {
-        var app = new AppDriver(height: 500f);
-        var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.OpenBookmarks();
-        app.Run(4);
+        var (app, _, _, line) = ShowBookmark(frames: 4);
 
         Assert.Equal(app.TextRect("Name").X, app.TextRect("Bookmark 1").X);
         Assert.Equal(app.TextRect("Location").X, app.TextRect("Outline:" + (line + 1)).X);
@@ -332,22 +268,19 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void The_bookmark_column_widths_are_saved_with_the_settings()
     {
-        var path = Path.Combine(_directory, "settings.json");
-        var settings = AppSettings.Load(path);
-        settings.Locale = Locale.En;
-        var w = new WorkspaceDriver(settings).Workspace;
+        var w = new WorkspaceDriver(_temp.Settings()).Workspace;
         w.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         w.SaveSettings();
 
-        var restored = new WorkspaceDriver(AppSettings.Load(path)).Workspace.BookmarkColumns.Weights;
+        var restored = new WorkspaceDriver(_temp.Settings()).Workspace.BookmarkColumns.Weights;
 
         Assert.Equal([1f, 1f, 4f, 1f], restored);
     }
 
     private string Exported(params string[] lines)
     {
-        Directory.CreateDirectory(_directory);
-        var path = Path.Combine(_directory, "exported.json");
+        Directory.CreateDirectory(_temp.Path);
+        var path = _temp.PathOf("exported.json");
         var (d, tab, _) = OutlineAt("return First();");
         foreach (var text in lines)
             d.Workspace.ToggleBookmark(tab, tab.Document.Find(text).Line);
@@ -399,9 +332,7 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void A_file_that_is_not_a_bookmarks_file_is_reported_and_changes_nothing()
     {
-        Directory.CreateDirectory(_directory);
-        var path = Path.Combine(_directory, "other.json");
-        File.WriteAllText(path, "{ \"assemblies\": [] }");
+        var path = _temp.Write("other.json", "{ \"assemblies\": [] }");
         var (d, tab, line) = OutlineAt("return First();");
         d.Workspace.ToggleBookmark(tab, line);
 
@@ -417,19 +348,13 @@ public sealed class BookmarkTests : IDisposable
     public void Import_in_the_panel_picks_a_file_and_the_dialog_merges_it()
     {
         var path = Exported("foreach");
-        var app = new AppDriver(height: 500f);
-        var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.OpenBookmarks();
-        app.Run(3);
+        var (app, d, _, _) = ShowBookmark();
         app.Frames.FilePicker.Answer = path;
 
-        app.Click(LucideIcons.Download);
-        d.Settle();
-        app.Run(2);
+        app.Click(LucideIcons.Download).Frame();
+        app.Settle(2);
         var asked = app.Frames.Drew("Import bookmarks");
-        app.Click("Merge");
-        app.Run(2);
+        app.Click("Merge").Frame(2);
 
         Assert.True(asked);
         Assert.Equal(2, d.Workspace.Bookmarks.Items.Count);
@@ -440,13 +365,7 @@ public sealed class BookmarkTests : IDisposable
 
     private static int TokenOf(string method) => typeof(Fixtures.Outline).GetMethod(method)!.MetadataToken;
 
-    private string ILSpyFile(string records)
-    {
-        Directory.CreateDirectory(_directory);
-        var path = Path.Combine(_directory, "ILSpy.Bookmarks.json");
-        File.WriteAllText(path, $$"""{ "Version": 1, "Bookmarks": [ {{records}} ] }""");
-        return path;
-    }
+    private string ILSpyFile(string records) => _temp.Write("ILSpy.Bookmarks.json", $$"""{ "Version": 1, "Bookmarks": [ {{records}} ] }""");
 
     private static string Record(string name, string kind, int token, int ilOffset, int lineNumber, string treePath, string? file = null) =>
         System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
@@ -465,8 +384,8 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Exports_are_written_in_ILSpys_bookmark_format()
     {
-        Directory.CreateDirectory(_directory);
-        var path = Path.Combine(_directory, "exported.json");
+        Directory.CreateDirectory(_temp.Path);
+        var path = _temp.PathOf("exported.json");
         var (d, tab, line) = OutlineAt("return First();");
         d.Workspace.ToggleBookmark(tab, line);
 
@@ -513,7 +432,7 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void A_bookmark_whose_tree_path_is_stale_is_placed_by_its_token_and_one_with_no_file_is_reported()
     {
-        var gone = Record("Gone", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Outline", Path.Combine(_directory, "gone.dll"));
+        var gone = Record("Gone", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Outline", _temp.PathOf("gone.dll"));
         var path = ILSpyFile(Record("Moved", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Renamed") + "," + gone);
         var d = new WorkspaceDriver();
 
