@@ -166,6 +166,22 @@ public sealed class LayoutPersistenceTests : IDisposable
     }
 
     [Fact]
+    public void An_open_search_panel_is_still_open_where_it_was_docked_after_a_restart()
+    {
+        var file = Path.Combine(_directory, "settings.json");
+        var w = new WorkspaceDriver(AppSettings.Load(file)).Workspace;
+        w.OpenSearch();
+        w.OpenAnalyzer();
+        w.Layout.Dock(DockPanels.Search, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
+        w.SaveSettings();
+
+        var next = new WorkspaceDriver(AppSettings.Load(file)).Workspace;
+
+        Assert.True(next.Layout.Contains(DockPanels.Search));
+        Assert.Same(next.Layout.GroupOf(DockPanels.Analyzer), next.Layout.GroupOf(DockPanels.Search));
+    }
+
+    [Fact]
     public void The_symbols_being_analyzed_are_analyzed_again_after_a_restart()
     {
         var file = Path.Combine(_directory, "settings.json");

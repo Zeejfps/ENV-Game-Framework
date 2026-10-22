@@ -32,10 +32,9 @@ public static class MainView
 
     private static void Panels(Ui ui, Workspace w, Strings t)
     {
-        var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Post);
+        var wait = w.Search.Update(w.Assemblies, ui.RealTime, w.Post, w.Layout.Contains(DockPanels.Search));
         if (wait > 0)
             ui.RequestFrameIn(wait);
-        w.SyncSearchPanel();
         if (!w.Layout.AllGroups().Any(static g => g.Panels.Count > 0))
         {
             DocumentsView.Hint(ui, t.ViewEmptyHint);

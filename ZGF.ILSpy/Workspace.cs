@@ -563,7 +563,6 @@ public sealed class Workspace
             Layout.Dock(panel, group, DockEdge.Center);
         if (_active != null && Layout.Contains(_active.Panel))
             Layout.Activate(_active.Panel);
-        SyncSearchPanel();
     }
 
     /// <summary>Docks the assemblies view where it starts out, left of everything, if it is closed,
@@ -577,21 +576,14 @@ public sealed class Workspace
 
     public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
 
+    /// <summary>Docks the search panel under the documents if it is closed, brings it to the front
+    /// and puts the caret in its search box.</summary>
     public void OpenSearch()
     {
-        Search.IsOpen = true;
-        _focusSearch = true;
-        SyncSearchPanel();
-        Layout.Activate(DockPanels.Search);
-    }
-
-    /// <summary>Docks the search results while a search is open and closes them once it is not.</summary>
-    public void SyncSearchPanel()
-    {
-        if (Search.IsOpen && !Layout.Contains(DockPanels.Search))
+        if (!Layout.Contains(DockPanels.Search))
             DockBeside(DockPanels.Search, DocumentGroup() ?? Layout.Root, DockEdge.Bottom, 0.3f);
-        else if (!Search.IsOpen && Layout.Contains(DockPanels.Search))
-            Layout.Close(DockPanels.Search);
+        _focusSearch = true;
+        Layout.Activate(DockPanels.Search);
     }
 
     /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>

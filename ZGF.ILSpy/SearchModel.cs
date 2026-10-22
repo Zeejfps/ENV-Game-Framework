@@ -33,7 +33,6 @@ public sealed class SearchModel
     }
 
     public string Query = "";
-    public bool IsOpen;
 
     public IReadOnlyList<SearchRow> Rows => _rows;
     public bool IsBusy => _runs.Count > 0;
@@ -47,16 +46,16 @@ public sealed class SearchModel
     public bool ScrollToSelected;
 
     /// <summary>Starts a search when the query settled, or searches assemblies opened since. Does
-    /// nothing while the panel is closed. Returns the seconds left before a typed query settles,
-    /// or 0.</summary>
-    public double Update(AssemblyList assemblies, double now, Action<Action> post)
+    /// nothing unless the results are <paramref name="shown"/>. Returns the seconds left before a
+    /// typed query settles, or 0.</summary>
+    public double Update(AssemblyList assemblies, double now, Action<Action> post, bool shown)
     {
         if (Query != _typed)
         {
             _typed = Query;
             _typedAt = now;
         }
-        if (!IsOpen) return 0;
+        if (!shown) return 0;
         if (_typed != _query)
         {
             var remaining = DebounceSeconds - (now - _typedAt);
@@ -84,11 +83,7 @@ public sealed class SearchModel
             Select(Math.Clamp(Selected < 0 && by < 0 ? 0 : Selected + by, 0, _rows.Count - 1));
     }
 
-    public void Clear()
-    {
-        Query = "";
-        IsOpen = false;
-    }
+    public void Clear() => Query = "";
 
     private void Restart(AssemblyList assemblies, Action<Action> post)
     {

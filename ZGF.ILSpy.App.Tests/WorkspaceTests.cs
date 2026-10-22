@@ -247,10 +247,9 @@ public sealed class WorkspaceTests
         d.OpenFixtures();
         d.Show(d.Fixture("Greeter"));
         var search = d.Workspace.Search;
-        search.IsOpen = true;
         search.Query = "IsLeapYear";
-        search.Update(d.Workspace.Assemblies, 0, d.Post);
-        search.Update(d.Workspace.Assemblies, 1, d.Post);
+        search.Update(d.Workspace.Assemblies, 0, d.Post, true);
+        search.Update(d.Workspace.Assemblies, 1, d.Post, true);
         d.Settle();
         var rows = search.Rows.ToArray();
         Assert.Single(rows);
@@ -262,7 +261,7 @@ public sealed class WorkspaceTests
         d.Workspace.Navigate(document.SpanAt(line, column).Reference!, inNewTab: true);
         d.Settle();
         Assert.Equal(2, d.Workspace.Assemblies.Assemblies.Count);
-        search.Update(d.Workspace.Assemblies, 2, d.Post);
+        search.Update(d.Workspace.Assemblies, 2, d.Post, true);
         d.Settle();
 
         Assert.Equal(rows, search.Rows.Take(rows.Length));
@@ -280,10 +279,9 @@ public sealed class WorkspaceTests
         var (line, column) = document.Find("Length");
         Assert.NotNull(d.Workspace.Assemblies.FindNode(document.SpanAt(line, column).Reference!));
         var search = d.Workspace.Search;
-        search.IsOpen = true;
         search.Query = "IsLeapYear";
-        search.Update(d.Workspace.Assemblies, 0, d.Post);
-        search.Update(d.Workspace.Assemblies, 1, d.Post);
+        search.Update(d.Workspace.Assemblies, 0, d.Post, true);
+        search.Update(d.Workspace.Assemblies, 1, d.Post, true);
         d.Settle();
         Assert.Contains(search.Rows, r => r.Result.Node.Assembly != greeter.Assembly);
         search.Select(0);
@@ -291,7 +289,7 @@ public sealed class WorkspaceTests
         Assert.Same(greeter.Assembly, selected.Assembly);
 
         d.Workspace.Close(d.Workspace.Assemblies.Assemblies.Single(a => a.Name == "System.Private.CoreLib"));
-        search.Update(d.Workspace.Assemblies, 2, d.Post);
+        search.Update(d.Workspace.Assemblies, 2, d.Post, true);
         d.Settle();
 
         Assert.All(search.Rows, r => Assert.Equal(greeter.Assembly, r.Result.Node.Assembly));
@@ -306,8 +304,8 @@ public sealed class WorkspaceTests
         var search = d.Workspace.Search;
         search.Query = "Greet";
 
-        search.Update(d.Workspace.Assemblies, 0, d.Post);
-        search.Update(d.Workspace.Assemblies, 5, d.Post);
+        search.Update(d.Workspace.Assemblies, 0, d.Post, false);
+        search.Update(d.Workspace.Assemblies, 5, d.Post, false);
 
         Assert.False(search.IsBusy);
         Assert.Empty(search.Rows);
@@ -319,10 +317,9 @@ public sealed class WorkspaceTests
         var d = new WorkspaceDriver();
         d.OpenFixtures();
         var search = d.Workspace.Search;
-        search.IsOpen = true;
         search.Query = "e";
-        search.Update(d.Workspace.Assemblies, 0, d.Post);
-        search.Update(d.Workspace.Assemblies, 1, d.Post);
+        search.Update(d.Workspace.Assemblies, 0, d.Post, true);
+        search.Update(d.Workspace.Assemblies, 1, d.Post, true);
         d.Settle();
         Assert.True(search.Rows.Count > 3);
 

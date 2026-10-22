@@ -212,7 +212,7 @@ public sealed class DockPanelsTests : IDisposable
     }
 
     [Fact]
-    public void A_saved_layout_keeps_the_views_left_open_and_drops_documents_and_search_results()
+    public void A_saved_layout_keeps_the_views_left_open_and_drops_documents()
     {
         var saved = new DockLayout { Root = DockLayout.Group("document-7", DockPanels.Search, "gone", DockPanels.Bookmarks) };
 
@@ -220,13 +220,13 @@ public sealed class DockPanelsTests : IDisposable
         var fresh = DockPanels.Restore(null, "document-99", out var freshPlaced);
 
         Assert.True(placed);
-        Assert.Equal(["document-99", DockPanels.Bookmarks], Assert.IsType<DockGroup>(layout.Root).Panels);
+        Assert.Equal(["document-99", DockPanels.Search, DockPanels.Bookmarks], Assert.IsType<DockGroup>(layout.Root).Panels);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(fresh.Root).Panels);
         Assert.False(freshPlaced);
     }
 
     [Fact]
-    public void Opening_a_search_docks_its_results_and_closing_the_panel_ends_the_search()
+    public void Opening_a_search_docks_its_panel_and_closing_the_panel_clears_the_query()
     {
         var workspace = new Workspace(new AppSettings());
 
@@ -239,7 +239,6 @@ public sealed class DockPanelsTests : IDisposable
 
         workspace.Layout.Close(DockPanels.Search);
 
-        Assert.False(workspace.Search.IsOpen);
         Assert.Equal("", workspace.Search.Query);
     }
 }
