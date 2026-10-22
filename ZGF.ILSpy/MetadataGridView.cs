@@ -34,8 +34,7 @@ public sealed class MetadataGridState
     internal int FlagsColumn = None;
     internal bool FlagsOpen;
     internal readonly Dictionary<(int Row, int Column), int> Open = new();
-    internal readonly Dictionary<int, (DecompiledDocument Document, CodeViewState View)> DetailTexts = new();
-    internal readonly Dictionary<int, (int Lines, int Longest)> DetailSizes = new();
+    internal readonly DetailTexts Details = new();
 
     /// <summary>Where the view stands, as a code view's position: the top row as the top line, the
     /// selected row and cell as the caret.</summary>
@@ -59,8 +58,7 @@ public sealed class MetadataGridState
         ScrollX = ScrollY = 0f;
         PendingRestore = null;
         Open.Clear();
-        DetailTexts.Clear();
-        DetailSizes.Clear();
+        Details.Clear();
     }
 
     /// <summary>Returns the view to <paramref name="position"/> once it has been laid out.</summary>
@@ -114,9 +112,6 @@ public static class MetadataGridWidget
     private const int AutoFitRows = 200;
     private const float MaxAutoWidth = 480f;
     private const float FlyoutMinWidth = 320f;
-    private const int MaxTextLines = 12;
-    private const float TextPaddingX = 24f;
-    private const float MaxTableDetails = 250f;
     private const int CellSalt = 0x4D444743;
     private const int FunnelSalt = 0x4D444746;
     private const int FilterTextSalt = 0x4D444754;
@@ -168,7 +163,7 @@ public static class MetadataGridWidget
                 {
                     Row(ui, id, grid, state, t, columns, listId, row, width, height.Cells, focused, ref result);
                     if (height.Details > 0f)
-                        Details(ui, grid, state, t, row, height.Details);
+                        MetadataDetailsView.Render(ui, grid, state.Details, t, row, height.Details);
                 }
             }
         }
@@ -392,9 +387,7 @@ public static class MetadataGridWidget
         var cells = new Dictionary<int, float>();
         foreach (var ((row, _), lines) in state.Open)
             cells[row] = MathF.Max(cells.GetValueOrDefault(row, rowHeight), lines * rowHeight);
-        var details = state.Selected >= 0 && grid.HasDetails && grid.Details(state.Selected) is { } found
-            ? DetailsHeight(ui, state, state.Selected, found, width)
-            : 0f;
+        var details = MetadataDetailsView.Height(ui, grid, state.Details, state.Selected, width);
         if (details > 0f)
             cells.TryAdd(state.Selected, rowHeight);
         var tall = new List<RowHeights>(cells.Count);
@@ -405,85 +398,6 @@ public static class MetadataGridWidget
         }
         tall.Sort(static (a, b) => a.Index.CompareTo(b.Index));
         return tall;
-    }
-
-    private static float DetailsHeight(Ui ui, MetadataGridState state, int row, MetadataRowDetails details, float width)
-    {
-        var theme = ui.Theme;
-        var padding = theme.GapTight * 2;
-        switch (details)
-        {
-            case MetadataTextDetails text:
-                if (!state.DetailSizes.TryGetValue(row, out var size))
-                    state.DetailSizes[row] = size = Size(text.Text);
-                return TextHeight(ui, size, width - DetailsLeft(theme) - theme.ShellPaddingX) + padding;
-            case MetadataTableDetails table:
-                return MathF.Min(MaxTableDetails, (table.Rows.Count + 1) * theme.RowHeight + padding);
-            default:
-                return 0f;
-        }
-    }
-
-    private static (int Lines, int Longest) Size(string text)
-    {
-        var lines = text.Split('\n');
-        return (lines.Length, lines.Max(static l => l.TrimEnd('\r').Length));
-    }
-
-    /// <summary>How tall a text is in a code view <paramref name="width"/> wide: a code line per
-    /// line, up to <see cref="MaxTextLines"/> before it scrolls, plus the horizontal scrollbar's room
-    /// when its longest line is wider.</summary>
-    private static float TextHeight(Ui ui, (int Lines, int Longest) size, float width)
-    {
-        var theme = ui.Theme;
-        var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
-        var lineHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
-        var overflows = TextPaddingX + size.Longest * cell.Advance > width;
-        var bar = overflows ? theme.ScrollBarWidth + theme.ScrollBarInset * 2 : 0f;
-        return Math.Min(size.Lines, MaxTextLines) * lineHeight + bar;
-    }
-
-    private static float DetailsLeft(UiTheme theme) => theme.ShellPaddingX + theme.IconSize;
-
-    private static void Details(Ui ui, MetadataGrid grid, MetadataGridState state, Strings t, int row, float height)
-    {
-        var theme = ui.Theme;
-        using var box = ui.Column(new Box
-        {
-            Width = Sizing.Grow(),
-            Height = height,
-            Gap = 0f,
-            Padding = new Spacing(DetailsLeft(theme), theme.GapTight, theme.ShellPaddingX, theme.GapTight),
-            Background = theme.Surface,
-        });
-        using var scope = ui.Id(row);
-        switch (grid.Details(row))
-        {
-            case MetadataTextDetails text:
-                if (!state.DetailTexts.TryGetValue(row, out var shown))
-                    state.DetailTexts[row] = shown = (DecompiledDocument.FromText(grid.Title, text.Text), new CodeViewState());
-                ui.CodeView("details", shown.Document, shown.View, t, gutter: false);
-                break;
-            case MetadataTableDetails table:
-                var share = 1f / table.Headers.Count;
-                using (ui.Row(new Box { Height = theme.RowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
-                {
-                    foreach (var header in table.Headers)
-                        ui.Text(header, new Box { Width = Sizing.Percent(share) }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-                }
-                using (ui.Scroll("details", new Box { Height = Sizing.Grow(), Gap = 0f }))
-                {
-                    foreach (var cells in table.Rows)
-                    {
-                        using (ui.Row(new Box { Height = theme.RowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
-                        {
-                            foreach (var cell in cells)
-                                ui.Text(cell, new Box { Width = Sizing.Percent(share) }, overflow: TextOverflow.Ellipsis);
-                        }
-                    }
-                }
-                break;
-        }
     }
 
     private static void Sort(MetadataGridState state, int column)
