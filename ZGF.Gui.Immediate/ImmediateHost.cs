@@ -618,10 +618,3 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _render.Dispose();
     }
 }
-
-internal sealed class WindowClipboard(IWindow window) : IClipboard
-{
-    public void SetText(string text) => window.SetClipboardText(text);
-
-    public string? GetText() => window.GetClipboardText();
-}

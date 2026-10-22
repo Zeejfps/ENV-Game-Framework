@@ -165,7 +165,7 @@ public sealed class GuiApp : IDisposable
             return new Platforms.Osx.OsxClipboard();
         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             return new Platforms.Windows.Win32Clipboard();
-        return new WindowClipboard(app);
+        return new WindowClipboard(app.MainWindow);
     }
 
     /// <summary>Starts a fluent <see cref="GuiAppBuilder"/> for configuring and building a GuiApp.</summary>
