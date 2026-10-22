@@ -8,12 +8,34 @@ using ICSharpCode.Decompiler.Metadata;
 
 namespace ZGF.ILSpy.Core.Metadata
 {
-	/// <summary>The rows of the PE header views: DOS, COFF and Optional headers, the data
+	/// <summary>The grids of the PE header views: DOS, COFF and Optional headers, the data
 	/// directories and the debug directory.</summary>
 	internal static class PEHeaderEntries
 	{
 		/// <summary>The 64-byte legacy DOS header sitting at offset 0 of every PE file.</summary>
-		public static IReadOnlyList<Entry> Dos(PEFile module)
+		public static GridSchema Dos(PEFile module) => Header("DOS Header", module, () => DosEntries(module));
+
+		/// <summary>COFF (Common Object File Format) header — 20 bytes describing target machine, section
+		/// count, link timestamp, and file-level characteristics. The Characteristics field is a
+		/// 16-bit flags word whose bits its value's tooltip breaks out.</summary>
+		public static GridSchema Coff(PEFile module) => Header("COFF Header", module, () => CoffEntries(module));
+
+		/// <summary>PE Optional Header — image base, sizes, alignments, subsystem. Field widths flex
+		/// between PE32 and PE32+ (Image Base / Stack &amp; Heap reserves go from 4 → 8 bytes,
+		/// Base Of Data drops out on PE32+).</summary>
+		public static GridSchema Optional(PEFile module) => Header("Optional Header", module, () => OptionalEntries(module));
+
+		static GridSchema<Entry> Header(string key, PEFile module, Func<IEnumerable<Entry>> rows) =>
+			new GridSchema<Entry>(key, module, rows)
+				.Value("Member", e => e.Member)
+				.Value("Offset", e => e.Offset)
+				.Value("Size", e => e.Size)
+				.Value("Value", e => e.Value, tooltip: e => e.Bits is { } bits
+					? new MetadataTooltip(null, [new MetadataFlagGroup(null, false, bits.Select(static b => new MetadataFlag(b.Meaning, b.Value)).ToArray())])
+					: null)
+				.Value("Meaning", e => e.Meaning);
+
+		static List<Entry> DosEntries(PEFile module)
 		{
 			var reader = module.Reader.GetEntireImage().GetReader(0, 64);
 			var entries = new List<Entry>(31) {
@@ -52,10 +74,7 @@ namespace ZGF.ILSpy.Core.Metadata
 			return entries;
 		}
 
-		/// <summary>COFF (Common Object File Format) header — 20 bytes describing target machine, section
-		/// count, link timestamp, and file-level characteristics. The Characteristics field is a
-		/// 16-bit flags word; each individual bit is broken out as a row-detail entry.</summary>
-		public static IReadOnlyList<Entry> Coff(PEFile module)
+		static List<Entry> CoffEntries(PEFile module)
 		{
 			var headers = module.Reader.PEHeaders;
 			var header = headers.CoffHeader;
@@ -89,10 +108,7 @@ namespace ZGF.ILSpy.Core.Metadata
 			};
 		}
 
-		/// <summary>PE Optional Header — image base, sizes, alignments, subsystem. Field widths flex
-		/// between PE32 and PE32+ (Image Base / Stack &amp; Heap reserves go from 4 → 8 bytes,
-		/// Base Of Data drops out on PE32+).</summary>
-		public static IReadOnlyList<Entry> Optional(PEFile module)
+		static List<Entry> OptionalEntries(PEFile module)
 		{
 			var headers = module.Reader.PEHeaders;
 			var reader = module.Reader.GetEntireImage().GetReader(headers.PEHeaderStartOffset, 128);
@@ -156,88 +172,61 @@ namespace ZGF.ILSpy.Core.Metadata
 		/// PE Optional Header. Each entry points at one well-known PE region (Export Table,
 		/// Import Table, CLI Header, …).
 		/// </summary>
-		public static IReadOnlyList<DataDirectoryEntry> DataDirectories(PEFile module)
+		public static GridSchema DataDirectories(PEFile module)
 		{
 			var headers = module.Reader.PEHeaders;
 			var header = headers.PEHeader!;
-			return new List<DataDirectoryEntry> {
-				new(headers, "Export Table", header.ExportTableDirectory),
-				new(headers, "Import Table", header.ImportTableDirectory),
-				new(headers, "Resource Table", header.ResourceTableDirectory),
-				new(headers, "Exception Table", header.ExceptionTableDirectory),
-				new(headers, "Certificate Table", header.CertificateTableDirectory),
-				new(headers, "Base Relocation Table", header.BaseRelocationTableDirectory),
-				new(headers, "Debug Table", header.DebugTableDirectory),
-				new(headers, "Copyright Table", header.CopyrightTableDirectory),
-				new(headers, "Global Pointer Table", header.GlobalPointerTableDirectory),
-				new(headers, "Thread Local Storage Table", header.ThreadLocalStorageTableDirectory),
-				new(headers, "Load Config", header.LoadConfigTableDirectory),
-				new(headers, "Bound Import", header.BoundImportTableDirectory),
-				new(headers, "Import Address Table", header.ImportAddressTableDirectory),
-				new(headers, "Delay Import Descriptor", header.DelayImportTableDirectory),
-				new(headers, "CLI Header", header.CorHeaderTableDirectory),
-			};
+			(string Name, DirectoryEntry Entry)[] rows = [
+				("Export Table", header.ExportTableDirectory),
+				("Import Table", header.ImportTableDirectory),
+				("Resource Table", header.ResourceTableDirectory),
+				("Exception Table", header.ExceptionTableDirectory),
+				("Certificate Table", header.CertificateTableDirectory),
+				("Base Relocation Table", header.BaseRelocationTableDirectory),
+				("Debug Table", header.DebugTableDirectory),
+				("Copyright Table", header.CopyrightTableDirectory),
+				("Global Pointer Table", header.GlobalPointerTableDirectory),
+				("Thread Local Storage Table", header.ThreadLocalStorageTableDirectory),
+				("Load Config", header.LoadConfigTableDirectory),
+				("Bound Import", header.BoundImportTableDirectory),
+				("Import Address Table", header.ImportAddressTableDirectory),
+				("Delay Import Descriptor", header.DelayImportTableDirectory),
+				("CLI Header", header.CorHeaderTableDirectory),
+			];
+			return new GridSchema<(string Name, DirectoryEntry Entry)>("Data Directories", module, () => rows)
+				.Value("Name", r => r.Name)
+				.Value("RVA", r => r.Entry.RelativeVirtualAddress, "X8")
+				.Value("Size", r => r.Entry.Size, "X8")
+				.Value("Section", r => headers.GetContainingSectionIndex(r.Entry.RelativeVirtualAddress) is >= 0 and var index ? headers.SectionHeaders[index].Name : "");
 		}
 
 		/// <summary>
 		/// Each entry of the PE debug directory: timestamp, version, type, and the size /
 		/// addresses of the raw debug payload.
 		/// </summary>
-		public static IReadOnlyList<DebugDirectoryEntryView> DebugDirectory(PEFile module)
+		public static GridSchema DebugDirectory(PEFile module)
 		{
-			var entries = new List<DebugDirectoryEntryView>();
-			foreach (var entry in module.Reader.ReadDebugDirectory())
-			{
-				int dataOffset = module.Reader.IsLoadedImage ? entry.DataRelativeVirtualAddress : entry.DataPointer;
-				var data = module.Reader.GetEntireImage().GetContent(dataOffset, entry.DataSize);
-				entries.Add(new DebugDirectoryEntryView(entry, data.ToHexString(data.Length)));
-			}
-			return entries;
-		}
-
-		public sealed class DataDirectoryEntry
-		{
-			public string Name { get; }
-			[ColumnInfo("X8")]
-			public int RVA { get; }
-			[ColumnInfo("X8")]
-			public int Size { get; }
-			public string Section { get; }
-
-			public DataDirectoryEntry(PEHeaders headers, string name, DirectoryEntry entry)
-			{
-				Name = name;
-				RVA = entry.RelativeVirtualAddress;
-				Size = entry.Size;
-				int sectionIndex = headers.GetContainingSectionIndex(entry.RelativeVirtualAddress);
-				Section = sectionIndex >= 0 ? headers.SectionHeaders[sectionIndex].Name : "";
-			}
-		}
-
-		public sealed class DebugDirectoryEntryView
-		{
-			public uint Timestamp { get; }
-			public ushort MajorVersion { get; }
-			public ushort MinorVersion { get; }
-			public string Type { get; }
-			public int SizeOfRawData { get; }
-			[ColumnInfo("X8")]
-			public int AddressOfRawData { get; }
-			[ColumnInfo("X8")]
-			public int PointerToRawData { get; }
-			public string RawData { get; }
-
-			public DebugDirectoryEntryView(DebugDirectoryEntry entry, string data)
-			{
-				Timestamp = entry.Stamp;
-				MajorVersion = entry.MajorVersion;
-				MinorVersion = entry.MinorVersion;
-				Type = entry.Type.ToString();
-				SizeOfRawData = entry.DataSize;
-				AddressOfRawData = entry.DataRelativeVirtualAddress;
-				PointerToRawData = entry.DataPointer;
-				RawData = data;
-			}
+			var reader = module.Reader;
+			return new GridSchema<DebugDirectoryEntry>("Debug Directory", module, () => reader.ReadDebugDirectory())
+				.Value("Timestamp", e => e.Stamp)
+				.Value("MajorVersion", e => e.MajorVersion)
+				.Value("MinorVersion", e => e.MinorVersion)
+				.Value("Type", e => e.Type.ToString())
+				.Value("SizeOfRawData", e => e.DataSize)
+				.Value("AddressOfRawData", e => e.DataRelativeVirtualAddress, "X8")
+				.Value("PointerToRawData", e => e.DataPointer, "X8")
+				.Value("RawData", e =>
+				{
+					var data = reader.GetEntireImage().GetContent(reader.IsLoadedImage ? e.DataRelativeVirtualAddress : e.DataPointer, e.DataSize);
+					return data.ToHexString(data.Length);
+				});
 		}
 	}
+
+	/// <summary>One row of a PE header: <see cref="Value"/> is <see cref="Size"/> bytes at
+	/// <see cref="Offset"/>, and <see cref="Bits"/> breaks a flags value down.</summary>
+	internal sealed record Entry(int Offset, object? Value, int Size, string Member, string Meaning, IReadOnlyList<BitEntry>? Bits = null);
+
+	/// <summary>One bit (or bit-group) of a flags <see cref="Entry"/>, and whether it is set.</summary>
+	internal readonly record struct BitEntry(bool Value, string Meaning);
 }

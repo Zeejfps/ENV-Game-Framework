@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Globalization;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
@@ -8,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace ZGF.ILSpy.Core.Metadata;
 
 /// <summary>One column of a <see cref="MetadataGrid"/>.</summary>
-/// <param name="Name">ILSpy's header for it: the name of the row property it shows.</param>
+/// <param name="Name">ILSpy's header for it.</param>
 /// <param name="IsToken">Whether its cells are metadata tokens that <see cref="MetadataGrid.Link"/>
 /// can follow.</param>
 /// <param name="IsNumeric">Whether it holds numbers, which read best aligned to the right.</param>
@@ -54,40 +53,38 @@ public readonly record struct MetadataTarget(BrowseNode Node, int Row);
 
 /// <summary>
 /// The rows of a metadata node as ILSpy shows them in a grid: a header, a directory, a table or a
-/// heap. Columns are the public properties of ILSpy's row types, in declaration order; a
-/// <c>{Column}Tooltip</c> property explains its column's cells. Cell text is formatted once and
-/// kept; read it on one thread at a time.
+/// heap, read through its <see cref="GridSchema"/>. Cell text, tooltips and details are worked out
+/// once and kept; read them on one thread at a time.
 /// </summary>
 public sealed class MetadataGrid
 {
-    private const string RowDetailsProperty = "RowDetails";
-    private static readonly ConcurrentDictionary<Type, Descriptor[]> Descriptors = new();
     private static readonly ConcurrentDictionary<string, Regex?> Patterns = new();
 
     private readonly MetadataGridNode _owner;
+    private readonly GridSchema _schema;
     private readonly IReadOnlyList<object> _rows;
-    private readonly Descriptor[] _descriptors;
-    private readonly PropertyInfo? _details;
+    private readonly IReadOnlyList<GridColumn> _columns;
+    private readonly Dictionary<int, MetadataTooltip?> _tooltips = new();
+    private readonly Dictionary<int, MetadataRowDetails?> _details = new();
     private string?[]? _text;
     private (string FirstLine, int MoreLines)?[]? _lines;
 
-    internal MetadataGrid(MetadataGridNode owner, Type entryType, IReadOnlyList<object> rows)
+    internal MetadataGrid(MetadataGridNode owner, GridSchema schema)
     {
         _owner = owner;
-        _rows = rows;
-        _descriptors = Descriptors.GetOrAdd(entryType, Describe);
-        Columns = _descriptors.Select(static d => d.Column).ToArray();
-        Key = entryType.FullName ?? entryType.Name;
-        _details = entryType.GetProperty(RowDetailsProperty, BindingFlags.Public | BindingFlags.Instance);
+        _schema = schema;
+        _rows = schema.LoadRows();
+        _columns = schema.Columns;
+        Columns = _columns.Select(static c => c.Column).ToArray();
     }
 
     /// <summary>What names the kind of rows, the same for a table in any assembly: where a
     /// column's flags filter is kept.</summary>
-    public string Key { get; }
+    public string Key => _schema.Key;
 
     /// <summary>Whether the selected row shows its <see cref="Details"/> under it, as a debug
     /// information's decoded value does.</summary>
-    public bool HasDetails => _details != null;
+    public bool HasDetails => _schema.Details != null;
 
     /// <summary>What the grid lists, as its node is labelled.</summary>
     public string Title => _owner.Text;
@@ -99,9 +96,9 @@ public sealed class MetadataGrid
     /// <summary>The text of a cell: numbers in the column's format, often hex.</summary>
     public string Text(int row, int column)
     {
-        var text = _text ??= new string?[_rows.Count * _descriptors.Length];
-        var index = row * _descriptors.Length + column;
-        return text[index] ??= Format(Value(row, column), _descriptors[column].Format);
+        var text = _text ??= new string?[_rows.Count * _columns.Count];
+        var index = row * _columns.Count + column;
+        return text[index] ??= Format(Value(row, column), _columns[column].Format);
     }
 
     /// <summary>The rows of <paramref name="order"/>, or of the table in its own order, that pass
@@ -109,7 +106,7 @@ public sealed class MetadataGrid
     public int[] Filter(int[]? order, IReadOnlyList<MetadataColumnFilter?> filters)
     {
         var active = new List<(int Column, MetadataColumnFilter Filter, CompiledFilter? Flags)>();
-        for (var column = 0; column < filters.Count && column < _descriptors.Length; column++)
+        for (var column = 0; column < filters.Count && column < _columns.Count; column++)
         {
             if (filters[column] is { IsActive: true } filter)
                 active.Add((column, filter, filter.Flags is { IsEmpty: false } flags ? CompiledFilter.Compile(flags) : null));
@@ -123,38 +120,27 @@ public sealed class MetadataGrid
     /// nothing.</summary>
     public MetadataRowDetails? Details(int row)
     {
-        if (_details == null) return null;
-        object? value;
+        if (_schema.Details is not { } details) return null;
+        if (_details.TryGetValue(row, out var known)) return known;
+        MetadataRowDetails? result;
         try
         {
-            value = _details.GetValue(_rows[row]);
+            result = details(_rows[row]);
         }
-        catch (TargetInvocationException)
+        catch (Exception e) when (IsUnreadable(e))
         {
-            return null;
+            result = null;
         }
-        return value switch
-        {
-            TextBlobDetail text => new MetadataTextDetails(text.Text, text.HighlightExtension),
-            IReadOnlyList<HoistedLocalScopeDetail> scopes => Table(scopes, ("Start Offset", static s => s.StartOffset), ("Length", static s => s.Length)),
-            IReadOnlyList<CompilationOptionDetail> options => Table(options, ("Name", static o => o.Name), ("Value", static o => o.Value)),
-            IReadOnlyList<MetadataReferenceDetail> references => Table(references, ("File Name", static r => r.FileName), ("Aliases", static r => r.Aliases),
-                ("Flags", static r => r.Flags), ("Timestamp", static r => r.Timestamp), ("File Size", static r => r.FileSize), ("MVID", static r => r.Mvid)),
-            IReadOnlyList<TupleElementNameDetail> names => Table(names, ("Element Name", static n => n.ElementName)),
-            _ => null,
-        };
-
-        static MetadataTableDetails Table<T>(IReadOnlyList<T> rows, params (string Header, Func<T, object?> Value)[] columns) =>
-            new(columns.Select(static c => c.Header).ToArray(),
-                rows.Select(r => (IReadOnlyList<string>)columns.Select(c => c.Value(r)?.ToString() ?? "").ToArray()).ToArray());
+        _details[row] = result;
+        return result;
     }
 
     /// <summary>A cell's text up to its first line break, and how many lines follow it — none for
     /// text on one line.</summary>
     public (string FirstLine, int MoreLines) Lines(int row, int column)
     {
-        var lines = _lines ??= new (string, int)?[_rows.Count * _descriptors.Length];
-        var index = row * _descriptors.Length + column;
+        var lines = _lines ??= new (string, int)?[_rows.Count * _columns.Count];
+        var index = row * _columns.Count + column;
         if (lines[index] is { } known) return known;
         var text = Text(row, column).TrimEnd('\r', '\n');
         var end = text.IndexOf('\n');
@@ -183,23 +169,27 @@ public sealed class MetadataGrid
     /// <summary>What hovering a cell explains, or null when its column has nothing to say.</summary>
     public MetadataTooltip? Tooltip(int row, int column)
     {
-        if (_descriptors[column].Tooltip is not { } tooltip) return null;
+        if (_columns[column].Tooltip is not { } tooltip) return null;
+        var index = row * _columns.Count + column;
+        if (_tooltips.TryGetValue(index, out var known)) return known;
         object? value;
         try
         {
-            value = tooltip.GetValue(_rows[row]);
+            value = tooltip(_rows[row], row + 1);
         }
-        catch (Exception e) when (e is TargetInvocationException or BadImageFormatException)
+        catch (Exception e) when (IsUnreadable(e))
         {
-            return null;
+            value = null;
         }
-        return value switch
+        var result = value switch
         {
             FlagsTooltip flags => new MetadataTooltip(null, flags.Groups.Select(Group).ToArray()),
-            IList<BitEntry> bits => new MetadataTooltip(null, [new MetadataFlagGroup(null, false, bits.Select(static b => new MetadataFlag(b.Meaning, b.Value)).ToArray())]),
-            _ when value?.ToString() is { } text && !string.IsNullOrWhiteSpace(text) => new MetadataTooltip(text, []),
+            MetadataTooltip given => given,
+            string text when !string.IsNullOrWhiteSpace(text) => new MetadataTooltip(text, []),
             _ => null,
         };
+        _tooltips[index] = result;
+        return result;
     }
 
     /// <summary>The row a token cell points at, in the table of this metadata it names; null for a
@@ -207,7 +197,7 @@ public sealed class MetadataGrid
     /// the table's end, as the end of an empty member list is, leads to the last row.</summary>
     public MetadataTarget? Link(int row, int column)
     {
-        if (!_descriptors[column].Column.IsToken || Value(row, column) is not int token || (token & 0xFFFFFF) == 0) return null;
+        if (!_columns[column].Column.IsToken || Value(row, column) is not int token || (token & 0xFFFFFF) == 0) return null;
         if (_owner.Folder?.FindTable((TableIndex)(token >>> 24)) is not { } table) return null;
         var count = table.File.Metadata.GetTableRowCount(table.Table!.Value);
         return new MetadataTarget(table, Math.Min(token & 0xFFFFFF, count) - 1);
@@ -215,21 +205,20 @@ public sealed class MetadataGrid
 
     /// <summary>The row of <paramref name="token"/>'s table it is, or -1 when this does not list
     /// that table.</summary>
-    public int RowOf(int token) => _owner.Table is { } table && (int)table == token >>> 24 ? (token & 0xFFFFFF) - 1 : -1;
+    public int RowOf(int token) => _schema.Table is { } table && (int)table == token >>> 24 ? (token & 0xFFFFFF) - 1 : -1;
 
     /// <summary>
     /// What the row stands for in the decompiled code, as the double-click on it goes to: the type,
-    /// member or assembly its <c>Token</c> names — a reference resolved to its definition. Null for
-    /// a row that names none, or a row of debug metadata.
+    /// member or assembly it is — a reference resolved to its definition. Null for a row that is
+    /// none, or a row of debug metadata.
     /// </summary>
     public CodeReference? Definition(int row)
     {
         var file = _owner.File;
-        if (!ReferenceEquals(file, _owner.Assembly.File)) return null;
-        var token = Array.FindIndex(_descriptors, static d => d.Column.Name == "Token") is >= 0 and var column ? Value(row, column) as int? : null;
-        if (token is not { } value || value == 0) return null;
-        var handle = MetadataTokens.EntityHandle(value);
-        var name = Array.FindIndex(_descriptors, static d => d.Column.Name == "Name") is >= 0 and var named ? Text(row, named) : value.ToString("X8");
+        if (!ReferenceEquals(file, _owner.Assembly.File) || _schema.Table is not { } table) return null;
+        var token = (int)table << 24 | row + 1;
+        var handle = MetadataTokens.EntityHandle(token);
+        var name = _schema.NameColumn >= 0 ? Text(row, _schema.NameColumn) : token.ToString("X8");
         var kind = handle.Kind switch
         {
             HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification => CodeReferenceKind.Type,
@@ -259,7 +248,7 @@ public sealed class MetadataGrid
         if (text.Length == 0) return true;
         if (Pattern(text) is { } pattern)
             return pattern.IsMatch(value.ToString() ?? "");
-        if (_descriptors[column].Column.IsNumeric && Compare(value, text) is { } compared)
+        if (_columns[column].Column.IsNumeric && Compare(value, text) is { } compared)
             return compared;
         return Text(row, column).Contains(text, StringComparison.OrdinalIgnoreCase);
     }
@@ -319,13 +308,17 @@ public sealed class MetadataGrid
     {
         try
         {
-            return _descriptors[column].Property.GetValue(_rows[row]);
+            return _columns[column].Value(_rows[row], row + 1);
         }
-        catch (TargetInvocationException e) when (e.InnerException is BadImageFormatException or ArgumentException or InvalidOperationException)
+        catch (Exception e) when (IsUnreadable(e))
         {
             return null;
         }
     }
+
+    /// <summary>Whether <paramref name="e"/> is how metadata that cannot be read fails, which leaves
+    /// its cell empty.</summary>
+    private static bool IsUnreadable(Exception e) => e is BadImageFormatException or ArgumentException or InvalidOperationException;
 
     private static string Format(object? value, string? format)
     {
@@ -355,24 +348,4 @@ public sealed class MetadataGrid
         group is SingleChoiceGroup single
             ? new MetadataFlagGroup(group.Header, true, single.SelectedFlag.Name is { } name ? [new MetadataFlag(name, true)] : [])
             : new MetadataFlagGroup(group.Header, false, group.Flags.Where(static f => f.Value != -1).Select(static f => new MetadataFlag(f.Name, f.IsSelected)).ToArray());
-
-    private static Descriptor[] Describe(Type entryType)
-    {
-        var properties = entryType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        var list = new List<Descriptor>();
-        foreach (var property in properties)
-        {
-            if (property.GetIndexParameters().Length > 0 || property.Name == RowDetailsProperty || property.Name.EndsWith("Tooltip", StringComparison.Ordinal))
-                continue;
-            var info = property.GetCustomAttribute<ColumnInfoAttribute>();
-            var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-            var numeric = type.IsEnum || Type.GetTypeCode(type) is >= TypeCode.SByte and <= TypeCode.Decimal;
-            var tooltip = entryType.GetProperty(property.Name + "Tooltip", BindingFlags.Public | BindingFlags.Instance);
-            var flags = type.IsEnum && type.IsDefined(typeof(FlagsAttribute), false) ? FlagsSchemaInferer.For(type) : null;
-            list.Add(new Descriptor(new MetadataColumn(property.Name, info?.Kind == ColumnKind.Token, numeric, flags), property, info?.Format, tooltip));
-        }
-        return list.ToArray();
-    }
-
-    private sealed record Descriptor(MetadataColumn Column, PropertyInfo Property, string? Format, PropertyInfo? Tooltip);
 }

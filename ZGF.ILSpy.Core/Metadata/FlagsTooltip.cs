@@ -14,17 +14,11 @@ namespace ZGF.ILSpy.Core.Metadata
 	/// Rich cell tooltip for an enum-valued metadata column: it breaks a flags value down into
 	/// per-bit groups, showing each named flag with a checkbox reflecting whether the bit is set
 	/// (multiple-choice groups) or the single selected member of a mutually exclusive sub-range
-	/// (single-choice groups). Entries build one with a collection initializer of
+	/// (single-choice groups). Table schemas build one with a collection initializer of
 	/// <see cref="FlagGroup"/>s; <see cref="MetadataGrid"/> hands it on as a <see cref="MetadataTooltip"/>.
 	/// </summary>
 	internal sealed class FlagsTooltip : IEnumerable<FlagGroup>
 	{
-		// The (value, flagsType) ctor parameters are unused but kept so entry call sites read the
-		// same as the value they describe; the groups carry the actual selection state.
-		public FlagsTooltip(int value = 0, Type? flagsType = null)
-		{
-		}
-
 		public List<FlagGroup> Groups { get; } = new List<FlagGroup>();
 
 		public void Add(FlagGroup group) => Groups.Add(group);

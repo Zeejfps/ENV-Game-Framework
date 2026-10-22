@@ -52,16 +52,15 @@ internal sealed class MetadataFolderNode(LoadedAssembly assembly, BrowseNode par
         var result = new List<BrowseNode>();
         if (File is PEFile pe)
         {
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeader, "DOS Header", File, typeof(Entry), () => PEHeaderEntries.Dos(pe)));
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeader, "COFF Header", File, typeof(Entry), () => PEHeaderEntries.Coff(pe)));
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeader, "Optional Header", File, typeof(Entry), () => PEHeaderEntries.Optional(pe)));
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataDirectory, "Data Directories", File,
-                typeof(PEHeaderEntries.DataDirectoryEntry), () => PEHeaderEntries.DataDirectories(pe)));
+            foreach (var header in (ReadOnlySpan<GridSchema>)[PEHeaderEntries.Dos(pe), PEHeaderEntries.Coff(pe), PEHeaderEntries.Optional(pe)])
+                result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeader, header.Key, File, header));
+            var directories = PEHeaderEntries.DataDirectories(pe);
+            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataDirectory, directories.Key, File, directories));
             result.Add(new DebugDirectoryNode(Assembly, this, pe));
         }
         result.Add(new MetadataTablesNode(Assembly, this, File));
-        foreach (MetadataHeap heap in (ReadOnlySpan<MetadataHeap>)[new StringHeap(File), new UserStringHeap(File), new GuidHeap(File), new BlobHeap(File)])
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeap, heap.Text, File, heap.EntryType, heap.LoadRows));
+        foreach (var (title, heap) in MetadataHeaps.Create(File))
+            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeap, title, File, heap));
         return result.ToArray();
     }
 
@@ -126,11 +125,12 @@ internal sealed class MetadataTablesNode(LoadedAssembly assembly, BrowseNode par
         var result = new List<BrowseNode>();
         foreach (var index in Enum.GetValues<TableIndex>())
         {
-            if (metadata.GetTableRowCount(index) == 0) continue;
+            var rows = metadata.GetTableRowCount(index);
+            if (rows == 0) continue;
             if (MetadataTables.Create(index, file) is { } table)
-                result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataTable, table.Text, file, table.EntryType, table.LoadRows) { Table = index });
+                result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataTable, $"{(byte)index:X2} {index} ({rows})", file, table));
             else
-                result.Add(new UnsupportedTableNode(Assembly, this, index, metadata.GetTableRowCount(index)));
+                result.Add(new UnsupportedTableNode(Assembly, this, index, rows));
         }
         return result.ToArray();
     }
@@ -145,26 +145,16 @@ internal sealed class UnsupportedTableNode(LoadedAssembly assembly, BrowseNode p
 
 /// <summary>A node shown as a grid: a metadata header, directory, table or heap, or the entries
 /// of a <c>.resources</c> file.</summary>
-internal class MetadataGridNode : BrowseNode
+internal class MetadataGridNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, string text, MetadataFile file, GridSchema schema)
+    : BrowseNode(assembly, parent, kind, text)
 {
-    private readonly Type _entryType;
-    private readonly Func<IReadOnlyList<object>>? _rows;
     private readonly Lock _gate = new();
     private MetadataGrid? _grid;
 
-    public MetadataGridNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, string text, MetadataFile file, Type entryType,
-        Func<IReadOnlyList<object>>? rows)
-        : base(assembly, parent, kind, text)
-    {
-        File = file;
-        _entryType = entryType;
-        _rows = rows;
-    }
-
-    public MetadataFile File { get; }
+    public MetadataFile File { get; } = file;
 
     /// <summary>The table this lists, for a table node.</summary>
-    public TableIndex? Table { get; init; }
+    public TableIndex? Table => schema.Table;
 
     /// <summary>The "Metadata" folder this belongs to.</summary>
     public MetadataFolderNode? Folder
@@ -184,18 +174,14 @@ internal class MetadataGridNode : BrowseNode
         get
         {
             lock (_gate)
-                return _grid ??= new MetadataGrid(this, _entryType, LoadRows());
+                return _grid ??= new MetadataGrid(this, schema);
         }
     }
-
-    /// <summary>The rows, read once.</summary>
-    private protected virtual IReadOnlyList<object> LoadRows() => _rows?.Invoke() ?? [];
 }
 
 /// <summary>ILSpy's "Debug Directory": its entries as a grid, and each as a node of its own.</summary>
 internal sealed class DebugDirectoryNode(LoadedAssembly assembly, BrowseNode parent, PEFile file)
-    : MetadataGridNode(assembly, parent, NodeKind.MetadataDirectory, "Debug Directory", file, typeof(PEHeaderEntries.DebugDirectoryEntryView),
-        () => PEHeaderEntries.DebugDirectory(file))
+    : MetadataGridNode(assembly, parent, NodeKind.MetadataDirectory, "Debug Directory", file, PEHeaderEntries.DebugDirectory(file))
 {
     private protected override bool MayHaveChildren => true;
 

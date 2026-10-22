@@ -86,16 +86,18 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
     private readonly Lazy<List<KeyValuePair<string, object?>>> _entries;
 
     public ResourcesFileNode(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource)
-        : base(assembly, parent, NodeKind.ResourcesFile, resource.Name, assembly.File, typeof(ResourcesFileEntry), null)
+        : this(assembly, parent, resource, new Lazy<List<KeyValuePair<string, object?>>>(() => ReadEntries(resource)))
+    {
+    }
+
+    private ResourcesFileNode(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource, Lazy<List<KeyValuePair<string, object?>>> entries)
+        : base(assembly, parent, NodeKind.ResourcesFile, resource.Name, assembly.File, Schema(assembly, entries))
     {
         _resource = resource;
-        _entries = new Lazy<List<KeyValuePair<string, object?>>>(ReadEntries);
+        _entries = entries;
         IsPublicApi = ResourceNodes.IsPublic(resource);
         Accessibility = IsPublicApi ? NodeAccessibility.Public : NodeAccessibility.Private;
     }
-
-    private protected override IReadOnlyList<object> LoadRows() =>
-        _entries.Value.Select(static e => (object)new ResourcesFileEntry(e.Key, e.Value)).ToList();
 
     public string Description => ResourceNodes.Describe(_resource);
 
@@ -116,38 +118,30 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
 
     /// <summary>The entries in name order. The containers WPF generates key their entries by a
     /// URI-escaped path, which is unescaped as ILSpy does.</summary>
-    private List<KeyValuePair<string, object?>> ReadEntries()
+    private static List<KeyValuePair<string, object?>> ReadEntries(MetadataResource resource)
     {
-        using var stream = new MemoryStream(ReadData());
+        using var stream = new MemoryStream(ResourceNodes.Read(resource));
         IEnumerable<KeyValuePair<string, object?>> entries = new ResourcesFile(stream).ToList();
-        if (WholeProjectDecompiler.IsWpfGeneratedResourceContainer(_resource.Name))
+        if (WholeProjectDecompiler.IsWpfGeneratedResourceContainer(resource.Name))
             entries = entries.Select(static e => new KeyValuePair<string, object?>(Uri.UnescapeDataString(e.Key), e.Value));
         return entries.OrderBy(static e => e.Key, NaturalStringComparer.Instance).ToList();
     }
 
-    /// <summary>One entry of the grid.</summary>
-    public sealed class ResourcesFileEntry
-    {
-        public ResourcesFileEntry(string name, object? value)
+    /// <summary>The grid of the entries: each one's name, its value as text, and the type of value.</summary>
+    private static GridSchema<(string Name, string Value, string Type)> Schema(LoadedAssembly assembly, Lazy<List<KeyValuePair<string, object?>>> entries) =>
+        new GridSchema<(string Name, string Value, string Type)>("Resources", assembly.File, () => entries.Value.Select(static e => Row(e.Key, e.Value)))
+            .Value("Name", static r => r.Name)
+            .Value("Value", static r => r.Value, tooltip: static r => r.Value.Length > 80 || r.Value.Contains('\n') ? r.Value : null)
+            .Value("Type", static r => r.Type);
+
+    private static (string Name, string Value, string Type) Row(string name, object? value) =>
+        value switch
         {
-            Name = name;
-            (Value, Type) = value switch
-            {
-                null => ("null", ""),
-                string text => (text, "System.String"),
-                byte[] bytes => ($"{bytes.Length} bytes", "System.Byte[]"),
-                MemoryStream stream => ($"{stream.Length} bytes", "System.IO.MemoryStream"),
-                ResourceSerializedObject serialized => ("<serialized>", serialized.TypeName ?? ""),
-                _ => (Convert.ToString(value, CultureInfo.InvariantCulture) ?? "", value.GetType().FullName ?? value.GetType().Name),
-            };
-        }
-
-        public string Name { get; }
-
-        public string Value { get; }
-
-        public string Type { get; }
-
-        public string? ValueTooltip => Value.Length > 80 || Value.Contains('\n') ? Value : null;
-    }
+            null => (name, "null", ""),
+            string text => (name, text, "System.String"),
+            byte[] bytes => (name, $"{bytes.Length} bytes", "System.Byte[]"),
+            MemoryStream stream => (name, $"{stream.Length} bytes", "System.IO.MemoryStream"),
+            ResourceSerializedObject serialized => (name, "<serialized>", serialized.TypeName ?? ""),
+            _ => (name, Convert.ToString(value, CultureInfo.InvariantCulture) ?? "", value.GetType().FullName ?? value.GetType().Name),
+        };
 }
