@@ -12,7 +12,7 @@ public sealed class OpenGlWindow : GlfwWindowBase
         ContentScaleValue = ComputeContentScale();
     }
 
-    public override IntPtr NativeHandle { get; }
+    internal override IntPtr NativeHandle { get; }
 
     public override void MakeContextCurrent() => Glfw.MakeContextCurrent(GlfwWindow);
 

@@ -29,7 +29,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private readonly Action<Ui> _renderUi;
     private readonly Ui _ui;
     private readonly IFilePicker _filePicker;
-    private readonly IPopupNativeDecorator _decorator;
     private readonly List<Popup> _popups = new();
     private readonly List<Popup> _pool = new();
     private UiInput _pending = new();
@@ -60,7 +59,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _render.RegisterFont(family, data, bold);
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
-        _decorator = PopupDecorator.ForCurrentPlatform();
         _ui = new Ui(_render.Canvas, new WindowClipboard(_window), this, posted) { Wake = Invalidate };
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
@@ -74,7 +72,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.OnMove += HandleMove;
         _render.App.OnForegroundChanged += HandleForegroundChanged;
         _render.App.OnTick += Tick;
-        _decorator.WatchWindowNonClientPress(_window.NativeHandle, HandleNonClientPress);
+        _window.OnNonClientPress += HandleNonClientPress;
         HotReload.Applied += Invalidate;
 
         SyncScale();
@@ -371,7 +369,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
                 _popupWindowsUnavailable = true;
                 return null;
             }
-            _decorator.DecoratePopup(surface.Window.NativeHandle);
             Subscribe(surface.Window);
             surface.Window.SetCursor(_cursor);
             popup = new Popup(surface);
@@ -538,7 +535,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _disposed = true;
         _ui.Wake = null;
         HotReload.Applied -= Invalidate;
-        _decorator.UnwatchWindow(_window.NativeHandle);
+        _window.OnNonClientPress -= HandleNonClientPress;
         _render.App.OnTick -= Tick;
         _render.App.OnForegroundChanged -= HandleForegroundChanged;
         Unsubscribe(_window);

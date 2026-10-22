@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using GLFW;
 using ZGF.Desktop.Input;
+using ZGF.Geometry;
 using ZGF.KeyboardModule;
 using ZGF.KeyboardModule.GlfwAdapter;
 
@@ -32,6 +33,7 @@ public abstract class GlfwWindowBase : IWindow
     private bool _isVisible;
     private bool _isDisposed;
     private MouseCursor _currentCursor = MouseCursor.Default;
+    private Action? _nonClientPress;
 
     protected float DpiScaleValue = 1f;
     protected float ContentScaleValue = 1f;
@@ -80,7 +82,11 @@ public abstract class GlfwWindowBase : IWindow
         _ime.OnPreedit += preedit => OnPreedit?.Invoke(preedit);
     }
 
-    public abstract IntPtr NativeHandle { get; }
+    // The OS-native window handle (Win32 HWND / Cocoa NSWindow / X11 Window), for the platform
+    // calls GLFW does not expose.
+    internal abstract IntPtr NativeHandle { get; }
+
+    private static WindowPlatform Platform => WindowPlatform.Current;
 
     public int Width => _width;
     public int Height => _height;
@@ -106,6 +112,24 @@ public abstract class GlfwWindowBase : IWindow
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
+
+    public event Action? OnNonClientPress
+    {
+        add
+        {
+            if (_nonClientPress == null)
+                Platform.WatchNonClientPress(NativeHandle, RaiseNonClientPress);
+            _nonClientPress += value;
+        }
+        remove
+        {
+            _nonClientPress -= value;
+            if (_nonClientPress == null)
+                Platform.UnwatchNonClientPress(NativeHandle);
+        }
+    }
+
+    private void RaiseNonClientPress() => _nonClientPress?.Invoke();
 
     public void SetTextInputFocus(bool focused) => _ime.SetTextInputFocus(focused);
 
@@ -144,6 +168,18 @@ public abstract class GlfwWindowBase : IWindow
     public void SetMousePassThrough(bool passThrough) =>
         GLFW.Glfw.SetWindowAttribute(GlfwWindow, WindowAttribute.MousePassthrough, passThrough);
 
+    public void CapturePointer(Action<PointI> onOutsideClick) => Platform.CapturePointer(NativeHandle, onOutsideClick);
+
+    public void ReleasePointerCapture() => Platform.ReleasePointerCapture(NativeHandle);
+
+    public void SetInputEnabled(bool enabled) => Platform.SetInputEnabled(NativeHandle, enabled);
+
+    public void SetOwner(IWindow owner)
+    {
+        if (owner is GlfwWindowBase native)
+            Platform.SetOwner(NativeHandle, native.NativeHandle);
+    }
+
     public void GetCursorPosition(out double x, out double y) =>
         GLFW.Glfw.GetCursorPosition(GlfwWindow, out x, out y);
 
@@ -154,11 +190,7 @@ public abstract class GlfwWindowBase : IWindow
         GLFW.Glfw.SetCursor(GlfwWindow, GlfwStandardCursors.Get(cursor));
     }
 
-    public void SetTitleBarTheme(bool dark)
-    {
-        if (OperatingSystem.IsWindows())
-            WindowsDwm.SetDarkTitleBar(NativeHandle, dark);
-    }
+    public void SetTitleBarTheme(bool dark) => Platform.SetTitleBarTheme(NativeHandle, dark);
 
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
@@ -270,6 +302,8 @@ public abstract class GlfwWindowBase : IWindow
     {
         if (_isDisposed) return;
         _isDisposed = true;
+        if (_nonClientPress != null)
+            Platform.UnwatchNonClientPress(NativeHandle);
         if (!IsMain)
         {
             GLFW.Glfw.DestroyWindow(GlfwWindow);

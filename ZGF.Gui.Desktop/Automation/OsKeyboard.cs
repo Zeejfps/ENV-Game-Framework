@@ -12,7 +12,7 @@ namespace ZGF.Gui.Desktop.Automation;
 /// keyboard's would, exercising the whole chain rather than starting halfway down it.
 ///
 /// Windows only, and it lands on whatever window the OS has focused, so a caller must keep the
-/// target window in the foreground (<see cref="IsForeground"/>) or the keystrokes go elsewhere.
+/// app in the foreground (<see cref="IsAppForeground"/>) or the keystrokes go elsewhere.
 /// Everywhere else, drive <see cref="GuiDriver"/> with injected events instead.
 /// </summary>
 public static class OsKeyboard
@@ -23,12 +23,13 @@ public static class OsKeyboard
 
     public static bool IsSupported => OperatingSystem.IsWindows();
 
-    public static bool IsForeground(IntPtr window) =>
-        IsSupported && window != IntPtr.Zero && GetForegroundWindow() == window;
-
-    public static void Focus(IntPtr window)
+    /// <summary>True when the OS foreground window belongs to this process, so a keystroke sent now
+    /// lands in the app.</summary>
+    public static bool IsAppForeground()
     {
-        if (IsSupported && window != IntPtr.Zero) SetForegroundWindow(window);
+        if (!IsSupported) return false;
+        GetWindowThreadProcessId(GetForegroundWindow(), out var processId);
+        return processId == Environment.ProcessId;
     }
 
     public static void TypeRune(Rune rune)
@@ -114,8 +115,7 @@ public static class OsKeyboard
     private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetForegroundWindow(IntPtr window);
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out int processId);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Input

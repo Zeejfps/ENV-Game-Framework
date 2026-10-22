@@ -1,9 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
-using ZGF.Desktop;
 
-namespace ZGF.Gui.Desktop.Platforms.Linux;
+namespace ZGF.Desktop;
 
 // On Linux the title bar is drawn by the window manager, not the app — there is no per-window
 // dark-mode attribute like Win32's DWM or macOS's NSAppearance. The closest mechanism is the
@@ -12,16 +11,15 @@ namespace ZGF.Gui.Desktop.Platforms.Linux;
 // pure Wayland backend there is no X11 window and the call no-ops (GitBench targets X11, with
 // Wayland sessions served through XWayland).
 [SupportedOSPlatform("linux")]
-public sealed class LinuxWindowChrome : IWindowChrome
+internal sealed class LinuxWindowPlatform : WindowPlatform
 {
     private const int PropModeReplace = 0;
     private const int Format8Bit = 8;
 
     private IntPtr _display;
 
-    public void SetTitleBarTheme(IWindow window, bool dark)
+    public override void SetTitleBarTheme(IntPtr x11Window, bool dark)
     {
-        var x11Window = window.NativeHandle;
         if (x11Window == IntPtr.Zero) return;
 
         if (_display == IntPtr.Zero)

@@ -78,15 +78,3 @@ internal sealed class FakeRenderBackend : IGuiRenderBackend
     public void RequestScreenshot(string path, Action? onComplete = null) { }
     public void Dispose() { }
 }
-
-/// <summary>A popup decorator with no platform behind it.</summary>
-internal sealed class FakePopupDecorator : IPopupNativeDecorator
-{
-    public void DecoratePopup(IntPtr nativeWindowHandle) { }
-    public void SetMousePassThrough(IntPtr nativeWindowHandle, bool passThrough) { }
-    public void BeginCapture(IntPtr nativeWindowHandle, Action<ZGF.Geometry.PointI> onOutsideClick) { }
-    public void EndCapture(IntPtr nativeWindowHandle) { }
-    public void TransferCapture(IntPtr fromHandle, IntPtr toHandle, Action<ZGF.Geometry.PointI> onOutsideClick) { }
-    public void WatchWindowNonClientPress(IntPtr nativeWindowHandle, Action onNonClientPress) { }
-    public void UnwatchWindow(IntPtr nativeWindowHandle) { }
-}

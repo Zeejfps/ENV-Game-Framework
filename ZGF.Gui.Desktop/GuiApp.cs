@@ -25,7 +25,6 @@ public sealed class GuiApp : IDisposable
     private readonly ContextMenuManager _contextMenuManager;
     private readonly PopupWindowFactory _popupFactory;
     private readonly SecondaryWindowFactory _secondaryWindows;
-    private readonly IWindowChrome _windowChrome;
     private readonly IUiScale _uiScale;
     private readonly Context _context;
     private readonly Func<Context, View> _contentFactory;
@@ -74,14 +73,12 @@ public sealed class GuiApp : IDisposable
         _frameTicker = new FrameTicker(onActivated: app.MainWindow.RequestRedraw);
         _lastAnimationTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var decorator = context.Get<IPopupNativeDecorator>() ?? PopupDecorator.ForCurrentPlatform();
-        _windowChrome = context.Get<IWindowChrome>() ?? new NoopWindowChrome();
         var coordinates = new WindowCoordinates(app.MainWindow, _uiScale);
         _popupFactory = new PopupWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter, _imeCoordinator,
+            app, fontBackend, defaultFont, renderBackend, context, pointerArbiter, _imeCoordinator,
             _uiScale, mainCanvasForFontRegistry: mainCanvas);
         _secondaryWindows = new SecondaryWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, decorator, context, pointerArbiter, _imeCoordinator,
+            app, fontBackend, defaultFont, renderBackend, context, pointerArbiter, _imeCoordinator,
             _uiScale, mainCanvasForFontRegistry: mainCanvas);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, pointerArbiter);
@@ -89,8 +86,8 @@ public sealed class GuiApp : IDisposable
         // A press on the OS title bar / borders / caption buttons is non-client: GLFW never surfaces
         // it, and grabbing a title bar changes no focus (the window already holds it), so the arbiter's
         // client-press and focus-loss dismissals both miss it. Watch the main window's native frame so
-        // a title-bar grab while a menu is open still dismisses the menu. No-ops off Windows.
-        decorator.WatchWindowNonClientPress(app.MainWindow.NativeHandle, pointerArbiter.NotifyNonClientPress);
+        // a title-bar grab while a menu is open still dismisses the menu. Only Windows reports it.
+        app.MainWindow.OnNonClientPress += pointerArbiter.NotifyNonClientPress;
 
         context.Canvas = mainCanvas;
         context.AddService(_mainInput.InputSystem);
@@ -271,10 +268,9 @@ public sealed class GuiApp : IDisposable
 
     /// <summary>
     ///     Switches the main window's native title bar between dark and light
-    ///     appearance. No-op on platforms without a registered <see cref="IWindowChrome"/>.
+    ///     appearance, where the platform draws one the app can theme.
     /// </summary>
-    public void SetTitleBarDark(bool dark) =>
-        _windowChrome.SetTitleBarTheme(_app.MainWindow, dark);
+    public void SetTitleBarDark(bool dark) => _app.MainWindow.SetTitleBarTheme(dark);
 
     /// <summary>
     /// Sets the UI's base writing direction on the main canvas, flipping text alignment and the bidi
@@ -578,6 +574,7 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnMove -= HandleMove;
         _app.MainWindow.OnFocusChanged -= HandleMainFocusChanged;
         _app.MainWindow.OnClose -= HandleMainWindowClose;
+        _app.MainWindow.OnNonClientPress -= _pointerArbiter.NotifyNonClientPress;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();
         // Secondary/popup teardown above left their own (now-destroyed) contexts current. The

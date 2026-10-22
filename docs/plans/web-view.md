@@ -20,7 +20,7 @@ Framework) in off-screen-rendering (OSR) mode, with a two-way JavaScript↔C# br
 
 ### Why texture, not native overlay
 
-A native overlay (an OS web-view control parented onto the window's `NativeHandle`) is far
+A native overlay (an OS web-view control parented onto the native window) is far
 less work and has perfect web fidelity, but it floats *above* the GL/Metal surface: ZGF
 cannot draw over it, clip it to rounded corners, apply `PushOpacity`/`PushScale`, or
 z-order anything on top — the classic "airspace" problem. The texture path avoids all of
@@ -51,8 +51,8 @@ and into **CEF packaging** (native binaries, and the macOS `.app`/helper layout)
   - `IUiDispatcher` (the `_dispatcher`) — marshal CEF's cross-thread callbacks onto the UI thread.
   - `startup` / `RegisterServices` DI seams — register the web-view factory.
   - `RequestRedraw()` — drive a repaint when a page frame is ready.
-- **Native handle** (`ZGF.Desktop/IWindow.NativeHandle`) — available if a native-overlay
-  fallback is ever wanted; unused by the texture path.
+- **Native handle** (`GlfwWindowBase.NativeHandle`, internal to `ZGF.Desktop`) — a native-overlay
+  fallback would add an intent method there; unused by the texture path.
 
 ## Packaging — the isolation guarantee
 

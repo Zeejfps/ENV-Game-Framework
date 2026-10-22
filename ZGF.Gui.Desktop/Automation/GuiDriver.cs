@@ -32,7 +32,7 @@ public sealed class GuiDriver : ITypeSink
     private readonly IUiDispatcher _dispatcher;
     private readonly Action<IWindow, string, Action?> _captureScreenshot;
 
-    private IntPtr _osTarget;
+    private bool _osFocusRequested;
 
     public GuiDriver(
         Func<IReadOnlyList<GuiSurface>> getSurfaces,
@@ -147,12 +147,9 @@ public sealed class GuiDriver : ITypeSink
     /// <summary>A typist bound to this driver, pacing itself by sleeping the script thread.</summary>
     public Typist Typist() => new(this);
 
-    /// <summary>The OS window handle a scripted OS keystroke would land on — what
-    /// <see cref="OsKeyboard.IsForeground"/> needs to check, and <see cref="OsKeyboard.Focus"/> to grab.</summary>
-    public IntPtr FocusedWindowHandle => RunOnUi(() => FocusedSurface().Window.NativeHandle);
-
     /// <summary>
-    /// Brings the app's window to the front and blocks until the OS agrees it's the foreground window.
+    /// Brings the app's window to the front and blocks until the OS agrees one of the app's windows is
+    /// the foreground window.
     /// Mandatory before scripting OS keystrokes: SendInput has no notion of a target — it goes wherever
     /// focus happens to be, so without this the script types into whatever the user was last using.
     /// Windows often refuses a background process's focus grab outright, which is why this waits for
@@ -160,21 +157,27 @@ public sealed class GuiDriver : ITypeSink
     /// </summary>
     public void FocusApp(TimeSpan? timeout = null)
     {
-        _osTarget = RunOnUi(() => _getSurfaces()[0].Window.NativeHandle);
-        OsKeyboard.Focus(_osTarget);
+        _osFocusRequested = true;
+        RunOnUi(FocusMainWindow);
         WaitUntil(
-            () => OsKeyboard.IsForeground(_osTarget),
+            OsKeyboard.IsAppForeground,
             "the app window to become the OS foreground window (click it if Windows refused the focus grab)",
             timeout ?? TimeSpan.FromSeconds(20));
+    }
+
+    private int FocusMainWindow()
+    {
+        _getSurfaces()[0].Window.Focus();
+        return 0;
     }
 
     // Refuse to type rather than let keystrokes leak into whatever the user alt-tabbed to. Silent loss
     // is the worst outcome here: the script "passes" while half the text lands in someone's editor.
     private void RequireOsFocus()
     {
-        if (_osTarget == IntPtr.Zero)
+        if (!_osFocusRequested)
             throw new InvalidOperationException("Call FocusApp() before scripting OS keystrokes.");
-        if (!OsKeyboard.IsForeground(_osTarget))
+        if (!OsKeyboard.IsAppForeground())
             throw new InvalidOperationException(
                 "The app window lost OS focus, so scripted keystrokes would land in another application. " +
                 "Refocus it, or drive the driver with injected input (UseOsKeyboard = false).");

@@ -83,7 +83,9 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         // Popups paint their own silhouette — rounded corners, borders, shadows — over a
         // framebuffer cleared to transparent. Without transparency the compositor discards
         // the alpha channel and the pixels outside that silhouette show as opaque black.
-        return Track(OpenWindow(options.WidthPoints, options.HeightPoints, "", transparent: true));
+        var window = Track(OpenWindow(options.WidthPoints, options.HeightPoints, "", transparent: true));
+        WindowPlatform.Current.DecoratePopup(window.NativeHandle);
+        return window;
     }
 
     public IWindow CreateWindow(in WindowOptions options)

@@ -11,7 +11,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     private readonly IWindowedApp _app;
     private readonly IGuiRenderBackend _backend;
-    private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
@@ -32,7 +31,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
         IGuiRenderBackend backend,
-        IPopupNativeDecorator decorator,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
@@ -41,7 +39,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     {
         _app = app;
         _backend = backend;
-        _decorator = decorator;
         _mainContext = mainContext;
         _arbiter = arbiter;
         _ime = ime;
@@ -71,7 +68,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         // Re-apply the native click-through attribute every acquire: this popup window is pooled
         // and may previously have served a popup of the other kind. A menu (not pass-through)
         // reusing a window left click-through by a prior tooltip would get hover but eat no clicks.
-        _decorator.SetMousePassThrough(popup.Window.NativeHandle, request.MousePassThrough);
+        popup.Window.SetMousePassThrough(request.MousePassThrough);
 
         // Build the content against THIS popup's context so its controllers register with
         // this popup's input system and its text measures against this popup's canvas.
@@ -118,18 +115,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _arbiter.Register(popup.PointerWindow, isModal: !request.MousePassThrough);
 
         if (!request.MousePassThrough)
-        {
-            if (_captureHolder == null)
-            {
-                _decorator.BeginCapture(popup.Window.NativeHandle, popup.RaiseOutsideClick);
-                _captureHolder = popup;
-            }
-            else
-            {
-                _decorator.TransferCapture(_captureHolder.Window.NativeHandle, popup.Window.NativeHandle, popup.RaiseOutsideClick);
-                _captureHolder = popup;
-            }
-        }
+            MoveCaptureTo(popup);
 
         // Build this popup's hover path now, synchronously, while it is the topmost
         // window under the cursor. A menu that opens directly under the pointer is then
@@ -146,21 +132,9 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         _arbiter.Unregister(impl.PointerWindow);
 
+        // Capture goes back to the topmost remaining menu, if any.
         if (_captureHolder == impl)
-        {
-            // Transfer capture back to the topmost remaining popup, if any.
-            var newHolder = _activePopups.LastOrDefault(p => !p.MousePassThrough);
-            if (newHolder != null)
-            {
-                _decorator.TransferCapture(impl.Window.NativeHandle, newHolder.Window.NativeHandle, newHolder.RaiseOutsideClick);
-                _captureHolder = newHolder;
-            }
-            else
-            {
-                _decorator.EndCapture(impl.Window.NativeHandle);
-                _captureHolder = null;
-            }
-        }
+            MoveCaptureTo(_activePopups.LastOrDefault(p => !p.MousePassThrough));
 
         // Captured before Hide(): hiding a key window drops or reassigns OS focus, so
         // this is the last moment "was the app active?" is observable.
@@ -217,6 +191,13 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
                 target.Focus();
             _chainOwner = null;
         }
+    }
+
+    private void MoveCaptureTo(PopupWindowImpl? popup)
+    {
+        _captureHolder?.Window.ReleasePointerCapture();
+        _captureHolder = popup;
+        popup?.Window.CapturePointer(popup.RaiseOutsideClick);
     }
 
     // The window to hand focus back to: the one the chain opened from, unless it has since been
@@ -349,8 +330,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             OwnerWindow = _app.MainWindow,
             MousePassThrough = mousePassThrough,
         });
-
-        _decorator.DecoratePopup(window.NativeHandle);
 
         var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
 

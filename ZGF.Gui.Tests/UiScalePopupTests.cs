@@ -46,7 +46,7 @@ public sealed class UiScalePopupTests : IDisposable
         var arbiter = new PointerOwnershipArbiter();
         var scale = new FakeUiScale(uiScale);
         var factory = new PopupWindowFactory(
-            app, _fonts, _font, new FakeRenderBackend(_fonts, _font), new FakePopupDecorator(),
+            app, _fonts, _font, new FakeRenderBackend(_fonts, _font),
             new Context(), arbiter, new ImeCoordinator(arbiter), scale);
         return new Fixture { Factory = factory, Scale = scale };
     }

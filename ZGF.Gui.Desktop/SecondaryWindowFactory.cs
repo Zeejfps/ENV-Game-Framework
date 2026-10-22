@@ -14,12 +14,10 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
 {
     private readonly IWindowedApp _app;
     private readonly IGuiRenderBackend _backend;
-    private readonly IPopupNativeDecorator _decorator;
     private readonly Context _mainContext;
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
     private readonly IUiScale _uiScale;
-    private readonly IWindowModality? _nativeModality;
     private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
@@ -29,7 +27,6 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         FreeTypeFontBackend fonts,
         FontHandle defaultFont,
         IGuiRenderBackend backend,
-        IPopupNativeDecorator decorator,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
@@ -38,12 +35,10 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     {
         _app = app;
         _backend = backend;
-        _decorator = decorator;
         _mainContext = mainContext;
         _arbiter = arbiter;
         _ime = ime;
         _uiScale = uiScale;
-        _nativeModality = mainContext.Get<IWindowModality>();
         _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
         _app.MainWindow.OnFocusChanged += HandleWindowFocusChanged;
     }
@@ -54,9 +49,9 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     {
         var modal = ModalWindow;
         _arbiter.DialogWindow = modal?.Input;
-        _nativeModality?.SetInputEnabled(_app.MainWindow, modal == null);
+        _app.MainWindow.SetInputEnabled(modal == null);
         foreach (var window in _active)
-            _nativeModality?.SetInputEnabled(window.Window, modal == null || ReferenceEquals(window, modal));
+            window.Window.SetInputEnabled(modal == null || ReferenceEquals(window, modal));
     }
 
     private void HandleWindowFocusChanged(bool focused)
@@ -129,7 +124,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         // A title-bar / border grab on this window is a non-client press GLFW never reports and that
         // changes no focus, so it's the case where an open menu anchored here would otherwise never
         // dismiss. Route those presses to the arbiter's outside-press dismissal.
-        _decorator.WatchWindowNonClientPress(window.NativeHandle, _arbiter.NotifyNonClientPress);
+        window.OnNonClientPress += _arbiter.NotifyNonClientPress;
 
         if (x is { } screenX && y is { } screenY)
         {
@@ -142,7 +137,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         if (request.IsModal)
         {
             _arbiter.NotifyNonClientPress(); // Dismiss any menu belonging to the previous window.
-            _nativeModality?.SetOwner(window, ModalWindow?.Window ?? _app.MainWindow);
+            window.SetOwner(ModalWindow?.Window ?? _app.MainWindow);
         }
         window.OnFocusChanged += HandleWindowFocusChanged;
         _active.Add(impl);
@@ -167,9 +162,6 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
                 w.Window.OnFocusChanged -= HandleWindowFocusChanged;
                 // Enable the owner before destroying its dialog so the OS can activate it.
                 SyncModality();
-                // Restore the native wndproc before the window is destroyed so the decorator's
-                // subclass table doesn't retain a dead handle.
-                _decorator.UnwatchWindow(w.Window.NativeHandle);
                 w.Dispose();
                 // w.Dispose() left no GL context current (it destroyed its own window after
                 // deleting its objects under its own context). Restore the main context so the
@@ -201,14 +193,13 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     {
         _app.MainWindow.OnFocusChanged -= HandleWindowFocusChanged;
         _arbiter.DialogWindow = null;
-        _nativeModality?.SetInputEnabled(_app.MainWindow, true);
-        foreach (var w in _active) _nativeModality?.SetInputEnabled(w.Window, true);
+        _app.MainWindow.SetInputEnabled(true);
+        foreach (var w in _active) w.Window.SetInputEnabled(true);
         // Owned windows must be destroyed before their owners.
         for (var i = _active.Count - 1; i >= 0; i--)
         {
             var w = _active[i];
             w.Window.OnFocusChanged -= HandleWindowFocusChanged;
-            _decorator.UnwatchWindow(w.Window.NativeHandle);
             w.Dispose();
         }
         _active.Clear();

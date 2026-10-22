@@ -1,13 +1,11 @@
 using ZGF.Desktop.Input;
+using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Desktop;
 
 public interface IWindow : IDisposable
 {
-    // The OS-native window handle (Win32 HWND / Cocoa NSWindow / X11 Window). Native chrome
-    // and popup decorators consume this so they never touch the windowing backend.
-    IntPtr NativeHandle { get; }
     // The client area in screen coordinates. Not pixels: on a Retina panel a window is half as many
     // points wide as it is pixels, which is what FramebufferWidth reports.
     int Width { get; }
@@ -61,6 +59,9 @@ public interface IWindow : IDisposable
     event Action<int, InputAction, KeyModifiers> OnMouseButton;
     event Action<double, double> OnScroll;
     event Action<bool> OnPointerEnter;
+    // A press on the native frame (title bar, borders, caption buttons), which GLFW never reports as
+    // a mouse event. Raised only where the platform has a frame hook (Windows).
+    event Action OnNonClientPress;
 
     // Whether this window is editing text. Off outside a text field, or a CJK IME swallows the keys
     // that drive list navigation before the app sees them. No-op without a patched GLFW.
@@ -83,6 +84,14 @@ public interface IWindow : IDisposable
     void SetCursor(MouseCursor cursor);
     // Lets every pointer event fall through to whatever is behind the window — for a tooltip.
     void SetMousePassThrough(bool passThrough);
+    // Routes every press to this window until released, so a press outside it reaches
+    // onOutsideClick before it goes on to whatever is under the cursor. Windows only.
+    void CapturePointer(Action<PointI> onOutsideClick);
+    void ReleasePointerCapture();
+    // Native modality: whether the OS lets the user interact with this window at all, and which
+    // window it stays in front of. Windows only.
+    void SetInputEnabled(bool enabled);
+    void SetOwner(IWindow owner);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);
     // Matches the native title bar to a dark or light client area where the platform draws one
     // (Windows' immersive dark caption); a no-op elsewhere.

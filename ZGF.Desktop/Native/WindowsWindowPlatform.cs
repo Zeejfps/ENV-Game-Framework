@@ -5,14 +5,14 @@ using ZGF.Geometry;
 namespace ZGF.Desktop;
 
 [SupportedOSPlatform("windows")]
-internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
+internal sealed class WindowsWindowPlatform : WindowPlatform
 {
     private const int GWL_EXSTYLE = -20;
     private const int GWLP_WNDPROC = -4;
+    private const int GWLP_HWNDPARENT = -8;
 
     private const long WS_EX_TOOLWINDOW = 0x00000080;
     private const long WS_EX_TOPMOST = 0x00000008;
-    private const long WS_EX_TRANSPARENT = 0x00000020;
     private const long WS_EX_NOACTIVATE = 0x08000000;
 
     private const uint SWP_NOMOVE = 0x0002;
@@ -46,9 +46,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
     private readonly Dictionary<IntPtr, Subclass> _subclasses = new();
     private IntPtr _capturedHwnd = IntPtr.Zero;
 
-    public void DecoratePopup(IntPtr glfwHandle)
+    public override void DecoratePopup(IntPtr hwnd)
     {
-        var hwnd = GetHwnd(glfwHandle);
         if (hwnd == IntPtr.Zero) return;
 
         var ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
@@ -61,22 +60,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
     }
 
-    public void SetMousePassThrough(IntPtr glfwHandle, bool passThrough)
+    public override void CapturePointer(IntPtr hwnd, Action<PointI> onOutsideClick)
     {
-        var hwnd = GetHwnd(glfwHandle);
-        if (hwnd == IntPtr.Zero) return;
-
-        var ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
-        var updated = passThrough ? ex | WS_EX_TRANSPARENT : ex & ~WS_EX_TRANSPARENT;
-        if (updated == ex) return;
-        SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(updated));
-        SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
-    }
-
-    public void BeginCapture(IntPtr glfwHandle, Action<PointI> onOutsideClick)
-    {
-        var hwnd = GetHwnd(glfwHandle);
         if (hwnd == IntPtr.Zero) return;
 
         InstallSubclass(hwnd, onOutsideClick);
@@ -84,9 +69,8 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
         _capturedHwnd = hwnd;
     }
 
-    public void EndCapture(IntPtr glfwHandle)
+    public override void ReleasePointerCapture(IntPtr hwnd)
     {
-        var hwnd = GetHwnd(glfwHandle);
         if (hwnd == IntPtr.Zero) return;
 
         if (_capturedHwnd == hwnd)
@@ -97,32 +81,30 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
         RemoveSubclass(hwnd);
     }
 
-    public void TransferCapture(IntPtr fromGlfw, IntPtr toGlfw, Action<PointI> onOutsideClick)
+    public override void WatchNonClientPress(IntPtr hwnd, Action onNonClientPress)
     {
-        var fromHwnd = GetHwnd(fromGlfw);
-        var toHwnd = GetHwnd(toGlfw);
-        if (toHwnd == IntPtr.Zero) return;
-
-        RemoveSubclass(fromHwnd);
-        if (_capturedHwnd != IntPtr.Zero) ReleaseCapture();
-
-        InstallSubclass(toHwnd, onOutsideClick);
-        SetCapture(toHwnd);
-        _capturedHwnd = toHwnd;
-    }
-
-    public void WatchWindowNonClientPress(IntPtr glfwHandle, Action onNonClientPress)
-    {
-        var hwnd = GetHwnd(glfwHandle);
         if (hwnd == IntPtr.Zero) return;
         InstallSubclass(hwnd, _ => onNonClientPress(), SubclassKind.NonClientWatch);
     }
 
-    public void UnwatchWindow(IntPtr glfwHandle)
+    public override void UnwatchNonClientPress(IntPtr hwnd)
     {
-        var hwnd = GetHwnd(glfwHandle);
         if (hwnd == IntPtr.Zero) return;
         RemoveSubclass(hwnd);
+    }
+
+    public override void SetTitleBarTheme(IntPtr hwnd, bool dark) => WindowsDwm.SetDarkTitleBar(hwnd, dark);
+
+    public override void SetInputEnabled(IntPtr hwnd, bool enabled)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        EnableWindow(hwnd, enabled);
+    }
+
+    public override void SetOwner(IntPtr hwnd, IntPtr owner)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, owner);
     }
 
     private void InstallSubclass(IntPtr hwnd, Action<PointI> callback, SubclassKind kind = SubclassKind.Capture)
@@ -221,9 +203,6 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
         return ok;
     }
 
-    // The native HWND is supplied directly by IWindow.NativeHandle; no conversion needed.
-    private static IntPtr GetHwnd(IntPtr nativeHandle) => nativeHandle;
-
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X, Y; }
 
@@ -262,4 +241,7 @@ internal sealed class WindowsPopupDecorator : IPopupNativeDecorator
 
     [DllImport("user32.dll", EntryPoint = "PostMessageW")]
     private static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnableWindow(IntPtr hwnd, bool enabled);
 }

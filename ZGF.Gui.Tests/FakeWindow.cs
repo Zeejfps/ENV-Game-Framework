@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
+using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Tests;
@@ -28,7 +29,6 @@ internal sealed class FakeWindow : IWindow
         ContentScale = contentScale ?? backingRatio;
     }
 
-    public IntPtr NativeHandle => IntPtr.Zero;
     public int Width { get; private set; }
     public int Height { get; private set; }
 
@@ -71,6 +71,7 @@ internal sealed class FakeWindow : IWindow
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
+    public event Action? OnNonClientPress;
 #pragma warning restore CS0067
 
     /// <summary>Moves the window onto a display of a different scale, the way the OS reports it on
@@ -108,6 +109,8 @@ internal sealed class FakeWindow : IWindow
     public void Focus() { IsFocused = true; OnFocusChanged?.Invoke(true); }
 
     public void SetMousePassThrough(bool passThrough) => MousePassThrough = passThrough;
+    public void CapturePointer(Action<PointI> onOutsideClick) { }
+    public void ReleasePointerCapture() { }
 
     public void SetPosition(int screenX, int screenY)
     {

@@ -22,10 +22,8 @@ public sealed class ModalWindowTests : IDisposable
         var ime = new ImeCoordinator(_arbiter);
         _mainInput = new DesktopInputSystem(_app.MainWindow, scale, _arbiter, _app, ime);
         _arbiter.Register(_mainInput, false);
-        var context = new Context();
-        context.AddService<IWindowModality>(new FakeModality());
         _factory = new SecondaryWindowFactory(_app, _fonts, font, new FakeRenderBackend(_fonts, font),
-            new FakePopupDecorator(), context, _arbiter, ime, scale);
+            new Context(), _arbiter, ime, scale);
     }
 
     private ISecondaryWindow Open(bool modal = false) => _factory.Open(new SecondaryWindowRequest
@@ -146,12 +144,6 @@ public sealed class ModalWindowTests : IDisposable
         public override void OnComposition(ref CompositionEvent e) => Count++;
         public override void OnMouseWheelScrolled(ref MouseWheelScrolledEvent e) => Count++;
         public override void OnMouseButtonStateChanged(ref MouseButtonEvent e) => Count++;
-    }
-
-    private sealed class FakeModality : IWindowModality
-    {
-        public void SetInputEnabled(IWindow window, bool enabled) => ((FakeWindow)window).SetInputEnabled(enabled);
-        public void SetOwner(IWindow window, IWindow owner) => ((FakeWindow)window).SetOwner(owner);
     }
 
     public void Dispose()

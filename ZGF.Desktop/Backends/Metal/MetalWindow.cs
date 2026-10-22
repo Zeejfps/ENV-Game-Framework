@@ -27,7 +27,7 @@ public sealed class MetalWindow : GlfwWindowBase, IMetalSurface
         Layer = AttachMetalLayer(window, device, fbW, fbH);
     }
 
-    public override IntPtr NativeHandle => NsWindow;
+    internal override IntPtr NativeHandle => NsWindow;
 
     /// <summary>
     /// Lets this window composite per-pixel alpha, so content that leaves parts of its bounds

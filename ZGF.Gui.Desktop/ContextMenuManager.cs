@@ -64,7 +64,7 @@ public sealed class ContextMenuManager : IContextMenuHost
         // The arbiter (the single modality authority) raises this for every host window — the
         // main window, and every secondary window the host never sees directly — so the menu
         // chain dismisses even where the OS popup capture misses the click. It's also the whole
-        // dismissal path on platforms whose decorator provides no capture (e.g. NoopPopupDecorator).
+        // dismissal path on platforms with no native pointer capture (everywhere but Windows).
         if (arbiter != null)
             arbiter.OutsidePressDismiss += CloseAllImmediately;
     }
