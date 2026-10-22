@@ -7,16 +7,12 @@ namespace ZGF.Gui.Immediate;
 /// </summary>
 public abstract class ImmediateGuiApp<T> where T : class
 {
-    private readonly List<FontFace> _fonts = new();
-
     protected ImmediateGuiApp(T state)
     {
         State = state;
     }
 
     public T State { get; }
-
-    internal IReadOnlyList<FontFace> Fonts => _fonts;
 
     public void Startup(ImmediateGuiAppHost host)
     {
@@ -40,15 +36,4 @@ public abstract class ImmediateGuiApp<T> where T : class
 
     /// <summary>Runs once the window has closed.</summary>
     protected virtual void OnShutdown(ImmediateGuiAppHost host) { }
-
-    /// <summary>Makes the font in <paramref name="data"/> (TTF/OTF bytes) drawable as
-    /// <paramref name="family"/>, for <c>ui.Text(family: ...)</c> and <see cref="UiTheme.FontFamily"/>.
-    /// With <paramref name="bold"/> it is the face the family's bold text is drawn in, which is
-    /// otherwise synthesized from the regular face; the default font's bold is Inter SemiBold.
-    /// Register italic faces under names of their own. Call it from the constructor.</summary>
-    protected void RegisterFont(string family, byte[] data, bool bold = false)
-    {
-        var font = new FontFace(family, data, bold);
-        _fonts.Add(font);
-    }
 }

@@ -24,7 +24,7 @@ public sealed class ImmediateGuiAppHost
     public static void Run<T>(ImmediateGuiApp<T> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
         where T : class
     {
-        using var host = new ImmediateHost(config, backend, app.Fonts, app.Render);
+        using var host = new ImmediateHost(config, backend, app.Render);
         using var context = new UiSynchronizationContext(host.Post).Install();
         var guiHost = new ImmediateGuiAppHost(host);
         host.Post(() => app.Startup(guiHost));
@@ -41,5 +41,16 @@ public sealed class ImmediateGuiAppHost
     public void Invalidate()
     {
         _host.Invalidate();
+    }
+
+    /// <summary>Makes <paramref name="font"/> drawable as its family, for <c>ui.Text(family: ...)</c>
+    /// and <see cref="UiTheme.FontFamily"/>. A bold face is the one the family's bold text is drawn
+    /// in, which is otherwise synthesized from the regular face; the default font's bold is Inter
+    /// SemiBold. Register italic faces under families of their own. Call it on the UI thread, such as
+    /// from <see cref="ImmediateGuiApp{T}.OnStartup"/> or after awaiting a background load there; it
+    /// does nothing once the window has closed.</summary>
+    public void RegisterFont(FontFace font)
+    {
+        _host.RegisterFont(font);
     }
 }

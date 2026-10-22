@@ -129,7 +129,7 @@ public sealed record UiTheme
     public float CodeLineHeight { get; init; } = 22f;
 
     /// <summary>The family text is drawn in unless a call names one; null is the default font.
-    /// Families are registered on <see cref="ImmediateGuiApp{T}"/> before it runs.</summary>
+    /// Families are registered with <see cref="ImmediateGuiAppHost.RegisterFont"/>.</summary>
     public string? FontFamily { get; init; }
 
     /// <summary>General gap between laid-out siblings.</summary>

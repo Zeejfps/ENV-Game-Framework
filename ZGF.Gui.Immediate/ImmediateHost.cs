@@ -50,13 +50,10 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     public ImmediateHost(
         StartupConfig config,
         RenderBackendKind backend,
-        IReadOnlyList<FontFace> fonts,
         Action<Ui> renderUi)
     {
         _render = CreateRenderBackend(config, backend);
         RegisterDefaultBold();
-        foreach (var font in fonts)
-            AddFont(font);
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
         _renderUi = renderUi;
@@ -91,15 +88,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private void RegisterDefaultBold() =>
         _render.MainCanvas.RegisterBoldFont(null, LoadFont(EmbeddedAssets.LoadFontBytes("Inter-SemiBold.ttf")));
 
-    private void AddFont(FontFace font)
-    {
-        var handle = LoadFont(font.Data);
-        if (font.Bold)
-            _render.MainCanvas.RegisterBoldFont(font.Family, handle);
-        else
-            _render.MainCanvas.RegisterFont(font.Family, handle);
-    }
-
     private FontHandle LoadFont(byte[] data, int faceIndex = 0) =>
         _render.Fonts.LoadFontFromMemory(data, GuiFonts.PixelSize(_render.MainCanvas.DpiScale), faceIndex);
 
@@ -132,6 +120,25 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     public void Post(Action action)
     {
         _ui.Post(action);
+    }
+
+    public void RegisterFont(FontFace font)
+    {
+        if (_disposed) return;
+        AddFont(font);
+        _ui.InvalidateMeasurements();
+        foreach (var popup in _popups)
+            popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
+        Invalidate();
+    }
+
+    private void AddFont(FontFace font)
+    {
+        var handle = LoadFont(font.Data);
+        if (font.Bold)
+            _render.MainCanvas.RegisterBoldFont(font.Family, handle);
+        else
+            _render.MainCanvas.RegisterFont(font.Family, handle);
     }
 
     private void LoadSystemFallbackFonts() => Task.Run(() =>

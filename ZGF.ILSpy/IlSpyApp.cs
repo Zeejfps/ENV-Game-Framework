@@ -6,22 +6,13 @@ namespace ZGF.ILSpy;
 
 public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
 {
-    private static readonly (string Family, string File)[] Fonts =
-    [
-        (MonoFonts.Regular, "JetBrainsMono-Regular.ttf"),
-        (MonoFonts.Bold, "JetBrainsMono-Bold.ttf"),
-        (MonoFonts.Italic, "JetBrainsMono-Italic.ttf"),
-        (MonoFonts.BoldItalic, "JetBrainsMono-BoldItalic.ttf"),
-        (LucideIcons.Family, LucideIcons.File),
-    ];
+    private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
 
     private readonly List<string> _commandLineAssemblies;
 
     private IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace)
     {
         _commandLineAssemblies = commandLineAssemblies;
-        foreach (var (family, file) in Fonts)
-            RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
     }
 
     public static void Launch(CommandLine commandLine)
@@ -35,8 +26,21 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
 
     protected override void OnStartup(ImmediateGuiAppHost host)
     {
+        RegisterFonts(host);
         State.Assemblies.Changed += host.Invalidate;
         OpenStartupAssemblies();
+    }
+
+    private static void RegisterFonts(ImmediateGuiAppHost host)
+    {
+        host.RegisterFont(LoadFont(MonoFonts.Regular, MonoFontFile));
+        host.RegisterFont(LoadFont(LucideIcons.Family, LucideIcons.File));
+    }
+
+    private static FontFace LoadFont(string family, string file)
+    {
+        var data = EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file);
+        return new FontFace(family, data);
     }
 
     private void OpenStartupAssemblies()

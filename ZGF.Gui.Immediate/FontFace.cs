@@ -1,5 +1,6 @@
 namespace ZGF.Gui.Immediate;
 
-/// <summary>A font an app registers: its TTF/OTF bytes, the family it is drawn as, and whether it is
-/// that family's bold face.</summary>
-internal sealed record FontFace(string Family, byte[] Data, bool Bold);
+/// <summary>A font to register with <see cref="ImmediateGuiAppHost.RegisterFont"/>: its TTF/OTF
+/// <paramref name="Data"/>, the <paramref name="Family"/> it is drawn as, and whether it is that
+/// family's <paramref name="Bold"/> face.</summary>
+public sealed record FontFace(string Family, byte[] Data, bool Bold = false);
