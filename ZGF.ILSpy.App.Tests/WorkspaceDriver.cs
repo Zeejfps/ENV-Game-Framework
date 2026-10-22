@@ -85,7 +85,6 @@ internal sealed class WorkspaceDriver
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
         Workspace = new Workspace(settings);
-        Workspace.Attach(_posted.Post);
     }
 
     /// <summary>A driver that has opened the fixture assembly.</summary>
@@ -99,8 +98,6 @@ internal sealed class WorkspaceDriver
     public Workspace Workspace { get; }
 
     public static string FixturePath => typeof(Greeter).Assembly.Location;
-
-    public void Post(Action action) => _posted.Post(action);
 
     public void Pump()
     {

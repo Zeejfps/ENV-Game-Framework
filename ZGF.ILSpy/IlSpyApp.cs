@@ -20,7 +20,6 @@ public sealed class IlSpyApp : Gui<Workspace>
     {
         foreach (var (family, file) in Fonts)
             RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
-        workspace.Attach(Post);
         workspace.Assemblies.Changed += Invalidate;
     }
 

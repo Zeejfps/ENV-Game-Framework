@@ -8,13 +8,11 @@ namespace ZGF.ILSpy;
 /// <summary>
 /// The app's state. What the user can do to it are extension methods grouped by feature, such as
 /// <see cref="Navigation"/> and <see cref="Bookmarking"/>. Lives on the UI thread: background work
-/// (opening, decompiling, resolving, searching) hands results back through <see cref="Post"/>.
+/// (opening, decompiling, resolving, searching) is awaited there through <see cref="Background"/>.
 /// A result is dropped when the user asked for something else in the meantime.
 /// </summary>
 public sealed class Workspace
 {
-    private Action<Action> _post = ThrowNotAttached;
-
     public AppSettings Settings { get; }
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
@@ -143,17 +141,6 @@ public sealed class Workspace
         ReportError(GetStrings().ErrorReadSettings, settings.LoadError);
     }
 
-    /// <summary>Connects the workspace to the running app: <paramref name="post"/> runs an action on
-    /// the UI thread.</summary>
-    public void Attach(Action<Action> post) => _post = post;
-
-    public void Post(Action action) => _post(action);
-
-    private static void ThrowNotAttached(Action action)
-    {
-        throw new InvalidOperationException("The workspace is not attached to a running app.");
-    }
-
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
 
     internal Strings GetStrings() => Strings.For(Locale);
@@ -172,29 +159,5 @@ public sealed class Workspace
         if (error == null)
             return fallback;
         return error.ToString();
-    }
-
-    internal void RunInBackground<T>(Func<T> work, Action<T?, Exception?> done)
-    {
-        var task = Task.Run(work);
-        task.ContinueWith(finished => PostCompletion(finished, done), TaskScheduler.Default);
-    }
-
-    private void PostCompletion<T>(Task<T> task, Action<T?, Exception?> done)
-    {
-        Post(() => Complete(task, done));
-    }
-
-    private static void Complete<T>(Task<T> task, Action<T?, Exception?> done)
-    {
-        if (task.IsCompletedSuccessfully)
-        {
-            done(task.Result, null);
-            return;
-        }
-        if (task.IsCanceled)
-            return;
-        var error = task.Exception!.GetBaseException();
-        done(default, error);
     }
 }
