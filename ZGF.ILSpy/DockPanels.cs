@@ -32,20 +32,28 @@ public static class DockPanels
     /// alone when none was saved. <paramref name="placed"/> tells whether the document has a place.</summary>
     public static DockLayout Restore(DockLayout? saved, string document, out bool placed)
     {
-        var layout = saved ?? new DockLayout { Root = DockLayout.Group(Assemblies) };
-        placed = false;
-        foreach (var group in layout.AllGroups())
-        {
-            var index = group.Panels.FindIndex(static p => !IsView(p));
-            if (index < 0) continue;
-            var replaced = group.Panels[index];
-            group.Panels[index] = document;
-            if (group.Active == replaced || group.Active is null || !IsView(group.Active))
-                group.Active = document;
-            placed = true;
-            break;
-        }
+        var layout = saved;
+        if (layout == null)
+            layout = new DockLayout { Root = DockLayout.Group(Assemblies) };
+        placed = PlaceDocument(layout, document);
         layout.Retain(panel => IsView(panel) || panel == document);
         return layout;
     }
+
+    private static bool PlaceDocument(DockLayout layout, string document)
+    {
+        foreach (var group in layout.AllGroups())
+        {
+            var index = group.Panels.FindIndex(static p => !IsView(p));
+            if (index < 0)
+                continue;
+            group.Panels[index] = document;
+            if (!HasActiveView(group))
+                group.Active = document;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool HasActiveView(DockGroup group) => group.Active != null && IsView(group.Active);
 }
