@@ -29,11 +29,13 @@ public abstract class ImmediateGuiApp<T> where T : class
         OnShutdown(host);
     }
 
-    /// <summary>Runs on the UI thread before the first frame.</summary>
+    /// <summary>Runs on the UI thread before the first frame, which waits for it to return. What it
+    /// awaits continues on the UI thread at the start of a later frame.</summary>
     protected virtual void OnStartup(ImmediateGuiAppHost host) { }
 
     protected abstract void OnRender(Ui ui, T state);
 
-    /// <summary>Runs once the window has closed.</summary>
+    /// <summary>Runs on the UI thread once the window has closed and no more frames are drawn;
+    /// <see cref="ImmediateGuiAppHost.WindowBounds"/> still tells where it was left.</summary>
     protected virtual void OnShutdown(ImmediateGuiAppHost host) { }
 }
