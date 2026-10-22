@@ -105,7 +105,7 @@ public sealed class Workspace
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += this.OnPanelClosed;
         Tree = new BrowseTree();
-        Analyzer = new AnalyzerTree(() => Assemblies);
+        Analyzer = new AnalyzerTree(Assemblies);
         Search = new Search(GetStrings, ReportError);
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);

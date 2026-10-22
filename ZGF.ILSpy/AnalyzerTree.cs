@@ -51,7 +51,7 @@ public sealed class AnalyzerMessageNode(string? error = null) : AnalyzerNode
 /// </summary>
 public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
 {
-    private readonly Func<AssemblyList> _assemblies;
+    private readonly AssemblyList _assemblies;
     private readonly List<AnalyzerSymbolNode> _roots = new();
     private readonly AnalyzerMessageNode _loading = new();
     private UiTheme _theme = UiTheme.Dark;
@@ -59,7 +59,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     private Strings _strings = Strings.For(Locale.En);
 
     /// <param name="assemblies">The open assemblies analyses run over.</param>
-    public AnalyzerTree(Func<AssemblyList> assemblies)
+    public AnalyzerTree(AssemblyList assemblies)
     {
         _assemblies = assemblies;
     }
@@ -153,7 +153,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         var token = work.Token;
         try
         {
-            await foreach (var batch in Analysis.RunAsync(_assemblies(), kind.Subject, kind.Kind, token))
+            await foreach (var batch in Analysis.RunAsync(_assemblies, kind.Subject, kind.Kind, token))
                 Deliver(kind, work, batch.Select(static r => (AnalyzerNode)new AnalyzerSymbolNode(r)).ToList(), done: false);
             Deliver(kind, work, [], done: true);
         }
