@@ -27,7 +27,7 @@ public sealed class ImmediateGuiAppHost
         using var host = new ImmediateHost(config, backend, app.Render);
         using var context = new UiSynchronizationContext(host.Post).Install();
         var guiHost = new ImmediateGuiAppHost(host);
-        host.Post(() => app.Startup(guiHost));
+        app.Startup(guiHost);
         host.Run();
         app.Shutdown(guiHost);
     }
