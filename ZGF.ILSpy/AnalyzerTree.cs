@@ -18,16 +18,29 @@ public abstract class AnalyzerNode
 /// event, then each analysis that applies to it.</summary>
 public sealed class AnalyzerSymbolNode(AnalysisSymbol symbol) : AnalyzerNode
 {
-    private AnalyzerNode[]? _children;
+    private List<AnalyzerNode>? _children;
 
     public AnalysisSymbol Symbol { get; } = symbol;
 
-    internal IReadOnlyList<AnalyzerNode> Children =>
-        _children ??=
-        [
-            ..Analysis.AccessorsOf(Symbol).Select(static a => new AnalyzerSymbolNode(a)),
-            ..Analysis.KindsFor(Symbol).Select(k => new AnalyzerKindNode(Symbol, k)),
-        ];
+    internal IReadOnlyList<AnalyzerNode> Children
+    {
+        get
+        {
+            if (_children == null)
+                _children = ListChildren();
+            return _children;
+        }
+    }
+
+    private List<AnalyzerNode> ListChildren()
+    {
+        var children = new List<AnalyzerNode>();
+        foreach (var accessor in Analysis.AccessorsOf(Symbol))
+            children.Add(new AnalyzerSymbolNode(accessor));
+        foreach (var kind in Analysis.KindsFor(Symbol))
+            children.Add(new AnalyzerKindNode(Symbol, kind));
+        return children;
+    }
 
     internal override void Cancel()
     {
@@ -165,7 +178,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     /// already analyzing it.</summary>
     public void Analyze(AnalysisSymbol symbol)
     {
-        var root = _roots.Find(r => Equals(r.Symbol.Reference, symbol.Reference) && symbol.Reference != null);
+        var root = FindRoot(symbol);
         if (root == null)
         {
             root = new AnalyzerSymbolNode(symbol);
@@ -175,6 +188,13 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         View.SetExpanded(root, true);
         View.Refresh();
         View.Select(root);
+    }
+
+    private AnalyzerSymbolNode? FindRoot(AnalysisSymbol symbol)
+    {
+        if (symbol.Reference == null)
+            return null;
+        return _roots.Find(r => Equals(r.Symbol.Reference, symbol.Reference));
     }
 
     public void Remove(AnalyzerSymbolNode root)
@@ -211,21 +231,62 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
                 return symbol.Children;
             case AnalyzerKindNode kind:
                 kind.StartOnce(_assemblies, View.Refresh);
-                return kind.IsDone ? kind.Found : [..kind.Found, _loading];
+                return ListResults(kind);
             default:
                 return [];
         }
     }
 
+    private IReadOnlyList<AnalyzerNode> ListResults(AnalyzerKindNode kind)
+    {
+        if (kind.IsDone)
+            return kind.Found;
+        var results = new List<AnalyzerNode>(kind.Found);
+        results.Add(_loading);
+        return results;
+    }
+
     public TreeRow Row(AnalyzerNode node) => node switch
     {
-        AnalyzerSymbolNode { Symbol: var s } => new TreeRow(s.Label, NodeIcons.Icon(s.Kind, s.Accessibility, _icons), Tooltip: s.Location,
-            Secondary: s.Location),
-        AnalyzerKindNode kind => new TreeRow(kind.IsDone ? $"{AnalyzerText.Header(_strings, kind.Kind)} ({kind.Found.Count})" : AnalyzerText.Header(_strings, kind.Kind),
-            new UiIcon(LucideIcons.Search, LucideIcons.Family, _theme.TextMuted)),
-        AnalyzerMessageNode { Error: { } error } => new TreeRow(error, new UiIcon(LucideIcons.AlertCircle, LucideIcons.Family, _theme.Danger), _theme.Danger),
-        _ => new TreeRow(_strings.AnalyzerLoading, new UiIcon(LucideIcons.Loader2, LucideIcons.Family, _theme.TextMuted), _theme.TextMuted),
+        AnalyzerSymbolNode symbol => SymbolRow(symbol.Symbol),
+        AnalyzerKindNode kind => KindRow(kind),
+        AnalyzerMessageNode message => MessageRow(message),
+        _ => LoadingRow(),
     };
+
+    private TreeRow SymbolRow(AnalysisSymbol symbol)
+    {
+        var icon = NodeIcons.Icon(symbol.Kind, symbol.Accessibility, _icons);
+        return new TreeRow(symbol.Label, icon, Tooltip: symbol.Location, Secondary: symbol.Location);
+    }
+
+    private TreeRow KindRow(AnalyzerKindNode kind)
+    {
+        var icon = new UiIcon(LucideIcons.Search, LucideIcons.Family, _theme.TextMuted);
+        return new TreeRow(KindLabel(kind), icon);
+    }
+
+    private string KindLabel(AnalyzerKindNode kind)
+    {
+        var header = AnalyzerText.Header(_strings, kind.Kind);
+        if (!kind.IsDone)
+            return header;
+        return $"{header} ({kind.Found.Count})";
+    }
+
+    private TreeRow MessageRow(AnalyzerMessageNode message)
+    {
+        if (message.Error == null)
+            return LoadingRow();
+        var icon = new UiIcon(LucideIcons.AlertCircle, LucideIcons.Family, _theme.Danger);
+        return new TreeRow(message.Error, icon, _theme.Danger);
+    }
+
+    private TreeRow LoadingRow()
+    {
+        var icon = new UiIcon(LucideIcons.Loader2, LucideIcons.Family, _theme.TextMuted);
+        return new TreeRow(_strings.AnalyzerLoading, icon, _theme.TextMuted);
+    }
 }
 
 /// <summary>The analyzer's words in the interface language.</summary>
