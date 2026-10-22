@@ -105,6 +105,22 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal([SettingsFile], Directory.GetFiles(_directory));
     }
 
+    [Theory]
+    [InlineData("""{ "Decompiler": { "LanguageVersion": "CSharp7" } }""", CSharpVersion.CSharp7)]
+    [InlineData("""{ "Decompiler": { "LanguageVersion": "CSharp14", "Toggles": null } }""", CSharpVersion.CSharp14)]
+    [InlineData("""{ "Decompiler": { } }""", CSharpVersion.CSharp14)]
+    public void Decompiler_options_from_older_settings_files_load_with_defaults_for_what_they_lack(string json, CSharpVersion version)
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(SettingsFile, json);
+
+        var loaded = AppSettings.Load(SettingsFile);
+
+        Assert.Null(loaded.LoadError);
+        Assert.Equal(DecompilerOptions.Default with { LanguageVersion = version }, loaded.Decompiler);
+        Assert.Empty(loaded.Decompiler.Toggles);
+    }
+
     [Fact]
     public void Window_bounds_round_trip_and_open_the_window_where_it_was_left()
     {

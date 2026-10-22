@@ -104,9 +104,24 @@ public sealed record DecompilerOptions
 {
     public static DecompilerOptions Default { get; } = new();
 
-    public CSharpVersion LanguageVersion { get; init; } = CSharpVersion.CSharp14;
+    private readonly CSharpVersion _languageVersion = CSharpVersion.CSharp14;
+    private readonly ImmutableSortedDictionary<string, bool> _toggles = ImmutableSortedDictionary<string, bool>.Empty;
 
-    public ImmutableSortedDictionary<string, bool> Toggles { get; init; } = ImmutableSortedDictionary<string, bool>.Empty;
+    /// <summary>The C# version written; a value that names none, as an older or damaged settings
+    /// file can hold, means the newest.</summary>
+    public CSharpVersion LanguageVersion
+    {
+        get => _languageVersion;
+        init => _languageVersion = Enum.IsDefined(value) ? value : CSharpVersion.CSharp14;
+    }
+
+    /// <summary>The toggles set away from their defaults; null, as an older settings file reads,
+    /// means none.</summary>
+    public ImmutableSortedDictionary<string, bool> Toggles
+    {
+        get => _toggles;
+        init => _toggles = value ?? ImmutableSortedDictionary<string, bool>.Empty;
+    }
 
     /// <summary>Whether <paramref name="toggle"/> is on as chosen, whether or not the version allows it.</summary>
     public bool IsOn(DecompilerToggle toggle) => Toggles.TryGetValue(toggle.Name, out var value) ? value : toggle.DefaultValue;
