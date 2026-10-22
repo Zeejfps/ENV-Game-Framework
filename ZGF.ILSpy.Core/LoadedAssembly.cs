@@ -13,7 +13,10 @@ namespace ZGF.ILSpy.Core;
 /// </summary>
 public sealed class LoadedAssembly
 {
+    private static readonly TypeSystemOptions DefaultTypeSystemOptions = DecompilerTypeSystem.GetOptions(Settings.Create());
+
     private readonly Lazy<DecompilerTypeSystem> _typeSystem;
+    private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
     private readonly Lazy<AssemblyNode> _root;
 
@@ -67,6 +70,15 @@ public sealed class LoadedAssembly
     internal DecompilerTypeSystem TypeSystem => _typeSystem.Value;
 
     internal MetadataModule Module => TypeSystem.MainModule;
+
+    /// <summary>The type system decompiling with <paramref name="settings"/> reads: <see cref="TypeSystem"/>
+    /// unless they turn language features on or off that it models.</summary>
+    internal DecompilerTypeSystem TypeSystemFor(DecompilerSettings settings)
+    {
+        var options = DecompilerTypeSystem.GetOptions(settings);
+        if (options == DefaultTypeSystemOptions) return TypeSystem;
+        return _typeSystems.GetOrAdd(options, o => new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, o))).Value;
+    }
 
     internal void WarmUp()
     {

@@ -31,6 +31,7 @@
   "toolbar.forward_history": "Verlauf vorwärts",
   "toolbar.decompile_csharp": "Nach C# dekompilieren",
   "toolbar.disassemble_il": "Nach IL disassemblieren",
+  "toolbar.language_version": "C#-Sprachversion",
   "search.field": "Suchen…",
   "search.field_tooltip": "Typen und Member suchen ({shortcut})",
   "search.syntax_tooltip": "Suchen ({shortcut})\nt: Typen   m: Member   md: Methoden   f: Felder   p: Eigenschaften   e: Ereignisse\nc: Konstanten und Literale   r: Ressourcen   n: Namespaces   a: Assemblys   @ Metadatentoken\ninassembly:Name   innamespace:Name\n-ausschließen   =genau   ~Buchstaben in Reihenfolge   /Regex/   List<T>   \"Begriffe in Anführungszeichen\"",

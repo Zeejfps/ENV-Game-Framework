@@ -153,11 +153,15 @@ public abstract class BrowseNode
     /// <summary>Decompiles this node. Throws <see cref="OperationCanceledException"/> when cancelled;
     /// any other failure becomes a document describing it. Safe to call concurrently.</summary>
     public DecompiledDocument Decompile(DecompilationLanguage language, CancellationToken cancellationToken = default) =>
-        NodeDecompiler.Decompile(this, language, cancellationToken);
+        Decompile(language, DecompilerOptions.Default, cancellationToken);
 
-    /// <summary><see cref="Decompile"/> on the thread pool.</summary>
-    public Task<DecompiledDocument> DecompileAsync(DecompilationLanguage language, CancellationToken cancellationToken = default) =>
-        Task.Run(() => Decompile(language, cancellationToken), cancellationToken);
+    /// <summary>Decompiles this node with <paramref name="options"/>, which only C# reads.</summary>
+    public DecompiledDocument Decompile(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
+        NodeDecompiler.Decompile(this, language, options, cancellationToken);
+
+    /// <summary><see cref="Decompile(DecompilationLanguage, DecompilerOptions, CancellationToken)"/> on the thread pool.</summary>
+    public Task<DecompiledDocument> DecompileAsync(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
+        Task.Run(() => Decompile(language, options, cancellationToken), cancellationToken);
 
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
     /// reads, to save them.</summary>

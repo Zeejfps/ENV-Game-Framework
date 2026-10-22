@@ -35,6 +35,7 @@
   "toolbar.forward_history": "Forward history",
   "toolbar.decompile_csharp": "Decompile to C#",
   "toolbar.disassemble_il": "Disassemble to IL",
+  "toolbar.language_version": "C# language version",
   "search.field": "Search…",
   "search.field_tooltip": "Search types and members ({shortcut})",
   "search.syntax_tooltip": "Search ({shortcut})\nt: types   m: members   md: methods   f: fields   p: properties   e: events\nc: constants and literals   r: resources   n: namespaces   a: assemblies   @ metadata token\ninassembly:name   innamespace:name\n-exclude   =exact   ~letters in order   /regex/   List<T>   \"quoted terms\"",

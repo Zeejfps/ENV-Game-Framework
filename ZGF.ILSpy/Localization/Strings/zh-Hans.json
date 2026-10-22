@@ -31,6 +31,7 @@
   "toolbar.forward_history": "前进历史记录",
   "toolbar.decompile_csharp": "反编译为 C#",
   "toolbar.disassemble_il": "反汇编为 IL",
+  "toolbar.language_version": "C# 语言版本",
   "search.field": "搜索…",
   "search.field_tooltip": "搜索类型和成员 ({shortcut})",
   "search.syntax_tooltip": "搜索 ({shortcut})\nt: 类型   m: 成员   md: 方法   f: 字段   p: 属性   e: 事件\nc: 常量和字面量   r: 资源   n: 命名空间   a: 程序集   @ 元数据标记\ninassembly:名称   innamespace:名称\n-排除   =完全匹配   ~按顺序的字母   /正则表达式/   List<T>   \"带引号的词语\"",

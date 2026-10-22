@@ -72,6 +72,24 @@ public sealed class DecompilationTests
     }
 
     [Fact]
+    public void An_older_language_version_avoids_newer_syntax()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var calculator = assembly.Calculator();
+        var csharp5 = new DecompilerOptions { LanguageVersion = CSharpVersion.CSharp5 };
+
+        var latest = calculator.Child("Count : int").Decompile(DecompilationLanguage.CSharp).GetText();
+        var older = calculator.Child("Count : int").Decompile(DecompilationLanguage.CSharp, csharp5).GetText();
+        var ctor = calculator.Child("Calculator()").Decompile(DecompilationLanguage.CSharp, csharp5);
+
+        Assert.Contains("public int Count => _items.Count;", latest);
+        Assert.DoesNotContain("=>", older);
+        Assert.Contains("return _items.Count;", older);
+        Assert.False(ctor.IsError);
+        Assert.Contains(ctor.Lines.ToArray(), l => l.Text.Contains("public Calculator()"));
+    }
+
+    [Fact]
     public void IL_shows_opcodes_labels_and_directives()
     {
         var (_, assembly) = Trees.OpenTestAssembly();
@@ -141,7 +159,7 @@ public sealed class DecompilationTests
 
         Assert.Throws<OperationCanceledException>(() => assembly.Calculator().Decompile(DecompilationLanguage.CSharp, cancelled.Token));
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            assembly.Calculator().DecompileAsync(DecompilationLanguage.IL, cancelled.Token).GetAwaiter().GetResult());
+            assembly.Calculator().DecompileAsync(DecompilationLanguage.IL, DecompilerOptions.Default, cancelled.Token).GetAwaiter().GetResult());
     }
 
     [Fact]
@@ -153,7 +171,7 @@ public sealed class DecompilationTests
         var languages = new[] { DecompilationLanguage.CSharp, DecompilationLanguage.IL };
 
         var sequential = types.SelectMany(t => languages.Select(l => t.Decompile(l).GetText())).ToArray();
-        var concurrent = await Task.WhenAll(types.SelectMany(t => languages.Select(l => t.DecompileAsync(l))));
+        var concurrent = await Task.WhenAll(types.SelectMany(t => languages.Select(l => t.DecompileAsync(l, DecompilerOptions.Default))));
 
         Assert.Equal(sequential, concurrent.Select(d => d.GetText()));
         Assert.DoesNotContain(concurrent, d => d.IsError);

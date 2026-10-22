@@ -31,6 +31,7 @@
   "toolbar.forward_history": "Historial hacia adelante",
   "toolbar.decompile_csharp": "Descompilar a C#",
   "toolbar.disassemble_il": "Desensamblar a IL",
+  "toolbar.language_version": "Versión del lenguaje C#",
   "search.field": "Buscar…",
   "search.field_tooltip": "Buscar tipos y miembros ({shortcut})",
   "search.syntax_tooltip": "Buscar ({shortcut})\nt: tipos   m: miembros   md: métodos   f: campos   p: propiedades   e: eventos\nc: constantes y literales   r: recursos   n: espacios de nombres   a: ensamblados   @ token de metadatos\ninassembly:nombre   innamespace:nombre\n-excluir   =exacto   ~letras en orden   /regex/   List<T>   \"términos entre comillas\"",

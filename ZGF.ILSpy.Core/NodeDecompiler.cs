@@ -23,14 +23,14 @@ internal static class NodeDecompiler
     private const string ReferenceAssemblyWarning =
         "This assembly is marked as 'reference assembly', which means that it only contains metadata and no executable code.";
 
-    public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, CancellationToken cancellationToken)
+    public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var builder = new DocumentBuilder(language, node.Assembly);
         try
         {
             if (language == DecompilationLanguage.CSharp)
-                WriteCSharp(node, builder, cancellationToken);
+                WriteCSharp(node, builder, Settings.Create(options), cancellationToken);
             else
                 WriteIL(node, builder, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -50,24 +50,24 @@ internal static class NodeDecompiler
         }
     }
 
-    private static void WriteCSharp(BrowseNode node, DocumentBuilder output, CancellationToken cancellationToken)
+    private static void WriteCSharp(BrowseNode node, DocumentBuilder output, DecompilerSettings settings, CancellationToken cancellationToken)
     {
         switch (node)
         {
             case AssemblyNode:
                 WriteAssemblySummary(node.Assembly, output, "//");
-                WriteSyntaxTree(node.Assembly, output, d => d.DecompileModuleAndAssemblyAttributes(), cancellationToken);
+                WriteSyntaxTree(node.Assembly, output, settings, d => d.DecompileModuleAndAssemblyAttributes(), cancellationToken);
                 break;
             case TypeNode type:
                 WriteHeader(node.Assembly, output, type.Type, ConversionFlags.UseFullyQualifiedTypeNames | ConversionFlags.UseFullyQualifiedEntityNames);
-                WriteSyntaxTree(node.Assembly, output, d => d.Decompile(type.Type.MetadataToken), cancellationToken);
+                WriteSyntaxTree(node.Assembly, output, settings, d => d.Decompile(type.Type.MetadataToken), cancellationToken);
                 break;
             case MemberNode { Member: { DeclaringTypeDefinition: { } declaring } member }:
                 WriteHeader(node.Assembly, output, member.DeclaringType, ConversionFlags.UseFullyQualifiedEntityNames | ConversionFlags.UseFullyQualifiedTypeNames);
-                WriteSyntaxTree(node.Assembly, output, d => DecompileMember(d, member, declaring), cancellationToken);
+                WriteSyntaxTree(node.Assembly, output, settings, d => DecompileMember(d, member, declaring), cancellationToken);
                 break;
             case EntityNode entity:
-                WriteSyntaxTree(node.Assembly, output, d => d.Decompile(entity.Entity.MetadataToken), cancellationToken);
+                WriteSyntaxTree(node.Assembly, output, settings, d => d.Decompile(entity.Entity.MetadataToken), cancellationToken);
                 break;
             default:
                 WriteSummary(node, output, "//", cancellationToken);
@@ -137,6 +137,9 @@ internal static class NodeDecompiler
     /// class or a field that is not constant with the members whose initializers it shares.</summary>
     private static SyntaxTree DecompileMember(CSharpDecompiler decompiler, IMember member, ITypeDefinition declaring)
     {
+        var module = decompiler.TypeSystem.MainModule;
+        member = (IMember)module.ResolveEntity(member.MetadataToken);
+        declaring = module.GetDefinition((TypeDefinitionHandle)declaring.MetadataToken);
         switch (member)
         {
             case IMethod { IsConstructor: true } ctor when ctor.DeclaringType.IsReferenceType != false:
@@ -150,11 +153,10 @@ internal static class NodeDecompiler
         }
     }
 
-    private static void WriteSyntaxTree(LoadedAssembly assembly, DocumentBuilder output, Func<CSharpDecompiler, SyntaxTree> decompile,
-        CancellationToken cancellationToken)
+    private static void WriteSyntaxTree(LoadedAssembly assembly, DocumentBuilder output, DecompilerSettings settings,
+        Func<CSharpDecompiler, SyntaxTree> decompile, CancellationToken cancellationToken)
     {
-        var settings = Settings.Create();
-        var typeSystem = assembly.TypeSystem;
+        var typeSystem = assembly.TypeSystemFor(settings);
         var decompiler = new CSharpDecompiler(typeSystem, settings) { CancellationToken = cancellationToken };
         var syntaxTree = decompile(decompiler);
         cancellationToken.ThrowIfCancellationRequested();

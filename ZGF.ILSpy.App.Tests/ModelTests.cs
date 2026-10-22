@@ -91,6 +91,7 @@ public sealed class AppSettingsTests : IDisposable
         var settings = AppSettings.Load(SettingsFile);
         settings.Assemblies = ["a.dll", "b.dll"];
         settings.Language = DecompilationLanguage.IL;
+        settings.Decompiler = new DecompilerOptions { LanguageVersion = CSharpVersion.CSharp7_3 };
 
         Assert.Null(settings.Save());
 
@@ -98,6 +99,7 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Null(loaded.LoadError);
         Assert.Equal(["a.dll", "b.dll"], loaded.Assemblies);
         Assert.Equal(DecompilationLanguage.IL, loaded.Language);
+        Assert.Equal(CSharpVersion.CSharp7_3, loaded.Decompiler.LanguageVersion);
         Assert.Equal([SettingsFile], Directory.GetFiles(_directory));
     }
 

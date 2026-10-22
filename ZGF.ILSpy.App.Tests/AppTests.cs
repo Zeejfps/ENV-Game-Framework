@@ -164,6 +164,28 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void The_language_version_dropdown_decompiles_the_active_tab_again_and_hides_for_IL()
+    {
+        var app = OpenFixtures();
+        app.Run();
+
+        app.Click("C# 14.0 / VS 2026");
+        app.ClickMenuItem("C# 5.0 / VS 2012");
+        app.Driver.Settle();
+        app.Run();
+
+        Assert.Equal(CSharpVersion.CSharp5, app.Workspace.DecompilerOptions.LanguageVersion);
+        Assert.Equal(CSharpVersion.CSharp5, app.Workspace.ActiveTab!.Options.LanguageVersion);
+        Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text == "C# 5.0 / VS 2012");
+
+        app.Click("IL");
+        app.Driver.Settle();
+        app.Run();
+
+        Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "C# 5.0 / VS 2012");
+    }
+
+    [Fact]
     public void Search_results_are_walked_with_the_keyboard_from_the_search_box()
     {
         var app = OpenFixtures();

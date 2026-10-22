@@ -13,6 +13,7 @@ public sealed class DocumentTab
 
     private readonly Action<Action> _post;
     private readonly Func<Strings> _strings;
+    private readonly Func<DecompilerOptions> _options;
     private readonly Action<string, string> _reportError;
     private CancellationTokenSource? _work;
     private CodeViewPosition? _restore;
@@ -22,11 +23,13 @@ public sealed class DocumentTab
 
     /// <param name="post">Runs an action on the UI thread.</param>
     /// <param name="strings">The interface's strings in the current language.</param>
+    /// <param name="options">How C# is decompiled now.</param>
     /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
-    public DocumentTab(Action<Action> post, Func<Strings> strings, Action<string, string> reportError)
+    public DocumentTab(Action<Action> post, Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError)
     {
         _post = post;
         _strings = strings;
+        _options = options;
         _reportError = reportError;
         Panel = $"document-{Id}";
     }
@@ -44,6 +47,9 @@ public sealed class DocumentTab
     public BrowseNode? Node { get; private set; }
 
     public DecompilationLanguage Language { get; private set; }
+
+    /// <summary>The options <see cref="Document"/> was decompiled with.</summary>
+    public DecompilerOptions Options { get; private set; } = DecompilerOptions.Default;
     public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
     public CodeViewState View { get; } = new();
 
@@ -76,12 +82,12 @@ public sealed class DocumentTab
     /// in flight, and shows a placeholder until it is done, then returns the view to
     /// <paramref name="position"/>, else reveals the line <paramref name="target"/> marks or the grid's
     /// <paramref name="row"/>, else the node's definition. When the tab already shows
-    /// <paramref name="node"/> in <paramref name="language"/>, only does the latter.</summary>
+    /// <paramref name="node"/> in <paramref name="language"/> with the current options, only does the latter.</summary>
     public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null, Bookmark? target = null,
         int row = MetadataGridState.None)
     {
         Version++;
-        if (ReferenceEquals(node, Node) && (language == Language || node.ShowsGrid || node.ShowsImage) && !IsBusy)
+        if (ReferenceEquals(node, Node) && (IsCurrent(language) || node.ShowsGrid || node.ShowsImage) && !IsBusy)
         {
             Arrive(position, target, row);
             return;
@@ -96,6 +102,7 @@ public sealed class DocumentTab
         Location = node.Path;
         _title = NodeText.Name(node);
         Language = language;
+        Options = _options();
         Grid = null;
         Image = null;
         Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
@@ -107,17 +114,20 @@ public sealed class DocumentTab
             node.LoadGridAsync(work.Token).ContinueWith(task => _post(() => CompleteGrid(work, node, task)),
                 CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         else
-            node.DecompileAsync(language, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
+            node.DecompileAsync(language, Options, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
                 CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
-    /// <summary>Decompiles the shown node again in <paramref name="language"/> if it was shown in
-    /// another one.</summary>
-    public void EnsureLanguage(DecompilationLanguage language)
+    /// <summary>Decompiles the shown node again if it was shown in another language than
+    /// <paramref name="language"/>, or with other options, then keeping the view where it was.</summary>
+    public void EnsureCurrent(DecompilationLanguage language)
     {
-        if (Node is { ShowsGrid: false, ShowsImage: false } && Language != language)
-            Show(Node, language);
+        if (Node is not { ShowsGrid: false, ShowsImage: false } node || IsCurrent(language)) return;
+        Show(node, language, Language == language ? Position : null);
     }
+
+    private bool IsCurrent(DecompilationLanguage language) =>
+        language == Language && (language != DecompilationLanguage.CSharp || Options == _options());
 
     /// <summary>Lets go of the node, keeping <see cref="Location"/>, and shows
     /// <paramref name="message"/> instead of the document.</summary>

@@ -36,6 +36,7 @@ public sealed class Workspace
         _settings = settings;
         DarkMode = settings.DarkMode;
         Language = settings.Language;
+        DecompilerOptions = settings.Decompiler;
         Locale = settings.Locale ?? Locales.For(CultureInfo.CurrentUICulture);
         ShowNonPublic = settings.ShowNonPublic;
         _active = AddTab();
@@ -96,6 +97,9 @@ public sealed class Workspace
     public DockLayout Layout { get; }
 
     public DecompilationLanguage Language { get; private set; }
+
+    /// <summary>How C# is decompiled.</summary>
+    public DecompilerOptions DecompilerOptions { get; private set; }
 
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget { get; private set; }
@@ -250,8 +254,20 @@ public sealed class Workspace
     {
         if (language == Language) return;
         Language = language;
+        EnsureCurrent();
+    }
+
+    public void SetLanguageVersion(CSharpVersion version)
+    {
+        if (version == DecompilerOptions.LanguageVersion) return;
+        DecompilerOptions = DecompilerOptions with { LanguageVersion = version };
+        EnsureCurrent();
+    }
+
+    private void EnsureCurrent()
+    {
         foreach (var group in Layout.AllGroups())
-            FindTab(group.Active)?.EnsureLanguage(language);
+            FindTab(group.Active)?.EnsureCurrent(Language);
     }
 
     /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
@@ -629,6 +645,7 @@ public sealed class Workspace
         _settings.Assemblies = Assemblies.FilePaths.ToList();
         _settings.DarkMode = DarkMode;
         _settings.Language = Language;
+        _settings.Decompiler = DecompilerOptions;
         _settings.ShowNonPublic = ShowNonPublic;
         _settings.SearchKinds = Search.Kinds;
         _settings.Locale = Locale;
@@ -652,7 +669,7 @@ public sealed class Workspace
 
     private DocumentTab AddTab()
     {
-        var tab = new DocumentTab(Post, () => Strings.For(Locale), ReportError);
+        var tab = new DocumentTab(Post, () => Strings.For(Locale), () => DecompilerOptions, ReportError);
         _tabs.Add(tab);
         return tab;
     }
@@ -717,7 +734,7 @@ public sealed class Workspace
     {
         Intend();
         _active = tab;
-        tab.EnsureLanguage(Language);
+        tab.EnsureCurrent(Language);
         if (tab.Node is { } node && IsListed(node))
             Tree.Reveal(node);
     }

@@ -24,6 +24,7 @@ public sealed class AppSettings
     public List<string> Assemblies { get; set; } = new();
     public bool DarkMode { get; set; } = true;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
+    public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
 
     /// <summary>The interface language; null follows the system's.</summary>
     public Locale? Locale { get; set; }
