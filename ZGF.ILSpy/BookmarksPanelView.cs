@@ -125,7 +125,7 @@ internal static class BookmarksPanelView
         for (var c = NameColumn; c <= ModuleColumn; c++)
         {
             cells[c] = ui.Interact(ui.GetId(c));
-            hovered |= cells[c].Hovered;
+            hovered |= cells[c].Hovered || ui.IsLinkIconHovered(cells[c]);
             if (cells[c].Pressed || cells[c].ClickedWith(PointerButton.Right))
             {
                 ui.Focus(ListId, takesText: false);

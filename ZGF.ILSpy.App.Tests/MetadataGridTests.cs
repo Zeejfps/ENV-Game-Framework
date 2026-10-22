@@ -152,6 +152,27 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
+    public void A_row_stays_highlighted_while_its_link_icon_is_hovered()
+    {
+        var (app, _, grid) = ShowTable("TypeDef");
+        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var baseType = Column(grid, "BaseType");
+        var row = Enumerable.Range(0, grid.RowCount).First(r => grid.Link(r, baseType) != null);
+        var name = grid.Text(row, Column(grid, "Name"));
+        var token = TextBeside(app, grid.Text(row, baseType), name);
+        app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2);
+        app.Run(2);
+        var icon = TextBeside(app, LucideIcons.ExternalLink, name);
+
+        app.Frames.MovePointer(icon.X + icon.Width / 2, icon.Y + icon.Height / 2);
+        app.Run(2);
+
+        Assert.True(app.Frames.Drew(LucideIcons.ExternalLink));
+        Assert.Contains(app.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == theme.RowHover
+                                                      && Math.Abs(app.Frames.Height - r.Inputs.Position.Top + r.Inputs.Position.Height / 2 - (icon.Y + icon.Height / 2)) < 4f);
+    }
+
+    [Fact]
     public void Double_clicking_a_row_decompiles_what_its_token_names()
     {
         var (app, tab, _, _) = ShowGreeterRow();

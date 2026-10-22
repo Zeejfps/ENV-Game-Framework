@@ -32,4 +32,9 @@ public static partial class UiWidgets
         }
         return button.Clicked || i.Clicked && following;
     }
+
+    /// <summary>Whether the pointer is over the icon a <see cref="SelectableLink"/> in element
+    /// <paramref name="i"/> shows, which takes the hover from <paramref name="i"/> itself — for a
+    /// row that stays highlighted while any part of it is hovered.</summary>
+    public static bool IsLinkIconHovered(this Ui ui, Interaction i) => ui.IsHovered(HashCode.Combine(i.Id, LinkButtonSalt));
 }

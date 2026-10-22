@@ -192,7 +192,7 @@ public static class MetadataGridWidget
         for (var c = 0; c < cells.Length; c++)
         {
             cells[c] = ui.Interact(HashCode.Combine(listId, CellSalt, row, c));
-            hoveredRow |= cells[c].Hovered;
+            hoveredRow |= cells[c].Hovered || ui.IsLinkIconHovered(cells[c]);
             if (cells[c].Pressed || cells[c].ClickedWith(PointerButton.Right) || cells[c].ClickedWith(PointerButton.Middle))
             {
                 ui.Focus(listId, takesText: false);
