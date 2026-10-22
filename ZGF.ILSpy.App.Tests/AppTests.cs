@@ -188,7 +188,7 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void Clicking_a_search_header_sorts_by_it_and_again_reverses_it_keeping_the_selection()
+    public void Clicking_a_search_header_sorts_by_it_then_reverses_it_then_goes_back_to_relevance_keeping_the_selection()
     {
         var app = OpenFixtures();
         app.Workspace.OpenSearch();
@@ -201,6 +201,8 @@ public sealed class AppTests
         search.Select(search.Rows.Count - 1);
         var selected = search.SelectedRow!.Result.Node;
         var names = search.Rows.Select(r => r.Result.Text).ToList();
+        Assert.Equal(SearchSort.Relevance, search.Sort);
+        Assert.Equal(search.Rows.Select(r => r.Result.Fitness).OrderDescending(), search.Rows.Select(r => r.Result.Fitness));
 
         app.Click("Name");
         app.Run();
@@ -213,6 +215,12 @@ public sealed class AppTests
         Assert.Equal(names.OrderDescending(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Result.Text));
         Assert.Same(selected, search.SelectedRow!.Result.Node);
         Assert.True(app.Frames.Drew(LucideIcons.ChevronDown));
+
+        app.Click("Name");
+        app.Run();
+        Assert.Equal(SearchSort.Relevance, search.Sort);
+        Assert.Equal(names, search.Rows.Select(r => r.Result.Text));
+        Assert.Same(selected, search.SelectedRow!.Result.Node);
 
         app.Click("Assembly");
         app.Run();

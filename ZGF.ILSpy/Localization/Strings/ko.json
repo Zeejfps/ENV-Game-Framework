@@ -33,7 +33,7 @@
   "toolbar.disassemble_il": "IL로 디스어셈블",
   "search.field": "검색…",
   "search.field_tooltip": "형식 및 멤버 검색 ({shortcut})",
-  "search.syntax_tooltip": "검색 ({shortcut})\nt: 형식   m: 멤버   md: 메서드   f: 필드   p: 속성   e: 이벤트\nc: 상수 및 리터럴   r: 리소스   n: 네임스페이스   a: 어셈블리   @ 메타데이터 토큰\ninassembly:이름   innamespace:이름\n-제외   =정확히   ~순서대로 나오는 글자   /정규식/   \"따옴표로 묶은 검색어\"",
+  "search.syntax_tooltip": "검색 ({shortcut})\nt: 형식   m: 멤버   md: 메서드   f: 필드   p: 속성   e: 이벤트\nc: 상수 및 리터럴   r: 리소스   n: 네임스페이스   a: 어셈블리   @ 메타데이터 토큰\ninassembly:이름   innamespace:이름\n-제외   =정확히   ~순서대로 나오는 글자   /정규식/   List<T>   \"따옴표로 묶은 검색어\"",
   "search.mode": "검색 대상",
   "search.kinds_all": "모든 종류",
   "search.kinds_count": "종류 · {count}",

@@ -37,7 +37,7 @@
   "toolbar.disassemble_il": "Disassemble to IL",
   "search.field": "Search…",
   "search.field_tooltip": "Search types and members ({shortcut})",
-  "search.syntax_tooltip": "Search ({shortcut})\nt: types   m: members   md: methods   f: fields   p: properties   e: events\nc: constants and literals   r: resources   n: namespaces   a: assemblies   @ metadata token\ninassembly:name   innamespace:name\n-exclude   =exact   ~letters in order   /regex/   \"quoted terms\"",
+  "search.syntax_tooltip": "Search ({shortcut})\nt: types   m: members   md: methods   f: fields   p: properties   e: events\nc: constants and literals   r: resources   n: namespaces   a: assemblies   @ metadata token\ninassembly:name   innamespace:name\n-exclude   =exact   ~letters in order   /regex/   List<T>   \"quoted terms\"",
   "search.mode": "Search for",
   "search.kinds_all": "All kinds",
   "search.kinds_count": "Kinds · {count}",

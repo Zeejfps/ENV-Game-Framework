@@ -33,7 +33,7 @@
   "toolbar.disassemble_il": "Nach IL disassemblieren",
   "search.field": "Suchen…",
   "search.field_tooltip": "Typen und Member suchen ({shortcut})",
-  "search.syntax_tooltip": "Suchen ({shortcut})\nt: Typen   m: Member   md: Methoden   f: Felder   p: Eigenschaften   e: Ereignisse\nc: Konstanten und Literale   r: Ressourcen   n: Namespaces   a: Assemblys   @ Metadatentoken\ninassembly:Name   innamespace:Name\n-ausschließen   =genau   ~Buchstaben in Reihenfolge   /Regex/   \"Begriffe in Anführungszeichen\"",
+  "search.syntax_tooltip": "Suchen ({shortcut})\nt: Typen   m: Member   md: Methoden   f: Felder   p: Eigenschaften   e: Ereignisse\nc: Konstanten und Literale   r: Ressourcen   n: Namespaces   a: Assemblys   @ Metadatentoken\ninassembly:Name   innamespace:Name\n-ausschließen   =genau   ~Buchstaben in Reihenfolge   /Regex/   List<T>   \"Begriffe in Anführungszeichen\"",
   "search.mode": "Suchen nach",
   "search.kinds_all": "Alle Arten",
   "search.kinds_count": "Arten · {count}",

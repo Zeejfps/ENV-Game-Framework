@@ -33,7 +33,7 @@
   "toolbar.disassemble_il": "Дизассемблировать в IL",
   "search.field": "Поиск…",
   "search.field_tooltip": "Поиск типов и членов ({shortcut})",
-  "search.syntax_tooltip": "Поиск ({shortcut})\nt: типы   m: члены   md: методы   f: поля   p: свойства   e: события\nc: константы и литералы   r: ресурсы   n: пространства имён   a: сборки   @ токен метаданных\ninassembly:имя   innamespace:имя\n-исключить   =точно   ~буквы по порядку   /regex/   \"термины в кавычках\"",
+  "search.syntax_tooltip": "Поиск ({shortcut})\nt: типы   m: члены   md: методы   f: поля   p: свойства   e: события\nc: константы и литералы   r: ресурсы   n: пространства имён   a: сборки   @ токен метаданных\ninassembly:имя   innamespace:имя\n-исключить   =точно   ~буквы по порядку   /regex/   List<T>   \"термины в кавычках\"",
   "search.mode": "Искать",
   "search.kinds_all": "Все виды",
   "search.kinds_count": "Виды · {count}",

@@ -264,7 +264,7 @@ public sealed class WorkspaceTests
         search.Update(d.Workspace.Assemblies, 2, d.Post, true);
         d.Settle();
 
-        Assert.Equal(rows, search.Rows.Take(rows.Length));
+        Assert.All(rows, r => Assert.Contains(r, search.Rows));
         Assert.True(search.Rows.Count > rows.Length);
         Assert.Same(selected, search.SelectedRow!.Result.Node);
     }
@@ -284,9 +284,8 @@ public sealed class WorkspaceTests
         search.Update(d.Workspace.Assemblies, 1, d.Post, true);
         d.Settle();
         Assert.Contains(search.Rows, r => r.Result.Node.Assembly != greeter.Assembly);
-        search.Select(0);
+        search.Select(search.Rows.ToList().FindIndex(r => r.Result.Node.Assembly == greeter.Assembly));
         var selected = search.SelectedRow!.Result.Node;
-        Assert.Same(greeter.Assembly, selected.Assembly);
 
         d.Workspace.Close(d.Workspace.Assemblies.Assemblies.Single(a => a.Name == "System.Private.CoreLib"));
         search.Update(d.Workspace.Assemblies, 2, d.Post, true);

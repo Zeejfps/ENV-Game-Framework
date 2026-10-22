@@ -6,10 +6,10 @@ namespace ZGF.ILSpy;
 /// <summary>A search hit with its location and assembly text formatted once, off the UI thread.</summary>
 public sealed record SearchRow(SearchResult Result, string Location, string Assembly);
 
-/// <summary>What the search results are sorted by; <see cref="None"/> keeps the order they were found in.</summary>
+/// <summary>What the search results are sorted by; <see cref="Relevance"/> puts the closest matches first.</summary>
 public enum SearchSort
 {
-    None,
+    Relevance,
     Name,
     Location,
     Assembly,
@@ -101,11 +101,13 @@ public sealed class SearchModel
 
     public void Clear() => Query = "";
 
-    /// <summary>Sorts the results by <paramref name="sort"/>, ascending, or reverses it when they
-    /// already are, keeping the selection in view.</summary>
+    /// <summary>Sorts the results by <paramref name="sort"/>, ascending, then descending when they
+    /// already are, then by relevance again, keeping the selection in view.</summary>
     public void SortBy(SearchSort sort)
     {
-        Descending = Sort == sort && !Descending;
+        if (Sort == sort && Descending)
+            sort = SearchSort.Relevance;
+        Descending = Sort == sort && sort != SearchSort.Relevance;
         Sort = sort;
         _rows.Sort(Compare);
         Reselect();
@@ -119,7 +121,9 @@ public sealed class SearchModel
             SearchSort.Name => Compare(a.Result.Text, b.Result.Text, a.Location, b.Location, a.Assembly, b.Assembly),
             SearchSort.Location => Compare(a.Location, b.Location, a.Result.Text, b.Result.Text, a.Assembly, b.Assembly),
             SearchSort.Assembly => Compare(a.Assembly, b.Assembly, a.Result.Text, b.Result.Text, a.Location, b.Location),
-            _ => 0,
+            _ => b.Result.Fitness.CompareTo(a.Result.Fitness) is var fit and not 0
+                ? fit
+                : Compare(a.Result.Text, b.Result.Text, a.Location, b.Location, a.Assembly, b.Assembly),
         };
         return Descending ? -order : order;
     }
@@ -133,11 +137,6 @@ public sealed class SearchModel
 
     private void Insert(SearchRow row)
     {
-        if (Sort == SearchSort.None)
-        {
-            _rows.Add(row);
-            return;
-        }
         int low = 0, high = _rows.Count;
         while (low < high)
         {
@@ -213,7 +212,7 @@ public sealed class SearchModel
                         if (_searched.Contains(row.Result.Node.Assembly))
                             Insert(row);
                     }
-                    if (Sort != SearchSort.None && _selected is not null)
+                    if (_selected is not null)
                         Reselect();
                 });
             }

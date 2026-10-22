@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Channels;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Disassembler;
@@ -15,7 +16,9 @@ namespace ZGF.ILSpy.Core;
 /// <summary>A search hit: the <see cref="Node"/> found, its label, and where it lives.</summary>
 /// <param name="DeclaringType">The enclosing type's label, for members and nested types, or the
 /// resources file holding a resource entry; null otherwise.</param>
-public sealed record SearchResult(BrowseNode Node, string Text, string? DeclaringType, string Namespace, string AssemblyName);
+/// <param name="Fitness">How closely the hit matches, as ILSpy ranks it: the shorter the name the
+/// closer, and 0 for compiler-generated names.</param>
+public sealed record SearchResult(BrowseNode Node, string Text, string? DeclaringType, string Namespace, string AssemblyName, float Fitness);
 
 internal static class AssemblySearch
 {
@@ -117,39 +120,38 @@ internal static class AssemblySearch
                 cancellationToken.ThrowIfCancellationRequested();
                 var type = reader.GetTypeDefinition(typeHandle);
                 if (!InNamespace(NamespaceOf(reader, type))) continue;
-                var typeName = query.FullName ? TypeName(reader, typeHandle) : Name(reader, type.Name);
+                var typeName = query.FullName ? TypeName(reader, typeHandle) : TypeLabel(reader, typeHandle);
                 if (types && query.IsMatch(typeName))
                     Add(assembly, typeHandle);
                 if (fields)
                 {
                     foreach (var handle in type.GetFields())
-                        MatchMember(assembly, typeName, reader.GetFieldDefinition(handle).Name, handle);
+                        MatchMember(assembly, typeName, Name(reader, reader.GetFieldDefinition(handle).Name), handle);
                 }
                 if (properties)
                 {
                     foreach (var handle in type.GetProperties())
-                        MatchMember(assembly, typeName, reader.GetPropertyDefinition(handle).Name, handle);
+                        MatchMember(assembly, typeName, Name(reader, reader.GetPropertyDefinition(handle).Name), handle);
                 }
                 if (events)
                 {
                     foreach (var handle in type.GetEvents())
-                        MatchMember(assembly, typeName, reader.GetEventDefinition(handle).Name, handle);
+                        MatchMember(assembly, typeName, Name(reader, reader.GetEventDefinition(handle).Name), handle);
                 }
                 if (methods)
                 {
                     foreach (var handle in type.GetMethods())
                     {
-                        var name = reader.GetMethodDefinition(handle).Name;
-                        if (!reader.StringComparer.StartsWith(name, "."))
-                            MatchMember(assembly, typeName, name, handle);
+                        var method = reader.GetMethodDefinition(handle);
+                        if (!reader.StringComparer.StartsWith(method.Name, "."))
+                            MatchMember(assembly, typeName, WithTypeParameters(reader, Name(reader, method.Name), method.GetGenericParameters(), 0), handle);
                     }
                 }
             }
         }
 
-        private void MatchMember(LoadedAssembly assembly, string typeName, StringHandle nameHandle, EntityHandle handle)
+        private void MatchMember(LoadedAssembly assembly, string typeName, string name, EntityHandle handle)
         {
-            var name = Name(assembly.File.Metadata, nameHandle);
             if (query.IsMatch(query.FullName ? typeName + "." + name : name))
                 Add(assembly, handle);
         }
@@ -157,15 +159,37 @@ internal static class AssemblySearch
         private string Name(MetadataReader reader, StringHandle handle)
         {
             var name = reader.GetString(handle);
-            if (query.KeepArity) return name;
+            if (query.KeepArity && !query.Generics) return name;
             var tick = name.IndexOf('`');
             return tick < 0 ? name : name[..tick];
+        }
+
+        private string TypeLabel(MetadataReader reader, TypeDefinitionHandle handle)
+        {
+            var type = reader.GetTypeDefinition(handle);
+            var name = Name(reader, type.Name);
+            if (!query.Generics) return name;
+            var declaring = type.GetDeclaringType();
+            var inherited = declaring.IsNil ? 0 : reader.GetTypeDefinition(declaring).GetGenericParameters().Count;
+            return WithTypeParameters(reader, name, type.GetGenericParameters(), inherited);
+        }
+
+        private string WithTypeParameters(MetadataReader reader, string name, GenericParameterHandleCollection parameters, int inherited)
+        {
+            if (!query.Generics || parameters.Count <= inherited) return name;
+            var text = new StringBuilder(name).Append('<');
+            for (var i = inherited; i < parameters.Count; i++)
+            {
+                if (i > inherited) text.Append(", ");
+                text.Append(reader.GetString(reader.GetGenericParameter(parameters[i]).Name));
+            }
+            return text.Append('>').ToString();
         }
 
         private string TypeName(MetadataReader reader, TypeDefinitionHandle handle)
         {
             var type = reader.GetTypeDefinition(handle);
-            var name = Name(reader, type.Name);
+            var name = TypeLabel(reader, handle);
             var declaring = type.GetDeclaringType();
             if (!declaring.IsNil) return TypeName(reader, declaring) + "." + name;
             var ns = reader.GetString(type.Namespace);
@@ -376,9 +400,20 @@ internal static class AssemblySearch
         private void Add(BrowseNode node, string? declaringType, string ns)
         {
             if (!_found.Add(node)) return;
-            _batch.Add(new SearchResult(node, node.Text, declaringType, ns, node.Assembly.Name));
+            _batch.Add(new SearchResult(node, node.Text, declaringType, ns, node.Assembly.Name, Fitness(node)));
             if (_batch.Count >= BatchSize || Stopwatch.GetTimestamp() - _lastFlush >= FlushTicks)
                 Flush();
+        }
+
+        private static float Fitness(BrowseNode node)
+        {
+            var name = node switch
+            {
+                EntityNode { Entity: IMethod { IsConstructor: true, DeclaringTypeDefinition: { } type } } => type.Name,
+                EntityNode entity => entity.Entity.Name,
+                _ => node.Text,
+            };
+            return name.Length == 0 || name[0] == '<' ? 0f : 1f / name.Length;
         }
     }
 }

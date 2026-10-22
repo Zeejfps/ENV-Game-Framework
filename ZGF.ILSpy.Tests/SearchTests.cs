@@ -120,6 +120,37 @@ public sealed class SearchTests
     }
 
     [Fact]
+    public async Task A_term_with_angle_brackets_matches_names_with_their_type_parameters()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        list.Open(Trees.CoreLibPath);
+
+        var type = await Collect(list.SearchAsync("t:=Calculator<T>"));
+        var other = await Collect(list.SearchAsync("t:=Calculator<U>"));
+        var nested = await Collect(list.SearchAsync("t:Calculator<T>.Mode"));
+        var method = await Collect(list.SearchAsync("md:=Empty<T>"));
+        var pair = await Collect(list.SearchAsync("t:\"=Dictionary<TKey, TValue>\""));
+
+        Assert.Same(assembly.Calculator(), Assert.Single(type).Node);
+        Assert.Empty(other);
+        Assert.Equal("Mode", Assert.Single(nested).Text);
+        Assert.Contains(method, r => r.DeclaringType == "Array");
+        Assert.Contains(pair, r => r.Namespace == "System.Collections.Generic");
+    }
+
+    [Fact]
+    public async Task Shorter_names_are_fitter()
+    {
+        var (list, _) = Trees.OpenTestAssembly();
+
+        var results = await Collect(list.SearchAsync("innamespace:Tests.Fixtures t:c"));
+
+        var fittest = results.Where(r => r.Text is "Circle" or "Callback" or "Calculator<T>").OrderByDescending(r => r.Fitness).ToList();
+        Assert.Equal(["Circle", "Callback", "Calculator<T>"], fittest.Select(r => r.Text));
+        Assert.Equal(1f / "Calculator".Length, fittest[^1].Fitness);
+    }
+
+    [Fact]
     public async Task Operators_exclude_require_whole_names_and_match_letters_in_order()
     {
         var (list, _) = Trees.OpenTestAssembly();

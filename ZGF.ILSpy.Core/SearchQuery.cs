@@ -42,6 +42,8 @@ public enum AssemblyNameKind
 /// matches letters in order with gaps, <c>+term</c> is a plain term.</item>
 /// <item><c>/regex/</c> matches a regular expression instead, ignoring case.</item>
 /// <item>A term with a dot matches qualified names, e.g. <c>Generic.List</c>.</item>
+/// <item>A term with <c>&lt;</c> matches names with their type parameters, C#-style, e.g.
+/// <c>List&lt;T&gt;</c>.</item>
 /// <item>Kind prefixes replace the <see cref="Kinds"/> picked, and add up when there are several:
 /// <c>tm:</c> <c>t:</c> <c>m:</c> <c>md:</c> <c>f:</c> <c>p:</c> <c>e:</c> <c>c:</c> (literals)
 /// <c>r:</c> <c>n:</c>, <c>a:</c> / <c>af:</c> / <c>an:</c> (assembly by name, file path, full
@@ -70,6 +72,10 @@ public sealed class SearchQuery
 
     /// <summary>Whether a term names generic arity, so names keep their <c>`1</c> suffix.</summary>
     public bool KeepArity { get; private set; }
+
+    /// <summary>Whether a term names type parameters, so generic names are written with them, e.g.
+    /// <c>Dictionary&lt;TKey, TValue&gt;</c>.</summary>
+    public bool Generics { get; private set; }
 
     public string? InAssembly { get; private set; }
 
@@ -115,11 +121,13 @@ public sealed class SearchQuery
             {
                 var pattern = term.Length > 2 && term[^1] == '/' ? term[1..^1] : term[1..];
                 query.FullName |= pattern.Contains("\\.");
+                query.Generics |= pattern.Contains('<');
                 query.Regex = TryRegex(pattern);
                 continue;
             }
             query.FullName |= term.Contains('.');
             query.KeepArity |= term.Contains('`');
+            query.Generics |= term.Contains('<');
             terms.Add(term);
         }
         query.Terms = terms;

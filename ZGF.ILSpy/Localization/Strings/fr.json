@@ -33,7 +33,7 @@
   "toolbar.disassemble_il": "Désassembler en IL",
   "search.field": "Rechercher…",
   "search.field_tooltip": "Rechercher des types et des membres ({shortcut})",
-  "search.syntax_tooltip": "Rechercher ({shortcut})\nt: types   m: membres   md: méthodes   f: champs   p: propriétés   e: événements\nc: constantes et littéraux   r: ressources   n: espaces de noms   a: assemblys   @ jeton de métadonnées\ninassembly:nom   innamespace:nom\n-exclure   =exact   ~lettres dans l’ordre   /regex/   « termes entre guillemets »",
+  "search.syntax_tooltip": "Rechercher ({shortcut})\nt: types   m: membres   md: méthodes   f: champs   p: propriétés   e: événements\nc: constantes et littéraux   r: ressources   n: espaces de noms   a: assemblys   @ jeton de métadonnées\ninassembly:nom   innamespace:nom\n-exclure   =exact   ~lettres dans l’ordre   /regex/   List<T>   « termes entre guillemets »",
   "search.mode": "Rechercher",
   "search.kinds_all": "Toutes les catégories",
   "search.kinds_count": "Catégories · {count}",
