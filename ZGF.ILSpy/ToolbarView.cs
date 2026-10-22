@@ -7,9 +7,6 @@ namespace ZGF.ILSpy;
 
 internal static class ToolbarView
 {
-    private const string OpenShortcut = "Ctrl+O";
-    private const string SearchShortcut = "Ctrl+Shift+F";
-
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
@@ -27,10 +24,10 @@ internal static class ToolbarView
         {
             using (Group(ui))
             {
-                if (ui.IconButton("open", LucideIcons.FolderOpen, LucideIcons.Family, ui.Memo("open-tip", t, static s => s.ToolbarOpen(OpenShortcut)),
+                if (ui.IconButton("open", LucideIcons.FolderOpen, LucideIcons.Family, ui.Memo("open-tip", t, static s => s.ToolbarOpen(Shortcuts.Open)),
                         variant: ButtonVariant.Neutral))
                     MainMenuView.OpenFile(ui, w);
-                if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(SearchShortcut)),
+                if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
                         variant: ButtonVariant.Neutral))
                     w.OpenSearch();
             }
@@ -38,7 +35,7 @@ internal static class ToolbarView
             using (Group(ui))
             {
                 using (var back = ui.SplitIconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family,
-                           ui.Memo("back-tip", t, static s => s.ToolbarBack("Alt+Left")), t.ToolbarBackHistory, w.History.CanGoBack, w.History.Revision))
+                           ui.Memo("back-tip", t, static s => s.ToolbarBack(Shortcuts.Back)), t.ToolbarBackHistory, w.History.CanGoBack, w.History.Revision))
                 {
                     if (back.Clicked)
                         w.GoBack();
@@ -46,7 +43,7 @@ internal static class ToolbarView
                         HistoryItems(ui, w, -1);
                 }
                 using (var forward = ui.SplitIconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family,
-                           ui.Memo("forward-tip", t, static s => s.ToolbarForward("Alt+Right")), t.ToolbarForwardHistory, w.History.CanGoForward,
+                           ui.Memo("forward-tip", t, static s => s.ToolbarForward(Shortcuts.Forward)), t.ToolbarForwardHistory, w.History.CanGoForward,
                            w.History.Revision))
                 {
                     if (forward.Clicked)

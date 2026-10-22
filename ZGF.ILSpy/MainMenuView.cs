@@ -38,7 +38,7 @@ internal static class MainMenuView
 
     private static void FileMenu(Ui ui, Workspace w, Strings t)
     {
-        if (ui.MenuItem(t.FileOpen, "Ctrl+O", id: "open"))
+        if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open"))
             OpenFile(ui, w);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework"))
             w.Picker.Open();
@@ -48,7 +48,7 @@ internal static class MainMenuView
             w.Close(selected!);
         if (ui.MenuItem(t.FileClearList, enabled: w.Tree.Roots.Count > 0, id: "clear-list"))
             w.ClearList();
-        if (ui.MenuItem(t.FileReloadAll, "F5", enabled: w.Tree.Roots.Count > 0, id: "reload-all"))
+        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: w.Tree.Roots.Count > 0, id: "reload-all"))
             w.Refresh();
         ui.MenuSeparator();
         if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit"))
@@ -57,9 +57,9 @@ internal static class MainMenuView
 
     private static void ViewMenu(Ui ui, Workspace w, Strings t)
     {
-        if (ui.MenuItem(t.ViewBack, "Alt+Left", enabled: w.History.CanGoBack, id: "back"))
+        if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: w.History.CanGoBack, id: "back"))
             w.GoBack();
-        if (ui.MenuItem(t.ViewForward, "Alt+Right", enabled: w.History.CanGoForward, id: "forward"))
+        if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: w.History.CanGoForward, id: "forward"))
             w.GoForward();
         ui.MenuSeparator();
         DecompilerMenu(ui, w, t);
@@ -72,7 +72,7 @@ internal static class MainMenuView
             w.OpenBookmarks();
         if (ui.MenuItem(t.PanelAnalyzer, check: w.Layout.Contains(DockPanels.Analyzer), id: "analyzer"))
             w.OpenAnalyzer();
-        if (ui.MenuItem(t.PanelSearch, "Ctrl+Shift+F", check: w.Layout.Contains(DockPanels.Search), id: "search"))
+        if (ui.MenuItem(t.PanelSearch, Shortcuts.Search, check: w.Layout.Contains(DockPanels.Search), id: "search"))
             w.OpenSearch();
         if (ui.MenuItem(t.PanelDecompilerOptions, check: w.Layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
             w.OpenDecompilerOptions();

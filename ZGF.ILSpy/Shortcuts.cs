@@ -12,6 +12,12 @@ internal static class Shortcuts
     /// reference at the caret, the analyzer's result.</summary>
     public const string Analyze = "Ctrl+R";
 
+    public const string Open = "Ctrl+O";
+    public const string Search = "Ctrl+Shift+F";
+    public const string Back = "Alt+Left";
+    public const string Forward = "Alt+Right";
+    public const string ReloadAll = "F5";
+
     /// <summary>Whether Ctrl+R was pressed this frame, for the focused view to analyze its pick.</summary>
     public static bool AnalyzePressed(Ui ui)
     {

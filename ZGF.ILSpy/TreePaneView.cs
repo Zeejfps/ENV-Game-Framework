@@ -15,7 +15,7 @@ internal static class TreePaneView
         w.Tree.SetShowNonPublic(w.ShowNonPublic);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         if (w.Tree.Roots.Count == 0)
-            ui.Text(ui.Memo("empty", t, static s => s.TreeEmpty("Ctrl+O")), new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) },
+            ui.Text(ui.Memo("empty", t, static s => s.TreeEmpty(Shortcuts.Open)), new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) },
                 color: theme.TextMuted, wrap: true);
 
         var result = ui.TreeView("tree", w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
