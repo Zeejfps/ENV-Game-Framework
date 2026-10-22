@@ -75,7 +75,7 @@ internal static class MainMenuView
         if (ui.MenuItem(t.PanelSearch, "Ctrl+Shift+F", check: w.Layout.Contains(DockPanels.Search), id: "search"))
             w.OpenSearch();
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
-            w.ResetLayout();
+            w.AskToResetLayout();
         ui.MenuSeparator();
         ThemeMenu(ui, w, t);
         LanguageMenu(ui, w, t);

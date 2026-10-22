@@ -12,16 +12,17 @@ public enum ButtonVariant
 
 public static partial class UiWidgets
 {
-    /// <summary>A square <see cref="ButtonVariant.Ghost"/> button of
-    /// <see cref="UiTheme.IconButtonSize"/> showing one icon <paramref name="glyph"/>, centered at
-    /// <see cref="UiTheme.IconSize"/> in <paramref name="family"/> (the theme's font when null), with an
-    /// optional tooltip. Returns true on the frame it is clicked, or activated with Enter or Space while
-    /// focused. <paramref name="id"/> is scoped like any other.</summary>
-    public static bool IconButton(this Ui ui, string id, string glyph, string? family = null, string? tooltip = null, bool enabled = true)
+    /// <summary>A square button of <see cref="UiTheme.IconButtonSize"/> showing one icon
+    /// <paramref name="glyph"/>, centered at <see cref="UiTheme.IconSize"/> in <paramref name="family"/>
+    /// (the theme's font when null), with an optional tooltip: <see cref="ButtonVariant.Ghost"/> unless
+    /// <paramref name="variant"/> says otherwise. Returns true on the frame it is clicked, or activated
+    /// with Enter or Space while focused. <paramref name="id"/> is scoped like any other.</summary>
+    public static bool IconButton(this Ui ui, string id, string glyph, string? family = null, string? tooltip = null, bool enabled = true,
+        ButtonVariant variant = ButtonVariant.Ghost)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id, enabled, out var activated, out var ring);
-        var (fill, _, text) = ButtonColors(theme, ButtonVariant.Ghost, enabled, i.Held || activated, i.Hovered);
+        var (fill, border, text) = ButtonColors(theme, variant, enabled, i.Held || activated, i.Hovered);
         var size = theme.IconButtonSize;
 
         using (ui.Box(i.Id, new Box
@@ -31,6 +32,8 @@ public static partial class UiWidgets
             AlignX = Align.Center,
             AlignY = Align.Center,
             Background = fill,
+            BorderColor = border,
+            BorderWidth = border != 0 ? theme.BorderWidth : 0f,
             Radius = theme.CornerRadius,
         }))
         {

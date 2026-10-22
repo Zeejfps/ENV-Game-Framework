@@ -95,7 +95,7 @@ public sealed class DockingTests
     }
 
     [Fact]
-    public void Reset_layout_in_the_View_menu_puts_the_assemblies_left_of_every_open_document_and_closes_the_rest()
+    public void Reset_layout_in_the_View_menu_once_confirmed_puts_the_assemblies_left_of_every_open_document_and_closes_the_rest()
     {
         var app = new AppDriver();
         var d = app.Driver;
@@ -112,6 +112,9 @@ public sealed class DockingTests
         app.Click("View");
         app.ClickMenuItem("Reset layout");
         app.Run(2);
+        Assert.True(layout.Contains(DockPanels.Bookmarks));
+        app.Click("Reset");
+        app.Run(2);
 
         var split = Assert.IsType<DockSplit>(layout.Root);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(split.First).Panels);
@@ -121,6 +124,28 @@ public sealed class DockingTests
         Assert.Same(farewell, d.Workspace.ActiveTab);
         Assert.Empty(layout.Windows);
         Assert.False(layout.Contains(DockPanels.Bookmarks));
+    }
+}
+
+public sealed class LayoutResetTests
+{
+    [Fact]
+    public void Cancelling_the_reset_question_leaves_the_layout_as_it_was()
+    {
+        var app = new AppDriver();
+        var w = app.Workspace;
+        w.OpenBookmarks();
+        app.Run(2);
+
+        app.Click("View");
+        app.ClickMenuItem("Reset layout");
+        app.Run(2);
+        Assert.True(w.ConfirmingLayoutReset);
+        app.Click("Cancel");
+        app.Run(2);
+
+        Assert.False(w.ConfirmingLayoutReset);
+        Assert.True(w.Layout.Contains(DockPanels.Bookmarks));
     }
 }
 

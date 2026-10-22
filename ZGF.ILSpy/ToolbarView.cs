@@ -7,6 +7,9 @@ namespace ZGF.ILSpy;
 
 internal static class ToolbarView
 {
+    private const string OpenShortcut = "Ctrl+O";
+    private const string SearchShortcut = "Ctrl+Shift+F";
+
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
@@ -22,6 +25,16 @@ internal static class ToolbarView
             Background = theme.Surface,
         }))
         {
+            using (Group(ui))
+            {
+                if (ui.IconButton("open", LucideIcons.FolderOpen, LucideIcons.Family, ui.Memo("open-tip", t, static s => s.ToolbarOpen(OpenShortcut)),
+                        variant: ButtonVariant.Neutral))
+                    MainMenuView.OpenFile(ui, w);
+                if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(SearchShortcut)),
+                        variant: ButtonVariant.Neutral))
+                    w.OpenSearch();
+            }
+
             using (Group(ui))
             {
                 using (var back = ui.SplitIconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family,

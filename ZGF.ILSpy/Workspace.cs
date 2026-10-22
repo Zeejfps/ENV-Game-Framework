@@ -547,6 +547,20 @@ public sealed class Workspace
     /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
     /// tabbed together in one group, with the search results under them while a search is open.
     /// Floating windows and the other views close; the documents stay open.</summary>
+    /// <summary>Set while the user is asked whether to reset the layout.</summary>
+    public bool ConfirmingLayoutReset { get; private set; }
+
+    /// <summary>Asks the user whether to reset the layout before <see cref="ResetLayout"/> does.</summary>
+    public void AskToResetLayout() => ConfirmingLayoutReset = true;
+
+    /// <summary>Stops asking, resetting the layout when <paramref name="confirmed"/>.</summary>
+    public void FinishLayoutReset(bool confirmed)
+    {
+        ConfirmingLayoutReset = false;
+        if (confirmed)
+            ResetLayout();
+    }
+
     public void ResetLayout()
     {
         var documents = Layout.AllGroups().SelectMany(static g => g.Panels).Where(p => FindTab(p) != null).ToList();

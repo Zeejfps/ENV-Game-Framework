@@ -10,16 +10,15 @@ internal static class BookmarkImportDialogView
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var open = w.PendingImport != null;
-        using (var dialog = ui.Dialog("bookmark-import", t.BookmarksImportTitle, ref open))
+        using (var dialog = ui.Dialog("bookmark-import", t.BookmarksImportTitle, ref open, closeButton: false))
         {
             if (dialog.IsOpen)
             {
                 ui.Text(t.BookmarksImportQuestion, wrap: true);
-                using (ui.Row(new Box { Gap = ui.Theme.GapTight }))
+                using (ui.DialogActions())
                 {
                     if (ui.Button(t.BookmarksImportCancel, id: "import-cancel", variant: ButtonVariant.Ghost))
                         w.FinishImport(null);
-                    ui.Spacer();
                     if (ui.Button(t.BookmarksImportReplace, id: "import-replace"))
                         w.FinishImport(BookmarkImportMode.Replace);
                     if (ui.Button(t.BookmarksImportMerge, id: "import-merge", variant: ButtonVariant.Primary))

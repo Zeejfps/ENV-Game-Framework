@@ -196,11 +196,36 @@ public sealed class AppTests
         app.Workspace.OpenSearch();
         app.Run(2);
 
-        var icon = app.TextRect(LucideIcons.Search);
+        var icon = app.LastTextRect(LucideIcons.Search);
         var placeholder = app.TextRect("Search types and members");
 
         Assert.True(icon.Right <= placeholder.X, $"the icon ends at {icon.Right}, the placeholder starts at {placeholder.X}");
         Assert.False(app.Frames.Drew("Ctrl+Shift+F"));
+    }
+
+    [Fact]
+    public void The_toolbar_opens_an_assembly_and_the_search_panel_from_outlined_buttons_beside_each_other()
+    {
+        var app = new AppDriver();
+        app.Run(2);
+        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var open = app.TextRect(LucideIcons.FolderOpen);
+        var search = app.TextRect(LucideIcons.Search);
+        Assert.Equal(open.Y, search.Y, 1f);
+        Assert.InRange(search.X - open.Right, 0f, theme.IconButtonSize);
+        Assert.True(app.TextRect("C#").X > search.Right);
+        Assert.Contains(app.Frames.Canvas.Rects, r => r.Inputs.Style.BorderColor.Top.Value == theme.Border
+                                                      && r.Inputs.Position.Left <= open.X && r.Inputs.Position.Left + r.Inputs.Position.Width >= open.Right
+                                                      && r.Inputs.Position.Width <= theme.IconButtonSize + 1f);
+
+        app.Click(LucideIcons.FolderOpen);
+        app.Run();
+        Assert.Equal(["Open assembly"], app.Frames.FilePicker.Titles);
+
+        app.Click(LucideIcons.Search);
+        app.Run(2);
+        Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
+        Assert.True(app.Frames.Drew("Search types and members"));
     }
 
     [Fact]
@@ -231,7 +256,7 @@ public sealed class AppTests
         app.Run(2);
 
         var row = app.Workspace.Search.Rows.First(r => r.Result.Node.Kind == NodeKind.Class);
-        var header = app.TextRect(LucideIcons.Search);
+        var header = app.LastTextRect(LucideIcons.Search);
         var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).Select(t => (t.Text, Rect: new UiRect(t.Position.Left, app.Frames.Height - t.Position.Top, t.Position.Width, t.Position.Height))).ToList();
         var name = texts.Single(t => t.Text == row.Result.Text && t.Rect.Y > header.Bottom).Rect;
         var location = texts.Single(t => t.Rect.Y == name.Y && t.Rect.X > name.Right);

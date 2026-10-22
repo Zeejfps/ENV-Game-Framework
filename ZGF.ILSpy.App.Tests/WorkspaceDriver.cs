@@ -114,6 +114,10 @@ internal sealed class AppDriver
     /// <summary>Where the text was drawn on the last frame, in window coordinates.</summary>
     public UiRect TextRect(string text) => TextRect(text, Frames.Canvas.Texts.FirstOrDefault(t => t.Inputs.Text == text));
 
+    /// <summary>Where <paramref name="text"/> was last drawn: the one furthest into the window when
+    /// the same text, such as an icon, is also drawn before it.</summary>
+    public UiRect LastTextRect(string text) => TextRect(text, Frames.Canvas.Texts.LastOrDefault(t => t.Inputs.Text == text));
+
     private UiRect TextRect(string text, RecordedText? drawn)
     {
         if (drawn == null)
