@@ -148,7 +148,7 @@ internal sealed class AppDriver
 {
     public AppDriver(float width = 1000f, float height = 700f)
     {
-        Frames = new UiFrames(width: width, height: height, body: ui => MainView.Render(ui, Workspace, Strings.For(Workspace.Locale)))
+        Frames = new UiFrames(width: width, height: height, body: ui => MainView.Render(ui, Workspace))
         {
             FrameTime = 1f / 60f,
             BeforeFrame = Driver.Pump,

@@ -8,9 +8,10 @@ namespace ZGF.ILSpy;
 /// dialogs over them.</summary>
 public static class MainView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui ui, Workspace w)
     {
         var theme = AppThemes.For(w.Theme);
+        var t = w.GetStrings();
         using var screen = ui.Screen(theme.Ui);
         using var code = ui.Provide(theme.Code);
         using var icons = ui.Provide(theme.Icons);

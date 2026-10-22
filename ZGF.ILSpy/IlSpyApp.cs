@@ -1,6 +1,5 @@
 using ZGF.AppUtils;
 using ZGF.Gui.Immediate;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -59,7 +58,6 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
 
     protected override void OnRender(Ui ui, Workspace w)
     {
-        // TODO: Check why we are passing Strings here when MainView has access to Workspace
-        MainView.Render(ui, w, Strings.For(w.Locale));
+        MainView.Render(ui, w);
     }
 }
