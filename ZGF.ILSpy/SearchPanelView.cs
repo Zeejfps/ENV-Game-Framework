@@ -86,7 +86,7 @@ internal static class SearchPanelView
         if (w.TakeSearchFocus())
             ui.Focus(fieldId);
         var submitted = ui.TextField("search", ref search.Query, t.SearchField, Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
-            LucideIcons.Search, LucideIcons.Family, SearchShortcut);
+            LucideIcons.Search, LucideIcons.Family);
         ui.Tooltip(fieldId, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(SearchShortcut)));
         if (!ui.HasFocus(fieldId)) return;
         if (submitted)

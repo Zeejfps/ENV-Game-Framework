@@ -187,7 +187,7 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void The_search_panel_holds_the_search_box_with_its_icon_and_shortcut_hint_inside_the_field()
+    public void The_search_panel_holds_the_search_box_with_its_icon_and_no_shortcut_hint()
     {
         var app = new AppDriver();
         app.Run(2);
@@ -198,11 +198,9 @@ public sealed class AppTests
 
         var icon = app.TextRect(LucideIcons.Search);
         var placeholder = app.TextRect("Search types and members");
-        var hint = app.TextRect("Ctrl+Shift+F");
 
         Assert.True(icon.Right <= placeholder.X, $"the icon ends at {icon.Right}, the placeholder starts at {placeholder.X}");
-        Assert.True(hint.X >= placeholder.X && hint.Right <= app.Frames.Width, $"the hint spans {hint.X}..{hint.Right}");
-        Assert.Equal(icon.Y + icon.Height / 2, hint.Y + hint.Height / 2, 1f);
+        Assert.False(app.Frames.Drew("Ctrl+Shift+F"));
     }
 
     [Fact]
