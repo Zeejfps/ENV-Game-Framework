@@ -229,8 +229,15 @@ public static class MetadataGridWidget
                 using (ui.TableCell(columns, c, cells[c].Id, Align.Start))
                 {
                     if (current)
-                        ui.Paint((Color: focused ? theme.FocusRing : theme.BorderStrong, Width: focused ? theme.FocusRingWidth : theme.BorderWidth),
-                            static (p, s) => p.FillRect(p.Rect, 0u, 0f, s.Color, s.Width));
+                    {
+                        using (ui.Float(0f, 0f, box: new Box
+                               {
+                                   Width = Sizing.Grow(),
+                                   Height = Sizing.Grow(),
+                                   BorderColor = focused ? theme.FocusRing : theme.BorderStrong,
+                                   BorderWidth = focused ? theme.FocusRingWidth : theme.BorderWidth,
+                               }, z: 1, clipped: true)) { }
+                    }
                     if (current && state.Expanded != null)
                     {
                         ui.SelectableTextArea(cells[c], grid.Text(row, c), state.Text, ref state.TextShift, rowHeight, link ? theme.AccentText : theme.Text,

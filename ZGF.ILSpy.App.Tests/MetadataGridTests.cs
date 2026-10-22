@@ -302,6 +302,22 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
+    public void The_selected_cells_outline_is_drawn_over_the_text_selected_in_it()
+    {
+        var (app, _, _, _) = ShowGreeterRow();
+        var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var name = TextBeside(app, "Greeter", "Greeter");
+
+        Drag(app, name.X + 1f, name.X + name.Width - 1f, name.Y + name.Height / 2);
+        app.Run();
+
+        var rects = app.Frames.Canvas.Rects;
+        var highlight = rects.Last(r => r.Inputs.Style.BackgroundColor == theme.Selection).Sequence;
+        var outline = rects.Last(r => r.Inputs.Style.BorderColor.Top.Value == theme.FocusRing).Sequence;
+        Assert.True(outline > highlight);
+    }
+
+    [Fact]
     public void Dragging_across_a_token_selects_it_instead_of_following_it()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
