@@ -12,7 +12,8 @@ public sealed class AnalysisTests
     }
 
     private static List<AnalysisSymbol> Run(AssemblyList list, BrowseNode node, string header) =>
-        Analysis.Run(list, Analysis.Of(node)!, Analysis.KindsFor(Analysis.Of(node)!).Single(k => k.Header == header), CancellationToken.None).ToList();
+        Analysis.RunAsync(list, Analysis.Of(node)!, Analysis.KindsFor(Analysis.Of(node)!).Single(k => k.Header == header))
+            .ToBlockingEnumerable().SelectMany(static b => b).ToList();
 
     [Fact]
     public void A_method_offers_ILSpys_analyses_in_its_order()

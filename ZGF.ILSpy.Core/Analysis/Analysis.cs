@@ -129,26 +129,23 @@ public static class Analysis
     public static IReadOnlyList<AnalysisSymbol> AccessorsOf(AnalysisSymbol symbol) =>
         symbol.Symbol is IEntity entity ? Members.Accessors(entity).Select(static m => Describe(m)!).ToArray() : [];
 
-    /// <summary>Runs <paramref name="kind"/> on <paramref name="symbol"/> over the open assemblies,
-    /// yielding results as they are found; call it off the UI thread. Results come sorted when the
+    /// <summary>Runs <paramref name="kind"/> on <paramref name="symbol"/> over the open assemblies on
+    /// the thread pool, yielding results in batches as they are found. Results come sorted when the
     /// analysis asks for it, after all are found.</summary>
-    public static IEnumerable<AnalysisSymbol> Run(AssemblyList list, AnalysisSymbol symbol, AnalysisKind kind, CancellationToken cancellationToken)
-    {
-        var found = kind.Analyzer.Analyze(symbol.Symbol, new AnalyzerContext { AssemblyList = list, CancellationToken = cancellationToken });
-        if (kind.SortsResults)
-            return found.Select(Describe).OfType<AnalysisSymbol>().OrderBy(static s => s.Label, StringComparer.OrdinalIgnoreCase).ToList();
-        return Lazy(found);
-
-        IEnumerable<AnalysisSymbol> Lazy(IEnumerable<ISymbol> symbols)
+    public static IAsyncEnumerable<IReadOnlyList<AnalysisSymbol>> RunAsync(AssemblyList list, AnalysisSymbol symbol, AnalysisKind kind,
+        CancellationToken cancellationToken = default) =>
+        Batches.Stream<AnalysisSymbol>((emit, token) =>
         {
-            foreach (var result in symbols)
+            var found = kind.Analyzer.Analyze(symbol.Symbol, new AnalyzerContext { AssemblyList = list, CancellationToken = token })
+                .Select(Describe).OfType<AnalysisSymbol>();
+            if (kind.SortsResults)
+                found = found.OrderBy(static s => s.Label, StringComparer.OrdinalIgnoreCase);
+            foreach (var result in found)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (Describe(result) is { } described)
-                    yield return described;
+                token.ThrowIfCancellationRequested();
+                emit(result);
             }
-        }
-    }
+        }, cancellationToken);
 
     private static AnalysisSymbol? Describe(ISymbol symbol)
     {

@@ -1,11 +1,8 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Channels;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Disassembler;
 using ICSharpCode.Decompiler.Metadata;
@@ -23,49 +20,19 @@ public sealed record SearchResult(BrowseNode Node, string Text, string Location,
 
 internal static class AssemblySearch
 {
-    private const int BatchSize = 256;
-    private static readonly long FlushTicks = Stopwatch.Frequency / 20;
-
-    public static async IAsyncEnumerable<IReadOnlyList<SearchResult>> Run(ImmutableArray<LoadedAssembly> assemblies, SearchQuery query,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        if (query.IsEmpty || assemblies.IsEmpty) yield break;
-
-        var channel = Channel.CreateUnbounded<IReadOnlyList<SearchResult>>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
-        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var token = stop.Token;
-        _ = Task.Run(() =>
+    public static IAsyncEnumerable<IReadOnlyList<SearchResult>> Run(ImmutableArray<LoadedAssembly> assemblies, SearchQuery query,
+        CancellationToken cancellationToken) =>
+        Batches.Stream<SearchResult>((emit, token) =>
         {
-            try
-            {
-                var search = new Search(query, channel.Writer, token);
-                foreach (var assembly in assemblies)
-                    search.Run(assembly);
-                search.Flush();
-                channel.Writer.TryComplete();
-            }
-            catch (Exception e)
-            {
-                channel.Writer.TryComplete(e);
-            }
-        }, CancellationToken.None);
+            if (query.IsEmpty) return;
+            var search = new Search(query, emit, token);
+            foreach (var assembly in assemblies)
+                search.Run(assembly);
+        }, cancellationToken);
 
-        try
-        {
-            await foreach (var batch in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-                yield return batch;
-        }
-        finally
-        {
-            stop.Cancel();
-        }
-    }
-
-    private sealed class Search(SearchQuery query, ChannelWriter<IReadOnlyList<SearchResult>> writer, CancellationToken cancellationToken)
+    private sealed class Search(SearchQuery query, Action<SearchResult> emit, CancellationToken cancellationToken)
     {
         private readonly HashSet<BrowseNode> _found = new(ReferenceEqualityComparer.Instance);
-        private List<SearchResult> _batch = new();
-        private long _lastFlush = Stopwatch.GetTimestamp();
 
         public void Run(LoadedAssembly assembly)
         {
@@ -77,7 +44,6 @@ internal static class AssemblySearch
             Scan(kinds, SearchKinds.Tokens, FindToken, assembly);
             Scan(kinds, SearchKinds.Literals, ScanLiterals, assembly);
             Scan(kinds, SearchKinds.Resources, ScanResources, assembly);
-            Flush();
         }
 
         private static void Scan(SearchKinds kinds, SearchKinds wanted, Action<LoadedAssembly> scan, LoadedAssembly assembly)
@@ -90,14 +56,6 @@ internal static class AssemblySearch
             catch (Exception e) when (e is not OperationCanceledException)
             {
             }
-        }
-
-        public void Flush()
-        {
-            _lastFlush = Stopwatch.GetTimestamp();
-            if (_batch.Count == 0) return;
-            writer.TryWrite(_batch);
-            _batch = new List<SearchResult>();
         }
 
         private static bool InAssembly(LoadedAssembly assembly, string scope) =>
@@ -404,9 +362,7 @@ internal static class AssemblySearch
         private void Add(BrowseNode node, string location)
         {
             if (!_found.Add(node)) return;
-            _batch.Add(new SearchResult(node, node.Text, location, Fitness(node)));
-            if (_batch.Count >= BatchSize || Stopwatch.GetTimestamp() - _lastFlush >= FlushTicks)
-                Flush();
+            emit(new SearchResult(node, node.Text, location, Fitness(node)));
         }
 
         private static float Fitness(BrowseNode node)

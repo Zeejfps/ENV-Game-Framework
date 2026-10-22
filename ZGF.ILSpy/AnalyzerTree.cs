@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -132,7 +131,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
                 return symbol.Children;
             case AnalyzerKindNode kind:
                 if (!kind.IsStarted)
-                    Start(kind);
+                    _ = Start(kind);
                 return kind.IsDone ? kind.Results : [..kind.Results, _loading];
             default:
                 return [];
@@ -149,38 +148,25 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         _ => new TreeRow(_strings.AnalyzerLoading, new UiIcon(LucideIcons.Loader2, LucideIcons.Family, _theme.TextMuted), _theme.TextMuted),
     };
 
-    private void Start(AnalyzerKindNode kind)
+    private async Task Start(AnalyzerKindNode kind)
     {
         kind.IsStarted = true;
         var work = new CancellationTokenSource();
         kind.Work = work;
-        var assemblies = _assemblies();
         var token = work.Token;
-        Task.Run(() =>
+        try
         {
-            var batch = new List<AnalyzerNode>();
-            var lastPost = Stopwatch.StartNew();
-            try
-            {
-                foreach (var result in Analysis.Run(assemblies, kind.Subject, kind.Kind, token))
-                {
-                    batch.Add(new AnalyzerSymbolNode(result));
-                    if (lastPost.ElapsedMilliseconds < 100) continue;
-                    Deliver(kind, work, batch, done: false);
-                    batch = new List<AnalyzerNode>();
-                    lastPost.Restart();
-                }
-                Deliver(kind, work, batch, done: true);
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-            }
-            catch (Exception e)
-            {
-                batch.Add(new AnalyzerMessageNode(e.Message));
-                Deliver(kind, work, batch, done: true);
-            }
-        }, token);
+            await foreach (var batch in Analysis.RunAsync(_assemblies(), kind.Subject, kind.Kind, token).ConfigureAwait(false))
+                Deliver(kind, work, batch.Select(static r => (AnalyzerNode)new AnalyzerSymbolNode(r)).ToList(), done: false);
+            Deliver(kind, work, [], done: true);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch (Exception e)
+        {
+            Deliver(kind, work, [new AnalyzerMessageNode(e.Message)], done: true);
+        }
     }
 
     private void Deliver(AnalyzerKindNode kind, CancellationTokenSource work, List<AnalyzerNode> found, bool done) =>
