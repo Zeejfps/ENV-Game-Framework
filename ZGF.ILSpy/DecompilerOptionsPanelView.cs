@@ -103,7 +103,7 @@ internal static class DecompilerOptionsPanelView
         {
             Width = Sizing.Grow(),
             Height = rowHeight,
-            Padding = new Spacing(theme.ShellPaddingX + theme.IconSize + theme.GapTight, 0f),
+            Padding = new Spacing(theme.ShellPaddingX + theme.IconSize + theme.GapTight + theme.TreeIndent, 0f),
             AlignY = Align.Center,
         }))
         {

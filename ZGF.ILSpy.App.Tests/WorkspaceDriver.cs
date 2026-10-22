@@ -148,6 +148,11 @@ internal sealed class AppDriver
 
     public void Click(string text) => Click(TextRect(text));
 
+    /// <summary>Clicks the first text drawn starting with <paramref name="prefix"/>, as a label cut
+    /// short with an ellipsis is.</summary>
+    public void ClickStartingWith(string prefix) =>
+        Click(TextRect(prefix, Frames.Canvas.Texts.FirstOrDefault(t => t.Inputs.Text.StartsWith(prefix, StringComparison.Ordinal))));
+
     /// <summary>Clicks the last drawn <paramref name="text"/>: the one in the topmost open menu
     /// when the same text is also on the window below it.</summary>
     public void ClickMenuItem(string text) =>

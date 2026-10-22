@@ -208,7 +208,7 @@ public sealed class AppTests
         app.Click("View");
         app.ClickMenuItem("Decompiler options");
         app.Run();
-        app.Click("String concatenation with +");
+        app.ClickStartingWith("String concatenation");
         app.Driver.Settle();
         app.Run();
 
