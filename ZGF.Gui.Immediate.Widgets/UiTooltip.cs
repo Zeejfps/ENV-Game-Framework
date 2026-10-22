@@ -30,6 +30,11 @@ public static partial class UiWidgets
     public static TooltipScope TooltipContent(this Ui ui, int id)
     {
         var state = ui.GetState<TooltipState>(TooltipId);
+        if (!ui.Input.IsForeground)
+        {
+            state.Target = 0;
+            return default;
+        }
         if (!ui.IsHovered(id))
         {
             if (state.Target == id) state.Target = 0;

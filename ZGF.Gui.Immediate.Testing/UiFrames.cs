@@ -116,6 +116,12 @@ public sealed class UiFrames
 
     public void DismissPopups() => _pending.DismissPopups();
 
+    /// <summary>Another app takes the focus, as when the user switches to it.</summary>
+    public void Background() => _pending.SetForeground(false);
+
+    /// <summary>The app takes the focus back.</summary>
+    public void Foreground() => _pending.SetForeground(true);
+
     /// <summary>The app lost focus: held buttons come up without the user releasing them.</summary>
     public void LoseFocus()
     {

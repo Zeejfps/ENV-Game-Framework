@@ -482,6 +482,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
     private void HandleForegroundChanged(bool foreground)
     {
+        _pending.SetForeground(foreground);
         _backgroundPending = !foreground;
         _window.RequestRedraw();
     }

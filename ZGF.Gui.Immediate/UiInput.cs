@@ -63,6 +63,10 @@ public sealed class UiInput
     /// focus, or a press landed outside every part of the app a frame sees.</summary>
     public bool PopupsDismissed { get; private set; }
 
+    /// <summary>Whether one of the app's windows has the platform's focus. While it does not, the
+    /// app is behind another, so nothing should pop up over that one.</summary>
+    public bool IsForeground { get; private set; } = true;
+
     public bool IsDown(PointerButton button) => _down[(int)button];
     /// <summary>Whether <paramref name="button"/> went down this frame, wherever the pointer is —
     /// the app-wide hook for <see cref="PointerButton.Back"/>/<see cref="PointerButton.Forward"/>
@@ -154,6 +158,13 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    internal void SetForeground(bool foreground)
+    {
+        if (IsForeground == foreground) return;
+        IsForeground = foreground;
+        HasEvents = true;
+    }
+
     internal void DismissPopups()
     {
         PopupsDismissed = true;
@@ -187,6 +198,7 @@ public sealed class UiInput
         ScrollX = source.ScrollX;
         ScrollY = source.ScrollY;
         Modifiers = source.Modifiers;
+        IsForeground = source.IsForeground;
         PopupsDismissed = source.PopupsDismissed;
         HasEvents = source.HasEvents;
     }
@@ -205,6 +217,7 @@ public sealed class UiInput
         ScrollX = 0;
         ScrollY = 0;
         Modifiers = KeyModifiers.None;
+        IsForeground = source.IsForeground;
         PopupsDismissed = source.PopupsDismissed;
         HasEvents = source.HasEvents;
     }
@@ -223,6 +236,7 @@ public sealed class UiInput
         Composition = previous.Composition;
         Pointer = previous.Pointer;
         Modifiers = previous.Modifiers;
+        IsForeground = previous.IsForeground;
         ScrollX = 0;
         ScrollY = 0;
         PopupsDismissed = false;
