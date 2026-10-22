@@ -14,9 +14,9 @@ namespace ZGF.ILSpy;
 /// </summary>
 public sealed class Workspace
 {
-    private readonly AppSettings _settings;
     private Action<Action> _post = ThrowNotAttached;
 
+    public AppSettings Settings { get; }
     public AssemblyList Assemblies { get; } = new();
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
@@ -94,7 +94,7 @@ public sealed class Workspace
 
     public Workspace(AppSettings settings)
     {
-        _settings = settings;
+        Settings = settings;
         Theme = settings.Theme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
@@ -155,43 +155,6 @@ public sealed class Workspace
         throw new InvalidOperationException("The workspace is not attached to a running app.");
     }
 
-    /// <summary>Called at the start of every frame.</summary>
-    public void Sync()
-    {
-        this.RestoreLastSessionAnalyses();
-        MetadataFilters.Sync();
-        var treeChanged = Tree.Sync(Assemblies);
-        if (IsReloading)
-            return;
-        if (!treeChanged && !LastSave.IsBehind(Bookmarks, Analyzer, MetadataFilters))
-            return;
-        SaveSettings();
-    }
-
-    /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
-    /// <paramref name="path"/>.</summary>
-    public void SaveResource(BrowseNode node, string path)
-    {
-        try
-        {
-            var bytes = node.ReadResource();
-            File.WriteAllBytes(path, bytes);
-        }
-        catch (Exception e) when (IsFileError(e))
-        {
-            ReportError(GetStrings().ErrorSaveResource(node.Text), e.Message);
-        }
-    }
-
-    private static bool IsFileError(Exception e)
-    {
-        if (e is IOException)
-            return true;
-        if (e is UnauthorizedAccessException)
-            return true;
-        return e is InvalidDataException;
-    }
-
     internal void ReportUnresolved(CodeReference reference, Exception? error)
     {
         var t = GetStrings();
@@ -199,44 +162,7 @@ public sealed class Workspace
         ReportError(t.ErrorResolve(reference.Name), details);
     }
 
-    public void SetMenuTarget(BrowseNode node) => MenuTarget = node;
-
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
-
-    public void SaveSettings()
-    {
-        CopyStateToSettings();
-        LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
-        WriteSettingsFile();
-    }
-
-    private void CopyStateToSettings()
-    {
-        _settings.Assemblies = Assemblies.FilePaths.ToList();
-        _settings.Theme = Theme;
-        _settings.Language = Language;
-        _settings.Decompiler = DecompilerOptions;
-        _settings.FoldedOptionGroups = FoldedOptionGroups
-            .Order()
-            .ToList();
-        _settings.ShowNonPublic = ShowNonPublic;
-        _settings.SearchKinds = Search.Kinds;
-        _settings.Locale = Locale;
-        _settings.Layout = Layout;
-        _settings.Bookmarks = Bookmarks.Save();
-        _settings.Analyzed = LastSessionAnalyses.ListToSave(Analyzer);
-        _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
-        _settings.SearchColumns = SearchColumns.Weights.ToList();
-        _settings.FlagsFilters = MetadataFilters.Save();
-    }
-
-    private void WriteSettingsFile()
-    {
-        var error = _settings.Save();
-        if (error == null)
-            return;
-        ReportError(GetStrings().ErrorSaveSettings, error);
-    }
 
     internal Strings GetStrings() => Strings.For(Locale);
 

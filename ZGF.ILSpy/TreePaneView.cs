@@ -27,7 +27,7 @@ internal static class TreePaneView
             w.GoToTarget(activated);
         if (result.ContextMenuRequested && result.Node is { } target)
         {
-            w.SetMenuTarget(target);
+            w.MenuTarget = target;
             ui.OpenContextMenu("tree-menu", result.ContextMenuAt);
         }
 
