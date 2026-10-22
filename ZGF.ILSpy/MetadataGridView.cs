@@ -181,64 +181,95 @@ public static class MetadataGridWidget
 
     private static void Heading(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId, int column, bool hovered)
     {
-        var theme = ui.Theme;
-        var info = grid.Columns[column];
         var filter = state.FilterOf(column, flags);
         var textId = HashCode.Combine(listId, FilterTextSalt, column);
         if (state.EditingColumn == column)
-        {
-            var text = filter.Text;
-            using (ui.Id(textId))
-            {
-                var edit = ui.InlineEdit("filter", ref text, state.BeginEdit, Sizing.Grow());
-                state.BeginEdit = false;
-                filter.Text = edit == InlineEditResult.Cancelled ? "" : text;
-                if (edit != InlineEditResult.Editing)
-                    state.StopEditingFilter();
-            }
-        }
+            EditFilterText(ui, state, filter, textId);
         else if (filter.Text.Length > 0)
-        {
-            var shown = ui.Interact(textId);
-            if (shown.Hovered)
-                ui.SetCursor(MouseCursor.Text);
-            if (shown.Clicked)
-                state.StartEditingFilter(column);
-            ui.Text(filter.Text, new Box { Width = Sizing.Grow() }, color: theme.AccentText, size: theme.FontSizeSmall, id: shown.Id,
-                overflow: TextOverflow.Ellipsis);
-        }
+            FilterText(ui, state, filter, textId, column);
         else
-        {
-            ui.Text(info.Name, new Box { Width = Sizing.Grow() }, color: hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
-                overflow: TextOverflow.Ellipsis);
-        }
+            ColumnName(ui, grid.Columns[column].Name, hovered);
+        Funnel(ui, grid, state, filter, t, listId, column);
+    }
 
-        var isFlags = filter.Flags != null;
-        var flagsActive = filter.Flags is { IsEmpty: false };
+    private static void EditFilterText(Ui ui, MetadataGridState state, MetadataColumnFilter filter, int textId)
+    {
+        var text = filter.Text;
+        using (ui.Id(textId))
+        {
+            var edit = ui.InlineEdit("filter", ref text, state.BeginEdit, Sizing.Grow());
+            state.BeginEdit = false;
+            filter.Text = edit == InlineEditResult.Cancelled ? "" : text;
+            if (edit != InlineEditResult.Editing)
+                state.StopEditingFilter();
+        }
+    }
+
+    private static void FilterText(Ui ui, MetadataGridState state, MetadataColumnFilter filter, int textId, int column)
+    {
+        var theme = ui.Theme;
+        var shown = ui.Interact(textId);
+        if (shown.Hovered)
+            ui.SetCursor(MouseCursor.Text);
+        if (shown.Clicked)
+            state.StartEditingFilter(column);
+        ui.Text(filter.Text, new Box { Width = Sizing.Grow() }, color: theme.AccentText, size: theme.FontSizeSmall, id: shown.Id,
+            overflow: TextOverflow.Ellipsis);
+    }
+
+    private static void ColumnName(Ui ui, string name, bool hovered)
+    {
+        var theme = ui.Theme;
+        var color = hovered ? theme.Text : theme.TextMuted;
+        ui.Text(name, new Box { Width = Sizing.Grow() }, color: color, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
+    }
+
+    private static void Funnel(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataColumnFilter filter, Strings t, int listId, int column)
+    {
+        var theme = ui.Theme;
         var funnel = ui.Clickable(HashCode.Combine(listId, FunnelSalt, column));
         if (funnel.Clicked)
-        {
-            if (isFlags)
-            {
-                state.FlagsOpen = !(state.FlagsOpen && state.FlagsColumn == column);
-                state.FlagsColumn = column;
-            }
-            else if (filter.Text.Length > 0)
-            {
-                filter.Text = "";
-                state.StopEditingFilter();
-            }
-            else
-            {
-                state.StartEditingFilter(column);
-            }
-        }
-        var glyph = !isFlags && filter.Text.Length > 0 ? LucideIcons.FilterX : LucideIcons.Filter;
-        var color = flagsActive || filter.Text.Length > 0 ? theme.AccentText : funnel.Hovered ? theme.Text : theme.TextMuted;
+            ClickFunnel(state, filter, column);
+        var glyph = FunnelGlyph(filter);
+        var color = FunnelColor(theme, filter, funnel.Hovered);
         using (ui.Box(funnel.Id, new Box { Width = theme.IconSize, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
             ui.Text(glyph, color: color, size: theme.FontSizeSmall, family: LucideIcons.Family);
-        if (!(state.FlagsOpen && state.FlagsColumn == column))
-            ui.Tooltip(funnel.Id, t.MetadataFilter(info.Name));
+        if (!state.IsFlagsFlyoutOpenFor(column))
+            ui.Tooltip(funnel.Id, t.MetadataFilter(grid.Columns[column].Name));
+    }
+
+    private static void ClickFunnel(MetadataGridState state, MetadataColumnFilter filter, int column)
+    {
+        if (filter.Flags != null)
+        {
+            state.ToggleFlagsFlyout(column);
+            return;
+        }
+        if (filter.Text.Length > 0)
+        {
+            filter.Text = "";
+            state.StopEditingFilter();
+            return;
+        }
+        state.StartEditingFilter(column);
+    }
+
+    private static string FunnelGlyph(MetadataColumnFilter filter)
+    {
+        if (filter.Flags != null)
+            return LucideIcons.Filter;
+        if (filter.Text.Length > 0)
+            return LucideIcons.FilterX;
+        return LucideIcons.Filter;
+    }
+
+    private static uint FunnelColor(UiTheme theme, MetadataColumnFilter filter, bool hovered)
+    {
+        if (filter.IsActive)
+            return theme.AccentText;
+        if (hovered)
+            return theme.Text;
+        return theme.TextMuted;
     }
 
     private static void FlagsFlyout(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId)

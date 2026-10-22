@@ -149,6 +149,14 @@ public sealed class MetadataGridState
         EditingColumn = None;
     }
 
+    internal void ToggleFlagsFlyout(int column)
+    {
+        FlagsOpen = !IsFlagsFlyoutOpenFor(column);
+        FlagsColumn = column;
+    }
+
+    internal bool IsFlagsFlyoutOpenFor(int column) => FlagsOpen && FlagsColumn == column;
+
     /// <summary>Makes <paramref name="row"/>'s cell in <paramref name="column"/> the current one
     /// with all its text selected.</summary>
     internal void SelectCell(int row, int column) => Cell.Select(row, column, ShownAt(row, column));
