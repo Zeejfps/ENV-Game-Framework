@@ -197,6 +197,22 @@ public sealed class DockLayoutTests
     }
 
     [Fact]
+    public void Retain_keeps_a_panel_named_twice_only_where_it_first_shows()
+    {
+        var layout = new DockLayout
+        {
+            Root = DockLayout.Split(Direction.Horizontal, 0.5f, DockLayout.Group("a", "b"), DockLayout.Group("b", "c", "b")),
+        };
+
+        layout.Retain(_ => true);
+
+        var root = Assert.IsType<DockSplit>(layout.Root);
+        Assert.Equal(["a", "b"], Assert.IsType<DockGroup>(root.First).Panels);
+        Assert.Equal(["c"], Assert.IsType<DockGroup>(root.Second).Panels);
+        Assert.Equal("c", ((DockGroup)root.Second).Active);
+    }
+
+    [Fact]
     public void A_layout_round_trips_through_json_with_its_ids()
     {
         var layout = TwoGroups();

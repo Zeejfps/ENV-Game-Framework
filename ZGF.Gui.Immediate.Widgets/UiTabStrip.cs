@@ -34,9 +34,11 @@ public readonly struct TabStrip : IDisposable
     /// <paramref name="tooltip"/> shown while the pointer rests on it. The label doubles as the id
     /// unless <paramref name="id"/> is given; scope tabs by document with <c>ui.Id</c> when labels
     /// repeat. A tab that becomes selected is scrolled into view. Tab focuses the tab and then its
-    /// close button; Enter or Space selects or closes.</summary>
-    public TabResult Tab(string label, bool selected, bool closable = true, string? id = null, string? tooltip = null, bool draggable = false) =>
-        UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable);
+    /// close button; Enter or Space selects or closes. A selected tab that is not
+    /// <paramref name="current"/> is marked in a muted color instead of the accent.</summary>
+    public TabResult Tab(string label, bool selected, bool closable = true, string? id = null, string? tooltip = null, bool draggable = false,
+        bool current = true) =>
+        UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current);
 
     public void Dispose() => _scroll.Dispose();
 }
@@ -65,7 +67,7 @@ public static partial class UiWidgets
         return new TabStrip(ui, scroll, stripId);
     }
 
-    internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable)
+    internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current)
     {
         var theme = ui.Theme;
         var tab = Pressable(ui, ui.GetId(id ?? label), true, out var picked, out var tabRing, hand: false);
@@ -89,7 +91,7 @@ public static partial class UiWidgets
             Background = selected ? theme.TabActiveBackground : hovered ? theme.TabHoverBackground : 0u,
         }))
         {
-            ui.Paint((selected ? theme.Accent : 0u, theme.ActiveIndicatorWidth, theme.Separator, theme.SeparatorWidth), static (p, s) =>
+            ui.Paint((selected ? current ? theme.Accent : theme.BorderStrong : 0u, theme.ActiveIndicatorWidth, theme.Separator, theme.SeparatorWidth), static (p, s) =>
             {
                 var r = p.Rect;
                 if (s.Item1 != 0)

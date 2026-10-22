@@ -216,12 +216,22 @@ public sealed class DockLayout
     }
 
     /// <summary>Removes every panel <paramref name="keep"/> rejects — ones a saved layout names
-    /// that the app no longer has — without raising <see cref="PanelClosed"/>.</summary>
+    /// that the app no longer has — and every repeat of a panel after the first, so each shows in
+    /// one place, without raising <see cref="PanelClosed"/>.</summary>
     public void Retain(Func<string, bool> keep)
     {
-        var drop = AllGroups().SelectMany(g => g.Panels).Where(p => !keep(p)).ToList();
-        foreach (var panel in drop)
-            Detach(panel, out _, out _);
+        var seen = new HashSet<string>();
+        foreach (var group in AllGroups().ToList())
+        {
+            for (var i = 0; i < group.Panels.Count;)
+            {
+                var panel = group.Panels[i];
+                if (keep(panel) && seen.Add(panel))
+                    i++;
+                else
+                    Detach(group, i, out _, out _);
+            }
+        }
     }
 
     /// <summary>Every group, docked then floating, in the order they are drawn.</summary>
@@ -264,15 +274,20 @@ public sealed class DockLayout
     {
         collapsed = replacement = null;
         if (GroupOf(panel) is not { } group) return false;
-        var at = group.Panels.IndexOf(panel);
+        Detach(group, group.Panels.IndexOf(panel), out collapsed, out replacement);
+        return true;
+    }
+
+    private void Detach(DockGroup group, int at, out DockNode? collapsed, out DockNode? replacement)
+    {
+        collapsed = replacement = null;
+        var panel = group.Panels[at];
         group.Panels.RemoveAt(at);
         if (group.Active == panel)
             group.Active = group.Panels.Count == 0 ? null : group.Panels[Math.Min(at, group.Panels.Count - 1)];
         if (Focused == panel)
             Focused = group.Active;
-        if (group.Panels.Count > 0) return true;
-
-        if (Root == group) return true;
+        if (group.Panels.Count > 0 || Root == group) return;
         if (FindParent(group, out var window) is { } parent)
         {
             replacement = parent.First == group ? parent.Second : parent.First;
@@ -283,7 +298,6 @@ public sealed class DockLayout
         {
             Windows.Remove(window);
         }
-        return true;
     }
 
     private void Refill(DockGroup group)
