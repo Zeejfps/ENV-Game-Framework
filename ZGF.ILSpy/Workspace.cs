@@ -14,7 +14,6 @@ namespace ZGF.ILSpy;
 /// </summary>
 public sealed class Workspace
 {
-    private const int NoTicket = -1;
     private const float ToolShare = 0.3f;
     private const float DocumentShare = 0.66f;
     private const float AssembliesShare = 0.34f;
@@ -25,8 +24,7 @@ public sealed class Workspace
     private readonly List<DocumentTab> _tabs = new();
     private readonly List<string> _releasedImages = new();
     private Action<Action> _post = ThrowNotAttached;
-    private int _intent;
-    private int _resolving = NoTicket;
+    private readonly UserIntent _intent = new();
     private int _reload;
     private int _savedBookmarks;
     private int _savedAnalyzer;
@@ -91,7 +89,7 @@ public sealed class Workspace
     public DocumentTab? ActiveTab => _active;
 
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
-    public bool IsResolving => _resolving == _intent;
+    public bool IsResolving => _intent.IsResolving;
 
     /// <summary>True while <see cref="Refresh"/> reopens the assemblies.</summary>
     public bool IsReloading => _reloadWork != null;
@@ -248,7 +246,7 @@ public sealed class Workspace
 
     private void OpenInBackground(string[] files)
     {
-        var ticket = Intend();
+        var ticket = _intent.Begin();
         RunInBackground(() => OpenFiles(files, CancellationToken.None), (opened, error) => OnFilesOpened(opened, error, ticket));
     }
 
@@ -262,7 +260,7 @@ public sealed class Workspace
         ReportAll(opened!.Errors);
         if (opened.Last == null)
             return;
-        if (IsStale(ticket))
+        if (_intent.IsStale(ticket))
             return;
         Show(opened.Last.Root);
     }
@@ -273,7 +271,7 @@ public sealed class Workspace
 
     public void ClearList()
     {
-        Intend();
+        _intent.Begin();
         StopReload();
         ClearAssemblies();
     }
@@ -291,7 +289,7 @@ public sealed class Workspace
     /// and shows each tab's place again, decompiled from the fresh files.</summary>
     public void Refresh()
     {
-        var intent = Intend();
+        var intent = _intent.Begin();
         StopReload();
         _reload++;
         var work = new CancellationTokenSource();
@@ -397,7 +395,7 @@ public sealed class Workspace
             return;
         }
         tab.Show(node, Language, reloading.Position);
-        if (tab == ActiveTab && intent == _intent)
+        if (tab == ActiveTab && _intent.IsCurrent(intent))
             Tree.Reveal(node);
     }
 
@@ -470,7 +468,7 @@ public sealed class Workspace
     {
         if (node.Kind == NodeKind.Loading)
             return;
-        Intend();
+        _intent.Begin();
         LeaveActive();
         var tab = inNewTab ? null : ActiveTab;
         ShowIn(tab, node);
@@ -483,17 +481,17 @@ public sealed class Workspace
     {
         if (!reference.IsNavigable)
             return;
-        var ticket = Intend();
+        var ticket = _intent.Begin();
         var origin = inNewTab ? null : ActiveTab;
-        _resolving = ticket;
+        _intent.StartResolving(ticket);
         RunInBackground(() => Assemblies.FindNode(reference), (node, error) => OnReferenceFound(reference, node, error, origin, ticket));
     }
 
     private void OnReferenceFound(CodeReference reference, BrowseNode? node, Exception? error, DocumentTab? origin, int ticket)
     {
-        if (IsStale(ticket))
+        if (_intent.IsStale(ticket))
             return;
-        _resolving = NoTicket;
+        _intent.StopResolving();
         if (node == null)
         {
             ReportUnresolved(reference, error);
@@ -515,7 +513,7 @@ public sealed class Workspace
     /// records it in the history.</summary>
     public void Show(MetadataTarget target, bool inNewTab)
     {
-        Intend();
+        _intent.Begin();
         LeaveActive();
         var tab = inNewTab ? null : ActiveTab;
         ShowIn(tab, target.Node, row: target.Row);
@@ -557,7 +555,7 @@ public sealed class Workspace
 
     private void Restore(HistoryEntry entry)
     {
-        var ticket = Intend();
+        var ticket = _intent.Begin();
         var tab = ActiveTab;
         var place = entry.Place;
         var position = entry.Language == Language ? entry.Position : null;
@@ -567,7 +565,7 @@ public sealed class Workspace
             ShowIn(tab, shown, position);
             return;
         }
-        _resolving = ticket;
+        _intent.StartResolving(ticket);
         RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnHistoryPlaceFound(place, position, node, error, tab, ticket));
     }
 
@@ -587,9 +585,9 @@ public sealed class Workspace
 
     private void OnHistoryPlaceFound(NodePath place, CodeViewPosition? position, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
     {
-        if (IsStale(ticket))
+        if (_intent.IsStale(ticket))
             return;
-        _resolving = NoTicket;
+        _intent.StopResolving();
         if (node == null)
         {
             var t = GetStrings();
@@ -645,18 +643,18 @@ public sealed class Workspace
     /// assembly first if it is not open, and records it in the history.</summary>
     public void GoTo(Bookmark bookmark)
     {
-        var ticket = Intend();
+        var ticket = _intent.Begin();
         var tab = ActiveTab;
         var place = bookmark.Place;
-        _resolving = ticket;
+        _intent.StartResolving(ticket);
         RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnBookmarkPlaceFound(bookmark, node, error, tab, ticket));
     }
 
     private void OnBookmarkPlaceFound(Bookmark bookmark, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
     {
-        if (IsStale(ticket))
+        if (_intent.IsStale(ticket))
             return;
-        _resolving = NoTicket;
+        _intent.StopResolving();
         if (node == null)
         {
             var t = GetStrings();
@@ -1102,14 +1100,6 @@ public sealed class Workspace
 
     private Strings GetStrings() => Strings.For(Locale);
 
-    private int Intend()
-    {
-        _intent++;
-        return _intent;
-    }
-
-    private bool IsStale(int ticket) => ticket != _intent;
-
     private bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
     private bool IsTabPanel(string panel) => FindTab(panel) != null;
@@ -1135,7 +1125,7 @@ public sealed class Workspace
         var tab = FindTab(panel);
         if (tab == null)
             return;
-        Intend();
+        _intent.Begin();
         tab.Cancel();
         _tabs.Remove(tab);
         _releasedImages.Add(tab.ImageId);
@@ -1228,7 +1218,7 @@ public sealed class Workspace
 
     private void Focus(DocumentTab tab)
     {
-        Intend();
+        _intent.Begin();
         _active = tab;
         tab.EnsureCurrent(Language);
         var node = tab.Node;
