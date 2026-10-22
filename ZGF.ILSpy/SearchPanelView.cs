@@ -51,8 +51,12 @@ internal static class SearchPanelView
         if (focused)
             Keys(ui, w, rowHeight);
 
-        ui.TableHeader("header", w.SearchColumns, ResultsId,
-            Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]), theme.ShellPaddingX);
+        var sortIcon = new UiIcon(search.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp, LucideIcons.Family);
+        var clicked = ui.TableHeader("header", w.SearchColumns, ResultsId,
+            Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]), theme.ShellPaddingX,
+            sort: new TableSort((int)search.Sort - 1, sortIcon));
+        if (clicked >= 0)
+            search.SortBy((SearchSort)(clicked + 1));
         using var list = ui.VirtualScroll(ResultsId, search.Rows.Count, rowHeight, new Box { Gap = 0f });
         if (search.ScrollToSelected && list.ScrollIntoView(search.Selected))
             search.ScrollToSelected = false;

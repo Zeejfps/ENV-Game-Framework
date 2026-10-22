@@ -6,6 +6,15 @@ namespace ZGF.ILSpy;
 /// <summary>A search hit with its location and assembly text formatted once, off the UI thread.</summary>
 public sealed record SearchRow(SearchResult Result, string Location, string Assembly);
 
+/// <summary>What the search results are sorted by; <see cref="None"/> keeps the order they were found in.</summary>
+public enum SearchSort
+{
+    None,
+    Name,
+    Location,
+    Assembly,
+}
+
 /// <summary>The search panel's query, streamed results and selection. While the panel is open a
 /// query runs once typing pauses; assemblies opened later are searched and their hits added, and
 /// hits in closed ones dropped, keeping the selection.</summary>
@@ -45,6 +54,9 @@ public sealed class SearchModel
     public int Selected { get; private set; } = -1;
 
     public SearchRow? SelectedRow => Selected >= 0 ? _rows[Selected] : null;
+
+    public SearchSort Sort { get; private set; }
+    public bool Descending { get; private set; }
 
     /// <summary>Set when the selection moved and should be scrolled into view.</summary>
     public bool ScrollToSelected;
@@ -88,6 +100,55 @@ public sealed class SearchModel
     }
 
     public void Clear() => Query = "";
+
+    /// <summary>Sorts the results by <paramref name="sort"/>, ascending, or reverses it when they
+    /// already are, keeping the selection in view.</summary>
+    public void SortBy(SearchSort sort)
+    {
+        Descending = Sort == sort && !Descending;
+        Sort = sort;
+        _rows.Sort(Compare);
+        Reselect();
+        ScrollToSelected = Selected >= 0;
+    }
+
+    private int Compare(SearchRow a, SearchRow b)
+    {
+        var order = Sort switch
+        {
+            SearchSort.Name => Compare(a.Result.Text, b.Result.Text, a.Location, b.Location, a.Assembly, b.Assembly),
+            SearchSort.Location => Compare(a.Location, b.Location, a.Result.Text, b.Result.Text, a.Assembly, b.Assembly),
+            SearchSort.Assembly => Compare(a.Assembly, b.Assembly, a.Result.Text, b.Result.Text, a.Location, b.Location),
+            _ => 0,
+        };
+        return Descending ? -order : order;
+    }
+
+    private static int Compare(string a1, string b1, string a2, string b2, string a3, string b3)
+    {
+        var order = StringComparer.OrdinalIgnoreCase.Compare(a1, b1);
+        if (order == 0) order = StringComparer.OrdinalIgnoreCase.Compare(a2, b2);
+        return order != 0 ? order : StringComparer.OrdinalIgnoreCase.Compare(a3, b3);
+    }
+
+    private void Insert(SearchRow row)
+    {
+        if (Sort == SearchSort.None)
+        {
+            _rows.Add(row);
+            return;
+        }
+        int low = 0, high = _rows.Count;
+        while (low < high)
+        {
+            var mid = (low + high) / 2;
+            if (Compare(_rows[mid], row) <= 0)
+                low = mid + 1;
+            else
+                high = mid;
+        }
+        _rows.Insert(low, row);
+    }
 
     private void Restart(AssemblyList assemblies, Action<Action> post)
     {
@@ -150,8 +211,10 @@ public sealed class SearchModel
                     foreach (var row in rows)
                     {
                         if (_searched.Contains(row.Result.Node.Assembly))
-                            _rows.Add(row);
+                            Insert(row);
                     }
+                    if (Sort != SearchSort.None && _selected is not null)
+                        Reselect();
                 });
             }
         }

@@ -188,6 +188,39 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void Clicking_a_search_header_sorts_by_it_and_again_reverses_it_keeping_the_selection()
+    {
+        var app = OpenFixtures();
+        app.Workspace.OpenSearch();
+        app.Run();
+        app.Frames.Type("Greet");
+        app.Run();
+        app.Frames.Wait(1);
+        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 2 });
+        var search = app.Workspace.Search;
+        search.Select(search.Rows.Count - 1);
+        var selected = search.SelectedRow!.Result.Node;
+        var names = search.Rows.Select(r => r.Result.Text).ToList();
+
+        app.Click("Name");
+        app.Run();
+        Assert.Equal(names.Order(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Result.Text));
+        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.True(app.Frames.Drew(LucideIcons.ChevronUp));
+
+        app.Click("Name");
+        app.Run();
+        Assert.Equal(names.OrderDescending(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Result.Text));
+        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.True(app.Frames.Drew(LucideIcons.ChevronDown));
+
+        app.Click("Assembly");
+        app.Run();
+        Assert.Equal(SearchSort.Assembly, search.Sort);
+        Assert.False(search.Descending);
+    }
+
+    [Fact]
     public void Search_kinds_are_checked_on_and_off_in_one_open_menu()
     {
         var app = OpenFixtures();
