@@ -7,7 +7,9 @@ state.Add("Sketch the immediate-mode API");
 state.Add("Render through the canvas");
 state.Add("Decide if this beats the retained tree");
 
-new TodoApp(state).Run(
+var app = new TodoApp(state);
+GuiHost.Run(
+    app,
     new StartupConfig
     {
         WindowWidth = 520,

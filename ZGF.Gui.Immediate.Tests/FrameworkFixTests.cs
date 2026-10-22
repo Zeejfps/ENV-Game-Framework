@@ -276,11 +276,6 @@ public sealed class MeasurementInvalidationTests
 
 public sealed class PostTests
 {
-    private sealed class App() : Gui<object>(new object())
-    {
-        protected override void Render(Ui ui, object state) { }
-    }
-
     [Fact]
     public void Posting_before_the_app_runs_waits_for_the_first_frame()
     {
@@ -293,15 +288,6 @@ public sealed class PostTests
         ui.EndFrame();
 
         Assert.Equal(1, ran);
-    }
-
-    [Fact]
-    public void Gui_post_and_invalidate_are_safe_when_not_running()
-    {
-        var app = new App();
-
-        app.Post(() => { });
-        app.Invalidate();
     }
 }
 

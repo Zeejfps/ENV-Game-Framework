@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
@@ -52,7 +51,6 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         StartupConfig config,
         RenderBackendKind backend,
         IReadOnlyList<(string Family, byte[] Data, bool Bold)> fonts,
-        ConcurrentQueue<Action> posted,
         Action<Ui> renderUi)
     {
         _render = CreateRenderBackend(config, backend);
@@ -62,7 +60,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
         _renderUi = renderUi;
-        _ui = new Ui(_render.MainCanvas, new WindowClipboard(_window), this, posted) { Wake = Invalidate };
+        _ui = new Ui(_render.MainCanvas, new WindowClipboard(_window), this) { Wake = Invalidate };
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
         WireMainFrame();
@@ -131,13 +129,9 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _render.App.Wake();
     }
 
-    public void RegisterFont(string family, byte[] data, bool bold)
+    public void Post(Action action)
     {
-        AddFont(family, data, bold);
-        _ui.InvalidateMeasurements();
-        foreach (var popup in _popups)
-            popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
-        Invalidate();
+        _ui.Post(action);
     }
 
     private void LoadSystemFallbackFonts() => Task.Run(() =>

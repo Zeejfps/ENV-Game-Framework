@@ -1,4 +1,5 @@
 using ZGF.AppUtils;
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
@@ -23,7 +24,6 @@ public sealed class IlSpyApp : Gui<Workspace>
         _commandLineAssemblies = commandLineAssemblies;
         foreach (var (family, file) in Fonts)
             RegisterFont(family, EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, file));
-        workspace.Assemblies.Changed += Invalidate;
     }
 
     public static void Launch(CommandLine commandLine)
@@ -32,19 +32,25 @@ public sealed class IlSpyApp : Gui<Workspace>
         var workspace = new Workspace(settings);
         var app = new IlSpyApp(workspace, commandLine.AssemblyPaths);
         var windowConfig = settings.CreateWindowConfig();
-        app.Run(windowConfig, commandLine.RenderBackend);
+        GuiHost.Run(app, windowConfig, commandLine.RenderBackend);
     }
 
-    protected override void OnStartup()
+    protected override void OnStartup(GuiHost host)
+    {
+        State.Assemblies.Changed += host.Invalidate;
+        OpenStartupAssemblies();
+    }
+
+    private void OpenStartupAssemblies()
     {
         var paths = State.Settings.ListExistingAssemblies();
         paths.AddRange(_commandLineAssemblies);
         State.Open(paths);
     }
 
-    protected override void OnShutdown()
+    protected override void OnShutdown(WindowBounds bounds)
     {
-        State.Settings.RememberWindow(WindowBounds);
+        State.Settings.RememberWindow(bounds);
         State.SaveSettings();
     }
 
