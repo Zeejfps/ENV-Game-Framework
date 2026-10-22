@@ -263,31 +263,6 @@ public sealed class InputSystem
     }
 
     /// <summary>
-    /// Drop all transient input state — focus, hover, and the built focus path —
-    /// without firing exit/blur callbacks against the (already detached) controllers.
-    /// Used when a popup window is returned to the pool: the views it dispatched to
-    /// are gone, but the InputSystem instance is reused for the next popup. Without
-    /// this, a leftover <see cref="_focusedComponent"/> latches <see cref="HasFocus"/>
-    /// true, and DesktopInputSystem.Update short-circuits before hover/click dispatch —
-    /// leaving every subsequently pooled popup dead until the app restarts.
-    /// </summary>
-    public void Reset()
-    {
-        _focusedComponent = null;
-        _hoveredComponent = null;
-        _pointerCaptured = false;
-        _keyClaim = KeyClaim.None;
-        _focusQueue.Clear();
-        // Registrations must go too. SetRoot(null) only unregisters controllers added
-        // through behaviors (UseController); anything registered directly with
-        // RegisterController (e.g. a menu's keep-open controller) would otherwise stay
-        // in the hit-test set with its dead view's stale Position — stealing hover from
-        // the next popup this pooled instance hosts and swallowing its enter events.
-        _viewToControllers.Clear();
-        _registrations.Clear();
-    }
-
-    /// <summary>
     /// Re-runs hit-testing from the cursor's current position and fires
     /// MouseEnter / MouseExit events if the hovered controller changed.
     /// Call this when the view tree changes between mouse-move events

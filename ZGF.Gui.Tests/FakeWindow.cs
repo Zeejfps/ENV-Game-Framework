@@ -43,6 +43,7 @@ internal sealed class FakeWindow : IWindow
     public bool IsPointerOver { get; set; } = true;
     public bool IsMaximized { get; set; }
     public bool MousePassThrough { get; private set; }
+    public Action<PointI>? PointerCapture { get; private set; }
     public bool NeedsRedraw { get; private set; } = true;
     public bool InputEnabled { get; private set; } = true;
     public IWindow? Owner { get; private set; }
@@ -109,8 +110,8 @@ internal sealed class FakeWindow : IWindow
     public void Focus() { IsFocused = true; OnFocusChanged?.Invoke(true); }
 
     public void SetMousePassThrough(bool passThrough) => MousePassThrough = passThrough;
-    public void CapturePointer(Action<PointI> onOutsideClick) { }
-    public void ReleasePointerCapture() { }
+    public void CapturePointer(Action<PointI> onOutsideClick) => PointerCapture = onOutsideClick;
+    public void ReleasePointerCapture() => PointerCapture = null;
 
     public void SetPosition(int screenX, int screenY)
     {

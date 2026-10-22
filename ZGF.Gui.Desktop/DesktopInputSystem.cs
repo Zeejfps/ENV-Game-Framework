@@ -9,7 +9,7 @@ using MouseButton = ZGF.Gui.Desktop.Input.MouseButton;
 
 namespace ZGF.Gui.Desktop;
 
-public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
+public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow, IDisposable
 {
     private readonly IWindow _window;
     private readonly IUiScale _uiScale;
@@ -98,6 +98,19 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
         InputSystem.ImeHost = this;
     }
 
+    /// <summary>Stops listening to the window, for an input system that ends before its window does
+    /// (a popup's, whose window goes back to the pool).</summary>
+    public void Dispose()
+    {
+        _window.OnKey -= HandleKeyEvent;
+        _window.OnText -= HandleTextEvent;
+        _window.OnPreedit -= HandlePreeditEvent;
+        _window.OnMouseButton -= HandleMouseButtonEvent;
+        _window.OnScroll -= HandleScrollEvent;
+        _window.OnFocusChanged -= HandleFocusChanged;
+        _window.OnPointerEnter -= HandleCursorEnter;
+    }
+
     // IImeHost — what a field in this window reports. It says only that it is editing and where its
     // caret is; the coordinator decides which window that makes compose, because the answer is not
     // always this one (a menu's search box composes against the host window that holds OS focus).
@@ -146,27 +159,6 @@ public sealed class DesktopInputSystem : IPointerWindow, IImeHost, IImeWindow
 
     /// <summary>True when this window currently holds OS keyboard focus.</summary>
     public bool IsWindowFocused() => _window.IsFocused;
-
-    /// <summary>
-    /// Clear all transient input state so this instance can be reused for a fresh
-    /// popup. Resets the underlying <see cref="InputSystem"/> (focus/hover/path) and
-    /// the locally latched fields (pending exit-clear, last-known cursor point). Call
-    /// when the owning popup window is returned to the pool — otherwise a leftover
-    /// focused component keeps <see cref="Input.InputSystem.HasFocus"/> true and
-    /// <see cref="Update"/> short-circuits before hover/click dispatch, leaving every
-    /// subsequently pooled popup dead until the app restarts.
-    /// </summary>
-    public void Reset()
-    {
-        InputSystem.Reset();
-        // InputSystem.Reset drops the focused component without raising OnFocusLost, so a text field
-        // that was editing when its popup closed never gets to end its own edit session. Left in the
-        // coordinator's editing set, this (pooled, hidden) window would keep asserting the IME.
-        _ime?.SetFieldEditing(this, false);
-        _pendingExitClear = false;
-        _modalDismissButtons.Clear();
-        Mouse.Point = OffScreen;
-    }
 
     private void HandleCursorEnter(bool entering)
     {

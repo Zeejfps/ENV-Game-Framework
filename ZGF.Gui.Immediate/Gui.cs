@@ -3,6 +3,13 @@ using ZGF.Desktop;
 
 namespace ZGF.Gui.Immediate;
 
+public enum RenderBackendKind
+{
+    Auto,
+    OpenGl,
+    Metal,
+}
+
 /// <summary>
 /// An immediate-mode application. <see cref="Render"/> describes the entire UI from
 /// <typeparamref name="T"/> every frame; widgets report interactions as return values and the

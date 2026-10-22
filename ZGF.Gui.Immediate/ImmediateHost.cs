@@ -9,29 +9,17 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate;
 
-public enum RenderBackendKind
-{
-    Auto,
-    OpenGl,
-    Metal,
-}
-
-/// <summary>A borderless window for a popup and the canvas it is drawn on. Rendering it presents
-/// whatever was last drawn on the canvas.</summary>
-internal sealed record PopupSurface(IWindow Window, RenderedCanvasBase Canvas);
-
 internal sealed class ImmediateHost : IDisposable, IPopupHost
 {
     private const float MaxFrameStep = 0.1f;
     private const int PopupPoolSize = 8;
-    private const int PopupInitialSize = 32;
 
-    private sealed class Popup(PopupSurface surface)
+    private sealed class Popup(PopupSurface surface, bool passThrough)
     {
         public readonly PopupSurface Surface = surface;
         public int Id;
         public UiRect Rect;
-        public bool PassThrough;
+        public bool PassThrough = passThrough;
         public bool Used;
         public bool Shown;
         public (int X, int Y, int Width, int Height) Screen;
@@ -43,7 +31,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private readonly Ui _ui;
     private readonly IFilePicker _filePicker;
     private readonly List<Popup> _popups = new();
-    private readonly List<Popup> _pool = new();
+    private readonly PopupPool _pool;
     private UiInput _pending = new();
     private UiInput _frame = new();
     private readonly long _startTimestamp = Stopwatch.GetTimestamp();
@@ -72,6 +60,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         foreach (var (family, data, bold) in fonts)
             AddFont(family, data, bold);
         _window = _render.App.MainWindow;
+        _pool = new PopupPool(_render, PopupPoolSize);
         _renderUi = renderUi;
         _ui = new Ui(_render.MainCanvas, new WindowClipboard(_window), this, posted) { Wake = Invalidate };
         _filePicker = NativeFilePicker.Create(_ui.Post);
@@ -146,7 +135,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     {
         AddFont(family, data, bold);
         _ui.InvalidateMeasurements();
-        foreach (var popup in _popups.Concat(_pool))
+        foreach (var popup in _popups)
             popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
         Invalidate();
     }
@@ -348,13 +337,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     {
         if (_popupWindowsUnavailable) return null;
 
-        var popup = Find(id) ?? Acquire();
+        var popup = Find(id) ?? Acquire(passThrough);
         if (popup == null) return null;
 
         popup.Id = id;
         popup.Used = true;
         popup.Rect = rect;
-        if (popup.PassThrough != passThrough || !popup.Shown)
+        if (popup.PassThrough != passThrough)
         {
             popup.PassThrough = passThrough;
             popup.Surface.Window.SetMousePassThrough(passThrough);
@@ -401,32 +390,23 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         return null;
     }
 
-    private Popup? Acquire()
+    private Popup? Acquire(bool passThrough)
     {
-        Popup popup;
-        if (_pool.Count > 0)
+        PopupSurface surface;
+        try
         {
-            popup = _pool[^1];
-            _pool.RemoveAt(_pool.Count - 1);
-            popup.Surface.Window.SetCursor(_cursor);
+            surface = _pool.Acquire(passThrough);
         }
-        else
+        catch (Exception e)
         {
-            PopupSurface surface;
-            try
-            {
-                surface = CreatePopupSurface();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"[ImmediateHost] Popup windows are unavailable, drawing popups in the window: {e.Message}");
-                _popupWindowsUnavailable = true;
-                return null;
-            }
-            Subscribe(surface.Window);
-            surface.Window.SetCursor(_cursor);
-            popup = new Popup(surface);
+            Console.WriteLine($"[ImmediateHost] Popup windows are unavailable, drawing popups in the window: {e.Message}");
+            _popupWindowsUnavailable = true;
+            return null;
         }
+        _render.WirePresentLoop(surface.Window, surface.Canvas);
+        Subscribe(surface.Window);
+        surface.Window.SetCursor(_cursor);
+        var popup = new Popup(surface, passThrough);
         _popups.Add(popup);
         return popup;
     }
@@ -464,39 +444,10 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     {
         var window = popup.Surface.Window;
         var hadFocus = window.IsFocused;
-        window.Hide();
-        popup.Shown = false;
-        popup.Id = 0;
-        popup.Screen = default;
+        Unsubscribe(window);
+        _pool.Release(popup.Surface);
         if (hadFocus)
             _window.Focus();
-
-        if (_pool.Count < PopupPoolSize)
-        {
-            _pool.Add(popup);
-            return;
-        }
-        DisposePopup(popup);
-    }
-
-    private void DisposePopup(Popup popup)
-    {
-        Unsubscribe(popup.Surface.Window);
-        _render.DisposeWindow(popup.Surface.Window, popup.Surface.Canvas);
-    }
-
-    private PopupSurface CreatePopupSurface()
-    {
-        var window = _render.App.CreatePopupWindow(new PopupWindowOptions
-        {
-            WidthPoints = PopupInitialSize,
-            HeightPoints = PopupInitialSize,
-            OwnerWindow = _window,
-            MousePassThrough = false,
-        });
-        var canvas = _render.CreateCanvas(window, PopupInitialSize, PopupInitialSize);
-        _render.WirePresentLoop(window, canvas);
-        return new PopupSurface(window, canvas);
     }
 
     private void Subscribe(IWindow window)
@@ -611,10 +562,8 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.OnFramebufferResize -= HandleResize;
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
         _window.OnMove -= HandleMove;
-        foreach (var popup in _popups.Concat(_pool))
-            DisposePopup(popup);
-        _popups.Clear();
-        _pool.Clear();
+        HideAll();
+        _pool.Dispose();
         _render.Dispose();
     }
 }

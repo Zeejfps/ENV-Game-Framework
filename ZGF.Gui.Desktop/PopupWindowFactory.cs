@@ -7,7 +7,7 @@ namespace ZGF.Gui.Desktop;
 
 public sealed class PopupWindowFactory : IPopupWindowFactory
 {
-    private const int SoftCap = 16;
+    private const int PoolCapacity = 16;
 
     private readonly IWindowedApp _app;
     private readonly IGuiRenderBackend _backend;
@@ -17,7 +17,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly IUiScale _uiScale;
 
     private readonly List<PopupWindowImpl> _activePopups = new();
-    private readonly List<PopupWindowImpl> _pool = new();
+    private readonly PopupPool _pool;
     private PopupWindowImpl? _captureHolder;
 
     // The app window that held OS focus when the current popup chain opened — the window the menu
@@ -38,6 +38,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         _arbiter = arbiter;
         _ime = ime;
         _uiScale = uiScale;
+        _pool = new PopupPool(backend, PoolCapacity);
     }
 
     public IPopupWindow Acquire(in PopupRequest request)
@@ -47,22 +48,8 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         if (_activePopups.Count == 0)
             _chainOwner = FocusedAppWindow();
 
-        PopupWindowImpl popup;
-        if (_pool.Count > 0)
-        {
-            popup = _pool[^1];
-            _pool.RemoveAt(_pool.Count - 1);
-        }
-        else
-        {
-            popup = CreateNewPopup(request.MousePassThrough);
-        }
-
-        popup.MousePassThrough = request.MousePassThrough;
-        // Re-apply the native click-through attribute every acquire: this popup window is pooled
-        // and may previously have served a popup of the other kind. A menu (not pass-through)
-        // reusing a window left click-through by a prior tooltip would get hover but eat no clicks.
-        popup.Window.SetMousePassThrough(request.MousePassThrough);
+        var surface = _pool.Acquire(request.MousePassThrough);
+        var popup = CreatePopup(surface, request.MousePassThrough);
 
         // Build the content against THIS popup's context so its controllers register with
         // this popup's input system and its text measures against this popup's canvas.
@@ -128,36 +115,16 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
         // Capture goes back to the topmost remaining menu, if any.
         if (_captureHolder == impl)
-            MoveCaptureTo(_activePopups.LastOrDefault(p => !p.MousePassThrough));
+        {
+            var topmostMenu = _activePopups.LastOrDefault(p => !p.MousePassThrough);
+            MoveCaptureTo(topmostMenu);
+        }
 
-        // Captured before Hide(): hiding a key window drops or reassigns OS focus, so
+        // Captured before the hide: hiding a key window drops or reassigns OS focus, so
         // this is the last moment "was the app active?" is observable.
         var appWasActive = impl.Window.IsFocused || OtherWindowHasFocus(impl.Window);
 
-        impl.Window.Hide();
-        impl.SetRoot(null);
-        // Drop any OutsideClick subscribers the caller wired up (e.g. ContextMenuManager
-        // does `popup.OutsideClick += HandleOutsideClick` on every ShowContextMenu). The
-        // impl is pooled and reused, so without this the handler list grows by one on each
-        // menu open — a slow leak plus redundant close dispatch on every outside click.
-        impl.ClearOutsideClickSubscribers();
-        // Drop any focus/hover the closing menu's views left on this popup's own
-        // input system. SetRoot(null) unregisters per-controller, but a controller
-        // that still holds focus would leave _focusedComponent latched — and since
-        // this PopupWindowImpl (and its InputSystem) is pooled and reused, that
-        // latch makes HasFocus true forever, short-circuiting DesktopInputSystem.Update
-        // before hover/click dispatch. Result: the next pooled popup (and every one
-        // after) opens dead. Reset clears the latch so each reuse starts clean.
-        impl.ResetInput();
-
-        if (_pool.Count >= SoftCap)
-        {
-            var evict = _pool[0];
-            _pool.RemoveAt(0);
-            _ime.Unregister(evict.Input);
-            evict.Dispose();
-        }
-        _pool.Add(impl);
+        Close(impl);
 
         // When the last popup closes, restore OS key focus to the window the chain opened from, so
         // in-app dialog overlays (e.g. Create Tag) receive keyboard input without requiring a manual
@@ -182,6 +149,31 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
                 target.Focus();
             _chainOwner = null;
         }
+    }
+
+    // Only the native window and its canvas go back to the pool. The content, input system and
+    // context are built for each use, so nothing one menu leaves behind (a focused field, an
+    // outside-click handler) reaches the next.
+    private PopupWindowImpl CreatePopup(PopupSurface surface, bool mousePassThrough)
+    {
+        var input = new DesktopInputSystem(surface.Window, _uiScale, _arbiter, _app, _ime);
+        _ime.Register(input);
+
+        var context = new Context(_mainContext);
+        context.Canvas = surface.Canvas;
+        context.AddService(input.InputSystem);
+        // Popup-specific coordinates: a submenu anchored at a parent menu item's canvas position
+        // must compute its screen anchor against this popup's origin, not the main window's.
+        context.AddService<IWindowCoordinates>(new WindowCoordinates(surface.Window, _uiScale));
+
+        return new PopupWindowImpl(surface, input, context, _uiScale, _backend, mousePassThrough);
+    }
+
+    private void Close(PopupWindowImpl popup)
+    {
+        popup.Dispose();
+        _ime.Unregister(popup.Input);
+        _pool.Release(popup.Surface);
     }
 
     private void MoveCaptureTo(PopupWindowImpl? popup)
@@ -212,8 +204,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private bool IsPopupWindow(IWindow window)
     {
         foreach (var p in _activePopups)
-            if (ReferenceEquals(p.Window, window)) return true;
-        foreach (var p in _pool)
             if (ReferenceEquals(p.Window, window)) return true;
         return false;
     }
@@ -309,41 +299,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
         return (best.X, best.Y, best.Width, best.Height);
     }
 
-    private PopupWindowImpl CreateNewPopup(bool mousePassThrough)
-    {
-        // Created at a placeholder size; Acquire resizes to the measured content
-        // after building the root.
-        const int initialSize = 32;
-        var window = _app.CreatePopupWindow(new PopupWindowOptions
-        {
-            WidthPoints = initialSize,
-            HeightPoints = initialSize,
-            OwnerWindow = _app.MainWindow,
-            MousePassThrough = mousePassThrough,
-        });
-
-        var canvas = _backend.CreateCanvas(window, initialSize, initialSize);
-
-        var input = new DesktopInputSystem(window, _uiScale, _arbiter, _app, _ime);
-        // Registered for the popup's whole lifetime, not per-acquire: the impl (and its input system)
-        // is pooled, and a searchable menu's field reports its editing session against it. A pooled,
-        // hidden popup is never OS-focused and never modal, so it can't be picked as a target.
-        _ime.Register(input);
-
-        var popupContext = new Context(_mainContext);
-        popupContext.Canvas = canvas;
-        popupContext.AddService(input.InputSystem);
-        // Register popup-specific IWindowCoordinates. Without this, callers that
-        // resolve IWindowCoordinates from the popup's context (e.g. a submenu
-        // anchored at a parent-menu-item's canvas position) would inherit the
-        // main window's translator and compute screen anchors against the main
-        // window's origin instead of this popup's.
-        popupContext.AddService<IWindowCoordinates>(new WindowCoordinates(window, _uiScale));
-
-        var impl = new PopupWindowImpl(window, canvas, input, popupContext, _uiScale, _backend);
-        return impl;
-    }
-
     public void UpdateActivePopupInput()
     {
         for (var i = 0; i < _activePopups.Count; i++)
@@ -356,28 +311,21 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
 
     public void Dispose()
     {
-        foreach (var p in _activePopups)
-        {
-            _ime.Unregister(p.Input);
-            p.Dispose();
-        }
+        MoveCaptureTo(null);
+        foreach (var popup in _activePopups)
+            Close(popup);
         _activePopups.Clear();
-        foreach (var p in _pool)
-        {
-            _ime.Unregister(p.Input);
-            p.Dispose();
-        }
-        _pool.Clear();
+        _pool.Dispose();
     }
 }
 
 internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 {
     private readonly GuiWindowHost _host;
-    private readonly IGuiRenderBackend _backend;
 
     public event Action<PointI>? OutsideClick;
-    public bool MousePassThrough { get; set; }
+    public bool MousePassThrough { get; }
+    public PopupSurface Surface { get; }
 
     public IWindow Window => _host.Window;
     public Context Context => _host.Context;
@@ -389,16 +337,17 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     internal WindowSpace Space => _host.Space;
 
     public PopupWindowImpl(
-        IWindow window,
-        RenderedCanvasBase canvas,
+        PopupSurface surface,
         DesktopInputSystem input,
         Context context,
         IUiScale uiScale,
-        IGuiRenderBackend backend)
+        IGuiRenderBackend backend,
+        bool mousePassThrough)
     {
-        _host = new GuiWindowHost(window, canvas, input, context, uiScale, sizeRootToWindow: false);
-        _backend = backend;
-        backend.WireRenderLoop(window, canvas, _host.DrawContent, (0f, 0f, 0f, 0f));
+        Surface = surface;
+        MousePassThrough = mousePassThrough;
+        _host = new GuiWindowHost(surface.Window, surface.Canvas, input, context, uiScale, sizeRootToWindow: false);
+        backend.WireRenderLoop(surface.Window, surface.Canvas, _host.DrawContent, (0f, 0f, 0f, 0f));
     }
 
     public void SetRoot(View? root) => _host.SetRoot(root);
@@ -407,19 +356,11 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
 
     public void RaiseOutsideClick(PointI screen) => OutsideClick?.Invoke(screen);
 
-    /// <summary>
-    /// Removes all <see cref="OutsideClick"/> subscribers. Called when the popup is returned
-    /// to the factory's pool so a reused instance doesn't carry the previous menu's handler.
-    /// </summary>
-    public void ClearOutsideClickSubscribers() => OutsideClick = null;
-
     public void UpdateInput() => _host.Input.Update();
-
-    public void ResetInput() => _host.Input.Reset();
 
     public void Dispose()
     {
         SetRoot(null);
-        _backend.DisposeWindow(_host.Window, _host.Canvas);
+        _host.Input.Dispose();
     }
 }
