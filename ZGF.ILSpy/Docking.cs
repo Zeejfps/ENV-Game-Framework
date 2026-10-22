@@ -61,6 +61,14 @@ public static class Docking
         return wrapped;
     }
 
+    public static void CloseActiveTab(this Workspace w)
+    {
+        var tab = w.Tabs.Active;
+        if (tab == null)
+            return;
+        w.CloseTab(tab);
+    }
+
     public static void CloseTab(this Workspace w, DocumentTab tab) => w.Layout.Close(tab.Panel);
 
     /// <summary>Called when a panel is closed: clears the search with its panel, and forgets the tab

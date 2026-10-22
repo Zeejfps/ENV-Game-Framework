@@ -60,7 +60,7 @@ internal static class Shortcuts
                     w.Refresh();
                     break;
                 case (KeyModifiers.Control, KeyboardKey.W):
-                    if (w.Tabs.Active is { } tab) w.CloseTab(tab);
+                    w.CloseActiveTab();
                     break;
                 case (KeyModifiers.Control, KeyboardKey.Tab):
                     w.CycleTab(1);
