@@ -6,13 +6,21 @@ Code should be digestible at a glance: no decoding lines, details one jump away.
 
 - Each line does one thing. Split lines that mix a call with `??`, a ternary, or a transformation.
 - Each method stays at one level of abstraction. Entry points read as a list of named steps.
-- `Program.cs` holds only the top-level steps; no helper functions. Helpers live on the type that owns the data they work with.
+- `Program.cs` holds only the top-level steps; no helper functions.
 - Method names are verbs (`CreateWindowConfig`, `ListExistingAssemblies`), not nouns (`WindowConfig`, `StartupAssemblies`).
-- Type names are nouns for what the type holds or is (`NavigationHistory`, `ErrorLog`, `BrowseTree`). No action names (`BookmarkImport`, `SettingsSync`) and no role suffixes like `-er`, `-Manager` or `-Model` (`IntentTracker`, `SearchModel`); name it `Search`, `Bookmarks`, `FrameworkPicker`.
+- Type names are nouns for what the type holds or is (`NavigationHistory`, `ErrorLog`, `BrowseTree`). No action names (`BookmarkImport`, `SettingsSync`) and no role suffixes like `-er`, `-Manager` or `-Model` (`IntentTracker`, `SearchModel`); name it `Search`, `Bookmarks`, `FrameworkPicker`. Feature files are the exception: they are named for the activity they cover (`Navigation`, `Bookmarking`, `Searching`).
 - Extract small intent-named helpers even when only a few lines long (`ReportOpenFailure(error)`, `IsStale(ticket)`), so a caller never mixes plumbing or lookup details with intent.
 - Name the intent and hide the mechanism: `settings.RememberWindow(bounds)`, not `settings.Window = AppSettings.Sanitize(bounds)`. Prefer `app.OpenOnStartup(paths)` over `app.Post(() => ...)` in top-level code.
 - Replace tricks with intent-named calls (`node.LoadChildren()`, not `_ = node.Children`).
 - Magic strings and numbers become named constants next to their use.
+
+## State and behaviour
+
+- App state lives in a plain data class (`Workspace`): public properties and fields, its setup, and nothing the user does.
+- State with a rule that must stay true gets its own small type that guards only that rule behind private fields: stale results are dropped (`UserIntent`), the active tab is an open tab (`DocumentTabs`), a new reload cancels the old (`Reload`), settings save only when changed (`LastSave`). Never add such state as a plain field.
+- Behaviour lives in feature files: static classes of extension methods on the data class, one per feature (`Navigation`, `Bookmarking`, `AssemblyLoading`). Callers read as if the methods were on the class: `w.Navigate(reference, inNewTab)`.
+- A helper shared by several features is an `internal` extension in the feature that owns the concept (`ShowIn` in `Navigation`).
+- Types other than the app's data class keep their behaviour on the type that owns the data (`MainLayout.OpenSearch`, `DocumentTabs.Find`).
 
 ## Ordering
 
