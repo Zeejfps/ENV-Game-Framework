@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ZGF.Desktop;
 using ZGF.Geometry;
@@ -37,8 +36,7 @@ public sealed partial class Ui
     private readonly Stack<int> _stateOwners = new();
     private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<TextStyle, CellMetrics> _cells = new(ReferenceEqualityComparer.Instance);
-    private Dictionary<MeasureKey, float> _widths = new();
-    private Dictionary<MeasureKey, float> _previousWidths = new();
+    private readonly FrameCache<StyledText, float> _widths = new();
     private float _measuredScale;
     private readonly List<int> _expiredStates = new();
     private List<HitRegion> _hits = new();
@@ -537,13 +535,10 @@ public sealed partial class Ui
 
     internal float MeasureWidth(string text, TextStyle style)
     {
-        var key = new MeasureKey(text, style);
-        if (_widths.TryGetValue(key, out var width))
+        var key = new StyledText(text, style);
+        if (_widths.TryGet(key, out var width))
             return width;
-        if (!_previousWidths.TryGetValue(key, out width))
-            width = MathF.Ceiling(_canvas.MeasureTextWidth(text, style));
-        _widths[key] = width;
-        return width;
+        return _widths.Keep(key, MathF.Ceiling(_canvas.MeasureTextWidth(text, style)));
     }
 
     internal float MeasureLineHeight(TextStyle style)
@@ -563,32 +558,11 @@ public sealed partial class Ui
         if (invalidate)
         {
             _measuredScale = _canvas.DpiScale;
-            _widths.Clear();
-            _previousWidths.Clear();
             _lineHeights.Clear();
             _cells.Clear();
         }
         BeginLines(invalidate);
-        (_widths, _previousWidths) = (_previousWidths, _widths);
-        _widths.Clear();
-    }
-
-    private readonly struct MeasureKey : IEquatable<MeasureKey>
-    {
-        private readonly string _text;
-        private readonly TextStyle _style;
-
-        public MeasureKey(string text, TextStyle style)
-        {
-            _text = text;
-            _style = style;
-        }
-
-        public bool Equals(MeasureKey other) => ReferenceEquals(_style, other._style) && string.Equals(_text, other._text);
-
-        public override bool Equals(object? obj) => obj is MeasureKey other && Equals(other);
-
-        public override int GetHashCode() => HashCode.Combine(_text, RuntimeHelpers.GetHashCode(_style));
+        _widths.BeginFrame(invalidate);
     }
 
     internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align, string? family)

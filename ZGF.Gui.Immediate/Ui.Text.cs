@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace ZGF.Gui.Immediate;
 
 /// <summary>Where a text breaks into lines: each line's start and length in the text, and the
@@ -36,10 +38,8 @@ internal interface ITextLayout
 
 public sealed partial class Ui : ITextLayout
 {
-    private Dictionary<LineKey, TextLines> _lines = new();
-    private Dictionary<LineKey, TextLines> _previousLines = new();
-    private Dictionary<EllipsisKey, string> _ellipses = new();
-    private Dictionary<EllipsisKey, string> _previousEllipses = new();
+    private readonly FrameCache<(StyledText, float), TextLines> _lines = new();
+    private readonly FrameCache<(StyledText, float, TextOverflow), string> _ellipses = new();
     private readonly List<Range> _ranges = new();
 
     /// <summary>Width of <paramref name="text"/> shaped on its own — a slice of a longer string —
@@ -68,13 +68,10 @@ public sealed partial class Ui : ITextLayout
 
     private string Ellipsize(string text, TextStyle style, float maxWidth, TextOverflow overflow)
     {
-        var key = new EllipsisKey(text, style, MathF.Floor(maxWidth), overflow);
-        if (_ellipses.TryGetValue(key, out var shown))
+        var key = (new StyledText(text, style), MathF.Floor(maxWidth), overflow);
+        if (_ellipses.TryGet(key, out var shown))
             return shown;
-        if (!_previousEllipses.TryGetValue(key, out shown!))
-            shown = Shorten(text, style, MathF.Floor(maxWidth), overflow);
-        _ellipses[key] = shown;
-        return shown;
+        return _ellipses.Keep(key, Shorten(text, style, MathF.Floor(maxWidth), overflow));
     }
 
     private const string EllipsisMark = "…";
@@ -106,37 +103,28 @@ public sealed partial class Ui : ITextLayout
 
     private static (int Head, int Tail) Split(string text, int kept, bool middle)
     {
-        var head = middle ? (kept + 1) / 2 : kept;
-        if (head > 0 && head < text.Length && char.IsLowSurrogate(text[head])) head--;
-        var tail = middle ? kept - head : 0;
-        if (tail > 0 && char.IsLowSurrogate(text[text.Length - tail])) tail--;
-        return (head, tail);
+        var cut = middle ? (kept + 1) / 2 : kept;
+        var head = TextBoundaries.Snap(text, cut);
+        if (!middle)
+            return (head, 0);
+        var tailStart = TextBoundaries.Snap(text, text.Length - (kept - head));
+        return (head, text.Length - tailStart);
     }
 
     /// <summary>Breaks <paramref name="text"/> at newlines and, where a line is wider than
     /// <paramref name="maxWidth"/>, between words. Kept while asked for this frame or the last.</summary>
     internal TextLines BreakLines(string text, TextStyle style, float maxWidth)
     {
-        var key = new LineKey(text, style, maxWidth);
-        if (_lines.TryGetValue(key, out var lines))
+        var key = (new StyledText(text, style), maxWidth);
+        if (_lines.TryGet(key, out var lines))
             return lines;
-        if (!_previousLines.TryGetValue(key, out lines))
-            lines = Break(text, style, maxWidth);
-        _lines[key] = lines;
-        return lines;
+        return _lines.Keep(key, Break(text, style, maxWidth));
     }
 
     private void BeginLines(bool invalidate)
     {
-        if (invalidate)
-        {
-            _previousLines.Clear();
-            _previousEllipses.Clear();
-        }
-        (_lines, _previousLines) = (_previousLines, _lines);
-        _lines.Clear();
-        (_ellipses, _previousEllipses) = (_previousEllipses, _ellipses);
-        _ellipses.Clear();
+        _lines.BeginFrame(invalidate);
+        _ellipses.BeginFrame(invalidate);
     }
 
     private TextLines Break(string text, TextStyle style, float maxWidth)
@@ -182,34 +170,11 @@ public sealed partial class Ui : ITextLayout
     private float Measure(string text, int start, int end, TextStyle style) =>
         end <= start ? 0f : MathF.Ceiling(_canvas.MeasureTextWidth(text.AsSpan(start, end - start), style));
 
-    private readonly record struct EllipsisKey(string Text, TextStyle Style, float Width, TextOverflow Overflow) : IEquatable<EllipsisKey>
+    /// <summary>A text in a style as a cache key; styles are interned, so they compare by reference.</summary>
+    private readonly record struct StyledText(string Text, TextStyle Style)
     {
-        public bool Equals(EllipsisKey other) =>
-            ReferenceEquals(Style, other.Style) && Width.Equals(other.Width) && Overflow == other.Overflow && string.Equals(Text, other.Text);
+        public bool Equals(StyledText other) => ReferenceEquals(Style, other.Style) && string.Equals(Text, other.Text);
 
-        public override int GetHashCode() =>
-            HashCode.Combine(Text, System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Style), Width, Overflow);
-    }
-
-    private readonly struct LineKey : IEquatable<LineKey>
-    {
-        private readonly string _text;
-        private readonly TextStyle _style;
-        private readonly float _width;
-
-        public LineKey(string text, TextStyle style, float width)
-        {
-            _text = text;
-            _style = style;
-            _width = width;
-        }
-
-        public bool Equals(LineKey other) =>
-            ReferenceEquals(_style, other._style) && _width.Equals(other._width) && string.Equals(_text, other._text);
-
-        public override bool Equals(object? obj) => obj is LineKey other && Equals(other);
-
-        public override int GetHashCode() =>
-            HashCode.Combine(_text, System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_style), _width);
+        public override int GetHashCode() => HashCode.Combine(Text, RuntimeHelpers.GetHashCode(Style));
     }
 }

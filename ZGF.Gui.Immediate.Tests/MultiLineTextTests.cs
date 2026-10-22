@@ -95,6 +95,14 @@ public sealed class MultiLineTextTests
         Assert.Equal(48f, width);
         Assert.Equal(["static"], Drawn(frames));
     }
+
+    [Fact]
+    public void An_ellipsis_never_cuts_inside_a_grapheme_cluster()
+    {
+        var shown = new UiFrames().Run(0f, ui => ui.Ellipsize("a👍🏽bcdefgh", 40f));
+
+        Assert.Equal("a…", shown);
+    }
 }
 
 public sealed class KeyStrokesTests
