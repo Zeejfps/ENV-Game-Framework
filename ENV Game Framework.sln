@@ -78,6 +78,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Immediate.Testing",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.ILSpy.App.Tests", "ZGF.ILSpy.App.Tests\ZGF.ILSpy.App.Tests.csproj", "{B833C392-F7DE-4903-B825-8E790B65ECA9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Hosting", "ZGF.Gui.Hosting\ZGF.Gui.Hosting.csproj", "{5B1E654E-E120-4A26-8F60-06A48DC2C893}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -544,6 +546,18 @@ Global
 		{B833C392-F7DE-4903-B825-8E790B65ECA9}.Release|x64.Build.0 = Release|Any CPU
 		{B833C392-F7DE-4903-B825-8E790B65ECA9}.Release|x86.ActiveCfg = Release|Any CPU
 		{B833C392-F7DE-4903-B825-8E790B65ECA9}.Release|x86.Build.0 = Release|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Debug|x64.Build.0 = Debug|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Debug|x86.Build.0 = Debug|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Release|x64.ActiveCfg = Release|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Release|x64.Build.0 = Release|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Release|x86.ActiveCfg = Release|Any CPU
+		{5B1E654E-E120-4A26-8F60-06A48DC2C893}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

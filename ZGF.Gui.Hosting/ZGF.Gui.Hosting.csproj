@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- What both desktop GUI hosts (ZGF.Gui.Desktop, ZGF.Gui.Immediate) draw through: the
+         OpenGL and Metal render backends, the popup window pool and the window clipboard. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.Gui.Desktop" />
+      <InternalsVisibleTo Include="ZGF.Gui.Immediate" />
+      <InternalsVisibleTo Include="ZGF.Gui.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.OpenGL\ZGF.Gui.OpenGL.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Metal\ZGF.Gui.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
+      <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
+      <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+      <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+    </ItemGroup>
+
+</Project>

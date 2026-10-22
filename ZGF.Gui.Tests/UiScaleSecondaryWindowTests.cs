@@ -34,8 +34,7 @@ public sealed class UiScaleSecondaryWindowTests : IDisposable
         var arbiter = new PointerOwnershipArbiter();
         var scale = new FakeUiScale(uiScale);
         var factory = new SecondaryWindowFactory(
-            app, _fonts, _font, new FakeRenderBackend(_fonts, _font),
-            new Context(), arbiter, new ImeCoordinator(arbiter), scale);
+            new FakeRenderBackend(app, _fonts, _font), new Context(), arbiter, new ImeCoordinator(arbiter), scale);
         return (factory, scale);
     }
 

@@ -22,8 +22,7 @@ public sealed class ModalWindowTests : IDisposable
         var ime = new ImeCoordinator(_arbiter);
         _mainInput = new DesktopInputSystem(_app.MainWindow, scale, _arbiter, _app, ime);
         _arbiter.Register(_mainInput, false);
-        _factory = new SecondaryWindowFactory(_app, _fonts, font, new FakeRenderBackend(_fonts, font),
-            new Context(), _arbiter, ime, scale);
+        _factory = new SecondaryWindowFactory(new FakeRenderBackend(_app, _fonts, font), new Context(), _arbiter, ime, scale);
     }
 
     private ISecondaryWindow Open(bool modal = false) => _factory.Open(new SecondaryWindowRequest

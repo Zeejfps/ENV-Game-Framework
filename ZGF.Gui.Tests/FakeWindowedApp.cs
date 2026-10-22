@@ -1,6 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Fonts;
-using ZGF.Gui.Desktop;
+using ZGF.Gui.Hosting;
 
 namespace ZGF.Gui.Tests;
 
@@ -56,25 +56,31 @@ internal sealed class FakeWindowedApp : IWindowedApp
 /// present step is a no-op.</summary>
 internal sealed class FakeRenderBackend : IGuiRenderBackend
 {
-    public float LastClearAlpha { get; private set; }
-    private readonly FreeTypeFontBackend _fonts;
-    private readonly FontHandle _defaultFont;
-
-    public FakeRenderBackend(FreeTypeFontBackend fonts, FontHandle defaultFont)
+    public FakeRenderBackend(IWindowedApp app, FreeTypeFontBackend fonts, FontHandle defaultFont)
     {
-        _fonts = fonts;
-        _defaultFont = defaultFont;
+        App = app;
+        Fonts = fonts;
+        DefaultFont = defaultFont;
+        MainCanvas = new CaptureCanvas(fonts, defaultFont, app.MainWindow.DpiScale);
     }
 
-    public RenderedCanvasBase CreateCanvas(IWindow window, int width, int height, RenderedCanvasBase? fontSource) =>
-        new CaptureCanvas(_fonts, _defaultFont, window.DpiScale);
+    public float LastClearAlpha { get; private set; }
+    public IWindowedApp App { get; }
+    public FreeTypeFontBackend Fonts { get; }
+    public FontHandle DefaultFont { get; }
+    public RenderedCanvasBase MainCanvas { get; }
+
+    public RenderedCanvasBase CreateCanvas(IWindow window, int width, int height) =>
+        new CaptureCanvas(Fonts, DefaultFont, window.DpiScale);
 
     public void WireRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw = null)
         => LastClearAlpha = clearColor.A;
+    public void WirePresentLoop(IWindow window, RenderedCanvasBase canvas) { }
     public void OnFramebufferResize(int width, int height) { }
     public void RenderWindowNow(IWindow window) { }
-    public void MakeWindowContextCurrent(IWindow window) { }
+    public void DisposeWindow(IWindow window, RenderedCanvasBase canvas) => window.Dispose();
     public void MakeMainContextCurrent() { }
     public void RequestScreenshot(string path, Action? onComplete = null) { }
+    public void RegisterServices(Context context) { }
     public void Dispose() { }
 }

@@ -1,6 +1,6 @@
 using ZGF.Desktop;
-using ZGF.Fonts;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Hosting;
 
 namespace ZGF.Gui.Desktop;
 
@@ -18,28 +18,22 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
     private readonly IUiScale _uiScale;
-    private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<SecondaryWindowImpl> _active = new();
 
     internal SecondaryWindowFactory(
-        IWindowedApp app,
-        FreeTypeFontBackend fonts,
-        FontHandle defaultFont,
         IGuiRenderBackend backend,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
-        IUiScale uiScale,
-        RenderedCanvasBase? mainCanvasForFontRegistry = null)
+        IUiScale uiScale)
     {
-        _app = app;
+        _app = backend.App;
         _backend = backend;
         _mainContext = mainContext;
         _arbiter = arbiter;
         _ime = ime;
         _uiScale = uiScale;
-        _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
         _app.MainWindow.OnFocusChanged += HandleWindowFocusChanged;
     }
 
@@ -91,7 +85,7 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
             IsUndecorated = request.IsUndecorated,
         });
 
-        var canvas = _backend.CreateCanvas(window, width, height, _mainCanvasForFontRegistry);
+        var canvas = _backend.CreateCanvas(window, width, height);
 
         // Share the app's pointer arbiter so this window participates in pointer ownership. Without
         // it the main window (which is arbitrated) keeps believing it owns the pointer at screen
@@ -117,7 +111,6 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
         catch
         {
             impl.Dispose();
-            _backend.MakeMainContextCurrent();
             throw;
         }
 
@@ -163,11 +156,6 @@ public sealed class SecondaryWindowFactory : ISecondaryWindowFactory
                 // Enable the owner before destroying its dialog so the OS can activate it.
                 SyncModality();
                 w.Dispose();
-                // w.Dispose() left no GL context current (it destroyed its own window after
-                // deleting its objects under its own context). Restore the main context so the
-                // run loop's next GL calls — and any GL work between now and the next per-window
-                // MakeContextCurrent — target a valid context.
-                _backend.MakeMainContextCurrent();
                 if (w.IsModal) (ModalWindow?.Window ?? _app.MainWindow).Focus();
             }
             else
@@ -321,13 +309,7 @@ internal sealed class SecondaryWindowImpl : ISecondaryWindow, IDisposable
         _host.Window.OnFocusChanged -= HandleFocusChanged;
         _host.Window.OnClose -= HandleClose;
         SetRoot(null);
-        // VAOs are per-context (not shared across the GL share group). Make THIS window's
-        // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
-        // runs against whatever context is current (often the main window) and destroys that
-        // context's same-named VAOs — corrupting the main window's rendering.
-        _backend.MakeWindowContextCurrent(_host.Window);
-        _host.DisposeCanvas();
-        _host.Window.Dispose();
+        _backend.DisposeWindow(_host.Window, _host.Canvas);
         Closed?.Invoke();
     }
 }

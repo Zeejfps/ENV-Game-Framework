@@ -4,6 +4,7 @@ using ZGF.Fonts;
 using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Hosting;
 using ZGF.Gui.Views;
 using ZGF.Observable;
 
@@ -36,21 +37,18 @@ public sealed class GuiApp : IDisposable
     public Context Context => _context;
     
     private GuiApp(
-        IWindowedApp app,
-        RenderedCanvasBase mainCanvas,
-        FreeTypeFontBackend fontBackend,
         IGuiRenderBackend renderBackend,
-        FontHandle defaultFont,
         Context context,
         Func<Context, View> contentFactory,
-        Action<Context> registerBackendServices,
         Action? renderHook,
         Action<Context>? startup,
         int? mcpServerPort)
     {
+        var app = renderBackend.App;
+        var mainCanvas = renderBackend.MainCanvas;
         _app = app;
         _mainCanvas = mainCanvas;
-        _fontBackend = fontBackend;
+        _fontBackend = renderBackend.Fonts;
         _renderBackend = renderBackend;
         _context = context;
         _contentFactory = contentFactory;
@@ -74,12 +72,8 @@ public sealed class GuiApp : IDisposable
         _lastAnimationTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
         var coordinates = new WindowCoordinates(app.MainWindow, _uiScale);
-        _popupFactory = new PopupWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, context, pointerArbiter, _imeCoordinator,
-            _uiScale, mainCanvasForFontRegistry: mainCanvas);
-        _secondaryWindows = new SecondaryWindowFactory(
-            app, fontBackend, defaultFont, renderBackend, context, pointerArbiter, _imeCoordinator,
-            _uiScale, mainCanvasForFontRegistry: mainCanvas);
+        _popupFactory = new PopupWindowFactory(renderBackend, context, pointerArbiter, _imeCoordinator, _uiScale);
+        _secondaryWindows = new SecondaryWindowFactory(renderBackend, context, pointerArbiter, _imeCoordinator, _uiScale);
 
         _contextMenuManager = new ContextMenuManager(_popupFactory, coordinates, pointerArbiter);
 
@@ -106,7 +100,7 @@ public sealed class GuiApp : IDisposable
         if (context.Get<IClipboard>() == null)
             context.AddService(CreatePlatformClipboard(app));
 
-        registerBackendServices(context);
+        renderBackend.RegisterServices(context);
 
         // All framework and backend services are registered above, so the startup hook and
         // content factory see the fully-wired main-window context. The main window's
@@ -186,13 +180,16 @@ public sealed class GuiApp : IDisposable
         Action<Context>? startup = null,
         int? mcpServerPort = null)
     {
-        var backend = PlatformBackend.Resolve(config, backendKind);
-        return new GuiApp(
-            backend.App, backend.MainCanvas, backend.FontBackend,
-            backend.RenderBackend,
-            backend.DefaultFont, context, contentFactory,
-            backend.RegisterServices, renderHook, startup, mcpServerPort);
+        var backend = CreateRenderBackend(config, backendKind);
+        return new GuiApp(backend, context, contentFactory, renderHook, startup, mcpServerPort);
     }
+
+    private static IGuiRenderBackend CreateRenderBackend(StartupConfig config, GuiRenderBackendKind kind) => kind switch
+    {
+        GuiRenderBackendKind.OpenGl => new GlRenderBackend(config),
+        GuiRenderBackendKind.Metal => new MetalRenderBackend(config),
+        _ => IGuiRenderBackend.CreateForPlatform(config),
+    };
 
     public void RegisterFont(string family, string path, int pixelSize)
     {
@@ -317,13 +314,11 @@ public sealed class GuiApp : IDisposable
 
     /// <summary>Screenshots a specific window (not just main). Renders <paramref name="window"/>
     /// synchronously so its frame consumes the backend's single pending-capture slot — no race with
-    /// other windows' redraws — then restores the main GL context when the target wasn't main.</summary>
+    /// other windows' redraws.</summary>
     private void CaptureWindowScreenshot(IWindow window, string path, Action? onComplete)
     {
         _renderBackend.RequestScreenshot(path, onComplete);
         _renderBackend.RenderWindowNow(window);
-        if (!ReferenceEquals(window, _app.MainWindow))
-            _renderBackend.MakeMainContextCurrent();
     }
 
     /// <summary>
@@ -577,12 +572,6 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnNonClientPress -= _pointerArbiter.NotifyNonClientPress;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();
-        // Secondary/popup teardown above left their own (now-destroyed) contexts current. The
-        // render backend's shared GL objects live in the main window's context share group, so
-        // make it current before deleting them. The main window is still alive here — it's
-        // destroyed in _app.Dispose() below.
-        _renderBackend.MakeMainContextCurrent();
         _renderBackend.Dispose();
-        _app.Dispose();
     }
 }

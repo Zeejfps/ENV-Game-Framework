@@ -87,11 +87,6 @@ internal sealed class GuiWindowHost
     /// with the size the OS was handed.</summary>
     public void ResizeTo(ScreenSize screenSize) => Apply(Space.WithWindowSize(screenSize));
 
-    public void DisposeCanvas()
-    {
-        if (Canvas is IDisposable d) d.Dispose();
-    }
-
     private void Apply(WindowSpace space)
     {
         Canvas.UpdateDpiScale(space.Scale);

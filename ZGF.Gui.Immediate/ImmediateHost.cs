@@ -4,14 +4,27 @@ using ZGF.Desktop;
 using ZGF.Desktop.Input;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Gui.Hosting;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate;
+
+public enum RenderBackendKind
+{
+    Auto,
+    OpenGl,
+    Metal,
+}
+
+/// <summary>A borderless window for a popup and the canvas it is drawn on. Rendering it presents
+/// whatever was last drawn on the canvas.</summary>
+internal sealed record PopupSurface(IWindow Window, RenderedCanvasBase Canvas);
 
 internal sealed class ImmediateHost : IDisposable, IPopupHost
 {
     private const float MaxFrameStep = 0.1f;
     private const int PopupPoolSize = 8;
+    private const int PopupInitialSize = 32;
 
     private sealed class Popup(PopupSurface surface)
     {
@@ -24,7 +37,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         public (int X, int Y, int Width, int Height) Screen;
     }
 
-    private readonly RenderHost _render;
+    private readonly IGuiRenderBackend _render;
     private readonly IWindow _window;
     private readonly Action<Ui> _renderUi;
     private readonly Ui _ui;
@@ -54,15 +67,16 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         ConcurrentQueue<Action> posted,
         Action<Ui> renderUi)
     {
-        _render = RenderHost.Create(config, backend);
+        _render = CreateRenderBackend(config, backend);
+        RegisterDefaultBold();
         foreach (var (family, data, bold) in fonts)
-            _render.RegisterFont(family, data, bold);
+            AddFont(family, data, bold);
         _window = _render.App.MainWindow;
         _renderUi = renderUi;
-        _ui = new Ui(_render.Canvas, new WindowClipboard(_window), this, posted) { Wake = Invalidate };
+        _ui = new Ui(_render.MainCanvas, new WindowClipboard(_window), this, posted) { Wake = Invalidate };
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
-        _render.SetFrame(DrawFrame, _clearColor);
+        WireMainFrame();
         _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
 
         Subscribe(_window);
@@ -79,10 +93,42 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         LoadSystemFallbackFonts();
     }
 
+    private static IGuiRenderBackend CreateRenderBackend(StartupConfig config, RenderBackendKind kind) => kind switch
+    {
+        RenderBackendKind.OpenGl => new GlRenderBackend(config),
+        RenderBackendKind.Metal => new MetalRenderBackend(config),
+        _ => IGuiRenderBackend.CreateForPlatform(config),
+    };
+
+    /// <summary>Makes the default font's bold text Inter SemiBold rather than synthesized.</summary>
+    private void RegisterDefaultBold() =>
+        _render.MainCanvas.RegisterBoldFont(null, LoadFont(EmbeddedAssets.LoadFontBytes("Inter-SemiBold.ttf")));
+
+    private void AddFont(string family, byte[] data, bool bold)
+    {
+        var handle = LoadFont(data);
+        if (bold)
+            _render.MainCanvas.RegisterBoldFont(family, handle);
+        else
+            _render.MainCanvas.RegisterFont(family, handle);
+    }
+
+    private FontHandle LoadFont(byte[] data, int faceIndex = 0) =>
+        _render.Fonts.LoadFontFromMemory(data, GuiFonts.PixelSize(_render.MainCanvas.DpiScale), faceIndex);
+
+    private void WireMainFrame() =>
+        _render.WireRenderLoop(_window, _render.MainCanvas, DrawFrame, ClearColorOf(_clearColor));
+
+    private static (float R, float G, float B, float A) ClearColorOf(uint argb) => (
+        ((argb >> 16) & 0xFF) / 255f,
+        ((argb >> 8) & 0xFF) / 255f,
+        (argb & 0xFF) / 255f,
+        ((argb >> 24) & 0xFF) / 255f);
+
     public void Run()
     {
         TrackBounds();
-        _render.RenderNow();
+        _render.RenderWindowNow(_window);
         _render.App.Run();
     }
 
@@ -98,10 +144,10 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
     public void RegisterFont(string family, byte[] data, bool bold)
     {
-        _render.RegisterFont(family, data, bold);
+        AddFont(family, data, bold);
         _ui.InvalidateMeasurements();
         foreach (var popup in _popups.Concat(_pool))
-            popup.Surface.Canvas.CopyFontsFrom(_render.Canvas);
+            popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
         Invalidate();
     }
 
@@ -129,7 +175,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         if (_disposed) return;
         try
         {
-            _render.RegisterFallbackFont(data, font.FaceIndex);
+            _render.Fonts.RegisterFallbackFont(LoadFont(data, font.FaceIndex));
         }
         catch (Exception e)
         {
@@ -150,13 +196,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _lastFrameTimestamp = now;
 
         _ui.WindowBounds = Bounds;
-        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.Canvas.Width, _render.Canvas.Height);
+        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
         _renderUi(_ui);
         _ui.EndFrame();
         if (_ui.WindowBackground != _clearColor)
         {
             _clearColor = _ui.WindowBackground;
-            _render.SetFrame(DrawFrame, _clearColor);
+            WireMainFrame();
         }
         var dark = UiColor.IsDark(_clearColor);
         if (dark != _titleBarDark)
@@ -255,11 +301,11 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         return false;
     }
 
-    private float ScreenPerPoint => _window.Width / (float)Math.Max(1, _render.Canvas.Width);
+    private float ScreenPerPoint => _window.Width / (float)Math.Max(1, _render.MainCanvas.Width);
 
     private PointF ToUiSpace(double windowX, double windowY)
     {
-        var canvas = _render.Canvas;
+        var canvas = _render.MainCanvas;
         return new PointF(
             (float)(windowX * canvas.Width / Math.Max(1, _window.Width)),
             (float)(windowY * canvas.Height / Math.Max(1, _window.Height)));
@@ -267,12 +313,12 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
     public UiRect Place(UiRect preferred, UiRect fallback)
     {
-        var window = new UiRect(0f, 0f, _render.Canvas.Width, _render.Canvas.Height);
+        var window = new UiRect(0f, 0f, _render.MainCanvas.Width, _render.MainCanvas.Height);
         if (_popupWindowsUnavailable)
             return PopupPlacement.Fit(preferred, fallback, window);
 
         var area = MonitorArea(preferred) ?? window;
-        return PopupPlacement.SnapToPixels(PopupPlacement.Fit(preferred, fallback, area), _render.Canvas.DpiScale);
+        return PopupPlacement.SnapToPixels(PopupPlacement.Fit(preferred, fallback, area), _render.MainCanvas.DpiScale);
     }
 
     private UiRect? MonitorArea(UiRect rect)
@@ -315,7 +361,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         }
 
         var s = ScreenPerPoint;
-        var dpi = _render.Canvas.DpiScale;
+        var dpi = _render.MainCanvas.DpiScale;
         var pixelsPerScreen = _window.DpiScale > 0f ? _window.DpiScale : 1f;
         var widthPoints = Math.Max(1, (int)MathF.Ceiling(surface.Width));
         var heightPoints = Math.Max(1, (int)MathF.Ceiling(surface.Height));
@@ -332,9 +378,17 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             window.SetPosition(screen.X, screen.Y);
         popup.Screen = screen;
 
-        _render.ResizePopup(popup.Surface, widthPoints, heightPoints, dpi);
+        ResizeCanvas(popup.Surface.Canvas, widthPoints, heightPoints, dpi);
         popup.Surface.Canvas.BeginFrame();
         return popup.Surface.Canvas;
+    }
+
+    /// <summary>Sizes a popup's canvas, in UI points, and its scale.</summary>
+    private static void ResizeCanvas(RenderedCanvasBase canvas, int width, int height, float dpiScale)
+    {
+        if (canvas.Width == width && canvas.Height == height && canvas.DpiScale == dpiScale) return;
+        canvas.UpdateDpiScale(dpiScale);
+        canvas.Resize(width, height);
     }
 
     private Popup? Find(int id)
@@ -361,7 +415,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             PopupSurface surface;
             try
             {
-                surface = _render.CreatePopup(passThrough: false);
+                surface = CreatePopupSurface();
             }
             catch (Exception e)
             {
@@ -396,7 +450,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
         foreach (var popup in _popups)
         {
-            _render.RenderPopup(popup.Surface);
+            _render.RenderWindowNow(popup.Surface.Window);
             if (!popup.Shown)
             {
                 popup.Surface.Window.Show();
@@ -428,7 +482,21 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private void DisposePopup(Popup popup)
     {
         Unsubscribe(popup.Surface.Window);
-        _render.DisposePopup(popup.Surface);
+        _render.DisposeWindow(popup.Surface.Window, popup.Surface.Canvas);
+    }
+
+    private PopupSurface CreatePopupSurface()
+    {
+        var window = _render.App.CreatePopupWindow(new PopupWindowOptions
+        {
+            WidthPoints = PopupInitialSize,
+            HeightPoints = PopupInitialSize,
+            OwnerWindow = _window,
+            MousePassThrough = false,
+        });
+        var canvas = _render.CreateCanvas(window, PopupInitialSize, PopupInitialSize);
+        _render.WirePresentLoop(window, canvas);
+        return new PopupSurface(window, canvas);
     }
 
     private void Subscribe(IWindow window)
@@ -511,7 +579,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     {
         TrackBounds();
         SyncScale();
-        _render.RenderNow();
+        _render.RenderWindowNow(_window);
     }
 
     private void HandleContentScaleChanged(float scale)
@@ -523,7 +591,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private void SyncScale()
     {
         var scale = _window.ContentScale > 0f ? _window.ContentScale : 1f;
-        var canvas = _render.Canvas;
+        var canvas = _render.MainCanvas;
         canvas.UpdateDpiScale(scale);
         canvas.Resize(
             (int)MathF.Max(1f, MathF.Round(Math.Max(1, _window.FramebufferWidth) / scale)),

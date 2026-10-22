@@ -64,9 +64,9 @@ public sealed class UndecoratedWindowTests : IDisposable
     {
         var app = new FakeWindowedApp([new MonitorWorkArea(0, 0, 1920, 1080)]);
         var font = _fonts.LoadFontFromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "Inter-Regular.ttf"), 16);
-        var backend = new FakeRenderBackend(_fonts, font);
+        var backend = new FakeRenderBackend(app, _fonts, font);
         var arbiter = new PointerOwnershipArbiter();
-        using var factory = new SecondaryWindowFactory(app, _fonts, font, backend,
+        using var factory = new SecondaryWindowFactory(backend,
             new Context(), arbiter, new ImeCoordinator(arbiter), new FakeUiScale(1f));
         IWindow? scopedWindow = null;
         var root = new ContainerView();
@@ -101,7 +101,7 @@ public sealed class UndecoratedWindowTests : IDisposable
         app.MainWindow.SetSize(300, 200);
         var font = _fonts.LoadFontFromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "Inter-Regular.ttf"), 16);
         var arbiter = new PointerOwnershipArbiter();
-        using var factory = new SecondaryWindowFactory(app, _fonts, font, new FakeRenderBackend(_fonts, font),
+        using var factory = new SecondaryWindowFactory(new FakeRenderBackend(app, _fonts, font),
             new Context(), arbiter, new ImeCoordinator(arbiter), new FakeUiScale(1f));
         var window = factory.Open(new SecondaryWindowRequest
         {

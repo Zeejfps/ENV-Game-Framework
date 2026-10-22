@@ -33,6 +33,7 @@
       <InternalsVisibleTo Include="ZGF.Gui.Desktop" />
       <InternalsVisibleTo Include="ZGF.Gui.Benchmarks" />
       <InternalsVisibleTo Include="ZGF.Gui.Immediate" />
+      <InternalsVisibleTo Include="ZGF.Gui.Hosting" />
     </ItemGroup>
 
     <ItemGroup>

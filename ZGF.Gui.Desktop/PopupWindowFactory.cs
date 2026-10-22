@@ -1,7 +1,7 @@
 using ZGF.Desktop;
-using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Input;
+using ZGF.Gui.Hosting;
 
 namespace ZGF.Gui.Desktop;
 
@@ -15,7 +15,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private readonly PointerOwnershipArbiter _arbiter;
     private readonly ImeCoordinator _ime;
     private readonly IUiScale _uiScale;
-    private readonly RenderedCanvasBase? _mainCanvasForFontRegistry;
 
     private readonly List<PopupWindowImpl> _activePopups = new();
     private readonly List<PopupWindowImpl> _pool = new();
@@ -27,23 +26,18 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
     private IWindow? _chainOwner;
 
     internal PopupWindowFactory(
-        IWindowedApp app,
-        FreeTypeFontBackend fonts,
-        FontHandle defaultFont,
         IGuiRenderBackend backend,
         Context mainContext,
         PointerOwnershipArbiter arbiter,
         ImeCoordinator ime,
-        IUiScale uiScale,
-        RenderedCanvasBase? mainCanvasForFontRegistry = null)
+        IUiScale uiScale)
     {
-        _app = app;
+        _app = backend.App;
         _backend = backend;
         _mainContext = mainContext;
         _arbiter = arbiter;
         _ime = ime;
         _uiScale = uiScale;
-        _mainCanvasForFontRegistry = mainCanvasForFontRegistry;
     }
 
     public IPopupWindow Acquire(in PopupRequest request)
@@ -162,9 +156,6 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             _pool.RemoveAt(0);
             _ime.Unregister(evict.Input);
             evict.Dispose();
-            // Dispose left the evicted window's (now-destroyed) context current; restore the
-            // main context so the run loop's next GL calls target a valid one.
-            _backend.MakeMainContextCurrent();
         }
         _pool.Add(impl);
 
@@ -331,7 +322,7 @@ public sealed class PopupWindowFactory : IPopupWindowFactory
             MousePassThrough = mousePassThrough,
         });
 
-        var canvas = _backend.CreateCanvas(window, initialSize, initialSize, _mainCanvasForFontRegistry);
+        var canvas = _backend.CreateCanvas(window, initialSize, initialSize);
 
         var input = new DesktopInputSystem(window, _uiScale, _arbiter, _app, _ime);
         // Registered for the popup's whole lifetime, not per-acquire: the impl (and its input system)
@@ -429,12 +420,6 @@ internal sealed class PopupWindowImpl : IPopupWindow, IDisposable
     public void Dispose()
     {
         SetRoot(null);
-        // VAOs are per-context (not shared across the GL share group). Make THIS window's
-        // context current before deleting the canvas's objects, otherwise glDeleteVertexArrays
-        // runs against whatever context is current (often the main window) and destroys that
-        // context's same-named VAOs. Callers restore the main context afterwards.
-        _backend.MakeWindowContextCurrent(_host.Window);
-        _host.DisposeCanvas();
-        _host.Window.Dispose();
+        _backend.DisposeWindow(_host.Window, _host.Canvas);
     }
 }

@@ -1,6 +1,6 @@
 using PngSharp.Api;
 
-namespace ZGF.Gui.Desktop.Backends;
+namespace ZGF.Gui.Hosting;
 
 // One outstanding screenshot request, fulfilled by a render backend once the frame it should
 // show has been drawn. Cleared as soon as it is taken, so at most one file is written per request.

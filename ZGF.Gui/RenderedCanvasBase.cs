@@ -231,7 +231,7 @@ public abstract class RenderedCanvasBase : ICanvas
     }
 
     // Recovers the logical size a font was authored at from the pixel size it was loaded at. Sound
-    // only because every caller loads at this canvas's own scale — PlatformBackend from the same
+    // only because every caller loads at this canvas's own scale — the render backend from the same
     // window DpiScale it passes here, GuiApp.RegisterFont from this canvas's DpiScale — so the two
     // divide out. Load a font at some other scale and its text will not follow this one.
     private float ToPointSize(FontHandle handle)
