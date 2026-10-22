@@ -28,7 +28,7 @@ internal static class StatusBarView
 
             using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                var activity = w.IsReloading ? t.StatusReloading : w.Tabs.Active is { IsBusy: true } ? t.StatusDecompiling : w.IsResolving ? t.StatusResolving : null;
+                var activity = DescribeActivity(w, t);
                 if (activity != null)
                 {
                     ui.Text(activity, color: theme.AccentText, size: size);
@@ -44,6 +44,23 @@ internal static class StatusBarView
                 ui.Text(ui.Memo("status-count", (w.Tree.Roots.Count, t), static a => a.t.StatusAssemblies(a.Count)), color: theme.TextMuted, size: size);
             }
         }
+    }
+
+    private static string? DescribeActivity(Workspace w, Strings t)
+    {
+        if (w.IsReloading)
+            return t.StatusReloading;
+        if (IsDecompiling(w))
+            return t.StatusDecompiling;
+        if (w.IsResolving)
+            return t.StatusResolving;
+        return null;
+    }
+
+    private static bool IsDecompiling(Workspace w)
+    {
+        var tab = w.Tabs.Active;
+        return tab != null && tab.IsBusy;
     }
 
     private static void Dot(Ui ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
