@@ -218,6 +218,34 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void All_kinds_stands_alone_and_comes_back_when_the_last_kind_is_unchecked()
+    {
+        var app = OpenFixtures();
+        app.Workspace.OpenSearch();
+        app.Run(2);
+
+        app.Click("Types and members");
+        app.Run();
+        app.ClickMenuItem("All");
+        app.Run();
+        Assert.Equal(SearchKinds.All, app.Workspace.Search.Kinds);
+        Assert.True(app.Frames.Drew("All kinds"));
+
+        app.ClickMenuItem("Resources");
+        app.Run();
+        Assert.Equal(SearchKinds.Resources, app.Workspace.Search.Kinds);
+        app.ClickMenuItem("Namespaces");
+        app.Run();
+        Assert.True(app.Frames.Drew("Kinds · 2"));
+
+        app.ClickMenuItem("Resources");
+        app.Run();
+        app.ClickMenuItem("Namespaces");
+        app.Run();
+        Assert.Equal(SearchKinds.All, app.Workspace.Search.Kinds);
+    }
+
+    [Fact]
     public void The_tree_menu_scopes_the_search_to_an_assembly()
     {
         var app = OpenFixtures();

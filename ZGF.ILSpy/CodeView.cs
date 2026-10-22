@@ -693,11 +693,7 @@ public static class CodeViewWidget
     private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId, Strings t)
     {
         var theme = ui.Theme;
-        using (ui.PaneToolbar(new Box
-        {
-            Height = theme.ToolbarHeight,
-            Padding = new Spacing(theme.ShellPaddingX, theme.ToolbarPaddingY),
-        }))
+        using (ui.PaneToolbar())
         {
             if (state.FocusFind)
             {

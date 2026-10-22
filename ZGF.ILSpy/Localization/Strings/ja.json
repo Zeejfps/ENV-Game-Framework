@@ -35,6 +35,8 @@
   "search.field_tooltip": "型とメンバーを検索 ({shortcut})",
   "search.syntax_tooltip": "検索 ({shortcut})\nt: 型   m: メンバー   md: メソッド   f: フィールド   p: プロパティ   e: イベント\nc: 定数とリテラル   r: リソース   n: 名前空間   a: アセンブリ   @ メタデータ トークン\ninassembly:名前   innamespace:名前\n-除外   =完全一致   ~順番どおりの文字   /正規表現/   \"引用符で囲んだ語句\"",
   "search.mode": "検索対象",
+  "search.kinds_all": "すべての種類",
+  "search.kinds_count": "種類 · {count}",
   "search.mode.all": "すべて",
   "search.mode.types_and_members": "型とメンバー",
   "search.mode.types": "型",

@@ -35,6 +35,8 @@
   "search.field_tooltip": "Pesquisar tipos e membros ({shortcut})",
   "search.syntax_tooltip": "Pesquisar ({shortcut})\nt: tipos   m: membros   md: métodos   f: campos   p: propriedades   e: eventos\nc: constantes e literais   r: recursos   n: namespaces   a: assemblies   @ token de metadados\ninassembly:nome   innamespace:nome\n-excluir   =exato   ~letras em ordem   /regex/   \"termos entre aspas\"",
   "search.mode": "Pesquisar por",
+  "search.kinds_all": "Todas as categorias",
+  "search.kinds_count": "Categorias · {count}",
   "search.mode.all": "Tudo",
   "search.mode.types_and_members": "Tipos e membros",
   "search.mode.types": "Tipos",

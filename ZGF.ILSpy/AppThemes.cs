@@ -26,7 +26,8 @@ internal static class AppLayout
 {
     public const float SearchWidth = 360f;
     public const float SearchMinWidth = 220f;
-    public const float SearchKindsMaxWidth = 200f;
+    public const float SearchLocationShare = 0.35f;
+    public const float SearchLocationMaxWidth = 320f;
     public const float FindWidth = 260f;
     public const float FindMinWidth = 140f;
     public const float ErrorDialogWidth = 760f;

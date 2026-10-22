@@ -21,6 +21,8 @@ internal static class SearchPanelView
         SearchKinds.Tokens, SearchKinds.Resources, SearchKinds.Assemblies, SearchKinds.Namespaces,
     ];
 
+    private static readonly ConditionalWeakTable<Strings, string[]> Summaries = new();
+
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
@@ -29,7 +31,7 @@ internal static class SearchPanelView
         using (ui.PaneToolbar(new Box { Gap = theme.Gap }))
         {
             using (var menu = ui.SelectButton("search-kinds", ui.Memo("search-kinds", (search.Kinds, t), static a => Summary(a.t, a.Kinds)),
-                       Sizing.Fit(max: AppLayout.SearchKindsMaxWidth), t.SearchMode))
+                       ui.SelectButtonWidth(Summaries.GetValue(t, AllSummaries)), ui.Memo("search-kinds-tip", (search.Kinds, t), static a => Description(a.t, a.Kinds))))
             {
                 if (menu.IsOpen)
                     KindsMenu(ui, w, t);
@@ -78,13 +80,12 @@ internal static class SearchPanelView
                     Background = background,
                 }))
                 {
-                    NodeIcons.Draw(ui, node.Kind);
+                    NodeIcons.Draw(ui, node.Kind, node.Accessibility);
                     using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
                     {
-                        ui.Text(label, new Box { Width = Sizing.Fit() with { Priority = 1 } },
-                            color: !node.IsPublicApi ? theme.TextMuted : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
-                        ui.Text(row.Location, new Box { Width = Sizing.Fit() with { Priority = 0 } }, color: theme.TextMuted, size: theme.FontSizeSmall,
-                            overflow: TextOverflow.EllipsisMiddle);
+                        ui.Text(label, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
+                        ui.Text(row.Location, new Box { Width = Sizing.Percent(AppLayout.SearchLocationShare, max: AppLayout.SearchLocationMaxWidth) },
+                            color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.EllipsisMiddle);
                     }
                 }
                 ui.Tooltip(item.Id, NodeText.Tooltip(node));
@@ -115,34 +116,56 @@ internal static class SearchPanelView
         }
     }
 
-    /// <summary>Check items for each kind under one for all of them, kept open so several can be
-    /// flipped in a row. The last kind left cannot be unchecked.</summary>
+    /// <summary>A check item for all kinds over one per kind, kept open so several can be flipped
+    /// in a row. While all is checked no kind is: checking a kind then picks it alone, and
+    /// unchecking the last one picked checks all again.</summary>
     private static void KindsMenu(Ui ui, Workspace w, Strings t)
     {
         var search = w.Search;
+        var all = search.Kinds == SearchKinds.All;
         var kinds = search.Kinds;
-        var all = kinds == SearchKinds.All;
-        if (ui.MenuItem(t.SearchModeAll, ref all, keepOpen: true) && all)
+        var checkAll = all;
+        if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true))
             kinds = SearchKinds.All;
         ui.MenuSeparator();
         foreach (var kind in Kinds)
         {
-            var on = (kinds & kind) != 0;
-            if (ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true))
-                kinds = on ? kinds | kind : kinds & ~kind;
+            var on = !all && (kinds & kind) != 0;
+            if (!ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true)) continue;
+            kinds = all ? kind : on ? kinds | kind : kinds & ~kind;
+            if (kinds == SearchKinds.None)
+                kinds = SearchKinds.All;
         }
-        if (kinds == SearchKinds.None || kinds == search.Kinds) return;
+        if (kinds == search.Kinds) return;
         search.Kinds = kinds;
         w.SaveSettings();
     }
 
-    private static string Summary(Strings t, SearchKinds kinds) => kinds switch
+    private static string Summary(Strings t, SearchKinds kinds)
     {
-        SearchKinds.All => t.SearchModeAll,
-        SearchKinds.TypesAndMembers => t.SearchModeTypesAndMembers,
-        SearchKinds.Members => t.SearchModeMembers,
-        _ => string.Join(", ", Kinds.Where(k => (kinds & k) != 0).Select(k => KindLabel(t, k))),
-    };
+        switch (kinds)
+        {
+            case SearchKinds.All:
+                return t.SearchKindsAll;
+            case SearchKinds.TypesAndMembers:
+                return t.SearchModeTypesAndMembers;
+            case SearchKinds.Members:
+                return t.SearchModeMembers;
+        }
+        var picked = Kinds.Where(k => (kinds & k) != 0).ToArray();
+        return picked.Length == 1 ? KindLabel(t, picked[0]) : t.SearchKindsCount(picked.Length);
+    }
+
+    private static string[] AllSummaries(Strings t) =>
+    [
+        t.SearchKindsAll, t.SearchModeTypesAndMembers, t.SearchModeMembers, t.SearchKindsCount(Kinds.Length),
+        ..Kinds.Select(k => KindLabel(t, k)),
+    ];
+
+    private static string Description(Strings t, SearchKinds kinds) =>
+        kinds == SearchKinds.All
+            ? $"{t.SearchMode}: {t.SearchKindsAll}"
+            : $"{t.SearchMode}:\n{string.Join("\n", Kinds.Where(k => (kinds & k) != 0).Select(k => KindLabel(t, k)))}";
 
     private static string KindLabel(Strings t, SearchKinds kind) => kind switch
     {

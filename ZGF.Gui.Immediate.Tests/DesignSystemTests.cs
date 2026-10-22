@@ -191,7 +191,7 @@ public sealed class ThemeRoleTests
         });
 
         var bar = Assert.Single(frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFF0A0B0Cu);
-        Assert.Equal(theme.PaneHeaderHeight, bar.Inputs.Position.Height);
+        Assert.Equal(theme.ToolbarHeight, bar.Inputs.Position.Height);
     }
 }
 

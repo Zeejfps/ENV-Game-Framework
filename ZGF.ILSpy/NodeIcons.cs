@@ -41,14 +41,10 @@ public static class NodeIcons
     public static UiIcon Icon(NodeKind kind, NodeAccessibility accessibility, NodeIconPalette palette) =>
         new(Glyph(kind), Family, palette.For(kind), Overlay: Overlay(accessibility), OverlayColor: palette.Restricted);
 
-    /// <summary>Records <paramref name="kind"/>'s icon in a slot as wide as the theme's icon size,
-    /// colored from the provided <see cref="NodeIconPalette"/>.</summary>
-    public static void Draw(Ui ui, NodeKind kind)
-    {
-        var theme = ui.Theme;
-        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
-        ui.Text(Glyph(kind), new Box { Width = theme.IconSize }, color: palette.For(kind), size: theme.IconSize, align: Align.Center, family: Family);
-    }
+    /// <summary>Records <paramref name="kind"/>'s <see cref="Icon"/> as the tree shows it, colored from
+    /// the provided <see cref="NodeIconPalette"/>.</summary>
+    public static void Draw(Ui ui, NodeKind kind, NodeAccessibility accessibility = NodeAccessibility.None) =>
+        ui.Icon(Icon(kind, accessibility, ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark));
 
     private static KindIcon[] BuildIcons()
     {

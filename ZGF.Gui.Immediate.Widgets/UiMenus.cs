@@ -99,6 +99,7 @@ public static partial class UiWidgets
         private List<int> _recordingIds = new();
         private int _owner;
         private bool _childSeen;
+        private PointF _pointer = new(float.NaN, float.NaN);
 
         public int PopupId;
         public int Highlight = -1;
@@ -109,6 +110,16 @@ public static partial class UiWidgets
         public MenuPopup? OpenChild;
 
         public int ScrollId => HashCode.Combine(PopupId, MenuScrollSalt);
+
+        /// <summary>Whether the pointer moved since the menu last looked, so hovering takes the
+        /// highlight from the keys only when the user moves the mouse, not while it rests on an item.</summary>
+        public bool PointerMoved { get; private set; }
+
+        public void TrackPointer(PointF pointer)
+        {
+            PointerMoved = pointer != _pointer;
+            _pointer = pointer;
+        }
 
         public abstract void Close();
 
@@ -365,7 +376,7 @@ public static partial class UiWidgets
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var index = parent.AddItem(i.Id, enabled, subMenu: true);
-        if (enabled && (ui.IsPointerOver(i.Id) || i.Clicked))
+        if (enabled && ((parent.PointerMoved && ui.IsPointerOver(i.Id)) || i.Clicked))
         {
             parent.Highlight = index;
             parent.OpenSub = index;
@@ -434,7 +445,7 @@ public static partial class UiWidgets
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var index = menu?.AddItem(i.Id, enabled) ?? -1;
         var over = enabled && ui.IsPointerOver(i.Id);
-        if (over && menu != null)
+        if (over && menu is { PointerMoved: true })
         {
             menu.Highlight = index;
             menu.OpenSub = -1;
@@ -499,6 +510,7 @@ public static partial class UiWidgets
         bool hasTitle = false)
     {
         var theme = ui.Theme;
+        menu.TrackPointer(ui.Input.Pointer);
         var layer = ui.Layer(menu.PopupId);
         var popup = ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
         var scroll = ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });

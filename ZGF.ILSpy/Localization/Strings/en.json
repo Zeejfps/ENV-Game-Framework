@@ -39,6 +39,8 @@
   "search.field_tooltip": "Search types and members ({shortcut})",
   "search.syntax_tooltip": "Search ({shortcut})\nt: types   m: members   md: methods   f: fields   p: properties   e: events\nc: constants and literals   r: resources   n: namespaces   a: assemblies   @ metadata token\ninassembly:name   innamespace:name\n-exclude   =exact   ~letters in order   /regex/   \"quoted terms\"",
   "search.mode": "Search for",
+  "search.kinds_all": "All kinds",
+  "search.kinds_count": "Kinds · {count}",
   "search.mode.all": "All",
   "search.mode.types_and_members": "Types and members",
   "search.mode.types": "Types",

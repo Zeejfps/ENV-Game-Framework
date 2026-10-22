@@ -455,6 +455,24 @@ public sealed class DropdownButtonTests
         Assert.Equal(["Second"], _picks);
         Assert.False(_frames.Drew("First"));
     }
+
+    [Fact]
+    public void A_resting_pointer_does_not_take_the_highlight_back_from_the_keys()
+    {
+        _frames.Run(0f, Body);
+        ClickButton();
+        var first = _frames.RectOf(Body, ui => ui.GetId("First"));
+        _frames.MovePointer(first.X + 4f, first.Y + first.Height / 2);
+        _frames.Run(0f, Body);
+
+        _frames.Key(KeyboardKey.DownArrow);
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+        _frames.Key(KeyboardKey.Enter);
+        _frames.Run(0f, Body);
+
+        Assert.Equal(["Second"], _picks);
+    }
 }
 
 public sealed class SelectTests

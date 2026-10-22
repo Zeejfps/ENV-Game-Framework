@@ -490,7 +490,7 @@ internal sealed class LayoutTree
                 var basis = child.Floating ? outer : mainAxis ? inner - gaps : inner;
                 var size = x ? child.W : child.H;
                 if (sizing.Kind == SizingKind.Percent)
-                    size = MathF.Max(0f, basis * sizing.Value);
+                    size = Math.Clamp(basis * sizing.Value, sizing.Min, MathF.Max(sizing.Min, sizing.Max));
                 else if (sizing.Kind == SizingKind.Grow && (!mainAxis || child.Floating))
                     size = Math.Clamp(basis, sizing.Min, MathF.Max(sizing.Min, sizing.Max));
                 if (x) child.W = size;

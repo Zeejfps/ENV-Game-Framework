@@ -30,7 +30,7 @@ public enum SizingKind
 
 /// <summary>How an element is sized along one axis. <see cref="Fit"/> wraps the content,
 /// <see cref="Grow"/> takes a share of the parent's leftover space, <see cref="Percent"/> takes a
-/// fraction of the parent's inner size.</summary>
+/// fraction of the parent's inner size; each kept within its min and max.</summary>
 public readonly record struct Sizing(SizingKind Kind, float Value, float Min, float Max)
 {
     /// <summary>How long a growable element keeps its room when its parent runs out: siblings of
@@ -42,7 +42,7 @@ public readonly record struct Sizing(SizingKind Kind, float Value, float Min, fl
     public static Sizing Fit(float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Fit, 0f, min, max);
     public static Sizing Grow(float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Grow, 0f, min, max);
     public static Sizing Fixed(float size) => new(SizingKind.Fixed, size, size, size);
-    public static Sizing Percent(float fraction) => new(SizingKind.Percent, fraction, 0f, float.PositiveInfinity);
+    public static Sizing Percent(float fraction, float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Percent, fraction, min, max);
 
     public static implicit operator Sizing(float size) => Fixed(size);
 }

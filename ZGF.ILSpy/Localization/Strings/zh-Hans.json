@@ -35,6 +35,8 @@
   "search.field_tooltip": "搜索类型和成员 ({shortcut})",
   "search.syntax_tooltip": "搜索 ({shortcut})\nt: 类型   m: 成员   md: 方法   f: 字段   p: 属性   e: 事件\nc: 常量和字面量   r: 资源   n: 命名空间   a: 程序集   @ 元数据标记\ninassembly:名称   innamespace:名称\n-排除   =完全匹配   ~按顺序的字母   /正则表达式/   \"带引号的词语\"",
   "search.mode": "搜索范围",
+  "search.kinds_all": "所有类别",
+  "search.kinds_count": "类别 · {count}",
   "search.mode.all": "全部",
   "search.mode.types_and_members": "类型和成员",
   "search.mode.types": "类型",

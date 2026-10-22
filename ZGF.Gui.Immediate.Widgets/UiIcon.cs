@@ -30,7 +30,8 @@ public static partial class UiWidgets
                         Radius = theme.RadiusSmall,
                     }
                     : default,
-                color: icon.Color != 0 ? icon.Color : theme.TextMuted, align: Align.Center, family: icon.Family);
+                color: icon.Color != 0 ? icon.Color : theme.TextMuted, size: icon.Background != 0 ? null : theme.IconSize, align: Align.Center,
+                family: icon.Family);
             if (icon.Overlay != null)
             {
                 var overlay = theme.IconOverlaySize;

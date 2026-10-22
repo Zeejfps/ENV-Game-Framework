@@ -165,6 +165,17 @@ public static partial class UiWidgets
         return changed;
     }
 
+    /// <summary>How wide a <see cref="SelectButton"/> must be to show the widest of
+    /// <paramref name="labels"/> whole, so it keeps one width whichever it shows.</summary>
+    public static float SelectButtonWidth(this Ui ui, ReadOnlySpan<string> labels)
+    {
+        var theme = ui.Theme;
+        var widest = 0f;
+        foreach (var label in labels)
+            widest = MathF.Max(widest, ui.MeasureText(label));
+        return MathF.Ceiling(widest) + theme.ControlPaddingX * 2 + theme.GapTight + theme.DropdownArrowWidth + theme.BorderWidth * 2;
+    }
+
     /// <summary>A button showing <paramref name="text"/> and a down triangle that opens a menu below
     /// it, for picking what the text names: a <see cref="Select{T}"/>, or several checked items kept
     /// open with <c>MenuItem(label, ref value, keepOpen: true)</c>. The menu closes and is keyed as a
