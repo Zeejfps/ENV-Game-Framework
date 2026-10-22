@@ -1,0 +1,15 @@
+<Project>
+
+    <!-- Self-contained and native AOT publishes carry the .NET runtime, so they carry its notices too. -->
+    <Target Name="PublishRuntimeLicenses" AfterTargets="ComputeResolvedFilesToPublishList"
+            Condition="'$(IsSubmoduleProject)' != 'true' and ('$(SelfContained)' == 'true' or '$(PublishAot)' == 'true')">
+        <ItemGroup>
+            <_NetCoreRuntimePack Include="@(ResolvedRuntimePack)" Condition="'%(FrameworkName)' == 'Microsoft.NETCore.App'" />
+            <ResolvedFileToPublish Include="%(_NetCoreRuntimePack.PackageDirectory)\LICENSE.TXT"
+                                   RelativePath="licenses\LICENSE-dotnet.txt" CopyToPublishDirectory="PreserveNewest" />
+            <ResolvedFileToPublish Include="%(_NetCoreRuntimePack.PackageDirectory)\THIRD-PARTY-NOTICES.TXT"
+                                   RelativePath="licenses\THIRD-PARTY-NOTICES-dotnet.txt" CopyToPublishDirectory="PreserveNewest" />
+        </ItemGroup>
+    </Target>
+
+</Project>

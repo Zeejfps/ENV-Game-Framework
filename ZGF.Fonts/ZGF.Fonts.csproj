@@ -13,10 +13,25 @@
 
     <ItemGroup>
         <PackageReference Include="FreeTypeSharp" />
-        <PackageReference Include="HarfBuzzSharp" />
+        <PackageReference Include="HarfBuzzSharp" GeneratePathProperty="true" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" />
-        <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" GeneratePathProperty="true" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="Licenses\LICENSE-*.txt">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>licenses\%(Filename)%(Extension)</TargetPath>
+        </Content>
+        <Content Include="$(PkgHarfBuzzSharp)\LICENSE.txt">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>licenses\LICENSE-HarfBuzzSharp.txt</TargetPath>
+        </Content>
+        <Content Include="$(PkgHarfBuzzSharp_NativeAssets_Win32)\THIRD-PARTY-NOTICES.txt">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>licenses\THIRD-PARTY-NOTICES-HarfBuzzSharp.txt</TargetPath>
+        </Content>
     </ItemGroup>
 
 </Project>

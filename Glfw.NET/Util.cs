@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using JetBrains.Annotations;
 
 namespace GLFW
 {
@@ -15,7 +14,6 @@ namespace GLFW
         /// </summary>
         /// <param name="ptr">Pointer to the start of the string.</param>
         /// <returns>Managed string created from read UTF-8 bytes.</returns>
-        [NotNull]
         // ReSharper disable once InconsistentNaming
         public static string PtrToStringUTF8(IntPtr ptr)
         {
@@ -39,7 +37,7 @@ namespace GLFW
         /// <param name="str">The string to encode.</param>
         /// <returns>Null-terminated UTF-8 bytes.</returns>
         // ReSharper disable once InconsistentNaming
-        public static byte[] StringToUTF8Z([CanBeNull] string str)
+        public static byte[] StringToUTF8Z(string? str)
         {
             var count = Encoding.UTF8.GetByteCount(str ?? "");
             var buffer = new byte[count + 1];
@@ -53,7 +51,7 @@ namespace GLFW
         /// </summary>
         /// <param name="str">The string to encode.</param>
         /// <returns>Null-terminated ASCII bytes.</returns>
-        public static byte[] StringToAsciiZ([CanBeNull] string str)
+        public static byte[] StringToAsciiZ(string? str)
         {
             var count = Encoding.ASCII.GetByteCount(str ?? "");
             var buffer = new byte[count + 1];

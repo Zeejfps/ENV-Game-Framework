@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using JetBrains.Annotations;
 using Microsoft.Win32.SafeHandles;
 
 namespace GLFW
@@ -229,7 +228,6 @@ namespace GLFW
         /// <value>
         ///     The clipboard string.
         /// </value>
-        [JetBrains.Annotations.NotNull]
         public string Clipboard
         {
             get => Glfw.GetClipboardString(Window);
@@ -464,8 +462,7 @@ namespace GLFW
         /// <value>
         ///     The title.
         /// </value>
-        [CanBeNull]
-        public string Title
+        public string? Title
         {
             get => title;
             set
@@ -566,7 +563,7 @@ namespace GLFW
         /// <param name="width">The desired width, in screen coordinates, of the window. This must be greater than zero.</param>
         /// <param name="height">The desired height, in screen coordinates, of the window. This must be greater than zero.</param>
         /// <param name="title">The initial window title.</param>
-        public NativeWindow(int width, int height, [CanBeNull] string title) : this(width, height, title, Monitor.None,
+        public NativeWindow(int width, int height, string? title) : this(width, height, title, Monitor.None,
             Window.None)
         {
         }
@@ -582,7 +579,7 @@ namespace GLFW
         ///     A window instance whose context to share resources with, or <see cref="GLFW.Window.None" /> to not share
         ///     resources..
         /// </param>
-        public NativeWindow(int width, int height, [CanBeNull] string title, Monitor monitor, Window share) : base(true)
+        public NativeWindow(int width, int height, string? title, Monitor monitor, Window share) : base(true)
         {
             this.title = title ?? string.Empty;
             Window = Glfw.CreateWindow(width, height, title ?? string.Empty, monitor, share);
@@ -697,7 +694,7 @@ namespace GLFW
         ///     <para>Standard sizes are 16x16, 32x32, and 48x48.</para>
         /// </summary>
         /// <param name="images">One or more images to set as an icon.</param>
-        public void SetIcons([JetBrains.Annotations.NotNull] params Image[] images)
+        public void SetIcons(params Image[] images)
         {
             Glfw.SetWindowIcon(Window, images.Length, images);
         }
@@ -976,7 +973,7 @@ namespace GLFW
         ///     Raises the <see cref="FileDrop" /> event.
         /// </summary>
         /// <param name="paths">The filenames of the dropped files.</param>
-        protected virtual void OnFileDrop([JetBrains.Annotations.NotNull] string[] paths)
+        protected virtual void OnFileDrop(string[] paths)
         {
             FileDrop?.Invoke(this, new FileDropEventArgs(paths));
         }

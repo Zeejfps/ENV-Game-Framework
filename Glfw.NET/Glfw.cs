@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
-using JetBrains.Annotations;
 
 #pragma warning disable 0419
 
@@ -338,7 +337,7 @@ namespace GLFW
         public static extern bool JoystickIsGamepad(Joystick joystickId);
 
         [DllImport(LIBRARY, EntryPoint = "glfwUpdateGamepadMappings", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool UpdateGamepadMappings([NotNull] byte[] mappings);
+        private static extern bool UpdateGamepadMappings(byte[] mappings);
 
         /// <summary>
         ///     Parses the specified string and updates the internal list with any gamepad mappings it finds.
@@ -1518,7 +1517,7 @@ namespace GLFW
         ///     resources..
         /// </param>
         /// <returns>The created window, or <see cref="Window.None" /> if an error occurred.</returns>
-        public static Window CreateWindow(int width, int height, [NotNull] string title, Monitor monitor, Window share)
+        public static Window CreateWindow(int width, int height, string title, Monitor monitor, Window share)
         {
             return CreateWindow(width, height, Util.StringToUTF8Z(title), monitor, share);
         }
@@ -1539,7 +1538,6 @@ namespace GLFW
         /// </summary>
         /// <param name="window">A window instance.</param>
         /// <returns>The contents of the clipboard as a UTF-8 encoded string, or <c>null</c> if an error occurred.</returns>
-        [NotNull]
         public static string GetClipboardString(Window window)
         {
             return Util.PtrToStringUTF8(GetClipboardStringInternal(window));

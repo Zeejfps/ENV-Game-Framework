@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
-using JetBrains.Annotations;
 
 namespace GLFW
 {
@@ -168,8 +167,7 @@ namespace GLFW
         ///     Returns the contents of the selection as a string.
         /// </summary>
         /// <returns>The selected string, or <c>null</c> if error occurs or no string is selected.</returns>
-        [CanBeNull]
-        public static string GetX11SelectionString()
+        public static string? GetX11SelectionString()
         {
             var ptr = GetX11SelectionStringInternal();
             return ptr == IntPtr.Zero ? null : Util.PtrToStringUTF8(ptr);
@@ -179,7 +177,7 @@ namespace GLFW
         ///     Sets the clipboard string of an X11 window.
         /// </summary>
         /// <param name="str">The string to set.</param>
-        public static void SetX11SelectionString([NotNull] string str)
+        public static void SetX11SelectionString(string str)
         {
             SetX11SelectionString(Util.StringToUTF8Z(str));
         }
@@ -213,7 +211,7 @@ namespace GLFW
 
 
         [DllImport(Glfw.LIBRARY, EntryPoint = "glfwSetX11SelectionString", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void SetX11SelectionString([NotNull] byte[] str);
+        private static extern void SetX11SelectionString(byte[] str);
 
         [DllImport(Glfw.LIBRARY, EntryPoint = "glfwGetX11SelectionString", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr GetX11SelectionStringInternal();
