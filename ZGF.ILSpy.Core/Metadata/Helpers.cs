@@ -56,9 +56,8 @@ namespace ZGF.ILSpy.Core.Metadata
 
 	/// <summary>
 	/// One row in a PE-header / metadata-table dump. <c>Value</c> is rendered hex-formatted
-	/// at <c>Size * 2</c> digits when numeric; <c>RowDetails</c> carries optional flag-bit
-	/// breakdowns that the DataGrid view (Phase 2) uses to populate row details. The text
-	/// path (Phase 1) ignores <c>RowDetails</c>.
+	/// at <c>Size * 2</c> digits when numeric; <c>ValueTooltip</c> carries an optional flag-bit
+	/// breakdown shown on hovering it. The text path ignores <c>ValueTooltip</c>.
 	/// </summary>
 	internal sealed class Entry
 	{
@@ -67,7 +66,7 @@ namespace ZGF.ILSpy.Core.Metadata
 		public int Size { get; }
 		public object? Value { get; }
 		public string Meaning { get; }
-		public IList<BitEntry>? RowDetails { get; }
+		public IList<BitEntry>? ValueTooltip { get; }
 
 		public Entry(int offset, object? value, int size, string member, string meaning, IList<BitEntry>? rowDetails = null)
 		{
@@ -76,11 +75,11 @@ namespace ZGF.ILSpy.Core.Metadata
 			Size = size;
 			Value = value;
 			Meaning = meaning;
-			RowDetails = rowDetails;
+			ValueTooltip = rowDetails;
 		}
 	}
 
-	/// <summary>One bit (or bit-group) entry inside a flags-Entry's row-details strip.</summary>
+	/// <summary>One bit (or bit-group) entry of a flags-Entry's breakdown.</summary>
 	internal sealed class BitEntry
 	{
 		public bool Value { get; }

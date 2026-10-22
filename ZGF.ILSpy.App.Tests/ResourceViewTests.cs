@@ -1,4 +1,7 @@
+using ZGF.Desktop;
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
+using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -72,99 +75,85 @@ public sealed class ResourceViewTests
     }
 
     [Fact]
-    public void A_multi_line_string_shows_its_first_line_and_folds_out_in_full_from_its_chevron()
+    public void A_multi_line_string_shows_its_first_line_and_how_many_more_follow()
     {
-        var (app, tab) = ShowResource("Mixed.resources");
+        var (app, _) = ShowResource("Mixed.resources");
         var first = app.TextRect("first line");
         var more = app.TextRect("+1 lines");
+
         Assert.Throws<InvalidOperationException>(() => app.TextRect("second line"));
-
-        var chevron = app.Frames.Canvas.Texts.Select(t => t.Inputs)
-            .Single(t => t.Text == LucideIcons.ChevronRight && Math.Abs(app.Frames.Height - t.Position.Top - first.Y) < 4f).Position;
-        app.Frames.MovePointer(chevron.Left + chevron.Width / 2, app.Frames.Height - chevron.Top + chevron.Height / 2);
-        app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run(3);
-
         Assert.True(more.X > first.X + first.Width);
         Assert.Equal(first.Y, more.Y, 4f);
-        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
     }
 
-    private static void Unfold(AppDriver app, string firstLine)
+    private static void Press(AppDriver app, UiRect at, int times = 1)
     {
-        var row = app.TextRect(firstLine);
-        var chevron = app.Frames.Canvas.Texts.Select(t => t.Inputs)
-            .Single(t => t.Text == LucideIcons.ChevronRight && Math.Abs(app.Frames.Height - t.Position.Top - row.Y) < 4f).Position;
-        app.Frames.MovePointer(chevron.Left + chevron.Width / 2, app.Frames.Height - chevron.Top + chevron.Height / 2);
+        app.Frames.Wait(1);
+        app.Frames.MovePointer(at.X + at.Width / 2, at.Y + at.Height / 2);
         app.Run();
-        app.Frames.Press();
-        app.Run();
-        app.Frames.Release();
-        app.Run(3);
-    }
-
-    [Fact]
-    public void Several_strings_fold_out_at_once_each_with_its_own_text()
-    {
-        var (app, _) = ShowResource("Mixed.resources");
-
-        Unfold(app, "first line");
-        Unfold(app, "roses");
-
-        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
-        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "violets");
-    }
-
-    [Fact]
-    public void Clicking_a_rows_name_folds_it_out_and_in()
-    {
-        var (app, _) = ShowResource("Mixed.resources");
-        var name = app.TextRect("Multiline");
-
-        void ClickName()
+        for (var i = 0; i < times; i++)
         {
-            app.Frames.MovePointer(name.X + name.Width / 2, name.Y + name.Height / 2);
-            app.Run();
             app.Frames.Press();
             app.Run();
             app.Frames.Release();
-            app.Run(3);
+            app.Run();
         }
-
-        ClickName();
-        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
-        app.Frames.Wait(1);
-        ClickName();
-        Assert.DoesNotContain(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
+        app.Run(2);
     }
 
     [Fact]
-    public void A_folded_out_string_is_as_tall_as_its_lines()
+    public void Double_clicking_a_multi_line_string_grows_its_cell_to_show_every_line_as_the_cell_shows_its_first()
     {
         var (app, _) = ShowResource("Mixed.resources");
         var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
+        var before = app.TextRect("first line");
+        var color = app.Frames.TextColor("first line");
 
-        Unfold(app, "first line");
-        var row = app.TextRect("first line").Y;
-        var lines = app.Frames.Canvas.GlyphRuns.Where(r => r.Text is "first line" or "second line").Select(r => app.Frames.Height - r.Origin.Y).Order().ToArray();
-        var next = app.TextRect("Notes.xml").Y;
+        Press(app, before, times: 2);
 
-        Assert.Equal(2, lines.Length);
-        Assert.Equal(theme.RowHeight + 2 * MathF.Abs(lines[1] - lines[0]) + theme.GapTight, next - row, 0.5f);
+        var first = app.TextRect("first line");
+        var second = app.TextRect("second line");
+        Assert.Equal((before.X, before.Y), (first.X, first.Y));
+        Assert.Equal(first.X, second.X);
+        Assert.Equal(theme.RowHeight, MathF.Abs(second.Y - first.Y), 0.5f);
+        Assert.Equal(color, app.Frames.TextColor("second line"));
+        Assert.Equal(2 * theme.RowHeight, MathF.Abs(app.TextRect("Notes.xml").Y - app.TextRect("Multiline").Y), 0.5f);
+        Assert.Throws<InvalidOperationException>(() => app.TextRect("+1 lines"));
     }
 
     [Fact]
-    public void A_folded_out_string_shows_only_its_text_without_line_numbers()
+    public void Escape_drops_the_text_selected_in_an_open_string_then_closes_it_as_moving_to_another_cell_does()
     {
         var (app, _) = ShowResource("Mixed.resources");
 
-        Unfold(app, "first line");
+        Press(app, app.TextRect("first line"), times: 2);
+        app.Frames.Key(KeyboardKey.Escape);
+        app.Run(2);
+        Assert.True(app.Frames.Drew("second line"));
+        app.Frames.Key(KeyboardKey.Escape);
+        app.Run(2);
+        Assert.False(app.Frames.Drew("second line"));
 
-        Assert.Contains(app.Frames.Canvas.GlyphRuns, r => r.Text == "second line");
-        Assert.DoesNotContain(app.Frames.Canvas.GlyphRuns, r => r.Text.Trim() is "1" or "2");
+        Press(app, app.TextRect("first line"), times: 2);
+        Press(app, app.TextRect("Greeting"));
+        Assert.False(app.Frames.Drew("second line"));
+    }
+
+    [Fact]
+    public void Ctrl_C_copies_a_whole_multi_line_string_or_the_word_double_clicked_in_a_name()
+    {
+        var (app, _) = ShowResource("Mixed.resources");
+
+        Press(app, app.TextRect("first line"));
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
+        app.Run();
+        Assert.Equal("first line\nsecond line", app.Frames.Clipboard.Text);
+
+        var name = app.TextRect("Notes.xml");
+        Press(app, name with { Width = name.Width / 3 }, times: 2);
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
+        app.Run();
+        Assert.Equal("Notes", app.Frames.Clipboard.Text);
     }
 
     [Fact]

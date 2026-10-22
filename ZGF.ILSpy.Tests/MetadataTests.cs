@@ -283,19 +283,19 @@ public sealed class MetadataTests
     }
 
     [Fact]
-    public void A_header_shows_the_bits_of_its_flags_under_their_row()
+    public void A_header_breaks_the_bits_of_its_flags_down_on_hovering_their_value()
     {
         var (_, assembly) = Trees.OpenTestAssembly();
         var coff = Grid(Metadata(assembly).Child("COFF Header"));
         var characteristics = Enumerable.Range(0, coff.RowCount).Single(r => coff.Text(r, Column(coff, "Member")) == "Characteristics");
 
-        var bits = Assert.IsType<MetadataBitDetails>(coff.Details(characteristics)).Bits;
+        var bits = Assert.Single(coff.Tooltip(characteristics, Column(coff, "Value"))!.Groups).Flags;
 
-        Assert.Equal(MetadataDetailsMode.Foldable, coff.DetailsMode);
+        Assert.False(coff.HasDetails);
         Assert.Equal(16, bits.Count);
         Assert.Contains(bits, b => b.Name == "<0002> File is executable" && b.IsSet);
-        Assert.Null(coff.Details(0));
-        Assert.Equal(MetadataDetailsMode.None, Grid(Table(assembly, "TypeDef")).DetailsMode);
+        Assert.Null(coff.Tooltip(0, Column(coff, "Value")));
+        Assert.False(Grid(Table(assembly, "TypeDef")).HasDetails);
     }
 
     [Fact]
@@ -309,7 +309,7 @@ public sealed class MetadataTests
         var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));
         var table = Assert.IsType<MetadataTableDetails>(grid.Details(options));
 
-        Assert.Equal(MetadataDetailsMode.WhenSelected, grid.DetailsMode);
+        Assert.True(grid.HasDetails);
         Assert.Equal(["Name", "Value"], table.Headers);
         Assert.Contains(table.Rows, r => r[0] == "language" && r[1] == "C#");
     }

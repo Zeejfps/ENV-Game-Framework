@@ -255,26 +255,83 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
-    public void A_headers_flags_fold_out_bit_by_bit_under_their_row()
+    public void Hovering_a_headers_flags_value_breaks_its_bits_down()
     {
         var app = new AppDriver(width: 1800f, height: 1200f);
         app.Driver.OpenFixtures();
         app.Driver.Show(app.Driver.Node("Metadata", "COFF Header"));
         app.Run(3);
-        Assert.Throws<InvalidOperationException>(() => app.TextRect("<0002> File is executable"));
+        var grid = app.Workspace.ActiveTab!.Grid!;
+        var row = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, Column(grid, "Member")) == "Characteristics");
+        var value = TextBeside(app, grid.Text(row, Column(grid, "Value")), "Characteristics");
 
-        Click(app, TextBeside(app, LucideIcons.ChevronRight, "Characteristics"));
-        app.Run(2);
+        app.Frames.MovePointer(value.X + 2f, value.Y + value.Height / 2);
+        for (var i = 0; i < 90; i++)
+            app.Run();
 
-        Assert.True(TextBeside(app, LucideIcons.ChevronDown, "Characteristics").X < app.TextRect("Characteristics").X);
         app.TextRect("<0002> File is executable");
         app.TextRect("<2000> DLL");
-        Assert.True(app.TextRect("<0001> Relocation info stripped from file").Y > app.TextRect("Characteristics").Y);
+    }
 
-        Click(app, TextBeside(app, "150", "Characteristics"));
-        app.Frames.Key(KeyboardKey.Space);
-        app.Run(2);
-        Assert.Throws<InvalidOperationException>(() => app.TextRect("<0002> File is executable"));
+    private static void Drag(AppDriver app, float fromX, float toX, float y)
+    {
+        app.Frames.Wait(1);
+        app.Frames.MovePointer(fromX, y);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.MovePointer(toX, y);
+        app.Run();
+        app.Frames.Release();
+        app.Run();
+    }
+
+    [Fact]
+    public void Dragging_across_a_cell_selects_part_of_its_text_for_Ctrl_C()
+    {
+        var (app, tab, _, row) = ShowGreeterRow();
+        var name = TextBeside(app, "Greeter", "Greeter");
+        var advance = name.Width / "Greeter".Length;
+
+        Drag(app, name.X + 1f, name.X + advance * 4, name.Y + name.Height / 2);
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
+        app.Run();
+
+        Assert.Equal("Gree", app.Frames.Clipboard.Text);
+        Assert.Equal(row, tab.GridView.Selected);
+    }
+
+    [Fact]
+    public void Dragging_across_a_token_selects_it_instead_of_following_it()
+    {
+        var (app, tab, grid, row) = ShowGreeterRow();
+        var baseType = grid.Text(row, Column(grid, "BaseType"));
+        var token = TextBeside(app, baseType, "Greeter");
+
+        Drag(app, token.X + 1f, token.X + token.Width - 1f, token.Y + token.Height / 2);
+        app.Driver.Settle();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
+        app.Run();
+
+        Assert.Same(Table(app.Driver, "TypeDef"), tab.Node);
+        Assert.Equal(baseType, app.Frames.Clipboard.Text);
+    }
+
+    [Fact]
+    public void Moving_to_another_cell_drops_the_text_selected_in_the_last()
+    {
+        var (app, _, _, _) = ShowGreeterRow();
+        var name = TextBeside(app, "Greeter", "Greeter");
+        Drag(app, name.X + 1f, name.X + name.Width / 2, name.Y + name.Height / 2);
+
+        app.Frames.Key(KeyboardKey.LeftArrow);
+        app.Run();
+        app.Frames.Key(KeyboardKey.RightArrow);
+        app.Run();
+        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
+        app.Run();
+
+        Assert.Equal("Greeter", app.Frames.Clipboard.Text);
     }
 
     [Fact]

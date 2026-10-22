@@ -30,25 +30,8 @@ public sealed class MetadataColumnFilter
     public bool IsActive => Text.Length > 0 || Flags is { IsEmpty: false };
 }
 
-/// <summary>When a <see cref="MetadataGrid"/> shows rows' <see cref="MetadataGrid.Details"/>.</summary>
-public enum MetadataDetailsMode
-{
-    None,
-
-    /// <summary>Each row that has details folds them out under it on demand, as a header's
-    /// flags and a resource's long strings do.</summary>
-    Foldable,
-
-    /// <summary>The selected row shows its details under it, as a debug information's decoded
-    /// value does.</summary>
-    WhenSelected,
-}
-
-/// <summary>What is shown under a row of a <see cref="MetadataGrid"/>.</summary>
+/// <summary>What is shown under the selected row of a <see cref="MetadataGrid"/>.</summary>
 public abstract record MetadataRowDetails;
-
-/// <summary>A flags value bit by bit: whether each is set, and what it means.</summary>
-public sealed record MetadataBitDetails(IReadOnlyList<MetadataFlag> Bits) : MetadataRowDetails;
 
 /// <summary>A decoded text, with the file extension of the language it is in, if known.</summary>
 public sealed record MetadataTextDetails(string Text, string? Extension) : MetadataRowDetails;
@@ -77,6 +60,7 @@ public readonly record struct MetadataTarget(BrowseNode Node, int Row);
 /// </summary>
 public sealed class MetadataGrid
 {
+    private const string RowDetailsProperty = "RowDetails";
     private static readonly ConcurrentDictionary<Type, Descriptor[]> Descriptors = new();
     private static readonly ConcurrentDictionary<string, Regex?> Patterns = new();
 
@@ -94,19 +78,16 @@ public sealed class MetadataGrid
         _descriptors = Descriptors.GetOrAdd(entryType, Describe);
         Columns = _descriptors.Select(static d => d.Column).ToArray();
         Key = entryType.FullName ?? entryType.Name;
-        _details = entryType.GetProperty(nameof(Entry.RowDetails), BindingFlags.Public | BindingFlags.Instance);
-        DetailsMode = _details == null ? MetadataDetailsMode.None
-            : entryType == typeof(CustomDebugInformationTable.CustomDebugInformationEntry) ? MetadataDetailsMode.WhenSelected
-            : MetadataDetailsMode.Foldable;
+        _details = entryType.GetProperty(RowDetailsProperty, BindingFlags.Public | BindingFlags.Instance);
     }
 
     /// <summary>What names the kind of rows, the same for a table in any assembly: where a
     /// column's flags filter is kept.</summary>
     public string Key { get; }
 
-    /// <summary>When rows show their <see cref="Details"/>: folded out on demand, as a header's
-    /// flags are, or under the selected row, as a debug information's decoded value is.</summary>
-    public MetadataDetailsMode DetailsMode { get; }
+    /// <summary>Whether the selected row shows its <see cref="Details"/> under it, as a debug
+    /// information's decoded value does.</summary>
+    public bool HasDetails => _details != null;
 
     /// <summary>What the grid lists, as its node is labelled.</summary>
     public string Title => _owner.Text;
@@ -138,8 +119,8 @@ public sealed class MetadataGrid
         return rows.Where(row => active.TrueForAll(a => Matches(row, a.Column, a.Filter.Text, a.Flags))).ToArray();
     }
 
-    /// <summary>What is shown under <paramref name="row"/>, as <see cref="DetailsMode"/> says when;
-    /// null when it has nothing.</summary>
+    /// <summary>What is shown under <paramref name="row"/> while it is selected; null when it has
+    /// nothing.</summary>
     public MetadataRowDetails? Details(int row)
     {
         if (_details == null) return null;
@@ -154,7 +135,6 @@ public sealed class MetadataGrid
         }
         return value switch
         {
-            IList<BitEntry> bits => new MetadataBitDetails(bits.Select(static b => new MetadataFlag(b.Meaning, b.Value)).ToArray()),
             TextBlobDetail text => new MetadataTextDetails(text.Text, text.HighlightExtension),
             IReadOnlyList<HoistedLocalScopeDetail> scopes => Table(scopes, ("Start Offset", static s => s.StartOffset), ("Length", static s => s.Length)),
             IReadOnlyList<CompilationOptionDetail> options => Table(options, ("Name", static o => o.Name), ("Value", static o => o.Value)),
@@ -216,6 +196,7 @@ public sealed class MetadataGrid
         return value switch
         {
             FlagsTooltip flags => new MetadataTooltip(null, flags.Groups.Select(Group).ToArray()),
+            IList<BitEntry> bits => new MetadataTooltip(null, [new MetadataFlagGroup(null, false, bits.Select(static b => new MetadataFlag(b.Meaning, b.Value)).ToArray())]),
             _ when value?.ToString() is { } text && !string.IsNullOrWhiteSpace(text) => new MetadataTooltip(text, []),
             _ => null,
         };
@@ -381,8 +362,7 @@ public sealed class MetadataGrid
         var list = new List<Descriptor>();
         foreach (var property in properties)
         {
-            if (property.GetIndexParameters().Length > 0 || property.Name == nameof(Entry.RowDetails) || property.PropertyType == typeof(IList<BitEntry>)
-                || property.Name.EndsWith("Tooltip", StringComparison.Ordinal))
+            if (property.GetIndexParameters().Length > 0 || property.Name == RowDetailsProperty || property.Name.EndsWith("Tooltip", StringComparison.Ordinal))
                 continue;
             var info = property.GetCustomAttribute<ColumnInfoAttribute>();
             var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;

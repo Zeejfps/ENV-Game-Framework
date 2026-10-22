@@ -9,9 +9,12 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy;
 
+/// <summary>A multi-line cell opened in place, as tall as its <paramref name="Lines"/>.</summary>
+internal sealed record ExpandedCell(int Row, int Column, int Lines);
+
 /// <summary>Everything a <see cref="MetadataGridWidget.MetadataGridView"/> keeps between frames:
-/// the columns' widths, the sort and text filters, the selected row and cell, the scroll and the
-/// selected row's decoded details. One per open tab, owned by the app.</summary>
+/// the columns' widths, the sort and text filters, the selected cell and the text selected in it,
+/// the scroll and the selected row's decoded details. One per open tab, owned by the app.</summary>
 public sealed class MetadataGridState
 {
     internal const int None = -1;
@@ -36,7 +39,9 @@ public sealed class MetadataGridState
     internal bool BeginEdit;
     internal int FlagsColumn = None;
     internal bool FlagsOpen;
-    internal readonly HashSet<int> Unfolded = new();
+    internal readonly TextSelection Text = new();
+    internal float TextShift;
+    internal ExpandedCell? Expanded;
     internal readonly Dictionary<int, (DecompiledDocument Document, CodeViewState View)> DetailTexts = new();
     internal readonly Dictionary<int, (int Lines, int Longest)> DetailSizes = new();
 
@@ -60,9 +65,11 @@ public sealed class MetadataGridState
         ViewKey = 0;
         ScrollX = ScrollY = 0f;
         PendingRestore = null;
+        Text.Select(0, 0);
+        TextShift = 0f;
+        Expanded = null;
         DetailTexts.Clear();
         DetailSizes.Clear();
-        Unfolded.Clear();
     }
 
     /// <summary>Returns the view to <paramref name="position"/> once it has been laid out.</summary>
@@ -77,6 +84,18 @@ public sealed class MetadataGridState
     {
         PendingReveal = row;
         PendingRestore = null;
+    }
+
+    /// <summary>Makes <paramref name="row"/>'s cell in <paramref name="column"/> the current one;
+    /// moving to another drops the text selected in the last and closes it if it was open.</summary>
+    internal void SelectCell(int row, int column)
+    {
+        if (row == Selected && column == CurrentColumn) return;
+        Selected = row;
+        CurrentColumn = column;
+        Text.Select(0, 0);
+        TextShift = 0f;
+        Expanded = null;
     }
 
     internal int RowAt(int index) => View[index];
@@ -95,14 +114,13 @@ public static class MetadataGridWidget
     private const int AutoFitRows = 200;
     private const float MaxAutoWidth = 480f;
     private const float FlyoutContentWidth = 440f;
-    private const int MaxTextDetailLines = 12;
-    private const float TextDetailPaddingX = 24f;
+    private const int MaxTextLines = 12;
+    private const float TextPaddingX = 24f;
     private const float MaxTableDetails = 250f;
     private const int CellSalt = 0x4D444743;
     private const int FunnelSalt = 0x4D444746;
     private const int FilterTextSalt = 0x4D444754;
     private const int FlyoutSalt = 0x4D44464C;
-    private const int FoldSalt = 0x4D44464F;
 
     public static MetadataGridResult MetadataGridView(this Ui ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t)
     {
@@ -133,7 +151,9 @@ public static class MetadataGridWidget
             result = Keys(ui, grid, state, listId, rowHeight);
 
         var width = columns.TotalWidth + theme.ShellPaddingX * 2;
-        var tall = TallRows(ui, grid, state, rowHeight, width);
+        var (cellsHeight, detailsHeight) = SelectedHeights(ui, grid, state, rowHeight, width);
+        var tallIndex = cellsHeight + detailsHeight > rowHeight ? state.IndexOf(state.Selected) : -1;
+        TallRow[] tall = tallIndex >= 0 ? [new TallRow(tallIndex, cellsHeight + detailsHeight)] : [];
         using (var list = ui.VirtualScroll(listId, state.View.Length, rowHeight, ref state.ScrollX, ref state.ScrollY, new Box { Gap = 0f }, tall))
         {
             Arrive(state, list, rowHeight);
@@ -142,23 +162,16 @@ public static class MetadataGridWidget
             for (var index = list.First; index < list.End; index++)
             {
                 var row = state.RowAt(index);
-                var height = rowHeight;
-                foreach (var tallRow in tall)
+                if (index != tallIndex)
                 {
-                    if (tallRow.Index == index)
-                        height = tallRow.Height;
+                    Row(ui, id, grid, state, t, columns, listId, row, width, rowHeight, rowHeight, focused, ref result);
+                    continue;
                 }
-                if (height > rowHeight)
+                using (ui.Column(new Box { Width = width, Height = cellsHeight + detailsHeight, Gap = 0f }))
                 {
-                    using (ui.Column(new Box { Width = width, Height = height, Gap = 0f }))
-                    {
-                        Row(ui, id, grid, state, t, columns, listId, row, width, rowHeight, focused, ref result);
-                        Details(ui, grid, state, t, row, height - rowHeight);
-                    }
-                }
-                else
-                {
-                    Row(ui, id, grid, state, t, columns, listId, row, width, rowHeight, focused, ref result);
+                    Row(ui, id, grid, state, t, columns, listId, row, width, rowHeight, cellsHeight, focused, ref result);
+                    if (detailsHeight > 0f)
+                        Details(ui, grid, state, t, row, detailsHeight);
                 }
             }
         }
@@ -169,7 +182,7 @@ public static class MetadataGridWidget
     }
 
     private static void Row(Ui ui, string id, MetadataGrid grid, MetadataGridState state, Strings t, TableColumns columns, int listId, int row, float width,
-        float rowHeight, bool focused, ref MetadataGridResult result)
+        float rowHeight, float height, bool focused, ref MetadataGridResult result)
     {
         var theme = ui.Theme;
         var hoveredRow = false;
@@ -181,11 +194,12 @@ public static class MetadataGridWidget
             if (cells[c].Pressed || cells[c].ClickedWith(PointerButton.Right) || cells[c].ClickedWith(PointerButton.Middle))
             {
                 ui.Focus(listId, takesText: false);
-                state.Selected = row;
-                state.CurrentColumn = c;
+                state.SelectCell(row, c);
             }
-            if (cells[c].Clicked && grid.Columns[c].IsToken && grid.Link(row, c) is { } target)
+            if (cells[c].Clicked && !state.Text.HasSelection && grid.Columns[c].IsToken && grid.Link(row, c) is { } target)
                 result = new MetadataGridResult(target, null, false);
+            else if (cells[c].DoubleClicked && state.Expanded == null && grid.Lines(row, c).MoreLines > 0)
+                Expand(grid, state, row, c);
             else if (cells[c].DoubleClicked && grid.Definition(row) is { } definition)
                 result = new MetadataGridResult(null, definition, false);
             else if (cells[c].ClickedWith(PointerButton.Middle) && grid.Definition(row) is { } inNewTab)
@@ -194,52 +208,48 @@ public static class MetadataGridWidget
                 ui.OpenContextMenu($"{id}-menu");
         }
 
-        var foldable = grid.DetailsMode == MetadataDetailsMode.Foldable;
-        var fold = foldable && grid.Details(row) != null ? ui.Interact(HashCode.Combine(listId, FoldSalt, row)) : default;
-        if (fold.Hovered || fold.Id != 0 && cells[0].Hovered)
-            ui.SetCursor(MouseCursor.Hand);
-        if (fold.Clicked || fold.Id != 0 && cells[0].Pressed && cells[0].ClickCount == 1)
-            Toggle(state, row);
-        var unfolded = foldable && state.Unfolded.Contains(row);
         var selected = row == state.Selected;
-        var background = selected ? focused ? theme.Selection : theme.SelectionInactive : hoveredRow || fold.Hovered ? theme.RowHover : unfolded ? theme.Surface : 0u;
         using (ui.Row(new Box
         {
             Width = width,
-            Height = rowHeight,
+            Height = height,
             Gap = 0f,
             Padding = new Spacing(theme.ShellPaddingX, 0f),
-            AlignY = Align.Center,
-            Background = background,
+            Background = selected ? theme.SelectionInactive : hoveredRow ? theme.RowHover : 0u,
         }))
         {
             for (var c = 0; c < cells.Length; c++)
             {
                 var column = grid.Columns[c];
+                var current = selected && c == state.CurrentColumn;
                 var link = column.IsToken && grid.Link(row, c) != null;
-                if (link && cells[c].Hovered)
-                    ui.SetCursor(MouseCursor.Hand);
-                var color = link ? theme.AccentText : selected && focused ? theme.SelectionText : theme.Text;
+                if (cells[c].Hovered)
+                    ui.SetCursor(link ? MouseCursor.Hand : MouseCursor.Text);
                 var mono = column.IsNumeric || column.IsToken;
-                using (ui.TableCell(columns, c, cells[c].Id))
+                using (ui.TableCell(columns, c, cells[c].Id, Align.Start))
                 {
-                    if (foldable && c == 0)
+                    if (current)
+                        ui.Paint((Color: focused ? theme.FocusRing : theme.BorderStrong, Width: focused ? theme.FocusRingWidth : theme.BorderWidth),
+                            static (p, s) => p.FillRect(p.Rect, 0u, 0f, s.Color, s.Width));
+                    if (current && state.Expanded != null)
                     {
-                        using (ui.Box(fold.Id, new Box { Width = theme.IconSize, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
-                        {
-                            if (fold.Id != 0)
-                                ui.Text(unfolded ? LucideIcons.ChevronDown : LucideIcons.ChevronRight, color: fold.Hovered ? theme.Text : theme.TextMuted,
-                                    size: theme.FontSizeSmall, family: LucideIcons.Family);
-                        }
+                        ui.SelectableTextArea(cells[c], grid.Text(row, c), state.Text, ref state.TextShift, rowHeight, link ? theme.AccentText : theme.Text,
+                            mono ? theme.FontSize : null, mono ? MonoFonts.Regular : null);
                     }
-                    var (firstLine, moreLines) = grid.Lines(row, c);
-                    ui.Text(firstLine, new Box { Width = Sizing.Fit() }, color: color, size: mono ? theme.FontSize : null,
-                        family: mono ? MonoFonts.Regular : null, overflow: TextOverflow.Ellipsis);
-                    if (moreLines > 0)
+                    else
                     {
-                        using (ui.Id(cells[c].Id))
-                            ui.Text(ui.Memo("more-lines", (moreLines, t), static a => a.t.MetadataMoreLines(a.moreLines)), new Box { Width = Sizing.Fit() },
-                                color: selected && focused ? theme.SelectionText : theme.TextMuted, size: theme.FontSizeSmall);
+                        using (ui.Row(new Box { Width = Sizing.Grow(), Height = rowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
+                        {
+                            var (firstLine, moreLines) = grid.Lines(row, c);
+                            ui.SelectableText(cells[c], firstLine, state.Text, ref state.TextShift, current, link ? theme.AccentText : theme.Text,
+                                mono ? theme.FontSize : null, mono ? MonoFonts.Regular : null);
+                            if (moreLines > 0)
+                            {
+                                using (ui.Id(cells[c].Id))
+                                    ui.Text(ui.Memo("more-lines", (moreLines, t), static a => a.t.MetadataMoreLines(a.moreLines)), new Box { Width = Sizing.Fit() },
+                                        color: theme.TextMuted, size: theme.FontSizeSmall);
+                            }
+                        }
                     }
                 }
                 Tooltip(ui, grid, row, c, cells[c].Id);
@@ -247,11 +257,10 @@ public static class MetadataGridWidget
         }
     }
 
-    private static void Toggle(MetadataGridState state, int row)
-    {
-        if (!state.Unfolded.Remove(row))
-            state.Unfolded.Add(row);
-    }
+    /// <summary>Opens <paramref name="row"/>'s multi-line cell in <paramref name="column"/> in place:
+    /// the cell grown to show every line.</summary>
+    private static void Expand(MetadataGrid grid, MetadataGridState state, int row, int column) =>
+        state.Expanded = new ExpandedCell(row, column, grid.Text(row, column).Count(static ch => ch == '\n') + 1);
 
     private static TableColumns Measure(Ui ui, MetadataGrid grid)
     {
@@ -266,8 +275,6 @@ public static class MetadataGridWidget
             var width = ui.MeasureText(column.Name, theme.FontSizeSmall) + theme.IconSize * 2 + theme.GapTight * 2;
             for (var row = 0; row < rows; row++)
                 width = MathF.Max(width, ui.MeasureText(grid.Text(row, c), mono ? theme.FontSize : null, family: mono ? MonoFonts.Regular : null));
-            if (c == 0 && grid.DetailsMode == MetadataDetailsMode.Foldable)
-                width += theme.IconSize + theme.GapTight;
             widths[c] = MathF.Ceiling(MathF.Min(MaxAutoWidth, width + padding + theme.GapTight));
         }
         return TableColumns.Sized(widths);
@@ -501,103 +508,68 @@ public static class MetadataGridWidget
         return pill.Clicked;
     }
 
-    /// <summary>The rows in view order that show details under them, and how tall they are with
-    /// them: the rows folded out, or only the selected one, as the grid says.</summary>
-    private static List<TallRow> TallRows(Ui ui, MetadataGrid grid, MetadataGridState state, float rowHeight, float width)
+    /// <summary>How tall the selected row's cells are, with its cell open in place, and the details
+    /// under them; both nothing extra for a row that has neither.</summary>
+    private static (float Cells, float Details) SelectedHeights(Ui ui, MetadataGrid grid, MetadataGridState state, float rowHeight, float width)
     {
-        var tall = new List<TallRow>();
-        switch (grid.DetailsMode)
-        {
-            case MetadataDetailsMode.Foldable:
-                for (var index = 0; index < state.View.Length; index++)
-                {
-                    if (state.Unfolded.Contains(state.View[index]) && grid.Details(state.View[index]) is { } details)
-                        tall.Add(new TallRow(index, rowHeight + DetailsHeight(ui, grid, state, state.View[index], details, width)));
-                }
-                break;
-            case MetadataDetailsMode.WhenSelected when state.Selected >= 0 && state.IndexOf(state.Selected) is >= 0 and var selected
-                                                        && grid.Details(state.Selected) is { } details:
-                tall.Add(new TallRow(selected, rowHeight + DetailsHeight(ui, grid, state, state.Selected, details, width)));
-                break;
-        }
-        return tall;
+        if (state.Selected < 0 || state.IndexOf(state.Selected) < 0) return (rowHeight, 0f);
+        var cells = state.Expanded is { } expanded ? MathF.Max(1, expanded.Lines) * rowHeight : rowHeight;
+        var details = grid.HasDetails && grid.Details(state.Selected) is { } found ? DetailsHeight(ui, state, state.Selected, found, width) : 0f;
+        return (cells, details);
     }
 
-    private static float DetailsHeight(Ui ui, MetadataGrid grid, MetadataGridState state, int row, MetadataRowDetails details, float width)
+    private static float DetailsHeight(Ui ui, MetadataGridState state, int row, MetadataRowDetails details, float width)
     {
         var theme = ui.Theme;
         var padding = theme.GapTight * 2;
-        return details switch
+        switch (details)
         {
-            MetadataBitDetails bits => bits.Bits.Count * theme.RowHeight + padding,
-            MetadataTextDetails text => TextHeight(ui, grid, state, row, text.Text, width),
-            MetadataTableDetails table => MathF.Min(MaxTableDetails, (table.Rows.Count + 1) * theme.RowHeight + padding),
-            _ => 0f,
-        };
+            case MetadataTextDetails text:
+                if (!state.DetailSizes.TryGetValue(row, out var size))
+                    state.DetailSizes[row] = size = Size(text.Text);
+                return TextHeight(ui, size, width - DetailsLeft(theme) - theme.ShellPaddingX) + padding;
+            case MetadataTableDetails table:
+                return MathF.Min(MaxTableDetails, (table.Rows.Count + 1) * theme.RowHeight + padding);
+            default:
+                return 0f;
+        }
     }
 
-    /// <summary>How tall a text under <paramref name="row"/> is: a code line per line, up to
-    /// <see cref="MaxTextDetailLines"/> before it scrolls, plus the horizontal scrollbar's room when its
-    /// longest line is wider than the space the row leaves it.</summary>
-    private static float TextHeight(Ui ui, MetadataGrid grid, MetadataGridState state, int row, string text, float width)
+    private static (int Lines, int Longest) Size(string text)
+    {
+        var lines = text.Split('\n');
+        return (lines.Length, lines.Max(static l => l.TrimEnd('\r').Length));
+    }
+
+    /// <summary>How tall a text is in a code view <paramref name="width"/> wide: a code line per
+    /// line, up to <see cref="MaxTextLines"/> before it scrolls, plus the horizontal scrollbar's room
+    /// when its longest line is wider.</summary>
+    private static float TextHeight(Ui ui, (int Lines, int Longest) size, float width)
     {
         var theme = ui.Theme;
-        if (!state.DetailSizes.TryGetValue(row, out var size))
-        {
-            var lines = text.Split('\n');
-            state.DetailSizes[row] = size = (lines.Length, lines.Max(static l => l.TrimEnd('\r').Length));
-        }
         var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
         var lineHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
-        var (left, top, right, bottom) = DetailsPadding(theme, grid);
-        var overflows = TextDetailPaddingX + size.Longest * cell.Advance > width - left - right;
+        var overflows = TextPaddingX + size.Longest * cell.Advance > width;
         var bar = overflows ? theme.ScrollBarWidth + theme.ScrollBarInset * 2 : 0f;
-        return Math.Min(size.Lines, MaxTextDetailLines) * lineHeight + top + bottom + bar;
+        return Math.Min(size.Lines, MaxTextLines) * lineHeight + bar;
     }
 
-    /// <summary>The room around a row's details: past the guide line of a fold-out, or indented under
-    /// the selected row.</summary>
-    private static (float Left, float Top, float Right, float Bottom) DetailsPadding(UiTheme theme, MetadataGrid grid) =>
-        grid.DetailsMode == MetadataDetailsMode.Foldable
-            ? (MathF.Floor(theme.ShellPaddingX + theme.GapTight + theme.IconSize / 2) + theme.SeparatorWidth + theme.IconSize / 2, 0f, theme.ShellPaddingX,
-                theme.GapTight)
-            : (theme.ShellPaddingX + theme.IconSize, theme.GapTight, theme.ShellPaddingX, theme.GapTight);
+    private static float DetailsLeft(UiTheme theme) => theme.ShellPaddingX + theme.IconSize;
 
     private static void Details(Ui ui, MetadataGrid grid, MetadataGridState state, Strings t, int row, float height)
     {
         var theme = ui.Theme;
-        var details = grid.Details(row);
-        var guide = theme.ShellPaddingX + theme.GapTight + theme.IconSize / 2;
-        using var frame = ui.Row(new Box { Width = Sizing.Grow(), Height = height, Gap = 0f, Background = theme.Surface });
-        if (grid.DetailsMode == MetadataDetailsMode.Foldable)
-        {
-            ui.Leaf(new Box { Width = MathF.Floor(guide), Height = Sizing.Grow() });
-            using (ui.Column(new Box { Width = theme.SeparatorWidth, Height = Sizing.Grow(), Padding = new Spacing(0f, 0f, 0f, theme.GapTight) }))
-                ui.Leaf(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Background = theme.Separator });
-        }
         using var box = ui.Column(new Box
         {
             Width = Sizing.Grow(),
-            Height = Sizing.Grow(),
+            Height = height,
             Gap = 0f,
-            Padding = grid.DetailsMode == MetadataDetailsMode.Foldable
-                ? new Spacing(theme.IconSize / 2, 0f, theme.ShellPaddingX, theme.GapTight)
-                : new Spacing(theme.ShellPaddingX + theme.IconSize, theme.GapTight, theme.ShellPaddingX, theme.GapTight),
+            Padding = new Spacing(DetailsLeft(theme), theme.GapTight, theme.ShellPaddingX, theme.GapTight),
+            Background = theme.Surface,
         });
         using var scope = ui.Id(row);
-        switch (details)
+        switch (grid.Details(row))
         {
-            case MetadataBitDetails bits:
-                foreach (var bit in bits.Bits)
-                {
-                    using (ui.Row(new Box { Height = theme.RowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
-                    {
-                        ui.Text(bit.IsSet ? LucideIcons.CheckSquare : LucideIcons.Square, color: bit.IsSet ? theme.AccentText : theme.TextMuted,
-                            family: LucideIcons.Family);
-                        ui.Text(bit.Name, color: bit.IsSet ? theme.Text : theme.TextMuted);
-                    }
-                }
-                break;
             case MetadataTextDetails text:
                 if (!state.DetailTexts.TryGetValue(row, out var shown))
                     state.DetailTexts[row] = shown = (DecompiledDocument.FromText(grid.Title, text.Text), new CodeViewState());
@@ -643,13 +615,12 @@ public static class MetadataGridWidget
             state.PendingRestore = null;
             state.ScrollX = restore.ScrollX;
             list.ScrollTo(restore.TopLine * rowHeight);
-            state.Selected = restore.Caret.Line;
-            state.CurrentColumn = restore.Caret.Column;
+            state.SelectCell(restore.Caret.Line, restore.Caret.Column);
         }
         else if (state.PendingReveal is >= 0 and var row)
         {
             state.PendingReveal = MetadataGridState.None;
-            state.Selected = row;
+            state.SelectCell(row, state.CurrentColumn);
             var index = state.IndexOf(row);
             if (index < 0) return;
             var top = list.TopOf(index);
@@ -710,7 +681,7 @@ public static class MetadataGridWidget
         var column = state.CurrentColumn;
         MetadataGridResult? result = null;
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: column >= 0, id: "copy"))
-            ui.ClipboardText = grid.Text(row, column);
+            ui.ClipboardText = CellText(grid, state);
         if (ui.MenuItem(t.MetadataCopyRow, id: "copy-row"))
             ui.ClipboardText = RowText(grid, row);
         var target = column >= 0 ? grid.Link(row, column) : null;
@@ -728,6 +699,14 @@ public static class MetadataGridWidget
         }
         return result;
     }
+
+    /// <summary>What copying the current cell takes: the text selected in it, else all of it.</summary>
+    private static string CellText(MetadataGrid grid, MetadataGridState state) =>
+        state.Text.HasSelection ? state.Text.Of(ShownText(grid, state)) : grid.Text(state.Selected, state.CurrentColumn);
+
+    /// <summary>The current cell's text as shown: all of it while open, else its first line.</summary>
+    private static string ShownText(MetadataGrid grid, MetadataGridState state) =>
+        state.Expanded != null ? grid.Text(state.Selected, state.CurrentColumn) : grid.Lines(state.Selected, state.CurrentColumn).FirstLine;
 
     private static string RowText(MetadataGrid grid, int row) =>
         string.Join('\t', Enumerable.Range(0, grid.Columns.Count).Select(c => grid.Text(row, c)));
@@ -763,20 +742,32 @@ public static class MetadataGridWidget
                 case (0, KeyboardKey.End) or (KeyModifiers.Control, KeyboardKey.End):
                     Select(count - 1);
                     break;
-                case (0, KeyboardKey.LeftArrow):
-                    state.CurrentColumn = Math.Max(0, state.CurrentColumn - 1);
+                case (0, KeyboardKey.LeftArrow) when state.Selected >= 0:
+                    state.SelectCell(state.Selected, Math.Max(0, state.CurrentColumn - 1));
                     break;
-                case (0, KeyboardKey.RightArrow):
-                    state.CurrentColumn = Math.Min(columns - 1, state.CurrentColumn + 1);
+                case (0, KeyboardKey.RightArrow) when state.Selected >= 0:
+                    state.SelectCell(state.Selected, Math.Min(columns - 1, state.CurrentColumn + 1));
                     break;
-                case (0, KeyboardKey.Space) when grid.DetailsMode == MetadataDetailsMode.Foldable && state.Selected >= 0 && grid.Details(state.Selected) != null:
-                    Toggle(state, state.Selected);
+                case (0, KeyboardKey.Space) when state.Expanded != null:
+                    state.Expanded = null;
+                    break;
+                case (0, KeyboardKey.Space) when state is { Selected: >= 0, CurrentColumn: >= 0 } && grid.Lines(state.Selected, state.CurrentColumn).MoreLines > 0:
+                    Expand(grid, state, state.Selected, state.CurrentColumn);
+                    break;
+                case (0, KeyboardKey.Escape) when state.Text.HasSelection:
+                    state.Text.Select(state.Text.Caret, state.Text.Caret);
+                    break;
+                case (0, KeyboardKey.Escape) when state.Expanded != null:
+                    state.Expanded = null;
+                    break;
+                case (KeyModifiers.Control, KeyboardKey.A) when state is { Selected: >= 0, CurrentColumn: >= 0 }:
+                    state.Text.Select(0, ShownText(grid, state).Length);
                     break;
                 case (0, KeyboardKey.Enter) when state.Selected >= 0 && grid.Definition(state.Selected) is { } definition:
                     result = new MetadataGridResult(null, definition, false);
                     break;
                 case (KeyModifiers.Control, KeyboardKey.C) when state.Selected >= 0:
-                    ui.ClipboardText = state.CurrentColumn >= 0 ? grid.Text(state.Selected, state.CurrentColumn) : RowText(grid, state.Selected);
+                    ui.ClipboardText = state.CurrentColumn >= 0 ? CellText(grid, state) : RowText(grid, state.Selected);
                     break;
                 case (KeyModifiers.Control, KeyboardKey.G) when state is { Selected: >= 0, CurrentColumn: >= 0 }
                                                                 && grid.Link(state.Selected, state.CurrentColumn) is { } target:
@@ -788,9 +779,7 @@ public static class MetadataGridWidget
 
         void Select(int index)
         {
-            state.Selected = state.RowAt(index);
-            if (state.CurrentColumn < 0)
-                state.CurrentColumn = 0;
+            state.SelectCell(state.RowAt(index), Math.Max(0, state.CurrentColumn));
             state.ScrollToSelected = true;
         }
     }
