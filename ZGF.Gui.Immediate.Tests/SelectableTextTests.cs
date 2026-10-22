@@ -155,7 +155,7 @@ public sealed class SelectableTextAreaTests
         {
             var i = ui.Interact("area");
             using (ui.Column(i.Id, new Box { Width = 200f, Height = LineHeight * 3, Gap = 0f }))
-                ui.SelectableTextArea(i, Text, _selection, ref _shift, LineHeight);
+                ui.SelectableTextArea(i, Text, _selection, ref _shift, true, LineHeight);
         }
     });
 

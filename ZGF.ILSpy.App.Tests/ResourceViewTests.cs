@@ -102,14 +102,14 @@ public sealed class ResourceViewTests
     }
 
     [Fact]
-    public void Double_clicking_a_multi_line_string_grows_its_cell_to_show_every_line_as_the_cell_shows_its_first()
+    public void Clicking_a_multi_line_string_grows_its_cell_to_show_every_line_as_the_cell_shows_its_first()
     {
         var (app, _) = ShowResource("Mixed.resources");
         var theme = AppThemes.For(app.Workspace.DarkMode).Ui;
         var before = app.TextRect("first line");
         var color = app.Frames.TextColor("first line");
 
-        Press(app, before, times: 2);
+        Press(app, before);
 
         var first = app.TextRect("first line");
         var second = app.TextRect("second line");
@@ -122,25 +122,38 @@ public sealed class ResourceViewTests
     }
 
     [Fact]
-    public void Escape_drops_the_text_selected_in_an_open_string_then_closes_it_as_moving_to_another_cell_does()
+    public void Escape_drops_the_text_selected_in_an_open_string_then_closes_it()
     {
         var (app, _) = ShowResource("Mixed.resources");
 
-        Press(app, app.TextRect("first line"), times: 2);
+        Press(app, app.TextRect("first line"));
         app.Frames.Key(KeyboardKey.Escape);
         app.Run(2);
         Assert.True(app.Frames.Drew("second line"));
         app.Frames.Key(KeyboardKey.Escape);
         app.Run(2);
         Assert.False(app.Frames.Drew("second line"));
-
-        Press(app, app.TextRect("first line"), times: 2);
-        Press(app, app.TextRect("Greeting"));
-        Assert.False(app.Frames.Drew("second line"));
     }
 
     [Fact]
-    public void Ctrl_C_copies_a_whole_multi_line_string_or_the_word_double_clicked_in_a_name()
+    public void Several_strings_stay_open_while_other_cells_are_selected_and_no_row_moves_under_the_pointer()
+    {
+        var (app, _) = ShowResource("Mixed.resources");
+
+        Press(app, app.TextRect("first line"));
+        var roses = app.TextRect("roses");
+        Press(app, roses);
+        Assert.Equal(roses.Y, app.TextRect("roses").Y, 0.5f);
+        var greeting = app.TextRect("Greeting");
+        Press(app, greeting);
+
+        Assert.Equal(greeting.Y, app.TextRect("Greeting").Y, 0.5f);
+        Assert.True(app.Frames.Drew("second line"));
+        Assert.True(app.Frames.Drew("violets"));
+    }
+
+    [Fact]
+    public void A_click_selects_a_whole_multi_line_string_for_Ctrl_C_and_a_double_click_a_word_of_a_name()
     {
         var (app, _) = ShowResource("Mixed.resources");
 

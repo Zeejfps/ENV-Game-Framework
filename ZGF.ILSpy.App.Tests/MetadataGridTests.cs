@@ -44,15 +44,15 @@ public sealed class MetadataGridTests
         return drawn.rect;
     }
 
-    private static void Click(AppDriver app, UiRect at, int times = 1)
+    private static void Click(AppDriver app, UiRect at, int times = 1, KeyModifiers modifiers = KeyModifiers.None)
     {
         app.Frames.MovePointer(at.X + at.Width / 2, at.Y + at.Height / 2);
         app.Run();
         for (var i = 0; i < times; i++)
         {
-            app.Frames.Press();
+            app.Frames.Press(modifiers);
             app.Run();
-            app.Frames.Release();
+            app.Frames.Release(modifiers: modifiers);
             app.Run();
         }
     }
@@ -111,14 +111,14 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
-    public void Clicking_a_token_shows_its_row_and_going_back_returns_to_the_row_it_left()
+    public void Ctrl_clicking_a_token_shows_its_row_and_going_back_returns_to_the_row_it_left()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
         var d = app.Driver;
         var baseType = grid.Text(row, Column(grid, "BaseType"));
         Click(app, TextBeside(app, "Greeter", "Greeter"));
 
-        Click(app, TextBeside(app, baseType, "Greeter"));
+        Click(app, TextBeside(app, baseType, "Greeter"), modifiers: KeyModifiers.Control);
         d.Settle();
         app.Run(3);
 
@@ -318,13 +318,12 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
-    public void Dragging_across_a_token_selects_it_instead_of_following_it()
+    public void Clicking_a_token_selects_all_its_text_instead_of_following_it()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
         var baseType = grid.Text(row, Column(grid, "BaseType"));
-        var token = TextBeside(app, baseType, "Greeter");
 
-        Drag(app, token.X + 1f, token.X + token.Width - 1f, token.Y + token.Height / 2);
+        Click(app, TextBeside(app, baseType, "Greeter"));
         app.Driver.Settle();
         app.Frames.Key(KeyboardKey.C, KeyModifiers.Control);
         app.Run();

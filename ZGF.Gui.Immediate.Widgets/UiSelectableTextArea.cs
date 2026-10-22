@@ -16,18 +16,35 @@ public static partial class UiWidgets
     /// Shows <paramref name="text"/> read-only a line at a time, each <paramref name="lineHeight"/>
     /// tall, in the element <paramref name="i"/> interacts with, from the top of its content: the
     /// multi-line form of <see cref="SelectableText"/>, selecting across lines the same way and
-    /// scrolling them sideways together by <paramref name="shift"/> to follow the caret.
+    /// scrolling them sideways together by <paramref name="shift"/> to follow the caret. As there,
+    /// only an <paramref name="active"/> text reads or moves the selection and shift it may share.
     /// </summary>
-    public static void SelectableTextArea(this Ui ui, Interaction i, string text, TextSelection selection, ref float shift, float lineHeight,
+    public static void SelectableTextArea(this Ui ui, Interaction i, string text, TextSelection selection, ref float shift, bool active, float lineHeight,
         uint? color = null, float? size = null, string? family = null, TextOverflow overflow = TextOverflow.Ellipsis)
     {
         var theme = ui.Theme;
         var lines = ui.GetState<TextAreaLines>(i.Id);
         if (!ReferenceEquals(lines.Text, text))
             Split(lines, text);
+
+        if (!active)
+        {
+            using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
+            {
+                foreach (var line in lines.Lines)
+                {
+                    using (ui.Row(new Box { Width = Sizing.Grow(), Height = lineHeight, Gap = 0f, AlignY = Align.Center }))
+                    {
+                        if (line.Length > 0)
+                            ui.Text(line, new Box { Width = Sizing.Fit() }, color: color, size: size, family: family, overflow: overflow);
+                    }
+                }
+            }
+            return;
+        }
+
         if (lines.Widest < 0f)
             lines.Widest = lines.Lines.Max(l => ui.MeasureText(l, size, family: family));
-
         var hasRect = ui.TryGetContentRect(i.Id, out var rect);
         if (selection.End > text.Length)
             selection.Select(0, 0);
