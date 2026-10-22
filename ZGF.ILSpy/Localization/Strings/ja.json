@@ -87,6 +87,7 @@
   "bookmarks.enable": "有効にする",
   "bookmarks.disable": "無効にする",
   "bookmarks.go_to": "ブックマークへ移動",
+  "bookmarks.go_to_hint": "Ctrl+クリックでブックマークへ移動",
   "bookmarks.column_name": "名前",
   "bookmarks.column_location": "場所",
   "bookmarks.column_module": "モジュール",

@@ -188,7 +188,6 @@ public static class MetadataGridWidget
     {
         var theme = ui.Theme;
         var hoveredRow = false;
-        var following = (ui.Input.Modifiers & KeyModifiers.Control) != 0;
         Span<Interaction> cells = stackalloc Interaction[grid.Columns.Count];
         for (var c = 0; c < cells.Length; c++)
         {
@@ -201,9 +200,7 @@ public static class MetadataGridWidget
                 if (cells[c].Pressed && !state.Open.ContainsKey((row, c)) && grid.Lines(row, c).MoreLines > 0)
                     Expand(grid, state, row, c);
             }
-            if (cells[c].Clicked && following && grid.Columns[c].IsToken && grid.Link(row, c) is { } target)
-                result = new MetadataGridResult(target, null, false);
-            else if (cells[c].DoubleClicked && grid.Definition(row) is { } definition)
+            if (cells[c].DoubleClicked && grid.Definition(row) is { } definition)
                 result = new MetadataGridResult(null, definition, false);
             else if (cells[c].ClickedWith(PointerButton.Middle) && grid.Definition(row) is { } inNewTab)
                 result = new MetadataGridResult(null, inNewTab, true);
@@ -225,9 +222,10 @@ public static class MetadataGridWidget
             {
                 var column = grid.Columns[c];
                 var current = selected && c == state.CurrentColumn;
-                var link = column.IsToken && grid.Link(row, c) != null;
-                if (cells[c].Hovered)
-                    ui.SetCursor(link && following ? MouseCursor.Hand : MouseCursor.Text);
+                var target = column.IsToken ? grid.Link(row, c) : null;
+                var link = target != null;
+                if (cells[c].Hovered && !link)
+                    ui.SetCursor(MouseCursor.Text);
                 var mono = column.IsNumeric || column.IsToken;
                 using (ui.TableCell(columns, c, cells[c].Id, Align.Start))
                 {
@@ -243,8 +241,17 @@ public static class MetadataGridWidget
                         using (ui.Row(new Box { Width = Sizing.Grow(), Height = rowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
                         {
                             var (firstLine, moreLines) = grid.Lines(row, c);
-                            ui.SelectableText(cells[c], firstLine, state.Cell.Text, ref state.Cell.Shift, current, link ? theme.AccentText : theme.Text,
-                                mono ? theme.FontSize : null, mono ? MonoFonts.Regular : null);
+                            if (target is { } token)
+                            {
+                                if (ui.SelectableLink(cells[c], firstLine, state.Cell.Text, ref state.Cell.Shift, current, new UiIcon(LucideIcons.Link2, LucideIcons.Family),
+                                        t.MetadataGoToToken, size: theme.FontSize, family: MonoFonts.Regular))
+                                    result = new MetadataGridResult(token, null, false);
+                            }
+                            else
+                            {
+                                ui.SelectableText(cells[c], firstLine, state.Cell.Text, ref state.Cell.Shift, current, theme.Text,
+                                    mono ? theme.FontSize : null, mono ? MonoFonts.Regular : null);
+                            }
                             if (moreLines > 0)
                             {
                                 using (ui.Id(cells[c].Id))

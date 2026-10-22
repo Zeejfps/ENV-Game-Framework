@@ -97,6 +97,7 @@
   "bookmarks.enable": "Enable",
   "bookmarks.disable": "Disable",
   "bookmarks.go_to": "Go to bookmark",
+  "bookmarks.go_to_hint": "Ctrl+click to go to the bookmark",
   "bookmarks.column_name": "Name",
   "bookmarks.column_location": "Location",
   "bookmarks.column_module": "Module",

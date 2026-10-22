@@ -222,6 +222,32 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
+    public void Hovering_a_location_shows_where_it_points_how_to_follow_it_and_a_link_icon_that_goes_there()
+    {
+        var (app, d) = ShowBookmark();
+        var tab = d.Workspace.ActiveTab!;
+        d.Show(d.Fixture("Greeter"));
+        app.Run(2);
+        var location = app.TextRect(d.Workspace.Bookmarks.Items[0].Location);
+
+        app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2);
+        for (var i = 0; i < 90; i++)
+            app.Run();
+        Assert.True(app.Frames.Drew(Strings.En.BookmarksGoToHint));
+        var icon = app.TextRect(LucideIcons.Link2);
+
+        app.Frames.MovePointer(icon.X + icon.Width / 2, icon.Y + icon.Height / 2);
+        app.Run();
+        app.Frames.Press();
+        app.Run();
+        app.Frames.Release();
+        app.Run();
+        d.Settle();
+
+        Assert.Equal("Outline", tab.Node!.Text);
+    }
+
+    [Fact]
     public void Clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
     {
         var (app, d) = ShowBookmark();

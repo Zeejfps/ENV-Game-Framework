@@ -87,6 +87,7 @@
   "bookmarks.enable": "启用",
   "bookmarks.disable": "禁用",
   "bookmarks.go_to": "转到书签",
+  "bookmarks.go_to_hint": "Ctrl+单击转到书签",
   "bookmarks.column_name": "名称",
   "bookmarks.column_location": "位置",
   "bookmarks.column_module": "模块",

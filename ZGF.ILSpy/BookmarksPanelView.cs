@@ -114,7 +114,6 @@ internal static class BookmarksPanelView
     {
         var theme = ui.Theme;
         var bookmarks = w.Bookmarks;
-        var following = (ui.Input.Modifiers & KeyModifiers.Control) != 0;
         var mark = ui.Interact("mark");
         var hovered = mark.Hovered;
         if (mark.Pressed)
@@ -138,8 +137,6 @@ internal static class BookmarksPanelView
             if (cells[c].ClickedWith(PointerButton.Right))
                 ui.OpenContextMenu("bookmark-menu");
         }
-        if (cells[LocationColumn].Clicked && following)
-            w.GoTo(bookmark);
 
         var selected = index == bookmarks.Selected;
         using (ui.Row(new Box
@@ -164,8 +161,8 @@ internal static class BookmarksPanelView
             for (var c = NameColumn; c <= ModuleColumn; c++)
             {
                 var current = selected && cell.Column == c;
-                if (cells[c].Hovered)
-                    ui.SetCursor(c == LocationColumn && following ? MouseCursor.Hand : MouseCursor.Text);
+                if (cells[c].Hovered && c != LocationColumn)
+                    ui.SetCursor(MouseCursor.Text);
                 using (ui.TableCell(columns, c, cells[c].Id))
                 {
                     if (c == NameColumn && bookmarks.Renaming == bookmark)
@@ -175,21 +172,37 @@ internal static class BookmarksPanelView
                     }
                     if (current)
                         ui.TableCellOutline(focused);
-                    var color = !bookmark.Enabled ? theme.TextMuted : c switch
-                    {
-                        NameColumn => theme.Text,
-                        LocationColumn => theme.AccentText,
-                        _ => theme.TextMuted,
-                    };
                     var shown = Shown(bookmark, c);
-                    ui.SelectableText(cells[c], shown, cell.Text, ref cell.Shift, current, color,
-                        overflow: c == ModuleColumn ? TextOverflow.EllipsisMiddle : TextOverflow.Ellipsis);
+                    if (c == LocationColumn)
+                    {
+                        if (ui.SelectableLink(cells[c], shown, cell.Text, ref cell.Shift, current, new UiIcon(LucideIcons.Link2, LucideIcons.Family),
+                                t.BookmarksGoTo, bookmark.Enabled ? null : theme.TextMuted))
+                            w.GoTo(bookmark);
+                    }
+                    else
+                    {
+                        ui.SelectableText(cells[c], shown, cell.Text, ref cell.Shift, current,
+                            !bookmark.Enabled || c == ModuleColumn ? theme.TextMuted : theme.Text,
+                            overflow: c == ModuleColumn ? TextOverflow.EllipsisMiddle : TextOverflow.Ellipsis);
+                    }
                     if (current)
                         cell.SettleClick(cells[c], shown);
                 }
             }
         }
-        ui.Tooltip(cells[LocationColumn].Id, bookmark.Place.ToString());
+        LocationTooltip(ui, t, cells[LocationColumn].Id, bookmark);
+    }
+
+    private static void LocationTooltip(Ui ui, Strings t, int cellId, Bookmark bookmark)
+    {
+        var theme = ui.Theme;
+        using var tooltip = ui.TooltipContent(cellId);
+        if (!tooltip.IsOpen) return;
+        using (ui.Column(new Box { Gap = theme.GapTight }))
+        {
+            ui.Text(bookmark.Place.ToString(), color: theme.Text, size: theme.FontSizeSmall, wrap: true);
+            ui.Text(t.BookmarksGoToHint, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
+        }
     }
 
     private static void RenameField(Ui ui, BookmarkList bookmarks)

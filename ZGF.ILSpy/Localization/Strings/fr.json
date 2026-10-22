@@ -87,6 +87,7 @@
   "bookmarks.enable": "Activer",
   "bookmarks.disable": "Désactiver",
   "bookmarks.go_to": "Aller au signet",
+  "bookmarks.go_to_hint": "Ctrl+clic pour aller au signet",
   "bookmarks.column_name": "Nom",
   "bookmarks.column_location": "Emplacement",
   "bookmarks.column_module": "Module",

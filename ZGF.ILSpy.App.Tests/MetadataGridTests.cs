@@ -136,6 +136,22 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
+    public void Clicking_the_link_icon_of_a_hovered_token_shows_its_row()
+    {
+        var (app, tab, grid, row) = ShowGreeterRow();
+        var token = TextBeside(app, grid.Text(row, Column(grid, "BaseType")), "Greeter");
+
+        app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2);
+        app.Run(2);
+        var icon = TextBeside(app, LucideIcons.Link2, "Greeter");
+        Click(app, icon);
+        app.Driver.Settle();
+        app.Run(3);
+
+        Assert.Same(Table(app.Driver, "TypeRef"), tab.Node);
+    }
+
+    [Fact]
     public void Double_clicking_a_row_decompiles_what_its_token_names()
     {
         var (app, tab, _, _) = ShowGreeterRow();

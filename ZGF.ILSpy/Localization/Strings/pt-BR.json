@@ -87,6 +87,7 @@
   "bookmarks.enable": "Ativar",
   "bookmarks.disable": "Desativar",
   "bookmarks.go_to": "Ir para o indicador",
+  "bookmarks.go_to_hint": "Ctrl+clique para ir para o indicador",
   "bookmarks.column_name": "Nome",
   "bookmarks.column_location": "Local",
   "bookmarks.column_module": "Módulo",

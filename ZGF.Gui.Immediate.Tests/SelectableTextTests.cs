@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -198,5 +199,81 @@ public sealed class SelectableTextAreaTests
         }
 
         Assert.Equal("five", _selection.Of(Text));
+    }
+}
+
+public sealed class SelectableLinkTests
+{
+    private const float CharWidth = 8f;
+    private const string Glyph = "@";
+
+    private readonly UiFrames _frames = new();
+    private readonly TextSelection _selection = new();
+    private float _shift;
+    private bool _followed;
+
+    public SelectableLinkTests() => Frame();
+
+    private void Frame() => _frames.Run(1f / 60f, ui =>
+    {
+        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }))
+        {
+            var i = ui.Interact("link");
+            using (ui.Row(i.Id, new Box { Width = 200f, Height = 20f, Gap = 0f }))
+                _followed |= ui.SelectableLink(i, "target", _selection, ref _shift, true, new UiIcon(Glyph), "Go");
+        }
+    });
+
+    private void Click(float x, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        _frames.Wait(1);
+        _frames.MovePointer(x, 10f);
+        Frame();
+        Frame();
+        _frames.Press(modifiers);
+        Frame();
+        _frames.Release(modifiers: modifiers);
+        Frame();
+    }
+
+    [Fact]
+    public void Its_icon_shows_only_while_it_is_hovered()
+    {
+        Assert.False(_frames.Drew(Glyph));
+
+        _frames.MovePointer(CharWidth, 10f);
+        Frame();
+        Frame();
+
+        Assert.True(_frames.Drew(Glyph));
+    }
+
+    [Fact]
+    public void A_click_on_the_text_selects_it_without_following()
+    {
+        Click(CharWidth * 2);
+
+        Assert.False(_followed);
+    }
+
+    [Fact]
+    public void A_click_on_its_icon_follows_it()
+    {
+        _frames.MovePointer(CharWidth, 10f);
+        Frame();
+        Frame();
+        var icon = _frames.Canvas.Texts.Single(t => t.Inputs.Text == Glyph).Inputs.Position;
+
+        Click(icon.Left + icon.Width / 2);
+
+        Assert.True(_followed);
+    }
+
+    [Fact]
+    public void Ctrl_click_on_the_text_follows_it()
+    {
+        Click(CharWidth * 2, KeyModifiers.Control);
+
+        Assert.True(_followed);
     }
 }

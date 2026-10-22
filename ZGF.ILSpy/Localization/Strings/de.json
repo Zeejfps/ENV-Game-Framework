@@ -87,6 +87,7 @@
   "bookmarks.enable": "Aktivieren",
   "bookmarks.disable": "Deaktivieren",
   "bookmarks.go_to": "Zum Lesezeichen springen",
+  "bookmarks.go_to_hint": "Strg+Klick springt zum Lesezeichen",
   "bookmarks.column_name": "Name",
   "bookmarks.column_location": "Ort",
   "bookmarks.column_module": "Modul",
