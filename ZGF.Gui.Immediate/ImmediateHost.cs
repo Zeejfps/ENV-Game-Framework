@@ -67,11 +67,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _render.SetFrame(DrawFrame, _clearColor);
         _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
 
-        _window.OnKey += HandleKey;
-        _window.OnText += HandleText;
-        _window.OnPreedit += HandlePreedit;
-        _window.OnMouseButton += HandleMouseButton;
-        _window.OnScroll += HandleScroll;
+        Subscribe(_window);
         _window.OnResize += HandleResize;
         _window.OnFramebufferResize += HandleResize;
         _window.OnContentScaleChanged += HandleContentScaleChanged;
@@ -106,9 +102,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     {
         _render.RegisterFont(family, data, bold);
         _ui.InvalidateMeasurements();
-        foreach (var popup in _popups)
-            popup.Surface.Canvas.CopyFontsFrom(_render.Canvas);
-        foreach (var popup in _pool)
+        foreach (var popup in _popups.Concat(_pool))
             popup.Surface.Canvas.CopyFontsFrom(_render.Canvas);
         Invalidate();
     }
@@ -378,13 +372,8 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
                 return null;
             }
             _decorator.DecoratePopup(surface.Window.NativeHandle);
-            var window = surface.Window;
-            window.OnKey += HandleKey;
-            window.OnText += HandleText;
-            window.OnPreedit += HandlePreedit;
-            window.OnMouseButton += HandleMouseButton;
-            window.OnScroll += HandleScroll;
-            window.SetCursor(_cursor);
+            Subscribe(surface.Window);
+            surface.Window.SetCursor(_cursor);
             popup = new Popup(surface);
         }
         _popups.Add(popup);
@@ -436,8 +425,22 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _pool.Add(popup);
             return;
         }
-        Unsubscribe(window);
+        DisposePopup(popup);
+    }
+
+    private void DisposePopup(Popup popup)
+    {
+        Unsubscribe(popup.Surface.Window);
         _render.DisposePopup(popup.Surface);
+    }
+
+    private void Subscribe(IWindow window)
+    {
+        window.OnKey += HandleKey;
+        window.OnText += HandleText;
+        window.OnPreedit += HandlePreedit;
+        window.OnMouseButton += HandleMouseButton;
+        window.OnScroll += HandleScroll;
     }
 
     private void Unsubscribe(IWindow window)
@@ -538,25 +541,13 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _decorator.UnwatchWindow(_window.NativeHandle);
         _render.App.OnTick -= Tick;
         _render.App.OnForegroundChanged -= HandleForegroundChanged;
-        _window.OnKey -= HandleKey;
-        _window.OnText -= HandleText;
-        _window.OnPreedit -= HandlePreedit;
-        _window.OnMouseButton -= HandleMouseButton;
-        _window.OnScroll -= HandleScroll;
+        Unsubscribe(_window);
         _window.OnResize -= HandleResize;
         _window.OnFramebufferResize -= HandleResize;
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
         _window.OnMove -= HandleMove;
-        foreach (var popup in _popups)
-        {
-            Unsubscribe(popup.Surface.Window);
-            _render.DisposePopup(popup.Surface);
-        }
-        foreach (var popup in _pool)
-        {
-            Unsubscribe(popup.Surface.Window);
-            _render.DisposePopup(popup.Surface);
-        }
+        foreach (var popup in _popups.Concat(_pool))
+            DisposePopup(popup);
         _popups.Clear();
         _pool.Clear();
         _render.Dispose();

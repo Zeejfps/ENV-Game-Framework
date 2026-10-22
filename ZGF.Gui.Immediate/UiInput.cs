@@ -190,10 +190,7 @@ public sealed class UiInput
         Array.Copy(source._pressed, _pressed, ButtonCount);
         Array.Copy(source._released, _released, ButtonCount);
         Array.Copy(source._cancelled, _cancelled, ButtonCount);
-        _keys.Clear();
-        _text.Clear();
-        Text = "";
-        Composition = PreeditText.Empty;
+        ClearKeysAndText();
         Pointer = source.Pointer;
         ScrollX = source.ScrollX;
         ScrollY = source.ScrollY;
@@ -205,21 +202,15 @@ public sealed class UiInput
 
     internal void CopyInertFrom(UiInput source)
     {
+        CopyPointerFrom(source);
         Array.Clear(_down);
         Array.Clear(_pressed);
         Array.Clear(_released);
         Array.Clear(_cancelled);
-        _keys.Clear();
-        _text.Clear();
-        Text = "";
-        Composition = PreeditText.Empty;
         Pointer = Offscreen;
         ScrollX = 0;
         ScrollY = 0;
         Modifiers = KeyModifiers.None;
-        IsForeground = source.IsForeground;
-        PopupsDismissed = source.PopupsDismissed;
-        HasEvents = source.HasEvents;
     }
 
     internal void Seal() => Text = _text.Length == 0 ? "" : _text.ToString();
@@ -230,9 +221,7 @@ public sealed class UiInput
         Array.Clear(_pressed);
         Array.Clear(_released);
         Array.Clear(_cancelled);
-        _keys.Clear();
-        _text.Clear();
-        Text = "";
+        ClearKeysAndText();
         Composition = previous.Composition;
         Pointer = previous.Pointer;
         Modifiers = previous.Modifiers;
@@ -241,5 +230,13 @@ public sealed class UiInput
         ScrollY = 0;
         PopupsDismissed = false;
         HasEvents = false;
+    }
+
+    private void ClearKeysAndText()
+    {
+        _keys.Clear();
+        _text.Clear();
+        Text = "";
+        Composition = PreeditText.Empty;
     }
 }

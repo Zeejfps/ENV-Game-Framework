@@ -113,9 +113,7 @@ internal sealed class LayoutTree
     private ICanvas _canvas = null!;
     private UiPainter _painter = null!;
     private UiRect _screen;
-    private float _originX;
-    private float _originY;
-    private float _surfaceHeight;
+    private CanvasOrigin _origin;
     private int _order;
     private Dictionary<int, UiRect> _contentRects = null!;
 
@@ -279,7 +277,7 @@ internal sealed class LayoutTree
             {
                 var inner = _clips[^1].Intersect(kept);
                 _clips.Add(inner);
-                _canvas.PushClip(ToCanvas(inner));
+                _canvas.PushClip(_origin.ToCanvas(inner));
             }
             EmitElement(index, z, layer, passThrough, hits, rects);
             if (clip != null)
@@ -297,13 +295,13 @@ internal sealed class LayoutTree
         if (canvas == null)
         {
             _canvas = _mainCanvas;
-            (_originX, _originY, _surfaceHeight) = (0f, 0f, _screen.Height);
+            _origin = new CanvasOrigin(0f, 0f, _screen.Height);
             _clips.Add(_screen);
         }
         else
         {
             _canvas = canvas;
-            (_originX, _originY, _surfaceHeight) = (rect.X, rect.Y, rect.Height);
+            _origin = new CanvasOrigin(rect.X, rect.Y, rect.Height);
             _clips.Add(rect);
         }
     }
@@ -335,7 +333,7 @@ internal sealed class LayoutTree
         {
             var inner = clip.Intersect(rect);
             _clips.Add(inner);
-            _canvas.PushClip(ToCanvas(inner));
+            _canvas.PushClip(_origin.ToCanvas(inner));
         }
 
         for (var c = e.FirstChild; c >= 0; c = this[c].NextSibling)
@@ -362,7 +360,7 @@ internal sealed class LayoutTree
         {
             _canvas.DrawBoxShadow(new DrawBoxShadowInputs
             {
-                Position = ToCanvas(rect),
+                Position = _origin.ToCanvas(rect),
                 BorderRadius = BorderRadiusStyle.All(e.Radius),
                 Shadow = ToStyle(e.Shadow),
                 ZIndex = z,
@@ -375,7 +373,7 @@ internal sealed class LayoutTree
             _rectStyle.BorderColor = BorderColorStyle.All(e.BorderColor);
             _rectStyle.BorderSize = BorderSizeStyle.All(e.BorderWidth);
             _rectStyle.BorderRadius = BorderRadiusStyle.All(e.Radius);
-            _canvas.DrawRect(new DrawRectInputs { Position = ToCanvas(rect), Style = _rectStyle, ZIndex = z });
+            _canvas.DrawRect(new DrawRectInputs { Position = _origin.ToCanvas(rect), Style = _rectStyle, ZIndex = z });
         }
 
         if (!string.IsNullOrEmpty(e.Text) && e.TextStyle != null)
@@ -386,14 +384,14 @@ internal sealed class LayoutTree
                 MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
                 MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
             if (e.Lines == null)
-                _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(content), Text = e.Shown ?? e.Text, Style = e.TextStyle, ZIndex = z });
+                _canvas.DrawText(new DrawTextInputs { Position = _origin.ToCanvas(content), Text = e.Shown ?? e.Text, Style = e.TextStyle, ZIndex = z });
             else
                 PaintLines(ref e, content, z);
         }
 
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
-            _painter.Begin(rect, _clips[^1], z, _canvas, _originX, _originY, _surfaceHeight);
+            _painter.Begin(rect, _clips[^1], z, _canvas, _origin);
             _paints[p].Command.Run(_painter);
         }
     }
@@ -414,7 +412,7 @@ internal sealed class LayoutTree
             var start = lines.Start(i);
             _canvas.DrawText(new DrawTextInputs
             {
-                Position = ToCanvas(line),
+                Position = _origin.ToCanvas(line),
                 Text = e.Text!,
                 Slice = new Range(start, start + length),
                 Style = e.TextStyle!,
@@ -566,6 +564,4 @@ internal sealed class LayoutTree
         Align.End => 1f,
         _ => 0f,
     };
-
-    private RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _surfaceHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
 }

@@ -87,6 +87,16 @@ public readonly record struct Corners(float TopLeft, float TopRight, float Botto
     public static Corners Right(float radius) => new(0f, radius, radius, 0f);
 }
 
+/// <summary>A small stroked shape <see cref="Ui.PaintGlyph"/> draws in its element.</summary>
+public enum UiGlyph
+{
+    Checkmark,
+    Cross,
+    DisclosureClosed,
+    DisclosureOpen,
+    DropdownArrow,
+}
+
 public enum Align
 {
     Start,

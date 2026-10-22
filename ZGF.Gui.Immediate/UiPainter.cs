@@ -9,12 +9,12 @@ namespace ZGF.Gui.Immediate;
 /// </summary>
 public sealed class UiPainter
 {
+    private const float GlyphHalf = 3.5f;
+
     private readonly Ui _ui;
     private readonly RectStyle _rectStyle = new();
     private ICanvas _canvas;
-    private float _originX;
-    private float _originY;
-    private float _canvasHeight;
+    private CanvasOrigin _origin;
     private int _z;
 
     internal UiPainter(Ui ui, ICanvas canvas)
@@ -31,25 +31,17 @@ public sealed class UiPainter
 
     public int ZIndex => _z;
 
-    internal void Begin(UiRect rect, UiRect clip, int z, ICanvas canvas, float originX, float originY, float canvasHeight)
+    internal void Begin(UiRect rect, UiRect clip, int z, ICanvas canvas, CanvasOrigin origin)
     {
         Rect = rect;
         Clip = clip;
         _z = z;
         _canvas = canvas;
-        _originX = originX;
-        _originY = originY;
-        _canvasHeight = canvasHeight;
+        _origin = origin;
     }
 
-    public void FillRect(UiRect rect, uint color, float radius = 0f, uint borderColor = 0, float borderWidth = 0f)
-    {
-        _rectStyle.BackgroundColor = color;
-        _rectStyle.BorderColor = BorderColorStyle.All(borderColor);
-        _rectStyle.BorderSize = BorderSizeStyle.All(borderWidth);
-        _rectStyle.BorderRadius = BorderRadiusStyle.All(radius);
-        _canvas.DrawRect(new DrawRectInputs { Position = ToCanvas(rect), Style = _rectStyle, ZIndex = _z });
-    }
+    public void FillRect(UiRect rect, uint color, float radius = 0f, uint borderColor = 0, float borderWidth = 0f) =>
+        FillRect(rect, color, new Corners(radius), borderColor, borderWidth);
 
     public void FillRect(UiRect rect, uint color, Corners radii, uint borderColor = 0, float borderWidth = 0f)
     {
@@ -63,31 +55,99 @@ public sealed class UiPainter
             BottomRight = radii.BottomRight,
             BottomLeft = radii.BottomLeft,
         };
-        _canvas.DrawRect(new DrawRectInputs { Position = ToCanvas(rect), Style = _rectStyle, ZIndex = _z });
+        _canvas.DrawRect(new DrawRectInputs { Position = _origin.ToCanvas(rect), Style = _rectStyle, ZIndex = _z });
     }
 
     public void Line(PointF from, PointF to, float thickness, uint color) =>
-        _canvas.DrawLine(new DrawLineInputs { Start = ToCanvas(from), End = ToCanvas(to), Thickness = thickness, Color = color, ZIndex = _z });
+        _canvas.DrawLine(new DrawLineInputs { Start = _origin.ToCanvas(from), End = _origin.ToCanvas(to), Thickness = thickness, Color = color, ZIndex = _z });
 
     /// <summary>A filled disc, or a ring when <paramref name="thickness"/> is positive.</summary>
     public void Circle(PointF center, float radius, uint color, float thickness = 0f) =>
-        _canvas.DrawCircle(new DrawCircleInputs { Center = ToCanvas(center), Radius = radius, Color = color, Thickness = thickness, ZIndex = _z });
+        _canvas.DrawCircle(new DrawCircleInputs { Center = _origin.ToCanvas(center), Radius = radius, Color = color, Thickness = thickness, ZIndex = _z });
 
-    /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
-    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
+    /// <summary>Draws <paramref name="glyph"/> centered in <see cref="Rect"/>, its lines
+    /// <paramref name="stroke"/> wide.</summary>
+    public void DrawGlyph(UiGlyph glyph, uint color, float stroke)
+    {
+        var center = new PointF(Rect.X + Rect.Width / 2, Rect.Y + Rect.Height / 2);
+        switch (glyph)
+        {
+            case UiGlyph.Checkmark:
+                DrawCheckmark(Rect, color, stroke);
+                break;
+            case UiGlyph.Cross:
+                DrawCross(center, GlyphHalf, color, stroke);
+                break;
+            case UiGlyph.DisclosureClosed:
+                DrawDisclosure(center, GlyphHalf, false, color, stroke);
+                break;
+            case UiGlyph.DisclosureOpen:
+                DrawDisclosure(center, GlyphHalf, true, color, stroke);
+                break;
+            case UiGlyph.DropdownArrow:
+                DrawDropdownArrow(Rect, color, stroke);
+                break;
+        }
+    }
+
+    public void DrawCheckmark(UiRect r, uint color, float stroke)
+    {
+        var start = new PointF(r.X + r.Width * 0.25f, r.Y + r.Height * 0.5f);
+        var corner = new PointF(r.X + r.Width * 0.42f, r.Y + r.Height * 0.68f);
+        var end = new PointF(r.X + r.Width * 0.75f, r.Y + r.Height * 0.32f);
+        Line(start, corner, stroke, color);
+        Line(corner, end, stroke, color);
+    }
+
+    /// <summary>An X reaching <paramref name="half"/> from <paramref name="center"/> each way.</summary>
+    public void DrawCross(PointF center, float half, uint color, float stroke)
+    {
+        var (cx, cy) = (center.X, center.Y);
+        Line(new PointF(cx - half, cy - half), new PointF(cx + half, cy + half), stroke, color);
+        Line(new PointF(cx - half, cy + half), new PointF(cx + half, cy - half), stroke, color);
+    }
+
+    /// <summary>A chevron pointing right, or down when <paramref name="expanded"/>, reaching
+    /// <paramref name="half"/> from <paramref name="center"/> along its length.</summary>
+    public void DrawDisclosure(PointF center, float half, bool expanded, uint color, float stroke)
+    {
+        var (cx, cy) = (center.X, center.Y);
+        if (expanded)
+        {
+            Line(new PointF(cx - half, cy - half / 2), new PointF(cx, cy + half / 2), stroke, color);
+            Line(new PointF(cx, cy + half / 2), new PointF(cx + half, cy - half / 2), stroke, color);
+            return;
+        }
+        Line(new PointF(cx - half / 2, cy - half), new PointF(cx + half / 2, cy), stroke, color);
+        Line(new PointF(cx + half / 2, cy), new PointF(cx - half / 2, cy + half), stroke, color);
+    }
+
+    /// <summary>A solid down triangle <paramref name="width"/> wide, centered in <paramref name="r"/>.</summary>
+    public void DrawDropdownArrow(UiRect r, uint color, float width)
+    {
+        var half = width / 2;
+        var top = MathF.Round(r.Y + (r.Height - half) / 2);
+        var cx = r.X + r.Width / 2;
+        var apex = new PointF(cx, top + half);
+        for (var x = -half; x <= half; x += 0.5f)
+            Line(new PointF(cx + x, top), apex, 1f, color);
+    }
+
     /// <summary>Draws the image <paramref name="imageId"/>, set with <see cref="Ui.SetImage"/>,
     /// fitted into <paramref name="rect"/> keeping its aspect and multiplied by
     /// <paramref name="tint"/>; nothing when there is no such image.</summary>
     public void Image(UiRect rect, string imageId, uint tint = 0xFFFFFFFF)
     {
         if (_canvas.HasImage(imageId))
-            _canvas.DrawImage(new DrawImageInputs { Position = ToCanvas(rect), ImageId = imageId, TintColor = tint, Rotation = 0f, ZIndex = _z });
+            _canvas.DrawImage(new DrawImageInputs { Position = _origin.ToCanvas(rect), ImageId = imageId, TintColor = tint, Rotation = 0f, ZIndex = _z });
     }
 
+    /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
+    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
     public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null)
     {
         if (string.IsNullOrEmpty(text)) return;
-        _canvas.DrawText(new DrawTextInputs { Position = ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align, family), ZIndex = _z });
+        _canvas.DrawText(new DrawTextInputs { Position = _origin.ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align, family), ZIndex = _z });
     }
 
     /// <summary>Draws <paramref name="length"/> characters of <paramref name="text"/> from
@@ -99,7 +159,7 @@ public sealed class UiPainter
         if (length <= 0) return;
         _canvas.DrawText(new DrawTextInputs
         {
-            Position = ToCanvas(rect),
+            Position = _origin.ToCanvas(rect),
             Text = text,
             Slice = new Range(start, start + length),
             Style = _ui.TextStyleFor(size, color, bold, align, family),
@@ -117,7 +177,7 @@ public sealed class UiPainter
         if (codePoints.IsEmpty) return;
         _canvas.DrawGlyphRun(new DrawGlyphRunInputs
         {
-            Origin = ToCanvas(origin),
+            Origin = _origin.ToCanvas(origin),
             CodePoints = codePoints,
             CellAdvance = cellAdvance,
             Style = _ui.TextStyleFor(size, color, bold, Align.Start, family),
@@ -125,8 +185,13 @@ public sealed class UiPainter
             Underline = underline,
         });
     }
+}
 
-    private RectF ToCanvas(UiRect rect) => new(rect.X - _originX, _canvasHeight - (rect.Y - _originY) - rect.Height, rect.Width, rect.Height);
+/// <summary>Where a canvas sits in UI space: its top-left at (<see cref="X"/>, <see cref="Y"/>),
+/// <see cref="Height"/> tall, with Y up.</summary>
+internal readonly record struct CanvasOrigin(float X, float Y, float Height)
+{
+    public RectF ToCanvas(UiRect rect) => new(rect.X - X, Height - (rect.Y - Y) - rect.Height, rect.Width, rect.Height);
 
-    private PointF ToCanvas(PointF point) => new(point.X - _originX, _canvasHeight - (point.Y - _originY));
+    public PointF ToCanvas(PointF point) => new(point.X - X, Height - (point.Y - Y));
 }

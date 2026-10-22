@@ -17,6 +17,28 @@ public sealed partial class Ui
     /// <summary>True while something is being dragged, including the frame it is dropped.</summary>
     public bool IsDragging => _drag != null;
 
+    private sealed class DragStart<T>
+    {
+        public T Value = default!;
+    }
+
+    /// <summary>Keeps <paramref name="current"/> as it was on the frame <paramref name="held"/> was
+    /// pressed and, on each later frame it is still held, gives it back as <paramref name="start"/>
+    /// and returns true: with <see cref="PressPosition"/>, where a drag moves something from.</summary>
+    public bool TryGetDragStart<T>(Interaction held, T current, out T start)
+    {
+        start = current;
+        if (!held.Held) return false;
+        var state = GetState<DragStart<T>>(held.Id);
+        if (held.Pressed)
+        {
+            state.Value = current;
+            return false;
+        }
+        start = state.Value;
+        return true;
+    }
+
     /// <summary>True while <paramref name="held"/> is held, nothing is being dragged yet, and the
     /// pointer has moved far enough from where it was pressed to start a drag — the cue to call
     /// <see cref="BeginDrag"/>. A drag cancelled while the button is down does not start again

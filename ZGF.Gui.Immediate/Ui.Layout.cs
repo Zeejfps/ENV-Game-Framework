@@ -9,22 +9,30 @@ public sealed partial class Ui
         Scroll,
         Context,
         Layer,
-        Modal,
         StateScope,
+        Group,
     }
 
+    private readonly record struct OpenScope(ScopeKind Kind, object? State, Action<object>? End);
+
+    /// <summary>What a call that opens something returns: disposing it ends that and every scope
+    /// opened inside it that is still open, innermost first. A widget that is closed returns
+    /// <c>default</c>, which is not <see cref="IsOpen"/> and ends nothing.</summary>
     public readonly struct Scope : IDisposable
     {
-        private readonly Ui _ui;
-        private readonly ScopeKind _kind;
+        private readonly Ui? _ui;
+        private readonly int _depth;
 
-        internal Scope(Ui ui, ScopeKind kind)
+        internal Scope(Ui ui, int depth)
         {
             _ui = ui;
-            _kind = kind;
+            _depth = depth;
         }
 
-        public void Dispose() => _ui.EndScope(_kind);
+        /// <summary>Record the content of the widget that returned this scope only while true.</summary>
+        public bool IsOpen => _ui != null;
+
+        public void Dispose() => _ui?.EndScopes(_depth);
     }
 
     internal sealed class ScrollState
@@ -41,8 +49,6 @@ public sealed partial class Ui
         public float ViewportX;
         public float ViewportY;
         public int Parent;
-        public float DragAnchor;
-        public float DragStartOffset;
         public float Synced = float.NaN;
         public float SyncedX = float.NaN;
         public ScrollBar Bar;
@@ -74,6 +80,7 @@ public sealed partial class Ui
         Relayout,
     }
 
+    private readonly List<OpenScope> _scopes = new();
     private readonly Stack<OpenScroll> _openScrolls = new();
     private readonly List<OpenScroll> _frameScrolls = new();
     private HashSet<int> _scrollIds = new();
@@ -95,7 +102,7 @@ public sealed partial class Ui
     public Scope Box(int id, Box box = default)
     {
         Open(id, box);
-        return new Scope(this, ScopeKind.Element);
+        return BeginScope(ScopeKind.Element);
     }
 
     public Scope Column(Box box = default) => Column(0, box);
@@ -127,7 +134,7 @@ public sealed partial class Ui
     {
         var index = OpenFloating(id, box, anchorX, anchorY, offsetX, offsetY, z);
         _tree[index].KeepsClip = clipped;
-        return new Scope(this, ScopeKind.Element);
+        return BeginScope(ScopeKind.Element);
     }
 
     /// <summary>An element with no children.</summary>
@@ -166,7 +173,7 @@ public sealed partial class Ui
         e.Z = PopupZ + _popups.Count;
         var element = Push(e);
         _popups.Add(new OpenPopup(element, id, anchor, align, gap, side));
-        return new Scope(this, ScopeKind.Element);
+        return BeginScope(ScopeKind.Element);
     }
 
     /// <summary>A text element: sized to its text plus the box's padding unless the box sizes it,
@@ -210,6 +217,14 @@ public sealed partial class Ui
     /// <summary>Convenience form of <see cref="Paint{TState}"/>; a capturing lambda allocates
     /// every frame.</summary>
     public void Paint(Action<UiPainter> paint) => Paint(paint, static (painter, p) => p(painter));
+
+    /// <summary>Paints <paramref name="glyph"/> centered on the element being recorded, in
+    /// <paramref name="color"/>, stroked as the theme's icons are.</summary>
+    public void PaintGlyph(UiGlyph glyph, uint color)
+    {
+        var stroke = glyph == UiGlyph.DropdownArrow ? Theme.DropdownArrowWidth : Theme.IconStrokeWidth;
+        Paint((glyph, color, stroke), static (p, s) => p.DrawGlyph(s.glyph, s.color, s.stroke));
+    }
 
     public Scope Scroll(string id, Box box = default) => Scroll(GetId(id), box);
 
@@ -280,7 +295,7 @@ public sealed partial class Ui
             });
         _scrollIds.Add(id);
         _openScrolls.Push(new OpenScroll(id, element, state, thumbX, thumbY, padding));
-        return new Scope(this, ScopeKind.Scroll);
+        return BeginScope(ScopeKind.Scroll);
     }
 
     /// <summary>How far the scroll with <paramref name="id"/> is scrolled, in points from the top-left
@@ -341,23 +356,16 @@ public sealed partial class Ui
     private void DragThumb(ScrollState state, Interaction thumb, bool x)
     {
         if (thumb.Id == 0) return;
-        var pointer = x ? Input.Pointer.X : Input.Pointer.Y;
-        if (thumb.Pressed)
-        {
-            state.DragAnchor = pointer;
-            state.DragStartOffset = x ? state.OffsetX : state.OffsetY;
-        }
-        else if (thumb.Held)
-        {
-            var viewport = x ? state.ViewportX : state.ViewportY;
-            var content = x ? state.ContentX : state.ContentY;
-            var max = x ? state.MaxX : state.MaxY;
-            var travel = viewport - ThumbLength(viewport, content, state.Bar.MinThumb);
-            if (travel <= 0f) return;
-            var offset = Math.Clamp(state.DragStartOffset + (pointer - state.DragAnchor) * max / travel, 0f, max);
-            if (x) state.OffsetX = offset;
-            else state.OffsetY = offset;
-        }
+        if (!TryGetDragStart(thumb, x ? state.OffsetX : state.OffsetY, out var startOffset)) return;
+        var moved = x ? Input.Pointer.X - PressPosition.X : Input.Pointer.Y - PressPosition.Y;
+        var viewport = x ? state.ViewportX : state.ViewportY;
+        var content = x ? state.ContentX : state.ContentY;
+        var max = x ? state.MaxX : state.MaxY;
+        var travel = viewport - ThumbLength(viewport, content, state.Bar.MinThumb);
+        if (travel <= 0f) return;
+        var offset = Math.Clamp(startOffset + moved * max / travel, 0f, max);
+        if (x) state.OffsetX = offset;
+        else state.OffsetY = offset;
     }
 
     private static Spacing WithGutters(Spacing padding, ScrollState state, ScrollBar bar) => padding with
@@ -366,9 +374,31 @@ public sealed partial class Ui
         Bottom = padding.Bottom + Gutter(state.ScrollsX && state.MaxX > 0f, bar),
     };
 
-    private void EndScope(ScopeKind kind)
+    /// <summary>Opens a scope that ends every scope opened after it when it is disposed, then runs
+    /// <paramref name="end"/> on <paramref name="state"/> — so a widget built of several scopes
+    /// returns one. Pass a <c>static</c> lambda and nothing is allocated per frame.</summary>
+    public Scope Group(object state, Action<object> end) => BeginScope(ScopeKind.Group, state, end);
+
+    private Scope BeginScope(ScopeKind kind, object? state = null, Action<object>? end = null)
     {
-        switch (kind)
+        _scopes.Add(new OpenScope(kind, state, end));
+        return new Scope(this, _scopes.Count - 1);
+    }
+
+    private void EndScopes(int depth)
+    {
+        while (_scopes.Count > depth)
+        {
+            var top = _scopes.Count - 1;
+            var scope = _scopes[top];
+            _scopes.RemoveAt(top);
+            EndScope(scope);
+        }
+    }
+
+    private void EndScope(OpenScope scope)
+    {
+        switch (scope.Kind)
         {
             case ScopeKind.Id:
                 _ids.Pop();
@@ -385,15 +415,21 @@ public sealed partial class Ui
             case ScopeKind.Layer:
                 EndLayer();
                 break;
-            case ScopeKind.Modal:
-                Close();
-                EndLayer();
-                break;
             case ScopeKind.StateScope:
                 _stateOwners.Pop();
                 _ids.Pop();
                 break;
+            case ScopeKind.Group:
+                scope.End?.Invoke(scope.State!);
+                break;
         }
+    }
+
+    private void EnsureScopesClosed()
+    {
+        if (_scopes.Count == 0) return;
+        var kind = _scopes[_scopes.Count - 1].Kind;
+        throw new InvalidOperationException($"An open {kind} scope was not disposed.");
     }
 
     private void EndScroll()
@@ -441,6 +477,7 @@ public sealed partial class Ui
 
     private void BeginScrolls()
     {
+        _scopes.Clear();
         _openScrolls.Clear();
         _frameScrolls.Clear();
         _popups.Clear();

@@ -22,7 +22,7 @@ public sealed partial class Ui
             Array.Resize(ref _context, Math.Max(slot + 1, _context.Length * 2));
         _provided.Push((slot, _context[slot]));
         _context[slot] = value;
-        return new Scope(this, ScopeKind.Context);
+        return BeginScope(ScopeKind.Context);
     }
 
     /// <summary>The innermost value given to <see cref="Provide{T}"/>, or null outside any.</summary>

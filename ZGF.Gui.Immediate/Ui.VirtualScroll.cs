@@ -13,15 +13,18 @@ public sealed partial class Ui
     public readonly struct VirtualList : IDisposable
     {
         private readonly Ui _ui;
+        private readonly Scope _scroll;
         private readonly ScrollState _state;
         private readonly float _rowHeight;
         private readonly float _gap;
         private readonly float _top;
         private readonly IReadOnlyList<TallRow>? _tall;
 
-        internal VirtualList(Ui ui, ScrollState state, int count, int first, int end, float rowHeight, float gap, float top, IReadOnlyList<TallRow>? tall)
+        internal VirtualList(Ui ui, Scope scroll, ScrollState state, int count, int first, int end, float rowHeight, float gap, float top,
+            IReadOnlyList<TallRow>? tall)
         {
             _ui = ui;
+            _scroll = scroll;
             _state = state;
             Count = count;
             First = first;
@@ -73,7 +76,7 @@ public sealed partial class Ui
         {
             if (Count > End)
                 _ui.Leaf(new Box { Width = 0f, Height = RowTop(Count, _rowHeight, _gap, _tall) - RowTop(End, _rowHeight, _gap, _tall) - _gap });
-            _ui.EndScroll();
+            _scroll.Dispose();
         }
     }
 
@@ -136,7 +139,7 @@ public sealed partial class Ui
         if (tall is { Count: 0 })
             tall = null;
         var gap = box.Gap ?? 0f;
-        Scroll(id, axes, box with { Direction = Direction.Vertical, Gap = gap });
+        var scroll = Scroll(id, axes, box with { Direction = Direction.Vertical, Gap = gap });
         var state = GetState<ScrollState>(id);
 
         var stride = rowHeight + gap;
@@ -164,7 +167,7 @@ public sealed partial class Ui
 
         if (first > 0)
             Leaf(new Box { Width = 0f, Height = RowTop(first, rowHeight, gap, tall) - gap });
-        return new VirtualList(this, state, count, first, end, rowHeight, gap, top, tall);
+        return new VirtualList(this, scroll, state, count, first, end, rowHeight, gap, top, tall);
     }
 
     /// <summary>Scrolls the least distance that shows <see cref="ScrollState.RevealRow"/> whole once

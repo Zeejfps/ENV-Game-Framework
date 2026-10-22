@@ -35,7 +35,7 @@ public sealed partial class Ui
     public Scope Layer(int id)
     {
         BeginLayer(id, false);
-        return new Scope(this, ScopeKind.Layer);
+        return BeginScope(ScopeKind.Layer);
     }
 
     /// <summary>
@@ -47,12 +47,14 @@ public sealed partial class Ui
     public Scope Modal(int id, Box box = default)
     {
         BeginLayer(id, true);
+        var layer = BeginScope(ScopeKind.Layer);
         var e = Describe(id, box with { Width = Sizing.Fixed(Width), Height = Sizing.Fixed(Height) }, null, null);
         e.Parent = 0;
         e.Floating = true;
         e.Z = ModalZ + _modalCount++ * ModalZStep;
         Push(e);
-        return new Scope(this, ScopeKind.Modal);
+        BeginScope(ScopeKind.Element);
+        return layer;
     }
 
     /// <summary>True while the pointer is over the element with <paramref name="id"/> and nothing

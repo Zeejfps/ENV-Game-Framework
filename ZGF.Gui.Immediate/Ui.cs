@@ -250,16 +250,7 @@ public sealed partial class Ui
     internal void EndFrame()
     {
         Close();
-        if (_open.Count != 0)
-            throw new InvalidOperationException("A layout scope was not disposed.");
-        if (_ids.Count != 1)
-            throw new InvalidOperationException("An Id scope was not disposed.");
-        if (_stateOwners.Count != 0)
-            throw new InvalidOperationException("A StateScope was not disposed.");
-        if (_provided.Count != 0)
-            throw new InvalidOperationException("A Provide scope was not disposed.");
-        if (_openLayers.Count != 0)
-            throw new InvalidOperationException("A Layer scope was not disposed.");
+        EnsureScopesClosed();
 
         _tree.Solve(this);
         switch (SettleScrolls())
@@ -304,13 +295,13 @@ public sealed partial class Ui
     public Scope Id(string id)
     {
         _ids.Push(GetId(id));
-        return new Scope(this, ScopeKind.Id);
+        return BeginScope(ScopeKind.Id);
     }
 
     public Scope Id(int id)
     {
         _ids.Push(GetId(id));
-        return new Scope(this, ScopeKind.Id);
+        return BeginScope(ScopeKind.Id);
     }
 
     /// <summary>
@@ -324,7 +315,7 @@ public sealed partial class Ui
         _ids.Push(scope);
         _stateOwners.Push(scope);
         _keptStates[scope] = _frame;
-        return new Scope(this, ScopeKind.StateScope);
+        return BeginScope(ScopeKind.StateScope);
     }
 
     /// <summary>Keeps the state of the <see cref="StateScope"/> with <paramref name="id"/> alive
