@@ -8,7 +8,6 @@ public sealed class MetadataFilters
 {
     private readonly Dictionary<string, SavedFilterState> _saved;
     private readonly Dictionary<string, FilterState> _states = new();
-    private int _seen;
 
     public MetadataFilters(Dictionary<string, SavedFilterState>? saved)
     {
@@ -16,28 +15,24 @@ public sealed class MetadataFilters
     }
 
     /// <summary>Changes whenever a filter does.</summary>
-    public int Revision { get; private set; }
+    public int Revision => _states.Values.Sum(static s => s.Revision);
 
     /// <summary>The filter of <paramref name="column"/>, a column of flags, as last left.</summary>
     public FilterState For(MetadataGrid grid, int column)
     {
-        var key = $"{grid.Key}/{grid.Columns[column].Name}";
+        var key = KeyOf(grid, column);
         if (_states.TryGetValue(key, out var state)) return state;
-        state = new FilterState(grid.Columns[column].Flags ?? throw new ArgumentException($"{key} is not a flags column.", nameof(column)));
+        var schema = grid.Columns[column].Flags;
+        if (schema == null)
+            throw new ArgumentException($"{key} is not a flags column.", nameof(column));
+        state = new FilterState(schema);
         if (_saved.TryGetValue(key, out var saved))
             state.Restore(saved);
         _states.Add(key, state);
         return state;
     }
 
-    /// <summary>Notices filters changed since the last call, bumping <see cref="Revision"/>.</summary>
-    public void Sync()
-    {
-        var seen = _states.Values.Sum(static s => s.Revision);
-        if (seen == _seen) return;
-        _seen = seen;
-        Revision++;
-    }
+    private static string KeyOf(MetadataGrid grid, int column) => $"{grid.Key}/{grid.Columns[column].Name}";
 
     /// <summary>Every filter that filters something, to save.</summary>
     public Dictionary<string, SavedFilterState> Save()

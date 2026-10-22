@@ -9,7 +9,6 @@ public static class Saving
     public static void Sync(this Workspace w)
     {
         w.RestoreLastSessionAnalyses();
-        w.MetadataFilters.Sync();
         var treeChanged = w.Tree.Sync(w.Assemblies);
         if (w.IsReloading)
             return;
