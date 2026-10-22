@@ -72,7 +72,7 @@ internal static class DecompilerOptionsPanelView
     {
         var theme = ui.Theme;
         var folded = w.FoldedOptionGroups.Contains(section.Key);
-        var allowed = section.Version is not { } version || version <= options.LanguageVersion;
+        var allowed = IsAllowed(section, options);
         var item = ui.Interact(section.Key);
         using (ui.Row(item.Id, new Box
         {
@@ -94,11 +94,23 @@ internal static class DecompilerOptionsPanelView
         return item.Clicked;
     }
 
+    private static bool IsAllowed(Section section, DecompilerOptions options)
+    {
+        var version = section.Version;
+        if (version == null)
+            return true;
+        return version.Value <= options.LanguageVersion;
+    }
+
     /// <summary>True when every toggle in <paramref name="section"/> is on, false when none is, null otherwise.</summary>
     private static bool? State(Section section, DecompilerOptions options)
     {
         var on = section.Toggles.Count(options.IsOn);
-        return on == section.Toggles.Length ? true : on == 0 ? false : null;
+        if (on == section.Toggles.Length)
+            return true;
+        if (on == 0)
+            return false;
+        return null;
     }
 
     /// <summary>Whether any toggle in <paramref name="section"/> is set away from its default.</summary>
