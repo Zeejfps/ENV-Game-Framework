@@ -56,11 +56,16 @@ public static class ILSpyTree
         return path;
     }
 
-    /// <summary>The node <paramref name="path"/> names, as <see cref="PathOf"/> gives it, loading its
-    /// assembly without listing it; null when the file cannot be opened or has no such node.</summary>
-    public static NodePath? Find(AssemblyList list, IReadOnlyList<string> path)
+    /// <summary>The node a bookmark ILSpy made in the assembly at <paramref name="filePath"/> sits
+    /// in, as <see cref="Describe"/> records it: the node <paramref name="treePath"/> names, else the
+    /// node of the entity with metadata <paramref name="token"/> or its nearest ancestor. Loads the
+    /// assembly without listing it; null when it cannot be opened or has neither.</summary>
+    public static NodePath? Locate(AssemblyList list, string filePath, IReadOnlyList<string>? treePath, uint token) =>
+        (treePath is { Count: > 0 } ? Find(list, treePath) : null) ?? FindEntity(list, filePath, token);
+
+    private static NodePath? Find(AssemblyList list, IReadOnlyList<string> path)
     {
-        if (path.Count == 0 || Load(list, path[0]) is not { } assembly) return null;
+        if (Load(list, path[0]) is not { } assembly) return null;
         var node = assembly.Root;
         for (var i = 1; i < path.Count; i++)
         {
@@ -77,17 +82,14 @@ public static class ILSpyTree
         return node.Path;
     }
 
-    /// <summary>The node of the entity with metadata <paramref name="token"/> in the assembly at
-    /// <paramref name="filePath"/>, or its nearest ancestor in the tree, loading the assembly without
-    /// listing it; null when there is none.</summary>
-    public static NodePath? FindEntity(AssemblyList list, string filePath, uint token)
+    private static NodePath? FindEntity(AssemblyList list, string filePath, uint token)
     {
         if (token == 0 || Load(list, filePath) is not { } assembly) return null;
         try
         {
             return assembly.FindNodeOrAncestor(MetadataTokens.EntityHandle((int)token))?.Path;
         }
-        catch (ArgumentException)
+        catch (Exception e) when (e is ArgumentException or BadImageFormatException)
         {
             return null;
         }

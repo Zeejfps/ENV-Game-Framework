@@ -28,7 +28,7 @@ internal static class DocumentsView
                 w.Navigate(definition, picked.InNewTab);
             return;
         }
-        if (tab is { IsBusy: true, Node.ShowsGrid: true } or { IsBusy: true, Node.ShowsImage: true })
+        if (tab is { IsBusy: true, Node.DependsOnLanguage: false })
         {
             Hint(ui, t.MetadataLoading);
             return;

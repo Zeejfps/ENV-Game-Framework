@@ -28,8 +28,19 @@ public sealed class ILSpyTreeTests
         foreach (var node in assembly.Calculator().Children.Prepend(assembly.Calculator()))
         {
             if (ILSpyTree.PathOf(node) is not { } path) continue;
-            Assert.Equal(node.Path, ILSpyTree.Find(list, path));
+            Assert.Equal(node.Path, ILSpyTree.Locate(list, assembly.FilePath, path, token: 0));
         }
+    }
+
+    [Fact]
+    public void A_bookmark_without_a_tree_path_is_found_by_its_token()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var calculator = assembly.Calculator();
+
+        Assert.Equal(calculator.Path, ILSpyTree.Locate(list, assembly.FilePath, null, ILSpyTree.Describe(calculator, null).Token));
+        Assert.Equal(calculator.Path, ILSpyTree.Locate(list, assembly.FilePath, ["no such file"], ILSpyTree.Describe(calculator, null).Token));
+        Assert.Null(ILSpyTree.Locate(list, assembly.FilePath, null, 0x06FFFFFF));
     }
 
     [Fact]

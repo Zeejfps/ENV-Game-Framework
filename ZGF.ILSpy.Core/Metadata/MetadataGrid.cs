@@ -105,15 +105,10 @@ public sealed class MetadataGrid
     /// every one of <paramref name="filters"/>, one per column or null.</summary>
     public int[] Filter(int[]? order, IReadOnlyList<MetadataColumnFilter?> filters)
     {
-        var active = new List<(int Column, MetadataColumnFilter Filter, CompiledFilter? Flags)>();
-        for (var column = 0; column < filters.Count && column < _columns.Count; column++)
-        {
-            if (filters[column] is { IsActive: true } filter)
-                active.Add((column, filter, filter.Flags is { IsEmpty: false } flags ? CompiledFilter.Compile(flags) : null));
-        }
+        var active = Enumerable.Range(0, Math.Min(filters.Count, _columns.Count)).Where(c => filters[c] is { IsActive: true }).ToArray();
         var rows = order ?? Enumerable.Range(0, _rows.Count).ToArray();
-        if (active.Count == 0) return rows;
-        return rows.Where(row => active.TrueForAll(a => Matches(row, a.Column, a.Filter.Text, a.Flags))).ToArray();
+        if (active.Length == 0) return rows;
+        return rows.Where(row => Array.TrueForAll(active, c => Matches(row, c, filters[c]!))).ToArray();
     }
 
     /// <summary>What is shown under <paramref name="row"/> while it is selected; null when it has
@@ -220,33 +215,20 @@ public sealed class MetadataGrid
         if (!ReferenceEquals(file, _owner.Assembly.File) || _schema.Table is not { } table) return null;
         var token = (int)table << 24 | row + 1;
         var handle = MetadataTokens.EntityHandle(token);
-        var name = _schema.NameColumn >= 0 ? Text(row, _schema.NameColumn) : token.ToString("X8");
-        var kind = handle.Kind switch
-        {
-            HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification => CodeReferenceKind.Type,
-            HandleKind.MethodDefinition or HandleKind.MethodSpecification => CodeReferenceKind.Method,
-            HandleKind.FieldDefinition => CodeReferenceKind.Field,
-            HandleKind.PropertyDefinition => CodeReferenceKind.Property,
-            HandleKind.EventDefinition => CodeReferenceKind.Event,
-            HandleKind.MemberReference => file.Metadata.GetMemberReference((MemberReferenceHandle)handle).GetKind() == MemberReferenceKind.Field
-                ? CodeReferenceKind.Field
-                : CodeReferenceKind.Method,
-            HandleKind.AssemblyReference => CodeReferenceKind.Assembly,
-            HandleKind.AssemblyDefinition => CodeReferenceKind.Assembly,
-            _ => (CodeReferenceKind?)null,
-        };
-        if (kind is not { } found) return null;
-        return handle.Kind == HandleKind.AssemblyDefinition
-            ? CodeReference.ToAssembly(_owner.Assembly.Name, file.FileName)
-            : CodeReference.ToEntity(found, name, file.FileName, handle);
+        if (CodeReference.KindOf(file.Metadata, handle) is not { } kind) return null;
+        var name = handle.Kind == HandleKind.AssemblyDefinition ? _owner.Assembly.Name
+            : _schema.NameColumn >= 0 ? Text(row, _schema.NameColumn)
+            : token.ToString("X8");
+        return CodeReference.ToEntity(kind, name, file.FileName, handle);
     }
 
-    private bool Matches(int row, int column, string text, CompiledFilter? flags)
+    private bool Matches(int row, int column, MetadataColumnFilter filter)
     {
         var value = Value(row, column);
         if (value is null) return false;
-        if (flags != null && !flags.Matches(Bits(value)))
+        if (filter.Flags is { IsEmpty: false } flags && !flags.Matches(Bits(value)))
             return false;
+        var text = filter.Text;
         if (text.Length == 0) return true;
         if (Pattern(text) is { } pattern)
             return pattern.IsMatch(value.ToString() ?? "");

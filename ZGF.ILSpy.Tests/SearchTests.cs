@@ -15,9 +15,8 @@ public sealed class SearchTests
         var calculator = Assert.Single(results);
         Assert.Same(assembly.Calculator(), calculator.Node);
         Assert.Equal("Calculator<T>", calculator.Text);
-        Assert.Equal(Trees.FixturesNamespace, calculator.Namespace);
-        Assert.Equal("ZGF.ILSpy.Tests", calculator.AssemblyName);
-        Assert.Null(calculator.DeclaringType);
+        Assert.Equal(Trees.FixturesNamespace, calculator.Location);
+        Assert.Equal("ZGF.ILSpy.Tests", calculator.Node.Assembly.Name);
     }
 
     [Fact]
@@ -30,8 +29,8 @@ public sealed class SearchTests
 
         var hit = Assert.Single(tryGet);
         Assert.Same(assembly.Calculator().Child("TryGet(int, out T?) : bool"), hit.Node);
-        Assert.Equal("Calculator<T>", hit.DeclaringType);
-        Assert.Equal(["Circle", "IShape"], area.Select(r => r.DeclaringType).Order());
+        Assert.Equal(Trees.FixturesNamespace + ".Calculator<T>", hit.Location);
+        Assert.Equal([Trees.FixturesNamespace + ".Circle", Trees.FixturesNamespace + ".IShape"], area.Select(r => r.Location).Order());
         Assert.All(area, r => Assert.Equal(NodeKind.Property, r.Node.Kind));
     }
 
@@ -43,8 +42,8 @@ public sealed class SearchTests
         var results = await Collect(list.SearchAsync("mode"));
         var precise = await Collect(list.SearchAsync("precise"));
 
-        Assert.Contains(results, r => r.Node.Kind == NodeKind.Enum && r.DeclaringType == "Calculator<T>");
-        Assert.Contains(precise, r => r.Node.Kind == NodeKind.Constant && r.DeclaringType == "Mode");
+        Assert.Contains(results, r => r.Node.Kind == NodeKind.Enum && r.Location == Trees.FixturesNamespace + ".Calculator<T>");
+        Assert.Contains(precise, r => r.Node.Kind == NodeKind.Constant && r.Location == Trees.FixturesNamespace + ".Mode");
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public sealed class SearchTests
         var results = await Collect(list.SearchAsync("Dictionary"));
         stopwatch.Stop();
 
-        Assert.Contains(results, r => r.Text == "Dictionary<TKey, TValue>" && r.Namespace == "System.Collections.Generic");
+        Assert.Contains(results, r => r.Text == "Dictionary<TKey, TValue>" && r.Location == "System.Collections.Generic");
         Assert.Contains(results, r => r.Node.Kind == NodeKind.Method);
         Assert.True(stopwatch.ElapsedMilliseconds < 500, $"Search took {stopwatch.ElapsedMilliseconds} ms for {results.Count} results");
     }
@@ -116,7 +115,7 @@ public sealed class SearchTests
 
         Assert.Equal(["Calculator<T>", "Mode"], type.Select(r => r.Text).Order());
         Assert.Contains(type, r => r.Node == assembly.Calculator());
-        Assert.Equal("Calculator<T>", Assert.Single(method).DeclaringType);
+        Assert.Equal(Trees.FixturesNamespace + ".Calculator<T>", Assert.Single(method).Location);
     }
 
     [Fact]
@@ -134,8 +133,8 @@ public sealed class SearchTests
         Assert.Same(assembly.Calculator(), Assert.Single(type).Node);
         Assert.Empty(other);
         Assert.Equal("Mode", Assert.Single(nested).Text);
-        Assert.Contains(method, r => r.DeclaringType == "Array");
-        Assert.Contains(pair, r => r.Namespace == "System.Collections.Generic");
+        Assert.Contains(method, r => r.Location == "System.Array");
+        Assert.Contains(pair, r => r.Location == "System.Collections.Generic");
     }
 
     [Fact]
@@ -160,8 +159,8 @@ public sealed class SearchTests
         var fuzzy = await Collect(list.SearchAsync("t:~clcltr"));
         var regex = await Collect(list.SearchAsync("t:/^I.*e$/"));
 
-        Assert.Equal(["Calculator<T>"], excluded.Where(r => r.Namespace == Trees.FixturesNamespace).Select(r => r.Text));
-        Assert.Equal(["Size"], exact.Where(r => r.Namespace == Trees.FixturesNamespace).Select(r => r.Text));
+        Assert.Equal(["Calculator<T>"], excluded.Where(r => r.Location == Trees.FixturesNamespace).Select(r => r.Text));
+        Assert.Equal(["Size"], exact.Where(r => r.Location == Trees.FixturesNamespace).Select(r => r.Text));
         Assert.Contains(fuzzy, r => r.Text == "Calculator<T>");
         Assert.Contains(regex, r => r.Text == "IShape");
     }
@@ -216,9 +215,9 @@ public sealed class SearchTests
         var inTests = await Collect(list.SearchAsync("inassembly:ZGF.ILSpy.Tests t:Size"));
         var inFixtures = await Collect(list.SearchAsync("innamespace:Tests.Fixtures Area"));
 
-        Assert.All(inTests, r => Assert.Equal("ZGF.ILSpy.Tests", r.AssemblyName));
+        Assert.All(inTests, r => Assert.Equal("ZGF.ILSpy.Tests", r.Node.Assembly.Name));
         Assert.Contains(inTests, r => r.Text == "Size");
-        Assert.Equal(["Circle", "IShape"], inFixtures.Select(r => r.DeclaringType).Order());
+        Assert.Equal([Trees.FixturesNamespace + ".Circle", Trees.FixturesNamespace + ".IShape"], inFixtures.Select(r => r.Location).Order());
     }
 
     [Fact]

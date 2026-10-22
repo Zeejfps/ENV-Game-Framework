@@ -42,8 +42,10 @@ internal static class ResourceNodes
         return copy.ToArray();
     }
 
-    public static bool IsPublic(MetadataResource resource) =>
-        (resource.Attributes & ManifestResourceAttributes.VisibilityMask) == ManifestResourceAttributes.Public;
+    public static (bool IsPublic, NodeAccessibility Accessibility) Visibility(MetadataResource resource) =>
+        (resource.Attributes & ManifestResourceAttributes.VisibilityMask) == ManifestResourceAttributes.Public
+            ? (true, NodeAccessibility.Public)
+            : (false, NodeAccessibility.Private);
 }
 
 /// <summary>A manifest resource that is no <c>.resources</c> file: shown as text, a picture or
@@ -54,8 +56,7 @@ internal sealed class ResourceNode : BrowseNode, IResourceData
         : base(assembly, parent, ResourceNodes.KindOf(resource.Name), resource.Name)
     {
         Resource = resource;
-        IsPublicApi = ResourceNodes.IsPublic(resource);
-        Accessibility = IsPublicApi ? NodeAccessibility.Public : NodeAccessibility.Private;
+        (IsPublicApi, Accessibility) = ResourceNodes.Visibility(resource);
     }
 
     public MetadataResource Resource { get; }
@@ -95,8 +96,7 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
     {
         _resource = resource;
         _entries = entries;
-        IsPublicApi = ResourceNodes.IsPublic(resource);
-        Accessibility = IsPublicApi ? NodeAccessibility.Public : NodeAccessibility.Private;
+        (IsPublicApi, Accessibility) = ResourceNodes.Visibility(resource);
     }
 
     public string Description => ResourceNodes.Describe(_resource);

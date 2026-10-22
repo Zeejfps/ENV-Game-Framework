@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core;
 
@@ -51,6 +52,40 @@ public sealed class CodeReference : IEquatable<CodeReference>
 
     internal static CodeReference ToEntity(CodeReferenceKind kind, string name, string filePath, EntityHandle handle) =>
         new(kind, name, filePath, handle, 0, null);
+
+    /// <summary>A reference to the definition <paramref name="entity"/>, named <paramref name="name"/>
+    /// or else by its own name; null when it has no metadata file or token.</summary>
+    internal static CodeReference? To(IEntity entity, string? name = null) =>
+        entity.ParentModule?.MetadataFile is { } file && !entity.MetadataToken.IsNil
+            ? ToEntity(KindOf(entity.SymbolKind), name ?? entity.Name, file.FileName, entity.MetadataToken)
+            : null;
+
+    /// <summary>What a reference to <paramref name="handle"/> of <paramref name="metadata"/> points
+    /// at, or null for a handle no reference is made to.</summary>
+    internal static CodeReferenceKind? KindOf(MetadataReader metadata, Handle handle) =>
+        handle.Kind switch
+        {
+            HandleKind.AssemblyDefinition or HandleKind.AssemblyReference => CodeReferenceKind.Assembly,
+            HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification => CodeReferenceKind.Type,
+            HandleKind.MethodDefinition or HandleKind.MethodSpecification => CodeReferenceKind.Method,
+            HandleKind.FieldDefinition => CodeReferenceKind.Field,
+            HandleKind.PropertyDefinition => CodeReferenceKind.Property,
+            HandleKind.EventDefinition => CodeReferenceKind.Event,
+            HandleKind.MemberReference => metadata.GetMemberReference((MemberReferenceHandle)handle).GetKind() == MemberReferenceKind.Field
+                ? CodeReferenceKind.Field
+                : CodeReferenceKind.Method,
+            _ => null,
+        };
+
+    internal static CodeReferenceKind KindOf(SymbolKind kind) =>
+        kind switch
+        {
+            SymbolKind.TypeDefinition => CodeReferenceKind.Type,
+            SymbolKind.Field => CodeReferenceKind.Field,
+            SymbolKind.Property or SymbolKind.Indexer => CodeReferenceKind.Property,
+            SymbolKind.Event => CodeReferenceKind.Event,
+            _ => CodeReferenceKind.Method,
+        };
 
     /// <summary>A reference to the assembly in the file at <paramref name="filePath"/> itself.</summary>
     internal static CodeReference ToAssembly(string name, string filePath) =>

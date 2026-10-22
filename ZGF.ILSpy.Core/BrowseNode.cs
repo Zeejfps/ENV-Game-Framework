@@ -159,9 +159,35 @@ public abstract class BrowseNode
     public DecompiledDocument Decompile(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
         NodeDecompiler.Decompile(this, language, options, cancellationToken);
 
-    /// <summary><see cref="Decompile(DecompilationLanguage, DecompilerOptions, CancellationToken)"/> on the thread pool.</summary>
-    public Task<DecompiledDocument> DecompileAsync(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
-        Task.Run(() => Decompile(language, options, cancellationToken), cancellationToken);
+    /// <summary>Whether <see cref="LoadContentAsync"/> gives decompiled code, which changes with the
+    /// language and options, rather than a grid or a picture, which do not.</summary>
+    public bool DependsOnLanguage => this is not MetadataGridNode && !IsImage;
+
+    private bool IsImage => Kind == NodeKind.ResourceImage && this is IResourceData;
+
+    /// <summary>What this node shows, made on the thread pool: for metadata its grid of rows, read
+    /// the first time and kept; for a resource named as a PNG, JPEG, BMP, GIF, ICO or CUR file its
+    /// picture, or when that cannot be decoded the resource as a document with why first; else the
+    /// node decompiled with <paramref name="options"/>, which only C# reads.</summary>
+    public Task<NodeContent> LoadContentAsync(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
+        Task.Run(() => LoadContent(language, options, cancellationToken), cancellationToken);
+
+    private NodeContent LoadContent(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken)
+    {
+        if (this is MetadataGridNode grid) return new GridContent(grid.Grid);
+        if (IsImage)
+        {
+            try
+            {
+                return new ImageContent(ResourceImage.Decode(ReadResource()));
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                return new DocumentContent(NodeDecompiler.Decompile(this, language, options, cancellationToken, e.Message));
+            }
+        }
+        return new DocumentContent(Decompile(language, options, cancellationToken));
+    }
 
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
     /// reads, to save them.</summary>
@@ -171,29 +197,17 @@ public abstract class BrowseNode
     public byte[] ReadResource() =>
         this is IResourceData data ? data.ReadData() : throw new InvalidOperationException($"{Text} is no resource.");
 
-    /// <summary>Whether this node shows as a picture, from <see cref="LoadImageAsync"/>, rather than
-    /// as a decompiled document: a resource named as a PNG, JPEG, BMP, GIF, ICO or CUR file.</summary>
-    public bool ShowsImage => Kind == NodeKind.ResourceImage && this is IResourceData;
-
-    /// <summary>The picture of a node that <see cref="ShowsImage"/>, decoded on the thread pool.
-    /// Fails with <see cref="InvalidDataException"/> when it cannot be read.</summary>
-    public Task<ResourceImage> LoadImageAsync(CancellationToken cancellationToken = default) =>
-        this is IResourceData data && ShowsImage
-            ? Task.Run(() => ResourceImage.Decode(data.ReadData()), cancellationToken)
-            : throw new InvalidOperationException($"{Text} does not show as a picture.");
-
-    /// <summary>Whether this node shows as a grid of metadata rows, from <see cref="LoadGridAsync"/>,
-    /// rather than as a decompiled document; the same in every language.</summary>
-    public bool ShowsGrid => this is MetadataGridNode;
-
-    /// <summary>The rows of a node that <see cref="ShowsGrid"/>, read on the thread pool the first
-    /// time and kept.</summary>
-    public Task<MetadataGrid> LoadGridAsync(CancellationToken cancellationToken = default) =>
-        this is MetadataGridNode node
-            ? Task.Run(() => node.Grid, cancellationToken)
-            : throw new InvalidOperationException($"{Text} does not show as a grid.");
-
     public override string ToString() => Text;
 }
+
+/// <summary>What a <see cref="BrowseNode"/> shows: a <see cref="DocumentContent"/>, a
+/// <see cref="GridContent"/> or an <see cref="ImageContent"/>.</summary>
+public abstract record NodeContent;
+
+public sealed record DocumentContent(DecompiledDocument Document) : NodeContent;
+
+public sealed record GridContent(MetadataGrid Grid) : NodeContent;
+
+public sealed record ImageContent(ResourceImage Image) : NodeContent;
 
 internal sealed class LoadingNode(LoadedAssembly assembly, BrowseNode parent) : BrowseNode(assembly, parent, NodeKind.Loading, "Loading…");

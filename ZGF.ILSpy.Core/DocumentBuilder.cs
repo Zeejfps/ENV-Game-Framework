@@ -105,23 +105,21 @@ internal sealed class DocumentBuilder : ITextOutput
     public void WriteReference(MetadataFile metadata, Handle handle, string text, string protocol = "decompile", bool isDefinition = false)
     {
         var reference = ReferenceTo(metadata, handle, text);
-        var kind = Kind ?? (reference is null ? SpanKind.Plain : isDefinition && text.StartsWith('.') ? SpanKind.Keyword : SpanKindOf(metadata, handle));
+        var kind = Kind ?? (reference is null ? SpanKind.Plain : isDefinition && text.StartsWith('.') ? SpanKind.Keyword : SpanKindOf(reference.Kind));
         WriteReferenceSpan(text, kind, reference, isDefinition);
     }
 
     public void WriteReference(IType type, string text, bool isDefinition = false)
     {
-        var definition = type.GetDefinition();
-        var reference = definition is null ? null : ReferenceTo(definition, CodeReferenceKind.Type, text);
+        var reference = type.GetDefinition() is { } definition ? CodeReference.To(definition, text) : null;
         WriteReferenceSpan(text, Kind ?? SpanKind.Type, reference, isDefinition);
     }
 
     public void WriteReference(IMember member, string text, bool isDefinition = false)
     {
         var definition = member.MemberDefinition ?? member;
-        var kind = ReferenceKindOf(definition.SymbolKind);
-        var reference = ReferenceTo(definition, kind, text);
-        WriteReferenceSpan(text, Kind ?? SpanKindOf(kind), reference, isDefinition);
+        var kind = Kind ?? SpanKindOf(CodeReference.KindOf(definition.SymbolKind));
+        WriteReferenceSpan(text, kind, CodeReference.To(definition, text), isDefinition);
     }
 
     public void WriteLocalReference(string text, object reference, bool isDefinition = false, bool isHoverOnly = false)
@@ -146,7 +144,7 @@ internal sealed class DocumentBuilder : ITextOutput
     /// <paramref name="method"/> starts. A line keeps the first method marked on it and its lowest offset.</summary>
     public void MarkStatement(IMethod method, int ilOffset)
     {
-        if (ReferenceTo(method, CodeReferenceKind.Method, method.Name) is { } reference)
+        if (CodeReference.To(method) is { } reference)
             MarkStatement(reference, ilOffset);
     }
 
@@ -310,38 +308,15 @@ internal sealed class DocumentBuilder : ITextOutput
         _spans.AddRange(_lexed);
     }
 
-    private static CodeReference? ReferenceTo(IEntity definition, CodeReferenceKind kind, string text)
-    {
-        var file = definition.ParentModule?.MetadataFile;
-        if (file is null || definition.MetadataToken.IsNil) return null;
-        return CodeReference.ToEntity(kind, text, file.FileName, definition.MetadataToken);
-    }
-
     private CodeReference? ReferenceTo(MetadataFile metadata, Handle handle, string text)
     {
         if (handle.IsNil) return null;
         if (handle.Kind is HandleKind.TypeReference or HandleKind.TypeSpecification or HandleKind.MemberReference or HandleKind.MethodSpecification
             && ResolveDefinition(metadata, (EntityHandle)handle) is { } definition)
-            return ReferenceTo(definition, ReferenceKindOf(definition.SymbolKind), text);
-        return handle.Kind switch
-        {
-            HandleKind.AssemblyReference =>
-                CodeReference.ToEntity(CodeReferenceKind.Assembly, text, metadata.FileName, (AssemblyReferenceHandle)handle),
-            HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification =>
-                CodeReference.ToEntity(CodeReferenceKind.Type, text, metadata.FileName, (EntityHandle)handle),
-            HandleKind.MethodDefinition or HandleKind.MethodSpecification =>
-                CodeReference.ToEntity(CodeReferenceKind.Method, text, metadata.FileName, (EntityHandle)handle),
-            HandleKind.MemberReference =>
-                CodeReference.ToEntity(
-                    metadata.Metadata.GetMemberReference((MemberReferenceHandle)handle).GetKind() == MemberReferenceKind.Field
-                        ? CodeReferenceKind.Field
-                        : CodeReferenceKind.Method,
-                    text, metadata.FileName, (EntityHandle)handle),
-            HandleKind.FieldDefinition => CodeReference.ToEntity(CodeReferenceKind.Field, text, metadata.FileName, (EntityHandle)handle),
-            HandleKind.PropertyDefinition => CodeReference.ToEntity(CodeReferenceKind.Property, text, metadata.FileName, (EntityHandle)handle),
-            HandleKind.EventDefinition => CodeReference.ToEntity(CodeReferenceKind.Event, text, metadata.FileName, (EntityHandle)handle),
-            _ => null,
-        };
+            return CodeReference.To(definition, text);
+        return CodeReference.KindOf(metadata.Metadata, handle) is { } kind
+            ? CodeReference.ToEntity(kind, text, metadata.FileName, (EntityHandle)handle)
+            : null;
     }
 
     private IEntity? ResolveDefinition(MetadataFile metadata, EntityHandle handle)
@@ -357,30 +332,7 @@ internal sealed class DocumentBuilder : ITextOutput
         }
     }
 
-    private static SpanKind SpanKindOf(MetadataFile metadata, Handle handle) =>
-        handle.Kind switch
-        {
-            HandleKind.AssemblyReference => SpanKind.Plain,
-            HandleKind.TypeDefinition or HandleKind.TypeReference or HandleKind.TypeSpecification => SpanKind.Type,
-            HandleKind.FieldDefinition => SpanKind.Field,
-            HandleKind.PropertyDefinition => SpanKind.Property,
-            HandleKind.EventDefinition => SpanKind.Event,
-            HandleKind.MemberReference when metadata.Metadata.GetMemberReference((MemberReferenceHandle)handle).GetKind() == MemberReferenceKind.Field =>
-                SpanKind.Field,
-            _ => SpanKind.Method,
-        };
-
-    internal static CodeReferenceKind ReferenceKindOf(SymbolKind kind) =>
-        kind switch
-        {
-            SymbolKind.TypeDefinition => CodeReferenceKind.Type,
-            SymbolKind.Field => CodeReferenceKind.Field,
-            SymbolKind.Property or SymbolKind.Indexer => CodeReferenceKind.Property,
-            SymbolKind.Event => CodeReferenceKind.Event,
-            _ => CodeReferenceKind.Method,
-        };
-
-    internal static SpanKind SpanKindOf(CodeReferenceKind kind) =>
+    private static SpanKind SpanKindOf(CodeReferenceKind kind) =>
         kind switch
         {
             CodeReferenceKind.Type => SpanKind.Type,

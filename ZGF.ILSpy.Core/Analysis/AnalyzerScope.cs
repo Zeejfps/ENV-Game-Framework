@@ -75,16 +75,10 @@ internal sealed class AnalyzerScope
                 if (matches(method))
                     yield return method;
             }
-            foreach (var property in type.Properties)
+            foreach (var member in type.Properties.Concat<IMember>(type.Events))
             {
-                if (property.CanGet && matches(property.Getter) || property.CanSet && matches(property.Setter))
-                    yield return property;
-            }
-            foreach (var @event in type.Events)
-            {
-                if (@event.CanAdd && matches(@event.AddAccessor) || @event.CanRemove && matches(@event.RemoveAccessor)
-                    || @event.CanInvoke && matches(@event.InvokeAccessor))
-                    yield return @event;
+                if (Members.Accessors(member).Any(matches))
+                    yield return member;
             }
         }
     }

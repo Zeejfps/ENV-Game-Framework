@@ -53,14 +53,12 @@ public sealed class DocumentTab
     public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
     public CodeViewState View { get; } = new();
 
-    /// <summary>The rows of a node that <see cref="BrowseNode.ShowsGrid"/>, once read; shown
-    /// instead of <see cref="Document"/>.</summary>
+    /// <summary>The rows of a node that shows a grid, once read; shown instead of <see cref="Document"/>.</summary>
     public MetadataGrid? Grid { get; private set; }
 
     public MetadataGridState GridView { get; } = new();
 
-    /// <summary>The picture of a node that <see cref="BrowseNode.ShowsImage"/>, once decoded; shown
-    /// instead of <see cref="Document"/>.</summary>
+    /// <summary>The picture of a node that shows one, once decoded; shown instead of <see cref="Document"/>.</summary>
     public ResourceImage? Image { get; private set; }
 
     /// <summary>The image this tab draws <see cref="Image"/> as, one per tab.</summary>
@@ -87,7 +85,7 @@ public sealed class DocumentTab
         int row = MetadataGridState.None)
     {
         Version++;
-        if (ReferenceEquals(node, Node) && (IsCurrent(language) || node.ShowsGrid || node.ShowsImage) && !IsBusy)
+        if (ReferenceEquals(node, Node) && (IsCurrent(language) || !node.DependsOnLanguage) && !IsBusy)
         {
             Arrive(position, target, row);
             return;
@@ -107,22 +105,15 @@ public sealed class DocumentTab
         Image = null;
         Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
 
-        if (node.ShowsImage)
-            node.LoadImageAsync(work.Token).ContinueWith(task => _post(() => CompleteImage(work, node, task)),
-                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-        else if (node.ShowsGrid)
-            node.LoadGridAsync(work.Token).ContinueWith(task => _post(() => CompleteGrid(work, node, task)),
-                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-        else
-            node.DecompileAsync(language, Options, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
-                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        node.LoadContentAsync(language, Options, work.Token).ContinueWith(task => _post(() => Complete(work, node, task)),
+            CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
     /// <summary>Decompiles the shown node again if it was shown in another language than
     /// <paramref name="language"/>, or with other options, then keeping the view where it was.</summary>
     public void EnsureCurrent(DecompilationLanguage language)
     {
-        if (Node is not { ShowsGrid: false, ShowsImage: false } node || IsCurrent(language)) return;
+        if (Node is not { DependsOnLanguage: true } node || IsCurrent(language)) return;
         Show(node, language, Language == language ? Position : null);
     }
 
@@ -165,7 +156,7 @@ public sealed class DocumentTab
             View.RevealLine(line);
     }
 
-    private void Complete(CancellationTokenSource work, BrowseNode node, Task<DecompiledDocument> task)
+    private void Complete(CancellationTokenSource work, BrowseNode node, Task<NodeContent> task)
     {
         work.Dispose();
         if (_work != work) return;
@@ -173,55 +164,27 @@ public sealed class DocumentTab
         if (task.IsCanceled) return;
 
         var t = _strings();
-        Document = task.IsFaulted
-            ? DecompiledDocument.FromText(node.Text, $"// {t.DocumentDecompilationFailed(task.Exception!.GetBaseException().Message)}", Language)
-            : task.Result;
-        var failed = task.IsFaulted || Document.IsError;
+        var error = task.Exception?.GetBaseException();
+        switch (error == null ? task.Result : null)
+        {
+            case GridContent { Grid: var grid }:
+                Grid = grid;
+                GridView.Show(grid);
+                break;
+            case ImageContent { Image: var image }:
+                Image = image;
+                break;
+            case DocumentContent { Document: var document }:
+                Document = document;
+                break;
+            default:
+                Document = DecompiledDocument.FromText(node.Text, $"// {t.DocumentDecompilationFailed(error!.Message)}", Language);
+                break;
+        }
+        var failed = error != null || Document.IsError;
         if (failed)
-            _reportError(t.ErrorDecompile(node.FullName), task.IsFaulted ? task.Exception!.GetBaseException().ToString() : Document.GetText());
-        Arrive(failed ? null : _restore, failed ? null : _target, MetadataGridState.None);
-        _restore = null;
-        _target = null;
-    }
-
-    /// <summary>Shows the decoded picture, or when it cannot be read, the resource as a document
-    /// with why first.</summary>
-    private void CompleteImage(CancellationTokenSource work, BrowseNode node, Task<ResourceImage> task)
-    {
-        work.Dispose();
-        if (_work != work) return;
-        _work = null;
-        if (task.IsCanceled) return;
-        if (task.IsFaulted)
-        {
-            var reason = DecompiledDocument.FromText(node.Text, $"// {task.Exception!.GetBaseException().Message}", Language);
-            var content = node.Decompile(Language);
-            Document = DecompiledDocument.FromText(node.Text, reason.GetText() + "\n" + content.GetText(), Language);
-            return;
-        }
-        Image = task.Result;
-    }
-
-    private void CompleteGrid(CancellationTokenSource work, BrowseNode node, Task<MetadataGrid> task)
-    {
-        work.Dispose();
-        if (_work != work) return;
-        _work = null;
-        if (task.IsCanceled) return;
-
-        if (task.IsFaulted)
-        {
-            var t = _strings();
-            var error = task.Exception!.GetBaseException();
-            Document = DecompiledDocument.FromText(node.Text, $"// {t.DocumentDecompilationFailed(error.Message)}", Language);
-            _reportError(t.ErrorDecompile(node.FullName), error.ToString());
-        }
-        else
-        {
-            Grid = task.Result;
-            GridView.Show(Grid);
-            Arrive(_restore, null, _row);
-        }
+            _reportError(t.ErrorDecompile(node.FullName), error?.ToString() ?? Document.GetText());
+        Arrive(failed ? null : _restore, failed ? null : _target, failed ? MetadataGridState.None : _row);
         _restore = null;
         _target = null;
         _row = MetadataGridState.None;

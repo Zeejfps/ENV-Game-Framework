@@ -8,7 +8,7 @@ namespace ZGF.ILSpy.Core.Metadata
 	/// <summary>
 	/// Renders a <see cref="FilterState"/> as a one-line predicate summary
 	/// ("Visibility ∈ {Public, NestedPublic} ∧ Sealed ∧ ¬Abstract"). Lives next to
-	/// <see cref="CompiledFilter"/> so the visible string and the actual matching rule
+	/// <see cref="FilterState.Matches"/> so the visible string and the actual matching rule
 	/// stay in sync; tests assert on the string.
 	/// </summary>
 	public static class FilterStatePresenter

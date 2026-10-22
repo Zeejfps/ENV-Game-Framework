@@ -23,12 +23,16 @@ internal static class NodeDecompiler
     private const string ReferenceAssemblyWarning =
         "This assembly is marked as 'reference assembly', which means that it only contains metadata and no executable code.";
 
-    public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken)
+    /// <summary>Decompiles <paramref name="node"/>, after <paramref name="note"/> as a comment when given.</summary>
+    public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken,
+        string? note = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var builder = new DocumentBuilder(language, node.Assembly);
         try
         {
+            if (note != null)
+                WriteComment(builder, note);
             if (language == DecompilationLanguage.CSharp)
                 WriteCSharp(node, builder, Settings.Create(options), cancellationToken);
             else
@@ -55,7 +59,7 @@ internal static class NodeDecompiler
         switch (node)
         {
             case AssemblyNode:
-                WriteAssemblySummary(node.Assembly, output, "//");
+                WriteAssemblySummary(node.Assembly, output);
                 WriteSyntaxTree(node.Assembly, output, settings, d => d.DecompileModuleAndAssemblyAttributes(), cancellationToken);
                 break;
             case TypeNode type:
@@ -70,7 +74,7 @@ internal static class NodeDecompiler
                 WriteSyntaxTree(node.Assembly, output, settings, d => d.Decompile(entity.Entity.MetadataToken), cancellationToken);
                 break;
             default:
-                WriteSummary(node, output, "//", cancellationToken);
+                WriteSummary(node, output, cancellationToken);
                 break;
         }
     }
@@ -87,7 +91,7 @@ internal static class NodeDecompiler
         switch (node)
         {
             case AssemblyNode:
-                WriteAssemblySummary(node.Assembly, output, "//");
+                WriteAssemblySummary(node.Assembly, output);
                 output.WriteLine();
                 disassembler.WriteAssemblyReferences(file.Metadata);
                 if (file.Metadata.IsAssembly)
@@ -117,7 +121,7 @@ internal static class NodeDecompiler
                 }
                 break;
             default:
-                WriteSummary(node, output, "//", cancellationToken);
+                WriteSummary(node, output, cancellationToken);
                 break;
         }
     }
@@ -127,10 +131,10 @@ internal static class NodeDecompiler
     private static void WriteHeader(LoadedAssembly assembly, DocumentBuilder output, IType type, ConversionFlags flags)
     {
         if (assembly.Module.GetAssemblyAttributes().Any(static a => a.AttributeType.FullName == ReferenceAssemblyAttribute))
-            WriteComment(output, "//", ReferenceAssemblyWarning);
-        WriteComment(output, "//", assembly.FullName);
+            WriteComment(output, ReferenceAssemblyWarning);
+        WriteComment(output, assembly.FullName);
         var ambience = new CSharpAmbience { ConversionFlags = ConversionFlags.ShowTypeParameterList | ConversionFlags.PlaceReturnTypeAfterParameterList | flags };
-        WriteComment(output, "//", type is ITypeDefinition definition ? ambience.ConvertSymbol(definition) : ambience.ConvertType(type));
+        WriteComment(output, type is ITypeDefinition definition ? ambience.ConvertSymbol(definition) : ambience.ConvertType(type));
     }
 
     /// <summary>Decompiles <paramref name="member"/> as ILSpy shows it on its own: a constructor of a
@@ -167,11 +171,11 @@ internal static class NodeDecompiler
         syntaxTree.AcceptVisitor(new CSharpOutputVisitor(writer, settings.CSharpFormattingOptions));
     }
 
-    private static void WriteAssemblySummary(LoadedAssembly assembly, DocumentBuilder output, string comment)
+    private static void WriteAssemblySummary(LoadedAssembly assembly, DocumentBuilder output)
     {
         var file = assembly.File;
-        WriteComment(output, comment, assembly.FilePath);
-        WriteComment(output, comment, assembly.FullName);
+        WriteComment(output, assembly.FilePath);
+        WriteComment(output, assembly.FullName);
         if (file.Metadata.IsAssembly && file.Reader.PEHeaders.CorHeader is { } corHeader)
         {
             var entryPoint = corHeader.EntryPointTokenOrRelativeVirtualAddress;
@@ -180,15 +184,15 @@ internal static class NodeDecompiler
                 var handle = MetadataTokens.EntityHandle(entryPoint);
                 if (handle.Kind == HandleKind.MethodDefinition && assembly.FindNode(handle) is { Reference: { } reference } entry)
                 {
-                    output.Write(comment + " Entry point: ", SpanKind.Comment);
+                    output.Write("// Entry point: ", SpanKind.Comment);
                     output.Write(entry.FullName, SpanKind.Method, reference);
                     output.WriteLine();
                 }
             }
         }
-        WriteComment(output, comment, $"Architecture: {ArchitectureOf(file.Reader.PEHeaders)}");
+        WriteComment(output, $"Architecture: {ArchitectureOf(file.Reader.PEHeaders)}");
         if (assembly.TargetFramework is { } framework)
-            WriteComment(output, comment, $"Target framework: {framework}");
+            WriteComment(output, $"Target framework: {framework}");
         output.WriteLine();
     }
 
@@ -203,7 +207,7 @@ internal static class NodeDecompiler
         return (flags & CorFlags.Prefers32Bit) != 0 ? "AnyCPU (32-bit preferred)" : "x86";
     }
 
-    private static void WriteSummary(BrowseNode node, DocumentBuilder output, string comment, CancellationToken cancellationToken)
+    private static void WriteSummary(BrowseNode node, DocumentBuilder output, CancellationToken cancellationToken)
     {
         switch (node)
         {
@@ -224,25 +228,25 @@ internal static class NodeDecompiler
                 foreach (var child in node.Children)
                 {
                     if (child is not AssemblyReferenceNode reference) continue;
-                    output.Write(comment + " ", SpanKind.Comment);
+                    output.Write("// ", SpanKind.Comment);
                     output.Write(reference.FullName, SpanKind.Plain, reference.Target);
                     output.WriteLine();
                 }
                 break;
             case AssemblyReferenceNode reference:
-                WriteComment(output, comment, reference.FullName);
+                WriteComment(output, reference.FullName);
                 var path = node.Assembly.Resolver.FindFile(reference.AssemblyReference);
-                WriteComment(output, comment, path is null ? "Not found" : $"Resolves to {path}");
+                WriteComment(output, path is null ? "Not found" : $"Resolves to {path}");
                 break;
             case ResourcesFolderNode:
                 foreach (var child in node.Children)
                 {
                     if (child is IResourceData resource)
-                        WriteComment(output, comment, resource.Description);
+                        WriteComment(output, resource.Description);
                 }
                 break;
             case IResourceData resource:
-                WriteResource(node.Text, resource, output, comment);
+                WriteResource(node.Text, resource, output);
                 break;
             case MetadataTextNode metadata:
                 foreach (var line in metadata.Lines())
@@ -251,7 +255,7 @@ internal static class NodeDecompiler
                     if (line.Length == 0)
                         output.WriteLine();
                     else
-                        WriteComment(output, comment, line);
+                        WriteComment(output, line);
                 }
                 break;
             case BaseTypesNode or DerivedTypesNode:
@@ -267,10 +271,10 @@ internal static class NodeDecompiler
                 break;
             case ErrorNode error:
                 foreach (var line in error.Error.ToString().Split('\n'))
-                    WriteComment(output, comment, line.TrimEnd('\r'));
+                    WriteComment(output, line.TrimEnd('\r'));
                 break;
             default:
-                WriteComment(output, comment, node.Text);
+                WriteComment(output, node.Text);
                 break;
         }
     }
@@ -295,7 +299,7 @@ internal static class NodeDecompiler
 
     /// <summary>A text resource as its text, colored as XML or JSON when it is that, as ILSpy shows
     /// it; anything else as a description and a hex dump of its first bytes.</summary>
-    private static void WriteResource(string name, IResourceData resource, DocumentBuilder output, string comment)
+    private static void WriteResource(string name, IResourceData resource, DocumentBuilder output)
     {
         var data = resource.ReadData();
         if (ResourceText.Detect(name, data) is var (text, syntax))
@@ -304,11 +308,11 @@ internal static class NodeDecompiler
             output.WriteLine();
             return;
         }
-        WriteComment(output, comment, resource.Description);
+        WriteComment(output, resource.Description);
         output.WriteLine();
         WriteHexDump(data.AsSpan(0, Math.Min(data.Length, MaxResourceBytes)), output);
         if (data.Length > MaxResourceBytes)
-            WriteComment(output, comment, $"Truncated after {MaxResourceBytes} bytes.");
+            WriteComment(output, $"Truncated after {MaxResourceBytes} bytes.");
     }
 
     private static void WriteHexDump(ReadOnlySpan<byte> bytes, DocumentBuilder output)
@@ -331,9 +335,9 @@ internal static class NodeDecompiler
         }
     }
 
-    private static void WriteComment(DocumentBuilder output, string comment, string text)
+    private static void WriteComment(DocumentBuilder output, string text)
     {
-        output.Write($"{comment} {text}", SpanKind.Comment);
+        output.Write($"// {text}", SpanKind.Comment);
         output.WriteLine();
     }
 }

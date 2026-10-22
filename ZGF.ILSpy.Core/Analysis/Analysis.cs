@@ -126,16 +126,8 @@ public static class Analysis
         Kinds.Where(k => k.Analyzer.Show(symbol.Symbol)).OrderBy(static k => k.Order).ToArray();
 
     /// <summary>The accessors of a property or event, which ILSpy analyzes on their own.</summary>
-    public static IReadOnlyList<AnalysisSymbol> AccessorsOf(AnalysisSymbol symbol)
-    {
-        IEnumerable<IMethod?> accessors = symbol.Symbol switch
-        {
-            IProperty property => [property.Getter, property.Setter],
-            IEvent @event => [@event.AddAccessor, @event.RemoveAccessor, @event.InvokeAccessor],
-            _ => [],
-        };
-        return accessors.OfType<IMethod>().Select(static m => Describe(m)).OfType<AnalysisSymbol>().ToArray();
-    }
+    public static IReadOnlyList<AnalysisSymbol> AccessorsOf(AnalysisSymbol symbol) =>
+        symbol.Symbol is IEntity entity ? Members.Accessors(entity).Select(static m => Describe(m)!).ToArray() : [];
 
     /// <summary>Runs <paramref name="kind"/> on <paramref name="symbol"/> over the open assemblies,
     /// yielding results as they are found; call it off the UI thread. Results come sorted when the
@@ -162,13 +154,9 @@ public static class Analysis
     {
         switch (symbol)
         {
-            case ITypeDefinition type:
-                return new AnalysisSymbol(type, TypeNode.KindOf(type), EntityText.Map(type.Accessibility), EntityText.Label(type),
-                    Where(type.DeclaringTypeDefinition is { } outer ? EntityText.FullName(outer) : type.Namespace, type), ReferenceTo(type));
-            case IMember member:
-                var declaring = member.DeclaringTypeDefinition;
-                return new AnalysisSymbol(member, MemberNode.KindOf(member), EntityText.Map(member.Accessibility), EntityText.Label(member),
-                    Where(declaring is null ? "" : EntityText.FullName(declaring), member), ReferenceTo(member));
+            case IEntity entity:
+                return new AnalysisSymbol(entity, EntityText.KindOf(entity), EntityText.Map(entity.Accessibility), EntityText.Label(entity),
+                    Where(entity), CodeReference.To(entity));
             case IModule module:
                 return new AnalysisSymbol(module, NodeKind.Assembly, NodeAccessibility.Public, module.AssemblyName, module.MetadataFile?.FileName ?? "",
                     module.MetadataFile is { } file ? CodeReference.ToAssembly(module.AssemblyName, file.FileName) : null);
@@ -177,13 +165,9 @@ public static class Analysis
         }
     }
 
-    private static string Where(string container, IEntity entity) =>
-        entity.ParentModule?.AssemblyName is { } assembly ? container.Length == 0 ? assembly : $"{container} ({assembly})" : container;
-
-    private static CodeReference? ReferenceTo(IEntity entity)
+    private static string Where(IEntity entity)
     {
-        var file = entity.ParentModule?.MetadataFile;
-        if (file is null || entity.MetadataToken.IsNil) return null;
-        return CodeReference.ToEntity(DocumentBuilder.ReferenceKindOf(entity.SymbolKind), entity.Name, file.FileName, entity.MetadataToken);
+        var container = entity.DeclaringTypeDefinition is { } outer ? EntityText.FullName(outer) : entity is ITypeDefinition type ? type.Namespace : "";
+        return entity.ParentModule?.AssemblyName is { } assembly ? container.Length == 0 ? assembly : $"{container} ({assembly})" : container;
     }
 }

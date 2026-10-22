@@ -61,10 +61,8 @@ internal sealed class AssemblyNode : BrowseNode
 
     private static string LabelOf(LoadedAssembly assembly)
     {
-        var parts = new List<string>();
-        if (assembly.Version is { } version) parts.Add(version.ToString());
-        if (assembly.TargetFramework is { } framework) parts.Add(framework.Replace(",Version=", ", "));
-        return parts.Count == 0 ? assembly.Name : $"{assembly.Name} ({string.Join(", ", parts)})";
+        var details = new[] { assembly.Version?.ToString(), assembly.FrameworkName }.OfType<string>().ToArray();
+        return details.Length == 0 ? assembly.Name : $"{assembly.Name} ({string.Join(", ", details)})";
     }
 }
 
@@ -135,13 +133,13 @@ internal sealed class NamespaceNode : BrowseNode
 
 internal abstract class EntityNode : BrowseNode
 {
-    private protected EntityNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, IEntity entity)
-        : base(assembly, parent, kind, EntityText.Label(entity))
+    private protected EntityNode(LoadedAssembly assembly, BrowseNode parent, IEntity entity)
+        : base(assembly, parent, EntityText.KindOf(entity), EntityText.Label(entity))
     {
         Entity = entity;
         Accessibility = EntityText.Map(entity.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(entity);
-        Reference = CodeReference.ToEntity(DocumentBuilder.ReferenceKindOf(entity.SymbolKind), entity.Name, assembly.FilePath, entity.MetadataToken);
+        Reference = CodeReference.To(entity);
         assembly.Register(entity.MetadataToken, this);
     }
 
@@ -151,7 +149,7 @@ internal abstract class EntityNode : BrowseNode
 }
 
 internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
-    : EntityNode(assembly, parent, KindOf(type), type)
+    : EntityNode(assembly, parent, type)
 {
     public ITypeDefinition Type => (ITypeDefinition)Entity;
 
@@ -195,51 +193,20 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
 
         return result.ToArray();
     }
-
-    internal static NodeKind KindOf(ITypeDefinition type) =>
-        type.Kind switch
-        {
-            TypeKind.Interface => NodeKind.Interface,
-            TypeKind.Struct => type.IsRecord ? NodeKind.RecordStruct : NodeKind.Struct,
-            TypeKind.Enum => NodeKind.Enum,
-            TypeKind.Delegate => NodeKind.Delegate,
-            _ => type.IsRecord ? NodeKind.Record : NodeKind.Class,
-        };
 }
 
 internal sealed class MemberNode(LoadedAssembly assembly, BrowseNode parent, IMember member)
-    : EntityNode(assembly, parent, KindOf(member), member)
+    : EntityNode(assembly, parent, member)
 {
     public IMember Member => (IMember)Entity;
 
     private protected override bool MayHaveChildren => Member is IProperty or IEvent;
 
-    private protected override BrowseNode[] CreateChildren()
-    {
-        IEnumerable<IMethod?> accessors = Member switch
-        {
-            IProperty property => [property.Getter, property.Setter],
-            IEvent @event => [@event.AddAccessor, @event.RemoveAccessor, @event.InvokeAccessor],
-            _ => [],
-        };
-        return accessors
-            .Where(a => a is not null && !a.MetadataToken.IsNil)
-            .Select(a => (BrowseNode)new MemberNode(Assembly, this, a!))
+    private protected override BrowseNode[] CreateChildren() =>
+        Members.Accessors(Member)
+            .Where(a => !a.MetadataToken.IsNil)
+            .Select(a => (BrowseNode)new MemberNode(Assembly, this, a))
             .ToArray();
-    }
-
-    internal static NodeKind KindOf(IMember member) =>
-        member switch
-        {
-            IField { IsConst: true } => NodeKind.Constant,
-            IField => NodeKind.Field,
-            IProperty { IsIndexer: true } => NodeKind.Indexer,
-            IProperty => NodeKind.Property,
-            IEvent => NodeKind.Event,
-            IMethod { IsConstructor: true } => NodeKind.Constructor,
-            IMethod { IsOperator: true } => NodeKind.Operator,
-            _ => NodeKind.Method,
-        };
 }
 
 internal sealed class BaseTypesNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
@@ -259,9 +226,9 @@ internal sealed class BaseTypeNode : BrowseNode
         : base(assembly, parent, NodeKind.BaseType, EntityText.TypeName(type))
     {
         Type = type;
-        if (type.GetDefinition() is { ParentModule.MetadataFile: { } file } definition && !definition.MetadataToken.IsNil)
+        if (type.GetDefinition() is { } definition && CodeReference.To(definition) is { } target)
         {
-            Target = CodeReference.ToEntity(CodeReferenceKind.Type, definition.Name, file.FileName, definition.MetadataToken);
+            Target = target;
             Accessibility = EntityText.Map(definition.Accessibility);
             IsPublicApi = EntityText.IsPublicApi(definition);
         }
@@ -316,8 +283,7 @@ internal sealed class DerivedTypeNode : BrowseNode
         Type = type;
         Accessibility = EntityText.Map(type.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(type);
-        if (type.ParentModule?.MetadataFile is { } file && !type.MetadataToken.IsNil)
-            Target = CodeReference.ToEntity(CodeReferenceKind.Type, type.Name, file.FileName, type.MetadataToken);
+        Target = CodeReference.To(type);
     }
 
     public ITypeDefinition Type { get; }
@@ -340,4 +306,16 @@ internal static class Members
     public static bool IsHidden(IEntity entity) =>
         entity.MetadataToken.IsNil
         || entity.ParentModule?.MetadataFile is { } file && CSharpDecompiler.MemberIsHidden(file, entity.MetadataToken, Settings);
+
+    /// <summary>The accessors of a property or event, in ILSpy's order; none for other entities.</summary>
+    public static IEnumerable<IMethod> Accessors(IEntity entity)
+    {
+        IEnumerable<IMethod?> accessors = entity switch
+        {
+            IProperty property => [property.Getter, property.Setter],
+            IEvent @event => [@event.AddAccessor, @event.RemoveAccessor, @event.InvokeAccessor],
+            _ => [],
+        };
+        return accessors.OfType<IMethod>();
+    }
 }

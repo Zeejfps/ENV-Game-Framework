@@ -13,7 +13,7 @@ public sealed class MetadataTests
     private static BrowseNode Table(LoadedAssembly assembly, string name) =>
         Metadata(assembly).Child("Tables").Children.Single(c => c.Text.Split(' ')[1] == name);
 
-    private static MetadataGrid Grid(BrowseNode node) => node.LoadGridAsync().GetAwaiter().GetResult();
+    private static MetadataGrid Grid(BrowseNode node) => Assert.IsType<GridContent>(node.Content()).Grid;
 
     private static int Column(MetadataGrid grid, string name) => grid.Columns.Select(c => c.Name).ToList().IndexOf(name);
 
@@ -71,9 +71,9 @@ public sealed class MetadataTests
         static int Sweep(BrowseNode node)
         {
             var count = 0;
-            if (node.ShowsGrid)
+            var content = node.Content();
+            if (content is GridContent { Grid: var grid })
             {
-                var grid = Grid(node);
                 for (var row = 0; row < grid.RowCount; row++)
                 {
                     for (var column = 0; column < grid.Columns.Count; column++)
@@ -89,7 +89,7 @@ public sealed class MetadataTests
             }
             else
             {
-                Assert.False(node.Decompile(DecompilationLanguage.CSharp).IsError);
+                Assert.False(Assert.IsType<DocumentContent>(content).Document.IsError);
             }
             foreach (var child in node.Children)
                 count += Sweep(child);
@@ -300,10 +300,15 @@ public sealed class MetadataTests
         state.SetFlagState("Abstract", TriState.Required);
         state.IndependentMode = MatchMode.Any;
 
+        var saved = state.Save()!;
         var restored = new FilterState(schema);
-        FilterStatePersistence.ApplyXml(restored, FilterStatePersistence.ToXml(state));
+        restored.Restore(saved with { Groups = new(saved.Groups!) { ["Gone"] = [1u] }, Flags = new(saved.Flags!) { ["Missing"] = TriState.Required } });
 
         Assert.Equal(FilterStatePresenter.Describe(state), FilterStatePresenter.Describe(restored));
+        Assert.Equal(MatchMode.Any, restored.IndependentMode);
+        Assert.Equal(["Abstract"], saved.Flags!.Keys);
+        Assert.Equal(["Visibility"], saved.Groups!.Keys);
+        Assert.Null(new FilterState(schema).Save());
     }
 
     [Fact]
@@ -414,8 +419,7 @@ public sealed class MetadataTests
 
         foreach (var node in Metadata(corelib).Child("Tables").Children.Concat(Metadata(corelib).Children.Where(c => c.Kind == NodeKind.MetadataHeap)))
         {
-            if (!node.ShowsGrid) continue;
-            var grid = Grid(node);
+            if (node.Content() is not GridContent { Grid: var grid }) continue;
             for (var row = 0; row < Math.Min(grid.RowCount, 50); row++)
             {
                 for (var column = 0; column < grid.Columns.Count; column++)

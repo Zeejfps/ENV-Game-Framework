@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
@@ -286,7 +287,8 @@ public sealed class MetadataGridTests
             Assert.Equal(1u, Convert.ToUInt32(grid.Text(r, attributes), 16) & (uint)visibility));
         app.TextRect("Visibility = Public");
 
-        var saved = app.Workspace.MetadataFilters.Save();
+        var json = JsonSerializer.Serialize(new AppSettings { FlagsFilters = app.Workspace.MetadataFilters.Save() }, AppSettingsJson.Default.AppSettings);
+        var saved = JsonSerializer.Deserialize(json, AppSettingsJson.Default.AppSettings)!.FlagsFilters;
         var restored = new MetadataFilters(saved).For(grid, attributes);
         Assert.Equal("Visibility = Public", FilterStatePresenter.Describe(restored));
     }

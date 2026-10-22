@@ -155,7 +155,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
             if (versions.Distinct().Count() == nodes.Count)
             {
                 for (var i = 0; i < nodes.Count; i++)
-                    labels[nodes[i]] = new RootLabel($"{nodes[i].Assembly.Name} ({versions[i]})", nodes[i].Assembly.Name);
+                    labels[nodes[i]] = new RootLabel(nodes[i].Assembly.NameAndVersion, nodes[i].Assembly.Name);
                 continue;
             }
             var hints = FolderHints(nodes);

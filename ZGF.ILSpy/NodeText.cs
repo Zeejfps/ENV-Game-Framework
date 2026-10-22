@@ -22,36 +22,15 @@ public static class NodeText
     public static string? Secondary(BrowseNode node) =>
         node.Kind == NodeKind.Assembly && Secondaries.GetValue(node, static n => Identity(n.Assembly)) is { Length: > 0 } text ? text : null;
 
-    private static string Identity(LoadedAssembly assembly)
-    {
-        var version = assembly.Version?.ToString();
-        var framework = ShortFramework(assembly.TargetFramework);
-        return version == null ? framework ?? "" : framework == null ? version : $"{version} · {framework}";
-    }
-
-    private static string? ShortFramework(string? id)
-    {
-        if (id == null) return null;
-        var at = id.IndexOf(",Version=v", StringComparison.Ordinal);
-        if (at < 0) return id;
-        var name = id[..at];
-        var version = id[(at + ",Version=v".Length)..];
-        return name switch
-        {
-            ".NETCoreApp" => System.Version.TryParse(version, out var v) && v.Major >= 5 ? $"net{version}" : $"netcoreapp{version}",
-            ".NETStandard" => $"netstandard{version}",
-            ".NETFramework" => $"net{version.Replace(".", "")}",
-            _ => $"{name} {version}",
-        };
-    }
+    private static string Identity(LoadedAssembly assembly) =>
+        string.Join(" · ", new[] { assembly.Version?.ToString(), assembly.FrameworkMoniker }.OfType<string>());
 
     private static string Describe(BrowseNode node)
     {
         if (node.Kind == NodeKind.Assembly)
         {
             var assembly = node.Assembly;
-            var framework = assembly.TargetFramework?.Replace(",Version=", ", ");
-            return framework == null ? $"{assembly.FullName}\n{assembly.FilePath}" : $"{assembly.FullName}\n{framework}\n{assembly.FilePath}";
+            return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath }.OfType<string>());
         }
         var name = node.FullName;
         return Accessibility(node.Accessibility) is { } accessibility ? $"{name}\n{accessibility}" : name;

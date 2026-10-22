@@ -14,11 +14,12 @@ using ICSharpCode.Decompiler.TypeSystem;
 namespace ZGF.ILSpy.Core;
 
 /// <summary>A search hit: the <see cref="Node"/> found, its label, and where it lives.</summary>
-/// <param name="DeclaringType">The enclosing type's label, for members and nested types, or the
-/// resources file holding a resource entry; null otherwise.</param>
+/// <param name="Location">Where it lives, as ILSpy's results show it: the namespace and enclosing
+/// type of a type or member, <c>-</c> for the global namespace, the resources file holding a
+/// resource entry, an assembly's file; empty for a namespace or a resource of its own.</param>
 /// <param name="Fitness">How closely the hit matches, as ILSpy ranks it: the shorter the name the
 /// closer, and 0 for compiler-generated names.</param>
-public sealed record SearchResult(BrowseNode Node, string Text, string? DeclaringType, string Namespace, string AssemblyName, float Fitness);
+public sealed record SearchResult(BrowseNode Node, string Text, string Location, float Fitness);
 
 internal static class AssemblySearch
 {
@@ -325,7 +326,7 @@ internal static class AssemblySearch
                 cancellationToken.ThrowIfCancellationRequested();
                 if (node.Kind is NodeKind.Error or NodeKind.Loading) continue;
                 if (query.IsMatch(node.Text))
-                    Add(node, parent.Kind == NodeKind.ResourcesFile ? parent.Text : null, "");
+                    Add(node, parent.Kind == NodeKind.ResourcesFile ? parent.Text : "");
                 if (node.HasChildren)
                     ScanResources(node);
             }
@@ -340,7 +341,7 @@ internal static class AssemblySearch
                 _ => query.IsMatch(assembly.Name) || query.IsMatch(Path.GetFileName(assembly.FilePath)),
             };
             if (matches)
-                Add(assembly.Root, null, "");
+                Add(assembly.Root, assembly.FilePath);
         }
 
         private void ScanNamespaces(LoadedAssembly assembly)
@@ -349,7 +350,7 @@ internal static class AssemblySearch
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (node is NamespaceNode ns && InNamespace(ns.Name) && query.IsMatch(ns.Text))
-                    Add(node, null, "");
+                    Add(node, "");
             }
         }
 
@@ -390,17 +391,20 @@ internal static class AssemblySearch
 
         private void Add(BrowseNode node)
         {
-            string? declaringType = node.Parent is TypeNode parent ? parent.Text : null;
             var ns = node.Parent;
             while (ns is not null and not NamespaceNode)
                 ns = ns.Parent;
-            Add(node, declaringType, ns?.Text ?? "");
+            var name = ns?.Text ?? "";
+            if (node.Parent is TypeNode type)
+                Add(node, name.Length == 0 ? type.Text : $"{name}.{type.Text}");
+            else
+                Add(node, name.Length == 0 ? "-" : name);
         }
 
-        private void Add(BrowseNode node, string? declaringType, string ns)
+        private void Add(BrowseNode node, string location)
         {
             if (!_found.Add(node)) return;
-            _batch.Add(new SearchResult(node, node.Text, declaringType, ns, node.Assembly.Name, Fitness(node)));
+            _batch.Add(new SearchResult(node, node.Text, location, Fitness(node)));
             if (_batch.Count >= BatchSize || Stopwatch.GetTimestamp() - _lastFlush >= FlushTicks)
                 Flush();
         }

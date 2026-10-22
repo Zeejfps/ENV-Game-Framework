@@ -52,7 +52,7 @@ public sealed class Workspace
                 Search.Clear();
             RemoveTab(panel);
         };
-        MetadataFilters = new MetadataFilters(settings.MetadataFilters);
+        MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
@@ -468,8 +468,7 @@ public sealed class Workspace
 
     private NodePath? PlaceOf(BookmarkRecord record) =>
         record.Place is { } place ? NodePath.From(record.FileName, place)
-        : record.ViewState?.SelectedTreeNodePath is { Count: > 0 } path && ILSpyTree.Find(Assemblies, path) is { } found ? found
-        : ILSpyTree.FindEntity(Assemblies, record.FileName, record.Token);
+        : ILSpyTree.Locate(Assemblies, record.FileName, record.ViewState?.SelectedTreeNodePath, record.Token);
 
     /// <summary>Imports the <see cref="PendingImport"/> as <paramref name="mode"/> says, or drops it when null.</summary>
     public void FinishImport(BookmarkImportMode? mode)
@@ -679,7 +678,7 @@ public sealed class Workspace
         _savedAnalyzer = Analyzer.Revision;
         _settings.BookmarkColumns = BookmarkColumns.Weights.ToList();
         _settings.SearchColumns = SearchColumns.Weights.ToList();
-        _settings.MetadataFilters = MetadataFilters.Save();
+        _settings.FlagsFilters = MetadataFilters.Save();
         _savedFilters = MetadataFilters.Revision;
         _savedBookmarks = Bookmarks.Revision;
         if (_settings.Save() is { } error)

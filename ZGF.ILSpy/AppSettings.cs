@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -47,7 +48,7 @@ public sealed class AppSettings
     public List<float>? SearchColumns { get; set; }
 
     /// <summary>The metadata grids' flags filters, by kind of row and column.</summary>
-    public Dictionary<string, string>? MetadataFilters { get; set; }
+    public Dictionary<string, SavedFilterState>? FlagsFilters { get; set; }
 
     /// <summary>The main window as it was left; null opens it at the default size, centered.</summary>
     public WindowBounds? Window { get; set; }

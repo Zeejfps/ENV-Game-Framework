@@ -334,7 +334,7 @@ public sealed class AppTests
         app.Run();
         app.Driver.Settle();
 
-        Assert.Same(app.Workspace.Search.Rows[1].Result.Node, app.Workspace.ActiveTab!.Node);
+        Assert.Same(app.Workspace.Search.Rows[1].Node, app.Workspace.ActiveTab!.Node);
     }
 
     [Fact]
@@ -349,28 +349,28 @@ public sealed class AppTests
         RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 2 });
         var search = app.Workspace.Search;
         search.Select(search.Rows.Count - 1);
-        var selected = search.SelectedRow!.Result.Node;
-        var names = search.Rows.Select(r => r.Result.Text).ToList();
+        var selected = search.SelectedRow!.Node;
+        var names = search.Rows.Select(r => r.Text).ToList();
         Assert.Equal(SearchSort.Relevance, search.Sort);
-        Assert.Equal(search.Rows.Select(r => r.Result.Fitness).OrderDescending(), search.Rows.Select(r => r.Result.Fitness));
+        Assert.Equal(search.Rows.Select(r => r.Fitness).OrderDescending(), search.Rows.Select(r => r.Fitness));
 
         app.Click("Name");
         app.Run();
-        Assert.Equal(names.Order(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Result.Text));
-        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.Equal(names.Order(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Text));
+        Assert.Same(selected, search.SelectedRow!.Node);
         Assert.True(app.Frames.Drew(LucideIcons.ChevronUp));
 
         app.Click("Name");
         app.Run();
-        Assert.Equal(names.OrderDescending(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Result.Text));
-        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.Equal(names.OrderDescending(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Text));
+        Assert.Same(selected, search.SelectedRow!.Node);
         Assert.True(app.Frames.Drew(LucideIcons.ChevronDown));
 
         app.Click("Name");
         app.Run();
         Assert.Equal(SearchSort.Relevance, search.Sort);
-        Assert.Equal(names, search.Rows.Select(r => r.Result.Text));
-        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.Equal(names, search.Rows.Select(r => r.Text));
+        Assert.Same(selected, search.SelectedRow!.Node);
 
         app.Click("Assembly");
         app.Run();
@@ -388,7 +388,7 @@ public sealed class AppTests
         app.Run();
         app.Frames.Wait(1);
         RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
-        Assert.Contains(app.Workspace.Search.Rows, r => r.Result.Node.Kind == NodeKind.Class);
+        Assert.Contains(app.Workspace.Search.Rows, r => r.Node.Kind == NodeKind.Class);
 
         app.Click("Types and members");
         app.Run();
@@ -407,7 +407,7 @@ public sealed class AppTests
         RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
 
         Assert.Equal(SearchKinds.Methods, app.Workspace.Search.Kinds);
-        Assert.All(app.Workspace.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Result.Node.Kind));
+        Assert.All(app.Workspace.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Node.Kind));
         Assert.True(app.Frames.Drew("Methods"));
         Assert.False(app.Frames.Drew("Namespaces"));
     }
@@ -545,17 +545,17 @@ public sealed class AppTests
         RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
         app.Run(2);
 
-        var row = app.Workspace.Search.Rows.First(r => r.Result.Node.Kind == NodeKind.Class);
+        var row = app.Workspace.Search.Rows.First(r => r.Node.Kind == NodeKind.Class);
         var header = app.LastTextRect(LucideIcons.Search);
         var texts = app.Frames.Canvas.Texts.Select(t => t.Inputs).Select(t => (t.Text, Rect: new UiRect(t.Position.Left, app.Frames.Height - t.Position.Top, t.Position.Width, t.Position.Height))).ToList();
-        var name = texts.Single(t => t.Text == row.Result.Text && t.Rect.Y > header.Bottom).Rect;
+        var name = texts.Single(t => t.Text == row.Text && t.Rect.Y > header.Bottom).Rect;
         var cells = texts.Where(t => t.Rect.Y == name.Y && t.Rect.X > name.Right).OrderBy(t => t.Rect.X).ToList();
 
         Assert.True(app.TextRect("Location").X < app.TextRect("Assembly").X);
         Assert.Equal(2, cells.Count);
         Assert.False(app.Frames.Drew(row.Location), $"'{row.Location}' was drawn in full");
         Assert.Contains('…', cells[0].Text);
-        Assert.StartsWith(cells[1].Text.TrimEnd('…'), row.Assembly);
+        Assert.StartsWith(cells[1].Text.TrimEnd('…'), row.Node.Assembly.NameAndVersion);
         Assert.True(cells[1].Rect.Right <= app.Frames.Width, $"the assembly ends at {cells[1].Rect.Right}");
     }
 

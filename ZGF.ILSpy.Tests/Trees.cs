@@ -18,6 +18,9 @@ internal static class Trees
 
     public static BrowseNode Calculator(this LoadedAssembly assembly) => assembly.Fixtures().Child("Calculator<T>");
 
+    public static NodeContent Content(this BrowseNode node, DecompilationLanguage language = DecompilationLanguage.CSharp) =>
+        node.LoadContentAsync(language, DecompilerOptions.Default).GetAwaiter().GetResult();
+
     public static (AssemblyList List, LoadedAssembly Assembly) OpenTestAssembly()
     {
         var list = new AssemblyList();

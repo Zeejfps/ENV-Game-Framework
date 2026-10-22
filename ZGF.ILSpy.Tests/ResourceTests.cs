@@ -77,12 +77,14 @@ public sealed class ResourceTests
         var resources = Resources(assembly);
 
         Assert.Equal(NodeKind.ResourceImage, resources.Child("logo.png").Kind);
-        Assert.True(resources.Child("red.gif").ShowsImage);
-        Assert.False(resources.Child("sample.xml").ShowsImage);
+        Assert.IsType<ImageContent>(resources.Child("red.gif").Content());
+        Assert.False(resources.Child("red.gif").DependsOnLanguage);
+        Assert.IsType<DocumentContent>(resources.Child("sample.xml").Content());
+        Assert.True(resources.Child("sample.xml").DependsOnLanguage);
         Assert.Equal(NodeKind.ResourcesFile, resources.Child("Mixed.resources").Kind);
         Assert.All(resources.Children, c => Assert.True(c.HasResource));
 
-        var image = resources.Child("logo.png").LoadImageAsync().GetAwaiter().GetResult();
+        var image = Assert.IsType<ImageContent>(resources.Child("logo.png").Content()).Image;
         Assert.Equal(Expected, image.Rgba);
         Assert.Equal(Fixture("logo.png"), resources.Child("logo.png").ReadResource());
     }
@@ -93,8 +95,12 @@ public sealed class ResourceTests
         var (_, assembly) = Trees.OpenTestAssembly();
         var broken = Resources(assembly).Child("broken.png");
 
-        Assert.True(broken.ShowsImage);
-        Assert.ThrowsAsync<InvalidDataException>(() => broken.LoadImageAsync()).GetAwaiter().GetResult();
+        var document = Assert.IsType<DocumentContent>(broken.Content(DecompilationLanguage.IL)).Document;
+
+        Assert.False(broken.DependsOnLanguage);
+        Assert.Equal("// This is no PNG, JPEG, BMP, GIF, ICO or CUR picture.", document.Lines[0].Text);
+        Assert.Equal(SpanKind.Comment, document.Lines[0].Spans[0].Kind);
+        Assert.Contains("not a picture", document.GetText());
     }
 
     [Fact]
@@ -143,7 +149,7 @@ public sealed class ResourceTests
         var (_, assembly) = Trees.OpenTestAssembly();
         var file = Resources(assembly).Child("Mixed.resources");
 
-        var grid = file.LoadGridAsync().GetAwaiter().GetResult();
+        var grid = Assert.IsType<GridContent>(file.Content()).Grid;
         var rows = Enumerable.Range(0, grid.RowCount).Select(r => (grid.Text(r, 0), grid.Text(r, 1), grid.Text(r, 2))).ToList();
 
         Assert.Equal(["Name", "Value", "Type"], grid.Columns.Select(c => c.Name));
@@ -160,7 +166,7 @@ public sealed class ResourceTests
         Assert.False(grid.HasDetails);
         Assert.Null(grid.Tooltip(1, 1));
         Assert.Equal([("Notes.xml", NodeKind.Resource), ("Picture.png", NodeKind.ResourceImage)], file.Children.Select(c => (c.Text, c.Kind)));
-        Assert.Equal(Expected, file.Child("Picture.png").LoadImageAsync().GetAwaiter().GetResult().Rgba);
+        Assert.Equal(Expected, Assert.IsType<ImageContent>(file.Child("Picture.png").Content()).Image.Rgba);
         Assert.Contains(("root", SpanKind.Keyword), file.Child("Notes.xml").Decompile(DecompilationLanguage.CSharp).SpansOf().Select(s => (s.Text, s.Span.Kind)));
     }
 

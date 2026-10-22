@@ -3,9 +3,6 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A search hit with its location and assembly text formatted once, off the UI thread.</summary>
-public sealed record SearchRow(SearchResult Result, string Location, string Assembly);
-
 /// <summary>What the search results are sorted by; <see cref="Relevance"/> puts the closest matches first.</summary>
 public enum SearchSort
 {
@@ -24,7 +21,7 @@ public sealed class SearchModel
 
     private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
-    private readonly List<SearchRow> _rows = new();
+    private readonly List<SearchResult> _rows = new();
     private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
     private readonly List<CancellationTokenSource> _runs = new();
     private string _typed = "";
@@ -47,13 +44,13 @@ public sealed class SearchModel
     /// <summary>What the query looks for, unless prefixes in it say otherwise.</summary>
     public SearchKinds Kinds = SearchKinds.TypesAndMembers;
 
-    public IReadOnlyList<SearchRow> Rows => _rows;
+    public IReadOnlyList<SearchResult> Rows => _rows;
     public bool IsBusy => _runs.Count > 0;
 
     /// <summary>The selected row, or -1.</summary>
     public int Selected { get; private set; } = -1;
 
-    public SearchRow? SelectedRow => Selected >= 0 ? _rows[Selected] : null;
+    public SearchResult? SelectedRow => Selected >= 0 ? _rows[Selected] : null;
 
     public SearchSort Sort { get; private set; }
     public bool Descending { get; private set; }
@@ -89,7 +86,7 @@ public sealed class SearchModel
     {
         if (index < 0 || index >= _rows.Count) return;
         Selected = index;
-        _selected = _rows[index].Result.Node;
+        _selected = _rows[index].Node;
         ScrollToSelected = true;
     }
 
@@ -114,16 +111,16 @@ public sealed class SearchModel
         ScrollToSelected = Selected >= 0;
     }
 
-    private int Compare(SearchRow a, SearchRow b)
+    private int Compare(SearchResult a, SearchResult b)
     {
         var order = Sort switch
         {
-            SearchSort.Name => Compare(a.Result.Text, b.Result.Text, a.Location, b.Location, a.Assembly, b.Assembly),
-            SearchSort.Location => Compare(a.Location, b.Location, a.Result.Text, b.Result.Text, a.Assembly, b.Assembly),
-            SearchSort.Assembly => Compare(a.Assembly, b.Assembly, a.Result.Text, b.Result.Text, a.Location, b.Location),
-            _ => b.Result.Fitness.CompareTo(a.Result.Fitness) is var fit and not 0
+            SearchSort.Name => Compare(a.Text, b.Text, a.Location, b.Location, a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion),
+            SearchSort.Location => Compare(a.Location, b.Location, a.Text, b.Text, a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion),
+            SearchSort.Assembly => Compare(a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion, a.Text, b.Text, a.Location, b.Location),
+            _ => b.Fitness.CompareTo(a.Fitness) is var fit and not 0
                 ? fit
-                : Compare(a.Result.Text, b.Result.Text, a.Location, b.Location, a.Assembly, b.Assembly),
+                : Compare(a.Text, b.Text, a.Location, b.Location, a.Node.Assembly.NameAndVersion, b.Node.Assembly.NameAndVersion),
         };
         return Descending ? -order : order;
     }
@@ -135,7 +132,7 @@ public sealed class SearchModel
         return order != 0 ? order : StringComparer.OrdinalIgnoreCase.Compare(a3, b3);
     }
 
-    private void Insert(SearchRow row)
+    private void Insert(SearchResult row)
     {
         int low = 0, high = _rows.Count;
         while (low < high)
@@ -173,7 +170,7 @@ public sealed class SearchModel
         var listed = assemblies.Assemblies;
         if (_searched.RemoveWhere(a => !listed.Contains(a)) > 0)
         {
-            _rows.RemoveAll(r => !_searched.Contains(r.Result.Node.Assembly));
+            _rows.RemoveAll(r => !_searched.Contains(r.Node.Assembly));
             Reselect();
         }
         var added = listed.Where(_searched.Add).ToArray();
@@ -183,7 +180,7 @@ public sealed class SearchModel
 
     private void Reselect()
     {
-        Selected = _selected is null ? -1 : _rows.FindIndex(r => ReferenceEquals(r.Result.Node, _selected));
+        Selected = _selected is null ? -1 : _rows.FindIndex(r => ReferenceEquals(r.Node, _selected));
         if (Selected < 0)
             _selected = null;
     }
@@ -201,15 +198,12 @@ public sealed class SearchModel
         {
             await foreach (var batch in search.ConfigureAwait(false))
             {
-                var rows = new SearchRow[batch.Count];
-                for (var i = 0; i < rows.Length; i++)
-                    rows[i] = new SearchRow(batch[i], Locate(batch[i]), Describe(batch[i].Node.Assembly));
                 post(() =>
                 {
                     if (!_runs.Contains(work)) return;
-                    foreach (var row in rows)
+                    foreach (var row in batch)
                     {
-                        if (_searched.Contains(row.Result.Node.Assembly))
+                        if (_searched.Contains(row.Node.Assembly))
                             Insert(row);
                     }
                     if (_selected is not null)
@@ -230,16 +224,4 @@ public sealed class SearchModel
             work.Dispose();
         });
     }
-
-    private static string Describe(LoadedAssembly assembly) =>
-        assembly.Version is { } version ? $"{assembly.Name} ({version})" : assembly.Name;
-
-    private static string Locate(SearchResult result) => result.Node.Kind switch
-    {
-        NodeKind.Assembly => result.Node.Assembly.FilePath,
-        NodeKind.Namespace => "",
-        NodeKind.Resource or NodeKind.ResourceImage or NodeKind.ResourcesFile => result.DeclaringType ?? "",
-        _ when result.DeclaringType is { } type => result.Namespace.Length == 0 ? type : $"{result.Namespace}.{type}",
-        _ => result.Namespace.Length == 0 ? "-" : result.Namespace,
-    };
 }

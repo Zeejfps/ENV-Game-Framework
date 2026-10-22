@@ -63,7 +63,7 @@ internal static class SearchPanelView
         for (var i = list.First; i < list.End; i++)
         {
             var row = search.Rows[i];
-            var node = row.Result.Node;
+            var node = row.Node;
             using (ui.Id(RuntimeHelpers.GetHashCode(node)))
             {
                 var item = ui.Interact("row");
@@ -91,12 +91,12 @@ internal static class SearchPanelView
                     using (ui.TableCell(columns, 0))
                     {
                         NodeIcons.Draw(ui, node.Kind, node.Accessibility);
-                        ui.Text(row.Result.Text, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
+                        ui.Text(row.Text, new Box { Width = Sizing.Grow() }, color: selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
                     }
                     using (ui.TableCell(columns, 1))
                         ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
                     using (ui.TableCell(columns, 2))
-                        ui.Text(row.Assembly, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
+                        ui.Text(node.Assembly.NameAndVersion, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
                 }
                 ui.Tooltip(item.Id, NodeText.Tooltip(node));
             }
@@ -118,7 +118,7 @@ internal static class SearchPanelView
             if (search.Selected < 0)
                 search.Move(1);
             if (search.SelectedRow is { } row)
-                w.Show(row.Result.Node);
+                w.Show(row.Node);
         }
         else if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
         {
@@ -237,7 +237,7 @@ internal static class SearchPanelView
                     search.Move(search.Rows.Count);
                     break;
                 case KeyboardKey.Enter when search.SelectedRow is { } selected:
-                    w.Show(selected.Result.Node, inNewTab: (stroke.Modifiers & KeyModifiers.Control) != 0);
+                    w.Show(selected.Node, inNewTab: (stroke.Modifiers & KeyModifiers.Control) != 0);
                     break;
             }
         }

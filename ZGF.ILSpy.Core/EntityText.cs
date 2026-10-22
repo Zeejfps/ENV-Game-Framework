@@ -20,6 +20,24 @@ internal static class EntityText
 
     public static string Label(IEntity entity) => entity is ITypeDefinition type ? TypeLabel(type) : Convert(entity, MemberFlags);
 
+    public static NodeKind KindOf(IEntity entity) =>
+        entity switch
+        {
+            ITypeDefinition { Kind: TypeKind.Interface } => NodeKind.Interface,
+            ITypeDefinition { Kind: TypeKind.Struct } type => type.IsRecord ? NodeKind.RecordStruct : NodeKind.Struct,
+            ITypeDefinition { Kind: TypeKind.Enum } => NodeKind.Enum,
+            ITypeDefinition { Kind: TypeKind.Delegate } => NodeKind.Delegate,
+            ITypeDefinition type => type.IsRecord ? NodeKind.Record : NodeKind.Class,
+            IField { IsConst: true } => NodeKind.Constant,
+            IField => NodeKind.Field,
+            IProperty { IsIndexer: true } => NodeKind.Indexer,
+            IProperty => NodeKind.Property,
+            IEvent => NodeKind.Event,
+            IMethod { IsConstructor: true } => NodeKind.Constructor,
+            IMethod { IsOperator: true } => NodeKind.Operator,
+            _ => NodeKind.Method,
+        };
+
     public static string FullName(IEntity entity) =>
         entity is ITypeDefinition type
             ? type.DeclaringTypeDefinition is { } declaring

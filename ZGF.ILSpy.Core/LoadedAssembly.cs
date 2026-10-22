@@ -59,6 +59,33 @@ public sealed class LoadedAssembly
     /// or null if it does not say.</summary>
     public string? TargetFramework { get; }
 
+    /// <summary><see cref="TargetFramework"/> as ILSpy shows it, e.g. <c>.NETCoreApp, v10.0</c>.</summary>
+    public string? FrameworkName => TargetFramework?.Replace(",Version=", ", ");
+
+    /// <summary><see cref="TargetFramework"/> as a moniker, e.g. <c>net10.0</c>, <c>netstandard2.0</c>
+    /// or <c>net48</c>.</summary>
+    public string? FrameworkMoniker
+    {
+        get
+        {
+            if (TargetFramework is not { } id) return null;
+            var at = id.IndexOf(",Version=v", StringComparison.Ordinal);
+            if (at < 0) return id;
+            var name = id[..at];
+            var version = id[(at + ",Version=v".Length)..];
+            return name switch
+            {
+                ".NETCoreApp" => System.Version.TryParse(version, out var v) && v.Major >= 5 ? $"net{version}" : $"netcoreapp{version}",
+                ".NETStandard" => $"netstandard{version}",
+                ".NETFramework" => $"net{version.Replace(".", "")}",
+                _ => $"{name} {version}",
+            };
+        }
+    }
+
+    /// <summary>The simple name with the version, e.g. <c>System.Runtime (10.0.0.0)</c>.</summary>
+    public string NameAndVersion => Version is { } version ? $"{Name} ({version})" : Name;
+
     /// <summary>The tree's root for this assembly.</summary>
     public BrowseNode Root => _root.Value;
 
@@ -98,25 +125,10 @@ public sealed class LoadedAssembly
         if (handle.IsNil) return null;
         if (_nodes.TryGetValue(handle, out var node)) return node;
 
-        BrowseNode? parent;
-        if (handle.Kind == HandleKind.TypeDefinition)
-        {
-            var definition = File.Metadata.GetTypeDefinition((TypeDefinitionHandle)handle);
-            var declaring = definition.GetDeclaringType();
-            parent = declaring.IsNil
-                ? ((AssemblyNode)Root).FindNamespace(File.Metadata.GetString(definition.Namespace))
-                : FindNode(declaring);
-        }
-        else
-        {
-            var entity = Module.ResolveEntity(handle);
-            parent = entity switch
-            {
-                IMethod { IsAccessor: true, AccessorOwner: { } owner } => FindNode(owner.MetadataToken),
-                IEntity { DeclaringTypeDefinition: { } type } => FindNode(type.MetadataToken),
-                _ => null,
-            };
-        }
+        var parent = handle.Kind == HandleKind.TypeDefinition && File.Metadata.GetTypeDefinition((TypeDefinitionHandle)handle) is var type
+                     && type.GetDeclaringType().IsNil
+            ? ((AssemblyNode)Root).FindNamespace(File.Metadata.GetString(type.Namespace))
+            : FindNode(OwnerOf(handle));
         if (parent is null) return null;
         _ = parent.Children;
         return _nodes.GetValueOrDefault(handle);
@@ -124,18 +136,22 @@ public sealed class LoadedAssembly
 
     internal BrowseNode? FindNodeOrAncestor(EntityHandle handle)
     {
-        while (!handle.IsNil)
+        for (; !handle.IsNil; handle = OwnerOf(handle))
         {
             if (FindNode(handle) is { } node) return node;
-            handle = Module.ResolveEntity(handle) switch
-            {
-                IMethod { IsAccessor: true, AccessorOwner: { } owner } => owner.MetadataToken,
-                IEntity { DeclaringTypeDefinition: { } type } => type.MetadataToken,
-                _ => default,
-            };
         }
         return null;
     }
+
+    /// <summary>The entity whose node holds the node of <paramref name="handle"/>'s: a property or
+    /// event for its accessor, else the declaring type; nil for a top-level type.</summary>
+    private EntityHandle OwnerOf(EntityHandle handle) =>
+        Module.ResolveEntity(handle) switch
+        {
+            IMethod { IsAccessor: true, AccessorOwner: { } owner } => owner.MetadataToken,
+            IEntity { DeclaringTypeDefinition: { } type } => type.MetadataToken,
+            _ => default,
+        };
 
     private static string? TryDetectTargetFramework(PEFile file)
     {

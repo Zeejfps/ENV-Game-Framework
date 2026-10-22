@@ -254,7 +254,7 @@ public sealed class WorkspaceTests
         var rows = search.Rows.ToArray();
         Assert.Single(rows);
         search.Select(0);
-        var selected = search.SelectedRow!.Result.Node;
+        var selected = search.SelectedRow!.Node;
 
         var document = d.Workspace.ActiveTab!.Document;
         var (line, column) = document.Find("Length");
@@ -266,7 +266,7 @@ public sealed class WorkspaceTests
 
         Assert.All(rows, r => Assert.Contains(r, search.Rows));
         Assert.True(search.Rows.Count > rows.Length);
-        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.Same(selected, search.SelectedRow!.Node);
     }
 
     [Fact]
@@ -283,16 +283,16 @@ public sealed class WorkspaceTests
         search.Update(d.Workspace.Assemblies, 0, d.Post, true);
         search.Update(d.Workspace.Assemblies, 1, d.Post, true);
         d.Settle();
-        Assert.Contains(search.Rows, r => r.Result.Node.Assembly != greeter.Assembly);
-        search.Select(search.Rows.ToList().FindIndex(r => r.Result.Node.Assembly == greeter.Assembly));
-        var selected = search.SelectedRow!.Result.Node;
+        Assert.Contains(search.Rows, r => r.Node.Assembly != greeter.Assembly);
+        search.Select(search.Rows.ToList().FindIndex(r => r.Node.Assembly == greeter.Assembly));
+        var selected = search.SelectedRow!.Node;
 
         d.Workspace.Close(d.Workspace.Assemblies.Assemblies.Single(a => a.Name == "System.Private.CoreLib"));
         search.Update(d.Workspace.Assemblies, 2, d.Post, true);
         d.Settle();
 
-        Assert.All(search.Rows, r => Assert.Equal(greeter.Assembly, r.Result.Node.Assembly));
-        Assert.Same(selected, search.SelectedRow!.Result.Node);
+        Assert.All(search.Rows, r => Assert.Equal(greeter.Assembly, r.Node.Assembly));
+        Assert.Same(selected, search.SelectedRow!.Node);
     }
 
     [Fact]
