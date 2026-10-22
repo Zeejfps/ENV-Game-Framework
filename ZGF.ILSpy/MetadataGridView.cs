@@ -340,9 +340,7 @@ public static class MetadataGridWidget
 
         var isFlags = filter.Flags != null;
         var flagsActive = filter.Flags is { IsEmpty: false };
-        var funnel = ui.Interact(HashCode.Combine(listId, FunnelSalt, column));
-        if (funnel.Hovered)
-            ui.SetCursor(MouseCursor.Hand);
+        var funnel = ui.Clickable(HashCode.Combine(listId, FunnelSalt, column));
         if (funnel.Clicked)
         {
             if (isFlags)
@@ -470,9 +468,7 @@ public static class MetadataGridWidget
     private static bool Chip(Ui ui, string label, bool on, int index)
     {
         var theme = ui.Theme;
-        var chip = ui.Interact($"chip-{index}");
-        if (chip.Hovered)
-            ui.SetCursor(MouseCursor.Hand);
+        var chip = ui.Clickable($"chip-{index}");
         using (ui.Row(chip.Id, new Box
         {
             Width = Sizing.Fit(),
@@ -489,9 +485,7 @@ public static class MetadataGridWidget
     private static bool Pill(Ui ui, TriState state)
     {
         var theme = ui.Theme;
-        var pill = ui.Interact("pill");
-        if (pill.Hovered)
-            ui.SetCursor(MouseCursor.Hand);
+        var pill = ui.Clickable("pill");
         using (ui.Box(pill.Id, new Box
         {
             Width = theme.IconButtonSize,

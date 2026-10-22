@@ -1,4 +1,3 @@
-using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 using ZGF.Gui.Immediate.Widgets;
@@ -14,10 +13,7 @@ public static class SampleWidgets
     public static bool Toggle(this Ui ui, string label, ref bool on, string? id = null)
     {
         var theme = ui.Theme;
-        var i = ui.Interact(id ?? label);
-        if (i.Hovered) ui.SetCursor(MouseCursor.Hand);
-        var focused = ui.TabStop(i.Id);
-        var keyed = focused && (ui.Input.TakeKey(KeyboardKey.Space) | ui.Input.TakeKey(KeyboardKey.Enter));
+        var i = ui.Pressable(id ?? label, true, out var keyed, out var ring);
         var flipped = i.Clicked || keyed;
         if (flipped) on = !on;
 
@@ -34,7 +30,7 @@ public static class SampleWidgets
                     var travel = r.Width - r.Height;
                     p.Circle(new PointF(r.X + r.Height / 2 + knob.t * travel, r.Y + r.Height / 2), radius, knob.OnAccent);
                 });
-                if (focused && ui.FocusVisible) ui.FocusRing(ToggleHeight / 2);
+                if (ring) ui.FocusRing(ToggleHeight / 2);
             }
             ui.Text(label);
         }
@@ -44,14 +40,13 @@ public static class SampleWidgets
     public static bool Stepper(this Ui ui, string id, ref int value, int min, int max)
     {
         var theme = ui.Theme;
-        var i = ui.Interact(id);
+        var i = ui.Clickable(id);
         Interaction decrement, increment;
         using (ui.Id(id))
         {
-            decrement = value > min ? ui.Interact("decrement") : Interaction.Inert(ui.GetId("decrement"));
-            increment = value < max ? ui.Interact("increment") : Interaction.Inert(ui.GetId("increment"));
+            decrement = value > min ? ui.Clickable("decrement") : Interaction.Inert(ui.GetId("decrement"));
+            increment = value < max ? ui.Clickable("increment") : Interaction.Inert(ui.GetId("increment"));
         }
-        if (i.Hovered || decrement.Hovered || increment.Hovered) ui.SetCursor(MouseCursor.Hand);
         if (i.Pressed || decrement.Pressed || increment.Pressed) ui.Focus(i.Id, takesText: false);
 
         var before = value;
@@ -99,7 +94,7 @@ public static class SampleWidgets
             Width = size,
             Height = size,
             Radius = theme.CornerRadius,
-            Background = i.Held ? theme.ControlPressed : i.Hovered ? theme.ControlHovered : 0u,
+            Background = theme.ControlFill(i.Held, i.Hovered),
         }, color: enabled ? theme.Text : theme.TextDisabled, align: Align.Center, id: i.Id);
     }
 }

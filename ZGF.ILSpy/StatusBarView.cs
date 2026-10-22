@@ -1,4 +1,3 @@
-using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -53,9 +52,7 @@ internal static class StatusBarView
     {
         var theme = ui.Theme;
         var errors = w.Errors;
-        var i = ui.Interact("errors");
-        if (i.Hovered)
-            ui.SetCursor(MouseCursor.Hand);
+        var i = ui.Clickable("errors");
         if (i.Clicked)
             errors.Open();
 

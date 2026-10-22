@@ -31,8 +31,7 @@ internal static class BookmarksPanelView
 
         if (bookmarks.Items.Count == 0)
         {
-            using (ui.Column(new Box { Height = Sizing.Grow(), Padding = theme.ShellPaddingX, AlignX = Align.Center, AlignY = Align.Center }))
-                ui.Text(t.BookmarksHint, color: theme.TextMuted, wrap: true, align: Align.Center);
+            DocumentsView.Hint(ui, t.BookmarksHint);
             return;
         }
 
@@ -108,10 +107,10 @@ internal static class BookmarksPanelView
                 w.StepBookmark(-1);
             if (ui.IconButton("next", LucideIcons.ArrowDown, LucideIcons.Family, t.BookmarksNext, any))
                 w.StepBookmark(1);
-            ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = theme.IconSize, Background = theme.Separator });
+            ui.Separator(theme.IconSize);
             if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.BookmarksDelete, selected != null))
                 bookmarks.Remove(selected!);
-            ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = theme.IconSize, Background = theme.Separator });
+            ui.Separator(theme.IconSize);
             if (ui.IconButton("export", LucideIcons.Upload, LucideIcons.Family, t.BookmarksExport, bookmarks.Items.Count > 0))
                 ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), w.ExportBookmarks);
             if (ui.IconButton("import", LucideIcons.Download, LucideIcons.Family, t.BookmarksImport))

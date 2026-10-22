@@ -46,10 +46,11 @@ internal static class DocumentsView
     public static DockTab Tab(Workspace w, DocumentTab tab) =>
         new(tab.Node is { } node ? w.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip, Current: tab == w.ActiveTab);
 
+    /// <summary>Muted <paramref name="text"/> centered in a pane or area with nothing to show yet.</summary>
     public static void Hint(Ui ui, string text)
     {
         var theme = ui.Theme;
-        using (ui.Column(new Box { Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center, Background = theme.PaneBackground }))
-            ui.Text(text, color: theme.TextMuted);
+        using (ui.Column(new Box { Height = Sizing.Grow(), Padding = theme.ShellPaddingX, AlignX = Align.Center, AlignY = Align.Center, Background = theme.PaneBackground }))
+            ui.Text(text, color: theme.TextMuted, wrap: true, align: Align.Center);
     }
 }

@@ -27,7 +27,7 @@ internal static class DecompilerOptionsPanelView
                 w.FoldedOptionGroups.UnionWith(Sections.Select(static s => s.Key));
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, w.FoldedOptionGroups.Count > 0))
                 w.FoldedOptionGroups.Clear();
-            ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = theme.IconSize, Background = theme.Separator });
+            ui.Separator(theme.IconSize);
             if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
                 w.ResetDecompilerToggles();
         }

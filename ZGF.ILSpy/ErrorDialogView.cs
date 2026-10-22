@@ -31,20 +31,8 @@ internal static class ErrorDialogView
             }
         }
 
-        using (ui.Box(new Box
-        {
-            Width = Sizing.Grow(),
-            Height = Sizing.Grow(),
-            Padding = theme.BorderWidth,
-            BorderColor = theme.Border,
-            BorderWidth = theme.BorderWidth,
-            Radius = theme.PanelRadius,
-            Background = theme.EditorBackground,
-            Clip = true,
-        }))
-        {
+        using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.EditorBackground, Clip = true }))
             ui.CodeView("error-text", errors.SelectedDocument(), errors.View, t);
-        }
 
         using (ui.Row(new Box { Gap = theme.GapTight }))
         {

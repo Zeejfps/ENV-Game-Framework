@@ -33,17 +33,7 @@ internal static class FrameworkPickerView
             }
             open |= ui.TextField("picker-filter", ref picker.Filter, t.PickerFilter);
 
-            using (ui.Box(new Box
-            {
-                Width = Sizing.Grow(),
-                Height = Sizing.Grow(),
-                Background = theme.Field,
-                BorderColor = theme.Border,
-                BorderWidth = theme.BorderWidth,
-                Radius = theme.PanelRadius,
-                Padding = theme.BorderWidth,
-                Clip = true,
-            }))
+            using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.Field, Clip = true }))
             {
                 if (picker.IsLoading)
                     ui.Text(t.PickerScanning, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted);

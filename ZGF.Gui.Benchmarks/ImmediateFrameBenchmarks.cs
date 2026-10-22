@@ -41,7 +41,7 @@ public class ImmediateFrameBenchmarks
         _ui = new Ui(_canvas, new NullClipboard());
         for (var i = 0; i < Rows; i++)
         {
-            _labels[i] = $"Task number {i}##done";
+            _labels[i] = $"Task number {i}";
             _done[i] = i % 2 == 0;
         }
         Frame();
@@ -136,7 +136,7 @@ public class ImmediateFrameBenchmarks
         using (ui.Id(i))
         using (ui.Row())
         {
-            ui.Checkbox(_labels[i], ref _done[i]);
+            ui.Checkbox(_labels[i], ref _done[i], id: "done");
             ui.Spacer();
             ui.Button("Delete");
         }

@@ -14,8 +14,7 @@ internal static class AnalyzerPanelView
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         if (analyzer.Roots.Count == 0)
         {
-            using (ui.Column(new Box { Height = Sizing.Grow(), Padding = theme.ShellPaddingX, AlignX = Align.Center, AlignY = Align.Center }))
-                ui.Text(t.AnalyzerHint(Shortcuts.Analyze), color: theme.TextMuted, wrap: true, align: Align.Center);
+            DocumentsView.Hint(ui, t.AnalyzerHint(Shortcuts.Analyze));
             return;
         }
 
