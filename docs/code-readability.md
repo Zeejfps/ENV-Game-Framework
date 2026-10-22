@@ -8,6 +8,7 @@ Code should be digestible at a glance: no decoding lines, details one jump away.
 - Each method stays at one level of abstraction. Entry points read as a list of named steps.
 - `Program.cs` holds only the top-level steps; no helper functions. Helpers live on the type that owns the data they work with.
 - Method names are verbs (`CreateWindowConfig`, `ListExistingAssemblies`), not nouns (`WindowConfig`, `StartupAssemblies`).
+- Type names are nouns for what the type holds or is (`NavigationHistory`, `ErrorLog`, `BrowseTree`). No action names (`BookmarkImport`, `SettingsSync`) and no role suffixes like `-er`, `-Manager` or `-Model` (`IntentTracker`, `SearchModel`); name it `Search`, `Bookmarks`, `FrameworkPicker`.
 - Extract small intent-named helpers even when only a few lines long (`ReportOpenFailure(error)`, `IsStale(ticket)`), so a caller never mixes plumbing or lookup details with intent.
 - Name the intent and hide the mechanism: `settings.RememberWindow(bounds)`, not `settings.Window = AppSettings.Sanitize(bounds)`. Prefer `app.OpenOnStartup(paths)` over `app.Post(() => ...)` in top-level code.
 - Replace tricks with intent-named calls (`node.LoadChildren()`, not `_ = node.Children`).
