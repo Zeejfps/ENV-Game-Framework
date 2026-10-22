@@ -42,7 +42,7 @@ public sealed class MultiLineTextTests
     }
 
     [Fact]
-    public void A_word_longer_than_the_width_gets_a_line_of_its_own()
+    public void A_word_longer_than_the_width_breaks_between_its_characters()
     {
         var frames = new UiFrames();
         frames.Run(0f, ui =>
@@ -51,7 +51,20 @@ public sealed class MultiLineTextTests
                 ui.Text("a enormousword b", wrap: true);
         });
 
-        Assert.Equal(["a", "enormousword", "b"], Drawn(frames));
+        Assert.Equal(["a", "enorm", "ouswo", "rd b"], Drawn(frames));
+    }
+
+    [Fact]
+    public void A_path_wraps_after_its_separators()
+    {
+        var frames = new UiFrames();
+        frames.Run(0f, ui =>
+        {
+            using (ui.Column(new Box { Width = 120f }))
+                ui.Text(@"C:\Program Files\dotnet\shared\Microsoft.NETCore.App", wrap: true);
+        });
+
+        Assert.Equal([@"C:\Program", @"Files\dotnet\", @"shared\", "Microsoft.", "NETCore.App"], Drawn(frames));
     }
 
     [Fact]

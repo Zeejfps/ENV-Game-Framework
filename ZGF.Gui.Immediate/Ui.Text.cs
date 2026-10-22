@@ -40,6 +40,7 @@ public sealed partial class Ui : ITextLayout
     private Dictionary<LineKey, TextLines> _previousLines = new();
     private Dictionary<EllipsisKey, string> _ellipses = new();
     private Dictionary<EllipsisKey, string> _previousEllipses = new();
+    private readonly List<Range> _ranges = new();
 
     /// <summary>Width of <paramref name="text"/> shaped on its own — a slice of a longer string —
     /// as <see cref="UiPainter.Text(UiRect, string, int, int, uint, float?, bool, Align, string?)"/>
@@ -167,27 +168,14 @@ public sealed partial class Ui : ITextLayout
             return;
         }
 
-        var lineStart = start;
-        while (lineStart < end)
+        _ranges.Clear();
+        TextWrapper.WrapRanges(_canvas, text.AsSpan(start, end - start), style, maxWidth, _ranges);
+        foreach (var range in _ranges)
         {
-            var fit = -1;
-            var fitWidth = 0f;
-            var i = lineStart;
-            while (i < end)
-            {
-                var wordEnd = i;
-                while (wordEnd < end && text[wordEnd] != ' ') wordEnd++;
-                var width = Measure(text, lineStart, wordEnd, style);
-                if (width > maxWidth && fit >= 0) break;
-                fit = wordEnd;
-                fitWidth = width;
-                if (width > maxWidth) break;
-                i = wordEnd;
-                while (i < end && text[i] == ' ') i++;
-            }
-            lines.Add(lineStart, fit - lineStart, fitWidth);
-            lineStart = fit;
-            while (lineStart < end && text[lineStart] == ' ') lineStart++;
+            var lineStart = start + range.Start.Value;
+            var lineEnd = start + range.End.Value;
+            while (lineEnd > lineStart && text[lineEnd - 1] == ' ') lineEnd--;
+            lines.Add(lineStart, lineEnd - lineStart, Measure(text, lineStart, lineEnd, style));
         }
     }
 
