@@ -535,7 +535,29 @@ public sealed class SelectButtonTests
         if (!menu.IsOpen) return;
         ui.MenuItem("Red", ref _red, keepOpen: true);
         ui.MenuItem("Green", ref _green, keepOpen: true);
+        ui.MenuItem("Blue", ref _red, keepOpen: true, icon: new UiIcon("B", Color: 0xFF0000FF));
     }
+
+    [Fact]
+    public void A_check_items_icon_sits_between_the_check_and_the_label_whether_checked_or_not()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("colors"));
+        _frames.Run(0f, Body);
+        Assert.True(IsLeftOf("B", "Blue"));
+        Assert.True(IsLeftOf("Red", "Blue"));
+
+        _frames.ClickOn(Body, ui => ui.GetId("Blue"));
+        _frames.Run(0f, Body);
+
+        Assert.False(_red);
+        Assert.Equal(0xFF0000FFu, _frames.TextColor("B"));
+        Assert.True(IsLeftOf("B", "Blue"));
+    }
+
+    private bool IsLeftOf(string left, string right) =>
+        _frames.Canvas.Texts.Single(t => t.Inputs.Text == left).Inputs.Position.Right <=
+        _frames.Canvas.Texts.Single(t => t.Inputs.Text == right).Inputs.Position.Left;
 
     [Fact]
     public void Kept_open_check_items_flip_one_after_another_without_closing_the_menu()

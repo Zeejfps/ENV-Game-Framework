@@ -240,6 +240,10 @@ public sealed class AppTests
             app.Run();
         }
         Assert.True(app.Frames.Drew("Namespaces"));
+        var events = app.LastTextRect("Events");
+        var icon = app.LastTextRect(NodeIcons.Glyph(NodeKind.Event));
+        Assert.True(icon.Right <= events.X && events.X - icon.Right < 16f, $"the events icon ends at {icon.Right}, its label starts at {events.X}");
+        Assert.True(MathF.Abs(icon.Y + icon.Height / 2 - (events.Y + events.Height / 2)) < 4f);
         app.Frames.Key(KeyboardKey.Escape);
         app.Run(2);
         RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });

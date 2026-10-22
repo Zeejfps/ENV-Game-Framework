@@ -135,13 +135,14 @@ internal static class SearchPanelView
         var all = search.Kinds == SearchKinds.All;
         var kinds = search.Kinds;
         var checkAll = all;
-        if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true))
+        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
+        if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true, icon: new UiIcon(LucideIcons.Layers3, LucideIcons.Family, ui.Theme.TextMuted)))
             kinds = SearchKinds.All;
         ui.MenuSeparator();
         foreach (var kind in Kinds)
         {
             var on = !all && (kinds & kind) != 0;
-            if (!ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true)) continue;
+            if (!ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true, icon: NodeIcons.Icon(KindNode(kind), NodeAccessibility.None, palette))) continue;
             kinds = all ? kind : on ? kinds | kind : kinds & ~kind;
             if (kinds == SearchKinds.None)
                 kinds = SearchKinds.All;
@@ -190,6 +191,20 @@ internal static class SearchPanelView
         SearchKinds.Assemblies => t.SearchModeAssemblies,
         SearchKinds.Namespaces => t.SearchModeNamespaces,
         _ => kind.ToString(),
+    };
+
+    private static NodeKind KindNode(SearchKinds kind) => kind switch
+    {
+        SearchKinds.Types => NodeKind.Class,
+        SearchKinds.Methods => NodeKind.Method,
+        SearchKinds.Fields => NodeKind.Field,
+        SearchKinds.Properties => NodeKind.Property,
+        SearchKinds.Events => NodeKind.Event,
+        SearchKinds.Literals => NodeKind.Constant,
+        SearchKinds.Tokens => NodeKind.MetadataTable,
+        SearchKinds.Resources => NodeKind.Resource,
+        SearchKinds.Assemblies => NodeKind.Assembly,
+        _ => NodeKind.Namespace,
     };
 
     private static void Keys(Ui ui, Workspace w, float rowHeight)

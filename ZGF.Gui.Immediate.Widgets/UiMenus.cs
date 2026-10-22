@@ -423,12 +423,12 @@ public static partial class UiWidgets
     /// <paramref name="shortcut"/> is only displayed. Ids work as for <see cref="Button"/>.</summary>
     public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null,
         UiIcon? icon = null) =>
-        ui.MenuItem(label, shortcut, enabled, check == true ? MenuMark.Check : MenuMark.None, id, icon, keepOpen: false);
+        ui.MenuItem(label, shortcut, enabled, check == true ? MenuMark.Check : MenuMark.None, id, icon, null, keepOpen: false);
 
     /// <summary>One choice of a set: shows a dot when <paramref name="selected"/> and leaves room
     /// for one otherwise. Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, string?, bool, bool?, string?)"/>.</summary>
     public static bool MenuRadioItem(this Ui ui, string label, bool selected, string? shortcut = null, bool enabled = true, string? id = null) =>
-        ui.MenuItem(label, shortcut, enabled, selected ? MenuMark.Dot : MenuMark.None, id, null, keepOpen: false);
+        ui.MenuItem(label, shortcut, enabled, selected ? MenuMark.Dot : MenuMark.None, id, null, null, keepOpen: false);
 
     private enum MenuMark
     {
@@ -437,7 +437,7 @@ public static partial class UiWidgets
         Dot,
     }
 
-    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id, UiIcon? icon, bool keepOpen)
+    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id, UiIcon? icon, UiIcon? labelIcon, bool keepOpen)
     {
         var theme = ui.Theme;
         var menu = ui.Get<MenuPopup>();
@@ -476,6 +476,11 @@ public static partial class UiWidgets
                     }
                 }
             }
+            if (labelIcon is { } beside)
+            {
+                using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignY = Align.Center }))
+                    ui.Icon(beside);
+            }
             ui.Text(id != null ? label : Visible(ui, i.Id, label), color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
             if (shortcut != null)
@@ -488,11 +493,12 @@ public static partial class UiWidgets
     }
 
     /// <summary>A checkable item: picking it flips <paramref name="value"/>. With
-    /// <paramref name="keepOpen"/> the menu stays open, so several items can be flipped in a row.</summary>
+    /// <paramref name="keepOpen"/> the menu stays open, so several items can be flipped in a row.
+    /// An <paramref name="icon"/> is drawn between the check and the label.</summary>
     public static bool MenuItem(this Ui ui, string label, ref bool value, string? shortcut = null, bool enabled = true, string? id = null,
-        bool keepOpen = false)
+        bool keepOpen = false, UiIcon? icon = null)
     {
-        var picked = ui.MenuItem(label, shortcut, enabled, value ? MenuMark.Check : MenuMark.None, id, null, keepOpen);
+        var picked = ui.MenuItem(label, shortcut, enabled, value ? MenuMark.Check : MenuMark.None, id, null, icon, keepOpen);
         if (picked) value = !value;
         return picked;
     }
