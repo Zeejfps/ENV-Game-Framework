@@ -27,7 +27,7 @@ internal static class MainMenuView
 
     public static void OpenFile(Ui ui, Workspace w)
     {
-        var t = Strings.For(w.Locale);
+        var t = w.GetStrings();
         FileFilter[] filters =
         [
             new(t.FileFilterAssemblies, ["*.dll", "*.exe", "*.winmd"]),
