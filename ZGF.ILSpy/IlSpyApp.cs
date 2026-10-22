@@ -24,5 +24,10 @@ public sealed class IlSpyApp : Gui<Workspace>
         workspace.Assemblies.Changed += Invalidate;
     }
 
+    public void OpenOnStartup(List<string> paths)
+    {
+        Post(() => State.Open(paths));
+    }
+
     protected override void Render(Ui ui, Workspace w) => MainView.Render(ui, w, Strings.For(w.Locale));
 }

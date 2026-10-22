@@ -68,6 +68,31 @@ public sealed class AppSettings
             }
             : null;
 
+    public void RememberWindow(WindowBounds bounds)
+    {
+        Window = Sanitize(bounds);
+    }
+
+    public StartupConfig CreateWindowConfig()
+    {
+        var config = new StartupConfig
+        {
+            WindowWidth = 1400,
+            WindowHeight = 900,
+            WindowTitle = "ILSpy",
+        };
+        if (Window == null)
+            return config;
+        return Window.Value.ApplyTo(config);
+    }
+
+    public List<string> ListExistingAssemblies()
+    {
+        return Assemblies
+            .Where(File.Exists)
+            .ToList();
+    }
+
     public static AppSettings Load(string path)
     {
         AppSettings? settings = null;
