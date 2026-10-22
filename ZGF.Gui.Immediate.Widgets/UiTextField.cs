@@ -126,19 +126,18 @@ public static partial class UiWidgets
                 preedit = PreeditText.Empty;
             }
             if (!focused) state.Shift = 0f;
-            state.Selection.Press(text, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift), i.ClickCount,
-                extend: focused && (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
+        }
+        var pointing = i.Pressed || (i.Held && focused && hasRect);
+        if (pointing)
+        {
+            var at = ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift);
+            SelectWithPointer(ui, i, state.Selection, text, at, focused && IsShiftHeld(ui), textLeft, textLeft + innerWidth);
             state.LastEdit = EditKind.None;
+        }
+        if (i.Pressed)
+        {
             ui.Focus(i.Id);
             focused = true;
-        }
-        else if (i.Held && focused && hasRect)
-        {
-            state.Selection.Drag(text, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift));
-            state.LastEdit = EditKind.None;
-            var pointerX = ui.Input.Pointer.X;
-            if (pointerX < textLeft || pointerX > textLeft + innerWidth)
-                ui.RequestFrame();
         }
 
         var submitted = false;
@@ -160,9 +159,7 @@ public static partial class UiWidgets
         {
             caretX = ui.MeasureText(shown, state.Caret + preedit.Caret);
             anchorX = state.HasSelection ? ui.MeasureText(text, state.Anchor) : caretX;
-            if (caretX - state.Shift > innerWidth) state.Shift = caretX - innerWidth;
-            if (caretX < state.Shift) state.Shift = caretX;
-            state.Shift = MathF.Max(0f, MathF.Min(state.Shift, ui.MeasureText(shown) - innerWidth));
+            state.Shift = FollowCaret(state.Shift, caretX, innerWidth, ui.MeasureText(shown));
 
             if (state.Caret != caretBefore || state.Anchor != anchorBefore || !ReferenceEquals(text, textBefore) || i.Pressed)
                 state.BlinkFrom = ui.RealTime;
@@ -192,14 +189,7 @@ public static partial class UiWidgets
                 {
                     var from = MathF.Min(caretX, anchorX) - shift;
                     var to = MathF.Max(caretX, anchorX) - shift;
-                    ui.Paint((from, to, lineHeight, theme.TextSelection), static (p, s) =>
-                    {
-                        var r = p.Rect;
-                        var left = MathF.Max(r.X + s.from, r.X);
-                        var right = MathF.Min(r.X + s.to, r.Right);
-                        if (right > left)
-                            p.FillRect(new UiRect(left, r.Y + (r.Height - s.lineHeight) / 2, right - left, s.lineHeight), s.TextSelection);
-                    });
+                    PaintSpan(ui, from, to, theme.TextSelection, lineHeight);
                 }
 
                 if (!preedit.IsEmpty)
@@ -244,14 +234,7 @@ public static partial class UiWidgets
     {
         var left = ui.MeasureText(shown, from) - shift;
         var right = ui.MeasureText(shown, to) - shift;
-        ui.Paint((left, right, lineHeight, thickness, ui.Theme.Text), static (p, s) =>
-        {
-            var r = p.Rect;
-            var x0 = MathF.Max(r.X + s.left, r.X);
-            var x1 = MathF.Min(r.X + s.right, r.Right);
-            if (x1 > x0)
-                p.FillRect(new UiRect(x0, r.Y + (r.Height + s.lineHeight) / 2 - s.thickness, x1 - x0, s.thickness), s.Text);
-        });
+        PaintSpan(ui, left, right, ui.Theme.Text, thickness, (lineHeight - thickness) / 2);
     }
 
     private static bool CaretVisible(Ui ui, TextFieldState state)
@@ -269,17 +252,20 @@ public static partial class UiWidgets
             var byWord = (stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt)) != 0;
             var extend = (stroke.Modifiers & KeyModifiers.Shift) != 0;
             var caret = state.Caret;
+            var collapses = !extend && !byWord && state.HasSelection;
             switch (stroke.Key)
             {
+                case KeyboardKey.LeftArrow when collapses:
+                    Move(state, state.SelectionStart, extend);
+                    break;
                 case KeyboardKey.LeftArrow:
-                    Move(state, !extend && !byWord && state.HasSelection ? state.SelectionStart
-                        : byWord ? PreviousWord(text, caret)
-                        : caret - StepBack(text, caret), extend);
+                    Move(state, StepLeft(text, caret, byWord), extend);
+                    break;
+                case KeyboardKey.RightArrow when collapses:
+                    Move(state, state.SelectionEnd, extend);
                     break;
                 case KeyboardKey.RightArrow:
-                    Move(state, !extend && !byWord && state.HasSelection ? state.SelectionEnd
-                        : byWord ? NextWord(text, caret)
-                        : caret + StepForward(text, caret), extend);
+                    Move(state, StepRight(text, caret, byWord), extend);
                     break;
                 case KeyboardKey.Home:
                     Move(state, 0, extend);
@@ -292,10 +278,10 @@ public static partial class UiWidgets
                     Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
                     break;
                 case KeyboardKey.Backspace when caret > 0:
-                    Replace(state, ref text, byWord ? PreviousWord(text, caret) : caret - StepBack(text, caret), caret, "", EditKind.Deleting);
+                    Replace(state, ref text, StepLeft(text, caret, byWord), caret, "", EditKind.Deleting);
                     break;
                 case KeyboardKey.Delete when caret < text.Length:
-                    Replace(state, ref text, caret, byWord ? NextWord(text, caret) : caret + StepForward(text, caret), "", EditKind.Deleting);
+                    Replace(state, ref text, caret, StepRight(text, caret, byWord), "", EditKind.Deleting);
                     break;
                 case KeyboardKey.A when shortcut:
                     state.Select(0, text.Length);
@@ -363,53 +349,9 @@ public static partial class UiWidgets
         state.Select(snapshot.Anchor, snapshot.Caret);
     }
 
-    private static int StepBack(string text, int caret) =>
-        caret == 0 ? 0 : caret >= 2 && char.IsSurrogatePair(text[caret - 2], text[caret - 1]) ? 2 : 1;
+    private static int StepLeft(string text, int caret, bool byWord) =>
+        byWord ? TextBoundaries.PrevWord(text, caret, splitPunctuation: true) : TextBoundaries.Prev(text, caret);
 
-    private static int StepForward(string text, int caret) =>
-        caret >= text.Length ? 0 : caret + 1 < text.Length && char.IsSurrogatePair(text[caret], text[caret + 1]) ? 2 : 1;
-
-    private enum CharClass
-    {
-        Space,
-        Word,
-        Symbol,
-    }
-
-    private static CharClass Classify(char c) =>
-        char.IsWhiteSpace(c) ? CharClass.Space
-        : char.IsLetterOrDigit(c) || c == '_' || char.IsSurrogate(c) ? CharClass.Word
-        : CharClass.Symbol;
-
-    internal static (int Start, int End) WordAt(string text, int index)
-    {
-        if (text.Length == 0) return (0, 0);
-        var probe = index < text.Length ? index : index - 1;
-        var kind = Classify(text[probe]);
-        var start = probe;
-        while (start > 0 && Classify(text[start - 1]) == kind) start--;
-        var end = probe + 1;
-        while (end < text.Length && Classify(text[end]) == kind) end++;
-        return (start, end);
-    }
-
-    internal static int PreviousWord(string text, int index)
-    {
-        while (index > 0 && Classify(text[index - 1]) == CharClass.Space) index--;
-        if (index == 0) return 0;
-        var kind = Classify(text[index - 1]);
-        while (index > 0 && Classify(text[index - 1]) == kind) index--;
-        return index;
-    }
-
-    internal static int NextWord(string text, int index)
-    {
-        if (index < text.Length && Classify(text[index]) != CharClass.Space)
-        {
-            var kind = Classify(text[index]);
-            while (index < text.Length && Classify(text[index]) == kind) index++;
-        }
-        while (index < text.Length && Classify(text[index]) == CharClass.Space) index++;
-        return index;
-    }
+    private static int StepRight(string text, int caret, bool byWord) =>
+        byWord ? TextBoundaries.NextWord(text, caret, splitPunctuation: true) : TextBoundaries.Next(text, caret);
 }

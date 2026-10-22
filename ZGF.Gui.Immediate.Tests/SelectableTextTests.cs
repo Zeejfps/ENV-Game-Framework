@@ -79,6 +79,14 @@ public sealed class SelectableTextTests
         Assert.Equal((1, 2), (before, after));
     }
 
+    [Fact]
+    public void The_caret_never_lands_inside_a_grapheme_cluster()
+    {
+        var caret = new UiFrames().Run(0f, ui => ui.CaretAt("a👍🏽b", CharWidth * 3.6f));
+
+        Assert.Equal(5, caret);
+    }
+
     private sealed class Label
     {
         private readonly string _text;

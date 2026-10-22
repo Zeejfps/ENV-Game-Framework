@@ -2,76 +2,89 @@ using ZGF.Desktop;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>A caret and the anchor a selection runs to from it in a text, and how the
-/// pointer extends it while held: by character, word or the whole text after a single, double or
+/// <summary>A caret and the anchor a selection runs to from it in a <typeparamref name="TText"/>,
+/// and how the pointer extends it while held: by position, word or block after a single, double or
 /// triple press.</summary>
-public sealed class TextSelection
+public abstract class TextSelection<TText, TPos> where TPos : struct, IComparable<TPos>
 {
-    private int _clicks;
-    private int _unitStart;
-    private int _unitEnd;
+    private TPos _unitStart;
+    private TPos _unitEnd;
 
-    public int Caret { get; private set; }
-    public int Anchor { get; private set; }
+    public TPos Caret { get; private set; }
+    public TPos Anchor { get; private set; }
 
-    public bool HasSelection => Caret != Anchor;
-    public int Start => Math.Min(Caret, Anchor);
-    public int End => Math.Max(Caret, Anchor);
+    /// <summary>The presses of the last click: 1, 2 or 3.</summary>
+    public int Clicks { get; private set; }
 
-    public void Select(int anchor, int caret)
+    public bool HasSelection => Caret.CompareTo(Anchor) != 0;
+    public TPos Start => IsCaretFirst ? Caret : Anchor;
+    public TPos End => IsCaretFirst ? Anchor : Caret;
+
+    private bool IsCaretFirst => Caret.CompareTo(Anchor) < 0;
+
+    public void Select(TPos anchor, TPos caret)
     {
         Anchor = anchor;
         Caret = caret;
     }
 
-    /// <summary>The selected part of <paramref name="text"/>.</summary>
-    public string Of(string text) => text.Substring(Start, End - Start);
-
     /// <summary>A press at <paramref name="at"/>: places the caret, or with <paramref name="extend"/>
     /// moves it keeping the anchor; the second press of a double-click selects the word there, the
-    /// third the whole text.</summary>
-    public void Press(string text, int at, int clickCount, bool extend)
+    /// third the block.</summary>
+    public void Press(TText text, TPos at, int clickCount, bool extend)
     {
-        _clicks = (clickCount - 1) % 3 + 1;
-        switch (_clicks)
+        Clicks = (Math.Max(1, clickCount) - 1) % 3 + 1;
+        if (Clicks == 1)
         {
-            case 1 when extend:
-                Select(Anchor, at);
-                _unitStart = _unitEnd = Anchor;
-                break;
-            case 1:
-                Select(at, at);
-                _unitStart = _unitEnd = at;
-                break;
-            case 2:
-                (_unitStart, _unitEnd) = UiWidgets.WordAt(text, at);
-                Select(_unitStart, _unitEnd);
-                break;
-            default:
-                (_unitStart, _unitEnd) = (0, text.Length);
-                Select(0, text.Length);
-                break;
+            var anchor = extend ? Anchor : at;
+            Select(anchor, at);
+            return;
         }
+        (_unitStart, _unitEnd) = UnitAt(text, at);
+        Select(_unitStart, _unitEnd);
     }
 
     /// <summary>The held pointer moved over <paramref name="at"/>: extends the selection by the
     /// unit the press chose.</summary>
-    public void Drag(string text, int at)
+    public void Drag(TText text, TPos at)
     {
-        switch (_clicks)
+        if (Clicks == 1)
         {
-            case 1:
-                Select(Anchor, at);
-                break;
-            case 2:
-                var (start, end) = UiWidgets.WordAt(text, at);
-                if (start < _unitStart)
-                    Select(_unitEnd, start);
-                else
-                    Select(_unitStart, Math.Max(end, _unitEnd));
-                break;
+            Select(Anchor, at);
+            return;
         }
+        var (start, end) = UnitAt(text, at);
+        if (start.CompareTo(_unitStart) < 0)
+        {
+            Select(_unitEnd, start);
+            return;
+        }
+        var reach = end.CompareTo(_unitEnd) > 0 ? end : _unitEnd;
+        Select(_unitStart, reach);
     }
+
+    private (TPos Start, TPos End) UnitAt(TText text, TPos at) => Clicks == 2 ? WordAt(text, at) : BlockAt(text, at);
+
+    protected abstract (TPos Start, TPos End) WordAt(TText text, TPos at);
+
+    /// <summary>What a triple press at <paramref name="at"/> selects.</summary>
+    protected abstract (TPos Start, TPos End) BlockAt(TText text, TPos at);
+}
+
+/// <summary>A <see cref="TextSelection{TText, TPos}"/> in a string, whose triple press selects
+/// all of it.</summary>
+public sealed class TextSelection : TextSelection<string, int>
+{
+    /// <summary>The selected part of <paramref name="text"/>.</summary>
+    public string Of(string text) => text.Substring(Start, End - Start);
+
+    protected override (int Start, int End) WordAt(string text, int at)
+    {
+        TextBoundaries.WordAt(text, at, out var start, out var end, splitPunctuation: true);
+        return (start, end);
+    }
+
+    protected override (int Start, int End) BlockAt(string text, int at) => (0, text.Length);
 }
 
 public static partial class UiWidgets
@@ -94,29 +107,20 @@ public static partial class UiWidgets
             return;
         }
 
-        var theme = ui.Theme;
         var hasRect = ui.TryGetContentRect(i.Id, out var rect);
         if (selection.End > text.Length)
             selection.Select(0, 0);
         if (hasRect && (i.Pressed || i.Held))
         {
             var at = ui.CaretAt(text, ui.Input.Pointer.X - rect.X + shift, size, family);
-            if (i.Pressed)
-                selection.Press(text, at, i.ClickCount, (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
-            else
-                selection.Drag(text, at);
-            var pointerX = ui.Input.Pointer.X;
-            if (i.Held && !i.Pressed && (pointerX < rect.X || pointerX > rect.Right))
-                ui.RequestFrame();
+            SelectWithPointer(ui, i, selection, text, at, IsShiftHeld(ui), rect.X, rect.Right);
         }
 
         var width = ui.MeasureText(text, size, family: family);
         if (hasRect)
         {
             var caretX = ui.MeasureText(text, selection.Caret, size, family: family);
-            if (caretX - shift > rect.Width) shift = caretX - rect.Width;
-            if (caretX < shift) shift = caretX;
-            shift = MathF.Max(0f, MathF.Min(shift, width - rect.Width));
+            shift = FollowCaret(shift, caretX, rect.Width, width);
         }
 
         if (!selection.HasSelection && shift == 0f)
@@ -130,20 +134,14 @@ public static partial class UiWidgets
         using (ui.Row(new Box { Width = Sizing.Grow(0f, width), Gap = 0f, Clip = true, ScrollX = shift }))
         {
             if (selection.HasSelection)
-                ui.Paint((from, to, theme.TextSelection), static (p, s) =>
-                {
-                    var r = p.Rect;
-                    var left = MathF.Max(r.X + s.from, r.X);
-                    var right = MathF.Min(r.X + s.to, r.Right);
-                    if (right > left)
-                        p.FillRect(new UiRect(left, r.Y, right - left, r.Height), s.TextSelection);
-                });
+                PaintSpan(ui, from, to, ui.Theme.TextSelection);
             ui.Text(text, color: color, size: size, family: family);
         }
     }
 
     /// <summary>The caret index in <paramref name="text"/> nearest <paramref name="x"/> from its
-    /// start, as <see cref="Ui.MeasureText(string, int, float?, bool, string?)"/> places it.</summary>
+    /// start, as <see cref="Ui.MeasureText(string, int, float?, bool, string?)"/> places it, on a
+    /// grapheme-cluster boundary.</summary>
     public static int CaretAt(this Ui ui, string text, float x, float? size = null, string? family = null)
     {
         var low = 0;
@@ -156,14 +154,48 @@ public static partial class UiWidgets
             else
                 high = middle - 1;
         }
-        if (low < text.Length)
+        low = TextBoundaries.Snap(text, low);
+        if (low >= text.Length)
+            return low;
+        var next = TextBoundaries.Next(text, low);
+        var pastLow = x - ui.MeasureText(text, low, size, family: family);
+        var beforeNext = ui.MeasureText(text, next, size, family: family) - x;
+        return beforeNext < pastLow ? next : low;
+    }
+
+    private static bool IsShiftHeld(Ui ui) => (ui.Input.Modifiers & KeyModifiers.Shift) != 0;
+
+    private static void SelectWithPointer(Ui ui, Interaction i, TextSelection selection, string text, int at, bool extend, float left, float right)
+    {
+        if (i.Pressed)
         {
-            var next = low + StepForward(text, low);
-            if (ui.MeasureText(text, next, size, family: family) - x < x - ui.MeasureText(text, low, size, family: family))
-                low = next;
+            selection.Press(text, at, i.ClickCount, extend);
+            return;
         }
-        if (low > 0 && low < text.Length && char.IsLowSurrogate(text[low]))
-            low--;
-        return low;
+        selection.Drag(text, at);
+        var pointerX = ui.Input.Pointer.X;
+        if (pointerX < left || pointerX > right)
+            ui.RequestFrame();
+    }
+
+    private static float FollowCaret(float shift, float caretX, float view, float content)
+    {
+        if (caretX - shift > view) shift = caretX - view;
+        if (caretX < shift) shift = caretX;
+        return MathF.Max(0f, MathF.Min(shift, content - view));
+    }
+
+    private static void PaintSpan(Ui ui, float from, float to, uint color, float? height = null, float drop = 0f) =>
+        ui.Paint((from, to, color, height, drop), static (p, s) => FillSpan(p, s.from, s.to, s.color, s.height, s.drop));
+
+    private static void FillSpan(UiPainter painter, float from, float to, uint color, float? height, float drop)
+    {
+        var rect = painter.Rect;
+        var left = MathF.Max(rect.X + from, rect.X);
+        var right = MathF.Min(rect.X + to, rect.Right);
+        if (right <= left)
+            return;
+        var tall = height ?? rect.Height;
+        painter.FillRect(new UiRect(left, rect.Y + (rect.Height - tall) / 2 + drop, right - left, tall), color);
     }
 }

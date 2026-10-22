@@ -282,34 +282,31 @@ public sealed class TextFieldTests
         Assert.Equal("ab", field.Text);
     }
 
-    [Theory]
-    [InlineData("foo.bar  baz", 1, 0, 3)]
-    [InlineData("foo.bar  baz", 3, 3, 4)]
-    [InlineData("foo.bar  baz", 8, 7, 9)]
-    [InlineData("foo.bar  baz", 12, 9, 12)]
-    public void A_word_is_a_run_of_one_kind_of_character(string text, int index, int start, int end)
+    [Fact]
+    public void Ctrl_arrows_stop_at_punctuation_as_well_as_spaces()
     {
-        Assert.Equal((start, end), UiWidgets.WordAt(text, index));
+        var field = new Field("foo.bar  baz");
+        field.Click(0);
+
+        field.Key(KeyboardKey.RightArrow, KeyModifiers.Control);
+        field.Type("|");
+
+        Assert.Equal("foo|.bar  baz", field.Text);
     }
 
-    [Theory]
-    [InlineData("foo.bar  baz", 12, 9)]
-    [InlineData("foo.bar  baz", 9, 4)]
-    [InlineData("foo.bar  baz", 4, 3)]
-    [InlineData("foo.bar  baz", 3, 0)]
-    public void Previous_word_skips_spaces_then_one_run(string text, int index, int expected)
+    [Fact]
+    public void Arrows_and_delete_step_over_a_whole_grapheme_cluster()
     {
-        Assert.Equal(expected, UiWidgets.PreviousWord(text, index));
-    }
+        var field = new Field("a👍🏽b");
+        field.Click(6);
 
-    [Theory]
-    [InlineData("foo.bar  baz", 0, 3)]
-    [InlineData("foo.bar  baz", 4, 9)]
-    [InlineData("foo.bar  baz", 7, 9)]
-    [InlineData("foo.bar  baz", 9, 12)]
-    public void Next_word_skips_one_run_then_spaces(string text, int index, int expected)
-    {
-        Assert.Equal(expected, UiWidgets.NextWord(text, index));
+        field.Key(KeyboardKey.LeftArrow);
+        field.Key(KeyboardKey.LeftArrow);
+        field.Type("|");
+        Assert.Equal("a|👍🏽b", field.Text);
+
+        field.Key(KeyboardKey.Delete);
+        Assert.Equal("a|b", field.Text);
     }
 
     private const float TextLeft = 24f;

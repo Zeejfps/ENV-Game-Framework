@@ -1,5 +1,3 @@
-using ZGF.Desktop;
-
 namespace ZGF.Gui.Immediate.Widgets;
 
 public static partial class UiWidgets
@@ -53,21 +51,14 @@ public static partial class UiWidgets
             var pointer = ui.Input.Pointer;
             var line = Math.Clamp((int)MathF.Floor((pointer.Y - rect.Y) / lineHeight), 0, lines.Lines.Length - 1);
             var at = lines.Starts[line] + ui.CaretAt(lines.Lines[line], pointer.X - rect.X + shift, size, family);
-            if (i.Pressed)
-                selection.Press(text, at, i.ClickCount, (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
-            else
-                selection.Drag(text, at);
-            if (i.Held && !i.Pressed && (pointer.X < rect.X || pointer.X > rect.Right))
-                ui.RequestFrame();
+            SelectWithPointer(ui, i, selection, text, at, IsShiftHeld(ui), rect.X, rect.Right);
         }
 
         if (hasRect)
         {
             var caretLine = LineOf(lines, selection.Caret);
             var caretX = ui.MeasureText(lines.Lines[caretLine], selection.Caret - lines.Starts[caretLine], size, family: family);
-            if (caretX - shift > rect.Width) shift = caretX - rect.Width;
-            if (caretX < shift) shift = caretX;
-            shift = MathF.Max(0f, MathF.Min(shift, lines.Widest - rect.Width));
+            shift = FollowCaret(shift, caretX, rect.Width, lines.Widest);
         }
 
         var plain = !selection.HasSelection && shift == 0f;
@@ -86,14 +77,7 @@ public static partial class UiWidgets
                     {
                         var left = ui.MeasureText(line, from - start, size, family: family) - shift;
                         var right = ui.MeasureText(line, to - start, size, family: family) - shift + (selection.End > start + line.Length ? newline : 0f);
-                        ui.Paint((left, right, theme.TextSelection), static (p, s) =>
-                        {
-                            var r = p.Rect;
-                            var x0 = MathF.Max(r.X + s.left, r.X);
-                            var x1 = MathF.Min(r.X + s.right, r.Right);
-                            if (x1 > x0)
-                                p.FillRect(new UiRect(x0, r.Y, x1 - x0, r.Height), s.TextSelection);
-                        });
+                        PaintSpan(ui, left, right, theme.TextSelection);
                     }
                     if (line.Length == 0)
                         continue;
