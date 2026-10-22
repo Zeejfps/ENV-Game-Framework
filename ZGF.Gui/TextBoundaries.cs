@@ -49,49 +49,50 @@ public static class TextBoundaries
     /// <summary>
     /// The start of the next word, as Ctrl+Right (and forward word-delete) should land: past the
     /// current run of word characters and the separators after it. An ideograph is its own word —
-    /// CJK has no spaces, so a letter-run scan would otherwise swallow a whole sentence.
+    /// CJK has no spaces, so a letter-run scan would otherwise swallow a whole sentence. With
+    /// <paramref name="splitPunctuation"/>, a run of punctuation is a word of its own and only
+    /// whitespace separates.
     /// </summary>
-    public static int NextWord(ReadOnlySpan<char> text, int index)
+    public static int NextWord(ReadOnlySpan<char> text, int index, bool splitPunctuation = false)
     {
         var i = Math.Clamp(index, 0, text.Length);
         if (i >= text.Length) return text.Length;
 
-        if (ClassAt(text, i) == CharClass.Ideographic)
+        var cls = ClassAt(text, i, splitPunctuation);
+        if (cls == CharClass.Ideographic)
             return NextRune(text, i);
 
-        while (i < text.Length && ClassAt(text, i) == CharClass.Word)
-            i = NextRune(text, i);
-        while (i < text.Length && ClassAt(text, i) == CharClass.Other)
-            i = NextRune(text, i);
-        return i;
+        if (cls != CharClass.Separator)
+            i = SkipForward(text, i, cls, splitPunctuation);
+        return SkipForward(text, i, CharClass.Separator, splitPunctuation);
     }
 
     /// <summary>The start of the word before <paramref name="index"/> — where Ctrl+Left and
-    /// Ctrl+Backspace stop.</summary>
-    public static int PrevWord(ReadOnlySpan<char> text, int index)
+    /// Ctrl+Backspace stop. <paramref name="splitPunctuation"/> is as in <see cref="NextWord"/>.</summary>
+    public static int PrevWord(ReadOnlySpan<char> text, int index, bool splitPunctuation = false)
     {
         var i = Math.Clamp(index, 0, text.Length);
         if (i <= 0) return 0;
 
-        if (ClassBefore(text, i) == CharClass.Ideographic)
+        if (ClassBefore(text, i, splitPunctuation) == CharClass.Ideographic)
             return PrevRune(text, i);
 
-        while (i > 0 && ClassBefore(text, i) == CharClass.Other)
-            i = PrevRune(text, i);
-        while (i > 0 && ClassBefore(text, i) == CharClass.Word)
-            i = PrevRune(text, i);
-        return i;
+        i = SkipBackward(text, i, CharClass.Separator, splitPunctuation);
+        if (i <= 0) return 0;
+        var cls = ClassBefore(text, i, splitPunctuation);
+        if (cls == CharClass.Ideographic) return i;
+        return SkipBackward(text, i, cls, splitPunctuation);
     }
 
     /// <summary>
     /// The word (or same-class run) around <paramref name="index"/> — the span a double-click
     /// selects. Unlike <see cref="PrevWord"/>/<see cref="NextWord"/>, which pair a word with its
     /// trailing separators for caret navigation, this expands over one contiguous run of the same
-    /// class (letters/digits, or whitespace, or punctuation) so the selection is just the thing
-    /// under the cursor. An ideograph is its own word, matching CJK caret navigation. An empty
-    /// buffer yields an empty span at 0.
+    /// class (letters/digits, or separators, or with <paramref name="splitPunctuation"/> whitespace
+    /// and punctuation apart) so the selection is just the thing under the cursor. An ideograph is
+    /// its own word, matching CJK caret navigation. An empty buffer yields an empty span at 0.
     /// </summary>
-    public static void WordAt(ReadOnlySpan<char> text, int index, out int start, out int end)
+    public static void WordAt(ReadOnlySpan<char> text, int index, out int start, out int end, bool splitPunctuation = false)
     {
         index = Math.Clamp(index, 0, text.Length);
         if (text.Length == 0)
@@ -104,7 +105,7 @@ public static class TextBoundaries
         // The run's class is the one under the caret (the character to its right); at the very end
         // of the buffer there is nothing to the right, so fall back to the character before it.
         var atEnd = index >= text.Length;
-        var cls = atEnd ? ClassBefore(text, index) : ClassAt(text, index);
+        var cls = atEnd ? ClassBefore(text, index, splitPunctuation) : ClassAt(text, index, splitPunctuation);
 
         // An ideograph stands alone — select the single cluster the caret sits on.
         if (cls == CharClass.Ideographic)
@@ -114,41 +115,53 @@ public static class TextBoundaries
             return;
         }
 
-        start = index;
-        while (start > 0 && ClassBefore(text, start) == cls)
-            start = PrevRune(text, start);
-
-        end = index;
-        while (end < text.Length && ClassAt(text, end) == cls)
-            end = NextRune(text, end);
+        start = SkipBackward(text, index, cls, splitPunctuation);
+        end = SkipForward(text, index, cls, splitPunctuation);
     }
 
     private enum CharClass
     {
         Word,
         Ideographic,
-        Other,
+        Separator,
+        Punctuation,
     }
 
-    private static CharClass ClassAt(ReadOnlySpan<char> text, int index)
+    private static int SkipForward(ReadOnlySpan<char> text, int index, CharClass cls, bool splitPunctuation)
+    {
+        while (index < text.Length && ClassAt(text, index, splitPunctuation) == cls)
+            index = NextRune(text, index);
+        return index;
+    }
+
+    private static int SkipBackward(ReadOnlySpan<char> text, int index, CharClass cls, bool splitPunctuation)
+    {
+        while (index > 0 && ClassBefore(text, index, splitPunctuation) == cls)
+            index = PrevRune(text, index);
+        return index;
+    }
+
+    private static CharClass ClassAt(ReadOnlySpan<char> text, int index, bool splitPunctuation)
     {
         Rune.DecodeFromUtf16(text[index..], out var rune, out _);
-        return Classify(rune);
+        return Classify(rune, splitPunctuation);
     }
 
-    private static CharClass ClassBefore(ReadOnlySpan<char> text, int index)
+    private static CharClass ClassBefore(ReadOnlySpan<char> text, int index, bool splitPunctuation)
     {
         Rune.DecodeLastFromUtf16(text[..index], out var rune, out _);
-        return Classify(rune);
+        return Classify(rune, splitPunctuation);
     }
 
-    private static CharClass Classify(Rune rune)
+    private static CharClass Classify(Rune rune, bool splitPunctuation)
     {
         if (TextWrapper.IsWide(rune.Value))
             return CharClass.Ideographic;
         if (Rune.IsLetterOrDigit(rune) || rune.Value == '_')
             return CharClass.Word;
-        return CharClass.Other;
+        if (splitPunctuation && !Rune.IsWhiteSpace(rune))
+            return CharClass.Punctuation;
+        return CharClass.Separator;
     }
 
     private static int NextRune(ReadOnlySpan<char> text, int index)
