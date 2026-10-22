@@ -241,6 +241,31 @@ public sealed class DockPanelsTests : IDisposable
 
         Assert.Equal("", workspace.Search.Query);
     }
+
+    [Fact]
+    public void The_search_mode_is_saved_and_restored()
+    {
+        var settings = new AppSettings();
+        var workspace = new Workspace(settings);
+
+        workspace.Search.Kinds = SearchKinds.Literals;
+        workspace.SaveSettings();
+
+        Assert.Equal(SearchKinds.Literals, new Workspace(settings).Search.Kinds);
+    }
+
+    [Fact]
+    public void Scoping_the_search_to_a_namespace_keeps_the_terms_typed()
+    {
+        var driver = new WorkspaceDriver();
+        driver.OpenFixtures();
+        driver.Workspace.Search.Query = "inassembly:Old Greet";
+
+        driver.Workspace.ScopeSearch(driver.Node(WorkspaceDriver.FixturesNamespace));
+
+        Assert.Equal($"innamespace:{WorkspaceDriver.FixturesNamespace} inassembly:Old Greet ", driver.Workspace.Search.Query);
+        Assert.True(driver.Workspace.Layout.Contains(DockPanels.Search));
+    }
 }
 
 public sealed class FrameworkPickerTests

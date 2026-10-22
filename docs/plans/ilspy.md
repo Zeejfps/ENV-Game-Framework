@@ -46,8 +46,12 @@ tests in `ZGF.Gui.Immediate.Tests`, and are general-purpose — nothing ILSpy-sp
   returns each place to the scroll position and selection it was left at.
 - Tabs: open results in tabs, middle-click/close button closes; tabs and history hold `NodePath`s,
   so they survive reloads and pin no assembly.
-- Search panel: type/member search across loaded assemblies, results virtualized, live as you type
-  on a background thread, keyboard navigable.
+- Search panel: across loaded assemblies, results virtualized, live as you type on a background
+  thread, keyboard navigable. A multi-select kind picker (saved) and ILSpy's query syntax (`SearchQuery`) search
+  types and members by kind, constants and literals in method bodies, metadata tokens, resources,
+  assemblies and namespaces; terms take `-` `=` `~` operators, `/regex/` and quotes, a dotted term
+  matches qualified names, and `inassembly:` / `innamespace:` scope results (also set from the
+  tree's context menu).
 - Menu bar, context menus on tree nodes (copy name, open in new tab, remove assembly), dark/light
   theme toggle, status bar with an error badge that opens a dialog of copyable error details.
 

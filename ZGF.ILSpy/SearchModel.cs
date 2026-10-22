@@ -21,6 +21,7 @@ public sealed class SearchModel
     private string _typed = "";
     private double _typedAt;
     private string? _query;
+    private SearchKinds _kinds;
     private int _version = -1;
     private BrowseNode? _selected;
 
@@ -33,6 +34,9 @@ public sealed class SearchModel
     }
 
     public string Query = "";
+
+    /// <summary>What the query looks for, unless prefixes in it say otherwise.</summary>
+    public SearchKinds Kinds = SearchKinds.TypesAndMembers;
 
     public IReadOnlyList<SearchRow> Rows => _rows;
     public bool IsBusy => _runs.Count > 0;
@@ -56,10 +60,10 @@ public sealed class SearchModel
             _typedAt = now;
         }
         if (!shown) return 0;
-        if (_typed != _query)
+        if (_typed != _query || Kinds != _kinds)
         {
             var remaining = DebounceSeconds - (now - _typedAt);
-            if (remaining > 0) return remaining;
+            if (remaining > 0 && Kinds == _kinds) return remaining;
             Restart(assemblies, post);
         }
         else if (assemblies.Version != _version)
@@ -91,6 +95,7 @@ public sealed class SearchModel
             run.Cancel();
         _runs.Clear();
         _query = _typed;
+        _kinds = Kinds;
         _version = assemblies.Version;
         _rows.Clear();
         _searched.Clear();
@@ -98,7 +103,7 @@ public sealed class SearchModel
         _selected = null;
         var listed = assemblies.Assemblies;
         _searched.UnionWith(listed);
-        if (_query.Trim().Length > 0)
+        if (!SearchQuery.Parse(_query, _kinds).IsEmpty)
             Start(assemblies, listed, post);
     }
 
@@ -112,7 +117,7 @@ public sealed class SearchModel
             Reselect();
         }
         var added = listed.Where(_searched.Add).ToArray();
-        if (added.Length > 0 && _query!.Trim().Length > 0)
+        if (added.Length > 0 && !SearchQuery.Parse(_query!, _kinds).IsEmpty)
             Start(assemblies, added, post);
     }
 
@@ -127,7 +132,7 @@ public sealed class SearchModel
     {
         var work = new CancellationTokenSource();
         _runs.Add(work);
-        _ = Run(assemblies.SearchAsync(_query!, within, cancellationToken: work.Token), work, post);
+        _ = Run(assemblies.SearchAsync(SearchQuery.Parse(_query!, _kinds), within, work.Token), work, post);
     }
 
     private async Task Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work, Action<Action> post)
@@ -166,6 +171,15 @@ public sealed class SearchModel
 
     private static string Locate(SearchResult result)
     {
+        switch (result.Node.Kind)
+        {
+            case NodeKind.Assembly:
+                return result.Node.Assembly.FilePath;
+            case NodeKind.Namespace:
+                return result.AssemblyName;
+            case NodeKind.Resource or NodeKind.ResourceImage or NodeKind.ResourcesFile:
+                return result.DeclaringType is { } file ? $"{file}  ·  {result.AssemblyName}" : result.AssemblyName;
+        }
         var ns = result.Namespace.Length == 0 ? "-" : result.Namespace;
         return result.DeclaringType is { } type
             ? $"{type}  ·  {ns}  ·  {result.AssemblyName}"

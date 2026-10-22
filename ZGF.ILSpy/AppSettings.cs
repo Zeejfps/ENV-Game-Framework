@@ -28,6 +28,7 @@ public sealed class AppSettings
     /// <summary>The interface language; null follows the system's.</summary>
     public Locale? Locale { get; set; }
     public bool ShowNonPublic { get; set; } = true;
+    public SearchKinds SearchKinds { get; set; } = SearchKinds.TypesAndMembers;
     public DockLayout? Layout { get; set; }
 
     public List<BookmarkRecord> Bookmarks { get; set; } = new();

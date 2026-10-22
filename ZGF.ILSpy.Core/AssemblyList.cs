@@ -134,18 +134,23 @@ public sealed class AssemblyList
     }
 
     /// <summary>
-    /// Searches the open assemblies' types and members for names containing <paramref name="text"/>,
-    /// ignoring case, on a background thread. Results arrive in batches as they are found.
+    /// Searches the open assemblies for what <paramref name="query"/> asks, on a background thread.
+    /// Results arrive in batches as they are found.
     /// </summary>
-    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(string text, SearchTargets targets = SearchTargets.All,
-        CancellationToken cancellationToken = default) =>
-        AssemblySearch.Run(_listed, text, targets, cancellationToken);
+    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default) =>
+        AssemblySearch.Run(_listed, query, cancellationToken);
 
-    /// <summary><see cref="SearchAsync(string, SearchTargets, CancellationToken)"/> over
+    /// <summary><see cref="SearchAsync(SearchQuery, CancellationToken)"/> over
     /// <paramref name="assemblies"/> only, e.g. those opened since the last search.</summary>
-    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(string text, IEnumerable<LoadedAssembly> assemblies,
-        SearchTargets targets = SearchTargets.All, CancellationToken cancellationToken = default) =>
-        AssemblySearch.Run([..assemblies], text, targets, cancellationToken);
+    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, IEnumerable<LoadedAssembly> assemblies,
+        CancellationToken cancellationToken = default) =>
+        AssemblySearch.Run([..assemblies], query, cancellationToken);
+
+    /// <summary><see cref="SearchAsync(SearchQuery, CancellationToken)"/> for
+    /// <paramref name="text"/> parsed with <see cref="SearchQuery.Parse"/>.</summary>
+    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(string text, SearchKinds kinds = SearchKinds.TypesAndMembers,
+        CancellationToken cancellationToken = default) =>
+        SearchAsync(SearchQuery.Parse(text, kinds), cancellationToken);
 
     internal LoadedAssembly? TryLoad(string path)
     {

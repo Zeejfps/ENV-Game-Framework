@@ -412,12 +412,12 @@ public static partial class UiWidgets
     /// <paramref name="shortcut"/> is only displayed. Ids work as for <see cref="Button"/>.</summary>
     public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null,
         UiIcon? icon = null) =>
-        ui.MenuItem(label, shortcut, enabled, check == true ? MenuMark.Check : MenuMark.None, id, icon);
+        ui.MenuItem(label, shortcut, enabled, check == true ? MenuMark.Check : MenuMark.None, id, icon, keepOpen: false);
 
     /// <summary>One choice of a set: shows a dot when <paramref name="selected"/> and leaves room
     /// for one otherwise. Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, string?, bool, bool?, string?)"/>.</summary>
     public static bool MenuRadioItem(this Ui ui, string label, bool selected, string? shortcut = null, bool enabled = true, string? id = null) =>
-        ui.MenuItem(label, shortcut, enabled, selected ? MenuMark.Dot : MenuMark.None, id, null);
+        ui.MenuItem(label, shortcut, enabled, selected ? MenuMark.Dot : MenuMark.None, id, null, keepOpen: false);
 
     private enum MenuMark
     {
@@ -426,7 +426,7 @@ public static partial class UiWidgets
         Dot,
     }
 
-    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id, UiIcon? icon)
+    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id, UiIcon? icon, bool keepOpen)
     {
         var theme = ui.Theme;
         var menu = ui.Get<MenuPopup>();
@@ -471,15 +471,17 @@ public static partial class UiWidgets
                 ui.Text(shortcut, color: enabled ? theme.TextMuted : theme.TextDisabled);
         }
 
-        if (picked)
+        if (picked && !keepOpen)
             menu?.Close();
         return picked;
     }
 
-    /// <summary>A checkable item: picking it flips <paramref name="value"/>.</summary>
-    public static bool MenuItem(this Ui ui, string label, ref bool value, string? shortcut = null, bool enabled = true, string? id = null)
+    /// <summary>A checkable item: picking it flips <paramref name="value"/>. With
+    /// <paramref name="keepOpen"/> the menu stays open, so several items can be flipped in a row.</summary>
+    public static bool MenuItem(this Ui ui, string label, ref bool value, string? shortcut = null, bool enabled = true, string? id = null,
+        bool keepOpen = false)
     {
-        var picked = ui.MenuItem(label, shortcut, enabled, value, id);
+        var picked = ui.MenuItem(label, shortcut, enabled, value ? MenuMark.Check : MenuMark.None, id, null, keepOpen);
         if (picked) value = !value;
         return picked;
     }

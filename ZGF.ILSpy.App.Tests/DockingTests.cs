@@ -61,7 +61,7 @@ public sealed class DockingTests
         app.Run(2);
 
         Assert.True(layout.Contains(DockPanels.Search));
-        Assert.True(app.Frames.Drew("Search types and members"));
+        Assert.True(app.Frames.Drew("Search…"));
     }
 
     [Fact]

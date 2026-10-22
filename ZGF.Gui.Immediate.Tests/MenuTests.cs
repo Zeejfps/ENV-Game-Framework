@@ -457,6 +457,92 @@ public sealed class DropdownButtonTests
     }
 }
 
+public sealed class SelectTests
+{
+    private static readonly string[] Options = ["Apple", "Banana", "Cherry"];
+
+    private readonly UiFrames _frames = new();
+    private string _value = "Apple";
+    private int _changes;
+
+    private void Body(Ui ui)
+    {
+        if (ui.Select("fruit", ref _value, Options, static s => s))
+            _changes++;
+    }
+
+    [Fact]
+    public void The_button_shows_the_current_option_and_a_pick_changes_it()
+    {
+        _frames.Run(0f, Body);
+        Assert.True(_frames.Drew("Apple"));
+        Assert.False(_frames.Drew("Cherry"));
+
+        _frames.ClickOn(Body, ui => ui.GetId("fruit"));
+        _frames.Run(0f, Body);
+        Assert.True(_frames.Drew("Cherry"));
+
+        _frames.ClickOn(Body, ui => ui.GetId("Cherry"));
+        _frames.Run(0f, Body);
+
+        Assert.Equal("Cherry", _value);
+        Assert.Equal(1, _changes);
+        Assert.False(_frames.Drew("Banana"));
+    }
+
+    [Fact]
+    public void Picking_the_current_option_changes_nothing()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("fruit"));
+        _frames.Run(0f, Body);
+
+        _frames.ClickOn(Body, ui => ui.GetId("Apple"));
+        _frames.Run(0f, Body);
+
+        Assert.Equal("Apple", _value);
+        Assert.Equal(0, _changes);
+    }
+}
+
+public sealed class SelectButtonTests
+{
+    private readonly UiFrames _frames = new();
+    private bool _red = true;
+    private bool _green;
+
+    private void Body(Ui ui)
+    {
+        using var menu = ui.SelectButton("colors", "Colors");
+        if (!menu.IsOpen) return;
+        ui.MenuItem("Red", ref _red, keepOpen: true);
+        ui.MenuItem("Green", ref _green, keepOpen: true);
+    }
+
+    [Fact]
+    public void Kept_open_check_items_flip_one_after_another_without_closing_the_menu()
+    {
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("colors"));
+        _frames.Run(0f, Body);
+
+        _frames.ClickOn(Body, ui => ui.GetId("Red"));
+        _frames.Run(0f, Body);
+        _frames.ClickOn(Body, ui => ui.GetId("Green"));
+        _frames.Run(0f, Body);
+
+        Assert.False(_red);
+        Assert.True(_green);
+        Assert.True(_frames.Drew("Red"));
+
+        _frames.Key(KeyboardKey.Escape);
+        _frames.Run(0f, Body);
+        _frames.Run(0f, Body);
+
+        Assert.False(_frames.Drew("Red"));
+    }
+}
+
 public sealed class SplitIconButtonTests
 {
     private const int ArrowSalt = 0x53504C41;

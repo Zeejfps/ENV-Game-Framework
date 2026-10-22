@@ -10,13 +10,8 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 1. **Decompiler options.** Settings are hard-coded in `ZGF.ILSpy.Core/Settings.cs`. Upstream has a
    C# version picker (1.0–14) and ~110 decompiler toggles (async/yield/LINQ/pattern detection,
    nullable, `field` keyword, remove dead code, auto-load references, …).
-2. **Search modes and syntax.** We match names only; Core has `SearchTargets` but the UI always
-   uses `All`. Upstream adds:
-   - modes: type, member, method, field, property, event, literal/constant, metadata token (`@`),
-     resource, assembly, namespace;
-   - prefixes `t:` `m:` `md:` `f:` `p:` `e:` `c:` `r:` `n:` `a:`, scoping with `inassembly:` /
-     `innamespace:` (and "Scope search to this assembly/namespace" context menu items);
-   - `/regex/`, `"quoted"`, and `+` / `-` / `=` / `~` operators; sort by relevance.
+2. **Search leftovers.** Modes, prefixes, operators, regex and scoping are done. Still missing:
+   sort by relevance, and matching C#-style generic names (`List<T>`).
 3. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
    (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
    batch).

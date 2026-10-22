@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -187,17 +188,68 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void Search_kinds_are_checked_on_and_off_in_one_open_menu()
+    {
+        var app = OpenFixtures();
+        app.Workspace.OpenSearch();
+        app.Run();
+        app.Frames.Type("Greet");
+        app.Run();
+        app.Frames.Wait(1);
+        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+        Assert.Contains(app.Workspace.Search.Rows, r => r.Result.Node.Kind == NodeKind.Class);
+
+        app.Click("Types and members");
+        app.Run();
+        foreach (var kind in new[] { "Types", "Fields", "Properties", "Events" })
+        {
+            app.ClickMenuItem(kind);
+            app.Run();
+        }
+        Assert.True(app.Frames.Drew("Namespaces"));
+        app.Frames.Key(KeyboardKey.Escape);
+        app.Run(2);
+        RunUntil(app, () => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+
+        Assert.Equal(SearchKinds.Methods, app.Workspace.Search.Kinds);
+        Assert.All(app.Workspace.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Result.Node.Kind));
+        Assert.True(app.Frames.Drew("Methods"));
+        Assert.False(app.Frames.Drew("Namespaces"));
+    }
+
+    [Fact]
+    public void The_tree_menu_scopes_the_search_to_an_assembly()
+    {
+        var app = OpenFixtures();
+        app.Run(2);
+        var name = app.Workspace.Assemblies.Assemblies[0].Name;
+        var row = app.TextRect(name);
+
+        app.Frames.MovePointer(row.X + 2f, row.Y + row.Height / 2);
+        app.Run();
+        app.Frames.Press(PointerButton.Right);
+        app.Run();
+        app.Frames.Release(PointerButton.Right);
+        app.Run(2);
+        app.ClickMenuItem("Scope search to this assembly");
+        app.Run(2);
+
+        Assert.Equal($"inassembly:{name} ", app.Workspace.Search.Query);
+        Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
+    }
+
+    [Fact]
     public void The_search_panel_holds_the_search_box_with_its_icon_and_no_shortcut_hint()
     {
         var app = new AppDriver();
         app.Run(2);
-        Assert.False(app.Frames.Drew("Search types and members"));
+        Assert.False(app.Frames.Drew("Search…"));
 
         app.Workspace.OpenSearch();
         app.Run(2);
 
         var icon = app.LastTextRect(LucideIcons.Search);
-        var placeholder = app.TextRect("Search types and members");
+        var placeholder = app.TextRect("Search…");
 
         Assert.True(icon.Right <= placeholder.X, $"the icon ends at {icon.Right}, the placeholder starts at {placeholder.X}");
         Assert.False(app.Frames.Drew("Ctrl+Shift+F"));
@@ -225,7 +277,7 @@ public sealed class AppTests
         app.Click(LucideIcons.Search);
         app.Run(2);
         Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
-        Assert.True(app.Frames.Drew("Search types and members"));
+        Assert.True(app.Frames.Drew("Search…"));
     }
 
     [Fact]

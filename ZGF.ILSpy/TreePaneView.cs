@@ -50,6 +50,10 @@ internal static class TreePaneView
             w.Analyze(node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, w, t, node);
+        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
+            w.ScopeSearch(node);
+        if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
+            w.ScopeSearch(node);
         if (node.Kind == NodeKind.Assembly)
         {
             ui.MenuSeparator();

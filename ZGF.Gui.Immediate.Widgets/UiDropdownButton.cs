@@ -146,6 +146,65 @@ public static partial class UiWidgets
         return new SplitButtonScope(main.Clicked || activated, DropdownMenu(ui, state, anchor));
     }
 
+    /// <summary>A button showing <paramref name="value"/>'s label and a down triangle that opens a menu
+    /// of <paramref name="options"/> below it, the current one marked; picking one sets
+    /// <paramref name="value"/> and returns true on that frame.</summary>
+    public static bool Select<T>(this Ui ui, string id, ref T value, ReadOnlySpan<T> options, Func<T, string> label,
+        Sizing? width = null, string? tooltip = null, bool enabled = true)
+    {
+        var changed = false;
+        using var menu = ui.SelectButton(id, label(value), width, tooltip, enabled, options.Length);
+        if (!menu.IsOpen) return false;
+        foreach (var option in options)
+        {
+            var selected = EqualityComparer<T>.Default.Equals(option, value);
+            if (!ui.MenuRadioItem(label(option), selected) || selected) continue;
+            value = option;
+            changed = true;
+        }
+        return changed;
+    }
+
+    /// <summary>A button showing <paramref name="text"/> and a down triangle that opens a menu below
+    /// it, for picking what the text names: a <see cref="Select{T}"/>, or several checked items kept
+    /// open with <c>MenuItem(label, ref value, keepOpen: true)</c>. The menu closes and is keyed as a
+    /// <see cref="DropdownButton"/>'s, <paramref name="revision"/> included. While
+    /// <see cref="MenuScope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
+    public static MenuScope SelectButton(this Ui ui, string id, string text, Sizing? width = null, string? tooltip = null,
+        bool enabled = true, int revision = 0)
+    {
+        var theme = ui.Theme;
+        var i = Pressable(ui, id, enabled, out var activated, out var ring);
+        var state = DropdownMenuState(ui, i.Id, enabled, revision);
+        if (i.Pressed || activated)
+            ToggleDropdown(state, revision, activated);
+        var open = state.Open;
+        var (fill, border, color) = ButtonColors(theme, ButtonVariant.Neutral, enabled, i.Held || open, i.Hovered);
+
+        using (ui.Row(i.Id, new Box
+        {
+            Width = width ?? Sizing.Fit(),
+            Height = theme.ControlHeight,
+            Padding = new Spacing(theme.ControlPaddingX, 0f),
+            Gap = theme.GapTight,
+            AlignY = Align.Center,
+            Background = fill,
+            BorderColor = border,
+            BorderWidth = border != 0 ? theme.BorderWidth : 0f,
+            Radius = theme.CornerRadius,
+        }))
+        {
+            ui.Text(text, new Box { Width = Sizing.Grow() }, color: color, overflow: TextOverflow.Ellipsis);
+            using (ui.Box(new Box { Width = theme.DropdownArrowWidth, Height = Sizing.Grow() }))
+                ui.Paint((color, theme.DropdownArrowWidth), static (p, s) => DrawDropdownArrow(p, s.color, s.DropdownArrowWidth));
+            if (ring) FocusRing(ui, theme.CornerRadius);
+        }
+        if (tooltip != null && !open)
+            ui.Tooltip(i.Id, tooltip);
+        ui.TryGetRect(i.Id, out var anchor);
+        return DropdownMenu(ui, state, anchor);
+    }
+
     private static uint HalfFill(UiTheme theme, bool enabled, bool pressed, bool hovered) =>
         !enabled ? 0u : pressed ? theme.ControlPressed : hovered ? theme.ControlHovered : 0u;
 

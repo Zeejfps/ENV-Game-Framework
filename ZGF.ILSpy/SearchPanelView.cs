@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.KeyboardModule;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -14,6 +15,12 @@ internal static class SearchPanelView
 
     private const string SearchShortcut = "Ctrl+Shift+F";
 
+    private static readonly SearchKinds[] Kinds =
+    [
+        SearchKinds.Types, SearchKinds.Methods, SearchKinds.Fields, SearchKinds.Properties, SearchKinds.Events, SearchKinds.Literals,
+        SearchKinds.Tokens, SearchKinds.Resources, SearchKinds.Assemblies, SearchKinds.Namespaces,
+    ];
+
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
@@ -21,6 +28,12 @@ internal static class SearchPanelView
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         using (ui.PaneToolbar(new Box { Gap = theme.Gap }))
         {
+            using (var menu = ui.SelectButton("search-kinds", ui.Memo("search-kinds", (search.Kinds, t), static a => Summary(a.t, a.Kinds)),
+                       Sizing.Fit(max: AppLayout.SearchKindsMaxWidth), t.SearchMode))
+            {
+                if (menu.IsOpen)
+                    KindsMenu(ui, w, t);
+            }
             Field(ui, w, t);
             ui.Text(ui.Memo("search-count", (search.Rows.Count, search.IsBusy, t), static a => a.IsBusy ? a.t.SearchResultsSoFar(a.Count) : a.t.SearchResults(a.Count)),
                 color: theme.TextMuted, size: theme.FontSizeSmall);
@@ -87,7 +100,7 @@ internal static class SearchPanelView
             ui.Focus(fieldId);
         var submitted = ui.TextField("search", ref search.Query, t.SearchField, Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth),
             LucideIcons.Search, LucideIcons.Family);
-        ui.Tooltip(fieldId, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(SearchShortcut)));
+        ui.Tooltip(fieldId, ui.Memo("search-syntax", t, static s => s.SearchSyntaxTooltip(SearchShortcut)));
         if (!ui.HasFocus(fieldId)) return;
         if (submitted)
         {
@@ -101,6 +114,50 @@ internal static class SearchPanelView
             ui.Focus(ResultsId, takesText: false);
         }
     }
+
+    /// <summary>Check items for each kind under one for all of them, kept open so several can be
+    /// flipped in a row. The last kind left cannot be unchecked.</summary>
+    private static void KindsMenu(Ui ui, Workspace w, Strings t)
+    {
+        var search = w.Search;
+        var kinds = search.Kinds;
+        var all = kinds == SearchKinds.All;
+        if (ui.MenuItem(t.SearchModeAll, ref all, keepOpen: true) && all)
+            kinds = SearchKinds.All;
+        ui.MenuSeparator();
+        foreach (var kind in Kinds)
+        {
+            var on = (kinds & kind) != 0;
+            if (ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true))
+                kinds = on ? kinds | kind : kinds & ~kind;
+        }
+        if (kinds == SearchKinds.None || kinds == search.Kinds) return;
+        search.Kinds = kinds;
+        w.SaveSettings();
+    }
+
+    private static string Summary(Strings t, SearchKinds kinds) => kinds switch
+    {
+        SearchKinds.All => t.SearchModeAll,
+        SearchKinds.TypesAndMembers => t.SearchModeTypesAndMembers,
+        SearchKinds.Members => t.SearchModeMembers,
+        _ => string.Join(", ", Kinds.Where(k => (kinds & k) != 0).Select(k => KindLabel(t, k))),
+    };
+
+    private static string KindLabel(Strings t, SearchKinds kind) => kind switch
+    {
+        SearchKinds.Types => t.SearchModeTypes,
+        SearchKinds.Methods => t.SearchModeMethods,
+        SearchKinds.Fields => t.SearchModeFields,
+        SearchKinds.Properties => t.SearchModeProperties,
+        SearchKinds.Events => t.SearchModeEvents,
+        SearchKinds.Literals => t.SearchModeLiterals,
+        SearchKinds.Tokens => t.SearchModeToken,
+        SearchKinds.Resources => t.SearchModeResources,
+        SearchKinds.Assemblies => t.SearchModeAssemblies,
+        SearchKinds.Namespaces => t.SearchModeNamespaces,
+        _ => kind.ToString(),
+    };
 
     private static void Keys(Ui ui, Workspace w, float rowHeight)
     {

@@ -42,7 +42,7 @@ public sealed class Workspace
         Layout = DockPanels.Restore(settings.Layout, _active.Panel, out var placed);
         Tree = new BrowseTree(Post);
         Analyzer = new AnalyzerTree(Post, () => Assemblies);
-        Search = new SearchModel(() => Strings.For(Locale), ReportError);
+        Search = new SearchModel(() => Strings.For(Locale), ReportError) { Kinds = settings.SearchKinds };
         Layout.NewPanel = () => AddTab().Panel;
         Layout.PanelClosed += panel =>
         {
@@ -600,6 +600,16 @@ public sealed class Workspace
         Layout.Activate(DockPanels.Search);
     }
 
+    /// <summary>Opens the search panel with its query kept to <paramref name="node"/>'s assembly, or to
+    /// the namespace it is.</summary>
+    public void ScopeSearch(BrowseNode node)
+    {
+        Search.Query = node.Kind == NodeKind.Namespace
+            ? SearchQuery.WithScope(Search.Query, "innamespace", node.FullName)
+            : SearchQuery.WithScope(Search.Query, "inassembly", node.Assembly.Name);
+        OpenSearch();
+    }
+
     /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>
     public bool TakeSearchFocus()
     {
@@ -616,6 +626,7 @@ public sealed class Workspace
         _settings.DarkMode = DarkMode;
         _settings.Language = Language;
         _settings.ShowNonPublic = ShowNonPublic;
+        _settings.SearchKinds = Search.Kinds;
         _settings.Locale = Locale;
         _settings.Layout = Layout;
         _settings.Bookmarks = Bookmarks.Save();
