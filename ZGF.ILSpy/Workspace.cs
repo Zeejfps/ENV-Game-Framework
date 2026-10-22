@@ -85,10 +85,10 @@ public sealed class Workspace
 
     /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
     /// ones there are or merge in beside them.</summary>
-    public List<Bookmark>? PendingImport { get; private set; }
+    public List<Bookmark>? PendingImport { get; set; }
 
     /// <summary>True while imported bookmarks' places are being found in the background.</summary>
-    public bool IsImporting { get; private set; }
+    public bool IsImporting { get; set; }
 
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
     public bool ConfirmingLayoutReset { get; private set; }
@@ -438,85 +438,6 @@ public sealed class Workspace
             Tabs.Find(group.Active)?.EnsureCurrent(Language);
     }
 
-    /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
-    /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
-    /// when it has one.</summary>
-    public void ToggleBookmark(DocumentTab tab, int line)
-    {
-        var node = tab.Node;
-        if (node == null)
-            return;
-        if (!CanBookmarkLine(tab, line))
-            return;
-        var existing = Bookmarks.At(tab.Document, node.Path, line);
-        if (existing != null)
-        {
-            Bookmarks.Remove(existing);
-            return;
-        }
-        AddBookmark(tab, node, line);
-    }
-
-    private static bool CanBookmarkLine(DocumentTab tab, int line)
-    {
-        if (tab.IsBusy)
-            return false;
-        if (tab.Document.IsError)
-            return false;
-        if (line < 0)
-            return false;
-        return line < tab.Document.Lines.Length;
-    }
-
-    private void AddBookmark(DocumentTab tab, BrowseNode node, int line)
-    {
-        var anchor = tab.Document.AnchorAt(line);
-        var name = Bookmarks.NextName(FormatBookmarkName);
-        var info = ILSpyTree.Describe(node, anchor);
-        var bookmark = new Bookmark(node.Path, tab.Language, line, anchor, name, info);
-        Bookmarks.Add(bookmark);
-    }
-
-    private string FormatBookmarkName(int number) => GetStrings().BookmarksDefaultName(number);
-
-    /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
-    /// assembly first if it is not open, and records it in the history.</summary>
-    public void GoTo(Bookmark bookmark)
-    {
-        var ticket = Intent.Begin();
-        var tab = Tabs.Active;
-        var place = bookmark.Place;
-        Intent.StartResolving(ticket);
-        RunInBackground(() => Assemblies.FindNode(place), (node, error) => OnBookmarkPlaceFound(bookmark, node, error, tab, ticket));
-    }
-
-    private void OnBookmarkPlaceFound(Bookmark bookmark, BrowseNode? node, Exception? error, DocumentTab? tab, int ticket)
-    {
-        if (Intent.IsStale(ticket))
-            return;
-        Intent.StopResolving();
-        if (node == null)
-        {
-            var t = GetStrings();
-            var details = DescribeFailure(error, t.ErrorNoLongerThere(bookmark.Place));
-            ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
-            return;
-        }
-        LeaveActive();
-        ShowIn(Tabs.KeepIfOpen(tab), node, target: bookmark);
-        History.Push(node, Language);
-    }
-
-    /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
-    /// <paramref name="direction"/> is negative.</summary>
-    public void StepBookmark(int direction)
-    {
-        var bookmark = Bookmarks.Step(direction);
-        if (bookmark == null)
-            return;
-        GoTo(bookmark);
-    }
-
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
     /// <paramref name="path"/>.</summary>
     public void SaveResource(BrowseNode node, string path)
@@ -539,93 +460,6 @@ public sealed class Workspace
         if (e is UnauthorizedAccessException)
             return true;
         return e is InvalidDataException;
-    }
-
-    public void ExportBookmarks(string path)
-    {
-        var records = Bookmarks.Save();
-        var error = BookmarkFile.Write(path, records);
-        if (error == null)
-            return;
-        ReportError(GetStrings().ErrorExportBookmarks, error);
-    }
-
-    /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
-    /// ILSpy's — and finds the place of each in the background: takes them at once when there are
-    /// none yet, and otherwise asks how through <see cref="PendingImport"/>. Bookmarks whose place
-    /// is not found are left out and reported.</summary>
-    public void ImportBookmarks(string path)
-    {
-        var file = Path.GetFileName(path);
-        var records = BookmarkFile.Read(path, out var error);
-        if (records == null)
-        {
-            ReportError(GetStrings().ErrorImportBookmarks(file), error);
-            return;
-        }
-        IsImporting = true;
-        RunInBackground(() => FindPlaces(records), (found, failure) => OnBookmarkPlacesFound(found, failure, file));
-    }
-
-    private List<FoundBookmark> FindPlaces(List<BookmarkRecord> records)
-    {
-        return records.ConvertAll(r => new FoundBookmark(r, FindPlace(r)));
-    }
-
-    private NodePath? FindPlace(BookmarkRecord record)
-    {
-        if (record.Place != null)
-            return NodePath.From(record.FileName, record.Place);
-        var treePath = record.ViewState?.SelectedTreeNodePath;
-        return ILSpyTree.Locate(Assemblies, record.FileName, treePath, record.Token);
-    }
-
-    private void OnBookmarkPlacesFound(List<FoundBookmark>? found, Exception? failure, string file)
-    {
-        IsImporting = false;
-        if (failure != null)
-        {
-            ReportError(GetStrings().ErrorImportBookmarks(file), failure.ToString());
-            return;
-        }
-        ReportLostBookmarks(found!, file);
-        var bookmarks = found!
-            .Where(f => f.Place != null)
-            .Select(f => Bookmark.FromRecord(f.Record, f.Place!))
-            .ToList();
-        if (Bookmarks.Items.Count == 0)
-        {
-            Bookmarks.Import(bookmarks, BookmarkImportMode.Replace);
-            return;
-        }
-        if (bookmarks.Count == 0)
-            return;
-        PendingImport = bookmarks;
-    }
-
-    private void ReportLostBookmarks(List<FoundBookmark> found, string file)
-    {
-        var lost = found.FindAll(f => f.Place == null);
-        if (lost.Count == 0)
-            return;
-        var lines = lost.Select(DescribeLostBookmark);
-        var details = string.Join(Environment.NewLine, lines);
-        ReportError(GetStrings().ErrorBookmarksNotFound(file), details);
-    }
-
-    private static string DescribeLostBookmark(FoundBookmark lost)
-    {
-        var record = lost.Record;
-        var location = record.LocationNodeName ?? record.MemberName;
-        return $"{record.Name}: {location} ({record.FileName})";
-    }
-
-    /// <summary>Imports the <see cref="PendingImport"/> as <paramref name="mode"/> says, or drops it when null.</summary>
-    public void FinishImport(BookmarkImportMode? mode)
-    {
-        if (mode != null && PendingImport != null)
-            Bookmarks.Import(PendingImport, mode.Value);
-        PendingImport = null;
     }
 
     /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer, which is
@@ -1018,6 +852,4 @@ public sealed class Workspace
     private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
 
     private sealed record ReloadRequest(ReloadTicket Ticket, int Intent, List<ReloadingTab> Tabs);
-
-    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);
 }
