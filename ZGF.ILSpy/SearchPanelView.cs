@@ -100,7 +100,7 @@ internal static class SearchPanelView
         var all = search.Kinds == SearchKinds.All;
         var kinds = search.Kinds;
         var checkAll = all;
-        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
+        var palette = ui.GetNodeIconPalette();
         var allIcon = new UiIcon(LucideIcons.Layers3, LucideIcons.Family, ui.Theme.TextMuted);
         if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true, icon: allIcon))
             kinds = SearchKinds.All;

@@ -15,7 +15,7 @@ internal static class TreePaneView
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var theme = ui.Theme;
-        w.Tree.SetStyle(theme, ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark);
+        w.Tree.SetStyle(theme, ui.GetNodeIconPalette());
         w.Tree.SetShowNonPublic(w.ShowNonPublic);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         if (w.Tree.Roots.Count == 0)

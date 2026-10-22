@@ -47,7 +47,7 @@ internal static class BookmarksPanelView
     private static Bookmark? List(Ui ui, Workspace w, Strings t, TableCellSelection cell)
     {
         var bookmarks = w.Bookmarks;
-        var palette = ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark;
+        var palette = ui.GetCodeViewPalette();
         var renaming = bookmarks.Renaming != null;
         Bookmark? removed = null;
         using var list = ui.SelectableList(ListId, bookmarks.Items.Count, bookmarks.Selection, keys: !renaming);

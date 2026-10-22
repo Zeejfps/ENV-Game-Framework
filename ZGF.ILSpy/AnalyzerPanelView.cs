@@ -13,7 +13,7 @@ internal static class AnalyzerPanelView
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var analyzer = w.Analyzer;
-        var icons = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
+        var icons = ui.GetNodeIconPalette();
         analyzer.SetStyle(ui.Theme, icons, t);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         if (analyzer.Roots.Count == 0)

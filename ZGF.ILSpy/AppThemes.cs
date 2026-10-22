@@ -49,6 +49,24 @@ internal static class AppThemes
         return All[0].Theme;
     }
 
+    /// <summary>The editor colors provided around this part of the UI, or the dark theme's outside any.</summary>
+    public static CodeViewPalette GetCodeViewPalette(this Ui ui)
+    {
+        var palette = ui.Get<CodeViewPalette>();
+        if (palette != null)
+            return palette;
+        return CodeViewPalette.Dark;
+    }
+
+    /// <summary>The icon colors provided around this part of the UI, or the dark theme's outside any.</summary>
+    public static NodeIconPalette GetNodeIconPalette(this Ui ui)
+    {
+        var palette = ui.Get<NodeIconPalette>();
+        if (palette != null)
+            return palette;
+        return NodeIconPalette.Dark;
+    }
+
     private static (AppThemeId Id, string Name)[] ListNamed() => All
         .Where(static entry => entry.Name != null)
         .Select(static entry => (entry.Id, entry.Name!))

@@ -218,7 +218,7 @@ public static class CodeViewWidget
         using var scope = ui.Id(id);
         state.Show(document);
         var theme = ui.Theme;
-        var palette = ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark;
+        var palette = ui.GetCodeViewPalette();
         var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
         var advance = cell.Advance;
         var rowHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
@@ -728,7 +728,7 @@ public static class CodeViewWidget
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
-                    icon: new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, (ui.Get<CodeViewPalette>() ?? CodeViewPalette.Dark).Bookmark)))
+                    icon: new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, ui.GetCodeViewPalette().Bookmark)))
                 result = result with { ToggleBookmark = state.MenuLine };
         }
         if (document.Folds.Length > 0)

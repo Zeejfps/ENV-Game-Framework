@@ -99,7 +99,7 @@ internal static class ToolbarView
     private static void HistoryItems(Ui ui, Workspace w, int direction)
     {
         var entries = w.History.Entries;
-        var palette = ui.Get<NodeIconPalette>() ?? NodeIconPalette.Dark;
+        var palette = ui.GetNodeIconPalette();
         for (var i = w.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
         {
             using (ui.Id(i))
