@@ -74,19 +74,21 @@ public static partial class UiWidgets
     /// for the app to save. The window has no frame of the platform's: the dialog draws its title and
     /// its close button, moves the window when dragged by its background anywhere but its controls, and a grip in its bottom-right corner that
     /// sizes it, down to a smallest size the content then scrolls in. The main window is dimmed and takes no
-    /// input until it closes, and a press on it keeps the dialog. Escape or the close button set
-    /// <paramref name="open"/> to false. Where the platform has no windows to give, it is a
-    /// <see cref="Dialog"/> card over the main window instead. Record the content only while
+    /// input until it closes, and a press on it keeps the dialog. The close button sets
+    /// <paramref name="open"/> to false, and so does Escape unless not <paramref name="closeOnEscape"/>,
+    /// which leaves Escape to the content — to step back from a page of the dialog. Where the platform
+    /// has no windows to give, it is a <see cref="Dialog"/> card over the main window instead. Record the content only while
     /// <see cref="Ui.Scope.IsOpen"/>; dispose either way.
     /// </summary>
-    public static Ui.Scope WindowDialog(this Ui ui, string id, string title, ref bool open, float width, float height, ref WindowBounds? bounds)
+    public static Ui.Scope WindowDialog(this Ui ui, string id, string title, ref bool open, float width, float height, ref WindowBounds? bounds,
+        bool closeOnEscape = true)
     {
         if (!open) return default;
 
         var theme = ui.Theme;
         var dialogId = ui.GetId(id);
         var dialog = ui.Modal(dialogId, new Box { Background = theme.Scrim });
-        var dismissed = ui.Input.TakeKey(KeyboardKey.Escape);
+        var dismissed = closeOnEscape && ui.Input.TakeKey(KeyboardKey.Escape);
 
         var windowId = DialogCardId(dialogId);
         ui.Window(windowId, title, ref open, width, height, ref bounds, out var native);

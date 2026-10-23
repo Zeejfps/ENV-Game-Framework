@@ -207,6 +207,25 @@ public sealed class WindowDialogTests
     }
 
     [Fact]
+    public void Escape_is_left_to_the_content_when_the_dialog_does_not_close_on_it()
+    {
+        var escapes = 0;
+        var frames = new UiFrames(popups: _host, width: 400f, height: 300f, body: ui =>
+        {
+            using var dialog = ui.WindowDialog("export", "Export", ref _open, 300f, 200f, ref _bounds, closeOnEscape: false);
+            if (dialog.IsOpen && ui.Input.TakeKey(KeyboardKey.Escape))
+                escapes++;
+        }).Frame();
+        _open = true;
+        frames.Frame(2);
+
+        frames.Key(KeyboardKey.Escape).Frame();
+
+        Assert.True(_open);
+        Assert.Equal(1, escapes);
+    }
+
+    [Fact]
     public void Without_windows_the_dialog_is_a_titled_card_over_the_main_window()
     {
         var frames = Opened(null);
