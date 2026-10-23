@@ -1,5 +1,6 @@
 // Derived from ILSpy (MIT): see LICENSE-ILSpy.txt
 
+using System.Reflection.Metadata;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 
@@ -30,7 +31,50 @@ internal sealed class AttributeAppliedToAnalyzer : IAnalyzer
     {
         var metadata = ts.MainModule.MetadataFile.Metadata;
         var decoder = new FindTypeDecoder(ts.MainModule, attributeType);
-        return AnalyzerHelpers.AttributeOwners(ts, a => AnalyzerHelpers.IsCustomAttributeOfType(a.Constructor, metadata, decoder));
+        var owners = AnalyzerHelpers.AttributeOwners(ts, a => AnalyzerHelpers.IsCustomAttributeOfType(a.Constructor, metadata, decoder));
+        return owners.Concat(SecurityAppliedTo(attributeType, ts));
+    }
+
+    private static IEnumerable<ISymbol> SecurityAppliedTo(ITypeDefinition attributeType, DecompilerTypeSystem ts)
+    {
+        var metadata = ts.MainModule.MetadataFile.Metadata;
+        foreach (var h in metadata.DeclarativeSecurityAttributes)
+        {
+            var parent = metadata.GetDeclarativeSecurityAttribute(h).Parent;
+            var attributes = SecurityAttributesOf(ts, parent);
+            if (attributes.Any(a => IsOfType(a, attributeType)))
+                yield return SecurityOwner(ts, parent);
+        }
+    }
+
+    private static IEnumerable<IAttribute> SecurityAttributesOf(DecompilerTypeSystem ts, EntityHandle parent)
+    {
+        if (parent.Kind == HandleKind.AssemblyDefinition)
+            return ts.MainModule.GetAssemblyAttributes();
+        var entity = ts.MainModule.ResolveEntity(parent);
+        if (entity == null)
+            return [];
+        return entity.GetAttributes();
+    }
+
+    private static bool IsOfType(IAttribute attribute, ITypeDefinition attributeType)
+    {
+        if (attribute.AttributeType.ReflectionName != attributeType.ReflectionName)
+            return false;
+        var definition = attribute.AttributeType.GetDefinition();
+        if (definition == null)
+            return true;
+        return definition.ParentModule?.AssemblyName == attributeType.ParentModule?.AssemblyName;
+    }
+
+    private static ISymbol SecurityOwner(DecompilerTypeSystem ts, EntityHandle parent)
+    {
+        if (parent.Kind == HandleKind.AssemblyDefinition)
+            return ts.MainModule;
+        var entity = ts.MainModule.ResolveEntity(parent);
+        if (entity is IMethod method && method.AccessorOwner != null)
+            return method.AccessorOwner;
+        return entity;
     }
 
     private static IEnumerable<ISymbol> BuiltinAppliedTo(KnownAttribute attribute, DecompilerTypeSystem ts)

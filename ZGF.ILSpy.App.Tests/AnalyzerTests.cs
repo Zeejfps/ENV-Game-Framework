@@ -36,6 +36,18 @@ public sealed class AnalyzerTests
     }
 
     [Fact]
+    public void Applied_To_finds_members_that_carry_a_security_attribute()
+    {
+        var d = WorkspaceDriver.Opened();
+
+        d.Workspace.Analyze(d.Fixture("GuardAttribute"));
+        var appliedTo = Expand(d, Assert.Single(d.Workspace.Analyzer.Roots), "Applied To");
+
+        var member = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(appliedTo.Found));
+        Assert.StartsWith("Enter()", member.Symbol.Label);
+    }
+
+    [Fact]
     public void A_result_opens_its_member_when_activated_and_can_be_analyzed_in_turn()
     {
         var app = AppDriver.Opened(height: 600f);
