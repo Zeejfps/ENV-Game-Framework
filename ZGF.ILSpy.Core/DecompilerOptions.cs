@@ -35,6 +35,8 @@ public enum DecompilerToggleGroup
     Other,
     /// <summary>Clean-ups for code the F# compiler emits.</summary>
     FSharp,
+    /// <summary>How exported projects are laid out; does not change decompiled code.</summary>
+    ProjectExport,
 }
 
 /// <summary>One of the decompiler's on/off choices, named as the decompiler names it.</summary>
@@ -43,14 +45,11 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
     private static readonly Dictionary<string, PropertyInfo> Properties = typeof(DecompilerSettings).GetProperties()
         .Where(static p => p.PropertyType == typeof(bool) && p.CanWrite).ToDictionary(static p => p.Name);
 
-    /// <summary>Settings that do nothing here: the first two only apply when assemblies load, and
-    /// we export no projects.</summary>
+    /// <summary>Settings that do nothing here: they only apply when assemblies load.</summary>
     private static readonly HashSet<string> Excluded =
     [
         nameof(DecompilerSettings.AutoLoadAssemblyReferences),
         nameof(DecompilerSettings.ApplyWindowsRuntimeProjections),
-        nameof(DecompilerSettings.UseSdkStyleProjectFormat),
-        nameof(DecompilerSettings.UseNestedDirectoriesForNamespaces),
     ];
 
     /// <summary>Every toggle that changes decompiled code, in the decompiler's order.</summary>
@@ -81,6 +80,8 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
                 toggles.Add(new DecompilerToggle(property.Name, DecompilerToggleGroup.Other, null, value));
             else if (category == "DecompilerSettings.FSpecificOptions")
                 toggles.Add(new DecompilerToggle(property.Name, DecompilerToggleGroup.FSharp, null, value));
+            else if (category == "DecompilerSettings.ProjectExport")
+                toggles.Add(new DecompilerToggle(property.Name, DecompilerToggleGroup.ProjectExport, null, value));
         }
         return toggles;
     }
@@ -135,9 +136,22 @@ public sealed record DecompilerOptions
     public bool ProducesSameCode(DecompilerOptions other, DecompilationLanguage language)
     {
         if (language == DecompilationLanguage.CSharp)
-            return Equals(other);
+            return WithoutProjectExport().Equals(other.WithoutProjectExport());
         var symbols = DecompilerToggle.UseDebugSymbols;
         return IsOn(symbols) == other.IsOn(symbols);
+    }
+
+    /// <summary>These options with the project export toggles at their defaults, as they only shape
+    /// exported projects, not code.</summary>
+    private DecompilerOptions WithoutProjectExport()
+    {
+        var toggles = Toggles.ToBuilder();
+        foreach (var toggle in DecompilerToggle.All)
+        {
+            if (toggle.Group == DecompilerToggleGroup.ProjectExport)
+                toggles.Remove(toggle.Name);
+        }
+        return this with { Toggles = toggles.ToImmutable() };
     }
 
     public DecompilerOptions With(DecompilerToggle toggle, bool value) => With([toggle], value);

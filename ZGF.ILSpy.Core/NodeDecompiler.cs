@@ -5,6 +5,7 @@ using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.CSharp.OutputVisitor;
+using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
 using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.DebugInfo;
 using ICSharpCode.Decompiler.Disassembler;
@@ -28,19 +29,9 @@ internal static class NodeDecompiler
     public static DecompiledDocument Decompile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken,
         string? note = null)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var builder = new DocumentBuilder(language, node.Assembly);
         try
         {
-            if (note != null)
-                WriteComment(builder, note);
-            var settings = Settings.Create(options);
-            if (language == DecompilationLanguage.CSharp)
-                WriteCSharp(node, builder, settings, cancellationToken);
-            else
-                WriteIL(node, builder, settings, cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            return builder.Build(node.Text);
+            return DecompileOrThrow(node, language, options, cancellationToken, note);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -54,6 +45,111 @@ internal static class NodeDecompiler
             error.Write(e.ToString(), SpanKind.Comment);
             return error.Build(node.Text, isError: true);
         }
+    }
+
+    private static DecompiledDocument DecompileOrThrow(BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
+        CancellationToken cancellationToken, string? note = null)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var builder = new DocumentBuilder(language, node.Assembly);
+        if (note != null)
+            WriteComment(builder, note);
+        var settings = Settings.Create(options);
+        if (language == DecompilationLanguage.CSharp)
+            WriteCSharp(node, builder, settings, cancellationToken);
+        else
+            WriteIL(node, builder, settings, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return builder.Build(node.Text);
+    }
+
+    /// <summary>The name a file of <paramref name="node"/>'s code is offered under: the node's name,
+    /// made safe for a file name, with the language's extension.</summary>
+    public static string SuggestCodeFileName(BrowseNode node, DecompilationLanguage language)
+    {
+        var name = NameForFile(node);
+        var extension = CodeFileExtension(language);
+        return WholeProjectDecompiler.CleanUpFileName(name, extension);
+    }
+
+    private static string NameForFile(BrowseNode node)
+    {
+        if (node is AssemblyNode)
+            return node.Assembly.Name;
+        if (node is EntityNode entity)
+            return entity.Entity.Name;
+        return node.Text;
+    }
+
+    private static string CodeFileExtension(DecompilationLanguage language) => language == DecompilationLanguage.CSharp ? ".cs" : ".il";
+
+    /// <summary>Writes <paramref name="node"/>'s code to the file at <paramref name="path"/>: for an
+    /// assembly its whole module and for a namespace all its types, else what the node shows. Throws
+    /// when decompiling fails.</summary>
+    public static void SaveCode(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
+        CancellationToken cancellationToken)
+    {
+        if (node is AssemblyNode or NamespaceNode)
+        {
+            WriteWholeCode(node, language, options, path, cancellationToken);
+            return;
+        }
+        var document = DecompileOrThrow(node, language, options, cancellationToken);
+        File.WriteAllText(path, document.GetText());
+    }
+
+    private static void WriteWholeCode(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
+        CancellationToken cancellationToken)
+    {
+        var settings = Settings.Create(options);
+        using var writer = new StreamWriter(path);
+        var output = new PlainTextOutput(writer) { IndentationString = settings.CSharpFormattingOptions.IndentationString };
+        if (language == DecompilationLanguage.CSharp)
+            WriteWholeCSharp(node, output, settings, cancellationToken);
+        else
+            WriteWholeIL(node, output, settings, cancellationToken);
+    }
+
+    private static void WriteWholeCSharp(BrowseNode node, ITextOutput output, DecompilerSettings settings, CancellationToken cancellationToken)
+    {
+        var decompiler = CreateCSharpDecompiler(node.Assembly, settings, cancellationToken);
+        var syntaxTree = DecompileWhole(decompiler, node);
+        cancellationToken.ThrowIfCancellationRequested();
+        syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
+        var writer = new TextTokenWriter(output, settings);
+        syntaxTree.AcceptVisitor(new CSharpOutputVisitor(writer, settings.CSharpFormattingOptions));
+    }
+
+    private static SyntaxTree DecompileWhole(CSharpDecompiler decompiler, BrowseNode node)
+    {
+        if (node is NamespaceNode ns)
+            return decompiler.DecompileTypes(TypeHandles(ns));
+        return decompiler.DecompileWholeModuleAsSingleFile();
+    }
+
+    private static void WriteWholeIL(BrowseNode node, ITextOutput output, DecompilerSettings settings, CancellationToken cancellationToken)
+    {
+        var file = node.Assembly.File;
+        var disassembler = CreateDisassembler(node.Assembly, output, settings, cancellationToken);
+        if (node is NamespaceNode ns)
+        {
+            disassembler.DisassembleNamespace(ns.Name, file, TypeHandles(ns));
+            return;
+        }
+        disassembler.WriteAssemblyReferences(file.Metadata);
+        if (file.Metadata.IsAssembly)
+            disassembler.WriteAssemblyHeader(file);
+        output.WriteLine();
+        disassembler.WriteModuleHeader(file);
+        output.WriteLine();
+        disassembler.WriteModuleContents(file);
+    }
+
+    private static List<TypeDefinitionHandle> TypeHandles(NamespaceNode ns)
+    {
+        return ns.Types
+            .Select(static t => (TypeDefinitionHandle)t.MetadataToken)
+            .ToList();
     }
 
     private static void WriteCSharp(BrowseNode node, DocumentBuilder output, DecompilerSettings settings, CancellationToken cancellationToken)
@@ -84,13 +180,7 @@ internal static class NodeDecompiler
     private static void WriteIL(BrowseNode node, DocumentBuilder output, DecompilerSettings settings, CancellationToken cancellationToken)
     {
         var file = node.Assembly.File;
-        var disassembler = new ReflectionDisassembler(output, cancellationToken)
-        {
-            DetectControlStructure = true,
-            ExpandMemberDefinitions = true,
-            AssemblyResolver = node.Assembly.Resolver,
-            DebugInfo = DebugSymbolsFor(node.Assembly, settings),
-        };
+        var disassembler = CreateDisassembler(node.Assembly, output, settings, cancellationToken);
         switch (node)
         {
             case AssemblyNode:
@@ -129,6 +219,18 @@ internal static class NodeDecompiler
         }
     }
 
+    private static ReflectionDisassembler CreateDisassembler(LoadedAssembly assembly, ITextOutput output, DecompilerSettings settings,
+        CancellationToken cancellationToken)
+    {
+        return new ReflectionDisassembler(output, cancellationToken)
+        {
+            DetectControlStructure = true,
+            ExpandMemberDefinitions = true,
+            AssemblyResolver = assembly.Resolver,
+            DebugInfo = DebugSymbolsFor(assembly, settings),
+        };
+    }
+
     /// <summary>The comments ILSpy opens a type or member with: a warning for a reference assembly,
     /// the assembly's full name, and the type.</summary>
     private static void WriteHeader(LoadedAssembly assembly, DocumentBuilder output, IType type, ConversionFlags flags)
@@ -163,12 +265,7 @@ internal static class NodeDecompiler
     private static void WriteSyntaxTree(LoadedAssembly assembly, DocumentBuilder output, DecompilerSettings settings,
         Func<CSharpDecompiler, SyntaxTree> decompile, CancellationToken cancellationToken)
     {
-        var typeSystem = assembly.TypeSystemFor(settings);
-        var decompiler = new CSharpDecompiler(typeSystem, settings)
-        {
-            CancellationToken = cancellationToken,
-            DebugInfoProvider = DebugSymbolsFor(assembly, settings),
-        };
+        var decompiler = CreateCSharpDecompiler(assembly, settings, cancellationToken);
         var syntaxTree = decompile(decompiler);
         cancellationToken.ThrowIfCancellationRequested();
         syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
@@ -178,7 +275,17 @@ internal static class NodeDecompiler
         syntaxTree.AcceptVisitor(new CSharpOutputVisitor(writer, settings.CSharpFormattingOptions));
     }
 
-    private static IDebugInfoProvider? DebugSymbolsFor(LoadedAssembly assembly, DecompilerSettings settings)
+    internal static CSharpDecompiler CreateCSharpDecompiler(LoadedAssembly assembly, DecompilerSettings settings, CancellationToken cancellationToken)
+    {
+        var typeSystem = assembly.TypeSystemFor(settings);
+        return new CSharpDecompiler(typeSystem, settings)
+        {
+            CancellationToken = cancellationToken,
+            DebugInfoProvider = DebugSymbolsFor(assembly, settings),
+        };
+    }
+
+    internal static IDebugInfoProvider? DebugSymbolsFor(LoadedAssembly assembly, DecompilerSettings settings)
     {
         if (!settings.UseDebugSymbols)
             return null;

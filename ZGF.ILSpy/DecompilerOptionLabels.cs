@@ -42,6 +42,8 @@ internal static class DecompilerOptionLabels
         "UsingStatement" => t.OptionUsingStatement,
         "UseEnhancedUsing" => t.OptionUseEnhancedUsing,
         "AlwaysUseBraces" => t.OptionAlwaysUseBraces,
+        "UseSdkStyleProjectFormat" => t.OptionUseSdkStyleProjectFormat,
+        "UseNestedDirectoriesForNamespaces" => t.OptionUseNestedDirectoriesForNamespaces,
         "ForEachStatement" => t.OptionForEachStatement,
         "ForEachWithGetEnumeratorExtension" => t.OptionForEachWithGetEnumeratorExtension,
         "ParamsCollections" => t.OptionParamsCollections,

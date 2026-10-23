@@ -7,12 +7,9 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Biggest gaps
 
-1. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
-   (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
-   batch).
-2. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
+1. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
    GAC (Windows), open from a running process, single-file bundles, WebCIL `.wasm`.
-3. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
+2. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
 
 ## Medium
 
@@ -23,6 +20,8 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Resources:** BAML → XAML, `!AvaloniaResources` unpacked into the tree.
 - **Display options:** font and size, zoom, word wrap, line-number toggle, bracket matching,
   current-line highlight.
+- **Export:** progress and cancelling for long exports; a solution of only the selected
+  assemblies (the tree selects one node, so "Export all as solution" takes the whole list).
 - **Tree:** module nodes, nested-namespace view, exported (forwarded) types, types/members used
   from each reference, optional metadata tokens (hex or decimal).
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
@@ -41,7 +40,3 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - Help/About and Check for updates.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).
-
-## Suggested order
-
-1. Save code and project export.

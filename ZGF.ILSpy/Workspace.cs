@@ -86,6 +86,13 @@ public sealed class Workspace
     /// <summary>True while imported bookmarks' places are being found in the background.</summary>
     public bool IsImporting { get; set; }
 
+    /// <summary>True while code, a project, a solution or PDBs are being written in the background.</summary>
+    public bool IsExporting { get; set; }
+
+    /// <summary>An export waiting for the user to say whether it may write into a folder that
+    /// already holds other files.</summary>
+    public ExportRequest? ConfirmingExport { get; set; }
+
     /// <summary>Set by <see cref="Searching.OpenSearch"/> until the search box takes focus.</summary>
     public bool IsSearchFocusPending { get; set; }
 

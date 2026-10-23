@@ -45,6 +45,8 @@ internal static class MainMenuView
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework"))
             w.Picker.Open();
         ui.MenuSeparator();
+        ExportItems(ui, w);
+        ui.MenuSeparator();
         var selected = w.Tree.View.HasSelection ? w.Tree.View.Selected!.Assembly : null;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close"))
             w.Close(selected!);
@@ -55,6 +57,19 @@ internal static class MainMenuView
         ui.MenuSeparator();
         if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit"))
             ui.Quit();
+    }
+
+    private static void ExportItems(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
+        var canSave = w.CanSaveCode(w.Tabs.Active?.Node);
+        if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code"))
+            SaveDialogs.PickActiveCodeFile(ui, w);
+        var canExportAll = w.Tree.Roots.Count > 0 && !w.IsExporting;
+        if (ui.MenuItem(t.FileExportSolution, enabled: canExportAll, id: "export-solution"))
+            SaveDialogs.PickSolutionFile(ui, w);
+        if (ui.MenuItem(t.FileGeneratePdbs, enabled: canExportAll, id: "generate-pdbs"))
+            SaveDialogs.PickPdbFolder(ui, w);
     }
 
     private static void ViewMenu(Ui<UiState> ui, Workspace w)

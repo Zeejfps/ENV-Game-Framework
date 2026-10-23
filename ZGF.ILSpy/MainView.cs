@@ -25,6 +25,7 @@ public static class MainView
         FrameworkPickerView.Render(ui, w);
         BookmarkImportDialogView.Render(ui, w);
         LayoutResetDialogView.Render(ui, w);
+        ExportConfirmDialogView.Render(ui, w);
         ErrorDialogView.Render(ui, w);
     }
 

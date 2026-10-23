@@ -13,6 +13,7 @@ internal static class Shortcuts
     public const string Analyze = "Ctrl+R";
 
     public const string Open = "Ctrl+O";
+    public const string SaveCode = "Ctrl+S";
     public const string Search = "Ctrl+Shift+F";
     public const string Back = "Alt+Left";
     public const string Forward = "Alt+Right";
@@ -72,6 +73,9 @@ internal static class Shortcuts
             {
                 case (KeyModifiers.Control, KeyboardKey.O):
                     MainMenuView.OpenFile(ui, w);
+                    break;
+                case (KeyModifiers.Control, KeyboardKey.S):
+                    SaveDialogs.PickActiveCodeFile(ui, w);
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
                     w.Refresh();

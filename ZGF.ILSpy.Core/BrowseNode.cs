@@ -164,6 +164,15 @@ public abstract class BrowseNode
     public DecompiledDocument Decompile(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
         NodeDecompiler.Decompile(this, language, options, cancellationToken);
 
+    /// <summary>The name a file of this node's code in <paramref name="language"/> is offered under.</summary>
+    public string SuggestCodeFileName(DecompilationLanguage language) => NodeDecompiler.SuggestCodeFileName(this, language);
+
+    /// <summary>Writes this node's code in <paramref name="language"/> to the file at
+    /// <paramref name="path"/>: for an assembly its whole module, for a namespace all its types, else
+    /// what the node shows. Throws when decompiling or writing fails.</summary>
+    public void SaveCode(DecompilationLanguage language, DecompilerOptions options, string path, CancellationToken cancellationToken = default) =>
+        NodeDecompiler.SaveCode(this, language, options, path, cancellationToken);
+
     /// <summary>Whether <see cref="LoadContentAsync"/> gives decompiled code, which changes with the
     /// language and options, rather than a grid or a picture, which do not.</summary>
     public bool DependsOnLanguage => this is not MetadataGridNode && !IsImage;

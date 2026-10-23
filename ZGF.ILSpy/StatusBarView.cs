@@ -51,6 +51,8 @@ internal static class StatusBarView
     {
         if (w.IsReloading)
             return t.StatusReloading;
+        if (w.IsExporting)
+            return t.StatusExporting;
         if (IsDecompiling(w))
             return t.StatusDecompiling;
         if (w.IsResolving)
