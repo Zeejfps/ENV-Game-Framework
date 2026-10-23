@@ -135,5 +135,62 @@ public sealed class ExportTests : IDisposable
         Assert.All(icons, icon => Assert.True(app.Frames.Drew(icon)));
     }
 
+    [Fact]
+    public void Progress_that_arrives_after_its_run_ended_is_dropped()
+    {
+        var d = new WorkspaceDriver();
+        var run = d.Workspace.Export;
+        var first = run.Begin("First");
+        first.Progress.Report(new ExportProgress("First", 1, 1, 1, 2));
+        run.End();
+        run.Begin("Second");
+
+        d.Pump();
+
+        Assert.Equal(new ExportProgress("Second", 1, 1, 0, 0), run.Progress);
+    }
+
+    [Fact]
+    public void Progress_of_the_running_export_arrives_on_the_ui_thread()
+    {
+        var d = new WorkspaceDriver();
+        var run = d.Workspace.Export;
+        var start = run.Begin("Fixtures");
+
+        start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 3, 4));
+        d.Pump();
+
+        Assert.Equal(0.75f, run.Progress!.Value.Fraction);
+    }
+
+    [Fact]
+    public void A_cancelled_export_ends_without_an_error()
+    {
+        var d = WorkspaceDriver.Opened();
+        var path = _temp.PathOf(Path.Combine("Project", "Fixtures.csproj"));
+
+        d.Workspace.ExportProject(d.Node().Assembly, path);
+        d.Workspace.Export.Cancel();
+        d.Settle();
+
+        Assert.False(d.Workspace.IsExporting);
+        Assert.Null(d.Workspace.Export.Progress);
+        Assert.Empty(d.Workspace.Errors.Entries);
+    }
+
+    [Fact]
+    public void The_status_bar_shows_the_export_and_cancels_it()
+    {
+        var app = AppDriver.Opened();
+        var start = app.Workspace.Export.Begin("Fixtures");
+        start.Progress.Report(new ExportProgress("Fixtures", 2, 3, 1, 2));
+        app.Run(2);
+
+        Assert.True(app.Frames.Drew("Exporting 2/3 · Fixtures"));
+        app.Frames.Click(app.StatusText(LucideIcons.X)).Frame();
+
+        Assert.True(start.Token.IsCancellationRequested);
+    }
+
     private IEnumerable<string> ProjectFiles() => Directory.EnumerateFiles(_temp.Path, "*.cs", SearchOption.AllDirectories);
 }

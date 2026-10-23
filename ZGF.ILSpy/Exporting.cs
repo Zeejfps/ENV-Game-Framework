@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 public sealed record ExportRequest(string Folder, Action Start);
 
 /// <summary>Writing code, projects, solutions and portable PDBs to files in the background, one
-/// export at a time.</summary>
+/// export at a time, which <see cref="Workspace.Export"/> tracks and can cancel.</summary>
 public static class Exporting
 {
     private const string ProjectExtension = ".csproj";
@@ -49,18 +49,28 @@ public static class Exporting
     {
         var language = w.Language;
         var options = w.DecompilerOptions;
-        w.IsExporting = true;
-        var saved = await Background.Run(() => SaveCodeFile(node, language, options, path));
-        w.IsExporting = false;
-        if (saved.Error == null)
+        var start = w.Export.Begin(node.Text);
+        var saved = await Background.Run(() => SaveCodeFile(node, language, options, path, start.Token));
+        w.Export.End();
+        if (!HasFailed(saved.Error))
             return;
-        w.ReportError(Strings.For(w.Locale).ErrorSaveCode(node.Text), saved.Error.Message);
+        w.ReportError(Strings.For(w.Locale).ErrorSaveCode(node.Text), saved.Error!.Message);
     }
 
-    private static bool SaveCodeFile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path)
+    private static bool SaveCodeFile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
+        CancellationToken cancellationToken)
     {
-        node.SaveCode(language, options, path);
+        node.SaveCode(language, options, path, cancellationToken);
         return true;
+    }
+
+    /// <summary>Whether an export that ended with <paramref name="error"/> failed, rather than
+    /// finished or was cancelled.</summary>
+    private static bool HasFailed(Exception? error)
+    {
+        if (error == null)
+            return false;
+        return error is not OperationCanceledException;
     }
 
     /// <summary>Decompiles <paramref name="assembly"/> into a C# project whose file is
@@ -74,14 +84,16 @@ public static class Exporting
     private static async void StartProjectExport(this Workspace w, LoadedAssembly assembly, string projectPath)
     {
         var options = w.DecompilerOptions;
-        w.IsExporting = true;
-        var exported = await Background.Run(() => assembly.ExportProject(options, projectPath));
-        w.IsExporting = false;
-        if (exported.Value == null)
+        var start = w.Export.Begin(assembly.Name);
+        var exported = await Background.Run(() => AssemblyExport.ExportProject(assembly, options, projectPath, start.Progress, start.Token));
+        w.Export.End();
+        if (HasFailed(exported.Error))
         {
             w.ReportError(Strings.For(w.Locale).ErrorExportProject(assembly.Name), exported.Error!.Message);
             return;
         }
+        if (exported.Value == null)
+            return;
         w.ReportIncompleteProject(exported.Value);
     }
 
@@ -96,15 +108,17 @@ public static class Exporting
     private static async void StartSolutionExport(this Workspace w, string solutionPath)
     {
         var options = w.DecompilerOptions;
-        var assemblies = w.Assemblies;
-        w.IsExporting = true;
-        var exported = await Background.Run(() => assemblies.ExportSolution(options, solutionPath));
-        w.IsExporting = false;
-        if (exported.Value == null)
+        var assemblies = w.Assemblies.Assemblies;
+        var start = w.Export.Begin(Path.GetFileName(solutionPath));
+        var exported = await Background.Run(() => AssemblyExport.ExportSolution(assemblies, options, solutionPath, start.Progress, start.Token));
+        w.Export.End();
+        if (HasFailed(exported.Error))
         {
             w.ReportError(Strings.For(w.Locale).ErrorExportSolution, exported.Error!.Message);
             return;
         }
+        if (exported.Value == null)
+            return;
         foreach (var project in exported.Value)
             w.ReportIncompleteProject(project);
     }
@@ -162,17 +176,17 @@ public static class Exporting
     public static async void GeneratePdb(this Workspace w, LoadedAssembly assembly, string path)
     {
         var options = w.DecompilerOptions;
-        w.IsExporting = true;
-        var generated = await Background.Run(() => GeneratePdbFile(assembly, options, path));
-        w.IsExporting = false;
-        if (generated.Error == null)
+        var start = w.Export.Begin(assembly.Name);
+        var generated = await Background.Run(() => GeneratePdbFile(assembly, options, path, start));
+        w.Export.End();
+        if (!HasFailed(generated.Error))
             return;
-        w.ReportError(Strings.For(w.Locale).ErrorGeneratePdb(assembly.Name), generated.Error.Message);
+        w.ReportError(Strings.For(w.Locale).ErrorGeneratePdb(assembly.Name), generated.Error!.Message);
     }
 
-    private static bool GeneratePdbFile(LoadedAssembly assembly, DecompilerOptions options, string path)
+    private static bool GeneratePdbFile(LoadedAssembly assembly, DecompilerOptions options, string path, ExportStart start)
     {
-        assembly.GeneratePdb(options, path);
+        AssemblyExport.GeneratePdb(assembly, options, path, start.Progress, start.Token);
         return true;
     }
 
@@ -182,52 +196,34 @@ public static class Exporting
     {
         var options = w.DecompilerOptions;
         var assemblies = w.Assemblies.Assemblies;
-        var t = Strings.For(w.Locale);
-        w.IsExporting = true;
-        var failures = await Background.Run(() => GeneratePdbFiles(assemblies, options, folder, t));
-        w.IsExporting = false;
+        var start = w.Export.Begin(Path.GetFileName(folder));
+        var failures = await Background.Run(() => AssemblyExport.GeneratePdbs(assemblies, options, folder, start.Progress, start.Token));
+        w.Export.End();
         w.ReportPdbFailures(failures);
     }
 
-    private static List<string> GeneratePdbFiles(IReadOnlyList<LoadedAssembly> assemblies, DecompilerOptions options, string folder, Strings t)
-    {
-        var failures = new List<string>();
-        foreach (var assembly in assemblies)
-        {
-            var failure = TryGeneratePdb(assembly, options, folder, t);
-            if (failure != null)
-                failures.Add(failure);
-        }
-        return failures;
-    }
-
-    private static string? TryGeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string folder, Strings t)
-    {
-        if (!assembly.CanGeneratePdb)
-            return t.ErrorNoPdbEntry(assembly.Name);
-        var path = Path.Combine(folder, assembly.PdbFileName);
-        try
-        {
-            assembly.GeneratePdb(options, path);
-            return null;
-        }
-        catch (Exception e) when (e is not OperationCanceledException)
-        {
-            return $"{assembly.Name}: {e.Message}";
-        }
-    }
-
-    private static void ReportPdbFailures(this Workspace w, Outcome<List<string>> failures)
+    private static void ReportPdbFailures(this Workspace w, Outcome<List<PdbFailure>> failures)
     {
         var t = Strings.For(w.Locale);
-        if (failures.Value == null)
+        if (HasFailed(failures.Error))
         {
             w.ReportError(t.ErrorGeneratePdbs, failures.Error!.Message);
             return;
         }
+        if (failures.Value == null)
+            return;
         if (failures.Value.Count == 0)
             return;
-        var details = string.Join(Environment.NewLine, failures.Value);
+        var lines = failures.Value.Select(f => DescribePdbFailure(t, f));
+        var details = string.Join(Environment.NewLine, lines);
         w.ReportError(t.ErrorGeneratePdbs, details);
+    }
+
+    private static string DescribePdbFailure(Strings t, PdbFailure failure)
+    {
+        var name = failure.Assembly.Name;
+        if (failure.Error == null)
+            return t.ErrorNoPdbEntry(name);
+        return $"{name}: {failure.Error}";
     }
 }

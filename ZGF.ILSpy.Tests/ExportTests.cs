@@ -14,6 +14,27 @@ public sealed class ExportTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
+    /// <summary>Every report, in the order they came, from whichever thread sent them.</summary>
+    private sealed class RecordedProgress : IProgress<ExportProgress>
+    {
+        private readonly List<ExportProgress> _reports = new();
+
+        public List<ExportProgress> Reports
+        {
+            get
+            {
+                lock (_reports)
+                    return _reports.ToList();
+            }
+        }
+
+        public void Report(ExportProgress value)
+        {
+            lock (_reports)
+                _reports.Add(value);
+        }
+    }
+
     [Fact]
     public void A_type_saves_as_the_code_it_shows()
     {
@@ -68,7 +89,7 @@ public sealed class ExportTests : IDisposable
     {
         var projectPath = _temp.PathOf(Path.Combine("Project", "Tests.csproj"));
 
-        var exported = Trees.TestAssembly.ExportProject(DecompilerOptions.Default, projectPath);
+        var exported = AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath);
 
         Assert.Equal(projectPath, exported.ProjectPath);
         Assert.Contains("<Project", File.ReadAllText(projectPath));
@@ -79,10 +100,9 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void A_solution_holds_a_project_of_each_assembly_in_a_folder_of_its_own()
     {
-        var (list, _) = Trees.OpenTestAssembly();
         var solutionPath = _temp.PathOf("All.sln");
 
-        var exported = list.ExportSolution(DecompilerOptions.Default, solutionPath);
+        var exported = AssemblyExport.ExportSolution([Trees.TestAssembly], DecompilerOptions.Default, solutionPath);
 
         var project = Assert.Single(exported);
         Assert.Equal(_temp.PathOf(Path.Combine("ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests.csproj")), project.ProjectPath);
@@ -97,13 +117,71 @@ public sealed class ExportTests : IDisposable
         var path = _temp.PathOf("Tests.pdb");
 
         Assert.True(assembly.CanGeneratePdb);
-        assembly.GeneratePdb(DecompilerOptions.Default, path);
+        AssemblyExport.GeneratePdb(assembly, DecompilerOptions.Default, path);
 
         using var stream = File.OpenRead(path);
         using var provider = MetadataReaderProvider.FromPortablePdbStream(stream);
         var pdb = provider.GetMetadataReader();
         Assert.NotEmpty(pdb.Documents);
         Assert.False(File.Exists(path + ".tmp"));
+    }
+
+    [Fact]
+    public void A_project_export_reports_its_files_as_it_writes_them()
+    {
+        var progress = new RecordedProgress();
+        var projectPath = _temp.PathOf(Path.Combine("Project", "Tests.csproj"));
+
+        AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, progress);
+
+        var reports = progress.Reports;
+        Assert.Equal(new ExportProgress("ZGF.ILSpy.Tests", 1, 1, 0, 0), reports[0]);
+        Assert.Null(reports[0].Fraction);
+        Assert.Contains(reports, r => r.Total > 0 && r.Done == r.Total);
+    }
+
+    [Fact]
+    public void A_solution_reports_each_project_as_a_part_of_the_whole()
+    {
+        var progress = new RecordedProgress();
+        var solutionPath = _temp.PathOf("All.sln");
+
+        AssemblyExport.ExportSolution([Trees.TestAssembly, Trees.TestAssembly], DecompilerOptions.Default, solutionPath, progress);
+
+        Assert.Contains(progress.Reports, r => r is { Part: 1, Parts: 2 });
+        Assert.Contains(progress.Reports, r => r is { Part: 2, Parts: 2 });
+    }
+
+    [Fact]
+    public void The_fraction_counts_the_parts_before_and_how_far_into_this_one()
+    {
+        var progress = new ExportProgress("B", 2, 4, 1, 2);
+
+        Assert.Equal(0.375f, progress.Fraction);
+    }
+
+    [Fact]
+    public void A_cancelled_save_leaves_no_file_behind()
+    {
+        var path = _temp.PathOf("Tests.cs");
+        using var cancel = new CancellationTokenSource();
+        cancel.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            Trees.TestAssembly.Root.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path, cancel.Token));
+
+        Assert.Empty(Directory.EnumerateFileSystemEntries(_temp.Path));
+    }
+
+    [Fact]
+    public void A_cancelled_project_export_stops()
+    {
+        var projectPath = _temp.PathOf(Path.Combine("Project", "Tests.csproj"));
+        using var cancel = new CancellationTokenSource();
+        cancel.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, null, cancel.Token));
     }
 
     [Fact]

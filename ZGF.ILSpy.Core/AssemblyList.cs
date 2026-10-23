@@ -68,11 +68,6 @@ public sealed class AssemblyList
         Changed?.Invoke();
     }
 
-    /// <summary>Decompiles each open assembly into a C# project in a folder of its own beside
-    /// <paramref name="solutionPath"/>, then writes the solution that holds them.</summary>
-    public List<ExportedProject> ExportSolution(DecompilerOptions options, string solutionPath, CancellationToken cancellationToken = default) =>
-        ProjectExport.ExportSolution(Assemblies, options, solutionPath, cancellationToken);
-
     /// <summary>Closes every assembly.</summary>
     public void Clear()
     {

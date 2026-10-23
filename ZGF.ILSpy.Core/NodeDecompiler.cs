@@ -85,8 +85,23 @@ internal static class NodeDecompiler
 
     /// <summary>Writes <paramref name="node"/>'s code to the file at <paramref name="path"/>: for an
     /// assembly its whole module and for a namespace all its types, else what the node shows. Throws
-    /// when decompiling fails.</summary>
+    /// when decompiling fails. The file is replaced only once the code is whole.</summary>
     public static void SaveCode(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
+        CancellationToken cancellationToken)
+    {
+        var temporary = path + ".tmp";
+        try
+        {
+            WriteCode(node, language, options, temporary, cancellationToken);
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    private static void WriteCode(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
         CancellationToken cancellationToken)
     {
         if (node is AssemblyNode or NamespaceNode)

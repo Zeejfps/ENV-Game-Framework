@@ -45,7 +45,7 @@ public sealed class LoadedAssembly
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
         _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File));
-        _canGeneratePdb = new Lazy<bool>(() => ProjectExport.CanGeneratePdb(this));
+        _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
         _root = new Lazy<AssemblyNode>(() => new AssemblyNode(this));
     }
 
@@ -95,24 +95,14 @@ public sealed class LoadedAssembly
     public BrowseNode Root => _root.Value;
 
     /// <summary>The name a project of this assembly is offered under.</summary>
-    public string ProjectFileName => WholeProjectDecompiler.CleanUpFileName(Name, ProjectExport.ProjectExtension);
+    public string ProjectFileName => WholeProjectDecompiler.CleanUpFileName(Name, AssemblyExport.ProjectExtension);
 
     /// <summary>The name a portable PDB of this assembly is written under.</summary>
-    public string PdbFileName => WholeProjectDecompiler.CleanUpFileName(Name, ProjectExport.PdbExtension);
+    public string PdbFileName => WholeProjectDecompiler.CleanUpFileName(Name, AssemblyExport.PdbExtension);
 
     /// <summary>Whether a PDB can be generated for this assembly: only one whose debug directory
     /// names a PDB, which the generated one must match.</summary>
     public bool CanGeneratePdb => _canGeneratePdb.Value;
-
-    /// <summary>Decompiles this assembly into a C# project whose file is <paramref name="projectPath"/>,
-    /// with its code and resources in the folder beside it.</summary>
-    public ExportedProject ExportProject(DecompilerOptions options, string projectPath, CancellationToken cancellationToken = default) =>
-        ProjectExport.ExportProject(this, options, projectPath, cancellationToken);
-
-    /// <summary>Writes a portable PDB at <paramref name="path"/> that maps this assembly's IL to its
-    /// decompiled C#, which it embeds.</summary>
-    public void GeneratePdb(DecompilerOptions options, string path, CancellationToken cancellationToken = default) =>
-        ProjectExport.GeneratePdb(this, options, path, cancellationToken);
 
     internal AssemblyList List { get; }
     internal PEFile File { get; }

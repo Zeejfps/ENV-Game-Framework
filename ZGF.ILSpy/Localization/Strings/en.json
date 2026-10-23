@@ -299,7 +299,9 @@
 
   "status.reloading": "Reloading…",
   "status.decompiling": "Decompiling…",
-  "status.exporting": "Exporting…",
+  "status.exporting_name": "Exporting {name}…",
+  "status.exporting_part": "Exporting {part}/{parts} · {name}",
+  "status.cancel_export": "Cancel the export",
   "status.resolving": "Resolving…",
   "status.assemblies": { "one": "{count:N0} assembly", "other": "{count:N0} assemblies" },
   "status.errors": { "one": "{count:N0} error", "other": "{count:N0} errors" },
