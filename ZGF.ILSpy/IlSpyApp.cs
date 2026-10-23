@@ -48,7 +48,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     private void OpenStartupAssemblies()
     {
-        var paths = State.Settings.ListExistingAssemblies();
+        var paths = State.ListExistingAssemblies();
         paths.AddRange(_commandLineAssemblies);
         State.Open(paths);
     }

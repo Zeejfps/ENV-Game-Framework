@@ -172,10 +172,10 @@ public sealed class AnalyzerTests
         var root = analyzer.Roots[0];
         var kinds = analyzer.GetChildren(root).OfType<AnalyzerKindNode>().ToList();
 
-        app.Click(LucideIcons.ChevronsUpDown).Frame();
+        app.ClickLast(LucideIcons.ChevronsUpDown).Frame();
         var expanded = kinds.All(k => analyzer.View.IsExpanded(k));
         d.RunUntil(() => kinds.All(k => k.IsDone));
-        app.Click(LucideIcons.ChevronsDownUp).Frame();
+        app.ClickLast(LucideIcons.ChevronsDownUp).Frame();
 
         Assert.NotEmpty(kinds);
         Assert.True(expanded);
@@ -194,7 +194,7 @@ public sealed class AnalyzerTests
         analyzer.View.Select(caller);
         app.Run(3);
 
-        app.Click(LucideIcons.Trash2).Frame(2);
+        app.ClickLast(LucideIcons.Trash2).Frame(2);
         var left = analyzer.Roots.Select(r => r.Symbol.Label).ToList();
         app.Click(LucideIcons.ListX).Frame(2);
 

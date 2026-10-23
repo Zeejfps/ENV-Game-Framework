@@ -19,6 +19,19 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
+    public void An_open_cancelled_before_it_lists_the_assembly_leaves_the_list_as_it_was()
+    {
+        var list = new AssemblyList();
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => list.Open(Trees.TestAssemblyPath, cancelled.Token));
+
+        Assert.Empty(list.Assemblies);
+        Assert.Equal(0, list.Version);
+    }
+
+    [Fact]
     public void Open_and_close_update_the_snapshot_paths_version_and_listeners()
     {
         var list = new AssemblyList();

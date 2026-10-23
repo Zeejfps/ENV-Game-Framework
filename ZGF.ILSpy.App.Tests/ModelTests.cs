@@ -87,7 +87,8 @@ public sealed class AppSettingsTests : IDisposable
     public void Saved_settings_load_back_and_leave_no_temporary_file()
     {
         var settings = AppSettings.Load(SettingsFile);
-        settings.Assemblies = ["a.dll", "b.dll"];
+        settings.AssemblyLists = [new AssemblyListRecord("Work", ["a.dll", "b.dll"]), new AssemblyListRecord("Play", ["c.dll"])];
+        settings.ActiveAssemblyList = "Play";
         settings.Language = DecompilationLanguage.IL;
         settings.Decompiler = new DecompilerOptions { LanguageVersion = CSharpVersion.CSharp7_3 }.With(DecompilerToggle.Find("AlwaysUseBraces")!, false);
         settings.FoldedOptionGroups = ["Other"];
@@ -96,7 +97,9 @@ public sealed class AppSettingsTests : IDisposable
 
         var loaded = AppSettings.Load(SettingsFile);
         Assert.Null(loaded.LoadError);
-        Assert.Equal(["a.dll", "b.dll"], loaded.Assemblies);
+        Assert.Equal(["Work", "Play"], loaded.AssemblyLists.Select(static l => l.Name));
+        Assert.Equal(["a.dll", "b.dll"], loaded.AssemblyLists[0].Assemblies);
+        Assert.Equal("Play", loaded.ActiveAssemblyList);
         Assert.Equal(DecompilationLanguage.IL, loaded.Language);
         Assert.Equal(settings.Decompiler, loaded.Decompiler);
         Assert.Equal(["Other"], loaded.FoldedOptionGroups);
@@ -163,13 +166,36 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
-    public void A_null_assembly_list_loads_as_empty()
+    public void Null_assembly_lists_load_as_none()
     {
-        var loaded = AppSettings.Load(Written("""{ "Assemblies": null, "Theme": "Monokai" }"""));
+        var loaded = AppSettings.Load(Written("""{ "AssemblyLists": null, "Theme": "Monokai" }"""));
 
         Assert.Null(loaded.LoadError);
-        Assert.Empty(loaded.Assemblies);
+        Assert.Empty(loaded.AssemblyLists);
         Assert.Equal(AppThemeId.Monokai, loaded.Theme);
+    }
+
+    [Fact]
+    public void Lists_missing_their_name_or_assemblies_load_without_them()
+    {
+        var loaded = AppSettings.Load(Written("""{ "AssemblyLists": [ null, { "Name": null }, { "Name": "Work", "Assemblies": null }, { "Name": "Play", "Assemblies": [ " ", "a.dll" ] } ] }"""));
+
+        Assert.Null(loaded.LoadError);
+        Assert.Equal(["Work", "Play"], loaded.AssemblyLists.Select(static l => l.Name));
+        Assert.Empty(loaded.AssemblyLists[0].Assemblies);
+        Assert.Equal(["a.dll"], loaded.AssemblyLists[1].Assemblies);
+    }
+
+    [Fact]
+    public void The_one_list_of_an_older_settings_file_becomes_the_default_list_and_is_saved_only_there()
+    {
+        var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", "", "b.dll" ] }"""));
+
+        var list = Assert.Single(loaded.AssemblyLists);
+        Assert.Equal(SavedAssemblyLists.DefaultName, list.Name);
+        Assert.Equal(["a.dll", "b.dll"], list.Assemblies);
+        Assert.Null(loaded.Save());
+        Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Assemblies", out _));
     }
 
     [Fact]
@@ -178,7 +204,7 @@ public sealed class AppSettingsTests : IDisposable
         var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", """));
         var workspace = new Workspace(loaded);
 
-        Assert.Empty(loaded.Assemblies);
+        Assert.Empty(loaded.AssemblyLists);
         Assert.NotNull(loaded.LoadError);
         var error = Assert.Single(workspace.Errors.Entries);
         Assert.Contains(SettingsFile, error.Details);
@@ -188,14 +214,14 @@ public sealed class AppSettingsTests : IDisposable
     public void Saving_replaces_the_whole_file()
     {
         var settings = AppSettings.Load(SettingsFile);
-        settings.Assemblies = Enumerable.Range(0, 200).Select(i => $"assembly-{i}.dll").ToList();
+        settings.AssemblyLists = Enumerable.Range(0, 200).Select(i => new AssemblyListRecord($"list-{i}", [])).ToList();
         settings.Save();
-        settings.Assemblies = ["one.dll"];
+        settings.AssemblyLists = [new AssemblyListRecord("one", [])];
 
         settings.Save();
 
         var json = JsonDocument.Parse(File.ReadAllText(SettingsFile));
-        Assert.Equal(1, json.RootElement.GetProperty("Assemblies").GetArrayLength());
+        Assert.Equal(1, json.RootElement.GetProperty("AssemblyLists").GetArrayLength());
     }
 }
 

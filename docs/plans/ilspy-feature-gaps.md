@@ -9,7 +9,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 1. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
    GAC (Windows), open from a running process, single-file bundles, WebCIL `.wasm`.
-2. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
 
 ## Medium
 
@@ -24,7 +23,9 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   module nodes, nested-namespace view, exported (forwarded) types, types/members used
   from each reference, optional metadata tokens (hex or decimal).
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
-  folder, Remove assemblies that failed to load, sort list, collapse all.
+  folder, Remove assemblies that failed to load, sort list.
+- **Failed assemblies:** a file that is missing or fails to load is dropped from its list, with
+  no node in the tree; upstream keeps it listed and shows the error.
 - **Metadata explorer:** "Show in metadata" from code, "Decompile metadata row in new tab", hide
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.
@@ -36,6 +37,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 - Compare assemblies (API diff) and Create Diagram.
 - Command line: `/navigateTo:`, `/language:`, `/list:`, `/clearList`, single-instance handling.
+- Preconfigured assembly lists (upstream offers ready-made lists of framework assemblies).
 - Help/About and Check for updates.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).

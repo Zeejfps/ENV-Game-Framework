@@ -18,12 +18,15 @@ public static class AssemblyLoading
     private static async void OpenInBackground(this Workspace w, string[] files)
     {
         var ticket = w.Intent.Begin();
-        var opened = await Background.Run(() => w.OpenFiles(files, CancellationToken.None));
+        var token = w.Opens.Token;
+        var opened = await Background.Run(() => w.OpenFiles(files, token));
         w.ShowOpened(opened, ticket);
     }
 
     private static void ShowOpened(this Workspace w, Outcome<Opened> outcome, int ticket)
     {
+        if (outcome.Error is OperationCanceledException)
+            return;
         var opened = outcome.Value;
         if (opened == null)
         {
@@ -45,27 +48,29 @@ public static class AssemblyLoading
     public static void ClearList(this Workspace w)
     {
         w.Intent.Begin();
+        w.Opens.CancelAll();
         w.Reload.Stop();
         w.ClearAssemblies();
     }
 
-    private static void ClearAssemblies(this Workspace w)
+    internal static void ClearAssemblies(this Workspace w)
     {
         w.Assemblies.Clear();
         w.Tree.View.ClearSelection();
-        w.Tree.View.CollapseAll();
+        w.Tree.CollapseAll();
         w.Analyzer.Clear();
         w.MenuTarget = null;
     }
 
-    /// <summary>Reloads every assembly from disk in the background, then expands the tree as it was
-    /// and shows each tab's place again, decompiled from the fresh files.</summary>
+    /// <summary>Reloads every assembly of the open list from disk in the background, then expands the
+    /// tree as it was and shows each tab's place again, decompiled from the fresh files.</summary>
     public static async void Refresh(this Workspace w)
     {
+        w.RememberOpenAssemblies();
         var intent = w.Intent.Begin();
         var ticket = w.Reload.Start();
 
-        var paths = w.Assemblies.FilePaths;
+        var paths = w.Lists.ActivePaths.ToList();
         var expanded = w.Tree.ExpandedPaths();
         var tabs = w.ReleaseShownTabs();
         var places = tabs.ConvertAll(t => t.Location);
@@ -174,6 +179,29 @@ public static class AssemblyLoading
         w.ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
     }
 
+    /// <summary>Opens <paramref name="paths"/> in the background as a reload does, so that another
+    /// reload or clearing the list stops it, and the settings are saved once it is done.</summary>
+    internal static async void OpenAsReload(this Workspace w, List<string> paths)
+    {
+        var ticket = w.Reload.Start();
+        var opened = await Background.Run(() => w.OpenFiles(paths, ticket.Token));
+        w.FinishOpeningAsReload(opened, ticket);
+    }
+
+    private static void FinishOpeningAsReload(this Workspace w, Outcome<Opened> outcome, ReloadTicket ticket)
+    {
+        if (!w.Reload.Finish(ticket))
+            return;
+        var opened = outcome.Value;
+        if (opened == null)
+        {
+            w.ReportError(Strings.For(w.Locale).ErrorOpenAssemblies, outcome.Error!.ToString());
+            return;
+        }
+        w.ReportAll(opened.Errors);
+        w.SaveSettings();
+    }
+
     private static Opened OpenFiles(this Workspace w, IEnumerable<string> paths, CancellationToken cancellationToken)
     {
         LoadedAssembly? last = null;
@@ -183,7 +211,7 @@ public static class AssemblyLoading
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                last = w.Assemblies.Open(path);
+                last = w.Assemblies.Open(path, cancellationToken);
             }
             catch (AssemblyLoadException e)
             {

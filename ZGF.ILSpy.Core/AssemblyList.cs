@@ -40,15 +40,19 @@ public sealed class AssemblyList
     public event Action? Changed;
 
     /// <summary>Opens the assembly at <paramref name="path"/>, or returns it if already open. Its type
-    /// system starts loading in the background.</summary>
+    /// system starts loading in the background. Once <paramref name="cancellationToken"/> is cancelled
+    /// the assembly is no longer listed, so cancelling before <see cref="Clear"/> keeps an open still
+    /// running out of the list.</summary>
     /// <exception cref="AssemblyLoadException">The file is missing or not a .NET assembly.</exception>
-    public LoadedAssembly Open(string path)
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public LoadedAssembly Open(string path, CancellationToken cancellationToken = default)
     {
         path = Path.GetFullPath(path);
         while (true)
         {
             var assembly = Load(path);
-            if (TryList(assembly)) return assembly;
+            if (TryList(assembly, cancellationToken)) return assembly;
+            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 
@@ -241,10 +245,11 @@ public sealed class AssemblyList
         return assembly;
     }
 
-    internal bool TryList(LoadedAssembly assembly)
+    internal bool TryList(LoadedAssembly assembly, CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
+            if (cancellationToken.IsCancellationRequested) return false;
             if (!_known.TryGetValue(assembly.FilePath, out var known) || known != assembly) return false;
             if (assembly.IsListed) return true;
             assembly.IsListed = true;

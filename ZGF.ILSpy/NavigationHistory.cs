@@ -42,6 +42,14 @@ public sealed class NavigationHistory
         Revision++;
     }
 
+    /// <summary>Forgets every place.</summary>
+    public void Clear()
+    {
+        _entries.Clear();
+        _current = -1;
+        Revision++;
+    }
+
     /// <summary>Remembers where the view of the current place stands as it is left.</summary>
     public void Leave(DecompilationLanguage language, CodeViewPosition position)
     {

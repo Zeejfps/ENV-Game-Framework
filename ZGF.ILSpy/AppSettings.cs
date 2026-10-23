@@ -22,7 +22,16 @@ public sealed class AppSettings
     [JsonIgnore]
     public string? LoadError { get; private set; }
 
-    public List<string> Assemblies { get; set; } = new();
+    /// <summary>The named assembly lists, the open one's as it was left.</summary>
+    public List<AssemblyListRecord> AssemblyLists { get; set; } = new();
+
+    /// <summary>The name of the list that was open; null opens the first.</summary>
+    public string? ActiveAssemblyList { get; set; }
+
+    /// <summary>The one list that settings files kept before lists had names. <see cref="Load"/>
+    /// moves it into <see cref="AssemblyLists"/>, so it is never written.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Assemblies { get; set; }
     public AppThemeId Theme { get; set; } = AppThemeId.Dark;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
@@ -109,13 +118,6 @@ public sealed class AppSettings
         return Window.Value.ApplyTo(config);
     }
 
-    public List<string> ListExistingAssemblies()
-    {
-        return Assemblies
-            .Where(File.Exists)
-            .ToList();
-    }
-
     public static AppSettings Load(string path)
     {
         AppSettings? settings = null;
@@ -130,13 +132,45 @@ public sealed class AppSettings
             error = $"{path}{Environment.NewLine}{e.Message}";
         }
         settings ??= new AppSettings();
-        settings.Assemblies ??= new List<string>();
-        settings.Assemblies.RemoveAll(static p => string.IsNullOrWhiteSpace(p));
+        settings.AssemblyLists = CleanAssemblyLists(settings.AssemblyLists);
+        settings.MoveUnnamedListIntoDefault();
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.FilePath = path;
         settings.LoadError = error;
         return settings;
+    }
+
+    /// <summary><paramref name="lists"/> without what a hand-edited file can leave in them: missing
+    /// lists, names or assemblies, and blank paths.</summary>
+    private static List<AssemblyListRecord> CleanAssemblyLists(List<AssemblyListRecord>? lists)
+    {
+        if (lists == null)
+            return new List<AssemblyListRecord>();
+        return lists
+            .Where(static l => l != null && l.Name != null)
+            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies)))
+            .ToList();
+    }
+
+    private static List<string> CleanPaths(List<string>? paths)
+    {
+        if (paths == null)
+            return new List<string>();
+        return paths
+            .Where(static p => !string.IsNullOrWhiteSpace(p))
+            .ToList();
+    }
+
+    private void MoveUnnamedListIntoDefault()
+    {
+        if (Assemblies == null)
+            return;
+        var paths = CleanPaths(Assemblies);
+        Assemblies = null;
+        if (AssemblyLists.Count > 0)
+            return;
+        AssemblyLists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, paths));
     }
 
     /// <summary>Writes the settings to <see cref="FilePath"/>, replacing the file whole so a failed

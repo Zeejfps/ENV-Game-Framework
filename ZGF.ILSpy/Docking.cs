@@ -73,6 +73,30 @@ public static class Docking
 
     public static void CloseTab(this Workspace w, DocumentTab tab) => w.Layout.Close(tab.Panel);
 
+    /// <summary>Closes every document tab but the active one, and empties that one; with no tab left
+    /// open, opens an empty one.</summary>
+    public static void CloseDocuments(this Workspace w)
+    {
+        var kept = w.FindTabToKeep();
+        var others = w.Tabs
+            .Where(t => t != kept)
+            .ToList();
+        foreach (var tab in others)
+            w.CloseTab(tab);
+        kept.Clear();
+        w.Tabs.MakeActive(kept);
+    }
+
+    private static DocumentTab FindTabToKeep(this Workspace w)
+    {
+        var active = w.Tabs.Active;
+        if (active != null)
+            return active;
+        if (w.Tabs.Count > 0)
+            return w.Tabs[0];
+        return w.OpenNewTab();
+    }
+
     /// <summary>Called when a panel is closed: clears the search with its panel, and forgets the tab
     /// a closed document was, focusing the next one when it was active.</summary>
     internal static void OnPanelClosed(this Workspace w, string panel)

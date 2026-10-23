@@ -143,6 +143,20 @@ public sealed class DocumentTab
         ShowsText = true;
     }
 
+    /// <summary>Shows nothing, as a new tab does, cancelling what was in flight.</summary>
+    public void Clear()
+    {
+        Version++;
+        Cancel();
+        Node = null;
+        Location = null;
+        Grid = null;
+        Image = null;
+        _title = null;
+        Document = DecompiledDocument.Empty;
+        ShowsText = false;
+    }
+
     /// <summary>Whether the tab shows a document of its own, such as a report, rather than a node.</summary>
     public bool ShowsText { get; private set; }
 

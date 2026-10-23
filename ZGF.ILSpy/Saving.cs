@@ -6,28 +6,30 @@ namespace ZGF.ILSpy;
 /// <summary>Saving the settings when something in them changed, and saving resources to files.</summary>
 public static class Saving
 {
-    /// <summary>Saves the settings when the assembly list, the bookmarks, the analyzer or the
+    /// <summary>Saves the settings when the open assemblies, the named lists, the bookmarks, the analyzer or the
     /// metadata filters changed since the last save, unless the assemblies are reloading.</summary>
     public static void SaveSettingsIfChanged(this Workspace w)
     {
         if (w.IsReloading)
             return;
-        if (!w.LastSave.IsBehind(w.Assemblies, w.Bookmarks, w.Analyzer, w.MetadataFilters))
+        if (!w.LastSave.IsBehind(w.Assemblies, w.Lists, w.Bookmarks, w.Analyzer, w.MetadataFilters))
             return;
         w.SaveSettings();
     }
 
     public static void SaveSettings(this Workspace w)
     {
+        w.RememberOpenAssemblies();
         w.CopyStateToSettings();
-        w.LastSave.Record(w.Assemblies, w.Bookmarks, w.Analyzer, w.MetadataFilters);
+        w.LastSave.Record(w.Assemblies, w.Lists, w.Bookmarks, w.Analyzer, w.MetadataFilters);
         w.WriteSettingsFile();
     }
 
     private static void CopyStateToSettings(this Workspace w)
     {
         var settings = w.Settings;
-        settings.Assemblies = w.Assemblies.FilePaths.ToList();
+        settings.AssemblyLists = w.Lists.Save();
+        settings.ActiveAssemblyList = w.Lists.Active;
         settings.Theme = w.Theme;
         settings.Language = w.Language;
         settings.Decompiler = w.DecompilerOptions;

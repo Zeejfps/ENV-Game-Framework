@@ -243,5 +243,9 @@ internal sealed class AppDriver
     /// when the same text is also on the window below it.</summary>
     public UiFrames ClickMenuItem(string text) => Frames.Click(LastTextRect(text));
 
+    /// <summary>Clicks where <paramref name="text"/> was last drawn, such as an icon that the assemblies
+    /// panel's toolbar also draws.</summary>
+    public UiFrames ClickLast(string text) => Frames.Click(LastTextRect(text));
+
     public UiFrames DoubleClick(string text) => Frames.DoubleClick(TextRect(text));
 }

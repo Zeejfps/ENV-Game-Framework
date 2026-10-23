@@ -23,6 +23,7 @@ public static class MainView
             StatusBarView.Render(ui, w);
         }
         FrameworkPickerView.Render(ui, w);
+        AssemblyListsDialogView.Render(ui, w);
         BookmarkImportDialogView.Render(ui, w);
         LayoutResetDialogView.Render(ui, w);
         ExportDialogView.Render(ui, w);

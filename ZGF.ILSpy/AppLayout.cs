@@ -12,4 +12,6 @@ internal static class AppLayout
     public const int ErrorListRows = 5;
     public const float PickerWidth = 560f;
     public const float PickerHeight = 0.75f;
+    public const float ListsDialogWidth = 480f;
+    public const float ListsDialogListHeight = 240f;
 }

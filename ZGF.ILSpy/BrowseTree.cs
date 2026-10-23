@@ -14,6 +14,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private readonly HashSet<BrowseNode> _building = new(ReferenceEqualityComparer.Instance);
     private BrowseNode[] _roots = [];
     private int _rootsVersion = -1;
+    private readonly UserIntent _expansion = new();
     private bool _showNonPublic = true;
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
@@ -106,6 +107,48 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         foreach (var node in nodes)
             View.SetExpanded(node, true);
         View.Refresh();
+    }
+
+    /// <summary>Expands every assembly and the namespaces in it, building an assembly's children in the
+    /// background first when they are not built yet. Collapsing before they are built keeps it collapsed.</summary>
+    public void ExpandNamespaces()
+    {
+        var ticket = _expansion.Begin();
+        foreach (var root in _roots)
+            ExpandAssembly(root, ticket);
+        View.Refresh();
+    }
+
+    private async void ExpandAssembly(BrowseNode root, int ticket)
+    {
+        View.SetExpanded(root, true);
+        var built = await Background.Run(() => BuildChildren(root));
+        if (_expansion.IsStale(ticket))
+            return;
+        var children = built.Value;
+        if (children == null)
+            return;
+        foreach (var child in children)
+            ExpandIfNamespace(child);
+        View.Refresh();
+    }
+
+    private static IReadOnlyList<BrowseNode> BuildChildren(BrowseNode node)
+    {
+        node.LoadChildren();
+        return node.Children;
+    }
+
+    private void ExpandIfNamespace(BrowseNode node)
+    {
+        if (node.Kind == NodeKind.Namespace)
+            View.SetExpanded(node, true);
+    }
+
+    public void CollapseAll()
+    {
+        _expansion.Begin();
+        View.CollapseAll();
     }
 
     public bool HasChildren(BrowseNode node) => node.HasChildren;

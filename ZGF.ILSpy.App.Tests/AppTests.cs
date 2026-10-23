@@ -251,11 +251,11 @@ public sealed class AppTests
         app.Workspace.OpenDecompilerOptions();
         app.Run();
 
-        app.Click(LucideIcons.ChevronsDownUp);
+        app.ClickLast(LucideIcons.ChevronsDownUp);
         Assert.False(app.Frames.Drew("switch expressions"));
         Assert.True(app.Frames.Drew("C# 8.0 / VS 2019"));
 
-        app.Click(LucideIcons.ChevronsUpDown);
+        app.ClickLast(LucideIcons.ChevronsUpDown);
         Assert.Empty(app.Workspace.FoldedOptionGroups);
         Assert.True(app.Frames.Drew("Extension members"));
     }

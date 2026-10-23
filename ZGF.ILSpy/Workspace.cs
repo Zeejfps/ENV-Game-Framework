@@ -15,10 +15,17 @@ public sealed class Workspace
 {
     public AppSettings Settings { get; }
     public AssemblyList Assemblies { get; } = new();
+
+    /// <summary>The named assembly lists, one of which <see cref="Assemblies"/> holds open.</summary>
+    public SavedAssemblyLists Lists { get; } = new();
+
+    /// <summary>What the assembly lists dialog shows, and whether it is open.</summary>
+    public AssemblyListsDialog ListsDialog { get; } = new();
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
     public UserIntent Intent { get; } = new();
     public Reload Reload { get; } = new();
+    public OpenRequests Opens { get; } = new();
     public LastSave LastSave { get; } = new();
     public LastSessionAnalyses LastSessionAnalyses { get; }
     public BookmarkList Bookmarks { get; } = new();
@@ -139,12 +146,13 @@ public sealed class Workspace
         Search = new Search(() => Strings.For(Locale), ReportError);
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
+        Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
         ExportSetup.Window = settings.ExportWindow;
-        LastSave.Record(Assemblies, Bookmarks, Analyzer, MetadataFilters);
+        LastSave.Record(Assemblies, Lists, Bookmarks, Analyzer, MetadataFilters);
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);

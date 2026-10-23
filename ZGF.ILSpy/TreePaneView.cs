@@ -11,6 +11,7 @@ internal static class TreePaneView
 {
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
+    private const string ListItemPrefix = "list:";
 
     public static void Render(Ui<UiState> ui, Workspace w)
     {
@@ -18,12 +19,69 @@ internal static class TreePaneView
         w.Tree.SetStyle(theme, ui.State.NodeIconPalette);
         w.Tree.SetShowNonPublic(w.ShowNonPublic);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
+        Toolbar(ui, w);
+        ui.Separator();
         if (w.Tree.Roots.Count == 0)
             EmptyHint(ui);
         var result = ui.TreeView(TreeId, w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
         AnalyzeOnShortcut(ui, w);
+        CloseOnDelete(ui, w);
         Respond(ui, w, result);
         ContextMenu(ui, w);
+    }
+
+    private static void Toolbar(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        var any = w.Tree.Roots.Count > 0;
+        using (ui.PaneToolbar())
+        {
+            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
+                w.Tree.CollapseAll();
+            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.TreeExpandNamespaces, any))
+                w.Tree.ExpandNamespaces();
+            ui.Separator(theme.IconSize);
+            ListPicker(ui, w);
+            var picked = FindPickedAssembly(w);
+            if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
+                w.Close(picked!.Assembly);
+        }
+    }
+
+    /// <summary>The assembly node selected in the tree, or null when none is or another kind of node is.</summary>
+    private static BrowseNode? FindPickedAssembly(Workspace w)
+    {
+        var node = w.Tree.View.Selected;
+        if (node == null)
+            return null;
+        if (node.Kind != NodeKind.Assembly)
+            return null;
+        return node;
+    }
+
+    /// <summary>The open list's name, opening a menu of every list to switch to, and of the dialog
+    /// that manages them.</summary>
+    private static void ListPicker(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
+        var lists = w.Lists;
+        using var menu = ui.SelectButton("list", lists.Active, Sizing.Grow(), t.ListsPick, revision: lists.Count);
+        if (!menu.IsOpen)
+            return;
+        foreach (var name in lists.Names)
+            ListItem(ui, w, name);
+        ui.MenuSeparator();
+        if (ui.MenuItem(t.ListsManage, id: "manage"))
+            w.OpenListsDialog();
+    }
+
+    private static void ListItem(Ui<UiState> ui, Workspace w, string name)
+    {
+        var active = name == w.Lists.Active;
+        if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
+            return;
+        w.SwitchList(name);
     }
 
     private static void EmptyHint(Ui<UiState> ui)
@@ -44,6 +102,18 @@ internal static class TreePaneView
         if (picked == null)
             return;
         w.Analyze(picked);
+    }
+
+    private static void CloseOnDelete(Ui<UiState> ui, Workspace w)
+    {
+        if (!ui.HasFocus(ui.GetId(TreeId)))
+            return;
+        var picked = FindPickedAssembly(w);
+        if (picked == null)
+            return;
+        if (!Shortcuts.DeletePressed(ui))
+            return;
+        w.Close(picked.Assembly);
     }
 
     private static void Respond(Ui<UiState> ui, Workspace w, TreeViewResult<BrowseNode> result)
