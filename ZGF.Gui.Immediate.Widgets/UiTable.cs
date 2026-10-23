@@ -3,31 +3,40 @@ using ZGF.Desktop;
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>One column of a <see cref="TableColumns"/>: its share of the width the fixed columns
-/// leave, and the least it shrinks to. A <see cref="Fixed"/> width neither grows nor resizes.</summary>
-public readonly record struct TableColumn(float Weight = 1f, float MinWidth = 48f, float? Fixed = null);
+/// leave, and the least it shrinks to. A <see cref="Fixed"/> width neither grows nor resizes. A
+/// column of <see cref="Controls"/> holds controls of its row: pressing it selects the row but
+/// never makes its cell the current one.</summary>
+public readonly record struct TableColumn(float Weight = 1f, float MinWidth = 48f, float? Fixed = null, bool Controls = false);
 
-/// <summary>How a <see cref="UiWidgets.TableHeader"/> shows and changes the sort: the column the
+/// <summary>How a table's <see cref="TableFrame.Header"/> shows and changes the sort: the column the
 /// rows are sorted by, or -1, and the icon drawn after its label. Passing one makes every header
 /// clickable.</summary>
 public readonly record struct TableSort(int Column, UiIcon? Icon = null);
 
 /// <summary>Records what the header cell of <paramref name="column"/> shows in place of its label,
-/// <paramref name="hovered"/> while the pointer is over the cell.</summary>
-public delegate void TableHeading(Ui ui, int column, bool hovered);
-
-/// <summary>A <see cref="TableHeading"/> handed <paramref name="state"/>, so it can be a static
-/// lambda that captures nothing and allocates nothing.</summary>
+/// <paramref name="hovered"/> while the pointer is over the cell, handed <paramref name="state"/> so
+/// it can be a static lambda that captures nothing and allocates nothing.</summary>
 public delegate void TableHeading<TState>(Ui ui, int column, bool hovered, in TState state);
 
+/// <summary>How far a table's rows are scrolled, owned by the app as <c>SplitPane</c>'s size is, so
+/// several documents shown in turn by one table each keep their own place.</summary>
+public sealed class TableScroll
+{
+    public float X;
+    public float Y;
+}
+
 /// <summary>
-/// The column widths of a table, shared by its <see cref="UiWidgets.TableHeader"/> and the
-/// <see cref="UiWidgets.TableCell"/>s of its rows so they line up. Owned by the app; dragging a
-/// border in the header moves width between the columns either side, and <see cref="Weights"/>
-/// gives the result to save and <see cref="Restore"/> takes it back. <see cref="Sized"/> columns
-/// instead keep their own widths, however wide together, for a table that scrolls sideways.
+/// The column widths of a table, shared by its header and the cells of its rows so they line up.
+/// Owned by the app; dragging a border in the header moves width between the columns either side,
+/// and <see cref="Weights"/> gives the result to save and <see cref="Restore"/> takes it back.
+/// <see cref="Sized"/> columns instead keep their own widths, however wide together, for a table
+/// that scrolls sideways.
 /// </summary>
 public sealed class TableColumns
 {
+    private const int NoColumn = -1;
+
     private readonly TableColumn[] _columns;
     private readonly float[] _weights;
     private readonly float[] _widths;
@@ -76,6 +85,33 @@ public sealed class TableColumns
             if (IsSized)
                 _widths[i] = _weights[i];
         }
+    }
+
+    internal bool IsSelectable(int index) => !_columns[index].Controls;
+
+    /// <summary>The selectable column <paramref name="by"/> steps on from <paramref name="from"/>,
+    /// skipping those that aren't; <paramref name="from"/> again past the last one either way, and
+    /// the first one when <paramref name="from"/> is no column.</summary>
+    internal int StepSelectable(int from, int by)
+    {
+        if (from < 0)
+            return FindFirstSelectable();
+        for (var i = from + by; i >= 0 && i < _columns.Length; i += by)
+        {
+            if (IsSelectable(i))
+                return i;
+        }
+        return from;
+    }
+
+    private int FindFirstSelectable()
+    {
+        for (var i = 0; i < _columns.Length; i++)
+        {
+            if (IsSelectable(i))
+                return i;
+        }
+        return NoColumn;
     }
 
     internal bool Resizable(int index) => _columns[index].Fixed == null;
@@ -127,49 +163,66 @@ public sealed class TableColumns
 
 public static partial class UiWidgets
 {
+    private const int TableSalt = 0x5441424C;
+    private const int TableHeaderSalt = 0x54424844;
     private const int TableBorderSalt = 0x54424C42;
     private const int TableHeadingSalt = 0x54424C48;
 
     internal static int TableBorderId(int headerId, int column) => HashCode.Combine(headerId, TableBorderSalt, column);
 
+    internal static int TableHeaderId(int tableId) => HashCode.Combine(tableId, TableHeaderSalt);
+
+    public static TableFrame Table(this Ui ui, string id, TableColumns columns, ListSelection rows, TableScroll? scroll = null) =>
+        Table(ui, ui.GetId(id), columns, rows, scroll);
+
     /// <summary>
-    /// Lays <paramref name="columns"/> out across the content of the element with
-    /// <paramref name="bodyId"/> as last laid out — a scroll's content less its gutter — less
-    /// <paramref name="paddingX"/> each side, which the rows should pad by too, then records a header
-    /// row with each column's label in <paramref name="headers"/>. A border between two resizable
-    /// columns can be dragged. <see cref="TableColumns.Sized"/> columns keep their widths instead,
-    /// and the header shows them scrolled by <paramref name="scrollX"/>, as the rows are. With a
-    /// <paramref name="sort"/>, returns the column whose header was clicked, else -1. A
-    /// <paramref name="heading"/> records each cell's content instead of its label.
+    /// Opens the table <paramref name="id"/> laid out in <paramref name="columns"/>, whose rows are
+    /// picked whole into <paramref name="rows"/>: record its <see cref="TableFrame.Header"/>, then
+    /// its <see cref="TableFrame.Body"/>. The table is a Tab stop and takes keyboard focus, but no
+    /// text, under the id of its body; <paramref name="scroll"/> keeps how far its rows are scrolled,
+    /// else the table does.
     /// </summary>
-    public static int TableHeader(this Ui ui, string id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX = 0f,
-        float scrollX = 0f, TableSort? sort = null, TableHeading? heading = null)
+    public static TableFrame Table(this Ui ui, int id, TableColumns columns, ListSelection rows, TableScroll? scroll = null) =>
+        OpenTable(ui, id, columns, rows, null, scroll);
+
+    public static TableFrame Table(this Ui ui, string id, TableColumns columns, TableCellSelection cells, TableScroll? scroll = null) =>
+        Table(ui, ui.GetId(id), columns, cells, scroll);
+
+    /// <summary>A <see cref="Table(Ui, int, TableColumns, ListSelection, TableScroll?)"/> of cells,
+    /// one of which <paramref name="cells"/> makes current in the row it selects: each cell takes
+    /// the pointer on its own, Left and Right step between the selectable columns, Escape collapses
+    /// the text selected in the current cell and Ctrl+C asks to copy it.</summary>
+    public static TableFrame Table(this Ui ui, int id, TableColumns columns, TableCellSelection cells, TableScroll? scroll = null) =>
+        OpenTable(ui, id, columns, cells.Rows, cells, scroll);
+
+    private static TableFrame OpenTable(Ui ui, int id, TableColumns columns, ListSelection rows, TableCellSelection? cells, TableScroll? scroll)
     {
-        var headerId = ui.GetId(id);
-        if (heading == null)
-            return Header<TableHeading?>(ui, headerId, columns, bodyId, headers, paddingX, scrollX, sort, null, null);
-        return Header<TableHeading?>(ui, headerId, columns, bodyId, headers, paddingX, scrollX, sort, InvokeHeading, heading);
+        var state = ui.GetState<TableState>(HashCode.Combine(id, TableSalt));
+        state.Begin(id, columns, rows, cells, scroll, ui.Theme.RowHeight);
+        state.Focused = ui.ListArea(id);
+        return new TableFrame(ui, state);
     }
 
-    /// <summary>A <see cref="TableHeader(Ui, string, TableColumns, int, ReadOnlySpan{string}, float, float, TableSort?, TableHeading?)"/>
-    /// with the header's own <paramref name="id"/>, whose <paramref name="heading"/> is handed
-    /// <paramref name="state"/>.</summary>
-    public static int TableHeader<TState>(this Ui ui, int id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX,
-        float scrollX, TableSort? sort, TableHeading<TState> heading, in TState state)
-    {
-        return Header(ui, id, columns, bodyId, headers, paddingX, scrollX, sort, heading, state);
-    }
-
-    private static void InvokeHeading(Ui ui, int column, bool hovered, in TableHeading? heading)
-    {
-        heading!(ui, column, hovered);
-    }
-
-    private static int Header<TState>(Ui ui, int headerId, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX,
-        float scrollX, TableSort? sort, TableHeading<TState>? heading, in TState state)
+    /// <summary>
+    /// Lays the columns of <paramref name="table"/> out across the content of its body as last laid
+    /// out — a scroll's content less its gutter — less the rows' padding each side, then records a
+    /// header row with each column's label in <paramref name="labels"/>. A border between two
+    /// resizable columns can be dragged. <see cref="TableColumns.Sized"/> columns keep their widths
+    /// instead, and the header shows them scrolled as the rows are. With a <paramref name="sort"/>,
+    /// returns the column whose header was clicked, else -1. A <paramref name="heading"/> records
+    /// each cell's content instead of its label.
+    /// </summary>
+    internal static int TableHeader<TState>(Ui ui, TableState table, ReadOnlySpan<string> labels, TableSort? sort, TableHeading<TState>? heading,
+        in TState state)
     {
         var theme = ui.Theme;
-        if (ui.TryGetContentRect(bodyId, out var body) || ui.TryGetRect(bodyId, out body))
+        var columns = table.Columns;
+        var headerId = TableHeaderId(table.Id);
+        var paddingX = theme.ShellPaddingX;
+        var scrollX = 0f;
+        if (columns.IsSized)
+            scrollX = table.Scroll.X;
+        if (ui.TryGetContentRect(table.Id, out var body) || ui.TryGetRect(table.Id, out body))
             columns.Layout(body.Width - paddingX * 2);
 
         var hasRect = ui.TryGetRect(headerId, out var header);
@@ -214,8 +267,8 @@ public static partial class UiWidgets
                 {
                     if (heading != null)
                         heading(ui, i, cell.Hovered, in state);
-                    else if (i < headers.Length && headers[i].Length > 0)
-                        ui.Text(headers[i], new Box { Width = Sizing.Fit() }, color: cell.Hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
+                    else if (i < labels.Length && labels[i].Length > 0)
+                        ui.Text(labels[i], new Box { Width = Sizing.Fit() }, color: cell.Hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
                             overflow: TextOverflow.Ellipsis);
                     if (sort is { Icon: { } icon } && sort.Value.Column == i)
                         ui.Icon(icon);

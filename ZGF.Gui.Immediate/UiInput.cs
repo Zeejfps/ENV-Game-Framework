@@ -104,6 +104,10 @@ public sealed class UiInput
         return taken;
     }
 
+    /// <summary>Removes stroke <paramref name="index"/> of <see cref="Keys"/>, so nothing that reads
+    /// the input afterwards sees it; the strokes after it move down one.</summary>
+    public void TakeKeyAt(int index) => _keys.RemoveAt(index);
+
     internal static PointF Offscreen => new(float.MinValue, float.MinValue);
 
     internal void MovePointer(PointF point)

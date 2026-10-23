@@ -62,7 +62,7 @@ public sealed class MetadataGridTests
         var grid = tab.Grid!;
         var methodList = grid.Text(0, grid.Column("MethodList"));
 
-        tab.GridView.ScrollX = 10000f;
+        tab.GridView.Scroll.X = 10000f;
         app.Run(3);
 
         var header = app.TextRect("MethodList");

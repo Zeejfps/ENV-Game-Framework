@@ -1,4 +1,3 @@
-using ZGF.Desktop;
 using System.Runtime.CompilerServices;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -179,10 +178,11 @@ internal static class SearchPanelView
         var search = w.Search;
         var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
         var sort = new TableSort(ColumnOf(search.Sort), SortIcon(search));
-        var clicked = ui.TableHeader("header", w.SearchColumns, ResultsId, headers, ui.Theme.ShellPaddingX, sort: sort);
+        var table = ui.Table(ResultsId, w.SearchColumns, search.Selection);
+        var clicked = table.Header(headers, sort);
         if (clicked >= 0)
             search.SortBy(SortOf(clicked));
-        ResultList(ui, w);
+        ResultRows(ui, w, table);
     }
 
     private static int ColumnOf(SearchSort sort) => (int)sort - 1;
@@ -195,59 +195,44 @@ internal static class SearchPanelView
 
     private static SearchSort SortOf(int column) => (SearchSort)(column + 1);
 
-    private static void ResultList(Ui ui, Workspace w)
+    private static void ResultRows(Ui ui, Workspace w, TableFrame table)
     {
         var search = w.Search;
-        using var list = ui.SelectableList(ResultsId, search.Rows.Count, search.Selection, selectOnClick: true);
-        if (list.Focused)
-            OpenOnEnter(ui, w);
-        for (var i = list.First; i < list.End; i++)
-            ResultRow(ui, w, list, i);
+        using var body = table.Body(search.Rows.Count);
+        for (var i = body.First; i < body.End; i++)
+            ResultRow(ui, w, body, i);
+        var selected = search.SelectedRow;
+        if (body.Activated && selected != null)
+            w.Show(selected.Node, body.InNewTab);
     }
 
-    private static void OpenOnEnter(Ui ui, Workspace w)
-    {
-        var selected = w.Search.SelectedRow;
-        if (selected == null) return;
-        foreach (var stroke in ui.Input.Keys)
-        {
-            if (!IsOpenKey(stroke)) continue;
-            var inNewTab = (stroke.Modifiers & KeyModifiers.Control) != 0;
-            w.Show(selected.Node, inNewTab);
-        }
-    }
-
-    private static bool IsOpenKey(KeyStroke stroke) =>
-        stroke.Key == KeyboardKey.Enter && (stroke.Modifiers & (KeyModifiers.Alt | KeyModifiers.Super)) == 0;
-
-    private static void ResultRow(Ui ui, Workspace w, ListScope list, int index)
+    private static void ResultRow(Ui ui, Workspace w, TableBody body, int index)
     {
         var theme = ui.Theme;
-        var row = w.Search.Rows[index];
-        var node = row.Node;
-        using var scope = ui.Id(RuntimeHelpers.GetHashCode(node));
-        var id = ui.GetId("row");
-        using (var item = list.Row(index, id, new Box { Gap = 0f }))
+        var result = w.Search.Rows[index];
+        var node = result.Node;
+        var row = body.Row(index, RuntimeHelpers.GetHashCode(node));
+        using (row)
         {
-            var newTab = item.Interaction.ClickedWith(PointerButton.Middle);
-            if (newTab)
-                w.Search.Select(index);
-            if (item.Interaction.Clicked || newTab)
-                w.Show(node, newTab);
-
-            var columns = w.SearchColumns;
-            var nameColor = item.Selected ? theme.SelectionText : theme.Text;
-            using (ui.TableCell(columns, 0))
-            {
-                NodeIcons.Draw(ui, node.Kind, node.Accessibility);
-                ui.Text(row.Text, new Box { Width = Sizing.Grow() }, color: nameColor, overflow: TextOverflow.Ellipsis);
-            }
-            using (ui.TableCell(columns, 1))
-                ui.Text(row.Location, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
-            using (ui.TableCell(columns, 2))
-                ui.Text(node.Assembly.NameAndVersion, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
+            if (row.Interaction.Clicked)
+                w.Show(node);
+            NameCell(ui, row, result);
+            row.TextCell(1, result.Location, theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
+            row.TextCell(2, node.Assembly.NameAndVersion, theme.TextMuted);
         }
-        ui.Tooltip(id, NodeText.Tooltip(node));
+        ui.Tooltip(row.Id, NodeText.Tooltip(node));
+    }
+
+    private static void NameCell(Ui ui, TableRow row, SearchResult result)
+    {
+        var theme = ui.Theme;
+        var node = result.Node;
+        var color = row.Selected ? theme.SelectionText : theme.Text;
+        using (row.Cell(0))
+        {
+            NodeIcons.Draw(ui, node.Kind, node.Accessibility);
+            ui.Text(result.Text, new Box { Width = Sizing.Grow() }, color: color, overflow: TextOverflow.Ellipsis);
+        }
     }
 
     private static string KindLabel(Strings t, SearchKinds kind) => kind switch

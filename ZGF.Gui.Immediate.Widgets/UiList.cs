@@ -261,7 +261,7 @@ public static partial class UiWidgets
             if (IsMenuKey(stroke))
             {
                 frame.ContextMenu = true;
-                frame.MenuAt = MenuPointUnderSelection(ui, frame);
+                frame.MenuAt = MenuPointUnder(ui, frame.SelectedRow);
             }
         }
         if (index != frame.Selection.Index)
@@ -311,10 +311,12 @@ public static partial class UiWidgets
         return stroke.Key == KeyboardKey.F10 && (stroke.Modifiers & KeyModifiers.Shift) != 0;
     }
 
-    private static PointF MenuPointUnderSelection(Ui ui, ListFrame frame)
+    /// <summary>Where a context menu asked for by key opens: under the start of the selected row's
+    /// element <paramref name="rowId"/>, else at the pointer.</summary>
+    private static PointF MenuPointUnder(Ui ui, int rowId)
     {
-        if (frame.SelectedRow == 0) return ui.Input.Pointer;
-        if (!ui.TryGetRect(frame.SelectedRow, out var row)) return ui.Input.Pointer;
+        if (rowId == 0) return ui.Input.Pointer;
+        if (!ui.TryGetRect(rowId, out var row)) return ui.Input.Pointer;
         return new PointF(row.X + row.Height, row.Bottom);
     }
 

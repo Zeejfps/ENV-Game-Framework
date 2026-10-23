@@ -19,9 +19,9 @@ public sealed class MetadataGridState
     internal int[]? Order;
     internal int[] View = [];
     internal int ViewKey;
-    internal readonly TableCellSelection Cell = new();
-    internal float ScrollX;
-    internal float ScrollY;
+    internal readonly ListSelection Rows = new();
+    internal readonly TableCellSelection Cell;
+    internal readonly TableScroll Scroll = new();
     internal float RowHeight;
     internal int PendingReveal = None;
     internal CodeViewPosition? PendingRestore;
@@ -33,15 +33,17 @@ public sealed class MetadataGridState
     internal readonly DetailTexts Details = new();
     internal readonly TallRowLayout TallRows = new();
 
+    public MetadataGridState() => Cell = new TableCellSelection(Rows);
+
     /// <summary>Where the view stands, as a code view's position: the top row as the top line, the
     /// selected row and cell as the caret.</summary>
     public CodeViewPosition Position
     {
         get
         {
-            var topLine = RowHeight > 0f ? (int)(ScrollY / RowHeight) : 0;
+            var topLine = RowHeight > 0f ? (int)(Scroll.Y / RowHeight) : 0;
             var caret = new TextPosition(Selected, CurrentColumn);
-            return new CodeViewPosition(topLine, ScrollX, default, caret);
+            return new CodeViewPosition(topLine, Scroll.X, default, caret);
         }
     }
 
@@ -65,8 +67,8 @@ public sealed class MetadataGridState
         Order = null;
         View = [];
         ViewKey = 0;
-        ScrollX = 0f;
-        ScrollY = 0f;
+        Scroll.X = 0f;
+        Scroll.Y = 0f;
         PendingRestore = null;
         Open.Clear();
         Details.Clear();
@@ -130,8 +132,22 @@ public sealed class MetadataGridState
     {
         var key = ComputeViewKey(flags);
         if (key == ViewKey) return;
+        var selected = Selected;
         ViewKey = key;
         View = Grid!.Filter(Order, Filters);
+        KeepSelected(selected);
+    }
+
+    /// <summary>Selects <paramref name="row"/> where the new view shows it; nothing when it doesn't.</summary>
+    private void KeepSelected(int row)
+    {
+        var index = IndexOf(row);
+        if (index < 0)
+        {
+            Rows.Clear();
+            return;
+        }
+        Rows.Select(index, View.Length, reveal: false);
     }
 
     private int ComputeViewKey(MetadataFilters flags)
@@ -168,11 +184,24 @@ public sealed class MetadataGridState
     internal bool IsFlagsFlyoutOpenFor(int column) => FlagsOpen && FlagsColumn == column;
 
     /// <summary>Makes <paramref name="row"/>'s cell in <paramref name="column"/> the current one
-    /// with all its text selected.</summary>
-    internal void SelectCell(int row, int column) => Cell.Select(row, column, ShownAt(row, column));
+    /// with all its text selected, where the view shows the row.</summary>
+    internal void SelectCell(int row, int column)
+    {
+        var index = IndexOf(row);
+        if (index < 0) return;
+        Cell.Select(index, View.Length, column, reveal: false);
+    }
 
-    /// <summary>The selected row, or <see cref="None"/>.</summary>
-    internal int Selected => Cell.Row;
+    /// <summary>The selected row of the grid, or <see cref="None"/>.</summary>
+    internal int Selected
+    {
+        get
+        {
+            var index = Rows.Index;
+            if (index < 0 || index >= View.Length) return None;
+            return View[index];
+        }
+    }
 
     /// <summary>The current cell's column, or <see cref="None"/>.</summary>
     internal int CurrentColumn => Cell.Column;
@@ -197,7 +226,7 @@ public sealed class MetadataGridState
     /// <summary>The current cell's text as shown: all of it while open, else its first line.</summary>
     internal string ShownText => ShownAt(Selected, CurrentColumn);
 
-    internal void SelectAllText() => Cell.SelectAll(ShownText);
+    internal void SelectAllText() => Cell.SelectAllText();
 
     internal string ShownAt(int row, int column)
     {

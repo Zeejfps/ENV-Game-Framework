@@ -28,7 +28,7 @@ public sealed class Workspace
 
     /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
     public TableColumns BookmarkColumns { get; } = new(
-        new TableColumn(Fixed: 28f),
+        new TableColumn(Fixed: 28f, Controls: true),
         new TableColumn(2f, 80f),
         new TableColumn(3f, 80f),
         new TableColumn(2f, 60f));

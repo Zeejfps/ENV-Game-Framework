@@ -1,155 +1,161 @@
 using ZGF.Desktop;
-using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>What <see cref="TableCellSelection.ApplyKey"/> made of a stroke.</summary>
-public enum TableCellKey
-{
-    None,
-
-    /// <summary>Left or Right asked for another column of the current row.</summary>
-    Column,
-
-    /// <summary>Escape collapsed the text selected in the current cell to its caret.</summary>
-    Collapsed,
-
-    /// <summary>Ctrl+C asked to copy the current cell.</summary>
-    Copy,
-}
-
-/// <summary>The current cell of a table, by row and column, and the text selected in it as a
-/// <see cref="UiWidgets.SelectableText"/> shows it: all of it when a cell is first selected, so a
-/// copy takes the whole cell.</summary>
+/// <summary>The current cell of a table: the row <see cref="Rows"/> selects, the
+/// <see cref="Column"/> picked in it, and the text selected in that cell as a
+/// <see cref="UiWidgets.SelectableText"/> shows it: all of it whenever another cell becomes current,
+/// so a copy takes the whole cell.</summary>
 public sealed class TableCellSelection
 {
+    private const int None = -1;
+
+    private int _textRow = None;
+    private int _textKey;
+    private int _textColumn = None;
+
+    public TableCellSelection(ListSelection rows) => Rows = rows;
+
+    public TableCellSelection() : this(new ListSelection())
+    {
+    }
+
     /// <summary>How far the current cell's text is scrolled to follow its caret.</summary>
     public float Shift;
 
-    public int Row { get; private set; } = -1;
+    public ListSelection Rows { get; }
+
+    public int Row => Rows.Index;
 
     /// <summary>The current column, or -1 for a row selected without a cell.</summary>
-    public int Column { get; private set; } = -1;
+    public int Column { get; private set; } = None;
 
     public TextSelection Text { get; } = new();
 
-    public bool HasCell => Row >= 0 && Column >= 0;
+    public bool HasCell => Rows.HasSelection && Column >= 0;
 
     public bool IsAt(int row, int column) => Row == row && Column == column;
 
-    /// <summary>Makes the cell at <paramref name="row"/> and <paramref name="column"/> current with
-    /// all of <paramref name="shown"/> selected; nothing changes when it already is.</summary>
-    public void Select(int row, int column, string shown)
+    /// <summary>Selects row <paramref name="row"/> of <paramref name="count"/> and makes its cell in
+    /// <paramref name="column"/> current, scrolling the row into view unless told otherwise.</summary>
+    public void Select(int row, int count, int column, bool reveal = true)
     {
-        if (IsAt(row, column)) return;
-        Row = row;
-        Column = column;
-        Shift = 0f;
-        SelectAll(shown);
+        Rows.Select(row, count, reveal);
+        SelectColumn(column);
     }
 
-    public void SelectAll(string shown) => Text.Select(shown.Length, 0);
+    /// <summary>Makes the selected row's cell in <paramref name="column"/> current.</summary>
+    public void SelectColumn(int column) => Column = column;
+
+    /// <summary>Selects all of the current cell's text again the next time it is shown.</summary>
+    public void SelectAllText() => _textRow = None;
 
     public void Clear()
     {
-        Row = Column = -1;
-        Shift = 0f;
-        Text.Select(0, 0);
-    }
-
-    /// <summary>After the current cell's text has had <paramref name="cell"/>'s pointer: a click that
-    /// selected nothing selects it all again, so a click always leaves the whole cell selected.</summary>
-    public void SettleClick(Interaction cell, string shown)
-    {
-        if (cell.Clicked && !Text.HasSelection)
-            SelectAll(shown);
-    }
-
-    /// <summary>What <paramref name="stroke"/> does to the current cell while its table has focus:
-    /// Left and Right ask for the <paramref name="column"/> before or after it, kept within
-    /// <paramref name="minColumn"/> and <paramref name="maxColumn"/>, for the caller to select with
-    /// its text; Escape collapses the text selected in it; Ctrl+C asks to copy it. Nothing while no
-    /// row is current, nor for other modifiers.</summary>
-    public TableCellKey ApplyKey(KeyStroke stroke, int minColumn, int maxColumn, out int column)
-    {
-        column = Column;
-        if (Row < 0) return TableCellKey.None;
-        var modifiers = stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Super);
-        switch (modifiers, stroke.Key)
-        {
-            case (KeyModifiers.Control, KeyboardKey.C):
-                return TableCellKey.Copy;
-            case (0, KeyboardKey.LeftArrow):
-                column = Math.Clamp(Column - 1, minColumn, maxColumn);
-                return TableCellKey.Column;
-            case (0, KeyboardKey.RightArrow):
-                column = Math.Clamp(Column + 1, minColumn, maxColumn);
-                return TableCellKey.Column;
-            case (0, KeyboardKey.Escape) when Text.HasSelection:
-                Text.Select(Text.Caret, Text.Caret);
-                return TableCellKey.Collapsed;
-            default:
-                return TableCellKey.None;
-        }
+        Rows.Clear();
+        Column = None;
+        SelectAllText();
     }
 
     /// <summary>What copying the current cell takes: the part of <paramref name="shown"/> selected,
     /// else <paramref name="whole"/>, which may hold more than is shown.</summary>
-    public string Copied(string shown, string whole) =>
-        Text.HasSelection && (Text.Start > 0 || Text.End < shown.Length) ? Text.Of(shown) : whole;
+    public string Copied(string shown, string whole)
+    {
+        if (!IsPartlySelected(shown)) return whole;
+        return Text.Of(shown);
+    }
+
+    private bool IsPartlySelected(string shown)
+    {
+        if (!IsTextOfCurrentCell()) return false;
+        if (!Text.HasSelection) return false;
+        return Text.Start > 0 || Text.End < shown.Length;
+    }
+
+    private bool IsTextOfCurrentCell() => _textRow == Row && _textColumn == Column;
+
+    /// <summary>Before the current cell of the row with <paramref name="key"/> is drawn showing
+    /// <paramref name="shown"/>: selects all of it unless the text selected is already its own.</summary>
+    internal void Show(int key, string shown)
+    {
+        if (IsTextOfCurrentCell() && key == _textKey) return;
+        _textRow = Row;
+        _textKey = key;
+        _textColumn = Column;
+        Shift = 0f;
+        Text.Select(shown.Length, 0);
+    }
+
+    /// <summary>Collapses the text selected in the current cell to its caret; returns false when
+    /// none was.</summary>
+    internal bool CollapseText()
+    {
+        if (!IsTextOfCurrentCell()) return false;
+        if (!Text.HasSelection) return false;
+        Text.Select(Text.Caret, Text.Caret);
+        return true;
+    }
+
+    /// <summary>After the current cell's text has had <paramref name="cell"/>'s pointer: a click that
+    /// selected nothing selects it all again, so a click always leaves the whole cell selected.</summary>
+    internal void SettleClick(Interaction cell, string shown)
+    {
+        if (cell.Clicked && !Text.HasSelection)
+            Text.Select(shown.Length, 0);
+    }
 }
+
+/// <summary>What a <see cref="TableRow.TextCell"/> shows and how.</summary>
+internal readonly record struct CellText(
+    string Shown,
+    uint? Color,
+    float? Size,
+    string? Family,
+    TextOverflow Overflow,
+    UiIcon? Link,
+    string LinkTooltip,
+    string? Suffix,
+    bool Expanded);
 
 public static partial class UiWidgets
 {
-    /// <summary>Interacts with the cell <paramref name="id"/> of a row of the
-    /// <see cref="ListArea"/> <paramref name="listId"/>: the pointer over it, or over the icon of a
-    /// <see cref="SelectableLink"/> in it, sets <paramref name="rowHovered"/>, and a press or a
-    /// right- or middle-click on it focuses the list.</summary>
-    public static Interaction ListCell(this Ui ui, int listId, int id, ref bool rowHovered)
-    {
-        var cell = ui.Interact(id);
-        rowHovered |= cell.Hovered || ui.IsLinkIconHovered(cell);
-        var picked = cell.Pressed || cell.ClickedWith(PointerButton.Right) || cell.ClickedWith(PointerButton.Middle);
-        if (picked)
-            ui.Focus(listId, takesText: false);
-        return cell;
-    }
-
     /// <summary>
-    /// Records the cell of <paramref name="column"/> that <paramref name="cell"/> interacts with,
-    /// showing <paramref name="shown"/> on a first line as tall as the theme's rows: as a
-    /// <see cref="SelectableText"/>, or with a <paramref name="link"/> icon as a
-    /// <see cref="SelectableLink"/> that <paramref name="linkTooltip"/> names, followed by
-    /// <paramref name="suffix"/> small and muted; or every line of it as a
-    /// <see cref="SelectableTextArea"/> while <paramref name="expanded"/>. The text reads and moves
+    /// Records the cell of <paramref name="column"/> that <paramref name="cell"/> interacts with in
+    /// the row with <paramref name="key"/>, showing its text on a first line as tall as the theme's
+    /// rows: as a <see cref="SelectableText"/>, or with a link icon as a <see cref="SelectableLink"/>,
+    /// followed by the suffix small and muted; or every line of it as a
+    /// <see cref="SelectableTextArea"/> while expanded. The text reads and moves
     /// <paramref name="selection"/> while <paramref name="current"/>, when the cell is outlined as
     /// <see cref="TableCellOutline"/> and a click that selected nothing selects it all. Returns true
     /// on the frame the link is followed.
     /// </summary>
-    public static bool TableCellText(this Ui ui, TableColumns columns, int column, Interaction cell, string shown, TableCellSelection selection,
-        bool current, bool focused, uint? color = null, float? size = null, string? family = null, TextOverflow overflow = TextOverflow.Ellipsis,
-        UiIcon? link = null, string linkTooltip = "", string? suffix = null, bool expanded = false)
+    internal static bool TableCellText(this Ui ui, TableColumns columns, int column, Interaction cell, int key, TableCellSelection selection,
+        bool current, bool focused, in CellText text)
     {
-        if (cell.Hovered && link == null)
+        if (cell.Hovered && text.Link == null)
             ui.SetCursor(MouseCursor.Text);
+        if (current)
+            selection.Show(key, text.Shown);
         var followed = false;
         using (ui.TableCell(columns, column, cell.Id, Align.Start))
         {
             if (current)
                 ui.TableCellOutline(focused);
-            if (expanded)
-            {
-                var linesColor = CellLinesColor(ui.Theme, color, link);
-                ui.SelectableTextArea(cell, shown, selection.Text, ref selection.Shift, current, ui.Theme.RowHeight, linesColor, size, family, overflow);
-            }
+            if (text.Expanded)
+                CellLines(ui, cell, selection, current, text);
             else
-            {
-                followed = CellFirstLine(ui, cell, shown, selection, current, color, size, family, overflow, link, linkTooltip, suffix);
-            }
+                followed = CellFirstLine(ui, cell, selection, current, text);
         }
         if (current)
-            selection.SettleClick(cell, shown);
+            selection.SettleClick(cell, text.Shown);
         return followed;
+    }
+
+    private static void CellLines(Ui ui, Interaction cell, TableCellSelection selection, bool current, in CellText text)
+    {
+        var color = CellLinesColor(ui.Theme, text.Color, text.Link);
+        ui.SelectableTextArea(cell, text.Shown, selection.Text, ref selection.Shift, current, ui.Theme.RowHeight, color, text.Size, text.Family,
+            text.Overflow);
     }
 
     private static uint CellLinesColor(UiTheme theme, uint? color, UiIcon? link)
@@ -159,19 +165,19 @@ public static partial class UiWidgets
         return theme.Text;
     }
 
-    private static bool CellFirstLine(Ui ui, Interaction cell, string shown, TableCellSelection selection, bool current, uint? color, float? size,
-        string? family, TextOverflow overflow, UiIcon? link, string linkTooltip, string? suffix)
+    private static bool CellFirstLine(Ui ui, Interaction cell, TableCellSelection selection, bool current, in CellText text)
     {
         var theme = ui.Theme;
         var followed = false;
         using (ui.Row(new Box { Height = theme.RowHeight, Gap = theme.GapTight }))
         {
-            if (link != null)
-                followed = ui.SelectableLink(cell, shown, selection.Text, ref selection.Shift, current, link.Value, linkTooltip, color, size, family, overflow);
+            if (text.Link != null)
+                followed = ui.SelectableLink(cell, text.Shown, selection.Text, ref selection.Shift, current, text.Link.Value, text.LinkTooltip, text.Color,
+                    text.Size, text.Family, text.Overflow);
             else
-                ui.SelectableText(cell, shown, selection.Text, ref selection.Shift, current, color, size, family, overflow);
-            if (suffix != null)
-                ui.Text(suffix, new Box { Width = Sizing.Fit() }, color: theme.TextMuted, size: theme.FontSizeSmall);
+                ui.SelectableText(cell, text.Shown, selection.Text, ref selection.Shift, current, text.Color, text.Size, text.Family, text.Overflow);
+            if (text.Suffix != null)
+                ui.Text(text.Suffix, new Box { Width = Sizing.Fit() }, color: theme.TextMuted, size: theme.FontSizeSmall);
         }
         return followed;
     }

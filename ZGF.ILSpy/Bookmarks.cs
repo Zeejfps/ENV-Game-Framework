@@ -128,12 +128,17 @@ public sealed class BookmarkList
     private readonly List<Bookmark> _items = new();
     private readonly ConditionalWeakTable<DecompiledDocument, Marks> _marks = new();
 
+    public BookmarkList() => Cells = new TableCellSelection(Selection);
+
     public IReadOnlyList<Bookmark> Items => _items;
 
     public int Revision { get; private set; }
 
     /// <summary>The bookmark selected in the panel.</summary>
     public ListSelection Selection { get; } = new();
+
+    /// <summary>The cell of the selected bookmark current in the panel, and the text selected in it.</summary>
+    public TableCellSelection Cells { get; }
 
     /// <summary>The index of the bookmark selected in the panel, or -1.</summary>
     public int Selected => Selection.Index;

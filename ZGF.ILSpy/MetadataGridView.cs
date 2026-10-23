@@ -30,9 +30,7 @@ internal ref struct MetadataGridFrame
     private const int AutoFitRows = 200;
     private const float MaxAutoWidth = 480f;
     private const float FlyoutMinWidth = 320f;
-    private const int CellSalt = 0x4D444743;
     private const int FlyoutSalt = 0x4D44464C;
-    private const int HeaderSalt = 0x4D444748;
     private const int MenuSalt = 0x4D44474D;
 
     private static readonly UiIcon TokenLink = new(LucideIcons.ExternalLink, LucideIcons.Family);
@@ -43,7 +41,6 @@ internal ref struct MetadataGridFrame
     private readonly MetadataFilters _flags;
     private readonly Strings _t;
     private readonly int _listId;
-    private readonly int _headerId;
     private readonly int _menuId;
     private bool _focused;
     private MetadataGridResult _result;
@@ -56,7 +53,6 @@ internal ref struct MetadataGridFrame
         _flags = flags;
         _t = t;
         _listId = ui.GetId(id);
-        _headerId = HashCode.Combine(_listId, HeaderSalt);
         _menuId = HashCode.Combine(_listId, MenuSalt);
     }
 
@@ -69,14 +65,16 @@ internal ref struct MetadataGridFrame
         _state.UpdateView(_flags);
 
         using var pane = _ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = _ui.Theme.PaneBackground });
-        Header();
+        var table = _ui.Table(_listId, _state.Columns!, _state.Cell, _state.Scroll);
+        Header(table);
         FlagsFlyout();
         _state.UpdateView(_flags);
 
-        _focused = _ui.ListArea(_listId);
+        _focused = table.Focused;
+        table.TakeKeys(_state.View.Length);
         if (_focused)
             _result = Keys();
-        Rows();
+        Rows(table);
         var picked = Menu();
         if (picked != null)
             _result = picked.Value;
@@ -116,13 +114,12 @@ internal ref struct MetadataGridFrame
 
     private static bool IsMono(MetadataColumn column) => column.IsNumeric || column.IsToken;
 
-    private void Header()
+    private void Header(TableFrame table)
     {
         var sortGlyph = _state.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp;
         var sort = new TableSort(_state.SortColumn, new UiIcon(sortGlyph, LucideIcons.Family));
         var heading = new MetadataGridHeading(_grid, _state, _flags, _t, _listId);
-        var clicked = _ui.TableHeader(_headerId, _state.Columns!, _listId, _state.Headers, _ui.Theme.ShellPaddingX, _state.ScrollX, sort,
-            MetadataGridHeading.Render, heading);
+        var clicked = table.Header(_state.Headers, sort, MetadataGridHeading.Render, heading);
         if (clicked < 0) return;
         if (clicked == _state.EditingColumn) return;
         _state.SortBy(clicked);
@@ -143,30 +140,10 @@ internal ref struct MetadataGridFrame
 
     private MetadataGridResult Keys()
     {
-        var count = _state.View.Length;
-        if (count == 0) return default;
-        var page = _ui.MeasureListPage(_listId, _state.RowHeight);
+        if (_state.View.Length == 0) return default;
         var result = default(MetadataGridResult);
         foreach (var stroke in _ui.Input.Keys)
         {
-            var index = _state.IndexOf(_state.Selected);
-            if (UiWidgets.ApplyListKey(stroke, ref index, count, page))
-            {
-                _state.SelectCell(_state.RowAt(index), Math.Max(0, _state.CurrentColumn));
-                _ui.ScrollRowIntoView(_listId, index);
-                continue;
-            }
-            switch (_state.Cell.ApplyKey(stroke, 0, _grid.Columns.Count - 1, out var column))
-            {
-                case TableCellKey.Column:
-                    _state.SelectCell(_state.Selected, column);
-                    continue;
-                case TableCellKey.Copy:
-                    _ui.ClipboardText = _state.CopiedText();
-                    continue;
-                case TableCellKey.Collapsed:
-                    continue;
-            }
             var modifiers = stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Super);
             switch (modifiers, stroke.Key)
             {
@@ -182,9 +159,6 @@ internal ref struct MetadataGridFrame
                 case (KeyModifiers.Control, KeyboardKey.A) when _state.HasCurrentCell:
                     _state.SelectAllText();
                     break;
-                case (0, KeyboardKey.Enter) when _state.Selected >= 0 && _grid.Definition(_state.Selected) is { } definition:
-                    result = new MetadataGridResult(null, definition, false);
-                    break;
                 case (KeyModifiers.Control, KeyboardKey.G) when _state.HasCurrentCell && _grid.Link(_state.Selected, _state.CurrentColumn) is { } target:
                     result = new MetadataGridResult(target, null, false);
                     break;
@@ -193,106 +167,80 @@ internal ref struct MetadataGridFrame
         return result;
     }
 
-    private void Rows()
+    private void Rows(TableFrame table)
     {
         var rowHeight = _state.RowHeight;
         var width = _state.Columns!.TotalWidth + _ui.Theme.ShellPaddingX * 2;
         var details = MetadataDetailsView.Height(_ui, _grid, _state.Details, _state.Selected, width);
         var tall = _state.TallRows;
         tall.Measure(_state, rowHeight, details);
-        using var list = _ui.VirtualScroll(_listId, _state.View.Length, rowHeight, ref _state.ScrollX, ref _state.ScrollY, default, tall.Rows);
-        Arrive(list, rowHeight);
-        for (var index = list.First; index < list.End; index++)
+        using var body = table.Body(_state.View.Length, tall: tall.Rows);
+        Arrive(body, rowHeight);
+        for (var index = body.First; index < body.End; index++)
         {
             var row = _state.RowAt(index);
             var height = tall.At(index);
             if (height.Cells <= 0f)
             {
-                Row(row, width, rowHeight);
+                Row(body, index, row, rowHeight);
                 continue;
             }
             using (_ui.Column(new Box { Width = width, Height = height.Cells + height.Details, Gap = 0f }))
             {
-                Row(row, width, height.Cells);
+                Row(body, index, row, height.Cells);
                 if (height.Details > 0f)
                     MetadataDetailsView.Render(_ui, _grid, _state.Details, _t, row, height.Details);
             }
         }
+        Answer(body);
     }
 
-    private void Arrive(Ui.VirtualList list, float rowHeight)
+    private void Arrive(TableBody body, float rowHeight)
     {
-        if (list.Viewport <= 0f) return;
+        if (body.Viewport <= 0f) return;
         if (_state.PendingRestore != null)
-            ArriveAtRestored(list, rowHeight);
+            ArriveAtRestored(body, rowHeight);
         else if (_state.PendingReveal >= 0)
-            ArriveAtRevealed(list, rowHeight);
+            ArriveAtRevealed(body, rowHeight);
     }
 
-    private void ArriveAtRestored(Ui.VirtualList list, float rowHeight)
+    private void ArriveAtRestored(TableBody body, float rowHeight)
     {
         var restore = _state.PendingRestore!.Value;
         _state.PendingRestore = null;
-        _state.ScrollX = restore.ScrollX;
-        list.ScrollTo(restore.TopLine * rowHeight);
+        _state.Scroll.X = restore.ScrollX;
+        body.ScrollTo(restore.TopLine * rowHeight);
         _state.SelectCell(restore.Caret.Line, restore.Caret.Column);
     }
 
-    private void ArriveAtRevealed(Ui.VirtualList list, float rowHeight)
+    private void ArriveAtRevealed(TableBody body, float rowHeight)
     {
         var row = _state.PendingReveal;
         _state.PendingReveal = MetadataGridState.None;
         _state.SelectCell(row, _state.CurrentColumn);
         var index = _state.IndexOf(row);
         if (index < 0) return;
-        var top = list.TopOf(index);
-        var outOfView = top < list.Offset || top + rowHeight > list.Offset + list.Viewport;
+        var top = body.TopOf(index);
+        var outOfView = top < body.Offset || top + rowHeight > body.Offset + body.Viewport;
         if (outOfView)
-            list.ScrollTo(MathF.Max(0f, top - list.Viewport / 3f));
+            body.ScrollTo(MathF.Max(0f, top - body.Viewport / 3f));
     }
 
-    private void Row(int row, float width, float height)
+    private void Row(TableBody body, int index, int row, float height)
     {
-        var theme = _ui.Theme;
-        var hoveredRow = false;
-        Span<Interaction> cells = stackalloc Interaction[_grid.Columns.Count];
-        for (var c = 0; c < cells.Length; c++)
+        using var cells = body.Row(index, row, height);
+        for (var c = 0; c < _grid.Columns.Count; c++)
         {
-            cells[c] = _ui.ListCell(_listId, HashCode.Combine(_listId, CellSalt, row, c), ref hoveredRow);
-            ClickCell(cells[c], row, c);
-        }
-
-        var selected = row == _state.Selected;
-        using (_ui.Row(new Box
-        {
-            Width = width,
-            Height = height,
-            Gap = 0f,
-            Padding = new Spacing(theme.ShellPaddingX, 0f),
-            Background = theme.PickRowBackground(selected, _focused, hoveredRow),
-        }))
-        {
-            for (var c = 0; c < cells.Length; c++)
-            {
-                var current = selected && c == _state.CurrentColumn;
-                Cell(row, c, cells[c], current);
-            }
+            ExpandOnPress(cells.CellAt(c), row, c);
+            Cell(cells, row, c);
         }
     }
 
-    private void ClickCell(Interaction cell, int row, int column)
+    private void ExpandOnPress(Interaction cell, int row, int column)
     {
-        var rightClicked = cell.ClickedWith(PointerButton.Right);
-        var middleClicked = cell.ClickedWith(PointerButton.Middle);
-        var selects = cell.Pressed || rightClicked || middleClicked;
-        if (selects)
-            _state.SelectCell(row, column);
-        if (cell.Pressed && CanExpand(row, column))
-            _state.Expand(row, column);
-        if (cell.DoubleClicked || middleClicked)
-            OpenDefinition(row, !cell.DoubleClicked);
-        if (rightClicked)
-            _ui.OpenContextMenu(_menuId);
+        if (!cell.Pressed) return;
+        if (!CanExpand(row, column)) return;
+        _state.Expand(row, column);
     }
 
     private bool CanExpand(int row, int column)
@@ -302,6 +250,17 @@ internal ref struct MetadataGridFrame
         return _grid.Lines(row, column).MoreLines > 0;
     }
 
+    /// <summary>Does what the user asked of the rows this frame: open, copy or show the menu.</summary>
+    private void Answer(TableBody body)
+    {
+        if (body.Activated)
+            OpenDefinition(_state.Selected, body.InNewTab);
+        if (body.CopyRequested)
+            _ui.ClipboardText = _state.CopiedText();
+        if (body.ContextMenuRequested)
+            _ui.OpenContextMenu(_menuId, body.ContextMenuAt);
+    }
+
     private void OpenDefinition(int row, bool inNewTab)
     {
         var definition = _grid.Definition(row);
@@ -309,10 +268,11 @@ internal ref struct MetadataGridFrame
         _result = new MetadataGridResult(null, definition, inNewTab);
     }
 
-    private void Cell(int row, int c, Interaction cell, bool current)
+    private void Cell(TableRow cells, int row, int c)
     {
         var theme = _ui.Theme;
         var column = _grid.Columns[c];
+        var cellId = cells.CellAt(c).Id;
         var target = column.IsToken ? _grid.Link(row, c) : null;
         var expanded = _state.IsOpenAt(row, c);
         uint? color = theme.Text;
@@ -331,14 +291,13 @@ internal ref struct MetadataGridFrame
         }
         string? more = null;
         if (!expanded)
-            more = MoreLines(row, c, cell.Id);
-        var followed = _ui.TableCellText(_state.Columns!, c, cell, _state.ShownAt(row, c), _state.Cell, current, _focused, color, size, family, link: link,
-            linkTooltip: _t.MetadataGoToToken, suffix: more, expanded: expanded);
+            more = MoreLines(row, c, cellId);
+        var followed = cells.TextCell(c, _state.ShownAt(row, c), color, size, family, link: link, linkTooltip: _t.MetadataGoToToken, suffix: more,
+            expanded: expanded);
         if (followed)
             _result = new MetadataGridResult(target, null, false);
-        Tooltip(row, c, cell.Id);
+        Tooltip(row, c, cellId);
     }
-
     /// <summary>How many lines a closed multi-line cell hides, as its suffix; null for a single line.</summary>
     private string? MoreLines(int row, int column, int cellId)
     {

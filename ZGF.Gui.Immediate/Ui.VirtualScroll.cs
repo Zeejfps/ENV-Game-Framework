@@ -93,12 +93,14 @@ public sealed partial class Ui
     /// <c>SplitPane</c>'s size is: a changed <paramref name="offset"/> scrolls the list, and the
     /// wheel, the bar and <see cref="VirtualList.ScrollTo"/> write it back — so several documents
     /// shown in turn by one list each keep their own place.</summary>
-    public VirtualList VirtualScroll(int id, int count, float rowHeight, ref float offset, Box box = default)
+    /// <remarks>Rows in <paramref name="tall"/>, in order of index, are as tall as it says; record each
+    /// at that height.</remarks>
+    public VirtualList VirtualScroll(int id, int count, float rowHeight, ref float offset, Box box = default, IReadOnlyList<TallRow>? tall = null)
     {
         var state = GetState<ScrollState>(id);
         if (offset != state.Synced)
             state.OffsetY = MathF.Max(0f, offset);
-        var list = VirtualScroll(id, ScrollAxes.Vertical, count, rowHeight, box);
+        var list = VirtualScroll(id, ScrollAxes.Vertical, count, rowHeight, box, tall);
         offset = state.Synced = state.OffsetY;
         return list;
     }
