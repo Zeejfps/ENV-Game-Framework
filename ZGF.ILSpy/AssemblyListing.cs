@@ -53,29 +53,37 @@ public static class AssemblyListing
         w.ListsDialog.Open(w.Lists);
     }
 
-    /// <summary>Adds an empty list and opens it, to fill from the tree.</summary>
+    /// <summary>Adds an empty list, picked in the dialog to be named, leaving the open one open.</summary>
     public static void CreateList(this Workspace w)
     {
         var t = Strings.For(w.Locale);
         var name = w.Lists.Create(t.ListsNewName);
         w.ListsDialog.Pick(w.Lists, name);
-        w.SwitchList(name);
+        w.ListsDialog.StartRenaming(name);
     }
 
-    /// <summary>Adds a copy of the list named <paramref name="name"/>, leaving the open one open.</summary>
+    /// <summary>Adds a copy of the list named <paramref name="name"/>, picked in the dialog to be named,
+    /// leaving the open one open.</summary>
     public static void DuplicateList(this Workspace w, string name)
     {
         var t = Strings.For(w.Locale);
         w.RememberOpenAssemblies();
         var copy = w.Lists.Duplicate(name, t.ListsCopyName(name));
         w.ListsDialog.Pick(w.Lists, copy);
+        w.ListsDialog.StartRenaming(copy);
     }
 
-    public static void RenameList(this Workspace w, string name, string newName)
+    /// <summary>Gives the list being renamed in the dialog the name typed, when it may have it, and
+    /// stops renaming either way.</summary>
+    public static void FinishRenaming(this Workspace w)
     {
-        if (!w.Lists.Rename(name, newName))
+        var dialog = w.ListsDialog;
+        var name = dialog.Renaming;
+        if (name == null)
             return;
-        w.ListsDialog.Pick(w.Lists, newName);
+        var newName = dialog.NewName;
+        dialog.StopAsking();
+        w.Lists.Rename(name, newName);
     }
 
     /// <summary>Removes the list named <paramref name="name"/>. When it was open, the list that takes

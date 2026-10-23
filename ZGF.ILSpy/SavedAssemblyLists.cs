@@ -167,13 +167,28 @@ public sealed class SavedAssemblyLists
         var list = Find(name);
         if (list == null)
             return;
-        var index = _lists.IndexOf(list);
-        _lists.RemoveAt(index);
+        var replacement = ReplacementFor(list.Name);
+        _lists.Remove(list);
         if (_lists.Count == 0)
             _lists.Add(new SavedList(DefaultName, new List<string>()));
         if (list == _active)
-            _active = _lists[Math.Min(index, _lists.Count - 1)];
+            _active = Find(replacement)!;
         Revision++;
+    }
+
+    /// <summary>The name of the list that opens when the open list named <paramref name="name"/> is
+    /// deleted: the one after it, else the one before, else a new empty <see cref="DefaultName"/>.</summary>
+    public string ReplacementFor(string name)
+    {
+        var list = Find(name);
+        if (list == null)
+            return Active;
+        var index = _lists.IndexOf(list);
+        if (index + 1 < _lists.Count)
+            return _lists[index + 1].Name;
+        if (index > 0)
+            return _lists[index - 1].Name;
+        return DefaultName;
     }
 
     private SavedList? Find(string? name)

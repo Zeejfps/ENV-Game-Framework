@@ -25,6 +25,7 @@ public static class LucideIcons
     public const string Check = "\uE06C";
     public const string CheckSquare = "\uE16A";
     public const string Brackets = "\uE443";
+    public const string Copy = "\uE09E";
     public const string Database = "\uE0AD";
     public const string Diff = "\uE30C";
     public const string Download = "\uE0B2";

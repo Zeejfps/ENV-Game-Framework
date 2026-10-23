@@ -69,7 +69,8 @@ public sealed class AssemblyListsDialog
         _focusName = true;
     }
 
-    /// <summary>True once after <see cref="StartRenaming"/>: the name box should take focus.</summary>
+    /// <summary>True once after <see cref="StartRenaming"/>: the name box should take focus with the
+    /// whole name selected.</summary>
     public bool TakeNameFocus()
     {
         var focus = _focusName;

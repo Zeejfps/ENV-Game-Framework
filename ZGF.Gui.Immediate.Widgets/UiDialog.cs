@@ -24,10 +24,13 @@ public static partial class UiWidgets
     /// returns to where it was once the dialog is gone. A dialog recorded while another is open
     /// stacks on top of it. The close button is a Tab stop; a dialog whose
     /// <see cref="DialogActions"/> offer a way out leaves it off with <paramref name="closeButton"/>.
+    /// A dialog that gives Escape a use of its own for a while, such as cancelling an edit, turns
+    /// <paramref name="closeOnEscape"/> off meanwhile.
     /// <paramref name="box"/> sizes and pads the card (the theme's <see cref="UiTheme.DialogWidth"/>
     /// wide by default). Record the content only while <see cref="Ui.Scope.IsOpen"/>; dispose either way.
     /// </summary>
-    public static Ui.Scope Dialog(this Ui ui, string id, string title, ref bool open, Box box = default, bool closeButton = true)
+    public static Ui.Scope Dialog(this Ui ui, string id, string title, ref bool open, Box box = default, bool closeButton = true,
+        bool closeOnEscape = true)
     {
         if (!open) return default;
 
@@ -42,7 +45,8 @@ public static partial class UiWidgets
         });
 
         var backdrop = ui.Interact(dialogId);
-        var dismissed = ui.Input.TakeKey(KeyboardKey.Escape) || backdrop.Pressed;
+        var escaped = closeOnEscape && ui.Input.TakeKey(KeyboardKey.Escape);
+        var dismissed = escaped || backdrop.Pressed;
 
         var radius = box.Radius ?? theme.DialogRadius;
         ui.Column(DialogCardId(dialogId), box with

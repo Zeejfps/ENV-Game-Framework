@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -192,6 +193,7 @@ public sealed class AssemblyListingTests
         var other = typeof(Workspace).Assembly.Location;
 
         d.Workspace.CreateList();
+        d.Workspace.SwitchList("New list");
         d.Settle();
         d.Workspace.Open(other);
         d.RunUntil(() => d.Workspace.Assemblies.FilePaths.Contains(other));
@@ -307,5 +309,75 @@ public sealed class AssemblyListingTests
         Assert.True(app.Frames.Drew("Assembly lists"));
         Assert.True(app.Frames.Drew("1 assembly"));
         Assert.True(app.Frames.Drew("0 assemblies"));
+        Assert.True(app.Frames.Drew(LucideIcons.Check));
+    }
+
+    [Fact]
+    public void A_rows_activate_button_switches_to_its_list_and_leaves_the_dialog_open()
+    {
+        var app = OpenedDialog();
+
+        app.ClickLast("Activate").Frame(2);
+        app.Settle(2);
+
+        Assert.Equal(Other, app.Workspace.Lists.Active);
+        Assert.True(app.Workspace.ListsDialog.IsOpen);
+        Assert.Empty(app.Workspace.Assemblies.Assemblies);
+    }
+
+    [Fact]
+    public void A_new_list_is_named_in_place_without_switching_to_it()
+    {
+        var app = OpenedDialog();
+
+        app.Click("New list").Frame(2);
+        app.Frames.Type("Work").Frame(2);
+        app.Frames.Key(KeyboardKey.Enter).Frame(2);
+
+        Assert.Contains("Work", app.Workspace.Lists.Names);
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.Lists.Active);
+        Assert.Null(app.Workspace.ListsDialog.Renaming);
+    }
+
+    [Fact]
+    public void Double_clicking_a_list_renames_it_and_escape_drops_the_name_but_keeps_the_dialog_open()
+    {
+        var app = OpenedDialog();
+
+        app.DoubleClick(Other).Frame(2);
+        Assert.Equal(Other, app.Workspace.ListsDialog.Renaming);
+        app.Frames.Type("Gone").Frame(2);
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
+
+        Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.Workspace.Lists.Names);
+        Assert.Null(app.Workspace.ListsDialog.Renaming);
+        Assert.True(app.Workspace.ListsDialog.IsOpen);
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.Lists.Active);
+    }
+
+    [Fact]
+    public void Deleting_the_active_list_says_which_opens_instead_once_confirmed()
+    {
+        var app = OpenedDialog();
+
+        app.ClickLast(LucideIcons.Trash2).Frame(2);
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.ListsDialog.Deleting);
+        Assert.Equal(Other, app.Workspace.Lists.ReplacementFor(SavedAssemblyLists.DefaultName));
+        app.Click("Delete list").Frame(2);
+        app.Settle(2);
+
+        Assert.Equal([Other], app.Workspace.Lists.Names);
+        Assert.Equal(Other, app.Workspace.Lists.Active);
+    }
+
+    /// <summary>An app with the fixtures open in the Default list, beside an empty one, and the dialog
+    /// open on Default.</summary>
+    private static AppDriver OpenedDialog()
+    {
+        var app = AppDriver.Opened();
+        app.Workspace.Lists.Create(Other);
+        app.Workspace.OpenListsDialog();
+        app.Run(2);
+        return app;
     }
 }
