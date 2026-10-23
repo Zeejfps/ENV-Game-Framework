@@ -208,6 +208,7 @@
   "code.tooltip_exceptions": "Exceptions",
   "code.tooltip_remarks": "Remarks",
   "code.tooltip_example": "Example",
+  "code.tooltip_container": "in {kind} {name}",
   "metadata.loading": "Loading…",
   "metadata.copy_row": "Copy row",
   "metadata.go_to_token": "Go to token",

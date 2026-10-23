@@ -200,6 +200,7 @@
   "code.tooltip_exceptions": "例外",
   "code.tooltip_remarks": "解説",
   "code.tooltip_example": "例",
+  "code.tooltip_container": "{kind} {name} 内",
   "metadata.loading": "読み込み中…",
   "metadata.copy_row": "行をコピー",
   "metadata.go_to_token": "トークンへ移動",

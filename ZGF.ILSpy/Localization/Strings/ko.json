@@ -200,6 +200,7 @@
   "code.tooltip_exceptions": "예외",
   "code.tooltip_remarks": "설명",
   "code.tooltip_example": "예제",
+  "code.tooltip_container": "{kind} {name} 내",
   "metadata.loading": "로드 중…",
   "metadata.copy_row": "행 복사",
   "metadata.go_to_token": "토큰으로 이동",

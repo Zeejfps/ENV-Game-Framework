@@ -200,6 +200,7 @@
   "code.tooltip_exceptions": "Исключения",
   "code.tooltip_remarks": "Примечания",
   "code.tooltip_example": "Пример",
+  "code.tooltip_container": "в {kind} {name}",
   "metadata.loading": "Загрузка…",
   "metadata.copy_row": "Копировать строку",
   "metadata.go_to_token": "Перейти к токену",

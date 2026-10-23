@@ -7,8 +7,8 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>What hovering a type or member in code shows: its declaration highlighted as code in a
-/// band of its own, on one line when it fits and else with a parameter per line, over the namespace
-/// and assembly it is in; then a rule and its documentation, a heading over each kind of section
+/// band of its own, on one line when it fits and else with a parameter per line, over the type or
+/// namespace it is in; then a rule and its documentation, a heading over each kind of section
 /// after the summary. Space between sections is wider than within them, so each reads as a group.
 /// Parameters line up in a column beside their descriptions, an exception's description sits
 /// under it, list items hang from their markers, and code blocks are set in a box.</summary>
@@ -19,7 +19,8 @@ internal static class CodeTooltipView
     private const float SignaturePaddingY = 8f;
     private const float ContextGap = 2f;
     private const float ParameterIndent = 16f;
-    private const string ContextSeparator = " · ";
+    private const char KindMark = '\u0001';
+    private const char NameMark = '\u0002';
     private const float DocumentationPaddingY = 10f;
     private const float SectionGap = 11f;
     private const float HeadingGap = 4f;
@@ -62,7 +63,8 @@ internal static class CodeTooltipView
         using (ui.Column(new Box { Padding = new Spacing(PaddingX, SignaturePaddingY), Gap = ContextGap }))
         {
             RenderDeclaration(ui, layout);
-            ui.RichText(layout.Context);
+            if (layout.Container.Count > 0)
+                ui.RichText(layout.Container);
         }
     }
 
@@ -287,7 +289,7 @@ internal static class CodeTooltipView
         public IReadOnlyList<RichTextRun> Declaration = [];
         public IReadOnlyList<RichTextRun> DeclarationHead = [];
         public readonly List<IReadOnlyList<RichTextRun>> Parameters = new();
-        public IReadOnlyList<RichTextRun> Context = [];
+        public IReadOnlyList<RichTextRun> Container = [];
         public readonly List<TooltipGroup> Groups = new();
 
         public bool IsBuiltFor(CodeTooltip tooltip, CodeViewPalette palette, UiTheme theme, Strings strings)
@@ -316,7 +318,7 @@ internal static class CodeTooltipView
     private static void Build(TooltipLayout layout, TooltipStyles styles, Strings t, CodeTooltip tooltip)
     {
         BuildDeclaration(layout, styles, tooltip.Signature);
-        layout.Context = [new RichTextRun(ContextOf(tooltip), styles.Context)];
+        layout.Container = ContainerRuns(styles, t, tooltip.Container);
         layout.Groups.Clear();
         foreach (var section in tooltip.Sections)
         {
@@ -369,13 +371,35 @@ internal static class CodeTooltipView
         return end;
     }
 
-    /// <summary>Where the entity is: its namespace and assembly, or only the assembly for the
-    /// global namespace.</summary>
-    private static string ContextOf(CodeTooltip tooltip)
+    /// <summary>"in class Namespace.Type" or "in namespace Namespace", worded as the language words
+    /// it, the keyword and name colored as code; nothing for the global namespace.</summary>
+    private static IReadOnlyList<RichTextRun> ContainerRuns(TooltipStyles styles, Strings t, CodeContainer? container)
     {
-        if (tooltip.Namespace.Length == 0)
-            return tooltip.Assembly;
-        return tooltip.Namespace + ContextSeparator + tooltip.Assembly;
+        if (container == null)
+            return [];
+        var pattern = t.CodeTooltipContainer(KindMark, NameMark);
+        var nameKind = container.IsNamespace ? SpanKind.Namespace : SpanKind.Type;
+        var runs = new List<RichTextRun>();
+        var start = 0;
+        for (var i = 0; i < pattern.Length; i++)
+        {
+            if (pattern[i] != KindMark && pattern[i] != NameMark)
+                continue;
+            AddContainerText(runs, styles, pattern.Substring(start, i - start));
+            if (pattern[i] == KindMark)
+                runs.Add(new RichTextRun(container.Keyword, styles.Code(SpanKind.Keyword)));
+            else
+                runs.Add(new RichTextRun(container.Name, styles.Code(nameKind)));
+            start = i + 1;
+        }
+        AddContainerText(runs, styles, pattern.Substring(start));
+        return runs;
+    }
+
+    private static void AddContainerText(List<RichTextRun> runs, TooltipStyles styles, string text)
+    {
+        if (text.Length > 0)
+            runs.Add(new RichTextRun(text, styles.Container));
     }
 
     /// <summary>The group a section of <paramref name="kind"/> joins: the last one when it is of the
@@ -524,7 +548,7 @@ internal static class CodeTooltipView
         public TextStyle Bold { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, bold: true);
         public TextStyle Italic { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, family: TextFonts.Italic);
         public TextStyle Heading { get; } = ui.StyleText(HeadingColor(ui.Theme), ui.Theme.FontSizeSmall, bold: true);
-        public TextStyle Context { get; } = ui.StyleText(ui.Theme.TextMuted, ui.Theme.FontSizeSmall);
+        public TextStyle Container { get; } = ui.StyleText(ui.Theme.TextMuted, ui.Theme.FontSize, family: MonoFonts.Regular);
         public TextStyle CodeBlock { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, family: MonoFonts.Regular);
 
         public TextStyle Code(SpanKind kind) => ui.StyleText(palette[kind], _size, family: MonoFonts.Regular);

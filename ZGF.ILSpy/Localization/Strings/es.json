@@ -200,6 +200,7 @@
   "code.tooltip_exceptions": "Excepciones",
   "code.tooltip_remarks": "Comentarios",
   "code.tooltip_example": "Ejemplo",
+  "code.tooltip_container": "en {kind} {name}",
   "metadata.loading": "Cargando…",
   "metadata.copy_row": "Copiar fila",
   "metadata.go_to_token": "Ir al token",

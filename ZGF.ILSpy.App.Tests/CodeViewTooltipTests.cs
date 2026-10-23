@@ -9,7 +9,7 @@ public sealed class CodeViewTooltipTests
     private const int MaxPolls = 200;
     private const double PollSeconds = 0.05;
     private const float WindowHeight = 700f;
-    private const string Context = "ZGF.ILSpy.App.Tests.Fixtures · ZGF.ILSpy.App.Tests";
+    private const string Context = "ZGF.ILSpy.App.Tests.Fixtures.Farewell";
 
     private static CodeViewDriver Farewell()
     {

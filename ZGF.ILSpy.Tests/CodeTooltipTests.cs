@@ -43,15 +43,30 @@ public sealed class CodeTooltipTests
     }
 
     [Fact]
-    public void The_signature_names_types_by_their_short_names_and_says_where_the_entity_is()
+    public void The_signature_names_types_by_their_short_names_and_says_what_the_entity_is_in()
     {
         var (list, assembly) = Trees.OpenTestAssembly();
 
         var mode = TooltipOf(list, assembly.Calculator().Child("Mode"));
+        var calculator = TooltipOf(list, assembly.Calculator());
+        var point = TooltipOf(list, assembly.Fixtures().Child("Point"));
 
         Assert.Equal("public enum Calculator<T>.Mode", mode.Signature.Line.Text);
-        Assert.Equal("ZGF.ILSpy.Tests.Fixtures", mode.Namespace);
-        Assert.Equal("ZGF.ILSpy.Tests", mode.Assembly);
+        Assert.Equal(new CodeContainer("class", "ZGF.ILSpy.Tests.Fixtures.Calculator<T>", false), mode.Container);
+        Assert.Equal(new CodeContainer("namespace", "ZGF.ILSpy.Tests.Fixtures", true), calculator.Container);
+        Assert.Equal("namespace", point.Container!.Keyword);
+    }
+
+    [Fact]
+    public void A_member_of_a_record_or_struct_is_in_one_by_its_keyword()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+
+        var x = TooltipOf(list, assembly.Fixtures().Child("Point", "X : int"));
+        var width = TooltipOf(list, assembly.Fixtures().Child("Size", "Width : int"));
+
+        Assert.Equal("record", x.Container!.Keyword);
+        Assert.Equal("struct", width.Container!.Keyword);
     }
 
     [Fact]
@@ -187,8 +202,7 @@ public sealed class CodeTooltipTests
         var tooltip = list.Describe(call.SpanAt("Add").Reference!)!;
 
         Assert.StartsWith("public void List<T>.Add(T item)", tooltip.Signature.Line.Text);
-        Assert.Equal("System.Collections.Generic", tooltip.Namespace);
-        Assert.Equal("System.Private.CoreLib", tooltip.Assembly);
+        Assert.Equal(new CodeContainer("class", "System.Collections.Generic.List<T>", false), tooltip.Container);
         Assert.NotEmpty(Section(tooltip, DocSectionKind.Summary).Blocks);
         Assert.Equal([assembly], list.Assemblies);
     }

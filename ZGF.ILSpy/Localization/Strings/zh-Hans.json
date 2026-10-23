@@ -200,6 +200,7 @@
   "code.tooltip_exceptions": "异常",
   "code.tooltip_remarks": "注解",
   "code.tooltip_example": "示例",
+  "code.tooltip_container": "位于 {kind} {name}",
   "metadata.loading": "正在加载…",
   "metadata.copy_row": "复制行",
   "metadata.go_to_token": "转到令牌",

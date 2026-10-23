@@ -200,6 +200,7 @@
   "code.tooltip_exceptions": "Exceptions",
   "code.tooltip_remarks": "Remarques",
   "code.tooltip_example": "Exemple",
+  "code.tooltip_container": "dans {kind} {name}",
   "metadata.loading": "Chargement…",
   "metadata.copy_row": "Copier la ligne",
   "metadata.go_to_token": "Aller au jeton",

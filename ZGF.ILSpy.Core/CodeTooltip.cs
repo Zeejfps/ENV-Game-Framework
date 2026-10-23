@@ -65,10 +65,14 @@ public sealed record DocSection(DocSectionKind Kind, DocRun? Label, IReadOnlyLis
 /// shown with a parameter per line when the line is too long.</summary>
 public sealed record CodeSignature(DocumentLine Line, IReadOnlyList<int> ParameterStarts);
 
+/// <summary>Where a type or member is declared: in a type, by its keyword such as <c>class</c> or
+/// <c>record struct</c> and its full name, or in a namespace.</summary>
+public sealed record CodeContainer(string Keyword, string Name, bool IsNamespace);
+
 /// <summary>What hovering a type or member in code explains: its declaration, highlighted as code
-/// with short names, the namespace and assembly it is in, and its XML documentation when there is
-/// any. <see cref="Namespace"/> is empty for the global namespace.</summary>
-public sealed record CodeTooltip(CodeSignature Signature, string Namespace, string Assembly, IReadOnlyList<DocSection> Sections)
+/// with short names, the type or namespace it is in, null for a type in the global namespace, and
+/// its XML documentation when there is any.</summary>
+public sealed record CodeTooltip(CodeSignature Signature, CodeContainer? Container, IReadOnlyList<DocSection> Sections)
 {
     private const ConversionFlags SignatureFlags =
         ConversionFlags.All & ~(ConversionFlags.ShowBody | ConversionFlags.PlaceReturnTypeAfterParameterList |
@@ -78,7 +82,7 @@ public sealed record CodeTooltip(CodeSignature Signature, string Namespace, stri
     {
         var signature = WriteSignature(entity, assembly);
         var sections = Documentation.Read(entity);
-        return new CodeTooltip(signature, entity.Namespace, AssemblyNameOf(entity, assembly), sections);
+        return new CodeTooltip(signature, ContainerOf(entity), sections);
     }
 
     private static CodeSignature WriteSignature(IEntity entity, LoadedAssembly assembly)
@@ -95,13 +99,27 @@ public sealed record CodeTooltip(CodeSignature Signature, string Namespace, stri
         return new CodeSignature(line, parameters.Starts);
     }
 
-    private static string AssemblyNameOf(IEntity entity, LoadedAssembly assembly)
+    private const string NamespaceKeyword = "namespace";
+
+    private static CodeContainer? ContainerOf(IEntity entity)
     {
-        var module = entity.ParentModule;
-        if (module == null)
-            return assembly.Name;
-        return module.AssemblyName;
+        var declaring = entity.DeclaringTypeDefinition;
+        if (declaring != null)
+            return new CodeContainer(KeywordOf(declaring), EntityText.FullName(declaring), false);
+        if (entity.Namespace.Length == 0)
+            return null;
+        return new CodeContainer(NamespaceKeyword, entity.Namespace, true);
     }
+
+    private static string KeywordOf(ITypeDefinition type) =>
+        type.Kind switch
+        {
+            TypeKind.Interface => "interface",
+            TypeKind.Enum => "enum",
+            TypeKind.Delegate => "delegate",
+            TypeKind.Struct => type.IsRecord ? "record struct" : "struct",
+            _ => type.IsRecord ? "record" : "class",
+        };
 
     /// <summary>Notes the column each parameter of the declaration starts at; parameters of types
     /// inside it, such as a delegate's, are not the declaration's own.</summary>
