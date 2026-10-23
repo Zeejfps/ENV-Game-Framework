@@ -1,0 +1,38 @@
+using Xunit.Abstractions;
+
+namespace ZGF.ILSpy.App.Tests;
+
+public sealed class AppFrameCostTests(ITestOutputHelper output)
+{
+    private const int WarmUpFrames = 120;
+    private const int MeasuredFrames = 600;
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_frame_of_the_app_showing_a_document_allocates_nothing(bool errorsOpen)
+    {
+        var app = AppDriver.Opened();
+        app.Settle(2);
+        app.Show(app.Fixture("Greeter"), 2);
+        app.Settle(5);
+        if (errorsOpen)
+            OpenErrors(app);
+
+        app.Frames.Canvas.Recording = false;
+        app.Run(WarmUpFrames);
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        app.Run(MeasuredFrames);
+        allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
+
+        output.WriteLine($"{(errorsOpen ? "errors open" : "idle")}: {allocated / MeasuredFrames:N0} B/frame allocated");
+        Assert.Equal(errorsOpen, app.Workspace.Errors.IsOpen);
+        Assert.Equal(0, allocated / MeasuredFrames);
+    }
+
+    private static void OpenErrors(AppDriver app)
+    {
+        app.Workspace.ReportError("Something failed", "details");
+        app.Workspace.Errors.IsOpen = true;
+    }
+}
