@@ -9,8 +9,9 @@ namespace ZGF.ILSpy;
 /// right: activity, errors, language and the assembly count.</summary>
 internal static class StatusBarView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var size = theme.FontSizeSmall;
         using (ui.Row(new Box
@@ -36,7 +37,7 @@ internal static class StatusBarView
                 }
                 if (w.Errors.Entries.Count > 0)
                 {
-                    ErrorIndicator(ui, w, t);
+                    ErrorIndicator(ui, w);
                     Dot(ui);
                 }
                 ui.Text(w.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
@@ -63,10 +64,11 @@ internal static class StatusBarView
         return tab != null && tab.IsBusy;
     }
 
-    private static void Dot(Ui ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
+    private static void Dot(Ui<UiState> ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
 
-    private static void ErrorIndicator(Ui ui, Workspace w, Strings t)
+    private static void ErrorIndicator(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var errors = w.Errors;
         var i = ui.Clickable("errors");

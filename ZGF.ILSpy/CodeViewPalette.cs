@@ -3,7 +3,7 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>The code view's editor colors: syntax by role, mapped to each <see cref="SpanKind"/>,
-/// and the gutter, fold chip and highlight states. Provided per theme with <c>ui.Provide</c>.</summary>
+/// and the gutter, fold chip and highlight states. Carried per theme by <see cref="UiState"/>.</summary>
 public sealed class CodeViewPalette
 {
     public required uint Plain { get; init; }

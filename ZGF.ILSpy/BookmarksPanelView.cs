@@ -23,11 +23,12 @@ internal static class BookmarksPanelView
     private static Strings? _headersFor;
     private static string[] _headers = [];
 
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var bookmarks = w.Bookmarks;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, w, t);
+        Toolbar(ui, w);
         ui.Separator();
 
         if (bookmarks.Items.Count == 0)
@@ -38,30 +39,30 @@ internal static class BookmarksPanelView
 
         var table = ui.Table(ListId, w.BookmarkColumns, bookmarks.Cells);
         table.Header(Headers(t));
-        var removed = List(ui, w, t, table);
-        Menu(ui, w, t);
+        var removed = List(ui, w, table);
+        Menu(ui, w);
         if (removed != null)
             bookmarks.Remove(removed);
     }
 
     /// <summary>Returns the bookmark Delete asked to remove.</summary>
-    private static Bookmark? List(Ui ui, Workspace w, Strings t, TableFrame table)
+    private static Bookmark? List(Ui<UiState> ui, Workspace w, TableFrame table)
     {
         var bookmarks = w.Bookmarks;
-        var palette = ui.GetCodeViewPalette();
+        var palette = ui.State.CodeViewPalette;
         var renaming = bookmarks.Renaming != null;
         Bookmark? removed = null;
         using var body = table.Body(bookmarks.Items.Count, keys: !renaming);
         if (body.Focused && !renaming)
             removed = HandleKeys(ui, bookmarks);
         for (var i = body.First; i < body.End; i++)
-            Row(ui, w, t, body, bookmarks.Items[i], i, palette);
+            Row(ui, w, body, bookmarks.Items[i], i, palette);
         Answer(ui, w, body);
         return removed;
     }
 
     /// <summary>Does what the user asked of the table this frame: go to, copy or open the menu.</summary>
-    private static void Answer(Ui ui, Workspace w, TableBody body)
+    private static void Answer(Ui<UiState> ui, Workspace w, TableBody body)
     {
         var bookmarks = w.Bookmarks;
         var selected = bookmarks.SelectedBookmark;
@@ -88,8 +89,9 @@ internal static class BookmarksPanelView
         new(t.FileFilterAll, ["*.*"]),
     ];
 
-    private static void Toolbar(Ui ui, Workspace w, Strings t)
+    private static void Toolbar(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var bookmarks = w.Bookmarks;
         var any = bookmarks.Items.Any(static b => b.Enabled);
@@ -121,7 +123,7 @@ internal static class BookmarksPanelView
         _ => "",
     };
 
-    private static void Row(Ui ui, Workspace w, Strings t, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
+    private static void Row(Ui<UiState> ui, Workspace w, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
     {
         var bookmarks = w.Bookmarks;
         var row = body.Row(index, RuntimeHelpers.GetHashCode(bookmark));
@@ -130,17 +132,18 @@ internal static class BookmarksPanelView
         {
             if (row.CellAt(NameColumn).Pressed && bookmarks.Renaming != bookmark)
                 bookmarks.StartRename(bookmark);
-            MarkCell(ui, t, bookmarks, row, bookmark, palette);
+            MarkCell(ui, bookmarks, row, bookmark, palette);
             NameCell(ui, bookmarks, row, bookmark);
-            LocationCell(ui, w, t, row, bookmark);
+            LocationCell(ui, w, row, bookmark);
             TextCell(ui, row, bookmark, ModuleColumn);
             locationId = row.CellAt(LocationColumn).Id;
         }
-        LocationTooltip(ui, t, locationId, bookmark);
+        LocationTooltip(ui, locationId, bookmark);
     }
 
-    private static void MarkCell(Ui ui, Strings t, BookmarkList bookmarks, TableRow row, Bookmark bookmark, CodeViewPalette palette)
+    private static void MarkCell(Ui<UiState> ui, BookmarkList bookmarks, TableRow row, Bookmark bookmark, CodeViewPalette palette)
     {
+        var t = ui.State.Strings;
         var mark = row.CellAt(MarkColumn);
         if (mark.Hovered)
             ui.SetCursor(MouseCursor.Hand);
@@ -152,7 +155,7 @@ internal static class BookmarksPanelView
         ui.Tooltip(mark.Id, bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable);
     }
 
-    private static void NameCell(Ui ui, BookmarkList bookmarks, TableRow row, Bookmark bookmark)
+    private static void NameCell(Ui<UiState> ui, BookmarkList bookmarks, TableRow row, Bookmark bookmark)
     {
         if (bookmarks.Renaming != bookmark)
         {
@@ -163,8 +166,9 @@ internal static class BookmarksPanelView
             RenameField(ui, bookmarks);
     }
 
-    private static void LocationCell(Ui ui, Workspace w, Strings t, TableRow row, Bookmark bookmark)
+    private static void LocationCell(Ui<UiState> ui, Workspace w, TableRow row, Bookmark bookmark)
     {
+        var t = ui.State.Strings;
         uint? color = null;
         if (!bookmark.Enabled)
             color = ui.Theme.TextMuted;
@@ -173,7 +177,7 @@ internal static class BookmarksPanelView
             w.GoTo(bookmark);
     }
 
-    private static void TextCell(Ui ui, TableRow row, Bookmark bookmark, int column)
+    private static void TextCell(Ui<UiState> ui, TableRow row, Bookmark bookmark, int column)
     {
         var theme = ui.Theme;
         var module = column == ModuleColumn;
@@ -184,8 +188,9 @@ internal static class BookmarksPanelView
         row.TextCell(column, Shown(bookmark, column), color, overflow: overflow);
     }
 
-    private static void LocationTooltip(Ui ui, Strings t, int cellId, Bookmark bookmark)
+    private static void LocationTooltip(Ui<UiState> ui, int cellId, Bookmark bookmark)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         using var tooltip = ui.TooltipContent(cellId);
         if (!tooltip.IsOpen) return;
@@ -196,7 +201,7 @@ internal static class BookmarksPanelView
         }
     }
 
-    private static void RenameField(Ui ui, BookmarkList bookmarks)
+    private static void RenameField(Ui<UiState> ui, BookmarkList bookmarks)
     {
         var begin = bookmarks.FocusRename;
         bookmarks.FocusRename = false;
@@ -211,8 +216,9 @@ internal static class BookmarksPanelView
             ui.Focus(ListId, takesText: false);
     }
 
-    private static void Menu(Ui ui, Workspace w, Strings t)
+    private static void Menu(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen || w.Bookmarks.SelectedBookmark is not { } bookmark) return;
         var bookmarks = w.Bookmarks;
@@ -236,7 +242,7 @@ internal static class BookmarksPanelView
     }
 
     /// <summary>Returns the bookmark Delete asked to remove.</summary>
-    private static Bookmark? HandleKeys(Ui ui, BookmarkList bookmarks)
+    private static Bookmark? HandleKeys(Ui<UiState> ui, BookmarkList bookmarks)
     {
         Bookmark? removed = null;
         foreach (var stroke in ui.Input.Keys)

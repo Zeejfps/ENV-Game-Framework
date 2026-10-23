@@ -7,8 +7,9 @@ namespace ZGF.ILSpy;
 /// <summary>Asks whether to put every panel back where it started before the layout is reset.</summary>
 internal static class LayoutResetDialogView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var open = w.ConfirmingLayoutReset;
         using (var dialog = ui.Dialog("layout-reset", t.ViewResetLayout, ref open, closeButton: false))
         {

@@ -11,26 +11,30 @@ namespace ZGF.Gui.Immediate.Testing;
 /// <see cref="Width"/> by <see cref="Height"/>. Input queued between frames arrives in the next one.
 /// Popups draw over the window unless a <see cref="TestPopupHost"/> is given. The helpers that take
 /// no body record <see cref="Body"/>.</summary>
-public sealed class UiFrames
+public sealed class UiFrames<TState> where TState : class, IUiState, new()
 {
     private readonly RecordingCanvas _canvas;
     private readonly TestPopupHost? _popups;
-    private readonly Ui _ui;
+    private readonly Ui<TState> _ui;
     private UiInput _frame = new();
     private UiInput _pending = new();
 
-    public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f, Action<Ui>? body = null)
+    public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
+        Action<Ui<TState>>? body = null)
     {
         _canvas = new RecordingCanvas(measurer ?? new SyntheticTextMeasurer());
         _popups = popups;
         Width = width;
         Height = height;
         Body = body;
-        _ui = new Ui(_canvas, Clipboard, popups);
+        _ui = new Ui<TState>(State, _canvas, Clipboard, popups);
     }
 
+    /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>
+    public TState State { get; } = new();
+
     /// <summary>What <see cref="Frame(int)"/> and the helpers that take no body record.</summary>
-    public Action<Ui>? Body { get; set; }
+    public Action<Ui<TState>>? Body { get; set; }
 
     /// <summary>Runs before every frame, as an app's loop runs the work posted to it.</summary>
     public Action? BeforeFrame { get; set; }
@@ -68,9 +72,9 @@ public sealed class UiFrames
     /// <summary>What <see cref="Ui.WindowBounds"/> reports from the next frame.</summary>
     public WindowBounds WindowBounds { get; set; }
 
-    private Action<Ui> BoundBody => Body ?? throw new InvalidOperationException("No body is bound.");
+    private Action<Ui<TState>> BoundBody => Body ?? throw new InvalidOperationException("No body is bound.");
 
-    public T Run<T>(float deltaTime, Func<Ui, T> body)
+    public T Run<T>(float deltaTime, Func<Ui<TState>, T> body)
     {
         Begin(deltaTime);
         var value = body(_ui);
@@ -78,7 +82,7 @@ public sealed class UiFrames
         return value;
     }
 
-    public void Run(float deltaTime, Action<Ui> body)
+    public void Run(float deltaTime, Action<Ui<TState>> body)
     {
         Begin(deltaTime);
         body(_ui);
@@ -86,7 +90,7 @@ public sealed class UiFrames
     }
 
     /// <summary>Runs <paramref name="count"/> frames of <see cref="Body"/>, each <see cref="FrameTime"/> long.</summary>
-    public UiFrames Frame(int count = 1)
+    public UiFrames<TState> Frame(int count = 1)
     {
         var body = BoundBody;
         for (var i = 0; i < count; i++)
@@ -95,7 +99,7 @@ public sealed class UiFrames
     }
 
     /// <summary>Runs a frame of <see cref="Body"/> and then <paramref name="read"/>, and returns what it read.</summary>
-    public T Frame<T>(Func<Ui, T> read)
+    public T Frame<T>(Func<Ui<TState>, T> read)
     {
         var body = BoundBody;
         Begin(FrameTime);
@@ -106,7 +110,7 @@ public sealed class UiFrames
     }
 
     /// <summary>Runs a frame of <see cref="Body"/> and then <paramref name="then"/>.</summary>
-    public void Frame(Action<Ui> then)
+    public void Frame(Action<Ui<TState>> then)
     {
         var body = BoundBody;
         Begin(FrameTime);
@@ -132,78 +136,78 @@ public sealed class UiFrames
     /// <summary>Where the last frame drew <paramref name="text"/>, which it drew once, in UI points.</summary>
     public UiRect TextRect(string text) => ToUi(_canvas.Texts.Single(t => t.Inputs.Text == text).Inputs.Position);
 
-    public UiFrames Wait(double seconds)
+    public UiFrames<TState> Wait(double seconds)
     {
         RealTime += seconds;
         return this;
     }
 
-    public UiFrames MovePointer(float x, float y)
+    public UiFrames<TState> MovePointer(float x, float y)
     {
         _pending.MovePointer(new PointF(x, y));
         return this;
     }
 
-    public UiFrames MovePointer(PointF at) => MovePointer(at.X, at.Y);
+    public UiFrames<TState> MovePointer(PointF at) => MovePointer(at.X, at.Y);
 
     /// <summary>Moves to the middle of <paramref name="rect"/>.</summary>
-    public UiFrames MovePointer(UiRect rect) => MovePointer(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+    public UiFrames<TState> MovePointer(UiRect rect) => MovePointer(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
 
-    public UiFrames Press(KeyModifiers modifiers = KeyModifiers.None) => Press(PointerButton.Left, modifiers);
+    public UiFrames<TState> Press(KeyModifiers modifiers = KeyModifiers.None) => Press(PointerButton.Left, modifiers);
 
-    public UiFrames Press(PointerButton button, KeyModifiers modifiers = KeyModifiers.None)
+    public UiFrames<TState> Press(PointerButton button, KeyModifiers modifiers = KeyModifiers.None)
     {
         _pending.Button((int)button, InputAction.Press, modifiers);
         return this;
     }
 
-    public UiFrames Release(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    public UiFrames<TState> Release(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
     {
         _pending.Button((int)button, InputAction.Release, modifiers);
         return this;
     }
 
-    public UiFrames Wheel(double y, double x = 0)
+    public UiFrames<TState> Wheel(double y, double x = 0)
     {
         _pending.Scroll(x, y);
         return this;
     }
 
-    public UiFrames DismissPopups()
+    public UiFrames<TState> DismissPopups()
     {
         _pending.DismissPopups();
         return this;
     }
 
     /// <summary>Another app takes the focus, as when the user switches to it.</summary>
-    public UiFrames Background()
+    public UiFrames<TState> Background()
     {
         _pending.SetForeground(false);
         return this;
     }
 
     /// <summary>The app takes the focus back.</summary>
-    public UiFrames Foreground()
+    public UiFrames<TState> Foreground()
     {
         _pending.SetForeground(true);
         return this;
     }
 
     /// <summary>The app lost focus: held buttons come up without the user releasing them.</summary>
-    public UiFrames LoseFocus()
+    public UiFrames<TState> LoseFocus()
     {
         _pending.ReleaseAll();
         _pending.DismissPopups();
         return this;
     }
 
-    public UiFrames Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
+    public UiFrames<TState> Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
     {
         _pending.Key(key, InputAction.Press, modifiers);
         return this;
     }
 
-    public UiFrames Type(string text)
+    public UiFrames<TState> Type(string text)
     {
         foreach (var rune in text.EnumerateRunes())
             _pending.Character((uint)rune.Value);
@@ -212,7 +216,7 @@ public sealed class UiFrames
 
     /// <summary>The IME replaces its composition with <paramref name="text"/>, caret at
     /// <paramref name="caret"/> (the end by default); an empty text ends it.</summary>
-    public UiFrames Compose(string text, int? caret = null, IReadOnlyList<PreeditBlock>? blocks = null, int focusedBlock = -1)
+    public UiFrames<TState> Compose(string text, int? caret = null, IReadOnlyList<PreeditBlock>? blocks = null, int focusedBlock = -1)
     {
         _pending.Compose(text.Length == 0 ? PreeditText.Empty : new PreeditText(text, caret ?? text.Length, blocks ?? [], focusedBlock));
         return this;
@@ -220,30 +224,30 @@ public sealed class UiFrames
 
     /// <summary>Runs a frame of <paramref name="body"/> and returns where the element with the id
     /// <paramref name="id"/> gives was laid out on the frame before.</summary>
-    public UiRect RectOf(Action<Ui> body, Func<Ui, int> id) => Run(0f, ui =>
+    public UiRect RectOf(Action<Ui<TState>> body, Func<Ui<TState>, int> id) => Run(0f, ui =>
     {
         body(ui);
         return ui.TryGetRect(id(ui), out var rect) ? rect : throw new InvalidOperationException("Not laid out.");
     });
 
-    /// <summary>As <see cref="RectOf(Action{Ui}, Func{Ui, int})"/> over <see cref="Body"/>.</summary>
-    public UiRect RectOf(Func<Ui, int> id) => RectOf(BoundBody, id);
+    /// <summary>As <see cref="RectOf(Action{Ui{TState}}, Func{Ui{TState}, int})"/> over <see cref="Body"/>.</summary>
+    public UiRect RectOf(Func<Ui<TState>, int> id) => RectOf(BoundBody, id);
 
-    /// <summary>As <see cref="RectOf(Func{Ui, int})"/> for the element <see cref="Ui.GetId(string)"/> names.</summary>
+    /// <summary>As <see cref="RectOf(Func{Ui{TState}, int})"/> for the element <see cref="Ui.GetId(string)"/> names.</summary>
     public UiRect RectOf(string id) => RectOf(ui => ui.GetId(id));
 
-    /// <summary>Clicks the middle of the element <paramref name="id"/> gives, as <see cref="Click(float, float, Action{Ui}, PointerButton, KeyModifiers)"/>.</summary>
-    public UiFrames ClickOn(Action<Ui> body, Func<Ui, int> id, PointerButton button = PointerButton.Left) => Click(RectOf(body, id), body, button);
+    /// <summary>Clicks the middle of the element <paramref name="id"/> gives, as <see cref="Click(float, float, Action{Ui{TState}}, PointerButton, KeyModifiers)"/>.</summary>
+    public UiFrames<TState> ClickOn(Action<Ui<TState>> body, Func<Ui<TState>, int> id, PointerButton button = PointerButton.Left) => Click(RectOf(body, id), body, button);
 
-    /// <summary>As <see cref="ClickOn(Action{Ui}, Func{Ui, int}, PointerButton)"/> over <see cref="Body"/>.</summary>
-    public UiFrames ClickOn(Func<Ui, int> id, PointerButton button = PointerButton.Left) => ClickOn(BoundBody, id, button);
+    /// <summary>As <see cref="ClickOn(Action{Ui{TState}}, Func{Ui{TState}, int}, PointerButton)"/> over <see cref="Body"/>.</summary>
+    public UiFrames<TState> ClickOn(Func<Ui<TState>, int> id, PointerButton button = PointerButton.Left) => ClickOn(BoundBody, id, button);
 
     /// <summary>Clicks the middle of the element <see cref="Ui.GetId(string)"/> names.</summary>
-    public UiFrames ClickOn(string id, PointerButton button = PointerButton.Left) => ClickOn(ui => ui.GetId(id), button);
+    public UiFrames<TState> ClickOn(string id, PointerButton button = PointerButton.Left) => ClickOn(ui => ui.GetId(id), button);
 
     /// <summary>Moves to (x, y), lets a frame see the pointer there, then presses and releases
     /// <paramref name="button"/> over two more frames, running <paramref name="body"/> each time.</summary>
-    public UiFrames Click(float x, float y, Action<Ui> body, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    public UiFrames<TState> Click(float x, float y, Action<Ui<TState>> body, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
     {
         MovePointer(x, y);
         Run(1f / 60f, body);
@@ -254,17 +258,17 @@ public sealed class UiFrames
         return this;
     }
 
-    /// <summary>As <see cref="Click(float, float, Action{Ui}, PointerButton, KeyModifiers)"/> over <see cref="Body"/>.</summary>
-    public UiFrames Click(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+    /// <summary>As <see cref="Click(float, float, Action{Ui{TState}}, PointerButton, KeyModifiers)"/> over <see cref="Body"/>.</summary>
+    public UiFrames<TState> Click(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
         Click(x, y, BoundBody, button, modifiers);
 
     /// <summary>Clicks the middle of <paramref name="rect"/>, as <see cref="Click(float, float, PointerButton, KeyModifiers)"/>.</summary>
-    public UiFrames Click(UiRect rect, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+    public UiFrames<TState> Click(UiRect rect, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
         Click(rect, BoundBody, button, modifiers);
 
     /// <summary>Clicks at (x, y) as <see cref="Click(float, float, PointerButton, KeyModifiers)"/>, then
     /// presses and releases <paramref name="button"/> again over two more frames.</summary>
-    public UiFrames DoubleClick(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    public UiFrames<TState> DoubleClick(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
     {
         var body = BoundBody;
         Click(x, y, body, button, modifiers);
@@ -276,15 +280,15 @@ public sealed class UiFrames
     }
 
     /// <summary>Double-clicks the middle of <paramref name="rect"/>, as <see cref="DoubleClick(float, float, PointerButton, KeyModifiers)"/>.</summary>
-    public UiFrames DoubleClick(UiRect rect, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+    public UiFrames<TState> DoubleClick(UiRect rect, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
         DoubleClick(rect.X + rect.Width / 2, rect.Y + rect.Height / 2, button, modifiers);
 
     /// <summary>Moves to <paramref name="from"/> and presses there, then moves through
     /// <paramref name="path"/>, a frame of <see cref="Body"/> after each step; release to drop.</summary>
-    public UiFrames Drag(PointF from, params ReadOnlySpan<PointF> path) => Drag(KeyModifiers.None, from, path);
+    public UiFrames<TState> Drag(PointF from, params ReadOnlySpan<PointF> path) => Drag(KeyModifiers.None, from, path);
 
     /// <summary>As <see cref="Drag(PointF, ReadOnlySpan{PointF})"/>, pressing with <paramref name="modifiers"/> held.</summary>
-    public UiFrames Drag(KeyModifiers modifiers, PointF from, params ReadOnlySpan<PointF> path)
+    public UiFrames<TState> Drag(KeyModifiers modifiers, PointF from, params ReadOnlySpan<PointF> path)
     {
         MovePointer(from).Frame();
         Press(modifiers).Frame();
@@ -326,6 +330,6 @@ public sealed class UiFrames
             _pending.DismissPopups();
     }
 
-    private UiFrames Click(UiRect rect, Action<Ui> body, PointerButton button, KeyModifiers modifiers = KeyModifiers.None) =>
+    private UiFrames<TState> Click(UiRect rect, Action<Ui<TState>> body, PointerButton button, KeyModifiers modifiers = KeyModifiers.None) =>
         Click(rect.X + rect.Width / 2, rect.Y + rect.Height / 2, body, button, modifiers);
 }

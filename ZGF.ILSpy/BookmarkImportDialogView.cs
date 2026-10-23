@@ -7,8 +7,9 @@ namespace ZGF.ILSpy;
 /// <summary>Asks whether imported bookmarks replace the ones there are or merge in beside them.</summary>
 internal static class BookmarkImportDialogView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var open = w.PendingImport != null;
         using (var dialog = ui.Dialog("bookmark-import", t.BookmarksImportTitle, ref open, closeButton: false))
         {

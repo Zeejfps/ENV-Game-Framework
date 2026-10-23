@@ -4,7 +4,7 @@ namespace ZGF.Gui.Immediate;
 /// as one showing details under it.</summary>
 public readonly record struct TallRow(int Index, float Height);
 
-public sealed partial class Ui
+public abstract partial class Ui
 {
     private const int VirtualOverscan = 1;
 

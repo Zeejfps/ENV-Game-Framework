@@ -4,7 +4,6 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.App.Tests.Fixtures;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -35,10 +34,10 @@ internal sealed class CodeViewDriver
         Frames = new UiFrames(height: height, body: Render) { FrameTime = 1f / 60f };
     }
 
-    private void Render(Ui ui)
+    private void Render(Ui<UiState> ui)
     {
         using var screen = ui.Screen();
-        Last = ui.CodeView("code", Document, State, Strings.En, Bookmarks, tooltips: Tooltips);
+        Last = ui.CodeView("code", Document, State, Bookmarks, tooltips: Tooltips);
     }
 
     /// <summary>A driver that has run <paramref name="frames"/> frames of <paramref name="document"/>.</summary>

@@ -1,7 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -41,9 +40,11 @@ public sealed class CodeViewTests
         var dark = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
         view.Frames.Run(1f / 60f, ui =>
         {
-            using (ui.Provide(UiTheme.Light))
-            using (ui.Provide(CodeViewPalette.Light))
-                ui.CodeView("code", view.Document, view.State, Strings.En);
+            ui.State.Theme = UiTheme.Light;
+            ui.State.CodeViewPalette = CodeViewPalette.Light;
+            ui.CodeView("code", view.Document, view.State);
+            ui.State.Theme = UiTheme.Dark;
+            ui.State.CodeViewPalette = CodeViewPalette.Dark;
         });
         var light = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
 

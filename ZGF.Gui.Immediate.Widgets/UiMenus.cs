@@ -214,7 +214,6 @@ public static partial class UiWidgets
             Padding = box.Padding ?? new Spacing(theme.GapTight, theme.GapTight / 2),
             Background = box.Background ?? theme.Surface,
         });
-        ui.Provide(state);
         return menuBar;
     }
 
@@ -223,7 +222,7 @@ public static partial class UiWidgets
     /// as for <see cref="Button"/>.</summary>
     public static Ui.Scope Menu(this Ui ui, string label, string? id = null)
     {
-        var bar = ui.Get<MenuBarState>() ?? throw new InvalidOperationException("A Menu must be recorded inside a MenuBar.");
+        var bar = ui.FindOpenGroup<MenuBarState>() ?? throw new InvalidOperationException("A Menu must be recorded inside a MenuBar.");
         var theme = ui.Theme;
         var i = ui.Interact(id ?? label);
         bar.AddTitle(i.Id);
@@ -311,7 +310,7 @@ public static partial class UiWidgets
     /// ids work as for <see cref="Button"/>.</summary>
     public static Ui.Scope SubMenu(this Ui ui, string label, bool enabled = true, string? id = null)
     {
-        var parent = ui.Get<MenuPopup>() ?? throw new InvalidOperationException("A SubMenu must be recorded inside a menu.");
+        var parent = ui.FindOpenGroup<MenuPopup>() ?? throw new InvalidOperationException("A SubMenu must be recorded inside a menu.");
         var theme = ui.Theme;
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
@@ -380,7 +379,7 @@ public static partial class UiWidgets
     private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id, UiIcon? icon, UiIcon? labelIcon, bool keepOpen)
     {
         var theme = ui.Theme;
-        var menu = ui.Get<MenuPopup>();
+        var menu = ui.FindOpenGroup<MenuPopup>();
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var index = menu?.AddItem(i.Id, enabled) ?? -1;
@@ -460,7 +459,6 @@ public static partial class UiWidgets
         ui.Layer(menu.PopupId);
         ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
         ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });
-        ui.Provide(menu);
         return scope;
     }
 

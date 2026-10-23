@@ -9,7 +9,7 @@ public enum RenderBackendKind
     Metal,
 }
 
-/// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{T}"/> runs in. While it runs,
+/// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{TAppState, TUiState}"/> runs in. While it runs,
 /// <c>await</c> on the UI thread continues before the next frame.</summary>
 public sealed class ImmediateGuiAppHost
 {
@@ -21,10 +21,12 @@ public sealed class ImmediateGuiAppHost
     }
 
     /// <summary>Opens the window and runs <paramref name="app"/> in it until the window closes.</summary>
-    public static void Run<T>(ImmediateGuiApp<T> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
-        where T : class
+    public static void Run<TAppState, TUiState>(ImmediateGuiApp<TAppState, TUiState> app, StartupConfig config,
+        RenderBackendKind backend = RenderBackendKind.Auto)
+        where TAppState : class
+        where TUiState : class, IUiState
     {
-        using var host = new ImmediateHost(config, backend, app.Render);
+        using var host = new ImmediateHost(config, backend, app.CreateUi, app.Render);
         using var context = host.InstallSynchronizationContext();
         var guiHost = new ImmediateGuiAppHost(host);
         app.Startup(guiHost);
@@ -47,7 +49,7 @@ public sealed class ImmediateGuiAppHost
     /// and <see cref="UiTheme.FontFamily"/>. A bold face is the one the family's bold text is drawn
     /// in, which is otherwise synthesized from the regular face; the default font's bold is Inter
     /// SemiBold. Register italic faces under families of their own. Call it on the UI thread, such as
-    /// from <see cref="ImmediateGuiApp{T}.OnStartup"/> or after awaiting a background load there; it
+    /// from <see cref="ImmediateGuiApp{TAppState, TUiState}.OnStartup"/> or after awaiting a background load there; it
     /// does nothing once the window has closed.</summary>
     public void RegisterFont(FontFace font)
     {

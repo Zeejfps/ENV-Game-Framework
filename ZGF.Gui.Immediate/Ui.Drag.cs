@@ -3,7 +3,7 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Immediate;
 
-public sealed partial class Ui
+public abstract partial class Ui
 {
     private const float DragThreshold = 6f;
 

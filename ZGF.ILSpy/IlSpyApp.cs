@@ -3,14 +3,14 @@ using ZGF.Gui.Immediate;
 
 namespace ZGF.ILSpy;
 
-public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
+public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 {
     private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
     private const string ItalicFontFile = "Inter-Italic.ttf";
 
     private readonly List<string> _commandLineAssemblies;
 
-    private IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace)
+    private IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace, new UiState())
     {
         _commandLineAssemblies = commandLineAssemblies;
     }
@@ -58,7 +58,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
         State.SaveSettings();
     }
 
-    protected override void OnRender(Ui ui, Workspace w)
+    protected override void OnRender(Ui<UiState> ui, Workspace w)
     {
         MainView.Render(ui, w);
     }

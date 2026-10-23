@@ -1,5 +1,6 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -132,7 +133,7 @@ public static class Navigation
         var node = found.Value;
         if (node == null)
         {
-            var t = w.GetStrings();
+            var t = Strings.For(w.Locale);
             var details = Workspace.DescribeFailure(found.Error, t.ErrorNoLongerThere(place));
             w.ReportError(t.ErrorGoBack(place.Text), details);
             return;
@@ -142,7 +143,7 @@ public static class Navigation
 
     internal static void ReportUnresolved(this Workspace w, CodeReference reference, Exception? error)
     {
-        var t = w.GetStrings();
+        var t = Strings.For(w.Locale);
         var details = Workspace.DescribeFailure(error, t.ErrorNoDefinition(reference));
         w.ReportError(t.ErrorResolve(reference.Name), details);
     }

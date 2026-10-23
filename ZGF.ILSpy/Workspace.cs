@@ -110,14 +110,14 @@ public sealed class Workspace
         Layout.PanelClosed += this.OnPanelClosed;
         Tree = new BrowseTree();
         Analyzer = new AnalyzerTree(Assemblies);
-        Search = new Search(GetStrings, ReportError);
+        Search = new Search(() => Strings.For(Locale), ReportError);
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
-        Picker = new FrameworkPicker(GetStrings, ReportError);
+        Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
         LastSessionAnalyses = new LastSessionAnalyses(settings.Analyzed);
@@ -142,18 +142,16 @@ public sealed class Workspace
     {
         if (settings.LoadError == null)
             return;
-        ReportError(GetStrings().ErrorReadSettings, settings.LoadError);
+        ReportError(Strings.For(Locale).ErrorReadSettings, settings.LoadError);
     }
 
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
-
-    internal Strings GetStrings() => Strings.For(Locale);
 
     internal bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
     internal DocumentTab AddTab()
     {
-        var tab = new DocumentTab(GetStrings, () => DecompilerOptions, ReportError);
+        var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError);
         Tabs.Add(tab);
         return tab;
     }

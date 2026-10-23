@@ -1,7 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core.Metadata;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -15,7 +14,7 @@ internal static class MetadataDetailsView
 
     /// <summary>How tall <paramref name="row"/>'s details are in a grid <paramref name="width"/> wide;
     /// 0 when it has none.</summary>
-    public static float Height(Ui ui, MetadataGrid grid, DetailTexts texts, int row, float width)
+    public static float Height(Ui<UiState> ui, MetadataGrid grid, DetailTexts texts, int row, float width)
     {
         if (row < 0) return 0f;
         if (!grid.HasDetails) return 0f;
@@ -36,7 +35,7 @@ internal static class MetadataDetailsView
     /// <summary>How tall a text is in a code view <paramref name="width"/> wide: a code line per
     /// line, up to <see cref="MaxTextLines"/> before it scrolls, plus the horizontal scrollbar's room
     /// when its longest line is wider.</summary>
-    private static float TextHeight(Ui ui, TextSize size, float width)
+    private static float TextHeight(Ui<UiState> ui, TextSize size, float width)
     {
         var theme = ui.Theme;
         var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
@@ -48,7 +47,7 @@ internal static class MetadataDetailsView
 
     private static float Left(UiTheme theme) => theme.ShellPaddingX + theme.IconSize;
 
-    public static void Render(Ui ui, MetadataGrid grid, DetailTexts texts, Strings t, int row, float height)
+    public static void Render(Ui<UiState> ui, MetadataGrid grid, DetailTexts texts, int row, float height)
     {
         var theme = ui.Theme;
         using var box = ui.Column(new Box
@@ -63,7 +62,7 @@ internal static class MetadataDetailsView
         switch (grid.Details(row))
         {
             case MetadataTextDetails text:
-                Text(ui, grid, texts, t, row, text);
+                Text(ui, grid, texts, row, text);
                 break;
             case MetadataTableDetails table:
                 Table(ui, table);
@@ -71,13 +70,13 @@ internal static class MetadataDetailsView
         }
     }
 
-    private static void Text(Ui ui, MetadataGrid grid, DetailTexts texts, Strings t, int row, MetadataTextDetails text)
+    private static void Text(Ui<UiState> ui, MetadataGrid grid, DetailTexts texts, int row, MetadataTextDetails text)
     {
         var shown = texts.Get(row, grid.Title, text.Text);
-        ui.CodeView("details", shown.Document, shown.View, t, gutter: false);
+        ui.CodeView("details", shown.Document, shown.View, gutter: false);
     }
 
-    private static void Table(Ui ui, MetadataTableDetails table)
+    private static void Table(Ui<UiState> ui, MetadataTableDetails table)
     {
         var theme = ui.Theme;
         var share = 1f / table.Headers.Count;
@@ -93,7 +92,7 @@ internal static class MetadataDetailsView
         }
     }
 
-    private static void TableRow(Ui ui, IReadOnlyList<string> cells, float share)
+    private static void TableRow(Ui<UiState> ui, IReadOnlyList<string> cells, float share)
     {
         var theme = ui.Theme;
         using (ui.Row(new Box { Height = theme.RowHeight, Gap = theme.GapTight, AlignY = Align.Center }))

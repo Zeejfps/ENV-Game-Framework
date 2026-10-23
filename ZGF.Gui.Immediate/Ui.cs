@@ -7,12 +7,12 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
-/// The per-frame surface handed to <see cref="ImmediateGuiApp{T}"/>.Render. Calls record elements; once
+/// The per-frame surface handed to <see cref="ImmediateGuiApp{TAppState, TUiState}"/>.Render. Calls record elements; once
 /// Render returns the tree is laid out and drawn. Interaction is answered during the call from
 /// where each element was laid out on the previous frame, matched by id. Widgets are extension
 /// methods built on this surface.
 /// </summary>
-public sealed partial class Ui
+public abstract partial class Ui
 {
     private const int RootId = 17;
     private const long StateLifetimeFrames = 1000;
@@ -65,8 +65,9 @@ public sealed partial class Ui
     private int _clickCount;
     private bool _showingDialogs;
 
-    internal Ui(ICanvas canvas, IClipboard clipboard, IPopupHost? popupHost = null, ConcurrentQueue<Action>? posted = null)
+    private protected Ui(IUiState state, ICanvas canvas, IClipboard clipboard, IPopupHost? popupHost, ConcurrentQueue<Action>? posted)
     {
+        _state = state;
         _posted = posted ?? new ConcurrentQueue<Action>();
         _canvas = canvas;
         _clipboard = clipboard;
@@ -74,8 +75,6 @@ public sealed partial class Ui
         _painter = new UiPainter(this, canvas);
     }
 
-    /// <summary>The theme provided around this point, or <see cref="UiTheme.Dark"/>.</summary>
-    public UiTheme Theme => Get<UiTheme>() ?? UiTheme.Dark;
     private UiInput _input = new();
 
     /// <summary>This frame's input as the code being recorded sees it: empty of keys outside the
@@ -239,7 +238,7 @@ public sealed partial class Ui
         _stateOwners.Clear();
         AdvanceDrag();
         BeginLayers(input);
-        ResetContext();
+        _scopes.Clear();
         _tree.Clear();
         _open.Clear();
         BeginScrolls();
@@ -328,7 +327,7 @@ public sealed partial class Ui
     /// <summary>
     /// Widget-owned state that outlives a frame (a caret, an open dropdown), created on first use
     /// and kept while <paramref name="id"/> keeps being asked for. App state belongs in the
-    /// <see cref="ImmediateGuiApp{T}"/> state instead. Dropped after about a thousand frames unused, unless it
+    /// <see cref="ImmediateGuiApp{TAppState, TUiState}"/> state instead. Dropped after about a thousand frames unused, unless it
     /// belongs to a <see cref="StateScope"/> that is being kept.
     /// </summary>
     public TState GetState<TState>(int id) where TState : class, new()

@@ -2,7 +2,6 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Testing;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -68,7 +67,7 @@ public sealed class CodeViewScrollTests
         {
             using var screen = ui.Screen();
             using (ui.Id(tab))
-                ui.CodeView("code", document, state, Strings.En);
+                ui.CodeView("code", document, state);
         });
 
         Show(1, a, documentA);

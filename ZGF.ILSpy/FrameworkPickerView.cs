@@ -8,8 +8,9 @@ namespace ZGF.ILSpy;
 
 internal static class FrameworkPickerView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var picker = w.Picker;
         if (picker.IsOpen)
             picker.Update(w.Assemblies);
@@ -38,7 +39,7 @@ internal static class FrameworkPickerView
                     ui.Text(t.PickerScanFailed, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
                         color: theme.TextMuted, wrap: true);
                 else
-                    open |= Rows(ui, picker, t, listId);
+                    open |= Rows(ui, picker, listId);
             }
 
             using (ui.Row(new Box { Gap = theme.GapTight }))
@@ -61,7 +62,7 @@ internal static class FrameworkPickerView
     }
 
     /// <summary>Walks the list from the filter, leaving Home and End to its text.</summary>
-    private static void MoveSelectionFromFilter(Ui ui, FrameworkPicker picker, int listId)
+    private static void MoveSelectionFromFilter(Ui<UiState> ui, FrameworkPicker picker, int listId)
     {
         var count = picker.Filtered.Count;
         var page = ui.MeasureListPage(listId, ui.Theme.RowHeight);
@@ -76,8 +77,9 @@ internal static class FrameworkPickerView
             picker.Selection.Select(index, count);
     }
 
-    private static bool Rows(Ui ui, FrameworkPicker picker, Strings t, int listId)
+    private static bool Rows(Ui<UiState> ui, FrameworkPicker picker, int listId)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         using var list = ui.SelectableList(listId, picker.Filtered.Count, picker.Selection);
         for (var i = list.First; i < list.End; i++)

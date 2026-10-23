@@ -16,8 +16,9 @@ internal static class ResourceImageView
         public ResourceImage? Image;
     }
 
-    public static void Render(Ui ui, Workspace w, Strings t, DocumentTab tab, ResourceImage image)
+    public static void Render(Ui<UiState> ui, Workspace w, DocumentTab tab, ResourceImage image)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var uploaded = ui.GetState<Uploaded>(ui.GetId(tab.ImageId));
         if (!ReferenceEquals(uploaded.Image, image) || !ui.HasImage(tab.ImageId))
@@ -32,7 +33,7 @@ internal static class ResourceImageView
             ui.Text(t.ResourceImageInfo(image.Format, image.Width, image.Height), new Box { Width = Sizing.Grow() }, color: theme.TextMuted,
                 overflow: TextOverflow.Ellipsis);
             if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: ExportIcon))
-                PickExport(ui, w, t, node);
+                PickExport(ui, w, node);
         }
         ui.Separator();
         using (ui.Scroll("image", ScrollAxes.Both, new Box { Height = Sizing.Grow(), Padding = theme.ShellPaddingX }))
@@ -51,7 +52,10 @@ internal static class ResourceImageView
     public static readonly UiIcon ExportIcon = new(LucideIcons.Upload, LucideIcons.Family);
 
     /// <summary>Asks where to export the resource <paramref name="node"/> stands for, then writes it there.</summary>
-    public static void PickExport(Ui ui, Workspace w, Strings t, BrowseNode node) =>
+    public static void PickExport(Ui<UiState> ui, Workspace w, BrowseNode node)
+    {
+        var t = ui.State.Strings;
         ui.PickSaveFile(t.ResourceExportTitle, null, Path.GetFileName(node.Text), [new FileFilter(t.FileFilterAll, ["*.*"])],
             path => w.SaveResource(node, path));
+    }
 }

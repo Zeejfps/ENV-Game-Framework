@@ -282,7 +282,7 @@ public sealed class PostTests
         var queue = new ConcurrentQueue<Action>();
         var ran = 0;
         queue.Enqueue(() => ran++);
-        var ui = new Ui(new RecordingCanvas(new SyntheticTextMeasurer()), new TestClipboard(), null, queue);
+        var ui = new Ui<DefaultUiState>(new DefaultUiState(), new RecordingCanvas(new SyntheticTextMeasurer()), new TestClipboard(), null, queue);
 
         ui.BeginFrame(new UiInput(), 0f, 0, 100f, 100f);
         ui.EndFrame();
@@ -321,7 +321,8 @@ public sealed class HarnessTests
 
         var bounds = frames.Run(0f, ui =>
         {
-            using (ui.Screen(UiTheme.Light)) { }
+            ui.State.Theme = UiTheme.Light;
+            using (ui.Screen()) { }
             ui.Quit();
             return ui.WindowBounds;
         });

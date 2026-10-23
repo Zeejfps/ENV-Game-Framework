@@ -26,7 +26,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
     private readonly IGuiRenderBackend _render;
     private readonly IWindow _window;
-    private readonly Action<Ui> _renderUi;
+    private readonly Action _renderUi;
     private readonly Ui _ui;
     private readonly IFilePicker _filePicker;
     private readonly List<Popup> _popups = new();
@@ -50,14 +50,16 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     public ImmediateHost(
         StartupConfig config,
         RenderBackendKind backend,
-        Action<Ui> renderUi)
+        Func<ICanvas, IClipboard, IPopupHost, Ui> createUi,
+        Action renderUi)
     {
         _render = CreateRenderBackend(config, backend);
         RegisterDefaultBold();
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
         _renderUi = renderUi;
-        _ui = new Ui(_render.MainCanvas, new WindowClipboard(_window), this) { Wake = Invalidate };
+        _ui = createUi(_render.MainCanvas, new WindowClipboard(_window), this);
+        _ui.Wake = Invalidate;
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
         WireMainFrame();
@@ -190,7 +192,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
 
         _ui.WindowBounds = Bounds;
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
-        _renderUi(_ui);
+        _renderUi();
         _ui.EndFrame();
         if (_ui.WindowBackground != _clearColor)
         {

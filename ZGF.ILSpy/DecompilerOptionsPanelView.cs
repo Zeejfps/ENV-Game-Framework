@@ -16,8 +16,9 @@ internal static class DecompilerOptionsPanelView
 
     private static readonly CSharpVersion Newest = Sections.Max(static s => s.Version ?? 0);
 
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var options = w.DecompilerOptions;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
@@ -51,12 +52,12 @@ internal static class DecompilerOptionsPanelView
                 {
                     if (toggle is null)
                     {
-                        if (Header(ui, w, t, section, options, rowHeight, tooNew))
+                        if (Header(ui, w, section, options, rowHeight, tooNew))
                             flipped = section.Key;
                     }
                     else
                     {
-                        Toggle(ui, w, t, toggle, options, rowHeight);
+                        Toggle(ui, w, toggle, options, rowHeight);
                     }
                 }
             }
@@ -68,8 +69,9 @@ internal static class DecompilerOptionsPanelView
     /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,
     /// showing a square when only some are on. Returns true when the row besides the checkbox was
     /// clicked to fold or unfold.</summary>
-    private static bool Header(Ui ui, Workspace w, Strings t, Section section, DecompilerOptions options, float rowHeight, string? tooNew)
+    private static bool Header(Ui<UiState> ui, Workspace w, Section section, DecompilerOptions options, float rowHeight, string? tooNew)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var folded = w.FoldedOptionGroups.Contains(section.Key);
         var allowed = IsAllowed(section, options);
@@ -123,8 +125,9 @@ internal static class DecompilerOptionsPanelView
         return false;
     }
 
-    private static void Toggle(Ui ui, Workspace w, Strings t, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
+    private static void Toggle(Ui<UiState> ui, Workspace w, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         using (ui.Row(new Box
         {

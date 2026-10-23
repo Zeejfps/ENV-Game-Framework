@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -44,7 +45,7 @@ public static class Bookmarking
         w.Bookmarks.Add(bookmark);
     }
 
-    private static string FormatBookmarkName(this Workspace w, int number) => w.GetStrings().BookmarksDefaultName(number);
+    private static string FormatBookmarkName(this Workspace w, int number) => Strings.For(w.Locale).BookmarksDefaultName(number);
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
     /// assembly first if it is not open, and records it in the history.</summary>
@@ -66,7 +67,7 @@ public static class Bookmarking
         var node = found.Value;
         if (node == null)
         {
-            var t = w.GetStrings();
+            var t = Strings.For(w.Locale);
             var details = Workspace.DescribeFailure(found.Error, t.ErrorNoLongerThere(bookmark.Place));
             w.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
             return;
@@ -92,7 +93,7 @@ public static class Bookmarking
         var error = BookmarkFile.Write(path, records);
         if (error == null)
             return;
-        w.ReportError(w.GetStrings().ErrorExportBookmarks, error);
+        w.ReportError(Strings.For(w.Locale).ErrorExportBookmarks, error);
     }
 
     /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
@@ -105,7 +106,7 @@ public static class Bookmarking
         var records = BookmarkFile.Read(path, out var error);
         if (records == null)
         {
-            w.ReportError(w.GetStrings().ErrorImportBookmarks(file), error);
+            w.ReportError(Strings.For(w.Locale).ErrorImportBookmarks(file), error);
             return;
         }
         w.IsImporting = true;
@@ -132,7 +133,7 @@ public static class Bookmarking
         var places = found.Value;
         if (places == null)
         {
-            w.ReportError(w.GetStrings().ErrorImportBookmarks(file), found.Error!.ToString());
+            w.ReportError(Strings.For(w.Locale).ErrorImportBookmarks(file), found.Error!.ToString());
             return;
         }
         w.ReportLostBookmarks(places, file);
@@ -157,7 +158,7 @@ public static class Bookmarking
             return;
         var lines = lost.Select(DescribeLostBookmark);
         var details = string.Join(Environment.NewLine, lines);
-        w.ReportError(w.GetStrings().ErrorBookmarksNotFound(file), details);
+        w.ReportError(Strings.For(w.Locale).ErrorBookmarksNotFound(file), details);
     }
 
     private static string DescribeLostBookmark(FoundBookmark lost)

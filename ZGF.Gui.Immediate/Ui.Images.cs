@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Immediate;
 
-public sealed partial class Ui
+public abstract partial class Ui
 {
     /// <summary>Creates the image <paramref name="imageId"/> from straight-alpha RGBA8 pixels, rows
     /// top-down, or replaces its pixels and size, for <see cref="Image"/> to draw. Returns false

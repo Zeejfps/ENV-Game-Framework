@@ -41,20 +41,17 @@ public sealed class ThemeTests
     }
 
     [Fact]
-    public void A_provided_theme_applies_only_inside_its_scope_and_dark_outside_any()
+    public void The_theme_is_the_states_from_when_it_is_set_and_dark_before()
     {
         var seen = new UiFrames().Run(0f, ui =>
         {
             var before = ui.Theme;
-            UiTheme inside;
-            using (ui.Provide(UiTheme.Light))
-                inside = ui.Theme;
-            return (before, inside, after: ui.Theme);
+            ui.State.Theme = UiTheme.Light;
+            return (before, after: ui.Theme);
         });
 
         Assert.Same(UiTheme.Dark, seen.before);
-        Assert.Same(UiTheme.Light, seen.inside);
-        Assert.Same(UiTheme.Dark, seen.after);
+        Assert.Same(UiTheme.Light, seen.after);
     }
 
     [Fact]
@@ -64,8 +61,9 @@ public sealed class ThemeTests
 
         var frames = new UiFrames(body: ui =>
         {
-            using (ui.Provide(red))
-                ui.Text("tinted");
+            ui.State.Theme = red;
+            ui.Text("tinted");
+            ui.State.Theme = UiTheme.Dark;
             ui.Text("plain");
         }).Frame();
 
@@ -90,12 +88,14 @@ public sealed class ThemeTests
         var theme = UiTheme.Light with { ScreenPadding = 10f };
         var frames = new UiFrames(body: ui =>
         {
-            using (ui.Screen(theme))
+            using (ui.Screen())
             {
                 ui.Text("inside");
                 ui.Leaf(ui.GetId("a"), new Box { Width = 10f, Height = 10f });
             }
-        }).Frame();
+        });
+        frames.State.Theme = theme;
+        frames.Frame();
 
         var rect = frames.RectOf("a");
 
@@ -109,11 +109,10 @@ public sealed class ThemeTests
     public void A_scroll_keeps_the_gutter_of_the_theme_it_was_recorded_in()
     {
         var frames = new UiFrames();
-        var wide = UiTheme.Dark with { ScrollBarWidth = 20f };
+        frames.State.Theme = UiTheme.Dark with { ScrollBarWidth = 20f };
 
         float RowWidth() => frames.Run(1f / 60f, ui =>
         {
-            using (ui.Provide(wide))
             using (ui.Scroll("wide"))
             {
                 for (var i = 0; i < 20; i++)

@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Immediate;
 
-public sealed partial class Ui
+public abstract partial class Ui
 {
     private int _composer;
 

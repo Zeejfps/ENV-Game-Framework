@@ -43,8 +43,8 @@ public static class NodeIcons
 
     /// <summary>Records <paramref name="kind"/>'s <see cref="Icon"/> as the tree shows it, colored from
     /// the provided <see cref="NodeIconPalette"/>.</summary>
-    public static void Draw(Ui ui, NodeKind kind, NodeAccessibility accessibility = NodeAccessibility.None) =>
-        ui.Icon(Icon(kind, accessibility, ui.GetNodeIconPalette()));
+    public static void Draw(Ui<UiState> ui, NodeKind kind, NodeAccessibility accessibility = NodeAccessibility.None) =>
+        ui.Icon(Icon(kind, accessibility, ui.State.NodeIconPalette));
 
     private static KindIcon[] BuildIcons()
     {

@@ -19,7 +19,7 @@ internal static class Shortcuts
     public const string ReloadAll = "F5";
 
     /// <summary>Whether Ctrl+R was pressed this frame, for the focused view to analyze its pick.</summary>
-    public static bool AnalyzePressed(Ui ui)
+    public static bool AnalyzePressed(Ui<UiState> ui)
     {
         foreach (var stroke in ui.Input.Keys)
         {
@@ -30,7 +30,7 @@ internal static class Shortcuts
     }
 
     /// <summary>Whether Delete was pressed this frame, for the focused view to remove its pick.</summary>
-    public static bool DeletePressed(Ui ui)
+    public static bool DeletePressed(Ui<UiState> ui)
     {
         foreach (var stroke in ui.Input.Keys)
         {
@@ -40,7 +40,7 @@ internal static class Shortcuts
         return false;
     }
 
-    public static void Handle(Ui ui, Workspace w)
+    public static void Handle(Ui<UiState> ui, Workspace w)
     {
         if (w.Picker.IsOpen || w.Errors.IsOpen) return;
 

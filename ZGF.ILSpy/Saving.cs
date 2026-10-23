@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -50,7 +51,7 @@ public static class Saving
         var error = w.Settings.Save();
         if (error == null)
             return;
-        w.ReportError(w.GetStrings().ErrorSaveSettings, error);
+        w.ReportError(Strings.For(w.Locale).ErrorSaveSettings, error);
     }
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
@@ -64,7 +65,7 @@ public static class Saving
         }
         catch (Exception e) when (IsFileError(e))
         {
-            w.ReportError(w.GetStrings().ErrorSaveResource(node.Text), e.Message);
+            w.ReportError(Strings.For(w.Locale).ErrorSaveResource(node.Text), e.Message);
         }
     }
 

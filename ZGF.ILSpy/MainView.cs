@@ -8,45 +8,52 @@ namespace ZGF.ILSpy;
 /// dialogs over them.</summary>
 public static class MainView
 {
-    public static void Render(Ui ui, Workspace w)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
-        var theme = AppThemes.For(w.Theme);
-        var t = w.GetStrings();
-        using var screen = ui.Screen(theme.Ui);
-        using var code = ui.Provide(theme.Code);
-        using var icons = ui.Provide(theme.Icons);
+        ApplyThemeAndLanguage(ui, w);
+        using var screen = ui.Screen();
         w.Sync();
         Shortcuts.Handle(ui, w);
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
         {
-            MainMenuView.Render(ui, w, t);
+            MainMenuView.Render(ui, w);
             ui.Separator();
-            ToolbarView.Render(ui, w, t);
+            ToolbarView.Render(ui, w);
             ui.Separator();
-            Panels(ui, w, t);
+            Panels(ui, w);
             ui.Separator();
-            StatusBarView.Render(ui, w, t);
+            StatusBarView.Render(ui, w);
         }
-        FrameworkPickerView.Render(ui, w, t);
-        BookmarkImportDialogView.Render(ui, w, t);
-        LayoutResetDialogView.Render(ui, w, t);
-        ErrorDialogView.Render(ui, w, t);
+        FrameworkPickerView.Render(ui, w);
+        BookmarkImportDialogView.Render(ui, w);
+        LayoutResetDialogView.Render(ui, w);
+        ErrorDialogView.Render(ui, w);
     }
 
-    private static void Panels(Ui ui, Workspace w, Strings t)
+    private static void ApplyThemeAndLanguage(Ui<UiState> ui, Workspace w)
     {
+        var theme = AppThemes.For(w.Theme);
+        ui.State.Theme = theme.Ui;
+        ui.State.CodeViewPalette = theme.Code;
+        ui.State.NodeIconPalette = theme.Icons;
+        ui.State.Strings = Strings.For(w.Locale);
+    }
+
+    private static void Panels(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
         UpdateSearch(ui, w);
         if (IsLayoutEmpty(w))
         {
             DocumentsView.Hint(ui, t.ViewEmptyHint);
             return;
         }
-        DockSpace(ui, w, t);
+        DockSpace(ui, w);
         w.SyncActiveTab();
         RemoveReleasedImages(ui, w);
     }
 
-    private static void UpdateSearch(Ui ui, Workspace w)
+    private static void UpdateSearch(Ui<UiState> ui, Workspace w)
     {
         var shown = w.Layout.Contains(DockPanels.Search);
         var wait = w.Search.Update(w.Assemblies, ui.RealTime, shown);
@@ -59,11 +66,12 @@ public static class MainView
         return !w.Layout.HasPanels();
     }
 
-    private static void DockSpace(Ui ui, Workspace w, Strings t)
+    private static void DockSpace(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         using var dock = ui.DockSpace("dock", w.Layout, (w, t), static (s, panel) => Tab(s.w, s.t, panel));
         while (dock.Next(out var panel))
-            Panel(ui, w, t, panel);
+            Panel(ui, w, panel);
     }
 
     private static DockTab Tab(Workspace w, Strings t, string panel)
@@ -76,40 +84,40 @@ public static class MainView
         return new DockTab(panel);
     }
 
-    private static void Panel(Ui ui, Workspace w, Strings t, string panel)
+    private static void Panel(Ui<UiState> ui, Workspace w, string panel)
     {
         switch (panel)
         {
             case DockPanels.Assemblies:
-                TreePaneView.Render(ui, w, t);
+                TreePaneView.Render(ui, w);
                 break;
             case DockPanels.Search:
-                SearchPanelView.Render(ui, w, t);
+                SearchPanelView.Render(ui, w);
                 break;
             case DockPanels.Bookmarks:
-                BookmarksPanelView.Render(ui, w, t);
+                BookmarksPanelView.Render(ui, w);
                 break;
             case DockPanels.Analyzer:
-                AnalyzerPanelView.Render(ui, w, t);
+                AnalyzerPanelView.Render(ui, w);
                 break;
             case DockPanels.DecompilerOptions:
-                DecompilerOptionsPanelView.Render(ui, w, t);
+                DecompilerOptionsPanelView.Render(ui, w);
                 break;
             default:
-                Document(ui, w, t, panel);
+                Document(ui, w, panel);
                 break;
         }
     }
 
-    private static void Document(Ui ui, Workspace w, Strings t, string panel)
+    private static void Document(Ui<UiState> ui, Workspace w, string panel)
     {
         var tab = w.Tabs.Find(panel);
         if (tab == null)
             return;
-        DocumentsView.Render(ui, w, t, tab);
+        DocumentsView.Render(ui, w, tab);
     }
 
-    private static void RemoveReleasedImages(Ui ui, Workspace w)
+    private static void RemoveReleasedImages(Ui<UiState> ui, Workspace w)
     {
         foreach (var image in w.Tabs.TakeReleasedImages())
             ui.RemoveImage(image);

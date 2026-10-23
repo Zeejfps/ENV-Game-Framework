@@ -4,10 +4,9 @@ namespace ZGF.Gui.Immediate;
 /// The palette and metrics a UI is drawn with. Colors are named by role, not by widget. State
 /// roles (hover, press, selection, scrollbars) can be set like any other; a role left unset is
 /// derived from the base roles, so a theme can be as little as its base roles.
-/// Everything recorded inside <c>ui.Provide(theme)</c> uses that theme, and
-/// <see cref="Dark"/> outside any. A provided theme replaces the whole theme; to change only some
-/// tokens, provide <c>ui.Theme with { ... }</c>, and <see cref="WithDensity"/> for a whole set of
-/// metrics.
+/// Everything recorded while it is the UI state's <see cref="IUiState.Theme"/> uses it. A theme
+/// replaces the whole theme; to change only some tokens, set <c>ui.Theme with { ... }</c>, and
+/// <see cref="WithDensity"/> for a whole set of metrics.
 /// </summary>
 public sealed record UiTheme
 {

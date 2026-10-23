@@ -1,6 +1,6 @@
 namespace ZGF.Gui.Immediate;
 
-public sealed partial class Ui
+public abstract partial class Ui
 {
     private const int ModalZ = 500_000;
     private const int ModalZStep = 10_000;

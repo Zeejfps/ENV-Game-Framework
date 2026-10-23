@@ -15,11 +15,14 @@ public sealed class ScopeTests
         public List<string> Seen { get; } = new();
     }
 
-    private static void RecordProvided(object state)
+    private static void RecordOpenService(object state)
     {
         var probe = (Probe)state;
-        probe.Seen.Add(probe.Ui.Get<Service>()?.Name ?? "none");
+        var service = probe.Ui.FindOpenGroup<Service>();
+        probe.Seen.Add(service != null ? service.Name : "none");
     }
+
+    private static void EndNothing(object state) { }
 
     [Fact]
     public void Disposing_a_group_ends_every_scope_opened_inside_it_and_then_runs_its_end()
@@ -29,12 +32,12 @@ public sealed class ScopeTests
         {
             var probe = new Probe(ui);
             var outside = ui.GetId("key");
-            using (ui.Group(probe, RecordProvided))
+            using (ui.Group(probe, RecordOpenService))
             {
-                ui.Provide(new Service("inner"));
+                ui.Group(new Service("inner"), EndNothing);
                 ui.Id("nested");
                 ui.Box(new Box { Width = 10f, Height = 10f });
-                seen.Add(ui.Get<Service>()!.Name);
+                seen.Add(ui.FindOpenGroup<Service>()!.Name);
             }
             seen.AddRange(probe.Seen);
             seen.Add(ui.GetId("key") == outside ? "same id" : "other id");
@@ -53,9 +56,9 @@ public sealed class ScopeTests
             using (ui.Column(new Box { Width = 100f }))
             {
                 ui.Row(new Box { Height = 20f });
-                ui.Provide(new Service("left open"));
+                ui.Group(new Service("left open"), EndNothing);
             }
-            Assert.Null(ui.Get<Service>());
+            Assert.Null(ui.FindOpenGroup<Service>());
         });
 
         frames.Frame();
@@ -67,12 +70,12 @@ public sealed class ScopeTests
         string? seen = null;
         var frames = new UiFrames(body: ui =>
         {
-            using (ui.Provide(new Service("kept")))
+            using (ui.Group(new Service("kept"), EndNothing))
             {
                 var closed = default(Ui.Scope);
                 Assert.False(closed.IsOpen);
                 closed.Dispose();
-                seen = ui.Get<Service>()?.Name;
+                seen = ui.FindOpenGroup<Service>()?.Name;
             }
         });
 
@@ -158,7 +161,7 @@ public sealed class ScopeTests
     {
         using (ui.Group(Token, static _ => { }))
         {
-            ui.Provide(Token);
+            ui.Group(Token, static _ => { });
             ui.Id("nested");
             ui.Box(new Box { Width = 10f, Height = 10f });
         }
@@ -166,7 +169,7 @@ public sealed class ScopeTests
 
     private static void Nested(Ui ui)
     {
-        using (ui.Provide(Token))
+        using (ui.Group(Token, static _ => { }))
         using (ui.Id("nested"))
         using (ui.Box(new Box { Width = 10f, Height = 10f })) { }
     }

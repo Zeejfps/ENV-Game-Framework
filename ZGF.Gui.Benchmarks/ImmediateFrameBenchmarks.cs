@@ -38,7 +38,7 @@ public class ImmediateFrameBenchmarks
         var fonts = new FreeTypeFontBackend();
         var font = fonts.LoadFontFromFile(ResolveFontPath(), 16);
         _canvas = new BenchCanvas(520, 640, fonts, font);
-        _ui = new Ui(_canvas, new NullClipboard());
+        _ui = new Ui<DefaultUiState>(new DefaultUiState(), _canvas, new NullClipboard());
         for (var i = 0; i < Rows; i++)
         {
             _labels[i] = $"Task number {i}";
@@ -210,7 +210,7 @@ public class ImmediateTreeBenchmarks
         var fonts = new FreeTypeFontBackend();
         var font = fonts.LoadFontFromFile(ImmediateFrameBenchmarks.ResolveFontPath(), 16);
         _canvas = new BenchCanvas(520, 640, fonts, font);
-        _ui = new Ui(_canvas, new NullClipboard());
+        _ui = new Ui<DefaultUiState>(new DefaultUiState(), _canvas, new NullClipboard());
         Frame();
         _state.Select(_roots[50].Children[5].Children[50]);
         for (var i = 0; i < 4; i++)
@@ -257,7 +257,7 @@ public class ImmediateMenuBenchmarks
         var fonts = new FreeTypeFontBackend();
         var font = fonts.LoadFontFromFile(ImmediateFrameBenchmarks.ResolveFontPath(), 16);
         _canvas = new BenchCanvas(800, 600, fonts, font);
-        _ui = new Ui(_canvas, new NullClipboard());
+        _ui = new Ui<DefaultUiState>(new DefaultUiState(), _canvas, new NullClipboard());
 
         Step();
         Step();

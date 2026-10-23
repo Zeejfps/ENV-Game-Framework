@@ -2,14 +2,13 @@ using ZGF.Desktop;
 
 namespace ZGF.Gui.Immediate;
 
-public sealed partial class Ui
+public abstract partial class Ui
 {
     internal enum ScopeKind
     {
         Id,
         Element,
         Scroll,
-        Context,
         Layer,
         StateScope,
         Group,
@@ -461,6 +460,18 @@ public sealed partial class Ui
     /// returns one. Pass a <c>static</c> lambda and nothing is allocated per frame.</summary>
     public Scope Group(object state, Action<object> end) => BeginScope(ScopeKind.Group, state, end);
 
+    /// <summary>The state of the innermost open <see cref="Group"/> holding a <typeparamref name="T"/>,
+    /// or null outside any.</summary>
+    public T? FindOpenGroup<T>() where T : class
+    {
+        for (var i = _scopes.Count - 1; i >= 0; i--)
+        {
+            if (_scopes[i].State is T state)
+                return state;
+        }
+        return null;
+    }
+
     private Scope BeginScope(ScopeKind kind, object? state = null, Action<object>? end = null)
     {
         _scopes.Add(new OpenScope(kind, state, end));
@@ -490,9 +501,6 @@ public sealed partial class Ui
                 break;
             case ScopeKind.Scroll:
                 EndScroll();
-                break;
-            case ScopeKind.Context:
-                EndProvide();
                 break;
             case ScopeKind.Layer:
                 EndLayer();

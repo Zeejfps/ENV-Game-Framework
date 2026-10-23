@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -26,7 +27,7 @@ public static class AssemblyLoading
         var opened = outcome.Value;
         if (opened == null)
         {
-            w.ReportError(w.GetStrings().ErrorOpenAssemblies, outcome.Error!.ToString());
+            w.ReportError(Strings.For(w.Locale).ErrorOpenAssemblies, outcome.Error!.ToString());
             return;
         }
         w.ReportAll(opened.Errors);
@@ -83,7 +84,7 @@ public static class AssemblyLoading
             if (location == null)
                 continue;
             var position = w.FindPositionToKeep(tab);
-            tab.Release(w.GetStrings().DocumentReloading);
+            tab.Release(Strings.For(w.Locale).DocumentReloading);
             reloading.Add(new ReloadingTab(tab, location, tab.Version, position));
         }
         return reloading;
@@ -139,7 +140,7 @@ public static class AssemblyLoading
         var reloaded = outcome.Value;
         if (reloaded == null)
         {
-            w.ReportError(w.GetStrings().ErrorReloadAssemblies, outcome.Error!.ToString());
+            w.ReportError(Strings.For(w.Locale).ErrorReloadAssemblies, outcome.Error!.ToString());
             return;
         }
         w.ReportAll(reloaded.Errors);
@@ -168,7 +169,7 @@ public static class AssemblyLoading
 
     private static void ReleaseGoneTab(this Workspace w, DocumentTab tab, NodePath location)
     {
-        var t = w.GetStrings();
+        var t = Strings.For(w.Locale);
         tab.Release(t.DocumentGone(location.Text));
         w.ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
     }
@@ -195,7 +196,7 @@ public static class AssemblyLoading
     private static (string Title, string Details) DescribeLoadFailure(this Workspace w, string path, AssemblyLoadException e)
     {
         var file = Path.GetFileName(path);
-        var title = w.GetStrings().ErrorOpenFile(file);
+        var title = Strings.For(w.Locale).ErrorOpenFile(file);
         var details = Workspace.DescribeFailure(e.InnerException, e.Message);
         return (title, details);
     }

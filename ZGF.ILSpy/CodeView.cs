@@ -218,13 +218,13 @@ public static class CodeViewWidget
     /// <paramref name="tooltips"/>, resting the pointer on a type or member shows its declaration and
     /// documentation.
     /// </summary>
-    public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state, Strings t,
+    public static CodeViewResult CodeView(this Ui<UiState> ui, string id, DecompiledDocument document, CodeViewState state,
         IReadOnlyDictionary<int, bool>? bookmarks = null, bool gutter = true, CodeTooltips? tooltips = null)
     {
         using var scope = ui.Id(id);
         state.Show(document);
         var theme = ui.Theme;
-        var palette = ui.GetCodeViewPalette();
+        var palette = ui.State.CodeViewPalette;
         var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
         var advance = cell.Advance;
         var rowHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
@@ -256,7 +256,7 @@ public static class CodeViewWidget
         {
             if (state.FindOpen)
             {
-                FindBar(ui, state, document, focusId, findId, t);
+                FindBar(ui, state, document, focusId, findId);
                 ui.Separator();
             }
             ui.TabStop(focusId);
@@ -413,7 +413,7 @@ public static class CodeViewWidget
             if (tooltips != null && hasRect)
             {
                 var hovered = new HoveredSpan(hoverLine, hoverSpan, rect.X + textLeft, rect.Y);
-                var followed = ReferenceTooltip(ui, state, document, tooltips, t, codeId, hovered, advance, rowHeight);
+                var followed = ReferenceTooltip(ui, state, document, tooltips, codeId, hovered, advance, rowHeight);
                 if (followed.Navigate != null)
                     result = followed;
             }
@@ -421,7 +421,7 @@ public static class CodeViewWidget
             state.LaidOutScrollY = state.ScrollY;
         }
 
-        var picked = ContextMenu(ui, state, document, t, bookmarks != null);
+        var picked = ContextMenu(ui, state, document, bookmarks != null);
         if (picked.Navigate != null)
             result = picked;
         if (picked.ToggleBookmark != null)
@@ -436,7 +436,7 @@ public static class CodeViewWidget
 
     /// <summary>The tooltip of the type or member under the pointer, under its span once it has
     /// been looked up.</summary>
-    private static CodeViewResult ReferenceTooltip(Ui ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips, Strings t,
+    private static CodeViewResult ReferenceTooltip(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips,
         int codeId, HoveredSpan hovered, float advance, float rowHeight)
     {
         var tooltip = TooltipOf(state, document, tooltips, hovered);
@@ -450,7 +450,7 @@ public static class CodeViewWidget
             return default;
         if (state.TooltipPart != shownPart)
             return default;
-        var click = CodeTooltipView.Render(ui, t, state.Tooltip!);
+        var click = CodeTooltipView.Render(ui, state.Tooltip!);
         return FollowLink(ui, click);
     }
 
@@ -468,7 +468,7 @@ public static class CodeViewWidget
 
     /// <summary>A link clicked in the tooltip asks to navigate to it, in a new tab with a middle
     /// click or Ctrl, and closes the tooltip.</summary>
-    private static CodeViewResult FollowLink(Ui ui, RichTextClick click)
+    private static CodeViewResult FollowLink(Ui<UiState> ui, RichTextClick click)
     {
         if (click.Link is not CodeReference reference)
             return default;
@@ -517,7 +517,7 @@ public static class CodeViewWidget
     private static float AutoScroll(float distance, float unit, float deltaTime) =>
         distance == 0f ? 0f : (distance * AutoScrollSpeed + MathF.Sign(distance) * unit * AutoScrollSpeed) * deltaTime;
 
-    private static void FillFrame(Ui ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CodeViewPalette palette, CellMetrics cell,
+    private static void FillFrame(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CodeViewPalette palette, CellMetrics cell,
         float rowHeight, float markWidth, float foldLeft, float foldWidth, float gutterWidth, float textLeft, int digits, bool active,
         IReadOnlyDictionary<int, bool>? bookmarks, int hoverLine, int hoverSpan, CodeReference? hoverReference, bool hoverNavigable, int hoverFold,
         int hoverChip, int hoverMark)
@@ -576,7 +576,7 @@ public static class CodeViewWidget
         }
     }
 
-    private static void Scroll(Ui ui, CodeViewState state, DecompiledDocument document, float rowHeight, float advance, float textLeft,
+    private static void Scroll(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, float rowHeight, float advance, float textLeft,
         UiRect content, float deltaY)
     {
         var folds = state.Folds;
@@ -663,7 +663,7 @@ public static class CodeViewWidget
         return null;
     }
 
-    private static void HandleKeys(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, bool focused, float advance)
+    private static void HandleKeys(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, int focusId, bool focused, float advance)
     {
         var keys = ui.Input.Keys;
         for (var k = 0; k < keys.Count; k++)
@@ -746,8 +746,9 @@ public static class CodeViewWidget
             state.SetCollapsed(fold, collapse);
     }
 
-    private static void FindBar(Ui ui, CodeViewState state, DecompiledDocument document, int focusId, int findId, Strings t)
+    private static void FindBar(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, int focusId, int findId)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         using (ui.PaneToolbar())
         {
@@ -810,8 +811,9 @@ public static class CodeViewWidget
         state.ShowColumns(match.Column, match.Column + state.Find.Length);
     }
 
-    private static CodeViewResult ContextMenu(Ui ui, CodeViewState state, DecompiledDocument document, Strings t, bool bookmarkable)
+    private static CodeViewResult ContextMenu(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, bool bookmarkable)
     {
+        var t = ui.State.Strings;
         var result = default(CodeViewResult);
         using var menu = ui.ContextMenu("menu");
         if (!menu.IsOpen) return result;
@@ -824,7 +826,7 @@ public static class CodeViewWidget
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
-                    icon: new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, ui.GetCodeViewPalette().Bookmark)))
+                    icon: new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, ui.State.CodeViewPalette.Bookmark)))
                 result = result with { ToggleBookmark = state.MenuLine };
         }
         if (document.Folds.Length > 0)

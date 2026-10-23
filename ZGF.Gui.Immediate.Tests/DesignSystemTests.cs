@@ -176,10 +176,11 @@ public sealed class ThemeRoleTests
 
         var frames = new UiFrames(body: ui =>
         {
-            using (ui.Provide(theme))
             using (ui.PaneToolbar())
                 ui.Text("tools");
-        }).Frame();
+        });
+        frames.State.Theme = theme;
+        frames.Frame();
 
         var bar = Assert.Single(frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == 0xFF0A0B0Cu);
         Assert.Equal(theme.ToolbarHeight, bar.Inputs.Position.Height);

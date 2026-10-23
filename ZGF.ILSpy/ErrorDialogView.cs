@@ -8,8 +8,9 @@ namespace ZGF.ILSpy;
 /// title over its details in a selectable monospace view, and Copy, Clear and Close.</summary>
 internal static class ErrorDialogView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var errors = w.Errors;
         if (!errors.IsOpen)
             return;
@@ -23,7 +24,7 @@ internal static class ErrorDialogView
         if (!dialog.IsOpen) return;
 
         if (errors.Entries.Count > 1)
-            List(ui, errors, t);
+            List(ui, errors);
 
         if (errors.SelectedError is { } selected)
         {
@@ -35,7 +36,7 @@ internal static class ErrorDialogView
         }
 
         using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.EditorBackground, Clip = true }))
-            ui.CodeView("error-text", errors.SelectedDocument(), errors.View, t);
+            ui.CodeView("error-text", errors.SelectedDocument(), errors.View);
 
         using (ui.Row(new Box { Gap = theme.GapTight }))
         {
@@ -50,8 +51,9 @@ internal static class ErrorDialogView
         }
     }
 
-    private static void List(Ui ui, ErrorLog errors, Strings t)
+    private static void List(Ui<UiState> ui, ErrorLog errors)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         var entries = errors.Entries;
         using var list = ui.SelectableList(ui.GetId("error-list"), entries.Count, errors.Selection, box: new Box

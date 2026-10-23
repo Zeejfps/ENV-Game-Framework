@@ -3,7 +3,6 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.Gui.Immediate.Testing;
 using ZGF.ILSpy.Core.Metadata;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -45,10 +44,10 @@ public sealed class MetadataGridFrameCostTests(ITestOutputHelper output)
         return app.Workspace.Tabs.Active!.Grid!;
     }
 
-    private static void Render(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
+    private static void Render(Ui<UiState> ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
     {
         using var screen = ui.Screen();
-        ui.MetadataGridView("grid", grid, state, flags, Strings.En);
+        ui.MetadataGridView("grid", grid, state, flags);
     }
 
     /// <summary>Scrolls down and back up the table in sweeps, so the measured frames show rows the

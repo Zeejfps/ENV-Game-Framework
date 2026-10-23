@@ -7,7 +7,7 @@ namespace ZGF.ILSpy;
 /// groups.</summary>
 internal static class MetadataTooltipView
 {
-    public static void Render(Ui ui, MetadataTooltip content)
+    public static void Render(Ui<UiState> ui, MetadataTooltip content)
     {
         var theme = ui.Theme;
         if (content.Text != null)
@@ -22,7 +22,7 @@ internal static class MetadataTooltipView
         }
     }
 
-    private static void Group(Ui ui, MetadataFlagGroup group)
+    private static void Group(Ui<UiState> ui, MetadataFlagGroup group)
     {
         if (group.IsChoice)
             Choice(ui, group);
@@ -30,7 +30,7 @@ internal static class MetadataTooltipView
             Flags(ui, group);
     }
 
-    private static void Choice(Ui ui, MetadataFlagGroup group)
+    private static void Choice(Ui<UiState> ui, MetadataFlagGroup group)
     {
         var theme = ui.Theme;
         using (ui.Row(new Box { Gap = theme.GapTight }))
@@ -41,7 +41,7 @@ internal static class MetadataTooltipView
         }
     }
 
-    private static void Flags(Ui ui, MetadataFlagGroup group)
+    private static void Flags(Ui<UiState> ui, MetadataFlagGroup group)
     {
         using (ui.Column(new Box { Gap = 0f }))
         {
@@ -51,7 +51,7 @@ internal static class MetadataTooltipView
         }
     }
 
-    private static void Header(Ui ui, MetadataFlagGroup group)
+    private static void Header(Ui<UiState> ui, MetadataFlagGroup group)
     {
         if (string.IsNullOrEmpty(group.Header))
             return;
@@ -59,7 +59,7 @@ internal static class MetadataTooltipView
         ui.Text(group.Header, color: theme.Text, size: theme.FontSizeSmall, bold: true);
     }
 
-    private static void Flag(Ui ui, MetadataFlag flag)
+    private static void Flag(Ui<UiState> ui, MetadataFlag flag)
     {
         var theme = ui.Theme;
         var box = flag.IsSet ? LucideIcons.CheckSquare : LucideIcons.Square;

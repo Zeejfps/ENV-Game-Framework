@@ -10,8 +10,9 @@ internal static class ToolbarView
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var theme = ui.Theme;
         using (ui.Row(new Box
         {
@@ -60,7 +61,7 @@ internal static class ToolbarView
                     w.SetLanguage(language);
                 if (language == DecompilationLanguage.CSharp)
                 {
-                    LanguageVersion(ui, w, t);
+                    LanguageVersion(ui, w);
                     if (ui.IconButton("decompiler-options", LucideIcons.Wrench, LucideIcons.Family, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
                         w.OpenDecompilerOptions();
                 }
@@ -80,8 +81,9 @@ internal static class ToolbarView
         return _languages;
     }
 
-    private static void LanguageVersion(Ui ui, Workspace w, Strings t)
+    private static void LanguageVersion(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         var current = w.DecompilerOptions.LanguageVersion;
         using var menu = ui.SelectButton("language-version", CSharpVersions.Label(current), ui.SelectButtonWidth(CSharpVersions.Labels),
             t.ToolbarLanguageVersion);
@@ -93,13 +95,13 @@ internal static class ToolbarView
         }
     }
 
-    private static Ui.Scope Group(Ui ui) =>
+    private static Ui.Scope Group(Ui<UiState> ui) =>
         ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.Gap, AlignY = Align.Center });
 
-    private static void HistoryItems(Ui ui, Workspace w, int direction)
+    private static void HistoryItems(Ui<UiState> ui, Workspace w, int direction)
     {
         var entries = w.History.Entries;
-        var palette = ui.GetNodeIconPalette();
+        var palette = ui.State.NodeIconPalette;
         for (var i = w.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
         {
             using (ui.Id(i))

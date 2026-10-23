@@ -16,9 +16,9 @@ public readonly record struct MetadataGridResult(MetadataTarget? Target, CodeRef
 
 public static class MetadataGridWidget
 {
-    public static MetadataGridResult MetadataGridView(this Ui ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t)
+    public static MetadataGridResult MetadataGridView(this Ui<UiState> ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
     {
-        var frame = new MetadataGridFrame(ui, id, grid, state, flags, t);
+        var frame = new MetadataGridFrame(ui, id, grid, state, flags);
         return frame.Render();
     }
 }
@@ -35,7 +35,7 @@ internal ref struct MetadataGridFrame
 
     private static readonly UiIcon TokenLink = new(LucideIcons.ExternalLink, LucideIcons.Family);
 
-    private readonly Ui _ui;
+    private readonly Ui<UiState> _ui;
     private readonly MetadataGrid _grid;
     private readonly MetadataGridState _state;
     private readonly MetadataFilters _flags;
@@ -45,13 +45,13 @@ internal ref struct MetadataGridFrame
     private bool _focused;
     private MetadataGridResult _result;
 
-    public MetadataGridFrame(Ui ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t)
+    public MetadataGridFrame(Ui<UiState> ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
     {
         _ui = ui;
         _grid = grid;
         _state = state;
         _flags = flags;
-        _t = t;
+        _t = ui.State.Strings;
         _listId = ui.GetId(id);
         _menuId = HashCode.Combine(_listId, MenuSalt);
     }
@@ -135,7 +135,7 @@ internal ref struct MetadataGridFrame
         using var flyout = _ui.Flyout(HashCode.Combine(_listId, FlyoutSalt), ref _state.FlagsOpen, funnelId,
             new Box { Width = Sizing.Fit(FlyoutMinWidth, width), Gap = theme.Gap });
         if (!flyout.IsOpen) return;
-        FlagsFilterView.Render(_ui, filter, _t);
+        FlagsFilterView.Render(_ui, filter);
     }
 
     private MetadataGridResult Keys()
@@ -189,7 +189,7 @@ internal ref struct MetadataGridFrame
             {
                 Row(body, index, row, height.Cells);
                 if (height.Details > 0f)
-                    MetadataDetailsView.Render(_ui, _grid, _state.Details, _t, row, height.Details);
+                    MetadataDetailsView.Render(_ui, _grid, _state.Details, row, height.Details);
             }
         }
         Answer(body);

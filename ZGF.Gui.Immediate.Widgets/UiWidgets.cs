@@ -34,14 +34,6 @@ public static partial class UiWidgets
         });
     }
 
-    /// <summary>Provides <paramref name="theme"/> and opens a <see cref="Screen(Ui)"/> in it.</summary>
-    public static Ui.Scope Screen(this Ui ui, UiTheme theme)
-    {
-        var screen = ui.Provide(theme);
-        ui.Screen();
-        return screen;
-    }
-
     /// <summary>A padded, bordered column on the theme's surface. Set the box's border width or
     /// radius to zero for a borderless or square one.</summary>
     public static Ui.Scope Panel(this Ui ui, Box box = default) => ui.Panel(0, box);

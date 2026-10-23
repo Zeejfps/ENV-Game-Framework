@@ -47,17 +47,16 @@ public sealed class FontFamilyTests
     }
 
     [Fact]
-    public void A_styles_family_is_the_default_inside_its_scope()
+    public void A_themes_family_is_the_default_while_it_is_the_theme()
     {
         var mono = UiTheme.Dark with { FontFamily = "Mono" };
 
         var frames = new UiFrames(body: ui =>
         {
-            using (ui.Provide(mono))
-            {
-                ui.Text("styled");
-                ui.Text("override", family: "Icons");
-            }
+            ui.State.Theme = mono;
+            ui.Text("styled");
+            ui.Text("override", family: "Icons");
+            ui.State.Theme = UiTheme.Dark;
             ui.Text("outside");
         }).Frame();
 

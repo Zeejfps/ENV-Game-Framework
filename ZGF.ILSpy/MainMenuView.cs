@@ -8,26 +8,27 @@ namespace ZGF.ILSpy;
 
 internal static class MainMenuView
 {
-    public static void Render(Ui ui, Workspace w, Strings t)
+    public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
         {
             using (var file = ui.Menu(t.MenuFile, id: "file"))
             {
                 if (file.IsOpen)
-                    FileMenu(ui, w, t);
+                    FileMenu(ui, w);
             }
             using (var view = ui.Menu(t.MenuView, id: "view"))
             {
                 if (view.IsOpen)
-                    ViewMenu(ui, w, t);
+                    ViewMenu(ui, w);
             }
         }
     }
 
-    public static void OpenFile(Ui ui, Workspace w)
+    public static void OpenFile(Ui<UiState> ui, Workspace w)
     {
-        var t = w.GetStrings();
+        var t = ui.State.Strings;
         FileFilter[] filters =
         [
             new(t.FileFilterAssemblies, ["*.dll", "*.exe", "*.winmd"]),
@@ -36,8 +37,9 @@ internal static class MainMenuView
         ui.PickFile(t.FileOpenTitle, null, filters, w.Open);
     }
 
-    private static void FileMenu(Ui ui, Workspace w, Strings t)
+    private static void FileMenu(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open"))
             OpenFile(ui, w);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework"))
@@ -55,14 +57,15 @@ internal static class MainMenuView
             ui.Quit();
     }
 
-    private static void ViewMenu(Ui ui, Workspace w, Strings t)
+    private static void ViewMenu(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: w.History.CanGoBack, id: "back"))
             w.GoBack();
         if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: w.History.CanGoForward, id: "forward"))
             w.GoForward();
         ui.MenuSeparator();
-        DecompilerMenu(ui, w, t);
+        DecompilerMenu(ui, w);
         ui.MenuSeparator();
         ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
         ui.MenuSeparator();
@@ -79,12 +82,13 @@ internal static class MainMenuView
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             w.AskToResetLayout();
         ui.MenuSeparator();
-        ThemeMenu(ui, w, t);
-        LanguageMenu(ui, w, t);
+        ThemeMenu(ui, w);
+        LanguageMenu(ui, w);
     }
 
-    private static void DecompilerMenu(Ui ui, Workspace w, Strings t)
+    private static void DecompilerMenu(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
         if (!decompilers.IsOpen) return;
         if (ui.MenuRadioItem("C#", w.Language == DecompilationLanguage.CSharp))
@@ -93,8 +97,9 @@ internal static class MainMenuView
             w.SetLanguage(DecompilationLanguage.IL);
     }
 
-    private static void ThemeMenu(Ui ui, Workspace w, Strings t)
+    private static void ThemeMenu(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
         if (!themes.IsOpen) return;
         if (ui.MenuRadioItem(t.ViewThemeDark, w.Theme == AppThemeId.Dark, id: "theme-dark"))
@@ -109,8 +114,9 @@ internal static class MainMenuView
         }
     }
 
-    private static void LanguageMenu(Ui ui, Workspace w, Strings t)
+    private static void LanguageMenu(Ui<UiState> ui, Workspace w)
     {
+        var t = ui.State.Strings;
         using var languages = ui.SubMenu(t.ViewLanguage, id: "language");
         if (!languages.IsOpen) return;
         foreach (var (locale, endonym) in Locales.All)

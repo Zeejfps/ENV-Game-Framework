@@ -37,7 +37,7 @@ internal interface ITextLayout
     RichTextLayoutResult LayOutRuns(IReadOnlyList<RichTextRun> runs, float maxWidth);
 }
 
-public sealed partial class Ui : ITextLayout
+public abstract partial class Ui : ITextLayout
 {
     private readonly FrameCache<(StyledText, float), TextLines> _lines = new();
     private readonly FrameCache<(StyledText, float, TextOverflow), string> _ellipses = new();
