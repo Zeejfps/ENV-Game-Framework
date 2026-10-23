@@ -39,6 +39,67 @@ public sealed class ResourceViewTests
         Assert.Contains(app.Frames.Canvas.Images, i => i.Inputs.ImageId == tab.ImageId);
     }
 
+    private static (float Width, float Height) DrawnSize(AppDriver app, DocumentTab tab)
+    {
+        var drawn = Assert.Single(app.Frames.Canvas.Images, i => i.Inputs.ImageId == tab.ImageId);
+        return (drawn.Inputs.Position.Width, drawn.Inputs.Position.Height);
+    }
+
+    private static (int Width, int Height) UploadedSize(AppDriver app, DocumentTab tab) =>
+        (app.Frames.Canvas.GetImageWidth(tab.ImageId), app.Frames.Canvas.GetImageHeight(tab.ImageId));
+
+    [Fact]
+    public void Zoom_buttons_draw_the_picture_larger_and_back_at_its_own_size()
+    {
+        var (app, tab) = ShowResource("logo.png");
+
+        app.ClickLast(LucideIcons.ZoomIn).Frame();
+        app.ClickLast(LucideIcons.ZoomIn).Frame();
+        var zoomed = DrawnSize(app, tab);
+        app.TextRect("400%");
+        app.ClickLast(LucideIcons.RotateCcw).Frame();
+
+        Assert.Equal((8f, 8f), zoomed);
+        Assert.Equal((2f, 2f), DrawnSize(app, tab));
+        Assert.Equal((2, 2), UploadedSize(app, tab));
+    }
+
+    [Fact]
+    public void A_zoomed_svg_is_drawn_again_at_the_larger_size()
+    {
+        var (app, tab) = ShowResource("shape.svg");
+
+        app.ClickLast(LucideIcons.ZoomIn).Frame();
+
+        Assert.Equal((8f, 4f), DrawnSize(app, tab));
+        Assert.Equal((8, 4), UploadedSize(app, tab));
+    }
+
+    [Fact]
+    public void An_svg_switches_to_its_markup_and_back()
+    {
+        var (app, tab) = ShowResource("shape.svg");
+
+        app.Click("Source").Frame(2);
+        var showsSource = tab.ShowsSource;
+        var drewPicture = app.Frames.Canvas.Images.Any(i => i.Inputs.ImageId == tab.ImageId);
+        app.Click("Picture").Frame(2);
+
+        Assert.True(showsSource);
+        Assert.False(drewPicture);
+        Assert.Contains("<svg", tab.Document.GetText());
+        Assert.False(tab.ShowsSource);
+        Assert.Equal((4f, 2f), DrawnSize(app, tab));
+    }
+
+    [Fact]
+    public void A_raster_picture_offers_no_markup()
+    {
+        var (app, _) = ShowResource("logo.png");
+
+        Assert.False(app.Frames.Drew("Source"));
+    }
+
     [Fact]
     public void Closing_its_tab_frees_the_picture()
     {

@@ -61,6 +61,31 @@ public sealed class DocumentTab
     /// <summary>The image this tab draws <see cref="Image"/> as, one per tab.</summary>
     public string ImageId => $"{Panel}-image";
 
+    /// <summary>Whether <see cref="Image"/> is stored as markup, such as SVG, which
+    /// <see cref="Document"/> then holds.</summary>
+    public bool HasSource { get; private set; }
+
+    /// <summary>Whether the tab shows the picture's markup instead of the picture.</summary>
+    public bool ShowsSource { get; private set; }
+
+    public ImageZoom Zoom { get; } = new();
+
+    /// <summary>Switches between the picture and its markup, when it has some.</summary>
+    public void ToggleSource()
+    {
+        if (!HasSource)
+            return;
+        ShowsSource = !ShowsSource;
+    }
+
+    private void ForgetPicture()
+    {
+        Image = null;
+        HasSource = false;
+        ShowsSource = false;
+        Zoom.Reset();
+    }
+
     /// <summary>Where the view of the shown node stands, or null while there is none.</summary>
     public CodeViewPosition? Position => IsBusy || Node == null ? null : Grid != null ? GridView.Position : View.Position;
 
@@ -100,7 +125,7 @@ public sealed class DocumentTab
         Language = language;
         Options = _options();
         Grid = null;
-        Image = null;
+        ForgetPicture();
         Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
 
         Load(work, node, language);
@@ -137,7 +162,7 @@ public sealed class DocumentTab
         Node = null;
         Location = null;
         Grid = null;
-        Image = null;
+        ForgetPicture();
         _title = title;
         Document = document;
         ShowsText = true;
@@ -151,7 +176,7 @@ public sealed class DocumentTab
         Node = null;
         Location = null;
         Grid = null;
-        Image = null;
+        ForgetPicture();
         _title = null;
         Document = DecompiledDocument.Empty;
         ShowsText = false;
@@ -168,7 +193,7 @@ public sealed class DocumentTab
         Cancel();
         Node = null;
         Grid = null;
-        Image = null;
+        ForgetPicture();
         Document = DecompiledDocument.FromText(Title, $"// {message}", Language);
     }
 
@@ -211,8 +236,8 @@ public sealed class DocumentTab
                 Grid = grid;
                 GridView.Show(grid);
                 break;
-            case ImageContent { Image: var image }:
-                Image = image;
+            case ImageContent { Image: var image, Source: var source }:
+                ShowPicture(image, source);
                 break;
             case DocumentContent { Document: var document }:
                 Document = document;
@@ -228,5 +253,14 @@ public sealed class DocumentTab
         _restore = null;
         _target = null;
         _row = MetadataGridState.None;
+    }
+
+    private void ShowPicture(ResourceImage image, DecompiledDocument? source)
+    {
+        Image = image;
+        if (source == null)
+            return;
+        Document = source;
+        HasSource = true;
     }
 }

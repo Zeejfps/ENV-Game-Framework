@@ -338,6 +338,12 @@
   "export.needs_name": "Give every ticked assembly a project name.",
   "export.dialog_title": "Export",
   "resource.image_info": "{format}, {width} × {height} pixels",
+  "resource.zoom_in": "Zoom in",
+  "resource.zoom_out": "Zoom out",
+  "resource.zoom_reset": "Actual size",
+  "resource.zoom_percent": "{percent}%",
+  "resource.show_source": "Source",
+  "resource.show_picture": "Picture",
 
   "find.placeholder": "Find",
   "find.no_results": "No results",

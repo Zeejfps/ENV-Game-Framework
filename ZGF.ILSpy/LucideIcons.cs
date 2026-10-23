@@ -76,4 +76,6 @@ public static class LucideIcons
     public const string Wrench = "\uE1B1";
     public const string X = "\uE1B2";
     public const string Zap = "\uE1B4";
+    public const string ZoomIn = "\uE1B6";
+    public const string ZoomOut = "\uE1B7";
 }

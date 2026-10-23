@@ -4,7 +4,8 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An open document's tab content: its code, or a hint while it shows nothing.</summary>
+/// <summary>An open document's tab content: its code, grid or picture, or a hint while it shows
+/// nothing.</summary>
 internal static class DocumentsView
 {
     public static void Render(Ui<UiState> ui, Workspace w, DocumentTab tab)
@@ -34,6 +35,12 @@ internal static class DocumentsView
             Hint(ui, t.MetadataLoading);
             return;
         }
+        RenderCode(ui, w, tab);
+    }
+
+    /// <summary>The tab's document in the code view, with its bookmarks.</summary>
+    public static void RenderCode(Ui<UiState> ui, Workspace w, DocumentTab tab)
+    {
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? w.Bookmarks.LinesIn(tab.Document, node.Path) : null;
         var result = ui.CodeView("code", tab.Document, tab.View, bookmarks, tooltips: w.Tooltips);
         if (result.Navigate is { } reference)

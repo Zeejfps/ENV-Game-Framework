@@ -193,7 +193,7 @@ public abstract class BrowseNode
         {
             try
             {
-                return new ImageContent(ResourceImage.Decode(ReadResource()));
+                return LoadImage(language, options, cancellationToken);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -201,6 +201,16 @@ public abstract class BrowseNode
             }
         }
         return new DocumentContent(Decompile(language, options, cancellationToken));
+    }
+
+    /// <summary>The picture, with the markup it is stored as when it is drawn from shapes.</summary>
+    private ImageContent LoadImage(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken)
+    {
+        var image = ResourceImage.Decode(ReadResource());
+        if (!image.IsVector)
+            return new ImageContent(image);
+        var source = Decompile(language, options, cancellationToken);
+        return new ImageContent(image, source);
     }
 
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
@@ -228,6 +238,7 @@ public sealed record DocumentContent(DecompiledDocument Document) : NodeContent;
 
 public sealed record GridContent(MetadataGrid Grid) : NodeContent;
 
-public sealed record ImageContent(ResourceImage Image) : NodeContent;
+/// <summary>A picture, and for one stored as markup, such as SVG, that markup as a document.</summary>
+public sealed record ImageContent(ResourceImage Image, DecompiledDocument? Source = null) : NodeContent;
 
 internal sealed class LoadingNode(LoadedAssembly assembly, BrowseNode parent) : BrowseNode(assembly, parent, NodeKind.Loading, "Loading…");

@@ -3,7 +3,7 @@ using ZGF.Svg;
 
 namespace ZGF.ILSpy.Core.Resources;
 
-/// <summary>An SVG resource drawn to pixels at its own size by ZGF.Svg, shrunk to fit
+/// <summary>An SVG resource drawn to pixels by ZGF.Svg: at its own size first, shrunk to fit
 /// <see cref="MaxSide"/> when larger.</summary>
 internal static class SvgPicture
 {
@@ -25,9 +25,19 @@ internal static class SvgPicture
     public static ResourceImage Rasterize(byte[] data)
     {
         var document = SvgDocument.Parse(ReadText(data));
-        var (width, height) = PixelSize(document);
-        var rgba = document.Rasterize(width, height);
-        return new ResourceImage(width, height, rgba, Format);
+        var (width, height) = OwnSize(document);
+        return Rasterize(document, width, height);
+    }
+
+    /// <summary><paramref name="document"/> drawn <paramref name="width"/> by
+    /// <paramref name="height"/>, shrunk evenly to fit <see cref="MaxSide"/>.</summary>
+    public static ResourceImage Rasterize(SvgDocument document, float width, float height)
+    {
+        var scale = MathF.Min(1f, MaxSide / MathF.Max(width, height));
+        var widthPx = WholePixels(width * scale);
+        var heightPx = WholePixels(height * scale);
+        var rgba = document.Rasterize(widthPx, heightPx);
+        return new ResourceImage(widthPx, heightPx, rgba, Format, document);
     }
 
     private static string ReadText(byte[] data)
@@ -36,16 +46,15 @@ internal static class SvgPicture
         return reader.ReadToEnd();
     }
 
-    /// <summary>The document's own size in whole pixels, shrunk evenly to fit
-    /// <see cref="MaxSide"/>; a square of <see cref="FallbackSide"/> when it states none.</summary>
-    private static (int Width, int Height) PixelSize(SvgDocument document)
+    /// <summary>The size the document states, or a square of <see cref="FallbackSide"/> when it
+    /// states none.</summary>
+    private static (float Width, float Height) OwnSize(SvgDocument document)
     {
         var width = document.IntrinsicWidth;
         var height = document.IntrinsicHeight;
         if (width <= 0f || height <= 0f)
             return (FallbackSide, FallbackSide);
-        var scale = MathF.Min(1f, MaxSide / MathF.Max(width, height));
-        return (WholePixels(width * scale), WholePixels(height * scale));
+        return (width, height);
     }
 
     private static int WholePixels(float size) => Math.Max(1, (int)MathF.Ceiling(size));

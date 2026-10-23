@@ -2,20 +2,28 @@ using System.Buffers.Binary;
 using JpegSharp.Api;
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
+using ZGF.Svg;
 
 namespace ZGF.ILSpy.Core.Resources;
 
 /// <summary>A resource decoded to pixels: straight-alpha RGBA8, rows top-down, and the format
-/// it was stored in.</summary>
+/// it was stored in. An SVG keeps its shapes too, to be drawn again at another size.</summary>
 public sealed class ResourceImage
 {
-    internal ResourceImage(int width, int height, byte[] rgba, string format)
+    private readonly SvgDocument? _shapes;
+
+    internal ResourceImage(int width, int height, byte[] rgba, string format, SvgDocument? shapes = null)
     {
         Width = width;
         Height = height;
         Rgba = rgba;
         Format = format;
+        _shapes = shapes;
     }
+
+    /// <summary>Whether it is drawn from shapes, so stays sharp at any size, and is stored as
+    /// markup that can be shown instead.</summary>
+    public bool IsVector => _shapes != null;
 
     public int Width { get; }
 
@@ -25,6 +33,15 @@ public sealed class ResourceImage
 
     /// <summary>What it was stored as: PNG, JPEG, BMP, GIF, ICO, CUR or SVG.</summary>
     public string Format { get; }
+
+    /// <summary>The picture at <paramref name="scale"/> times its size: drawn again from its shapes
+    /// when it has them, so it stays sharp; else this picture, to be stretched.</summary>
+    public ResourceImage DrawnAt(float scale)
+    {
+        if (_shapes == null)
+            return this;
+        return SvgPicture.Rasterize(_shapes, Width * scale, Height * scale);
+    }
 
     /// <summary>The formats ILSpy shows as pictures, by the file extension of the resource name.</summary>
     internal static bool IsImageName(string name) =>
