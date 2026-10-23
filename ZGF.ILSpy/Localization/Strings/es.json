@@ -15,6 +15,7 @@
   "file.generate_pdbs": "Generar PDB portables…",
   "file.filter_csharp": "Archivo de C#",
   "file.filter_il": "Archivo IL",
+  "file.filter_xaml": "Archivo XAML",
   "file.filter_pdb": "PDB portable",
   "file.filter_snk": "Clave de nombre seguro",
   "view.theme": "Tema",

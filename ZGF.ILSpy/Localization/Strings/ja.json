@@ -15,6 +15,7 @@
   "file.generate_pdbs": "ポータブル PDB を生成…",
   "file.filter_csharp": "C# ファイル",
   "file.filter_il": "IL ファイル",
+  "file.filter_xaml": "XAML ファイル",
   "file.filter_pdb": "ポータブル PDB",
   "file.filter_snk": "厳密名キー",
   "view.theme": "テーマ",

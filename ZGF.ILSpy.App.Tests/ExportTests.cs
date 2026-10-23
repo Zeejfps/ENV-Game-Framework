@@ -86,6 +86,28 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
+    public void Ctrl_S_on_baml_offers_to_save_it_as_xaml()
+    {
+        var app = AppDriver.Opened();
+        var sample = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
+        app.Workspace.Open(sample);
+        app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Any(a => a.FilePath == sample));
+        var assembly = app.Workspace.Assemblies.Assemblies.Single(a => a.FilePath == sample);
+        var baml = assembly.Root.Child("Resources", "SampleApp.g.resources", "mainwindow.baml");
+        app.Show(baml, frames: 2);
+        var path = _temp.PathOf("mainwindow.xaml");
+        app.Frames.FilePicker.Answer = path;
+
+        app.Frames.Key(KeyboardKey.S, KeyModifiers.Control).Frame(2);
+        app.Settle();
+
+        var (fileName, filters) = app.Frames.FilePicker.LastSave;
+        Assert.Equal("mainwindow.xaml", fileName);
+        Assert.Equal(["*.xaml"], filters![0].Patterns);
+        Assert.Contains("x:Class=\"SampleApp.MainWindow\"", File.ReadAllText(path));
+    }
+
+    [Fact]
     public void The_file_menu_shows_an_icon_beside_each_item()
     {
         var app = AppDriver.Opened();

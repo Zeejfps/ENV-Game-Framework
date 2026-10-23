@@ -9,6 +9,9 @@ public sealed class TestFilePicker : IFilePicker
     public string? Answer { get; set; }
     public List<string> Titles { get; } = new();
 
+    /// <summary>The file name and filters the last save picker offered.</summary>
+    public (string? FileName, IReadOnlyList<FileFilter>? Filters) LastSave { get; private set; }
+
     /// <summary>Runs as each picker opens, as the platform's modal dialog would take over.</summary>
     public Action? OnOpen { get; set; }
 
@@ -16,8 +19,11 @@ public sealed class TestFilePicker : IFilePicker
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) => Pick(title, onPicked);
 
-    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
+    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
+    {
+        LastSave = (suggestedFileName, filters);
         Pick(title, onPicked);
+    }
 
     private void Pick(string title, Action<string> onPicked)
     {

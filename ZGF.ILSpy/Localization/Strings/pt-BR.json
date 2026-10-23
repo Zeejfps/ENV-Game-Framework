@@ -15,6 +15,7 @@
   "file.generate_pdbs": "Gerar PDBs portáteis…",
   "file.filter_csharp": "Arquivo C#",
   "file.filter_il": "Arquivo IL",
+  "file.filter_xaml": "Arquivo XAML",
   "file.filter_pdb": "PDB portátil",
   "file.filter_snk": "Chave de nome forte",
   "view.theme": "Tema",

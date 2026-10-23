@@ -15,6 +15,7 @@
   "file.generate_pdbs": "이식 가능한 PDB 생성…",
   "file.filter_csharp": "C# 파일",
   "file.filter_il": "IL 파일",
+  "file.filter_xaml": "XAML 파일",
   "file.filter_pdb": "이식 가능한 PDB",
   "file.filter_snk": "강력한 이름 키",
   "view.theme": "테마",

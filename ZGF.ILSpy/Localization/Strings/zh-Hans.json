@@ -15,6 +15,7 @@
   "file.generate_pdbs": "生成可移植 PDB…",
   "file.filter_csharp": "C# 文件",
   "file.filter_il": "IL 文件",
+  "file.filter_xaml": "XAML 文件",
   "file.filter_pdb": "可移植 PDB",
   "file.filter_snk": "强名称密钥",
   "view.theme": "主题",

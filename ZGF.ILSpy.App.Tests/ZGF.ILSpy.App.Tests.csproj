@@ -22,6 +22,7 @@
   <ItemGroup>
     <EmbeddedResource Include="..\ZGF.ILSpy.Tests\Fixtures\Resources\*" LogicalName="%(Filename)%(Extension)" />
     <Compile Include="..\ZGF.ILSpy.Tests\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <None Include="..\ZGF.ILSpy.Tests\Fixtures\SampleApp\SampleApp.dll" Link="Fixtures\SampleApp\SampleApp.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

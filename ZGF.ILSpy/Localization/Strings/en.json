@@ -16,6 +16,7 @@
   "file.generate_pdbs": "Generate portable PDBs…",
   "file.filter_csharp": "C# file",
   "file.filter_il": "IL file",
+  "file.filter_xaml": "XAML file",
   "file.filter_pdb": "Portable PDB",
   "file.filter_snk": "Strong-name key",
 

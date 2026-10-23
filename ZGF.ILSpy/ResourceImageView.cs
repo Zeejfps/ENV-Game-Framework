@@ -55,7 +55,20 @@ internal static class ResourceImageView
     public static void PickExport(Ui<UiState> ui, Workspace w, BrowseNode node)
     {
         var t = ui.State.Strings;
-        ui.PickSaveFile(t.ResourceExportTitle, null, node.ResourceFileName, [new FileFilter(t.FileFilterAll, ["*.*"])],
-            path => w.SaveResource(node, path));
+        var fileName = node.ResourceFileName;
+        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName), path => w.SaveResource(node, path));
     }
+
+    private const string XamlExtension = ".xaml";
+
+    /// <summary>A XAML filter first for a resource saved as XAML, then all files.</summary>
+    private static FileFilter[] ExportFilters(Strings t, string fileName)
+    {
+        var all = new FileFilter(t.FileFilterAll, ["*.*"]);
+        if (!IsXamlName(fileName))
+            return [all];
+        return [new FileFilter(t.FileFilterXaml, ["*" + XamlExtension]), all];
+    }
+
+    private static bool IsXamlName(string fileName) => Path.GetExtension(fileName).Equals(XamlExtension, StringComparison.OrdinalIgnoreCase);
 }

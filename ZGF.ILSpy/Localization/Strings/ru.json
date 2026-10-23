@@ -15,6 +15,7 @@
   "file.generate_pdbs": "Создать переносимые PDB…",
   "file.filter_csharp": "Файл C#",
   "file.filter_il": "Файл IL",
+  "file.filter_xaml": "Файл XAML",
   "file.filter_pdb": "Переносимый PDB",
   "file.filter_snk": "Ключ строгого имени",
   "view.theme": "Тема",
