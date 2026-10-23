@@ -53,12 +53,14 @@ public static class LucideIcons
     public const string Loader2 = "\uE10A";
     public const string Lock = "\uE10B";
     public const string LogOut = "\uE10E";
+    public const string Minus = "\uE11C";
     public const string Network = "\uE125";
     public const string NotebookText = "\uE598";
     public const string NotepadText = "\uE599";
     public const string Package = "\uE129";
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
+    public const string Plus = "\uE13D";
     public const string RotateCcw = "\uE148";
     public const string Save = "\uE14D";
     public const string Search = "\uE151";

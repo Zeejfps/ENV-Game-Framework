@@ -233,12 +233,14 @@ public sealed class ExportDialogTests : IDisposable
         var app = AppDriver.Opened(height: 1400f);
         app.Workspace.Open(SecondPath);
         app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Count == 2);
-        app.Workspace.OpenExportSetup(app.Workspace.Assemblies.Assemblies[0]);
+        var second = app.Workspace.Assemblies.Assemblies[1];
+        app.Run(2);
+        var drawnByTheTree = app.Frames.Canvas.Texts.Count(t => t.Inputs.Text == second.Name);
 
+        app.Workspace.OpenExportSetup(app.Workspace.Assemblies.Assemblies[0]);
         app.Run(2);
 
-        var removeButtons = app.Frames.Canvas.Texts.Count(t => t.Inputs.Text == LucideIcons.X);
-        Assert.Equal(1, removeButtons);
+        Assert.Equal(drawnByTheTree, app.Frames.Canvas.Texts.Count(t => t.Inputs.Text == second.Name));
         Assert.False(app.Frames.Drew("Select all shown"));
     }
 
@@ -250,12 +252,12 @@ public sealed class ExportDialogTests : IDisposable
         app.Run(2);
         var setup = app.Workspace.ExportSetup;
 
-        app.Click("Choose…").Frame(2);
+        app.Click(LucideIcons.Plus).Frame(2);
         Assert.Equal(ExportPage.Choose, setup.Page);
         app.Click("Done").Frame(2);
         Assert.Equal(ExportPage.Main, setup.Page);
 
-        app.Click("Choose…").Frame(2);
+        app.Click(LucideIcons.Plus).Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Equal(ExportPage.Main, setup.Page);
@@ -287,22 +289,98 @@ public sealed class ExportDialogTests : IDisposable
         app.Workspace.ExportSetup.IncludeAll(false);
         app.Run(2);
 
-        app.Click("Choose…").Frame(2);
+        app.Click(LucideIcons.Plus).Frame(2);
 
         Assert.Equal(ExportPage.Choose, app.Workspace.ExportSetup.Page);
     }
 
-    [Fact]
-    public void The_remove_button_on_a_row_unticks_its_assembly()
+    private static AppDriver WithTwoIncluded()
     {
         var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.Open(SecondPath);
+        app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Count == 2);
         app.Workspace.OpenExportSetup(null);
+        app.Workspace.ExportSetup.IncludeAll(true);
+        app.Workspace.ExportSetup.FinishChoosing();
         app.Run(2);
+        return app;
+    }
 
-        app.Click(LucideIcons.X).Frame(2);
+    private static void ClickRowOf(AppDriver app, LoadedAssembly assembly, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        var row = app.Frames.RectOf(ui => RowId(ui, assembly));
+        app.Frames.Click(row.X + 4f, row.Y + 4f, modifiers: modifiers).Frame();
+    }
 
-        Assert.Equal(0, app.Workspace.ExportSetup.IncludedCount);
-        Assert.True(app.Frames.Drew("No assemblies chosen yet."));
+    private static int RowId(Ui ui, LoadedAssembly assembly)
+    {
+        using (ui.Id(assembly.FilePath))
+            return ui.GetId("row");
+    }
+
+    [Fact]
+    public void Minus_removes_the_picked_out_rows_and_picks_out_the_next()
+    {
+        var app = WithTwoIncluded();
+        var setup = app.Workspace.ExportSetup;
+        var first = app.Workspace.Assemblies.Assemblies[0];
+        var second = app.Workspace.Assemblies.Assemblies[1];
+        Assert.False(setup.RowSelection.Count > 0);
+
+        ClickRowOf(app, first);
+        app.Click(LucideIcons.Minus).Frame(2);
+
+        Assert.Equal([false, true], setup.Choices.Select(c => c.Included));
+        Assert.True(setup.RowSelection.IsOnly(setup.Choices[1]));
+        Assert.Equal(second, setup.IncludedChoices()[0].Assembly);
+    }
+
+    [Fact]
+    public void Delete_removes_every_row_picked_out_with_ctrl()
+    {
+        var app = WithTwoIncluded();
+        var setup = app.Workspace.ExportSetup;
+
+        ClickRowOf(app, app.Workspace.Assemblies.Assemblies[0]);
+        ClickRowOf(app, app.Workspace.Assemblies.Assemblies[1], KeyModifiers.Control);
+        Assert.Equal(2, setup.RowSelection.Count);
+        app.Frames.Key(KeyboardKey.Delete).Frame(2);
+
+        Assert.Equal(0, setup.IncludedCount);
+        Assert.True(app.Frames.Drew("No assemblies included yet."));
+    }
+
+    [Fact]
+    public void Assemblies_with_the_same_name_are_told_apart_by_their_folders()
+    {
+        var one = Directory.CreateDirectory(_temp.PathOf("One")).FullName;
+        var two = Directory.CreateDirectory(_temp.PathOf("Two")).FullName;
+        var file = Path.GetFileName(WorkspaceDriver.FixturePath);
+        File.Copy(WorkspaceDriver.FixturePath, Path.Combine(one, file));
+        File.Copy(WorkspaceDriver.FixturePath, Path.Combine(two, file));
+        var d = new WorkspaceDriver();
+        d.Workspace.Open(Path.Combine(one, file));
+        d.Workspace.Open(Path.Combine(two, file));
+        d.RunUntil(() => d.Workspace.Assemblies.Assemblies.Count == 2);
+
+        d.Workspace.OpenExportSetup(null);
+
+        var sep = Path.DirectorySeparatorChar;
+        foreach (var choice in d.Workspace.ExportSetup.Choices)
+        {
+            var folder = Path.GetFileName(Path.GetDirectoryName(choice.Assembly.FilePath));
+            Assert.Equal("…" + sep + folder, choice.FolderHint);
+        }
+    }
+
+    [Fact]
+    public void Assemblies_with_their_own_names_get_no_folder()
+    {
+        var d = OpenedTwo();
+
+        d.Workspace.OpenExportSetup(null);
+
+        Assert.All(d.Workspace.ExportSetup.Choices, c => Assert.Null(c.FolderHint));
     }
 
     [Fact]
