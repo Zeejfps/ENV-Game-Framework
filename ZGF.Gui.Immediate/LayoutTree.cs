@@ -452,7 +452,7 @@ internal sealed class LayoutTree
 
     private const float RuleThickness = 1f;
     private const float StrikeHeight = 0.55f;
-    private const float CodeChipRadius = 3f;
+    private const float CodeChipRadius = 2f;
 
     private void PaintCodeChip(UiRect rect, uint background, int z)
     {

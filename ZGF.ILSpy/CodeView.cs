@@ -437,8 +437,8 @@ public static class CodeViewWidget
         var part = 0;
         if (tooltip != null)
             part = HashCode.Combine(hovered.Line, hovered.Span) | 1;
-        var anchor = SpanRect(state, document, hovered, advance, rowHeight);
-        using var popup = ui.TooltipContent(codeId, part, anchor, CodeTooltipView.MaxWidth);
+        var anchor = TooltipAnchor(state, document, hovered, advance, rowHeight);
+        using var popup = ui.TooltipContent(codeId, part, anchor, CodeTooltipView.Look);
         if (!popup.IsOpen)
             return;
         CodeTooltipView.Render(ui, t, tooltip!);
@@ -461,6 +461,14 @@ public static class CodeViewWidget
 
     private static bool HasTooltip(CodeReference? reference) =>
         reference is { IsNavigable: true } && reference.Kind != CodeReferenceKind.Assembly;
+
+    /// <summary>The hovered span, widened to the left by the tooltip's padding so the tooltip's
+    /// text starts where the word does.</summary>
+    private static UiRect TooltipAnchor(CodeViewState state, DecompiledDocument document, HoveredSpan hovered, float advance, float rowHeight)
+    {
+        var span = SpanRect(state, document, hovered, advance, rowHeight);
+        return span with { X = span.X - CodeTooltipView.PaddingX, Width = span.Width + CodeTooltipView.PaddingX };
+    }
 
     private static UiRect SpanRect(CodeViewState state, DecompiledDocument document, HoveredSpan hovered, float advance, float rowHeight)
     {
