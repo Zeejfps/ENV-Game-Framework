@@ -135,6 +135,22 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     }
 
     [Fact]
+    public void The_remove_from_queue_button_takes_the_export_out_mid_frame_without_breaking_the_list()
+    {
+        var app = AppDriver.Opened(height: TallWindow);
+        app.Workspace.OpenExports();
+        var running = app.Workspace.Export.Enter(TestJobs.Named("Running")).Result;
+        app.Workspace.Export.Enter(TestJobs.Named("Second"));
+        app.Workspace.Export.Enter(TestJobs.Named("Third"));
+        app.Run(2);
+
+        app.Frames.Wait(1).Click(app.TextRect("Remove from queue")).Frame(2);
+
+        Assert.Equal(["Third"], app.Workspace.Export.Waiting.Select(q => q.Job.Name));
+        app.Workspace.Export.Leave(running);
+    }
+
+    [Fact]
     public void A_narrow_panel_shows_its_actions_as_icons()
     {
         var app = TwoFinished(width: 560f);

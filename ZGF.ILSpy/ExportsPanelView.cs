@@ -371,17 +371,24 @@ internal static class ExportsPanelView
         if (count > 1)
             Section(ui, SectionQueuedId, ui.Memo("queued", (count, t), static a => a.t.ExportsSectionQueued(a.count)));
         var ahead = 0;
+        var withdrawn = 0;
         foreach (var waiting in w.Export.Waiting)
         {
-            WaitingRow(ui, w, rows, waiting, ahead);
+            if (WaitingRow(ui, w, rows, waiting, ahead))
+                withdrawn = waiting.Run;
             ahead++;
         }
+        if (withdrawn != 0)
+            w.Export.Withdraw(withdrawn);
     }
 
-    private static void WaitingRow(Ui<UiState> ui, Workspace w, Rows rows, QueuedExport waiting, int ahead)
+    /// <summary>Draws a waiting export; returns whether the user took it out of the queue, which
+    /// the caller does once the queue is no longer being walked.</summary>
+    private static bool WaitingRow(Ui<UiState> ui, Workspace w, Rows rows, QueuedExport waiting, int ahead)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
+        bool withdrawn;
         using (ui.Id(waiting.Run))
         {
             var hit = RowHit(ui, w, rows, waiting.Run);
@@ -391,7 +398,7 @@ internal static class ExportsPanelView
                 {
                     Glyph(ui, LucideIcons.Hourglass, theme.TextMuted);
                     Name(ui, waiting.Job.Name);
-                    WithdrawAction(ui, w, rows, waiting.Run);
+                    withdrawn = WithdrawAction(ui, rows);
                 }
                 var detail = ui.Memo("detail", (waiting.Job.Kind, ahead, t), static a => DescribeWaiting(a.t, a.Kind, a.ahead));
                 Detail(ui, detail);
@@ -400,19 +407,16 @@ internal static class ExportsPanelView
             ui.Tooltip(hit.Id, waiting.Job.Folder);
         }
         ui.Separator();
+        return withdrawn;
     }
 
-    private static void WithdrawAction(Ui<UiState> ui, Workspace w, Rows rows, int run)
+    /// <summary>The button that takes a waiting export out of the queue; returns whether it was clicked.</summary>
+    private static bool WithdrawAction(Ui<UiState> ui, Rows rows)
     {
         var t = ui.State.Strings;
         if (rows.Narrow)
-        {
-            if (ui.IconButton("withdraw", LucideIcons.X, LucideIcons.Family, t.ExportsWithdraw))
-                w.Export.Withdraw(run);
-            return;
-        }
-        if (ui.Button(t.ExportsWithdraw, id: "withdraw", variant: ButtonVariant.Ghost))
-            w.Export.Withdraw(run);
+            return ui.IconButton("withdraw", LucideIcons.X, LucideIcons.Family, t.ExportsWithdraw);
+        return ui.Button(t.ExportsWithdraw, id: "withdraw", variant: ButtonVariant.Ghost);
     }
 
     private static string DescribeWaiting(Strings t, ExportKind kind, int ahead)
