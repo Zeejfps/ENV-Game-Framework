@@ -263,6 +263,36 @@ public sealed class ExportDialogTests : IDisposable
     }
 
     [Fact]
+    public void A_filter_that_hides_everything_says_so_and_can_be_cleared()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.OpenExportSetup(null);
+        var setup = app.Workspace.ExportSetup;
+        setup.Choose();
+        setup.Picker.Filter = "nothing-is-called-this";
+        app.Run(2);
+
+        Assert.True(app.Frames.Drew("No assemblies match the filter."));
+        app.Click("Clear filter").Frame(2);
+
+        Assert.Equal("", setup.Picker.Filter);
+        Assert.Single(setup.Picker.Shown());
+    }
+
+    [Fact]
+    public void With_nothing_chosen_the_main_page_offers_to_choose()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.OpenExportSetup(null);
+        app.Workspace.ExportSetup.IncludeAll(false);
+        app.Run(2);
+
+        app.Click("Choose…").Frame(2);
+
+        Assert.Equal(ExportPage.Choose, app.Workspace.ExportSetup.Page);
+    }
+
+    [Fact]
     public void The_remove_button_on_a_row_unticks_its_assembly()
     {
         var app = AppDriver.Opened(height: 1400f);

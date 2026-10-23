@@ -18,6 +18,12 @@ public sealed class AssemblyPicker
         _order.Clear();
         _order.AddRange(choices.Where(static c => c.Included));
         _order.AddRange(choices.Where(static c => !c.Included));
+        ClearFilter();
+    }
+
+    /// <summary>Shows every assembly again.</summary>
+    public void ClearFilter()
+    {
         Filter = "";
         SelectedOnly = false;
     }
