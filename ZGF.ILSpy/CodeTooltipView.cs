@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 
 /// <summary>What hovering a type or member in code shows: its declaration highlighted as code in a
 /// band of its own, on one line when it fits and else with a parameter per line, over the type or
-/// namespace it is in; then a rule and its documentation, a heading over each kind of section
+/// namespace it is in and its <c>where</c> clauses; then a rule and its documentation, a heading over each kind of section
 /// after the summary. Space between sections is wider than within them, so each reads as a group.
 /// Parameters line up in a column beside their descriptions, an exception's description sits
 /// under it, list items hang from their markers, and code blocks are set in a box.</summary>
@@ -19,6 +19,7 @@ internal static class CodeTooltipView
     private const float SignaturePaddingY = 8f;
     private const float ContextGap = 2f;
     private const float ParameterIndent = 16f;
+    private const float ConstraintGap = 6f;
     private const char KindMark = '\u0001';
     private const char NameMark = '\u0002';
     private const float DocumentationPaddingY = 10f;
@@ -65,6 +66,18 @@ internal static class CodeTooltipView
             RenderDeclaration(ui, layout);
             if (layout.Container.Count > 0)
                 ui.RichText(layout.Container);
+            RenderConstraints(ui, layout);
+        }
+    }
+
+    private static void RenderConstraints(Ui ui, TooltipLayout layout)
+    {
+        if (layout.Constraints.Count == 0)
+            return;
+        using (ui.Column(new Box { Padding = new Spacing(0f, ConstraintGap, 0f, 0f), Gap = 0f }))
+        {
+            foreach (var constraint in layout.Constraints)
+                ui.RichText(constraint);
         }
     }
 
@@ -290,6 +303,7 @@ internal static class CodeTooltipView
         public IReadOnlyList<RichTextRun> DeclarationHead = [];
         public readonly List<IReadOnlyList<RichTextRun>> Parameters = new();
         public IReadOnlyList<RichTextRun> Container = [];
+        public readonly List<IReadOnlyList<RichTextRun>> Constraints = new();
         public readonly List<TooltipGroup> Groups = new();
 
         public bool IsBuiltFor(CodeTooltip tooltip, CodeViewPalette palette, UiTheme theme, Strings strings)
@@ -319,6 +333,7 @@ internal static class CodeTooltipView
     {
         BuildDeclaration(layout, styles, tooltip.Signature);
         layout.Container = ContainerRuns(styles, t, tooltip.Container);
+        BuildConstraints(layout, styles, tooltip.Signature);
         layout.Groups.Clear();
         foreach (var section in tooltip.Sections)
         {
@@ -343,6 +358,24 @@ internal static class CodeTooltipView
             var end = i + 1 < starts.Count ? starts[i + 1] : line.Text.Length;
             layout.Parameters.Add(CodeRuns(styles, line, starts[i], end));
         }
+    }
+
+    private static void BuildConstraints(TooltipLayout layout, TooltipStyles styles, CodeSignature signature)
+    {
+        layout.Constraints.Clear();
+        foreach (var line in signature.Constraints)
+        {
+            var start = LeadingSpaces(line.Text);
+            layout.Constraints.Add(CodeRuns(styles, line, start, line.Text.Length));
+        }
+    }
+
+    private static int LeadingSpaces(string text)
+    {
+        var start = 0;
+        while (start < text.Length && text[start] == ' ')
+            start++;
+        return start;
     }
 
     /// <summary>The line's text from <paramref name="from"/> to <paramref name="to"/> as runs in

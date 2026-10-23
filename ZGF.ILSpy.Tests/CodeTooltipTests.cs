@@ -58,6 +58,20 @@ public sealed class CodeTooltipTests
     }
 
     [Fact]
+    public void Each_type_parameter_constraint_is_a_where_clause_of_its_own()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var pick = assembly.Fixtures().Child("Circle", "Pick<TKey,TValue>(TKey, TValue) : TKey");
+
+        var signature = TooltipOf(list, pick).Signature;
+        var constraints = signature.Constraints.Select(c => c.Text.Trim());
+
+        Assert.Equal("public TKey Circle.Pick<TKey, TValue>(TKey key, TValue value)", signature.Line.Text);
+        Assert.Equal(["where TKey : class, IComparable<TKey>, new()", "where TValue : struct"], constraints);
+        Assert.Empty(TooltipOf(list, assembly.Calculator()).Signature.Constraints);
+    }
+
+    [Fact]
     public void A_member_of_a_record_or_struct_is_in_one_by_its_keyword()
     {
         var (list, assembly) = Trees.OpenTestAssembly();

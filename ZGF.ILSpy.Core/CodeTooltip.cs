@@ -61,9 +61,10 @@ public enum DocSectionKind
 /// parameter or exception the part is about.</summary>
 public sealed record DocSection(DocSectionKind Kind, DocRun? Label, IReadOnlyList<DocBlock> Blocks);
 
-/// <summary>A declaration as one line of code, and where in it each parameter starts, so it can be
-/// shown with a parameter per line when the line is too long.</summary>
-public sealed record CodeSignature(DocumentLine Line, IReadOnlyList<int> ParameterStarts);
+/// <summary>A declaration as one line of code, where in it each parameter starts, so it can be
+/// shown with a parameter per line when the line is too long, and its type parameters' constraints,
+/// a <c>where</c> clause a line.</summary>
+public sealed record CodeSignature(DocumentLine Line, IReadOnlyList<int> ParameterStarts, IReadOnlyList<DocumentLine> Constraints);
 
 /// <summary>Where a type or member is declared: in a type, by its keyword such as <c>class</c> or
 /// <c>record struct</c> and its full name, or in a namespace.</summary>
@@ -96,8 +97,41 @@ public sealed record CodeTooltip(CodeSignature Signature, CodeContainer? Contain
         var ambience = new CSharpAmbience { ConversionFlags = SignatureFlags };
         ambience.ConvertSymbol(entity, parameters, settings.CSharpFormattingOptions);
         var line = output.Build(entity.Name).Lines[0];
-        return new CodeSignature(line, parameters.Starts);
+        var constraints = WriteConstraints(entity, assembly, settings);
+        return new CodeSignature(line, parameters.Starts, constraints);
     }
+
+    /// <summary>The <c>where</c> clauses of the entity's own type parameters, highlighted as code,
+    /// one a line; none when it has no constraints.</summary>
+    private static IReadOnlyList<DocumentLine> WriteConstraints(IEntity entity, LoadedAssembly assembly, DecompilerSettings settings)
+    {
+        var builder = new TypeSystemAstBuilder
+        {
+            ShowTypeParameterConstraints = true,
+            AlwaysUseShortTypeNames = true,
+            AddResolveResultAnnotations = true,
+        };
+        var declaration = builder.ConvertEntity(entity);
+        var constraints = declaration.Children.OfType<Constraint>().ToList();
+        if (constraints.Count == 0)
+            return [];
+        var output = new DocumentBuilder(DecompilationLanguage.CSharp, assembly);
+        TokenWriter writer = new TextTokenWriter(output, settings);
+        writer = TokenWriter.InsertRequiredSpaces(writer);
+        writer = new HighlightingTokenWriter(writer, output);
+        foreach (var constraint in constraints)
+        {
+            constraint.AcceptVisitor(new CSharpOutputVisitor(writer, settings.CSharpFormattingOptions));
+            output.WriteLine();
+        }
+        return ConstraintLines(output.Build(entity.Name).Lines);
+    }
+
+    /// <summary>The written clauses without the blank lines between them.</summary>
+    private static List<DocumentLine> ConstraintLines(IReadOnlyList<DocumentLine> lines) =>
+        lines
+            .Where(static l => !string.IsNullOrWhiteSpace(l.Text))
+            .ToList();
 
     private const string NamespaceKeyword = "namespace";
 

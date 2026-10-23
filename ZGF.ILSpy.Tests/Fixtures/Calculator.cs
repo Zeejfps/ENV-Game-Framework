@@ -112,6 +112,8 @@ internal sealed class Circle : IShape
         return range.High - range.Low;
     }
 
+    public TKey Pick<TKey, TValue>(TKey key, TValue value) where TKey : class, IComparable<TKey>, new() where TValue : struct => key;
+
     public object Echo(object value)
     {
         dynamic echoed = value;
