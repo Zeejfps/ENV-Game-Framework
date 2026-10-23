@@ -97,6 +97,15 @@ internal sealed class Circle : IShape
         return grown;
     }
 
+    /// <summary>The gap between the radius and its double.</summary>
+    /// <remarks>
+    /// <list type="table">
+    /// <listheader><term>Bound</term><description>Value</description></listheader>
+    /// <item><term>Low</term><description>The radius.</description></item>
+    /// <item><term>High</term><description>Twice the radius.</description></item>
+    /// </list>
+    /// <list type="number"><item>First.</item><item>Second.</item></list>
+    /// </remarks>
     public double Spread()
     {
         (double Low, double High) range = (Radius, Radius * 2);

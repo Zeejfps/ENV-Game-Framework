@@ -20,8 +20,29 @@ public enum DocStyle
 
 public readonly record struct DocRun(string Text, DocStyle Style, CodeReference? Reference = null);
 
-/// <summary>A paragraph of documentation. A code block keeps its line breaks.</summary>
-public sealed record DocParagraph(IReadOnlyList<DocRun> Runs, bool IsCode = false);
+/// <summary>A block of documentation: a paragraph, a code block or a list.</summary>
+public abstract record DocBlock;
+
+/// <summary>A paragraph of styled runs.</summary>
+public sealed record DocParagraph(IReadOnlyList<DocRun> Runs) : DocBlock;
+
+/// <summary>A code block, its lines kept and their shared indentation removed.</summary>
+public sealed record DocCode(string Text) : DocBlock;
+
+/// <summary>What a <see cref="DocList"/> is: bulleted, numbered, or a table of terms and their
+/// descriptions.</summary>
+public enum DocListKind
+{
+    Bullet,
+    Number,
+    Table,
+}
+
+/// <summary>One item of a list: the term it names, when it names one, and its description.</summary>
+public sealed record DocListItem(IReadOnlyList<DocRun> Term, IReadOnlyList<DocRun> Description);
+
+/// <summary>A list. <see cref="Header"/> is a table's heading row, or a list's leading item.</summary>
+public sealed record DocList(DocListKind Kind, DocListItem? Header, IReadOnlyList<DocListItem> Items) : DocBlock;
 
 /// <summary>A part of an entity's XML documentation, in the order ILSpy shows them.</summary>
 public enum DocSectionKind
@@ -38,7 +59,7 @@ public enum DocSectionKind
 
 /// <summary>One part of an entity's documentation. <see cref="Label"/> is the parameter, type
 /// parameter or exception the part is about.</summary>
-public sealed record DocSection(DocSectionKind Kind, DocRun? Label, IReadOnlyList<DocParagraph> Paragraphs);
+public sealed record DocSection(DocSectionKind Kind, DocRun? Label, IReadOnlyList<DocBlock> Blocks);
 
 /// <summary>A declaration as one line of code, and where in it each parameter starts, so it can be
 /// shown with a parameter per line when the line is too long.</summary>

@@ -12,9 +12,6 @@ namespace ZGF.ILSpy.Core;
 /// <c>inheritdoc</c> is followed to the documentation it names or inherits.</summary>
 internal static class Documentation
 {
-    private const string Bullet = "• ";
-    private const string TermSeparator = " – ";
-    private const string NumberedList = "number";
 
     private static readonly CSharpAmbience TypeNames = new() { ConversionFlags = ConversionFlags.ShowTypeParameterList };
     private static readonly CSharpAmbience MemberNames = new() { ConversionFlags = ConversionFlags.ShowTypeParameterList | ConversionFlags.ShowDeclaringType };
@@ -134,7 +131,7 @@ internal static class Documentation
 
     private static bool IsSummary(DocSection section) => section.Kind == DocSectionKind.Summary;
 
-    private static bool HasContent(DocSection section) => section.Paragraphs.Count > 0 || section.Label != null;
+    private static bool HasContent(DocSection section) => section.Blocks.Count > 0 || section.Label != null;
 
     private static void AddChildren(DocText text, XmlDocumentationElement element)
     {
@@ -272,35 +269,40 @@ internal static class Documentation
 
     private static void AddList(DocText text, XmlDocumentationElement list)
     {
-        var numbered = list.GetAttribute("type") == NumberedList;
-        var number = 0;
-        foreach (var item in list.Children)
+        DocListItem? header = null;
+        var items = new List<DocListItem>();
+        foreach (var child in list.Children)
         {
-            if (!IsListItem(item))
-                continue;
-            number++;
-            text.Break();
-            text.Add(numbered ? $"{number}. " : Bullet, DocStyle.Plain);
-            AddListItem(text, item);
-            text.Break();
+            if (child.Name == "listheader")
+                header = ReadListItem(child);
+            else if (child.Name == "item")
+                items.Add(ReadListItem(child));
         }
+        text.AddList(new DocList(ListKindOf(list), header, items));
     }
 
-    private static bool IsListItem(XmlDocumentationElement element) => element.Name is "item" or "listheader";
+    private static DocListKind ListKindOf(XmlDocumentationElement list) =>
+        list.GetAttribute("type") switch
+        {
+            "number" => DocListKind.Number,
+            "table" => DocListKind.Table,
+            _ => DocListKind.Bullet,
+        };
 
-    private static void AddListItem(DocText text, XmlDocumentationElement item)
+    /// <summary>An item's <c>term</c> and <c>description</c>; text outside them describes it too.</summary>
+    private static DocListItem ReadListItem(XmlDocumentationElement item)
     {
+        var term = new DocText();
+        var description = new DocText();
         foreach (var part in item.Children)
         {
             if (part.Name == "term")
-            {
-                text.Add(part.TextContent, DocStyle.Bold);
-                text.Add(TermSeparator, DocStyle.Plain);
-            }
+                AddChildren(term, part);
+            else if (part.Name == "description")
+                AddChildren(description, part);
             else
-            {
-                AddInline(text, part);
-            }
+                AddInline(description, part);
         }
+        return new DocListItem(term.FinishInline(), description.FinishInline());
     }
 }

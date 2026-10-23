@@ -9,7 +9,9 @@ namespace ZGF.ILSpy;
 /// <summary>What hovering a type or member in code shows: its declaration highlighted as code in a
 /// band of its own, on one line when it fits and else with a parameter per line, over the namespace
 /// and assembly it is in; then a rule and its documentation, a heading over each kind of section
-/// after the summary. Space between sections is wider than within them, so each reads as a group.</summary>
+/// after the summary. Space between sections is wider than within them, so each reads as a group.
+/// Parameters line up in a column beside their descriptions, an exception's description sits
+/// under it, list items hang from their markers, and code blocks are set in a box.</summary>
 internal static class CodeTooltipView
 {
     public const float PaddingX = 12f;
@@ -23,8 +25,19 @@ internal static class CodeTooltipView
     private const float HeadingGap = 4f;
     private const float EntryGap = 4f;
     private const float ParagraphGap = 6f;
-    private const string LabelSeparator = " – ";
+    private const float ItemGap = 3f;
+    private const float ColumnGap = 12f;
+    private const float MaxLabelWidth = 140f;
+    private const float MarkerWidth = 16f;
+    private const float MarkerGap = 4f;
+    private const float ExceptionIndent = 16f;
+    private const float ExceptionGap = 2f;
+    private const float CodeBlockPadding = 8f;
+    private const float CodeBlockRadius = 4f;
+    private const string Bullet = "•";
+    private const string TermSeparator = " – ";
     private const float CodeChipMix = 0.06f;
+    private const float CodeBlockMix = 0.3f;
     private const float HeadingMix = 0.2f;
 
     /// <summary>The popup the tooltip is shown in: unpadded, as the tooltip pads its own parts,
@@ -96,28 +109,169 @@ internal static class CodeTooltipView
         {
             if (group.Heading != null)
                 ui.RichText(group.Heading);
+            var labelWidth = LabelWidth(ui, group.Entries);
             using (ui.Column(new Box { Gap = EntryGap }))
             {
                 foreach (var entry in group.Entries)
-                    RenderEntry(ui, layout, entry);
+                    RenderEntry(ui, layout, group.Shape, entry, labelWidth);
             }
         }
     }
 
-    private static void RenderEntry(Ui ui, TooltipLayout layout, List<IReadOnlyList<RichTextRun>> paragraphs)
+    /// <summary>The width of a group's label column: its widest label and the gap after it, at
+    /// most <see cref="MaxLabelWidth"/>.</summary>
+    private static float LabelWidth(Ui ui, List<TooltipEntry> entries)
     {
-        using (ui.Column(new Box { Gap = ParagraphGap }))
+        var widest = 0f;
+        foreach (var entry in entries)
         {
-            foreach (var paragraph in paragraphs)
-                ui.RichText(paragraph, codeBackground: layout.CodeBackground);
+            if (entry.Label != null)
+                widest = MathF.Max(widest, ui.MeasureRuns(entry.Label));
+        }
+        return MathF.Min(widest, MaxLabelWidth) + ColumnGap;
+    }
+
+    private static void RenderEntry(Ui ui, TooltipLayout layout, EntryShape shape, TooltipEntry entry, float labelWidth)
+    {
+        switch (shape)
+        {
+            case EntryShape.Column when entry.Label != null:
+                RenderColumnEntry(ui, layout, entry, labelWidth);
+                break;
+            case EntryShape.Stacked when entry.Label != null:
+                RenderStackedEntry(ui, layout, entry);
+                break;
+            default:
+                RenderBlocks(ui, layout, entry.Blocks);
+                break;
         }
     }
 
+    /// <summary>The label in its column, its blocks beside it.</summary>
+    private static void RenderColumnEntry(Ui ui, TooltipLayout layout, TooltipEntry entry, float labelWidth)
+    {
+        using (ui.Row(new Box { Gap = 0f }))
+        {
+            using (ui.Column(new Box { Width = labelWidth }))
+                ui.RichText(entry.Label!);
+            using (ui.Column(new Box { Width = Sizing.Grow() }))
+                RenderBlocks(ui, layout, entry.Blocks);
+        }
+    }
+
+    /// <summary>The label on a line of its own, its blocks indented under it.</summary>
+    private static void RenderStackedEntry(Ui ui, TooltipLayout layout, TooltipEntry entry)
+    {
+        using (ui.Column(new Box { Gap = ExceptionGap }))
+        {
+            ui.RichText(entry.Label!);
+            using (ui.Column(new Box { Padding = new Spacing(ExceptionIndent, 0f, 0f, 0f) }))
+                RenderBlocks(ui, layout, entry.Blocks);
+        }
+    }
+
+    private static void RenderBlocks(Ui ui, TooltipLayout layout, IReadOnlyList<TooltipBlock> blocks)
+    {
+        using (ui.Column(new Box { Width = Sizing.Grow(), Gap = ParagraphGap }))
+        {
+            foreach (var block in blocks)
+                RenderBlock(ui, layout, block);
+        }
+    }
+
+    private static void RenderBlock(Ui ui, TooltipLayout layout, TooltipBlock block)
+    {
+        switch (block)
+        {
+            case TextBlock text:
+                ui.RichText(text.Runs, codeBackground: layout.CodeBackground);
+                break;
+            case CodeBlock code:
+                RenderCode(ui, layout, code);
+                break;
+            case ListBlock list:
+                RenderList(ui, layout, list);
+                break;
+        }
+    }
+
+    private static void RenderCode(Ui ui, TooltipLayout layout, CodeBlock code)
+    {
+        var box = new Box
+        {
+            Width = Sizing.Grow(),
+            Padding = new Spacing(CodeBlockPadding),
+            Radius = CodeBlockRadius,
+            Background = layout.CodeBlockBackground,
+        };
+        using (ui.Column(box))
+            ui.RichText(code.Runs);
+    }
+
+    /// <summary>Each row's lead — a marker, or a table's term — in a column of its own, so wrapped
+    /// lines hang under the text rather than the lead.</summary>
+    private static void RenderList(Ui ui, TooltipLayout layout, ListBlock list)
+    {
+        var leadWidth = LeadWidth(ui, list);
+        using (ui.Column(new Box { Width = Sizing.Grow(), Gap = ItemGap }))
+        {
+            foreach (var row in list.Rows)
+                RenderListRow(ui, layout, row, leadWidth);
+        }
+    }
+
+    /// <summary>A list's lead column: a table's widest term and the column gap, at most
+    /// <see cref="MaxLabelWidth"/>; a marker's width, and more for numbers that need it.</summary>
+    private static float LeadWidth(Ui ui, ListBlock list)
+    {
+        var widest = 0f;
+        foreach (var row in list.Rows)
+            widest = MathF.Max(widest, ui.MeasureRuns(row.Lead));
+        if (list.IsTable)
+            return MathF.Min(widest, MaxLabelWidth) + ColumnGap;
+        return MathF.Max(MarkerWidth, widest + MarkerGap);
+    }
+
+    private static void RenderListRow(Ui ui, TooltipLayout layout, ListRow row, float leadWidth)
+    {
+        using (ui.Row(new Box { Gap = 0f }))
+        {
+            using (ui.Column(new Box { Width = leadWidth }))
+                ui.RichText(row.Lead);
+            using (ui.Column(new Box { Width = Sizing.Grow() }))
+                ui.RichText(row.Content, codeBackground: layout.CodeBackground);
+        }
+    }
+
+    /// <summary>How a group sets out its entries: parameters with their names in a column,
+    /// exceptions with their descriptions under them, anything else as its blocks.</summary>
+    private enum EntryShape
+    {
+        Blocks,
+        Column,
+        Stacked,
+    }
+
+    private abstract record TooltipBlock;
+
+    private sealed record TextBlock(IReadOnlyList<RichTextRun> Runs) : TooltipBlock;
+
+    private sealed record CodeBlock(IReadOnlyList<RichTextRun> Runs) : TooltipBlock;
+
+    /// <summary>A list's rows, each a lead and its content: a marker and the item, or a table's
+    /// term and its description.</summary>
+    private sealed record ListBlock(bool IsTable, IReadOnlyList<ListRow> Rows) : TooltipBlock;
+
+    private sealed record ListRow(IReadOnlyList<RichTextRun> Lead, IReadOnlyList<RichTextRun> Content);
+
+    /// <summary>A section's label, the parameter or exception it is about, and its blocks.</summary>
+    private sealed record TooltipEntry(IReadOnlyList<RichTextRun>? Label, IReadOnlyList<TooltipBlock> Blocks);
+
     /// <summary>A group of the documentation: the summary, or every section of one kind under its
     /// heading, one entry per section.</summary>
-    private sealed record TooltipGroup(DocSectionKind Kind, IReadOnlyList<RichTextRun>? Heading)
+    private sealed record TooltipGroup(DocSectionKind Kind, IReadOnlyList<RichTextRun>? Heading, EntryShape Shape)
     {
-        public List<List<IReadOnlyList<RichTextRun>>> Entries { get; } = new();
+        public List<TooltipEntry> Entries { get; } = new();
     }
 
     /// <summary>The tooltip as rich text, kept until another tooltip, palette, theme or language is
@@ -129,6 +283,7 @@ internal static class CodeTooltipView
         public UiTheme? Theme;
         public Strings? Strings;
         public uint CodeBackground;
+        public uint CodeBlockBackground;
         public IReadOnlyList<RichTextRun> Declaration = [];
         public IReadOnlyList<RichTextRun> DeclarationHead = [];
         public readonly List<IReadOnlyList<RichTextRun>> Parameters = new();
@@ -153,6 +308,7 @@ internal static class CodeTooltipView
         layout.Theme = ui.Theme;
         layout.Strings = t;
         layout.CodeBackground = UiColor.Mix(ui.Theme.SurfaceRaised, ui.Theme.Text, CodeChipMix);
+        layout.CodeBlockBackground = UiColor.Mix(ui.Theme.SurfaceRaised, ui.Theme.EditorBackground, CodeBlockMix);
         Build(layout, new TooltipStyles(ui, palette), t, tooltip);
         return layout;
     }
@@ -229,7 +385,7 @@ internal static class CodeTooltipView
         if (groups.Count > 0 && groups[^1].Kind == kind)
             return groups[^1];
         var heading = HeadingRuns(styles, t, kind);
-        var group = new TooltipGroup(kind, heading);
+        var group = new TooltipGroup(kind, heading, ShapeOf(kind));
         groups.Add(group);
         return group;
     }
@@ -255,46 +411,97 @@ internal static class CodeTooltipView
             _ => null,
         };
 
-    /// <summary>The section's paragraphs, the first led by its label: the parameter or exception it
-    /// is about.</summary>
-    private static List<IReadOnlyList<RichTextRun>> EntryOf(TooltipStyles styles, DocSection section)
+    private static EntryShape ShapeOf(DocSectionKind kind) =>
+        kind switch
+        {
+            DocSectionKind.TypeParameter => EntryShape.Column,
+            DocSectionKind.Parameter => EntryShape.Column,
+            DocSectionKind.Exception => EntryShape.Stacked,
+            _ => EntryShape.Blocks,
+        };
+
+    private static TooltipEntry EntryOf(TooltipStyles styles, DocSection section)
     {
         var label = LabelRuns(styles, section);
-        var entry = new List<IReadOnlyList<RichTextRun>>();
-        if (section.Paragraphs.Count == 0)
-        {
-            if (label.Count > 0)
-                entry.Add(label);
-            return entry;
-        }
-        for (var i = 0; i < section.Paragraphs.Count; i++)
-        {
-            var runs = new List<RichTextRun>();
-            if (i == 0)
-                runs.AddRange(label);
-            AddParagraph(runs, styles, section.Paragraphs[i]);
-            entry.Add(runs);
-        }
-        return entry;
+        var blocks = new List<TooltipBlock>();
+        foreach (var block in section.Blocks)
+            blocks.Add(BlockOf(styles, block));
+        return new TooltipEntry(label, blocks);
     }
 
-    private static List<RichTextRun> LabelRuns(TooltipStyles styles, DocSection section)
+    /// <summary>A parameter or type parameter by its name in code, an exception by its type.</summary>
+    private static IReadOnlyList<RichTextRun>? LabelRuns(TooltipStyles styles, DocSection section)
     {
         if (section.Label == null)
-            return [];
+            return null;
         var label = section.Label.Value;
-        return [Run(styles, label), new RichTextRun(LabelSeparator, styles.Plain)];
+        return section.Kind switch
+        {
+            DocSectionKind.TypeParameter => [new RichTextRun(label.Text, styles.Code(SpanKind.Type))],
+            DocSectionKind.Parameter => [new RichTextRun(label.Text, styles.Code(SpanKind.Parameter))],
+            _ => [Run(styles, label)],
+        };
     }
 
-    private static void AddParagraph(List<RichTextRun> runs, TooltipStyles styles, DocParagraph paragraph)
-    {
-        if (paragraph.IsCode)
+    private static TooltipBlock BlockOf(TooltipStyles styles, DocBlock block) =>
+        block switch
         {
-            runs.Add(new RichTextRun(paragraph.Runs[0].Text, styles.CodeBlock));
-            return;
-        }
-        foreach (var run in paragraph.Runs)
-            runs.Add(Run(styles, run));
+            DocCode code => new CodeBlock([new RichTextRun(code.Text, styles.CodeBlock)]),
+            DocList list => ListOf(styles, list),
+            DocParagraph paragraph => new TextBlock(Runs(styles, paragraph.Runs)),
+            _ => throw new ArgumentOutOfRangeException(nameof(block)),
+        };
+
+    private static ListBlock ListOf(TooltipStyles styles, DocList list)
+    {
+        var isTable = list.Kind == DocListKind.Table;
+        var rows = new List<ListRow>();
+        if (list.Header != null)
+            rows.Add(HeaderRow(styles, list.Header, isTable));
+        for (var i = 0; i < list.Items.Count; i++)
+            rows.Add(ItemRow(styles, list, i));
+        return new ListBlock(isTable, rows);
+    }
+
+    /// <summary>A table's heading row, its term over the terms and description over the
+    /// descriptions; another list's leading item, without a marker.</summary>
+    private static ListRow HeaderRow(TooltipStyles styles, DocListItem header, bool isTable)
+    {
+        if (!isTable)
+            return new ListRow([], TermAndDescription(styles, header));
+        var term = TextOf(header.Term);
+        var description = TextOf(header.Description);
+        return new ListRow([new RichTextRun(term, styles.Heading)], [new RichTextRun(description, styles.Heading)]);
+    }
+
+    private static ListRow ItemRow(TooltipStyles styles, DocList list, int index)
+    {
+        var item = list.Items[index];
+        if (list.Kind == DocListKind.Table)
+            return new ListRow(Runs(styles, item.Term), Runs(styles, item.Description));
+        var marker = list.Kind == DocListKind.Number ? $"{index + 1}." : Bullet;
+        return new ListRow([new RichTextRun(marker, styles.Plain)], TermAndDescription(styles, item));
+    }
+
+    /// <summary>The item's term in bold and its description after a dash, or the description alone.</summary>
+    private static IReadOnlyList<RichTextRun> TermAndDescription(TooltipStyles styles, DocListItem item)
+    {
+        var description = Runs(styles, item.Description);
+        if (item.Term.Count == 0)
+            return description;
+        var runs = new List<RichTextRun> { new(TextOf(item.Term), styles.Bold), new(TermSeparator, styles.Plain) };
+        runs.AddRange(description);
+        return runs;
+    }
+
+    private static string TextOf(IReadOnlyList<DocRun> runs) => string.Concat(runs.Select(static r => r.Text));
+
+    private static List<RichTextRun> Runs(TooltipStyles styles, IReadOnlyList<DocRun> runs)
+    {
+        var converted = new List<RichTextRun>();
+        foreach (var run in runs)
+            converted.Add(Run(styles, run));
+        return converted;
     }
 
     private static RichTextRun Run(TooltipStyles styles, DocRun run) =>

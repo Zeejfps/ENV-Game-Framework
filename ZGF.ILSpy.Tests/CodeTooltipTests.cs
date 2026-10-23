@@ -8,9 +8,11 @@ public sealed class CodeTooltipTests
 
     private static DocSection Section(CodeTooltip tooltip, DocSectionKind kind) => tooltip.Sections.Single(s => s.Kind == kind);
 
-    private static string TextOf(DocParagraph paragraph) => string.Concat(paragraph.Runs.Select(r => r.Text));
+    private static string TextOf(DocBlock block) => TextOf(Assert.IsType<DocParagraph>(block).Runs);
 
-    private static DocRun RunOf(DocParagraph paragraph, string text) => paragraph.Runs.Single(r => r.Text == text);
+    private static string TextOf(IReadOnlyList<DocRun> runs) => string.Concat(runs.Select(r => r.Text));
+
+    private static DocRun RunOf(DocBlock block, string text) => Assert.IsType<DocParagraph>(block).Runs.Single(r => r.Text == text);
 
     /// <summary>The signature's text from each parameter's start to the next one's, the last to the end.</summary>
     private static List<string> ParameterTexts(CodeSignature signature)
@@ -73,7 +75,7 @@ public sealed class CodeTooltipTests
         var calculator = assembly.Calculator();
 
         var tooltip = TooltipOf(list, calculator.Child("Add(T) : void"));
-        var summary = Assert.Single(Section(tooltip, DocSectionKind.Summary).Paragraphs);
+        var summary = Assert.Single(Section(tooltip, DocSectionKind.Summary).Blocks);
         var item = Section(tooltip, DocSectionKind.Parameter);
         var changed = RunOf(summary, "Calculator<T>.Changed");
 
@@ -82,7 +84,7 @@ public sealed class CodeTooltipTests
         Assert.Equal(DocStyle.Reference, changed.Style);
         Assert.Same(calculator.Child("Changed : EventHandler?"), list.FindNode(changed.Reference!));
         Assert.Equal("item", item.Label!.Value.Text);
-        Assert.Equal("The item to add.", TextOf(Assert.Single(item.Paragraphs)));
+        Assert.Equal("The item to add.", TextOf(Assert.Single(item.Blocks)));
     }
 
     [Fact]
@@ -91,12 +93,35 @@ public sealed class CodeTooltipTests
         var (list, assembly) = Trees.OpenTestAssembly();
         var grow = assembly.Fixtures().Child("Circle", "Grow(double, int) : double");
 
-        var remarks = Section(TooltipOf(list, grow), DocSectionKind.Remarks).Paragraphs;
+        var remarks = Section(TooltipOf(list, grow), DocSectionKind.Remarks).Blocks;
+        var bullets = Assert.IsType<DocList>(remarks[1]);
+        var code = Assert.IsType<DocCode>(remarks[2]);
 
-        Assert.Equal(["Each step multiplies once:", "• Zero – keeps the radius.", "• More grows it.", "var grown = circle.Grow(2, 3);\nConsole.WriteLine(grown);"],
-            remarks.Select(TextOf));
-        Assert.Equal(DocStyle.Bold, RunOf(remarks[1], "Zero").Style);
-        Assert.True(remarks[3].IsCode);
+        Assert.Equal(3, remarks.Count);
+        Assert.Equal("Each step multiplies once:", TextOf(remarks[0]));
+        Assert.Equal(DocListKind.Bullet, bullets.Kind);
+        Assert.Equal(["Zero", ""], bullets.Items.Select(i => TextOf(i.Term)));
+        Assert.Equal(["keeps the radius.", "More grows it."], bullets.Items.Select(i => TextOf(i.Description)));
+        Assert.Equal("var grown = circle.Grow(2, 3);\nConsole.WriteLine(grown);", code.Text);
+    }
+
+    [Fact]
+    public void A_table_list_keeps_its_header_and_a_numbered_list_its_kind()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var spread = assembly.Fixtures().Child("Circle", "Spread() : double");
+
+        var remarks = Section(TooltipOf(list, spread), DocSectionKind.Remarks).Blocks;
+        var table = Assert.IsType<DocList>(remarks[0]);
+        var numbered = Assert.IsType<DocList>(remarks[1]);
+
+        Assert.Equal(DocListKind.Table, table.Kind);
+        Assert.Equal("Bound", TextOf(table.Header!.Term));
+        Assert.Equal("Value", TextOf(table.Header.Description));
+        Assert.Equal(["Low", "High"], table.Items.Select(i => TextOf(i.Term)));
+        Assert.Equal(["The radius.", "Twice the radius."], table.Items.Select(i => TextOf(i.Description)));
+        Assert.Equal(DocListKind.Number, numbered.Kind);
+        Assert.Equal(["First.", "Second."], numbered.Items.Select(i => TextOf(i.Description)));
     }
 
     [Fact]
@@ -106,8 +131,8 @@ public sealed class CodeTooltipTests
         var grow = assembly.Fixtures().Child("Circle", "Grow(double, int) : double");
 
         var tooltip = TooltipOf(list, grow);
-        var summary = Section(tooltip, DocSectionKind.Summary).Paragraphs[0];
-        var returns = Section(tooltip, DocSectionKind.Returns).Paragraphs[0];
+        var summary = Section(tooltip, DocSectionKind.Summary).Blocks[0];
+        var returns = Section(tooltip, DocSectionKind.Returns).Blocks[0];
 
         Assert.Equal("Multiplies the radius by factor, times over.", TextOf(summary));
         Assert.Equal(DocStyle.Code, RunOf(summary, "factor").Style);
@@ -127,7 +152,7 @@ public sealed class CodeTooltipTests
 
         Assert.Equal("ArgumentOutOfRangeException", exception.Label!.Value.Text);
         Assert.NotNull(exception.Label.Value.Reference);
-        Assert.Equal("times is negative.", TextOf(Assert.Single(exception.Paragraphs)));
+        Assert.Equal("times is negative.", TextOf(Assert.Single(exception.Blocks)));
     }
 
     [Fact]
@@ -138,7 +163,7 @@ public sealed class CodeTooltipTests
 
         var summary = Section(TooltipOf(list, area), DocSectionKind.Summary);
 
-        Assert.Equal("The space the shape covers.", TextOf(Assert.Single(summary.Paragraphs)));
+        Assert.Equal("The space the shape covers.", TextOf(Assert.Single(summary.Blocks)));
     }
 
     [Fact]
@@ -164,7 +189,7 @@ public sealed class CodeTooltipTests
         Assert.StartsWith("public void List<T>.Add(T item)", tooltip.Signature.Line.Text);
         Assert.Equal("System.Collections.Generic", tooltip.Namespace);
         Assert.Equal("System.Private.CoreLib", tooltip.Assembly);
-        Assert.NotEmpty(Section(tooltip, DocSectionKind.Summary).Paragraphs);
+        Assert.NotEmpty(Section(tooltip, DocSectionKind.Summary).Blocks);
         Assert.Equal([assembly], list.Assemblies);
     }
 
