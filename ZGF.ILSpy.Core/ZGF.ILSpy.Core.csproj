@@ -19,6 +19,7 @@
     <ItemGroup>
       <ProjectReference Include="..\JpegSharp\JpegSharp.csproj" />
       <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+      <ProjectReference Include="..\ZGF.Svg\ZGF.Svg.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -445,13 +445,15 @@ internal static class NodeDecompiler
     }
 
     /// <summary>A text resource as its text, colored as XML or JSON when it is that, as ILSpy shows
-    /// it; anything else as a description and a hex dump of its first bytes.</summary>
+    /// it, and indented when written on one line; anything else as a description and a hex dump of
+    /// its first bytes.</summary>
     private static void WriteResource(string name, IResourceData resource, DocumentBuilder output)
     {
         var data = resource.ReadData();
         if (ResourceText.Detect(name, data) is var (text, syntax))
         {
-            ResourceText.Write(output, text, syntax);
+            var shown = ResourceText.IndentOneLine(text, syntax);
+            ResourceText.Write(output, shown, syntax);
             output.WriteLine();
             return;
         }

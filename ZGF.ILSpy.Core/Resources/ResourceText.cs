@@ -1,7 +1,10 @@
 // Adapted from ILSpy's TextResourceDetector (MIT License, Copyright (c) 2026 AlphaSierraPapa for the SharpDevelop Team).
 
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace ZGF.ILSpy.Core.Resources;
 
@@ -83,7 +86,7 @@ internal static class ResourceText
         {
             try
             {
-                using var _ = JsonDocument.Parse(text, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+                using var _ = JsonDocument.Parse(text, JsonReadOptions);
                 return ResourceSyntax.Json;
             }
             catch (JsonException)
@@ -91,6 +94,88 @@ internal static class ResourceText
             }
         }
         return ResourceSyntax.Plain;
+    }
+
+    private const char NewLine = '\n';
+
+    private static readonly JsonDocumentOptions JsonReadOptions = new()
+    {
+        AllowTrailingCommas = true,
+        CommentHandling = JsonCommentHandling.Skip,
+    };
+
+    /// <summary>Markup or JSON written on one line, indented to read; anything else, or what does
+    /// not parse, as it is.</summary>
+    public static string IndentOneLine(string text, ResourceSyntax syntax)
+    {
+        if (IsMultiline(text))
+            return text;
+        if (syntax == ResourceSyntax.Xml)
+            return TryIndentXml(text) ?? text;
+        if (syntax == ResourceSyntax.Json)
+            return TryIndentJson(text) ?? text;
+        return text;
+    }
+
+    private static bool IsMultiline(string text) => text.Trim().Contains(NewLine);
+
+    private static string? TryIndentXml(string text)
+    {
+        try
+        {
+            return IndentXml(XDocument.Parse(text));
+        }
+        catch (XmlException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The document one node per line, its declaration kept as the first line.</summary>
+    private static string IndentXml(XDocument document)
+    {
+        var builder = new StringBuilder();
+        if (document.Declaration != null)
+            builder.Append(document.Declaration).Append(NewLine);
+        var settings = new XmlWriterSettings
+        {
+            Indent = true,
+            IndentChars = Settings.Indentation,
+            NewLineChars = NewLine.ToString(),
+            OmitXmlDeclaration = true,
+        };
+        using (var writer = XmlWriter.Create(builder, settings))
+            document.Save(writer);
+        return builder.ToString();
+    }
+
+    private static string? TryIndentJson(string text)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(text, JsonReadOptions);
+            return IndentJson(document);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The document one value per line, with its characters left unescaped.</summary>
+    private static string IndentJson(JsonDocument document)
+    {
+        var options = new JsonWriterOptions
+        {
+            Indented = true,
+            IndentSize = Settings.Indentation.Length,
+            NewLine = NewLine.ToString(),
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream, options))
+            document.WriteTo(writer);
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     public static void Write(DocumentBuilder output, string text, ResourceSyntax syntax)

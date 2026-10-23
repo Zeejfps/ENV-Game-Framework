@@ -23,12 +23,12 @@ public sealed class ResourceImage
 
     public byte[] Rgba { get; }
 
-    /// <summary>What it was stored as: PNG, JPEG, BMP, GIF, ICO or CUR.</summary>
+    /// <summary>What it was stored as: PNG, JPEG, BMP, GIF, ICO, CUR or SVG.</summary>
     public string Format { get; }
 
     /// <summary>The formats ILSpy shows as pictures, by the file extension of the resource name.</summary>
     internal static bool IsImageName(string name) =>
-        Path.GetExtension(name).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".ico" or ".cur";
+        Path.GetExtension(name).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".ico" or ".cur" or ".svg";
 
     /// <summary>The picture in <paramref name="data"/>, recognized by its content rather than its
     /// name. Throws <see cref="InvalidDataException"/> when it is no picture this can decode.</summary>
@@ -47,12 +47,14 @@ public sealed class ResourceImage
                 return Gif.Decode(span);
             if (span.Length >= 6 && span[0] == 0 && span[1] == 0 && span[2] is 1 or 2)
                 return Icon(span);
+            if (SvgPicture.IsSvg(data))
+                return SvgPicture.Rasterize(data);
         }
         catch (Exception e) when (e is not InvalidDataException and not OutOfMemoryException)
         {
             throw new InvalidDataException($"The picture cannot be read: {e.Message}", e);
         }
-        throw new InvalidDataException("This is no PNG, JPEG, BMP, GIF, ICO or CUR picture.");
+        throw new InvalidDataException("This is no PNG, JPEG, BMP, GIF, ICO, CUR or SVG picture.");
     }
 
     private static ResourceImage Png(byte[] data)

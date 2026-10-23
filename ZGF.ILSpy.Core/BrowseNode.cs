@@ -180,7 +180,7 @@ public abstract class BrowseNode
     private bool IsImage => Kind == NodeKind.ResourceImage && this is IResourceData;
 
     /// <summary>What this node shows, made on the thread pool: for metadata its grid of rows, read
-    /// the first time and kept; for a resource named as a PNG, JPEG, BMP, GIF, ICO or CUR file its
+    /// the first time and kept; for a resource named as a PNG, JPEG, BMP, GIF, ICO, CUR or SVG file its
     /// picture, or when that cannot be decoded the resource as a document with why first; else the
     /// node decompiled with <paramref name="options"/>, which only C# reads.</summary>
     public Task<NodeContent> LoadContentAsync(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>

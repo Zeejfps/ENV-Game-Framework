@@ -65,6 +65,49 @@ public sealed class ResourceTests
     }
 
     [Fact]
+    public void An_svg_draws_at_its_own_size()
+    {
+        var image = ResourceImage.Decode(Fixture("shape.svg"));
+
+        Assert.Equal((4, 2, "SVG"), (image.Width, image.Height, image.Format));
+        Assert.Equal([255, 0, 0, 255], image.Rgba[..4]);
+        Assert.Equal([0, 0, 255, 255], image.Rgba[^4..]);
+    }
+
+    [Fact]
+    public void An_svg_resource_shows_as_a_picture()
+    {
+        var svg = Resources(Trees.TestAssembly).Child("shape.svg");
+
+        Assert.Equal(NodeKind.ResourceImage, svg.Kind);
+        Assert.Equal("SVG", Assert.IsType<ImageContent>(svg.Content()).Image.Format);
+    }
+
+    [Fact]
+    public void Xml_on_one_line_is_indented_with_its_declaration_and_comments_kept()
+    {
+        var text = ResourceText.IndentOneLine("<?xml version=\"1.0\"?><root><!-- note --><item a=\"1\" /></root>", ResourceSyntax.Xml);
+
+        Assert.Equal("<?xml version=\"1.0\"?>\n<root>\n    <!-- note -->\n    <item a=\"1\" />\n</root>", text);
+    }
+
+    [Fact]
+    public void Json_on_one_line_is_indented_with_its_characters_unescaped()
+    {
+        var text = ResourceText.IndentOneLine("{\"name\":\"café\",\"list\":[1,2]}", ResourceSyntax.Json);
+
+        Assert.Equal("{\n    \"name\": \"café\",\n    \"list\": [\n        1,\n        2\n    ]\n}", text);
+    }
+
+    [Theory]
+    [InlineData("<root>\n<item/></root>")]
+    [InlineData("<root><unclosed></root>")]
+    public void Xml_on_several_lines_or_that_does_not_parse_stays_as_it_is(string text)
+    {
+        Assert.Equal(text, ResourceText.IndentOneLine(text, ResourceSyntax.Xml));
+    }
+
+    [Fact]
     public void Anything_else_is_no_picture()
     {
         Assert.Throws<InvalidDataException>(() => ResourceImage.Decode(Fixture("blob.bin")));
@@ -99,7 +142,7 @@ public sealed class ResourceTests
         var document = Assert.IsType<DocumentContent>(broken.Content(DecompilationLanguage.IL)).Document;
 
         Assert.False(broken.DependsOnLanguage);
-        Assert.Equal("// This is no PNG, JPEG, BMP, GIF, ICO or CUR picture.", document.Lines[0].Text);
+        Assert.Equal("// This is no PNG, JPEG, BMP, GIF, ICO, CUR or SVG picture.", document.Lines[0].Text);
         Assert.Equal(SpanKind.Comment, document.Lines[0].Spans[0].Kind);
         Assert.Contains("not a picture", document.GetText());
     }
@@ -199,6 +242,12 @@ public sealed class ResourceTests
         Assert.Contains("x:Class=\"SampleApp.MainWindow\"", saved);
     }
 
+    private static (int Width, int Height, string Format) Picture(BrowseNode node)
+    {
+        var image = Assert.IsType<ImageContent>(node.Content()).Image;
+        return (image.Width, image.Height, image.Format);
+    }
+
     [Fact]
     public void Avalonia_assets_unpack_into_the_tree_under_their_paths()
     {
@@ -208,11 +257,17 @@ public sealed class ResourceTests
         var entries = container.Children.Select(c => (c.Text, c.Kind)).ToList();
 
         Assert.Equal(
-            [("/!AvaloniaResourceXamlInfo", NodeKind.Resource), ("/Assets/logo.png", NodeKind.ResourceImage), ("/Assets/notes.json", NodeKind.Resource)],
+            [
+                ("/!AvaloniaResourceXamlInfo", NodeKind.Resource), ("/Assets/icon.svg", NodeKind.ResourceImage),
+                ("/Assets/logo.png", NodeKind.ResourceImage), ("/Assets/notes.json", NodeKind.Resource),
+            ],
             entries);
+        Assert.Equal((64, 64, "SVG"), Picture(container.Child("/Assets/icon.svg")));
         Assert.Equal(Expected, Assert.IsType<ImageContent>(container.Child("/Assets/logo.png").Content()).Image.Rgba);
         Assert.Contains("\"sample\"", container.Child("/Assets/notes.json").Decompile(DecompilationLanguage.CSharp).GetText());
-        Assert.Contains("/MainWindow.axaml", container.Child("/!AvaloniaResourceXamlInfo").Decompile(DecompilationLanguage.CSharp).GetText());
+        var xamlInfo = container.Child("/!AvaloniaResourceXamlInfo").Decompile(DecompilationLanguage.CSharp);
+        Assert.Contains("/MainWindow.axaml", xamlInfo.GetText());
+        Assert.True(xamlInfo.Lines.Length > 5);
     }
 
     [Fact]

@@ -58,7 +58,7 @@ public sealed class ResourceViewTests
 
         Assert.Null(tab.Image);
         var text = tab.Document.GetText();
-        Assert.StartsWith("// This is no PNG, JPEG, BMP, GIF, ICO or CUR picture.", text);
+        Assert.StartsWith("// This is no PNG, JPEG, BMP, GIF, ICO, CUR or SVG picture.", text);
         Assert.Contains("not a picture", text);
     }
 
