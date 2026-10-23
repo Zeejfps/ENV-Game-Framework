@@ -56,7 +56,7 @@ public static class MainView
 
     private static bool IsLayoutEmpty(Workspace w)
     {
-        return !w.Layout.AllGroups().Any(static g => g.Panels.Count > 0);
+        return !w.Layout.HasPanels();
     }
 
     private static void DockSpace(Ui ui, Workspace w, Strings t)

@@ -11,8 +11,11 @@ internal static class ErrorDialogView
     public static void Render(Ui ui, Workspace w, Strings t)
     {
         var errors = w.Errors;
+        if (!errors.IsOpen)
+            return;
         var theme = ui.Theme;
-        using var dialog = ui.Dialog("errors", t.ErrorsTitle(errors.Entries.Count), ref errors.IsOpen, new Box
+        var title = ui.Memo("errors-title", (errors.Entries.Count, t), static a => a.t.ErrorsTitle(a.Count));
+        using var dialog = ui.Dialog("errors", title, ref errors.IsOpen, new Box
         {
             Width = Sizing.Grow(0f, AppLayout.ErrorDialogWidth),
             Height = Sizing.Grow(0f, AppLayout.ErrorDialogHeight),

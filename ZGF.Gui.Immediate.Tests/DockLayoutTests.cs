@@ -184,6 +184,21 @@ public sealed class DockLayoutTests
     }
 
     [Fact]
+    public void A_layout_has_panels_while_any_group_docked_or_floating_holds_one()
+    {
+        var layout = TwoGroups();
+        layout.Float("b", new UiRect(0f, 0f, 200f, 200f));
+        layout.Close("a");
+        layout.Close("c");
+
+        Assert.True(layout.HasPanels());
+
+        layout.Close("b");
+
+        Assert.False(layout.HasPanels());
+    }
+
+    [Fact]
     public void Retain_drops_unknown_panels_quietly()
     {
         var layout = TwoGroups();

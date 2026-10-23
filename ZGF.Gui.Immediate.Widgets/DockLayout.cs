@@ -237,6 +237,27 @@ public sealed class DockLayout
     /// <summary>Every group, docked then floating, in the order they are drawn.</summary>
     public IEnumerable<DockGroup> AllGroups() => Groups(Root).Concat(Windows.SelectMany(w => Groups(w.Root)));
 
+    /// <summary>Whether any group, docked or floating, holds a panel. Allocates nothing, so it can
+    /// run every frame.</summary>
+    public bool HasPanels()
+    {
+        if (HasPanels(Root))
+            return true;
+        foreach (var window in Windows)
+        {
+            if (HasPanels(window.Root))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool HasPanels(DockNode node) => node switch
+    {
+        DockGroup group => group.Panels.Count > 0,
+        DockSplit split => HasPanels(split.First) || HasPanels(split.Second),
+        _ => false,
+    };
+
     /// <summary>Every panel under <paramref name="node"/>, group by group.</summary>
     public static List<string> PanelsIn(DockNode node) => Groups(node).SelectMany(g => g.Panels).ToList();
 
