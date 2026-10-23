@@ -86,8 +86,8 @@ public sealed class Workspace
     /// <summary>True while imported bookmarks' places are being found in the background.</summary>
     public bool IsImporting { get; set; }
 
-    /// <summary>The code, project, solution or PDBs being written in the background, if any.</summary>
-    public ExportRun Export { get; } = new();
+    /// <summary>The code, projects, solutions and PDBs being written in the background, one at a time.</summary>
+    public ExportQueue Export { get; } = new();
 
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;

@@ -136,31 +136,81 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
-    public void Progress_that_arrives_after_its_run_ended_is_dropped()
+    public void An_export_asked_for_while_another_runs_waits_its_turn()
+    {
+        var queue = new WorkspaceDriver().Workspace.Export;
+        var first = queue.Enter("First");
+        var second = queue.Enter("Second");
+
+        Assert.True(first.IsCompleted);
+        Assert.False(second.IsCompleted);
+        Assert.Equal(1, queue.WaitingCount);
+
+        queue.Leave(first.Result);
+
+        Assert.True(second.IsCompleted);
+        Assert.Equal(0, queue.WaitingCount);
+        Assert.Equal("Second", queue.Progress!.Value.Name);
+    }
+
+    [Fact]
+    public void Only_the_running_export_can_end_its_turn()
+    {
+        var queue = new WorkspaceDriver().Workspace.Export;
+        var first = queue.Enter("First").Result;
+        queue.Leave(first);
+        var second = queue.Enter("Second").Result;
+
+        queue.Leave(first);
+
+        Assert.True(queue.IsRunning);
+        Assert.False(second.Token.IsCancellationRequested);
+        Assert.Equal("Second", queue.Progress!.Value.Name);
+    }
+
+    [Fact]
+    public void Progress_that_arrives_after_its_turn_ended_is_dropped()
     {
         var d = new WorkspaceDriver();
-        var run = d.Workspace.Export;
-        var first = run.Begin("First");
+        var queue = d.Workspace.Export;
+        var first = queue.Enter("First").Result;
         first.Progress.Report(new ExportProgress("First", 1, 1, 1, 2));
-        run.End();
-        run.Begin("Second");
+        queue.Leave(first);
+        queue.Enter("Second");
 
         d.Pump();
 
-        Assert.Equal(new ExportProgress("Second", 1, 1, 0, 0), run.Progress);
+        Assert.Equal(new ExportProgress("Second", 1, 1, 0, 0), queue.Progress);
     }
 
     [Fact]
     public void Progress_of_the_running_export_arrives_on_the_ui_thread()
     {
         var d = new WorkspaceDriver();
-        var run = d.Workspace.Export;
-        var start = run.Begin("Fixtures");
+        var queue = d.Workspace.Export;
+        var start = queue.Enter("Fixtures").Result;
 
         start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 3, 4));
         d.Pump();
 
-        Assert.Equal(0.75f, run.Progress!.Value.Fraction);
+        Assert.Equal(0.75f, queue.Progress!.Value.Fraction);
+    }
+
+    [Fact]
+    public void Exports_asked_for_together_all_run_one_after_another()
+    {
+        var d = WorkspaceDriver.Opened();
+        var greeter = _temp.PathOf("Greeter.cs");
+        var farewell = _temp.PathOf("Farewell.cs");
+
+        d.Workspace.SaveCode(d.Fixture("Greeter"), greeter);
+        d.Workspace.SaveCode(d.Fixture("Farewell"), farewell);
+        Assert.Equal(1, d.Workspace.Export.WaitingCount);
+        d.Settle();
+
+        Assert.True(File.Exists(greeter));
+        Assert.True(File.Exists(farewell));
+        Assert.False(d.Workspace.IsExporting);
     }
 
     [Fact]
@@ -179,18 +229,19 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
-    public void The_status_bar_shows_the_export_and_cancels_it()
+    public void The_status_bar_shows_the_export_and_how_many_wait_and_cancels_it()
     {
         var app = AppDriver.Opened();
-        var start = app.Workspace.Export.Begin("Fixtures");
+        var start = app.Workspace.Export.Enter("Fixtures").Result;
+        app.Workspace.Export.Enter("Later");
         start.Progress.Report(new ExportProgress("Fixtures", 2, 3, 1, 2));
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Exporting 2/3 · Fixtures"));
+        Assert.True(app.Frames.Drew("1 more queued"));
         app.Frames.Click(app.StatusText(LucideIcons.X)).Frame();
 
         Assert.True(start.Token.IsCancellationRequested);
     }
-
     private IEnumerable<string> ProjectFiles() => Directory.EnumerateFiles(_temp.Path, "*.cs", SearchOption.AllDirectories);
 }

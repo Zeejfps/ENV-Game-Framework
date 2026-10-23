@@ -291,6 +291,7 @@
   "status.exporting_name": "Exportando {name}…",
   "status.exporting_part": "Exportando {part}/{parts} · {name}",
   "status.cancel_export": "Cancelar la exportación",
+  "status.export_queued": {"one": "{count:N0} más en cola", "other": "{count:N0} más en cola"},
   "status.resolving": "Resolviendo…",
   "status.assemblies": {"one": "{count:N0} ensamblado", "other": "{count:N0} ensamblados"},
   "status.errors": {"one": "{count:N0} error", "other": "{count:N0} errores"},

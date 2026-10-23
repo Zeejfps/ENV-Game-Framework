@@ -291,6 +291,7 @@
   "status.exporting_name": "{name} をエクスポート中…",
   "status.exporting_part": "エクスポート中 {part}/{parts} · {name}",
   "status.cancel_export": "エクスポートをキャンセル",
+  "status.export_queued": {"other": "ほか {count:N0} 件が待機中"},
   "status.resolving": "解決中…",
   "status.assemblies": {"other": "{count:N0} 個のアセンブリ"},
   "status.errors": {"other": "{count:N0} 件のエラー"},

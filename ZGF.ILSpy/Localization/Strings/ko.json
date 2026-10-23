@@ -291,6 +291,7 @@
   "status.exporting_name": "{name} 내보내는 중…",
   "status.exporting_part": "내보내는 중 {part}/{parts} · {name}",
   "status.cancel_export": "내보내기 취소",
+  "status.export_queued": {"other": "{count:N0}개 더 대기 중"},
   "status.resolving": "확인하는 중…",
   "status.assemblies": {"other": "어셈블리 {count:N0}개"},
   "status.errors": {"other": "오류 {count:N0}개"},

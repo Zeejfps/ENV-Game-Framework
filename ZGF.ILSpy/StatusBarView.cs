@@ -77,6 +77,18 @@ internal static class StatusBarView
         if (fraction != null)
             ui.ProgressBar(fraction.Value, Sizing.Fixed(ExportBarWidth));
         CancelExportButton(ui, w);
+        QueuedExports(ui, w);
+    }
+
+    private static void QueuedExports(Ui<UiState> ui, Workspace w)
+    {
+        var waiting = w.Export.WaitingCount;
+        if (waiting == 0)
+            return;
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        var text = ui.Memo("status-export-queued", (waiting, t), static a => a.t.StatusExportQueued(a.waiting));
+        ui.Text(text, color: theme.TextMuted, size: theme.FontSizeSmall);
     }
 
     private static string DescribeExport(Strings t, string name, int part, int parts)

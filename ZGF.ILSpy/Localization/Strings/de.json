@@ -291,6 +291,7 @@
   "status.exporting_name": "Exportiere {name}…",
   "status.exporting_part": "Exportiere {part}/{parts} · {name}",
   "status.cancel_export": "Export abbrechen",
+  "status.export_queued": {"one": "{count:N0} weiterer in der Warteschlange", "other": "{count:N0} weitere in der Warteschlange"},
   "status.resolving": "Wird aufgelöst…",
   "status.assemblies": {"one": "{count:N0} Assembly", "other": "{count:N0} Assemblys"},
   "status.errors": {"one": "{count:N0} Fehler", "other": "{count:N0} Fehler"},

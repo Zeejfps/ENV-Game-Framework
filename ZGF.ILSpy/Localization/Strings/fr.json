@@ -291,6 +291,7 @@
   "status.exporting_name": "Exportation de {name}…",
   "status.exporting_part": "Exportation {part}/{parts} · {name}",
   "status.cancel_export": "Annuler l’export",
+  "status.export_queued": {"one": "{count:N0} autre en attente", "other": "{count:N0} autres en attente"},
   "status.resolving": "Résolution…",
   "status.assemblies": {"one": "{count:N0} assembly", "other": "{count:N0} assemblys"},
   "status.errors": {"one": "{count:N0} erreur", "other": "{count:N0} erreurs"},

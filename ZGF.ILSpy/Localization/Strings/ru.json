@@ -291,6 +291,7 @@
   "status.exporting_name": "Экспорт {name}…",
   "status.exporting_part": "Экспорт {part}/{parts} · {name}",
   "status.cancel_export": "Отменить экспорт",
+  "status.export_queued": {"one": "ещё {count:N0} в очереди", "few": "ещё {count:N0} в очереди", "many": "ещё {count:N0} в очереди", "other": "ещё {count:N0} в очереди"},
   "status.resolving": "Поиск определения…",
   "status.assemblies": {"one": "{count:N0} сборка", "few": "{count:N0} сборки", "many": "{count:N0} сборок", "other": "{count:N0} сборки"},
   "status.errors": {"one": "{count:N0} ошибка", "few": "{count:N0} ошибки", "many": "{count:N0} ошибок", "other": "{count:N0} ошибки"},

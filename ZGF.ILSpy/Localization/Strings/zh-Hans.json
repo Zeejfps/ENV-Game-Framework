@@ -291,6 +291,7 @@
   "status.exporting_name": "正在导出 {name}…",
   "status.exporting_part": "正在导出 {part}/{parts} · {name}",
   "status.cancel_export": "取消导出",
+  "status.export_queued": {"other": "另有 {count:N0} 个排队中"},
   "status.resolving": "正在解析…",
   "status.assemblies": {"other": "{count:N0} 个程序集"},
   "status.errors": {"other": "{count:N0} 个错误"},
