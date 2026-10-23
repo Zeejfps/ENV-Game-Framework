@@ -200,6 +200,52 @@ public sealed class ResourceTests
     }
 
     [Fact]
+    public void Avalonia_assets_unpack_into_the_tree_under_their_paths()
+    {
+        var assembly = new AssemblyList().Open(Trees.AvaloniaSamplePath);
+        var container = Resources(assembly).Child("!AvaloniaResources");
+
+        var entries = container.Children.Select(c => (c.Text, c.Kind)).ToList();
+
+        Assert.Equal(
+            [("/!AvaloniaResourceXamlInfo", NodeKind.Resource), ("/Assets/logo.png", NodeKind.ResourceImage), ("/Assets/notes.json", NodeKind.Resource)],
+            entries);
+        Assert.Equal(Expected, Assert.IsType<ImageContent>(container.Child("/Assets/logo.png").Content()).Image.Rgba);
+        Assert.Contains("\"sample\"", container.Child("/Assets/notes.json").Decompile(DecompilationLanguage.CSharp).GetText());
+        Assert.Contains("/MainWindow.axaml", container.Child("/!AvaloniaResourceXamlInfo").Decompile(DecompilationLanguage.CSharp).GetText());
+    }
+
+    [Fact]
+    public void Avalonia_0_10_assets_unpack_from_their_xml_index()
+    {
+        var container = Resources(Trees.TestAssembly).Child("!AvaloniaResources");
+
+        Assert.Equal(["/!AvaloniaResourceXamlInfo", "/Assets/logo.png", "/Assets/notes.json"], container.Children.Select(c => c.Text));
+        Assert.Equal(Expected, Assert.IsType<ImageContent>(container.Child("/Assets/logo.png").Content()).Image.Rgba);
+    }
+
+    [Fact]
+    public void An_avalonia_container_lists_its_assets()
+    {
+        var container = Resources(Trees.TestAssembly).Child("!AvaloniaResources");
+
+        var text = container.Decompile(DecompilationLanguage.CSharp).GetText();
+
+        Assert.Contains("// /Assets/logo.png (76 bytes)", text);
+        Assert.Contains("// /Assets/notes.json (", text);
+    }
+
+    [Fact]
+    public void An_avalonia_container_of_an_unknown_version_cannot_be_read()
+    {
+        byte[] container = [8, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0];
+
+        var error = Assert.Throws<InvalidDataException>(() => AvaloniaResources.ReadEntries(container));
+
+        Assert.Contains("unknown version 9", error.Message);
+    }
+
+    [Fact]
     public void The_resources_folder_describes_each_resource()
     {
         var assembly = Trees.TestAssembly;

@@ -16,7 +16,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Debug symbols:** local names come only from portable PDBs; upstream also reads Windows PDBs
   (through Mono.Cecil). The load-time `AutoLoadAssemblyReferences` and
   `ApplyWindowsRuntimeProjections` are left out of the options panel.
-- **Resources:** `!AvaloniaResources` unpacked into the tree.
 - **Display options:** font and size, zoom, word wrap, line-number toggle, bracket matching,
   current-line highlight.
 - **Tree:** selecting several nodes (we select one; the Export dialog picks assemblies itself),

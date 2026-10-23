@@ -26,6 +26,9 @@
     <Compile Remove="Fixtures\SampleApp\**" />
     <None Remove="Fixtures\SampleApp\**" />
     <None Include="Fixtures\SampleApp\SampleApp.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="Fixtures\AvaloniaSample\**" />
+    <None Remove="Fixtures\AvaloniaSample\**" />
+    <None Include="Fixtures\AvaloniaSample\AvaloniaSample.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

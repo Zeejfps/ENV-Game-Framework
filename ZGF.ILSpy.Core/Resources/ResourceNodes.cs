@@ -23,12 +23,16 @@ internal interface IResourceData
 
 internal static class ResourceNodes
 {
-    /// <summary>The node for a manifest resource: a <c>.resources</c> file's entries, or the
-    /// resource itself.</summary>
-    public static BrowseNode Create(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource) =>
-        resource.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase)
-            ? new ResourcesFileNode(assembly, parent, resource)
-            : new ResourceNode(assembly, parent, resource);
+    /// <summary>The node for a manifest resource: the entries of a <c>.resources</c> file or of
+    /// Avalonia's asset container, or the resource itself.</summary>
+    public static BrowseNode Create(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource)
+    {
+        if (AvaloniaResources.IsContainerName(resource.Name))
+            return new AvaloniaResourcesNode(assembly, parent, resource);
+        if (resource.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
+            return new ResourcesFileNode(assembly, parent, resource);
+        return new ResourceNode(assembly, parent, resource);
+    }
 
     public static NodeKind KindOf(string name) => ResourceImage.IsImageName(name) ? NodeKind.ResourceImage : NodeKind.Resource;
 
@@ -71,6 +75,34 @@ internal sealed class ResourceNode : BrowseNode, IResourceData
     public string FileName => System.IO.Path.GetFileName(Text);
 
     public byte[] ReadData() => ResourceNodes.Read(Resource);
+}
+
+/// <summary>The container Avalonia embeds an app's assets in: each asset as a node of its own,
+/// under its path.</summary>
+internal sealed class AvaloniaResourcesNode : BrowseNode, IResourceData
+{
+    private readonly MetadataResource _resource;
+
+    public AvaloniaResourcesNode(LoadedAssembly assembly, BrowseNode parent, MetadataResource resource)
+        : base(assembly, parent, NodeKind.ResourcesFile, resource.Name)
+    {
+        _resource = resource;
+        (IsPublicApi, Accessibility) = ResourceNodes.Visibility(resource);
+    }
+
+    public string Description => ResourceNodes.Describe(_resource);
+
+    public string FileName => System.IO.Path.GetFileName(Text);
+
+    public byte[] ReadData() => ResourceNodes.Read(_resource);
+
+    private protected override bool MayHaveChildren => true;
+
+    private protected override BrowseNode[] CreateChildren() =>
+        AvaloniaResources.ReadEntries(ReadData())
+            .OrderBy(e => e.Path, NaturalStringComparer.Instance)
+            .Select(e => new ResourceEntryNode(Assembly, this, e.Path, e.Data))
+            .ToArray<BrowseNode>();
 }
 
 /// <summary>An entry of a <c>.resources</c> file holding bytes or a stream: shown as text, a

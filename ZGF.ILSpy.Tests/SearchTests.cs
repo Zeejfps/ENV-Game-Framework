@@ -203,7 +203,7 @@ public sealed class SearchTests
         Assert.Same(assembly.Fixtures(), Assert.Single(ns).Node);
         Assert.Same(assembly.Root, Assert.Single(byName).Node);
         Assert.Same(assembly.Root, Assert.Single(byPath).Node);
-        Assert.Equal(["logo.bmp", "logo.ico", "logo.png"], resources.Select(r => r.Text).Order());
+        Assert.Equal(["/Assets/logo.png", "logo.bmp", "logo.ico", "logo.png"], resources.Select(r => r.Text).Order());
     }
 
     [Fact]

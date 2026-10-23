@@ -18,6 +18,10 @@ internal static class Trees
     /// application compiled to BAML, a property and event with users, and a security attribute.</summary>
     public static string SampleAppPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
 
+    /// <summary>A small Avalonia 12 app, built from <c>Fixtures/AvaloniaSample/Source</c>, whose
+    /// assets sit in its <c>!AvaloniaResources</c>.</summary>
+    public static string AvaloniaSamplePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "AvaloniaSample", "AvaloniaSample.dll");
+
     /// <summary>The test assembly, opened once for the tests that only read it. Its list is out of
     /// reach; a test that needs the list, or nodes no other test has built, opens its own with
     /// <see cref="OpenTestAssembly"/>.</summary>

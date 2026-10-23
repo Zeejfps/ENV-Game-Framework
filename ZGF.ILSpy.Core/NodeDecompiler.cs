@@ -374,7 +374,7 @@ internal static class NodeDecompiler
                 var path = node.Assembly.Resolver.FindFile(reference.AssemblyReference);
                 WriteComment(output, path is null ? "Not found" : $"Resolves to {path}");
                 break;
-            case ResourcesFolderNode:
+            case ResourcesFolderNode or AvaloniaResourcesNode:
                 foreach (var child in node.Children)
                 {
                     if (child is IResourceData resource)
