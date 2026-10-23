@@ -169,6 +169,7 @@
   "option.sort_custom_attributes": "Trier les attributs",
   "option.sort_switch_sections": "Trier les sections switch",
   "option.check_for_overflow_underflow": "Le code a été compilé avec contrôle de dépassement",
+  "option.show_xml_documentation": "Inclure les commentaires de documentation XML dans le code décompilé",
   "tree.empty": "Ouvrez un assembly avec Fichier › Ouvrir… ({shortcut})",
   "tree.open_in_new_tab": "Ouvrir dans un nouvel onglet",
   "tree.go_to_target": "Atteindre la cible",

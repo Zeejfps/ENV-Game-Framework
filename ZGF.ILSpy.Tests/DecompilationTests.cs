@@ -93,7 +93,54 @@ public sealed class DecompilationTests
         Assert.Contains(all, t => t is { Name: "SwitchExpressions", Group: DecompilerToggleGroup.Language, IntroducedIn: CSharpVersion.CSharp8, DefaultValue: true });
         Assert.Contains(all, t => t is { Name: "AlwaysUseBraces", Group: DecompilerToggleGroup.Other, IntroducedIn: null });
         Assert.Contains(all, t => t is { Name: "RemoveDeadCode", Group: DecompilerToggleGroup.FSharp, DefaultValue: false });
-        Assert.DoesNotContain(all, t => t.Name is "UseDebugSymbols" or "ShowXmlDocumentation" or "DecompileMemberBodies");
+        Assert.Contains(all, t => t is { Name: "ShowXmlDocumentation", Group: DecompilerToggleGroup.Other, DefaultValue: true });
+        Assert.DoesNotContain(all, t => t.Name is "UseDebugSymbols" or "DecompileMemberBodies");
+    }
+
+    [Fact]
+    public void Xml_documentation_sits_above_its_member_as_a_comment()
+    {
+        var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
+
+        const string comment = "/// <summary>How many items were added.</summary>";
+        var summary = document.Lines[document.LineContaining("public int Count =>") - 1];
+
+        Assert.Equal(comment, summary.Text.Trim());
+        Assert.Equal(SpanKind.Comment, summary.SpanAt(comment).Kind);
+    }
+
+    [Fact]
+    public void Xml_documentation_over_several_lines_folds_collapsed_to_its_first_line()
+    {
+        var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
+
+        var docs = document.FoldAt("/// <summary>Adds an item");
+
+        Assert.True(docs.DefaultCollapsed);
+        Assert.Equal("…", docs.CollapsedText);
+        Assert.Contains("<param name=\"item\">", document.Lines[docs.EndLine].Text);
+        Assert.Contains("public void Add(T item)", document.Lines[docs.EndLine + 1].Text);
+    }
+
+    [Fact]
+    public void Turning_xml_documentation_off_leaves_it_out()
+    {
+        var count = Trees.TestAssembly.Calculator().Child("Count : int");
+        var docs = DecompilerToggle.Find("ShowXmlDocumentation")!;
+        var off = DecompilerOptions.Default.With(docs, false);
+
+        Assert.Contains("/// <summary>How many items were added.</summary>", count.Decompile(DecompilationLanguage.CSharp).GetText());
+        Assert.DoesNotContain("///", count.Decompile(DecompilationLanguage.CSharp, off).GetText());
+    }
+
+    [Fact]
+    public void Runtime_assemblies_take_their_xml_documentation_from_the_reference_pack()
+    {
+        var coreLib = new AssemblyList().Open(Trees.CoreLibPath);
+
+        var empty = coreLib.Root.Child("System", "String", "Empty : string").Decompile(DecompilationLanguage.CSharp);
+
+        Assert.True(empty.LineContaining("/// <summary>") < empty.LineContaining("public static readonly string Empty;"));
     }
 
     [Fact]

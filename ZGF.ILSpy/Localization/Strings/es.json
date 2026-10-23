@@ -169,6 +169,7 @@
   "option.sort_custom_attributes": "Ordenar atributos",
   "option.sort_switch_sections": "Ordenar secciones switch",
   "option.check_for_overflow_underflow": "El código se compiló con comprobación de desbordamiento",
+  "option.show_xml_documentation": "Incluir comentarios de documentación XML en el código descompilado",
   "tree.empty": "Abre un ensamblado con Archivo › Abrir… ({shortcut})",
   "tree.open_in_new_tab": "Abrir en una pestaña nueva",
   "tree.go_to_target": "Ir al destino",

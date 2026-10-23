@@ -7,10 +7,10 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Biggest gaps
 
-1. **Debug symbols and XML docs in decompiled code.** Variable names from PDBs and XML doc comments
-   in the output; the decompiler gets no debug-info or documentation provider. Their options
-   (`UseDebugSymbols`, `ShowXmlDocumentation`) are left out of the options panel until then, as
-   are the load-time `AutoLoadAssemblyReferences` and `ApplyWindowsRuntimeProjections`.
+1. **Debug symbols in decompiled code.** Variable names from PDBs in the output; the decompiler
+   gets no debug-info provider. Its option (`UseDebugSymbols`) is left out of the options panel
+   until then, as are the load-time `AutoLoadAssemblyReferences` and
+   `ApplyWindowsRuntimeProjections`.
 2. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
    (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
    batch).
@@ -46,6 +46,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Suggested order
 
-1. Debug symbols and XML docs in decompiled code.
+1. Debug symbols in decompiled code.
 2. Save code and project export.
 3. XML-doc tooltips.

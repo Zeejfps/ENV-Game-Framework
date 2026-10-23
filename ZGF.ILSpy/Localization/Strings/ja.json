@@ -169,6 +169,7 @@
   "option.sort_custom_attributes": "属性を並べ替える",
   "option.sort_switch_sections": "switch セクションを並べ替える",
   "option.check_for_overflow_underflow": "コードはオーバーフロー チェック付きでコンパイルされた",
+  "option.show_xml_documentation": "逆コンパイルされたコードに XML ドキュメント コメントを含める",
   "tree.empty": "[ファイル] › [開く…] ({shortcut}) でアセンブリを開いてください",
   "tree.open_in_new_tab": "新しいタブで開く",
   "tree.go_to_target": "ターゲットへ移動",

@@ -43,12 +43,11 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
     private static readonly Dictionary<string, PropertyInfo> Properties = typeof(DecompilerSettings).GetProperties()
         .Where(static p => p.PropertyType == typeof(bool) && p.CanWrite).ToDictionary(static p => p.Name);
 
-    /// <summary>Settings that do nothing here: we pass the decompiler no debug symbols or XML
-    /// documentation, the next two only apply when assemblies load, and we export no projects.</summary>
+    /// <summary>Settings that do nothing here: we pass the decompiler no debug symbols, the next
+    /// two only apply when assemblies load, and we export no projects.</summary>
     private static readonly HashSet<string> Excluded =
     [
         nameof(DecompilerSettings.UseDebugSymbols),
-        nameof(DecompilerSettings.ShowXmlDocumentation),
         nameof(DecompilerSettings.AutoLoadAssemblyReferences),
         nameof(DecompilerSettings.ApplyWindowsRuntimeProjections),
         nameof(DecompilerSettings.UseSdkStyleProjectFormat),

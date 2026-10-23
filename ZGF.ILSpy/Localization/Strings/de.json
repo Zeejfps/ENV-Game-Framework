@@ -169,6 +169,7 @@
   "option.sort_custom_attributes": "Attribute sortieren",
   "option.sort_switch_sections": "switch-Abschnitte sortieren",
   "option.check_for_overflow_underflow": "Code wurde mit Überlaufprüfung kompiliert",
+  "option.show_xml_documentation": "XML-Dokumentationskommentare in den dekompilierten Code aufnehmen",
   "tree.empty": "Öffnen Sie eine Assembly über Datei › Öffnen… ({shortcut})",
   "tree.open_in_new_tab": "In neuem Tab öffnen",
   "tree.go_to_target": "Zum Ziel springen",

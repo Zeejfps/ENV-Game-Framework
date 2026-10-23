@@ -13,6 +13,7 @@ namespace ZGF.ILSpy.Core;
 internal sealed class DocumentBuilder : ITextOutput
 {
     private const int MaxSignatureLines = 8;
+    private const string DefaultFoldText = "...";
 
     private readonly DecompilationLanguage _language;
     private readonly StringBuilder _line = new();
@@ -170,7 +171,7 @@ internal sealed class DocumentBuilder : ITextOutput
     {
     }
 
-    public void MarkFoldStart(string collapsedText = "...", bool defaultCollapsed = false, bool isDefinition = false) =>
+    public void MarkFoldStart(string collapsedText = DefaultFoldText, bool defaultCollapsed = false, bool isDefinition = false) =>
         _openFolds.Push(new OpenFold(_lines.Count, _lineStarted ? _line.Length : 0, collapsedText, defaultCollapsed, isDefinition));
 
     public void MarkFoldEnd()
@@ -199,7 +200,7 @@ internal sealed class DocumentBuilder : ITextOutput
                 : ownLine && start.Line > 0 ? start.Line - 1
                 : start.Line;
             if (endLine <= header) continue;
-            var text = start.Text != "..." ? start.Text
+            var text = HasOwnText(start, lines[header]) ? start.Text
                 : !brace ? "…"
                 : openingLine > header ? "{ … }"
                 : "… " + lines[endLine].Text.Trim();
@@ -219,6 +220,15 @@ internal sealed class DocumentBuilder : ITextOutput
             open.Push(region);
         }
         return nested.ToImmutable();
+    }
+
+    /// <summary>Whether <paramref name="start"/> names a collapsed text that says more than its
+    /// header line, which stays in view; an XML doc comment names its own first line.</summary>
+    private static bool HasOwnText(OpenFold start, DocumentLine header)
+    {
+        if (start.Text == DefaultFoldText)
+            return false;
+        return start.Text.Trim() != header.Text.Trim();
     }
 
     private static int BodyAfterSignature(ImmutableArray<DocumentLine> lines, int start, int endLine)

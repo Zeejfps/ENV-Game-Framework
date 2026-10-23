@@ -169,6 +169,7 @@
   "option.sort_custom_attributes": "Ordenar atributos",
   "option.sort_switch_sections": "Ordenar seções switch",
   "option.check_for_overflow_underflow": "O código foi compilado com verificação de estouro",
+  "option.show_xml_documentation": "Incluir comentários de documentação XML no código descompilado",
   "tree.empty": "Abra um assembly com Arquivo › Abrir… ({shortcut})",
   "tree.open_in_new_tab": "Abrir em nova guia",
   "tree.go_to_target": "Ir para o destino",

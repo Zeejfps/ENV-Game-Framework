@@ -12,10 +12,13 @@ public class Calculator<T>
 
     public event EventHandler? Changed;
 
+    /// <summary>How many items were added.</summary>
     public int Count => _items.Count;
 
     public T this[int index] => _items[index];
 
+    /// <summary>Adds an item and raises <see cref="Changed"/>.</summary>
+    /// <param name="item">The item to add.</param>
     public void Add(T item)
     {
         _items.Add(item);
