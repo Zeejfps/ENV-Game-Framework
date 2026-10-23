@@ -18,12 +18,9 @@ public sealed class LastSessionAnalyses
     }
 
     /// <summary>The symbols to find and analyze again; null when there are none.</summary>
-    public List<CodeAnchor>? StartRestoring()
-    {
-        return _pending;
-    }
+    public List<CodeAnchor>? Pending => _pending;
 
-    public void FinishRestoring()
+    public void Clear()
     {
         _pending = null;
     }

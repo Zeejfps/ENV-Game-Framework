@@ -35,7 +35,7 @@ public static class Analyzing
     /// assemblies' files without listing them, and analyzes those still there, in their order.</summary>
     public static async void RestoreLastSessionAnalyses(this Workspace w)
     {
-        var analyzed = w.LastSessionAnalyses.StartRestoring();
+        var analyzed = w.LastSessionAnalyses.Pending;
         if (analyzed == null)
             return;
         var found = await Background.Run(() => w.FindAnalyzed(analyzed));
@@ -49,7 +49,7 @@ public static class Analyzing
 
     private static void AnalyzeAgain(this Workspace w, List<AnalysisSymbol?>? found)
     {
-        w.LastSessionAnalyses.FinishRestoring();
+        w.LastSessionAnalyses.Clear();
         if (found != null)
             w.AnalyzeAll(found);
         w.LastSave.RecordAnalyzer(w.Analyzer);
