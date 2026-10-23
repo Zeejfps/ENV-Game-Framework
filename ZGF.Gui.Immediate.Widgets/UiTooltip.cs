@@ -2,9 +2,20 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
+/// <summary>Where a tooltip shows: centered under its element, or under the pointer where it rested
+/// — for an element as wide as a table row, whose middle may be far from the pointer.</summary>
+public enum TooltipAnchor
+{
+    Element,
+    Pointer,
+}
+
 public static partial class UiWidgets
 {
     private const int TooltipId = 0x544F4F4C;
+
+    /// <summary>How tall the pointer is taken to be, so a tooltip shown under it clears it.</summary>
+    private const float PointerHeight = 16f;
     private const double TooltipGraceSeconds = 0.2;
     private const double NotLeaving = -1;
 
@@ -26,13 +37,13 @@ public static partial class UiWidgets
 
     public static void Tooltip(this Ui ui, Interaction target, string text) => ui.Tooltip(target.Id, text);
 
-    /// <summary>Shows <paramref name="text"/> under the element with <paramref name="id"/> once the
-    /// pointer has rested on it for the theme's tooltip delay, until it leaves or a button is
-    /// pressed. Long text wraps into a block; <c>\n</c> breaks lines. Call it every frame the
-    /// element is recorded.</summary>
-    public static void Tooltip(this Ui ui, int id, string text)
+    /// <summary>Shows <paramref name="text"/> under the element with <paramref name="id"/>, or under
+    /// the pointer as <paramref name="anchor"/> says, once the pointer has rested on it for the
+    /// theme's tooltip delay, until it leaves or a button is pressed. Long text wraps into a block;
+    /// <c>\n</c> breaks lines. Call it every frame the element is recorded.</summary>
+    public static void Tooltip(this Ui ui, int id, string text, TooltipAnchor anchor = TooltipAnchor.Element)
     {
-        using var tooltip = ui.TooltipContent(id);
+        using var tooltip = ui.TooltipContent(id, anchor);
         if (tooltip.IsOpen)
             ui.Text(text, color: ui.Theme.Text, size: ui.Theme.FontSizeSmall, wrap: true);
     }
@@ -41,14 +52,24 @@ public static partial class UiWidgets
     /// <see cref="Tooltip(Ui, int, string)"/> is, whose content is recorded inside the scope
     /// while <see cref="Ui.Scope.IsOpen"/>; dispose the scope either way. Call it every frame the
     /// element is recorded.</summary>
-    public static Ui.Scope TooltipContent(this Ui ui, int id)
+    public static Ui.Scope TooltipContent(this Ui ui, int id, TooltipAnchor anchor = TooltipAnchor.Element)
     {
         var look = TooltipLook.Of(ui.Theme);
         if (!ui.IsHovered(id))
             return OpenTooltip(ui, id, new TooltipTarget(0, 0, default), look, out _);
-        if (!ui.TryGetRect(id, out var anchor))
+        if (!ui.TryGetRect(id, out var element))
             return default;
-        return OpenTooltip(ui, id, new TooltipTarget(id, id, anchor), look, out _);
+        if (anchor == TooltipAnchor.Element)
+            return OpenTooltip(ui, id, new TooltipTarget(id, id, element), look, out _);
+        var underPointer = look with { Align = Align.Start };
+        return OpenTooltip(ui, id, new TooltipTarget(id, id, PointerRect(ui)), underPointer, out _);
+    }
+
+    /// <summary>The pointer as a rect a tooltip shows under: as tall as the pointer, starting where it points.</summary>
+    private static UiRect PointerRect(Ui ui)
+    {
+        var pointer = ui.Input.Pointer;
+        return new UiRect(pointer.X, pointer.Y, 1f, PointerHeight);
     }
 
     /// <summary>As <see cref="TooltipContent(Ui, int, int, UiRect, out int, TooltipLook?)"/>, for a
@@ -102,6 +123,8 @@ public static partial class UiWidgets
         }
         if (state.Target != target.Key)
             Start(ui, state, owner, target);
+        if (!state.Shown)
+            state.Anchor = target.Anchor;
         if (IsDismissed(ui, state, look))
             return default;
 
