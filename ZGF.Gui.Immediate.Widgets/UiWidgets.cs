@@ -108,11 +108,12 @@ public static partial class UiWidgets
     /// while focused. Ids work as for <see cref="Button"/>. When not <paramref name="enabled"/> it
     /// shows <paramref name="value"/> greyed out and ignores input. Given a <paramref name="width"/>,
     /// a label too long for it ends in an ellipsis. A <paramref name="bold"/> label stands out, e.g.
-    /// as a choice changed from its default.</summary>
+    /// as a choice changed from its default. A <paramref name="compact"/> one is a list row tall, the
+    /// theme's <see cref="UiTheme.RowHeight"/>, rather than a control: for lists and stacks of options.</summary>
     public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null, bool enabled = true,
-        Sizing? width = null, bool bold = false)
+        Sizing? width = null, bool bold = false, bool compact = false)
     {
-        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold)) return false;
+        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold, compact)) return false;
         value = !value;
         return true;
     }
@@ -121,21 +122,23 @@ public static partial class UiWidgets
     /// are on, shown as a filled square. A click turns it on unless it is already, then off; returns
     /// true on that frame. Otherwise as the two-state <see cref="Checkbox(Ui, string, ref bool, uint?, string?, bool, Sizing?, bool)"/>.</summary>
     public static bool Checkbox(this Ui ui, string label, ref bool? value, uint? textColor = null, string? id = null, bool enabled = true,
-        Sizing? width = null, bool bold = false)
+        Sizing? width = null, bool bold = false, bool compact = false)
     {
-        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold)) return false;
+        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold, compact)) return false;
         value = value != true;
         return true;
     }
 
-    private static bool DrawCheckbox(Ui ui, string label, bool? value, uint? textColor, string? id, bool enabled, Sizing? width, bool bold)
+    private static bool DrawCheckbox(Ui ui, string label, bool? value, uint? textColor, string? id, bool enabled, Sizing? width, bool bold,
+        bool compact)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id ?? label, enabled, out var activated, out var ring);
         var on = value == true;
         var mixed = value is null;
+        var height = compact ? theme.RowHeight : theme.ControlHeight;
 
-        using (ui.Row(i.Id, new Box { Width = width ?? Sizing.Fit(), Height = theme.ControlHeight, Gap = theme.Gap }))
+        using (ui.Row(i.Id, new Box { Width = width ?? Sizing.Fit(), Height = height, Gap = theme.Gap }))
         {
             var size = theme.CheckboxSize;
             var accent = !enabled ? theme.TextDisabled : i.Hovered ? theme.AccentHovered : theme.Accent;

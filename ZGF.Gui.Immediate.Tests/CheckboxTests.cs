@@ -22,6 +22,21 @@ public sealed class CheckboxTests
     }
 
     [Fact]
+    public void A_compact_checkbox_is_a_list_row_tall()
+    {
+        var on = false;
+        var frames = new UiFrames(body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.Checkbox("Normal", ref on, id: "normal");
+            ui.Checkbox("Compact", ref on, id: "compact", compact: true);
+        }).Frame();
+
+        Assert.Equal(UiTheme.Dark.ControlHeight, frames.RectOf("normal").Height);
+        Assert.Equal(UiTheme.Dark.RowHeight, frames.RectOf("compact").Height);
+    }
+
+    [Fact]
     public void A_mixed_group_turns_on_then_off()
     {
         _frames.Frame();
