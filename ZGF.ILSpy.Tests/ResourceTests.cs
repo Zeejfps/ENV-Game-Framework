@@ -1,3 +1,4 @@
+using System.Text;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
@@ -170,18 +171,32 @@ public sealed class ResourceTests
         Assert.Contains(("root", SpanKind.Keyword), file.Child("Notes.xml").Decompile(DecompilationLanguage.CSharp).SpansOf().Select(s => (s.Text, s.Span.Kind)));
     }
 
+    private static BrowseNode MainWindowBaml()
+    {
+        var assembly = new AssemblyList().Open(Trees.SampleAppPath);
+        return Resources(assembly).Child("SampleApp.g.resources").Child("mainwindow.baml");
+    }
+
     [Fact]
     public void Baml_shows_as_the_xaml_it_was_compiled_from()
     {
-        var assembly = new AssemblyList().Open(Trees.WpfAssemblyPath);
-        var baml = Resources(assembly).Child("BamlFixture.g.resources").Child("mainwindow.baml");
-
-        var document = baml.Decompile(DecompilationLanguage.CSharp);
+        var document = MainWindowBaml().Decompile(DecompilationLanguage.CSharp);
         var text = document.GetText();
 
-        Assert.Contains("x:Class=\"BamlFixture.MainWindow\"", text);
-        Assert.Contains("<TextBlock Text=\"Hello from BAML\" />", text);
+        Assert.Contains("x:Class=\"SampleApp.MainWindow\"", text);
+        Assert.Contains("Text=\"Hello from BAML\"", text);
         Assert.Contains(("StackPanel", SpanKind.Keyword), document.SpansOf().Select(s => (s.Text, s.Span.Kind)));
+    }
+
+    [Fact]
+    public void Baml_saves_as_xaml()
+    {
+        var baml = MainWindowBaml();
+
+        var saved = Encoding.UTF8.GetString(baml.ReadResource());
+
+        Assert.Equal("mainwindow.xaml", baml.ResourceFileName);
+        Assert.Contains("x:Class=\"SampleApp.MainWindow\"", saved);
     }
 
     [Fact]

@@ -23,9 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Fixtures\Wpf\**" />
-    <None Remove="Fixtures\Wpf\**" />
-    <None Include="Fixtures\Wpf\BamlFixture.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="Fixtures\SampleApp\**" />
+    <None Remove="Fixtures\SampleApp\**" />
+    <None Include="Fixtures\SampleApp\SampleApp.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

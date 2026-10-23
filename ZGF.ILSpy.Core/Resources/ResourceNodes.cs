@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
 using ICSharpCode.Decompiler.Util;
 using ZGF.ILSpy.Core.Metadata;
@@ -13,6 +14,10 @@ internal interface IResourceData
     /// <summary>What the resource is, as a resources folder lists it.</summary>
     string Description { get; }
 
+    /// <summary>The name a saved copy is offered under.</summary>
+    string FileName { get; }
+
+    /// <summary>What a saved copy holds.</summary>
     byte[] ReadData();
 }
 
@@ -63,6 +68,8 @@ internal sealed class ResourceNode : BrowseNode, IResourceData
 
     public string Description => ResourceNodes.Describe(Resource);
 
+    public string FileName => System.IO.Path.GetFileName(Text);
+
     public byte[] ReadData() => ResourceNodes.Read(Resource);
 }
 
@@ -73,7 +80,27 @@ internal sealed class ResourceEntryNode(LoadedAssembly assembly, BrowseNode pare
 {
     public string Description => $"{Text} ({data.Length} bytes)";
 
+    public string FileName => System.IO.Path.GetFileName(Text);
+
     public byte[] ReadData() => data;
+}
+
+/// <summary>A BAML entry of a <c>.resources</c> file: shown, and saved, as the XAML it was
+/// compiled from.</summary>
+internal sealed class BamlEntryNode(LoadedAssembly assembly, BrowseNode parent, string name, byte[] baml)
+    : BrowseNode(assembly, parent, NodeKind.Resource, name), IResourceData
+{
+    public string Description => $"{Text} ({baml.Length} bytes)";
+
+    public string FileName => Baml.XamlName(System.IO.Path.GetFileName(Text));
+
+    public byte[] ReadData()
+    {
+        var xaml = Xaml(CancellationToken.None);
+        return Encoding.UTF8.GetBytes(xaml);
+    }
+
+    public string Xaml(CancellationToken cancellationToken) => Baml.DecompileToText(Assembly, baml, cancellationToken);
 }
 
 /// <summary>
@@ -101,6 +128,8 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
 
     public string Description => ResourceNodes.Describe(_resource);
 
+    public string FileName => System.IO.Path.GetFileName(Text);
+
     public byte[] ReadData() => ResourceNodes.Read(_resource);
 
     private protected override bool MayHaveChildren => true;
@@ -109,12 +138,19 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
         _entries.Value
             .Select(e => e.Value switch
             {
-                byte[] bytes => new ResourceEntryNode(Assembly, this, e.Key, bytes),
-                MemoryStream stream => new ResourceEntryNode(Assembly, this, e.Key, stream.ToArray()),
+                byte[] bytes => CreateEntry(e.Key, bytes),
+                MemoryStream stream => CreateEntry(e.Key, stream.ToArray()),
                 _ => (BrowseNode?)null,
             })
             .OfType<BrowseNode>()
             .ToArray();
+
+    private BrowseNode CreateEntry(string name, byte[] data)
+    {
+        if (Baml.IsBamlName(name))
+            return new BamlEntryNode(Assembly, this, name, data);
+        return new ResourceEntryNode(Assembly, this, name, data);
+    }
 
     /// <summary>The entries in name order. The containers WPF generates key their entries by a
     /// URI-escaped path, which is unescaped as ILSpy does.</summary>

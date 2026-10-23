@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace BamlFixture;
+namespace SampleApp;
 
 public partial class App : Application
 {

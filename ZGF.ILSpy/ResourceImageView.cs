@@ -55,7 +55,7 @@ internal static class ResourceImageView
     public static void PickExport(Ui<UiState> ui, Workspace w, BrowseNode node)
     {
         var t = ui.State.Strings;
-        ui.PickSaveFile(t.ResourceExportTitle, null, Path.GetFileName(node.Text), [new FileFilter(t.FileFilterAll, ["*.*"])],
+        ui.PickSaveFile(t.ResourceExportTitle, null, node.ResourceFileName, [new FileFilter(t.FileFilterAll, ["*.*"])],
             path => w.SaveResource(node, path));
     }
 }

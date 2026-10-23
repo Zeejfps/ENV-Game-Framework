@@ -14,9 +14,9 @@ internal static class Trees
 
     public static string CoreLibPath => typeof(object).Assembly.Location;
 
-    /// <summary>A small WPF app, built from <c>Fixtures/Wpf/Source</c>: a window and an application
-    /// compiled to BAML.</summary>
-    public static string WpfAssemblyPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Wpf", "BamlFixture.dll");
+    /// <summary>A small WPF app, built from <c>Fixtures/SampleApp/Source</c>: a window and an
+    /// application compiled to BAML, a property and event with users, and a security attribute.</summary>
+    public static string SampleAppPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
 
     /// <summary>The test assembly, opened once for the tests that only read it. Its list is out of
     /// reach; a test that needs the list, or nodes no other test has built, opens its own with

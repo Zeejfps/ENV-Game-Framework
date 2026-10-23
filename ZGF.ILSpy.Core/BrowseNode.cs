@@ -207,9 +207,15 @@ public abstract class BrowseNode
     /// reads, to save them.</summary>
     public bool HasResource => this is IResourceData;
 
-    /// <summary>The bytes of the resource this node stands for.</summary>
-    public byte[] ReadResource() =>
-        this is IResourceData data ? data.ReadData() : throw new InvalidOperationException($"{Text} is no resource.");
+    /// <summary>The bytes of the resource this node stands for, as a saved copy holds them: for
+    /// BAML, the XAML it was compiled from.</summary>
+    public byte[] ReadResource() => AsResource().ReadData();
+
+    /// <summary>The name a saved copy of the resource this node stands for is offered under.</summary>
+    public string ResourceFileName => AsResource().FileName;
+
+    private IResourceData AsResource() =>
+        this as IResourceData ?? throw new InvalidOperationException($"{Text} is no resource.");
 
     public override string ToString() => Text;
 }

@@ -99,18 +99,18 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Baml_exports_as_xaml_pages_beside_their_code_behind()
     {
-        var assembly = new AssemblyList().Open(Trees.WpfAssemblyPath);
-        var projectPath = _temp.PathOf(Path.Combine("Wpf", "BamlFixture.csproj"));
+        var assembly = new AssemblyList().Open(Trees.SampleAppPath);
+        var projectPath = _temp.PathOf(Path.Combine("Sample", "SampleApp.csproj"));
 
         AssemblyExport.ExportProject(assembly, DecompilerOptions.Default, projectPath);
 
         var folder = Path.GetDirectoryName(projectPath)!;
         var project = File.ReadAllText(projectPath);
-        var window = File.ReadAllText(Path.Combine(folder, "BamlFixture", "MainWindow.xaml"));
-        var codeBehind = File.ReadAllText(Path.Combine(folder, "BamlFixture", "MainWindow.cs"));
-        Assert.Contains("x:Class=\"BamlFixture.MainWindow\"", window);
-        Assert.Contains("<Page Include=\"BamlFixture\\MainWindow.xaml\"", project);
-        Assert.Contains("<ApplicationDefinition Include=\"BamlFixture\\App.xaml\"", project);
+        var window = File.ReadAllText(Path.Combine(folder, "SampleApp", "MainWindow.xaml"));
+        var codeBehind = File.ReadAllText(Path.Combine(folder, "SampleApp", "MainWindow.cs"));
+        Assert.Contains("x:Class=\"SampleApp.MainWindow\"", window);
+        Assert.Contains("<Page Include=\"SampleApp\\MainWindow.xaml\"", project);
+        Assert.Contains("<ApplicationDefinition Include=\"SampleApp\\App.xaml\"", project);
         Assert.DoesNotContain("baml", project);
         Assert.DoesNotContain("void InitializeComponent()", codeBehind);
     }

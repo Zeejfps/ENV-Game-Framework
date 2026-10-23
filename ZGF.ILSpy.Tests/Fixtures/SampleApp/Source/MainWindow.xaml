@@ -1,0 +1,10 @@
+<Window x:Class="SampleApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Counter" Height="200" Width="300">
+    <StackPanel Margin="12">
+        <TextBlock Text="Hello from BAML" Foreground="{StaticResource Accent}" />
+        <TextBlock x:Name="CountText" Text="0" />
+        <Button x:Name="Ok" Content="Count" Click="OnCount" />
+    </StackPanel>
+</Window>
