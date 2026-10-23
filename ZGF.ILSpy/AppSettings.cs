@@ -53,6 +53,9 @@ public sealed class AppSettings
     /// <summary>The main window as it was left; null opens it at the default size, centered.</summary>
     public WindowBounds? Window { get; set; }
 
+    /// <summary>The export dialog's window as it was left; null opens it at its default size, centered.</summary>
+    public WindowBounds? ExportWindow { get; set; }
+
     public const int MinWindowWidth = 480;
     public const int MinWindowHeight = 320;
     public const int MaxWindowSize = 16384;
@@ -67,6 +70,23 @@ public sealed class AppSettings
                 Height = Math.Clamp(b.Height, MinWindowHeight, MaxWindowSize),
             }
             : null;
+
+    /// <summary>A dialog's <paramref name="bounds"/> with its size kept within reason, or null when it
+    /// has none. A dialog keeps its own smallest size, so only the largest is enforced here.</summary>
+    public static WindowBounds? SanitizeDialog(WindowBounds? bounds)
+    {
+        if (bounds == null)
+            return null;
+        var b = bounds.Value;
+        if (b.Width <= 0 || b.Height <= 0)
+            return null;
+        return b with
+        {
+            Width = Math.Min(b.Width, MaxWindowSize),
+            Height = Math.Min(b.Height, MaxWindowSize),
+            Maximized = false,
+        };
+    }
 
     public void RememberWindow(WindowBounds bounds)
     {
@@ -110,6 +130,7 @@ public sealed class AppSettings
         settings.Assemblies ??= new List<string>();
         settings.Assemblies.RemoveAll(static p => string.IsNullOrWhiteSpace(p));
         settings.Window = Sanitize(settings.Window);
+        settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.FilePath = path;
         settings.LoadError = error;
         return settings;

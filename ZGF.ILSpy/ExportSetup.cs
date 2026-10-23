@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -9,6 +10,17 @@ public sealed class ExportChoice(LoadedAssembly assembly, string name)
     public LoadedAssembly Assembly { get; } = assembly;
     public bool Included;
     public string Name = name;
+}
+
+/// <summary>What keeps an export from starting.</summary>
+public enum ExportBlocker
+{
+    None,
+    NoAssembly,
+    NoFolder,
+    NamelessProject,
+    Clash,
+    KeyFileMissing,
 }
 
 /// <summary>
@@ -40,6 +52,9 @@ public sealed class ExportSetup
 
     /// <summary>Whether those PDBs embed the decompiled sources.</summary>
     public bool EmbedSourcesInPdb = true;
+
+    /// <summary>Where the dialog's window was left, on the screen; null opens it centered.</summary>
+    public WindowBounds? Window;
 
     public List<ExportChoice> Choices { get; } = new();
 
@@ -178,23 +193,28 @@ public sealed class ExportSetup
         return !File.Exists(file);
     }
 
-    /// <summary>Whether the export can start: a folder, at least one assembly, a name for each
-    /// project that no other takes, and no key file that is not there.</summary>
-    public bool CanExport
+    /// <summary>The first thing that keeps the export from starting, or <see cref="ExportBlocker.None"/>:
+    /// it needs at least one assembly, a folder, a name for each project that no other takes, and no
+    /// key file that is not there.</summary>
+    public ExportBlocker Blocker
     {
         get
         {
-            if (!HasFolder)
-                return false;
             if (IncludedCount == 0)
-                return false;
+                return ExportBlocker.NoAssembly;
+            if (!HasFolder)
+                return ExportBlocker.NoFolder;
             if (HasNamelessProject)
-                return false;
+                return ExportBlocker.NamelessProject;
+            if (Clash != null)
+                return ExportBlocker.Clash;
             if (KeyFileMissing)
-                return false;
-            return Clash == null;
+                return ExportBlocker.KeyFileMissing;
+            return ExportBlocker.None;
         }
     }
+
+    public bool CanExport => Blocker == ExportBlocker.None;
 
     /// <summary>What each project is written with besides its code.</summary>
     public ProjectExtras Extras()

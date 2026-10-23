@@ -143,6 +143,19 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void The_export_window_reopens_where_it_was_left_in_the_last_run()
+    {
+        var workspace = new Workspace(AppSettings.Load(SettingsFile));
+        workspace.ExportSetup.Window = new WindowBounds(-900, 200, 700, 800, false);
+        workspace.SaveSettings();
+
+        var next = new Workspace(AppSettings.Load(SettingsFile));
+
+        Assert.Equal(new WindowBounds(-900, 200, 700, 800, false), next.ExportSetup.Window);
+        Assert.Null(AppSettings.Load(Written("""{ "ExportWindow": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""")).ExportWindow);
+    }
+
+    [Fact]
     public void Window_bounds_without_a_size_load_as_none()
     {
         Assert.Null(AppSettings.Load(Written("""{ "Window": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""")).Window);

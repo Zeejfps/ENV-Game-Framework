@@ -297,6 +297,11 @@
   "export.folder": "Folder",
   "export.project_name": "Project name",
   "export.assemblies": "Assemblies",
+  "export.select_all": "Select all",
+  "export.selected_count": "{selected} of {total} selected",
+  "export.needs_assembly": "Tick at least one assembly to export.",
+  "export.needs_folder": "Choose a folder to export to.",
+  "export.needs_name": "Give every ticked assembly a project name.",
   "export.dialog_title": "Export",
   "resource.image_info": "{format}, {width} × {height} pixels",
 

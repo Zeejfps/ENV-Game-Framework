@@ -102,6 +102,25 @@ public sealed class ExportDialogTests : IDisposable
     }
 
     [Fact]
+    public void What_stops_the_export_is_named_one_thing_at_a_time()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        var choice = Assert.Single(setup.Choices);
+
+        setup.IncludeAll(false);
+        Assert.Equal(ExportBlocker.NoAssembly, setup.Blocker);
+        setup.IncludeAll(true);
+        Assert.Equal(ExportBlocker.NoFolder, setup.Blocker);
+        setup.Folder = _temp.Path;
+        choice.Name = " ";
+        Assert.Equal(ExportBlocker.NamelessProject, setup.Blocker);
+        choice.Name = "Project";
+        Assert.Equal(ExportBlocker.None, setup.Blocker);
+    }
+
+    [Fact]
     public void A_folder_that_holds_files_is_pointed_out()
     {
         var d = WorkspaceDriver.Opened();

@@ -136,6 +136,7 @@ public sealed class Workspace
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
+        ExportSetup.Window = settings.ExportWindow;
         LastSave.Record(Assemblies, Bookmarks, Analyzer, MetadataFilters);
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)

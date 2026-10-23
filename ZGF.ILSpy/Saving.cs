@@ -43,6 +43,7 @@ public static class Saving
         settings.BookmarkColumns = w.BookmarkColumns.Weights.ToList();
         settings.SearchColumns = w.SearchColumns.Weights.ToList();
         settings.FlagsFilters = w.MetadataFilters.Save();
+        settings.ExportWindow = w.ExportSetup.Window;
     }
 
     private static void WriteSettingsFile(this Workspace w)
