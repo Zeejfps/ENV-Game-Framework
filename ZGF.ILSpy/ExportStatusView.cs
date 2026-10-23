@@ -24,33 +24,38 @@ internal static class ExportStatusView
     private static void Running(Ui<UiState> ui, Workspace w, ExportProgress progress)
     {
         var t = ui.State.Strings;
-        if (Glance(ui, progress))
+        if (Glance(ui, w, progress))
             w.OpenExports();
-        if (IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
+        if (!w.Export.IsCancelling && IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
             w.Export.Cancel();
-        Queued(ui, w);
     }
 
-    /// <summary>What the export writes and its bar, as one button; returns whether it was clicked.</summary>
-    private static bool Glance(Ui<UiState> ui, ExportProgress progress)
+    /// <summary>What the export writes, its bar and how many wait, as one button; returns whether it
+    /// was clicked.</summary>
+    private static bool Glance(Ui<UiState> ui, Workspace w, ExportProgress progress)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var i = ui.Clickable("export-glance");
         using (ui.Row(i.Id, ButtonBox(theme, i)))
         {
-            var text = ui.Memo("export-running", (progress.Name, progress.Part, progress.Parts, t), static a => Describe(a.t, a.Name, a.Part, a.Parts));
+            var cancelling = w.Export.IsCancelling;
+            var text = ui.Memo("export-running", (progress.Name, progress.Part, progress.Parts, cancelling, t),
+                static a => Describe(a.t, a.Name, a.Part, a.Parts, a.cancelling));
             ui.Text(text, color: theme.AccentText, size: theme.FontSizeSmall);
             var fraction = progress.Fraction;
             if (fraction != null)
                 ui.ProgressBar(fraction.Value, Sizing.Fixed(BarWidth));
+            Queued(ui, w);
         }
         ui.Tooltip(i.Id, t.StatusShowExports);
         return i.Clicked;
     }
 
-    private static string Describe(Strings t, string name, int part, int parts)
+    private static string Describe(Strings t, string name, int part, int parts, bool cancelling)
     {
+        if (cancelling)
+            return t.ExportsCancelling;
         if (parts > 1)
             return t.StatusExportingPart(part, parts, name);
         return t.StatusExportingName(name);

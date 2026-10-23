@@ -139,8 +139,8 @@ public sealed class ExportTests : IDisposable
     public void An_export_asked_for_while_another_runs_waits_its_turn()
     {
         var queue = new WorkspaceDriver().Workspace.Export;
-        var first = queue.Enter("First");
-        var second = queue.Enter("Second");
+        var first = queue.Enter(TestJobs.Named("First"));
+        var second = queue.Enter(TestJobs.Named("Second"));
 
         Assert.True(first.IsCompleted);
         Assert.False(second.IsCompleted);
@@ -157,9 +157,9 @@ public sealed class ExportTests : IDisposable
     public void Only_the_running_export_can_end_its_turn()
     {
         var queue = new WorkspaceDriver().Workspace.Export;
-        var first = queue.Enter("First").Result;
+        var first = queue.Enter(TestJobs.Named("First")).Result;
         queue.Leave(first);
-        var second = queue.Enter("Second").Result;
+        var second = queue.Enter(TestJobs.Named("Second")).Result;
 
         queue.Leave(first);
 
@@ -173,10 +173,10 @@ public sealed class ExportTests : IDisposable
     {
         var d = new WorkspaceDriver();
         var queue = d.Workspace.Export;
-        var first = queue.Enter("First").Result;
+        var first = queue.Enter(TestJobs.Named("First")).Result;
         first.Progress.Report(new ExportProgress("First", 1, 1, 0.5f));
         queue.Leave(first);
-        queue.Enter("Second");
+        queue.Enter(TestJobs.Named("Second"));
 
         d.Pump();
 
@@ -188,7 +188,7 @@ public sealed class ExportTests : IDisposable
     {
         var d = new WorkspaceDriver();
         var queue = d.Workspace.Export;
-        var start = queue.Enter("Fixtures").Result;
+        var start = queue.Enter(TestJobs.Named("Fixtures")).Result;
 
         start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.75f));
         d.Pump();
@@ -201,7 +201,7 @@ public sealed class ExportTests : IDisposable
     {
         var d = new WorkspaceDriver();
         var queue = d.Workspace.Export;
-        var start = queue.Enter("Fixtures").Result;
+        var start = queue.Enter(TestJobs.Named("Fixtures")).Result;
 
         start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.6f));
         start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.4f));
@@ -246,8 +246,8 @@ public sealed class ExportTests : IDisposable
     public void The_status_bar_shows_the_export_and_how_many_wait_and_cancels_it()
     {
         var app = AppDriver.Opened();
-        var start = app.Workspace.Export.Enter("Fixtures").Result;
-        app.Workspace.Export.Enter("Later");
+        var start = app.Workspace.Export.Enter(TestJobs.Named("Fixtures")).Result;
+        app.Workspace.Export.Enter(TestJobs.Named("Later"));
         start.Progress.Report(new ExportProgress("Fixtures", 2, 3, 0.5f));
         app.Run(2);
 

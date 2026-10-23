@@ -12,28 +12,34 @@ public enum ExportOutcome
 /// <summary>Something an export could not do: a headline, and the full error when there is one.</summary>
 public sealed record ExportProblem(string Headline, string? Details = null);
 
-/// <summary>What one export did: what it was named after, how it ended, the folder it wrote into,
-/// the files it wrote, what went wrong and how long it took.</summary>
+/// <summary>What one export did: which it was, how it ended, the files it wrote, what went wrong,
+/// how long it took, and whether its folder was there when it ended.</summary>
 public sealed record ExportReport(
-    string Name,
+    int Run,
+    ExportJob Job,
     ExportOutcome Outcome,
-    string Folder,
     IReadOnlyList<string> Written,
     IReadOnlyList<ExportProblem> Problems,
-    TimeSpan Elapsed)
+    TimeSpan Elapsed,
+    bool FolderExists)
 {
+    public string Name => Job.Name;
+
+    public string Folder => Job.Folder;
+
     public bool HasProblems => Outcome == ExportOutcome.Failed || Problems.Count > 0;
 
-    /// <summary>The report of an export named <paramref name="name"/> into <paramref name="folder"/>
-    /// that ended with <paramref name="error"/>: finished, with nothing written yet, when null;
-    /// cancelled when it was cancelled; else failed, with <paramref name="failure"/> as its problem.</summary>
-    public static ExportReport Of(string name, string folder, Exception? error, string failure, TimeSpan elapsed)
+    /// <summary>The report of the export <paramref name="run"/> of <paramref name="job"/> that ended
+    /// with <paramref name="error"/>: finished, with nothing written yet, when null; cancelled when it
+    /// was cancelled; else failed, with <paramref name="failure"/> as its problem.</summary>
+    public static ExportReport Of(int run, ExportJob job, Exception? error, string failure, TimeSpan elapsed)
     {
+        var folderExists = Directory.Exists(job.Folder);
         if (error == null)
-            return new ExportReport(name, ExportOutcome.Finished, folder, [], [], elapsed);
+            return new ExportReport(run, job, ExportOutcome.Finished, [], [], elapsed, folderExists);
         if (error is OperationCanceledException)
-            return new ExportReport(name, ExportOutcome.Cancelled, folder, [], [], elapsed);
+            return new ExportReport(run, job, ExportOutcome.Cancelled, [], [], elapsed, folderExists);
         var problem = new ExportProblem(failure, error.ToString());
-        return new ExportReport(name, ExportOutcome.Failed, folder, [], [problem], elapsed);
+        return new ExportReport(run, job, ExportOutcome.Failed, [], [problem], elapsed, folderExists);
     }
 }
