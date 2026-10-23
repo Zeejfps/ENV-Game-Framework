@@ -42,6 +42,7 @@ public static class LucideIcons
     public const string GitCommitHorizontal = "\uE0E3";
     public const string GitFork = "\uE28D";
     public const string Hammer = "\uE0EC";
+    public const string Hourglass = "\uE296";
     public const string Layers3 = "\uE529";
     public const string LayoutGrid = "\uE0FF";
     public const string Library = "\uE100";

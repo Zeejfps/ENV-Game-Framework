@@ -92,8 +92,8 @@ public sealed class Workspace
     /// <summary>What the export dialog asks for, and whether it is open.</summary>
     public ExportSetup ExportSetup { get; } = new();
 
-    /// <summary>The reports of the exports that finished since the user last looked at them or
-    /// dismissed them, oldest first.</summary>
+    /// <summary>The reports of the exports that finished, oldest first, until they are taken off the
+    /// exports panel.</summary>
     public List<ExportReport> FinishedExports { get; } = new();
 
     /// <summary>True while <see cref="Export"/> runs.</summary>

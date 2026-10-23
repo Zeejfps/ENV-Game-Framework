@@ -94,6 +94,9 @@ public static class MainView
             case DockPanels.DecompilerOptions:
                 DecompilerOptionsPanelView.Render(ui, w);
                 break;
+            case DockPanels.Exports:
+                ExportsPanelView.Render(ui, w);
+                break;
             default:
                 Document(ui, w, panel);
                 break;

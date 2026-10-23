@@ -5,21 +5,25 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Export reports as text: a one-line summary for the notice, and the whole report, which a
-/// tab shows.</summary>
+/// <summary>Export reports as text: how one ended in a few words for the exports panel, and whole
+/// reports, which a tab shows.</summary>
 internal static class ExportReportText
 {
     private const string Indent = "    ";
 
-    /// <summary>What <paramref name="count"/> finished exports came to, in one line, the last of
-    /// which is <paramref name="last"/>.</summary>
-    public static string Summarize(Strings t, int count, ExportReport last)
+    /// <summary>How <paramref name="report"/>'s export ended, in a few words: when it finished, how
+    /// long it took and how many problems it had.</summary>
+    public static string DescribeOutcome(Strings t, ExportReport report)
     {
-        if (count == 1)
-            return Summarize(t, last);
-        return t.ExportSummarySeveral(count);
+        if (report.Outcome == ExportOutcome.Cancelled)
+            return t.ExportsCancelled;
+        if (report.Outcome == ExportOutcome.Failed)
+            return t.ExportsFailed;
+        var finished = t.ExportsFinishedIn(FormatSeconds(report.Elapsed));
+        if (report.Problems.Count == 0)
+            return finished;
+        return $"{finished} · {t.ExportProblemCount(report.Problems.Count)}";
     }
-
     private static string Summarize(Strings t, ExportReport report)
     {
         if (report.Outcome == ExportOutcome.Cancelled)

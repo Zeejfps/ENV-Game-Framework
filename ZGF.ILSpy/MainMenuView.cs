@@ -104,6 +104,8 @@ internal static class MainMenuView
             w.OpenSearch();
         if (ui.MenuItem(t.PanelDecompilerOptions, check: w.Layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
             w.OpenDecompilerOptions();
+        if (ui.MenuItem(t.PanelExports, check: w.Layout.Contains(DockPanels.Exports), id: "exports"))
+            w.OpenExports();
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             w.AskToResetLayout();
         ui.MenuSeparator();

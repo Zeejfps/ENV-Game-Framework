@@ -48,7 +48,7 @@ public static class Exporting
     {
         var language = w.Language;
         var options = w.DecompilerOptions;
-        var start = await w.Export.Enter(node.Text);
+        var start = await w.EnterExport(node.Text);
         var clock = Stopwatch.StartNew();
         var saved = await Background.Run(() => SaveCodeFile(node, language, options, path, start.Token));
         w.Export.Leave(start);
@@ -88,7 +88,7 @@ public static class Exporting
     private static async void StartProjectExport(this Workspace w, LoadedAssembly assembly, string projectPath)
     {
         var options = w.DecompilerOptions;
-        var start = await w.Export.Enter(assembly.Name);
+        var start = await w.EnterExport(assembly.Name);
         var clock = Stopwatch.StartNew();
         var exported = await Background.Run(() => AssemblyExport.ExportProject(assembly, options, projectPath, start.Progress, start.Token));
         w.Export.Leave(start);
@@ -136,7 +136,7 @@ public static class Exporting
     {
         var options = w.DecompilerOptions;
         var name = Path.GetFileName(solutionPath);
-        var start = await w.Export.Enter(name);
+        var start = await w.EnterExport(name);
         var clock = Stopwatch.StartNew();
         var exported = await Background.Run(() => AssemblyExport.ExportSolution(projects, options, solutionPath, start.Progress, start.Token));
         w.Export.Leave(start);
@@ -228,7 +228,7 @@ public static class Exporting
     public static async void GeneratePdb(this Workspace w, LoadedAssembly assembly, string path)
     {
         var options = w.DecompilerOptions;
-        var start = await w.Export.Enter(assembly.Name);
+        var start = await w.EnterExport(assembly.Name);
         var clock = Stopwatch.StartNew();
         var generated = await Background.Run(() => GeneratePdbFile(assembly, options, path, start));
         w.Export.Leave(start);
@@ -250,7 +250,7 @@ public static class Exporting
         var options = w.DecompilerOptions;
         var assemblies = w.Assemblies.Assemblies;
         var name = Path.GetFileName(folder);
-        var start = await w.Export.Enter(name);
+        var start = await w.EnterExport(name);
         var clock = Stopwatch.StartNew();
         var failures = await Background.Run(() => AssemblyExport.GeneratePdbs(assemblies, options, folder, start.Progress, start.Token));
         w.Export.Leave(start);
@@ -285,26 +285,26 @@ public static class Exporting
         return new ExportProblem($"{name}: {failure.Error.Message}", failure.Error.Details);
     }
 
-    /// <summary>The folder the last finished export wrote into, or null when none has finished.</summary>
-    public static string? LastExportFolder(this Workspace w)
+    /// <summary>Queues the export named <paramref name="name"/> and shows the exports panel, where it
+    /// waits, runs and ends. The task completes when its turn comes.</summary>
+    private static Task<ExportStart> EnterExport(this Workspace w, string name)
     {
-        var exports = w.FinishedExports;
-        if (exports.Count == 0)
-            return null;
-        var last = exports[exports.Count - 1];
-        return last.Folder;
+        w.OpenExports();
+        return w.Export.Enter(name);
     }
 
-    /// <summary>Shows the reports of the finished exports in a new tab, and clears them.</summary>
-    public static void ShowExportReport(this Workspace w)
+    /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>
+    public static void ShowExportReport(this Workspace w, ExportReport report)
     {
         var t = Strings.For(w.Locale);
-        var document = ExportReportText.Write(t, w.FinishedExports);
+        var document = ExportReportText.Write(t, [report]);
         var tab = w.OpenNewTab();
         w.Tabs.MakeActive(tab);
         tab.ShowText(t.ExportReportTitle, document);
-        w.FinishedExports.Clear();
     }
 
-    public static void DismissExportNotice(this Workspace w) => w.FinishedExports.Clear();
+    /// <summary>Takes <paramref name="report"/> off the list of finished exports.</summary>
+    public static void RemoveFinishedExport(this Workspace w, ExportReport report) => w.FinishedExports.Remove(report);
+
+    public static void ClearFinishedExports(this Workspace w) => w.FinishedExports.Clear();
 }

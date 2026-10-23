@@ -9,6 +9,8 @@ public static class Docking
 
     public static void OpenBookmarks(this Workspace w) => w.MainLayout.OpenBookmarks(w.Tabs.ActivePanel);
 
+    public static void OpenExports(this Workspace w) => w.MainLayout.OpenExports(w.Tabs.ActivePanel);
+
     public static void OpenAssemblies(this Workspace w) => w.MainLayout.OpenAssemblies();
 
     public static void Activate(this Workspace w, DocumentTab tab)

@@ -73,6 +73,34 @@ public sealed class MainLayout
         DockBelowDocuments(DockPanels.Bookmarks, activeDocument);
     }
 
+    /// <summary>Docks the exports panel beside the search results, bookmarks or analyzer, or below
+    /// the documents, if it is not docked, and brings it to the front.</summary>
+    public void OpenExports(string? activeDocument)
+    {
+        if (!Dock.Contains(DockPanels.Exports))
+            DockExports(activeDocument);
+        Dock.Activate(DockPanels.Exports);
+    }
+
+    private void DockExports(string? activeDocument)
+    {
+        var beside = FindToolGroup();
+        if (beside != null)
+        {
+            Dock.Dock(DockPanels.Exports, beside, DockEdge.Center);
+            return;
+        }
+        DockBelowDocuments(DockPanels.Exports, activeDocument);
+    }
+
+    private DockGroup? FindToolGroup()
+    {
+        var group = FindSearchOrBookmarksGroup();
+        if (group != null)
+            return group;
+        return Dock.GroupOf(DockPanels.Analyzer);
+    }
+
     /// <summary>Docks the search panel under the documents if it is closed, and brings it to the front.</summary>
     public void OpenSearch(string? activeDocument)
     {
