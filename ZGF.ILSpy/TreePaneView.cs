@@ -89,7 +89,7 @@ internal static class TreePaneView
             w.Analyze(node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, w, node);
-        if (node.DependsOnLanguage && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code"))
+        if (node.DependsOnLanguage && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, w, node);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, w, node.Assembly);
@@ -109,7 +109,7 @@ internal static class TreePaneView
     {
         var t = ui.State.Strings;
         var enabled = assembly.CanGeneratePdb && !w.IsExporting;
-        if (ui.MenuItem(t.TreeGeneratePdb, enabled: enabled, id: "generate-pdb"))
+        if (ui.MenuItem(t.TreeGeneratePdb, enabled: enabled, id: "generate-pdb", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFile(ui, w, assembly);
     }
 }

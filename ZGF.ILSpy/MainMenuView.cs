@@ -8,6 +8,14 @@ namespace ZGF.ILSpy;
 
 internal static class MainMenuView
 {
+    private static readonly UiIcon OpenIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
+    private static readonly UiIcon OpenFromFrameworkIcon = new(LucideIcons.Library, LucideIcons.Family);
+    private static readonly UiIcon SolutionIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
+    private static readonly UiIcon CloseIcon = new(LucideIcons.X, LucideIcons.Family);
+    private static readonly UiIcon ClearListIcon = new(LucideIcons.ListX, LucideIcons.Family);
+    private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
+    private static readonly UiIcon ExitIcon = new(LucideIcons.LogOut, LucideIcons.Family);
+
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
@@ -40,22 +48,22 @@ internal static class MainMenuView
     private static void FileMenu(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open"))
+        if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: OpenIcon))
             OpenFile(ui, w);
-        if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework"))
+        if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: OpenFromFrameworkIcon))
             w.Picker.Open();
         ui.MenuSeparator();
         ExportItems(ui, w);
         ui.MenuSeparator();
         var selected = w.Tree.View.HasSelection ? w.Tree.View.Selected!.Assembly : null;
-        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close"))
+        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: CloseIcon))
             w.Close(selected!);
-        if (ui.MenuItem(t.FileClearList, enabled: w.Tree.Roots.Count > 0, id: "clear-list"))
+        if (ui.MenuItem(t.FileClearList, enabled: w.Tree.Roots.Count > 0, id: "clear-list", icon: ClearListIcon))
             w.ClearList();
-        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: w.Tree.Roots.Count > 0, id: "reload-all"))
+        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: w.Tree.Roots.Count > 0, id: "reload-all", icon: ReloadIcon))
             w.Refresh();
         ui.MenuSeparator();
-        if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit"))
+        if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: ExitIcon))
             ui.Quit();
     }
 
@@ -63,12 +71,12 @@ internal static class MainMenuView
     {
         var t = ui.State.Strings;
         var canSave = w.CanSaveCode(w.Tabs.Active?.Node);
-        if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code"))
+        if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickActiveCodeFile(ui, w);
         var canExportAll = w.Tree.Roots.Count > 0 && !w.IsExporting;
-        if (ui.MenuItem(t.FileExportSolution, enabled: canExportAll, id: "export-solution"))
+        if (ui.MenuItem(t.FileExportSolution, enabled: canExportAll, id: "export-solution", icon: SolutionIcon))
             SaveDialogs.PickSolutionFile(ui, w);
-        if (ui.MenuItem(t.FileGeneratePdbs, enabled: canExportAll, id: "generate-pdbs"))
+        if (ui.MenuItem(t.FileGeneratePdbs, enabled: canExportAll, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, w);
     }
 

@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -9,6 +10,9 @@ namespace ZGF.ILSpy;
 internal static class SaveDialogs
 {
     private const string SuggestedSolutionName = "Assemblies.sln";
+
+    public static readonly UiIcon SaveCodeIcon = new(LucideIcons.Save, LucideIcons.Family);
+    public static readonly UiIcon PdbIcon = new(LucideIcons.Bug, LucideIcons.Family);
 
     /// <summary>Asks where to save the code of the active tab's node, when it can be saved.</summary>
     public static void PickActiveCodeFile(Ui<UiState> ui, Workspace w)

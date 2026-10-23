@@ -20,6 +20,7 @@ public static class LucideIcons
     public const string ChevronUp = "\uE070";
     public const string ChevronsDownUp = "\uE228";
     public const string ChevronsUpDown = "\uE211";
+    public const string Bug = "\uE20C";
     public const string Braces = "\uE36A";
     public const string Check = "\uE06C";
     public const string CheckSquare = "\uE16A";
@@ -36,6 +37,7 @@ public static class LucideIcons
     public const string FilterX = "\uE3B5";
     public const string Folder = "\uE0D7";
     public const string FolderOpen = "\uE247";
+    public const string FolderOutput = "\uE337";
     public const string FunctionSquare = "\uE22D";
     public const string GitCommitHorizontal = "\uE0E3";
     public const string GitFork = "\uE28D";
@@ -49,6 +51,7 @@ public static class LucideIcons
     public const string ListX = "\uE240";
     public const string Loader2 = "\uE10A";
     public const string Lock = "\uE10B";
+    public const string LogOut = "\uE10E";
     public const string Network = "\uE125";
     public const string NotebookText = "\uE598";
     public const string NotepadText = "\uE599";
@@ -56,6 +59,7 @@ public static class LucideIcons
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
     public const string RotateCcw = "\uE148";
+    public const string Save = "\uE14D";
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
     public const string Square = "\uE167";

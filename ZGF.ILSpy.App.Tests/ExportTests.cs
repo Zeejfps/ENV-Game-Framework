@@ -122,5 +122,18 @@ public sealed class ExportTests : IDisposable
         Assert.False(app.Frames.Drew("Folder is not empty"));
     }
 
+    [Fact]
+    public void The_file_menu_shows_an_icon_beside_each_item()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+
+        app.Click("File").Frame(2);
+
+        string[] icons = [LucideIcons.FolderOpen, LucideIcons.Library, LucideIcons.Save, LucideIcons.FolderOutput, LucideIcons.Bug,
+            LucideIcons.X, LucideIcons.ListX, LucideIcons.RotateCcw, LucideIcons.LogOut];
+        Assert.All(icons, icon => Assert.True(app.Frames.Drew(icon)));
+    }
+
     private IEnumerable<string> ProjectFiles() => Directory.EnumerateFiles(_temp.Path, "*.cs", SearchOption.AllDirectories);
 }
