@@ -33,6 +33,12 @@ public sealed class Workspace
         new TableColumn(3f, 80f),
         new TableColumn(2f, 60f));
 
+    /// <summary>The columns of the export dialog's table: assembly, version and project name.</summary>
+    public TableColumns ExportColumns { get; } = new(
+        new TableColumn(3f, 120f),
+        new TableColumn(1f, 64f),
+        new TableColumn(3f, 120f));
+
     /// <summary>The columns of the search results: name, location and assembly.</summary>
     public TableColumns SearchColumns { get; } = new(
         new TableColumn(3f, 120f),
@@ -136,6 +142,7 @@ public sealed class Workspace
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
+        ExportColumns.Restore(settings.ExportColumns);
         ExportSetup.Window = settings.ExportWindow;
         LastSave.Record(Assemblies, Bookmarks, Analyzer, MetadataFilters);
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);

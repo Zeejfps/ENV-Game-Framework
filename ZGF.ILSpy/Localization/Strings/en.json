@@ -302,6 +302,7 @@
   "export.build_output": "Build output",
   "export.folder_placeholder": "Folder to export into",
   "export.assembly_column": "Assembly",
+  "export.version_column": "Version",
   "export.no_match": "No assemblies match the filter.",
   "export.clear_filter": "Clear filter",
   "export.choose_title": "Choose assemblies",

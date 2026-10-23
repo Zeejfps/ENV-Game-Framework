@@ -294,6 +294,7 @@
   "export.build_output": "生成输出",
   "export.folder_placeholder": "要导出到的文件夹",
   "export.assembly_column": "程序集",
+  "export.version_column": "版本",
   "export.no_match": "没有符合筛选条件的程序集。",
   "export.clear_filter": "清除筛选",
   "export.choose_title": "选择程序集",

@@ -18,7 +18,11 @@ internal static class ExportDialogView
 {
     private const float WindowWidth = 640f;
     private const float WindowHeight = 720f;
-    private const float ProjectNameWidth = 240f;
+
+    /// <summary>The columns of the table of ticked assemblies.</summary>
+    private const int AssemblyColumn = 0;
+    private const int VersionColumn = 1;
+    private const int ProjectNameColumn = 2;
 
     /// <summary>The decompiler's names for the toggles the dialog offers.</summary>
     private const string SdkStyleProjects = "UseSdkStyleProjectFormat";
@@ -64,7 +68,7 @@ internal static class ExportDialogView
         var setup = w.ExportSetup;
         using (ui.Scroll("export-body", new Box { Height = Sizing.Grow(), Gap = theme.DialogGap }))
         {
-            Chosen(ui, setup);
+            Chosen(ui, w);
             Destination(ui, setup);
             ProjectOptions(ui, w);
             CodeOptions(ui, w);
@@ -96,12 +100,14 @@ internal static class ExportDialogView
         Clip = true,
     };
 
-    /// <summary>The ticked assemblies as a table of their project names, whose rows can be picked out
-    /// to remove together, over a strip that adds and removes assemblies and counts them.</summary>
-    private static void Chosen(Ui<UiState> ui, ExportSetup setup)
+    /// <summary>The ticked assemblies as a table of their project names, its columns resized by
+    /// dragging their borders and its rows picked out to remove together, over a strip that adds and
+    /// removes assemblies and counts them.</summary>
+    private static void Chosen(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
+        var setup = w.ExportSetup;
         var chosen = setup.IncludedChoices();
         using (Section(ui))
         {
@@ -111,7 +117,7 @@ internal static class ExportDialogView
                 if (chosen.Count == 0)
                     NoneChosen(ui);
                 else
-                    ChosenTable(ui, setup, chosen);
+                    ChosenTable(ui, w, chosen);
                 ui.Separator();
                 TableStrip(ui, setup);
             }
@@ -122,66 +128,53 @@ internal static class ExportDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        ui.Text(t.ExportNoneChosen, TableRow(theme), color: theme.TextMuted);
+        var box = new Box { Padding = new Spacing(theme.Gap, theme.GapTight) };
+        ui.Text(t.ExportNoneChosen, box, color: theme.TextMuted);
     }
 
-    private static void ChosenTable(Ui<UiState> ui, ExportSetup setup, List<ExportChoice> chosen)
+    /// <summary>The table, its header naming the columns, a row per ticked assembly; the rows picked
+    /// out go once they are all recorded, when asked to.</summary>
+    private static void ChosenTable(Ui<UiState> ui, Workspace w, List<ExportChoice> chosen)
     {
-        ChosenColumns(ui);
-        ui.Separator();
-        using (var rows = ui.SelectableRows(ui.GetId("chosen"), chosen, setup.RowSelection))
+        var t = ui.State.Strings;
+        var setup = w.ExportSetup;
+        var table = ui.Table("chosen", w.ExportColumns, setup.RowSelection);
+        table.Header([t.ExportAssemblyColumn, t.ExportVersionColumn, t.ExportProjectName]);
+        var removeRequested = false;
+        using (var rows = table.FitBody(chosen))
         {
-            if (rows.RemoveRequested)
-                setup.RemoveSelectedRows();
+            removeRequested = rows.RemoveRequested;
             var clashing = setup.ClashingChoice;
-            foreach (var choice in chosen)
-                ChosenRow(ui, rows, setup, chosen, choice, clashing);
+            for (var i = 0; i < chosen.Count; i++)
+                ChosenRow(ui, rows, i, setup, chosen, clashing);
         }
+        if (removeRequested)
+            setup.RemoveSelectedRows();
     }
 
-    /// <summary>The table's column headings, each where its cells' text starts.</summary>
-    private static void ChosenColumns(Ui<UiState> ui)
+    /// <summary>An assembly being exported: its name, its version, then its project's name, edited
+    /// in place, with what to do under it when it clashes with another's. Its path shows on hover.</summary>
+    private static void ChosenRow(Ui<UiState> ui, TableRows<ExportChoice> rows, int index, ExportSetup setup, List<ExportChoice> chosen,
+        ExportChoice? clashing)
     {
         var t = ui.State.Strings;
-        var theme = ui.Theme;
-        var projectColumn = new Box
+        var choice = chosen[index];
+        using var row = rows.Row(index);
+        using (row.Cell(AssemblyColumn))
+            AssemblyName(ui, choice);
+        using (row.Cell(VersionColumn))
+            VersionText(ui, choice);
+        using (row.Cell(ProjectNameColumn))
         {
-            Width = Sizing.Fixed(ProjectNameWidth),
-            Padding = new Spacing(theme.FieldPaddingX + theme.BorderWidth, 0f, 0f, 0f),
-        };
-        using (ui.Row(TableRow(theme)))
-        {
-            ui.Text(t.ExportAssemblyColumn, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall);
-            ui.Text(t.ExportProjectName, projectColumn, color: theme.TextMuted, size: theme.FontSizeSmall);
-        }
-    }
-
-    private static Box TableRow(UiTheme theme) => new()
-    {
-        Padding = new Spacing(theme.Gap, theme.GapTight),
-    };
-
-    /// <summary>An assembly being exported: its name, version and, for a name another open assembly
-    /// shares, its folder; then its project's name, edited in place. Its path shows on hover; under
-    /// it, when its project name clashes with another's, what to do.</summary>
-    private static void ChosenRow(Ui<UiState> ui, SelectableRowsScope<ExportChoice> rows, ExportSetup setup, List<ExportChoice> chosen,
-        ExportChoice choice, ExportChoice? clashing)
-    {
-        var t = ui.State.Strings;
-        var theme = ui.Theme;
-        using (ui.Id(choice.Assembly.FilePath))
-        {
-            var rowId = ui.GetId("row");
-            using (rows.Row(choice, rowId, TableRow(theme)))
+            using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
             {
-                AssemblyName(ui, choice);
-                ui.TextField("name", ref choice.Name, t.ExportProjectName, Sizing.Fixed(ProjectNameWidth), look: FieldLook.Cell);
+                ui.TextField("name", ref choice.Name, t.ExportProjectName, Sizing.Grow(), look: FieldLook.Cell);
+                if (choice == clashing)
+                    ClashNote(ui, choice);
             }
-            ui.Tooltip(rowId, choice.Assembly.FilePath);
-            PickOutWhileEditing(ui, setup, chosen, choice);
-            if (choice == clashing)
-                ClashNote(ui, choice);
         }
+        ui.Tooltip(row.Id, choice.Assembly.FilePath);
+        PickOutWhileEditing(ui, setup, chosen, choice);
     }
 
     /// <summary>Picks out the row of the project name being edited alone, so what Remove takes is
@@ -195,38 +188,25 @@ internal static class ExportDialogView
         setup.RowSelection.Select(choice, SelectionChange.Replace, chosen);
     }
 
-    /// <summary>The assembly's name, shortened to fit, and its version, muted; under them, when
-    /// another open assembly has its name, the end of its folder.</summary>
     private static void AssemblyName(Ui<UiState> ui, ExportChoice choice)
     {
-        var theme = ui.Theme;
-        using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
-        {
-            using (ui.Row())
-            {
-                ui.Text(choice.Assembly.Name, new Box { Width = Sizing.Grow() }, overflow: TextOverflow.Ellipsis);
-                var version = choice.Assembly.Version;
-                if (version != null)
-                    Caption(ui, version.ToString());
-            }
-            FolderHint(ui, choice);
-        }
+        ui.Text(choice.Assembly.Name, new Box { Width = Sizing.Grow() }, overflow: TextOverflow.Ellipsis);
     }
 
-    private static void FolderHint(Ui<UiState> ui, ExportChoice choice)
+    private static void VersionText(Ui<UiState> ui, ExportChoice choice)
     {
-        var hint = choice.FolderHint;
-        if (hint == null)
-            return;
         var theme = ui.Theme;
-        ui.Text(hint, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
+        var version = choice.Assembly.Version;
+        if (version == null)
+            return;
+        ui.Text(version.ToString(), new Box { Width = Sizing.Grow() }, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
     }
 
     private static void ClashNote(Ui<UiState> ui, ExportChoice choice)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var box = new Box { Padding = new Spacing(theme.Gap, 0f, theme.Gap, theme.GapTight) };
+        var box = new Box { Padding = new Spacing(theme.FieldPaddingX + theme.BorderWidth, 0f, 0f, theme.GapTight) };
         ui.Text(t.ExportNameClash(choice.Name.Trim()), box, color: theme.Danger, size: theme.FontSizeSmall, wrap: true);
     }
 
@@ -455,7 +435,7 @@ internal static class ExportDialogView
                 NoMatch(ui, picker);
                 return;
             }
-            using (ui.Scroll("export-choices", new Box { Height = Sizing.Grow() }))
+            using (ui.Scroll("export-choices", new Box { Height = Sizing.Grow(), Padding = new Spacing(0f, theme.GapTight) }))
             {
                 foreach (var choice in shown)
                     PickRow(ui, choice);
@@ -485,8 +465,6 @@ internal static class ExportDialogView
         {
             ui.Checkbox(choice.Assembly.Name, ref choice.Included, id: "include", width: Sizing.Grow(), compact: true);
             ui.Tooltip(ui.GetId("include"), choice.Assembly.FilePath);
-            if (choice.FolderHint != null)
-                Caption(ui, choice.FolderHint);
             var version = choice.Assembly.Version;
             if (version != null)
                 Caption(ui, version.ToString());

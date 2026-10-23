@@ -47,6 +47,9 @@ public sealed class AppSettings
     /// <summary>The search results' column weights as last dragged; null for the defaults.</summary>
     public List<float>? SearchColumns { get; set; }
 
+    /// <summary>The export dialog's table column weights as last dragged; null for the defaults.</summary>
+    public List<float>? ExportColumns { get; set; }
+
     /// <summary>The metadata grids' flags filters, by kind of row and column.</summary>
     public Dictionary<string, SavedFilterState>? FlagsFilters { get; set; }
 

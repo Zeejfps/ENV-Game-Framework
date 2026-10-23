@@ -294,6 +294,7 @@
   "export.build_output": "Salida de compilación",
   "export.folder_placeholder": "Carpeta a la que exportar",
   "export.assembly_column": "Ensamblado",
+  "export.version_column": "Versión",
   "export.no_match": "Ningún ensamblado coincide con el filtro.",
   "export.clear_filter": "Borrar filtro",
   "export.choose_title": "Elegir ensamblados",

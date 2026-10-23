@@ -294,6 +294,7 @@
   "export.build_output": "빌드 출력",
   "export.folder_placeholder": "내보낼 폴더",
   "export.assembly_column": "어셈블리",
+  "export.version_column": "버전",
   "export.no_match": "필터와 일치하는 어셈블리가 없습니다.",
   "export.clear_filter": "필터 지우기",
   "export.choose_title": "어셈블리 선택",

@@ -294,6 +294,7 @@
   "export.build_output": "ビルド出力",
   "export.folder_placeholder": "エクスポート先のフォルダー",
   "export.assembly_column": "アセンブリ",
+  "export.version_column": "バージョン",
   "export.no_match": "フィルターに一致するアセンブリはありません。",
   "export.clear_filter": "フィルターをクリア",
   "export.choose_title": "アセンブリを選択",

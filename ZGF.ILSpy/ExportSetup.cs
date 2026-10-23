@@ -4,14 +4,13 @@ using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An open assembly as the export dialog lists it: whether it is exported, the name of its
-/// project, and, when another open assembly has its name, the end of its folder that tells them apart.</summary>
+/// <summary>An open assembly as the export dialog lists it: whether it is exported, and the name of
+/// its project.</summary>
 public sealed class ExportChoice(LoadedAssembly assembly, string name)
 {
     public LoadedAssembly Assembly { get; } = assembly;
     public bool Included;
     public string Name = name;
-    public string? FolderHint;
 }
 
 /// <summary>What keeps an export from starting.</summary>
@@ -83,7 +82,6 @@ public sealed class ExportSetup
         foreach (var project in AssemblyExport.NameProjects(assemblies))
             Choices.Add(new ExportChoice(project.Assembly, project.Name));
         TickFirstChoice(picked);
-        AssignFolderHints();
         RowSelection.Clear();
         SolutionName = "";
         IsOpen = true;
@@ -98,55 +96,6 @@ public sealed class ExportSetup
             choice.Included = choice.Assembly == picked;
         if (Choices.Count == 1)
             Choices[0].Included = true;
-    }
-
-    /// <summary>Gives each assembly whose name another open one shares the fewest trailing parts of
-    /// its folder that no other of that name ends with; the whole path when even the folders match.</summary>
-    private void AssignFolderHints()
-    {
-        var sameNames = Choices
-            .GroupBy(static c => c.Assembly.Name, StringComparer.OrdinalIgnoreCase)
-            .Where(static g => g.Count() > 1);
-        foreach (var group in sameNames)
-            AssignFolderHints(group.ToList());
-    }
-
-    private static void AssignFolderHints(List<ExportChoice> twins)
-    {
-        var folders = twins
-            .Select(static c => FolderParts(c.Assembly.FilePath))
-            .ToList();
-        var deepest = folders.Max(static f => f.Length);
-        for (var depth = 1; depth <= deepest; depth++)
-        {
-            var hints = folders
-                .Select(f => FolderTail(f, depth))
-                .ToList();
-            if (hints.Distinct(StringComparer.OrdinalIgnoreCase).Count() < hints.Count)
-                continue;
-            for (var i = 0; i < twins.Count; i++)
-                twins[i].FolderHint = hints[i];
-            return;
-        }
-        foreach (var twin in twins)
-            twin.FolderHint = twin.Assembly.FilePath;
-    }
-
-    private static string[] FolderParts(string filePath)
-    {
-        var folder = Path.GetDirectoryName(filePath) ?? "";
-        return folder.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
-    }
-
-    /// <summary>The last <paramref name="depth"/> parts of <paramref name="parts"/>, after an ellipsis
-    /// when there are more.</summary>
-    private static string FolderTail(string[] parts, int depth)
-    {
-        var take = Math.Min(depth, parts.Length);
-        var tail = string.Join(Path.DirectorySeparatorChar, parts.Skip(parts.Length - take));
-        if (take == parts.Length)
-            return tail;
-        return "…" + Path.DirectorySeparatorChar + tail;
     }
 
     public void Close() => IsOpen = false;

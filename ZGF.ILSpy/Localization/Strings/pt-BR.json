@@ -294,6 +294,7 @@
   "export.build_output": "Saída do build",
   "export.folder_placeholder": "Pasta para exportar",
   "export.assembly_column": "Assembly",
+  "export.version_column": "Versão",
   "export.no_match": "Nenhum assembly corresponde ao filtro.",
   "export.clear_filter": "Limpar filtro",
   "export.choose_title": "Escolher assemblies",

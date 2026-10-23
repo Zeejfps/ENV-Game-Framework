@@ -294,6 +294,7 @@
   "export.build_output": "Результат сборки",
   "export.folder_placeholder": "Папка для экспорта",
   "export.assembly_column": "Сборка",
+  "export.version_column": "Версия",
   "export.no_match": "Ни одна сборка не подходит под фильтр.",
   "export.clear_filter": "Сбросить фильтр",
   "export.choose_title": "Выбор сборок",

@@ -42,6 +42,7 @@ public static class Saving
         settings.Analyzed = w.LastSessionAnalyses.ListToSave(w.Analyzer);
         settings.BookmarkColumns = w.BookmarkColumns.Weights.ToList();
         settings.SearchColumns = w.SearchColumns.Weights.ToList();
+        settings.ExportColumns = w.ExportColumns.Weights.ToList();
         settings.FlagsFilters = w.MetadataFilters.Save();
         settings.ExportWindow = w.ExportSetup.Window;
     }

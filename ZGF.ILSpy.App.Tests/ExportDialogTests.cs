@@ -306,16 +306,16 @@ public sealed class ExportDialogTests : IDisposable
         return app;
     }
 
+    /// <summary>Clicks the assembly cell of <paramref name="assembly"/>'s row: the first of the texts
+    /// on the row of the last one drawn, which is its project name.</summary>
     private static void ClickRowOf(AppDriver app, LoadedAssembly assembly, KeyModifiers modifiers = KeyModifiers.None)
     {
-        var row = app.Frames.RectOf(ui => RowId(ui, assembly));
-        app.Frames.Click(row.X + 4f, row.Y + 4f, modifiers: modifiers).Frame();
-    }
-
-    private static int RowId(Ui ui, LoadedAssembly assembly)
-    {
-        using (ui.Id(assembly.FilePath))
-            return ui.GetId("row");
+        var projectName = app.LastTextRect(assembly.Name);
+        var cell = app.Frames.TextRects()
+            .Where(t => t.Text == assembly.Name && t.Rect.Y == projectName.Y)
+            .MinBy(t => t.Rect.X)
+            .Rect;
+        app.Frames.Click(cell.X + 2f, cell.Y + cell.Height / 2, modifiers: modifiers).Frame();
     }
 
     [Fact]
@@ -348,39 +348,6 @@ public sealed class ExportDialogTests : IDisposable
 
         Assert.Equal(0, setup.IncludedCount);
         Assert.True(app.Frames.Drew("No assemblies included yet."));
-    }
-
-    [Fact]
-    public void Assemblies_with_the_same_name_are_told_apart_by_their_folders()
-    {
-        var one = Directory.CreateDirectory(_temp.PathOf("One")).FullName;
-        var two = Directory.CreateDirectory(_temp.PathOf("Two")).FullName;
-        var file = Path.GetFileName(WorkspaceDriver.FixturePath);
-        File.Copy(WorkspaceDriver.FixturePath, Path.Combine(one, file));
-        File.Copy(WorkspaceDriver.FixturePath, Path.Combine(two, file));
-        var d = new WorkspaceDriver();
-        d.Workspace.Open(Path.Combine(one, file));
-        d.Workspace.Open(Path.Combine(two, file));
-        d.RunUntil(() => d.Workspace.Assemblies.Assemblies.Count == 2);
-
-        d.Workspace.OpenExportSetup(null);
-
-        var sep = Path.DirectorySeparatorChar;
-        foreach (var choice in d.Workspace.ExportSetup.Choices)
-        {
-            var folder = Path.GetFileName(Path.GetDirectoryName(choice.Assembly.FilePath));
-            Assert.Equal("…" + sep + folder, choice.FolderHint);
-        }
-    }
-
-    [Fact]
-    public void Assemblies_with_their_own_names_get_no_folder()
-    {
-        var d = OpenedTwo();
-
-        d.Workspace.OpenExportSetup(null);
-
-        Assert.All(d.Workspace.ExportSetup.Choices, c => Assert.Null(c.FolderHint));
     }
 
     [Fact]
