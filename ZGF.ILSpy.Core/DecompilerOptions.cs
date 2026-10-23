@@ -43,11 +43,10 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
     private static readonly Dictionary<string, PropertyInfo> Properties = typeof(DecompilerSettings).GetProperties()
         .Where(static p => p.PropertyType == typeof(bool) && p.CanWrite).ToDictionary(static p => p.Name);
 
-    /// <summary>Settings that do nothing here: we pass the decompiler no debug symbols, the next
-    /// two only apply when assemblies load, and we export no projects.</summary>
+    /// <summary>Settings that do nothing here: the first two only apply when assemblies load, and
+    /// we export no projects.</summary>
     private static readonly HashSet<string> Excluded =
     [
-        nameof(DecompilerSettings.UseDebugSymbols),
         nameof(DecompilerSettings.AutoLoadAssemblyReferences),
         nameof(DecompilerSettings.ApplyWindowsRuntimeProjections),
         nameof(DecompilerSettings.UseSdkStyleProjectFormat),
@@ -60,6 +59,9 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
     private static readonly Dictionary<string, DecompilerToggle> ByName = All.ToDictionary(static t => t.Name);
 
     public static DecompilerToggle? Find(string name) => ByName.GetValueOrDefault(name);
+
+    /// <summary>Whether locals take their names from the assembly's PDB; the one toggle IL reads.</summary>
+    public static DecompilerToggle UseDebugSymbols => ByName[nameof(DecompilerSettings.UseDebugSymbols)];
 
     internal void Apply(DecompilerSettings settings, bool value) => Properties[Name].SetValue(settings, value);
 
@@ -127,6 +129,16 @@ public sealed record DecompilerOptions
 
     /// <summary>Whether <see cref="LanguageVersion"/> is new enough for <paramref name="toggle"/>.</summary>
     public bool Allows(DecompilerToggle toggle) => toggle.IntroducedIn is not { } version || version <= LanguageVersion;
+
+    /// <summary>Whether code in <paramref name="language"/> comes out the same with these options as
+    /// with <paramref name="other"/>.</summary>
+    public bool ProducesSameCode(DecompilerOptions other, DecompilationLanguage language)
+    {
+        if (language == DecompilationLanguage.CSharp)
+            return Equals(other);
+        var symbols = DecompilerToggle.UseDebugSymbols;
+        return IsOn(symbols) == other.IsOn(symbols);
+    }
 
     public DecompilerOptions With(DecompilerToggle toggle, bool value) => With([toggle], value);
 

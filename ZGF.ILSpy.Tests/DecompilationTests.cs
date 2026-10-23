@@ -94,7 +94,49 @@ public sealed class DecompilationTests
         Assert.Contains(all, t => t is { Name: "AlwaysUseBraces", Group: DecompilerToggleGroup.Other, IntroducedIn: null });
         Assert.Contains(all, t => t is { Name: "RemoveDeadCode", Group: DecompilerToggleGroup.FSharp, DefaultValue: false });
         Assert.Contains(all, t => t is { Name: "ShowXmlDocumentation", Group: DecompilerToggleGroup.Other, DefaultValue: true });
-        Assert.DoesNotContain(all, t => t.Name is "UseDebugSymbols" or "DecompileMemberBodies");
+        Assert.Contains(all, t => t is { Name: "UseDebugSymbols", Group: DecompilerToggleGroup.Other, DefaultValue: true });
+        Assert.DoesNotContain(all, t => t.Name is "DecompileMemberBodies" or "AutoLoadAssemblyReferences");
+    }
+
+    [Fact]
+    public void Locals_take_their_names_from_the_pdb_until_debug_symbols_are_off()
+    {
+        var grow = Trees.TestAssembly.Fixtures().Child("Circle", "Grow(double, int) : double");
+        var off = DecompilerOptions.Default.With(DecompilerToggle.UseDebugSymbols, false);
+
+        var named = grow.Decompile(DecompilationLanguage.CSharp).GetText();
+        var guessed = grow.Decompile(DecompilationLanguage.CSharp, off).GetText();
+
+        Assert.Contains("double grown = Radius;", named);
+        Assert.Contains("for (int step = 0; step < times; step++)", named);
+        Assert.DoesNotContain("grown", guessed);
+        Assert.DoesNotContain("step", guessed);
+    }
+
+    [Fact]
+    public void IL_names_locals_from_the_pdb_until_debug_symbols_are_off()
+    {
+        var grow = Trees.TestAssembly.Fixtures().Child("Circle", "Grow(double, int) : double");
+        var off = DecompilerOptions.Default.With(DecompilerToggle.UseDebugSymbols, false);
+
+        var named = grow.Decompile(DecompilationLanguage.IL).GetText();
+        var unnamed = grow.Decompile(DecompilationLanguage.IL, off).GetText();
+
+        Assert.Contains("[0] float64 grown,", named);
+        Assert.Contains("[1] int32 step,", named);
+        Assert.Contains("[0] float64,", unnamed);
+    }
+
+    [Fact]
+    public void IL_comes_out_the_same_under_any_toggle_but_debug_symbols()
+    {
+        var braces = DecompilerToggle.Find("AlwaysUseBraces")!;
+        var bracesOff = DecompilerOptions.Default.With(braces, false);
+        var symbolsOff = DecompilerOptions.Default.With(DecompilerToggle.UseDebugSymbols, false);
+
+        Assert.True(DecompilerOptions.Default.ProducesSameCode(bracesOff, DecompilationLanguage.IL));
+        Assert.False(DecompilerOptions.Default.ProducesSameCode(bracesOff, DecompilationLanguage.CSharp));
+        Assert.False(DecompilerOptions.Default.ProducesSameCode(symbolsOff, DecompilationLanguage.IL));
     }
 
     [Fact]

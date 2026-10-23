@@ -120,8 +120,12 @@ public sealed class DocumentTab
         Show(node, language, Language == language ? Position : null);
     }
 
-    private bool IsCurrent(DecompilationLanguage language) =>
-        language == Language && (language != DecompilationLanguage.CSharp || Options == _options());
+    private bool IsCurrent(DecompilationLanguage language)
+    {
+        if (language != Language)
+            return false;
+        return Options.ProducesSameCode(_options(), language);
+    }
 
     /// <summary>Lets go of the node, keeping <see cref="Location"/>, and shows
     /// <paramref name="message"/> instead of the document.</summary>

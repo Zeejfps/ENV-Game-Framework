@@ -72,4 +72,24 @@ internal sealed class Circle : IShape
     public double Radius { get; init; }
 
     public double Area => Math.PI * Radius * Radius;
+
+    public double Grow(double factor, int times)
+    {
+        var grown = Radius;
+        for (var step = 0; step < times; step++)
+            grown *= factor;
+        return grown;
+    }
+
+    public double Spread()
+    {
+        (double Low, double High) range = (Radius, Radius * 2);
+        return range.High - range.Low;
+    }
+
+    public object Echo(object value)
+    {
+        dynamic echoed = value;
+        return echoed;
+    }
 }

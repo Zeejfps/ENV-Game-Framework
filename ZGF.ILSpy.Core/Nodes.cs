@@ -33,8 +33,9 @@ internal sealed class AssemblyNode : BrowseNode
     {
         var file = Assembly.File;
         var result = new List<BrowseNode> { new MetadataFolderNode(Assembly, this, file, "Metadata") };
-        if (MetadataFolderNode.DebugMetadataOf(file) is var (pdb, title))
-            result.Add(new MetadataFolderNode(Assembly, this, pdb, title));
+        var symbols = Assembly.DebugSymbols;
+        if (symbols != null)
+            result.Add(new MetadataFolderNode(Assembly, this, symbols.File, symbols.Title));
         result.Add(new ReferencesFolderNode(Assembly, this));
         if (!file.Resources.IsEmpty)
             result.Add(new ResourcesFolderNode(Assembly, this));

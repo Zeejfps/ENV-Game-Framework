@@ -115,6 +115,7 @@ internal static class DecompilerOptionLabels
         "SortSwitchSections" => t.OptionSortSwitchSections,
         "CheckForOverflowUnderflow" => t.OptionCheckForOverflowUnderflow,
         "ShowXmlDocumentation" => t.OptionShowXmlDocumentation,
+        "UseDebugSymbols" => t.OptionUseDebugSymbols,
         _ => null,
     };
 }

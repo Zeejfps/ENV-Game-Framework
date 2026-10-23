@@ -16,6 +16,7 @@ public sealed class LoadedAssembly
     private static readonly TypeSystemOptions DefaultTypeSystemOptions = DecompilerTypeSystem.GetOptions(Settings.Create());
 
     private readonly Lazy<DecompilerTypeSystem> _typeSystem;
+    private readonly Lazy<DebugSymbols?> _debugSymbols;
     private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
     private readonly Lazy<AssemblyNode> _root;
@@ -41,6 +42,7 @@ public sealed class LoadedAssembly
         TargetFramework = TryDetectTargetFramework(file);
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
+        _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File));
         _root = new Lazy<AssemblyNode>(() => new AssemblyNode(this));
     }
 
@@ -95,6 +97,9 @@ public sealed class LoadedAssembly
     internal bool IsListed { get; set; }
 
     internal DecompilerTypeSystem TypeSystem => _typeSystem.Value;
+
+    /// <summary>The assembly's portable PDB, read once; null when it has none.</summary>
+    internal DebugSymbols? DebugSymbols => _debugSymbols.Value;
 
     internal MetadataModule Module => TypeSystem.MainModule;
 

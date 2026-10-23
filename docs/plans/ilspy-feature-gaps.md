@@ -7,21 +7,20 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Biggest gaps
 
-1. **Debug symbols in decompiled code.** Variable names from PDBs in the output; the decompiler
-   gets no debug-info provider. Its option (`UseDebugSymbols`) is left out of the options panel
-   until then, as are the load-time `AutoLoadAssemblyReferences` and
-   `ApplyWindowsRuntimeProjections`.
-2. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
+1. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
    (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
    batch).
-3. **XML-doc hover tooltips** in the code view. We have no code-view hover tooltips at all.
-4. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
+2. **XML-doc hover tooltips** in the code view. We have no code-view hover tooltips at all.
+3. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
    GAC (Windows), open from a running process, single-file bundles, WebCIL `.wasm`.
-5. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
+4. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
 
 ## Medium
 
 - **Languages:** IL with C# (interleaved); ReadyToRun disassembly (plugin upstream).
+- **Debug symbols:** local names come only from portable PDBs; upstream also reads Windows PDBs
+  (through Mono.Cecil). The load-time `AutoLoadAssemblyReferences` and
+  `ApplyWindowsRuntimeProjections` are left out of the options panel.
 - **Resources:** BAML → XAML, `!AvaloniaResources` unpacked into the tree.
 - **Display options:** font and size, zoom, word wrap, line-number toggle, bracket matching,
   current-line highlight.
@@ -46,6 +45,5 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Suggested order
 
-1. Debug symbols in decompiled code.
-2. Save code and project export.
-3. XML-doc tooltips.
+1. Save code and project export.
+2. XML-doc tooltips.

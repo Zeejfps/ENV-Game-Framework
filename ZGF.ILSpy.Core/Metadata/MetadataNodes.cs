@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
@@ -62,42 +61,6 @@ internal sealed class MetadataFolderNode(LoadedAssembly assembly, BrowseNode par
         foreach (var (title, heap) in MetadataHeaps.Create(File))
             result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeap, title, File, heap));
         return result.ToArray();
-    }
-
-    /// <summary>The portable PDB that goes with <paramref name="file"/> as ILSpy shows it beside
-    /// the "Metadata" folder: the one embedded in it, else the one next to it whose id matches its
-    /// CodeView entry. Null when there is none, or it cannot be read.</summary>
-    public static (MetadataFile File, string Title)? DebugMetadataOf(PEFile file)
-    {
-        try
-        {
-            var reader = file.Reader;
-            var entries = reader.ReadDebugDirectory();
-            foreach (var entry in entries)
-            {
-                if (entry.Type != DebugDirectoryEntryType.EmbeddedPortablePdb) continue;
-                var provider = reader.ReadEmbeddedPortablePdbDebugDirectoryData(entry);
-                return (new MetadataFile(MetadataFile.MetadataFileKind.ProgramDebugDatabase, file.FileName, provider, isEmbedded: true),
-                    "Debug Metadata (Embedded)");
-            }
-            foreach (var entry in entries)
-            {
-                if (entry.Type != DebugDirectoryEntryType.CodeView) continue;
-                var codeView = reader.ReadCodeViewDebugDirectoryData(entry);
-                var path = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(file.FileName) ?? "", System.IO.Path.GetFileName(codeView.Path));
-                if (!System.IO.File.Exists(path))
-                    path = System.IO.Path.ChangeExtension(file.FileName, ".pdb");
-                if (!System.IO.File.Exists(path)) continue;
-                var provider = MetadataReaderProvider.FromPortablePdbImage(ImmutableArray.Create(System.IO.File.ReadAllBytes(path)));
-                var id = new BlobContentId(provider.GetMetadataReader().DebugMetadataHeader!.Id);
-                if (id.Guid != codeView.Guid || id.Stamp != entry.Stamp) continue;
-                return (new MetadataFile(MetadataFile.MetadataFileKind.ProgramDebugDatabase, path, provider), "Debug Metadata (From portable PDB)");
-            }
-        }
-        catch (Exception e) when (e is BadImageFormatException or IOException or UnauthorizedAccessException or InvalidOperationException)
-        {
-        }
-        return null;
     }
 }
 

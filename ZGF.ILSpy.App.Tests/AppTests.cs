@@ -207,6 +207,21 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void Turning_debug_symbols_off_disassembles_an_open_IL_document_again()
+    {
+        var app = AppDriver.Opened();
+        app.Workspace.SetLanguage(DecompilationLanguage.IL);
+        app.Show(app.Fixture("Outline"), 1);
+        var named = app.Workspace.Tabs.Active!.Document.GetText();
+
+        app.Workspace.SetDecompilerToggle(DecompilerToggle.UseDebugSymbols, false);
+        app.Settle(1);
+
+        Assert.Contains("int32 total", named);
+        Assert.DoesNotContain("int32 total", app.Workspace.Tabs.Active!.Document.GetText());
+    }
+
+    [Fact]
     public void Options_newer_than_the_version_are_greyed_out_and_groups_fold()
     {
         var app = AppDriver.Opened(width: 1600f);

@@ -62,14 +62,14 @@ public sealed class CodeViewFoldTests
         Assert.Equal(2, lit);
         Assert.True(view.State.IsCollapsed(document.FoldIndexAt("public int First()")));
         Assert.Contains("    public int First(){ … }", folded);
-        Assert.DoesNotContain(folded, r => r.Contains("int num = 0;"));
+        Assert.DoesNotContain(folded, r => r.Contains("int total = 0;"));
         Assert.Equal((first + 1).ToString(), numbers[row]);
         Assert.Equal((document.FoldAt("public int First()").EndLine + 2).ToString(), numbers[row + 1]);
 
         view.Click(row, document.Lines[first].Text.Length + 2);
 
         Assert.False(view.State.IsCollapsed(document.FoldIndexAt("public int First()")));
-        Assert.Contains(Rows(view), r => r.Contains("int num = 0;"));
+        Assert.Contains(Rows(view), r => r.Contains("int total = 0;"));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class CodeViewFoldTests
     {
         var view = Outline();
         var document = view.Document;
-        var (line, column) = document.Find("stringBuilder.Append");
+        var (line, column) = document.Find("builder.Append");
         var second = document.FoldIndexAt("public string Second()");
         view.Click(line - 1, column);
 
@@ -148,7 +148,7 @@ public sealed class CodeViewFoldTests
 
         var end = document.FoldAt("public int First()").EndLine + 2;
         Assert.Equal(CodeText.Between(document, new TextPosition(first - 1, 0), new TextPosition(end, 4)), view.Frames.Clipboard.Text);
-        Assert.Contains("int num = 0;", view.Frames.Clipboard.Text);
+        Assert.Contains("int total = 0;", view.Frames.Clipboard.Text);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public sealed class CodeViewFoldTests
         view.Frames.Type("needle").Frame(2);
 
         Assert.False(view.State.IsCollapsed(second));
-        Assert.Contains(Rows(view), r => r.Contains("stringBuilder.Append(\"needle\")"));
+        Assert.Contains(Rows(view), r => r.Contains("builder.Append(\"needle\")"));
         Assert.Equal(document.Find("\"needle\"").Line, view.State.Selection.Start.Line);
     }
 

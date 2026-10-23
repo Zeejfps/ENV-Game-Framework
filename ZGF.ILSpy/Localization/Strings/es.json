@@ -170,6 +170,7 @@
   "option.sort_switch_sections": "Ordenar secciones switch",
   "option.check_for_overflow_underflow": "El código se compiló con comprobación de desbordamiento",
   "option.show_xml_documentation": "Incluir comentarios de documentación XML en el código descompilado",
+  "option.use_debug_symbols": "Usar nombres de variables de los símbolos de depuración, si están disponibles",
   "tree.empty": "Abre un ensamblado con Archivo › Abrir… ({shortcut})",
   "tree.open_in_new_tab": "Abrir en una pestaña nueva",
   "tree.go_to_target": "Ir al destino",
