@@ -271,6 +271,7 @@
   "exports.failed": "Fallida",
   "exports.cancelled": "Cancelada",
   "exports.remove": "Quitar del historial",
+  "exports.copy_folder": "Copiar la ruta de la carpeta",
   "exports.withdraw": "Quitar de la cola",
   "exports.waiting": "En espera",
   "exports.cancel": "Cancelar",

@@ -271,6 +271,7 @@
   "exports.failed": "失败",
   "exports.cancelled": "已取消",
   "exports.remove": "从历史中移除",
+  "exports.copy_folder": "复制文件夹路径",
   "exports.withdraw": "从队列中移除",
   "exports.waiting": "等待中",
   "exports.cancel": "取消",

@@ -96,6 +96,12 @@ public sealed class Workspace
     /// exports panel.</summary>
     public List<ExportReport> FinishedExports { get; } = new();
 
+    /// <summary>The run of the export selected in the exports panel, or 0; one that is gone is as none.</summary>
+    public int SelectedExport;
+
+    /// <summary>The run of the export the exports panel's context menu was opened on, or 0.</summary>
+    public int ExportMenuTarget;
+
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
 

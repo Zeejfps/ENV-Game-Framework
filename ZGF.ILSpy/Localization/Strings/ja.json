@@ -271,6 +271,7 @@
   "exports.failed": "失敗",
   "exports.cancelled": "キャンセル済み",
   "exports.remove": "履歴から削除",
+  "exports.copy_folder": "フォルダーのパスをコピー",
   "exports.withdraw": "キューから削除",
   "exports.waiting": "待機中",
   "exports.cancel": "キャンセル",

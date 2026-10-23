@@ -271,6 +271,7 @@
   "exports.failed": "Échec",
   "exports.cancelled": "Annulé",
   "exports.remove": "Retirer de l’historique",
+  "exports.copy_folder": "Copier le chemin du dossier",
   "exports.withdraw": "Retirer de la file",
   "exports.waiting": "En attente",
   "exports.cancel": "Annuler",

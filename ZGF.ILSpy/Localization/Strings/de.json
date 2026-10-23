@@ -271,6 +271,7 @@
   "exports.failed": "Fehlgeschlagen",
   "exports.cancelled": "Abgebrochen",
   "exports.remove": "Aus dem Verlauf entfernen",
+  "exports.copy_folder": "Ordnerpfad kopieren",
   "exports.withdraw": "Aus der Warteschlange entfernen",
   "exports.waiting": "Wartet",
   "exports.cancel": "Abbrechen",

@@ -279,6 +279,7 @@
   "exports.failed": "Failed",
   "exports.cancelled": "Cancelled",
   "exports.remove": "Remove from history",
+  "exports.copy_folder": "Copy folder path",
   "exports.withdraw": "Remove from queue",
   "exports.waiting": "Waiting",
   "exports.cancel": "Cancel",

@@ -285,6 +285,68 @@ public static class Exporting
         tab.ShowText(t.ExportReportTitle, document);
     }
 
+    /// <summary>The runs of every export in the order the exports panel lists them: the running one,
+    /// the waiting ones next first, then the finished ones newest first.</summary>
+    public static List<int> ListExports(this Workspace w)
+    {
+        var runs = new List<int>();
+        var running = w.Export.Running;
+        if (running != null)
+            runs.Add(running.Run);
+        foreach (var waiting in w.Export.Waiting)
+            runs.Add(waiting.Run);
+        for (var i = w.FinishedExports.Count - 1; i >= 0; i--)
+            runs.Add(w.FinishedExports[i].Run);
+        return runs;
+    }
+
+    /// <summary>The finished export <paramref name="run"/>, or null when it has not finished or is gone.</summary>
+    public static ExportReport? FindFinishedExport(this Workspace w, int run) => w.FinishedExports.Find(r => r.Run == run);
+
+    /// <summary>The folder the export <paramref name="run"/> writes into, wherever it is in the
+    /// queue, or null when it is gone.</summary>
+    public static string? FolderOfExport(this Workspace w, int run)
+    {
+        var finished = w.FindFinishedExport(run);
+        if (finished != null)
+            return finished.Folder;
+        var queued = w.FindQueuedExport(run);
+        if (queued == null)
+            return null;
+        return queued.Job.Folder;
+    }
+
+    private static QueuedExport? FindQueuedExport(this Workspace w, int run)
+    {
+        var running = w.Export.Running;
+        if (running != null && running.Run == run)
+            return running;
+        return w.Export.Waiting.FirstOrDefault(q => q.Run == run);
+    }
+
+    /// <summary>Does what activating the export <paramref name="run"/> means: shows the report of a
+    /// finished one; nothing for one still running or waiting.</summary>
+    public static void ActivateExport(this Workspace w, int run)
+    {
+        var finished = w.FindFinishedExport(run);
+        if (finished == null)
+            return;
+        w.ShowExportReport(finished);
+    }
+
+    /// <summary>Takes the export <paramref name="run"/> off the panel: out of the queue when it waits,
+    /// off the history when it finished. A running one stays; only cancelling stops it.</summary>
+    public static void RemoveExport(this Workspace w, int run)
+    {
+        var finished = w.FindFinishedExport(run);
+        if (finished != null)
+        {
+            w.RemoveFinishedExport(finished);
+            return;
+        }
+        w.Export.Withdraw(run);
+    }
+
     /// <summary>Takes <paramref name="report"/> off the list of finished exports.</summary>
     public static void RemoveFinishedExport(this Workspace w, ExportReport report) => w.FinishedExports.Remove(report);
 
