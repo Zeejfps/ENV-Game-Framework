@@ -1,3 +1,5 @@
+using ZGF.Desktop;
+
 namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class RichTextTests
@@ -42,6 +44,59 @@ public sealed class RichTextTests
         Assert.Equal(5 * 8f, call.Rect.X);
         Assert.Equal(5 * 8f, frames.ToUi(chip.Inputs.Position).X);
         Assert.Equal(5 * 8f, frames.ToUi(chip.Inputs.Position).Width);
+    }
+
+    /// <summary>"see " then a link to "list", in its own frames, keeping the last link clicked.</summary>
+    private sealed class LinkText
+    {
+        private IReadOnlyList<RichTextRun>? _runs;
+
+        public LinkText() => Frames = new UiFrames(body: Render);
+
+        public UiFrames Frames { get; }
+        public RichTextClick Clicked { get; private set; }
+
+        private void Render(Ui ui)
+        {
+            _runs ??= [new RichTextRun("see ", ui.StyleText()), new RichTextRun("List", ui.StyleText(Red), Link: "list")];
+            var click = ui.RichText(_runs, wrap: false, id: ui.GetId("t"));
+            if (click.Link != null)
+                Clicked = click;
+        }
+    }
+
+    [Fact]
+    public void A_link_under_the_pointer_shows_a_hand_and_an_underline()
+    {
+        var text = new LinkText();
+        var frames = text.Frames.Frame();
+        var link = frames.TextRect("List");
+        var plain = frames.TextRect("see ");
+
+        frames.MovePointer(plain).Frame(2);
+        var plainCursor = frames.Cursor;
+        var plainRules = frames.Canvas.Lines.Count;
+        frames.MovePointer(link).Frame(2);
+
+        Assert.NotEqual(MouseCursor.Hand, plainCursor);
+        Assert.Equal(0, plainRules);
+        Assert.Equal(MouseCursor.Hand, frames.Cursor);
+        Assert.Single(frames.Canvas.Lines);
+    }
+
+    [Fact]
+    public void A_left_or_middle_click_on_a_link_returns_it_with_its_button()
+    {
+        var text = new LinkText();
+        var frames = text.Frames.Frame();
+        var link = frames.TextRect("List");
+
+        frames.Click(link).Frame();
+        var left = text.Clicked;
+        frames.Click(link, PointerButton.Middle).Frame();
+
+        Assert.Equal(new RichTextClick("list", PointerButton.Left), left);
+        Assert.Equal(new RichTextClick("list", PointerButton.Middle), text.Clicked);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using ZGF.KeyboardModule;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -60,5 +61,118 @@ public sealed class PartTooltipTests
         frames.MovePointer(400f, 300f).Frame(2);
 
         Assert.False(Shows(frames, "part 1"));
+    }
+}
+
+public sealed class InteractiveTooltipTests
+{
+    private const float PartWidth = 50f;
+    private const float PartHeight = 30f;
+
+    /// <summary>A 100 wide element whose left half shows an interactive tooltip holding a link,
+    /// keeping the last link clicked.</summary>
+    private sealed class LinkTooltip
+    {
+        private static readonly TooltipLook Look = new(200f, new Spacing(4f), Align.Start, Interactive: true);
+        private IReadOnlyList<RichTextRun>? _runs;
+
+        public LinkTooltip() => Frames = new UiFrames(body: Render, width: 800f, height: 600f);
+
+        public UiFrames Frames { get; }
+        public RichTextClick Clicked { get; private set; }
+
+        private void Render(Ui ui)
+        {
+            var b = ui.Interact("b");
+            ui.Leaf(b.Id, new Box { Width = 2 * PartWidth, Height = PartHeight });
+            var part = ui.IsHovered(b.Id) && ui.Input.Pointer.X < PartWidth ? 1 : 0;
+            var anchor = new UiRect(0f, 0f, PartWidth, PartHeight);
+            using var tooltip = ui.TooltipContent(b.Id, part, anchor, out var shown, Look);
+            if (!tooltip.IsOpen || shown != 1)
+                return;
+            _runs ??= [new RichTextRun("go to ", ui.StyleText()), new RichTextRun("target", ui.StyleText(), Link: "target")];
+            var click = ui.RichText(_runs, wrap: false, id: ui.GetId("link"));
+            if (click.Link != null)
+                Clicked = click;
+        }
+    }
+
+    private static UiFrames Opened(LinkTooltip tooltip)
+    {
+        var frames = tooltip.Frames.Frame();
+        frames.MovePointer(20f, 15f).Frame();
+        frames.Wait(0.6).Frame(2);
+        return frames;
+    }
+
+    private static bool Shows(UiFrames frames) => frames.Drew("target");
+
+    [Fact]
+    public void The_pointer_can_move_from_the_part_into_the_tooltip_and_it_stays_open()
+    {
+        var frames = Opened(new LinkTooltip());
+        var link = frames.TextRect("target");
+
+        frames.MovePointer(link).Frame();
+        frames.Wait(1.0).Frame(2);
+
+        Assert.True(Shows(frames));
+    }
+
+    [Fact]
+    public void Leaving_for_elsewhere_closes_it_after_a_moment()
+    {
+        var frames = Opened(new LinkTooltip());
+
+        frames.MovePointer(500f, 400f).Frame();
+        var during = Shows(frames);
+        frames.Wait(0.3).Frame(2);
+
+        Assert.True(during);
+        Assert.False(Shows(frames));
+    }
+
+    [Fact]
+    public void Escape_closes_it()
+    {
+        var frames = Opened(new LinkTooltip());
+
+        frames.Key(KeyboardKey.Escape).Frame(2);
+
+        Assert.False(Shows(frames));
+    }
+
+    [Fact]
+    public void A_link_in_it_can_be_clicked()
+    {
+        var tooltip = new LinkTooltip();
+        var frames = Opened(tooltip);
+        var link = frames.TextRect("target");
+
+        frames.MovePointer(link).Frame();
+        frames.Click(link).Frame();
+
+        Assert.Equal(new RichTextClick("target", PointerButton.Left), tooltip.Clicked);
+    }
+
+    [Fact]
+    public void Content_taller_than_the_look_allows_scrolls_inside_it()
+    {
+        var look = new TooltipLook(200f, new Spacing(4f), Align.Start, Interactive: true, MaxHeight: 60f);
+        var lines = string.Join('\n', Enumerable.Range(0, 20).Select(i => $"line {i}"));
+        var frames = new UiFrames(body: ui =>
+        {
+            var b = ui.Interact("b");
+            ui.Leaf(b.Id, new Box { Width = PartWidth, Height = PartHeight });
+            var part = ui.IsHovered(b.Id) ? 1 : 0;
+            using var tooltip = ui.TooltipContent(b.Id, part, new UiRect(0f, 0f, PartWidth, PartHeight), look);
+            if (tooltip.IsOpen)
+                ui.Text(lines);
+        }, width: 800f, height: 600f).Frame();
+        frames.MovePointer(20f, 15f).Frame();
+        frames.Wait(0.6).Frame(2);
+
+        Assert.True(frames.Drew("line 0"));
+        Assert.False(frames.Drew("line 19"));
     }
 }

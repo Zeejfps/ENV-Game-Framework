@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -16,6 +17,7 @@ internal static class CodeTooltipView
 {
     public const float PaddingX = 12f;
     private const float MaxWidth = 560f;
+    private const float MaxHeight = 480f;
     private const float SignaturePaddingY = 8f;
     private const float ContextGap = 2f;
     private const float ParameterIndent = 16f;
@@ -43,20 +45,33 @@ internal static class CodeTooltipView
     private const float HeadingMix = 0.2f;
 
     /// <summary>The popup the tooltip is shown in: unpadded, as the tooltip pads its own parts,
-    /// and starting where the hovered word starts.</summary>
-    public static readonly TooltipLook Look = new(MaxWidth, new Spacing(0f, 0f), Align.Start);
+    /// starting where the hovered word starts, and interactive, so its links can be clicked and
+    /// long documentation scrolled.</summary>
+    public static readonly TooltipLook Look = new(MaxWidth, new Spacing(0f, 0f), Align.Start, Interactive: true, MaxHeight: MaxHeight);
 
-    public static void Render(Ui ui, Strings t, CodeTooltip tooltip)
+    /// <summary>Records the tooltip and returns the link clicked in it this frame, if one was.</summary>
+    public static RichTextClick Render(Ui ui, Strings t, CodeTooltip tooltip)
     {
         var layout = LayoutOf(ui, t, tooltip);
+        layout.Clicked = default;
         using (ui.Column(new Box { Gap = 0f }))
         {
             RenderSignature(ui, layout);
             if (layout.Groups.Count == 0)
-                return;
+                return layout.Clicked;
             ui.Separator();
             RenderDocumentation(ui, layout);
         }
+        return layout.Clicked;
+    }
+
+    /// <summary>Records <paramref name="runs"/> with their links clickable, keeping a click on one.</summary>
+    private static void Text(Ui ui, TooltipLayout layout, IReadOnlyList<RichTextRun> runs)
+    {
+        var id = ui.GetId(RuntimeHelpers.GetHashCode(runs));
+        var click = ui.RichText(runs, codeBackground: layout.CodeBackground, id: id);
+        if (click.Link != null)
+            layout.Clicked = click;
     }
 
     private static void RenderSignature(Ui ui, TooltipLayout layout)
@@ -65,7 +80,7 @@ internal static class CodeTooltipView
         {
             RenderDeclaration(ui, layout);
             if (layout.Container.Count > 0)
-                ui.RichText(layout.Container);
+                Text(ui, layout, layout.Container);
             RenderConstraints(ui, layout);
         }
     }
@@ -77,7 +92,7 @@ internal static class CodeTooltipView
         using (ui.Column(new Box { Padding = new Spacing(0f, ConstraintGap, 0f, 0f), Gap = 0f }))
         {
             foreach (var constraint in layout.Constraints)
-                ui.RichText(constraint);
+                Text(ui, layout, constraint);
         }
     }
 
@@ -85,16 +100,16 @@ internal static class CodeTooltipView
     {
         if (FitsOnOneLine(ui, layout))
         {
-            ui.RichText(layout.Declaration);
+            Text(ui, layout, layout.Declaration);
             return;
         }
         using (ui.Column(new Box { Gap = 0f }))
         {
-            ui.RichText(layout.DeclarationHead);
+            Text(ui, layout, layout.DeclarationHead);
             using (ui.Column(new Box { Padding = new Spacing(ParameterIndent, 0f, 0f, 0f), Gap = 0f }))
             {
                 foreach (var parameter in layout.Parameters)
-                    ui.RichText(parameter);
+                    Text(ui, layout, parameter);
             }
         }
     }
@@ -123,7 +138,7 @@ internal static class CodeTooltipView
         using (ui.Column(new Box { Gap = HeadingGap }))
         {
             if (group.Heading != null)
-                ui.RichText(group.Heading);
+                Text(ui, layout, group.Heading);
             var labelWidth = LabelWidth(ui, group.Entries);
             using (ui.Column(new Box { Gap = EntryGap }))
             {
@@ -168,7 +183,7 @@ internal static class CodeTooltipView
         using (ui.Row(new Box { Gap = 0f }))
         {
             using (ui.Column(new Box { Width = labelWidth }))
-                ui.RichText(entry.Label!);
+                Text(ui, layout, entry.Label!);
             using (ui.Column(new Box { Width = Sizing.Grow() }))
                 RenderBlocks(ui, layout, entry.Blocks);
         }
@@ -179,7 +194,7 @@ internal static class CodeTooltipView
     {
         using (ui.Column(new Box { Gap = ExceptionGap }))
         {
-            ui.RichText(entry.Label!);
+            Text(ui, layout, entry.Label!);
             using (ui.Column(new Box { Padding = new Spacing(ExceptionIndent, 0f, 0f, 0f) }))
                 RenderBlocks(ui, layout, entry.Blocks);
         }
@@ -199,7 +214,7 @@ internal static class CodeTooltipView
         switch (block)
         {
             case TextBlock text:
-                ui.RichText(text.Runs, codeBackground: layout.CodeBackground);
+                Text(ui, layout, text.Runs);
                 break;
             case CodeBlock code:
                 RenderCode(ui, layout, code);
@@ -220,7 +235,7 @@ internal static class CodeTooltipView
             Background = layout.CodeBlockBackground,
         };
         using (ui.Column(box))
-            ui.RichText(code.Runs);
+            Text(ui, layout, code.Runs);
     }
 
     /// <summary>Each row's lead — a marker, or a table's term — in a column of its own, so wrapped
@@ -252,9 +267,9 @@ internal static class CodeTooltipView
         using (ui.Row(new Box { Gap = 0f }))
         {
             using (ui.Column(new Box { Width = leadWidth }))
-                ui.RichText(row.Lead);
+                Text(ui, layout, row.Lead);
             using (ui.Column(new Box { Width = Sizing.Grow() }))
-                ui.RichText(row.Content, codeBackground: layout.CodeBackground);
+                Text(ui, layout, row.Content);
         }
     }
 
@@ -299,6 +314,7 @@ internal static class CodeTooltipView
         public Strings? Strings;
         public uint CodeBackground;
         public uint CodeBlockBackground;
+        public RichTextClick Clicked;
         public IReadOnlyList<RichTextRun> Declaration = [];
         public IReadOnlyList<RichTextRun> DeclarationHead = [];
         public readonly List<IReadOnlyList<RichTextRun>> Parameters = new();
@@ -391,7 +407,7 @@ internal static class CodeTooltipView
             if (stop <= start)
                 continue;
             var text = line.Text.Substring(start, stop - start);
-            runs.Add(new RichTextRun(text, styles.Code(span.Kind)));
+            runs.Add(new RichTextRun(text, styles.Code(span.Kind), Link: LinkOf(span.Reference)));
         }
         return runs;
     }
@@ -561,13 +577,24 @@ internal static class CodeTooltipView
         return converted;
     }
 
+    /// <summary>What a name links to: the type or member a reference points at; none for a local
+    /// or an assembly.</summary>
+    private static CodeReference? LinkOf(CodeReference? reference)
+    {
+        if (reference is not { IsNavigable: true })
+            return null;
+        if (reference.Kind == CodeReferenceKind.Assembly)
+            return null;
+        return reference;
+    }
+
     private static RichTextRun Run(TooltipStyles styles, DocRun run) =>
         run.Style switch
         {
             DocStyle.Bold => new RichTextRun(run.Text, styles.Bold),
             DocStyle.Italic => new RichTextRun(run.Text, styles.Italic),
             DocStyle.Code => new RichTextRun(run.Text, styles.CodeBlock, IsCode: true),
-            DocStyle.Reference => new RichTextRun(run.Text, styles.Reference(run.Reference)),
+            DocStyle.Reference => new RichTextRun(run.Text, styles.Reference(run.Reference), Link: LinkOf(run.Reference)),
             _ => new RichTextRun(run.Text, styles.Plain),
         };
 

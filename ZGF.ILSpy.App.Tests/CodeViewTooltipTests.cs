@@ -9,6 +9,7 @@ public sealed class CodeViewTooltipTests
     private const int MaxPolls = 200;
     private const double PollSeconds = 0.05;
     private const float WindowHeight = 700f;
+    private const double LeaveGraceSeconds = 0.3;
     private const string Context = "ZGF.ILSpy.App.Tests.Fixtures.Farewell";
 
     private static CodeViewDriver Farewell()
@@ -82,6 +83,23 @@ public sealed class CodeViewTooltipTests
     }
 
     [Fact]
+    public void Clicking_a_type_in_the_tooltip_navigates_to_it_and_closes_the_tooltip()
+    {
+        var view = Farewell();
+        RestOn(view, "Say()");
+        Assert.True(DrawsSoon(view, "Says "));
+
+        var type = TooltipText(view, "Farewell");
+        var result = view.Click((type.X + 2f, type.Y + type.Height / 2));
+        view.Run(2);
+
+        Assert.Equal(CodeReferenceKind.Type, result.Navigate?.Kind);
+        Assert.Equal("Farewell", result.Navigate?.Name);
+        Assert.False(result.NavigateInNewTab);
+        Assert.False(view.Frames.Drew("Says "));
+    }
+
+    [Fact]
     public void The_tooltip_waits_for_the_pointer_to_rest_and_closes_when_it_leaves()
     {
         var view = Farewell();
@@ -89,7 +107,7 @@ public sealed class CodeViewTooltipTests
         Assert.True(DrawsSoon(view, "Says "));
 
         view.MoveTo(0, 0);
-        view.Run(2);
+        view.Frames.Wait(LeaveGraceSeconds).Frame(2);
 
         Assert.False(view.Frames.Drew("Says "));
     }

@@ -1,3 +1,5 @@
+using ZGF.Desktop;
+
 namespace ZGF.Gui.Immediate;
 
 public sealed partial class Ui
@@ -218,21 +220,74 @@ public sealed partial class Ui
     /// width, which grows to fill its parent unless the box sizes it. Without
     /// <paramref name="wrap"/> it keeps its lines, breaking only at '\n'. Code runs are drawn on a
     /// chip of <paramref name="codeBackground"/> when it is not transparent. Layouts are kept by the
-    /// list's identity, so pass the same list while the text is the same.</summary>
-    public void RichText(IReadOnlyList<RichTextRun> runs, Box box = default, uint codeBackground = 0u, bool wrap = true, int id = 0)
+    /// list's identity, so pass the same list while the text is the same. With an
+    /// <paramref name="id"/>, runs with a <see cref="RichTextRun.Link"/> are links: the pointer turns
+    /// to a hand and underlines the one it is over, and a left or middle click on one returns it.</summary>
+    public RichTextClick RichText(IReadOnlyList<RichTextRun> runs, Box box = default, uint codeBackground = 0u, bool wrap = true, int id = 0)
     {
         if (wrap && box.Width == null)
             box = box with { Width = Sizing.Grow() };
+        var hoveredLink = -1;
+        var click = default(RichTextClick);
+        if (id != 0 && HasLinks(runs))
+            hoveredLink = InteractWithLinks(runs, box, wrap, id, out click);
         var e = Describe(id, box, null, null);
         var natural = LayOutRuns(runs, 0f);
         e.Runs = runs;
         e.RunLines = natural;
+        e.HoveredRun = hoveredLink;
         e.Wrap = wrap;
         e.CodeBackground = codeBackground;
         e.ContentWidth = MathF.Ceiling(natural.MaxLineWidth);
         e.ContentHeight = MathF.Ceiling(natural.Height);
         Push(e);
         Close();
+        return click;
+    }
+
+    private static bool HasLinks(IReadOnlyList<RichTextRun> runs)
+    {
+        foreach (var run in runs)
+        {
+            if (run.Link != null)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>The link run under the pointer, -1 when there is none, and the click on it.</summary>
+    private int InteractWithLinks(IReadOnlyList<RichTextRun> runs, Box box, bool wrap, int id, out RichTextClick click)
+    {
+        click = default;
+        var interaction = Interact(id);
+        var hovered = LinkUnderPointer(runs, box, wrap, id);
+        if (hovered < 0)
+            return -1;
+        SetCursor(MouseCursor.Hand);
+        var link = runs[hovered].Link;
+        if (interaction.Clicked)
+            click = new RichTextClick(link, PointerButton.Left);
+        else if (interaction.ClickedWith(PointerButton.Middle))
+            click = new RichTextClick(link, PointerButton.Middle);
+        return hovered;
+    }
+
+    /// <summary>The run with a link under the pointer, laid out as last frame laid out the element.</summary>
+    private int LinkUnderPointer(IReadOnlyList<RichTextRun> runs, Box box, bool wrap, int id)
+    {
+        if (!IsHovered(id))
+            return -1;
+        if (!TryGetRect(id, out var rect))
+            return -1;
+        var padding = box.Padding ?? default;
+        var width = rect.Width - padding.Left - padding.Right;
+        var layout = LayOutRuns(runs, wrap ? width : 0f);
+        var x = Input.Pointer.X - rect.X - padding.Left;
+        var y = Input.Pointer.Y - rect.Y - padding.Top;
+        var run = RichTextLayout.RunAt(layout, x, y);
+        if (run < 0 || runs[run].Link == null)
+            return -1;
+        return run;
     }
 
     /// <summary>Paints custom content on the element being recorded, after its background and

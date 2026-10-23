@@ -31,10 +31,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.
 - **Navigation:** preview tabs, Close all documents, Search MSDN, omnibar (breadcrumb + search).
-- **Code tooltip links:** a cref in a tooltip is colored but cannot be clicked. Upstream keeps the
-  tooltip open while the pointer moves into it and navigates on click. `ui.TooltipContent` pops up
-  pass-through, so this needs an interactive hover popup, and `RichText` has no link hit-testing
-  yet (`DocRun.Reference` already carries the target).
 - **Analyzer:** properties and events lack Used By; Applied To skips DeclSecurity attributes
   (TODO in `ZGF.ILSpy.Core/Analysis/AttributeAppliedToAnalyzer.cs`).
 

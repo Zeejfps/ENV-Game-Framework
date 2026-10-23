@@ -67,6 +67,31 @@ public static class RichTextLayout
         return new RichTextLayoutResult(lines, height, maxLineWidth);
     }
 
+    /// <summary>The run whose slice is at <paramref name="x"/>, <paramref name="y"/> from the
+    /// top-left of <paramref name="layout"/>, or -1 between or beyond its slices.</summary>
+    public static int RunAt(RichTextLayoutResult layout, float x, float y)
+    {
+        var top = 0f;
+        foreach (var line in layout.Lines)
+        {
+            var bottom = top + line.Height;
+            if (y >= top && y < bottom)
+                return RunOnLine(line, x);
+            top = bottom;
+        }
+        return -1;
+    }
+
+    private static int RunOnLine(RichTextLine line, float x)
+    {
+        foreach (var segment in line.Segments)
+        {
+            if (x >= segment.X && x < segment.X + segment.Width)
+                return segment.RunIndex;
+        }
+        return -1;
+    }
+
     /// <summary>The width of the widest chunk of <paramref name="runs"/> that cannot break: the
     /// narrowest width <see cref="Layout"/> takes without splitting between code points.</summary>
     public static float MeasureWidestChunk(ICanvas canvas, IReadOnlyList<RichTextRun> runs)

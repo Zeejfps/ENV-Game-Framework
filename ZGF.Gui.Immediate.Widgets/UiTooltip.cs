@@ -1,16 +1,28 @@
+using ZGF.KeyboardModule;
+
 namespace ZGF.Gui.Immediate.Widgets;
 
 public static partial class UiWidgets
 {
     private const int TooltipId = 0x544F4F4C;
+    private const double TooltipGraceSeconds = 0.2;
+    private const double NotLeaving = -1;
 
     private sealed class TooltipState
     {
         public int Target;
         public int Owner;
+        public int Part;
+        public UiRect Anchor;
         public double Since;
+        public double LeftAt = NotLeaving;
+        public bool Shown;
         public bool Suppressed;
     }
+
+    /// <summary>What a tooltip is for: the key it is timed by, 0 for none, the owner's part and
+    /// where it is shown.</summary>
+    private readonly record struct TooltipTarget(int Key, int Part, UiRect Anchor);
 
     public static void Tooltip(this Ui ui, Interaction target, string text) => ui.Tooltip(target.Id, text);
 
@@ -33,54 +45,65 @@ public static partial class UiWidgets
     {
         var look = TooltipLook.Of(ui.Theme);
         if (!ui.IsHovered(id))
-            return OpenTooltip(ui, id, 0, default, look);
+            return OpenTooltip(ui, id, new TooltipTarget(0, 0, default), look, out _);
         if (!ui.TryGetRect(id, out var anchor))
             return default;
-        return OpenTooltip(ui, id, id, anchor, look);
+        return OpenTooltip(ui, id, new TooltipTarget(id, id, anchor), look, out _);
     }
+
+    /// <summary>As <see cref="TooltipContent(Ui, int, int, UiRect, out int, TooltipLook?)"/>, for a
+    /// caller that only shows the part under the pointer.</summary>
+    public static Ui.Scope TooltipContent(this Ui ui, int owner, int part, UiRect anchor, TooltipLook? look = null) =>
+        ui.TooltipContent(owner, part, anchor, out _, look);
 
     /// <summary>A tooltip for a part of the element <paramref name="owner"/> that the caller
     /// hit-tests itself, such as a word of painted text: shown under <paramref name="anchor"/>
     /// once the pointer has rested on part <paramref name="part"/> for the theme's tooltip delay,
     /// and again from the start when it moves to another part. Pass part 0 while no part is under
-    /// the pointer. Content is recorded inside the scope while <see cref="Ui.Scope.IsOpen"/>; dispose
-    /// the scope either way. <paramref name="look"/> sizes, pads and aligns the popup, the theme's
-    /// tooltip look when null. Call it every frame the owner is recorded.</summary>
-    public static Ui.Scope TooltipContent(this Ui ui, int owner, int part, UiRect anchor, TooltipLook? look = null)
+    /// the pointer. Content is recorded inside the scope while <see cref="Ui.Scope.IsOpen"/>, for
+    /// <paramref name="shownPart"/>; dispose the scope either way. <paramref name="look"/> sizes,
+    /// pads and aligns the popup, the theme's tooltip look when null. An interactive look keeps the
+    /// tooltip open while the pointer is over it, and for a moment after it leaves the part so it
+    /// can get there, and closes it on Escape. Call it every frame the owner is recorded.</summary>
+    public static Ui.Scope TooltipContent(this Ui ui, int owner, int part, UiRect anchor, out int shownPart, TooltipLook? look = null)
     {
-        var target = 0;
+        var key = 0;
         if (part != 0 && ui.IsHovered(owner))
-            target = HashCode.Combine(owner, part) | 1;
+            key = HashCode.Combine(owner, part) | 1;
         var shown = look ?? TooltipLook.Of(ui.Theme);
-        return OpenTooltip(ui, owner, target, anchor, shown);
+        return OpenTooltip(ui, owner, new TooltipTarget(key, part, anchor), shown, out shownPart);
     }
 
-    /// <summary>Times the tooltip of <paramref name="target"/>, 0 while the owner has none under
-    /// the pointer, and opens it once it is due.</summary>
-    private static Ui.Scope OpenTooltip(Ui ui, int owner, int target, UiRect anchor, TooltipLook look)
+    /// <summary>Closes the open tooltip until the pointer rests on another part, as after a link
+    /// in it was followed.</summary>
+    public static void HideTooltip(this Ui ui)
     {
+        var state = ui.GetState<TooltipState>(TooltipId);
+        Dismiss(state);
+    }
+
+    /// <summary>Times the tooltip of <paramref name="target"/> and opens it once it is due.</summary>
+    private static Ui.Scope OpenTooltip(Ui ui, int owner, TooltipTarget target, TooltipLook look, out int shownPart)
+    {
+        shownPart = 0;
         var state = ui.GetState<TooltipState>(TooltipId);
         if (!ui.Input.IsForeground)
         {
-            state.Target = 0;
+            Close(state);
             return default;
         }
-        if (target == 0)
+        if (look.Interactive && KeepsOpen(ui, state, owner, target.Key))
+            target = new TooltipTarget(state.Target, state.Part, state.Anchor);
+        if (target.Key == 0)
         {
-            if (state.Owner == owner) state.Target = 0;
+            if (state.Owner == owner)
+                Close(state);
             return default;
         }
-        if (state.Target != target)
-        {
-            state.Target = target;
-            state.Owner = owner;
-            state.Since = ui.RealTime;
-            state.Suppressed = false;
-        }
-        var input = ui.Input;
-        if (input.IsDown(PointerButton.Left) || input.WasPressed(PointerButton.Left) || input.WasPressed(PointerButton.Right))
-            state.Suppressed = true;
-        if (state.Suppressed) return default;
+        if (state.Target != target.Key)
+            Start(ui, state, owner, target);
+        if (IsDismissed(ui, state, look))
+            return default;
 
         var remaining = ui.Theme.TooltipDelaySeconds - (ui.RealTime - state.Since);
         if (remaining > 0)
@@ -88,19 +111,115 @@ public static partial class UiWidgets
             ui.RequestFrameIn(remaining);
             return default;
         }
+        state.Shown = true;
+        shownPart = state.Part;
+        return ShowTooltip(ui, state, look);
+    }
 
+    /// <summary>Whether the tooltip <paramref name="owner"/> shows stays open though the pointer
+    /// left its part: while the pointer is over the tooltip, and for a grace period after leaving,
+    /// so it can cross to it.</summary>
+    private static bool KeepsOpen(Ui ui, TooltipState state, int owner, int key)
+    {
+        if (state.Owner != owner)
+            return false;
+        if (!state.Shown || key == state.Target)
+        {
+            state.LeftAt = NotLeaving;
+            return false;
+        }
+        if (IsPointerInTooltip(ui))
+        {
+            state.LeftAt = NotLeaving;
+            return true;
+        }
+        if (state.LeftAt == NotLeaving)
+            state.LeftAt = ui.RealTime;
+        var remaining = TooltipGraceSeconds - (ui.RealTime - state.LeftAt);
+        if (remaining <= 0)
+            return false;
+        ui.RequestFrameIn(remaining);
+        return true;
+    }
+
+    private static bool IsPointerInTooltip(Ui ui)
+    {
+        if (!ui.TryGetRect(TooltipId, out var rect))
+            return false;
+        return rect.Contains(ui.Input.Pointer);
+    }
+
+    private static void Start(Ui ui, TooltipState state, int owner, TooltipTarget target)
+    {
+        state.Target = target.Key;
+        state.Owner = owner;
+        state.Part = target.Part;
+        state.Anchor = target.Anchor;
+        state.Since = ui.RealTime;
+        state.LeftAt = NotLeaving;
+        state.Shown = false;
+        state.Suppressed = false;
+    }
+
+    private static void Close(TooltipState state)
+    {
+        state.Target = 0;
+        state.Shown = false;
+        state.LeftAt = NotLeaving;
+    }
+
+    private static void Dismiss(TooltipState state)
+    {
+        state.Suppressed = true;
+        state.Shown = false;
+        state.LeftAt = NotLeaving;
+    }
+
+    /// <summary>Whether the tooltip was dismissed: by a press outside it, or by Escape while an
+    /// interactive one is shown. It stays dismissed until another part is rested on.</summary>
+    private static bool IsDismissed(Ui ui, TooltipState state, TooltipLook look)
+    {
+        if (IsPressedOutside(ui, look))
+            Dismiss(state);
+        if (look.Interactive && state.Shown && ui.Input.TakeKey(KeyboardKey.Escape))
+            Dismiss(state);
+        return state.Suppressed;
+    }
+
+    /// <summary>Whether a button is pressed or held, outside an interactive tooltip, whose own
+    /// links take presses.</summary>
+    private static bool IsPressedOutside(Ui ui, TooltipLook look)
+    {
+        var input = ui.Input;
+        var pressed = input.IsDown(PointerButton.Left) || input.WasPressed(PointerButton.Left) || input.WasPressed(PointerButton.Right);
+        if (!pressed)
+            return false;
+        if (!look.Interactive)
+            return true;
+        return !IsPointerInTooltip(ui);
+    }
+
+    /// <summary>The popup under the anchor, scrolling its content once taller than the look allows.</summary>
+    private static Ui.Scope ShowTooltip(Ui ui, TooltipState state, TooltipLook look)
+    {
         var theme = ui.Theme;
-        return ui.Popup(TooltipId, anchor, theme.PopupSurface(new Box
+        var surface = theme.PopupSurface(new Box
         {
             Width = Sizing.Fit(0f, look.MaxWidth),
             Padding = look.Padding,
-        }), look.Align, gap: theme.TooltipGap, passThrough: true);
+        });
+        var popup = ui.Popup(TooltipId, state.Anchor, surface, look.Align, gap: theme.TooltipGap, passThrough: !look.Interactive);
+        if (look.MaxHeight > 0f)
+            ui.Scroll(HashCode.Combine(TooltipId, state.Target), new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: look.MaxHeight), Gap = 0f });
+        return popup;
     }
 }
 
 /// <summary>How a tooltip popup is sized and placed: at most <paramref name="MaxWidth"/> wide,
-/// <paramref name="Padding"/> inside its surface, aligned to the anchor by <paramref name="Align"/>.</summary>
-public readonly record struct TooltipLook(float MaxWidth, Spacing Padding, Align Align)
+/// <paramref name="Padding"/> inside its surface, aligned to the anchor by <paramref name="Align"/>.
+/// An <paramref name="Interactive"/> one takes the pointer, so its content can be clicked, and
+/// scrolls once taller than a positive <paramref name="MaxHeight"/>.</summary>
+public readonly record struct TooltipLook(float MaxWidth, Spacing Padding, Align Align, bool Interactive = false, float MaxHeight = 0f)
 {
     /// <summary>The theme's tooltip: its width and padding, centered under the anchor.</summary>
     public static TooltipLook Of(UiTheme theme) =>

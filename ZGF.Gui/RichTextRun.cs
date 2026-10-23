@@ -13,10 +13,13 @@ namespace ZGF.Gui;
 /// <paramref name="Strikethrough"/> one through them, in the run's text color.
 /// </para>
 /// <para>A '\n' in <paramref name="Text"/> forces a line break there.</para>
+/// <para>A run with a <paramref name="Link"/> is a link to it: what the caller navigates to when the
+/// run is clicked.</para>
 /// </summary>
 public sealed record RichTextRun(
     string Text,
     TextStyle Style,
     bool IsCode = false,
     bool Underline = false,
-    bool Strikethrough = false);
+    bool Strikethrough = false,
+    object? Link = null);

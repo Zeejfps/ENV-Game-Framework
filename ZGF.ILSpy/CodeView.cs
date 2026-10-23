@@ -59,6 +59,8 @@ public sealed class CodeViewState
     internal CodeReference? Marked;
     internal CodeReference? MenuReference;
     internal CodeReference? MenuAnalyze;
+    internal CodeTooltip? Tooltip;
+    internal int TooltipPart;
     internal int MenuLine = NoLine;
     internal int PendingReveal = NoLine;
     internal int PendingShowLine = NoLine;
@@ -150,6 +152,8 @@ public sealed class CodeViewState
         PressedOnFold = false;
         ScrollX = ScrollY = LaidOutScrollX = LaidOutScrollY = 0f;
         Marked = MenuReference = null;
+        Tooltip = null;
+        TooltipPart = 0;
         MenuLine = NoLine;
         PendingShowLine = PendingColumnStart = NoLine;
         FlashLine = NoLine;
@@ -409,7 +413,9 @@ public static class CodeViewWidget
             if (tooltips != null && hasRect)
             {
                 var hovered = new HoveredSpan(hoverLine, hoverSpan, rect.X + textLeft, rect.Y);
-                ReferenceTooltip(ui, state, document, tooltips, t, codeId, hovered, advance, rowHeight);
+                var followed = ReferenceTooltip(ui, state, document, tooltips, t, codeId, hovered, advance, rowHeight);
+                if (followed.Navigate != null)
+                    result = followed;
             }
             state.LaidOutScrollX = state.ScrollX;
             state.LaidOutScrollY = state.ScrollY;
@@ -430,18 +436,46 @@ public static class CodeViewWidget
 
     /// <summary>The tooltip of the type or member under the pointer, under its span once it has
     /// been looked up.</summary>
-    private static void ReferenceTooltip(Ui ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips, Strings t, int codeId,
-        HoveredSpan hovered, float advance, float rowHeight)
+    private static CodeViewResult ReferenceTooltip(Ui ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips, Strings t,
+        int codeId, HoveredSpan hovered, float advance, float rowHeight)
     {
         var tooltip = TooltipOf(state, document, tooltips, hovered);
         var part = 0;
         if (tooltip != null)
             part = HashCode.Combine(hovered.Line, hovered.Span) | 1;
         var anchor = TooltipAnchor(state, document, hovered, advance, rowHeight);
-        using var popup = ui.TooltipContent(codeId, part, anchor, CodeTooltipView.Look);
+        using var popup = ui.TooltipContent(codeId, part, anchor, out var shownPart, CodeTooltipView.Look);
+        RememberTooltip(state, tooltip, part, shownPart);
         if (!popup.IsOpen)
+            return default;
+        if (state.TooltipPart != shownPart)
+            return default;
+        var click = CodeTooltipView.Render(ui, t, state.Tooltip!);
+        return FollowLink(ui, click);
+    }
+
+    /// <summary>Keeps the tooltip of the part under the pointer, unless another part's tooltip is
+    /// still shown while the pointer crosses over to it.</summary>
+    private static void RememberTooltip(CodeViewState state, CodeTooltip? tooltip, int part, int shownPart)
+    {
+        if (tooltip == null)
             return;
-        CodeTooltipView.Render(ui, t, tooltip!);
+        if (shownPart != 0 && shownPart != part)
+            return;
+        state.Tooltip = tooltip;
+        state.TooltipPart = part;
+    }
+
+    /// <summary>A link clicked in the tooltip asks to navigate to it, in a new tab with a middle
+    /// click or Ctrl, and closes the tooltip.</summary>
+    private static CodeViewResult FollowLink(Ui ui, RichTextClick click)
+    {
+        if (click.Link is not CodeReference reference)
+            return default;
+        ui.HideTooltip();
+        var withModifier = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
+        var inNewTab = click.Button == PointerButton.Middle || withModifier;
+        return new CodeViewResult(reference, inNewTab);
     }
 
     /// <summary>The tooltip of the span under the pointer when it points at a type or member and

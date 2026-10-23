@@ -179,6 +179,10 @@ public readonly record struct Interaction(int Id, bool Hovered, bool Pressed, bo
     public static Interaction Inert(int id) => new(id, false, false, false, false);
 }
 
+/// <summary>The link of a <see cref="Ui.RichText"/> run clicked this frame, and the button it was
+/// clicked with; <see cref="Link"/> is null when none was.</summary>
+public readonly record struct RichTextClick(object? Link, PointerButton Button);
+
 /// <summary>What a single-line text does when it is wider than its element.</summary>
 public enum TextOverflow
 {

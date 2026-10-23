@@ -41,6 +41,8 @@ internal struct Element
     public string? Shown;
     public IReadOnlyList<RichTextRun>? Runs;
     public RichTextLayoutResult? RunLines;
+    /// <summary>The link run under the pointer, underlined; -1 when there is none.</summary>
+    public int HoveredRun;
     public uint CodeBackground;
 
     public bool Floating;
@@ -427,16 +429,19 @@ internal sealed class LayoutTree
             if (band.Y >= clip.Bottom) break;
             if (!band.Intersects(clip)) continue;
             foreach (var segment in line.Segments)
-                PaintSegment(e.Runs![segment.RunIndex], segment, band, e.CodeBackground, z);
+            {
+                var hovered = e.Runs![segment.RunIndex].Link != null && segment.RunIndex == e.HoveredRun;
+                PaintSegment(e.Runs[segment.RunIndex], segment, band, e.CodeBackground, hovered, z);
+            }
         }
     }
 
-    private void PaintSegment(RichTextRun run, RichTextSegment segment, UiRect band, uint codeBackground, int z)
+    private void PaintSegment(RichTextRun run, RichTextSegment segment, UiRect band, uint codeBackground, bool hovered, int z)
     {
         var rect = new UiRect(band.X + segment.X, band.Y, segment.Width, band.Height);
         if (run.IsCode && codeBackground != 0u)
             PaintCodeChip(rect, codeBackground, z);
-        if (run.Underline)
+        if (run.Underline || hovered)
             PaintRule(rect, rect.Bottom - RuleThickness, run.Style, z);
         if (run.Strikethrough)
             PaintRule(rect, rect.Y + rect.Height * StrikeHeight, run.Style, z);
