@@ -24,6 +24,7 @@ public static class MainView
         }
         FrameworkPickerView.Render(ui, w);
         AssemblyListsDialogView.Render(ui, w);
+        AssemblyListDeleteDialogView.Render(ui, w);
         BookmarkImportDialogView.Render(ui, w);
         LayoutResetDialogView.Render(ui, w);
         ExportDialogView.Render(ui, w);

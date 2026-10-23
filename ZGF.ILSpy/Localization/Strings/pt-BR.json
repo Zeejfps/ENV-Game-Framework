@@ -205,6 +205,7 @@
   "lists.cancel": "Cancelar",
   "lists.name_empty": "Uma lista precisa de um nome.",
   "lists.name_taken": "Outra lista já tem esse nome.",
+  "lists.delete_title": "Excluir lista de assemblies",
   "lists.delete_question": "Excluir a lista “{name}”? Os assemblies continuam no disco.",
   "lists.activate": "Ativar",
   "lists.delete_replaced_by": "“{name}” será aberta no lugar dela, e os documentos abertos serão fechados.",

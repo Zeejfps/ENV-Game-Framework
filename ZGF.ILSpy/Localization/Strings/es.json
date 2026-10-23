@@ -205,6 +205,7 @@
   "lists.cancel": "Cancelar",
   "lists.name_empty": "Una lista necesita un nombre.",
   "lists.name_taken": "Otra lista ya tiene ese nombre.",
+  "lists.delete_title": "Eliminar lista de ensamblados",
   "lists.delete_question": "¿Eliminar la lista «{name}»? Sus ensamblados se quedan en el disco.",
   "lists.activate": "Activar",
   "lists.delete_replaced_by": "Se abrirá «{name}» en su lugar y se cerrarán los documentos abiertos.",

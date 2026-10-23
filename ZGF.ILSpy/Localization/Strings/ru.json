@@ -205,6 +205,7 @@
   "lists.cancel": "Отмена",
   "lists.name_empty": "У списка должно быть имя.",
   "lists.name_taken": "Список с таким именем уже есть.",
+  "lists.delete_title": "Удаление списка сборок",
   "lists.delete_question": "Удалить список «{name}»? Сборки останутся на диске.",
   "lists.activate": "Активировать",
   "lists.delete_replaced_by": "Вместо него откроется «{name}», а открытые документы закроются.",

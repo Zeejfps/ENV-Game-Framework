@@ -205,6 +205,7 @@
   "lists.cancel": "キャンセル",
   "lists.name_empty": "リストには名前が必要です。",
   "lists.name_taken": "その名前のリストは既にあります。",
+  "lists.delete_title": "アセンブリ リストを削除",
   "lists.delete_question": "リスト「{name}」を削除しますか? アセンブリはディスクに残ります。",
   "lists.activate": "アクティブにする",
   "lists.delete_replaced_by": "代わりに「{name}」が開き、開いているドキュメントは閉じられます。",

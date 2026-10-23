@@ -361,6 +361,7 @@ public sealed class AssemblyListingTests
         var app = OpenedDialog();
 
         app.ClickLast(LucideIcons.Trash2).Frame(2);
+        Assert.True(app.Frames.Drew("Delete assembly list"));
         Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.ListsDialog.Deleting);
         Assert.Equal(Other, app.Workspace.Lists.ReplacementFor(SavedAssemblyLists.DefaultName));
         app.Click("Delete list").Frame(2);
@@ -368,6 +369,20 @@ public sealed class AssemblyListingTests
 
         Assert.Equal([Other], app.Workspace.Lists.Names);
         Assert.Equal(Other, app.Workspace.Lists.Active);
+    }
+
+    [Fact]
+    public void Escape_closes_the_delete_confirmation_and_leaves_the_lists_dialog_open()
+    {
+        var app = OpenedDialog();
+
+        app.ClickLast(LucideIcons.Trash2).Frame(2);
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
+
+        Assert.False(app.Frames.Drew("Delete assembly list"));
+        Assert.Null(app.Workspace.ListsDialog.Deleting);
+        Assert.True(app.Workspace.ListsDialog.IsOpen);
+        Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.Workspace.Lists.Names);
     }
 
     /// <summary>An app with the fixtures open in the Default list, beside an empty one, and the dialog

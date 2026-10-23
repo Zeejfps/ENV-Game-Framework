@@ -205,6 +205,7 @@
   "lists.cancel": "취소",
   "lists.name_empty": "목록에는 이름이 필요합니다.",
   "lists.name_taken": "같은 이름의 목록이 이미 있습니다.",
+  "lists.delete_title": "어셈블리 목록 삭제",
   "lists.delete_question": "“{name}” 목록을 삭제할까요? 어셈블리는 디스크에 그대로 남습니다.",
   "lists.activate": "활성화",
   "lists.delete_replaced_by": "대신 “{name}” 목록이 열리고 열려 있는 문서는 닫힙니다.",

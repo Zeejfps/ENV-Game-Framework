@@ -205,6 +205,7 @@
   "lists.cancel": "Abbrechen",
   "lists.name_empty": "Eine Liste braucht einen Namen.",
   "lists.name_taken": "Eine andere Liste hat diesen Namen.",
+  "lists.delete_title": "Assemblyliste löschen",
   "lists.delete_question": "Die Liste „{name}“ löschen? Ihre Assemblys bleiben auf dem Datenträger.",
   "lists.activate": "Aktivieren",
   "lists.delete_replaced_by": "Stattdessen wird „{name}“ geöffnet, und die geöffneten Dokumente werden geschlossen.",

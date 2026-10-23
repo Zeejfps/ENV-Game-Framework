@@ -10,7 +10,7 @@ namespace ZGF.ILSpy;
 /// holds and a button that activates it. Above them, New list and, for the picked one, Duplicate,
 /// Rename and Delete; the same are in a row's context menu. A list is renamed in place, by
 /// double-clicking it or pressing F2: Enter or clicking away keeps the name, Escape drops it. Delete
-/// is confirmed under the list, saying which list opens instead when it is the active one.
+/// is confirmed in a dialog of its own, <see cref="AssemblyListDeleteDialogView"/>.
 /// </summary>
 internal static class AssemblyListsDialogView
 {
@@ -29,27 +29,14 @@ internal static class AssemblyListsDialogView
         {
             if (!scope.IsOpen)
                 return;
-            StopAskingOnEscape(ui, dialog);
             Toolbar(ui, w);
             Rows(ui, w);
-            Question(ui, w);
+            RenameProblem(ui, w);
             ContextMenu(ui, w);
             Footer(ui, dialog);
         }
         if (!dialog.IsOpen)
             dialog.Close();
-    }
-
-    /// <summary>Escape drops the deletion being asked about, giving the list its focus back. The name
-    /// box takes Escape itself.</summary>
-    private static void StopAskingOnEscape(Ui<UiState> ui, AssemblyListsDialog dialog)
-    {
-        if (dialog.Deleting == null)
-            return;
-        if (!ui.Input.TakeKey(KeyboardKey.Escape))
-            return;
-        dialog.StopAsking();
-        ui.Focus(ui.GetId(ListId), takesText: false);
     }
 
     /// <summary>New list on the left; what can be done to the picked list on the right.</summary>
@@ -217,20 +204,14 @@ internal static class AssemblyListsDialogView
         dialog.StopAsking();
     }
 
-    /// <summary>Under the list: why the name typed cannot be kept, or whether to delete the list asked about.</summary>
-    private static void Question(Ui<UiState> ui, Workspace w)
-    {
-        var dialog = w.ListsDialog;
-        if (dialog.Renaming != null)
-            RenameProblem(ui, w, dialog.Renaming);
-        if (dialog.Deleting != null)
-            DeleteQuestion(ui, w, dialog.Deleting);
-    }
-
-    private static void RenameProblem(Ui<UiState> ui, Workspace w, string name)
+    /// <summary>Under the list, why the name typed for the list being renamed cannot be kept.</summary>
+    private static void RenameProblem(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
+        var name = w.ListsDialog.Renaming;
+        if (name == null)
+            return;
         var newName = w.ListsDialog.NewName;
         if (w.Lists.CanRename(name, newName))
             return;
@@ -242,27 +223,6 @@ internal static class AssemblyListsDialogView
         if (newName.Trim().Length == 0)
             return t.ListsNameEmpty;
         return t.ListsNameTaken;
-    }
-
-    /// <summary>Whether to delete the list, saying which list opens in its place when it is the active one.</summary>
-    private static void DeleteQuestion(Ui<UiState> ui, Workspace w, string name)
-    {
-        var t = ui.State.Strings;
-        var theme = ui.Theme;
-        var dialog = w.ListsDialog;
-        using (ui.Column(new Box { Width = Sizing.Grow(), Gap = theme.GapTight }))
-        {
-            ui.Text(t.ListsDeleteQuestion(name), wrap: true);
-            if (name == w.Lists.Active)
-                ui.Text(t.ListsDeleteReplacedBy(w.Lists.ReplacementFor(name)), color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
-            using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.Gap, AlignX = Align.End }))
-            {
-                if (ui.Button(t.ListsCancel, id: "delete-cancel", variant: ButtonVariant.Ghost))
-                    dialog.StopAsking();
-                if (ui.Button(t.ListsDeleteConfirm, id: "delete-confirm", variant: ButtonVariant.Primary))
-                    w.DeleteList(name);
-            }
-        }
     }
 
     private static void ContextMenu(Ui<UiState> ui, Workspace w)

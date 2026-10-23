@@ -211,6 +211,7 @@
   "lists.cancel": "Cancel",
   "lists.name_empty": "A list needs a name.",
   "lists.name_taken": "Another list has that name.",
+  "lists.delete_title": "Delete assembly list",
   "lists.delete_question": "Delete the list “{name}”? Its assemblies stay on disk.",
   "lists.activate": "Activate",
   "lists.delete_replaced_by": "“{name}” opens in its place, and the open documents close.",
