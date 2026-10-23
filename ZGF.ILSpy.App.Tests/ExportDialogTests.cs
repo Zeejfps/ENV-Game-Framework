@@ -170,6 +170,112 @@ public sealed class ExportDialogTests : IDisposable
     }
 
     [Fact]
+    public void With_nothing_ticked_the_dialog_opens_on_the_Choose_page()
+    {
+        var d = OpenedTwo();
+
+        d.Workspace.OpenExportSetup(null);
+        Assert.Equal(ExportPage.Choose, d.Workspace.ExportSetup.Page);
+
+        d.Workspace.OpenExportSetup(Fixtures(d));
+        Assert.Equal(ExportPage.Main, d.Workspace.ExportSetup.Page);
+    }
+
+    [Fact]
+    public void The_Choose_page_lists_ticked_assemblies_first_and_keeps_its_order_while_ticking()
+    {
+        var d = OpenedTwo();
+        var second = d.Workspace.Assemblies.Assemblies[1];
+        d.Workspace.OpenExportSetup(second);
+        var setup = d.Workspace.ExportSetup;
+
+        setup.Choose();
+        var first = setup.Picker.Shown();
+        first[1].Included = true;
+
+        Assert.Equal(second, first[0].Assembly);
+        Assert.Equal(first, setup.Picker.Shown());
+    }
+
+    [Fact]
+    public void The_filter_narrows_the_list_and_Select_all_shown_ticks_only_what_it_shows()
+    {
+        var d = OpenedTwo();
+        d.Workspace.OpenExportSetup(null);
+        var picker = d.Workspace.ExportSetup.Picker;
+        var second = d.Workspace.Assemblies.Assemblies[1];
+
+        picker.Filter = second.Name.ToUpperInvariant();
+        var shown = Assert.Single(picker.Shown());
+        picker.IncludeShown(true);
+
+        Assert.Equal(second, shown.Assembly);
+        Assert.Equal([false, true], d.Workspace.ExportSetup.Choices.Select(c => c.Included));
+        Assert.Equal(true, picker.AllShownIncluded);
+    }
+
+    [Fact]
+    public void Selected_only_hides_the_unticked_assemblies()
+    {
+        var d = OpenedTwo();
+        d.Workspace.OpenExportSetup(Fixtures(d));
+        var setup = d.Workspace.ExportSetup;
+        setup.Choose();
+
+        setup.Picker.SelectedOnly = true;
+
+        Assert.Equal(Fixtures(d), Assert.Single(setup.Picker.Shown()).Assembly);
+    }
+
+    [Fact]
+    public void The_main_page_shows_only_the_ticked_assemblies()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.Open(SecondPath);
+        app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Count == 2);
+        app.Workspace.OpenExportSetup(app.Workspace.Assemblies.Assemblies[0]);
+
+        app.Run(2);
+
+        var removeButtons = app.Frames.Canvas.Texts.Count(t => t.Inputs.Text == LucideIcons.X);
+        Assert.Equal(1, removeButtons);
+        Assert.False(app.Frames.Drew("Select all shown"));
+    }
+
+    [Fact]
+    public void Choose_opens_the_list_and_Done_or_Escape_goes_back_without_closing()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.OpenExportSetup(null);
+        app.Run(2);
+        var setup = app.Workspace.ExportSetup;
+
+        app.Click("Choose…").Frame(2);
+        Assert.Equal(ExportPage.Choose, setup.Page);
+        app.Click("Done").Frame(2);
+        Assert.Equal(ExportPage.Main, setup.Page);
+
+        app.Click("Choose…").Frame(2);
+        app.Frames.Key(KeyboardKey.Escape).Frame(2);
+
+        Assert.Equal(ExportPage.Main, setup.Page);
+        Assert.True(setup.IsOpen);
+    }
+
+    [Fact]
+    public void The_remove_button_on_a_row_unticks_its_assembly()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.OpenExportSetup(null);
+        app.Run(2);
+
+        app.Click(LucideIcons.X).Frame(2);
+
+        Assert.Equal(0, app.Workspace.ExportSetup.IncludedCount);
+        Assert.True(app.Frames.Drew("No assemblies chosen yet."));
+    }
+
+    [Fact]
     public void Ctrl_Shift_E_opens_the_dialog_and_Export_starts_it()
     {
         var app = AppDriver.Opened();

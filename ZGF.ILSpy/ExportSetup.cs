@@ -23,13 +23,21 @@ public enum ExportBlocker
     KeyFileMissing,
 }
 
+/// <summary>The export dialog's pages: what is exported and how, or which assemblies.</summary>
+public enum ExportPage
+{
+    Main,
+    Choose,
+}
+
 /// <summary>
 /// What the export dialog asks for: which open assemblies to export, under which project names,
 /// into which folder, and for several, the solution's name; besides, a strong-name key to sign
 /// with and whether to write a PDB beside each project. One assembly exports as a project
 /// straight into the folder, several as a solution with a folder per project. Project names start
 /// out unique; only renaming can make two clash, which stops the export until it is fixed, as a
-/// key file that is not there does. Everything but the ticks stays for the next time.
+/// key file that is not there does. Everything but the ticks stays for the next time. The
+/// assemblies are ticked on a page of their own, which the dialog opens on when none is ticked yet.
 /// </summary>
 public sealed class ExportSetup
 {
@@ -58,6 +66,10 @@ public sealed class ExportSetup
 
     public List<ExportChoice> Choices { get; } = new();
 
+    public ExportPage Page;
+
+    public AssemblyPicker Picker { get; } = new();
+
     /// <summary>Opens the dialog on <paramref name="assemblies"/> with <paramref name="picked"/>
     /// ticked, or the only one when there is just one. The folder stays as it was last time.</summary>
     public void Open(IReadOnlyList<LoadedAssembly> assemblies, LoadedAssembly? picked)
@@ -68,6 +80,9 @@ public sealed class ExportSetup
         TickFirstChoice(picked);
         SolutionName = "";
         IsOpen = true;
+        Page = ExportPage.Main;
+        if (IncludedCount == 0)
+            Choose();
     }
 
     private void TickFirstChoice(LoadedAssembly? picked)
@@ -79,6 +94,27 @@ public sealed class ExportSetup
     }
 
     public void Close() => IsOpen = false;
+
+    /// <summary>Shows the Choose page, its list arranged afresh.</summary>
+    public void Choose()
+    {
+        Picker.Arrange(Choices);
+        Page = ExportPage.Choose;
+    }
+
+    /// <summary>Goes back from the Choose page to what is exported.</summary>
+    public void FinishChoosing()
+    {
+        Page = ExportPage.Main;
+    }
+
+    /// <summary>The ticked assemblies, in the order they were opened.</summary>
+    public List<ExportChoice> IncludedChoices()
+    {
+        return Choices
+            .Where(static c => c.Included)
+            .ToList();
+    }
 
     public int IncludedCount => Choices.Count(static c => c.Included);
 
@@ -128,7 +164,10 @@ public sealed class ExportSetup
     }
 
     /// <summary>A project name two ticked assemblies share, which must change before exporting, or null.</summary>
-    public string? Clash
+    public string? Clash => ClashingChoice?.Name.Trim();
+
+    /// <summary>The second of two ticked assemblies whose project names are the same, or null.</summary>
+    public ExportChoice? ClashingChoice
     {
         get
         {
@@ -139,7 +178,7 @@ public sealed class ExportSetup
                     continue;
                 var name = AssemblyExport.CleanProjectName(choice.Name);
                 if (!names.Add(name))
-                    return choice.Name.Trim();
+                    return choice;
             }
             return null;
         }
