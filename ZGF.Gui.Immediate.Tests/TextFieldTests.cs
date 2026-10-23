@@ -7,6 +7,23 @@ namespace ZGF.Gui.Immediate.Tests;
 public sealed class TextFieldTests
 {
     [Fact]
+    public void A_cell_field_draws_its_box_only_while_it_has_focus()
+    {
+        var text = "name";
+        var frames = new UiFrames(body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.TextField("cell", ref text, width: 120f, look: FieldLook.Cell);
+        }).Frame();
+        bool DrewBox() => frames.Canvas.Rects.Any(r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.Field);
+
+        Assert.False(DrewBox());
+        frames.ClickOn("cell").Frame();
+
+        Assert.True(DrewBox());
+    }
+
+    [Fact]
     public void Typing_inserts_at_the_caret_and_replaces_a_selection()
     {
         var field = new Field();

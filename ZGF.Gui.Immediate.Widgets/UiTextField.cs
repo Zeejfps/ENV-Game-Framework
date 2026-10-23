@@ -17,6 +17,17 @@ public enum InlineEditResult
     Cancelled,
 }
 
+/// <summary>How a <see cref="UiWidgets.TextField"/> looks while it is not being edited.</summary>
+public enum FieldLook
+{
+    /// <summary>A box on the field color, always.</summary>
+    Boxed,
+
+    /// <summary>Plain text, as a value in a table's cell: the outline shows while the pointer is over
+    /// it, and the box while it has focus.</summary>
+    Cell,
+}
+
 public static partial class UiWidgets
 {
     private const double CaretBlinkSeconds = 0.53;
@@ -54,15 +65,36 @@ public static partial class UiWidgets
         }
     }
 
+    private static uint FieldBackground(UiTheme theme, FieldLook look, bool focused)
+    {
+        if (look == FieldLook.Cell && !focused)
+            return 0u;
+        return theme.Field;
+    }
+
+    /// <summary>The field's outline: the focus color while focused, stronger while hovered, and for a
+    /// cell none otherwise. The width stays, so the text does not move.</summary>
+    private static uint FieldBorder(UiTheme theme, FieldLook look, bool focused, bool hovered)
+    {
+        if (focused)
+            return theme.FocusRing;
+        if (hovered)
+            return theme.BorderStrong;
+        if (look == FieldLook.Cell)
+            return 0u;
+        return theme.Border;
+    }
+
     /// <summary>Edits <paramref name="text"/> in place. Returns true when Enter is pressed while
     /// the field has focus. Supports mouse selection (drag, shift-click, double-click for a word,
     /// triple-click for everything), word-wise movement and deletion, the clipboard, and undo. The
     /// field is a Tab stop. <paramref name="leadingIcon"/> is a glyph drawn before the text in
     /// <paramref name="iconFamily"/>; <paramref name="hint"/> is muted text at the end — a shortcut —
-    /// left out while the field is too narrow to keep room for typing.</summary>
+    /// left out while the field is too narrow to keep room for typing. <paramref name="look"/> says
+    /// how it looks while not being edited.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, string? leadingIcon = null,
-        string? iconFamily = null, string? hint = null) =>
-        Field(ui, id, ref text, placeholder, width, leadingIcon, iconFamily, hint, inline: false);
+        string? iconFamily = null, string? hint = null, FieldLook look = FieldLook.Boxed) =>
+        Field(ui, id, ref text, placeholder, width, leadingIcon, iconFamily, hint, inline: false, look);
 
     /// <summary>Edits <paramref name="text"/> in place of the label it replaces, as in a rename: a
     /// field one line tall, its text where the label's was, outlined in the focus color. On the frame
@@ -87,11 +119,11 @@ public static partial class UiWidgets
         }
         if (ui.Input.TakeKey(KeyboardKey.Escape))
             return InlineEditResult.Cancelled;
-        return Field(ui, id, ref text, null, width, null, null, null, inline: true) ? InlineEditResult.Committed : InlineEditResult.Editing;
+        return Field(ui, id, ref text, null, width, null, null, null, inline: true, FieldLook.Boxed) ? InlineEditResult.Committed : InlineEditResult.Editing;
     }
 
     private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, string? leadingIcon, string? iconFamily,
-        string? hint, bool inline)
+        string? hint, bool inline, FieldLook look)
     {
         var theme = ui.Theme;
         var padding = inline ? theme.InlineEditPaddingX : theme.FieldPaddingX;
@@ -174,8 +206,8 @@ public static partial class UiWidgets
             Height = inline ? lineHeight + theme.InlineEditPaddingY * 2 : theme.ControlHeight,
             Padding = new Spacing(padding, 0f),
             Gap = theme.GapTight,
-            Background = theme.Field,
-            BorderColor = focused ? theme.FocusRing : i.Hovered ? theme.BorderStrong : theme.Border,
+            Background = FieldBackground(theme, look, focused),
+            BorderColor = FieldBorder(theme, look, focused, i.Hovered),
             BorderWidth = theme.BorderWidth,
             Radius = inline ? theme.RadiusSmall : theme.CornerRadius,
         }))
