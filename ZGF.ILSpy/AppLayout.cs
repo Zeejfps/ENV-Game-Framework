@@ -13,5 +13,7 @@ internal static class AppLayout
     public const float PickerWidth = 560f;
     public const float PickerHeight = 0.75f;
     public const float ListsDialogWidth = 480f;
+    public const float ListPickerMinWidth = 140f;
+    public const float ListPickerMaxWidth = 240f;
     public const float ListsDialogListHeight = 240f;
 }

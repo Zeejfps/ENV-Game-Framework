@@ -11,7 +11,6 @@ internal static class TreePaneView
 {
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
-    private const string ListItemPrefix = "list:";
 
     public static void Render(Ui<UiState> ui, Workspace w)
     {
@@ -42,7 +41,6 @@ internal static class TreePaneView
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.TreeExpandNamespaces, any))
                 w.Tree.ExpandNamespaces();
             ui.Separator(theme.IconSize);
-            ListPicker(ui, w);
             var picked = FindPickedAssembly(w);
             if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
                 w.Close(picked!.Assembly);
@@ -58,30 +56,6 @@ internal static class TreePaneView
         if (node.Kind != NodeKind.Assembly)
             return null;
         return node;
-    }
-
-    /// <summary>The open list's name, opening a menu of every list to switch to, and of the dialog
-    /// that manages them.</summary>
-    private static void ListPicker(Ui<UiState> ui, Workspace w)
-    {
-        var t = ui.State.Strings;
-        var lists = w.Lists;
-        using var menu = ui.SelectButton("list", lists.Active, Sizing.Grow(), t.ListsPick, revision: lists.Count);
-        if (!menu.IsOpen)
-            return;
-        foreach (var name in lists.Names)
-            ListItem(ui, w, name);
-        ui.MenuSeparator();
-        if (ui.MenuItem(t.ListsManage, id: "manage"))
-            w.OpenListsDialog();
-    }
-
-    private static void ListItem(Ui<UiState> ui, Workspace w, string name)
-    {
-        var active = name == w.Lists.Active;
-        if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
-            return;
-        w.SwitchList(name);
     }
 
     private static void EmptyHint(Ui<UiState> ui)

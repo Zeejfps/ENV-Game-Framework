@@ -7,6 +7,8 @@ namespace ZGF.ILSpy;
 
 internal static class ToolbarView
 {
+    private const string ListItemPrefix = "list:";
+
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
@@ -23,6 +25,9 @@ internal static class ToolbarView
             Background = theme.Surface,
         }))
         {
+            using (Group(ui))
+                ListPicker(ui, w);
+
             using (Group(ui))
             {
                 if (ui.IconButton("open", LucideIcons.FolderOpen, LucideIcons.Family, ui.Memo("open-tip", t, static s => s.ToolbarOpen(Shortcuts.Open)),
@@ -67,6 +72,54 @@ internal static class ToolbarView
                 }
             }
         }
+    }
+
+    /// <summary>The open assembly list's name, opening a menu of every list to switch to, and of the
+    /// dialog that manages them. As wide as the longest name, within limits.</summary>
+    private static void ListPicker(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
+        var lists = w.Lists;
+        var width = ListPickerWidth(ui, lists);
+        using var menu = ui.SelectButton("list", lists.Active, width, t.ListsPick, revision: lists.Count);
+        if (!menu.IsOpen)
+            return;
+        foreach (var name in lists.Names)
+            ListItem(ui, w, name);
+        ui.MenuSeparator();
+        if (ui.MenuItem(t.ListsManage, id: "manage"))
+            w.OpenListsDialog();
+    }
+
+    /// <summary>Measured again only when the lists or the theme changed, so a frame allocates nothing.</summary>
+    private static float ListPickerWidth(Ui<UiState> ui, SavedAssemblyLists lists)
+    {
+        var measured = ui.GetState<MeasuredWidth>(ui.GetId("list-width"));
+        var unchanged = lists.Revision == measured.Revision && ReferenceEquals(ui.Theme, measured.Theme);
+        if (unchanged)
+            return measured.Width;
+        measured.Revision = lists.Revision;
+        measured.Theme = ui.Theme;
+        var names = lists.Names.ToArray();
+        var widest = ui.SelectButtonWidth(names);
+        measured.Width = Math.Clamp(widest, AppLayout.ListPickerMinWidth, AppLayout.ListPickerMaxWidth);
+        return measured.Width;
+    }
+
+    /// <summary>The width the list picker was last measured at, for which lists and theme.</summary>
+    private sealed class MeasuredWidth
+    {
+        public int Revision = -1;
+        public UiTheme? Theme;
+        public float Width;
+    }
+
+    private static void ListItem(Ui<UiState> ui, Workspace w, string name)
+    {
+        var active = name == w.Lists.Active;
+        if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
+            return;
+        w.SwitchList(name);
     }
 
     private static Segment<DecompilationLanguage>[] Languages(Strings t)
