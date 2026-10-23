@@ -85,6 +85,7 @@ internal sealed class WorkspaceDriver
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
         Workspace = new Workspace(settings);
+        Workspace.RestoreLastSessionAnalyses();
     }
 
     /// <summary>A driver that has opened the fixture assembly.</summary>
@@ -102,7 +103,8 @@ internal sealed class WorkspaceDriver
     public void Pump()
     {
         _posted.Run();
-        Workspace.Sync();
+        Workspace.Tree.Sync(Workspace.Assemblies);
+        Workspace.SaveSettingsIfChanged();
     }
 
     /// <summary>Pumps until <paramref name="done"/>.</summary>
@@ -148,11 +150,10 @@ internal sealed class AppDriver
 {
     public AppDriver(float width = 1000f, float height = 700f)
     {
-        Frames = new UiFrames(width: width, height: height, body: ui => MainView.Render(ui, Workspace))
-        {
-            FrameTime = 1f / 60f,
-            BeforeFrame = Driver.Pump,
-        };
+        var app = new IlSpyApp(Workspace, new List<string>());
+        Frames = UiFrames.Running(app, width: width, height: height);
+        Frames.FrameTime = 1f / 60f;
+        Frames.BeforeFrame = Driver.Pump;
     }
 
     /// <summary>An app that has opened the fixture assembly, before its first frame.</summary>

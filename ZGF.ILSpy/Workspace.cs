@@ -116,7 +116,7 @@ public sealed class Workspace
         Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
-        LastSave.Record(Bookmarks, Analyzer, MetadataFilters);
+        LastSave.Record(Assemblies, Bookmarks, Analyzer, MetadataFilters);
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);

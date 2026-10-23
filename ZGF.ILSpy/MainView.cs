@@ -10,9 +10,7 @@ public static class MainView
 {
     public static void Render(Ui<UiState> ui, Workspace w)
     {
-        ApplyThemeAndLanguage(ui, w);
         using var screen = ui.Screen();
-        w.Sync();
         Shortcuts.Handle(ui, w);
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
         {
@@ -28,15 +26,6 @@ public static class MainView
         BookmarkImportDialogView.Render(ui, w);
         LayoutResetDialogView.Render(ui, w);
         ErrorDialogView.Render(ui, w);
-    }
-
-    private static void ApplyThemeAndLanguage(Ui<UiState> ui, Workspace w)
-    {
-        var theme = AppThemes.For(w.Theme);
-        ui.State.Theme = theme.Ui;
-        ui.State.CodeViewPalette = theme.Code;
-        ui.State.NodeIconPalette = theme.Icons;
-        ui.State.Strings = Strings.For(w.Locale);
     }
 
     private static void Panels(Ui<UiState> ui, Workspace w)

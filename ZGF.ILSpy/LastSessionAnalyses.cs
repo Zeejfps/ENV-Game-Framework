@@ -7,7 +7,6 @@ namespace ZGF.ILSpy;
 public sealed class LastSessionAnalyses
 {
     private List<CodeAnchor>? _pending;
-    private bool _started;
 
     public LastSessionAnalyses(List<CodeAnchor>? analyzed)
     {
@@ -18,13 +17,9 @@ public sealed class LastSessionAnalyses
         _pending = analyzed;
     }
 
-    /// <summary>The symbols to find and analyze again, the first time only; null after that or when
-    /// there are none.</summary>
+    /// <summary>The symbols to find and analyze again; null when there are none.</summary>
     public List<CodeAnchor>? StartRestoring()
     {
-        if (_started)
-            return null;
-        _started = true;
         return _pending;
     }
 

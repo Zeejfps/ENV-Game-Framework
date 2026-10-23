@@ -1,5 +1,6 @@
 using ZGF.AppUtils;
 using ZGF.Gui.Immediate;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -10,7 +11,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     private readonly List<string> _commandLineAssemblies;
 
-    private IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace, new UiState())
+    internal IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace, new UiState())
     {
         _commandLineAssemblies = commandLineAssemblies;
     }
@@ -29,6 +30,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         RegisterFonts(host);
         State.Assemblies.Changed += host.Invalidate;
         OpenStartupAssemblies();
+        State.RestoreLastSessionAnalyses();
     }
 
     private static void RegisterFonts(ImmediateGuiAppHost host)
@@ -60,6 +62,18 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     protected override void OnRender(Ui<UiState> ui, Workspace w)
     {
+        ApplyThemeAndLanguage(ui.State, w);
+        w.Tree.Sync(w.Assemblies);
         MainView.Render(ui, w);
+        w.SaveSettingsIfChanged();
+    }
+
+    private static void ApplyThemeAndLanguage(UiState state, Workspace w)
+    {
+        var theme = AppThemes.For(w.Theme);
+        state.Theme = theme.Ui;
+        state.CodeViewPalette = theme.Code;
+        state.NodeIconPalette = theme.Icons;
+        state.Strings = Strings.For(w.Locale);
     }
 }

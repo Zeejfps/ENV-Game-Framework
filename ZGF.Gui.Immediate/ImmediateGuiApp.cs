@@ -28,7 +28,7 @@ public abstract class ImmediateGuiApp<TAppState, TUiState>
         OnStartup(host);
     }
 
-    internal Ui CreateUi(ICanvas canvas, IClipboard clipboard, IPopupHost popupHost)
+    internal Ui<TUiState> CreateUi(ICanvas canvas, IClipboard clipboard, IPopupHost? popupHost)
     {
         _ui = new Ui<TUiState>(UiState, canvas, clipboard, popupHost);
         return _ui;

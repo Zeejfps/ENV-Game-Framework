@@ -21,17 +21,39 @@ public sealed class UiFrames<TState> where TState : class, IUiState, new()
 
     public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
         Action<Ui<TState>>? body = null)
+        : this(CreateUi, measurer, popups, width, height)
+    {
+        Body = body;
+    }
+
+    private UiFrames(Func<ICanvas, IClipboard, IPopupHost?, Ui<TState>> createUi, ITextMeasurer? measurer, TestPopupHost? popups,
+        float width, float height)
     {
         _canvas = new RecordingCanvas(measurer ?? new SyntheticTextMeasurer());
         _popups = popups;
         Width = width;
         Height = height;
-        Body = body;
-        _ui = new Ui<TState>(State, _canvas, Clipboard, popups);
+        _ui = createUi(_canvas, Clipboard, popups);
+    }
+
+    /// <summary>Frames of <paramref name="app"/>: each one records what its <c>OnRender</c> does, on a
+    /// <see cref="Ui{T}"/> carrying its UI state.</summary>
+    public static UiFrames<TState> Running<TAppState>(ImmediateGuiApp<TAppState, TState> app, ITextMeasurer? measurer = null,
+        TestPopupHost? popups = null, float width = 400f, float height = 300f)
+        where TAppState : class
+    {
+        var frames = new UiFrames<TState>(app.CreateUi, measurer, popups, width, height);
+        frames.Body = _ => app.Render();
+        return frames;
+    }
+
+    private static Ui<TState> CreateUi(ICanvas canvas, IClipboard clipboard, IPopupHost? popups)
+    {
+        return new Ui<TState>(new TState(), canvas, clipboard, popups);
     }
 
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>
-    public TState State { get; } = new();
+    public TState State => _ui.State;
 
     /// <summary>What <see cref="Frame(int)"/> and the helpers that take no body record.</summary>
     public Action<Ui<TState>>? Body { get; set; }

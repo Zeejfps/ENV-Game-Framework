@@ -6,14 +6,13 @@ namespace ZGF.ILSpy;
 /// <summary>Saving the settings when something in them changed, and saving resources to files.</summary>
 public static class Saving
 {
-    /// <summary>Called at the start of every frame.</summary>
-    public static void Sync(this Workspace w)
+    /// <summary>Saves the settings when the assembly list, the bookmarks, the analyzer or the
+    /// metadata filters changed since the last save, unless the assemblies are reloading.</summary>
+    public static void SaveSettingsIfChanged(this Workspace w)
     {
-        w.RestoreLastSessionAnalyses();
-        var treeChanged = w.Tree.Sync(w.Assemblies);
         if (w.IsReloading)
             return;
-        if (!treeChanged && !w.LastSave.IsBehind(w.Bookmarks, w.Analyzer, w.MetadataFilters))
+        if (!w.LastSave.IsBehind(w.Assemblies, w.Bookmarks, w.Analyzer, w.MetadataFilters))
             return;
         w.SaveSettings();
     }
@@ -21,7 +20,7 @@ public static class Saving
     public static void SaveSettings(this Workspace w)
     {
         w.CopyStateToSettings();
-        w.LastSave.Record(w.Bookmarks, w.Analyzer, w.MetadataFilters);
+        w.LastSave.Record(w.Assemblies, w.Bookmarks, w.Analyzer, w.MetadataFilters);
         w.WriteSettingsFile();
     }
 
