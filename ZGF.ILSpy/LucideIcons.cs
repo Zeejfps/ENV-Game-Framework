@@ -56,7 +56,6 @@ public static class LucideIcons
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
     public const string RotateCcw = "\uE148";
-    public const string ScanSearch = "\uE537";
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
     public const string Square = "\uE167";

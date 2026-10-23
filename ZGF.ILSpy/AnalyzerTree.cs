@@ -214,16 +214,6 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         return root as AnalyzerSymbolNode;
     }
 
-    /// <summary>The selected symbol when it is a result rather than a root, to analyze on its own.</summary>
-    public AnalyzerSymbolNode? FindSelectedResult()
-    {
-        if (View.Selected is not AnalyzerSymbolNode symbol)
-            return null;
-        if (_roots.Contains(symbol))
-            return null;
-        return symbol;
-    }
-
     /// <summary>Expands every root and each analysis of it, running those not run yet.</summary>
     public void ExpandAll()
     {

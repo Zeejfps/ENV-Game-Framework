@@ -32,16 +32,12 @@ internal static class AnalyzerPanelView
         var theme = ui.Theme;
         var any = analyzer.Roots.Count > 0;
         var root = analyzer.FindSelectedRoot();
-        var result = analyzer.FindSelectedResult();
         using (ui.PaneToolbar())
         {
             if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
                 analyzer.CollapseAll();
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, any))
                 analyzer.ExpandAll();
-            ui.Separator(theme.IconSize);
-            if (ui.IconButton("analyze", LucideIcons.ScanSearch, LucideIcons.Family, t.TreeAnalyze, result != null))
-                analyzer.Analyze(result!.Symbol);
             ui.Separator(theme.IconSize);
             if (ui.IconButton("remove", LucideIcons.Trash2, LucideIcons.Family, t.AnalyzerRemoveAnalysis, root != null))
                 analyzer.Remove(root!);

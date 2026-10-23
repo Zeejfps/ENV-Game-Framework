@@ -183,23 +183,6 @@ public sealed class AnalyzerTests
     }
 
     [Fact]
-    public void The_toolbar_analyzes_the_selected_result()
-    {
-        var app = AppDriver.Opened(height: 600f);
-        var d = app.Driver;
-        var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
-        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Roots[0], "Used By").Found[0];
-        analyzer.View.Select(caller);
-        app.Run(3);
-
-        app.Click(LucideIcons.ScanSearch).Frame();
-
-        Assert.Equal(2, analyzer.Roots.Count);
-        Assert.StartsWith("Third()", analyzer.Roots[1].Symbol.Label);
-    }
-
-    [Fact]
     public void The_toolbar_removes_the_analysis_the_selection_is_in_or_every_analysis()
     {
         var app = AppDriver.Opened(height: 600f);
