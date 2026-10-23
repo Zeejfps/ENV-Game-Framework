@@ -135,9 +135,8 @@ public sealed class ExportTests : IDisposable
         AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, progress);
 
         var reports = progress.Reports;
-        Assert.Equal(new ExportProgress("ZGF.ILSpy.Tests", 1, 1, 0, 0), reports[0]);
-        Assert.Null(reports[0].Fraction);
-        Assert.Contains(reports, r => r.Total > 0 && r.Done == r.Total);
+        Assert.Equal(new ExportProgress("ZGF.ILSpy.Tests", 1, 1, 0f), reports[0]);
+        Assert.Contains(reports, r => r.Fraction == 1f);
     }
 
     [Fact]
@@ -149,15 +148,23 @@ public sealed class ExportTests : IDisposable
         AssemblyExport.ExportSolution([Trees.TestAssembly, Trees.TestAssembly], DecompilerOptions.Default, solutionPath, progress);
 
         Assert.Contains(progress.Reports, r => r is { Part: 1, Parts: 2 });
-        Assert.Contains(progress.Reports, r => r is { Part: 2, Parts: 2 });
+        Assert.Contains(progress.Reports, r => r is { Part: 2, Parts: 2, Fraction: 0.5f });
+        Assert.All(progress.Reports, r => Assert.InRange(r.Fraction!.Value, 0f, 1f));
     }
 
     [Fact]
-    public void The_fraction_counts_the_parts_before_and_how_far_into_this_one()
+    public void Each_assembly_takes_the_share_of_the_export_its_types_make_up()
     {
-        var progress = new ExportProgress("B", 2, 4, 1, 2);
+        var coreLib = new AssemblyList().Open(Trees.CoreLibPath);
+        var tests = Trees.TestAssembly;
 
-        Assert.Equal(0.375f, progress.Fraction);
+        var bounds = AssemblyExport.PartBounds([tests, coreLib]);
+
+        var testTypes = tests.File.Metadata.TypeDefinitions.Count;
+        var coreLibTypes = coreLib.File.Metadata.TypeDefinitions.Count;
+        Assert.Equal(0f, bounds[0]);
+        Assert.Equal((float)testTypes / (testTypes + coreLibTypes), bounds[1], 5);
+        Assert.Equal(1f, bounds[2]);
     }
 
     [Fact]

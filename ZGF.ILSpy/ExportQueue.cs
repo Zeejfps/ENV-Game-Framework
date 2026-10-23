@@ -41,7 +41,7 @@ public sealed class ExportQueue
         var turn = _waiting.Dequeue();
         _running = turn.Run;
         _cancel = new CancellationTokenSource();
-        Progress = new ExportProgress(turn.Name, 1, 1, 0, 0);
+        Progress = new ExportProgress(turn.Name, 1, 1, null);
         var progress = new Progress<ExportProgress>(p => Take(turn.Run, p));
         var start = new ExportStart(turn.Run, _cancel.Token, progress);
         turn.Started.SetResult(start);
@@ -51,7 +51,19 @@ public sealed class ExportQueue
     {
         if (run != _running)
             return;
-        Progress = progress;
+        var furthest = Furthest(Progress?.Fraction, progress.Fraction);
+        Progress = progress with { Fraction = furthest };
+    }
+
+    /// <summary>The further of two fractions of one export: reports sent from several threads can
+    /// arrive out of order, and the bar must not step back.</summary>
+    private static float? Furthest(float? shown, float? reported)
+    {
+        if (shown == null)
+            return reported;
+        if (reported == null)
+            return shown;
+        return Math.Max(shown.Value, reported.Value);
     }
 
     /// <summary>Cancels the running export; the waiting ones still get their turn.</summary>

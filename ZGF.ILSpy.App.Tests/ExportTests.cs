@@ -174,13 +174,13 @@ public sealed class ExportTests : IDisposable
         var d = new WorkspaceDriver();
         var queue = d.Workspace.Export;
         var first = queue.Enter("First").Result;
-        first.Progress.Report(new ExportProgress("First", 1, 1, 1, 2));
+        first.Progress.Report(new ExportProgress("First", 1, 1, 0.5f));
         queue.Leave(first);
         queue.Enter("Second");
 
         d.Pump();
 
-        Assert.Equal(new ExportProgress("Second", 1, 1, 0, 0), queue.Progress);
+        Assert.Equal(new ExportProgress("Second", 1, 1, null), queue.Progress);
     }
 
     [Fact]
@@ -190,10 +190,24 @@ public sealed class ExportTests : IDisposable
         var queue = d.Workspace.Export;
         var start = queue.Enter("Fixtures").Result;
 
-        start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 3, 4));
+        start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.75f));
         d.Pump();
 
         Assert.Equal(0.75f, queue.Progress!.Value.Fraction);
+    }
+
+    [Fact]
+    public void Progress_that_arrives_out_of_order_never_steps_the_bar_back()
+    {
+        var d = new WorkspaceDriver();
+        var queue = d.Workspace.Export;
+        var start = queue.Enter("Fixtures").Result;
+
+        start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.6f));
+        start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.4f));
+        d.Pump();
+
+        Assert.Equal(0.6f, queue.Progress!.Value.Fraction);
     }
 
     [Fact]
@@ -234,7 +248,7 @@ public sealed class ExportTests : IDisposable
         var app = AppDriver.Opened();
         var start = app.Workspace.Export.Enter("Fixtures").Result;
         app.Workspace.Export.Enter("Later");
-        start.Progress.Report(new ExportProgress("Fixtures", 2, 3, 1, 2));
+        start.Progress.Report(new ExportProgress("Fixtures", 2, 3, 0.5f));
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Exporting 2/3 · Fixtures"));

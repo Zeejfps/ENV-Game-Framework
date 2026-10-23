@@ -20,23 +20,9 @@ public sealed record ExportedProject(LoadedAssembly Assembly, string ProjectPath
 public sealed record PdbFailure(LoadedAssembly Assembly, ExportError? Error);
 
 /// <summary>How far an export has got: it works on part <see cref="Part"/> of <see cref="Parts"/>,
-/// named <see cref="Name"/>, and has done <see cref="Done"/> of that part's <see cref="Total"/>
-/// files, which is 0 until it knows.</summary>
-public readonly record struct ExportProgress(string Name, int Part, int Parts, int Done, int Total)
-{
-    /// <summary>How much of the whole export is done, from 0 to 1, or null while the part's size is
-    /// not known.</summary>
-    public float? Fraction
-    {
-        get
-        {
-            if (Total <= 0)
-                return null;
-            var part = (float)Done / Total;
-            return (Part - 1 + part) / Parts;
-        }
-    }
-}
+/// named <see cref="Name"/>, and has done <see cref="Fraction"/> of the whole export, from 0 to 1,
+/// or an unknown share when null.</summary>
+public readonly record struct ExportProgress(string Name, int Part, int Parts, float? Fraction);
 
 /// <summary>Writing assemblies out as C# projects, solutions and portable PDBs, reporting how far
 /// it has got and stopping when cancelled.</summary>
@@ -50,7 +36,7 @@ public static class AssemblyExport
     public static ExportedProject ExportProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath,
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        return ExportProject(assembly, options, projectPath, Part(progress, assembly, 1, 1), cancellationToken);
+        return ExportProject(assembly, options, projectPath, Part(progress, assembly, 0, WholeExport), cancellationToken);
     }
 
     private static ExportedProject ExportProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath,
@@ -81,6 +67,7 @@ public static class AssemblyExport
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         var folder = Path.GetDirectoryName(solutionPath)!;
+        var bounds = PartBounds(assemblies);
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var projects = new List<ExportedProject>();
         for (var i = 0; i < assemblies.Count; i++)
@@ -89,7 +76,7 @@ public static class AssemblyExport
             var assembly = assemblies[i];
             var name = ReserveProjectName(names, assembly.Name);
             var projectPath = Path.Combine(folder, name, name + ProjectExtension);
-            var part = Part(progress, assembly, i + 1, assemblies.Count);
+            var part = Part(progress, assembly, i, bounds);
             projects.Add(ExportProject(assembly, options, projectPath, part, cancellationToken));
         }
         var items = projects.ConvertAll(ToSolutionItem);
@@ -126,7 +113,7 @@ public static class AssemblyExport
     public static void GeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string path,
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        GeneratePdb(assembly, options, path, Part(progress, assembly, 1, 1), cancellationToken);
+        GeneratePdb(assembly, options, path, Part(progress, assembly, 0, WholeExport), cancellationToken);
     }
 
     private static void GeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string path, IProgress<DecompilationProgress>? progress,
@@ -159,12 +146,13 @@ public static class AssemblyExport
     public static List<PdbFailure> GeneratePdbs(IReadOnlyList<LoadedAssembly> assemblies, DecompilerOptions options, string folder,
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
+        var bounds = PartBounds(assemblies);
         var failures = new List<PdbFailure>();
         for (var i = 0; i < assemblies.Count; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var assembly = assemblies[i];
-            var part = Part(progress, assembly, i + 1, assemblies.Count);
+            var part = Part(progress, assembly, i, bounds);
             var failure = TryGeneratePdb(assembly, options, folder, part, cancellationToken);
             if (failure != null)
                 failures.Add(failure);
@@ -189,24 +177,62 @@ public static class AssemblyExport
         }
     }
 
-    /// <summary>Tells <paramref name="progress"/> that part <paramref name="part"/> of
-    /// <paramref name="parts"/>, <paramref name="assembly"/>, starts, and gives what reports the
-    /// decompiler's progress within it.</summary>
-    private static IProgress<DecompilationProgress>? Part(IProgress<ExportProgress>? progress, LoadedAssembly assembly, int part, int parts)
+    /// <summary>Where the one part of an export of a single assembly starts and ends in it.</summary>
+    private static readonly float[] WholeExport = [0f, 1f];
+
+    /// <summary>Where each part of an export of <paramref name="assemblies"/> starts in it, and where
+    /// the last ends: each assembly takes the share of its types among all of theirs.</summary>
+    internal static float[] PartBounds(IReadOnlyList<LoadedAssembly> assemblies)
+    {
+        var bounds = new float[assemblies.Count + 1];
+        var total = assemblies.Sum(WeightOf);
+        var before = 0;
+        for (var i = 0; i < assemblies.Count; i++)
+        {
+            bounds[i] = (float)before / total;
+            before += WeightOf(assemblies[i]);
+        }
+        bounds[assemblies.Count] = 1f;
+        return bounds;
+    }
+
+    private static int WeightOf(LoadedAssembly assembly)
+    {
+        var types = assembly.File.Metadata.TypeDefinitions.Count;
+        return Math.Max(1, types);
+    }
+
+    /// <summary>Tells <paramref name="progress"/> that the part at <paramref name="index"/>,
+    /// <paramref name="assembly"/>, starts where <paramref name="bounds"/> say, and gives what reports
+    /// the decompiler's progress within it.</summary>
+    private static IProgress<DecompilationProgress>? Part(IProgress<ExportProgress>? progress, LoadedAssembly assembly, int index, float[] bounds)
     {
         if (progress == null)
             return null;
-        progress.Report(new ExportProgress(assembly.Name, part, parts, 0, 0));
-        return new PartProgress(progress, assembly.Name, part, parts);
+        var part = new PartProgress(progress, assembly.Name, index + 1, bounds.Length - 1, bounds[index], bounds[index + 1]);
+        part.Start();
+        return part;
     }
 
-    /// <summary>The decompiler's progress within one part of an export, passed on as the export's.</summary>
-    private sealed class PartProgress(IProgress<ExportProgress> progress, string name, int part, int parts) : IProgress<DecompilationProgress>
+    /// <summary>The decompiler's progress within one part of an export, which spans
+    /// <paramref name="from"/> to <paramref name="to"/> of the whole, passed on as the export's.</summary>
+    private sealed class PartProgress(IProgress<ExportProgress> progress, string name, int part, int parts, float from, float to)
+        : IProgress<DecompilationProgress>
     {
+        public void Start() => progress.Report(new ExportProgress(name, part, parts, from));
+
         public void Report(DecompilationProgress value)
         {
-            var reported = new ExportProgress(name, part, parts, value.UnitsCompleted, value.TotalUnits);
-            progress.Report(reported);
+            var fraction = FractionAt(value.UnitsCompleted, value.TotalUnits);
+            progress.Report(new ExportProgress(name, part, parts, fraction));
+        }
+
+        private float FractionAt(int done, int total)
+        {
+            if (total <= 0)
+                return from;
+            var share = Math.Clamp((float)done / total, 0f, 1f);
+            return from + (to - from) * share;
         }
     }
 }
