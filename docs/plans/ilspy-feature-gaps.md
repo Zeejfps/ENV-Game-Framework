@@ -20,9 +20,8 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Resources:** BAML → XAML, `!AvaloniaResources` unpacked into the tree.
 - **Display options:** font and size, zoom, word wrap, line-number toggle, bracket matching,
   current-line highlight.
-- **Export:** progress and cancelling for long exports; a solution of only the selected
-  assemblies (the tree selects one node, so "Export all as solution" takes the whole list).
-- **Tree:** module nodes, nested-namespace view, exported (forwarded) types, types/members used
+- **Tree:** selecting several nodes (we select one; the Export dialog picks assemblies itself),
+  module nodes, nested-namespace view, exported (forwarded) types, types/members used
   from each reference, optional metadata tokens (hex or decimal).
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
   folder, Remove assemblies that failed to load, sort list, collapse all.

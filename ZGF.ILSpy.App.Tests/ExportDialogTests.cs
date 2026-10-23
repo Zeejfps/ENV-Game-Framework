@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 
@@ -166,6 +167,24 @@ public sealed class ExportDialogTests : IDisposable
 
         Assert.False(app.Workspace.ExportSetup.IsOpen);
         Assert.Single(app.Workspace.FinishedExports);
+    }
+
+    [Fact]
+    public void Export_on_an_assembly_in_the_tree_opens_the_dialog_with_that_assembly_ticked()
+    {
+        var app = AppDriver.Opened();
+        app.Workspace.Open(SecondPath);
+        app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Count == 2);
+        app.Settle(2);
+        var second = app.Workspace.Assemblies.Assemblies[1];
+        var row = app.TextRect(app.Workspace.Tree.Label(second.Root));
+
+        app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
+        app.ClickMenuItem("Export…").Frame(2);
+
+        var setup = app.Workspace.ExportSetup;
+        Assert.True(setup.IsOpen);
+        Assert.Equal([false, true], setup.Choices.Select(c => c.Included));
     }
 
     [Fact]
