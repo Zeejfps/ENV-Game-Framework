@@ -31,31 +31,33 @@ internal ref struct MetadataGridFrame
     private const float MaxAutoWidth = 480f;
     private const float FlyoutMinWidth = 320f;
     private const int CellSalt = 0x4D444743;
-    private const int FunnelSalt = 0x4D444746;
-    private const int FilterTextSalt = 0x4D444754;
     private const int FlyoutSalt = 0x4D44464C;
+    private const int HeaderSalt = 0x4D444748;
+    private const int MenuSalt = 0x4D44474D;
 
     private static readonly UiIcon TokenLink = new(LucideIcons.ExternalLink, LucideIcons.Family);
 
     private readonly Ui _ui;
-    private readonly string _id;
     private readonly MetadataGrid _grid;
     private readonly MetadataGridState _state;
     private readonly MetadataFilters _flags;
     private readonly Strings _t;
     private readonly int _listId;
+    private readonly int _headerId;
+    private readonly int _menuId;
     private bool _focused;
     private MetadataGridResult _result;
 
     public MetadataGridFrame(Ui ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t)
     {
         _ui = ui;
-        _id = id;
         _grid = grid;
         _state = state;
         _flags = flags;
         _t = t;
         _listId = ui.GetId(id);
+        _headerId = HashCode.Combine(_listId, HeaderSalt);
+        _menuId = HashCode.Combine(_listId, MenuSalt);
     }
 
     public MetadataGridResult Render()
@@ -116,114 +118,14 @@ internal ref struct MetadataGridFrame
 
     private void Header()
     {
-        var headers = _grid.Columns
-            .Select(static c => c.Name)
-            .ToArray();
         var sortGlyph = _state.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp;
         var sort = new TableSort(_state.SortColumn, new UiIcon(sortGlyph, LucideIcons.Family));
-        var heading = CreateHeading(_grid, _state, _flags, _t, _listId);
-        var clicked = _ui.TableHeader($"{_id}-header", _state.Columns!, _listId, headers, _ui.Theme.ShellPaddingX, _state.ScrollX, sort, heading);
+        var heading = new MetadataGridHeading(_grid, _state, _flags, _t, _listId);
+        var clicked = _ui.TableHeader(_headerId, _state.Columns!, _listId, _state.Headers, _ui.Theme.ShellPaddingX, _state.ScrollX, sort,
+            MetadataGridHeading.Render, heading);
         if (clicked < 0) return;
         if (clicked == _state.EditingColumn) return;
         _state.SortBy(clicked);
-    }
-
-    private static TableHeading CreateHeading(MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId)
-    {
-        return (ui, column, hovered) => Heading(ui, grid, state, flags, t, listId, column, hovered);
-    }
-
-    private static void Heading(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId, int column, bool hovered)
-    {
-        var filter = state.FilterOf(column, flags);
-        var textId = HashCode.Combine(listId, FilterTextSalt, column);
-        if (state.EditingColumn == column)
-            EditFilterText(ui, state, filter, textId);
-        else if (filter.Text.Length > 0)
-            FilterText(ui, state, filter, textId, column);
-        else
-            ColumnName(ui, grid.Columns[column].Name, hovered);
-        Funnel(ui, grid, state, filter, t, listId, column);
-    }
-
-    private static void EditFilterText(Ui ui, MetadataGridState state, MetadataColumnFilter filter, int textId)
-    {
-        var text = filter.Text;
-        using (ui.Id(textId))
-        {
-            var edit = ui.InlineEdit("filter", ref text, state.BeginEdit, Sizing.Grow());
-            state.BeginEdit = false;
-            filter.Text = edit == InlineEditResult.Cancelled ? "" : text;
-            if (edit != InlineEditResult.Editing)
-                state.StopEditingFilter();
-        }
-    }
-
-    private static void FilterText(Ui ui, MetadataGridState state, MetadataColumnFilter filter, int textId, int column)
-    {
-        var theme = ui.Theme;
-        var shown = ui.Interact(textId);
-        if (shown.Hovered)
-            ui.SetCursor(MouseCursor.Text);
-        if (shown.Clicked)
-            state.StartEditingFilter(column);
-        ui.Text(filter.Text, new Box { Width = Sizing.Grow() }, color: theme.AccentText, size: theme.FontSizeSmall, id: shown.Id,
-            overflow: TextOverflow.Ellipsis);
-    }
-
-    private static void ColumnName(Ui ui, string name, bool hovered)
-    {
-        var theme = ui.Theme;
-        var color = hovered ? theme.Text : theme.TextMuted;
-        ui.Text(name, new Box { Width = Sizing.Grow() }, color: color, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-    }
-
-    private static void Funnel(Ui ui, MetadataGrid grid, MetadataGridState state, MetadataColumnFilter filter, Strings t, int listId, int column)
-    {
-        var theme = ui.Theme;
-        var funnel = ui.Clickable(HashCode.Combine(listId, FunnelSalt, column));
-        if (funnel.Clicked)
-            ClickFunnel(state, filter, column);
-        var glyph = FunnelGlyph(filter);
-        var color = FunnelColor(theme, filter, funnel.Hovered);
-        using (ui.Box(funnel.Id, new Box { Width = theme.IconSize, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
-            ui.Text(glyph, color: color, size: theme.FontSizeSmall, family: LucideIcons.Family);
-        if (!state.IsFlagsFlyoutOpenFor(column))
-            ui.Tooltip(funnel.Id, t.MetadataFilter(grid.Columns[column].Name));
-    }
-
-    private static void ClickFunnel(MetadataGridState state, MetadataColumnFilter filter, int column)
-    {
-        if (filter.Flags != null)
-        {
-            state.ToggleFlagsFlyout(column);
-            return;
-        }
-        if (filter.Text.Length > 0)
-        {
-            filter.Text = "";
-            state.StopEditingFilter();
-            return;
-        }
-        state.StartEditingFilter(column);
-    }
-
-    private static string FunnelGlyph(MetadataColumnFilter filter)
-    {
-        if (filter.Flags != null)
-            return LucideIcons.Filter;
-        if (filter.Text.Length > 0)
-            return LucideIcons.FilterX;
-        return LucideIcons.Filter;
-    }
-
-    private static uint FunnelColor(UiTheme theme, MetadataColumnFilter filter, bool hovered)
-    {
-        if (filter.IsActive)
-            return theme.AccentText;
-        if (hovered)
-            return theme.Text;
-        return theme.TextMuted;
     }
 
     private void FlagsFlyout()
@@ -232,7 +134,8 @@ internal ref struct MetadataGridFrame
         var theme = _ui.Theme;
         var filter = _flags.For(_grid, _state.FlagsColumn);
         var width = FlagsFilterView.ContentWidth + theme.TooltipPaddingX * 2 + theme.ScrollBarHitWidth;
-        using var flyout = _ui.Flyout(HashCode.Combine(_listId, FlyoutSalt), ref _state.FlagsOpen, HashCode.Combine(_listId, FunnelSalt, _state.FlagsColumn),
+        var funnelId = MetadataGridHeading.FunnelId(_listId, _state.FlagsColumn);
+        using var flyout = _ui.Flyout(HashCode.Combine(_listId, FlyoutSalt), ref _state.FlagsOpen, funnelId,
             new Box { Width = Sizing.Fit(FlyoutMinWidth, width), Gap = theme.Gap });
         if (!flyout.IsOpen) return;
         FlagsFilterView.Render(_ui, filter, _t);
@@ -294,14 +197,15 @@ internal ref struct MetadataGridFrame
     {
         var rowHeight = _state.RowHeight;
         var width = _state.Columns!.TotalWidth + _ui.Theme.ShellPaddingX * 2;
-        var heights = TallRows(rowHeight, width);
-        var tall = heights.ConvertAll(static h => new TallRow(h.Index, h.Cells + h.Details));
-        using var list = _ui.VirtualScroll(_listId, _state.View.Length, rowHeight, ref _state.ScrollX, ref _state.ScrollY, default, tall);
+        var details = MetadataDetailsView.Height(_ui, _grid, _state.Details, _state.Selected, width);
+        var tall = _state.TallRows;
+        tall.Measure(_state, rowHeight, details);
+        using var list = _ui.VirtualScroll(_listId, _state.View.Length, rowHeight, ref _state.ScrollX, ref _state.ScrollY, default, tall.Rows);
         Arrive(list, rowHeight);
         for (var index = list.First; index < list.End; index++)
         {
             var row = _state.RowAt(index);
-            var height = HeightOf(heights, index);
+            var height = tall.At(index);
             if (height.Cells <= 0f)
             {
                 Row(row, width, rowHeight);
@@ -314,30 +218,6 @@ internal ref struct MetadataGridFrame
                     MetadataDetailsView.Render(_ui, _grid, _state.Details, _t, row, height.Details);
             }
         }
-    }
-
-    private readonly record struct RowHeights(int Index, float Cells, float Details);
-
-    /// <summary>The rows in view order taller than one line: those with cells open in place, as
-    /// tall as their longest, and the selected row with the details under it.</summary>
-    private List<RowHeights> TallRows(float rowHeight, float width)
-    {
-        var cells = new Dictionary<int, float>();
-        foreach (var ((row, _), lines) in _state.Open)
-            cells[row] = MathF.Max(cells.GetValueOrDefault(row, rowHeight), lines * rowHeight);
-        var details = MetadataDetailsView.Height(_ui, _grid, _state.Details, _state.Selected, width);
-        if (details > 0f)
-            cells.TryAdd(_state.Selected, rowHeight);
-        var tall = new List<RowHeights>(cells.Count);
-        foreach (var (row, height) in cells)
-        {
-            var index = _state.IndexOf(row);
-            if (index < 0) continue;
-            var below = row == _state.Selected ? details : 0f;
-            tall.Add(new RowHeights(index, height, below));
-        }
-        tall.Sort(static (a, b) => a.Index.CompareTo(b.Index));
-        return tall;
     }
 
     private void Arrive(Ui.VirtualList list, float rowHeight)
@@ -369,16 +249,6 @@ internal ref struct MetadataGridFrame
         var outOfView = top < list.Offset || top + rowHeight > list.Offset + list.Viewport;
         if (outOfView)
             list.ScrollTo(MathF.Max(0f, top - list.Viewport / 3f));
-    }
-
-    private static RowHeights HeightOf(List<RowHeights> heights, int index)
-    {
-        foreach (var height in heights)
-        {
-            if (height.Index == index)
-                return height;
-        }
-        return default;
     }
 
     private void Row(int row, float width, float height)
@@ -422,7 +292,7 @@ internal ref struct MetadataGridFrame
         if (cell.DoubleClicked || middleClicked)
             OpenDefinition(row, !cell.DoubleClicked);
         if (rightClicked)
-            _ui.OpenContextMenu($"{_id}-menu");
+            _ui.OpenContextMenu(_menuId);
     }
 
     private bool CanExpand(int row, int column)
@@ -491,7 +361,7 @@ internal ref struct MetadataGridFrame
 
     private MetadataGridResult? Menu()
     {
-        using var menu = _ui.ContextMenu($"{_id}-menu");
+        using var menu = _ui.ContextMenu(_menuId);
         if (!menu.IsOpen) return null;
         if (_state.Selected < 0) return null;
         if (_state.Selected >= _grid.RowCount) return null;

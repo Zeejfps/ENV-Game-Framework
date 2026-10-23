@@ -15,6 +15,10 @@ public readonly record struct TableSort(int Column, UiIcon? Icon = null);
 /// <paramref name="hovered"/> while the pointer is over the cell.</summary>
 public delegate void TableHeading(Ui ui, int column, bool hovered);
 
+/// <summary>A <see cref="TableHeading"/> handed <paramref name="state"/>, so it can be a static
+/// lambda that captures nothing and allocates nothing.</summary>
+public delegate void TableHeading<TState>(Ui ui, int column, bool hovered, in TState state);
+
 /// <summary>
 /// The column widths of a table, shared by its <see cref="UiWidgets.TableHeader"/> and the
 /// <see cref="UiWidgets.TableCell"/>s of its rows so they line up. Owned by the app; dragging a
@@ -141,8 +145,30 @@ public static partial class UiWidgets
     public static int TableHeader(this Ui ui, string id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX = 0f,
         float scrollX = 0f, TableSort? sort = null, TableHeading? heading = null)
     {
-        var theme = ui.Theme;
         var headerId = ui.GetId(id);
+        if (heading == null)
+            return Header<TableHeading?>(ui, headerId, columns, bodyId, headers, paddingX, scrollX, sort, null, null);
+        return Header<TableHeading?>(ui, headerId, columns, bodyId, headers, paddingX, scrollX, sort, InvokeHeading, heading);
+    }
+
+    /// <summary>A <see cref="TableHeader(Ui, string, TableColumns, int, ReadOnlySpan{string}, float, float, TableSort?, TableHeading?)"/>
+    /// with the header's own <paramref name="id"/>, whose <paramref name="heading"/> is handed
+    /// <paramref name="state"/>.</summary>
+    public static int TableHeader<TState>(this Ui ui, int id, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX,
+        float scrollX, TableSort? sort, TableHeading<TState> heading, in TState state)
+    {
+        return Header(ui, id, columns, bodyId, headers, paddingX, scrollX, sort, heading, state);
+    }
+
+    private static void InvokeHeading(Ui ui, int column, bool hovered, in TableHeading? heading)
+    {
+        heading!(ui, column, hovered);
+    }
+
+    private static int Header<TState>(Ui ui, int headerId, TableColumns columns, int bodyId, ReadOnlySpan<string> headers, float paddingX,
+        float scrollX, TableSort? sort, TableHeading<TState>? heading, in TState state)
+    {
+        var theme = ui.Theme;
         if (ui.TryGetContentRect(bodyId, out var body) || ui.TryGetRect(bodyId, out body))
             columns.Layout(body.Width - paddingX * 2);
 
@@ -187,7 +213,7 @@ public static partial class UiWidgets
                 using (sort is null ? ui.TableCell(columns, i) : ui.TableCell(columns, i, cell.Id))
                 {
                     if (heading != null)
-                        heading(ui, i, cell.Hovered);
+                        heading(ui, i, cell.Hovered, in state);
                     else if (i < headers.Length && headers[i].Length > 0)
                         ui.Text(headers[i], new Box { Width = Sizing.Fit() }, color: cell.Hovered ? theme.Text : theme.TextMuted, size: theme.FontSizeSmall,
                             overflow: TextOverflow.Ellipsis);

@@ -53,8 +53,8 @@ public readonly record struct MetadataTarget(BrowseNode Node, int Row);
 
 /// <summary>
 /// The rows of a metadata node as ILSpy shows them in a grid: a header, a directory, a table or a
-/// heap, read through its <see cref="GridSchema"/>. Cell text, tooltips and details are worked out
-/// once and kept; read them on one thread at a time.
+/// heap, read through its <see cref="GridSchema"/>. Cell text, links, tooltips and details are
+/// worked out once and kept; read them on one thread at a time.
 /// </summary>
 public sealed class MetadataGrid
 {
@@ -65,6 +65,7 @@ public sealed class MetadataGrid
     private readonly IReadOnlyList<object> _rows;
     private readonly IReadOnlyList<GridColumn> _columns;
     private readonly Dictionary<int, MetadataTooltip?> _tooltips = new();
+    private readonly Dictionary<int, MetadataTarget?> _links = new();
     private readonly Dictionary<int, MetadataRowDetails?> _details = new();
     private string?[]? _text;
     private (string FirstLine, int MoreLines)?[]? _lines;
@@ -194,7 +195,17 @@ public sealed class MetadataGrid
     /// the table's end, as the end of an empty member list is, leads to the last row.</summary>
     public MetadataTarget? Link(int row, int column)
     {
-        if (!_columns[column].Column.IsToken || Value(row, column) is not int token || (token & 0xFFFFFF) == 0) return null;
+        if (!_columns[column].Column.IsToken) return null;
+        var index = row * _columns.Count + column;
+        if (_links.TryGetValue(index, out var known)) return known;
+        var result = FindLink(row, column);
+        _links[index] = result;
+        return result;
+    }
+
+    private MetadataTarget? FindLink(int row, int column)
+    {
+        if (Value(row, column) is not int token || (token & 0xFFFFFF) == 0) return null;
         if (_owner.Folder?.FindTable((TableIndex)(token >>> 24)) is not { } table) return null;
         var count = table.File.Metadata.GetTableRowCount(table.Table!.Value);
         return new MetadataTarget(table, Math.Min(token & 0xFFFFFF, count) - 1);

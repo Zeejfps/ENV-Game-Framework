@@ -12,6 +12,7 @@ public sealed class MetadataGridState
 
     internal MetadataGrid? Grid;
     internal TableColumns? Columns;
+    internal string[] Headers = [];
     internal MetadataColumnFilter?[] Filters = [];
     internal int SortColumn = None;
     internal bool Descending;
@@ -30,6 +31,7 @@ public sealed class MetadataGridState
     internal bool FlagsOpen;
     internal readonly Dictionary<(int Row, int Column), int> Open = new();
     internal readonly DetailTexts Details = new();
+    internal readonly TallRowLayout TallRows = new();
 
     /// <summary>Where the view stands, as a code view's position: the top row as the top line, the
     /// selected row and cell as the caret.</summary>
@@ -50,6 +52,7 @@ public sealed class MetadataGridState
         if (ReferenceEquals(grid, Grid)) return;
         Grid = grid;
         Columns = null;
+        Headers = ListHeaders(grid);
         Filters = new MetadataColumnFilter?[grid.Columns.Count];
         SortColumn = None;
         PendingReveal = None;
@@ -67,6 +70,13 @@ public sealed class MetadataGridState
         PendingRestore = null;
         Open.Clear();
         Details.Clear();
+    }
+
+    private static string[] ListHeaders(MetadataGrid grid)
+    {
+        return grid.Columns
+            .Select(static c => c.Name)
+            .ToArray();
     }
 
     /// <summary>Returns the view to <paramref name="position"/> once it has been laid out.</summary>
