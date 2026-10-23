@@ -1,5 +1,5 @@
 ZGF.ILSpy.Core contains code derived from ILSpy (https://github.com/icsharpcode/ILSpy).
-ICSharpCode.Decompiler is part of ILSpy and is distributed under the same license.
+ICSharpCode.Decompiler and ICSharpCode.BamlDecompiler are part of ILSpy and are distributed under the same license.
 
 MIT license
 

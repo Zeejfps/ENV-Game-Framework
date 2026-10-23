@@ -171,6 +171,20 @@ public sealed class ResourceTests
     }
 
     [Fact]
+    public void Baml_shows_as_the_xaml_it_was_compiled_from()
+    {
+        var assembly = new AssemblyList().Open(Trees.WpfAssemblyPath);
+        var baml = Resources(assembly).Child("BamlFixture.g.resources").Child("mainwindow.baml");
+
+        var document = baml.Decompile(DecompilationLanguage.CSharp);
+        var text = document.GetText();
+
+        Assert.Contains("x:Class=\"BamlFixture.MainWindow\"", text);
+        Assert.Contains("<TextBlock Text=\"Hello from BAML\" />", text);
+        Assert.Contains(("StackPanel", SpanKind.Keyword), document.SpansOf().Select(s => (s.Text, s.Span.Kind)));
+    }
+
+    [Fact]
     public void The_resources_folder_describes_each_resource()
     {
         var assembly = Trees.TestAssembly;

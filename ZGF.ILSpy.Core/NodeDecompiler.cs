@@ -381,6 +381,9 @@ internal static class NodeDecompiler
                         WriteComment(output, resource.Description);
                 }
                 break;
+            case IResourceData resource when Baml.IsBamlName(node.Text):
+                WriteBaml(node.Assembly, resource, output, cancellationToken);
+                break;
             case IResourceData resource:
                 WriteResource(node.Text, resource, output);
                 break;
@@ -430,6 +433,14 @@ internal static class NodeDecompiler
             output.Write(label, SpanKind.Type, node.Reference);
             output.Write(declaration[(nameAt + label.Length)..], SpanKind.Plain);
         }
+        output.WriteLine();
+    }
+
+    /// <summary>WPF's compiled XAML as the XAML it was compiled from, colored as markup.</summary>
+    private static void WriteBaml(LoadedAssembly assembly, IResourceData resource, DocumentBuilder output, CancellationToken cancellationToken)
+    {
+        var xaml = Baml.DecompileToText(assembly, resource.ReadData(), cancellationToken);
+        ResourceText.Write(output, xaml, ResourceSyntax.Xml);
         output.WriteLine();
     }
 

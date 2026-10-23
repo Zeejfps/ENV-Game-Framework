@@ -85,7 +85,7 @@ public static class AssemblyExport
     {
         var folder = Path.GetDirectoryName(projectPath)!;
         Directory.CreateDirectory(folder);
-        var decompiler = CreateProjectDecompiler(assembly, options);
+        var decompiler = CreateProjectDecompiler(assembly, options, cancellationToken);
         decompiler.ProgressIndicator = progress;
         decompiler.StrongNameKeyFile = strongNameKeyFile;
         using var projectFile = new StreamWriter(projectPath);
@@ -96,11 +96,11 @@ public static class AssemblyExport
         return new ExportedProject(assembly, projectPath, errors) { Id = id };
     }
 
-    private static WholeProjectDecompiler CreateProjectDecompiler(LoadedAssembly assembly, DecompilerOptions options)
+    private static WholeProjectDecompiler CreateProjectDecompiler(LoadedAssembly assembly, DecompilerOptions options, CancellationToken cancellationToken)
     {
         var settings = Settings.Create(options);
         var symbols = NodeDecompiler.DebugSymbolsFor(assembly, settings);
-        return new WholeProjectDecompiler(settings, assembly.Resolver, null, null, symbols);
+        return new BamlProjectDecompiler(assembly, settings, symbols, cancellationToken);
     }
 
     /// <summary><paramref name="project"/> with a portable PDB of its assembly written beside it, or

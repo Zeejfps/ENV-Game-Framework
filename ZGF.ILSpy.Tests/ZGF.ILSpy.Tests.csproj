@@ -23,6 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Fixtures\Wpf\**" />
+    <None Remove="Fixtures\Wpf\**" />
+    <None Include="Fixtures\Wpf\BamlFixture.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ZGF.ILSpy.Core\ZGF.ILSpy.Core.csproj" />
   </ItemGroup>
 

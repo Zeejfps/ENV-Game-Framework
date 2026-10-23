@@ -29,6 +29,7 @@
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
         <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
         <PackageVersion Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
+        <PackageVersion Include="ICSharpCode.BamlDecompiler" Version="11.1.0.9782" />
     </ItemGroup>
 
     <ItemGroup>

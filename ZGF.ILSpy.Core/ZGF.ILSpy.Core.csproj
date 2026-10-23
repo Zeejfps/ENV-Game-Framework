@@ -6,6 +6,7 @@
 
     <ItemGroup>
       <PackageReference Include="ICSharpCode.Decompiler" />
+      <PackageReference Include="ICSharpCode.BamlDecompiler" />
     </ItemGroup>
 
     <ItemGroup>
