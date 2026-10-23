@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -8,7 +9,8 @@ namespace ZGF.ILSpy;
 public sealed record ExportRequest(string Folder, Action Start);
 
 /// <summary>Writing code, projects, solutions and portable PDBs to files in the background, one
-/// export at a time in the order they were asked for, which <see cref="Workspace.Export"/> queues.</summary>
+/// export at a time in the order they were asked for, which <see cref="Workspace.Export"/> queues.
+/// Each ends in an <see cref="ExportReport"/> in <see cref="Workspace.FinishedExports"/>.</summary>
 public static class Exporting
 {
     private const string ProjectExtension = ".csproj";
@@ -47,11 +49,12 @@ public static class Exporting
         var language = w.Language;
         var options = w.DecompilerOptions;
         var start = await w.Export.Enter(node.Text);
+        var clock = Stopwatch.StartNew();
         var saved = await Background.Run(() => SaveCodeFile(node, language, options, path, start.Token));
         w.Export.Leave(start);
-        if (!HasFailed(saved.Error))
-            return;
-        w.ReportError(Strings.For(w.Locale).ErrorSaveCode(node.Text), saved.Error!.Message);
+        var failure = Strings.For(w.Locale).ErrorSaveCode(node.Text);
+        var report = ExportReport.Of(node.Text, FolderOf(path), saved.Error, failure, clock.Elapsed);
+        w.FinishExport(report.WithWritten(saved.Error, path));
     }
 
     private static bool SaveCodeFile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
@@ -61,20 +64,24 @@ public static class Exporting
         return true;
     }
 
-    /// <summary>Whether an export that ended with <paramref name="error"/> failed, rather than
-    /// finished or was cancelled.</summary>
-    private static bool HasFailed(Exception? error)
+    private static string FolderOf(string path) => Path.GetDirectoryName(path)!;
+
+    /// <summary><paramref name="report"/> listing <paramref name="written"/>, when the export ended
+    /// without <paramref name="error"/>.</summary>
+    private static ExportReport WithWritten(this ExportReport report, Exception? error, params string[] written)
     {
-        if (error == null)
-            return false;
-        return error is not OperationCanceledException;
+        if (error != null)
+            return report;
+        return report with { Written = written };
     }
+
+    private static void FinishExport(this Workspace w, ExportReport report) => w.FinishedExports.Add(report);
 
     /// <summary>Decompiles <paramref name="assembly"/> into a C# project whose file is
     /// <paramref name="projectPath"/>, asking first when its folder already holds other files.</summary>
     public static void ExportProject(this Workspace w, LoadedAssembly assembly, string projectPath)
     {
-        var folder = Path.GetDirectoryName(projectPath)!;
+        var folder = FolderOf(projectPath);
         w.ConfirmFolder(folder, projectPath, () => w.StartProjectExport(assembly, projectPath));
     }
 
@@ -82,23 +89,45 @@ public static class Exporting
     {
         var options = w.DecompilerOptions;
         var start = await w.Export.Enter(assembly.Name);
+        var clock = Stopwatch.StartNew();
         var exported = await Background.Run(() => AssemblyExport.ExportProject(assembly, options, projectPath, start.Progress, start.Token));
         w.Export.Leave(start);
-        if (HasFailed(exported.Error))
-        {
-            w.ReportError(Strings.For(w.Locale).ErrorExportProject(assembly.Name), exported.Error!.Message);
-            return;
-        }
-        if (exported.Value == null)
-            return;
-        w.ReportIncompleteProject(exported.Value);
+        var failure = Strings.For(w.Locale).ErrorExportProject(assembly.Name);
+        var report = ExportReport.Of(assembly.Name, FolderOf(projectPath), exported.Error, failure, clock.Elapsed);
+        w.FinishExport(report.WithProjects(exported.Value, projectPath));
+    }
+
+    /// <summary><paramref name="report"/> listing <paramref name="first"/> and each of
+    /// <paramref name="projects"/> as written, with the parts the projects could not decompile as
+    /// its problems.</summary>
+    private static ExportReport WithProjects(this ExportReport report, IReadOnlyList<ExportedProject>? projects, string first)
+    {
+        if (projects == null)
+            return report;
+        var written = projects
+            .Select(static p => p.ProjectPath)
+            .Prepend(first)
+            .Distinct()
+            .ToList();
+        var problems = projects
+            .SelectMany(static p => p.Errors)
+            .Select(static e => new ExportProblem(e.Message, e.Details))
+            .ToList();
+        return report with { Written = written, Problems = problems };
+    }
+
+    private static ExportReport WithProjects(this ExportReport report, ExportedProject? project, string first)
+    {
+        if (project == null)
+            return report;
+        return report.WithProjects([project], first);
     }
 
     /// <summary>Decompiles every open assembly into a C# project beside the solution at
     /// <paramref name="solutionPath"/>, asking first when its folder already holds other files.</summary>
     public static void ExportSolution(this Workspace w, string solutionPath)
     {
-        var folder = Path.GetDirectoryName(solutionPath)!;
+        var folder = FolderOf(solutionPath);
         w.ConfirmFolder(folder, solutionPath, () => w.StartSolutionExport(solutionPath));
     }
 
@@ -106,26 +135,14 @@ public static class Exporting
     {
         var options = w.DecompilerOptions;
         var assemblies = w.Assemblies.Assemblies;
-        var start = await w.Export.Enter(Path.GetFileName(solutionPath));
+        var name = Path.GetFileName(solutionPath);
+        var start = await w.Export.Enter(name);
+        var clock = Stopwatch.StartNew();
         var exported = await Background.Run(() => AssemblyExport.ExportSolution(assemblies, options, solutionPath, start.Progress, start.Token));
         w.Export.Leave(start);
-        if (HasFailed(exported.Error))
-        {
-            w.ReportError(Strings.For(w.Locale).ErrorExportSolution, exported.Error!.Message);
-            return;
-        }
-        if (exported.Value == null)
-            return;
-        foreach (var project in exported.Value)
-            w.ReportIncompleteProject(project);
-    }
-
-    private static void ReportIncompleteProject(this Workspace w, ExportedProject project)
-    {
-        if (project.Errors.Count == 0)
-            return;
-        var details = string.Join(Environment.NewLine, project.Errors);
-        w.ReportError(Strings.For(w.Locale).ErrorProjectIncomplete(project.Assembly.Name), details);
+        var failure = Strings.For(w.Locale).ErrorExportSolution;
+        var report = ExportReport.Of(name, FolderOf(solutionPath), exported.Error, failure, clock.Elapsed);
+        w.FinishExport(report.WithProjects(exported.Value, solutionPath));
     }
 
     /// <summary>Starts <paramref name="start"/> at once when <paramref name="folder"/> holds nothing
@@ -174,11 +191,12 @@ public static class Exporting
     {
         var options = w.DecompilerOptions;
         var start = await w.Export.Enter(assembly.Name);
+        var clock = Stopwatch.StartNew();
         var generated = await Background.Run(() => GeneratePdbFile(assembly, options, path, start));
         w.Export.Leave(start);
-        if (!HasFailed(generated.Error))
-            return;
-        w.ReportError(Strings.For(w.Locale).ErrorGeneratePdb(assembly.Name), generated.Error!.Message);
+        var failure = Strings.For(w.Locale).ErrorGeneratePdb(assembly.Name);
+        var report = ExportReport.Of(assembly.Name, FolderOf(path), generated.Error, failure, clock.Elapsed);
+        w.FinishExport(report.WithWritten(generated.Error, path));
     }
 
     private static bool GeneratePdbFile(LoadedAssembly assembly, DecompilerOptions options, string path, ExportStart start)
@@ -188,39 +206,67 @@ public static class Exporting
     }
 
     /// <summary>Writes a portable PDB of each open assembly into <paramref name="folder"/>, named
-    /// after the assembly. Assemblies that cannot have one, or fail, are reported together.</summary>
+    /// after the assembly. Assemblies that cannot have one, or fail, are the report's problems.</summary>
     public static async void GeneratePdbs(this Workspace w, string folder)
     {
         var options = w.DecompilerOptions;
         var assemblies = w.Assemblies.Assemblies;
-        var start = await w.Export.Enter(Path.GetFileName(folder));
+        var name = Path.GetFileName(folder);
+        var start = await w.Export.Enter(name);
+        var clock = Stopwatch.StartNew();
         var failures = await Background.Run(() => AssemblyExport.GeneratePdbs(assemblies, options, folder, start.Progress, start.Token));
         w.Export.Leave(start);
-        w.ReportPdbFailures(failures);
-    }
-
-    private static void ReportPdbFailures(this Workspace w, Outcome<List<PdbFailure>> failures)
-    {
         var t = Strings.For(w.Locale);
-        if (HasFailed(failures.Error))
-        {
-            w.ReportError(t.ErrorGeneratePdbs, failures.Error!.Message);
-            return;
-        }
-        if (failures.Value == null)
-            return;
-        if (failures.Value.Count == 0)
-            return;
-        var lines = failures.Value.Select(f => DescribePdbFailure(t, f));
-        var details = string.Join(Environment.NewLine, lines);
-        w.ReportError(t.ErrorGeneratePdbs, details);
+        var report = ExportReport.Of(name, folder, failures.Error, t.ErrorGeneratePdbs, clock.Elapsed);
+        w.FinishExport(report.WithPdbs(assemblies, failures.Value, folder, t));
     }
 
-    private static string DescribePdbFailure(Strings t, PdbFailure failure)
+    /// <summary><paramref name="report"/> listing the PDB of each of <paramref name="assemblies"/> that
+    /// is not among <paramref name="failures"/> as written, and the failures as its problems.</summary>
+    private static ExportReport WithPdbs(this ExportReport report, IReadOnlyList<LoadedAssembly> assemblies, List<PdbFailure>? failures,
+        string folder, Strings t)
+    {
+        if (failures == null)
+            return report;
+        var failed = failures
+            .Select(static f => f.Assembly)
+            .ToHashSet();
+        var written = assemblies
+            .Where(a => !failed.Contains(a))
+            .Select(a => Path.Combine(folder, a.PdbFileName))
+            .ToList();
+        var problems = failures.ConvertAll(f => DescribePdbFailure(t, f));
+        return report with { Written = written, Problems = problems };
+    }
+
+    private static ExportProblem DescribePdbFailure(Strings t, PdbFailure failure)
     {
         var name = failure.Assembly.Name;
         if (failure.Error == null)
-            return t.ErrorNoPdbEntry(name);
-        return $"{name}: {failure.Error}";
+            return new ExportProblem(t.ErrorNoPdbEntry(name));
+        return new ExportProblem($"{name}: {failure.Error.Message}", failure.Error.Details);
     }
+
+    /// <summary>The folder the last finished export wrote into, or null when none has finished.</summary>
+    public static string? LastExportFolder(this Workspace w)
+    {
+        var exports = w.FinishedExports;
+        if (exports.Count == 0)
+            return null;
+        var last = exports[exports.Count - 1];
+        return last.Folder;
+    }
+
+    /// <summary>Shows the reports of the finished exports in a new tab, and clears them.</summary>
+    public static void ShowExportReport(this Workspace w)
+    {
+        var t = Strings.For(w.Locale);
+        var document = ExportReportText.Write(t, w.FinishedExports);
+        var tab = w.OpenNewTab();
+        w.Tabs.MakeActive(tab);
+        tab.ShowText(t.ExportReportTitle, document);
+        w.FinishedExports.Clear();
+    }
+
+    public static void DismissExportNotice(this Workspace w) => w.FinishedExports.Clear();
 }

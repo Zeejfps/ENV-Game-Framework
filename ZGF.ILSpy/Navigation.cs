@@ -195,7 +195,7 @@ public static class Navigation
         return tab;
     }
 
-    private static DocumentTab OpenNewTab(this Workspace w)
+    internal static DocumentTab OpenNewTab(this Workspace w)
     {
         var tab = w.AddTab();
         w.MainLayout.DockDocument(tab.Panel, w.Tabs.ActivePanel);

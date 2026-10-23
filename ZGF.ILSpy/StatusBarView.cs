@@ -29,12 +29,8 @@ internal static class StatusBarView
 
             using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                var progress = w.Export.Progress;
-                if (progress != null)
-                {
-                    ExportStatus(ui, w, progress.Value);
+                if (ExportStatusView.Render(ui, w))
                     Dot(ui);
-                }
                 var activity = DescribeActivity(w, t);
                 if (activity != null)
                 {
@@ -62,62 +58,6 @@ internal static class StatusBarView
         if (w.IsResolving)
             return t.StatusResolving;
         return null;
-    }
-
-    private const float ExportBarWidth = 72f;
-
-    /// <summary>What is being exported, how far it has got, and the button that cancels it.</summary>
-    private static void ExportStatus(Ui<UiState> ui, Workspace w, ExportProgress progress)
-    {
-        var t = ui.State.Strings;
-        var theme = ui.Theme;
-        var text = ui.Memo("status-export", (progress.Name, progress.Part, progress.Parts, t), static a => DescribeExport(a.t, a.Name, a.Part, a.Parts));
-        ui.Text(text, color: theme.AccentText, size: theme.FontSizeSmall);
-        var fraction = progress.Fraction;
-        if (fraction != null)
-            ui.ProgressBar(fraction.Value, Sizing.Fixed(ExportBarWidth));
-        CancelExportButton(ui, w);
-        QueuedExports(ui, w);
-    }
-
-    private static void QueuedExports(Ui<UiState> ui, Workspace w)
-    {
-        var waiting = w.Export.WaitingCount;
-        if (waiting == 0)
-            return;
-        var t = ui.State.Strings;
-        var theme = ui.Theme;
-        var text = ui.Memo("status-export-queued", (waiting, t), static a => a.t.StatusExportQueued(a.waiting));
-        ui.Text(text, color: theme.TextMuted, size: theme.FontSizeSmall);
-    }
-
-    private static string DescribeExport(Strings t, string name, int part, int parts)
-    {
-        if (parts > 1)
-            return t.StatusExportingPart(part, parts, name);
-        return t.StatusExportingName(name);
-    }
-
-    private static void CancelExportButton(Ui<UiState> ui, Workspace w)
-    {
-        var t = ui.State.Strings;
-        var theme = ui.Theme;
-        var i = ui.Clickable("cancel-export");
-        if (i.Clicked)
-            w.Export.Cancel();
-
-        using (ui.Row(i.Id, new Box
-        {
-            Width = Sizing.Fit(),
-            Height = Sizing.Grow(),
-            Padding = new Spacing(theme.GapTight, 0f),
-            AlignY = Align.Center,
-            Background = i.Held ? theme.Pressed(theme.RowHover) : i.Hovered ? theme.RowHover : 0u,
-        }))
-        {
-            ui.Text(LucideIcons.X, color: theme.TextMuted, size: theme.IconSize, family: LucideIcons.Family);
-        }
-        ui.Tooltip(i.Id, t.StatusCancelExport);
     }
 
     private static bool IsDecompiling(Workspace w)

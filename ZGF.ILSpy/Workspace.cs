@@ -89,6 +89,10 @@ public sealed class Workspace
     /// <summary>The code, projects, solutions and PDBs being written in the background, one at a time.</summary>
     public ExportQueue Export { get; } = new();
 
+    /// <summary>The reports of the exports that finished since the user last looked at them or
+    /// dismissed them, oldest first.</summary>
+    public List<ExportReport> FinishedExports { get; } = new();
+
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
 

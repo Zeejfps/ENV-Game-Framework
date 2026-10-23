@@ -10,7 +10,7 @@ internal static class DocumentsView
     public static void Render(Ui<UiState> ui, Workspace w, DocumentTab tab)
     {
         var t = ui.State.Strings;
-        if (tab.Location == null)
+        if (IsEmpty(tab))
         {
             Hint(ui, t.DocumentsHint);
             return;
@@ -42,6 +42,13 @@ internal static class DocumentsView
             w.ToggleBookmark(tab, line);
         if (result.Analyze is { } analyzed)
             w.Analyze(analyzed);
+    }
+
+    private static bool IsEmpty(DocumentTab tab)
+    {
+        if (tab.ShowsText)
+            return false;
+        return tab.Location == null;
     }
 
     public static DockTab Tab(Workspace w, DocumentTab tab) =>

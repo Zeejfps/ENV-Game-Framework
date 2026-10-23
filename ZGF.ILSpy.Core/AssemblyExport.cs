@@ -5,16 +5,19 @@ using ICSharpCode.Decompiler.Solution;
 
 namespace ZGF.ILSpy.Core;
 
+/// <summary>Something the decompiler could not handle: what it was doing, and the full error.</summary>
+public sealed record ExportError(string Message, string Details);
+
 /// <summary>An assembly decompiled into a C# project: the project file, and what could not be
 /// decompiled, which the project holds as error comments instead.</summary>
-public sealed record ExportedProject(LoadedAssembly Assembly, string ProjectPath, IReadOnlyList<string> Errors)
+public sealed record ExportedProject(LoadedAssembly Assembly, string ProjectPath, IReadOnlyList<ExportError> Errors)
 {
     internal ProjectId? Id { get; init; }
 }
 
 /// <summary>An assembly no PDB was written for: <see cref="Error"/> says why, or is null when its
 /// debug directory names no PDB for one to match.</summary>
-public sealed record PdbFailure(LoadedAssembly Assembly, string? Error);
+public sealed record PdbFailure(LoadedAssembly Assembly, ExportError? Error);
 
 /// <summary>How far an export has got: it works on part <see cref="Part"/> of <see cref="Parts"/>,
 /// named <see cref="Name"/>, and has done <see cref="Done"/> of that part's <see cref="Total"/>
@@ -60,7 +63,7 @@ public static class AssemblyExport
         using var projectFile = new StreamWriter(projectPath);
         var id = decompiler.DecompileProject(assembly.File, folder, projectFile, cancellationToken);
         var errors = decompiler.Errors
-            .Select(static e => e.Message)
+            .Select(static e => new ExportError(e.Message, e.ToString()))
             .ToList();
         return new ExportedProject(assembly, projectPath, errors) { Id = id };
     }
@@ -182,7 +185,7 @@ public static class AssemblyExport
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            return new PdbFailure(assembly, e.Message);
+            return new PdbFailure(assembly, new ExportError(e.Message, e.ToString()));
         }
     }
 

@@ -243,5 +243,129 @@ public sealed class ExportTests : IDisposable
 
         Assert.True(start.Token.IsCancellationRequested);
     }
+    [Fact]
+    public void A_finished_export_reports_what_it_wrote()
+    {
+        var d = WorkspaceDriver.Opened();
+        var path = _temp.PathOf("Greeter.cs");
+
+        d.Workspace.SaveCode(d.Fixture("Greeter"), path);
+        d.Settle();
+
+        var report = Assert.Single(d.Workspace.FinishedExports);
+        Assert.Equal(ExportOutcome.Finished, report.Outcome);
+        Assert.Equal("Greeter", report.Name);
+        Assert.Equal(_temp.Path, report.Folder);
+        Assert.Equal([path], report.Written);
+        Assert.Empty(report.Problems);
+    }
+
+    [Fact]
+    public void A_cancelled_export_reports_that_it_was_cancelled()
+    {
+        var d = WorkspaceDriver.Opened();
+
+        d.Workspace.ExportProject(d.Node().Assembly, _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
+        d.Workspace.Export.Cancel();
+        d.Settle();
+
+        var report = Assert.Single(d.Workspace.FinishedExports);
+        Assert.Equal(ExportOutcome.Cancelled, report.Outcome);
+        Assert.Empty(report.Written);
+    }
+
+    [Fact]
+    public void A_failed_export_reports_why_instead_of_logging_an_error()
+    {
+        var d = WorkspaceDriver.Opened();
+        var path = _temp.PathOf(Path.Combine("missing", "Greeter.cs"));
+
+        d.Workspace.SaveCode(d.Fixture("Greeter"), path);
+        d.Settle();
+
+        var report = Assert.Single(d.Workspace.FinishedExports);
+        Assert.Equal(ExportOutcome.Failed, report.Outcome);
+        var problem = Assert.Single(report.Problems);
+        Assert.Equal("Cannot save the code of Greeter", problem.Headline);
+        Assert.Contains("DirectoryNotFoundException", problem.Details);
+        Assert.Empty(d.Workspace.Errors.Entries);
+    }
+
+    [Fact]
+    public void The_notice_opens_the_folder_the_export_wrote_into()
+    {
+        var app = AppDriver.Opened();
+        app.Workspace.SaveCode(app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        app.Settle(2);
+
+        Assert.True(app.Frames.Drew("Exported Greeter"));
+        app.Click("Open folder").Frame();
+
+        Assert.Equal([_temp.Path], app.Frames.OpenedFolders);
+    }
+
+    [Fact]
+    public void The_notice_shows_the_report_in_a_tab_of_its_own()
+    {
+        var app = AppDriver.Opened();
+        var path = _temp.PathOf("Greeter.cs");
+        app.Workspace.SaveCode(app.Fixture("Greeter"), path);
+        app.Settle(2);
+        var tabs = app.Workspace.Tabs.Count();
+
+        app.Click("Show report").Frame(2);
+
+        var tab = app.Workspace.Tabs.Active!;
+        Assert.Equal(tabs + 1, app.Workspace.Tabs.Count());
+        Assert.True(tab.ShowsText);
+        Assert.Equal("Export report", tab.Title);
+        Assert.Contains("    " + path, tab.Document.GetText());
+        Assert.Empty(app.Workspace.FinishedExports);
+        Assert.False(app.Frames.Drew("Exported Greeter"));
+    }
+
+    [Fact]
+    public void Several_finished_exports_share_one_notice_and_report()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.SaveCode(d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        d.Workspace.SaveCode(d.Fixture("Farewell"), _temp.PathOf("Farewell.cs"));
+        d.Settle();
+
+        d.Workspace.ShowExportReport();
+
+        var text = d.Workspace.Tabs.Active!.Document.GetText();
+        Assert.Contains("Exported Greeter", text);
+        Assert.Contains("Exported Farewell", text);
+    }
+
+    [Fact]
+    public void The_report_tab_stays_as_it_is_when_the_language_changes()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.SaveCode(d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        d.Settle();
+        d.Workspace.ShowExportReport();
+        var report = d.Workspace.Tabs.Active!.Document;
+
+        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.Settle();
+
+        Assert.Same(report, d.Workspace.Tabs.Active!.Document);
+    }
+
+    [Fact]
+    public void Dismissing_the_notice_drops_the_reports()
+    {
+        var app = AppDriver.Opened();
+        app.Workspace.SaveCode(app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        app.Settle(2);
+
+        app.Frames.Click(app.StatusText(LucideIcons.X)).Frame(2);
+
+        Assert.Empty(app.Workspace.FinishedExports);
+        Assert.False(app.Frames.Drew("Exported Greeter"));
+    }
+
     private IEnumerable<string> ProjectFiles() => Directory.EnumerateFiles(_temp.Path, "*.cs", SearchOption.AllDirectories);
 }

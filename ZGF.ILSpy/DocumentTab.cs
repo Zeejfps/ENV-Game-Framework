@@ -95,6 +95,7 @@ public sealed class DocumentTab
         _work = work;
         Node = node;
         Location = node.Path;
+        ShowsText = false;
         _title = NodeText.Name(node);
         Language = language;
         Options = _options();
@@ -126,6 +127,24 @@ public sealed class DocumentTab
             return false;
         return Options.ProducesSameCode(_options(), language);
     }
+
+    /// <summary>Shows <paramref name="document"/>, which no node stands for, titled
+    /// <paramref name="title"/>, cancelling what was in flight.</summary>
+    public void ShowText(string title, DecompiledDocument document)
+    {
+        Version++;
+        Cancel();
+        Node = null;
+        Location = null;
+        Grid = null;
+        Image = null;
+        _title = title;
+        Document = document;
+        ShowsText = true;
+    }
+
+    /// <summary>Whether the tab shows a document of its own, such as a report, rather than a node.</summary>
+    public bool ShowsText { get; private set; }
 
     /// <summary>Lets go of the node, keeping <see cref="Location"/>, and shows
     /// <paramref name="message"/> instead of the document.</summary>
