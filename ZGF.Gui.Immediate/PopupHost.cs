@@ -1,7 +1,9 @@
+using ZGF.Desktop;
+
 namespace ZGF.Gui.Immediate;
 
-/// <summary>Shows <see cref="Ui.Popup"/> content in windows of its own. Rects are in the main
-/// window's UI space.</summary>
+/// <summary>Shows <see cref="Ui.Popup"/> and <see cref="Ui.Window"/> content in windows of its own.
+/// Rects are in the main window's UI space.</summary>
 internal interface IPopupHost
 {
     /// <summary>Where a popup that would rather sit at <paramref name="preferred"/>, and else at
@@ -17,7 +19,18 @@ internal interface IPopupHost
 
     /// <summary>Hides every popup now, before something modal of the platform's takes over.</summary>
     void HideAll();
+
+    /// <summary>Shows window <paramref name="id"/> titled <paramref name="title"/> this frame, without a
+    /// frame of the platform's and modal over the main window. It opens at <paramref name="openAt"/>,
+    /// kept on a monitor, or else <paramref name="width"/> by <paramref name="height"/> points centered
+    /// on the main window; then it is moved and sized to <paramref name="placeAt"/> when given. Returns
+    /// its canvas, origin at its top-left, or null when the platform has no windows to give.</summary>
+    WindowSurface? ShowWindow(int id, string title, float width, float height, WindowBounds? openAt, UiRect? placeAt);
 }
+
+/// <summary>A shown <see cref="IPopupHost.ShowWindow"/> window: its canvas, where it is in UI space
+/// and on the screen, and whether the user asked to close it since the last frame.</summary>
+internal readonly record struct WindowSurface(ICanvas Canvas, UiRect Rect, WindowBounds Bounds, bool CloseRequested);
 
 internal static class PopupPlacement
 {

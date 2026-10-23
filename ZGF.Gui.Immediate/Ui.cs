@@ -256,6 +256,7 @@ public abstract partial class Ui
         _scopes.Clear();
         _tree.Clear();
         _open.Clear();
+        _surfaces = 0;
         BeginScrolls();
 
         Open(0, new Box { Width = Sizing.Fixed(Width), Height = Sizing.Fixed(Height) });
@@ -369,7 +370,37 @@ public abstract partial class Ui
     /// <see cref="Interaction.Id"/> so it can be hit-tested next frame.</summary>
     public Interaction Interact(int id)
     {
-        var hovered = IsHovered(id);
+        return Interact(id, IsHovered(id));
+    }
+
+    /// <summary>
+    /// <see cref="Interact(int)"/> for the background of the element with <paramref name="area"/>:
+    /// hovered while the pointer is over the element and over nothing in it that takes the pointer
+    /// itself — empty space, text, or a scroll's own background — and over no popup. Record it
+    /// before what is inside the element; for a window dragged from anywhere but its controls.
+    /// </summary>
+    public Interaction InteractBackground(int id, int area)
+    {
+        var free = _active == 0 || _active == id;
+        return Interact(id, free && IsBackgroundUnderPointer(area));
+    }
+
+    private bool IsBackgroundUnderPointer(int area)
+    {
+        if (!_previousRects.TryGetValue(area, out var rect))
+            return false;
+        if (!rect.Contains(_input.Pointer))
+            return false;
+        if (_hovered == area)
+            return true;
+        if (!_previousScrollIds.Contains(_hovered))
+            return false;
+        Topmost(_previousHits, null, out var z);
+        return z < PopupZ;
+    }
+
+    private Interaction Interact(int id, bool hovered)
+    {
         var pressed = false;
         if (hovered && Input.WasPressed(PointerButton.Left))
         {

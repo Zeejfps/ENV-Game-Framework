@@ -169,7 +169,7 @@ public abstract partial class Ui
         }, null, null);
         e.Parent = 0;
         e.Floating = true;
-        e.Layer = _popups.Count + 1;
+        e.Layer = ++_surfaces;
         e.PassThrough = passThrough;
         e.Z = PopupZ + _popups.Count;
         var element = Push(e);

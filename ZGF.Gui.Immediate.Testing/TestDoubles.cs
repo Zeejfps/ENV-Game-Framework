@@ -49,6 +49,7 @@ public sealed class TestPopupHost : IPopupHost
     {
         Shown.Clear();
         Surfaces.Clear();
+        Windows.Clear();
         foreach (var canvas in _canvases.Values)
             canvas.Reset();
     }
@@ -69,5 +70,31 @@ public sealed class TestPopupHost : IPopupHost
         HideAllCount++;
         Shown.Clear();
         Surfaces.Clear();
+    }
+
+    private readonly Dictionary<int, UiRect> _windowPlacements = new();
+
+    /// <summary>Each window shown this frame: where it is, centered in <see cref="Area"/> until placed.
+    /// Its UI space is the screen's, so bounds it opens at are rects in it.</summary>
+    public Dictionary<int, UiRect> Windows { get; } = new();
+
+    /// <summary>The windows whose close button was pressed, answered on their next frame.</summary>
+    public HashSet<int> CloseRequests { get; } = new();
+
+    WindowSurface? IPopupHost.ShowWindow(int id, string title, float width, float height, WindowBounds? openAt, UiRect? placeAt)
+    {
+        if (openAt != null && !_windowPlacements.ContainsKey(id))
+            _windowPlacements[id] = new UiRect(openAt.Value.X, openAt.Value.Y, openAt.Value.Width, openAt.Value.Height);
+        if (placeAt != null)
+            _windowPlacements[id] = placeAt.Value;
+        var rect = new UiRect(Area.X + (Area.Width - width) / 2, Area.Y + (Area.Height - height) / 2, width, height);
+        if (_windowPlacements.TryGetValue(id, out var placed))
+            rect = placed;
+        Windows[id] = rect;
+        if (!_canvases.TryGetValue(id, out var canvas))
+            _canvases[id] = canvas = new RecordingCanvas(new SyntheticTextMeasurer());
+        var closeRequested = CloseRequests.Remove(id);
+        var bounds = new WindowBounds((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height, false);
+        return new WindowSurface(canvas, rect, bounds, closeRequested);
     }
 }

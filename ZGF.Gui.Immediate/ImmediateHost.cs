@@ -24,12 +24,32 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         public (int X, int Y, int Width, int Height) Screen;
     }
 
+    private sealed class DialogWindow(int id, IWindow window, RenderedCanvasBase canvas, Action wake)
+    {
+        public readonly int Id = id;
+        public readonly IWindow Window = window;
+        public readonly RenderedCanvasBase Canvas = canvas;
+        public UiRect Rect;
+        public bool Used;
+        public bool Shown;
+        public bool CloseRequested;
+
+        /// <summary>Keeps the window, which closes once the UI stops showing it.</summary>
+        public void HandleClose()
+        {
+            Window.CancelClose();
+            CloseRequested = true;
+            wake();
+        }
+    }
+
     private readonly IGuiRenderBackend _render;
     private readonly IWindow _window;
     private readonly Action _renderUi;
     private readonly Ui _ui;
     private readonly IFilePicker _filePicker;
     private readonly List<Popup> _popups = new();
+    private readonly List<DialogWindow> _windows = new();
     private readonly PopupPool _pool;
     private UiInput _pending = new();
     private UiInput _frame = new();
@@ -40,6 +60,8 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
     private (int X, int Y, int Width, int Height)? _imeCaret;
     private bool _animating;
     private bool _popupWindowsUnavailable;
+    private bool _dialogWindowsUnavailable;
+    private bool _drawing;
     private bool _backgroundPending;
     private MouseCursor _cursor;
     private uint _clearColor;
@@ -70,6 +92,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.OnFramebufferResize += HandleResize;
         _window.OnContentScaleChanged += HandleContentScaleChanged;
         _window.OnMove += HandleMove;
+        _window.OnFocusChanged += HandleFocusChanged;
         _render.App.OnForegroundChanged += HandleForegroundChanged;
         _render.App.OnTick += Tick;
         _window.OnNonClientPress += HandleNonClientPress;
@@ -134,6 +157,8 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _ui.InvalidateMeasurements();
         foreach (var popup in _popups)
             popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
+        foreach (var dialog in _windows)
+            dialog.Canvas.CopyFontsFrom(_render.MainCanvas);
         Invalidate();
     }
 
@@ -191,9 +216,11 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _lastFrameTimestamp = now;
 
         _ui.WindowBounds = Bounds;
+        _drawing = true;
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
         _renderUi();
         _ui.EndFrame();
+        _drawing = false;
         if (_ui.WindowBackground != _clearColor)
         {
             _clearColor = _ui.WindowBackground;
@@ -206,6 +233,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _window.SetTitleBarTheme(dark);
         }
         PresentPopups();
+        PresentWindows();
         if (_ui.QuitRequested)
             _render.App.Quit();
 
@@ -215,16 +243,22 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _window.SetCursor(_cursor);
             foreach (var popup in _popups)
                 popup.Surface.Window.SetCursor(_cursor);
+            foreach (var dialog in _windows)
+                dialog.Window.SetCursor(_cursor);
         }
         if (_ui.CompositionReset)
         {
             _window.ResetPreedit();
+            foreach (var dialog in _windows)
+                dialog.Window.ResetPreedit();
             _pending.Compose(PreeditText.Empty);
         }
         if (_ui.WantsTextInput != _textInputFocus)
         {
             _textInputFocus = _ui.WantsTextInput;
             _window.SetTextInputFocus(_textInputFocus);
+            foreach (var dialog in _windows)
+                dialog.Window.SetTextInputFocus(_textInputFocus);
             _imeCaret = null;
         }
         if (_textInputFocus && _ui.ImeCaret is { } caret)
@@ -235,8 +269,17 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _window.RequestRedraw();
     }
 
+    /// <summary>Puts the OS candidate window at <paramref name="caret"/>, in the window the caret is
+    /// drawn in.</summary>
     private void PlaceImeCaret(UiRect caret)
     {
+        var dialog = WindowAt(new PointF(caret.X, caret.Y));
+        var window = _window;
+        if (dialog != null)
+        {
+            window = dialog.Window;
+            caret = caret with { X = caret.X - dialog.Rect.X, Y = caret.Y - dialog.Rect.Y };
+        }
         var s = ScreenPerPoint;
         var x = (int)MathF.Floor(caret.X * s);
         var y = (int)MathF.Floor(caret.Y * s);
@@ -245,7 +288,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             Height: Math.Max(1, (int)MathF.Ceiling(caret.Bottom * s) - y));
         if (rect == _imeCaret) return;
         _imeCaret = rect;
-        _window.SetPreeditCursorRect(rect.X, rect.Y, rect.Width, rect.Height);
+        window.SetPreeditCursorRect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 
     private double Seconds(long timestamp) => (timestamp - _startTimestamp) / (double)Stopwatch.Frequency;
@@ -288,7 +331,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.GetCursorPosition(out var x, out var y);
         var inside = x >= 0 && y >= 0 && x <= _window.Width && y <= _window.Height;
         var ui = ToUiSpace(x, y);
-        var point = inside || _pending.AnyDown || OverPopup(ui) ? ui : UiInput.Offscreen;
+        var point = inside || _pending.AnyDown || OverPopup(ui) || WindowAt(ui) != null ? ui : UiInput.Offscreen;
         if (point == _pending.Pointer) return;
         _pending.MovePointer(point);
         _window.RequestRedraw();
@@ -425,6 +468,231 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         return popup;
     }
 
+    public WindowSurface? ShowWindow(int id, string title, float width, float height, WindowBounds? openAt, UiRect? placeAt)
+    {
+        if (_dialogWindowsUnavailable) return null;
+
+        var dialog = FindWindow(id) ?? OpenWindow(id, title, width, height, openAt);
+        if (dialog == null) return null;
+
+        if (placeAt != null)
+            PlaceWindow(dialog.Window, placeAt.Value);
+        dialog.Used = true;
+        dialog.Rect = RectOf(dialog.Window);
+        ResizeCanvas(dialog.Canvas, (int)dialog.Rect.Width, (int)dialog.Rect.Height, _render.MainCanvas.DpiScale);
+        dialog.Canvas.BeginFrame();
+        var closeRequested = dialog.CloseRequested;
+        dialog.CloseRequested = false;
+        return new WindowSurface(dialog.Canvas, dialog.Rect, BoundsOf(dialog.Window), closeRequested);
+    }
+
+    private DialogWindow? FindWindow(int id)
+    {
+        foreach (var dialog in _windows)
+        {
+            if (dialog.Id == id)
+                return dialog;
+        }
+        return null;
+    }
+
+    private DialogWindow? WindowAt(PointF point)
+    {
+        for (var i = _windows.Count - 1; i >= 0; i--)
+        {
+            if (_windows[i].Rect.Contains(point))
+                return _windows[i];
+        }
+        return null;
+    }
+
+    /// <summary>Moves and sizes <paramref name="window"/> to <paramref name="rect"/>, in the main
+    /// window's UI space, touching only what changed.</summary>
+    private void PlaceWindow(IWindow window, UiRect rect)
+    {
+        var s = ScreenPerPoint;
+        _window.GetPosition(out var originX, out var originY);
+        var x = originX + (int)MathF.Round(rect.X * s);
+        var y = originY + (int)MathF.Round(rect.Y * s);
+        window.GetPosition(out var currentX, out var currentY);
+        if (x != currentX || y != currentY)
+            window.SetPosition(x, y);
+
+        var dpi = _render.MainCanvas.DpiScale;
+        var pixelsPerScreen = _window.DpiScale > 0f ? _window.DpiScale : 1f;
+        var width = PopupPlacement.ScreenSize((int)MathF.Round(rect.Width), dpi, pixelsPerScreen);
+        var height = PopupPlacement.ScreenSize((int)MathF.Round(rect.Height), dpi, pixelsPerScreen);
+        if (width != window.Width || height != window.Height)
+            window.SetSize(width, height);
+    }
+
+    private static WindowBounds BoundsOf(IWindow window)
+    {
+        window.GetPosition(out var x, out var y);
+        return new WindowBounds(x, y, window.Width, window.Height, false);
+    }
+
+    /// <summary>Where <paramref name="window"/>'s client area is, in the main window's UI space.</summary>
+    private UiRect RectOf(IWindow window)
+    {
+        var s = ScreenPerPoint;
+        var dpi = _render.MainCanvas.DpiScale;
+        _window.GetPosition(out var originX, out var originY);
+        window.GetPosition(out var x, out var y);
+        var width = MathF.Max(1f, MathF.Round(window.FramebufferWidth / dpi));
+        var height = MathF.Max(1f, MathF.Round(window.FramebufferHeight / dpi));
+        return new UiRect((x - originX) / s, (y - originY) / s, width, height);
+    }
+
+    /// <summary>A hidden window without a frame, owned by the main window, which takes no input until
+    /// it closes: at <paramref name="openAt"/> kept on a monitor, or else <paramref name="width"/> by
+    /// <paramref name="height"/> points centered on the main window and kept on its monitor.</summary>
+    private DialogWindow? OpenWindow(int id, string title, float width, float height, WindowBounds? openAt)
+    {
+        var dpi = _render.MainCanvas.DpiScale;
+        var pixelsPerScreen = _window.DpiScale > 0f ? _window.DpiScale : 1f;
+        var screenWidth = PopupPlacement.ScreenSize((int)MathF.Ceiling(width), dpi, pixelsPerScreen);
+        var screenHeight = PopupPlacement.ScreenSize((int)MathF.Ceiling(height), dpi, pixelsPerScreen);
+        if (openAt != null)
+        {
+            screenWidth = openAt.Value.Width;
+            screenHeight = openAt.Value.Height;
+        }
+        var window = CreateWindow(title, screenWidth, screenHeight);
+        if (window == null) return null;
+
+        if (openAt != null)
+            PutBack(window, openAt.Value);
+        else
+            CenterOnMainWindow(window, screenWidth, screenHeight);
+        var canvas = _render.CreateCanvas(window, (int)MathF.Ceiling(width), (int)MathF.Ceiling(height));
+        var dialog = new DialogWindow(id, window, canvas, Invalidate);
+        _render.WirePresentLoop(window, canvas);
+        Subscribe(window);
+        window.OnClose += dialog.HandleClose;
+        window.OnMove += HandleWindowMove;
+        window.OnResize += HandleWindowResize;
+        window.OnFramebufferResize += HandleWindowResize;
+        window.SetCursor(_cursor);
+        window.SetTextInputFocus(_textInputFocus);
+        window.SetOwner(_window);
+        _window.SetInputEnabled(false);
+        _windows.Add(dialog);
+        return dialog;
+    }
+
+    private IWindow? CreateWindow(string title, int width, int height)
+    {
+        try
+        {
+            return _render.App.CreateWindow(new WindowOptions { WidthPoints = width, HeightPoints = height, Title = title, IsUndecorated = true });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[ImmediateHost] Dialog windows are unavailable, drawing dialogs in the window: {e.Message}");
+            _dialogWindowsUnavailable = true;
+            return null;
+        }
+    }
+
+    /// <summary>Centers <paramref name="window"/> on the main window, shrunk to fit and kept on the
+    /// monitor.</summary>
+    private void CenterOnMainWindow(IWindow window, int width, int height)
+    {
+        var monitor = MonitorUnderMainWindow();
+        if (monitor != null)
+        {
+            width = Math.Min(width, monitor.Value.Width);
+            height = Math.Min(height, monitor.Value.Height);
+            window.SetSize(width, height);
+        }
+        var (centerX, centerY) = MainWindowCenter();
+        var (x, y) = WindowPlacement.Compute(_render.App.Monitors, width, height, centerX - width / 2, centerY - height / 2);
+        window.SetPosition(x, y);
+    }
+
+    /// <summary>Puts <paramref name="window"/> where <paramref name="bounds"/> left it, pulled back onto
+    /// a monitor if it is no longer on one.</summary>
+    private void PutBack(IWindow window, WindowBounds bounds)
+    {
+        var (x, y) = WindowPlacement.Compute(_render.App.Monitors, bounds.Width, bounds.Height, bounds.X, bounds.Y);
+        window.SetPosition(x, y);
+    }
+
+    private MonitorWorkArea? MonitorUnderMainWindow()
+    {
+        var monitors = _render.App.Monitors;
+        if (monitors.Count == 0) return null;
+
+        var (x, y) = MainWindowCenter();
+        foreach (var monitor in monitors)
+        {
+            if (Contains(monitor, x, y))
+                return monitor;
+        }
+        return monitors[0];
+    }
+
+    private (int X, int Y) MainWindowCenter()
+    {
+        _window.GetPosition(out var x, out var y);
+        return (x + _window.Width / 2, y + _window.Height / 2);
+    }
+
+    private static bool Contains(MonitorWorkArea monitor, int x, int y) =>
+        x >= monitor.X && x < monitor.X + monitor.Width && y >= monitor.Y && y < monitor.Y + monitor.Height;
+
+    private void PresentWindows()
+    {
+        for (var i = _windows.Count - 1; i >= 0; i--)
+        {
+            var dialog = _windows[i];
+            if (dialog.Used) continue;
+            _windows.RemoveAt(i);
+            CloseWindow(dialog);
+        }
+
+        foreach (var dialog in _windows)
+        {
+            _render.RenderWindowNow(dialog.Window);
+            if (!dialog.Shown)
+            {
+                dialog.Window.Show();
+                dialog.Window.Focus();
+                dialog.Shown = true;
+            }
+            dialog.Used = false;
+        }
+    }
+
+    /// <summary>Destroys <paramref name="dialog"/>'s window. When it was the last, the main window
+    /// takes input again first, so the OS can activate it.</summary>
+    private void CloseWindow(DialogWindow dialog)
+    {
+        var window = dialog.Window;
+        Unsubscribe(window);
+        window.OnClose -= dialog.HandleClose;
+        window.OnMove -= HandleWindowMove;
+        window.OnResize -= HandleWindowResize;
+        window.OnFramebufferResize -= HandleWindowResize;
+        var last = _windows.Count == 0;
+        if (last)
+            _window.SetInputEnabled(true);
+        _render.DisposeWindow(window, dialog.Canvas);
+        if (last)
+            _window.Focus();
+    }
+
+    private void CloseWindows()
+    {
+        for (var i = _windows.Count - 1; i >= 0; i--)
+        {
+            var dialog = _windows[i];
+            _windows.RemoveAt(i);
+            CloseWindow(dialog);
+        }
+    }
+
     public void HideAll()
     {
         foreach (var popup in _popups)
@@ -526,6 +794,33 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.RequestRedraw();
     }
 
+    private void HandleWindowMove(int x, int y)
+    {
+        _pending.DismissPopups();
+        _window.RequestRedraw();
+    }
+
+    /// <summary>Draws the frame now, and with it the dialog window at its new size, so a live resize
+    /// does not show stretched content. A resize asked for by the frame being drawn only asks for
+    /// another.</summary>
+    private void HandleWindowResize(int width, int height)
+    {
+        if (_drawing)
+        {
+            _window.RequestRedraw();
+            return;
+        }
+        _render.RenderWindowNow(_window);
+    }
+
+    /// <summary>Hands focus on to the open dialog window when the main window gets it.</summary>
+    private void HandleFocusChanged(bool focused)
+    {
+        if (!focused) return;
+        if (_windows.Count == 0) return;
+        _windows[^1].Window.Focus();
+    }
+
     private void HandleMove(int x, int y)
     {
         TrackBounds();
@@ -576,7 +871,9 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.OnFramebufferResize -= HandleResize;
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
         _window.OnMove -= HandleMove;
+        _window.OnFocusChanged -= HandleFocusChanged;
         HideAll();
+        CloseWindows();
         _pool.Dispose();
         _render.Dispose();
     }
