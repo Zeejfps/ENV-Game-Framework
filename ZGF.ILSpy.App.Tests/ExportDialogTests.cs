@@ -1,0 +1,183 @@
+using ZGF.Desktop;
+using ZGF.ILSpy.Core;
+using ZGF.KeyboardModule;
+
+namespace ZGF.ILSpy.App.Tests;
+
+public sealed class ExportDialogTests : IDisposable
+{
+    private static readonly string SecondPath = typeof(KeyboardKey).Assembly.Location;
+
+    private readonly TempDir _temp = new();
+
+    public ExportDialogTests()
+    {
+        Directory.CreateDirectory(_temp.Path);
+    }
+
+    public void Dispose() => _temp.Dispose();
+
+    private static WorkspaceDriver OpenedTwo()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.Open(SecondPath);
+        d.RunUntil(() => d.Workspace.Assemblies.Assemblies.Count == 2);
+        d.Settle();
+        return d;
+    }
+
+    private static LoadedAssembly Fixtures(WorkspaceDriver d) => d.Node().Assembly;
+
+    [Fact]
+    public void The_dialog_opens_with_the_picked_assembly_ticked()
+    {
+        var d = OpenedTwo();
+
+        d.Workspace.OpenExportSetup(Fixtures(d));
+
+        var setup = d.Workspace.ExportSetup;
+        Assert.True(setup.IsOpen);
+        Assert.Equal([true, false], setup.Choices.Select(c => c.Included));
+        Assert.False(setup.IsSolution);
+    }
+
+    [Fact]
+    public void The_only_open_assembly_is_ticked_without_being_picked()
+    {
+        var d = WorkspaceDriver.Opened();
+
+        d.Workspace.OpenExportSetup(null);
+
+        Assert.True(Assert.Single(d.Workspace.ExportSetup.Choices).Included);
+    }
+
+    [Fact]
+    public void Ticking_a_second_assembly_makes_the_export_a_solution_named_after_the_folder()
+    {
+        var d = OpenedTwo();
+        d.Workspace.OpenExportSetup(Fixtures(d));
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.PathOf("Out");
+
+        setup.Choices[1].Included = true;
+
+        Assert.True(setup.IsSolution);
+        Assert.Equal("Out.sln", setup.SolutionFileName);
+        setup.SolutionName = "Mine";
+        Assert.Equal("Mine.sln", setup.SolutionFileName);
+    }
+
+    [Fact]
+    public void Two_projects_with_one_name_stop_the_export_until_one_is_renamed()
+    {
+        var d = OpenedTwo();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.Path;
+        setup.IncludeAll(true);
+
+        setup.Choices[1].Name = setup.Choices[0].Name.ToUpperInvariant();
+
+        Assert.NotNull(setup.Clash);
+        Assert.False(setup.CanExport);
+        setup.Choices[1].Name = "Other";
+        Assert.Null(setup.Clash);
+        Assert.True(setup.CanExport);
+    }
+
+    [Fact]
+    public void The_export_needs_a_full_folder_path_and_a_ticked_assembly()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+
+        setup.Folder = "relative";
+        Assert.False(setup.CanExport);
+        setup.Folder = _temp.Path;
+        Assert.True(setup.CanExport);
+        setup.IncludeAll(false);
+        Assert.False(setup.CanExport);
+    }
+
+    [Fact]
+    public void A_folder_that_holds_files_is_pointed_out()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.Path;
+        Assert.False(setup.FolderHoldsFiles);
+
+        setup.Folder = _temp.PathOf("Full");
+        _temp.Write(Path.Combine("Full", "notes.txt"), "keep");
+
+        Assert.True(setup.FolderHoldsFiles);
+    }
+
+    [Fact]
+    public void One_ticked_assembly_exports_as_a_project_straight_into_the_folder()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.Path;
+        setup.Choices[0].Name = "Renamed";
+
+        d.Workspace.StartExport();
+        d.Settle();
+
+        Assert.False(setup.IsOpen);
+        Assert.True(File.Exists(_temp.PathOf("Renamed.csproj")));
+    }
+
+    [Fact]
+    public void Several_ticked_assemblies_export_as_a_solution_with_a_folder_per_project()
+    {
+        var d = OpenedTwo();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.Path;
+        setup.IncludeAll(true);
+        setup.SolutionName = "Both";
+
+        d.Workspace.StartExport();
+        d.Settle();
+
+        Assert.True(File.Exists(_temp.PathOf("Both.sln")));
+        foreach (var choice in setup.Choices)
+            Assert.True(File.Exists(_temp.PathOf(Path.Combine(choice.Name, choice.Name + ".csproj"))));
+    }
+
+    [Fact]
+    public void Ctrl_Shift_E_opens_the_dialog_and_Export_starts_it()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+
+        app.Frames.Key(KeyboardKey.E, KeyModifiers.Control | KeyModifiers.Shift).Frame(2);
+        Assert.True(app.Workspace.ExportSetup.IsOpen);
+        app.Frames.FilePicker.Answer = _temp.Path;
+        app.Click("Browse…").Frame(2);
+        Assert.Equal(_temp.Path, app.Workspace.ExportSetup.Folder);
+
+        app.ClickMenuItem("Export").Frame(2);
+        app.Settle(1);
+
+        Assert.False(app.Workspace.ExportSetup.IsOpen);
+        Assert.Single(app.Workspace.FinishedExports);
+    }
+
+    [Fact]
+    public void The_dialog_warns_in_place_about_a_folder_that_holds_files()
+    {
+        var app = AppDriver.Opened();
+        _temp.Write("notes.txt", "keep");
+        app.Workspace.OpenExportSetup(null);
+        app.Workspace.ExportSetup.Folder = _temp.Path;
+
+        app.Run(2);
+
+        Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("This folder already holds files.", StringComparison.Ordinal));
+    }
+}

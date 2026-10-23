@@ -14,6 +14,7 @@ internal static class Shortcuts
 
     public const string Open = "Ctrl+O";
     public const string SaveCode = "Ctrl+S";
+    public const string Export = "Ctrl+Shift+E";
     public const string Search = "Ctrl+Shift+F";
     public const string Back = "Alt+Left";
     public const string Forward = "Alt+Right";
@@ -41,9 +42,18 @@ internal static class Shortcuts
         return false;
     }
 
+    private static bool IsDialogOpen(Workspace w)
+    {
+        if (w.Picker.IsOpen)
+            return true;
+        if (w.Errors.IsOpen)
+            return true;
+        return w.ExportSetup.IsOpen;
+    }
+
     public static void Handle(Ui<UiState> ui, Workspace w)
     {
-        if (w.Picker.IsOpen || w.Errors.IsOpen) return;
+        if (IsDialogOpen(w)) return;
 
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
@@ -76,6 +86,9 @@ internal static class Shortcuts
                     break;
                 case (KeyModifiers.Control, KeyboardKey.S):
                     SaveDialogs.PickActiveCodeFile(ui, w);
+                    break;
+                case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
+                    w.OpenExportSetup(w.ActiveAssembly());
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
                     w.Refresh();

@@ -73,6 +73,8 @@ internal static class MainMenuView
         var canSave = w.CanSaveCode(w.Tabs.Active?.Node);
         if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickActiveCodeFile(ui, w);
+        if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: w.Tree.Roots.Count > 0, id: "export", icon: SaveDialogs.ExportIcon))
+            w.OpenExportSetup(w.ActiveAssembly());
         var canExportAll = w.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileExportSolution, enabled: canExportAll, id: "export-solution", icon: SolutionIcon))
             SaveDialogs.PickSolutionFile(ui, w);

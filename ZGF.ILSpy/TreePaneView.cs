@@ -91,6 +91,8 @@ internal static class TreePaneView
             ResourceImageView.PickExport(ui, w, node);
         if (node.DependsOnLanguage && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, w, node);
+        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
+            w.OpenExportSetup(node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, w, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))

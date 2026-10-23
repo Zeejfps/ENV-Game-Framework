@@ -102,7 +102,7 @@ public sealed class ExportTests : IDisposable
     {
         var solutionPath = _temp.PathOf("All.sln");
 
-        var exported = AssemblyExport.ExportSolution([Trees.TestAssembly], DecompilerOptions.Default, solutionPath);
+        var exported = AssemblyExport.ExportSolution(AssemblyExport.NameProjects([Trees.TestAssembly]), DecompilerOptions.Default, solutionPath);
 
         var project = Assert.Single(exported);
         Assert.Equal(_temp.PathOf(Path.Combine("ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests.csproj")), project.ProjectPath);
@@ -145,11 +145,41 @@ public sealed class ExportTests : IDisposable
         var progress = new RecordedProgress();
         var solutionPath = _temp.PathOf("All.sln");
 
-        AssemblyExport.ExportSolution([Trees.TestAssembly, Trees.TestAssembly], DecompilerOptions.Default, solutionPath, progress);
+        AssemblyExport.ExportSolution(AssemblyExport.NameProjects([Trees.TestAssembly, Trees.TestAssembly]), DecompilerOptions.Default, solutionPath, progress);
 
         Assert.Contains(progress.Reports, r => r is { Part: 1, Parts: 2 });
         Assert.Contains(progress.Reports, r => r is { Part: 2, Parts: 2, Fraction: 0.5f });
         Assert.All(progress.Reports, r => Assert.InRange(r.Fraction!.Value, 0f, 1f));
+    }
+
+    [Fact]
+    public void A_solution_puts_each_project_in_a_folder_named_as_the_project()
+    {
+        var solutionPath = _temp.PathOf("All.sln");
+        SolutionProject[] projects = [new(Trees.TestAssembly, "Renamed")];
+
+        var exported = AssemblyExport.ExportSolution(projects, DecompilerOptions.Default, solutionPath);
+
+        var project = Assert.Single(exported);
+        Assert.Equal(_temp.PathOf(Path.Combine("Renamed", "Renamed.csproj")), project.ProjectPath);
+        Assert.Contains(Path.Combine("Renamed", "Renamed.csproj"), File.ReadAllText(solutionPath));
+    }
+
+    [Fact]
+    public void Projects_are_named_after_their_assemblies_with_a_number_after_a_taken_name()
+    {
+        var projects = AssemblyExport.NameProjects([Trees.TestAssembly, Trees.TestAssembly]);
+
+        Assert.Equal(["ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests_2"], projects.Select(p => p.Name));
+    }
+
+    [Theory]
+    [InlineData("Mine", "Mine.sln")]
+    [InlineData("Mine.sln", "Mine.sln")]
+    [InlineData(" Mine.SLN ", "Mine.sln")]
+    public void A_solution_file_is_named_with_one_extension(string typed, string expected)
+    {
+        Assert.Equal(expected, AssemblyExport.SolutionFileName(typed));
     }
 
     [Fact]

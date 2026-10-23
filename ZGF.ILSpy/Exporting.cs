@@ -128,21 +128,59 @@ public static class Exporting
     public static void ExportSolution(this Workspace w, string solutionPath)
     {
         var folder = FolderOf(solutionPath);
-        w.ConfirmFolder(folder, solutionPath, () => w.StartSolutionExport(solutionPath));
+        var projects = AssemblyExport.NameProjects(w.Assemblies.Assemblies);
+        w.ConfirmFolder(folder, solutionPath, () => w.StartSolutionExport(projects, solutionPath));
     }
 
-    private static async void StartSolutionExport(this Workspace w, string solutionPath)
+    private static async void StartSolutionExport(this Workspace w, List<SolutionProject> projects, string solutionPath)
     {
         var options = w.DecompilerOptions;
-        var assemblies = w.Assemblies.Assemblies;
         var name = Path.GetFileName(solutionPath);
         var start = await w.Export.Enter(name);
         var clock = Stopwatch.StartNew();
-        var exported = await Background.Run(() => AssemblyExport.ExportSolution(assemblies, options, solutionPath, start.Progress, start.Token));
+        var exported = await Background.Run(() => AssemblyExport.ExportSolution(projects, options, solutionPath, start.Progress, start.Token));
         w.Export.Leave(start);
         var failure = Strings.For(w.Locale).ErrorExportSolution;
         var report = ExportReport.Of(name, FolderOf(solutionPath), exported.Error, failure, clock.Elapsed);
         w.FinishExport(report.WithProjects(exported.Value, solutionPath));
+    }
+
+    /// <summary>The assembly of the node the active tab shows, or null.</summary>
+    public static LoadedAssembly? ActiveAssembly(this Workspace w)
+    {
+        var node = w.Tabs.Active?.Node;
+        if (node == null)
+            return null;
+        return node.Assembly;
+    }
+
+    /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
+    public static void OpenExportSetup(this Workspace w, LoadedAssembly? picked)
+    {
+        if (w.Assemblies.Assemblies.Count == 0)
+            return;
+        w.ExportSetup.Open(w.Assemblies.Assemblies, picked);
+    }
+
+    /// <summary>Closes the export dialog and exports what it says: one assembly as a project
+    /// straight into the folder, several as a solution with a folder per project.</summary>
+    public static void StartExport(this Workspace w)
+    {
+        var setup = w.ExportSetup;
+        if (!setup.CanExport)
+            return;
+        setup.Close();
+        var folder = setup.Folder.Trim();
+        var projects = setup.IncludedProjects();
+        if (setup.IsSolution)
+        {
+            var solutionPath = Path.Combine(folder, setup.SolutionFileName);
+            w.StartSolutionExport(projects, solutionPath);
+            return;
+        }
+        var project = projects[0];
+        var projectPath = Path.Combine(folder, AssemblyExport.CleanProjectName(project.Name) + ProjectExtension);
+        w.StartProjectExport(project.Assembly, projectPath);
     }
 
     /// <summary>Starts <paramref name="start"/> at once when <paramref name="folder"/> holds nothing

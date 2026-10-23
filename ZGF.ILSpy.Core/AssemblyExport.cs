@@ -15,6 +15,10 @@ public sealed record ExportedProject(LoadedAssembly Assembly, string ProjectPath
     internal ProjectId? Id { get; init; }
 }
 
+/// <summary>An assembly to export as a project of a solution, under <see cref="Name"/>, which is
+/// also the name of the folder the project goes in.</summary>
+public sealed record SolutionProject(LoadedAssembly Assembly, string Name);
+
 /// <summary>An assembly no PDB was written for: <see cref="Error"/> says why, or is null when its
 /// debug directory names no PDB for one to match.</summary>
 public sealed record PdbFailure(LoadedAssembly Assembly, ExportError? Error);
@@ -61,34 +65,69 @@ public static class AssemblyExport
         return new WholeProjectDecompiler(settings, assembly.Resolver, null, null, symbols);
     }
 
-    /// <summary>Decompiles each of <paramref name="assemblies"/> into a project in a folder of its own
-    /// beside <paramref name="solutionPath"/>, then writes the solution that holds them.</summary>
-    public static List<ExportedProject> ExportSolution(IReadOnlyList<LoadedAssembly> assemblies, DecompilerOptions options, string solutionPath,
+    /// <summary>Decompiles each of <paramref name="projects"/> into a project in a folder of its own,
+    /// named as the project, beside <paramref name="solutionPath"/>, then writes the solution that
+    /// holds them.</summary>
+    public static List<ExportedProject> ExportSolution(IReadOnlyList<SolutionProject> projects, DecompilerOptions options, string solutionPath,
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         var folder = Path.GetDirectoryName(solutionPath)!;
+        var assemblies = projects.Select(static p => p.Assembly).ToList();
         var bounds = PartBounds(assemblies);
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var projects = new List<ExportedProject>();
-        for (var i = 0; i < assemblies.Count; i++)
+        var exported = new List<ExportedProject>();
+        for (var i = 0; i < projects.Count; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var assembly = assemblies[i];
-            var name = ReserveProjectName(names, assembly.Name);
-            var projectPath = Path.Combine(folder, name, name + ProjectExtension);
-            var part = Part(progress, assembly, i, bounds);
-            projects.Add(ExportProject(assembly, options, projectPath, part, cancellationToken));
+            var project = projects[i];
+            var projectPath = ProjectPathIn(folder, project.Name);
+            var part = Part(progress, project.Assembly, i, bounds);
+            exported.Add(ExportProject(project.Assembly, options, projectPath, part, cancellationToken));
         }
-        var items = projects.ConvertAll(ToSolutionItem);
+        var items = exported.ConvertAll(ToSolutionItem);
         SolutionCreator.WriteSolutionFile(solutionPath, items);
+        return exported;
+    }
+
+    /// <summary>Where the project named <paramref name="name"/> of a solution in
+    /// <paramref name="folder"/> is written: in a folder of its own, named as it is.</summary>
+    public static string ProjectPathIn(string folder, string name)
+    {
+        var clean = CleanProjectName(name);
+        return Path.Combine(folder, clean, clean + ProjectExtension);
+    }
+
+    /// <summary>The file name of a solution named <paramref name="name"/>, with or without its
+    /// extension, made safe for a file name.</summary>
+    public static string SolutionFileName(string name)
+    {
+        var trimmed = name.Trim();
+        if (trimmed.EndsWith(SolutionExtension, StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed.Substring(0, trimmed.Length - SolutionExtension.Length);
+        return WholeProjectDecompiler.CleanUpFileName(trimmed, SolutionExtension);
+    }
+
+    private const string SolutionExtension = ".sln";
+
+    /// <summary><paramref name="name"/> made safe for a file and folder name.</summary>
+    public static string CleanProjectName(string name) => WholeProjectDecompiler.CleanUpDirectoryName(name.Trim());
+
+    /// <summary>A project of each of <paramref name="assemblies"/>, named after it, with a number
+    /// after the names that other assemblies already took.</summary>
+    public static List<SolutionProject> NameProjects(IReadOnlyList<LoadedAssembly> assemblies)
+    {
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var projects = new List<SolutionProject>();
+        foreach (var assembly in assemblies)
+        {
+            var name = ReserveProjectName(taken, assembly.Name);
+            projects.Add(new SolutionProject(assembly, name));
+        }
         return projects;
     }
 
-    /// <summary>The folder name for a project of the assembly named <paramref name="name"/>, with a
-    /// number after it when another assembly of the solution has the same name.</summary>
     private static string ReserveProjectName(HashSet<string> taken, string name)
     {
-        var clean = WholeProjectDecompiler.CleanUpDirectoryName(name);
+        var clean = CleanProjectName(name);
         var candidate = clean;
         var number = 2;
         while (!taken.Add(candidate))
@@ -98,7 +137,6 @@ public static class AssemblyExport
         }
         return candidate;
     }
-
     private static ProjectItem ToSolutionItem(ExportedProject project)
     {
         var id = project.Id!;
