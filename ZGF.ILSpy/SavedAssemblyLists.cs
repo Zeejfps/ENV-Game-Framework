@@ -1,7 +1,10 @@
+using ZGF.ILSpy.Core;
+
 namespace ZGF.ILSpy;
 
-/// <summary>A named assembly list as the settings keep it: its name and its assemblies' file paths, in order.</summary>
-public sealed record AssemblyListRecord(string Name, List<string> Assemblies);
+/// <summary>A named assembly list as the settings keep it: its name, its assemblies' file paths, in
+/// order, and the symbols analyzed in it.</summary>
+public sealed record AssemblyListRecord(string Name, List<string> Assemblies, List<CodeAnchor>? Analyzed = null);
 
 /// <summary>
 /// The user's named assembly lists and which one is open. Names are never empty and never the same
@@ -17,11 +20,11 @@ public sealed class SavedAssemblyLists
 
     public SavedAssemblyLists()
     {
-        _active = new SavedList(DefaultName, new List<string>());
+        _active = CreateEmpty(DefaultName);
         _lists.Add(_active);
     }
 
-    /// <summary>Changes whenever a list is added, renamed, removed, opened or its assemblies change.</summary>
+    /// <summary>Changes whenever a list is added, renamed, removed or opened, or its assemblies or analyses change.</summary>
     public int Revision { get; private set; }
 
     /// <summary>The name of the list that is open.</summary>
@@ -29,6 +32,9 @@ public sealed class SavedAssemblyLists
 
     /// <summary>The file paths of the open list's assemblies.</summary>
     public IReadOnlyList<string> ActivePaths => _active.Paths;
+
+    /// <summary>The symbols analyzed in the open list.</summary>
+    public IReadOnlyList<CodeAnchor> ActiveAnalyses => _active.Analyzed;
 
     public IReadOnlyList<string> Names => _lists.ConvertAll(static l => l.Name);
 
@@ -42,7 +48,7 @@ public sealed class SavedAssemblyLists
         foreach (var record in records)
             LoadRecord(record);
         if (_lists.Count == 0)
-            _lists.Add(new SavedList(DefaultName, new List<string>()));
+            _lists.Add(CreateEmpty(DefaultName));
         _active = Find(active) ?? _lists[0];
         Revision++;
     }
@@ -54,13 +60,16 @@ public sealed class SavedAssemblyLists
             return;
         if (Find(name) != null)
             return;
-        _lists.Add(new SavedList(name, record.Assemblies.ToList()));
+        var analyzed = record.Analyzed ?? new List<CodeAnchor>();
+        _lists.Add(new SavedList(name, record.Assemblies.ToList(), analyzed.ToList()));
     }
+
+    private static SavedList CreateEmpty(string name) => new(name, new List<string>(), new List<CodeAnchor>());
 
     public List<AssemblyListRecord> Save()
     {
         return _lists
-            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList()))
+            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList()))
             .ToList();
     }
 
@@ -98,28 +107,47 @@ public sealed class SavedAssemblyLists
         Revision++;
     }
 
+    /// <summary>Records <paramref name="analyzed"/> as the symbols analyzed in the open list.</summary>
+    public void RememberActiveAnalyses(IReadOnlyList<CodeAnchor> analyzed)
+    {
+        if (_active.Analyzed.SequenceEqual(analyzed))
+            return;
+        _active.Analyzed.Clear();
+        _active.Analyzed.AddRange(analyzed);
+        Revision++;
+    }
+
     /// <summary>Adds an empty list named <paramref name="name"/>, numbered when that name is taken,
     /// and returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Create(string name)
     {
-        return Add(name, new List<string>());
+        return Add(name, new List<string>(), new List<CodeAnchor>());
     }
 
-    /// <summary>Adds a list with the assemblies of the one named <paramref name="source"/>, named
-    /// <paramref name="name"/> or numbered when that is taken, and returns the name it got.</summary>
+    /// <summary>Adds a list with the assemblies and analyses of the one named <paramref name="source"/>,
+    /// named <paramref name="name"/> or numbered when that is taken, and returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Duplicate(string source, string name)
     {
         var paths = PathsOf(source).ToList();
-        return Add(name, paths);
+        var analyzed = AnalysesOf(source).ToList();
+        return Add(name, paths, analyzed);
     }
 
-    private string Add(string name, List<string> paths)
+    private IReadOnlyList<CodeAnchor> AnalysesOf(string name)
+    {
+        var list = Find(name);
+        if (list == null)
+            return [];
+        return list.Analyzed;
+    }
+
+    private string Add(string name, List<string> paths, List<CodeAnchor> analyzed)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var unique = MakeUnique(name.Trim());
-        _lists.Add(new SavedList(unique, paths));
+        _lists.Add(new SavedList(unique, paths, analyzed));
         Revision++;
         return unique;
     }
@@ -170,7 +198,7 @@ public sealed class SavedAssemblyLists
         var replacement = ReplacementFor(list.Name);
         _lists.Remove(list);
         if (_lists.Count == 0)
-            _lists.Add(new SavedList(DefaultName, new List<string>()));
+            _lists.Add(CreateEmpty(DefaultName));
         if (list == _active)
             _active = Find(replacement)!;
         Revision++;
@@ -198,9 +226,10 @@ public sealed class SavedAssemblyLists
         return _lists.Find(l => string.Equals(l.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    private sealed class SavedList(string name, List<string> paths)
+    private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed)
     {
         public string Name = name;
         public List<string> Paths { get; } = paths;
+        public List<CodeAnchor> Analyzed { get; } = analyzed;
     }
 }

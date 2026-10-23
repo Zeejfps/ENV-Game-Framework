@@ -85,7 +85,7 @@ internal sealed class WorkspaceDriver
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
         Workspace = new Workspace(settings);
-        Workspace.RestoreLastSessionAnalyses();
+        Workspace.RestoreAnalyses();
     }
 
     /// <summary>A driver that has opened the fixture assembly.</summary>
@@ -116,7 +116,7 @@ internal sealed class WorkspaceDriver
     private bool IsSettled()
     {
         var w = Workspace;
-        return !w.IsReloading && !w.IsResolving && !w.IsImporting && !w.IsExporting && !w.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+        return !w.IsReloading && !w.IsRestoringAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !w.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
     }
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>

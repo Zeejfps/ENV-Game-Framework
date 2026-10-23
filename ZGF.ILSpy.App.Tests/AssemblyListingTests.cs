@@ -131,7 +131,7 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
-    public void Switching_lists_drops_the_analyses_of_the_last_run_still_being_found()
+    public void Switching_lists_keeps_the_analyses_of_the_last_run_still_being_found_with_their_list()
     {
         using var temp = new TempDir();
         var first = WorkspaceDriver.Opened(temp.Settings());
@@ -144,8 +144,41 @@ public sealed class AssemblyListingTests
         d.Settle();
         d.Workspace.SaveSettings();
 
+        var lists = temp.Settings().AssemblyLists;
         Assert.Empty(d.Workspace.Analyzer.Roots);
-        Assert.Empty(temp.Settings().Analyzed!);
+        Assert.Single(lists[0].Analyzed!);
+        Assert.Empty(lists[1].Analyzed!);
+    }
+
+    [Fact]
+    public void Switching_back_to_a_list_analyzes_again_what_was_analyzed_in_it()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.Workspace.Lists.Create(Other);
+
+        d.Workspace.SwitchList(Other);
+        d.Settle();
+        var inOther = d.Workspace.Analyzer.Roots.Count;
+        d.Workspace.SwitchList(SavedAssemblyLists.DefaultName);
+        d.Settle();
+
+        Assert.Equal(0, inOther);
+        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Roots).Symbol.Label);
+    }
+
+    [Fact]
+    public void A_duplicated_list_has_the_analyses_of_the_one_it_copies()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.Workspace.DuplicateList(SavedAssemblyLists.DefaultName);
+        var copy = d.Workspace.ListsDialog.Renaming!;
+
+        d.Workspace.SwitchList(copy);
+        d.Settle();
+
+        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Roots).Symbol.Label);
     }
 
     [Fact]

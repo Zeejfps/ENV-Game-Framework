@@ -27,7 +27,7 @@ public sealed class Workspace
     public Reload Reload { get; } = new();
     public OpenRequests Opens { get; } = new();
     public LastSave LastSave { get; } = new();
-    public LastSessionAnalyses LastSessionAnalyses { get; }
+    public PendingAnalyses PendingAnalyses { get; }
     public BookmarkList Bookmarks { get; } = new();
 
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
@@ -91,6 +91,9 @@ public sealed class Workspace
 
     /// <summary>True while <see cref="AssemblyLoading.Refresh"/> reopens the assemblies.</summary>
     public bool IsReloading => Reload.IsRunning;
+
+    /// <summary>True while the open list's analyses are being found to be analyzed again.</summary>
+    public bool IsRestoringAnalyses => PendingAnalyses.Pending != null;
 
     /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
     /// ones there are or merge in beside them.</summary>
@@ -156,7 +159,7 @@ public sealed class Workspace
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
-        LastSessionAnalyses = new LastSessionAnalyses(settings.Analyzed);
+        PendingAnalyses = new PendingAnalyses(Lists.ActiveAnalyses);
         ReportSettingsLoadError(settings);
     }
 

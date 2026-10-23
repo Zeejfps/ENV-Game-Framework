@@ -30,7 +30,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         RegisterFonts(host);
         State.Assemblies.Changed += host.Invalidate;
         OpenStartupAssemblies();
-        State.RestoreLastSessionAnalyses();
+        State.RestoreAnalyses();
     }
 
     private static void RegisterFonts(ImmediateGuiAppHost host)

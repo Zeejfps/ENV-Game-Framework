@@ -19,7 +19,7 @@ public static class Saving
 
     public static void SaveSettings(this Workspace w)
     {
-        w.RememberOpenAssemblies();
+        w.RememberActiveList();
         w.CopyStateToSettings();
         w.LastSave.Record(w.Assemblies, w.Lists, w.Bookmarks, w.Analyzer, w.MetadataFilters);
         w.WriteSettingsFile();
@@ -41,7 +41,6 @@ public static class Saving
         settings.Locale = w.Locale;
         settings.Layout = w.Layout;
         settings.Bookmarks = w.Bookmarks.Save();
-        settings.Analyzed = w.LastSessionAnalyses.ListToSave(w.Analyzer);
         settings.BookmarkColumns = w.BookmarkColumns.Weights.ToList();
         settings.SearchColumns = w.SearchColumns.Weights.ToList();
         settings.ExportColumns = w.ExportColumns.Weights.ToList();

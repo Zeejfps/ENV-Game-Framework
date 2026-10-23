@@ -199,6 +199,22 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void The_analyses_of_an_older_settings_file_go_to_the_open_list_and_are_saved_only_there()
+    {
+        var loaded = AppSettings.Load(Written("""
+            { "AssemblyLists": [ { "Name": "Work", "Assemblies": [] }, { "Name": "Play", "Assemblies": [] } ],
+              "ActiveAssemblyList": "Play",
+              "Analyzed": [ { "Kind": "Definition", "FilePath": "a.dll", "Token": 33554434 } ] }
+            """));
+
+        Assert.Empty(loaded.AssemblyLists[0].Analyzed!);
+        var analyzed = Assert.Single(loaded.AssemblyLists[1].Analyzed!);
+        Assert.Equal(new CodeAnchor(CodeAnchorKind.Definition, "a.dll", 33554434), analyzed);
+        Assert.Null(loaded.Save());
+        Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Analyzed", out _));
+    }
+
+    [Fact]
     public void An_unreadable_file_falls_back_to_defaults_and_is_reported()
     {
         var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", """));

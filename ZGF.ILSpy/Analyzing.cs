@@ -34,12 +34,12 @@ public static class Analyzing
         w.Analyze(node);
     }
 
-    /// <summary>Finds the symbols analyzed in the last run again in the background, opening their
+    /// <summary>Finds the symbols the open list had analyzed again in the background, opening their
     /// assemblies' files without listing them, and analyzes those still there, in their order, unless
     /// the list was cleared meanwhile.</summary>
-    public static async void RestoreLastSessionAnalyses(this Workspace w)
+    public static async void RestoreAnalyses(this Workspace w)
     {
-        var analyzed = w.LastSessionAnalyses.Pending;
+        var analyzed = w.PendingAnalyses.Pending;
         if (analyzed == null)
             return;
         var generation = w.Assemblies.Generation;
@@ -58,7 +58,7 @@ public static class Analyzing
 
     private static void AnalyzeAgain(this Workspace w, List<AnalysisSymbol?>? found)
     {
-        w.LastSessionAnalyses.Clear();
+        w.PendingAnalyses.Clear();
         if (found != null)
             w.AnalyzeAll(found);
         w.LastSave.RecordAnalyzer(w.Analyzer);

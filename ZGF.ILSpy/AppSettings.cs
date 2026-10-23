@@ -47,7 +47,9 @@ public sealed class AppSettings
 
     public List<BookmarkRecord> Bookmarks { get; set; } = new();
 
-    /// <summary>The symbols the analyzer was analyzing, by assembly file and metadata token.</summary>
+    /// <summary>The symbols analyzed before each list kept its own, by assembly file and metadata token.
+    /// <see cref="Load"/> moves them into the open list, so they are never written.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<CodeAnchor>? Analyzed { get; set; }
 
     /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
@@ -134,6 +136,7 @@ public sealed class AppSettings
         settings ??= new AppSettings();
         settings.AssemblyLists = CleanAssemblyLists(settings.AssemblyLists);
         settings.MoveUnnamedListIntoDefault();
+        settings.MoveAnalysesIntoActiveList();
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.FilePath = path;
@@ -149,7 +152,7 @@ public sealed class AppSettings
             return new List<AssemblyListRecord>();
         return lists
             .Where(static l => l != null && l.Name != null)
-            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies)))
+            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed)))
             .ToList();
     }
 
@@ -171,6 +174,46 @@ public sealed class AppSettings
         if (AssemblyLists.Count > 0)
             return;
         AssemblyLists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, paths));
+    }
+
+    private static List<CodeAnchor> CleanAnalyses(List<CodeAnchor>? analyzed)
+    {
+        if (analyzed == null)
+            return new List<CodeAnchor>();
+        return analyzed;
+    }
+
+    /// <summary>Gives the analyses saved before each list kept its own to the open list, unless it has some.</summary>
+    private void MoveAnalysesIntoActiveList()
+    {
+        if (Analyzed == null)
+            return;
+        var analyzed = Analyzed;
+        Analyzed = null;
+        if (AssemblyLists.Count == 0)
+            AssemblyLists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, new List<string>()));
+        var index = FindActiveListIndex();
+        var active = AssemblyLists[index];
+        var hasAnalyses = active.Analyzed != null && active.Analyzed.Count > 0;
+        if (hasAnalyses)
+            return;
+        AssemblyLists[index] = active with { Analyzed = analyzed };
+    }
+
+    /// <summary>Where the list <see cref="ActiveAssemblyList"/> names is, else the first.</summary>
+    private int FindActiveListIndex()
+    {
+        var index = AssemblyLists.FindIndex(IsActiveList);
+        if (index < 0)
+            return 0;
+        return index;
+    }
+
+    private bool IsActiveList(AssemblyListRecord list)
+    {
+        if (ActiveAssemblyList == null)
+            return false;
+        return string.Equals(list.Name.Trim(), ActiveAssemblyList.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Writes the settings to <see cref="FilePath"/>, replacing the file whole so a failed

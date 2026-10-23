@@ -29,11 +29,20 @@ public static class AssemblyListing
         w.Lists.RememberActive(w.Assemblies.FilePaths);
     }
 
-    /// <summary>Opens the list named <paramref name="name"/> in place of the open one. The assemblies,
-    /// documents, history and analyses of the one before go.</summary>
-    public static void SwitchList(this Workspace w, string name)
+    /// <summary>Records the open assemblies and the analyses as the open list's.</summary>
+    internal static void RememberActiveList(this Workspace w)
     {
         w.RememberOpenAssemblies();
+        var analyzed = w.PendingAnalyses.ListToSave(w.Analyzer);
+        w.Lists.RememberActiveAnalyses(analyzed);
+    }
+
+    /// <summary>Opens the list named <paramref name="name"/> in place of the open one, with the
+    /// analyses it had. The assemblies, documents, history and analyses of the one before go, kept
+    /// with it for when it opens again.</summary>
+    public static void SwitchList(this Workspace w, string name)
+    {
+        w.RememberActiveList();
         if (!w.Lists.Activate(name))
             return;
         w.OpenActiveList();
@@ -45,6 +54,8 @@ public static class AssemblyListing
         w.CloseDocuments();
         w.History.Clear();
         w.OpenAsReload(w.ListExistingAssemblies());
+        w.PendingAnalyses.Expect(w.Lists.ActiveAnalyses);
+        w.RestoreAnalyses();
     }
 
     public static void OpenListsDialog(this Workspace w)
@@ -67,7 +78,7 @@ public static class AssemblyListing
     public static void DuplicateList(this Workspace w, string name)
     {
         var t = Strings.For(w.Locale);
-        w.RememberOpenAssemblies();
+        w.RememberActiveList();
         var copy = w.Lists.Duplicate(name, t.ListsCopyName(name));
         w.ListsDialog.Pick(w.Lists, copy);
         w.ListsDialog.StartRenaming(copy);
@@ -91,7 +102,7 @@ public static class AssemblyListing
     public static void DeleteList(this Workspace w, string name)
     {
         var wasActive = string.Equals(name, w.Lists.Active, StringComparison.OrdinalIgnoreCase);
-        w.RememberOpenAssemblies();
+        w.RememberActiveList();
         w.Lists.Delete(name);
         w.ListsDialog.Pick(w.Lists, w.Lists.Active);
         if (wasActive)
