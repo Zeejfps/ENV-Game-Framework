@@ -169,6 +169,80 @@ public sealed class ExportDialogTests : IDisposable
     }
 
     [Fact]
+    public void The_export_options_live_in_the_dialog_and_not_in_the_decompiler_options()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        app.Workspace.OpenDecompilerOptions();
+        app.Run(2);
+        Assert.False(app.Frames.Drew("SDK-style project files"));
+
+        app.Workspace.OpenExportSetup(null);
+        app.Run(2);
+
+        Assert.True(app.Frames.Drew("SDK-style project files"));
+        Assert.True(app.Frames.Drew("These also change the code you browse."));
+    }
+
+    [Fact]
+    public void A_project_option_ticked_in_the_dialog_is_kept_for_the_next_export()
+    {
+        var app = AppDriver.Opened(height: 1400f);
+        var nested = DecompilerToggle.Find("UseNestedDirectoriesForNamespaces")!;
+        app.Workspace.OpenExportSetup(null);
+        app.Run(2);
+
+        app.Click("A folder per namespace part").Frame(2);
+
+        Assert.Equal(!nested.DefaultValue, app.Workspace.DecompilerOptions.IsOn(nested));
+    }
+
+    [Fact]
+    public void A_key_file_that_is_not_there_stops_the_export()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.Path;
+
+        setup.StrongNameKeyFile = _temp.PathOf("missing.snk");
+        Assert.True(setup.KeyFileMissing);
+        Assert.False(setup.CanExport);
+
+        setup.StrongNameKeyFile = _temp.Write("signing.snk", [1, 2, 3]);
+        Assert.False(setup.KeyFileMissing);
+        Assert.True(setup.CanExport);
+    }
+
+    [Fact]
+    public void A_pdb_asked_for_in_the_dialog_is_written_beside_the_project_and_reported()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.OpenExportSetup(null);
+        var setup = d.Workspace.ExportSetup;
+        setup.Folder = _temp.Path;
+        setup.GeneratePdb = true;
+
+        d.Workspace.StartExport();
+        d.Settle();
+
+        var pdb = _temp.PathOf(Fixtures(d).PdbFileName);
+        Assert.True(File.Exists(pdb));
+        Assert.Contains(pdb, Assert.Single(d.Workspace.FinishedExports).Written);
+    }
+
+    [Fact]
+    public void Resetting_the_decompiler_options_keeps_how_projects_are_exported()
+    {
+        var d = WorkspaceDriver.Opened();
+        var sdk = DecompilerToggle.Find("UseSdkStyleProjectFormat")!;
+        d.Workspace.SetDecompilerToggle(sdk, !sdk.DefaultValue);
+
+        d.Workspace.ResetDecompilerToggles();
+
+        Assert.Equal(!sdk.DefaultValue, d.Workspace.DecompilerOptions.IsOn(sdk));
+    }
+
+    [Fact]
     public void The_dialog_warns_in_place_about_a_folder_that_holds_files()
     {
         var app = AppDriver.Opened();

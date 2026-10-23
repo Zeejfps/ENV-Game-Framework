@@ -13,9 +13,11 @@ public sealed class ExportChoice(LoadedAssembly assembly, string name)
 
 /// <summary>
 /// What the export dialog asks for: which open assemblies to export, under which project names,
-/// into which folder, and for several, the solution's name. One assembly exports as a project
+/// into which folder, and for several, the solution's name; besides, a strong-name key to sign
+/// with and whether to write a PDB beside each project. One assembly exports as a project
 /// straight into the folder, several as a solution with a folder per project. Project names start
-/// out unique; only renaming can make two clash, which stops the export until it is fixed.
+/// out unique; only renaming can make two clash, which stops the export until it is fixed, as a
+/// key file that is not there does. Everything but the ticks stays for the next time.
 /// </summary>
 public sealed class ExportSetup
 {
@@ -23,10 +25,21 @@ public sealed class ExportSetup
 
     private string? _checkedFolder;
     private bool _folderHoldsFiles;
+    private string? _checkedKeyFile;
+    private bool _keyFileMissing;
 
     public bool IsOpen;
     public string Folder = "";
     public string SolutionName = "";
+
+    /// <summary>The strong-name key file to copy into each project and sign it with; none when empty.</summary>
+    public string StrongNameKeyFile = "";
+
+    /// <summary>Whether a portable PDB is written beside each project.</summary>
+    public bool GeneratePdb;
+
+    /// <summary>Whether those PDBs embed the decompiled sources.</summary>
+    public bool EmbedSourcesInPdb = true;
 
     public List<ExportChoice> Choices { get; } = new();
 
@@ -145,8 +158,28 @@ public sealed class ExportSetup
         return Directory.EnumerateFileSystemEntries(folder).Any();
     }
 
-    /// <summary>Whether the export can start: a folder, at least one assembly, and a name for each
-    /// project that no other takes.</summary>
+    /// <summary>Whether a key file is named that is not there. Looked up again only when the name changes.</summary>
+    public bool KeyFileMissing
+    {
+        get
+        {
+            if (_checkedKeyFile == StrongNameKeyFile)
+                return _keyFileMissing;
+            _checkedKeyFile = StrongNameKeyFile;
+            _keyFileMissing = IsMissing(StrongNameKeyFile.Trim());
+            return _keyFileMissing;
+        }
+    }
+
+    private static bool IsMissing(string file)
+    {
+        if (file.Length == 0)
+            return false;
+        return !File.Exists(file);
+    }
+
+    /// <summary>Whether the export can start: a folder, at least one assembly, a name for each
+    /// project that no other takes, and no key file that is not there.</summary>
     public bool CanExport
     {
         get
@@ -157,8 +190,18 @@ public sealed class ExportSetup
                 return false;
             if (HasNamelessProject)
                 return false;
+            if (KeyFileMissing)
+                return false;
             return Clash == null;
         }
+    }
+
+    /// <summary>What each project is written with besides its code.</summary>
+    public ProjectExtras Extras()
+    {
+        var key = StrongNameKeyFile.Trim();
+        var keyFile = key.Length == 0 ? null : key;
+        return new ProjectExtras(keyFile, GeneratePdb, EmbedSourcesInPdb);
     }
 
     /// <summary>The ticked assemblies as the projects to export, in the dialog's order.</summary>

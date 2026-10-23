@@ -150,7 +150,6 @@ internal static class DecompilerOptionsPanelView
     {
         DecompilerToggleGroup.Language => CSharpVersions.Label(section.Version!.Value),
         DecompilerToggleGroup.FSharp => t.DecompilerOptionsFsharp,
-        DecompilerToggleGroup.ProjectExport => t.DecompilerOptionsProjectExport,
         _ => t.DecompilerOptionsOther,
     };
 
@@ -191,7 +190,7 @@ internal static class DecompilerOptionsPanelView
             .GroupBy(static t => t.IntroducedIn!.Value)
             .OrderByDescending(static g => g.Key)
             .Select(static g => new Section(g.Key.ToString(), DecompilerToggleGroup.Language, g.Key, g.ToArray()));
-        var rest = new[] { DecompilerToggleGroup.Other, DecompilerToggleGroup.FSharp, DecompilerToggleGroup.ProjectExport }
+        var rest = new[] { DecompilerToggleGroup.Other, DecompilerToggleGroup.FSharp }
             .Select(group => new Section(group.ToString(), group, null, all.Where(t => t.Group == group).ToArray()))
             .Where(static s => s.Toggles.Length > 0);
         return language.Concat(rest).ToArray();

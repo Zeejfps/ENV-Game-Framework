@@ -98,31 +98,40 @@ public static class Exporting
     public static void ExportProject(this Workspace w, LoadedAssembly assembly, string projectPath)
     {
         var folder = FolderOf(projectPath);
-        w.ConfirmFolder(folder, projectPath, () => w.StartProjectExport(assembly, projectPath));
+        w.ConfirmFolder(folder, projectPath, () => w.StartProjectExport(assembly, projectPath, ProjectExtras.None));
     }
 
-    private static void StartProjectExport(this Workspace w, LoadedAssembly assembly, string projectPath)
+    private static void StartProjectExport(this Workspace w, LoadedAssembly assembly, string projectPath, ProjectExtras extras)
     {
         var options = w.DecompilerOptions;
+        var t = Strings.For(w.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(projectPath), ExportKind.Project, FolderOf(projectPath));
-        var failure = Strings.For(w.Locale).ErrorExportProject(assembly.Name);
-        w.RunExport(job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, s.Progress, s.Token),
-            (r, project) => r.WithProjects([project], projectPath));
+        var failure = t.ErrorExportProject(assembly.Name);
+        w.RunExport(job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, extras, s.Progress, s.Token),
+            (r, project) => r.WithProjects([project], projectPath, t));
     }
 
-    /// <summary><paramref name="report"/> listing <paramref name="first"/> and each of
-    /// <paramref name="projects"/> as written, with the parts the projects could not decompile as
-    /// its problems.</summary>
-    private static ExportReport WithProjects(this ExportReport report, IReadOnlyList<ExportedProject> projects, string first)
+    /// <summary><paramref name="report"/> listing <paramref name="first"/>, each of
+    /// <paramref name="projects"/> and the PDBs written beside them as written, with the parts the
+    /// projects could not decompile and the PDBs that could not be written as its problems.</summary>
+    private static ExportReport WithProjects(this ExportReport report, IReadOnlyList<ExportedProject> projects, string first, Strings t)
     {
+        var pdbs = projects
+            .Where(static p => p.PdbPath != null)
+            .Select(static p => p.PdbPath!);
         var written = projects
             .Select(static p => p.ProjectPath)
             .Prepend(first)
+            .Concat(pdbs)
             .Distinct()
             .ToList();
+        var pdbProblems = projects
+            .Where(static p => p.PdbFailure != null)
+            .Select(p => DescribePdbFailure(t, p.PdbFailure!));
         var problems = projects
             .SelectMany(static p => p.Errors)
             .Select(static e => new ExportProblem(e.Message, e.Details))
+            .Concat(pdbProblems)
             .ToList();
         return report with { Written = written, Problems = problems };
     }
@@ -133,16 +142,16 @@ public static class Exporting
     {
         var folder = FolderOf(solutionPath);
         var projects = AssemblyExport.NameProjects(w.Assemblies.Assemblies);
-        w.ConfirmFolder(folder, solutionPath, () => w.StartSolutionExport(projects, solutionPath));
+        w.ConfirmFolder(folder, solutionPath, () => w.StartSolutionExport(projects, solutionPath, ProjectExtras.None));
     }
 
-    private static void StartSolutionExport(this Workspace w, List<SolutionProject> projects, string solutionPath)
+    private static void StartSolutionExport(this Workspace w, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
     {
         var options = w.DecompilerOptions;
+        var t = Strings.For(w.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(solutionPath), ExportKind.Solution, FolderOf(solutionPath));
-        var failure = Strings.For(w.Locale).ErrorExportSolution;
-        w.RunExport(job, failure, s => AssemblyExport.ExportSolution(projects, options, solutionPath, s.Progress, s.Token),
-            (r, exported) => r.WithProjects(exported, solutionPath));
+        w.RunExport(job, t.ErrorExportSolution, s => AssemblyExport.ExportSolution(projects, options, solutionPath, extras, s.Progress, s.Token),
+            (r, exported) => r.WithProjects(exported, solutionPath, t));
     }
 
     /// <summary>The assembly of the node the active tab shows, or null.</summary>
@@ -172,15 +181,16 @@ public static class Exporting
         setup.Close();
         var folder = setup.Folder.Trim();
         var projects = setup.IncludedProjects();
+        var extras = setup.Extras();
         if (setup.IsSolution)
         {
             var solutionPath = Path.Combine(folder, setup.SolutionFileName);
-            w.StartSolutionExport(projects, solutionPath);
+            w.StartSolutionExport(projects, solutionPath, extras);
             return;
         }
         var project = projects[0];
         var projectPath = Path.Combine(folder, AssemblyExport.CleanProjectName(project.Name) + ProjectExtension);
-        w.StartProjectExport(project.Assembly, projectPath);
+        w.StartProjectExport(project.Assembly, projectPath, extras);
     }
 
     /// <summary>Starts <paramref name="start"/> at once when <paramref name="folder"/> holds nothing

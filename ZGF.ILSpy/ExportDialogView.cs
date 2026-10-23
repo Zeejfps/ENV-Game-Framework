@@ -1,5 +1,7 @@
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
@@ -10,22 +12,45 @@ namespace ZGF.ILSpy;
 internal static class ExportDialogView
 {
     private const float ChoicesHeight = 180f;
+
+    /// <summary>The decompiler's names for the toggles the dialog offers.</summary>
+    private const string SdkStyleProjects = "UseSdkStyleProjectFormat";
+    private const string FolderPerNamespace = "UseNestedDirectoriesForNamespaces";
+    private const string RemoveDeadCode = "RemoveDeadCode";
+    private const string RemoveDeadStores = "RemoveDeadStores";
+    private const string DebugSymbolNames = "UseDebugSymbols";
     private const float ProjectNameWidth = 200f;
 
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
         var setup = w.ExportSetup;
-        var card = new Box { Width = Sizing.Grow(0f, AppLayout.PickerWidth) };
+        var card = new Box { Width = Sizing.Grow(0f, AppLayout.PickerWidth), Height = Sizing.Percent(AppLayout.PickerHeight) };
         using (var dialog = ui.Dialog("export-setup", t.ExportDialogTitle, ref setup.IsOpen, card))
         {
             if (!dialog.IsOpen)
                 return;
+            Body(ui, w);
+            Actions(ui, w);
+        }
+    }
+
+    /// <summary>Everything above the buttons, scrolling when the window is too short for it, so the
+    /// buttons stay in reach.</summary>
+    private static void Body(Ui<UiState> ui, Workspace w)
+    {
+        var theme = ui.Theme;
+        var setup = w.ExportSetup;
+        using (ui.Scroll("export-body", new Box { Height = Sizing.Grow(), Gap = theme.Gap }))
+        {
             Choices(ui, setup);
             Folder(ui, setup);
             SolutionName(ui, setup);
             Clash(ui, setup);
-            Actions(ui, w);
+            ProjectOptions(ui, w);
+            CodeOptions(ui, w);
+            Signing(ui, setup);
+            Pdbs(ui, setup);
         }
     }
 
@@ -92,6 +117,68 @@ internal static class ExportDialogView
         var t = ui.State.Strings;
         var theme = ui.Theme;
         ui.Text(t.ExportNameClash(clash), color: theme.Danger, size: theme.FontSizeSmall, wrap: true);
+    }
+
+    /// <summary>How the projects are laid out. Kept with the decompiler options, so they stay for the
+    /// next export, but only shown here.</summary>
+    private static void ProjectOptions(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
+        ui.Label(t.ExportOptionsProject, bold: true);
+        Toggle(ui, w, SdkStyleProjects);
+        Toggle(ui, w, FolderPerNamespace);
+    }
+
+    /// <summary>The decompiler options that matter most for exported code. They are the same as in
+    /// the decompiler options panel, so changing them changes the code being browsed too, which the
+    /// note under them says.</summary>
+    private static void CodeOptions(Ui<UiState> ui, Workspace w)
+    {
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        ui.Label(t.ExportOptionsCode, bold: true);
+        Toggle(ui, w, RemoveDeadCode);
+        Toggle(ui, w, RemoveDeadStores);
+        Toggle(ui, w, DebugSymbolNames);
+        ui.Text(t.ExportOptionsCodeNote, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
+    }
+
+    /// <summary>A checkbox for the decompiler toggle named <paramref name="name"/>, labelled as the
+    /// decompiler options panel labels it.</summary>
+    private static void Toggle(Ui<UiState> ui, Workspace w, string name)
+    {
+        var t = ui.State.Strings;
+        var toggle = DecompilerToggle.Find(name);
+        if (toggle == null)
+            return;
+        var label = DecompilerOptionLabels.Label(t, name) ?? name;
+        var on = w.DecompilerOptions.IsOn(toggle);
+        if (ui.Checkbox(label, ref on, id: name))
+            w.SetDecompilerToggle(toggle, on);
+    }
+
+    private static void Signing(Ui<UiState> ui, ExportSetup setup)
+    {
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        ui.Label(t.ExportKeyFile, bold: true);
+        using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
+        {
+            ui.TextField("key-file", ref setup.StrongNameKeyFile, t.ExportKeyFileNone, width: Sizing.Grow());
+            if (ui.Button(t.ExportBrowse, id: "browse-key"))
+                ui.PickFile(t.ExportChooseKeyTitle, null, [new FileFilter(t.FileFilterSnk, ["*.snk"])], path => setup.StrongNameKeyFile = path);
+        }
+        if (setup.KeyFileMissing)
+            ui.Text(t.ExportKeyFileMissing, color: theme.Danger, size: theme.FontSizeSmall, wrap: true);
+    }
+
+    private static void Pdbs(Ui<UiState> ui, ExportSetup setup)
+    {
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        ui.Checkbox(t.ExportGeneratePdb, ref setup.GeneratePdb, id: "pdb");
+        using (ui.Row(new Box { Padding = new Spacing(theme.IconSize + theme.Gap, 0f, 0f, 0f) }))
+            ui.Checkbox(t.ExportEmbedSources, ref setup.EmbedSourcesInPdb, id: "embed", enabled: setup.GeneratePdb);
     }
 
     private static void Actions(Ui<UiState> ui, Workspace w)

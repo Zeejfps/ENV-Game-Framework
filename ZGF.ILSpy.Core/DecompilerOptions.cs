@@ -141,6 +141,19 @@ public sealed record DecompilerOptions
         return IsOn(symbols) == other.IsOn(symbols);
     }
 
+    /// <summary>These options with every toggle that shapes code back at its default; the project
+    /// export toggles, which the export dialog sets, stay as they are.</summary>
+    public DecompilerOptions WithCodeTogglesReset()
+    {
+        var toggles = Toggles.ToBuilder();
+        foreach (var toggle in DecompilerToggle.All)
+        {
+            if (toggle.Group != DecompilerToggleGroup.ProjectExport)
+                toggles.Remove(toggle.Name);
+        }
+        return this with { Toggles = toggles.ToImmutable() };
+    }
+
     /// <summary>These options with the project export toggles at their defaults, as they only shape
     /// exported projects, not code.</summary>
     private DecompilerOptions WithoutProjectExport()

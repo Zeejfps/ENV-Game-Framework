@@ -9,10 +9,23 @@ namespace ZGF.ILSpy.Core;
 public sealed record ExportError(string Message, string Details);
 
 /// <summary>An assembly decompiled into a C# project: the project file, and what could not be
-/// decompiled, which the project holds as error comments instead.</summary>
+/// decompiled, which the project holds as error comments instead. When a PDB was asked for,
+/// <see cref="PdbPath"/> is where it was written, or <see cref="PdbFailure"/> says why it was not.</summary>
 public sealed record ExportedProject(LoadedAssembly Assembly, string ProjectPath, IReadOnlyList<ExportError> Errors)
 {
     internal ProjectId? Id { get; init; }
+
+    public string? PdbPath { get; init; }
+
+    public PdbFailure? PdbFailure { get; init; }
+}
+
+/// <summary>What a project export writes besides the project: the strong-name key it copies into
+/// the project and signs with, and a portable PDB beside the project, with the decompiled sources
+/// embedded or not.</summary>
+public sealed record ProjectExtras(string? StrongNameKeyFile = null, bool Pdb = false, bool EmbedSourcesInPdb = true)
+{
+    public static ProjectExtras None { get; } = new();
 }
 
 /// <summary>An assembly to export as a project of a solution, under <see cref="Name"/>, which is
@@ -36,20 +49,45 @@ public static class AssemblyExport
     internal const string PdbExtension = ".pdb";
 
     /// <summary>Decompiles <paramref name="assembly"/> into a project whose file is
-    /// <paramref name="projectPath"/>, with its code and resources in the folder beside it.</summary>
-    public static ExportedProject ExportProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath,
+    /// <paramref name="projectPath"/>, with its code and resources in the folder beside it, and
+    /// writes what <paramref name="extras"/> asks for besides.</summary>
+    public static ExportedProject ExportProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath, ProjectExtras? extras = null,
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        return ExportProject(assembly, options, projectPath, Part(progress, assembly, 0, WholeExport), cancellationToken);
+        var part = Part(progress, assembly, 0, WholeExport);
+        return ExportProject(assembly, options, projectPath, extras ?? ProjectExtras.None, part, cancellationToken);
     }
 
-    private static ExportedProject ExportProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath,
+    /// <summary>Exports the project, then the PDB when one is asked for; each takes half of the
+    /// part's share of the export.</summary>
+    private static ExportedProject ExportProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath, ProjectExtras extras,
+        PartProgress? part, CancellationToken cancellationToken)
+    {
+        var (projectPart, pdbPart) = SplitForPdb(part, extras.Pdb);
+        var project = WriteProject(assembly, options, projectPath, extras.StrongNameKeyFile, projectPart, cancellationToken);
+        if (!extras.Pdb)
+            return project;
+        var folder = Path.GetDirectoryName(projectPath)!;
+        return WithPdb(project, options, folder, extras.EmbedSourcesInPdb, pdbPart, cancellationToken);
+    }
+
+    private static (PartProgress? Project, PartProgress? Pdb) SplitForPdb(PartProgress? part, bool pdb)
+    {
+        if (part == null)
+            return (null, null);
+        if (!pdb)
+            return (part, null);
+        return part.Halves();
+    }
+
+    private static ExportedProject WriteProject(LoadedAssembly assembly, DecompilerOptions options, string projectPath, string? strongNameKeyFile,
         IProgress<DecompilationProgress>? progress, CancellationToken cancellationToken)
     {
         var folder = Path.GetDirectoryName(projectPath)!;
         Directory.CreateDirectory(folder);
         var decompiler = CreateProjectDecompiler(assembly, options);
         decompiler.ProgressIndicator = progress;
+        decompiler.StrongNameKeyFile = strongNameKeyFile;
         using var projectFile = new StreamWriter(projectPath);
         var id = decompiler.DecompileProject(assembly.File, folder, projectFile, cancellationToken);
         var errors = decompiler.Errors
@@ -65,12 +103,25 @@ public static class AssemblyExport
         return new WholeProjectDecompiler(settings, assembly.Resolver, null, null, symbols);
     }
 
+    /// <summary><paramref name="project"/> with a portable PDB of its assembly written beside it, or
+    /// with why it could not be.</summary>
+    private static ExportedProject WithPdb(ExportedProject project, DecompilerOptions options, string folder, bool embedSources,
+        IProgress<DecompilationProgress>? progress, CancellationToken cancellationToken)
+    {
+        var failure = TryGeneratePdb(project.Assembly, options, folder, embedSources, progress, cancellationToken);
+        if (failure != null)
+            return project with { PdbFailure = failure };
+        var path = Path.Combine(folder, project.Assembly.PdbFileName);
+        return project with { PdbPath = path };
+    }
+
     /// <summary>Decompiles each of <paramref name="projects"/> into a project in a folder of its own,
     /// named as the project, beside <paramref name="solutionPath"/>, then writes the solution that
     /// holds them.</summary>
     public static List<ExportedProject> ExportSolution(IReadOnlyList<SolutionProject> projects, DecompilerOptions options, string solutionPath,
-        IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
+        ProjectExtras? extras = null, IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
+        var withExtras = extras ?? ProjectExtras.None;
         var folder = Path.GetDirectoryName(solutionPath)!;
         var assemblies = projects.Select(static p => p.Assembly).ToList();
         var bounds = PartBounds(assemblies);
@@ -81,7 +132,7 @@ public static class AssemblyExport
             var project = projects[i];
             var projectPath = ProjectPathIn(folder, project.Name);
             var part = Part(progress, project.Assembly, i, bounds);
-            exported.Add(ExportProject(project.Assembly, options, projectPath, part, cancellationToken));
+            exported.Add(ExportProject(project.Assembly, options, projectPath, withExtras, part, cancellationToken));
         }
         var items = exported.ConvertAll(ToSolutionItem);
         SolutionCreator.WriteSolutionFile(solutionPath, items);
@@ -151,16 +202,16 @@ public static class AssemblyExport
     public static void GeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string path,
         IProgress<ExportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        GeneratePdb(assembly, options, path, Part(progress, assembly, 0, WholeExport), cancellationToken);
+        GeneratePdb(assembly, options, path, embedSources: true, Part(progress, assembly, 0, WholeExport), cancellationToken);
     }
 
-    private static void GeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string path, IProgress<DecompilationProgress>? progress,
-        CancellationToken cancellationToken)
+    private static void GeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string path, bool embedSources,
+        IProgress<DecompilationProgress>? progress, CancellationToken cancellationToken)
     {
         var temporary = path + ".tmp";
         try
         {
-            WritePdb(assembly, options, temporary, progress, cancellationToken);
+            WritePdb(assembly, options, temporary, embedSources, progress, cancellationToken);
             File.Move(temporary, path, overwrite: true);
         }
         finally
@@ -169,13 +220,13 @@ public static class AssemblyExport
         }
     }
 
-    private static void WritePdb(LoadedAssembly assembly, DecompilerOptions options, string path, IProgress<DecompilationProgress>? progress,
-        CancellationToken cancellationToken)
+    private static void WritePdb(LoadedAssembly assembly, DecompilerOptions options, string path, bool embedSources,
+        IProgress<DecompilationProgress>? progress, CancellationToken cancellationToken)
     {
         var settings = Settings.Create(options);
         var decompiler = NodeDecompiler.CreateCSharpDecompiler(assembly, settings, cancellationToken);
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write);
-        var writer = new PortablePdbWriter { Progress = progress };
+        var writer = new PortablePdbWriter { Progress = progress, EmbedSourceFiles = embedSources };
         writer.WritePdb(assembly.File, decompiler, settings, stream);
     }
 
@@ -191,14 +242,14 @@ public static class AssemblyExport
             cancellationToken.ThrowIfCancellationRequested();
             var assembly = assemblies[i];
             var part = Part(progress, assembly, i, bounds);
-            var failure = TryGeneratePdb(assembly, options, folder, part, cancellationToken);
+            var failure = TryGeneratePdb(assembly, options, folder, embedSources: true, part, cancellationToken);
             if (failure != null)
                 failures.Add(failure);
         }
         return failures;
     }
 
-    private static PdbFailure? TryGeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string folder,
+    private static PdbFailure? TryGeneratePdb(LoadedAssembly assembly, DecompilerOptions options, string folder, bool embedSources,
         IProgress<DecompilationProgress>? progress, CancellationToken cancellationToken)
     {
         if (!assembly.CanGeneratePdb)
@@ -206,7 +257,7 @@ public static class AssemblyExport
         var path = Path.Combine(folder, assembly.PdbFileName);
         try
         {
-            GeneratePdb(assembly, options, path, progress, cancellationToken);
+            GeneratePdb(assembly, options, path, embedSources, progress, cancellationToken);
             return null;
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -243,7 +294,7 @@ public static class AssemblyExport
     /// <summary>Tells <paramref name="progress"/> that the part at <paramref name="index"/>,
     /// <paramref name="assembly"/>, starts where <paramref name="bounds"/> say, and gives what reports
     /// the decompiler's progress within it.</summary>
-    private static IProgress<DecompilationProgress>? Part(IProgress<ExportProgress>? progress, LoadedAssembly assembly, int index, float[] bounds)
+    private static PartProgress? Part(IProgress<ExportProgress>? progress, LoadedAssembly assembly, int index, float[] bounds)
     {
         if (progress == null)
             return null;
@@ -258,6 +309,15 @@ public static class AssemblyExport
         : IProgress<DecompilationProgress>
     {
         public void Start() => progress.Report(new ExportProgress(name, part, parts, from));
+
+        /// <summary>This part's span cut in two, for two steps that each take half of it.</summary>
+        public (PartProgress First, PartProgress Second) Halves()
+        {
+            var middle = (from + to) / 2;
+            var first = new PartProgress(progress, name, part, parts, from, middle);
+            var second = new PartProgress(progress, name, part, parts, middle, to);
+            return (first, second);
+        }
 
         public void Report(DecompilationProgress value)
         {

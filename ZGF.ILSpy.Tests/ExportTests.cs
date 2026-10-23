@@ -132,7 +132,7 @@ public sealed class ExportTests : IDisposable
         var progress = new RecordedProgress();
         var projectPath = _temp.PathOf(Path.Combine("Project", "Tests.csproj"));
 
-        AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, progress);
+        AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, progress: progress);
 
         var reports = progress.Reports;
         Assert.Equal(new ExportProgress("ZGF.ILSpy.Tests", 1, 1, 0f), reports[0]);
@@ -145,7 +145,7 @@ public sealed class ExportTests : IDisposable
         var progress = new RecordedProgress();
         var solutionPath = _temp.PathOf("All.sln");
 
-        AssemblyExport.ExportSolution(AssemblyExport.NameProjects([Trees.TestAssembly, Trees.TestAssembly]), DecompilerOptions.Default, solutionPath, progress);
+        AssemblyExport.ExportSolution(AssemblyExport.NameProjects([Trees.TestAssembly, Trees.TestAssembly]), DecompilerOptions.Default, solutionPath, progress: progress);
 
         Assert.Contains(progress.Reports, r => r is { Part: 1, Parts: 2 });
         Assert.Contains(progress.Reports, r => r is { Part: 2, Parts: 2, Fraction: 0.5f });
@@ -218,7 +218,60 @@ public sealed class ExportTests : IDisposable
         cancel.Cancel();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, null, cancel.Token));
+            AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, cancellationToken: cancel.Token));
+    }
+
+    private static readonly Guid EmbeddedSource = new("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
+
+    private static int CountEmbeddedSources(string pdbPath)
+    {
+        using var stream = File.OpenRead(pdbPath);
+        using var provider = MetadataReaderProvider.FromPortablePdbStream(stream);
+        var pdb = provider.GetMetadataReader();
+        return pdb.CustomDebugInformation
+            .Select(h => pdb.GetCustomDebugInformation(h))
+            .Count(i => pdb.GetGuid(i.Kind) == EmbeddedSource);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_project_gets_a_pdb_beside_it_with_or_without_the_sources_in_it(bool embed)
+    {
+        var projectPath = _temp.PathOf(Path.Combine("Project", "Tests.csproj"));
+
+        var exported = AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, new ProjectExtras(Pdb: true, EmbedSourcesInPdb: embed));
+
+        Assert.Null(exported.PdbFailure);
+        Assert.Equal(_temp.PathOf(Path.Combine("Project", "ZGF.ILSpy.Tests.pdb")), exported.PdbPath);
+        Assert.Equal(embed, CountEmbeddedSources(exported.PdbPath!) > 0);
+    }
+
+    [Fact]
+    public void A_strong_name_key_is_copied_into_the_project_and_signs_it()
+    {
+        var key = _temp.Write("keys/signing.snk", [1, 2, 3]);
+        var projectPath = _temp.PathOf(Path.Combine("Project", "Tests.csproj"));
+
+        AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, new ProjectExtras(StrongNameKeyFile: key));
+
+        Assert.True(File.Exists(_temp.PathOf(Path.Combine("Project", "signing.snk"))));
+        Assert.Contains("signing.snk", File.ReadAllText(projectPath));
+    }
+
+    [Fact]
+    public void Resetting_the_code_toggles_leaves_how_projects_are_exported()
+    {
+        var nested = DecompilerToggle.Find("UseNestedDirectoriesForNamespaces")!;
+        var deadCode = DecompilerToggle.Find("RemoveDeadCode")!;
+        var changed = DecompilerOptions.Default
+            .With(nested, !nested.DefaultValue)
+            .With(deadCode, !deadCode.DefaultValue);
+
+        var reset = changed.WithCodeTogglesReset();
+
+        Assert.Equal(!nested.DefaultValue, reset.IsOn(nested));
+        Assert.Equal(deadCode.DefaultValue, reset.IsOn(deadCode));
     }
 
     [Fact]

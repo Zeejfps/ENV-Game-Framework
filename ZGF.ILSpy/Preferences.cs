@@ -40,10 +40,11 @@ public static class Preferences
         w.SetDecompilerOptions(options);
     }
 
-    /// <summary>Turns every toggle back to its default, keeping the language version.</summary>
+    /// <summary>Turns every toggle the options panel shows back to its default, keeping the language
+    /// version and how projects are exported.</summary>
     public static void ResetDecompilerToggles(this Workspace w)
     {
-        var options = w.DecompilerOptions with { Toggles = DecompilerOptions.Default.Toggles };
+        var options = w.DecompilerOptions.WithCodeTogglesReset();
         w.SetDecompilerOptions(options);
     }
 
