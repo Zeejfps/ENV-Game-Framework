@@ -39,6 +39,9 @@ internal struct Element
     public bool Wrap;
     public TextOverflow Overflow;
     public string? Shown;
+    public IReadOnlyList<RichTextRun>? Runs;
+    public RichTextLayoutResult? RunLines;
+    public uint CodeBackground;
 
     public bool Floating;
     public bool KeepsClip;
@@ -183,7 +186,13 @@ internal sealed class LayoutTree
         for (var i = 0; i < span.Length; i++)
         {
             ref var e = ref span[i];
-            if (e.Wrap)
+            if (e.Runs != null)
+            {
+                if (!e.Wrap) continue;
+                e.RunLines = text.LayOutRuns(e.Runs, Inner(ref e));
+                e.ContentHeight = MathF.Ceiling(e.RunLines.Height);
+            }
+            else if (e.Wrap)
             {
                 e.Lines = text.BreakLines(e.Text!, e.TextStyle!, Inner(ref e));
                 e.ContentHeight = e.Lines.Count * e.LineHeight;
@@ -389,11 +398,81 @@ internal sealed class LayoutTree
                 PaintLines(ref e, content, z);
         }
 
+        if (e.RunLines != null)
+            PaintRuns(ref e, ContentOf(ref e, rect), z);
+
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
             _painter.Begin(rect, _clips[^1], z, _canvas, _origin);
             _paints[p].Command.Run(_painter);
         }
+    }
+
+    private static UiRect ContentOf(ref Element e, UiRect rect) =>
+        new(rect.X + e.Padding.Left,
+            rect.Y + e.Padding.Top,
+            MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
+            MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
+
+    /// <summary>Paints rich text line by line, each slice in its run's style over its code chip,
+    /// with its underline or strikethrough.</summary>
+    private void PaintRuns(ref Element e, UiRect content, int z)
+    {
+        var clip = _clips[^1];
+        var top = content.Y;
+        foreach (var line in e.RunLines!.Lines)
+        {
+            var band = new UiRect(content.X, top, content.Width, line.Height);
+            top += line.Height;
+            if (band.Y >= clip.Bottom) break;
+            if (!band.Intersects(clip)) continue;
+            foreach (var segment in line.Segments)
+                PaintSegment(e.Runs![segment.RunIndex], segment, band, e.CodeBackground, z);
+        }
+    }
+
+    private void PaintSegment(RichTextRun run, RichTextSegment segment, UiRect band, uint codeBackground, int z)
+    {
+        var rect = new UiRect(band.X + segment.X, band.Y, segment.Width, band.Height);
+        if (run.IsCode && codeBackground != 0u)
+            PaintCodeChip(rect, codeBackground, z);
+        if (run.Underline)
+            PaintRule(rect, rect.Bottom - RuleThickness, run.Style, z);
+        if (run.Strikethrough)
+            PaintRule(rect, rect.Y + rect.Height * StrikeHeight, run.Style, z);
+        _canvas.DrawText(new DrawTextInputs
+        {
+            Position = _origin.ToCanvas(rect),
+            Text = run.Text,
+            Slice = new Range(segment.Start, segment.Start + segment.Length),
+            Style = run.Style,
+            ZIndex = z,
+        });
+    }
+
+    private const float RuleThickness = 1f;
+    private const float StrikeHeight = 0.55f;
+    private const float CodeChipRadius = 3f;
+
+    private void PaintCodeChip(UiRect rect, uint background, int z)
+    {
+        _rectStyle.BackgroundColor = background;
+        _rectStyle.BorderColor = BorderColorStyle.All(0u);
+        _rectStyle.BorderSize = BorderSizeStyle.All(0f);
+        _rectStyle.BorderRadius = BorderRadiusStyle.All(CodeChipRadius);
+        _canvas.DrawRect(new DrawRectInputs { Position = _origin.ToCanvas(rect), Style = _rectStyle, ZIndex = z });
+    }
+
+    private void PaintRule(UiRect rect, float y, TextStyle style, int z)
+    {
+        _canvas.DrawLine(new DrawLineInputs
+        {
+            Start = _origin.ToCanvas(new PointF(rect.X, y)),
+            End = _origin.ToCanvas(new PointF(rect.Right, y)),
+            Thickness = RuleThickness,
+            Color = style.TextColor.Value,
+            ZIndex = z,
+        });
     }
 
     private void PaintLines(ref Element e, UiRect content, int z)

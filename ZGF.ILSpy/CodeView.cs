@@ -210,10 +210,12 @@ public static class CodeViewWidget
     /// <paramref name="bookmarks"/> are marked in the gutter, dimmed when not enabled; a click in the
     /// margin before the line numbers, or Toggle bookmark in the context menu, asks to toggle one.
     /// Without <paramref name="bookmarks"/>, no line can be. Without a <paramref name="gutter"/>, there
-    /// are no line numbers, fold chevrons or bookmark marks, only the text.
+    /// are no line numbers, fold chevrons or bookmark marks, only the text. With
+    /// <paramref name="tooltips"/>, resting the pointer on a type or member shows its declaration and
+    /// documentation.
     /// </summary>
     public static CodeViewResult CodeView(this Ui ui, string id, DecompiledDocument document, CodeViewState state, Strings t,
-        IReadOnlyDictionary<int, bool>? bookmarks = null, bool gutter = true)
+        IReadOnlyDictionary<int, bool>? bookmarks = null, bool gutter = true, CodeTooltips? tooltips = null)
     {
         using var scope = ui.Id(id);
         state.Show(document);
@@ -404,6 +406,11 @@ public static class CodeViewWidget
                         ui.FocusRing(0f);
                 }
             }
+            if (tooltips != null && hasRect)
+            {
+                var hovered = new HoveredSpan(hoverLine, hoverSpan, rect.X + textLeft, rect.Y);
+                ReferenceTooltip(ui, state, document, tooltips, t, codeId, hovered, advance, rowHeight);
+            }
             state.LaidOutScrollX = state.ScrollX;
             state.LaidOutScrollY = state.ScrollY;
         }
@@ -416,6 +423,53 @@ public static class CodeViewWidget
         if (picked.Analyze != null)
             result = result with { Analyze = picked.Analyze };
         return result;
+    }
+
+    /// <summary>The span under the pointer and where the view's text starts on screen.</summary>
+    private readonly record struct HoveredSpan(int Line, int Span, float TextX, float TextY);
+
+    /// <summary>The tooltip of the type or member under the pointer, under its span once it has
+    /// been looked up.</summary>
+    private static void ReferenceTooltip(Ui ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips, Strings t, int codeId,
+        HoveredSpan hovered, float advance, float rowHeight)
+    {
+        var tooltip = TooltipOf(state, document, tooltips, hovered);
+        var part = 0;
+        if (tooltip != null)
+            part = HashCode.Combine(hovered.Line, hovered.Span) | 1;
+        var anchor = SpanRect(state, document, hovered, advance, rowHeight);
+        using var popup = ui.TooltipContent(codeId, part, anchor, CodeTooltipView.MaxWidth);
+        if (!popup.IsOpen)
+            return;
+        CodeTooltipView.Render(ui, t, tooltip!);
+    }
+
+    /// <summary>The tooltip of the span under the pointer when it points at a type or member and
+    /// its lookup is done; null otherwise, and while a press drags a selection.</summary>
+    private static CodeTooltip? TooltipOf(CodeViewState state, DecompiledDocument document, CodeTooltips tooltips, HoveredSpan hovered)
+    {
+        if (hovered.Span < 0)
+            return null;
+        if (state.PressMoved)
+            return null;
+        var reference = document.Lines[hovered.Line].Spans[hovered.Span].Reference;
+        if (!HasTooltip(reference))
+            return null;
+        tooltips.TryGet(reference!, out var tooltip);
+        return tooltip;
+    }
+
+    private static bool HasTooltip(CodeReference? reference) =>
+        reference is { IsNavigable: true } && reference.Kind != CodeReferenceKind.Assembly;
+
+    private static UiRect SpanRect(CodeViewState state, DecompiledDocument document, HoveredSpan hovered, float advance, float rowHeight)
+    {
+        if (hovered.Span < 0)
+            return default;
+        var span = document.Lines[hovered.Line].Spans[hovered.Span];
+        var x = hovered.TextX - state.LaidOutScrollX + span.Start * advance;
+        var y = hovered.TextY + state.Folds.RowOf(hovered.Line) * rowHeight - state.LaidOutScrollY;
+        return new UiRect(x, y, span.Length * advance, rowHeight);
     }
 
     private static float AutoScroll(float distance, float unit, float deltaTime) =>

@@ -54,6 +54,7 @@ public class Calculator<T>
 
 public interface IShape
 {
+    /// <summary>The space the shape covers.</summary>
     double Area { get; }
 }
 
@@ -71,8 +72,23 @@ internal sealed class Circle : IShape
 {
     public double Radius { get; init; }
 
+    /// <inheritdoc/>
     public double Area => Math.PI * Radius * Radius;
 
+    /// <summary>Multiplies the radius by <paramref name="factor"/>, <c>times</c> over.</summary>
+    /// <remarks>
+    /// <para>Each step multiplies once:</para>
+    /// <list type="bullet">
+    /// <item><term>Zero</term><description>keeps the radius.</description></item>
+    /// <item><description>More grows it.</description></item>
+    /// </list>
+    /// <code>
+    ///     var grown = circle.Grow(2, 3);
+    ///     Console.WriteLine(grown);
+    /// </code>
+    /// </remarks>
+    /// <returns>The grown radius, <see langword="true"/> to <see href="https://example.com">the example</see>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="times"/> is negative.</exception>
     public double Grow(double factor, int times)
     {
         var grown = Radius;

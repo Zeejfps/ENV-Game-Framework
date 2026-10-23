@@ -281,7 +281,7 @@ public static class TextWrapper
     /// <see cref="BreakAllowedBetween"/> it needs no break opportunity — only the absence of a
     /// kinsoku prohibition. <paramref name="before"/> is -1 at the start of a run.
     /// </summary>
-    private static bool BreakAllowedHere(int before, int after) =>
+    internal static bool BreakAllowedHere(int before, int after) =>
         before >= 0 && !IsNoBreakBefore(after) && !IsNoBreakAfter(before);
 
     private static int ReadCodePoint(ReadOnlySpan<char> s, ref int i)
@@ -291,7 +291,7 @@ public static class TextWrapper
         return cp;
     }
 
-    private static int ReadCodePoint(ReadOnlySpan<char> s, int i, out int len)
+    internal static int ReadCodePoint(ReadOnlySpan<char> s, int i, out int len)
     {
         var c = s[i];
         if (char.IsHighSurrogate(c) && i + 1 < s.Length && char.IsLowSurrogate(s[i + 1]))
@@ -304,7 +304,7 @@ public static class TextWrapper
         return c;
     }
 
-    private static bool BreakAllowedBetween(int before, int after)
+    internal static bool BreakAllowedBetween(int before, int after)
     {
         if (IsNoBreakBefore(after)) return false;  // kinsoku: closing punctuation can't start a line
         if (IsNoBreakAfter(before)) return false;  // kinsoku: opening punctuation can't end a line

@@ -109,8 +109,8 @@ public sealed class DecompilationTests
 
         Assert.Contains("double grown = Radius;", named);
         Assert.Contains("for (int step = 0; step < times; step++)", named);
-        Assert.DoesNotContain("grown", guessed);
-        Assert.DoesNotContain("step", guessed);
+        Assert.DoesNotContain("double grown", guessed);
+        Assert.DoesNotContain("int step", guessed);
     }
 
     [Fact]

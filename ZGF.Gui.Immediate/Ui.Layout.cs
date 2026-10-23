@@ -208,6 +208,33 @@ public sealed partial class Ui
         Close();
     }
 
+    /// <summary>The style <see cref="Text"/> draws in with these choices, for the runs of
+    /// <see cref="RichText"/>. Styles are kept per choice, so the same choices give the same style.</summary>
+    public TextStyle StyleText(uint? color = null, float? size = null, bool bold = false, string? family = null) =>
+        TextStyleFor(size, color ?? Theme.Text, bold, Align.Start, family);
+
+    /// <summary>A text element of styled runs that wrap together, as <see cref="Text"/> with
+    /// <c>wrap</c> wraps one style: lines break between words across runs to fit the element's
+    /// width, which grows to fill its parent unless the box sizes it. Without
+    /// <paramref name="wrap"/> it keeps its lines, breaking only at '\n'. Code runs are drawn on a
+    /// chip of <paramref name="codeBackground"/> when it is not transparent. Layouts are kept by the
+    /// list's identity, so pass the same list while the text is the same.</summary>
+    public void RichText(IReadOnlyList<RichTextRun> runs, Box box = default, uint codeBackground = 0u, bool wrap = true, int id = 0)
+    {
+        if (wrap && box.Width == null)
+            box = box with { Width = Sizing.Grow() };
+        var e = Describe(id, box, null, null);
+        var natural = LayOutRuns(runs, 0f);
+        e.Runs = runs;
+        e.RunLines = natural;
+        e.Wrap = wrap;
+        e.CodeBackground = codeBackground;
+        e.ContentWidth = MathF.Ceiling(natural.MaxLineWidth);
+        e.ContentHeight = MathF.Ceiling(natural.Height);
+        Push(e);
+        Close();
+    }
+
     /// <summary>Paints custom content on the element being recorded, after its background and
     /// before its children, once its rect is known. Pass what the paint needs as
     /// <paramref name="state"/> with a <c>static</c> lambda and nothing is allocated per frame.</summary>

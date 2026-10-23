@@ -38,7 +38,7 @@ internal sealed class CodeViewDriver
     private void Render(Ui ui)
     {
         using var screen = ui.Screen();
-        Last = ui.CodeView("code", Document, State, Strings.En, Bookmarks);
+        Last = ui.CodeView("code", Document, State, Strings.En, Bookmarks, tooltips: Tooltips);
     }
 
     /// <summary>A driver that has run <paramref name="frames"/> frames of <paramref name="document"/>.</summary>
@@ -53,6 +53,7 @@ internal sealed class CodeViewDriver
     public CodeViewState State { get; } = new();
     public DecompiledDocument Document { get; set; }
     public IReadOnlyDictionary<int, bool>? Bookmarks { get; set; }
+    public CodeTooltips? Tooltips { get; set; }
     public CodeViewResult Last { get; private set; }
 
     private float FoldLeft => Origin + MarkColumn + GutterPadding + Math.Max(3, CodeTextDigits(Document.Lines.Length)) * Cell + GutterPadding;
@@ -79,7 +80,7 @@ internal sealed class CodeViewDriver
         return Frames.MovePointer(x, y).Frame();
     }
 
-    /// <summary>Clicks at the cell, as <see cref="Click((float X, float Y), PointerButton, KeyModifiers)"/>.</summary>
+    /// <summary>Clicks at the cell, as <see cref="Click(ValueTuple{float, float}, PointerButton, KeyModifiers)"/>.</summary>
     public CodeViewResult Click(int line, int column, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
         Click(PointOf(line, column), button, modifiers);
 

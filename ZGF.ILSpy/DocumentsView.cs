@@ -34,7 +34,7 @@ internal static class DocumentsView
             return;
         }
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? w.Bookmarks.LinesIn(tab.Document, node.Path) : null;
-        var result = ui.CodeView("code", tab.Document, tab.View, t, bookmarks);
+        var result = ui.CodeView("code", tab.Document, tab.View, t, bookmarks, tooltips: w.Tooltips);
         if (result.Navigate is { } reference)
             w.Navigate(reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)

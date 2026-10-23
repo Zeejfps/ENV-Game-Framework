@@ -6,6 +6,7 @@ namespace ZGF.ILSpy;
 public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
 {
     private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
+    private const string ItalicFontFile = "Inter-Italic.ttf";
 
     private readonly List<string> _commandLineAssemblies;
 
@@ -33,6 +34,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace>
     private static void RegisterFonts(ImmediateGuiAppHost host)
     {
         host.RegisterFont(LoadFont(MonoFonts.Regular, MonoFontFile));
+        host.RegisterFont(LoadFont(TextFonts.Italic, ItalicFontFile));
         host.RegisterFont(LoadFont(LucideIcons.Family, LucideIcons.File));
     }
 

@@ -116,6 +116,37 @@ public sealed class AssemblyList
     }
 
     /// <summary>
+    /// What hovering <paramref name="reference"/> explains: the declaration and XML documentation of
+    /// the type or member it points at. Null for an assembly, a local or a label, or when it cannot
+    /// be resolved. Loads the files it needs without listing them, and reads documentation files:
+    /// call it off the UI thread.
+    /// </summary>
+    public CodeTooltip? Describe(CodeReference reference)
+    {
+        if (reference.FilePath is null)
+            return null;
+        if (reference.Kind == CodeReferenceKind.Assembly)
+            return null;
+        try
+        {
+            var owner = TryLoad(reference.FilePath);
+            if (owner is null)
+                return null;
+            var (assembly, handle) = ResolveDefinition(owner, reference.Handle);
+            if (assembly is null)
+                return null;
+            var entity = assembly.Module.ResolveEntity(handle);
+            if (entity is null)
+                return null;
+            return CodeTooltip.Create(entity, assembly);
+        }
+        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// The node <paramref name="path"/> names, opening its assembly if it is not open and its file
     /// still exists. Null if the file cannot be opened or no longer has that node. May load files
     /// and build children: prefer calling it off the UI thread.

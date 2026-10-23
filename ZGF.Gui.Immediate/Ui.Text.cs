@@ -34,12 +34,14 @@ internal interface ITextLayout
     TextLines BreakLines(string text, TextStyle style, float maxWidth);
     float MeasureLineHeight(TextStyle style);
     string Ellipsize(string text, TextStyle style, float maxWidth, TextOverflow overflow);
+    RichTextLayoutResult LayOutRuns(IReadOnlyList<RichTextRun> runs, float maxWidth);
 }
 
 public sealed partial class Ui : ITextLayout
 {
     private readonly FrameCache<(StyledText, float), TextLines> _lines = new();
     private readonly FrameCache<(StyledText, float, TextOverflow), string> _ellipses = new();
+    private readonly FrameCache<(RunList, float), RichTextLayoutResult> _runLines = new();
     private readonly List<Range> _ranges = new();
 
     /// <summary>Width of <paramref name="text"/> shaped on its own — a slice of a longer string —
@@ -54,6 +56,19 @@ public sealed partial class Ui : ITextLayout
 
     string ITextLayout.Ellipsize(string text, TextStyle style, float maxWidth, TextOverflow overflow) =>
         Ellipsize(text, style, maxWidth, overflow);
+
+    RichTextLayoutResult ITextLayout.LayOutRuns(IReadOnlyList<RichTextRun> runs, float maxWidth) => LayOutRuns(runs, maxWidth);
+
+    /// <summary>Lays <paramref name="runs"/> out into lines no wider than <paramref name="maxWidth"/>,
+    /// or unwrapped when it is not positive. Kept while asked for this frame or the last, by the
+    /// list's identity: pass the same list while the text is the same.</summary>
+    internal RichTextLayoutResult LayOutRuns(IReadOnlyList<RichTextRun> runs, float maxWidth)
+    {
+        var key = (new RunList(runs), MathF.Floor(maxWidth));
+        if (_runLines.TryGet(key, out var lines))
+            return lines;
+        return _runLines.Keep(key, RichTextLayout.Layout(_canvas, runs, key.Item2));
+    }
 
     /// <summary><paramref name="text"/> as one line no wider than <paramref name="maxWidth"/>:
     /// itself when it fits, else shortened at its end or middle around an ellipsis, as
@@ -125,6 +140,7 @@ public sealed partial class Ui : ITextLayout
     {
         _lines.BeginFrame(invalidate);
         _ellipses.BeginFrame(invalidate);
+        _runLines.BeginFrame(invalidate);
     }
 
     private TextLines Break(string text, TextStyle style, float maxWidth)
@@ -169,6 +185,14 @@ public sealed partial class Ui : ITextLayout
 
     private float Measure(string text, int start, int end, TextStyle style) =>
         end <= start ? 0f : MathF.Ceiling(_canvas.MeasureTextWidth(text.AsSpan(start, end - start), style));
+
+    /// <summary>A list of runs as a cache key, by identity.</summary>
+    private readonly record struct RunList(IReadOnlyList<RichTextRun> Runs)
+    {
+        public bool Equals(RunList other) => ReferenceEquals(Runs, other.Runs);
+
+        public override int GetHashCode() => RuntimeHelpers.GetHashCode(Runs);
+    }
 
     /// <summary>A text in a style as a cache key; styles are interned, so they compare by reference.</summary>
     private readonly record struct StyledText(string Text, TextStyle Style)

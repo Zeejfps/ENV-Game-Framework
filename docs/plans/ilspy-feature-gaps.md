@@ -10,10 +10,9 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 1. **Save and export.** Save code (Ctrl+S), whole-project export as an SDK-style `.csproj`
    (`WholeProjectDecompiler`, which we already reference), portable PDB generation (single and
    batch).
-2. **XML-doc hover tooltips** in the code view. We have no code-view hover tooltips at all.
-3. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
+2. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
    GAC (Windows), open from a running process, single-file bundles, WebCIL `.wasm`.
-4. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
+3. **Saved assembly lists.** Create, switch, and delete named lists. We keep one list.
 
 ## Medium
 
@@ -32,6 +31,10 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.
 - **Navigation:** preview tabs, Close all documents, Search MSDN, omnibar (breadcrumb + search).
+- **Code tooltip links:** a cref in a tooltip is colored but cannot be clicked. Upstream keeps the
+  tooltip open while the pointer moves into it and navigates on click. `ui.TooltipContent` pops up
+  pass-through, so this needs an interactive hover popup, and `RichText` has no link hit-testing
+  yet (`DocRun.Reference` already carries the target).
 - **Analyzer:** properties and events lack Used By; Applied To skips DeclSecurity attributes
   (TODO in `ZGF.ILSpy.Core/Analysis/AttributeAppliedToAnalyzer.cs`).
 
@@ -46,4 +49,3 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 ## Suggested order
 
 1. Save code and project export.
-2. XML-doc tooltips.

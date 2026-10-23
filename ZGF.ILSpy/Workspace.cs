@@ -47,6 +47,9 @@ public sealed class Workspace
     public ErrorLog Errors { get; } = new();
     public DocumentTabs Tabs { get; } = new();
 
+    /// <summary>The declarations and documentation shown when hovering types and members in code.</summary>
+    public CodeTooltips Tooltips { get; }
+
     public AppThemeId Theme;
     public bool ShowNonPublic;
 
@@ -92,6 +95,7 @@ public sealed class Workspace
     public Workspace(AppSettings settings)
     {
         Settings = settings;
+        Tooltips = new CodeTooltips(Assemblies);
         Theme = settings.Theme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;

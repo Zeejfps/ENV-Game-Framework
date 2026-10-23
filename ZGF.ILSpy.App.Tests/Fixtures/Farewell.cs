@@ -2,6 +2,7 @@ namespace ZGF.ILSpy.App.Tests.Fixtures;
 
 public class Farewell
 {
+    /// <summary>Says <c>Bye</c> to whoever is leaving.</summary>
     public string Say() => "Bye";
 
     public static bool IsLeapYear(int year) => false;
