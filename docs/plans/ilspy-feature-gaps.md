@@ -30,7 +30,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.
 - **Navigation:** preview tabs, Close all documents, Search MSDN, omnibar (breadcrumb + search).
-- **Analyzer:** properties and events lack Used By.
 
 ## Smaller
 

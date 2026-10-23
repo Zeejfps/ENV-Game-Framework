@@ -87,6 +87,7 @@ public static class Analysis
         new("Overridden By", 30, new InheritorsAnalyzer<IMethod>(overrides: true)),
         new("Used By", 20, new MethodUsedByAnalyzer()),
         new("Uses", 10, new MethodUsesAnalyzer()),
+        new("Used By", 5, new MemberUsedByAnalyzer()),
         new("Implemented By", 10, new InheritorsAnalyzer<IProperty>(overrides: false)),
         new("Overridden By", 20, new InheritorsAnalyzer<IProperty>(overrides: true)),
         new("Exposed By", 40, new TypeExposedByAnalyzer()),

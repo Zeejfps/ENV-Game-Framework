@@ -35,6 +35,21 @@ public sealed class AnalyzerTests
         Assert.StartsWith("Third()", caller.Symbol.Label);
     }
 
+    [Theory]
+    [InlineData("Count", "Increment()")]
+    [InlineData("Changed", "Watch(")]
+    public void Used_By_a_property_or_event_finds_each_member_using_its_accessors_once(string member, string user)
+    {
+        var d = WorkspaceDriver.Opened();
+        var node = d.Fixture("Counter").Children.Single(c => c.Text.StartsWith(member + " "));
+
+        d.Workspace.Analyze(node);
+        var usedBy = Expand(d, Assert.Single(d.Workspace.Analyzer.Roots), "Used By");
+
+        var found = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(usedBy.Found));
+        Assert.StartsWith(user, found.Symbol.Label);
+    }
+
     [Fact]
     public void Applied_To_finds_members_that_carry_a_security_attribute()
     {
