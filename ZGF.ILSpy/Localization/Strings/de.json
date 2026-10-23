@@ -348,6 +348,7 @@
   "bookmarks.disable": "Deaktivieren",
   "bookmarks.go_to": "Zum Lesezeichen springen",
   "bookmarks.go_to_hint": "Strg+Klick springt zum Lesezeichen",
+  "bookmarks.not_listed": "{module} ist nicht in dieser Assemblyliste. Beim Anspringen des Lesezeichens wird es hinzugefügt.",
   "bookmarks.column_name": "Name",
   "bookmarks.column_location": "Ort",
   "bookmarks.column_module": "Modul",

@@ -200,6 +200,27 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
+    public void A_bookmark_outside_the_active_list_says_going_to_it_adds_its_assembly_and_going_there_adds_it()
+    {
+        var (app, d, _, _) = ShowBookmark();
+        var bookmark = d.Workspace.Bookmarks.Items[0];
+        d.Workspace.Lists.Create("Other");
+        d.Workspace.SwitchList("Other");
+        d.Settle();
+        app.Run(2);
+        var location = app.TextRect(bookmark.Location);
+
+        app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2).Frame(90);
+        Assert.Contains(app.Frames.TextRects(), t => t.Text.StartsWith(bookmark.Module + " "));
+
+        d.Workspace.GoTo(bookmark);
+        app.Settle(4);
+
+        Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
+        Assert.Equal("Outline", d.Workspace.Tabs.Active!.Node!.Text);
+    }
+
+    [Fact]
     public void Clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
     {
         var (app, d, _, _) = ShowBookmark();

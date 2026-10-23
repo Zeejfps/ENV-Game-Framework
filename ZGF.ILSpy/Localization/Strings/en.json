@@ -358,6 +358,7 @@
   "bookmarks.disable": "Disable",
   "bookmarks.go_to": "Go to bookmark",
   "bookmarks.go_to_hint": "Ctrl+click to go to the bookmark",
+  "bookmarks.not_listed": "{module} is not in this assembly list. Going to the bookmark adds it.",
   "bookmarks.column_name": "Name",
   "bookmarks.column_location": "Location",
   "bookmarks.column_module": "Module",

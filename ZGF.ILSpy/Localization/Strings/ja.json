@@ -348,6 +348,7 @@
   "bookmarks.disable": "無効にする",
   "bookmarks.go_to": "ブックマークへ移動",
   "bookmarks.go_to_hint": "Ctrl+クリックでブックマークへ移動",
+  "bookmarks.not_listed": "{module} はこのアセンブリ リストにありません。ブックマークへ移動すると追加されます。",
   "bookmarks.column_name": "名前",
   "bookmarks.column_location": "場所",
   "bookmarks.column_module": "モジュール",

@@ -126,20 +126,27 @@ internal static class BookmarksPanelView
     private static void Row(Ui<UiState> ui, Workspace w, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
     {
         var bookmarks = w.Bookmarks;
+        var listed = w.IsListed(bookmark.Place.FilePath);
         var row = body.Row(index, RuntimeHelpers.GetHashCode(bookmark));
         int locationId;
+        int moduleId;
         using (row)
         {
             if (row.CellAt(NameColumn).Pressed && bookmarks.Renaming != bookmark)
                 bookmarks.StartRename(bookmark);
             MarkCell(ui, bookmarks, row, bookmark, palette);
-            NameCell(ui, bookmarks, row, bookmark);
-            LocationCell(ui, w, row, bookmark);
-            TextCell(ui, row, bookmark, ModuleColumn);
+            NameCell(ui, bookmarks, row, bookmark, listed);
+            LocationCell(ui, w, row, bookmark, listed);
+            TextCell(ui, row, bookmark, listed, ModuleColumn);
             locationId = row.CellAt(LocationColumn).Id;
+            moduleId = row.CellAt(ModuleColumn).Id;
         }
-        LocationTooltip(ui, locationId, bookmark);
+        LocationTooltip(ui, locationId, bookmark, listed);
+        ModuleTooltip(ui, moduleId, bookmark, listed);
     }
+
+    /// <summary>A disabled bookmark, or one whose assembly is not in the active list, is shown muted.</summary>
+    private static bool IsDimmed(Bookmark bookmark, bool listed) => !bookmark.Enabled || !listed;
 
     private static void MarkCell(Ui<UiState> ui, BookmarkList bookmarks, TableRow row, Bookmark bookmark, CodeViewPalette palette)
     {
@@ -155,40 +162,40 @@ internal static class BookmarksPanelView
         ui.Tooltip(mark.Id, bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable);
     }
 
-    private static void NameCell(Ui<UiState> ui, BookmarkList bookmarks, TableRow row, Bookmark bookmark)
+    private static void NameCell(Ui<UiState> ui, BookmarkList bookmarks, TableRow row, Bookmark bookmark, bool listed)
     {
         if (bookmarks.Renaming != bookmark)
         {
-            TextCell(ui, row, bookmark, NameColumn);
+            TextCell(ui, row, bookmark, listed, NameColumn);
             return;
         }
         using (row.Cell(NameColumn))
             RenameField(ui, bookmarks);
     }
 
-    private static void LocationCell(Ui<UiState> ui, Workspace w, TableRow row, Bookmark bookmark)
+    private static void LocationCell(Ui<UiState> ui, Workspace w, TableRow row, Bookmark bookmark, bool listed)
     {
         var t = ui.State.Strings;
         uint? color = null;
-        if (!bookmark.Enabled)
+        if (IsDimmed(bookmark, listed))
             color = ui.Theme.TextMuted;
         var followed = row.TextCell(LocationColumn, bookmark.Location, color, link: LocationLink, linkTooltip: t.BookmarksGoTo);
         if (followed)
             w.GoTo(bookmark);
     }
 
-    private static void TextCell(Ui<UiState> ui, TableRow row, Bookmark bookmark, int column)
+    private static void TextCell(Ui<UiState> ui, TableRow row, Bookmark bookmark, bool listed, int column)
     {
         var theme = ui.Theme;
         var module = column == ModuleColumn;
         var color = theme.Text;
-        if (!bookmark.Enabled || module)
+        if (module || IsDimmed(bookmark, listed))
             color = theme.TextMuted;
         var overflow = module ? TextOverflow.EllipsisMiddle : TextOverflow.Ellipsis;
         row.TextCell(column, Shown(bookmark, column), color, overflow: overflow);
     }
 
-    private static void LocationTooltip(Ui<UiState> ui, int cellId, Bookmark bookmark)
+    private static void LocationTooltip(Ui<UiState> ui, int cellId, Bookmark bookmark, bool listed)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -197,8 +204,27 @@ internal static class BookmarksPanelView
         using (ui.Column(new Box { Gap = theme.GapTight }))
         {
             ui.Text(bookmark.Place.ToString(), color: theme.Text, size: theme.FontSizeSmall, wrap: true);
+            if (!listed)
+                NotListedText(ui, bookmark);
             ui.Text(t.BookmarksGoToHint, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
         }
+    }
+
+    /// <summary>On the module of a bookmark whose assembly is not in the active list, says that going
+    /// to it adds the assembly.</summary>
+    private static void ModuleTooltip(Ui<UiState> ui, int cellId, Bookmark bookmark, bool listed)
+    {
+        if (listed) return;
+        using var tooltip = ui.TooltipContent(cellId);
+        if (!tooltip.IsOpen) return;
+        NotListedText(ui, bookmark);
+    }
+
+    private static void NotListedText(Ui<UiState> ui, Bookmark bookmark)
+    {
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        ui.Text(t.BookmarksNotListed(bookmark.Module), color: theme.Text, size: theme.FontSizeSmall, wrap: true);
     }
 
     private static void RenameField(Ui<UiState> ui, BookmarkList bookmarks)

@@ -348,6 +348,7 @@
   "bookmarks.disable": "Отключить",
   "bookmarks.go_to": "Перейти к закладке",
   "bookmarks.go_to_hint": "Ctrl+щелчок — перейти к закладке",
+  "bookmarks.not_listed": "{module} нет в этом списке сборок. Переход к закладке добавит её.",
   "bookmarks.column_name": "Имя",
   "bookmarks.column_location": "Расположение",
   "bookmarks.column_module": "Модуль",

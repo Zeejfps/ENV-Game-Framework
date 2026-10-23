@@ -348,6 +348,7 @@
   "bookmarks.disable": "禁用",
   "bookmarks.go_to": "转到书签",
   "bookmarks.go_to_hint": "Ctrl+单击转到书签",
+  "bookmarks.not_listed": "{module} 不在此程序集列表中。转到书签会将其添加。",
   "bookmarks.column_name": "名称",
   "bookmarks.column_location": "位置",
   "bookmarks.column_module": "模块",

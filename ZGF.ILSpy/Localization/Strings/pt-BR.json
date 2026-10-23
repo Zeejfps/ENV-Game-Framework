@@ -348,6 +348,7 @@
   "bookmarks.disable": "Desativar",
   "bookmarks.go_to": "Ir para o indicador",
   "bookmarks.go_to_hint": "Ctrl+clique para ir para o indicador",
+  "bookmarks.not_listed": "{module} não está nesta lista de assemblies. Ir para o indicador o adiciona.",
   "bookmarks.column_name": "Nome",
   "bookmarks.column_location": "Local",
   "bookmarks.column_module": "Módulo",

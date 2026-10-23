@@ -348,6 +348,7 @@
   "bookmarks.disable": "Desactivar",
   "bookmarks.go_to": "Ir al marcador",
   "bookmarks.go_to_hint": "Ctrl+clic para ir al marcador",
+  "bookmarks.not_listed": "{module} no está en esta lista de ensamblados. Ir al marcador lo añade.",
   "bookmarks.column_name": "Nombre",
   "bookmarks.column_location": "Ubicación",
   "bookmarks.column_module": "Módulo",

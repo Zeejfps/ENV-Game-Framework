@@ -185,6 +185,18 @@ public sealed class Workspace
 
     internal bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
+    /// <summary>True when the assembly at <paramref name="filePath"/> is open in the active list.</summary>
+    internal bool IsListed(string filePath)
+    {
+        var listed = Assemblies.Assemblies;
+        for (var i = 0; i < listed.Count; i++)
+        {
+            if (string.Equals(listed[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
     internal DocumentTab AddTab()
     {
         var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError);

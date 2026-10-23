@@ -348,6 +348,7 @@
   "bookmarks.disable": "사용 안 함",
   "bookmarks.go_to": "책갈피로 이동",
   "bookmarks.go_to_hint": "Ctrl+클릭하여 책갈피로 이동",
+  "bookmarks.not_listed": "{module}은(는) 이 어셈블리 목록에 없습니다. 책갈피로 이동하면 추가됩니다.",
   "bookmarks.column_name": "이름",
   "bookmarks.column_location": "위치",
   "bookmarks.column_module": "모듈",
