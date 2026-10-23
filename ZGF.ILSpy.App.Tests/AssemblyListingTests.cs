@@ -113,6 +113,41 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
+    public void The_list_restored_at_startup_is_saved_whole_while_its_assemblies_are_still_opening()
+    {
+        using var temp = new TempDir();
+        var other = typeof(Workspace).Assembly.Location;
+        var settings = temp.Settings();
+        settings.AssemblyLists = [new AssemblyListRecord(SavedAssemblyLists.DefaultName, [WorkspaceDriver.FixturePath, other])];
+        var d = new WorkspaceDriver(settings);
+
+        d.Workspace.RestoreActiveList();
+        d.Workspace.SaveSettings();
+
+        Assert.Equal([WorkspaceDriver.FixturePath, other], Assert.Single(temp.Settings().AssemblyLists).Assemblies);
+        d.Settle();
+        Assert.Equal([WorkspaceDriver.FixturePath, other], d.Workspace.Assemblies.FilePaths);
+    }
+
+    [Fact]
+    public void Switching_lists_drops_the_analyses_of_the_last_run_still_being_found()
+    {
+        using var temp = new TempDir();
+        var first = WorkspaceDriver.Opened(temp.Settings());
+        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Workspace.SaveSettings();
+        var d = new WorkspaceDriver(temp.Settings());
+        d.Workspace.Lists.Create(Other);
+
+        d.Workspace.SwitchList(Other);
+        d.Settle();
+        d.Workspace.SaveSettings();
+
+        Assert.Empty(d.Workspace.Analyzer.Roots);
+        Assert.Empty(temp.Settings().Analyzed!);
+    }
+
+    [Fact]
     public void Switching_lists_closes_the_assemblies_documents_and_history_of_the_one_before_and_switching_back_reopens_them()
     {
         var d = WorkspaceDriver.Opened();

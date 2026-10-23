@@ -32,6 +32,20 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
+    public void An_assembly_found_by_work_started_before_a_clear_is_neither_listed_nor_kept_after_it()
+    {
+        var list = new AssemblyList();
+        var before = list.Generation;
+        list.Clear();
+
+        var late = list.TryLoad(Trees.TestAssemblyPath, before)!;
+
+        Assert.False(list.TryList(late, before));
+        Assert.Empty(list.Assemblies);
+        Assert.NotSame(late, list.Open(Trees.TestAssemblyPath));
+    }
+
+    [Fact]
     public void Open_and_close_update_the_snapshot_paths_version_and_listeners()
     {
         var list = new AssemblyList();

@@ -24,6 +24,7 @@ public sealed class AssemblyList
     private readonly Dictionary<string, LoadedAssembly> _known = new(StringComparer.OrdinalIgnoreCase);
     private ImmutableArray<LoadedAssembly> _listed = ImmutableArray<LoadedAssembly>.Empty;
     private int _version;
+    private int _generation;
 
     /// <summary>The open assemblies, in the order they were opened. A snapshot: it never changes
     /// after it is read.</summary>
@@ -35,24 +36,33 @@ public sealed class AssemblyList
     /// <summary>Increments whenever <see cref="Assemblies"/> changes.</summary>
     public int Version => Volatile.Read(ref _version);
 
+    /// <summary>Increments whenever the list is cleared. Work started before a clear neither lists nor
+    /// keeps the assemblies it loads after it, so that what it finds late never lands in the list
+    /// that follows.</summary>
+    public int Generation => Volatile.Read(ref _generation);
+
     /// <summary>Raised after <see cref="Assemblies"/> changes, on the thread that changed it, including
     /// background threads when navigation opens a referenced assembly.</summary>
     public event Action? Changed;
 
     /// <summary>Opens the assembly at <paramref name="path"/>, or returns it if already open. Its type
     /// system starts loading in the background. Once <paramref name="cancellationToken"/> is cancelled
-    /// the assembly is no longer listed, so cancelling before <see cref="Clear"/> keeps an open still
-    /// running out of the list.</summary>
+    /// the assembly is no longer listed, so cancelling before <see cref="Clear"/> keeps the opens of
+    /// several files out of the list that follows.</summary>
     /// <exception cref="AssemblyLoadException">The file is missing or not a .NET assembly.</exception>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled,
+    /// or the list was cleared while the file was read.</exception>
     public LoadedAssembly Open(string path, CancellationToken cancellationToken = default)
     {
         path = Path.GetFullPath(path);
+        var generation = Generation;
         while (true)
         {
-            var assembly = Load(path);
-            if (TryList(assembly, cancellationToken)) return assembly;
+            var assembly = Load(path, generation);
+            if (TryList(assembly, generation, cancellationToken)) return assembly;
             cancellationToken.ThrowIfCancellationRequested();
+            if (generation != Generation)
+                throw new OperationCanceledException($"The list was cleared while '{path}' was opened.");
         }
     }
 
@@ -77,6 +87,7 @@ public sealed class AssemblyList
     {
         lock (_gate)
         {
+            _generation++;
             if (_listed.IsEmpty && _known.Count == 0) return;
             foreach (var assembly in _listed)
                 assembly.IsListed = false;
@@ -96,22 +107,23 @@ public sealed class AssemblyList
     public BrowseNode? FindNode(CodeReference reference)
     {
         if (reference.FilePath is null) return null;
+        var generation = Generation;
         try
         {
-            var owner = TryLoad(reference.FilePath);
+            var owner = TryLoad(reference.FilePath, generation);
             if (owner is null) return null;
 
             if (reference.Kind == CodeReferenceKind.Assembly && reference.Handle.Kind == HandleKind.AssemblyDefinition)
-                return TryList(owner) ? owner.Root : null;
+                return TryList(owner, generation) ? owner.Root : null;
 
             if (reference.Kind == CodeReferenceKind.Assembly)
             {
                 var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, (AssemblyReferenceHandle)reference.Handle));
-                return target is not null && TryList(target) ? target.Root : null;
+                return target is not null && TryList(target, generation) ? target.Root : null;
             }
 
-            var (assembly, handle) = ResolveDefinition(owner, reference.Handle);
-            return assembly is not null && TryList(assembly) ? assembly.FindNodeOrAncestor(handle) : null;
+            var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
+            return assembly is not null && TryList(assembly, generation) ? assembly.FindNodeOrAncestor(handle) : null;
         }
         catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
         {
@@ -131,12 +143,13 @@ public sealed class AssemblyList
             return null;
         if (reference.Kind == CodeReferenceKind.Assembly)
             return null;
+        var generation = Generation;
         try
         {
-            var owner = TryLoad(reference.FilePath);
+            var owner = TryLoad(reference.FilePath, generation);
             if (owner is null)
                 return null;
-            var (assembly, handle) = ResolveDefinition(owner, reference.Handle);
+            var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
             if (assembly is null)
                 return null;
             var entity = assembly.Module.ResolveEntity(handle);
@@ -157,10 +170,11 @@ public sealed class AssemblyList
     /// </summary>
     public BrowseNode? FindNode(NodePath path)
     {
+        var generation = Generation;
         try
         {
-            var assembly = TryLoad(path.FilePath);
-            return assembly is not null && TryList(assembly) ? path.Resolve(assembly.Root) : null;
+            var assembly = TryLoad(path.FilePath, generation);
+            return assembly is not null && TryList(assembly, generation) ? path.Resolve(assembly.Root) : null;
         }
         catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
         {
@@ -187,11 +201,13 @@ public sealed class AssemblyList
         CancellationToken cancellationToken = default) =>
         SearchAsync(SearchQuery.Parse(text, kinds), cancellationToken);
 
-    internal LoadedAssembly? TryLoad(string path)
+    internal LoadedAssembly? TryLoad(string path) => TryLoad(path, Generation);
+
+    internal LoadedAssembly? TryLoad(string path, int generation)
     {
         try
         {
-            return Load(path);
+            return Load(path, generation);
         }
         catch (AssemblyLoadException)
         {
@@ -229,7 +245,9 @@ public sealed class AssemblyList
         }
     }
 
-    private LoadedAssembly Load(string path)
+    /// <summary>The assembly at <paramref name="path"/>, read from the file unless it is loaded. One read
+    /// for a <paramref name="generation"/> that a clear has ended is not kept.</summary>
+    private LoadedAssembly Load(string path, int generation)
     {
         lock (_gate)
         {
@@ -239,16 +257,23 @@ public sealed class AssemblyList
         var assembly = new LoadedAssembly(this, ReadFile(path));
         lock (_gate)
         {
+            if (generation != _generation) return assembly;
             if (_known.TryGetValue(path, out var existing)) return existing;
             _known.Add(path, assembly);
         }
         return assembly;
     }
 
-    internal bool TryList(LoadedAssembly assembly, CancellationToken cancellationToken = default)
+    internal bool TryList(LoadedAssembly assembly) => TryList(assembly, Generation);
+
+    /// <summary>Lists <paramref name="assembly"/>, unless the list was cleared since
+    /// <paramref name="generation"/>, <paramref name="cancellationToken"/> was cancelled, or another
+    /// assembly took its path.</summary>
+    internal bool TryList(LoadedAssembly assembly, int generation, CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
+            if (generation != _generation) return false;
             if (cancellationToken.IsCancellationRequested) return false;
             if (!_known.TryGetValue(assembly.FilePath, out var known) || known != assembly) return false;
             if (assembly.IsListed) return true;
@@ -261,7 +286,7 @@ public sealed class AssemblyList
         return true;
     }
 
-    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveDefinition(LoadedAssembly owner, EntityHandle handle)
+    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveDefinition(LoadedAssembly owner, EntityHandle handle, int generation)
     {
         switch (handle.Kind)
         {
@@ -271,7 +296,7 @@ public sealed class AssemblyList
         }
 
         return Definitions.Resolve(owner.Module, handle) is { } definition
-            ? (TryLoad(definition.ParentModule!.MetadataFile!.FileName), definition.MetadataToken)
+            ? (TryLoad(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken)
             : (null, default);
     }
 

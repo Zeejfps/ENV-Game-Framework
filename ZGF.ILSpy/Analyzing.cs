@@ -18,10 +18,13 @@ public static class Analyzing
     }
 
     /// <summary>Finds what <paramref name="reference"/> points at in the background, opening its
-    /// assembly if it is not, and analyzes it.</summary>
+    /// assembly if it is not, and analyzes it, unless the list was cleared meanwhile.</summary>
     public static async void Analyze(this Workspace w, CodeReference reference)
     {
+        var generation = w.Assemblies.Generation;
         var found = await Background.Run(() => w.Assemblies.FindNode(reference));
+        if (w.WasListCleared(generation))
+            return;
         var node = found.Value;
         if (node == null)
         {
@@ -32,15 +35,21 @@ public static class Analyzing
     }
 
     /// <summary>Finds the symbols analyzed in the last run again in the background, opening their
-    /// assemblies' files without listing them, and analyzes those still there, in their order.</summary>
+    /// assemblies' files without listing them, and analyzes those still there, in their order, unless
+    /// the list was cleared meanwhile.</summary>
     public static async void RestoreLastSessionAnalyses(this Workspace w)
     {
         var analyzed = w.LastSessionAnalyses.Pending;
         if (analyzed == null)
             return;
+        var generation = w.Assemblies.Generation;
         var found = await Background.Run(() => w.FindAnalyzed(analyzed));
+        if (w.WasListCleared(generation))
+            return;
         w.AnalyzeAgain(found.Value);
     }
+
+    private static bool WasListCleared(this Workspace w, int generation) => w.Assemblies.Generation != generation;
 
     private static List<AnalysisSymbol?> FindAnalyzed(this Workspace w, List<CodeAnchor> analyzed)
     {

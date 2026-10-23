@@ -13,6 +13,13 @@ public static class AssemblyListing
             .ToList();
     }
 
+    /// <summary>Opens the open list's assemblies as the app starts, as a reload, so that the list is
+    /// saved whole until they are all open.</summary>
+    public static void RestoreActiveList(this Workspace w)
+    {
+        w.OpenAsReload(w.ListExistingAssemblies());
+    }
+
     /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
     /// the list still holds them all.</summary>
     internal static void RememberOpenAssemblies(this Workspace w)
