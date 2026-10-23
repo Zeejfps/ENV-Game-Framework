@@ -4,9 +4,6 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An export waiting for the user to say whether it may write into <see cref="Folder"/>,
-/// which already holds other files.</summary>
-public sealed record ExportRequest(string Folder, Action Start);
 
 /// <summary>Writing code, projects, solutions and portable PDBs to files in the background, one
 /// export at a time in the order they were asked for, which <see cref="Workspace.Export"/> queues.
@@ -15,33 +12,28 @@ public static class Exporting
 {
     private const string ProjectExtension = ".csproj";
 
-    /// <summary>Whether <paramref name="node"/>'s code can be saved: it shows code.</summary>
+    /// <summary>Whether <paramref name="node"/> can be saved: it shows code, or it is a resource,
+    /// whose bytes are saved.</summary>
     public static bool CanSaveCode(this Workspace w, BrowseNode? node)
     {
         if (node == null)
             return false;
+        if (node.HasResource)
+            return true;
         return node.DependsOnLanguage;
     }
 
-    /// <summary>Saves <paramref name="node"/>'s code in the current language to the file at
-    /// <paramref name="path"/>, or exports a project when the node is an assembly and the path names
-    /// a project file.</summary>
+    /// <summary>Saves <paramref name="node"/> to the file at <paramref name="path"/>: a resource's
+    /// bytes as they are, else its code in the current language, as one file. Projects come from the
+    /// export dialog.</summary>
     public static void SaveCode(this Workspace w, BrowseNode node, string path)
     {
-        if (IsProjectFile(node, path))
+        if (node.HasResource)
         {
-            w.ExportProject(node.Assembly, path);
+            w.SaveResource(node, path);
             return;
         }
         w.WriteCodeFile(node, path);
-    }
-
-    private static bool IsProjectFile(BrowseNode node, string path)
-    {
-        if (node.Kind != NodeKind.Assembly)
-            return false;
-        var extension = Path.GetExtension(path);
-        return string.Equals(extension, ProjectExtension, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void WriteCodeFile(this Workspace w, BrowseNode node, string path)
@@ -94,20 +86,16 @@ public static class Exporting
     private static ExportReport Listing(this ExportReport report, params string[] written) => report with { Written = written };
 
     /// <summary>Decompiles <paramref name="assembly"/> into a C# project whose file is
-    /// <paramref name="projectPath"/>, asking first when its folder already holds other files.</summary>
-    public static void ExportProject(this Workspace w, LoadedAssembly assembly, string projectPath)
+    /// <paramref name="projectPath"/>, with what <paramref name="extras"/> asks for besides. The export
+    /// dialog warns about a folder that holds files before this is asked for.</summary>
+    public static void ExportProject(this Workspace w, LoadedAssembly assembly, string projectPath, ProjectExtras? extras = null)
     {
-        var folder = FolderOf(projectPath);
-        w.ConfirmFolder(folder, projectPath, () => w.StartProjectExport(assembly, projectPath, ProjectExtras.None));
-    }
-
-    private static void StartProjectExport(this Workspace w, LoadedAssembly assembly, string projectPath, ProjectExtras extras)
-    {
+        var withExtras = extras ?? ProjectExtras.None;
         var options = w.DecompilerOptions;
         var t = Strings.For(w.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(projectPath), ExportKind.Project, FolderOf(projectPath));
         var failure = t.ErrorExportProject(assembly.Name);
-        w.RunExport(job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, extras, s.Progress, s.Token),
+        w.RunExport(job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, withExtras, s.Progress, s.Token),
             (r, project) => r.WithProjects([project], projectPath, t));
     }
 
@@ -136,16 +124,9 @@ public static class Exporting
         return report with { Written = written, Problems = problems };
     }
 
-    /// <summary>Decompiles every open assembly into a C# project beside the solution at
-    /// <paramref name="solutionPath"/>, asking first when its folder already holds other files.</summary>
-    public static void ExportSolution(this Workspace w, string solutionPath)
-    {
-        var folder = FolderOf(solutionPath);
-        var projects = AssemblyExport.NameProjects(w.Assemblies.Assemblies);
-        w.ConfirmFolder(folder, solutionPath, () => w.StartSolutionExport(projects, solutionPath, ProjectExtras.None));
-    }
-
-    private static void StartSolutionExport(this Workspace w, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
+    /// <summary>Decompiles each of <paramref name="projects"/> into a C# project in a folder of its own
+    /// beside the solution at <paramref name="solutionPath"/>.</summary>
+    private static void ExportSolution(this Workspace w, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
     {
         var options = w.DecompilerOptions;
         var t = Strings.For(w.Locale);
@@ -185,52 +166,12 @@ public static class Exporting
         if (setup.IsSolution)
         {
             var solutionPath = Path.Combine(folder, setup.SolutionFileName);
-            w.StartSolutionExport(projects, solutionPath, extras);
+            w.ExportSolution(projects, solutionPath, extras);
             return;
         }
         var project = projects[0];
         var projectPath = Path.Combine(folder, AssemblyExport.CleanProjectName(project.Name) + ProjectExtension);
-        w.StartProjectExport(project.Assembly, projectPath, extras);
-    }
-
-    /// <summary>Starts <paramref name="start"/> at once when <paramref name="folder"/> holds nothing
-    /// but <paramref name="file"/>, and otherwise asks through <see cref="Workspace.ConfirmingExport"/>.</summary>
-    private static void ConfirmFolder(this Workspace w, string folder, string file, Action start)
-    {
-        if (!HoldsOtherEntries(folder, file))
-        {
-            start();
-            return;
-        }
-        w.ConfirmingExport = new ExportRequest(folder, start);
-    }
-
-    private static bool HoldsOtherEntries(string folder, string file)
-    {
-        if (!Directory.Exists(folder))
-            return false;
-        var fullFile = Path.GetFullPath(file);
-        return Directory.EnumerateFileSystemEntries(folder)
-            .Any(e => !IsSamePath(e, fullFile));
-    }
-
-    private static bool IsSamePath(string entry, string fullFile)
-    {
-        var fullEntry = Path.GetFullPath(entry);
-        return string.Equals(fullEntry, fullFile, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>Starts the <see cref="Workspace.ConfirmingExport"/> when <paramref name="confirmed"/>,
-    /// and drops it either way.</summary>
-    public static void FinishExportConfirmation(this Workspace w, bool confirmed)
-    {
-        var request = w.ConfirmingExport;
-        w.ConfirmingExport = null;
-        if (!confirmed)
-            return;
-        if (request == null)
-            return;
-        request.Start();
+        w.ExportProject(project.Assembly, projectPath, extras);
     }
 
     /// <summary>Writes a portable PDB of <paramref name="assembly"/>'s decompiled C# to

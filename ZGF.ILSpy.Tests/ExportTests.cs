@@ -80,7 +80,6 @@ public sealed class ExportTests : IDisposable
         Assert.Equal("Calculator.cs", calculator.SuggestCodeFileName(DecompilationLanguage.CSharp));
         Assert.Equal("Calculator.il", calculator.SuggestCodeFileName(DecompilationLanguage.IL));
         Assert.Equal("ZGF.ILSpy.Tests.cs", Trees.TestAssembly.Root.SuggestCodeFileName(DecompilationLanguage.CSharp));
-        Assert.Equal("ZGF.ILSpy.Tests.csproj", Trees.TestAssembly.ProjectFileName);
         Assert.Equal("ZGF.ILSpy.Tests.pdb", Trees.TestAssembly.PdbFileName);
     }
 

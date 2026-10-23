@@ -10,7 +10,6 @@ internal static class MainMenuView
 {
     private static readonly UiIcon OpenIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
     private static readonly UiIcon OpenFromFrameworkIcon = new(LucideIcons.Library, LucideIcons.Family);
-    private static readonly UiIcon SolutionIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
     private static readonly UiIcon CloseIcon = new(LucideIcons.X, LucideIcons.Family);
     private static readonly UiIcon ClearListIcon = new(LucideIcons.ListX, LucideIcons.Family);
     private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
@@ -75,10 +74,8 @@ internal static class MainMenuView
             SaveDialogs.PickActiveCodeFile(ui, w);
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: w.Tree.Roots.Count > 0, id: "export", icon: SaveDialogs.ExportIcon))
             w.OpenExportSetup(w.ActiveAssembly());
-        var canExportAll = w.Tree.Roots.Count > 0;
-        if (ui.MenuItem(t.FileExportSolution, enabled: canExportAll, id: "export-solution", icon: SolutionIcon))
-            SaveDialogs.PickSolutionFile(ui, w);
-        if (ui.MenuItem(t.FileGeneratePdbs, enabled: canExportAll, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
+        var anyOpen = w.Tree.Roots.Count > 0;
+        if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, w);
     }
 

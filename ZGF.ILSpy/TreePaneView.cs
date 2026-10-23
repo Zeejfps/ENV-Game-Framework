@@ -89,7 +89,7 @@ internal static class TreePaneView
             w.Analyze(node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, w, node);
-        if (node.DependsOnLanguage && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
+        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, w, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
             w.OpenExportSetup(node.Assembly);
@@ -105,6 +105,15 @@ internal static class TreePaneView
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
                 w.Close(node.Assembly);
         }
+    }
+
+    /// <summary>Whether the menu offers to save the node's code: it shows code, and is no resource,
+    /// whose own Export item saves its bytes.</summary>
+    private static bool OffersSaveCode(BrowseNode node)
+    {
+        if (node.HasResource)
+            return false;
+        return node.DependsOnLanguage;
     }
 
     private static void PdbItem(Ui<UiState> ui, Workspace w, LoadedAssembly assembly)

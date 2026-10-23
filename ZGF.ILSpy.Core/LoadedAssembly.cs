@@ -94,9 +94,6 @@ public sealed class LoadedAssembly
     /// <summary>The tree's root for this assembly.</summary>
     public BrowseNode Root => _root.Value;
 
-    /// <summary>The name a project of this assembly is offered under.</summary>
-    public string ProjectFileName => WholeProjectDecompiler.CleanUpFileName(Name, AssemblyExport.ProjectExtension);
-
     /// <summary>The name a portable PDB of this assembly is written under.</summary>
     public string PdbFileName => WholeProjectDecompiler.CleanUpFileName(Name, AssemblyExport.PdbExtension);
 

@@ -6,11 +6,9 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The dialogs that ask where code, projects, solutions and PDBs are written.</summary>
+/// <summary>The dialogs that ask where code, resources and PDBs are written.</summary>
 internal static class SaveDialogs
 {
-    private const string SuggestedSolutionName = "Assemblies.sln";
-
     public static readonly UiIcon SaveCodeIcon = new(LucideIcons.Save, LucideIcons.Family);
     public static readonly UiIcon ExportIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
     public static readonly UiIcon PdbIcon = new(LucideIcons.Bug, LucideIcons.Family);
@@ -24,35 +22,18 @@ internal static class SaveDialogs
         PickCodeFile(ui, w, node!);
     }
 
-    /// <summary>Asks where to save <paramref name="node"/>'s code; for an assembly in C#, a project
-    /// file is offered first, which exports the whole project.</summary>
+    /// <summary>Asks where to save <paramref name="node"/>: a resource's bytes under its own name,
+    /// else its code in the current language as one file.</summary>
     public static void PickCodeFile(Ui<UiState> ui, Workspace w, BrowseNode node)
     {
-        var t = ui.State.Strings;
-        if (IsProjectCandidate(w, node))
+        if (node.HasResource)
         {
-            var name = node.Assembly.ProjectFileName;
-            ui.PickSaveFile(t.ExportSaveCodeTitle, null, name, ProjectFilters(t), path => w.SaveCode(node, path));
+            ResourceImageView.PickExport(ui, w, node);
             return;
         }
+        var t = ui.State.Strings;
         var fileName = node.SuggestCodeFileName(w.Language);
         ui.PickSaveFile(t.ExportSaveCodeTitle, null, fileName, CodeFilters(t, w.Language), path => w.SaveCode(node, path));
-    }
-
-    private static bool IsProjectCandidate(Workspace w, BrowseNode node)
-    {
-        if (node.Kind != NodeKind.Assembly)
-            return false;
-        return w.Language == DecompilationLanguage.CSharp;
-    }
-
-    private static FileFilter[] ProjectFilters(Strings t)
-    {
-        return
-        [
-            new FileFilter(t.FileFilterProject, ["*.csproj"]),
-            new FileFilter(t.FileFilterCsharp, ["*.cs"]),
-        ];
     }
 
     private static FileFilter[] CodeFilters(Strings t, DecompilationLanguage language)
@@ -62,13 +43,6 @@ internal static class SaveDialogs
         return [new FileFilter(t.FileFilterIl, ["*.il"]), new FileFilter(t.FileFilterAll, ["*.*"])];
     }
 
-    /// <summary>Asks where to write the solution that every open assembly is exported into.</summary>
-    public static void PickSolutionFile(Ui<UiState> ui, Workspace w)
-    {
-        var t = ui.State.Strings;
-        FileFilter[] filters = [new FileFilter(t.FileFilterSolution, ["*.sln"])];
-        ui.PickSaveFile(t.ExportSolutionTitle, null, SuggestedSolutionName, filters, w.ExportSolution);
-    }
 
     /// <summary>Asks where to write the portable PDB of <paramref name="assembly"/>.</summary>
     public static void PickPdbFile(Ui<UiState> ui, Workspace w, LoadedAssembly assembly)

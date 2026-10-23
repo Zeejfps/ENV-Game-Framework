@@ -105,9 +105,6 @@ public sealed class Workspace
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
 
-    /// <summary>An export waiting for the user to say whether it may write into a folder that
-    /// already holds other files.</summary>
-    public ExportRequest? ConfirmingExport { get; set; }
 
     /// <summary>Set by <see cref="Searching.OpenSearch"/> until the search box takes focus.</summary>
     public bool IsSearchFocusPending { get; set; }

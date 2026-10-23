@@ -30,51 +30,31 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
-    public void Saving_an_assembly_as_a_project_file_exports_the_project()
+    public void Saving_an_assembly_writes_one_code_file_even_under_a_project_name()
     {
         var d = WorkspaceDriver.Opened();
-        var path = _temp.PathOf(Path.Combine("Project", "Fixtures.csproj"));
+        var path = _temp.PathOf("Fixtures.csproj");
 
         d.Workspace.SaveCode(d.Node(), path);
         d.Settle();
 
-        Assert.True(File.Exists(path));
-        Assert.Contains(ProjectFiles(), f => Path.GetFileName(f) == "Greeter.cs");
+        var code = File.ReadAllText(path);
+        Assert.Contains("public class Greeter", code);
+        Assert.False(code.TrimStart().StartsWith("<Project", StringComparison.Ordinal));
+        Assert.Equal([path], Directory.EnumerateFiles(_temp.Path));
     }
 
     [Fact]
-    public void An_export_into_a_folder_with_other_files_waits_until_the_user_agrees()
+    public void Saving_a_resource_writes_its_bytes_as_they_are()
     {
         var d = WorkspaceDriver.Opened();
-        _temp.Write("notes.txt", "keep");
-        var path = _temp.PathOf("Fixtures.csproj");
+        var node = d.Node("Resources", "data.json");
+        var path = _temp.PathOf("data.json");
 
-        d.Workspace.ExportProject(d.Node().Assembly, path);
-        d.Settle();
-        Assert.False(File.Exists(path));
-        Assert.Equal(_temp.Path, d.Workspace.ConfirmingExport!.Folder);
+        Assert.True(d.Workspace.CanSaveCode(node));
+        d.Workspace.SaveCode(node, path);
 
-        d.Workspace.FinishExportConfirmation(true);
-        d.Settle();
-
-        Assert.Null(d.Workspace.ConfirmingExport);
-        Assert.True(File.Exists(path));
-        Assert.Equal("keep", File.ReadAllText(_temp.PathOf("notes.txt")));
-    }
-
-    [Fact]
-    public void A_declined_export_writes_nothing()
-    {
-        var d = WorkspaceDriver.Opened();
-        _temp.Write("notes.txt", "keep");
-        var path = _temp.PathOf("Fixtures.csproj");
-
-        d.Workspace.ExportProject(d.Node().Assembly, path);
-        d.Workspace.FinishExportConfirmation(false);
-        d.Settle();
-
-        Assert.Null(d.Workspace.ConfirmingExport);
-        Assert.False(File.Exists(path));
+        Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
     }
 
     [Fact]
@@ -103,23 +83,6 @@ public sealed class ExportTests : IDisposable
 
         Assert.Equal(["Save code"], app.Frames.FilePicker.Titles);
         Assert.Contains("public class Greeter", File.ReadAllText(path));
-    }
-
-    [Fact]
-    public void The_dialog_asks_before_exporting_into_a_folder_with_other_files()
-    {
-        var app = AppDriver.Opened();
-        _temp.Write("notes.txt", "keep");
-        var path = _temp.PathOf("Fixtures.csproj");
-        app.Workspace.ExportProject(app.Node().Assembly, path);
-        app.Run(2);
-
-        Assert.True(app.Frames.Drew("Folder is not empty"));
-        app.Click("Export").Frame(2);
-        app.Settle(1);
-
-        Assert.True(File.Exists(path));
-        Assert.False(app.Frames.Drew("Folder is not empty"));
     }
 
     [Fact]
@@ -305,5 +268,15 @@ public sealed class ExportTests : IDisposable
         Assert.Empty(d.Workspace.Errors.Entries);
     }
 
-    private IEnumerable<string> ProjectFiles() => Directory.EnumerateFiles(_temp.Path, "*.cs", SearchOption.AllDirectories);
+    [Fact]
+    public void The_file_menu_offers_the_export_dialog_and_no_solution_of_everything()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+
+        app.Click("File").Frame(2);
+
+        Assert.True(app.Frames.Drew("Export…"));
+        Assert.False(app.Frames.Drew("Export all as solution…"));
+    }
 }
