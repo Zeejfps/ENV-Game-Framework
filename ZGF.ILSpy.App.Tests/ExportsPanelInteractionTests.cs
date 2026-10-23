@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
+using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -7,6 +8,9 @@ namespace ZGF.ILSpy.App.Tests;
 public sealed class ExportsPanelInteractionTests : IDisposable
 {
     private const float TallWindow = 1400f;
+
+    /// <summary>How far below a row's name its lines reach.</summary>
+    private const float RowReach = 100f;
 
     private readonly TempDir _temp = new();
 
@@ -138,6 +142,34 @@ public sealed class ExportsPanelInteractionTests : IDisposable
 
         Assert.False(app.Frames.Drew("Open folder"));
         Assert.True(app.Frames.Drew(LucideIcons.FolderOpen));
+    }
+
+    [Fact]
+    public void A_row_lines_its_icon_name_and_actions_up_and_runs_the_bar_from_the_name_to_the_actions()
+    {
+        var app = AppDriver.Opened(height: TallWindow);
+        var theme = app.Theme;
+        app.Workspace.OpenExports();
+        var running = app.Workspace.Export.Enter(TestJobs.Named("Running")).Result;
+        running.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.5f));
+        app.Run(2);
+
+        var name = app.TextRect("Running");
+        var cancel = app.TextRect("Cancel");
+        var percent = app.TextRect("50%");
+        var track = app.Frames.Canvas.Rects
+            .Select(r => (r.Inputs.Style.BackgroundColor, Rect: app.Frames.ToUi(r.Inputs.Position)))
+            .Where(r => r.BackgroundColor == theme.Control && Math.Abs(r.Rect.Height - theme.ProgressHeight) < 0.5f)
+            .First(r => r.Rect.Y > name.Y && r.Rect.Y < name.Y + RowReach)
+            .Rect;
+        var summary = app.TextRect("1 running");
+
+        Assert.Equal(name.Y + name.Height / 2, cancel.Y + cancel.Height / 2, 1f);
+        Assert.Equal(name.Y + name.Height / 2, percent.Y + percent.Height / 2, 1f);
+        Assert.Equal(name.X, track.X, 1f);
+        Assert.True(track.Right >= cancel.Right);
+        Assert.Equal(name.X - theme.IconSize - theme.Gap, summary.X, 1f);
+        app.Workspace.Export.Leave(running);
     }
 
     [Fact]

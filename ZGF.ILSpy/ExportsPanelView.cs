@@ -80,7 +80,7 @@ internal static class ExportsPanelView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        using (ui.PaneToolbar())
+        using (ui.PaneToolbar(new Box { Padding = new Spacing(theme.PanelPadding, theme.ToolbarPaddingY) }))
         {
             var summary = ui.Memo("summary", (w.Export.IsRunning, w.Export.WaitingCount, w.FinishedExports.Count, t),
                 static a => Summarize(a.t, a.IsRunning, a.WaitingCount, a.Count));
@@ -235,20 +235,22 @@ internal static class ExportsPanelView
         using (ui.Id(running.Run))
         {
             var hit = RowHit(ui, w, rows, running.Run);
-            using (ui.Row(hit.Id, RowBox(theme, RowBackground(ui, w, rows, running.Run, hit))))
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, w, rows, running.Run, hit))))
             {
-                using (ui.Column(ContentBox()))
+                var at = progress.Value;
+                using (ui.Row(TopLine(theme)))
                 {
-                    var at = progress.Value;
-                    var preparing = at.Fraction == null;
-                    var detail = ui.Memo("detail", (running.Job.Kind, at.Name, at.Part, at.Parts, preparing, w.Export.IsCancelling, t),
-                        static a => DescribeRunning(a.t, a.Kind, a.Name, a.Part, a.Parts, a.preparing, a.IsCancelling));
-                    RunningTitle(ui, running.Job.Name);
-                    Detail(ui, detail);
-                    Folder(ui, running.Job.Folder);
-                    Bar(ui, at.Fraction);
+                    Spinner(ui);
+                    Name(ui, running.Job.Name);
+                    Percent(ui, at.Fraction);
+                    CancelAction(ui, w, rows);
                 }
-                CancelAction(ui, w, rows);
+                var preparing = at.Fraction == null;
+                var detail = ui.Memo("detail", (running.Job.Kind, at.Name, at.Part, at.Parts, preparing, w.Export.IsCancelling, t),
+                    static a => DescribeRunning(a.t, a.Kind, a.Name, a.Part, a.Parts, a.preparing, a.IsCancelling));
+                Detail(ui, detail);
+                Folder(ui, running.Job.Folder);
+                Bar(ui, at.Fraction);
             }
             ui.Tooltip(hit.Id, running.Job.Folder);
         }
@@ -282,16 +284,6 @@ internal static class ExportsPanelView
         return kindText;
     }
 
-    /// <summary>The running export's name beside a spinner that turns while it works.</summary>
-    private static void RunningTitle(Ui<UiState> ui, string name)
-    {
-        var theme = ui.Theme;
-        using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.Gap, AlignY = Align.Center }))
-        {
-            Spinner(ui);
-            ui.Text(name, new Box { Width = Sizing.Grow() }, color: theme.Text, overflow: TextOverflow.Ellipsis);
-        }
-    }
 
     /// <summary>Dots in a ring, the brightest going round once every <see cref="SpinnerPeriod"/>.</summary>
     private static void Spinner(Ui<UiState> ui)
@@ -319,19 +311,26 @@ internal static class ExportsPanelView
         }
     }
 
-    /// <summary>The bar of the running export, with its percentage beside it in a slot of its own so
-    /// the bar keeps its length; a segment slides along it while the export does not know its size.</summary>
+    /// <summary>How much of the running export is done, on its top line in a slot of its own so the
+    /// actions beside it stay put; empty while the export does not know its size.</summary>
+    private static void Percent(Ui<UiState> ui, float? fraction)
+    {
+        var theme = ui.Theme;
+        var percent = ui.Memo("percent", fraction, static f => FormatPercent(f));
+        ui.Text(percent, new Box { Width = Sizing.Fixed(PercentWidth) }, color: theme.TextMuted, size: theme.FontSizeSmall, align: Align.End);
+    }
+
+    /// <summary>The bar of the running export, from the name's indent to the row's right edge; a
+    /// segment slides along it while the export does not know its size.</summary>
     private static void Bar(Ui<UiState> ui, float? fraction)
     {
         var theme = ui.Theme;
-        using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.Gap, AlignY = Align.Center }))
+        using (ui.Row(new Box { Width = Sizing.Grow(), Padding = new Spacing(NameIndent(theme), theme.GapTight, 0f, 0f) }))
         {
             if (fraction != null)
                 ui.ProgressBar(fraction.Value);
             else
                 SlidingBar(ui);
-            var percent = ui.Memo("percent", fraction, static f => FormatPercent(f));
-            ui.Text(percent, new Box { Width = Sizing.Fixed(PercentWidth) }, color: theme.TextMuted, size: theme.FontSizeSmall, align: Align.End);
         }
     }
 
@@ -386,16 +385,17 @@ internal static class ExportsPanelView
         using (ui.Id(waiting.Run))
         {
             var hit = RowHit(ui, w, rows, waiting.Run);
-            using (ui.Row(hit.Id, RowBox(theme, RowBackground(ui, w, rows, waiting.Run, hit))))
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, w, rows, waiting.Run, hit))))
             {
-                using (ui.Column(ContentBox()))
+                using (ui.Row(TopLine(theme)))
                 {
-                    var detail = ui.Memo("detail", (waiting.Job.Kind, ahead, t), static a => DescribeWaiting(a.t, a.Kind, a.ahead));
-                    Title(ui, LucideIcons.Hourglass, theme.TextMuted, waiting.Job.Name);
-                    Detail(ui, detail);
-                    Folder(ui, waiting.Job.Folder);
+                    Glyph(ui, LucideIcons.Hourglass, theme.TextMuted);
+                    Name(ui, waiting.Job.Name);
+                    WithdrawAction(ui, w, rows, waiting.Run);
                 }
-                WithdrawAction(ui, w, rows, waiting.Run);
+                var detail = ui.Memo("detail", (waiting.Job.Kind, ahead, t), static a => DescribeWaiting(a.t, a.Kind, a.ahead));
+                Detail(ui, detail);
+                Folder(ui, waiting.Job.Folder);
             }
             ui.Tooltip(hit.Id, waiting.Job.Folder);
         }
@@ -457,17 +457,18 @@ internal static class ExportsPanelView
         using (ui.Id(report.Run))
         {
             var hit = RowHit(ui, w, rows, report.Run);
-            using (ui.Row(hit.Id, RowBox(theme, RowBackground(ui, w, rows, report.Run, hit))))
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, w, rows, report.Run, hit))))
             {
-                using (ui.Column(ContentBox()))
+                using (ui.Row(TopLine(theme)))
                 {
-                    var detail = ui.Memo("detail", (report, t), static a => DescribeFinished(a.t, a.report));
-                    Title(ui, OutcomeIcon(report), OutcomeColor(theme, report), report.Name);
-                    Detail(ui, detail, OutcomeTextColor(theme, report));
-                    Folder(ui, report.Folder);
+                    Glyph(ui, OutcomeIcon(report), OutcomeColor(theme, report));
+                    Name(ui, report.Name);
+                    FinishedActions(ui, w, rows, report);
+                    removed = ui.IconButton("remove", LucideIcons.X, LucideIcons.Family, t.ExportsRemove);
                 }
-                FinishedActions(ui, w, rows, report);
-                removed = ui.IconButton("remove", LucideIcons.X, LucideIcons.Family, t.ExportsRemove);
+                var detail = ui.Memo("detail", (report, t), static a => DescribeFinished(a.t, a.report));
+                Detail(ui, detail, OutcomeTextColor(theme, report));
+                Folder(ui, report.Folder);
             }
             ui.Tooltip(hit.Id, report.Folder);
         }
@@ -619,15 +620,17 @@ internal static class ExportsPanelView
         ui.Separator();
     }
 
-    /// <summary>The export's icon and name on one line, the icon in line with the name.</summary>
-    private static void Title(Ui<UiState> ui, string glyph, uint color, string name)
+    private static void Glyph(Ui<UiState> ui, string glyph, uint color)
     {
         var theme = ui.Theme;
-        using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.Gap, AlignY = Align.Center }))
-        {
-            ui.Text(glyph, color: color, size: theme.IconSize, family: LucideIcons.Family);
-            ui.Text(name, new Box { Width = Sizing.Grow() }, color: theme.Text, overflow: TextOverflow.Ellipsis);
-        }
+        ui.Text(glyph, new Box { Width = Sizing.Fixed(theme.IconSize) }, color: color, size: theme.IconSize, family: LucideIcons.Family);
+    }
+
+    /// <summary>The export's name, taking the top line's spare width and cut short when it runs out.</summary>
+    private static void Name(Ui<UiState> ui, string name)
+    {
+        var theme = ui.Theme;
+        ui.Text(name, new Box { Width = Sizing.Grow() }, color: theme.Text, overflow: TextOverflow.Ellipsis);
     }
 
     /// <summary>A muted line under the name, in line with it.</summary>
@@ -647,16 +650,20 @@ internal static class ExportsPanelView
             overflow: TextOverflow.EllipsisMiddle);
     }
 
-    private static Spacing Indent(UiTheme theme) => new(theme.IconSize + theme.Gap, 0f, 0f, 0f);
+    /// <summary>Where the name and every line under it start: past the icon and the gap after it.</summary>
+    private static float NameIndent(UiTheme theme) => theme.IconSize + theme.Gap;
 
+    private static Spacing Indent(UiTheme theme) => new(NameIndent(theme), 0f, 0f, 0f);
+
+    /// <summary>A row: its top line, then the lines under it, all within the panel's padding.</summary>
     private static Box RowBox(UiTheme theme, uint background) => new()
     {
         Width = Sizing.Grow(),
-        Gap = theme.Gap,
-        Padding = new Spacing(theme.PanelPadding, theme.Gap),
-        AlignY = Align.Center,
+        Gap = 0f,
+        Padding = new Spacing(theme.PanelPadding, theme.GapTight, theme.PanelPadding, theme.Gap),
         Background = background,
     };
 
-    private static Box ContentBox() => new() { Width = Sizing.Grow(), Gap = 0f };
+    /// <summary>The row's top line: icon, name and actions, all centered on it.</summary>
+    private static Box TopLine(UiTheme theme) => new() { Width = Sizing.Grow(), Gap = theme.Gap, AlignY = Align.Center };
 }
