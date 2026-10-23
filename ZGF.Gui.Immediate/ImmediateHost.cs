@@ -331,7 +331,7 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
         _window.GetCursorPosition(out var x, out var y);
         var inside = x >= 0 && y >= 0 && x <= _window.Width && y <= _window.Height;
         var ui = ToUiSpace(x, y);
-        var point = inside || _pending.AnyDown || OverPopup(ui) || WindowAt(ui) != null ? ui : UiInput.Offscreen;
+        var point = inside || _pending.FollowsPointerOutside || OverPopup(ui) || WindowAt(ui) != null ? ui : UiInput.Offscreen;
         if (point == _pending.Pointer) return;
         _pending.MovePointer(point);
         _window.RequestRedraw();

@@ -80,6 +80,12 @@ public sealed class UiInput
 
     internal bool AnyDown => Array.IndexOf(_down, true) >= 0;
 
+    internal bool AnyReleased => Array.IndexOf(_released, true) >= 0;
+
+    /// <summary>True while a button is down and on the frame one comes up: the window keeps following
+    /// the pointer outside it, so a drag ends where the pointer let go rather than off-screen.</summary>
+    internal bool FollowsPointerOutside => AnyDown || AnyReleased;
+
     public bool IsKeyPressed(KeyboardKey key)
     {
         foreach (var stroke in _keys)

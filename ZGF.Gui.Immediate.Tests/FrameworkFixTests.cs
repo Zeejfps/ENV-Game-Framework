@@ -465,3 +465,22 @@ public sealed class RecordingCanvasTests
         Assert.True(frames.Canvas.CommandCount >= 2);
     }
 }
+
+public sealed class PointerOutsideTests
+{
+    [Fact]
+    public void The_window_follows_the_pointer_outside_while_a_button_is_down_and_on_the_frame_it_comes_up()
+    {
+        var pressed = new UiInput();
+        pressed.Button((int)PointerButton.Left, InputAction.Press, KeyModifiers.None);
+        var released = new UiInput();
+        released.BeginAfter(pressed);
+        released.Button((int)PointerButton.Left, InputAction.Release, KeyModifiers.None);
+        var after = new UiInput();
+        after.BeginAfter(released);
+
+        Assert.True(pressed.FollowsPointerOutside);
+        Assert.True(released.FollowsPointerOutside);
+        Assert.False(after.FollowsPointerOutside);
+    }
+}
