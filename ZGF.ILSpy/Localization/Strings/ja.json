@@ -242,6 +242,8 @@
   "analyzer.hint": "型またはメンバーを右クリックして [分析] を選ぶか、ツリーで選択して {shortcut} を押します。",
   "analyzer.clear": "クリア",
   "analyzer.remove": "削除",
+  "analyzer.remove_analysis": "分析を削除",
+  "analyzer.remove_all": "すべての分析を削除",
   "analyzer.go_to": "移動",
   "analyzer.applied_to": "適用先",
   "analyzer.implemented_by": "実装元",

@@ -242,6 +242,8 @@
   "analyzer.hint": "Klicken Sie mit der rechten Maustaste auf einen Typ oder Member und wählen Sie „Analysieren“, oder wählen Sie ihn in der Struktur aus und drücken Sie {shortcut}.",
   "analyzer.clear": "Leeren",
   "analyzer.remove": "Entfernen",
+  "analyzer.remove_analysis": "Analyse entfernen",
+  "analyzer.remove_all": "Alle Analysen entfernen",
   "analyzer.go_to": "Gehe zu",
   "analyzer.applied_to": "Angewendet auf",
   "analyzer.implemented_by": "Implementiert von",

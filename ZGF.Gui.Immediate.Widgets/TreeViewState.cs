@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>What a tree row shows. A <see cref="LabelColor"/> of 0 takes the theme's text color.
@@ -111,6 +113,22 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         for (var i = 0; i < path.Count - 1; i++)
             SetExpanded(path[i], true);
         Select(path[^1]);
+    }
+
+    /// <summary>The root the selected row sits under, or the selected row itself when it is a root,
+    /// as of the last frame; false when the selection is not showing.</summary>
+    public bool TryGetSelectedRoot([MaybeNullWhen(false)] out TNode root)
+    {
+        var index = SelectedIndex;
+        if (index < 0)
+        {
+            root = default;
+            return false;
+        }
+        while (Rows[index].Depth > 0)
+            index--;
+        root = Rows[index].Node;
+        return true;
     }
 
     /// <summary>Asks for children again: call after the hierarchy under expanded nodes changed.

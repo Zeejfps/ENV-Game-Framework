@@ -242,6 +242,8 @@
   "analyzer.hint": "Haz clic con el botón derecho en un tipo o miembro y elige Analizar, o selecciónalo en el árbol y pulsa {shortcut}.",
   "analyzer.clear": "Borrar",
   "analyzer.remove": "Quitar",
+  "analyzer.remove_analysis": "Quitar análisis",
+  "analyzer.remove_all": "Quitar todos los análisis",
   "analyzer.go_to": "Ir a",
   "analyzer.applied_to": "Aplicado a",
   "analyzer.implemented_by": "Implementado por",

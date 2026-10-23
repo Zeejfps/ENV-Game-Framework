@@ -46,6 +46,7 @@ public static class LucideIcons
     public const string Link2 = "\uE103";
     public const string List = "\uE106";
     public const string ListOrdered = "\uE1D1";
+    public const string ListX = "\uE240";
     public const string Loader2 = "\uE10A";
     public const string Lock = "\uE10B";
     public const string Network = "\uE125";
@@ -55,6 +56,7 @@ public static class LucideIcons
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
     public const string RotateCcw = "\uE148";
+    public const string ScanSearch = "\uE537";
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
     public const string Square = "\uE167";

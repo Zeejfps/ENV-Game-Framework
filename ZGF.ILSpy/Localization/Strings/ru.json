@@ -242,6 +242,8 @@
   "analyzer.hint": "Щёлкните тип или член правой кнопкой и выберите «Анализировать» или выделите его в дереве и нажмите {shortcut}.",
   "analyzer.clear": "Очистить",
   "analyzer.remove": "Удалить",
+  "analyzer.remove_analysis": "Удалить анализ",
+  "analyzer.remove_all": "Удалить все анализы",
   "analyzer.go_to": "Перейти",
   "analyzer.applied_to": "Применяется к",
   "analyzer.implemented_by": "Реализуется в",

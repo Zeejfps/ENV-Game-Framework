@@ -242,6 +242,8 @@
   "analyzer.hint": "右键单击类型或成员并选择“分析”，或在树中选中它后按 {shortcut}。",
   "analyzer.clear": "清除",
   "analyzer.remove": "移除",
+  "analyzer.remove_analysis": "移除分析",
+  "analyzer.remove_all": "移除所有分析",
   "analyzer.go_to": "转到",
   "analyzer.applied_to": "应用于",
   "analyzer.implemented_by": "实现者",

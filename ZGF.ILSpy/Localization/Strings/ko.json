@@ -242,6 +242,8 @@
   "analyzer.hint": "형식이나 멤버를 마우스 오른쪽 단추로 클릭하고 [분석]을 선택하거나, 트리에서 선택한 후 {shortcut}를 누르세요.",
   "analyzer.clear": "지우기",
   "analyzer.remove": "제거",
+  "analyzer.remove_analysis": "분석 제거",
+  "analyzer.remove_all": "모든 분석 제거",
   "analyzer.go_to": "이동",
   "analyzer.applied_to": "적용 대상",
   "analyzer.implemented_by": "구현한 항목",

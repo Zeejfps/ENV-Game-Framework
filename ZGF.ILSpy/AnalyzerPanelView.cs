@@ -16,6 +16,8 @@ internal static class AnalyzerPanelView
         var icons = ui.GetNodeIconPalette();
         analyzer.SetStyle(ui.Theme, icons, t);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
+        Toolbar(ui, analyzer, t);
+        ui.Separator();
         if (analyzer.Roots.Count == 0)
         {
             DocumentsView.Hint(ui, t.AnalyzerHint(Shortcuts.Analyze));
@@ -25,26 +27,61 @@ internal static class AnalyzerPanelView
         ContextMenu(ui, w, t);
     }
 
+    private static void Toolbar(Ui ui, AnalyzerTree analyzer, Strings t)
+    {
+        var theme = ui.Theme;
+        var any = analyzer.Roots.Count > 0;
+        var root = analyzer.FindSelectedRoot();
+        var result = analyzer.FindSelectedResult();
+        using (ui.PaneToolbar())
+        {
+            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
+                analyzer.CollapseAll();
+            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, any))
+                analyzer.ExpandAll();
+            ui.Separator(theme.IconSize);
+            if (ui.IconButton("analyze", LucideIcons.ScanSearch, LucideIcons.Family, t.TreeAnalyze, result != null))
+                analyzer.Analyze(result!.Symbol);
+            ui.Separator(theme.IconSize);
+            if (ui.IconButton("remove", LucideIcons.Trash2, LucideIcons.Family, t.AnalyzerRemoveAnalysis, root != null))
+                analyzer.Remove(root!);
+            if (ui.IconButton("clear", LucideIcons.ListX, LucideIcons.Family, t.AnalyzerRemoveAll, any))
+                analyzer.Clear();
+        }
+    }
+
     private static void Tree(Ui ui, Workspace w)
     {
         var analyzer = w.Analyzer;
         var box = new Box { Padding = new Spacing(0f, ui.Theme.GapTight) };
         var result = ui.TreeView(TreeId, analyzer.Roots, analyzer, analyzer.View, box, toggleOnActivate: false);
-        AnalyzeSelectedOnShortcut(ui, analyzer);
+        if (ui.HasFocus(ui.GetId(TreeId)))
+            HandleKeys(ui, analyzer);
         if (result.Activated)
             GoTo(w, result.Node);
         if (result.ContextMenuRequested && result.Node is AnalyzerSymbolNode)
             ui.OpenContextMenu(MenuId, result.ContextMenuAt);
     }
 
-    private static void AnalyzeSelectedOnShortcut(Ui ui, AnalyzerTree analyzer)
+    private static void HandleKeys(Ui ui, AnalyzerTree analyzer)
     {
-        if (!ui.HasFocus(ui.GetId(TreeId)))
-            return;
-        if (!Shortcuts.AnalyzePressed(ui))
-            return;
+        if (Shortcuts.AnalyzePressed(ui))
+            AnalyzeSelected(analyzer);
+        if (Shortcuts.DeletePressed(ui))
+            RemoveSelectedAnalysis(analyzer);
+    }
+
+    private static void AnalyzeSelected(AnalyzerTree analyzer)
+    {
         if (analyzer.View.Selected is AnalyzerSymbolNode picked)
             analyzer.Analyze(picked.Symbol);
+    }
+
+    private static void RemoveSelectedAnalysis(AnalyzerTree analyzer)
+    {
+        var root = analyzer.FindSelectedRoot();
+        if (root != null)
+            analyzer.Remove(root);
     }
 
     private static void GoTo(Workspace w, AnalyzerNode? node)

@@ -92,9 +92,7 @@ public sealed class AnalyzerTests
     {
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.Workspace.Analyze(First(d));
-        Expand(d, d.Workspace.Analyzer.Roots[0], "Used By");
-        app.Run(3);
+        ShowFirstCaller(app);
         var third = app.Frames.TextRects().Last(t => t.Text.StartsWith("Third()"));
         ClickAt(app, third.Rect).Frame();
 
@@ -102,6 +100,16 @@ public sealed class AnalyzerTests
 
         Assert.Equal(2, d.Workspace.Analyzer.Roots.Count);
         Assert.StartsWith("Third()", d.Workspace.Analyzer.Roots[1].Symbol.Label);
+    }
+
+    private static void ShowFirstCaller(AppDriver app)
+    {
+        var d = app.Driver;
+        var analyzer = d.Workspace.Analyzer;
+        d.Workspace.Analyze(First(d));
+        var caller = Expand(d, analyzer.Roots[0], "Used By").Found[0];
+        analyzer.View.ScrollIntoView(caller);
+        app.Run(3);
     }
 
     private static UiFrames ClickAt(AppDriver app, UiRect row, PointerButton button = PointerButton.Left) =>
@@ -139,19 +147,89 @@ public sealed class AnalyzerTests
     }
 
     [Fact]
-    public void The_pane_is_just_the_tree_and_its_menu_clears_it()
+    public void Its_menu_clears_the_analyzer()
     {
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
         d.Workspace.Analyze(First(d));
         app.Run(3);
         var row = app.Frames.TextRects().Last(t => t.Text.StartsWith("First()")).Rect;
-        var trash = app.Frames.Drew(LucideIcons.Trash2);
 
         ClickAt(app, row, PointerButton.Right).Frame();
         app.ClickMenuItem("Clear").Frame(2);
 
-        Assert.False(trash);
+        Assert.Empty(d.Workspace.Analyzer.Roots);
+    }
+
+    [Fact]
+    public void The_toolbar_expands_and_runs_every_analysis_of_the_roots_then_collapses_them()
+    {
+        var app = AppDriver.Opened(height: 600f);
+        var d = app.Driver;
+        var analyzer = d.Workspace.Analyzer;
+        d.Workspace.Analyze(First(d));
+        app.Run(3);
+        var root = analyzer.Roots[0];
+        var kinds = analyzer.GetChildren(root).OfType<AnalyzerKindNode>().ToList();
+
+        app.Click(LucideIcons.ChevronsUpDown).Frame();
+        var expanded = kinds.All(k => analyzer.View.IsExpanded(k));
+        d.RunUntil(() => kinds.All(k => k.IsDone));
+        app.Click(LucideIcons.ChevronsDownUp).Frame();
+
+        Assert.NotEmpty(kinds);
+        Assert.True(expanded);
+        Assert.False(analyzer.View.IsExpanded(root));
+    }
+
+    [Fact]
+    public void The_toolbar_analyzes_the_selected_result()
+    {
+        var app = AppDriver.Opened(height: 600f);
+        var d = app.Driver;
+        var analyzer = d.Workspace.Analyzer;
+        d.Workspace.Analyze(First(d));
+        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Roots[0], "Used By").Found[0];
+        analyzer.View.Select(caller);
+        app.Run(3);
+
+        app.Click(LucideIcons.ScanSearch).Frame();
+
+        Assert.Equal(2, analyzer.Roots.Count);
+        Assert.StartsWith("Third()", analyzer.Roots[1].Symbol.Label);
+    }
+
+    [Fact]
+    public void The_toolbar_removes_the_analysis_the_selection_is_in_or_every_analysis()
+    {
+        var app = AppDriver.Opened(height: 600f);
+        var d = app.Driver;
+        var analyzer = d.Workspace.Analyzer;
+        d.Workspace.Analyze(First(d));
+        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Roots[0], "Used By").Found[0];
+        d.Workspace.Analyze(d.Fixture("Greeter"));
+        analyzer.View.Select(caller);
+        app.Run(3);
+
+        app.Click(LucideIcons.Trash2).Frame(2);
+        var left = analyzer.Roots.Select(r => r.Symbol.Label).ToList();
+        app.Click(LucideIcons.ListX).Frame(2);
+
+        Assert.Equal(["Greeter"], left);
+        Assert.Empty(analyzer.Roots);
+    }
+
+    [Fact]
+    public void Delete_in_the_analyzer_removes_the_analysis_the_selection_is_in()
+    {
+        var app = AppDriver.Opened(height: 600f);
+        var d = app.Driver;
+        ShowFirstCaller(app);
+        var third = app.Frames.TextRects().Last(t => t.Text.StartsWith("Third()"));
+        ClickAt(app, third.Rect).Frame();
+
+        app.Frames.Key(KeyboardKey.Delete).Frame(2);
+
         Assert.Empty(d.Workspace.Analyzer.Roots);
     }
 }

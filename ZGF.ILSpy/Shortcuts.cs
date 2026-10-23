@@ -29,6 +29,17 @@ internal static class Shortcuts
         return false;
     }
 
+    /// <summary>Whether Delete was pressed this frame, for the focused view to remove its pick.</summary>
+    public static bool DeletePressed(Ui ui)
+    {
+        foreach (var stroke in ui.Input.Keys)
+        {
+            if (stroke.Key == KeyboardKey.Delete && (stroke.Modifiers & Chord) == KeyModifiers.None)
+                return true;
+        }
+        return false;
+    }
+
     public static void Handle(Ui ui, Workspace w)
     {
         if (w.Picker.IsOpen || w.Errors.IsOpen) return;

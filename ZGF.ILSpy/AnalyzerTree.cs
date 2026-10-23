@@ -206,6 +206,45 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         View.Refresh();
     }
 
+    /// <summary>The root the selection sits under, or null when nothing showing is selected.</summary>
+    public AnalyzerSymbolNode? FindSelectedRoot()
+    {
+        if (!View.TryGetSelectedRoot(out var root))
+            return null;
+        return root as AnalyzerSymbolNode;
+    }
+
+    /// <summary>The selected symbol when it is a result rather than a root, to analyze on its own.</summary>
+    public AnalyzerSymbolNode? FindSelectedResult()
+    {
+        if (View.Selected is not AnalyzerSymbolNode symbol)
+            return null;
+        if (_roots.Contains(symbol))
+            return null;
+        return symbol;
+    }
+
+    /// <summary>Expands every root and each analysis of it, running those not run yet.</summary>
+    public void ExpandAll()
+    {
+        foreach (var root in _roots)
+            ExpandWithAnalyses(root);
+    }
+
+    private void ExpandWithAnalyses(AnalyzerSymbolNode symbol)
+    {
+        View.SetExpanded(symbol, true);
+        foreach (var child in symbol.Children)
+        {
+            if (child is AnalyzerSymbolNode accessor)
+                ExpandWithAnalyses(accessor);
+            else
+                View.SetExpanded(child, true);
+        }
+    }
+
+    public void CollapseAll() => View.CollapseAll();
+
     public void Clear()
     {
         foreach (var root in _roots)
