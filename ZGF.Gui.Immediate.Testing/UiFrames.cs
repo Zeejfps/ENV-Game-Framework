@@ -66,6 +66,9 @@ public sealed class UiFrames<TState> where TState : class, IUiState, new()
 
     public TestClipboard Clipboard { get; } = new();
     public TestFilePicker FilePicker { get; } = new();
+
+    /// <summary>The folders the app asked to show in the OS file manager, in order.</summary>
+    public List<string> OpenedFolders { get; } = new();
     public RecordingCanvas Canvas => _canvas;
     public float Width { get; set; }
     public float Height { get; set; }
@@ -350,6 +353,8 @@ public sealed class UiFrames<TState> where TState : class, IUiState, new()
         WindowBackground = _ui.WindowBackground;
         if (_ui.ShowDialogs(FilePicker))
             _pending.DismissPopups();
+        if (_ui.HasFoldersToOpen)
+            OpenedFolders.AddRange(_ui.TakeFoldersToOpen());
     }
 
     private UiFrames<TState> Click(UiRect rect, Action<Ui<TState>> body, PointerButton button, KeyModifiers modifiers = KeyModifiers.None) =>

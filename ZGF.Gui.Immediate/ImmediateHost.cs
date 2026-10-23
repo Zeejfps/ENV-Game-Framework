@@ -267,12 +267,20 @@ internal sealed class ImmediateHost : IDisposable, IPopupHost
             _pending.DismissPopups();
             _window.RequestRedraw();
         }
+        if (_ui.HasFoldersToOpen)
+            OpenFolders();
         if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
         {
             _wakeAt = double.PositiveInfinity;
             _window.RequestRedraw();
         }
         PollPointer();
+    }
+
+    private void OpenFolders()
+    {
+        foreach (var folder in _ui.TakeFoldersToOpen())
+            FileManagerWindow.Open(folder);
     }
 
     private void PollPointer()

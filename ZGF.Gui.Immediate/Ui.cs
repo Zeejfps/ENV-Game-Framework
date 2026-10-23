@@ -26,6 +26,7 @@ public abstract partial class Ui
     private readonly IPopupHost? _popupHost;
     private readonly ConcurrentQueue<Action> _posted;
     private readonly List<Action<IFilePicker>> _dialogs = new();
+    private readonly List<string> _foldersToOpen = new();
     private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
@@ -189,6 +190,20 @@ public abstract partial class Ui
             _showingDialogs = false;
         }
         return true;
+    }
+
+    /// <summary>Shows the folder at <paramref name="path"/> in the OS file manager once this frame is
+    /// drawn.</summary>
+    public void OpenFolder(string path) => _foldersToOpen.Add(path);
+
+    internal bool HasFoldersToOpen => _foldersToOpen.Count > 0;
+
+    /// <summary>The folders asked for since the last call, which the host shows.</summary>
+    internal string[] TakeFoldersToOpen()
+    {
+        var folders = _foldersToOpen.ToArray();
+        _foldersToOpen.Clear();
+        return folders;
     }
 
     /// <summary>Forgets every measured width, line height and cell: fonts changed.</summary>
