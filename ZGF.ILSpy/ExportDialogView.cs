@@ -173,7 +173,7 @@ internal static class ExportDialogView
                     ClashNote(ui, choice);
             }
         }
-        ui.Tooltip(row.Id, choice.Assembly.FilePath);
+        ui.Tooltip(row.Id, choice.Assembly.FilePath, TooltipAnchor.Pointer);
         PickOutWhileEditing(ui, setup, chosen, choice);
     }
 
@@ -464,7 +464,7 @@ internal static class ExportDialogView
         using (ui.Row(new Box { Gap = theme.Gap, Padding = new Spacing(theme.Gap, 0f) }))
         {
             ui.Checkbox(choice.Assembly.Name, ref choice.Included, id: "include", width: Sizing.Grow(), compact: true);
-            ui.Tooltip(ui.GetId("include"), choice.Assembly.FilePath);
+            ui.Tooltip(ui.GetId("include"), choice.Assembly.FilePath, TooltipAnchor.Pointer);
             var version = choice.Assembly.Version;
             if (version != null)
                 Caption(ui, version.ToString());
