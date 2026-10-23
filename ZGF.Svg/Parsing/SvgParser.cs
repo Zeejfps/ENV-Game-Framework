@@ -33,6 +33,7 @@ internal static class SvgParser
         var widthAttr = -1f;
         var heightAttr = -1f;
         var seenRoot = false;
+        var sheet = StyleSheet.Collect(svgText, ReaderSettings);
 
         using var reader = XmlReader.Create(new StringReader(svgText), ReaderSettings);
 
@@ -60,7 +61,7 @@ internal static class SvgParser
                 seenRoot = true;
 
                 var rootStyle = StyleState.CreateInitial();
-                ApplyAttributes(reader, ref rootStyle, dashValues);
+                ApplyAttributes(reader, sheet, ref rootStyle, dashValues);
                 hasViewBox = TryParseViewBox(reader.GetAttribute("viewBox"), out viewBox);
                 TryParseLength(reader.GetAttribute("width"), out widthAttr);
                 TryParseLength(reader.GetAttribute("height"), out heightAttr);
@@ -82,7 +83,7 @@ internal static class SvgParser
                     if (reader.IsEmptyElement)
                         continue;
                     var style = inherited;
-                    if (!ApplyAttributes(reader, ref style, dashValues))
+                    if (!ApplyAttributes(reader, sheet, ref style, dashValues))
                     {
                         // display:none — nothing inside can render.
                         reader.Skip();
@@ -101,7 +102,7 @@ internal static class SvgParser
                 case "polygon":
                 {
                     var style = inherited;
-                    var visible = ApplyAttributes(reader, ref style, dashValues);
+                    var visible = ApplyAttributes(reader, sheet, ref style, dashValues);
                     if (visible)
                         EmitShape(reader, reader.LocalName, style, segments, commands, dashValues, ref usesCurrentColor);
                     if (!reader.IsEmptyElement)
@@ -236,27 +237,44 @@ internal static class SvgParser
     }
 
     /// <summary>
-    /// Applies presentation attributes then the inline style attribute (which wins).
+    /// Applies presentation attributes, then the stylesheet rules matching the element in
+    /// cascade order, then the inline style attribute (which wins).
     /// Returns false if the element is display:none.
     /// </summary>
-    private static bool ApplyAttributes(XmlReader reader, ref StyleState style, List<float> dashValues)
+    private static bool ApplyAttributes(XmlReader reader, StyleSheet sheet, ref StyleState style, List<float> dashValues)
     {
         var visible = true;
+        var element = reader.LocalName;
+        string? inlineStyle = null;
+        string? id = null;
+        string? classes = null;
         if (reader.MoveToFirstAttribute())
         {
-            string? inlineStyle = null;
             do
             {
-                if (reader.LocalName == "style")
-                    inlineStyle = reader.Value;
-                else
-                    visible &= ApplyProperty(reader.LocalName, reader.Value, ref style, dashValues);
+                switch (reader.LocalName)
+                {
+                    case "style":
+                        inlineStyle = reader.Value;
+                        break;
+                    case "id":
+                        id = reader.Value;
+                        break;
+                    case "class":
+                        classes = reader.Value;
+                        break;
+                    default:
+                        visible &= ApplyProperty(reader.LocalName, reader.Value, ref style, dashValues);
+                        break;
+                }
             } while (reader.MoveToNextAttribute());
             reader.MoveToElement();
-
-            if (inlineStyle != null)
-                visible &= ApplyInlineStyle(inlineStyle, ref style, dashValues);
         }
+
+        foreach (var declarations in sheet.DeclarationsFor(element, id, classes))
+            visible &= ApplyInlineStyle(declarations, ref style, dashValues);
+        if (inlineStyle != null)
+            visible &= ApplyInlineStyle(inlineStyle, ref style, dashValues);
         return visible;
     }
 
@@ -271,10 +289,20 @@ internal static class SvgParser
             if (colon <= 0)
                 continue;
             var property = decl[..colon].Trim();
-            var value = decl[(colon + 1)..].Trim();
+            var value = WithoutImportant(decl[(colon + 1)..].Trim());
             visible &= ApplyProperty(property.ToString(), value.ToString(), ref style, dashValues);
         }
         return visible;
+    }
+
+    /// <summary>The value without a trailing <c>!important</c>, which a single cascade level has
+    /// no use for.</summary>
+    private static ReadOnlySpan<char> WithoutImportant(ReadOnlySpan<char> value)
+    {
+        var bang = value.LastIndexOf('!');
+        if (bang < 0 || !value[(bang + 1)..].Trim().Equals("important", StringComparison.OrdinalIgnoreCase))
+            return value;
+        return value[..bang].TrimEnd();
     }
 
     private static bool ApplyProperty(string name, string value, ref StyleState style, List<float> dashValues)
