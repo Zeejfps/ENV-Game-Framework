@@ -147,6 +147,9 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
                 return SpanKind.Type;
         }
 
+        if (IsConstrainedTypeParameter(node))
+            return SpanKind.Type;
+
         for (var ancestor = node; ancestor != null; ancestor = ancestor.Parent)
         {
             if (ancestor is UsingDeclaration or NamespaceDeclaration) return SpanKind.Namespace;
@@ -160,5 +163,14 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
             SingleVariableDesignation or CatchClause or ForeachStatement => SpanKind.Local,
             _ => null,
         };
+    }
+
+    /// <summary>Whether <paramref name="node"/> names the type parameter a <c>where</c> clause is
+    /// about, which the decompiler writes without a symbol.</summary>
+    private static bool IsConstrainedTypeParameter(AstNode node)
+    {
+        if (node.Parent is not Constraint constraint)
+            return false;
+        return constraint.TypeParameter == node;
     }
 }

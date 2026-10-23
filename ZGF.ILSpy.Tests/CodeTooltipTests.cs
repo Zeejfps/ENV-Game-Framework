@@ -72,6 +72,20 @@ public sealed class CodeTooltipTests
     }
 
     [Fact]
+    public void A_constrained_type_parameter_is_colored_as_a_type_in_the_tooltip_and_the_code()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var pick = assembly.Fixtures().Child("Circle", "Pick<TKey,TValue>(TKey, TValue) : TKey");
+
+        var constraint = TooltipOf(list, pick).Signature.Constraints[1];
+        var code = pick.Decompile(DecompilationLanguage.CSharp);
+        var clause = code.Lines[code.LineContaining("where TValue : struct")];
+
+        Assert.Equal(SpanKind.Type, constraint.SpanAt("TValue").Kind);
+        Assert.Equal(SpanKind.Type, clause.SpanAt("TValue").Kind);
+    }
+
+    [Fact]
     public void A_member_of_a_record_or_struct_is_in_one_by_its_keyword()
     {
         var (list, assembly) = Trees.OpenTestAssembly();
