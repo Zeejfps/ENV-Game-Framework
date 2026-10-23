@@ -12,18 +12,58 @@ public sealed class CodeTooltipTests
 
     private static DocRun RunOf(DocParagraph paragraph, string text) => paragraph.Runs.Single(r => r.Text == text);
 
+    /// <summary>The signature's text from each parameter's start to the next one's, the last to the end.</summary>
+    private static List<string> ParameterTexts(CodeSignature signature)
+    {
+        var text = signature.Line.Text;
+        var starts = signature.ParameterStarts;
+        var parameters = new List<string>();
+        for (var i = 0; i < starts.Count; i++)
+        {
+            var end = i + 1 < starts.Count ? starts[i + 1] : text.Length;
+            parameters.Add(text.Substring(starts[i], end - starts[i]));
+        }
+        return parameters;
+    }
+
     [Fact]
     public void The_signature_is_the_declaration_highlighted_as_code_with_its_names_linked()
     {
         var (list, assembly) = Trees.OpenTestAssembly();
         var add = assembly.Calculator().Child("Add(T) : void");
 
-        var signature = Assert.Single(TooltipOf(list, add).Signature);
+        var signature = TooltipOf(list, add).Signature.Line;
 
-        Assert.Equal("public void ZGF.ILSpy.Tests.Fixtures.Calculator<T>.Add(T item)", signature.Text);
+        Assert.Equal("public void Calculator<T>.Add(T item)", signature.Text);
         Assert.Equal(SpanKind.Keyword, signature.SpanAt("public").Kind);
         Assert.Equal(SpanKind.Parameter, signature.SpanAt("item").Kind);
         Assert.Equal(add.Reference, signature.SpanAt("Add").Reference);
+    }
+
+    [Fact]
+    public void The_signature_names_types_by_their_short_names_and_says_where_the_entity_is()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+
+        var mode = TooltipOf(list, assembly.Calculator().Child("Mode"));
+
+        Assert.Equal("public enum Calculator<T>.Mode", mode.Signature.Line.Text);
+        Assert.Equal("ZGF.ILSpy.Tests.Fixtures", mode.Namespace);
+        Assert.Equal("ZGF.ILSpy.Tests", mode.Assembly);
+    }
+
+    [Fact]
+    public void The_signature_marks_where_each_of_its_parameters_starts()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var tryGet = assembly.Calculator().Child("TryGet(int, out T?) : bool");
+
+        var signature = TooltipOf(list, tryGet).Signature;
+        var text = signature.Line.Text;
+
+        Assert.Equal("public bool Calculator<T>.TryGet(int index, out T? item)", text);
+        Assert.Equal(["int index, ", "out T? item)"], ParameterTexts(signature));
+        Assert.Empty(TooltipOf(list, assembly.Calculator()).Signature.ParameterStarts);
     }
 
     [Fact]
@@ -108,7 +148,7 @@ public sealed class CodeTooltipTests
 
         var tooltip = TooltipOf(list, assembly.Calculator());
 
-        Assert.Equal("public class ZGF.ILSpy.Tests.Fixtures.Calculator<T>", Assert.Single(tooltip.Signature).Text);
+        Assert.Equal("public class Calculator<T>", tooltip.Signature.Line.Text);
         Assert.Empty(tooltip.Sections);
     }
 
@@ -121,7 +161,9 @@ public sealed class CodeTooltipTests
 
         var tooltip = list.Describe(call.SpanAt("Add").Reference!)!;
 
-        Assert.StartsWith("public void System.Collections.Generic.List<T>.Add(T item)", tooltip.Signature[0].Text);
+        Assert.StartsWith("public void List<T>.Add(T item)", tooltip.Signature.Line.Text);
+        Assert.Equal("System.Collections.Generic", tooltip.Namespace);
+        Assert.Equal("System.Private.CoreLib", tooltip.Assembly);
         Assert.NotEmpty(Section(tooltip, DocSectionKind.Summary).Paragraphs);
         Assert.Equal([assembly], list.Assemblies);
     }

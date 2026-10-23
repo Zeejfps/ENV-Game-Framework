@@ -59,6 +59,10 @@ public sealed partial class Ui : ITextLayout
 
     RichTextLayoutResult ITextLayout.LayOutRuns(IReadOnlyList<RichTextRun> runs, float maxWidth) => LayOutRuns(runs, maxWidth);
 
+    /// <summary>The width <paramref name="runs"/> take unwrapped: their widest line, breaking only at
+    /// '\n', as <see cref="RichText"/> lays them out. Kept by the list's identity.</summary>
+    public float MeasureRuns(IReadOnlyList<RichTextRun> runs) => MathF.Ceiling(LayOutRuns(runs, 0f).MaxLineWidth);
+
     /// <summary>Lays <paramref name="runs"/> out into lines no wider than <paramref name="maxWidth"/>,
     /// or unwrapped when it is not positive. Kept while asked for this frame or the last, by the
     /// list's identity: pass the same list while the text is the same.</summary>

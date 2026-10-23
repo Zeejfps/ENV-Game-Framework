@@ -41,6 +41,9 @@ internal sealed class DocumentBuilder : ITextOutput
 
     public SpanKind? Kind { get; set; }
 
+    /// <summary>Where the next text written to the current line starts.</summary>
+    internal int Column => _line.Length;
+
     public DecompiledDocument Build(string title, bool isError = false)
     {
         if (_line.Length > 0 || _lineFirstSpan < _spans.Count || _lines.Count == 0)

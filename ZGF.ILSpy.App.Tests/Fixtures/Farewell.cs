@@ -6,6 +6,8 @@ public class Farewell
     public string Say() => "Bye";
 
     public static bool IsLeapYear(int year) => false;
+
+    public static string Compose(string greeting, string name, int repetitions, bool shout) => greeting + name + repetitions + shout;
 }
 
 internal sealed class Hidden
