@@ -10,7 +10,7 @@ public enum SelectionChange
 }
 
 /// <summary>
-/// The selected rows of <see cref="UiWidgets.SelectableRows"/>, owned by the app and held by key, so
+/// The rows of a <see cref="TableFrame{TKey}"/> picked out, owned by the app and held by key, so
 /// they follow their rows when rows move: any number of keys, the current one that keyboard moves
 /// start from, and the anchor a range runs from. Orders are the rows as shown, first to last.
 /// </summary>
