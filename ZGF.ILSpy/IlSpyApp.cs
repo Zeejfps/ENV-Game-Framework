@@ -9,21 +9,14 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
     private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
     private const string ItalicFontFile = "Inter-Italic.ttf";
 
-    private readonly List<string> _commandLineAssemblies;
+    private readonly List<string> _startupAssemblies;
 
-    internal IlSpyApp(Workspace workspace, UiState screen, List<string> commandLineAssemblies) : base(workspace, screen)
+    internal IlSpyApp(
+        Workspace workspace,
+        UiState screen,
+        List<string> startupAssemblies) : base(workspace, screen)
     {
-        _commandLineAssemblies = commandLineAssemblies;
-    }
-
-    public static void Launch(CommandLine commandLine)
-    {
-        var settings = AppSettings.Load(commandLine.SettingsPath);
-        var workspace = new Workspace(settings);
-        var screen = new UiState(workspace);
-        var app = new IlSpyApp(workspace, screen, commandLine.AssemblyPaths);
-        var windowConfig = settings.CreateWindowConfig();
-        ImmediateGuiAppHost.Run(app, windowConfig, commandLine.RenderBackend);
+        _startupAssemblies = startupAssemblies;
     }
 
     protected override void OnStartup(ImmediateGuiAppHost host)
@@ -32,6 +25,21 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         State.Assemblies.Changed += host.Invalidate;
         OpenStartupAssemblies();
         State.RestoreAnalyses();
+    }
+
+    protected override void OnRender(Ui<UiState> ui, Workspace w)
+    {
+        ui.State.StartFrame();
+        MainView.Render(ui, w);
+        ui.State.FinishFrame();
+        DrawAgainForViewAsks(ui, w);
+        SaveSettingsIfChanged(ui, w);
+    }
+
+    protected override void OnShutdown(ImmediateGuiAppHost host)
+    {
+        State.Assemblies.Changed -= host.Invalidate;
+        SaveOnExit(host.WindowBounds);
     }
 
     private static void RegisterFonts(ImmediateGuiAppHost host)
@@ -50,13 +58,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
     private void OpenStartupAssemblies()
     {
         State.RestoreActiveList();
-        State.Open(_commandLineAssemblies);
-    }
-
-    protected override void OnShutdown(ImmediateGuiAppHost host)
-    {
-        State.Assemblies.Changed -= host.Invalidate;
-        SaveOnExit(host.WindowBounds);
+        State.Open(_startupAssemblies);
     }
 
     /// <summary>Saves the settings as the app closes, with the main window at <paramref name="window"/>
@@ -66,15 +68,6 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         State.Settings.RememberWindow(window);
         UiState.HandOverViewSettings();
         State.SaveSettings();
-    }
-
-    protected override void OnRender(Ui<UiState> ui, Workspace w)
-    {
-        ui.State.StartFrame();
-        MainView.Render(ui, w);
-        ui.State.FinishFrame();
-        DrawAgainForViewAsks(ui, w);
-        SaveSettingsIfChanged(ui, w);
     }
 
     /// <summary>Asks for another frame when a feature asked something of the view after the screen
