@@ -245,6 +245,31 @@ public sealed class TabStripTests
         Assert.True(frames.RectOf("Doc").Contains(new PointF(icon.X + icon.Width / 2, icon.Y + icon.Height / 2)));
     }
 
+    [Fact]
+    public void The_tab_list_shows_each_tabs_icon_beside_its_label()
+    {
+        var frames = new UiFrames(new DefaultUiState(), height: 600f, body: ui =>
+        {
+            using var screen = ui.Screen();
+            using var strip = ui.TabStrip("tabs");
+            for (var i = 1; i <= 10; i++)
+                strip.Tab($"Doc{i}", i == 1, icon: new UiIcon($"@{i}"));
+        }).Frame(3);
+
+        frames.ClickOn(ListButtonId).Frame(2);
+
+        var menu = frames.RectOf(ui => UiWidgets.MenuPopupId(ListButtonId(ui)));
+        var icon = frames.TextRects()
+            .Where(t => t.Text == "@10")
+            .Select(t => t.Rect)
+            .Single(r => menu.Contains(new PointF(r.X + 1f, r.Y + 1f)));
+        var label = frames.TextRects()
+            .Where(t => t.Text == "Doc10")
+            .Select(t => t.Rect)
+            .Single(r => menu.Contains(new PointF(r.X + 1f, r.Y + 1f)));
+        Assert.True(icon.Right <= label.X);
+    }
+
     private void Overflow()
     {
         _tabs.AddRange(Enumerable.Range(4, 7).Select(i => $"Doc{i}"));

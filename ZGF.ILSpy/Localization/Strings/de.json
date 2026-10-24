@@ -21,6 +21,7 @@
   "view.decompiler": "Dekompilierer",
   "view.show_non_public": "Nicht öffentliche Member anzeigen",
   "view.language": "Sprache",
+  "view.panels": "Bereiche",
   "view.bookmarks": "Lesezeichen",
   "view.empty_hint": "Alles ist geschlossen. Öffnen Sie die Assemblys über das Menü „Ansicht“.",
   "view.reset_layout": "Layout zurücksetzen",

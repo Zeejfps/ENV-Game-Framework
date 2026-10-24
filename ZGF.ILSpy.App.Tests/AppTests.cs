@@ -195,6 +195,7 @@ public sealed class AppTests
         Assert.DoesNotContain("string.Concat", app.AppState.Tabs.Active!.Document.GetText());
 
         app.Click("View");
+        app.Click("Panels");
         app.ClickMenuItem("Decompiler options").Frame();
         app.ClickStartingWith("String concatenation");
         app.Settle(1);
@@ -408,6 +409,23 @@ public sealed class AppTests
         Assert.True(DrewIconBefore(app, NodeIcons.Glyph(shown.Node!.Kind), documentTab));
     }
 
+    [Fact]
+    public void The_view_menus_panels_submenu_lists_each_panel_with_its_icon()
+    {
+        var app = AppDriver.Opened();
+        app.Run();
+
+        app.Click("View");
+        Assert.False(app.Frames.Drew("Analyzer"));
+        app.Click("Panels");
+        app.Run(2);
+
+        var analyzer = app.LastTextRect("Analyzer");
+        Assert.True(DrewIconBefore(app, LucideIcons.ScanSearch, analyzer));
+        Assert.True(DrewIconBefore(app, LucideIcons.Palette, app.LastTextRect("Display options")));
+        Assert.Equal(analyzer.X, app.LastTextRect("Display options").X, 0.01f);
+    }
+
     private static bool DrewIconBefore(AppDriver app, string glyph, UiRect title)
     {
         return app.Frames.TextRects()
@@ -419,7 +437,7 @@ public sealed class AppTests
     {
         var gap = title.X - icon.Right;
         var centerOffset = (icon.Y + icon.Height / 2) - (title.Y + title.Height / 2);
-        var besideIt = gap >= 0f && gap < 12f;
+        var besideIt = gap >= 0f && gap < 16f;
         return besideIt && MathF.Abs(centerOffset) < 2f;
     }
 

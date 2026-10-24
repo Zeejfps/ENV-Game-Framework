@@ -27,15 +27,29 @@ public static class DockPanels
     /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
     public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer or DecompilerOptions or DisplayOptions or Exports;
 
-    public static DockTab Tab(Strings t, string panel) => panel switch
+    public static DockTab Tab(Strings t, string panel) => new(Title(t, panel), Icon: Icon(panel));
+
+    private static string Title(Strings t, string panel) => panel switch
     {
-        Assemblies => new DockTab(t.PanelAssemblies, Icon: AssembliesIcon),
-        Bookmarks => new DockTab(t.PanelBookmarks, Icon: BookmarksIcon),
-        Analyzer => new DockTab(t.PanelAnalyzer, Icon: AnalyzerIcon),
-        DecompilerOptions => new DockTab(t.PanelDecompilerOptions, Icon: DecompilerOptionsIcon),
-        DisplayOptions => new DockTab(t.PanelDisplayOptions, Icon: DisplayOptionsIcon),
-        Exports => new DockTab(t.PanelExports, Icon: ExportsIcon),
-        _ => new DockTab(t.PanelSearch, Icon: SearchIcon),
+        Assemblies => t.PanelAssemblies,
+        Bookmarks => t.PanelBookmarks,
+        Analyzer => t.PanelAnalyzer,
+        DecompilerOptions => t.PanelDecompilerOptions,
+        DisplayOptions => t.PanelDisplayOptions,
+        Exports => t.PanelExports,
+        _ => t.PanelSearch,
+    };
+
+    /// <summary>The view's icon, on its tab and in the menu that opens it.</summary>
+    public static UiIcon Icon(string panel) => panel switch
+    {
+        Assemblies => AssembliesIcon,
+        Bookmarks => BookmarksIcon,
+        Analyzer => AnalyzerIcon,
+        DecompilerOptions => DecompilerOptionsIcon,
+        DisplayOptions => DisplayOptionsIcon,
+        Exports => ExportsIcon,
+        _ => SearchIcon,
     };
 
     /// <summary>A copy of the saved layout with only its views — documents do not outlive a run — and

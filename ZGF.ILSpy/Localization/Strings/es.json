@@ -21,6 +21,7 @@
   "view.decompiler": "Descompilador",
   "view.show_non_public": "Mostrar miembros no públicos",
   "view.language": "Idioma",
+  "view.panels": "Paneles",
   "view.bookmarks": "Marcadores",
   "view.empty_hint": "Todo está cerrado. Abre los ensamblados desde el menú Ver.",
   "view.reset_layout": "Restablecer diseño",

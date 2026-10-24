@@ -21,6 +21,7 @@
   "view.decompiler": "디컴파일러",
   "view.show_non_public": "public이 아닌 멤버 표시",
   "view.language": "언어",
+  "view.panels": "패널",
   "view.bookmarks": "책갈피",
   "view.empty_hint": "모두 닫혀 있습니다. 보기 메뉴에서 어셈블리를 여세요.",
   "view.reset_layout": "레이아웃 다시 설정",

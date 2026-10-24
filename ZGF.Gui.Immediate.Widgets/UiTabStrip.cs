@@ -50,7 +50,7 @@ public readonly struct TabStrip : IDisposable
         bool current = true, UiIcon? icon = null)
     {
         var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current, icon);
-        _list.Add(new ListedTab(tab.Id, label, selected));
+        _list.Add(new ListedTab(tab.Id, label, selected, icon));
         if (tab.Id != _picked)
             return tab;
         return tab with { Selected = !selected };
@@ -65,7 +65,7 @@ public readonly struct TabStrip : IDisposable
     }
 }
 
-internal readonly record struct ListedTab(int Id, string Label, bool Selected);
+internal readonly record struct ListedTab(int Id, string Label, bool Selected, UiIcon? Icon);
 
 /// <summary>The tabs a <see cref="TabStrip"/> recorded this frame, for its tab list, and the one
 /// picked from that list, which the strip selects on the next frame only.</summary>
@@ -163,8 +163,8 @@ public static partial class UiWidgets
             ui.Paint((background, edge), static (p, s) => p.FillFade(p.Rect, s.background, s.edge));
     }
 
-    /// <summary>While the strip overflows, the button at its end whose menu lists every tab, the
-    /// selected one marked. Picking the selected tab scrolls it into view.</summary>
+    /// <summary>While the strip overflows, the button at its end whose menu lists every tab with its
+    /// icon, the selected one marked. Picking the selected tab scrolls it into view.</summary>
     internal static void TabListButton(Ui ui, int stripId, TabList list, string? tooltip)
     {
         if (!ui.CanScroll(stripId)) return;
@@ -193,7 +193,7 @@ public static partial class UiWidgets
     private static bool PickListedTab(Ui ui, ListedTab tab)
     {
         using (ui.Id(tab.Id))
-            return ui.MenuRadioItem(tab.Label, tab.Selected);
+            return ui.MenuRadioItem(tab.Label, tab.Selected, icon: tab.Icon);
     }
 
     internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current,

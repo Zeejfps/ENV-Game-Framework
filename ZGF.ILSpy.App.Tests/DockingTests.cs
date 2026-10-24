@@ -37,6 +37,7 @@ public sealed class DockingTests
         app.Run(2);
         var closed = !layout.Contains(DockPanels.Assemblies);
         app.Click("View");
+        app.Click("Panels");
         app.ClickMenuItem("Assemblies").Frame(2);
 
         Assert.True(closed);
@@ -56,6 +57,7 @@ public sealed class DockingTests
         app.Click("View");
         Assert.True(app.Frames.Drew("Back"));
         Assert.True(app.Frames.Drew("Forward"));
+        app.Click("Panels");
         app.ClickMenuItem("Search").Frame(2);
 
         Assert.True(layout.Contains(DockPanels.Search));

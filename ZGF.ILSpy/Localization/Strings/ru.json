@@ -21,6 +21,7 @@
   "view.decompiler": "Декомпилятор",
   "view.show_non_public": "Показывать непубличные члены",
   "view.language": "Язык",
+  "view.panels": "Панели",
   "view.bookmarks": "Закладки",
   "view.empty_hint": "Всё закрыто. Откройте сборки через меню «Вид».",
   "view.reset_layout": "Сбросить макет",

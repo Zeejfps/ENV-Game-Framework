@@ -21,6 +21,7 @@
   "view.decompiler": "逆コンパイラー",
   "view.show_non_public": "非パブリック メンバーを表示",
   "view.language": "言語",
+  "view.panels": "パネル",
   "view.bookmarks": "ブックマーク",
   "view.empty_hint": "すべて閉じています。[表示] メニューからアセンブリを開いてください。",
   "view.reset_layout": "レイアウトのリセット",

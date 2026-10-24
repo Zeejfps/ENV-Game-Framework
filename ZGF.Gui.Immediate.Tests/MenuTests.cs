@@ -461,9 +461,9 @@ public sealed class SelectButtonTests
     [Fact]
     public void A_check_items_icon_sits_between_the_check_and_the_label_whether_checked_or_not()
     {
-        _frames.Frame().ClickOn("colors").Frame();
+        _frames.Frame().ClickOn("colors").Frame(2);
         Assert.True(IsLeftOf("B", "Blue"));
-        Assert.True(IsLeftOf("Red", "Blue"));
+        Assert.Equal(_frames.TextRect("Red").X, _frames.TextRect("Blue").X, 0.01f);
 
         _frames.ClickOn("Blue").Frame();
 
@@ -592,26 +592,48 @@ public sealed class SplitIconButtonTests
 
 public sealed class MenuItemIconTests
 {
-    private readonly UiFrames _frames = new(new DefaultUiState(), body: Body);
+    private readonly UiFrames _frames;
+    private bool _checkedHasIcon;
 
-    private static void Body(Ui ui)
+    public MenuItemIconTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
+
+    private void Body(Ui ui)
     {
         using var menu = ui.DropdownButton("more");
         if (!menu.IsOpen) return;
         ui.MenuItem("Plain");
         ui.MenuItem("Iconic", icon: new UiIcon("I", Color: 0xFF00FF00, Overlay: "o"));
-        ui.MenuItem("Checked", check: true, icon: new UiIcon("X"));
+        ui.MenuItem("Checked", check: true, icon: _checkedHasIcon ? new UiIcon("X") : null);
+        ui.MenuRadioItem("Chosen", selected: true, icon: _checkedHasIcon ? new UiIcon("R") : null);
     }
 
+    private void Open() => _frames.Frame().ClickOn("more").Frame(2);
+
     [Fact]
-    public void An_icon_sits_in_the_mark_column_with_its_overlay_unless_the_item_is_checked()
+    public void An_icon_sits_in_the_mark_column_with_its_overlay_while_no_item_has_one_beside_its_mark()
     {
-        _frames.Frame().ClickOn("more").Frame();
+        Open();
 
         Assert.True(_frames.Drew("I"));
         Assert.Equal(0xFF00FF00u, _frames.TextColor("I"));
         Assert.True(_frames.Drew("o"));
-        Assert.False(_frames.Drew("X"));
+        Assert.Equal(_frames.TextRect("Plain").X, _frames.TextRect("Checked").X, 0.01f);
+    }
+
+    [Fact]
+    public void Checked_and_chosen_items_show_their_icon_beside_the_mark_and_every_icon_and_label_lines_up()
+    {
+        _checkedHasIcon = true;
+
+        Open();
+
+        Assert.Equal(_frames.TextRect("I").X, _frames.TextRect("X").X, 0.01f);
+        Assert.Equal(_frames.TextRect("I").X, _frames.TextRect("R").X, 0.01f);
+        var labelX = _frames.TextRect("Plain").X;
+        Assert.Equal(labelX, _frames.TextRect("Iconic").X, 0.01f);
+        Assert.Equal(labelX, _frames.TextRect("Checked").X, 0.01f);
+        Assert.Equal(labelX, _frames.TextRect("Chosen").X, 0.01f);
+        Assert.True(_frames.TextRect("X").Right <= labelX);
     }
 }
 

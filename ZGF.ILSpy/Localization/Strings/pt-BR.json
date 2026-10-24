@@ -21,6 +21,7 @@
   "view.decompiler": "Descompilador",
   "view.show_non_public": "Mostrar membros não públicos",
   "view.language": "Idioma",
+  "view.panels": "Painéis",
   "view.bookmarks": "Indicadores",
   "view.empty_hint": "Tudo está fechado. Abra os assemblies pelo menu Exibir.",
   "view.reset_layout": "Redefinir layout",

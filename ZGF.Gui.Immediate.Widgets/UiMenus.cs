@@ -28,6 +28,8 @@ public static partial class UiWidgets
         private List<Item> _recording = new();
         private int _owner;
         private bool _childSeen;
+        private bool _iconColumn;
+        private bool _recordingIconColumn;
         private PointF _pointer = new(float.NaN, float.NaN);
 
         public int PopupId;
@@ -39,6 +41,12 @@ public static partial class UiWidgets
         public MenuPopup? OpenChild;
 
         public int ScrollId => HashCode.Combine(PopupId, MenuScrollSalt);
+
+        /// <summary>Whether last frame's items had an icon beside a mark, so every item leaves a
+        /// column for icons after the marks and the labels line up.</summary>
+        public bool HasIconColumn => _iconColumn;
+
+        public void UseIconColumn() => _recordingIconColumn = true;
 
         /// <summary>Whether the pointer moved since the menu last looked, so hovering takes the
         /// highlight from the keys only when the user moves the mouse, not while it rests on an item.</summary>
@@ -58,12 +66,14 @@ public static partial class UiWidgets
             {
                 _owner = owner;
                 _items.Clear();
+                _iconColumn = false;
                 Highlight = -1;
                 OpenSub = -1;
                 OpenChild = null;
             }
             _recording.Clear();
             _childSeen = false;
+            _recordingIconColumn = false;
         }
 
         public int AddItem(int id, bool enabled, bool subMenu = false)
@@ -85,6 +95,7 @@ public static partial class UiWidgets
         public void EndItems()
         {
             (_items, _recording) = (_recording, _items);
+            _iconColumn = _recordingIconColumn;
             if (!_childSeen) OpenChild = null;
             PickIndex = -1;
             if (Highlight >= _items.Count) Highlight = -1;
@@ -327,6 +338,8 @@ public static partial class UiWidgets
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
             ui.Leaf(new Box { Width = theme.MenuIconColumnWidth, Height = 0f });
+            if (parent.HasIconColumn)
+                ui.Leaf(new Box { Width = theme.MenuIconColumnWidth, Height = 0f });
             ui.Text(label, color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
             using (ui.Box(new Box { Width = theme.IconSize, Height = Sizing.Grow() }))
@@ -357,17 +370,27 @@ public static partial class UiWidgets
     }
 
     /// <summary>Returns true on the frame the item is picked, which also closes its menu.
-    /// <paramref name="check"/> shows a check mark when true and leaves room for one when false;
-    /// otherwise <paramref name="icon"/>, when given, sits where the mark would.
-    /// <paramref name="shortcut"/> is only displayed. Ids work as for <see cref="Button"/>.</summary>
+    /// <paramref name="check"/> shows a check mark when true and leaves room for one when false,
+    /// with <paramref name="icon"/>, when given, between it and the label. Without a check the
+    /// icon sits where the mark would, unless another item of the menu has an icon beside its mark,
+    /// when every icon and label lines up after the marks. <paramref name="shortcut"/> is only
+    /// displayed. Ids work as for <see cref="Button"/>.</summary>
     public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null,
-        UiIcon? icon = null) =>
-        ui.MenuItem(label, shortcut, enabled, check == true ? MenuMark.Check : MenuMark.None, id, icon, null, keepOpen: false);
+        UiIcon? icon = null)
+    {
+        var mark = check == true ? MenuMark.Check : MenuMark.None;
+        return ui.MenuItem(label, shortcut, enabled, mark, check != null, id, icon, keepOpen: false);
+    }
 
     /// <summary>One choice of a set: shows a dot when <paramref name="selected"/> and leaves room
-    /// for one otherwise. Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, string?, bool, bool?, string?)"/>.</summary>
-    public static bool MenuRadioItem(this Ui ui, string label, bool selected, string? shortcut = null, bool enabled = true, string? id = null) =>
-        ui.MenuItem(label, shortcut, enabled, selected ? MenuMark.Dot : MenuMark.None, id, null, null, keepOpen: false);
+    /// for one otherwise, with <paramref name="icon"/>, when given, between it and the label.
+    /// Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, string?, bool, bool?, string?, UiIcon?)"/>.</summary>
+    public static bool MenuRadioItem(this Ui ui, string label, bool selected, string? shortcut = null, bool enabled = true, string? id = null,
+        UiIcon? icon = null)
+    {
+        var mark = selected ? MenuMark.Dot : MenuMark.None;
+        return ui.MenuItem(label, shortcut, enabled, mark, markable: true, id, icon, keepOpen: false);
+    }
 
     private enum MenuMark
     {
@@ -376,7 +399,10 @@ public static partial class UiWidgets
         Dot,
     }
 
-    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, string? id, UiIcon? icon, UiIcon? labelIcon, bool keepOpen)
+    /// <summary>An item of a menu: a <paramref name="markable"/> one keeps its mark column for the
+    /// mark and shows <paramref name="icon"/> in the icon column after it.</summary>
+    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, bool markable, string? id, UiIcon? icon,
+        bool keepOpen)
     {
         var theme = ui.Theme;
         var menu = ui.FindOpenGroup<MenuPopup>();
@@ -395,30 +421,22 @@ public static partial class UiWidgets
             || (menu != null && index == menu.PickIndex));
         var highlighted = enabled && (i.Held || (menu != null ? index == menu.Highlight : i.Hovered));
         var color = highlighted ? theme.SelectionText : enabled ? theme.Text : theme.TextDisabled;
+        var besideMark = markable && icon != null;
+        if (besideMark)
+            menu?.UseIconColumn();
+        var menuHasIconColumn = menu != null && menu.HasIconColumn;
+        var iconColumn = besideMark || menuHasIconColumn;
 
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
-            using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
+            if (iconColumn)
             {
-                if (mark == MenuMark.None && icon is { } shown)
-                {
-                    ui.Icon(shown);
-                }
-                else
-                {
-                    using (ui.Box(new Box { Width = theme.IconSize, Height = theme.IconSize }))
-                    {
-                        if (mark == MenuMark.Check)
-                            ui.PaintGlyph(UiGlyph.Checkmark, color);
-                        else if (mark == MenuMark.Dot)
-                            ui.Paint(color, static (p, c) => p.Circle(new PointF(p.Rect.X + p.Rect.Width / 2, p.Rect.Y + p.Rect.Height / 2), p.Rect.Height * 0.2f, c));
-                    }
-                }
+                MarkColumn(ui, mark, null, color);
+                IconColumn(ui, icon);
             }
-            if (labelIcon is { } beside)
+            else
             {
-                using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignY = Align.Center }))
-                    ui.Icon(beside);
+                MarkColumn(ui, mark, icon, color);
             }
             ui.Text(label, color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
@@ -431,13 +449,46 @@ public static partial class UiWidgets
         return picked;
     }
 
+    /// <summary>The column of an item's mark, or of its <paramref name="icon"/> when it has no mark
+    /// and the menu no icon column.</summary>
+    private static void MarkColumn(Ui ui, MenuMark mark, UiIcon? icon, uint color)
+    {
+        var theme = ui.Theme;
+        using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
+        {
+            if (icon != null)
+            {
+                ui.Icon(icon.Value);
+                return;
+            }
+            using (ui.Box(new Box { Width = theme.IconSize, Height = theme.IconSize }))
+            {
+                if (mark == MenuMark.Check)
+                    ui.PaintGlyph(UiGlyph.Checkmark, color);
+                else if (mark == MenuMark.Dot)
+                    ui.Paint(color, static (p, c) => p.Circle(new PointF(p.Rect.X + p.Rect.Width / 2, p.Rect.Y + p.Rect.Height / 2), p.Rect.Height * 0.2f, c));
+            }
+        }
+    }
+
+    private static void IconColumn(Ui ui, UiIcon? icon)
+    {
+        var theme = ui.Theme;
+        using (ui.Box(new Box { Width = theme.MenuIconColumnWidth, Height = Sizing.Grow(), AlignY = Align.Center }))
+        {
+            if (icon != null)
+                ui.Icon(icon.Value);
+        }
+    }
+
     /// <summary>A checkable item: picking it flips <paramref name="value"/>. With
     /// <paramref name="keepOpen"/> the menu stays open, so several items can be flipped in a row.
     /// An <paramref name="icon"/> is drawn between the check and the label.</summary>
     public static bool MenuItem(this Ui ui, string label, ref bool value, string? shortcut = null, bool enabled = true, string? id = null,
         bool keepOpen = false, UiIcon? icon = null)
     {
-        var picked = ui.MenuItem(label, shortcut, enabled, value ? MenuMark.Check : MenuMark.None, id, null, icon, keepOpen);
+        var mark = value ? MenuMark.Check : MenuMark.None;
+        var picked = ui.MenuItem(label, shortcut, enabled, mark, markable: true, id, icon, keepOpen);
         if (picked) value = !value;
         return picked;
     }

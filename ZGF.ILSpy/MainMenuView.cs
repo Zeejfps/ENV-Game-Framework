@@ -98,26 +98,42 @@ internal static class MainMenuView
         ui.MenuSeparator();
         ui.MenuItem(t.ViewShowNonPublic, ref appState.ShowNonPublic, id: "show-non-public");
         ui.MenuSeparator();
-        var screen = ui.State;
-        var layout = screen.Layout;
-        if (ui.MenuItem(t.PanelAssemblies, check: layout.Contains(DockPanels.Assemblies), id: "assemblies"))
-            OpenAssembliesPanel(screen);
-        if (ui.MenuItem(t.ViewBookmarks, check: layout.Contains(DockPanels.Bookmarks), id: "bookmarks"))
-            OpenBookmarks(screen);
-        if (ui.MenuItem(t.PanelAnalyzer, check: layout.Contains(DockPanels.Analyzer), id: "analyzer"))
-            OpenAnalyzer(screen);
-        if (ui.MenuItem(t.PanelSearch, Shortcuts.Search, check: layout.Contains(DockPanels.Search), id: "search"))
-            OpenSearch(screen);
-        if (ui.MenuItem(t.PanelDecompilerOptions, check: layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
-            OpenDecompilerOptions(screen);
-        if (ui.MenuItem(t.PanelDisplayOptions, check: layout.Contains(DockPanels.DisplayOptions), id: "display-options"))
-            OpenDisplayOptions(screen);
-        if (ui.MenuItem(t.PanelExports, check: layout.Contains(DockPanels.Exports), id: "exports"))
-            OpenExports(screen);
+        PanelsMenu(ui);
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
-            AskToResetLayout(screen);
+            AskToResetLayout(ui.State);
         ui.MenuSeparator();
         LanguageMenu(ui, appState);
+    }
+
+    /// <summary>The submenu of the views, each checked while open, that opens the one picked.</summary>
+    private static void PanelsMenu(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        var screen = ui.State;
+        using var panels = ui.SubMenu(t.ViewPanels, id: "panels");
+        if (!panels.IsOpen) return;
+        if (PanelItem(ui, t.PanelAssemblies, DockPanels.Assemblies))
+            OpenAssembliesPanel(screen);
+        if (PanelItem(ui, t.ViewBookmarks, DockPanels.Bookmarks))
+            OpenBookmarks(screen);
+        if (PanelItem(ui, t.PanelAnalyzer, DockPanels.Analyzer))
+            OpenAnalyzer(screen);
+        if (PanelItem(ui, t.PanelSearch, DockPanels.Search, Shortcuts.Search))
+            OpenSearch(screen);
+        if (PanelItem(ui, t.PanelDecompilerOptions, DockPanels.DecompilerOptions))
+            OpenDecompilerOptions(screen);
+        if (PanelItem(ui, t.PanelDisplayOptions, DockPanels.DisplayOptions))
+            OpenDisplayOptions(screen);
+        if (PanelItem(ui, t.PanelExports, DockPanels.Exports))
+            OpenExports(screen);
+    }
+
+    /// <summary>The item that opens <paramref name="panel"/>, checked while it is open, with the
+    /// icon its tab shows.</summary>
+    private static bool PanelItem(Ui<UiState> ui, string label, string panel, string? shortcut = null)
+    {
+        var open = ui.State.Layout.Contains(panel);
+        return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(panel));
     }
 
     private static void DecompilerMenu(Ui<UiState> ui, AppState appState)

@@ -23,6 +23,7 @@
   "view.decompiler": "Decompiler",
   "view.show_non_public": "Show non-public members",
   "view.language": "Language",
+  "view.panels": "Panels",
   "view.bookmarks": "Bookmarks",
   "view.empty_hint": "Everything is closed. Open the assemblies from the View menu.",
   "view.reset_layout": "Reset layout",
