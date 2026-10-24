@@ -119,16 +119,77 @@ public sealed class DockLayout
     public void Activate(string panel)
     {
         if (GroupOf(panel) is not { } group) return;
-        group.Active = panel;
         Focused = panel;
-        if (WindowOf(group) is { } window)
-            BringToFront(window);
+        var changed = Select(group, panel);
+        if (WindowOf(group) is { } window && Raise(window))
+            changed = true;
+        if (changed)
+            Changes++;
     }
 
     public void BringToFront(DockWindow window)
     {
-        if (Windows.Count == 0 || Windows[^1] == window || !Windows.Remove(window)) return;
+        if (Raise(window))
+            Changes++;
+    }
+
+    /// <summary>Puts <paramref name="window"/> in front of the others; false when it was.</summary>
+    private bool Raise(DockWindow window)
+    {
+        if (Windows.Count == 0 || Windows[^1] == window || !Windows.Remove(window)) return false;
         Windows.Add(window);
+        return true;
+    }
+
+    /// <summary>Brings the tab the user picked in <paramref name="group"/>'s strip to the front, counting
+    /// it as a change when another was in front.</summary>
+    internal void SelectTab(DockGroup group, string panel)
+    {
+        if (Select(group, panel))
+            Changes++;
+    }
+
+    private static bool Select(DockGroup group, string panel)
+    {
+        if (group.Active == panel)
+            return false;
+        group.Active = panel;
+        return true;
+    }
+
+    /// <summary>Counts the changes made to the arrangement: by the methods that rearrange it, and once
+    /// for each splitter or window drag when it ends, never on the frames in between. Watch it to
+    /// tell when the arrangement should be saved.</summary>
+    [JsonIgnore]
+    public int Changes { get; private set; }
+
+    private bool _isMoving;
+
+    /// <summary>Gives <paramref name="split"/> the ratio a dragged splitter sets, noting the drag when it moved.</summary>
+    internal void Resize(DockSplit split, float ratio)
+    {
+        if (ratio == split.Ratio)
+            return;
+        split.Ratio = ratio;
+        _isMoving = true;
+    }
+
+    /// <summary>Gives <paramref name="window"/> the place a drag sets, noting the drag when it moved.</summary>
+    internal void Move(DockWindow window, UiRect rect)
+    {
+        if (window.Rect == rect)
+            return;
+        window.Rect = rect;
+        _isMoving = true;
+    }
+
+    /// <summary>Counts the drag that was moving a splitter or a window as one change, once it ended.</summary>
+    internal void FinishMoving()
+    {
+        if (!_isMoving)
+            return;
+        _isMoving = false;
+        Changes++;
     }
 
     /// <summary>Removes <paramref name="panel"/>, collapsing what it leaves empty, and raises
@@ -136,6 +197,7 @@ public sealed class DockLayout
     public void Close(string panel)
     {
         if (!Detach(panel, out _, out _)) return;
+        Changes++;
         PanelClosed?.Invoke(panel);
     }
 
@@ -144,18 +206,25 @@ public sealed class DockLayout
     /// a tab goes at <paramref name="index"/>, or last.</summary>
     public void Dock(string panel, DockNode target, DockEdge edge, float share = 0.5f, int index = -1)
     {
+        if (DockPanel(panel, target, edge, share, index))
+            Changes++;
+    }
+
+    /// <summary>Docks <paramref name="panel"/> as <see cref="Dock(string, DockNode, DockEdge, float, int)"/>
+    /// says; false when that leaves the arrangement as it was.</summary>
+    private bool DockPanel(string panel, DockNode target, DockEdge edge, float share, int index)
+    {
         var source = GroupOf(panel);
         if (source != null && source == target && edge == DockEdge.Center)
         {
-            Reorder(source, panel, index);
             Focused = panel;
-            return;
+            return Reorder(source, panel, index);
         }
         string? refill = null;
         if (source is { Panels.Count: 1 } && (source == target || source == Root))
         {
             refill = NewPanel?.Invoke();
-            if (refill == null && source == target) return;
+            if (refill == null && source == target) return false;
             if (refill != null)
                 source.Panels.Add(refill);
         }
@@ -171,10 +240,11 @@ public sealed class DockLayout
             Insert(group, panel, index);
             group.Active = panel;
             if (WindowOf(group) is { } window)
-                BringToFront(window);
-            return;
+                Raise(window);
+            return true;
         }
         PlaceBeside(new DockGroup { Id = NextId++, Panels = { panel }, Active = panel }, target, edge, share);
+        return true;
     }
 
     /// <summary>Docks everything in <paramref name="window"/> into or beside
@@ -182,6 +252,8 @@ public sealed class DockLayout
     public void Dock(DockWindow window, DockNode target, DockEdge edge, float share = 0.5f, int index = -1)
     {
         if (Holds(window.Root, target) || !Windows.Remove(window)) return;
+        _isMoving = false;
+        Changes++;
         Focused = Groups(window.Root).First().Active ?? Focused;
         if (edge == DockEdge.Center && target is DockGroup group)
         {
@@ -201,6 +273,7 @@ public sealed class DockLayout
     /// <paramref name="rect"/>, in front of the others.</summary>
     public DockWindow Float(string panel, UiRect rect)
     {
+        Changes++;
         if (GroupOf(panel) is { Panels.Count: 1 } source && source == Root)
             Refill(source);
         Detach(panel, out _, out _);
@@ -221,17 +294,23 @@ public sealed class DockLayout
     public void Retain(Func<string, bool> keep)
     {
         var seen = new HashSet<string>();
+        var removed = false;
         foreach (var group in AllGroups().ToList())
         {
             for (var i = 0; i < group.Panels.Count;)
             {
                 var panel = group.Panels[i];
                 if (keep(panel) && seen.Add(panel))
+                {
                     i++;
-                else
-                    Detach(group, i, out _, out _);
+                    continue;
+                }
+                Detach(group, i, out _, out _);
+                removed = true;
             }
         }
+        if (removed)
+            Changes++;
     }
 
     /// <summary>Every group, docked then floating, in the order they are drawn.</summary>
@@ -349,14 +428,18 @@ public sealed class DockLayout
             group.Panels.Insert(index, panel);
     }
 
-    private static void Reorder(DockGroup group, string panel, int index)
+    /// <summary>Moves <paramref name="panel"/> to <paramref name="index"/> in its group and brings it to
+    /// the front; false when it was there and in front already.</summary>
+    private static bool Reorder(DockGroup group, string panel, int index)
     {
         var from = group.Panels.IndexOf(panel);
+        var wasActive = group.Active == panel;
         group.Active = panel;
         if (index < 0 || index > group.Panels.Count) index = group.Panels.Count;
-        if (index == from || index == from + 1) return;
+        if (index == from || index == from + 1) return !wasActive;
         group.Panels.RemoveAt(from);
         group.Panels.Insert(index > from ? index - 1 : index, panel);
+        return true;
     }
 
     private void Replace(DockNode old, DockNode replacement)

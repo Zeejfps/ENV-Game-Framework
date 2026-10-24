@@ -157,10 +157,10 @@ public sealed class Workspace
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
         ExportSetup.Window = settings.ExportWindow;
-        LastSave.Record(this.CaptureSavedSources());
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
+        LastSave.Record(this.CaptureSavedSources());
         ReportSettingsLoadError(settings);
         this.ReportLeftOutBookmarks(leftOutBookmarks);
     }

@@ -34,8 +34,8 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
    uses `CancellationToken.None` and caches forever, so later-opened assemblies never show.
    Fix: thread `ct` into inner loops, add `.WithCancellation(ct)`, compute derived types through a
    cancellable call.
-7. **Settings save unevenly.** `SavedSources` (`LastSave.cs`) leaves out the folded option groups, the layout and
-   the column widths, so they save only at shutdown or with another change. Fix: give each a change count that
+7. **Settings save unevenly.** `SavedSources` (`LastSave.cs`) leaves out the folded option groups and the column
+   widths, so they save only at shutdown or with another change. Fix: give each a change count that
    `SavedSources` holds.
 8. **`TreeViewState._expanded` never forgets removed nodes** (`ZGF.Gui.Immediate.Widgets/TreeViewState.cs:30`).
    Closed assemblies and finished analyses stay alive all session. Fix: `Sync` drops entries whose root is no

@@ -235,7 +235,7 @@ internal sealed class DockWalker
                         case 0:
                             var ratio = split.Ratio;
                             frame.Split = _ui.SplitPane(_ui.GetId(split.Id), split.Direction, ref ratio, MinPane, MinPane, unit: SplitUnit.Fraction);
-                            split.Ratio = ratio;
+                            _layout.Resize(split, ratio);
                             frame.Outer = frame.Split.First();
                             frame.Stage = 1;
                             _frames[top] = frame;
@@ -316,6 +316,15 @@ internal sealed class DockWalker
             foreach (var panel in DockLayout.PanelsIn(window.Root))
                 _layout.Close(panel);
         }
+        FinishMovingOnRelease();
+    }
+
+    /// <summary>Counts a splitter or window drag as one change of the layout once the button is up.</summary>
+    private void FinishMovingOnRelease()
+    {
+        if (_ui.Input.IsDown(PointerButton.Left))
+            return;
+        _layout.FinishMoving();
     }
 
     internal static int TabId(Ui ui, string dock, string panel)
@@ -356,8 +365,8 @@ internal sealed class DockWalker
         if (!_ui.TryGetDrag<DockDrag>(out var drag) || drag.Dock != _dockId || drag.Window is not { } window) return;
         if (!_ui.TryGetRect(_dockId, out var dock)) return;
         var pointer = _ui.Input.Pointer;
-        window.X = pointer.X - drag.Grab.X - dock.X;
-        window.Y = pointer.Y - drag.Grab.Y - dock.Y;
+        var moved = window.Rect with { X = pointer.X - drag.Grab.X - dock.X, Y = pointer.Y - drag.Grab.Y - dock.Y };
+        _layout.Move(window, moved);
     }
 
     private string? OpenGroup(ref Frame frame)
@@ -392,7 +401,7 @@ internal sealed class DockWalker
                     _tabs.Add(tab.Id);
                     if (tab.Selected)
                     {
-                        group.Active = panel;
+                        _layout.SelectTab(group, panel);
                         _ui.RequestFrame();
                     }
                     if (tab.Closed)
@@ -547,7 +556,7 @@ internal sealed class DockWalker
         }
         if ((edges & 8) != 0)
             h = MathF.Max(MinWindowHeight, h + dy);
-        window.Rect = new UiRect(x, y, w, h);
+        _layout.Move(window, new UiRect(x, y, w, h));
     }
 
     private DockTarget? FindTarget(DockDrag drag, UiRect dock)

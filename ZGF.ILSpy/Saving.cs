@@ -41,6 +41,7 @@ public static class Saving
             w.Bookmarks.Revision,
             w.Analyzer.Revision,
             w.MetadataFilters.Revision,
+            w.Layout.Changes,
             w.Theme,
             w.Language,
             w.DecompilerOptions,

@@ -4,13 +4,14 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>What the settings are saved from: the versions of the open assemblies, the named lists, the bookmarks,
-/// the analyzer and the metadata filters, and the preferences themselves.</summary>
+/// the analyzer, the metadata filters and the layout, and the preferences themselves.</summary>
 public readonly record struct SavedSources(
     int Assemblies,
     int Lists,
     int Bookmarks,
     int Analyzer,
     int Filters,
+    int Layout,
     AppThemeId Theme,
     DecompilationLanguage Language,
     DecompilerOptions DecompilerOptions,

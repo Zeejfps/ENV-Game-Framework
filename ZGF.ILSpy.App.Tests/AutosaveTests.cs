@@ -1,3 +1,6 @@
+using ZGF.Desktop;
+using ZGF.Geometry;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -135,5 +138,37 @@ public sealed class AutosaveTests : IDisposable
         d.Workspace.SaveSettings();
 
         Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
+    }
+
+    [Fact]
+    public void A_splitter_drag_that_ends_is_saved_with_the_next_frame()
+    {
+        var app = new AppDriver(settings: _temp.Settings());
+        app.Run(2);
+        var root = (DockSplit)app.Workspace.Layout.Root;
+        var before = root.Ratio;
+        var divider = FindDivider(app, root);
+
+        app.Frames.Drag(new PointF(divider, 350f), new PointF(divider + 20f, 350f), new PointF(divider + 120f, 350f));
+        app.Frames.Release().Frame(2);
+
+        var layout = _temp.Settings().Layout;
+        Assert.NotNull(layout);
+        var saved = Assert.IsType<DockSplit>(layout.Root);
+        Assert.NotEqual(before, root.Ratio);
+        Assert.Equal(root.Ratio, saved.Ratio, 3);
+    }
+
+    /// <summary>Where the pointer turns into the splitter's resize cursor, near where the root split's ratio puts it.</summary>
+    private static float FindDivider(AppDriver app, DockSplit root)
+    {
+        var guess = root.Ratio * app.Frames.Width;
+        for (var x = guess - 40f; x < guess + 40f; x++)
+        {
+            app.Frames.MovePointer(x, 350f).Frame();
+            if (app.Frames.Cursor == MouseCursor.ResizeHorizontal)
+                return x;
+        }
+        throw new InvalidOperationException("No splitter near the root split's ratio.");
     }
 }

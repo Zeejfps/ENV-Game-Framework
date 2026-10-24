@@ -303,4 +303,64 @@ public sealed class DockSpaceTests
 
         Assert.Equal((400f + 100f) / 800f, root.Ratio, 3);
     }
+
+    [Fact]
+    public void Picking_another_tab_counts_as_one_change_and_picking_it_again_as_none()
+    {
+        _frames.Frame();
+        var before = _layout.Changes;
+
+        _frames.ClickOn(ui => DockWalker.TabId(ui, "dock", "b")).Frame();
+        var afterPick = _layout.Changes;
+        _frames.ClickOn(ui => DockWalker.TabId(ui, "dock", "b")).Frame();
+
+        Assert.Equal("b", _layout.GroupOf("b")!.Active);
+        Assert.Equal(before + 1, afterPick);
+        Assert.Equal(afterPick, _layout.Changes);
+    }
+
+    [Fact]
+    public void Changes_that_leave_the_layout_as_it_was_count_as_none()
+    {
+        _frames.Frame();
+        var window = _layout.Float("b", new UiRect(100f, 100f, 300f, 200f));
+        var before = _layout.Changes;
+
+        _layout.Dock("a", _layout.GroupOf("a")!, DockEdge.Center, 0);
+        _layout.Retain(static _ => true);
+        _layout.BringToFront(window);
+        _frames.Press().Release().Frame();
+
+        Assert.Equal(before, _layout.Changes);
+    }
+
+    [Fact]
+    public void Docking_a_dragged_window_counts_as_one_change()
+    {
+        _layout.Float("b", new UiRect(100f, 100f, 300f, 200f));
+        _frames.Frame();
+        var before = _layout.Changes;
+
+        Drag(new PointF(150f, 110f), new PointF(250f, 210f));
+        _frames.MovePointer(Center(GroupRect("c"))).Frame();
+        Drop();
+
+        Assert.Empty(_layout.Windows);
+        Assert.Equal(before + 1, _layout.Changes);
+    }
+
+    [Fact]
+    public void Dragging_a_divider_counts_as_one_change_when_it_ends()
+    {
+        _frames.Frame();
+        var divider = GroupRect("a").Right + 2.5f;
+        var before = _layout.Changes;
+
+        Drag(new PointF(divider, 300f), new PointF(divider + 50f, 300f), new PointF(divider + 100f, 300f));
+        var whileDragging = _layout.Changes;
+        Drop();
+
+        Assert.Equal(before, whileDragging);
+        Assert.Equal(before + 1, _layout.Changes);
+    }
 }
