@@ -30,13 +30,13 @@ public sealed partial class UiState : IUiState
         _listGeneration = appState.Assemblies.Generation;
         _shownLanguage = appState.Language;
         _shownOptions = appState.DecompilerOptions;
-        AddOpenTabViews();
+        AddOpenTabViews(appState.Tabs);
         MainLayout = RestoreLayout(settings.Layout);
         _keptView = CaptureViewSources();
     }
 
-    /// <summary>The strings of the language the app state speaks now, for what reports to it later.</summary>
-    private Strings ReadStrings() => Strings.For(_appState.Locale);
+    /// <summary>The strings of the language the screen speaks now, for what reports to the app state later.</summary>
+    private Strings ReadStrings() => Strings;
 
     public UiTheme Theme { get; set; } = UiTheme.Dark;
     public CodeViewPalette CodeViewPalette { get; set; } = CodeViewPalette.Dark;
@@ -93,34 +93,13 @@ public sealed partial class UiState : IUiState
     /// <summary>What the export dialog asks for, and whether it is open.</summary>
     public ExportSetup ExportSetup { get; } = new();
 
-    /// <summary>Does what comes before drawing a frame: takes the theme and strings the app state's
-    /// preferences pick, follows the open assemblies and analyses in the trees and the open tabs in
-    /// the layout, runs the commands the features queued for the view, and has the tabs it shows decompile
-    /// again when the language or the options changed.</summary>
-    public void StartFrame()
+    /// <summary>Takes the colors of <paramref name="theme"/> and the strings of <paramref name="locale"/>.</summary>
+    public void ApplyThemeAndLanguage(AppThemeId theme, Locale locale)
     {
-        ApplyThemeAndLanguage();
-        SyncTrees();
-        SyncTabViews();
-        FocusNextTabIfNone();
-        RunViewCommands();
-        FollowDecompilation();
-    }
-
-    private void ApplyThemeAndLanguage()
-    {
-        var theme = AppThemes.For(_appState.Theme);
-        Theme = theme.Ui;
-        CodeViewPalette = theme.Code;
-        NodeIconPalette = theme.Icons;
-        Strings = Strings.For(_appState.Locale);
-    }
-
-    /// <summary>Does what comes after drawing a frame: tells the tabs where their views stand, and
-    /// hands the app state what its settings keep of the screen when that changed.</summary>
-    public void FinishFrame()
-    {
-        KeepTabPositions();
-        KeepChangedViewSettings();
+        var colors = AppThemes.For(theme);
+        Theme = colors.Ui;
+        CodeViewPalette = colors.Code;
+        NodeIconPalette = colors.Icons;
+        Strings = Strings.For(locale);
     }
 }

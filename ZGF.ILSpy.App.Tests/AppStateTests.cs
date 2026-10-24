@@ -131,7 +131,7 @@ public sealed class AppStateTests
         var documents = d.Ui.Layout;
 
         documents.Dock(greeterPanel, documents.GroupOf(greeterPanel)!, DockEdge.Right);
-        d.Ui.SyncActiveTab();
+        d.Ui.SyncActiveTab(d.AppState.Tabs.Active);
         d.NextFrame();
 
         Assert.Equal(2, d.AppState.Tabs.Count);

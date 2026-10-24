@@ -19,17 +19,17 @@ public sealed partial class UiState
     /// <summary>Forgets what the tree had expanded and selected, and the menu's target, once the list
     /// was cleared; rebuilds its roots when the open assemblies changed; and lists the analyzer's rows
     /// again when its roots changed.</summary>
-    private void SyncTrees()
+    public void SyncTrees(AssemblyList assemblies, bool showNonPublic)
     {
-        ForgetClearedList();
-        Tree.SetShowNonPublic(_appState.ShowNonPublic);
-        Tree.Sync(_appState.Assemblies);
+        ForgetClearedList(assemblies);
+        Tree.SetShowNonPublic(showNonPublic);
+        Tree.Sync(assemblies);
         Analyzer.Follow();
     }
 
-    private void ForgetClearedList()
+    private void ForgetClearedList(AssemblyList assemblies)
     {
-        var generation = _appState.Assemblies.Generation;
+        var generation = assemblies.Generation;
         if (generation == _listGeneration)
             return;
         _listGeneration = generation;
@@ -54,13 +54,5 @@ public sealed partial class UiState
     {
         OpenAnalyzer();
         AddToAnalyzer(_appState, reference);
-    }
-
-    /// <summary>Expands <paramref name="root"/> and selects it, unless it was removed meanwhile.</summary>
-    private void ShowAnalysis(AnalyzerSymbolNode root)
-    {
-        if (!_appState.Analyzer.Contains(root))
-            return;
-        Analyzer.Show(root);
     }
 }

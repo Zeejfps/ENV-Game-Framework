@@ -41,8 +41,16 @@ public static class MainView
             return;
         }
         DockSpace(ui, appState);
-        ui.State.SyncActiveTab();
+        SyncActiveTab(ui, appState);
         RemoveReleasedImages(ui);
+    }
+
+    /// <summary>Runs the view commands the features queued while the documents were drawn, then asks for
+    /// the tab the user last pressed, docked or brought to front to become the active one.</summary>
+    private static void SyncActiveTab(Ui<UiState> ui, AppState appState)
+    {
+        IlSpyApp.RunViewCommands(ui.State, appState);
+        ui.State.SyncActiveTab(appState.Tabs.Active);
     }
 
     private static void UpdateSearch(Ui<UiState> ui, AppState appState)

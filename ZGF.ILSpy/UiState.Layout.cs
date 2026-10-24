@@ -107,11 +107,11 @@ public sealed partial class UiState
 
     /// <summary>Focuses another tab when the active one was closed by a feature, trying again only once
     /// the tabs or the layout changed since the last try found none.</summary>
-    private void FocusNextTabIfNone()
+    public void FocusNextTabIfNone(DocumentTabs tabs)
     {
-        if (_appState.Tabs.Active != null)
+        if (tabs.Active != null)
             return;
-        var tried = new FocusTry(Layout.Changes, _appState.Tabs.Count);
+        var tried = new FocusTry(Layout.Changes, tabs.Count);
         if (tried == _lastFocusTry)
             return;
         _lastFocusTry = tried;
@@ -121,12 +121,10 @@ public sealed partial class UiState
     /// <summary>What the last try to focus another tab saw: the layout's change count and how many tabs were open.</summary>
     private readonly record struct FocusTry(int LayoutChanges, int TabCount);
 
-    /// <summary>Docks <paramref name="tab"/> beside the tab <paramref name="beside"/> when it is not
-    /// docked yet, and brings it to the front.</summary>
-    private void ShowTab(DocumentTab tab, DocumentTab? beside)
+    /// <summary>Docks <paramref name="tab"/>, an open tab, beside the tab <paramref name="beside"/> when it
+    /// is not docked yet, and brings it to the front.</summary>
+    public void ShowTab(DocumentTab tab, DocumentTab? beside)
     {
-        if (!_appState.Tabs.Contains(tab))
-            return;
         AddTabView(tab);
         var panel = PanelOf(tab);
         if (!Layout.Contains(panel))
@@ -150,15 +148,14 @@ public sealed partial class UiState
         AskToFocusTab(tab);
     }
 
-    /// <summary>Called after the documents are drawn: runs the view commands the features queued meanwhile, then
-    /// asks for the tab the user last pressed, docked or brought to front to become the active one.</summary>
-    public void SyncActiveTab()
+    /// <summary>Called after the documents are drawn: asks for the tab the user last pressed, docked or
+    /// brought to front to become the active one, unless it is <paramref name="active"/>.</summary>
+    public void SyncActiveTab(DocumentTab? active)
     {
-        RunViewCommands();
         var tab = FindTab(Layout.Focused);
         if (tab == null)
             return;
-        if (tab == _appState.Tabs.Active)
+        if (tab == active)
             return;
         AskToFocusTab(tab);
     }
@@ -214,7 +211,8 @@ public sealed partial class UiState
 
     public void OpenAssemblies() => MainLayout.OpenAssemblies();
 
-    private void OpenPanel(string panel)
+    /// <summary>Docks the view <paramref name="panel"/>, one of <see cref="DockPanels"/>, if it is not, and brings it to the front.</summary>
+    public void OpenPanel(string panel)
     {
         switch (panel)
         {
@@ -279,37 +277,38 @@ public sealed partial class UiState
         Layout.Activate(panel);
     }
 
-    /// <summary>Has the tabs in front of their groups decompile again once the language or the options
-    /// changed; the others do when they are focused.</summary>
-    private void FollowDecompilation()
+    /// <summary>Whether <paramref name="language"/> or <paramref name="options"/> differ from what the tabs in
+    /// front were last brought up to date with; records them as what they are brought up to date with now.</summary>
+    public bool TakeDecompilationChange(DecompilationLanguage language, DecompilerOptions options)
     {
-        if (!HasDecompilationChanged())
-            return;
-        _shownLanguage = _appState.Language;
-        _shownOptions = _appState.DecompilerOptions;
-        RefreshShownTabs();
+        if (!HasDecompilationChanged(language, options))
+            return false;
+        _shownLanguage = language;
+        _shownOptions = options;
+        return true;
     }
 
-    private bool HasDecompilationChanged()
+    private bool HasDecompilationChanged(DecompilationLanguage language, DecompilerOptions options)
     {
-        if (_appState.Language != _shownLanguage)
+        if (language != _shownLanguage)
             return true;
-        return !ReferenceEquals(_appState.DecompilerOptions, _shownOptions);
+        return !ReferenceEquals(options, _shownOptions);
     }
 
-    /// <summary>Makes each tab in front of its group decompile again what it shows, when the language
-    /// or the options changed since.</summary>
-    private void RefreshShownTabs()
+    /// <summary>The tab in front of each group that has one.</summary>
+    public List<DocumentTab> ListFrontTabs()
     {
+        var tabs = new List<DocumentTab>();
         foreach (var group in Layout.AllGroups())
-            RefreshShownTab(group.Active);
+            AddFrontTab(tabs, group.Active);
+        return tabs;
     }
 
-    private void RefreshShownTab(string? panel)
+    private void AddFrontTab(List<DocumentTab> tabs, string? panel)
     {
         var tab = FindTab(panel);
         if (tab == null)
             return;
-        tab.EnsureCurrent(_appState.Language);
+        tabs.Add(tab);
     }
 }

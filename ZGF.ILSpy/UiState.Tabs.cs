@@ -36,19 +36,19 @@ public sealed partial class UiState
 
     /// <summary>Drops the view of each tab closed, keeping its image to free, and closes its panel;
     /// makes a view for each tab opened; and lets each view follow the grid or picture its tab shows.</summary>
-    private void SyncTabViews()
+    public void SyncTabViews(DocumentTabs tabs)
     {
-        DropClosedTabViews();
-        AddOpenTabViews();
+        DropClosedTabViews(tabs);
+        AddOpenTabViews(tabs);
         FollowContent();
     }
 
-    private void DropClosedTabViews()
+    private void DropClosedTabViews(DocumentTabs tabs)
     {
         _closedTabs.Clear();
         foreach (var tab in _tabViews.Keys)
         {
-            if (!_appState.Tabs.Contains(tab))
+            if (!tabs.Contains(tab))
                 _closedTabs.Add(tab);
         }
         foreach (var tab in _closedTabs)
@@ -66,9 +66,8 @@ public sealed partial class UiState
         _releasedImages.Add(view.ImageId);
     }
 
-    private void AddOpenTabViews()
+    private void AddOpenTabViews(DocumentTabs tabs)
     {
-        var tabs = _appState.Tabs;
         for (var i = 0; i < tabs.Count; i++)
             AddTabView(tabs[i]);
     }
@@ -100,10 +99,12 @@ public sealed partial class UiState
             view.Follow(tab);
     }
 
-    private void KeepTabPositions()
+    /// <summary>Where the view of <paramref name="tab"/> stands, or null when it has none.</summary>
+    public CodeViewPosition? FindViewPosition(DocumentTab tab)
     {
-        foreach (var (tab, view) in _tabViews)
-            tab.KeepPosition(view.PositionOf(tab));
+        if (!_tabViews.TryGetValue(tab, out var view))
+            return null;
+        return view.PositionOf(tab);
     }
 
     /// <summary>The images of the views dropped since the last call, for the canvas to free.</summary>

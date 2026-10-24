@@ -3,7 +3,7 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>What a feature running with no view on the stack commands the view to do, which
-/// <see cref="UiState"/> runs, in the order queued, before it draws the next frame.</summary>
+/// <see cref="IlSpyApp"/> runs on the screen, in the order queued, before it draws the next frame.</summary>
 public abstract record ViewCommand
 {
     private ViewCommand()

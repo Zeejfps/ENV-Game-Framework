@@ -162,8 +162,8 @@ internal sealed class AppStateDriver
     /// hands over what the settings keep of it, and the app runs what the screen asked of the app state.</summary>
     public void NextFrame()
     {
-        Ui.StartFrame();
-        Ui.FinishFrame();
+        IlSpyApp.StartFrame(Ui, AppState);
+        IlSpyApp.FinishFrame(Ui, AppState);
         IlSpyApp.RunAppCommands(Ui, AppState);
     }
 
