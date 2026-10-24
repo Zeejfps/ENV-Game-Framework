@@ -14,7 +14,7 @@ public sealed class DialogTests
     private int _escapesBehind;
     private bool _underFocused;
 
-    public DialogTests() => _frames = new UiFrames(width: 800f, height: 600f, body: Body);
+    public DialogTests() => _frames = new UiFrames(new DefaultUiState(), width: 800f, height: 600f, body: Body);
 
     private void Body(Ui ui)
     {

@@ -5,7 +5,7 @@ namespace ZGF.Gui.Immediate.Tests;
 public sealed class TooltipForegroundTests
 {
     private const string Tip = "explains it";
-    private readonly UiFrames _frames = new(width: 800f, height: 600f, body: Body);
+    private readonly UiFrames _frames = new(new DefaultUiState(), width: 800f, height: 600f, body: Body);
 
     private static void Body(Ui ui)
     {

@@ -24,7 +24,7 @@ public sealed class PointerTests
     [InlineData(PointerButton.Forward)]
     public void Other_buttons_click_the_element_pressed_and_released_on(PointerButton button)
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
 
         frames.MovePointer(50f, 30f);
@@ -43,7 +43,7 @@ public sealed class PointerTests
     [Fact]
     public void A_release_over_another_element_is_no_click()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
 
         frames.MovePointer(50f, 30f);
@@ -60,7 +60,7 @@ public sealed class PointerTests
     [Fact]
     public void Quick_presses_on_the_same_element_count_up_to_a_double_click()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
         frames.MovePointer(50f, 30f);
         Frame(frames);
@@ -80,7 +80,7 @@ public sealed class PointerTests
     [Fact]
     public void A_second_press_on_another_element_starts_a_new_count()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
         frames.MovePointer(50f, 30f);
         Frame(frames);
@@ -101,7 +101,7 @@ public sealed class PointerTests
     [Fact]
     public void Focus_that_takes_no_text_leaves_app_shortcuts_alone()
     {
-        var (navigating, typing) = new UiFrames().Run(0f, ui =>
+        var (navigating, typing) = new UiFrames(new DefaultUiState()).Run(0f, ui =>
         {
             ui.Focus(1, takesText: false);
             var navigatingWants = ui.WantsTextInput;

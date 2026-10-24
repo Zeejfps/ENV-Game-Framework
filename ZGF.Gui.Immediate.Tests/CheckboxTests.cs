@@ -10,7 +10,7 @@ public sealed class CheckboxTests
     private bool _enabled = true;
     private int _changes;
 
-    public CheckboxTests() => _frames = new UiFrames(body: Body);
+    public CheckboxTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -25,7 +25,7 @@ public sealed class CheckboxTests
     public void A_compact_checkbox_is_a_list_row_tall()
     {
         var on = false;
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             ui.Checkbox("Normal", ref on, id: "normal");

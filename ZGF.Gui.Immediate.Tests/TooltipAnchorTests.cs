@@ -8,7 +8,7 @@ public sealed class TooltipAnchorTests
     private const float RowHeight = 20f;
 
     private static UiFrames WideRow(TooltipAnchor anchor) =>
-        new(body: ui =>
+        new(new DefaultUiState(), body: ui =>
         {
             var row = ui.Interact("row");
             ui.Leaf(row.Id, new Box { Width = RowWidth, Height = RowHeight });

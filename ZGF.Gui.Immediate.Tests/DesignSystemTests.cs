@@ -6,7 +6,7 @@ namespace ZGF.Gui.Immediate.Tests;
 
 public sealed class EllipsisTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames = new(new DefaultUiState());
 
     private static string[] Drawn(UiFrames frames) => frames.Canvas.Texts.Select(t => t.Inputs.Text).ToArray();
 
@@ -37,7 +37,7 @@ public sealed class EllipsisTests
     [Fact]
     public void Text_with_an_overflow_shrinks_to_the_room_its_row_has_left()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Row(new Box { Width = 100f, Gap = 0f }))
             {
@@ -53,7 +53,7 @@ public sealed class EllipsisTests
     [Fact]
     public void Text_with_an_overflow_keeps_its_own_width_when_there_is_room()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Row(new Box { Width = 300f }))
                 ui.Text("abc", id: ui.GetId("label"), overflow: TextOverflow.Ellipsis);
@@ -95,7 +95,7 @@ public sealed class BoxOverrideTests
     [Fact]
     public void A_panel_can_be_asked_for_square_corners_and_no_border()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Panel(new Box { Radius = 0f, BorderWidth = 0f })) { }
         }).Frame();
@@ -108,7 +108,7 @@ public sealed class BoxOverrideTests
     [Fact]
     public void An_unset_panel_takes_the_themes_border_and_panel_radius()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Panel()) { }
         }).Frame();
@@ -174,7 +174,7 @@ public sealed class ThemeRoleTests
     {
         var theme = UiTheme.Dark with { PaneToolbarBackground = 0xFF0A0B0C };
 
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.PaneToolbar())
                 ui.Text("tools");
@@ -193,7 +193,7 @@ public sealed class FocusTests
     private readonly List<string> _clicked = new();
     private bool _enabled = true;
 
-    public FocusTests() => _frames = new UiFrames(body: Body);
+    public FocusTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -285,7 +285,7 @@ public sealed class ButtonStyleTests
     [Fact]
     public void A_primary_button_is_filled_with_the_accent()
     {
-        var frames = new UiFrames(body: ui => ui.Button("Open", variant: ButtonVariant.Primary)).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.Button("Open", variant: ButtonVariant.Primary)).Frame();
 
         Assert.Equal(UiTheme.Dark.Accent, frames.FirstRect.Style.BackgroundColor);
         Assert.Equal(UiTheme.Dark.OnAccent, frames.TextColor("Open"));
@@ -294,7 +294,7 @@ public sealed class ButtonStyleTests
     [Fact]
     public void A_ghost_button_has_no_fill_until_hovered()
     {
-        var frames = new UiFrames(body: ui => ui.Button("Back", variant: ButtonVariant.Ghost)).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.Button("Back", variant: ButtonVariant.Ghost)).Frame();
 
         Assert.Equal(0, frames.RectCount);
     }
@@ -302,7 +302,7 @@ public sealed class ButtonStyleTests
     [Fact]
     public void A_disabled_button_uses_disabled_text_and_no_hand_cursor()
     {
-        var frames = new UiFrames(body: ui => ui.Button("Save", enabled: false)).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.Button("Save", enabled: false)).Frame();
         frames.MovePointer(10f, 10f).Frame(2);
 
         Assert.Equal(UiTheme.Dark.TextDisabled, frames.TextColor("Save"));
@@ -312,7 +312,7 @@ public sealed class ButtonStyleTests
     [Fact]
     public void An_icon_button_is_a_square_of_the_icon_button_size_with_a_tooltip()
     {
-        var frames = new UiFrames(body: ui => ui.IconButton("back", "<", tooltip: "Back")).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.IconButton("back", "<", tooltip: "Back")).Frame();
 
         var rect = frames.RectOf("back");
         Assert.Equal(UiTheme.Dark.IconButtonSize, rect.Width);
@@ -326,7 +326,7 @@ public sealed class ButtonStyleTests
 
 public sealed class TabStyleTests
 {
-    private readonly UiFrames _frames = new(width: 1200f, body: Body);
+    private readonly UiFrames _frames = new(new DefaultUiState(), width: 1200f, body: Body);
 
     private static void Body(Ui ui)
     {
@@ -368,7 +368,7 @@ public sealed class PopupElevationTests
     public void A_menus_window_grows_by_its_shadow_and_only_its_rect_takes_the_pointer()
     {
         var host = new TestPopupHost();
-        var frames = new UiFrames(popups: host);
+        var frames = new UiFrames(new DefaultUiState(), popups: host);
         void Body(Ui ui)
         {
             ui.OpenContextMenu("menu", new ZGF.Geometry.PointF(100f, 100f));
@@ -398,7 +398,7 @@ public sealed class ShrinkPriorityTests
     [Fact]
     public void A_lower_priority_text_gives_up_its_room_before_a_higher_one_shrinks()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Row(new Box { Width = 100f, Gap = 0f }))
             {
@@ -415,7 +415,7 @@ public sealed class ShrinkPriorityTests
     [Fact]
     public void Equal_priorities_share_the_shortfall()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Row(new Box { Width = 100f, Gap = 0f }))
             {
@@ -431,7 +431,7 @@ public sealed class ShrinkPriorityTests
 
 public sealed class TextFieldSlotTests
 {
-    private readonly UiFrames _frames = new();
+    private readonly UiFrames _frames = new(new DefaultUiState());
     private string _text = "hello";
 
     private void Body(Ui ui, float width, string? hint) =>
@@ -484,7 +484,7 @@ public sealed class TreeRowSlotTests
         var state = new TreeViewState<string>(StringComparer.Ordinal);
         string[] roots = ["root"];
 
-        var frames = new UiFrames(body: ui => ui.TreeView("tree", roots, model, state), width: 200f).Frame(2);
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 200f).Frame(2);
 
         Assert.True(frames.Drew("System.Runtime"));
         Assert.True(frames.Drew("L"));

@@ -10,7 +10,7 @@ public sealed class MenuTests
     private bool _dark;
     private int _underClicks;
 
-    public MenuTests() => _frames = new UiFrames(body: Body);
+    public MenuTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -133,7 +133,7 @@ public sealed class ContextMenuTests
     private readonly UiFrames _frames;
     private readonly List<string> _picks = new();
 
-    public ContextMenuTests() => _frames = new UiFrames(body: Body);
+    public ContextMenuTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -174,7 +174,7 @@ public sealed class ContextMenuTests
 
 public sealed class TooltipTests
 {
-    private readonly UiFrames _frames = new(body: Body);
+    private readonly UiFrames _frames = new(new DefaultUiState(), body: Body);
 
     private static void Body(Ui ui)
     {
@@ -244,7 +244,7 @@ public sealed class FlyoutTests
     private bool _open;
     private int _clicks;
 
-    public FlyoutTests() => _frames = new UiFrames(body: Body);
+    public FlyoutTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -283,7 +283,7 @@ public sealed class MenuRadioItemTests
     private readonly UiFrames _frames;
     private string _theme = "Dark";
 
-    public MenuRadioItemTests() => _frames = new UiFrames(body: Body);
+    public MenuRadioItemTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -324,7 +324,7 @@ public sealed class DropdownButtonTests
     private readonly List<string> _picks = new();
     private bool _enabled = true;
 
-    public DropdownButtonTests() => _frames = new UiFrames(body: Body);
+    public DropdownButtonTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -413,7 +413,7 @@ public sealed class SelectTests
     private string _value = "Apple";
     private int _changes;
 
-    public SelectTests() => _frames = new UiFrames(body: Body);
+    public SelectTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -447,7 +447,7 @@ public sealed class SelectButtonTests
     private bool _red = true;
     private bool _green;
 
-    public SelectButtonTests() => _frames = new UiFrames(body: Body);
+    public SelectButtonTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -499,7 +499,7 @@ public sealed class SplitIconButtonTests
     private int _revision;
     private bool _nextFocused;
 
-    public SplitIconButtonTests() => _frames = new UiFrames(body: Body);
+    public SplitIconButtonTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -592,7 +592,7 @@ public sealed class SplitIconButtonTests
 
 public sealed class MenuItemIconTests
 {
-    private readonly UiFrames _frames = new(body: Body);
+    private readonly UiFrames _frames = new(new DefaultUiState(), body: Body);
 
     private static void Body(Ui ui)
     {
@@ -619,7 +619,7 @@ public sealed class MenuScrollTests
 {
     private const int ItemCount = 60;
 
-    private readonly UiFrames _frames = new(height: 2400f, body: Body);
+    private readonly UiFrames _frames = new(new DefaultUiState(), height: 2400f, body: Body);
 
     private static void Body(Ui ui)
     {
@@ -650,7 +650,7 @@ public sealed class IconOverlayTests
     [Fact]
     public void An_icons_overlay_is_clipped_with_its_row_by_the_list_it_scrolls_in()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             using (ui.Scroll("list", new Box { Height = 100f, Gap = 0f }))
@@ -680,7 +680,7 @@ public sealed class NestedScrollbarTests
     private float _outerX;
     private uint _thumb;
 
-    public NestedScrollbarTests() => _frames = new UiFrames(body: Body);
+    public NestedScrollbarTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {

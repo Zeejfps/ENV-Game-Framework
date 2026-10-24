@@ -10,7 +10,7 @@ public sealed class VirtualScrollTests
     [Fact]
     public void Only_the_rows_in_view_are_recorded()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
 
         var (first, end) = Frame(frames);
@@ -22,7 +22,7 @@ public sealed class VirtualScrollTests
     [Fact]
     public void Scrolling_moves_the_range_and_keeps_rows_where_a_full_list_puts_them()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
 
         frames.MovePointer(100f, 100f);
@@ -39,7 +39,7 @@ public sealed class VirtualScrollTests
     [Fact]
     public void Spacers_keep_the_whole_list_scrollable_to_its_last_row()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
 
         Frame(frames, list => list.ScrollIntoView(Count - 1));
@@ -54,7 +54,7 @@ public sealed class VirtualScrollTests
     [Fact]
     public void Tall_rows_push_the_rows_after_them_down_and_still_scroll_to_the_end()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         TallRow[] tall = [new(2, 100f), new(5000, 300f)];
         float x = 0f, y = 0f;
         (int First, int End) Tall(Action<Ui.VirtualList>? inside = null) => frames.Run(1f / 60f, ui =>

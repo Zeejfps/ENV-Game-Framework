@@ -13,7 +13,7 @@ public sealed class MenuKeyboardTests
 
     public MenuKeyboardTests() : this(null) { }
 
-    private MenuKeyboardTests(TestPopupHost? popups) => _frames = new UiFrames(popups: popups, body: Body) { FrameTime = 1f / 60f };
+    private MenuKeyboardTests(TestPopupHost? popups) => _frames = new UiFrames(new DefaultUiState(), popups: popups, body: Body) { FrameTime = 1f / 60f };
 
     private void Body(Ui ui)
     {
@@ -208,7 +208,7 @@ public sealed class ContextMenuIdTests
     private readonly UiFrames _frames;
     private readonly List<string> _picks = new();
 
-    public ContextMenuIdTests() => _frames = new UiFrames(body: Body);
+    public ContextMenuIdTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {

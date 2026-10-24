@@ -16,7 +16,7 @@ public sealed class TableFitBodyTests
     private int _removeRequests;
     private int _keysAfter;
 
-    public TableFitBodyTests() => _frames = new UiFrames(width: 400f, height: 300f, body: Body);
+    public TableFitBodyTests() => _frames = new UiFrames(new DefaultUiState(), width: 400f, height: 300f, body: Body);
 
     private void Body(Ui ui)
     {

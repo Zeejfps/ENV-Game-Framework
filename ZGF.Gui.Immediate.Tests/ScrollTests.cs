@@ -17,7 +17,7 @@ public sealed class ScrollTests
     [Fact]
     public void A_horizontal_scroll_fits_its_contents_height_and_the_wheel_moves_it_sideways()
     {
-        var frames = new UiFrames(body: Strip).Frame(2);
+        var frames = new UiFrames(new DefaultUiState(), body: Strip).Frame(2);
         Assert.Equal(30f, frames.RectOf("strip").Height);
 
         frames.MovePointer(100f, 30f).Frame();
@@ -29,7 +29,7 @@ public sealed class ScrollTests
     [Fact]
     public void A_horizontal_scroll_stops_at_its_last_item()
     {
-        var frames = new UiFrames(body: Strip).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: Strip).Frame();
         frames.MovePointer(100f, 30f).Frame();
         frames.Wheel(-100).Frame(2);
 
@@ -39,7 +39,7 @@ public sealed class ScrollTests
     [Fact]
     public void ScrollIntoView_brings_an_element_into_a_horizontal_scroll()
     {
-        var frames = new UiFrames(body: Strip).Frame(2);
+        var frames = new UiFrames(new DefaultUiState(), body: Strip).Frame(2);
 
         Assert.True(frames.Frame(ui => ui.ScrollIntoView(ui.GetId("strip"), ui.GetId(6))));
         frames.Frame(2);
@@ -50,7 +50,7 @@ public sealed class ScrollTests
     [Fact]
     public void ScrollIntoView_brings_an_element_into_a_vertical_scroll()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             using (ui.Scroll("column", new Box { Gap = 0f }))
@@ -69,7 +69,7 @@ public sealed class ScrollTests
     [Fact]
     public void Posted_work_runs_at_the_start_of_the_next_frame()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         var log = new List<string>();
 
         frames.Run(0f, ui => ui.Post(() => log.Add("posted")));
@@ -81,7 +81,7 @@ public sealed class ScrollTests
     [Fact]
     public void A_picked_file_arrives_on_a_later_frame()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         frames.FilePicker.Answer = "C:/a.dll";
         string? picked = null;
 

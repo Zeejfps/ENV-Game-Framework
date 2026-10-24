@@ -25,7 +25,7 @@ public sealed class SelectableListTests
         public List(int count = 100)
         {
             Count = count;
-            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+            Frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
         }
 
         private void Body(Ui ui)
@@ -337,7 +337,7 @@ public sealed class SelectableListTests
 
     private static long AllocatedPerRun(Action<Ui> body)
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Shared.Select(3, 1000);
         for (var i = 0; i < 4; i++)
             frames.Run(0f, body);

@@ -10,7 +10,7 @@ public sealed class PopupTests
     [Fact]
     public void A_popup_sits_below_its_anchor_at_its_own_size()
     {
-        var frames = new UiFrames(body: Body).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: Body).Frame();
 
         var rect = frames.RectOf("popup");
 
@@ -20,7 +20,7 @@ public sealed class PopupTests
     [Fact]
     public void Over_the_window_a_popup_flips_above_when_there_is_no_room_below()
     {
-        var frames = new UiFrames(body: ui => Popup(ui, new UiRect(50f, 270f, 80f, 20f))).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => Popup(ui, new UiRect(50f, 270f, 80f, 20f))).Frame();
 
         var rect = frames.RectOf("popup");
 
@@ -30,7 +30,7 @@ public sealed class PopupTests
     [Fact]
     public void A_popup_keeps_clicks_from_what_is_under_it()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         var clicks = 0;
         void Covered(Ui ui)
         {
@@ -51,7 +51,7 @@ public sealed class PopupTests
     [Fact]
     public void A_pass_through_popup_lets_the_pointer_reach_what_is_under_it()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         var clicks = 0;
         void Covered(Ui ui)
         {
@@ -70,7 +70,7 @@ public sealed class PopupTests
     [Fact]
     public void The_wheel_over_a_popup_does_not_scroll_the_list_under_it()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             using (ui.Scroll("list"))
@@ -98,7 +98,7 @@ public sealed class PopupTests
     public void With_popup_windows_content_draws_on_the_popups_own_canvas_in_its_own_coordinates()
     {
         var host = new TestPopupHost();
-        var frames = new UiFrames(body: Body, popups: host).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: Body, popups: host).Frame();
 
         var id = frames.Frame(ui => ui.GetId("popup"));
         var canvas = host.CanvasOf(id);
@@ -114,7 +114,7 @@ public sealed class PopupTests
     public void With_popup_windows_a_popup_may_extend_past_the_main_window()
     {
         var host = new TestPopupHost();
-        var frames = new UiFrames(body: ui => Popup(ui, new UiRect(50f, 290f, 80f, 20f)), popups: host).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => Popup(ui, new UiRect(50f, 290f, 80f, 20f)), popups: host).Frame();
 
         var id = frames.Frame(ui => ui.GetId("popup"));
 
@@ -125,7 +125,7 @@ public sealed class PopupTests
     public void Popup_content_is_clickable_in_window_coordinates()
     {
         var host = new TestPopupHost();
-        var frames = new UiFrames(popups: host);
+        var frames = new UiFrames(new DefaultUiState(), popups: host);
         var clicks = 0;
         void Clickable(Ui ui)
         {

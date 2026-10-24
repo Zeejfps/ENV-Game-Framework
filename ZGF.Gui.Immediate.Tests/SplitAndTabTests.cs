@@ -9,7 +9,7 @@ public sealed class SplitPaneTests
     private float _size = 100f;
     private readonly UiFrames _frames;
 
-    public SplitPaneTests() => _frames = new UiFrames(body: Body);
+    public SplitPaneTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -62,7 +62,7 @@ public sealed class TabStripTests
     private readonly List<string> _closed = new();
     private int _selected;
 
-    public TabStripTests() => _frames = new UiFrames(body: Body);
+    public TabStripTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {

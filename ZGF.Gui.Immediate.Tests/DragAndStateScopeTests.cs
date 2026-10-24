@@ -10,7 +10,7 @@ public sealed class DragTests
     private readonly UiFrames _frames;
     private readonly List<string> _log = new();
 
-    public DragTests() => _frames = new UiFrames(body: Body);
+    public DragTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -83,7 +83,7 @@ public sealed class StateScopeTests
     private bool _shown = true;
     private bool _kept = true;
 
-    public StateScopeTests() => _frames = new UiFrames(body: ui => Body(ui));
+    public StateScopeTests() => _frames = new UiFrames(new DefaultUiState(), body: ui => Body(ui));
 
     private Counter Body(Ui ui)
     {

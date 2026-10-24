@@ -74,7 +74,7 @@ public sealed class SelectableTextTests
     [Fact]
     public void The_caret_lands_on_the_nearest_boundary()
     {
-        var (before, after) = new UiFrames().Run(0f, ui => (ui.CaretAt("abc", CharWidth * 1.4f), ui.CaretAt("abc", CharWidth * 1.6f)));
+        var (before, after) = new UiFrames(new DefaultUiState()).Run(0f, ui => (ui.CaretAt("abc", CharWidth * 1.4f), ui.CaretAt("abc", CharWidth * 1.6f)));
 
         Assert.Equal((1, 2), (before, after));
     }
@@ -82,7 +82,7 @@ public sealed class SelectableTextTests
     [Fact]
     public void The_caret_never_lands_inside_a_grapheme_cluster()
     {
-        var caret = new UiFrames().Run(0f, ui => ui.CaretAt("a👍🏽b", CharWidth * 3.6f));
+        var caret = new UiFrames(new DefaultUiState()).Run(0f, ui => ui.CaretAt("a👍🏽b", CharWidth * 3.6f));
 
         Assert.Equal(5, caret);
     }
@@ -97,7 +97,7 @@ public sealed class SelectableTextTests
         {
             _text = text;
             _width = width;
-            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+            Frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
             Frames.Frame();
         }
 
@@ -143,7 +143,7 @@ public sealed class SelectableTextAreaTests
 
     public SelectableTextAreaTests()
     {
-        _frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+        _frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
         _frames.Frame();
     }
 
@@ -205,7 +205,7 @@ public sealed class SelectableLinkTests
 
     public SelectableLinkTests()
     {
-        _frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+        _frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
         _frames.Frame();
     }
 

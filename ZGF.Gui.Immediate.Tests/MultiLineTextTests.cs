@@ -10,7 +10,7 @@ public sealed class MultiLineTextTests
     [Fact]
     public void Newlines_break_lines_and_the_element_is_as_tall_as_its_lines()
     {
-        var frames = new UiFrames(body: ui => ui.Text("first\nsecond line\nthird", id: ui.GetId("t"))).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.Text("first\nsecond line\nthird", id: ui.GetId("t"))).Frame();
 
         var rect = frames.RectOf("t");
 
@@ -24,7 +24,7 @@ public sealed class MultiLineTextTests
     [Fact]
     public void Wrapped_text_breaks_between_words_to_fit_its_width()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Column(new Box { Width = 100f }))
                 ui.Text("the quick brown fox jumps", id: ui.GetId("t"), wrap: true);
@@ -40,7 +40,7 @@ public sealed class MultiLineTextTests
     [Fact]
     public void A_word_longer_than_the_width_breaks_between_its_characters()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Column(new Box { Width = 40f }))
                 ui.Text("a enormousword b", wrap: true);
@@ -52,7 +52,7 @@ public sealed class MultiLineTextTests
     [Fact]
     public void A_path_wraps_after_its_separators()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Column(new Box { Width = 120f }))
                 ui.Text(@"C:\Program Files\dotnet\shared\Microsoft.NETCore.App", wrap: true);
@@ -65,7 +65,7 @@ public sealed class MultiLineTextTests
     public void A_long_tooltip_wraps_into_a_block()
     {
         var message = string.Join(' ', Enumerable.Repeat("word", 40));
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             var b = ui.Interact("b");
             ui.Leaf(b.Id, new Box { Width = 100f, Height = 30f });
@@ -82,7 +82,7 @@ public sealed class MultiLineTextTests
     [Fact]
     public void A_painter_draws_and_measures_a_slice_of_a_string()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         const string line = "public static void Main";
 
         var width = frames.Run(0f, ui =>
@@ -99,7 +99,7 @@ public sealed class MultiLineTextTests
     [Fact]
     public void An_ellipsis_never_cuts_inside_a_grapheme_cluster()
     {
-        var shown = new UiFrames().Run(0f, ui => ui.Ellipsize("a👍🏽bcdefgh", 40f));
+        var shown = new UiFrames(new DefaultUiState()).Run(0f, ui => ui.Ellipsize("a👍🏽bcdefgh", 40f));
 
         Assert.Equal("a…", shown);
     }
@@ -110,7 +110,7 @@ public sealed class KeyStrokesTests
     [Fact]
     public void Keys_iterate_in_order_and_take_removes_them()
     {
-        var frames = new UiFrames().Key(KeyboardKey.A).Key(KeyboardKey.Escape).Key(KeyboardKey.B);
+        var frames = new UiFrames(new DefaultUiState()).Key(KeyboardKey.A).Key(KeyboardKey.Escape).Key(KeyboardKey.B);
 
         var (seen, taken, after) = frames.Run(0f, ui =>
         {

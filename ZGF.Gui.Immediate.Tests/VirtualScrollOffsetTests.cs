@@ -11,7 +11,7 @@ public sealed class VirtualScrollOffsetTests
     [Fact]
     public void The_viewport_is_unknown_until_the_list_is_laid_out()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
 
         var first = Frame(frames);
         var second = Frame(frames);
@@ -23,7 +23,7 @@ public sealed class VirtualScrollOffsetTests
     [Fact]
     public void ScrollTo_moves_the_list_from_the_next_frame_and_clamps_to_the_content()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames);
         Frame(frames);
 
@@ -42,7 +42,7 @@ public sealed class VirtualScrollOffsetTests
     public void Dragging_or_wheeling_past_the_end_never_hands_back_an_offset_beyond_it()
     {
         float x = 0f, y = 0f;
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             using var list = ui.VirtualScroll(ui.GetId("wide"), Count, RowHeight, ref x, ref y);

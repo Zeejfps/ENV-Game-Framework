@@ -14,7 +14,7 @@ public sealed class MultiSelectListTests
     private readonly UiFrames _frames;
     private int _activations;
 
-    public MultiSelectListTests() => _frames = new UiFrames(width: 400f, height: 300f, body: Body);
+    public MultiSelectListTests() => _frames = new UiFrames(new DefaultUiState(), width: 400f, height: 300f, body: Body);
 
     private void Body(Ui ui)
     {

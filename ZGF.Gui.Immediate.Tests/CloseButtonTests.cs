@@ -10,7 +10,7 @@ public sealed class CloseButtonTests
     private bool _tabStop = true;
     private bool _hideIdle;
 
-    private UiFrames CreateFrames() => new(body: Body);
+    private UiFrames CreateFrames() => new(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -71,7 +71,7 @@ public sealed class CloseButtonTests
     [Fact]
     public void A_tab_shows_its_cross_only_while_selected_or_hovered()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var strip = ui.TabStrip("tabs");
             strip.Tab("A", selected: true);
@@ -89,7 +89,7 @@ public sealed class CloseButtonTests
     {
         var layout = new DockLayout { Root = DockLayout.Group("a") };
         var window = layout.Float("b", new UiRect(100f, 100f, 300f, 200f));
-        var frames = new UiFrames(width: 800f, height: 600f, body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), width: 800f, height: 600f, body: ui =>
         {
             using var dock = ui.DockSpace("dock", layout, static p => new DockTab(p));
             while (dock.Next(out _)) { }

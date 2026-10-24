@@ -43,7 +43,7 @@ public sealed class ThemeTests
     [Fact]
     public void The_theme_is_the_states_from_when_it_is_set_and_dark_before()
     {
-        var seen = new UiFrames().Run(0f, ui =>
+        var seen = new UiFrames(new DefaultUiState()).Run(0f, ui =>
         {
             var before = ui.Theme;
             ui.State.Theme = UiTheme.Light;
@@ -59,7 +59,7 @@ public sealed class ThemeTests
     {
         var red = UiTheme.Dark with { Text = 0xFFFF0000 };
 
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             ui.State.Theme = red;
             ui.Text("tinted");
@@ -74,7 +74,7 @@ public sealed class ThemeTests
     [Fact]
     public void The_window_itself_draws_nothing_and_adds_no_padding()
     {
-        var frames = new UiFrames(body: ui => ui.Leaf(ui.GetId("a"), new Box { Width = 10f, Height = 10f })).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.Leaf(ui.GetId("a"), new Box { Width = 10f, Height = 10f })).Frame();
 
         var rect = frames.RectOf("a");
 
@@ -86,7 +86,7 @@ public sealed class ThemeTests
     public void A_screen_fills_the_window_with_its_theme_and_pads_its_content()
     {
         var theme = UiTheme.Light with { ScreenPadding = 10f };
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Screen())
             {
@@ -108,7 +108,7 @@ public sealed class ThemeTests
     [Fact]
     public void A_scroll_keeps_the_gutter_of_the_theme_it_was_recorded_in()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         frames.State.Theme = UiTheme.Dark with { ScrollBarWidth = 20f };
 
         float RowWidth() => frames.Run(1f / 60f, ui =>

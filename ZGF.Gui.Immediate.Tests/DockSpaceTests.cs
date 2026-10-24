@@ -19,7 +19,7 @@ public sealed class DockSpaceTests
     };
     private readonly Dictionary<string, Counter> _counters = new();
 
-    public DockSpaceTests() => _frames = new UiFrames(width: 800f, height: 600f, body: Body);
+    public DockSpaceTests() => _frames = new UiFrames(new DefaultUiState(), width: 800f, height: 600f, body: Body);
 
     private void Body(Ui ui)
     {

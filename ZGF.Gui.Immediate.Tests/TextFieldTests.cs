@@ -10,7 +10,7 @@ public sealed class TextFieldTests
     public void A_cell_field_draws_its_box_only_while_it_has_focus()
     {
         var text = "name";
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             ui.TextField("cell", ref text, width: 120f, look: FieldLook.Cell);
@@ -338,7 +338,7 @@ public sealed class TextFieldTests
         public Field(string text = "")
         {
             _text = text;
-            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+            Frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
             Frame();
         }
 
@@ -395,7 +395,7 @@ public sealed class InlineEditTests
     private bool _begin = true;
     private bool _editing = true;
 
-    public InlineEditTests() => _frames = new UiFrames(body: Body);
+    public InlineEditTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {

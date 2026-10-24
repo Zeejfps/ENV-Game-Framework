@@ -20,7 +20,7 @@ public sealed class VirtualScrollRequestTests
     [Fact]
     public void ScrollTo_in_the_frame_the_content_grows_is_kept()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Frame(frames, 10);
         Frame(frames, 10);
 
@@ -34,7 +34,7 @@ public sealed class VirtualScrollRequestTests
     [Fact]
     public void ScrollTo_before_the_first_layout_is_kept()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
 
         Frame(frames, 1_000, list => list.ScrollTo(400f));
         Frame(frames, 1_000);
@@ -46,7 +46,7 @@ public sealed class VirtualScrollRequestTests
     [Fact]
     public void An_app_owned_offset_follows_the_document_shown()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         var offsets = new[] { 500f, 0f };
         float Show(int document, float wheel = 0f)
         {
@@ -97,7 +97,7 @@ public sealed class WheelRoutingTests
 
     private static (float Outer, float Strip) Wheel(float x, float y, double wheelY, double wheelX = 0)
     {
-        var frames = new UiFrames(body: Nested).Frame(2);
+        var frames = new UiFrames(new DefaultUiState(), body: Nested).Frame(2);
         frames.MovePointer(x, y).Frame();
         frames.Wheel(wheelY, wheelX).Frame();
         return frames.Frame(ui => (ui.ScrollOffset(ui.GetId("outer")).Y, ui.ScrollOffset(ui.GetId("strip")).X));
@@ -139,7 +139,7 @@ public sealed class TwoAxisScrollTests
             ui.Leaf(new Box { Width = 1_000f, Height = 2_000f });
     }
 
-    private static UiFrames Settled() => new UiFrames(body: Body).Frame(3);
+    private static UiFrames Settled() => new UiFrames(new DefaultUiState(), body: Body).Frame(3);
 
     private static (float X, float Y) Offset(UiFrames frames) => frames.Frame(ui => ui.ScrollOffset(ui.GetId("both")));
 
@@ -207,7 +207,7 @@ public sealed class TabScrollTests
     [Fact]
     public void A_tab_added_selected_in_one_frame_is_scrolled_into_view()
     {
-        var frames = new UiFrames(body: Body).Frame(2);
+        var frames = new UiFrames(new DefaultUiState(), body: Body).Frame(2);
 
         _tabs.Add("Newest");
         _selected = _tabs.Count - 1;
@@ -237,7 +237,7 @@ public sealed class CancelledReleaseTests
     [InlineData(PointerButton.Right)]
     public void Losing_focus_mid_press_clicks_nothing(PointerButton button)
     {
-        var frames = new UiFrames(body: Body).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: Body).Frame();
         frames.MovePointer(50f, 50f).Frame();
         frames.Press(button).Frame();
 
@@ -263,7 +263,7 @@ public sealed class MeasurementInvalidationTests
     public void Registering_a_font_forgets_widths_measured_before()
     {
         var measurer = new Measurer();
-        var frames = new UiFrames(measurer);
+        var frames = new UiFrames(new DefaultUiState(), measurer);
         Assert.Equal(40f, frames.Run(0f, ui => ui.MeasureText("hello")));
 
         measurer.CharWidth = 10f;
@@ -317,7 +317,7 @@ public sealed class HarnessTests
     [Fact]
     public void The_harness_reports_quit_bounds_and_background()
     {
-        var frames = new UiFrames { WindowBounds = new WindowBounds(10, 20, 800, 600, true) };
+        var frames = new UiFrames(new DefaultUiState()) { WindowBounds = new WindowBounds(10, 20, 800, 600, true) };
 
         var bounds = frames.Run(0f, ui =>
         {
@@ -367,7 +367,7 @@ public sealed class TwoAxisVirtualScrollTests
 
     private static UiRect Content(UiFrames frames) => frames.Frame(ui => ui.TryGetContentRect(ui.GetId("code"), out var rect) ? rect : default);
 
-    private UiFrames Settled(float rowWidth) => new UiFrames(body: ui => Body(ui, rowWidth)).Frame(4);
+    private UiFrames Settled(float rowWidth) => new UiFrames(new DefaultUiState(), body: ui => Body(ui, rowWidth)).Frame(4);
 
     [Fact]
     public void The_last_row_scrolled_to_sits_above_the_horizontal_bar()
@@ -450,7 +450,7 @@ public sealed class RecordingCanvasTests
     [Fact]
     public void With_recording_off_draws_are_counted_and_not_kept()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         frames.Canvas.Recording = false;
 
         frames.Run(0f, ui =>

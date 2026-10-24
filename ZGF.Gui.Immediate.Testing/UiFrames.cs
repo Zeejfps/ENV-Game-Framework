@@ -19,10 +19,9 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     private UiInput _frame = new();
     private UiInput _pending = new();
 
-    /// <param name="state">What every frame's <see cref="Ui{T}"/> carries; when null, a new one made by
-    /// <typeparamref name="TState"/>'s parameterless constructor.</param>
-    public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
-        Action<Ui<TState>>? body = null, TState? state = null)
+    /// <param name="state">What every frame's <see cref="Ui{T}"/> carries.</param>
+    public UiFrames(TState state, ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
+        Action<Ui<TState>>? body = null)
         : this(CreateUiCarrying(state), measurer, popups, width, height)
     {
         Body = body;
@@ -49,10 +48,9 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return frames;
     }
 
-    private static Func<ICanvas, IClipboard, IPopupHost?, Ui<TState>> CreateUiCarrying(TState? state)
+    private static Func<ICanvas, IClipboard, IPopupHost?, Ui<TState>> CreateUiCarrying(TState state)
     {
-        var carried = state ?? Activator.CreateInstance<TState>();
-        return (canvas, clipboard, popups) => new Ui<TState>(carried, canvas, clipboard, popups);
+        return (canvas, clipboard, popups) => new Ui<TState>(state, canvas, clipboard, popups);
     }
 
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>

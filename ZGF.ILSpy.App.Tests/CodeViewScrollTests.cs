@@ -58,7 +58,7 @@ public sealed class CodeViewScrollTests
     [Fact]
     public void A_tab_left_for_over_a_thousand_frames_keeps_its_scroll()
     {
-        var frames = new UiFrames(state: Screens.Blank());
+        var frames = new UiFrames(Screens.Blank());
         var a = new CodeViewState();
         var b = new CodeViewState();
         var documentA = CodeViewDriver.Numbered(1000);

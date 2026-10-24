@@ -13,7 +13,7 @@ public sealed class RichTextTests
     public void Runs_wrap_together_between_words_and_the_element_is_as_tall_as_its_lines()
     {
         IReadOnlyList<RichTextRun>? runs = null;
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             runs ??= [new RichTextRun("the quick ", ui.StyleText()), new RichTextRun("brown fox jumps", ui.StyleText(Red))];
             using (ui.Column(new Box { Width = 100f }))
@@ -32,7 +32,7 @@ public sealed class RichTextTests
     public void A_slice_starts_where_the_run_before_it_ends_on_its_line()
     {
         IReadOnlyList<RichTextRun>? runs = null;
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             runs ??= [new RichTextRun("call ", ui.StyleText()), new RichTextRun("Run()", ui.StyleText(Red), IsCode: true)];
             ui.RichText(runs, codeBackground: Chip, wrap: false);
@@ -51,7 +51,7 @@ public sealed class RichTextTests
     {
         private IReadOnlyList<RichTextRun>? _runs;
 
-        public LinkText() => Frames = new UiFrames(body: Render);
+        public LinkText() => Frames = new UiFrames(new DefaultUiState(), body: Render);
 
         public UiFrames Frames { get; }
         public RichTextClick Clicked { get; private set; }
@@ -103,7 +103,7 @@ public sealed class RichTextTests
     public void Without_wrap_the_runs_keep_their_lines_and_break_only_at_newlines()
     {
         IReadOnlyList<RichTextRun>? runs = null;
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             runs ??= [new RichTextRun("one two three\nfour", ui.StyleText())];
             using (ui.Column(new Box { Width = 40f }))

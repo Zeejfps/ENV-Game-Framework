@@ -9,7 +9,7 @@ public sealed class DialogActionsTests
     private bool _open = true;
     private bool _closeButton;
 
-    public DialogActionsTests() => _frames = new UiFrames(width: 800f, height: 600f, body: Body);
+    public DialogActionsTests() => _frames = new UiFrames(new DefaultUiState(), width: 800f, height: 600f, body: Body);
 
     private void Body(Ui ui)
     {

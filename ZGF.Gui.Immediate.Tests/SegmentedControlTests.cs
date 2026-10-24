@@ -23,7 +23,7 @@ public sealed class SegmentedControlTests
     private Language _language;
     private int _changes;
 
-    public SegmentedControlTests() => _frames = new UiFrames(body: Body);
+    public SegmentedControlTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {

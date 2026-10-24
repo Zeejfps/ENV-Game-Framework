@@ -13,7 +13,7 @@ public sealed class TableTests
     private readonly TableColumns _columns = new(new TableColumn(Fixed: 20f), new TableColumn(1f, 40f), new TableColumn(2f, 40f));
     private readonly ListSelection _rows = new();
 
-    public TableTests() => _frames = new UiFrames(body: Body);
+    public TableTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {
@@ -403,7 +403,7 @@ public sealed class TableTests
         public bool InNewTab;
         public bool MenuRequested;
 
-        public RowTable() => Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+        public RowTable() => Frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
 
         public static string Text(int row) => Texts[row];
 
@@ -453,7 +453,7 @@ public sealed class TableTests
             _texts = Enumerable.Range(0, rowCount)
                 .Select(i => new[] { Text(i, 0), Text(i, 1), Text(i, 2) })
                 .ToArray();
-            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+            Frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
         }
 
         public static string Text(int row, int column) => $"cell {row}.{column}";

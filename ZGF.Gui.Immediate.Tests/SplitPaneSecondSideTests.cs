@@ -9,7 +9,7 @@ public sealed class SplitPaneSecondSideTests
     private float _height = 200f;
     private readonly UiFrames _frames;
 
-    public SplitPaneSecondSideTests() => _frames = new UiFrames(body: Body);
+    public SplitPaneSecondSideTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
 
     private void Body(Ui ui)
     {

@@ -50,7 +50,7 @@ public sealed class TreeViewTests
         public Tree(params Node[] roots)
         {
             Roots = roots.ToList();
-            Frames = new UiFrames(body: Body) { FrameTime = 1f / 60f };
+            Frames = new UiFrames(new DefaultUiState(), body: Body) { FrameTime = 1f / 60f };
             Frame();
         }
 
@@ -352,7 +352,7 @@ public sealed class TreeViewTests
         var state = new TreeViewState<int>(comparer);
         var roots = Enumerable.Range(0, 10_000).ToArray();
         var model = new FlatModel();
-        var frames = new UiFrames(body: ui => ui.TreeView("tree", roots, model, state)).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state)).Frame();
 
         state.Select(-1);
         frames.Frame(2);

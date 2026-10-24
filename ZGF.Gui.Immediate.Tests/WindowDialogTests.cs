@@ -27,7 +27,7 @@ public sealed class WindowDialogTests
 
     private UiFrames Opened(TestPopupHost? host)
     {
-        var frames = new UiFrames(popups: host, width: 400f, height: 300f, body: Body).Frame();
+        var frames = new UiFrames(new DefaultUiState(), popups: host, width: 400f, height: 300f, body: Body).Frame();
         _open = true;
         frames.Frame(2);
         return frames;
@@ -105,7 +105,7 @@ public sealed class WindowDialogTests
         frames.Key(KeyboardKey.Escape).Frame(2);
 
         var reopened = new TestPopupHost();
-        var again = new UiFrames(popups: reopened, width: 400f, height: 300f, body: Body).Frame();
+        var again = new UiFrames(new DefaultUiState(), popups: reopened, width: 400f, height: 300f, body: Body).Frame();
         _open = true;
         again.Frame(2);
 
@@ -210,7 +210,7 @@ public sealed class WindowDialogTests
     public void Escape_is_left_to_the_content_when_the_dialog_does_not_close_on_it()
     {
         var escapes = 0;
-        var frames = new UiFrames(popups: _host, width: 400f, height: 300f, body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), popups: _host, width: 400f, height: 300f, body: ui =>
         {
             using var dialog = ui.WindowDialog("export", "Export", ref _open, 300f, 200f, ref _bounds, closeOnEscape: false);
             if (dialog.IsOpen && ui.Input.TakeKey(KeyboardKey.Escape))

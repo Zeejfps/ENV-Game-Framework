@@ -7,7 +7,7 @@ public sealed class GlyphRunTests
     [Fact]
     public void MeasureCell_answers_the_canvas_cell_for_the_font()
     {
-        var cell = new UiFrames().Run(0f, ui => ui.MeasureCell(family: "mono"));
+        var cell = new UiFrames(new DefaultUiState()).Run(0f, ui => ui.MeasureCell(family: "mono"));
 
         Assert.Equal(8f, cell.Advance);
         Assert.Equal(16f, cell.Height);
@@ -18,7 +18,7 @@ public sealed class GlyphRunTests
     {
         int[] codePoints = ['a', 'b', 'c'];
 
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using var screen = ui.Screen();
             ui.Leaf(new Box { Width = 100f, Height = 20f });

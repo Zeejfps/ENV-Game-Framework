@@ -12,7 +12,7 @@ public sealed class OpenGroupTests
     [Fact]
     public void Finding_an_open_group_returns_null_outside_any()
     {
-        var found = new UiFrames().Run(0f, ui => ui.FindOpenGroup<Service>());
+        var found = new UiFrames(new DefaultUiState()).Run(0f, ui => ui.FindOpenGroup<Service>());
 
         Assert.Null(found);
     }
@@ -22,7 +22,7 @@ public sealed class OpenGroupTests
     {
         var seen = new List<string?>();
 
-        new UiFrames(body: ui =>
+        new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Group(new Service("outer"), EndNothing))
             {
@@ -40,7 +40,7 @@ public sealed class OpenGroupTests
     [Fact]
     public void A_group_left_open_does_not_leak_into_the_next_frame()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
         Assert.Throws<InvalidOperationException>(() => frames.Run(0f, ui => { ui.Group(new Service("leaked"), EndNothing); }));
 
         var found = frames.Run(0f, ui => ui.FindOpenGroup<Service>());

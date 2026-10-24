@@ -10,7 +10,7 @@ public sealed class PartTooltipTests
     /// <summary>A 100 wide element split into two parts the test hit-tests itself, each with a
     /// tooltip naming it.</summary>
     private static UiFrames TwoParts() =>
-        new(body: ui =>
+        new(new DefaultUiState(), body: ui =>
         {
             var b = ui.Interact("b");
             ui.Leaf(b.Id, new Box { Width = 2 * PartWidth, Height = 30f });
@@ -76,7 +76,7 @@ public sealed class InteractiveTooltipTests
         private static readonly TooltipLook Look = new(200f, new Spacing(4f), Align.Start, Interactive: true);
         private IReadOnlyList<RichTextRun>? _runs;
 
-        public LinkTooltip() => Frames = new UiFrames(body: Render, width: 800f, height: 600f);
+        public LinkTooltip() => Frames = new UiFrames(new DefaultUiState(), body: Render, width: 800f, height: 600f);
 
         public UiFrames Frames { get; }
         public RichTextClick Clicked { get; private set; }
@@ -160,7 +160,7 @@ public sealed class InteractiveTooltipTests
     {
         var look = new TooltipLook(200f, new Spacing(4f), Align.Start, Interactive: true, MaxHeight: 60f);
         var lines = string.Join('\n', Enumerable.Range(0, 20).Select(i => $"line {i}"));
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             var b = ui.Interact("b");
             ui.Leaf(b.Id, new Box { Width = PartWidth, Height = PartHeight });

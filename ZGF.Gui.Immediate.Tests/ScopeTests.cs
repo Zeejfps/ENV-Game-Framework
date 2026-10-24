@@ -28,7 +28,7 @@ public sealed class ScopeTests
     public void Disposing_a_group_ends_every_scope_opened_inside_it_and_then_runs_its_end()
     {
         var seen = new List<string>();
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             var probe = new Probe(ui);
             var outside = ui.GetId("key");
@@ -51,7 +51,7 @@ public sealed class ScopeTests
     [Fact]
     public void Disposing_an_outer_scope_ends_the_scopes_left_open_inside_it()
     {
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Column(new Box { Width = 100f }))
             {
@@ -68,7 +68,7 @@ public sealed class ScopeTests
     public void A_default_scope_is_not_open_and_ends_nothing()
     {
         string? seen = null;
-        var frames = new UiFrames(body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
         {
             using (ui.Group(new Service("kept"), EndNothing))
             {
@@ -87,7 +87,7 @@ public sealed class ScopeTests
     [Fact]
     public void A_scope_left_open_fails_the_frame_by_its_kind_and_the_next_frame_starts_clean()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
 
         var error = Assert.Throws<InvalidOperationException>(() => frames.Run(0f, ui => { ui.Id("leaked"); }));
         frames.Run(0f, ui => { using (ui.Box()) { } });
@@ -99,7 +99,7 @@ public sealed class ScopeTests
     public void A_closed_widget_returns_a_scope_that_is_not_open()
     {
         var open = false;
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
 
         var dialogOpen = frames.Run(0f, ui =>
         {
@@ -120,7 +120,7 @@ public sealed class ScopeTests
     public void A_menu_bar_closes_its_menu_once_the_open_title_stops_being_recorded()
     {
         var showFile = true;
-        var frames = new UiFrames(width: 400f, height: 300f, body: ui =>
+        var frames = new UiFrames(new DefaultUiState(), width: 400f, height: 300f, body: ui =>
         {
             using (ui.MenuBar("bar"))
             {
@@ -150,7 +150,7 @@ public sealed class ScopeTests
     [Fact]
     public void A_group_allocates_no_more_per_frame_than_the_scopes_it_ends()
     {
-        var frames = new UiFrames();
+        var frames = new UiFrames(new DefaultUiState());
 
         Assert.Equal(AllocatedPerRun(frames, Nested), AllocatedPerRun(frames, Grouped));
     }
