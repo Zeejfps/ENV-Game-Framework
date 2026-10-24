@@ -28,10 +28,10 @@ public sealed partial class UiState
         return focus;
     }
 
-    /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
-    public void OpenExportSetup(LoadedAssembly? picked)
+    /// <summary>Opens the export dialog on <paramref name="assemblies"/>, the open ones, with <paramref name="picked"/> ticked.</summary>
+    public void OpenExportSetup(IReadOnlyList<LoadedAssembly> assemblies, LoadedAssembly? picked)
     {
-        ExportSetup.Open(_appState.Assemblies.Assemblies, picked);
+        ExportSetup.Open(assemblies, picked);
     }
 
     /// <summary>Whether a dialog that keeps the window's shortcuts to itself is open.</summary>

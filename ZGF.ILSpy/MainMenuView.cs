@@ -80,7 +80,7 @@ internal static class MainMenuView
             SaveDialogs.PickActiveCodeFile(ui, appState);
         var anyOpen = ui.State.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: SaveDialogs.ExportIcon))
-            ui.State.OpenExportSetup(FindActiveAssembly(appState));
+            ui.State.OpenExportSetup(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, appState);
     }

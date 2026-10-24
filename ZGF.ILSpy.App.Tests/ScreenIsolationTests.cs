@@ -35,7 +35,7 @@ public sealed class ScreenIsolationTests : IDisposable
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         d.Ui.OpenBookmarks();
-        d.Ui.Analyze(d.Fixture("Greeter"));
+        d.Analyze(d.Fixture("Greeter"));
         d.Ui.ScopeSearch(d.Node(AppStateDriver.FixturesNamespace));
         d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         d.Settle();

@@ -52,7 +52,7 @@ internal static class DocumentsView
         if (result.ToggleBookmark is { } line)
             ToggleLineBookmark(ui, appState, tab, line);
         if (result.Analyze is { } analyzed)
-            ui.State.Analyze(analyzed);
+            AnalyzerPanelView.Analyze(ui.State, appState, analyzed);
     }
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the

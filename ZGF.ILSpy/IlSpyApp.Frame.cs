@@ -5,14 +5,16 @@ namespace ZGF.ILSpy;
 public sealed partial class IlSpyApp
 {
     /// <summary>Does what comes before drawing a frame: the screen takes the theme and strings the
-    /// preferences pick, follows the open assemblies and analyses in the trees and the open tabs in the
-    /// layout, and focuses another tab when none is active; then the commands the features queued for
-    /// the view run, and the tabs in front decompile again when the language or the options changed.</summary>
+    /// preferences pick, follows the open assemblies and analyses in the trees, the open tabs in the
+    /// layout and the active tab, and focuses another tab when none is active; then the commands the
+    /// features queued for the view run, and the tabs in front decompile again when the language or the
+    /// options changed.</summary>
     internal static void StartFrame(UiState uiState, AppState appState)
     {
         uiState.ApplyThemeAndLanguage(appState.Theme, appState.Locale);
         uiState.SyncTrees(appState.Assemblies, appState.ShowNonPublic);
         uiState.SyncTabViews(appState.Tabs);
+        uiState.FollowActiveTab(appState.Tabs.Active);
         uiState.FocusNextTabIfNone(appState.Tabs);
         RunViewCommands(uiState, appState);
         FollowDecompilation(uiState, appState);

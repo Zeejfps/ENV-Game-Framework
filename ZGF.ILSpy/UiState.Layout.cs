@@ -142,7 +142,7 @@ public sealed partial class UiState
     /// <summary>Brings <paramref name="tab"/>'s panel to the front and asks for it to become the active tab.</summary>
     public void ActivateTab(DocumentTab tab)
     {
-        if (!_appState.Tabs.Contains(tab))
+        if (!_tabViews.ContainsKey(tab))
             return;
         Layout.Activate(PanelOf(tab));
         AskToFocusTab(tab);
@@ -152,6 +152,7 @@ public sealed partial class UiState
     /// brought to front to become the active one, unless it is <paramref name="active"/>.</summary>
     public void SyncActiveTab(DocumentTab? active)
     {
+        FollowActiveTab(active);
         var tab = FindTab(Layout.Focused);
         if (tab == null)
             return;
@@ -163,7 +164,7 @@ public sealed partial class UiState
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
     public void CycleTab(int by)
     {
-        var active = _appState.Tabs.Active;
+        var active = _activeTab;
         if (active == null)
             return;
         var activePanel = PanelOf(active);
@@ -193,7 +194,7 @@ public sealed partial class UiState
 
     public void CloseActiveTab()
     {
-        var tab = _appState.Tabs.Active;
+        var tab = _activeTab;
         if (tab == null)
             return;
         Layout.Close(PanelOf(tab));
@@ -207,7 +208,7 @@ public sealed partial class UiState
 
     public void OpenExports() => MainLayout.OpenExports(FindActivePanel());
 
-    private string? FindActivePanel() => FindPanel(_appState.Tabs.Active);
+    private string? FindActivePanel() => FindPanel(_activeTab);
 
     public void OpenAssemblies() => MainLayout.OpenAssemblies();
 

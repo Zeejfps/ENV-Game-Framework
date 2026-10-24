@@ -82,7 +82,7 @@ internal static class Shortcuts
                     SaveDialogs.PickActiveCodeFile(ui, appState);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
-                    ui.State.OpenExportSetup(FindActiveAssembly(appState));
+                    ui.State.OpenExportSetup(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
                     RefreshAssemblies(appState, ui.State.Tree.ExpandedPaths());

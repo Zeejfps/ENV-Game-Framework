@@ -6,6 +6,7 @@ public sealed partial class UiState
     private readonly List<DocumentTab> _closedTabs = new();
     private readonly List<string> _releasedImages = new();
     private int _documentPanels;
+    private DocumentTab? _activeTab;
 
     /// <summary>How <paramref name="tab"/>, an open tab, is shown.</summary>
     public TabView ViewOf(DocumentTab tab) => _tabViews[tab];
@@ -97,6 +98,12 @@ public sealed partial class UiState
     {
         foreach (var (tab, view) in _tabViews)
             view.Follow(tab);
+    }
+
+    /// <summary>Takes <paramref name="active"/>, the app state's active tab, as the tab the views open beside.</summary>
+    public void FollowActiveTab(DocumentTab? active)
+    {
+        _activeTab = active;
     }
 
     /// <summary>Where the view of <paramref name="tab"/> stands, or null when it has none.</summary>

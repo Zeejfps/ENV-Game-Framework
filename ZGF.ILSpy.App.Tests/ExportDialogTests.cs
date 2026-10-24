@@ -36,7 +36,7 @@ public sealed class ExportDialogTests : IDisposable
     {
         var d = OpenedTwo();
 
-        d.Ui.OpenExportSetup(Fixtures(d));
+        d.OpenExportSetup(Fixtures(d));
 
         var setup = d.Ui.ExportSetup;
         Assert.True(setup.IsOpen);
@@ -49,7 +49,7 @@ public sealed class ExportDialogTests : IDisposable
     {
         var d = AppStateDriver.Opened();
 
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
 
         Assert.True(Assert.Single(d.Ui.ExportSetup.Choices).Included);
     }
@@ -58,7 +58,7 @@ public sealed class ExportDialogTests : IDisposable
     public void Ticking_a_second_assembly_makes_the_export_a_solution_named_after_the_folder()
     {
         var d = OpenedTwo();
-        d.Ui.OpenExportSetup(Fixtures(d));
+        d.OpenExportSetup(Fixtures(d));
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.PathOf("Out");
 
@@ -74,7 +74,7 @@ public sealed class ExportDialogTests : IDisposable
     public void Two_projects_with_one_name_stop_the_export_until_one_is_renamed()
     {
         var d = OpenedTwo();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.Path;
         setup.IncludeAll(true);
@@ -92,7 +92,7 @@ public sealed class ExportDialogTests : IDisposable
     public void The_export_needs_a_full_folder_path_and_a_ticked_assembly()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
 
         setup.Folder = "relative";
@@ -107,7 +107,7 @@ public sealed class ExportDialogTests : IDisposable
     public void What_stops_the_export_is_named_one_thing_at_a_time()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         var choice = Assert.Single(setup.Choices);
 
@@ -126,7 +126,7 @@ public sealed class ExportDialogTests : IDisposable
     public void A_folder_that_holds_files_is_pointed_out()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.Path;
         Assert.False(setup.FolderHoldsFiles);
@@ -141,7 +141,7 @@ public sealed class ExportDialogTests : IDisposable
     public void One_ticked_assembly_exports_as_a_project_straight_into_the_folder()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.Path;
         setup.Choices[0].Name = "Renamed";
@@ -157,7 +157,7 @@ public sealed class ExportDialogTests : IDisposable
     public void Several_ticked_assemblies_export_as_a_solution_with_a_folder_per_project()
     {
         var d = OpenedTwo();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.Path;
         setup.IncludeAll(true);
@@ -176,10 +176,10 @@ public sealed class ExportDialogTests : IDisposable
     {
         var d = OpenedTwo();
 
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         Assert.Equal(ExportPage.Choose, d.Ui.ExportSetup.Page);
 
-        d.Ui.OpenExportSetup(Fixtures(d));
+        d.OpenExportSetup(Fixtures(d));
         Assert.Equal(ExportPage.Main, d.Ui.ExportSetup.Page);
     }
 
@@ -188,7 +188,7 @@ public sealed class ExportDialogTests : IDisposable
     {
         var d = OpenedTwo();
         var second = d.AppState.Assemblies.Assemblies[1];
-        d.Ui.OpenExportSetup(second);
+        d.OpenExportSetup(second);
         var setup = d.Ui.ExportSetup;
 
         setup.Choose();
@@ -203,7 +203,7 @@ public sealed class ExportDialogTests : IDisposable
     public void The_filter_narrows_the_list_and_Select_all_shown_ticks_only_what_it_shows()
     {
         var d = OpenedTwo();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var picker = d.Ui.ExportSetup.Picker;
         var second = d.AppState.Assemblies.Assemblies[1];
 
@@ -220,7 +220,7 @@ public sealed class ExportDialogTests : IDisposable
     public void Selected_only_hides_the_unticked_assemblies()
     {
         var d = OpenedTwo();
-        d.Ui.OpenExportSetup(Fixtures(d));
+        d.OpenExportSetup(Fixtures(d));
         var setup = d.Ui.ExportSetup;
         setup.Choose();
 
@@ -239,7 +239,7 @@ public sealed class ExportDialogTests : IDisposable
         app.Run(2);
         var drawnByTheTree = app.Frames.Canvas.Texts.Count(t => t.Inputs.Text == second.Name);
 
-        app.Ui.OpenExportSetup(app.AppState.Assemblies.Assemblies[0]);
+        app.OpenExportSetup(app.AppState.Assemblies.Assemblies[0]);
         app.Run(2);
 
         Assert.Equal(drawnByTheTree, app.Frames.Canvas.Texts.Count(t => t.Inputs.Text == second.Name));
@@ -250,7 +250,7 @@ public sealed class ExportDialogTests : IDisposable
     public void Choose_opens_the_list_and_Done_or_Escape_goes_back_without_closing()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         app.Run(2);
         var setup = app.Ui.ExportSetup;
 
@@ -270,7 +270,7 @@ public sealed class ExportDialogTests : IDisposable
     public void A_filter_that_hides_everything_says_so_and_can_be_cleared()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         var setup = app.Ui.ExportSetup;
         setup.Choose();
         setup.Picker.Filter = "nothing-is-called-this";
@@ -287,7 +287,7 @@ public sealed class ExportDialogTests : IDisposable
     public void With_nothing_chosen_the_main_page_offers_to_choose()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         app.Ui.ExportSetup.IncludeAll(false);
         app.Run(2);
 
@@ -301,7 +301,7 @@ public sealed class ExportDialogTests : IDisposable
         var app = AppDriver.Opened(height: 1400f);
         OpenAssembly(app.AppState, SecondPath);
         app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         app.Ui.ExportSetup.IncludeAll(true);
         app.Ui.ExportSetup.FinishChoosing();
         app.Run(2);
@@ -397,7 +397,7 @@ public sealed class ExportDialogTests : IDisposable
         app.Run(2);
         Assert.False(app.Frames.Drew("SDK-style project files"));
 
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         app.Run(2);
 
         Assert.True(app.Frames.Drew("SDK-style project files"));
@@ -409,7 +409,7 @@ public sealed class ExportDialogTests : IDisposable
     {
         var app = AppDriver.Opened(height: 1400f);
         var nested = DecompilerToggle.Find("UseNestedDirectoriesForNamespaces")!;
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         app.Run(2);
 
         app.Click("A folder per namespace part").Frame(2);
@@ -421,7 +421,7 @@ public sealed class ExportDialogTests : IDisposable
     public void A_key_file_that_is_not_there_stops_the_export()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.Path;
 
@@ -438,7 +438,7 @@ public sealed class ExportDialogTests : IDisposable
     public void A_pdb_asked_for_in_the_dialog_is_written_beside_the_project_and_reported()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenExportSetup(null);
+        d.OpenExportSetup(null);
         var setup = d.Ui.ExportSetup;
         setup.Folder = _temp.Path;
         setup.GeneratePdb = true;
@@ -468,7 +468,7 @@ public sealed class ExportDialogTests : IDisposable
     {
         var app = AppDriver.Opened();
         _temp.Write("notes.txt", "keep");
-        app.Ui.OpenExportSetup(null);
+        app.OpenExportSetup(null);
         app.Ui.ExportSetup.Folder = _temp.Path;
 
         app.Run(2);

@@ -139,7 +139,7 @@ public sealed class AssemblyListingTests
     {
         using var temp = new TempDir();
         var first = AppStateDriver.Opened(temp.Settings());
-        first.Ui.Analyze(first.Fixture("Greeter"));
+        first.Analyze(first.Fixture("Greeter"));
         SaveSettings(first.AppState);
         var d = new AppStateDriver(temp.Settings());
         d.AppState.Lists.Create(Other);
@@ -158,7 +158,7 @@ public sealed class AssemblyListingTests
     public void Switching_back_to_a_list_analyzes_again_what_was_analyzed_in_it()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.Analyze(d.Fixture("Greeter"));
+        d.Analyze(d.Fixture("Greeter"));
         d.AppState.Lists.Create(Other);
 
         SwitchAssemblyList(d.AppState, Other);
@@ -175,7 +175,7 @@ public sealed class AssemblyListingTests
     public void A_duplicated_list_has_the_analyses_of_the_one_it_copies()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.Analyze(d.Fixture("Greeter"));
+        d.Analyze(d.Fixture("Greeter"));
         var copy = DuplicateAssemblyList(d.AppState, SavedAssemblyLists.DefaultName);
 
         SwitchAssemblyList(d.AppState, copy);

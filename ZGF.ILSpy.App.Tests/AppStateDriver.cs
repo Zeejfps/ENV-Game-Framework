@@ -218,6 +218,15 @@ internal sealed class AppStateDriver
         ShowNode(AppState, node, inNewTab);
         Settle();
     }
+
+    /// <summary>Analyzes <paramref name="node"/> as the views do.</summary>
+    public void Analyze(BrowseNode node) => AnalyzerPanelView.Analyze(Ui, AppState, node);
+
+    /// <summary>Analyzes what <paramref name="reference"/> points at as the views do.</summary>
+    public void Analyze(CodeReference reference) => AnalyzerPanelView.Analyze(Ui, AppState, reference);
+
+    /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
+    public void OpenExportSetup(LoadedAssembly? picked) => Ui.OpenExportSetup(AppState.Assemblies.Assemblies, picked);
 }
 
 /// <summary>Renders the whole app window frame by frame over a <see cref="AppStateDriver"/>, which
@@ -278,6 +287,10 @@ internal sealed class AppDriver
         Driver.Show(node, inNewTab);
         Run(frames);
     }
+
+    public void Analyze(BrowseNode node) => Driver.Analyze(node);
+
+    public void OpenExportSetup(LoadedAssembly? picked) => Driver.OpenExportSetup(picked);
 
     /// <summary>Where the text was drawn on the last frame, in window coordinates.</summary>
     public UiRect TextRect(string text) => Drawn(text, Frames.Canvas.Texts.FirstOrDefault(t => t.Inputs.Text == text));

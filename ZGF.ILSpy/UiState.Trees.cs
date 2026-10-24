@@ -1,5 +1,4 @@
 using ZGF.ILSpy.Core;
-using static ZGF.ILSpy.Analysis;
 
 namespace ZGF.ILSpy;
 
@@ -35,24 +34,5 @@ public sealed partial class UiState
         _listGeneration = generation;
         Tree.Forget();
         MenuTarget = null;
-    }
-
-    /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer, which
-    /// is opened if it is not, and selects its root.</summary>
-    public void Analyze(BrowseNode node)
-    {
-        var root = AddToAnalyzer(_appState, node);
-        if (root == null)
-            return;
-        OpenAnalyzer();
-        Analyzer.Show(root);
-    }
-
-    /// <summary>Opens the analyzer if it is not, where a root shows as loading while what
-    /// <paramref name="reference"/> points at is found and analyzed.</summary>
-    public void Analyze(CodeReference reference)
-    {
-        OpenAnalyzer();
-        AddToAnalyzer(_appState, reference);
     }
 }

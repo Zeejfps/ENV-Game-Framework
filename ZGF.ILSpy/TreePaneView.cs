@@ -79,7 +79,7 @@ internal static class TreePaneView
         var picked = ui.State.Tree.View.Selected;
         if (picked == null)
             return;
-        ui.State.Analyze(picked);
+        AnalyzerPanelView.Analyze(ui.State, appState, picked);
     }
 
     private static void CloseOnDelete(Ui<UiState> ui, AppState appState)
@@ -134,13 +134,13 @@ internal static class TreePaneView
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
         if (Analyzers.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
-            ui.State.Analyze(node);
+            AnalyzerPanelView.Analyze(ui.State, appState, node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, appState, node);
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, appState, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
-            ui.State.OpenExportSetup(node.Assembly);
+            ui.State.OpenExportSetup(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))

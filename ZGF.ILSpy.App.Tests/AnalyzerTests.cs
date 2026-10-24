@@ -28,7 +28,7 @@ public sealed class AnalyzerTests
     {
         var d = AppStateDriver.Opened();
 
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         var root = Assert.Single(d.AppState.Analyzer.Found());
         var usedBy = Expand(d, root, "Used By");
 
@@ -46,7 +46,7 @@ public sealed class AnalyzerTests
         var d = AppStateDriver.Opened();
         var node = d.Fixture("Counter").Children.Single(c => c.Text.StartsWith(member + " "));
 
-        d.Ui.Analyze(node);
+        d.Analyze(node);
         var usedBy = Expand(d, Assert.Single(d.AppState.Analyzer.Found()), "Used By");
 
         var found = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(usedBy.Found));
@@ -58,7 +58,7 @@ public sealed class AnalyzerTests
     {
         var d = AppStateDriver.Opened();
 
-        d.Ui.Analyze(d.Fixture("GuardAttribute"));
+        d.Analyze(d.Fixture("GuardAttribute"));
         var appliedTo = Expand(d, Assert.Single(d.AppState.Analyzer.Found()), "Applied To");
 
         var member = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(appliedTo.Found));
@@ -70,7 +70,7 @@ public sealed class AnalyzerTests
     {
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         var analyzer = d.AppState.Analyzer;
         var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Found()[0], "Used By").Found[0];
         app.Ui.Analyzer.View.Select(caller);
@@ -136,7 +136,7 @@ public sealed class AnalyzerTests
     {
         var d = app.Driver;
         var analyzer = d.AppState.Analyzer;
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         var caller = Expand(d, analyzer.Found()[0], "Used By").Found[0];
         d.Ui.Analyzer.View.ScrollIntoView(caller);
         app.Run(3);
@@ -180,7 +180,7 @@ public sealed class AnalyzerTests
         var reference = ReferenceToFirst(d);
         var analyzer = d.AppState.Analyzer;
 
-        d.Ui.Analyze(reference);
+        d.Analyze(reference);
         var waiting = analyzer.Roots.ToList();
         var savedWhileFinding = analyzer.ListSavedAnalyses();
         var revisionWhileFinding = analyzer.Revision;
@@ -200,8 +200,8 @@ public sealed class AnalyzerTests
         var length = ReferenceTo(d, "Greeter", "Length");
         var greet = ReferenceTo(d, "Greeter", "Greet(2)");
 
-        d.Ui.Analyze(length);
-        d.Ui.Analyze(greet);
+        d.Analyze(length);
+        d.Analyze(greet);
         d.Settle();
 
         var labels = d.AppState.Analyzer.Found().Select(r => r.Symbol.Label).ToList();
@@ -235,7 +235,7 @@ public sealed class AnalyzerTests
         var reference = ReferenceToFirst(d);
         var analyzer = d.AppState.Analyzer;
 
-        d.Ui.Analyze(reference);
+        d.Analyze(reference);
         analyzer.Remove(analyzer.Roots[0]);
         d.Settle();
 
@@ -259,7 +259,7 @@ public sealed class AnalyzerTests
         CloseAssembly(d.AppState, assembly);
         File.Delete(copy);
 
-        d.Ui.Analyze(reference);
+        d.Analyze(reference);
         d.Settle();
 
         Assert.Empty(d.AppState.Analyzer.Roots);
@@ -271,8 +271,8 @@ public sealed class AnalyzerTests
     {
         var d = AppStateDriver.Opened();
         var analyzer = d.AppState.Analyzer;
-        d.Ui.Analyze(First(d));
-        d.Ui.Analyze(d.Fixture("Greeter"));
+        d.Analyze(First(d));
+        d.Analyze(d.Fixture("Greeter"));
 
         analyzer.Remove(analyzer.Roots[0]);
         var left = analyzer.Found().Select(r => r.Symbol.Label).ToList();
@@ -287,7 +287,7 @@ public sealed class AnalyzerTests
     {
         var d = AppStateDriver.Opened();
         var analyzer = d.AppState.Analyzer;
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         var root = analyzer.Found()[0];
         var caller = (AnalyzerSymbolNode)Expand(d, root, "Used By").Found[0];
 
@@ -309,7 +309,7 @@ public sealed class AnalyzerTests
     {
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         app.Run(3);
         var row = app.Frames.TextRects().Last(t => t.Text.StartsWith("First()")).Rect;
 
@@ -325,7 +325,7 @@ public sealed class AnalyzerTests
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
         var analyzer = d.AppState.Analyzer;
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         app.Run(3);
         var root = analyzer.Roots[0];
         var rows = app.Ui.Analyzer;
@@ -347,9 +347,9 @@ public sealed class AnalyzerTests
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
         var analyzer = d.AppState.Analyzer;
-        d.Ui.Analyze(First(d));
+        d.Analyze(First(d));
         var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Found()[0], "Used By").Found[0];
-        d.Ui.Analyze(d.Fixture("Greeter"));
+        d.Analyze(d.Fixture("Greeter"));
         app.Ui.Analyzer.View.Select(caller);
         app.Run(3);
 

@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -123,5 +124,24 @@ internal static class AnalyzerPanelView
             Navigate(appState, target, inNewTab: false);
         if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
             Navigate(appState, target, inNewTab: true);
+    }
+
+    /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer, which
+    /// is opened if it is not, and selects its root.</summary>
+    public static void Analyze(UiState screen, AppState appState, BrowseNode node)
+    {
+        var root = AddToAnalyzer(appState, node);
+        if (root == null)
+            return;
+        screen.OpenAnalyzer();
+        screen.Analyzer.Show(root);
+    }
+
+    /// <summary>Opens the analyzer if it is not, where a root shows as loading while what
+    /// <paramref name="reference"/> points at is found and analyzed.</summary>
+    public static void Analyze(UiState screen, AppState appState, CodeReference reference)
+    {
+        screen.OpenAnalyzer();
+        AddToAnalyzer(appState, reference);
     }
 }
