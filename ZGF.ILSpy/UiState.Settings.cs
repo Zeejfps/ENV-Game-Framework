@@ -12,7 +12,14 @@ public sealed partial class UiState
         var sources = CaptureViewSources();
         if (sources == _keptView)
             return;
-        _keptView = sources;
+        HandOverViewSettings();
+    }
+
+    /// <summary>Hands the workspace what its settings keep of the screen as it is now, changed or not,
+    /// as before the last save.</summary>
+    public void HandOverViewSettings()
+    {
+        _keptView = CaptureViewSources();
         _workspace.KeepViewSettings(CreateViewSettings());
     }
 

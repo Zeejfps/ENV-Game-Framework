@@ -222,8 +222,8 @@ internal sealed class AppDriver
     public AppDriver(float width = 1000f, float height = 700f, AppSettings? settings = null)
     {
         Driver = new WorkspaceDriver(settings);
-        var app = new IlSpyApp(Workspace, Ui, new List<string>());
-        Frames = UiFrames.Running(app, width: width, height: height);
+        App = new IlSpyApp(Workspace, Ui, new List<string>());
+        Frames = UiFrames.Running(App, width: width, height: height);
         Frames.FrameTime = 1f / 60f;
         Frames.BeforeFrame = PumpAtFrameTime;
     }
@@ -247,6 +247,7 @@ internal sealed class AppDriver
 
     /// <summary>The screen the app draws.</summary>
     public UiState Ui => Driver.Ui;
+    public IlSpyApp App { get; }
     public UiFrames Frames { get; }
     public UiTheme Theme => AppThemes.For(Workspace.Theme).Ui;
 

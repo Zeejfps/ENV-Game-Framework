@@ -1,4 +1,5 @@
 using ZGF.AppUtils;
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 
 namespace ZGF.ILSpy;
@@ -55,7 +56,15 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
     protected override void OnShutdown(ImmediateGuiAppHost host)
     {
         State.Assemblies.Changed -= host.Invalidate;
-        State.Settings.RememberWindow(host.WindowBounds);
+        SaveOnExit(host.WindowBounds);
+    }
+
+    /// <summary>Saves the settings as the app closes, with the main window at <paramref name="window"/>
+    /// and the screen's view state as it is now, even what a held button has not settled yet.</summary>
+    internal void SaveOnExit(WindowBounds window)
+    {
+        State.Settings.RememberWindow(window);
+        UiState.HandOverViewSettings();
         State.SaveSettings();
     }
 

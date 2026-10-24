@@ -114,6 +114,20 @@ public sealed class AutosaveTests : IDisposable
     }
 
     [Fact]
+    public void Closing_the_app_while_the_export_window_is_held_saves_where_it_is_now()
+    {
+        var app = new AppDriver(settings: _temp.Settings());
+        app.Run(2);
+
+        app.Frames.Press().Frame();
+        app.Ui.ExportSetup.Window = MovedExportWindow;
+        app.Run(2);
+        app.App.SaveOnExit(new WindowBounds(10, 20, 1000, 700, false));
+
+        Assert.Equal(MovedExportWindow, _temp.Settings().ExportWindow);
+    }
+
+    [Fact]
     public void An_analysis_made_while_saved_ones_are_restoring_is_saved()
     {
         var first = WorkspaceDriver.Opened(_temp.Settings());
