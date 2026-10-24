@@ -41,6 +41,7 @@ public sealed class LoadedAssembly
             Name = Path.GetFileNameWithoutExtension(FilePath);
             FullName = file.Name;
         }
+        NameAndVersion = JoinNameAndVersion(Name, Version);
         TargetFramework = TryDetectTargetFramework(file);
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
@@ -89,7 +90,14 @@ public sealed class LoadedAssembly
     }
 
     /// <summary>The simple name with the version, e.g. <c>System.Runtime (10.0.0.0)</c>.</summary>
-    public string NameAndVersion => Version is { } version ? $"{Name} ({version})" : Name;
+    public string NameAndVersion { get; }
+
+    private static string JoinNameAndVersion(string name, Version? version)
+    {
+        if (version == null)
+            return name;
+        return $"{name} ({version})";
+    }
 
     /// <summary>The tree's root for this assembly.</summary>
     public BrowseNode Root => _root.Value;

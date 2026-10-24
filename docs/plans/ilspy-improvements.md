@@ -56,16 +56,12 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
 
 ## Performance
 
-1. **Search inserts are quadratic.** `Search.Insert` (`ZGF.ILSpy/Search.cs:189-202`) inserts each row into a
-   `List`; every comparison builds `LoadedAssembly.NameAndVersion` strings twice (`LoadedAssembly.cs:89`), and
-   again per visible row per frame (`SearchPanelView.cs:248`). Fix: sort and merge batches, compare lazily,
-   cache `NameAndVersion`.
-2. **Search allocates per member.** `AssemblySearch.cs:68-110, 315-319` rebuilds `TypeName` recursively and
+1. **Search allocates per member.** `AssemblySearch.cs:68-110, 315-319` rebuilds `TypeName` recursively and
    concatenates `type.member` per member; each hit runs `FindNode`. Fix: cache qualified names per handle,
    compare through `MetadataStringComparer`, resolve hit nodes lazily.
-3. **Lookup dictionaries never trim.** `_textStyles` (`Ui.cs:33, 559-581`), `_lineHeights`, `_cells` grow
+2. **Lookup dictionaries never trim.** `_textStyles` (`Ui.cs:33, 559-581`), `_lineHeights`, `_cells` grow
    with animated colours or zoomed sizes. Fix: age them like `FrameCache`.
-4. **Small per-frame costs.** `UiInput.cs:144` allocates a string per typed character; caret positions are
+3. **Small per-frame costs.** `UiInput.cs:144` allocates a string per typed character; caret positions are
    measured uncached every frame (`UiTextField.cs:160-161`, `UiSelectableText.cs:219, 229-230`).
 
 ## Structure

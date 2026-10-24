@@ -357,6 +357,28 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
+    public void Results_streamed_in_many_batches_end_up_in_sort_order()
+    {
+        var d = WorkspaceDriver.Opened();
+        d.Workspace.Open(typeof(object).Assembly.Location);
+        d.RunUntil(() => d.Workspace.Assemblies.Assemblies.Count == 2);
+        var search = d.Workspace.Search;
+        search.SortBy(SearchSort.Name);
+        search.Query = "e";
+
+        search.Update(d.Workspace.Assemblies, 0, true);
+        search.Update(d.Workspace.Assemblies, 1, true);
+        d.Settle();
+
+        var sorted = search.Rows
+            .OrderBy(r => r.Text, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Location, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Node.Assembly.NameAndVersion, StringComparer.OrdinalIgnoreCase);
+        Assert.True(search.Rows.Count > 1000);
+        Assert.Equal(sorted, search.Rows);
+    }
+
+    [Fact]
     public void A_tab_whose_place_is_gone_after_a_reload_says_so_and_reports_it()
     {
         var d = new WorkspaceDriver();

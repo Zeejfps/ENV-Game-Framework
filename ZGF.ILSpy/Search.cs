@@ -24,6 +24,7 @@ public sealed class Search
     private readonly List<SearchResult> _rows = new();
     private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
     private readonly List<CancellationTokenSource> _runs = new();
+    private readonly IComparer<SearchResult> _order;
     private string _typed = "";
     private double _typedAt;
     private string? _query;
@@ -36,6 +37,7 @@ public sealed class Search
     {
         _strings = strings;
         _reportError = reportError;
+        _order = Comparer<SearchResult>.Create(Compare);
     }
 
     public string Query = "";
@@ -181,26 +183,36 @@ public sealed class Search
     {
         if (!IsCurrent(work))
             return;
-        foreach (var row in batch)
-        {
-            if (_searched.Contains(row.Node.Assembly))
-                Insert(row);
-        }
+        var arrived = batch
+            .Where(IsSearched)
+            .Order(_order)
+            .ToList();
+        MergeIntoRows(arrived);
     }
 
-    private void Insert(SearchResult row)
+    private bool IsSearched(SearchResult row) => _searched.Contains(row.Node.Assembly);
+
+    /// <summary>Merges the sorted <paramref name="arrived"/> into the sorted rows, each after the
+    /// rows it ties with, filling from the end so no row moves more than once.</summary>
+    private void MergeIntoRows(List<SearchResult> arrived)
     {
-        var low = 0;
-        var high = _rows.Count;
-        while (low < high)
+        var kept = _rows.Count - 1;
+        var next = arrived.Count - 1;
+        _rows.AddRange(arrived);
+        for (var at = _rows.Count - 1; next >= 0; at--)
         {
-            var mid = (low + high) / 2;
-            if (Compare(_rows[mid], row) <= 0)
-                low = mid + 1;
+            var keptGoesLast = kept >= 0 && Compare(_rows[kept], arrived[next]) > 0;
+            if (keptGoesLast)
+            {
+                _rows[at] = _rows[kept];
+                kept--;
+            }
             else
-                high = mid;
+            {
+                _rows[at] = arrived[next];
+                next--;
+            }
         }
-        _rows.Insert(low, row);
     }
 
     public void Select(SearchResult row) => Selection.Select(row, _rows);
