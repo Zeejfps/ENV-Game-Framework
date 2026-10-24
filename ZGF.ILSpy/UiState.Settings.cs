@@ -39,7 +39,7 @@ public sealed partial class UiState
             Search.Kinds,
             MetadataFilters.Save(),
             ExportSetup.Window,
-            Layout);
+            Layout.CopyArrangement());
     }
 
     /// <summary>What the settings keep of the screen is made from: the change counts of the columns,

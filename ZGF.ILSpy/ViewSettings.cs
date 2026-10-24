@@ -7,7 +7,8 @@ namespace ZGF.ILSpy;
 
 /// <summary>What the settings keep of the screen: the column widths of the bookmarks, search results
 /// and export tables, the decompiler options panel's folded groups, what the search looks for, the
-/// metadata grids' flags filters, where the export dialog's window was left, and the layout.</summary>
+/// metadata grids' flags filters, where the export dialog's window was left, and a copy of the layout,
+/// which shares nothing with the screen's.</summary>
 public sealed record ViewSettings(
     List<float> BookmarkColumns,
     List<float> SearchColumns,

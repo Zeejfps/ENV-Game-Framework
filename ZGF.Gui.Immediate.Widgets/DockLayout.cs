@@ -337,6 +337,42 @@ public sealed class DockLayout
         _ => false,
     };
 
+    /// <summary>A layout arranged as this one is, with the same ids, as plain data: none of this one's
+    /// callbacks, handlers or focus, and no node or list shared with it.</summary>
+    public DockLayout CopyArrangement()
+    {
+        return new DockLayout
+        {
+            Root = CopyNode(Root),
+            Windows = Windows.ConvertAll(CopyWindow),
+            NextId = NextId,
+        };
+    }
+
+    private static DockWindow CopyWindow(DockWindow window) => new()
+    {
+        Id = window.Id,
+        Root = CopyNode(window.Root),
+        X = window.X,
+        Y = window.Y,
+        Width = window.Width,
+        Height = window.Height,
+    };
+
+    private static DockNode CopyNode(DockNode node) => node switch
+    {
+        DockSplit split => new DockSplit
+        {
+            Id = split.Id,
+            Direction = split.Direction,
+            Ratio = split.Ratio,
+            First = CopyNode(split.First),
+            Second = CopyNode(split.Second),
+        },
+        DockGroup group => new DockGroup { Id = group.Id, Panels = group.Panels.ToList(), Active = group.Active },
+        _ => throw new ArgumentOutOfRangeException(nameof(node)),
+    };
+
     /// <summary>Every panel under <paramref name="node"/>, group by group.</summary>
     public static List<string> PanelsIn(DockNode node) => Groups(node).SelectMany(g => g.Panels).ToList();
 

@@ -244,6 +244,32 @@ public sealed class DockLayoutTests
     }
 
     [Fact]
+    public void A_copied_arrangement_serializes_as_the_layout_does_and_shares_nothing_with_it()
+    {
+        var layout = TwoGroups();
+        layout.Float("b", new UiRect(10f, 20f, 300f, 200f));
+        layout.AssignIds();
+        layout.NewPanel = () => "new";
+        layout.PanelClosed += _ => { };
+
+        var copy = layout.CopyArrangement();
+        layout.GroupOf("a")!.Panels.Add("d");
+
+        Assert.Equal(JsonSerializer.Serialize(TwoGroupsFloated()), JsonSerializer.Serialize(copy));
+        Assert.Null(copy.NewPanel);
+        Assert.NotSame(layout.Windows[0].Root, copy.Windows[0].Root);
+        Assert.Equal(["a"], copy.GroupOf("a")!.Panels);
+    }
+
+    private static DockLayout TwoGroupsFloated()
+    {
+        var layout = TwoGroups();
+        layout.Float("b", new UiRect(10f, 20f, 300f, 200f));
+        layout.AssignIds();
+        return layout;
+    }
+
+    [Fact]
     public void Ids_are_given_to_new_nodes_without_reusing_saved_ones()
     {
         var layout = new DockLayout

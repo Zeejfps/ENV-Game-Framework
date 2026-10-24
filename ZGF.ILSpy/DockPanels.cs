@@ -28,18 +28,23 @@ public static class DockPanels
         _ => new DockTab(t.PanelSearch),
     };
 
-    /// <summary>The saved layout with only its views — documents do not outlive a run — and
+    /// <summary>A copy of the saved layout with only its views — documents do not outlive a run — and
     /// <paramref name="document"/> in the place of the documents: in the first
     /// group that held one, so the views docked around them stay where they were. The assemblies
     /// alone when none was saved. <paramref name="placed"/> tells whether the document has a place.</summary>
     public static DockLayout Restore(DockLayout? saved, string document, out bool placed)
     {
-        var layout = saved;
-        if (layout == null)
-            layout = new DockLayout { Root = DockLayout.Group(Assemblies) };
+        var layout = CopyOrStart(saved);
         placed = PlaceDocument(layout, document);
         layout.Retain(panel => IsView(panel) || panel == document);
         return layout;
+    }
+
+    private static DockLayout CopyOrStart(DockLayout? saved)
+    {
+        if (saved == null)
+            return new DockLayout { Root = DockLayout.Group(Assemblies) };
+        return saved.CopyArrangement();
     }
 
     private static bool PlaceDocument(DockLayout layout, string document)
