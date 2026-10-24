@@ -64,7 +64,17 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         ui.State.StartFrame();
         MainView.Render(ui, w);
         ui.State.FinishFrame();
+        DrawAgainForViewAsks(ui, w);
         SaveSettingsIfChanged(ui, w);
+    }
+
+    /// <summary>Asks for another frame when a feature asked something of the view after the screen
+    /// took the asks, as frames are drawn only on demand.</summary>
+    private static void DrawAgainForViewAsks(Ui<UiState> ui, Workspace w)
+    {
+        if (w.ViewAsks.Count == 0)
+            return;
+        ui.RequestFrame();
     }
 
     /// <summary>Autosaves, and asks for a frame when a failed write may be tried again, as frames are
