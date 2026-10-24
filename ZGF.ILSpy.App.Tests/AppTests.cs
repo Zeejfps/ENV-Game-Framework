@@ -491,34 +491,6 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void The_theme_is_picked_from_the_view_menus_theme_submenu()
-    {
-        var app = new AppDriver();
-        app.Run(2);
-        Assert.Equal(AppThemeId.Dark, app.AppState.Theme);
-
-        app.Click("View");
-        app.Click("Theme");
-        app.Click("Light theme");
-
-        Assert.Equal(AppThemeId.Light, app.AppState.Theme);
-    }
-
-    [Fact]
-    public void A_named_color_scheme_is_picked_from_the_theme_submenu_and_draws_the_window()
-    {
-        var app = new AppDriver();
-        app.Run(2);
-
-        app.Click("View");
-        app.Click("Theme");
-        app.Click("Dracula").Frame();
-
-        Assert.Equal(AppThemeId.Dracula, app.AppState.Theme);
-        Assert.Equal(UiTheme.Dracula.Background, app.Frames.WindowBackground);
-    }
-
-    [Fact]
     public void The_decompiler_is_picked_from_the_view_menus_decompiler_submenu()
     {
         var app = AppDriver.Opened();

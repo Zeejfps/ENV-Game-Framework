@@ -106,7 +106,7 @@ public static class MainView
                 DecompilerOptionsPanelView.Render(ui, appState);
                 break;
             case DockPanels.DisplayOptions:
-                DisplayOptionsPanelView.Render(ui);
+                DisplayOptionsPanelView.Render(ui, appState);
                 break;
             case DockPanels.Exports:
                 ExportsPanelView.Render(ui, appState);

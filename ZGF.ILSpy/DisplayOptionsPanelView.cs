@@ -5,22 +5,28 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.CodeDisplay;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
-/// <summary>How the app is drawn, as settings cards: the interface's scale, then the code's font size
-/// and switches for line numbers, the current line's highlight and matching brackets. Each option is a
-/// row of its card, named on the left, with its control at the right. Every change shows at once; an
-/// option changed from its default has a bold name.</summary>
+/// <summary>How the app is drawn, as settings cards: the interface's theme, scale and language, then the
+/// code's font size and switches for line numbers, the current line's highlight and matching brackets.
+/// Each option is a row of its card, named on the left, with its control at the right. Every change
+/// shows at once; an option changed from its default has a bold name.</summary>
 internal static class DisplayOptionsPanelView
 {
     private const string FontSizeFormat = "0.#";
     private const float FormMaxWidth = 560f;
     private const string RowSuffix = "-row";
 
-    private static readonly ConditionalWeakTable<Strings, string[]> UiScaleLabels = new();
+    private const int NothingPicked = -1;
 
-    public static void Render(Ui<UiState> ui)
+    private static readonly ConditionalWeakTable<Strings, string[]> UiScaleLabels = new();
+    private static readonly ConditionalWeakTable<Strings, string[]> ThemeLabels = new();
+    private static readonly AppThemeId[] Themes = ListThemes();
+    private static readonly string[] LocaleLabels = ListLocaleLabels();
+
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var theme = ui.Theme;
         using var pane = ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f });
@@ -30,36 +36,76 @@ internal static class DisplayOptionsPanelView
             Gap = theme.GroupGap,
             Padding = theme.PanelPadding,
         });
-        InterfaceSection(ui);
+        InterfaceSection(ui, appState);
         CodeSection(ui);
         ResetRow(ui);
     }
 
-    private static void InterfaceSection(Ui<UiState> ui)
+    /// <summary>The theme, the scale and the language. Only the scale is one of the options a reset puts
+    /// back, so only its name turns bold.</summary>
+    private static void InterfaceSection(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using var section = Section(ui, ui.Memo("interface", t, static s => Heading(s.DisplayOptionsInterface)));
         using var card = Card(ui);
+        using (OptionRow(ui, t.DisplayOptionsTheme, null, false))
+            ThemePicker(ui, appState);
+        ui.Separator();
+
         var changed = ui.State.Display.UiScale != DisplayOptions.Default.UiScale;
         using (OptionRow(ui, t.DisplayOptionsUiScale, t.DisplayOptionsUiScaleDescription, changed))
             UiScalePicker(ui);
+        ui.Separator();
+
+        using (OptionRow(ui, t.DisplayOptionsLanguage, null, false))
+            LanguagePicker(ui, appState);
+    }
+
+    private static void ThemePicker(Ui<UiState> ui, AppState appState)
+    {
+        var labels = ThemeLabels.GetValue(ui.State.Strings, ListThemeLabels);
+        var current = Array.IndexOf(Themes, appState.Theme);
+        var picked = PickFrom(ui, "theme", labels, current);
+        if (picked != NothingPicked)
+            SetTheme(appState, Themes[picked]);
+    }
+
+    private static AppThemeId[] ListThemes()
+    {
+        var named = AppThemes.Named
+            .Select(n => n.Id);
+        return new[] { AppThemeId.Dark, AppThemeId.Light }
+            .Concat(named)
+            .ToArray();
+    }
+
+    private static string[] ListThemeLabels(Strings t)
+    {
+        var named = AppThemes.Named
+            .Select(n => n.Name);
+        return new[] { t.DisplayOptionsThemeDark, t.DisplayOptionsThemeLight }
+            .Concat(named)
+            .ToArray();
     }
 
     private static void UiScalePicker(Ui<UiState> ui)
     {
-        var t = ui.State.Strings;
-        var current = ui.State.Display.UiScale;
-        var labels = UiScaleLabels.GetValue(t, ListUiScaleLabels);
-        var width = ui.SelectButtonWidth(labels);
-        using var menu = ui.SelectButton("ui-scale", UiScaleLabel(t, current), width);
-        if (!menu.IsOpen)
-            return;
+        var labels = UiScaleLabels.GetValue(ui.State.Strings, ListUiScaleLabels);
         var scales = DisplayOptions.UiScales;
+        var current = IndexOfScale(scales, ui.State.Display.UiScale);
+        var picked = PickFrom(ui, "ui-scale", labels, current);
+        if (picked != NothingPicked)
+            SetUiScale(ui.State, scales[picked]);
+    }
+
+    private static int IndexOfScale(IReadOnlyList<float> scales, float scale)
+    {
         for (var i = 0; i < scales.Count; i++)
         {
-            if (ui.MenuRadioItem(labels[i], scales[i] == current))
-                SetUiScale(ui.State, scales[i]);
+            if (scales[i] == scale)
+                return i;
         }
+        return NothingPicked;
     }
 
     private static string[] ListUiScaleLabels(Strings t)
@@ -73,6 +119,46 @@ internal static class DisplayOptionsPanelView
     {
         var percent = (int)MathF.Round(scale * 100f);
         return t.DisplayOptionsUiScalePercent(percent);
+    }
+
+    private static void LanguagePicker(Ui<UiState> ui, AppState appState)
+    {
+        var locales = Locales.All;
+        var current = NothingPicked;
+        for (var i = 0; i < locales.Count; i++)
+        {
+            if (locales[i].Locale == appState.Locale)
+                current = i;
+        }
+        var picked = PickFrom(ui, "language", LocaleLabels, current);
+        if (picked != NothingPicked)
+            SetLocale(appState, locales[picked].Locale);
+    }
+
+    private static string[] ListLocaleLabels()
+    {
+        return Locales.All
+            .Select(l => l.Endonym)
+            .ToArray();
+    }
+
+    /// <summary>A dropdown as wide as the widest of <paramref name="labels"/>, showing the one at
+    /// <paramref name="current"/>, or the first when it is none of them; returns the index picked on
+    /// this frame, or <see cref="NothingPicked"/>.</summary>
+    private static int PickFrom(Ui<UiState> ui, string id, string[] labels, int current)
+    {
+        var width = ui.SelectButtonWidth(labels);
+        var shown = Math.Max(current, 0);
+        using var menu = ui.SelectButton(id, labels[shown], width);
+        if (!menu.IsOpen)
+            return NothingPicked;
+        var picked = NothingPicked;
+        for (var i = 0; i < labels.Length; i++)
+        {
+            if (ui.MenuRadioItem(labels[i], i == current))
+                picked = i;
+        }
+        return picked;
     }
 
     private static void CodeSection(Ui<UiState> ui)

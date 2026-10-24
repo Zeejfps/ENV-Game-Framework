@@ -230,6 +230,35 @@ public sealed class DisplayOptionsTests
     }
 
     [Fact]
+    public void The_theme_is_picked_from_the_panel_and_draws_the_window()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        Assert.Equal(AppThemeId.Dark, app.AppState.Theme);
+
+        app.Click("Dark").Frame();
+        app.Click("Dracula").Frame();
+
+        Assert.Equal(AppThemeId.Dracula, app.AppState.Theme);
+        Assert.Equal(UiTheme.Dracula.Background, app.Frames.WindowBackground);
+    }
+
+    [Fact]
+    public void The_ui_language_is_picked_from_the_panel_too()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+
+        app.Click("English").Frame();
+        app.Click("Deutsch").Frame();
+
+        Assert.Equal(Localization.Locale.De, app.AppState.Locale);
+        Assert.True(app.Frames.Drew("Sprache"));
+    }
+
+    [Fact]
     public void Cancelling_the_reset_question_keeps_the_options()
     {
         var app = AppDriver.Opened(width: 1600f);

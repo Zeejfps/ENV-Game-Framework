@@ -117,7 +117,6 @@ internal static class MainMenuView
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             AskToResetLayout(screen);
         ui.MenuSeparator();
-        ThemeMenu(ui, appState);
         LanguageMenu(ui, appState);
     }
 
@@ -130,23 +129,6 @@ internal static class MainMenuView
             SetLanguage(appState, DecompilationLanguage.CSharp);
         if (ui.MenuRadioItem("IL", appState.Language == DecompilationLanguage.IL))
             SetLanguage(appState, DecompilationLanguage.IL);
-    }
-
-    private static void ThemeMenu(Ui<UiState> ui, AppState appState)
-    {
-        var t = ui.State.Strings;
-        using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
-        if (!themes.IsOpen) return;
-        if (ui.MenuRadioItem(t.ViewThemeDark, appState.Theme == AppThemeId.Dark, id: "theme-dark"))
-            appState.Theme = AppThemeId.Dark;
-        if (ui.MenuRadioItem(t.ViewThemeLight, appState.Theme == AppThemeId.Light, id: "theme-light"))
-            appState.Theme = AppThemeId.Light;
-        ui.MenuSeparator();
-        foreach (var (id, name) in AppThemes.Named)
-        {
-            if (ui.MenuRadioItem(name, appState.Theme == id))
-                appState.Theme = id;
-        }
     }
 
     private static void LanguageMenu(Ui<UiState> ui, AppState appState)
