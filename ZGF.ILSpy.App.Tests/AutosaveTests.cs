@@ -12,38 +12,21 @@ public sealed class AutosaveTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
-    [Fact]
-    public void Preferences_changed_are_saved_with_the_next_frame()
-    {
-        var d = new WorkspaceDriver(_temp.Settings());
-        d.Pump();
-
-        d.Workspace.Theme = AppThemeId.Monokai;
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
-        d.Workspace.SetLanguageVersion(CSharpVersion.CSharp7_3);
-        d.Workspace.ShowNonPublic = false;
-        d.Workspace.Locale = Locale.De;
-        d.Workspace.Search.Kinds = SearchKinds.Types;
-        d.Pump();
-
-        var saved = _temp.Settings();
-        Assert.Equal(AppThemeId.Monokai, saved.Theme);
-        Assert.Equal(DecompilationLanguage.IL, saved.Language);
-        Assert.Equal(CSharpVersion.CSharp7_3, saved.Decompiler.LanguageVersion);
-        Assert.False(saved.ShowNonPublic);
-        Assert.Equal(Locale.De, saved.Locale);
-        Assert.Equal(SearchKinds.Types, saved.SearchKinds);
-    }
-
     private static readonly WindowBounds MovedExportWindow = new(-900, 200, 700, 800, false);
 
     [Theory]
+    [InlineData(nameof(AppSettings.Theme))]
+    [InlineData(nameof(AppSettings.Language))]
+    [InlineData(nameof(AppSettings.Decompiler))]
+    [InlineData(nameof(AppSettings.ShowNonPublic))]
+    [InlineData(nameof(AppSettings.Locale))]
+    [InlineData(nameof(AppSettings.SearchKinds))]
     [InlineData(nameof(AppSettings.FoldedOptionGroups))]
     [InlineData(nameof(AppSettings.BookmarkColumns))]
     [InlineData(nameof(AppSettings.SearchColumns))]
     [InlineData(nameof(AppSettings.ExportColumns))]
     [InlineData(nameof(AppSettings.ExportWindow))]
-    public void A_saved_field_changed_alone_is_saved_with_the_next_frame(string field)
+    public void A_saved_setting_changed_alone_is_saved_with_the_next_frame(string field)
     {
         var app = new AppDriver(settings: _temp.Settings());
         app.Run(2);
@@ -58,6 +41,24 @@ public sealed class AutosaveTests : IDisposable
     {
         switch (field)
         {
+            case nameof(AppSettings.Theme):
+                w.Theme = AppThemeId.Monokai;
+                break;
+            case nameof(AppSettings.Language):
+                w.SetLanguage(DecompilationLanguage.IL);
+                break;
+            case nameof(AppSettings.Decompiler):
+                w.SetLanguageVersion(CSharpVersion.CSharp7_3);
+                break;
+            case nameof(AppSettings.ShowNonPublic):
+                w.ShowNonPublic = false;
+                break;
+            case nameof(AppSettings.Locale):
+                w.SetLocale(Locale.De);
+                break;
+            case nameof(AppSettings.SearchKinds):
+                w.Search.Kinds = SearchKinds.Types;
+                break;
             case nameof(AppSettings.FoldedOptionGroups):
                 w.FoldedOptionGroups.Fold(["Other"]);
                 break;
@@ -80,6 +81,12 @@ public sealed class AutosaveTests : IDisposable
 
     private static bool IsSaved(AppSettings saved, string field) => field switch
     {
+        nameof(AppSettings.Theme) => saved.Theme == AppThemeId.Monokai,
+        nameof(AppSettings.Language) => saved.Language == DecompilationLanguage.IL,
+        nameof(AppSettings.Decompiler) => saved.Decompiler.LanguageVersion == CSharpVersion.CSharp7_3,
+        nameof(AppSettings.ShowNonPublic) => !saved.ShowNonPublic,
+        nameof(AppSettings.Locale) => saved.Locale == Locale.De,
+        nameof(AppSettings.SearchKinds) => saved.SearchKinds == SearchKinds.Types,
         nameof(AppSettings.FoldedOptionGroups) => saved.FoldedOptionGroups?.SequenceEqual(["Other"]) == true,
         nameof(AppSettings.BookmarkColumns) => saved.BookmarkColumns?.SequenceEqual([1f, 1f, 4f, 1f]) == true,
         nameof(AppSettings.SearchColumns) => saved.SearchColumns?.SequenceEqual([1f, 4f, 1f]) == true,
