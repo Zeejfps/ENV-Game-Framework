@@ -53,7 +53,7 @@ public static class AssemblyLoading
         ClearAssemblies(appState);
     }
 
-    internal static void ClearAssemblies(AppState appState)
+    private static void ClearAssemblies(AppState appState)
     {
         appState.Assemblies.Clear();
         appState.Analyzer.Clear();

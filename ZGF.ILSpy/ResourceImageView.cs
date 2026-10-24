@@ -122,7 +122,7 @@ internal static class ResourceImageView
     {
         var t = ui.State.Strings;
         var fileName = node.ResourceFileName;
-        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName), path => Saving.SaveResource(appState, node, path));
+        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName), path => Exporting.SaveResource(appState, node, path));
     }
 
     private const string XamlExtension = ".xaml";

@@ -7,7 +7,8 @@ namespace ZGF.ILSpy;
 
 /// <summary>Writing code, projects, solutions and portable PDBs to files in the background, one
 /// export at a time in the order they were asked for, which <see cref="AppState.Export"/> queues.
-/// Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.</summary>
+/// Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.
+/// Resources are written straight away.</summary>
 public static class Exporting
 {
     private const string ProjectExtension = ".csproj";
@@ -30,10 +31,34 @@ public static class Exporting
     {
         if (node.HasResource)
         {
-            Saving.SaveResource(appState, node, path);
+            SaveResource(appState, node, path);
             return;
         }
         WriteCodeFile(appState, node, path);
+    }
+
+    /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
+    /// <paramref name="path"/>.</summary>
+    public static void SaveResource(AppState appState, BrowseNode node, string path)
+    {
+        try
+        {
+            var bytes = node.ReadResource();
+            File.WriteAllBytes(path, bytes);
+        }
+        catch (Exception e) when (IsFileError(e))
+        {
+            appState.ReportError(Strings.For(appState.Locale).ErrorSaveResource(node.Text), e.Message);
+        }
+    }
+
+    private static bool IsFileError(Exception e)
+    {
+        if (e is IOException)
+            return true;
+        if (e is UnauthorizedAccessException)
+            return true;
+        return e is InvalidDataException;
     }
 
     private static void WriteCodeFile(AppState appState, BrowseNode node, string path)

@@ -237,7 +237,7 @@ public sealed class ResourceViewTests
         Directory.CreateDirectory(temp.Path);
         var path = temp.PathOf("data.json");
 
-        Saving.SaveResource(app.AppState, node, path);
+        Exporting.SaveResource(app.AppState, node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
         Assert.Empty(app.AppState.Errors.Entries);

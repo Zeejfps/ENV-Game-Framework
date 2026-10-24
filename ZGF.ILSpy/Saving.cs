@@ -3,7 +3,7 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Saving the settings when something in them changed, and saving resources to files.</summary>
+/// <summary>Saving the settings when something in them changed.</summary>
 public static class Saving
 {
     /// <summary>Saves the settings when what they are saved from changed since the last save written,
@@ -93,29 +93,5 @@ public static class Saving
         settings.ExportWindow = view.ExportWindow;
         settings.Layout = view.Layout;
         appState.ViewSettingsChanges++;
-    }
-
-    /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
-    /// <paramref name="path"/>.</summary>
-    public static void SaveResource(AppState appState, BrowseNode node, string path)
-    {
-        try
-        {
-            var bytes = node.ReadResource();
-            File.WriteAllBytes(path, bytes);
-        }
-        catch (Exception e) when (IsFileError(e))
-        {
-            appState.ReportError(Strings.For(appState.Locale).ErrorSaveResource(node.Text), e.Message);
-        }
-    }
-
-    private static bool IsFileError(Exception e)
-    {
-        if (e is IOException)
-            return true;
-        if (e is UnauthorizedAccessException)
-            return true;
-        return e is InvalidDataException;
     }
 }

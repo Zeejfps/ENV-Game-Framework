@@ -5,19 +5,19 @@ namespace ZGF.ILSpy;
 /// <summary>Switching between the named assembly lists, and creating, renaming and deleting them.</summary>
 public static class AssemblyListing
 {
-    /// <summary>The open list's assemblies whose files are still there.</summary>
-    public static List<string> ListExistingAssemblies(AppState appState)
-    {
-        return appState.Lists.ActivePaths
-            .Where(File.Exists)
-            .ToList();
-    }
-
     /// <summary>Opens the open list's assemblies as the app starts, as a reload, so that the list is
     /// saved whole until they are all open.</summary>
     public static void RestoreActiveList(AppState appState)
     {
         AssemblyLoading.OpenAsReload(appState, ListExistingAssemblies(appState));
+    }
+
+    /// <summary>The open list's assemblies whose files are still there.</summary>
+    private static List<string> ListExistingAssemblies(AppState appState)
+    {
+        return appState.Lists.ActivePaths
+            .Where(File.Exists)
+            .ToList();
     }
 
     /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
