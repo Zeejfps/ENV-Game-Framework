@@ -75,9 +75,6 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
    with animated colours or zoomed sizes. Fix: age them like `FrameCache`.
 5. **Small per-frame costs.** `UiInput.cs:144` allocates a string per typed character; caret positions are
    measured uncached every frame (`UiTextField.cs:160-161`, `UiSelectableText.cs:219, 229-230`).
-6. **Frame-start work runs from the view.** `MainView.Render` calls `w.Sync()`, which restores analyses,
-   syncs the tree, autosaves and starts an `async void` restore every frame (`Saving.cs:223`). Fix: a
-   `BeginFrame` step in `IlSpyApp.OnRender`; restore analyses once after startup.
 
 ## Structure
 
