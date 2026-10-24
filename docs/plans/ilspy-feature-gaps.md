@@ -18,9 +18,10 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   `ApplyWindowsRuntimeProjections` are left out of the options panel.
 - **Display options:** word wrap; installed code fonts on macOS and Linux (`ISystemFonts` lists
   them on Windows only, so elsewhere the picker offers just the bundled font).
-- **Tree:** selecting several nodes (we select one; the Export dialog picks assemblies itself),
-  module nodes, nested-namespace view, exported (forwarded) types, types/members used
-  from each reference, optional metadata tokens (hex or decimal).
+- **Exported (forwarded) types:** a node per type an assembly forwards, going to the real type.
+  Facades such as `netstandard.dll` and `System.Runtime.dll` show as nearly empty without them.
+- **Metadata tokens:** an option to show each node's token in the tree, in hex or decimal.
+- **Tree:** nested-namespace view.
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
   folder, Remove assemblies that failed to load, sort list.
 - **Metadata explorer:** "Show in metadata" from code, "Decompile metadata row in new tab", hide
@@ -36,3 +37,5 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - Help/About and Check for updates.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).
+- Module nodes in the tree, for assemblies made of several modules.
+- The types and members used from each assembly reference, under its node.
