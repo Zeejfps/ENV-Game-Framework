@@ -32,6 +32,8 @@ public static class NodeText
             var assembly = node.Assembly;
             return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath }.OfType<string>());
         }
+        if (node.Kind == NodeKind.FailedAssembly)
+            return node.Assembly.LoadError!;
         var name = node.FullName;
         return Accessibility(node.Accessibility) is { } accessibility ? $"{name}\n{accessibility}" : name;
     }

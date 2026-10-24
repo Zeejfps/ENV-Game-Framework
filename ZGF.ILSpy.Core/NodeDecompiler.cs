@@ -51,6 +51,8 @@ internal static class NodeDecompiler
         CancellationToken cancellationToken, string? note = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (node is FailedAssemblyNode)
+            return DescribeLoadError(node, language);
         var builder = new DocumentBuilder(language, node.Assembly);
         if (note != null)
             WriteComment(builder, note);
@@ -61,6 +63,18 @@ internal static class NodeDecompiler
             WriteIL(node, builder, settings, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return builder.Build(node.Text);
+    }
+
+    /// <summary>Why the file of <paramref name="node"/>, which failed to load, could not be read.</summary>
+    private static DecompiledDocument DescribeLoadError(BrowseNode node, DecompilationLanguage language)
+    {
+        var assembly = node.Assembly;
+        var builder = new DocumentBuilder(language);
+        WriteComment(builder, assembly.LoadError!);
+        var details = assembly.LoadErrorDetails;
+        if (details != null)
+            builder.Write(details, SpanKind.Comment);
+        return builder.Build(node.Text, isError: true);
     }
 
     /// <summary>The name a file of <paramref name="node"/>'s code is offered under: the node's name,

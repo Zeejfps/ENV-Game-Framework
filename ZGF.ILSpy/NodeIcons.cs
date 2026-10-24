@@ -84,6 +84,7 @@ public static class NodeIcons
         Set(NodeKind.DerivedType, LucideIcons.ArrowDownToDot, NodeIconRole.Type);
         Set(NodeKind.ResourcesFile, LucideIcons.FileSpreadsheet, NodeIconRole.Neutral);
         Set(NodeKind.ResourceImage, LucideIcons.FileImage, NodeIconRole.Neutral);
+        Set(NodeKind.FailedAssembly, LucideIcons.PackageX, NodeIconRole.Error);
         return icons;
 
         void Set(NodeKind kind, string glyph, NodeIconRole role) => icons[(int)kind] = new KindIcon(glyph, role);

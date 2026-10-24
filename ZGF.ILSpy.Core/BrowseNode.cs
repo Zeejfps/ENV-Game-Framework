@@ -41,6 +41,7 @@ public enum NodeKind
     DerivedType,
     ResourcesFile,
     ResourceImage,
+    FailedAssembly,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -174,8 +175,8 @@ public abstract class BrowseNode
         NodeDecompiler.SaveCode(this, language, options, path, cancellationToken);
 
     /// <summary>Whether <see cref="LoadContentAsync"/> gives decompiled code, which changes with the
-    /// language and options, rather than a grid or a picture, which do not.</summary>
-    public bool DependsOnLanguage => this is not MetadataGridNode && !IsImage;
+    /// language and options, rather than a grid, a picture or why the file failed to load, which do not.</summary>
+    public bool DependsOnLanguage => this is not MetadataGridNode and not FailedAssemblyNode && !IsImage;
 
     private bool IsImage => Kind == NodeKind.ResourceImage && this is IResourceData;
 

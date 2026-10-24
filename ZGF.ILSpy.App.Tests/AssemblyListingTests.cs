@@ -136,6 +136,25 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
+    public void A_file_of_the_restored_list_that_is_gone_stays_listed_and_saved_as_failed()
+    {
+        using var temp = new TempDir();
+        var gone = temp.PathOf("gone.dll");
+        var settings = temp.Settings();
+        settings.AssemblyLists = [new AssemblyListRecord(SavedAssemblyLists.DefaultName, [gone, AppStateDriver.FixturePath])];
+        var d = new AppStateDriver(settings);
+
+        RestoreActiveAssemblyList(d.AppState);
+        d.Settle();
+        SaveSettings(d.AppState);
+
+        var roots = d.Ui.Tree.Roots;
+        Assert.Equal([NodeKind.FailedAssembly, NodeKind.Assembly], roots.Select(r => r.Kind));
+        Assert.Empty(d.AppState.Errors.Entries);
+        Assert.Equal([gone, AppStateDriver.FixturePath], Assert.Single(temp.Settings().AssemblyLists).Assemblies);
+    }
+
+    [Fact]
     public void Switching_lists_keeps_the_analyses_of_the_last_run_still_being_found_with_their_list()
     {
         using var temp = new TempDir();

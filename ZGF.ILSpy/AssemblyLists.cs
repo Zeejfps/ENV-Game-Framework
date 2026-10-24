@@ -9,19 +9,11 @@ namespace ZGF.ILSpy;
 public static class AssemblyLists
 {
     /// <summary>Opens the open list's assemblies as the app starts, as a reload, so that the list is
-    /// saved whole until they are all open.</summary>
+    /// saved whole until they are all open. Files that are gone or fail to load stay listed as failed.</summary>
     public static void RestoreActiveAssemblyList(AppState appState)
     {
-        var existingAssemblies = ListExistingAssemblies(appState);
-        OpenAssembliesAsReload(appState, existingAssemblies);
-    }
-
-    /// <summary>The open list's assemblies whose files are still there.</summary>
-    private static List<string> ListExistingAssemblies(AppState appState)
-    {
-        return appState.Lists.ActivePaths
-            .Where(File.Exists)
-            .ToList();
+        var paths = appState.Lists.ActivePaths.ToList();
+        OpenAssembliesAsReload(appState, paths);
     }
 
     /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
@@ -57,7 +49,7 @@ public static class AssemblyLists
         CloseAllAssemblies(appState);
         CloseDocuments(appState);
         appState.History.Clear();
-        OpenAssembliesAsReload(appState, ListExistingAssemblies(appState));
+        RestoreActiveAssemblyList(appState);
         appState.Analyzer.AddPending(appState.Lists.ActiveAnalyses);
         RestoreAnalyses(appState);
     }

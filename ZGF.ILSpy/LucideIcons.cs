@@ -60,6 +60,7 @@ public static class LucideIcons
     public const string NotebookText = "\uE598";
     public const string NotepadText = "\uE599";
     public const string Package = "\uE129";
+    public const string PackageX = "\uE26A";
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
     public const string Plus = "\uE13D";

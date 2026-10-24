@@ -23,8 +23,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   from each reference, optional metadata tokens (hex or decimal).
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
   folder, Remove assemblies that failed to load, sort list.
-- **Failed assemblies:** a file that is missing or fails to load is dropped from its list, with
-  no node in the tree; upstream keeps it listed and shows the error.
 - **Metadata explorer:** "Show in metadata" from code, "Decompile metadata row in new tab", hide
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.

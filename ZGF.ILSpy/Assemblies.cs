@@ -27,22 +27,21 @@ public static class Assemblies
         ShowOpened(appState, opened, ticket);
     }
 
-    private static void ShowOpened(AppState appState, Outcome<Opened> outcome, int ticket)
+    private static void ShowOpened(AppState appState, Outcome<LoadedAssembly?> outcome, int ticket)
     {
         if (outcome.Error is OperationCanceledException)
             return;
-        var opened = outcome.Value;
-        if (opened == null)
+        if (outcome.Error != null)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error!.ToString());
+            appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error.ToString());
             return;
         }
-        ReportAll(appState, opened.Errors);
-        if (opened.Last == null)
+        var last = outcome.Value;
+        if (last == null)
             return;
         if (appState.Intent.IsStale(ticket))
             return;
-        ShowNode(appState, opened.Last.Root);
+        ShowNode(appState, last.Root);
     }
 
     public static void OpenAssembly(AppState appState, string path) => OpenAssemblies(appState, [path]);
@@ -107,10 +106,10 @@ public static class Assemblies
 
     private static Reloaded ReopenFiles(AppState appState, IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
     {
-        var opened = OpenFiles(appState, paths, cancellationToken);
+        OpenFiles(appState, paths, cancellationToken);
         var expandedNodes = LoadExpandedNodes(appState, expanded, cancellationToken);
         var placeNodes = FindNodes(appState, places, cancellationToken);
-        return new Reloaded(opened.Errors, expandedNodes, placeNodes);
+        return new Reloaded(expandedNodes, placeNodes);
     }
 
     private static List<BrowseNode> LoadExpandedNodes(AppState appState, List<NodePath> expanded, CancellationToken cancellationToken)
@@ -149,7 +148,6 @@ public static class Assemblies
             appState.ReportError(Strings.For(appState.Locale).ErrorReloadAssemblies, outcome.Error!.ToString());
             return;
         }
-        ReportAll(appState, reloaded.Errors);
         appState.EnqueueCommand(new ViewCommand.ExpandNodes(reloaded.Expanded));
         for (var i = 0; i < tabs.Count; i++)
             ReshowTab(appState, tabs[i], reloaded.Places[i], intent);
@@ -189,56 +187,31 @@ public static class Assemblies
         FinishOpeningAsReload(appState, opened, ticket);
     }
 
-    private static void FinishOpeningAsReload(AppState appState, Outcome<Opened> outcome, ReloadTicket ticket)
+    private static void FinishOpeningAsReload(AppState appState, Outcome<LoadedAssembly?> outcome, ReloadTicket ticket)
     {
         if (!appState.Reload.Finish(ticket))
             return;
-        var opened = outcome.Value;
-        if (opened == null)
+        if (outcome.Error != null)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error!.ToString());
+            appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error.ToString());
             return;
         }
-        ReportAll(appState, opened.Errors);
         SaveSettings(appState);
     }
 
-    private static Opened OpenFiles(AppState appState, IEnumerable<string> paths, CancellationToken cancellationToken)
+    /// <summary>Lists the files, those that fail to load as failed, and returns the last.</summary>
+    private static LoadedAssembly? OpenFiles(AppState appState, IEnumerable<string> paths, CancellationToken cancellationToken)
     {
         LoadedAssembly? last = null;
-        var errors = new List<(string, string)>();
         foreach (var path in paths)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                last = appState.Assemblies.Open(path, cancellationToken);
-            }
-            catch (AssemblyLoadException e)
-            {
-                errors.Add(DescribeLoadFailure(appState, path, e));
-            }
+            last = appState.Assemblies.Open(path, cancellationToken);
         }
-        return new Opened(last, errors);
+        return last;
     }
 
-    private static (string Title, string Details) DescribeLoadFailure(AppState appState, string path, AssemblyLoadException e)
-    {
-        var file = Path.GetFileName(path);
-        var title = Strings.For(appState.Locale).ErrorOpenFile(file);
-        var details = AppState.DescribeFailure(e.InnerException, e.Message);
-        return (title, details);
-    }
-
-    private static void ReportAll(AppState appState, List<(string Title, string Details)> errors)
-    {
-        foreach (var (title, details) in errors)
-            appState.ReportError(title, details);
-    }
-
-    private sealed record Opened(LoadedAssembly? Last, List<(string Title, string Details)> Errors);
-
-    private sealed record Reloaded(List<(string Title, string Details)> Errors, List<BrowseNode> Expanded, BrowseNode?[] Places);
+    private sealed record Reloaded(List<BrowseNode> Expanded, BrowseNode?[] Places);
 
     private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
 }

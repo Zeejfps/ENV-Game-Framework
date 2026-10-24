@@ -416,7 +416,6 @@
   "error.read_settings": "Não é possível ler as configurações; usando os valores padrão",
   "error.save_settings": "Não é possível salvar as configurações",
   "error.open_assemblies": "Não é possível abrir os assemblies",
-  "error.open_file": "Não é possível abrir {file}",
   "error.reload_assemblies": "Não é possível recarregar os assemblies",
   "error.find_after_reload": "Não é possível encontrar {location} após recarregar",
   "error.resolve": "Não é possível resolver {name}",

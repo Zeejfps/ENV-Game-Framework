@@ -23,14 +23,19 @@ public sealed class AssemblyList
     private readonly object _gate = new();
     private readonly Dictionary<string, LoadedAssembly> _known = new(StringComparer.OrdinalIgnoreCase);
     private ImmutableArray<LoadedAssembly> _listed = ImmutableArray<LoadedAssembly>.Empty;
+    private ImmutableArray<LoadedAssembly> _loaded = ImmutableArray<LoadedAssembly>.Empty;
     private int _version;
     private int _generation;
 
-    /// <summary>The open assemblies, in the order they were opened. A snapshot: it never changes
-    /// after it is read.</summary>
-    public IReadOnlyList<LoadedAssembly> Assemblies => _listed;
+    /// <summary>The open assemblies that loaded, in the order they were opened. A snapshot: it never
+    /// changes after it is read.</summary>
+    public IReadOnlyList<LoadedAssembly> Assemblies => _loaded;
 
-    /// <summary>The open assemblies' file paths, in order, for persisting the list.</summary>
+    /// <summary>The open files in the order they were opened, those that failed to load
+    /// (<see cref="LoadedAssembly.HasLoadError"/>) among them. A snapshot, like <see cref="Assemblies"/>.</summary>
+    public IReadOnlyList<LoadedAssembly> Listed => _listed;
+
+    /// <summary>The open files' paths, in order, failed ones included, for persisting the list.</summary>
     public IReadOnlyList<string> FilePaths => _listed.Select(a => a.FilePath).ToArray();
 
     /// <summary>Increments whenever <see cref="Assemblies"/> changes.</summary>
@@ -46,10 +51,11 @@ public sealed class AssemblyList
     public event Action? Changed;
 
     /// <summary>Opens the assembly at <paramref name="path"/>, or returns it if already open. Its type
-    /// system starts loading in the background. Once <paramref name="cancellationToken"/> is cancelled
+    /// system starts loading in the background. A file that is missing or not a .NET assembly is listed
+    /// all the same, with <see cref="LoadedAssembly.HasLoadError"/> set, and the assembly takes its place
+    /// once the file loads. Once <paramref name="cancellationToken"/> is cancelled
     /// the assembly is no longer listed, so cancelling before <see cref="Clear"/> keeps the opens of
     /// several files out of the list that follows.</summary>
-    /// <exception cref="AssemblyLoadException">The file is missing or not a .NET assembly.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled,
     /// or the list was cleared while the file was read.</exception>
     public LoadedAssembly Open(string path, CancellationToken cancellationToken = default)
@@ -58,11 +64,25 @@ public sealed class AssemblyList
         var generation = Generation;
         while (true)
         {
-            var assembly = Load(path, generation);
+            var assembly = LoadOrFail(path, generation);
             if (TryList(assembly, generation, cancellationToken)) return assembly;
             cancellationToken.ThrowIfCancellationRequested();
             if (generation != Generation)
                 throw new OperationCanceledException($"The list was cleared while '{path}' was opened.");
+        }
+    }
+
+    /// <summary>The assembly read from <paramref name="path"/>, or when it cannot be read, the failure
+    /// listed for it, else a new one.</summary>
+    private LoadedAssembly LoadOrFail(string path, int generation)
+    {
+        try
+        {
+            return Load(path, generation);
+        }
+        catch (AssemblyLoadException e)
+        {
+            return FindListedFailure(path) ?? new LoadedAssembly(this, e);
         }
     }
 
@@ -72,14 +92,29 @@ public sealed class AssemblyList
     {
         lock (_gate)
         {
-            if (!_known.TryGetValue(assembly.FilePath, out var known) || known != assembly) return;
-            _known.Remove(assembly.FilePath);
+            if (!assembly.HasLoadError && !ForgetKnown(assembly)) return;
             if (!assembly.IsListed) return;
             assembly.IsListed = false;
-            _listed = _listed.Remove(assembly);
-            _version++;
+            ChangeListed(_listed.Remove(assembly));
         }
         Changed?.Invoke();
+    }
+
+    private bool ForgetKnown(LoadedAssembly assembly)
+    {
+        if (!_known.TryGetValue(assembly.FilePath, out var known))
+            return false;
+        if (known != assembly)
+            return false;
+        _known.Remove(assembly.FilePath);
+        return true;
+    }
+
+    private void ChangeListed(ImmutableArray<LoadedAssembly> listed)
+    {
+        _listed = listed;
+        _loaded = listed.RemoveAll(static a => a.HasLoadError);
+        _version++;
     }
 
     /// <summary>Closes every assembly.</summary>
@@ -92,8 +127,7 @@ public sealed class AssemblyList
             foreach (var assembly in _listed)
                 assembly.IsListed = false;
             _known.Clear();
-            _listed = ImmutableArray<LoadedAssembly>.Empty;
-            _version++;
+            ChangeListed(ImmutableArray<LoadedAssembly>.Empty);
         }
         Changed?.Invoke();
     }
@@ -165,15 +199,15 @@ public sealed class AssemblyList
 
     /// <summary>
     /// The node <paramref name="path"/> names, opening its assembly if it is not open and its file
-    /// still exists. Null if the file cannot be opened or no longer has that node. May load files
-    /// and build children: prefer calling it off the UI thread.
+    /// still exists, or the root of a file listed as failed. Null if the file cannot be opened or no
+    /// longer has that node. May load files and build children: prefer calling it off the UI thread.
     /// </summary>
     public BrowseNode? FindNode(NodePath path)
     {
         var generation = Generation;
         try
         {
-            var assembly = TryLoad(path.FilePath, generation);
+            var assembly = TryLoad(path.FilePath, generation) ?? FindListedFailure(path.FilePath);
             return assembly is not null && TryList(assembly, generation) ? path.Resolve(assembly.Root) : null;
         }
         catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
@@ -187,7 +221,7 @@ public sealed class AssemblyList
     /// Results arrive in batches as they are found.
     /// </summary>
     public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default) =>
-        AssemblySearch.Run(_listed, query, cancellationToken);
+        AssemblySearch.Run(_loaded, query, cancellationToken);
 
     /// <summary><see cref="SearchAsync(SearchQuery, CancellationToken)"/> over
     /// <paramref name="assemblies"/> only, e.g. those opened since the last search.</summary>
@@ -275,15 +309,51 @@ public sealed class AssemblyList
         {
             if (generation != _generation) return false;
             if (cancellationToken.IsCancellationRequested) return false;
-            if (!_known.TryGetValue(assembly.FilePath, out var known) || known != assembly) return false;
+            if (!HoldsPathFor(assembly)) return false;
             if (assembly.IsListed) return true;
             assembly.IsListed = true;
-            _listed = _listed.Add(assembly);
-            _version++;
+            ChangeListed(ListInPlaceOfFailure(assembly));
         }
-        ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
+        if (!assembly.HasLoadError)
+            ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
         Changed?.Invoke();
         return true;
+    }
+
+    /// <summary>Whether <paramref name="assembly"/> is what the list holds for its path: the assembly
+    /// read from it, or for a failure, the one listed for it while nothing was read from it.</summary>
+    private bool HoldsPathFor(LoadedAssembly assembly)
+    {
+        if (!assembly.HasLoadError)
+            return _known.TryGetValue(assembly.FilePath, out var known) && known == assembly;
+        if (_known.ContainsKey(assembly.FilePath))
+            return false;
+        var listed = FindListedFailure(assembly.FilePath);
+        return listed == null || listed == assembly;
+    }
+
+    /// <summary>The list with <paramref name="assembly"/> where the failure listed for its path was,
+    /// or last when there is none.</summary>
+    private ImmutableArray<LoadedAssembly> ListInPlaceOfFailure(LoadedAssembly assembly)
+    {
+        var failure = FindListedFailure(assembly.FilePath);
+        if (failure == null)
+            return _listed.Add(assembly);
+        failure.IsListed = false;
+        return _listed.Replace(failure, assembly);
+    }
+
+    private LoadedAssembly? FindListedFailure(string path)
+    {
+        var listed = _listed;
+        foreach (var assembly in listed)
+        {
+            if (!assembly.HasLoadError)
+                continue;
+            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                return assembly;
+        }
+        return null;
     }
 
     private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveDefinition(LoadedAssembly owner, EntityHandle handle, int generation)

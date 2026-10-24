@@ -66,8 +66,12 @@ public static class Decompilation
         return tab.Document.IsError;
     }
 
+    /// <summary>Reports why <paramref name="node"/> could not be shown, unless its file failed to load,
+    /// which its tab tells already.</summary>
     private static void ReportFailure(AppState appState, DocumentTab tab, BrowseNode node, Exception? error)
     {
+        if (node.Assembly.HasLoadError)
+            return;
         var t = Strings.For(appState.Locale);
         var details = AppState.DescribeFailure(error, tab.Document.GetText());
         appState.ReportError(t.ErrorDecompile(node.FullName), details);

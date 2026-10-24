@@ -416,7 +416,6 @@
   "error.read_settings": "Не удалось прочитать настройки; используются значения по умолчанию",
   "error.save_settings": "Не удалось сохранить настройки",
   "error.open_assemblies": "Не удалось открыть сборки",
-  "error.open_file": "Не удалось открыть {file}",
   "error.reload_assemblies": "Не удалось перезагрузить сборки",
   "error.find_after_reload": "После перезагрузки не найдено: {location}",
   "error.resolve": "Не удалось найти определение {name}",

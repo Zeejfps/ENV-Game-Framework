@@ -165,17 +165,22 @@ public sealed class AppStateTests
     }
 
     [Fact]
-    public void A_file_that_cannot_be_opened_is_reported_as_an_error()
+    public void A_file_that_cannot_be_opened_is_listed_as_failed_and_its_tab_says_why()
     {
         var d = new AppStateDriver();
         var missing = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.dll");
 
         OpenAssembly(d.AppState, missing);
-        d.RunUntil(() => d.AppState.Errors.Entries.Count > 0);
+        d.RunUntil(() => d.AppState.Tabs.Active?.Node != null);
+        d.Settle();
 
-        var error = Assert.Single(d.AppState.Errors.Entries);
-        Assert.Contains(Path.GetFileName(missing), error.Title);
-        Assert.Null(Assert.Single(d.AppState.Tabs).Location);
+        var failed = Assert.Single(d.AppState.Assemblies.Listed);
+        var tab = Assert.Single(d.AppState.Tabs);
+        Assert.True(failed.HasLoadError);
+        Assert.Same(failed.Root, tab.Node);
+        Assert.Contains(Path.GetFileName(missing), tab.Document.GetText());
+        Assert.Same(failed.Root, Assert.Single(d.Ui.Tree.Roots));
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]
@@ -516,7 +521,7 @@ public sealed class AppStateTests
         Assert.Equal("Greeter", tab.Title);
         Assert.Equal(new TabContent.Gone(tab.Location!), tab.Content);
         Assert.Contains("gone", TabPlaceholder.Write(d.Ui.Strings, tab.Content));
-        Assert.Contains(d.AppState.Errors.Entries, e => e.Title.Contains(Path.GetFileName(copy)));
+        Assert.True(Assert.Single(d.AppState.Assemblies.Listed).HasLoadError);
         Assert.Contains(d.AppState.Errors.Entries, e => e.Title.Contains("Greeter"));
     }
 }

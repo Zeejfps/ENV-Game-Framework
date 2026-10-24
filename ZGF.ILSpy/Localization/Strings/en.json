@@ -430,7 +430,6 @@
   "error.read_settings": "Cannot read the settings; starting with defaults",
   "error.save_settings": "Cannot save the settings",
   "error.open_assemblies": "Cannot open the assemblies",
-  "error.open_file": "Cannot open {file}",
   "error.reload_assemblies": "Cannot reload the assemblies",
   "error.find_after_reload": "Cannot find {location} after reloading",
   "error.resolve": "Cannot resolve {name}",

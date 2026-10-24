@@ -416,7 +416,6 @@
   "error.read_settings": "設定を読み込めません。既定値で起動します",
   "error.save_settings": "設定を保存できません",
   "error.open_assemblies": "アセンブリを開けません",
-  "error.open_file": "{file} を開けません",
   "error.reload_assemblies": "アセンブリを再読み込みできません",
   "error.find_after_reload": "再読み込み後に {location} が見つかりません",
   "error.resolve": "{name} を解決できません",

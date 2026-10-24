@@ -123,8 +123,8 @@ public sealed class AppState
     /// <summary>Queues <paramref name="command"/> for the view to run before it draws next.</summary>
     public void EnqueueCommand(ViewCommand command) => ViewCommands.Enqueue(command);
 
-    /// <summary>True when <paramref name="node"/>'s assembly is open in the active list.</summary>
-    public bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
+    /// <summary>True when <paramref name="node"/>'s assembly is open in the active list, loaded or failed.</summary>
+    public bool IsListed(BrowseNode node) => Assemblies.Listed.Contains(node.Assembly);
 
     /// <summary>True when the assembly at <paramref name="filePath"/> is open in the active list.</summary>
     internal bool IsListed(string filePath)

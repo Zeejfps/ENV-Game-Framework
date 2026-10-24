@@ -81,18 +81,78 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
-    public void Files_that_are_not_assemblies_fail_with_a_load_exception()
+    public void Files_that_cannot_be_read_stay_listed_as_failed()
     {
         var list = new AssemblyList();
         using var temp = new TempDir();
         var text = temp.Write("text.dll", "not a PE file");
 
-        var notPe = Assert.Throws<AssemblyLoadException>(() => list.Open(text));
-        var missing = Assert.Throws<AssemblyLoadException>(() => list.Open(text + ".missing"));
+        var notPe = list.Open(text);
+        var missing = list.Open(text + ".missing");
 
-        Assert.Equal(text, notPe.FilePath);
-        Assert.Equal(text + ".missing", missing.FilePath);
+        Assert.True(notPe.HasLoadError);
+        Assert.True(missing.HasLoadError);
+        Assert.Equal([notPe, missing], list.Listed);
+        Assert.Equal([text, text + ".missing"], list.FilePaths);
         Assert.Empty(list.Assemblies);
+        Assert.Same(notPe, list.Open(text));
+    }
+
+    [Fact]
+    public void A_failed_file_shows_why_it_failed_and_has_no_children()
+    {
+        var list = new AssemblyList();
+        using var temp = new TempDir();
+        var text = temp.Write("text.dll", "not a PE file");
+
+        var root = list.Open(text).Root;
+        var document = root.Decompile(DecompilationLanguage.CSharp);
+
+        Assert.Equal(NodeKind.FailedAssembly, root.Kind);
+        Assert.Equal("text.dll", root.Text);
+        Assert.Empty(root.Children);
+        Assert.True(document.IsError);
+        Assert.Contains($"Cannot open '{text}'", document.GetText());
+    }
+
+    [Fact]
+    public void A_failed_file_that_loads_when_opened_again_takes_its_place()
+    {
+        var list = new AssemblyList();
+        using var temp = new TempDir();
+        var path = temp.Write("late.dll", "not a PE file yet");
+        var failed = list.Open(path);
+        var other = list.Open(typeof(AssemblyList).Assembly.Location);
+        File.Copy(Trees.TestAssemblyPath, path, overwrite: true);
+
+        var loaded = list.Open(path);
+
+        Assert.True(failed.HasLoadError);
+        Assert.False(loaded.HasLoadError);
+        Assert.Equal([loaded, other], list.Listed);
+        Assert.Equal([loaded, other], list.Assemblies);
+    }
+
+    [Fact]
+    public void Closing_a_failed_file_takes_it_off_the_list()
+    {
+        var list = new AssemblyList();
+        using var temp = new TempDir();
+        var failed = list.Open(temp.PathOf("missing.dll"));
+
+        list.Close(failed);
+
+        Assert.Empty(list.Listed);
+    }
+
+    [Fact]
+    public void A_node_path_to_a_failed_file_finds_its_root()
+    {
+        var list = new AssemblyList();
+        using var temp = new TempDir();
+        var failed = list.Open(temp.PathOf("missing.dll"));
+
+        Assert.Same(failed.Root, list.FindNode(failed.Root.Path));
     }
 
     [Fact]

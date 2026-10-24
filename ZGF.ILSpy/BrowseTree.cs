@@ -29,7 +29,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         var version = assemblies.Version;
         if (version == _rootsVersion) return false;
         _rootsVersion = version;
-        var listed = assemblies.Assemblies;
+        var listed = assemblies.Listed;
         var roots = new BrowseNode[listed.Count];
         for (var i = 0; i < roots.Length; i++)
             roots[i] = listed[i].Root;
@@ -186,7 +186,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private static Dictionary<BrowseNode, RootLabel> RootLabels(BrowseNode[] roots)
     {
         var labels = new Dictionary<BrowseNode, RootLabel>(ReferenceEqualityComparer.Instance);
-        foreach (var group in roots.GroupBy(static r => r.Assembly.Name, StringComparer.OrdinalIgnoreCase))
+        var byName = roots
+            .Where(static r => r.Kind == NodeKind.Assembly)
+            .GroupBy(static r => r.Assembly.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var group in byName)
         {
             var nodes = group.ToList();
             if (nodes.Count == 1)

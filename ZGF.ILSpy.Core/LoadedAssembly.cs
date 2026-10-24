@@ -21,16 +21,28 @@ public sealed class LoadedAssembly
     private readonly Lazy<bool> _canGeneratePdb;
     private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
-    private readonly Lazy<AssemblyNode> _root;
+    private readonly Lazy<BrowseNode> _root;
+    private readonly PEFile? _file;
+    private readonly AssemblyLoadException? _loadError;
 
-    internal LoadedAssembly(AssemblyList list, PEFile file)
+    internal LoadedAssembly(AssemblyList list, PEFile file) : this(list, file.FileName, file, null)
+    {
+    }
+
+    /// <summary>A file of the list that could not be read as a .NET assembly, kept listed to show why.</summary>
+    internal LoadedAssembly(AssemblyList list, AssemblyLoadException error) : this(list, error.FilePath, null, error)
+    {
+    }
+
+    private LoadedAssembly(AssemblyList list, string filePath, PEFile? file, AssemblyLoadException? error)
     {
         List = list;
-        File = file;
-        FilePath = file.FileName;
-        var metadata = file.Metadata;
-        if (metadata.IsAssembly)
+        _file = file;
+        _loadError = error;
+        FilePath = filePath;
+        if (file != null && file.Metadata.IsAssembly)
         {
+            var metadata = file.Metadata;
             var definition = metadata.GetAssemblyDefinition();
             Name = metadata.GetString(definition.Name);
             Version = definition.Version;
@@ -39,15 +51,23 @@ public sealed class LoadedAssembly
         else
         {
             Name = Path.GetFileNameWithoutExtension(FilePath);
-            FullName = file.Name;
+            FullName = file?.Name ?? FilePath;
         }
         NameAndVersion = JoinNameAndVersion(Name, Version);
-        TargetFramework = TryDetectTargetFramework(file);
+        if (file != null)
+            TargetFramework = TryDetectTargetFramework(file);
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
         _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File));
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
-        _root = new Lazy<AssemblyNode>(() => new AssemblyNode(this));
+        _root = new Lazy<BrowseNode>(CreateRoot);
+    }
+
+    private BrowseNode CreateRoot()
+    {
+        if (_loadError != null)
+            return new FailedAssemblyNode(this);
+        return new AssemblyNode(this);
     }
 
     /// <summary>The absolute path of the file this was loaded from.</summary>
@@ -99,6 +119,16 @@ public sealed class LoadedAssembly
         return $"{name} ({version})";
     }
 
+    /// <summary>Why the file could not be read as a .NET assembly, or null when it was. A file that
+    /// failed has no metadata: only its <see cref="FilePath"/>, <see cref="Name"/> and <see cref="Root"/>
+    /// tell anything about it.</summary>
+    public string? LoadError => _loadError?.Message;
+
+    /// <summary>What went wrong reading the file, in full; null when it was read.</summary>
+    public string? LoadErrorDetails => _loadError?.InnerException?.ToString();
+
+    public bool HasLoadError => _loadError != null;
+
     /// <summary>The tree's root for this assembly.</summary>
     public BrowseNode Root => _root.Value;
 
@@ -110,7 +140,7 @@ public sealed class LoadedAssembly
     public bool CanGeneratePdb => _canGeneratePdb.Value;
 
     internal AssemblyList List { get; }
-    internal PEFile File { get; }
+    internal PEFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' failed to load.");
     internal AssemblyResolver Resolver { get; }
     internal bool IsListed { get; set; }
 

@@ -416,7 +416,6 @@
   "error.read_settings": "No se pueden leer los ajustes; se usarán los valores predeterminados",
   "error.save_settings": "No se pueden guardar los ajustes",
   "error.open_assemblies": "No se pueden abrir los ensamblados",
-  "error.open_file": "No se puede abrir {file}",
   "error.reload_assemblies": "No se pueden recargar los ensamblados",
   "error.find_after_reload": "No se encuentra {location} tras recargar",
   "error.resolve": "No se puede resolver {name}",

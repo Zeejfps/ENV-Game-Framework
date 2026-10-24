@@ -75,15 +75,23 @@ internal static class TreePaneView
         ui.Focus(ui.GetId(TreeId), takesText: false);
     }
 
-    /// <summary>The assembly node selected in the tree, or null when none is or another kind of node is.</summary>
+    /// <summary>The assembly node selected in the tree, loaded or failed, or null when none is or
+    /// another kind of node is.</summary>
     private static BrowseNode? FindPickedAssembly(BrowseTree tree)
     {
         var node = tree.View.Selected;
         if (node == null)
             return null;
-        if (node.Kind != NodeKind.Assembly)
+        if (!IsAssemblyRoot(node))
             return null;
         return node;
+    }
+
+    private static bool IsAssemblyRoot(BrowseNode node)
+    {
+        if (node.Kind == NodeKind.Assembly)
+            return true;
+        return node.Kind == NodeKind.FailedAssembly;
     }
 
     private static void EmptyHint(Ui<UiState> ui)
@@ -184,7 +192,7 @@ internal static class TreePaneView
             ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
             ScopeSearch(ui.State, node);
-        if (node.Kind == NodeKind.Assembly)
+        if (IsAssemblyRoot(node))
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))

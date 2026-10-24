@@ -416,7 +416,6 @@
   "error.read_settings": "Impossible de lire les paramètres ; les valeurs par défaut sont utilisées",
   "error.save_settings": "Impossible d’enregistrer les paramètres",
   "error.open_assemblies": "Impossible d’ouvrir les assemblys",
-  "error.open_file": "Impossible d’ouvrir {file}",
   "error.reload_assemblies": "Impossible de recharger les assemblys",
   "error.find_after_reload": "Impossible de trouver {location} après le rechargement",
   "error.resolve": "Impossible de résoudre {name}",
