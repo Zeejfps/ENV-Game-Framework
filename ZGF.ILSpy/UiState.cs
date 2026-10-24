@@ -28,6 +28,8 @@ public sealed partial class UiState : IUiState
         ExportSetup.RestoreWindow(settings.ExportWindow);
         Analyzer = new AnalyzerRows(workspace.Analyzer, workspace.Assemblies);
         _listGeneration = workspace.Assemblies.Generation;
+        _shownLanguage = workspace.Language;
+        _shownOptions = workspace.DecompilerOptions;
         AddOpenTabViews();
         MainLayout = RestoreLayout(settings.Layout);
         _keptView = CaptureViewSources();
@@ -93,7 +95,8 @@ public sealed partial class UiState : IUiState
 
     /// <summary>Does what comes before drawing a frame: takes the theme and strings the workspace's
     /// preferences pick, follows the open assemblies and analyses in the trees and the open tabs in
-    /// the layout, and does what the features asked of the view.</summary>
+    /// the layout, does what the features asked of the view, and has the tabs it shows decompile
+    /// again when the language or the options changed.</summary>
     public void StartFrame()
     {
         ApplyThemeAndLanguage();
@@ -101,6 +104,7 @@ public sealed partial class UiState : IUiState
         SyncTabViews();
         FocusNextTabIfNone();
         TakeViewAsks();
+        FollowDecompilation();
     }
 
     private void ApplyThemeAndLanguage()

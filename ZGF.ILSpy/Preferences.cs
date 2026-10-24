@@ -3,7 +3,8 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Choosing the interface language and how code is decompiled.</summary>
+/// <summary>Choosing the interface language and how code is decompiled. The screen decompiles again
+/// what it shows when the language or the options change.</summary>
 public static class Preferences
 {
     public static void SetLocale(this Workspace w, Locale locale)
@@ -18,7 +19,6 @@ public static class Preferences
         if (language == w.Language)
             return;
         w.Language = language;
-        w.EnsureCurrent();
     }
 
     public static void SetLanguageVersion(this Workspace w, CSharpVersion version)
@@ -47,18 +47,10 @@ public static class Preferences
         w.SetDecompilerOptions(options);
     }
 
-    /// <summary>Makes <paramref name="options"/> current and decompiles the shown C# documents again with them.</summary>
     private static void SetDecompilerOptions(this Workspace w, DecompilerOptions options)
     {
         if (options == w.DecompilerOptions)
             return;
         w.DecompilerOptions = options;
-        w.EnsureCurrent();
-    }
-
-    /// <summary>Asks the view to decompile again what the tabs it shows show.</summary>
-    private static void EnsureCurrent(this Workspace w)
-    {
-        w.AskView(new ViewAsk.RefreshShownTabs());
     }
 }

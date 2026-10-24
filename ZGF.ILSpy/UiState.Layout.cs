@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
@@ -12,6 +13,9 @@ public sealed partial class UiState
 
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
     public bool ConfirmingLayoutReset;
+
+    private DecompilationLanguage _shownLanguage;
+    private DecompilerOptions _shownOptions;
 
     /// <summary>The saved layout with the open tabs in the place of the documents, a panel the layout
     /// makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
@@ -255,6 +259,24 @@ public sealed partial class UiState
         if (!Layout.Contains(panel))
             return;
         Layout.Activate(panel);
+    }
+
+    /// <summary>Has the tabs in front of their groups decompile again once the language or the options
+    /// changed; the others do when they are focused.</summary>
+    private void FollowDecompilation()
+    {
+        if (!HasDecompilationChanged())
+            return;
+        _shownLanguage = _workspace.Language;
+        _shownOptions = _workspace.DecompilerOptions;
+        RefreshShownTabs();
+    }
+
+    private bool HasDecompilationChanged()
+    {
+        if (_workspace.Language != _shownLanguage)
+            return true;
+        return !ReferenceEquals(_workspace.DecompilerOptions, _shownOptions);
     }
 
     /// <summary>Makes each tab in front of its group decompile again what it shows, when the language

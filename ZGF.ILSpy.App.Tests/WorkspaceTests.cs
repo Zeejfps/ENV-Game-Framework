@@ -32,16 +32,6 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
-    public void Changing_the_language_asks_the_view_to_decompile_the_shown_tabs_again()
-    {
-        var d = WorkspaceDriver.WithoutScreen();
-
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
-
-        Assert.Equal([new ViewAsk.RefreshShownTabs()], d.TakeViewAsks());
-    }
-
-    [Fact]
     public void Closing_the_active_tab_with_no_screen_leaves_the_pick_of_the_next_to_the_view()
     {
         var d = WorkspaceDriver.OpenedWithoutScreen();

@@ -20,9 +20,6 @@ public sealed partial class UiState
             case ViewAsk.OpenPanel open:
                 OpenPanel(open.Panel);
                 break;
-            case ViewAsk.RefreshShownTabs:
-                RefreshShownTabs();
-                break;
             case ViewAsk.RevealNode reveal:
                 Tree.Reveal(reveal.Node);
                 break;

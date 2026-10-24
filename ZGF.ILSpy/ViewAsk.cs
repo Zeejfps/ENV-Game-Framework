@@ -18,10 +18,6 @@ public abstract record ViewAsk
     /// bring it to the front.</summary>
     public sealed record OpenPanel(string Panel) : ViewAsk;
 
-    /// <summary>Decompile again what each tab in front of its group shows, when the language or the
-    /// options changed since.</summary>
-    public sealed record RefreshShownTabs : ViewAsk;
-
     /// <summary>Return <see cref="Tab"/>'s view to <see cref="Position"/>.</summary>
     public sealed record RestoreView(DocumentTab Tab, CodeViewPosition Position) : ViewAsk;
 
