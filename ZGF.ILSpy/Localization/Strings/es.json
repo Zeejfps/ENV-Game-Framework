@@ -424,6 +424,7 @@
   "error.decompile": "No se puede descompilar {name}",
   "error.scan_runtime": "No se pueden examinar los ensamblados del runtime",
   "error.search": "Error en la búsqueda",
+  "error.restore_analyses": "No se puede volver a analizar lo analizado la última vez",
   "error.go_to_bookmark": "No se puede ir a {name}",
   "error.export_bookmarks": "No se pueden exportar los marcadores",
   "error.save_resource": "No se puede guardar {name}",

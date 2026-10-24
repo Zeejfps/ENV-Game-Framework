@@ -424,6 +424,7 @@
   "error.decompile": "{name} を逆コンパイルできません",
   "error.scan_runtime": "ランタイムのアセンブリをスキャンできません",
   "error.search": "検索に失敗しました",
+  "error.restore_analyses": "前回分析した内容を再分析できません",
   "error.go_to_bookmark": "{name} に移動できません",
   "error.export_bookmarks": "ブックマークをエクスポートできません",
   "error.save_resource": "{name} を保存できません",

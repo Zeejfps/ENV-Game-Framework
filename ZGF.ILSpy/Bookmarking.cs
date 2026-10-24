@@ -98,8 +98,8 @@ public static class Bookmarking
 
     /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
     /// ILSpy's — and finds the place of each in the background: takes them at once when there are
-    /// none yet, and otherwise asks how through <see cref="Workspace.PendingImport"/>. Bookmarks whose
-    /// place is not found are left out and reported.</summary>
+    /// none yet, and otherwise waits in <see cref="Workspace.Imports"/> for the user to say how. Bookmarks
+    /// whose place is not found are left out and reported.</summary>
     public static async void ImportBookmarks(this Workspace w, string path)
     {
         var file = Path.GetFileName(path);
@@ -109,9 +109,9 @@ public static class Bookmarking
             w.ReportError(Strings.For(w.Locale).ErrorImportBookmarks(file), error);
             return;
         }
-        w.IsImporting = true;
+        w.Imports.StartFinding();
         var found = await Background.Run(() => w.FindPlaces(records));
-        w.IsImporting = false;
+        w.Imports.StopFinding();
         w.TakeImported(found, file);
     }
 
@@ -148,7 +148,7 @@ public static class Bookmarking
         }
         if (bookmarks.Count == 0)
             return;
-        w.PendingImport = bookmarks;
+        w.Imports.Wait(new PendingImport(bookmarks));
     }
 
     private static void ReportLostBookmarks(this Workspace w, List<FoundBookmark> found, string file)
@@ -168,13 +168,15 @@ public static class Bookmarking
         return $"{record.Name}: {location} ({record.FileName})";
     }
 
-    /// <summary>Imports the <see cref="Workspace.PendingImport"/> as <paramref name="mode"/> says, or
-    /// drops it when null.</summary>
-    public static void FinishImport(this Workspace w, BookmarkImportMode? mode)
+    /// <summary>Takes the bookmarks <paramref name="import"/> waits with as <paramref name="mode"/> says,
+    /// or drops them when null.</summary>
+    public static void FinishImport(this Workspace w, PendingImport import, BookmarkImportMode? mode)
     {
-        if (mode != null && w.PendingImport != null)
-            w.Bookmarks.Import(w.PendingImport, mode.Value);
-        w.PendingImport = null;
+        if (!w.Imports.Finish(import))
+            return;
+        if (mode == null)
+            return;
+        w.Bookmarks.Import(import.Bookmarks, mode.Value);
     }
 
     private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);

@@ -424,6 +424,7 @@
   "error.decompile": "{name} kann nicht dekompiliert werden",
   "error.scan_runtime": "Die Assemblys der Laufzeit können nicht durchsucht werden",
   "error.search": "Suche fehlgeschlagen",
+  "error.restore_analyses": "Die zuletzt analysierten Symbole können nicht erneut analysiert werden",
   "error.go_to_bookmark": "{name} kann nicht angesprungen werden",
   "error.export_bookmarks": "Die Lesezeichen können nicht exportiert werden",
   "error.save_resource": "{name} kann nicht gespeichert werden",

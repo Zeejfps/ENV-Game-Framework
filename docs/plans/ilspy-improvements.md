@@ -53,10 +53,7 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
 12. **Hidden-member filter ignores user options.** `Members.IsHidden` (`Nodes.cs:303-309`) uses default
     `DecompilerSettings`, so with YieldReturn/AsyncAwait off, generated types appear in code but not in the
     tree. Fix: derive hiding from the current settings, or rebuild roots when those toggles change.
-13. **Import state is plain fields.** `Workspace.IsImporting` / `PendingImport` (`Workspace.cs:84,87`): two
-    overlapping imports clear and overwrite each other. `RestoreLastSessionAnalyses` ignores `found.Error`
-    (`Analyzing.cs:41-42`). Fix: a guard type for the import in progress; report the restore error.
-14. **State lifetime is counted in frames** (`Ui.cs:18-19, 642-661`). Frames only render on events, so unused
+13. **State lifetime is counted in frames** (`Ui.cs:18-19, 642-661`). Frames only render on events, so unused
     state lives forever while idle. Fix: age by `RealTime`.
 
 ## Performance

@@ -4,13 +4,22 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Asks whether imported bookmarks replace the ones there are or merge in beside them.</summary>
+/// <summary>Asks whether imported bookmarks replace the ones there are or merge in beside them, one
+/// import at a time.</summary>
 internal static class BookmarkImportDialogView
 {
     public static void Render(Ui<UiState> ui, Workspace w)
     {
+        var import = w.Imports.Asking;
+        if (import == null)
+            return;
+        Ask(ui, w, import);
+    }
+
+    private static void Ask(Ui<UiState> ui, Workspace w, PendingImport import)
+    {
         var t = ui.State.Strings;
-        var open = w.PendingImport != null;
+        var open = true;
         using (var dialog = ui.Dialog("bookmark-import", t.BookmarksImportTitle, ref open, closeButton: false))
         {
             if (dialog.IsOpen)
@@ -19,15 +28,15 @@ internal static class BookmarkImportDialogView
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.BookmarksImportCancel, id: "import-cancel", variant: ButtonVariant.Ghost))
-                        w.FinishImport(null);
+                        w.FinishImport(import, null);
                     if (ui.Button(t.BookmarksImportReplace, id: "import-replace"))
-                        w.FinishImport(BookmarkImportMode.Replace);
+                        w.FinishImport(import, BookmarkImportMode.Replace);
                     if (ui.Button(t.BookmarksImportMerge, id: "import-merge", variant: ButtonVariant.Primary))
-                        w.FinishImport(BookmarkImportMode.Merge);
+                        w.FinishImport(import, BookmarkImportMode.Merge);
                 }
             }
         }
-        if (!open && w.PendingImport != null)
-            w.FinishImport(null);
+        if (!open)
+            w.FinishImport(import, null);
     }
 }

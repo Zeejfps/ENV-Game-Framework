@@ -95,12 +95,11 @@ public sealed class Workspace
     /// <summary>True while the open list's analyses are being found to be analyzed again.</summary>
     public bool IsRestoringAnalyses => PendingAnalyses.Pending != null;
 
-    /// <summary>Bookmarks read from a file, waiting for the user to say whether they replace the
-    /// ones there are or merge in beside them.</summary>
-    public List<Bookmark>? PendingImport { get; set; }
+    /// <summary>The bookmark imports finding their places or waiting for the user to say how to take them.</summary>
+    public BookmarkImports Imports { get; } = new();
 
     /// <summary>True while imported bookmarks' places are being found in the background.</summary>
-    public bool IsImporting { get; set; }
+    public bool IsImporting => Imports.IsFinding;
 
     /// <summary>The code, projects, solutions and PDBs being written in the background, one at a time.</summary>
     public ExportQueue Export { get; } = new();

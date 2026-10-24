@@ -1,5 +1,6 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -36,7 +37,7 @@ public static class Analyzing
 
     /// <summary>Finds the symbols the open list had analyzed again in the background, opening their
     /// assemblies' files without listing them, and analyzes those still there, in their order, unless
-    /// the list was cleared meanwhile.</summary>
+    /// the list was cleared meanwhile. Reports why they could not be found.</summary>
     public static async void RestoreAnalyses(this Workspace w)
     {
         var analyzed = w.PendingAnalyses.Pending;
@@ -46,7 +47,15 @@ public static class Analyzing
         var found = await Background.Run(() => w.FindAnalyzed(analyzed));
         if (w.WasListCleared(generation))
             return;
+        w.ReportRestoreFailure(found.Error);
         w.AnalyzeAgain(found.Value);
+    }
+
+    private static void ReportRestoreFailure(this Workspace w, Exception? error)
+    {
+        if (error == null)
+            return;
+        w.ReportError(Strings.For(w.Locale).ErrorRestoreAnalyses, error.ToString());
     }
 
     private static bool WasListCleared(this Workspace w, int generation) => w.Assemblies.Generation != generation;

@@ -438,6 +438,7 @@
   "error.decompile": "Cannot decompile {name}",
   "error.scan_runtime": "Cannot scan the runtime's assemblies",
   "error.search": "Search failed",
+  "error.restore_analyses": "Cannot analyze again what was analyzed last time",
   "error.go_to_bookmark": "Cannot go to {name}",
   "error.export_bookmarks": "Cannot export the bookmarks",
   "error.save_resource": "Cannot save {name}",

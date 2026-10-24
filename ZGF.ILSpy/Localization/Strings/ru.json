@@ -424,6 +424,7 @@
   "error.decompile": "Не удалось декомпилировать {name}",
   "error.scan_runtime": "Не удалось просканировать сборки среды выполнения",
   "error.search": "Ошибка поиска",
+  "error.restore_analyses": "Не удалось снова проанализировать то, что анализировалось в прошлый раз",
   "error.go_to_bookmark": "Не удаётся перейти к {name}",
   "error.export_bookmarks": "Не удаётся экспортировать закладки",
   "error.save_resource": "Не удалось сохранить {name}",

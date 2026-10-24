@@ -424,6 +424,7 @@
   "error.decompile": "Impossible de décompiler {name}",
   "error.scan_runtime": "Impossible d’analyser les assemblys du runtime",
   "error.search": "Échec de la recherche",
+  "error.restore_analyses": "Impossible d’analyser à nouveau ce qui a été analysé la dernière fois",
   "error.go_to_bookmark": "Impossible d’aller à {name}",
   "error.export_bookmarks": "Impossible d’exporter les signets",
   "error.save_resource": "Impossible d’enregistrer {name}",

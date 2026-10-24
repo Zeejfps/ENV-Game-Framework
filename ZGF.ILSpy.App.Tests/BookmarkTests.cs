@@ -298,10 +298,12 @@ public sealed class BookmarkTests : IDisposable
         Assert.Equal([1f, 1f, 4f, 1f], restored);
     }
 
-    private string Exported(params string[] lines)
+    private string Exported(params string[] lines) => ExportedAs("exported.json", lines);
+
+    private string ExportedAs(string name, params string[] lines)
     {
         Directory.CreateDirectory(_temp.Path);
-        var path = _temp.PathOf("exported.json");
+        var path = _temp.PathOf(name);
         var (d, tab, _) = OutlineAt("return First();");
         foreach (var text in lines)
             d.Workspace.ToggleBookmark(tab, tab.Document.Find(text).Line);
@@ -319,7 +321,7 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.ImportBookmarks(path);
         d.Settle();
 
-        Assert.Null(d.Workspace.PendingImport);
+        Assert.Null(d.Workspace.Imports.Asking);
         Assert.Equal(["Bookmark 1", "Bookmark 2"], d.Workspace.Bookmarks.Items.Select(b => b.Name));
         Assert.True(d.Workspace.Bookmarks.LinesIn(tab.Document, tab.Location!)[line]);
     }
@@ -337,17 +339,38 @@ public sealed class BookmarkTests : IDisposable
 
         d.Workspace.ImportBookmarks(path);
         d.Settle();
-        var asked = d.Workspace.PendingImport != null;
-        d.Workspace.FinishImport(BookmarkImportMode.Merge);
+        var asked = d.Workspace.Imports.Asking;
+        d.Workspace.FinishImport(asked!, BookmarkImportMode.Merge);
         var merged = bookmarks.Items.Select(b => b.Name).ToList();
         d.Workspace.ImportBookmarks(path);
         d.Settle();
-        d.Workspace.FinishImport(BookmarkImportMode.Replace);
+        d.Workspace.FinishImport(d.Workspace.Imports.Asking!, BookmarkImportMode.Replace);
 
-        Assert.True(asked);
+        Assert.NotNull(asked);
         Assert.Equal(["Mine", "Bookmark 2"], merged);
         Assert.Equal(["Bookmark 1", "Bookmark 2"], bookmarks.Items.Select(b => b.Name));
-        Assert.Null(d.Workspace.PendingImport);
+        Assert.Null(d.Workspace.Imports.Asking);
+    }
+
+    [Fact]
+    public void Overlapping_imports_each_wait_with_their_own_bookmarks_and_are_asked_in_turn()
+    {
+        var first = ExportedAs("first.json", "foreach");
+        var second = ExportedAs("second.json", "needle");
+        var (d, tab, line) = OutlineAt("return First();");
+        d.Workspace.ToggleBookmark(tab, line);
+
+        d.Workspace.ImportBookmarks(first);
+        d.Workspace.ImportBookmarks(second);
+        d.Settle();
+        var asked = d.Workspace.Imports.Asking!;
+        d.Workspace.FinishImport(asked, BookmarkImportMode.Merge);
+        var next = d.Workspace.Imports.Asking!;
+        d.Workspace.FinishImport(next, BookmarkImportMode.Merge);
+
+        Assert.NotSame(asked, next);
+        Assert.Equal(3, d.Workspace.Bookmarks.Items.Count);
+        Assert.Null(d.Workspace.Imports.Asking);
     }
 
     [Fact]
@@ -361,7 +384,7 @@ public sealed class BookmarkTests : IDisposable
         d.Settle();
 
         Assert.Single(d.Workspace.Bookmarks.Items);
-        Assert.Null(d.Workspace.PendingImport);
+        Assert.Null(d.Workspace.Imports.Asking);
         Assert.Equal("Cannot import bookmarks from other.json", Assert.Single(d.Workspace.Errors.Entries).Title);
     }
 

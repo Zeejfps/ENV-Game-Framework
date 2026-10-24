@@ -424,6 +424,7 @@
   "error.decompile": "无法反编译 {name}",
   "error.scan_runtime": "无法扫描运行时的程序集",
   "error.search": "搜索失败",
+  "error.restore_analyses": "无法重新分析上次分析的内容",
   "error.go_to_bookmark": "无法转到 {name}",
   "error.export_bookmarks": "无法导出书签",
   "error.save_resource": "无法保存 {name}",
