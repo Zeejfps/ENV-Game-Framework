@@ -333,4 +333,46 @@ public sealed class FrameworkPickerTests
         Assert.Contains("no runtime", picker.Error);
         Assert.Single(reported);
     }
+
+    [Fact]
+    public void Filtering_keeps_only_the_picked_out_assemblies_still_shown()
+    {
+        var posted = PostedActions.OfThisTest();
+        var assemblies = new[]
+        {
+            new RuntimeAssembly("System.Net.Http", "Microsoft.NETCore.App", "a.dll"),
+            new RuntimeAssembly("System.Net.Sockets", "Microsoft.NETCore.App", "b.dll"),
+            new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll"),
+        };
+        var picker = new FrameworkPicker(static () => Strings.En, static (_, _) => { }, () => assemblies);
+        var list = new AssemblyList();
+        picker.Open();
+        Poll.Until(() => !picker.IsLoading, posted.Run);
+        picker.Update(list);
+
+        picker.Selection.SelectAll(picker.Filtered);
+        picker.Filter = "Net";
+        picker.Update(list);
+
+        Assert.Equal([assemblies[0], assemblies[1]], picker.ListSelected());
+    }
+
+    [Fact]
+    public void Assemblies_already_open_are_not_offered()
+    {
+        var posted = PostedActions.OfThisTest();
+        var open = new RuntimeAssembly("Fixtures", "Microsoft.NETCore.App", WorkspaceDriver.FixturePath);
+        var other = new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll");
+        var picker = new FrameworkPicker(static () => Strings.En, static (_, _) => { }, () => [open, other]);
+        var list = new AssemblyList();
+        picker.Open();
+        Poll.Until(() => !picker.IsLoading, posted.Run);
+        picker.Update(list);
+        Assert.Equal([open, other], picker.Filtered);
+
+        list.Open(WorkspaceDriver.FixturePath);
+        picker.Update(list);
+
+        Assert.Equal([other], picker.Filtered);
+    }
 }

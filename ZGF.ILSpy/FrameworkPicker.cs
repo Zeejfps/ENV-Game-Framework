@@ -4,8 +4,8 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The "open from framework" dialog: the runtime's assemblies, scanned once in the
-/// background, filtered by name.</summary>
+/// <summary>The "open from framework" dialog: the runtime's assemblies not open yet, scanned once
+/// in the background, filtered by name.</summary>
 public sealed class FrameworkPicker
 {
     private readonly Func<Strings> _strings;
@@ -32,20 +32,12 @@ public sealed class FrameworkPicker
 
     public bool IsOpen;
     public string Filter = "";
-    public ListSelection Selection { get; } = new();
+    public MultiSelection<RuntimeAssembly> Selection { get; } = new();
 
-    public RuntimeAssembly? Selected
-    {
-        get
-        {
-            var index = Selection.Index;
-            if (index < 0)
-                return null;
-            if (index >= _filtered.Count)
-                return null;
-            return _filtered[index];
-        }
-    }
+    public bool HasSelection => Selection.Count > 0;
+
+    /// <summary>The picked-out assemblies, in the order they are shown.</summary>
+    public List<RuntimeAssembly> ListSelected() => Selection.InOrder(_filtered);
 
     public bool IsLoading { get; private set; }
     public IReadOnlyList<RuntimeAssembly> Filtered => _filtered;
@@ -83,11 +75,7 @@ public sealed class FrameworkPicker
         return focus;
     }
 
-    /// <summary>Whether <paramref name="assembly"/> is already in the assembly list.</summary>
-    public bool IsListed(RuntimeAssembly assembly) => _listed.Contains(assembly.FilePath);
-
-    /// <summary>Catches up with the assembly list and re-filters when the filter text changed since
-    /// the last frame.</summary>
+    /// <summary>Re-filters when the assembly list or the filter text changed since the last frame.</summary>
     public void Update(AssemblyList assemblies)
     {
         RefreshListed(assemblies);
@@ -101,6 +89,7 @@ public sealed class FrameworkPicker
         _listedVersion = assemblies.Version;
         _listed.Clear();
         _listed.UnionWith(assemblies.FilePaths);
+        _appliedFilter = null;
     }
 
     private void ApplyFilter()
@@ -110,17 +99,26 @@ public sealed class FrameworkPicker
         if (Filter == _appliedFilter)
             return;
         _appliedFilter = Filter;
-        var selected = Selected;
         _filtered.Clear();
         var filter = Filter.Trim();
         foreach (var assembly in _all)
         {
-            if (filter.Length == 0 || assembly.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            if (Offers(assembly, filter))
                 _filtered.Add(assembly);
         }
-        var index = 0;
-        if (selected != null)
-            index = Math.Max(0, _filtered.IndexOf(selected));
-        Selection.Select(index, _filtered.Count);
+        Selection.Reconcile(_filtered);
+        if (!HasSelection)
+            Selection.MoveTo(0, extend: false, _filtered);
+    }
+
+    /// <summary>Whether <paramref name="assembly"/> is not open yet and its name matches
+    /// <paramref name="filter"/>.</summary>
+    private bool Offers(RuntimeAssembly assembly, string filter)
+    {
+        if (_listed.Contains(assembly.FilePath))
+            return false;
+        if (filter.Length == 0)
+            return true;
+        return assembly.Name.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 }

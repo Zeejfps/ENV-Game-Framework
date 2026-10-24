@@ -21,6 +21,7 @@ public sealed class MultiSelection<TKey> where TKey : notnull
     private bool _hasCurrent;
     private TKey? _anchor;
     private bool _hasAnchor;
+    private bool _reveal;
 
     public int Count => _selected.Count;
 
@@ -28,6 +29,14 @@ public sealed class MultiSelection<TKey> where TKey : notnull
 
     /// <summary>Whether <paramref name="key"/> is the only selected row.</summary>
     public bool IsOnly(TKey key) => _selected.Count == 1 && _selected.Contains(key);
+
+    /// <summary>Where the current row is in <paramref name="order"/>, or -1.</summary>
+    public int IndexOfCurrent(IReadOnlyList<TKey> order)
+    {
+        if (!_hasCurrent)
+            return -1;
+        return IndexOf(order, _current!);
+    }
 
     /// <summary>The selected keys in <paramref name="order"/>'s order.</summary>
     public List<TKey> InOrder(IReadOnlyList<TKey> order)
@@ -98,13 +107,14 @@ public sealed class MultiSelection<TKey> where TKey : notnull
     }
 
     /// <summary>Makes row <paramref name="index"/>, kept within <paramref name="order"/>, the current
-    /// one, as <see cref="Move"/> does.</summary>
+    /// one, as <see cref="Move"/> does, and asks a scrolling list to show it.</summary>
     public void MoveTo(int index, bool extend, IReadOnlyList<TKey> order)
     {
         if (order.Count == 0) return;
         var key = order[Math.Clamp(index, 0, order.Count - 1)];
         var change = extend ? SelectionChange.Extend : SelectionChange.Replace;
         Select(key, change, order);
+        _reveal = true;
     }
 
     public void SelectAll(IReadOnlyList<TKey> order)
@@ -145,6 +155,14 @@ public sealed class MultiSelection<TKey> where TKey : notnull
         _selected.Clear();
         _hasCurrent = false;
         _hasAnchor = false;
+        _reveal = false;
+    }
+
+    internal bool TakeReveal()
+    {
+        var reveal = _reveal;
+        _reveal = false;
+        return reveal;
     }
 
     private void SetCurrent(TKey key)

@@ -44,68 +44,64 @@ internal static class FrameworkPickerView
 
             using (ui.Row(new Box { Gap = theme.GapTight }))
             {
-                ui.Text(ui.Memo("picker-count", (picker.Filtered.Count, t), static a => a.t.PickerCount(a.Count)), color: theme.TextMuted, size: theme.FontSizeSmall);
+                var counts = (Shown: picker.Filtered.Count, Selected: picker.Selection.Count, t);
+                var summary = ui.Memo("picker-count", counts, static a => Summary(a.t, a.Shown, a.Selected));
+                ui.Text(summary, color: theme.TextMuted, size: theme.FontSizeSmall);
                 ui.Spacer();
                 close |= ui.Button(t.PickerCancel, id: "picker-cancel");
-                open |= ui.Button(t.PickerOpen, enabled: picker.Selected != null, id: "picker-open", variant: ButtonVariant.Primary);
+                open |= ui.Button(t.PickerOpen, enabled: picker.HasSelection, id: "picker-open", variant: ButtonVariant.Primary);
             }
         }
 
-        var selected = picker.Selected;
-        if (open && selected != null)
+        if (open && picker.HasSelection)
         {
-            w.Open(selected.FilePath);
+            OpenSelected(w, picker);
             close = true;
         }
         if (close)
             picker.Close();
     }
 
+    private static string Summary(Strings t, int shown, int selected) => $"{t.PickerCount(shown)} · {t.PickerSelected(selected)}";
+
+    private static void OpenSelected(Workspace w, FrameworkPicker picker)
+    {
+        var paths = picker.ListSelected()
+            .Select(a => a.FilePath);
+        w.Open(paths);
+    }
+
     /// <summary>Walks the list from the filter, leaving Home and End to its text.</summary>
     private static void MoveSelectionFromFilter(Ui<UiState> ui, FrameworkPicker picker, int listId)
     {
-        var count = picker.Filtered.Count;
         var page = ui.MeasureListPage(listId, ui.Theme.RowHeight);
-        var index = picker.Selection.Index;
         foreach (var stroke in ui.Input.Keys)
         {
             var movesCaret = stroke.Key is KeyboardKey.Home or KeyboardKey.End;
             if (!movesCaret)
-                UiWidgets.ApplyListKey(stroke, ref index, count, page);
+                UiWidgets.ApplyListKey(stroke, picker.Selection, picker.Filtered, page);
         }
-        if (index != picker.Selection.Index)
-            picker.Selection.Select(index, count);
     }
 
     private static bool Rows(Ui<UiState> ui, FrameworkPicker picker, int listId)
     {
-        var t = ui.State.Strings;
         var theme = ui.Theme;
-        using var list = ui.SelectableList(listId, picker.Filtered.Count, picker.Selection);
+        using var list = ui.SelectableList(listId, picker.Filtered, picker.Selection);
         for (var i = list.First; i < list.End; i++)
         {
             var assembly = picker.Filtered[i];
             using (ui.Id(assembly.FilePath))
             using (var row = list.Row(i, ui.GetId("row"), new Box { Gap = theme.GapTight }))
             {
-                var listed = picker.IsListed(assembly);
-                var nameColor = NameColor(theme, listed, row.Selected);
-                var note = listed ? t.PickerListed : assembly.Framework;
+                var nameColor = row.Selected ? theme.SelectionText : theme.Text;
                 NodeIcons.Draw(ui, NodeKind.Assembly);
                 using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
                 {
                     ui.Text(assembly.Name, new Box { Width = Sizing.Grow() }, color: nameColor, overflow: TextOverflow.Ellipsis);
-                    ui.Text(note, color: theme.TextMuted, size: theme.FontSizeSmall);
+                    ui.Text(assembly.Framework, color: theme.TextMuted, size: theme.FontSizeSmall);
                 }
             }
         }
         return list.Activated;
-    }
-
-    private static uint NameColor(UiTheme theme, bool listed, bool selected)
-    {
-        if (listed) return theme.TextMuted;
-        if (selected) return theme.SelectionText;
-        return theme.Text;
     }
 }

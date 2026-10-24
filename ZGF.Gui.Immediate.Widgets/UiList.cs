@@ -146,12 +146,74 @@ public readonly struct ListScope : IDisposable
         _frame.MenuAt = _ui.Input.Pointer;
     }
 
-    private Box RowBox(Box box, bool selected, bool hovered) => box with
+    private Box RowBox(Box box, bool selected, bool hovered) =>
+        UiWidgets.ListRowBox(_ui.Theme, box, _frame.RowHeight, selected, _frame.Focused, hovered);
+
+    public void Dispose() => _rows.Dispose();
+}
+
+/// <summary>The rows of a <see cref="UiWidgets.SelectableList{TKey}"/> to record this frame, from
+/// <see cref="First"/> up to but not including <see cref="End"/>, each with <see cref="Row"/>, and
+/// what the user asked of the list so far this frame.</summary>
+public readonly struct ListScope<TKey> : IDisposable where TKey : notnull
+{
+    private readonly Ui _ui;
+    private readonly UiWidgets.MultiListFrame<TKey> _frame;
+    private readonly Ui.VirtualList _rows;
+
+    internal ListScope(Ui ui, UiWidgets.MultiListFrame<TKey> frame, Ui.VirtualList rows)
     {
-        Height = box.Height ?? _frame.RowHeight,
-        Padding = box.Padding ?? new Spacing(_ui.Theme.ShellPaddingX, 0f),
-        Background = _ui.Theme.PickRowBackground(selected, _frame.Focused, hovered),
-    };
+        _ui = ui;
+        _frame = frame;
+        _rows = rows;
+    }
+
+    public int First => _rows.First;
+    public int End => _rows.End;
+
+    /// <summary>Whether the list held keyboard focus when it was opened.</summary>
+    public bool Focused => _frame.Focused;
+
+    /// <summary>Enter, or a double-click on a row, asked to act on the picked-out rows.</summary>
+    public bool Activated => _frame.Activated && _frame.Selection.Count > 0;
+
+    /// <summary>
+    /// Opens row <paramref name="index"/> of the order as a horizontal element <paramref name="id"/>,
+    /// as tall as the list's rows and inset by <see cref="UiTheme.ShellPaddingX"/> unless
+    /// <paramref name="box"/> says otherwise, its background showing whether it is picked out, the
+    /// list focused and the row under the pointer. A press on it picks it out alone, toggles it with
+    /// Ctrl, or picks out the range from the anchor with Shift; a double-click activates it.
+    /// </summary>
+    public ListRow Row(int index, int id, Box box = default)
+    {
+        var row = _ui.Interact(id);
+        HandlePointer(index, row);
+
+        var selected = _frame.Selection.Contains(_frame.Order[index]);
+        var scope = _ui.Row(id, UiWidgets.ListRowBox(_ui.Theme, box, _frame.RowHeight, selected, _frame.Focused, row.Hovered));
+        var ringed = IsCurrent(index) && _frame.Focused && _ui.FocusVisible;
+        if (ringed)
+            _ui.FocusRing(0f);
+        return new ListRow(scope, row, selected, _frame.Focused);
+    }
+
+    private void HandlePointer(int index, Interaction row)
+    {
+        if (row.Pressed)
+            PickRow(index);
+        if (row.DoubleClicked)
+            _frame.Activated = true;
+    }
+
+    private void PickRow(int index)
+    {
+        _ui.Focus(_frame.Id, takesText: false);
+        var change = UiWidgets.PickChange(_ui.Input.Modifiers);
+        _frame.Selection.Select(_frame.Order[index], change, _frame.Order);
+        _ui.ScrollRowIntoView(_frame.Id, index);
+    }
+
+    private bool IsCurrent(int index) => index == _frame.CurrentIndex;
 
     public void Dispose() => _rows.Dispose();
 }
@@ -183,6 +245,7 @@ public readonly struct ListRow : IDisposable
 public static partial class UiWidgets
 {
     private const int ListSalt = 0x4C495354;
+    private const int MultiListSalt = 0x4D4C5354;
     private const int UnmeasuredListPage = 10;
 
     internal sealed class ListFrame
@@ -237,6 +300,83 @@ public static partial class UiWidgets
         var rows = ui.VirtualScroll(id, count, height, box);
         return new ListScope(ui, frame, rows);
     }
+
+    internal sealed class MultiListFrame<TKey> where TKey : notnull
+    {
+        public int Id;
+        public IReadOnlyList<TKey> Order = Array.Empty<TKey>();
+        public float RowHeight;
+        public bool Focused;
+        public bool Activated;
+        public int CurrentIndex;
+        public MultiSelection<TKey> Selection = new();
+
+        public void Begin(int id, IReadOnlyList<TKey> order, float rowHeight, MultiSelection<TKey> selection)
+        {
+            Id = id;
+            Order = order;
+            RowHeight = rowHeight;
+            Selection = selection;
+            Activated = false;
+        }
+    }
+
+    /// <summary>
+    /// A <see cref="Ui.VirtualScroll(int, int, float, Box)"/> of the rows of <paramref name="order"/>,
+    /// one per key, <paramref name="rowHeight"/> tall, the theme's by default, as a
+    /// <see cref="ListArea"/>, any number of which <paramref name="selection"/> picks out. While
+    /// focused, <see cref="ApplyListKey{TKey}"/> moves the current row, Ctrl+A picks out every row and
+    /// Enter activates them. Record each row in view with <see cref="ListScope{TKey}.Row"/>. The
+    /// current row scrolls into view whenever a key moves it. Keys gone from <paramref name="order"/>
+    /// are the owner's to drop with <see cref="MultiSelection{TKey}.Reconcile"/>.
+    /// </summary>
+    public static ListScope<TKey> SelectableList<TKey>(this Ui ui, int id, IReadOnlyList<TKey> order, MultiSelection<TKey> selection,
+        float? rowHeight = null, Box box = default) where TKey : notnull
+    {
+        var height = rowHeight ?? ui.Theme.RowHeight;
+        var frame = ui.GetState<MultiListFrame<TKey>>(HashCode.Combine(id, MultiListSalt));
+        frame.Begin(id, order, height, selection);
+        frame.Focused = ui.ListArea(id);
+        if (frame.Focused)
+            HandleMultiListKeys(ui, frame, ui.MeasureListPage(id, height));
+        frame.CurrentIndex = selection.IndexOfCurrent(order);
+        if (selection.TakeReveal())
+            ui.ScrollRowIntoView(id, frame.CurrentIndex);
+        var rows = ui.VirtualScroll(id, order.Count, height, box);
+        return new ListScope<TKey>(ui, frame, rows);
+    }
+
+    private static void HandleMultiListKeys<TKey>(Ui ui, MultiListFrame<TKey> frame, int page) where TKey : notnull
+    {
+        foreach (var stroke in ui.Input.Keys)
+        {
+            if (ApplyListKey(stroke, frame.Selection, frame.Order, page)) continue;
+            if (IsSelectAll(stroke))
+            {
+                frame.Selection.SelectAll(frame.Order);
+                continue;
+            }
+            if (HasCommandModifier(stroke)) continue;
+            if (stroke.Key == KeyboardKey.Enter)
+                frame.Activated = true;
+        }
+    }
+
+    /// <summary>Moves the current row of <paramref name="selection"/> among <paramref name="order"/>
+    /// for <paramref name="stroke"/> as <see cref="ApplyListKey(KeyStroke, ref int, int, int)"/> moves
+    /// an index, picking it out alone or, with Shift, the range from the anchor to it. Returns whether
+    /// it was one of those keys.</summary>
+    public static bool ApplyListKey<TKey>(KeyStroke stroke, MultiSelection<TKey> selection, IReadOnlyList<TKey> order, int page)
+        where TKey : notnull
+    {
+        var index = selection.IndexOfCurrent(order);
+        if (!ApplyListKey(stroke, ref index, order.Count, page)) return false;
+        var extend = (stroke.Modifiers & KeyModifiers.Shift) != 0;
+        selection.MoveTo(index, extend, order);
+        return true;
+    }
+
+    private static bool IsSelectAll(KeyStroke stroke) => stroke.Key == KeyboardKey.A && IsCommand(stroke.Modifiers);
 
     /// <summary>Makes the element <paramref name="id"/> a list that takes keyboard focus but no
     /// text: a press or a right-click on it focuses it, and it is a Tab stop. Returns whether it
@@ -328,6 +468,16 @@ public static partial class UiWidgets
         var shown = (int)(view.Height / rowHeight);
         return Math.Max(1, shown - 1);
     }
+
+    /// <summary>A list row <paramref name="rowHeight"/> tall and inset by
+    /// <see cref="UiTheme.ShellPaddingX"/> unless <paramref name="box"/> says otherwise, with its
+    /// <see cref="PickRowBackground"/>.</summary>
+    internal static Box ListRowBox(UiTheme theme, Box box, float rowHeight, bool selected, bool focused, bool hovered) => box with
+    {
+        Height = box.Height ?? rowHeight,
+        Padding = box.Padding ?? new Spacing(theme.ShellPaddingX, 0f),
+        Background = theme.PickRowBackground(selected, focused, hovered),
+    };
 
     /// <summary>A list row's background: <see cref="UiTheme.Selection"/> while selected in a focused
     /// list, <see cref="UiTheme.SelectionInactive"/> while selected in another, else

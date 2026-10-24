@@ -190,7 +190,7 @@ public static partial class UiWidgets
         selection.Select(key, change, order);
     }
 
-    private static SelectionChange PickChange(KeyModifiers modifiers)
+    internal static SelectionChange PickChange(KeyModifiers modifiers)
     {
         if (IsCommand(modifiers))
             return SelectionChange.Toggle;

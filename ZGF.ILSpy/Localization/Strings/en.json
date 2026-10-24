@@ -421,9 +421,9 @@
   "picker.scanning": "Scanning the runtime…",
   "picker.scan_failed": "The runtime could not be scanned; see the error in the status bar.",
   "picker.count": { "one": "{count:N0} assembly", "other": "{count:N0} assemblies" },
+  "picker.selected": { "one": "{count:N0} selected", "other": "{count:N0} selected" },
   "picker.cancel": "Cancel",
   "picker.open": "Open",
-  "picker.listed": "open",
 
   "error.read_settings": "Cannot read the settings; starting with defaults",
   "error.save_settings": "Cannot save the settings",
