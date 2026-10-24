@@ -79,8 +79,7 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
    and `AssemblySearch.Find`, each with different exception lists. Fix: one owner such as
    `LoadedAssembly.TryResolve(token)` with a single failure policy.
 3. **Background-resolve-with-ticket is copied three times** (`Navigation.cs:224-236`, `:295-313`,
-   `Bookmarking.cs:51-62`); `Analyzing.Analyze` (`Analyzing.cs:22-32`) skips the ticket, so late results still
-   pop the analyzer. Fix: one internal `w.ResolveInBackground(...)` in `Navigation`.
+   `Bookmarking.cs:51-62`). Fix: one internal `w.ResolveInBackground(...)` in `Navigation`.
 4. **`RichTextLayout` duplicates TextWrapper's line breaking** (`RichTextLayout.cs:28-31, 126-225`).
    `MeasureWidestChunk` (`:72`) is unused. Fix: one break routine with single-style text as one run.
 5. **`CodeView()` is a ~210-line method** (`CodeView.cs:217-427`) with ~35 mutable fields in `CodeViewState`

@@ -52,6 +52,25 @@ public sealed class AutosaveTests : IDisposable
     }
 
     [Fact]
+    public void An_analysis_asked_for_by_reference_is_saved_once_it_is_found()
+    {
+        var d = WorkspaceDriver.Opened(_temp.Settings());
+        d.Show(d.Fixture("Outline"));
+        var document = d.Workspace.Tabs.Active!.Document;
+        var (line, column) = document.Find("return First();");
+        var reference = document.SpanAt(line, column + "return ".Length).Reference!;
+
+        d.Workspace.Analyze(reference);
+        d.Workspace.SaveSettingsIfChanged(d.Now);
+        var savedWhileFinding = _temp.Settings().AssemblyLists.Single().Analyzed?.Count ?? 0;
+        d.Settle();
+        d.Pump();
+
+        Assert.Equal(0, savedWhileFinding);
+        Assert.Single(_temp.Settings().AssemblyLists.Single().Analyzed!);
+    }
+
+    [Fact]
     public void A_saved_analysis_that_is_not_found_again_leaves_the_settings_with_the_next_save()
     {
         var first = WorkspaceDriver.Opened(_temp.Settings());

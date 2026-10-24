@@ -152,9 +152,110 @@ public sealed class AnalyzerTests
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
         d.Workspace.Analyze(reference);
-        d.RunUntil(() => d.Workspace.Analyzer.Roots.Count > 0);
+        d.Settle();
 
         Assert.StartsWith("First()", d.Workspace.Analyzer.Found()[0].Symbol.Label);
+    }
+
+    private static CodeReference ReferenceTo(WorkspaceDriver d, string type, string text, int offset = 0)
+    {
+        d.Show(d.Fixture(type));
+        var document = d.Workspace.Tabs.Active!.Document;
+        var (line, column) = document.Find(text);
+        return document.SpanAt(line, column + offset).Reference!;
+    }
+
+    private static CodeReference ReferenceToFirst(WorkspaceDriver d) => ReferenceTo(d, "Outline", "return First();", "return ".Length);
+
+    [Fact]
+    public void A_reference_shows_a_loading_root_at_once_that_is_saved_once_it_is_found()
+    {
+        var d = WorkspaceDriver.Opened();
+        var reference = ReferenceToFirst(d);
+        var analyzer = d.Workspace.Analyzer;
+
+        d.Workspace.Analyze(reference);
+        var waiting = analyzer.Roots.ToList();
+        var savedWhileFinding = analyzer.ListSavedAnalyses();
+        var revisionWhileFinding = analyzer.Revision;
+        d.Settle();
+
+        Assert.IsType<AnalyzerPendingNode>(Assert.Single(waiting));
+        Assert.Empty(savedWhileFinding);
+        Assert.StartsWith("First()", Assert.Single(analyzer.Found()).Symbol.Label);
+        Assert.Single(analyzer.ListSavedAnalyses());
+        Assert.NotEqual(revisionWhileFinding, analyzer.Revision);
+    }
+
+    [Fact]
+    public void Two_analyses_asked_for_by_reference_both_add_their_roots_in_the_order_asked()
+    {
+        var d = WorkspaceDriver.Opened();
+        var length = ReferenceTo(d, "Greeter", "Length");
+        var greet = ReferenceTo(d, "Greeter", "Greet(2)");
+
+        d.Workspace.Analyze(length);
+        d.Workspace.Analyze(greet);
+        d.Settle();
+
+        var labels = d.Workspace.Analyzer.Found().Select(r => r.Symbol.Label).ToList();
+        Assert.Equal(2, labels.Count);
+        Assert.StartsWith("Length", labels[0]);
+        Assert.StartsWith("Greet(", labels[1]);
+    }
+
+    [Fact]
+    public void A_reference_to_a_symbol_analyzed_already_selects_its_root()
+    {
+        var d = WorkspaceDriver.Opened();
+        var reference = ReferenceToFirst(d);
+        var analyzer = d.Workspace.Analyzer;
+        d.Workspace.Analyze(First(d));
+        d.Workspace.Analyze(d.Fixture("Greeter"));
+
+        d.Workspace.Analyze(reference);
+        d.Settle();
+
+        Assert.Equal(2, analyzer.Roots.Count);
+        Assert.Same(analyzer.Found()[0], analyzer.View.Selected);
+    }
+
+    [Fact]
+    public void A_reference_whose_root_was_removed_meanwhile_is_dropped()
+    {
+        var d = WorkspaceDriver.Opened();
+        var reference = ReferenceToFirst(d);
+        var analyzer = d.Workspace.Analyzer;
+
+        d.Workspace.Analyze(reference);
+        analyzer.Remove(analyzer.Roots[0]);
+        d.Settle();
+
+        Assert.Empty(analyzer.Roots);
+    }
+
+    [Fact]
+    public void A_reference_that_does_not_resolve_removes_its_root_and_is_reported()
+    {
+        using var temp = new TempDir();
+        var copy = temp.Write("Copy.dll", File.ReadAllBytes(WorkspaceDriver.FixturePath));
+        var d = new WorkspaceDriver();
+        d.Workspace.Open(copy);
+        d.RunUntil(() => d.Workspace.Assemblies.Assemblies.Count == 1);
+        d.Settle();
+        var assembly = d.Workspace.Assemblies.Assemblies.Single();
+        var outline = assembly.Root.Child(WorkspaceDriver.FixturesNamespace, "Outline");
+        var document = outline.Decompile(DecompilationLanguage.CSharp);
+        var (line, column) = document.Find("return First();");
+        var reference = document.SpanAt(line, column + "return ".Length).Reference!;
+        d.Workspace.Close(assembly);
+        File.Delete(copy);
+
+        d.Workspace.Analyze(reference);
+        d.Settle();
+
+        Assert.Empty(d.Workspace.Analyzer.Roots);
+        Assert.Equal("Cannot resolve First", Assert.Single(d.Workspace.Errors.Entries).Title);
     }
 
     [Fact]

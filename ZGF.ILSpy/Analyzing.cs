@@ -18,21 +18,37 @@ public static class Analyzing
         w.Analyzer.Analyze(symbol);
     }
 
-    /// <summary>Finds what <paramref name="reference"/> points at in the background, opening its
-    /// assembly if it is not, and analyzes it, unless the list was cleared meanwhile.</summary>
+    /// <summary>Adds a root that shows as loading, in the analyzer, which is opened if it is not, while
+    /// what <paramref name="reference"/> points at is found in the background, opening its assembly if
+    /// it is not, and turns the root into its analysis. The root goes when the reference does not
+    /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
+    /// what is found is dropped.</summary>
     public static async void Analyze(this Workspace w, CodeReference reference)
     {
-        var generation = w.Assemblies.Generation;
+        w.OpenAnalyzer();
+        var root = w.Analyzer.AddPending(savedAs: null);
         var found = await Background.Run(() => w.Assemblies.FindNode(reference));
-        if (w.WasListCleared(generation))
+        if (!w.Analyzer.Contains(root))
             return;
         var node = found.Value;
         if (node == null)
         {
+            w.Analyzer.Remove(root);
             w.ReportUnresolved(reference, found.Error);
             return;
         }
-        w.Analyze(node);
+        w.AnalyzeFound(root, node);
+    }
+
+    private static void AnalyzeFound(this Workspace w, AnalyzerPendingNode root, BrowseNode node)
+    {
+        var symbol = Analysis.Of(node);
+        if (symbol == null)
+        {
+            w.Analyzer.Remove(root);
+            return;
+        }
+        w.Analyzer.Resolve(root, symbol);
     }
 
     /// <summary>Finds the symbols of the roots restored from the saved analyses in the background,
