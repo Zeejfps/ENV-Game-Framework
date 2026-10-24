@@ -26,7 +26,7 @@ public sealed class TodoState
     public void Add(string title) => Items.Add(new TodoItem { Id = NextId++, Title = title });
 }
 
-public sealed class TodoApp(TodoState state) : ImmediateGuiApp<TodoState, DefaultUiState>(state, new DefaultUiState())
+public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(new DefaultUiState())
 {
     private static readonly (Locale Locale, string Endonym)[] Languages =
     [
@@ -43,8 +43,9 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<TodoState, Defaul
     private readonly ListSelection _selection = new();
     private TodoItem? _menuTarget;
 
-    protected override void OnUpdate(Ui<DefaultUiState> ui, TodoState s)
+    protected override void OnUpdate(Ui<DefaultUiState> ui)
     {
+        var s = state;
         var palette = s.DarkMode ? UiTheme.Dark : UiTheme.Light;
         ui.State.Theme = palette with { ScreenPadding = 0f };
         using var screen = ui.Screen();

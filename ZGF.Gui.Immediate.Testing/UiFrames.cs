@@ -33,9 +33,8 @@ public sealed class UiFrames<TState> where TState : class, IUiState
 
     /// <summary>Frames of <paramref name="app"/>: each one records what its <c>OnUpdate</c> does, on a
     /// <see cref="Ui{T}"/> carrying its UI state.</summary>
-    public static UiFrames<TState> Running<TAppState>(ImmediateGuiApp<TAppState, TState> app, ITextMeasurer? measurer = null,
+    public static UiFrames<TState> Running(ImmediateGuiApp<TState> app, ITextMeasurer? measurer = null,
         TestPopupHost? popups = null, float width = 400f, float height = 300f)
-        where TAppState : class
     {
         return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Update);
     }

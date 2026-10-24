@@ -8,7 +8,7 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate;
 
-/// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{TAppState, TUiState}"/> runs in. While it runs,
+/// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{TUiState}"/> runs in. While it runs,
 /// <c>await</c> on the UI thread continues before the next frame.</summary>
 public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : class, IUiState
 {
@@ -159,7 +159,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// and <see cref="UiTheme.FontFamily"/>. A bold face is the one the family's bold text is drawn
     /// in, which is otherwise synthesized from the regular face; the default font's bold is Inter
     /// SemiBold. Register italic faces under families of their own. Call it on the UI thread, such as
-    /// from <see cref="ImmediateGuiApp{TAppState, TUiState}.OnStartup"/> or after awaiting a background load there; it
+    /// from <see cref="ImmediateGuiApp{TUiState}.OnStartup"/> or after awaiting a background load there; it
     /// does nothing once the window has closed.</summary>
     public void RegisterFont(FontFace font)
     {

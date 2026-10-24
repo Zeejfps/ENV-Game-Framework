@@ -4,18 +4,20 @@ using ZGF.Gui.Immediate;
 
 namespace ZGF.ILSpy;
 
-public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
+public sealed class IlSpyApp : ImmediateGuiApp<UiState>
 {
     private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
     private const string ItalicFontFile = "Inter-Italic.ttf";
 
+    private readonly AppState _appState;
     private readonly List<string> _startupAssemblies;
 
     internal IlSpyApp(
         AppState appState,
         UiState uiState,
-        List<string> startupAssemblies) : base(appState, uiState)
+        List<string> startupAssemblies) : base(uiState)
     {
+        _appState = appState;
         _startupAssemblies = startupAssemblies;
     }
 
@@ -24,22 +26,27 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         LoadAndRegisterFonts(host);
         OpenStartupAssemblies();
         StartRedrawingOnAssemblyChanges(host);
-        State.RestoreAnalyses();
+        _appState.RestoreAnalyses();
     }
 
-    protected override void OnUpdate(Ui<UiState> ui, AppState w)
+    protected override void OnUpdate(Ui<UiState> ui)
     {
-        ui.State.StartFrame();
-        MainView.Render(ui, w);
-        ui.State.FinishFrame();
-        RequestUpdateIfViewCommandsPending(ui, w);
-        SaveSettingsIfChanged(ui, w);
+        RenderFrame(ui, _appState);
+        RequestUpdateIfViewCommandsPending(ui, _appState);
+        SaveSettingsIfChanged(ui, _appState);
     }
 
     protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
     {
         StopRedrawingOnAssemblyChanges(host);
         SaveOnExit(host.WindowBounds);
+    }
+
+    private static void RenderFrame(Ui<UiState> ui, AppState appState)
+    {
+        ui.State.StartFrame();
+        MainView.Render(ui, appState);
+        ui.State.FinishFrame();
     }
 
     private static void LoadAndRegisterFonts(ImmediateGuiAppHost<UiState> host)
@@ -57,25 +64,25 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
 
     private void StartRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
     {
-        State.Assemblies.Changed += host.Invalidate;
+        _appState.Assemblies.Changed += host.Invalidate;
     }
 
     private void OpenStartupAssemblies()
     {
-        State.RestoreActiveList();
-        State.Open(_startupAssemblies);
+        _appState.RestoreActiveList();
+        _appState.Open(_startupAssemblies);
     }
 
     private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
     {
-        State.Assemblies.Changed -= host.Invalidate;
+        _appState.Assemblies.Changed -= host.Invalidate;
     }
 
     internal void SaveOnExit(WindowBounds window)
     {
-        State.Settings.RememberWindow(window);
+        _appState.Settings.RememberWindow(window);
         UiState.HandOverViewSettings();
-        State.SaveSettings();
+        _appState.SaveSettings();
     }
     
     private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState w)

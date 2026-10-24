@@ -7,8 +7,8 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
-/// The per-frame surface handed to <see cref="ImmediateGuiApp{TAppState, TUiState}"/>.Render. Calls record elements; once
-/// Render returns the tree is laid out and drawn. Interaction is answered during the call from
+/// The per-frame surface handed to <see cref="ImmediateGuiApp{TUiState}"/>.OnUpdate. Calls record elements; once
+/// OnUpdate returns the tree is laid out and drawn. Interaction is answered during the call from
 /// where each element was laid out on the previous frame, matched by id. Widgets are extension
 /// methods built on this surface.
 /// </summary>
@@ -342,8 +342,8 @@ public abstract partial class Ui
 
     /// <summary>
     /// Widget-owned state that outlives a frame (a caret, an open dropdown), created on first use
-    /// and kept while <paramref name="id"/> keeps being asked for. App state belongs in the
-    /// <see cref="ImmediateGuiApp{TAppState, TUiState}"/> state instead. Dropped after about a thousand frames unused, unless it
+    /// and kept while <paramref name="id"/> keeps being asked for. App state belongs on the
+    /// app instead. Dropped after about a thousand frames unused, unless it
     /// belongs to a <see cref="StateScope"/> that is being kept.
     /// </summary>
     public TState GetState<TState>(int id) where TState : class, new()
