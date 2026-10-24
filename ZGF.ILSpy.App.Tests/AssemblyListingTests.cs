@@ -220,7 +220,7 @@ public sealed class AssemblyListingTests
 
         var empty = Assert.Single(d.AppState.Tabs);
         Assert.Same(empty, d.AppState.Tabs.Active);
-        Assert.True(d.Ui.Layout.Contains(empty.Panel));
+        Assert.True(d.Ui.Layout.Contains(d.Ui.PanelOf(empty)));
         Assert.Null(empty.Location);
     }
 

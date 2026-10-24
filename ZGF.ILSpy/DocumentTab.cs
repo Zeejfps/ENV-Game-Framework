@@ -10,8 +10,6 @@ namespace ZGF.ILSpy;
 /// stand in it. Mutated on the UI thread only.</summary>
 public sealed class DocumentTab
 {
-    private static int _nextId;
-
     private readonly Func<Strings> _strings;
     private readonly Func<DecompilerOptions> _options;
     private readonly Action<string, string> _reportError;
@@ -33,13 +31,7 @@ public sealed class DocumentTab
         _options = options;
         _reportError = reportError;
         _viewCommands = viewCommands;
-        Panel = $"document-{Id}";
     }
-
-    public int Id { get; } = Interlocked.Increment(ref _nextId);
-
-    /// <summary>The name of the tab's panel in the layout.</summary>
-    public string Panel { get; }
 
     /// <summary>Where the tab points; outlives reloads of the assembly.</summary>
     public NodePath? Location { get; private set; }

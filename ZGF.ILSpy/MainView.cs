@@ -70,7 +70,7 @@ public static class MainView
     {
         if (DockPanels.IsView(panel))
             return DockPanels.Tab(t, panel);
-        var tab = appState.Tabs.Find(panel);
+        var tab = screen.FindTab(panel);
         if (tab != null)
             return DocumentsView.Tab(screen, appState, tab);
         return new DockTab(panel);
@@ -106,7 +106,7 @@ public static class MainView
 
     private static void Document(Ui<UiState> ui, AppState appState, string panel)
     {
-        var tab = appState.Tabs.Find(panel);
+        var tab = ui.State.FindTab(panel);
         if (tab == null)
             return;
         DocumentsView.Render(ui, appState, tab);

@@ -199,7 +199,7 @@ public static class Navigation
     internal static DocumentTab OpenNewTab(AppState appState)
     {
         var tab = appState.AddTab();
-        appState.EnqueueCommand(new ViewCommand.ShowTab(tab, appState.Tabs.ActivePanel));
+        appState.EnqueueCommand(new ViewCommand.ShowTab(tab, appState.Tabs.Active));
         return tab;
     }
 }

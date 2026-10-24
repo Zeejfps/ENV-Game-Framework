@@ -14,17 +14,6 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
 
     public DocumentTab this[int index] => _tabs[index];
 
-    /// <summary>The panel of the active tab, if there is one.</summary>
-    public string? ActivePanel
-    {
-        get
-        {
-            if (Active == null)
-                return null;
-            return Active.Panel;
-        }
-    }
-
     public void Add(DocumentTab tab)
     {
         _tabs.Add(tab);
@@ -48,17 +37,6 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
     }
 
     public bool Contains(DocumentTab tab) => _tabs.Contains(tab);
-
-    /// <summary>The tab whose panel is <paramref name="panel"/>.</summary>
-    public DocumentTab? Find(string? panel)
-    {
-        foreach (var tab in _tabs)
-        {
-            if (tab.Panel == panel)
-                return tab;
-        }
-        return null;
-    }
 
     /// <summary><paramref name="tab"/> if it is still open, else null.</summary>
     public DocumentTab? KeepIfOpen(DocumentTab? tab)

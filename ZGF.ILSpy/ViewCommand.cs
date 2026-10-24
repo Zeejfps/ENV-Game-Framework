@@ -10,9 +10,9 @@ public abstract record ViewCommand
     {
     }
 
-    /// <summary>Bring <see cref="Tab"/>'s panel to the front, docked beside the panel <see cref="Beside"/>
+    /// <summary>Bring <see cref="Tab"/>'s panel to the front, docked beside the tab <see cref="Beside"/>
     /// when it is not docked yet.</summary>
-    public sealed record ShowTab(DocumentTab Tab, string? Beside) : ViewCommand;
+    public sealed record ShowTab(DocumentTab Tab, DocumentTab? Beside) : ViewCommand;
 
     /// <summary>Dock the view <see cref="Panel"/>, one of <see cref="DockPanels"/>, if it is not, and
     /// bring it to the front.</summary>

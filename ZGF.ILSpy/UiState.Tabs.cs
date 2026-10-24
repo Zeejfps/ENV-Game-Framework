@@ -5,9 +5,34 @@ public sealed partial class UiState
     private readonly Dictionary<DocumentTab, TabView> _tabViews = new();
     private readonly List<DocumentTab> _closedTabs = new();
     private readonly List<string> _releasedImages = new();
+    private int _documentPanels;
 
     /// <summary>How <paramref name="tab"/>, an open tab, is shown.</summary>
     public TabView ViewOf(DocumentTab tab) => _tabViews[tab];
+
+    /// <summary>The panel <paramref name="tab"/>, an open tab, is docked as.</summary>
+    public string PanelOf(DocumentTab tab) => ViewOf(tab).Panel;
+
+    /// <summary>The panel <paramref name="tab"/> is docked as, or null when there is no tab or it has no view.</summary>
+    private string? FindPanel(DocumentTab? tab)
+    {
+        if (tab == null)
+            return null;
+        if (!_tabViews.TryGetValue(tab, out var view))
+            return null;
+        return view.Panel;
+    }
+
+    /// <summary>The open tab docked as <paramref name="panel"/>. Allocates nothing.</summary>
+    public DocumentTab? FindTab(string? panel)
+    {
+        foreach (var (tab, view) in _tabViews)
+        {
+            if (view.Panel == panel)
+                return tab;
+        }
+        return null;
+    }
 
     /// <summary>Drops the view of each tab closed, keeping its image to free, and closes its panel;
     /// makes a view for each tab opened; and lets each view follow the grid or picture its tab shows.</summary>
@@ -28,8 +53,9 @@ public sealed partial class UiState
         }
         foreach (var tab in _closedTabs)
         {
+            var panel = PanelOf(tab);
             DropTabView(tab);
-            ClosePanel(tab.Panel);
+            ClosePanel(panel);
         }
     }
 
@@ -51,7 +77,13 @@ public sealed partial class UiState
     {
         if (_tabViews.ContainsKey(tab))
             return;
-        _tabViews.Add(tab, new TabView(tab));
+        _tabViews.Add(tab, new TabView(NewDocumentPanel()));
+    }
+
+    private string NewDocumentPanel()
+    {
+        _documentPanels++;
+        return $"document-{_documentPanels}";
     }
 
     private void FollowContent()

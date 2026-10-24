@@ -31,7 +31,7 @@ public sealed class AppStateTests
 
         var tab = d.AppState.Tabs.Active!;
         Assert.NotSame(before, tab);
-        Assert.Equal([new ViewCommand.ShowTab(tab, before.Panel), new ViewCommand.RevealNode(greeter)], commands);
+        Assert.Equal([new ViewCommand.ShowTab(tab, before), new ViewCommand.RevealNode(greeter)], commands);
     }
 
     [Fact]
@@ -108,13 +108,15 @@ public sealed class AppStateTests
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var greeter = d.AppState.Tabs[^2];
+        var farewellPanel = d.Ui.PanelOf(d.AppState.Tabs.Active!);
         var documents = d.Ui.Layout;
-        documents.Dock(d.AppState.Tabs.Active!.Panel, documents.Root, DockEdge.Right);
+        documents.Dock(farewellPanel, documents.Root, DockEdge.Right);
         d.Ui.ActivateTab(greeter);
 
         d.Show(d.Fixture("Outline"), inNewTab: true);
 
-        Assert.Same(documents.GroupOf(greeter.Panel), documents.GroupOf(d.AppState.Tabs.Active!.Panel));
+        var outlinePanel = d.Ui.PanelOf(d.AppState.Tabs.Active!);
+        Assert.Same(documents.GroupOf(d.Ui.PanelOf(greeter)), documents.GroupOf(outlinePanel));
         Assert.Equal("Outline", d.AppState.Tabs.Active.Node!.Text);
     }
 
@@ -124,15 +126,16 @@ public sealed class AppStateTests
         var d = AppStateDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var greeter = d.AppState.Tabs.Active!;
+        var greeterPanel = d.Ui.PanelOf(greeter);
         var documents = d.Ui.Layout;
 
-        documents.Dock(greeter.Panel, documents.GroupOf(greeter.Panel)!, DockEdge.Right);
+        documents.Dock(greeterPanel, documents.GroupOf(greeterPanel)!, DockEdge.Right);
         d.Ui.SyncActiveTab();
 
         Assert.Equal(2, d.AppState.Tabs.Count);
         var empty = d.AppState.Tabs.Single(t => t != greeter);
         Assert.Null(empty.Location);
-        Assert.NotSame(documents.GroupOf(greeter.Panel), documents.GroupOf(empty.Panel));
+        Assert.NotSame(documents.GroupOf(greeterPanel), documents.GroupOf(d.Ui.PanelOf(empty)));
         Assert.Same(empty, d.AppState.Tabs.Active);
 
         d.Show(d.Fixture("Farewell"));
@@ -154,7 +157,8 @@ public sealed class AppStateTests
 
         Assert.Same(greeter, d.AppState.Tabs.Active);
         Assert.DoesNotContain(d.AppState.Tabs, t => t.Node?.Text == "Farewell");
-        Assert.Equal([greeter.Panel], d.Ui.Layout.GroupOf(greeter.Panel)!.Panels);
+        var greeterPanel = d.Ui.PanelOf(greeter);
+        Assert.Equal([greeterPanel], d.Ui.Layout.GroupOf(greeterPanel)!.Panels);
     }
 
     [Fact]

@@ -23,7 +23,7 @@ public sealed partial class UiState
     /// makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
     private MainLayout RestoreLayout(DockLayout? saved)
     {
-        var first = _appState.Tabs[0].Panel;
+        var first = PanelOf(_appState.Tabs[0]);
         var dock = DockPanels.Restore(saved, first, out var placed);
         var layout = new MainLayout(dock);
         if (!placed)
@@ -37,7 +37,7 @@ public sealed partial class UiState
     {
         var tab = _appState.AddTab();
         AddTabView(tab);
-        return tab.Panel;
+        return PanelOf(tab);
     }
 
     /// <summary>Called when a panel is closed: clears the search with its panel, and closes the tab a
@@ -51,7 +51,7 @@ public sealed partial class UiState
 
     private void CloseTabOf(string panel)
     {
-        var tab = _appState.Tabs.Find(panel);
+        var tab = FindTab(panel);
         if (tab == null)
             return;
         DropTabView(tab);
@@ -64,7 +64,7 @@ public sealed partial class UiState
     /// <summary>Focuses the tab of the panel the layout focuses now, else the first group's front tab.</summary>
     private void FocusNextTab()
     {
-        var next = _appState.Tabs.Find(Layout.Focused);
+        var next = FindTab(Layout.Focused);
         if (next == null)
             next = FindFrontTab();
         if (next == null)
@@ -91,7 +91,7 @@ public sealed partial class UiState
     private DocumentTab? FindFrontTab(DockNode node)
     {
         if (node is DockGroup group)
-            return _appState.Tabs.Find(group.Active);
+            return FindTab(group.Active);
         if (node is not DockSplit split)
             return null;
         var first = FindFrontTab(split.First);
@@ -134,16 +134,17 @@ public sealed partial class UiState
     /// <summary>What the last try to focus another tab saw: the layout's change count and how many tabs were open.</summary>
     private readonly record struct FocusTry(int LayoutChanges, int TabCount);
 
-    /// <summary>Docks <paramref name="tab"/> beside the panel <paramref name="beside"/> when it is not
+    /// <summary>Docks <paramref name="tab"/> beside the tab <paramref name="beside"/> when it is not
     /// docked yet, and brings it to the front.</summary>
-    private void ShowTab(DocumentTab tab, string? beside)
+    private void ShowTab(DocumentTab tab, DocumentTab? beside)
     {
         if (!_appState.Tabs.Contains(tab))
             return;
         AddTabView(tab);
-        if (!Layout.Contains(tab.Panel))
-            MainLayout.DockDocument(tab.Panel, beside);
-        Layout.Activate(tab.Panel);
+        var panel = PanelOf(tab);
+        if (!Layout.Contains(panel))
+            MainLayout.DockDocument(panel, FindPanel(beside));
+        Layout.Activate(panel);
     }
 
     private void ClosePanel(string panel)
@@ -158,7 +159,7 @@ public sealed partial class UiState
     {
         if (!_appState.Tabs.Contains(tab))
             return;
-        Layout.Activate(tab.Panel);
+        Layout.Activate(PanelOf(tab));
         FocusAndRevealTab(tab);
     }
 
@@ -167,7 +168,7 @@ public sealed partial class UiState
     public void SyncActiveTab()
     {
         RunViewCommands();
-        var tab = _appState.Tabs.Find(Layout.Focused);
+        var tab = FindTab(Layout.Focused);
         if (tab == null)
             return;
         if (tab == _appState.Tabs.Active)
@@ -181,21 +182,22 @@ public sealed partial class UiState
         var active = _appState.Tabs.Active;
         if (active == null)
             return;
-        var group = Layout.GroupOf(active.Panel);
+        var activePanel = PanelOf(active);
+        var group = Layout.GroupOf(activePanel);
         if (group == null)
             return;
         var panels = group.Panels.FindAll(IsTabPanel);
         if (panels.Count < 2)
             return;
-        var index = panels.IndexOf(active.Panel);
+        var index = panels.IndexOf(activePanel);
         var next = panels[WrapIndex(index + by, panels.Count)];
-        var tab = _appState.Tabs.Find(next);
+        var tab = FindTab(next);
         if (tab == null)
             return;
         ActivateTab(tab);
     }
 
-    private bool IsTabPanel(string panel) => _appState.Tabs.Find(panel) != null;
+    private bool IsTabPanel(string panel) => FindTab(panel) != null;
 
     private static int WrapIndex(int index, int count)
     {
@@ -210,16 +212,18 @@ public sealed partial class UiState
         var tab = _appState.Tabs.Active;
         if (tab == null)
             return;
-        Layout.Close(tab.Panel);
+        Layout.Close(PanelOf(tab));
     }
 
-    public void OpenAnalyzer() => MainLayout.OpenAnalyzer(_appState.Tabs.ActivePanel);
+    public void OpenAnalyzer() => MainLayout.OpenAnalyzer(FindActivePanel());
 
-    public void OpenDecompilerOptions() => MainLayout.OpenDecompilerOptions(_appState.Tabs.ActivePanel);
+    public void OpenDecompilerOptions() => MainLayout.OpenDecompilerOptions(FindActivePanel());
 
-    public void OpenBookmarks() => MainLayout.OpenBookmarks(_appState.Tabs.ActivePanel);
+    public void OpenBookmarks() => MainLayout.OpenBookmarks(FindActivePanel());
 
-    public void OpenExports() => MainLayout.OpenExports(_appState.Tabs.ActivePanel);
+    public void OpenExports() => MainLayout.OpenExports(FindActivePanel());
+
+    private string? FindActivePanel() => FindPanel(_appState.Tabs.Active);
 
     public void OpenAssemblies() => MainLayout.OpenAssemblies();
 
@@ -265,7 +269,7 @@ public sealed partial class UiState
     {
         var documents = MainLayout.ListDocuments();
         if (documents.Count == 0)
-            documents.Add(OpenActiveTab().Panel);
+            documents.Add(PanelOf(OpenActiveTab()));
         MainLayout.Reset(documents);
         ActivateActivePanel();
     }
@@ -280,7 +284,7 @@ public sealed partial class UiState
 
     private void ActivateActivePanel()
     {
-        var panel = _appState.Tabs.ActivePanel;
+        var panel = FindActivePanel();
         if (panel == null)
             return;
         if (!Layout.Contains(panel))
@@ -316,7 +320,7 @@ public sealed partial class UiState
 
     private void RefreshShownTab(string? panel)
     {
-        var tab = _appState.Tabs.Find(panel);
+        var tab = FindTab(panel);
         if (tab == null)
             return;
         tab.EnsureCurrent(_appState.Language);

@@ -1,13 +1,17 @@
 namespace ZGF.ILSpy;
 
-/// <summary>How one open tab is shown: its code view, its grid view, its picture, and the image the
-/// picture is drawn as. Made when the tab opens, and dropped, with its image, when it closes.</summary>
+/// <summary>How one open tab is shown: the panel it is docked as, its code view, its grid view, its picture,
+/// and the image the picture is drawn as. Made when the tab opens, and dropped, with its image, when it closes.</summary>
 public sealed class TabView
 {
-    public TabView(DocumentTab tab)
+    public TabView(string panel)
     {
-        ImageId = $"{tab.Panel}-image";
+        Panel = panel;
+        ImageId = $"{panel}-image";
     }
+
+    /// <summary>The name of the tab's panel in the layout.</summary>
+    public string Panel { get; }
 
     public CodeViewState Code { get; } = new();
 

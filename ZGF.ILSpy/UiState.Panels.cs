@@ -8,7 +8,7 @@ public sealed partial class UiState
     /// and puts the caret in its search box.</summary>
     public void OpenSearch()
     {
-        MainLayout.OpenSearch(_appState.Tabs.ActivePanel);
+        MainLayout.OpenSearch(FindActivePanel());
         IsSearchFocusPending = true;
     }
 

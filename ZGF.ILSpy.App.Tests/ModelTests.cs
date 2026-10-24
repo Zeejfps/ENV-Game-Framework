@@ -259,7 +259,7 @@ public sealed class DockPanelsTests
         var next = new AppStateDriver(temp.Settings());
         var restored = next.Ui.Layout;
 
-        Assert.Same(next.AppState.Tabs.Active, next.AppState.Tabs.Find(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
+        Assert.Same(next.AppState.Tabs.Active, next.Ui.FindTab(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
         var window = Assert.Single(restored.Windows);
         Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
         Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
@@ -290,7 +290,7 @@ public sealed class DockPanelsTests
 
         var search = d.Ui.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
-        Assert.NotSame(search, d.Ui.Layout.GroupOf(appState.Tabs.Active!.Panel));
+        Assert.NotSame(search, d.Ui.Layout.GroupOf(d.Ui.PanelOf(appState.Tabs.Active!)));
 
         d.Ui.Layout.Close(DockPanels.Search);
 

@@ -67,7 +67,7 @@ public sealed class SplitDocumentTests
         var left = d.AppState.Tabs.Active!;
         d.Show(d.Fixture("Outline"), inNewTab: true);
         var right = d.AppState.Tabs.Active!;
-        layout.Dock(right.Panel, layout.GroupOf(left.Panel)!, DockEdge.Right, 0.5f);
+        layout.Dock(app.Ui.PanelOf(right), layout.GroupOf(app.Ui.PanelOf(left))!, DockEdge.Right, 0.5f);
         app.Run(3);
         return (app, left, right);
     }

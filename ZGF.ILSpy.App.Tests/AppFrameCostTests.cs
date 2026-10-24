@@ -36,7 +36,7 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
         var app = AppDriver.Opened();
         app.Ui.OpenBookmarks();
         app.Settle(2);
-        app.Ui.Layout.Close(app.AppState.Tabs.Active!.Panel);
+        app.Ui.Layout.Close(app.Ui.PanelOf(app.AppState.Tabs.Active!));
         app.Settle(5);
 
         app.Frames.Canvas.Recording = false;
