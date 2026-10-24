@@ -68,12 +68,9 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
 2. **Search allocates per member.** `AssemblySearch.cs:68-110, 315-319` rebuilds `TypeName` recursively and
    concatenates `type.member` per member; each hit runs `FindNode`. Fix: cache qualified names per handle,
    compare through `MetadataStringComparer`, resolve hit nodes lazily.
-3. **Rich text layouts are cached by list identity** (`Ui.Layout.cs:222-236`, `Ui.Text.cs:65-71, 190-195`).
-   A mutated list returns a stale layout; a new list each frame re-lays out and allocates. Fix: an immutable
-   `RichTextBlock` that owns its runs and caches per width.
-4. **Lookup dictionaries never trim.** `_textStyles` (`Ui.cs:33, 559-581`), `_lineHeights`, `_cells` grow
+3. **Lookup dictionaries never trim.** `_textStyles` (`Ui.cs:33, 559-581`), `_lineHeights`, `_cells` grow
    with animated colours or zoomed sizes. Fix: age them like `FrameCache`.
-5. **Small per-frame costs.** `UiInput.cs:144` allocates a string per typed character; caret positions are
+4. **Small per-frame costs.** `UiInput.cs:144` allocates a string per typed character; caret positions are
    measured uncached every frame (`UiTextField.cs:160-161`, `UiSelectableText.cs:219, 229-230`).
 
 ## Structure
@@ -98,17 +95,22 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
 7. **Mutable `TextStyle` leaks.** `Ui.StyleText` (`Ui.Layout.cs:213`) returns the shared interned style with
    public fields; editing it repaints everything and breaks reference-keyed caches. Fix: an opaque immutable
    `UiTextStyle` handle.
-8. **Tree models carry view styling.** `TreePaneView.cs:139-140` and `AnalyzerPanelView.cs:17` push
+8. **`RichText` caches layouts by list identity.** `Ui.LayOutRuns` (`Ui.Text.cs:64-75`) keys on
+   `ReferenceEquals` of the run list (`:194-199`); "pass the same list while the text is the same" lives only in
+   doc comments (`Ui.Layout.cs:225`). A list mutated in place gets a stale layout; a new list each frame
+   re-lays out and allocates. Its only caller, `CodeTooltipView`, keeps its lists per tooltip. Fix: an
+   immutable `RichTextBlock` that owns its runs and caches per width.
+9. **Tree models carry view styling.** `TreePaneView.cs:139-140` and `AnalyzerPanelView.cs:17` push
    `SetStyle` every frame; `ShowNonPublic` lives in both `Workspace` and `BrowseTree`. Fix: a per-frame
    adapter in the view and one owner of `ShowNonPublic`.
-9. **Analyzer headers are matched as strings across Core and the app.** `AnalyzerText.Header`
+10. **Analyzer headers are matched as strings across Core and the app.** `AnalyzerText.Header`
     (`AnalyzerTree.cs:322`) switches on Core's English headers (`Analysis.cs:78+`). Fix: an enum per analysis
     kind mapped to `Strings`.
-10. **Shortcut labels and matching are separate** (`Shortcuts.cs:130-136` vs `:139-205`); Ctrl+W and Ctrl+Tab
+11. **Shortcut labels and matching are separate** (`Shortcuts.cs:130-136` vs `:139-205`); Ctrl+W and Ctrl+Tab
     have no constant. Fix: a `Shortcut` type with `Label` and `IsPressed(ui)`, one bindings table.
-11. **Types report their own errors.** `DocumentTab`, `Search` and `FrameworkPicker` each take `Func<Strings>`
+12. **Types report their own errors.** `DocumentTab`, `Search` and `FrameworkPicker` each take `Func<Strings>`
     and `Action<string,string>`. Fix: return failures to the owning feature file.
-12. **`MetadataGrid` contradicts its node's thread-safety promise** (`MetadataGrid.cs:57`) and its static
+13. **`MetadataGrid` contradicts its node's thread-safety promise** (`MetadataGrid.cs:57`) and its static
     regex cache (`:61`) is unbounded.
 
 ## Readability
