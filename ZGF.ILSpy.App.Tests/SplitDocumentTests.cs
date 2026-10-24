@@ -38,7 +38,7 @@ public sealed class SplitDocumentTests
 
         app.Frames.Click(250f, 400f).Frame();
         Assert.Same(left, d.Workspace.Tabs.Active);
-        Assert.Same(left.Node, d.Workspace.Tree.View.Selected);
+        Assert.Same(left.Node, d.Ui.Tree.View.Selected);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class SplitDocumentTests
     {
         var app = AppDriver.Opened();
         var d = app.Driver;
-        var layout = d.Workspace.Layout;
+        var layout = d.Ui.Layout;
         layout.Close(DockPanels.Assemblies);
         d.Show(d.Fixture("Outline"));
         var left = d.Workspace.Tabs.Active!;

@@ -25,7 +25,8 @@ public sealed partial class UiState
             FoldedOptionGroups.Revision,
             Search.Kinds,
             MetadataFilters.Revision,
-            ExportSetup.WindowChanges);
+            ExportSetup.WindowChanges,
+            Layout.Changes);
     }
 
     private ViewSettings CreateViewSettings()
@@ -37,11 +38,12 @@ public sealed partial class UiState
             FoldedOptionGroups.Save(),
             Search.Kinds,
             MetadataFilters.Save(),
-            ExportSetup.Window);
+            ExportSetup.Window,
+            Layout);
     }
 
     /// <summary>What the settings keep of the screen is made from: the change counts of the columns,
-    /// the folded groups, the flags filters and the export window, and what the search looks for.</summary>
+    /// the folded groups, the flags filters, the export window and the layout, and what the search looks for.</summary>
     private readonly record struct ViewSources(
         int BookmarkColumns,
         int SearchColumns,
@@ -49,5 +51,6 @@ public sealed partial class UiState
         int FoldedOptionGroups,
         SearchKinds SearchKinds,
         int FlagsFilters,
-        int ExportWindow);
+        int ExportWindow,
+        int Layout);
 }

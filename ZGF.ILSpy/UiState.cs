@@ -6,9 +6,9 @@ namespace ZGF.ILSpy;
 
 /// <summary>The screen over a <see cref="Workspace"/>, one per app: what every view is drawn with this
 /// frame (the theme, the editor's and icons' colors, the strings of the chosen language), and the state
-/// that exists only because there is a screen: each tab's view, the tables' columns, the panels and
-/// dialogs with what is selected in them, and UI flags. The workspace never sees it; it asks the
-/// screen through <see cref="Workspace.ViewAsks"/>.</summary>
+/// that exists only because there is a screen: the layout, each tab's view, the trees' and tables'
+/// state, the panels and dialogs with what is selected in them, and UI flags. The workspace never
+/// sees it; it asks the screen through <see cref="Workspace.ViewAsks"/>.</summary>
 public sealed partial class UiState : IUiState
 {
     private readonly Workspace _workspace;
@@ -26,8 +26,10 @@ public sealed partial class UiState : IUiState
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Picker = new FrameworkPicker(ReadStrings, workspace.ReportError);
         ExportSetup.RestoreWindow(settings.ExportWindow);
-        workspace.Layout.PanelClosed += OnPanelClosed;
+        Analyzer = new AnalyzerRows(workspace.Analyzer, workspace.Assemblies);
+        _listGeneration = workspace.Assemblies.Generation;
         AddOpenTabViews();
+        MainLayout = RestoreLayout(settings.Layout);
         _keptView = CaptureViewSources();
     }
 
@@ -90,11 +92,14 @@ public sealed partial class UiState : IUiState
     public ExportSetup ExportSetup { get; } = new();
 
     /// <summary>Does what comes before drawing a frame: takes the theme and strings the workspace's
-    /// preferences pick, follows the open tabs, and does what the features asked of the view.</summary>
+    /// preferences pick, follows the open assemblies and analyses in the trees and the open tabs in
+    /// the layout, and does what the features asked of the view.</summary>
     public void StartFrame()
     {
         ApplyThemeAndLanguage();
+        SyncTrees();
         SyncTabViews();
+        FocusNextTabIfNone();
         TakeViewAsks();
     }
 

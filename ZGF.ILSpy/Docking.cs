@@ -1,77 +1,30 @@
 namespace ZGF.ILSpy;
 
-/// <summary>Opening the views, switching and closing document tabs, and resetting the layout.</summary>
+/// <summary>Switching to and closing document tabs. Where their panels are docked is the screen's.</summary>
 public static class Docking
 {
-    public static void OpenAnalyzer(this Workspace w) => w.MainLayout.OpenAnalyzer(w.Tabs.ActivePanel);
-
-    public static void OpenDecompilerOptions(this Workspace w) => w.MainLayout.OpenDecompilerOptions(w.Tabs.ActivePanel);
-
-    public static void OpenBookmarks(this Workspace w) => w.MainLayout.OpenBookmarks(w.Tabs.ActivePanel);
-
-    public static void OpenExports(this Workspace w) => w.MainLayout.OpenExports(w.Tabs.ActivePanel);
-
-    public static void OpenAssemblies(this Workspace w) => w.MainLayout.OpenAssemblies();
-
-    public static void Activate(this Workspace w, DocumentTab tab)
+    /// <summary>Makes <paramref name="tab"/>, when it is open, the tab the user works in, decompiling
+    /// again what it shows when the language or the options changed since.</summary>
+    public static void FocusTab(this Workspace w, DocumentTab tab)
     {
         if (!w.Tabs.Contains(tab))
             return;
-        w.Layout.Activate(tab.Panel);
-        w.Focus(tab);
+        w.Intent.Begin();
+        w.Tabs.MakeActive(tab);
+        tab.EnsureCurrent(w.Language);
     }
 
-    /// <summary>Called after the documents are recorded: makes the tab the user last pressed, docked
-    /// or brought to front the active one.</summary>
-    public static void SyncActiveTab(this Workspace w)
+    /// <summary>Closes <paramref name="tab"/>, cancelling what it was doing. Returns whether it was the
+    /// active tab, which leaves none active until the view focuses another.</summary>
+    public static bool CloseTab(this Workspace w, DocumentTab tab)
     {
-        var tab = w.Tabs.Find(w.Layout.Focused);
-        if (tab == null)
-            return;
-        if (tab == w.Tabs.Active)
-            return;
-        w.Focus(tab);
+        if (!w.Tabs.Contains(tab))
+            return false;
+        w.Intent.Begin();
+        var wasActive = tab == w.Tabs.Active;
+        w.Tabs.Remove(tab);
+        return wasActive;
     }
-
-    /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
-    public static void CycleTab(this Workspace w, int by)
-    {
-        var active = w.Tabs.Active;
-        if (active == null)
-            return;
-        var group = w.Layout.GroupOf(active.Panel);
-        if (group == null)
-            return;
-        var panels = group.Panels.FindAll(w.IsTabPanel);
-        if (panels.Count < 2)
-            return;
-        var index = panels.IndexOf(active.Panel);
-        var next = panels[WrapIndex(index + by, panels.Count)];
-        var tab = w.Tabs.Find(next);
-        if (tab == null)
-            return;
-        w.Activate(tab);
-    }
-
-    private static bool IsTabPanel(this Workspace w, string panel) => w.Tabs.Find(panel) != null;
-
-    private static int WrapIndex(int index, int count)
-    {
-        var wrapped = index % count;
-        if (wrapped < 0)
-            wrapped += count;
-        return wrapped;
-    }
-
-    public static void CloseActiveTab(this Workspace w)
-    {
-        var tab = w.Tabs.Active;
-        if (tab == null)
-            return;
-        w.CloseTab(tab);
-    }
-
-    public static void CloseTab(this Workspace w, DocumentTab tab) => w.Layout.Close(tab.Panel);
 
     /// <summary>Closes every document tab but the active one, and empties that one; with no tab left
     /// open, opens an empty one.</summary>
@@ -95,95 +48,5 @@ public static class Docking
         if (w.Tabs.Count > 0)
             return w.Tabs[0];
         return w.OpenNewTab();
-    }
-
-    /// <summary>Called when a panel is closed: forgets the tab a closed document was, focusing the next
-    /// one when it was active.</summary>
-    internal static void OnPanelClosed(this Workspace w, string panel)
-    {
-        w.RemoveTab(panel);
-    }
-
-    private static void RemoveTab(this Workspace w, string panel)
-    {
-        var tab = w.Tabs.Find(panel);
-        if (tab == null)
-            return;
-        w.Intent.Begin();
-        var wasActive = tab == w.Tabs.Active;
-        w.Tabs.Remove(tab);
-        if (!wasActive)
-            return;
-        w.FocusNextTab();
-    }
-
-    private static void FocusNextTab(this Workspace w)
-    {
-        var next = w.Tabs.Find(w.Layout.Focused);
-        if (next == null)
-            next = w.FindFrontTab();
-        if (next == null)
-            return;
-        w.Focus(next);
-    }
-
-    private static DocumentTab? FindFrontTab(this Workspace w)
-    {
-        foreach (var group in w.Layout.AllGroups())
-        {
-            var tab = w.Tabs.Find(group.Active);
-            if (tab != null)
-                return tab;
-        }
-        return null;
-    }
-
-    private static void Focus(this Workspace w, DocumentTab tab)
-    {
-        w.Intent.Begin();
-        w.Tabs.MakeActive(tab);
-        tab.EnsureCurrent(w.Language);
-        var node = tab.Node;
-        if (node != null && w.IsListed(node))
-            w.Tree.Reveal(node);
-    }
-
-    /// <summary>Asks the user whether to reset the layout before <see cref="ResetLayout"/> does.</summary>
-    public static void AskToResetLayout(this Workspace w) => w.ConfirmingLayoutReset = true;
-
-    /// <summary>Stops asking, resetting the layout when <paramref name="confirmed"/>.</summary>
-    public static void FinishLayoutReset(this Workspace w, bool confirmed)
-    {
-        w.ConfirmingLayoutReset = false;
-        if (confirmed)
-            w.ResetLayout();
-    }
-
-    /// <summary>Puts the layout back as it starts out: the assemblies left of every open document,
-    /// tabbed together in one group. Floating windows and the other views close; the documents stay open.</summary>
-    public static void ResetLayout(this Workspace w)
-    {
-        var documents = w.MainLayout.ListDocuments();
-        if (documents.Count == 0)
-            documents.Add(w.AddActiveTab().Panel);
-        w.MainLayout.Reset(documents);
-        w.ActivateActivePanel();
-    }
-
-    private static DocumentTab AddActiveTab(this Workspace w)
-    {
-        var tab = w.AddTab();
-        w.Tabs.MakeActive(tab);
-        return tab;
-    }
-
-    private static void ActivateActivePanel(this Workspace w)
-    {
-        var panel = w.Tabs.ActivePanel;
-        if (panel == null)
-            return;
-        if (!w.Layout.Contains(panel))
-            return;
-        w.Layout.Activate(panel);
     }
 }

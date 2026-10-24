@@ -11,7 +11,7 @@ public sealed class DockingTests
         var app = AppDriver.Opened();
         app.Show(app.Fixture("Greeter"));
         var greeter = app.Workspace.Tabs.Active!;
-        var layout = app.Workspace.Layout;
+        var layout = app.Ui.Layout;
 
         layout.Dock(DockPanels.Assemblies, layout.GroupOf(greeter.Panel)!, DockEdge.Center);
         app.Run(3);
@@ -26,7 +26,7 @@ public sealed class DockingTests
     public void The_assemblies_view_closes_like_a_tab_and_comes_back_on_the_left_from_the_View_menu()
     {
         var app = AppDriver.Opened();
-        var layout = app.Workspace.Layout;
+        var layout = app.Ui.Layout;
         app.Run(2);
 
         layout.Close(DockPanels.Assemblies);
@@ -45,7 +45,7 @@ public sealed class DockingTests
     public void View_opens_the_search_panel_and_holds_back_and_forward_with_no_navigate_menu()
     {
         var app = new AppDriver();
-        var layout = app.Workspace.Layout;
+        var layout = app.Ui.Layout;
         app.Run(2);
         Assert.False(app.Frames.Drew("Navigate"));
 
@@ -62,9 +62,10 @@ public sealed class DockingTests
     public void Closing_the_last_document_frees_its_area_and_the_next_one_opens_right_of_the_views()
     {
         var d = WorkspaceDriver.Opened();
-        var layout = d.Workspace.Layout;
+        var layout = d.Ui.Layout;
 
         d.Workspace.CloseTab(d.Workspace.Tabs.Active!);
+        d.NextFrame();
         var left = Assert.IsType<DockGroup>(layout.Root).Panels.ToList();
         d.Show(d.Fixture("Greeter"));
 
@@ -79,7 +80,7 @@ public sealed class DockingTests
     {
         var app = new AppDriver();
         var w = app.Workspace;
-        w.Layout.Close(DockPanels.Assemblies);
+        app.Ui.Layout.Close(DockPanels.Assemblies);
         w.CloseTab(w.Tabs.Active!);
 
         app.Run(2);
@@ -95,10 +96,10 @@ public sealed class DockingTests
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var farewell = d.Workspace.Tabs.Active!;
-        var layout = d.Workspace.Layout;
+        var layout = d.Ui.Layout;
         layout.Dock(farewell.Panel, layout.Root, DockEdge.Bottom);
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 40f, 300f, 300f));
-        d.Workspace.OpenBookmarks();
+        d.Ui.OpenBookmarks();
         app.Run(2);
 
         app.Click("View");
@@ -123,17 +124,17 @@ public sealed class LayoutResetTests
     public void Cancelling_the_reset_question_leaves_the_layout_as_it_was()
     {
         var app = new AppDriver();
-        var w = app.Workspace;
-        w.OpenBookmarks();
+        var screen = app.Ui;
+        screen.OpenBookmarks();
         app.Run(2);
 
         app.Click("View");
         app.ClickMenuItem("Reset layout").Frame(2);
-        Assert.True(w.ConfirmingLayoutReset);
+        Assert.True(screen.ConfirmingLayoutReset);
         app.Click("Cancel").Frame(2);
 
-        Assert.False(w.ConfirmingLayoutReset);
-        Assert.True(w.Layout.Contains(DockPanels.Bookmarks));
+        Assert.False(screen.ConfirmingLayoutReset);
+        Assert.True(screen.Layout.Contains(DockPanels.Bookmarks));
     }
 }
 
@@ -153,14 +154,16 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void Views_docked_below_the_documents_are_still_below_them_after_a_restart()
     {
-        var w = WorkspaceDriver.Opened(_temp.Settings()).Workspace;
-        w.OpenAnalyzer();
-        w.Layout.Dock(DockPanels.Bookmarks, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
-        w.SaveSettings();
+        var d = WorkspaceDriver.Opened(_temp.Settings());
+        var screen = d.Ui;
+        screen.OpenAnalyzer();
+        screen.Layout.Dock(DockPanels.Bookmarks, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
+        d.NextFrame();
+        d.Workspace.SaveSettings();
 
-        var next = new WorkspaceDriver(_temp.Settings()).Workspace;
-        var layout = next.Layout;
-        var documents = layout.GroupOf(next.Tabs.Active!.Panel)!;
+        var next = new WorkspaceDriver(_temp.Settings());
+        var layout = next.Ui.Layout;
+        var documents = layout.GroupOf(next.Workspace.Tabs.Active!.Panel)!;
         var views = layout.GroupOf(DockPanels.Analyzer)!;
         var split = ParentOf(layout.Root, views)!;
 
@@ -168,20 +171,21 @@ public sealed class LayoutPersistenceTests : IDisposable
         Assert.Equal(Direction.Vertical, split.Direction);
         Assert.Same(documents, split.First);
         Assert.Same(views, split.Second);
-        Assert.Single(next.Tabs);
+        Assert.Single(next.Workspace.Tabs);
     }
 
     [Fact]
     public void An_open_search_panel_is_still_open_where_it_was_docked_after_a_restart()
     {
         var d = new WorkspaceDriver(_temp.Settings());
-        var w = d.Workspace;
-        d.Ui.OpenSearch();
-        w.OpenAnalyzer();
-        w.Layout.Dock(DockPanels.Search, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
-        w.SaveSettings();
+        var screen = d.Ui;
+        screen.OpenSearch();
+        screen.OpenAnalyzer();
+        screen.Layout.Dock(DockPanels.Search, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
+        d.NextFrame();
+        d.Workspace.SaveSettings();
 
-        var next = new WorkspaceDriver(_temp.Settings()).Workspace;
+        var next = new WorkspaceDriver(_temp.Settings()).Ui;
 
         Assert.True(next.Layout.Contains(DockPanels.Search));
         Assert.Same(next.Layout.GroupOf(DockPanels.Analyzer), next.Layout.GroupOf(DockPanels.Search));
@@ -191,8 +195,8 @@ public sealed class LayoutPersistenceTests : IDisposable
     public void The_symbols_being_analyzed_are_analyzed_again_after_a_restart()
     {
         var first = WorkspaceDriver.Opened(_temp.Settings());
-        first.Workspace.Analyze(first.Fixture("Outline").Children.Single(c => c.Text.StartsWith("First()")));
-        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Ui.Analyze(first.Fixture("Outline").Children.Single(c => c.Text.StartsWith("First()")));
+        first.Ui.Analyze(first.Fixture("Greeter"));
         first.Pump();
 
         var next = new WorkspaceDriver(_temp.Settings());

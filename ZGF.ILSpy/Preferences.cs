@@ -56,9 +56,9 @@ public static class Preferences
         w.EnsureCurrent();
     }
 
+    /// <summary>Asks the view to decompile again what the tabs it shows show.</summary>
     private static void EnsureCurrent(this Workspace w)
     {
-        foreach (var group in w.Layout.AllGroups())
-            w.Tabs.Find(group.Active)?.EnsureCurrent(w.Language);
+        w.AskView(new ViewAsk.RefreshShownTabs());
     }
 }

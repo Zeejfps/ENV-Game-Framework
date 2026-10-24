@@ -14,6 +14,24 @@ public sealed partial class UiState
     {
         switch (ask)
         {
+            case ViewAsk.ShowTab show:
+                ShowTab(show.Tab, show.Beside);
+                break;
+            case ViewAsk.OpenPanel open:
+                OpenPanel(open.Panel);
+                break;
+            case ViewAsk.RefreshShownTabs:
+                RefreshShownTabs();
+                break;
+            case ViewAsk.RevealNode reveal:
+                Tree.Reveal(reveal.Node);
+                break;
+            case ViewAsk.ExpandNodes expand:
+                Tree.Expand(expand.Nodes);
+                break;
+            case ViewAsk.ShowAnalysis show:
+                ShowAnalysis(show.Root);
+                break;
             case ViewAsk.RestoreView restore:
                 RestoreView(restore.Tab, restore.Position);
                 break;

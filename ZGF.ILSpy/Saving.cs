@@ -40,7 +40,6 @@ public static class Saving
             w.Lists.Revision,
             w.Bookmarks.Revision,
             w.Analyzer.Revision,
-            w.Layout.Changes,
             w.ViewSettingsChanges,
             w.Theme,
             w.Language,
@@ -59,7 +58,6 @@ public static class Saving
         settings.Decompiler = w.DecompilerOptions;
         settings.ShowNonPublic = w.ShowNonPublic;
         settings.Locale = w.Locale;
-        settings.Layout = w.Layout;
         settings.Bookmarks = w.Bookmarks.Save();
     }
 
@@ -93,6 +91,7 @@ public static class Saving
         settings.SearchKinds = view.SearchKinds;
         settings.FlagsFilters = view.FlagsFilters;
         settings.ExportWindow = view.ExportWindow;
+        settings.Layout = view.Layout;
         w.ViewSettingsChanges++;
     }
 

@@ -62,7 +62,6 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
     protected override void OnRender(Ui<UiState> ui, Workspace w)
     {
         ui.State.StartFrame();
-        w.Tree.Sync(w.Assemblies);
         MainView.Render(ui, w);
         ui.State.FinishFrame();
         SaveSettingsIfChanged(ui, w);

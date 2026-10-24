@@ -25,9 +25,9 @@ public sealed class WorkspaceTests
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var greeter = d.Workspace.Tabs[^2];
-        var documents = d.Workspace.Layout;
+        var documents = d.Ui.Layout;
         documents.Dock(d.Workspace.Tabs.Active!.Panel, documents.Root, DockEdge.Right);
-        d.Workspace.Activate(greeter);
+        d.Ui.ActivateTab(greeter);
 
         d.Show(d.Fixture("Outline"), inNewTab: true);
 
@@ -41,10 +41,10 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var greeter = d.Workspace.Tabs.Active!;
-        var documents = d.Workspace.Layout;
+        var documents = d.Ui.Layout;
 
         documents.Dock(greeter.Panel, documents.GroupOf(greeter.Panel)!, DockEdge.Right);
-        d.Workspace.SyncActiveTab();
+        d.Ui.SyncActiveTab();
 
         Assert.Equal(2, d.Workspace.Tabs.Count);
         var empty = d.Workspace.Tabs.Single(t => t != greeter);
@@ -67,10 +67,11 @@ public sealed class WorkspaceTests
         var greeter = d.Workspace.Tabs[^2];
 
         d.Workspace.CloseTab(d.Workspace.Tabs.Active!);
+        d.NextFrame();
 
         Assert.Same(greeter, d.Workspace.Tabs.Active);
         Assert.DoesNotContain(d.Workspace.Tabs, t => t.Node?.Text == "Farewell");
-        Assert.Equal([greeter.Panel], d.Workspace.Layout.GroupOf(greeter.Panel)!.Panels);
+        Assert.Equal([greeter.Panel], d.Ui.Layout.GroupOf(greeter.Panel)!.Panels);
     }
 
     [Fact]
@@ -94,7 +95,7 @@ public sealed class WorkspaceTests
         d.Show(d.Fixture("Greeter"));
         var farewell = d.Fixture("Farewell");
 
-        d.Workspace.Refresh();
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Workspace.Show(farewell);
         d.Settle();
 
@@ -109,8 +110,8 @@ public sealed class WorkspaceTests
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
 
-        d.Workspace.Refresh();
-        d.Workspace.Refresh();
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
         Assert.Equal(["Greeter", "Farewell"], d.Workspace.Tabs.Select(t => t.Node!.Text));
@@ -124,12 +125,12 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         var ns = d.Node(WorkspaceDriver.FixturesNamespace);
-        d.Workspace.Tree.View.SetExpanded(d.Fixture("Greeter"), true);
+        d.Ui.Tree.View.SetExpanded(d.Fixture("Greeter"), true);
 
-        d.Workspace.Refresh();
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
-        var view = d.Workspace.Tree.View;
+        var view = d.Ui.Tree.View;
         Assert.NotSame(ns, d.Node(WorkspaceDriver.FixturesNamespace));
         Assert.True(view.IsExpanded(d.Node()));
         Assert.True(view.IsExpanded(d.Node(WorkspaceDriver.FixturesNamespace)));
@@ -145,7 +146,7 @@ public sealed class WorkspaceTests
         d.Show(before);
         d.Show(d.Fixture("Farewell"));
 
-        d.Workspace.Refresh();
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Settle();
         d.Workspace.GoBack();
         d.Settle();
@@ -155,7 +156,7 @@ public sealed class WorkspaceTests
         Assert.Equal("Greeter", shown.Text);
         Assert.NotSame(before, shown);
         Assert.Same(d.Fixture("Greeter"), shown);
-        Assert.Same(shown, d.Workspace.Tree.View.Selected);
+        Assert.Same(shown, d.Ui.Tree.View.Selected);
     }
 
     [Fact]
@@ -164,7 +165,7 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
-        d.Workspace.Activate(d.Workspace.Tabs[0]);
+        d.Ui.ActivateTab(d.Workspace.Tabs[0]);
         d.Settle();
         var tab = d.Workspace.Tabs.Active!;
         var document = tab.Document;
@@ -192,7 +193,7 @@ public sealed class WorkspaceTests
         d.Workspace.Navigate(reference, inNewTab: false);
         d.Workspace.Show(farewell);
         d.Workspace.Navigate(reference, inNewTab: true);
-        d.Workspace.Activate(d.Workspace.Tabs[0]);
+        d.Ui.ActivateTab(d.Workspace.Tabs[0]);
         d.Settle();
 
         var tab = Assert.Single(d.Workspace.Tabs);
@@ -213,7 +214,7 @@ public sealed class WorkspaceTests
 
         var tab = Assert.Single(d.Workspace.Tabs);
         Assert.Equal("Name : string", tab.Node!.Text);
-        Assert.Same(tab.Node, d.Workspace.Tree.View.Selected);
+        Assert.Same(tab.Node, d.Ui.Tree.View.Selected);
     }
 
     [Fact]
@@ -399,7 +400,7 @@ public sealed class WorkspaceTests
         d.Show(greeter);
         File.Delete(copy);
 
-        d.Workspace.Refresh();
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
         var tab = Assert.Single(d.Workspace.Tabs);

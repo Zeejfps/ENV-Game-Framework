@@ -68,7 +68,7 @@ internal static class ToolbarView
                 {
                     LanguageVersion(ui, w);
                     if (ui.IconButton("decompiler-options", LucideIcons.Wrench, LucideIcons.Family, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
-                        w.OpenDecompilerOptions();
+                        ui.State.OpenDecompilerOptions();
                 }
             }
         }

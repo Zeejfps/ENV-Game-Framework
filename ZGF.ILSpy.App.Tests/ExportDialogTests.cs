@@ -377,7 +377,7 @@ public sealed class ExportDialogTests : IDisposable
         app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Count == 2);
         app.Settle(2);
         var second = app.Workspace.Assemblies.Assemblies[1];
-        var row = app.TextRect(app.Workspace.Tree.Label(second.Root));
+        var row = app.TextRect(app.Ui.Tree.Label(second.Root));
 
         app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
         app.ClickMenuItem("Export…").Frame(2);
@@ -391,7 +391,7 @@ public sealed class ExportDialogTests : IDisposable
     public void The_export_options_live_in_the_dialog_and_not_in_the_decompiler_options()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.Workspace.OpenDecompilerOptions();
+        app.Ui.OpenDecompilerOptions();
         app.Run(2);
         Assert.False(app.Frames.Drew("SDK-style project files"));
 

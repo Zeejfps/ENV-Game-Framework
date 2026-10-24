@@ -24,7 +24,7 @@ public sealed class AppTests
     private static AppDriver ExpandedTree(string until)
     {
         var app = AppDriver.Opened();
-        var view = app.Workspace.Tree.View;
+        var view = app.Ui.Tree.View;
         view.SetExpanded(app.Node(), true);
         view.SetExpanded(app.Node(WorkspaceDriver.FixturesNamespace), true);
         view.Refresh();
@@ -42,7 +42,7 @@ public sealed class AppTests
 
         var tab = Assert.Single(app.Workspace.Tabs);
         Assert.Equal("Greeter", tab.Node!.Text);
-        Assert.True(app.Workspace.Tree.View.IsExpanded(tab.Node));
+        Assert.True(app.Ui.Tree.View.IsExpanded(tab.Node));
     }
 
     [Fact]
@@ -51,13 +51,13 @@ public sealed class AppTests
         var app = AppDriver.Opened();
         app.Run(2);
         var shown = app.Workspace.Tabs.Active!;
-        var label = app.Workspace.Tree.Label(shown.Node!);
+        var label = app.Ui.Tree.Label(shown.Node!);
         var tab = app.Frames.TextRects()
             .Where(t => t.Text == label)
             .Select(t => t.Rect)
             .MaxBy(r => r.X);
         var assemblies = app.TextRect("Assemblies");
-        var layout = app.Workspace.Layout;
+        var layout = app.Ui.Layout;
         var from = new PointF(tab.X + tab.Width / 2, tab.Y + tab.Height / 2);
         var aside = new PointF(from.X - 20f, from.Y + 20f);
         var onto = new PointF(assemblies.Right + 4f, assemblies.Y + assemblies.Height / 2);
@@ -227,7 +227,7 @@ public sealed class AppTests
         var app = AppDriver.Opened(width: 1600f);
         app.Workspace.SetLanguageVersion(CSharpVersion.CSharp7);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
-        app.Workspace.OpenDecompilerOptions();
+        app.Ui.OpenDecompilerOptions();
         app.Run();
 
         app.Click("switch expressions").Frame();
@@ -248,7 +248,7 @@ public sealed class AppTests
     public void The_options_toolbar_collapses_and_expands_every_group()
     {
         var app = AppDriver.Opened(width: 1600f);
-        app.Workspace.OpenDecompilerOptions();
+        app.Ui.OpenDecompilerOptions();
         app.Run();
 
         app.ClickLast(LucideIcons.ChevronsDownUp);
@@ -265,7 +265,7 @@ public sealed class AppTests
     {
         var app = AppDriver.Opened(width: 1600f);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
-        app.Workspace.OpenDecompilerOptions();
+        app.Ui.OpenDecompilerOptions();
         app.Run();
         var csharp8 = DecompilerToggle.All.Where(t => t.IntroducedIn == CSharpVersion.CSharp8).ToArray();
 
@@ -400,7 +400,7 @@ public sealed class AppTests
         app.ClickMenuItem("Scope search to this assembly").Frame(2);
 
         Assert.Equal($"inassembly:{name} ", app.Ui.Search.Query);
-        Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
+        Assert.True(app.Ui.Layout.Contains(DockPanels.Search));
     }
 
     [Fact]
@@ -439,7 +439,7 @@ public sealed class AppTests
         Assert.Equal(["Open assembly"], app.Frames.FilePicker.Titles);
 
         app.Click(LucideIcons.Search).Frame(2);
-        Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
+        Assert.True(app.Ui.Layout.Contains(DockPanels.Search));
         Assert.True(app.Frames.Drew("Search…"));
     }
 

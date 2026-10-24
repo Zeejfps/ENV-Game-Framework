@@ -133,13 +133,12 @@ internal sealed class WorkspaceDriver
         Workspace.SaveSettingsIfChanged(Now);
     }
 
-    /// <summary>Does what a frame does before and after it draws: the screen takes what the features
-    /// asked of it and follows the tabs and the tree, then tells the tabs where their views stand and
+    /// <summary>Does what a frame does before and after it draws: the screen follows the trees and the
+    /// tabs and takes what the features asked of it, then tells the tabs where their views stand and
     /// hands over what the settings keep of it.</summary>
     public void NextFrame()
     {
         Ui.StartFrame();
-        Workspace.Tree.Sync(Workspace.Assemblies);
         Ui.FinishFrame();
     }
 

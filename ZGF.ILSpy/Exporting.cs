@@ -69,7 +69,7 @@ public static class Exporting
     private static async void RunExport<T>(this Workspace w, ExportJob job, string failure, Func<ExportStart, T> work,
         Func<ExportReport, T, ExportReport> complete)
     {
-        w.OpenExports();
+        w.AskView(new ViewAsk.OpenPanel(DockPanels.Exports));
         var start = await w.Export.Enter(job);
         if (start.IsWithdrawn)
             return;

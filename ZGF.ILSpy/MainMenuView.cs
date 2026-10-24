@@ -54,13 +54,15 @@ internal static class MainMenuView
         ui.MenuSeparator();
         ExportItems(ui, w);
         ui.MenuSeparator();
-        var selected = w.Tree.View.HasSelection ? w.Tree.View.Selected!.Assembly : null;
+        var tree = ui.State.Tree;
+        var selected = tree.View.HasSelection ? tree.View.Selected!.Assembly : null;
+        var anyOpen = tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: CloseIcon))
             w.Close(selected!);
-        if (ui.MenuItem(t.FileClearList, enabled: w.Tree.Roots.Count > 0, id: "clear-list", icon: ClearListIcon))
+        if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: ClearListIcon))
             w.ClearList();
-        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: w.Tree.Roots.Count > 0, id: "reload-all", icon: ReloadIcon))
-            w.Refresh();
+        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: ReloadIcon))
+            w.Refresh(tree.ExpandedPaths());
         ui.MenuSeparator();
         if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: ExitIcon))
             ui.Quit();
@@ -72,9 +74,9 @@ internal static class MainMenuView
         var canSave = w.CanSaveCode(w.Tabs.Active?.Node);
         if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickActiveCodeFile(ui, w);
-        if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: w.Tree.Roots.Count > 0, id: "export", icon: SaveDialogs.ExportIcon))
+        var anyOpen = ui.State.Tree.Roots.Count > 0;
+        if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: SaveDialogs.ExportIcon))
             ui.State.OpenExportSetup(w.ActiveAssembly());
-        var anyOpen = w.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, w);
     }
@@ -91,20 +93,22 @@ internal static class MainMenuView
         ui.MenuSeparator();
         ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
         ui.MenuSeparator();
-        if (ui.MenuItem(t.PanelAssemblies, check: w.Layout.Contains(DockPanels.Assemblies), id: "assemblies"))
-            w.OpenAssemblies();
-        if (ui.MenuItem(t.ViewBookmarks, check: w.Layout.Contains(DockPanels.Bookmarks), id: "bookmarks"))
-            w.OpenBookmarks();
-        if (ui.MenuItem(t.PanelAnalyzer, check: w.Layout.Contains(DockPanels.Analyzer), id: "analyzer"))
-            w.OpenAnalyzer();
-        if (ui.MenuItem(t.PanelSearch, Shortcuts.Search, check: w.Layout.Contains(DockPanels.Search), id: "search"))
-            ui.State.OpenSearch();
-        if (ui.MenuItem(t.PanelDecompilerOptions, check: w.Layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
-            w.OpenDecompilerOptions();
-        if (ui.MenuItem(t.PanelExports, check: w.Layout.Contains(DockPanels.Exports), id: "exports"))
-            w.OpenExports();
+        var screen = ui.State;
+        var layout = screen.Layout;
+        if (ui.MenuItem(t.PanelAssemblies, check: layout.Contains(DockPanels.Assemblies), id: "assemblies"))
+            screen.OpenAssemblies();
+        if (ui.MenuItem(t.ViewBookmarks, check: layout.Contains(DockPanels.Bookmarks), id: "bookmarks"))
+            screen.OpenBookmarks();
+        if (ui.MenuItem(t.PanelAnalyzer, check: layout.Contains(DockPanels.Analyzer), id: "analyzer"))
+            screen.OpenAnalyzer();
+        if (ui.MenuItem(t.PanelSearch, Shortcuts.Search, check: layout.Contains(DockPanels.Search), id: "search"))
+            screen.OpenSearch();
+        if (ui.MenuItem(t.PanelDecompilerOptions, check: layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
+            screen.OpenDecompilerOptions();
+        if (ui.MenuItem(t.PanelExports, check: layout.Contains(DockPanels.Exports), id: "exports"))
+            screen.OpenExports();
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
-            w.AskToResetLayout();
+            screen.AskToResetLayout();
         ui.MenuSeparator();
         ThemeMenu(ui, w);
         LanguageMenu(ui, w);

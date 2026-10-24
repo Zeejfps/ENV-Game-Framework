@@ -1,7 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -13,13 +12,13 @@ internal static class AnalyzerPanelView
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var analyzer = w.Analyzer;
+        var rows = ui.State.Analyzer;
         var icons = ui.State.NodeIconPalette;
-        analyzer.SetStyle(ui.Theme, icons, t);
+        rows.SetStyle(ui.Theme, icons, t);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, analyzer);
+        Toolbar(ui, w, rows);
         ui.Separator();
-        if (analyzer.Roots.Count == 0)
+        if (rows.Roots.Count == 0)
         {
             DocumentsView.Hint(ui, t.AnalyzerHint(Shortcuts.Analyze));
             return;
@@ -28,18 +27,19 @@ internal static class AnalyzerPanelView
         ContextMenu(ui, w);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AnalyzerTree analyzer)
+    private static void Toolbar(Ui<UiState> ui, Workspace w, AnalyzerRows rows)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
+        var analyzer = w.Analyzer;
         var any = analyzer.Roots.Count > 0;
-        var root = analyzer.FindSelectedRoot();
+        var root = rows.FindSelectedRoot();
         using (ui.PaneToolbar())
         {
             if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
-                analyzer.CollapseAll();
+                rows.CollapseAll();
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, any))
-                analyzer.ExpandAll();
+                rows.ExpandAll();
             ui.Separator(theme.IconSize);
             if (ui.IconButton("remove", LucideIcons.Trash2, LucideIcons.Family, t.AnalyzerRemoveAnalysis, root != null))
                 analyzer.Remove(root!);
@@ -50,36 +50,36 @@ internal static class AnalyzerPanelView
 
     private static void Tree(Ui<UiState> ui, Workspace w)
     {
-        var analyzer = w.Analyzer;
+        var rows = ui.State.Analyzer;
         var box = new Box { Padding = new Spacing(0f, ui.Theme.GapTight) };
-        var result = ui.TreeView(TreeId, analyzer.Roots, analyzer, analyzer.View, box, toggleOnActivate: false);
+        var result = ui.TreeView(TreeId, rows.Roots, rows, rows.View, box, toggleOnActivate: false);
         if (ui.HasFocus(ui.GetId(TreeId)))
-            HandleKeys(ui, analyzer);
+            HandleKeys(ui, w, rows);
         if (result.Activated)
             GoTo(w, result.Node);
         if (result.ContextMenuRequested && result.Node is AnalyzerSymbolNode)
             ui.OpenContextMenu(MenuId, result.ContextMenuAt);
     }
 
-    private static void HandleKeys(Ui<UiState> ui, AnalyzerTree analyzer)
+    private static void HandleKeys(Ui<UiState> ui, Workspace w, AnalyzerRows rows)
     {
         if (Shortcuts.AnalyzePressed(ui))
-            AnalyzeSelected(analyzer);
+            AnalyzeSelected(rows);
         if (Shortcuts.DeletePressed(ui))
-            RemoveSelectedAnalysis(analyzer);
+            RemoveSelectedAnalysis(w, rows);
     }
 
-    private static void AnalyzeSelected(AnalyzerTree analyzer)
+    private static void AnalyzeSelected(AnalyzerRows rows)
     {
-        if (analyzer.View.Selected is AnalyzerSymbolNode picked)
-            analyzer.Analyze(picked.Symbol);
+        if (rows.View.Selected is AnalyzerSymbolNode picked)
+            rows.Analyze(picked.Symbol);
     }
 
-    private static void RemoveSelectedAnalysis(AnalyzerTree analyzer)
+    private static void RemoveSelectedAnalysis(Workspace w, AnalyzerRows rows)
     {
-        var root = analyzer.FindSelectedRoot();
+        var root = rows.FindSelectedRoot();
         if (root != null)
-            analyzer.Remove(root);
+            w.Analyzer.Remove(root);
     }
 
     private static void GoTo(Workspace w, AnalyzerNode? node)
@@ -95,18 +95,19 @@ internal static class AnalyzerPanelView
     private static void ContextMenu(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
+        var rows = ui.State.Analyzer;
         var analyzer = w.Analyzer;
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
             return;
-        if (analyzer.View.Selected is not AnalyzerSymbolNode node)
+        if (rows.View.Selected is not AnalyzerSymbolNode node)
             return;
         var isRoot = analyzer.Contains(node);
         var target = node.Symbol.Reference;
         if (target != null)
             GoToItems(ui, w, target);
         if (!isRoot && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
-            analyzer.Analyze(node.Symbol);
+            rows.Analyze(node.Symbol);
         ui.MenuSeparator();
         if (isRoot && ui.MenuItem(t.AnalyzerRemove, id: "remove"))
             analyzer.Remove(node);

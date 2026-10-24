@@ -82,16 +82,16 @@ internal static class Shortcuts
                     ui.State.OpenExportSetup(w.ActiveAssembly());
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
-                    w.Refresh();
+                    w.Refresh(ui.State.Tree.ExpandedPaths());
                     break;
                 case (KeyModifiers.Control, KeyboardKey.W):
-                    w.CloseActiveTab();
+                    ui.State.CloseActiveTab();
                     break;
                 case (KeyModifiers.Control, KeyboardKey.Tab):
-                    w.CycleTab(1);
+                    ui.State.CycleTab(1);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.Tab):
-                    w.CycleTab(-1);
+                    ui.State.CycleTab(-1);
                     break;
             }
         }

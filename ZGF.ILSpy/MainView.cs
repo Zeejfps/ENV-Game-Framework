@@ -35,44 +35,44 @@ public static class MainView
     {
         var t = ui.State.Strings;
         UpdateSearch(ui, w);
-        if (IsLayoutEmpty(w))
+        if (IsLayoutEmpty(ui.State))
         {
             DocumentsView.Hint(ui, t.ViewEmptyHint);
             return;
         }
         DockSpace(ui, w);
-        w.SyncActiveTab();
+        ui.State.SyncActiveTab();
         RemoveReleasedImages(ui);
     }
 
     private static void UpdateSearch(Ui<UiState> ui, Workspace w)
     {
-        var shown = w.Layout.Contains(DockPanels.Search);
+        var shown = ui.State.Layout.Contains(DockPanels.Search);
         var wait = ui.State.Search.Update(w.Assemblies, ui.RealTime, shown);
         if (wait > 0)
             ui.RequestFrameIn(wait);
     }
 
-    private static bool IsLayoutEmpty(Workspace w)
+    private static bool IsLayoutEmpty(UiState screen)
     {
-        return !w.Layout.HasPanels();
+        return !screen.Layout.HasPanels();
     }
 
     private static void DockSpace(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        using var dock = ui.DockSpace("dock", w.Layout, (w, t), static (s, panel) => Tab(s.w, s.t, panel));
+        using var dock = ui.DockSpace("dock", ui.State.Layout, (ui.State, w, t), static (s, panel) => Tab(s.State, s.w, s.t, panel));
         while (dock.Next(out var panel))
             Panel(ui, w, panel);
     }
 
-    private static DockTab Tab(Workspace w, Strings t, string panel)
+    private static DockTab Tab(UiState screen, Workspace w, Strings t, string panel)
     {
         if (DockPanels.IsView(panel))
             return DockPanels.Tab(t, panel);
         var tab = w.Tabs.Find(panel);
         if (tab != null)
-            return DocumentsView.Tab(w, tab);
+            return DocumentsView.Tab(screen, w, tab);
         return new DockTab(panel);
     }
 

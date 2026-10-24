@@ -249,15 +249,16 @@ public sealed class DockPanelsTests
     public void A_rearranged_layout_is_saved_and_restored_with_the_settings()
     {
         using var temp = new TempDir();
-        var workspace = new Workspace(temp.Settings());
-        var layout = workspace.Layout;
+        var d = new WorkspaceDriver(temp.Settings());
+        var layout = d.Ui.Layout;
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 50f, 300f, 400f));
-        workspace.SaveSettings();
+        d.NextFrame();
+        d.Workspace.SaveSettings();
 
-        var next = new Workspace(temp.Settings());
-        var restored = next.Layout;
+        var next = new WorkspaceDriver(temp.Settings());
+        var restored = next.Ui.Layout;
 
-        Assert.Same(next.Tabs.Active, next.Tabs.Find(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
+        Assert.Same(next.Workspace.Tabs.Active, next.Workspace.Tabs.Find(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
         var window = Assert.Single(restored.Windows);
         Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
         Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
@@ -286,11 +287,11 @@ public sealed class DockPanelsTests
         d.Ui.OpenSearch();
         d.Ui.Search.Query = "Greeter";
 
-        var search = workspace.Layout.GroupOf(DockPanels.Search);
+        var search = d.Ui.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
-        Assert.NotSame(search, workspace.Layout.GroupOf(workspace.Tabs.Active!.Panel));
+        Assert.NotSame(search, d.Ui.Layout.GroupOf(workspace.Tabs.Active!.Panel));
 
-        workspace.Layout.Close(DockPanels.Search);
+        d.Ui.Layout.Close(DockPanels.Search);
 
         Assert.Equal("", d.Ui.Search.Query);
     }
@@ -317,7 +318,7 @@ public sealed class DockPanelsTests
         driver.Ui.ScopeSearch(driver.Node(WorkspaceDriver.FixturesNamespace));
 
         Assert.Equal($"innamespace:{WorkspaceDriver.FixturesNamespace} inassembly:Old Greet ", driver.Ui.Search.Query);
-        Assert.True(driver.Workspace.Layout.Contains(DockPanels.Search));
+        Assert.True(driver.Ui.Layout.Contains(DockPanels.Search));
     }
 }
 

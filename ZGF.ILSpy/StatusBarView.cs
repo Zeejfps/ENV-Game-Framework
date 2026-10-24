@@ -44,7 +44,7 @@ internal static class StatusBarView
                 }
                 ui.Text(w.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
                 Dot(ui);
-                ui.Text(ui.Memo("status-count", (w.Tree.Roots.Count, t), static a => a.t.StatusAssemblies(a.Count)), color: theme.TextMuted, size: size);
+                ui.Text(ui.Memo("status-count", (ui.State.Tree.Roots.Count, t), static a => a.t.StatusAssemblies(a.Count)), color: theme.TextMuted, size: size);
             }
         }
     }

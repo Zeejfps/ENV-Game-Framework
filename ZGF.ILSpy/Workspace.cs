@@ -1,4 +1,3 @@
-using ZGF.Gui.Immediate.Widgets;
 using System.Globalization;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
@@ -6,10 +5,12 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>
-/// The app's state. What the user can do to it are extension methods grouped by feature, such as
-/// <see cref="Navigation"/> and <see cref="Bookmarking"/>. Lives on the UI thread: background work
-/// (opening, decompiling, resolving, searching) is awaited there through <see cref="Background"/>.
-/// A result is dropped when the user asked for something else in the meantime.
+/// The app's data, and which tab, list and history entry are current. What the user can do to it are
+/// extension methods grouped by feature, such as <see cref="Navigation"/> and <see cref="Bookmarking"/>.
+/// It never sees the screen; a feature that needs the view to act later asks
+/// it through <see cref="ViewAsks"/>. Lives on the UI thread: background work (opening, decompiling,
+/// resolving, searching) is awaited there through <see cref="Background"/>. A result is dropped when
+/// the user asked for something else in the meantime.
 /// </summary>
 public sealed class Workspace
 {
@@ -19,7 +20,6 @@ public sealed class Workspace
     /// <summary>The named assembly lists, one of which <see cref="Assemblies"/> holds open.</summary>
     public SavedAssemblyLists Lists { get; } = new();
 
-    public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
     public UserIntent Intent { get; } = new();
     public Reload Reload { get; } = new();
@@ -45,12 +45,6 @@ public sealed class Workspace
     /// <summary>The interface language.</summary>
     public Locale Locale;
 
-    /// <summary>Where the views and the open documents are docked, all as tabs: side by side,
-    /// stacked or in floating windows.</summary>
-    public MainLayout MainLayout { get; }
-
-    public DockLayout Layout => MainLayout.Dock;
-
     public DecompilationLanguage Language { get; set; }
 
     /// <summary>How C# is decompiled.</summary>
@@ -62,9 +56,6 @@ public sealed class Workspace
 
     /// <summary>Counts each time the screen hands over a change to what the settings keep of it.</summary>
     public int ViewSettingsChanges;
-
-    /// <summary>The node the tree's context menu was opened on.</summary>
-    public BrowseNode? MenuTarget { get; set; }
 
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
     public bool IsResolving => Intent.IsResolving;
@@ -91,9 +82,6 @@ public sealed class Workspace
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
 
-    /// <summary>Set while the user is asked whether to reset the layout.</summary>
-    public bool ConfirmingLayoutReset { get; set; }
-
     public Workspace(AppSettings settings)
     {
         Settings = settings;
@@ -105,17 +93,10 @@ public sealed class Workspace
         ShowNonPublic = settings.ShowNonPublic;
         var first = AddTab();
         Tabs.MakeActive(first);
-        var dock = DockPanels.Restore(settings.Layout, first.Panel, out var placed);
-        MainLayout = new MainLayout(dock);
-        Layout.NewPanel = () => AddTab().Panel;
-        Layout.PanelClosed += this.OnPanelClosed;
-        Tree = new BrowseTree();
-        Analyzer = new AnalyzerTree(Assemblies);
+        Analyzer = new AnalyzerTree();
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
-        if (!placed)
-            MainLayout.DockDocument(first.Panel, first.Panel);
         LastSave.Record(this.CaptureSavedSources());
         ReportSettingsLoadError(settings);
         this.ReportLeftOutBookmarks(leftOutBookmarks);
@@ -137,7 +118,11 @@ public sealed class Workspace
 
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
 
-    internal bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
+    /// <summary>Asks the view to do <paramref name="ask"/> before it draws next.</summary>
+    public void AskView(ViewAsk ask) => ViewAsks.Enqueue(ask);
+
+    /// <summary>True when <paramref name="node"/>'s assembly is open in the active list.</summary>
+    public bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
 
     /// <summary>True when the assembly at <paramref name="filePath"/> is open in the active list.</summary>
     internal bool IsListed(string filePath)

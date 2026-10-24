@@ -9,8 +9,8 @@ public sealed partial class UiState
     /// <summary>How <paramref name="tab"/>, an open tab, is shown.</summary>
     public TabView ViewOf(DocumentTab tab) => _tabViews[tab];
 
-    /// <summary>Drops the view of each tab closed, keeping its image to free, makes a view for each
-    /// tab opened, and lets each view follow the grid or picture its tab shows.</summary>
+    /// <summary>Drops the view of each tab closed, keeping its image to free, and closes its panel;
+    /// makes a view for each tab opened; and lets each view follow the grid or picture its tab shows.</summary>
     private void SyncTabViews()
     {
         DropClosedTabViews();
@@ -27,13 +27,16 @@ public sealed partial class UiState
                 _closedTabs.Add(tab);
         }
         foreach (var tab in _closedTabs)
+        {
             DropTabView(tab);
+            ClosePanel(tab.Panel);
+        }
     }
 
     private void DropTabView(DocumentTab tab)
     {
-        var view = _tabViews[tab];
-        _tabViews.Remove(tab);
+        if (!_tabViews.Remove(tab, out var view))
+            return;
         _releasedImages.Add(view.ImageId);
     }
 

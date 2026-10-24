@@ -117,11 +117,11 @@ public sealed class AutosaveTests : IDisposable
     public void An_analysis_made_while_saved_ones_are_restoring_is_saved()
     {
         var first = WorkspaceDriver.Opened(_temp.Settings());
-        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Ui.Analyze(first.Fixture("Greeter"));
         first.Pump();
         var next = new WorkspaceDriver(_temp.Settings());
 
-        next.Workspace.Analyze(first.Fixture("Outline"));
+        next.Ui.Analyze(first.Fixture("Outline"));
         next.Settle();
         next.Pump();
 
@@ -138,7 +138,7 @@ public sealed class AutosaveTests : IDisposable
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
-        d.Workspace.Analyze(reference);
+        d.Ui.Analyze(reference);
         d.Workspace.SaveSettingsIfChanged(d.Now);
         var savedWhileFinding = _temp.Settings().AssemblyLists.Single().Analyzed?.Count ?? 0;
         d.Settle();
@@ -152,7 +152,7 @@ public sealed class AutosaveTests : IDisposable
     public void A_saved_analysis_that_is_not_found_again_leaves_the_settings_with_the_next_save()
     {
         var first = WorkspaceDriver.Opened(_temp.Settings());
-        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Ui.Analyze(first.Fixture("Greeter"));
         first.Pump();
         var settings = _temp.Settings();
         var list = settings.AssemblyLists.Single();
@@ -242,7 +242,7 @@ public sealed class AutosaveTests : IDisposable
     {
         var app = new AppDriver(settings: _temp.Settings());
         app.Run(2);
-        var root = (DockSplit)app.Workspace.Layout.Root;
+        var root = (DockSplit)app.Ui.Layout.Root;
         var before = root.Ratio;
         var divider = FindDivider(app, root);
 

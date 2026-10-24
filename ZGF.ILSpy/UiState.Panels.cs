@@ -8,7 +8,7 @@ public sealed partial class UiState
     /// and puts the caret in its search box.</summary>
     public void OpenSearch()
     {
-        _workspace.MainLayout.OpenSearch(_workspace.Tabs.ActivePanel);
+        MainLayout.OpenSearch(_workspace.Tabs.ActivePanel);
         IsSearchFocusPending = true;
     }
 
@@ -42,13 +42,5 @@ public sealed partial class UiState
         if (ErrorDialog.IsOpen)
             return true;
         return ExportSetup.IsOpen;
-    }
-
-    /// <summary>Called when a panel is closed: clears the search with its panel.</summary>
-    private void OnPanelClosed(string panel)
-    {
-        if (panel != DockPanels.Search)
-            return;
-        Search.Clear();
     }
 }

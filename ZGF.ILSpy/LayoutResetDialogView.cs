@@ -10,7 +10,8 @@ internal static class LayoutResetDialogView
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var open = w.ConfirmingLayoutReset;
+        var screen = ui.State;
+        var open = screen.ConfirmingLayoutReset;
         using (var dialog = ui.Dialog("layout-reset", t.ViewResetLayout, ref open, closeButton: false))
         {
             if (dialog.IsOpen)
@@ -19,13 +20,13 @@ internal static class LayoutResetDialogView
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.ViewResetLayoutCancel, id: "reset-cancel", variant: ButtonVariant.Ghost))
-                        w.FinishLayoutReset(false);
+                        screen.FinishLayoutReset(false);
                     if (ui.Button(t.ViewResetLayoutConfirm, id: "reset-confirm", variant: ButtonVariant.Primary))
-                        w.FinishLayoutReset(true);
+                        screen.FinishLayoutReset(true);
                 }
             }
         }
-        if (!open && w.ConfirmingLayoutReset)
-            w.FinishLayoutReset(false);
+        if (!open && screen.ConfirmingLayoutReset)
+            screen.FinishLayoutReset(false);
     }
 }

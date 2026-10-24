@@ -135,7 +135,7 @@ public sealed class AssemblyListingTests
     {
         using var temp = new TempDir();
         var first = WorkspaceDriver.Opened(temp.Settings());
-        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Ui.Analyze(first.Fixture("Greeter"));
         first.Workspace.SaveSettings();
         var d = new WorkspaceDriver(temp.Settings());
         d.Workspace.Lists.Create(Other);
@@ -154,7 +154,7 @@ public sealed class AssemblyListingTests
     public void Switching_back_to_a_list_analyzes_again_what_was_analyzed_in_it()
     {
         var d = WorkspaceDriver.Opened();
-        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.Ui.Analyze(d.Fixture("Greeter"));
         d.Workspace.Lists.Create(Other);
 
         d.Workspace.SwitchList(Other);
@@ -171,7 +171,7 @@ public sealed class AssemblyListingTests
     public void A_duplicated_list_has_the_analyses_of_the_one_it_copies()
     {
         var d = WorkspaceDriver.Opened();
-        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.Ui.Analyze(d.Fixture("Greeter"));
         d.Workspace.DuplicateList(SavedAssemblyLists.DefaultName);
         var copy = d.Ui.ListsDialog.Renaming!;
 
@@ -215,7 +215,7 @@ public sealed class AssemblyListingTests
 
         var empty = Assert.Single(d.Workspace.Tabs);
         Assert.Same(empty, d.Workspace.Tabs.Active);
-        Assert.True(d.Workspace.Layout.Contains(empty.Panel));
+        Assert.True(d.Ui.Layout.Contains(empty.Panel));
         Assert.Null(empty.Location);
     }
 
@@ -288,7 +288,7 @@ public sealed class AssemblyListingTests
         d.Settle();
 
         d.Workspace.SwitchList(SavedAssemblyLists.DefaultName);
-        d.Workspace.Refresh();
+        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
         Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
@@ -298,7 +298,7 @@ public sealed class AssemblyListingTests
     public void Expanding_the_tree_expands_the_assemblies_and_their_namespaces()
     {
         var d = WorkspaceDriver.Opened();
-        var tree = d.Workspace.Tree;
+        var tree = d.Ui.Tree;
         var root = tree.Roots[0];
         tree.CollapseAll();
 
@@ -314,14 +314,14 @@ public sealed class AssemblyListingTests
     public void The_assemblies_panels_remove_button_closes_the_selected_assembly_only()
     {
         var app = AppDriver.Opened();
-        var root = app.Workspace.Tree.Roots[0];
-        app.Workspace.Tree.View.Select(app.Node(WorkspaceDriver.FixturesNamespace));
+        var root = app.Ui.Tree.Roots[0];
+        app.Ui.Tree.View.Select(app.Node(WorkspaceDriver.FixturesNamespace));
         app.Run(2);
 
         app.Click(LucideIcons.Trash2);
         Assert.Single(app.Workspace.Assemblies.Assemblies);
 
-        app.Workspace.Tree.View.Select(root);
+        app.Ui.Tree.View.Select(root);
         app.Run(2);
         app.Click(LucideIcons.Trash2);
 

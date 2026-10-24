@@ -7,25 +7,23 @@ namespace ZGF.ILSpy;
 /// <summary>Analyzing types and members, and analyzing again what was analyzed in the last run.</summary>
 public static class Analyzing
 {
-    /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer, which is
-    /// opened if it is not.</summary>
-    public static void Analyze(this Workspace w, BrowseNode node)
+    /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer. Returns
+    /// the root analyzing it, or null when it cannot be analyzed.</summary>
+    public static AnalyzerSymbolNode? Analyze(this Workspace w, BrowseNode node)
     {
         var symbol = Analysis.Of(node);
         if (symbol == null)
-            return;
-        w.OpenAnalyzer();
-        w.Analyzer.Analyze(symbol);
+            return null;
+        return w.Analyzer.Analyze(symbol);
     }
 
-    /// <summary>Adds a root that shows as loading, in the analyzer, which is opened if it is not, while
-    /// what <paramref name="reference"/> points at is found in the background, opening its assembly if
-    /// it is not, and turns the root into its analysis. The root goes when the reference does not
+    /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>
+    /// points at is found in the background, opening its assembly if it is not, and turns the root into
+    /// its analysis, which the view is asked to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
     public static async void Analyze(this Workspace w, CodeReference reference)
     {
-        w.OpenAnalyzer();
         var root = w.Analyzer.AddPending(savedAs: null);
         var found = await Background.Run(() => w.Assemblies.FindNode(reference));
         if (!w.Analyzer.Contains(root))
@@ -48,7 +46,17 @@ public static class Analyzing
             w.Analyzer.Remove(root);
             return;
         }
-        w.Analyzer.Resolve(root, symbol);
+        w.ResolveAnalysis(root, symbol);
+    }
+
+    /// <summary>Turns <paramref name="root"/> into the analysis of <paramref name="symbol"/>, and asks
+    /// the view to show the root that analyzes it.</summary>
+    private static void ResolveAnalysis(this Workspace w, AnalyzerPendingNode root, AnalysisSymbol symbol)
+    {
+        var shown = w.Analyzer.Resolve(root, symbol);
+        if (shown == null)
+            return;
+        w.AskView(new ViewAsk.ShowAnalysis(shown));
     }
 
     /// <summary>Finds the symbols of the roots restored from the saved analyses in the background,
@@ -106,6 +114,6 @@ public static class Analyzing
             w.Analyzer.Remove(root);
             return;
         }
-        w.Analyzer.Resolve(root, symbol);
+        w.ResolveAnalysis(root, symbol);
     }
 }

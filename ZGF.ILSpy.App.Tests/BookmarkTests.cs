@@ -205,7 +205,7 @@ public sealed class BookmarkTests : IDisposable
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
         d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.OpenBookmarks();
+        d.Ui.OpenBookmarks();
         app.Run(frames);
         return (app, d, tab, line);
     }
@@ -255,7 +255,7 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
         d.Workspace.ToggleBookmark(tab, tab.Document.Find("needle").Line);
         d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.OpenBookmarks();
+        d.Ui.OpenBookmarks();
         app.Run(3);
         var bookmarks = d.Workspace.Bookmarks;
         var panel = app.Ui.BookmarksPanel;
@@ -278,7 +278,7 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
         d.Workspace.ToggleBookmark(tab, tab.Document.Find("needle").Line);
         d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.OpenBookmarks();
+        d.Ui.OpenBookmarks();
         app.Run(3);
         var bookmarks = d.Workspace.Bookmarks;
         var panel = app.Ui.BookmarksPanel;

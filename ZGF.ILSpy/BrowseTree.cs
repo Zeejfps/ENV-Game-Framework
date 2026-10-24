@@ -151,6 +151,13 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.CollapseAll();
     }
 
+    /// <summary>Collapses everything and selects nothing, as when the nodes it showed are gone.</summary>
+    public void Forget()
+    {
+        View.ClearSelection();
+        CollapseAll();
+    }
+
     public bool HasChildren(BrowseNode node) => node.HasChildren;
 
     public IReadOnlyList<BrowseNode> GetChildren(BrowseNode node)

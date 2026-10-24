@@ -27,11 +27,12 @@ public sealed class ExportsPanelTests : IDisposable
     public void Starting_an_export_brings_the_exports_panel_to_the_front()
     {
         var d = WorkspaceDriver.Opened();
-        d.Workspace.OpenBookmarks();
+        d.Ui.OpenBookmarks();
 
         d.Workspace.SaveCode(d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        d.NextFrame();
 
-        var layout = d.Workspace.Layout;
+        var layout = d.Ui.Layout;
         Assert.True(layout.Contains(DockPanels.Exports));
         Assert.Equal(DockPanels.Exports, layout.GroupOf(DockPanels.Exports)!.Active);
         d.Settle();
@@ -124,7 +125,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void A_cancelled_export_says_it_is_cancelling_until_it_stops()
     {
         var app = AppDriver.Opened();
-        app.Workspace.OpenExports();
+        app.Ui.OpenExports();
         var start = app.Workspace.Export.Enter(TestJobs.Named("Fixtures")).Result;
         app.Run(2);
 
@@ -184,7 +185,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void The_running_export_shows_its_assembly_and_percentage()
     {
         var app = AppDriver.Opened();
-        app.Workspace.OpenExports();
+        app.Ui.OpenExports();
         var start = app.Workspace.Export.Enter(TestJobs.Named("Both")).Result;
         start.Progress.Report(new ExportProgress("Fixtures", 2, 4, 0.5f));
         app.Run(2);
@@ -223,11 +224,11 @@ public sealed class ExportsPanelTests : IDisposable
         var app = AppDriver.Opened();
         var start = app.Workspace.Export.Enter(TestJobs.Named("Fixtures")).Result;
         app.Run(2);
-        Assert.False(app.Workspace.Layout.Contains(DockPanels.Exports));
+        Assert.False(app.Ui.Layout.Contains(DockPanels.Exports));
 
         app.Frames.Click(app.StatusText("Exporting Fixtures…")).Frame(2);
 
-        Assert.True(app.Workspace.Layout.Contains(DockPanels.Exports));
+        Assert.True(app.Ui.Layout.Contains(DockPanels.Exports));
         app.Workspace.Export.Leave(start);
     }
 

@@ -50,7 +50,7 @@ internal static class DocumentsView
         if (result.ToggleBookmark is { } line)
             ToggleBookmark(ui, w, tab, line);
         if (result.Analyze is { } analyzed)
-            w.Analyze(analyzed);
+            ui.State.Analyze(analyzed);
     }
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
@@ -68,8 +68,8 @@ internal static class DocumentsView
         return tab.Location == null;
     }
 
-    public static DockTab Tab(Workspace w, DocumentTab tab) =>
-        new(tab.Node is { } node ? w.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);
+    public static DockTab Tab(UiState screen, Workspace w, DocumentTab tab) =>
+        new(tab.Node is { } node ? screen.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);
 
     /// <summary>Muted <paramref name="text"/> centered in a pane or area with nothing to show yet.</summary>
     public static void Hint(Ui<UiState> ui, string text)

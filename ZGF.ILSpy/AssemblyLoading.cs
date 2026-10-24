@@ -56,22 +56,19 @@ public static class AssemblyLoading
     internal static void ClearAssemblies(this Workspace w)
     {
         w.Assemblies.Clear();
-        w.Tree.View.ClearSelection();
-        w.Tree.CollapseAll();
         w.Analyzer.Clear();
-        w.MenuTarget = null;
     }
 
-    /// <summary>Reloads every assembly of the open list from disk in the background, then expands the
-    /// tree as it was and shows each tab's place again, decompiled from the fresh files.</summary>
-    public static async void Refresh(this Workspace w)
+    /// <summary>Reloads every assembly of the open list from disk in the background, then asks the view
+    /// to expand the tree at <paramref name="expanded"/>, the paths of the nodes it had expanded, and
+    /// shows each tab's place again, decompiled from the fresh files.</summary>
+    public static async void Refresh(this Workspace w, List<NodePath> expanded)
     {
         w.RememberOpenAssemblies();
         var intent = w.Intent.Begin();
         var ticket = w.Reload.Start();
 
         var paths = w.Lists.ActivePaths.ToList();
-        var expanded = w.Tree.ExpandedPaths();
         var tabs = w.ReleaseShownTabs();
         var places = tabs.ConvertAll(t => t.Location);
         w.ClearAssemblies();
@@ -149,7 +146,7 @@ public static class AssemblyLoading
             return;
         }
         w.ReportAll(reloaded.Errors);
-        w.Tree.Expand(reloaded.Expanded);
+        w.AskView(new ViewAsk.ExpandNodes(reloaded.Expanded));
         for (var i = 0; i < tabs.Count; i++)
             w.ReshowTab(tabs[i], reloaded.Places[i], intent);
         w.SaveSettings();
@@ -169,7 +166,7 @@ public static class AssemblyLoading
         }
         tab.Show(node, w.Language, reloading.Position);
         if (tab == w.Tabs.Active && w.Intent.IsCurrent(intent))
-            w.Tree.Reveal(node);
+            w.AskView(new ViewAsk.RevealNode(node));
     }
 
     private static void ReleaseGoneTab(this Workspace w, DocumentTab tab, NodePath location)

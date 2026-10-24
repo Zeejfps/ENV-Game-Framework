@@ -25,7 +25,7 @@ internal static class ExportStatusView
     {
         var t = ui.State.Strings;
         if (Glance(ui, w, progress))
-            w.OpenExports();
+            ui.State.OpenExports();
         if (!w.Export.IsCancelling && IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
             w.Export.Cancel();
     }

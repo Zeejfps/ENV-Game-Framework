@@ -1,5 +1,3 @@
-using ZGF.Gui.Immediate;
-using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
@@ -152,31 +150,21 @@ public sealed class AnalyzerPendingNode(CodeAnchor? savedAs) : AnalyzerNode
 
 /// <summary>
 /// The analyzer's tree: the symbols the user asked to analyze, newest last, each standing as a
-/// <see cref="AnalyzerPendingNode"/> until it is found, and the model the tree view reads. Results
-/// stream in from the background and keep the order the analysis finds them in, or ILSpy's sorting
-/// when it asks for one.
+/// <see cref="AnalyzerPendingNode"/> until it is found, with the analyses under them. Results stream
+/// in from the background and keep the order the analysis finds them in, or ILSpy's sorting when it
+/// asks for one.
 /// </summary>
-public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
+public sealed class AnalyzerTree
 {
-    private readonly AssemblyList _assemblies;
     private readonly List<AnalyzerNode> _roots = new();
-    private readonly AnalyzerMessageNode _loading = new();
-    private UiTheme _theme = UiTheme.Dark;
-    private NodeIconPalette _icons = NodeIconPalette.Dark;
-    private Strings _strings = Strings.For(Locale.En);
-
-    /// <param name="assemblies">The open assemblies analyses run over.</param>
-    public AnalyzerTree(AssemblyList assemblies)
-    {
-        _assemblies = assemblies;
-    }
-
-    public TreeViewState<AnalyzerNode> View { get; } = new(ReferenceEqualityComparer.Instance);
 
     public IReadOnlyList<AnalyzerNode> Roots => _roots;
 
     /// <summary>Changes whenever what <see cref="ListSavedAnalyses"/> lists changes.</summary>
     public int Revision { get; private set; }
+
+    /// <summary>Changes whenever a root is added, replaced or removed.</summary>
+    public int Changes { get; private set; }
 
     /// <summary>True while a root waits for its symbol to be found.</summary>
     public bool IsFinding
@@ -192,25 +180,18 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         }
     }
 
-    public void SetStyle(UiTheme theme, NodeIconPalette icons, Strings strings)
+    /// <summary>Adds <paramref name="symbol"/> as a root, unless a root analyzes it already, and
+    /// returns the root that does.</summary>
+    public AnalyzerSymbolNode Analyze(AnalysisSymbol symbol)
     {
-        _theme = theme;
-        _icons = icons;
-        _strings = strings;
-    }
-
-    /// <summary>Adds <paramref name="symbol"/> as a root, expanded and selected, or selects the root
-    /// already analyzing it.</summary>
-    public void Analyze(AnalysisSymbol symbol)
-    {
-        var root = FindRoot(symbol);
-        if (root == null)
-        {
-            root = new AnalyzerSymbolNode(symbol);
-            _roots.Add(root);
-            Revision++;
-        }
-        Show(root);
+        var existing = FindRoot(symbol);
+        if (existing != null)
+            return existing;
+        var root = new AnalyzerSymbolNode(symbol);
+        _roots.Add(root);
+        Revision++;
+        Changes++;
+        return root;
     }
 
     private AnalyzerSymbolNode? FindRoot(AnalysisSymbol symbol)
@@ -233,7 +214,7 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         _roots.Add(root);
         if (savedAs != null)
             Revision++;
-        View.Refresh();
+        Changes++;
         return root;
     }
 
@@ -254,32 +235,25 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
     }
 
     /// <summary>Turns the waiting <paramref name="pending"/> into the analysis of <paramref name="symbol"/>,
-    /// expanded and selected, in its place; when another root analyzes it already, that one is selected
-    /// and <paramref name="pending"/> goes. Does nothing once <paramref name="pending"/> was removed.</summary>
-    public void Resolve(AnalyzerPendingNode pending, AnalysisSymbol symbol)
+    /// in its place; when another root analyzes it already, <paramref name="pending"/> goes. Returns
+    /// the root that analyzes <paramref name="symbol"/>, or null once <paramref name="pending"/> was removed.</summary>
+    public AnalyzerSymbolNode? Resolve(AnalyzerPendingNode pending, AnalysisSymbol symbol)
     {
         var index = _roots.IndexOf(pending);
         if (index < 0)
-            return;
+            return null;
         var existing = FindRoot(symbol);
         if (existing != null)
         {
             Remove(pending);
-            Show(existing);
-            return;
+            return existing;
         }
         var root = new AnalyzerSymbolNode(symbol);
         _roots[index] = root;
         if (symbol.Definition != pending.SavedAs)
             Revision++;
-        Show(root);
-    }
-
-    private void Show(AnalyzerSymbolNode root)
-    {
-        View.SetExpanded(root, true);
-        View.Refresh();
-        View.Select(root);
+        Changes++;
+        return root;
     }
 
     public bool Contains(AnalyzerNode root) => _roots.Contains(root);
@@ -289,9 +263,8 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         if (!_roots.Remove(root)) return;
         if (SavedAnalysisOf(root) != null)
             Revision++;
+        Changes++;
         root.Cancel();
-        View.ClearSelection();
-        View.Refresh();
     }
 
     /// <summary>The analyses the roots save as, in their order.</summary>
@@ -314,118 +287,13 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
         _ => null,
     };
 
-    /// <summary>The root the selection sits under, or null when nothing showing is selected.</summary>
-    public AnalyzerNode? FindSelectedRoot()
-    {
-        if (!View.TryGetSelectedRoot(out var root))
-            return null;
-        return root;
-    }
-
-    /// <summary>Expands every root found and each analysis of it, running those not run yet.</summary>
-    public void ExpandAll()
-    {
-        foreach (var root in _roots)
-        {
-            if (root is AnalyzerSymbolNode symbol)
-                ExpandWithAnalyses(symbol);
-        }
-    }
-
-    private void ExpandWithAnalyses(AnalyzerSymbolNode symbol)
-    {
-        View.SetExpanded(symbol, true);
-        foreach (var child in symbol.Children)
-        {
-            if (child is AnalyzerSymbolNode accessor)
-                ExpandWithAnalyses(accessor);
-            else
-                View.SetExpanded(child, true);
-        }
-    }
-
-    public void CollapseAll() => View.CollapseAll();
-
     public void Clear()
     {
         foreach (var root in _roots)
             root.Cancel();
         _roots.Clear();
         Revision++;
-        View.ClearSelection();
-        View.Refresh();
-    }
-
-    public bool HasChildren(AnalyzerNode node) => node switch
-    {
-        AnalyzerSymbolNode symbol => symbol.Children.Count > 0,
-        AnalyzerKindNode kind => !kind.IsDone || kind.Found.Count > 0,
-        _ => false,
-    };
-
-    public IReadOnlyList<AnalyzerNode> GetChildren(AnalyzerNode node)
-    {
-        switch (node)
-        {
-            case AnalyzerSymbolNode symbol:
-                return symbol.Children;
-            case AnalyzerKindNode kind:
-                kind.StartOnce(_assemblies, View.Refresh);
-                return ListResults(kind);
-            default:
-                return [];
-        }
-    }
-
-    private IReadOnlyList<AnalyzerNode> ListResults(AnalyzerKindNode kind)
-    {
-        if (kind.IsDone)
-            return kind.Found;
-        var results = new List<AnalyzerNode>(kind.Found);
-        results.Add(_loading);
-        return results;
-    }
-
-    public TreeRow Row(AnalyzerNode node) => node switch
-    {
-        AnalyzerSymbolNode symbol => SymbolRow(symbol.Symbol),
-        AnalyzerKindNode kind => KindRow(kind),
-        AnalyzerMessageNode message => MessageRow(message),
-        _ => LoadingRow(),
-    };
-
-    private TreeRow SymbolRow(AnalysisSymbol symbol)
-    {
-        var icon = NodeIcons.Icon(symbol.Kind, symbol.Accessibility, _icons);
-        return new TreeRow(symbol.Label, icon, Tooltip: symbol.Location, Secondary: symbol.Location);
-    }
-
-    private TreeRow KindRow(AnalyzerKindNode kind)
-    {
-        var icon = new UiIcon(LucideIcons.Search, LucideIcons.Family, _theme.TextMuted);
-        return new TreeRow(KindLabel(kind), icon);
-    }
-
-    private string KindLabel(AnalyzerKindNode kind)
-    {
-        var header = AnalyzerText.Header(_strings, kind.Kind);
-        if (!kind.IsDone)
-            return header;
-        return $"{header} ({kind.Found.Count})";
-    }
-
-    private TreeRow MessageRow(AnalyzerMessageNode message)
-    {
-        if (message.Error == null)
-            return LoadingRow();
-        var icon = new UiIcon(LucideIcons.AlertCircle, LucideIcons.Family, _theme.Danger);
-        return new TreeRow(message.Error, icon, _theme.Danger);
-    }
-
-    private TreeRow LoadingRow()
-    {
-        var icon = new UiIcon(LucideIcons.Loader2, LucideIcons.Family, _theme.TextMuted);
-        return new TreeRow(_strings.AnalyzerLoading, icon, _theme.TextMuted);
+        Changes++;
     }
 }
 

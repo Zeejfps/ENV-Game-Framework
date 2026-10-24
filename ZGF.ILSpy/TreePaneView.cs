@@ -15,14 +15,14 @@ internal static class TreePaneView
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var theme = ui.Theme;
-        w.Tree.SetStyle(theme, ui.State.NodeIconPalette);
-        w.Tree.SetShowNonPublic(w.ShowNonPublic);
+        var tree = ui.State.Tree;
+        tree.SetStyle(theme, ui.State.NodeIconPalette);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         Toolbar(ui, w);
         ui.Separator();
-        if (w.Tree.Roots.Count == 0)
+        if (tree.Roots.Count == 0)
             EmptyHint(ui);
-        var result = ui.TreeView(TreeId, w.Tree.Roots, w.Tree, w.Tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
+        var result = ui.TreeView(TreeId, tree.Roots, tree, tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
         AnalyzeOnShortcut(ui, w);
         CloseOnDelete(ui, w);
         Respond(ui, w, result);
@@ -33,24 +33,25 @@ internal static class TreePaneView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var any = w.Tree.Roots.Count > 0;
+        var tree = ui.State.Tree;
+        var any = tree.Roots.Count > 0;
         using (ui.PaneToolbar())
         {
             if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
-                w.Tree.CollapseAll();
+                tree.CollapseAll();
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.TreeExpandNamespaces, any))
-                w.Tree.ExpandNamespaces();
+                tree.ExpandNamespaces();
             ui.Separator(theme.IconSize);
-            var picked = FindPickedAssembly(w);
+            var picked = FindPickedAssembly(tree);
             if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
                 w.Close(picked!.Assembly);
         }
     }
 
     /// <summary>The assembly node selected in the tree, or null when none is or another kind of node is.</summary>
-    private static BrowseNode? FindPickedAssembly(Workspace w)
+    private static BrowseNode? FindPickedAssembly(BrowseTree tree)
     {
-        var node = w.Tree.View.Selected;
+        var node = tree.View.Selected;
         if (node == null)
             return null;
         if (node.Kind != NodeKind.Assembly)
@@ -72,17 +73,17 @@ internal static class TreePaneView
             return;
         if (!Shortcuts.AnalyzePressed(ui))
             return;
-        var picked = w.Tree.View.Selected;
+        var picked = ui.State.Tree.View.Selected;
         if (picked == null)
             return;
-        w.Analyze(picked);
+        ui.State.Analyze(picked);
     }
 
     private static void CloseOnDelete(Ui<UiState> ui, Workspace w)
     {
         if (!ui.HasFocus(ui.GetId(TreeId)))
             return;
-        var picked = FindPickedAssembly(w);
+        var picked = FindPickedAssembly(ui.State.Tree);
         if (picked == null)
             return;
         if (!Shortcuts.DeletePressed(ui))
@@ -105,7 +106,7 @@ internal static class TreePaneView
 
     private static void OpenContextMenu(Ui<UiState> ui, Workspace w, BrowseNode node, PointF at)
     {
-        w.MenuTarget = node;
+        ui.State.MenuTarget = node;
         ui.OpenContextMenu(MenuId, at);
     }
 
@@ -114,7 +115,7 @@ internal static class TreePaneView
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
             return;
-        var node = w.MenuTarget;
+        var node = ui.State.MenuTarget;
         if (node == null)
             return;
         NodeMenu(ui, w, node);
@@ -130,7 +131,7 @@ internal static class TreePaneView
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
         if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
-            w.Analyze(node);
+            ui.State.Analyze(node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, w, node);
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))

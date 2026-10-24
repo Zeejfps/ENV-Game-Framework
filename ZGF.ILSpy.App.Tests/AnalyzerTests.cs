@@ -13,10 +13,10 @@ public sealed class AnalyzerTests
 
     private static AnalyzerKindNode Expand(WorkspaceDriver d, AnalyzerSymbolNode symbol, string header)
     {
-        var analyzer = d.Workspace.Analyzer;
-        var kind = analyzer.GetChildren(symbol).OfType<AnalyzerKindNode>().Single(k => k.Kind.Header == header);
-        analyzer.View.SetExpanded(kind, true);
-        analyzer.GetChildren(kind);
+        var rows = d.Ui.Analyzer;
+        var kind = rows.GetChildren(symbol).OfType<AnalyzerKindNode>().Single(k => k.Kind.Header == header);
+        rows.View.SetExpanded(kind, true);
+        rows.GetChildren(kind);
         d.RunUntil(() => kind.IsDone);
         return kind;
     }
@@ -26,11 +26,11 @@ public sealed class AnalyzerTests
     {
         var d = WorkspaceDriver.Opened();
 
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         var root = Assert.Single(d.Workspace.Analyzer.Found());
         var usedBy = Expand(d, root, "Used By");
 
-        Assert.True(d.Workspace.Layout.Contains(DockPanels.Analyzer));
+        Assert.True(d.Ui.Layout.Contains(DockPanels.Analyzer));
         Assert.StartsWith("First()", root.Symbol.Label);
         var caller = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(usedBy.Found));
         Assert.StartsWith("Third()", caller.Symbol.Label);
@@ -44,7 +44,7 @@ public sealed class AnalyzerTests
         var d = WorkspaceDriver.Opened();
         var node = d.Fixture("Counter").Children.Single(c => c.Text.StartsWith(member + " "));
 
-        d.Workspace.Analyze(node);
+        d.Ui.Analyze(node);
         var usedBy = Expand(d, Assert.Single(d.Workspace.Analyzer.Found()), "Used By");
 
         var found = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(usedBy.Found));
@@ -56,7 +56,7 @@ public sealed class AnalyzerTests
     {
         var d = WorkspaceDriver.Opened();
 
-        d.Workspace.Analyze(d.Fixture("GuardAttribute"));
+        d.Ui.Analyze(d.Fixture("GuardAttribute"));
         var appliedTo = Expand(d, Assert.Single(d.Workspace.Analyzer.Found()), "Applied To");
 
         var member = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(appliedTo.Found));
@@ -68,19 +68,19 @@ public sealed class AnalyzerTests
     {
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         var analyzer = d.Workspace.Analyzer;
         var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Found()[0], "Used By").Found[0];
-        analyzer.View.Select(caller);
+        app.Ui.Analyzer.View.Select(caller);
         app.Run(3);
 
         app.DoubleClick(app.Frames.Canvas.Texts.Last(t => t.Inputs.Text.StartsWith("Third()")).Inputs.Text);
         d.Settle();
-        analyzer.Analyze(caller.Symbol);
+        app.Ui.Analyzer.Analyze(caller.Symbol);
 
         Assert.StartsWith("Third()", d.Workspace.Tabs.Active!.Node!.Text);
         Assert.Equal(2, analyzer.Roots.Count);
-        Assert.Same(analyzer.Roots[1], analyzer.View.Selected);
+        Assert.Same(analyzer.Roots[1], app.Ui.Analyzer.View.Selected);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class AnalyzerTests
     {
         var app = AppDriver.Opened();
         var d = app.Driver;
-        d.Workspace.Tree.Reveal(First(d));
+        d.Ui.Tree.Reveal(First(d));
         app.Run(2);
         var leftmost = app.Frames.TextRects()
             .Where(t => t.Text == First(d).Text)
@@ -134,9 +134,9 @@ public sealed class AnalyzerTests
     {
         var d = app.Driver;
         var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         var caller = Expand(d, analyzer.Found()[0], "Used By").Found[0];
-        analyzer.View.ScrollIntoView(caller);
+        d.Ui.Analyzer.View.ScrollIntoView(caller);
         app.Run(3);
     }
 
@@ -152,7 +152,7 @@ public sealed class AnalyzerTests
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
-        d.Workspace.Analyze(reference);
+        d.Ui.Analyze(reference);
         d.Settle();
 
         Assert.StartsWith("First()", d.Workspace.Analyzer.Found()[0].Symbol.Label);
@@ -175,7 +175,7 @@ public sealed class AnalyzerTests
         var reference = ReferenceToFirst(d);
         var analyzer = d.Workspace.Analyzer;
 
-        d.Workspace.Analyze(reference);
+        d.Ui.Analyze(reference);
         var waiting = analyzer.Roots.ToList();
         var savedWhileFinding = analyzer.ListSavedAnalyses();
         var revisionWhileFinding = analyzer.Revision;
@@ -195,8 +195,8 @@ public sealed class AnalyzerTests
         var length = ReferenceTo(d, "Greeter", "Length");
         var greet = ReferenceTo(d, "Greeter", "Greet(2)");
 
-        d.Workspace.Analyze(length);
-        d.Workspace.Analyze(greet);
+        d.Ui.Analyze(length);
+        d.Ui.Analyze(greet);
         d.Settle();
 
         var labels = d.Workspace.Analyzer.Found().Select(r => r.Symbol.Label).ToList();
@@ -211,14 +211,14 @@ public sealed class AnalyzerTests
         var d = WorkspaceDriver.Opened();
         var reference = ReferenceToFirst(d);
         var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
-        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.Ui.Analyze(First(d));
+        d.Ui.Analyze(d.Fixture("Greeter"));
 
-        d.Workspace.Analyze(reference);
+        d.Ui.Analyze(reference);
         d.Settle();
 
         Assert.Equal(2, analyzer.Roots.Count);
-        Assert.Same(analyzer.Found()[0], analyzer.View.Selected);
+        Assert.Same(analyzer.Found()[0], d.Ui.Analyzer.View.Selected);
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public sealed class AnalyzerTests
         var reference = ReferenceToFirst(d);
         var analyzer = d.Workspace.Analyzer;
 
-        d.Workspace.Analyze(reference);
+        d.Ui.Analyze(reference);
         analyzer.Remove(analyzer.Roots[0]);
         d.Settle();
 
@@ -252,7 +252,7 @@ public sealed class AnalyzerTests
         d.Workspace.Close(assembly);
         File.Delete(copy);
 
-        d.Workspace.Analyze(reference);
+        d.Ui.Analyze(reference);
         d.Settle();
 
         Assert.Empty(d.Workspace.Analyzer.Roots);
@@ -264,8 +264,8 @@ public sealed class AnalyzerTests
     {
         var d = WorkspaceDriver.Opened();
         var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
-        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.Ui.Analyze(First(d));
+        d.Ui.Analyze(d.Fixture("Greeter"));
 
         analyzer.Remove(analyzer.Roots[0]);
         var left = analyzer.Found().Select(r => r.Symbol.Label).ToList();
@@ -280,7 +280,7 @@ public sealed class AnalyzerTests
     {
         var d = WorkspaceDriver.Opened();
         var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         var root = analyzer.Found()[0];
         var caller = (AnalyzerSymbolNode)Expand(d, root, "Used By").Found[0];
 
@@ -302,7 +302,7 @@ public sealed class AnalyzerTests
     {
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         app.Run(3);
         var row = app.Frames.TextRects().Last(t => t.Text.StartsWith("First()")).Rect;
 
@@ -318,19 +318,20 @@ public sealed class AnalyzerTests
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
         var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         app.Run(3);
         var root = analyzer.Roots[0];
-        var kinds = analyzer.GetChildren(root).OfType<AnalyzerKindNode>().ToList();
+        var rows = app.Ui.Analyzer;
+        var kinds = rows.GetChildren(root).OfType<AnalyzerKindNode>().ToList();
 
         app.ClickLast(LucideIcons.ChevronsUpDown).Frame();
-        var expanded = kinds.All(k => analyzer.View.IsExpanded(k));
+        var expanded = kinds.All(k => rows.View.IsExpanded(k));
         d.RunUntil(() => kinds.All(k => k.IsDone));
         app.ClickLast(LucideIcons.ChevronsDownUp).Frame();
 
         Assert.NotEmpty(kinds);
         Assert.True(expanded);
-        Assert.False(analyzer.View.IsExpanded(root));
+        Assert.False(rows.View.IsExpanded(root));
     }
 
     [Fact]
@@ -339,10 +340,10 @@ public sealed class AnalyzerTests
         var app = AppDriver.Opened(height: 600f);
         var d = app.Driver;
         var analyzer = d.Workspace.Analyzer;
-        d.Workspace.Analyze(First(d));
+        d.Ui.Analyze(First(d));
         var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Found()[0], "Used By").Found[0];
-        d.Workspace.Analyze(d.Fixture("Greeter"));
-        analyzer.View.Select(caller);
+        d.Ui.Analyze(d.Fixture("Greeter"));
+        app.Ui.Analyzer.View.Select(caller);
         app.Run(3);
 
         app.ClickLast(LucideIcons.Trash2).Frame(2);
