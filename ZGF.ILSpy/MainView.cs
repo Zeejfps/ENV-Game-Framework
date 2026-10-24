@@ -48,7 +48,7 @@ public static class MainView
     private static void UpdateSearch(Ui<UiState> ui, Workspace w)
     {
         var shown = w.Layout.Contains(DockPanels.Search);
-        var wait = w.Search.Update(w.Assemblies, ui.RealTime, shown);
+        var wait = ui.State.Search.Update(w.Assemblies, ui.RealTime, shown);
         if (wait > 0)
             ui.RequestFrameIn(wait);
     }

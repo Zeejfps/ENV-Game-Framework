@@ -100,9 +100,12 @@ public sealed class ExportSetup
     public MultiSelection<ExportChoice> RowSelection { get; } = new();
 
     /// <summary>Opens the dialog on <paramref name="assemblies"/> with <paramref name="picked"/>
-    /// ticked, or the only one when there is just one. The folder stays as it was last time.</summary>
+    /// ticked, or the only one when there is just one, unless there are none. The folder stays as it
+    /// was last time.</summary>
     public void Open(IReadOnlyList<LoadedAssembly> assemblies, LoadedAssembly? picked)
     {
+        if (assemblies.Count == 0)
+            return;
         Choices.Clear();
         foreach (var project in AssemblyExport.NameProjects(assemblies))
             Choices.Add(new ExportChoice(project.Assembly, project.Name));
@@ -305,6 +308,21 @@ public sealed class ExportSetup
         var key = StrongNameKeyFile.Trim();
         var keyFile = key.Length == 0 ? null : key;
         return new ProjectExtras(keyFile, GeneratePdb, EmbedSourcesInPdb);
+    }
+
+    /// <summary>Closes the dialog and exports what it asks for, unless something stops the export.</summary>
+    public void Start(Workspace w)
+    {
+        if (!CanExport)
+            return;
+        Close();
+        w.StartExport(CreateRequest());
+    }
+
+    /// <summary>The export the dialog asks for.</summary>
+    private ExportRequest CreateRequest()
+    {
+        return new ExportRequest(Folder.Trim(), IncludedProjects(), Extras(), SolutionFileName);
     }
 
     /// <summary>The ticked assemblies as the projects to export, in the dialog's order.</summary>

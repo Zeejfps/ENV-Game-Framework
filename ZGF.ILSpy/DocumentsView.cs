@@ -24,7 +24,7 @@ internal static class DocumentsView
         if (tab.Grid is { } grid)
         {
             var view = ui.State.ViewOf(tab);
-            var picked = ui.MetadataGridView("grid", grid, view.Grid, w.MetadataFilters);
+            var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
             if (picked.Target is { } target)
                 w.Show(target, picked.InNewTab);
             if (picked.Definition is { } definition)
@@ -48,9 +48,17 @@ internal static class DocumentsView
         if (result.Navigate is { } reference)
             w.Navigate(reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)
-            w.ToggleBookmark(tab, line);
+            ToggleBookmark(ui, w, tab, line);
         if (result.Analyze is { } analyzed)
             w.Analyze(analyzed);
+    }
+
+    /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
+    /// selection of the one removed on.</summary>
+    private static void ToggleBookmark(Ui<UiState> ui, Workspace w, DocumentTab tab, int line)
+    {
+        var toggle = w.ToggleBookmark(tab, line);
+        ui.State.BookmarksPanel.Take(toggle, w.Bookmarks.Items);
     }
 
     private static bool IsEmpty(DocumentTab tab)

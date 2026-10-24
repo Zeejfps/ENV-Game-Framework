@@ -98,9 +98,9 @@ public sealed class BookmarkTests : IDisposable
         var bookmarks = d.Workspace.Bookmarks;
         bookmarks.SetEnabled(bookmarks.Items[1], false);
 
-        var next = bookmarks.Step(1);
-        var again = bookmarks.Step(1);
-        var previous = bookmarks.Step(-1);
+        var next = bookmarks.Step(null, 1);
+        var again = bookmarks.Step(next, 1);
+        var previous = bookmarks.Step(again, -1);
 
         Assert.Same(bookmarks.Items[0], next);
         Assert.Same(bookmarks.Items[0], again);
@@ -143,9 +143,7 @@ public sealed class BookmarkTests : IDisposable
         var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
         d.Workspace.ToggleBookmark(tab, line);
         var bookmarks = d.Workspace.Bookmarks;
-        bookmarks.StartRename(bookmarks.Items[0]);
-        bookmarks.RenameText = "Calls First";
-        bookmarks.CommitRename();
+        bookmarks.Rename(bookmarks.Items[0], "Calls First");
         d.Pump();
 
         var (next, nextTab, _) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
@@ -260,15 +258,16 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.OpenBookmarks();
         app.Run(3);
         var bookmarks = d.Workspace.Bookmarks;
+        var panel = app.Ui.BookmarksPanel;
         var second = bookmarks.Items[1];
-        bookmarks.Step(1);
-        bookmarks.Step(1);
+        panel.Step(d.Workspace, 1);
+        panel.Step(d.Workspace, 1);
         app.Run(2);
 
-        bookmarks.Remove(bookmarks.Items[0]);
+        panel.Remove(bookmarks, bookmarks.Items[0]);
         app.Run(2);
 
-        Assert.Same(second, bookmarks.SelectedBookmark);
+        Assert.Same(second, panel.Selected);
     }
 
     [Fact]
@@ -282,15 +281,16 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.OpenBookmarks();
         app.Run(3);
         var bookmarks = d.Workspace.Bookmarks;
+        var panel = app.Ui.BookmarksPanel;
         var third = bookmarks.Items[2];
-        bookmarks.Step(1);
-        bookmarks.Step(1);
+        panel.Step(d.Workspace, 1);
+        panel.Step(d.Workspace, 1);
         app.Run(2);
 
-        bookmarks.Remove(bookmarks.Items[1]);
+        panel.Remove(bookmarks, bookmarks.Items[1]);
         app.Run(2);
 
-        Assert.Same(third, bookmarks.SelectedBookmark);
+        Assert.Same(third, panel.Selected);
     }
 
     [Fact]
@@ -303,7 +303,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
-        Assert.Null(d.Workspace.Bookmarks.Renaming);
+        Assert.Null(d.Ui.BookmarksPanel.Renaming);
         Assert.True(app.Frames.Drew("Calls First"));
     }
 
@@ -317,7 +317,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Equal("Bookmark 1", d.Workspace.Bookmarks.Items[0].Name);
-        Assert.Null(d.Workspace.Bookmarks.Renaming);
+        Assert.Null(d.Ui.BookmarksPanel.Renaming);
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
 
         Assert.Equal(location, app.Frames.Clipboard.Text);
-        Assert.Null(d.Workspace.Bookmarks.Renaming);
+        Assert.Null(d.Ui.BookmarksPanel.Renaming);
     }
 
     [Fact]
@@ -344,7 +344,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
         Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
-        Assert.Null(d.Workspace.Bookmarks.Renaming);
+        Assert.Null(d.Ui.BookmarksPanel.Renaming);
         Assert.True(app.Frames.Drew("Calls First"));
     }
 
@@ -407,9 +407,7 @@ public sealed class BookmarkTests : IDisposable
         var (d, tab, line) = OutlineAt("return First();");
         var bookmarks = d.Workspace.Bookmarks;
         d.Workspace.ToggleBookmark(tab, line);
-        bookmarks.StartRename(bookmarks.Items[0]);
-        bookmarks.RenameText = "Mine";
-        bookmarks.CommitRename();
+        bookmarks.Rename(bookmarks.Items[0], "Mine");
 
         d.Workspace.ImportBookmarks(path);
         d.Settle();

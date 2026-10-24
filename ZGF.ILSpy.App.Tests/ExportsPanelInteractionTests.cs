@@ -46,12 +46,12 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         var app = TwoFinished();
 
         app.Frames.Wait(1).Click(app.TextRect("Farewell")).Frame();
-        Assert.Equal(RunOf(app, "Farewell"), app.Workspace.SelectedExport);
+        Assert.Equal(RunOf(app, "Farewell"), app.Ui.SelectedExport);
 
         app.Frames.Key(KeyboardKey.DownArrow).Frame();
-        Assert.Equal(RunOf(app, "Greeter"), app.Workspace.SelectedExport);
+        Assert.Equal(RunOf(app, "Greeter"), app.Ui.SelectedExport);
         app.Frames.Key(KeyboardKey.UpArrow).Frame();
-        Assert.Equal(RunOf(app, "Farewell"), app.Workspace.SelectedExport);
+        Assert.Equal(RunOf(app, "Farewell"), app.Ui.SelectedExport);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         app.Frames.Key(KeyboardKey.F10, KeyModifiers.Shift).Frame(2);
 
         Assert.True(app.Frames.Drew("Copy folder path"));
-        Assert.Equal(RunOf(app, "Greeter"), app.Workspace.ExportMenuTarget);
+        Assert.Equal(RunOf(app, "Greeter"), app.Ui.ExportMenuTarget);
     }
 
     [Fact]

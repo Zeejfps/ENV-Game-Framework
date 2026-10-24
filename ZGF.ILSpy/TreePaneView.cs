@@ -136,13 +136,13 @@ internal static class TreePaneView
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, w, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
-            w.OpenExportSetup(node.Assembly);
+            ui.State.OpenExportSetup(node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, w, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
-            w.ScopeSearch(node);
+            ui.State.ScopeSearch(node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
-            w.ScopeSearch(node);
+            ui.State.ScopeSearch(node);
         if (node.Kind == NodeKind.Assembly)
         {
             ui.MenuSeparator();

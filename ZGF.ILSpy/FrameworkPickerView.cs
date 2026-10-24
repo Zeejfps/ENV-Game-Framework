@@ -11,7 +11,7 @@ internal static class FrameworkPickerView
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var picker = w.Picker;
+        var picker = ui.State.Picker;
         if (picker.IsOpen)
             picker.Update(w.Assemblies);
 

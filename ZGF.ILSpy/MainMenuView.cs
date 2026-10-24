@@ -50,7 +50,7 @@ internal static class MainMenuView
         if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: OpenIcon))
             OpenFile(ui, w);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: OpenFromFrameworkIcon))
-            w.Picker.Open();
+            ui.State.Picker.Open();
         ui.MenuSeparator();
         ExportItems(ui, w);
         ui.MenuSeparator();
@@ -73,7 +73,7 @@ internal static class MainMenuView
         if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickActiveCodeFile(ui, w);
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: w.Tree.Roots.Count > 0, id: "export", icon: SaveDialogs.ExportIcon))
-            w.OpenExportSetup(w.ActiveAssembly());
+            ui.State.OpenExportSetup(w.ActiveAssembly());
         var anyOpen = w.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, w);
@@ -98,7 +98,7 @@ internal static class MainMenuView
         if (ui.MenuItem(t.PanelAnalyzer, check: w.Layout.Contains(DockPanels.Analyzer), id: "analyzer"))
             w.OpenAnalyzer();
         if (ui.MenuItem(t.PanelSearch, Shortcuts.Search, check: w.Layout.Contains(DockPanels.Search), id: "search"))
-            w.OpenSearch();
+            ui.State.OpenSearch();
         if (ui.MenuItem(t.PanelDecompilerOptions, check: w.Layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
             w.OpenDecompilerOptions();
         if (ui.MenuItem(t.PanelExports, check: w.Layout.Contains(DockPanels.Exports), id: "exports"))

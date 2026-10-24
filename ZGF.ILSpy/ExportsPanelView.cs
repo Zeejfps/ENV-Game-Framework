@@ -117,7 +117,7 @@ internal static class ExportsPanelView
 
     private static void HandleKey(Ui<UiState> ui, Workspace w, Rows rows, List<int> runs, KeyStroke stroke)
     {
-        var selected = w.SelectedExport;
+        var selected = ui.State.SelectedExport;
         if (IsMenuKey(stroke))
         {
             OpenMenuOnSelection(ui, w, rows, selected);
@@ -157,13 +157,13 @@ internal static class ExportsPanelView
 
     private static void MoveSelection(Ui<UiState> ui, Workspace w, Rows rows, List<int> runs, KeyStroke stroke)
     {
-        var index = runs.IndexOf(w.SelectedExport);
+        var index = runs.IndexOf(ui.State.SelectedExport);
         var before = index;
         UiWidgets.ApplyListKey(stroke, ref index, runs.Count, PageRows);
         if (index == before || index < 0)
             return;
-        w.SelectedExport = runs[index];
-        using (ui.Id(w.SelectedExport))
+        ui.State.SelectedExport = runs[index];
+        using (ui.Id(ui.State.SelectedExport))
             ui.ScrollIntoView(rows.ListId, ui.GetId("row"));
     }
 
@@ -190,7 +190,7 @@ internal static class ExportsPanelView
 
     private static void OpenMenu(Ui<UiState> ui, Workspace w, Rows rows, int run, PointF? at)
     {
-        w.ExportMenuTarget = run;
+        ui.State.ExportMenuTarget = run;
         ui.OpenContextMenu(rows.MenuId, at);
     }
 
@@ -201,14 +201,14 @@ internal static class ExportsPanelView
         var hit = ui.Interact(ui.GetId("row"));
         if (hit.Pressed)
         {
-            w.SelectedExport = run;
+            ui.State.SelectedExport = run;
             ui.Focus(rows.ListId, takesText: false);
         }
         if (hit.DoubleClicked)
             w.ActivateExport(run);
         if (hit.ClickedWith(PointerButton.Right))
         {
-            w.SelectedExport = run;
+            ui.State.SelectedExport = run;
             OpenMenu(ui, w, rows, run, ui.Input.Pointer);
         }
         return hit;
@@ -217,7 +217,7 @@ internal static class ExportsPanelView
     private static uint RowBackground(Ui<UiState> ui, Workspace w, Rows rows, int run, Interaction hit)
     {
         var theme = ui.Theme;
-        if (w.SelectedExport == run)
+        if (ui.State.SelectedExport == run)
             return ui.HasFocus(rows.ListId) ? theme.Selection : theme.SelectionInactive;
         if (hit.Hovered)
             return theme.RowHover;
@@ -565,7 +565,7 @@ internal static class ExportsPanelView
         using var menu = ui.ContextMenu(rows.MenuId);
         if (!menu.IsOpen)
             return;
-        var run = w.ExportMenuTarget;
+        var run = ui.State.ExportMenuTarget;
         var finished = w.FindFinishedExport(run);
         if (finished != null)
             FinishedMenu(ui, w, finished);

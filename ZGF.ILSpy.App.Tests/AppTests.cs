@@ -14,10 +14,10 @@ public sealed class AppTests
     private static AppDriver Searching(string text, int moreRowsThan, float width = 1000f)
     {
         var app = AppDriver.Opened(width);
-        app.Workspace.OpenSearch();
+        app.Ui.OpenSearch();
         app.Run();
         app.Frames.Type(text).Frame().Wait(1);
-        app.RunUntil(() => !app.Workspace.Search.IsBusy && app.Workspace.Search.Rows.Count > moreRowsThan);
+        app.RunUntil(() => !app.Ui.Search.IsBusy && app.Ui.Search.Rows.Count > moreRowsThan);
         return app;
     }
 
@@ -124,9 +124,9 @@ public sealed class AppTests
         app.Run(2);
 
         app.Click("2 errors");
-        Assert.True(app.Workspace.Errors.IsOpen);
+        Assert.True(app.Ui.ErrorDialog.IsOpen);
         app.Run();
-        Assert.Equal("Cannot open broken.dll", app.Workspace.Errors.SelectedError!.Title);
+        Assert.Equal("Cannot open broken.dll", app.Ui.ErrorDialog.SelectedError!.Title);
 
         app.Click("Copy");
         Assert.Equal(app.Workspace.Errors.Entries[1].FullText, app.Frames.Clipboard.Text);
@@ -136,7 +136,7 @@ public sealed class AppTests
         Assert.StartsWith("First failure", app.Frames.Clipboard.Text);
 
         app.Click("Close");
-        Assert.False(app.Workspace.Errors.IsOpen);
+        Assert.False(app.Ui.ErrorDialog.IsOpen);
         Assert.Equal(2, app.Workspace.Errors.Entries.Count);
     }
 
@@ -301,7 +301,7 @@ public sealed class AppTests
     {
         var app = Searching("Greet", moreRowsThan: 2);
 
-        var search = app.Workspace.Search;
+        var search = app.Ui.Search;
         app.Frames.Key(KeyboardKey.DownArrow).Frame();
         Assert.Same(search.Rows[0], search.SelectedRow);
         app.Frames.Key(KeyboardKey.DownArrow).Frame();
@@ -309,14 +309,14 @@ public sealed class AppTests
         app.Frames.Key(KeyboardKey.Enter).Frame();
         app.Settle();
 
-        Assert.Same(app.Workspace.Search.Rows[1].Node, app.Workspace.Tabs.Active!.Node);
+        Assert.Same(app.Ui.Search.Rows[1].Node, app.Workspace.Tabs.Active!.Node);
     }
 
     [Fact]
     public void Clicking_a_search_header_sorts_by_it_then_reverses_it_then_goes_back_to_relevance_keeping_the_selection()
     {
         var app = Searching("Greet", moreRowsThan: 2);
-        var search = app.Workspace.Search;
+        var search = app.Ui.Search;
         search.Select(search.Rows[search.Rows.Count - 1]);
         var selected = search.SelectedRow!.Node;
         var names = search.Rows.Select(r => r.Text).ToList();
@@ -347,7 +347,7 @@ public sealed class AppTests
     public void Search_kinds_are_checked_on_and_off_in_one_open_menu()
     {
         var app = Searching("Greet", moreRowsThan: 0);
-        Assert.Contains(app.Workspace.Search.Rows, r => r.Node.Kind == NodeKind.Class);
+        Assert.Contains(app.Ui.Search.Rows, r => r.Node.Kind == NodeKind.Class);
 
         app.Click("Types and members").Frame();
         foreach (var kind in new[] { "Types", "Fields", "Properties", "Events" })
@@ -358,10 +358,10 @@ public sealed class AppTests
         Assert.True(icon.Right <= events.X && events.X - icon.Right < 16f, $"the events icon ends at {icon.Right}, its label starts at {events.X}");
         Assert.True(MathF.Abs(icon.Y + icon.Height / 2 - (events.Y + events.Height / 2)) < 4f);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
-        app.RunUntil(() => app.Workspace.Search is { IsBusy: false, Rows.Count: > 0 });
+        app.RunUntil(() => app.Ui.Search is { IsBusy: false, Rows.Count: > 0 });
 
-        Assert.Equal(SearchKinds.Methods, app.Workspace.Search.Kinds);
-        Assert.All(app.Workspace.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Node.Kind));
+        Assert.Equal(SearchKinds.Methods, app.Ui.Search.Kinds);
+        Assert.All(app.Ui.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Node.Kind));
         Assert.True(app.Frames.Drew("Methods"));
         Assert.False(app.Frames.Drew("Namespaces"));
     }
@@ -370,22 +370,22 @@ public sealed class AppTests
     public void All_kinds_stands_alone_and_comes_back_when_the_last_kind_is_unchecked()
     {
         var app = AppDriver.Opened();
-        app.Workspace.OpenSearch();
+        app.Ui.OpenSearch();
         app.Run(2);
 
         app.Click("Types and members").Frame();
         app.ClickMenuItem("All").Frame();
-        Assert.Equal(SearchKinds.All, app.Workspace.Search.Kinds);
+        Assert.Equal(SearchKinds.All, app.Ui.Search.Kinds);
         Assert.True(app.Frames.Drew("All kinds"));
 
         app.ClickMenuItem("Resources").Frame();
-        Assert.Equal(SearchKinds.Resources, app.Workspace.Search.Kinds);
+        Assert.Equal(SearchKinds.Resources, app.Ui.Search.Kinds);
         app.ClickMenuItem("Namespaces").Frame();
         Assert.True(app.Frames.Drew("Kinds · 2"));
 
         app.ClickMenuItem("Resources").Frame();
         app.ClickMenuItem("Namespaces").Frame();
-        Assert.Equal(SearchKinds.All, app.Workspace.Search.Kinds);
+        Assert.Equal(SearchKinds.All, app.Ui.Search.Kinds);
     }
 
     [Fact]
@@ -399,7 +399,7 @@ public sealed class AppTests
         app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
         app.ClickMenuItem("Scope search to this assembly").Frame(2);
 
-        Assert.Equal($"inassembly:{name} ", app.Workspace.Search.Query);
+        Assert.Equal($"inassembly:{name} ", app.Ui.Search.Query);
         Assert.True(app.Workspace.Layout.Contains(DockPanels.Search));
     }
 
@@ -410,7 +410,7 @@ public sealed class AppTests
         app.Run(2);
         Assert.False(app.Frames.Drew("Search…"));
 
-        app.Workspace.OpenSearch();
+        app.Ui.OpenSearch();
         app.Run(2);
 
         var icon = app.LastTextRect(LucideIcons.Search);
@@ -473,7 +473,7 @@ public sealed class AppTests
         var app = Searching("Greeter", moreRowsThan: 0, width: 560f);
         app.Run(2);
 
-        var row = app.Workspace.Search.Rows.First(r => r.Node.Kind == NodeKind.Class);
+        var row = app.Ui.Search.Rows.First(r => r.Node.Kind == NodeKind.Class);
         var header = app.LastTextRect(LucideIcons.Search);
         var texts = app.Frames.TextRects().ToList();
         var name = texts.Single(t => t.Text == row.Text && t.Rect.Y > header.Bottom).Rect;

@@ -40,16 +40,13 @@ public static class Saving
             w.Lists.Revision,
             w.Bookmarks.Revision,
             w.Analyzer.Revision,
-            w.MetadataFilters.Revision,
             w.Layout.Changes,
             w.ViewSettingsChanges,
-            w.ExportSetup.WindowChanges,
             w.Theme,
             w.Language,
             w.DecompilerOptions,
             w.ShowNonPublic,
-            w.Locale,
-            w.Search.Kinds);
+            w.Locale);
     }
 
     private static void CopyStateToSettings(this Workspace w)
@@ -61,12 +58,9 @@ public static class Saving
         settings.Language = w.Language;
         settings.Decompiler = w.DecompilerOptions;
         settings.ShowNonPublic = w.ShowNonPublic;
-        settings.SearchKinds = w.Search.Kinds;
         settings.Locale = w.Locale;
         settings.Layout = w.Layout;
         settings.Bookmarks = w.Bookmarks.Save();
-        settings.FlagsFilters = w.MetadataFilters.Save();
-        settings.ExportWindow = w.ExportSetup.Window;
     }
 
     private static void TakeWriteOutcome(this Workspace w, SavedSources sources, string? error)
@@ -96,6 +90,9 @@ public static class Saving
         settings.SearchColumns = view.SearchColumns;
         settings.ExportColumns = view.ExportColumns;
         settings.FoldedOptionGroups = view.FoldedOptionGroups;
+        settings.SearchKinds = view.SearchKinds;
+        settings.FlagsFilters = view.FlagsFilters;
+        settings.ExportWindow = view.ExportWindow;
         w.ViewSettingsChanges++;
     }
 

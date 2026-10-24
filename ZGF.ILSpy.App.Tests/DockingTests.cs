@@ -174,8 +174,9 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void An_open_search_panel_is_still_open_where_it_was_docked_after_a_restart()
     {
-        var w = new WorkspaceDriver(_temp.Settings()).Workspace;
-        w.OpenSearch();
+        var d = new WorkspaceDriver(_temp.Settings());
+        var w = d.Workspace;
+        d.Ui.OpenSearch();
         w.OpenAnalyzer();
         w.Layout.Dock(DockPanels.Search, w.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         w.SaveSettings();

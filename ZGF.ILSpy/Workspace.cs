@@ -19,8 +19,6 @@ public sealed class Workspace
     /// <summary>The named assembly lists, one of which <see cref="Assemblies"/> holds open.</summary>
     public SavedAssemblyLists Lists { get; } = new();
 
-    /// <summary>What the assembly lists dialog shows, and whether it is open.</summary>
-    public AssemblyListsDialog ListsDialog { get; } = new();
     public BrowseTree Tree { get; }
     public NavigationHistory History { get; } = new();
     public UserIntent Intent { get; } = new();
@@ -35,11 +33,6 @@ public sealed class Workspace
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
     public AnalyzerTree Analyzer { get; }
 
-    public Search Search { get; }
-
-    /// <summary>The metadata grids' flags filters.</summary>
-    public MetadataFilters MetadataFilters { get; }
-    public FrameworkPicker Picker { get; }
     public ErrorLog Errors { get; } = new();
     public DocumentTabs Tabs { get; } = new();
 
@@ -91,25 +84,12 @@ public sealed class Workspace
     /// <summary>The code, projects, solutions and PDBs being written in the background, one at a time.</summary>
     public ExportQueue Export { get; } = new();
 
-    /// <summary>What the export dialog asks for, and whether it is open.</summary>
-    public ExportSetup ExportSetup { get; } = new();
-
     /// <summary>The reports of the exports that finished, oldest first, until they are taken off the
     /// exports panel.</summary>
     public List<ExportReport> FinishedExports { get; } = new();
 
-    /// <summary>The run of the export selected in the exports panel, or 0; one that is gone is as none.</summary>
-    public int SelectedExport;
-
-    /// <summary>The run of the export the exports panel's context menu was opened on, or 0.</summary>
-    public int ExportMenuTarget;
-
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
-
-
-    /// <summary>Set by <see cref="Searching.OpenSearch"/> until the search box takes focus.</summary>
-    public bool IsSearchFocusPending { get; set; }
 
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
     public bool ConfirmingLayoutReset { get; set; }
@@ -131,14 +111,9 @@ public sealed class Workspace
         Layout.PanelClosed += this.OnPanelClosed;
         Tree = new BrowseTree();
         Analyzer = new AnalyzerTree(Assemblies);
-        Search = new Search(() => Strings.For(Locale), ReportError);
-        Search.Kinds = settings.SearchKinds;
-        MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
-        ExportSetup.RestoreWindow(settings.ExportWindow);
-        Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
         LastSave.Record(this.CaptureSavedSources());

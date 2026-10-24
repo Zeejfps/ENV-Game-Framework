@@ -22,7 +22,7 @@ public static class AssemblyListing
 
     /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
     /// the list still holds them all.</summary>
-    internal static void RememberOpenAssemblies(this Workspace w)
+    public static void RememberOpenAssemblies(this Workspace w)
     {
         if (w.IsReloading)
             return;
@@ -58,43 +58,20 @@ public static class AssemblyListing
         w.RestoreAnalyses();
     }
 
-    public static void OpenListsDialog(this Workspace w)
-    {
-        w.RememberOpenAssemblies();
-        w.ListsDialog.Open(w.Lists);
-    }
-
-    /// <summary>Adds an empty list, picked in the dialog to be named, leaving the open one open.</summary>
-    public static void CreateList(this Workspace w)
+    /// <summary>Adds an empty list, leaving the open one open, and returns its name.</summary>
+    public static string CreateList(this Workspace w)
     {
         var t = Strings.For(w.Locale);
-        var name = w.Lists.Create(t.ListsNewName);
-        w.ListsDialog.Pick(w.Lists, name);
-        w.ListsDialog.StartRenaming(name);
+        return w.Lists.Create(t.ListsNewName);
     }
 
-    /// <summary>Adds a copy of the list named <paramref name="name"/>, picked in the dialog to be named,
-    /// leaving the open one open.</summary>
-    public static void DuplicateList(this Workspace w, string name)
+    /// <summary>Adds a copy of the list named <paramref name="name"/>, leaving the open one open, and
+    /// returns the copy's name.</summary>
+    public static string DuplicateList(this Workspace w, string name)
     {
         var t = Strings.For(w.Locale);
         w.RememberActiveList();
-        var copy = w.Lists.Duplicate(name, t.ListsCopyName(name));
-        w.ListsDialog.Pick(w.Lists, copy);
-        w.ListsDialog.StartRenaming(copy);
-    }
-
-    /// <summary>Gives the list being renamed in the dialog the name typed, when it may have it, and
-    /// stops renaming either way.</summary>
-    public static void FinishRenaming(this Workspace w)
-    {
-        var dialog = w.ListsDialog;
-        var name = dialog.Renaming;
-        if (name == null)
-            return;
-        var newName = dialog.NewName;
-        dialog.StopAsking();
-        w.Lists.Rename(name, newName);
+        return w.Lists.Duplicate(name, t.ListsCopyName(name));
     }
 
     /// <summary>Removes the list named <paramref name="name"/>. When it was open, the list that takes
@@ -104,7 +81,6 @@ public static class AssemblyListing
         var wasActive = string.Equals(name, w.Lists.Active, StringComparison.OrdinalIgnoreCase);
         w.RememberActiveList();
         w.Lists.Delete(name);
-        w.ListsDialog.Pick(w.Lists, w.Lists.Active);
         if (wasActive)
             w.OpenActiveList();
     }

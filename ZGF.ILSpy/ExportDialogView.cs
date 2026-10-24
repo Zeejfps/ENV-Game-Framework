@@ -34,12 +34,12 @@ internal static class ExportDialogView
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         Dialog(ui, w);
-        w.ExportSetup.SettleWindow(ui.Input.IsDown(PointerButton.Left));
+        ui.State.ExportSetup.SettleWindow(ui.Input.IsDown(PointerButton.Left));
     }
 
     private static void Dialog(Ui<UiState> ui, Workspace w)
     {
-        var setup = w.ExportSetup;
+        var setup = ui.State.ExportSetup;
         var choosing = setup.Page == ExportPage.Choose;
         var title = PageTitle(ui.State.Strings, setup.Page);
         using (var dialog = ui.WindowDialog("export-setup", title, ref setup.IsOpen, WindowWidth, WindowHeight, ref setup.Window,
@@ -71,7 +71,7 @@ internal static class ExportDialogView
     private static void Body(Ui<UiState> ui, Workspace w)
     {
         var theme = ui.Theme;
-        var setup = w.ExportSetup;
+        var setup = ui.State.ExportSetup;
         using (ui.Scroll("export-body", new Box { Height = Sizing.Grow(), Gap = theme.DialogGap }))
         {
             Chosen(ui, w);
@@ -113,7 +113,7 @@ internal static class ExportDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var setup = w.ExportSetup;
+        var setup = ui.State.ExportSetup;
         var chosen = setup.IncludedChoices();
         using (Section(ui))
         {
@@ -143,7 +143,7 @@ internal static class ExportDialogView
     private static void ChosenTable(Ui<UiState> ui, Workspace w, List<ExportChoice> chosen)
     {
         var t = ui.State.Strings;
-        var setup = w.ExportSetup;
+        var setup = ui.State.ExportSetup;
         var table = ui.Table("chosen", ui.State.ExportColumns, setup.RowSelection);
         table.Header([t.ExportAssemblyColumn, t.ExportVersionColumn, t.ExportProjectName]);
         var removeRequested = false;
@@ -358,7 +358,7 @@ internal static class ExportDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var setup = w.ExportSetup;
+        var setup = ui.State.ExportSetup;
         ui.Separator();
         using (ui.Row(new Box { Gap = theme.Gap }))
         {
@@ -368,7 +368,7 @@ internal static class ExportDialogView
             if (ui.Button(t.ExportCancel, id: "export-cancel", variant: ButtonVariant.Ghost))
                 setup.Close();
             if (ui.Button(t.ExportConfirm, enabled: setup.CanExport, id: "export-start", variant: ButtonVariant.Primary))
-                w.StartExport();
+                setup.Start(w);
         }
     }
 

@@ -1,6 +1,3 @@
-using ZGF.Gui.Immediate.Widgets;
-using ZGF.ILSpy.Core;
-
 namespace ZGF.ILSpy;
 
 /// <summary>Something that went wrong, worth telling the user: a one-line <see cref="Title"/> and
@@ -24,69 +21,25 @@ public sealed record AppError(string Title, string Details, DateTime Time)
     }
 }
 
-/// <summary>The recent errors, newest last, and the error dialog's state. UI thread only.</summary>
+/// <summary>The recent errors, newest last, the oldest dropped past <see cref="Capacity"/>. UI thread only.</summary>
 public sealed class ErrorLog
 {
     private const int Capacity = 50;
 
     private readonly List<AppError> _entries = new();
-    private AppError? _documentFor;
-    private DecompiledDocument _document = DecompiledDocument.Empty;
-
-    /// <summary>Whether the error dialog is showing.</summary>
-    public bool IsOpen;
 
     public IReadOnlyList<AppError> Entries => _entries;
-
-    /// <summary>The entry the dialog shows, an index into <see cref="Entries"/>.</summary>
-    public ListSelection Selection { get; } = new();
-
-    public AppError? SelectedError => Selection.Index >= 0 && Selection.Index < _entries.Count ? _entries[Selection.Index] : null;
-
-    /// <summary>The dialog's view of <see cref="SelectedError"/>'s text.</summary>
-    public CodeViewState View { get; } = new();
 
     public void Add(string title, string? details = null)
     {
         _entries.Add(new AppError(title, details?.Trim() ?? "", DateTime.Now));
         if (_entries.Count > Capacity)
-        {
             _entries.RemoveAt(0);
-            Selection.Select(Math.Max(0, Selection.Index - 1), _entries.Count, reveal: false);
-        }
-        if (!IsOpen)
-            Selection.Select(_entries.Count - 1, _entries.Count);
     }
 
-    /// <summary>Opens the dialog on the newest error.</summary>
-    public void Open()
-    {
-        if (_entries.Count == 0) return;
-        Selection.Select(_entries.Count - 1, _entries.Count);
-        IsOpen = true;
-    }
-
-    /// <summary>Forgets every error and closes the dialog.</summary>
+    /// <summary>Forgets every error.</summary>
     public void Clear()
     {
         _entries.Clear();
-        Selection.Clear();
-        IsOpen = false;
-        _documentFor = null;
-        _document = DecompiledDocument.Empty;
-    }
-
-    /// <summary><see cref="SelectedError"/>'s details, or its title when it has none, as a document
-    /// for the dialog's code view.</summary>
-    public DecompiledDocument SelectedDocument()
-    {
-        var error = SelectedError;
-        if (error is null) return DecompiledDocument.Empty;
-        if (!ReferenceEquals(error, _documentFor))
-        {
-            _documentFor = error;
-            _document = DecompiledDocument.FromText(error.Title, error.Details.Length > 0 ? error.Details : error.Title);
-        }
-        return _document;
     }
 }

@@ -1,3 +1,5 @@
+using ZGF.ILSpy.Core;
+
 namespace ZGF.ILSpy;
 
 public sealed partial class UiState
@@ -20,7 +22,10 @@ public sealed partial class UiState
             BookmarkColumns.Changes,
             SearchColumns.Changes,
             ExportColumns.Changes,
-            FoldedOptionGroups.Revision);
+            FoldedOptionGroups.Revision,
+            Search.Kinds,
+            MetadataFilters.Revision,
+            ExportSetup.WindowChanges);
     }
 
     private ViewSettings CreateViewSettings()
@@ -29,10 +34,20 @@ public sealed partial class UiState
             BookmarkColumns.Weights.ToList(),
             SearchColumns.Weights.ToList(),
             ExportColumns.Weights.ToList(),
-            FoldedOptionGroups.Save());
+            FoldedOptionGroups.Save(),
+            Search.Kinds,
+            MetadataFilters.Save(),
+            ExportSetup.Window);
     }
 
-    /// <summary>What the settings keep of the screen is made from: the change counts of the columns
-    /// and the folded groups.</summary>
-    private readonly record struct ViewSources(int BookmarkColumns, int SearchColumns, int ExportColumns, int FoldedOptionGroups);
+    /// <summary>What the settings keep of the screen is made from: the change counts of the columns,
+    /// the folded groups, the flags filters and the export window, and what the search looks for.</summary>
+    private readonly record struct ViewSources(
+        int BookmarkColumns,
+        int SearchColumns,
+        int ExportColumns,
+        int FoldedOptionGroups,
+        SearchKinds SearchKinds,
+        int FlagsFilters,
+        int ExportWindow);
 }

@@ -59,7 +59,7 @@ public sealed class AutosaveTests : IDisposable
                 w.SetLocale(Locale.De);
                 break;
             case nameof(AppSettings.SearchKinds):
-                w.Search.Kinds = SearchKinds.Types;
+                screen.Search.Kinds = SearchKinds.Types;
                 break;
             case nameof(AppSettings.FoldedOptionGroups):
                 screen.FoldedOptionGroups.Fold(["Other"]);
@@ -74,7 +74,7 @@ public sealed class AutosaveTests : IDisposable
                 screen.ExportColumns.Restore([1f, 4f, 1f]);
                 break;
             case nameof(AppSettings.ExportWindow):
-                w.ExportSetup.Window = MovedExportWindow;
+                screen.ExportSetup.Window = MovedExportWindow;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(field), field, null);
@@ -104,7 +104,7 @@ public sealed class AutosaveTests : IDisposable
         app.Run(2);
 
         app.Frames.Press().Frame();
-        app.Workspace.ExportSetup.Window = MovedExportWindow;
+        app.Ui.ExportSetup.Window = MovedExportWindow;
         app.Run(2);
         var savedWhileHeld = _temp.Settings().ExportWindow;
         app.Frames.Release().Frame();

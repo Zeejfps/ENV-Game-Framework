@@ -21,11 +21,41 @@ public sealed class AssemblyListsDialog
     /// <summary>The list whose deletion is being confirmed, or null.</summary>
     public string? Deleting { get; private set; }
 
-    /// <summary>Opens the dialog with the open list picked.</summary>
-    public void Open(SavedAssemblyLists lists)
+    /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>
+    public void Open(Workspace w)
     {
+        w.RememberOpenAssemblies();
         IsOpen = true;
-        Pick(lists, lists.Active);
+        Pick(w.Lists, w.Lists.Active);
+    }
+
+    /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
+    public void Create(Workspace w)
+    {
+        var name = w.CreateList();
+        PickToRename(w.Lists, name);
+    }
+
+    /// <summary>Adds a copy of the list named <paramref name="name"/>, picked to be named, leaving the
+    /// open one open.</summary>
+    public void Duplicate(Workspace w, string name)
+    {
+        var copy = w.DuplicateList(name);
+        PickToRename(w.Lists, copy);
+    }
+
+    private void PickToRename(SavedAssemblyLists lists, string name)
+    {
+        Pick(lists, name);
+        StartRenaming(name);
+    }
+
+    /// <summary>Removes the list named <paramref name="name"/> and picks the open list, which takes its
+    /// place when it was open.</summary>
+    public void Delete(Workspace w, string name)
+    {
+        w.DeleteList(name);
+        Pick(w.Lists, w.Lists.Active);
     }
 
     /// <summary>Picks the list named <paramref name="name"/>, leaving any rename or deletion.</summary>
@@ -67,6 +97,17 @@ public sealed class AssemblyListsDialog
         Renaming = name;
         NewName = name;
         _focusName = true;
+    }
+
+    /// <summary>Gives the list being renamed the name typed, when it may have it, and stops renaming either way.</summary>
+    public void FinishRenaming(SavedAssemblyLists lists)
+    {
+        var name = Renaming;
+        if (name == null)
+            return;
+        var newName = NewName;
+        StopAsking();
+        lists.Rename(name, newName);
     }
 
     /// <summary>True once after <see cref="StartRenaming"/>: the name box should take focus with the

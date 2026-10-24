@@ -23,7 +23,7 @@ internal static class AssemblyListsDialogView
     public static void Render(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         var card = new Box { Width = Sizing.Grow(0f, AppLayout.ListsDialogWidth) };
         using (var scope = ui.Dialog("assembly-lists", t.ListsTitle, ref dialog.IsOpen, card, closeOnEscape: !dialog.IsAsking))
         {
@@ -44,19 +44,20 @@ internal static class AssemblyListsDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var picked = w.ListsDialog.Picked(w.Lists);
+        var dialog = ui.State.ListsDialog;
+        var picked = dialog.Picked(w.Lists);
         var any = picked != null;
         using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
         {
             if (ui.Button(t.ListsNew, id: "new", icon: NewIcon))
-                w.CreateList();
+                dialog.Create(w);
             ui.Spacer();
             if (ui.IconButton("duplicate", LucideIcons.Copy, LucideIcons.Family, t.ListsDuplicate, any))
-                w.DuplicateList(picked!);
+                dialog.Duplicate(w, picked!);
             if (ui.IconButton("rename", LucideIcons.Pencil, LucideIcons.Family, t.ListsRename, any))
-                w.ListsDialog.StartRenaming(picked!);
+                dialog.StartRenaming(picked!);
             if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.ListsDelete, any))
-                w.ListsDialog.StartConfirmingDelete(picked!);
+                dialog.StartConfirmingDelete(picked!);
         }
     }
 
@@ -65,7 +66,7 @@ internal static class AssemblyListsDialogView
     private static void Rows(Ui<UiState> ui, Workspace w)
     {
         var theme = ui.Theme;
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         var names = w.Lists.Names;
         var picked = dialog.Selection.Index;
         var rowHeight = theme.ControlHeight + theme.GapTight;
@@ -89,12 +90,12 @@ internal static class AssemblyListsDialogView
             if (list.Focused)
                 HandleKeys(ui, w);
             if (list.Activated)
-                ActOnRow(w, names[list.Index], doubleClicked);
+                ActOnRow(ui, w, names[list.Index], doubleClicked);
             if (list.ContextMenuRequested)
                 ui.OpenContextMenu(MenuId, list.ContextMenuAt);
         }
         if (dialog.Selection.Index != picked)
-            LeavePickedRow(w);
+            LeavePickedRow(ui, w);
     }
 
     /// <summary>A check mark when the list is the active one, its name, or the box renaming it, how
@@ -104,7 +105,7 @@ internal static class AssemblyListsDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         var active = name == w.Lists.Active;
         using (ui.Id(name))
         using (var row = list.Row(index, ui.GetId("row"), new Box { Gap = theme.Gap, AlignY = Align.Center }))
@@ -146,30 +147,31 @@ internal static class AssemblyListsDialogView
     /// elsewhere, dropped on Escape; the list takes the focus back unless it moved elsewhere.</summary>
     private static void NameBox(Ui<UiState> ui, Workspace w, int listId)
     {
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         var begin = dialog.TakeNameFocus();
         var result = ui.InlineEdit(NameId, ref dialog.NewName, begin, Sizing.Grow());
         if (result == InlineEditResult.Editing)
             return;
         var stillHere = ui.HasFocus(ui.GetId(NameId));
-        FinishNameBox(w, result);
+        FinishNameBox(ui, w, result);
         if (stillHere || result == InlineEditResult.Cancelled)
             ui.Focus(listId, takesText: false);
     }
 
-    private static void FinishNameBox(Workspace w, InlineEditResult result)
+    private static void FinishNameBox(Ui<UiState> ui, Workspace w, InlineEditResult result)
     {
+        var dialog = ui.State.ListsDialog;
         if (result == InlineEditResult.Committed)
         {
-            w.FinishRenaming();
+            dialog.FinishRenaming(w.Lists);
             return;
         }
-        w.ListsDialog.StopAsking();
+        dialog.StopAsking();
     }
 
     private static void HandleKeys(Ui<UiState> ui, Workspace w)
     {
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         if (dialog.IsAsking)
             return;
         var picked = dialog.Picked(w.Lists);
@@ -182,23 +184,23 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>A double-click renames the row; Enter activates it.</summary>
-    private static void ActOnRow(Workspace w, string name, bool doubleClicked)
+    private static void ActOnRow(Ui<UiState> ui, Workspace w, string name, bool doubleClicked)
     {
         if (doubleClicked)
         {
-            w.ListsDialog.StartRenaming(name);
+            ui.State.ListsDialog.StartRenaming(name);
             return;
         }
         w.SwitchList(name);
     }
 
     /// <summary>Keeps the name being typed when another row is picked, and drops a deletion being asked about.</summary>
-    private static void LeavePickedRow(Workspace w)
+    private static void LeavePickedRow(Ui<UiState> ui, Workspace w)
     {
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         if (dialog.Renaming != null)
         {
-            w.FinishRenaming();
+            dialog.FinishRenaming(w.Lists);
             return;
         }
         dialog.StopAsking();
@@ -209,10 +211,11 @@ internal static class AssemblyListsDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var name = w.ListsDialog.Renaming;
+        var dialog = ui.State.ListsDialog;
+        var name = dialog.Renaming;
         if (name == null)
             return;
-        var newName = w.ListsDialog.NewName;
+        var newName = dialog.NewName;
         if (w.Lists.CanRename(name, newName))
             return;
         ui.Text(DescribeRenameProblem(t, newName), color: theme.Danger, size: theme.FontSizeSmall, wrap: true);
@@ -230,7 +233,7 @@ internal static class AssemblyListsDialogView
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
             return;
-        var picked = w.ListsDialog.Picked(w.Lists);
+        var picked = ui.State.ListsDialog.Picked(w.Lists);
         if (picked == null)
             return;
         MenuItems(ui, w, picked);
@@ -239,14 +242,14 @@ internal static class AssemblyListsDialogView
     private static void MenuItems(Ui<UiState> ui, Workspace w, string picked)
     {
         var t = ui.State.Strings;
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         var active = picked == w.Lists.Active;
         if (ui.MenuItem(t.ListsActivate, enabled: !active, id: "activate"))
             w.SwitchList(picked);
         if (ui.MenuItem(t.ListsRename, "F2", id: "rename"))
             dialog.StartRenaming(picked);
         if (ui.MenuItem(t.ListsDuplicate, id: "duplicate"))
-            w.DuplicateList(picked);
+            dialog.Duplicate(w, picked);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsDelete, "Delete", id: "delete"))
             dialog.StartConfirmingDelete(picked);

@@ -173,7 +173,7 @@ public sealed class AssemblyListingTests
         var d = WorkspaceDriver.Opened();
         d.Workspace.Analyze(d.Fixture("Greeter"));
         d.Workspace.DuplicateList(SavedAssemblyLists.DefaultName);
-        var copy = d.Workspace.ListsDialog.Renaming!;
+        var copy = d.Ui.ListsDialog.Renaming!;
 
         d.Workspace.SwitchList(copy);
         d.Settle();
@@ -336,7 +336,7 @@ public sealed class AssemblyListingTests
         app.Run(2);
         Assert.True(app.Frames.Drew(SavedAssemblyLists.DefaultName));
 
-        app.Workspace.OpenListsDialog();
+        app.Ui.ListsDialog.Open(app.Workspace);
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Assembly lists"));
@@ -354,7 +354,7 @@ public sealed class AssemblyListingTests
         app.Settle(2);
 
         Assert.Equal(Other, app.Workspace.Lists.Active);
-        Assert.True(app.Workspace.ListsDialog.IsOpen);
+        Assert.True(app.Ui.ListsDialog.IsOpen);
         Assert.Empty(app.Workspace.Assemblies.Assemblies);
     }
 
@@ -369,7 +369,7 @@ public sealed class AssemblyListingTests
 
         Assert.Contains("Work", app.Workspace.Lists.Names);
         Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.Lists.Active);
-        Assert.Null(app.Workspace.ListsDialog.Renaming);
+        Assert.Null(app.Ui.ListsDialog.Renaming);
     }
 
     [Fact]
@@ -378,13 +378,13 @@ public sealed class AssemblyListingTests
         var app = OpenedDialog();
 
         app.DoubleClick(Other).Frame(2);
-        Assert.Equal(Other, app.Workspace.ListsDialog.Renaming);
+        Assert.Equal(Other, app.Ui.ListsDialog.Renaming);
         app.Frames.Type("Gone").Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.Workspace.Lists.Names);
-        Assert.Null(app.Workspace.ListsDialog.Renaming);
-        Assert.True(app.Workspace.ListsDialog.IsOpen);
+        Assert.Null(app.Ui.ListsDialog.Renaming);
+        Assert.True(app.Ui.ListsDialog.IsOpen);
         Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.Lists.Active);
     }
 
@@ -395,7 +395,7 @@ public sealed class AssemblyListingTests
 
         app.ClickLast(LucideIcons.Trash2).Frame(2);
         Assert.True(app.Frames.Drew("Delete assembly list"));
-        Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.ListsDialog.Deleting);
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.Ui.ListsDialog.Deleting);
         Assert.Equal(Other, app.Workspace.Lists.ReplacementFor(SavedAssemblyLists.DefaultName));
         app.Click("Delete list").Frame(2);
         app.Settle(2);
@@ -413,8 +413,8 @@ public sealed class AssemblyListingTests
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.False(app.Frames.Drew("Delete assembly list"));
-        Assert.Null(app.Workspace.ListsDialog.Deleting);
-        Assert.True(app.Workspace.ListsDialog.IsOpen);
+        Assert.Null(app.Ui.ListsDialog.Deleting);
+        Assert.True(app.Ui.ListsDialog.IsOpen);
         Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.Workspace.Lists.Names);
     }
 
@@ -424,7 +424,7 @@ public sealed class AssemblyListingTests
     {
         var app = AppDriver.Opened();
         app.Workspace.Lists.Create(Other);
-        app.Workspace.OpenListsDialog();
+        app.Ui.ListsDialog.Open(app.Workspace);
         app.Run(2);
         return app;
     }

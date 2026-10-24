@@ -240,7 +240,7 @@ public sealed class WorkspaceTests
     {
         var d = WorkspaceDriver.Opened();
         d.Show(d.Fixture("Greeter"));
-        var search = d.Workspace.Search;
+        var search = d.Ui.Search;
         search.Query = "IsLeapYear";
         search.Update(d.Workspace.Assemblies, 0, true);
         search.Update(d.Workspace.Assemblies, 1, true);
@@ -271,7 +271,7 @@ public sealed class WorkspaceTests
         var document = greeter.Decompile(DecompilationLanguage.CSharp);
         var (line, column) = document.Find("Length");
         Assert.NotNull(d.Workspace.Assemblies.FindNode(document.SpanAt(line, column).Reference!));
-        var search = d.Workspace.Search;
+        var search = d.Ui.Search;
         search.Query = "IsLeapYear";
         search.Update(d.Workspace.Assemblies, 0, true);
         search.Update(d.Workspace.Assemblies, 1, true);
@@ -292,7 +292,7 @@ public sealed class WorkspaceTests
     public void A_closed_search_panel_does_not_search()
     {
         var d = WorkspaceDriver.Opened();
-        var search = d.Workspace.Search;
+        var search = d.Ui.Search;
         search.Query = "Greet";
 
         search.Update(d.Workspace.Assemblies, 0, false);
@@ -347,7 +347,7 @@ public sealed class WorkspaceTests
     public void Search_selection_moves_by_keys_within_the_results()
     {
         var d = WorkspaceDriver.Opened();
-        var search = d.Workspace.Search;
+        var search = d.Ui.Search;
         search.Query = "e";
         search.Update(d.Workspace.Assemblies, 0, true);
         search.Update(d.Workspace.Assemblies, 1, true);
@@ -370,7 +370,7 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.Opened();
         d.Workspace.Open(typeof(object).Assembly.Location);
         d.RunUntil(() => d.Workspace.Assemblies.Assemblies.Count == 2);
-        var search = d.Workspace.Search;
+        var search = d.Ui.Search;
         search.SortBy(SearchSort.Name);
         search.Query = "e";
 

@@ -75,7 +75,7 @@ internal static class StatusBarView
         var errors = w.Errors;
         var i = ui.Clickable("errors");
         if (i.Clicked)
-            errors.Open();
+            ui.State.ErrorDialog.Open(errors.Entries);
 
         using (ui.Row(i.Id, new Box
         {

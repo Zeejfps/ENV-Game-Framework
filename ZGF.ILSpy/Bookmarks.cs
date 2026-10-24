@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -114,9 +113,8 @@ public enum BookmarkImportMode
     Merge,
 }
 
-/// <summary>The user's bookmarks in the order they were made, the one selected in the panel, and the
-/// one being renamed. No two mark the same line. Every change to the list or a bookmark bumps
-/// <see cref="Revision"/>.</summary>
+/// <summary>The user's bookmarks in the order they were made. No two mark the same line. Every change
+/// to the list or a bookmark bumps <see cref="Revision"/>.</summary>
 public sealed class BookmarkList
 {
     private sealed class Marks
@@ -129,64 +127,32 @@ public sealed class BookmarkList
     private readonly List<Bookmark> _items = new();
     private readonly ConditionalWeakTable<DecompiledDocument, Marks> _marks = new();
 
-    public BookmarkList() => Cells = new TableCellSelection(Selection.Rows);
-
     public IReadOnlyList<Bookmark> Items => _items;
 
     public int Revision { get; private set; }
 
-    /// <summary>The bookmark selected in the panel.</summary>
-    public ItemSelection<Bookmark> Selection { get; } = new();
-
-    /// <summary>The cell of the selected bookmark current in the panel, and the text selected in it.</summary>
-    public TableCellSelection Cells { get; }
-
-    public Bookmark? SelectedBookmark => Selection.Item;
-
-    /// <summary>The bookmark whose name is being edited, and the name typed so far.</summary>
-    public Bookmark? Renaming { get; private set; }
-
-    public string RenameText = "";
-
-    /// <summary>True once after a rename starts: the name field should take focus.</summary>
-    public bool FocusRename { get; set; }
-
-    /// <summary>Adds <paramref name="bookmark"/> and selects it, unless a bookmark marks its line
-    /// already; returns whether it was added.</summary>
+    /// <summary>Adds <paramref name="bookmark"/>, unless a bookmark marks its line already; returns
+    /// whether it was added.</summary>
     public bool Add(Bookmark bookmark)
     {
         if (IsMarked(bookmark))
             return false;
         _items.Add(bookmark);
-        Selection.Select(bookmark, _items);
         Revision++;
         return true;
     }
 
     private bool IsMarked(Bookmark bookmark) => _items.Exists(bookmark.MarksSameLine);
 
-    public void Remove(Bookmark bookmark)
+    /// <summary>Removes <paramref name="bookmark"/>; returns the row it was in, or -1 when it was not listed.</summary>
+    public int Remove(Bookmark bookmark)
     {
         var index = _items.IndexOf(bookmark);
-        if (index < 0) return;
+        if (index < 0)
+            return -1;
         _items.RemoveAt(index);
-        if (Renaming == bookmark)
-            Renaming = null;
-        if (Selection.Item == bookmark)
-            SelectInRow(index);
         Revision++;
-    }
-
-    /// <summary>Selects the bookmark at <paramref name="index"/>, or the last when there are fewer.</summary>
-    private void SelectInRow(int index)
-    {
-        var row = Math.Min(index, _items.Count - 1);
-        if (row < 0)
-        {
-            Selection.Clear();
-            return;
-        }
-        Selection.Select(_items[row], _items, reveal: false);
+        return index;
     }
 
     public void SetEnabled(Bookmark bookmark, bool enabled)
@@ -196,52 +162,50 @@ public sealed class BookmarkList
         Revision++;
     }
 
-    public void StartRename(Bookmark bookmark)
+    /// <summary>Gives <paramref name="bookmark"/> the name <paramref name="name"/>, trimmed, unless it is blank.</summary>
+    public void Rename(Bookmark bookmark, string name)
     {
-        Renaming = bookmark;
-        RenameText = bookmark.Name;
-        FocusRename = true;
+        var trimmed = name.Trim();
+        if (trimmed.Length == 0)
+            return;
+        if (trimmed == bookmark.Name)
+            return;
+        bookmark.Name = trimmed;
+        Revision++;
     }
 
-    /// <summary>Gives the bookmark being renamed the name typed, unless it is blank, and ends the rename.</summary>
-    public void CommitRename()
-    {
-        if (Renaming is { } bookmark && RenameText.Trim() is { Length: > 0 } name && name != bookmark.Name)
-        {
-            bookmark.Name = name;
-            Revision++;
-        }
-        Renaming = null;
-    }
-
-    public void CancelRename() => Renaming = null;
-
-    /// <summary>Selects the next enabled bookmark after the selected one, or the previous when
+    /// <summary>The next enabled bookmark after <paramref name="from"/>, or the previous when
     /// <paramref name="direction"/> is negative, wrapping around; null when none is enabled.</summary>
-    public Bookmark? Step(int direction)
+    public Bookmark? Step(Bookmark? from, int direction)
     {
         var count = _items.Count;
-        var start = StepStart(direction);
+        var start = StepStart(from, direction);
         for (var step = 1; step <= count; step++)
         {
             var index = ((start + Math.Sign(direction) * step) % count + count) % count;
             if (!_items[index].Enabled) continue;
-            Selection.Select(_items[index], _items);
             return _items[index];
         }
         return null;
     }
 
-    /// <summary>The row stepping starts from: the selected bookmark's, or just before the first or
+    /// <summary>The row stepping starts from: <paramref name="from"/>'s, or just before the first or
     /// after the last.</summary>
-    private int StepStart(int direction)
+    private int StepStart(Bookmark? from, int direction)
     {
-        var selected = Selection.IndexIn(_items);
-        if (selected >= 0)
-            return selected;
+        var index = IndexOf(from);
+        if (index >= 0)
+            return index;
         if (direction > 0)
             return -1;
         return _items.Count;
+    }
+
+    private int IndexOf(Bookmark? bookmark)
+    {
+        if (bookmark == null)
+            return -1;
+        return _items.IndexOf(bookmark);
     }
 
     /// <summary>The first bookmark marking <paramref name="line"/> of <paramref name="document"/>,
@@ -298,11 +262,7 @@ public sealed class BookmarkList
     public int Import(IEnumerable<Bookmark> bookmarks, BookmarkImportMode mode)
     {
         if (mode == BookmarkImportMode.Replace)
-        {
             _items.Clear();
-            Selection.Clear();
-            Renaming = null;
-        }
         var leftOut = 0;
         foreach (var bookmark in bookmarks)
         {

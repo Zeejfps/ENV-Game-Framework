@@ -8,21 +8,24 @@ public static class Bookmarking
 {
     /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
     /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
-    /// when it has one.</summary>
-    public static void ToggleBookmark(this Workspace w, DocumentTab tab, int line)
+    /// when it has one. Returns which it did.</summary>
+    public static BookmarkToggle ToggleBookmark(this Workspace w, DocumentTab tab, int line)
     {
         var node = tab.Node;
         if (node == null)
-            return;
+            return new BookmarkToggle.Unchanged();
         if (!CanBookmarkLine(tab, line))
-            return;
+            return new BookmarkToggle.Unchanged();
         var existing = w.Bookmarks.At(tab.Document, node.Path, line);
         if (existing != null)
-        {
-            w.Bookmarks.Remove(existing);
-            return;
-        }
-        w.AddBookmark(tab, node, line);
+            return w.RemoveBookmark(existing);
+        return w.AddBookmark(tab, node, line);
+    }
+
+    private static BookmarkToggle RemoveBookmark(this Workspace w, Bookmark bookmark)
+    {
+        var row = w.Bookmarks.Remove(bookmark);
+        return new BookmarkToggle.Removed(bookmark, row);
     }
 
     private static bool CanBookmarkLine(DocumentTab tab, int line)
@@ -36,13 +39,14 @@ public static class Bookmarking
         return line < tab.Document.Lines.Length;
     }
 
-    private static void AddBookmark(this Workspace w, DocumentTab tab, BrowseNode node, int line)
+    private static BookmarkToggle AddBookmark(this Workspace w, DocumentTab tab, BrowseNode node, int line)
     {
         var anchor = tab.Document.AnchorAt(line);
         var name = w.Bookmarks.NextName(w.FormatBookmarkName);
         var info = ILSpyTree.Describe(node, anchor);
         var bookmark = new Bookmark(node.Path, tab.Language, line, anchor, name, info);
         w.Bookmarks.Add(bookmark);
+        return new BookmarkToggle.Added(bookmark);
     }
 
     private static string FormatBookmarkName(this Workspace w, int number) => Strings.For(w.Locale).BookmarksDefaultName(number);
@@ -77,14 +81,15 @@ public static class Bookmarking
         w.History.Push(node, w.Language);
     }
 
-    /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
-    /// <paramref name="direction"/> is negative.</summary>
-    public static void StepBookmark(this Workspace w, int direction)
+    /// <summary>Goes to the next enabled bookmark after <paramref name="from"/>, or the previous when
+    /// <paramref name="direction"/> is negative. Returns the bookmark gone to, or null when none is enabled.</summary>
+    public static Bookmark? StepBookmark(this Workspace w, Bookmark? from, int direction)
     {
-        var bookmark = w.Bookmarks.Step(direction);
+        var bookmark = w.Bookmarks.Step(from, direction);
         if (bookmark == null)
-            return;
+            return null;
         w.GoTo(bookmark);
+        return bookmark;
     }
 
     public static void ExportBookmarks(this Workspace w, string path)

@@ -35,7 +35,7 @@ internal static class ToolbarView
                     MainMenuView.OpenFile(ui, w);
                 if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
                         variant: ButtonVariant.Neutral))
-                    w.OpenSearch();
+                    ui.State.OpenSearch();
             }
 
             using (Group(ui))
@@ -88,7 +88,7 @@ internal static class ToolbarView
             ListItem(ui, w, name);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsManage, id: "manage"))
-            w.OpenListsDialog();
+            ui.State.ListsDialog.Open(w);
     }
 
     /// <summary>Measured again only when the lists or the theme changed, so a frame allocates nothing.</summary>

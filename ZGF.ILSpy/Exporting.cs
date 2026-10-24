@@ -144,34 +144,21 @@ public static class Exporting
         return node.Assembly;
     }
 
-    /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
-    public static void OpenExportSetup(this Workspace w, LoadedAssembly? picked)
+    /// <summary>Exports what <paramref name="request"/> asks for: one assembly as a project straight
+    /// into the folder, several as a solution with a folder per project.</summary>
+    public static void StartExport(this Workspace w, ExportRequest request)
     {
-        if (w.Assemblies.Assemblies.Count == 0)
-            return;
-        w.ExportSetup.Open(w.Assemblies.Assemblies, picked);
-    }
-
-    /// <summary>Closes the export dialog and exports what it says: one assembly as a project
-    /// straight into the folder, several as a solution with a folder per project.</summary>
-    public static void StartExport(this Workspace w)
-    {
-        var setup = w.ExportSetup;
-        if (!setup.CanExport)
-            return;
-        setup.Close();
-        var folder = setup.Folder.Trim();
-        var projects = setup.IncludedProjects();
-        var extras = setup.Extras();
-        if (setup.IsSolution)
+        var folder = request.Folder;
+        var projects = request.Projects;
+        if (request.IsSolution)
         {
-            var solutionPath = Path.Combine(folder, setup.SolutionFileName);
-            w.ExportSolution(projects, solutionPath, extras);
+            var solutionPath = Path.Combine(folder, request.SolutionFileName);
+            w.ExportSolution(projects, solutionPath, request.Extras);
             return;
         }
         var project = projects[0];
         var projectPath = Path.Combine(folder, AssemblyExport.CleanProjectName(project.Name) + ProjectExtension);
-        w.ExportProject(project.Assembly, projectPath, extras);
+        w.ExportProject(project.Assembly, projectPath, request.Extras);
     }
 
     /// <summary>Writes a portable PDB of <paramref name="assembly"/>'s decompiled C# to

@@ -148,13 +148,15 @@ public sealed class AppSettingsTests : IDisposable
     [Fact]
     public void The_export_window_reopens_where_it_was_left_in_the_last_run()
     {
-        var workspace = new Workspace(AppSettings.Load(SettingsFile));
-        workspace.ExportSetup.RestoreWindow(new WindowBounds(-900, 200, 700, 800, false));
-        workspace.SaveSettings();
+        var d = new WorkspaceDriver(AppSettings.Load(SettingsFile));
+        d.Ui.ExportSetup.Window = new WindowBounds(-900, 200, 700, 800, false);
+        d.Ui.ExportSetup.SettleWindow(held: false);
+        d.NextFrame();
+        d.Workspace.SaveSettings();
 
-        var next = new Workspace(AppSettings.Load(SettingsFile));
+        var next = new WorkspaceDriver(AppSettings.Load(SettingsFile));
 
-        Assert.Equal(new WindowBounds(-900, 200, 700, 800, false), next.ExportSetup.Window);
+        Assert.Equal(new WindowBounds(-900, 200, 700, 800, false), next.Ui.ExportSetup.Window);
         Assert.Null(AppSettings.Load(Written("""{ "ExportWindow": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""")).ExportWindow);
     }
 
@@ -278,10 +280,11 @@ public sealed class DockPanelsTests
     [Fact]
     public void Opening_a_search_docks_its_panel_and_closing_the_panel_clears_the_query()
     {
-        var workspace = new Workspace(new AppSettings());
+        var d = new WorkspaceDriver();
+        var workspace = d.Workspace;
 
-        workspace.OpenSearch();
-        workspace.Search.Query = "Greeter";
+        d.Ui.OpenSearch();
+        d.Ui.Search.Query = "Greeter";
 
         var search = workspace.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
@@ -289,30 +292,31 @@ public sealed class DockPanelsTests
 
         workspace.Layout.Close(DockPanels.Search);
 
-        Assert.Equal("", workspace.Search.Query);
+        Assert.Equal("", d.Ui.Search.Query);
     }
 
     [Fact]
     public void The_search_mode_is_saved_and_restored()
     {
         var settings = new AppSettings();
-        var workspace = new Workspace(settings);
+        var d = new WorkspaceDriver(settings);
 
-        workspace.Search.Kinds = SearchKinds.Literals;
-        workspace.SaveSettings();
+        d.Ui.Search.Kinds = SearchKinds.Literals;
+        d.NextFrame();
+        d.Workspace.SaveSettings();
 
-        Assert.Equal(SearchKinds.Literals, new Workspace(settings).Search.Kinds);
+        Assert.Equal(SearchKinds.Literals, new WorkspaceDriver(settings).Ui.Search.Kinds);
     }
 
     [Fact]
     public void Scoping_the_search_to_a_namespace_keeps_the_terms_typed()
     {
         var driver = WorkspaceDriver.Opened();
-        driver.Workspace.Search.Query = "inassembly:Old Greet";
+        driver.Ui.Search.Query = "inassembly:Old Greet";
 
-        driver.Workspace.ScopeSearch(driver.Node(WorkspaceDriver.FixturesNamespace));
+        driver.Ui.ScopeSearch(driver.Node(WorkspaceDriver.FixturesNamespace));
 
-        Assert.Equal($"innamespace:{WorkspaceDriver.FixturesNamespace} inassembly:Old Greet ", driver.Workspace.Search.Query);
+        Assert.Equal($"innamespace:{WorkspaceDriver.FixturesNamespace} inassembly:Old Greet ", driver.Ui.Search.Query);
         Assert.True(driver.Workspace.Layout.Contains(DockPanels.Search));
     }
 }

@@ -12,21 +12,23 @@ internal static class ErrorDialogView
     {
         var t = ui.State.Strings;
         var errors = w.Errors;
-        if (!errors.IsOpen)
+        var shown = ui.State.ErrorDialog;
+        if (!shown.IsOpen)
             return;
         var theme = ui.Theme;
         var title = ui.Memo("errors-title", (errors.Entries.Count, t), static a => a.t.ErrorsTitle(a.Count));
-        using var dialog = ui.Dialog("errors", title, ref errors.IsOpen, new Box
+        using var dialog = ui.Dialog("errors", title, ref shown.IsOpen, new Box
         {
             Width = Sizing.Grow(0f, AppLayout.ErrorDialogWidth),
             Height = Sizing.Grow(0f, AppLayout.ErrorDialogHeight),
         });
         if (!dialog.IsOpen) return;
 
+        shown.Selection.ShowIn(errors.Entries);
         if (errors.Entries.Count > 1)
-            List(ui, errors);
+            List(ui, errors, shown);
 
-        if (errors.SelectedError is { } selected)
+        if (shown.SelectedError is { } selected)
         {
             using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
             {
@@ -36,27 +38,34 @@ internal static class ErrorDialogView
         }
 
         using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.EditorBackground, Clip = true }))
-            ui.CodeView("error-text", errors.SelectedDocument(), errors.View);
+            ui.CodeView("error-text", shown.SelectedDocument(), shown.View);
 
         using (ui.Row(new Box { Gap = theme.GapTight }))
         {
-            if (ui.Button(t.ErrorsCopy, id: "error-copy") && errors.SelectedError is { } error)
+            if (ui.Button(t.ErrorsCopy, id: "error-copy") && shown.SelectedError is { } error)
                 ui.ClipboardText = error.FullText;
             ui.Tooltip(ui.GetId("error-copy"), t.ErrorsCopyTooltip);
             if (ui.Button(t.ErrorsClear, id: "error-clear", variant: ButtonVariant.Ghost))
-                errors.Clear();
+                ClearErrors(errors, shown);
             ui.Spacer();
             if (ui.Button(t.ErrorsClose, id: "error-close", variant: ButtonVariant.Primary))
-                errors.IsOpen = false;
+                shown.Close();
         }
     }
 
-    private static void List(Ui<UiState> ui, ErrorLog errors)
+    /// <summary>Forgets every error and closes the dialog.</summary>
+    private static void ClearErrors(ErrorLog errors, ErrorDialog shown)
+    {
+        errors.Clear();
+        shown.Close();
+    }
+
+    private static void List(Ui<UiState> ui, ErrorLog errors, ErrorDialog shown)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var entries = errors.Entries;
-        using var list = ui.SelectableList(ui.GetId("error-list"), entries.Count, errors.Selection, box: new Box
+        using var list = ui.SelectableList(ui.GetId("error-list"), entries.Count, shown.Selection.Rows, box: new Box
         {
             Height = Math.Min(entries.Count, AppLayout.ErrorListRows) * theme.RowHeight,
             Background = theme.Field,
@@ -72,5 +81,6 @@ internal static class ErrorDialogView
                 ui.Text(entry.Title, new Box { Width = Sizing.Grow() }, color: titleColor, overflow: TextOverflow.Ellipsis);
             }
         }
+        shown.Selection.TakeFrom(entries);
     }
 }

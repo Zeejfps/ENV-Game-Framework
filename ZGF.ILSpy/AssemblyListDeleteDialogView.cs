@@ -11,7 +11,7 @@ internal static class AssemblyListDeleteDialogView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var dialog = w.ListsDialog;
+        var dialog = ui.State.ListsDialog;
         var name = dialog.Deleting;
         var open = name != null;
         using (var scope = ui.Dialog("assembly-list-delete", t.ListsDeleteTitle, ref open, closeButton: false))
@@ -26,7 +26,7 @@ internal static class AssemblyListDeleteDialogView
                     if (ui.Button(t.ListsCancel, id: "delete-cancel", variant: ButtonVariant.Ghost))
                         dialog.StopAsking();
                     if (ui.Button(t.ListsDeleteConfirm, id: "delete-confirm", variant: ButtonVariant.Primary))
-                        w.DeleteList(name!);
+                        dialog.Delete(w, name!);
                 }
             }
         }

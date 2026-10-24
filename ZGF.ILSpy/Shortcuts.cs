@@ -42,18 +42,9 @@ internal static class Shortcuts
         return false;
     }
 
-    private static bool IsDialogOpen(Workspace w)
-    {
-        if (w.Picker.IsOpen)
-            return true;
-        if (w.Errors.IsOpen)
-            return true;
-        return w.ExportSetup.IsOpen;
-    }
-
     public static void Handle(Ui<UiState> ui, Workspace w)
     {
-        if (IsDialogOpen(w)) return;
+        if (ui.State.IsDialogOpen()) return;
 
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
@@ -68,7 +59,7 @@ internal static class Shortcuts
             switch (stroke.Modifiers & Chord, stroke.Key)
             {
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.F):
-                    w.OpenSearch();
+                    ui.State.OpenSearch();
                     continue;
                 case (KeyModifiers.Alt, KeyboardKey.LeftArrow):
                     w.GoBack();
@@ -88,7 +79,7 @@ internal static class Shortcuts
                     SaveDialogs.PickActiveCodeFile(ui, w);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
-                    w.OpenExportSetup(w.ActiveAssembly());
+                    ui.State.OpenExportSetup(w.ActiveAssembly());
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
                     w.Refresh();

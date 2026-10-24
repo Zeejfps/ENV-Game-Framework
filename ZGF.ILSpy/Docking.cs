@@ -97,12 +97,10 @@ public static class Docking
         return w.OpenNewTab();
     }
 
-    /// <summary>Called when a panel is closed: clears the search with its panel, and forgets the tab
-    /// a closed document was, focusing the next one when it was active.</summary>
+    /// <summary>Called when a panel is closed: forgets the tab a closed document was, focusing the next
+    /// one when it was active.</summary>
     internal static void OnPanelClosed(this Workspace w, string panel)
     {
-        if (panel == DockPanels.Search)
-            w.Search.Clear();
         w.RemoveTab(panel);
     }
 

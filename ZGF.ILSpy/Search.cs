@@ -23,6 +23,8 @@ public delegate IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchStream(Assem
 public sealed class Search
 {
     private const double DebounceSeconds = 0.15;
+    private const string NamespaceScope = "innamespace";
+    private const string AssemblyScope = "inassembly";
 
     private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
@@ -232,6 +234,19 @@ public sealed class Search
     public void Move(int by) => Selection.Move(by, _rows);
 
     public void Clear() => Query = "";
+
+    /// <summary>Keeps the query to <paramref name="node"/>'s assembly, or to the namespace it is.</summary>
+    public void ScopeTo(BrowseNode node)
+    {
+        Query = ScopedQuery(node);
+    }
+
+    private string ScopedQuery(BrowseNode node)
+    {
+        if (node.Kind == NodeKind.Namespace)
+            return SearchQuery.WithScope(Query, NamespaceScope, node.FullName);
+        return SearchQuery.WithScope(Query, AssemblyScope, node.Assembly.Name);
+    }
 
     /// <summary>Sorts the results by <paramref name="sort"/>, ascending, then descending when they
     /// already are, then by relevance again, keeping the selection in view.</summary>

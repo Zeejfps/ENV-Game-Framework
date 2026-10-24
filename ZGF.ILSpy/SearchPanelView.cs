@@ -30,7 +30,7 @@ internal static class SearchPanelView
         {
             KindsButton(ui, w);
             Field(ui, w);
-            ResultCount(ui, w.Search);
+            ResultCount(ui, ui.State.Search);
         }
         ui.Separator();
         Results(ui, w);
@@ -39,7 +39,7 @@ internal static class SearchPanelView
     private static void KindsButton(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var kinds = w.Search.Kinds;
+        var kinds = ui.State.Search.Kinds;
         var summary = ui.Memo("search-kinds", (kinds, t), static a => Summary(a.t, a.kinds));
         var width = ui.SelectButtonWidth(Summaries.GetValue(t, ListAllSummaries));
         var tooltip = ui.Memo("search-kinds-tip", (kinds, t), static a => Description(a.t, a.kinds));
@@ -97,7 +97,7 @@ internal static class SearchPanelView
     private static void KindsMenu(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var search = w.Search;
+        var search = ui.State.Search;
         var all = search.Kinds == SearchKinds.All;
         var kinds = search.Kinds;
         var checkAll = all;
@@ -133,9 +133,9 @@ internal static class SearchPanelView
     private static void Field(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var search = w.Search;
+        var search = ui.State.Search;
         var fieldId = ui.GetId("search");
-        if (w.TakeSearchFocus())
+        if (ui.State.TakeSearchFocus())
             ui.Focus(fieldId);
         var width = Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth);
         var submitted = ui.TextField("search", ref search.Query, t.SearchField, width, LucideIcons.Search, LucideIcons.Family);
@@ -144,16 +144,15 @@ internal static class SearchPanelView
             return;
         if (submitted)
         {
-            ShowSelected(w);
+            ShowSelected(w, search);
             return;
         }
         if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
             ui.Focus(ResultsId, takesText: false);
     }
 
-    private static void ShowSelected(Workspace w)
+    private static void ShowSelected(Workspace w, Search search)
     {
-        var search = w.Search;
         if (search.SelectedRow == null)
             search.Move(1);
         var row = search.SelectedRow;
@@ -179,7 +178,7 @@ internal static class SearchPanelView
     private static void Results(Ui<UiState> ui, Workspace w)
     {
         var t = ui.State.Strings;
-        var search = w.Search;
+        var search = ui.State.Search;
         var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
         var sort = new TableSort(ColumnOf(search.Sort), SortIcon(search));
         search.Selection.ShowIn(search.Rows);
@@ -202,7 +201,7 @@ internal static class SearchPanelView
 
     private static void ResultRows(Ui<UiState> ui, Workspace w, TableFrame table)
     {
-        var search = w.Search;
+        var search = ui.State.Search;
         using var body = table.Body(search.Rows.Count);
         search.Selection.TakeFrom(search.Rows);
         for (var i = body.First; i < body.End; i++)
@@ -216,7 +215,7 @@ internal static class SearchPanelView
     private static void ResultRow(Ui<UiState> ui, Workspace w, TableBody body, int index)
     {
         var theme = ui.Theme;
-        var result = w.Search.Rows[index];
+        var result = ui.State.Search.Rows[index];
         var node = result.Node;
         var row = body.Row(index, RuntimeHelpers.GetHashCode(node));
         using (row)

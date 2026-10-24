@@ -26,13 +26,13 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
         allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
 
         output.WriteLine($"{(errorsOpen ? "errors open" : "idle")}: {allocated / MeasuredFrames:N0} B/frame allocated");
-        Assert.Equal(errorsOpen, app.Workspace.Errors.IsOpen);
+        Assert.Equal(errorsOpen, app.Ui.ErrorDialog.IsOpen);
         Assert.Equal(0, allocated / MeasuredFrames);
     }
 
     private static void OpenErrors(AppDriver app)
     {
         app.Workspace.ReportError("Something failed", "details");
-        app.Workspace.Errors.IsOpen = true;
+        app.Ui.ErrorDialog.IsOpen = true;
     }
 }
