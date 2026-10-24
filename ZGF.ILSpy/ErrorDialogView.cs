@@ -28,7 +28,8 @@ internal static class ErrorDialogView
         if (errors.Entries.Count > 1)
             List(ui, errors, shown);
 
-        if (shown.SelectedError is { } selected)
+        var selected = shown.SelectedError;
+        if (selected != null)
         {
             using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
             {
@@ -42,8 +43,8 @@ internal static class ErrorDialogView
 
         using (ui.Row(new Box { Gap = theme.GapTight }))
         {
-            if (ui.Button(t.ErrorsCopy, id: "error-copy") && shown.SelectedError is { } error)
-                ui.ClipboardText = error.FullText;
+            if (ui.Button(t.ErrorsCopy, id: "error-copy") && selected != null)
+                ui.ClipboardText = selected.FullText;
             ui.Tooltip(ui.GetId("error-copy"), t.ErrorsCopyTooltip);
             if (ui.Button(t.ErrorsClear, id: "error-clear", variant: ButtonVariant.Ghost))
                 ClearErrors(errors, shown);

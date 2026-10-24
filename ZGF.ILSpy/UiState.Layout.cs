@@ -17,7 +17,7 @@ public sealed partial class UiState
     private DecompilationLanguage _shownLanguage;
     private DecompilerOptions _shownOptions;
 
-    /// <summary>The saved layout with the open tabs in the place of the documents, a panel the layout
+    /// <summary>The saved layout with the first tab in the place of the documents, a panel the layout
     /// makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
     private MainLayout RestoreLayout(DockLayout? saved)
     {

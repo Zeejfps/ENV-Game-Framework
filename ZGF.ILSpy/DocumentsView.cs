@@ -68,8 +68,20 @@ internal static class DocumentsView
         return tab.Location == null;
     }
 
-    public static DockTab Tab(UiState screen, Workspace w, DocumentTab tab) =>
-        new(tab.Node is { } node ? screen.Tree.Label(node) : tab.Title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);
+    public static DockTab Tab(UiState screen, Workspace w, DocumentTab tab)
+    {
+        var title = TitleOf(screen, tab);
+        return new DockTab(title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);
+    }
+
+    /// <summary>The tab's title: its node's name as the tree labels it, else its own title.</summary>
+    private static string TitleOf(UiState screen, DocumentTab tab)
+    {
+        var node = tab.Node;
+        if (node == null)
+            return tab.Title;
+        return screen.Tree.Label(node);
+    }
 
     /// <summary>Muted <paramref name="text"/> centered in a pane or area with nothing to show yet.</summary>
     public static void Hint(Ui<UiState> ui, string text)
