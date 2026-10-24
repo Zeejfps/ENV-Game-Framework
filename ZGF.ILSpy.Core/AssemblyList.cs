@@ -3,6 +3,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using ZGF.ILSpy.Core.Metadata;
 using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
 
 namespace ZGF.ILSpy.Core;
@@ -140,30 +141,73 @@ public sealed class AssemblyList
     /// </summary>
     public BrowseNode? FindNode(CodeReference reference)
     {
-        if (reference.FilePath is null) return null;
-        var generation = Generation;
         try
         {
-            var owner = TryLoad(reference.FilePath, generation);
-            if (owner is null) return null;
-
-            if (reference.Kind == CodeReferenceKind.Assembly && reference.Handle.Kind == HandleKind.AssemblyDefinition)
-                return TryList(owner, generation) ? owner.Root : null;
-
-            if (reference.Kind == CodeReferenceKind.Assembly)
-            {
-                var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, (AssemblyReferenceHandle)reference.Handle));
-                return target is not null && TryList(target, generation) ? target.Root : null;
-            }
-
-            var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
-            return assembly is not null && TryList(assembly, generation) ? assembly.FindNodeOrAncestor(handle) : null;
+            var (assembly, handle) = ResolveListed(reference);
+            if (assembly is null)
+                return null;
+            if (handle.Kind == HandleKind.AssemblyDefinition)
+                return assembly.Root;
+            return assembly.FindNodeOrAncestor(handle);
         }
-        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        catch (Exception e) when (IsUnreadable(e))
         {
             return null;
         }
     }
+
+    /// <summary>
+    /// The metadata table row that defines what <paramref name="reference"/> points at: the row of a
+    /// type or member, or an assembly's own row, opening and listing the assembly that defines it as
+    /// <see cref="FindNode(CodeReference)"/> does. Null if the reference is not navigable or cannot
+    /// be resolved. May load files: prefer calling it off the UI thread.
+    /// </summary>
+    public MetadataTarget? FindMetadataRow(CodeReference reference)
+    {
+        try
+        {
+            var (assembly, handle) = ResolveListed(reference);
+            if (assembly is null)
+                return null;
+            var root = (AssemblyNode)assembly.Root;
+            return root.FindMetadataRow(handle);
+        }
+        catch (Exception e) when (IsUnreadable(e))
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The listed assembly that defines what <paramref name="reference"/> points at, and the
+    /// handle of its definition there: the assembly's own handle for an assembly. A null assembly
+    /// when it cannot be resolved or listed.</summary>
+    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveListed(CodeReference reference)
+    {
+        if (reference.FilePath is null)
+            return default;
+        var generation = Generation;
+        var owner = TryLoad(reference.FilePath, generation);
+        if (owner is null)
+            return default;
+        var (assembly, handle) = ResolveTarget(owner, reference, generation);
+        if (assembly is null)
+            return default;
+        if (!TryList(assembly, generation))
+            return default;
+        return (assembly, handle);
+    }
+
+    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveTarget(LoadedAssembly owner, CodeReference reference, int generation)
+    {
+        if (reference.Kind != CodeReferenceKind.Assembly)
+            return ResolveDefinition(owner, reference.Handle, generation);
+        if (reference.Handle.Kind == HandleKind.AssemblyDefinition)
+            return (owner, EntityHandle.AssemblyDefinition);
+        var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, (AssemblyReferenceHandle)reference.Handle));
+        return (target, EntityHandle.AssemblyDefinition);
+    }
+
+    private static bool IsUnreadable(Exception e) => e is BadImageFormatException or InvalidOperationException or IOException;
 
     /// <summary>
     /// What hovering <paramref name="reference"/> explains: the declaration and XML documentation of

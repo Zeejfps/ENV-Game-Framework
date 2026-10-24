@@ -294,6 +294,24 @@ public sealed class CodeViewTests
         Assert.False(result.NavigateInNewTab);
     }
 
+    [Fact]
+    public void The_context_menu_shows_the_reference_or_definition_under_the_pointer_in_metadata()
+    {
+        foreach (var text in new[] { "Greet(2)", "public class Greeter" })
+        {
+            var (view, line, column) = GreeterAt(text);
+            column += text.IndexOf("Greet", StringComparison.Ordinal);
+
+            view.Click(line, column, PointerButton.Right);
+            view.Run();
+            var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Show in metadata").Inputs.Position;
+            view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
+
+            Assert.Equal(view.Document.SpanAt(line, column).Reference, view.Last.ShowInMetadata);
+            Assert.Null(view.Last.Navigate);
+        }
+    }
+
     private static int CountWord(string line, string word)
     {
         var count = 0;

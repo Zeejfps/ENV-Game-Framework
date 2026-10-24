@@ -1,4 +1,6 @@
+using System.Reflection.Metadata.Ecma335;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy.Tests;
 
@@ -34,6 +36,38 @@ public sealed class NavigationTests
         Assert.Equal("Add(T) : void", addOnList!.Text);
         Assert.Equal("List<T>", addOnList.Parent!.Text);
         Assert.Same(assembly.Calculator().Child("_items : List<T>"), field);
+    }
+
+    [Fact]
+    public void A_reference_shows_in_metadata_as_the_row_of_its_definition_in_the_assembly_that_defines_it()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
+        var call = document.Lines[document.LineContaining("_items.Add(item);")];
+
+        var add = list.FindMetadataRow(call.SpanAt("Add").Reference!)!.Value;
+        var field = list.FindMetadataRow(call.SpanAt("_items").Reference!)!.Value;
+        var self = list.FindMetadataRow(CodeReference.ToAssembly(assembly.Name, assembly.FilePath))!.Value;
+
+        var methods = ((MetadataGridNode)add.Node).Grid;
+        var fields = ((MetadataGridNode)field.Node).Grid;
+        Assert.Equal("System.Private.CoreLib", add.Node.Assembly.Name);
+        Assert.Equal(TableIndex.MethodDef, ((MetadataGridNode)add.Node).Table);
+        Assert.Equal("Add", methods.Text(add.Row, methods.Column("Name")));
+        Assert.Same(assembly, field.Node.Assembly);
+        Assert.Equal("_items", fields.Text(field.Row, fields.Column("Name")));
+        Assert.Equal(TableIndex.Assembly, ((MetadataGridNode)self.Node).Table);
+        Assert.Equal(0, self.Row);
+    }
+
+    [Fact]
+    public void A_local_has_no_metadata_row()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var document = assembly.Calculator().Child("Add(T) : void").Decompile(DecompilationLanguage.CSharp);
+        var item = document.SpansOf().First(s => s.Text == "item").Span.Reference!;
+
+        Assert.Null(list.FindMetadataRow(item));
     }
 
     [Fact]

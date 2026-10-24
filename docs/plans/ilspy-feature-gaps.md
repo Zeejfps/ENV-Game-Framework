@@ -7,16 +7,13 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Implementation order
 
-1. **Show in metadata** from the code view and the tree: find the table with
-   `MetadataFolderNode.FindTable` from the reference's file and handle, then
-   `ShowMetadataTarget`.
-2. **Per-assembly menu:** Remove assemblies that failed to load, Load dependencies (through
+1. **Per-assembly menu:** Remove assemblies that failed to load, Load dependencies (through
    `AssemblyResolver` into `OpenAssemblies`), sort list.
-3. **Close all documents.**
-4. **EncLog and EncMap tables** in `MetadataTables.Create`.
-5. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
+2. **Close all documents.**
+3. **EncLog and EncMap tables** in `MetadataTables.Create`.
+4. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
    namespace and name.
-6. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
+5. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
    desktop facade first.
 
 ## Biggest gaps
@@ -37,7 +34,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Tree:** nested-namespace view.
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
   folder, Remove assemblies that failed to load, sort list.
-- **Metadata explorer:** "Show in metadata" from code, "Decompile metadata row in new tab", hide
+- **Metadata explorer:** "Decompile metadata row in new tab", hide
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.
 - **Navigation:** preview tabs, Close all documents, Search MSDN, omnibar (breadcrumb + search).

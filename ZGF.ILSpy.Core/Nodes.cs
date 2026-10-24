@@ -30,6 +30,22 @@ internal sealed class AssemblyNode : BrowseNode
         return Volatile.Read(ref _namespaces)?.GetValueOrDefault(name);
     }
 
+    /// <summary>The row <paramref name="handle"/> names in this assembly's own metadata tables, or null
+    /// when it names no table row.</summary>
+    public MetadataTarget? FindMetadataRow(EntityHandle handle)
+    {
+        if (!MetadataTokens.TryGetTableIndex(handle.Kind, out var index))
+            return null;
+        var metadata = Children
+            .OfType<MetadataFolderNode>()
+            .First(f => ReferenceEquals(f.File, Assembly.File));
+        var table = metadata.FindTable(index);
+        if (table == null)
+            return null;
+        var row = MetadataTokens.GetRowNumber(handle) - 1;
+        return new MetadataTarget(table, row);
+    }
+
     private protected override BrowseNode[] CreateChildren()
     {
         var file = Assembly.File;

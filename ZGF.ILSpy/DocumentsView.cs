@@ -61,6 +61,8 @@ internal static class DocumentsView
             ToggleLineBookmark(ui, appState, tab, line);
         if (result.Analyze is { } analyzed)
             AnalyzerPanelView.Analyze(ui.State, appState, analyzed);
+        if (result.ShowInMetadata is { } shown)
+            ShowInMetadata(appState, shown, inNewTab: false);
         Zoom(ui.State, result.Zoom);
     }
 

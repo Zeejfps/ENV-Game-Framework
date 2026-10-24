@@ -56,8 +56,40 @@ public static class Navigation
     public static void ShowMetadataTarget(AppState appState, MetadataTarget target, bool inNewTab)
     {
         appState.Intent.Begin();
-        LeaveActiveTab(appState);
         var tab = inNewTab ? null : appState.Tabs.Active;
+        ShowRowIn(appState, tab, target);
+    }
+
+    /// <summary>Resolves <paramref name="reference"/> in the background, as <see cref="Navigate"/> does,
+    /// then shows the metadata table row that defines it in the tab it was asked from, or a new one.</summary>
+    public static async void ShowInMetadata(AppState appState, CodeReference reference, bool inNewTab)
+    {
+        if (!reference.IsNavigable)
+            return;
+        var ticket = appState.Intent.Begin();
+        var origin = inNewTab ? null : appState.Tabs.Active;
+        appState.Intent.StartResolving(ticket);
+        var found = await Background.Run(() => appState.Assemblies.FindMetadataRow(reference));
+        if (appState.Intent.IsStale(ticket))
+            return;
+        appState.Intent.StopResolving();
+        ShowResolvedRow(appState, reference, found, origin);
+    }
+
+    private static void ShowResolvedRow(AppState appState, CodeReference reference, Outcome<MetadataTarget?> found, DocumentTab? origin)
+    {
+        var target = found.Value;
+        if (target == null)
+        {
+            ReportUnresolvedReference(appState, reference, found.Error);
+            return;
+        }
+        ShowRowIn(appState, appState.Tabs.KeepIfOpen(origin), target.Value);
+    }
+
+    private static void ShowRowIn(AppState appState, DocumentTab? tab, MetadataTarget target)
+    {
+        LeaveActiveTab(appState);
         ShowNodeIn(appState, tab, target.Node, row: target.Row);
         appState.History.Push(target.Node, appState.Language);
     }

@@ -222,6 +222,7 @@
   "tree.go_to_target": "Go to target",
   "tree.copy_full_name": "Copy full name",
   "tree.analyze": "Analyze",
+  "tree.show_in_metadata": "Show in metadata",
   "tree.close_assembly": "Close assembly",
   "tree.scope_search_to_assembly": "Scope search to this assembly",
   "tree.scope_search_to_namespace": "Scope search to this namespace",

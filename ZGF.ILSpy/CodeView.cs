@@ -60,6 +60,7 @@ public sealed class CodeViewState
     internal CodeReference? Marked;
     internal CodeReference? MenuReference;
     internal CodeReference? MenuAnalyze;
+    internal CodeReference? MenuMetadata;
     internal CodeTooltip? Tooltip;
     internal int TooltipPart;
     internal int MenuLine = NoLine;
@@ -153,6 +154,7 @@ public sealed class CodeViewState
         PressedOnFold = false;
         ScrollX = ScrollY = LaidOutScrollX = LaidOutScrollY = 0f;
         Marked = MenuReference = null;
+        MenuMetadata = null;
         Tooltip = null;
         TooltipPart = 0;
         MenuLine = NoLine;
@@ -207,7 +209,7 @@ public enum CodeZoom
 }
 
 public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null,
-    CodeZoom Zoom = CodeZoom.None);
+    CodeZoom Zoom = CodeZoom.None, CodeReference? ShowInMetadata = null);
 
 public static class CodeViewWidget
 {
@@ -405,6 +407,7 @@ public static class CodeViewWidget
                 ui.Focus(focusId, takesText: false);
                 state.MenuReference = hoverNavigable ? hoverReference : null;
                 state.MenuAnalyze = hoverReference is { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } ? hoverReference : null;
+                state.MenuMetadata = hoverReference is { IsNavigable: true } ? hoverReference : null;
                 state.MenuLine = hasRect ? PositionAt(pointer.X, pointer.Y).Line : CodeViewState.NoLine;
                 ui.OpenContextMenu("menu");
             }
@@ -449,6 +452,8 @@ public static class CodeViewWidget
             result = result with { ToggleBookmark = picked.ToggleBookmark };
         if (picked.Analyze != null)
             result = result with { Analyze = picked.Analyze };
+        if (picked.ShowInMetadata != null)
+            result = result with { ShowInMetadata = picked.ShowInMetadata };
         return result with { Zoom = zoom };
     }
 
@@ -960,6 +965,13 @@ public static class CodeViewWidget
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
                 result = result with { Analyze = analyzed };
+        }
+        if (state.MenuMetadata is { } shown)
+        {
+            if (state.MenuReference == null && state.MenuAnalyze == null)
+                ui.MenuSeparator();
+            if (ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
+                result = result with { ShowInMetadata = shown };
         }
         return result;
     }

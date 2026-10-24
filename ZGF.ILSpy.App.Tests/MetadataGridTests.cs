@@ -109,6 +109,31 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
+    public void The_tree_menu_shows_a_type_in_metadata_and_going_back_returns_to_its_code()
+    {
+        var app = AppDriver.Opened(width: 1800f);
+        var greeter = app.Node(AppStateDriver.FixturesNamespace, "Greeter");
+        app.Show(greeter, 3);
+        app.Ui.Tree.Reveal(greeter);
+        app.Run(2);
+        var tab = app.AppState.Tabs.Active!;
+        var row = app.TextRect("Greeter");
+
+        app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
+        app.ClickMenuItem("Show in metadata").Frame();
+        app.Settle(3);
+
+        var typeDefs = tab.Grid!;
+        Assert.Same(Table(app, "TypeDef"), tab.Node);
+        Assert.Equal("Greeter", typeDefs.Text(GridOf(app, tab).Selected, typeDefs.Column("Name")));
+
+        GoBack(app.AppState);
+        app.Settle(3);
+
+        Assert.Same(greeter, tab.Node);
+    }
+
+    [Fact]
     public void Clicking_the_link_icon_of_a_hovered_token_shows_its_row()
     {
         var (app, tab, grid, row) = ShowGreeterRow();

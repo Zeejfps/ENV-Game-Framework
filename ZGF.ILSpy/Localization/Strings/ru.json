@@ -216,6 +216,7 @@
   "tree.go_to_target": "Перейти к цели",
   "tree.copy_full_name": "Копировать полное имя",
   "tree.analyze": "Анализировать",
+  "tree.show_in_metadata": "Показать в метаданных",
   "tree.close_assembly": "Закрыть сборку",
   "tree.scope_search_to_assembly": "Искать только в этой сборке",
   "tree.scope_search_to_namespace": "Искать только в этом пространстве имён",

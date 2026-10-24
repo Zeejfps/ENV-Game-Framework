@@ -216,6 +216,7 @@
   "tree.go_to_target": "转到目标",
   "tree.copy_full_name": "复制全名",
   "tree.analyze": "分析",
+  "tree.show_in_metadata": "在元数据中显示",
   "tree.close_assembly": "关闭程序集",
   "tree.scope_search_to_assembly": "将搜索限定到此程序集",
   "tree.scope_search_to_namespace": "将搜索限定到此命名空间",

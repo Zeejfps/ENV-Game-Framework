@@ -216,6 +216,7 @@
   "tree.go_to_target": "ターゲットへ移動",
   "tree.copy_full_name": "完全名をコピー",
   "tree.analyze": "分析",
+  "tree.show_in_metadata": "メタデータで表示",
   "tree.close_assembly": "アセンブリを閉じる",
   "tree.scope_search_to_assembly": "このアセンブリ内を検索",
   "tree.scope_search_to_namespace": "この名前空間内を検索",

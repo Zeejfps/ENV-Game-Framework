@@ -216,6 +216,7 @@
   "tree.go_to_target": "Ir para o destino",
   "tree.copy_full_name": "Copiar nome completo",
   "tree.analyze": "Analisar",
+  "tree.show_in_metadata": "Mostrar nos metadados",
   "tree.close_assembly": "Fechar assembly",
   "tree.scope_search_to_assembly": "Limitar a pesquisa a este assembly",
   "tree.scope_search_to_namespace": "Limitar a pesquisa a este namespace",
