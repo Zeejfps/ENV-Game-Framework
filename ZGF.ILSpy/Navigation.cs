@@ -1,6 +1,7 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Decompilation;
 
 namespace ZGF.ILSpy;
 
@@ -183,7 +184,7 @@ public static class Navigation
     {
         var shownIn = ActivateOrOpenTab(appState, tab);
         appState.Tabs.MakeActive(shownIn);
-        shownIn.Show(node, appState.Language, position, target, row);
+        LoadIntoTab(appState, shownIn, node, new Arrival(position, target, row));
         appState.EnqueueCommand(new ViewCommand.RevealNode(node));
     }
 

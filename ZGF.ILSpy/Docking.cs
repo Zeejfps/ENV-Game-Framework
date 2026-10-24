@@ -1,3 +1,4 @@
+using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -17,7 +18,7 @@ public static class Docking
             return;
         appState.Intent.Begin();
         appState.Tabs.MakeActive(tab);
-        tab.EnsureCurrent(appState.Language);
+        DecompileAgainIfOutdated(appState, tab);
     }
 
     /// <summary>Closes <paramref name="tab"/>, cancelling what it was doing. Returns whether it was the

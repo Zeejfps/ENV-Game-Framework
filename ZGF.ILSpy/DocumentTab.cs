@@ -1,36 +1,18 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An open tab: where it points, the node found there, and what it shows of it, which
-/// arrives from the background, then commands the view where to stand in it. Mutated on the UI thread only.</summary>
+/// <summary>An open tab: where it points, the node found there, and what it shows of it, which arrives
+/// from the background. A load started for it cancels the one before, whose result is then dropped.
+/// Mutated on the UI thread only.</summary>
 public sealed class DocumentTab
 {
-    private readonly Func<Strings> _strings;
-    private readonly Func<DecompilerOptions> _options;
-    private readonly Action<string, string> _reportError;
-    private readonly Queue<ViewCommand> _viewCommands;
     private CancellationTokenSource? _work;
+    private Arrival _arrival;
     private CodeViewPosition _viewPosition;
-    private CodeViewPosition? _restore;
-    private Bookmark? _target;
-    private int _row = MetadataGridState.None;
     private string? _title;
-
-    /// <param name="strings">The interface's strings in the current language, for the errors it reports.</param>
-    /// <param name="options">How C# is decompiled now.</param>
-    /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
-    /// <param name="viewCommands">Where the tab queues the commands that tell the view where to stand once what it shows arrives.</param>
-    public DocumentTab(Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError, Queue<ViewCommand> viewCommands)
-    {
-        _strings = strings;
-        _options = options;
-        _reportError = reportError;
-        _viewCommands = viewCommands;
-    }
 
     /// <summary>Where the tab points; outlives reloads of the assembly.</summary>
     public NodePath? Location { get; private set; }
@@ -91,56 +73,69 @@ public sealed class DocumentTab
     /// <summary>Changes whenever the tab is pointed somewhere, or loses its node.</summary>
     public int Version { get; private set; }
 
-    /// <summary>Starts decompiling <paramref name="node"/>, or reading its grid, cancelling what was
-    /// in flight, and shows a placeholder until it is done, then commands the view to return to
-    /// <paramref name="position"/>, else to reveal the line <paramref name="target"/> marks or the grid's
-    /// <paramref name="row"/>, else the node's definition. When the tab already shows
-    /// <paramref name="node"/> in <paramref name="language"/> with the current options, only does the latter.</summary>
-    public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null, Bookmark? target = null,
-        int row = MetadataGridState.None)
+    /// <summary>Whether the tab shows <paramref name="node"/>, done loading, as <paramref name="language"/>
+    /// and <paramref name="options"/> would show it.</summary>
+    public bool Shows(BrowseNode node, DecompilationLanguage language, DecompilerOptions options)
+    {
+        if (!ReferenceEquals(node, Node))
+            return false;
+        if (IsBusy)
+            return false;
+        if (!node.DependsOnLanguage)
+            return true;
+        return IsCurrent(language, options);
+    }
+
+    /// <summary>Whether what the tab shows was decompiled in <paramref name="language"/> with options
+    /// that produce the same code as <paramref name="options"/>.</summary>
+    public bool IsCurrent(DecompilationLanguage language, DecompilerOptions options)
+    {
+        if (language != Language)
+            return false;
+        return Options.ProducesSameCode(options, language);
+    }
+
+    /// <summary>Points the tab at <paramref name="node"/>, cancelling what was in flight, and shows it
+    /// loading until <see cref="FinishLoading"/>; keeps <paramref name="arrival"/> until then.</summary>
+    public LoadTicket StartLoading(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, Arrival arrival)
     {
         Version++;
-        if (ReferenceEquals(node, Node) && (IsCurrent(language) || !node.DependsOnLanguage) && !IsBusy)
-        {
-            Arrive(position, target, row);
-            return;
-        }
         Cancel();
-        _restore = position;
-        _target = target;
-        _row = row;
         var work = new CancellationTokenSource();
         _work = work;
+        _arrival = arrival;
         Node = node;
         Location = node.Path;
         _title = NodeText.Name(node);
         Language = language;
-        Options = _options();
+        Options = options;
         Content = new TabContent.Loading(node);
-
-        Load(work, node, language);
+        return new LoadTicket(work);
     }
 
-    private async void Load(CancellationTokenSource work, BrowseNode node, DecompilationLanguage language)
+    /// <summary>Ends the load <paramref name="load"/> was given for. False when the tab was pointed
+    /// elsewhere or cancelled since, and what the load brought should be dropped.</summary>
+    public bool FinishLoading(LoadTicket load)
     {
-        var loading = node.LoadContentAsync(language, Options, work.Token);
-        await Background.Wait(loading);
-        Complete(work, node, loading);
-    }
-
-    /// <summary>Decompiles the shown node again if it was shown in another language than
-    /// <paramref name="language"/>, or with other options, then keeping the view where it was.</summary>
-    public void EnsureCurrent(DecompilationLanguage language)
-    {
-        if (Node is not { DependsOnLanguage: true } node || IsCurrent(language)) return;
-        Show(node, language, Language == language ? Position : null);
-    }
-
-    private bool IsCurrent(DecompilationLanguage language)
-    {
-        if (language != Language)
+        load.Work.Dispose();
+        if (_work != load.Work)
             return false;
-        return Options.ProducesSameCode(_options(), language);
+        _work = null;
+        return true;
+    }
+
+    /// <summary>Shows <paramref name="content"/>, which the finished load brought.</summary>
+    public void ShowLoaded(TabContent content)
+    {
+        Content = content;
+    }
+
+    /// <summary>Where the view was to stand once the load arrived, given when it started; forgotten once taken.</summary>
+    public Arrival TakeArrival()
+    {
+        var arrival = _arrival;
+        _arrival = new Arrival();
+        return arrival;
     }
 
     /// <summary>Shows <paramref name="document"/>, which no node stands for, titled
@@ -191,83 +186,17 @@ public sealed class DocumentTab
         _work?.Cancel();
         _work = null;
     }
+}
 
-    /// <summary>Commands the view to return to <paramref name="position"/>, else to reveal the grid's
-    /// <paramref name="row"/> or the line <paramref name="target"/> marks, else the node's definition.</summary>
-    private void Arrive(CodeViewPosition? position, Bookmark? target, int row)
+/// <summary>Given for one load of what a tab shows by <see cref="DocumentTab.StartLoading"/>.</summary>
+public sealed class LoadTicket
+{
+    internal LoadTicket(CancellationTokenSource work)
     {
-        if (position != null)
-        {
-            _viewCommands.Enqueue(new ViewCommand.RestoreView(this, position.Value));
-            return;
-        }
-        if (Grid != null)
-        {
-            RevealRow(row);
-            return;
-        }
-        var line = FindLineToReveal(target);
-        if (line < 0)
-            return;
-        _viewCommands.Enqueue(new ViewCommand.RevealLine(this, line));
+        Work = work;
     }
 
-    private void RevealRow(int row)
-    {
-        if (row < 0)
-            return;
-        _viewCommands.Enqueue(new ViewCommand.RevealRow(this, row));
-    }
+    internal CancellationTokenSource Work { get; }
 
-    /// <summary>The line <paramref name="target"/> marks, else the node's definition, or -1.</summary>
-    private int FindLineToReveal(Bookmark? target)
-    {
-        var node = Node;
-        if (node == null)
-            return -1;
-        var marked = FindMarkedLine(target, node);
-        if (marked >= 0)
-            return marked;
-        return Document.FindDefinitionLine(node);
-    }
-
-    private int FindMarkedLine(Bookmark? target, BrowseNode node)
-    {
-        if (target == null)
-            return -1;
-        return target.FindLine(Document, node.Path);
-    }
-
-    private void Complete(CancellationTokenSource work, BrowseNode node, Task<NodeContent> task)
-    {
-        work.Dispose();
-        if (_work != work) return;
-        _work = null;
-        if (task.IsCanceled) return;
-
-        var t = _strings();
-        var error = task.Exception?.GetBaseException();
-        switch (error == null ? task.Result : null)
-        {
-            case GridContent { Grid: var grid }:
-                Content = new TabContent.Table(grid);
-                break;
-            case ImageContent { Image: var image, Source: var source }:
-                Content = new TabContent.Picture(image, source);
-                break;
-            case DocumentContent { Document: var document }:
-                Content = new TabContent.Code(document);
-                break;
-            default:
-                Content = new TabContent.Failed(error!.Message);
-                break;
-        }
-        var failed = error != null || Document.IsError;
-        if (failed)
-            _reportError(t.ErrorDecompile(node.FullName), error?.ToString() ?? Document.GetText());
-        Arrive(failed ? null : _restore, failed ? null : _target, failed ? MetadataGridState.None : _row);
-        _restore = null;
-        _target = null;
-        _row = MetadataGridState.None;
-    }
+    public CancellationToken Token => Work.Token;
 }

@@ -1,6 +1,7 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.AssemblyLists;
+using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Settings;
 
@@ -167,7 +168,7 @@ public static class Assemblies
             ReleaseGoneTab(appState, tab, reloading.Location);
             return;
         }
-        tab.Show(node, appState.Language, reloading.Position);
+        LoadIntoTab(appState, tab, node, new Arrival(reloading.Position));
         if (tab == appState.Tabs.Active && appState.Intent.IsCurrent(intent))
             appState.EnqueueCommand(new ViewCommand.RevealNode(node));
     }

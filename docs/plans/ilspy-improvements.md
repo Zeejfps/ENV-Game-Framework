@@ -95,15 +95,14 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
     kind mapped to `Strings`.
 11. **Shortcut labels and matching are separate** (`Shortcuts.cs:130-136` vs `:139-205`); Ctrl+W and Ctrl+Tab
     have no constant. Fix: a `Shortcut` type with `Label` and `IsPressed(ui)`, one bindings table.
-12. **Types report their own errors.** `DocumentTab`, `Search` and `FrameworkPicker` each take `Func<Strings>`
+12. **Types report their own errors.** `Search` and `FrameworkPicker` each take `Func<Strings>`
     and `Action<string,string>`. Fix: return failures to the owning feature file.
 13. **`MetadataGrid` contradicts its node's thread-safety promise** (`MetadataGrid.cs:57`) and its static
     regex cache (`:61`) is unbounded.
 
 ## Readability
 
-- `ZGF.ILSpy`: `DocumentTab.cs` (`?:` mixed with `??` in `Title` and `Tooltip`, a property pattern in
-  `EnsureCurrent`, ternaries in arguments in `Complete`), `Bookmarks.cs` (`:276-284, 366, 381, 437`),
+- `ZGF.ILSpy`: `Bookmarks.cs` (`:276-284, 366, 381, 437`),
   `BrowseTree.cs` (`:221-227, 269, 306-353`), `NodeText.cs:23-36`, `DocumentsView.cs:374-404`,
   `AppSettings.cs:355-408`; 39 `is {` patterns in 12 files.
 - `ZGF.ILSpy.Core`: ~85 `is { }` checks and ~50 range slices; chained ternaries in `DocumentBuilder.cs:198-206`,

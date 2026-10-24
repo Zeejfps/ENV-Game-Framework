@@ -1,3 +1,4 @@
+using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.Appearance;
 using static ZGF.ILSpy.DocumentPanels;
@@ -41,7 +42,7 @@ public sealed partial class IlSpyApp
         if (!uiState.ShownDecompilation.TakeChange(language, appState.DecompilerOptions))
             return;
         foreach (var tab in ListFrontTabs(uiState))
-            tab.EnsureCurrent(language);
+            DecompileAgainIfOutdated(appState, tab);
     }
 
     /// <summary>Keeps what the screen changed while it drew: the tabs keep where their views stand, and the

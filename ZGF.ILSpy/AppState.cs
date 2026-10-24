@@ -140,7 +140,7 @@ public sealed class AppState
 
     internal DocumentTab AddTab()
     {
-        var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError, ViewCommands);
+        var tab = new DocumentTab();
         Tabs.Add(tab);
         return tab;
     }
