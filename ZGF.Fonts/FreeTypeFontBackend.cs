@@ -253,12 +253,14 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
 
         ActivateSize(entry);
 
+        // NO_BITMAP: fonts such as MS Gothic and BatangChe carry 1-bit bitmaps for small sizes, which
+        // the grayscale atlas cannot take; their outlines draw them anti-aliased like every other font.
         FT_Error err;
         if (entry.IsEmboldened)
         {
             // Load the outline first, embolden it, then render. Bitmap-emboldening (calling
             // embolden after FT_LOAD_RENDER) also works but produces a blurrier result.
-            err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_TARGET_NORMAL);
+            err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_NORMAL);
             if (err != FT_Error.FT_Err_Ok)
                 return false;
             FT_GlyphSlot_Embolden(entry.Face->glyph);
@@ -268,7 +270,7 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         }
         else
         {
-            err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL);
+            err = FT_Load_Glyph(entry.Face, glyphIndex, FT_LOAD_RENDER | FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_NORMAL);
             if (err != FT_Error.FT_Err_Ok)
                 return false;
         }

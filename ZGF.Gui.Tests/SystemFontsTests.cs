@@ -80,6 +80,19 @@ public class SystemFontsTests
     }
 
     [Fact]
+    public void A_font_with_bitmaps_for_small_sizes_draws_from_its_outlines()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        var regular = Find("BatangChe").FindRegular()!;
+        using var fonts = new FreeTypeFontBackend();
+        var font = fonts.LoadFontFromFile(regular.File.Path, 20, regular.File.FaceIndex);
+
+        Assert.True(fonts.TryGetGlyph(fonts.ResolveGlyph(font, 'T'), out var glyph));
+        Assert.True(glyph.Width > 0);
+    }
+
+    [Fact]
     public void A_listed_face_loads_and_draws_its_letters()
     {
         if (!OperatingSystem.IsWindows()) return;
