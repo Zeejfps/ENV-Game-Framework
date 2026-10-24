@@ -42,9 +42,12 @@ public sealed class AnalyzerSymbolNode(AnalysisSymbol symbol) : AnalyzerNode
         return children;
     }
 
+    /// <summary>Cancels the analyses running under it, leaving children never listed unlisted.</summary>
     internal override void Cancel()
     {
-        foreach (var child in Children)
+        if (_children == null)
+            return;
+        foreach (var child in _children)
             child.Cancel();
     }
 }

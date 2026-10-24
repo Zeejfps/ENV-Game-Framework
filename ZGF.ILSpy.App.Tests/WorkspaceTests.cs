@@ -1,5 +1,7 @@
+using System.Reflection;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -294,6 +296,43 @@ public sealed class WorkspaceTests
 
         Assert.False(search.IsBusy);
         Assert.Empty(search.Rows);
+    }
+
+    [Fact]
+    public void A_search_that_fails_is_reported_unless_another_replaced_it()
+    {
+        var reported = new List<string>();
+        var search = new Search(() => Strings.En, (title, _) => reported.Add(title));
+        var current = new CancellationTokenSource();
+        RunsOf(search).Add(current);
+
+        RunSearch(search, FailingSearch(), new CancellationTokenSource());
+        var afterReplaced = reported.Count;
+        RunSearch(search, FailingSearch(), current);
+
+        Assert.Equal(0, afterReplaced);
+        Assert.Equal(["Search failed"], reported);
+    }
+
+    private static async IAsyncEnumerable<IReadOnlyList<SearchResult>> FailingSearch()
+    {
+        yield return await Task.FromException<IReadOnlyList<SearchResult>>(new InvalidOperationException("The search broke."));
+    }
+
+    /// <summary>The runs <paramref name="search"/> counts as current; private, as only starting a
+    /// search over real assemblies adds one.</summary>
+    private static List<CancellationTokenSource> RunsOf(Search search)
+    {
+        var field = typeof(Search).GetField("_runs", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return (List<CancellationTokenSource>)field.GetValue(search)!;
+    }
+
+    /// <summary>Runs <paramref name="results"/> as <paramref name="search"/>'s run <paramref name="work"/>;
+    /// private, as a real search does not fail but for a bug.</summary>
+    private static void RunSearch(Search search, IAsyncEnumerable<IReadOnlyList<SearchResult>> results, CancellationTokenSource work)
+    {
+        var run = typeof(Search).GetMethod("Run", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        run.Invoke(search, [results, work]);
     }
 
     [Fact]

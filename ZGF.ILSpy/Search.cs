@@ -161,15 +161,25 @@ public sealed class Search
         }
         catch (Exception e)
         {
-            _reportError(_strings().ErrorSearch, e.ToString());
+            ReportFailure(work, e);
         }
         _runs.Remove(work);
         work.Dispose();
     }
 
+    private bool IsCurrent(CancellationTokenSource work) => _runs.Contains(work);
+
+    /// <summary>Reports why the run <paramref name="work"/> failed, unless another search replaced it.</summary>
+    private void ReportFailure(CancellationTokenSource work, Exception error)
+    {
+        if (!IsCurrent(work))
+            return;
+        _reportError(_strings().ErrorSearch, error.ToString());
+    }
+
     private void Deliver(IReadOnlyList<SearchResult> batch, CancellationTokenSource work)
     {
-        if (!_runs.Contains(work))
+        if (!IsCurrent(work))
             return;
         foreach (var row in batch)
         {

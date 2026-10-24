@@ -1,3 +1,4 @@
+using System.Reflection;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Testing;
@@ -272,6 +273,28 @@ public sealed class AnalyzerTests
 
         Assert.Equal(["Greeter"], left);
         Assert.Empty(analyzer.Roots);
+    }
+
+    [Fact]
+    public void Removing_a_root_leaves_the_analyses_of_results_never_expanded_unlisted()
+    {
+        var d = WorkspaceDriver.Opened();
+        var analyzer = d.Workspace.Analyzer;
+        d.Workspace.Analyze(First(d));
+        var root = analyzer.Found()[0];
+        var caller = (AnalyzerSymbolNode)Expand(d, root, "Used By").Found[0];
+
+        analyzer.Remove(root);
+
+        Assert.Null(ListedChildren(caller));
+    }
+
+    /// <summary>The children <paramref name="node"/> has listed so far, or null; private, as nothing
+    /// public reads them without listing them.</summary>
+    private static object? ListedChildren(AnalyzerSymbolNode node)
+    {
+        var field = typeof(AnalyzerSymbolNode).GetField("_children", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return field.GetValue(node);
     }
 
     [Fact]
