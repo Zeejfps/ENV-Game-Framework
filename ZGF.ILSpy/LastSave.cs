@@ -29,10 +29,4 @@ public sealed class LastSave
     {
         _saved = sources;
     }
-
-    /// <summary>Counts the analyzer as saved, for changes that were not the user's.</summary>
-    public void RecordAnalyzer(AnalyzerTree analyzer)
-    {
-        _saved = _saved with { Analyzer = analyzer.Revision };
-    }
 }

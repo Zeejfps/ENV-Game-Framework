@@ -66,6 +66,17 @@ internal static class Poll
     }
 }
 
+internal static class FoundAnalyses
+{
+    /// <summary>The analyzer's roots whose symbols were found.</summary>
+    public static List<AnalyzerSymbolNode> Found(this AnalyzerTree analyzer)
+    {
+        return analyzer.Roots
+            .OfType<AnalyzerSymbolNode>()
+            .ToList();
+    }
+}
+
 internal static class TempSettings
 {
     public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json"));
@@ -116,7 +127,7 @@ internal sealed class WorkspaceDriver
     private bool IsSettled()
     {
         var w = Workspace;
-        return !w.IsReloading && !w.IsRestoringAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !w.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+        return !w.IsReloading && !w.IsFindingAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !w.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
     }
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>

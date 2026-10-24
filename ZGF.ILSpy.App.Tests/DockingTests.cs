@@ -195,8 +195,8 @@ public sealed class LayoutPersistenceTests : IDisposable
         first.Pump();
 
         var next = new WorkspaceDriver(_temp.Settings());
-        next.RunUntil(() => next.Workspace.Analyzer.Roots.Count == 2);
+        next.RunUntil(() => !next.Workspace.IsFindingAnalyses);
 
-        Assert.Equal(["First() : int", "Greeter"], next.Workspace.Analyzer.Roots.Select(r => r.Symbol.Label));
+        Assert.Equal(["First() : int", "Greeter"], next.Workspace.Analyzer.Found().Select(r => r.Symbol.Label));
     }
 }

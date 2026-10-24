@@ -50,7 +50,6 @@ public static class AssemblyLoading
         w.Intent.Begin();
         w.Opens.CancelAll();
         w.Reload.Stop();
-        w.PendingAnalyses.Clear();
         w.ClearAssemblies();
     }
 

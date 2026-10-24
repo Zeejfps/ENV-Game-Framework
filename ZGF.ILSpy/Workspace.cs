@@ -27,7 +27,6 @@ public sealed class Workspace
     public Reload Reload { get; } = new();
     public OpenRequests Opens { get; } = new();
     public LastSave LastSave { get; } = new();
-    public PendingAnalyses PendingAnalyses { get; }
     public BookmarkList Bookmarks { get; } = new();
 
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
@@ -92,8 +91,8 @@ public sealed class Workspace
     /// <summary>True while <see cref="AssemblyLoading.Refresh"/> reopens the assemblies.</summary>
     public bool IsReloading => Reload.IsRunning;
 
-    /// <summary>True while the open list's analyses are being found to be analyzed again.</summary>
-    public bool IsRestoringAnalyses => PendingAnalyses.Pending != null;
+    /// <summary>True while analyzer roots wait for their symbols to be found.</summary>
+    public bool IsFindingAnalyses => Analyzer.IsFinding;
 
     /// <summary>The bookmark imports finding their places or waiting for the user to say how to take them.</summary>
     public BookmarkImports Imports { get; } = new();
@@ -150,6 +149,7 @@ public sealed class Workspace
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
+        Analyzer.AddPending(Lists.ActiveAnalyses);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
@@ -158,7 +158,6 @@ public sealed class Workspace
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
-        PendingAnalyses = new PendingAnalyses(Lists.ActiveAnalyses);
         ReportSettingsLoadError(settings);
         this.ReportLeftOutBookmarks(leftOutBookmarks);
     }

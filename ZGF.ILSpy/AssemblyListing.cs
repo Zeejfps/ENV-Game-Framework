@@ -33,7 +33,7 @@ public static class AssemblyListing
     internal static void RememberActiveList(this Workspace w)
     {
         w.RememberOpenAssemblies();
-        var analyzed = w.PendingAnalyses.ListToSave(w.Analyzer);
+        var analyzed = w.Analyzer.ListSavedAnalyses();
         w.Lists.RememberActiveAnalyses(analyzed);
     }
 
@@ -54,7 +54,7 @@ public static class AssemblyListing
         w.CloseDocuments();
         w.History.Clear();
         w.OpenAsReload(w.ListExistingAssemblies());
-        w.PendingAnalyses.Expect(w.Lists.ActiveAnalyses);
+        w.Analyzer.AddPending(w.Lists.ActiveAnalyses);
         w.RestoreAnalyses();
     }
 

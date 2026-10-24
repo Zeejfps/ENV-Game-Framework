@@ -31,4 +31,40 @@ public sealed class AutosaveTests : IDisposable
         Assert.Equal(Locale.De, saved.Locale);
         Assert.Equal(SearchKinds.Types, saved.SearchKinds);
     }
+
+    [Fact]
+    public void An_analysis_made_while_saved_ones_are_restoring_is_saved()
+    {
+        var first = WorkspaceDriver.Opened(_temp.Settings());
+        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Pump();
+        var next = new WorkspaceDriver(_temp.Settings());
+
+        next.Workspace.Analyze(first.Fixture("Outline"));
+        next.Settle();
+        next.Pump();
+
+        var saved = _temp.Settings().AssemblyLists.Single().Analyzed!;
+        Assert.Equal(2, saved.Count);
+    }
+
+    [Fact]
+    public void A_saved_analysis_that_is_not_found_again_leaves_the_settings_with_the_next_save()
+    {
+        var first = WorkspaceDriver.Opened(_temp.Settings());
+        first.Workspace.Analyze(first.Fixture("Greeter"));
+        first.Pump();
+        var settings = _temp.Settings();
+        var list = settings.AssemblyLists.Single();
+        var anchor = list.Analyzed!.Single();
+        settings.AssemblyLists[0] = list with { Analyzed = [anchor with { Token = anchor.Token + 0xFFFF }] };
+        settings.Save();
+
+        var next = new WorkspaceDriver(_temp.Settings());
+        next.Settle();
+        next.Pump();
+
+        Assert.Empty(next.Workspace.Analyzer.Roots);
+        Assert.Empty(_temp.Settings().AssemblyLists.Single().Analyzed ?? []);
+    }
 }

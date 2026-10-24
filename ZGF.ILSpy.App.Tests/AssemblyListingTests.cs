@@ -164,7 +164,7 @@ public sealed class AssemblyListingTests
         d.Settle();
 
         Assert.Equal(0, inOther);
-        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Roots).Symbol.Label);
+        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Found()).Symbol.Label);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public sealed class AssemblyListingTests
         d.Workspace.SwitchList(copy);
         d.Settle();
 
-        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Roots).Symbol.Label);
+        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Found()).Symbol.Label);
     }
 
     [Fact]

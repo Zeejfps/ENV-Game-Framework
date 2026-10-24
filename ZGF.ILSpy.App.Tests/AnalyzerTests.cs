@@ -26,7 +26,7 @@ public sealed class AnalyzerTests
         var d = WorkspaceDriver.Opened();
 
         d.Workspace.Analyze(First(d));
-        var root = Assert.Single(d.Workspace.Analyzer.Roots);
+        var root = Assert.Single(d.Workspace.Analyzer.Found());
         var usedBy = Expand(d, root, "Used By");
 
         Assert.True(d.Workspace.Layout.Contains(DockPanels.Analyzer));
@@ -44,7 +44,7 @@ public sealed class AnalyzerTests
         var node = d.Fixture("Counter").Children.Single(c => c.Text.StartsWith(member + " "));
 
         d.Workspace.Analyze(node);
-        var usedBy = Expand(d, Assert.Single(d.Workspace.Analyzer.Roots), "Used By");
+        var usedBy = Expand(d, Assert.Single(d.Workspace.Analyzer.Found()), "Used By");
 
         var found = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(usedBy.Found));
         Assert.StartsWith(user, found.Symbol.Label);
@@ -56,7 +56,7 @@ public sealed class AnalyzerTests
         var d = WorkspaceDriver.Opened();
 
         d.Workspace.Analyze(d.Fixture("GuardAttribute"));
-        var appliedTo = Expand(d, Assert.Single(d.Workspace.Analyzer.Roots), "Applied To");
+        var appliedTo = Expand(d, Assert.Single(d.Workspace.Analyzer.Found()), "Applied To");
 
         var member = Assert.IsType<AnalyzerSymbolNode>(Assert.Single(appliedTo.Found));
         Assert.StartsWith("Enter()", member.Symbol.Label);
@@ -69,7 +69,7 @@ public sealed class AnalyzerTests
         var d = app.Driver;
         d.Workspace.Analyze(First(d));
         var analyzer = d.Workspace.Analyzer;
-        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Roots[0], "Used By").Found[0];
+        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Found()[0], "Used By").Found[0];
         analyzer.View.Select(caller);
         app.Run(3);
 
@@ -98,7 +98,7 @@ public sealed class AnalyzerTests
 
         app.Frames.Key(KeyboardKey.R, KeyModifiers.Control).Frame(2);
 
-        Assert.StartsWith("First()", Assert.Single(d.Workspace.Analyzer.Roots).Symbol.Label);
+        Assert.StartsWith("First()", Assert.Single(d.Workspace.Analyzer.Found()).Symbol.Label);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class AnalyzerTests
         app.Frames.Key(KeyboardKey.R, KeyModifiers.Control).Frame(2);
 
         Assert.Equal(2, d.Workspace.Analyzer.Roots.Count);
-        Assert.StartsWith("Third()", d.Workspace.Analyzer.Roots[1].Symbol.Label);
+        Assert.StartsWith("Third()", d.Workspace.Analyzer.Found()[1].Symbol.Label);
     }
 
     private static void ShowFirstCaller(AppDriver app)
@@ -134,7 +134,7 @@ public sealed class AnalyzerTests
         var d = app.Driver;
         var analyzer = d.Workspace.Analyzer;
         d.Workspace.Analyze(First(d));
-        var caller = Expand(d, analyzer.Roots[0], "Used By").Found[0];
+        var caller = Expand(d, analyzer.Found()[0], "Used By").Found[0];
         analyzer.View.ScrollIntoView(caller);
         app.Run(3);
     }
@@ -154,7 +154,7 @@ public sealed class AnalyzerTests
         d.Workspace.Analyze(reference);
         d.RunUntil(() => d.Workspace.Analyzer.Roots.Count > 0);
 
-        Assert.StartsWith("First()", d.Workspace.Analyzer.Roots[0].Symbol.Label);
+        Assert.StartsWith("First()", d.Workspace.Analyzer.Found()[0].Symbol.Label);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public sealed class AnalyzerTests
         d.Workspace.Analyze(d.Fixture("Greeter"));
 
         analyzer.Remove(analyzer.Roots[0]);
-        var left = analyzer.Roots.Select(r => r.Symbol.Label).ToList();
+        var left = analyzer.Found().Select(r => r.Symbol.Label).ToList();
         d.Workspace.ClearList();
 
         Assert.Equal(["Greeter"], left);
@@ -216,13 +216,13 @@ public sealed class AnalyzerTests
         var d = app.Driver;
         var analyzer = d.Workspace.Analyzer;
         d.Workspace.Analyze(First(d));
-        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Roots[0], "Used By").Found[0];
+        var caller = (AnalyzerSymbolNode)Expand(d, analyzer.Found()[0], "Used By").Found[0];
         d.Workspace.Analyze(d.Fixture("Greeter"));
         analyzer.View.Select(caller);
         app.Run(3);
 
         app.ClickLast(LucideIcons.Trash2).Frame(2);
-        var left = analyzer.Roots.Select(r => r.Symbol.Label).ToList();
+        var left = analyzer.Found().Select(r => r.Symbol.Label).ToList();
         app.Click(LucideIcons.ListX).Frame(2);
 
         Assert.Equal(["Greeter"], left);

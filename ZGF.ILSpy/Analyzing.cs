@@ -35,27 +35,22 @@ public static class Analyzing
         w.Analyze(node);
     }
 
-    /// <summary>Finds the symbols the open list had analyzed again in the background, opening their
-    /// assemblies' files without listing them, and analyzes those still there, in their order, unless
-    /// the list was cleared meanwhile. Reports why they could not be found.</summary>
+    /// <summary>Finds the symbols of the roots restored from the saved analyses in the background,
+    /// opening their assemblies' files without listing them, and turns each root into the analysis of
+    /// its symbol, or removes it when its symbol is gone, unless the list was cleared meanwhile.
+    /// Reports why the symbols could not be found.</summary>
     public static async void RestoreAnalyses(this Workspace w)
     {
-        var analyzed = w.PendingAnalyses.Pending;
-        if (analyzed == null)
+        var restoring = w.Analyzer.ListRestoring();
+        if (restoring.Count == 0)
             return;
+        var analyzed = restoring.ConvertAll(static r => r.SavedAs!.Value);
         var generation = w.Assemblies.Generation;
         var found = await Background.Run(() => w.FindAnalyzed(analyzed));
         if (w.WasListCleared(generation))
             return;
         w.ReportRestoreFailure(found.Error);
-        w.AnalyzeAgain(found.Value);
-    }
-
-    private static void ReportRestoreFailure(this Workspace w, Exception? error)
-    {
-        if (error == null)
-            return;
-        w.ReportError(Strings.For(w.Locale).ErrorRestoreAnalyses, error.ToString());
+        w.AnalyzeAgain(restoring, found.Value);
     }
 
     private static bool WasListCleared(this Workspace w, int generation) => w.Assemblies.Generation != generation;
@@ -65,20 +60,36 @@ public static class Analyzing
         return analyzed.ConvertAll(a => Analysis.Find(w.Assemblies, a));
     }
 
-    private static void AnalyzeAgain(this Workspace w, List<AnalysisSymbol?>? found)
+    private static void ReportRestoreFailure(this Workspace w, Exception? error)
     {
-        w.PendingAnalyses.Clear();
-        if (found != null)
-            w.AnalyzeAll(found);
-        w.LastSave.RecordAnalyzer(w.Analyzer);
+        if (error == null)
+            return;
+        w.ReportError(Strings.For(w.Locale).ErrorRestoreAnalyses, error.ToString());
     }
 
-    private static void AnalyzeAll(this Workspace w, List<AnalysisSymbol?> symbols)
+    private static void AnalyzeAgain(this Workspace w, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?>? found)
     {
-        foreach (var symbol in symbols)
+        for (var i = 0; i < restoring.Count; i++)
         {
-            if (symbol != null)
-                w.Analyzer.Analyze(symbol);
+            var symbol = FoundAt(found, i);
+            w.AnalyzeAgain(restoring[i], symbol);
         }
+    }
+
+    private static AnalysisSymbol? FoundAt(List<AnalysisSymbol?>? found, int index)
+    {
+        if (found == null)
+            return null;
+        return found[index];
+    }
+
+    private static void AnalyzeAgain(this Workspace w, AnalyzerPendingNode root, AnalysisSymbol? symbol)
+    {
+        if (symbol == null)
+        {
+            w.Analyzer.Remove(root);
+            return;
+        }
+        w.Analyzer.Resolve(root, symbol);
     }
 }

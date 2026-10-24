@@ -140,15 +140,23 @@ public sealed class AnalyzerMessageNode(string? error = null) : AnalyzerNode
     public string? Error { get; } = error;
 }
 
+/// <summary>A root whose symbol is still being found, shown as loading. It saves as the analysis it
+/// was restored from, if it was.</summary>
+public sealed class AnalyzerPendingNode(CodeAnchor? savedAs) : AnalyzerNode
+{
+    public CodeAnchor? SavedAs { get; } = savedAs;
+}
+
 /// <summary>
-/// The analyzer's tree: the symbols the user asked to analyze, newest last, and the model the
-/// tree view reads. Results stream in from the background and keep the order the analysis finds
-/// them in, or ILSpy's sorting when it asks for one.
+/// The analyzer's tree: the symbols the user asked to analyze, newest last, each standing as a
+/// <see cref="AnalyzerPendingNode"/> until it is found, and the model the tree view reads. Results
+/// stream in from the background and keep the order the analysis finds them in, or ILSpy's sorting
+/// when it asks for one.
 /// </summary>
 public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
 {
     private readonly AssemblyList _assemblies;
-    private readonly List<AnalyzerSymbolNode> _roots = new();
+    private readonly List<AnalyzerNode> _roots = new();
     private readonly AnalyzerMessageNode _loading = new();
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _icons = NodeIconPalette.Dark;
@@ -162,10 +170,24 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
 
     public TreeViewState<AnalyzerNode> View { get; } = new(ReferenceEqualityComparer.Instance);
 
-    public IReadOnlyList<AnalyzerSymbolNode> Roots => _roots;
+    public IReadOnlyList<AnalyzerNode> Roots => _roots;
 
-    /// <summary>Changes whenever a root is added or removed.</summary>
+    /// <summary>Changes whenever what <see cref="ListSavedAnalyses"/> lists changes.</summary>
     public int Revision { get; private set; }
+
+    /// <summary>True while a root waits for its symbol to be found.</summary>
+    public bool IsFinding
+    {
+        get
+        {
+            foreach (var root in _roots)
+            {
+                if (root is AnalyzerPendingNode)
+                    return true;
+            }
+            return false;
+        }
+    }
 
     public void SetStyle(UiTheme theme, NodeIconPalette icons, Strings strings)
     {
@@ -185,40 +207,126 @@ public sealed class AnalyzerTree : ITreeModel<AnalyzerNode>
             _roots.Add(root);
             Revision++;
         }
-        View.SetExpanded(root, true);
-        View.Refresh();
-        View.Select(root);
+        Show(root);
     }
 
     private AnalyzerSymbolNode? FindRoot(AnalysisSymbol symbol)
     {
         if (symbol.Reference == null)
             return null;
-        return _roots.Find(r => Equals(r.Symbol.Reference, symbol.Reference));
+        foreach (var root in _roots)
+        {
+            if (root is AnalyzerSymbolNode found && Equals(found.Symbol.Reference, symbol.Reference))
+                return found;
+        }
+        return null;
     }
 
-    public void Remove(AnalyzerSymbolNode root)
+    /// <summary>Adds a root that waits for its symbol to be found, saved as <paramref name="savedAs"/>
+    /// meanwhile, or not saved when it is null.</summary>
+    public AnalyzerPendingNode AddPending(CodeAnchor? savedAs)
+    {
+        var root = new AnalyzerPendingNode(savedAs);
+        _roots.Add(root);
+        if (savedAs != null)
+            Revision++;
+        View.Refresh();
+        return root;
+    }
+
+    /// <summary>Adds a waiting root for each of <paramref name="analyzed"/>, in order, saved as it.</summary>
+    public void AddPending(IReadOnlyList<CodeAnchor> analyzed)
+    {
+        foreach (var anchor in analyzed)
+            AddPending(anchor);
+    }
+
+    /// <summary>The roots restored from the saved analyses that are still waiting for their symbols.</summary>
+    public List<AnalyzerPendingNode> ListRestoring()
+    {
+        return _roots
+            .OfType<AnalyzerPendingNode>()
+            .Where(static p => p.SavedAs != null)
+            .ToList();
+    }
+
+    /// <summary>Turns the waiting <paramref name="pending"/> into the analysis of <paramref name="symbol"/>,
+    /// expanded and selected, in its place; when another root analyzes it already, that one is selected
+    /// and <paramref name="pending"/> goes. Does nothing once <paramref name="pending"/> was removed.</summary>
+    public void Resolve(AnalyzerPendingNode pending, AnalysisSymbol symbol)
+    {
+        var index = _roots.IndexOf(pending);
+        if (index < 0)
+            return;
+        var existing = FindRoot(symbol);
+        if (existing != null)
+        {
+            Remove(pending);
+            Show(existing);
+            return;
+        }
+        var root = new AnalyzerSymbolNode(symbol);
+        _roots[index] = root;
+        if (symbol.Definition != pending.SavedAs)
+            Revision++;
+        Show(root);
+    }
+
+    private void Show(AnalyzerSymbolNode root)
+    {
+        View.SetExpanded(root, true);
+        View.Refresh();
+        View.Select(root);
+    }
+
+    public bool Contains(AnalyzerNode root) => _roots.Contains(root);
+
+    public void Remove(AnalyzerNode root)
     {
         if (!_roots.Remove(root)) return;
-        Revision++;
+        if (SavedAnalysisOf(root) != null)
+            Revision++;
         root.Cancel();
         View.ClearSelection();
         View.Refresh();
     }
 
+    /// <summary>The analyses the roots save as, in their order.</summary>
+    public List<CodeAnchor> ListSavedAnalyses()
+    {
+        var saved = new List<CodeAnchor>();
+        foreach (var root in _roots)
+        {
+            var anchor = SavedAnalysisOf(root);
+            if (anchor != null)
+                saved.Add(anchor.Value);
+        }
+        return saved;
+    }
+
+    private static CodeAnchor? SavedAnalysisOf(AnalyzerNode root) => root switch
+    {
+        AnalyzerSymbolNode symbol => symbol.Symbol.Definition,
+        AnalyzerPendingNode pending => pending.SavedAs,
+        _ => null,
+    };
+
     /// <summary>The root the selection sits under, or null when nothing showing is selected.</summary>
-    public AnalyzerSymbolNode? FindSelectedRoot()
+    public AnalyzerNode? FindSelectedRoot()
     {
         if (!View.TryGetSelectedRoot(out var root))
             return null;
-        return root as AnalyzerSymbolNode;
+        return root;
     }
 
-    /// <summary>Expands every root and each analysis of it, running those not run yet.</summary>
+    /// <summary>Expands every root found and each analysis of it, running those not run yet.</summary>
     public void ExpandAll()
     {
         foreach (var root in _roots)
-            ExpandWithAnalyses(root);
+        {
+            if (root is AnalyzerSymbolNode symbol)
+                ExpandWithAnalyses(symbol);
+        }
     }
 
     private void ExpandWithAnalyses(AnalyzerSymbolNode symbol)

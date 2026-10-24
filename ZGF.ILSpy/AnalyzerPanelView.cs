@@ -101,7 +101,7 @@ internal static class AnalyzerPanelView
             return;
         if (analyzer.View.Selected is not AnalyzerSymbolNode node)
             return;
-        var isRoot = analyzer.Roots.Contains(node);
+        var isRoot = analyzer.Contains(node);
         var target = node.Symbol.Reference;
         if (target != null)
             GoToItems(ui, w, target);
