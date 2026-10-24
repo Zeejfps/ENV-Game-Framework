@@ -172,12 +172,13 @@ public sealed class AssemblyListingTests
     {
         var d = WorkspaceDriver.Opened();
         d.Ui.Analyze(d.Fixture("Greeter"));
-        d.Workspace.DuplicateList(SavedAssemblyLists.DefaultName);
-        var copy = d.Ui.ListsDialog.Renaming!;
+        var copy = d.Workspace.DuplicateList(SavedAssemblyLists.DefaultName);
 
         d.Workspace.SwitchList(copy);
         d.Settle();
 
+        Assert.NotEqual(SavedAssemblyLists.DefaultName, copy);
+        Assert.Equal(copy, d.Workspace.Lists.Active);
         Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Found()).Symbol.Label);
     }
 
