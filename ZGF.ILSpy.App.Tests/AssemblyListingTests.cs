@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
@@ -326,6 +327,64 @@ public sealed class AssemblyListingTests
 
         Assert.Same(greeter, app.Ui.Tree.View.Selected);
         Assert.Same(greeter, app.AppState.Tabs.Active!.Node);
+    }
+
+    [Fact]
+    public void Opening_a_node_in_a_new_tab_from_its_menu_leaves_the_shown_document_alone()
+    {
+        var app = AppDriver.Opened();
+        var greeter = app.Fixture("Greeter");
+        var farewell = app.Fixture("Farewell");
+        app.Show(greeter, 2);
+        var first = app.AppState.Tabs.Active!;
+        var row = app.TextRect("Farewell");
+
+        app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
+        var shownAfterRightClick = first.Node;
+        app.ClickMenuItem("Open in new tab").Frame(2);
+        app.Settle(2);
+
+        Assert.Same(greeter, shownAfterRightClick);
+        Assert.Same(greeter, first.Node);
+        Assert.Same(farewell, app.AppState.Tabs.Active!.Node);
+    }
+
+    [Fact]
+    public void Clicking_a_node_selects_it_and_double_clicking_opens_it()
+    {
+        var app = AppDriver.Opened();
+        var greeter = app.Fixture("Greeter");
+        var farewell = app.Fixture("Farewell");
+        app.Show(greeter, 2);
+        var tab = app.AppState.Tabs.Active!;
+
+        app.Click("Farewell").Frame(2);
+        var shownAfterClick = tab.Node;
+        var selectedAfterClick = app.Ui.Tree.View.Selected;
+        app.DoubleClick("Farewell").Frame(2);
+        app.Settle(2);
+
+        Assert.Same(greeter, shownAfterClick);
+        Assert.Same(farewell, selectedAfterClick);
+        Assert.Same(tab, app.AppState.Tabs.Active);
+        Assert.Same(farewell, tab.Node);
+    }
+
+    [Fact]
+    public void The_tree_menu_opens_a_node_in_the_active_tab()
+    {
+        var app = AppDriver.Opened();
+        var farewell = app.Fixture("Farewell");
+        app.Show(app.Fixture("Greeter"), 2);
+        var tab = app.AppState.Tabs.Active!;
+        var row = app.TextRect("Farewell");
+
+        app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
+        app.ClickMenuItem("Open").Frame(2);
+        app.Settle(2);
+
+        Assert.Same(tab, app.AppState.Tabs.Active);
+        Assert.Same(farewell, tab.Node);
     }
 
     [Fact]

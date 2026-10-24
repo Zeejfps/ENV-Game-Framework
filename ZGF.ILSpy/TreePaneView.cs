@@ -15,6 +15,7 @@ internal static class TreePaneView
 {
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
+    private const string OpenKey = "Enter";
 
     public static void Render(Ui<UiState> ui, AppState appState)
     {
@@ -122,12 +123,21 @@ internal static class TreePaneView
         var node = result.Node;
         if (node == null)
             return;
-        if (result.SelectionChanged)
-            ShowNode(appState, node);
-        if (result.Activated && node.Target != null)
-            GoToTarget(appState, node);
+        if (result.Activated)
+            Open(appState, node);
         if (result.ContextMenuRequested)
             OpenContextMenu(ui, appState, node, result.ContextMenuAt);
+    }
+
+    /// <summary>Goes where <paramref name="node"/> points when it stands for a reference, else shows it in the active tab.</summary>
+    private static void Open(AppState appState, BrowseNode node)
+    {
+        if (node.Target != null)
+        {
+            GoToTarget(appState, node);
+            return;
+        }
+        ShowNode(appState, node);
     }
 
     private static void OpenContextMenu(Ui<UiState> ui, AppState appState, BrowseNode node, PointF at)
@@ -150,9 +160,13 @@ internal static class TreePaneView
     private static void NodeMenu(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
+        var pointsElsewhere = node.Target != null;
+        var openKey = pointsElsewhere ? null : OpenKey;
+        if (ui.MenuItem(t.TreeOpen, openKey, id: "open"))
+            ShowNode(appState, node);
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
             ShowNode(appState, node, inNewTab: true);
-        if (node.Target != null && ui.MenuItem(t.TreeGoToTarget, id: "go-to-target"))
+        if (pointsElsewhere && ui.MenuItem(t.TreeGoToTarget, OpenKey, id: "go-to-target"))
             GoToTarget(appState, node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;

@@ -183,6 +183,7 @@
   "option.show_xml_documentation": "逆コンパイルされたコードに XML ドキュメント コメントを含める",
   "option.use_debug_symbols": "デバッグ シンボルの変数名を使用する (利用可能な場合)",
   "tree.empty": "[ファイル] › [開く…] ({shortcut}) でアセンブリを開いてください",
+  "tree.open": "開く",
   "tree.open_in_new_tab": "新しいタブで開く",
   "tree.go_to_target": "ターゲットへ移動",
   "tree.copy_full_name": "完全名をコピー",

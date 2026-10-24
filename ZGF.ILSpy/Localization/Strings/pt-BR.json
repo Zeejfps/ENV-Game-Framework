@@ -183,6 +183,7 @@
   "option.show_xml_documentation": "Incluir comentários de documentação XML no código descompilado",
   "option.use_debug_symbols": "Usar nomes de variáveis dos símbolos de depuração, se disponíveis",
   "tree.empty": "Abra um assembly com Arquivo › Abrir… ({shortcut})",
+  "tree.open": "Abrir",
   "tree.open_in_new_tab": "Abrir em nova guia",
   "tree.go_to_target": "Ir para o destino",
   "tree.copy_full_name": "Copiar nome completo",

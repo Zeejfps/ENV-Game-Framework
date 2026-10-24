@@ -183,6 +183,7 @@
   "option.show_xml_documentation": "XML-Dokumentationskommentare in den dekompilierten Code aufnehmen",
   "option.use_debug_symbols": "Variablennamen aus Debugsymbolen verwenden, sofern verfügbar",
   "tree.empty": "Öffnen Sie eine Assembly über Datei › Öffnen… ({shortcut})",
+  "tree.open": "Öffnen",
   "tree.open_in_new_tab": "In neuem Tab öffnen",
   "tree.go_to_target": "Zum Ziel springen",
   "tree.copy_full_name": "Vollständigen Namen kopieren",

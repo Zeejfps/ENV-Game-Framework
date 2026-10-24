@@ -189,6 +189,7 @@
   "option.use_debug_symbols": "Use variable names from debug symbols, if available",
 
   "tree.empty": "Open an assembly with File › Open… ({shortcut})",
+  "tree.open": "Open",
   "tree.open_in_new_tab": "Open in new tab",
   "tree.go_to_target": "Go to target",
   "tree.copy_full_name": "Copy full name",
