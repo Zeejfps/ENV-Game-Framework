@@ -9,7 +9,7 @@ public static class Analyzing
 {
     /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer. Returns
     /// the root analyzing it, or null when it cannot be analyzed.</summary>
-    public static AnalyzerSymbolNode? Analyze(this Workspace w, BrowseNode node)
+    public static AnalyzerSymbolNode? Analyze(this AppState w, BrowseNode node)
     {
         var symbol = Analysis.Of(node);
         if (symbol == null)
@@ -22,7 +22,7 @@ public static class Analyzing
     /// its analysis, which the view is commanded to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
-    public static async void Analyze(this Workspace w, CodeReference reference)
+    public static async void Analyze(this AppState w, CodeReference reference)
     {
         var root = w.Analyzer.AddPending(savedAs: null);
         var found = await Background.Run(() => w.Assemblies.FindNode(reference));
@@ -38,7 +38,7 @@ public static class Analyzing
         w.AnalyzeFound(root, node);
     }
 
-    private static void AnalyzeFound(this Workspace w, AnalyzerPendingNode root, BrowseNode node)
+    private static void AnalyzeFound(this AppState w, AnalyzerPendingNode root, BrowseNode node)
     {
         var symbol = Analysis.Of(node);
         if (symbol == null)
@@ -51,7 +51,7 @@ public static class Analyzing
 
     /// <summary>Turns <paramref name="root"/> into the analysis of <paramref name="symbol"/>, and commands
     /// the view to show the root that analyzes it.</summary>
-    private static void ResolveAnalysis(this Workspace w, AnalyzerPendingNode root, AnalysisSymbol symbol)
+    private static void ResolveAnalysis(this AppState w, AnalyzerPendingNode root, AnalysisSymbol symbol)
     {
         var shown = w.Analyzer.Resolve(root, symbol);
         if (shown == null)
@@ -63,7 +63,7 @@ public static class Analyzing
     /// opening their assemblies' files without listing them, and turns each root into the analysis of
     /// its symbol, or removes it when its symbol is gone, unless the list was cleared meanwhile.
     /// Reports why the symbols could not be found.</summary>
-    public static async void RestoreAnalyses(this Workspace w)
+    public static async void RestoreAnalyses(this AppState w)
     {
         var restoring = w.Analyzer.ListRestoring();
         if (restoring.Count == 0)
@@ -77,21 +77,21 @@ public static class Analyzing
         w.AnalyzeAgain(restoring, found.Value);
     }
 
-    private static bool WasListCleared(this Workspace w, int generation) => w.Assemblies.Generation != generation;
+    private static bool WasListCleared(this AppState w, int generation) => w.Assemblies.Generation != generation;
 
-    private static List<AnalysisSymbol?> FindAnalyzed(this Workspace w, List<CodeAnchor> analyzed)
+    private static List<AnalysisSymbol?> FindAnalyzed(this AppState w, List<CodeAnchor> analyzed)
     {
         return analyzed.ConvertAll(a => Analysis.Find(w.Assemblies, a));
     }
 
-    private static void ReportRestoreFailure(this Workspace w, Exception? error)
+    private static void ReportRestoreFailure(this AppState w, Exception? error)
     {
         if (error == null)
             return;
         w.ReportError(Strings.For(w.Locale).ErrorRestoreAnalyses, error.ToString());
     }
 
-    private static void AnalyzeAgain(this Workspace w, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?>? found)
+    private static void AnalyzeAgain(this AppState w, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?>? found)
     {
         for (var i = 0; i < restoring.Count; i++)
         {
@@ -107,7 +107,7 @@ public static class Analyzing
         return found[index];
     }
 
-    private static void AnalyzeAgain(this Workspace w, AnalyzerPendingNode root, AnalysisSymbol? symbol)
+    private static void AnalyzeAgain(this AppState w, AnalyzerPendingNode root, AnalysisSymbol? symbol)
     {
         if (symbol == null)
         {

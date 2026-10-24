@@ -12,7 +12,7 @@ internal static class ToolbarView
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -76,7 +76,7 @@ internal static class ToolbarView
 
     /// <summary>The open assembly list's name, opening a menu of every list to switch to, and of the
     /// dialog that manages them. As wide as the longest name, within limits.</summary>
-    private static void ListPicker(Ui<UiState> ui, Workspace w)
+    private static void ListPicker(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var lists = w.Lists;
@@ -114,7 +114,7 @@ internal static class ToolbarView
         public float Width;
     }
 
-    private static void ListItem(Ui<UiState> ui, Workspace w, string name)
+    private static void ListItem(Ui<UiState> ui, AppState w, string name)
     {
         var active = name == w.Lists.Active;
         if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
@@ -134,7 +134,7 @@ internal static class ToolbarView
         return _languages;
     }
 
-    private static void LanguageVersion(Ui<UiState> ui, Workspace w)
+    private static void LanguageVersion(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var current = w.DecompilerOptions.LanguageVersion;
@@ -151,7 +151,7 @@ internal static class ToolbarView
     private static Ui.Scope Group(Ui<UiState> ui) =>
         ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.Gap, AlignY = Align.Center });
 
-    private static void HistoryItems(Ui<UiState> ui, Workspace w, int direction)
+    private static void HistoryItems(Ui<UiState> ui, AppState w, int direction)
     {
         var entries = w.History.Entries;
         var palette = ui.State.NodeIconPalette;

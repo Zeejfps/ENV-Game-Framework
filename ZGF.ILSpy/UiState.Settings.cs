@@ -6,7 +6,7 @@ public sealed partial class UiState
 {
     private ViewSources _keptView;
 
-    /// <summary>Hands the workspace what its settings keep of the screen, when that changed since it last did.</summary>
+    /// <summary>Hands the app state what its settings keep of the screen, when that changed since it last did.</summary>
     private void KeepViewSettings()
     {
         var sources = CaptureViewSources();
@@ -15,12 +15,12 @@ public sealed partial class UiState
         HandOverViewSettings();
     }
 
-    /// <summary>Hands the workspace what its settings keep of the screen as it is now, changed or not,
+    /// <summary>Hands the app state what its settings keep of the screen as it is now, changed or not,
     /// as before the last save.</summary>
     public void HandOverViewSettings()
     {
         _keptView = CaptureViewSources();
-        _workspace.KeepViewSettings(CreateViewSettings());
+        _appState.KeepViewSettings(CreateViewSettings());
     }
 
     private ViewSources CaptureViewSources()

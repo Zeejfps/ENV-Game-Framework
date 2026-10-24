@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 
 internal static class FrameworkPickerView
 {
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var picker = ui.State.Picker;
@@ -64,7 +64,7 @@ internal static class FrameworkPickerView
 
     private static string Summary(Strings t, int shown, int selected) => $"{t.PickerCount(shown)} · {t.PickerSelected(selected)}";
 
-    private static void OpenSelected(Workspace w, FrameworkPicker picker)
+    private static void OpenSelected(AppState w, FrameworkPicker picker)
     {
         var paths = picker.ListSelected()
             .Select(a => a.FilePath);

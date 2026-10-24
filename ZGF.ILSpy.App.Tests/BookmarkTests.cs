@@ -11,25 +11,25 @@ public sealed class BookmarkTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
-    private static (WorkspaceDriver Driver, DocumentTab Tab, int Line) OutlineAt(string text, WorkspaceDriver? driver = null)
+    private static (AppStateDriver Driver, DocumentTab Tab, int Line) OutlineAt(string text, AppStateDriver? driver = null)
     {
-        var d = driver ?? new WorkspaceDriver();
+        var d = driver ?? new AppStateDriver();
         d.OpenFixtures();
         d.Show(d.Fixture("Outline"));
-        var tab = d.Workspace.Tabs.Active!;
+        var tab = d.AppState.Tabs.Active!;
         return (d, tab, tab.Document.Find(text).Line);
     }
 
     [Fact]
     public void Toggling_a_statement_line_bookmarks_it_by_its_statement_and_toggling_again_removes_it()
     {
-        var (d, tab, line) = OutlineAt("return First();", WorkspaceDriver.WithoutScreen());
-        var bookmarks = d.Workspace.Bookmarks;
+        var (d, tab, line) = OutlineAt("return First();", AppStateDriver.WithoutScreen());
+        var bookmarks = d.AppState.Bookmarks;
 
-        var added = d.Workspace.ToggleBookmark(tab, line);
+        var added = d.AppState.ToggleBookmark(tab, line);
         var bookmark = Assert.Single(bookmarks.Items);
         var marked = bookmarks.LinesIn(tab.Document, tab.Location!);
-        var removed = d.Workspace.ToggleBookmark(tab, line);
+        var removed = d.AppState.ToggleBookmark(tab, line);
 
         Assert.Equal(new BookmarkToggle.Added(bookmark), added);
         Assert.Equal(new BookmarkToggle.Removed(bookmark, 0), removed);
@@ -43,14 +43,14 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Stepping_goes_to_the_next_enabled_bookmark_and_asks_the_view_to_reveal_its_line()
     {
-        var (d, tab, line) = OutlineAt("return First();", WorkspaceDriver.WithoutScreen());
+        var (d, tab, line) = OutlineAt("return First();", AppStateDriver.WithoutScreen());
         var first = tab.Document.Find("foreach").Line;
-        d.Workspace.ToggleBookmark(tab, first);
-        d.Workspace.ToggleBookmark(tab, line);
-        var bookmarks = d.Workspace.Bookmarks;
+        d.AppState.ToggleBookmark(tab, first);
+        d.AppState.ToggleBookmark(tab, line);
+        var bookmarks = d.AppState.Bookmarks;
         d.TakeViewCommands();
 
-        var steppedTo = d.Workspace.StepBookmark(bookmarks.Items[0], 1);
+        var steppedTo = d.AppState.StepBookmark(bookmarks.Items[0], 1);
         d.Settle();
         var commands = d.TakeViewCommands();
 
@@ -64,13 +64,13 @@ public sealed class BookmarkTests : IDisposable
     public void A_bookmark_follows_its_statement_into_IL_and_into_the_methods_own_document()
     {
         var (d, tab, line) = OutlineAt("return First();");
-        d.Workspace.ToggleBookmark(tab, line);
-        var bookmarks = d.Workspace.Bookmarks;
+        d.AppState.ToggleBookmark(tab, line);
+        var bookmarks = d.AppState.Bookmarks;
 
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.AppState.SetLanguage(DecompilationLanguage.IL);
         d.Settle();
         var il = tab.Document.Lines[Assert.Single(bookmarks.LinesIn(tab.Document, tab.Location!)).Key].Text;
-        d.Workspace.SetLanguage(DecompilationLanguage.CSharp);
+        d.AppState.SetLanguage(DecompilationLanguage.CSharp);
         d.Show(d.Fixture("Outline").Children.Single(c => c.Text.StartsWith("Third()")));
         var own = tab.Document.Lines[Assert.Single(bookmarks.LinesIn(tab.Document, tab.Location!)).Key].Text;
 
@@ -84,14 +84,14 @@ public sealed class BookmarkTests : IDisposable
         var (d, tab, line) = OutlineAt("return First();");
         var brace = line - 1;
         Assert.Equal("{", tab.Document.Lines[brace].Text.Trim());
-        d.Workspace.ToggleBookmark(tab, brace);
-        var bookmark = Assert.Single(d.Workspace.Bookmarks.Items);
+        d.AppState.ToggleBookmark(tab, brace);
+        var bookmark = Assert.Single(d.AppState.Bookmarks.Items);
 
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.AppState.SetLanguage(DecompilationLanguage.IL);
         d.Settle();
 
         Assert.Null(bookmark.Anchor);
-        Assert.Empty(d.Workspace.Bookmarks.LinesIn(tab.Document, tab.Location!));
+        Assert.Empty(d.AppState.Bookmarks.LinesIn(tab.Document, tab.Location!));
     }
 
     [Fact]
@@ -99,15 +99,15 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 360f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, line);
         app.Show(app.Fixture("Greeter"), 3);
 
-        d.Workspace.GoTo(d.Workspace.Bookmarks.Items[0]);
+        d.AppState.GoTo(d.AppState.Bookmarks.Items[0]);
         app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, app.Ui.ViewOf(tab).Code.FlashLine);
-        Assert.Equal("Outline", d.Workspace.History.Current!.Value.Place.Text);
+        Assert.Equal("Outline", d.AppState.History.Current!.Value.Place.Text);
     }
 
     [Fact]
@@ -115,9 +115,9 @@ public sealed class BookmarkTests : IDisposable
     {
         var (d, tab, line) = OutlineAt("return First();");
         var first = tab.Document.Find("foreach").Line;
-        d.Workspace.ToggleBookmark(tab, first);
-        d.Workspace.ToggleBookmark(tab, line);
-        var bookmarks = d.Workspace.Bookmarks;
+        d.AppState.ToggleBookmark(tab, first);
+        d.AppState.ToggleBookmark(tab, line);
+        var bookmarks = d.AppState.Bookmarks;
         bookmarks.SetEnabled(bookmarks.Items[1], false);
 
         var next = bookmarks.Step(null, 1);
@@ -134,8 +134,8 @@ public sealed class BookmarkTests : IDisposable
     public void A_bookmark_marking_a_line_already_marked_is_not_added()
     {
         var (d, tab, line) = OutlineAt("return First();");
-        d.Workspace.ToggleBookmark(tab, line);
-        var bookmarks = d.Workspace.Bookmarks;
+        d.AppState.ToggleBookmark(tab, line);
+        var bookmarks = d.AppState.Bookmarks;
         var twin = bookmarks.Items[0];
 
         var added = bookmarks.Add(twin);
@@ -147,34 +147,34 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Saved_bookmarks_marking_one_line_load_as_one_and_say_how_many_were_left_out()
     {
-        var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
-        d.Workspace.ToggleBookmark(tab, line);
-        d.Workspace.SaveSettings();
+        var (d, tab, line) = OutlineAt("return First();", new AppStateDriver(_temp.Settings()));
+        d.AppState.ToggleBookmark(tab, line);
+        d.AppState.SaveSettings();
         var settings = _temp.Settings();
         settings.Bookmarks.Add(settings.Bookmarks[0] with { Name = "Twin" });
 
-        var next = new WorkspaceDriver(settings);
+        var next = new AppStateDriver(settings);
 
-        Assert.Single(next.Workspace.Bookmarks.Items);
-        Assert.Equal("1 bookmark marked the same line as another and was left out", Assert.Single(next.Workspace.Errors.Entries).Title);
+        Assert.Single(next.AppState.Bookmarks.Items);
+        Assert.Equal("1 bookmark marked the same line as another and was left out", Assert.Single(next.AppState.Errors.Entries).Title);
     }
 
     [Fact]
     public void Bookmarks_are_saved_with_the_settings_and_found_again_on_the_next_run()
     {
-        var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
-        d.Workspace.ToggleBookmark(tab, line);
-        var bookmarks = d.Workspace.Bookmarks;
+        var (d, tab, line) = OutlineAt("return First();", new AppStateDriver(_temp.Settings()));
+        d.AppState.ToggleBookmark(tab, line);
+        var bookmarks = d.AppState.Bookmarks;
         bookmarks.Rename(bookmarks.Items[0], "Calls First");
         d.Pump();
 
-        var (next, nextTab, _) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
-        var saved = Assert.Single(next.Workspace.Bookmarks.Items);
+        var (next, nextTab, _) = OutlineAt("return First();", new AppStateDriver(_temp.Settings()));
+        var saved = Assert.Single(next.AppState.Bookmarks.Items);
 
         Assert.Equal("Calls First", saved.Name);
         Assert.Equal(tab.Location, saved.Place);
         Assert.Equal(bookmarks.Items[0].Anchor, saved.Anchor);
-        Assert.True(next.Workspace.Bookmarks.LinesIn(nextTab.Document, nextTab.Location!)[line]);
+        Assert.True(next.AppState.Bookmarks.LinesIn(nextTab.Document, nextTab.Location!)[line]);
     }
 
     [Fact]
@@ -222,11 +222,11 @@ public sealed class BookmarkTests : IDisposable
     private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None) =>
         app.Frames.Wait(1).Click(app.TextRect(text), modifiers: modifiers).Frame();
 
-    private static (AppDriver App, WorkspaceDriver Driver, DocumentTab Tab, int Line) ShowBookmark(int frames = 3)
+    private static (AppDriver App, AppStateDriver Driver, DocumentTab Tab, int Line) ShowBookmark(int frames = 3)
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, line);
         d.Ui.OpenBookmarks();
         app.Run(frames);
         return (app, d, tab, line);
@@ -237,7 +237,7 @@ public sealed class BookmarkTests : IDisposable
     {
         var (app, d, tab, _) = ShowBookmark();
         app.Show(app.Fixture("Greeter"), 2);
-        var location = app.TextRect(d.Workspace.Bookmarks.Items[0].Location);
+        var location = app.TextRect(d.AppState.Bookmarks.Items[0].Location);
 
         app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2).Frame(90);
         Assert.True(app.Frames.Drew(Strings.En.BookmarksGoToHint));
@@ -252,9 +252,9 @@ public sealed class BookmarkTests : IDisposable
     public void A_bookmark_outside_the_active_list_says_going_to_it_adds_its_assembly_and_going_there_adds_it()
     {
         var (app, d, _, _) = ShowBookmark();
-        var bookmark = d.Workspace.Bookmarks.Items[0];
-        d.Workspace.Lists.Create("Other");
-        d.Workspace.SwitchList("Other");
+        var bookmark = d.AppState.Bookmarks.Items[0];
+        d.AppState.Lists.Create("Other");
+        d.AppState.SwitchList("Other");
         d.Settle();
         app.Run(2);
         var location = app.TextRect(bookmark.Location);
@@ -262,11 +262,11 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2).Frame(90);
         Assert.Contains(app.Frames.TextRects(), t => t.Text.StartsWith(bookmark.Module + " "));
 
-        d.Workspace.GoTo(bookmark);
+        d.AppState.GoTo(bookmark);
         app.Settle(4);
 
-        Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
-        Assert.Equal("Outline", d.Workspace.Tabs.Active!.Node!.Text);
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths);
+        Assert.Equal("Outline", d.AppState.Tabs.Active!.Node!.Text);
     }
 
     [Fact]
@@ -274,16 +274,16 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
-        d.Workspace.ToggleBookmark(tab, tab.Document.Find("needle").Line);
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
+        d.AppState.ToggleBookmark(tab, tab.Document.Find("needle").Line);
+        d.AppState.ToggleBookmark(tab, line);
         d.Ui.OpenBookmarks();
         app.Run(3);
-        var bookmarks = d.Workspace.Bookmarks;
+        var bookmarks = d.AppState.Bookmarks;
         var panel = app.Ui.BookmarksPanel;
         var second = bookmarks.Items[1];
-        panel.Step(d.Workspace, 1);
-        panel.Step(d.Workspace, 1);
+        panel.Step(d.AppState, 1);
+        panel.Step(d.AppState, 1);
         app.Run(2);
 
         panel.Remove(bookmarks, bookmarks.Items[0]);
@@ -297,16 +297,16 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        d.Workspace.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
-        d.Workspace.ToggleBookmark(tab, tab.Document.Find("needle").Line);
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
+        d.AppState.ToggleBookmark(tab, tab.Document.Find("needle").Line);
+        d.AppState.ToggleBookmark(tab, line);
         d.Ui.OpenBookmarks();
         app.Run(3);
-        var bookmarks = d.Workspace.Bookmarks;
+        var bookmarks = d.AppState.Bookmarks;
         var panel = app.Ui.BookmarksPanel;
         var third = bookmarks.Items[2];
-        panel.Step(d.Workspace, 1);
-        panel.Step(d.Workspace, 1);
+        panel.Step(d.AppState, 1);
+        panel.Step(d.AppState, 1);
         app.Run(2);
 
         panel.Remove(bookmarks, bookmarks.Items[1]);
@@ -324,7 +324,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.Type("Calls First").Frame(2);
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
-        Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
+        Assert.Equal("Calls First", d.AppState.Bookmarks.Items[0].Name);
         Assert.Null(d.Ui.BookmarksPanel.Renaming);
         Assert.True(app.Frames.Drew("Calls First"));
     }
@@ -338,7 +338,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.Type("Gone").Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
-        Assert.Equal("Bookmark 1", d.Workspace.Bookmarks.Items[0].Name);
+        Assert.Equal("Bookmark 1", d.AppState.Bookmarks.Items[0].Name);
         Assert.Null(d.Ui.BookmarksPanel.Renaming);
     }
 
@@ -346,7 +346,7 @@ public sealed class BookmarkTests : IDisposable
     public void Clicking_a_location_selects_its_text_for_Ctrl_C()
     {
         var (app, d, _, _) = ShowBookmark();
-        var location = d.Workspace.Bookmarks.Items[0].Location;
+        var location = d.AppState.Bookmarks.Items[0].Location;
 
         Click(app, location);
         app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
@@ -359,13 +359,13 @@ public sealed class BookmarkTests : IDisposable
     public void F2_renames_the_selected_bookmark_in_place_and_Enter_keeps_the_name()
     {
         var (app, d, _, _) = ShowBookmark();
-        Click(app, d.Workspace.Bookmarks.Items[0].Location);
+        Click(app, d.AppState.Bookmarks.Items[0].Location);
 
         app.Frames.Key(KeyboardKey.F2).Frame(2);
         app.Frames.Type("Calls First").Frame(2);
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
-        Assert.Equal("Calls First", d.Workspace.Bookmarks.Items[0].Name);
+        Assert.Equal("Calls First", d.AppState.Bookmarks.Items[0].Name);
         Assert.Null(d.Ui.BookmarksPanel.Renaming);
         Assert.True(app.Frames.Drew("Calls First"));
     }
@@ -384,12 +384,12 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void The_bookmark_column_widths_are_saved_with_the_settings()
     {
-        var d = new WorkspaceDriver(_temp.Settings());
+        var d = new AppStateDriver(_temp.Settings());
         d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         d.NextFrame();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        var restored = new WorkspaceDriver(_temp.Settings()).Ui.BookmarkColumns.Weights;
+        var restored = new AppStateDriver(_temp.Settings()).Ui.BookmarkColumns.Weights;
 
         Assert.Equal([1f, 1f, 4f, 1f], restored);
     }
@@ -402,24 +402,24 @@ public sealed class BookmarkTests : IDisposable
         var path = _temp.PathOf(name);
         var (d, tab, _) = OutlineAt("return First();");
         foreach (var text in lines)
-            d.Workspace.ToggleBookmark(tab, tab.Document.Find(text).Line);
-        d.Workspace.ExportBookmarks(path);
-        Assert.Empty(d.Workspace.Errors.Entries);
+            d.AppState.ToggleBookmark(tab, tab.Document.Find(text).Line);
+        d.AppState.ExportBookmarks(path);
+        Assert.Empty(d.AppState.Errors.Entries);
         return path;
     }
 
     [Fact]
-    public void Exported_bookmarks_import_at_once_into_a_workspace_with_none()
+    public void Exported_bookmarks_import_at_once_into_an_app_state_with_none()
     {
         var path = Exported("return First();", "foreach");
         var (d, tab, line) = OutlineAt("return First();");
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
 
-        Assert.Null(d.Workspace.Imports.Asking);
-        Assert.Equal(["Bookmark 1", "Bookmark 2"], d.Workspace.Bookmarks.Items.Select(b => b.Name));
-        Assert.True(d.Workspace.Bookmarks.LinesIn(tab.Document, tab.Location!)[line]);
+        Assert.Null(d.AppState.Imports.Asking);
+        Assert.Equal(["Bookmark 1", "Bookmark 2"], d.AppState.Bookmarks.Items.Select(b => b.Name));
+        Assert.True(d.AppState.Bookmarks.LinesIn(tab.Document, tab.Location!)[line]);
     }
 
     [Fact]
@@ -427,23 +427,23 @@ public sealed class BookmarkTests : IDisposable
     {
         var path = Exported("return First();", "foreach");
         var (d, tab, line) = OutlineAt("return First();");
-        var bookmarks = d.Workspace.Bookmarks;
-        d.Workspace.ToggleBookmark(tab, line);
+        var bookmarks = d.AppState.Bookmarks;
+        d.AppState.ToggleBookmark(tab, line);
         bookmarks.Rename(bookmarks.Items[0], "Mine");
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
-        var asked = d.Workspace.Imports.Asking;
-        d.Workspace.FinishImport(asked!, BookmarkImportMode.Merge);
+        var asked = d.AppState.Imports.Asking;
+        d.AppState.FinishImport(asked!, BookmarkImportMode.Merge);
         var merged = bookmarks.Items.Select(b => b.Name).ToList();
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
-        d.Workspace.FinishImport(d.Workspace.Imports.Asking!, BookmarkImportMode.Replace);
+        d.AppState.FinishImport(d.AppState.Imports.Asking!, BookmarkImportMode.Replace);
 
         Assert.NotNull(asked);
         Assert.Equal(["Mine", "Bookmark 2"], merged);
         Assert.Equal(["Bookmark 1", "Bookmark 2"], bookmarks.Items.Select(b => b.Name));
-        Assert.Null(d.Workspace.Imports.Asking);
+        Assert.Null(d.AppState.Imports.Asking);
     }
 
     [Fact]
@@ -452,19 +452,19 @@ public sealed class BookmarkTests : IDisposable
         var first = ExportedAs("first.json", "foreach");
         var second = ExportedAs("second.json", "needle");
         var (d, tab, line) = OutlineAt("return First();");
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, line);
 
-        d.Workspace.ImportBookmarks(first);
-        d.Workspace.ImportBookmarks(second);
+        d.AppState.ImportBookmarks(first);
+        d.AppState.ImportBookmarks(second);
         d.Settle();
-        var asked = d.Workspace.Imports.Asking!;
-        d.Workspace.FinishImport(asked, BookmarkImportMode.Merge);
-        var next = d.Workspace.Imports.Asking!;
-        d.Workspace.FinishImport(next, BookmarkImportMode.Merge);
+        var asked = d.AppState.Imports.Asking!;
+        d.AppState.FinishImport(asked, BookmarkImportMode.Merge);
+        var next = d.AppState.Imports.Asking!;
+        d.AppState.FinishImport(next, BookmarkImportMode.Merge);
 
         Assert.NotSame(asked, next);
-        Assert.Equal(3, d.Workspace.Bookmarks.Items.Count);
-        Assert.Null(d.Workspace.Imports.Asking);
+        Assert.Equal(3, d.AppState.Bookmarks.Items.Count);
+        Assert.Null(d.AppState.Imports.Asking);
     }
 
     [Fact]
@@ -472,14 +472,14 @@ public sealed class BookmarkTests : IDisposable
     {
         var path = _temp.Write("other.json", "{ \"assemblies\": [] }");
         var (d, tab, line) = OutlineAt("return First();");
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, line);
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
 
-        Assert.Single(d.Workspace.Bookmarks.Items);
-        Assert.Null(d.Workspace.Imports.Asking);
-        Assert.Equal("Cannot import bookmarks from other.json", Assert.Single(d.Workspace.Errors.Entries).Title);
+        Assert.Single(d.AppState.Bookmarks.Items);
+        Assert.Null(d.AppState.Imports.Asking);
+        Assert.Equal("Cannot import bookmarks from other.json", Assert.Single(d.AppState.Errors.Entries).Title);
     }
 
     [Fact]
@@ -495,11 +495,11 @@ public sealed class BookmarkTests : IDisposable
         app.Click("Merge").Frame(2);
 
         Assert.True(asked);
-        Assert.Equal(2, d.Workspace.Bookmarks.Items.Count);
+        Assert.Equal(2, d.AppState.Bookmarks.Items.Count);
         Assert.False(app.Frames.Drew("Merge"));
     }
 
-    private const string Fixtures = WorkspaceDriver.FixturesNamespace;
+    private const string Fixtures = AppStateDriver.FixturesNamespace;
 
     private static int TokenOf(string method) => typeof(Fixtures.Outline).GetMethod(method)!.MetadataToken;
 
@@ -508,14 +508,14 @@ public sealed class BookmarkTests : IDisposable
     private static string Record(string name, string kind, int token, int ilOffset, int lineNumber, string treePath, string? file = null) =>
         System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
         {
-            ["Name"] = name, ["Enabled"] = true, ["FileName"] = file ?? WorkspaceDriver.FixturePath, ["AssemblyFullName"] = "ZGF.ILSpy.App.Tests",
+            ["Name"] = name, ["Enabled"] = true, ["FileName"] = file ?? AppStateDriver.FixturePath, ["AssemblyFullName"] = "ZGF.ILSpy.App.Tests",
             ["ModuleName"] = "ZGF.ILSpy.App.Tests.dll", ["Token"] = token, ["Kind"] = kind, ["ILOffset"] = ilOffset, ["LineNumber"] = lineNumber,
             ["MemberName"] = Fixtures + ".Outline", ["LocationNodeName"] = Fixtures + ".Outline",
             ["ViewState"] = new Dictionary<string, object?>
             {
                 ["Version"] = 1, ["CaretOffset"] = 0, ["VerticalOffset"] = 0.0, ["HorizontalOffset"] = 0.0, ["FoldingChecksum"] = null,
                 ["ExpandedFoldings"] = null, ["RenderedLayoutSettings"] = null,
-                ["SelectedTreeNodePath"] = new[] { file ?? WorkspaceDriver.FixturePath, Fixtures, treePath },
+                ["SelectedTreeNodePath"] = new[] { file ?? AppStateDriver.FixturePath, Fixtures, treePath },
             },
         });
 
@@ -525,9 +525,9 @@ public sealed class BookmarkTests : IDisposable
         Directory.CreateDirectory(_temp.Path);
         var path = _temp.PathOf("exported.json");
         var (d, tab, line) = OutlineAt("return First();");
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, line);
 
-        d.Workspace.ExportBookmarks(path);
+        d.AppState.ExportBookmarks(path);
         using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
         var root = json.RootElement;
         var entry = root.GetProperty("Bookmarks")[0];
@@ -540,11 +540,11 @@ public sealed class BookmarkTests : IDisposable
         Assert.Equal("Body", entry.GetProperty("Kind").GetString());
         Assert.Equal((uint)TokenOf("Third"), entry.GetProperty("Token").GetUInt32());
         Assert.Equal(line + 1, entry.GetProperty("LineNumber").GetInt32());
-        Assert.Equal(WorkspaceDriver.FixturePath, entry.GetProperty("FileName").GetString());
+        Assert.Equal(AppStateDriver.FixturePath, entry.GetProperty("FileName").GetString());
         Assert.Equal("ZGF.ILSpy.App.Tests.dll", entry.GetProperty("ModuleName").GetString());
         Assert.Equal(Fixtures + ".Outline.Third", entry.GetProperty("MemberName").GetString());
         Assert.Equal(Fixtures + ".Outline", entry.GetProperty("LocationNodeName").GetString());
-        Assert.Equal([WorkspaceDriver.FixturePath, Fixtures, Fixtures + ".Outline"],
+        Assert.Equal([AppStateDriver.FixturePath, Fixtures, Fixtures + ".Outline"],
             entry.GetProperty("ViewState").GetProperty("SelectedTreeNodePath").EnumerateArray().Select(e => e.GetString()));
     }
 
@@ -555,16 +555,16 @@ public sealed class BookmarkTests : IDisposable
                              Record("Bookmark1", "Line", TokenOf("Third"), 0, 3, Fixtures + ".Outline"));
         var (d, tab, line) = OutlineAt("return First();");
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
-        var bookmarks = d.Workspace.Bookmarks.Items;
-        var marked = d.Workspace.Bookmarks.LinesIn(tab.Document, tab.Location!);
+        var bookmarks = d.AppState.Bookmarks.Items;
+        var marked = d.AppState.Bookmarks.LinesIn(tab.Document, tab.Location!);
 
         Assert.Equal(["Bookmark0", "Bookmark1"], bookmarks.Select(b => b.Name));
         Assert.All(bookmarks, b => Assert.Equal(tab.Location, b.Place));
         Assert.True(marked[line]);
         Assert.True(marked[2]);
-        Assert.Equal("Bookmark0", Assert.Single(d.Workspace.Bookmarks.Save(), r => r.Kind == BookmarkKind.Body).Name);
+        Assert.Equal("Bookmark0", Assert.Single(d.AppState.Bookmarks.Save(), r => r.Kind == BookmarkKind.Body).Name);
     }
 
     [Fact]
@@ -574,13 +574,13 @@ public sealed class BookmarkTests : IDisposable
                     Record("Second", "Body", TokenOf("Third"), 0, 1, Fixtures + ".Outline") + "," +
                     Record("Third", "Body", TokenOf("Third"), 0, 1, Fixtures + ".Outline");
         var path = ILSpyFile(twins);
-        var d = new WorkspaceDriver();
+        var d = new AppStateDriver();
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
 
-        Assert.Equal("First", Assert.Single(d.Workspace.Bookmarks.Items).Name);
-        Assert.Equal("2 bookmarks marked the same line as others and were left out", Assert.Single(d.Workspace.Errors.Entries).Title);
+        Assert.Equal("First", Assert.Single(d.AppState.Bookmarks.Items).Name);
+        Assert.Equal("2 bookmarks marked the same line as others and were left out", Assert.Single(d.AppState.Errors.Entries).Title);
     }
 
     [Fact]
@@ -588,14 +588,14 @@ public sealed class BookmarkTests : IDisposable
     {
         var path = Exported("return First();");
         var (d, tab, line) = OutlineAt("return First();");
-        d.Workspace.ToggleBookmark(tab, line);
+        d.AppState.ToggleBookmark(tab, line);
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
-        d.Workspace.FinishImport(d.Workspace.Imports.Asking!, BookmarkImportMode.Merge);
+        d.AppState.FinishImport(d.AppState.Imports.Asking!, BookmarkImportMode.Merge);
 
-        Assert.Single(d.Workspace.Bookmarks.Items);
-        Assert.Empty(d.Workspace.Errors.Entries);
+        Assert.Single(d.AppState.Bookmarks.Items);
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]
@@ -603,14 +603,14 @@ public sealed class BookmarkTests : IDisposable
     {
         var gone = Record("Gone", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Outline", _temp.PathOf("gone.dll"));
         var path = ILSpyFile(Record("Moved", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Renamed") + "," + gone);
-        var d = new WorkspaceDriver();
+        var d = new AppStateDriver();
 
-        d.Workspace.ImportBookmarks(path);
+        d.AppState.ImportBookmarks(path);
         d.Settle();
 
-        var moved = Assert.Single(d.Workspace.Bookmarks.Items);
+        var moved = Assert.Single(d.AppState.Bookmarks.Items);
         Assert.Equal("Moved", moved.Name);
         Assert.StartsWith("Third()", moved.Place.Text);
-        Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.Workspace.Errors.Entries).Title);
+        Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.AppState.Errors.Entries).Title);
     }
 }

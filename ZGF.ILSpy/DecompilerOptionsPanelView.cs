@@ -16,7 +16,7 @@ internal static class DecompilerOptionsPanelView
 
     private static readonly CSharpVersion Newest = Sections.Max(static s => s.Version ?? 0);
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -70,7 +70,7 @@ internal static class DecompilerOptionsPanelView
     /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,
     /// showing a square when only some are on. Returns true when the row besides the checkbox was
     /// clicked to fold or unfold.</summary>
-    private static bool Header(Ui<UiState> ui, Workspace w, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
+    private static bool Header(Ui<UiState> ui, AppState w, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
         string? tooNew)
     {
         var t = ui.State.Strings;
@@ -127,7 +127,7 @@ internal static class DecompilerOptionsPanelView
         return false;
     }
 
-    private static void Toggle(Ui<UiState> ui, Workspace w, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
+    private static void Toggle(Ui<UiState> ui, AppState w, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;

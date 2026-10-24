@@ -22,7 +22,7 @@ public sealed partial class UiState
     /// makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
     private MainLayout RestoreLayout(DockLayout? saved)
     {
-        var first = _workspace.Tabs[0].Panel;
+        var first = _appState.Tabs[0].Panel;
         var dock = DockPanels.Restore(saved, first, out var placed);
         var layout = new MainLayout(dock);
         if (!placed)
@@ -34,7 +34,7 @@ public sealed partial class UiState
 
     private string OpenTabForPanel()
     {
-        var tab = _workspace.AddTab();
+        var tab = _appState.AddTab();
         AddTabView(tab);
         return tab.Panel;
     }
@@ -50,11 +50,11 @@ public sealed partial class UiState
 
     private void CloseTabOf(string panel)
     {
-        var tab = _workspace.Tabs.Find(panel);
+        var tab = _appState.Tabs.Find(panel);
         if (tab == null)
             return;
         DropTabView(tab);
-        var wasActive = _workspace.CloseTab(tab);
+        var wasActive = _appState.CloseTab(tab);
         if (!wasActive)
             return;
         FocusNextTab();
@@ -63,7 +63,7 @@ public sealed partial class UiState
     /// <summary>Focuses the tab of the panel the layout focuses now, else the first group's front tab.</summary>
     private void FocusNextTab()
     {
-        var next = _workspace.Tabs.Find(Layout.Focused);
+        var next = _appState.Tabs.Find(Layout.Focused);
         if (next == null)
             next = FindFrontTab();
         if (next == null)
@@ -90,7 +90,7 @@ public sealed partial class UiState
     private DocumentTab? FindFrontTab(DockNode node)
     {
         if (node is DockGroup group)
-            return _workspace.Tabs.Find(group.Active);
+            return _appState.Tabs.Find(group.Active);
         if (node is not DockSplit split)
             return null;
         var first = FindFrontTab(split.First);
@@ -103,7 +103,7 @@ public sealed partial class UiState
     /// that is listed.</summary>
     private void FocusTab(DocumentTab tab)
     {
-        _workspace.FocusTab(tab);
+        _appState.FocusTab(tab);
         RevealShown(tab);
     }
 
@@ -112,7 +112,7 @@ public sealed partial class UiState
         var node = tab.Node;
         if (node == null)
             return;
-        if (!_workspace.IsListed(node))
+        if (!_appState.IsListed(node))
             return;
         Tree.Reveal(node);
     }
@@ -121,9 +121,9 @@ public sealed partial class UiState
     /// the tabs or the layout changed since the last try found none.</summary>
     private void FocusNextTabIfNone()
     {
-        if (_workspace.Tabs.Active != null)
+        if (_appState.Tabs.Active != null)
             return;
-        var tried = new FocusTry(Layout.Changes, _workspace.Tabs.Count);
+        var tried = new FocusTry(Layout.Changes, _appState.Tabs.Count);
         if (tried == _lastFocusTry)
             return;
         _lastFocusTry = tried;
@@ -137,7 +137,7 @@ public sealed partial class UiState
     /// docked yet, and brings it to the front.</summary>
     private void ShowTab(DocumentTab tab, string? beside)
     {
-        if (!_workspace.Tabs.Contains(tab))
+        if (!_appState.Tabs.Contains(tab))
             return;
         AddTabView(tab);
         if (!Layout.Contains(tab.Panel))
@@ -155,7 +155,7 @@ public sealed partial class UiState
     /// <summary>Brings <paramref name="tab"/>'s panel to the front and makes it the active tab.</summary>
     public void ActivateTab(DocumentTab tab)
     {
-        if (!_workspace.Tabs.Contains(tab))
+        if (!_appState.Tabs.Contains(tab))
             return;
         Layout.Activate(tab.Panel);
         FocusTab(tab);
@@ -166,10 +166,10 @@ public sealed partial class UiState
     public void SyncActiveTab()
     {
         RunViewCommands();
-        var tab = _workspace.Tabs.Find(Layout.Focused);
+        var tab = _appState.Tabs.Find(Layout.Focused);
         if (tab == null)
             return;
-        if (tab == _workspace.Tabs.Active)
+        if (tab == _appState.Tabs.Active)
             return;
         FocusTab(tab);
     }
@@ -177,7 +177,7 @@ public sealed partial class UiState
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
     public void CycleTab(int by)
     {
-        var active = _workspace.Tabs.Active;
+        var active = _appState.Tabs.Active;
         if (active == null)
             return;
         var group = Layout.GroupOf(active.Panel);
@@ -188,13 +188,13 @@ public sealed partial class UiState
             return;
         var index = panels.IndexOf(active.Panel);
         var next = panels[WrapIndex(index + by, panels.Count)];
-        var tab = _workspace.Tabs.Find(next);
+        var tab = _appState.Tabs.Find(next);
         if (tab == null)
             return;
         ActivateTab(tab);
     }
 
-    private bool IsTabPanel(string panel) => _workspace.Tabs.Find(panel) != null;
+    private bool IsTabPanel(string panel) => _appState.Tabs.Find(panel) != null;
 
     private static int WrapIndex(int index, int count)
     {
@@ -206,19 +206,19 @@ public sealed partial class UiState
 
     public void CloseActiveTab()
     {
-        var tab = _workspace.Tabs.Active;
+        var tab = _appState.Tabs.Active;
         if (tab == null)
             return;
         Layout.Close(tab.Panel);
     }
 
-    public void OpenAnalyzer() => MainLayout.OpenAnalyzer(_workspace.Tabs.ActivePanel);
+    public void OpenAnalyzer() => MainLayout.OpenAnalyzer(_appState.Tabs.ActivePanel);
 
-    public void OpenDecompilerOptions() => MainLayout.OpenDecompilerOptions(_workspace.Tabs.ActivePanel);
+    public void OpenDecompilerOptions() => MainLayout.OpenDecompilerOptions(_appState.Tabs.ActivePanel);
 
-    public void OpenBookmarks() => MainLayout.OpenBookmarks(_workspace.Tabs.ActivePanel);
+    public void OpenBookmarks() => MainLayout.OpenBookmarks(_appState.Tabs.ActivePanel);
 
-    public void OpenExports() => MainLayout.OpenExports(_workspace.Tabs.ActivePanel);
+    public void OpenExports() => MainLayout.OpenExports(_appState.Tabs.ActivePanel);
 
     public void OpenAssemblies() => MainLayout.OpenAssemblies();
 
@@ -271,15 +271,15 @@ public sealed partial class UiState
 
     private DocumentTab OpenActiveTab()
     {
-        var tab = _workspace.AddTab();
+        var tab = _appState.AddTab();
         AddTabView(tab);
-        _workspace.FocusTab(tab);
+        _appState.FocusTab(tab);
         return tab;
     }
 
     private void ActivateActivePanel()
     {
-        var panel = _workspace.Tabs.ActivePanel;
+        var panel = _appState.Tabs.ActivePanel;
         if (panel == null)
             return;
         if (!Layout.Contains(panel))
@@ -293,16 +293,16 @@ public sealed partial class UiState
     {
         if (!HasDecompilationChanged())
             return;
-        _shownLanguage = _workspace.Language;
-        _shownOptions = _workspace.DecompilerOptions;
+        _shownLanguage = _appState.Language;
+        _shownOptions = _appState.DecompilerOptions;
         RefreshShownTabs();
     }
 
     private bool HasDecompilationChanged()
     {
-        if (_workspace.Language != _shownLanguage)
+        if (_appState.Language != _shownLanguage)
             return true;
-        return !ReferenceEquals(_workspace.DecompilerOptions, _shownOptions);
+        return !ReferenceEquals(_appState.DecompilerOptions, _shownOptions);
     }
 
     /// <summary>Makes each tab in front of its group decompile again what it shows, when the language
@@ -315,9 +315,9 @@ public sealed partial class UiState
 
     private void RefreshShownTab(string? panel)
     {
-        var tab = _workspace.Tabs.Find(panel);
+        var tab = _appState.Tabs.Find(panel);
         if (tab == null)
             return;
-        tab.EnsureCurrent(_workspace.Language);
+        tab.EnsureCurrent(_appState.Language);
     }
 }

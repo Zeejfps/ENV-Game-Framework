@@ -21,14 +21,14 @@ public sealed partial class UiState
     private void SyncTrees()
     {
         ForgetClearedList();
-        Tree.SetShowNonPublic(_workspace.ShowNonPublic);
-        Tree.Sync(_workspace.Assemblies);
+        Tree.SetShowNonPublic(_appState.ShowNonPublic);
+        Tree.Sync(_appState.Assemblies);
         Analyzer.Follow();
     }
 
     private void ForgetClearedList()
     {
-        var generation = _workspace.Assemblies.Generation;
+        var generation = _appState.Assemblies.Generation;
         if (generation == _listGeneration)
             return;
         _listGeneration = generation;
@@ -40,7 +40,7 @@ public sealed partial class UiState
     /// is opened if it is not, and selects its root.</summary>
     public void Analyze(BrowseNode node)
     {
-        var root = _workspace.Analyze(node);
+        var root = _appState.Analyze(node);
         if (root == null)
             return;
         OpenAnalyzer();
@@ -52,13 +52,13 @@ public sealed partial class UiState
     public void Analyze(CodeReference reference)
     {
         OpenAnalyzer();
-        _workspace.Analyze(reference);
+        _appState.Analyze(reference);
     }
 
     /// <summary>Expands <paramref name="root"/> and selects it, unless it was removed meanwhile.</summary>
     private void ShowAnalysis(AnalyzerSymbolNode root)
     {
-        if (!_workspace.Analyzer.Contains(root))
+        if (!_appState.Analyzer.Contains(root))
             return;
         Analyzer.Show(root);
     }

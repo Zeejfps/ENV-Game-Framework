@@ -4,39 +4,39 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The screen over a <see cref="Workspace"/>, one per app: what every view is drawn with this
+/// <summary>The screen over an <see cref="AppState"/>, one per app: what every view is drawn with this
 /// frame (the theme, the editor's and icons' colors, the strings of the chosen language), and the state
 /// that exists only because there is a screen: the layout, each tab's view, the trees' and tables'
-/// state, the panels and dialogs with what is selected in them, and UI flags. The workspace never
-/// sees it; it commands the screen through <see cref="Workspace.ViewCommands"/>.</summary>
+/// state, the panels and dialogs with what is selected in them, and UI flags. The app state never
+/// sees it; it commands the screen through <see cref="AppState.ViewCommands"/>.</summary>
 public sealed partial class UiState : IUiState
 {
-    private readonly Workspace _workspace;
+    private readonly AppState _appState;
 
-    public UiState(Workspace workspace)
+    public UiState(AppState appState)
     {
-        _workspace = workspace;
-        var settings = workspace.Settings;
+        _appState = appState;
+        var settings = appState.Settings;
         FoldedOptionGroups = new FoldedGroups(settings.FoldedOptionGroups);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
-        Search = new Search(ReadStrings, workspace.ReportError);
+        Search = new Search(ReadStrings, appState.ReportError);
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
-        Picker = new FrameworkPicker(ReadStrings, workspace.ReportError);
+        Picker = new FrameworkPicker(ReadStrings, appState.ReportError);
         ExportSetup.RestoreWindow(settings.ExportWindow);
-        Analyzer = new AnalyzerRows(workspace.Analyzer, workspace.Assemblies);
-        _listGeneration = workspace.Assemblies.Generation;
-        _shownLanguage = workspace.Language;
-        _shownOptions = workspace.DecompilerOptions;
+        Analyzer = new AnalyzerRows(appState.Analyzer, appState.Assemblies);
+        _listGeneration = appState.Assemblies.Generation;
+        _shownLanguage = appState.Language;
+        _shownOptions = appState.DecompilerOptions;
         AddOpenTabViews();
         MainLayout = RestoreLayout(settings.Layout);
         _keptView = CaptureViewSources();
     }
 
-    /// <summary>The strings of the language the workspace speaks now, for what reports to it later.</summary>
-    private Strings ReadStrings() => Strings.For(_workspace.Locale);
+    /// <summary>The strings of the language the app state speaks now, for what reports to it later.</summary>
+    private Strings ReadStrings() => Strings.For(_appState.Locale);
 
     public UiTheme Theme { get; set; } = UiTheme.Dark;
     public CodeViewPalette CodeViewPalette { get; set; } = CodeViewPalette.Dark;
@@ -93,7 +93,7 @@ public sealed partial class UiState : IUiState
     /// <summary>What the export dialog asks for, and whether it is open.</summary>
     public ExportSetup ExportSetup { get; } = new();
 
-    /// <summary>Does what comes before drawing a frame: takes the theme and strings the workspace's
+    /// <summary>Does what comes before drawing a frame: takes the theme and strings the app state's
     /// preferences pick, follows the open assemblies and analyses in the trees and the open tabs in
     /// the layout, runs the commands the features queued for the view, and has the tabs it shows decompile
     /// again when the language or the options changed.</summary>
@@ -109,15 +109,15 @@ public sealed partial class UiState : IUiState
 
     private void ApplyThemeAndLanguage()
     {
-        var theme = AppThemes.For(_workspace.Theme);
+        var theme = AppThemes.For(_appState.Theme);
         Theme = theme.Ui;
         CodeViewPalette = theme.Code;
         NodeIconPalette = theme.Icons;
-        Strings = Strings.For(_workspace.Locale);
+        Strings = Strings.For(_appState.Locale);
     }
 
     /// <summary>Does what comes after drawing a frame: tells the tabs where their views stand, and
-    /// hands the workspace what its settings keep of the screen when that changed.</summary>
+    /// hands the app state what its settings keep of the screen when that changed.</summary>
     public void FinishFrame()
     {
         KeepTabPositions();

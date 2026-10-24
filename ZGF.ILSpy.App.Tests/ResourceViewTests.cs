@@ -11,7 +11,7 @@ public sealed class ResourceViewTests
     {
         var app = AppDriver.Opened(width: 1400f);
         app.Show(app.Node(["Resources", .. path]), 3);
-        return (app, app.Workspace.Tabs.Active!);
+        return (app, app.AppState.Tabs.Active!);
     }
 
     private static string ImageOf(AppDriver app, DocumentTab tab) => app.Ui.ViewOf(tab).ImageId;
@@ -123,7 +123,7 @@ public sealed class ResourceViewTests
         var image = ImageOf(app, tab);
         Assert.True(app.Frames.Canvas.HasImage(image));
 
-        app.Workspace.CloseTab(tab);
+        app.AppState.CloseTab(tab);
         app.Run(2);
 
         Assert.False(app.Frames.Canvas.HasImage(image));
@@ -237,9 +237,9 @@ public sealed class ResourceViewTests
         Directory.CreateDirectory(temp.Path);
         var path = temp.PathOf("data.json");
 
-        app.Workspace.SaveResource(node, path);
+        app.AppState.SaveResource(node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
-        Assert.Empty(app.Workspace.Errors.Entries);
+        Assert.Empty(app.AppState.Errors.Entries);
     }
 }

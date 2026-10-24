@@ -31,13 +31,13 @@ public sealed class SplitDocumentTests
         Assert.Equal(0f, app.Ui.ViewOf(right).Code.ScrollY);
 
         app.Frames.Click(750f, 400f).Frame();
-        Assert.Same(right, d.Workspace.Tabs.Active);
+        Assert.Same(right, d.AppState.Tabs.Active);
         app.Show(app.Fixture("Greeter"), 2);
         Assert.Equal("Outline", left.Node!.Text);
         Assert.Equal("Greeter", right.Node!.Text);
 
         app.Frames.Click(250f, 400f).Frame();
-        Assert.Same(left, d.Workspace.Tabs.Active);
+        Assert.Same(left, d.AppState.Tabs.Active);
         Assert.Same(left.Node, d.Ui.Tree.View.Selected);
     }
 
@@ -52,7 +52,7 @@ public sealed class SplitDocumentTests
 
         app.Frames.Click(250f, 400f).Frame();
 
-        Assert.Same(left, app.Workspace.Tabs.Active);
+        Assert.Same(left, app.AppState.Tabs.Active);
         Assert.Equal(theme.Accent, Indicator(app, app.TextRect("Outline")));
         Assert.Equal(theme.BorderStrong, Indicator(app, app.LastTextRect("Outline")));
     }
@@ -64,9 +64,9 @@ public sealed class SplitDocumentTests
         var layout = d.Ui.Layout;
         layout.Close(DockPanels.Assemblies);
         d.Show(d.Fixture("Outline"));
-        var left = d.Workspace.Tabs.Active!;
+        var left = d.AppState.Tabs.Active!;
         d.Show(d.Fixture("Outline"), inNewTab: true);
-        var right = d.Workspace.Tabs.Active!;
+        var right = d.AppState.Tabs.Active!;
         layout.Dock(right.Panel, layout.GroupOf(left.Panel)!, DockEdge.Right, 0.5f);
         app.Run(3);
         return (app, left, right);

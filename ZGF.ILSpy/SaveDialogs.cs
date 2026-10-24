@@ -14,7 +14,7 @@ internal static class SaveDialogs
     public static readonly UiIcon PdbIcon = new(LucideIcons.Bug, LucideIcons.Family);
 
     /// <summary>Asks where to save the code of the active tab's node, when it can be saved.</summary>
-    public static void PickActiveCodeFile(Ui<UiState> ui, Workspace w)
+    public static void PickActiveCodeFile(Ui<UiState> ui, AppState w)
     {
         var node = w.Tabs.Active?.Node;
         if (!w.CanSaveCode(node))
@@ -24,7 +24,7 @@ internal static class SaveDialogs
 
     /// <summary>Asks where to save <paramref name="node"/>: a resource's bytes under its own name,
     /// else its code in the current language as one file.</summary>
-    public static void PickCodeFile(Ui<UiState> ui, Workspace w, BrowseNode node)
+    public static void PickCodeFile(Ui<UiState> ui, AppState w, BrowseNode node)
     {
         if (node.HasResource)
         {
@@ -45,7 +45,7 @@ internal static class SaveDialogs
 
 
     /// <summary>Asks where to write the portable PDB of <paramref name="assembly"/>.</summary>
-    public static void PickPdbFile(Ui<UiState> ui, Workspace w, LoadedAssembly assembly)
+    public static void PickPdbFile(Ui<UiState> ui, AppState w, LoadedAssembly assembly)
     {
         var t = ui.State.Strings;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"])];
@@ -53,7 +53,7 @@ internal static class SaveDialogs
     }
 
     /// <summary>Asks for the folder the portable PDBs of every open assembly are written into.</summary>
-    public static void PickPdbFolder(Ui<UiState> ui, Workspace w)
+    public static void PickPdbFolder(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         ui.PickFolder(t.ExportPdbsTitle, null, w.GeneratePdbs);

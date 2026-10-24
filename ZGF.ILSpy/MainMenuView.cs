@@ -15,7 +15,7 @@ internal static class MainMenuView
     private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
     private static readonly UiIcon ExitIcon = new(LucideIcons.LogOut, LucideIcons.Family);
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
@@ -33,7 +33,7 @@ internal static class MainMenuView
         }
     }
 
-    public static void OpenFile(Ui<UiState> ui, Workspace w)
+    public static void OpenFile(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         FileFilter[] filters =
@@ -44,7 +44,7 @@ internal static class MainMenuView
         ui.PickFile(t.FileOpenTitle, null, filters, w.Open);
     }
 
-    private static void FileMenu(Ui<UiState> ui, Workspace w)
+    private static void FileMenu(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: OpenIcon))
@@ -68,7 +68,7 @@ internal static class MainMenuView
             ui.Quit();
     }
 
-    private static void ExportItems(Ui<UiState> ui, Workspace w)
+    private static void ExportItems(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var canSave = w.CanSaveCode(w.Tabs.Active?.Node);
@@ -81,7 +81,7 @@ internal static class MainMenuView
             SaveDialogs.PickPdbFolder(ui, w);
     }
 
-    private static void ViewMenu(Ui<UiState> ui, Workspace w)
+    private static void ViewMenu(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: w.History.CanGoBack, id: "back"))
@@ -114,7 +114,7 @@ internal static class MainMenuView
         LanguageMenu(ui, w);
     }
 
-    private static void DecompilerMenu(Ui<UiState> ui, Workspace w)
+    private static void DecompilerMenu(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
@@ -125,7 +125,7 @@ internal static class MainMenuView
             w.SetLanguage(DecompilationLanguage.IL);
     }
 
-    private static void ThemeMenu(Ui<UiState> ui, Workspace w)
+    private static void ThemeMenu(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
@@ -142,7 +142,7 @@ internal static class MainMenuView
         }
     }
 
-    private static void LanguageMenu(Ui<UiState> ui, Workspace w)
+    private static void LanguageMenu(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using var languages = ui.SubMenu(t.ViewLanguage, id: "language");

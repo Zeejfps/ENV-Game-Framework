@@ -5,14 +5,14 @@ using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy.App.Tests;
 
-/// <summary>The workspace never reaches the screen over it, through data or callbacks.</summary>
+/// <summary>The app state never reaches the screen over it, through data or callbacks.</summary>
 public sealed class ScreenIsolationTests : IDisposable
 {
     private const BindingFlags InstanceFields = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
     private static readonly Assembly[] WalkedAssemblies =
     [
-        typeof(Workspace).Assembly, typeof(LoadedAssembly).Assembly, typeof(DockLayout).Assembly, typeof(Ui).Assembly, typeof(object).Assembly,
+        typeof(AppState).Assembly, typeof(LoadedAssembly).Assembly, typeof(DockLayout).Assembly, typeof(Ui).Assembly, typeof(object).Assembly,
     ];
 
     private static readonly Type[] ScreenTypes =
@@ -28,30 +28,30 @@ public sealed class ScreenIsolationTests : IDisposable
     public void Dispose() => _temp.Dispose();
 
     [Fact]
-    public void The_workspace_reaches_no_object_of_the_screen_over_it()
+    public void The_app_state_reaches_no_object_of_the_screen_over_it()
     {
-        var d = WorkspaceDriver.Opened(_temp.Settings());
+        var d = AppStateDriver.Opened(_temp.Settings());
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         d.Ui.OpenBookmarks();
         d.Ui.Analyze(d.Fixture("Greeter"));
-        d.Ui.ScopeSearch(d.Node(WorkspaceDriver.FixturesNamespace));
+        d.Ui.ScopeSearch(d.Node(AppStateDriver.FixturesNamespace));
         d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         d.Settle();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        var reached = FindScreenObject(d.Workspace, d.Ui);
+        var reached = FindScreenObject(d.AppState, d.Ui);
 
         Assert.Null(reached);
     }
 
-    /// <summary>The path from <paramref name="workspace"/> to the first object of
+    /// <summary>The path from <paramref name="appState"/> to the first object of
     /// <paramref name="screen"/> it reaches, or null.</summary>
-    private static string? FindScreenObject(Workspace workspace, UiState screen)
+    private static string? FindScreenObject(AppState appState, UiState screen)
     {
         var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
         var queue = new Queue<(object Value, string Path)>();
-        queue.Enqueue((workspace, nameof(Workspace)));
+        queue.Enqueue((appState, nameof(AppState)));
         while (queue.TryDequeue(out var next))
         {
             if (IsOfScreen(next.Value, screen))

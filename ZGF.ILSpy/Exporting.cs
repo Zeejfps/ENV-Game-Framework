@@ -6,15 +6,15 @@ namespace ZGF.ILSpy;
 
 
 /// <summary>Writing code, projects, solutions and portable PDBs to files in the background, one
-/// export at a time in the order they were asked for, which <see cref="Workspace.Export"/> queues.
-/// Each that runs ends in an <see cref="ExportReport"/> in <see cref="Workspace.FinishedExports"/>.</summary>
+/// export at a time in the order they were asked for, which <see cref="AppState.Export"/> queues.
+/// Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.</summary>
 public static class Exporting
 {
     private const string ProjectExtension = ".csproj";
 
     /// <summary>Whether <paramref name="node"/> can be saved: it shows code, or it is a resource,
     /// whose bytes are saved.</summary>
-    public static bool CanSaveCode(this Workspace w, BrowseNode? node)
+    public static bool CanSaveCode(this AppState w, BrowseNode? node)
     {
         if (node == null)
             return false;
@@ -26,7 +26,7 @@ public static class Exporting
     /// <summary>Saves <paramref name="node"/> to the file at <paramref name="path"/>: a resource's
     /// bytes as they are, else its code in the current language, as one file. Projects come from the
     /// export dialog.</summary>
-    public static void SaveCode(this Workspace w, BrowseNode node, string path)
+    public static void SaveCode(this AppState w, BrowseNode node, string path)
     {
         if (node.HasResource)
         {
@@ -36,7 +36,7 @@ public static class Exporting
         w.WriteCodeFile(node, path);
     }
 
-    private static void WriteCodeFile(this Workspace w, BrowseNode node, string path)
+    private static void WriteCodeFile(this AppState w, BrowseNode node, string path)
     {
         var language = w.Language;
         var options = w.DecompilerOptions;
@@ -66,7 +66,7 @@ public static class Exporting
     /// ended, with <paramref name="failure"/> as the problem when it failed, and lets
     /// <paramref name="complete"/> add what a finished one wrote. One taken out of the queue leaves
     /// nothing behind.</summary>
-    private static async void RunExport<T>(this Workspace w, ExportJob job, string failure, Func<ExportStart, T> work,
+    private static async void RunExport<T>(this AppState w, ExportJob job, string failure, Func<ExportStart, T> work,
         Func<ExportReport, T, ExportReport> complete)
     {
         w.EnqueueCommand(new ViewCommand.OpenPanel(DockPanels.Exports));
@@ -88,7 +88,7 @@ public static class Exporting
     /// <summary>Decompiles <paramref name="assembly"/> into a C# project whose file is
     /// <paramref name="projectPath"/>, with what <paramref name="extras"/> asks for besides. The export
     /// dialog warns about a folder that holds files before this is asked for.</summary>
-    public static void ExportProject(this Workspace w, LoadedAssembly assembly, string projectPath, ProjectExtras? extras = null)
+    public static void ExportProject(this AppState w, LoadedAssembly assembly, string projectPath, ProjectExtras? extras = null)
     {
         var withExtras = extras ?? ProjectExtras.None;
         var options = w.DecompilerOptions;
@@ -126,7 +126,7 @@ public static class Exporting
 
     /// <summary>Decompiles each of <paramref name="projects"/> into a C# project in a folder of its own
     /// beside the solution at <paramref name="solutionPath"/>.</summary>
-    private static void ExportSolution(this Workspace w, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
+    private static void ExportSolution(this AppState w, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
     {
         var options = w.DecompilerOptions;
         var t = Strings.For(w.Locale);
@@ -136,7 +136,7 @@ public static class Exporting
     }
 
     /// <summary>The assembly of the node the active tab shows, or null.</summary>
-    public static LoadedAssembly? ActiveAssembly(this Workspace w)
+    public static LoadedAssembly? ActiveAssembly(this AppState w)
     {
         var node = w.Tabs.Active?.Node;
         if (node == null)
@@ -146,7 +146,7 @@ public static class Exporting
 
     /// <summary>Exports what <paramref name="request"/> asks for: one assembly as a project straight
     /// into the folder, several as a solution with a folder per project.</summary>
-    public static void StartExport(this Workspace w, ExportRequest request)
+    public static void StartExport(this AppState w, ExportRequest request)
     {
         var folder = request.Folder;
         var projects = request.Projects;
@@ -163,7 +163,7 @@ public static class Exporting
 
     /// <summary>Writes a portable PDB of <paramref name="assembly"/>'s decompiled C# to
     /// <paramref name="path"/>.</summary>
-    public static void GeneratePdb(this Workspace w, LoadedAssembly assembly, string path)
+    public static void GeneratePdb(this AppState w, LoadedAssembly assembly, string path)
     {
         var options = w.DecompilerOptions;
         var job = new ExportJob(assembly.Name, ExportKind.Pdb, FolderOf(path));
@@ -179,7 +179,7 @@ public static class Exporting
 
     /// <summary>Writes a portable PDB of each open assembly into <paramref name="folder"/>, named
     /// after the assembly. Assemblies that cannot have one, or fail, are the report's problems.</summary>
-    public static void GeneratePdbs(this Workspace w, string folder)
+    public static void GeneratePdbs(this AppState w, string folder)
     {
         var options = w.DecompilerOptions;
         var assemblies = w.Assemblies.Assemblies;
@@ -214,7 +214,7 @@ public static class Exporting
     }
 
     /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>
-    public static void ShowExportReport(this Workspace w, ExportReport report)
+    public static void ShowExportReport(this AppState w, ExportReport report)
     {
         var t = Strings.For(w.Locale);
         var document = ExportReportText.Write(t, [report]);
@@ -225,7 +225,7 @@ public static class Exporting
 
     /// <summary>The runs of every export in the order the exports panel lists them: the running one,
     /// the waiting ones next first, then the finished ones newest first.</summary>
-    public static List<int> ListExports(this Workspace w)
+    public static List<int> ListExports(this AppState w)
     {
         var runs = new List<int>();
         var running = w.Export.Running;
@@ -239,11 +239,11 @@ public static class Exporting
     }
 
     /// <summary>The finished export <paramref name="run"/>, or null when it has not finished or is gone.</summary>
-    public static ExportReport? FindFinishedExport(this Workspace w, int run) => w.FinishedExports.Find(r => r.Run == run);
+    public static ExportReport? FindFinishedExport(this AppState w, int run) => w.FinishedExports.Find(r => r.Run == run);
 
     /// <summary>The folder the export <paramref name="run"/> writes into, wherever it is in the
     /// queue, or null when it is gone.</summary>
-    public static string? FolderOfExport(this Workspace w, int run)
+    public static string? FolderOfExport(this AppState w, int run)
     {
         var finished = w.FindFinishedExport(run);
         if (finished != null)
@@ -254,7 +254,7 @@ public static class Exporting
         return queued.Job.Folder;
     }
 
-    private static QueuedExport? FindQueuedExport(this Workspace w, int run)
+    private static QueuedExport? FindQueuedExport(this AppState w, int run)
     {
         var running = w.Export.Running;
         if (running != null && running.Run == run)
@@ -264,7 +264,7 @@ public static class Exporting
 
     /// <summary>Does what activating the export <paramref name="run"/> means: shows the report of a
     /// finished one; nothing for one still running or waiting.</summary>
-    public static void ActivateExport(this Workspace w, int run)
+    public static void ActivateExport(this AppState w, int run)
     {
         var finished = w.FindFinishedExport(run);
         if (finished == null)
@@ -274,7 +274,7 @@ public static class Exporting
 
     /// <summary>Takes the export <paramref name="run"/> off the panel: out of the queue when it waits,
     /// off the history when it finished. A running one stays; only cancelling stops it.</summary>
-    public static void RemoveExport(this Workspace w, int run)
+    public static void RemoveExport(this AppState w, int run)
     {
         var finished = w.FindFinishedExport(run);
         if (finished != null)
@@ -286,7 +286,7 @@ public static class Exporting
     }
 
     /// <summary>Takes <paramref name="report"/> off the list of finished exports.</summary>
-    public static void RemoveFinishedExport(this Workspace w, ExportReport report) => w.FinishedExports.Remove(report);
+    public static void RemoveFinishedExport(this AppState w, ExportReport report) => w.FinishedExports.Remove(report);
 
-    public static void ClearFinishedExports(this Workspace w) => w.FinishedExports.Clear();
+    public static void ClearFinishedExports(this AppState w) => w.FinishedExports.Clear();
 }

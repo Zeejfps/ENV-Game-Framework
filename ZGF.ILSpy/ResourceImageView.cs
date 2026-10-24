@@ -19,7 +19,7 @@ internal static class ResourceImageView
         public float Scale;
     }
 
-    public static void Render(Ui<UiState> ui, Workspace w, DocumentTab tab, ResourceImage image)
+    public static void Render(Ui<UiState> ui, AppState w, DocumentTab tab, ResourceImage image)
     {
         var theme = ui.Theme;
         var view = ui.State.ViewOf(tab);
@@ -34,7 +34,7 @@ internal static class ResourceImageView
         Picture(ui, view, image);
     }
 
-    private static void Toolbar(Ui<UiState> ui, Workspace w, DocumentTab tab, PictureView picture, ResourceImage image)
+    private static void Toolbar(Ui<UiState> ui, AppState w, DocumentTab tab, PictureView picture, ResourceImage image)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -118,7 +118,7 @@ internal static class ResourceImageView
     public static readonly UiIcon ExportIcon = new(LucideIcons.Upload, LucideIcons.Family);
 
     /// <summary>Asks where to export the resource <paramref name="node"/> stands for, then writes it there.</summary>
-    public static void PickExport(Ui<UiState> ui, Workspace w, BrowseNode node)
+    public static void PickExport(Ui<UiState> ui, AppState w, BrowseNode node)
     {
         var t = ui.State.Strings;
         var fileName = node.ResourceFileName;

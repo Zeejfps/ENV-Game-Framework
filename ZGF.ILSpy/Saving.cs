@@ -9,7 +9,7 @@ public static class Saving
     /// <summary>Saves the settings when what they are saved from changed since the last save written,
     /// unless the assemblies are reloading or a failed write is still waiting to be tried again at
     /// <paramref name="now"/>. Returns the seconds left before a failed write is tried again, or 0.</summary>
-    public static double SaveSettingsIfChanged(this Workspace w, double now)
+    public static double SaveSettingsIfChanged(this AppState w, double now)
     {
         if (w.IsReloading)
             return 0;
@@ -24,7 +24,7 @@ public static class Saving
     }
 
     /// <summary>Writes the settings, counting what they were copied from as saved only once the write succeeds.</summary>
-    public static void SaveSettings(this Workspace w)
+    public static void SaveSettings(this AppState w)
     {
         w.RememberActiveList();
         w.CopyStateToSettings();
@@ -33,7 +33,7 @@ public static class Saving
         w.TakeWriteOutcome(sources, error);
     }
 
-    internal static SavedSources CaptureSavedSources(this Workspace w)
+    internal static SavedSources CaptureSavedSources(this AppState w)
     {
         return new SavedSources(
             w.Assemblies.Version,
@@ -48,7 +48,7 @@ public static class Saving
             w.Locale);
     }
 
-    private static void CopyStateToSettings(this Workspace w)
+    private static void CopyStateToSettings(this AppState w)
     {
         var settings = w.Settings;
         settings.AssemblyLists = w.Lists.Save();
@@ -61,7 +61,7 @@ public static class Saving
         settings.Bookmarks = w.Bookmarks.Save();
     }
 
-    private static void TakeWriteOutcome(this Workspace w, SavedSources sources, string? error)
+    private static void TakeWriteOutcome(this AppState w, SavedSources sources, string? error)
     {
         if (error == null)
         {
@@ -73,7 +73,7 @@ public static class Saving
     }
 
     /// <summary>Reports a failed write, unless writes were failing already.</summary>
-    private static void ReportWriteFailure(this Workspace w, string error)
+    private static void ReportWriteFailure(this AppState w, string error)
     {
         if (!w.SaveRetry.Fail())
             return;
@@ -81,7 +81,7 @@ public static class Saving
     }
 
     /// <summary>Takes what the settings keep of the screen, as it changed, to be written with the next save.</summary>
-    public static void KeepViewSettings(this Workspace w, ViewSettings view)
+    public static void KeepViewSettings(this AppState w, ViewSettings view)
     {
         var settings = w.Settings;
         settings.BookmarkColumns = view.BookmarkColumns;
@@ -97,7 +97,7 @@ public static class Saving
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
     /// <paramref name="path"/>.</summary>
-    public static void SaveResource(this Workspace w, BrowseNode node, string path)
+    public static void SaveResource(this AppState w, BrowseNode node, string path)
     {
         try
         {

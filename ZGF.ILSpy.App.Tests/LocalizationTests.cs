@@ -57,7 +57,7 @@ public sealed class LocalizationTests
         app.Run(2);
         Assert.True(app.Frames.Drew("File"));
 
-        app.Workspace.SetLocale(Locale.De);
+        app.AppState.SetLocale(Locale.De);
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Datei"));
@@ -68,10 +68,10 @@ public sealed class LocalizationTests
     public void The_chosen_language_is_restored_with_the_settings()
     {
         using var temp = new TempDir();
-        var d = new WorkspaceDriver(temp.Settings());
-        d.Workspace.SetLocale(Locale.Ja);
+        var d = new AppStateDriver(temp.Settings());
+        d.AppState.SetLocale(Locale.Ja);
         d.Pump();
 
-        Assert.Equal(Locale.Ja, new Workspace(temp.Settings()).Locale);
+        Assert.Equal(Locale.Ja, new AppState(temp.Settings()).Locale);
     }
 }

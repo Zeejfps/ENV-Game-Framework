@@ -36,7 +36,7 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
         var app = AppDriver.Opened();
         app.Ui.OpenBookmarks();
         app.Settle(2);
-        app.Ui.Layout.Close(app.Workspace.Tabs.Active!.Panel);
+        app.Ui.Layout.Close(app.AppState.Tabs.Active!.Panel);
         app.Settle(5);
 
         app.Frames.Canvas.Recording = false;
@@ -46,14 +46,14 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
         allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
 
         output.WriteLine($"tool panels only: {allocated / MeasuredFrames:N0} B/frame allocated");
-        Assert.Empty(app.Workspace.Tabs);
+        Assert.Empty(app.AppState.Tabs);
         Assert.True(app.Ui.Layout.Contains(DockPanels.Bookmarks));
         Assert.Equal(0, allocated / MeasuredFrames);
     }
 
     private static void OpenErrors(AppDriver app)
     {
-        app.Workspace.ReportError("Something failed", "details");
+        app.AppState.ReportError("Something failed", "details");
         app.Ui.ErrorDialog.IsOpen = true;
     }
 }

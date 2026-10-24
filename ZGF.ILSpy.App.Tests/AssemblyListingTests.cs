@@ -104,48 +104,48 @@ public sealed class AssemblyListingTests
     public void The_open_assemblies_are_saved_as_the_open_lists()
     {
         using var temp = new TempDir();
-        var d = WorkspaceDriver.Opened(temp.Settings());
-        d.Workspace.SaveSettings();
+        var d = AppStateDriver.Opened(temp.Settings());
+        d.AppState.SaveSettings();
 
         var loaded = temp.Settings();
 
         Assert.Equal(SavedAssemblyLists.DefaultName, loaded.ActiveAssemblyList);
-        Assert.Equal([WorkspaceDriver.FixturePath], Assert.Single(loaded.AssemblyLists).Assemblies);
+        Assert.Equal([AppStateDriver.FixturePath], Assert.Single(loaded.AssemblyLists).Assemblies);
     }
 
     [Fact]
     public void The_list_restored_at_startup_is_saved_whole_while_its_assemblies_are_still_opening()
     {
         using var temp = new TempDir();
-        var other = typeof(Workspace).Assembly.Location;
+        var other = typeof(AppState).Assembly.Location;
         var settings = temp.Settings();
-        settings.AssemblyLists = [new AssemblyListRecord(SavedAssemblyLists.DefaultName, [WorkspaceDriver.FixturePath, other])];
-        var d = new WorkspaceDriver(settings);
+        settings.AssemblyLists = [new AssemblyListRecord(SavedAssemblyLists.DefaultName, [AppStateDriver.FixturePath, other])];
+        var d = new AppStateDriver(settings);
 
-        d.Workspace.RestoreActiveList();
-        d.Workspace.SaveSettings();
+        d.AppState.RestoreActiveList();
+        d.AppState.SaveSettings();
 
-        Assert.Equal([WorkspaceDriver.FixturePath, other], Assert.Single(temp.Settings().AssemblyLists).Assemblies);
+        Assert.Equal([AppStateDriver.FixturePath, other], Assert.Single(temp.Settings().AssemblyLists).Assemblies);
         d.Settle();
-        Assert.Equal([WorkspaceDriver.FixturePath, other], d.Workspace.Assemblies.FilePaths);
+        Assert.Equal([AppStateDriver.FixturePath, other], d.AppState.Assemblies.FilePaths);
     }
 
     [Fact]
     public void Switching_lists_keeps_the_analyses_of_the_last_run_still_being_found_with_their_list()
     {
         using var temp = new TempDir();
-        var first = WorkspaceDriver.Opened(temp.Settings());
+        var first = AppStateDriver.Opened(temp.Settings());
         first.Ui.Analyze(first.Fixture("Greeter"));
-        first.Workspace.SaveSettings();
-        var d = new WorkspaceDriver(temp.Settings());
-        d.Workspace.Lists.Create(Other);
+        first.AppState.SaveSettings();
+        var d = new AppStateDriver(temp.Settings());
+        d.AppState.Lists.Create(Other);
 
-        d.Workspace.SwitchList(Other);
+        d.AppState.SwitchList(Other);
         d.Settle();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
         var lists = temp.Settings().AssemblyLists;
-        Assert.Empty(d.Workspace.Analyzer.Roots);
+        Assert.Empty(d.AppState.Analyzer.Roots);
         Assert.Single(lists[0].Analyzed!);
         Assert.Empty(lists[1].Analyzed!);
     }
@@ -153,69 +153,69 @@ public sealed class AssemblyListingTests
     [Fact]
     public void Switching_back_to_a_list_analyzes_again_what_was_analyzed_in_it()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         d.Ui.Analyze(d.Fixture("Greeter"));
-        d.Workspace.Lists.Create(Other);
+        d.AppState.Lists.Create(Other);
 
-        d.Workspace.SwitchList(Other);
+        d.AppState.SwitchList(Other);
         d.Settle();
-        var inOther = d.Workspace.Analyzer.Roots.Count;
-        d.Workspace.SwitchList(SavedAssemblyLists.DefaultName);
+        var inOther = d.AppState.Analyzer.Roots.Count;
+        d.AppState.SwitchList(SavedAssemblyLists.DefaultName);
         d.Settle();
 
         Assert.Equal(0, inOther);
-        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Found()).Symbol.Label);
+        Assert.Contains("Greeter", Assert.Single(d.AppState.Analyzer.Found()).Symbol.Label);
     }
 
     [Fact]
     public void A_duplicated_list_has_the_analyses_of_the_one_it_copies()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         d.Ui.Analyze(d.Fixture("Greeter"));
-        var copy = d.Workspace.DuplicateList(SavedAssemblyLists.DefaultName);
+        var copy = d.AppState.DuplicateList(SavedAssemblyLists.DefaultName);
 
-        d.Workspace.SwitchList(copy);
+        d.AppState.SwitchList(copy);
         d.Settle();
 
         Assert.NotEqual(SavedAssemblyLists.DefaultName, copy);
-        Assert.Equal(copy, d.Workspace.Lists.Active);
-        Assert.Contains("Greeter", Assert.Single(d.Workspace.Analyzer.Found()).Symbol.Label);
+        Assert.Equal(copy, d.AppState.Lists.Active);
+        Assert.Contains("Greeter", Assert.Single(d.AppState.Analyzer.Found()).Symbol.Label);
     }
 
     [Fact]
     public void Switching_lists_closes_the_assemblies_documents_and_history_of_the_one_before_and_switching_back_reopens_them()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
-        d.Workspace.Lists.Create(Other);
+        d.AppState.Lists.Create(Other);
 
-        d.Workspace.SwitchList(Other);
+        d.AppState.SwitchList(Other);
         d.Settle();
 
-        Assert.Empty(d.Workspace.Assemblies.Assemblies);
-        Assert.Null(Assert.Single(d.Workspace.Tabs).Location);
-        Assert.Empty(d.Workspace.History.Entries);
+        Assert.Empty(d.AppState.Assemblies.Assemblies);
+        Assert.Null(Assert.Single(d.AppState.Tabs).Location);
+        Assert.Empty(d.AppState.History.Entries);
 
-        d.Workspace.SwitchList(SavedAssemblyLists.DefaultName);
+        d.AppState.SwitchList(SavedAssemblyLists.DefaultName);
         d.Settle();
 
-        Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths);
     }
 
     [Fact]
     public void Switching_lists_with_every_document_closed_opens_an_empty_one()
     {
-        var d = WorkspaceDriver.Opened();
-        d.Workspace.Lists.Create(Other);
-        foreach (var tab in d.Workspace.Tabs.ToList())
-            d.Workspace.CloseTab(tab);
+        var d = AppStateDriver.Opened();
+        d.AppState.Lists.Create(Other);
+        foreach (var tab in d.AppState.Tabs.ToList())
+            d.AppState.CloseTab(tab);
 
-        d.Workspace.SwitchList(Other);
+        d.AppState.SwitchList(Other);
         d.Settle();
 
-        var empty = Assert.Single(d.Workspace.Tabs);
-        Assert.Same(empty, d.Workspace.Tabs.Active);
+        var empty = Assert.Single(d.AppState.Tabs);
+        Assert.Same(empty, d.AppState.Tabs.Active);
         Assert.True(d.Ui.Layout.Contains(empty.Panel));
         Assert.Null(empty.Location);
     }
@@ -223,88 +223,88 @@ public sealed class AssemblyListingTests
     [Fact]
     public void A_new_list_opens_empty_and_what_is_opened_in_it_stays_out_of_the_list_before()
     {
-        var d = WorkspaceDriver.Opened();
-        var other = typeof(Workspace).Assembly.Location;
+        var d = AppStateDriver.Opened();
+        var other = typeof(AppState).Assembly.Location;
 
-        d.Workspace.CreateList();
-        d.Workspace.SwitchList("New list");
+        d.AppState.CreateList();
+        d.AppState.SwitchList("New list");
         d.Settle();
-        d.Workspace.Open(other);
-        d.RunUntil(() => d.Workspace.Assemblies.FilePaths.Contains(other));
-        d.Workspace.SwitchList(SavedAssemblyLists.DefaultName);
+        d.AppState.Open(other);
+        d.RunUntil(() => d.AppState.Assemblies.FilePaths.Contains(other));
+        d.AppState.SwitchList(SavedAssemblyLists.DefaultName);
         d.Settle();
 
-        Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
-        Assert.Equal([other], d.Workspace.Lists.PathsOf("New list"));
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths);
+        Assert.Equal([other], d.AppState.Lists.PathsOf("New list"));
     }
 
     [Fact]
     public void An_assembly_still_opening_when_the_list_is_switched_stays_out_of_the_next_list()
     {
-        var d = WorkspaceDriver.Opened();
-        d.Workspace.Lists.Create(Other);
+        var d = AppStateDriver.Opened();
+        d.AppState.Lists.Create(Other);
 
-        d.Workspace.Open(typeof(Workspace).Assembly.Location);
-        d.Workspace.SwitchList(Other);
+        d.AppState.Open(typeof(AppState).Assembly.Location);
+        d.AppState.SwitchList(Other);
         d.Settle();
         d.Pump();
 
-        Assert.Empty(d.Workspace.Assemblies.Assemblies);
-        Assert.Empty(d.Workspace.Errors.Entries);
+        Assert.Empty(d.AppState.Assemblies.Assemblies);
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]
     public void Switching_lists_stops_the_assemblies_still_opening_from_landing_in_the_next_list()
     {
-        var d = WorkspaceDriver.Opened();
-        d.Workspace.Lists.Create(Other);
-        var opening = d.Workspace.Opens.Token;
+        var d = AppStateDriver.Opened();
+        d.AppState.Lists.Create(Other);
+        var opening = d.AppState.Opens.Token;
 
-        d.Workspace.SwitchList(Other);
+        d.AppState.SwitchList(Other);
 
         Assert.True(opening.IsCancellationRequested);
-        Assert.False(d.Workspace.Opens.Token.IsCancellationRequested);
+        Assert.False(d.AppState.Opens.Token.IsCancellationRequested);
     }
 
     [Fact]
     public void Deleting_the_open_list_opens_the_assemblies_of_the_one_that_takes_its_place()
     {
-        var d = WorkspaceDriver.Opened();
-        d.Workspace.CreateList();
+        var d = AppStateDriver.Opened();
+        d.AppState.CreateList();
         d.Settle();
 
-        d.Workspace.DeleteList("New list");
+        d.AppState.DeleteList("New list");
         d.Settle();
 
-        Assert.Equal(SavedAssemblyLists.DefaultName, d.Workspace.Lists.Active);
-        Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
+        Assert.Equal(SavedAssemblyLists.DefaultName, d.AppState.Lists.Active);
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths);
     }
 
     [Fact]
     public void Reloading_reopens_the_whole_list_even_while_it_is_still_being_opened()
     {
-        var d = WorkspaceDriver.Opened();
-        d.Workspace.Lists.Create(Other);
-        d.Workspace.SwitchList(Other);
+        var d = AppStateDriver.Opened();
+        d.AppState.Lists.Create(Other);
+        d.AppState.SwitchList(Other);
         d.Settle();
 
-        d.Workspace.SwitchList(SavedAssemblyLists.DefaultName);
-        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
+        d.AppState.SwitchList(SavedAssemblyLists.DefaultName);
+        d.AppState.Refresh(d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
-        Assert.Equal([WorkspaceDriver.FixturePath], d.Workspace.Assemblies.FilePaths);
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths);
     }
 
     [Fact]
     public void Expanding_the_tree_expands_the_assemblies_and_their_namespaces()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var tree = d.Ui.Tree;
         var root = tree.Roots[0];
         tree.CollapseAll();
 
         tree.ExpandNamespaces();
-        var ns = d.Node(WorkspaceDriver.FixturesNamespace);
+        var ns = d.Node(AppStateDriver.FixturesNamespace);
         d.RunUntil(() => tree.View.IsExpanded(ns));
 
         Assert.True(tree.View.IsExpanded(root));
@@ -316,28 +316,28 @@ public sealed class AssemblyListingTests
     {
         var app = AppDriver.Opened();
         var root = app.Ui.Tree.Roots[0];
-        app.Ui.Tree.View.Select(app.Node(WorkspaceDriver.FixturesNamespace));
+        app.Ui.Tree.View.Select(app.Node(AppStateDriver.FixturesNamespace));
         app.Run(2);
 
         app.Click(LucideIcons.Trash2);
-        Assert.Single(app.Workspace.Assemblies.Assemblies);
+        Assert.Single(app.AppState.Assemblies.Assemblies);
 
         app.Ui.Tree.View.Select(root);
         app.Run(2);
         app.Click(LucideIcons.Trash2);
 
-        Assert.Empty(app.Workspace.Assemblies.Assemblies);
+        Assert.Empty(app.AppState.Assemblies.Assemblies);
     }
 
     [Fact]
     public void The_assemblies_panel_names_the_open_list_and_the_dialog_counts_each_lists_assemblies()
     {
         var app = AppDriver.Opened();
-        app.Workspace.Lists.Create(Other);
+        app.AppState.Lists.Create(Other);
         app.Run(2);
         Assert.True(app.Frames.Drew(SavedAssemblyLists.DefaultName));
 
-        app.Ui.ListsDialog.Open(app.Workspace);
+        app.Ui.ListsDialog.Open(app.AppState);
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Assembly lists"));
@@ -354,9 +354,9 @@ public sealed class AssemblyListingTests
         app.ClickLast("Activate").Frame(2);
         app.Settle(2);
 
-        Assert.Equal(Other, app.Workspace.Lists.Active);
+        Assert.Equal(Other, app.AppState.Lists.Active);
         Assert.True(app.Ui.ListsDialog.IsOpen);
-        Assert.Empty(app.Workspace.Assemblies.Assemblies);
+        Assert.Empty(app.AppState.Assemblies.Assemblies);
     }
 
     [Fact]
@@ -368,8 +368,8 @@ public sealed class AssemblyListingTests
         app.Frames.Type("Work").Frame(2);
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
-        Assert.Contains("Work", app.Workspace.Lists.Names);
-        Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.Lists.Active);
+        Assert.Contains("Work", app.AppState.Lists.Names);
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.AppState.Lists.Active);
         Assert.Null(app.Ui.ListsDialog.Renaming);
     }
 
@@ -383,10 +383,10 @@ public sealed class AssemblyListingTests
         app.Frames.Type("Gone").Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
-        Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.Workspace.Lists.Names);
+        Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.AppState.Lists.Names);
         Assert.Null(app.Ui.ListsDialog.Renaming);
         Assert.True(app.Ui.ListsDialog.IsOpen);
-        Assert.Equal(SavedAssemblyLists.DefaultName, app.Workspace.Lists.Active);
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.AppState.Lists.Active);
     }
 
     [Fact]
@@ -397,12 +397,12 @@ public sealed class AssemblyListingTests
         app.ClickLast(LucideIcons.Trash2).Frame(2);
         Assert.True(app.Frames.Drew("Delete assembly list"));
         Assert.Equal(SavedAssemblyLists.DefaultName, app.Ui.ListsDialog.Deleting);
-        Assert.Equal(Other, app.Workspace.Lists.ReplacementFor(SavedAssemblyLists.DefaultName));
+        Assert.Equal(Other, app.AppState.Lists.ReplacementFor(SavedAssemblyLists.DefaultName));
         app.Click("Delete list").Frame(2);
         app.Settle(2);
 
-        Assert.Equal([Other], app.Workspace.Lists.Names);
-        Assert.Equal(Other, app.Workspace.Lists.Active);
+        Assert.Equal([Other], app.AppState.Lists.Names);
+        Assert.Equal(Other, app.AppState.Lists.Active);
     }
 
     [Fact]
@@ -416,7 +416,7 @@ public sealed class AssemblyListingTests
         Assert.False(app.Frames.Drew("Delete assembly list"));
         Assert.Null(app.Ui.ListsDialog.Deleting);
         Assert.True(app.Ui.ListsDialog.IsOpen);
-        Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.Workspace.Lists.Names);
+        Assert.Equal([SavedAssemblyLists.DefaultName, Other], app.AppState.Lists.Names);
     }
 
     /// <summary>An app with the fixtures open in the Default list, beside an empty one, and the dialog
@@ -424,8 +424,8 @@ public sealed class AssemblyListingTests
     private static AppDriver OpenedDialog()
     {
         var app = AppDriver.Opened();
-        app.Workspace.Lists.Create(Other);
-        app.Ui.ListsDialog.Open(app.Workspace);
+        app.AppState.Lists.Create(Other);
+        app.Ui.ListsDialog.Open(app.AppState);
         app.Run(2);
         return app;
     }

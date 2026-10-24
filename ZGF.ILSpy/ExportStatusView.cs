@@ -12,7 +12,7 @@ internal static class ExportStatusView
     private const float BarWidth = 72f;
 
     /// <summary>Draws the running export; returns whether one runs.</summary>
-    public static bool Render(Ui<UiState> ui, Workspace w)
+    public static bool Render(Ui<UiState> ui, AppState w)
     {
         var progress = w.Export.Progress;
         if (progress == null)
@@ -21,7 +21,7 @@ internal static class ExportStatusView
         return true;
     }
 
-    private static void Running(Ui<UiState> ui, Workspace w, ExportProgress progress)
+    private static void Running(Ui<UiState> ui, AppState w, ExportProgress progress)
     {
         var t = ui.State.Strings;
         if (Glance(ui, w, progress))
@@ -32,7 +32,7 @@ internal static class ExportStatusView
 
     /// <summary>What the export writes, its bar and how many wait, as one button; returns whether it
     /// was clicked.</summary>
-    private static bool Glance(Ui<UiState> ui, Workspace w, ExportProgress progress)
+    private static bool Glance(Ui<UiState> ui, AppState w, ExportProgress progress)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -61,7 +61,7 @@ internal static class ExportStatusView
         return t.StatusExportingName(name);
     }
 
-    private static void Queued(Ui<UiState> ui, Workspace w)
+    private static void Queued(Ui<UiState> ui, AppState w)
     {
         var waiting = w.Export.WaitingCount;
         if (waiting == 0)

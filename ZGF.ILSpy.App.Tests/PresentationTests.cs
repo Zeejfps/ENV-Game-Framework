@@ -25,9 +25,9 @@ public sealed class PresentationTests
     public void Two_copies_of_one_assembly_read_apart_by_folder_and_carry_their_files_in_their_tooltips()
     {
         using var temp = new TempDir();
-        var copy = temp.Copy(WorkspaceDriver.FixturePath, Path.Combine("copy", Path.GetFileName(WorkspaceDriver.FixturePath)));
+        var copy = temp.Copy(AppStateDriver.FixturePath, Path.Combine("copy", Path.GetFileName(AppStateDriver.FixturePath)));
         var list = new AssemblyList();
-        var original = list.Open(WorkspaceDriver.FixturePath);
+        var original = list.Open(AppStateDriver.FixturePath);
         var duplicate = list.Open(copy);
         var tree = new BrowseTree();
         tree.Sync(list);
@@ -49,7 +49,7 @@ public sealed class PresentationTests
     public void An_assembly_listed_once_reads_as_its_name_alone()
     {
         var list = new AssemblyList();
-        var assembly = list.Open(WorkspaceDriver.FixturePath);
+        var assembly = list.Open(AppStateDriver.FixturePath);
         var tree = new BrowseTree();
         tree.Sync(list);
 
@@ -60,7 +60,7 @@ public sealed class PresentationTests
     public void An_assembly_row_shows_its_version_and_framework_as_muted_secondary_text()
     {
         var list = new AssemblyList();
-        var assembly = list.Open(WorkspaceDriver.FixturePath);
+        var assembly = list.Open(AppStateDriver.FixturePath);
         var tree = new BrowseTree();
         tree.Sync(list);
 
@@ -74,8 +74,8 @@ public sealed class PresentationTests
     [Fact]
     public void Non_public_nodes_carry_an_accessibility_overlay_in_the_palette_color_and_dimmed_text()
     {
-        var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
-        var ns = root.Child(WorkspaceDriver.FixturesNamespace);
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
+        var ns = root.Child(AppStateDriver.FixturesNamespace);
         var privateField = ns.Child("Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
         var tree = new BrowseTree();
         tree.SetStyle(UiTheme.Light, NodeIconPalette.Light);
@@ -96,8 +96,8 @@ public sealed class PresentationTests
     [Fact]
     public void A_non_public_type_says_its_accessibility_in_its_tooltip()
     {
-        var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
-        var hidden = root.Child(WorkspaceDriver.FixturesNamespace, "Hidden");
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
+        var hidden = root.Child(AppStateDriver.FixturesNamespace, "Hidden");
         var tree = new BrowseTree();
 
         var row = tree.Row(hidden);
@@ -109,10 +109,10 @@ public sealed class PresentationTests
     [Fact]
     public void An_assembly_tab_is_titled_by_the_assembly_name_with_its_identity_in_the_tooltip()
     {
-        var d = new WorkspaceDriver();
+        var d = new AppStateDriver();
         var assembly = d.OpenFixtures();
 
-        var tab = d.Workspace.Tabs.Active!;
+        var tab = d.AppState.Tabs.Active!;
 
         Assert.Equal(assembly.Name, tab.Title);
         Assert.Contains(assembly.FullName, tab.Tooltip);

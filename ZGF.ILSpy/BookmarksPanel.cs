@@ -68,7 +68,7 @@ public sealed class BookmarksPanel
 
     /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
     /// <paramref name="direction"/> is negative, and selects it.</summary>
-    public void Step(Workspace w, int direction)
+    public void Step(AppState w, int direction)
     {
         var bookmark = w.StepBookmark(Selected, direction);
         if (bookmark == null)

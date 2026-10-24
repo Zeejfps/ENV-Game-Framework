@@ -6,7 +6,7 @@ namespace ZGF.ILSpy;
 public static class AssemblyListing
 {
     /// <summary>The open list's assemblies whose files are still there.</summary>
-    public static List<string> ListExistingAssemblies(this Workspace w)
+    public static List<string> ListExistingAssemblies(this AppState w)
     {
         return w.Lists.ActivePaths
             .Where(File.Exists)
@@ -15,14 +15,14 @@ public static class AssemblyListing
 
     /// <summary>Opens the open list's assemblies as the app starts, as a reload, so that the list is
     /// saved whole until they are all open.</summary>
-    public static void RestoreActiveList(this Workspace w)
+    public static void RestoreActiveList(this AppState w)
     {
         w.OpenAsReload(w.ListExistingAssemblies());
     }
 
     /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
     /// the list still holds them all.</summary>
-    public static void RememberOpenAssemblies(this Workspace w)
+    public static void RememberOpenAssemblies(this AppState w)
     {
         if (w.IsReloading)
             return;
@@ -30,7 +30,7 @@ public static class AssemblyListing
     }
 
     /// <summary>Records the open assemblies and the analyses as the open list's.</summary>
-    internal static void RememberActiveList(this Workspace w)
+    internal static void RememberActiveList(this AppState w)
     {
         w.RememberOpenAssemblies();
         var analyzed = w.Analyzer.ListSavedAnalyses();
@@ -40,7 +40,7 @@ public static class AssemblyListing
     /// <summary>Opens the list named <paramref name="name"/> in place of the open one, with the
     /// analyses it had. The assemblies, documents, history and analyses of the one before go, kept
     /// with it for when it opens again.</summary>
-    public static void SwitchList(this Workspace w, string name)
+    public static void SwitchList(this AppState w, string name)
     {
         w.RememberActiveList();
         if (!w.Lists.Activate(name))
@@ -48,7 +48,7 @@ public static class AssemblyListing
         w.OpenActiveList();
     }
 
-    private static void OpenActiveList(this Workspace w)
+    private static void OpenActiveList(this AppState w)
     {
         w.ClearList();
         w.CloseDocuments();
@@ -59,7 +59,7 @@ public static class AssemblyListing
     }
 
     /// <summary>Adds an empty list, leaving the open one open, and returns its name.</summary>
-    public static string CreateList(this Workspace w)
+    public static string CreateList(this AppState w)
     {
         var t = Strings.For(w.Locale);
         return w.Lists.Create(t.ListsNewName);
@@ -67,7 +67,7 @@ public static class AssemblyListing
 
     /// <summary>Adds a copy of the list named <paramref name="name"/>, leaving the open one open, and
     /// returns the copy's name.</summary>
-    public static string DuplicateList(this Workspace w, string name)
+    public static string DuplicateList(this AppState w, string name)
     {
         var t = Strings.For(w.Locale);
         w.RememberActiveList();
@@ -76,7 +76,7 @@ public static class AssemblyListing
 
     /// <summary>Removes the list named <paramref name="name"/>. When it was open, the list that takes
     /// its place opens.</summary>
-    public static void DeleteList(this Workspace w, string name)
+    public static void DeleteList(this AppState w, string name)
     {
         var wasActive = string.Equals(name, w.Lists.Active, StringComparison.OrdinalIgnoreCase);
         w.RememberActiveList();

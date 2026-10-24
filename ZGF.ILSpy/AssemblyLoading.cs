@@ -7,7 +7,7 @@ namespace ZGF.ILSpy;
 public static class AssemblyLoading
 {
     /// <summary>Opens the files in the background, then shows the last one opened.</summary>
-    public static void Open(this Workspace w, IEnumerable<string> paths)
+    public static void Open(this AppState w, IEnumerable<string> paths)
     {
         var files = paths.ToArray();
         if (files.Length == 0)
@@ -15,7 +15,7 @@ public static class AssemblyLoading
         w.OpenInBackground(files);
     }
 
-    private static async void OpenInBackground(this Workspace w, string[] files)
+    private static async void OpenInBackground(this AppState w, string[] files)
     {
         var ticket = w.Intent.Begin();
         var token = w.Opens.Token;
@@ -23,7 +23,7 @@ public static class AssemblyLoading
         w.ShowOpened(opened, ticket);
     }
 
-    private static void ShowOpened(this Workspace w, Outcome<Opened> outcome, int ticket)
+    private static void ShowOpened(this AppState w, Outcome<Opened> outcome, int ticket)
     {
         if (outcome.Error is OperationCanceledException)
             return;
@@ -41,11 +41,11 @@ public static class AssemblyLoading
         w.Show(opened.Last.Root);
     }
 
-    public static void Open(this Workspace w, string path) => w.Open([path]);
+    public static void Open(this AppState w, string path) => w.Open([path]);
 
-    public static void Close(this Workspace w, LoadedAssembly assembly) => w.Assemblies.Close(assembly);
+    public static void Close(this AppState w, LoadedAssembly assembly) => w.Assemblies.Close(assembly);
 
-    public static void ClearList(this Workspace w)
+    public static void ClearList(this AppState w)
     {
         w.Intent.Begin();
         w.Opens.CancelAll();
@@ -53,7 +53,7 @@ public static class AssemblyLoading
         w.ClearAssemblies();
     }
 
-    internal static void ClearAssemblies(this Workspace w)
+    internal static void ClearAssemblies(this AppState w)
     {
         w.Assemblies.Clear();
         w.Analyzer.Clear();
@@ -62,7 +62,7 @@ public static class AssemblyLoading
     /// <summary>Reloads every assembly of the open list from disk in the background, then commands the view
     /// to expand the tree at <paramref name="expanded"/>, the paths of the nodes it had expanded, and
     /// shows each tab's place again, decompiled from the fresh files.</summary>
-    public static async void Refresh(this Workspace w, List<NodePath> expanded)
+    public static async void Refresh(this AppState w, List<NodePath> expanded)
     {
         w.RememberOpenAssemblies();
         var intent = w.Intent.Begin();
@@ -77,7 +77,7 @@ public static class AssemblyLoading
         w.FinishReload(reloaded, ticket, intent, tabs);
     }
 
-    private static List<ReloadingTab> ReleaseShownTabs(this Workspace w)
+    private static List<ReloadingTab> ReleaseShownTabs(this AppState w)
     {
         var reloading = new List<ReloadingTab>();
         foreach (var tab in w.Tabs)
@@ -92,7 +92,7 @@ public static class AssemblyLoading
         return reloading;
     }
 
-    private static CodeViewPosition? FindPositionToKeep(this Workspace w, DocumentTab tab)
+    private static CodeViewPosition? FindPositionToKeep(this AppState w, DocumentTab tab)
     {
         if (tab.Grid != null)
             return tab.Position;
@@ -101,7 +101,7 @@ public static class AssemblyLoading
         return tab.Position;
     }
 
-    private static Reloaded ReopenFiles(this Workspace w, IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
+    private static Reloaded ReopenFiles(this AppState w, IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
     {
         var opened = w.OpenFiles(paths, cancellationToken);
         var expandedNodes = w.LoadExpandedNodes(expanded, cancellationToken);
@@ -109,7 +109,7 @@ public static class AssemblyLoading
         return new Reloaded(opened.Errors, expandedNodes, placeNodes);
     }
 
-    private static List<BrowseNode> LoadExpandedNodes(this Workspace w, List<NodePath> expanded, CancellationToken cancellationToken)
+    private static List<BrowseNode> LoadExpandedNodes(this AppState w, List<NodePath> expanded, CancellationToken cancellationToken)
     {
         var nodes = new List<BrowseNode>();
         foreach (var path in expanded)
@@ -124,7 +124,7 @@ public static class AssemblyLoading
         return nodes;
     }
 
-    private static BrowseNode?[] FindNodes(this Workspace w, List<NodePath> places, CancellationToken cancellationToken)
+    private static BrowseNode?[] FindNodes(this AppState w, List<NodePath> places, CancellationToken cancellationToken)
     {
         var found = new BrowseNode?[places.Count];
         for (var i = 0; i < found.Length; i++)
@@ -135,7 +135,7 @@ public static class AssemblyLoading
         return found;
     }
 
-    private static void FinishReload(this Workspace w, Outcome<Reloaded> outcome, ReloadTicket ticket, int intent, List<ReloadingTab> tabs)
+    private static void FinishReload(this AppState w, Outcome<Reloaded> outcome, ReloadTicket ticket, int intent, List<ReloadingTab> tabs)
     {
         if (!w.Reload.Finish(ticket))
             return;
@@ -152,7 +152,7 @@ public static class AssemblyLoading
         w.SaveSettings();
     }
 
-    private static void ReshowTab(this Workspace w, ReloadingTab reloading, BrowseNode? node, int intent)
+    private static void ReshowTab(this AppState w, ReloadingTab reloading, BrowseNode? node, int intent)
     {
         var tab = reloading.Tab;
         if (!w.Tabs.Contains(tab))
@@ -169,7 +169,7 @@ public static class AssemblyLoading
             w.EnqueueCommand(new ViewCommand.RevealNode(node));
     }
 
-    private static void ReleaseGoneTab(this Workspace w, DocumentTab tab, NodePath location)
+    private static void ReleaseGoneTab(this AppState w, DocumentTab tab, NodePath location)
     {
         var t = Strings.For(w.Locale);
         tab.Release(t.DocumentGone(location.Text));
@@ -178,14 +178,14 @@ public static class AssemblyLoading
 
     /// <summary>Opens <paramref name="paths"/> in the background as a reload does, so that another
     /// reload or clearing the list stops it, and the settings are saved once it is done.</summary>
-    internal static async void OpenAsReload(this Workspace w, List<string> paths)
+    internal static async void OpenAsReload(this AppState w, List<string> paths)
     {
         var ticket = w.Reload.Start();
         var opened = await Background.Run(() => w.OpenFiles(paths, ticket.Token));
         w.FinishOpeningAsReload(opened, ticket);
     }
 
-    private static void FinishOpeningAsReload(this Workspace w, Outcome<Opened> outcome, ReloadTicket ticket)
+    private static void FinishOpeningAsReload(this AppState w, Outcome<Opened> outcome, ReloadTicket ticket)
     {
         if (!w.Reload.Finish(ticket))
             return;
@@ -199,7 +199,7 @@ public static class AssemblyLoading
         w.SaveSettings();
     }
 
-    private static Opened OpenFiles(this Workspace w, IEnumerable<string> paths, CancellationToken cancellationToken)
+    private static Opened OpenFiles(this AppState w, IEnumerable<string> paths, CancellationToken cancellationToken)
     {
         LoadedAssembly? last = null;
         var errors = new List<(string, string)>();
@@ -218,15 +218,15 @@ public static class AssemblyLoading
         return new Opened(last, errors);
     }
 
-    private static (string Title, string Details) DescribeLoadFailure(this Workspace w, string path, AssemblyLoadException e)
+    private static (string Title, string Details) DescribeLoadFailure(this AppState w, string path, AssemblyLoadException e)
     {
         var file = Path.GetFileName(path);
         var title = Strings.For(w.Locale).ErrorOpenFile(file);
-        var details = Workspace.DescribeFailure(e.InnerException, e.Message);
+        var details = AppState.DescribeFailure(e.InnerException, e.Message);
         return (title, details);
     }
 
-    private static void ReportAll(this Workspace w, List<(string Title, string Details)> errors)
+    private static void ReportAll(this AppState w, List<(string Title, string Details)> errors)
     {
         foreach (var (title, details) in errors)
             w.ReportError(title, details);

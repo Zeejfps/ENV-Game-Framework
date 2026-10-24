@@ -31,13 +31,13 @@ internal static class ExportDialogView
     private const string RemoveDeadStores = "RemoveDeadStores";
     private const string DebugSymbolNames = "UseDebugSymbols";
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         Dialog(ui, w);
         ui.State.ExportSetup.SettleWindow(ui.Input.IsDown(PointerButton.Left));
     }
 
-    private static void Dialog(Ui<UiState> ui, Workspace w)
+    private static void Dialog(Ui<UiState> ui, AppState w)
     {
         var setup = ui.State.ExportSetup;
         var choosing = setup.Page == ExportPage.Choose;
@@ -68,7 +68,7 @@ internal static class ExportDialogView
 
     /// <summary>Everything above the buttons, scrolling when the window is too short for it, so the
     /// buttons stay in reach.</summary>
-    private static void Body(Ui<UiState> ui, Workspace w)
+    private static void Body(Ui<UiState> ui, AppState w)
     {
         var theme = ui.Theme;
         var setup = ui.State.ExportSetup;
@@ -109,7 +109,7 @@ internal static class ExportDialogView
     /// <summary>The ticked assemblies as a table of their project names, its columns resized by
     /// dragging their borders and its rows picked out to remove together, over a strip that adds and
     /// removes assemblies and counts them.</summary>
-    private static void Chosen(Ui<UiState> ui, Workspace w)
+    private static void Chosen(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -140,7 +140,7 @@ internal static class ExportDialogView
 
     /// <summary>The table, its header naming the columns, a row per ticked assembly; the rows picked
     /// out go once they are all recorded, when asked to.</summary>
-    private static void ChosenTable(Ui<UiState> ui, Workspace w, List<ExportChoice> chosen)
+    private static void ChosenTable(Ui<UiState> ui, AppState w, List<ExportChoice> chosen)
     {
         var t = ui.State.Strings;
         var setup = ui.State.ExportSetup;
@@ -273,7 +273,7 @@ internal static class ExportDialogView
 
     /// <summary>How the projects are laid out. Kept with the decompiler options, so they stay for the
     /// next export, but only shown here.</summary>
-    private static void ProjectOptions(Ui<UiState> ui, Workspace w)
+    private static void ProjectOptions(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using (Section(ui))
@@ -287,7 +287,7 @@ internal static class ExportDialogView
     /// <summary>The decompiler options that matter most for exported code. They are the same as in
     /// the decompiler options panel, so changing them changes the code being browsed too, which the
     /// note under the heading says before they are changed.</summary>
-    private static void CodeOptions(Ui<UiState> ui, Workspace w)
+    private static void CodeOptions(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using (Section(ui))
@@ -302,7 +302,7 @@ internal static class ExportDialogView
 
     /// <summary>A checkbox for the decompiler toggle named <paramref name="name"/>, labelled as the
     /// decompiler options panel labels it.</summary>
-    private static void Toggle(Ui<UiState> ui, Workspace w, string name)
+    private static void Toggle(Ui<UiState> ui, AppState w, string name)
     {
         var t = ui.State.Strings;
         var toggle = DecompilerToggle.Find(name);
@@ -354,7 +354,7 @@ internal static class ExportDialogView
     }
 
     /// <summary>What stops the export, if anything, beside the buttons, set off from the body by a rule.</summary>
-    private static void Footer(Ui<UiState> ui, Workspace w)
+    private static void Footer(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;

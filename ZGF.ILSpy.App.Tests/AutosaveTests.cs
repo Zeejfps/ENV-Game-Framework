@@ -39,7 +39,7 @@ public sealed class AutosaveTests : IDisposable
 
     private static void Change(AppDriver app, string field)
     {
-        var w = app.Workspace;
+        var w = app.AppState;
         var screen = app.Ui;
         switch (field)
         {
@@ -130,10 +130,10 @@ public sealed class AutosaveTests : IDisposable
     [Fact]
     public void An_analysis_made_while_saved_ones_are_restoring_is_saved()
     {
-        var first = WorkspaceDriver.Opened(_temp.Settings());
+        var first = AppStateDriver.Opened(_temp.Settings());
         first.Ui.Analyze(first.Fixture("Greeter"));
         first.Pump();
-        var next = new WorkspaceDriver(_temp.Settings());
+        var next = new AppStateDriver(_temp.Settings());
 
         next.Ui.Analyze(first.Fixture("Outline"));
         next.Settle();
@@ -146,14 +146,14 @@ public sealed class AutosaveTests : IDisposable
     [Fact]
     public void An_analysis_asked_for_by_reference_is_saved_once_it_is_found()
     {
-        var d = WorkspaceDriver.Opened(_temp.Settings());
+        var d = AppStateDriver.Opened(_temp.Settings());
         d.Show(d.Fixture("Outline"));
-        var document = d.Workspace.Tabs.Active!.Document;
+        var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
         d.Ui.Analyze(reference);
-        d.Workspace.SaveSettingsIfChanged(d.Now);
+        d.AppState.SaveSettingsIfChanged(d.Now);
         var savedWhileFinding = _temp.Settings().AssemblyLists.Single().Analyzed?.Count ?? 0;
         d.Settle();
         d.Pump();
@@ -165,7 +165,7 @@ public sealed class AutosaveTests : IDisposable
     [Fact]
     public void A_saved_analysis_that_is_not_found_again_leaves_the_settings_with_the_next_save()
     {
-        var first = WorkspaceDriver.Opened(_temp.Settings());
+        var first = AppStateDriver.Opened(_temp.Settings());
         first.Ui.Analyze(first.Fixture("Greeter"));
         first.Pump();
         var settings = _temp.Settings();
@@ -174,11 +174,11 @@ public sealed class AutosaveTests : IDisposable
         settings.AssemblyLists[0] = list with { Analyzed = [anchor with { Token = anchor.Token + 0xFFFF }] };
         settings.Save();
 
-        var next = new WorkspaceDriver(_temp.Settings());
+        var next = new AppStateDriver(_temp.Settings());
         next.Settle();
         next.Pump();
 
-        Assert.Empty(next.Workspace.Analyzer.Roots);
+        Assert.Empty(next.AppState.Analyzer.Roots);
         Assert.Empty(_temp.Settings().AssemblyLists.Single().Analyzed ?? []);
     }
 
@@ -194,11 +194,11 @@ public sealed class AutosaveTests : IDisposable
     [Fact]
     public void A_failed_write_is_retried_after_a_wait_and_reported_once_until_one_succeeds()
     {
-        var d = new WorkspaceDriver(_temp.Settings());
-        d.Workspace.SaveSettings();
+        var d = new AppStateDriver(_temp.Settings());
+        d.AppState.SaveSettings();
         var blocker = BlockSettingsWrites();
 
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.AppState.SetLanguage(DecompilationLanguage.IL);
         d.Pump();
         d.Now += SaveRetry.DelaySeconds + 0.5;
         d.Pump();
@@ -211,7 +211,7 @@ public sealed class AutosaveTests : IDisposable
 
         Assert.Equal(DecompilationLanguage.CSharp, languageWhileWaiting);
         Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
-        Assert.Equal("Cannot save the settings", Assert.Single(d.Workspace.Errors.Entries).Title);
+        Assert.Equal("Cannot save the settings", Assert.Single(d.AppState.Errors.Entries).Title);
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public sealed class AutosaveTests : IDisposable
         app.Run(2);
         var blocker = BlockSettingsWrites();
 
-        app.Workspace.SetLanguage(DecompilationLanguage.IL);
+        app.AppState.SetLanguage(DecompilationLanguage.IL);
         app.Run();
         var failedAt = app.Frames.RealTime;
         var wakeAt = app.Frames.WakeAt;
@@ -234,19 +234,19 @@ public sealed class AutosaveTests : IDisposable
         Assert.InRange(wakeAt - failedAt, 1.9, 2.1);
         Assert.Equal(DecompilationLanguage.CSharp, languageWhileWaiting);
         Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
-        Assert.Single(app.Workspace.Errors.Entries);
+        Assert.Single(app.AppState.Errors.Entries);
     }
 
     [Fact]
     public void Saving_outright_as_shutting_down_does_writes_even_while_a_retry_waits()
     {
-        var d = new WorkspaceDriver(_temp.Settings());
+        var d = new AppStateDriver(_temp.Settings());
         var blocker = BlockSettingsWrites();
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.AppState.SetLanguage(DecompilationLanguage.IL);
         d.Pump();
         Directory.Delete(blocker);
 
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
         Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
     }

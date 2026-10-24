@@ -41,7 +41,7 @@ public sealed class MetadataGridFrameCostTests(ITestOutputHelper output)
     {
         var app = AppDriver.Opened(width: 1800f);
         app.Show(app.Node("Metadata", "Tables").Table(name), 3);
-        return app.Workspace.Tabs.Active!.Grid!;
+        return app.AppState.Tabs.Active!.Grid!;
     }
 
     private static void Render(Ui<UiState> ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)

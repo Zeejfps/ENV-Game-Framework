@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// nothing.</summary>
 internal static class DocumentsView
 {
-    public static void Render(Ui<UiState> ui, Workspace w, DocumentTab tab)
+    public static void Render(Ui<UiState> ui, AppState w, DocumentTab tab)
     {
         var t = ui.State.Strings;
         if (IsEmpty(tab))
@@ -40,7 +40,7 @@ internal static class DocumentsView
     }
 
     /// <summary>The tab's document in the code view, with its bookmarks.</summary>
-    public static void RenderCode(Ui<UiState> ui, Workspace w, DocumentTab tab)
+    public static void RenderCode(Ui<UiState> ui, AppState w, DocumentTab tab)
     {
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? w.Bookmarks.LinesIn(tab.Document, node.Path) : null;
         var view = ui.State.ViewOf(tab);
@@ -55,7 +55,7 @@ internal static class DocumentsView
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
     /// selection of the one removed on.</summary>
-    private static void ToggleBookmark(Ui<UiState> ui, Workspace w, DocumentTab tab, int line)
+    private static void ToggleBookmark(Ui<UiState> ui, AppState w, DocumentTab tab, int line)
     {
         var toggle = w.ToggleBookmark(tab, line);
         ui.State.BookmarksPanel.Take(toggle, w.Bookmarks.Items);
@@ -68,7 +68,7 @@ internal static class DocumentsView
         return tab.Location == null;
     }
 
-    public static DockTab Tab(UiState screen, Workspace w, DocumentTab tab)
+    public static DockTab Tab(UiState screen, AppState w, DocumentTab tab)
     {
         var title = TitleOf(screen, tab);
         return new DockTab(title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);

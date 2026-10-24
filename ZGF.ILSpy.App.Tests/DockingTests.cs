@@ -10,16 +10,16 @@ public sealed class DockingTests
     {
         var app = AppDriver.Opened();
         app.Show(app.Fixture("Greeter"));
-        var greeter = app.Workspace.Tabs.Active!;
+        var greeter = app.AppState.Tabs.Active!;
         var layout = app.Ui.Layout;
 
         layout.Dock(DockPanels.Assemblies, layout.GroupOf(greeter.Panel)!, DockEdge.Center);
         app.Run(3);
 
         Assert.Equal([greeter.Panel, DockPanels.Assemblies], layout.GroupOf(greeter.Panel)!.Panels);
-        Assert.Same(greeter, app.Workspace.Tabs.Active);
+        Assert.Same(greeter, app.AppState.Tabs.Active);
         Assert.True(app.Frames.Drew("Greeter"));
-        Assert.True(app.Frames.Drew(WorkspaceDriver.FixturesNamespace));
+        Assert.True(app.Frames.Drew(AppStateDriver.FixturesNamespace));
     }
 
     [Fact]
@@ -61,25 +61,25 @@ public sealed class DockingTests
     [Fact]
     public void Closing_the_last_document_frees_its_area_and_the_next_one_opens_right_of_the_views()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var layout = d.Ui.Layout;
 
-        d.Workspace.CloseTab(d.Workspace.Tabs.Active!);
+        d.AppState.CloseTab(d.AppState.Tabs.Active!);
         d.NextFrame();
         var left = Assert.IsType<DockGroup>(layout.Root).Panels.ToList();
         d.Show(d.Fixture("Greeter"));
 
         Assert.Equal([DockPanels.Assemblies], left);
         var split = Assert.IsType<DockSplit>(layout.Root);
-        Assert.Same(layout.GroupOf(d.Workspace.Tabs.Active!.Panel), split.Second);
-        Assert.Equal("Greeter", d.Workspace.Tabs.Active.Node!.Text);
+        Assert.Same(layout.GroupOf(d.AppState.Tabs.Active!.Panel), split.Second);
+        Assert.Equal("Greeter", d.AppState.Tabs.Active.Node!.Text);
     }
 
     [Fact]
     public void With_everything_closed_a_hint_points_to_the_View_menu()
     {
         var app = new AppDriver();
-        var w = app.Workspace;
+        var w = app.AppState;
         app.Ui.Layout.Close(DockPanels.Assemblies);
         w.CloseTab(w.Tabs.Active!);
 
@@ -95,7 +95,7 @@ public sealed class DockingTests
         var d = app.Driver;
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
-        var farewell = d.Workspace.Tabs.Active!;
+        var farewell = d.AppState.Tabs.Active!;
         var layout = d.Ui.Layout;
         layout.Dock(farewell.Panel, layout.Root, DockEdge.Bottom);
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 40f, 300f, 300f));
@@ -110,9 +110,9 @@ public sealed class DockingTests
         var split = Assert.IsType<DockSplit>(layout.Root);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(split.First).Panels);
         var documents = Assert.IsType<DockGroup>(split.Second);
-        Assert.Equal(d.Workspace.Tabs.Select(t => t.Panel).Order(), documents.Panels.Order());
+        Assert.Equal(d.AppState.Tabs.Select(t => t.Panel).Order(), documents.Panels.Order());
         Assert.Equal(farewell.Panel, documents.Active);
-        Assert.Same(farewell, d.Workspace.Tabs.Active);
+        Assert.Same(farewell, d.AppState.Tabs.Active);
         Assert.Empty(layout.Windows);
         Assert.False(layout.Contains(DockPanels.Bookmarks));
     }
@@ -154,16 +154,16 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void Views_docked_below_the_documents_are_still_below_them_after_a_restart()
     {
-        var d = WorkspaceDriver.Opened(_temp.Settings());
+        var d = AppStateDriver.Opened(_temp.Settings());
         var screen = d.Ui;
         screen.OpenAnalyzer();
         screen.Layout.Dock(DockPanels.Bookmarks, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        var next = new WorkspaceDriver(_temp.Settings());
+        var next = new AppStateDriver(_temp.Settings());
         var layout = next.Ui.Layout;
-        var documents = layout.GroupOf(next.Workspace.Tabs.Active!.Panel)!;
+        var documents = layout.GroupOf(next.AppState.Tabs.Active!.Panel)!;
         var views = layout.GroupOf(DockPanels.Analyzer)!;
         var split = ParentOf(layout.Root, views)!;
 
@@ -171,21 +171,21 @@ public sealed class LayoutPersistenceTests : IDisposable
         Assert.Equal(Direction.Vertical, split.Direction);
         Assert.Same(documents, split.First);
         Assert.Same(views, split.Second);
-        Assert.Single(next.Workspace.Tabs);
+        Assert.Single(next.AppState.Tabs);
     }
 
     [Fact]
     public void An_open_search_panel_is_still_open_where_it_was_docked_after_a_restart()
     {
-        var d = new WorkspaceDriver(_temp.Settings());
+        var d = new AppStateDriver(_temp.Settings());
         var screen = d.Ui;
         screen.OpenSearch();
         screen.OpenAnalyzer();
         screen.Layout.Dock(DockPanels.Search, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        var next = new WorkspaceDriver(_temp.Settings()).Ui;
+        var next = new AppStateDriver(_temp.Settings()).Ui;
 
         Assert.True(next.Layout.Contains(DockPanels.Search));
         Assert.Same(next.Layout.GroupOf(DockPanels.Analyzer), next.Layout.GroupOf(DockPanels.Search));
@@ -194,14 +194,14 @@ public sealed class LayoutPersistenceTests : IDisposable
     [Fact]
     public void The_symbols_being_analyzed_are_analyzed_again_after_a_restart()
     {
-        var first = WorkspaceDriver.Opened(_temp.Settings());
+        var first = AppStateDriver.Opened(_temp.Settings());
         first.Ui.Analyze(first.Fixture("Outline").Children.Single(c => c.Text.StartsWith("First()")));
         first.Ui.Analyze(first.Fixture("Greeter"));
         first.Pump();
 
-        var next = new WorkspaceDriver(_temp.Settings());
-        next.RunUntil(() => !next.Workspace.IsFindingAnalyses);
+        var next = new AppStateDriver(_temp.Settings());
+        next.RunUntil(() => !next.AppState.IsFindingAnalyses);
 
-        Assert.Equal(["First() : int", "Greeter"], next.Workspace.Analyzer.Found().Select(r => r.Symbol.Label));
+        Assert.Equal(["First() : int", "Greeter"], next.AppState.Analyzer.Found().Select(r => r.Symbol.Label));
     }
 }

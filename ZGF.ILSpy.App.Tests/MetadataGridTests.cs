@@ -16,7 +16,7 @@ public sealed class MetadataGridTests
     {
         var app = AppDriver.Opened(width: 1800f);
         app.Show(Table(app, name), frames);
-        var tab = app.Workspace.Tabs.Active!;
+        var tab = app.AppState.Tabs.Active!;
         return (app, tab, tab.Grid!);
     }
 
@@ -46,7 +46,7 @@ public sealed class MetadataGridTests
     {
         var (app, tab, grid) = ShowTable("TypeDef", frames: 0);
 
-        app.Workspace.SetLanguage(DecompilationLanguage.IL);
+        app.AppState.SetLanguage(DecompilationLanguage.IL);
         app.Settle(2);
 
         Assert.Same(grid, tab.Grid);
@@ -60,7 +60,7 @@ public sealed class MetadataGridTests
     {
         var app = AppDriver.Opened(width: 700f);
         app.Show(Table(app, "TypeDef"), 2);
-        var tab = app.Workspace.Tabs.Active!;
+        var tab = app.AppState.Tabs.Active!;
         var grid = tab.Grid!;
         var methodList = grid.Text(0, grid.Column("MethodList"));
 
@@ -76,12 +76,12 @@ public sealed class MetadataGridTests
     [Fact]
     public void A_text_node_of_the_metadata_decompiles_to_comments()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
 
         d.Show(d.Node("Metadata", "Tables"));
 
-        Assert.Null(d.Workspace.Tabs.Active!.Grid);
-        Assert.StartsWith("// Tables", d.Workspace.Tabs.Active.Document.GetText());
+        Assert.Null(d.AppState.Tabs.Active!.Grid);
+        Assert.StartsWith("// Tables", d.AppState.Tabs.Active.Document.GetText());
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class MetadataGridTests
         Assert.Equal("Object", typeRefs.Text(GridOf(app, tab).Selected, typeRefs.Column("Name")));
         app.TextRect("Object");
 
-        app.Workspace.GoBack();
+        app.AppState.GoBack();
         app.Settle(3);
 
         Assert.Same(Table(app, "TypeDef"), tab.Node);
@@ -245,7 +245,7 @@ public sealed class MetadataGridTests
     {
         var app = AppDriver.Opened(width: 1800f, height: 1200f);
         app.Show(app.Node("Metadata", "COFF Header"), 3);
-        var grid = app.Workspace.Tabs.Active!.Grid!;
+        var grid = app.AppState.Tabs.Active!.Grid!;
         var row = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, grid.Column("Member")) == "Characteristics");
         var value = TextBeside(app, grid.Text(row, grid.Column("Value")), "Characteristics");
 
@@ -318,7 +318,7 @@ public sealed class MetadataGridTests
         var app = AppDriver.Opened(width: 1800f, height: 900f);
         var table = app.Node("Debug Metadata (From portable PDB)", "Tables").Table("CustomDebugInformation");
         app.Show(table);
-        var tab = app.Workspace.Tabs.Active!;
+        var tab = app.AppState.Tabs.Active!;
         var grid = tab.Grid!;
         var kind = grid.Column("KindString");
         var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));

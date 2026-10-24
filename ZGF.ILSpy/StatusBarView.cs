@@ -9,7 +9,7 @@ namespace ZGF.ILSpy;
 /// right: activity, errors, language and the assembly count.</summary>
 internal static class StatusBarView
 {
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -49,7 +49,7 @@ internal static class StatusBarView
         }
     }
 
-    private static string? DescribeActivity(Workspace w, Strings t)
+    private static string? DescribeActivity(AppState w, Strings t)
     {
         if (w.IsReloading)
             return t.StatusReloading;
@@ -60,7 +60,7 @@ internal static class StatusBarView
         return null;
     }
 
-    private static bool IsDecompiling(Workspace w)
+    private static bool IsDecompiling(AppState w)
     {
         var tab = w.Tabs.Active;
         return tab != null && tab.IsBusy;
@@ -68,7 +68,7 @@ internal static class StatusBarView
 
     private static void Dot(Ui<UiState> ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
 
-    private static void ErrorIndicator(Ui<UiState> ui, Workspace w)
+    private static void ErrorIndicator(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;

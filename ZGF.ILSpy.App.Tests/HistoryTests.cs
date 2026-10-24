@@ -15,9 +15,9 @@ public sealed class HistoryTests
 
     private static CodeViewPosition ScrollTo(AppDriver app, int topLine, TextPosition anchor, TextPosition caret)
     {
-        CodeOf(app, app.Workspace.Tabs.Active!).Restore(new CodeViewPosition(topLine, 0f, anchor, caret));
+        CodeOf(app, app.AppState.Tabs.Active!).Restore(new CodeViewPosition(topLine, 0f, anchor, caret));
         app.Run(4);
-        return CodeOf(app, app.Workspace.Tabs.Active!).Position;
+        return CodeOf(app, app.AppState.Tabs.Active!).Position;
     }
 
     private static CodeViewState CodeOf(AppDriver app, DocumentTab tab) => app.Ui.ViewOf(tab).Code;
@@ -31,13 +31,13 @@ public sealed class HistoryTests
         Show(app, "Greeter");
         var greeter = ScrollTo(app, 3, new TextPosition(4, 0), new TextPosition(4, 6));
 
-        app.Workspace.GoBack();
+        app.AppState.GoBack();
         app.Settle(4);
-        var back = app.Workspace.Tabs.Active!.Node!.Text;
-        var backPosition = CodeOf(app, app.Workspace.Tabs.Active!).Position;
-        app.Workspace.GoForward();
+        var back = app.AppState.Tabs.Active!.Node!.Text;
+        var backPosition = CodeOf(app, app.AppState.Tabs.Active!).Position;
+        app.AppState.GoForward();
         app.Settle(4);
-        var forward = app.Workspace.Tabs.Active!;
+        var forward = app.AppState.Tabs.Active!;
 
         Assert.Equal(20, outline.TopLine);
         Assert.Equal("Outline", back);
@@ -51,15 +51,15 @@ public sealed class HistoryTests
     {
         var app = Opened();
         Show(app, "Outline");
-        var tab = app.Workspace.Tabs.Active!;
+        var tab = app.AppState.Tabs.Active!;
         var (line, column) = tab.Document.Find("return First();");
         var reference = tab.Document.SpanAt(line, column + "return ".Length).Reference!;
         var before = ScrollTo(app, 25, new TextPosition(line, column), new TextPosition(line, column + 6));
 
-        app.Workspace.Navigate(reference, inNewTab: false);
+        app.AppState.Navigate(reference, inNewTab: false);
         app.Settle(4);
         var followed = tab.Node!.Text;
-        app.Workspace.GoBack();
+        app.AppState.GoBack();
         app.Settle(4);
 
         Assert.StartsWith("First()", followed);
@@ -75,11 +75,11 @@ public sealed class HistoryTests
         ScrollTo(app, 20, new TextPosition(21, 4), new TextPosition(22, 8));
         Show(app, "Greeter");
 
-        app.Workspace.SetLanguage(DecompilationLanguage.IL);
+        app.AppState.SetLanguage(DecompilationLanguage.IL);
         app.Settle(4);
-        app.Workspace.GoBack();
+        app.AppState.GoBack();
         app.Settle(4);
-        var tab = app.Workspace.Tabs.Active!;
+        var tab = app.AppState.Tabs.Active!;
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(DecompilationLanguage.IL, tab.Language);
@@ -91,16 +91,16 @@ public sealed class HistoryTests
     public void Going_to_an_entry_jumps_over_the_ones_between_and_keeps_them_all()
     {
         var app = Opened();
-        var history = app.Workspace.History;
+        var history = app.AppState.History;
         Show(app, "Outline");
         var first = history.CurrentIndex;
         Show(app, "Greeter");
         Show(app, "Outline");
         var count = history.Entries.Count;
 
-        app.Workspace.GoTo(first);
+        app.AppState.GoTo(first);
         app.Settle(4);
-        var back = app.Workspace.Tabs.Active!.Node!.Text;
+        var back = app.AppState.Tabs.Active!.Node!.Text;
 
         Assert.Equal("Outline", back);
         Assert.Equal(first, history.CurrentIndex);
@@ -113,7 +113,7 @@ public sealed class HistoryTests
     {
         var app = Opened();
         Show(app, "Outline");
-        var first = app.Workspace.History.CurrentIndex;
+        var first = app.AppState.History.CurrentIndex;
         Show(app, "Greeter");
         Show(app, "Outline");
 
@@ -124,8 +124,8 @@ public sealed class HistoryTests
         app.Settle(4);
 
         Assert.True(greeter.Top > outline.Top);
-        Assert.Equal("Outline", app.Workspace.Tabs.Active!.Node!.Text);
-        Assert.Equal(first, app.Workspace.History.CurrentIndex);
+        Assert.Equal("Outline", app.AppState.Tabs.Active!.Node!.Text);
+        Assert.Equal(first, app.AppState.History.CurrentIndex);
     }
 
     [Fact]
@@ -137,11 +137,11 @@ public sealed class HistoryTests
         ClickBackDropdown(app);
         var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
 
-        app.Workspace.GoBack();
+        app.AppState.GoBack();
         app.Settle(4);
 
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Position.Top == row.Top && t.Inputs.Position.Left == row.Left);
-        Assert.Equal("Outline", app.Workspace.Tabs.Active!.Node!.Text);
+        Assert.Equal("Outline", app.AppState.Tabs.Active!.Node!.Text);
     }
 
     [Fact]

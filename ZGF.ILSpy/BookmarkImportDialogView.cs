@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// import at a time.</summary>
 internal static class BookmarkImportDialogView
 {
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var import = w.Imports.Asking;
         if (import == null)
@@ -16,7 +16,7 @@ internal static class BookmarkImportDialogView
         Ask(ui, w, import);
     }
 
-    private static void Ask(Ui<UiState> ui, Workspace w, PendingImport import)
+    private static void Ask(Ui<UiState> ui, AppState w, PendingImport import)
     {
         var t = ui.State.Strings;
         var open = true;

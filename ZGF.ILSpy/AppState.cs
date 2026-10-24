@@ -12,7 +12,7 @@ namespace ZGF.ILSpy;
 /// resolving, searching) is awaited there through <see cref="Background"/>. A result is dropped when
 /// the user asked for something else in the meantime.
 /// </summary>
-public sealed class Workspace
+public sealed class AppState
 {
     public AppSettings Settings { get; }
     public AssemblyList Assemblies { get; } = new();
@@ -82,7 +82,7 @@ public sealed class Workspace
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
 
-    public Workspace(AppSettings settings)
+    public AppState(AppSettings settings)
     {
         Settings = settings;
         Tooltips = new CodeTooltips(Assemblies);

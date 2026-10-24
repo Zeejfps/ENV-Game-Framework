@@ -311,7 +311,7 @@ public sealed class ExportSetup
     }
 
     /// <summary>Closes the dialog and exports what it asks for, unless something stops the export.</summary>
-    public void Start(Workspace w)
+    public void Start(AppState w)
     {
         if (!CanExport)
             return;

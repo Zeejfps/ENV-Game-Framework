@@ -4,7 +4,7 @@ using ZGF.Gui.Immediate;
 
 namespace ZGF.ILSpy;
 
-public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
+public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
 {
     private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
     private const string ItalicFontFile = "Inter-Italic.ttf";
@@ -12,9 +12,9 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
     private readonly List<string> _startupAssemblies;
 
     internal IlSpyApp(
-        Workspace workspace,
-        UiState screen,
-        List<string> startupAssemblies) : base(workspace, screen)
+        AppState appState,
+        UiState uiState,
+        List<string> startupAssemblies) : base(appState, uiState)
     {
         _startupAssemblies = startupAssemblies;
     }
@@ -27,7 +27,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         State.RestoreAnalyses();
     }
 
-    protected override void OnRender(Ui<UiState> ui, Workspace w)
+    protected override void OnRender(Ui<UiState> ui, AppState w)
     {
         ui.State.StartFrame();
         MainView.Render(ui, w);
@@ -78,17 +78,17 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         State.SaveSettings();
     }
     
-    private static void RequestFrameIfViewCommandsPending(Ui<UiState> ui, Workspace w)
+    private static void RequestFrameIfViewCommandsPending(Ui<UiState> ui, AppState w)
     {
         if (w.ViewCommands.Count == 0)
             return;
         ui.RequestFrame();
     }
     
-    private static void SaveSettingsIfChanged(Ui<UiState> ui, Workspace w)
+    private static void SaveSettingsIfChanged(Ui<UiState> ui, AppState w)
     {
-        var wait = w.SaveSettingsIfChanged(ui.RealTime);
-        if (wait > 0)
-            ui.RequestFrameIn(wait);
+        var retryWait = w.SaveSettingsIfChanged(ui.RealTime);
+        if (retryWait > 0)
+            ui.RequestFrameIn(retryWait);
     }
 }

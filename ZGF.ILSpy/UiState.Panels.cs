@@ -8,7 +8,7 @@ public sealed partial class UiState
     /// and puts the caret in its search box.</summary>
     public void OpenSearch()
     {
-        MainLayout.OpenSearch(_workspace.Tabs.ActivePanel);
+        MainLayout.OpenSearch(_appState.Tabs.ActivePanel);
         IsSearchFocusPending = true;
     }
 
@@ -31,7 +31,7 @@ public sealed partial class UiState
     /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
     public void OpenExportSetup(LoadedAssembly? picked)
     {
-        ExportSetup.Open(_workspace.Assemblies.Assemblies, picked);
+        ExportSetup.Open(_appState.Assemblies.Assemblies, picked);
     }
 
     /// <summary>Whether a dialog that keeps the window's shortcuts to itself is open.</summary>

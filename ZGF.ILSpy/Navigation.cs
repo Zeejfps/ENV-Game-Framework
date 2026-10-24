@@ -10,7 +10,7 @@ public static class Navigation
 {
     /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
     /// and records it in the history.</summary>
-    public static void Show(this Workspace w, BrowseNode node, bool inNewTab = false)
+    public static void Show(this AppState w, BrowseNode node, bool inNewTab = false)
     {
         if (node.Kind == NodeKind.Loading)
             return;
@@ -23,7 +23,7 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
     /// then shows it in the tab it was asked from, or a new one.</summary>
-    public static async void Navigate(this Workspace w, CodeReference reference, bool inNewTab)
+    public static async void Navigate(this AppState w, CodeReference reference, bool inNewTab)
     {
         if (!reference.IsNavigable)
             return;
@@ -37,7 +37,7 @@ public static class Navigation
         w.ShowResolved(reference, found, origin);
     }
 
-    private static void ShowResolved(this Workspace w, CodeReference reference, Outcome<BrowseNode?> found, DocumentTab? origin)
+    private static void ShowResolved(this AppState w, CodeReference reference, Outcome<BrowseNode?> found, DocumentTab? origin)
     {
         var node = found.Value;
         if (node == null)
@@ -52,7 +52,7 @@ public static class Navigation
 
     /// <summary>Shows the table row a metadata token leads to in the active tab, or a new one, and
     /// records it in the history.</summary>
-    public static void Show(this Workspace w, MetadataTarget target, bool inNewTab)
+    public static void Show(this AppState w, MetadataTarget target, bool inNewTab)
     {
         w.Intent.Begin();
         w.LeaveActive();
@@ -62,19 +62,19 @@ public static class Navigation
     }
 
     /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
-    public static void GoToTarget(this Workspace w, BrowseNode node)
+    public static void GoToTarget(this AppState w, BrowseNode node)
     {
         if (node.Target == null)
             return;
         w.Navigate(node.Target, inNewTab: false);
     }
 
-    public static void GoBack(this Workspace w) => w.GoTo(w.History.CurrentIndex - 1);
+    public static void GoBack(this AppState w) => w.GoTo(w.History.CurrentIndex - 1);
 
-    public static void GoForward(this Workspace w) => w.GoTo(w.History.CurrentIndex + 1);
+    public static void GoForward(this AppState w) => w.GoTo(w.History.CurrentIndex + 1);
 
     /// <summary>Goes to the history entry at <paramref name="index"/>, however far back or forward.</summary>
-    public static void GoTo(this Workspace w, int index)
+    public static void GoTo(this AppState w, int index)
     {
         if (!w.CanGoTo(index))
             return;
@@ -85,7 +85,7 @@ public static class Navigation
         w.Restore(entry.Value);
     }
 
-    private static bool CanGoTo(this Workspace w, int index)
+    private static bool CanGoTo(this AppState w, int index)
     {
         if (index < 0)
             return false;
@@ -94,7 +94,7 @@ public static class Navigation
         return index != w.History.CurrentIndex;
     }
 
-    private static async void Restore(this Workspace w, HistoryEntry entry)
+    private static async void Restore(this AppState w, HistoryEntry entry)
     {
         var ticket = w.Intent.Begin();
         var tab = w.Tabs.Active;
@@ -114,7 +114,7 @@ public static class Navigation
         w.ShowHistoryPlace(place, position, found, tab);
     }
 
-    private static BrowseNode? FindShownNode(this Workspace w, DocumentTab? tab, NodePath place)
+    private static BrowseNode? FindShownNode(this AppState w, DocumentTab? tab, NodePath place)
     {
         if (tab == null)
             return null;
@@ -128,29 +128,29 @@ public static class Navigation
         return node;
     }
 
-    private static void ShowHistoryPlace(this Workspace w, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found, DocumentTab? tab)
+    private static void ShowHistoryPlace(this AppState w, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found, DocumentTab? tab)
     {
         var node = found.Value;
         if (node == null)
         {
             var t = Strings.For(w.Locale);
-            var details = Workspace.DescribeFailure(found.Error, t.ErrorNoLongerThere(place));
+            var details = AppState.DescribeFailure(found.Error, t.ErrorNoLongerThere(place));
             w.ReportError(t.ErrorGoBack(place.Text), details);
             return;
         }
         w.ShowIn(w.Tabs.KeepIfOpen(tab), node, position);
     }
 
-    internal static void ReportUnresolved(this Workspace w, CodeReference reference, Exception? error)
+    internal static void ReportUnresolved(this AppState w, CodeReference reference, Exception? error)
     {
         var t = Strings.For(w.Locale);
-        var details = Workspace.DescribeFailure(error, t.ErrorNoDefinition(reference));
+        var details = AppState.DescribeFailure(error, t.ErrorNoDefinition(reference));
         w.ReportError(t.ErrorResolve(reference.Name), details);
     }
 
     /// <summary>Records where the active tab's view is in the history entry it shows, before it shows
     /// something else.</summary>
-    internal static void LeaveActive(this Workspace w)
+    internal static void LeaveActive(this AppState w)
     {
         var tab = w.Tabs.Active;
         if (tab == null)
@@ -163,7 +163,7 @@ public static class Navigation
         w.History.Leave(tab.Language, position.Value);
     }
 
-    private static bool IsCurrentHistoryPlace(this Workspace w, NodePath? place)
+    private static bool IsCurrentHistoryPlace(this AppState w, NodePath? place)
     {
         var current = w.History.Current;
         if (current == null)
@@ -174,7 +174,7 @@ public static class Navigation
     /// <summary>Shows <paramref name="node"/> in <paramref name="tab"/>, or a new tab when null, makes
     /// that tab active, and commands the view to bring it to the front and reveal the node in the tree.</summary>
     internal static void ShowIn(
-        this Workspace w,
+        this AppState w,
         DocumentTab? tab,
         BrowseNode node,
         CodeViewPosition? position = null,
@@ -187,7 +187,7 @@ public static class Navigation
         w.EnqueueCommand(new ViewCommand.RevealNode(node));
     }
 
-    private static DocumentTab ActivateOrOpenTab(this Workspace w, DocumentTab? tab)
+    private static DocumentTab ActivateOrOpenTab(this AppState w, DocumentTab? tab)
     {
         if (tab == null)
             return w.OpenNewTab();
@@ -196,7 +196,7 @@ public static class Navigation
     }
 
     /// <summary>Opens an empty tab, which the view docks beside the active one.</summary>
-    internal static DocumentTab OpenNewTab(this Workspace w)
+    internal static DocumentTab OpenNewTab(this AppState w)
     {
         var tab = w.AddTab();
         w.EnqueueCommand(new ViewCommand.ShowTab(tab, w.Tabs.ActivePanel));

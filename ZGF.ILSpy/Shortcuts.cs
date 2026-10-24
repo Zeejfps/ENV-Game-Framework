@@ -42,7 +42,7 @@ internal static class Shortcuts
         return false;
     }
 
-    public static void Handle(Ui<UiState> ui, Workspace w)
+    public static void Handle(Ui<UiState> ui, AppState w)
     {
         if (ui.State.IsDialogOpen()) return;
 

@@ -5,7 +5,7 @@ public static class Docking
 {
     /// <summary>Makes <paramref name="tab"/>, when it is open, the tab the user works in, decompiling
     /// again what it shows when the language or the options changed since.</summary>
-    public static void FocusTab(this Workspace w, DocumentTab tab)
+    public static void FocusTab(this AppState w, DocumentTab tab)
     {
         if (!w.Tabs.Contains(tab))
             return;
@@ -16,7 +16,7 @@ public static class Docking
 
     /// <summary>Closes <paramref name="tab"/>, cancelling what it was doing. Returns whether it was the
     /// active tab, which leaves none active until the view focuses another.</summary>
-    public static bool CloseTab(this Workspace w, DocumentTab tab)
+    public static bool CloseTab(this AppState w, DocumentTab tab)
     {
         if (!w.Tabs.Contains(tab))
             return false;
@@ -28,7 +28,7 @@ public static class Docking
 
     /// <summary>Closes every document tab but the active one, and empties that one; with no tab left
     /// open, opens an empty one.</summary>
-    public static void CloseDocuments(this Workspace w)
+    public static void CloseDocuments(this AppState w)
     {
         var kept = w.FindTabToKeep();
         var others = w.Tabs
@@ -40,7 +40,7 @@ public static class Docking
         w.Tabs.MakeActive(kept);
     }
 
-    private static DocumentTab FindTabToKeep(this Workspace w)
+    private static DocumentTab FindTabToKeep(this AppState w)
     {
         var active = w.Tabs.Active;
         if (active != null)

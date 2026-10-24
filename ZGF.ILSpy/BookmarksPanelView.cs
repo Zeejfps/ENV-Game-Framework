@@ -23,7 +23,7 @@ internal static class BookmarksPanelView
     private static Strings? _headersFor;
     private static string[] _headers = [];
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var bookmarks = w.Bookmarks;
@@ -49,7 +49,7 @@ internal static class BookmarksPanelView
     }
 
     /// <summary>Returns the bookmark Delete asked to remove.</summary>
-    private static Bookmark? List(Ui<UiState> ui, Workspace w, TableFrame table)
+    private static Bookmark? List(Ui<UiState> ui, AppState w, TableFrame table)
     {
         var bookmarks = w.Bookmarks;
         var panel = ui.State.BookmarksPanel;
@@ -68,7 +68,7 @@ internal static class BookmarksPanelView
     }
 
     /// <summary>Does what the user asked of the table this frame: go to, copy or open the menu.</summary>
-    private static void Answer(Ui<UiState> ui, Workspace w, TableBody body)
+    private static void Answer(Ui<UiState> ui, AppState w, TableBody body)
     {
         var panel = ui.State.BookmarksPanel;
         var selected = panel.Selected;
@@ -95,7 +95,7 @@ internal static class BookmarksPanelView
         new(t.FileFilterAll, ["*.*"]),
     ];
 
-    private static void Toolbar(Ui<UiState> ui, Workspace w)
+    private static void Toolbar(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -130,7 +130,7 @@ internal static class BookmarksPanelView
         _ => "",
     };
 
-    private static void Row(Ui<UiState> ui, Workspace w, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
+    private static void Row(Ui<UiState> ui, AppState w, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
     {
         var bookmarks = w.Bookmarks;
         var panel = ui.State.BookmarksPanel;
@@ -181,7 +181,7 @@ internal static class BookmarksPanelView
             RenameField(ui, panel, bookmarks);
     }
 
-    private static void LocationCell(Ui<UiState> ui, Workspace w, TableRow row, Bookmark bookmark, bool listed)
+    private static void LocationCell(Ui<UiState> ui, AppState w, TableRow row, Bookmark bookmark, bool listed)
     {
         var t = ui.State.Strings;
         uint? color = null;
@@ -250,7 +250,7 @@ internal static class BookmarksPanelView
             ui.Focus(ListId, takesText: false);
     }
 
-    private static void Menu(Ui<UiState> ui, Workspace w)
+    private static void Menu(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using var menu = ui.ContextMenu(MenuId);

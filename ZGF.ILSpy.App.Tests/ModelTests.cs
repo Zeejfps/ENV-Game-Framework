@@ -13,25 +13,25 @@ public sealed class BrowseTreeTests
     [Fact]
     public void A_node_whose_children_are_not_built_shows_a_loading_row_until_they_are()
     {
-        var d = new WorkspaceDriver();
+        var d = new AppStateDriver();
         var tree = new BrowseTree();
-        var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
 
         var first = tree.GetChildren(root);
 
         Assert.Equal([root.LoadingChild], first);
         Assert.Equal("Loading…", tree.Row(root.LoadingChild).Label);
         d.RunUntil(() => root.TryGetChildren(out _) && tree.GetChildren(root) is not [{ Kind: NodeKind.Loading }]);
-        Assert.Contains(tree.GetChildren(root), c => c.Text == WorkspaceDriver.FixturesNamespace);
+        Assert.Contains(tree.GetChildren(root), c => c.Text == AppStateDriver.FixturesNamespace);
     }
 
     [Fact]
     public void Revealing_a_hidden_non_public_node_selects_its_nearest_shown_ancestor()
     {
-        var d = new WorkspaceDriver();
+        var d = new AppStateDriver();
         var tree = new BrowseTree();
-        var root = new AssemblyList().Open(WorkspaceDriver.FixturePath).Root;
-        var ns = root.Child(WorkspaceDriver.FixturesNamespace);
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
+        var ns = root.Child(AppStateDriver.FixturesNamespace);
         var secret = ns.Child("Hidden", "Secret() : int");
         tree.SetShowNonPublic(false);
 
@@ -64,7 +64,7 @@ public sealed class BrowseTreeTests
     private static WeakReference FilterAndClose(BrowseTree tree)
     {
         var list = new AssemblyList();
-        var assembly = list.Open(WorkspaceDriver.FixturePath);
+        var assembly = list.Open(AppStateDriver.FixturePath);
         var root = assembly.Root;
         _ = root.Children;
         Assert.NotEmpty(tree.GetChildren(root));
@@ -148,13 +148,13 @@ public sealed class AppSettingsTests : IDisposable
     [Fact]
     public void The_export_window_reopens_where_it_was_left_in_the_last_run()
     {
-        var d = new WorkspaceDriver(AppSettings.Load(SettingsFile));
+        var d = new AppStateDriver(AppSettings.Load(SettingsFile));
         d.Ui.ExportSetup.Window = new WindowBounds(-900, 200, 700, 800, false);
         d.Ui.ExportSetup.SettleWindow(held: false);
         d.NextFrame();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        var next = new WorkspaceDriver(AppSettings.Load(SettingsFile));
+        var next = new AppStateDriver(AppSettings.Load(SettingsFile));
 
         Assert.Equal(new WindowBounds(-900, 200, 700, 800, false), next.Ui.ExportSetup.Window);
         Assert.Null(AppSettings.Load(Written("""{ "ExportWindow": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""")).ExportWindow);
@@ -220,11 +220,11 @@ public sealed class AppSettingsTests : IDisposable
     public void An_unreadable_file_falls_back_to_defaults_and_is_reported()
     {
         var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", """));
-        var workspace = new Workspace(loaded);
+        var appState = new AppState(loaded);
 
         Assert.Empty(loaded.AssemblyLists);
         Assert.NotNull(loaded.LoadError);
-        var error = Assert.Single(workspace.Errors.Entries);
+        var error = Assert.Single(appState.Errors.Entries);
         Assert.Contains(SettingsFile, error.Details);
     }
 
@@ -249,16 +249,16 @@ public sealed class DockPanelsTests
     public void A_rearranged_layout_is_saved_and_restored_with_the_settings()
     {
         using var temp = new TempDir();
-        var d = new WorkspaceDriver(temp.Settings());
+        var d = new AppStateDriver(temp.Settings());
         var layout = d.Ui.Layout;
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 50f, 300f, 400f));
         d.NextFrame();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        var next = new WorkspaceDriver(temp.Settings());
+        var next = new AppStateDriver(temp.Settings());
         var restored = next.Ui.Layout;
 
-        Assert.Same(next.Workspace.Tabs.Active, next.Workspace.Tabs.Find(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
+        Assert.Same(next.AppState.Tabs.Active, next.AppState.Tabs.Find(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
         var window = Assert.Single(restored.Windows);
         Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
         Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
@@ -281,15 +281,15 @@ public sealed class DockPanelsTests
     [Fact]
     public void Opening_a_search_docks_its_panel_and_closing_the_panel_clears_the_query()
     {
-        var d = new WorkspaceDriver();
-        var workspace = d.Workspace;
+        var d = new AppStateDriver();
+        var appState = d.AppState;
 
         d.Ui.OpenSearch();
         d.Ui.Search.Query = "Greeter";
 
         var search = d.Ui.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
-        Assert.NotSame(search, d.Ui.Layout.GroupOf(workspace.Tabs.Active!.Panel));
+        Assert.NotSame(search, d.Ui.Layout.GroupOf(appState.Tabs.Active!.Panel));
 
         d.Ui.Layout.Close(DockPanels.Search);
 
@@ -300,24 +300,24 @@ public sealed class DockPanelsTests
     public void The_search_mode_is_saved_and_restored()
     {
         var settings = new AppSettings();
-        var d = new WorkspaceDriver(settings);
+        var d = new AppStateDriver(settings);
 
         d.Ui.Search.Kinds = SearchKinds.Literals;
         d.NextFrame();
-        d.Workspace.SaveSettings();
+        d.AppState.SaveSettings();
 
-        Assert.Equal(SearchKinds.Literals, new WorkspaceDriver(settings).Ui.Search.Kinds);
+        Assert.Equal(SearchKinds.Literals, new AppStateDriver(settings).Ui.Search.Kinds);
     }
 
     [Fact]
     public void Scoping_the_search_to_a_namespace_keeps_the_terms_typed()
     {
-        var driver = WorkspaceDriver.Opened();
+        var driver = AppStateDriver.Opened();
         driver.Ui.Search.Query = "inassembly:Old Greet";
 
-        driver.Ui.ScopeSearch(driver.Node(WorkspaceDriver.FixturesNamespace));
+        driver.Ui.ScopeSearch(driver.Node(AppStateDriver.FixturesNamespace));
 
-        Assert.Equal($"innamespace:{WorkspaceDriver.FixturesNamespace} inassembly:Old Greet ", driver.Ui.Search.Query);
+        Assert.Equal($"innamespace:{AppStateDriver.FixturesNamespace} inassembly:Old Greet ", driver.Ui.Search.Query);
         Assert.True(driver.Ui.Layout.Contains(DockPanels.Search));
     }
 }
@@ -366,7 +366,7 @@ public sealed class FrameworkPickerTests
     public void Assemblies_already_open_are_not_offered()
     {
         var posted = PostedActions.OfThisTest();
-        var open = new RuntimeAssembly("Fixtures", "Microsoft.NETCore.App", WorkspaceDriver.FixturePath);
+        var open = new RuntimeAssembly("Fixtures", "Microsoft.NETCore.App", AppStateDriver.FixturePath);
         var other = new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll");
         var picker = new FrameworkPicker(static () => Strings.En, static (_, _) => { }, () => [open, other]);
         var list = new AssemblyList();
@@ -375,7 +375,7 @@ public sealed class FrameworkPickerTests
         picker.Update(list);
         Assert.Equal([open, other], picker.Filtered);
 
-        list.Open(WorkspaceDriver.FixturePath);
+        list.Open(AppStateDriver.FixturePath);
         picker.Update(list);
 
         Assert.Equal([other], picker.Filtered);

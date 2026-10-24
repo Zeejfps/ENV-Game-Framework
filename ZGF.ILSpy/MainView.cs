@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// dialogs over them.</summary>
 public static class MainView
 {
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         using var screen = ui.Screen();
         Shortcuts.Handle(ui, w);
@@ -31,7 +31,7 @@ public static class MainView
         ErrorDialogView.Render(ui, w);
     }
 
-    private static void Panels(Ui<UiState> ui, Workspace w)
+    private static void Panels(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         UpdateSearch(ui, w);
@@ -45,7 +45,7 @@ public static class MainView
         RemoveReleasedImages(ui);
     }
 
-    private static void UpdateSearch(Ui<UiState> ui, Workspace w)
+    private static void UpdateSearch(Ui<UiState> ui, AppState w)
     {
         var shown = ui.State.Layout.Contains(DockPanels.Search);
         var wait = ui.State.Search.Update(w.Assemblies, ui.RealTime, shown);
@@ -58,7 +58,7 @@ public static class MainView
         return !screen.Layout.HasPanels();
     }
 
-    private static void DockSpace(Ui<UiState> ui, Workspace w)
+    private static void DockSpace(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         using var dock = ui.DockSpace("dock", ui.State.Layout, (ui.State, w, t), static (s, panel) => Tab(s.State, s.w, s.t, panel));
@@ -66,7 +66,7 @@ public static class MainView
             Panel(ui, w, panel);
     }
 
-    private static DockTab Tab(UiState screen, Workspace w, Strings t, string panel)
+    private static DockTab Tab(UiState screen, AppState w, Strings t, string panel)
     {
         if (DockPanels.IsView(panel))
             return DockPanels.Tab(t, panel);
@@ -76,7 +76,7 @@ public static class MainView
         return new DockTab(panel);
     }
 
-    private static void Panel(Ui<UiState> ui, Workspace w, string panel)
+    private static void Panel(Ui<UiState> ui, AppState w, string panel)
     {
         switch (panel)
         {
@@ -104,7 +104,7 @@ public static class MainView
         }
     }
 
-    private static void Document(Ui<UiState> ui, Workspace w, string panel)
+    private static void Document(Ui<UiState> ui, AppState w, string panel)
     {
         var tab = w.Tabs.Find(panel);
         if (tab == null)

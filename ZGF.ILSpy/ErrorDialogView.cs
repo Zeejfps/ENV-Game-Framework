@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// title over its details in a selectable monospace view, and Copy, Clear and Close.</summary>
 internal static class ErrorDialogView
 {
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var errors = w.Errors;

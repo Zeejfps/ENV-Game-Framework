@@ -7,7 +7,7 @@ namespace ZGF.ILSpy;
 /// which list opens in its place when it is the active one.</summary>
 internal static class AssemblyListDeleteDialogView
 {
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;

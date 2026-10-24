@@ -88,7 +88,7 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
    re-lays out and allocates. Its only caller, `CodeTooltipView`, keeps its lists per tooltip. Fix: an
    immutable `RichTextBlock` that owns its runs and caches per width.
 9. **Tree models carry view styling.** `TreePaneView.cs:139-140` and `AnalyzerPanelView.cs:17` push
-   `SetStyle` every frame; `ShowNonPublic` lives in both `Workspace` and `BrowseTree`. Fix: a per-frame
+   `SetStyle` every frame; `ShowNonPublic` lives in both `AppState` and `BrowseTree`. Fix: a per-frame
    adapter in the view and one owner of `ShowNonPublic`.
 10. **Analyzer headers are matched as strings across Core and the app.** `AnalyzerText.Header`
     (`AnalyzerTree.cs:322`) switches on Core's English headers (`Analysis.cs:78+`). Fix: an enum per analysis

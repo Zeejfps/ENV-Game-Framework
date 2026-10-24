@@ -22,7 +22,7 @@ public sealed class AssemblyListsDialog
     public string? Deleting { get; private set; }
 
     /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>
-    public void Open(Workspace w)
+    public void Open(AppState w)
     {
         w.RememberOpenAssemblies();
         IsOpen = true;
@@ -30,7 +30,7 @@ public sealed class AssemblyListsDialog
     }
 
     /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
-    public void Create(Workspace w)
+    public void Create(AppState w)
     {
         var name = w.CreateList();
         PickToRename(w.Lists, name);
@@ -38,7 +38,7 @@ public sealed class AssemblyListsDialog
 
     /// <summary>Adds a copy of the list named <paramref name="name"/>, picked to be named, leaving the
     /// open one open.</summary>
-    public void Duplicate(Workspace w, string name)
+    public void Duplicate(AppState w, string name)
     {
         var copy = w.DuplicateList(name);
         PickToRename(w.Lists, copy);
@@ -52,7 +52,7 @@ public sealed class AssemblyListsDialog
 
     /// <summary>Removes the list named <paramref name="name"/> and picks the open list, which takes its
     /// place when it was open.</summary>
-    public void Delete(Workspace w, string name)
+    public void Delete(AppState w, string name)
     {
         w.DeleteList(name);
         Pick(w.Lists, w.Lists.Active);

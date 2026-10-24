@@ -9,7 +9,7 @@ public static class Bookmarking
     /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
     /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
     /// when it has one. Returns which it did.</summary>
-    public static BookmarkToggle ToggleBookmark(this Workspace w, DocumentTab tab, int line)
+    public static BookmarkToggle ToggleBookmark(this AppState w, DocumentTab tab, int line)
     {
         var node = tab.Node;
         if (node == null)
@@ -22,7 +22,7 @@ public static class Bookmarking
         return w.AddBookmark(tab, node, line);
     }
 
-    private static BookmarkToggle RemoveBookmark(this Workspace w, Bookmark bookmark)
+    private static BookmarkToggle RemoveBookmark(this AppState w, Bookmark bookmark)
     {
         var row = w.Bookmarks.Remove(bookmark);
         return new BookmarkToggle.Removed(bookmark, row);
@@ -39,7 +39,7 @@ public static class Bookmarking
         return line < tab.Document.Lines.Length;
     }
 
-    private static BookmarkToggle AddBookmark(this Workspace w, DocumentTab tab, BrowseNode node, int line)
+    private static BookmarkToggle AddBookmark(this AppState w, DocumentTab tab, BrowseNode node, int line)
     {
         var anchor = tab.Document.AnchorAt(line);
         var name = w.Bookmarks.NextName(w.FormatBookmarkName);
@@ -49,11 +49,11 @@ public static class Bookmarking
         return new BookmarkToggle.Added(bookmark);
     }
 
-    private static string FormatBookmarkName(this Workspace w, int number) => Strings.For(w.Locale).BookmarksDefaultName(number);
+    private static string FormatBookmarkName(this AppState w, int number) => Strings.For(w.Locale).BookmarksDefaultName(number);
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
     /// assembly first if it is not open, and records it in the history.</summary>
-    public static async void GoTo(this Workspace w, Bookmark bookmark)
+    public static async void GoTo(this AppState w, Bookmark bookmark)
     {
         var ticket = w.Intent.Begin();
         var tab = w.Tabs.Active;
@@ -66,13 +66,13 @@ public static class Bookmarking
         w.ShowBookmarkPlace(bookmark, found, tab);
     }
 
-    private static void ShowBookmarkPlace(this Workspace w, Bookmark bookmark, Outcome<BrowseNode?> found, DocumentTab? tab)
+    private static void ShowBookmarkPlace(this AppState w, Bookmark bookmark, Outcome<BrowseNode?> found, DocumentTab? tab)
     {
         var node = found.Value;
         if (node == null)
         {
             var t = Strings.For(w.Locale);
-            var details = Workspace.DescribeFailure(found.Error, t.ErrorNoLongerThere(bookmark.Place));
+            var details = AppState.DescribeFailure(found.Error, t.ErrorNoLongerThere(bookmark.Place));
             w.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
             return;
         }
@@ -83,7 +83,7 @@ public static class Bookmarking
 
     /// <summary>Goes to the next enabled bookmark after <paramref name="from"/>, or the previous when
     /// <paramref name="direction"/> is negative. Returns the bookmark gone to, or null when none is enabled.</summary>
-    public static Bookmark? StepBookmark(this Workspace w, Bookmark? from, int direction)
+    public static Bookmark? StepBookmark(this AppState w, Bookmark? from, int direction)
     {
         var bookmark = w.Bookmarks.Step(from, direction);
         if (bookmark == null)
@@ -92,7 +92,7 @@ public static class Bookmarking
         return bookmark;
     }
 
-    public static void ExportBookmarks(this Workspace w, string path)
+    public static void ExportBookmarks(this AppState w, string path)
     {
         var records = w.Bookmarks.Save();
         var error = BookmarkFile.Write(path, records);
@@ -103,9 +103,9 @@ public static class Bookmarking
 
     /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
     /// ILSpy's — and finds the place of each in the background: takes them at once when there are
-    /// none yet, and otherwise waits in <see cref="Workspace.Imports"/> for the user to say how. Bookmarks
+    /// none yet, and otherwise waits in <see cref="AppState.Imports"/> for the user to say how. Bookmarks
     /// whose place is not found are left out and reported.</summary>
-    public static async void ImportBookmarks(this Workspace w, string path)
+    public static async void ImportBookmarks(this AppState w, string path)
     {
         var file = Path.GetFileName(path);
         var records = BookmarkFile.Read(path, out var error);
@@ -120,12 +120,12 @@ public static class Bookmarking
         w.TakeImported(found, file);
     }
 
-    private static List<FoundBookmark> FindPlaces(this Workspace w, List<BookmarkRecord> records)
+    private static List<FoundBookmark> FindPlaces(this AppState w, List<BookmarkRecord> records)
     {
         return records.ConvertAll(r => new FoundBookmark(r, w.FindPlace(r)));
     }
 
-    private static NodePath? FindPlace(this Workspace w, BookmarkRecord record)
+    private static NodePath? FindPlace(this AppState w, BookmarkRecord record)
     {
         if (record.Place != null)
             return NodePath.From(record.FileName, record.Place);
@@ -133,7 +133,7 @@ public static class Bookmarking
         return ILSpyTree.Locate(w.Assemblies, record.FileName, treePath, record.Token);
     }
 
-    private static void TakeImported(this Workspace w, Outcome<List<FoundBookmark>> found, string file)
+    private static void TakeImported(this AppState w, Outcome<List<FoundBookmark>> found, string file)
     {
         var places = found.Value;
         if (places == null)
@@ -156,7 +156,7 @@ public static class Bookmarking
         w.Imports.Wait(new PendingImport(bookmarks));
     }
 
-    private static void ReportLostBookmarks(this Workspace w, List<FoundBookmark> found, string file)
+    private static void ReportLostBookmarks(this AppState w, List<FoundBookmark> found, string file)
     {
         var lost = found.FindAll(f => f.Place == null);
         if (lost.Count == 0)
@@ -175,7 +175,7 @@ public static class Bookmarking
 
     /// <summary>Takes the bookmarks <paramref name="import"/> waits with as <paramref name="mode"/> says,
     /// or drops them when null.</summary>
-    public static void FinishImport(this Workspace w, PendingImport import, BookmarkImportMode? mode)
+    public static void FinishImport(this AppState w, PendingImport import, BookmarkImportMode? mode)
     {
         if (!w.Imports.Finish(import))
             return;
@@ -186,7 +186,7 @@ public static class Bookmarking
 
     /// <summary>Takes <paramref name="bookmarks"/> in as <paramref name="mode"/> says. Those marking a
     /// line a bookmark marks already are left out: quietly when merging, and reported when replacing.</summary>
-    private static void TakeBookmarks(this Workspace w, IReadOnlyList<Bookmark> bookmarks, BookmarkImportMode mode)
+    private static void TakeBookmarks(this AppState w, IReadOnlyList<Bookmark> bookmarks, BookmarkImportMode mode)
     {
         var leftOut = w.Bookmarks.Import(bookmarks, mode);
         if (mode == BookmarkImportMode.Merge)
@@ -195,7 +195,7 @@ public static class Bookmarking
     }
 
     /// <summary>Says how many bookmarks were left out because another marks the same line.</summary>
-    internal static void ReportLeftOutBookmarks(this Workspace w, int leftOut)
+    internal static void ReportLeftOutBookmarks(this AppState w, int leftOut)
     {
         if (leftOut == 0)
             return;

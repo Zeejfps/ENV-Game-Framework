@@ -12,7 +12,7 @@ internal static class TreePaneView
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var theme = ui.Theme;
         var tree = ui.State.Tree;
@@ -29,7 +29,7 @@ internal static class TreePaneView
         ContextMenu(ui, w);
     }
 
-    private static void Toolbar(Ui<UiState> ui, Workspace w)
+    private static void Toolbar(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -67,7 +67,7 @@ internal static class TreePaneView
         ui.Text(text, new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) }, color: theme.TextMuted, wrap: true);
     }
 
-    private static void AnalyzeOnShortcut(Ui<UiState> ui, Workspace w)
+    private static void AnalyzeOnShortcut(Ui<UiState> ui, AppState w)
     {
         if (!ui.HasFocus(ui.GetId(TreeId)))
             return;
@@ -79,7 +79,7 @@ internal static class TreePaneView
         ui.State.Analyze(picked);
     }
 
-    private static void CloseOnDelete(Ui<UiState> ui, Workspace w)
+    private static void CloseOnDelete(Ui<UiState> ui, AppState w)
     {
         if (!ui.HasFocus(ui.GetId(TreeId)))
             return;
@@ -91,7 +91,7 @@ internal static class TreePaneView
         w.Close(picked.Assembly);
     }
 
-    private static void Respond(Ui<UiState> ui, Workspace w, TreeViewResult<BrowseNode> result)
+    private static void Respond(Ui<UiState> ui, AppState w, TreeViewResult<BrowseNode> result)
     {
         var node = result.Node;
         if (node == null)
@@ -104,13 +104,13 @@ internal static class TreePaneView
             OpenContextMenu(ui, w, node, result.ContextMenuAt);
     }
 
-    private static void OpenContextMenu(Ui<UiState> ui, Workspace w, BrowseNode node, PointF at)
+    private static void OpenContextMenu(Ui<UiState> ui, AppState w, BrowseNode node, PointF at)
     {
         ui.State.MenuTarget = node;
         ui.OpenContextMenu(MenuId, at);
     }
 
-    private static void ContextMenu(Ui<UiState> ui, Workspace w)
+    private static void ContextMenu(Ui<UiState> ui, AppState w)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
@@ -121,7 +121,7 @@ internal static class TreePaneView
         NodeMenu(ui, w, node);
     }
 
-    private static void NodeMenu(Ui<UiState> ui, Workspace w, BrowseNode node)
+    private static void NodeMenu(Ui<UiState> ui, AppState w, BrowseNode node)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
@@ -161,7 +161,7 @@ internal static class TreePaneView
         return node.DependsOnLanguage;
     }
 
-    private static void PdbItem(Ui<UiState> ui, Workspace w, LoadedAssembly assembly)
+    private static void PdbItem(Ui<UiState> ui, AppState w, LoadedAssembly assembly)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: SaveDialogs.PdbIcon))

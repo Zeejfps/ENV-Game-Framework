@@ -8,7 +8,7 @@ public sealed partial class UiState
     /// commands about a node, tab, line or row that is gone since.</summary>
     private void RunViewCommands()
     {
-        var commands = _workspace.ViewCommands;
+        var commands = _appState.ViewCommands;
         while (commands.TryDequeue(out var command))
             Run(command);
     }
@@ -46,7 +46,7 @@ public sealed partial class UiState
 
     private void RevealNode(BrowseNode node)
     {
-        if (!_workspace.IsListed(node))
+        if (!_appState.IsListed(node))
             return;
         Tree.Reveal(node);
     }
@@ -54,7 +54,7 @@ public sealed partial class UiState
     private void ExpandNodes(IReadOnlyList<BrowseNode> nodes)
     {
         var listed = nodes
-            .Where(_workspace.IsListed)
+            .Where(_appState.IsListed)
             .ToList();
         Tree.Expand(listed);
     }
@@ -103,7 +103,7 @@ public sealed partial class UiState
     /// <summary>The view of <paramref name="tab"/> while it is open, or null.</summary>
     private TabView? FindOpenView(DocumentTab tab)
     {
-        if (!_workspace.Tabs.Contains(tab))
+        if (!_appState.Tabs.Contains(tab))
             return null;
         return _tabViews.GetValueOrDefault(tab);
     }

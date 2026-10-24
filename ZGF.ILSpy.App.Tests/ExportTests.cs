@@ -18,24 +18,24 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Saving_code_writes_the_node_in_the_current_language()
     {
-        var d = WorkspaceDriver.Opened();
-        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        var d = AppStateDriver.Opened();
+        d.AppState.SetLanguage(DecompilationLanguage.IL);
         var path = _temp.PathOf("Greeter.il");
 
-        d.Workspace.SaveCode(d.Fixture("Greeter"), path);
+        d.AppState.SaveCode(d.Fixture("Greeter"), path);
         d.Settle();
 
         Assert.Contains(".class public auto ansi beforefieldinit ZGF.ILSpy.App.Tests.Fixtures.Greeter", File.ReadAllText(path));
-        Assert.Empty(d.Workspace.Errors.Entries);
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]
     public void Saving_an_assembly_writes_one_code_file_even_under_a_project_name()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var path = _temp.PathOf("Fixtures.csproj");
 
-        d.Workspace.SaveCode(d.Node(), path);
+        d.AppState.SaveCode(d.Node(), path);
         d.Settle();
 
         var code = File.ReadAllText(path);
@@ -47,12 +47,12 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Saving_a_resource_writes_its_bytes_as_they_are()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var node = d.Node("Resources", "data.json");
         var path = _temp.PathOf("data.json");
 
-        Assert.True(d.Workspace.CanSaveCode(node));
-        d.Workspace.SaveCode(node, path);
+        Assert.True(d.AppState.CanSaveCode(node));
+        d.AppState.SaveCode(node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
     }
@@ -60,14 +60,14 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Pdbs_are_generated_for_every_open_assembly_into_the_folder()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var assembly = d.Node().Assembly;
 
-        d.Workspace.GeneratePdbs(_temp.Path);
+        d.AppState.GeneratePdbs(_temp.Path);
         d.Settle();
 
         Assert.True(File.Exists(_temp.PathOf(assembly.PdbFileName)));
-        Assert.Empty(d.Workspace.Errors.Entries);
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]
@@ -90,9 +90,9 @@ public sealed class ExportTests : IDisposable
     {
         var app = AppDriver.Opened();
         var sample = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
-        app.Workspace.Open(sample);
-        app.Driver.RunUntil(() => app.Workspace.Assemblies.Assemblies.Any(a => a.FilePath == sample));
-        var assembly = app.Workspace.Assemblies.Assemblies.Single(a => a.FilePath == sample);
+        app.AppState.Open(sample);
+        app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Any(a => a.FilePath == sample));
+        var assembly = app.AppState.Assemblies.Assemblies.Single(a => a.FilePath == sample);
         var baml = assembly.Root.Child("Resources", "SampleApp.g.resources", "mainwindow.baml");
         app.Show(baml, frames: 2);
         var path = _temp.PathOf("mainwindow.xaml");
@@ -123,7 +123,7 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void An_export_asked_for_while_another_runs_waits_its_turn()
     {
-        var queue = new WorkspaceDriver().Workspace.Export;
+        var queue = new AppStateDriver().AppState.Export;
         var first = queue.Enter(TestJobs.Named("First"));
         var second = queue.Enter(TestJobs.Named("Second"));
 
@@ -141,7 +141,7 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Only_the_running_export_can_end_its_turn()
     {
-        var queue = new WorkspaceDriver().Workspace.Export;
+        var queue = new AppStateDriver().AppState.Export;
         var first = queue.Enter(TestJobs.Named("First")).Result;
         queue.Leave(first);
         var second = queue.Enter(TestJobs.Named("Second")).Result;
@@ -156,8 +156,8 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Progress_that_arrives_after_its_turn_ended_is_dropped()
     {
-        var d = new WorkspaceDriver();
-        var queue = d.Workspace.Export;
+        var d = new AppStateDriver();
+        var queue = d.AppState.Export;
         var first = queue.Enter(TestJobs.Named("First")).Result;
         first.Progress.Report(new ExportProgress("First", 1, 1, 0.5f));
         queue.Leave(first);
@@ -171,8 +171,8 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Progress_of_the_running_export_arrives_on_the_ui_thread()
     {
-        var d = new WorkspaceDriver();
-        var queue = d.Workspace.Export;
+        var d = new AppStateDriver();
+        var queue = d.AppState.Export;
         var start = queue.Enter(TestJobs.Named("Fixtures")).Result;
 
         start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.75f));
@@ -184,8 +184,8 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Progress_that_arrives_out_of_order_never_steps_the_bar_back()
     {
-        var d = new WorkspaceDriver();
-        var queue = d.Workspace.Export;
+        var d = new AppStateDriver();
+        var queue = d.AppState.Export;
         var start = queue.Enter(TestJobs.Named("Fixtures")).Result;
 
         start.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.6f));
@@ -198,41 +198,41 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Exports_asked_for_together_all_run_one_after_another()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var greeter = _temp.PathOf("Greeter.cs");
         var farewell = _temp.PathOf("Farewell.cs");
 
-        d.Workspace.SaveCode(d.Fixture("Greeter"), greeter);
-        d.Workspace.SaveCode(d.Fixture("Farewell"), farewell);
-        Assert.Equal(1, d.Workspace.Export.WaitingCount);
+        d.AppState.SaveCode(d.Fixture("Greeter"), greeter);
+        d.AppState.SaveCode(d.Fixture("Farewell"), farewell);
+        Assert.Equal(1, d.AppState.Export.WaitingCount);
         d.Settle();
 
         Assert.True(File.Exists(greeter));
         Assert.True(File.Exists(farewell));
-        Assert.False(d.Workspace.IsExporting);
+        Assert.False(d.AppState.IsExporting);
     }
 
     [Fact]
     public void A_cancelled_export_ends_without_an_error()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var path = _temp.PathOf(Path.Combine("Project", "Fixtures.csproj"));
 
-        d.Workspace.ExportProject(d.Node().Assembly, path);
-        d.Workspace.Export.Cancel();
+        d.AppState.ExportProject(d.Node().Assembly, path);
+        d.AppState.Export.Cancel();
         d.Settle();
 
-        Assert.False(d.Workspace.IsExporting);
-        Assert.Null(d.Workspace.Export.Progress);
-        Assert.Empty(d.Workspace.Errors.Entries);
+        Assert.False(d.AppState.IsExporting);
+        Assert.Null(d.AppState.Export.Progress);
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]
     public void The_status_bar_shows_the_export_and_how_many_wait_and_cancels_it()
     {
         var app = AppDriver.Opened();
-        var start = app.Workspace.Export.Enter(TestJobs.Named("Fixtures")).Result;
-        app.Workspace.Export.Enter(TestJobs.Named("Later"));
+        var start = app.AppState.Export.Enter(TestJobs.Named("Fixtures")).Result;
+        app.AppState.Export.Enter(TestJobs.Named("Later"));
         start.Progress.Report(new ExportProgress("Fixtures", 2, 3, 0.5f));
         app.Run(2);
 
@@ -245,13 +245,13 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void A_finished_export_reports_what_it_wrote()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var path = _temp.PathOf("Greeter.cs");
 
-        d.Workspace.SaveCode(d.Fixture("Greeter"), path);
+        d.AppState.SaveCode(d.Fixture("Greeter"), path);
         d.Settle();
 
-        var report = Assert.Single(d.Workspace.FinishedExports);
+        var report = Assert.Single(d.AppState.FinishedExports);
         Assert.Equal(ExportOutcome.Finished, report.Outcome);
         Assert.Equal("Greeter", report.Name);
         Assert.Equal(_temp.Path, report.Folder);
@@ -262,13 +262,13 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void A_cancelled_export_reports_that_it_was_cancelled()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
 
-        d.Workspace.ExportProject(d.Node().Assembly, _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
-        d.Workspace.Export.Cancel();
+        d.AppState.ExportProject(d.Node().Assembly, _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
+        d.AppState.Export.Cancel();
         d.Settle();
 
-        var report = Assert.Single(d.Workspace.FinishedExports);
+        var report = Assert.Single(d.AppState.FinishedExports);
         Assert.Equal(ExportOutcome.Cancelled, report.Outcome);
         Assert.Empty(report.Written);
     }
@@ -276,18 +276,18 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void A_failed_export_reports_why_instead_of_logging_an_error()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = AppStateDriver.Opened();
         var path = _temp.PathOf(Path.Combine("missing", "Greeter.cs"));
 
-        d.Workspace.SaveCode(d.Fixture("Greeter"), path);
+        d.AppState.SaveCode(d.Fixture("Greeter"), path);
         d.Settle();
 
-        var report = Assert.Single(d.Workspace.FinishedExports);
+        var report = Assert.Single(d.AppState.FinishedExports);
         Assert.Equal(ExportOutcome.Failed, report.Outcome);
         var problem = Assert.Single(report.Problems);
         Assert.Equal("Cannot save the code of Greeter", problem.Headline);
         Assert.Contains("DirectoryNotFoundException", problem.Details);
-        Assert.Empty(d.Workspace.Errors.Entries);
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]

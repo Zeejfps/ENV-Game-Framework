@@ -25,8 +25,8 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     private AppDriver TwoFinished(float width = 1000f)
     {
         var app = AppDriver.Opened(width: width, height: TallWindow);
-        app.Workspace.SaveCode(app.Fixture("Greeter"), Path.Combine(Folder("First"), "Greeter.cs"));
-        app.Workspace.SaveCode(app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
+        app.AppState.SaveCode(app.Fixture("Greeter"), Path.Combine(Folder("First"), "Greeter.cs"));
+        app.AppState.SaveCode(app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
         app.Settle(2);
         return app;
     }
@@ -38,7 +38,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         return folder;
     }
 
-    private static int RunOf(AppDriver app, string name) => app.Workspace.FinishedExports.Single(r => r.Name == name).Run;
+    private static int RunOf(AppDriver app, string name) => app.AppState.FinishedExports.Single(r => r.Name == name).Run;
 
     [Fact]
     public void Clicking_a_row_selects_it_and_the_arrow_keys_walk_the_list()
@@ -61,11 +61,11 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         app.Frames.Wait(1).Click(app.TextRect("Greeter")).Frame();
 
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
-        Assert.Equal("Export report", app.Workspace.Tabs.Active!.Title);
-        var tabs = app.Workspace.Tabs.Count();
+        Assert.Equal("Export report", app.AppState.Tabs.Active!.Title);
+        var tabs = app.AppState.Tabs.Count();
 
         app.Frames.Wait(1).DoubleClick(app.TextRect("Farewell")).Frame(2);
-        Assert.Equal(tabs + 1, app.Workspace.Tabs.Count());
+        Assert.Equal(tabs + 1, app.AppState.Tabs.Count());
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
 
         app.Frames.Key(KeyboardKey.Delete).Frame();
 
-        Assert.Equal("Farewell", Assert.Single(app.Workspace.FinishedExports).Name);
+        Assert.Equal("Farewell", Assert.Single(app.AppState.FinishedExports).Name);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         Assert.True(app.Frames.Drew("Copy folder path"));
         app.ClickMenuItem("Remove from history").Frame();
 
-        Assert.Equal("Farewell", Assert.Single(app.Workspace.FinishedExports).Name);
+        Assert.Equal("Farewell", Assert.Single(app.AppState.FinishedExports).Name);
     }
 
     [Fact]
@@ -119,19 +119,19 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     {
         var app = AppDriver.Opened(height: TallWindow);
         app.Ui.OpenExports();
-        var running = app.Workspace.Export.Enter(TestJobs.Named("Running")).Result;
-        app.Workspace.Export.Enter(TestJobs.Named("Later"));
+        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
+        app.AppState.Export.Enter(TestJobs.Named("Later"));
         app.Run(2);
 
         app.Frames.Wait(1).Click(app.TextRect("Running")).Frame();
         app.Frames.Key(KeyboardKey.Delete).Frame();
-        Assert.True(app.Workspace.Export.IsRunning);
-        Assert.Equal(1, app.Workspace.Export.WaitingCount);
+        Assert.True(app.AppState.Export.IsRunning);
+        Assert.Equal(1, app.AppState.Export.WaitingCount);
 
         app.Frames.Key(KeyboardKey.DownArrow).Frame();
         app.Frames.Key(KeyboardKey.Delete).Frame();
-        Assert.Equal(0, app.Workspace.Export.WaitingCount);
-        app.Workspace.Export.Leave(running);
+        Assert.Equal(0, app.AppState.Export.WaitingCount);
+        app.AppState.Export.Leave(running);
     }
 
     [Fact]
@@ -139,15 +139,15 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     {
         var app = AppDriver.Opened(height: TallWindow);
         app.Ui.OpenExports();
-        var running = app.Workspace.Export.Enter(TestJobs.Named("Running")).Result;
-        app.Workspace.Export.Enter(TestJobs.Named("Second"));
-        app.Workspace.Export.Enter(TestJobs.Named("Third"));
+        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
+        app.AppState.Export.Enter(TestJobs.Named("Second"));
+        app.AppState.Export.Enter(TestJobs.Named("Third"));
         app.Run(2);
 
         app.Frames.Wait(1).Click(app.TextRect("Remove from queue")).Frame(2);
 
-        Assert.Equal(["Third"], app.Workspace.Export.Waiting.Select(q => q.Job.Name));
-        app.Workspace.Export.Leave(running);
+        Assert.Equal(["Third"], app.AppState.Export.Waiting.Select(q => q.Job.Name));
+        app.AppState.Export.Leave(running);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         var app = AppDriver.Opened(height: TallWindow);
         var theme = app.Theme;
         app.Ui.OpenExports();
-        var running = app.Workspace.Export.Enter(TestJobs.Named("Running")).Result;
+        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
         running.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.5f));
         app.Run(2);
 
@@ -185,7 +185,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         Assert.Equal(name.X, track.X, 1f);
         Assert.True(track.Right >= cancel.Right);
         Assert.Equal(name.X - theme.IconSize - theme.Gap, summary.X, 1f);
-        app.Workspace.Export.Leave(running);
+        app.AppState.Export.Leave(running);
     }
 
     [Fact]
@@ -193,11 +193,11 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     {
         var app = AppDriver.Opened();
         app.Ui.OpenExports();
-        var running = app.Workspace.Export.Enter(TestJobs.Named("Running")).Result;
+        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
         app.Run(2);
 
         Assert.False(app.Frames.Drew(LucideIcons.Loader2));
         Assert.True(app.Frames.WakeAt - app.Frames.RealTime <= 1.0 / 30.0 + 1e-6);
-        app.Workspace.Export.Leave(running);
+        app.AppState.Export.Leave(running);
     }
 }

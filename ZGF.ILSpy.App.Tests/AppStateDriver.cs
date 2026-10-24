@@ -84,58 +84,58 @@ internal static class TempSettings
 
 internal static class Screens
 {
-    /// <summary>A screen over a workspace with nothing open, for drawing a widget alone.</summary>
-    public static UiState Blank() => new(new Workspace(new AppSettings { Locale = Locale.En }));
+    /// <summary>A screen over an app state with nothing open, for drawing a widget alone.</summary>
+    public static UiState Blank() => new(new AppState(new AppSettings { Locale = Locale.En }));
 }
 
-/// <summary>A <see cref="Workspace"/> and, unless made without one, the screen over it, whose posted
+/// <summary>A <see cref="AppState"/> and, unless made without one, the screen over it, whose posted
 /// actions queue up until the test pumps them, so a test decides what the user does before background
 /// results land. A frame's steps around drawing run only when the test pumps or asks for
 /// <see cref="NextFrame"/>; reading the driver changes nothing. It speaks English unless its settings
 /// name a locale.</summary>
-internal sealed class WorkspaceDriver
+internal sealed class AppStateDriver
 {
     public const string FixturesNamespace = "ZGF.ILSpy.App.Tests.Fixtures";
 
     private readonly PostedActions _posted = PostedActions.OfThisTest();
     private readonly UiState? _ui;
 
-    public WorkspaceDriver(AppSettings? settings = null) : this(settings, withScreen: true)
+    public AppStateDriver(AppSettings? settings = null) : this(settings, withScreen: true)
     {
     }
 
-    private WorkspaceDriver(AppSettings? settings, bool withScreen)
+    private AppStateDriver(AppSettings? settings, bool withScreen)
     {
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
-        Workspace = new Workspace(settings);
+        AppState = new AppState(settings);
         if (withScreen)
-            _ui = new UiState(Workspace);
-        Workspace.RestoreAnalyses();
+            _ui = new UiState(AppState);
+        AppState.RestoreAnalyses();
     }
 
     /// <summary>A driver that has opened the fixture assembly.</summary>
-    public static WorkspaceDriver Opened(AppSettings? settings = null)
+    public static AppStateDriver Opened(AppSettings? settings = null)
     {
-        var driver = new WorkspaceDriver(settings);
+        var driver = new AppStateDriver(settings);
         driver.OpenFixtures();
         return driver;
     }
 
-    /// <summary>A driver with a workspace and no screen, which shows that the features need none.</summary>
-    public static WorkspaceDriver WithoutScreen(AppSettings? settings = null) => new(settings, withScreen: false);
+    /// <summary>A driver with an app state and no screen, which shows that the features need none.</summary>
+    public static AppStateDriver WithoutScreen(AppSettings? settings = null) => new(settings, withScreen: false);
 
     /// <summary>A driver with no screen that has opened the fixture assembly.</summary>
-    public static WorkspaceDriver OpenedWithoutScreen()
+    public static AppStateDriver OpenedWithoutScreen()
     {
         var driver = WithoutScreen();
         driver.OpenFixtures();
         return driver;
     }
 
-    public Workspace Workspace { get; }
+    public AppState AppState { get; }
 
-    /// <summary>The screen over <see cref="Workspace"/>; a driver made without one has none to give.</summary>
+    /// <summary>The screen over <see cref="AppState"/>; a driver made without one has none to give.</summary>
     public UiState Ui => _ui ?? throw new InvalidOperationException("This driver has no screen.");
 
     /// <summary>The time the driver's autosave goes by, in seconds.</summary>
@@ -150,7 +150,7 @@ internal sealed class WorkspaceDriver
         _posted.Run();
         if (_ui != null)
             NextFrame();
-        Workspace.SaveSettingsIfChanged(Now);
+        AppState.SaveSettingsIfChanged(Now);
     }
 
     /// <summary>Does what a frame does before and after it draws: the screen follows the trees and the
@@ -165,12 +165,12 @@ internal sealed class WorkspaceDriver
     /// <summary>Pumps until <paramref name="done"/>.</summary>
     public void RunUntil(Func<bool> done) => Poll.Until(done, Pump);
 
-    /// <summary>Pumps until no background work the workspace knows of is left.</summary>
+    /// <summary>Pumps until no background work the app state knows of is left.</summary>
     public void Settle() => RunUntil(IsSettled);
 
     private bool IsSettled()
     {
-        var w = Workspace;
+        var w = AppState;
         return !w.IsReloading && !w.IsFindingAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !IsSearching() && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
     }
 
@@ -185,24 +185,24 @@ internal sealed class WorkspaceDriver
     /// off the queue as the screen would.</summary>
     public List<ViewCommand> TakeViewCommands()
     {
-        var commands = Workspace.ViewCommands.ToList();
-        Workspace.ViewCommands.Clear();
+        var commands = AppState.ViewCommands.ToList();
+        AppState.ViewCommands.Clear();
         return commands;
     }
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>
     public LoadedAssembly OpenFixtures()
     {
-        Workspace.Open(FixturePath);
-        RunUntil(() => Workspace.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
+        AppState.Open(FixturePath);
+        RunUntil(() => AppState.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
         Settle();
-        return Workspace.Tabs.Active!.Node!.Assembly;
+        return AppState.Tabs.Active!.Node!.Assembly;
     }
 
     /// <summary>The listed node at the labels under the fixture assembly's root.</summary>
     public BrowseNode Node(params ReadOnlySpan<string> labels)
     {
-        var fixtures = Workspace.Assemblies.Assemblies.Single(a => a.FilePath == FixturePath);
+        var fixtures = AppState.Assemblies.Assemblies.Single(a => a.FilePath == FixturePath);
         return fixtures.Root.Child(labels);
     }
 
@@ -210,19 +210,19 @@ internal sealed class WorkspaceDriver
 
     public void Show(BrowseNode node, bool inNewTab = false)
     {
-        Workspace.Show(node, inNewTab);
+        AppState.Show(node, inNewTab);
         Settle();
     }
 }
 
-/// <summary>Renders the whole app window frame by frame over a <see cref="WorkspaceDriver"/>, which
+/// <summary>Renders the whole app window frame by frame over a <see cref="AppStateDriver"/>, which
 /// it pumps before each frame.</summary>
 internal sealed class AppDriver
 {
     public AppDriver(float width = 1000f, float height = 700f, AppSettings? settings = null)
     {
-        Driver = new WorkspaceDriver(settings);
-        App = new IlSpyApp(Workspace, Ui, new List<string>());
+        Driver = new AppStateDriver(settings);
+        App = new IlSpyApp(AppState, Ui, new List<string>());
         Frames = UiFrames.Running(App, width: width, height: height);
         Frames.FrameTime = 1f / 60f;
         Frames.BeforeFrame = PumpAtFrameTime;
@@ -242,14 +242,14 @@ internal sealed class AppDriver
         return app;
     }
 
-    public WorkspaceDriver Driver { get; }
-    public Workspace Workspace => Driver.Workspace;
+    public AppStateDriver Driver { get; }
+    public AppState AppState => Driver.AppState;
 
     /// <summary>The screen the app draws.</summary>
     public UiState Ui => Driver.Ui;
     public IlSpyApp App { get; }
     public UiFrames Frames { get; }
-    public UiTheme Theme => AppThemes.For(Workspace.Theme).Ui;
+    public UiTheme Theme => AppThemes.For(AppState.Theme).Ui;
 
     public BrowseNode Node(params ReadOnlySpan<string> labels) => Driver.Node(labels);
 
@@ -267,7 +267,7 @@ internal sealed class AppDriver
         Run(frames);
     }
 
-    /// <summary>Shows <paramref name="node"/> as <see cref="WorkspaceDriver.Show"/>, then runs <paramref name="frames"/> frames.</summary>
+    /// <summary>Shows <paramref name="node"/> as <see cref="AppStateDriver.Show"/>, then runs <paramref name="frames"/> frames.</summary>
     public void Show(BrowseNode node, int frames = 0, bool inNewTab = false)
     {
         Driver.Show(node, inNewTab);

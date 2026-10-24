@@ -23,7 +23,7 @@ public sealed partial class UiState
         _closedTabs.Clear();
         foreach (var tab in _tabViews.Keys)
         {
-            if (!_workspace.Tabs.Contains(tab))
+            if (!_appState.Tabs.Contains(tab))
                 _closedTabs.Add(tab);
         }
         foreach (var tab in _closedTabs)
@@ -42,7 +42,7 @@ public sealed partial class UiState
 
     private void AddOpenTabViews()
     {
-        var tabs = _workspace.Tabs;
+        var tabs = _appState.Tabs;
         for (var i = 0; i < tabs.Count; i++)
             AddTabView(tabs[i]);
     }

@@ -20,7 +20,7 @@ internal static class AssemblyListsDialogView
 
     private static readonly UiIcon NewIcon = new(LucideIcons.Plus, LucideIcons.Family);
 
-    public static void Render(Ui<UiState> ui, Workspace w)
+    public static void Render(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var dialog = ui.State.ListsDialog;
@@ -40,7 +40,7 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>New list on the left; what can be done to the picked list on the right.</summary>
-    private static void Toolbar(Ui<UiState> ui, Workspace w)
+    private static void Toolbar(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -63,7 +63,7 @@ internal static class AssemblyListsDialogView
 
     /// <summary>A row per list. Enter activates the picked one; a double-click renames it, as F2 does,
     /// and Delete asks to delete it. Picking another row keeps the name being typed, if it may be kept.</summary>
-    private static void Rows(Ui<UiState> ui, Workspace w)
+    private static void Rows(Ui<UiState> ui, AppState w)
     {
         var theme = ui.Theme;
         var dialog = ui.State.ListsDialog;
@@ -101,7 +101,7 @@ internal static class AssemblyListsDialogView
     /// <summary>A check mark when the list is the active one, its name, or the box renaming it, how
     /// many assemblies it holds, and its Activate button, disabled on the active list. True when the
     /// row was double-clicked.</summary>
-    private static bool Row(Ui<UiState> ui, Workspace w, ListScope list, int listId, int index, string name)
+    private static bool Row(Ui<UiState> ui, AppState w, ListScope list, int listId, int index, string name)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -145,7 +145,7 @@ internal static class AssemblyListsDialogView
 
     /// <summary>The name being typed for the list being renamed, kept on Enter or once focus moves
     /// elsewhere, dropped on Escape; the list takes the focus back unless it moved elsewhere.</summary>
-    private static void NameBox(Ui<UiState> ui, Workspace w, int listId)
+    private static void NameBox(Ui<UiState> ui, AppState w, int listId)
     {
         var dialog = ui.State.ListsDialog;
         var begin = dialog.TakeNameFocus();
@@ -158,7 +158,7 @@ internal static class AssemblyListsDialogView
             ui.Focus(listId, takesText: false);
     }
 
-    private static void FinishNameBox(Ui<UiState> ui, Workspace w, InlineEditResult result)
+    private static void FinishNameBox(Ui<UiState> ui, AppState w, InlineEditResult result)
     {
         var dialog = ui.State.ListsDialog;
         if (result == InlineEditResult.Committed)
@@ -169,7 +169,7 @@ internal static class AssemblyListsDialogView
         dialog.StopAsking();
     }
 
-    private static void HandleKeys(Ui<UiState> ui, Workspace w)
+    private static void HandleKeys(Ui<UiState> ui, AppState w)
     {
         var dialog = ui.State.ListsDialog;
         if (dialog.IsAsking)
@@ -184,7 +184,7 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>A double-click renames the row; Enter activates it.</summary>
-    private static void ActOnRow(Ui<UiState> ui, Workspace w, string name, bool doubleClicked)
+    private static void ActOnRow(Ui<UiState> ui, AppState w, string name, bool doubleClicked)
     {
         if (doubleClicked)
         {
@@ -195,7 +195,7 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>Keeps the name being typed when another row is picked, and drops a deletion being asked about.</summary>
-    private static void LeavePickedRow(Ui<UiState> ui, Workspace w)
+    private static void LeavePickedRow(Ui<UiState> ui, AppState w)
     {
         var dialog = ui.State.ListsDialog;
         if (dialog.Renaming != null)
@@ -207,7 +207,7 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>Under the list, why the name typed for the list being renamed cannot be kept.</summary>
-    private static void RenameProblem(Ui<UiState> ui, Workspace w)
+    private static void RenameProblem(Ui<UiState> ui, AppState w)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -228,7 +228,7 @@ internal static class AssemblyListsDialogView
         return t.ListsNameTaken;
     }
 
-    private static void ContextMenu(Ui<UiState> ui, Workspace w)
+    private static void ContextMenu(Ui<UiState> ui, AppState w)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
@@ -239,7 +239,7 @@ internal static class AssemblyListsDialogView
         MenuItems(ui, w, picked);
     }
 
-    private static void MenuItems(Ui<UiState> ui, Workspace w, string picked)
+    private static void MenuItems(Ui<UiState> ui, AppState w, string picked)
     {
         var t = ui.State.Strings;
         var dialog = ui.State.ListsDialog;
