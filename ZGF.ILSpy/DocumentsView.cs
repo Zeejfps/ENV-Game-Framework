@@ -1,5 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
 using static ZGF.ILSpy.Navigation;
@@ -13,40 +15,43 @@ internal static class DocumentsView
     public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
         var t = ui.State.Strings;
-        if (IsEmpty(tab))
+        switch (tab.Content)
         {
-            Hint(ui, t.DocumentsHint);
-            return;
+            case TabContent.Empty:
+                Hint(ui, t.DocumentsHint);
+                break;
+            case TabContent.Picture picture:
+                ResourceImageView.Render(ui, appState, tab, picture);
+                break;
+            case TabContent.Table table:
+                RenderGrid(ui, appState, tab, table.Grid);
+                break;
+            case TabContent.Loading loading when !loading.Node.DependsOnLanguage:
+                Hint(ui, t.MetadataLoading);
+                break;
+            default:
+                RenderCode(ui, appState, tab);
+                break;
         }
-        if (tab.Image is { } image)
-        {
-            ResourceImageView.Render(ui, appState, tab, image);
-            return;
-        }
-        if (tab.Grid is { } grid)
-        {
-            var view = ui.State.Documents.ViewOf(tab);
-            var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
-            if (picked.Target is { } target)
-                ShowMetadataTarget(appState, target, picked.InNewTab);
-            if (picked.Definition is { } definition)
-                Navigate(appState, definition, picked.InNewTab);
-            return;
-        }
-        if (tab is { IsBusy: true, Node.DependsOnLanguage: false })
-        {
-            Hint(ui, t.MetadataLoading);
-            return;
-        }
-        RenderCode(ui, appState, tab);
     }
 
-    /// <summary>The tab's document in the code view, with its bookmarks.</summary>
+    private static void RenderGrid(Ui<UiState> ui, AppState appState, DocumentTab tab, MetadataGrid grid)
+    {
+        var view = ui.State.Documents.ViewOf(tab);
+        var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
+        if (picked.Target is { } target)
+            ShowMetadataTarget(appState, target, picked.InNewTab);
+        if (picked.Definition is { } definition)
+            Navigate(appState, definition, picked.InNewTab);
+    }
+
+    /// <summary>The tab's document in the code view, with its bookmarks, or the note saying why it has none.</summary>
     public static void RenderCode(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? appState.Bookmarks.LinesIn(tab.Document, node.Path) : null;
         var view = ui.State.Documents.ViewOf(tab);
-        var result = ui.CodeView("code", tab.Document, view.Code, bookmarks, tooltips: appState.Tooltips);
+        var document = FindDocumentToShow(ui.State, view, tab);
+        var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips);
         if (result.Navigate is { } reference)
             Navigate(appState, reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)
@@ -54,6 +59,18 @@ internal static class DocumentsView
         if (result.Analyze is { } analyzed)
             AnalyzerPanelView.Analyze(ui.State, appState, analyzed);
     }
+
+    private static DecompiledDocument FindDocumentToShow(UiState screen, TabView view, DocumentTab tab)
+    {
+        var content = tab.Content;
+        if (!IsNote(content))
+            return tab.Document;
+        return view.Placeholder.For(content, screen.Strings);
+    }
+
+    /// <summary>Whether <paramref name="content"/> is shown as a note saying why there is no code.</summary>
+    private static bool IsNote(TabContent content) =>
+        content is TabContent.Loading or TabContent.Failed or TabContent.Reloading or TabContent.Gone;
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
     /// selection of the one removed on.</summary>
@@ -63,25 +80,19 @@ internal static class DocumentsView
         ui.State.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
     }
 
-    private static bool IsEmpty(DocumentTab tab)
-    {
-        if (tab.ShowsText)
-            return false;
-        return tab.Location == null;
-    }
-
     public static DockTab Tab(UiState screen, AppState appState, DocumentTab tab)
     {
         var title = TitleOf(screen, tab);
-        return new DockTab(title, Tooltip: tab.Tooltip, Current: tab == appState.Tabs.Active);
+        var tooltip = tab.Tooltip ?? title;
+        return new DockTab(title, Tooltip: tooltip, Current: tab == appState.Tabs.Active);
     }
 
-    /// <summary>The tab's title: its node's name as the tree labels it, else its own title.</summary>
+    /// <summary>The tab's title: its node's name as the tree labels it, else its own title, else a new tab's.</summary>
     private static string TitleOf(UiState screen, DocumentTab tab)
     {
         var node = tab.Node;
         if (node == null)
-            return tab.Title;
+            return tab.Title ?? screen.Strings.DocumentNewTab;
         return screen.Tree.Label(node);
     }
 

@@ -67,7 +67,7 @@ public sealed class ExportsPanelTests : IDisposable
         app.Frames.Click(app.LastTextRect(LucideIcons.FileText)).Frame(2);
 
         var tab = app.AppState.Tabs.Active!;
-        Assert.True(tab.ShowsText);
+        Assert.IsType<TabContent.Report>(tab.Content);
         Assert.Equal("Export report", tab.Title);
         var text = tab.Document.GetText();
         Assert.Contains("    " + path, text);

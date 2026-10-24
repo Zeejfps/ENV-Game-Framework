@@ -89,7 +89,7 @@ public static class Assemblies
             if (location == null)
                 continue;
             var position = FindPositionToKeep(appState, tab);
-            tab.Release(Strings.For(appState.Locale).DocumentReloading);
+            tab.ShowReloading();
             reloading.Add(new ReloadingTab(tab, location, tab.Version, position));
         }
         return reloading;
@@ -175,7 +175,7 @@ public static class Assemblies
     private static void ReleaseGoneTab(AppState appState, DocumentTab tab, NodePath location)
     {
         var t = Strings.For(appState.Locale);
-        tab.Release(t.DocumentGone(location.Text));
+        tab.ShowGone(location);
         appState.ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
     }
 

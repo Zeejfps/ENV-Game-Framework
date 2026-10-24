@@ -5,9 +5,8 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An open tab: where it points, the node found there, and its decompiled document — or
-/// for a metadata node its grid — which arrives from the background, then commands the view where to
-/// stand in it. Mutated on the UI thread only.</summary>
+/// <summary>An open tab: where it points, the node found there, and what it shows of it, which
+/// arrives from the background, then commands the view where to stand in it. Mutated on the UI thread only.</summary>
 public sealed class DocumentTab
 {
     private readonly Func<Strings> _strings;
@@ -21,7 +20,7 @@ public sealed class DocumentTab
     private int _row = MetadataGridState.None;
     private string? _title;
 
-    /// <param name="strings">The interface's strings in the current language.</param>
+    /// <param name="strings">The interface's strings in the current language, for the errors it reports.</param>
     /// <param name="options">How C# is decompiled now.</param>
     /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
     /// <param name="viewCommands">Where the tab queues the commands that tell the view where to stand once what it shows arrives.</param>
@@ -44,23 +43,23 @@ public sealed class DocumentTab
 
     /// <summary>The options <see cref="Document"/> was decompiled with.</summary>
     public DecompilerOptions Options { get; private set; } = DecompilerOptions.Default;
-    public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
 
-    /// <summary>The rows of a node that shows a grid, once read; shown instead of <see cref="Document"/>.</summary>
-    public MetadataGrid? Grid { get; private set; }
+    public TabContent Content { get; private set; } = new TabContent.Empty();
 
-    /// <summary>The picture of a node that shows one, once decoded; shown instead of <see cref="Document"/>.</summary>
-    public ResourceImage? Image { get; private set; }
-
-    /// <summary>Whether <see cref="Image"/> is stored as markup, such as SVG, which
-    /// <see cref="Document"/> then holds.</summary>
-    public bool HasSource { get; private set; }
-
-    private void ForgetPicture()
+    /// <summary>The code, document or markup the tab shows, or an empty document while it shows none.</summary>
+    public DecompiledDocument Document => Content switch
     {
-        Image = null;
-        HasSource = false;
-    }
+        TabContent.Code code => code.Document,
+        TabContent.Report report => report.Document,
+        TabContent.Picture picture => picture.Source ?? DecompiledDocument.Empty,
+        _ => DecompiledDocument.Empty,
+    };
+
+    /// <summary>The rows the tab shows, or null while it shows no grid.</summary>
+    public MetadataGrid? Grid => (Content as TabContent.Table)?.Grid;
+
+    /// <summary>The picture the tab shows, or null while it shows none.</summary>
+    public ResourceImage? Image => (Content as TabContent.Picture)?.Image;
 
     /// <summary>Where the view of the shown node stands, as the view last kept it, or null while there is none.</summary>
     public CodeViewPosition? Position
@@ -82,10 +81,12 @@ public sealed class DocumentTab
     }
 
     public bool IsBusy => _work != null;
-    public string Title => Node != null ? NodeText.Name(Node) : _title ?? _strings().DocumentNewTab;
 
-    /// <summary>The full identity of what the tab shows.</summary>
-    public string Tooltip => Node != null ? NodeText.Tooltip(Node) : Title;
+    /// <summary>The name of what the tab shows, kept while its node is away, or null for a new tab.</summary>
+    public string? Title => _title;
+
+    /// <summary>The full identity of what the tab shows, or null for a new tab.</summary>
+    public string? Tooltip => Node != null ? NodeText.Tooltip(Node) : _title;
 
     /// <summary>Changes whenever the tab is pointed somewhere, or loses its node.</summary>
     public int Version { get; private set; }
@@ -112,13 +113,10 @@ public sealed class DocumentTab
         _work = work;
         Node = node;
         Location = node.Path;
-        ShowsText = false;
         _title = NodeText.Name(node);
         Language = language;
         Options = _options();
-        Grid = null;
-        ForgetPicture();
-        Document = DecompiledDocument.FromText(node.Text, $"// {_strings().DocumentDecompiling}", language);
+        Content = new TabContent.Loading(node);
 
         Load(work, node, language);
     }
@@ -153,11 +151,8 @@ public sealed class DocumentTab
         Cancel();
         Node = null;
         Location = null;
-        Grid = null;
-        ForgetPicture();
         _title = title;
-        Document = document;
-        ShowsText = true;
+        Content = new TabContent.Report(document);
     }
 
     /// <summary>Shows nothing, as a new tab does, cancelling what was in flight.</summary>
@@ -167,26 +162,28 @@ public sealed class DocumentTab
         Cancel();
         Node = null;
         Location = null;
-        Grid = null;
-        ForgetPicture();
         _title = null;
-        Document = DecompiledDocument.Empty;
-        ShowsText = false;
+        Content = new TabContent.Empty();
     }
 
-    /// <summary>Whether the tab shows a document of its own, such as a report, rather than a node.</summary>
-    public bool ShowsText { get; private set; }
+    /// <summary>Lets go of the node while its assembly reloads, keeping <see cref="Location"/> to find it again.</summary>
+    public void ShowReloading()
+    {
+        Release(new TabContent.Reloading());
+    }
 
-    /// <summary>Lets go of the node, keeping <see cref="Location"/>, and shows
-    /// <paramref name="message"/> instead of the document.</summary>
-    public void Release(string message)
+    /// <summary>Lets go of the node, which the reloaded assemblies no longer hold at <paramref name="location"/>.</summary>
+    public void ShowGone(NodePath location)
+    {
+        Release(new TabContent.Gone(location));
+    }
+
+    private void Release(TabContent content)
     {
         Version++;
         Cancel();
         Node = null;
-        Grid = null;
-        ForgetPicture();
-        Document = DecompiledDocument.FromText(Title, $"// {message}", Language);
+        Content = content;
     }
 
     public void Cancel()
@@ -253,16 +250,16 @@ public sealed class DocumentTab
         switch (error == null ? task.Result : null)
         {
             case GridContent { Grid: var grid }:
-                Grid = grid;
+                Content = new TabContent.Table(grid);
                 break;
             case ImageContent { Image: var image, Source: var source }:
-                ShowPicture(image, source);
+                Content = new TabContent.Picture(image, source);
                 break;
             case DocumentContent { Document: var document }:
-                Document = document;
+                Content = new TabContent.Code(document);
                 break;
             default:
-                Document = DecompiledDocument.FromText(node.Text, $"// {t.DocumentDecompilationFailed(error!.Message)}", Language);
+                Content = new TabContent.Failed(error!.Message);
                 break;
         }
         var failed = error != null || Document.IsError;
@@ -272,14 +269,5 @@ public sealed class DocumentTab
         _restore = null;
         _target = null;
         _row = MetadataGridState.None;
-    }
-
-    private void ShowPicture(ResourceImage image, DecompiledDocument? source)
-    {
-        Image = image;
-        if (source == null)
-            return;
-        Document = source;
-        HasSource = true;
     }
 }

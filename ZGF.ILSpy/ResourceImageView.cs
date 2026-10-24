@@ -20,12 +20,14 @@ internal static class ResourceImageView
         public float Scale;
     }
 
-    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, ResourceImage image)
+    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, TabContent.Picture shown)
     {
         var theme = ui.Theme;
         var view = ui.State.Documents.ViewOf(tab);
+        var image = shown.Image;
+        var hasSource = shown.Source != null;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
-        Toolbar(ui, appState, tab, view.Picture, image);
+        Toolbar(ui, appState, tab, view.Picture, image, hasSource);
         ui.Separator();
         if (view.Picture.ShowsSource)
         {
@@ -35,7 +37,7 @@ internal static class ResourceImageView
         Picture(ui, view, image);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState appState, DocumentTab tab, PictureView picture, ResourceImage image)
+    private static void Toolbar(Ui<UiState> ui, AppState appState, DocumentTab tab, PictureView picture, ResourceImage image, bool hasSource)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -45,7 +47,7 @@ internal static class ResourceImageView
                 overflow: TextOverflow.Ellipsis);
             if (!picture.ShowsSource)
                 ZoomButtons(ui, picture.Zoom);
-            if (tab.HasSource)
+            if (hasSource)
                 SourceButton(ui, picture);
             if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: ExportIcon))
                 PickExport(ui, appState, node);

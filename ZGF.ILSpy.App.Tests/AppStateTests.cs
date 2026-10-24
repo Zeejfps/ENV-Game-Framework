@@ -514,7 +514,8 @@ public sealed class AppStateTests
         var tab = Assert.Single(d.AppState.Tabs);
         Assert.Null(tab.Node);
         Assert.Equal("Greeter", tab.Title);
-        Assert.Contains("gone", tab.Document.GetText());
+        Assert.Equal(new TabContent.Gone(tab.Location!), tab.Content);
+        Assert.Contains("gone", TabPlaceholder.Write(d.Ui.Strings, tab.Content));
         Assert.Contains(d.AppState.Errors.Entries, e => e.Title.Contains(Path.GetFileName(copy)));
         Assert.Contains(d.AppState.Errors.Entries, e => e.Title.Contains("Greeter"));
     }
