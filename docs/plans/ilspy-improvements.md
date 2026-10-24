@@ -78,8 +78,6 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
 6. **Frame-start work runs from the view.** `MainView.Render` calls `w.Sync()`, which restores analyses,
    syncs the tree, autosaves and starts an `async void` restore every frame (`Saving.cs:223`). Fix: a
    `BeginFrame` step in `IlSpyApp.OnRender`; restore analyses once after startup.
-7. **Embedded PDB decoded twice.** `DebugDirectoryNode` (`MetadataNodes.cs:170-174`) re-decompresses what
-   `DebugSymbols.cs:62-73` already loaded. Fix: reuse `Assembly.DebugSymbols.File`.
 
 ## Structure
 

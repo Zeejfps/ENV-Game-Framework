@@ -22,6 +22,10 @@ internal static class Trees
     /// assets sit in its <c>!AvaloniaResources</c>.</summary>
     public static string AvaloniaSamplePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "AvaloniaSample", "AvaloniaSample.dll");
 
+    /// <summary>A one-type library, built from <c>Fixtures/EmbeddedPdb/Source</c>, whose portable PDB
+    /// is embedded in it.</summary>
+    public static string EmbeddedPdbPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "EmbeddedPdb", "EmbeddedPdb.dll");
+
     /// <summary>The test assembly, opened once for the tests that only read it. Its list is out of
     /// reach; a test that needs the list, or nodes no other test has built, opens its own with
     /// <see cref="OpenTestAssembly"/>.</summary>

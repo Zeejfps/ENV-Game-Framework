@@ -168,19 +168,29 @@ internal sealed class DebugDirectoryNode(LoadedAssembly assembly, BrowseNode par
                             [$"AlgorithmName: {checksum.AlgorithmName}", $"Checksum: {Convert.ToHexStringLower(checksum.Checksum.AsSpan())}"]));
                         continue;
                     case DebugDirectoryEntryType.EmbeddedPortablePdb:
-                        var provider = reader.ReadEmbeddedPortablePdbDebugDirectoryData(entry);
-                        var pdb = new MetadataFile(MetadataFile.MetadataFileKind.ProgramDebugDatabase, file.FileName, provider, isEmbedded: true);
-                        result.Add(new MetadataFolderNode(Assembly, this, pdb, "Debug Metadata (Embedded)"));
+                        var symbols = EmbeddedSymbols();
+                        if (symbols != null)
+                            result.Add(new MetadataFolderNode(Assembly, this, symbols.File, symbols.Title));
                         continue;
                 }
             }
             catch (BadImageFormatException)
             {
-                if (entry.Type == DebugDirectoryEntryType.EmbeddedPortablePdb) continue;
             }
             result.Add(new DebugEntryNode(Assembly, this, file, entry, null));
         }
         return result.ToArray();
+    }
+
+    /// <summary>The embedded PDB the assembly already loaded, or null when it could not be read.</summary>
+    private DebugSymbols? EmbeddedSymbols()
+    {
+        var symbols = Assembly.DebugSymbols;
+        if (symbols == null)
+            return null;
+        if (!symbols.File.IsEmbedded)
+            return null;
+        return symbols;
     }
 }
 

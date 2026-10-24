@@ -196,6 +196,18 @@ public sealed class MetadataTests
     }
 
     [Fact]
+    public void The_debug_directory_shows_the_embedded_pdb_the_assembly_already_loaded()
+    {
+        var assembly = new AssemblyList().Open(Trees.EmbeddedPdbPath);
+        var atRoot = (MetadataFolderNode)assembly.Root.Child("Debug Metadata (Embedded)");
+
+        var directory = Metadata(assembly).Child("Debug Directory");
+        var embedded = (MetadataFolderNode)directory.Child("Debug Metadata (Embedded)");
+
+        Assert.Same(atRoot.File, embedded.File);
+    }
+
+    [Fact]
     public void The_tables_folder_counts_the_rows_of_each_table()
     {
         var assembly = Trees.TestAssembly;
