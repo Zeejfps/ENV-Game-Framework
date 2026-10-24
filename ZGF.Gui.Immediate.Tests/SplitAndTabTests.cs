@@ -180,6 +180,54 @@ public sealed class TabStripTests
         Assert.Equal(_frames.RectOf("tabs").X, _frames.RectOf("Doc1").X, 0.01f);
     }
 
+    [Fact]
+    public void Tabs_that_fit_do_not_fade()
+    {
+        _frames.Frame(2);
+
+        Assert.Empty(FadeSlices());
+    }
+
+    [Fact]
+    public void Overflowing_tabs_fade_out_only_at_the_edges_with_more_tabs_past_them()
+    {
+        Overflow();
+        var strip = _frames.RectOf("tabs");
+        var fadeWidth = UiTheme.Dark.TabFadeWidth;
+
+        Assert.All(FadeSlices(), s => Assert.True(s.X >= strip.Right - fadeWidth - 0.01f));
+        Assert.NotEmpty(FadeSlices());
+
+        _frames.MovePointer(100f, 30f).Frame();
+        _frames.Wheel(-100).Frame(2);
+
+        Assert.All(FadeSlices(), s => Assert.True(s.Right <= strip.X + fadeWidth + 0.01f));
+        Assert.NotEmpty(FadeSlices());
+    }
+
+    [Fact]
+    public void A_tab_under_the_fade_still_takes_clicks()
+    {
+        Overflow();
+        var strip = _frames.RectOf("tabs");
+        var x = strip.Right - 4f;
+        var under = _tabs.FindLastIndex(t => _frames.RectOf(t).X < x);
+
+        _frames.Click(x, strip.Y + strip.Height / 2);
+
+        Assert.Equal(under, _selected);
+    }
+
+    private List<UiRect> FadeSlices()
+    {
+        var background = UiTheme.Dark.TabStripBackground & 0x00FFFFFFu;
+        return _frames.Canvas.Rects
+            .Where(r => (r.Inputs.Style.BackgroundColor & 0x00FFFFFFu) == background)
+            .Where(r => r.Inputs.Style.BackgroundColor >> 24 is > 0 and < 0xFF)
+            .Select(r => _frames.ToUi(r.Inputs.Position))
+            .ToList();
+    }
+
     private void Overflow()
     {
         _tabs.AddRange(Enumerable.Range(4, 7).Select(i => $"Doc{i}"));

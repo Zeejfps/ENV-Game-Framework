@@ -10,6 +10,7 @@ namespace ZGF.Gui.Immediate;
 public sealed class UiPainter
 {
     private const float GlyphHalf = 3.5f;
+    private const float FadeStep = 2f;
 
     private readonly Ui _ui;
     private readonly RectStyle _rectStyle = new();
@@ -56,6 +57,21 @@ public sealed class UiPainter
             BottomLeft = radii.BottomLeft,
         };
         _canvas.DrawRect(new DrawRectInputs { Position = _origin.ToCanvas(rect), Style = _rectStyle, ZIndex = _z });
+    }
+
+    /// <summary>Fills <paramref name="rect"/> with <paramref name="color"/> fading sideways, from
+    /// clear at one edge to solid at the <paramref name="solid"/> edge.</summary>
+    public void FillFade(UiRect rect, uint color, Align solid)
+    {
+        var clear = color & 0x00FFFFFFu;
+        var steps = (int)MathF.Ceiling(rect.Width / FadeStep);
+        for (var i = 0; i < steps; i++)
+        {
+            var x = rect.X + i * FadeStep;
+            var slice = new UiRect(x, rect.Y, MathF.Min(FadeStep, rect.Right - x), rect.Height);
+            var opacity = solid == Align.End ? (i + 1f) / steps : 1f - (float)i / steps;
+            FillRect(slice, UiColor.Mix(clear, color, opacity));
+        }
     }
 
     public void Line(PointF from, PointF to, float thickness, uint color) =>

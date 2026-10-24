@@ -239,6 +239,9 @@ public sealed record UiTheme
     public float TabMinWidth { get; init; } = 80f;
     public float TabMaxWidth { get; init; } = 240f;
 
+    /// <summary>How far into an overflowing tab strip its tabs fade out at an edge with more past it.</summary>
+    public float TabFadeWidth { get; init; } = 32f;
+
     public float DialogWidth { get; init; } = 480f;
     public float DialogPadding { get; init; } = 24f;
     public float DialogGap { get; init; } = 16f;

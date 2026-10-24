@@ -23,8 +23,9 @@ public readonly struct TabStrip : IDisposable
     private readonly TabList _list;
     private readonly int _picked;
     private readonly string? _listTooltip;
+    private readonly uint _background;
 
-    internal TabStrip(Ui ui, Ui.Scope row, Ui.Scope scroll, int id, TabList list, int picked, string? listTooltip)
+    internal TabStrip(Ui ui, Ui.Scope row, Ui.Scope scroll, int id, TabList list, int picked, string? listTooltip, uint background)
     {
         _ui = ui;
         _row = row;
@@ -33,6 +34,7 @@ public readonly struct TabStrip : IDisposable
         _list = list;
         _picked = picked;
         _listTooltip = listTooltip;
+        _background = background;
     }
 
     /// <summary>One tab, between the theme's <see cref="UiTheme.TabMinWidth"/> and
@@ -55,6 +57,7 @@ public readonly struct TabStrip : IDisposable
 
     public void Dispose()
     {
+        UiWidgets.FadeClippedEdges(_ui, _id, _background);
         _scroll.Dispose();
         UiWidgets.TabListButton(_ui, _id, _list, _listTooltip);
         _row.Dispose();
@@ -106,21 +109,22 @@ public static partial class UiWidgets
     internal static int TabListButtonId(int stripId) => HashCode.Combine(stripId, "list");
 
     /// <summary>A row of tabs attached to what is below them. When they overflow it scrolls sideways
-    /// by wheel, with no bar, and ends in a button whose menu lists every tab to pick from, shown
-    /// with <paramref name="listTooltip"/>.</summary>
+    /// by wheel, with no bar, fades its tabs out at each edge with more past it, and ends in a
+    /// button whose menu lists every tab to pick from, shown with <paramref name="listTooltip"/>.</summary>
     public static TabStrip TabStrip(this Ui ui, string id, Box box = default, string? listTooltip = null) =>
         ui.TabStrip(ui.GetId(id), box, listTooltip);
 
     public static TabStrip TabStrip(this Ui ui, int stripId, Box box = default, string? listTooltip = null)
     {
         var theme = ui.Theme;
+        var background = box.Background ?? theme.TabStripBackground;
         var row = ui.Row(HashCode.Combine(stripId, "row"), new Box
         {
             Width = box.Width ?? Sizing.Grow(),
             Height = box.Height ?? Sizing.Fit(),
             Gap = 0f,
             AlignY = Align.Center,
-            Background = box.Background ?? theme.TabStripBackground,
+            Background = background,
         });
         var scroll = ui.Scroll(stripId, ScrollAxes.Horizontal, box with
         {
@@ -132,7 +136,30 @@ public static partial class UiWidgets
         }, showBars: false);
         var list = ui.GetState<TabList>(HashCode.Combine(stripId, "tabs"));
         var picked = list.Restart();
-        return new TabStrip(ui, row, scroll, stripId, list, picked, listTooltip);
+        return new TabStrip(ui, row, scroll, stripId, list, picked, listTooltip, background);
+    }
+
+    /// <summary>Fades the strip's tabs into its <paramref name="background"/> at each edge that has
+    /// tabs scrolled past it.</summary>
+    internal static void FadeClippedEdges(Ui ui, int stripId, uint background)
+    {
+        var offset = ui.ScrollOffset(stripId).X;
+        var max = ui.ScrollMax(stripId).X;
+        if (offset > 0f)
+            FadeEdge(ui, background, Align.Start);
+        if (offset < max)
+            FadeEdge(ui, background, Align.End);
+    }
+
+    private static void FadeEdge(Ui ui, uint background, Align edge)
+    {
+        var width = ui.Theme.TabFadeWidth;
+        var atEnd = edge == Align.End;
+        var anchorX = atEnd ? 1f : 0f;
+        var offsetX = atEnd ? -width : 0f;
+        var box = new Box { Width = width, Height = Sizing.Grow() };
+        using (ui.Float(anchorX, 0f, offsetX, 0f, box, z: 1, clipped: true))
+            ui.Paint((background, edge), static (p, s) => p.FillFade(p.Rect, s.background, s.edge));
     }
 
     /// <summary>While the strip overflows, the button at its end whose menu lists every tab, the

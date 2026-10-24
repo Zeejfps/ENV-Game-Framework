@@ -388,6 +388,15 @@ public abstract partial class Ui
     public (float X, float Y) ScrollOffset(int id) =>
         _states.TryGetValue(id, out var entry) && entry.State is ScrollState state ? (state.OffsetX, state.OffsetY) : (0f, 0f);
 
+    /// <summary>How far the scroll with <paramref name="id"/> can move from the top-left of its
+    /// content, as last laid out; zero for one never recorded.</summary>
+    public (float X, float Y) ScrollMax(int id)
+    {
+        if (!_states.TryGetValue(id, out var entry)) return (0f, 0f);
+        if (entry.State is not ScrollState state) return (0f, 0f);
+        return (state.MaxX, state.MaxY);
+    }
+
     /// <summary>Whether the scroll with <paramref name="id"/> had more content than it shows when
     /// last laid out, so it can move along some axis; false for one never recorded.</summary>
     public bool CanScroll(int id)
