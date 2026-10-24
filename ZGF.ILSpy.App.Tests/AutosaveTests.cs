@@ -67,4 +67,73 @@ public sealed class AutosaveTests : IDisposable
         Assert.Empty(next.Workspace.Analyzer.Roots);
         Assert.Empty(_temp.Settings().AssemblyLists.Single().Analyzed ?? []);
     }
+
+    /// <summary>Makes writing the settings fail on any platform: a folder stands where the save writes
+    /// its temporary file. Returns the folder, to delete when writes should work again.</summary>
+    private string BlockSettingsWrites()
+    {
+        var blocker = _temp.PathOf("settings.json.tmp");
+        Directory.CreateDirectory(blocker);
+        return blocker;
+    }
+
+    [Fact]
+    public void A_failed_write_is_retried_after_a_wait_and_reported_once_until_one_succeeds()
+    {
+        var d = new WorkspaceDriver(_temp.Settings());
+        d.Workspace.SaveSettings();
+        var blocker = BlockSettingsWrites();
+
+        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.Pump();
+        d.Now += SaveRetry.DelaySeconds + 0.5;
+        d.Pump();
+        Directory.Delete(blocker);
+        d.Now += 1;
+        d.Pump();
+        var languageWhileWaiting = _temp.Settings().Language;
+        d.Now += SaveRetry.DelaySeconds;
+        d.Pump();
+
+        Assert.Equal(DecompilationLanguage.CSharp, languageWhileWaiting);
+        Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
+        Assert.Equal("Cannot save the settings", Assert.Single(d.Workspace.Errors.Entries).Title);
+    }
+
+    [Fact]
+    public void An_idle_app_wakes_to_retry_a_failed_write_once_the_wait_is_over()
+    {
+        var app = new AppDriver(settings: _temp.Settings());
+        app.Run(2);
+        var blocker = BlockSettingsWrites();
+
+        app.Workspace.SetLanguage(DecompilationLanguage.IL);
+        app.Run();
+        var failedAt = app.Frames.RealTime;
+        var wakeAt = app.Frames.WakeAt;
+        app.Run();
+        var languageWhileWaiting = _temp.Settings().Language;
+        Directory.Delete(blocker);
+        app.Frames.Wait(wakeAt - app.Frames.RealTime);
+        app.Run();
+
+        Assert.InRange(wakeAt - failedAt, 1.9, 2.1);
+        Assert.Equal(DecompilationLanguage.CSharp, languageWhileWaiting);
+        Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
+        Assert.Single(app.Workspace.Errors.Entries);
+    }
+
+    [Fact]
+    public void Saving_outright_as_shutting_down_does_writes_even_while_a_retry_waits()
+    {
+        var d = new WorkspaceDriver(_temp.Settings());
+        var blocker = BlockSettingsWrites();
+        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+        d.Pump();
+        Directory.Delete(blocker);
+
+        d.Workspace.SaveSettings();
+
+        Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
+    }
 }

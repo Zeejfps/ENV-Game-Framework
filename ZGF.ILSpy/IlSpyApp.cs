@@ -64,7 +64,16 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         ApplyThemeAndLanguage(ui.State, w);
         w.Tree.Sync(w.Assemblies);
         MainView.Render(ui, w);
-        w.SaveSettingsIfChanged();
+        SaveSettingsIfChanged(ui, w);
+    }
+
+    /// <summary>Autosaves, and asks for a frame when a failed write may be tried again, as frames are
+    /// drawn only on demand.</summary>
+    private static void SaveSettingsIfChanged(Ui<UiState> ui, Workspace w)
+    {
+        var wait = w.SaveSettingsIfChanged(ui.RealTime);
+        if (wait > 0)
+            ui.RequestFrameIn(wait);
     }
 
     private static void ApplyThemeAndLanguage(UiState state, Workspace w)

@@ -109,13 +109,16 @@ internal sealed class WorkspaceDriver
 
     public Workspace Workspace { get; }
 
+    /// <summary>The time the driver's autosave goes by, in seconds.</summary>
+    public double Now { get; set; }
+
     public static string FixturePath => typeof(Greeter).Assembly.Location;
 
     public void Pump()
     {
         _posted.Run();
         Workspace.Tree.Sync(Workspace.Assemblies);
-        Workspace.SaveSettingsIfChanged();
+        Workspace.SaveSettingsIfChanged(Now);
     }
 
     /// <summary>Pumps until <paramref name="done"/>.</summary>
@@ -159,12 +162,19 @@ internal sealed class WorkspaceDriver
 /// it pumps before each frame.</summary>
 internal sealed class AppDriver
 {
-    public AppDriver(float width = 1000f, float height = 700f)
+    public AppDriver(float width = 1000f, float height = 700f, AppSettings? settings = null)
     {
+        Driver = new WorkspaceDriver(settings);
         var app = new IlSpyApp(Workspace, new List<string>());
         Frames = UiFrames.Running(app, width: width, height: height);
         Frames.FrameTime = 1f / 60f;
-        Frames.BeforeFrame = Driver.Pump;
+        Frames.BeforeFrame = PumpAtFrameTime;
+    }
+
+    private void PumpAtFrameTime()
+    {
+        Driver.Now = Frames.RealTime;
+        Driver.Pump();
     }
 
     /// <summary>An app that has opened the fixture assembly, before its first frame.</summary>
@@ -175,7 +185,7 @@ internal sealed class AppDriver
         return app;
     }
 
-    public WorkspaceDriver Driver { get; } = new();
+    public WorkspaceDriver Driver { get; }
     public Workspace Workspace => Driver.Workspace;
     public UiFrames Frames { get; }
     public UiTheme Theme => AppThemes.For(Workspace.Theme).Ui;

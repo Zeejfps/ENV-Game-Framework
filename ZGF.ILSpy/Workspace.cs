@@ -27,6 +27,9 @@ public sealed class Workspace
     public Reload Reload { get; } = new();
     public OpenRequests Opens { get; } = new();
     public LastSave LastSave { get; } = new();
+
+    /// <summary>Whether writing the settings is failing, and when to try again.</summary>
+    public SaveRetry SaveRetry { get; } = new();
     public BookmarkList Bookmarks { get; } = new();
 
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
