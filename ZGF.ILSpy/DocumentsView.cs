@@ -13,6 +13,8 @@ namespace ZGF.ILSpy;
 /// nothing.</summary>
 internal static class DocumentsView
 {
+    private static readonly UiIcon NodelessTabIcon = new(LucideIcons.FileText, LucideIcons.Family);
+
     public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
         var t = ui.State.Strings;
@@ -102,7 +104,17 @@ internal static class DocumentsView
     {
         var title = TitleOf(screen, tab);
         var tooltip = tab.Tooltip ?? title;
-        return new DockTab(title, Tooltip: tooltip, Current: tab == appState.Tabs.Active);
+        var icon = IconOf(screen, tab);
+        return new DockTab(title, Tooltip: tooltip, Current: tab == appState.Tabs.Active, Icon: icon);
+    }
+
+    /// <summary>The tab's icon: its node's as the tree shows it, else a page.</summary>
+    private static UiIcon IconOf(UiState screen, DocumentTab tab)
+    {
+        var node = tab.Node;
+        if (node == null)
+            return NodelessTabIcon;
+        return NodeIcons.Icon(node.Kind, node.Accessibility, screen.NodeIconPalette);
     }
 
     /// <summary>The tab's title: its node's name as the tree labels it, else its own title, else a new tab's.</summary>

@@ -44,11 +44,12 @@ public readonly struct TabStrip : IDisposable
     /// repeat. A tab that becomes selected is scrolled into view. Tab focuses the tab and then its
     /// close button; Enter or Space selects or closes. A selected tab that is not
     /// <paramref name="current"/> is marked in a muted color instead of the accent. A tab picked
-    /// from the strip's tab list returns <see cref="TabResult.Selected"/> on the next frame.</summary>
+    /// from the strip's tab list returns <see cref="TabResult.Selected"/> on the next frame.
+    /// <paramref name="icon"/>, when given, sits before the label.</summary>
     public TabResult Tab(string label, bool selected, bool closable = true, string? id = null, string? tooltip = null, bool draggable = false,
-        bool current = true)
+        bool current = true, UiIcon? icon = null)
     {
-        var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current);
+        var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current, icon);
         _list.Add(new ListedTab(tab.Id, label, selected));
         if (tab.Id != _picked)
             return tab;
@@ -195,7 +196,8 @@ public static partial class UiWidgets
             return ui.MenuRadioItem(tab.Label, tab.Selected);
     }
 
-    internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current)
+    internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current,
+        UiIcon? icon)
     {
         var theme = ui.Theme;
         var tab = Pressable(ui, ui.GetId(id ?? label), true, out var picked, out var tabRing, hand: false);
@@ -226,6 +228,8 @@ public static partial class UiWidgets
                 p.FillRect(new UiRect(r.Right - s.SeparatorWidth, r.Y, s.SeparatorWidth, r.Height), s.Separator);
             });
             if (tabRing) FocusRing(ui, 0f);
+            if (icon != null)
+                ui.Icon(icon.Value);
             ui.Text(label, color: selected ? theme.Text : theme.TextMuted, overflow: TextOverflow.Ellipsis);
             if (closable)
             {

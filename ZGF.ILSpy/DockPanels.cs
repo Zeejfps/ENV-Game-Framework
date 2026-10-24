@@ -16,18 +16,26 @@ public static class DockPanels
     public const string DisplayOptions = "display-options";
     public const string Exports = "exports";
 
+    private static readonly UiIcon AssembliesIcon = new(LucideIcons.LibraryBig, LucideIcons.Family);
+    private static readonly UiIcon SearchIcon = new(LucideIcons.Search, LucideIcons.Family);
+    private static readonly UiIcon BookmarksIcon = new(LucideIcons.Bookmark, LucideIcons.Family);
+    private static readonly UiIcon AnalyzerIcon = new(LucideIcons.ScanSearch, LucideIcons.Family);
+    private static readonly UiIcon DecompilerOptionsIcon = new(LucideIcons.SlidersHorizontal, LucideIcons.Family);
+    private static readonly UiIcon DisplayOptionsIcon = new(LucideIcons.Palette, LucideIcons.Family);
+    private static readonly UiIcon ExportsIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
+
     /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
     public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer or DecompilerOptions or DisplayOptions or Exports;
 
     public static DockTab Tab(Strings t, string panel) => panel switch
     {
-        Assemblies => new DockTab(t.PanelAssemblies),
-        Bookmarks => new DockTab(t.PanelBookmarks),
-        Analyzer => new DockTab(t.PanelAnalyzer),
-        DecompilerOptions => new DockTab(t.PanelDecompilerOptions),
-        DisplayOptions => new DockTab(t.PanelDisplayOptions),
-        Exports => new DockTab(t.PanelExports),
-        _ => new DockTab(t.PanelSearch),
+        Assemblies => new DockTab(t.PanelAssemblies, Icon: AssembliesIcon),
+        Bookmarks => new DockTab(t.PanelBookmarks, Icon: BookmarksIcon),
+        Analyzer => new DockTab(t.PanelAnalyzer, Icon: AnalyzerIcon),
+        DecompilerOptions => new DockTab(t.PanelDecompilerOptions, Icon: DecompilerOptionsIcon),
+        DisplayOptions => new DockTab(t.PanelDisplayOptions, Icon: DisplayOptionsIcon),
+        Exports => new DockTab(t.PanelExports, Icon: ExportsIcon),
+        _ => new DockTab(t.PanelSearch, Icon: SearchIcon),
     };
 
     /// <summary>A copy of the saved layout with only its views — documents do not outlive a run — and

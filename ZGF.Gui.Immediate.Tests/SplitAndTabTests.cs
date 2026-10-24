@@ -228,6 +228,23 @@ public sealed class TabStripTests
             .ToList();
     }
 
+    [Fact]
+    public void A_tab_icon_sits_in_the_tab_before_its_label()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            using var strip = ui.TabStrip("icons");
+            strip.Tab("Doc", selected: true, icon: new UiIcon("@"));
+        }).Frame(2);
+
+        var icon = frames.TextRect("@");
+        var label = frames.TextRect("Doc");
+
+        Assert.True(icon.Right <= label.X);
+        Assert.True(frames.RectOf("Doc").Contains(new PointF(icon.X + icon.Width / 2, icon.Y + icon.Height / 2)));
+    }
+
     private void Overflow()
     {
         _tabs.AddRange(Enumerable.Range(4, 7).Select(i => $"Doc{i}"));

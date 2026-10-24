@@ -392,6 +392,38 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void Panel_tabs_show_their_icon_and_document_tabs_their_nodes_icon_before_the_title()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+        var shown = app.AppState.Tabs.Active!;
+        var label = app.Ui.Tree.Label(shown.Node!);
+        var documentTab = app.Frames.TextRects()
+            .Where(t => t.Text == label)
+            .Select(t => t.Rect)
+            .MaxBy(r => r.X);
+        var assembliesTab = app.TextRect("Assemblies");
+
+        Assert.True(DrewIconBefore(app, LucideIcons.LibraryBig, assembliesTab));
+        Assert.True(DrewIconBefore(app, NodeIcons.Glyph(shown.Node!.Kind), documentTab));
+    }
+
+    private static bool DrewIconBefore(AppDriver app, string glyph, UiRect title)
+    {
+        return app.Frames.TextRects()
+            .Where(t => t.Text == glyph)
+            .Any(t => IsJustBefore(t.Rect, title));
+    }
+
+    private static bool IsJustBefore(UiRect icon, UiRect title)
+    {
+        var gap = title.X - icon.Right;
+        var centerOffset = (icon.Y + icon.Height / 2) - (title.Y + title.Height / 2);
+        var besideIt = gap >= 0f && gap < 12f;
+        return besideIt && MathF.Abs(centerOffset) < 2f;
+    }
+
+    [Fact]
     public void The_tree_menu_scopes_the_search_to_an_assembly()
     {
         var app = AppDriver.Opened();

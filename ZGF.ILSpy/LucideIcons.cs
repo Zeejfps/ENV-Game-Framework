@@ -48,6 +48,7 @@ public static class LucideIcons
     public const string Layers3 = "\uE529";
     public const string LayoutGrid = "\uE0FF";
     public const string Library = "\uE100";
+    public const string LibraryBig = "\uE54E";
     public const string Link2 = "\uE103";
     public const string List = "\uE106";
     public const string ListOrdered = "\uE1D1";
@@ -61,13 +62,16 @@ public static class LucideIcons
     public const string NotepadText = "\uE599";
     public const string Package = "\uE129";
     public const string PackageX = "\uE26A";
+    public const string Palette = "\uE1DD";
     public const string Pencil = "\uE1F9";
     public const string Pi = "\uE472";
     public const string Plus = "\uE13D";
     public const string RotateCcw = "\uE148";
     public const string Save = "\uE14D";
+    public const string ScanSearch = "\uE537";
     public const string Search = "\uE151";
     public const string Shield = "\uE158";
+    public const string SlidersHorizontal = "\uE29A";
     public const string Square = "\uE167";
     public const string Table = "\uE17D";
     public const string Table2 = "\uE2F9";

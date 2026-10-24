@@ -10,8 +10,10 @@ namespace ZGF.Gui.Immediate.Widgets;
 /// <see cref="Movable"/> — an editor area the others dock around — shows no tab while alone in its
 /// group, cannot be dragged, and takes other panels only beside it, not as tabs. A panel in front
 /// of its group that is not <see cref="Current"/> — a document other than the one the app is
-/// working in — marks its tab dimmer than one that is.</summary>
-public readonly record struct DockTab(string Title, bool Closable = true, bool Movable = true, string? Tooltip = null, bool Current = true);
+/// working in — marks its tab dimmer than one that is. <see cref="Icon"/>, when given, sits before
+/// the title.</summary>
+public readonly record struct DockTab(string Title, bool Closable = true, bool Movable = true, string? Tooltip = null, bool Current = true,
+    UiIcon? Icon = null);
 
 /// <summary>An open <see cref="UiWidgets.DockSpace"/>: call <see cref="Next"/> until it returns
 /// false, recording each panel it names, then dispose.</summary>
@@ -402,7 +404,7 @@ internal sealed class DockWalker
                 {
                     var panel = group.Panels[i];
                     var info = _tab.Tab(panel);
-                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable, info.Current);
+                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable, info.Current, info.Icon);
                     _tabs.Add(tab.Id);
                     if (tab.Selected)
                     {
