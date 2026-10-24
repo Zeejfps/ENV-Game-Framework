@@ -12,6 +12,8 @@
         <PublishSingleFile>false</PublishSingleFile>
         <PublishReadyToRun>false</PublishReadyToRun>
         <PublishAot>false</PublishAot>
+        <MinVerSkip>true</MinVerSkip>
+        <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
     </PropertyGroup>
 
     <ItemGroup>
