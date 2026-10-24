@@ -316,6 +316,53 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
+    public void Collapsing_the_tree_above_the_shown_node_keeps_the_tab_on_it()
+    {
+        var app = AppDriver.Opened();
+        var greeter = app.Fixture("Greeter");
+        app.Show(greeter, 2);
+
+        app.Frames.Click(app.TextRect(LucideIcons.ChevronsDownUp)).Frame(2);
+
+        Assert.Same(greeter, app.Ui.Tree.View.Selected);
+        Assert.Same(greeter, app.AppState.Tabs.Active!.Node);
+    }
+
+    [Fact]
+    public void Switching_tabs_leaves_the_tree_selection_alone()
+    {
+        var app = AppDriver.Opened();
+        var greeter = app.Fixture("Greeter");
+        var farewell = app.Fixture("Farewell");
+        app.Show(greeter, 2);
+        var first = app.AppState.Tabs.Active!;
+        app.Show(farewell, 2, inNewTab: true);
+
+        DocumentPanels.ActivateTab(app.Ui, first);
+        app.Run(2);
+
+        Assert.Same(first, app.AppState.Tabs.Active);
+        Assert.Same(farewell, app.Ui.Tree.View.Selected);
+    }
+
+    [Fact]
+    public void The_select_opened_node_button_reveals_what_the_active_tab_shows()
+    {
+        var app = AppDriver.Opened();
+        var greeter = app.Fixture("Greeter");
+        app.Show(greeter, 2);
+        app.Ui.Tree.CollapseAll();
+        app.Ui.Tree.View.Select(app.Ui.Tree.Roots[0]);
+        app.Run(2);
+
+        app.Frames.Click(app.TextRect(LucideIcons.Crosshair)).Frame(2);
+
+        Assert.Same(greeter, app.Ui.Tree.View.Selected);
+        Assert.True(app.Ui.Tree.View.IsExpanded(app.Node(AppStateDriver.FixturesNamespace)));
+        Assert.Same(greeter, app.AppState.Tabs.Active!.Node);
+    }
+
+    [Fact]
     public void The_assemblies_panels_remove_button_closes_the_selected_assembly_only()
     {
         var app = AppDriver.Opened();

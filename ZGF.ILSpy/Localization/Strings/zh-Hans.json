@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "将搜索限定到此命名空间",
   "tree.generate_pdb": "生成可移植 PDB…",
   "tree.expand_namespaces": "展开程序集和命名空间",
+  "tree.select_opened_node": "选择打开的节点",
   "lists.pick": "程序集列表",
   "lists.manage": "管理程序集列表…",
   "lists.title": "程序集列表",

@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "Limiter la recherche à cet espace de noms",
   "tree.generate_pdb": "Générer un PDB portable…",
   "tree.expand_namespaces": "Développer les assemblys et les espaces de noms",
+  "tree.select_opened_node": "Sélectionner le nœud ouvert",
   "lists.pick": "Liste d’assemblys",
   "lists.manage": "Gérer les listes d’assemblys…",
   "lists.title": "Listes d’assemblys",

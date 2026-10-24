@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "Limitar a pesquisa a este namespace",
   "tree.generate_pdb": "Gerar PDB portátil…",
   "tree.expand_namespaces": "Expandir assemblies e namespaces",
+  "tree.select_opened_node": "Selecionar o nó aberto",
   "lists.pick": "Lista de assemblies",
   "lists.manage": "Gerenciar listas de assemblies…",
   "lists.title": "Listas de assemblies",

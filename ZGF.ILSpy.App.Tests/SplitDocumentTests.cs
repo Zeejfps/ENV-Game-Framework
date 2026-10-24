@@ -21,7 +21,7 @@ public sealed class SplitDocumentTests
     }
 
     [Fact]
-    public void Two_tabs_on_one_type_scroll_apart_and_only_the_one_worked_in_follows_the_tree()
+    public void Two_tabs_on_one_type_scroll_apart_and_switching_between_them_leaves_the_tree_alone()
     {
         var (app, left, right) = SideBySide();
         var d = app.Driver;
@@ -38,7 +38,7 @@ public sealed class SplitDocumentTests
 
         app.Frames.Click(250f, 400f).Frame();
         Assert.Same(left, d.AppState.Tabs.Active);
-        Assert.Same(left.Node, d.Ui.Tree.View.Selected);
+        Assert.Same(right.Node, d.Ui.Tree.View.Selected);
     }
 
     [Fact]

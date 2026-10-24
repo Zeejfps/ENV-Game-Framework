@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "この名前空間内を検索",
   "tree.generate_pdb": "ポータブル PDB を生成…",
   "tree.expand_namespaces": "アセンブリと名前空間を展開",
+  "tree.select_opened_node": "開いているノードを選択",
   "lists.pick": "アセンブリ リスト",
   "lists.manage": "アセンブリ リストを管理…",
   "lists.title": "アセンブリ リスト",

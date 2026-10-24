@@ -118,7 +118,7 @@ public sealed partial class IlSpyApp
                 CloseTabAndFocusNext(uiState, appState, close.Tab);
                 break;
             case AppCommand.FocusTab focus:
-                FocusTabAndReveal(uiState, appState, focus.Tab);
+                FocusTab(appState, focus.Tab);
                 break;
             case AppCommand.RunAnalysis run:
                 RunAnalysis(appState, run.Kind);
@@ -136,7 +136,7 @@ public sealed partial class IlSpyApp
         uiState.Documents.Add(tab, panel);
         var becomesActive = focus || uiState.Layout.Focused == panel;
         if (becomesActive)
-            FocusTabAndReveal(uiState, appState, tab);
+            FocusTab(appState, tab);
     }
 
     private static void CloseTabAndFocusNext(UiState uiState, AppState appState, DocumentTab tab)
@@ -145,20 +145,5 @@ public sealed partial class IlSpyApp
         if (!wasActive)
             return;
         FocusNextTab(uiState);
-    }
-
-    private static void FocusTabAndReveal(UiState uiState, AppState appState, DocumentTab tab)
-    {
-        FocusTab(appState, tab);
-        RevealInTree(uiState, appState, tab);
-    }
-
-    /// <summary>Reveals what <paramref name="tab"/> shows in the tree, when that is listed.</summary>
-    private static void RevealInTree(UiState uiState, AppState appState, DocumentTab tab)
-    {
-        var node = tab.Node;
-        if (node == null)
-            return;
-        RevealIfListed(uiState, appState, node);
     }
 }

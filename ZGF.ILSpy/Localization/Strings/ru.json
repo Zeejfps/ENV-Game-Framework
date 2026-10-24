@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "Искать только в этом пространстве имён",
   "tree.generate_pdb": "Создать переносимый PDB…",
   "tree.expand_namespaces": "Развернуть сборки и пространства имён",
+  "tree.select_opened_node": "Выбрать открытый узел",
   "lists.pick": "Список сборок",
   "lists.manage": "Управление списками сборок…",
   "lists.title": "Списки сборок",

@@ -76,9 +76,10 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     }
 
     /// <summary>Selects <paramref name="node"/> and, unless told otherwise, scrolls it into view.
-    /// A node under a collapsed parent stays selected but hidden until it shows; collapsing the
-    /// parent of a showing selection moves the selection up to the nearest node still showing,
-    /// which the next <see cref="UiWidgets.TreeView{TNode}"/> reports as a selection change.</summary>
+    /// A node under a collapsed parent stays selected but hidden until it shows, as does a showing
+    /// selection whose parent collapses. When the selected node is gone, the selection moves up to the
+    /// nearest node still showing, which the next <see cref="UiWidgets.TreeView{TNode}"/> reports as
+    /// <see cref="TreeViewResult{TNode}.SelectionMoved"/>.</summary>
     public void Select(TNode node, bool scrollIntoView = true)
     {
         Selected = node;
@@ -169,12 +170,22 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         }
         _ancestors.Clear();
         if (_selectedIndex >= 0) return;
+        if (IsUnderCollapsed(deepest)) return;
 
         if (deepest >= 0)
             SelectAt(deepest);
         else
             ClearSelection();
         _selectionMoved = true;
+    }
+
+    /// <summary>Whether the row at <paramref name="index"/>, the nearest showing ancestor of the selection,
+    /// is collapsed, so the selection is only hidden rather than gone.</summary>
+    private bool IsUnderCollapsed(int index)
+    {
+        if (index < 0)
+            return false;
+        return !_expanded.Contains(Rows[index].Node);
     }
 
     internal int SelectedIndex
@@ -250,8 +261,8 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         RowsChanged();
     }
 
-    /// <summary>Returns true when the selection was inside and moved up to the collapsed node.</summary>
-    internal bool Collapse(int index)
+    /// <summary>Collapses the row at <paramref name="index"/>; a selection inside stays selected, hidden.</summary>
+    internal void Collapse(int index)
     {
         var row = Rows[index];
         _expanded.Remove(row.Node);
@@ -264,12 +275,11 @@ public sealed class TreeViewState<TNode> where TNode : notnull
 
         if (selected > index && selected < end)
         {
-            SelectAt(index);
-            return true;
+            _selectedIndex = -1;
+            return;
         }
         if (selected >= end)
             _selectedIndex = selected - (end - index - 1);
-        return false;
     }
 
     internal int ParentIndex(int index)

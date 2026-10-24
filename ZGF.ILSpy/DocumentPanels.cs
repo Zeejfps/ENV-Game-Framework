@@ -80,7 +80,7 @@ public static class DocumentPanels
         return FindFrontTab(uiState, split.Second);
     }
 
-    /// <summary>Asks for <paramref name="tab"/> to become the active tab, with what it shows revealed in the tree.</summary>
+    /// <summary>Asks for <paramref name="tab"/> to become the active tab.</summary>
     private static void AskToFocusTab(UiState uiState, DocumentTab tab)
     {
         uiState.AppCommands.Enqueue(new AppCommand.FocusTab(tab));

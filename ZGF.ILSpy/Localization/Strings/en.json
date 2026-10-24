@@ -198,6 +198,7 @@
   "tree.scope_search_to_namespace": "Scope search to this namespace",
   "tree.generate_pdb": "Generate portable PDB…",
   "tree.expand_namespaces": "Expand assemblies and namespaces",
+  "tree.select_opened_node": "Select opened node",
   "lists.pick": "Assembly list",
   "lists.manage": "Manage assembly lists…",
   "lists.title": "Assembly lists",

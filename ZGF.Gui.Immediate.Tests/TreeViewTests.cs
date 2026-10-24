@@ -196,7 +196,7 @@ public sealed class TreeViewTests
     }
 
     [Fact]
-    public void Collapsing_above_the_selection_moves_it_to_the_collapsed_node()
+    public void Collapsing_above_the_selection_hides_it_until_it_shows_again()
     {
         var tree = new Tree(Sample());
         tree.State.Reveal([tree.Roots[0], tree.Roots[0].Children[0], tree.Roots[0].Children[0].Children[0]]);
@@ -204,9 +204,13 @@ public sealed class TreeViewTests
         Assert.Equal("A1a", tree.Selected);
 
         tree.ClickArrow(0, 0);
+        var hidden = tree.State.SelectedIndex;
+        tree.ClickArrow(0, 0);
 
-        Assert.Equal("A", tree.Selected);
-        Assert.Contains(tree.Results, r => r.SelectionChanged);
+        Assert.Equal(-1, hidden);
+        Assert.Equal("A1a", tree.Selected);
+        Assert.Equal(2, tree.State.SelectedIndex);
+        Assert.DoesNotContain(tree.Results, r => r.SelectionChanged || r.SelectionMoved);
     }
 
     [Fact]
@@ -289,7 +293,7 @@ public sealed class TreeViewTests
     }
 
     [Fact]
-    public void Collapsing_from_the_app_moves_the_selection_to_the_nearest_showing_ancestor()
+    public void Collapsing_from_the_app_keeps_the_selection_hidden_where_it_was()
     {
         var tree = new Tree(Sample());
         var a = tree.Roots[0];
@@ -299,14 +303,13 @@ public sealed class TreeViewTests
 
         tree.State.SetExpanded(a.Children[0], false);
         var result = tree.Frame();
-
-        Assert.Equal("A1", tree.Selected);
-        Assert.True(result.SelectionChanged);
-        Assert.Equal("A1", result.Node!.Name);
-
         tree.State.CollapseAll();
         tree.Frame();
-        Assert.Equal("A", tree.Selected);
+
+        Assert.False(result.SelectionMoved);
+        Assert.False(result.SelectionChanged);
+        Assert.Equal("A1a", tree.Selected);
+        Assert.Equal(-1, tree.State.SelectedIndex);
     }
 
     [Fact]
@@ -319,12 +322,12 @@ public sealed class TreeViewTests
 
         b.Children.Clear();
         tree.State.Refresh();
-        Assert.True(tree.Frame().SelectionChanged);
+        Assert.True(tree.Frame().SelectionMoved);
         Assert.Equal("B", tree.Selected);
 
         tree.Roots.Remove(b);
         var result = tree.Frame();
-        Assert.True(result.SelectionChanged);
+        Assert.True(result.SelectionMoved);
         Assert.False(tree.State.HasSelection);
     }
 

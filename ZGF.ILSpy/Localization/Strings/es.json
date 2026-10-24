@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "Limitar la búsqueda a este espacio de nombres",
   "tree.generate_pdb": "Generar PDB portable…",
   "tree.expand_namespaces": "Expandir ensamblados y espacios de nombres",
+  "tree.select_opened_node": "Seleccionar el nodo abierto",
   "lists.pick": "Lista de ensamblados",
   "lists.manage": "Administrar listas de ensamblados…",
   "lists.title": "Listas de ensamblados",

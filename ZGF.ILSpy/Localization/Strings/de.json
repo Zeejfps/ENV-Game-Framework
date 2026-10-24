@@ -192,6 +192,7 @@
   "tree.scope_search_to_namespace": "Suche auf diesen Namespace beschränken",
   "tree.generate_pdb": "Portable PDB erzeugen…",
   "tree.expand_namespaces": "Assemblys und Namespaces aufklappen",
+  "tree.select_opened_node": "Geöffneten Knoten auswählen",
   "lists.pick": "Assemblyliste",
   "lists.manage": "Assemblylisten verwalten…",
   "lists.title": "Assemblylisten",

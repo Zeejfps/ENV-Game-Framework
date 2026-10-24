@@ -41,6 +41,9 @@ internal static class TreePaneView
         var any = tree.Roots.Count > 0;
         using (ui.PaneToolbar())
         {
+            var opened = FindOpenedNode(appState);
+            if (ui.IconButton("select-opened", LucideIcons.Crosshair, LucideIcons.Family, t.TreeSelectOpenedNode, opened != null))
+                SelectOpenedNode(ui, appState, opened!);
             if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
                 tree.CollapseAll();
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.TreeExpandNamespaces, any))
@@ -50,6 +53,25 @@ internal static class TreePaneView
             if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
                 CloseAssembly(appState, picked!.Assembly);
         }
+    }
+
+    /// <summary>The node the active tab shows, or null when it shows none.</summary>
+    private static BrowseNode? FindOpenedNode(AppState appState)
+    {
+        var tab = appState.Tabs.Active;
+        if (tab == null)
+            return null;
+        return tab.Node;
+    }
+
+    /// <summary>Expands the tree down to <paramref name="node"/>, when its assembly is listed, selects it,
+    /// scrolls to it and focuses the tree.</summary>
+    private static void SelectOpenedNode(Ui<UiState> ui, AppState appState, BrowseNode node)
+    {
+        if (!appState.IsListed(node))
+            return;
+        ui.State.Tree.Reveal(node);
+        ui.Focus(ui.GetId(TreeId), takesText: false);
     }
 
     /// <summary>The assembly node selected in the tree, or null when none is or another kind of node is.</summary>

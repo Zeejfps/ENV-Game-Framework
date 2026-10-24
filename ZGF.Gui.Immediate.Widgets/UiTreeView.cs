@@ -5,7 +5,9 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>What a <see cref="UiWidgets.TreeView{TNode}"/> call did. <see cref="Node"/> is the
-/// selected node whenever a flag is set; <see cref="Toggled"/> says the user expanded or collapsed
+/// selected node whenever a flag is set. <see cref="SelectionChanged"/> says the user picked it;
+/// <see cref="SelectionMoved"/> says the selection moved up to it, or cleared, because the node selected
+/// before is gone; <see cref="Toggled"/> says the user expanded or collapsed
 /// <see cref="ToggledNode"/>.</summary>
 public readonly record struct TreeViewResult<TNode>(
     bool SelectionChanged,
@@ -14,6 +16,7 @@ public readonly record struct TreeViewResult<TNode>(
     PointF ContextMenuAt,
     TNode? Node)
 {
+    public bool SelectionMoved { get; init; }
     public bool Toggled { get; init; }
     public TNode? ToggledNode { get; init; }
 }
@@ -133,25 +136,25 @@ public static partial class UiWidgets
 
         if (selection != before && selection >= 0)
             state.SelectAt(selection);
-        var moved = false;
         if (toggle >= 0)
         {
             toggled = state.Rows[toggle].Node;
             hasToggled = true;
             if (state.IsExpanded(state.Rows[toggle].Node))
-                moved = state.Collapse(toggle);
+                state.Collapse(toggle);
             else
                 state.Expand(toggle, model);
             ui.RequestUpdate();
         }
 
-        var changed = selection != before || moved || selectionMoved;
-        if (changed)
+        var picked = selection != before;
+        if (picked || selectionMoved)
             ui.ScrollRowIntoView(treeId, state.SelectedIndex);
-        if (!changed && !activated && !contextMenu && !hasToggled)
+        if (!picked && !selectionMoved && !activated && !contextMenu && !hasToggled)
             return default;
-        return new TreeViewResult<TNode>(changed, activated && state.HasSelection, contextMenu && state.HasSelection, menuAt, state.Selected)
+        return new TreeViewResult<TNode>(picked, activated && state.HasSelection, contextMenu && state.HasSelection, menuAt, state.Selected)
         {
+            SelectionMoved = selectionMoved,
             Toggled = hasToggled,
             ToggledNode = hasToggled ? toggled : default,
         };
