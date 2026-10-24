@@ -25,8 +25,8 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     private AppDriver TwoFinished(float width = 1000f)
     {
         var app = AppDriver.Opened(width: width, height: TallWindow);
-        app.AppState.SaveCode(app.Fixture("Greeter"), Path.Combine(Folder("First"), "Greeter.cs"));
-        app.AppState.SaveCode(app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
+        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), Path.Combine(Folder("First"), "Greeter.cs"));
+        Exporting.SaveCode(app.AppState, app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
         app.Settle(2);
         return app;
     }

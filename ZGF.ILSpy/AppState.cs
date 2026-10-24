@@ -6,7 +6,7 @@ namespace ZGF.ILSpy;
 
 /// <summary>
 /// The app's data, and which tab, list and history entry are current. What the user can do to it are
-/// extension methods grouped by feature, such as <see cref="Navigation"/> and <see cref="Bookmarking"/>.
+/// static functions grouped by feature, such as <see cref="Navigation"/> and <see cref="Bookmarking"/>.
 /// It never sees the screen; a feature that needs the view to act later commands
 /// it through <see cref="ViewCommands"/>. Lives on the UI thread: background work (opening, decompiling,
 /// resolving, searching) is awaited there through <see cref="Background"/>. A result is dropped when
@@ -97,9 +97,9 @@ public sealed class AppState
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
-        LastSave.Record(this.CaptureSavedSources());
+        LastSave.Record(Saving.CaptureSavedSources(this));
         ReportSettingsLoadError(settings);
-        this.ReportLeftOutBookmarks(leftOutBookmarks);
+        Bookmarking.ReportLeftOutBookmarks(this, leftOutBookmarks);
     }
 
     private static Locale ChooseLocale(AppSettings settings)

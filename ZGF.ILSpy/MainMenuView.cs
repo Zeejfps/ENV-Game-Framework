@@ -15,7 +15,7 @@ internal static class MainMenuView
     private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
     private static readonly UiIcon ExitIcon = new(LucideIcons.LogOut, LucideIcons.Family);
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
@@ -23,17 +23,17 @@ internal static class MainMenuView
             using (var file = ui.Menu(t.MenuFile, id: "file"))
             {
                 if (file.IsOpen)
-                    FileMenu(ui, w);
+                    FileMenu(ui, appState);
             }
             using (var view = ui.Menu(t.MenuView, id: "view"))
             {
                 if (view.IsOpen)
-                    ViewMenu(ui, w);
+                    ViewMenu(ui, appState);
             }
         }
     }
 
-    public static void OpenFile(Ui<UiState> ui, AppState w)
+    public static void OpenFile(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         FileFilter[] filters =
@@ -41,57 +41,57 @@ internal static class MainMenuView
             new(t.FileFilterAssemblies, ["*.dll", "*.exe", "*.winmd"]),
             new(t.FileFilterAll, ["*.*"]),
         ];
-        ui.PickFile(t.FileOpenTitle, null, filters, w.Open);
+        ui.PickFile(t.FileOpenTitle, null, filters, path => AssemblyLoading.Open(appState, path));
     }
 
-    private static void FileMenu(Ui<UiState> ui, AppState w)
+    private static void FileMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: OpenIcon))
-            OpenFile(ui, w);
+            OpenFile(ui, appState);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: OpenFromFrameworkIcon))
             ui.State.Picker.Open();
         ui.MenuSeparator();
-        ExportItems(ui, w);
+        ExportItems(ui, appState);
         ui.MenuSeparator();
         var tree = ui.State.Tree;
         var selected = tree.View.HasSelection ? tree.View.Selected!.Assembly : null;
         var anyOpen = tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: CloseIcon))
-            w.Close(selected!);
+            AssemblyLoading.Close(appState, selected!);
         if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: ClearListIcon))
-            w.ClearList();
+            AssemblyLoading.ClearList(appState);
         if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: ReloadIcon))
-            w.Refresh(tree.ExpandedPaths());
+            AssemblyLoading.Refresh(appState, tree.ExpandedPaths());
         ui.MenuSeparator();
         if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: ExitIcon))
             ui.Quit();
     }
 
-    private static void ExportItems(Ui<UiState> ui, AppState w)
+    private static void ExportItems(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        var canSave = w.CanSaveCode(w.Tabs.Active?.Node);
+        var canSave = Exporting.CanSaveCode(appState, appState.Tabs.Active?.Node);
         if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
-            SaveDialogs.PickActiveCodeFile(ui, w);
+            SaveDialogs.PickActiveCodeFile(ui, appState);
         var anyOpen = ui.State.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: SaveDialogs.ExportIcon))
-            ui.State.OpenExportSetup(w.ActiveAssembly());
+            ui.State.OpenExportSetup(Exporting.ActiveAssembly(appState));
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
-            SaveDialogs.PickPdbFolder(ui, w);
+            SaveDialogs.PickPdbFolder(ui, appState);
     }
 
-    private static void ViewMenu(Ui<UiState> ui, AppState w)
+    private static void ViewMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: w.History.CanGoBack, id: "back"))
-            w.GoBack();
-        if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: w.History.CanGoForward, id: "forward"))
-            w.GoForward();
+        if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: appState.History.CanGoBack, id: "back"))
+            Navigation.GoBack(appState);
+        if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: appState.History.CanGoForward, id: "forward"))
+            Navigation.GoForward(appState);
         ui.MenuSeparator();
-        DecompilerMenu(ui, w);
+        DecompilerMenu(ui, appState);
         ui.MenuSeparator();
-        ui.MenuItem(t.ViewShowNonPublic, ref w.ShowNonPublic, id: "show-non-public");
+        ui.MenuItem(t.ViewShowNonPublic, ref appState.ShowNonPublic, id: "show-non-public");
         ui.MenuSeparator();
         var screen = ui.State;
         var layout = screen.Layout;
@@ -110,47 +110,47 @@ internal static class MainMenuView
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             screen.AskToResetLayout();
         ui.MenuSeparator();
-        ThemeMenu(ui, w);
-        LanguageMenu(ui, w);
+        ThemeMenu(ui, appState);
+        LanguageMenu(ui, appState);
     }
 
-    private static void DecompilerMenu(Ui<UiState> ui, AppState w)
+    private static void DecompilerMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
         if (!decompilers.IsOpen) return;
-        if (ui.MenuRadioItem("C#", w.Language == DecompilationLanguage.CSharp))
-            w.SetLanguage(DecompilationLanguage.CSharp);
-        if (ui.MenuRadioItem("IL", w.Language == DecompilationLanguage.IL))
-            w.SetLanguage(DecompilationLanguage.IL);
+        if (ui.MenuRadioItem("C#", appState.Language == DecompilationLanguage.CSharp))
+            Preferences.SetLanguage(appState, DecompilationLanguage.CSharp);
+        if (ui.MenuRadioItem("IL", appState.Language == DecompilationLanguage.IL))
+            Preferences.SetLanguage(appState, DecompilationLanguage.IL);
     }
 
-    private static void ThemeMenu(Ui<UiState> ui, AppState w)
+    private static void ThemeMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
         if (!themes.IsOpen) return;
-        if (ui.MenuRadioItem(t.ViewThemeDark, w.Theme == AppThemeId.Dark, id: "theme-dark"))
-            w.Theme = AppThemeId.Dark;
-        if (ui.MenuRadioItem(t.ViewThemeLight, w.Theme == AppThemeId.Light, id: "theme-light"))
-            w.Theme = AppThemeId.Light;
+        if (ui.MenuRadioItem(t.ViewThemeDark, appState.Theme == AppThemeId.Dark, id: "theme-dark"))
+            appState.Theme = AppThemeId.Dark;
+        if (ui.MenuRadioItem(t.ViewThemeLight, appState.Theme == AppThemeId.Light, id: "theme-light"))
+            appState.Theme = AppThemeId.Light;
         ui.MenuSeparator();
         foreach (var (id, name) in AppThemes.Named)
         {
-            if (ui.MenuRadioItem(name, w.Theme == id))
-                w.Theme = id;
+            if (ui.MenuRadioItem(name, appState.Theme == id))
+                appState.Theme = id;
         }
     }
 
-    private static void LanguageMenu(Ui<UiState> ui, AppState w)
+    private static void LanguageMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using var languages = ui.SubMenu(t.ViewLanguage, id: "language");
         if (!languages.IsOpen) return;
         foreach (var (locale, endonym) in Locales.All)
         {
-            if (ui.MenuRadioItem(endonym, w.Locale == locale))
-                w.SetLocale(locale);
+            if (ui.MenuRadioItem(endonym, appState.Locale == locale))
+                Preferences.SetLocale(appState, locale);
         }
     }
 }

@@ -46,7 +46,7 @@ public sealed class MetadataGridTests
     {
         var (app, tab, grid) = ShowTable("TypeDef", frames: 0);
 
-        app.AppState.SetLanguage(DecompilationLanguage.IL);
+        Preferences.SetLanguage(app.AppState, DecompilationLanguage.IL);
         app.Settle(2);
 
         Assert.Same(grid, tab.Grid);
@@ -99,7 +99,7 @@ public sealed class MetadataGridTests
         Assert.Equal("Object", typeRefs.Text(GridOf(app, tab).Selected, typeRefs.Column("Name")));
         app.TextRect("Object");
 
-        app.AppState.GoBack();
+        Navigation.GoBack(app.AppState);
         app.Settle(3);
 
         Assert.Same(Table(app, "TypeDef"), tab.Node);

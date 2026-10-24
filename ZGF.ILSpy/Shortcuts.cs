@@ -42,15 +42,15 @@ internal static class Shortcuts
         return false;
     }
 
-    public static void Handle(Ui<UiState> ui, AppState w)
+    public static void Handle(Ui<UiState> ui, AppState appState)
     {
         if (ui.State.IsDialogOpen()) return;
 
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
-            w.GoBack();
+            Navigation.GoBack(appState);
         if (input.WasPressed(PointerButton.Forward))
-            w.GoForward();
+            Navigation.GoForward(appState);
 
         var keys = input.Keys;
         for (var i = 0; i < keys.Count; i++)
@@ -62,10 +62,10 @@ internal static class Shortcuts
                     ui.State.OpenSearch();
                     continue;
                 case (KeyModifiers.Alt, KeyboardKey.LeftArrow):
-                    w.GoBack();
+                    Navigation.GoBack(appState);
                     continue;
                 case (KeyModifiers.Alt, KeyboardKey.RightArrow):
-                    w.GoForward();
+                    Navigation.GoForward(appState);
                     continue;
             }
             if (ui.WantsTextInput) continue;
@@ -73,16 +73,16 @@ internal static class Shortcuts
             switch (stroke.Modifiers & Chord, stroke.Key)
             {
                 case (KeyModifiers.Control, KeyboardKey.O):
-                    MainMenuView.OpenFile(ui, w);
+                    MainMenuView.OpenFile(ui, appState);
                     break;
                 case (KeyModifiers.Control, KeyboardKey.S):
-                    SaveDialogs.PickActiveCodeFile(ui, w);
+                    SaveDialogs.PickActiveCodeFile(ui, appState);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
-                    ui.State.OpenExportSetup(w.ActiveAssembly());
+                    ui.State.OpenExportSetup(Exporting.ActiveAssembly(appState));
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
-                    w.Refresh(ui.State.Tree.ExpandedPaths());
+                    AssemblyLoading.Refresh(appState, ui.State.Tree.ExpandedPaths());
                     break;
                 case (KeyModifiers.Control, KeyboardKey.W):
                     ui.State.CloseActiveTab();

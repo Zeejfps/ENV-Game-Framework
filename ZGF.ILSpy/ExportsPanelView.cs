@@ -37,35 +37,35 @@ internal static class ExportsPanelView
     /// menu its rows open, resolved outside their id scopes, and whether the panel is narrow.</summary>
     private readonly record struct Rows(int ListId, int MenuId, bool Narrow);
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, w);
+        Toolbar(ui, appState);
         ui.Separator();
-        if (IsEmpty(w))
+        if (IsEmpty(appState))
         {
             DocumentsView.Hint(ui, t.ExportsHint);
             return;
         }
         var listId = ui.GetId(ListKey);
         var rows = new Rows(listId, ui.GetId(MenuId), IsNarrow(ui, listId));
-        HandleKeys(ui, w, rows);
+        HandleKeys(ui, appState, rows);
         using (ui.Scroll(rows.ListId, new Box { Height = Sizing.Grow(), Gap = 0f, Background = ui.Theme.PaneBackground }))
         {
-            Running(ui, w, rows);
-            Waiting(ui, w, rows);
-            Finished(ui, w, rows);
+            Running(ui, appState, rows);
+            Waiting(ui, appState, rows);
+            Finished(ui, appState, rows);
         }
-        Menu(ui, w, rows);
-        KeepAnimating(ui, w);
+        Menu(ui, appState, rows);
+        KeepAnimating(ui, appState);
     }
 
-    private static bool IsEmpty(AppState w)
+    private static bool IsEmpty(AppState appState)
     {
-        if (w.Export.IsRunning)
+        if (appState.Export.IsRunning)
             return false;
-        return w.FinishedExports.Count == 0;
+        return appState.FinishedExports.Count == 0;
     }
 
     /// <summary>Whether the list was narrower than <see cref="NarrowWidth"/> on the last frame.</summary>
@@ -76,18 +76,18 @@ internal static class ExportsPanelView
         return rect.Width < NarrowWidth;
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState w)
+    private static void Toolbar(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         using (ui.PaneToolbar(new Box { Padding = new Spacing(theme.PanelPadding, theme.ToolbarPaddingY) }))
         {
-            var summary = ui.Memo("summary", (w.Export.IsRunning, w.Export.WaitingCount, w.FinishedExports.Count, t),
+            var summary = ui.Memo("summary", (appState.Export.IsRunning, appState.Export.WaitingCount, appState.FinishedExports.Count, t),
                 static a => Summarize(a.t, a.IsRunning, a.WaitingCount, a.Count));
             ui.Text(summary, color: theme.TextMuted, size: theme.FontSizeSmall);
             ui.Spacer();
-            if (ui.Button(t.ExportsClearFinished, enabled: w.FinishedExports.Count > 0, id: "clear", variant: ButtonVariant.Ghost))
-                w.ClearFinishedExports();
+            if (ui.Button(t.ExportsClearFinished, enabled: appState.FinishedExports.Count > 0, id: "clear", variant: ButtonVariant.Ghost))
+                Exporting.ClearFinishedExports(appState);
             ui.Tooltip(ui.GetId("clear"), t.ExportsClearFinishedTooltip);
         }
     }
@@ -106,39 +106,39 @@ internal static class ExportsPanelView
     }
 
     /// <summary>Walks and acts on the selection with the keys pressed this frame, while the list has focus.</summary>
-    private static void HandleKeys(Ui<UiState> ui, AppState w, Rows rows)
+    private static void HandleKeys(Ui<UiState> ui, AppState appState, Rows rows)
     {
         if (!ui.HasFocus(rows.ListId))
             return;
-        var runs = w.ListExports();
+        var runs = Exporting.ListExports(appState);
         foreach (var stroke in ui.Input.Keys)
-            HandleKey(ui, w, rows, runs, stroke);
+            HandleKey(ui, appState, rows, runs, stroke);
     }
 
-    private static void HandleKey(Ui<UiState> ui, AppState w, Rows rows, List<int> runs, KeyStroke stroke)
+    private static void HandleKey(Ui<UiState> ui, AppState appState, Rows rows, List<int> runs, KeyStroke stroke)
     {
         var selected = ui.State.SelectedExport;
         if (IsMenuKey(stroke))
         {
-            OpenMenuOnSelection(ui, w, rows, selected);
+            OpenMenuOnSelection(ui, appState, rows, selected);
             return;
         }
         if (stroke.Key == KeyboardKey.Enter)
         {
-            w.ActivateExport(selected);
+            Exporting.ActivateExport(appState, selected);
             return;
         }
         if (IsCopy(stroke))
         {
-            CopyFolder(ui, w, selected);
+            CopyFolder(ui, appState, selected);
             return;
         }
         if (stroke.Key == KeyboardKey.Delete)
         {
-            w.RemoveExport(selected);
+            Exporting.RemoveExport(appState, selected);
             return;
         }
-        MoveSelection(ui, w, rows, runs, stroke);
+        MoveSelection(ui, appState, rows, runs, stroke);
     }
 
     private static bool IsMenuKey(KeyStroke stroke)
@@ -155,7 +155,7 @@ internal static class ExportsPanelView
         return stroke.Modifiers.HasFlag(KeyModifiers.Control);
     }
 
-    private static void MoveSelection(Ui<UiState> ui, AppState w, Rows rows, List<int> runs, KeyStroke stroke)
+    private static void MoveSelection(Ui<UiState> ui, AppState appState, Rows rows, List<int> runs, KeyStroke stroke)
     {
         var index = runs.IndexOf(ui.State.SelectedExport);
         var before = index;
@@ -167,15 +167,15 @@ internal static class ExportsPanelView
             ui.ScrollIntoView(rows.ListId, ui.GetId("row"));
     }
 
-    private static void CopyFolder(Ui<UiState> ui, AppState w, int run)
+    private static void CopyFolder(Ui<UiState> ui, AppState appState, int run)
     {
-        var folder = w.FolderOfExport(run);
+        var folder = Exporting.FolderOfExport(appState, run);
         if (folder == null)
             return;
         ui.ClipboardText = folder;
     }
 
-    private static void OpenMenuOnSelection(Ui<UiState> ui, AppState w, Rows rows, int run)
+    private static void OpenMenuOnSelection(Ui<UiState> ui, AppState appState, Rows rows, int run)
     {
         if (run == 0)
             return;
@@ -185,10 +185,10 @@ internal static class ExportsPanelView
             if (ui.TryGetRect(ui.GetId("row"), out var rect))
                 at = new PointF(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
         }
-        OpenMenu(ui, w, rows, run, at);
+        OpenMenu(ui, appState, rows, run, at);
     }
 
-    private static void OpenMenu(Ui<UiState> ui, AppState w, Rows rows, int run, PointF? at)
+    private static void OpenMenu(Ui<UiState> ui, AppState appState, Rows rows, int run, PointF? at)
     {
         ui.State.ExportMenuTarget = run;
         ui.OpenContextMenu(rows.MenuId, at);
@@ -196,7 +196,7 @@ internal static class ExportsPanelView
 
     /// <summary>The interaction of a whole row: a press selects it and focuses the list, a
     /// double-click activates it, a right-click opens its menu.</summary>
-    private static Interaction RowHit(Ui<UiState> ui, AppState w, Rows rows, int run)
+    private static Interaction RowHit(Ui<UiState> ui, AppState appState, Rows rows, int run)
     {
         var hit = ui.Interact(ui.GetId("row"));
         if (hit.Pressed)
@@ -205,16 +205,16 @@ internal static class ExportsPanelView
             ui.Focus(rows.ListId, takesText: false);
         }
         if (hit.DoubleClicked)
-            w.ActivateExport(run);
+            Exporting.ActivateExport(appState, run);
         if (hit.ClickedWith(PointerButton.Right))
         {
             ui.State.SelectedExport = run;
-            OpenMenu(ui, w, rows, run, ui.Input.Pointer);
+            OpenMenu(ui, appState, rows, run, ui.Input.Pointer);
         }
         return hit;
     }
 
-    private static uint RowBackground(Ui<UiState> ui, AppState w, Rows rows, int run, Interaction hit)
+    private static uint RowBackground(Ui<UiState> ui, AppState appState, Rows rows, int run, Interaction hit)
     {
         var theme = ui.Theme;
         if (ui.State.SelectedExport == run)
@@ -224,18 +224,18 @@ internal static class ExportsPanelView
         return 0u;
     }
 
-    private static void Running(Ui<UiState> ui, AppState w, Rows rows)
+    private static void Running(Ui<UiState> ui, AppState appState, Rows rows)
     {
-        var running = w.Export.Running;
-        var progress = w.Export.Progress;
+        var running = appState.Export.Running;
+        var progress = appState.Export.Progress;
         if (running == null || progress == null)
             return;
         var t = ui.State.Strings;
         var theme = ui.Theme;
         using (ui.Id(running.Run))
         {
-            var hit = RowHit(ui, w, rows, running.Run);
-            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, w, rows, running.Run, hit))))
+            var hit = RowHit(ui, appState, rows, running.Run);
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, appState, rows, running.Run, hit))))
             {
                 var at = progress.Value;
                 using (ui.Row(TopLine(theme)))
@@ -243,10 +243,10 @@ internal static class ExportsPanelView
                     Spinner(ui);
                     Name(ui, running.Job.Name);
                     Percent(ui, at.Fraction);
-                    CancelAction(ui, w, rows);
+                    CancelAction(ui, appState, rows);
                 }
                 var preparing = at.Fraction == null;
-                var detail = ui.Memo("detail", (running.Job.Kind, at.Name, at.Part, at.Parts, preparing, w.Export.IsCancelling, t),
+                var detail = ui.Memo("detail", (running.Job.Kind, at.Name, at.Part, at.Parts, preparing, appState.Export.IsCancelling, t),
                     static a => DescribeRunning(a.t, a.Kind, a.Name, a.Part, a.Parts, a.preparing, a.IsCancelling));
                 Detail(ui, detail);
                 Folder(ui, running.Job.Folder);
@@ -257,18 +257,18 @@ internal static class ExportsPanelView
         ui.Separator();
     }
 
-    private static void CancelAction(Ui<UiState> ui, AppState w, Rows rows)
+    private static void CancelAction(Ui<UiState> ui, AppState appState, Rows rows)
     {
         var t = ui.State.Strings;
-        var enabled = !w.Export.IsCancelling;
+        var enabled = !appState.Export.IsCancelling;
         if (rows.Narrow)
         {
             if (ui.IconButton("cancel", LucideIcons.X, LucideIcons.Family, t.ExportsCancelTooltip, enabled))
-                w.Export.Cancel();
+                appState.Export.Cancel();
             return;
         }
         if (ui.Button(t.ExportsCancel, enabled: enabled, id: "cancel", variant: ButtonVariant.Ghost))
-            w.Export.Cancel();
+            appState.Export.Cancel();
         ui.Tooltip(ui.GetId("cancel"), t.ExportsCancelTooltip);
     }
 
@@ -364,35 +364,35 @@ internal static class ExportsPanelView
         return $"{percent}%";
     }
 
-    private static void Waiting(Ui<UiState> ui, AppState w, Rows rows)
+    private static void Waiting(Ui<UiState> ui, AppState appState, Rows rows)
     {
         var t = ui.State.Strings;
-        var count = w.Export.WaitingCount;
+        var count = appState.Export.WaitingCount;
         if (count > 1)
             Section(ui, SectionQueuedId, ui.Memo("queued", (count, t), static a => a.t.ExportsSectionQueued(a.count)));
         var ahead = 0;
         var withdrawn = 0;
-        foreach (var waiting in w.Export.Waiting)
+        foreach (var waiting in appState.Export.Waiting)
         {
-            if (WaitingRow(ui, w, rows, waiting, ahead))
+            if (WaitingRow(ui, appState, rows, waiting, ahead))
                 withdrawn = waiting.Run;
             ahead++;
         }
         if (withdrawn != 0)
-            w.Export.Withdraw(withdrawn);
+            appState.Export.Withdraw(withdrawn);
     }
 
     /// <summary>Draws a waiting export; returns whether the user took it out of the queue, which
     /// the caller does once the queue is no longer being walked.</summary>
-    private static bool WaitingRow(Ui<UiState> ui, AppState w, Rows rows, QueuedExport waiting, int ahead)
+    private static bool WaitingRow(Ui<UiState> ui, AppState appState, Rows rows, QueuedExport waiting, int ahead)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         bool withdrawn;
         using (ui.Id(waiting.Run))
         {
-            var hit = RowHit(ui, w, rows, waiting.Run);
-            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, w, rows, waiting.Run, hit))))
+            var hit = RowHit(ui, appState, rows, waiting.Run);
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, appState, rows, waiting.Run, hit))))
             {
                 using (ui.Row(TopLine(theme)))
                 {
@@ -427,47 +427,47 @@ internal static class ExportsPanelView
         return $"{kindText} · {t.ExportsAhead(ahead)}";
     }
 
-    private static void Finished(Ui<UiState> ui, AppState w, Rows rows)
+    private static void Finished(Ui<UiState> ui, AppState appState, Rows rows)
     {
         var t = ui.State.Strings;
-        var reports = w.FinishedExports;
+        var reports = appState.FinishedExports;
         if (reports.Count == 0)
             return;
-        if (HasActiveWork(w))
+        if (HasActiveWork(appState))
             Section(ui, SectionFinishedId, ui.Memo("finished", (reports.Count, t), static a => a.t.ExportsSectionFinished(a.Count)));
         ExportReport? removed = null;
         for (var i = reports.Count - 1; i >= 0; i--)
         {
-            if (FinishedRow(ui, w, rows, reports[i]))
+            if (FinishedRow(ui, appState, rows, reports[i]))
                 removed = reports[i];
         }
         if (removed != null)
-            w.RemoveFinishedExport(removed);
+            Exporting.RemoveFinishedExport(appState, removed);
     }
 
-    private static bool HasActiveWork(AppState w)
+    private static bool HasActiveWork(AppState appState)
     {
-        if (w.Export.IsRunning)
+        if (appState.Export.IsRunning)
             return true;
-        return w.Export.WaitingCount > 0;
+        return appState.Export.WaitingCount > 0;
     }
 
     /// <summary>Draws a finished export; returns whether the user took it off the list.</summary>
-    private static bool FinishedRow(Ui<UiState> ui, AppState w, Rows rows, ExportReport report)
+    private static bool FinishedRow(Ui<UiState> ui, AppState appState, Rows rows, ExportReport report)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         bool removed;
         using (ui.Id(report.Run))
         {
-            var hit = RowHit(ui, w, rows, report.Run);
-            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, w, rows, report.Run, hit))))
+            var hit = RowHit(ui, appState, rows, report.Run);
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, appState, rows, report.Run, hit))))
             {
                 using (ui.Row(TopLine(theme)))
                 {
                     Glyph(ui, OutcomeIcon(report), OutcomeColor(theme, report));
                     Name(ui, report.Name);
-                    FinishedActions(ui, w, rows, report);
+                    FinishedActions(ui, appState, rows, report);
                     removed = ui.IconButton("remove", LucideIcons.X, LucideIcons.Family, t.ExportsRemove);
                 }
                 var detail = ui.Memo("detail", (report, t), static a => DescribeFinished(a.t, a.report));
@@ -490,15 +490,15 @@ internal static class ExportsPanelView
     /// <summary>One labelled action that suits how the export ended, and the other as an icon:
     /// the folder after a clean finish, the report after problems, a failure or a cancel. Both are
     /// icons when the panel is narrow.</summary>
-    private static void FinishedActions(Ui<UiState> ui, AppState w, Rows rows, ExportReport report)
+    private static void FinishedActions(Ui<UiState> ui, AppState appState, Rows rows, ExportReport report)
     {
         if (OpensFolderFirst(report))
         {
             OpenFolderAction(ui, report, labelled: !rows.Narrow);
-            ShowReportAction(ui, w, report, labelled: false);
+            ShowReportAction(ui, appState, report, labelled: false);
             return;
         }
-        ShowReportAction(ui, w, report, labelled: !rows.Narrow);
+        ShowReportAction(ui, appState, report, labelled: !rows.Narrow);
         if (report.FolderExists)
             OpenFolderAction(ui, report, labelled: false);
     }
@@ -512,13 +512,13 @@ internal static class ExportsPanelView
             ui.OpenFolder(report.Folder);
     }
 
-    private static void ShowReportAction(Ui<UiState> ui, AppState w, ExportReport report, bool labelled)
+    private static void ShowReportAction(Ui<UiState> ui, AppState appState, ExportReport report, bool labelled)
     {
         var t = ui.State.Strings;
         if (labelled && ui.Button(t.ExportShowReport, id: "show-report", icon: ShowReportIcon))
-            w.ShowExportReport(report);
+            Exporting.ShowExportReport(appState, report);
         if (!labelled && ui.IconButton("show-report", LucideIcons.FileText, LucideIcons.Family, t.ExportShowReport))
-            w.ShowExportReport(report);
+            Exporting.ShowExportReport(appState, report);
     }
 
     private static bool OpensFolderFirst(ExportReport report)
@@ -560,56 +560,56 @@ internal static class ExportsPanelView
     }
 
     /// <summary>The menu of the export it was opened on, with what can be done to it where it is.</summary>
-    private static void Menu(Ui<UiState> ui, AppState w, Rows rows)
+    private static void Menu(Ui<UiState> ui, AppState appState, Rows rows)
     {
         using var menu = ui.ContextMenu(rows.MenuId);
         if (!menu.IsOpen)
             return;
         var run = ui.State.ExportMenuTarget;
-        var finished = w.FindFinishedExport(run);
+        var finished = Exporting.FindFinishedExport(appState, run);
         if (finished != null)
-            FinishedMenu(ui, w, finished);
+            FinishedMenu(ui, appState, finished);
         else
-            QueuedMenu(ui, w, run);
+            QueuedMenu(ui, appState, run);
     }
 
-    private static void FinishedMenu(Ui<UiState> ui, AppState w, ExportReport report)
+    private static void FinishedMenu(Ui<UiState> ui, AppState appState, ExportReport report)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.ExportShowReport, "Enter", id: "show-report", icon: ShowReportIcon))
-            w.ShowExportReport(report);
+            Exporting.ShowExportReport(appState, report);
         if (ui.MenuItem(t.ExportOpenFolder, enabled: report.FolderExists, id: "open-folder", icon: OpenFolderIcon))
             ui.OpenFolder(report.Folder);
         if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))
             ui.ClipboardText = report.Folder;
         ui.MenuSeparator();
         if (ui.MenuItem(t.ExportsRemove, "Delete", id: "remove"))
-            w.RemoveFinishedExport(report);
+            Exporting.RemoveFinishedExport(appState, report);
     }
 
-    private static void QueuedMenu(Ui<UiState> ui, AppState w, int run)
+    private static void QueuedMenu(Ui<UiState> ui, AppState appState, int run)
     {
         var t = ui.State.Strings;
-        var folder = w.FolderOfExport(run);
+        var folder = Exporting.FolderOfExport(appState, run);
         if (folder == null)
             return;
         if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))
             ui.ClipboardText = folder;
         ui.MenuSeparator();
-        if (w.Export.Running?.Run == run)
+        if (appState.Export.Running?.Run == run)
         {
-            if (ui.MenuItem(t.ExportsCancel, enabled: !w.Export.IsCancelling, id: "cancel"))
-                w.Export.Cancel();
+            if (ui.MenuItem(t.ExportsCancel, enabled: !appState.Export.IsCancelling, id: "cancel"))
+                appState.Export.Cancel();
             return;
         }
         if (ui.MenuItem(t.ExportsWithdraw, "Delete", id: "withdraw"))
-            w.Export.Withdraw(run);
+            appState.Export.Withdraw(run);
     }
 
     /// <summary>Asks for the next frame soon while an export runs, so its spinner and sliding bar move.</summary>
-    private static void KeepAnimating(Ui<UiState> ui, AppState w)
+    private static void KeepAnimating(Ui<UiState> ui, AppState appState)
     {
-        if (!w.Export.IsRunning)
+        if (!appState.Export.IsRunning)
             return;
         ui.RequestUpdateIn(AnimationStep);
     }

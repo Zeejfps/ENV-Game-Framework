@@ -12,41 +12,41 @@ internal static class ExportStatusView
     private const float BarWidth = 72f;
 
     /// <summary>Draws the running export; returns whether one runs.</summary>
-    public static bool Render(Ui<UiState> ui, AppState w)
+    public static bool Render(Ui<UiState> ui, AppState appState)
     {
-        var progress = w.Export.Progress;
+        var progress = appState.Export.Progress;
         if (progress == null)
             return false;
-        Running(ui, w, progress.Value);
+        Running(ui, appState, progress.Value);
         return true;
     }
 
-    private static void Running(Ui<UiState> ui, AppState w, ExportProgress progress)
+    private static void Running(Ui<UiState> ui, AppState appState, ExportProgress progress)
     {
         var t = ui.State.Strings;
-        if (Glance(ui, w, progress))
+        if (Glance(ui, appState, progress))
             ui.State.OpenExports();
-        if (!w.Export.IsCancelling && IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
-            w.Export.Cancel();
+        if (!appState.Export.IsCancelling && IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
+            appState.Export.Cancel();
     }
 
     /// <summary>What the export writes, its bar and how many wait, as one button; returns whether it
     /// was clicked.</summary>
-    private static bool Glance(Ui<UiState> ui, AppState w, ExportProgress progress)
+    private static bool Glance(Ui<UiState> ui, AppState appState, ExportProgress progress)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var i = ui.Clickable("export-glance");
         using (ui.Row(i.Id, ButtonBox(theme, i)))
         {
-            var cancelling = w.Export.IsCancelling;
+            var cancelling = appState.Export.IsCancelling;
             var text = ui.Memo("export-running", (progress.Name, progress.Part, progress.Parts, cancelling, t),
                 static a => Describe(a.t, a.Name, a.Part, a.Parts, a.cancelling));
             ui.Text(text, color: theme.AccentText, size: theme.FontSizeSmall);
             var fraction = progress.Fraction;
             if (fraction != null)
                 ui.ProgressBar(fraction.Value, Sizing.Fixed(BarWidth));
-            Queued(ui, w);
+            Queued(ui, appState);
         }
         ui.Tooltip(i.Id, t.StatusShowExports);
         return i.Clicked;
@@ -61,9 +61,9 @@ internal static class ExportStatusView
         return t.StatusExportingName(name);
     }
 
-    private static void Queued(Ui<UiState> ui, AppState w)
+    private static void Queued(Ui<UiState> ui, AppState appState)
     {
-        var waiting = w.Export.WaitingCount;
+        var waiting = appState.Export.WaitingCount;
         if (waiting == 0)
             return;
         var t = ui.State.Strings;

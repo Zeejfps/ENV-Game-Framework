@@ -9,7 +9,7 @@ namespace ZGF.ILSpy;
 /// right: activity, errors, language and the assembly count.</summary>
 internal static class StatusBarView
 {
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -23,56 +23,56 @@ internal static class StatusBarView
             Background = theme.Surface,
         }))
         {
-            var selected = w.Tabs.Active?.Node;
+            var selected = appState.Tabs.Active?.Node;
             ui.Text(ui.Memo("status-node", selected, static n => n?.FullName ?? ""), new Box { Width = Sizing.Grow() }, color: theme.TextMuted,
                 size: size, overflow: TextOverflow.Ellipsis);
 
             using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                if (ExportStatusView.Render(ui, w))
+                if (ExportStatusView.Render(ui, appState))
                     Dot(ui);
-                var activity = DescribeActivity(w, t);
+                var activity = DescribeActivity(appState, t);
                 if (activity != null)
                 {
                     ui.Text(activity, color: theme.AccentText, size: size);
                     Dot(ui);
                 }
-                if (w.Errors.Entries.Count > 0)
+                if (appState.Errors.Entries.Count > 0)
                 {
-                    ErrorIndicator(ui, w);
+                    ErrorIndicator(ui, appState);
                     Dot(ui);
                 }
-                ui.Text(w.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
+                ui.Text(appState.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
                 Dot(ui);
                 ui.Text(ui.Memo("status-count", (ui.State.Tree.Roots.Count, t), static a => a.t.StatusAssemblies(a.Count)), color: theme.TextMuted, size: size);
             }
         }
     }
 
-    private static string? DescribeActivity(AppState w, Strings t)
+    private static string? DescribeActivity(AppState appState, Strings t)
     {
-        if (w.IsReloading)
+        if (appState.IsReloading)
             return t.StatusReloading;
-        if (IsDecompiling(w))
+        if (IsDecompiling(appState))
             return t.StatusDecompiling;
-        if (w.IsResolving)
+        if (appState.IsResolving)
             return t.StatusResolving;
         return null;
     }
 
-    private static bool IsDecompiling(AppState w)
+    private static bool IsDecompiling(AppState appState)
     {
-        var tab = w.Tabs.Active;
+        var tab = appState.Tabs.Active;
         return tab != null && tab.IsBusy;
     }
 
     private static void Dot(Ui<UiState> ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
 
-    private static void ErrorIndicator(Ui<UiState> ui, AppState w)
+    private static void ErrorIndicator(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var errors = w.Errors;
+        var errors = appState.Errors;
         var i = ui.Clickable("errors");
         if (i.Clicked)
             ui.State.ErrorDialog.Open(errors.Entries);

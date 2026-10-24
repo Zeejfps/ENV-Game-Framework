@@ -9,12 +9,12 @@ public static class Analyzing
 {
     /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer. Returns
     /// the root analyzing it, or null when it cannot be analyzed.</summary>
-    public static AnalyzerSymbolNode? Analyze(this AppState w, BrowseNode node)
+    public static AnalyzerSymbolNode? Analyze(AppState appState, BrowseNode node)
     {
         var symbol = Analysis.Of(node);
         if (symbol == null)
             return null;
-        return w.Analyzer.Analyze(symbol);
+        return appState.Analyzer.Analyze(symbol);
     }
 
     /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>
@@ -22,81 +22,81 @@ public static class Analyzing
     /// its analysis, which the view is commanded to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
-    public static async void Analyze(this AppState w, CodeReference reference)
+    public static async void Analyze(AppState appState, CodeReference reference)
     {
-        var root = w.Analyzer.AddPending(savedAs: null);
-        var found = await Background.Run(() => w.Assemblies.FindNode(reference));
-        if (!w.Analyzer.Contains(root))
+        var root = appState.Analyzer.AddPending(savedAs: null);
+        var found = await Background.Run(() => appState.Assemblies.FindNode(reference));
+        if (!appState.Analyzer.Contains(root))
             return;
         var node = found.Value;
         if (node == null)
         {
-            w.Analyzer.Remove(root);
-            w.ReportUnresolved(reference, found.Error);
+            appState.Analyzer.Remove(root);
+            Navigation.ReportUnresolved(appState, reference, found.Error);
             return;
         }
-        w.AnalyzeFound(root, node);
+        AnalyzeFound(appState, root, node);
     }
 
-    private static void AnalyzeFound(this AppState w, AnalyzerPendingNode root, BrowseNode node)
+    private static void AnalyzeFound(AppState appState, AnalyzerPendingNode root, BrowseNode node)
     {
         var symbol = Analysis.Of(node);
         if (symbol == null)
         {
-            w.Analyzer.Remove(root);
+            appState.Analyzer.Remove(root);
             return;
         }
-        w.ResolveAnalysis(root, symbol);
+        ResolveAnalysis(appState, root, symbol);
     }
 
     /// <summary>Turns <paramref name="root"/> into the analysis of <paramref name="symbol"/>, and commands
     /// the view to show the root that analyzes it.</summary>
-    private static void ResolveAnalysis(this AppState w, AnalyzerPendingNode root, AnalysisSymbol symbol)
+    private static void ResolveAnalysis(AppState appState, AnalyzerPendingNode root, AnalysisSymbol symbol)
     {
-        var shown = w.Analyzer.Resolve(root, symbol);
+        var shown = appState.Analyzer.Resolve(root, symbol);
         if (shown == null)
             return;
-        w.EnqueueCommand(new ViewCommand.ShowAnalysis(shown));
+        appState.EnqueueCommand(new ViewCommand.ShowAnalysis(shown));
     }
 
     /// <summary>Finds the symbols of the roots restored from the saved analyses in the background,
     /// opening their assemblies' files without listing them, and turns each root into the analysis of
     /// its symbol, or removes it when its symbol is gone, unless the list was cleared meanwhile.
     /// Reports why the symbols could not be found.</summary>
-    public static async void RestoreAnalyses(this AppState w)
+    public static async void RestoreAnalyses(AppState appState)
     {
-        var restoring = w.Analyzer.ListRestoring();
+        var restoring = appState.Analyzer.ListRestoring();
         if (restoring.Count == 0)
             return;
         var analyzed = restoring.ConvertAll(static r => r.SavedAs!.Value);
-        var generation = w.Assemblies.Generation;
-        var found = await Background.Run(() => w.FindAnalyzed(analyzed));
-        if (w.WasListCleared(generation))
+        var generation = appState.Assemblies.Generation;
+        var found = await Background.Run(() => FindAnalyzed(appState, analyzed));
+        if (WasListCleared(appState, generation))
             return;
-        w.ReportRestoreFailure(found.Error);
-        w.AnalyzeAgain(restoring, found.Value);
+        ReportRestoreFailure(appState, found.Error);
+        AnalyzeAgain(appState, restoring, found.Value);
     }
 
-    private static bool WasListCleared(this AppState w, int generation) => w.Assemblies.Generation != generation;
+    private static bool WasListCleared(AppState appState, int generation) => appState.Assemblies.Generation != generation;
 
-    private static List<AnalysisSymbol?> FindAnalyzed(this AppState w, List<CodeAnchor> analyzed)
+    private static List<AnalysisSymbol?> FindAnalyzed(AppState appState, List<CodeAnchor> analyzed)
     {
-        return analyzed.ConvertAll(a => Analysis.Find(w.Assemblies, a));
+        return analyzed.ConvertAll(a => Analysis.Find(appState.Assemblies, a));
     }
 
-    private static void ReportRestoreFailure(this AppState w, Exception? error)
+    private static void ReportRestoreFailure(AppState appState, Exception? error)
     {
         if (error == null)
             return;
-        w.ReportError(Strings.For(w.Locale).ErrorRestoreAnalyses, error.ToString());
+        appState.ReportError(Strings.For(appState.Locale).ErrorRestoreAnalyses, error.ToString());
     }
 
-    private static void AnalyzeAgain(this AppState w, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?>? found)
+    private static void AnalyzeAgain(AppState appState, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?>? found)
     {
         for (var i = 0; i < restoring.Count; i++)
         {
             var symbol = FoundAt(found, i);
-            w.AnalyzeAgain(restoring[i], symbol);
+            AnalyzeAgain(appState, restoring[i], symbol);
         }
     }
 
@@ -107,13 +107,13 @@ public static class Analyzing
         return found[index];
     }
 
-    private static void AnalyzeAgain(this AppState w, AnalyzerPendingNode root, AnalysisSymbol? symbol)
+    private static void AnalyzeAgain(AppState appState, AnalyzerPendingNode root, AnalysisSymbol? symbol)
     {
         if (symbol == null)
         {
-            w.Analyzer.Remove(root);
+            appState.Analyzer.Remove(root);
             return;
         }
-        w.ResolveAnalysis(root, symbol);
+        ResolveAnalysis(appState, root, symbol);
     }
 }

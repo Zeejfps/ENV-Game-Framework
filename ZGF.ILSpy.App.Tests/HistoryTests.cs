@@ -31,11 +31,11 @@ public sealed class HistoryTests
         Show(app, "Greeter");
         var greeter = ScrollTo(app, 3, new TextPosition(4, 0), new TextPosition(4, 6));
 
-        app.AppState.GoBack();
+        Navigation.GoBack(app.AppState);
         app.Settle(4);
         var back = app.AppState.Tabs.Active!.Node!.Text;
         var backPosition = CodeOf(app, app.AppState.Tabs.Active!).Position;
-        app.AppState.GoForward();
+        Navigation.GoForward(app.AppState);
         app.Settle(4);
         var forward = app.AppState.Tabs.Active!;
 
@@ -56,10 +56,10 @@ public sealed class HistoryTests
         var reference = tab.Document.SpanAt(line, column + "return ".Length).Reference!;
         var before = ScrollTo(app, 25, new TextPosition(line, column), new TextPosition(line, column + 6));
 
-        app.AppState.Navigate(reference, inNewTab: false);
+        Navigation.Navigate(app.AppState, reference, inNewTab: false);
         app.Settle(4);
         var followed = tab.Node!.Text;
-        app.AppState.GoBack();
+        Navigation.GoBack(app.AppState);
         app.Settle(4);
 
         Assert.StartsWith("First()", followed);
@@ -75,9 +75,9 @@ public sealed class HistoryTests
         ScrollTo(app, 20, new TextPosition(21, 4), new TextPosition(22, 8));
         Show(app, "Greeter");
 
-        app.AppState.SetLanguage(DecompilationLanguage.IL);
+        Preferences.SetLanguage(app.AppState, DecompilationLanguage.IL);
         app.Settle(4);
-        app.AppState.GoBack();
+        Navigation.GoBack(app.AppState);
         app.Settle(4);
         var tab = app.AppState.Tabs.Active!;
 
@@ -98,7 +98,7 @@ public sealed class HistoryTests
         Show(app, "Outline");
         var count = history.Entries.Count;
 
-        app.AppState.GoTo(first);
+        Navigation.GoTo(app.AppState, first);
         app.Settle(4);
         var back = app.AppState.Tabs.Active!.Node!.Text;
 
@@ -137,7 +137,7 @@ public sealed class HistoryTests
         ClickBackDropdown(app);
         var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
 
-        app.AppState.GoBack();
+        Navigation.GoBack(app.AppState);
         app.Settle(4);
 
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Position.Top == row.Top && t.Inputs.Position.Left == row.Left);

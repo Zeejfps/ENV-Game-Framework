@@ -64,7 +64,7 @@ public sealed class DockingTests
         var d = AppStateDriver.Opened();
         var layout = d.Ui.Layout;
 
-        d.AppState.CloseTab(d.AppState.Tabs.Active!);
+        Docking.CloseTab(d.AppState, d.AppState.Tabs.Active!);
         d.NextFrame();
         var left = Assert.IsType<DockGroup>(layout.Root).Panels.ToList();
         d.Show(d.Fixture("Greeter"));
@@ -79,9 +79,9 @@ public sealed class DockingTests
     public void With_everything_closed_a_hint_points_to_the_View_menu()
     {
         var app = new AppDriver();
-        var w = app.AppState;
+        var appState = app.AppState;
         app.Ui.Layout.Close(DockPanels.Assemblies);
-        w.CloseTab(w.Tabs.Active!);
+        Docking.CloseTab(appState, appState.Tabs.Active!);
 
         app.Run(2);
 
@@ -159,7 +159,7 @@ public sealed class LayoutPersistenceTests : IDisposable
         screen.OpenAnalyzer();
         screen.Layout.Dock(DockPanels.Bookmarks, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
-        d.AppState.SaveSettings();
+        Saving.SaveSettings(d.AppState);
 
         var next = new AppStateDriver(_temp.Settings());
         var layout = next.Ui.Layout;
@@ -183,7 +183,7 @@ public sealed class LayoutPersistenceTests : IDisposable
         screen.OpenAnalyzer();
         screen.Layout.Dock(DockPanels.Search, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
-        d.AppState.SaveSettings();
+        Saving.SaveSettings(d.AppState);
 
         var next = new AppStateDriver(_temp.Settings()).Ui;
 

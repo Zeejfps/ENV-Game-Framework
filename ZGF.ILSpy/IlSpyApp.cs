@@ -26,7 +26,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
         LoadAndRegisterFonts(host);
         OpenStartupAssemblies();
         StartRedrawingOnAssemblyChanges(host);
-        _appState.RestoreAnalyses();
+        Analyzing.RestoreAnalyses(_appState);
     }
 
     protected override void OnUpdate(Ui<UiState> ui)
@@ -69,8 +69,8 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
 
     private void OpenStartupAssemblies()
     {
-        _appState.RestoreActiveList();
-        _appState.Open(_startupAssemblies);
+        AssemblyListing.RestoreActiveList(_appState);
+        AssemblyLoading.Open(_appState, _startupAssemblies);
     }
 
     private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
@@ -82,19 +82,19 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
     {
         _appState.Settings.RememberWindow(window);
         UiState.HandOverViewSettings();
-        _appState.SaveSettings();
+        Saving.SaveSettings(_appState);
     }
     
-    private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState w)
+    private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState appState)
     {
-        if (w.ViewCommands.Count == 0)
+        if (appState.ViewCommands.Count == 0)
             return;
         ui.RequestUpdate();
     }
     
-    private static void SaveSettingsIfChanged(Ui<UiState> ui, AppState w)
+    private static void SaveSettingsIfChanged(Ui<UiState> ui, AppState appState)
     {
-        var retryWait = w.SaveSettingsIfChanged(ui.RealTime);
+        var retryWait = Saving.SaveSettingsIfChanged(appState, ui.RealTime);
         if (retryWait > 0)
             ui.RequestUpdateIn(retryWait);
     }

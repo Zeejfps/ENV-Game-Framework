@@ -9,29 +9,29 @@ internal static class AnalyzerPanelView
     private const string TreeId = "analyzer";
     private const string MenuId = "analyzer-menu";
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var rows = ui.State.Analyzer;
         var icons = ui.State.NodeIconPalette;
         rows.SetStyle(ui.Theme, icons, t);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, w, rows);
+        Toolbar(ui, appState, rows);
         ui.Separator();
         if (rows.Roots.Count == 0)
         {
             DocumentsView.Hint(ui, t.AnalyzerHint(Shortcuts.Analyze));
             return;
         }
-        Tree(ui, w);
-        ContextMenu(ui, w);
+        Tree(ui, appState);
+        ContextMenu(ui, appState);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState w, AnalyzerRows rows)
+    private static void Toolbar(Ui<UiState> ui, AppState appState, AnalyzerRows rows)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var analyzer = w.Analyzer;
+        var analyzer = appState.Analyzer;
         var any = analyzer.Roots.Count > 0;
         var root = rows.FindSelectedRoot();
         using (ui.PaneToolbar())
@@ -48,25 +48,25 @@ internal static class AnalyzerPanelView
         }
     }
 
-    private static void Tree(Ui<UiState> ui, AppState w)
+    private static void Tree(Ui<UiState> ui, AppState appState)
     {
         var rows = ui.State.Analyzer;
         var box = new Box { Padding = new Spacing(0f, ui.Theme.GapTight) };
         var result = ui.TreeView(TreeId, rows.Roots, rows, rows.View, box, toggleOnActivate: false);
         if (ui.HasFocus(ui.GetId(TreeId)))
-            HandleKeys(ui, w, rows);
+            HandleKeys(ui, appState, rows);
         if (result.Activated)
-            GoTo(w, result.Node);
+            GoTo(appState, result.Node);
         if (result.ContextMenuRequested && result.Node is AnalyzerSymbolNode)
             ui.OpenContextMenu(MenuId, result.ContextMenuAt);
     }
 
-    private static void HandleKeys(Ui<UiState> ui, AppState w, AnalyzerRows rows)
+    private static void HandleKeys(Ui<UiState> ui, AppState appState, AnalyzerRows rows)
     {
         if (Shortcuts.AnalyzePressed(ui))
             AnalyzeSelected(rows);
         if (Shortcuts.DeletePressed(ui))
-            RemoveSelectedAnalysis(w, rows);
+            RemoveSelectedAnalysis(appState, rows);
     }
 
     private static void AnalyzeSelected(AnalyzerRows rows)
@@ -75,28 +75,28 @@ internal static class AnalyzerPanelView
             rows.Analyze(picked.Symbol);
     }
 
-    private static void RemoveSelectedAnalysis(AppState w, AnalyzerRows rows)
+    private static void RemoveSelectedAnalysis(AppState appState, AnalyzerRows rows)
     {
         var root = rows.FindSelectedRoot();
         if (root != null)
-            w.Analyzer.Remove(root);
+            appState.Analyzer.Remove(root);
     }
 
-    private static void GoTo(AppState w, AnalyzerNode? node)
+    private static void GoTo(AppState appState, AnalyzerNode? node)
     {
         if (node is not AnalyzerSymbolNode symbol)
             return;
         var reference = symbol.Symbol.Reference;
         if (reference == null)
             return;
-        w.Navigate(reference, inNewTab: false);
+        Navigation.Navigate(appState, reference, inNewTab: false);
     }
 
-    private static void ContextMenu(Ui<UiState> ui, AppState w)
+    private static void ContextMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var rows = ui.State.Analyzer;
-        var analyzer = w.Analyzer;
+        var analyzer = appState.Analyzer;
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
             return;
@@ -105,7 +105,7 @@ internal static class AnalyzerPanelView
         var isRoot = analyzer.Contains(node);
         var target = node.Symbol.Reference;
         if (target != null)
-            GoToItems(ui, w, target);
+            GoToItems(ui, appState, target);
         if (!isRoot && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             rows.Analyze(node.Symbol);
         ui.MenuSeparator();
@@ -115,12 +115,12 @@ internal static class AnalyzerPanelView
             analyzer.Clear();
     }
 
-    private static void GoToItems(Ui<UiState> ui, AppState w, CodeReference target)
+    private static void GoToItems(Ui<UiState> ui, AppState appState, CodeReference target)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.AnalyzerGoTo, "Enter", id: "go-to"))
-            w.Navigate(target, inNewTab: false);
+            Navigation.Navigate(appState, target, inNewTab: false);
         if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
-            w.Navigate(target, inNewTab: true);
+            Navigation.Navigate(appState, target, inNewTab: true);
     }
 }

@@ -38,7 +38,7 @@ public sealed class ScreenIsolationTests : IDisposable
         d.Ui.ScopeSearch(d.Node(AppStateDriver.FixturesNamespace));
         d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         d.Settle();
-        d.AppState.SaveSettings();
+        Saving.SaveSettings(d.AppState);
 
         var reached = FindScreenObject(d.AppState, d.Ui);
 

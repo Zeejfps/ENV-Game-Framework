@@ -8,15 +8,15 @@ namespace ZGF.ILSpy;
 /// import at a time.</summary>
 internal static class BookmarkImportDialogView
 {
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
-        var import = w.Imports.Asking;
+        var import = appState.Imports.Asking;
         if (import == null)
             return;
-        Ask(ui, w, import);
+        Ask(ui, appState, import);
     }
 
-    private static void Ask(Ui<UiState> ui, AppState w, PendingImport import)
+    private static void Ask(Ui<UiState> ui, AppState appState, PendingImport import)
     {
         var t = ui.State.Strings;
         var open = true;
@@ -28,15 +28,15 @@ internal static class BookmarkImportDialogView
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.BookmarksImportCancel, id: "import-cancel", variant: ButtonVariant.Ghost))
-                        w.FinishImport(import, null);
+                        Bookmarking.FinishImport(appState, import, null);
                     if (ui.Button(t.BookmarksImportReplace, id: "import-replace"))
-                        w.FinishImport(import, BookmarkImportMode.Replace);
+                        Bookmarking.FinishImport(appState, import, BookmarkImportMode.Replace);
                     if (ui.Button(t.BookmarksImportMerge, id: "import-merge", variant: ButtonVariant.Primary))
-                        w.FinishImport(import, BookmarkImportMode.Merge);
+                        Bookmarking.FinishImport(appState, import, BookmarkImportMode.Merge);
                 }
             }
         }
         if (!open)
-            w.FinishImport(import, null);
+            Bookmarking.FinishImport(appState, import, null);
     }
 }

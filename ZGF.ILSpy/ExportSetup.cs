@@ -311,12 +311,12 @@ public sealed class ExportSetup
     }
 
     /// <summary>Closes the dialog and exports what it asks for, unless something stops the export.</summary>
-    public void Start(AppState w)
+    public void Start(AppState appState)
     {
         if (!CanExport)
             return;
         Close();
-        w.StartExport(CreateRequest());
+        Exporting.StartExport(appState, CreateRequest());
     }
 
     /// <summary>The export the dialog asks for.</summary>

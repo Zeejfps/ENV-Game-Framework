@@ -20,7 +20,7 @@ public sealed partial class UiState
     public void HandOverViewSettings()
     {
         _keptView = CaptureViewSources();
-        _appState.KeepViewSettings(CreateViewSettings());
+        Saving.KeepViewSettings(_appState, CreateViewSettings());
     }
 
     private ViewSources CaptureViewSources()

@@ -40,7 +40,7 @@ public sealed partial class UiState
     /// is opened if it is not, and selects its root.</summary>
     public void Analyze(BrowseNode node)
     {
-        var root = _appState.Analyze(node);
+        var root = Analyzing.Analyze(_appState, node);
         if (root == null)
             return;
         OpenAnalyzer();
@@ -52,7 +52,7 @@ public sealed partial class UiState
     public void Analyze(CodeReference reference)
     {
         OpenAnalyzer();
-        _appState.Analyze(reference);
+        Analyzing.Analyze(_appState, reference);
     }
 
     /// <summary>Expands <paramref name="root"/> and selects it, unless it was removed meanwhile.</summary>

@@ -9,81 +9,81 @@ public static class Saving
     /// <summary>Saves the settings when what they are saved from changed since the last save written,
     /// unless the assemblies are reloading or a failed write is still waiting to be tried again at
     /// <paramref name="now"/>. Returns the seconds left before a failed write is tried again, or 0.</summary>
-    public static double SaveSettingsIfChanged(this AppState w, double now)
+    public static double SaveSettingsIfChanged(AppState appState, double now)
     {
-        if (w.IsReloading)
+        if (appState.IsReloading)
             return 0;
-        var sources = w.CaptureSavedSources();
-        if (!w.LastSave.IsBehind(sources))
+        var sources = CaptureSavedSources(appState);
+        if (!appState.LastSave.IsBehind(sources))
             return 0;
-        var wait = w.SaveRetry.Remaining(now);
+        var wait = appState.SaveRetry.Remaining(now);
         if (wait > 0)
             return wait;
-        w.SaveSettings();
-        return w.SaveRetry.Remaining(now);
+        SaveSettings(appState);
+        return appState.SaveRetry.Remaining(now);
     }
 
     /// <summary>Writes the settings, counting what they were copied from as saved only once the write succeeds.</summary>
-    public static void SaveSettings(this AppState w)
+    public static void SaveSettings(AppState appState)
     {
-        w.RememberActiveList();
-        w.CopyStateToSettings();
-        var sources = w.CaptureSavedSources();
-        var error = w.Settings.Save();
-        w.TakeWriteOutcome(sources, error);
+        AssemblyListing.RememberActiveList(appState);
+        CopyStateToSettings(appState);
+        var sources = CaptureSavedSources(appState);
+        var error = appState.Settings.Save();
+        TakeWriteOutcome(appState, sources, error);
     }
 
-    internal static SavedSources CaptureSavedSources(this AppState w)
+    internal static SavedSources CaptureSavedSources(AppState appState)
     {
         return new SavedSources(
-            w.Assemblies.Version,
-            w.Lists.Revision,
-            w.Bookmarks.Revision,
-            w.Analyzer.Revision,
-            w.ViewSettingsChanges,
-            w.Theme,
-            w.Language,
-            w.DecompilerOptions,
-            w.ShowNonPublic,
-            w.Locale);
+            appState.Assemblies.Version,
+            appState.Lists.Revision,
+            appState.Bookmarks.Revision,
+            appState.Analyzer.Revision,
+            appState.ViewSettingsChanges,
+            appState.Theme,
+            appState.Language,
+            appState.DecompilerOptions,
+            appState.ShowNonPublic,
+            appState.Locale);
     }
 
-    private static void CopyStateToSettings(this AppState w)
+    private static void CopyStateToSettings(AppState appState)
     {
-        var settings = w.Settings;
-        settings.AssemblyLists = w.Lists.Save();
-        settings.ActiveAssemblyList = w.Lists.Active;
-        settings.Theme = w.Theme;
-        settings.Language = w.Language;
-        settings.Decompiler = w.DecompilerOptions;
-        settings.ShowNonPublic = w.ShowNonPublic;
-        settings.Locale = w.Locale;
-        settings.Bookmarks = w.Bookmarks.Save();
+        var settings = appState.Settings;
+        settings.AssemblyLists = appState.Lists.Save();
+        settings.ActiveAssemblyList = appState.Lists.Active;
+        settings.Theme = appState.Theme;
+        settings.Language = appState.Language;
+        settings.Decompiler = appState.DecompilerOptions;
+        settings.ShowNonPublic = appState.ShowNonPublic;
+        settings.Locale = appState.Locale;
+        settings.Bookmarks = appState.Bookmarks.Save();
     }
 
-    private static void TakeWriteOutcome(this AppState w, SavedSources sources, string? error)
+    private static void TakeWriteOutcome(AppState appState, SavedSources sources, string? error)
     {
         if (error == null)
         {
-            w.LastSave.Record(sources);
-            w.SaveRetry.Succeed();
+            appState.LastSave.Record(sources);
+            appState.SaveRetry.Succeed();
             return;
         }
-        w.ReportWriteFailure(error);
+        ReportWriteFailure(appState, error);
     }
 
     /// <summary>Reports a failed write, unless writes were failing already.</summary>
-    private static void ReportWriteFailure(this AppState w, string error)
+    private static void ReportWriteFailure(AppState appState, string error)
     {
-        if (!w.SaveRetry.Fail())
+        if (!appState.SaveRetry.Fail())
             return;
-        w.ReportError(Strings.For(w.Locale).ErrorSaveSettings, error);
+        appState.ReportError(Strings.For(appState.Locale).ErrorSaveSettings, error);
     }
 
     /// <summary>Takes what the settings keep of the screen, as it changed, to be written with the next save.</summary>
-    public static void KeepViewSettings(this AppState w, ViewSettings view)
+    public static void KeepViewSettings(AppState appState, ViewSettings view)
     {
-        var settings = w.Settings;
+        var settings = appState.Settings;
         settings.BookmarkColumns = view.BookmarkColumns;
         settings.SearchColumns = view.SearchColumns;
         settings.ExportColumns = view.ExportColumns;
@@ -92,12 +92,12 @@ public static class Saving
         settings.FlagsFilters = view.FlagsFilters;
         settings.ExportWindow = view.ExportWindow;
         settings.Layout = view.Layout;
-        w.ViewSettingsChanges++;
+        appState.ViewSettingsChanges++;
     }
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
     /// <paramref name="path"/>.</summary>
-    public static void SaveResource(this AppState w, BrowseNode node, string path)
+    public static void SaveResource(AppState appState, BrowseNode node, string path)
     {
         try
         {
@@ -106,7 +106,7 @@ public static class Saving
         }
         catch (Exception e) when (IsFileError(e))
         {
-            w.ReportError(Strings.For(w.Locale).ErrorSaveResource(node.Text), e.Message);
+            appState.ReportError(Strings.For(appState.Locale).ErrorSaveResource(node.Text), e.Message);
         }
     }
 

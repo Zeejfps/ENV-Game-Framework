@@ -19,22 +19,22 @@ internal static class ResourceImageView
         public float Scale;
     }
 
-    public static void Render(Ui<UiState> ui, AppState w, DocumentTab tab, ResourceImage image)
+    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, ResourceImage image)
     {
         var theme = ui.Theme;
         var view = ui.State.ViewOf(tab);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
-        Toolbar(ui, w, tab, view.Picture, image);
+        Toolbar(ui, appState, tab, view.Picture, image);
         ui.Separator();
         if (view.Picture.ShowsSource)
         {
-            DocumentsView.RenderCode(ui, w, tab);
+            DocumentsView.RenderCode(ui, appState, tab);
             return;
         }
         Picture(ui, view, image);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState w, DocumentTab tab, PictureView picture, ResourceImage image)
+    private static void Toolbar(Ui<UiState> ui, AppState appState, DocumentTab tab, PictureView picture, ResourceImage image)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -47,7 +47,7 @@ internal static class ResourceImageView
             if (tab.HasSource)
                 SourceButton(ui, picture);
             if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: ExportIcon))
-                PickExport(ui, w, node);
+                PickExport(ui, appState, node);
         }
     }
 
@@ -118,11 +118,11 @@ internal static class ResourceImageView
     public static readonly UiIcon ExportIcon = new(LucideIcons.Upload, LucideIcons.Family);
 
     /// <summary>Asks where to export the resource <paramref name="node"/> stands for, then writes it there.</summary>
-    public static void PickExport(Ui<UiState> ui, AppState w, BrowseNode node)
+    public static void PickExport(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
         var fileName = node.ResourceFileName;
-        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName), path => w.SaveResource(node, path));
+        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName), path => Saving.SaveResource(appState, node, path));
     }
 
     private const string XamlExtension = ".xaml";

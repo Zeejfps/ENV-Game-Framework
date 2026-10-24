@@ -12,7 +12,7 @@ internal static class ToolbarView
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -26,13 +26,13 @@ internal static class ToolbarView
         }))
         {
             using (Group(ui))
-                ListPicker(ui, w);
+                ListPicker(ui, appState);
 
             using (Group(ui))
             {
                 if (ui.IconButton("open", LucideIcons.FolderOpen, LucideIcons.Family, ui.Memo("open-tip", t, static s => s.ToolbarOpen(Shortcuts.Open)),
                         variant: ButtonVariant.Neutral))
-                    MainMenuView.OpenFile(ui, w);
+                    MainMenuView.OpenFile(ui, appState);
                 if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
                         variant: ButtonVariant.Neutral))
                     ui.State.OpenSearch();
@@ -41,32 +41,32 @@ internal static class ToolbarView
             using (Group(ui))
             {
                 using (var back = ui.SplitIconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family,
-                           ui.Memo("back-tip", t, static s => s.ToolbarBack(Shortcuts.Back)), t.ToolbarBackHistory, w.History.CanGoBack, w.History.Revision))
+                           ui.Memo("back-tip", t, static s => s.ToolbarBack(Shortcuts.Back)), t.ToolbarBackHistory, appState.History.CanGoBack, appState.History.Revision))
                 {
                     if (back.Clicked)
-                        w.GoBack();
+                        Navigation.GoBack(appState);
                     if (back.IsOpen)
-                        HistoryItems(ui, w, -1);
+                        HistoryItems(ui, appState, -1);
                 }
                 using (var forward = ui.SplitIconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family,
-                           ui.Memo("forward-tip", t, static s => s.ToolbarForward(Shortcuts.Forward)), t.ToolbarForwardHistory, w.History.CanGoForward,
-                           w.History.Revision))
+                           ui.Memo("forward-tip", t, static s => s.ToolbarForward(Shortcuts.Forward)), t.ToolbarForwardHistory, appState.History.CanGoForward,
+                           appState.History.Revision))
                 {
                     if (forward.Clicked)
-                        w.GoForward();
+                        Navigation.GoForward(appState);
                     if (forward.IsOpen)
-                        HistoryItems(ui, w, 1);
+                        HistoryItems(ui, appState, 1);
                 }
             }
 
             using (Group(ui))
             {
-                var language = w.Language;
+                var language = appState.Language;
                 if (ui.SegmentedControl("language", ref language, Languages(t)))
-                    w.SetLanguage(language);
+                    Preferences.SetLanguage(appState, language);
                 if (language == DecompilationLanguage.CSharp)
                 {
-                    LanguageVersion(ui, w);
+                    LanguageVersion(ui, appState);
                     if (ui.IconButton("decompiler-options", LucideIcons.Wrench, LucideIcons.Family, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
                         ui.State.OpenDecompilerOptions();
                 }
@@ -76,19 +76,19 @@ internal static class ToolbarView
 
     /// <summary>The open assembly list's name, opening a menu of every list to switch to, and of the
     /// dialog that manages them. As wide as the longest name, within limits.</summary>
-    private static void ListPicker(Ui<UiState> ui, AppState w)
+    private static void ListPicker(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        var lists = w.Lists;
+        var lists = appState.Lists;
         var width = ListPickerWidth(ui, lists);
         using var menu = ui.SelectButton("list", lists.Active, width, t.ListsPick, revision: lists.Count);
         if (!menu.IsOpen)
             return;
         foreach (var name in lists.Names)
-            ListItem(ui, w, name);
+            ListItem(ui, appState, name);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsManage, id: "manage"))
-            ui.State.ListsDialog.Open(w);
+            ui.State.ListsDialog.Open(appState);
     }
 
     /// <summary>Measured again only when the lists or the theme changed, so a frame allocates nothing.</summary>
@@ -114,12 +114,12 @@ internal static class ToolbarView
         public float Width;
     }
 
-    private static void ListItem(Ui<UiState> ui, AppState w, string name)
+    private static void ListItem(Ui<UiState> ui, AppState appState, string name)
     {
-        var active = name == w.Lists.Active;
+        var active = name == appState.Lists.Active;
         if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
             return;
-        w.SwitchList(name);
+        AssemblyListing.SwitchList(appState, name);
     }
 
     private static Segment<DecompilationLanguage>[] Languages(Strings t)
@@ -134,35 +134,35 @@ internal static class ToolbarView
         return _languages;
     }
 
-    private static void LanguageVersion(Ui<UiState> ui, AppState w)
+    private static void LanguageVersion(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        var current = w.DecompilerOptions.LanguageVersion;
+        var current = appState.DecompilerOptions.LanguageVersion;
         using var menu = ui.SelectButton("language-version", CSharpVersions.Label(current), ui.SelectButtonWidth(CSharpVersions.Labels),
             t.ToolbarLanguageVersion);
         if (!menu.IsOpen) return;
         foreach (var (version, label) in CSharpVersions.All)
         {
             if (ui.MenuRadioItem(label, version == current))
-                w.SetLanguageVersion(version);
+                Preferences.SetLanguageVersion(appState, version);
         }
     }
 
     private static Ui.Scope Group(Ui<UiState> ui) =>
         ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.Gap, AlignY = Align.Center });
 
-    private static void HistoryItems(Ui<UiState> ui, AppState w, int direction)
+    private static void HistoryItems(Ui<UiState> ui, AppState appState, int direction)
     {
-        var entries = w.History.Entries;
+        var entries = appState.History.Entries;
         var palette = ui.State.NodeIconPalette;
-        for (var i = w.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
+        for (var i = appState.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
         {
             using (ui.Id(i))
             {
                 var entry = entries[i];
                 if (ui.MenuItem(entry.Place.Text, id: "entry", icon: NodeIcons.Icon(entry.Place.Kind, entry.Accessibility, palette)))
                 {
-                    w.GoTo(i);
+                    Navigation.GoTo(appState, i);
                     return;
                 }
             }

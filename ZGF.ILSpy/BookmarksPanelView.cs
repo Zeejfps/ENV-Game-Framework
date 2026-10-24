@@ -23,14 +23,14 @@ internal static class BookmarksPanelView
     private static Strings? _headersFor;
     private static string[] _headers = [];
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        var bookmarks = w.Bookmarks;
+        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
         panel.Follow(bookmarks.Items);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, w);
+        Toolbar(ui, appState);
         ui.Separator();
 
         if (bookmarks.Items.Count == 0)
@@ -42,16 +42,16 @@ internal static class BookmarksPanelView
         panel.Selection.ShowIn(bookmarks.Items);
         var table = ui.Table(ListId, ui.State.BookmarkColumns, panel.Cells);
         table.Header(Headers(t));
-        var removed = List(ui, w, table);
-        Menu(ui, w);
+        var removed = List(ui, appState, table);
+        Menu(ui, appState);
         if (removed != null)
             panel.Remove(bookmarks, removed);
     }
 
     /// <summary>Returns the bookmark Delete asked to remove.</summary>
-    private static Bookmark? List(Ui<UiState> ui, AppState w, TableFrame table)
+    private static Bookmark? List(Ui<UiState> ui, AppState appState, TableFrame table)
     {
-        var bookmarks = w.Bookmarks;
+        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
         var palette = ui.State.CodeViewPalette;
         var renaming = panel.Renaming != null;
@@ -61,20 +61,20 @@ internal static class BookmarksPanelView
         if (body.Focused && !renaming)
             removed = HandleKeys(ui, panel, bookmarks);
         for (var i = body.First; i < body.End; i++)
-            Row(ui, w, body, bookmarks.Items[i], i, palette);
+            Row(ui, appState, body, bookmarks.Items[i], i, palette);
         panel.Selection.TakeFrom(bookmarks.Items);
-        Answer(ui, w, body);
+        Answer(ui, appState, body);
         return removed;
     }
 
     /// <summary>Does what the user asked of the table this frame: go to, copy or open the menu.</summary>
-    private static void Answer(Ui<UiState> ui, AppState w, TableBody body)
+    private static void Answer(Ui<UiState> ui, AppState appState, TableBody body)
     {
         var panel = ui.State.BookmarksPanel;
         var selected = panel.Selected;
         if (selected == null) return;
         if (body.Activated && panel.Renaming == null)
-            w.GoTo(selected);
+            Bookmarking.GoTo(appState, selected);
         if (body.CopyRequested && panel.Cells.HasCell)
             ui.ClipboardText = Copied(selected, panel.Cells);
         if (body.ContextMenuRequested)
@@ -95,29 +95,41 @@ internal static class BookmarksPanelView
         new(t.FileFilterAll, ["*.*"]),
     ];
 
-    private static void Toolbar(Ui<UiState> ui, AppState w)
+    private static void Toolbar(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var bookmarks = w.Bookmarks;
+        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
         var any = bookmarks.Items.Any(static b => b.Enabled);
         var selected = panel.Selected;
         using (ui.PaneToolbar())
         {
             if (ui.IconButton("previous", LucideIcons.ArrowUp, LucideIcons.Family, t.BookmarksPrevious, any))
-                panel.Step(w, -1);
+                panel.Step(appState, -1);
             if (ui.IconButton("next", LucideIcons.ArrowDown, LucideIcons.Family, t.BookmarksNext, any))
-                panel.Step(w, 1);
+                panel.Step(appState, 1);
             ui.Separator(theme.IconSize);
             if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.BookmarksDelete, selected != null))
                 panel.Remove(bookmarks, selected!);
             ui.Separator(theme.IconSize);
             if (ui.IconButton("export", LucideIcons.Upload, LucideIcons.Family, t.BookmarksExport, bookmarks.Items.Count > 0))
-                ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), w.ExportBookmarks);
+                PickExportFile(ui, appState);
             if (ui.IconButton("import", LucideIcons.Download, LucideIcons.Family, t.BookmarksImport))
-                ui.PickFile(t.BookmarksImportTitle, null, Filters(t), w.ImportBookmarks);
+                PickImportFile(ui, appState);
         }
+    }
+
+    private static void PickExportFile(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), path => Bookmarking.ExportBookmarks(appState, path));
+    }
+
+    private static void PickImportFile(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        ui.PickFile(t.BookmarksImportTitle, null, Filters(t), path => Bookmarking.ImportBookmarks(appState, path));
     }
 
     /// <summary>What <paramref name="column"/> shows of <paramref name="bookmark"/>; nothing for the
@@ -130,11 +142,11 @@ internal static class BookmarksPanelView
         _ => "",
     };
 
-    private static void Row(Ui<UiState> ui, AppState w, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
+    private static void Row(Ui<UiState> ui, AppState appState, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
     {
-        var bookmarks = w.Bookmarks;
+        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
-        var listed = w.IsListed(bookmark.Place.FilePath);
+        var listed = appState.IsListed(bookmark.Place.FilePath);
         var row = body.Row(index, RuntimeHelpers.GetHashCode(bookmark));
         int locationId;
         int moduleId;
@@ -144,7 +156,7 @@ internal static class BookmarksPanelView
                 panel.StartRename(bookmark);
             MarkCell(ui, bookmarks, row, bookmark, palette);
             NameCell(ui, panel, bookmarks, row, bookmark, listed);
-            LocationCell(ui, w, row, bookmark, listed);
+            LocationCell(ui, appState, row, bookmark, listed);
             TextCell(ui, row, bookmark, listed, ModuleColumn);
             locationId = row.CellAt(LocationColumn).Id;
             moduleId = row.CellAt(ModuleColumn).Id;
@@ -181,7 +193,7 @@ internal static class BookmarksPanelView
             RenameField(ui, panel, bookmarks);
     }
 
-    private static void LocationCell(Ui<UiState> ui, AppState w, TableRow row, Bookmark bookmark, bool listed)
+    private static void LocationCell(Ui<UiState> ui, AppState appState, TableRow row, Bookmark bookmark, bool listed)
     {
         var t = ui.State.Strings;
         uint? color = null;
@@ -189,7 +201,7 @@ internal static class BookmarksPanelView
             color = ui.Theme.TextMuted;
         var followed = row.TextCell(LocationColumn, bookmark.Location, color, link: LocationLink, linkTooltip: t.BookmarksGoTo);
         if (followed)
-            w.GoTo(bookmark);
+            Bookmarking.GoTo(appState, bookmark);
     }
 
     private static void TextCell(Ui<UiState> ui, TableRow row, Bookmark bookmark, bool listed, int column)
@@ -250,7 +262,7 @@ internal static class BookmarksPanelView
             ui.Focus(ListId, takesText: false);
     }
 
-    private static void Menu(Ui<UiState> ui, AppState w)
+    private static void Menu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using var menu = ui.ContextMenu(MenuId);
@@ -260,9 +272,9 @@ internal static class BookmarksPanelView
         var bookmark = panel.Selected;
         if (bookmark == null)
             return;
-        var bookmarks = w.Bookmarks;
+        var bookmarks = appState.Bookmarks;
         if (ui.MenuItem(t.BookmarksGoTo, "Enter", id: "go-to"))
-            w.GoTo(bookmark);
+            Bookmarking.GoTo(appState, bookmark);
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: panel.Cells.HasCell, id: "copy"))
             ui.ClipboardText = Copied(bookmark, panel.Cells);
         ui.MenuSeparator();

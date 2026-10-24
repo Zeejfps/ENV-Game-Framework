@@ -7,50 +7,50 @@ namespace ZGF.ILSpy;
 /// what it shows when the language or the options change.</summary>
 public static class Preferences
 {
-    public static void SetLocale(this AppState w, Locale locale)
+    public static void SetLocale(AppState appState, Locale locale)
     {
-        if (locale == w.Locale)
+        if (locale == appState.Locale)
             return;
-        w.Locale = locale;
+        appState.Locale = locale;
     }
 
-    public static void SetLanguage(this AppState w, DecompilationLanguage language)
+    public static void SetLanguage(AppState appState, DecompilationLanguage language)
     {
-        if (language == w.Language)
+        if (language == appState.Language)
             return;
-        w.Language = language;
+        appState.Language = language;
     }
 
-    public static void SetLanguageVersion(this AppState w, CSharpVersion version)
+    public static void SetLanguageVersion(AppState appState, CSharpVersion version)
     {
-        var options = w.DecompilerOptions with { LanguageVersion = version };
-        w.SetDecompilerOptions(options);
+        var options = appState.DecompilerOptions with { LanguageVersion = version };
+        SetDecompilerOptions(appState, options);
     }
 
-    public static void SetDecompilerToggle(this AppState w, DecompilerToggle toggle, bool value)
+    public static void SetDecompilerToggle(AppState appState, DecompilerToggle toggle, bool value)
     {
-        var options = w.DecompilerOptions.With(toggle, value);
-        w.SetDecompilerOptions(options);
+        var options = appState.DecompilerOptions.With(toggle, value);
+        SetDecompilerOptions(appState, options);
     }
 
-    public static void SetDecompilerToggles(this AppState w, IEnumerable<DecompilerToggle> toggles, bool value)
+    public static void SetDecompilerToggles(AppState appState, IEnumerable<DecompilerToggle> toggles, bool value)
     {
-        var options = w.DecompilerOptions.With(toggles, value);
-        w.SetDecompilerOptions(options);
+        var options = appState.DecompilerOptions.With(toggles, value);
+        SetDecompilerOptions(appState, options);
     }
 
     /// <summary>Turns every toggle the options panel shows back to its default, keeping the language
     /// version and how projects are exported.</summary>
-    public static void ResetDecompilerToggles(this AppState w)
+    public static void ResetDecompilerToggles(AppState appState)
     {
-        var options = w.DecompilerOptions.WithCodeTogglesReset();
-        w.SetDecompilerOptions(options);
+        var options = appState.DecompilerOptions.WithCodeTogglesReset();
+        SetDecompilerOptions(appState, options);
     }
 
-    private static void SetDecompilerOptions(this AppState w, DecompilerOptions options)
+    private static void SetDecompilerOptions(AppState appState, DecompilerOptions options)
     {
-        if (options == w.DecompilerOptions)
+        if (options == appState.DecompilerOptions)
             return;
-        w.DecompilerOptions = options;
+        appState.DecompilerOptions = options;
     }
 }

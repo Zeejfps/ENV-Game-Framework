@@ -39,24 +39,24 @@ public sealed class AutosaveTests : IDisposable
 
     private static void Change(AppDriver app, string field)
     {
-        var w = app.AppState;
+        var appState = app.AppState;
         var screen = app.Ui;
         switch (field)
         {
             case nameof(AppSettings.Theme):
-                w.Theme = AppThemeId.Monokai;
+                appState.Theme = AppThemeId.Monokai;
                 break;
             case nameof(AppSettings.Language):
-                w.SetLanguage(DecompilationLanguage.IL);
+                Preferences.SetLanguage(appState, DecompilationLanguage.IL);
                 break;
             case nameof(AppSettings.Decompiler):
-                w.SetLanguageVersion(CSharpVersion.CSharp7_3);
+                Preferences.SetLanguageVersion(appState, CSharpVersion.CSharp7_3);
                 break;
             case nameof(AppSettings.ShowNonPublic):
-                w.ShowNonPublic = false;
+                appState.ShowNonPublic = false;
                 break;
             case nameof(AppSettings.Locale):
-                w.SetLocale(Locale.De);
+                Preferences.SetLocale(appState, Locale.De);
                 break;
             case nameof(AppSettings.SearchKinds):
                 screen.Search.Kinds = SearchKinds.Types;
@@ -153,7 +153,7 @@ public sealed class AutosaveTests : IDisposable
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
 
         d.Ui.Analyze(reference);
-        d.AppState.SaveSettingsIfChanged(d.Now);
+        Saving.SaveSettingsIfChanged(d.AppState, d.Now);
         var savedWhileFinding = _temp.Settings().AssemblyLists.Single().Analyzed?.Count ?? 0;
         d.Settle();
         d.Pump();
@@ -195,10 +195,10 @@ public sealed class AutosaveTests : IDisposable
     public void A_failed_write_is_retried_after_a_wait_and_reported_once_until_one_succeeds()
     {
         var d = new AppStateDriver(_temp.Settings());
-        d.AppState.SaveSettings();
+        Saving.SaveSettings(d.AppState);
         var blocker = BlockSettingsWrites();
 
-        d.AppState.SetLanguage(DecompilationLanguage.IL);
+        Preferences.SetLanguage(d.AppState, DecompilationLanguage.IL);
         d.Pump();
         d.Now += SaveRetry.DelaySeconds + 0.5;
         d.Pump();
@@ -221,7 +221,7 @@ public sealed class AutosaveTests : IDisposable
         app.Run(2);
         var blocker = BlockSettingsWrites();
 
-        app.AppState.SetLanguage(DecompilationLanguage.IL);
+        Preferences.SetLanguage(app.AppState, DecompilationLanguage.IL);
         app.Run();
         var failedAt = app.Frames.RealTime;
         var wakeAt = app.Frames.WakeAt;
@@ -242,11 +242,11 @@ public sealed class AutosaveTests : IDisposable
     {
         var d = new AppStateDriver(_temp.Settings());
         var blocker = BlockSettingsWrites();
-        d.AppState.SetLanguage(DecompilationLanguage.IL);
+        Preferences.SetLanguage(d.AppState, DecompilationLanguage.IL);
         d.Pump();
         Directory.Delete(blocker);
 
-        d.AppState.SaveSettings();
+        Saving.SaveSettings(d.AppState);
 
         Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
     }

@@ -14,7 +14,7 @@ public static class Exporting
 
     /// <summary>Whether <paramref name="node"/> can be saved: it shows code, or it is a resource,
     /// whose bytes are saved.</summary>
-    public static bool CanSaveCode(this AppState w, BrowseNode? node)
+    public static bool CanSaveCode(AppState appState, BrowseNode? node)
     {
         if (node == null)
             return false;
@@ -26,23 +26,23 @@ public static class Exporting
     /// <summary>Saves <paramref name="node"/> to the file at <paramref name="path"/>: a resource's
     /// bytes as they are, else its code in the current language, as one file. Projects come from the
     /// export dialog.</summary>
-    public static void SaveCode(this AppState w, BrowseNode node, string path)
+    public static void SaveCode(AppState appState, BrowseNode node, string path)
     {
         if (node.HasResource)
         {
-            w.SaveResource(node, path);
+            Saving.SaveResource(appState, node, path);
             return;
         }
-        w.WriteCodeFile(node, path);
+        WriteCodeFile(appState, node, path);
     }
 
-    private static void WriteCodeFile(this AppState w, BrowseNode node, string path)
+    private static void WriteCodeFile(AppState appState, BrowseNode node, string path)
     {
-        var language = w.Language;
-        var options = w.DecompilerOptions;
+        var language = appState.Language;
+        var options = appState.DecompilerOptions;
         var job = new ExportJob(node.Text, CodeKindOf(language), FolderOf(path));
-        var failure = Strings.For(w.Locale).ErrorSaveCode(node.Text);
-        w.RunExport(job, failure, s => SaveCodeFile(node, language, options, path, s.Token), (r, _) => r.Listing(path));
+        var failure = Strings.For(appState.Locale).ErrorSaveCode(node.Text);
+        RunExport(appState, job, failure, s => SaveCodeFile(node, language, options, path, s.Token), (r, _) => r.Listing(path));
     }
 
     private static ExportKind CodeKindOf(DecompilationLanguage language)
@@ -66,20 +66,20 @@ public static class Exporting
     /// ended, with <paramref name="failure"/> as the problem when it failed, and lets
     /// <paramref name="complete"/> add what a finished one wrote. One taken out of the queue leaves
     /// nothing behind.</summary>
-    private static async void RunExport<T>(this AppState w, ExportJob job, string failure, Func<ExportStart, T> work,
+    private static async void RunExport<T>(AppState appState, ExportJob job, string failure, Func<ExportStart, T> work,
         Func<ExportReport, T, ExportReport> complete)
     {
-        w.EnqueueCommand(new ViewCommand.OpenPanel(DockPanels.Exports));
-        var start = await w.Export.Enter(job);
+        appState.EnqueueCommand(new ViewCommand.OpenPanel(DockPanels.Exports));
+        var start = await appState.Export.Enter(job);
         if (start.IsWithdrawn)
             return;
         var clock = Stopwatch.StartNew();
         var outcome = await Background.Run(() => work(start));
-        w.Export.Leave(start);
+        appState.Export.Leave(start);
         var report = ExportReport.Of(start.Run, job, outcome.Error, failure, clock.Elapsed);
         if (outcome.Error == null)
             report = complete(report, outcome.Value!);
-        w.FinishedExports.Add(report);
+        appState.FinishedExports.Add(report);
     }
 
     /// <summary><paramref name="report"/> listing <paramref name="written"/>.</summary>
@@ -88,14 +88,14 @@ public static class Exporting
     /// <summary>Decompiles <paramref name="assembly"/> into a C# project whose file is
     /// <paramref name="projectPath"/>, with what <paramref name="extras"/> asks for besides. The export
     /// dialog warns about a folder that holds files before this is asked for.</summary>
-    public static void ExportProject(this AppState w, LoadedAssembly assembly, string projectPath, ProjectExtras? extras = null)
+    public static void ExportProject(AppState appState, LoadedAssembly assembly, string projectPath, ProjectExtras? extras = null)
     {
         var withExtras = extras ?? ProjectExtras.None;
-        var options = w.DecompilerOptions;
-        var t = Strings.For(w.Locale);
+        var options = appState.DecompilerOptions;
+        var t = Strings.For(appState.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(projectPath), ExportKind.Project, FolderOf(projectPath));
         var failure = t.ErrorExportProject(assembly.Name);
-        w.RunExport(job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, withExtras, s.Progress, s.Token),
+        RunExport(appState, job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, withExtras, s.Progress, s.Token),
             (r, project) => r.WithProjects([project], projectPath, t));
     }
 
@@ -126,19 +126,19 @@ public static class Exporting
 
     /// <summary>Decompiles each of <paramref name="projects"/> into a C# project in a folder of its own
     /// beside the solution at <paramref name="solutionPath"/>.</summary>
-    private static void ExportSolution(this AppState w, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
+    private static void ExportSolution(AppState appState, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
     {
-        var options = w.DecompilerOptions;
-        var t = Strings.For(w.Locale);
+        var options = appState.DecompilerOptions;
+        var t = Strings.For(appState.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(solutionPath), ExportKind.Solution, FolderOf(solutionPath));
-        w.RunExport(job, t.ErrorExportSolution, s => AssemblyExport.ExportSolution(projects, options, solutionPath, extras, s.Progress, s.Token),
+        RunExport(appState, job, t.ErrorExportSolution, s => AssemblyExport.ExportSolution(projects, options, solutionPath, extras, s.Progress, s.Token),
             (r, exported) => r.WithProjects(exported, solutionPath, t));
     }
 
     /// <summary>The assembly of the node the active tab shows, or null.</summary>
-    public static LoadedAssembly? ActiveAssembly(this AppState w)
+    public static LoadedAssembly? ActiveAssembly(AppState appState)
     {
-        var node = w.Tabs.Active?.Node;
+        var node = appState.Tabs.Active?.Node;
         if (node == null)
             return null;
         return node.Assembly;
@@ -146,29 +146,29 @@ public static class Exporting
 
     /// <summary>Exports what <paramref name="request"/> asks for: one assembly as a project straight
     /// into the folder, several as a solution with a folder per project.</summary>
-    public static void StartExport(this AppState w, ExportRequest request)
+    public static void StartExport(AppState appState, ExportRequest request)
     {
         var folder = request.Folder;
         var projects = request.Projects;
         if (request.IsSolution)
         {
             var solutionPath = Path.Combine(folder, request.SolutionFileName);
-            w.ExportSolution(projects, solutionPath, request.Extras);
+            ExportSolution(appState, projects, solutionPath, request.Extras);
             return;
         }
         var project = projects[0];
         var projectPath = Path.Combine(folder, AssemblyExport.CleanProjectName(project.Name) + ProjectExtension);
-        w.ExportProject(project.Assembly, projectPath, request.Extras);
+        ExportProject(appState, project.Assembly, projectPath, request.Extras);
     }
 
     /// <summary>Writes a portable PDB of <paramref name="assembly"/>'s decompiled C# to
     /// <paramref name="path"/>.</summary>
-    public static void GeneratePdb(this AppState w, LoadedAssembly assembly, string path)
+    public static void GeneratePdb(AppState appState, LoadedAssembly assembly, string path)
     {
-        var options = w.DecompilerOptions;
+        var options = appState.DecompilerOptions;
         var job = new ExportJob(assembly.Name, ExportKind.Pdb, FolderOf(path));
-        var failure = Strings.For(w.Locale).ErrorGeneratePdb(assembly.Name);
-        w.RunExport(job, failure, s => GeneratePdbFile(assembly, options, path, s), (r, _) => r.Listing(path));
+        var failure = Strings.For(appState.Locale).ErrorGeneratePdb(assembly.Name);
+        RunExport(appState, job, failure, s => GeneratePdbFile(assembly, options, path, s), (r, _) => r.Listing(path));
     }
 
     private static bool GeneratePdbFile(LoadedAssembly assembly, DecompilerOptions options, string path, ExportStart start)
@@ -179,13 +179,13 @@ public static class Exporting
 
     /// <summary>Writes a portable PDB of each open assembly into <paramref name="folder"/>, named
     /// after the assembly. Assemblies that cannot have one, or fail, are the report's problems.</summary>
-    public static void GeneratePdbs(this AppState w, string folder)
+    public static void GeneratePdbs(AppState appState, string folder)
     {
-        var options = w.DecompilerOptions;
-        var assemblies = w.Assemblies.Assemblies;
-        var t = Strings.For(w.Locale);
+        var options = appState.DecompilerOptions;
+        var assemblies = appState.Assemblies.Assemblies;
+        var t = Strings.For(appState.Locale);
         var job = new ExportJob(Path.GetFileName(folder), ExportKind.Pdbs, folder);
-        w.RunExport(job, t.ErrorGeneratePdbs, s => AssemblyExport.GeneratePdbs(assemblies, options, folder, s.Progress, s.Token),
+        RunExport(appState, job, t.ErrorGeneratePdbs, s => AssemblyExport.GeneratePdbs(assemblies, options, folder, s.Progress, s.Token),
             (r, failures) => r.WithPdbs(assemblies, failures, folder, t));
     }
 
@@ -214,79 +214,79 @@ public static class Exporting
     }
 
     /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>
-    public static void ShowExportReport(this AppState w, ExportReport report)
+    public static void ShowExportReport(AppState appState, ExportReport report)
     {
-        var t = Strings.For(w.Locale);
+        var t = Strings.For(appState.Locale);
         var document = ExportReportText.Write(t, [report]);
-        var tab = w.OpenNewTab();
-        w.Tabs.MakeActive(tab);
+        var tab = Navigation.OpenNewTab(appState);
+        appState.Tabs.MakeActive(tab);
         tab.ShowText(t.ExportReportTitle, document);
     }
 
     /// <summary>The runs of every export in the order the exports panel lists them: the running one,
     /// the waiting ones next first, then the finished ones newest first.</summary>
-    public static List<int> ListExports(this AppState w)
+    public static List<int> ListExports(AppState appState)
     {
         var runs = new List<int>();
-        var running = w.Export.Running;
+        var running = appState.Export.Running;
         if (running != null)
             runs.Add(running.Run);
-        foreach (var waiting in w.Export.Waiting)
+        foreach (var waiting in appState.Export.Waiting)
             runs.Add(waiting.Run);
-        for (var i = w.FinishedExports.Count - 1; i >= 0; i--)
-            runs.Add(w.FinishedExports[i].Run);
+        for (var i = appState.FinishedExports.Count - 1; i >= 0; i--)
+            runs.Add(appState.FinishedExports[i].Run);
         return runs;
     }
 
     /// <summary>The finished export <paramref name="run"/>, or null when it has not finished or is gone.</summary>
-    public static ExportReport? FindFinishedExport(this AppState w, int run) => w.FinishedExports.Find(r => r.Run == run);
+    public static ExportReport? FindFinishedExport(AppState appState, int run) => appState.FinishedExports.Find(r => r.Run == run);
 
     /// <summary>The folder the export <paramref name="run"/> writes into, wherever it is in the
     /// queue, or null when it is gone.</summary>
-    public static string? FolderOfExport(this AppState w, int run)
+    public static string? FolderOfExport(AppState appState, int run)
     {
-        var finished = w.FindFinishedExport(run);
+        var finished = FindFinishedExport(appState, run);
         if (finished != null)
             return finished.Folder;
-        var queued = w.FindQueuedExport(run);
+        var queued = FindQueuedExport(appState, run);
         if (queued == null)
             return null;
         return queued.Job.Folder;
     }
 
-    private static QueuedExport? FindQueuedExport(this AppState w, int run)
+    private static QueuedExport? FindQueuedExport(AppState appState, int run)
     {
-        var running = w.Export.Running;
+        var running = appState.Export.Running;
         if (running != null && running.Run == run)
             return running;
-        return w.Export.Waiting.FirstOrDefault(q => q.Run == run);
+        return appState.Export.Waiting.FirstOrDefault(q => q.Run == run);
     }
 
     /// <summary>Does what activating the export <paramref name="run"/> means: shows the report of a
     /// finished one; nothing for one still running or waiting.</summary>
-    public static void ActivateExport(this AppState w, int run)
+    public static void ActivateExport(AppState appState, int run)
     {
-        var finished = w.FindFinishedExport(run);
+        var finished = FindFinishedExport(appState, run);
         if (finished == null)
             return;
-        w.ShowExportReport(finished);
+        ShowExportReport(appState, finished);
     }
 
     /// <summary>Takes the export <paramref name="run"/> off the panel: out of the queue when it waits,
     /// off the history when it finished. A running one stays; only cancelling stops it.</summary>
-    public static void RemoveExport(this AppState w, int run)
+    public static void RemoveExport(AppState appState, int run)
     {
-        var finished = w.FindFinishedExport(run);
+        var finished = FindFinishedExport(appState, run);
         if (finished != null)
         {
-            w.RemoveFinishedExport(finished);
+            RemoveFinishedExport(appState, finished);
             return;
         }
-        w.Export.Withdraw(run);
+        appState.Export.Withdraw(run);
     }
 
     /// <summary>Takes <paramref name="report"/> off the list of finished exports.</summary>
-    public static void RemoveFinishedExport(this AppState w, ExportReport report) => w.FinishedExports.Remove(report);
+    public static void RemoveFinishedExport(AppState appState, ExportReport report) => appState.FinishedExports.Remove(report);
 
-    public static void ClearFinishedExports(this AppState w) => w.FinishedExports.Clear();
+    public static void ClearFinishedExports(AppState appState) => appState.FinishedExports.Clear();
 }

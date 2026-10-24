@@ -21,7 +21,7 @@ public sealed class ExportDialogTests : IDisposable
     private static AppStateDriver OpenedTwo()
     {
         var d = AppStateDriver.Opened();
-        d.AppState.Open(SecondPath);
+        AssemblyLoading.Open(d.AppState, SecondPath);
         d.RunUntil(() => d.AppState.Assemblies.Assemblies.Count == 2);
         d.Settle();
         return d;
@@ -231,7 +231,7 @@ public sealed class ExportDialogTests : IDisposable
     public void The_main_page_shows_only_the_ticked_assemblies()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.AppState.Open(SecondPath);
+        AssemblyLoading.Open(app.AppState, SecondPath);
         app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
         var second = app.AppState.Assemblies.Assemblies[1];
         app.Run(2);
@@ -297,7 +297,7 @@ public sealed class ExportDialogTests : IDisposable
     private static AppDriver WithTwoIncluded()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.AppState.Open(SecondPath);
+        AssemblyLoading.Open(app.AppState, SecondPath);
         app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
         app.Ui.OpenExportSetup(null);
         app.Ui.ExportSetup.IncludeAll(true);
@@ -373,7 +373,7 @@ public sealed class ExportDialogTests : IDisposable
     public void Export_on_an_assembly_in_the_tree_opens_the_dialog_with_that_assembly_ticked()
     {
         var app = AppDriver.Opened();
-        app.AppState.Open(SecondPath);
+        AssemblyLoading.Open(app.AppState, SecondPath);
         app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
         app.Settle(2);
         var second = app.AppState.Assemblies.Assemblies[1];
@@ -454,9 +454,9 @@ public sealed class ExportDialogTests : IDisposable
     {
         var d = AppStateDriver.Opened();
         var sdk = DecompilerToggle.Find("UseSdkStyleProjectFormat")!;
-        d.AppState.SetDecompilerToggle(sdk, !sdk.DefaultValue);
+        Preferences.SetDecompilerToggle(d.AppState, sdk, !sdk.DefaultValue);
 
-        d.AppState.ResetDecompilerToggles();
+        Preferences.ResetDecompilerToggles(d.AppState);
 
         Assert.Equal(!sdk.DefaultValue, d.AppState.DecompilerOptions.IsOn(sdk));
     }

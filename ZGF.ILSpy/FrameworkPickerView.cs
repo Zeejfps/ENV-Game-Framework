@@ -8,12 +8,12 @@ namespace ZGF.ILSpy;
 
 internal static class FrameworkPickerView
 {
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var picker = ui.State.Picker;
         if (picker.IsOpen)
-            picker.Update(w.Assemblies);
+            picker.Update(appState.Assemblies);
 
         var theme = ui.Theme;
         var open = false;
@@ -55,7 +55,7 @@ internal static class FrameworkPickerView
 
         if (open && picker.HasSelection)
         {
-            OpenSelected(w, picker);
+            OpenSelected(appState, picker);
             close = true;
         }
         if (close)
@@ -64,11 +64,11 @@ internal static class FrameworkPickerView
 
     private static string Summary(Strings t, int shown, int selected) => $"{t.PickerCount(shown)} · {t.PickerSelected(selected)}";
 
-    private static void OpenSelected(AppState w, FrameworkPicker picker)
+    private static void OpenSelected(AppState appState, FrameworkPicker picker)
     {
         var paths = picker.ListSelected()
             .Select(a => a.FilePath);
-        w.Open(paths);
+        AssemblyLoading.Open(appState, paths);
     }
 
     /// <summary>Walks the list from the filter, leaving Home and End to its text.</summary>

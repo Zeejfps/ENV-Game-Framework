@@ -12,24 +12,24 @@ internal static class TreePaneView
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var theme = ui.Theme;
         var tree = ui.State.Tree;
         tree.SetStyle(theme, ui.State.NodeIconPalette);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, w);
+        Toolbar(ui, appState);
         ui.Separator();
         if (tree.Roots.Count == 0)
             EmptyHint(ui);
         var result = ui.TreeView(TreeId, tree.Roots, tree, tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
-        AnalyzeOnShortcut(ui, w);
-        CloseOnDelete(ui, w);
-        Respond(ui, w, result);
-        ContextMenu(ui, w);
+        AnalyzeOnShortcut(ui, appState);
+        CloseOnDelete(ui, appState);
+        Respond(ui, appState, result);
+        ContextMenu(ui, appState);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState w)
+    private static void Toolbar(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -44,7 +44,7 @@ internal static class TreePaneView
             ui.Separator(theme.IconSize);
             var picked = FindPickedAssembly(tree);
             if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
-                w.Close(picked!.Assembly);
+                AssemblyLoading.Close(appState, picked!.Assembly);
         }
     }
 
@@ -67,7 +67,7 @@ internal static class TreePaneView
         ui.Text(text, new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.PanelPadding, theme.Gap) }, color: theme.TextMuted, wrap: true);
     }
 
-    private static void AnalyzeOnShortcut(Ui<UiState> ui, AppState w)
+    private static void AnalyzeOnShortcut(Ui<UiState> ui, AppState appState)
     {
         if (!ui.HasFocus(ui.GetId(TreeId)))
             return;
@@ -79,7 +79,7 @@ internal static class TreePaneView
         ui.State.Analyze(picked);
     }
 
-    private static void CloseOnDelete(Ui<UiState> ui, AppState w)
+    private static void CloseOnDelete(Ui<UiState> ui, AppState appState)
     {
         if (!ui.HasFocus(ui.GetId(TreeId)))
             return;
@@ -88,29 +88,29 @@ internal static class TreePaneView
             return;
         if (!Shortcuts.DeletePressed(ui))
             return;
-        w.Close(picked.Assembly);
+        AssemblyLoading.Close(appState, picked.Assembly);
     }
 
-    private static void Respond(Ui<UiState> ui, AppState w, TreeViewResult<BrowseNode> result)
+    private static void Respond(Ui<UiState> ui, AppState appState, TreeViewResult<BrowseNode> result)
     {
         var node = result.Node;
         if (node == null)
             return;
         if (result.SelectionChanged)
-            w.Show(node);
+            Navigation.Show(appState, node);
         if (result.Activated && node.Target != null)
-            w.GoToTarget(node);
+            Navigation.GoToTarget(appState, node);
         if (result.ContextMenuRequested)
-            OpenContextMenu(ui, w, node, result.ContextMenuAt);
+            OpenContextMenu(ui, appState, node, result.ContextMenuAt);
     }
 
-    private static void OpenContextMenu(Ui<UiState> ui, AppState w, BrowseNode node, PointF at)
+    private static void OpenContextMenu(Ui<UiState> ui, AppState appState, BrowseNode node, PointF at)
     {
         ui.State.MenuTarget = node;
         ui.OpenContextMenu(MenuId, at);
     }
 
-    private static void ContextMenu(Ui<UiState> ui, AppState w)
+    private static void ContextMenu(Ui<UiState> ui, AppState appState)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
@@ -118,28 +118,28 @@ internal static class TreePaneView
         var node = ui.State.MenuTarget;
         if (node == null)
             return;
-        NodeMenu(ui, w, node);
+        NodeMenu(ui, appState, node);
     }
 
-    private static void NodeMenu(Ui<UiState> ui, AppState w, BrowseNode node)
+    private static void NodeMenu(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
-            w.Show(node, inNewTab: true);
+            Navigation.Show(appState, node, inNewTab: true);
         if (node.Target != null && ui.MenuItem(t.TreeGoToTarget, id: "go-to-target"))
-            w.GoToTarget(node);
+            Navigation.GoToTarget(appState, node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
         if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             ui.State.Analyze(node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
-            ResourceImageView.PickExport(ui, w, node);
-        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: w.CanSaveCode(node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
-            SaveDialogs.PickCodeFile(ui, w, node);
+            ResourceImageView.PickExport(ui, appState, node);
+        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: Exporting.CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
+            SaveDialogs.PickCodeFile(ui, appState, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
             ui.State.OpenExportSetup(node.Assembly);
         if (node.Kind == NodeKind.Assembly)
-            PdbItem(ui, w, node.Assembly);
+            PdbItem(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
             ui.State.ScopeSearch(node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
@@ -148,7 +148,7 @@ internal static class TreePaneView
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
-                w.Close(node.Assembly);
+                AssemblyLoading.Close(appState, node.Assembly);
         }
     }
 
@@ -161,10 +161,10 @@ internal static class TreePaneView
         return node.DependsOnLanguage;
     }
 
-    private static void PdbItem(Ui<UiState> ui, AppState w, LoadedAssembly assembly)
+    private static void PdbItem(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: SaveDialogs.PdbIcon))
-            SaveDialogs.PickPdbFile(ui, w, assembly);
+            SaveDialogs.PickPdbFile(ui, appState, assembly);
     }
 }

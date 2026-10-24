@@ -153,7 +153,7 @@ public sealed class AnalyzerTests
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
         d.TakeViewCommands();
 
-        d.AppState.Analyze(reference);
+        Analyzing.Analyze(d.AppState, reference);
         d.Settle();
 
         var root = Assert.Single(d.AppState.Analyzer.Found());
@@ -214,11 +214,11 @@ public sealed class AnalyzerTests
         var d = AppStateDriver.OpenedWithoutScreen();
         var reference = ReferenceToFirst(d);
         var analyzer = d.AppState.Analyzer;
-        var first = d.AppState.Analyze(First(d));
-        d.AppState.Analyze(d.Fixture("Greeter"));
+        var first = Analyzing.Analyze(d.AppState, First(d));
+        Analyzing.Analyze(d.AppState, d.Fixture("Greeter"));
         d.TakeViewCommands();
 
-        d.AppState.Analyze(reference);
+        Analyzing.Analyze(d.AppState, reference);
         d.Settle();
 
         Assert.Equal(2, analyzer.Roots.Count);
@@ -246,7 +246,7 @@ public sealed class AnalyzerTests
         using var temp = new TempDir();
         var copy = temp.Write("Copy.dll", File.ReadAllBytes(AppStateDriver.FixturePath));
         var d = new AppStateDriver();
-        d.AppState.Open(copy);
+        AssemblyLoading.Open(d.AppState, copy);
         d.RunUntil(() => d.AppState.Assemblies.Assemblies.Count == 1);
         d.Settle();
         var assembly = d.AppState.Assemblies.Assemblies.Single();
@@ -254,7 +254,7 @@ public sealed class AnalyzerTests
         var document = outline.Decompile(DecompilationLanguage.CSharp);
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
-        d.AppState.Close(assembly);
+        AssemblyLoading.Close(d.AppState, assembly);
         File.Delete(copy);
 
         d.Ui.Analyze(reference);
@@ -274,7 +274,7 @@ public sealed class AnalyzerTests
 
         analyzer.Remove(analyzer.Roots[0]);
         var left = analyzer.Found().Select(r => r.Symbol.Label).ToList();
-        d.AppState.ClearList();
+        AssemblyLoading.ClearList(d.AppState);
 
         Assert.Equal(["Greeter"], left);
         Assert.Empty(analyzer.Roots);

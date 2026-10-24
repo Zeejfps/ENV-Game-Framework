@@ -111,7 +111,7 @@ internal sealed class AppStateDriver
         AppState = new AppState(settings);
         if (withScreen)
             _ui = new UiState(AppState);
-        AppState.RestoreAnalyses();
+        Analyzing.RestoreAnalyses(AppState);
     }
 
     /// <summary>A driver that has opened the fixture assembly.</summary>
@@ -150,7 +150,7 @@ internal sealed class AppStateDriver
         _posted.Run();
         if (_ui != null)
             NextFrame();
-        AppState.SaveSettingsIfChanged(Now);
+        Saving.SaveSettingsIfChanged(AppState, Now);
     }
 
     /// <summary>Does what a frame does before and after it draws: the screen follows the trees and the
@@ -170,8 +170,8 @@ internal sealed class AppStateDriver
 
     private bool IsSettled()
     {
-        var w = AppState;
-        return !w.IsReloading && !w.IsFindingAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !IsSearching() && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+        var appState = AppState;
+        return !appState.IsReloading && !appState.IsFindingAnalyses && !appState.IsResolving && !appState.IsImporting && !appState.IsExporting && !IsSearching() && appState.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
     }
 
     private bool IsSearching()
@@ -193,7 +193,7 @@ internal sealed class AppStateDriver
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>
     public LoadedAssembly OpenFixtures()
     {
-        AppState.Open(FixturePath);
+        AssemblyLoading.Open(AppState, FixturePath);
         RunUntil(() => AppState.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
         Settle();
         return AppState.Tabs.Active!.Node!.Assembly;
@@ -210,7 +210,7 @@ internal sealed class AppStateDriver
 
     public void Show(BrowseNode node, bool inNewTab = false)
     {
-        AppState.Show(node, inNewTab);
+        Navigation.Show(AppState, node, inNewTab);
         Settle();
     }
 }

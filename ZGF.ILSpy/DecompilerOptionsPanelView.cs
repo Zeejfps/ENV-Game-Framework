@@ -16,11 +16,11 @@ internal static class DecompilerOptionsPanelView
 
     private static readonly CSharpVersion Newest = Sections.Max(static s => s.Version ?? 0);
 
-    public static void Render(Ui<UiState> ui, AppState w)
+    public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var options = w.DecompilerOptions;
+        var options = appState.DecompilerOptions;
         var folded = ui.State.FoldedOptionGroups;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         using (ui.PaneToolbar())
@@ -31,7 +31,7 @@ internal static class DecompilerOptionsPanelView
                 folded.UnfoldAll();
             ui.Separator(theme.IconSize);
             if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
-                w.ResetDecompilerToggles();
+                Preferences.ResetDecompilerToggles(appState);
         }
         ui.Separator();
         var tooNew = options.LanguageVersion < Newest ? ui.Memo("too-new", (t, options.LanguageVersion), static a => TooNew(a.t, a.LanguageVersion)) : null;
@@ -53,12 +53,12 @@ internal static class DecompilerOptionsPanelView
                 {
                     if (toggle is null)
                     {
-                        if (Header(ui, w, folded, section, options, rowHeight, tooNew))
+                        if (Header(ui, appState, folded, section, options, rowHeight, tooNew))
                             flipped = section.Key;
                     }
                     else
                     {
-                        Toggle(ui, w, toggle, options, rowHeight);
+                        Toggle(ui, appState, toggle, options, rowHeight);
                     }
                 }
             }
@@ -70,7 +70,7 @@ internal static class DecompilerOptionsPanelView
     /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,
     /// showing a square when only some are on. Returns true when the row besides the checkbox was
     /// clicked to fold or unfold.</summary>
-    private static bool Header(Ui<UiState> ui, AppState w, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
+    private static bool Header(Ui<UiState> ui, AppState appState, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
         string? tooNew)
     {
         var t = ui.State.Strings;
@@ -91,7 +91,7 @@ internal static class DecompilerOptionsPanelView
             ui.Icon(new UiIcon(isFolded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
             var all = State(section, options);
             if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow(), bold: Changed(section, options)))
-                w.SetDecompilerToggles(section.Toggles, all == true);
+                Preferences.SetDecompilerToggles(appState, section.Toggles, all == true);
         }
         if (!allowed && tooNew != null)
             ui.Tooltip(item.Id, tooNew);
@@ -127,7 +127,7 @@ internal static class DecompilerOptionsPanelView
         return false;
     }
 
-    private static void Toggle(Ui<UiState> ui, AppState w, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
+    private static void Toggle(Ui<UiState> ui, AppState appState, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -142,7 +142,7 @@ internal static class DecompilerOptionsPanelView
             var on = options.IsOn(toggle);
             if (ui.Checkbox(DecompilerOptionLabels.Label(t, toggle.Name) ?? toggle.Name, ref on, id: toggle.Name, enabled: options.Allows(toggle),
                     width: Sizing.Grow(), bold: options.Toggles.ContainsKey(toggle.Name)))
-                w.SetDecompilerToggle(toggle, on);
+                Preferences.SetDecompilerToggle(appState, toggle, on);
         }
     }
 

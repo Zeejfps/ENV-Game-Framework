@@ -5,48 +5,48 @@ public static class Docking
 {
     /// <summary>Makes <paramref name="tab"/>, when it is open, the tab the user works in, decompiling
     /// again what it shows when the language or the options changed since.</summary>
-    public static void FocusTab(this AppState w, DocumentTab tab)
+    public static void FocusTab(AppState appState, DocumentTab tab)
     {
-        if (!w.Tabs.Contains(tab))
+        if (!appState.Tabs.Contains(tab))
             return;
-        w.Intent.Begin();
-        w.Tabs.MakeActive(tab);
-        tab.EnsureCurrent(w.Language);
+        appState.Intent.Begin();
+        appState.Tabs.MakeActive(tab);
+        tab.EnsureCurrent(appState.Language);
     }
 
     /// <summary>Closes <paramref name="tab"/>, cancelling what it was doing. Returns whether it was the
     /// active tab, which leaves none active until the view focuses another.</summary>
-    public static bool CloseTab(this AppState w, DocumentTab tab)
+    public static bool CloseTab(AppState appState, DocumentTab tab)
     {
-        if (!w.Tabs.Contains(tab))
+        if (!appState.Tabs.Contains(tab))
             return false;
-        w.Intent.Begin();
-        var wasActive = tab == w.Tabs.Active;
-        w.Tabs.Remove(tab);
+        appState.Intent.Begin();
+        var wasActive = tab == appState.Tabs.Active;
+        appState.Tabs.Remove(tab);
         return wasActive;
     }
 
     /// <summary>Closes every document tab but the active one, and empties that one; with no tab left
     /// open, opens an empty one.</summary>
-    public static void CloseDocuments(this AppState w)
+    public static void CloseDocuments(AppState appState)
     {
-        var kept = w.FindTabToKeep();
-        var others = w.Tabs
+        var kept = FindTabToKeep(appState);
+        var others = appState.Tabs
             .Where(t => t != kept)
             .ToList();
         foreach (var tab in others)
-            w.CloseTab(tab);
+            CloseTab(appState, tab);
         kept.Clear();
-        w.Tabs.MakeActive(kept);
+        appState.Tabs.MakeActive(kept);
     }
 
-    private static DocumentTab FindTabToKeep(this AppState w)
+    private static DocumentTab FindTabToKeep(AppState appState)
     {
-        var active = w.Tabs.Active;
+        var active = appState.Tabs.Active;
         if (active != null)
             return active;
-        if (w.Tabs.Count > 0)
-            return w.Tabs[0];
-        return w.OpenNewTab();
+        if (appState.Tabs.Count > 0)
+            return appState.Tabs[0];
+        return Navigation.OpenNewTab(appState);
     }
 }

@@ -123,7 +123,7 @@ public sealed class ResourceViewTests
         var image = ImageOf(app, tab);
         Assert.True(app.Frames.Canvas.HasImage(image));
 
-        app.AppState.CloseTab(tab);
+        Docking.CloseTab(app.AppState, tab);
         app.Run(2);
 
         Assert.False(app.Frames.Canvas.HasImage(image));
@@ -237,7 +237,7 @@ public sealed class ResourceViewTests
         Directory.CreateDirectory(temp.Path);
         var path = temp.PathOf("data.json");
 
-        app.AppState.SaveResource(node, path);
+        Saving.SaveResource(app.AppState, node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
         Assert.Empty(app.AppState.Errors.Entries);

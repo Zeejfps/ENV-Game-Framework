@@ -22,26 +22,26 @@ public sealed class AssemblyListsDialog
     public string? Deleting { get; private set; }
 
     /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>
-    public void Open(AppState w)
+    public void Open(AppState appState)
     {
-        w.RememberOpenAssemblies();
+        AssemblyListing.RememberOpenAssemblies(appState);
         IsOpen = true;
-        Pick(w.Lists, w.Lists.Active);
+        Pick(appState.Lists, appState.Lists.Active);
     }
 
     /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
-    public void Create(AppState w)
+    public void Create(AppState appState)
     {
-        var name = w.CreateList();
-        PickToRename(w.Lists, name);
+        var name = AssemblyListing.CreateList(appState);
+        PickToRename(appState.Lists, name);
     }
 
     /// <summary>Adds a copy of the list named <paramref name="name"/>, picked to be named, leaving the
     /// open one open.</summary>
-    public void Duplicate(AppState w, string name)
+    public void Duplicate(AppState appState, string name)
     {
-        var copy = w.DuplicateList(name);
-        PickToRename(w.Lists, copy);
+        var copy = AssemblyListing.DuplicateList(appState, name);
+        PickToRename(appState.Lists, copy);
     }
 
     private void PickToRename(SavedAssemblyLists lists, string name)
@@ -52,10 +52,10 @@ public sealed class AssemblyListsDialog
 
     /// <summary>Removes the list named <paramref name="name"/> and picks the open list, which takes its
     /// place when it was open.</summary>
-    public void Delete(AppState w, string name)
+    public void Delete(AppState appState, string name)
     {
-        w.DeleteList(name);
-        Pick(w.Lists, w.Lists.Active);
+        AssemblyListing.DeleteList(appState, name);
+        Pick(appState.Lists, appState.Lists.Active);
     }
 
     /// <summary>Picks the list named <paramref name="name"/>, leaving any rename or deletion.</summary>

@@ -210,11 +210,11 @@ public sealed class AppTests
     public void Turning_debug_symbols_off_disassembles_an_open_IL_document_again()
     {
         var app = AppDriver.Opened();
-        app.AppState.SetLanguage(DecompilationLanguage.IL);
+        Preferences.SetLanguage(app.AppState, DecompilationLanguage.IL);
         app.Show(app.Fixture("Outline"), 1);
         var named = app.AppState.Tabs.Active!.Document.GetText();
 
-        app.AppState.SetDecompilerToggle(DecompilerToggle.UseDebugSymbols, false);
+        Preferences.SetDecompilerToggle(app.AppState, DecompilerToggle.UseDebugSymbols, false);
         app.Settle(1);
 
         Assert.Contains("int32 total", named);
@@ -225,7 +225,7 @@ public sealed class AppTests
     public void Options_newer_than_the_version_are_greyed_out_and_groups_fold()
     {
         var app = AppDriver.Opened(width: 1600f);
-        app.AppState.SetLanguageVersion(CSharpVersion.CSharp7);
+        Preferences.SetLanguageVersion(app.AppState, CSharpVersion.CSharp7);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
         app.Ui.OpenDecompilerOptions();
         app.Run();

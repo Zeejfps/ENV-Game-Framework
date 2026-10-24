@@ -54,7 +54,7 @@ public sealed partial class UiState
         if (tab == null)
             return;
         DropTabView(tab);
-        var wasActive = _appState.CloseTab(tab);
+        var wasActive = Docking.CloseTab(_appState, tab);
         if (!wasActive)
             return;
         FocusNextTab();
@@ -103,7 +103,7 @@ public sealed partial class UiState
     /// that is listed.</summary>
     private void FocusTab(DocumentTab tab)
     {
-        _appState.FocusTab(tab);
+        Docking.FocusTab(_appState, tab);
         RevealShown(tab);
     }
 
@@ -273,7 +273,7 @@ public sealed partial class UiState
     {
         var tab = _appState.AddTab();
         AddTabView(tab);
-        _appState.FocusTab(tab);
+        Docking.FocusTab(_appState, tab);
         return tab;
     }
 

@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// nothing.</summary>
 internal static class DocumentsView
 {
-    public static void Render(Ui<UiState> ui, AppState w, DocumentTab tab)
+    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
         var t = ui.State.Strings;
         if (IsEmpty(tab))
@@ -18,7 +18,7 @@ internal static class DocumentsView
         }
         if (tab.Image is { } image)
         {
-            ResourceImageView.Render(ui, w, tab, image);
+            ResourceImageView.Render(ui, appState, tab, image);
             return;
         }
         if (tab.Grid is { } grid)
@@ -26,9 +26,9 @@ internal static class DocumentsView
             var view = ui.State.ViewOf(tab);
             var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
             if (picked.Target is { } target)
-                w.Show(target, picked.InNewTab);
+                Navigation.Show(appState, target, picked.InNewTab);
             if (picked.Definition is { } definition)
-                w.Navigate(definition, picked.InNewTab);
+                Navigation.Navigate(appState, definition, picked.InNewTab);
             return;
         }
         if (tab is { IsBusy: true, Node.DependsOnLanguage: false })
@@ -36,29 +36,29 @@ internal static class DocumentsView
             Hint(ui, t.MetadataLoading);
             return;
         }
-        RenderCode(ui, w, tab);
+        RenderCode(ui, appState, tab);
     }
 
     /// <summary>The tab's document in the code view, with its bookmarks.</summary>
-    public static void RenderCode(Ui<UiState> ui, AppState w, DocumentTab tab)
+    public static void RenderCode(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
-        var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? w.Bookmarks.LinesIn(tab.Document, node.Path) : null;
+        var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? appState.Bookmarks.LinesIn(tab.Document, node.Path) : null;
         var view = ui.State.ViewOf(tab);
-        var result = ui.CodeView("code", tab.Document, view.Code, bookmarks, tooltips: w.Tooltips);
+        var result = ui.CodeView("code", tab.Document, view.Code, bookmarks, tooltips: appState.Tooltips);
         if (result.Navigate is { } reference)
-            w.Navigate(reference, result.NavigateInNewTab);
+            Navigation.Navigate(appState, reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)
-            ToggleBookmark(ui, w, tab, line);
+            ToggleBookmark(ui, appState, tab, line);
         if (result.Analyze is { } analyzed)
             ui.State.Analyze(analyzed);
     }
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
     /// selection of the one removed on.</summary>
-    private static void ToggleBookmark(Ui<UiState> ui, AppState w, DocumentTab tab, int line)
+    private static void ToggleBookmark(Ui<UiState> ui, AppState appState, DocumentTab tab, int line)
     {
-        var toggle = w.ToggleBookmark(tab, line);
-        ui.State.BookmarksPanel.Take(toggle, w.Bookmarks.Items);
+        var toggle = Bookmarking.ToggleBookmark(appState, tab, line);
+        ui.State.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
     }
 
     private static bool IsEmpty(DocumentTab tab)
@@ -68,10 +68,10 @@ internal static class DocumentsView
         return tab.Location == null;
     }
 
-    public static DockTab Tab(UiState screen, AppState w, DocumentTab tab)
+    public static DockTab Tab(UiState screen, AppState appState, DocumentTab tab)
     {
         var title = TitleOf(screen, tab);
-        return new DockTab(title, Tooltip: tab.Tooltip, Current: tab == w.Tabs.Active);
+        return new DockTab(title, Tooltip: tab.Tooltip, Current: tab == appState.Tabs.Active);
     }
 
     /// <summary>The tab's title: its node's name as the tree labels it, else its own title.</summary>

@@ -68,12 +68,12 @@ public sealed class BookmarksPanel
 
     /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
     /// <paramref name="direction"/> is negative, and selects it.</summary>
-    public void Step(AppState w, int direction)
+    public void Step(AppState appState, int direction)
     {
-        var bookmark = w.StepBookmark(Selected, direction);
+        var bookmark = Bookmarking.StepBookmark(appState, Selected, direction);
         if (bookmark == null)
             return;
-        Selection.Select(bookmark, w.Bookmarks.Items);
+        Selection.Select(bookmark, appState.Bookmarks.Items);
     }
 
     /// <summary>Forgets the rename of a bookmark that is gone, as importing in its place drops it.</summary>

@@ -23,7 +23,7 @@ public sealed class AppStateTests
         var greeter = d.Fixture("Greeter");
         d.TakeViewCommands();
 
-        d.AppState.Show(greeter, inNewTab: true);
+        Navigation.Show(d.AppState, greeter, inNewTab: true);
         var commands = d.TakeViewCommands();
 
         var tab = d.AppState.Tabs.Active!;
@@ -38,7 +38,7 @@ public sealed class AppStateTests
         d.Show(d.Fixture("Greeter"), inNewTab: true);
         var greeter = d.AppState.Tabs.Active!;
 
-        var wasActive = d.AppState.CloseTab(greeter);
+        var wasActive = Docking.CloseTab(d.AppState, greeter);
 
         Assert.True(wasActive);
         Assert.Null(d.AppState.Tabs.Active);
@@ -50,9 +50,9 @@ public sealed class AppStateTests
     {
         var d = AppStateDriver.Opened();
         var ns = d.Node(AppStateDriver.FixturesNamespace);
-        d.AppState.Show(d.Fixture("Greeter"));
+        Navigation.Show(d.AppState, d.Fixture("Greeter"));
 
-        d.AppState.ClearList();
+        AssemblyLoading.ClearList(d.AppState);
         d.NextFrame();
 
         Assert.False(d.Ui.Tree.View.HasSelection);
@@ -71,7 +71,7 @@ public sealed class AppStateTests
         d.NextFrame();
         var lines = code.Document.Lines.Length;
         var rows = grid.Grid!.RowCount;
-        d.AppState.ClearList();
+        AssemblyLoading.ClearList(d.AppState);
         d.NextFrame();
         var lineBefore = d.Ui.ViewOf(code).Code.PendingReveal;
         var rowBefore = d.Ui.ViewOf(grid).Grid.PendingReveal;
@@ -91,7 +91,7 @@ public sealed class AppStateTests
     {
         var d = new AppStateDriver();
 
-        d.AppState.Open(AppStateDriver.FixturePath);
+        AssemblyLoading.Open(d.AppState, AppStateDriver.FixturePath);
 
         Assert.Null(Assert.Single(d.AppState.Tabs).Location);
         d.RunUntil(() => d.AppState.Tabs.Active?.Node != null);
@@ -146,7 +146,7 @@ public sealed class AppStateTests
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var greeter = d.AppState.Tabs[^2];
 
-        d.AppState.CloseTab(d.AppState.Tabs.Active!);
+        Docking.CloseTab(d.AppState, d.AppState.Tabs.Active!);
         d.NextFrame();
 
         Assert.Same(greeter, d.AppState.Tabs.Active);
@@ -160,7 +160,7 @@ public sealed class AppStateTests
         var d = new AppStateDriver();
         var missing = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.dll");
 
-        d.AppState.Open(missing);
+        AssemblyLoading.Open(d.AppState, missing);
         d.RunUntil(() => d.AppState.Errors.Entries.Count > 0);
 
         var error = Assert.Single(d.AppState.Errors.Entries);
@@ -175,8 +175,8 @@ public sealed class AppStateTests
         d.Show(d.Fixture("Greeter"));
         var farewell = d.Fixture("Farewell");
 
-        d.AppState.Refresh([]);
-        d.AppState.Show(farewell);
+        AssemblyLoading.Refresh(d.AppState, []);
+        Navigation.Show(d.AppState, farewell);
         d.Settle();
 
         var tab = Assert.Single(d.AppState.Tabs);
@@ -191,7 +191,7 @@ public sealed class AppStateTests
         var expanded = new List<NodePath> { d.Node().Path, d.Node(AppStateDriver.FixturesNamespace).Path };
         d.TakeViewCommands();
 
-        d.AppState.Refresh(expanded);
+        AssemblyLoading.Refresh(d.AppState, expanded);
         d.Settle();
         var commands = d.TakeViewCommands();
 
@@ -208,8 +208,8 @@ public sealed class AppStateTests
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
 
-        d.AppState.Refresh(d.Ui.Tree.ExpandedPaths());
-        d.AppState.Refresh(d.Ui.Tree.ExpandedPaths());
+        AssemblyLoading.Refresh(d.AppState, d.Ui.Tree.ExpandedPaths());
+        AssemblyLoading.Refresh(d.AppState, d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
         Assert.Equal(["Greeter", "Farewell"], d.AppState.Tabs.Select(t => t.Node!.Text));
@@ -225,7 +225,7 @@ public sealed class AppStateTests
         var ns = d.Node(AppStateDriver.FixturesNamespace);
         d.Ui.Tree.View.SetExpanded(d.Fixture("Greeter"), true);
 
-        d.AppState.Refresh(d.Ui.Tree.ExpandedPaths());
+        AssemblyLoading.Refresh(d.AppState, d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
         var view = d.Ui.Tree.View;
@@ -244,9 +244,9 @@ public sealed class AppStateTests
         d.Show(before);
         d.Show(d.Fixture("Farewell"));
 
-        d.AppState.Refresh(d.Ui.Tree.ExpandedPaths());
+        AssemblyLoading.Refresh(d.AppState, d.Ui.Tree.ExpandedPaths());
         d.Settle();
-        d.AppState.GoBack();
+        Navigation.GoBack(d.AppState);
         d.Settle();
 
         var shown = d.AppState.Tabs.Active!.Node!;
@@ -268,7 +268,7 @@ public sealed class AppStateTests
         var tab = d.AppState.Tabs.Active!;
         var document = tab.Document;
 
-        d.AppState.GoBack();
+        Navigation.GoBack(d.AppState);
         d.NextFrame();
 
         var view = d.Ui.ViewOf(tab).Code;
@@ -288,9 +288,9 @@ public sealed class AppStateTests
         var reference = document.SpanAt(line, column).Reference!;
         var farewell = d.Fixture("Farewell");
 
-        d.AppState.Navigate(reference, inNewTab: false);
-        d.AppState.Show(farewell);
-        d.AppState.Navigate(reference, inNewTab: true);
+        Navigation.Navigate(d.AppState, reference, inNewTab: false);
+        Navigation.Show(d.AppState, farewell);
+        Navigation.Navigate(d.AppState, reference, inNewTab: true);
         d.Ui.ActivateTab(d.AppState.Tabs[0]);
         d.Settle();
 
@@ -307,7 +307,7 @@ public sealed class AppStateTests
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("Name;");
 
-        d.AppState.Navigate(document.SpanAt(line, column).Reference!, inNewTab: false);
+        Navigation.Navigate(d.AppState, document.SpanAt(line, column).Reference!, inNewTab: false);
         d.Settle();
 
         var tab = Assert.Single(d.AppState.Tabs);
@@ -323,7 +323,7 @@ public sealed class AppStateTests
 
         var view = d.Ui.ViewOf(tab).Code;
 
-        d.AppState.Show(d.Node(AppStateDriver.FixturesNamespace));
+        Navigation.Show(d.AppState, d.Node(AppStateDriver.FixturesNamespace));
         d.NextFrame();
         Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
         d.Settle();
@@ -351,7 +351,7 @@ public sealed class AppStateTests
 
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("Length");
-        d.AppState.Navigate(document.SpanAt(line, column).Reference!, inNewTab: true);
+        Navigation.Navigate(d.AppState, document.SpanAt(line, column).Reference!, inNewTab: true);
         d.Settle();
         Assert.Equal(2, d.AppState.Assemblies.Assemblies.Count);
         search.Update(d.AppState.Assemblies, 2, true);
@@ -379,7 +379,7 @@ public sealed class AppStateTests
         search.Select(search.Rows.First(r => r.Node.Assembly == greeter.Assembly));
         var selected = search.SelectedRow!.Node;
 
-        d.AppState.Close(d.AppState.Assemblies.Assemblies.Single(a => a.Name == "System.Private.CoreLib"));
+        AssemblyLoading.Close(d.AppState, d.AppState.Assemblies.Assemblies.Single(a => a.Name == "System.Private.CoreLib"));
         search.Update(d.AppState.Assemblies, 2, true);
         d.Settle();
 
@@ -467,7 +467,7 @@ public sealed class AppStateTests
     public void Results_streamed_in_many_batches_end_up_in_sort_order()
     {
         var d = AppStateDriver.Opened();
-        d.AppState.Open(typeof(object).Assembly.Location);
+        AssemblyLoading.Open(d.AppState, typeof(object).Assembly.Location);
         d.RunUntil(() => d.AppState.Assemblies.Assemblies.Count == 2);
         var search = d.Ui.Search;
         search.SortBy(SearchSort.Name);
@@ -491,14 +491,14 @@ public sealed class AppStateTests
         var d = new AppStateDriver();
         using var temp = new TempDir();
         var copy = temp.Copy(AppStateDriver.FixturePath, "fixture.dll");
-        d.AppState.Open(copy);
+        AssemblyLoading.Open(d.AppState, copy);
         d.RunUntil(() => d.AppState.Tabs.Active?.Node != null);
         d.Settle();
         var greeter = d.AppState.Tabs.Active!.Node!.Child(AppStateDriver.FixturesNamespace, "Greeter");
         d.Show(greeter);
         File.Delete(copy);
 
-        d.AppState.Refresh(d.Ui.Tree.ExpandedPaths());
+        AssemblyLoading.Refresh(d.AppState, d.Ui.Tree.ExpandedPaths());
         d.Settle();
 
         var tab = Assert.Single(d.AppState.Tabs);
