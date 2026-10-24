@@ -146,16 +146,19 @@ public sealed class AnalyzerTests
     [Fact]
     public void A_reference_in_the_code_is_analyzed_once_it_is_found()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = WorkspaceDriver.OpenedWithoutScreen();
         d.Show(d.Fixture("Outline"));
         var document = d.Workspace.Tabs.Active!.Document;
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
+        d.TakeViewAsks();
 
-        d.Ui.Analyze(reference);
+        d.Workspace.Analyze(reference);
         d.Settle();
 
-        Assert.StartsWith("First()", d.Workspace.Analyzer.Found()[0].Symbol.Label);
+        var root = Assert.Single(d.Workspace.Analyzer.Found());
+        Assert.StartsWith("First()", root.Symbol.Label);
+        Assert.Equal([new ViewAsk.ShowAnalysis(root)], d.TakeViewAsks());
     }
 
     private static CodeReference ReferenceTo(WorkspaceDriver d, string type, string text, int offset = 0)
@@ -208,17 +211,19 @@ public sealed class AnalyzerTests
     [Fact]
     public void A_reference_to_a_symbol_analyzed_already_selects_its_root()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = WorkspaceDriver.OpenedWithoutScreen();
         var reference = ReferenceToFirst(d);
         var analyzer = d.Workspace.Analyzer;
-        d.Ui.Analyze(First(d));
-        d.Ui.Analyze(d.Fixture("Greeter"));
+        var first = d.Workspace.Analyze(First(d));
+        d.Workspace.Analyze(d.Fixture("Greeter"));
+        d.TakeViewAsks();
 
-        d.Ui.Analyze(reference);
+        d.Workspace.Analyze(reference);
         d.Settle();
 
         Assert.Equal(2, analyzer.Roots.Count);
-        Assert.Same(analyzer.Found()[0], d.Ui.Analyzer.View.Selected);
+        Assert.Same(analyzer.Found()[0], first);
+        Assert.Equal([new ViewAsk.ShowAnalysis(first!)], d.TakeViewAsks());
     }
 
     [Fact]

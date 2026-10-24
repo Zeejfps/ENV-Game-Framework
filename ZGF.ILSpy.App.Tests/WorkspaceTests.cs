@@ -7,6 +7,55 @@ namespace ZGF.ILSpy.App.Tests;
 public sealed class WorkspaceTests
 {
     [Fact]
+    public void A_driver_made_without_a_screen_has_none_to_give()
+    {
+        var d = WorkspaceDriver.WithoutScreen();
+
+        Assert.Throws<InvalidOperationException>(() => d.Ui);
+        Assert.Throws<InvalidOperationException>(d.NextFrame);
+    }
+
+    [Fact]
+    public void Showing_a_node_in_a_new_tab_asks_the_view_to_dock_it_beside_the_active_tab_and_reveal_the_node()
+    {
+        var d = WorkspaceDriver.OpenedWithoutScreen();
+        var before = d.Workspace.Tabs.Active!;
+        var greeter = d.Fixture("Greeter");
+        d.TakeViewAsks();
+
+        d.Workspace.Show(greeter, inNewTab: true);
+        var asks = d.TakeViewAsks();
+
+        var tab = d.Workspace.Tabs.Active!;
+        Assert.NotSame(before, tab);
+        Assert.Equal([new ViewAsk.ShowTab(tab, before.Panel), new ViewAsk.RevealNode(greeter)], asks);
+    }
+
+    [Fact]
+    public void Changing_the_language_asks_the_view_to_decompile_the_shown_tabs_again()
+    {
+        var d = WorkspaceDriver.WithoutScreen();
+
+        d.Workspace.SetLanguage(DecompilationLanguage.IL);
+
+        Assert.Equal([new ViewAsk.RefreshShownTabs()], d.TakeViewAsks());
+    }
+
+    [Fact]
+    public void Closing_the_active_tab_with_no_screen_leaves_the_pick_of_the_next_to_the_view()
+    {
+        var d = WorkspaceDriver.OpenedWithoutScreen();
+        d.Show(d.Fixture("Greeter"), inNewTab: true);
+        var greeter = d.Workspace.Tabs.Active!;
+
+        var wasActive = d.Workspace.CloseTab(greeter);
+
+        Assert.True(wasActive);
+        Assert.Null(d.Workspace.Tabs.Active);
+        Assert.Single(d.Workspace.Tabs);
+    }
+
+    [Fact]
     public void Opening_happens_in_the_background_and_shows_the_assembly()
     {
         var d = new WorkspaceDriver();
@@ -91,16 +140,34 @@ public sealed class WorkspaceTests
     [Fact]
     public void Reloading_does_not_overwrite_a_tab_the_user_pointed_elsewhere_meanwhile()
     {
-        var d = WorkspaceDriver.Opened();
+        var d = WorkspaceDriver.OpenedWithoutScreen();
         d.Show(d.Fixture("Greeter"));
         var farewell = d.Fixture("Farewell");
 
-        d.Workspace.Refresh(d.Ui.Tree.ExpandedPaths());
+        d.Workspace.Refresh([]);
         d.Workspace.Show(farewell);
         d.Settle();
 
         var tab = Assert.Single(d.Workspace.Tabs);
         Assert.Same(farewell, tab.Node);
+    }
+
+    [Fact]
+    public void A_reload_asks_the_view_to_expand_what_it_had_expanded_and_to_reveal_the_active_tabs_node()
+    {
+        var d = WorkspaceDriver.OpenedWithoutScreen();
+        d.Show(d.Fixture("Greeter"));
+        var expanded = new List<NodePath> { d.Node().Path, d.Node(WorkspaceDriver.FixturesNamespace).Path };
+        d.TakeViewAsks();
+
+        d.Workspace.Refresh(expanded);
+        d.Settle();
+        var asks = d.TakeViewAsks();
+
+        var expand = Assert.Single(asks.OfType<ViewAsk.ExpandNodes>());
+        Assert.Equal(expanded, expand.Nodes.Select(n => n.Path));
+        Assert.Same(d.Node(), expand.Nodes[0]);
+        Assert.Contains(new ViewAsk.RevealNode(d.Fixture("Greeter")), asks);
     }
 
     [Fact]

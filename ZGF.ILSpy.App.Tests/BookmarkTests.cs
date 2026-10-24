@@ -23,19 +23,41 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void Toggling_a_statement_line_bookmarks_it_by_its_statement_and_toggling_again_removes_it()
     {
-        var (d, tab, line) = OutlineAt("return First();");
+        var (d, tab, line) = OutlineAt("return First();", WorkspaceDriver.WithoutScreen());
         var bookmarks = d.Workspace.Bookmarks;
 
-        d.Workspace.ToggleBookmark(tab, line);
+        var added = d.Workspace.ToggleBookmark(tab, line);
         var bookmark = Assert.Single(bookmarks.Items);
         var marked = bookmarks.LinesIn(tab.Document, tab.Location!);
-        d.Workspace.ToggleBookmark(tab, line);
+        var removed = d.Workspace.ToggleBookmark(tab, line);
 
+        Assert.Equal(new BookmarkToggle.Added(bookmark), added);
+        Assert.Equal(new BookmarkToggle.Removed(bookmark, 0), removed);
         Assert.Equal("Bookmark 1", bookmark.Name);
         Assert.Equal(CodeAnchorKind.Statement, bookmark.Anchor!.Value.Kind);
         Assert.Equal("Outline:" + (line + 1), bookmark.Location);
         Assert.True(marked[line]);
         Assert.Empty(bookmarks.Items);
+    }
+
+    [Fact]
+    public void Stepping_goes_to_the_next_enabled_bookmark_and_asks_the_view_to_reveal_its_line()
+    {
+        var (d, tab, line) = OutlineAt("return First();", WorkspaceDriver.WithoutScreen());
+        var first = tab.Document.Find("foreach").Line;
+        d.Workspace.ToggleBookmark(tab, first);
+        d.Workspace.ToggleBookmark(tab, line);
+        var bookmarks = d.Workspace.Bookmarks;
+        d.TakeViewAsks();
+
+        var steppedTo = d.Workspace.StepBookmark(bookmarks.Items[0], 1);
+        d.Settle();
+        var asks = d.TakeViewAsks();
+
+        Assert.Same(bookmarks.Items[1], steppedTo);
+        Assert.Contains(new ViewAsk.ShowTab(tab, Beside: null), asks);
+        Assert.Contains(new ViewAsk.RevealLine(tab, line), asks);
+        Assert.Contains(new ViewAsk.RevealNode(tab.Node!), asks);
     }
 
     [Fact]

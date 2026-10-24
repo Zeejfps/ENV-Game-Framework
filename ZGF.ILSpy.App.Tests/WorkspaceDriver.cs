@@ -88,22 +88,29 @@ internal static class Screens
     public static UiState Blank() => new(new Workspace(new AppSettings { Locale = Locale.En }));
 }
 
-/// <summary>A <see cref="Workspace"/> and the screen over it, whose posted actions queue up until the
-/// test pumps them, so a test decides what the user does before background results land. A frame's
-/// steps around drawing run only when the test pumps or asks for <see cref="NextFrame"/>. It speaks
-/// English unless its settings name a locale.</summary>
+/// <summary>A <see cref="Workspace"/> and, unless made without one, the screen over it, whose posted
+/// actions queue up until the test pumps them, so a test decides what the user does before background
+/// results land. A frame's steps around drawing run only when the test pumps or asks for
+/// <see cref="NextFrame"/>; reading the driver changes nothing. It speaks English unless its settings
+/// name a locale.</summary>
 internal sealed class WorkspaceDriver
 {
     public const string FixturesNamespace = "ZGF.ILSpy.App.Tests.Fixtures";
 
     private readonly PostedActions _posted = PostedActions.OfThisTest();
+    private readonly UiState? _ui;
 
-    public WorkspaceDriver(AppSettings? settings = null)
+    public WorkspaceDriver(AppSettings? settings = null) : this(settings, withScreen: true)
+    {
+    }
+
+    private WorkspaceDriver(AppSettings? settings, bool withScreen)
     {
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
         Workspace = new Workspace(settings);
-        Ui = new UiState(Workspace);
+        if (withScreen)
+            _ui = new UiState(Workspace);
         Workspace.RestoreAnalyses();
     }
 
@@ -115,21 +122,34 @@ internal sealed class WorkspaceDriver
         return driver;
     }
 
+    /// <summary>A driver with a workspace and no screen, which shows that the features need none.</summary>
+    public static WorkspaceDriver WithoutScreen(AppSettings? settings = null) => new(settings, withScreen: false);
+
+    /// <summary>A driver with no screen that has opened the fixture assembly.</summary>
+    public static WorkspaceDriver OpenedWithoutScreen()
+    {
+        var driver = WithoutScreen();
+        driver.OpenFixtures();
+        return driver;
+    }
+
     public Workspace Workspace { get; }
 
-    /// <summary>The screen over <see cref="Workspace"/>.</summary>
-    public UiState Ui { get; }
+    /// <summary>The screen over <see cref="Workspace"/>; a driver made without one has none to give.</summary>
+    public UiState Ui => _ui ?? throw new InvalidOperationException("This driver has no screen.");
 
     /// <summary>The time the driver's autosave goes by, in seconds.</summary>
     public double Now { get; set; }
 
     public static string FixturePath => typeof(Greeter).Assembly.Location;
 
-    /// <summary>Runs what was posted, then what a frame does around drawing, then the autosave.</summary>
+    /// <summary>Runs what was posted, then what a frame does around drawing when there is a screen,
+    /// then the autosave.</summary>
     public void Pump()
     {
         _posted.Run();
-        NextFrame();
+        if (_ui != null)
+            NextFrame();
         Workspace.SaveSettingsIfChanged(Now);
     }
 
@@ -151,7 +171,23 @@ internal sealed class WorkspaceDriver
     private bool IsSettled()
     {
         var w = Workspace;
-        return !w.IsReloading && !w.IsFindingAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !Ui.Search.IsBusy && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+        return !w.IsReloading && !w.IsFindingAnalyses && !w.IsResolving && !w.IsImporting && !w.IsExporting && !IsSearching() && w.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+    }
+
+    private bool IsSearching()
+    {
+        if (_ui == null)
+            return false;
+        return _ui.Search.IsBusy;
+    }
+
+    /// <summary>What the features asked of the view since the last frame took it, oldest first, taken
+    /// off the queue as the screen would.</summary>
+    public List<ViewAsk> TakeViewAsks()
+    {
+        var asks = Workspace.ViewAsks.ToList();
+        Workspace.ViewAsks.Clear();
+        return asks;
     }
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>
