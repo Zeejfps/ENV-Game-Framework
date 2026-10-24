@@ -46,6 +46,47 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
+    public void A_reveal_asked_for_a_node_whose_list_was_cleared_since_is_dropped()
+    {
+        var d = WorkspaceDriver.Opened();
+        var ns = d.Node(WorkspaceDriver.FixturesNamespace);
+        d.Workspace.Show(d.Fixture("Greeter"));
+
+        d.Workspace.ClearList();
+        d.NextFrame();
+
+        Assert.False(d.Ui.Tree.View.HasSelection);
+        Assert.False(d.Ui.Tree.View.IsExpanded(ns));
+    }
+
+    [Fact]
+    public void Asks_for_nodes_of_a_cleared_list_or_lines_and_rows_a_tab_no_longer_has_are_dropped()
+    {
+        var d = WorkspaceDriver.Opened();
+        var ns = d.Node(WorkspaceDriver.FixturesNamespace);
+        d.Show(d.Node("Metadata", "Tables").Table("TypeDef"));
+        var grid = d.Workspace.Tabs.Active!;
+        d.Show(d.Fixture("Greeter"), inNewTab: true);
+        var code = d.Workspace.Tabs.Active!;
+        d.NextFrame();
+        var lines = code.Document.Lines.Length;
+        var rows = grid.Grid!.RowCount;
+        d.Workspace.ClearList();
+        d.NextFrame();
+        var lineBefore = d.Ui.ViewOf(code).Code.PendingReveal;
+        var rowBefore = d.Ui.ViewOf(grid).Grid.PendingReveal;
+
+        d.Workspace.AskView(new ViewAsk.ExpandNodes([ns]));
+        d.Workspace.AskView(new ViewAsk.RevealLine(code, lines));
+        d.Workspace.AskView(new ViewAsk.RevealRow(grid, rows));
+        d.NextFrame();
+
+        Assert.False(d.Ui.Tree.View.IsExpanded(ns));
+        Assert.Equal(lineBefore, d.Ui.ViewOf(code).Code.PendingReveal);
+        Assert.Equal(rowBefore, d.Ui.ViewOf(grid).Grid.PendingReveal);
+    }
+
+    [Fact]
     public void Opening_happens_in_the_background_and_shows_the_assembly()
     {
         var d = new WorkspaceDriver();

@@ -1,8 +1,11 @@
+using ZGF.ILSpy.Core;
+
 namespace ZGF.ILSpy;
 
 public sealed partial class UiState
 {
-    /// <summary>Does what the features asked of the view, in the order they asked.</summary>
+    /// <summary>Does what the features asked of the view, in the order they asked, dropping what asks
+    /// about a node, tab, line or row that is gone since.</summary>
     private void TakeViewAsks()
     {
         var asks = _workspace.ViewAsks;
@@ -21,10 +24,10 @@ public sealed partial class UiState
                 OpenPanel(open.Panel);
                 break;
             case ViewAsk.RevealNode reveal:
-                Tree.Reveal(reveal.Node);
+                RevealNode(reveal.Node);
                 break;
             case ViewAsk.ExpandNodes expand:
-                Tree.Expand(expand.Nodes);
+                ExpandNodes(expand.Nodes);
                 break;
             case ViewAsk.ShowAnalysis show:
                 ShowAnalysis(show.Root);
@@ -41,9 +44,25 @@ public sealed partial class UiState
         }
     }
 
+    private void RevealNode(BrowseNode node)
+    {
+        if (!_workspace.IsListed(node))
+            return;
+        Tree.Reveal(node);
+    }
+
+    private void ExpandNodes(IReadOnlyList<BrowseNode> nodes)
+    {
+        var listed = nodes
+            .Where(_workspace.IsListed)
+            .ToList();
+        Tree.Expand(listed);
+    }
+
     private void RestoreView(DocumentTab tab, CodeViewPosition position)
     {
-        if (!_tabViews.TryGetValue(tab, out var view))
+        var view = FindOpenView(tab);
+        if (view == null)
             return;
         if (tab.Grid == null)
         {
@@ -55,15 +74,37 @@ public sealed partial class UiState
 
     private void RevealLine(DocumentTab tab, int line)
     {
-        if (!_tabViews.TryGetValue(tab, out var view))
+        var view = FindOpenView(tab);
+        if (view == null)
+            return;
+        if (line >= tab.Document.Lines.Length)
             return;
         view.Code.RevealLine(line);
     }
 
     private void RevealRow(DocumentTab tab, int row)
     {
-        if (!_tabViews.TryGetValue(tab, out var view))
+        var view = FindOpenView(tab);
+        if (view == null)
+            return;
+        if (!HasRow(tab, row))
             return;
         view.Grid.Reveal(row);
+    }
+
+    private static bool HasRow(DocumentTab tab, int row)
+    {
+        var grid = tab.Grid;
+        if (grid == null)
+            return false;
+        return row < grid.RowCount;
+    }
+
+    /// <summary>The view of <paramref name="tab"/> while it is open, or null.</summary>
+    private TabView? FindOpenView(DocumentTab tab)
+    {
+        if (!_workspace.Tabs.Contains(tab))
+            return null;
+        return _tabViews.GetValueOrDefault(tab);
     }
 }
