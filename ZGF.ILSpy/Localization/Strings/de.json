@@ -425,6 +425,7 @@
   "error.scan_runtime": "Die Assemblys der Laufzeit können nicht durchsucht werden",
   "error.search": "Suche fehlgeschlagen",
   "error.restore_analyses": "Die zuletzt analysierten Symbole können nicht erneut analysiert werden",
+  "error.duplicate_bookmarks": {"one": "{count:N0} Lesezeichen markierte dieselbe Zeile wie ein anderes und wurde ausgelassen", "other": "{count:N0} Lesezeichen markierten dieselbe Zeile wie andere und wurden ausgelassen"},
   "error.go_to_bookmark": "{name} kann nicht angesprungen werden",
   "error.export_bookmarks": "Die Lesezeichen können nicht exportiert werden",
   "error.save_resource": "{name} kann nicht gespeichert werden",

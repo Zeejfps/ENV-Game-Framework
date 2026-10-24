@@ -425,6 +425,7 @@
   "error.scan_runtime": "Não é possível examinar os assemblies do runtime",
   "error.search": "Falha na pesquisa",
   "error.restore_analyses": "Não é possível analisar novamente o que foi analisado da última vez",
+  "error.duplicate_bookmarks": {"one": "{count:N0} indicador marcava a mesma linha que outro e foi omitido", "other": "{count:N0} indicadores marcavam a mesma linha que outros e foram omitidos"},
   "error.go_to_bookmark": "Não é possível ir para {name}",
   "error.export_bookmarks": "Não é possível exportar os indicadores",
   "error.save_resource": "Não é possível salvar {name}",

@@ -425,6 +425,7 @@
   "error.scan_runtime": "No se pueden examinar los ensamblados del runtime",
   "error.search": "Error en la búsqueda",
   "error.restore_analyses": "No se puede volver a analizar lo analizado la última vez",
+  "error.duplicate_bookmarks": {"one": "{count:N0} marcador marcaba la misma línea que otro y se omitió", "other": "{count:N0} marcadores marcaban la misma línea que otros y se omitieron"},
   "error.go_to_bookmark": "No se puede ir a {name}",
   "error.export_bookmarks": "No se pueden exportar los marcadores",
   "error.save_resource": "No se puede guardar {name}",

@@ -425,6 +425,7 @@
   "error.scan_runtime": "런타임 어셈블리를 검사할 수 없습니다",
   "error.search": "검색하지 못했습니다",
   "error.restore_analyses": "지난번에 분석한 항목을 다시 분석할 수 없습니다",
+  "error.duplicate_bookmarks": {"other": "책갈피 {count:N0}개가 다른 책갈피와 같은 줄을 가리켜 제외되었습니다"},
   "error.go_to_bookmark": "{name}(으)로 이동할 수 없습니다",
   "error.export_bookmarks": "책갈피를 내보낼 수 없습니다",
   "error.save_resource": "{name}을(를) 저장할 수 없습니다",

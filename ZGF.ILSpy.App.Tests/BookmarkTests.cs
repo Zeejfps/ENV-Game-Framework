@@ -109,6 +109,35 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
+    public void A_bookmark_marking_a_line_already_marked_is_not_added()
+    {
+        var (d, tab, line) = OutlineAt("return First();");
+        d.Workspace.ToggleBookmark(tab, line);
+        var bookmarks = d.Workspace.Bookmarks;
+        var twin = bookmarks.Items[0];
+
+        var added = bookmarks.Add(twin);
+
+        Assert.False(added);
+        Assert.Single(bookmarks.Items);
+    }
+
+    [Fact]
+    public void Saved_bookmarks_marking_one_line_load_as_one_and_say_how_many_were_left_out()
+    {
+        var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.SaveSettings();
+        var settings = _temp.Settings();
+        settings.Bookmarks.Add(settings.Bookmarks[0] with { Name = "Twin" });
+
+        var next = new WorkspaceDriver(settings);
+
+        Assert.Single(next.Workspace.Bookmarks.Items);
+        Assert.Equal("1 bookmark marked the same line as another and was left out", Assert.Single(next.Workspace.Errors.Entries).Title);
+    }
+
+    [Fact]
     public void Bookmarks_are_saved_with_the_settings_and_found_again_on_the_next_run()
     {
         var (d, tab, line) = OutlineAt("return First();", new WorkspaceDriver(_temp.Settings()));
@@ -471,6 +500,37 @@ public sealed class BookmarkTests : IDisposable
         Assert.True(marked[line]);
         Assert.True(marked[2]);
         Assert.Equal("Bookmark0", Assert.Single(d.Workspace.Bookmarks.Save(), r => r.Kind == BookmarkKind.Body).Name);
+    }
+
+    [Fact]
+    public void Bookmarks_from_a_file_marking_one_line_replace_as_one_and_say_how_many_were_left_out()
+    {
+        var twins = Record("First", "Body", TokenOf("Third"), 0, 1, Fixtures + ".Outline") + "," +
+                    Record("Second", "Body", TokenOf("Third"), 0, 1, Fixtures + ".Outline") + "," +
+                    Record("Third", "Body", TokenOf("Third"), 0, 1, Fixtures + ".Outline");
+        var path = ILSpyFile(twins);
+        var d = new WorkspaceDriver();
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+
+        Assert.Equal("First", Assert.Single(d.Workspace.Bookmarks.Items).Name);
+        Assert.Equal("2 bookmarks marked the same line as others and were left out", Assert.Single(d.Workspace.Errors.Entries).Title);
+    }
+
+    [Fact]
+    public void Merging_skips_bookmarks_marking_a_line_already_marked_without_a_word()
+    {
+        var path = Exported("return First();");
+        var (d, tab, line) = OutlineAt("return First();");
+        d.Workspace.ToggleBookmark(tab, line);
+
+        d.Workspace.ImportBookmarks(path);
+        d.Settle();
+        d.Workspace.FinishImport(d.Workspace.Imports.Asking!, BookmarkImportMode.Merge);
+
+        Assert.Single(d.Workspace.Bookmarks.Items);
+        Assert.Empty(d.Workspace.Errors.Entries);
     }
 
     [Fact]

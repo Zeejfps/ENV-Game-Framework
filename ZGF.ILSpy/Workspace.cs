@@ -149,7 +149,7 @@ public sealed class Workspace
         Search.Kinds = settings.SearchKinds;
         MetadataFilters = new MetadataFilters(settings.FlagsFilters);
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
-        Bookmarks.Load(settings.Bookmarks);
+        var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
@@ -160,6 +160,7 @@ public sealed class Workspace
             MainLayout.DockDocument(first.Panel, first.Panel);
         PendingAnalyses = new PendingAnalyses(Lists.ActiveAnalyses);
         ReportSettingsLoadError(settings);
+        this.ReportLeftOutBookmarks(leftOutBookmarks);
     }
 
     private static HashSet<string> LoadFoldedOptionGroups(AppSettings settings)

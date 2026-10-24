@@ -115,7 +115,8 @@ public enum BookmarkImportMode
 }
 
 /// <summary>The user's bookmarks in the order they were made, the one selected in the panel, and the
-/// one being renamed. Every change to the list or a bookmark bumps <see cref="Revision"/>.</summary>
+/// one being renamed. No two mark the same line. Every change to the list or a bookmark bumps
+/// <see cref="Revision"/>.</summary>
 public sealed class BookmarkList
 {
     private sealed class Marks
@@ -153,12 +154,19 @@ public sealed class BookmarkList
     /// <summary>True once after a rename starts: the name field should take focus.</summary>
     public bool FocusRename { get; set; }
 
-    public void Add(Bookmark bookmark)
+    /// <summary>Adds <paramref name="bookmark"/> and selects it, unless a bookmark marks its line
+    /// already; returns whether it was added.</summary>
+    public bool Add(Bookmark bookmark)
     {
+        if (IsMarked(bookmark))
+            return false;
         _items.Add(bookmark);
         Selection.Select(_items.Count - 1, _items.Count);
         Revision++;
+        return true;
     }
+
+    private bool IsMarked(Bookmark bookmark) => _items.Exists(bookmark.MarksSameLine);
 
     public void Remove(Bookmark bookmark)
     {
@@ -257,13 +265,14 @@ public sealed class BookmarkList
 
     public List<BookmarkRecord> Save() => _items.ConvertAll(static b => b.ToRecord());
 
-    /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.</summary>
-    public void Load(IEnumerable<BookmarkRecord>? saved) =>
+    /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.
+    /// Returns how many were left out because one before them marks the same line.</summary>
+    public int Load(IEnumerable<BookmarkRecord>? saved) =>
         Import((saved ?? []).Where(static r => r is { Place: not null } && !string.IsNullOrEmpty(r.FileName))
             .Select(static r => Bookmark.FromRecord(r, NodePath.From(r.FileName, r.Place!))), BookmarkImportMode.Replace);
 
     /// <summary>Adds <paramref name="bookmarks"/>, after dropping every bookmark first when replacing,
-    /// or skipping the ones that mark a line already marked when merging. Returns how many were added.</summary>
+    /// leaving out the ones that mark a line already marked. Returns how many were left out.</summary>
     public int Import(IEnumerable<Bookmark> bookmarks, BookmarkImportMode mode)
     {
         if (mode == BookmarkImportMode.Replace)
@@ -272,14 +281,17 @@ public sealed class BookmarkList
             Selection.Clear();
             Renaming = null;
         }
-        var added = 0;
+        var leftOut = 0;
         foreach (var bookmark in bookmarks)
         {
-            if (mode == BookmarkImportMode.Merge && _items.Exists(bookmark.MarksSameLine)) continue;
+            if (IsMarked(bookmark))
+            {
+                leftOut++;
+                continue;
+            }
             _items.Add(bookmark);
-            added++;
         }
         Revision++;
-        return added;
+        return leftOut;
     }
 }

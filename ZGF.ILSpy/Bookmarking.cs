@@ -141,13 +141,13 @@ public static class Bookmarking
             .Where(f => f.Place != null)
             .Select(f => Bookmark.FromRecord(f.Record, f.Place!))
             .ToList();
-        if (w.Bookmarks.Items.Count == 0)
-        {
-            w.Bookmarks.Import(bookmarks, BookmarkImportMode.Replace);
-            return;
-        }
         if (bookmarks.Count == 0)
             return;
+        if (w.Bookmarks.Items.Count == 0)
+        {
+            w.TakeBookmarks(bookmarks, BookmarkImportMode.Replace);
+            return;
+        }
         w.Imports.Wait(new PendingImport(bookmarks));
     }
 
@@ -176,7 +176,25 @@ public static class Bookmarking
             return;
         if (mode == null)
             return;
-        w.Bookmarks.Import(import.Bookmarks, mode.Value);
+        w.TakeBookmarks(import.Bookmarks, mode.Value);
+    }
+
+    /// <summary>Takes <paramref name="bookmarks"/> in as <paramref name="mode"/> says. Those marking a
+    /// line a bookmark marks already are left out: quietly when merging, and reported when replacing.</summary>
+    private static void TakeBookmarks(this Workspace w, IReadOnlyList<Bookmark> bookmarks, BookmarkImportMode mode)
+    {
+        var leftOut = w.Bookmarks.Import(bookmarks, mode);
+        if (mode == BookmarkImportMode.Merge)
+            return;
+        w.ReportLeftOutBookmarks(leftOut);
+    }
+
+    /// <summary>Says how many bookmarks were left out because another marks the same line.</summary>
+    internal static void ReportLeftOutBookmarks(this Workspace w, int leftOut)
+    {
+        if (leftOut == 0)
+            return;
+        w.ReportError(Strings.For(w.Locale).ErrorDuplicateBookmarks(leftOut));
     }
 
     private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);
