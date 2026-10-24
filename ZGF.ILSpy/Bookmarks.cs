@@ -129,22 +129,19 @@ public sealed class BookmarkList
     private readonly List<Bookmark> _items = new();
     private readonly ConditionalWeakTable<DecompiledDocument, Marks> _marks = new();
 
-    public BookmarkList() => Cells = new TableCellSelection(Selection);
+    public BookmarkList() => Cells = new TableCellSelection(Selection.Rows);
 
     public IReadOnlyList<Bookmark> Items => _items;
 
     public int Revision { get; private set; }
 
     /// <summary>The bookmark selected in the panel.</summary>
-    public ListSelection Selection { get; } = new();
+    public ItemSelection<Bookmark> Selection { get; } = new();
 
     /// <summary>The cell of the selected bookmark current in the panel, and the text selected in it.</summary>
     public TableCellSelection Cells { get; }
 
-    /// <summary>The index of the bookmark selected in the panel, or -1.</summary>
-    public int Selected => Selection.Index;
-
-    public Bookmark? SelectedBookmark => Selected >= 0 ? _items[Selected] : null;
+    public Bookmark? SelectedBookmark => Selection.Item;
 
     /// <summary>The bookmark whose name is being edited, and the name typed so far.</summary>
     public Bookmark? Renaming { get; private set; }
@@ -161,7 +158,7 @@ public sealed class BookmarkList
         if (IsMarked(bookmark))
             return false;
         _items.Add(bookmark);
-        Selection.Select(_items.Count - 1, _items.Count);
+        Selection.Select(bookmark, _items);
         Revision++;
         return true;
     }
@@ -175,8 +172,21 @@ public sealed class BookmarkList
         _items.RemoveAt(index);
         if (Renaming == bookmark)
             Renaming = null;
-        Selection.Select(Math.Min(Selected, _items.Count - 1), _items.Count, reveal: false);
+        if (Selection.Item == bookmark)
+            SelectInRow(index);
         Revision++;
+    }
+
+    /// <summary>Selects the bookmark at <paramref name="index"/>, or the last when there are fewer.</summary>
+    private void SelectInRow(int index)
+    {
+        var row = Math.Min(index, _items.Count - 1);
+        if (row < 0)
+        {
+            Selection.Clear();
+            return;
+        }
+        Selection.Select(_items[row], _items, reveal: false);
     }
 
     public void SetEnabled(Bookmark bookmark, bool enabled)
@@ -211,15 +221,27 @@ public sealed class BookmarkList
     public Bookmark? Step(int direction)
     {
         var count = _items.Count;
-        var start = Selected >= 0 ? Selected : direction > 0 ? -1 : count;
+        var start = StepStart(direction);
         for (var step = 1; step <= count; step++)
         {
             var index = ((start + Math.Sign(direction) * step) % count + count) % count;
             if (!_items[index].Enabled) continue;
-            Selection.Select(index, count);
+            Selection.Select(_items[index], _items);
             return _items[index];
         }
         return null;
+    }
+
+    /// <summary>The row stepping starts from: the selected bookmark's, or just before the first or
+    /// after the last.</summary>
+    private int StepStart(int direction)
+    {
+        var selected = Selection.IndexIn(_items);
+        if (selected >= 0)
+            return selected;
+        if (direction > 0)
+            return -1;
+        return _items.Count;
     }
 
     /// <summary>The first bookmark marking <paramref name="line"/> of <paramref name="document"/>,

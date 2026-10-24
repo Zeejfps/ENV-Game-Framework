@@ -155,7 +155,7 @@ internal static class SearchPanelView
     private static void ShowSelected(Workspace w)
     {
         var search = w.Search;
-        if (search.Selected < 0)
+        if (search.SelectedRow == null)
             search.Move(1);
         var row = search.SelectedRow;
         if (row != null)
@@ -183,7 +183,8 @@ internal static class SearchPanelView
         var search = w.Search;
         var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
         var sort = new TableSort(ColumnOf(search.Sort), SortIcon(search));
-        var table = ui.Table(ResultsId, w.SearchColumns, search.Selection);
+        search.Selection.ShowIn(search.Rows);
+        var table = ui.Table(ResultsId, w.SearchColumns, search.Selection.Rows);
         var clicked = table.Header(headers, sort);
         if (clicked >= 0)
             search.SortBy(SortOf(clicked));
@@ -204,8 +205,10 @@ internal static class SearchPanelView
     {
         var search = w.Search;
         using var body = table.Body(search.Rows.Count);
+        search.Selection.TakeFrom(search.Rows);
         for (var i = body.First; i < body.End; i++)
             ResultRow(ui, w, body, i);
+        search.Selection.TakeFrom(search.Rows);
         var selected = search.SelectedRow;
         if (body.Activated && selected != null)
             w.Show(selected.Node, body.InNewTab);

@@ -37,6 +37,7 @@ internal static class BookmarksPanelView
             return;
         }
 
+        bookmarks.Selection.ShowIn(bookmarks.Items);
         var table = ui.Table(ListId, w.BookmarkColumns, bookmarks.Cells);
         table.Header(Headers(t));
         var removed = List(ui, w, table);
@@ -53,10 +54,12 @@ internal static class BookmarksPanelView
         var renaming = bookmarks.Renaming != null;
         Bookmark? removed = null;
         using var body = table.Body(bookmarks.Items.Count, keys: !renaming);
+        bookmarks.Selection.TakeFrom(bookmarks.Items);
         if (body.Focused && !renaming)
             removed = HandleKeys(ui, bookmarks);
         for (var i = body.First; i < body.End; i++)
             Row(ui, w, body, bookmarks.Items[i], i, palette);
+        bookmarks.Selection.TakeFrom(bookmarks.Items);
         Answer(ui, w, body);
         return removed;
     }

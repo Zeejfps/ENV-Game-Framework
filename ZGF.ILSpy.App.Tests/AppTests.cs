@@ -301,10 +301,11 @@ public sealed class AppTests
     {
         var app = Searching("Greet", moreRowsThan: 2);
 
+        var search = app.Workspace.Search;
         app.Frames.Key(KeyboardKey.DownArrow).Frame();
-        Assert.Equal(0, app.Workspace.Search.Selected);
+        Assert.Same(search.Rows[0], search.SelectedRow);
         app.Frames.Key(KeyboardKey.DownArrow).Frame();
-        Assert.Equal(1, app.Workspace.Search.Selected);
+        Assert.Same(search.Rows[1], search.SelectedRow);
         app.Frames.Key(KeyboardKey.Enter).Frame();
         app.Settle();
 
@@ -316,7 +317,7 @@ public sealed class AppTests
     {
         var app = Searching("Greet", moreRowsThan: 2);
         var search = app.Workspace.Search;
-        search.Select(search.Rows.Count - 1);
+        search.Select(search.Rows[search.Rows.Count - 1]);
         var selected = search.SelectedRow!.Node;
         var names = search.Rows.Select(r => r.Text).ToList();
         Assert.Equal(SearchSort.Relevance, search.Sort);

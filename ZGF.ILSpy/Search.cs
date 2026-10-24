@@ -1,4 +1,3 @@
-using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -47,12 +46,9 @@ public sealed class Search
     public IReadOnlyList<SearchResult> Rows => _rows;
     public bool IsBusy => _runs.Count > 0;
 
-    public ListSelection Selection { get; } = new();
+    public ItemSelection<SearchResult> Selection { get; } = new();
 
-    /// <summary>The selected row, or -1.</summary>
-    public int Selected => Selection.Index;
-
-    public SearchResult? SelectedRow => Selected >= 0 ? _rows[Selected] : null;
+    public SearchResult? SelectedRow => Selection.Item;
 
     public SearchSort Sort { get; private set; }
     public bool Descending { get; private set; }
@@ -127,9 +123,8 @@ public sealed class Search
         var closed = _searched.RemoveWhere(a => !listed.Contains(a));
         if (closed == 0)
             return;
-        var selected = SelectedRow?.Node;
         _rows.RemoveAll(r => !_searched.Contains(r.Node.Assembly));
-        Reselect(selected);
+        Selection.DropIfGone(_rows);
     }
 
     private List<LoadedAssembly> MarkSearched(IReadOnlyList<LoadedAssembly> listed)
@@ -176,14 +171,11 @@ public sealed class Search
     {
         if (!_runs.Contains(work))
             return;
-        var selected = SelectedRow?.Node;
         foreach (var row in batch)
         {
             if (_searched.Contains(row.Node.Assembly))
                 Insert(row);
         }
-        if (selected != null)
-            Reselect(selected);
     }
 
     private void Insert(SearchResult row)
@@ -201,9 +193,9 @@ public sealed class Search
         _rows.Insert(low, row);
     }
 
-    public void Select(int index) => Selection.Select(index, _rows.Count);
+    public void Select(SearchResult row) => Selection.Select(row, _rows);
 
-    public void Move(int by) => Selection.Move(by, _rows.Count);
+    public void Move(int by) => Selection.Move(by, _rows);
 
     public void Clear() => Query = "";
 
@@ -215,10 +207,8 @@ public sealed class Search
             sort = SearchSort.Relevance;
         Descending = Sort == sort && sort != SearchSort.Relevance;
         Sort = sort;
-        var selected = SelectedRow?.Node;
         _rows.Sort(Compare);
-        Reselect(selected);
-        Selection.Reveal();
+        Selection.Reveal(_rows);
     }
 
     private int Compare(SearchResult a, SearchResult b)
@@ -263,16 +253,5 @@ public sealed class Search
         if (order != 0)
             return order;
         return StringComparer.OrdinalIgnoreCase.Compare(a3, b3);
-    }
-
-    private void Reselect(BrowseNode? selected)
-    {
-        if (selected == null)
-        {
-            Selection.Clear();
-            return;
-        }
-        var index = _rows.FindIndex(r => ReferenceEquals(r.Node, selected));
-        Selection.Select(index, _rows.Count, reveal: false);
     }
 }

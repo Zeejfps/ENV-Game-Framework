@@ -241,7 +241,7 @@ public sealed class WorkspaceTests
         d.Settle();
         var rows = search.Rows.ToArray();
         Assert.Single(rows);
-        search.Select(0);
+        search.Select(search.Rows[0]);
         var selected = search.SelectedRow!.Node;
 
         var document = d.Workspace.Tabs.Active!.Document;
@@ -271,7 +271,7 @@ public sealed class WorkspaceTests
         search.Update(d.Workspace.Assemblies, 1, true);
         d.Settle();
         Assert.Contains(search.Rows, r => r.Node.Assembly != greeter.Assembly);
-        search.Select(search.Rows.ToList().FindIndex(r => r.Node.Assembly == greeter.Assembly));
+        search.Select(search.Rows.First(r => r.Node.Assembly == greeter.Assembly));
         var selected = search.SelectedRow!.Node;
 
         d.Workspace.Close(d.Workspace.Assemblies.Assemblies.Single(a => a.Name == "System.Private.CoreLib"));
@@ -308,13 +308,13 @@ public sealed class WorkspaceTests
         Assert.True(search.Rows.Count > 3);
 
         search.Move(1);
-        Assert.Equal(0, search.Selected);
+        Assert.Same(search.Rows[0], search.SelectedRow);
         search.Move(2);
-        Assert.Equal(2, search.Selected);
+        Assert.Same(search.Rows[2], search.SelectedRow);
         search.Move(-10);
-        Assert.Equal(0, search.Selected);
+        Assert.Same(search.Rows[0], search.SelectedRow);
         search.Move(1000);
-        Assert.Equal(search.Rows.Count - 1, search.Selected);
+        Assert.Same(search.Rows[search.Rows.Count - 1], search.SelectedRow);
     }
 
     [Fact]

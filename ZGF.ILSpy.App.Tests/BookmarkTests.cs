@@ -250,6 +250,50 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
+    public void The_selected_bookmark_stays_selected_when_one_before_it_is_removed()
+    {
+        var app = new AppDriver(height: 500f);
+        var (d, tab, line) = OutlineAt("return First();", app.Driver);
+        d.Workspace.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
+        d.Workspace.ToggleBookmark(tab, tab.Document.Find("needle").Line);
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.OpenBookmarks();
+        app.Run(3);
+        var bookmarks = d.Workspace.Bookmarks;
+        var second = bookmarks.Items[1];
+        bookmarks.Step(1);
+        bookmarks.Step(1);
+        app.Run(2);
+
+        bookmarks.Remove(bookmarks.Items[0]);
+        app.Run(2);
+
+        Assert.Same(second, bookmarks.SelectedBookmark);
+    }
+
+    [Fact]
+    public void Removing_the_selected_bookmark_selects_the_one_that_takes_its_row()
+    {
+        var app = new AppDriver(height: 500f);
+        var (d, tab, line) = OutlineAt("return First();", app.Driver);
+        d.Workspace.ToggleBookmark(tab, tab.Document.Find("foreach").Line);
+        d.Workspace.ToggleBookmark(tab, tab.Document.Find("needle").Line);
+        d.Workspace.ToggleBookmark(tab, line);
+        d.Workspace.OpenBookmarks();
+        app.Run(3);
+        var bookmarks = d.Workspace.Bookmarks;
+        var third = bookmarks.Items[2];
+        bookmarks.Step(1);
+        bookmarks.Step(1);
+        app.Run(2);
+
+        bookmarks.Remove(bookmarks.Items[1]);
+        app.Run(2);
+
+        Assert.Same(third, bookmarks.SelectedBookmark);
+    }
+
+    [Fact]
     public void Clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
     {
         var (app, d, _, _) = ShowBookmark();
