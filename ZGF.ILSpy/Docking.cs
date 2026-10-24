@@ -2,9 +2,13 @@ using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Switching to and closing document tabs. Where their panels are docked is the screen's.</summary>
+/// <summary>Opening empty document tabs, switching to them and closing them. Where their panels are
+/// docked is the screen's.</summary>
 public static class Docking
 {
+    /// <summary>Opens an empty tab for a panel the screen made for itself.</summary>
+    public static DocumentTab OpenEmptyTab(AppState appState) => appState.AddTab();
+
     /// <summary>Makes <paramref name="tab"/>, when it is open, the tab the user works in, decompiling
     /// again what it shows when the language or the options changed since.</summary>
     public static void FocusTab(AppState appState, DocumentTab tab)

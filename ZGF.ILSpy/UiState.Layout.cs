@@ -1,6 +1,5 @@
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
-using static ZGF.ILSpy.Docking;
 
 namespace ZGF.ILSpy;
 
@@ -33,15 +32,18 @@ public sealed partial class UiState
         return layout;
     }
 
+    /// <summary>What the screen asked of the app state while it drew, for the app to run once the frame is drawn.</summary>
+    public Queue<AppCommand> AppCommands { get; } = new();
+
     private string OpenTabForPanel()
     {
-        var tab = _appState.AddTab();
-        AddTabView(tab);
-        return PanelOf(tab);
+        var panel = NewDocumentPanel();
+        AppCommands.Enqueue(new AppCommand.OpenTab(panel, Focus: false));
+        return panel;
     }
 
-    /// <summary>Called when a panel is closed: clears the search with its panel, and closes the tab a
-    /// closed document was, focusing the next one when it was active.</summary>
+    /// <summary>Called when a panel is closed: clears the search with its panel, and asks for the tab a
+    /// closed document was to be closed.</summary>
     private void OnPanelClosed(string panel)
     {
         if (panel == DockPanels.Search)
@@ -55,21 +57,18 @@ public sealed partial class UiState
         if (tab == null)
             return;
         DropTabView(tab);
-        var wasActive = CloseTab(_appState, tab);
-        if (!wasActive)
-            return;
-        FocusNextTab();
+        AppCommands.Enqueue(new AppCommand.CloseTab(tab));
     }
 
     /// <summary>Focuses the tab of the panel the layout focuses now, else the first group's front tab.</summary>
-    private void FocusNextTab()
+    public void FocusNextTab()
     {
         var next = FindTab(Layout.Focused);
         if (next == null)
             next = FindFrontTab();
         if (next == null)
             return;
-        FocusAndRevealTab(next);
+        AskToFocusTab(next);
     }
 
     /// <summary>The tab in front of the first group, docked then floating, that has one in front.
@@ -100,22 +99,10 @@ public sealed partial class UiState
         return FindFrontTab(split.Second);
     }
 
-    /// <summary>Makes <paramref name="tab"/> the active tab and reveals what it shows in the tree, when
-    /// that is listed.</summary>
-    private void FocusAndRevealTab(DocumentTab tab)
+    /// <summary>Asks for <paramref name="tab"/> to become the active tab, with what it shows revealed in the tree.</summary>
+    private void AskToFocusTab(DocumentTab tab)
     {
-        FocusTab(_appState, tab);
-        RevealShown(tab);
-    }
-
-    private void RevealShown(DocumentTab tab)
-    {
-        var node = tab.Node;
-        if (node == null)
-            return;
-        if (!_appState.IsListed(node))
-            return;
-        Tree.Reveal(node);
+        AppCommands.Enqueue(new AppCommand.FocusTab(tab));
     }
 
     /// <summary>Focuses another tab when the active one was closed by a feature, trying again only once
@@ -154,17 +141,17 @@ public sealed partial class UiState
         Layout.Close(panel);
     }
 
-    /// <summary>Brings <paramref name="tab"/>'s panel to the front and makes it the active tab.</summary>
+    /// <summary>Brings <paramref name="tab"/>'s panel to the front and asks for it to become the active tab.</summary>
     public void ActivateTab(DocumentTab tab)
     {
         if (!_appState.Tabs.Contains(tab))
             return;
         Layout.Activate(PanelOf(tab));
-        FocusAndRevealTab(tab);
+        AskToFocusTab(tab);
     }
 
     /// <summary>Called after the documents are drawn: runs the view commands the features queued meanwhile, then
-    /// makes the tab the user last pressed, docked or brought to front the active one.</summary>
+    /// asks for the tab the user last pressed, docked or brought to front to become the active one.</summary>
     public void SyncActiveTab()
     {
         RunViewCommands();
@@ -173,7 +160,7 @@ public sealed partial class UiState
             return;
         if (tab == _appState.Tabs.Active)
             return;
-        FocusAndRevealTab(tab);
+        AskToFocusTab(tab);
     }
 
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
@@ -269,17 +256,17 @@ public sealed partial class UiState
     {
         var documents = MainLayout.ListDocuments();
         if (documents.Count == 0)
-            documents.Add(PanelOf(OpenActiveTab()));
+            documents.Add(OpenActiveTabPanel());
         MainLayout.Reset(documents);
         ActivateActivePanel();
     }
 
-    private DocumentTab OpenActiveTab()
+    /// <summary>A new document panel, with an empty tab asked for to be opened in it as the active tab.</summary>
+    private string OpenActiveTabPanel()
     {
-        var tab = _appState.AddTab();
-        AddTabView(tab);
-        FocusTab(_appState, tab);
-        return tab;
+        var panel = NewDocumentPanel();
+        AppCommands.Enqueue(new AppCommand.OpenTab(panel, Focus: true));
+        return panel;
     }
 
     private void ActivateActivePanel()

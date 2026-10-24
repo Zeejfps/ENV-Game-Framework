@@ -159,11 +159,12 @@ internal sealed class AppStateDriver
 
     /// <summary>Does what a frame does before and after it draws: the screen follows the trees and the
     /// tabs and runs the commands the features queued for it, then tells the tabs where their views stand and
-    /// hands over what the settings keep of it.</summary>
+    /// hands over what the settings keep of it, and the app runs what the screen asked of the app state.</summary>
     public void NextFrame()
     {
         Ui.StartFrame();
         Ui.FinishFrame();
+        IlSpyApp.RunAppCommands(Ui, AppState);
     }
 
     /// <summary>Pumps until <paramref name="done"/>.</summary>

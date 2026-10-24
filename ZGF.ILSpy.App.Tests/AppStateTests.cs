@@ -112,6 +112,7 @@ public sealed class AppStateTests
         var documents = d.Ui.Layout;
         documents.Dock(farewellPanel, documents.Root, DockEdge.Right);
         d.Ui.ActivateTab(greeter);
+        d.NextFrame();
 
         d.Show(d.Fixture("Outline"), inNewTab: true);
 
@@ -131,6 +132,7 @@ public sealed class AppStateTests
 
         documents.Dock(greeterPanel, documents.GroupOf(greeterPanel)!, DockEdge.Right);
         d.Ui.SyncActiveTab();
+        d.NextFrame();
 
         Assert.Equal(2, d.AppState.Tabs.Count);
         var empty = d.AppState.Tabs.Single(t => t != greeter);

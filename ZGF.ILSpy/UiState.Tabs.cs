@@ -77,7 +77,15 @@ public sealed partial class UiState
     {
         if (_tabViews.ContainsKey(tab))
             return;
-        _tabViews.Add(tab, new TabView(NewDocumentPanel()));
+        AddTabView(tab, NewDocumentPanel());
+    }
+
+    /// <summary>Shows <paramref name="tab"/> in <paramref name="panel"/>, unless it is shown already.</summary>
+    public void AddTabView(DocumentTab tab, string panel)
+    {
+        if (_tabViews.ContainsKey(tab))
+            return;
+        _tabViews.Add(tab, new TabView(panel));
     }
 
     private string NewDocumentPanel()
