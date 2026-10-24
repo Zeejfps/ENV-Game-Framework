@@ -21,9 +21,9 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     protected override void OnStartup(ImmediateGuiAppHost host)
     {
-        RegisterFonts(host);
-        State.Assemblies.Changed += host.Invalidate;
+        LoadAndRegisterFonts(host);
         OpenStartupAssemblies();
+        StartRedrawingOnAssemblyChanges(host);
         State.RestoreAnalyses();
     }
 
@@ -38,11 +38,11 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     protected override void OnShutdown(ImmediateGuiAppHost host)
     {
-        State.Assemblies.Changed -= host.Invalidate;
+        StopRedrawingOnAssemblyChanges(host);
         SaveOnExit(host.WindowBounds);
     }
 
-    private static void RegisterFonts(ImmediateGuiAppHost host)
+    private static void LoadAndRegisterFonts(ImmediateGuiAppHost host)
     {
         host.RegisterFont(LoadFont(MonoFonts.Regular, MonoFontFile));
         host.RegisterFont(LoadFont(TextFonts.Italic, ItalicFontFile));
@@ -55,32 +55,36 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         return new FontFace(family, data);
     }
 
+    private void StartRedrawingOnAssemblyChanges(ImmediateGuiAppHost host)
+    {
+        State.Assemblies.Changed += host.Invalidate;
+    }
+
     private void OpenStartupAssemblies()
     {
         State.RestoreActiveList();
         State.Open(_startupAssemblies);
     }
 
-    /// <summary>Saves the settings as the app closes, with the main window at <paramref name="window"/>
-    /// and the screen's view state as it is now, even what a held button has not settled yet.</summary>
+    private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost host)
+    {
+        State.Assemblies.Changed -= host.Invalidate;
+    }
+
     internal void SaveOnExit(WindowBounds window)
     {
         State.Settings.RememberWindow(window);
         UiState.HandOverViewSettings();
         State.SaveSettings();
     }
-
-    /// <summary>Asks for another frame when a feature asked something of the view after the screen
-    /// took the asks, as frames are drawn only on demand.</summary>
+    
     private static void DrawAgainForViewAsks(Ui<UiState> ui, Workspace w)
     {
         if (w.ViewAsks.Count == 0)
             return;
         ui.RequestFrame();
     }
-
-    /// <summary>Autosaves, and asks for a frame when a failed write may be tried again, as frames are
-    /// drawn only on demand.</summary>
+    
     private static void SaveSettingsIfChanged(Ui<UiState> ui, Workspace w)
     {
         var wait = w.SaveSettingsIfChanged(ui.RealTime);
