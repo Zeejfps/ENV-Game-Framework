@@ -1,6 +1,9 @@
 using ZGF.Desktop;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Exports;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -19,10 +22,10 @@ public sealed class ExportTests : IDisposable
     public void Saving_code_writes_the_node_in_the_current_language()
     {
         var d = AppStateDriver.Opened();
-        Preferences.SetLanguage(d.AppState, DecompilationLanguage.IL);
+        SetLanguage(d.AppState, DecompilationLanguage.IL);
         var path = _temp.PathOf("Greeter.il");
 
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), path);
+        SaveCode(d.AppState, d.Fixture("Greeter"), path);
         d.Settle();
 
         Assert.Contains(".class public auto ansi beforefieldinit ZGF.ILSpy.App.Tests.Fixtures.Greeter", File.ReadAllText(path));
@@ -35,7 +38,7 @@ public sealed class ExportTests : IDisposable
         var d = AppStateDriver.Opened();
         var path = _temp.PathOf("Fixtures.csproj");
 
-        Exporting.SaveCode(d.AppState, d.Node(), path);
+        SaveCode(d.AppState, d.Node(), path);
         d.Settle();
 
         var code = File.ReadAllText(path);
@@ -51,8 +54,8 @@ public sealed class ExportTests : IDisposable
         var node = d.Node("Resources", "data.json");
         var path = _temp.PathOf("data.json");
 
-        Assert.True(Exporting.CanSaveCode(d.AppState, node));
-        Exporting.SaveCode(d.AppState, node, path);
+        Assert.True(CanSaveCode(d.AppState, node));
+        SaveCode(d.AppState, node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
     }
@@ -63,7 +66,7 @@ public sealed class ExportTests : IDisposable
         var d = AppStateDriver.Opened();
         var assembly = d.Node().Assembly;
 
-        Exporting.GeneratePdbs(d.AppState, _temp.Path);
+        GeneratePdbs(d.AppState, _temp.Path);
         d.Settle();
 
         Assert.True(File.Exists(_temp.PathOf(assembly.PdbFileName)));
@@ -90,7 +93,7 @@ public sealed class ExportTests : IDisposable
     {
         var app = AppDriver.Opened();
         var sample = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
-        AssemblyLoading.Open(app.AppState, sample);
+        OpenAssembly(app.AppState, sample);
         app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Any(a => a.FilePath == sample));
         var assembly = app.AppState.Assemblies.Assemblies.Single(a => a.FilePath == sample);
         var baml = assembly.Root.Child("Resources", "SampleApp.g.resources", "mainwindow.baml");
@@ -202,8 +205,8 @@ public sealed class ExportTests : IDisposable
         var greeter = _temp.PathOf("Greeter.cs");
         var farewell = _temp.PathOf("Farewell.cs");
 
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), greeter);
-        Exporting.SaveCode(d.AppState, d.Fixture("Farewell"), farewell);
+        SaveCode(d.AppState, d.Fixture("Greeter"), greeter);
+        SaveCode(d.AppState, d.Fixture("Farewell"), farewell);
         Assert.Equal(1, d.AppState.Export.WaitingCount);
         d.Settle();
 
@@ -218,7 +221,7 @@ public sealed class ExportTests : IDisposable
         var d = AppStateDriver.Opened();
         var path = _temp.PathOf(Path.Combine("Project", "Fixtures.csproj"));
 
-        Exporting.ExportProject(d.AppState, d.Node().Assembly, path);
+        ExportProject(d.AppState, d.Node().Assembly, path);
         d.AppState.Export.Cancel();
         d.Settle();
 
@@ -248,7 +251,7 @@ public sealed class ExportTests : IDisposable
         var d = AppStateDriver.Opened();
         var path = _temp.PathOf("Greeter.cs");
 
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), path);
+        SaveCode(d.AppState, d.Fixture("Greeter"), path);
         d.Settle();
 
         var report = Assert.Single(d.AppState.FinishedExports);
@@ -264,7 +267,7 @@ public sealed class ExportTests : IDisposable
     {
         var d = AppStateDriver.Opened();
 
-        Exporting.ExportProject(d.AppState, d.Node().Assembly, _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
+        ExportProject(d.AppState, d.Node().Assembly, _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
         d.AppState.Export.Cancel();
         d.Settle();
 
@@ -279,7 +282,7 @@ public sealed class ExportTests : IDisposable
         var d = AppStateDriver.Opened();
         var path = _temp.PathOf(Path.Combine("missing", "Greeter.cs"));
 
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), path);
+        SaveCode(d.AppState, d.Fixture("Greeter"), path);
         d.Settle();
 
         var report = Assert.Single(d.AppState.FinishedExports);

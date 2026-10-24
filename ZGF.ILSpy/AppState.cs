@@ -1,12 +1,14 @@
 using System.Globalization;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Bookmarks;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy;
 
 /// <summary>
 /// The app's data, and which tab, list and history entry are current. What the user can do to it are
-/// static functions grouped by feature, such as <see cref="Navigation"/> and <see cref="Bookmarking"/>.
+/// static functions grouped by feature, such as <see cref="Navigation"/> and <see cref="Docking"/>.
 /// It never sees the screen; a feature that needs the view to act later commands
 /// it through <see cref="ViewCommands"/>. Lives on the UI thread: background work (opening, decompiling,
 /// resolving, searching) is awaited there through <see cref="Background"/>. A result is dropped when
@@ -60,7 +62,7 @@ public sealed class AppState
     /// <summary>True while a reference or a history entry is being found in the background.</summary>
     public bool IsResolving => Intent.IsResolving;
 
-    /// <summary>True while <see cref="AssemblyLoading.Refresh"/> reopens the assemblies.</summary>
+    /// <summary>True while <see cref="ZGF.ILSpy.Assemblies.RefreshAssemblies"/> reopens the assemblies.</summary>
     public bool IsReloading => Reload.IsRunning;
 
     /// <summary>True while analyzer roots wait for their symbols to be found.</summary>
@@ -97,9 +99,9 @@ public sealed class AppState
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
-        LastSave.Record(Saving.CaptureSavedSources(this));
+        LastSave.Record(CaptureSavedSources(this));
         ReportSettingsLoadError(settings);
-        Bookmarking.ReportLeftOutBookmarks(this, leftOutBookmarks);
+        ReportLeftOutBookmarks(this, leftOutBookmarks);
     }
 
     private static Locale ChooseLocale(AppSettings settings)

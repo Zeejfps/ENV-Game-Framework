@@ -5,6 +5,8 @@ using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -46,7 +48,7 @@ public sealed class MetadataGridTests
     {
         var (app, tab, grid) = ShowTable("TypeDef", frames: 0);
 
-        Preferences.SetLanguage(app.AppState, DecompilationLanguage.IL);
+        SetLanguage(app.AppState, DecompilationLanguage.IL);
         app.Settle(2);
 
         Assert.Same(grid, tab.Grid);
@@ -99,7 +101,7 @@ public sealed class MetadataGridTests
         Assert.Equal("Object", typeRefs.Text(GridOf(app, tab).Selected, typeRefs.Column("Name")));
         app.TextRect("Object");
 
-        Navigation.GoBack(app.AppState);
+        GoBack(app.AppState);
         app.Settle(3);
 
         Assert.Same(Table(app, "TypeDef"), tab.Node);

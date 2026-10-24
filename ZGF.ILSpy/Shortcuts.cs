@@ -1,6 +1,9 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Exports;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
@@ -48,9 +51,9 @@ internal static class Shortcuts
 
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
-            Navigation.GoBack(appState);
+            GoBack(appState);
         if (input.WasPressed(PointerButton.Forward))
-            Navigation.GoForward(appState);
+            GoForward(appState);
 
         var keys = input.Keys;
         for (var i = 0; i < keys.Count; i++)
@@ -62,10 +65,10 @@ internal static class Shortcuts
                     ui.State.OpenSearch();
                     continue;
                 case (KeyModifiers.Alt, KeyboardKey.LeftArrow):
-                    Navigation.GoBack(appState);
+                    GoBack(appState);
                     continue;
                 case (KeyModifiers.Alt, KeyboardKey.RightArrow):
-                    Navigation.GoForward(appState);
+                    GoForward(appState);
                     continue;
             }
             if (ui.WantsTextInput) continue;
@@ -79,10 +82,10 @@ internal static class Shortcuts
                     SaveDialogs.PickActiveCodeFile(ui, appState);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
-                    ui.State.OpenExportSetup(Exporting.ActiveAssembly(appState));
+                    ui.State.OpenExportSetup(FindActiveAssembly(appState));
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
-                    AssemblyLoading.Refresh(appState, ui.State.Tree.ExpandedPaths());
+                    RefreshAssemblies(appState, ui.State.Tree.ExpandedPaths());
                     break;
                 case (KeyModifiers.Control, KeyboardKey.W):
                     ui.State.CloseActiveTab();

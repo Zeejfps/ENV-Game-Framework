@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
@@ -9,7 +10,7 @@ namespace ZGF.ILSpy;
 /// export at a time in the order they were asked for, which <see cref="AppState.Export"/> queues.
 /// Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.
 /// Resources are written straight away.</summary>
-public static class Exporting
+public static class Exports
 {
     private const string ProjectExtension = ".csproj";
 
@@ -161,7 +162,7 @@ public static class Exporting
     }
 
     /// <summary>The assembly of the node the active tab shows, or null.</summary>
-    public static LoadedAssembly? ActiveAssembly(AppState appState)
+    public static LoadedAssembly? FindActiveAssembly(AppState appState)
     {
         var node = appState.Tabs.Active?.Node;
         if (node == null)
@@ -243,7 +244,7 @@ public static class Exporting
     {
         var t = Strings.For(appState.Locale);
         var document = ExportReportText.Write(t, [report]);
-        var tab = Navigation.OpenNewTab(appState);
+        var tab = OpenNewTab(appState);
         appState.Tabs.MakeActive(tab);
         tab.ShowText(t.ExportReportTitle, document);
     }
@@ -268,7 +269,7 @@ public static class Exporting
 
     /// <summary>The folder the export <paramref name="run"/> writes into, wherever it is in the
     /// queue, or null when it is gone.</summary>
-    public static string? FolderOfExport(AppState appState, int run)
+    public static string? FindExportFolder(AppState appState, int run)
     {
         var finished = FindFinishedExport(appState, run);
         if (finished != null)

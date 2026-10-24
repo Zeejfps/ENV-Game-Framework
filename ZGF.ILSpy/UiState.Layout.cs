@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Docking;
 
 namespace ZGF.ILSpy;
 
@@ -54,7 +55,7 @@ public sealed partial class UiState
         if (tab == null)
             return;
         DropTabView(tab);
-        var wasActive = Docking.CloseTab(_appState, tab);
+        var wasActive = CloseTab(_appState, tab);
         if (!wasActive)
             return;
         FocusNextTab();
@@ -68,7 +69,7 @@ public sealed partial class UiState
             next = FindFrontTab();
         if (next == null)
             return;
-        FocusTab(next);
+        FocusAndRevealTab(next);
     }
 
     /// <summary>The tab in front of the first group, docked then floating, that has one in front.
@@ -101,9 +102,9 @@ public sealed partial class UiState
 
     /// <summary>Makes <paramref name="tab"/> the active tab and reveals what it shows in the tree, when
     /// that is listed.</summary>
-    private void FocusTab(DocumentTab tab)
+    private void FocusAndRevealTab(DocumentTab tab)
     {
-        Docking.FocusTab(_appState, tab);
+        FocusTab(_appState, tab);
         RevealShown(tab);
     }
 
@@ -158,7 +159,7 @@ public sealed partial class UiState
         if (!_appState.Tabs.Contains(tab))
             return;
         Layout.Activate(tab.Panel);
-        FocusTab(tab);
+        FocusAndRevealTab(tab);
     }
 
     /// <summary>Called after the documents are drawn: runs the view commands the features queued meanwhile, then
@@ -171,7 +172,7 @@ public sealed partial class UiState
             return;
         if (tab == _appState.Tabs.Active)
             return;
-        FocusTab(tab);
+        FocusAndRevealTab(tab);
     }
 
     /// <summary>Brings the next tab of the active tab's group to the front, or the previous one.</summary>
@@ -273,7 +274,7 @@ public sealed partial class UiState
     {
         var tab = _appState.AddTab();
         AddTabView(tab);
-        Docking.FocusTab(_appState, tab);
+        FocusTab(_appState, tab);
         return tab;
     }
 

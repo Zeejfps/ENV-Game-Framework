@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate.Widgets;
+using static ZGF.ILSpy.AssemblyLists;
 
 namespace ZGF.ILSpy;
 
@@ -24,7 +25,7 @@ public sealed class AssemblyListsDialog
     /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>
     public void Open(AppState appState)
     {
-        AssemblyListing.RememberOpenAssemblies(appState);
+        RememberOpenAssemblies(appState);
         IsOpen = true;
         Pick(appState.Lists, appState.Lists.Active);
     }
@@ -32,7 +33,7 @@ public sealed class AssemblyListsDialog
     /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
     public void Create(AppState appState)
     {
-        var name = AssemblyListing.CreateList(appState);
+        var name = CreateAssemblyList(appState);
         PickToRename(appState.Lists, name);
     }
 
@@ -40,7 +41,7 @@ public sealed class AssemblyListsDialog
     /// open one open.</summary>
     public void Duplicate(AppState appState, string name)
     {
-        var copy = AssemblyListing.DuplicateList(appState, name);
+        var copy = DuplicateAssemblyList(appState, name);
         PickToRename(appState.Lists, copy);
     }
 
@@ -54,7 +55,7 @@ public sealed class AssemblyListsDialog
     /// place when it was open.</summary>
     public void Delete(AppState appState, string name)
     {
-        AssemblyListing.DeleteList(appState, name);
+        DeleteAssemblyList(appState, name);
         Pick(appState.Lists, appState.Lists.Active);
     }
 

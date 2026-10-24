@@ -33,9 +33,9 @@ public sealed class AnalyzerSymbolNode(AnalysisSymbol symbol) : AnalyzerNode
     private List<AnalyzerNode> ListChildren()
     {
         var children = new List<AnalyzerNode>();
-        foreach (var accessor in Analysis.AccessorsOf(Symbol))
+        foreach (var accessor in Analyzers.AccessorsOf(Symbol))
             children.Add(new AnalyzerSymbolNode(accessor));
-        foreach (var kind in Analysis.KindsFor(Symbol))
+        foreach (var kind in Analyzers.KindsFor(Symbol))
             children.Add(new AnalyzerKindNode(Symbol, kind));
         return children;
     }
@@ -79,7 +79,7 @@ public sealed class AnalyzerKindNode(AnalysisSymbol subject, AnalysisKind kind) 
         var token = work.Token;
         try
         {
-            await foreach (var batch in Analysis.RunAsync(assemblies, Subject, Kind, token))
+            await foreach (var batch in Analyzers.RunAsync(assemblies, Subject, Kind, token))
                 Deliver(work, CreateNodes(batch), changed);
             Finish(work, [], changed);
         }
@@ -182,7 +182,7 @@ public sealed class AnalyzerTree
 
     /// <summary>Adds <paramref name="symbol"/> as a root, unless a root analyzes it already, and
     /// returns the root that does.</summary>
-    public AnalyzerSymbolNode Analyze(AnalysisSymbol symbol)
+    public AnalyzerSymbolNode AddRoot(AnalysisSymbol symbol)
     {
         var existing = FindRoot(symbol);
         if (existing != null)

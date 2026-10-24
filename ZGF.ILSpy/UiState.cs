@@ -121,6 +121,6 @@ public sealed partial class UiState : IUiState
     public void FinishFrame()
     {
         KeepTabPositions();
-        KeepViewSettings();
+        KeepChangedViewSettings();
     }
 }

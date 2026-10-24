@@ -1,20 +1,21 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
 /// <summary>Analyzing types and members, and analyzing again what was analyzed in the last run.</summary>
-public static class Analyzing
+public static class Analysis
 {
     /// <summary>Analyzes the type or member <paramref name="node"/> stands for in the analyzer. Returns
     /// the root analyzing it, or null when it cannot be analyzed.</summary>
-    public static AnalyzerSymbolNode? Analyze(AppState appState, BrowseNode node)
+    public static AnalyzerSymbolNode? AddToAnalyzer(AppState appState, BrowseNode node)
     {
-        var symbol = Analysis.Of(node);
+        var symbol = Analyzers.Of(node);
         if (symbol == null)
             return null;
-        return appState.Analyzer.Analyze(symbol);
+        return appState.Analyzer.AddRoot(symbol);
     }
 
     /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>
@@ -22,7 +23,7 @@ public static class Analyzing
     /// its analysis, which the view is commanded to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
-    public static async void Analyze(AppState appState, CodeReference reference)
+    public static async void AddToAnalyzer(AppState appState, CodeReference reference)
     {
         var root = appState.Analyzer.AddPending(savedAs: null);
         var found = await Background.Run(() => appState.Assemblies.FindNode(reference));
@@ -32,7 +33,7 @@ public static class Analyzing
         if (node == null)
         {
             appState.Analyzer.Remove(root);
-            Navigation.ReportUnresolved(appState, reference, found.Error);
+            ReportUnresolvedReference(appState, reference, found.Error);
             return;
         }
         AnalyzeFound(appState, root, node);
@@ -40,7 +41,7 @@ public static class Analyzing
 
     private static void AnalyzeFound(AppState appState, AnalyzerPendingNode root, BrowseNode node)
     {
-        var symbol = Analysis.Of(node);
+        var symbol = Analyzers.Of(node);
         if (symbol == null)
         {
             appState.Analyzer.Remove(root);
@@ -81,7 +82,7 @@ public static class Analyzing
 
     private static List<AnalysisSymbol?> FindAnalyzed(AppState appState, List<CodeAnchor> analyzed)
     {
-        return analyzed.ConvertAll(a => Analysis.Find(appState.Assemblies, a));
+        return analyzed.ConvertAll(a => Analyzers.Find(appState.Assemblies, a));
     }
 
     private static void ReportRestoreFailure(AppState appState, Exception? error)

@@ -2,6 +2,7 @@ using System.Reflection;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -38,7 +39,7 @@ public sealed class ScreenIsolationTests : IDisposable
         d.Ui.ScopeSearch(d.Node(AppStateDriver.FixturesNamespace));
         d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         d.Settle();
-        Saving.SaveSettings(d.AppState);
+        SaveSettings(d.AppState);
 
         var reached = FindScreenObject(d.AppState, d.Ui);
 

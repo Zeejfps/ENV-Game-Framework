@@ -1,3 +1,5 @@
+using static ZGF.ILSpy.Navigation;
+
 namespace ZGF.ILSpy;
 
 /// <summary>Switching to and closing document tabs. Where their panels are docked is the screen's.</summary>
@@ -47,6 +49,6 @@ public static class Docking
             return active;
         if (appState.Tabs.Count > 0)
             return appState.Tabs[0];
-        return Navigation.OpenNewTab(appState);
+        return OpenNewTab(appState);
     }
 }

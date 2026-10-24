@@ -1,10 +1,11 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.AssemblyLists;
 
 namespace ZGF.ILSpy;
 
 /// <summary>Saving the settings when something in them changed.</summary>
-public static class Saving
+public static class Settings
 {
     /// <summary>Saves the settings when what they are saved from changed since the last save written,
     /// unless the assemblies are reloading or a failed write is still waiting to be tried again at
@@ -26,7 +27,7 @@ public static class Saving
     /// <summary>Writes the settings, counting what they were copied from as saved only once the write succeeds.</summary>
     public static void SaveSettings(AppState appState)
     {
-        AssemblyListing.RememberActiveList(appState);
+        RememberActiveAssemblyList(appState);
         CopyStateToSettings(appState);
         var sources = CaptureSavedSources(appState);
         var error = appState.Settings.Save();

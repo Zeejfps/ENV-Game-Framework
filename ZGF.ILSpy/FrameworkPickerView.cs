@@ -3,6 +3,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Assemblies;
 
 namespace ZGF.ILSpy;
 
@@ -68,7 +69,7 @@ internal static class FrameworkPickerView
     {
         var paths = picker.ListSelected()
             .Select(a => a.FilePath);
-        AssemblyLoading.Open(appState, paths);
+        OpenAssemblies(appState, paths);
     }
 
     /// <summary>Walks the list from the filter, leaving Home and End to its text.</summary>

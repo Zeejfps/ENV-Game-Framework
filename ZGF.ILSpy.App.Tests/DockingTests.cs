@@ -1,5 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using static ZGF.ILSpy.Docking;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -64,7 +66,7 @@ public sealed class DockingTests
         var d = AppStateDriver.Opened();
         var layout = d.Ui.Layout;
 
-        Docking.CloseTab(d.AppState, d.AppState.Tabs.Active!);
+        CloseTab(d.AppState, d.AppState.Tabs.Active!);
         d.NextFrame();
         var left = Assert.IsType<DockGroup>(layout.Root).Panels.ToList();
         d.Show(d.Fixture("Greeter"));
@@ -81,7 +83,7 @@ public sealed class DockingTests
         var app = new AppDriver();
         var appState = app.AppState;
         app.Ui.Layout.Close(DockPanels.Assemblies);
-        Docking.CloseTab(appState, appState.Tabs.Active!);
+        CloseTab(appState, appState.Tabs.Active!);
 
         app.Run(2);
 
@@ -159,7 +161,7 @@ public sealed class LayoutPersistenceTests : IDisposable
         screen.OpenAnalyzer();
         screen.Layout.Dock(DockPanels.Bookmarks, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
-        Saving.SaveSettings(d.AppState);
+        SaveSettings(d.AppState);
 
         var next = new AppStateDriver(_temp.Settings());
         var layout = next.Ui.Layout;
@@ -183,7 +185,7 @@ public sealed class LayoutPersistenceTests : IDisposable
         screen.OpenAnalyzer();
         screen.Layout.Dock(DockPanels.Search, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
-        Saving.SaveSettings(d.AppState);
+        SaveSettings(d.AppState);
 
         var next = new AppStateDriver(_temp.Settings()).Ui;
 

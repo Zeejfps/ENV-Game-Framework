@@ -2,6 +2,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.AssemblyLists;
 
 namespace ZGF.ILSpy;
 
@@ -118,7 +119,7 @@ internal static class AssemblyListsDialogView
             var count = appState.Lists.PathsOf(name).Count;
             ui.Text(t.ListsCount(count), color: theme.TextMuted, size: theme.FontSizeSmall);
             if (ui.Button(t.ListsActivate, enabled: !active, id: "activate", variant: ButtonVariant.Ghost))
-                AssemblyListing.SwitchList(appState, name);
+                SwitchAssemblyList(appState, name);
             return row.Interaction.DoubleClicked;
         }
     }
@@ -191,7 +192,7 @@ internal static class AssemblyListsDialogView
             ui.State.ListsDialog.StartRenaming(name);
             return;
         }
-        AssemblyListing.SwitchList(appState, name);
+        SwitchAssemblyList(appState, name);
     }
 
     /// <summary>Keeps the name being typed when another row is picked, and drops a deletion being asked about.</summary>
@@ -245,7 +246,7 @@ internal static class AssemblyListsDialogView
         var dialog = ui.State.ListsDialog;
         var active = picked == appState.Lists.Active;
         if (ui.MenuItem(t.ListsActivate, enabled: !active, id: "activate"))
-            AssemblyListing.SwitchList(appState, picked);
+            SwitchAssemblyList(appState, picked);
         if (ui.MenuItem(t.ListsRename, "F2", id: "rename"))
             dialog.StartRenaming(picked);
         if (ui.MenuItem(t.ListsDuplicate, id: "duplicate"))

@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
@@ -89,7 +90,7 @@ internal static class AnalyzerPanelView
         var reference = symbol.Symbol.Reference;
         if (reference == null)
             return;
-        Navigation.Navigate(appState, reference, inNewTab: false);
+        Navigate(appState, reference, inNewTab: false);
     }
 
     private static void ContextMenu(Ui<UiState> ui, AppState appState)
@@ -119,8 +120,8 @@ internal static class AnalyzerPanelView
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.AnalyzerGoTo, "Enter", id: "go-to"))
-            Navigation.Navigate(appState, target, inNewTab: false);
+            Navigate(appState, target, inNewTab: false);
         if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
-            Navigation.Navigate(appState, target, inNewTab: true);
+            Navigate(appState, target, inNewTab: true);
     }
 }

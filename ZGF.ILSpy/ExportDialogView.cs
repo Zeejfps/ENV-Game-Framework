@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
@@ -311,7 +312,7 @@ internal static class ExportDialogView
         var label = DecompilerOptionLabels.Label(t, name) ?? name;
         var on = appState.DecompilerOptions.IsOn(toggle);
         if (ui.Checkbox(label, ref on, id: name, compact: true))
-            Preferences.SetDecompilerToggle(appState, toggle, on);
+            SetDecompilerToggle(appState, toggle, on);
     }
 
     /// <summary>What is written besides the code: the strong-name key to sign with, and PDBs.</summary>

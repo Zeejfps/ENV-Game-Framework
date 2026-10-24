@@ -4,6 +4,9 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Exports;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
@@ -44,7 +47,7 @@ internal static class TreePaneView
             ui.Separator(theme.IconSize);
             var picked = FindPickedAssembly(tree);
             if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
-                AssemblyLoading.Close(appState, picked!.Assembly);
+                CloseAssembly(appState, picked!.Assembly);
         }
     }
 
@@ -88,7 +91,7 @@ internal static class TreePaneView
             return;
         if (!Shortcuts.DeletePressed(ui))
             return;
-        AssemblyLoading.Close(appState, picked.Assembly);
+        CloseAssembly(appState, picked.Assembly);
     }
 
     private static void Respond(Ui<UiState> ui, AppState appState, TreeViewResult<BrowseNode> result)
@@ -97,9 +100,9 @@ internal static class TreePaneView
         if (node == null)
             return;
         if (result.SelectionChanged)
-            Navigation.Show(appState, node);
+            ShowNode(appState, node);
         if (result.Activated && node.Target != null)
-            Navigation.GoToTarget(appState, node);
+            GoToTarget(appState, node);
         if (result.ContextMenuRequested)
             OpenContextMenu(ui, appState, node, result.ContextMenuAt);
     }
@@ -125,16 +128,16 @@ internal static class TreePaneView
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
-            Navigation.Show(appState, node, inNewTab: true);
+            ShowNode(appState, node, inNewTab: true);
         if (node.Target != null && ui.MenuItem(t.TreeGoToTarget, id: "go-to-target"))
-            Navigation.GoToTarget(appState, node);
+            GoToTarget(appState, node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
-        if (Analysis.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
+        if (Analyzers.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             ui.State.Analyze(node);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, appState, node);
-        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: Exporting.CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
+        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, appState, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
             ui.State.OpenExportSetup(node.Assembly);
@@ -148,7 +151,7 @@ internal static class TreePaneView
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
-                AssemblyLoading.Close(appState, node.Assembly);
+                CloseAssembly(appState, node.Assembly);
         }
     }
 

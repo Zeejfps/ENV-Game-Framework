@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Bookmarks;
 
 namespace ZGF.ILSpy;
 
@@ -74,7 +75,7 @@ internal static class BookmarksPanelView
         var selected = panel.Selected;
         if (selected == null) return;
         if (body.Activated && panel.Renaming == null)
-            Bookmarking.GoTo(appState, selected);
+            GoToBookmark(appState, selected);
         if (body.CopyRequested && panel.Cells.HasCell)
             ui.ClipboardText = Copied(selected, panel.Cells);
         if (body.ContextMenuRequested)
@@ -123,13 +124,13 @@ internal static class BookmarksPanelView
     private static void PickExportFile(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), path => Bookmarking.ExportBookmarks(appState, path));
+        ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), path => ExportBookmarks(appState, path));
     }
 
     private static void PickImportFile(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        ui.PickFile(t.BookmarksImportTitle, null, Filters(t), path => Bookmarking.ImportBookmarks(appState, path));
+        ui.PickFile(t.BookmarksImportTitle, null, Filters(t), path => ImportBookmarks(appState, path));
     }
 
     /// <summary>What <paramref name="column"/> shows of <paramref name="bookmark"/>; nothing for the
@@ -201,7 +202,7 @@ internal static class BookmarksPanelView
             color = ui.Theme.TextMuted;
         var followed = row.TextCell(LocationColumn, bookmark.Location, color, link: LocationLink, linkTooltip: t.BookmarksGoTo);
         if (followed)
-            Bookmarking.GoTo(appState, bookmark);
+            GoToBookmark(appState, bookmark);
     }
 
     private static void TextCell(Ui<UiState> ui, TableRow row, Bookmark bookmark, bool listed, int column)
@@ -274,7 +275,7 @@ internal static class BookmarksPanelView
             return;
         var bookmarks = appState.Bookmarks;
         if (ui.MenuItem(t.BookmarksGoTo, "Enter", id: "go-to"))
-            Bookmarking.GoTo(appState, bookmark);
+            GoToBookmark(appState, bookmark);
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: panel.Cells.HasCell, id: "copy"))
             ui.ClipboardText = Copied(bookmark, panel.Cells);
         ui.MenuSeparator();

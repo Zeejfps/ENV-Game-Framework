@@ -1,279 +1,207 @@
-using System.Runtime.CompilerServices;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A marked line of code: the place whose document it was made in, what names the line
-/// there, and what the user calls it. With an <see cref="Anchor"/> it finds its line in any document
-/// showing it, in either language; without one, only where it was made. <see cref="ILSpy"/> and
-/// <see cref="ViewState"/> are what the real ILSpy keeps besides, so it can be written to its
-/// bookmarks file and read back from one.</summary>
-public sealed class Bookmark
+/// <summary>Marking lines with bookmarks, going to them, and exporting and importing them.</summary>
+public static class Bookmarks
 {
-    public Bookmark(NodePath place, DecompilationLanguage language, int line, CodeAnchor? anchor, string name, ILSpyBookmarkInfo ilspy,
-        BookmarkViewState? viewState = null, bool enabled = true)
+    /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
+    /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
+    /// when it has one. Returns which it did.</summary>
+    public static BookmarkToggle ToggleBookmark(AppState appState, DocumentTab tab, int line)
     {
-        Place = place;
-        Language = language;
-        Line = line;
-        Anchor = anchor;
-        Name = name;
-        ILSpy = ilspy;
-        ViewState = viewState;
-        Enabled = enabled;
-        Location = $"{place.Text}:{line + 1}";
-        Module = Path.GetFileName(place.FilePath);
+        var node = tab.Node;
+        if (node == null)
+            return new BookmarkToggle.Unchanged();
+        if (!CanBookmarkLine(tab, line))
+            return new BookmarkToggle.Unchanged();
+        var existing = appState.Bookmarks.At(tab.Document, node.Path, line);
+        if (existing != null)
+            return RemoveBookmark(appState, existing);
+        return AddBookmark(appState, tab, node, line);
     }
 
-    /// <summary>The bookmark <paramref name="record"/> describes, made in the document of <paramref name="place"/>.</summary>
-    public static Bookmark FromRecord(BookmarkRecord record, NodePath place)
+    private static BookmarkToggle RemoveBookmark(AppState appState, Bookmark bookmark)
     {
-        CodeAnchor? anchor = record.Kind switch
-        {
-            BookmarkKind.Token => new CodeAnchor(CodeAnchorKind.Definition, record.FileName, (int)record.Token),
-            BookmarkKind.Body => new CodeAnchor(CodeAnchorKind.Statement, record.FileName, (int)record.Token, record.ILOffset),
-            _ => null,
-        };
-        var ilspy = new ILSpyBookmarkInfo(record.AssemblyFullName ?? "", record.ModuleName ?? Path.GetFileName(record.FileName), record.Token,
-            record.MemberName ?? "", record.LocationNodeName, record.ViewState?.SelectedTreeNodePath);
-        return new Bookmark(place, record.Language ?? DecompilationLanguage.CSharp, Math.Max(0, record.LineNumber - 1), anchor, record.Name ?? "", ilspy,
-            record.ViewState, record.Enabled);
+        var row = appState.Bookmarks.Remove(bookmark);
+        return new BookmarkToggle.Removed(bookmark, row);
     }
 
-    /// <summary>This bookmark as ILSpy's bookmarks file holds it, with this app's place and language.</summary>
-    public BookmarkRecord ToRecord() => new(
-        Name,
-        Enabled,
-        Anchor?.FilePath ?? Place.FilePath,
-        ILSpy.AssemblyFullName,
-        ILSpy.ModuleName,
-        ILSpy.Token,
-        Anchor?.Kind switch
-        {
-            CodeAnchorKind.Definition => BookmarkKind.Token,
-            CodeAnchorKind.Statement => BookmarkKind.Body,
-            _ => BookmarkKind.Line,
-        },
-        Anchor is { Kind: CodeAnchorKind.Statement } statement ? statement.ILOffset : 0,
-        Line + 1,
-        ILSpy.MemberName,
-        ILSpy.LocationNodeName,
-        ViewState ?? new BookmarkViewState(1, 0, 0d, 0d, null, null, null, ILSpy.TreePath?.ToList()),
-        Place.Segments.ToList(),
-        Language);
-
-    public NodePath Place { get; }
-
-    /// <summary>The language of the document it was made in.</summary>
-    public DecompilationLanguage Language { get; }
-
-    /// <summary>The line it was made on, from 0.</summary>
-    public int Line { get; }
-
-    public CodeAnchor? Anchor { get; }
-
-    /// <summary>What the real ILSpy records about it besides its line.</summary>
-    public ILSpyBookmarkInfo ILSpy { get; }
-
-    /// <summary>ILSpy's view state, kept as it came from an ILSpy file to give back to one; null for a
-    /// bookmark made here, which writes one holding only the tree path.</summary>
-    public BookmarkViewState? ViewState { get; }
-
-    public string Name { get; internal set; }
-
-    /// <summary>A disabled bookmark stays listed and marked, dimmed, but next and previous skip it.</summary>
-    public bool Enabled { get; internal set; }
-
-    /// <summary>The place and line it was made on.</summary>
-    public string Location { get; }
-
-    /// <summary>The file name of the assembly it is in.</summary>
-    public string Module { get; }
-
-    /// <summary>Whether <paramref name="other"/> marks the same line: the same anchor, or for one
-    /// without, the same line of the same place in the same language.</summary>
-    public bool MarksSameLine(Bookmark other) =>
-        Anchor is { } anchor ? other.Anchor == anchor
-        : other.Anchor == null && Language == other.Language && Line == other.Line && Place.Equals(other.Place);
-
-    /// <summary>The line it marks in <paramref name="document"/>, shown for <paramref name="place"/>, or -1.</summary>
-    public int FindLine(DecompiledDocument document, NodePath place) =>
-        Anchor is { } anchor ? document.FindLine(anchor)
-        : Language == document.Language && Place.Equals(place) && Line < document.Lines.Length ? Line
-        : -1;
-}
-
-/// <summary>What importing bookmarks does with the ones there are.</summary>
-public enum BookmarkImportMode
-{
-    /// <summary>Drops them for the imported ones.</summary>
-    Replace,
-
-    /// <summary>Keeps them, adding the imported ones that mark a line none of them does.</summary>
-    Merge,
-}
-
-/// <summary>The user's bookmarks in the order they were made. No two mark the same line. Every change
-/// to the list or a bookmark bumps <see cref="Revision"/>.</summary>
-public sealed class BookmarkList
-{
-    private sealed class Marks
+    private static bool CanBookmarkLine(DocumentTab tab, int line)
     {
-        public int Revision = -1;
-        public NodePath? Place;
-        public readonly Dictionary<int, bool> Lines = new();
-    }
-
-    private readonly List<Bookmark> _items = new();
-    private readonly ConditionalWeakTable<DecompiledDocument, Marks> _marks = new();
-
-    public IReadOnlyList<Bookmark> Items => _items;
-
-    public int Revision { get; private set; }
-
-    /// <summary>Adds <paramref name="bookmark"/>, unless a bookmark marks its line already; returns
-    /// whether it was added.</summary>
-    public bool Add(Bookmark bookmark)
-    {
-        if (IsMarked(bookmark))
+        if (tab.IsBusy)
             return false;
-        _items.Add(bookmark);
-        Revision++;
-        return true;
+        if (tab.Document.IsError)
+            return false;
+        if (line < 0)
+            return false;
+        return line < tab.Document.Lines.Length;
     }
 
-    private bool IsMarked(Bookmark bookmark) => _items.Exists(bookmark.MarksSameLine);
-
-    /// <summary>Removes <paramref name="bookmark"/>; returns the row it was in, or -1 when it was not listed.</summary>
-    public int Remove(Bookmark bookmark)
+    private static BookmarkToggle AddBookmark(AppState appState, DocumentTab tab, BrowseNode node, int line)
     {
-        var index = _items.IndexOf(bookmark);
-        if (index < 0)
-            return -1;
-        _items.RemoveAt(index);
-        Revision++;
-        return index;
+        var anchor = tab.Document.AnchorAt(line);
+        var name = appState.Bookmarks.NextName(number => FormatBookmarkName(appState, number));
+        var info = ILSpyTree.Describe(node, anchor);
+        var bookmark = new Bookmark(node.Path, tab.Language, line, anchor, name, info);
+        appState.Bookmarks.Add(bookmark);
+        return new BookmarkToggle.Added(bookmark);
     }
 
-    public void SetEnabled(Bookmark bookmark, bool enabled)
-    {
-        if (bookmark.Enabled == enabled) return;
-        bookmark.Enabled = enabled;
-        Revision++;
-    }
+    private static string FormatBookmarkName(AppState appState, int number) => Strings.For(appState.Locale).BookmarksDefaultName(number);
 
-    /// <summary>Gives <paramref name="bookmark"/> the name <paramref name="name"/>, trimmed, unless it is blank.</summary>
-    public void Rename(Bookmark bookmark, string name)
+    /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
+    /// assembly first if it is not open, and records it in the history.</summary>
+    public static async void GoToBookmark(AppState appState, Bookmark bookmark)
     {
-        var trimmed = name.Trim();
-        if (trimmed.Length == 0)
+        var ticket = appState.Intent.Begin();
+        var tab = appState.Tabs.Active;
+        var place = bookmark.Place;
+        appState.Intent.StartResolving(ticket);
+        var found = await Background.Run(() => appState.Assemblies.FindNode(place));
+        if (appState.Intent.IsStale(ticket))
             return;
-        if (trimmed == bookmark.Name)
-            return;
-        bookmark.Name = trimmed;
-        Revision++;
+        appState.Intent.StopResolving();
+        ShowBookmarkPlace(appState, bookmark, found, tab);
     }
 
-    /// <summary>The next enabled bookmark after <paramref name="from"/>, or the previous when
-    /// <paramref name="direction"/> is negative, wrapping around; null when none is enabled.</summary>
-    public Bookmark? Step(Bookmark? from, int direction)
+    private static void ShowBookmarkPlace(AppState appState, Bookmark bookmark, Outcome<BrowseNode?> found, DocumentTab? tab)
     {
-        var count = _items.Count;
-        var start = StepStart(from, direction);
-        for (var step = 1; step <= count; step++)
+        var node = found.Value;
+        if (node == null)
         {
-            var index = ((start + Math.Sign(direction) * step) % count + count) % count;
-            if (!_items[index].Enabled) continue;
-            return _items[index];
+            var t = Strings.For(appState.Locale);
+            var details = AppState.DescribeFailure(found.Error, t.ErrorNoLongerThere(bookmark.Place));
+            appState.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
+            return;
         }
-        return null;
+        LeaveActiveTab(appState);
+        ShowNodeIn(appState, appState.Tabs.KeepIfOpen(tab), node, target: bookmark);
+        appState.History.Push(node, appState.Language);
     }
 
-    /// <summary>The row stepping starts from: <paramref name="from"/>'s, or just before the first or
-    /// after the last.</summary>
-    private int StepStart(Bookmark? from, int direction)
+    /// <summary>Goes to the next enabled bookmark after <paramref name="from"/>, or the previous when
+    /// <paramref name="direction"/> is negative. Returns the bookmark gone to, or null when none is enabled.</summary>
+    public static Bookmark? StepBookmark(AppState appState, Bookmark? from, int direction)
     {
-        var index = IndexOf(from);
-        if (index >= 0)
-            return index;
-        if (direction > 0)
-            return -1;
-        return _items.Count;
-    }
-
-    private int IndexOf(Bookmark? bookmark)
-    {
+        var bookmark = appState.Bookmarks.Step(from, direction);
         if (bookmark == null)
-            return -1;
-        return _items.IndexOf(bookmark);
+            return null;
+        GoToBookmark(appState, bookmark);
+        return bookmark;
     }
 
-    /// <summary>The first bookmark marking <paramref name="line"/> of <paramref name="document"/>,
-    /// shown for <paramref name="place"/>.</summary>
-    public Bookmark? At(DecompiledDocument document, NodePath place, int line)
+    public static void ExportBookmarks(AppState appState, string path)
     {
-        foreach (var bookmark in _items)
-        {
-            if (bookmark.FindLine(document, place) == line)
-                return bookmark;
-        }
-        return null;
+        var records = appState.Bookmarks.Save();
+        var error = BookmarkFile.Write(path, records);
+        if (error == null)
+            return;
+        appState.ReportError(Strings.For(appState.Locale).ErrorExportBookmarks, error);
     }
 
-    /// <summary>The lines of <paramref name="document"/>, shown for <paramref name="place"/>, that
-    /// bookmarks mark, each with whether one marking it is enabled.</summary>
-    public IReadOnlyDictionary<int, bool> LinesIn(DecompiledDocument document, NodePath place)
+    /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
+    /// ILSpy's — and finds the place of each in the background: takes them at once when there are
+    /// none yet, and otherwise waits in <see cref="AppState.Imports"/> for the user to say how. Bookmarks
+    /// whose place is not found are left out and reported.</summary>
+    public static async void ImportBookmarks(AppState appState, string path)
     {
-        var marks = _marks.GetOrCreateValue(document);
-        if (marks.Revision == Revision && Equals(marks.Place, place)) return marks.Lines;
-        marks.Revision = Revision;
-        marks.Place = place;
-        marks.Lines.Clear();
-        foreach (var bookmark in _items)
+        var file = Path.GetFileName(path);
+        var records = BookmarkFile.Read(path, out var error);
+        if (records == null)
         {
-            var line = bookmark.FindLine(document, place);
-            if (line >= 0)
-                marks.Lines[line] = marks.Lines.GetValueOrDefault(line) || bookmark.Enabled;
+            appState.ReportError(Strings.For(appState.Locale).ErrorImportBookmarks(file), error);
+            return;
         }
-        return marks.Lines;
+        appState.Imports.StartFinding();
+        var found = await Background.Run(() => FindPlaces(appState, records));
+        appState.Imports.StopFinding();
+        TakeImported(appState, found, file);
     }
 
-    /// <summary>The first of <paramref name="format"/>(1), (2), … that no bookmark is called.</summary>
-    public string NextName(Func<int, string> format)
+    private static List<FoundBookmark> FindPlaces(AppState appState, List<BookmarkRecord> records)
     {
-        for (var n = 1; ; n++)
-        {
-            var name = format(n);
-            if (!_items.Exists(b => b.Name == name))
-                return name;
-        }
+        return records.ConvertAll(r => new FoundBookmark(r, FindPlace(appState, r)));
     }
 
-    public List<BookmarkRecord> Save() => _items.ConvertAll(static b => b.ToRecord());
-
-    /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.
-    /// Returns how many were left out because one before them marks the same line.</summary>
-    public int Load(IEnumerable<BookmarkRecord>? saved) =>
-        Import((saved ?? []).Where(static r => r is { Place: not null } && !string.IsNullOrEmpty(r.FileName))
-            .Select(static r => Bookmark.FromRecord(r, NodePath.From(r.FileName, r.Place!))), BookmarkImportMode.Replace);
-
-    /// <summary>Adds <paramref name="bookmarks"/>, after dropping every bookmark first when replacing,
-    /// leaving out the ones that mark a line already marked. Returns how many were left out.</summary>
-    public int Import(IEnumerable<Bookmark> bookmarks, BookmarkImportMode mode)
+    private static NodePath? FindPlace(AppState appState, BookmarkRecord record)
     {
-        if (mode == BookmarkImportMode.Replace)
-            _items.Clear();
-        var leftOut = 0;
-        foreach (var bookmark in bookmarks)
-        {
-            if (IsMarked(bookmark))
-            {
-                leftOut++;
-                continue;
-            }
-            _items.Add(bookmark);
-        }
-        Revision++;
-        return leftOut;
+        if (record.Place != null)
+            return NodePath.From(record.FileName, record.Place);
+        var treePath = record.ViewState?.SelectedTreeNodePath;
+        return ILSpyTree.Locate(appState.Assemblies, record.FileName, treePath, record.Token);
     }
+
+    private static void TakeImported(AppState appState, Outcome<List<FoundBookmark>> found, string file)
+    {
+        var places = found.Value;
+        if (places == null)
+        {
+            appState.ReportError(Strings.For(appState.Locale).ErrorImportBookmarks(file), found.Error!.ToString());
+            return;
+        }
+        ReportLostBookmarks(appState, places, file);
+        var bookmarks = places
+            .Where(f => f.Place != null)
+            .Select(f => Bookmark.FromRecord(f.Record, f.Place!))
+            .ToList();
+        if (bookmarks.Count == 0)
+            return;
+        if (appState.Bookmarks.Items.Count == 0)
+        {
+            TakeBookmarks(appState, bookmarks, BookmarkImportMode.Replace);
+            return;
+        }
+        appState.Imports.Wait(new PendingImport(bookmarks));
+    }
+
+    private static void ReportLostBookmarks(AppState appState, List<FoundBookmark> found, string file)
+    {
+        var lost = found.FindAll(f => f.Place == null);
+        if (lost.Count == 0)
+            return;
+        var lines = lost.Select(DescribeLostBookmark);
+        var details = string.Join(Environment.NewLine, lines);
+        appState.ReportError(Strings.For(appState.Locale).ErrorBookmarksNotFound(file), details);
+    }
+
+    private static string DescribeLostBookmark(FoundBookmark lost)
+    {
+        var record = lost.Record;
+        var location = record.LocationNodeName ?? record.MemberName;
+        return $"{record.Name}: {location} ({record.FileName})";
+    }
+
+    /// <summary>Takes the bookmarks <paramref name="import"/> waits with as <paramref name="mode"/> says,
+    /// or drops them when null.</summary>
+    public static void FinishBookmarkImport(AppState appState, PendingImport import, BookmarkImportMode? mode)
+    {
+        if (!appState.Imports.Finish(import))
+            return;
+        if (mode == null)
+            return;
+        TakeBookmarks(appState, import.Bookmarks, mode.Value);
+    }
+
+    /// <summary>Takes <paramref name="bookmarks"/> in as <paramref name="mode"/> says. Those marking a
+    /// line a bookmark marks already are left out: quietly when merging, and reported when replacing.</summary>
+    private static void TakeBookmarks(AppState appState, IReadOnlyList<Bookmark> bookmarks, BookmarkImportMode mode)
+    {
+        var leftOut = appState.Bookmarks.Import(bookmarks, mode);
+        if (mode == BookmarkImportMode.Merge)
+            return;
+        ReportLeftOutBookmarks(appState, leftOut);
+    }
+
+    /// <summary>Says how many bookmarks were left out because another marks the same line.</summary>
+    internal static void ReportLeftOutBookmarks(AppState appState, int leftOut)
+    {
+        if (leftOut == 0)
+            return;
+        appState.ReportError(Strings.For(appState.Locale).ErrorDuplicateBookmarks(leftOut));
+    }
+
+    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);
 }

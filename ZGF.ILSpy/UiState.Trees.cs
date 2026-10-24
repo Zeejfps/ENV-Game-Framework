@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Analysis;
 
 namespace ZGF.ILSpy;
 
@@ -40,7 +41,7 @@ public sealed partial class UiState
     /// is opened if it is not, and selects its root.</summary>
     public void Analyze(BrowseNode node)
     {
-        var root = Analyzing.Analyze(_appState, node);
+        var root = AddToAnalyzer(_appState, node);
         if (root == null)
             return;
         OpenAnalyzer();
@@ -52,7 +53,7 @@ public sealed partial class UiState
     public void Analyze(CodeReference reference)
     {
         OpenAnalyzer();
-        Analyzing.Analyze(_appState, reference);
+        AddToAnalyzer(_appState, reference);
     }
 
     /// <summary>Expands <paramref name="root"/> and selects it, unless it was removed meanwhile.</summary>

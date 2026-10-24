@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy;
 
@@ -316,7 +317,7 @@ public sealed class ExportSetup
         if (!CanExport)
             return;
         Close();
-        Exporting.StartExport(appState, CreateRequest());
+        StartExport(appState, CreateRequest());
     }
 
     /// <summary>The export the dialog asks for.</summary>

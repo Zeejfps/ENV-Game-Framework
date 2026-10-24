@@ -58,7 +58,7 @@ public sealed class AnalysisSymbol
     public CodeReference? Reference { get; }
 
     /// <summary>Its assembly file and metadata token, to find it again with
-    /// <see cref="Analysis.Find"/> in a later run; null for an assembly.</summary>
+    /// <see cref="Analyzers.Find"/> in a later run; null for an assembly.</summary>
     public CodeAnchor? Definition =>
         Symbol is IEntity { ParentModule.MetadataFile: { } file } entity && !entity.MetadataToken.IsNil
             ? new CodeAnchor(CodeAnchorKind.Definition, file.FileName, MetadataTokens.GetToken(entity.MetadataToken))
@@ -71,7 +71,7 @@ public sealed class AnalysisSymbol
 /// ILSpy's analyzer over the open assemblies: the analyses that apply to a symbol, and their
 /// results, found by ILSpy's own analyzers.
 /// </summary>
-public static class Analysis
+public static class Analyzers
 {
     private static readonly AnalysisKind[] Kinds =
     [

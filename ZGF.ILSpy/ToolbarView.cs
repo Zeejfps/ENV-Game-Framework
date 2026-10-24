@@ -2,6 +2,9 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.AssemblyLists;
+using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
@@ -44,7 +47,7 @@ internal static class ToolbarView
                            ui.Memo("back-tip", t, static s => s.ToolbarBack(Shortcuts.Back)), t.ToolbarBackHistory, appState.History.CanGoBack, appState.History.Revision))
                 {
                     if (back.Clicked)
-                        Navigation.GoBack(appState);
+                        GoBack(appState);
                     if (back.IsOpen)
                         HistoryItems(ui, appState, -1);
                 }
@@ -53,7 +56,7 @@ internal static class ToolbarView
                            appState.History.Revision))
                 {
                     if (forward.Clicked)
-                        Navigation.GoForward(appState);
+                        GoForward(appState);
                     if (forward.IsOpen)
                         HistoryItems(ui, appState, 1);
                 }
@@ -63,7 +66,7 @@ internal static class ToolbarView
             {
                 var language = appState.Language;
                 if (ui.SegmentedControl("language", ref language, Languages(t)))
-                    Preferences.SetLanguage(appState, language);
+                    SetLanguage(appState, language);
                 if (language == DecompilationLanguage.CSharp)
                 {
                     LanguageVersion(ui, appState);
@@ -119,7 +122,7 @@ internal static class ToolbarView
         var active = name == appState.Lists.Active;
         if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
             return;
-        AssemblyListing.SwitchList(appState, name);
+        SwitchAssemblyList(appState, name);
     }
 
     private static Segment<DecompilationLanguage>[] Languages(Strings t)
@@ -144,7 +147,7 @@ internal static class ToolbarView
         foreach (var (version, label) in CSharpVersions.All)
         {
             if (ui.MenuRadioItem(label, version == current))
-                Preferences.SetLanguageVersion(appState, version);
+                SetLanguageVersion(appState, version);
         }
     }
 
@@ -162,7 +165,7 @@ internal static class ToolbarView
                 var entry = entries[i];
                 if (ui.MenuItem(entry.Place.Text, id: "entry", icon: NodeIcons.Icon(entry.Place.Kind, entry.Accessibility, palette)))
                 {
-                    Navigation.GoTo(appState, i);
+                    GoToHistoryEntry(appState, i);
                     return;
                 }
             }

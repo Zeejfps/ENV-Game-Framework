@@ -12,7 +12,7 @@ public sealed class AnalysisTests
     }
 
     private static List<AnalysisSymbol> Run(AssemblyList list, BrowseNode node, string header) =>
-        Analysis.RunAsync(list, Analysis.Of(node)!, Analysis.KindsFor(Analysis.Of(node)!).Single(k => k.Header == header))
+        Analyzers.RunAsync(list, Analyzers.Of(node)!, Analyzers.KindsFor(Analyzers.Of(node)!).Single(k => k.Header == header))
             .ToBlockingEnumerable().SelectMany(static b => b).ToList();
 
     [Fact]
@@ -20,7 +20,7 @@ public sealed class AnalysisTests
     {
         var (_, add) = Member("Add(T) : void");
 
-        var kinds = Analysis.KindsFor(Analysis.Of(add)!).Select(k => k.Header);
+        var kinds = Analyzers.KindsFor(Analyzers.Of(add)!).Select(k => k.Header);
 
         Assert.Equal(["Uses", "Used By", "Implements"], kinds);
     }
@@ -60,7 +60,7 @@ public sealed class AnalysisTests
 
         var users = Run(list, shape, "Used By").Select(r => r.Label);
         var implementations = Run(list, area, "Implemented By").Select(r => r.Label);
-        var accessors = Analysis.AccessorsOf(Analysis.Of(area)!).Select(a => a.Label);
+        var accessors = Analyzers.AccessorsOf(Analyzers.Of(area)!).Select(a => a.Label);
 
         Assert.Contains("Circle", users);
         Assert.Contains(implementations, l => l.StartsWith("Area"));

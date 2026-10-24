@@ -1,13 +1,16 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.AssemblyLists;
+using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy;
 
 /// <summary>Opening, closing and reloading the assemblies in the list.</summary>
-public static class AssemblyLoading
+public static class Assemblies
 {
     /// <summary>Opens the files in the background, then shows the last one opened.</summary>
-    public static void Open(AppState appState, IEnumerable<string> paths)
+    public static void OpenAssemblies(AppState appState, IEnumerable<string> paths)
     {
         var files = paths.ToArray();
         if (files.Length == 0)
@@ -38,14 +41,14 @@ public static class AssemblyLoading
             return;
         if (appState.Intent.IsStale(ticket))
             return;
-        Navigation.Show(appState, opened.Last.Root);
+        ShowNode(appState, opened.Last.Root);
     }
 
-    public static void Open(AppState appState, string path) => Open(appState, [path]);
+    public static void OpenAssembly(AppState appState, string path) => OpenAssemblies(appState, [path]);
 
-    public static void Close(AppState appState, LoadedAssembly assembly) => appState.Assemblies.Close(assembly);
+    public static void CloseAssembly(AppState appState, LoadedAssembly assembly) => appState.Assemblies.Close(assembly);
 
-    public static void ClearList(AppState appState)
+    public static void CloseAllAssemblies(AppState appState)
     {
         appState.Intent.Begin();
         appState.Opens.CancelAll();
@@ -62,9 +65,9 @@ public static class AssemblyLoading
     /// <summary>Reloads every assembly of the open list from disk in the background, then commands the view
     /// to expand the tree at <paramref name="expanded"/>, the paths of the nodes it had expanded, and
     /// shows each tab's place again, decompiled from the fresh files.</summary>
-    public static async void Refresh(AppState appState, List<NodePath> expanded)
+    public static async void RefreshAssemblies(AppState appState, List<NodePath> expanded)
     {
-        AssemblyListing.RememberOpenAssemblies(appState);
+        RememberOpenAssemblies(appState);
         var intent = appState.Intent.Begin();
         var ticket = appState.Reload.Start();
 
@@ -149,7 +152,7 @@ public static class AssemblyLoading
         appState.EnqueueCommand(new ViewCommand.ExpandNodes(reloaded.Expanded));
         for (var i = 0; i < tabs.Count; i++)
             ReshowTab(appState, tabs[i], reloaded.Places[i], intent);
-        Saving.SaveSettings(appState);
+        SaveSettings(appState);
     }
 
     private static void ReshowTab(AppState appState, ReloadingTab reloading, BrowseNode? node, int intent)
@@ -178,7 +181,7 @@ public static class AssemblyLoading
 
     /// <summary>Opens <paramref name="paths"/> in the background as a reload does, so that another
     /// reload or clearing the list stops it, and the settings are saved once it is done.</summary>
-    internal static async void OpenAsReload(AppState appState, List<string> paths)
+    internal static async void OpenAssembliesAsReload(AppState appState, List<string> paths)
     {
         var ticket = appState.Reload.Start();
         var opened = await Background.Run(() => OpenFiles(appState, paths, ticket.Token));
@@ -196,7 +199,7 @@ public static class AssemblyLoading
             return;
         }
         ReportAll(appState, opened.Errors);
-        Saving.SaveSettings(appState);
+        SaveSettings(appState);
     }
 
     private static Opened OpenFiles(AppState appState, IEnumerable<string> paths, CancellationToken cancellationToken)

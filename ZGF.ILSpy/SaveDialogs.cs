@@ -3,6 +3,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy;
 
@@ -17,7 +18,7 @@ internal static class SaveDialogs
     public static void PickActiveCodeFile(Ui<UiState> ui, AppState appState)
     {
         var node = appState.Tabs.Active?.Node;
-        if (!Exporting.CanSaveCode(appState, node))
+        if (!CanSaveCode(appState, node))
             return;
         PickCodeFile(ui, appState, node!);
     }
@@ -33,7 +34,7 @@ internal static class SaveDialogs
         }
         var t = ui.State.Strings;
         var fileName = node.SuggestCodeFileName(appState.Language);
-        ui.PickSaveFile(t.ExportSaveCodeTitle, null, fileName, CodeFilters(t, appState.Language), path => Exporting.SaveCode(appState, node, path));
+        ui.PickSaveFile(t.ExportSaveCodeTitle, null, fileName, CodeFilters(t, appState.Language), path => SaveCode(appState, node, path));
     }
 
     private static FileFilter[] CodeFilters(Strings t, DecompilationLanguage language)
@@ -49,13 +50,13 @@ internal static class SaveDialogs
     {
         var t = ui.State.Strings;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"])];
-        ui.PickSaveFile(t.ExportPdbTitle, null, assembly.PdbFileName, filters, path => Exporting.GeneratePdb(appState, assembly, path));
+        ui.PickSaveFile(t.ExportPdbTitle, null, assembly.PdbFileName, filters, path => GeneratePdb(appState, assembly, path));
     }
 
     /// <summary>Asks for the folder the portable PDBs of every open assembly are written into.</summary>
     public static void PickPdbFolder(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        ui.PickFolder(t.ExportPdbsTitle, null, folder => Exporting.GeneratePdbs(appState, folder));
+        ui.PickFolder(t.ExportPdbsTitle, null, folder => GeneratePdbs(appState, folder));
     }
 }

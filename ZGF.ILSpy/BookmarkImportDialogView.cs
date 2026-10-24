@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Bookmarks;
 
 namespace ZGF.ILSpy;
 
@@ -28,15 +29,15 @@ internal static class BookmarkImportDialogView
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.BookmarksImportCancel, id: "import-cancel", variant: ButtonVariant.Ghost))
-                        Bookmarking.FinishImport(appState, import, null);
+                        FinishBookmarkImport(appState, import, null);
                     if (ui.Button(t.BookmarksImportReplace, id: "import-replace"))
-                        Bookmarking.FinishImport(appState, import, BookmarkImportMode.Replace);
+                        FinishBookmarkImport(appState, import, BookmarkImportMode.Replace);
                     if (ui.Button(t.BookmarksImportMerge, id: "import-merge", variant: ButtonVariant.Primary))
-                        Bookmarking.FinishImport(appState, import, BookmarkImportMode.Merge);
+                        FinishBookmarkImport(appState, import, BookmarkImportMode.Merge);
                 }
             }
         }
         if (!open)
-            Bookmarking.FinishImport(appState, import, null);
+            FinishBookmarkImport(appState, import, null);
     }
 }

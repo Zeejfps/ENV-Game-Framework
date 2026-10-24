@@ -1,6 +1,10 @@
 using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
+using static ZGF.ILSpy.Analysis;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.AssemblyLists;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy;
 
@@ -26,14 +30,14 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
         LoadAndRegisterFonts(host);
         OpenStartupAssemblies();
         StartRedrawingOnAssemblyChanges(host);
-        Analyzing.RestoreAnalyses(_appState);
+        RestoreAnalyses(_appState);
     }
 
     protected override void OnUpdate(Ui<UiState> ui)
     {
         RenderFrame(ui, _appState);
         RequestUpdateIfViewCommandsPending(ui, _appState);
-        SaveSettingsIfChanged(ui, _appState);
+        SaveChangedSettings(ui, _appState);
     }
 
     protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
@@ -69,8 +73,8 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
 
     private void OpenStartupAssemblies()
     {
-        AssemblyListing.RestoreActiveList(_appState);
-        AssemblyLoading.Open(_appState, _startupAssemblies);
+        RestoreActiveAssemblyList(_appState);
+        OpenAssemblies(_appState, _startupAssemblies);
     }
 
     private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
@@ -82,7 +86,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
     {
         _appState.Settings.RememberWindow(window);
         UiState.HandOverViewSettings();
-        Saving.SaveSettings(_appState);
+        SaveSettings(_appState);
     }
     
     private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState appState)
@@ -92,9 +96,9 @@ public sealed class IlSpyApp : ImmediateGuiApp<UiState>
         ui.RequestUpdate();
     }
     
-    private static void SaveSettingsIfChanged(Ui<UiState> ui, AppState appState)
+    private static void SaveChangedSettings(Ui<UiState> ui, AppState appState)
     {
-        var retryWait = Saving.SaveSettingsIfChanged(appState, ui.RealTime);
+        var retryWait = SaveSettingsIfChanged(appState, ui.RealTime);
         if (retryWait > 0)
             ui.RequestUpdateIn(retryWait);
     }

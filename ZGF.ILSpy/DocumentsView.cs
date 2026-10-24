@@ -1,6 +1,8 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Bookmarks;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
@@ -26,9 +28,9 @@ internal static class DocumentsView
             var view = ui.State.ViewOf(tab);
             var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
             if (picked.Target is { } target)
-                Navigation.Show(appState, target, picked.InNewTab);
+                ShowMetadataTarget(appState, target, picked.InNewTab);
             if (picked.Definition is { } definition)
-                Navigation.Navigate(appState, definition, picked.InNewTab);
+                Navigate(appState, definition, picked.InNewTab);
             return;
         }
         if (tab is { IsBusy: true, Node.DependsOnLanguage: false })
@@ -46,18 +48,18 @@ internal static class DocumentsView
         var view = ui.State.ViewOf(tab);
         var result = ui.CodeView("code", tab.Document, view.Code, bookmarks, tooltips: appState.Tooltips);
         if (result.Navigate is { } reference)
-            Navigation.Navigate(appState, reference, result.NavigateInNewTab);
+            Navigate(appState, reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)
-            ToggleBookmark(ui, appState, tab, line);
+            ToggleLineBookmark(ui, appState, tab, line);
         if (result.Analyze is { } analyzed)
             ui.State.Analyze(analyzed);
     }
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
     /// selection of the one removed on.</summary>
-    private static void ToggleBookmark(Ui<UiState> ui, AppState appState, DocumentTab tab, int line)
+    private static void ToggleLineBookmark(Ui<UiState> ui, AppState appState, DocumentTab tab, int line)
     {
-        var toggle = Bookmarking.ToggleBookmark(appState, tab, line);
+        var toggle = ToggleBookmark(appState, tab, line);
         ui.State.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
     }
 

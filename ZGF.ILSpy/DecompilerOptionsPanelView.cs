@@ -2,6 +2,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
@@ -31,7 +32,7 @@ internal static class DecompilerOptionsPanelView
                 folded.UnfoldAll();
             ui.Separator(theme.IconSize);
             if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
-                Preferences.ResetDecompilerToggles(appState);
+                ResetDecompilerToggles(appState);
         }
         ui.Separator();
         var tooNew = options.LanguageVersion < Newest ? ui.Memo("too-new", (t, options.LanguageVersion), static a => TooNew(a.t, a.LanguageVersion)) : null;
@@ -91,7 +92,7 @@ internal static class DecompilerOptionsPanelView
             ui.Icon(new UiIcon(isFolded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
             var all = State(section, options);
             if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow(), bold: Changed(section, options)))
-                Preferences.SetDecompilerToggles(appState, section.Toggles, all == true);
+                SetDecompilerToggles(appState, section.Toggles, all == true);
         }
         if (!allowed && tooNew != null)
             ui.Tooltip(item.Id, tooNew);
@@ -142,7 +143,7 @@ internal static class DecompilerOptionsPanelView
             var on = options.IsOn(toggle);
             if (ui.Checkbox(DecompilerOptionLabels.Label(t, toggle.Name) ?? toggle.Name, ref on, id: toggle.Name, enabled: options.Allows(toggle),
                     width: Sizing.Grow(), bold: options.Toggles.ContainsKey(toggle.Name)))
-                Preferences.SetDecompilerToggle(appState, toggle, on);
+                SetDecompilerToggle(appState, toggle, on);
         }
     }
 

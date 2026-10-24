@@ -5,6 +5,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -152,7 +153,7 @@ public sealed class AppSettingsTests : IDisposable
         d.Ui.ExportSetup.Window = new WindowBounds(-900, 200, 700, 800, false);
         d.Ui.ExportSetup.SettleWindow(held: false);
         d.NextFrame();
-        Saving.SaveSettings(d.AppState);
+        SaveSettings(d.AppState);
 
         var next = new AppStateDriver(AppSettings.Load(SettingsFile));
 
@@ -253,7 +254,7 @@ public sealed class DockPanelsTests
         var layout = d.Ui.Layout;
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 50f, 300f, 400f));
         d.NextFrame();
-        Saving.SaveSettings(d.AppState);
+        SaveSettings(d.AppState);
 
         var next = new AppStateDriver(temp.Settings());
         var restored = next.Ui.Layout;
@@ -304,7 +305,7 @@ public sealed class DockPanelsTests
 
         d.Ui.Search.Kinds = SearchKinds.Literals;
         d.NextFrame();
-        Saving.SaveSettings(d.AppState);
+        SaveSettings(d.AppState);
 
         Assert.Equal(SearchKinds.Literals, new AppStateDriver(settings).Ui.Search.Kinds);
     }

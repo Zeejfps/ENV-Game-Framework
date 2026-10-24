@@ -10,14 +10,14 @@ public static class Navigation
 {
     /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
     /// and records it in the history.</summary>
-    public static void Show(AppState appState, BrowseNode node, bool inNewTab = false)
+    public static void ShowNode(AppState appState, BrowseNode node, bool inNewTab = false)
     {
         if (node.Kind == NodeKind.Loading)
             return;
         appState.Intent.Begin();
-        LeaveActive(appState);
+        LeaveActiveTab(appState);
         var tab = inNewTab ? null : appState.Tabs.Active;
-        ShowIn(appState, tab, node);
+        ShowNodeIn(appState, tab, node);
         appState.History.Push(node, appState.Language);
     }
 
@@ -42,22 +42,22 @@ public static class Navigation
         var node = found.Value;
         if (node == null)
         {
-            ReportUnresolved(appState, reference, found.Error);
+            ReportUnresolvedReference(appState, reference, found.Error);
             return;
         }
-        LeaveActive(appState);
-        ShowIn(appState, appState.Tabs.KeepIfOpen(origin), node);
+        LeaveActiveTab(appState);
+        ShowNodeIn(appState, appState.Tabs.KeepIfOpen(origin), node);
         appState.History.Push(node, appState.Language);
     }
 
     /// <summary>Shows the table row a metadata token leads to in the active tab, or a new one, and
     /// records it in the history.</summary>
-    public static void Show(AppState appState, MetadataTarget target, bool inNewTab)
+    public static void ShowMetadataTarget(AppState appState, MetadataTarget target, bool inNewTab)
     {
         appState.Intent.Begin();
-        LeaveActive(appState);
+        LeaveActiveTab(appState);
         var tab = inNewTab ? null : appState.Tabs.Active;
-        ShowIn(appState, tab, target.Node, row: target.Row);
+        ShowNodeIn(appState, tab, target.Node, row: target.Row);
         appState.History.Push(target.Node, appState.Language);
     }
 
@@ -69,16 +69,16 @@ public static class Navigation
         Navigate(appState, node.Target, inNewTab: false);
     }
 
-    public static void GoBack(AppState appState) => GoTo(appState, appState.History.CurrentIndex - 1);
+    public static void GoBack(AppState appState) => GoToHistoryEntry(appState, appState.History.CurrentIndex - 1);
 
-    public static void GoForward(AppState appState) => GoTo(appState, appState.History.CurrentIndex + 1);
+    public static void GoForward(AppState appState) => GoToHistoryEntry(appState, appState.History.CurrentIndex + 1);
 
     /// <summary>Goes to the history entry at <paramref name="index"/>, however far back or forward.</summary>
-    public static void GoTo(AppState appState, int index)
+    public static void GoToHistoryEntry(AppState appState, int index)
     {
         if (!CanGoTo(appState, index))
             return;
-        LeaveActive(appState);
+        LeaveActiveTab(appState);
         var entry = appState.History.MoveTo(index);
         if (entry == null)
             return;
@@ -103,7 +103,7 @@ public static class Navigation
         var shown = FindShownNode(appState, tab, place);
         if (shown != null)
         {
-            ShowIn(appState, tab, shown, position);
+            ShowNodeIn(appState, tab, shown, position);
             return;
         }
         appState.Intent.StartResolving(ticket);
@@ -138,10 +138,10 @@ public static class Navigation
             appState.ReportError(t.ErrorGoBack(place.Text), details);
             return;
         }
-        ShowIn(appState, appState.Tabs.KeepIfOpen(tab), node, position);
+        ShowNodeIn(appState, appState.Tabs.KeepIfOpen(tab), node, position);
     }
 
-    internal static void ReportUnresolved(AppState appState, CodeReference reference, Exception? error)
+    internal static void ReportUnresolvedReference(AppState appState, CodeReference reference, Exception? error)
     {
         var t = Strings.For(appState.Locale);
         var details = AppState.DescribeFailure(error, t.ErrorNoDefinition(reference));
@@ -150,7 +150,7 @@ public static class Navigation
 
     /// <summary>Records where the active tab's view is in the history entry it shows, before it shows
     /// something else.</summary>
-    internal static void LeaveActive(AppState appState)
+    internal static void LeaveActiveTab(AppState appState)
     {
         var tab = appState.Tabs.Active;
         if (tab == null)
@@ -173,7 +173,7 @@ public static class Navigation
 
     /// <summary>Shows <paramref name="node"/> in <paramref name="tab"/>, or a new tab when null, makes
     /// that tab active, and commands the view to bring it to the front and reveal the node in the tree.</summary>
-    internal static void ShowIn(
+    internal static void ShowNodeIn(
         AppState appState,
         DocumentTab? tab,
         BrowseNode node,

@@ -3,6 +3,10 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Exports;
+using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
@@ -41,7 +45,7 @@ internal static class MainMenuView
             new(t.FileFilterAssemblies, ["*.dll", "*.exe", "*.winmd"]),
             new(t.FileFilterAll, ["*.*"]),
         ];
-        ui.PickFile(t.FileOpenTitle, null, filters, path => AssemblyLoading.Open(appState, path));
+        ui.PickFile(t.FileOpenTitle, null, filters, path => OpenAssembly(appState, path));
     }
 
     private static void FileMenu(Ui<UiState> ui, AppState appState)
@@ -58,11 +62,11 @@ internal static class MainMenuView
         var selected = tree.View.HasSelection ? tree.View.Selected!.Assembly : null;
         var anyOpen = tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: CloseIcon))
-            AssemblyLoading.Close(appState, selected!);
+            CloseAssembly(appState, selected!);
         if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: ClearListIcon))
-            AssemblyLoading.ClearList(appState);
+            CloseAllAssemblies(appState);
         if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: ReloadIcon))
-            AssemblyLoading.Refresh(appState, tree.ExpandedPaths());
+            RefreshAssemblies(appState, tree.ExpandedPaths());
         ui.MenuSeparator();
         if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: ExitIcon))
             ui.Quit();
@@ -71,12 +75,12 @@ internal static class MainMenuView
     private static void ExportItems(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        var canSave = Exporting.CanSaveCode(appState, appState.Tabs.Active?.Node);
+        var canSave = CanSaveCode(appState, appState.Tabs.Active?.Node);
         if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickActiveCodeFile(ui, appState);
         var anyOpen = ui.State.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: SaveDialogs.ExportIcon))
-            ui.State.OpenExportSetup(Exporting.ActiveAssembly(appState));
+            ui.State.OpenExportSetup(FindActiveAssembly(appState));
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, appState);
     }
@@ -85,9 +89,9 @@ internal static class MainMenuView
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: appState.History.CanGoBack, id: "back"))
-            Navigation.GoBack(appState);
+            GoBack(appState);
         if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: appState.History.CanGoForward, id: "forward"))
-            Navigation.GoForward(appState);
+            GoForward(appState);
         ui.MenuSeparator();
         DecompilerMenu(ui, appState);
         ui.MenuSeparator();
@@ -120,9 +124,9 @@ internal static class MainMenuView
         using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
         if (!decompilers.IsOpen) return;
         if (ui.MenuRadioItem("C#", appState.Language == DecompilationLanguage.CSharp))
-            Preferences.SetLanguage(appState, DecompilationLanguage.CSharp);
+            SetLanguage(appState, DecompilationLanguage.CSharp);
         if (ui.MenuRadioItem("IL", appState.Language == DecompilationLanguage.IL))
-            Preferences.SetLanguage(appState, DecompilationLanguage.IL);
+            SetLanguage(appState, DecompilationLanguage.IL);
     }
 
     private static void ThemeMenu(Ui<UiState> ui, AppState appState)
@@ -150,7 +154,7 @@ internal static class MainMenuView
         foreach (var (locale, endonym) in Locales.All)
         {
             if (ui.MenuRadioItem(endonym, appState.Locale == locale))
-                Preferences.SetLocale(appState, locale);
+                SetLocale(appState, locale);
         }
     }
 }

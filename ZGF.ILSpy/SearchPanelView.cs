@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.KeyboardModule;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
@@ -157,7 +158,7 @@ internal static class SearchPanelView
             search.Move(1);
         var row = search.SelectedRow;
         if (row != null)
-            Navigation.Show(appState, row.Node);
+            ShowNode(appState, row.Node);
     }
 
     private static void ResultCount(Ui<UiState> ui, Search search)
@@ -209,7 +210,7 @@ internal static class SearchPanelView
         search.Selection.TakeFrom(search.Rows);
         var selected = search.SelectedRow;
         if (body.Activated && selected != null)
-            Navigation.Show(appState, selected.Node, body.InNewTab);
+            ShowNode(appState, selected.Node, body.InNewTab);
     }
 
     private static void ResultRow(Ui<UiState> ui, AppState appState, TableBody body, int index)
@@ -221,7 +222,7 @@ internal static class SearchPanelView
         using (row)
         {
             if (row.Interaction.Clicked)
-                Navigation.Show(appState, node);
+                ShowNode(appState, node);
             NameCell(ui, row, result);
             row.TextCell(1, result.Location, theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
             row.TextCell(2, node.Assembly.NameAndVersion, theme.TextMuted);

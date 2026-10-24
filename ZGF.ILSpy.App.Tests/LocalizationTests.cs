@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -57,7 +58,7 @@ public sealed class LocalizationTests
         app.Run(2);
         Assert.True(app.Frames.Drew("File"));
 
-        Preferences.SetLocale(app.AppState, Locale.De);
+        SetLocale(app.AppState, Locale.De);
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Datei"));
@@ -69,7 +70,7 @@ public sealed class LocalizationTests
     {
         using var temp = new TempDir();
         var d = new AppStateDriver(temp.Settings());
-        Preferences.SetLocale(d.AppState, Locale.Ja);
+        SetLocale(d.AppState, Locale.Ja);
         d.Pump();
 
         Assert.Equal(Locale.Ja, new AppState(temp.Settings()).Locale);

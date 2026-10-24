@@ -6,6 +6,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -210,11 +211,11 @@ public sealed class AppTests
     public void Turning_debug_symbols_off_disassembles_an_open_IL_document_again()
     {
         var app = AppDriver.Opened();
-        Preferences.SetLanguage(app.AppState, DecompilationLanguage.IL);
+        SetLanguage(app.AppState, DecompilationLanguage.IL);
         app.Show(app.Fixture("Outline"), 1);
         var named = app.AppState.Tabs.Active!.Document.GetText();
 
-        Preferences.SetDecompilerToggle(app.AppState, DecompilerToggle.UseDebugSymbols, false);
+        SetDecompilerToggle(app.AppState, DecompilerToggle.UseDebugSymbols, false);
         app.Settle(1);
 
         Assert.Contains("int32 total", named);
@@ -225,7 +226,7 @@ public sealed class AppTests
     public void Options_newer_than_the_version_are_greyed_out_and_groups_fold()
     {
         var app = AppDriver.Opened(width: 1600f);
-        Preferences.SetLanguageVersion(app.AppState, CSharpVersion.CSharp7);
+        SetLanguageVersion(app.AppState, CSharpVersion.CSharp7);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
         app.Ui.OpenDecompilerOptions();
         app.Run();

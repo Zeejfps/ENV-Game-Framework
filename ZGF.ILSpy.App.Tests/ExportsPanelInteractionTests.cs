@@ -2,6 +2,7 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -25,8 +26,8 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     private AppDriver TwoFinished(float width = 1000f)
     {
         var app = AppDriver.Opened(width: width, height: TallWindow);
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), Path.Combine(Folder("First"), "Greeter.cs"));
-        Exporting.SaveCode(app.AppState, app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
+        SaveCode(app.AppState, app.Fixture("Greeter"), Path.Combine(Folder("First"), "Greeter.cs"));
+        SaveCode(app.AppState, app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
         app.Settle(2);
         return app;
     }

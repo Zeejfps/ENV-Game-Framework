@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy;
 
@@ -7,7 +8,7 @@ public sealed partial class UiState
     private ViewSources _keptView;
 
     /// <summary>Hands the app state what its settings keep of the screen, when that changed since it last did.</summary>
-    private void KeepViewSettings()
+    private void KeepChangedViewSettings()
     {
         var sources = CaptureViewSources();
         if (sources == _keptView)
@@ -20,7 +21,7 @@ public sealed partial class UiState
     public void HandOverViewSettings()
     {
         _keptView = CaptureViewSources();
-        Saving.KeepViewSettings(_appState, CreateViewSettings());
+        KeepViewSettings(_appState, CreateViewSettings());
     }
 
     private ViewSources CaptureViewSources()

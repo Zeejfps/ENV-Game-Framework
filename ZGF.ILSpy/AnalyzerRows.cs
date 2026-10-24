@@ -60,7 +60,7 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
     /// <summary>Analyzes <paramref name="symbol"/>, or finds the root analyzing it already, and shows that root.</summary>
     public void Analyze(AnalysisSymbol symbol)
     {
-        var root = _analyzer.Analyze(symbol);
+        var root = _analyzer.AddRoot(symbol);
         Show(root);
     }
 

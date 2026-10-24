@@ -6,6 +6,10 @@ using ZGF.Gui.Testing;
 using ZGF.ILSpy.App.Tests.Fixtures;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Analysis;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -111,7 +115,7 @@ internal sealed class AppStateDriver
         AppState = new AppState(settings);
         if (withScreen)
             _ui = new UiState(AppState);
-        Analyzing.RestoreAnalyses(AppState);
+        RestoreAnalyses(AppState);
     }
 
     /// <summary>A driver that has opened the fixture assembly.</summary>
@@ -150,7 +154,7 @@ internal sealed class AppStateDriver
         _posted.Run();
         if (_ui != null)
             NextFrame();
-        Saving.SaveSettingsIfChanged(AppState, Now);
+        SaveSettingsIfChanged(AppState, Now);
     }
 
     /// <summary>Does what a frame does before and after it draws: the screen follows the trees and the
@@ -193,7 +197,7 @@ internal sealed class AppStateDriver
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>
     public LoadedAssembly OpenFixtures()
     {
-        AssemblyLoading.Open(AppState, FixturePath);
+        OpenAssembly(AppState, FixturePath);
         RunUntil(() => AppState.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
         Settle();
         return AppState.Tabs.Active!.Node!.Assembly;
@@ -210,7 +214,7 @@ internal sealed class AppStateDriver
 
     public void Show(BrowseNode node, bool inNewTab = false)
     {
-        Navigation.Show(AppState, node, inNewTab);
+        ShowNode(AppState, node, inNewTab);
         Settle();
     }
 }

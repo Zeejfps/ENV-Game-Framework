@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate.Widgets;
+using static ZGF.ILSpy.Bookmarks;
 
 namespace ZGF.ILSpy;
 
@@ -70,7 +71,7 @@ public sealed class BookmarksPanel
     /// <paramref name="direction"/> is negative, and selects it.</summary>
     public void Step(AppState appState, int direction)
     {
-        var bookmark = Bookmarking.StepBookmark(appState, Selected, direction);
+        var bookmark = StepBookmark(appState, Selected, direction);
         if (bookmark == null)
             return;
         Selection.Select(bookmark, appState.Bookmarks.Items);

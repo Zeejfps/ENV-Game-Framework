@@ -2,6 +2,8 @@ using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Docking;
+using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -123,7 +125,7 @@ public sealed class ResourceViewTests
         var image = ImageOf(app, tab);
         Assert.True(app.Frames.Canvas.HasImage(image));
 
-        Docking.CloseTab(app.AppState, tab);
+        CloseTab(app.AppState, tab);
         app.Run(2);
 
         Assert.False(app.Frames.Canvas.HasImage(image));
@@ -237,7 +239,7 @@ public sealed class ResourceViewTests
         Directory.CreateDirectory(temp.Path);
         var path = temp.PathOf("data.json");
 
-        Exporting.SaveResource(app.AppState, node, path);
+        SaveResource(app.AppState, node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
         Assert.Empty(app.AppState.Errors.Entries);

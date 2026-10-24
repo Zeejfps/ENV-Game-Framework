@@ -5,6 +5,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy;
 
@@ -87,7 +88,7 @@ internal static class ExportsPanelView
             ui.Text(summary, color: theme.TextMuted, size: theme.FontSizeSmall);
             ui.Spacer();
             if (ui.Button(t.ExportsClearFinished, enabled: appState.FinishedExports.Count > 0, id: "clear", variant: ButtonVariant.Ghost))
-                Exporting.ClearFinishedExports(appState);
+                ClearFinishedExports(appState);
             ui.Tooltip(ui.GetId("clear"), t.ExportsClearFinishedTooltip);
         }
     }
@@ -110,7 +111,7 @@ internal static class ExportsPanelView
     {
         if (!ui.HasFocus(rows.ListId))
             return;
-        var runs = Exporting.ListExports(appState);
+        var runs = ListExports(appState);
         foreach (var stroke in ui.Input.Keys)
             HandleKey(ui, appState, rows, runs, stroke);
     }
@@ -125,7 +126,7 @@ internal static class ExportsPanelView
         }
         if (stroke.Key == KeyboardKey.Enter)
         {
-            Exporting.ActivateExport(appState, selected);
+            ActivateExport(appState, selected);
             return;
         }
         if (IsCopy(stroke))
@@ -135,7 +136,7 @@ internal static class ExportsPanelView
         }
         if (stroke.Key == KeyboardKey.Delete)
         {
-            Exporting.RemoveExport(appState, selected);
+            RemoveExport(appState, selected);
             return;
         }
         MoveSelection(ui, appState, rows, runs, stroke);
@@ -169,7 +170,7 @@ internal static class ExportsPanelView
 
     private static void CopyFolder(Ui<UiState> ui, AppState appState, int run)
     {
-        var folder = Exporting.FolderOfExport(appState, run);
+        var folder = FindExportFolder(appState, run);
         if (folder == null)
             return;
         ui.ClipboardText = folder;
@@ -205,7 +206,7 @@ internal static class ExportsPanelView
             ui.Focus(rows.ListId, takesText: false);
         }
         if (hit.DoubleClicked)
-            Exporting.ActivateExport(appState, run);
+            ActivateExport(appState, run);
         if (hit.ClickedWith(PointerButton.Right))
         {
             ui.State.SelectedExport = run;
@@ -442,7 +443,7 @@ internal static class ExportsPanelView
                 removed = reports[i];
         }
         if (removed != null)
-            Exporting.RemoveFinishedExport(appState, removed);
+            RemoveFinishedExport(appState, removed);
     }
 
     private static bool HasActiveWork(AppState appState)
@@ -516,9 +517,9 @@ internal static class ExportsPanelView
     {
         var t = ui.State.Strings;
         if (labelled && ui.Button(t.ExportShowReport, id: "show-report", icon: ShowReportIcon))
-            Exporting.ShowExportReport(appState, report);
+            ShowExportReport(appState, report);
         if (!labelled && ui.IconButton("show-report", LucideIcons.FileText, LucideIcons.Family, t.ExportShowReport))
-            Exporting.ShowExportReport(appState, report);
+            ShowExportReport(appState, report);
     }
 
     private static bool OpensFolderFirst(ExportReport report)
@@ -566,7 +567,7 @@ internal static class ExportsPanelView
         if (!menu.IsOpen)
             return;
         var run = ui.State.ExportMenuTarget;
-        var finished = Exporting.FindFinishedExport(appState, run);
+        var finished = FindFinishedExport(appState, run);
         if (finished != null)
             FinishedMenu(ui, appState, finished);
         else
@@ -577,20 +578,20 @@ internal static class ExportsPanelView
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.ExportShowReport, "Enter", id: "show-report", icon: ShowReportIcon))
-            Exporting.ShowExportReport(appState, report);
+            ShowExportReport(appState, report);
         if (ui.MenuItem(t.ExportOpenFolder, enabled: report.FolderExists, id: "open-folder", icon: OpenFolderIcon))
             ui.OpenFolder(report.Folder);
         if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))
             ui.ClipboardText = report.Folder;
         ui.MenuSeparator();
         if (ui.MenuItem(t.ExportsRemove, "Delete", id: "remove"))
-            Exporting.RemoveFinishedExport(appState, report);
+            RemoveFinishedExport(appState, report);
     }
 
     private static void QueuedMenu(Ui<UiState> ui, AppState appState, int run)
     {
         var t = ui.State.Strings;
-        var folder = Exporting.FolderOfExport(appState, run);
+        var folder = FindExportFolder(appState, run);
         if (folder == null)
             return;
         if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))

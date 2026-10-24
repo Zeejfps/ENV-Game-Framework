@@ -1,4 +1,6 @@
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Exports;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -29,7 +31,7 @@ public sealed class ExportsPanelTests : IDisposable
         var d = AppStateDriver.Opened();
         d.Ui.OpenBookmarks();
 
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         d.NextFrame();
 
         var layout = d.Ui.Layout;
@@ -43,8 +45,8 @@ public sealed class ExportsPanelTests : IDisposable
     {
         var app = AppDriver.Opened(height: TallWindow);
         var first = Folder("First");
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), Path.Combine(first, "Greeter.cs"));
-        Exporting.SaveCode(app.AppState, app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
+        SaveCode(app.AppState, app.Fixture("Greeter"), Path.Combine(first, "Greeter.cs"));
+        SaveCode(app.AppState, app.Fixture("Farewell"), Path.Combine(Folder("Second"), "Farewell.cs"));
         app.Settle(2);
 
         app.Frames.Click(app.LastTextRect("Open folder")).Frame();
@@ -57,8 +59,8 @@ public sealed class ExportsPanelTests : IDisposable
     {
         var app = AppDriver.Opened(height: TallWindow);
         var path = _temp.PathOf("Greeter.cs");
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), path);
-        Exporting.SaveCode(app.AppState, app.Fixture("Farewell"), _temp.PathOf("Farewell.cs"));
+        SaveCode(app.AppState, app.Fixture("Greeter"), path);
+        SaveCode(app.AppState, app.Fixture("Farewell"), _temp.PathOf("Farewell.cs"));
         app.Settle(2);
 
         app.Frames.Click(app.LastTextRect(LucideIcons.FileText)).Frame(2);
@@ -76,13 +78,13 @@ public sealed class ExportsPanelTests : IDisposable
     public void A_finished_export_can_be_taken_off_the_list_and_all_cleared()
     {
         var d = AppStateDriver.Opened();
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
-        Exporting.SaveCode(d.AppState, d.Fixture("Farewell"), _temp.PathOf("Farewell.cs"));
+        SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(d.AppState, d.Fixture("Farewell"), _temp.PathOf("Farewell.cs"));
         d.Settle();
 
-        Exporting.RemoveFinishedExport(d.AppState, d.AppState.FinishedExports[0]);
+        RemoveFinishedExport(d.AppState, d.AppState.FinishedExports[0]);
         Assert.Equal("Farewell", Assert.Single(d.AppState.FinishedExports).Name);
-        Exporting.ClearFinishedExports(d.AppState);
+        ClearFinishedExports(d.AppState);
 
         Assert.Empty(d.AppState.FinishedExports);
     }
@@ -92,8 +94,8 @@ public sealed class ExportsPanelTests : IDisposable
     {
         var d = AppStateDriver.Opened();
         var farewell = _temp.PathOf("Farewell.cs");
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
-        Exporting.SaveCode(d.AppState, d.Fixture("Farewell"), farewell);
+        SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(d.AppState, d.Fixture("Farewell"), farewell);
         var waiting = Assert.Single(d.AppState.Export.Waiting);
 
         d.AppState.Export.Withdraw(waiting.Run);
@@ -108,7 +110,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void The_panel_lists_the_running_waiting_and_finished_exports()
     {
         var app = AppDriver.Opened(height: TallWindow);
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         app.Settle();
         var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
         app.AppState.Export.Enter(TestJobs.Named("Later"));
@@ -143,7 +145,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void A_clean_finish_offers_the_folder_first_and_the_report_as_an_icon()
     {
         var app = AppDriver.Opened();
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         app.Settle(2);
 
         Assert.True(app.Frames.Drew("Open folder"));
@@ -155,7 +157,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void A_failed_export_offers_the_report_first()
     {
         var app = AppDriver.Opened();
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf(Path.Combine("missing", "Greeter.cs")));
+        SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf(Path.Combine("missing", "Greeter.cs")));
         app.Settle(2);
 
         Assert.True(app.Frames.Drew("Show report"));
@@ -167,7 +169,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void The_toolbar_counts_the_exports_and_sections_part_the_queue_and_history()
     {
         var app = AppDriver.Opened(height: TallWindow);
-        Exporting.SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         app.Settle();
         var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
         app.AppState.Export.Enter(TestJobs.Named("Second"));
@@ -211,7 +213,7 @@ public sealed class ExportsPanelTests : IDisposable
     {
         var d = AppStateDriver.Opened();
 
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         var run = d.AppState.Export.Running!.Run;
         d.Settle();
 
@@ -236,12 +238,12 @@ public sealed class ExportsPanelTests : IDisposable
     public void The_report_tab_stays_as_it_is_when_the_language_changes()
     {
         var d = AppStateDriver.Opened();
-        Exporting.SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         d.Settle();
-        Exporting.ShowExportReport(d.AppState, d.AppState.FinishedExports[0]);
+        ShowExportReport(d.AppState, d.AppState.FinishedExports[0]);
         var report = d.AppState.Tabs.Active!.Document;
 
-        Preferences.SetLanguage(d.AppState, DecompilationLanguage.IL);
+        SetLanguage(d.AppState, DecompilationLanguage.IL);
         d.Settle();
 
         Assert.Same(report, d.AppState.Tabs.Active!.Document);
