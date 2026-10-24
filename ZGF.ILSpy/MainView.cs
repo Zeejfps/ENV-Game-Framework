@@ -28,6 +28,7 @@ public static class MainView
         AssemblyListDeleteDialogView.Render(ui, appState);
         BookmarkImportDialogView.Render(ui, appState);
         LayoutResetDialogView.Render(ui, appState);
+        DisplayOptionsResetDialogView.Render(ui);
         ExportDialogView.Render(ui, appState);
         ErrorDialogView.Render(ui, appState);
     }

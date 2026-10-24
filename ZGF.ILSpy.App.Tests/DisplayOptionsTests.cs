@@ -220,8 +220,28 @@ public sealed class DisplayOptionsTests
         Assert.True(IsBold(app, "Line numbers"));
         Assert.False(IsBold(app, "UI scale"));
 
-        app.Click("Reset to defaults").Frame();
+        app.Click("Reset to defaults").Frame(2);
+        Assert.True(app.Ui.ConfirmingDisplayReset);
+        Assert.Equal(changed, app.Ui.Display);
+        app.Click("Reset").Frame(2);
+
+        Assert.False(app.Ui.ConfirmingDisplayReset);
         Assert.Equal(DisplayOptions.Default, app.Ui.Display);
+    }
+
+    [Fact]
+    public void Cancelling_the_reset_question_keeps_the_options()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        app.Click("Line numbers").Frame();
+
+        app.Click("Reset to defaults").Frame(2);
+        app.Click("Cancel").Frame(2);
+
+        Assert.False(app.Ui.ConfirmingDisplayReset);
+        Assert.False(app.Ui.Display.ShowLineNumbers);
     }
 
     [Fact]

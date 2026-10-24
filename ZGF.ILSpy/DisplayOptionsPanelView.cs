@@ -154,7 +154,7 @@ internal static class DisplayOptionsPanelView
         using (ui.Row(new Box { Width = Sizing.Grow(), AlignX = Align.End }))
         {
             if (ui.Button(t.DisplayOptionsReset, enabled: changed, id: "reset", variant: ButtonVariant.Ghost, icon: icon))
-                ResetDisplayOptions(ui.State);
+                AskToResetDisplayOptions(ui.State);
         }
     }
 

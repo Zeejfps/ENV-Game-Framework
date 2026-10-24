@@ -109,6 +109,9 @@ public sealed class UiState : IUiState
     /// <summary>How the documents draw code: its size and the aids drawn around it.</summary>
     public DisplayOptions Display;
 
+    /// <summary>Set while the user is asked whether to put every display option back to its default.</summary>
+    public bool ConfirmingDisplayReset;
+
     /// <summary>What the settings last kept of the screen.</summary>
     public KeptView KeptView { get; } = new();
 
