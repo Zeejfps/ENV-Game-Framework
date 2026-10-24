@@ -12,6 +12,11 @@ public enum SearchSort
     Assembly,
 }
 
+/// <summary>Streams the hits of <paramref name="query"/> in <paramref name="within"/>, of
+/// <paramref name="assemblies"/>, in batches.</summary>
+public delegate IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchStream(AssemblyList assemblies, SearchQuery query,
+    IEnumerable<LoadedAssembly> within, CancellationToken cancellationToken);
+
 /// <summary>The search panel's query, streamed results and selection. While the panel is open a
 /// query runs once typing pauses; assemblies opened later are searched and their hits added, and
 /// hits in closed ones dropped, keeping the selection.</summary>
@@ -21,6 +26,7 @@ public sealed class Search
 
     private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
+    private readonly SearchStream _stream;
     private readonly List<SearchResult> _rows = new();
     private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
     private readonly List<CancellationTokenSource> _runs = new();
@@ -33,12 +39,18 @@ public sealed class Search
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed: a title and details.</param>
-    public Search(Func<Strings> strings, Action<string, string> reportError)
+    /// <param name="stream">Streams a query's hits; the assembly list's own search by default.</param>
+    public Search(Func<Strings> strings, Action<string, string> reportError, SearchStream? stream = null)
     {
         _strings = strings;
         _reportError = reportError;
         _order = Comparer<SearchResult>.Create(Compare);
+        _stream = stream ?? SearchAssemblies;
     }
+
+    private static IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAssemblies(AssemblyList assemblies, SearchQuery query,
+        IEnumerable<LoadedAssembly> within, CancellationToken cancellationToken) =>
+        assemblies.SearchAsync(query, within, cancellationToken);
 
     public string Query = "";
 
@@ -147,7 +159,7 @@ public sealed class Search
             return;
         var work = new CancellationTokenSource();
         _runs.Add(work);
-        var search = assemblies.SearchAsync(query, within, work.Token);
+        var search = _stream(assemblies, query, within, work.Token);
         Run(search, work);
     }
 

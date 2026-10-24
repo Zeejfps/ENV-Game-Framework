@@ -1,4 +1,3 @@
-using System.Reflection;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
@@ -301,38 +300,42 @@ public sealed class WorkspaceTests
     [Fact]
     public void A_search_that_fails_is_reported_unless_another_replaced_it()
     {
+        var posted = PostedActions.OfThisTest();
         var reported = new List<string>();
-        var search = new Search(() => Strings.En, (title, _) => reported.Add(title));
-        var current = new CancellationTokenSource();
-        RunsOf(search).Add(current);
+        var replaced = new HeldSearch();
+        var current = new HeldSearch();
+        var streams = new Queue<HeldSearch>([replaced, current]);
+        var search = new Search(static () => Strings.En, (title, _) => reported.Add(title), (_, _, _, _) => streams.Dequeue().Stream());
+        var assemblies = new AssemblyList();
+        search.Query = "Greet";
+        search.Update(assemblies, 0, true);
+        search.Update(assemblies, 1, true);
 
-        RunSearch(search, FailingSearch(), new CancellationTokenSource());
+        search.Query = "Farewell";
+        search.Update(assemblies, 2, true);
+        search.Update(assemblies, 3, true);
+        replaced.Fail();
+        posted.Run();
         var afterReplaced = reported.Count;
-        RunSearch(search, FailingSearch(), current);
+        current.Fail();
+        posted.Run();
 
+        Assert.Empty(streams);
         Assert.Equal(0, afterReplaced);
         Assert.Equal(["Search failed"], reported);
     }
 
-    private static async IAsyncEnumerable<IReadOnlyList<SearchResult>> FailingSearch()
+    /// <summary>A search's stream that yields nothing until it is told to fail, whatever cancels it.</summary>
+    private sealed class HeldSearch
     {
-        yield return await Task.FromException<IReadOnlyList<SearchResult>>(new InvalidOperationException("The search broke."));
-    }
+        private readonly TaskCompletionSource<IReadOnlyList<SearchResult>> _next = new();
 
-    /// <summary>The runs <paramref name="search"/> counts as current; private, as only starting a
-    /// search over real assemblies adds one.</summary>
-    private static List<CancellationTokenSource> RunsOf(Search search)
-    {
-        var field = typeof(Search).GetField("_runs", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        return (List<CancellationTokenSource>)field.GetValue(search)!;
-    }
+        public async IAsyncEnumerable<IReadOnlyList<SearchResult>> Stream()
+        {
+            yield return await _next.Task;
+        }
 
-    /// <summary>Runs <paramref name="results"/> as <paramref name="search"/>'s run <paramref name="work"/>;
-    /// private, as a real search does not fail but for a bug.</summary>
-    private static void RunSearch(Search search, IAsyncEnumerable<IReadOnlyList<SearchResult>> results, CancellationTokenSource work)
-    {
-        var run = typeof(Search).GetMethod("Run", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        run.Invoke(search, [results, work]);
+        public void Fail() => _next.SetException(new InvalidOperationException("The search broke."));
     }
 
     [Fact]
