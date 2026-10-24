@@ -44,9 +44,9 @@ public sealed partial class IlSpyApp
             tab.EnsureCurrent(language);
     }
 
-    /// <summary>Does what comes after drawing a frame: the tabs keep where their views stand, and the
+    /// <summary>Keeps what the screen changed while it drew: the tabs keep where their views stand, and the
     /// settings keep what changed of the screen.</summary>
-    internal static void FinishFrame(UiState uiState, AppState appState)
+    internal static void KeepScreenChanges(UiState uiState, AppState appState)
     {
         KeepTabPositions(uiState, appState.Tabs);
         KeepChangedViewSettings(uiState, appState);

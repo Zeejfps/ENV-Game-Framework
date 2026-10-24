@@ -40,16 +40,23 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     {
         StartFrame(ui.State, _appState);
         MainView.Render(ui, _appState);
-        FinishFrame(ui.State, _appState);
-        RunAppCommandsAndRedraw(ui, _appState);
-        RequestUpdateIfViewCommandsPending(ui, _appState);
-        SaveChangedSettings(ui, _appState);
+        FinishFrame(ui, _appState);
     }
 
     protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
     {
         StopRedrawingOnAssemblyChanges(host);
         SaveOnExit(host.WindowBounds);
+    }
+
+    /// <summary>Does what comes after drawing a frame: keeps what the screen changed, runs what it asked of
+    /// the app state, asks for another frame when there is more to show, and saves the changed settings.</summary>
+    private static void FinishFrame(Ui<UiState> ui, AppState appState)
+    {
+        KeepScreenChanges(ui.State, appState);
+        RunAppCommandsAndRedraw(ui, appState);
+        RequestUpdateIfViewCommandsPending(ui, appState);
+        SaveChangedSettings(ui, appState);
     }
 
     /// <summary>Runs what the screen asked of the app state while it drew, and draws again to show it.</summary>
@@ -61,11 +68,23 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         ui.RequestUpdate();
     }
 
+    private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState appState)
+    {
+        if (appState.ViewCommands.Count == 0)
+            return;
+        ui.RequestUpdate();
+    }
+
     private static void LoadAndRegisterFonts(ImmediateGuiAppHost<UiState> host)
     {
         host.RegisterFont(LoadFont(MonoFonts.Regular, MonoFontFile));
         host.RegisterFont(LoadFont(TextFonts.Italic, ItalicFontFile));
         host.RegisterFont(LoadFont(LucideIcons.Family, LucideIcons.File));
+    }
+
+    private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
+    {
+        _appState.Assemblies.Changed -= host.Invalidate;
     }
 
     private static FontFace LoadFont(string family, string file)
@@ -85,23 +104,11 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         OpenAssemblies(_appState, _startupAssemblies);
     }
 
-    private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
-    {
-        _appState.Assemblies.Changed -= host.Invalidate;
-    }
-
     internal void SaveOnExit(WindowBounds window)
     {
         _appState.Settings.RememberWindow(window);
         KeepViewSettings(_appState, TakeViewSettings(UiState));
         SaveSettings(_appState);
-    }
-
-    private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState appState)
-    {
-        if (appState.ViewCommands.Count == 0)
-            return;
-        ui.RequestUpdate();
     }
 
     private static void SaveChangedSettings(Ui<UiState> ui, AppState appState)

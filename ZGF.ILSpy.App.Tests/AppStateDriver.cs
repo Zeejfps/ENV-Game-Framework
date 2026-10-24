@@ -163,7 +163,7 @@ internal sealed class AppStateDriver
     public void NextFrame()
     {
         IlSpyApp.StartFrame(Ui, AppState);
-        IlSpyApp.FinishFrame(Ui, AppState);
+        IlSpyApp.KeepScreenChanges(Ui, AppState);
         IlSpyApp.RunAppCommands(Ui, AppState);
     }
 
