@@ -175,7 +175,7 @@ public static partial class UiWidgets
         selection.Drag(text, at);
         var pointerX = ui.Input.Pointer.X;
         if (pointerX < left || pointerX > right)
-            ui.RequestFrame();
+            ui.RequestUpdate();
     }
 
     private static float FollowCaret(float shift, float caretX, float view, float content)

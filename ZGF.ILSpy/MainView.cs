@@ -50,7 +50,7 @@ public static class MainView
         var shown = ui.State.Layout.Contains(DockPanels.Search);
         var wait = ui.State.Search.Update(w.Assemblies, ui.RealTime, shown);
         if (wait > 0)
-            ui.RequestFrameIn(wait);
+            ui.RequestUpdateIn(wait);
     }
 
     private static bool IsLayoutEmpty(UiState screen)

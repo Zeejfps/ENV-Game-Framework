@@ -56,7 +56,7 @@ public abstract partial class Ui
             offset = MathF.Max(0f, offset);
             if (offset == _state.OffsetY) return;
             _state.OffsetY = offset;
-            _ui.RequestFrame();
+            _ui.RequestUpdate();
         }
 
         /// <summary>Where row <paramref name="index"/> starts, in points from the top of the content.</summary>
@@ -69,7 +69,7 @@ public abstract partial class Ui
             if (index < 0 || index >= Count) return;
             _state.RevealRow = index;
             if (Reveal(_state, Count, _rowHeight, _gap, _top, _tall))
-                _ui.RequestFrame();
+                _ui.RequestUpdate();
         }
 
         public void Dispose()
@@ -201,7 +201,7 @@ public abstract partial class Ui
     {
         if (index < 0) return;
         GetState<ScrollState>(id).RevealRow = index;
-        RequestFrame();
+        RequestUpdate();
     }
 
     /// <summary>How far row <paramref name="index"/> starts below the first.</summary>

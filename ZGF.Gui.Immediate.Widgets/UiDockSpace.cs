@@ -402,7 +402,7 @@ internal sealed class DockWalker
                     if (tab.Selected)
                     {
                         _layout.SelectTab(group, panel);
-                        _ui.RequestFrame();
+                        _ui.RequestUpdate();
                     }
                     if (tab.Closed)
                         _closed.Add(panel);
@@ -668,7 +668,7 @@ internal sealed class DockWalker
         {
             _layout.Float(drag.Panel, FloatingRect(drag, dock));
         }
-        _ui.RequestFrame();
+        _ui.RequestUpdate();
     }
 
     private void RecordOverlay(DockDrag drag, UiRect dock, DockTarget? target, bool floating)
@@ -680,7 +680,7 @@ internal sealed class DockWalker
         }
         using (_ui.Float(0f, 0f, 0f, 0f, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }, OverlayZ))
             _ui.Paint(this, static (p, walker) => walker.PaintOverlay(p));
-        _ui.RequestFrame();
+        _ui.RequestUpdate();
     }
 
     private void PaintOverlay(UiPainter p)

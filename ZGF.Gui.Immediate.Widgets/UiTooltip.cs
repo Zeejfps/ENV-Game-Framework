@@ -131,7 +131,7 @@ public static partial class UiWidgets
         var remaining = ui.Theme.TooltipDelaySeconds - (ui.RealTime - state.Since);
         if (remaining > 0)
         {
-            ui.RequestFrameIn(remaining);
+            ui.RequestUpdateIn(remaining);
             return default;
         }
         state.Shown = true;
@@ -161,7 +161,7 @@ public static partial class UiWidgets
         var remaining = TooltipGraceSeconds - (ui.RealTime - state.LeftAt);
         if (remaining <= 0)
             return false;
-        ui.RequestFrameIn(remaining);
+        ui.RequestUpdateIn(remaining);
         return true;
     }
 

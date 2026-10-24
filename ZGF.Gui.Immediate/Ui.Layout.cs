@@ -394,7 +394,7 @@ public abstract partial class Ui
         if (x == state.OffsetX && y == state.OffsetY) return;
         state.OffsetX = x;
         state.OffsetY = y;
-        RequestFrame();
+        RequestUpdate();
     }
 
     /// <summary>Scrolls the <see cref="Scroll(int, Box)"/> with <paramref name="scrollId"/> the least
@@ -413,7 +413,7 @@ public abstract partial class Ui
         if (dx == 0f && dy == 0f) return true;
         state.OffsetX += dx;
         state.OffsetY += dy;
-        RequestFrame();
+        RequestUpdate();
         return true;
     }
 
@@ -624,7 +624,7 @@ public abstract partial class Ui
             var maxY = state.ScrollsY ? MathF.Max(0f, contentY - e.H) : 0f;
             if (maxX != state.MaxX || maxY != state.MaxY || e.W != state.ViewportX || e.H != state.ViewportY
                 || contentX != state.ContentX || contentY != state.ContentY)
-                RequestFrame();
+                RequestUpdate();
             state.ContentX = contentX;
             state.ContentY = contentY;
             state.ViewportX = e.W;

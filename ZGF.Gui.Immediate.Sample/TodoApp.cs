@@ -43,7 +43,7 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<TodoState, Defaul
     private readonly ListSelection _selection = new();
     private TodoItem? _menuTarget;
 
-    protected override void OnRender(Ui<DefaultUiState> ui, TodoState s)
+    protected override void OnUpdate(Ui<DefaultUiState> ui, TodoState s)
     {
         var palette = s.DarkMode ? UiTheme.Dark : UiTheme.Light;
         ui.State.Theme = palette with { ScreenPadding = 0f };

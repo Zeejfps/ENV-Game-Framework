@@ -160,7 +160,7 @@ public sealed class TwoAxisScrollTests
         var frames = Settled();
 
         frames.Frame(ui => ui.ScrollTo(ui.GetId("both"), 100f, 50f));
-        Assert.True(frames.RequestedFrame);
+        Assert.True(frames.UpdateRequested);
         frames.Frame();
         Assert.Equal((100f, 50f), Offset(frames));
 

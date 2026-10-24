@@ -27,12 +27,12 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         State.RestoreAnalyses();
     }
 
-    protected override void OnRender(Ui<UiState> ui, AppState w)
+    protected override void OnUpdate(Ui<UiState> ui, AppState w)
     {
         ui.State.StartFrame();
         MainView.Render(ui, w);
         ui.State.FinishFrame();
-        RequestFrameIfViewCommandsPending(ui, w);
+        RequestUpdateIfViewCommandsPending(ui, w);
         SaveSettingsIfChanged(ui, w);
     }
 
@@ -78,17 +78,17 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         State.SaveSettings();
     }
     
-    private static void RequestFrameIfViewCommandsPending(Ui<UiState> ui, AppState w)
+    private static void RequestUpdateIfViewCommandsPending(Ui<UiState> ui, AppState w)
     {
         if (w.ViewCommands.Count == 0)
             return;
-        ui.RequestFrame();
+        ui.RequestUpdate();
     }
     
     private static void SaveSettingsIfChanged(Ui<UiState> ui, AppState w)
     {
         var retryWait = w.SaveSettingsIfChanged(ui.RealTime);
         if (retryWait > 0)
-            ui.RequestFrameIn(retryWait);
+            ui.RequestUpdateIn(retryWait);
     }
 }

@@ -54,7 +54,7 @@ public abstract partial class Ui
     public void PlaceWindow(int id, UiRect rect)
     {
         _windowPlacements[id] = rect;
-        RequestFrame();
+        RequestUpdate();
     }
 
     private UiRect CenterOverWindow(float width, float height)
@@ -67,6 +67,6 @@ public abstract partial class Ui
     private void CloseWindow(ref bool open)
     {
         open = false;
-        RequestFrame();
+        RequestUpdate();
     }
 }

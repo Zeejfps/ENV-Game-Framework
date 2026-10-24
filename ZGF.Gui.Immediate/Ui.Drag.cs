@@ -59,7 +59,7 @@ public abstract partial class Ui
     {
         _drag = payload;
         _dropping = false;
-        RequestFrame();
+        RequestUpdate();
     }
 
     /// <summary>The payload being dragged, when it is a <typeparamref name="T"/>.</summary>

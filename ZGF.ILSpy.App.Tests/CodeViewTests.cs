@@ -176,7 +176,7 @@ public sealed class CodeViewTests
 
         view.MoveTo(0, 0).Press().Frame();
         view.Frames.MovePointer(100f, 400f).Frame(30);
-        var requested = view.Frames.RequestedFrame;
+        var requested = view.Frames.UpdateRequested;
         view.Frames.Release().Frame();
 
         Assert.True(requested);
@@ -235,7 +235,7 @@ public sealed class CodeViewTests
 
         var (_, top) = view.DrawnText().Single(d => d.Text == "line 500");
         Assert.InRange(top, CodeViewDriver.Origin + ViewHeight / 3 - CodeViewDriver.Row, CodeViewDriver.Origin + ViewHeight / 3 + CodeViewDriver.Row);
-        Assert.True(view.Frames.RequestedFrame);
+        Assert.True(view.Frames.UpdateRequested);
     }
 
     [Fact]

@@ -611,7 +611,7 @@ internal static class ExportsPanelView
     {
         if (!w.Export.IsRunning)
             return;
-        ui.RequestFrameIn(AnimationStep);
+        ui.RequestUpdateIn(AnimationStep);
     }
 
     /// <summary>A muted heading over a group of rows, with how many it holds.</summary>

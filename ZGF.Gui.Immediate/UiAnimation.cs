@@ -62,7 +62,7 @@ public static class UiAnimation
         }
 
         state.Value += (target - state.Value) * (1f - MathF.Exp(-rate * ui.DeltaTime));
-        ui.RequestFrame();
+        ui.RequestUpdate();
         return state.Value;
     }
 
@@ -90,7 +90,7 @@ public static class UiAnimation
             return state.Value;
         }
 
-        ui.RequestFrame();
+        ui.RequestUpdate();
         var progress = elapsed <= 0f ? 0f : elapsed / tween.Duration;
         state.Value = state.From + (state.To - state.From) * tween.Evaluate(progress);
         return state.Value;
@@ -126,7 +126,7 @@ public static class UiAnimation
             return target;
         }
 
-        ui.RequestFrame();
+        ui.RequestUpdate();
         return state.Value;
     }
 

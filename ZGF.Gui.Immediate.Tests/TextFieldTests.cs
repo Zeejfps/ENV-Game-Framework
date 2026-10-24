@@ -222,7 +222,7 @@ public sealed class TextFieldTests
         field.Click(5);
         field.Frame();
 
-        Assert.False(field.Frames.RequestedFrame);
+        Assert.False(field.Frames.UpdateRequested);
         Assert.InRange(field.Frames.WakeAt, field.Frames.RealTime, field.Frames.RealTime + 0.53);
     }
 

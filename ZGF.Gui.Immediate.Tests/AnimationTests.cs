@@ -10,7 +10,7 @@ public sealed class AnimationTests
         var value = frames.Run(0f, ui => ui.Animate("v", 5f, Tween.Linear(1f)));
 
         Assert.Equal(5f, value);
-        Assert.False(frames.RequestedFrame);
+        Assert.False(frames.UpdateRequested);
     }
 
     [Fact]
@@ -20,12 +20,12 @@ public sealed class AnimationTests
         frames.Run(0f, ui => ui.Animate("v", 0f, Tween.Linear(1f)));
 
         Assert.Equal(0f, frames.Run(0.25f, ui => ui.Animate("v", 1f, Tween.Linear(1f))));
-        Assert.True(frames.RequestedFrame);
+        Assert.True(frames.UpdateRequested);
         Assert.Equal(0.25f, frames.Run(0.25f, ui => ui.Animate("v", 1f, Tween.Linear(1f))), 4);
         Assert.Equal(0.5f, frames.Run(0.25f, ui => ui.Animate("v", 1f, Tween.Linear(1f))), 4);
         Assert.Equal(0.75f, frames.Run(0.25f, ui => ui.Animate("v", 1f, Tween.Linear(1f))), 4);
         Assert.Equal(1f, frames.Run(0.25f, ui => ui.Animate("v", 1f, Tween.Linear(1f))));
-        Assert.False(frames.RequestedFrame);
+        Assert.False(frames.UpdateRequested);
     }
 
     [Fact]
@@ -109,11 +109,11 @@ public sealed class AnimationTests
         var frames = new UiFrames(new DefaultUiState());
         frames.Run(0f, ui => ui.Animate("v", 0f));
         var value = 0f;
-        for (var i = 0; i < 120 && (i == 0 || frames.RequestedFrame); i++)
+        for (var i = 0; i < 120 && (i == 0 || frames.UpdateRequested); i++)
             value = frames.Run(1f / 60f, ui => ui.Animate("v", 1f));
 
         Assert.Equal(1f, value);
-        Assert.False(frames.RequestedFrame);
+        Assert.False(frames.UpdateRequested);
     }
 
     private static (float Peak, float Final, bool StillAnimating) RunSpring(Spring spring)
@@ -126,8 +126,8 @@ public sealed class AnimationTests
         {
             value = frames.Run(1f / 60f, ui => ui.Animate("v", 1f, spring));
             peak = MathF.Max(peak, value);
-            if (!frames.RequestedFrame) break;
+            if (!frames.UpdateRequested) break;
         }
-        return (peak, value, frames.RequestedFrame);
+        return (peak, value, frames.UpdateRequested);
     }
 }

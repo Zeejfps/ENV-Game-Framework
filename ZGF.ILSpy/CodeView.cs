@@ -366,7 +366,7 @@ public static class CodeViewWidget
                 {
                     scrollDeltaY = AutoScroll(dy, rowHeight, ui.DeltaTime);
                     state.ScrollX = MathF.Max(0f, state.ScrollX + AutoScroll(dx, advance, ui.DeltaTime));
-                    ui.RequestFrame();
+                    ui.RequestUpdate();
                 }
             }
 
@@ -571,7 +571,7 @@ public static class CodeViewWidget
             {
                 frame.FlashLine = state.FlashLine;
                 frame.Flash = UiColor.Mix(theme.EditorBackground, palette.Flash, 1f - t);
-                ui.RequestFrame();
+                ui.RequestUpdate();
             }
         }
     }
@@ -585,7 +585,7 @@ public static class CodeViewWidget
         {
             if (viewport <= 0f)
             {
-                ui.RequestFrame();
+                ui.RequestUpdate();
             }
             else
             {
@@ -612,7 +612,7 @@ public static class CodeViewWidget
         {
             if (viewport <= 0f)
             {
-                ui.RequestFrame();
+                ui.RequestUpdate();
             }
             else if (state.PendingReveal != CodeViewState.NoLine)
             {
@@ -623,7 +623,7 @@ public static class CodeViewWidget
                 state.FlashFrom = ui.RealTime;
                 state.PendingReveal = CodeViewState.NoLine;
                 state.PendingShowLine = CodeViewState.NoLine;
-                ui.RequestFrame();
+                ui.RequestUpdate();
             }
             else
             {

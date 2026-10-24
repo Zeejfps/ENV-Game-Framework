@@ -31,13 +31,13 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         Body = body;
     }
 
-    /// <summary>Frames of <paramref name="app"/>: each one records what its <c>OnRender</c> does, on a
+    /// <summary>Frames of <paramref name="app"/>: each one records what its <c>OnUpdate</c> does, on a
     /// <see cref="Ui{T}"/> carrying its UI state.</summary>
     public static UiFrames<TState> Running<TAppState>(ImmediateGuiApp<TAppState, TState> app, ITextMeasurer? measurer = null,
         TestPopupHost? popups = null, float width = 400f, float height = 300f)
         where TAppState : class
     {
-        return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Render);
+        return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Update);
     }
 
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>
@@ -61,7 +61,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     public float Width { get; set; }
     public float Height { get; set; }
     public double RealTime { get; private set; }
-    public bool RequestedFrame { get; private set; }
+    public bool UpdateRequested { get; private set; }
     public double WakeAt { get; private set; }
 
     /// <summary>The cursor the last frame asked for.</summary>
@@ -327,7 +327,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     private void End()
     {
         _ui.EndFrame();
-        RequestedFrame = _ui.FrameRequested;
+        UpdateRequested = _ui.UpdateRequested;
         WakeAt = _ui.WakeAt;
         Cursor = _ui.Cursor;
         WantsTextInput = _ui.WantsTextInput;

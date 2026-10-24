@@ -28,7 +28,7 @@ public sealed class VirtualScrollOffsetTests
         Frame(frames);
 
         Frame(frames, list => list.ScrollTo(500f));
-        Assert.True(frames.RequestedFrame);
+        Assert.True(frames.UpdateRequested);
         var scrolled = Frame(frames);
         Frame(frames, list => list.ScrollTo(float.MaxValue));
         var clamped = Frame(frames);

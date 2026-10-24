@@ -47,7 +47,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private readonly IGuiRenderBackend _render;
     private readonly IWindow _window;
-    private readonly Action<Ui<TUiState>> _renderUi;
+    private readonly Action<Ui<TUiState>> _updateUi;
     private readonly Ui<TUiState> _ui;
     private readonly IFilePicker _filePicker;
     private readonly List<Popup> _popups = new();
@@ -75,13 +75,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         StartupConfig config,
         RenderBackendKind backend,
         TUiState uiState,
-        Action<Ui<TUiState>> renderUi)
+        Action<Ui<TUiState>> updateUi)
     {
         _render = CreateRenderBackend(config, backend);
         RegisterDefaultBold();
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
-        _renderUi = renderUi;
+        _updateUi = updateUi;
         _ui = new Ui<TUiState>(uiState, _render.MainCanvas, new WindowClipboard(_window), this);
         _ui.Wake = Invalidate;
         _filePicker = NativeFilePicker.Create(_ui.Post);
@@ -138,7 +138,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// has closed, where it was left — save them and reopen with <see cref="WindowBounds.ApplyTo"/>.</summary>
     public WindowBounds WindowBounds => new(_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height, _window.IsMaximized);
 
-    /// <summary>Schedules a frame after the app's state changed outside a frame. Safe from any thread,
+    /// <summary>Schedules an update after the app's state changed outside a frame. Safe from any thread,
     /// and does nothing once the window has closed.</summary>
     public void Invalidate()
     {
@@ -229,7 +229,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _ui.WindowBounds = WindowBounds;
         _drawing = true;
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
-        _renderUi(_ui);
+        _updateUi(_ui);
         _ui.EndFrame();
         _drawing = false;
         if (_ui.WindowBackground != _clearColor)
@@ -274,9 +274,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
         if (_textInputFocus && _ui.ImeCaret is { } caret)
             PlaceImeCaret(caret);
-        _animating = _ui.FrameRequested;
+        _animating = _ui.UpdateRequested;
         _wakeAt = _ui.WakeAt;
-        if (_frame.HasEvents || _ui.FrameRequested)
+        if (_frame.HasEvents || _ui.UpdateRequested)
             _window.RequestRedraw();
     }
 

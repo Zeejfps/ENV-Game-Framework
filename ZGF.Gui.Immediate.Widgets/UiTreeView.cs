@@ -142,7 +142,7 @@ public static partial class UiWidgets
                 moved = state.Collapse(toggle);
             else
                 state.Expand(toggle, model);
-            ui.RequestFrame();
+            ui.RequestUpdate();
         }
 
         var changed = selection != before || moved || selectionMoved;

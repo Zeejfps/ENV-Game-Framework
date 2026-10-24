@@ -204,7 +204,7 @@ public static partial class UiWidgets
     private static void Dismiss(Ui ui, ref bool open)
     {
         open = false;
-        ui.RequestFrame();
+        ui.RequestUpdate();
     }
 
     /// <summary>The row of a dialog's buttons, last in its body: aligned to the end, set apart from

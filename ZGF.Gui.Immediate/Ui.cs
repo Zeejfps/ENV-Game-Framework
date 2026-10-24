@@ -120,19 +120,19 @@ public abstract partial class Ui
     /// <summary>Called, from any thread, when <see cref="Post"/> queues work.</summary>
     internal Action? Wake { get; set; }
     internal MouseCursor Cursor { get; private set; }
-    internal bool FrameRequested { get; private set; }
+    internal bool UpdateRequested { get; private set; }
     internal double WakeAt { get; private set; } = double.PositiveInfinity;
 
     /// <summary>Draws another frame after this one, for animation or state that settles over
     /// several frames.</summary>
-    public void RequestFrame() => FrameRequested = true;
+    public void RequestUpdate() => UpdateRequested = true;
 
     /// <summary>Draws a frame once <paramref name="seconds"/> of <see cref="RealTime"/> have
     /// passed, without drawing the frames in between.</summary>
-    public void RequestFrameIn(double seconds)
+    public void RequestUpdateIn(double seconds)
     {
         if (seconds <= 0)
-            RequestFrame();
+            RequestUpdate();
         else
             WakeAt = Math.Min(WakeAt, RealTime + seconds);
     }
@@ -228,7 +228,7 @@ public abstract partial class Ui
         DeltaTime = deltaTime;
         Time += deltaTime;
         RealTime = realTime;
-        FrameRequested = false;
+        UpdateRequested = false;
         WakeAt = double.PositiveInfinity;
         Cursor = MouseCursor.Default;
         _activeSeen = false;
@@ -495,7 +495,7 @@ public abstract partial class Ui
     {
         _deferredTab = Math.Sign(direction);
         _deferredTabFrame = _frame;
-        RequestFrame();
+        RequestUpdate();
     }
 
     private void TraverseFocus()
@@ -521,7 +521,7 @@ public abstract partial class Ui
         }
         else if (_frame == _deferredTabFrame || LayersChanged())
         {
-            RequestFrame();
+            RequestUpdate();
         }
         else
         {
@@ -542,7 +542,7 @@ public abstract partial class Ui
         var next = at < 0 ? (direction > 0 ? 0 : count - 1) : (at + direction + count) % count;
         (_focused, _focusTakesText) = _tabStops[next];
         _focusVisible = true;
-        RequestFrame();
+        RequestUpdate();
     }
 
     /// <summary>Width of <paramref name="text"/> as <see cref="Text"/> draws it. A null
