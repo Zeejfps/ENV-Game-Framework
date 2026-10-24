@@ -14,6 +14,7 @@ public sealed partial class UiState
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
     public bool ConfirmingLayoutReset;
 
+    private FocusTry _lastFocusTry = new(-1, -1);
     private DecompilationLanguage _shownLanguage;
     private DecompilerOptions _shownOptions;
 
@@ -70,15 +71,32 @@ public sealed partial class UiState
         FocusTab(next);
     }
 
+    /// <summary>The tab in front of the first group, docked then floating, that has one in front.
+    /// Allocates nothing.</summary>
     private DocumentTab? FindFrontTab()
     {
-        foreach (var group in Layout.AllGroups())
+        var docked = FindFrontTab(Layout.Root);
+        if (docked != null)
+            return docked;
+        foreach (var window in Layout.Windows)
         {
-            var tab = _workspace.Tabs.Find(group.Active);
-            if (tab != null)
-                return tab;
+            var floating = FindFrontTab(window.Root);
+            if (floating != null)
+                return floating;
         }
         return null;
+    }
+
+    private DocumentTab? FindFrontTab(DockNode node)
+    {
+        if (node is DockGroup group)
+            return _workspace.Tabs.Find(group.Active);
+        if (node is not DockSplit split)
+            return null;
+        var first = FindFrontTab(split.First);
+        if (first != null)
+            return first;
+        return FindFrontTab(split.Second);
     }
 
     /// <summary>Makes <paramref name="tab"/> the active tab and reveals what it shows in the tree, when
@@ -99,13 +117,21 @@ public sealed partial class UiState
         Tree.Reveal(node);
     }
 
-    /// <summary>Focuses another tab when the active one was closed by a feature.</summary>
+    /// <summary>Focuses another tab when the active one was closed by a feature, trying again only once
+    /// the tabs or the layout changed since the last try found none.</summary>
     private void FocusNextTabIfNone()
     {
         if (_workspace.Tabs.Active != null)
             return;
+        var tried = new FocusTry(Layout.Changes, _workspace.Tabs.Count);
+        if (tried == _lastFocusTry)
+            return;
+        _lastFocusTry = tried;
         FocusNextTab();
     }
+
+    /// <summary>What the last try to focus another tab saw: the layout's change count and how many tabs were open.</summary>
+    private readonly record struct FocusTry(int LayoutChanges, int TabCount);
 
     /// <summary>Docks <paramref name="tab"/> beside the panel <paramref name="beside"/> when it is not
     /// docked yet, and brings it to the front.</summary>
