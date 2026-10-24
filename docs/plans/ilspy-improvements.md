@@ -102,9 +102,10 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
 
 ## Readability
 
-- `ZGF.ILSpy`: `DocumentTab.cs` (chained ternaries `:65,68,71`, patterns `:119,152-162`, sugar in arguments
-  `:175-194`), `Bookmarks.cs` (`:276-284, 366, 381, 437`), `BrowseTree.cs` (`:221-227, 269, 306-353`),
-  `NodeText.cs:23-36`, `DocumentsView.cs:374-404`, `AppSettings.cs:355-408`; 39 `is {` patterns in 12 files.
+- `ZGF.ILSpy`: `DocumentTab.cs` (`?:` mixed with `??` in `Title` and `Tooltip`, a property pattern in
+  `EnsureCurrent`, ternaries in arguments in `Complete`), `Bookmarks.cs` (`:276-284, 366, 381, 437`),
+  `BrowseTree.cs` (`:221-227, 269, 306-353`), `NodeText.cs:23-36`, `DocumentsView.cs:374-404`,
+  `AppSettings.cs:355-408`; 39 `is {` patterns in 12 files.
 - `ZGF.ILSpy.Core`: ~85 `is { }` checks and ~50 range slices; chained ternaries in `DocumentBuilder.cs:198-206`,
   `Analysis.cs:165-169`, `EntityText.cs:41-46`, `DecompilerOptions.cs:96`, `LoadedAssembly.cs:134-136`;
   `_ = parent.Children` in `LoadedAssembly.cs:138` and `Nodes.cs:28` instead of `LoadChildren()`;
