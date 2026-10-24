@@ -95,7 +95,7 @@ public abstract partial class Ui
     /// so it can time things like a caret blink.</summary>
     public double RealTime { get; private set; }
 
-    /// <summary>The main window's bounds as of this frame; see <see cref="ImmediateGuiAppHost.WindowBounds"/>.</summary>
+    /// <summary>The main window's bounds as of this frame; see <see cref="ImmediateGuiAppHost{TUiState}.WindowBounds"/>.</summary>
     public WindowBounds WindowBounds { get; internal set; }
 
     /// <summary>The color the window is cleared to under everything drawn, and shown while it

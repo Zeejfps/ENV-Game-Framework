@@ -11,6 +11,6 @@ public static class ILSpyAppLauncher
         var screen = new UiState(appState);
         var app = new IlSpyApp(appState, screen, commandLine.AssemblyPaths);
         var windowConfig = settings.CreateWindowConfig();
-        ImmediateGuiAppHost.Run(app, windowConfig, commandLine.RenderBackend);
+        app.Run(windowConfig, commandLine.RenderBackend);
     }
 }

@@ -22,19 +22,13 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     /// <param name="state">What every frame's <see cref="Ui{T}"/> carries.</param>
     public UiFrames(TState state, ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
         Action<Ui<TState>>? body = null)
-        : this(CreateUiCarrying(state), measurer, popups, width, height)
-    {
-        Body = body;
-    }
-
-    private UiFrames(Func<ICanvas, IClipboard, IPopupHost?, Ui<TState>> createUi, ITextMeasurer? measurer, TestPopupHost? popups,
-        float width, float height)
     {
         _canvas = new RecordingCanvas(measurer ?? new SyntheticTextMeasurer());
         _popups = popups;
         Width = width;
         Height = height;
-        _ui = createUi(_canvas, Clipboard, popups);
+        _ui = new Ui<TState>(state, _canvas, Clipboard, popups);
+        Body = body;
     }
 
     /// <summary>Frames of <paramref name="app"/>: each one records what its <c>OnRender</c> does, on a
@@ -43,14 +37,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         TestPopupHost? popups = null, float width = 400f, float height = 300f)
         where TAppState : class
     {
-        var frames = new UiFrames<TState>(app.CreateUi, measurer, popups, width, height);
-        frames.Body = _ => app.Render();
-        return frames;
-    }
-
-    private static Func<ICanvas, IClipboard, IPopupHost?, Ui<TState>> CreateUiCarrying(TState state)
-    {
-        return (canvas, clipboard, popups) => new Ui<TState>(state, canvas, clipboard, popups);
+        return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Render);
     }
 
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>

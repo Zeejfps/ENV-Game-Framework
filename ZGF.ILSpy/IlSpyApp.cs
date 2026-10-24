@@ -19,7 +19,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         _startupAssemblies = startupAssemblies;
     }
 
-    protected override void OnStartup(ImmediateGuiAppHost host)
+    protected override void OnStartup(ImmediateGuiAppHost<UiState> host)
     {
         LoadAndRegisterFonts(host);
         OpenStartupAssemblies();
@@ -36,13 +36,13 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         SaveSettingsIfChanged(ui, w);
     }
 
-    protected override void OnShutdown(ImmediateGuiAppHost host)
+    protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
     {
         StopRedrawingOnAssemblyChanges(host);
         SaveOnExit(host.WindowBounds);
     }
 
-    private static void LoadAndRegisterFonts(ImmediateGuiAppHost host)
+    private static void LoadAndRegisterFonts(ImmediateGuiAppHost<UiState> host)
     {
         host.RegisterFont(LoadFont(MonoFonts.Regular, MonoFontFile));
         host.RegisterFont(LoadFont(TextFonts.Italic, ItalicFontFile));
@@ -55,7 +55,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         return new FontFace(family, data);
     }
 
-    private void StartRedrawingOnAssemblyChanges(ImmediateGuiAppHost host)
+    private void StartRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
     {
         State.Assemblies.Changed += host.Invalidate;
     }
@@ -66,7 +66,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<AppState, UiState>
         State.Open(_startupAssemblies);
     }
 
-    private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost host)
+    private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
     {
         State.Assemblies.Changed -= host.Invalidate;
     }
