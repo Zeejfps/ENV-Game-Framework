@@ -47,19 +47,22 @@ public static partial class UiWidgets
     /// its title bar to dock it the same way, or to move it while Ctrl is held, and its edges to
     /// resize it; and drags dividers. Pressing a group focuses its front panel
     /// (<see cref="DockLayout.Focused"/>). Every change is written to <paramref name="layout"/> when
-    /// the scope ends. Escape cancels a drag.
+    /// the scope ends. Escape cancels a drag. <paramref name="tabListTooltip"/> names the button
+    /// that lists a group's tabs while they overflow.
     /// </summary>
-    public static DockSpace DockSpace(this Ui ui, string id, DockLayout layout, Func<string, DockTab> tab, Box box = default) =>
-        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box);
+    public static DockSpace DockSpace(this Ui ui, string id, DockLayout layout, Func<string, DockTab> tab, Box box = default,
+        string? tabListTooltip = null) =>
+        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box, tabListTooltip);
 
     /// <summary>A <see cref="DockSpace(Ui, string, DockLayout, Func{string, DockTab}, Box)"/> whose
     /// tabs are named by <paramref name="tab"/> from <paramref name="state"/>, so a static lambda
     /// can name them without allocating.</summary>
-    public static DockSpace DockSpace<TState>(this Ui ui, string id, DockLayout layout, TState state, Func<TState, string, DockTab> tab, Box box = default)
+    public static DockSpace DockSpace<TState>(this Ui ui, string id, DockLayout layout, TState state, Func<TState, string, DockTab> tab, Box box = default,
+        string? tabListTooltip = null)
     {
         var dockId = ui.GetId(id);
         var walker = ui.GetState<DockWalker>(HashCode.Combine(dockId, DockWalkerSalt));
-        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box);
+        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box, tabListTooltip);
         return new DockSpace(walker);
     }
 }
@@ -135,6 +138,7 @@ internal sealed class DockWalker
     private UiTheme _theme = null!;
     private DockLayout _layout = null!;
     private IDockTabs _tab = null!;
+    private string? _tabListTooltip;
     private IDockTabs? _source;
     private Ui.Scope _idScope;
     private Ui.Scope _root;
@@ -153,12 +157,13 @@ internal sealed class DockWalker
         return tabs;
     }
 
-    public void Begin(Ui ui, string id, int dockId, DockLayout layout, IDockTabs tab, Box box)
+    public void Begin(Ui ui, string id, int dockId, DockLayout layout, IDockTabs tab, Box box, string? tabListTooltip)
     {
         _ui = ui;
         _theme = ui.Theme;
         _layout = layout;
         _tab = tab;
+        _tabListTooltip = tabListTooltip;
         _dockId = dockId;
         _frames.Clear();
         _groups.Clear();
@@ -391,7 +396,7 @@ internal sealed class DockWalker
         if (group.Panels.Count > 0 && !fixedPanel)
         {
             using (_ui.Id(TabsSalt))
-            using (var strip = _ui.TabStrip(stripId))
+            using (var strip = _ui.TabStrip(stripId, listTooltip: _tabListTooltip))
             {
                 for (var i = 0; i < group.Panels.Count; i++)
                 {

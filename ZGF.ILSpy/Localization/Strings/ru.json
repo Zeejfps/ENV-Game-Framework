@@ -66,6 +66,7 @@
   "panel.decompiler_options": "Параметры декомпилятора",
   "panel.exports": "Экспорт",
   "panel.display_options": "Параметры отображения",
+  "dock.all_tabs": "Все вкладки",
   "decompiler_options.reset": "Сбросить по умолчанию",
   "decompiler_options.other": "Прочее",
   "decompiler_options.fsharp": "Код F#",

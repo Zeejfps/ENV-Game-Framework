@@ -66,6 +66,7 @@
   "panel.decompiler_options": "反编译器选项",
   "panel.exports": "导出",
   "panel.display_options": "显示选项",
+  "dock.all_tabs": "所有标签页",
   "decompiler_options.reset": "恢复默认值",
   "decompiler_options.other": "其他",
   "decompiler_options.fsharp": "F# 代码",

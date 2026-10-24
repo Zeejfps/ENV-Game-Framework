@@ -68,7 +68,7 @@ public sealed class TabStripTests
     {
         using var screen = ui.Screen();
         var next = _selected;
-        using (var strip = ui.TabStrip("tabs"))
+        using (var strip = ui.TabStrip("tabs", listTooltip: "All tabs"))
         {
             for (var i = 0; i < _tabs.Count; i++)
             {
@@ -130,6 +130,17 @@ public sealed class TabStripTests
 
         Assert.True(HasListButton());
         Assert.True(_frames.RectOf("tabs").Right <= ListButton().X);
+    }
+
+    [Fact]
+    public void The_list_button_shows_its_tooltip()
+    {
+        Overflow();
+
+        _frames.MovePointer(ListButton()).Frame();
+        _frames.Wait(0.6).Frame(2);
+
+        Assert.True(_frames.Drew("All tabs"));
     }
 
     [Fact]

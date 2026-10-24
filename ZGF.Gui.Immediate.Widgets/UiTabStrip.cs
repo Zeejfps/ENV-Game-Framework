@@ -22,8 +22,9 @@ public readonly struct TabStrip : IDisposable
     private readonly int _id;
     private readonly TabList _list;
     private readonly int _picked;
+    private readonly string? _listTooltip;
 
-    internal TabStrip(Ui ui, Ui.Scope row, Ui.Scope scroll, int id, TabList list, int picked)
+    internal TabStrip(Ui ui, Ui.Scope row, Ui.Scope scroll, int id, TabList list, int picked, string? listTooltip)
     {
         _ui = ui;
         _row = row;
@@ -31,6 +32,7 @@ public readonly struct TabStrip : IDisposable
         _id = id;
         _list = list;
         _picked = picked;
+        _listTooltip = listTooltip;
     }
 
     /// <summary>One tab, between the theme's <see cref="UiTheme.TabMinWidth"/> and
@@ -54,7 +56,7 @@ public readonly struct TabStrip : IDisposable
     public void Dispose()
     {
         _scroll.Dispose();
-        UiWidgets.TabListButton(_ui, _id, _list);
+        UiWidgets.TabListButton(_ui, _id, _list, _listTooltip);
         _row.Dispose();
     }
 }
@@ -104,10 +106,12 @@ public static partial class UiWidgets
     internal static int TabListButtonId(int stripId) => HashCode.Combine(stripId, "list");
 
     /// <summary>A row of tabs attached to what is below them. When they overflow it scrolls sideways
-    /// by wheel, with no bar, and ends in a button whose menu lists every tab to pick from.</summary>
-    public static TabStrip TabStrip(this Ui ui, string id, Box box = default) => ui.TabStrip(ui.GetId(id), box);
+    /// by wheel, with no bar, and ends in a button whose menu lists every tab to pick from, shown
+    /// with <paramref name="listTooltip"/>.</summary>
+    public static TabStrip TabStrip(this Ui ui, string id, Box box = default, string? listTooltip = null) =>
+        ui.TabStrip(ui.GetId(id), box, listTooltip);
 
-    public static TabStrip TabStrip(this Ui ui, int stripId, Box box = default)
+    public static TabStrip TabStrip(this Ui ui, int stripId, Box box = default, string? listTooltip = null)
     {
         var theme = ui.Theme;
         var row = ui.Row(HashCode.Combine(stripId, "row"), new Box
@@ -128,17 +132,17 @@ public static partial class UiWidgets
         }, showBars: false);
         var list = ui.GetState<TabList>(HashCode.Combine(stripId, "tabs"));
         var picked = list.Restart();
-        return new TabStrip(ui, row, scroll, stripId, list, picked);
+        return new TabStrip(ui, row, scroll, stripId, list, picked, listTooltip);
     }
 
     /// <summary>While the strip overflows, the button at its end whose menu lists every tab, the
     /// selected one marked. Picking the selected tab scrolls it into view.</summary>
-    internal static void TabListButton(Ui ui, int stripId, TabList list)
+    internal static void TabListButton(Ui ui, int stripId, TabList list, string? tooltip)
     {
         if (!ui.CanScroll(stripId)) return;
         var theme = ui.Theme;
         using (ui.Box(new Box { Padding = new Spacing(theme.GapTight, 0f) }))
-        using (var menu = ui.DropdownButton(TabListButtonId(stripId), revision: list.Revision()))
+        using (var menu = ui.DropdownButton(TabListButtonId(stripId), tooltip, revision: list.Revision()))
         {
             if (!menu.IsOpen) return;
             foreach (var tab in list.Tabs)

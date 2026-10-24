@@ -71,6 +71,7 @@
   "panel.decompiler_options": "Decompiler options",
   "panel.exports": "Exports",
   "panel.display_options": "Display options",
+  "dock.all_tabs": "All tabs",
   "decompiler_options.reset": "Reset to defaults",
   "decompiler_options.other": "Other",
   "decompiler_options.fsharp": "F# code",

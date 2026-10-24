@@ -66,6 +66,7 @@
   "panel.decompiler_options": "디컴파일러 옵션",
   "panel.exports": "내보내기",
   "panel.display_options": "표시 옵션",
+  "dock.all_tabs": "모든 탭",
   "decompiler_options.reset": "기본값으로 재설정",
   "decompiler_options.other": "기타",
   "decompiler_options.fsharp": "F# 코드",

@@ -66,6 +66,7 @@
   "panel.decompiler_options": "逆コンパイラーのオプション",
   "panel.exports": "エクスポート",
   "panel.display_options": "表示オプション",
+  "dock.all_tabs": "すべてのタブ",
   "decompiler_options.reset": "既定値に戻す",
   "decompiler_options.other": "その他",
   "decompiler_options.fsharp": "F# コード",

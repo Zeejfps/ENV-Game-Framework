@@ -66,6 +66,7 @@
   "panel.decompiler_options": "Options du décompilateur",
   "panel.exports": "Exports",
   "panel.display_options": "Options d'affichage",
+  "dock.all_tabs": "Tous les onglets",
   "decompiler_options.reset": "Rétablir les valeurs par défaut",
   "decompiler_options.other": "Autres",
   "decompiler_options.fsharp": "Code F#",
