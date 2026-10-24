@@ -13,6 +13,8 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class DisplayOptionsTests
 {
+    private const float TallWindow = 1000f;
+
     private static CodeViewDriver Showing(DecompiledDocument document, DisplayOptions? display, int frames = 2)
     {
         var view = new CodeViewDriver(document) { Display = display };
@@ -182,7 +184,7 @@ public sealed class DisplayOptionsTests
         using var temp = new TempDir();
         var app = new AppDriver(settings: temp.Settings());
         var font = new CodeFont("Test Mono", temp.Write("mono.ttf", FontBytes), 0);
-        var options = new DisplayOptions(FontSize: 20f, ShowLineNumbers: false, HighlightCurrentLine: true, Font: font);
+        var options = new DisplayOptions(FontSize: 20f, ShowLineNumbers: false, HighlightCurrentLine: true, Font: font, TreeTokens: TokenFormat.Decimal);
 
         SetDisplayOptions(app.Ui, options);
         app.Run();
@@ -208,7 +210,7 @@ public sealed class DisplayOptionsTests
     [Fact]
     public void The_panel_changes_the_size_and_the_toggles_and_resets_them()
     {
-        var app = AppDriver.Opened(width: 1600f);
+        var app = AppDriver.Opened(width: 1600f, height: TallWindow);
         OpenDisplayOptions(app.Ui);
         app.Run();
         var size = app.Ui.Theme.MonoFontSize;
@@ -229,6 +231,21 @@ public sealed class DisplayOptionsTests
 
         Assert.False(app.Ui.ConfirmingDisplayReset);
         Assert.Equal(DisplayOptions.Default, app.Ui.Display);
+    }
+
+    [Fact]
+    public void The_panel_picks_how_the_tree_writes_metadata_tokens()
+    {
+        var app = AppDriver.Opened(width: 1600f, height: TallWindow);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        Assert.False(IsBold(app, "Metadata tokens"));
+
+        app.Click("Hidden").Frame();
+        app.Click("Hexadecimal").Frame();
+
+        Assert.Equal(TokenFormat.Hex, app.Ui.Display.TreeTokens);
+        Assert.True(IsBold(app, "Metadata tokens"));
     }
 
     [Fact]
@@ -263,7 +280,7 @@ public sealed class DisplayOptionsTests
     [Fact]
     public void Cancelling_the_reset_question_keeps_the_options()
     {
-        var app = AppDriver.Opened(width: 1600f);
+        var app = AppDriver.Opened(width: 1600f, height: TallWindow);
         OpenDisplayOptions(app.Ui);
         app.Run();
         app.Click("Line numbers").Frame();

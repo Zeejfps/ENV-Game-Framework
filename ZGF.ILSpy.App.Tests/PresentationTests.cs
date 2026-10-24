@@ -94,6 +94,27 @@ public sealed class PresentationTests
     }
 
     [Fact]
+    public void Types_and_members_show_their_metadata_tokens_in_the_chosen_format_while_assemblies_keep_their_identity()
+    {
+        var list = new AssemblyList();
+        var assembly = list.Open(AppStateDriver.FixturePath);
+        var greeter = assembly.Root.Child(AppStateDriver.FixturesNamespace, "Greeter");
+        var member = greeter.Children.First(c => c.Token != null);
+        var tree = new BrowseTree();
+        tree.Sync(list);
+        var identity = tree.Row(assembly.Root).Secondary;
+
+        Assert.Null(tree.Row(greeter).Secondary);
+        tree.ShowTokens(TokenFormat.Hex);
+        Assert.Equal($"@{greeter.Token:X8}", tree.Row(greeter).Secondary);
+        Assert.StartsWith("@02", tree.Row(greeter).Secondary);
+        Assert.Equal($"@{member.Token:X8}", tree.Row(member).Secondary);
+        Assert.Equal(identity, tree.Row(assembly.Root).Secondary);
+        tree.ShowTokens(TokenFormat.Decimal);
+        Assert.Equal($"@{greeter.Token}", tree.Row(greeter).Secondary);
+    }
+
+    [Fact]
     public void A_non_public_type_says_its_accessibility_in_its_tooltip()
     {
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;

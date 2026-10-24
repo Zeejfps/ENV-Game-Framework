@@ -19,6 +19,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _icons = NodeIconPalette.Dark;
+    private TokenFormat _tokens = TokenFormat.Hidden;
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
     public IReadOnlyList<BrowseNode> Roots => _roots;
@@ -61,6 +62,9 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         _theme = theme;
         _icons = icons;
     }
+
+    /// <summary>Writes each type's and member's metadata token after its name as <paramref name="format"/> says.</summary>
+    public void ShowTokens(TokenFormat format) => _tokens = format;
 
     /// <summary>Expands the tree down to <paramref name="node"/>, selects it and scrolls to it. When
     /// non-public nodes are hidden and it is one, or inside one, its nearest shown ancestor is
@@ -179,7 +183,17 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         NodeIcons.Icon(node.Kind, node.Accessibility, _icons),
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
         Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
-        Secondary: NodeText.Secondary(node));
+        Secondary: SecondaryOf(node));
+
+    /// <summary>The node's metadata token when the tree shows tokens and it has one, else what
+    /// <see cref="NodeText.Secondary"/> adds.</summary>
+    private string? SecondaryOf(BrowseNode node)
+    {
+        var token = NodeText.Token(node, _tokens);
+        if (token != null)
+            return token;
+        return NodeText.Secondary(node);
+    }
 
     private readonly record struct RootLabel(string Title, string Row);
 

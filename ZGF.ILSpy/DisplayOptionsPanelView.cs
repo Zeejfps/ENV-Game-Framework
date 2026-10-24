@@ -10,11 +10,12 @@ using static ZGF.ILSpy.Preferences;
 namespace ZGF.ILSpy;
 
 /// <summary>How the app is drawn, as settings cards: the interface's theme, scale and language, then the
-/// code's font size and switches for line numbers, the current line's highlight and matching brackets.
-/// Each option is a row of its card, named on the left, with its control at the right. Every change
+/// code's font size and switches for line numbers, the current line's highlight and matching brackets,
+/// then how the tree writes metadata tokens. Each option is a row of its card, named on the left, with its control at the right. Every change
 /// shows at once; an option changed from its default has a bold name.</summary>
 internal static class DisplayOptionsPanelView
 {
+    private const string PaneId = "display-options";
     private const string FontSizeFormat = "0.#";
     private const float FormMaxWidth = 560f;
     private const string RowSuffix = "-row";
@@ -25,13 +26,15 @@ internal static class DisplayOptionsPanelView
 
     private static readonly ConditionalWeakTable<Strings, string[]> UiScaleLabels = new();
     private static readonly ConditionalWeakTable<Strings, string[]> ThemeLabels = new();
+    private static readonly ConditionalWeakTable<Strings, string[]> TokenFormatLabels = new();
     private static readonly AppThemeId[] Themes = ListThemes();
+    private static readonly TokenFormat[] TokenFormats = Enum.GetValues<TokenFormat>();
     private static readonly string[] LocaleLabels = ListLocaleLabels();
 
     public static void Render(Ui<UiState> ui, AppState appState)
     {
         var theme = ui.Theme;
-        using var pane = ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f });
+        using var pane = ui.Scroll(PaneId, new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f });
         using var form = ui.Column(new Box
         {
             Width = Sizing.Grow(max: FormMaxWidth),
@@ -41,6 +44,7 @@ internal static class DisplayOptionsPanelView
         ListInstalledFontsOnce(ui);
         InterfaceSection(ui, appState);
         CodeSection(ui);
+        TreeSection(ui);
         ResetRow(ui);
     }
 
@@ -284,6 +288,39 @@ internal static class DisplayOptionsPanelView
         var width = ui.MeasureText(widest);
         return MathF.Ceiling(width) + ui.Theme.Gap * 2;
     }
+
+    private static void TreeSection(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        using var section = Section(ui, ui.Memo("tree", t, static s => Heading(s.DisplayOptionsTree)));
+        using var card = Card(ui);
+        var changed = ui.State.Display.TreeTokens != DisplayOptions.Default.TreeTokens;
+        using (OptionRow(ui, t.DisplayOptionsTokens, t.DisplayOptionsTokensDescription, changed))
+            TokenFormatPicker(ui);
+    }
+
+    private static void TokenFormatPicker(Ui<UiState> ui)
+    {
+        var labels = TokenFormatLabels.GetValue(ui.State.Strings, ListTokenFormatLabels);
+        var current = Array.IndexOf(TokenFormats, ui.State.Display.TreeTokens);
+        var picked = PickFrom(ui, "tokens", labels, current);
+        if (picked != NothingPicked)
+            SetTreeTokens(ui.State, TokenFormats[picked]);
+    }
+
+    private static string[] ListTokenFormatLabels(Strings t)
+    {
+        return TokenFormats
+            .Select(f => TokenFormatLabel(t, f))
+            .ToArray();
+    }
+
+    private static string TokenFormatLabel(Strings t, TokenFormat format) => format switch
+    {
+        TokenFormat.Hex => t.DisplayOptionsTokensHex,
+        TokenFormat.Decimal => t.DisplayOptionsTokensDecimal,
+        _ => t.DisplayOptionsTokensHidden,
+    };
 
     /// <summary>A row whose switch flips when it or the rest of the row is clicked.</summary>
     private static bool SwitchRow(Ui<UiState> ui, string title, ref bool value, string id, bool changed)

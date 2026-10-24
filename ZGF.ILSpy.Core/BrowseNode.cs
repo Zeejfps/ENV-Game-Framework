@@ -96,6 +96,9 @@ public abstract class BrowseNode
     /// <summary>The entity this node defines, for type and member nodes; null otherwise.</summary>
     public CodeReference? Reference { get; private protected init; }
 
+    /// <summary>The metadata token of the entity this node defines, for type and member nodes; null otherwise.</summary>
+    public int? Token { get; private protected init; }
+
     /// <summary>Where activating this node should navigate, for nodes that point elsewhere (a base type,
     /// an assembly reference); null otherwise.</summary>
     public CodeReference? Target { get; private protected init; }

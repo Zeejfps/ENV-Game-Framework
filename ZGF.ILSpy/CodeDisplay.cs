@@ -18,6 +18,13 @@ public static class CodeDisplay
         SetDisplayOptions(uiState, chosen);
     }
 
+    /// <summary>Writes each type's and member's metadata token in the tree as <paramref name="format"/> says.</summary>
+    public static void SetTreeTokens(UiState uiState, TokenFormat format)
+    {
+        var chosen = uiState.Display with { TreeTokens = format };
+        SetDisplayOptions(uiState, chosen);
+    }
+
     /// <summary>Offers the installed fonts of <paramref name="families"/> that code can be drawn in.</summary>
     public static void KeepInstalledFonts(UiState uiState, IReadOnlyList<SystemFontFamily> families)
     {

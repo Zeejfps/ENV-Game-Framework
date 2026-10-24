@@ -5,6 +5,20 @@ ported upstream from WPF to Avalonia; the feature set carried over.
 
 Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
+## Implementation order
+
+1. **Show in metadata** from the code view and the tree: find the table with
+   `MetadataFolderNode.FindTable` from the reference's file and handle, then
+   `ShowMetadataTarget`.
+2. **Per-assembly menu:** Remove assemblies that failed to load, Load dependencies (through
+   `AssemblyResolver` into `OpenAssemblies`), sort list.
+3. **Close all documents.**
+4. **EncLog and EncMap tables** in `MetadataTables.Create`.
+5. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
+   namespace and name.
+6. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
+   desktop facade first.
+
 ## Biggest gaps
 
 1. **More ways to open.** Drag-and-drop files, `.nupkg` / zip packages, open from a NuGet feed,
@@ -20,7 +34,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   them on Windows only, so elsewhere the picker offers just the bundled font).
 - **Exported (forwarded) types:** a node per type an assembly forwards, going to the real type.
   Facades such as `netstandard.dll` and `System.Runtime.dll` show as nearly empty without them.
-- **Metadata tokens:** an option to show each node's token in the tree, in hex or decimal.
 - **Tree:** nested-namespace view.
 - **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
   folder, Remove assemblies that failed to load, sort list.

@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
@@ -149,6 +150,7 @@ internal abstract class EntityNode : BrowseNode
         Accessibility = EntityText.Map(entity.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(entity);
         Reference = CodeReference.To(entity);
+        Token = MetadataTokens.GetToken(entity.MetadataToken);
         assembly.Register(entity.MetadataToken, this);
     }
 
