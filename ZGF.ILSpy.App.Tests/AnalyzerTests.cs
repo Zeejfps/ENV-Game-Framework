@@ -151,14 +151,14 @@ public sealed class AnalyzerTests
         var document = d.Workspace.Tabs.Active!.Document;
         var (line, column) = document.Find("return First();");
         var reference = document.SpanAt(line, column + "return ".Length).Reference!;
-        d.TakeViewAsks();
+        d.TakeViewCommands();
 
         d.Workspace.Analyze(reference);
         d.Settle();
 
         var root = Assert.Single(d.Workspace.Analyzer.Found());
         Assert.StartsWith("First()", root.Symbol.Label);
-        Assert.Equal([new ViewAsk.ShowAnalysis(root)], d.TakeViewAsks());
+        Assert.Equal([new ViewCommand.ShowAnalysis(root)], d.TakeViewCommands());
     }
 
     private static CodeReference ReferenceTo(WorkspaceDriver d, string type, string text, int offset = 0)
@@ -216,14 +216,14 @@ public sealed class AnalyzerTests
         var analyzer = d.Workspace.Analyzer;
         var first = d.Workspace.Analyze(First(d));
         d.Workspace.Analyze(d.Fixture("Greeter"));
-        d.TakeViewAsks();
+        d.TakeViewCommands();
 
         d.Workspace.Analyze(reference);
         d.Settle();
 
         Assert.Equal(2, analyzer.Roots.Count);
         Assert.Same(analyzer.Found()[0], first);
-        Assert.Equal([new ViewAsk.ShowAnalysis(first!)], d.TakeViewAsks());
+        Assert.Equal([new ViewCommand.ShowAnalysis(first!)], d.TakeViewCommands());
     }
 
     [Fact]

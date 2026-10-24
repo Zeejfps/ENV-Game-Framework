@@ -19,7 +19,7 @@ public static class Analyzing
 
     /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>
     /// points at is found in the background, opening its assembly if it is not, and turns the root into
-    /// its analysis, which the view is asked to show. The root goes when the reference does not
+    /// its analysis, which the view is commanded to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
     public static async void Analyze(this Workspace w, CodeReference reference)
@@ -49,14 +49,14 @@ public static class Analyzing
         w.ResolveAnalysis(root, symbol);
     }
 
-    /// <summary>Turns <paramref name="root"/> into the analysis of <paramref name="symbol"/>, and asks
+    /// <summary>Turns <paramref name="root"/> into the analysis of <paramref name="symbol"/>, and commands
     /// the view to show the root that analyzes it.</summary>
     private static void ResolveAnalysis(this Workspace w, AnalyzerPendingNode root, AnalysisSymbol symbol)
     {
         var shown = w.Analyzer.Resolve(root, symbol);
         if (shown == null)
             return;
-        w.AskView(new ViewAsk.ShowAnalysis(shown));
+        w.EnqueueCommand(new ViewCommand.ShowAnalysis(shown));
     }
 
     /// <summary>Finds the symbols of the roots restored from the saved analyses in the background,

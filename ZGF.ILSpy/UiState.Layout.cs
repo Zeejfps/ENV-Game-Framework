@@ -161,11 +161,11 @@ public sealed partial class UiState
         FocusTab(tab);
     }
 
-    /// <summary>Called after the documents are drawn: does what the features asked meanwhile, then
+    /// <summary>Called after the documents are drawn: runs the view commands the features queued meanwhile, then
     /// makes the tab the user last pressed, docked or brought to front the active one.</summary>
     public void SyncActiveTab()
     {
-        TakeViewAsks();
+        RunViewCommands();
         var tab = _workspace.Tabs.Find(Layout.Focused);
         if (tab == null)
             return;

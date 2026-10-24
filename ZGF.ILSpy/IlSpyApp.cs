@@ -32,7 +32,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         ui.State.StartFrame();
         MainView.Render(ui, w);
         ui.State.FinishFrame();
-        DrawAgainForViewAsks(ui, w);
+        RequestFrameIfViewCommandsPending(ui, w);
         SaveSettingsIfChanged(ui, w);
     }
 
@@ -78,9 +78,9 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         State.SaveSettings();
     }
     
-    private static void DrawAgainForViewAsks(Ui<UiState> ui, Workspace w)
+    private static void RequestFrameIfViewCommandsPending(Ui<UiState> ui, Workspace w)
     {
-        if (w.ViewAsks.Count == 0)
+        if (w.ViewCommands.Count == 0)
             return;
         ui.RequestFrame();
     }

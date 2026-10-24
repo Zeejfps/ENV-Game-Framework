@@ -172,7 +172,7 @@ public static class Navigation
     }
 
     /// <summary>Shows <paramref name="node"/> in <paramref name="tab"/>, or a new tab when null, makes
-    /// that tab active, and asks the view to bring it to the front and reveal the node in the tree.</summary>
+    /// that tab active, and commands the view to bring it to the front and reveal the node in the tree.</summary>
     internal static void ShowIn(
         this Workspace w,
         DocumentTab? tab,
@@ -184,14 +184,14 @@ public static class Navigation
         var shownIn = w.ActivateOrOpenTab(tab);
         w.Tabs.MakeActive(shownIn);
         shownIn.Show(node, w.Language, position, target, row);
-        w.AskView(new ViewAsk.RevealNode(node));
+        w.EnqueueCommand(new ViewCommand.RevealNode(node));
     }
 
     private static DocumentTab ActivateOrOpenTab(this Workspace w, DocumentTab? tab)
     {
         if (tab == null)
             return w.OpenNewTab();
-        w.AskView(new ViewAsk.ShowTab(tab, Beside: null));
+        w.EnqueueCommand(new ViewCommand.ShowTab(tab, Beside: null));
         return tab;
     }
 
@@ -199,7 +199,7 @@ public static class Navigation
     internal static DocumentTab OpenNewTab(this Workspace w)
     {
         var tab = w.AddTab();
-        w.AskView(new ViewAsk.ShowTab(tab, w.Tabs.ActivePanel));
+        w.EnqueueCommand(new ViewCommand.ShowTab(tab, w.Tabs.ActivePanel));
         return tab;
     }
 }

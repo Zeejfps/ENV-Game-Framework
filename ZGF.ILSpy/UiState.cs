@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// frame (the theme, the editor's and icons' colors, the strings of the chosen language), and the state
 /// that exists only because there is a screen: the layout, each tab's view, the trees' and tables'
 /// state, the panels and dialogs with what is selected in them, and UI flags. The workspace never
-/// sees it; it asks the screen through <see cref="Workspace.ViewAsks"/>.</summary>
+/// sees it; it commands the screen through <see cref="Workspace.ViewCommands"/>.</summary>
 public sealed partial class UiState : IUiState
 {
     private readonly Workspace _workspace;
@@ -95,7 +95,7 @@ public sealed partial class UiState : IUiState
 
     /// <summary>Does what comes before drawing a frame: takes the theme and strings the workspace's
     /// preferences pick, follows the open assemblies and analyses in the trees and the open tabs in
-    /// the layout, does what the features asked of the view, and has the tabs it shows decompile
+    /// the layout, runs the commands the features queued for the view, and has the tabs it shows decompile
     /// again when the language or the options changed.</summary>
     public void StartFrame()
     {
@@ -103,7 +103,7 @@ public sealed partial class UiState : IUiState
         SyncTrees();
         SyncTabViews();
         FocusNextTabIfNone();
-        TakeViewAsks();
+        RunViewCommands();
         FollowDecompilation();
     }
 

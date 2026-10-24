@@ -59,7 +59,7 @@ public static class AssemblyLoading
         w.Analyzer.Clear();
     }
 
-    /// <summary>Reloads every assembly of the open list from disk in the background, then asks the view
+    /// <summary>Reloads every assembly of the open list from disk in the background, then commands the view
     /// to expand the tree at <paramref name="expanded"/>, the paths of the nodes it had expanded, and
     /// shows each tab's place again, decompiled from the fresh files.</summary>
     public static async void Refresh(this Workspace w, List<NodePath> expanded)
@@ -146,7 +146,7 @@ public static class AssemblyLoading
             return;
         }
         w.ReportAll(reloaded.Errors);
-        w.AskView(new ViewAsk.ExpandNodes(reloaded.Expanded));
+        w.EnqueueCommand(new ViewCommand.ExpandNodes(reloaded.Expanded));
         for (var i = 0; i < tabs.Count; i++)
             w.ReshowTab(tabs[i], reloaded.Places[i], intent);
         w.SaveSettings();
@@ -166,7 +166,7 @@ public static class AssemblyLoading
         }
         tab.Show(node, w.Language, reloading.Position);
         if (tab == w.Tabs.Active && w.Intent.IsCurrent(intent))
-            w.AskView(new ViewAsk.RevealNode(node));
+            w.EnqueueCommand(new ViewCommand.RevealNode(node));
     }
 
     private static void ReleaseGoneTab(this Workspace w, DocumentTab tab, NodePath location)

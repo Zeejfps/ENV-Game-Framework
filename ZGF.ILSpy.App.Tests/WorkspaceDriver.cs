@@ -154,7 +154,7 @@ internal sealed class WorkspaceDriver
     }
 
     /// <summary>Does what a frame does before and after it draws: the screen follows the trees and the
-    /// tabs and takes what the features asked of it, then tells the tabs where their views stand and
+    /// tabs and runs the commands the features queued for it, then tells the tabs where their views stand and
     /// hands over what the settings keep of it.</summary>
     public void NextFrame()
     {
@@ -181,13 +181,13 @@ internal sealed class WorkspaceDriver
         return _ui.Search.IsBusy;
     }
 
-    /// <summary>What the features asked of the view since the last frame took it, oldest first, taken
+    /// <summary>The commands the features queued for the view since the last frame ran them, oldest first, taken
     /// off the queue as the screen would.</summary>
-    public List<ViewAsk> TakeViewAsks()
+    public List<ViewCommand> TakeViewCommands()
     {
-        var asks = Workspace.ViewAsks.ToList();
-        Workspace.ViewAsks.Clear();
-        return asks;
+        var commands = Workspace.ViewCommands.ToList();
+        Workspace.ViewCommands.Clear();
+        return commands;
     }
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>

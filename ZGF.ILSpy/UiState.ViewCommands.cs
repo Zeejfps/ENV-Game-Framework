@@ -4,41 +4,41 @@ namespace ZGF.ILSpy;
 
 public sealed partial class UiState
 {
-    /// <summary>Does what the features asked of the view, in the order they asked, dropping what asks
-    /// about a node, tab, line or row that is gone since.</summary>
-    private void TakeViewAsks()
+    /// <summary>Runs the commands the features queued for the view, in the order they were queued, dropping
+    /// commands about a node, tab, line or row that is gone since.</summary>
+    private void RunViewCommands()
     {
-        var asks = _workspace.ViewAsks;
-        while (asks.TryDequeue(out var ask))
-            Take(ask);
+        var commands = _workspace.ViewCommands;
+        while (commands.TryDequeue(out var command))
+            Run(command);
     }
 
-    private void Take(ViewAsk ask)
+    private void Run(ViewCommand command)
     {
-        switch (ask)
+        switch (command)
         {
-            case ViewAsk.ShowTab show:
+            case ViewCommand.ShowTab show:
                 ShowTab(show.Tab, show.Beside);
                 break;
-            case ViewAsk.OpenPanel open:
+            case ViewCommand.OpenPanel open:
                 OpenPanel(open.Panel);
                 break;
-            case ViewAsk.RevealNode reveal:
+            case ViewCommand.RevealNode reveal:
                 RevealNode(reveal.Node);
                 break;
-            case ViewAsk.ExpandNodes expand:
+            case ViewCommand.ExpandNodes expand:
                 ExpandNodes(expand.Nodes);
                 break;
-            case ViewAsk.ShowAnalysis show:
+            case ViewCommand.ShowAnalysis show:
                 ShowAnalysis(show.Root);
                 break;
-            case ViewAsk.RestoreView restore:
+            case ViewCommand.RestoreView restore:
                 RestoreView(restore.Tab, restore.Position);
                 break;
-            case ViewAsk.RevealLine reveal:
+            case ViewCommand.RevealLine reveal:
                 RevealLine(reveal.Tab, reveal.Line);
                 break;
-            case ViewAsk.RevealRow reveal:
+            case ViewCommand.RevealRow reveal:
                 RevealRow(reveal.Tab, reveal.Row);
                 break;
         }

@@ -7,8 +7,8 @@ namespace ZGF.ILSpy;
 /// <summary>
 /// The app's data, and which tab, list and history entry are current. What the user can do to it are
 /// extension methods grouped by feature, such as <see cref="Navigation"/> and <see cref="Bookmarking"/>.
-/// It never sees the screen; a feature that needs the view to act later asks
-/// it through <see cref="ViewAsks"/>. Lives on the UI thread: background work (opening, decompiling,
+/// It never sees the screen; a feature that needs the view to act later commands
+/// it through <see cref="ViewCommands"/>. Lives on the UI thread: background work (opening, decompiling,
 /// resolving, searching) is awaited there through <see cref="Background"/>. A result is dropped when
 /// the user asked for something else in the meantime.
 /// </summary>
@@ -50,9 +50,9 @@ public sealed class Workspace
     /// <summary>How C# is decompiled.</summary>
     public DecompilerOptions DecompilerOptions { get; set; }
 
-    /// <summary>What the features ask of the view when none is on the stack, for the screen to take
+    /// <summary>The commands the features queue for the view when none is on the stack, for the screen to run
     /// in order before it draws next.</summary>
-    public Queue<ViewAsk> ViewAsks { get; } = new();
+    public Queue<ViewCommand> ViewCommands { get; } = new();
 
     /// <summary>Counts each time the screen hands over a change to what the settings keep of it.</summary>
     public int ViewSettingsChanges;
@@ -118,8 +118,8 @@ public sealed class Workspace
 
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);
 
-    /// <summary>Asks the view to do <paramref name="ask"/> before it draws next.</summary>
-    public void AskView(ViewAsk ask) => ViewAsks.Enqueue(ask);
+    /// <summary>Queues <paramref name="command"/> for the view to run before it draws next.</summary>
+    public void EnqueueCommand(ViewCommand command) => ViewCommands.Enqueue(command);
 
     /// <summary>True when <paramref name="node"/>'s assembly is open in the active list.</summary>
     public bool IsListed(BrowseNode node) => Assemblies.Assemblies.Contains(node.Assembly);
@@ -138,7 +138,7 @@ public sealed class Workspace
 
     internal DocumentTab AddTab()
     {
-        var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError, ViewAsks);
+        var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError, ViewCommands);
         Tabs.Add(tab);
         return tab;
     }

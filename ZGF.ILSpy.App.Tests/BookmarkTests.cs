@@ -48,16 +48,16 @@ public sealed class BookmarkTests : IDisposable
         d.Workspace.ToggleBookmark(tab, first);
         d.Workspace.ToggleBookmark(tab, line);
         var bookmarks = d.Workspace.Bookmarks;
-        d.TakeViewAsks();
+        d.TakeViewCommands();
 
         var steppedTo = d.Workspace.StepBookmark(bookmarks.Items[0], 1);
         d.Settle();
-        var asks = d.TakeViewAsks();
+        var commands = d.TakeViewCommands();
 
         Assert.Same(bookmarks.Items[1], steppedTo);
-        Assert.Contains(new ViewAsk.ShowTab(tab, Beside: null), asks);
-        Assert.Contains(new ViewAsk.RevealLine(tab, line), asks);
-        Assert.Contains(new ViewAsk.RevealNode(tab.Node!), asks);
+        Assert.Contains(new ViewCommand.ShowTab(tab, Beside: null), commands);
+        Assert.Contains(new ViewCommand.RevealLine(tab, line), commands);
+        Assert.Contains(new ViewCommand.RevealNode(tab.Node!), commands);
     }
 
     [Fact]

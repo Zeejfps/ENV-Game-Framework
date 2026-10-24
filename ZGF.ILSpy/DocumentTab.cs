@@ -6,7 +6,7 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>An open tab: where it points, the node found there, and its decompiled document — or
-/// for a metadata node its grid — which arrives from the background, then asks the view where to
+/// for a metadata node its grid — which arrives from the background, then commands the view where to
 /// stand in it. Mutated on the UI thread only.</summary>
 public sealed class DocumentTab
 {
@@ -15,7 +15,7 @@ public sealed class DocumentTab
     private readonly Func<Strings> _strings;
     private readonly Func<DecompilerOptions> _options;
     private readonly Action<string, string> _reportError;
-    private readonly Queue<ViewAsk> _viewAsks;
+    private readonly Queue<ViewCommand> _viewCommands;
     private CancellationTokenSource? _work;
     private CodeViewPosition _viewPosition;
     private CodeViewPosition? _restore;
@@ -26,13 +26,13 @@ public sealed class DocumentTab
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="options">How C# is decompiled now.</param>
     /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
-    /// <param name="viewAsks">Where the tab asks the view where to stand once what it shows arrives.</param>
-    public DocumentTab(Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError, Queue<ViewAsk> viewAsks)
+    /// <param name="viewCommands">Where the tab queues the commands that tell the view where to stand once what it shows arrives.</param>
+    public DocumentTab(Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError, Queue<ViewCommand> viewCommands)
     {
         _strings = strings;
         _options = options;
         _reportError = reportError;
-        _viewAsks = viewAsks;
+        _viewCommands = viewCommands;
         Panel = $"document-{Id}";
     }
 
@@ -99,7 +99,7 @@ public sealed class DocumentTab
     public int Version { get; private set; }
 
     /// <summary>Starts decompiling <paramref name="node"/>, or reading its grid, cancelling what was
-    /// in flight, and shows a placeholder until it is done, then asks the view to return to
+    /// in flight, and shows a placeholder until it is done, then commands the view to return to
     /// <paramref name="position"/>, else to reveal the line <paramref name="target"/> marks or the grid's
     /// <paramref name="row"/>, else the node's definition. When the tab already shows
     /// <paramref name="node"/> in <paramref name="language"/> with the current options, only does the latter.</summary>
@@ -203,13 +203,13 @@ public sealed class DocumentTab
         _work = null;
     }
 
-    /// <summary>Asks the view to return to <paramref name="position"/>, else to reveal the grid's
+    /// <summary>Commands the view to return to <paramref name="position"/>, else to reveal the grid's
     /// <paramref name="row"/> or the line <paramref name="target"/> marks, else the node's definition.</summary>
     private void Arrive(CodeViewPosition? position, Bookmark? target, int row)
     {
         if (position != null)
         {
-            _viewAsks.Enqueue(new ViewAsk.RestoreView(this, position.Value));
+            _viewCommands.Enqueue(new ViewCommand.RestoreView(this, position.Value));
             return;
         }
         if (Grid != null)
@@ -220,14 +220,14 @@ public sealed class DocumentTab
         var line = FindLineToReveal(target);
         if (line < 0)
             return;
-        _viewAsks.Enqueue(new ViewAsk.RevealLine(this, line));
+        _viewCommands.Enqueue(new ViewCommand.RevealLine(this, line));
     }
 
     private void RevealRow(int row)
     {
         if (row < 0)
             return;
-        _viewAsks.Enqueue(new ViewAsk.RevealRow(this, row));
+        _viewCommands.Enqueue(new ViewCommand.RevealRow(this, row));
     }
 
     /// <summary>The line <paramref name="target"/> marks, else the node's definition, or -1.</summary>

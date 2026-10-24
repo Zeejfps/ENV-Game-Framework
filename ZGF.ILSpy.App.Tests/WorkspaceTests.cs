@@ -21,14 +21,14 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.OpenedWithoutScreen();
         var before = d.Workspace.Tabs.Active!;
         var greeter = d.Fixture("Greeter");
-        d.TakeViewAsks();
+        d.TakeViewCommands();
 
         d.Workspace.Show(greeter, inNewTab: true);
-        var asks = d.TakeViewAsks();
+        var commands = d.TakeViewCommands();
 
         var tab = d.Workspace.Tabs.Active!;
         Assert.NotSame(before, tab);
-        Assert.Equal([new ViewAsk.ShowTab(tab, before.Panel), new ViewAsk.RevealNode(greeter)], asks);
+        Assert.Equal([new ViewCommand.ShowTab(tab, before.Panel), new ViewCommand.RevealNode(greeter)], commands);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
-    public void Asks_for_nodes_of_a_cleared_list_or_lines_and_rows_a_tab_no_longer_has_are_dropped()
+    public void Commands_for_nodes_of_a_cleared_list_or_lines_and_rows_a_tab_no_longer_has_are_dropped()
     {
         var d = WorkspaceDriver.Opened();
         var ns = d.Node(WorkspaceDriver.FixturesNamespace);
@@ -76,9 +76,9 @@ public sealed class WorkspaceTests
         var lineBefore = d.Ui.ViewOf(code).Code.PendingReveal;
         var rowBefore = d.Ui.ViewOf(grid).Grid.PendingReveal;
 
-        d.Workspace.AskView(new ViewAsk.ExpandNodes([ns]));
-        d.Workspace.AskView(new ViewAsk.RevealLine(code, lines));
-        d.Workspace.AskView(new ViewAsk.RevealRow(grid, rows));
+        d.Workspace.EnqueueCommand(new ViewCommand.ExpandNodes([ns]));
+        d.Workspace.EnqueueCommand(new ViewCommand.RevealLine(code, lines));
+        d.Workspace.EnqueueCommand(new ViewCommand.RevealRow(grid, rows));
         d.NextFrame();
 
         Assert.False(d.Ui.Tree.View.IsExpanded(ns));
@@ -189,16 +189,16 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.OpenedWithoutScreen();
         d.Show(d.Fixture("Greeter"));
         var expanded = new List<NodePath> { d.Node().Path, d.Node(WorkspaceDriver.FixturesNamespace).Path };
-        d.TakeViewAsks();
+        d.TakeViewCommands();
 
         d.Workspace.Refresh(expanded);
         d.Settle();
-        var asks = d.TakeViewAsks();
+        var commands = d.TakeViewCommands();
 
-        var expand = Assert.Single(asks.OfType<ViewAsk.ExpandNodes>());
+        var expand = Assert.Single(commands.OfType<ViewCommand.ExpandNodes>());
         Assert.Equal(expanded, expand.Nodes.Select(n => n.Path));
         Assert.Same(d.Node(), expand.Nodes[0]);
-        Assert.Contains(new ViewAsk.RevealNode(d.Fixture("Greeter")), asks);
+        Assert.Contains(new ViewCommand.RevealNode(d.Fixture("Greeter")), commands);
     }
 
     [Fact]
