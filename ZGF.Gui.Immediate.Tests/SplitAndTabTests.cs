@@ -62,7 +62,7 @@ public sealed class TabStripTests
     private readonly List<string> _closed = new();
     private int _selected;
 
-    public TabStripTests() => _frames = new UiFrames(new DefaultUiState(), body: Body);
+    public TabStripTests() => _frames = new UiFrames(new DefaultUiState(), height: 600f, body: Body);
 
     private void Body(Ui ui)
     {
@@ -106,17 +106,84 @@ public sealed class TabStripTests
     [Fact]
     public void Overflowing_tabs_scroll_and_a_newly_selected_tab_scrolls_into_view()
     {
-        _tabs.AddRange(Enumerable.Range(4, 7).Select(i => $"Doc{i}"));
-        _frames.Frame(2);
-        Assert.True(_frames.RectOf("Doc10").Right > 384f);
+        Overflow();
+        var strip = _frames.RectOf("tabs");
+        Assert.True(_frames.RectOf("Doc10").Right > strip.Right);
 
         _selected = 9;
         _frames.Frame(3);
 
-        Assert.Equal(384f, _frames.RectOf("Doc10").Right, 0.01f);
+        Assert.Equal(strip.Right, _frames.RectOf("Doc10").Right, 0.01f);
 
         _frames.MovePointer(100f, 30f).Frame();
         _frames.Wheel(2).Frame(2);
-        Assert.True(_frames.RectOf("Doc10").Right > 384f);
+        Assert.True(_frames.RectOf("Doc10").Right > strip.Right);
+    }
+
+    [Fact]
+    public void Only_overflowing_tabs_end_in_a_list_button()
+    {
+        _frames.Frame(2);
+        Assert.False(HasListButton());
+
+        Overflow();
+
+        Assert.True(HasListButton());
+        Assert.True(_frames.RectOf("tabs").Right <= ListButton().X);
+    }
+
+    [Fact]
+    public void Overflowing_tabs_draw_no_scroll_bar()
+    {
+        Overflow();
+
+        _frames.MovePointer(100f, 30f).Frame(2);
+
+        Assert.False(_frames.Frame(ui => ui.TryGetRect(Ui.HorizontalThumbId(ui.GetId("tabs"), ScrollAxes.Horizontal), out _)));
+    }
+
+    [Fact]
+    public void Picking_a_tab_from_the_list_selects_it_and_scrolls_it_into_view()
+    {
+        Overflow();
+
+        _frames.ClickOn(ListButtonId).Frame();
+        _frames.ClickOn(ui => ListItemId(ui, "Doc10")).Frame(3);
+
+        Assert.Equal(9, _selected);
+        Assert.Equal(_frames.RectOf("tabs").Right, _frames.RectOf("Doc10").Right, 0.01f);
+    }
+
+    [Fact]
+    public void Picking_the_selected_tab_from_the_list_scrolls_it_back_into_view()
+    {
+        Overflow();
+        _frames.MovePointer(100f, 30f).Frame();
+        _frames.Wheel(-20).Frame(2);
+        Assert.True(_frames.RectOf("Doc1").X < _frames.RectOf("tabs").X);
+
+        _frames.ClickOn(ListButtonId).Frame();
+        _frames.ClickOn(ui => ListItemId(ui, "Doc1")).Frame(3);
+
+        Assert.Equal(0, _selected);
+        Assert.Equal(_frames.RectOf("tabs").X, _frames.RectOf("Doc1").X, 0.01f);
+    }
+
+    private void Overflow()
+    {
+        _tabs.AddRange(Enumerable.Range(4, 7).Select(i => $"Doc{i}"));
+        _frames.Frame(3);
+    }
+
+    private bool HasListButton() => _frames.Frame(ui => ui.TryGetRect(ListButtonId(ui), out _));
+
+    private UiRect ListButton() => _frames.RectOf(ListButtonId);
+
+    private static int ListButtonId(Ui ui) => UiWidgets.TabListButtonId(ui.GetId("tabs"));
+
+    private static int ListItemId(Ui ui, string tab)
+    {
+        using (ui.Id(ui.GetId(tab)))
+            return ui.GetId(tab);
     }
 }

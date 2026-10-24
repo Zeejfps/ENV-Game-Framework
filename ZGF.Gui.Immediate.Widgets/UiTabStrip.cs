@@ -17,14 +17,20 @@ public readonly record struct TabResult(bool Selected, bool Closed)
 public readonly struct TabStrip : IDisposable
 {
     private readonly Ui _ui;
+    private readonly Ui.Scope _row;
     private readonly Ui.Scope _scroll;
     private readonly int _id;
+    private readonly TabList _list;
+    private readonly int _picked;
 
-    internal TabStrip(Ui ui, Ui.Scope scroll, int id)
+    internal TabStrip(Ui ui, Ui.Scope row, Ui.Scope scroll, int id, TabList list, int picked)
     {
         _ui = ui;
+        _row = row;
         _scroll = scroll;
         _id = id;
+        _list = list;
+        _picked = picked;
     }
 
     /// <summary>One tab, between the theme's <see cref="UiTheme.TabMinWidth"/> and
@@ -33,12 +39,59 @@ public readonly struct TabStrip : IDisposable
     /// unless <paramref name="id"/> is given; scope tabs by document with <c>ui.Id</c> when labels
     /// repeat. A tab that becomes selected is scrolled into view. Tab focuses the tab and then its
     /// close button; Enter or Space selects or closes. A selected tab that is not
-    /// <paramref name="current"/> is marked in a muted color instead of the accent.</summary>
+    /// <paramref name="current"/> is marked in a muted color instead of the accent. A tab picked
+    /// from the strip's tab list returns <see cref="TabResult.Selected"/> on the next frame.</summary>
     public TabResult Tab(string label, bool selected, bool closable = true, string? id = null, string? tooltip = null, bool draggable = false,
-        bool current = true) =>
-        UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current);
+        bool current = true)
+    {
+        var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current);
+        _list.Add(new ListedTab(tab.Id, label, selected));
+        if (tab.Id != _picked)
+            return tab;
+        return tab with { Selected = !selected };
+    }
 
-    public void Dispose() => _scroll.Dispose();
+    public void Dispose()
+    {
+        _scroll.Dispose();
+        UiWidgets.TabListButton(_ui, _id, _list);
+        _row.Dispose();
+    }
+}
+
+internal readonly record struct ListedTab(int Id, string Label, bool Selected);
+
+/// <summary>The tabs a <see cref="TabStrip"/> recorded this frame, for its tab list, and the one
+/// picked from that list, which the strip selects on the next frame only.</summary>
+internal sealed class TabList
+{
+    private readonly List<ListedTab> _tabs = new();
+    private int _picked;
+
+    public List<ListedTab> Tabs => _tabs;
+
+    /// <summary>Empties the list for this frame's tabs and hands over the tab picked last frame,
+    /// or zero.</summary>
+    public int Restart()
+    {
+        _tabs.Clear();
+        var picked = _picked;
+        _picked = 0;
+        return picked;
+    }
+
+    public void Add(ListedTab tab) => _tabs.Add(tab);
+
+    public void Pick(int tabId) => _picked = tabId;
+
+    /// <summary>Changes whenever a tab opens, closes or moves, so an open list closes then.</summary>
+    public int Revision()
+    {
+        var hash = new HashCode();
+        foreach (var tab in _tabs)
+            hash.Add(tab.Id);
+        return hash.ToHashCode();
+    }
 }
 
 public static partial class UiWidgets
@@ -48,21 +101,67 @@ public static partial class UiWidgets
         public bool WasSelected;
     }
 
-    /// <summary>A row of tabs attached to what is below them, which scrolls sideways, by wheel or
-    /// its bar, when they overflow.</summary>
+    internal static int TabListButtonId(int stripId) => HashCode.Combine(stripId, "list");
+
+    /// <summary>A row of tabs attached to what is below them. When they overflow it scrolls sideways
+    /// by wheel, with no bar, and ends in a button whose menu lists every tab to pick from.</summary>
     public static TabStrip TabStrip(this Ui ui, string id, Box box = default) => ui.TabStrip(ui.GetId(id), box);
 
     public static TabStrip TabStrip(this Ui ui, int stripId, Box box = default)
     {
         var theme = ui.Theme;
-        var scroll = ui.Scroll(stripId, box with
+        var row = ui.Row(HashCode.Combine(stripId, "row"), new Box
         {
-            Direction = Direction.Horizontal,
-            Gap = box.Gap ?? 0f,
-            AlignY = box.AlignY ?? Align.End,
+            Width = box.Width ?? Sizing.Grow(),
+            Height = box.Height ?? Sizing.Fit(),
+            Gap = 0f,
+            AlignY = Align.Center,
             Background = box.Background ?? theme.TabStripBackground,
         });
-        return new TabStrip(ui, scroll, stripId);
+        var scroll = ui.Scroll(stripId, ScrollAxes.Horizontal, box with
+        {
+            Direction = Direction.Horizontal,
+            Width = Sizing.Grow(),
+            Gap = box.Gap ?? 0f,
+            AlignY = box.AlignY ?? Align.End,
+            Background = null,
+        }, showBars: false);
+        var list = ui.GetState<TabList>(HashCode.Combine(stripId, "tabs"));
+        var picked = list.Restart();
+        return new TabStrip(ui, row, scroll, stripId, list, picked);
+    }
+
+    /// <summary>While the strip overflows, the button at its end whose menu lists every tab, the
+    /// selected one marked. Picking the selected tab scrolls it into view.</summary>
+    internal static void TabListButton(Ui ui, int stripId, TabList list)
+    {
+        if (!ui.CanScroll(stripId)) return;
+        var theme = ui.Theme;
+        using (ui.Box(new Box { Padding = new Spacing(theme.GapTight, 0f) }))
+        using (var menu = ui.DropdownButton(TabListButtonId(stripId), revision: list.Revision()))
+        {
+            if (!menu.IsOpen) return;
+            foreach (var tab in list.Tabs)
+                ListTab(ui, stripId, list, tab);
+        }
+    }
+
+    private static void ListTab(Ui ui, int stripId, TabList list, ListedTab tab)
+    {
+        if (!PickListedTab(ui, tab)) return;
+        if (tab.Selected)
+        {
+            ui.ScrollIntoView(stripId, tab.Id);
+            return;
+        }
+        list.Pick(tab.Id);
+        ui.RequestUpdate();
+    }
+
+    private static bool PickListedTab(Ui ui, ListedTab tab)
+    {
+        using (ui.Id(tab.Id))
+            return ui.MenuRadioItem(tab.Label, tab.Selected);
     }
 
     internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current)

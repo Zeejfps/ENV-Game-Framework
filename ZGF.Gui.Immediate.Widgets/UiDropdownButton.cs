@@ -39,7 +39,10 @@ public static partial class UiWidgets
     /// never lands on a row that moved. Enter or Space while focused opens it with its first item
     /// highlighted, and keys then work as in a <see cref="MenuBar"/>. While
     /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
-    public static Ui.Scope DropdownButton(this Ui ui, string id, string? tooltip = null, bool enabled = true, int revision = 0)
+    public static Ui.Scope DropdownButton(this Ui ui, string id, string? tooltip = null, bool enabled = true, int revision = 0) =>
+        ui.DropdownButton(ui.GetId(id), tooltip, enabled, revision);
+
+    public static Ui.Scope DropdownButton(this Ui ui, int id, string? tooltip = null, bool enabled = true, int revision = 0)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id, enabled, out var activated, out var ring);

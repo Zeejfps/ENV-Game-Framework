@@ -53,6 +53,7 @@ public abstract partial class Ui
         public float Synced = float.NaN;
         public float SyncedX = float.NaN;
         public ScrollBar Bar;
+        public bool ShowsBars = true;
         public int RevealRow = -1;
 
         public float Offset => Horizontal ? OffsetX : OffsetY;
@@ -317,7 +318,7 @@ public abstract partial class Ui
     public Scope Scroll(int id, Box box = default) =>
         Scroll(id, box.Direction == Direction.Horizontal ? ScrollAxes.Horizontal : ScrollAxes.Vertical, box);
 
-    public Scope Scroll(string id, ScrollAxes axes, Box box = default) => Scroll(GetId(id), axes, box);
+    public Scope Scroll(string id, ScrollAxes axes, Box box = default, bool showBars = true) => Scroll(GetId(id), axes, box, showBars);
 
     internal static int HorizontalThumbId(int scrollId, ScrollAxes axes) => HashCode.Combine(scrollId, axes == ScrollAxes.Horizontal ? "thumb" : "thumbx");
 
@@ -327,8 +328,10 @@ public abstract partial class Ui
     /// is a column whose content also scrolls sideways when wider than it, as a code or image view
     /// does; it fills the space it is given unless sized and reserves a gutter for each bar only while
     /// that axis overflows. The wheel scrolls the innermost scroll under the pointer that can move
-    /// that way, and a vertical wheel scrolls sideways only where nothing around can take it.</summary>
-    public Scope Scroll(int id, ScrollAxes axes, Box box = default)
+    /// that way, and a vertical wheel scrolls sideways only where nothing around can take it. Without
+    /// <paramref name="showBars"/> it draws no bars and reserves no gutters, for content that shows
+    /// its overflow another way; the wheel and <see cref="ScrollTo"/> still move it.</summary>
+    public Scope Scroll(int id, ScrollAxes axes, Box box = default, bool showBars = true)
     {
         var state = GetState<ScrollState>(id);
         var horizontal = axes == ScrollAxes.Horizontal;
@@ -336,14 +339,15 @@ public abstract partial class Ui
         state.ScrollsX = axes != ScrollAxes.Vertical;
         state.ScrollsY = axes != ScrollAxes.Horizontal;
         state.Parent = _openScrolls.Count > 0 ? _openScrolls.Peek().Id : 0;
+        state.ShowsBars = showBars;
         var step = Theme.ScrollWheelStep;
         if (id == _wheelX)
             state.OffsetX = Wheel(state.OffsetX, _wheelDeltaX * step, state.MaxX);
         if (id == _wheelY)
             state.OffsetY = Wheel(state.OffsetY, _wheelDeltaY * step, state.MaxY);
 
-        var thumbX = state.ScrollsX ? Interact(HorizontalThumbId(id, axes)) : default;
-        var thumbY = state.ScrollsY ? Interact(VerticalThumbId(id)) : default;
+        var thumbX = state.ScrollsX && showBars ? Interact(HorizontalThumbId(id, axes)) : default;
+        var thumbY = state.ScrollsY && showBars ? Interact(VerticalThumbId(id)) : default;
         DragThumb(state, thumbX, true);
         DragThumb(state, thumbY, false);
         state.OffsetX = MathF.Max(0f, state.OffsetX);
@@ -383,6 +387,15 @@ public abstract partial class Ui
     /// of its content; zero for one never recorded.</summary>
     public (float X, float Y) ScrollOffset(int id) =>
         _states.TryGetValue(id, out var entry) && entry.State is ScrollState state ? (state.OffsetX, state.OffsetY) : (0f, 0f);
+
+    /// <summary>Whether the scroll with <paramref name="id"/> had more content than it shows when
+    /// last laid out, so it can move along some axis; false for one never recorded.</summary>
+    public bool CanScroll(int id)
+    {
+        if (!_states.TryGetValue(id, out var entry)) return false;
+        if (entry.State is not ScrollState state) return false;
+        return state.MaxX > 0f || state.MaxY > 0f;
+    }
 
     /// <summary>Scrolls the scroll with <paramref name="id"/> to (<paramref name="x"/>, <paramref name="y"/>)
     /// points from the top-left of its content, from the next frame, clamped to its content then.</summary>
@@ -451,8 +464,8 @@ public abstract partial class Ui
 
     private static Spacing WithGutters(Spacing padding, ScrollState state, ScrollBar bar) => padding with
     {
-        Right = padding.Right + Gutter(state.ScrollsY && state.MaxY > 0f, bar),
-        Bottom = padding.Bottom + Gutter(state.ScrollsX && state.MaxX > 0f, bar),
+        Right = padding.Right + Gutter(state.ShowsBars && state.ScrollsY && state.MaxY > 0f, bar),
+        Bottom = padding.Bottom + Gutter(state.ShowsBars && state.ScrollsX && state.MaxX > 0f, bar),
     };
 
     /// <summary>Opens a scope that ends every scope opened after it when it is disposed, then runs
@@ -526,6 +539,15 @@ public abstract partial class Ui
     {
         var scroll = _openScrolls.Pop();
         var state = scroll.State;
+        if (state.ShowsBars)
+            PaintBars(scroll);
+        Close();
+        _frameScrolls.Add(scroll);
+    }
+
+    private void PaintBars(OpenScroll scroll)
+    {
+        var state = scroll.State;
         var bar = state.Bar;
         var hit = state.Horizontal ? bar.Paint + bar.Inset : MathF.Max(bar.Hit, bar.Gutter);
         var crossBar = state.ScrollsX && state.ScrollsY && state.MaxX > 0f && state.MaxY > 0f ? bar.Gutter : 0f;
@@ -547,8 +569,6 @@ public abstract partial class Ui
             Paint((ThumbColor(scroll.ThumbX), bar, true), PaintThumb);
             Close();
         }
-        Close();
-        _frameScrolls.Add(scroll);
     }
 
     private bool PointerWithin(int id) => _previousRects.TryGetValue(id, out var rect) && rect.Contains(Input.Pointer);
