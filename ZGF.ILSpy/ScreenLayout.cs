@@ -25,7 +25,9 @@ public static class ScreenLayout
 
     public static void OpenDecompilerOptions(UiState uiState) => uiState.MainLayout.OpenDecompilerOptions(FindActivePanel(uiState));
 
-    public static void OpenBookmarks(UiState uiState) => uiState.MainLayout.OpenBookmarks(FindActivePanel(uiState));
+    public static void OpenDisplayOptions(UiState uiState) => uiState.MainLayout.OpenDisplayOptions(FindActivePanel(uiState));
+
+    public static void OpenBookmarks(UiState uiState) =>uiState.MainLayout.OpenBookmarks(FindActivePanel(uiState));
 
     public static void OpenExports(UiState uiState) => uiState.MainLayout.OpenExports(FindActivePanel(uiState));
 
@@ -50,6 +52,9 @@ public static class ScreenLayout
                 break;
             case DockPanels.DecompilerOptions:
                 OpenDecompilerOptions(uiState);
+                break;
+            case DockPanels.DisplayOptions:
+                OpenDisplayOptions(uiState);
                 break;
             case DockPanels.Exports:
                 OpenExports(uiState);

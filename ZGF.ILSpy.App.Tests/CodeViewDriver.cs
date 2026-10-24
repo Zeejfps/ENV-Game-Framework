@@ -37,7 +37,7 @@ internal sealed class CodeViewDriver
     private void Render(Ui<UiState> ui)
     {
         using var screen = ui.Screen();
-        Last = ui.CodeView("code", Document, State, Bookmarks, tooltips: Tooltips);
+        Last = ui.CodeView("code", Document, State, Bookmarks, tooltips: Tooltips, display: Display);
     }
 
     /// <summary>A driver that has run <paramref name="frames"/> frames of <paramref name="document"/>.</summary>
@@ -53,9 +53,12 @@ internal sealed class CodeViewDriver
     public DecompiledDocument Document { get; set; }
     public IReadOnlyDictionary<int, bool>? Bookmarks { get; set; }
     public CodeTooltips? Tooltips { get; set; }
+    public DisplayOptions? Display { get; set; }
     public CodeViewResult Last { get; private set; }
 
-    private float FoldLeft => Origin + MarkColumn + GutterPadding + Math.Max(3, CodeTextDigits(Document.Lines.Length)) * Cell + GutterPadding;
+    private float FoldLeft => Origin + MarkColumn + GutterPadding + Digits * Cell + GutterPadding;
+
+    private int Digits => Display is { ShowLineNumbers: false } ? 0 : Math.Max(3, CodeTextDigits(Document.Lines.Length));
 
     public float TextLeft => FoldLeft + (Document.Folds.Length > 0 ? FoldColumn : 0f) + CodePadding;
 

@@ -29,7 +29,8 @@ public static class ScreenSettings
             uiState.Search.Kinds,
             uiState.MetadataFilters.Revision,
             uiState.ExportSetup.WindowChanges,
-            uiState.Layout.Changes);
+            uiState.Layout.Changes,
+            uiState.Display);
     }
 
     private static ViewSettings CreateViewSettings(UiState uiState)
@@ -42,6 +43,7 @@ public static class ScreenSettings
             uiState.Search.Kinds,
             uiState.MetadataFilters.Save(),
             uiState.ExportSetup.Window,
-            uiState.Layout.CopyArrangement());
+            uiState.Layout.CopyArrangement(),
+            uiState.Display);
     }
 }

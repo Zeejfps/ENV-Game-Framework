@@ -110,6 +110,8 @@ internal static class MainMenuView
             OpenSearch(screen);
         if (ui.MenuItem(t.PanelDecompilerOptions, check: layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
             OpenDecompilerOptions(screen);
+        if (ui.MenuItem(t.PanelDisplayOptions, check: layout.Contains(DockPanels.DisplayOptions), id: "display-options"))
+            OpenDisplayOptions(screen);
         if (ui.MenuItem(t.PanelExports, check: layout.Contains(DockPanels.Exports), id: "exports"))
             OpenExports(screen);
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))

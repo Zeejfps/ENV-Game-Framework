@@ -42,6 +42,7 @@ public sealed class CodeViewState
     internal readonly CodeViewFrame Frame = new();
     internal readonly CodeFindIndex Find = new();
     internal readonly CodeFolds Folds = new();
+    internal readonly MatchingBrackets Brackets = new();
 
     internal DecompiledDocument? Document;
     internal int MaxColumns;
@@ -196,10 +197,22 @@ public sealed class CodeViewState
     }
 }
 
-public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null);
+/// <summary>How the user asked a code view to change the size of its code.</summary>
+public enum CodeZoom
+{
+    None,
+    In,
+    Out,
+    Reset,
+}
+
+public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null,
+    CodeZoom Zoom = CodeZoom.None);
 
 public static class CodeViewWidget
 {
+    private static readonly DisplayOptions Plain = new(HighlightMatchingBrackets: false);
+
     private const float FlashSeconds = 1.2f;
     private const float AutoScrollSpeed = 12f;
     private const int KeyScrollColumns = 4;
@@ -216,21 +229,25 @@ public static class CodeViewWidget
     /// Without <paramref name="bookmarks"/>, no line can be. Without a <paramref name="gutter"/>, there
     /// are no line numbers, fold chevrons or bookmark marks, only the text. With
     /// <paramref name="tooltips"/>, resting the pointer on a type or member shows its declaration and
-    /// documentation.
+    /// documentation. With <paramref name="display"/>, the code is drawn at its size with the aids it
+    /// turns on, and Ctrl with the wheel, =, - or 0 asks to change the size; without, at the theme's
+    /// size with line numbers only.
     /// </summary>
     public static CodeViewResult CodeView(this Ui<UiState> ui, string id, DecompiledDocument document, CodeViewState state,
-        IReadOnlyDictionary<int, bool>? bookmarks = null, bool gutter = true, CodeTooltips? tooltips = null)
+        IReadOnlyDictionary<int, bool>? bookmarks = null, bool gutter = true, CodeTooltips? tooltips = null, DisplayOptions? display = null)
     {
         using var scope = ui.Id(id);
         state.Show(document);
         var theme = ui.Theme;
         var palette = ui.State.CodeViewPalette;
-        var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
+        var shown = display ?? Plain;
+        var fontSize = shown.FontSizeIn(theme);
+        var cell = ui.MeasureCell(fontSize, family: MonoFonts.Regular);
         var advance = cell.Advance;
-        var rowHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
+        var rowHeight = RowHeightFor(theme, fontSize, cell);
         state.RowHeight = rowHeight;
         var folds = state.Folds;
-        var digits = Math.Max(3, CodeText.Digits(document.Lines.Length));
+        var digits = LineNumberDigits(document, shown);
         var markWidth = gutter ? theme.IconSize + GutterPaddingLeft : 0f;
         var foldLeft = gutter ? markWidth + digits * advance + GutterPaddingRight : 0f;
         var foldWidth = gutter && document.Folds.Length > 0 ? theme.IconSize : 0f;
@@ -244,6 +261,7 @@ public static class CodeViewWidget
         var focused = ui.HasFocus(focusId);
         var findFocused = state.FindOpen && ui.HasFocus(findId);
         var result = default(CodeViewResult);
+        var zoom = CodeZoom.None;
 
         if (focused || findFocused)
         {
@@ -262,6 +280,8 @@ public static class CodeViewWidget
             ui.TabStop(focusId);
 
             var i = ui.Interact(codeId);
+            if (display != null)
+                zoom = ZoomAsked(ui, focused, i.Hovered);
             var hasRect = ui.TryGetRect(codeId, out var rect);
             ui.TryGetContentRect(codeId, out var content);
 
@@ -392,6 +412,7 @@ public static class CodeViewWidget
             Scroll(ui, state, document, rowHeight, advance, textLeft, content, scrollDeltaY);
             FillFrame(ui, state, document, theme, palette, cell, rowHeight, markWidth, foldLeft, foldWidth, gutterWidth, textLeft, digits,
                 focused || findFocused, bookmarks, hoverLine, hoverSpan, hoverReference, hoverNavigable, hoverFold, hoverChip, hoverMark);
+            FillDisplayAids(state, document, shown, fontSize);
 
             using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f }))
             {
@@ -428,7 +449,94 @@ public static class CodeViewWidget
             result = result with { ToggleBookmark = picked.ToggleBookmark };
         if (picked.Analyze != null)
             result = result with { Analyze = picked.Analyze };
-        return result;
+        return result with { Zoom = zoom };
+    }
+
+    /// <summary>How many digits wide the line numbers are, at least three; none when they are hidden.</summary>
+    private static int LineNumberDigits(DecompiledDocument document, DisplayOptions display)
+    {
+        if (!display.ShowLineNumbers)
+            return 0;
+        var digits = CodeText.Digits(document.Lines.Length);
+        return Math.Max(3, digits);
+    }
+
+    /// <summary>The height of a row of code at <paramref name="fontSize"/>: the theme's, grown or shrunk
+    /// with the size, and never less than the font's own.</summary>
+    private static float RowHeightFor(UiTheme theme, float fontSize, CellMetrics cell)
+    {
+        var scaled = MathF.Ceiling(theme.CodeLineHeight * fontSize / theme.MonoFontSize);
+        var fontHeight = MathF.Ceiling(cell.Height);
+        return MathF.Max(scaled, fontHeight);
+    }
+
+    /// <summary>The size change asked this frame: Ctrl with =, - or 0 while focused, or Ctrl with the wheel while hovered.</summary>
+    private static CodeZoom ZoomAsked(Ui<UiState> ui, bool focused, bool hovered)
+    {
+        if (focused)
+        {
+            var pressed = ZoomPressed(ui);
+            if (pressed != CodeZoom.None)
+                return pressed;
+        }
+        if (!hovered)
+            return CodeZoom.None;
+        return ZoomScrolled(ui.Input);
+    }
+
+    private static CodeZoom ZoomPressed(Ui<UiState> ui)
+    {
+        foreach (var stroke in ui.Input.Keys)
+        {
+            if (!IsShortcut(stroke.Modifiers))
+                continue;
+            var zoom = ZoomOfKey(stroke.Key);
+            if (zoom != CodeZoom.None)
+                return zoom;
+        }
+        return CodeZoom.None;
+    }
+
+    private static CodeZoom ZoomOfKey(KeyboardKey key) => key switch
+    {
+        KeyboardKey.Equals => CodeZoom.In,
+        KeyboardKey.NumpadAdd => CodeZoom.In,
+        KeyboardKey.Minus => CodeZoom.Out,
+        KeyboardKey.NumpadSubtract => CodeZoom.Out,
+        KeyboardKey.Alpha0 => CodeZoom.Reset,
+        KeyboardKey.Numpad0 => CodeZoom.Reset,
+        _ => CodeZoom.None,
+    };
+
+    private static CodeZoom ZoomScrolled(UiInput input)
+    {
+        if (!IsShortcut(input.Modifiers))
+            return CodeZoom.None;
+        if (input.ScrollY > 0f)
+            return CodeZoom.In;
+        if (input.ScrollY < 0f)
+            return CodeZoom.Out;
+        return CodeZoom.None;
+    }
+
+    private static bool IsShortcut(KeyModifiers modifiers) => (modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
+
+    /// <summary>Fills what <paramref name="display"/> draws around the text: the caret's line and the
+    /// brackets matching at the caret.</summary>
+    private static void FillDisplayAids(CodeViewState state, DecompiledDocument document, DisplayOptions display, float fontSize)
+    {
+        var frame = state.Frame;
+        var caret = state.Selection.Caret;
+        frame.FontSize = fontSize;
+        frame.CurrentLine = display.HighlightCurrentLine ? caret.Line : CodeViewState.NoLine;
+        frame.Brackets = FindBracketsToShow(state, document, display, caret);
+    }
+
+    private static BracketPair? FindBracketsToShow(CodeViewState state, DecompiledDocument document, DisplayOptions display, TextPosition caret)
+    {
+        if (!display.HighlightMatchingBrackets)
+            return null;
+        return state.Brackets.Find(document, caret);
     }
 
     /// <summary>The span under the pointer and where the view's text starts on screen.</summary>
@@ -530,7 +638,6 @@ public static class CodeViewWidget
         frame.GutterHover = theme.Text;
         frame.Selection = active ? theme.TextSelection : theme.SelectionInactive;
         frame.ErrorText = theme.Danger;
-        frame.FontSize = theme.MonoFontSize;
         frame.SeparatorWidth = theme.SeparatorWidth;
         frame.OutlineWidth = theme.BorderWidth;
         frame.ChipRadius = theme.RadiusSmall;

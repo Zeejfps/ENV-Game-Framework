@@ -17,7 +17,8 @@ public sealed class KeptView
 }
 
 /// <summary>What the settings keep of the screen is made from: the change counts of the columns,
-/// the folded groups, the flags filters, the export window and the layout, and what the search looks for.</summary>
+/// the folded groups, the flags filters, the export window and the layout, what the search looks for,
+/// and the display options.</summary>
 public readonly record struct ViewSources(
     int BookmarkColumns,
     int SearchColumns,
@@ -26,4 +27,5 @@ public readonly record struct ViewSources(
     SearchKinds SearchKinds,
     int FlagsFilters,
     int ExportWindow,
-    int Layout);
+    int Layout,
+    DisplayOptions Display);

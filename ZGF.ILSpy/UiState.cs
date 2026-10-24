@@ -29,6 +29,7 @@ public sealed class UiState : IUiState
         MetadataFilters = new MetadataFilters(saved.FlagsFilters);
         Picker = new FrameworkPicker(ReadStrings, reportError);
         ExportSetup.RestoreWindow(saved.ExportWindow);
+        Display = DisplayOptions.Restore(saved.Display);
         Analyzer = new AnalyzerRows(AppCommands);
         RestoredDocumentsPanel = Documents.NewPanel();
         MainLayout = RestoreLayout(this, saved.Layout, RestoredDocumentsPanel);
@@ -104,6 +105,9 @@ public sealed class UiState : IUiState
 
     /// <summary>The decompiler options panel's folded groups.</summary>
     public FoldedGroups FoldedOptionGroups { get; }
+
+    /// <summary>How the documents draw code: its size and the aids drawn around it.</summary>
+    public DisplayOptions Display;
 
     /// <summary>What the settings last kept of the screen.</summary>
     public KeptView KeptView { get; } = new();

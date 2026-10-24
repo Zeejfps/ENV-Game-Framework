@@ -576,6 +576,7 @@ public abstract partial class Ui
         _wheelX = _wheelY = 0;
         _wheelDeltaX = _wheelDeltaY = 0f;
         if (_input.ScrollY == 0f && _input.ScrollX == 0f) return;
+        if (IsZoomWheel()) return;
         Topmost(_previousHits, null, out var topZ);
         var target = Topmost(_previousHits, _previousScrollIds, out var targetZ);
         if (target == 0 || targetZ < topZ) return;
@@ -598,6 +599,10 @@ public abstract partial class Ui
             _wheelDeltaX += _input.ScrollY;
         }
     }
+
+    /// <summary>Whether the wheel turns with Ctrl held, which zooms what is under the pointer, for it
+    /// to read from the input, rather than scrolling anything.</summary>
+    private bool IsZoomWheel() => (_input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
 
     private int WheelTarget(int id, bool x)
     {

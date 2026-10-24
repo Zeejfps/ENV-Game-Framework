@@ -25,6 +25,9 @@ internal static class Shortcuts
     public const string Back = "Alt+Left";
     public const string Forward = "Alt+Right";
     public const string ReloadAll = "F5";
+    public const string ZoomIn = "Ctrl+=";
+    public const string ZoomOut = "Ctrl+-";
+    public const string ZoomReset = "Ctrl+0";
 
     /// <summary>Whether Ctrl+R was pressed this frame, for the focused view to analyze its pick.</summary>
     public static bool AnalyzePressed(Ui<UiState> ui)

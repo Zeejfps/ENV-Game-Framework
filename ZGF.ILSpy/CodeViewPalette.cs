@@ -29,6 +29,12 @@ public sealed class CodeViewPalette
     public required uint CurrentFindOutline { get; init; }
     public required uint Flash { get; init; }
 
+    /// <summary>The background of the caret's line, when it is highlighted.</summary>
+    public required uint CurrentLine { get; init; }
+
+    /// <summary>The background of the bracket at the caret and the one matching it.</summary>
+    public required uint MatchingBracket { get; init; }
+
     /// <summary>The gutter mark of an enabled bookmark.</summary>
     public required uint Bookmark { get; init; }
 
@@ -73,6 +79,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF5C4824,
         CurrentFindOutline = 0xFFE6BE73,
         Flash = 0xFF2E4470,
+        CurrentLine = 0xFF20242C,
+        MatchingBracket = 0xFF34405A,
         Bookmark = 0xFF6CA6F0,
     };
 
@@ -100,6 +108,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFFFFE09A,
         CurrentFindOutline = 0xFF805500,
         Flash = 0xFFCFE0FF,
+        CurrentLine = 0xFFF4F6F9,
+        MatchingBracket = 0xFFD6E2F5,
         Bookmark = 0xFF2F6FCF,
     };
 
@@ -127,6 +137,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF6B5418,
         CurrentFindOutline = 0xFFD29922,
         Flash = 0xFF1F3A63,
+        CurrentLine = 0xFF161B22,
+        MatchingBracket = 0xFF2D3A4D,
         Bookmark = 0xFF58A6FF,
     };
 
@@ -154,6 +166,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFFFAE17D,
         CurrentFindOutline = 0xFF9A6700,
         Flash = 0xFFDDF4FF,
+        CurrentLine = 0xFFF6F8FA,
+        MatchingBracket = 0xFFD4E3F7,
         Bookmark = 0xFF0969DA,
     };
 
@@ -181,6 +195,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFFDCC57D,
         CurrentFindOutline = 0xFFB58900,
         Flash = 0xFFD2E1E1,
+        CurrentLine = 0xFFF5EEDA,
+        MatchingBracket = 0xFFDDD6C1,
         Bookmark = 0xFF268BD2,
     };
 
@@ -208,6 +224,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF42557B,
         CurrentFindOutline = 0xFF528BFF,
         Flash = 0xFF2F3E5C,
+        CurrentLine = 0xFF2C313C,
+        MatchingBracket = 0xFF454C5A,
         Bookmark = 0xFF61AFEF,
     };
 
@@ -235,6 +253,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF6E523A,
         CurrentFindOutline = 0xFFFFB86C,
         Flash = 0xFF44475A,
+        CurrentLine = 0xFF31333F,
+        MatchingBracket = 0xFF4B4E63,
         Bookmark = 0xFFBD93F9,
     };
 
@@ -262,6 +282,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF6E6A33,
         CurrentFindOutline = 0xFFE6DB74,
         Flash = 0xFF49483E,
+        CurrentLine = 0xFF31322B,
+        MatchingBracket = 0xFF4A4A40,
         Bookmark = 0xFF66D9EF,
     };
 
@@ -289,6 +311,8 @@ public sealed class CodeViewPalette
         CurrentFind = 0xFF765A51,
         CurrentFindOutline = 0xFFFAB387,
         Flash = 0xFF2F3A5A,
+        CurrentLine = 0xFF262637,
+        MatchingBracket = 0xFF45475A,
         Bookmark = 0xFF89B4FA,
     };
 }

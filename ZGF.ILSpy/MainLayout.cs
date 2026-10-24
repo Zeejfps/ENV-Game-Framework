@@ -54,6 +54,26 @@ public sealed class MainLayout
         Dock.Activate(DockPanels.DecompilerOptions);
     }
 
+    /// <summary>Docks the display options beside the decompiler options, or beside the documents, if
+    /// they are not, and brings them to the front.</summary>
+    public void OpenDisplayOptions(string? activeDocument)
+    {
+        if (!Dock.Contains(DockPanels.DisplayOptions))
+            DockDisplayOptions(activeDocument);
+        Dock.Activate(DockPanels.DisplayOptions);
+    }
+
+    private void DockDisplayOptions(string? activeDocument)
+    {
+        var decompilerOptions = Dock.GroupOf(DockPanels.DecompilerOptions);
+        if (decompilerOptions != null)
+        {
+            Dock.Dock(DockPanels.DisplayOptions, decompilerOptions, DockEdge.Center);
+            return;
+        }
+        DockBeside(DockPanels.DisplayOptions, FindDocumentArea(activeDocument), DockEdge.Right, ToolShare);
+    }
+
     /// <summary>Docks the bookmarks panel if it is not, and brings it to the front.</summary>
     public void OpenBookmarks(string? activeDocument)
     {

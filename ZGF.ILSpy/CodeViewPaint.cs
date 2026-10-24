@@ -46,6 +46,12 @@ internal sealed class CodeViewFrame
     public IReadOnlyDictionary<int, bool>? Bookmarks;
     public int HoverMark = -1;
 
+    /// <summary>The caret's line when it is highlighted, else -1.</summary>
+    public int CurrentLine = -1;
+
+    /// <summary>The bracket at the caret and its match when they are highlighted.</summary>
+    public BracketPair? Brackets;
+
     public static void PaintRow(UiPainter p, (CodeViewFrame Frame, int Row) row) => row.Frame.Paint(p, row.Row);
 
     private void Paint(UiPainter p, int row)
@@ -66,8 +72,14 @@ internal sealed class CodeViewFrame
         var endVisible = Math.Min(text.Length, (int)MathF.Ceiling((right - x0) / Advance));
         var cellTop = r.Y + MathF.Floor((RowHeight - CellHeight) / 2);
 
+        if (index == CurrentLine)
+            p.FillRect(new UiRect(textAreaLeft, r.Y, right - textAreaLeft, r.Height), Palette.CurrentLine);
+
         if (index == FlashLine)
             p.FillRect(new UiRect(textAreaLeft, r.Y, right - textAreaLeft, r.Height), Flash);
+
+        if (Brackets != null)
+            FillBrackets(p, x0, textAreaLeft, r, index, Brackets.Value);
 
         if (Highlight is { } highlight)
         {
@@ -127,9 +139,8 @@ internal sealed class CodeViewFrame
         if (GutterWidth <= 0f) return;
         p.FillRect(new UiRect(left, r.Y, GutterWidth, r.Height), Background);
         p.FillRect(new UiRect(left + GutterWidth - SeparatorWidth, r.Y, SeparatorWidth, r.Height), Palette.GutterSeparator);
-        var number = Number(index + 1);
-        p.GlyphRun(new PointF(left + GutterPaddingLeft + (Digits - number.Length) * Advance, cellTop), number, Advance, Palette.GutterText, FontSize,
-            family: MonoFonts.Regular);
+        if (Digits > 0)
+            LineNumber(p, left, cellTop, index);
         if (Bookmarks != null && (Bookmarks.TryGetValue(index, out var enabled) || index == HoverMark))
         {
             var color = !Bookmarks.ContainsKey(index) ? Palette.GutterText : enabled ? Palette.Bookmark : Palette.GutterText;
@@ -139,6 +150,23 @@ internal sealed class CodeViewFrame
         }
         if (fold >= 0 && FoldWidth > 0f)
             Chevron(p, left + FoldLeft + FoldWidth / 2, r.Y + r.Height / 2, collapsed, fold == HoverFold ? GutterHover : Palette.GutterText);
+    }
+
+    /// <summary>The line's number, right-aligned, brighter on the highlighted current line.</summary>
+    private void LineNumber(UiPainter p, float left, float cellTop, int index)
+    {
+        var number = Number(index + 1);
+        var color = index == CurrentLine ? GutterHover : Palette.GutterText;
+        var x = left + GutterPaddingLeft + (Digits - number.Length) * Advance;
+        p.GlyphRun(new PointF(x, cellTop), number, Advance, color, FontSize, family: MonoFonts.Regular);
+    }
+
+    private void FillBrackets(UiPainter p, float x0, float left, UiRect row, int index, BracketPair brackets)
+    {
+        if (brackets.Open.Line == index)
+            Fill(p, x0, left, row, brackets.Open.Column, brackets.Open.Column + 1, Palette.MatchingBracket);
+        if (brackets.Close.Line == index)
+            Fill(p, x0, left, row, brackets.Close.Column, brackets.Close.Column + 1, Palette.MatchingBracket);
     }
 
     private const float ChevronStroke = 1.5f;

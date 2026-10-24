@@ -39,6 +39,9 @@ public sealed class AppSettings
     /// <summary>The decompiler options panel's folded groups.</summary>
     public List<string>? FoldedOptionGroups { get; set; }
 
+    /// <summary>How the documents draw code; null for the defaults.</summary>
+    public DisplayOptions? Display { get; set; }
+
     /// <summary>The interface language; null follows the system's.</summary>
     public Locale? Locale { get; set; }
     public bool ShowNonPublic { get; set; } = true;

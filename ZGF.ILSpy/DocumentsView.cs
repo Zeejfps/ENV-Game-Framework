@@ -4,6 +4,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
+using static ZGF.ILSpy.CodeDisplay;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -51,13 +52,30 @@ internal static class DocumentsView
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? appState.Bookmarks.LinesIn(tab.Document, node.Path) : null;
         var view = ui.State.Documents.ViewOf(tab);
         var document = FindDocumentToShow(ui.State, view, tab);
-        var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips);
+        var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips, display: ui.State.Display);
         if (result.Navigate is { } reference)
             Navigate(appState, reference, result.NavigateInNewTab);
         if (result.ToggleBookmark is { } line)
             ToggleLineBookmark(ui, appState, tab, line);
         if (result.Analyze is { } analyzed)
             AnalyzerPanelView.Analyze(ui.State, appState, analyzed);
+        Zoom(ui.State, result.Zoom);
+    }
+
+    private static void Zoom(UiState uiState, CodeZoom zoom)
+    {
+        switch (zoom)
+        {
+            case CodeZoom.In:
+                ZoomCode(uiState, 1);
+                break;
+            case CodeZoom.Out:
+                ZoomCode(uiState, -1);
+                break;
+            case CodeZoom.Reset:
+                ResetCodeZoom(uiState);
+                break;
+        }
     }
 
     private static DecompiledDocument FindDocumentToShow(UiState screen, TabView view, DocumentTab tab)

@@ -93,6 +93,7 @@ public static class Settings
         settings.FlagsFilters = view.FlagsFilters;
         settings.ExportWindow = view.ExportWindow;
         settings.Layout = view.Layout;
+        settings.Display = view.Display;
         appState.ViewSettingsChanges++;
     }
 
@@ -108,6 +109,7 @@ public static class Settings
             settings.SearchKinds,
             settings.FlagsFilters,
             settings.ExportWindow,
-            settings.Layout);
+            settings.Layout,
+            settings.Display);
     }
 }
