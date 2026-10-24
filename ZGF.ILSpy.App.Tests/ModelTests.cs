@@ -6,6 +6,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -259,7 +260,7 @@ public sealed class DockPanelsTests
         var next = new AppStateDriver(temp.Settings());
         var restored = next.Ui.Layout;
 
-        Assert.Same(next.AppState.Tabs.Active, next.Ui.FindTab(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
+        Assert.Same(next.AppState.Tabs.Active, next.Ui.Documents.FindTab(Assert.Single(Assert.IsType<DockGroup>(restored.Root).Panels)));
         var window = Assert.Single(restored.Windows);
         Assert.Equal(new UiRect(40f, 50f, 300f, 400f), window.Rect);
         Assert.Same(window, restored.WindowOf(restored.GroupOf(DockPanels.Assemblies)!));
@@ -285,12 +286,12 @@ public sealed class DockPanelsTests
         var d = new AppStateDriver();
         var appState = d.AppState;
 
-        d.Ui.OpenSearch();
+        OpenSearch(d.Ui);
         d.Ui.Search.Query = "Greeter";
 
         var search = d.Ui.Layout.GroupOf(DockPanels.Search);
         Assert.NotNull(search);
-        Assert.NotSame(search, d.Ui.Layout.GroupOf(d.Ui.PanelOf(appState.Tabs.Active!)));
+        Assert.NotSame(search, d.Ui.Layout.GroupOf(d.Ui.Documents.PanelOf(appState.Tabs.Active!)));
 
         d.Ui.Layout.Close(DockPanels.Search);
 
@@ -316,7 +317,7 @@ public sealed class DockPanelsTests
         var driver = AppStateDriver.Opened();
         driver.Ui.Search.Query = "inassembly:Old Greet";
 
-        driver.Ui.ScopeSearch(driver.Node(AppStateDriver.FixturesNamespace));
+        ScopeSearch(driver.Ui, driver.Node(AppStateDriver.FixturesNamespace));
 
         Assert.Equal($"innamespace:{AppStateDriver.FixturesNamespace} inassembly:Old Greet ", driver.Ui.Search.Query);
         Assert.True(driver.Ui.Layout.Contains(DockPanels.Search));

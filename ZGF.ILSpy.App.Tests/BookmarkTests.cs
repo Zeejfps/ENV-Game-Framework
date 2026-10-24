@@ -6,6 +6,7 @@ using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Bookmarks;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -110,7 +111,7 @@ public sealed class BookmarkTests : IDisposable
         app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
-        Assert.Equal(line, app.Ui.ViewOf(tab).Code.FlashLine);
+        Assert.Equal(line, app.Ui.Documents.ViewOf(tab).Code.FlashLine);
         Assert.Equal("Outline", d.AppState.History.Current!.Value.Place.Text);
     }
 
@@ -220,7 +221,7 @@ public sealed class BookmarkTests : IDisposable
         app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
-        Assert.Equal(line, app.Ui.ViewOf(tab).Code.FlashLine);
+        Assert.Equal(line, app.Ui.Documents.ViewOf(tab).Code.FlashLine);
     }
 
     private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None) =>
@@ -231,7 +232,7 @@ public sealed class BookmarkTests : IDisposable
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
         ToggleBookmark(d.AppState, tab, line);
-        d.Ui.OpenBookmarks();
+        OpenBookmarks(d.Ui);
         app.Run(frames);
         return (app, d, tab, line);
     }
@@ -281,7 +282,7 @@ public sealed class BookmarkTests : IDisposable
         ToggleBookmark(d.AppState, tab, tab.Document.Find("foreach").Line);
         ToggleBookmark(d.AppState, tab, tab.Document.Find("needle").Line);
         ToggleBookmark(d.AppState, tab, line);
-        d.Ui.OpenBookmarks();
+        OpenBookmarks(d.Ui);
         app.Run(3);
         var bookmarks = d.AppState.Bookmarks;
         var panel = app.Ui.BookmarksPanel;
@@ -304,7 +305,7 @@ public sealed class BookmarkTests : IDisposable
         ToggleBookmark(d.AppState, tab, tab.Document.Find("foreach").Line);
         ToggleBookmark(d.AppState, tab, tab.Document.Find("needle").Line);
         ToggleBookmark(d.AppState, tab, line);
-        d.Ui.OpenBookmarks();
+        OpenBookmarks(d.Ui);
         app.Run(3);
         var bookmarks = d.AppState.Bookmarks;
         var panel = app.Ui.BookmarksPanel;

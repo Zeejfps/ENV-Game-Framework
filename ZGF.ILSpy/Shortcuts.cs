@@ -4,6 +4,9 @@ using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.Dialogs;
+using static ZGF.ILSpy.DocumentPanels;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -47,7 +50,7 @@ internal static class Shortcuts
 
     public static void Handle(Ui<UiState> ui, AppState appState)
     {
-        if (ui.State.IsDialogOpen()) return;
+        if (IsDialogOpen(ui.State)) return;
 
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
@@ -62,7 +65,7 @@ internal static class Shortcuts
             switch (stroke.Modifiers & Chord, stroke.Key)
             {
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.F):
-                    ui.State.OpenSearch();
+                    OpenSearch(ui.State);
                     continue;
                 case (KeyModifiers.Alt, KeyboardKey.LeftArrow):
                     GoBack(appState);
@@ -82,19 +85,19 @@ internal static class Shortcuts
                     SaveDialogs.PickActiveCodeFile(ui, appState);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
-                    ui.State.OpenExportSetup(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
+                    ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
                     break;
                 case (KeyModifiers.None, KeyboardKey.F5):
                     RefreshAssemblies(appState, ui.State.Tree.ExpandedPaths());
                     break;
                 case (KeyModifiers.Control, KeyboardKey.W):
-                    ui.State.CloseActiveTab();
+                    CloseActiveTab(ui.State);
                     break;
                 case (KeyModifiers.Control, KeyboardKey.Tab):
-                    ui.State.CycleTab(1);
+                    CycleTab(ui.State, 1);
                     break;
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.Tab):
-                    ui.State.CycleTab(-1);
+                    CycleTab(ui.State, -1);
                     break;
             }
         }

@@ -226,7 +226,7 @@ internal sealed class AppStateDriver
     public void Analyze(CodeReference reference) => AnalyzerPanelView.Analyze(Ui, AppState, reference);
 
     /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
-    public void OpenExportSetup(LoadedAssembly? picked) => Ui.OpenExportSetup(AppState.Assemblies.Assemblies, picked);
+    public void OpenExportSetup(LoadedAssembly? picked) => Ui.ExportSetup.Open(AppState.Assemblies.Assemblies, picked);
 }
 
 /// <summary>Renders the whole app window frame by frame over a <see cref="AppStateDriver"/>, which

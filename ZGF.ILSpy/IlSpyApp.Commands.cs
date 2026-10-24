@@ -1,6 +1,8 @@
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Docking;
+using static ZGF.ILSpy.DocumentPanels;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -20,10 +22,10 @@ public sealed partial class IlSpyApp
         switch (command)
         {
             case ViewCommand.ShowTab show:
-                ShowTab(uiState, appState, show.Tab, show.Beside);
+                ShowTabIfOpen(uiState, appState, show.Tab, show.Beside);
                 break;
             case ViewCommand.OpenPanel open:
-                uiState.OpenPanel(open.Panel);
+                OpenPanel(uiState, open.Panel);
                 break;
             case ViewCommand.RevealNode reveal:
                 RevealIfListed(uiState, appState, reveal.Node);
@@ -46,11 +48,11 @@ public sealed partial class IlSpyApp
         }
     }
 
-    private static void ShowTab(UiState uiState, AppState appState, DocumentTab tab, DocumentTab? beside)
+    private static void ShowTabIfOpen(UiState uiState, AppState appState, DocumentTab tab, DocumentTab? beside)
     {
         if (!appState.Tabs.Contains(tab))
             return;
-        uiState.ShowTab(tab, beside);
+        ShowTab(uiState, tab, beside);
     }
 
     private static void RevealIfListed(UiState uiState, AppState appState, BrowseNode node)
@@ -80,21 +82,21 @@ public sealed partial class IlSpyApp
     {
         if (!appState.Tabs.Contains(tab))
             return;
-        uiState.RestoreView(tab, position);
+        uiState.Documents.RestoreView(tab, position);
     }
 
     private static void RevealLine(UiState uiState, AppState appState, DocumentTab tab, int line)
     {
         if (!appState.Tabs.Contains(tab))
             return;
-        uiState.RevealLine(tab, line);
+        uiState.Documents.RevealLine(tab, line);
     }
 
     private static void RevealRow(UiState uiState, AppState appState, DocumentTab tab, int row)
     {
         if (!appState.Tabs.Contains(tab))
             return;
-        uiState.RevealRow(tab, row);
+        uiState.Documents.RevealRow(tab, row);
     }
 
     /// <summary>Runs the commands <paramref name="uiState"/> queued for the app state, in the order queued.</summary>
@@ -131,7 +133,7 @@ public sealed partial class IlSpyApp
         if (!uiState.Layout.Contains(panel))
             return;
         var tab = OpenEmptyTab(appState);
-        uiState.AddTabView(tab, panel);
+        uiState.Documents.Add(tab, panel);
         var becomesActive = focus || uiState.Layout.Focused == panel;
         if (becomesActive)
             FocusTabAndReveal(uiState, appState, tab);
@@ -142,7 +144,7 @@ public sealed partial class IlSpyApp
         var wasActive = CloseTab(appState, tab);
         if (!wasActive)
             return;
-        uiState.FocusNextTab();
+        FocusNextTab(uiState);
     }
 
     private static void FocusTabAndReveal(UiState uiState, AppState appState, DocumentTab tab)

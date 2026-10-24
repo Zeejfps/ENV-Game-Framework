@@ -27,8 +27,8 @@ public sealed class SplitDocumentTests
         var d = app.Driver;
 
         app.Frames.MovePointer(250f, 400f).Frame().Wheel(-5).Frame(2);
-        Assert.True(app.Ui.ViewOf(left).Code.ScrollY > 0f);
-        Assert.Equal(0f, app.Ui.ViewOf(right).Code.ScrollY);
+        Assert.True(app.Ui.Documents.ViewOf(left).Code.ScrollY > 0f);
+        Assert.Equal(0f, app.Ui.Documents.ViewOf(right).Code.ScrollY);
 
         app.Frames.Click(750f, 400f).Frame();
         Assert.Same(right, d.AppState.Tabs.Active);
@@ -67,7 +67,7 @@ public sealed class SplitDocumentTests
         var left = d.AppState.Tabs.Active!;
         d.Show(d.Fixture("Outline"), inNewTab: true);
         var right = d.AppState.Tabs.Active!;
-        layout.Dock(app.Ui.PanelOf(right), layout.GroupOf(app.Ui.PanelOf(left))!, DockEdge.Right, 0.5f);
+        layout.Dock(app.Ui.Documents.PanelOf(right), layout.GroupOf(app.Ui.Documents.PanelOf(left))!, DockEdge.Right, 0.5f);
         app.Run(3);
         return (app, left, right);
     }

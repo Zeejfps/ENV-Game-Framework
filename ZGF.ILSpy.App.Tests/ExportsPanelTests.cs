@@ -1,6 +1,7 @@
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -29,7 +30,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void Starting_an_export_brings_the_exports_panel_to_the_front()
     {
         var d = AppStateDriver.Opened();
-        d.Ui.OpenBookmarks();
+        OpenBookmarks(d.Ui);
 
         SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         d.NextFrame();
@@ -127,7 +128,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void A_cancelled_export_says_it_is_cancelling_until_it_stops()
     {
         var app = AppDriver.Opened();
-        app.Ui.OpenExports();
+        OpenExports(app.Ui);
         var start = app.AppState.Export.Enter(TestJobs.Named("Fixtures")).Result;
         app.Run(2);
 
@@ -187,7 +188,7 @@ public sealed class ExportsPanelTests : IDisposable
     public void The_running_export_shows_its_assembly_and_percentage()
     {
         var app = AppDriver.Opened();
-        app.Ui.OpenExports();
+        OpenExports(app.Ui);
         var start = app.AppState.Export.Enter(TestJobs.Named("Both")).Result;
         start.Progress.Report(new ExportProgress("Fixtures", 2, 4, 0.5f));
         app.Run(2);

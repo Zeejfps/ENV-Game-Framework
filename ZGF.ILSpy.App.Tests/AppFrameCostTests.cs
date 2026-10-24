@@ -1,4 +1,5 @@
 using Xunit.Abstractions;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -34,9 +35,9 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
     public void A_frame_of_the_app_with_only_tool_panels_open_allocates_nothing()
     {
         var app = AppDriver.Opened();
-        app.Ui.OpenBookmarks();
+        OpenBookmarks(app.Ui);
         app.Settle(2);
-        app.Ui.Layout.Close(app.Ui.PanelOf(app.AppState.Tabs.Active!));
+        app.Ui.Layout.Close(app.Ui.Documents.PanelOf(app.AppState.Tabs.Active!));
         app.Settle(5);
 
         app.Frames.Canvas.Recording = false;

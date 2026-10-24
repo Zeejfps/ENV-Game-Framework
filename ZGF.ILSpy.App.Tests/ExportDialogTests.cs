@@ -4,6 +4,7 @@ using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -393,7 +394,7 @@ public sealed class ExportDialogTests : IDisposable
     public void The_export_options_live_in_the_dialog_and_not_in_the_decompiler_options()
     {
         var app = AppDriver.Opened(height: 1400f);
-        app.Ui.OpenDecompilerOptions();
+        OpenDecompilerOptions(app.Ui);
         app.Run(2);
         Assert.False(app.Frames.Drew("SDK-style project files"));
 

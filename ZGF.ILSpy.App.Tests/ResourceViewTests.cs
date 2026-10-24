@@ -16,7 +16,7 @@ public sealed class ResourceViewTests
         return (app, app.AppState.Tabs.Active!);
     }
 
-    private static string ImageOf(AppDriver app, DocumentTab tab) => app.Ui.ViewOf(tab).ImageId;
+    private static string ImageOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).ImageId;
 
     [Fact]
     public void A_picture_shows_at_its_size_under_what_it_is()
@@ -84,12 +84,12 @@ public sealed class ResourceViewTests
     {
         var (app, tab) = ShowResource("shape.svg");
         app.ClickLast(LucideIcons.ZoomIn).Frame();
-        var zoomedBefore = !app.Ui.ViewOf(tab).Picture.Zoom.IsOwnSize;
+        var zoomedBefore = !app.Ui.Documents.ViewOf(tab).Picture.Zoom.IsOwnSize;
 
         app.Show(app.Node(["Resources", "logo.png"]), 3);
 
         Assert.True(zoomedBefore);
-        Assert.True(app.Ui.ViewOf(tab).Picture.Zoom.IsOwnSize);
+        Assert.True(app.Ui.Documents.ViewOf(tab).Picture.Zoom.IsOwnSize);
         Assert.Equal((2f, 2f), DrawnSize(app, tab));
     }
 
@@ -99,14 +99,14 @@ public sealed class ResourceViewTests
         var (app, tab) = ShowResource("shape.svg");
 
         app.Click("Source").Frame(2);
-        var showsSource = app.Ui.ViewOf(tab).Picture.ShowsSource;
+        var showsSource = app.Ui.Documents.ViewOf(tab).Picture.ShowsSource;
         var drewPicture = app.Frames.Canvas.Images.Any(i => i.Inputs.ImageId == ImageOf(app, tab));
         app.Click("Picture").Frame(2);
 
         Assert.True(showsSource);
         Assert.False(drewPicture);
         Assert.Contains("<svg", tab.Document.GetText());
-        Assert.False(app.Ui.ViewOf(tab).Picture.ShowsSource);
+        Assert.False(app.Ui.Documents.ViewOf(tab).Picture.ShowsSource);
         Assert.Equal((4f, 2f), DrawnSize(app, tab));
     }
 

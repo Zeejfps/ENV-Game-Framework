@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.DocumentPanels;
 
 namespace ZGF.ILSpy;
 
@@ -41,16 +42,16 @@ public static class MainView
             return;
         }
         DockSpace(ui, appState);
-        SyncActiveTab(ui, appState);
+        SyncAfterDocuments(ui, appState);
         RemoveReleasedImages(ui);
     }
 
     /// <summary>Runs the view commands the features queued while the documents were drawn, then asks for
     /// the tab the user last pressed, docked or brought to front to become the active one.</summary>
-    private static void SyncActiveTab(Ui<UiState> ui, AppState appState)
+    private static void SyncAfterDocuments(Ui<UiState> ui, AppState appState)
     {
         IlSpyApp.RunViewCommands(ui.State, appState);
-        ui.State.SyncActiveTab(appState.Tabs.Active);
+        SyncActiveTab(ui.State, appState.Tabs.Active);
     }
 
     private static void UpdateSearch(Ui<UiState> ui, AppState appState)
@@ -78,7 +79,7 @@ public static class MainView
     {
         if (DockPanels.IsView(panel))
             return DockPanels.Tab(t, panel);
-        var tab = screen.FindTab(panel);
+        var tab = screen.Documents.FindTab(panel);
         if (tab != null)
             return DocumentsView.Tab(screen, appState, tab);
         return new DockTab(t.DocumentNewTab);
@@ -114,7 +115,7 @@ public static class MainView
 
     private static void Document(Ui<UiState> ui, AppState appState, string panel)
     {
-        var tab = ui.State.FindTab(panel);
+        var tab = ui.State.Documents.FindTab(panel);
         if (tab == null)
             return;
         DocumentsView.Render(ui, appState, tab);
@@ -122,7 +123,7 @@ public static class MainView
 
     private static void RemoveReleasedImages(Ui<UiState> ui)
     {
-        foreach (var image in ui.State.TakeReleasedImages())
+        foreach (var image in ui.State.Documents.TakeReleasedImages())
             ui.RemoveImage(image);
     }
 }

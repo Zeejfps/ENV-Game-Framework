@@ -4,6 +4,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -134,7 +135,7 @@ internal static class AnalyzerPanelView
         var root = AddToAnalyzer(appState, node);
         if (root == null)
             return;
-        screen.OpenAnalyzer();
+        OpenAnalyzer(screen);
         screen.Analyzer.Show(root);
     }
 
@@ -149,7 +150,7 @@ internal static class AnalyzerPanelView
     /// <paramref name="reference"/> points at is found and analyzed.</summary>
     public static void Analyze(UiState screen, AppState appState, CodeReference reference)
     {
-        screen.OpenAnalyzer();
+        OpenAnalyzer(screen);
         AddToAnalyzer(appState, reference);
     }
 }

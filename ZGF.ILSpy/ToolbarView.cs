@@ -5,6 +5,7 @@ using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -38,7 +39,7 @@ internal static class ToolbarView
                     MainMenuView.OpenFile(ui, appState);
                 if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
                         variant: ButtonVariant.Neutral))
-                    ui.State.OpenSearch();
+                    OpenSearch(ui.State);
             }
 
             using (Group(ui))
@@ -71,7 +72,7 @@ internal static class ToolbarView
                 {
                     LanguageVersion(ui, appState);
                     if (ui.IconButton("decompiler-options", LucideIcons.Wrench, LucideIcons.Family, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
-                        ui.State.OpenDecompilerOptions();
+                        OpenDecompilerOptions(ui.State);
                 }
             }
         }

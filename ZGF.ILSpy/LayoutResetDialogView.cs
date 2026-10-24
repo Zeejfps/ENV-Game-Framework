@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -20,13 +21,13 @@ internal static class LayoutResetDialogView
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.ViewResetLayoutCancel, id: "reset-cancel", variant: ButtonVariant.Ghost))
-                        screen.FinishLayoutReset(false);
+                        FinishLayoutReset(screen, false);
                     if (ui.Button(t.ViewResetLayoutConfirm, id: "reset-confirm", variant: ButtonVariant.Primary))
-                        screen.FinishLayoutReset(true);
+                        FinishLayoutReset(screen, true);
                 }
             }
         }
         if (!open && screen.ConfirmingLayoutReset)
-            screen.FinishLayoutReset(false);
+            FinishLayoutReset(screen, false);
     }
 }

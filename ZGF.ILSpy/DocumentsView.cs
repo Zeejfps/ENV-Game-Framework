@@ -25,7 +25,7 @@ internal static class DocumentsView
         }
         if (tab.Grid is { } grid)
         {
-            var view = ui.State.ViewOf(tab);
+            var view = ui.State.Documents.ViewOf(tab);
             var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
             if (picked.Target is { } target)
                 ShowMetadataTarget(appState, target, picked.InNewTab);
@@ -45,7 +45,7 @@ internal static class DocumentsView
     public static void RenderCode(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
         var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? appState.Bookmarks.LinesIn(tab.Document, node.Path) : null;
-        var view = ui.State.ViewOf(tab);
+        var view = ui.State.Documents.ViewOf(tab);
         var result = ui.CodeView("code", tab.Document, view.Code, bookmarks, tooltips: appState.Tooltips);
         if (result.Navigate is { } reference)
             Navigate(appState, reference, result.NavigateInNewTab);

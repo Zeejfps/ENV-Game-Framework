@@ -7,6 +7,7 @@ using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -140,13 +141,13 @@ internal static class TreePaneView
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, appState, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
-            ui.State.OpenExportSetup(appState.Assemblies.Assemblies, node.Assembly);
+            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
-            ui.State.ScopeSearch(node);
+            ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
-            ui.State.ScopeSearch(node);
+            ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Assembly)
         {
             ui.MenuSeparator();

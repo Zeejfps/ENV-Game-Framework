@@ -23,7 +23,7 @@ internal static class ResourceImageView
     public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, ResourceImage image)
     {
         var theme = ui.Theme;
-        var view = ui.State.ViewOf(tab);
+        var view = ui.State.Documents.ViewOf(tab);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
         Toolbar(ui, appState, tab, view.Picture, image);
         ui.Separator();

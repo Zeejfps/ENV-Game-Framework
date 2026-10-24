@@ -1,4 +1,8 @@
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.Appearance;
+using static ZGF.ILSpy.DocumentPanels;
+using static ZGF.ILSpy.ScreenSettings;
+using static ZGF.ILSpy.Trees;
 
 namespace ZGF.ILSpy;
 
@@ -10,8 +14,8 @@ public sealed partial class IlSpyApp
     internal static UiState CreateUiState(AppState appState)
     {
         var uiState = new UiState(ReadViewSettings(appState), appState.ReportError);
-        uiState.ShowInRestoredDocuments(appState.Tabs[0]);
-        uiState.FollowActiveTab(appState.Tabs.Active);
+        ShowInRestoredDocuments(uiState, appState.Tabs[0]);
+        FollowActiveTab(uiState, appState.Tabs.Active);
         return uiState;
     }
 
@@ -22,11 +26,11 @@ public sealed partial class IlSpyApp
     /// options changed.</summary>
     internal static void StartFrame(UiState uiState, AppState appState)
     {
-        uiState.ApplyThemeAndLanguage(appState.Theme, appState.Locale);
-        uiState.SyncTrees(appState.Assemblies, appState.Analyzer, appState.ShowNonPublic);
-        uiState.SyncTabViews(appState.Tabs);
-        uiState.FollowActiveTab(appState.Tabs.Active);
-        uiState.FocusNextTabIfNone(appState.Tabs);
+        ApplyThemeAndLanguage(uiState, appState.Theme, appState.Locale);
+        SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ShowNonPublic);
+        SyncTabViews(uiState, appState.Tabs);
+        FollowActiveTab(uiState, appState.Tabs.Active);
+        FocusNextTabIfNone(uiState, appState.Tabs);
         RunViewCommands(uiState, appState);
         FollowDecompilation(uiState, appState);
     }
@@ -34,9 +38,9 @@ public sealed partial class IlSpyApp
     private static void FollowDecompilation(UiState uiState, AppState appState)
     {
         var language = appState.Language;
-        if (!uiState.TakeDecompilationChange(language, appState.DecompilerOptions))
+        if (!uiState.ShownDecompilation.TakeChange(language, appState.DecompilerOptions))
             return;
-        foreach (var tab in uiState.ListFrontTabs())
+        foreach (var tab in ListFrontTabs(uiState))
             tab.EnsureCurrent(language);
     }
 
@@ -57,7 +61,7 @@ public sealed partial class IlSpyApp
 
     private static void KeepTabPosition(UiState uiState, DocumentTab tab)
     {
-        var position = uiState.FindViewPosition(tab);
+        var position = uiState.Documents.FindPosition(tab);
         if (position == null)
             return;
         tab.KeepPosition(position.Value);
@@ -65,7 +69,7 @@ public sealed partial class IlSpyApp
 
     private static void KeepChangedViewSettings(UiState uiState, AppState appState)
     {
-        var view = uiState.TakeChangedViewSettings();
+        var view = TakeChangedViewSettings(uiState);
         if (view == null)
             return;
         KeepViewSettings(appState, view);

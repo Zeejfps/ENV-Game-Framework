@@ -1,15 +1,20 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.ScreenSettings;
 
 namespace ZGF.ILSpy;
 
 /// <summary>The screen, one per app: what every view is drawn with this frame (the theme, the editor's
 /// and icons' colors, the strings of the chosen language), and the state that exists only because there
 /// is a screen: the layout, each tab's view, the trees' and tables' state, the panels and dialogs with
-/// what is selected in them, and UI flags. It and the app state never see each other: the app hands it
-/// what it shows each frame and runs what it asks of the app state through <see cref="AppCommands"/>.</summary>
-public sealed partial class UiState : IUiState
+/// what is selected in them, and UI flags. What the user does to it are static functions grouped by
+/// feature, such as <see cref="DocumentPanels"/> and <see cref="ScreenLayout"/>. It and the app state never
+/// see each other: the app hands it what it shows each frame and runs what it asks of the app state
+/// through <see cref="AppCommands"/>.</summary>
+public sealed class UiState : IUiState
 {
     /// <param name="saved">What the settings kept of the screen when they were last saved.</param>
     /// <param name="reportError">Tells the user that something done in the background failed: a title and details.</param>
@@ -25,9 +30,9 @@ public sealed partial class UiState : IUiState
         Picker = new FrameworkPicker(ReadStrings, reportError);
         ExportSetup.RestoreWindow(saved.ExportWindow);
         Analyzer = new AnalyzerRows(AppCommands);
-        _restoredDocuments = NewDocumentPanel();
-        MainLayout = RestoreLayout(saved.Layout, _restoredDocuments);
-        _keptView = CaptureViewSources();
+        RestoredDocumentsPanel = Documents.NewPanel();
+        MainLayout = RestoreLayout(this, saved.Layout, RestoredDocumentsPanel);
+        KeptView.Keep(CaptureViewSources(this));
     }
 
     /// <summary>The strings of the language the screen speaks now, for what reports to the app state later.</summary>
@@ -37,6 +42,46 @@ public sealed partial class UiState : IUiState
     public CodeViewPalette CodeViewPalette { get; set; } = CodeViewPalette.Dark;
     public NodeIconPalette NodeIconPalette { get; set; } = NodeIconPalette.Dark;
     public Strings Strings { get; set; } = Strings.En;
+
+    /// <summary>What the screen asked of the app state while it drew, for the app to run once the frame is drawn.</summary>
+    public Queue<AppCommand> AppCommands { get; } = new();
+
+    /// <summary>Where the views and the open documents are docked, all as tabs: side by side,
+    /// stacked or in floating windows.</summary>
+    public MainLayout MainLayout { get; }
+
+    public DockLayout Layout => MainLayout.Dock;
+
+    /// <summary>The document panel the layout was restored with in the place of the documents, which
+    /// shows the app state's first tab.</summary>
+    public string RestoredDocumentsPanel { get; }
+
+    /// <summary>How each open tab is shown, and the panel it is docked as.</summary>
+    public DocumentViews Documents { get; } = new();
+
+    /// <summary>The app state's active tab as the screen last followed it, which the views open beside.</summary>
+    public DocumentTab? ActiveTab;
+
+    /// <summary>When to try focusing another tab while none is active.</summary>
+    public FocusRetry NextTabFocus { get; } = new();
+
+    /// <summary>The language and options the tabs in front were last brought up to date with.</summary>
+    public ShownDecompilation ShownDecompilation { get; } = new();
+
+    /// <summary>Set while the user is asked whether to reset the layout.</summary>
+    public bool ConfirmingLayoutReset;
+
+    /// <summary>The browse tree over the open assemblies, with the view's expansion and selection.</summary>
+    public BrowseTree Tree { get; } = new();
+
+    /// <summary>Which assembly list the tree last showed.</summary>
+    public ShownList ShownList { get; } = new();
+
+    /// <summary>The node the tree's context menu was opened on.</summary>
+    public BrowseNode? MenuTarget;
+
+    /// <summary>The analyzer's tree as its view shows it.</summary>
+    public AnalyzerRows Analyzer { get; }
 
     /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
     public TableColumns BookmarkColumns { get; } = new(
@@ -60,12 +105,15 @@ public sealed partial class UiState : IUiState
     /// <summary>The decompiler options panel's folded groups.</summary>
     public FoldedGroups FoldedOptionGroups { get; }
 
+    /// <summary>What the settings last kept of the screen.</summary>
+    public KeptView KeptView { get; } = new();
+
     public BookmarksPanel BookmarksPanel { get; } = new();
 
     /// <summary>The search panel's query, results and selection.</summary>
     public Search Search { get; }
 
-    /// <summary>Set by <see cref="OpenSearch"/> until the search box takes focus.</summary>
+    /// <summary>Set by <see cref="ScreenLayout.OpenSearch"/> until the search box takes focus.</summary>
     public bool IsSearchFocusPending;
 
     /// <summary>The metadata grids' flags filters.</summary>
@@ -87,14 +135,4 @@ public sealed partial class UiState : IUiState
 
     /// <summary>What the export dialog asks for, and whether it is open.</summary>
     public ExportSetup ExportSetup { get; } = new();
-
-    /// <summary>Takes the colors of <paramref name="theme"/> and the strings of <paramref name="locale"/>.</summary>
-    public void ApplyThemeAndLanguage(AppThemeId theme, Locale locale)
-    {
-        var colors = AppThemes.For(theme);
-        Theme = colors.Ui;
-        CodeViewPalette = colors.Code;
-        NodeIconPalette = colors.Icons;
-        Strings = Strings.For(locale);
-    }
 }

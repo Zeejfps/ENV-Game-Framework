@@ -2,6 +2,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -25,7 +26,7 @@ internal static class ExportStatusView
     {
         var t = ui.State.Strings;
         if (Glance(ui, appState, progress))
-            ui.State.OpenExports();
+            OpenExports(ui.State);
         if (!appState.Export.IsCancelling && IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
             appState.Export.Cancel();
     }

@@ -5,6 +5,7 @@ using ZGF.KeyboardModule;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -136,7 +137,7 @@ internal static class SearchPanelView
         var t = ui.State.Strings;
         var search = ui.State.Search;
         var fieldId = ui.GetId("search");
-        if (ui.State.TakeSearchFocus())
+        if (TakeSearchFocus(ui.State))
             ui.Focus(fieldId);
         var width = Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth);
         var submitted = ui.TextField("search", ref search.Query, t.SearchField, width, LucideIcons.Search, LucideIcons.Family);

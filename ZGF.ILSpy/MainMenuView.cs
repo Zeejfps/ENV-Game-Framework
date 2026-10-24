@@ -7,6 +7,7 @@ using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
@@ -80,7 +81,7 @@ internal static class MainMenuView
             SaveDialogs.PickActiveCodeFile(ui, appState);
         var anyOpen = ui.State.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: SaveDialogs.ExportIcon))
-            ui.State.OpenExportSetup(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
+            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
             SaveDialogs.PickPdbFolder(ui, appState);
     }
@@ -100,19 +101,19 @@ internal static class MainMenuView
         var screen = ui.State;
         var layout = screen.Layout;
         if (ui.MenuItem(t.PanelAssemblies, check: layout.Contains(DockPanels.Assemblies), id: "assemblies"))
-            screen.OpenAssemblies();
+            OpenAssembliesPanel(screen);
         if (ui.MenuItem(t.ViewBookmarks, check: layout.Contains(DockPanels.Bookmarks), id: "bookmarks"))
-            screen.OpenBookmarks();
+            OpenBookmarks(screen);
         if (ui.MenuItem(t.PanelAnalyzer, check: layout.Contains(DockPanels.Analyzer), id: "analyzer"))
-            screen.OpenAnalyzer();
+            OpenAnalyzer(screen);
         if (ui.MenuItem(t.PanelSearch, Shortcuts.Search, check: layout.Contains(DockPanels.Search), id: "search"))
-            screen.OpenSearch();
+            OpenSearch(screen);
         if (ui.MenuItem(t.PanelDecompilerOptions, check: layout.Contains(DockPanels.DecompilerOptions), id: "decompiler-options"))
-            screen.OpenDecompilerOptions();
+            OpenDecompilerOptions(screen);
         if (ui.MenuItem(t.PanelExports, check: layout.Contains(DockPanels.Exports), id: "exports"))
-            screen.OpenExports();
+            OpenExports(screen);
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
-            screen.AskToResetLayout();
+            AskToResetLayout(screen);
         ui.MenuSeparator();
         ThemeMenu(ui, appState);
         LanguageMenu(ui, appState);

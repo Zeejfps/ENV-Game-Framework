@@ -7,6 +7,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -15,7 +16,7 @@ public sealed class AppTests
     private static AppDriver Searching(string text, int moreRowsThan, float width = 1000f)
     {
         var app = AppDriver.Opened(width);
-        app.Ui.OpenSearch();
+        OpenSearch(app.Ui);
         app.Run();
         app.Frames.Type(text).Frame().Wait(1);
         app.RunUntil(() => !app.Ui.Search.IsBusy && app.Ui.Search.Rows.Count > moreRowsThan);
@@ -65,7 +66,7 @@ public sealed class AppTests
 
         app.Frames.Drag(from, aside, onto).Frame().Release().Frame(2);
 
-        var shownPanel = app.Ui.PanelOf(shown);
+        var shownPanel = app.Ui.Documents.PanelOf(shown);
         Assert.Same(layout.GroupOf(DockPanels.Assemblies), layout.GroupOf(shownPanel));
         Assert.Equal(shownPanel, layout.GroupOf(shownPanel)!.Active);
         Assert.IsType<DockGroup>(layout.Root);
@@ -229,7 +230,7 @@ public sealed class AppTests
         var app = AppDriver.Opened(width: 1600f);
         SetLanguageVersion(app.AppState, CSharpVersion.CSharp7);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
-        app.Ui.OpenDecompilerOptions();
+        OpenDecompilerOptions(app.Ui);
         app.Run();
 
         app.Click("switch expressions").Frame();
@@ -250,7 +251,7 @@ public sealed class AppTests
     public void The_options_toolbar_collapses_and_expands_every_group()
     {
         var app = AppDriver.Opened(width: 1600f);
-        app.Ui.OpenDecompilerOptions();
+        OpenDecompilerOptions(app.Ui);
         app.Run();
 
         app.ClickLast(LucideIcons.ChevronsDownUp);
@@ -267,7 +268,7 @@ public sealed class AppTests
     {
         var app = AppDriver.Opened(width: 1600f);
         FoldOptionGroupsBut(app, nameof(CSharpVersion.CSharp8));
-        app.Ui.OpenDecompilerOptions();
+        OpenDecompilerOptions(app.Ui);
         app.Run();
         var csharp8 = DecompilerToggle.All.Where(t => t.IntroducedIn == CSharpVersion.CSharp8).ToArray();
 
@@ -372,7 +373,7 @@ public sealed class AppTests
     public void All_kinds_stands_alone_and_comes_back_when_the_last_kind_is_unchecked()
     {
         var app = AppDriver.Opened();
-        app.Ui.OpenSearch();
+        OpenSearch(app.Ui);
         app.Run(2);
 
         app.Click("Types and members").Frame();
@@ -412,7 +413,7 @@ public sealed class AppTests
         app.Run(2);
         Assert.False(app.Frames.Drew("Search…"));
 
-        app.Ui.OpenSearch();
+        OpenSearch(app.Ui);
         app.Run(2);
 
         var icon = app.LastTextRect(LucideIcons.Search);

@@ -2,6 +2,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using static ZGF.ILSpy.Docking;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -13,7 +14,7 @@ public sealed class DockingTests
         var app = AppDriver.Opened();
         app.Show(app.Fixture("Greeter"));
         var greeter = app.AppState.Tabs.Active!;
-        var greeterPanel = app.Ui.PanelOf(greeter);
+        var greeterPanel = app.Ui.Documents.PanelOf(greeter);
         var layout = app.Ui.Layout;
 
         layout.Dock(DockPanels.Assemblies, layout.GroupOf(greeterPanel)!, DockEdge.Center);
@@ -74,7 +75,7 @@ public sealed class DockingTests
 
         Assert.Equal([DockPanels.Assemblies], left);
         var split = Assert.IsType<DockSplit>(layout.Root);
-        Assert.Same(layout.GroupOf(d.Ui.PanelOf(d.AppState.Tabs.Active!)), split.Second);
+        Assert.Same(layout.GroupOf(d.Ui.Documents.PanelOf(d.AppState.Tabs.Active!)), split.Second);
         Assert.Equal("Greeter", d.AppState.Tabs.Active.Node!.Text);
     }
 
@@ -100,9 +101,9 @@ public sealed class DockingTests
         d.Show(d.Fixture("Farewell"), inNewTab: true);
         var farewell = d.AppState.Tabs.Active!;
         var layout = d.Ui.Layout;
-        layout.Dock(app.Ui.PanelOf(farewell), layout.Root, DockEdge.Bottom);
+        layout.Dock(app.Ui.Documents.PanelOf(farewell), layout.Root, DockEdge.Bottom);
         layout.Float(DockPanels.Assemblies, new UiRect(40f, 40f, 300f, 300f));
-        d.Ui.OpenBookmarks();
+        OpenBookmarks(d.Ui);
         app.Run(2);
 
         app.Click("View");
@@ -113,8 +114,8 @@ public sealed class DockingTests
         var split = Assert.IsType<DockSplit>(layout.Root);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(split.First).Panels);
         var documents = Assert.IsType<DockGroup>(split.Second);
-        Assert.Equal(d.AppState.Tabs.Select(d.Ui.PanelOf).Order(), documents.Panels.Order());
-        Assert.Equal(app.Ui.PanelOf(farewell), documents.Active);
+        Assert.Equal(d.AppState.Tabs.Select(d.Ui.Documents.PanelOf).Order(), documents.Panels.Order());
+        Assert.Equal(app.Ui.Documents.PanelOf(farewell), documents.Active);
         Assert.Same(farewell, d.AppState.Tabs.Active);
         Assert.Empty(layout.Windows);
         Assert.False(layout.Contains(DockPanels.Bookmarks));
@@ -128,7 +129,7 @@ public sealed class LayoutResetTests
     {
         var app = new AppDriver();
         var screen = app.Ui;
-        screen.OpenBookmarks();
+        OpenBookmarks(screen);
         app.Run(2);
 
         app.Click("View");
@@ -159,14 +160,14 @@ public sealed class LayoutPersistenceTests : IDisposable
     {
         var d = AppStateDriver.Opened(_temp.Settings());
         var screen = d.Ui;
-        screen.OpenAnalyzer();
+        OpenAnalyzer(screen);
         screen.Layout.Dock(DockPanels.Bookmarks, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
         SaveSettings(d.AppState);
 
         var next = new AppStateDriver(_temp.Settings());
         var layout = next.Ui.Layout;
-        var documents = layout.GroupOf(next.Ui.PanelOf(next.AppState.Tabs.Active!))!;
+        var documents = layout.GroupOf(next.Ui.Documents.PanelOf(next.AppState.Tabs.Active!))!;
         var views = layout.GroupOf(DockPanels.Analyzer)!;
         var split = ParentOf(layout.Root, views)!;
 
@@ -182,8 +183,8 @@ public sealed class LayoutPersistenceTests : IDisposable
     {
         var d = new AppStateDriver(_temp.Settings());
         var screen = d.Ui;
-        screen.OpenSearch();
-        screen.OpenAnalyzer();
+        OpenSearch(screen);
+        OpenAnalyzer(screen);
         screen.Layout.Dock(DockPanels.Search, screen.Layout.GroupOf(DockPanels.Analyzer)!, DockEdge.Center);
         d.NextFrame();
         SaveSettings(d.AppState);

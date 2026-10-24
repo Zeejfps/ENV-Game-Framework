@@ -5,6 +5,7 @@ using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.ScreenSettings;
 
 namespace ZGF.ILSpy;
 
@@ -92,7 +93,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     internal void SaveOnExit(WindowBounds window)
     {
         _appState.Settings.RememberWindow(window);
-        KeepViewSettings(_appState, UiState.TakeViewSettings());
+        KeepViewSettings(_appState, TakeViewSettings(UiState));
         SaveSettings(_appState);
     }
 

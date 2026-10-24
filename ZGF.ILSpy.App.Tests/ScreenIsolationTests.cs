@@ -3,6 +3,7 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -34,9 +35,9 @@ public sealed class ScreenIsolationTests : IDisposable
         var d = AppStateDriver.Opened(_temp.Settings());
         d.Show(d.Fixture("Greeter"));
         d.Show(d.Fixture("Farewell"), inNewTab: true);
-        d.Ui.OpenBookmarks();
+        OpenBookmarks(d.Ui);
         d.Analyze(d.Fixture("Greeter"));
-        d.Ui.ScopeSearch(d.Node(AppStateDriver.FixturesNamespace));
+        ScopeSearch(d.Ui, d.Node(AppStateDriver.FixturesNamespace));
         d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
         d.Settle();
         SaveSettings(d.AppState);
