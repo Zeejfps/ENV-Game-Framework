@@ -68,8 +68,9 @@ public sealed class LocalizationTests
     public void The_chosen_language_is_restored_with_the_settings()
     {
         using var temp = new TempDir();
-        var workspace = new Workspace(temp.Settings());
-        workspace.SetLocale(Locale.Ja);
+        var d = new WorkspaceDriver(temp.Settings());
+        d.Workspace.SetLocale(Locale.Ja);
+        d.Pump();
 
         Assert.Equal(Locale.Ja, new Workspace(temp.Settings()).Locale);
     }

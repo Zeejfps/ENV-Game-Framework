@@ -1,42 +1,38 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The versions of the open assemblies, the named lists, the bookmarks, the analyzer and the metadata filters
-/// as of the last settings save, to save again only when one changed.</summary>
+/// <summary>What the settings are saved from: the versions of the open assemblies, the named lists, the bookmarks,
+/// the analyzer and the metadata filters, and the preferences themselves.</summary>
+public readonly record struct SavedSources(
+    int Assemblies,
+    int Lists,
+    int Bookmarks,
+    int Analyzer,
+    int Filters,
+    AppThemeId Theme,
+    DecompilationLanguage Language,
+    DecompilerOptions DecompilerOptions,
+    bool ShowNonPublic,
+    Locale Locale,
+    SearchKinds SearchKinds);
+
+/// <summary>What the settings were saved from the last time, to save again only when it changed.</summary>
 public sealed class LastSave
 {
-    private int _assemblies;
-    private int _lists;
-    private int _bookmarks;
-    private int _analyzer;
-    private int _filters;
+    private SavedSources _saved;
 
-    public bool IsBehind(AssemblyList assemblies, SavedAssemblyLists lists, BookmarkList bookmarks, AnalyzerTree analyzer, MetadataFilters filters)
-    {
-        if (assemblies.Version != _assemblies)
-            return true;
-        if (lists.Revision != _lists)
-            return true;
-        if (bookmarks.Revision != _bookmarks)
-            return true;
-        if (analyzer.Revision != _analyzer)
-            return true;
-        return filters.Revision != _filters;
-    }
+    public bool IsBehind(SavedSources sources) => sources != _saved;
 
-    public void Record(AssemblyList assemblies, SavedAssemblyLists lists, BookmarkList bookmarks, AnalyzerTree analyzer, MetadataFilters filters)
+    public void Record(SavedSources sources)
     {
-        _assemblies = assemblies.Version;
-        _lists = lists.Revision;
-        _bookmarks = bookmarks.Revision;
-        RecordAnalyzer(analyzer);
-        _filters = filters.Revision;
+        _saved = sources;
     }
 
     /// <summary>Counts the analyzer as saved, for changes that were not the user's.</summary>
     public void RecordAnalyzer(AnalyzerTree analyzer)
     {
-        _analyzer = analyzer.Revision;
+        _saved = _saved with { Analyzer = analyzer.Revision };
     }
 }

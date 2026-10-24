@@ -11,7 +11,6 @@ public static class Preferences
         if (locale == w.Locale)
             return;
         w.Locale = locale;
-        w.SaveSettings();
     }
 
     public static void SetLanguage(this Workspace w, DecompilationLanguage language)

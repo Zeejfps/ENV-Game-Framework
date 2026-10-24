@@ -182,8 +182,22 @@ public sealed record DecompilerOptions
         return this with { Toggles = changed.ToImmutable() };
     }
 
-    public bool Equals(DecompilerOptions? other) =>
-        other is not null && LanguageVersion == other.LanguageVersion && Toggles.Count == other.Toggles.Count &&
+    /// <summary>Whether <paramref name="other"/> makes the same choices; the same options are equal at once,
+    /// without walking the toggles.</summary>
+    public bool Equals(DecompilerOptions? other)
+    {
+        if (ReferenceEquals(this, other))
+            return true;
+        if (other is null)
+            return false;
+        if (LanguageVersion != other.LanguageVersion)
+            return false;
+        if (Toggles.Count != other.Toggles.Count)
+            return false;
+        return HasSameToggles(other);
+    }
+
+    private bool HasSameToggles(DecompilerOptions other) =>
         Toggles.All(t => other.Toggles.TryGetValue(t.Key, out var value) && value == t.Value);
 
     public override int GetHashCode() => HashCode.Combine(LanguageVersion, Toggles.Count);

@@ -6,13 +6,14 @@ namespace ZGF.ILSpy;
 /// <summary>Saving the settings when something in them changed, and saving resources to files.</summary>
 public static class Saving
 {
-    /// <summary>Saves the settings when the open assemblies, the named lists, the bookmarks, the analyzer or the
-    /// metadata filters changed since the last save, unless the assemblies are reloading.</summary>
+    /// <summary>Saves the settings when what they are saved from changed since the last save, unless
+    /// the assemblies are reloading.</summary>
     public static void SaveSettingsIfChanged(this Workspace w)
     {
         if (w.IsReloading)
             return;
-        if (!w.LastSave.IsBehind(w.Assemblies, w.Lists, w.Bookmarks, w.Analyzer, w.MetadataFilters))
+        var sources = w.CaptureSavedSources();
+        if (!w.LastSave.IsBehind(sources))
             return;
         w.SaveSettings();
     }
@@ -21,8 +22,25 @@ public static class Saving
     {
         w.RememberActiveList();
         w.CopyStateToSettings();
-        w.LastSave.Record(w.Assemblies, w.Lists, w.Bookmarks, w.Analyzer, w.MetadataFilters);
+        var sources = w.CaptureSavedSources();
+        w.LastSave.Record(sources);
         w.WriteSettingsFile();
+    }
+
+    internal static SavedSources CaptureSavedSources(this Workspace w)
+    {
+        return new SavedSources(
+            w.Assemblies.Version,
+            w.Lists.Revision,
+            w.Bookmarks.Revision,
+            w.Analyzer.Revision,
+            w.MetadataFilters.Revision,
+            w.Theme,
+            w.Language,
+            w.DecompilerOptions,
+            w.ShowNonPublic,
+            w.Locale,
+            w.Search.Kinds);
     }
 
     private static void CopyStateToSettings(this Workspace w)

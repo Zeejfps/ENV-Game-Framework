@@ -116,7 +116,6 @@ internal static class SearchPanelView
         if (kinds == search.Kinds)
             return;
         search.Kinds = kinds;
-        w.SaveSettings();
     }
 
     private static SearchKinds Toggle(SearchKinds kinds, SearchKinds kind, bool all, bool on)

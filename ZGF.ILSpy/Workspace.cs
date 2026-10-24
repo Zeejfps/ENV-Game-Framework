@@ -154,7 +154,7 @@ public sealed class Workspace
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
         ExportSetup.Window = settings.ExportWindow;
-        LastSave.Record(Assemblies, Lists, Bookmarks, Analyzer, MetadataFilters);
+        LastSave.Record(this.CaptureSavedSources());
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
