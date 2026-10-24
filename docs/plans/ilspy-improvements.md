@@ -34,24 +34,21 @@ Open issues found in `ZGF.ILSpy`, `ZGF.ILSpy.Core`, `ZGF.Gui.Immediate` and `ZGF
    uses `CancellationToken.None` and caches forever, so later-opened assemblies never show.
    Fix: thread `ct` into inner loops, add `.WithCancellation(ct)`, compute derived types through a
    cancellable call.
-7. **Settings save unevenly.** `SavedSources` (`LastSave.cs`) leaves out the folded option groups and the column
-   widths, so they save only at shutdown or with another change. Fix: give each a change count that
-   `SavedSources` holds.
-8. **`TreeViewState._expanded` never forgets removed nodes** (`ZGF.Gui.Immediate.Widgets/TreeViewState.cs:30`).
+7. **`TreeViewState._expanded` never forgets removed nodes** (`ZGF.Gui.Immediate.Widgets/TreeViewState.cs:30`).
    Closed assemblies and finished analyses stay alive all session. Fix: `Sync` drops entries whose root is no
    longer in `roots`, or a `Forget(subtree)`.
-9. **Scrollbar thumbs steal focus from their list.** `Ui.cs:276` drops focus on any unclaimed left press;
+8. **Scrollbar thumbs steal focus from their list.** `Ui.cs:276` drops focus on any unclaimed left press;
    thumbs are separate hit regions (`Ui.Layout.cs:291-292, 474, 483`). Fix: an internal `KeepFocus()` for
    chrome presses.
-10. **Key repeat re-activates controls.** `TakeKey(Enter/Space)` (`UiWidgets.cs:278-284`, `UiMenus.cs:520-527`)
-    accepts repeats and any modifiers. Fix: `UiInput.TakePress(key)` ignoring repeats and command modifiers.
-11. **Search failures are swallowed.** `AssemblySearch.Scan` (`AssemblySearch.cs:49-59`) and `WarmUp`
+9. **Key repeat re-activates controls.** `TakeKey(Enter/Space)` (`UiWidgets.cs:278-284`, `UiMenus.cs:520-527`)
+   accepts repeats and any modifiers. Fix: `UiInput.TakePress(key)` ignoring repeats and command modifiers.
+10. **Search failures are swallowed.** `AssemblySearch.Scan` (`AssemblySearch.cs:49-59`) and `WarmUp`
     (`LoadedAssembly.cs:115-124`) catch everything. Fix: catch only unreadable-metadata exceptions and stream
     others as error entries.
-12. **Hidden-member filter ignores user options.** `Members.IsHidden` (`Nodes.cs:303-309`) uses default
+11. **Hidden-member filter ignores user options.** `Members.IsHidden` (`Nodes.cs:303-309`) uses default
     `DecompilerSettings`, so with YieldReturn/AsyncAwait off, generated types appear in code but not in the
     tree. Fix: derive hiding from the current settings, or rebuild roots when those toggles change.
-13. **State lifetime is counted in frames** (`Ui.cs:18-19, 642-661`). Frames only render on events, so unused
+12. **State lifetime is counted in frames** (`Ui.cs:18-19, 642-661`). Frames only render on events, so unused
     state lives forever while idle. Fix: age by `RealTime`.
 
 ## Performance

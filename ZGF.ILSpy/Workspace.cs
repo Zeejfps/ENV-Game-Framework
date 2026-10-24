@@ -83,7 +83,7 @@ public sealed class Workspace
     public DecompilerOptions DecompilerOptions { get; set; }
 
     /// <summary>The decompiler options panel's folded groups.</summary>
-    public HashSet<string> FoldedOptionGroups { get; }
+    public FoldedGroups FoldedOptionGroups { get; }
 
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget { get; set; }
@@ -136,7 +136,7 @@ public sealed class Workspace
         Theme = settings.Theme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
-        FoldedOptionGroups = LoadFoldedOptionGroups(settings);
+        FoldedOptionGroups = new FoldedGroups(settings.FoldedOptionGroups);
         Locale = ChooseLocale(settings);
         ShowNonPublic = settings.ShowNonPublic;
         var first = AddTab();
@@ -156,20 +156,13 @@ public sealed class Workspace
         BookmarkColumns.Restore(settings.BookmarkColumns);
         SearchColumns.Restore(settings.SearchColumns);
         ExportColumns.Restore(settings.ExportColumns);
-        ExportSetup.Window = settings.ExportWindow;
+        ExportSetup.RestoreWindow(settings.ExportWindow);
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
             MainLayout.DockDocument(first.Panel, first.Panel);
         LastSave.Record(this.CaptureSavedSources());
         ReportSettingsLoadError(settings);
         this.ReportLeftOutBookmarks(leftOutBookmarks);
-    }
-
-    private static HashSet<string> LoadFoldedOptionGroups(AppSettings settings)
-    {
-        if (settings.FoldedOptionGroups == null)
-            return new HashSet<string>();
-        return new HashSet<string>(settings.FoldedOptionGroups);
     }
 
     private static Locale ChooseLocale(AppSettings settings)

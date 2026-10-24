@@ -292,8 +292,8 @@ public sealed class AppTests
 
     private static void FoldOptionGroupsBut(AppDriver app, string open)
     {
-        app.Workspace.FoldedOptionGroups.UnionWith(Enum.GetNames<CSharpVersion>().Append("Other").Append("FSharp"));
-        app.Workspace.FoldedOptionGroups.Remove(open);
+        app.Workspace.FoldedOptionGroups.Fold(Enum.GetNames<CSharpVersion>().Append("Other").Append("FSharp"));
+        app.Workspace.FoldedOptionGroups.Unfold(open);
     }
 
     [Fact]

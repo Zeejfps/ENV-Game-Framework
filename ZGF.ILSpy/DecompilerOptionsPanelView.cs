@@ -25,9 +25,9 @@ internal static class DecompilerOptionsPanelView
         using (ui.PaneToolbar())
         {
             if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, !AllFolded(w)))
-                w.FoldedOptionGroups.UnionWith(Sections.Select(static s => s.Key));
+                w.FoldedOptionGroups.Fold(Sections.Select(static s => s.Key));
             if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, w.FoldedOptionGroups.Count > 0))
-                w.FoldedOptionGroups.Clear();
+                w.FoldedOptionGroups.UnfoldAll();
             ui.Separator(theme.IconSize);
             if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
                 w.ResetDecompilerToggles();
@@ -62,8 +62,8 @@ internal static class DecompilerOptionsPanelView
                 }
             }
         }
-        if (flipped != null && !w.FoldedOptionGroups.Remove(flipped))
-            w.FoldedOptionGroups.Add(flipped);
+        if (flipped != null)
+            w.FoldedOptionGroups.Flip(flipped);
     }
 
     /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,

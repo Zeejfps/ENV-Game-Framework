@@ -149,7 +149,7 @@ public sealed class AppSettingsTests : IDisposable
     public void The_export_window_reopens_where_it_was_left_in_the_last_run()
     {
         var workspace = new Workspace(AppSettings.Load(SettingsFile));
-        workspace.ExportSetup.Window = new WindowBounds(-900, 200, 700, 800, false);
+        workspace.ExportSetup.RestoreWindow(new WindowBounds(-900, 200, 700, 800, false));
         workspace.SaveSettings();
 
         var next = new Workspace(AppSettings.Load(SettingsFile));

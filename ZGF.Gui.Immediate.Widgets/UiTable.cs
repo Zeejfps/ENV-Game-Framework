@@ -40,6 +40,7 @@ public sealed class TableColumns
     private readonly TableColumn[] _columns;
     private readonly float[] _weights;
     private readonly float[] _widths;
+    private bool _isDragging;
 
     public TableColumns(params TableColumn[] columns)
     {
@@ -74,17 +75,28 @@ public sealed class TableColumns
     /// <summary>Every column's share of the width left to the resizable ones, as dragged.</summary>
     public IReadOnlyList<float> Weights => _weights;
 
+    /// <summary>Counts the changes to <see cref="Weights"/>: once for each border drag that moved one,
+    /// when the button comes up, never on the frames in between, and once for each
+    /// <see cref="Restore"/> that changes them. Watch it to tell when the widths should be saved.</summary>
+    public int Changes { get; private set; }
+
     /// <summary>Takes back <see cref="Weights"/> saved from a table with the same columns; anything
     /// else is ignored.</summary>
     public void Restore(IReadOnlyList<float>? weights)
     {
         if (weights == null || weights.Count != _weights.Length || weights.Any(static w => !(w > 0f) || float.IsInfinity(w))) return;
+        var changed = false;
         for (var i = 0; i < _weights.Length; i++)
         {
-            _weights[i] = IsSized ? MathF.Max(_columns[i].MinWidth, weights[i]) : weights[i];
+            var weight = IsSized ? MathF.Max(_columns[i].MinWidth, weights[i]) : weights[i];
+            if (weight != _weights[i])
+                changed = true;
+            _weights[i] = weight;
             if (IsSized)
                 _widths[i] = _weights[i];
         }
+        if (changed)
+            Changes++;
     }
 
     internal bool IsSelectable(int index) => !_columns[index].Controls;
@@ -141,6 +153,23 @@ public sealed class TableColumns
     /// a sized column alone takes the width; otherwise it is given to or taken from the column after it.</summary>
     internal void Drag(int left, float leftStart, float borderAt)
     {
+        var before = _weights[left];
+        Resize(left, leftStart, borderAt);
+        if (_weights[left] != before)
+            _isDragging = true;
+    }
+
+    /// <summary>Counts the border drag that moved a width as one change, once it ended.</summary>
+    internal void FinishDragging()
+    {
+        if (!_isDragging)
+            return;
+        _isDragging = false;
+        Changes++;
+    }
+
+    private void Resize(int left, float leftStart, float borderAt)
+    {
         var minLeft = _columns[left].MinWidth;
         if (IsSized)
         {
@@ -171,6 +200,14 @@ public static partial class UiWidgets
     internal static int TableBorderId(int headerId, int column) => HashCode.Combine(headerId, TableBorderSalt, column);
 
     internal static int TableHeaderId(int tableId) => HashCode.Combine(tableId, TableHeaderSalt);
+
+    /// <summary>Counts a border drag as one change of the widths once the button is up.</summary>
+    private static void FinishColumnDragOnRelease(Ui ui, TableColumns columns)
+    {
+        if (ui.Input.IsDown(PointerButton.Left))
+            return;
+        columns.FinishDragging();
+    }
 
     public static TableFrame Table(this Ui ui, string id, TableColumns columns, ListSelection rows, TableScroll? scroll = null) =>
         Table(ui, ui.GetId(id), columns, rows, scroll);
@@ -244,6 +281,7 @@ public static partial class UiWidgets
                 columns.Drag(i, start, pointer - grab);
             start += columns.Width(i);
         }
+        FinishColumnDragOnRelease(ui, columns);
 
         var clicked = -1;
         using (ui.Row(headerId, new Box

@@ -66,6 +66,43 @@ public sealed class TableTests
     }
 
     [Fact]
+    public void Dragging_a_border_counts_as_one_change_when_it_ends_and_a_press_that_moves_nothing_as_none()
+    {
+        _frames.Frame(2);
+        var border = _frames.RectOf(ui => BorderOf(ui, 1));
+        var x = border.X + border.Width / 2;
+        var y = border.Y + border.Height / 2;
+        var before = _columns.Changes;
+
+        _frames.Drag(new PointF(x, y), new PointF(x + 20f, y), new PointF(x + 30f, y));
+        var whileDragging = _columns.Changes;
+        _frames.Release().Frame(2);
+        var afterDrag = _columns.Changes;
+        var moved = _frames.RectOf(ui => BorderOf(ui, 1));
+        _frames.MovePointer(moved.X + moved.Width / 2, y).Frame();
+        _frames.Press().Frame().Release().Frame(2);
+
+        Assert.Equal(before, whileDragging);
+        Assert.Equal(before + 1, afterDrag);
+        Assert.Equal(afterDrag, _columns.Changes);
+    }
+
+    [Fact]
+    public void Restoring_other_widths_counts_as_a_change_and_the_same_widths_as_none()
+    {
+        var before = _columns.Changes;
+
+        var weights = _columns.Weights.ToArray();
+        _columns.Restore(weights);
+        var afterSame = _columns.Changes;
+        weights[1] *= 3f;
+        _columns.Restore(weights);
+
+        Assert.Equal(before, afterSame);
+        Assert.Equal(before + 1, _columns.Changes);
+    }
+
+    [Fact]
     public void Sized_columns_keep_their_widths_scroll_with_the_header_and_resize_alone()
     {
         var columns = TableColumns.Sized([300f, 250f, 200f]);

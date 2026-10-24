@@ -42,6 +42,11 @@ public static class Saving
             w.Analyzer.Revision,
             w.MetadataFilters.Revision,
             w.Layout.Changes,
+            w.FoldedOptionGroups.Revision,
+            w.BookmarkColumns.Changes,
+            w.SearchColumns.Changes,
+            w.ExportColumns.Changes,
+            w.ExportSetup.WindowChanges,
             w.Theme,
             w.Language,
             w.DecompilerOptions,
@@ -58,9 +63,7 @@ public static class Saving
         settings.Theme = w.Theme;
         settings.Language = w.Language;
         settings.Decompiler = w.DecompilerOptions;
-        settings.FoldedOptionGroups = w.FoldedOptionGroups
-            .Order()
-            .ToList();
+        settings.FoldedOptionGroups = w.FoldedOptionGroups.Save();
         settings.ShowNonPublic = w.ShowNonPublic;
         settings.SearchKinds = w.Search.Kinds;
         settings.Locale = w.Locale;

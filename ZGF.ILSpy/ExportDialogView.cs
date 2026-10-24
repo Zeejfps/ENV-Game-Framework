@@ -33,6 +33,12 @@ internal static class ExportDialogView
 
     public static void Render(Ui<UiState> ui, Workspace w)
     {
+        Dialog(ui, w);
+        w.ExportSetup.SettleWindow(ui.Input.IsDown(PointerButton.Left));
+    }
+
+    private static void Dialog(Ui<UiState> ui, Workspace w)
+    {
         var setup = w.ExportSetup;
         var choosing = setup.Page == ExportPage.Choose;
         var title = PageTitle(ui.State.Strings, setup.Page);

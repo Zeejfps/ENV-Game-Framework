@@ -35,6 +35,75 @@ public sealed class AutosaveTests : IDisposable
         Assert.Equal(SearchKinds.Types, saved.SearchKinds);
     }
 
+    private static readonly WindowBounds MovedExportWindow = new(-900, 200, 700, 800, false);
+
+    [Theory]
+    [InlineData(nameof(AppSettings.FoldedOptionGroups))]
+    [InlineData(nameof(AppSettings.BookmarkColumns))]
+    [InlineData(nameof(AppSettings.SearchColumns))]
+    [InlineData(nameof(AppSettings.ExportColumns))]
+    [InlineData(nameof(AppSettings.ExportWindow))]
+    public void A_saved_field_changed_alone_is_saved_with_the_next_frame(string field)
+    {
+        var app = new AppDriver(settings: _temp.Settings());
+        app.Run(2);
+
+        Change(app.Workspace, field);
+        app.Run();
+
+        Assert.True(IsSaved(_temp.Settings(), field), field);
+    }
+
+    private static void Change(Workspace w, string field)
+    {
+        switch (field)
+        {
+            case nameof(AppSettings.FoldedOptionGroups):
+                w.FoldedOptionGroups.Fold(["Other"]);
+                break;
+            case nameof(AppSettings.BookmarkColumns):
+                w.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
+                break;
+            case nameof(AppSettings.SearchColumns):
+                w.SearchColumns.Restore([1f, 4f, 1f]);
+                break;
+            case nameof(AppSettings.ExportColumns):
+                w.ExportColumns.Restore([1f, 4f, 1f]);
+                break;
+            case nameof(AppSettings.ExportWindow):
+                w.ExportSetup.Window = MovedExportWindow;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(field), field, null);
+        }
+    }
+
+    private static bool IsSaved(AppSettings saved, string field) => field switch
+    {
+        nameof(AppSettings.FoldedOptionGroups) => saved.FoldedOptionGroups?.SequenceEqual(["Other"]) == true,
+        nameof(AppSettings.BookmarkColumns) => saved.BookmarkColumns?.SequenceEqual([1f, 1f, 4f, 1f]) == true,
+        nameof(AppSettings.SearchColumns) => saved.SearchColumns?.SequenceEqual([1f, 4f, 1f]) == true,
+        nameof(AppSettings.ExportColumns) => saved.ExportColumns?.SequenceEqual([1f, 4f, 1f]) == true,
+        nameof(AppSettings.ExportWindow) => saved.ExportWindow == MovedExportWindow,
+        _ => throw new ArgumentOutOfRangeException(nameof(field), field, null),
+    };
+
+    [Fact]
+    public void The_export_window_moved_is_saved_once_the_button_comes_up()
+    {
+        var app = new AppDriver(settings: _temp.Settings());
+        app.Run(2);
+
+        app.Frames.Press().Frame();
+        app.Workspace.ExportSetup.Window = MovedExportWindow;
+        app.Run(2);
+        var savedWhileHeld = _temp.Settings().ExportWindow;
+        app.Frames.Release().Frame();
+
+        Assert.Null(savedWhileHeld);
+        Assert.Equal(MovedExportWindow, _temp.Settings().ExportWindow);
+    }
+
     [Fact]
     public void An_analysis_made_while_saved_ones_are_restoring_is_saved()
     {
