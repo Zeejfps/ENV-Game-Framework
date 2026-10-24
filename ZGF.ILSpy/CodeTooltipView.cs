@@ -609,10 +609,10 @@ internal static class CodeTooltipView
         public TextStyle Bold { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, bold: true);
         public TextStyle Italic { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, family: TextFonts.Italic);
         public TextStyle Heading { get; } = ui.StyleText(HeadingColor(ui.Theme), ui.Theme.FontSizeSmall, bold: true);
-        public TextStyle Container { get; } = ui.StyleText(ui.Theme.TextMuted, ui.Theme.FontSize, family: MonoFonts.Regular);
-        public TextStyle CodeBlock { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, family: MonoFonts.Regular);
+        public TextStyle Container { get; } = ui.StyleText(ui.Theme.TextMuted, ui.Theme.FontSize, family: MonoFonts.Code);
+        public TextStyle CodeBlock { get; } = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, family: MonoFonts.Code);
 
-        public TextStyle Code(SpanKind kind) => ui.StyleText(palette[kind], _size, family: MonoFonts.Regular);
+        public TextStyle Code(SpanKind kind) => ui.StyleText(palette[kind], _size, family: MonoFonts.Code);
 
         /// <summary>A type or member named in the text, colored as code colors what it points at.</summary>
         public TextStyle Reference(CodeReference? reference)

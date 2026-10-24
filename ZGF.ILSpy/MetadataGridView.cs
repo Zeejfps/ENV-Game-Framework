@@ -104,7 +104,7 @@ internal ref struct MetadataGridFrame
         if (IsMono(column))
         {
             size = theme.FontSize;
-            family = MonoFonts.Regular;
+            family = MonoFonts.Code;
         }
         var width = _ui.MeasureText(column.Name, theme.FontSizeSmall) + theme.IconSize * 2 + theme.GapTight * 2;
         for (var row = 0; row < rows; row++)
@@ -287,7 +287,7 @@ internal ref struct MetadataGridFrame
         if (IsMono(column))
         {
             size = theme.FontSize;
-            family = MonoFonts.Regular;
+            family = MonoFonts.Code;
         }
         string? more = null;
         if (!expanded)

@@ -18,6 +18,8 @@ internal static class DisplayOptionsPanelView
     private const string FontSizeFormat = "0.#";
     private const float FormMaxWidth = 560f;
     private const string RowSuffix = "-row";
+    private const float FontPickerMaxWidth = 220f;
+    private const string PreviewText = "The quick brown fox jumps over the lazy dog";
 
     private const int NothingPicked = -1;
 
@@ -36,9 +38,18 @@ internal static class DisplayOptionsPanelView
             Gap = theme.GroupGap,
             Padding = theme.PanelPadding,
         });
+        ListInstalledFontsOnce(ui);
         InterfaceSection(ui, appState);
         CodeSection(ui);
         ResetRow(ui);
+    }
+
+    private static void ListInstalledFontsOnce(Ui<UiState> ui)
+    {
+        var screen = ui.State;
+        if (!screen.CodeFonts.TakeListingRequest())
+            return;
+        ui.ListSystemFonts(families => KeepInstalledFonts(screen, families));
     }
 
     /// <summary>The theme, the scale and the language. Only the scale is one of the options a reset puts
@@ -168,9 +179,14 @@ internal static class DisplayOptionsPanelView
         var defaults = DisplayOptions.Default;
         using var section = Section(ui, ui.Memo("code", t, static s => Heading(s.DisplayOptionsCode)));
         using var card = Card(ui);
+        using (OptionRow(ui, t.DisplayOptionsFont, null, display.Font != null))
+            FontPicker(ui);
+        ui.Separator();
+
         var hint = ui.Memo("zoom-hint", t, static s => s.DisplayOptionsZoomHint(Shortcuts.ZoomReset));
         using (OptionRow(ui, t.DisplayOptionsFontSize, hint, display.FontSize != null))
             FontSizeStepper(ui);
+        FontPreview(ui);
         ui.Separator();
 
         var lineNumbers = display.ShowLineNumbers;
@@ -188,6 +204,37 @@ internal static class DisplayOptionsPanelView
             SetDisplayOptions(ui.State, display with { HighlightMatchingBrackets = brackets });
     }
 
+    /// <summary>The bundled font and the installed monospaced ones, the chosen one shown by name even
+    /// before the installed ones are listed.</summary>
+    private static void FontPicker(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        var choices = ui.State.CodeFonts;
+        var chosen = ui.State.Display.Font;
+        var shown = CodeFontChoices.NameOf(chosen);
+        using var menu = ui.SelectButton("code-font", shown, MeasureFontPicker(ui, shown));
+        if (!menu.IsOpen)
+            return;
+        var fonts = choices.Fonts;
+        for (var i = 0; i < fonts.Count; i++)
+        {
+            if (ui.MenuRadioItem(choices.Labels[i], choices.Labels[i] == shown))
+                SetCodeFont(ui.State, fonts[i]);
+        }
+        if (!choices.IsListed)
+            ui.MenuItem(t.DisplayOptionsFontsLoading, enabled: false, id: "fonts-loading");
+    }
+
+    /// <summary>As wide as the longest name offered or <paramref name="shown"/>, up to a limit past which
+    /// names are shortened.</summary>
+    private static float MeasureFontPicker(Ui<UiState> ui, string shown)
+    {
+        var offered = ui.SelectButtonWidth(ui.State.CodeFonts.Labels);
+        var chosen = ui.SelectButtonWidth([shown]);
+        var widest = MathF.Max(offered, chosen);
+        return MathF.Min(widest, FontPickerMaxWidth);
+    }
+
     private static void FontSizeStepper(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
@@ -202,6 +249,30 @@ internal static class DisplayOptionsPanelView
         var larger = ui.Memo("larger", t, static s => s.DisplayOptionsLarger(Shortcuts.ZoomIn));
         if (ui.IconButton("larger", LucideIcons.Plus, LucideIcons.Family, larger, display.CanZoomIn(theme), ButtonVariant.Neutral))
             ZoomCode(ui.State, 1);
+    }
+
+    /// <summary>A line of code text in the chosen font and size on the documents' background, under the
+    /// font size, so every change to either shows as it is made.</summary>
+    private static void FontPreview(Ui<UiState> ui)
+    {
+        var theme = ui.Theme;
+        var size = ui.State.Display.FontSizeIn(theme);
+        using var row = ui.Column(new Box
+        {
+            Width = Sizing.Grow(),
+            Padding = new Spacing(theme.PanelPadding, 0f, theme.PanelPadding, theme.Gap),
+        });
+        using var sample = ui.Column(new Box
+        {
+            Width = Sizing.Grow(),
+            Padding = new Spacing(theme.ControlPaddingX, theme.Gap),
+            Background = theme.EditorBackground,
+            BorderColor = theme.Separator,
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.CornerRadius,
+        });
+        var color = ui.State.CodeViewPalette.Plain;
+        ui.Text(PreviewText, new Box { Width = Sizing.Grow() }, color: color, size: size, family: MonoFonts.Code, wrap: true);
     }
 
     private static string FormatFontSize(float size) => size.ToString(FontSizeFormat, CultureInfo.CurrentCulture);

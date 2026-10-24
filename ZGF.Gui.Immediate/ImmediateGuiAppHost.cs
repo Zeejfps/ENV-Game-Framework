@@ -50,6 +50,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly Action<Ui<TUiState>> _updateUi;
     private readonly Ui<TUiState> _ui;
     private readonly IFilePicker _filePicker;
+    private readonly ISystemFonts _systemFonts = NativeSystemFonts.Create();
+    private readonly Dictionary<(byte[] Data, int FaceIndex), FontHandle> _loadedFonts = new();
     private readonly List<Popup> _popups = new();
     private readonly List<DialogWindow> _windows = new();
     private readonly PopupPool _pool;
@@ -176,11 +178,23 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private void AddFont(FontFace font)
     {
-        var handle = LoadFont(font.Data);
+        var handle = LoadOnce(font);
         if (font.Bold)
             _render.MainCanvas.RegisterBoldFont(font.Family, handle);
         else
             _render.MainCanvas.RegisterFont(font.Family, handle);
+    }
+
+    /// <summary>The font loaded from <paramref name="font"/>'s data, loading it the first time, so
+    /// registering a font again, as switching back to it does, keeps the one already loaded.</summary>
+    private FontHandle LoadOnce(FontFace font)
+    {
+        var key = (font.Data, font.FaceIndex);
+        if (_loadedFonts.TryGetValue(key, out var loaded))
+            return loaded;
+        var handle = LoadFont(font.Data, font.FaceIndex);
+        _loadedFonts[key] = handle;
+        return handle;
     }
 
     private void LoadSystemFallbackFonts() => Task.Run(() =>
@@ -325,6 +339,10 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
         if (_ui.HasFoldersToOpen)
             OpenFolders();
+        if (_ui.HasFontsToRegister)
+            RegisterAskedFonts();
+        if (_ui.HasFontListings)
+            ListSystemFonts();
         if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
         {
             _wakeAt = double.PositiveInfinity;
@@ -337,6 +355,37 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         foreach (var folder in _ui.TakeFoldersToOpen())
             FileManagerWindow.Open(folder);
+    }
+
+    private void RegisterAskedFonts()
+    {
+        foreach (var font in _ui.TakeFontsToRegister())
+            RegisterFont(font);
+    }
+
+    /// <summary>Lists the installed fonts on a worker thread and hands them to every listing asked for.</summary>
+    private void ListSystemFonts()
+    {
+        var listings = _ui.TakeFontListings();
+        Task.Run(() =>
+        {
+            var families = ListFamiliesOrNone();
+            foreach (var onListed in listings)
+                _ui.Post(() => onListed(families));
+        });
+    }
+
+    private IReadOnlyList<SystemFontFamily> ListFamiliesOrNone()
+    {
+        try
+        {
+            return _systemFonts.ListFamilies();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[ImmediateGuiAppHost] Could not list the system fonts: {e.Message}");
+            return [];
+        }
     }
 
     private void PollPointer()

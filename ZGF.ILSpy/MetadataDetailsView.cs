@@ -38,7 +38,7 @@ internal static class MetadataDetailsView
     private static float TextHeight(Ui<UiState> ui, TextSize size, float width)
     {
         var theme = ui.Theme;
-        var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Regular);
+        var cell = ui.MeasureCell(theme.MonoFontSize, family: MonoFonts.Code);
         var lineHeight = MathF.Max(theme.CodeLineHeight, MathF.Ceiling(cell.Height));
         var overflows = TextPaddingX + size.Longest * cell.Advance > width;
         var bar = overflows ? theme.ScrollBarWidth + theme.ScrollBarInset * 2 : 0f;

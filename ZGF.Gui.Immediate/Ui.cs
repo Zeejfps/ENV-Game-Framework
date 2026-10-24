@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using ZGF.Desktop;
+using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.KeyboardModule;
 
@@ -27,6 +28,8 @@ public abstract partial class Ui
     private readonly ConcurrentQueue<Action> _posted;
     private readonly List<Action<IFilePicker>> _dialogs = new();
     private readonly List<string> _foldersToOpen = new();
+    private readonly List<FontFace> _fontsToRegister = new();
+    private readonly List<Action<IReadOnlyList<SystemFontFamily>>> _fontListings = new();
     private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
@@ -209,6 +212,35 @@ public abstract partial class Ui
         var folders = _foldersToOpen.ToArray();
         _foldersToOpen.Clear();
         return folders;
+    }
+
+    /// <summary>Draws text in <paramref name="font"/>'s family with it from the next frame, in place of
+    /// whatever drew that family before.</summary>
+    public void RegisterFont(FontFace font) => _fontsToRegister.Add(font);
+
+    internal bool HasFontsToRegister => _fontsToRegister.Count > 0;
+
+    /// <summary>The fonts asked for since the last call, which the host registers.</summary>
+    internal FontFace[] TakeFontsToRegister()
+    {
+        var fonts = _fontsToRegister.ToArray();
+        _fontsToRegister.Clear();
+        return fonts;
+    }
+
+    /// <summary>Lists the installed fonts off the UI thread once this frame is drawn;
+    /// <paramref name="onListed"/> runs at the start of a later frame with them. See
+    /// <see cref="ISystemFonts.ListFamilies"/>.</summary>
+    public void ListSystemFonts(Action<IReadOnlyList<SystemFontFamily>> onListed) => _fontListings.Add(onListed);
+
+    internal bool HasFontListings => _fontListings.Count > 0;
+
+    /// <summary>The listings asked for since the last call, which the host answers.</summary>
+    internal Action<IReadOnlyList<SystemFontFamily>>[] TakeFontListings()
+    {
+        var listings = _fontListings.ToArray();
+        _fontListings.Clear();
+        return listings;
     }
 
     /// <summary>Forgets every measured width, line height and cell: fonts changed.</summary>

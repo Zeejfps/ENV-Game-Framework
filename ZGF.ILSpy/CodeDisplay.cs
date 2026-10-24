@@ -1,12 +1,27 @@
+using ZGF.Fonts;
+
 namespace ZGF.ILSpy;
 
-/// <summary>Changing how the app is drawn: the scale of the whole interface, and the size of code and
-/// the aids drawn around it. The settings keep it with the rest of the screen.</summary>
+/// <summary>Changing how the app is drawn: the scale of the whole interface, and the font and size of
+/// code and the aids drawn around it. The settings keep it with the rest of the screen.</summary>
 public static class CodeDisplay
 {
     public static void SetDisplayOptions(UiState uiState, DisplayOptions options)
     {
         uiState.Display = options;
+    }
+
+    /// <summary>Draws code in <paramref name="font"/>, or in the bundled font when it is null.</summary>
+    public static void SetCodeFont(UiState uiState, CodeFont? font)
+    {
+        var chosen = uiState.Display with { Font = font };
+        SetDisplayOptions(uiState, chosen);
+    }
+
+    /// <summary>Offers the installed fonts of <paramref name="families"/> that code can be drawn in.</summary>
+    public static void KeepInstalledFonts(UiState uiState, IReadOnlyList<SystemFontFamily> families)
+    {
+        uiState.CodeFonts.Keep(families);
     }
 
     /// <summary>Draws the whole interface at <paramref name="scale"/>, or the offered scale nearest it.</summary>

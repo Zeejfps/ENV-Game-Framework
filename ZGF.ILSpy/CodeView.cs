@@ -242,7 +242,7 @@ public static class CodeViewWidget
         var palette = ui.State.CodeViewPalette;
         var shown = display ?? Plain;
         var fontSize = shown.FontSizeIn(theme);
-        var cell = ui.MeasureCell(fontSize, family: MonoFonts.Regular);
+        var cell = ui.MeasureCell(fontSize, family: MonoFonts.Code);
         var advance = cell.Advance;
         var rowHeight = RowHeightFor(theme, fontSize, cell);
         state.RowHeight = rowHeight;

@@ -53,8 +53,8 @@ public sealed class CodeViewTooltipTests
         Assert.True(view.Frames.Drew(Context));
         var summary = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Says ");
         var code = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Bye");
-        Assert.NotEqual(MonoFonts.Regular, summary.Inputs.Style.FontFamily.Value);
-        Assert.Equal(MonoFonts.Regular, code.Inputs.Style.FontFamily.Value);
+        Assert.NotEqual(MonoFonts.Code, summary.Inputs.Style.FontFamily.Value);
+        Assert.Equal(MonoFonts.Code, code.Inputs.Style.FontFamily.Value);
     }
 
     [Fact]

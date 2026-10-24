@@ -116,7 +116,7 @@ internal sealed class CodeViewFrame
             p.FillRect(new UiRect(chipLeft - Advance / 2, cellTop, (chipText.Length + 1) * Advance, CellHeight),
                 fold == HoverChip ? Palette.FoldChipHovered : Palette.FoldChip, ChipRadius);
             p.GlyphRun(new PointF(chipLeft, cellTop), Cells(chipText, 0, chipText.Length), Advance, fold == HoverChip ? GutterHover : Palette.GutterText,
-                FontSize, family: MonoFonts.Regular);
+                FontSize, family: MonoFonts.Code);
         }
 
         if (endVisible > firstVisible)
@@ -132,7 +132,7 @@ internal sealed class CodeViewFrame
                 if (end <= start) continue;
                 var cells = Cells(text, start, end);
                 p.GlyphRun(new PointF(x0 + start * Advance, cellTop), cells, Advance, error ? ErrorText : Palette[span.Kind],
-                    FontSize, family: MonoFonts.Regular, underline: index == UnderlineLine && s == UnderlineSpan);
+                    FontSize, family: MonoFonts.Code, underline: index == UnderlineLine && s == UnderlineSpan);
             }
         }
 
@@ -158,7 +158,7 @@ internal sealed class CodeViewFrame
         var number = Number(index + 1);
         var color = index == CurrentLine ? GutterHover : Palette.GutterText;
         var x = left + GutterPaddingLeft + (Digits - number.Length) * Advance;
-        p.GlyphRun(new PointF(x, cellTop), number, Advance, color, FontSize, family: MonoFonts.Regular);
+        p.GlyphRun(new PointF(x, cellTop), number, Advance, color, FontSize, family: MonoFonts.Code);
     }
 
     private void FillBrackets(UiPainter p, float x0, float left, UiRect row, int index, BracketPair brackets)

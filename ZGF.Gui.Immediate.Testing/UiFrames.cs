@@ -54,6 +54,12 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     public TestClipboard Clipboard { get; } = new();
     public TestFilePicker FilePicker { get; } = new();
 
+    /// <summary>What <see cref="Ui.ListSystemFonts"/> lists, answered once the frame that asked is drawn.</summary>
+    public TestSystemFonts SystemFonts { get; } = new();
+
+    /// <summary>The fonts the app registered with <see cref="Ui.RegisterFont"/>, in order.</summary>
+    public List<FontFace> RegisteredFonts { get; } = new();
+
     /// <summary>The folders the app asked to show in the OS file manager, in order.</summary>
     public List<string> OpenedFolders { get; } = new();
     public RecordingCanvas Canvas => _canvas;
@@ -342,6 +348,17 @@ public sealed class UiFrames<TState> where TState : class, IUiState
             _pending.DismissPopups();
         if (_ui.HasFoldersToOpen)
             OpenedFolders.AddRange(_ui.TakeFoldersToOpen());
+        if (_ui.HasFontsToRegister)
+            RegisteredFonts.AddRange(_ui.TakeFontsToRegister());
+        if (_ui.HasFontListings)
+            AnswerFontListings();
+    }
+
+    private void AnswerFontListings()
+    {
+        var families = SystemFonts.ListFamilies();
+        foreach (var onListed in _ui.TakeFontListings())
+            onListed(families);
     }
 
     private UiFrames<TState> Click(UiRect rect, Action<Ui<TState>> body, PointerButton button, KeyModifiers modifiers = KeyModifiers.None) =>

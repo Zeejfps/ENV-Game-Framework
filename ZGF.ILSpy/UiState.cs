@@ -112,6 +112,12 @@ public sealed class UiState : IUiState
     /// <summary>Set while the user is asked whether to put every display option back to its default.</summary>
     public bool ConfirmingDisplayReset;
 
+    /// <summary>The fonts the display options offer to draw code in.</summary>
+    public CodeFontChoices CodeFonts { get; } = new();
+
+    /// <summary>The font code was last drawn in.</summary>
+    public ShownCodeFont ShownCodeFont { get; } = new();
+
     /// <summary>What the settings last kept of the screen.</summary>
     public KeptView KeptView { get; } = new();
 

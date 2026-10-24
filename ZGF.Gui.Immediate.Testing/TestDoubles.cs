@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Fonts;
 using ZGF.Gui.Testing;
 
 namespace ZGF.Gui.Immediate.Testing;
@@ -32,6 +33,14 @@ public sealed class TestFilePicker : IFilePicker
         if (Answer != null)
             onPicked(Answer);
     }
+}
+
+/// <summary>Lists <see cref="Families"/> as the installed fonts.</summary>
+public sealed class TestSystemFonts : ISystemFonts
+{
+    public List<SystemFontFamily> Families { get; } = new();
+
+    public IReadOnlyList<SystemFontFamily> ListFamilies() => Families.ToArray();
 }
 
 /// <summary>Gives every popup a recording canvas of its own, as windows would, inside a screen

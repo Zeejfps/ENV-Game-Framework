@@ -3,13 +3,15 @@ using ZGF.Gui.Immediate;
 namespace ZGF.ILSpy;
 
 /// <summary>How the app is drawn: the scale of the whole interface, 1 for 100%; and how the documents
-/// draw code: its font size, null for the theme's, and the aids drawn around it.</summary>
+/// draw code: its font, null for the bundled one, its size, null for the theme's, and the aids drawn
+/// around it.</summary>
 public sealed record DisplayOptions(
     float? FontSize = null,
     bool ShowLineNumbers = true,
     bool HighlightCurrentLine = false,
     bool HighlightMatchingBrackets = true,
-    float UiScale = 1f)
+    float UiScale = 1f,
+    CodeFont? Font = null)
 {
     public const float MinFontSize = 8f;
     public const float MaxFontSize = 32f;

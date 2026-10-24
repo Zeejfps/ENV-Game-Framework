@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Fonts;
 using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -180,7 +181,8 @@ public sealed class DisplayOptionsTests
     {
         using var temp = new TempDir();
         var app = new AppDriver(settings: temp.Settings());
-        var options = new DisplayOptions(FontSize: 20f, ShowLineNumbers: false, HighlightCurrentLine: true);
+        var font = new CodeFont("Test Mono", temp.Write("mono.ttf", FontBytes), 0);
+        var options = new DisplayOptions(FontSize: 20f, ShowLineNumbers: false, HighlightCurrentLine: true, Font: font);
 
         SetDisplayOptions(app.Ui, options);
         app.Run();
@@ -302,6 +304,81 @@ public sealed class DisplayOptionsTests
         app.Frames.Key(KeyboardKey.Equals, KeyModifiers.Control).Frame();
 
         Assert.Equal(size + 1f, app.Ui.Display.FontSize);
+    }
+
+    private static readonly byte[] FontBytes = [1, 2, 3, 4];
+
+    private static SystemFontFamily Family(string name, string path, bool monospaced = true)
+    {
+        var file = new SystemFontFile(path, 0);
+        var face = new SystemFontFace("Regular", file, 400, SystemFontFace.NormalStretch, SystemFontStyle.Normal, monospaced, false);
+        return new SystemFontFamily(name, [face]);
+    }
+
+    private static AppDriver OpenedWithFonts(params SystemFontFamily[] installed)
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        app.Frames.SystemFonts.Families.AddRange(installed);
+        OpenDisplayOptions(app.Ui);
+        app.Run(2);
+        return app;
+    }
+
+    [Fact]
+    public void The_font_picker_offers_the_installed_monospaced_fonts_after_the_bundled_one()
+    {
+        var app = OpenedWithFonts(Family("Consolas", "consola.ttf"), Family("Segoe UI", "segoeui.ttf", monospaced: false));
+
+        app.Click("JetBrains Mono").Frame();
+
+        Assert.True(app.Frames.Drew("Consolas"));
+        Assert.False(app.Frames.Drew("Segoe UI"));
+    }
+
+    [Fact]
+    public void A_picked_font_draws_code_from_its_file_until_the_bundled_one_is_picked_again()
+    {
+        using var temp = new TempDir();
+        var path = temp.Write("consola.ttf", FontBytes);
+        var app = OpenedWithFonts(Family("Consolas", path));
+
+        app.Click("JetBrains Mono").Frame();
+        app.Click("Consolas").Frame(2);
+
+        Assert.Equal(new CodeFont("Consolas", path, 0), app.Ui.Display.Font);
+        Assert.Equal(MonoFonts.Code, app.Frames.RegisteredFonts[^1].Family);
+        Assert.Equal(FontBytes, app.Frames.RegisteredFonts[^1].Data);
+        Assert.True(IsBold(app, "Font"));
+
+        app.Click("Consolas").Frame();
+        app.Click("JetBrains Mono").Frame(2);
+
+        Assert.Null(app.Ui.Display.Font);
+        Assert.NotEqual(FontBytes, app.Frames.RegisteredFonts[^1].Data);
+    }
+
+    [Fact]
+    public void A_chosen_font_whose_file_is_gone_gives_way_to_the_bundled_one()
+    {
+        using var temp = new TempDir();
+        var app = AppDriver.Opened(width: 1600f);
+
+        SetCodeFont(app.Ui, new CodeFont("Gone Mono", temp.PathOf("gone.ttf"), 0));
+        app.Run(2);
+
+        Assert.Null(app.Ui.Display.Font);
+    }
+
+    [Fact]
+    public void The_preview_draws_in_the_code_font_at_the_code_size()
+    {
+        var app = OpenedWithFonts();
+
+        app.ClickLast(LucideIcons.Plus).Frame();
+
+        var preview = app.Frames.Canvas.Texts.First(t => t.Inputs.Text.StartsWith("The quick brown fox"));
+        Assert.Equal(MonoFonts.Code, preview.Inputs.Style.FontFamily.Value);
+        Assert.Equal(app.Ui.Theme.MonoFontSize + 1f, preview.Inputs.Style.FontSize.Value);
     }
 
     private static bool IsBold(AppDriver app, string text) =>

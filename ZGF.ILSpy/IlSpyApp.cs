@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
+using static ZGF.ILSpy.CodeDisplay;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenSettings;
 
@@ -18,6 +19,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     private readonly AppState _appState;
     private readonly List<string> _startupAssemblies;
+    private readonly CodeFontFaces _codeFonts = new(LoadFont(MonoFonts.Code, MonoFontFile));
 
     internal IlSpyApp(
         AppState appState,
@@ -31,6 +33,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     protected override void OnStartup(ImmediateGuiAppHost<UiState> host)
     {
         LoadAndRegisterFonts(host);
+        RegisterChosenCodeFont(host);
         OpenStartupAssemblies();
         StartRedrawingOnAssemblyChanges(host);
         RestoreAnalyses(_appState);
@@ -40,7 +43,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     {
         StartFrame(ui.State, _appState);
         MainView.Render(ui, _appState);
-        FinishFrame(ui, _appState);
+        FinishFrame(ui, _appState, _codeFonts);
     }
 
     protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
@@ -51,19 +54,43 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     /// <summary>Does what comes after drawing a frame: keeps what the screen changed, runs what it asked of
     /// the app state, asks for another frame when there is more to show, saves the changed settings, and
-    /// has the window draw at the chosen scale from the next frame.</summary>
-    private static void FinishFrame(Ui<UiState> ui, AppState appState)
+    /// has the window draw at the chosen scale and code in the chosen font from the next frame.</summary>
+    private static void FinishFrame(Ui<UiState> ui, AppState appState, CodeFontFaces codeFonts)
     {
         KeepScreenChanges(ui.State, appState);
         RunAppCommandsAndRedraw(ui, appState);
         RequestUpdateIfViewCommandsPending(ui, appState);
         SaveChangedSettings(ui, appState);
         DrawAtChosenScale(ui);
+        DrawCodeInChosenFont(ui, codeFonts);
     }
 
     private static void DrawAtChosenScale(Ui<UiState> ui)
     {
         ui.Scale = ui.State.Display.UiScale;
+    }
+
+    private static void DrawCodeInChosenFont(Ui<UiState> ui, CodeFontFaces codeFonts)
+    {
+        var face = TakeCodeFontFace(ui.State, codeFonts);
+        if (face == null)
+            return;
+        ui.RegisterFont(face);
+    }
+
+    /// <summary>The face to draw code with when the chosen font changed since code was last drawn, else
+    /// null. A chosen font whose file cannot be read is given up for the bundled one.</summary>
+    private static FontFace? TakeCodeFontFace(UiState uiState, CodeFontFaces codeFonts)
+    {
+        var chosen = uiState.Display.Font;
+        if (!uiState.ShownCodeFont.TakeChange(chosen))
+            return null;
+        var face = codeFonts.FaceOf(chosen);
+        if (face != null)
+            return face;
+        SetCodeFont(uiState, null);
+        uiState.ShownCodeFont.TakeChange(null);
+        return codeFonts.Bundled;
     }
 
     /// <summary>Runs what the screen asked of the app state while it drew, and draws again to show it.</summary>
@@ -82,11 +109,21 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         ui.RequestUpdate();
     }
 
-    private static void LoadAndRegisterFonts(ImmediateGuiAppHost<UiState> host)
+    private void LoadAndRegisterFonts(ImmediateGuiAppHost<UiState> host)
     {
-        host.RegisterFont(LoadFont(MonoFonts.Regular, MonoFontFile));
+        host.RegisterFont(_codeFonts.Bundled);
         host.RegisterFont(LoadFont(TextFonts.Italic, ItalicFontFile));
         host.RegisterFont(LoadFont(LucideIcons.Family, LucideIcons.File));
+    }
+
+    /// <summary>Registers the chosen code font before the first frame, so code never shows in the
+    /// bundled one first.</summary>
+    private void RegisterChosenCodeFont(ImmediateGuiAppHost<UiState> host)
+    {
+        var face = TakeCodeFontFace(UiState, _codeFonts);
+        if (face == null)
+            return;
+        host.RegisterFont(face);
     }
 
     private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)
