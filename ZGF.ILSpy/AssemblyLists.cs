@@ -12,7 +12,8 @@ public static class AssemblyLists
     /// saved whole until they are all open.</summary>
     public static void RestoreActiveAssemblyList(AppState appState)
     {
-        OpenAssembliesAsReload(appState, ListExistingAssemblies(appState));
+        var existingAssemblies = ListExistingAssemblies(appState);
+        OpenAssembliesAsReload(appState, existingAssemblies);
     }
 
     /// <summary>The open list's assemblies whose files are still there.</summary>
