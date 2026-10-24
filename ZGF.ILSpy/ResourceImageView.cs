@@ -22,18 +22,19 @@ internal static class ResourceImageView
     public static void Render(Ui<UiState> ui, Workspace w, DocumentTab tab, ResourceImage image)
     {
         var theme = ui.Theme;
+        var view = ui.State.ViewOf(tab);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
-        Toolbar(ui, w, tab, image);
+        Toolbar(ui, w, tab, view.Picture, image);
         ui.Separator();
-        if (tab.ShowsSource)
+        if (view.Picture.ShowsSource)
         {
             DocumentsView.RenderCode(ui, w, tab);
             return;
         }
-        Picture(ui, tab, image);
+        Picture(ui, view, image);
     }
 
-    private static void Toolbar(Ui<UiState> ui, Workspace w, DocumentTab tab, ResourceImage image)
+    private static void Toolbar(Ui<UiState> ui, Workspace w, DocumentTab tab, PictureView picture, ResourceImage image)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -41,10 +42,10 @@ internal static class ResourceImageView
         {
             ui.Text(t.ResourceImageInfo(image.Format, image.Width, image.Height), new Box { Width = Sizing.Grow() }, color: theme.TextMuted,
                 overflow: TextOverflow.Ellipsis);
-            if (!tab.ShowsSource)
-                ZoomButtons(ui, tab.Zoom);
+            if (!picture.ShowsSource)
+                ZoomButtons(ui, picture.Zoom);
             if (tab.HasSource)
-                SourceButton(ui, tab);
+                SourceButton(ui, picture);
             if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: ExportIcon))
                 PickExport(ui, w, node);
         }
@@ -65,20 +66,20 @@ internal static class ResourceImageView
     }
 
     /// <summary>Switches to the markup while the picture shows, and back.</summary>
-    private static void SourceButton(Ui<UiState> ui, DocumentTab tab)
+    private static void SourceButton(Ui<UiState> ui, PictureView picture)
     {
         var t = ui.State.Strings;
-        var label = tab.ShowsSource ? t.ResourceShowPicture : t.ResourceShowSource;
-        var glyph = tab.ShowsSource ? LucideIcons.FileImage : LucideIcons.FileText;
+        var label = picture.ShowsSource ? t.ResourceShowPicture : t.ResourceShowSource;
+        var glyph = picture.ShowsSource ? LucideIcons.FileImage : LucideIcons.FileText;
         if (ui.Button(label, id: "source", icon: new UiIcon(glyph, LucideIcons.Family)))
-            tab.ToggleSource();
+            picture.ToggleSource();
     }
 
-    private static void Picture(Ui<UiState> ui, DocumentTab tab, ResourceImage image)
+    private static void Picture(Ui<UiState> ui, TabView view, ResourceImage image)
     {
         var theme = ui.Theme;
-        var scale = tab.Zoom.Scale;
-        Upload(ui, tab, image, scale);
+        var scale = view.Picture.Zoom.Scale;
+        Upload(ui, view.ImageId, image, scale);
         using (ui.Scroll("image", ScrollAxes.Both, new Box { Height = Sizing.Grow(), Padding = theme.ShellPaddingX }))
         {
             using (ui.Box(new Box
@@ -88,28 +89,28 @@ internal static class ResourceImageView
                 BorderColor = theme.Border,
                 BorderWidth = theme.BorderWidth,
             }))
-                ui.Image(tab.ImageId, image.Width * scale, image.Height * scale);
+                ui.Image(view.ImageId, image.Width * scale, image.Height * scale);
         }
     }
 
     /// <summary>Gives the canvas the picture when it changed, and a vector picture again, drawn
     /// sharp, when the zoom changed; a raster one is stretched instead.</summary>
-    private static void Upload(Ui<UiState> ui, DocumentTab tab, ResourceImage image, float scale)
+    private static void Upload(Ui<UiState> ui, string imageId, ResourceImage image, float scale)
     {
-        var uploaded = ui.GetState<Uploaded>(ui.GetId(tab.ImageId));
-        if (!NeedsUpload(ui, tab, uploaded, image, scale))
+        var uploaded = ui.GetState<Uploaded>(ui.GetId(imageId));
+        if (!NeedsUpload(ui, imageId, uploaded, image, scale))
             return;
         var drawn = image.DrawnAt(scale);
-        ui.SetImage(tab.ImageId, drawn.Width, drawn.Height, drawn.Rgba);
+        ui.SetImage(imageId, drawn.Width, drawn.Height, drawn.Rgba);
         uploaded.Image = image;
         uploaded.Scale = scale;
     }
 
-    private static bool NeedsUpload(Ui<UiState> ui, DocumentTab tab, Uploaded uploaded, ResourceImage image, float scale)
+    private static bool NeedsUpload(Ui<UiState> ui, string imageId, Uploaded uploaded, ResourceImage image, float scale)
     {
         if (!ReferenceEquals(uploaded.Image, image))
             return true;
-        if (!ui.HasImage(tab.ImageId))
+        if (!ui.HasImage(imageId))
             return true;
         return image.IsVector && uploaded.Scale != scale;
     }

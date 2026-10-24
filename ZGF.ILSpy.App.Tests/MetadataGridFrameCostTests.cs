@@ -20,7 +20,7 @@ public sealed class MetadataGridFrameCostTests(ITestOutputHelper output)
         var grid = OpenTable("TypeRef");
         var state = new MetadataGridState();
         var flags = new MetadataFilters(null);
-        var frames = new UiFrames(width: 1200f, height: 300f, body: ui => Render(ui, grid, state, flags)) { FrameTime = 1f / 60f };
+        var frames = new UiFrames(width: 1200f, height: 300f, body: ui => Render(ui, grid, state, flags), state: Screens.Blank()) { FrameTime = 1f / 60f };
         frames.Frame();
         state.Reveal(1);
         frames.MovePointer(200f, 120f);

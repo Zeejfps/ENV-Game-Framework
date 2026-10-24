@@ -42,7 +42,7 @@ public static class MainView
         }
         DockSpace(ui, w);
         w.SyncActiveTab();
-        RemoveReleasedImages(ui, w);
+        RemoveReleasedImages(ui);
     }
 
     private static void UpdateSearch(Ui<UiState> ui, Workspace w)
@@ -112,9 +112,9 @@ public static class MainView
         DocumentsView.Render(ui, w, tab);
     }
 
-    private static void RemoveReleasedImages(Ui<UiState> ui, Workspace w)
+    private static void RemoveReleasedImages(Ui<UiState> ui)
     {
-        foreach (var image in w.Tabs.TakeReleasedImages())
+        foreach (var image in ui.State.TakeReleasedImages())
             ui.RemoveImage(image);
     }
 }

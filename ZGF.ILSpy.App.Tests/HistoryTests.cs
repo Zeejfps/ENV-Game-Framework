@@ -15,10 +15,12 @@ public sealed class HistoryTests
 
     private static CodeViewPosition ScrollTo(AppDriver app, int topLine, TextPosition anchor, TextPosition caret)
     {
-        app.Workspace.Tabs.Active!.View.Restore(new CodeViewPosition(topLine, 0f, anchor, caret));
+        CodeOf(app, app.Workspace.Tabs.Active!).Restore(new CodeViewPosition(topLine, 0f, anchor, caret));
         app.Run(4);
-        return app.Workspace.Tabs.Active!.View.Position;
+        return CodeOf(app, app.Workspace.Tabs.Active!).Position;
     }
+
+    private static CodeViewState CodeOf(AppDriver app, DocumentTab tab) => app.Ui.ViewOf(tab).Code;
 
     [Fact]
     public void Going_back_and_forward_returns_each_place_to_where_it_was_left()
@@ -32,7 +34,7 @@ public sealed class HistoryTests
         app.Workspace.GoBack();
         app.Settle(4);
         var back = app.Workspace.Tabs.Active!.Node!.Text;
-        var backPosition = app.Workspace.Tabs.Active!.View.Position;
+        var backPosition = CodeOf(app, app.Workspace.Tabs.Active!).Position;
         app.Workspace.GoForward();
         app.Settle(4);
         var forward = app.Workspace.Tabs.Active!;
@@ -41,7 +43,7 @@ public sealed class HistoryTests
         Assert.Equal("Outline", back);
         Assert.Equal(outline, backPosition);
         Assert.Equal("Greeter", forward.Node!.Text);
-        Assert.Equal(greeter, forward.View.Position);
+        Assert.Equal(greeter, CodeOf(app, forward).Position);
     }
 
     [Fact]
@@ -62,7 +64,7 @@ public sealed class HistoryTests
 
         Assert.StartsWith("First()", followed);
         Assert.Equal("Outline", tab.Node!.Text);
-        Assert.Equal(before, tab.View.Position);
+        Assert.Equal(before, CodeOf(app, tab).Position);
     }
 
     [Fact]
@@ -81,8 +83,8 @@ public sealed class HistoryTests
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(DecompilationLanguage.IL, tab.Language);
-        Assert.False(tab.View.HasSelection);
-        Assert.Equal(0, tab.View.Position.TopLine);
+        Assert.False(CodeOf(app, tab).HasSelection);
+        Assert.Equal(0, CodeOf(app, tab).Position.TopLine);
     }
 
     [Fact]

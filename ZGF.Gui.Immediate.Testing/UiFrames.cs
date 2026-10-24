@@ -11,7 +11,7 @@ namespace ZGF.Gui.Immediate.Testing;
 /// <see cref="Width"/> by <see cref="Height"/>. Input queued between frames arrives in the next one.
 /// Popups draw over the window unless a <see cref="TestPopupHost"/> is given. The helpers that take
 /// no body record <see cref="Body"/>.</summary>
-public sealed class UiFrames<TState> where TState : class, IUiState, new()
+public sealed class UiFrames<TState> where TState : class, IUiState
 {
     private readonly RecordingCanvas _canvas;
     private readonly TestPopupHost? _popups;
@@ -19,9 +19,11 @@ public sealed class UiFrames<TState> where TState : class, IUiState, new()
     private UiInput _frame = new();
     private UiInput _pending = new();
 
+    /// <param name="state">What every frame's <see cref="Ui{T}"/> carries; when null, a new one made by
+    /// <typeparamref name="TState"/>'s parameterless constructor.</param>
     public UiFrames(ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
-        Action<Ui<TState>>? body = null)
-        : this(CreateUi, measurer, popups, width, height)
+        Action<Ui<TState>>? body = null, TState? state = null)
+        : this(CreateUiCarrying(state), measurer, popups, width, height)
     {
         Body = body;
     }
@@ -47,9 +49,10 @@ public sealed class UiFrames<TState> where TState : class, IUiState, new()
         return frames;
     }
 
-    private static Ui<TState> CreateUi(ICanvas canvas, IClipboard clipboard, IPopupHost? popups)
+    private static Func<ICanvas, IClipboard, IPopupHost?, Ui<TState>> CreateUiCarrying(TState? state)
     {
-        return new Ui<TState>(new TState(), canvas, clipboard, popups);
+        var carried = state ?? Activator.CreateInstance<TState>();
+        return (canvas, clipboard, popups) => new Ui<TState>(carried, canvas, clipboard, popups);
     }
 
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>

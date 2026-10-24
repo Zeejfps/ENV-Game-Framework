@@ -27,8 +27,8 @@ public sealed class SplitDocumentTests
         var d = app.Driver;
 
         app.Frames.MovePointer(250f, 400f).Frame().Wheel(-5).Frame(2);
-        Assert.True(left.View.ScrollY > 0f);
-        Assert.Equal(0f, right.View.ScrollY);
+        Assert.True(app.Ui.ViewOf(left).Code.ScrollY > 0f);
+        Assert.Equal(0f, app.Ui.ViewOf(right).Code.ScrollY);
 
         app.Frames.Click(750f, 400f).Frame();
         Assert.Same(right, d.Workspace.Tabs.Active);

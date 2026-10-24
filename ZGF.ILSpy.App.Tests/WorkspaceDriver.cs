@@ -82,9 +82,16 @@ internal static class TempSettings
     public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json"));
 }
 
-/// <summary>A <see cref="Workspace"/> whose posted actions queue up until the test pumps them, so a
-/// test decides what the user does before background results land. It speaks English unless its
-/// settings name a locale.</summary>
+internal static class Screens
+{
+    /// <summary>A screen over a workspace with nothing open, for drawing a widget alone.</summary>
+    public static UiState Blank() => new(new Workspace(new AppSettings { Locale = Locale.En }));
+}
+
+/// <summary>A <see cref="Workspace"/> and the screen over it, whose posted actions queue up until the
+/// test pumps them, so a test decides what the user does before background results land. A frame's
+/// steps around drawing run only when the test pumps or asks for <see cref="NextFrame"/>. It speaks
+/// English unless its settings name a locale.</summary>
 internal sealed class WorkspaceDriver
 {
     public const string FixturesNamespace = "ZGF.ILSpy.App.Tests.Fixtures";
@@ -96,6 +103,7 @@ internal sealed class WorkspaceDriver
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
         Workspace = new Workspace(settings);
+        Ui = new UiState(Workspace);
         Workspace.RestoreAnalyses();
     }
 
@@ -109,16 +117,30 @@ internal sealed class WorkspaceDriver
 
     public Workspace Workspace { get; }
 
+    /// <summary>The screen over <see cref="Workspace"/>.</summary>
+    public UiState Ui { get; }
+
     /// <summary>The time the driver's autosave goes by, in seconds.</summary>
     public double Now { get; set; }
 
     public static string FixturePath => typeof(Greeter).Assembly.Location;
 
+    /// <summary>Runs what was posted, then what a frame does around drawing, then the autosave.</summary>
     public void Pump()
     {
         _posted.Run();
-        Workspace.Tree.Sync(Workspace.Assemblies);
+        NextFrame();
         Workspace.SaveSettingsIfChanged(Now);
+    }
+
+    /// <summary>Does what a frame does before and after it draws: the screen takes what the features
+    /// asked of it and follows the tabs and the tree, then tells the tabs where their views stand and
+    /// hands over what the settings keep of it.</summary>
+    public void NextFrame()
+    {
+        Ui.StartFrame();
+        Workspace.Tree.Sync(Workspace.Assemblies);
+        Ui.FinishFrame();
     }
 
     /// <summary>Pumps until <paramref name="done"/>.</summary>
@@ -165,7 +187,7 @@ internal sealed class AppDriver
     public AppDriver(float width = 1000f, float height = 700f, AppSettings? settings = null)
     {
         Driver = new WorkspaceDriver(settings);
-        var app = new IlSpyApp(Workspace, new List<string>());
+        var app = new IlSpyApp(Workspace, Ui, new List<string>());
         Frames = UiFrames.Running(app, width: width, height: height);
         Frames.FrameTime = 1f / 60f;
         Frames.BeforeFrame = PumpAtFrameTime;
@@ -187,6 +209,9 @@ internal sealed class AppDriver
 
     public WorkspaceDriver Driver { get; }
     public Workspace Workspace => Driver.Workspace;
+
+    /// <summary>The screen the app draws.</summary>
+    public UiState Ui => Driver.Ui;
     public UiFrames Frames { get; }
     public UiTheme Theme => AppThemes.For(Workspace.Theme).Ui;
 

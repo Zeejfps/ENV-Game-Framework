@@ -84,7 +84,7 @@ public sealed class BookmarkTests : IDisposable
         app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
-        Assert.Equal(line, tab.View.FlashLine);
+        Assert.Equal(line, app.Ui.ViewOf(tab).Code.FlashLine);
         Assert.Equal("Outline", d.Workspace.History.Current!.Value.Place.Text);
     }
 
@@ -196,7 +196,7 @@ public sealed class BookmarkTests : IDisposable
         app.Settle(4);
 
         Assert.Equal("Outline", tab.Node!.Text);
-        Assert.Equal(line, tab.View.FlashLine);
+        Assert.Equal(line, app.Ui.ViewOf(tab).Code.FlashLine);
     }
 
     private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None) =>
@@ -362,11 +362,12 @@ public sealed class BookmarkTests : IDisposable
     [Fact]
     public void The_bookmark_column_widths_are_saved_with_the_settings()
     {
-        var w = new WorkspaceDriver(_temp.Settings()).Workspace;
-        w.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
-        w.SaveSettings();
+        var d = new WorkspaceDriver(_temp.Settings());
+        d.Ui.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
+        d.NextFrame();
+        d.Workspace.SaveSettings();
 
-        var restored = new WorkspaceDriver(_temp.Settings()).Workspace.BookmarkColumns.Weights;
+        var restored = new WorkspaceDriver(_temp.Settings()).Ui.BookmarkColumns.Weights;
 
         Assert.Equal([1f, 1f, 4f, 1f], restored);
     }

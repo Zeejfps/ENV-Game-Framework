@@ -31,14 +31,16 @@ public sealed class AutosaveTests : IDisposable
         var app = new AppDriver(settings: _temp.Settings());
         app.Run(2);
 
-        Change(app.Workspace, field);
+        Change(app, field);
         app.Run();
 
         Assert.True(IsSaved(_temp.Settings(), field), field);
     }
 
-    private static void Change(Workspace w, string field)
+    private static void Change(AppDriver app, string field)
     {
+        var w = app.Workspace;
+        var screen = app.Ui;
         switch (field)
         {
             case nameof(AppSettings.Theme):
@@ -60,16 +62,16 @@ public sealed class AutosaveTests : IDisposable
                 w.Search.Kinds = SearchKinds.Types;
                 break;
             case nameof(AppSettings.FoldedOptionGroups):
-                w.FoldedOptionGroups.Fold(["Other"]);
+                screen.FoldedOptionGroups.Fold(["Other"]);
                 break;
             case nameof(AppSettings.BookmarkColumns):
-                w.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
+                screen.BookmarkColumns.Restore([1f, 1f, 4f, 1f]);
                 break;
             case nameof(AppSettings.SearchColumns):
-                w.SearchColumns.Restore([1f, 4f, 1f]);
+                screen.SearchColumns.Restore([1f, 4f, 1f]);
                 break;
             case nameof(AppSettings.ExportColumns):
-                w.ExportColumns.Restore([1f, 4f, 1f]);
+                screen.ExportColumns.Restore([1f, 4f, 1f]);
                 break;
             case nameof(AppSettings.ExportWindow):
                 w.ExportSetup.Window = MovedExportWindow;

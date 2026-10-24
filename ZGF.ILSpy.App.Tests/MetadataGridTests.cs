@@ -20,11 +20,13 @@ public sealed class MetadataGridTests
         return (app, tab, tab.Grid!);
     }
 
+    private static MetadataGridState GridOf(AppDriver app, DocumentTab tab) => app.Ui.ViewOf(tab).Grid;
+
     private static (AppDriver App, DocumentTab Tab, MetadataGrid Grid, int Row) ShowGreeterRow()
     {
         var (app, tab, grid) = ShowTable("TypeDef", frames: 0);
         var row = grid.RowNamed("Greeter");
-        tab.GridView.Reveal(row);
+        GridOf(app, tab).Reveal(row);
         app.Run(3);
         return (app, tab, grid, row);
     }
@@ -62,7 +64,7 @@ public sealed class MetadataGridTests
         var grid = tab.Grid!;
         var methodList = grid.Text(0, grid.Column("MethodList"));
 
-        tab.GridView.Scroll.X = 10000f;
+        GridOf(app, tab).Scroll.X = 10000f;
         app.Run(3);
 
         var header = app.TextRect("MethodList");
@@ -94,14 +96,14 @@ public sealed class MetadataGridTests
 
         var typeRefs = tab.Grid!;
         Assert.Same(Table(app, "TypeRef"), tab.Node);
-        Assert.Equal("Object", typeRefs.Text(tab.GridView.Selected, typeRefs.Column("Name")));
+        Assert.Equal("Object", typeRefs.Text(GridOf(app, tab).Selected, typeRefs.Column("Name")));
         app.TextRect("Object");
 
         app.Workspace.GoBack();
         app.Settle(3);
 
         Assert.Same(Table(app, "TypeDef"), tab.Node);
-        Assert.Equal(row, tab.GridView.Selected);
+        Assert.Equal(row, GridOf(app, tab).Selected);
     }
 
     [Fact]
@@ -169,9 +171,9 @@ public sealed class MetadataGridTests
         var name = grid.Column("Name");
 
         app.Click("Name");
-        var ascending = tab.GridView.Order!.Select(r => grid.Text(r, name)).ToList();
+        var ascending = GridOf(app, tab).Order!.Select(r => grid.Text(r, name)).ToList();
         app.Click("Name");
-        var descending = tab.GridView.Order!.Select(r => grid.Text(r, name)).ToList();
+        var descending = GridOf(app, tab).Order!.Select(r => grid.Text(r, name)).ToList();
 
         Assert.Equal(ascending.Order(StringComparer.CurrentCulture), ascending);
         Assert.Equal(descending.OrderDescending(StringComparer.CurrentCulture), descending);
@@ -209,12 +211,12 @@ public sealed class MetadataGridTests
 
         app.Frames.Click(FunnelOf(app, "Name"));
         app.Frames.Type("greet").Frame(2);
-        var filtered = tab.GridView.View.Select(r => grid.Text(r, name)).ToList();
+        var filtered = GridOf(app, tab).View.Select(r => grid.Text(r, name)).ToList();
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Contains("Greeter", filtered);
         Assert.All(filtered, n => Assert.Contains("greet", n, StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(grid.RowCount, tab.GridView.View.Length);
+        Assert.Equal(grid.RowCount, GridOf(app, tab).View.Length);
     }
 
     [Fact]
@@ -227,8 +229,8 @@ public sealed class MetadataGridTests
         app.ClickMenuItem("Public (0001)").Frame(2);
 
         var visibility = System.Reflection.TypeAttributes.VisibilityMask;
-        Assert.NotEmpty(tab.GridView.View);
-        Assert.All(tab.GridView.View, r =>
+        Assert.NotEmpty(GridOf(app, tab).View);
+        Assert.All(GridOf(app, tab).View, r =>
             Assert.Equal(1u, Convert.ToUInt32(grid.Text(r, attributes), 16) & (uint)visibility));
         app.TextRect("Visibility = Public");
 
@@ -264,7 +266,7 @@ public sealed class MetadataGridTests
         app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
 
         Assert.Equal("Gree", app.Frames.Clipboard.Text);
-        Assert.Equal(row, tab.GridView.Selected);
+        Assert.Equal(row, GridOf(app, tab).Selected);
     }
 
     [Fact]
@@ -321,10 +323,10 @@ public sealed class MetadataGridTests
         var kind = grid.Column("KindString");
         var options = Enumerable.Range(0, grid.RowCount).Single(r => grid.Text(r, kind).StartsWith("Compilation Options"));
 
-        tab.GridView.Reveal(options);
+        GridOf(app, tab).Reveal(options);
         app.Run(4);
 
-        Assert.Equal(options, tab.GridView.Selected);
+        Assert.Equal(options, GridOf(app, tab).Selected);
         Assert.True(app.TextRect("language").Y > TextBeside(app, grid.Text(options, kind), grid.Text(options, kind)).Y);
     }
 }

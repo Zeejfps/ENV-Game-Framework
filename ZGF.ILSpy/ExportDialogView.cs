@@ -144,7 +144,7 @@ internal static class ExportDialogView
     {
         var t = ui.State.Strings;
         var setup = w.ExportSetup;
-        var table = ui.Table("chosen", w.ExportColumns, setup.RowSelection);
+        var table = ui.Table("chosen", ui.State.ExportColumns, setup.RowSelection);
         table.Header([t.ExportAssemblyColumn, t.ExportVersionColumn, t.ExportProjectName]);
         var removeRequested = false;
         using (var rows = table.FitBody(chosen))

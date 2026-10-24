@@ -4,7 +4,7 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>What the settings are saved from: the versions of the open assemblies, the named lists, the bookmarks,
-/// the analyzer, the metadata filters, the layout, the folded option groups, the column widths and the export
+/// the analyzer, the metadata filters, the layout, what the screen handed over of its view state and the export
 /// window, and the preferences themselves.</summary>
 public readonly record struct SavedSources(
     int Assemblies,
@@ -13,10 +13,7 @@ public readonly record struct SavedSources(
     int Analyzer,
     int Filters,
     int Layout,
-    int FoldedOptionGroups,
-    int BookmarkColumns,
-    int SearchColumns,
-    int ExportColumns,
+    int View,
     int ExportWindow,
     AppThemeId Theme,
     DecompilationLanguage Language,

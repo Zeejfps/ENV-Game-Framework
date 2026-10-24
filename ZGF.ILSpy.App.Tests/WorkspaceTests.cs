@@ -170,11 +170,13 @@ public sealed class WorkspaceTests
         var document = tab.Document;
 
         d.Workspace.GoBack();
+        d.NextFrame();
 
+        var view = d.Ui.ViewOf(tab).Code;
         Assert.False(tab.IsBusy);
         Assert.Same(document, tab.Document);
-        Assert.NotNull(tab.View.PendingRestore);
-        Assert.Equal(CodeViewState.NoLine, tab.View.PendingReveal);
+        Assert.NotNull(view.PendingRestore);
+        Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
     }
 
     [Fact]
@@ -220,14 +222,17 @@ public sealed class WorkspaceTests
         var d = WorkspaceDriver.Opened();
         var tab = d.Workspace.Tabs.Active!;
 
+        var view = d.Ui.ViewOf(tab).Code;
+
         d.Workspace.Show(d.Node(WorkspaceDriver.FixturesNamespace));
-        Assert.Equal(CodeViewState.NoLine, tab.View.PendingReveal);
+        d.NextFrame();
+        Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
         d.Settle();
-        Assert.Equal(CodeViewState.NoLine, tab.View.PendingReveal);
+        Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
 
         d.Show(d.Fixture("Greeter"));
-        Assert.True(tab.View.PendingReveal >= 0);
-        Assert.Equal(tab.Document.FindDefinitionLine(tab.Node!), tab.View.PendingReveal);
+        Assert.True(view.PendingReveal >= 0);
+        Assert.Equal(tab.Document.FindDefinitionLine(tab.Node!), view.PendingReveal);
     }
 
     [Fact]

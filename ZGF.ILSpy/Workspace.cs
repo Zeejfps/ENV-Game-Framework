@@ -35,25 +35,6 @@ public sealed class Workspace
     /// <summary>The symbols being analyzed and what the analyses found.</summary>
     public AnalyzerTree Analyzer { get; }
 
-    /// <summary>The columns of the bookmarks panel: mark, name, location and module.</summary>
-    public TableColumns BookmarkColumns { get; } = new(
-        new TableColumn(Fixed: 28f, Controls: true),
-        new TableColumn(2f, 80f),
-        new TableColumn(3f, 80f),
-        new TableColumn(2f, 60f));
-
-    /// <summary>The columns of the export dialog's table: assembly, version and project name.</summary>
-    public TableColumns ExportColumns { get; } = new(
-        new TableColumn(3f, 120f),
-        new TableColumn(1f, 64f),
-        new TableColumn(3f, 120f));
-
-    /// <summary>The columns of the search results: name, location and assembly.</summary>
-    public TableColumns SearchColumns { get; } = new(
-        new TableColumn(3f, 120f),
-        new TableColumn(3f, 80f),
-        new TableColumn(2f, 60f));
-
     public Search Search { get; }
 
     /// <summary>The metadata grids' flags filters.</summary>
@@ -82,8 +63,12 @@ public sealed class Workspace
     /// <summary>How C# is decompiled.</summary>
     public DecompilerOptions DecompilerOptions { get; set; }
 
-    /// <summary>The decompiler options panel's folded groups.</summary>
-    public FoldedGroups FoldedOptionGroups { get; }
+    /// <summary>What the features ask of the view when none is on the stack, for the screen to take
+    /// in order before it draws next.</summary>
+    public Queue<ViewAsk> ViewAsks { get; } = new();
+
+    /// <summary>Counts each time the screen hands over a change to what the settings keep of it.</summary>
+    public int ViewSettingsChanges;
 
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget { get; set; }
@@ -136,7 +121,6 @@ public sealed class Workspace
         Theme = settings.Theme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
-        FoldedOptionGroups = new FoldedGroups(settings.FoldedOptionGroups);
         Locale = ChooseLocale(settings);
         ShowNonPublic = settings.ShowNonPublic;
         var first = AddTab();
@@ -153,9 +137,6 @@ public sealed class Workspace
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
-        BookmarkColumns.Restore(settings.BookmarkColumns);
-        SearchColumns.Restore(settings.SearchColumns);
-        ExportColumns.Restore(settings.ExportColumns);
         ExportSetup.RestoreWindow(settings.ExportWindow);
         Picker = new FrameworkPicker(() => Strings.For(Locale), ReportError);
         if (!placed)
@@ -197,7 +178,7 @@ public sealed class Workspace
 
     internal DocumentTab AddTab()
     {
-        var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError);
+        var tab = new DocumentTab(() => Strings.For(Locale), () => DecompilerOptions, ReportError, ViewAsks);
         Tabs.Add(tab);
         return tab;
     }

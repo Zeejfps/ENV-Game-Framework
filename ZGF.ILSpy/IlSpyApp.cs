@@ -1,6 +1,5 @@
 using ZGF.AppUtils;
 using ZGF.Gui.Immediate;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
@@ -11,7 +10,7 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     private readonly List<string> _commandLineAssemblies;
 
-    internal IlSpyApp(Workspace workspace, List<string> commandLineAssemblies) : base(workspace, new UiState())
+    internal IlSpyApp(Workspace workspace, UiState screen, List<string> commandLineAssemblies) : base(workspace, screen)
     {
         _commandLineAssemblies = commandLineAssemblies;
     }
@@ -20,7 +19,8 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
     {
         var settings = AppSettings.Load(commandLine.SettingsPath);
         var workspace = new Workspace(settings);
-        var app = new IlSpyApp(workspace, commandLine.AssemblyPaths);
+        var screen = new UiState(workspace);
+        var app = new IlSpyApp(workspace, screen, commandLine.AssemblyPaths);
         var windowConfig = settings.CreateWindowConfig();
         ImmediateGuiAppHost.Run(app, windowConfig, commandLine.RenderBackend);
     }
@@ -61,9 +61,10 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
 
     protected override void OnRender(Ui<UiState> ui, Workspace w)
     {
-        ApplyThemeAndLanguage(ui.State, w);
+        ui.State.StartFrame();
         w.Tree.Sync(w.Assemblies);
         MainView.Render(ui, w);
+        ui.State.FinishFrame();
         SaveSettingsIfChanged(ui, w);
     }
 
@@ -74,14 +75,5 @@ public sealed class IlSpyApp : ImmediateGuiApp<Workspace, UiState>
         var wait = w.SaveSettingsIfChanged(ui.RealTime);
         if (wait > 0)
             ui.RequestFrameIn(wait);
-    }
-
-    private static void ApplyThemeAndLanguage(UiState state, Workspace w)
-    {
-        var theme = AppThemes.For(w.Theme);
-        state.Theme = theme.Ui;
-        state.CodeViewPalette = theme.Code;
-        state.NodeIconPalette = theme.Icons;
-        state.Strings = Strings.For(w.Locale);
     }
 }

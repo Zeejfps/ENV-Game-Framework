@@ -6,7 +6,8 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>An open tab: where it points, the node found there, and its decompiled document — or
-/// for a metadata node its grid — which arrives from the background. Mutated on the UI thread only.</summary>
+/// for a metadata node its grid — which arrives from the background, then asks the view where to
+/// stand in it. Mutated on the UI thread only.</summary>
 public sealed class DocumentTab
 {
     private static int _nextId;
@@ -14,7 +15,9 @@ public sealed class DocumentTab
     private readonly Func<Strings> _strings;
     private readonly Func<DecompilerOptions> _options;
     private readonly Action<string, string> _reportError;
+    private readonly Queue<ViewAsk> _viewAsks;
     private CancellationTokenSource? _work;
+    private CodeViewPosition _viewPosition;
     private CodeViewPosition? _restore;
     private Bookmark? _target;
     private int _row = MetadataGridState.None;
@@ -23,11 +26,13 @@ public sealed class DocumentTab
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="options">How C# is decompiled now.</param>
     /// <param name="reportError">Tells the user that decompiling failed: a title and details.</param>
-    public DocumentTab(Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError)
+    /// <param name="viewAsks">Where the tab asks the view where to stand once what it shows arrives.</param>
+    public DocumentTab(Func<Strings> strings, Func<DecompilerOptions> options, Action<string, string> reportError, Queue<ViewAsk> viewAsks)
     {
         _strings = strings;
         _options = options;
         _reportError = reportError;
+        _viewAsks = viewAsks;
         Panel = $"document-{Id}";
     }
 
@@ -48,46 +53,41 @@ public sealed class DocumentTab
     /// <summary>The options <see cref="Document"/> was decompiled with.</summary>
     public DecompilerOptions Options { get; private set; } = DecompilerOptions.Default;
     public DecompiledDocument Document { get; private set; } = DecompiledDocument.Empty;
-    public CodeViewState View { get; } = new();
 
     /// <summary>The rows of a node that shows a grid, once read; shown instead of <see cref="Document"/>.</summary>
     public MetadataGrid? Grid { get; private set; }
 
-    public MetadataGridState GridView { get; } = new();
-
     /// <summary>The picture of a node that shows one, once decoded; shown instead of <see cref="Document"/>.</summary>
     public ResourceImage? Image { get; private set; }
-
-    /// <summary>The image this tab draws <see cref="Image"/> as, one per tab.</summary>
-    public string ImageId => $"{Panel}-image";
 
     /// <summary>Whether <see cref="Image"/> is stored as markup, such as SVG, which
     /// <see cref="Document"/> then holds.</summary>
     public bool HasSource { get; private set; }
 
-    /// <summary>Whether the tab shows the picture's markup instead of the picture.</summary>
-    public bool ShowsSource { get; private set; }
-
-    public ImageZoom Zoom { get; } = new();
-
-    /// <summary>Switches between the picture and its markup, when it has some.</summary>
-    public void ToggleSource()
-    {
-        if (!HasSource)
-            return;
-        ShowsSource = !ShowsSource;
-    }
-
     private void ForgetPicture()
     {
         Image = null;
         HasSource = false;
-        ShowsSource = false;
-        Zoom.Reset();
     }
 
-    /// <summary>Where the view of the shown node stands, or null while there is none.</summary>
-    public CodeViewPosition? Position => IsBusy || Node == null ? null : Grid != null ? GridView.Position : View.Position;
+    /// <summary>Where the view of the shown node stands, as the view last kept it, or null while there is none.</summary>
+    public CodeViewPosition? Position
+    {
+        get
+        {
+            if (IsBusy)
+                return null;
+            if (Node == null)
+                return null;
+            return _viewPosition;
+        }
+    }
+
+    /// <summary>Keeps where the view of what the tab shows stands, for <see cref="Position"/>.</summary>
+    public void KeepPosition(CodeViewPosition position)
+    {
+        _viewPosition = position;
+    }
 
     public bool IsBusy => _work != null;
     public string Title => Node != null ? NodeText.Name(Node) : _title ?? _strings().DocumentNewTab;
@@ -99,8 +99,8 @@ public sealed class DocumentTab
     public int Version { get; private set; }
 
     /// <summary>Starts decompiling <paramref name="node"/>, or reading its grid, cancelling what was
-    /// in flight, and shows a placeholder until it is done, then returns the view to
-    /// <paramref name="position"/>, else reveals the line <paramref name="target"/> marks or the grid's
+    /// in flight, and shows a placeholder until it is done, then asks the view to return to
+    /// <paramref name="position"/>, else to reveal the line <paramref name="target"/> marks or the grid's
     /// <paramref name="row"/>, else the node's definition. When the tab already shows
     /// <paramref name="node"/> in <paramref name="language"/> with the current options, only does the latter.</summary>
     public void Show(BrowseNode node, DecompilationLanguage language, CodeViewPosition? position = null, Bookmark? target = null,
@@ -203,22 +203,50 @@ public sealed class DocumentTab
         _work = null;
     }
 
+    /// <summary>Asks the view to return to <paramref name="position"/>, else to reveal the grid's
+    /// <paramref name="row"/> or the line <paramref name="target"/> marks, else the node's definition.</summary>
     private void Arrive(CodeViewPosition? position, Bookmark? target, int row)
     {
-        if (Grid != null)
+        if (position != null)
         {
-            if (position is { } at)
-                GridView.Restore(at);
-            else if (row >= 0)
-                GridView.Reveal(row);
+            _viewAsks.Enqueue(new ViewAsk.RestoreView(this, position.Value));
             return;
         }
-        if (position is { } p)
-            View.Restore(p);
-        else if (Node != null && target?.FindLine(Document, Node.Path) is >= 0 and var marked)
-            View.RevealLine(marked);
-        else if (Node != null && Document.FindDefinitionLine(Node) is var line and >= 0)
-            View.RevealLine(line);
+        if (Grid != null)
+        {
+            RevealRow(row);
+            return;
+        }
+        var line = FindLineToReveal(target);
+        if (line < 0)
+            return;
+        _viewAsks.Enqueue(new ViewAsk.RevealLine(this, line));
+    }
+
+    private void RevealRow(int row)
+    {
+        if (row < 0)
+            return;
+        _viewAsks.Enqueue(new ViewAsk.RevealRow(this, row));
+    }
+
+    /// <summary>The line <paramref name="target"/> marks, else the node's definition, or -1.</summary>
+    private int FindLineToReveal(Bookmark? target)
+    {
+        var node = Node;
+        if (node == null)
+            return -1;
+        var marked = FindMarkedLine(target, node);
+        if (marked >= 0)
+            return marked;
+        return Document.FindDefinitionLine(node);
+    }
+
+    private int FindMarkedLine(Bookmark? target, BrowseNode node)
+    {
+        if (target == null)
+            return -1;
+        return target.FindLine(Document, node.Path);
     }
 
     private void Complete(CancellationTokenSource work, BrowseNode node, Task<NodeContent> task)
@@ -234,7 +262,6 @@ public sealed class DocumentTab
         {
             case GridContent { Grid: var grid }:
                 Grid = grid;
-                GridView.Show(grid);
                 break;
             case ImageContent { Image: var image, Source: var source }:
                 ShowPicture(image, source);

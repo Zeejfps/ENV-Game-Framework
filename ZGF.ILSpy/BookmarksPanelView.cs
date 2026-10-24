@@ -38,7 +38,7 @@ internal static class BookmarksPanelView
         }
 
         bookmarks.Selection.ShowIn(bookmarks.Items);
-        var table = ui.Table(ListId, w.BookmarkColumns, bookmarks.Cells);
+        var table = ui.Table(ListId, ui.State.BookmarkColumns, bookmarks.Cells);
         table.Header(Headers(t));
         var removed = List(ui, w, table);
         Menu(ui, w);

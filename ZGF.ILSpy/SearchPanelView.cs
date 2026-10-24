@@ -183,7 +183,7 @@ internal static class SearchPanelView
         var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
         var sort = new TableSort(ColumnOf(search.Sort), SortIcon(search));
         search.Selection.ShowIn(search.Rows);
-        var table = ui.Table(ResultsId, w.SearchColumns, search.Selection.Rows);
+        var table = ui.Table(ResultsId, ui.State.SearchColumns, search.Selection.Rows);
         var clicked = table.Header(headers, sort);
         if (clicked >= 0)
             search.SortBy(SortOf(clicked));

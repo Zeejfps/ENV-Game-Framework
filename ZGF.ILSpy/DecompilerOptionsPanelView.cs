@@ -21,13 +21,14 @@ internal static class DecompilerOptionsPanelView
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var options = w.DecompilerOptions;
+        var folded = ui.State.FoldedOptionGroups;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         using (ui.PaneToolbar())
         {
-            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, !AllFolded(w)))
-                w.FoldedOptionGroups.Fold(Sections.Select(static s => s.Key));
-            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, w.FoldedOptionGroups.Count > 0))
-                w.FoldedOptionGroups.UnfoldAll();
+            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, !AllFolded(folded)))
+                folded.Fold(Sections.Select(static s => s.Key));
+            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, folded.Count > 0))
+                folded.UnfoldAll();
             ui.Separator(theme.IconSize);
             if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
                 w.ResetDecompilerToggles();
@@ -43,16 +44,16 @@ internal static class DecompilerOptionsPanelView
 
         var rowHeight = theme.RowHeight;
         string? flipped = null;
-        using (var list = ui.VirtualScroll("decompiler-options", RowCount(w), rowHeight))
+        using (var list = ui.VirtualScroll("decompiler-options", RowCount(folded), rowHeight))
         {
             for (var i = list.First; i < list.End; i++)
             {
-                var (section, toggle) = RowAt(w, i);
+                var (section, toggle) = RowAt(folded, i);
                 using (ui.Id(i))
                 {
                     if (toggle is null)
                     {
-                        if (Header(ui, w, section, options, rowHeight, tooNew))
+                        if (Header(ui, w, folded, section, options, rowHeight, tooNew))
                             flipped = section.Key;
                     }
                     else
@@ -63,17 +64,18 @@ internal static class DecompilerOptionsPanelView
             }
         }
         if (flipped != null)
-            w.FoldedOptionGroups.Flip(flipped);
+            folded.Flip(flipped);
     }
 
     /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,
     /// showing a square when only some are on. Returns true when the row besides the checkbox was
     /// clicked to fold or unfold.</summary>
-    private static bool Header(Ui<UiState> ui, Workspace w, Section section, DecompilerOptions options, float rowHeight, string? tooNew)
+    private static bool Header(Ui<UiState> ui, Workspace w, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
+        string? tooNew)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var folded = w.FoldedOptionGroups.Contains(section.Key);
+        var isFolded = folded.Contains(section.Key);
         var allowed = IsAllowed(section, options);
         var item = ui.Interact(section.Key);
         using (ui.Row(item.Id, new Box
@@ -86,7 +88,7 @@ internal static class DecompilerOptionsPanelView
             Background = item.Hovered ? theme.RowHover : 0u,
         }))
         {
-            ui.Icon(new UiIcon(folded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
+            ui.Icon(new UiIcon(isFolded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
             var all = State(section, options);
             if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow(), bold: Changed(section, options)))
                 w.SetDecompilerToggles(section.Toggles, all == true);
@@ -153,30 +155,30 @@ internal static class DecompilerOptionsPanelView
         _ => t.DecompilerOptionsOther,
     };
 
-    private static bool AllFolded(Workspace w)
+    private static bool AllFolded(FoldedGroups folded)
     {
         foreach (var section in Sections)
         {
-            if (!w.FoldedOptionGroups.Contains(section.Key)) return false;
+            if (!folded.Contains(section.Key)) return false;
         }
         return true;
     }
 
-    private static int RowCount(Workspace w)
+    private static int RowCount(FoldedGroups folded)
     {
         var count = 0;
         foreach (var section in Sections)
-            count += 1 + (w.FoldedOptionGroups.Contains(section.Key) ? 0 : section.Toggles.Length);
+            count += 1 + (folded.Contains(section.Key) ? 0 : section.Toggles.Length);
         return count;
     }
 
     /// <summary>The section a row is in, and the toggle it shows, or null for the section's header.</summary>
-    private static (Section Section, DecompilerToggle? Toggle) RowAt(Workspace w, int row)
+    private static (Section Section, DecompilerToggle? Toggle) RowAt(FoldedGroups folded, int row)
     {
         foreach (var section in Sections)
         {
             if (row == 0) return (section, null);
-            var shown = w.FoldedOptionGroups.Contains(section.Key) ? 0 : section.Toggles.Length;
+            var shown = folded.Contains(section.Key) ? 0 : section.Toggles.Length;
             if (row <= shown) return (section, section.Toggles[row - 1]);
             row -= 1 + shown;
         }

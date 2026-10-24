@@ -31,7 +31,7 @@ internal sealed class CodeViewDriver
     public CodeViewDriver(DecompiledDocument document, float height = 300f)
     {
         Document = document;
-        Frames = new UiFrames(height: height, body: Render) { FrameTime = 1f / 60f };
+        Frames = new UiFrames(height: height, body: Render, state: Screens.Blank()) { FrameTime = 1f / 60f };
     }
 
     private void Render(Ui<UiState> ui)

@@ -42,10 +42,7 @@ public static class Saving
             w.Analyzer.Revision,
             w.MetadataFilters.Revision,
             w.Layout.Changes,
-            w.FoldedOptionGroups.Revision,
-            w.BookmarkColumns.Changes,
-            w.SearchColumns.Changes,
-            w.ExportColumns.Changes,
+            w.ViewSettingsChanges,
             w.ExportSetup.WindowChanges,
             w.Theme,
             w.Language,
@@ -63,15 +60,11 @@ public static class Saving
         settings.Theme = w.Theme;
         settings.Language = w.Language;
         settings.Decompiler = w.DecompilerOptions;
-        settings.FoldedOptionGroups = w.FoldedOptionGroups.Save();
         settings.ShowNonPublic = w.ShowNonPublic;
         settings.SearchKinds = w.Search.Kinds;
         settings.Locale = w.Locale;
         settings.Layout = w.Layout;
         settings.Bookmarks = w.Bookmarks.Save();
-        settings.BookmarkColumns = w.BookmarkColumns.Weights.ToList();
-        settings.SearchColumns = w.SearchColumns.Weights.ToList();
-        settings.ExportColumns = w.ExportColumns.Weights.ToList();
         settings.FlagsFilters = w.MetadataFilters.Save();
         settings.ExportWindow = w.ExportSetup.Window;
     }
@@ -93,6 +86,17 @@ public static class Saving
         if (!w.SaveRetry.Fail())
             return;
         w.ReportError(Strings.For(w.Locale).ErrorSaveSettings, error);
+    }
+
+    /// <summary>Takes what the settings keep of the screen, as it changed, to be written with the next save.</summary>
+    public static void KeepViewSettings(this Workspace w, ViewSettings view)
+    {
+        var settings = w.Settings;
+        settings.BookmarkColumns = view.BookmarkColumns;
+        settings.SearchColumns = view.SearchColumns;
+        settings.ExportColumns = view.ExportColumns;
+        settings.FoldedOptionGroups = view.FoldedOptionGroups;
+        w.ViewSettingsChanges++;
     }
 
     /// <summary>Writes the bytes of the resource <paramref name="node"/> stands for to the file at
