@@ -11,6 +11,8 @@ public static partial class UiWidgets
 {
     private const float MinFieldWidth = 60f;
     private const int SliderKeySteps = 20;
+    private const float SwitchInset = 2f;
+    private const float SwitchAspect = 1.8f;
 
     public static void Label(this Ui ui, string text, uint? color = null, float? size = null, bool bold = false) =>
         ui.Text(text, color: color, size: size, bold: bold);
@@ -162,6 +164,45 @@ public static partial class UiWidgets
             }
             ui.Text(label, color: !enabled ? theme.TextDisabled : textColor ?? theme.Text, bold: bold,
                 overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
+        }
+        return i.Clicked || activated;
+    }
+
+    /// <summary>An on/off switch for a setting that takes effect at once: a pill whose knob sits at
+    /// the right, on the accent, while <paramref name="value"/> is on. A click, or Space or Enter while
+    /// focused, flips it and returns true on that frame. It has no label of its own; the row it sits
+    /// in names it.</summary>
+    public static bool Switch(this Ui ui, string id, ref bool value, bool enabled = true)
+    {
+        if (!DrawSwitch(ui, id, value, enabled)) return false;
+        value = !value;
+        return true;
+    }
+
+    private static bool DrawSwitch(Ui ui, string id, bool on, bool enabled)
+    {
+        var theme = ui.Theme;
+        var i = Pressable(ui, id, enabled, out var activated, out var ring);
+        var knob = theme.CheckboxSize;
+        var height = knob + SwitchInset * 2;
+        var accent = !enabled ? theme.TextDisabled : i.Hovered ? theme.AccentHovered : theme.Accent;
+        var off = i.Hovered && enabled ? theme.ControlHovered : theme.Control;
+        using (ui.Row(i.Id, new Box
+        {
+            Width = MathF.Round(height * SwitchAspect),
+            Height = height,
+            Padding = SwitchInset,
+            AlignX = on ? Align.End : Align.Start,
+            AlignY = Align.Center,
+            Background = on ? accent : off,
+            BorderColor = on ? 0u : theme.Border,
+            BorderWidth = on ? 0f : theme.BorderWidth,
+            Radius = height / 2f,
+        }))
+        {
+            var knobColor = !enabled ? theme.TextDisabled : on ? theme.OnAccent : theme.TextMuted;
+            ui.Leaf(new Box { Width = knob, Height = knob, Background = knobColor, Radius = knob / 2f });
+            if (ring) FocusRing(ui, height / 2f);
         }
         return i.Clicked || activated;
     }

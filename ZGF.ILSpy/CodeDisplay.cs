@@ -9,11 +9,10 @@ public static class CodeDisplay
         uiState.Display = options;
     }
 
-    /// <summary>Makes the whole interface <paramref name="steps"/> of the offered scales larger, or
-    /// smaller when negative.</summary>
-    public static void ScaleUi(UiState uiState, int steps)
+    /// <summary>Draws the whole interface at <paramref name="scale"/>, or the offered scale nearest it.</summary>
+    public static void SetUiScale(UiState uiState, float scale)
     {
-        var scaled = uiState.Display.Scaled(steps);
+        var scaled = uiState.Display.WithUiScale(scale);
         SetDisplayOptions(uiState, scaled);
     }
 

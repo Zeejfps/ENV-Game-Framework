@@ -139,18 +139,15 @@ public sealed class DisplayOptionsTests
     }
 
     [Fact]
-    public void The_ui_scale_starts_at_100_percent_and_steps_through_the_offered_scales()
+    public void The_ui_scale_starts_at_100_percent_and_takes_the_nearest_offered_scale()
     {
         var display = DisplayOptions.Default;
 
         Assert.Equal(1f, display.UiScale);
-        Assert.Equal(1.1f, display.Scaled(1).UiScale);
-        Assert.Equal(1.25f, display.Scaled(2).UiScale);
-        Assert.Equal(0.9f, display.Scaled(-1).UiScale);
-        Assert.Equal(2f, display.Scaled(100).UiScale);
-        Assert.Equal(0.75f, display.Scaled(-100).UiScale);
-        Assert.False(display.Scaled(100).CanScaleUp());
-        Assert.False(display.Scaled(-100).CanScaleDown());
+        Assert.Equal([0.75f, 0.8f, 0.9f, 1f, 1.1f, 1.25f, 1.5f, 1.75f, 2f], DisplayOptions.UiScales);
+        Assert.Equal(1.25f, display.WithUiScale(1.2f).UiScale);
+        Assert.Equal(2f, display.WithUiScale(5f).UiScale);
+        Assert.Equal(0.75f, display.WithUiScale(0.1f).UiScale);
     }
 
     [Fact]
@@ -169,12 +166,12 @@ public sealed class DisplayOptionsTests
         app.Run();
         Assert.True(app.Frames.Drew("100%"));
 
-        var scaleUp = app.Frames.TextRects().First(t => t.Text == LucideIcons.Plus);
-        app.Frames.Click(scaleUp.Rect).Frame();
+        app.Click("100%").Frame();
+        app.Click("125%").Frame();
 
-        Assert.Equal(1.1f, app.Ui.Display.UiScale);
-        Assert.True(app.Frames.Drew("110%"));
-        Assert.Equal(1.1f, app.Frames.Frame(ui => ui.Scale));
+        Assert.Equal(1.25f, app.Ui.Display.UiScale);
+        Assert.True(app.Frames.Drew("125%"));
+        Assert.Equal(1.25f, app.Frames.Frame(ui => ui.Scale));
         Assert.True(IsBold(app, "UI scale"));
     }
 
@@ -203,7 +200,7 @@ public sealed class DisplayOptionsTests
         app.Run();
 
         Assert.Same(app.Ui.Layout.GroupOf(DockPanels.DecompilerOptions), app.Ui.Layout.GroupOf(DockPanels.DisplayOptions));
-        Assert.True(app.Frames.Drew("Show line numbers"));
+        Assert.True(app.Frames.Drew("Line numbers"));
     }
 
     [Fact]
@@ -215,16 +212,31 @@ public sealed class DisplayOptionsTests
         var size = app.Ui.Theme.MonoFontSize;
 
         app.ClickLast(LucideIcons.Plus).Frame();
-        app.Click("Show line numbers").Frame();
-        app.Click("Highlight the current line").Frame();
+        app.Click("Line numbers").Frame();
+        app.Click("Highlight current line").Frame();
 
         var changed = new DisplayOptions(FontSize: size + 1f, ShowLineNumbers: false, HighlightCurrentLine: true);
         Assert.Equal(changed, app.Ui.Display);
-        Assert.True(IsBold(app, "Show line numbers"));
-        Assert.False(IsBold(app, "Highlight matching brackets"));
+        Assert.True(IsBold(app, "Line numbers"));
+        Assert.False(IsBold(app, "UI scale"));
 
-        app.ClickLast(LucideIcons.RotateCcw).Frame();
+        app.Click("Reset to defaults").Frame();
         Assert.Equal(DisplayOptions.Default, app.Ui.Display);
+    }
+
+    [Fact]
+    public void A_font_size_stepped_back_to_the_themes_is_no_longer_a_choice_of_its_own()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+
+        app.ClickLast(LucideIcons.Plus).Frame();
+        Assert.True(IsBold(app, "Font size"));
+        app.ClickLast(LucideIcons.Minus).Frame();
+
+        Assert.Null(app.Ui.Display.FontSize);
+        Assert.False(IsBold(app, "Font size"));
     }
 
     [Fact]

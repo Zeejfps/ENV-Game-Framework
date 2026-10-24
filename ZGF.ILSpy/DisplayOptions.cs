@@ -25,7 +25,7 @@ public sealed record DisplayOptions(
     {
         if (saved == null)
             return Default;
-        var scaled = saved with { UiScale = NearestUiScale(saved.UiScale) };
+        var scaled = saved.WithUiScale(saved.UiScale);
         if (scaled.FontSize == null)
             return scaled;
         return scaled.WithFontSize(scaled.FontSize.Value);
@@ -52,33 +52,27 @@ public sealed record DisplayOptions(
     }
 
     /// <summary>The font size <paramref name="steps"/> steps larger, or smaller when negative, than
-    /// it is in <paramref name="theme"/>.</summary>
+    /// it is in <paramref name="theme"/>; the theme's own again once it gets back to that size.</summary>
     public DisplayOptions Zoomed(UiTheme theme, int steps)
     {
         var size = FontSizeIn(theme) + steps * FontSizeStep;
-        return WithFontSize(size);
+        var zoomed = WithFontSize(size);
+        if (zoomed.FontSize == theme.MonoFontSize)
+            return zoomed with { FontSize = null };
+        return zoomed;
     }
 
     public bool CanZoomIn(UiTheme theme) => FontSizeIn(theme) < MaxFontSize;
 
     public bool CanZoomOut(UiTheme theme) => FontSizeIn(theme) > MinFontSize;
 
-    /// <summary>The interface scale the next one up, or down when <paramref name="steps"/> is negative,
-    /// of those offered; it stays at the largest or smallest.</summary>
-    public DisplayOptions Scaled(int steps)
+    /// <summary>The interface scales offered, smallest first.</summary>
+    public static IReadOnlyList<float> UiScales => Scales;
+
+    /// <summary>The options with the offered interface scale nearest <paramref name="scale"/>.</summary>
+    public DisplayOptions WithUiScale(float scale)
     {
-        var index = UiScaleIndex() + steps;
-        var clamped = Math.Clamp(index, 0, Scales.Length - 1);
-        return this with { UiScale = Scales[clamped] };
-    }
-
-    public bool CanScaleUp() => UiScaleIndex() < Scales.Length - 1;
-
-    public bool CanScaleDown() => UiScaleIndex() > 0;
-
-    private int UiScaleIndex()
-    {
-        var nearest = NearestUiScale(UiScale);
-        return Array.IndexOf(Scales, nearest);
+        var nearest = NearestUiScale(scale);
+        return this with { UiScale = nearest };
     }
 }
