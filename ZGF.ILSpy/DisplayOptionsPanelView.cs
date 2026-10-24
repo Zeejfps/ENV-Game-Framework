@@ -24,6 +24,7 @@ internal static class DisplayOptionsPanelView
             Gap = theme.GapTight,
             Padding = new Spacing(theme.ShellPaddingX, theme.ToolbarPaddingY),
         });
+        UiScale(ui);
         FontSize(ui);
         Toggles(ui);
         ZoomHint(ui);
@@ -37,6 +38,23 @@ internal static class DisplayOptionsPanelView
         {
             if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DisplayOptionsReset, changed))
                 ResetDisplayOptions(ui.State);
+        }
+    }
+
+    private static void UiScale(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        var theme = ui.Theme;
+        var display = ui.State.Display;
+        using (ui.Row(new Box { Width = Sizing.Grow(), Height = theme.RowHeight, Gap = theme.GapTight, AlignY = Align.Center }))
+        {
+            ui.Text(t.DisplayOptionsUiScale, new Box { Width = Sizing.Grow() }, bold: display.UiScale != DisplayOptions.Default.UiScale);
+            if (ui.IconButton("scale-down", LucideIcons.Minus, LucideIcons.Family, t.DisplayOptionsScaleDown, display.CanScaleDown()))
+                ScaleUi(ui.State, -1);
+            var percent = (int)MathF.Round(display.UiScale * 100f);
+            ui.Text(ui.Memo("scale", (t, percent), static a => a.t.DisplayOptionsUiScalePercent(a.percent)));
+            if (ui.IconButton("scale-up", LucideIcons.Plus, LucideIcons.Family, t.DisplayOptionsScaleUp, display.CanScaleUp()))
+                ScaleUi(ui.State, 1);
         }
     }
 

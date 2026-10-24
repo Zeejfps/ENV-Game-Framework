@@ -2,29 +2,39 @@ using ZGF.Gui.Immediate;
 
 namespace ZGF.ILSpy;
 
-/// <summary>How the documents draw code: the font size, null for the theme's, and the aids drawn
-/// around the text.</summary>
+/// <summary>How the app is drawn: the scale of the whole interface, 1 for 100%; and how the documents
+/// draw code: its font size, null for the theme's, and the aids drawn around it.</summary>
 public sealed record DisplayOptions(
     float? FontSize = null,
     bool ShowLineNumbers = true,
     bool HighlightCurrentLine = false,
-    bool HighlightMatchingBrackets = true)
+    bool HighlightMatchingBrackets = true,
+    float UiScale = 1f)
 {
     public const float MinFontSize = 8f;
     public const float MaxFontSize = 32f;
     private const float FontSizeStep = 1f;
 
+    private static readonly float[] Scales = [0.75f, 0.8f, 0.9f, 1f, 1.1f, 1.25f, 1.5f, 1.75f, 2f];
+
     public static DisplayOptions Default { get; } = new();
 
-    /// <summary>The options the settings kept, with a font size out of range brought within it; the
-    /// defaults when none were kept.</summary>
+    /// <summary>The options the settings kept, with a font size out of range brought within it and
+    /// the interface scale made the nearest offered; the defaults when none were kept.</summary>
     public static DisplayOptions Restore(DisplayOptions? saved)
     {
         if (saved == null)
             return Default;
-        if (saved.FontSize == null)
-            return saved;
-        return saved.WithFontSize(saved.FontSize.Value);
+        var scaled = saved with { UiScale = NearestUiScale(saved.UiScale) };
+        if (scaled.FontSize == null)
+            return scaled;
+        return scaled.WithFontSize(scaled.FontSize.Value);
+    }
+
+    private static float NearestUiScale(float scale)
+    {
+        return Scales
+            .MinBy(s => MathF.Abs(s - scale));
     }
 
     /// <summary>The size code is drawn at in <paramref name="theme"/>.</summary>
@@ -52,4 +62,23 @@ public sealed record DisplayOptions(
     public bool CanZoomIn(UiTheme theme) => FontSizeIn(theme) < MaxFontSize;
 
     public bool CanZoomOut(UiTheme theme) => FontSizeIn(theme) > MinFontSize;
+
+    /// <summary>The interface scale the next one up, or down when <paramref name="steps"/> is negative,
+    /// of those offered; it stays at the largest or smallest.</summary>
+    public DisplayOptions Scaled(int steps)
+    {
+        var index = UiScaleIndex() + steps;
+        var clamped = Math.Clamp(index, 0, Scales.Length - 1);
+        return this with { UiScale = Scales[clamped] };
+    }
+
+    public bool CanScaleUp() => UiScaleIndex() < Scales.Length - 1;
+
+    public bool CanScaleDown() => UiScaleIndex() > 0;
+
+    private int UiScaleIndex()
+    {
+        var nearest = NearestUiScale(UiScale);
+        return Array.IndexOf(Scales, nearest);
+    }
 }

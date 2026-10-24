@@ -139,6 +139,46 @@ public sealed class DisplayOptionsTests
     }
 
     [Fact]
+    public void The_ui_scale_starts_at_100_percent_and_steps_through_the_offered_scales()
+    {
+        var display = DisplayOptions.Default;
+
+        Assert.Equal(1f, display.UiScale);
+        Assert.Equal(1.1f, display.Scaled(1).UiScale);
+        Assert.Equal(1.25f, display.Scaled(2).UiScale);
+        Assert.Equal(0.9f, display.Scaled(-1).UiScale);
+        Assert.Equal(2f, display.Scaled(100).UiScale);
+        Assert.Equal(0.75f, display.Scaled(-100).UiScale);
+        Assert.False(display.Scaled(100).CanScaleUp());
+        Assert.False(display.Scaled(-100).CanScaleDown());
+    }
+
+    [Fact]
+    public void A_saved_ui_scale_becomes_the_nearest_offered()
+    {
+        var restored = DisplayOptions.Restore(new DisplayOptions(UiScale: 1.3f));
+
+        Assert.Equal(1.25f, restored.UiScale);
+    }
+
+    [Fact]
+    public void The_panel_scales_the_whole_ui_through_the_window()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        Assert.True(app.Frames.Drew("100%"));
+
+        var scaleUp = app.Frames.TextRects().First(t => t.Text == LucideIcons.Plus);
+        app.Frames.Click(scaleUp.Rect).Frame();
+
+        Assert.Equal(1.1f, app.Ui.Display.UiScale);
+        Assert.True(app.Frames.Drew("110%"));
+        Assert.Equal(1.1f, app.Frames.Frame(ui => ui.Scale));
+        Assert.True(IsBold(app, "UI scale"));
+    }
+
+    [Fact]
     public void The_display_options_are_saved_and_restored()
     {
         using var temp = new TempDir();

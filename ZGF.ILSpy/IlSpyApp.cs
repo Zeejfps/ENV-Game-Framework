@@ -50,13 +50,20 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     }
 
     /// <summary>Does what comes after drawing a frame: keeps what the screen changed, runs what it asked of
-    /// the app state, asks for another frame when there is more to show, and saves the changed settings.</summary>
+    /// the app state, asks for another frame when there is more to show, saves the changed settings, and
+    /// has the window draw at the chosen scale from the next frame.</summary>
     private static void FinishFrame(Ui<UiState> ui, AppState appState)
     {
         KeepScreenChanges(ui.State, appState);
         RunAppCommandsAndRedraw(ui, appState);
         RequestUpdateIfViewCommandsPending(ui, appState);
         SaveChangedSettings(ui, appState);
+        DrawAtChosenScale(ui);
+    }
+
+    private static void DrawAtChosenScale(Ui<UiState> ui)
+    {
+        ui.Scale = ui.State.Display.UiScale;
     }
 
     /// <summary>Runs what the screen asked of the app state while it drew, and draws again to show it.</summary>

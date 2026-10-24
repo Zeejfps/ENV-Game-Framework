@@ -103,6 +103,11 @@ public abstract partial class Ui
     /// title bar follows it: dark on a dark background where the platform allows.</summary>
     public uint WindowBackground { get; set; } = UiTheme.Dark.Background;
 
+    /// <summary>How many times larger than the monitor's own scale everything is drawn, e.g. 1.25
+    /// for 125%. Kept until set again; 1 until then. A change shows from the next frame, the window
+    /// keeping its size on the screen.</summary>
+    public float Scale { get; set; } = 1f;
+
     /// <summary>True while a widget that takes text holds keyboard focus; app shortcuts should
     /// stand down.</summary>
     public bool WantsTextInput => _focused != 0 && _focusTakesText;

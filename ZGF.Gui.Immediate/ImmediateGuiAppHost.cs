@@ -68,6 +68,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private MouseCursor _cursor;
     private uint _clearColor;
     private bool? _titleBarDark;
+    private float _scale = 1f;
     private volatile bool _disposed;
     private (int X, int Y, int Width, int Height) _normalBounds;
 
@@ -245,6 +246,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
         PresentPopups();
         PresentWindows();
+        TakeScale();
         if (_ui.QuitRequested)
             _render.App.Quit();
 
@@ -864,9 +866,23 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _window.RequestRedraw();
     }
 
+    /// <summary>Draws at the scale the frame asked for from the next frame on, when it changed.</summary>
+    private void TakeScale()
+    {
+        if (_ui.Scale <= 0f)
+            return;
+        if (_ui.Scale == _scale)
+            return;
+        _scale = _ui.Scale;
+        SyncScale();
+        _window.RequestRedraw();
+    }
+
+    /// <summary>Sizes the main canvas to the window at the monitor's scale times the app's own.</summary>
     private void SyncScale()
     {
-        var scale = _window.ContentScale > 0f ? _window.ContentScale : 1f;
+        var monitor = _window.ContentScale > 0f ? _window.ContentScale : 1f;
+        var scale = monitor * _scale;
         var canvas = _render.MainCanvas;
         canvas.UpdateDpiScale(scale);
         canvas.Resize(
