@@ -95,4 +95,19 @@ public static class Settings
         settings.Layout = view.Layout;
         appState.ViewSettingsChanges++;
     }
+
+    /// <summary>What the settings kept of the screen when they were last saved.</summary>
+    public static ViewSettings ReadViewSettings(AppState appState)
+    {
+        var settings = appState.Settings;
+        return new ViewSettings(
+            settings.BookmarkColumns,
+            settings.SearchColumns,
+            settings.ExportColumns,
+            settings.FoldedOptionGroups,
+            settings.SearchKinds,
+            settings.FlagsFilters,
+            settings.ExportWindow,
+            settings.Layout);
+    }
 }

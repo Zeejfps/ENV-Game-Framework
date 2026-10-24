@@ -1,5 +1,4 @@
 using ZGF.Gui.Immediate.Widgets;
-using static ZGF.ILSpy.AssemblyLists;
 
 namespace ZGF.ILSpy;
 
@@ -22,41 +21,18 @@ public sealed class AssemblyListsDialog
     /// <summary>The list whose deletion is being confirmed, or null.</summary>
     public string? Deleting { get; private set; }
 
-    /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>
-    public void Open(AppState appState)
+    /// <summary>Opens the dialog with the open list of <paramref name="lists"/> picked.</summary>
+    public void Open(SavedAssemblyLists lists)
     {
-        RememberOpenAssemblies(appState);
         IsOpen = true;
-        Pick(appState.Lists, appState.Lists.Active);
+        Pick(lists, lists.Active);
     }
 
-    /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
-    public void Create(AppState appState)
-    {
-        var name = CreateAssemblyList(appState);
-        PickToRename(appState.Lists, name);
-    }
-
-    /// <summary>Adds a copy of the list named <paramref name="name"/>, picked to be named, leaving the
-    /// open one open.</summary>
-    public void Duplicate(AppState appState, string name)
-    {
-        var copy = DuplicateAssemblyList(appState, name);
-        PickToRename(appState.Lists, copy);
-    }
-
-    private void PickToRename(SavedAssemblyLists lists, string name)
+    /// <summary>Picks the list named <paramref name="name"/> and starts renaming it.</summary>
+    public void PickToRename(SavedAssemblyLists lists, string name)
     {
         Pick(lists, name);
         StartRenaming(name);
-    }
-
-    /// <summary>Removes the list named <paramref name="name"/> and picks the open list, which takes its
-    /// place when it was open.</summary>
-    public void Delete(AppState appState, string name)
-    {
-        DeleteAssemblyList(appState, name);
-        Pick(appState.Lists, appState.Lists.Active);
     }
 
     /// <summary>Picks the list named <paramref name="name"/>, leaving any rename or deletion.</summary>
@@ -98,17 +74,6 @@ public sealed class AssemblyListsDialog
         Renaming = name;
         NewName = name;
         _focusName = true;
-    }
-
-    /// <summary>Gives the list being renamed the name typed, when it may have it, and stops renaming either way.</summary>
-    public void FinishRenaming(SavedAssemblyLists lists)
-    {
-        var name = Renaming;
-        if (name == null)
-            return;
-        var newName = NewName;
-        StopAsking();
-        lists.Rename(name, newName);
     }
 
     /// <summary>True once after <see cref="StartRenaming"/>: the name box should take focus with the

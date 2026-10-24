@@ -4,6 +4,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
+using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
@@ -369,7 +370,7 @@ internal static class ExportDialogView
             if (ui.Button(t.ExportCancel, id: "export-cancel", variant: ButtonVariant.Ghost))
                 setup.Close();
             if (ui.Button(t.ExportConfirm, enabled: setup.CanExport, id: "export-start", variant: ButtonVariant.Primary))
-                setup.Start(appState);
+                Start(setup, appState);
         }
     }
 
@@ -491,5 +492,14 @@ internal static class ExportDialogView
             if (ui.Button(t.ExportDone, id: "done", variant: ButtonVariant.Primary))
                 setup.FinishChoosing();
         }
+    }
+
+    /// <summary>Closes the dialog and exports what it asks for, unless something stops the export.</summary>
+    internal static void Start(ExportSetup setup, AppState appState)
+    {
+        if (!setup.CanExport)
+            return;
+        setup.Close();
+        StartExport(appState, setup.CreateRequest());
     }
 }

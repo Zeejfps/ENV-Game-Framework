@@ -17,4 +17,7 @@ public abstract record AppCommand
 
     /// <summary>Make <see cref="Tab"/> the active tab and reveal what it shows in the tree.</summary>
     public sealed record FocusTab(DocumentTab Tab) : AppCommand;
+
+    /// <summary>Run the analysis <see cref="Kind"/> stands for, whose row was expanded.</summary>
+    public sealed record RunAnalysis(AnalyzerKindNode Kind) : AppCommand;
 }

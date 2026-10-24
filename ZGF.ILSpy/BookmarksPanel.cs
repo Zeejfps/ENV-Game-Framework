@@ -1,5 +1,4 @@
 using ZGF.Gui.Immediate.Widgets;
-using static ZGF.ILSpy.Bookmarks;
 
 namespace ZGF.ILSpy;
 
@@ -39,14 +38,9 @@ public sealed class BookmarksPanel
         }
     }
 
-    /// <summary>Removes <paramref name="bookmark"/>, passing its selection to the bookmark now in its row.</summary>
-    public void Remove(BookmarkList bookmarks, Bookmark bookmark)
-    {
-        var row = bookmarks.Remove(bookmark);
-        TakeRemoved(bookmark, row, bookmarks.Items);
-    }
-
-    private void TakeRemoved(Bookmark bookmark, int row, IReadOnlyList<Bookmark> bookmarks)
+    /// <summary>Passes the selection of <paramref name="bookmark"/>, removed from <paramref name="row"/>, to the
+    /// bookmark now in its row, and ends its rename.</summary>
+    public void TakeRemoved(Bookmark bookmark, int row, IReadOnlyList<Bookmark> bookmarks)
     {
         if (Renaming == bookmark)
             Renaming = null;
@@ -67,16 +61,6 @@ public sealed class BookmarksPanel
         Selection.Select(bookmarks[kept], bookmarks, reveal: false);
     }
 
-    /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
-    /// <paramref name="direction"/> is negative, and selects it.</summary>
-    public void Step(AppState appState, int direction)
-    {
-        var bookmark = StepBookmark(appState, Selected, direction);
-        if (bookmark == null)
-            return;
-        Selection.Select(bookmark, appState.Bookmarks.Items);
-    }
-
     /// <summary>Forgets the rename of a bookmark that is gone, as importing in its place drops it.</summary>
     public void Follow(IReadOnlyList<Bookmark> bookmarks)
     {
@@ -94,14 +78,12 @@ public sealed class BookmarksPanel
         FocusRename = true;
     }
 
-    /// <summary>Gives the bookmark being renamed the name typed, unless it is blank, and ends the rename.</summary>
-    public void CommitRename(BookmarkList bookmarks)
+    /// <summary>Ends the rename, returning the bookmark that was being renamed, or null.</summary>
+    public Bookmark? EndRename()
     {
         var bookmark = Renaming;
         Renaming = null;
-        if (bookmark == null)
-            return;
-        bookmarks.Rename(bookmark, RenameText);
+        return bookmark;
     }
 
     public void CancelRename() => Renaming = null;

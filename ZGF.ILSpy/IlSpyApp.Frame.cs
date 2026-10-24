@@ -4,6 +4,17 @@ namespace ZGF.ILSpy;
 
 public sealed partial class IlSpyApp
 {
+    /// <summary>The screen over <paramref name="appState"/>, restored from what its settings kept, with its
+    /// first tab in the place of the documents and the active tab it starts with. It takes the theme and
+    /// strings with its first frame.</summary>
+    internal static UiState CreateUiState(AppState appState)
+    {
+        var uiState = new UiState(ReadViewSettings(appState), appState.ReportError);
+        uiState.ShowInRestoredDocuments(appState.Tabs[0]);
+        uiState.FollowActiveTab(appState.Tabs.Active);
+        return uiState;
+    }
+
     /// <summary>Does what comes before drawing a frame: the screen takes the theme and strings the
     /// preferences pick, follows the open assemblies and analyses in the trees, the open tabs in the
     /// layout and the active tab, and focuses another tab when none is active; then the commands the
@@ -12,7 +23,7 @@ public sealed partial class IlSpyApp
     internal static void StartFrame(UiState uiState, AppState appState)
     {
         uiState.ApplyThemeAndLanguage(appState.Theme, appState.Locale);
-        uiState.SyncTrees(appState.Assemblies, appState.ShowNonPublic);
+        uiState.SyncTrees(appState.Assemblies, appState.Analyzer, appState.ShowNonPublic);
         uiState.SyncTabViews(appState.Tabs);
         uiState.FollowActiveTab(appState.Tabs.Active);
         uiState.FocusNextTabIfNone(appState.Tabs);

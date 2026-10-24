@@ -18,12 +18,12 @@ public sealed partial class UiState
     /// <summary>Forgets what the tree had expanded and selected, and the menu's target, once the list
     /// was cleared; rebuilds its roots when the open assemblies changed; and lists the analyzer's rows
     /// again when its roots changed.</summary>
-    public void SyncTrees(AssemblyList assemblies, bool showNonPublic)
+    public void SyncTrees(AssemblyList assemblies, AnalyzerTree analyzer, bool showNonPublic)
     {
         ForgetClearedList(assemblies);
         Tree.SetShowNonPublic(showNonPublic);
         Tree.Sync(assemblies);
-        Analyzer.Follow();
+        Analyzer.Follow(analyzer);
     }
 
     private void ForgetClearedList(AssemblyList assemblies)

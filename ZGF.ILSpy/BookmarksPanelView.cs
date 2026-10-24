@@ -46,7 +46,7 @@ internal static class BookmarksPanelView
         var removed = List(ui, appState, table);
         Menu(ui, appState);
         if (removed != null)
-            panel.Remove(bookmarks, removed);
+            Remove(panel, bookmarks, removed);
     }
 
     /// <summary>Returns the bookmark Delete asked to remove.</summary>
@@ -107,12 +107,12 @@ internal static class BookmarksPanelView
         using (ui.PaneToolbar())
         {
             if (ui.IconButton("previous", LucideIcons.ArrowUp, LucideIcons.Family, t.BookmarksPrevious, any))
-                panel.Step(appState, -1);
+                Step(panel, appState, -1);
             if (ui.IconButton("next", LucideIcons.ArrowDown, LucideIcons.Family, t.BookmarksNext, any))
-                panel.Step(appState, 1);
+                Step(panel, appState, 1);
             ui.Separator(theme.IconSize);
             if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.BookmarksDelete, selected != null))
-                panel.Remove(bookmarks, selected!);
+                Remove(panel, bookmarks, selected!);
             ui.Separator(theme.IconSize);
             if (ui.IconButton("export", LucideIcons.Upload, LucideIcons.Family, t.BookmarksExport, bookmarks.Items.Count > 0))
                 PickExportFile(ui, appState);
@@ -256,7 +256,7 @@ internal static class BookmarksPanelView
         if (result == InlineEditResult.Editing) return;
         var stillHere = ui.HasFocus(ui.GetId("name"));
         if (result == InlineEditResult.Committed)
-            panel.CommitRename(bookmarks);
+            CommitRename(panel, bookmarks);
         else
             panel.CancelRename();
         if (stillHere || result == InlineEditResult.Cancelled)
@@ -284,7 +284,7 @@ internal static class BookmarksPanelView
         if (ui.MenuItem(bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable, "Space", id: "enable"))
             bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
         if (ui.MenuItem(t.BookmarksDelete, "Delete", id: "delete"))
-            panel.Remove(bookmarks, bookmark);
+            Remove(panel, bookmarks, bookmark);
     }
 
     private static string Copied(Bookmark bookmark, TableCellSelection cells)
@@ -321,4 +321,30 @@ internal static class BookmarksPanelView
 
     private static bool HasCommandModifier(KeyStroke stroke) =>
         (stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Super)) != 0;
+
+    /// <summary>Removes <paramref name="bookmark"/>, passing its selection to the bookmark now in its row.</summary>
+    internal static void Remove(BookmarksPanel panel, BookmarkList bookmarks, Bookmark bookmark)
+    {
+        var row = bookmarks.Remove(bookmark);
+        panel.TakeRemoved(bookmark, row, bookmarks.Items);
+    }
+
+    /// <summary>Goes to the next enabled bookmark after the selected one, or the previous when
+    /// <paramref name="direction"/> is negative, and selects it.</summary>
+    internal static void Step(BookmarksPanel panel, AppState appState, int direction)
+    {
+        var bookmark = StepBookmark(appState, panel.Selected, direction);
+        if (bookmark == null)
+            return;
+        panel.Selection.Select(bookmark, appState.Bookmarks.Items);
+    }
+
+    /// <summary>Gives the bookmark being renamed the name typed, unless it is blank, and ends the rename.</summary>
+    private static void CommitRename(BookmarksPanel panel, BookmarkList bookmarks)
+    {
+        var bookmark = panel.EndRename();
+        if (bookmark == null)
+            return;
+        bookmarks.Rename(bookmark, panel.RenameText);
+    }
 }

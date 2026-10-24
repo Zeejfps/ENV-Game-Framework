@@ -91,7 +91,7 @@ internal static class ToolbarView
             ListItem(ui, appState, name);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsManage, id: "manage"))
-            ui.State.ListsDialog.Open(appState);
+            AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
     }
 
     /// <summary>Measured again only when the lists or the theme changed, so a frame allocates nothing.</summary>

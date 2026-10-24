@@ -8,7 +8,7 @@ public static class ILSpyAppLauncher
     {
         var settings = AppSettings.Load(commandLine.SettingsPath);
         var appState = new AppState(settings);
-        var screen = new UiState(appState);
+        var screen = IlSpyApp.CreateUiState(appState);
         var app = new IlSpyApp(appState, screen, commandLine.AssemblyPaths);
         var windowConfig = settings.CreateWindowConfig();
         app.Run(windowConfig, commandLine.RenderBackend);

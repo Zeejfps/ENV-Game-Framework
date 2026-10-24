@@ -286,11 +286,11 @@ public sealed class BookmarkTests : IDisposable
         var bookmarks = d.AppState.Bookmarks;
         var panel = app.Ui.BookmarksPanel;
         var second = bookmarks.Items[1];
-        panel.Step(d.AppState, 1);
-        panel.Step(d.AppState, 1);
+        BookmarksPanelView.Step(panel, d.AppState, 1);
+        BookmarksPanelView.Step(panel, d.AppState, 1);
         app.Run(2);
 
-        panel.Remove(bookmarks, bookmarks.Items[0]);
+        BookmarksPanelView.Remove(panel, bookmarks, bookmarks.Items[0]);
         app.Run(2);
 
         Assert.Same(second, panel.Selected);
@@ -309,11 +309,11 @@ public sealed class BookmarkTests : IDisposable
         var bookmarks = d.AppState.Bookmarks;
         var panel = app.Ui.BookmarksPanel;
         var third = bookmarks.Items[2];
-        panel.Step(d.AppState, 1);
-        panel.Step(d.AppState, 1);
+        BookmarksPanelView.Step(panel, d.AppState, 1);
+        BookmarksPanelView.Step(panel, d.AppState, 1);
         app.Run(2);
 
-        panel.Remove(bookmarks, bookmarks.Items[1]);
+        BookmarksPanelView.Remove(panel, bookmarks, bookmarks.Items[1]);
         app.Run(2);
 
         Assert.Same(third, panel.Selected);

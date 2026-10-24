@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Docking;
 
 namespace ZGF.ILSpy;
@@ -116,6 +117,9 @@ public sealed partial class IlSpyApp
                 break;
             case AppCommand.FocusTab focus:
                 FocusTabAndReveal(uiState, appState, focus.Tab);
+                break;
+            case AppCommand.RunAnalysis run:
+                RunAnalysis(appState, run.Kind);
                 break;
         }
     }

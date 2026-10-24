@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using static ZGF.ILSpy.AssemblyLists;
 
 namespace ZGF.ILSpy;
 
@@ -26,11 +27,19 @@ internal static class AssemblyListDeleteDialogView
                     if (ui.Button(t.ListsCancel, id: "delete-cancel", variant: ButtonVariant.Ghost))
                         dialog.StopAsking();
                     if (ui.Button(t.ListsDeleteConfirm, id: "delete-confirm", variant: ButtonVariant.Primary))
-                        dialog.Delete(appState, name!);
+                        Delete(dialog, appState, name!);
                 }
             }
         }
         if (!open && dialog.Deleting != null)
             dialog.StopAsking();
+    }
+
+    /// <summary>Removes the list named <paramref name="name"/> and picks the open list, which takes its
+    /// place when it was open.</summary>
+    private static void Delete(AssemblyListsDialog dialog, AppState appState, string name)
+    {
+        DeleteAssemblyList(appState, name);
+        dialog.Pick(appState.Lists, appState.Lists.Active);
     }
 }

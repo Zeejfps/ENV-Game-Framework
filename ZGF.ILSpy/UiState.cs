@@ -4,34 +4,29 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The screen over an <see cref="AppState"/>, one per app: what every view is drawn with this
-/// frame (the theme, the editor's and icons' colors, the strings of the chosen language), and the state
-/// that exists only because there is a screen: the layout, each tab's view, the trees' and tables'
-/// state, the panels and dialogs with what is selected in them, and UI flags. The app state never
-/// sees it; it commands the screen through <see cref="AppState.ViewCommands"/>.</summary>
+/// <summary>The screen, one per app: what every view is drawn with this frame (the theme, the editor's
+/// and icons' colors, the strings of the chosen language), and the state that exists only because there
+/// is a screen: the layout, each tab's view, the trees' and tables' state, the panels and dialogs with
+/// what is selected in them, and UI flags. It and the app state never see each other: the app hands it
+/// what it shows each frame and runs what it asks of the app state through <see cref="AppCommands"/>.</summary>
 public sealed partial class UiState : IUiState
 {
-    private readonly AppState _appState;
-
-    public UiState(AppState appState)
+    /// <param name="saved">What the settings kept of the screen when they were last saved.</param>
+    /// <param name="reportError">Tells the user that something done in the background failed: a title and details.</param>
+    public UiState(ViewSettings saved, Action<string, string> reportError)
     {
-        _appState = appState;
-        var settings = appState.Settings;
-        FoldedOptionGroups = new FoldedGroups(settings.FoldedOptionGroups);
-        BookmarkColumns.Restore(settings.BookmarkColumns);
-        SearchColumns.Restore(settings.SearchColumns);
-        ExportColumns.Restore(settings.ExportColumns);
-        Search = new Search(ReadStrings, appState.ReportError);
-        Search.Kinds = settings.SearchKinds;
-        MetadataFilters = new MetadataFilters(settings.FlagsFilters);
-        Picker = new FrameworkPicker(ReadStrings, appState.ReportError);
-        ExportSetup.RestoreWindow(settings.ExportWindow);
-        Analyzer = new AnalyzerRows(appState.Analyzer, appState.Assemblies);
-        _listGeneration = appState.Assemblies.Generation;
-        _shownLanguage = appState.Language;
-        _shownOptions = appState.DecompilerOptions;
-        AddOpenTabViews(appState.Tabs);
-        MainLayout = RestoreLayout(settings.Layout);
+        FoldedOptionGroups = new FoldedGroups(saved.FoldedOptionGroups);
+        BookmarkColumns.Restore(saved.BookmarkColumns);
+        SearchColumns.Restore(saved.SearchColumns);
+        ExportColumns.Restore(saved.ExportColumns);
+        Search = new Search(ReadStrings, reportError);
+        Search.Kinds = saved.SearchKinds;
+        MetadataFilters = new MetadataFilters(saved.FlagsFilters);
+        Picker = new FrameworkPicker(ReadStrings, reportError);
+        ExportSetup.RestoreWindow(saved.ExportWindow);
+        Analyzer = new AnalyzerRows(AppCommands);
+        _restoredDocuments = NewDocumentPanel();
+        MainLayout = RestoreLayout(saved.Layout, _restoredDocuments);
         _keptView = CaptureViewSources();
     }
 

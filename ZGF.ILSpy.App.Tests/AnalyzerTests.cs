@@ -78,7 +78,7 @@ public sealed class AnalyzerTests
 
         app.DoubleClick(app.Frames.Canvas.Texts.Last(t => t.Inputs.Text.StartsWith("Third()")).Inputs.Text);
         d.Settle();
-        app.Ui.Analyzer.Analyze(caller.Symbol);
+        AnalyzerPanelView.Analyze(app.Ui.Analyzer, app.AppState, caller.Symbol);
 
         Assert.StartsWith("Third()", d.AppState.Tabs.Active!.Node!.Text);
         Assert.Equal(2, analyzer.Roots.Count);

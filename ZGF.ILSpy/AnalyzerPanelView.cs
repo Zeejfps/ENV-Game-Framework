@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Analysis;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Navigation;
 
@@ -66,15 +67,15 @@ internal static class AnalyzerPanelView
     private static void HandleKeys(Ui<UiState> ui, AppState appState, AnalyzerRows rows)
     {
         if (Shortcuts.AnalyzePressed(ui))
-            AnalyzeSelected(rows);
+            AnalyzeSelected(appState, rows);
         if (Shortcuts.DeletePressed(ui))
             RemoveSelectedAnalysis(appState, rows);
     }
 
-    private static void AnalyzeSelected(AnalyzerRows rows)
+    private static void AnalyzeSelected(AppState appState, AnalyzerRows rows)
     {
         if (rows.View.Selected is AnalyzerSymbolNode picked)
-            rows.Analyze(picked.Symbol);
+            Analyze(rows, appState, picked.Symbol);
     }
 
     private static void RemoveSelectedAnalysis(AppState appState, AnalyzerRows rows)
@@ -109,7 +110,7 @@ internal static class AnalyzerPanelView
         if (target != null)
             GoToItems(ui, appState, target);
         if (!isRoot && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
-            rows.Analyze(node.Symbol);
+            Analyze(rows, appState, node.Symbol);
         ui.MenuSeparator();
         if (isRoot && ui.MenuItem(t.AnalyzerRemove, id: "remove"))
             analyzer.Remove(node);
@@ -135,6 +136,13 @@ internal static class AnalyzerPanelView
             return;
         screen.OpenAnalyzer();
         screen.Analyzer.Show(root);
+    }
+
+    /// <summary>Analyzes <paramref name="symbol"/>, or finds the root analyzing it already, and shows that root.</summary>
+    internal static void Analyze(AnalyzerRows rows, AppState appState, AnalysisSymbol symbol)
+    {
+        var root = AddToAnalyzer(appState, symbol);
+        rows.Show(root);
     }
 
     /// <summary>Opens the analyzer if it is not, where a root shows as loading while what

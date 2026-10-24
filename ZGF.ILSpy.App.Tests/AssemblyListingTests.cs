@@ -341,7 +341,7 @@ public sealed class AssemblyListingTests
         app.Run(2);
         Assert.True(app.Frames.Drew(SavedAssemblyLists.DefaultName));
 
-        app.Ui.ListsDialog.Open(app.AppState);
+        AssemblyListsDialogView.Open(app.Ui.ListsDialog, app.AppState);
         app.Run(2);
 
         Assert.True(app.Frames.Drew("Assembly lists"));
@@ -429,7 +429,7 @@ public sealed class AssemblyListingTests
     {
         var app = AppDriver.Opened();
         app.AppState.Lists.Create(Other);
-        app.Ui.ListsDialog.Open(app.AppState);
+        AssemblyListsDialogView.Open(app.Ui.ListsDialog, app.AppState);
         app.Run(2);
         return app;
     }

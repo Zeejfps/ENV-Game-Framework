@@ -7,29 +7,29 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>The analyzer's tree as the tree view reads it, with the view's expansion and selection.
-/// An analysis runs in the background the first time its row is expanded, and shows a loading row
-/// until it is done.</summary>
+/// Expanding an analysis's row the first time asks for it to run, and it shows a loading row until it
+/// is done.</summary>
 public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
 {
-    private readonly AnalyzerTree _analyzer;
-    private readonly AssemblyList _assemblies;
+    private readonly Queue<AppCommand> _appCommands;
+    private readonly HashSet<AnalyzerKindNode> _asked = new();
     private readonly AnalyzerMessageNode _loading = new();
+    private IReadOnlyList<AnalyzerNode> _roots = Array.Empty<AnalyzerNode>();
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _icons = NodeIconPalette.Dark;
     private Strings _strings = Strings.For(Locale.En);
     private int _seenChanges = -1;
+    private int _seenFindings = -1;
 
-    /// <param name="analyzer">The tree the rows show.</param>
-    /// <param name="assemblies">The open assemblies analyses run over.</param>
-    public AnalyzerRows(AnalyzerTree analyzer, AssemblyList assemblies)
+    /// <param name="appCommands">Where the rows ask for an analysis to run.</param>
+    public AnalyzerRows(Queue<AppCommand> appCommands)
     {
-        _analyzer = analyzer;
-        _assemblies = assemblies;
+        _appCommands = appCommands;
     }
 
     public TreeViewState<AnalyzerNode> View { get; } = new(ReferenceEqualityComparer.Instance);
 
-    public IReadOnlyList<AnalyzerNode> Roots => _analyzer.Roots;
+    public IReadOnlyList<AnalyzerNode> Roots => _roots;
 
     public void SetStyle(UiTheme theme, NodeIconPalette icons, Strings strings)
     {
@@ -38,30 +38,40 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
         _strings = strings;
     }
 
-    /// <summary>Lists the rows again when the roots changed, dropping a selection whose root is gone.</summary>
-    public void Follow()
+    /// <summary>Shows the roots of <paramref name="analyzer"/>, listing the rows again when the roots changed,
+    /// dropping a selection whose root is gone, or when an analysis found more.</summary>
+    public void Follow(AnalyzerTree analyzer)
     {
-        if (_analyzer.Changes == _seenChanges)
-            return;
-        _seenChanges = _analyzer.Changes;
-        View.Refresh();
-        DropSelectionOfRemovedRoot();
+        _roots = analyzer.Roots;
+        _asked.Clear();
+        FollowRoots(analyzer);
+        FollowFindings(analyzer);
     }
 
-    private void DropSelectionOfRemovedRoot()
+    private void FollowRoots(AnalyzerTree analyzer)
+    {
+        if (analyzer.Changes == _seenChanges)
+            return;
+        _seenChanges = analyzer.Changes;
+        View.Refresh();
+        DropSelectionOfRemovedRoot(analyzer);
+    }
+
+    private void DropSelectionOfRemovedRoot(AnalyzerTree analyzer)
     {
         if (!View.TryGetSelectedRoot(out var root))
             return;
-        if (_analyzer.Contains(root))
+        if (analyzer.Contains(root))
             return;
         View.ClearSelection();
     }
 
-    /// <summary>Analyzes <paramref name="symbol"/>, or finds the root analyzing it already, and shows that root.</summary>
-    public void Analyze(AnalysisSymbol symbol)
+    private void FollowFindings(AnalyzerTree analyzer)
     {
-        var root = _analyzer.AddRoot(symbol);
-        Show(root);
+        if (analyzer.Findings == _seenFindings)
+            return;
+        _seenFindings = analyzer.Findings;
+        View.Refresh();
     }
 
     /// <summary>Expands <paramref name="root"/> and selects it.</summary>
@@ -83,7 +93,7 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
     /// <summary>Expands every root found and each analysis of it, running those not run yet.</summary>
     public void ExpandAll()
     {
-        foreach (var root in _analyzer.Roots)
+        foreach (var root in _roots)
         {
             if (root is AnalyzerSymbolNode symbol)
                 ExpandWithAnalyses(symbol);
@@ -118,11 +128,21 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
             case AnalyzerSymbolNode symbol:
                 return symbol.Children;
             case AnalyzerKindNode kind:
-                kind.StartOnce(_assemblies, View.Refresh);
+                AskToRun(kind);
                 return ListResults(kind);
             default:
                 return [];
         }
+    }
+
+    /// <summary>Asks once for <paramref name="kind"/> to run, unless it already started.</summary>
+    private void AskToRun(AnalyzerKindNode kind)
+    {
+        if (kind.HasStarted)
+            return;
+        if (!_asked.Add(kind))
+            return;
+        _appCommands.Enqueue(new AppCommand.RunAnalysis(kind));
     }
 
     private IReadOnlyList<AnalyzerNode> ListResults(AnalyzerKindNode kind)

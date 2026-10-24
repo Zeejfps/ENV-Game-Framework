@@ -15,7 +15,21 @@ public static class Analysis
         var symbol = Analyzers.Of(node);
         if (symbol == null)
             return null;
+        return AddToAnalyzer(appState, symbol);
+    }
+
+    /// <summary>Analyzes <paramref name="symbol"/> in the analyzer. Returns the root analyzing it, the one
+    /// already there when it was analyzed before.</summary>
+    public static AnalyzerSymbolNode AddToAnalyzer(AppState appState, AnalysisSymbol symbol)
+    {
         return appState.Analyzer.AddRoot(symbol);
+    }
+
+    /// <summary>Runs the analysis <paramref name="kind"/> stands for over the open assemblies in the
+    /// background, unless it already started.</summary>
+    public static void RunAnalysis(AppState appState, AnalyzerKindNode kind)
+    {
+        kind.StartOnce(appState.Assemblies, appState.Analyzer.NoteFindings);
     }
 
     /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>

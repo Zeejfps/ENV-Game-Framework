@@ -15,14 +15,14 @@ public sealed partial class UiState
     public bool ConfirmingLayoutReset;
 
     private FocusTry _lastFocusTry = new(-1, -1);
-    private DecompilationLanguage _shownLanguage;
-    private DecompilerOptions _shownOptions;
+    private DecompilationLanguage? _shownLanguage;
+    private DecompilerOptions? _shownOptions;
+    private readonly string _restoredDocuments;
 
-    /// <summary>The saved layout with the first tab in the place of the documents, a panel the layout
-    /// makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
-    private MainLayout RestoreLayout(DockLayout? saved)
+    /// <summary>The saved layout with the document panel <paramref name="first"/> in the place of the documents,
+    /// a panel the layout makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
+    private MainLayout RestoreLayout(DockLayout? saved, string first)
     {
-        var first = PanelOf(_appState.Tabs[0]);
         var dock = DockPanels.Restore(saved, first, out var placed);
         var layout = new MainLayout(dock);
         if (!placed)
@@ -30,6 +30,13 @@ public sealed partial class UiState
         dock.NewPanel = OpenTabForPanel;
         dock.PanelClosed += OnPanelClosed;
         return layout;
+    }
+
+    /// <summary>Shows <paramref name="tab"/>, the app state's first tab, in the place of the documents the
+    /// layout was restored with.</summary>
+    public void ShowInRestoredDocuments(DocumentTab tab)
+    {
+        AddTabView(tab, _restoredDocuments);
     }
 
     /// <summary>What the screen asked of the app state while it drew, for the app to run once the frame is drawn.</summary>

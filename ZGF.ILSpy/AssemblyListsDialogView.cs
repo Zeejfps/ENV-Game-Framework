@@ -51,10 +51,10 @@ internal static class AssemblyListsDialogView
         using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
         {
             if (ui.Button(t.ListsNew, id: "new", icon: NewIcon))
-                dialog.Create(appState);
+                Create(dialog, appState);
             ui.Spacer();
             if (ui.IconButton("duplicate", LucideIcons.Copy, LucideIcons.Family, t.ListsDuplicate, any))
-                dialog.Duplicate(appState, picked!);
+                Duplicate(dialog, appState, picked!);
             if (ui.IconButton("rename", LucideIcons.Pencil, LucideIcons.Family, t.ListsRename, any))
                 dialog.StartRenaming(picked!);
             if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.ListsDelete, any))
@@ -164,7 +164,7 @@ internal static class AssemblyListsDialogView
         var dialog = ui.State.ListsDialog;
         if (result == InlineEditResult.Committed)
         {
-            dialog.FinishRenaming(appState.Lists);
+            FinishRenaming(dialog, appState.Lists);
             return;
         }
         dialog.StopAsking();
@@ -201,7 +201,7 @@ internal static class AssemblyListsDialogView
         var dialog = ui.State.ListsDialog;
         if (dialog.Renaming != null)
         {
-            dialog.FinishRenaming(appState.Lists);
+            FinishRenaming(dialog, appState.Lists);
             return;
         }
         dialog.StopAsking();
@@ -250,7 +250,7 @@ internal static class AssemblyListsDialogView
         if (ui.MenuItem(t.ListsRename, "F2", id: "rename"))
             dialog.StartRenaming(picked);
         if (ui.MenuItem(t.ListsDuplicate, id: "duplicate"))
-            dialog.Duplicate(appState, picked);
+            Duplicate(dialog, appState, picked);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsDelete, "Delete", id: "delete"))
             dialog.StartConfirmingDelete(picked);
@@ -264,5 +264,38 @@ internal static class AssemblyListsDialogView
             if (ui.Button(t.ListsClose, id: "close"))
                 dialog.Close();
         }
+    }
+
+    /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>
+    internal static void Open(AssemblyListsDialog dialog, AppState appState)
+    {
+        RememberOpenAssemblies(appState);
+        dialog.Open(appState.Lists);
+    }
+
+    /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
+    private static void Create(AssemblyListsDialog dialog, AppState appState)
+    {
+        var name = CreateAssemblyList(appState);
+        dialog.PickToRename(appState.Lists, name);
+    }
+
+    /// <summary>Adds a copy of the list named <paramref name="name"/>, picked to be named, leaving the
+    /// open one open.</summary>
+    private static void Duplicate(AssemblyListsDialog dialog, AppState appState, string name)
+    {
+        var copy = DuplicateAssemblyList(appState, name);
+        dialog.PickToRename(appState.Lists, copy);
+    }
+
+    /// <summary>Gives the list being renamed the name typed, when it may have it, and stops renaming either way.</summary>
+    private static void FinishRenaming(AssemblyListsDialog dialog, SavedAssemblyLists lists)
+    {
+        var name = dialog.Renaming;
+        if (name == null)
+            return;
+        var newName = dialog.NewName;
+        dialog.StopAsking();
+        lists.Rename(name, newName);
     }
 }

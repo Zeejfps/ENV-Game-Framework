@@ -55,20 +55,19 @@ public sealed class AnalyzerKindNode(AnalysisSymbol subject, AnalysisKind kind) 
 {
     private readonly List<AnalyzerNode> _found = new();
     private CancellationTokenSource? _work;
-    private bool _started;
-
     public AnalysisSymbol Subject { get; } = subject;
     public AnalysisKind Kind { get; } = kind;
     public bool IsDone { get; private set; }
+    public bool HasStarted { get; private set; }
     public IReadOnlyList<AnalyzerNode> Found => _found;
 
     /// <summary>Runs the analysis over <paramref name="assemblies"/> unless it already started,
     /// calling <paramref name="changed"/> each time results come in.</summary>
     internal void StartOnce(AssemblyList assemblies, Action changed)
     {
-        if (_started)
+        if (HasStarted)
             return;
-        _started = true;
+        HasStarted = true;
         Run(assemblies, changed);
     }
 
@@ -165,6 +164,14 @@ public sealed class AnalyzerTree
 
     /// <summary>Changes whenever a root is added, replaced or removed.</summary>
     public int Changes { get; private set; }
+
+    /// <summary>Changes whenever an analysis under a root finds more or ends.</summary>
+    public int Findings { get; private set; }
+
+    internal void NoteFindings()
+    {
+        Findings++;
+    }
 
     /// <summary>True while a root waits for its symbol to be found.</summary>
     public bool IsFinding

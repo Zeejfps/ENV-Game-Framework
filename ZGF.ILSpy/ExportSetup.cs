@@ -311,17 +311,8 @@ public sealed class ExportSetup
         return new ProjectExtras(keyFile, GeneratePdb, EmbedSourcesInPdb);
     }
 
-    /// <summary>Closes the dialog and exports what it asks for, unless something stops the export.</summary>
-    public void Start(AppState appState)
-    {
-        if (!CanExport)
-            return;
-        Close();
-        StartExport(appState, CreateRequest());
-    }
-
     /// <summary>The export the dialog asks for.</summary>
-    private ExportRequest CreateRequest()
+    public ExportRequest CreateRequest()
     {
         return new ExportRequest(Folder.Trim(), IncludedProjects(), Extras(), SolutionFileName);
     }

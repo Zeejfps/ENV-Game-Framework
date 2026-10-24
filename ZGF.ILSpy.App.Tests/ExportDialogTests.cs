@@ -146,7 +146,7 @@ public sealed class ExportDialogTests : IDisposable
         setup.Folder = _temp.Path;
         setup.Choices[0].Name = "Renamed";
 
-        d.Ui.ExportSetup.Start(d.AppState);
+        ExportDialogView.Start(d.Ui.ExportSetup, d.AppState);
         d.Settle();
 
         Assert.False(setup.IsOpen);
@@ -163,7 +163,7 @@ public sealed class ExportDialogTests : IDisposable
         setup.IncludeAll(true);
         setup.SolutionName = "Both";
 
-        d.Ui.ExportSetup.Start(d.AppState);
+        ExportDialogView.Start(d.Ui.ExportSetup, d.AppState);
         d.Settle();
 
         Assert.True(File.Exists(_temp.PathOf("Both.sln")));
@@ -443,7 +443,7 @@ public sealed class ExportDialogTests : IDisposable
         setup.Folder = _temp.Path;
         setup.GeneratePdb = true;
 
-        d.Ui.ExportSetup.Start(d.AppState);
+        ExportDialogView.Start(d.Ui.ExportSetup, d.AppState);
         d.Settle();
 
         var pdb = _temp.PathOf(Fixtures(d).PdbFileName);
