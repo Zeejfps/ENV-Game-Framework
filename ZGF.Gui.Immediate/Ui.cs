@@ -321,6 +321,8 @@ public abstract partial class Ui
         _focusClaimed = false;
         _tabStops.Clear();
         BeginIme();
+        BeginTitleBar();
+        BeginWindowState();
         if (input.WasPressed(PointerButton.Left) || input.WasPressed(PointerButton.Right) || input.WasPressed(PointerButton.Middle))
             _focusVisible = false;
 

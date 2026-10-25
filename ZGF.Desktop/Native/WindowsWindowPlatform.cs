@@ -30,17 +30,19 @@ internal sealed class WindowsWindowPlatform : WindowPlatform
 
     private delegate IntPtr WndProc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 
-    // Capture: a popup window whose outside clicks (and WM_CANCELMODE) dismiss the menu chain.
-    // NonClientWatch: a host window whose non-client presses (title bar, borders, caption buttons)
-    // dismiss an open menu — the signal GLFW never surfaces.
-    private enum SubclassKind { Capture, NonClientWatch }
-
+    // One window procedure per window for everything GLFW does not surface. OutsideClick: a popup whose
+    // outside clicks (and WM_CANCELMODE) dismiss the menu chain. NonClientPress: a host window whose
+    // non-client presses (title bar, borders, caption buttons) dismiss an open menu. TitleBar: a window
+    // whose content reaches under its native title bar.
     private sealed class Subclass
     {
         public IntPtr OriginalProc;
-        public SubclassKind Kind;
-        public Action<PointI> Callback = _ => { };
         public WndProc NewProc = null!;
+        public Action<PointI>? OutsideClick;
+        public Action? NonClientPress;
+        public WindowsTitleBar? TitleBar;
+
+        public bool IsUnused => OutsideClick == null && NonClientPress == null && TitleBar == null;
     }
 
     private readonly Dictionary<IntPtr, Subclass> _subclasses = new();
@@ -64,7 +66,7 @@ internal sealed class WindowsWindowPlatform : WindowPlatform
     {
         if (hwnd == IntPtr.Zero) return;
 
-        InstallSubclass(hwnd, onOutsideClick);
+        Hook(hwnd).OutsideClick = onOutsideClick;
         SetCapture(hwnd);
         _capturedHwnd = hwnd;
     }
@@ -78,22 +80,80 @@ internal sealed class WindowsWindowPlatform : WindowPlatform
             ReleaseCapture();
             _capturedHwnd = IntPtr.Zero;
         }
-        RemoveSubclass(hwnd);
+        if (!_subclasses.TryGetValue(hwnd, out var sub)) return;
+        sub.OutsideClick = null;
+        UnhookIfUnused(hwnd, sub);
     }
 
     public override void WatchNonClientPress(IntPtr hwnd, Action onNonClientPress)
     {
         if (hwnd == IntPtr.Zero) return;
-        InstallSubclass(hwnd, _ => onNonClientPress(), SubclassKind.NonClientWatch);
+        Hook(hwnd).NonClientPress = onNonClientPress;
     }
 
     public override void UnwatchNonClientPress(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero) return;
-        RemoveSubclass(hwnd);
+        if (!_subclasses.TryGetValue(hwnd, out var sub)) return;
+        sub.NonClientPress = null;
+        UnhookIfUnused(hwnd, sub);
     }
 
     public override void SetTitleBarTheme(IntPtr hwnd, bool dark) => WindowsDwm.SetDarkTitleBar(hwnd, dark);
+
+    public override bool CanExtendIntoTitleBar => WindowsTitleBar.IsSupported;
+
+    public override void ExtendIntoTitleBar(IntPtr hwnd, TitleBarContent? content)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        if (!WindowsTitleBar.IsSupported) return;
+        if (content == null)
+            RestoreTitleBar(hwnd);
+        else
+            ShowInTitleBar(hwnd, content);
+    }
+
+    private void ShowInTitleBar(IntPtr hwnd, TitleBarContent content)
+    {
+        var sub = Hook(hwnd);
+        if (sub.TitleBar != null)
+        {
+            sub.TitleBar.Show(content);
+            return;
+        }
+        sub.TitleBar = new WindowsTitleBar(hwnd, content);
+        sub.TitleBar.Extend();
+    }
+
+    private void RestoreTitleBar(IntPtr hwnd)
+    {
+        if (!_subclasses.TryGetValue(hwnd, out var sub)) return;
+        var titleBar = sub.TitleBar;
+        if (titleBar == null) return;
+        sub.TitleBar = null;
+        titleBar.Restore();
+        UnhookIfUnused(hwnd, sub);
+    }
+
+    public override RectI CaptionButtons(IntPtr hwnd)
+    {
+        var titleBar = FindTitleBar(hwnd);
+        if (titleBar == null) return default;
+        return titleBar.CaptionButtons;
+    }
+
+    public override int TitleBarOverlap(IntPtr hwnd)
+    {
+        var titleBar = FindTitleBar(hwnd);
+        if (titleBar == null) return 0;
+        return titleBar.Overlap();
+    }
+
+    private WindowsTitleBar? FindTitleBar(IntPtr hwnd)
+    {
+        if (!_subclasses.TryGetValue(hwnd, out var sub)) return null;
+        return sub.TitleBar;
+    }
 
     public override void SetInputEnabled(IntPtr hwnd, bool enabled)
     {
@@ -107,39 +167,42 @@ internal sealed class WindowsWindowPlatform : WindowPlatform
         SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, owner);
     }
 
-    private void InstallSubclass(IntPtr hwnd, Action<PointI> callback, SubclassKind kind = SubclassKind.Capture)
+    private Subclass Hook(IntPtr hwnd)
     {
         if (_subclasses.TryGetValue(hwnd, out var existing))
-        {
-            existing.Callback = callback;
-            existing.Kind = kind;
-            return;
-        }
-        var sub = new Subclass { Callback = callback, Kind = kind };
+            return existing;
+        var sub = new Subclass();
         sub.NewProc = (h, msg, w, l) => SubclassProc(sub, h, msg, w, l);
         sub.OriginalProc = SetWindowLongPtr(hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(sub.NewProc));
         _subclasses[hwnd] = sub;
+        return sub;
     }
 
-    private void RemoveSubclass(IntPtr hwnd)
+    private void UnhookIfUnused(IntPtr hwnd, Subclass sub)
     {
-        if (!_subclasses.TryGetValue(hwnd, out var sub)) return;
+        if (!sub.IsUnused) return;
         SetWindowLongPtr(hwnd, GWLP_WNDPROC, sub.OriginalProc);
         _subclasses.Remove(hwnd);
     }
 
     private static IntPtr SubclassProc(Subclass sub, IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        if (sub.Kind == SubclassKind.NonClientWatch)
-        {
-            // A non-client press dismisses any open menu, then falls through to the original proc so
-            // the window still drags / resizes / minimizes as usual. Fires before DefWindowProc's
-            // modal move loop, so the dismissal is requested at the moment the frame is grabbed.
-            if (msg is WM_NCLBUTTONDOWN or WM_NCRBUTTONDOWN)
-                sub.Callback(default);
-            return CallWindowProc(sub.OriginalProc, hwnd, msg, wParam, lParam);
-        }
+        // A non-client press dismisses any open menu, then falls through so the window still drags /
+        // resizes / minimizes as usual. Fires before DefWindowProc's modal move loop, so the dismissal
+        // is requested at the moment the frame is grabbed.
+        if (sub.NonClientPress != null && msg is WM_NCLBUTTONDOWN or WM_NCRBUTTONDOWN)
+            sub.NonClientPress();
+        if (sub.OutsideClick != null && RedirectOutsideClick(sub.OutsideClick, hwnd, msg, wParam, lParam))
+            return IntPtr.Zero;
+        if (sub.TitleBar != null && sub.TitleBar.Handle(sub.OriginalProc, msg, wParam, lParam, out var result))
+            return result;
+        return CallWindowProc(sub.OriginalProc, hwnd, msg, wParam, lParam);
+    }
 
+    /// <summary>Hands a press outside the capturing popup to the window under it, after telling
+    /// <paramref name="onOutsideClick"/>; true when the press was outside.</summary>
+    private static bool RedirectOutsideClick(Action<PointI> onOutsideClick, IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
+    {
         switch (msg)
         {
             case WM_LBUTTONDOWN:
@@ -151,34 +214,31 @@ internal sealed class WindowsWindowPlatform : WindowPlatform
                 var screen = ScreenPointFromLParam(lParam, hwnd, msg);
                 var gotRect = GetWindowRectStruct(hwnd, out var r);
                 var insideRect = gotRect && ContainsPoint(r, screen);
-                if (!insideRect)
+                if (insideRect)
+                    return false;
+                onOutsideClick(screen);
+                // SetCapture routed this click to the popup hwnd. Re-route
+                // to the window actually under the cursor so the underlying
+                // control (e.g. another repo row) still receives the press.
+                // Without this, a click outside the popup only dismisses
+                // the menu and is otherwise lost.
+                ReleaseCapture();
+                var pt = new POINT { X = screen.X, Y = screen.Y };
+                var target = WindowFromPoint(pt);
+                if (target != IntPtr.Zero && target != hwnd)
                 {
-                    sub.Callback(screen);
-                    // SetCapture routed this click to the popup hwnd. Re-route
-                    // to the window actually under the cursor so the underlying
-                    // control (e.g. another repo row) still receives the press.
-                    // Without this, a click outside the popup only dismisses
-                    // the menu and is otherwise lost.
-                    ReleaseCapture();
-                    var pt = new POINT { X = screen.X, Y = screen.Y };
-                    var target = WindowFromPoint(pt);
-                    if (target != IntPtr.Zero && target != hwnd)
-                    {
-                        ScreenToClient(target, ref pt);
-                        var lp = (IntPtr)(((pt.Y & 0xFFFF) << 16) | (pt.X & 0xFFFF));
-                        PostMessage(target, msg, wParam, lp);
-                    }
-                    return IntPtr.Zero;
+                    ScreenToClient(target, ref pt);
+                    var lp = (IntPtr)(((pt.Y & 0xFFFF) << 16) | (pt.X & 0xFFFF));
+                    PostMessage(target, msg, wParam, lp);
                 }
-                break;
+                return true;
             }
             case WM_CANCELMODE:
-            {
-                sub.Callback(new PointI(int.MinValue, int.MinValue));
-                break;
-            }
+                onOutsideClick(new PointI(int.MinValue, int.MinValue));
+                return false;
+            default:
+                return false;
         }
-        return CallWindowProc(sub.OriginalProc, hwnd, msg, wParam, lParam);
     }
 
     private static PointI ScreenPointFromLParam(IntPtr lParam, IntPtr hwnd, uint msg)

@@ -22,4 +22,27 @@ public sealed record WindowIcon(IReadOnlyList<WindowIconImage> Images)
         }
         return new WindowIcon(images);
     }
+
+    /// <summary>The smallest image at least <paramref name="pixels"/> wide, or else the largest; null
+    /// when the icon has none.</summary>
+    public WindowIconImage? PickImage(int pixels)
+    {
+        WindowIconImage? picked = null;
+        foreach (var image in Images)
+        {
+            if (IsBetterPick(image, picked, pixels))
+                picked = image;
+        }
+        return picked;
+    }
+
+    private static bool IsBetterPick(WindowIconImage image, WindowIconImage? picked, int pixels)
+    {
+        if (picked == null)
+            return true;
+        var current = picked.Value.Width;
+        if (current < pixels)
+            return image.Width > current;
+        return image.Width >= pixels && image.Width < current;
+    }
 }

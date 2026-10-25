@@ -157,17 +157,34 @@ public abstract class GlfwWindowBase : IWindow
 
     public void Focus() => GLFW.Glfw.FocusWindow(GlfwWindow);
 
-    public void SetPosition(int screenX, int screenY) =>
-        GLFW.Glfw.SetWindowPosition(GlfwWindow, screenX, screenY);
+    public void Minimize() => GLFW.Glfw.IconifyWindow(GlfwWindow);
 
-    public void SetSize(int widthPoints, int heightPoints) =>
-        GLFW.Glfw.SetWindowSize(GlfwWindow, widthPoints, heightPoints);
+    public void Maximize() => GLFW.Glfw.MaximizeWindow(GlfwWindow);
+
+    public void Restore() => GLFW.Glfw.RestoreWindow(GlfwWindow);
+
+    // GLFW places and sizes the window by the frame its styles describe, title bar included, so while
+    // the content reaches under the title bar each call is offset by the title bar's height.
+    public void SetPosition(int screenX, int screenY)
+    {
+        var overlap = Platform.TitleBarOverlap(NativeHandle);
+        GLFW.Glfw.SetWindowPosition(GlfwWindow, screenX, screenY + overlap);
+    }
+
+    public void SetSize(int widthPoints, int heightPoints)
+    {
+        var overlap = Platform.TitleBarOverlap(NativeHandle);
+        GLFW.Glfw.SetWindowSize(GlfwWindow, widthPoints, heightPoints - overlap);
+    }
 
     public void GetPosition(out int screenX, out int screenY) =>
         GLFW.Glfw.GetWindowPosition(GlfwWindow, out screenX, out screenY);
 
-    public void GetFrameSize(out int left, out int top, out int right, out int bottom) =>
+    public void GetFrameSize(out int left, out int top, out int right, out int bottom)
+    {
         GLFW.Glfw.GetWindowFrameSize(GlfwWindow, out left, out top, out right, out bottom);
+        top -= Platform.TitleBarOverlap(NativeHandle);
+    }
 
     public void SetMousePassThrough(bool passThrough) =>
         GLFW.Glfw.SetWindowAttribute(GlfwWindow, WindowAttribute.MousePassthrough, passThrough);
@@ -195,6 +212,12 @@ public abstract class GlfwWindowBase : IWindow
     }
 
     public void SetTitleBarTheme(bool dark) => Platform.SetTitleBarTheme(NativeHandle, dark);
+
+    public bool CanExtendIntoTitleBar => Platform.CanExtendIntoTitleBar;
+
+    public void ExtendIntoTitleBar(TitleBarContent? content) => Platform.ExtendIntoTitleBar(NativeHandle, content);
+
+    public RectI CaptionButtons => Platform.CaptionButtons(NativeHandle);
 
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {

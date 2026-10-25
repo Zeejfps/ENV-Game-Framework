@@ -152,6 +152,17 @@
     // Quit.
     "file.exit": { "font": "lucide", "glyph": "E10E" },
 
+    // The window menu, opened from the app's icon in the title bar.
+
+    // Restore the maximized window.
+    "window.restore": { "font": "lucide", "glyph": "E09E" },
+    // Minimize the window.
+    "window.minimize": { "font": "lucide", "glyph": "E11C" },
+    // Maximize the window.
+    "window.maximize": { "font": "lucide", "glyph": "E167" },
+    // Close the window.
+    "window.close": { "font": "lucide", "glyph": "E1B2" },
+
     // Assembly lists: the list picker's menu and the lists dialog.
 
     // Manage the assembly lists, in the list picker's menu.

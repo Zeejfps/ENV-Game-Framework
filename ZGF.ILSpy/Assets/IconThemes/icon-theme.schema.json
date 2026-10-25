@@ -307,6 +307,22 @@
           "description": "Quit.",
           "$ref": "#/definitions/icon"
         },
+        "window.restore": {
+          "description": "Restore the maximized window.",
+          "$ref": "#/definitions/icon"
+        },
+        "window.minimize": {
+          "description": "Minimize the window.",
+          "$ref": "#/definitions/icon"
+        },
+        "window.maximize": {
+          "description": "Maximize the window.",
+          "$ref": "#/definitions/icon"
+        },
+        "window.close": {
+          "description": "Close the window.",
+          "$ref": "#/definitions/icon"
+        },
         "lists.manage": {
           "description": "Manage the assembly lists, in the list picker's menu.",
           "$ref": "#/definitions/icon"

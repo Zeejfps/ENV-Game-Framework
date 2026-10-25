@@ -77,6 +77,10 @@ public interface IWindow : IDisposable
     void Show();
     void Hide();
     void Focus();
+    void Minimize();
+    void Maximize();
+    // Back from minimized or maximized to the window's normal size and place.
+    void Restore();
     void SetPosition(int screenX, int screenY);
     void SetSize(int widthPoints, int heightPoints);
     void GetPosition(out int screenX, out int screenY);
@@ -99,6 +103,16 @@ public interface IWindow : IDisposable
     // Matches the native title bar to a dark or light client area where the platform draws one
     // (Windows' immersive dark caption); a no-op elsewhere.
     void SetTitleBarTheme(bool dark);
+    // Whether the content can reach under the native title bar while the platform keeps drawing its
+    // caption buttons there. Windows 11 only.
+    bool CanExtendIntoTitleBar { get; }
+    // Lets the content reach under the native title bar, drawn as content describes, or with null gives
+    // the title bar its own strip again. A shown window keeps its place on the screen, so its content
+    // grows or shrinks; a hidden one keeps its content's size. A no-op where CanExtendIntoTitleBar is false.
+    void ExtendIntoTitleBar(TitleBarContent? content);
+    // Where the platform draws its caption buttons over the content, in window coordinates: the room
+    // the content leaves free. Empty while the title bar has its own strip.
+    RectI CaptionButtons { get; }
     void RequestRedraw();
 
     string GetClipboardText();

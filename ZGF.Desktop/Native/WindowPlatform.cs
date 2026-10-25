@@ -32,6 +32,16 @@ internal class WindowPlatform
 
     public virtual void SetTitleBarTheme(IntPtr window, bool dark) { }
 
+    public virtual bool CanExtendIntoTitleBar => false;
+
+    public virtual void ExtendIntoTitleBar(IntPtr window, TitleBarContent? content) { }
+
+    public virtual RectI CaptionButtons(IntPtr window) => default;
+
+    /// <summary>How far the content reaches above where the window's frame, as GLFW computes it, puts
+    /// it: the height of the title bar the content extends into, and 0 while it does not.</summary>
+    public virtual int TitleBarOverlap(IntPtr window) => 0;
+
     public virtual void SetInputEnabled(IntPtr window, bool enabled) { }
 
     public virtual void SetOwner(IntPtr window, IntPtr owner) { }
