@@ -10,12 +10,12 @@ namespace ZGF.ILSpy;
 /// are built in the background.</summary>
 public sealed class BrowseTree : ITreeModel<BrowseNode>
 {
-    private readonly ConditionalWeakTable<BrowseNode, BrowseNode[]> _publicChildren = new();
+    private readonly ConditionalWeakTable<BrowseNode, BrowseNode[]> _shownChildren = new();
     private readonly HashSet<BrowseNode> _building = new(ReferenceEqualityComparer.Instance);
     private BrowseNode[] _roots = [];
     private int _rootsVersion = -1;
     private readonly UserIntent _expansion = new();
-    private bool _showNonPublic = true;
+    private ApiVisibility _visibility = ApiVisibility.AllButCompilerGenerated;
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _icons = NodeIconPalette.Dark;
@@ -49,11 +49,11 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     public string RowLabel(BrowseNode node) =>
         node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
 
-    public void SetShowNonPublic(bool show)
+    public void ShowApi(ApiVisibility visibility)
     {
-        if (show == _showNonPublic) return;
-        _showNonPublic = show;
-        _publicChildren.Clear();
+        if (visibility == _visibility) return;
+        _visibility = visibility;
+        _shownChildren.Clear();
         View.Refresh();
     }
 
@@ -67,21 +67,24 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     public void ShowTokens(TokenFormat format) => _tokens = format;
 
     /// <summary>Expands the tree down to <paramref name="node"/>, selects it and scrolls to it. When
-    /// non-public nodes are hidden and it is one, or inside one, its nearest shown ancestor is
-    /// selected instead.</summary>
+    /// it is hidden, or inside a hidden node, its nearest shown ancestor is selected instead.</summary>
     public void Reveal(BrowseNode node)
     {
         var path = new List<BrowseNode>();
         for (var n = node; n != null; n = n.Parent)
             path.Add(n);
         path.Reverse();
-        if (!_showNonPublic)
-        {
-            var hidden = path.FindIndex(static n => !n.IsPublicApi);
-            if (hidden > 0)
-                path.RemoveRange(hidden, path.Count - hidden);
-        }
+        var hidden = path.FindIndex(IsHidden);
+        if (hidden > 0)
+            path.RemoveRange(hidden, path.Count - hidden);
         View.Reveal(path);
+    }
+
+    private bool IsHidden(BrowseNode node)
+    {
+        if (_visibility == ApiVisibility.All) return false;
+        if (node.IsCompilerGenerated) return true;
+        return _visibility == ApiVisibility.PublicOnly && !node.IsPublicApi;
     }
 
     /// <summary>The paths of the expanded nodes that are showing, for expanding them again after
@@ -171,11 +174,13 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
             Build(node);
             return [node.LoadingChild];
         }
-        if (_showNonPublic) return children;
-        if (_publicChildren.TryGetValue(node, out var cached)) return cached;
-        var visible = children.Where(static c => c.IsPublicApi).ToArray();
-        _publicChildren.AddOrUpdate(node, visible);
-        return visible;
+        if (_visibility == ApiVisibility.All) return children;
+        if (_shownChildren.TryGetValue(node, out var cached)) return cached;
+        var shown = children
+            .Where(c => !IsHidden(c))
+            .ToArray();
+        _shownChildren.AddOrUpdate(node, shown);
+        return shown;
     }
 
     public TreeRow Row(BrowseNode node) => new(

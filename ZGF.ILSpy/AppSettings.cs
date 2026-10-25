@@ -44,7 +44,12 @@ public sealed class AppSettings
 
     /// <summary>The interface language; null follows the system's.</summary>
     public Locale? Locale { get; set; }
-    public bool ShowNonPublic { get; set; } = true;
+    public ApiVisibility ApiVisibility { get; set; } = ApiVisibility.AllButCompilerGenerated;
+
+    /// <summary>The one switch settings files kept before <see cref="ApiVisibility"/> had three
+    /// choices. <see cref="Load"/> moves it into that, so it is never written.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ShowNonPublic { get; set; }
     public SearchKinds SearchKinds { get; set; } = SearchKinds.TypesAndMembers;
     public DockLayout? Layout { get; set; }
 
@@ -140,6 +145,7 @@ public sealed class AppSettings
         settings.AssemblyLists = CleanAssemblyLists(settings.AssemblyLists);
         settings.MoveUnnamedListIntoDefault();
         settings.MoveAnalysesIntoActiveList();
+        settings.MoveShowNonPublicIntoApiVisibility();
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.FilePath = path;
@@ -177,6 +183,15 @@ public sealed class AppSettings
         if (AssemblyLists.Count > 0)
             return;
         AssemblyLists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, paths));
+    }
+
+    private void MoveShowNonPublicIntoApiVisibility()
+    {
+        if (ShowNonPublic == null)
+            return;
+        if (ShowNonPublic == false)
+            ApiVisibility = ApiVisibility.PublicOnly;
+        ShowNonPublic = null;
     }
 
     private static List<CodeAnchor> CleanAnalyses(List<CodeAnchor>? analyzed)

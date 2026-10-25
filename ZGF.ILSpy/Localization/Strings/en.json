@@ -23,7 +23,10 @@
   "file.filter_snk": "Strong-name key",
 
   "view.decompiler": "Decompiler",
-  "view.show_non_public": "Show non-public members",
+  "view.shown_api": "Show types and members",
+  "view.shown_public_only": "Public only",
+  "view.shown_source_declared": "Public, internal and private",
+  "view.shown_all": "All, including compiler-generated",
   "view.language": "Language",
   "view.panels": "Panels",
   "view.bookmarks": "Bookmarks",

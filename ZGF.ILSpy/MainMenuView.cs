@@ -102,13 +102,31 @@ internal static class MainMenuView
         ui.MenuSeparator();
         DecompilerMenu(ui, appState);
         ui.MenuSeparator();
-        ui.MenuItem(t.ViewShowNonPublic, ref appState.ShowNonPublic, id: "show-non-public");
+        ApiVisibilityMenu(ui, appState);
         ui.MenuSeparator();
         PanelsMenu(ui);
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             AskToResetLayout(ui.State);
         ui.MenuSeparator();
         LanguageMenu(ui, appState);
+    }
+
+    /// <summary>The submenu of which types and members the tree shows, the one shown picked.</summary>
+    private static void ApiVisibilityMenu(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        using var shown = ui.SubMenu(t.ViewShownApi, id: "shown-api");
+        if (!shown.IsOpen) return;
+        ApiVisibilityItem(ui, appState, t.ViewShownPublicOnly, ApiVisibility.PublicOnly);
+        ApiVisibilityItem(ui, appState, t.ViewShownSourceDeclared, ApiVisibility.AllButCompilerGenerated);
+        ApiVisibilityItem(ui, appState, t.ViewShownAll, ApiVisibility.All);
+    }
+
+    private static void ApiVisibilityItem(Ui<UiState> ui, AppState appState, string label, ApiVisibility visibility)
+    {
+        var selected = appState.ApiVisibility == visibility;
+        if (ui.MenuRadioItem(label, selected))
+            SetApiVisibility(appState, visibility);
     }
 
     /// <summary>The submenu of the views, each checked while open, that opens the one picked.</summary>

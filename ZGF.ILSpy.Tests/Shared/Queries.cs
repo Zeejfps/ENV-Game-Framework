@@ -13,13 +13,22 @@ internal static class NodeQueries
         return node;
     }
 
+    /// <summary>The child labelled <paramref name="text"/>; the one the source declared when the
+    /// compiler made up another of the same label, as it does for an event's field.</summary>
     private static BrowseNode ChildNamed(BrowseNode node, string text)
     {
-        var child = node.Children.SingleOrDefault(c => c.Text == text);
+        var named = node.Children
+            .Where(c => c.Text == text)
+            .ToList();
+        if (named.Count > 1)
+            named = named.FindAll(IsSourceDeclared);
+        var child = named.SingleOrDefault();
         if (child == null)
             throw new InvalidOperationException($"'{node.Text}' has no child '{text}': {string.Join(", ", node.Children.Select(c => c.Text))}");
         return child;
     }
+
+    private static bool IsSourceDeclared(BrowseNode node) => !node.IsCompilerGenerated;
 
     public static NodeContent Content(this BrowseNode node, DecompilationLanguage language = DecompilationLanguage.CSharp) =>
         node.LoadContentAsync(language, DecompilerOptions.Default).GetAwaiter().GetResult();

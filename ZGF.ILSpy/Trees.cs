@@ -8,10 +8,10 @@ public static class Trees
     /// <summary>Forgets what the tree had expanded and selected, and the menu's target, once the list
     /// was cleared; rebuilds its roots when the open assemblies changed; and lists the analyzer's rows
     /// again when its roots changed.</summary>
-    public static void SyncTrees(UiState uiState, AssemblyList assemblies, AnalyzerTree analyzer, bool showNonPublic)
+    public static void SyncTrees(UiState uiState, AssemblyList assemblies, AnalyzerTree analyzer, ApiVisibility visibility)
     {
         ForgetClearedList(uiState, assemblies);
-        uiState.Tree.SetShowNonPublic(showNonPublic);
+        uiState.Tree.ShowApi(visibility);
         uiState.Tree.Sync(assemblies);
         uiState.Analyzer.Follow(analyzer);
     }

@@ -35,21 +35,37 @@ public sealed class BrowseTreeTests
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
         var ns = root.Child(AppStateDriver.FixturesNamespace);
         var secret = ns.Child("Hidden", "Secret() : int");
-        tree.SetShowNonPublic(false);
+        tree.ShowApi(ApiVisibility.PublicOnly);
 
         tree.Reveal(secret);
         Assert.Same(ns, tree.View.Selected);
 
-        tree.SetShowNonPublic(true);
+        tree.ShowApi(ApiVisibility.AllButCompilerGenerated);
         tree.Reveal(secret);
         Assert.Same(secret, tree.View.Selected);
+    }
+
+    [Fact]
+    public void Compiler_generated_members_show_only_when_everything_is_shown()
+    {
+        var tree = new BrowseTree();
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
+        var counter = root.Child(AppStateDriver.FixturesNamespace, "Counter");
+        var backingField = counter.Child("<Count>k__BackingField : int");
+
+        Assert.True(backingField.IsCompilerGenerated);
+        Assert.DoesNotContain(backingField, tree.GetChildren(counter));
+
+        tree.ShowApi(ApiVisibility.All);
+
+        Assert.Contains(backingField, tree.GetChildren(counter));
     }
 
     [Fact]
     public void The_public_children_cache_does_not_keep_closed_assemblies_alive()
     {
         var tree = new BrowseTree();
-        tree.SetShowNonPublic(false);
+        tree.ShowApi(ApiVisibility.PublicOnly);
         var assembly = FilterAndClose(tree);
 
         for (var i = 0; i < 100 && assembly.IsAlive; i++)
@@ -216,6 +232,18 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal(new CodeAnchor(CodeAnchorKind.Definition, "a.dll", 33554434), analyzed);
         Assert.Null(loaded.Save());
         Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Analyzed", out _));
+    }
+
+    [Theory]
+    [InlineData(false, ApiVisibility.PublicOnly)]
+    [InlineData(true, ApiVisibility.AllButCompilerGenerated)]
+    public void The_non_public_switch_of_an_older_settings_file_becomes_its_visibility_and_is_saved_only_as_that(bool showNonPublic, ApiVisibility expected)
+    {
+        var loaded = AppSettings.Load(Written($$"""{ "ShowNonPublic": {{(showNonPublic ? "true" : "false")}} }"""));
+
+        Assert.Equal(expected, loaded.ApiVisibility);
+        Assert.Null(loaded.Save());
+        Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("ShowNonPublic", out _));
     }
 
     [Fact]

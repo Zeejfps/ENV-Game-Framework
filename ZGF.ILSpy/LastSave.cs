@@ -14,7 +14,7 @@ public readonly record struct SavedSources(
     AppThemeId Theme,
     DecompilationLanguage Language,
     DecompilerOptions DecompilerOptions,
-    bool ShowNonPublic,
+    ApiVisibility ApiVisibility,
     Locale Locale);
 
 /// <summary>What the settings were saved from the last time, to save again only when it changed.</summary>

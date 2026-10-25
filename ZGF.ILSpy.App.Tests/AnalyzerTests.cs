@@ -44,7 +44,9 @@ public sealed class AnalyzerTests
     public void Used_By_a_property_or_event_finds_each_member_using_its_accessors_once(string member, string user)
     {
         var d = AppStateDriver.Opened();
-        var node = d.Fixture("Counter").Children.Single(c => c.Text.StartsWith(member + " "));
+        var node = d.Fixture("Counter").Children
+            .Where(c => !c.IsCompilerGenerated)
+            .Single(c => c.Text.StartsWith(member + " "));
 
         d.Analyze(node);
         var usedBy = Expand(d, Assert.Single(d.AppState.Analyzer.Found()), "Used By");

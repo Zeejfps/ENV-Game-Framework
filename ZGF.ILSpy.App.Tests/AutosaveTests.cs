@@ -20,7 +20,7 @@ public sealed class AutosaveTests : IDisposable
     [InlineData(nameof(AppSettings.Theme))]
     [InlineData(nameof(AppSettings.Language))]
     [InlineData(nameof(AppSettings.Decompiler))]
-    [InlineData(nameof(AppSettings.ShowNonPublic))]
+    [InlineData(nameof(AppSettings.ApiVisibility))]
     [InlineData(nameof(AppSettings.Locale))]
     [InlineData(nameof(AppSettings.SearchKinds))]
     [InlineData(nameof(AppSettings.FoldedOptionGroups))]
@@ -54,8 +54,8 @@ public sealed class AutosaveTests : IDisposable
             case nameof(AppSettings.Decompiler):
                 SetLanguageVersion(appState, CSharpVersion.CSharp7_3);
                 break;
-            case nameof(AppSettings.ShowNonPublic):
-                appState.ShowNonPublic = false;
+            case nameof(AppSettings.ApiVisibility):
+                SetApiVisibility(appState, ApiVisibility.All);
                 break;
             case nameof(AppSettings.Locale):
                 SetLocale(appState, Locale.De);
@@ -88,7 +88,7 @@ public sealed class AutosaveTests : IDisposable
         nameof(AppSettings.Theme) => saved.Theme == AppThemeId.Monokai,
         nameof(AppSettings.Language) => saved.Language == DecompilationLanguage.IL,
         nameof(AppSettings.Decompiler) => saved.Decompiler.LanguageVersion == CSharpVersion.CSharp7_3,
-        nameof(AppSettings.ShowNonPublic) => !saved.ShowNonPublic,
+        nameof(AppSettings.ApiVisibility) => saved.ApiVisibility == ApiVisibility.All,
         nameof(AppSettings.Locale) => saved.Locale == Locale.De,
         nameof(AppSettings.SearchKinds) => saved.SearchKinds == SearchKinds.Types,
         nameof(AppSettings.FoldedOptionGroups) => saved.FoldedOptionGroups?.SequenceEqual(["Other"]) == true,

@@ -555,6 +555,20 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void What_the_tree_shows_is_picked_from_the_view_menus_submenu()
+    {
+        var app = AppDriver.Opened();
+        app.Run();
+
+        app.Click("View");
+        app.Click("Show types and members");
+        app.ClickMenuItem("All, including compiler-generated");
+        app.Settle();
+
+        Assert.Equal(ApiVisibility.All, app.AppState.ApiVisibility);
+    }
+
+    [Fact]
     public void The_ui_language_is_picked_from_the_view_menus_language_submenu()
     {
         var app = new AppDriver();

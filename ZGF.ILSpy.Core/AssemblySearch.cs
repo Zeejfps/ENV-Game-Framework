@@ -314,7 +314,12 @@ internal static class AssemblySearch
 
         private void Add(LoadedAssembly assembly, EntityHandle handle)
         {
-            if (Find(assembly, handle) is { Parent: not MemberNode } node)
+            var node = Find(assembly, handle);
+            if (node == null)
+                return;
+            if (node.IsCompilerGenerated)
+                return;
+            if (node.Parent is not MemberNode)
                 Add(node);
         }
 
@@ -329,10 +334,20 @@ internal static class AssemblySearch
             {
                 return;
             }
+            node = SourceDeclaredAncestor(node);
             if (node is { Parent: MemberNode owner })
                 node = owner;
             if (node is not null)
                 Add(node);
+        }
+
+        /// <summary><paramref name="node"/>, or the nearest of its ancestors the source declared
+        /// when the compiler made it up, such as the type that holds a lambda's closure class.</summary>
+        private static BrowseNode? SourceDeclaredAncestor(BrowseNode? node)
+        {
+            while (node != null && node.IsCompilerGenerated)
+                node = node.Parent;
+            return node;
         }
 
         private static BrowseNode? Find(LoadedAssembly assembly, EntityHandle handle)

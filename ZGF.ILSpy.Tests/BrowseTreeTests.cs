@@ -44,7 +44,10 @@ public sealed class BrowseTreeTests
     {
         var assembly = Trees.TestAssembly;
 
-        var children = assembly.Calculator().Children.Select(c => (c.Kind, c.Text)).ToArray();
+        var children = assembly.Calculator().Children
+            .Where(c => !c.IsCompilerGenerated)
+            .Select(c => (c.Kind, c.Text))
+            .ToArray();
 
         Assert.Equal(
             [

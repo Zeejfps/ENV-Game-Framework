@@ -90,6 +90,11 @@ public abstract class BrowseNode
     /// Non-public nodes are usually shown dimmed.</summary>
     public bool IsPublicApi { get; private protected init; } = true;
 
+    /// <summary>Whether the compiler made this up rather than the source declaring it, such as a
+    /// lambda's closure class or a property's backing field, or it sits inside something the
+    /// compiler made up. Such nodes are usually hidden.</summary>
+    public bool IsCompilerGenerated { get; private protected init; }
+
     public BrowseNode? Parent { get; }
 
     public LoadedAssembly Assembly { get; }

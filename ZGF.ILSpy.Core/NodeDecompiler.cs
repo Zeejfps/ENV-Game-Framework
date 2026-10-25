@@ -370,6 +370,7 @@ internal static class NodeDecompiler
                 foreach (var child in node.Children)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (child.IsCompilerGenerated) continue;
                     if (child is TypeNode type)
                         WriteTypeDeclaration(output, type);
                     if (child is ForwardedTypeNode forwarded)

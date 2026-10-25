@@ -42,7 +42,7 @@ public sealed class AppState
     public CodeTooltips Tooltips { get; }
 
     public AppThemeId Theme;
-    public bool ShowNonPublic;
+    public ApiVisibility ApiVisibility;
 
     /// <summary>The interface language.</summary>
     public Locale Locale;
@@ -92,7 +92,7 @@ public sealed class AppState
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
         Locale = ChooseLocale(settings);
-        ShowNonPublic = settings.ShowNonPublic;
+        ApiVisibility = settings.ApiVisibility;
         var first = AddTab();
         Tabs.MakeActive(first);
         Analyzer = new AnalyzerTree();

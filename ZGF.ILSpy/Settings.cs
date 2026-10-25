@@ -45,7 +45,7 @@ public static class Settings
             appState.Theme,
             appState.Language,
             appState.DecompilerOptions,
-            appState.ShowNonPublic,
+            appState.ApiVisibility,
             appState.Locale);
     }
 
@@ -57,7 +57,7 @@ public static class Settings
         settings.Theme = appState.Theme;
         settings.Language = appState.Language;
         settings.Decompiler = appState.DecompilerOptions;
-        settings.ShowNonPublic = appState.ShowNonPublic;
+        settings.ApiVisibility = appState.ApiVisibility;
         settings.Locale = appState.Locale;
         settings.Bookmarks = appState.Bookmarks.Save();
     }

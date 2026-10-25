@@ -28,7 +28,7 @@ public sealed partial class IlSpyApp
     internal static void StartFrame(UiState uiState, AppState appState)
     {
         ApplyThemeAndLanguage(uiState, appState.Theme, appState.Locale);
-        SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ShowNonPublic);
+        SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ApiVisibility);
         SyncTabViews(uiState, appState.Tabs);
         FollowActiveTab(uiState, appState.Tabs.Active);
         FocusNextTabIfNone(uiState, appState.Tabs);

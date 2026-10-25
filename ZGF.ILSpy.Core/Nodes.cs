@@ -60,7 +60,7 @@ internal sealed class AssemblyNode : BrowseNode
         var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
         foreach (var type in Assembly.Module.TopLevelTypeDefinitions)
         {
-            if (Members.IsHidden(type)) continue;
+            if (Members.IsMissing(type)) continue;
             if (!byNamespace.TryGetValue(type.Namespace, out var types))
                 byNamespace.Add(type.Namespace, types = new List<ITypeDefinition>());
             types.Add(type);
@@ -150,6 +150,7 @@ internal sealed class NamespaceNode : BrowseNode
         _types = types;
         _forwarded = forwarded;
         IsPublicApi = forwarded.Count > 0 || types.Exists(EntityText.IsPublicApi);
+        IsCompilerGenerated = forwarded.Count == 0 && types.TrueForAll(Members.IsCompilerGenerated);
     }
 
     public string Name { get; }
@@ -199,6 +200,7 @@ internal abstract class EntityNode : BrowseNode
         Entity = entity;
         Accessibility = EntityText.Map(entity.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(entity);
+        IsCompilerGenerated = parent.IsCompilerGenerated || Members.IsCompilerGenerated(entity);
         Reference = CodeReference.To(entity);
         Token = MetadataTokens.GetToken(entity.MetadataToken);
         assembly.Register(entity.MetadataToken, this);
@@ -234,22 +236,22 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
         if (DerivedTypesNode.CanHave(type))
             result.Add(new DerivedTypesNode(Assembly, this, type));
 
-        foreach (var nested in type.NestedTypes.Where(t => !Members.IsHidden(t)).OrderBy(t => t.Name, NaturalStringComparer.Instance))
+        foreach (var nested in type.NestedTypes.Where(t => !Members.IsMissing(t)).OrderBy(t => t.Name, NaturalStringComparer.Instance))
             result.Add(new TypeNode(Assembly, this, nested));
 
-        var fields = type.Fields.Where(f => !Members.IsHidden(f) && !(type.Kind == TypeKind.Enum && !f.IsStatic));
+        var fields = type.Fields.Where(f => !Members.IsMissing(f) && !(type.Kind == TypeKind.Enum && !f.IsStatic));
         if (type.Kind != TypeKind.Enum)
             fields = fields.OrderBy(f => f.Name, NaturalStringComparer.Instance);
         foreach (var field in fields)
             result.Add(new MemberNode(Assembly, this, field));
 
-        foreach (var property in type.Properties.Where(p => !Members.IsHidden(p)).OrderBy(p => p.Name, NaturalStringComparer.Instance))
+        foreach (var property in type.Properties.Where(p => !Members.IsMissing(p)).OrderBy(p => p.Name, NaturalStringComparer.Instance))
             result.Add(new MemberNode(Assembly, this, property));
 
-        foreach (var @event in type.Events.Where(e => !Members.IsHidden(e)).OrderBy(e => e.Name, NaturalStringComparer.Instance))
+        foreach (var @event in type.Events.Where(e => !Members.IsMissing(e)).OrderBy(e => e.Name, NaturalStringComparer.Instance))
             result.Add(new MemberNode(Assembly, this, @event));
 
-        foreach (var method in type.Methods.Where(m => !m.IsAccessor && !Members.IsHidden(m)).OrderBy(m => m.Name, NaturalStringComparer.Instance))
+        foreach (var method in type.Methods.Where(m => !m.IsAccessor && !Members.IsMissing(m)).OrderBy(m => m.Name, NaturalStringComparer.Instance))
             result.Add(new MemberNode(Assembly, this, method));
 
         return result.ToArray();
@@ -364,9 +366,13 @@ internal static class Members
 {
     private static readonly DecompilerSettings Settings = Core.Settings.Create();
 
-    public static bool IsHidden(IEntity entity) =>
-        entity.MetadataToken.IsNil
-        || entity.ParentModule?.MetadataFile is { } file && CSharpDecompiler.MemberIsHidden(file, entity.MetadataToken, Settings);
+    public static bool IsHidden(IEntity entity) => IsMissing(entity) || IsCompilerGenerated(entity);
+
+    /// <summary>Whether <paramref name="entity"/> has no metadata of its own to show.</summary>
+    public static bool IsMissing(IEntity entity) => entity.MetadataToken.IsNil;
+
+    public static bool IsCompilerGenerated(IEntity entity) =>
+        entity.ParentModule?.MetadataFile is { } file && CSharpDecompiler.MemberIsHidden(file, entity.MetadataToken, Settings);
 
     /// <summary>The accessors of a property or event, in ILSpy's order; none for other entities.</summary>
     public static IEnumerable<IMethod> Accessors(IEntity entity)

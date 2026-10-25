@@ -19,6 +19,13 @@ public static class Preferences
         appState.Locale = locale;
     }
 
+    public static void SetApiVisibility(AppState appState, ApiVisibility visibility)
+    {
+        if (visibility == appState.ApiVisibility)
+            return;
+        appState.ApiVisibility = visibility;
+    }
+
     public static void SetLanguage(AppState appState, DecompilationLanguage language)
     {
         if (language == appState.Language)
