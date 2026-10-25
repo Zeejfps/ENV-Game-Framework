@@ -46,6 +46,7 @@ public sealed class UiInput
     private readonly bool[] _cancelled = new bool[ButtonCount];
     private readonly List<KeyStroke> _keys = new();
     private readonly StringBuilder _text = new();
+    private readonly List<string> _droppedFiles = new();
 
     public PointF Pointer { get; private set; } = Offscreen;
     public float ScrollX { get; private set; }
@@ -58,6 +59,20 @@ public sealed class UiInput
     /// <summary>The IME composition in flight, kept across frames until the platform replaces or
     /// ends it. It is not entered text: what the user commits arrives on <see cref="Text"/>.</summary>
     public PreeditText Composition { get; private set; } = PreeditText.Empty;
+
+    /// <summary>The paths of the files and folders dropped on the window since the previous frame, in
+    /// the order the platform listed them; <see cref="Pointer"/> is where they landed.</summary>
+    public IReadOnlyList<string> DroppedFiles => _droppedFiles;
+
+    /// <summary>The paths in <see cref="DroppedFiles"/>; removes them, so nothing that reads the input
+    /// afterwards sees them.</summary>
+    public IReadOnlyList<string> TakeDroppedFiles()
+    {
+        if (_droppedFiles.Count == 0) return Array.Empty<string>();
+        var taken = _droppedFiles.ToArray();
+        _droppedFiles.Clear();
+        return taken;
+    }
 
     /// <summary>The platform asked open popups to close since the previous frame: the app lost
     /// focus, or a press landed outside every part of the app a frame sees.</summary>
@@ -168,6 +183,12 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    internal void DropFiles(IReadOnlyList<string> paths)
+    {
+        _droppedFiles.AddRange(paths);
+        HasEvents = true;
+    }
+
     internal void SetForeground(bool foreground)
     {
         if (IsForeground == foreground) return;
@@ -200,7 +221,7 @@ public sealed class UiInput
         Array.Copy(source._pressed, _pressed, ButtonCount);
         Array.Copy(source._released, _released, ButtonCount);
         Array.Copy(source._cancelled, _cancelled, ButtonCount);
-        ClearKeysAndText();
+        ClearKeysTextAndDrops();
         Pointer = source.Pointer;
         ScrollX = source.ScrollX;
         ScrollY = source.ScrollY;
@@ -231,7 +252,7 @@ public sealed class UiInput
         Array.Clear(_pressed);
         Array.Clear(_released);
         Array.Clear(_cancelled);
-        ClearKeysAndText();
+        ClearKeysTextAndDrops();
         Composition = previous.Composition;
         Pointer = previous.Pointer;
         Modifiers = previous.Modifiers;
@@ -242,8 +263,9 @@ public sealed class UiInput
         HasEvents = false;
     }
 
-    private void ClearKeysAndText()
+    private void ClearKeysTextAndDrops()
     {
+        _droppedFiles.Clear();
         _keys.Clear();
         _text.Clear();
         Text = "";

@@ -52,6 +52,16 @@ public static class Assemblies
 
     public static void OpenAssembly(AppState appState, string path) => OpenAssemblies(appState, [path]);
 
+    /// <summary>Opens the files among <paramref name="paths"/>, dropped on the window, as
+    /// <see cref="OpenAssemblies"/> does; folders are left out.</summary>
+    public static void OpenDroppedFiles(AppState appState, IReadOnlyList<string> paths)
+    {
+        var files = paths
+            .Where(File.Exists)
+            .ToList();
+        OpenAssemblies(appState, files);
+    }
+
     /// <summary>Opens, in the background, the assemblies <paramref name="assembly"/> references that
     /// can be found.</summary>
     public static async void OpenDependencies(AppState appState, LoadedAssembly assembly)

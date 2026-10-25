@@ -59,6 +59,9 @@ public interface IWindow : IDisposable
     event Action<int, InputAction, KeyModifiers> OnMouseButton;
     event Action<double, double> OnScroll;
     event Action<bool> OnPointerEnter;
+    // Files or folders dragged from the OS file manager and dropped on the client area, as full
+    // paths in the order the platform lists them. The platform moves the cursor to the drop point first.
+    event Action<IReadOnlyList<string>> OnFileDrop;
     // A press on the native frame (title bar, borders, caption buttons), which GLFW never reports as
     // a mouse event. Raised only where the platform has a frame hook (Windows).
     event Action OnNonClientPress;

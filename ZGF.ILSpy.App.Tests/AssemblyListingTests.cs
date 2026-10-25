@@ -472,6 +472,34 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
+    public void Dropping_files_on_the_window_opens_them_and_leaves_folders_out()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+        var other = typeof(AppState).Assembly.Location;
+        var folder = Path.GetDirectoryName(other)!;
+
+        app.Frames.DropFiles(folder, other).Frame();
+        app.RunUntil(() => app.AppState.Assemblies.FilePaths.Contains(other));
+
+        Assert.Equal([AppStateDriver.FixturePath, other], app.AppState.Assemblies.FilePaths);
+    }
+
+    [Fact]
+    public void Files_dropped_while_a_dialog_is_open_stay_closed()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+        app.OpenExportSetup(null);
+        app.Run(2);
+
+        app.Frames.DropFiles(typeof(AppState).Assembly.Location).Frame();
+        app.Settle(2);
+
+        Assert.Equal([AppStateDriver.FixturePath], app.AppState.Assemblies.FilePaths);
+    }
+
+    [Fact]
     public void The_assemblies_panel_names_the_open_list_and_the_dialog_counts_each_lists_assemblies()
     {
         var app = AppDriver.Opened();

@@ -25,6 +25,7 @@ public abstract class GlfwWindowBase : IWindow
     private readonly MouseButtonCallback _mouseButtonCallback;
     private readonly MouseCallback _scrollCallback;
     private readonly MouseEnterCallback _cursorEnterCallback;
+    private readonly FileDropCallback _dropCallback;
 
     private int _width;
     private int _height;
@@ -65,6 +66,7 @@ public abstract class GlfwWindowBase : IWindow
         _mouseButtonCallback = HandleMouseButton;
         _scrollCallback = HandleScroll;
         _cursorEnterCallback = HandleCursorEnter;
+        _dropCallback = HandleFileDrop;
         GLFW.Glfw.SetWindowSizeCallback(window, _windowSizeCallback);
         GLFW.Glfw.SetFramebufferSizeCallback(window, _framebufferSizeCallback);
         GLFW.Glfw.SetWindowContentScaleCallback(window, _contentScaleCallback);
@@ -77,6 +79,7 @@ public abstract class GlfwWindowBase : IWindow
         GLFW.Glfw.SetMouseButtonCallback(window, _mouseButtonCallback);
         GLFW.Glfw.SetScrollCallback(window, _scrollCallback);
         GLFW.Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
+        GLFW.Glfw.SetDropCallback(window, _dropCallback);
 
         _ime = new GlfwImeBridge(window);
         _ime.OnPreedit += preedit => OnPreedit?.Invoke(preedit);
@@ -112,6 +115,7 @@ public abstract class GlfwWindowBase : IWindow
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
+    public event Action<IReadOnlyList<string>>? OnFileDrop;
 
     public event Action? OnNonClientPress
     {
@@ -297,6 +301,18 @@ public abstract class GlfwWindowBase : IWindow
     private void HandleScroll(Window window, double x, double y) => OnScroll?.Invoke(x, y);
 
     private void HandleCursorEnter(Window window, bool entering) => OnPointerEnter?.Invoke(entering);
+
+    // GLFW hands over an array of UTF-8 path strings it frees once the callback returns.
+    private void HandleFileDrop(Window window, int count, IntPtr paths)
+    {
+        var dropped = new string[count];
+        for (var i = 0; i < count; i++)
+        {
+            var path = Marshal.ReadIntPtr(paths, i * IntPtr.Size);
+            dropped[i] = Marshal.PtrToStringUTF8(path) ?? "";
+        }
+        OnFileDrop?.Invoke(dropped);
+    }
 
     public void Dispose()
     {

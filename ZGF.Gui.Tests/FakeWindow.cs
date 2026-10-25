@@ -72,6 +72,7 @@ internal sealed class FakeWindow : IWindow
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
+    public event Action<IReadOnlyList<string>>? OnFileDrop;
     public event Action? OnNonClientPress;
 #pragma warning restore CS0067
 

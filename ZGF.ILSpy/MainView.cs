@@ -1,6 +1,8 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Dialogs;
 using static ZGF.ILSpy.DocumentPanels;
 
 namespace ZGF.ILSpy;
@@ -13,6 +15,7 @@ public static class MainView
     {
         using var screen = ui.Screen();
         Shortcuts.Handle(ui, appState);
+        OpenDropped(ui, appState);
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
         {
             MainMenuView.Render(ui, appState);
@@ -31,6 +34,17 @@ public static class MainView
         DisplayOptionsResetDialogView.Render(ui);
         ExportDialogView.Render(ui, appState);
         ErrorDialogView.Render(ui, appState);
+    }
+
+    /// <summary>Opens the files dropped on the window, unless a dialog is open over it.</summary>
+    private static void OpenDropped(Ui<UiState> ui, AppState appState)
+    {
+        var dropped = ui.Input.TakeDroppedFiles();
+        if (dropped.Count == 0)
+            return;
+        if (IsDialogOpen(ui.State))
+            return;
+        OpenDroppedFiles(appState, dropped);
     }
 
     private static void Panels(Ui<UiState> ui, AppState appState)

@@ -830,6 +830,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         window.OnPreedit += HandlePreedit;
         window.OnMouseButton += HandleMouseButton;
         window.OnScroll += HandleScroll;
+        window.OnFileDrop += HandleFileDrop;
     }
 
     private void Unsubscribe(IWindow window)
@@ -839,6 +840,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         window.OnPreedit -= HandlePreedit;
         window.OnMouseButton -= HandleMouseButton;
         window.OnScroll -= HandleScroll;
+        window.OnFileDrop -= HandleFileDrop;
     }
 
     private void HandleKey(KeyboardKey key, InputAction action, KeyModifiers modifiers)
@@ -869,6 +871,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void HandleScroll(double x, double y)
     {
         _pending.Scroll(x, y);
+        _window.RequestRedraw();
+    }
+
+    private void HandleFileDrop(IReadOnlyList<string> paths)
+    {
+        PollPointer();
+        _pending.DropFiles(paths);
         _window.RequestRedraw();
     }
 

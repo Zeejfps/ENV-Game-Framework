@@ -197,6 +197,13 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>Files dragged from the OS file manager are dropped where the pointer is.</summary>
+    public UiFrames<TState> DropFiles(params string[] paths)
+    {
+        _pending.DropFiles(paths);
+        return this;
+    }
+
     public UiFrames<TState> DismissPopups()
     {
         _pending.DismissPopups();
