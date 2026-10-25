@@ -14,3 +14,6 @@ riderModule.iml
 # Golden-image failure artifacts, written next to the goldens on mismatch
 *.actual.png
 *.diff.png
+
+# Bytecode left by the icon build scripts
+__pycache__/

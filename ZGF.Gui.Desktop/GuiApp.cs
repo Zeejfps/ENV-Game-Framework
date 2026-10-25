@@ -240,21 +240,9 @@ public sealed class GuiApp : IDisposable
 
     public void SetIcon(string rgbaPath)
     {
-        var bytes = File.ReadAllBytes(PathUtils.ResolveLocalPath(rgbaPath));
-        var count = BitConverter.ToInt32(bytes, 0);
-        var icons = new List<WindowIconImage>(count);
-        var offset = 4;
-        for (var i = 0; i < count; i++)
-        {
-            var w = BitConverter.ToInt32(bytes, offset); offset += 4;
-            var h = BitConverter.ToInt32(bytes, offset); offset += 4;
-            var len = w * h * 4;
-            var pixels = new byte[len];
-            Buffer.BlockCopy(bytes, offset, pixels, 0, len);
-            offset += len;
-            icons.Add(new WindowIconImage(w, h, pixels));
-        }
-        _app.MainWindow.SetIcon(icons);
+        var packed = File.ReadAllBytes(PathUtils.ResolveLocalPath(rgbaPath));
+        var icon = WindowIcon.FromPacked(packed);
+        _app.MainWindow.SetIcon(icon.Images);
     }
 
     public event Action<int, int>? OnWindowResized;

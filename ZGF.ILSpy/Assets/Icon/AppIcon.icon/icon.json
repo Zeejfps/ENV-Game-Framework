@@ -1,0 +1,60 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "srgb:0.17255,0.14118,0.40784,1.00000",
+      "srgb:0.08627,0.07059,0.21176,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "name": "Braces",
+      "layers": [
+        {
+          "image-name": "braces.png",
+          "name": "braces",
+          "glass": true
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.2
+      },
+      "specular": true
+    },
+    {
+      "name": "Opening",
+      "layers": [
+        {
+          "image-name": "opening.png",
+          "name": "opening",
+          "glass": false
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "specular": false
+    },
+    {
+      "name": "Rock",
+      "layers": [
+        {
+          "image-name": "rock.png",
+          "name": "rock",
+          "glass": false
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.15
+      },
+      "specular": false
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}

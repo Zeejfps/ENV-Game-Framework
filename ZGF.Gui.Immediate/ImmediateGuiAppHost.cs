@@ -158,6 +158,14 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         return context.Install();
     }
 
+    /// <summary>Shows <paramref name="icon"/> on the window where the platform draws one, such as the
+    /// title bar and taskbar on Windows; macOS takes the app's icon from its bundle instead.</summary>
+    public void SetIcon(WindowIcon icon)
+    {
+        if (_disposed) return;
+        _window.SetIcon(icon.Images);
+    }
+
     /// <summary>Makes <paramref name="font"/> drawable as its family, for <c>ui.Text(family: ...)</c>
     /// and <see cref="UiTheme.FontFamily"/>. A bold face is the one the family's bold text is drawn
     /// in, which is otherwise synthesized from the regular face; the default font's bold is Inter

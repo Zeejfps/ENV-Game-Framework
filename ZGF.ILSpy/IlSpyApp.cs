@@ -16,6 +16,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 {
     private const string MonoFontFile = "JetBrainsMono-Regular.ttf";
     private const string ItalicFontFile = "Inter-Italic.ttf";
+    private const string AppIconFile = "app_icon.rgba";
 
     private readonly AppState _appState;
     private readonly List<string> _startupAssemblies;
@@ -32,6 +33,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     protected override void OnStartup(ImmediateGuiAppHost<UiState> host)
     {
+        ShowAppIcon(host);
         LoadAndRegisterFonts(host);
         RegisterChosenCodeFont(host);
         OpenStartupAssemblies();
@@ -116,6 +118,12 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         if (appState.ViewCommands.Count == 0)
             return;
         ui.RequestUpdate();
+    }
+
+    private static void ShowAppIcon(ImmediateGuiAppHost<UiState> host)
+    {
+        var packed = EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, AppIconFile);
+        host.SetIcon(WindowIcon.FromPacked(packed));
     }
 
     private void LoadAndRegisterFonts(ImmediateGuiAppHost<UiState> host)
