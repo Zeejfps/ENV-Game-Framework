@@ -125,6 +125,14 @@ public sealed class SavedAssemblyLists
         return Add(name, new List<string>(), new List<CodeAnchor>());
     }
 
+    /// <summary>Adds a list of the assemblies at <paramref name="paths"/>, named <paramref name="name"/>
+    /// or numbered when that is taken, and returns the name it got.</summary>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
+    public string Create(string name, IReadOnlyList<string> paths)
+    {
+        return Add(name, paths.ToList(), new List<CodeAnchor>());
+    }
+
     /// <summary>Adds a list with the assemblies and analyses of the one named <paramref name="source"/>,
     /// named <paramref name="name"/> or numbered when that is taken, and returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>

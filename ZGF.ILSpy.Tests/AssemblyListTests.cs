@@ -185,6 +185,44 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
+    public void Presets_offer_the_newest_patch_of_each_installed_framework_version_without_its_native_libraries()
+    {
+        using var temp = new TempDir();
+        string Install(string framework, string version, params string[] files)
+        {
+            var directory = temp.PathOf(Path.Combine("shared", framework, version));
+            Directory.CreateDirectory(directory);
+            foreach (var file in files)
+                temp.Write(Path.Combine(directory, file), "");
+            return directory;
+        }
+        Install("Microsoft.NETCore.App", "9.0.3", "System.Runtime.dll");
+        var net9 = Install("Microsoft.NETCore.App", "9.0.11", "System.Runtime.dll", "mscorlib.dll", "coreclr.dll", "System.IO.Compression.Native.dll");
+        var net10 = Install("Microsoft.NETCore.App", "10.0.1", "System.Runtime.dll");
+        Install("Microsoft.NETCore.App", "8.0.0", "coreclr.dll");
+        var desktop = Install("Microsoft.WindowsDesktop.App", "9.0.3", "WindowsBase.dll", "PenImc_cor3.dll");
+
+        var presets = AssemblyListPresets.FindRuntimePresets(temp.Path);
+
+        Assert.Equal(["Microsoft.NETCore.App 10.0.1", "Microsoft.NETCore.App 9.0.11", "Microsoft.WindowsDesktop.App 9.0.3"], presets.Select(p => p.Name));
+        Assert.Equal([Path.Combine(net10, "System.Runtime.dll")], presets[0].Paths);
+        Assert.Equal([Path.Combine(net9, "mscorlib.dll"), Path.Combine(net9, "System.Runtime.dll")], presets[1].Paths);
+        Assert.Equal([Path.Combine(desktop, "WindowsBase.dll")], presets[2].Paths);
+    }
+
+    [Fact]
+    public void Presets_offer_the_running_runtimes_feature_version()
+    {
+        var running = Environment.Version;
+        var name = $"Microsoft.NETCore.App {running.Major}.{running.Minor}.";
+
+        var preset = AssemblyListPresets.Installed.FirstOrDefault(p => p.Name.StartsWith(name, StringComparison.Ordinal));
+
+        Assert.NotNull(preset);
+        Assert.Contains(preset.Paths, p => Path.GetFileName(p) == "System.Runtime.dll");
+    }
+
+    [Fact]
     public void References_resolve_from_the_runtime_directory_and_next_to_the_assembly()
     {
         var (list, assembly) = Trees.OpenTestAssembly();

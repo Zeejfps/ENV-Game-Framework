@@ -52,7 +52,7 @@ public static class RuntimeAssemblies
         return FindInstalledRuntime(DotNetRoots(), Environment.Version.Major) ?? running;
     }
 
-    private static IEnumerable<string> DotNetRoots()
+    internal static IEnumerable<string> DotNetRoots()
     {
         if (Environment.GetEnvironmentVariable("DOTNET_ROOT") is { Length: > 0 } root)
             yield return root;

@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.AssemblyLists;
@@ -11,13 +12,15 @@ namespace ZGF.ILSpy;
 /// holds and a button that activates it. Above them, New list and, for the picked one, Duplicate,
 /// Rename and Delete; the same are in a row's context menu. A list is renamed in place, by
 /// double-clicking it or pressing F2: Enter or clicking away keeps the name, Escape drops it. Delete
-/// is confirmed in a dialog of its own, <see cref="AssemblyListDeleteDialogView"/>.
+/// is confirmed in a dialog of its own, <see cref="AssemblyListDeleteDialogView"/>. Below them, a menu
+/// adds a list of the assemblies of a framework installed here.
 /// </summary>
 internal static class AssemblyListsDialogView
 {
     private const string ListId = "lists";
     private const string NameId = "list-name";
     private const string MenuId = "lists-menu";
+    private const string PresetMenuId = "presets";
 
     private static readonly UiIcon NewIcon = new(LucideIcons.Plus, LucideIcons.Family);
 
@@ -34,7 +37,7 @@ internal static class AssemblyListsDialogView
             Rows(ui, appState);
             RenameProblem(ui, appState);
             ContextMenu(ui, appState);
-            Footer(ui, dialog);
+            Footer(ui, appState);
         }
         if (!dialog.IsOpen)
             dialog.Close();
@@ -256,14 +259,45 @@ internal static class AssemblyListsDialogView
             dialog.StartConfirmingDelete(picked);
     }
 
-    private static void Footer(Ui<UiState> ui, AssemblyListsDialog dialog)
+    /// <summary>Add preconfigured on the left, Close on the right.</summary>
+    private static void Footer(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
+        var dialog = ui.State.ListsDialog;
         using (ui.DialogActions())
         {
+            PresetMenu(ui, appState);
+            ui.Spacer();
             if (ui.Button(t.ListsClose, id: "close"))
                 dialog.Close();
         }
+    }
+
+    /// <summary>The frameworks installed here, each with how many assemblies it holds; picking one adds
+    /// a list of them, picked to be named. The frameworks are looked for the first time the menu opens.</summary>
+    private static void PresetMenu(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        using var menu = ui.SelectButton(PresetMenuId, t.ListsAddPreset);
+        if (!menu.IsOpen)
+            return;
+        var presets = AssemblyListPresets.Installed;
+        if (presets.Count == 0)
+            ui.MenuItem(t.ListsNoPresets, enabled: false);
+        foreach (var preset in presets)
+        {
+            var count = t.ListsCount(preset.Paths.Count);
+            if (ui.MenuItem(preset.Name, count))
+                AddPreset(ui.State.ListsDialog, appState, preset);
+        }
+    }
+
+    /// <summary>Adds a list of <paramref name="preset"/>'s assemblies, picked to be named, leaving the
+    /// open one open.</summary>
+    private static void AddPreset(AssemblyListsDialog dialog, AppState appState, AssemblyListPreset preset)
+    {
+        var name = AddAssemblyListPreset(appState, preset);
+        dialog.PickToRename(appState.Lists, name);
     }
 
     /// <summary>Opens the dialog with the open list picked, its assemblies counted as they are now.</summary>

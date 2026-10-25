@@ -47,6 +47,19 @@ public sealed class SavedAssemblyListsTests
     }
 
     [Fact]
+    public void A_list_made_from_assemblies_holds_them_under_a_name_of_its_own()
+    {
+        var lists = new SavedAssemblyLists();
+        lists.Create("Framework");
+
+        var name = lists.Create("Framework", ["a.dll", "b.dll"]);
+
+        Assert.Equal("Framework 2", name);
+        Assert.Equal(["a.dll", "b.dll"], lists.PathsOf(name));
+        Assert.Equal(SavedAssemblyLists.DefaultName, lists.Active);
+    }
+
+    [Fact]
     public void A_list_is_not_renamed_to_nothing_or_to_another_lists_name()
     {
         var lists = new SavedAssemblyLists();
@@ -500,6 +513,20 @@ public sealed class AssemblyListingTests
         Assert.Contains("Work", app.AppState.Lists.Names);
         Assert.Equal(SavedAssemblyLists.DefaultName, app.AppState.Lists.Active);
         Assert.Null(app.Ui.ListsDialog.Renaming);
+    }
+
+    [Fact]
+    public void A_preconfigured_list_holds_an_installed_frameworks_assemblies_and_is_named_in_place_without_switching_to_it()
+    {
+        var app = OpenedDialog();
+        var preset = AssemblyListPresets.Installed[0];
+
+        app.Click("Add preconfigured").Frame(2);
+        app.ClickMenuItem(preset.Name).Frame(2);
+
+        Assert.Equal(preset.Name, app.Ui.ListsDialog.Renaming);
+        Assert.Equal(preset.Paths, app.AppState.Lists.PathsOf(preset.Name));
+        Assert.Equal(SavedAssemblyLists.DefaultName, app.AppState.Lists.Active);
     }
 
     [Fact]

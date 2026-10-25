@@ -29,7 +29,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 - Compare assemblies (API diff) and Create Diagram.
 - Command line: `/navigateTo:`, `/language:`, `/list:`, `/clearList`, single-instance handling.
-- Preconfigured assembly lists (upstream offers ready-made lists of framework assemblies).
 - Help/About and Check for updates.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).

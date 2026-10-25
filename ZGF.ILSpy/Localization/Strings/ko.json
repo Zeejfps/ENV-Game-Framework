@@ -243,6 +243,8 @@
   "lists.copy_name": "{name} 사본",
   "lists.count": {"other": "어셈블리 {count:N0}개"},
   "lists.new": "새 목록",
+  "lists.add_preset": "미리 구성된 항목 추가",
+  "lists.no_presets": "프레임워크를 찾을 수 없음",
   "lists.duplicate": "복제",
   "lists.rename": "이름 바꾸기",
   "lists.delete": "삭제",

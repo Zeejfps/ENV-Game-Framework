@@ -249,6 +249,8 @@
   "lists.copy_name": "{name} copy",
   "lists.count": {"one": "{count:N0} assembly", "other": "{count:N0} assemblies"},
   "lists.new": "New list",
+  "lists.add_preset": "Add preconfigured",
+  "lists.no_presets": "No frameworks found",
   "lists.duplicate": "Duplicate",
   "lists.rename": "Rename",
   "lists.delete": "Delete",

@@ -243,6 +243,8 @@
   "lists.copy_name": "{name} copia",
   "lists.count": {"one": "{count:N0} ensamblado", "other": "{count:N0} ensamblados"},
   "lists.new": "Lista nueva",
+  "lists.add_preset": "Añadir preconfigurada",
+  "lists.no_presets": "No se encontraron frameworks",
   "lists.duplicate": "Duplicar",
   "lists.rename": "Cambiar nombre",
   "lists.delete": "Eliminar",

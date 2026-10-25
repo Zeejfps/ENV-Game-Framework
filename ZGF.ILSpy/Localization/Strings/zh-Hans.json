@@ -243,6 +243,8 @@
   "lists.copy_name": "{name} 副本",
   "lists.count": {"other": "{count:N0} 个程序集"},
   "lists.new": "新列表",
+  "lists.add_preset": "添加预配置",
+  "lists.no_presets": "未找到框架",
   "lists.duplicate": "复制",
   "lists.rename": "重命名",
   "lists.delete": "删除",

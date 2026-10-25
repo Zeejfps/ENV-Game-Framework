@@ -243,6 +243,8 @@
   "lists.copy_name": "{name} копия",
   "lists.count": {"one": "{count:N0} сборка", "few": "{count:N0} сборки", "many": "{count:N0} сборок", "other": "{count:N0} сборки"},
   "lists.new": "Новый список",
+  "lists.add_preset": "Добавить готовый",
+  "lists.no_presets": "Платформы не найдены",
   "lists.duplicate": "Дублировать",
   "lists.rename": "Переименовать",
   "lists.delete": "Удалить",

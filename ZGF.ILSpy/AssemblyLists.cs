@@ -1,3 +1,4 @@
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
@@ -59,6 +60,13 @@ public static class AssemblyLists
     {
         var t = Strings.For(appState.Locale);
         return appState.Lists.Create(t.ListsNewName);
+    }
+
+    /// <summary>Adds a list of <paramref name="preset"/>'s assemblies under its name, leaving the open
+    /// one open, and returns the name it got.</summary>
+    public static string AddAssemblyListPreset(AppState appState, AssemblyListPreset preset)
+    {
+        return appState.Lists.Create(preset.Name, preset.Paths);
     }
 
     /// <summary>Adds a copy of the list named <paramref name="name"/>, leaving the open one open, and

@@ -243,6 +243,8 @@
   "lists.copy_name": "{name} のコピー",
   "lists.count": {"other": "{count:N0} 個のアセンブリ"},
   "lists.new": "新しいリスト",
+  "lists.add_preset": "構成済みを追加",
+  "lists.no_presets": "フレームワークが見つかりません",
   "lists.duplicate": "複製",
   "lists.rename": "名前の変更",
   "lists.delete": "削除",
