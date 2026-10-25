@@ -18,7 +18,8 @@ public sealed class NodePath : IEquatable<NodePath>
         _segments = segments;
     }
 
-    /// <summary>The absolute path of the assembly file.</summary>
+    /// <summary>The absolute path of the listed file the path starts from: an assembly, or the package
+    /// an assembly was read out of.</summary>
     public string FilePath { get; }
 
     /// <summary>How many nodes lie below the root on the way down, the node itself included.</summary>
@@ -33,15 +34,18 @@ public sealed class NodePath : IEquatable<NodePath>
     /// <summary>The label of the node this names.</summary>
     public string Text => _segments.Length == 0 ? Path.GetFileName(FilePath) : _segments[^1].Text;
 
+    /// <summary>The path to <paramref name="node"/> from the root of its tree: for a node of an
+    /// assembly read out of a package, from the package's root.</summary>
     public static NodePath Of(BrowseNode node)
     {
         var depth = 0;
-        for (var n = node; n.Parent != null; n = n.Parent)
+        var root = node;
+        for (; root.Parent != null; root = root.Parent)
             depth++;
         var segments = new NodePathSegment[depth];
         for (var n = node; n.Parent != null; n = n.Parent)
             segments[--depth] = new NodePathSegment(n.Kind, n.Text);
-        return new NodePath(node.Assembly.FilePath, segments);
+        return new NodePath(root.Assembly.FilePath, segments);
     }
 
     /// <summary>The path to the node reached from the root of the assembly at

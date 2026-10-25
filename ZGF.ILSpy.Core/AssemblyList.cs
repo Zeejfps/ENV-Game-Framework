@@ -28,11 +28,11 @@ public sealed class AssemblyList
     private int _version;
     private int _generation;
 
-    /// <summary>The open assemblies that loaded, in the order they were opened. A snapshot: it never
-    /// changes after it is read.</summary>
+    /// <summary>The open assemblies that loaded, in the order they were opened; packages are left out.
+    /// A snapshot: it never changes after it is read.</summary>
     public IReadOnlyList<LoadedAssembly> Assemblies => _loaded;
 
-    /// <summary>The open files in the order they were opened, those that failed to load
+    /// <summary>The open files in the order they were opened, packages and those that failed to load
     /// (<see cref="LoadedAssembly.HasLoadError"/>) among them. A snapshot, like <see cref="Assemblies"/>.</summary>
     public IReadOnlyList<LoadedAssembly> Listed => _listed;
 
@@ -87,13 +87,14 @@ public sealed class AssemblyList
         }
     }
 
-    /// <summary>Removes <paramref name="assembly"/> from the list. Documents and nodes already handed
-    /// out stay valid.</summary>
+    /// <summary>Removes <paramref name="assembly"/> from the list, and for a package, forgets the
+    /// assemblies read out of it. Documents and nodes already handed out stay valid.</summary>
     public void Close(LoadedAssembly assembly)
     {
         lock (_gate)
         {
             if (!assembly.HasLoadError && !ForgetKnown(assembly)) return;
+            ForgetReadOutOf(assembly);
             if (!assembly.IsListed) return;
             assembly.IsListed = false;
             ChangeListed(_listed.Remove(assembly));
@@ -111,10 +112,20 @@ public sealed class AssemblyList
         return true;
     }
 
+    private void ForgetReadOutOf(LoadedAssembly package)
+    {
+        var read = _known
+            .Where(k => k.Value.InPackage?.Container == package)
+            .Select(k => k.Key)
+            .ToList();
+        foreach (var path in read)
+            _known.Remove(path);
+    }
+
     private void ChangeListed(ImmutableArray<LoadedAssembly> listed)
     {
         _listed = listed;
-        _loaded = listed.RemoveAll(static a => a.HasLoadError);
+        _loaded = listed.RemoveAll(static a => a.HasLoadError || a.IsPackage);
         _version++;
     }
 
@@ -398,7 +409,7 @@ public sealed class AssemblyList
             if (_known.TryGetValue(path, out var existing)) return existing;
         }
 
-        var assembly = new LoadedAssembly(this, ReadFile(path));
+        var assembly = Read(path, generation);
         lock (_gate)
         {
             if (generation != _generation) return assembly;
@@ -410,11 +421,13 @@ public sealed class AssemblyList
 
     internal bool TryList(LoadedAssembly assembly) => TryList(assembly, Generation);
 
-    /// <summary>Lists <paramref name="assembly"/>, unless the list was cleared since
+    /// <summary>Lists <paramref name="assembly"/>, or for one read out of a package the package, unless the list was cleared since
     /// <paramref name="generation"/>, <paramref name="cancellationToken"/> was cancelled, or another
     /// assembly took its path.</summary>
     internal bool TryList(LoadedAssembly assembly, int generation, CancellationToken cancellationToken = default)
     {
+        if (assembly.InPackage != null)
+            return TryList(assembly.InPackage.Container, generation, cancellationToken);
         lock (_gate)
         {
             if (generation != _generation) return false;
@@ -424,7 +437,7 @@ public sealed class AssemblyList
             assembly.IsListed = true;
             ChangeListed(ListInPlaceOfFailure(assembly));
         }
-        if (!assembly.HasLoadError)
+        if (!assembly.HasLoadError && !assembly.IsPackage)
             ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
         Changed?.Invoke();
         return true;
@@ -480,21 +493,99 @@ public sealed class AssemblyList
             : (null, default);
     }
 
+    /// <summary>What <paramref name="path"/> holds: an assembly, a package, or an assembly in a
+    /// package, read from a path <see cref="AssemblyPackage.PathOf"/> made.</summary>
+    /// <exception cref="AssemblyLoadException">There is no such file, or it is none of those.</exception>
+    private LoadedAssembly Read(string path, int generation)
+    {
+        if (File.Exists(path))
+            return ReadAssemblyOrPackage(path);
+        var inPackage = AssemblyPackage.SplitPath(path);
+        if (inPackage == null)
+            return new LoadedAssembly(this, ReadFile(path));
+        var container = Load(inPackage.Value.Package, generation);
+        return ReadOutOfPackage(container, path, inPackage.Value.FullName);
+    }
+
+    /// <summary>The assembly at <paramref name="path"/>, else the package, else why it is neither.</summary>
+    private LoadedAssembly ReadAssemblyOrPackage(string path)
+    {
+        try
+        {
+            return new LoadedAssembly(this, ReadFile(path));
+        }
+        catch (AssemblyLoadException notAssembly)
+        {
+            var package = ReadPackage(path);
+            if (package == null)
+                throw notAssembly;
+            return new LoadedAssembly(this, package);
+        }
+    }
+
+    private static AssemblyPackage? ReadPackage(string path)
+    {
+        try
+        {
+            return AssemblyPackage.TryRead(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new AssemblyLoadException(path, $"Cannot open '{path}': {e.Message}", e);
+        }
+    }
+
+    private LoadedAssembly ReadOutOfPackage(LoadedAssembly container, string path, string fullName)
+    {
+        var package = container.Package;
+        if (package == null)
+            throw new AssemblyLoadException(path, $"'{container.FilePath}' is not a package.");
+        var file = package.FindFile(fullName);
+        if (file == null)
+            throw new AssemblyLoadException(path, $"'{container.FilePath}' holds no '{fullName}'.");
+        var image = ReadPackageFile(package, file);
+        return new LoadedAssembly(this, image, new PackagePlace(container, file));
+    }
+
+    private static PEFile ReadPackageFile(AssemblyPackage package, PackageFile file)
+    {
+        var path = package.PathOf(file);
+        try
+        {
+            var bytes = package.ReadFile(file);
+            using var stream = new MemoryStream(bytes);
+            return ReadImage(path, stream);
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            throw new AssemblyLoadException(path, $"Cannot open '{path}': {e.Message}", e);
+        }
+    }
+
     private static PEFile ReadFile(string path)
     {
         try
         {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ReadImage(path, stream);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new AssemblyLoadException(path, $"Cannot open '{path}': {e.Message}", e);
+        }
+    }
+
+    /// <summary>The assembly or module <paramref name="stream"/> holds, known by <paramref name="path"/>.</summary>
+    private static PEFile ReadImage(string path, Stream stream)
+    {
+        try
+        {
             var file = new PEFile(path, stream, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default);
             if (!file.Reader.HasMetadata)
                 throw new AssemblyLoadException(path, $"'{path}' is not a .NET assembly.");
             return file;
         }
-        catch (AssemblyLoadException)
-        {
-            throw;
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException or MetadataFileNotSupportedException)
+        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or MetadataFileNotSupportedException)
         {
             throw new AssemblyLoadException(path, $"Cannot open '{path}': {e.Message}", e);
         }

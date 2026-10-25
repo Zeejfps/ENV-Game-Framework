@@ -16,7 +16,7 @@ internal sealed class AssemblyNode : BrowseNode
 {
     private Dictionary<string, NamespaceNode>? _namespaces;
 
-    public AssemblyNode(LoadedAssembly assembly) : base(assembly, null, NodeKind.Assembly, LabelOf(assembly))
+    public AssemblyNode(LoadedAssembly assembly, BrowseNode? parent) : base(assembly, parent, NodeKind.Assembly, LabelOf(assembly))
     {
     }
 

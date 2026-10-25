@@ -10,12 +10,16 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     private readonly AssemblyList _list;
     private readonly string _mainPath;
+    private readonly AssemblyPackage? _package;
     private readonly Lazy<UniversalAssemblyResolver> _fallback;
 
-    public AssemblyResolver(AssemblyList list, string mainPath, string? targetFramework)
+    /// <param name="package">The package the main assembly was read out of, whose folders are looked
+    /// in first, from the main assembly's outwards; null for a file on disk.</param>
+    public AssemblyResolver(AssemblyList list, string mainPath, string? targetFramework, AssemblyPackage? package)
     {
         _list = list;
         _mainPath = mainPath;
+        _package = package;
         _fallback = new Lazy<UniversalAssemblyResolver>(() =>
             new UniversalAssemblyResolver(mainPath, false, targetFramework, null, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default));
     }
@@ -34,14 +38,11 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     public string? FindFile(IAssemblyReference reference)
     {
-        var directory = Path.GetDirectoryName(_mainPath);
-        if (directory != null)
+        foreach (var directory in ListNearbyDirectories())
         {
-            foreach (var extension in Extensions)
-            {
-                var candidate = Path.Combine(directory, reference.Name + extension);
-                if (File.Exists(candidate)) return candidate;
-            }
+            var found = FindIn(directory, reference.Name);
+            if (found != null)
+                return found;
         }
         if (RuntimeAssemblies.Find(reference.Name) is { } runtime) return runtime;
         try
@@ -54,12 +55,50 @@ internal sealed class AssemblyResolver : IAssemblyResolver
         }
     }
 
+    /// <summary>The main assembly's directory; for one read out of a package, then each folder of the
+    /// package above it, up to the package's root.</summary>
+    private IEnumerable<string> ListNearbyDirectories()
+    {
+        var directory = Path.GetDirectoryName(_mainPath);
+        if (directory == null)
+            yield break;
+        yield return directory;
+        if (_package == null)
+            yield break;
+        while (directory.Length > _package.FilePath.Length)
+        {
+            directory = Path.GetDirectoryName(directory)!;
+            yield return directory;
+        }
+    }
+
+    private string? FindIn(string directory, string name)
+    {
+        foreach (var extension in Extensions)
+        {
+            var candidate = Path.Combine(directory, name + extension);
+            if (Exists(candidate))
+                return candidate;
+        }
+        return null;
+    }
+
+    /// <summary>Whether there is a file at <paramref name="path"/>, on disk or in the main assembly's package.</summary>
+    private bool Exists(string path)
+    {
+        if (File.Exists(path))
+            return true;
+        if (_package == null)
+            return false;
+        return _package.FindFileAt(path) != null;
+    }
+
     public MetadataFile? ResolveModule(MetadataFile mainModule, string moduleName)
     {
         var directory = Path.GetDirectoryName(mainModule.FileName);
         if (directory is null) return null;
         var path = Path.Combine(directory, moduleName);
-        return File.Exists(path) ? _list.TryLoad(path)?.File : null;
+        return Exists(path) ? _list.TryLoad(path)?.File : null;
     }
 
     public Task<MetadataFile?> ResolveAsync(IAssemblyReference reference) => Task.FromResult(Resolve(reference));

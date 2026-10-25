@@ -32,6 +32,7 @@ public static class LucideIcons
     public const string Diff = "\uE30C";
     public const string Download = "\uE0B2";
     public const string ExternalLink = "\uE0B9";
+    public const string FileArchive = "\uE30D";
     public const string FileIcon = "\uE0C0";
     public const string FileImage = "\uE31C";
     public const string FileSpreadsheet = "\uE326";
@@ -40,6 +41,7 @@ public static class LucideIcons
     public const string Filter = "\uE0DC";
     public const string FilterX = "\uE3B5";
     public const string Folder = "\uE0D7";
+    public const string FolderClosed = "\uE330";
     public const string FolderOpen = "\uE247";
     public const string FolderOutput = "\uE337";
     public const string Forward = "\uE229";

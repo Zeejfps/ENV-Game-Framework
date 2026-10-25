@@ -7,6 +7,9 @@ using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core;
 
+/// <summary>Where an assembly read out of a package came from: the package, as listed, and its file there.</summary>
+public sealed record PackagePlace(LoadedAssembly Container, PackageFile File);
+
 /// <summary>
 /// An assembly file known to an <see cref="AssemblyList"/>: one the user opened, or one loaded to
 /// resolve a reference. Its <see cref="Root"/> node, and every node under it, keep their identity
@@ -24,22 +27,35 @@ public sealed class LoadedAssembly
     private readonly Lazy<BrowseNode> _root;
     private readonly PEFile? _file;
     private readonly AssemblyLoadException? _loadError;
+    private BrowseNode? _rootInPackage;
 
-    internal LoadedAssembly(AssemblyList list, PEFile file) : this(list, file.FileName, file, null)
+    internal LoadedAssembly(AssemblyList list, PEFile file) : this(list, file.FileName, file, null, null, null)
     {
     }
 
     /// <summary>A file of the list that could not be read as a .NET assembly, kept listed to show why.</summary>
-    internal LoadedAssembly(AssemblyList list, AssemblyLoadException error) : this(list, error.FilePath, null, error)
+    internal LoadedAssembly(AssemblyList list, AssemblyLoadException error) : this(list, error.FilePath, null, error, null, null)
     {
     }
 
-    private LoadedAssembly(AssemblyList list, string filePath, PEFile? file, AssemblyLoadException? error)
+    /// <summary>A package of the list, whose files are browsed as folders.</summary>
+    internal LoadedAssembly(AssemblyList list, AssemblyPackage package) : this(list, package.FilePath, null, null, package, null)
+    {
+    }
+
+    /// <summary>An assembly read out of a package, known by the path <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
+    internal LoadedAssembly(AssemblyList list, PEFile file, PackagePlace place) : this(list, file.FileName, file, null, null, place)
+    {
+    }
+
+    private LoadedAssembly(AssemblyList list, string filePath, PEFile? file, AssemblyLoadException? error, AssemblyPackage? package, PackagePlace? place)
     {
         List = list;
         _file = file;
         _loadError = error;
         FilePath = filePath;
+        Package = package;
+        InPackage = place;
         if (file != null && file.Metadata.IsAssembly)
         {
             var metadata = file.Metadata;
@@ -56,7 +72,7 @@ public sealed class LoadedAssembly
         NameAndVersion = JoinNameAndVersion(Name, Version);
         if (file != null)
             TargetFramework = TryDetectTargetFramework(file);
-        Resolver = new AssemblyResolver(list, FilePath, TargetFramework);
+        Resolver = new AssemblyResolver(list, FilePath, TargetFramework, place?.Container.Package);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
         _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File));
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
@@ -67,11 +83,22 @@ public sealed class LoadedAssembly
     {
         if (_loadError != null)
             return new FailedAssemblyNode(this);
-        return new AssemblyNode(this);
+        if (Package != null)
+            return new PackageNode(this, Package);
+        return new AssemblyNode(this, null);
     }
 
-    /// <summary>The absolute path of the file this was loaded from.</summary>
+    /// <summary>The absolute path of the file this was loaded from; for an assembly read out of a
+    /// package, the path through the package, as <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
     public string FilePath { get; }
+
+    /// <summary>The files of a package, when this is one; null for an assembly.</summary>
+    public AssemblyPackage? Package { get; }
+
+    public bool IsPackage => Package != null;
+
+    /// <summary>The package this assembly was read out of, and its file there; null for a file on disk.</summary>
+    public PackagePlace? InPackage { get; }
 
     /// <summary>The simple name, e.g. <c>System.Private.CoreLib</c>.</summary>
     public string Name { get; }
@@ -129,8 +156,39 @@ public sealed class LoadedAssembly
 
     public bool HasLoadError => _loadError != null;
 
-    /// <summary>The tree's root for this assembly.</summary>
-    public BrowseNode Root => _root.Value;
+    /// <summary>The tree's root for this assembly. For an assembly read out of a package, it sits in
+    /// the package's tree, under the folder holding its file.</summary>
+    public BrowseNode Root
+    {
+        get
+        {
+            if (InPackage == null)
+                return _root.Value;
+            return RootInPackage(InPackage);
+        }
+    }
+
+    private BrowseNode RootInPackage(PackagePlace place)
+    {
+        var placed = Volatile.Read(ref _rootInPackage);
+        if (placed != null)
+            return placed;
+        var packageRoot = (PackageNode)place.Container.Root;
+        var folder = packageRoot.FindFolderNode(place.File.Folder);
+        folder.LoadChildren();
+        return PlaceInPackage(folder);
+    }
+
+    /// <summary>The root of this assembly, read out of a package, under <paramref name="folder"/>:
+    /// made the first time, then kept.</summary>
+    internal BrowseNode PlaceInPackage(BrowseNode folder)
+    {
+        var root = new AssemblyNode(this, folder);
+        var placed = Interlocked.CompareExchange(ref _rootInPackage, root, null);
+        if (placed != null)
+            return placed;
+        return root;
+    }
 
     /// <summary>The name a portable PDB of this assembly is written under.</summary>
     public string PdbFileName => WholeProjectDecompiler.CleanUpFileName(Name, AssemblyExport.PdbExtension);
@@ -140,7 +198,7 @@ public sealed class LoadedAssembly
     public bool CanGeneratePdb => _canGeneratePdb.Value;
 
     internal AssemblyList List { get; }
-    internal PEFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' failed to load.");
+    internal PEFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' is no assembly that loaded.");
     internal AssemblyResolver Resolver { get; }
     internal bool IsListed { get; set; }
 

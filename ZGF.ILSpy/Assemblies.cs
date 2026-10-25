@@ -87,8 +87,12 @@ public static class Assemblies
     /// <summary>Whether any file on the list failed to load.</summary>
     public static bool AnyFailedToLoad(AppState appState)
     {
-        var assemblies = appState.Assemblies;
-        return assemblies.Listed.Count != assemblies.Assemblies.Count;
+        return appState.Assemblies.Listed.Any(IsFailed);
+    }
+
+    private static bool IsFailed(LoadedAssembly assembly)
+    {
+        return assembly.HasLoadError;
     }
 
     /// <summary>Orders the list by name, and assemblies of one name by version.</summary>

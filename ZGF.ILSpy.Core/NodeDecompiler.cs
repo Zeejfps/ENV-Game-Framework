@@ -208,6 +208,11 @@ internal static class NodeDecompiler
 
     private static void WriteIL(BrowseNode node, DocumentBuilder output, DecompilerSettings settings, CancellationToken cancellationToken)
     {
+        if (!IsCode(node))
+        {
+            WriteSummary(node, output, cancellationToken);
+            return;
+        }
         var file = node.Assembly.File;
         var disassembler = CreateDisassembler(node.Assembly, output, settings, cancellationToken);
         switch (node)
@@ -357,10 +362,23 @@ internal static class NodeDecompiler
         return (flags & CorFlags.Prefers32Bit) != 0 ? "AnyCPU (32-bit preferred)" : "x86";
     }
 
+    /// <summary>Whether <paramref name="node"/> is an assembly, a type or a member, which have code;
+    /// every other node is summarized.</summary>
+    private static bool IsCode(BrowseNode node)
+    {
+        if (node is AssemblyNode)
+            return true;
+        return node is EntityNode;
+    }
+
     private static void WriteSummary(BrowseNode node, DocumentBuilder output, CancellationToken cancellationToken)
     {
         switch (node)
         {
+            case PackageNode or PackageFolderNode:
+                foreach (var child in node.Children)
+                    WriteComment(output, DescribePackageChild(child));
+                break;
             case NamespaceNode ns:
                 output.Write("namespace", SpanKind.Keyword);
                 output.Write(" ");
@@ -438,6 +456,15 @@ internal static class NodeDecompiler
                 WriteComment(output, node.Text);
                 break;
         }
+    }
+
+    private static string DescribePackageChild(BrowseNode child)
+    {
+        if (child is IResourceData file)
+            return file.Description;
+        if (child is PackageFolderNode)
+            return child.Text + "/";
+        return child.Text;
     }
 
     /// <summary>A line naming the forwarded type, which goes to where it is defined, and where it is forwarded to.</summary>
