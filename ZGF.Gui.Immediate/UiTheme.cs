@@ -228,6 +228,10 @@ public sealed record UiTheme
     /// <summary>The tallest a menu grows before its items scroll.</summary>
     public float MenuMaxHeight { get; init; } = 480f;
 
+    /// <summary>How long the pointer may rest on its way to an open submenu before the item under
+    /// it takes over.</summary>
+    public double SubMenuAimSeconds { get; init; } = 0.3;
+
     /// <summary>The width of a dropdown button, and of the arrow half of a split button.</summary>
     public float DropdownButtonWidth { get; init; } = 14f;
 

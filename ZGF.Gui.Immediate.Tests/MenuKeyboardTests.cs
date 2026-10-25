@@ -144,6 +144,46 @@ public sealed class MenuKeyboardTests
     }
 
     [Fact]
+    public void Crossing_an_item_on_the_way_to_an_open_submenu_keeps_it_open()
+    {
+        OpenFile();
+        var recent = _frames.RectOf("Recent");
+        _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
+        var pick = _frames.RectOf("Pick…");
+
+        _frames.MovePointer(recent.Right - 10f, pick.Y + 5f).Frame(3);
+
+        Assert.True(_frames.Drew("One"));
+    }
+
+    [Fact]
+    public void Resting_on_an_item_on_the_way_to_a_submenu_closes_it()
+    {
+        OpenFile();
+        var recent = _frames.RectOf("Recent");
+        _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
+        var pick = _frames.RectOf("Pick…");
+        _frames.MovePointer(recent.Right - 10f, pick.Y + 5f).Frame();
+
+        _frames.Wait(1.0).Frame(2);
+
+        Assert.False(_frames.Drew("One"));
+    }
+
+    [Fact]
+    public void Moving_straight_down_from_a_submenu_item_closes_it()
+    {
+        OpenFile();
+        var recent = _frames.RectOf("Recent");
+        _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
+        var pick = _frames.RectOf("Pick…");
+
+        _frames.MovePointer(recent.X + 10f, pick.Y + 5f).Frame(2);
+
+        Assert.False(_frames.Drew("One"));
+    }
+
+    [Fact]
     public void Pressing_a_title_and_releasing_over_an_item_picks_it()
     {
         _frames.Frame();

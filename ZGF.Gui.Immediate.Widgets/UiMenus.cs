@@ -31,6 +31,7 @@ public static partial class UiWidgets
         private bool _iconColumn;
         private bool _recordingIconColumn;
         private PointF _pointer = new(float.NaN, float.NaN);
+        private readonly SubMenuAim _aim = new();
 
         public int PopupId;
         public int Highlight = -1;
@@ -48,14 +49,40 @@ public static partial class UiWidgets
 
         public void UseIconColumn() => _recordingIconColumn = true;
 
-        /// <summary>Whether the pointer moved since the menu last looked, so hovering takes the
-        /// highlight from the keys only when the user moves the mouse, not while it rests on an item.</summary>
-        public bool PointerMoved { get; private set; }
+        /// <summary>Whether hovering an item takes the highlight this frame: when the user moves the
+        /// mouse, not while it rests on an item, and not while it crosses other items on its way to
+        /// the open submenu.</summary>
+        public bool HoverTakesHighlight { get; private set; }
 
-        public void TrackPointer(PointF pointer)
+        public void TrackPointer(Ui ui)
         {
-            PointerMoved = pointer != _pointer;
+            var pointer = ui.Input.Pointer;
+            var moved = pointer != _pointer;
             _pointer = pointer;
+            HoverTakesHighlight = moved;
+            if (!TryGetOpenSubMenu(ui, out var item, out var subMenu))
+            {
+                _aim.Stop();
+                return;
+            }
+            if (item.Contains(pointer))
+            {
+                _aim.Start(pointer, ui.RealTime);
+                return;
+            }
+            if (_aim.IsActive)
+                HoverTakesHighlight = !_aim.Holds(ui, pointer, moved, subMenu);
+        }
+
+        /// <summary>Where last frame drew the open submenu and the item that opened it.</summary>
+        private bool TryGetOpenSubMenu(Ui ui, out UiRect item, out UiRect subMenu)
+        {
+            subMenu = default;
+            if (!ui.TryGetRect(ItemId(OpenSub), out item))
+                return false;
+            if (OpenChild == null)
+                return false;
+            return ui.TryGetRect(OpenChild.PopupId, out subMenu);
         }
 
         public abstract void Close();
@@ -140,6 +167,70 @@ public static partial class UiWidgets
             }
             return false;
         }
+    }
+
+    /// <summary>The pointer's way from a submenu's item to the submenu, across the items between.
+    /// It holds while the pointer stays in the triangle from where it left the item to the
+    /// submenu's near edge, and ends once it leaves the triangle or rests in it for
+    /// <see cref="UiTheme.SubMenuAimSeconds"/>.</summary>
+    private sealed class SubMenuAim
+    {
+        private static readonly PointF Nowhere = new(float.NaN, float.NaN);
+
+        private PointF _from = Nowhere;
+        private double _movedAt;
+
+        public bool IsActive => !float.IsNaN(_from.X);
+
+        public void Start(PointF from, double now)
+        {
+            _from = from;
+            _movedAt = now;
+        }
+
+        public void Stop() => _from = Nowhere;
+
+        /// <summary>Whether the pointer is still on its way to <paramref name="subMenu"/>; once it
+        /// is not, the aim stops.</summary>
+        public bool Holds(Ui ui, PointF pointer, bool moved, UiRect subMenu)
+        {
+            if (!IsHeadingTo(subMenu, pointer))
+            {
+                Stop();
+                return false;
+            }
+            var now = ui.RealTime;
+            if (moved)
+                _movedAt = now;
+            var remaining = ui.Theme.SubMenuAimSeconds - (now - _movedAt);
+            if (remaining <= 0)
+            {
+                Stop();
+                return false;
+            }
+            ui.RequestUpdateIn(remaining);
+            return true;
+        }
+
+        private bool IsHeadingTo(UiRect subMenu, PointF pointer)
+        {
+            var edgeX = subMenu.X >= _from.X ? subMenu.X : subMenu.Right;
+            var top = new PointF(edgeX, subMenu.Y);
+            var bottom = new PointF(edgeX, subMenu.Bottom);
+            return IsInTriangle(pointer, _from, top, bottom);
+        }
+
+        private static bool IsInTriangle(PointF point, PointF a, PointF b, PointF c)
+        {
+            var ab = Cross(a, b, point);
+            var bc = Cross(b, c, point);
+            var ca = Cross(c, a, point);
+            var anyNegative = ab < 0 || bc < 0 || ca < 0;
+            var anyPositive = ab > 0 || bc > 0 || ca > 0;
+            return !(anyNegative && anyPositive);
+        }
+
+        private static float Cross(PointF a, PointF b, PointF point) => (b.X - a.X) * (point.Y - a.Y) - (b.Y - a.Y) * (point.X - a.X);
     }
 
     internal sealed class MenuBarState : MenuPopup
@@ -326,7 +417,7 @@ public static partial class UiWidgets
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var index = parent.AddItem(i.Id, enabled, subMenu: true);
-        if (enabled && ((parent.PointerMoved && ui.IsPointerOver(i.Id)) || i.Clicked))
+        if (enabled && ((parent.HoverTakesHighlight && ui.IsPointerOver(i.Id)) || i.Clicked))
         {
             parent.Highlight = index;
             parent.OpenSub = index;
@@ -410,7 +501,7 @@ public static partial class UiWidgets
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var index = menu?.AddItem(i.Id, enabled) ?? -1;
         var over = enabled && ui.IsPointerOver(i.Id);
-        if (over && menu is { PointerMoved: true })
+        if (over && menu is { HoverTakesHighlight: true })
         {
             menu.Highlight = index;
             menu.OpenSub = -1;
@@ -505,7 +596,7 @@ public static partial class UiWidgets
     private static Ui.Scope OpenMenu(Ui ui, MenuPopup menu, UiRect anchor, float gap = 0f, PopupSide side = PopupSide.Below)
     {
         var theme = ui.Theme;
-        menu.TrackPointer(ui.Input.Pointer);
+        menu.TrackPointer(ui);
         var scope = ui.Group(menu, static items => ((MenuPopup)items).EndItems());
         ui.Layer(menu.PopupId);
         ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
