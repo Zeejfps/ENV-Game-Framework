@@ -63,6 +63,8 @@ internal static class DocumentsView
             AnalyzerPanelView.Analyze(ui.State, appState, analyzed);
         if (result.ShowInMetadata is { } shown)
             ShowInMetadata(appState, shown, inNewTab: false);
+        if (result.ShowInApiReference is { } documented)
+            ShowInApiReference(appState, documented);
         Zoom(ui.State, result.Zoom);
     }
 

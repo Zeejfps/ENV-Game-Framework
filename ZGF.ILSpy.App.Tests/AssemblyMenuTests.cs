@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -69,6 +70,29 @@ public sealed class AssemblyMenuTests
         Assert.EndsWith("/zgf.ilspy.app.tests.fixtures.greeter", app.Frames.OpenedUrls[0]);
         Assert.True(app.Frames.Drew("Copy full name"));
         Assert.False(app.Frames.Drew("Show in .NET API reference"));
+    }
+
+    [Fact]
+    public void A_reference_in_code_opens_its_api_reference_page_and_a_private_one_reports_it_has_none()
+    {
+        var app = AppDriver.Opened();
+        app.Show(app.Fixture("Greeter"), 2);
+        app.Settle(2);
+        var document = app.AppState.Tabs.Active!.Document;
+        var references = document.SpansOf()
+            .Select(s => s.Span.Reference)
+            .Where(r => r is { IsNavigable: true, Kind: CodeReferenceKind.Type })
+            .ToList();
+        var greeter = references.First(r => r!.Name == "Greeter")!;
+        var internalType = app.Fixture("Hidden").Reference!;
+
+        ShowInApiReference(app.AppState, greeter);
+        app.RunUntil(() => app.Frames.OpenedUrls.Count == 1);
+        ShowInApiReference(app.AppState, internalType);
+        app.RunUntil(() => app.AppState.Errors.Entries.Count == 1);
+
+        Assert.EndsWith("/zgf.ilspy.app.tests.fixtures.greeter", app.Frames.OpenedUrls[0]);
+        Assert.StartsWith("Hidden has no page in the .NET API reference", app.AppState.Errors.Entries[0].FullText);
     }
 
     [Fact]

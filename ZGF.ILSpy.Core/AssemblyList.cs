@@ -253,28 +253,58 @@ public sealed class AssemblyList
     /// </summary>
     public CodeTooltip? Describe(CodeReference reference)
     {
-        if (reference.FilePath is null)
-            return null;
-        if (reference.Kind == CodeReferenceKind.Assembly)
-            return null;
-        var generation = Generation;
         try
         {
-            var owner = TryLoad(reference.FilePath, generation);
-            if (owner is null)
-                return null;
-            var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
-            if (assembly is null)
-                return null;
-            var entity = assembly.Module.ResolveEntity(handle);
+            var (entity, assembly) = ResolveEntity(reference);
             if (entity is null)
                 return null;
-            return CodeTooltip.Create(entity, assembly);
+            return CodeTooltip.Create(entity, assembly!);
         }
-        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        catch (Exception e) when (IsUnreadable(e))
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// The page of the .NET API reference about the type or member <paramref name="reference"/>
+    /// points at, as <see cref="MicrosoftDocs.FindPage(BrowseNode)"/> names it. Null for an assembly,
+    /// a local or a label, for what is not visible outside its assembly, or when it cannot be
+    /// resolved. Loads the files it needs without listing them: call it off the UI thread.
+    /// </summary>
+    public string? FindApiReferencePage(CodeReference reference)
+    {
+        try
+        {
+            var (entity, _) = ResolveEntity(reference);
+            if (entity is null)
+                return null;
+            return MicrosoftDocs.FindPage(entity);
+        }
+        catch (Exception e) when (IsUnreadable(e))
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The type or member <paramref name="reference"/> points at and the assembly that defines
+    /// it, loading that assembly without listing it; nulls for an assembly, a local or a label, or
+    /// when it cannot be resolved.</summary>
+    private (IEntity? Entity, LoadedAssembly? Assembly) ResolveEntity(CodeReference reference)
+    {
+        if (reference.FilePath is null)
+            return default;
+        if (reference.Kind == CodeReferenceKind.Assembly)
+            return default;
+        var generation = Generation;
+        var owner = TryLoad(reference.FilePath, generation);
+        if (owner is null)
+            return default;
+        var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
+        if (assembly is null)
+            return default;
+        var entity = assembly.Module.ResolveEntity(handle);
+        return (entity, assembly);
     }
 
     /// <summary>

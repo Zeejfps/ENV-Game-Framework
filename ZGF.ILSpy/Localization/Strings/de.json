@@ -459,6 +459,8 @@
   "error.find_after_reload": "{location} wurde nach dem Neuladen nicht gefunden",
   "error.resolve": "{name} kann nicht aufgelöst werden",
   "error.no_definition": "In den geöffneten Assemblys und ihren Verweisen wurde keine Definition von {reference} gefunden.",
+  "error.no_api_reference_page": "{name} hat keine Seite in der .NET-API-Referenz",
+  "error.no_api_reference_page_details": "Nur Namespaces sowie Typen und Member, die außerhalb ihrer Assembly sichtbar sind, haben eine.",
   "error.go_back": "Zurück zu {place} ist nicht möglich",
   "error.no_longer_there": "{place} ist nicht mehr vorhanden.",
   "error.decompile": "{name} kann nicht dekompiliert werden",

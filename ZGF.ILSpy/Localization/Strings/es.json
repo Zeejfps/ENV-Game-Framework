@@ -459,6 +459,8 @@
   "error.find_after_reload": "No se encuentra {location} tras recargar",
   "error.resolve": "No se puede resolver {name}",
   "error.no_definition": "No se encontró ninguna definición de {reference} en los ensamblados abiertos ni en sus referencias.",
+  "error.no_api_reference_page": "{name} no tiene página en la referencia de API de .NET",
+  "error.no_api_reference_page_details": "Solo tienen una los espacios de nombres y los tipos y miembros visibles fuera de su ensamblado.",
   "error.go_back": "No se puede volver a {place}",
   "error.no_longer_there": "{place} ya no existe.",
   "error.decompile": "No se puede descompilar {name}",

@@ -459,6 +459,8 @@
   "error.find_after_reload": "После перезагрузки не найдено: {location}",
   "error.resolve": "Не удалось найти определение {name}",
   "error.no_definition": "Определение {reference} не найдено ни в открытых сборках, ни в их ссылках.",
+  "error.no_api_reference_page": "Для {name} нет страницы в справочнике API .NET",
+  "error.no_api_reference_page_details": "Страницы есть только у пространств имён, а также у типов и членов, видимых за пределами своей сборки.",
   "error.go_back": "Не удалось вернуться к {place}",
   "error.no_longer_there": "{place} больше не существует.",
   "error.decompile": "Не удалось декомпилировать {name}",

@@ -459,6 +459,8 @@
   "error.find_after_reload": "다시 로드한 후 {location}을(를) 찾을 수 없습니다",
   "error.resolve": "{name}을(를) 확인할 수 없습니다",
   "error.no_definition": "열린 어셈블리와 해당 참조에서 {reference}의 정의를 찾을 수 없습니다.",
+  "error.no_api_reference_page": "{name}에 대한 .NET API 참조 페이지가 없습니다",
+  "error.no_api_reference_page_details": "네임스페이스와 어셈블리 외부에서 볼 수 있는 형식 및 멤버에만 페이지가 있습니다.",
   "error.go_back": "{place}(으)로 돌아갈 수 없습니다",
   "error.no_longer_there": "{place}이(가) 더 이상 없습니다.",
   "error.decompile": "{name}을(를) 디컴파일할 수 없습니다",

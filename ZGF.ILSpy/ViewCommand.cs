@@ -35,4 +35,7 @@ public abstract record ViewCommand
 
     /// <summary>Expand the analyzer's <see cref="Root"/> and select it.</summary>
     public sealed record ShowAnalysis(AnalyzerSymbolNode Root) : ViewCommand;
+
+    /// <summary>Open the web page at <see cref="Url"/> in the browser.</summary>
+    public sealed record OpenWebPage(string Url) : ViewCommand;
 }

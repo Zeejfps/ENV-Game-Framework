@@ -53,8 +53,9 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     }
 
     /// <summary>Does what comes after drawing a frame: keeps what the screen changed, runs what it asked of
-    /// the app state, asks for another frame when there is more to show, saves the changed settings, and
-    /// has the window draw at the chosen scale and code in the chosen font from the next frame.</summary>
+    /// the app state, asks for another frame when there is more to show, saves the changed settings, has
+    /// the window draw at the chosen scale and code in the chosen font from the next frame, and opens the
+    /// web pages asked for.</summary>
     private static void FinishFrame(Ui<UiState> ui, AppState appState, CodeFontFaces codeFonts)
     {
         KeepScreenChanges(ui.State, appState);
@@ -63,6 +64,14 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         SaveChangedSettings(ui, appState);
         DrawAtChosenScale(ui);
         DrawCodeInChosenFont(ui, codeFonts);
+        OpenAskedWebPages(ui);
+    }
+
+    private static void OpenAskedWebPages(Ui<UiState> ui)
+    {
+        var pages = ui.State.WebPagesToOpen;
+        while (pages.TryDequeue(out var url))
+            ui.OpenUrl(url);
     }
 
     private static void DrawAtChosenScale(Ui<UiState> ui)

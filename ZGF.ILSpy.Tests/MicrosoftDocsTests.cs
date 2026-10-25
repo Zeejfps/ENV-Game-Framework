@@ -26,6 +26,21 @@ public sealed class MicrosoftDocsTests
     }
 
     [Fact]
+    public void A_reference_in_code_finds_the_page_of_its_definition_but_not_of_a_private_member_or_a_local()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
+        var call = document.Lines[document.LineContaining("_items.Add(item);")];
+        var add = assembly.Calculator().Child("Add(T) : void").Decompile(DecompilationLanguage.CSharp);
+        var item = add.SpansOf().First(s => s.Text == "item").Span.Reference!;
+
+        Assert.Equal(ApiReference + "system.collections.generic.list-1.add", list.FindApiReferencePage(call.SpanAt("Add").Reference!));
+        Assert.Null(list.FindApiReferencePage(call.SpanAt("_items").Reference!));
+        Assert.Null(list.FindApiReferencePage(item));
+        Assert.DoesNotContain(list.Listed, a => a.Name == "System.Private.CoreLib");
+    }
+
+    [Fact]
     public void What_is_not_visible_outside_its_assembly_has_no_page()
     {
         var assembly = Trees.TestAssembly;

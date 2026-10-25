@@ -473,6 +473,8 @@
   "error.find_after_reload": "Cannot find {location} after reloading",
   "error.resolve": "Cannot resolve {name}",
   "error.no_definition": "No definition of {reference} was found in the open assemblies or their references.",
+  "error.no_api_reference_page": "{name} has no page in the .NET API reference",
+  "error.no_api_reference_page_details": "Only namespaces and the types and members visible outside their assembly have one.",
   "error.go_back": "Cannot go back to {place}",
   "error.no_longer_there": "{place} is no longer there.",
   "error.decompile": "Cannot decompile {name}",

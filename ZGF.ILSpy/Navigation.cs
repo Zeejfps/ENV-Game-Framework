@@ -94,6 +94,26 @@ public static class Navigation
         appState.History.Push(target.Node, appState.Language);
     }
 
+    /// <summary>Resolves <paramref name="reference"/> in the background, then has the view open its page of
+    /// the .NET API reference, or reports that it has none.</summary>
+    public static async void ShowInApiReference(AppState appState, CodeReference reference)
+    {
+        var found = await Background.Run(() => appState.Assemblies.FindApiReferencePage(reference));
+        var page = found.Value;
+        if (page == null)
+        {
+            ReportNoApiReferencePage(appState, reference);
+            return;
+        }
+        appState.EnqueueCommand(new ViewCommand.OpenWebPage(page));
+    }
+
+    private static void ReportNoApiReferencePage(AppState appState, CodeReference reference)
+    {
+        var t = Strings.For(appState.Locale);
+        appState.ReportError(t.ErrorNoApiReferencePage(reference.Name), t.ErrorNoApiReferencePageDetails);
+    }
+
     /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
     public static void GoToTarget(AppState appState, BrowseNode node)
     {

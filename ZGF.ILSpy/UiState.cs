@@ -84,6 +84,10 @@ public sealed class UiState : IUiState
     /// <summary>The document whose tab's context menu was opened.</summary>
     public DocumentTab? TabMenuTarget;
 
+    /// <summary>The web pages the features asked to open, which the app hands to the browser once the
+    /// frame is drawn.</summary>
+    public Queue<string> WebPagesToOpen { get; } = new();
+
     /// <summary>The analyzer's tree as its view shows it.</summary>
     public AnalyzerRows Analyzer { get; }
 

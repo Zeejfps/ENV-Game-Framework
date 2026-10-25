@@ -45,6 +45,9 @@ public sealed partial class IlSpyApp
             case ViewCommand.RevealRow reveal:
                 RevealRow(uiState, appState, reveal.Tab, reveal.Row);
                 break;
+            case ViewCommand.OpenWebPage open:
+                uiState.WebPagesToOpen.Enqueue(open.Url);
+                break;
         }
     }
 

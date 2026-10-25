@@ -12,32 +12,43 @@ public static class MicrosoftDocs
     /// visible outside its assembly. Null for any other node.</summary>
     public static string? FindPage(BrowseNode node)
     {
-        if (!node.IsPublicApi)
-            return null;
-        var name = FindPageName(node);
-        if (name == null)
-            return null;
-        return ApiReference + name.ToLowerInvariant();
-    }
-
-    private static string? FindPageName(BrowseNode node)
-    {
         if (node is NamespaceNode ns)
-            return NamespacePageName(ns);
-        if (node is not EntityNode entity)
-            return null;
-        if (entity.Entity is ITypeDefinition type)
-            return TypePageName(type);
-        if (entity.Entity is IMember member)
-            return MemberPageName(member);
+            return FindNamespacePage(ns);
+        if (node is EntityNode entity)
+            return FindPage(entity.Entity);
         return null;
     }
 
-    private static string? NamespacePageName(NamespaceNode ns)
+    /// <summary>The reference page of <paramref name="entity"/>, a type or member visible outside its
+    /// assembly. Null for any other entity.</summary>
+    internal static string? FindPage(IEntity entity)
     {
+        if (!EntityText.IsPublicApi(entity))
+            return null;
+        var name = FindPageName(entity);
+        if (name == null)
+            return null;
+        return PageAt(name);
+    }
+
+    private static string? FindNamespacePage(NamespaceNode ns)
+    {
+        if (!ns.IsPublicApi)
+            return null;
         if (ns.Name.Length == 0)
             return null;
-        return ns.Name;
+        return PageAt(ns.Name);
+    }
+
+    private static string PageAt(string name) => ApiReference + name.ToLowerInvariant();
+
+    private static string? FindPageName(IEntity entity)
+    {
+        if (entity is ITypeDefinition type)
+            return TypePageName(type);
+        if (entity is IMember member)
+            return MemberPageName(member);
+        return null;
     }
 
     /// <summary>The type's reflection name with its type parameter count after a dash, and a nested

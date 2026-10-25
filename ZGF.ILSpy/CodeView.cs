@@ -59,7 +59,7 @@ public sealed class CodeViewState
     internal float LaidOutScrollX;
     internal CodeReference? Marked;
     internal CodeReference? MenuReference;
-    internal CodeReference? MenuAnalyze;
+    internal CodeReference? MenuEntity;
     internal CodeReference? MenuMetadata;
     internal CodeTooltip? Tooltip;
     internal int TooltipPart;
@@ -209,11 +209,12 @@ public enum CodeZoom
 }
 
 public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null,
-    CodeZoom Zoom = CodeZoom.None, CodeReference? ShowInMetadata = null);
+    CodeZoom Zoom = CodeZoom.None, CodeReference? ShowInMetadata = null, CodeReference? ShowInApiReference = null);
 
 public static class CodeViewWidget
 {
     private static readonly DisplayOptions Plain = new(HighlightMatchingBrackets: false);
+    private static readonly UiIcon ApiReferenceIcon = new(LucideIcons.ExternalLink, LucideIcons.Family);
 
     private const float FlashSeconds = 1.2f;
     private const float AutoScrollSpeed = 12f;
@@ -406,7 +407,7 @@ public static class CodeViewWidget
             {
                 ui.Focus(focusId, takesText: false);
                 state.MenuReference = hoverNavigable ? hoverReference : null;
-                state.MenuAnalyze = hoverReference is { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } ? hoverReference : null;
+                state.MenuEntity = hoverReference is { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } ? hoverReference : null;
                 state.MenuMetadata = hoverReference is { IsNavigable: true } ? hoverReference : null;
                 state.MenuLine = hasRect ? PositionAt(pointer.X, pointer.Y).Line : CodeViewState.NoLine;
                 ui.OpenContextMenu("menu");
@@ -454,6 +455,8 @@ public static class CodeViewWidget
             result = result with { Analyze = picked.Analyze };
         if (picked.ShowInMetadata != null)
             result = result with { ShowInMetadata = picked.ShowInMetadata };
+        if (picked.ShowInApiReference != null)
+            result = result with { ShowInApiReference = picked.ShowInApiReference };
         return result with { Zoom = zoom };
     }
 
@@ -959,16 +962,18 @@ public static class CodeViewWidget
             if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
                 result = new CodeViewResult(reference, true);
         }
-        if (state.MenuAnalyze is { } analyzed)
+        if (state.MenuEntity is { } entity)
         {
             if (state.MenuReference == null)
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
-                result = result with { Analyze = analyzed };
+                result = result with { Analyze = entity };
+            if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: ApiReferenceIcon))
+                result = result with { ShowInApiReference = entity };
         }
         if (state.MenuMetadata is { } shown)
         {
-            if (state.MenuReference == null && state.MenuAnalyze == null)
+            if (state.MenuReference == null && state.MenuEntity == null)
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
                 result = result with { ShowInMetadata = shown };

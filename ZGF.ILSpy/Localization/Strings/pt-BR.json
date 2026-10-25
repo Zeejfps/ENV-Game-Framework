@@ -459,6 +459,8 @@
   "error.find_after_reload": "Não é possível encontrar {location} após recarregar",
   "error.resolve": "Não é possível resolver {name}",
   "error.no_definition": "Nenhuma definição de {reference} foi encontrada nos assemblies abertos nem em suas referências.",
+  "error.no_api_reference_page": "{name} não tem página na referência de API do .NET",
+  "error.no_api_reference_page_details": "Só namespaces e os tipos e membros visíveis fora do seu assembly têm uma.",
   "error.go_back": "Não é possível voltar para {place}",
   "error.no_longer_there": "{place} não existe mais.",
   "error.decompile": "Não é possível descompilar {name}",

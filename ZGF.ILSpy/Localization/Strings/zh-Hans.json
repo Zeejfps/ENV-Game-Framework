@@ -459,6 +459,8 @@
   "error.find_after_reload": "重新加载后找不到 {location}",
   "error.resolve": "无法解析 {name}",
   "error.no_definition": "在已打开的程序集及其引用中找不到 {reference} 的定义。",
+  "error.no_api_reference_page": "{name} 在 .NET API 参考中没有页面",
+  "error.no_api_reference_page_details": "只有命名空间以及在其程序集外可见的类型和成员才有页面。",
   "error.go_back": "无法返回到 {place}",
   "error.no_longer_there": "{place} 已不存在。",
   "error.decompile": "无法反编译 {name}",

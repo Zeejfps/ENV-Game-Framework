@@ -312,6 +312,20 @@ public sealed class CodeViewTests
         }
     }
 
+    [Fact]
+    public void The_context_menu_shows_the_type_or_member_under_the_pointer_in_the_api_reference()
+    {
+        var (view, line, column) = GreeterAt("Greet(2)");
+
+        view.Click(line, column, PointerButton.Right);
+        view.Run();
+        var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Show in .NET API reference").Inputs.Position;
+        view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
+
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, view.Last.ShowInApiReference);
+        Assert.Null(view.Last.Navigate);
+    }
+
     private static int CountWord(string line, string word)
     {
         var count = 0;

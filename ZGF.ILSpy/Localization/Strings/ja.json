@@ -459,6 +459,8 @@
   "error.find_after_reload": "再読み込み後に {location} が見つかりません",
   "error.resolve": "{name} を解決できません",
   "error.no_definition": "開いているアセンブリとその参照に {reference} の定義が見つかりませんでした。",
+  "error.no_api_reference_page": "{name} には .NET API リファレンスのページがありません",
+  "error.no_api_reference_page_details": "ページがあるのは、名前空間と、アセンブリの外から参照できる型とメンバーだけです。",
   "error.go_back": "{place} に戻れません",
   "error.no_longer_there": "{place} はもう存在しません。",
   "error.decompile": "{name} を逆コンパイルできません",
