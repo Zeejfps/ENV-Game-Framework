@@ -7,9 +7,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Implementation order
 
-1. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
-   namespace and name.
-2. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
+1. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
    desktop facade first.
 
 ## Biggest gaps
@@ -25,8 +23,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   `ApplyWindowsRuntimeProjections` are left out of the options panel.
 - **Display options:** word wrap; installed code fonts on macOS and Linux (`ISystemFonts` lists
   them on Windows only, so elsewhere the picker offers just the bundled font).
-- **Exported (forwarded) types:** a node per type an assembly forwards, going to the real type.
-  Facades such as `netstandard.dll` and `System.Runtime.dll` show as nearly empty without them.
 - **Tree:** nested-namespace view.
 - **Per-assembly menu:** Set target framework, Pick PDB, Open containing folder.
 - **Metadata explorer:** "Decompile metadata row in new tab", hide empty tables, decoded blob

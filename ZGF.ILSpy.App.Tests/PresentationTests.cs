@@ -115,6 +115,22 @@ public sealed class PresentationTests
     }
 
     [Fact]
+    public void A_forwarded_type_row_shows_the_forward_icon_and_the_assembly_it_is_forwarded_to()
+    {
+        var runtime = Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "System.Runtime.dll");
+        var facade = new AssemblyList().Open(runtime);
+        var forwarded = facade.Root.Child("System").Children.First(c => c.Text == "Object");
+        var tree = new BrowseTree();
+
+        var row = tree.Row(forwarded);
+
+        Assert.Equal("Object", row.Label);
+        Assert.Equal(LucideIcons.Forward, row.Icon!.Value.Glyph);
+        Assert.Equal("→ System.Private.CoreLib", row.Secondary);
+        Assert.Equal("System.Object", row.Tooltip);
+    }
+
+    [Fact]
     public void A_non_public_type_says_its_accessibility_in_its_tooltip()
     {
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;

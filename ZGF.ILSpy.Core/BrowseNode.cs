@@ -42,6 +42,7 @@ public enum NodeKind
     ResourcesFile,
     ResourceImage,
     FailedAssembly,
+    ForwardedType,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -98,6 +99,9 @@ public abstract class BrowseNode
 
     /// <summary>The metadata token of the entity this node defines, for type and member nodes; null otherwise.</summary>
     public int? Token { get; private protected init; }
+
+    /// <summary>The name of the assembly a forwarded type is forwarded to; null for other nodes.</summary>
+    public string? ForwardedTo { get; private protected init; }
 
     /// <summary>Where activating this node should navigate, for nodes that point elsewhere (a base type,
     /// an assembly reference); null otherwise.</summary>

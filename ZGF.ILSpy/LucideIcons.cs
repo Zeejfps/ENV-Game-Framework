@@ -42,6 +42,7 @@ public static class LucideIcons
     public const string Folder = "\uE0D7";
     public const string FolderOpen = "\uE247";
     public const string FolderOutput = "\uE337";
+    public const string Forward = "\uE229";
     public const string FunctionSquare = "\uE22D";
     public const string GitCommitHorizontal = "\uE0E3";
     public const string GitFork = "\uE28D";

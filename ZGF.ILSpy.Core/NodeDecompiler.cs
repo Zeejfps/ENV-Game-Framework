@@ -372,7 +372,14 @@ internal static class NodeDecompiler
                     cancellationToken.ThrowIfCancellationRequested();
                     if (child is TypeNode type)
                         WriteTypeDeclaration(output, type);
+                    if (child is ForwardedTypeNode forwarded)
+                        WriteForwardedType(output, forwarded);
                 }
+                break;
+            case ForwardedTypeNode forwarded:
+                WriteComment(output, ForwardedToText(forwarded));
+                output.Write(forwarded.FullName, SpanKind.Type, forwarded.Target);
+                output.WriteLine();
                 break;
             case ReferencesFolderNode:
                 foreach (var child in node.Children)
@@ -431,6 +438,16 @@ internal static class NodeDecompiler
                 break;
         }
     }
+
+    /// <summary>A line naming the forwarded type, which goes to where it is defined, and where it is forwarded to.</summary>
+    private static void WriteForwardedType(DocumentBuilder output, ForwardedTypeNode node)
+    {
+        output.Write(node.Text, SpanKind.Type, node.Target);
+        output.Write(" // " + ForwardedToText(node), SpanKind.Comment);
+        output.WriteLine();
+    }
+
+    private static string ForwardedToText(BrowseNode node) => $"Forwarded to {node.ForwardedTo}";
 
     private static void WriteTypeDeclaration(DocumentBuilder output, TypeNode node)
     {

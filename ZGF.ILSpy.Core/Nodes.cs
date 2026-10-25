@@ -65,11 +65,17 @@ internal sealed class AssemblyNode : BrowseNode
                 byNamespace.Add(type.Namespace, types = new List<ITypeDefinition>());
             types.Add(type);
         }
+        var forwardedByNamespace = ForwardedTypes.ListByNamespace(file.Metadata);
 
         var namespaces = new Dictionary<string, NamespaceNode>(StringComparer.Ordinal);
-        foreach (var name in byNamespace.Keys.Order(NaturalStringComparer.Instance))
+        var names = byNamespace.Keys
+            .Union(forwardedByNamespace.Keys)
+            .Order(NaturalStringComparer.Instance);
+        foreach (var name in names)
         {
-            var node = new NamespaceNode(Assembly, this, name, byNamespace[name]);
+            var types = byNamespace.GetValueOrDefault(name, []);
+            var forwarded = forwardedByNamespace.GetValueOrDefault(name, []);
+            var node = new NamespaceNode(Assembly, this, name, types, forwarded);
             namespaces.Add(name, node);
             result.Add(node);
         }
@@ -130,31 +136,59 @@ internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode pa
             .ToArray();
 }
 
+/// <summary>A namespace of an assembly: the types it defines there and those it forwards from
+/// there to other assemblies, sorted together by name, then by how many type parameters they have.</summary>
 internal sealed class NamespaceNode : BrowseNode
 {
     private readonly List<ITypeDefinition> _types;
+    private readonly List<ForwardedType> _forwarded;
 
-    public NamespaceNode(LoadedAssembly assembly, BrowseNode parent, string name, List<ITypeDefinition> types)
+    public NamespaceNode(LoadedAssembly assembly, BrowseNode parent, string name, List<ITypeDefinition> types, List<ForwardedType> forwarded)
         : base(assembly, parent, NodeKind.Namespace, name.Length == 0 ? "-" : name)
     {
         Name = name;
         _types = types;
-        IsPublicApi = types.Exists(EntityText.IsPublicApi);
+        _forwarded = forwarded;
+        IsPublicApi = forwarded.Count > 0 || types.Exists(EntityText.IsPublicApi);
     }
 
     public string Name { get; }
 
+    /// <summary>The types the assembly defines in this namespace.</summary>
     public IEnumerable<ITypeDefinition> Types => _types;
 
     public override string FullName => Name;
 
     private protected override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() =>
-        _types
-            .OrderBy(t => t.Name, NaturalStringComparer.Instance)
-            .Select(t => (BrowseNode)new TypeNode(Assembly, this, t))
+    private protected override BrowseNode[] CreateChildren()
+    {
+        var defined = _types
+            .Select(t => (SortName: t.Name, Arity: t.TypeParameterCount, Node: (BrowseNode)new TypeNode(Assembly, this, t)));
+        var forwarded = _forwarded
+            .Select(f => (f.SortName, f.Arity, Node: (BrowseNode)new ForwardedTypeNode(Assembly, this, f)));
+        return defined
+            .Concat(forwarded)
+            .OrderBy(c => c.SortName, NaturalStringComparer.Instance)
+            .ThenBy(c => c.Arity)
+            .Select(c => c.Node)
             .ToArray();
+    }
+}
+
+/// <summary>A type the assembly forwards to another: named as <c>typeof</c> names an open generic
+/// type, and going to the type where it is defined.</summary>
+internal sealed class ForwardedTypeNode : BrowseNode
+{
+    public ForwardedTypeNode(LoadedAssembly assembly, BrowseNode parent, ForwardedType type)
+        : base(assembly, parent, NodeKind.ForwardedType, type.Label)
+    {
+        FullName = type.Namespace.Length == 0 ? type.Label : $"{type.Namespace}.{type.Label}";
+        ForwardedTo = type.Destination;
+        Target = CodeReference.ToEntity(CodeReferenceKind.Type, type.Label, assembly.FilePath, type.Handle);
+    }
+
+    public override string FullName { get; }
 }
 
 internal abstract class EntityNode : BrowseNode

@@ -10,6 +10,7 @@ public static class NodeText
 {
     private const string TokenPrefix = "@";
     private const string HexTokenFormat = "X8";
+    private const string ForwardedToPrefix = "→ ";
 
     private static readonly ConditionalWeakTable<BrowseNode, string> Tooltips = new();
     private static readonly ConditionalWeakTable<BrowseNode, string> Secondaries = new();
@@ -24,9 +25,21 @@ public static class NodeText
     public static string Tooltip(BrowseNode node) => Tooltips.GetValue(node, Describe);
 
     /// <summary>What a row shows after the node's name in muted text: an assembly's version and
-    /// target framework, e.g. <c>10.0.0.0 · net10.0</c>. Null for other nodes.</summary>
-    public static string? Secondary(BrowseNode node) =>
-        node.Kind == NodeKind.Assembly && Secondaries.GetValue(node, static n => Identity(n.Assembly)) is { Length: > 0 } text ? text : null;
+    /// target framework, e.g. <c>10.0.0.0 · net10.0</c>, or the assembly a forwarded type is forwarded
+    /// to, e.g. <c>→ System.Runtime</c>. Null for other nodes.</summary>
+    public static string? Secondary(BrowseNode node)
+    {
+        if (node.Kind == NodeKind.ForwardedType)
+            return Secondaries.GetValue(node, WriteForwardedTo);
+        if (node.Kind != NodeKind.Assembly)
+            return null;
+        var identity = Secondaries.GetValue(node, static n => Identity(n.Assembly));
+        if (identity.Length == 0)
+            return null;
+        return identity;
+    }
+
+    private static string WriteForwardedTo(BrowseNode node) => ForwardedToPrefix + node.ForwardedTo;
 
     /// <summary>The node's metadata token as <paramref name="format"/> writes it, e.g. <c>@06000001</c>
     /// in hex. Null when the node has none or tokens are hidden.</summary>
