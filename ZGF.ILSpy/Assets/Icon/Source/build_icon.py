@@ -114,7 +114,7 @@ def build(parts=ALL_PARTS, style=FLAT):
 
     arch = rounded_polygon(ARCH_POINTS, ARCH_CORNER_RADIUS)
 
-    add("file.new", width=SIZE, height=SIZE, units="Pixels", backgroundContents="transparent")
+    add("file.new", width=SIZE, height=SIZE, units="Pixels", backgroundContents="transparent", created=None)
 
     if "background" in parts:
         draw_background(filled)

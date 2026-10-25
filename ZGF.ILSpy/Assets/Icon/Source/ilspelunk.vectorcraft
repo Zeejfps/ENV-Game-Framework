@@ -3402,19 +3402,7 @@
     },
     "raster_effects_ppi": 72.0,
     "images": {},
-    "next_id": 18,
-    "metadata": {
-      "author": "",
-      "authorTitle": "",
-      "description": "",
-      "keywords": [],
-      "rating": 0,
-      "copyrightStatus": "unknown",
-      "copyrightNotice": "",
-      "copyrightUrl": "",
-      "created": 1792891471,
-      "modified": null
-    }
+    "next_id": 18
   },
   "images": {}
 }
