@@ -15,6 +15,7 @@ public sealed class ThemeCatalog
     private readonly IReadOnlyList<ThemeFile> _builtIns;
     private readonly Dictionary<string, ThemeFile> _files = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, AppTheme> _themes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _shownIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _resolving = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _ids = new();
     private readonly List<ThemeError> _errors = new();
@@ -56,6 +57,7 @@ public sealed class ThemeCatalog
     {
         _files.Clear();
         _themes.Clear();
+        _shownIds.Clear();
         _ids.Clear();
         _errors.Clear();
         _namesCulture = null;
@@ -85,7 +87,11 @@ public sealed class ThemeCatalog
             return resolved;
         _resolving.Add(id);
         var file = _files[id];
-        var theme = Build(file) ?? FallBack(file);
+        var theme = Build(file);
+        if (theme != null)
+            _shownIds[id] = id;
+        else
+            theme = FallBack(file);
         _resolving.Remove(id);
         _themes[id] = theme;
         return theme;
@@ -175,13 +181,21 @@ public sealed class ThemeCatalog
     /// else the built-in theme of its type.</summary>
     private AppTheme FallBack(ThemeFile file)
     {
+        var target = FindFallBack(file);
+        var theme = Resolve(target);
+        _shownIds[file.Id] = _shownIds[target];
+        return theme;
+    }
+
+    private string FindFallBack(ThemeFile file)
+    {
         if (CanFallBackToParent(file))
-            return Resolve(file.Extends!);
+            return file.Extends!;
         var type = file.Type ?? ThemeType.Dark;
         var builtIn = IdOfType(type);
         if (_resolving.Contains(builtIn))
             throw new InvalidOperationException($"The built-in theme '{builtIn}' cannot be resolved.");
-        return Resolve(builtIn);
+        return builtIn;
     }
 
     private bool CanFallBackToParent(ThemeFile file)
@@ -216,6 +230,18 @@ public sealed class ThemeCatalog
             return theme;
         return _themes[DarkId];
     }
+
+    /// <summary>The id of the theme whose colors <see cref="Find"/> shows for <paramref name="id"/>: the id
+    /// itself when it resolves, else the theme it falls back to.</summary>
+    public string FindShownId(string id)
+    {
+        if (_shownIds.TryGetValue(id, out var shown))
+            return shown;
+        return _shownIds[DarkId];
+    }
+
+    /// <summary>The name of the theme <paramref name="id"/> in <paramref name="culture"/>'s language.</summary>
+    public string NameOf(string id, CultureInfo culture) => _files[id].Name.In(culture);
 
     /// <summary>Where <paramref name="id"/> is in <see cref="Ids"/>, or -1. Allocates nothing.</summary>
     public int IndexOf(string id)

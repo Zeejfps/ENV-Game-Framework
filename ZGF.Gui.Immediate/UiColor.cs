@@ -53,6 +53,17 @@ public static class UiColor
         return true;
     }
 
+    /// <summary><paramref name="color"/> written as <see cref="TryParse"/> reads it: <c>#RRGGBB</c> when
+    /// opaque, else <c>#RRGGBBAA</c>.</summary>
+    public static string ToHex(uint color)
+    {
+        var rgb = color & 0xFFFFFFu;
+        var alpha = color >> 24;
+        if (alpha == 0xFFu)
+            return $"#{rgb:X6}";
+        return $"#{rgb:X6}{alpha:X2}";
+    }
+
     private static uint ToArgb(uint digits, bool hasAlpha)
     {
         if (!hasAlpha)

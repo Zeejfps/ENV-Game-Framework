@@ -314,6 +314,55 @@ public sealed class DisplayOptionsTests
         Assert.False(IsDrawn(app, "Dracula"));
     }
 
+    [Fact]
+    public void Customizing_the_theme_switches_to_a_new_one_and_opens_its_file()
+    {
+        using var temp = new TempDir();
+        var app = new AppDriver(width: 1600f, settings: temp.Settings());
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+
+        app.ClickLast(LucideIcons.Palette).Frame();
+
+        Assert.Equal("dark-custom", app.AppState.Theme);
+        Assert.Equal([temp.PathOf(Path.Combine("themes", "dark-custom.json"))], app.Frames.OpenedFiles);
+    }
+
+    [Fact]
+    public void The_theme_row_ends_where_the_other_pickers_end_with_its_buttons_centred_on_the_picker()
+    {
+        using var temp = new TempDir();
+        var app = new AppDriver(width: 3000f, settings: temp.Settings());
+        OpenDisplayOptions(app.Ui);
+        app.Run(2);
+
+        var controls = FilledWith(app, app.Theme.Control);
+        var language = ControlAround(controls, app.Frames.TextRect("English"));
+        var picker = ControlAround(controls, app.Frames.TextRect("Dark"));
+        var themeRow = controls
+            .Where(r => Math.Abs(CentreY(r) - CentreY(picker)) < 0.5f)
+            .ToList();
+
+        Assert.Equal(4, themeRow.Count);
+        Assert.Equal(language.X + language.Width, themeRow.Max(r => r.X + r.Width), 0.5f);
+        Assert.All(themeRow, r => Assert.Equal(picker.Height, r.Height, 0.5f));
+    }
+
+    private static List<UiRect> FilledWith(AppDriver app, uint color)
+    {
+        return app.Frames.Canvas.Rects
+            .Where(r => r.Inputs.Style.BackgroundColor == color)
+            .Select(r => app.Frames.ToUi(r.Inputs.Position))
+            .ToList();
+    }
+
+    private static UiRect ControlAround(List<UiRect> controls, UiRect text) => controls.Single(r => Contains(r, text));
+
+    private static bool Contains(UiRect outer, UiRect inner) =>
+        inner.X >= outer.X && inner.X + inner.Width <= outer.X + outer.Width && Math.Abs(CentreY(inner) - CentreY(outer)) < outer.Height / 2;
+
+    private static float CentreY(UiRect rect) => rect.Y + rect.Height / 2;
+
     private static bool IsDrawn(AppDriver app, string text) => app.Frames.TextRects().Any(t => t.Text == text);
 
     private static List<UiRect> TwinRects(AppDriver app)

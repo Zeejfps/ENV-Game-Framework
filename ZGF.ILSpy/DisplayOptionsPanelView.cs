@@ -75,14 +75,16 @@ internal static class DisplayOptionsPanelView
             LanguagePicker(ui, appState);
     }
 
-    /// <summary>The themes of the catalog, built-in ones first, then the buttons that open the themes
-    /// folder and read the user's themes again, while the settings have a folder to keep themes in.</summary>
+    /// <summary>The themes of the catalog, built-in ones first, then the buttons that start a custom theme
+    /// from the one shown, open the themes folder and read the user's themes again, while the settings
+    /// have a folder to keep themes in.</summary>
     private static void ThemePicker(Ui<UiState> ui, AppState appState)
     {
-        using var controls = ui.Row(new Box { Gap = ui.Theme.GapTight, AlignY = Align.Center });
+        using var controls = ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.GapTight, AlignY = Align.Center });
         PickTheme(ui, appState);
         if (appState.Settings.ThemesFolder == null)
             return;
+        CustomizeThemeButton(ui, appState);
         OpenThemesFolderButton(ui, appState);
         ReloadThemesButton(ui, appState);
     }
@@ -95,6 +97,17 @@ internal static class DisplayOptionsPanelView
         var picked = PickFrom(ui, "theme", labels, current, themes.Ids, themes.Revision);
         if (picked != NothingPicked)
             SetTheme(appState, themes.Ids[picked]);
+    }
+
+    /// <summary>Starts a theme of the user's own from the one shown, switches to it and opens its file.</summary>
+    private static void CustomizeThemeButton(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        if (!ui.IconButton("customize-theme", LucideIcons.Palette, LucideIcons.Family, t.DisplayOptionsCustomizeTheme, variant: ButtonVariant.Neutral))
+            return;
+        var file = CreateCustomTheme(appState);
+        if (file != null)
+            ui.OpenFile(file);
     }
 
     private static void OpenThemesFolderButton(Ui<UiState> ui, AppState appState)

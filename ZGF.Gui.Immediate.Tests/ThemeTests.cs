@@ -171,8 +171,55 @@ public sealed class ThemeTests
             .Select(k => k.Key);
 
         Assert.Equal(["background", "surface", "control", "field", "border", "text", "textMuted", "accent", "onAccent"], required);
-        Assert.Contains(new ThemeColorKey("controlHovered", false), UiTheme.ColorKeys);
-        Assert.Contains(new ThemeColorKey("popupShadowColor", false), UiTheme.ColorKeys);
+        Assert.False(KeyOf("controlHovered").IsRequired);
+        Assert.False(KeyOf("popupShadowColor").IsRequired);
+    }
+
+    [Fact]
+    public void Each_key_tells_what_its_color_is_for_from_the_summary_of_its_property()
+    {
+        Assert.Equal("The workspace: the window, trees and lists.", KeyOf("background").Description);
+        Assert.Equal("Docked chrome: menu bar, main toolbar, tab strip, status bar. A pane's own body and toolbar use paneBackground.", KeyOf("surface").Description);
+        Assert.Equal("Text on selection and selectionInactive.", KeyOf("selectionText").Description);
+        Assert.Equal("The shadow under menus, context menus and tooltips.", KeyOf("popupShadowColor").Description);
+        Assert.Equal("Derived from other colors, or a default, when unset.", KeyOf("controlHovered").Description);
+        Assert.Equal("", KeyOf("text").Description);
+    }
+
+    private static ThemeColorKey KeyOf(string key) => UiTheme.ColorKeys.Single(k => k.Key == key);
+
+    [Fact]
+    public void A_theme_lists_its_colors_by_key_as_its_getters_give_them()
+    {
+        var theme = new UiTheme { Control = 0xFF303030, Text = 0xFFF0F0F0, PopupShadow = new UiShadow(0f, 1f, 2f, 0f, 0x40000000) };
+
+        var colors = theme.ToColors();
+
+        Assert.Equal(UiTheme.ColorKeys.Select(k => k.Key), colors.Keys);
+        Assert.Equal(0xFF303030u, colors["control"]);
+        Assert.Equal(UiColor.Mix(0xFF303030, 0xFFF0F0F0, 0.06f), colors["controlHovered"]);
+        Assert.Equal(0x40000000u, colors["popupShadowColor"]);
+    }
+
+    [Theory]
+    [InlineData(0xFF1B1E24u, "#1B1E24")]
+    [InlineData(0x8044475Au, "#44475A80")]
+    [InlineData(0x00FFFFFFu, "#FFFFFF00")]
+    public void A_color_is_written_as_css_reads_it_back(uint color, string hex)
+    {
+        Assert.Equal(hex, UiColor.ToHex(color));
+        Assert.True(UiColor.TryParse(hex, out var read));
+        Assert.Equal(color, read);
+    }
+
+    [Fact]
+    public void A_file_asked_to_be_opened_is_handed_to_the_host_once_the_frame_is_drawn()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.OpenFile("theme.json"));
+
+        frames.Frame();
+
+        Assert.Equal(["theme.json"], frames.OpenedFiles);
     }
 
     [Fact]

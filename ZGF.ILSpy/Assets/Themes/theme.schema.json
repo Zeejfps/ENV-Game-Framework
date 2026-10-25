@@ -47,132 +47,174 @@
       "additionalProperties": false,
       "properties": {
         "background": {
+          "description": "The workspace: the window, trees and lists.",
           "$ref": "#/definitions/color"
         },
         "surface": {
+          "description": "Docked chrome: menu bar, main toolbar, tab strip, status bar. A pane's own body and toolbar use paneBackground.",
           "$ref": "#/definitions/color"
         },
         "surfaceRaised": {
+          "description": "Floating surfaces: menus, tooltips, dialogs.",
           "$ref": "#/definitions/color"
         },
         "control": {
+          "description": "The base of neutral buttons and segments.",
           "$ref": "#/definitions/color"
         },
         "controlHovered": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "controlPressed": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "field": {
+          "description": "Editable fields.",
           "$ref": "#/definitions/color"
         },
         "editorBackground": {
+          "description": "A document or code view's background.",
           "$ref": "#/definitions/color"
         },
         "paneBackground": {
+          "description": "A docked pane's body, which its selected tab, toolbar and table header share so the tab reads as attached to what is below it.",
           "$ref": "#/definitions/color"
         },
         "paneToolbarBackground": {
+          "description": "A toolbar along the top of a pane.",
           "$ref": "#/definitions/color"
         },
         "tableHeaderBackground": {
+          "description": "The column headings of a table.",
           "$ref": "#/definitions/color"
         },
         "tabStripBackground": {
+          "description": "The strip behind a pane's tabs.",
           "$ref": "#/definitions/color"
         },
         "tabActiveBackground": {
+          "description": "The selected tab, joined to its pane.",
           "$ref": "#/definitions/color"
         },
         "tabHoverBackground": {
+          "description": "An unselected tab under the pointer.",
           "$ref": "#/definitions/color"
         },
         "border": {
+          "description": "Component outlines.",
           "$ref": "#/definitions/color"
         },
         "borderStrong": {
+          "description": "An outline that answers the pointer: a hovered field, a hovered splitter.",
           "$ref": "#/definitions/color"
         },
         "separator": {
+          "description": "Structural divisions between panes and groups.",
           "$ref": "#/definitions/color"
         },
         "text": {
           "$ref": "#/definitions/color"
         },
         "textMuted": {
+          "description": "Secondary text: metadata, placeholders, shortcuts.",
           "$ref": "#/definitions/color"
         },
         "textDisabled": {
+          "description": "Text of a control that cannot be used.",
           "$ref": "#/definitions/color"
         },
         "accent": {
+          "description": "Primary filled actions and checked state.",
           "$ref": "#/definitions/color"
         },
         "accentHovered": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "accentPressed": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "onAccent": {
+          "description": "Text drawn on accent.",
           "$ref": "#/definitions/color"
         },
         "accentText": {
+          "description": "Links and activity text, readable on background.",
           "$ref": "#/definitions/color"
         },
         "focusRing": {
+          "description": "The ring a widget holding keyboard focus draws.",
           "$ref": "#/definitions/color"
         },
         "rowHover": {
+          "description": "An unselected row under the pointer.",
           "$ref": "#/definitions/color"
         },
         "selection": {
+          "description": "Selected rows, segments and highlighted menu items in the focused pane.",
           "$ref": "#/definitions/color"
         },
         "selectionInactive": {
+          "description": "A selection whose pane does not hold focus.",
           "$ref": "#/definitions/color"
         },
         "selectionText": {
+          "description": "Text on selection and selectionInactive.",
           "$ref": "#/definitions/color"
         },
         "textSelection": {
+          "description": "Selected text, distinct from selection so it shows on a selected row.",
           "$ref": "#/definitions/color"
         },
         "danger": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "dangerSurface": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "onDanger": {
+          "description": "Text on a solid danger badge.",
           "$ref": "#/definitions/color"
         },
         "warning": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "warningSurface": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "success": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "scrim": {
+          "description": "The backdrop dimming what is behind a modal dialog.",
           "$ref": "#/definitions/color"
         },
         "scrollThumb": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "scrollThumbHovered": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "scrollThumbHeld": {
+          "description": "Derived from other colors, or a default, when unset.",
           "$ref": "#/definitions/color"
         },
         "popupShadowColor": {
+          "description": "The shadow under menus, context menus and tooltips.",
           "$ref": "#/definitions/color"
         },
         "dialogShadowColor": {
+          "description": "The shadow under a modal dialog's card.",
           "$ref": "#/definitions/color"
         }
       }
@@ -249,12 +291,15 @@
           "$ref": "#/definitions/color"
         },
         "currentLine": {
+          "description": "The background of the caret's line, when it is highlighted.",
           "$ref": "#/definitions/color"
         },
         "matchingBracket": {
+          "description": "The background of the bracket at the caret and the one matching it.",
           "$ref": "#/definitions/color"
         },
         "bookmark": {
+          "description": "The gutter mark of an enabled bookmark.",
           "$ref": "#/definitions/color"
         }
       }
@@ -280,6 +325,7 @@
           "$ref": "#/definitions/color"
         },
         "restricted": {
+          "description": "The color of the accessibility overlay on non-public nodes' icons.",
           "$ref": "#/definitions/color"
         }
       }

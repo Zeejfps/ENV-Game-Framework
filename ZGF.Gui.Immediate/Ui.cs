@@ -29,6 +29,7 @@ public abstract partial class Ui
     private readonly List<Action<IFilePicker>> _dialogs = new();
     private readonly List<string> _foldersToOpen = new();
     private readonly List<string> _filesToReveal = new();
+    private readonly List<string> _filesToOpen = new();
     private readonly List<string> _urlsToOpen = new();
     private readonly List<FontFace> _fontsToRegister = new();
     private readonly List<Action<IReadOnlyList<SystemFontFamily>>> _fontListings = new();
@@ -227,6 +228,20 @@ public abstract partial class Ui
     {
         var files = _filesToReveal.ToArray();
         _filesToReveal.Clear();
+        return files;
+    }
+
+    /// <summary>Opens the file at <paramref name="path"/> in the app the OS opens its kind of file with,
+    /// once this frame is drawn.</summary>
+    public void OpenFile(string path) => _filesToOpen.Add(path);
+
+    internal bool HasFilesToOpen => _filesToOpen.Count > 0;
+
+    /// <summary>The files asked to be opened since the last call, which the host opens.</summary>
+    internal string[] TakeFilesToOpen()
+    {
+        var files = _filesToOpen.ToArray();
+        _filesToOpen.Clear();
         return files;
     }
 

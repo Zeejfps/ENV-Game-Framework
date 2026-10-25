@@ -435,15 +435,119 @@ public sealed class UserThemeTests : IDisposable
     }
 
     [Fact]
-    public void The_themes_folder_is_made_with_the_schema_in_it()
+    public void The_themes_folder_is_made_with_the_schema_and_a_readme_that_are_no_themes()
     {
         var appState = new AppState(Settings());
 
         var folder = PrepareThemesFolder(appState);
+        ReloadUserThemes(appState);
 
         Assert.Equal(_temp.PathOf("themes"), folder);
         Assert.Equal(BuiltInThemes.ReadSchema(), File.ReadAllText(Path.Combine(folder!, "theme.schema.json")));
+        Assert.Equal(BuiltInThemes.ReadGuide(), File.ReadAllText(Path.Combine(folder!, "README.md")));
+        Assert.Equal(BuiltInThemes.Files.Count, appState.Themes.Ids.Count);
         Assert.Empty(appState.Errors.Entries);
+    }
+
+    [Fact]
+    public void A_custom_theme_extends_the_one_shown_lists_every_color_and_is_switched_to()
+    {
+        var settings = Settings();
+        settings.Theme = "dracula";
+        var appState = new AppState(settings);
+        var dracula = appState.Themes.Find("dracula");
+
+        var path = CreateCustomTheme(appState);
+
+        var text = File.ReadAllText(path!);
+        Assert.Equal(_temp.PathOf(Path.Combine("themes", "dracula-custom.json")), path);
+        Assert.Equal("dracula-custom", appState.Theme);
+        Assert.Empty(appState.Errors.Entries);
+        Assert.Equal("Dracula (custom)", appState.Themes.NameOf("dracula-custom", CultureInfo.GetCultureInfo("en")));
+        Assert.Equal(dracula.Ui, ResolveTheme(appState).Ui);
+        Assert.Equal(dracula.Code.Keyword, ResolveTheme(appState).Code.Keyword);
+        Assert.Contains("\"extends\": \"dracula\",", text);
+        Assert.Contains("// \"rowHover\": \"#2C2E3B\",", text);
+        Assert.Contains("// \"popupShadowColor\": \"#00000066\",", text);
+        Assert.Contains("// \"keyword\": \"#FF79C6\",", text);
+        Assert.Contains("// \"restricted\": \"#F1FA8C\",", text);
+        Assert.Equal(CountKeys(), CountCommentedColors(text));
+    }
+
+    private static int CountKeys() => UiTheme.ColorKeys.Count + CodeViewPalette.ColorKeys.Count + NodeIconPalette.ColorKeys.Count;
+
+    private static int CountCommentedColors(string text) => text.Split('\n').Count(IsCommentedColor);
+
+    private static bool IsCommentedColor(string line) => line.TrimStart().StartsWith("// \"", StringComparison.Ordinal);
+
+    [Theory]
+    [InlineData("dark")]
+    [InlineData("solarized-light")]
+    public void Each_color_of_a_custom_theme_can_be_uncommented_alone(string parent)
+    {
+        var catalog = new ThemeCatalog(BuiltInThemes.Files);
+        var lines = ThemeDraft.Compose("Mine", parent, catalog.Find(parent)).Split('\n');
+
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (!IsCommentedColor(lines[i]))
+                continue;
+            var edited = lines.ToArray();
+            edited[i] = lines[i].Replace("// ", "");
+            var file = ThemeFile.Read("mine", "mine.json", Encoding.UTF8.GetBytes(string.Join('\n', edited)));
+            catalog.LoadUserThemes([file]);
+            Assert.True(catalog.Errors.Count == 0, edited[i] + ": " + string.Join("; ", catalog.Errors));
+            Assert.Equal(catalog.Find(parent).Ui.ToColors(), catalog.Find("mine").Ui.ToColors());
+        }
+    }
+
+    [Fact]
+    public void A_custom_theme_takes_the_next_number_while_its_id_is_taken()
+    {
+        WriteTheme("dark-custom", "{}");
+        WriteTheme("dark-custom-2", "{}");
+        var appState = new AppState(Settings());
+
+        var path = CreateCustomTheme(appState);
+
+        Assert.Equal("dark-custom-3.json", Path.GetFileName(path));
+        Assert.Equal("dark-custom-3", appState.Theme);
+    }
+
+    [Fact]
+    public void A_custom_theme_of_a_theme_that_falls_back_extends_the_one_shown()
+    {
+        WriteTheme("broken", """{ "type": "light", "extends": "nope" }""");
+        var settings = Settings();
+        settings.Theme = "broken";
+        var appState = new AppState(settings);
+
+        var path = CreateCustomTheme(appState);
+
+        Assert.Equal("light-custom.json", Path.GetFileName(path));
+        Assert.Contains("\"extends\": \"light\",", File.ReadAllText(path!));
+    }
+
+    [Fact]
+    public void A_custom_theme_that_cannot_be_written_is_reported()
+    {
+        var appState = new AppState(Settings());
+        Directory.CreateDirectory(_temp.PathOf(Path.Combine("themes", "dark-custom.json")));
+
+        var path = CreateCustomTheme(appState);
+
+        Assert.Null(path);
+        Assert.Equal("dark", appState.Theme);
+        Assert.Equal("Cannot write the custom theme", Assert.Single(appState.Errors.Entries).Title);
+    }
+
+    [Fact]
+    public void No_custom_theme_is_made_while_the_settings_live_in_memory()
+    {
+        var appState = new AppState(new AppSettings { Locale = Locale.En });
+
+        Assert.Null(CreateCustomTheme(appState));
+        Assert.Equal("dark", appState.Theme);
     }
 
     [Fact]
@@ -693,14 +797,16 @@ public sealed class ThemeSchemaTests
         w.WriteBoolean("additionalProperties", false);
         w.WriteStartObject("properties");
         foreach (var key in keys)
-            WriteColorKey(w, key.Key);
+            WriteColorKey(w, key);
         w.WriteEndObject();
         w.WriteEndObject();
     }
 
-    private static void WriteColorKey(Utf8JsonWriter w, string key)
+    private static void WriteColorKey(Utf8JsonWriter w, ThemeColorKey key)
     {
-        w.WriteStartObject(key);
+        w.WriteStartObject(key.Key);
+        if (key.Description.Length > 0)
+            w.WriteString("description", key.Description);
         w.WriteString("$ref", "#/definitions/color");
         w.WriteEndObject();
     }

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,7 +16,8 @@ namespace ZGF.Gui.Generator;
 /// static <c>ColorKeys</c> list, one key per <c>uint</c> property and one per <c>UiShadow</c>
 /// property's color, and a static <c>FromColors</c> that builds the type from colors by key. Keys are
 /// the property names in camelCase, so the type stays the source of truth and every new color is
-/// themeable. A property whose getter has no body is required; one that derives its color is not.
+/// themeable. A property whose getter has no body is required; one that derives its color is not. Each
+/// key carries its property's summary as plain text, for a schema to show what the color is for.
 /// </summary>
 [Generator]
 public sealed class ThemeColorsGenerator : IIncrementalGenerator
@@ -22,6 +25,15 @@ public sealed class ThemeColorsGenerator : IIncrementalGenerator
     private const string AttributeName = "ZGF.Gui.Immediate.ThemeColorsAttribute";
     private const string ShadowTypeName = "ZGF.Gui.Immediate.UiShadow";
     private const string ShadowKeySuffix = "Color";
+    private const string DocCommentPrefix = "///";
+    private const string DerivedDescription = "Derived from other colors, or a default, when unset.";
+
+    private static readonly Regex DocLinePrefix = new(@"^\s*///", RegexOptions.Multiline);
+    private static readonly Regex Summary = new(@"<summary>(.*?)</summary>", RegexOptions.Singleline);
+    private static readonly Regex SeeCref = new(@"<see\s+cref=""([^""]+)""\s*/>");
+    private static readonly Regex NamedReference = new(@"<(?:paramref|typeparamref)\s+name=""([^""]+)""\s*/>");
+    private static readonly Regex AnyTag = new(@"<[^>]+>");
+    private static readonly Regex Whitespace = new(@"\s+");
 
     private static readonly DiagnosticDescriptor NestedType = new(
         id: "THEME001",
@@ -39,7 +51,7 @@ public sealed class ThemeColorsGenerator : IIncrementalGenerator
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private sealed record ColorProperty(string Name, string Key, bool IsRequired, bool IsShadow);
+    private sealed record ColorProperty(string Name, string Key, bool IsRequired, bool IsShadow, string Description);
 
     /// <summary>Why a marked type gets no table, and where, held as values rather than a
     /// <see cref="Location"/> so the model compares by value.</summary>
@@ -65,12 +77,14 @@ public sealed class ThemeColorsGenerator : IIncrementalGenerator
     {
         var declaration = (TypeDeclarationSyntax)ctx.TargetNode;
         var symbol = (INamedTypeSymbol)ctx.TargetSymbol;
-        var colors = symbol.GetMembers()
+        var properties = symbol.GetMembers()
             .OfType<IPropertySymbol>()
             .Where(IsSettable)
-            .Select(DescribeColor)
-            .Where(static c => c != null)
-            .Select(static c => c!)
+            .Where(IsColor)
+            .ToList();
+        var keysByName = properties.ToDictionary(static p => p.Name, KeyOf);
+        var colors = properties
+            .Select(p => DescribeColor(p, keysByName))
             .ToImmutableArray();
         var ns = symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString();
         var problem = FindProblem(declaration, symbol, colors);
@@ -103,13 +117,103 @@ public sealed class ThemeColorsGenerator : IIncrementalGenerator
         return property.SetMethod != null;
     }
 
-    private static ColorProperty? DescribeColor(IPropertySymbol property)
+    private static bool IsColor(IPropertySymbol property)
     {
         if (property.Type.SpecialType == SpecialType.System_UInt32)
-            return new ColorProperty(property.Name, CamelCase(property.Name), IsRequired(property), IsShadow: false);
-        if (property.Type.ToDisplayString() == ShadowTypeName)
-            return new ColorProperty(property.Name, CamelCase(property.Name) + ShadowKeySuffix, IsRequired: false, IsShadow: true);
-        return null;
+            return true;
+        return IsShadow(property);
+    }
+
+    private static bool IsShadow(IPropertySymbol property) => property.Type.ToDisplayString() == ShadowTypeName;
+
+    private static string KeyOf(IPropertySymbol property)
+    {
+        if (IsShadow(property))
+            return CamelCase(property.Name) + ShadowKeySuffix;
+        return CamelCase(property.Name);
+    }
+
+    private static ColorProperty DescribeColor(IPropertySymbol property, Dictionary<string, string> keysByName)
+    {
+        var isShadow = IsShadow(property);
+        var isRequired = !isShadow && IsRequired(property);
+        var description = DescribeRole(property, keysByName, isRequired, isShadow);
+        return new ColorProperty(property.Name, keysByName[property.Name], isRequired, isShadow, description);
+    }
+
+    /// <summary>The property's summary as plain text, a color it names written as its key; for a derived
+    /// color without one, that it is derived.</summary>
+    private static string DescribeRole(IPropertySymbol property, Dictionary<string, string> keysByName, bool isRequired, bool isShadow)
+    {
+        var summary = ReadSummary(property);
+        if (summary.Length > 0)
+            return ToPlainText(summary, keysByName);
+        if (isRequired || isShadow)
+            return "";
+        return DerivedDescription;
+    }
+
+    /// <summary>The inside of the property's <c>&lt;summary&gt;</c>, read from its comment trivia so it
+    /// is found whether or not the compilation parses documentation comments.</summary>
+    private static string ReadSummary(IPropertySymbol property)
+    {
+        foreach (var reference in property.DeclaringSyntaxReferences)
+        {
+            var comment = ReadDocComment(reference.GetSyntax());
+            var match = Summary.Match(comment);
+            if (match.Success)
+                return match.Groups[1].Value;
+        }
+        return "";
+    }
+
+    private static string ReadDocComment(SyntaxNode declaration)
+    {
+        var text = new StringBuilder();
+        foreach (var trivia in declaration.GetLeadingTrivia())
+        {
+            if (IsDocComment(trivia))
+                text.AppendLine(trivia.ToFullString());
+        }
+        return DocLinePrefix.Replace(text.ToString(), "");
+    }
+
+    private static bool IsDocComment(SyntaxTrivia trivia)
+    {
+        if (trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia))
+            return true;
+        if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia))
+            return false;
+        return trivia.ToString().StartsWith(DocCommentPrefix, StringComparison.Ordinal);
+    }
+
+    /// <summary>Doc comment XML as one line of text: a <c>see cref</c> to a color becomes its key, to
+    /// anything else its name; other tags are dropped and whitespace collapsed.</summary>
+    private static string ToPlainText(string xml, Dictionary<string, string> keysByName)
+    {
+        var text = SeeCref.Replace(xml, m => NameOfReference(m.Groups[1].Value, keysByName));
+        text = NamedReference.Replace(text, static m => m.Groups[1].Value);
+        text = AnyTag.Replace(text, "");
+        text = DecodeEntities(text);
+        return Whitespace.Replace(text, " ").Trim();
+    }
+
+    private static string NameOfReference(string cref, Dictionary<string, string> keysByName)
+    {
+        var name = cref.Split('(')[0];
+        var member = name.Substring(name.LastIndexOf('.') + 1);
+        if (keysByName.TryGetValue(member, out var key))
+            return key;
+        return member;
+    }
+
+    private static string DecodeEntities(string text)
+    {
+        return text
+            .Replace("&lt;", "<")
+            .Replace("&gt;", ">")
+            .Replace("&quot;", "\"")
+            .Replace("&amp;", "&");
     }
 
     /// <summary>True when the property keeps the color it is given: an auto-property, whose getter
@@ -182,8 +286,19 @@ public sealed class ThemeColorsGenerator : IIncrementalGenerator
         sb.AppendLine($"    public static global::System.Collections.Generic.IReadOnlyList<{keyType}> ColorKeys {{ get; }} = new {keyType}[]");
         sb.AppendLine("    {");
         foreach (var color in type.Colors)
-            sb.AppendLine($"        new(\"{color.Key}\", {(color.IsRequired ? "true" : "false")}),");
+            sb.AppendLine($"        new(\"{color.Key}\", {(color.IsRequired ? "true" : "false")}, {SymbolDisplay.FormatLiteral(color.Description, true)}),");
         sb.AppendLine("    };");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>Every color by its key as this instance's getters give it, so a derived color as");
+        sb.AppendLine("    /// derived, and a shadow's color.</summary>");
+        sb.AppendLine("    public global::System.Collections.Generic.Dictionary<string, uint> ToColors()");
+        sb.AppendLine("    {");
+        sb.AppendLine("        return new global::System.Collections.Generic.Dictionary<string, uint>");
+        sb.AppendLine("        {");
+        foreach (var color in type.Colors)
+            sb.AppendLine($"            [\"{color.Key}\"] = {ColorExpression(color)},");
+        sb.AppendLine("        };");
+        sb.AppendLine("    }");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>An instance with the colors <paramref name=\"colors\"/> holds by key. A color left out");
         sb.AppendLine("    /// is 0, which a derived color takes as unset, and a shadow left out keeps its default color.</summary>");
@@ -210,5 +325,12 @@ public sealed class ThemeColorsGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
         return sb.ToString();
+    }
+
+    private static string ColorExpression(ColorProperty color)
+    {
+        if (color.IsShadow)
+            return color.Name + ".Color";
+        return color.Name;
     }
 }

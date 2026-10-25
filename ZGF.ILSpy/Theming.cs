@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
@@ -9,6 +10,9 @@ public static class Theming
 {
     private const string ThemeFilePattern = "*" + ThemeFile.Extension;
     private const string SchemaFileName = "theme.schema.json";
+    private const string GuideFileName = "README.md";
+    private const string CustomSuffix = "-custom";
+    private const int FirstCustomNumber = 2;
 
     /// <summary>Reads the user's themes into the catalog and reports what is wrong in any theme.</summary>
     public static void LoadThemes(AppState appState)
@@ -125,13 +129,14 @@ public static class Theming
     }
 
     /// <summary>Makes <paramref name="folder"/> with the current theme schema in it, for theme files to
-    /// name in <c>$schema</c>. Returns why it failed, or null.</summary>
+    /// name in <c>$schema</c>, and a README on writing themes. Returns why it failed, or null.</summary>
     private static string? CreateThemesFolder(string folder)
     {
         try
         {
             Directory.CreateDirectory(folder);
-            WriteSchemaIfChanged(Path.Combine(folder, SchemaFileName));
+            WriteIfChanged(Path.Combine(folder, SchemaFileName), BuiltInThemes.ReadSchema());
+            WriteIfChanged(Path.Combine(folder, GuideFileName), BuiltInThemes.ReadGuide());
             return null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -140,12 +145,11 @@ public static class Theming
         }
     }
 
-    private static void WriteSchemaIfChanged(string path)
+    private static void WriteIfChanged(string path, string text)
     {
-        var schema = BuiltInThemes.ReadSchema();
-        if (IsWritten(path, schema))
+        if (IsWritten(path, text))
             return;
-        File.WriteAllText(path, schema);
+        File.WriteAllText(path, text);
     }
 
     private static bool IsWritten(string path, string text)
@@ -153,6 +157,72 @@ public static class Theming
         if (!File.Exists(path))
             return false;
         return File.ReadAllText(path) == text;
+    }
+
+    /// <summary>Writes a new user theme that extends the theme shown and lists every color it can change,
+    /// commented out at the color shown, then reads the themes again and switches to it. Returns its file
+    /// for the screen to open; null when the settings live in memory only, or after reporting why the
+    /// file cannot be written.</summary>
+    public static string? CreateCustomTheme(AppState appState)
+    {
+        var folder = PrepareThemesFolder(appState);
+        if (folder == null)
+            return null;
+        var themes = appState.Themes;
+        var parent = themes.FindShownId(appState.Theme);
+        var id = FindFreeCustomId(themes, folder, parent);
+        var path = Path.Combine(folder, id + ThemeFile.Extension);
+        var text = ThemeDraft.Compose(NameCustomTheme(appState, parent), parent, themes.Find(parent));
+        if (!TryWriteNewFile(appState, path, text))
+            return null;
+        ReloadUserThemes(appState);
+        SetTheme(appState, id);
+        return path;
+    }
+
+    /// <summary><paramref name="parent"/> followed by <c>-custom</c>, numbered from 2 while a theme or a
+    /// file already has that id.</summary>
+    private static string FindFreeCustomId(ThemeCatalog themes, string folder, string parent)
+    {
+        var id = parent + CustomSuffix;
+        var number = FirstCustomNumber;
+        while (IsTaken(themes, folder, id))
+        {
+            id = $"{parent}{CustomSuffix}-{number}";
+            number++;
+        }
+        return id;
+    }
+
+    private static bool IsTaken(ThemeCatalog themes, string folder, string id)
+    {
+        if (themes.IndexOf(id) >= 0)
+            return true;
+        return File.Exists(Path.Combine(folder, id + ThemeFile.Extension));
+    }
+
+    private static string NameCustomTheme(AppState appState, string parent)
+    {
+        var t = Strings.For(appState.Locale);
+        var parentName = appState.Themes.NameOf(parent, t.Culture);
+        return t.ThemeCustomName(parentName);
+    }
+
+    /// <summary>Writes <paramref name="text"/> to a file that must not exist yet; false after reporting why
+    /// it cannot.</summary>
+    private static bool TryWriteNewFile(AppState appState, string path, string text)
+    {
+        try
+        {
+            using var file = new StreamWriter(path, new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write });
+            file.Write(text);
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            appState.ReportError(Strings.For(appState.Locale).ErrorCustomTheme, $"{path}{Environment.NewLine}{e.Message}");
+            return false;
+        }
     }
 
     /// <summary>Reads the user's themes again whenever their folder changes, until

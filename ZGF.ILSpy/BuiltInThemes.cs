@@ -9,6 +9,7 @@ public static class BuiltInThemes
 {
     private const string ResourcePrefix = "Themes/";
     private const string SchemaResource = "theme.schema.json";
+    private const string GuideResource = "themes-readme.md";
     private const int DarkRank = 0;
     private const int LightRank = 1;
     private const int OtherDarkRank = 2;
@@ -31,6 +32,9 @@ public static class BuiltInThemes
 
     /// <summary>The JSON schema theme files name in <c>$schema</c>, for editors to complete and check their keys.</summary>
     public static string ReadSchema() => EmbeddedAssets.LoadString(Resources, SchemaResource);
+
+    /// <summary>The README the themes folder holds, on how to write a theme.</summary>
+    public static string ReadGuide() => EmbeddedAssets.LoadString(Resources, GuideResource);
 
     private static List<ThemeFile> ReadFiles()
     {
