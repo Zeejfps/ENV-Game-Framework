@@ -2,11 +2,21 @@ using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
-/// <summary>The root of a listed package: its folders, then its files. An assembly file is the root
-/// of that assembly's tree; any other file is shown as a resource is.</summary>
-internal sealed class PackageNode(LoadedAssembly package, AssemblyPackage contents)
-    : BrowseNode(package, null, NodeKind.Package, System.IO.Path.GetFileName(package.FilePath))
+/// <summary>A node that lists a folder of a package: the package's root, or a folder in it.</summary>
+internal interface IPackageFolderNode
 {
+    PackageFolder Folder { get; }
+}
+
+/// <summary>The root of a listed package or bundle: its folders, then its files. An assembly file is
+/// the root of that assembly's tree; any other file is shown as a resource is.</summary>
+internal sealed class PackageNode(LoadedAssembly package, AssemblyPackage contents)
+    : BrowseNode(package, null, KindOf(contents), System.IO.Path.GetFileName(package.FilePath)), IPackageFolderNode
+{
+    private static NodeKind KindOf(AssemblyPackage contents) => contents.IsBundle ? NodeKind.Bundle : NodeKind.Package;
+
+    public PackageFolder Folder => contents.Root;
+
     public override string FullName => Assembly.FilePath;
 
     private protected override bool MayHaveChildren => true;
@@ -52,7 +62,7 @@ internal sealed class PackageNode(LoadedAssembly package, AssemblyPackage conten
 /// <summary>A folder of a package. A folder holding nothing but one folder is merged with it into one
 /// node, labelled with both names: <c>lib/net8.0</c>.</summary>
 internal sealed class PackageFolderNode(LoadedAssembly package, BrowseNode parent, PackageFolder folder, string label)
-    : BrowseNode(package, parent, NodeKind.PackageFolder, label)
+    : BrowseNode(package, parent, NodeKind.PackageFolder, label), IPackageFolderNode
 {
     /// <summary>The deepest of the folders this node stands for, whose contents it lists.</summary>
     public PackageFolder Folder { get; } = folder;

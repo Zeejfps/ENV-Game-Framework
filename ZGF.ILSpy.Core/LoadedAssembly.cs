@@ -75,7 +75,7 @@ public sealed class LoadedAssembly
             TargetFramework = TryDetectTargetFramework(file);
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework, place?.Container.Package);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
-        _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File));
+        _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File, place?.Container.Package));
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
         _root = new Lazy<BrowseNode>(CreateRoot);
         _packageAssemblies = new Lazy<IReadOnlyList<LoadedAssembly>>(LoadPackageAssemblies);

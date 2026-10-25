@@ -97,6 +97,42 @@ public sealed class PackageBrowsingTests
         Assert.True(choice.Included);
     }
 
+    [Fact]
+    public void The_tree_menu_extracts_the_file_of_an_assembly_in_a_package()
+    {
+        using var temp = new TempDir();
+        var app = OpenedPackage(temp);
+        var assembly = Greeter(app).Assembly;
+        var path = temp.PathOf("Extracted.dll");
+        app.Ui.Tree.Reveal(assembly.Root);
+        app.Run(2);
+
+        app.Frames.FilePicker.Answer = path;
+        app.PickFromTreeMenu(assembly.Name, "Extract file…");
+
+        Assert.Equal(Path.GetFileName(AppStateDriver.FixturePath), app.Frames.FilePicker.LastSave.FileName);
+        Assert.Equal(File.ReadAllBytes(AppStateDriver.FixturePath), File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public void The_tree_menu_extracts_every_file_of_a_package_in_the_background()
+    {
+        using var temp = new TempDir();
+        var app = OpenedPackage(temp);
+        var folder = temp.PathOf("out");
+
+        app.Frames.FilePicker.Answer = folder;
+        app.PickFromTreeMenu(PackageName, "Extract all files…");
+        app.RunUntil(() => app.AppState.FinishedExports.Count == 1);
+
+        var report = app.AppState.FinishedExports[0];
+        var dll = Path.Combine(folder, "lib", "net10.0", Path.GetFileName(AppStateDriver.FixturePath));
+        Assert.Equal(ExportKind.Files, report.Job.Kind);
+        Assert.Empty(report.Problems);
+        Assert.Equal([dll, Path.Combine(folder, "readme.txt")], report.Written);
+        Assert.Equal("Read me", File.ReadAllText(Path.Combine(folder, "readme.txt")));
+    }
+
     private static AppDriver OpenedPackage(TempDir temp)
     {
         var app = new AppDriver();

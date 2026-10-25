@@ -7,6 +7,7 @@ public static class LucideIcons
     public const string File = "Lucide.ttf";
 
     public const string AlertCircle = "\uE077";
+    public const string AppWindow = "\uE426";
     public const string ArrowLeft = "\uE048";
     public const string ArrowDown = "\uE042";
     public const string ArrowDownToDot = "\uE44D";
@@ -67,6 +68,7 @@ public static class LucideIcons
     public const string NotebookText = "\uE598";
     public const string NotepadText = "\uE599";
     public const string Package = "\uE129";
+    public const string PackageOpen = "\uE2CC";
     public const string PackageX = "\uE26A";
     public const string Palette = "\uE1DD";
     public const string Pencil = "\uE1F9";

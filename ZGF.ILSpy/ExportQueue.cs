@@ -11,6 +11,7 @@ public enum ExportKind
     Solution,
     Pdb,
     Pdbs,
+    Files,
 }
 
 /// <summary>An export as the user asked for it: what it is named after, what it writes, and the

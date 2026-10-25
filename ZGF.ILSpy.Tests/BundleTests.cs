@@ -29,6 +29,7 @@ public sealed class BundleTests
         var bundle = list.Open(WriteBundle(temp));
 
         Assert.True(bundle.IsPackage);
+        Assert.Equal(NodeKind.Bundle, bundle.Root.Kind);
         Assert.Equal(BundleName, bundle.Root.Text);
         Assert.Equal([NodeKind.Resource, NodeKind.Assembly, NodeKind.Assembly], bundle.Root.Children.Select(c => c.Kind));
         Assert.Equal("App.deps.json", bundle.Root.Children[0].Text);
@@ -73,6 +74,22 @@ public sealed class BundleTests
 
         Assert.Equal(NodeKind.Resource, broken.Kind);
         Assert.Throws<InvalidDataException>(() => broken.ReadResource());
+    }
+
+    [Fact]
+    public void Extracting_a_bundle_lists_an_entry_it_cannot_read_and_writes_the_others()
+    {
+        using var temp = new TempDir();
+        var path = WriteBundle(temp, ("Broken.dll", [1, 2, 3], false, 1_000_000), ("App.deps.json", Encoding.UTF8.GetBytes("{}"), false, 0));
+        var bundle = new AssemblyList().Open(path);
+        var target = temp.PathOf("out");
+
+        var extracted = bundle.Package!.ExtractFolder(bundle.Root.PackageFolder!, target);
+
+        var failure = Assert.Single(extracted.Failures);
+        Assert.Equal("Broken.dll", failure.File.Name);
+        Assert.Contains("past the end of the file", failure.Error!.Message);
+        Assert.Equal([Path.Combine(target, "App.deps.json")], extracted.Written);
     }
 
     [Fact]

@@ -45,6 +45,7 @@ public enum NodeKind
     ForwardedType,
     Package,
     PackageFolder,
+    Bundle,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -241,6 +242,18 @@ public abstract class BrowseNode
 
     private IResourceData AsResource() =>
         this as IResourceData ?? throw new InvalidOperationException($"{Text} is no resource.");
+
+    /// <summary>The folder of a package this node lists, whose files can be extracted: the root folder
+    /// for a package's own node; null for a node that lists none.</summary>
+    public PackageFolder? PackageFolder
+    {
+        get
+        {
+            if (this is not IPackageFolderNode node)
+                return null;
+            return node.Folder;
+        }
+    }
 
     public override string ToString() => Text;
 }

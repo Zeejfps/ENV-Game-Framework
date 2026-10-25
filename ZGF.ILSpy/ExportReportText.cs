@@ -18,7 +18,8 @@ internal static class ExportReportText
         ExportKind.Project => t.ExportKindProject,
         ExportKind.Solution => t.ExportKindSolution,
         ExportKind.Pdb => t.ExportKindPdb,
-        _ => t.ExportKindPdbs,
+        ExportKind.Pdbs => t.ExportKindPdbs,
+        _ => t.ExportKindFiles,
     };
 
     /// <summary>How <paramref name="report"/>'s export ended, in a few words: whether it finished,

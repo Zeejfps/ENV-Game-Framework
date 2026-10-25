@@ -207,6 +207,74 @@ public sealed class PackageTests
     }
 
     [Fact]
+    public void An_assembly_in_a_package_takes_its_symbols_from_the_pdb_beside_it_there()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var package = list.Open(WritePackage(temp));
+        var folder = package.Root.Child(LibFolder);
+        var assembly = TestAssemblyRoot(folder).Assembly;
+        var core = list.Assemblies.Single(a => a.Name == "ZGF.ILSpy.Core");
+
+        var symbols = assembly.DebugSymbols;
+
+        Assert.Equal(Path.ChangeExtension(assembly.FilePath, ".pdb"), symbols!.SourceFileName);
+        Assert.Null(core.DebugSymbols);
+    }
+
+    [Fact]
+    public void Extracting_a_folder_writes_its_files_at_their_paths_from_it()
+    {
+        using var temp = new TempDir();
+        var package = new AssemblyList().Open(WritePackage(temp));
+        var target = temp.PathOf("out");
+
+        var extracted = package.Package!.ExtractFolder(package.Root.Child(LibFolder).PackageFolder!, target);
+
+        var dll = Path.Combine(target, "ZGF.ILSpy.Tests.dll");
+        Assert.Empty(extracted.Failures);
+        Assert.Equal(3, extracted.Written.Count);
+        Assert.Contains(dll, extracted.Written);
+        Assert.Equal(File.ReadAllBytes(Trees.TestAssemblyPath), File.ReadAllBytes(dll));
+    }
+
+    [Fact]
+    public void Extracting_a_package_keeps_its_folders()
+    {
+        using var temp = new TempDir();
+        var package = new AssemblyList().Open(WritePackage(temp));
+        var target = temp.PathOf("out");
+
+        package.Package!.ExtractFolder(package.Root.PackageFolder!, target);
+
+        Assert.Equal("Read me", File.ReadAllText(Path.Combine(target, "readme.txt")));
+        Assert.True(File.Exists(Path.Combine(target, "runtimes", "win-x64", "native", "native.dll")));
+        Assert.True(File.Exists(Path.Combine(target, "lib", "net10.0", "ZGF.ILSpy.Core.dll")));
+    }
+
+    [Fact]
+    public void A_file_whose_path_leads_out_of_the_folder_is_not_extracted()
+    {
+        using var temp = new TempDir();
+        var path = temp.Write("Escape.zip", []);
+        using (var archive = ZipFile.Open(path, ZipArchiveMode.Update))
+        {
+            WriteText(archive, "../escaped.txt", "Out");
+            WriteText(archive, "kept.txt", "In");
+        }
+        var package = new AssemblyList().Open(path);
+        var target = temp.PathOf("out");
+
+        var extracted = package.Package!.ExtractFolder(package.Root.PackageFolder!, target);
+
+        var failure = Assert.Single(extracted.Failures);
+        Assert.Equal("../escaped.txt", failure.File.FullName);
+        Assert.Null(failure.Error);
+        Assert.False(File.Exists(temp.PathOf("escaped.txt")));
+        Assert.Equal([Path.Combine(target, "kept.txt")], extracted.Written);
+    }
+
+    [Fact]
     public void A_file_that_is_neither_an_assembly_nor_a_zip_is_listed_as_failed()
     {
         using var temp = new TempDir();
@@ -230,13 +298,14 @@ public sealed class PackageTests
         return node.Assembly.Name == TestAssemblyName;
     }
 
-    /// <summary>A NuGet package of the test assembly and the assembly it references, beside a native
-    /// library and a text file.</summary>
+    /// <summary>A NuGet package of the test assembly, with its PDB, and the assembly it references,
+    /// without one, beside a native library and a text file.</summary>
     private static string WritePackage(TempDir temp)
     {
         var path = temp.Write("Sample.1.0.0.nupkg", []);
         using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
         archive.CreateEntryFromFile(Trees.TestAssemblyPath, $"{LibFolder}/ZGF.ILSpy.Tests.dll");
+        archive.CreateEntryFromFile(Path.ChangeExtension(Trees.TestAssemblyPath, ".pdb"), $"{LibFolder}/ZGF.ILSpy.Tests.pdb");
         archive.CreateEntryFromFile(CoreAssemblyPath, $"{LibFolder}/ZGF.ILSpy.Core.dll");
         WriteText(archive, "runtimes/win-x64/native/native.dll", "not an assembly");
         WriteText(archive, "readme.txt", "Read me");

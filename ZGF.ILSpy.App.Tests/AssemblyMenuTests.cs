@@ -33,13 +33,6 @@ public sealed class AssemblyMenuTests
         Assert.False(AnyFailedToLoad(app.AppState));
     }
 
-    private static void PickFromTreeMenu(AppDriver app, string row, string item)
-    {
-        var at = app.TextRect(row);
-        app.Frames.Click(at.X + 2f, at.Y + at.Height / 2, PointerButton.Right).Frame();
-        app.ClickMenuItem(item).Frame();
-    }
-
     [Fact]
     public void The_tree_menu_shows_an_assembly_selected_in_its_folder()
     {
@@ -47,7 +40,7 @@ public sealed class AssemblyMenuTests
         app.Run(2);
         var assembly = app.AppState.Assemblies.Assemblies[0];
 
-        PickFromTreeMenu(app, assembly.Name, "Open containing folder");
+        app.PickFromTreeMenu(assembly.Name, "Open containing folder");
 
         Assert.Equal([assembly.FilePath], app.Frames.RevealedFiles);
     }
@@ -62,7 +55,7 @@ public sealed class AssemblyMenuTests
         app.Ui.Tree.Reveal(greeter);
         app.Run(2);
 
-        PickFromTreeMenu(app, "Greeter", "Show in .NET API reference");
+        app.PickFromTreeMenu("Greeter", "Show in .NET API reference");
         var row = app.TextRect("Hidden");
         app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
 

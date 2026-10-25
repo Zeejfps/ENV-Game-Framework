@@ -343,6 +343,15 @@ internal sealed class AppDriver
     /// when the same text is also on the window below it.</summary>
     public UiFrames ClickMenuItem(string text) => Frames.Click(LastTextRect(text));
 
+    /// <summary>Right-clicks the tree row drawn as <paramref name="row"/> and picks <paramref name="item"/>
+    /// from its menu.</summary>
+    public void PickFromTreeMenu(string row, string item)
+    {
+        var at = TextRect(row);
+        Frames.Click(at.X + 2f, at.Y + at.Height / 2, PointerButton.Right).Frame();
+        ClickMenuItem(item).Frame();
+    }
+
     /// <summary>Clicks where <paramref name="text"/> was last drawn, such as an icon that the assemblies
     /// panel's toolbar also draws.</summary>
     public UiFrames ClickLast(string text) => Frames.Click(LastTextRect(text));

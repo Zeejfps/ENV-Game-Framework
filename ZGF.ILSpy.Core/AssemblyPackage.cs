@@ -34,6 +34,13 @@ public sealed class PackageFolder(string name, string fullName)
     public List<PackageFile> Files { get; } = new();
 }
 
+/// <summary>A file of a package that was not extracted: <see cref="Error"/> says why, or is null when
+/// its path would have put it outside the folder extracted into.</summary>
+public sealed record ExtractFailure(PackageFile File, ExportError? Error);
+
+/// <summary>The paths extracting a package's folder wrote, and the files it could not.</summary>
+public sealed record ExtractedFiles(IReadOnlyList<string> Written, IReadOnlyList<ExtractFailure> Failures);
+
 /// <summary>
 /// A file holding assemblies and other files: a zip file such as a NuGet package, or an app published
 /// as a single-file bundle. Its folders and files are listed from the zip's directory or the bundle's
@@ -46,9 +53,10 @@ public sealed class AssemblyPackage
     private readonly Dictionary<string, PackageFile> _files;
     private readonly Func<PackageFile, byte[]> _read;
 
-    private AssemblyPackage(string filePath, PackageFolder root, Dictionary<string, PackageFile> files, Func<PackageFile, byte[]> read)
+    private AssemblyPackage(string filePath, bool isBundle, PackageFolder root, Dictionary<string, PackageFile> files, Func<PackageFile, byte[]> read)
     {
         FilePath = filePath;
+        IsBundle = isBundle;
         Root = root;
         _files = files;
         _read = read;
@@ -56,6 +64,9 @@ public sealed class AssemblyPackage
 
     /// <summary>The absolute path of the package file.</summary>
     public string FilePath { get; }
+
+    /// <summary>Whether this is an app published as a single-file bundle, not a zip.</summary>
+    public bool IsBundle { get; }
 
     public PackageFolder Root { get; }
 
@@ -88,7 +99,7 @@ public sealed class AssemblyPackage
         var tree = new FileTree();
         foreach (var entry in archive.Entries)
             AddZipEntry(tree, entry);
-        return tree.CreatePackage(path, file => ReadZipFile(path, file));
+        return tree.CreatePackage(path, isBundle: false, file => ReadZipFile(path, file));
     }
 
     private static void AddZipEntry(FileTree tree, ZipArchiveEntry entry)
@@ -125,7 +136,7 @@ public sealed class AssemblyPackage
             tree.AddFile(fullName, entry.Size);
             byName.TryAdd(fullName, entry);
         }
-        return tree.CreatePackage(path, file => BundleContents.Read(path, byName[file.FullName]));
+        return tree.CreatePackage(path, isBundle: true, file => BundleContents.Read(path, byName[file.FullName]));
     }
 
     private static string Normalize(string fullName) => fullName.Replace('\\', Separator);
@@ -172,10 +183,10 @@ public sealed class AssemblyPackage
             return folder;
         }
 
-        public AssemblyPackage CreatePackage(string path, Func<PackageFile, byte[]> read)
+        public AssemblyPackage CreatePackage(string path, bool isBundle, Func<PackageFile, byte[]> read)
         {
             SortFolder(_root);
-            return new AssemblyPackage(path, _root, _files, read);
+            return new AssemblyPackage(path, isBundle, _root, _files, read);
         }
 
         private static void SortFolder(PackageFolder folder)
@@ -224,6 +235,91 @@ public sealed class AssemblyPackage
     {
         var relative = RelativeName(FilePath, path);
         return FindFile(relative);
+    }
+
+    /// <summary>Writes every file in <paramref name="folder"/> and the folders in it into
+    /// <paramref name="target"/>, at its path from <paramref name="folder"/>. A file that cannot be
+    /// read or written, or whose path leads out of <paramref name="target"/>, is left out and listed as
+    /// failed.</summary>
+    public ExtractedFiles ExtractFolder(PackageFolder folder, string target, IProgress<ExportProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var files = new List<PackageFile>();
+        CollectFiles(folder, files);
+        var root = Path.GetFullPath(target);
+        var written = new List<string>();
+        var failures = new List<ExtractFailure>();
+        for (var i = 0; i < files.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new ExportProgress(folder.Name, 1, 1, (float)i / files.Count));
+            var failure = TryExtract(files[i], folder, root, written);
+            if (failure != null)
+                failures.Add(failure);
+        }
+        return new ExtractedFiles(written, failures);
+    }
+
+    private ExtractFailure? TryExtract(PackageFile file, PackageFolder folder, string root, List<string> written)
+    {
+        try
+        {
+            var path = TargetPathOf(file, folder, root);
+            if (path == null)
+                return new ExtractFailure(file, null);
+            WriteFile(file, path);
+            written.Add(path);
+            return null;
+        }
+        catch (Exception e) when (IsExtractError(e))
+        {
+            return new ExtractFailure(file, new ExportError(e.Message, e.ToString()));
+        }
+    }
+
+    /// <summary>Where <paramref name="file"/> goes under <paramref name="root"/>, at its path from
+    /// <paramref name="folder"/>; null when that path leads out of <paramref name="root"/>.</summary>
+    private static string? TargetPathOf(PackageFile file, PackageFolder folder, string root)
+    {
+        var relative = RelativeTo(folder, file).Replace(Separator, Path.DirectorySeparatorChar);
+        var path = Path.GetFullPath(Path.Combine(root, relative));
+        if (!IsInside(path, root))
+            return null;
+        return path;
+    }
+
+    private static string RelativeTo(PackageFolder folder, PackageFile file)
+    {
+        if (folder.FullName.Length == 0)
+            return file.FullName;
+        return file.FullName.Substring(folder.FullName.Length + 1);
+    }
+
+    private static bool IsInside(string path, string root)
+    {
+        var prefix = root;
+        if (!Path.EndsInDirectorySeparator(prefix))
+            prefix += Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return path.StartsWith(prefix, comparison);
+    }
+
+    private void WriteFile(PackageFile file, string path)
+    {
+        var bytes = ReadFile(file);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, bytes);
+    }
+
+    private static bool IsExtractError(Exception e)
+    {
+        if (e is IOException)
+            return true;
+        if (e is UnauthorizedAccessException)
+            return true;
+        if (e is InvalidDataException)
+            return true;
+        return e is ArgumentException;
     }
 
     /// <summary>The bytes of <paramref name="file"/>, read out of the package.</summary>

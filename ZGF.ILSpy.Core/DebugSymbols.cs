@@ -11,8 +11,8 @@ namespace ZGF.ILSpy.Core;
 
 /// <summary>
 /// The portable PDB that goes with an assembly: the one embedded in it, else the one next to it
-/// whose id matches its CodeView entry. The decompiler takes local names from it, and the tree
-/// shows its metadata beside the assembly's.
+/// whose id matches its CodeView entry; next to it in the package, for an assembly read out of one.
+/// The decompiler takes local names from it, and the tree shows its metadata beside the assembly's.
 /// </summary>
 internal sealed class DebugSymbols : IDebugInfoProvider
 {
@@ -42,8 +42,9 @@ internal sealed class DebugSymbols : IDebugInfoProvider
 
     private MetadataReader Metadata => File.Metadata;
 
-    /// <summary>The symbols for <paramref name="assembly"/>, or null when it has none or they cannot be read.</summary>
-    public static DebugSymbols? Load(PEFile assembly)
+    /// <summary>The symbols for <paramref name="assembly"/>, or null when it has none or they cannot be
+    /// read. A PDB beside it is looked for in <paramref name="package"/> when it was read out of one.</summary>
+    public static DebugSymbols? Load(PEFile assembly, AssemblyPackage? package)
     {
         try
         {
@@ -51,7 +52,7 @@ internal sealed class DebugSymbols : IDebugInfoProvider
             var embedded = LoadEmbedded(assembly, entries);
             if (embedded != null)
                 return embedded;
-            return LoadBeside(assembly, entries);
+            return LoadBeside(assembly, package, entries);
         }
         catch (Exception e) when (IsUnreadable(e))
         {
@@ -72,38 +73,60 @@ internal sealed class DebugSymbols : IDebugInfoProvider
         return null;
     }
 
-    private static DebugSymbols? LoadBeside(PEFile assembly, ImmutableArray<DebugDirectoryEntry> entries)
+    private static DebugSymbols? LoadBeside(PEFile assembly, AssemblyPackage? package, ImmutableArray<DebugDirectoryEntry> entries)
     {
         foreach (var entry in entries)
         {
             if (entry.Type != DebugDirectoryEntryType.CodeView)
                 continue;
             var codeView = assembly.Reader.ReadCodeViewDebugDirectoryData(entry);
-            var path = FindBeside(assembly.FileName, codeView.Path);
-            if (path == null)
+            var pdb = ReadBeside(assembly.FileName, codeView.Path, package);
+            if (pdb == null)
                 continue;
-            var image = System.IO.File.ReadAllBytes(path);
-            var provider = MetadataReaderProvider.FromPortablePdbImage(ImmutableArray.Create(image));
+            var provider = MetadataReaderProvider.FromPortablePdbImage(ImmutableArray.Create(pdb.Image));
             if (!IsBuiltWith(provider, codeView, entry))
                 continue;
-            var file = new MetadataFile(MetadataFile.MetadataFileKind.ProgramDebugDatabase, path, provider);
-            return new DebugSymbols(file, BesideTitle, BesideDescription + path);
+            var file = new MetadataFile(MetadataFile.MetadataFileKind.ProgramDebugDatabase, pdb.Path, provider);
+            return new DebugSymbols(file, BesideTitle, BesideDescription + pdb.Path);
         }
         return null;
     }
 
+    private sealed record PdbImage(string Path, byte[] Image);
+
     /// <summary>The PDB the CodeView entry names in the assembly's folder, else the one named
     /// after the assembly; null when neither is there.</summary>
-    private static string? FindBeside(string assemblyPath, string codeViewPath)
+    private static PdbImage? ReadBeside(string assemblyPath, string codeViewPath, AssemblyPackage? package)
     {
         var folder = Path.GetDirectoryName(assemblyPath) ?? "";
         var named = Path.Combine(folder, Path.GetFileName(codeViewPath));
-        if (System.IO.File.Exists(named))
-            return named;
+        var image = TryReadFile(named, package);
+        if (image != null)
+            return new PdbImage(named, image);
         var sibling = Path.ChangeExtension(assemblyPath, PdbExtension);
-        if (System.IO.File.Exists(sibling))
-            return sibling;
+        image = TryReadFile(sibling, package);
+        if (image != null)
+            return new PdbImage(sibling, image);
         return null;
+    }
+
+    /// <summary>The bytes of the file at <paramref name="path"/>: on disk, or in <paramref name="package"/>
+    /// when there is one, where the path runs through it. Null when there is no such file.</summary>
+    private static byte[]? TryReadFile(string path, AssemblyPackage? package)
+    {
+        if (package == null)
+            return TryReadFromDisk(path);
+        var file = package.FindFileAt(path);
+        if (file == null)
+            return null;
+        return package.ReadFile(file);
+    }
+
+    private static byte[]? TryReadFromDisk(string path)
+    {
+        if (!System.IO.File.Exists(path))
+            return null;
+        return System.IO.File.ReadAllBytes(path);
     }
 
     private static bool IsBuiltWith(MetadataReaderProvider provider, CodeViewDebugDirectoryData codeView, DebugDirectoryEntry entry)
@@ -116,7 +139,7 @@ internal sealed class DebugSymbols : IDebugInfoProvider
     }
 
     private static bool IsUnreadable(Exception e) =>
-        e is BadImageFormatException or IOException or UnauthorizedAccessException or InvalidOperationException;
+        e is BadImageFormatException or IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException;
 
     public IList<SequencePoint> GetSequencePoints(MethodDefinitionHandle method)
     {

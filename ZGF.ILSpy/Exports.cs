@@ -6,10 +6,10 @@ using static ZGF.ILSpy.Navigation;
 namespace ZGF.ILSpy;
 
 
-/// <summary>Writing code, projects, solutions and portable PDBs to files in the background, one
-/// export at a time in the order they were asked for, which <see cref="AppState.Export"/> queues.
-/// Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.
-/// Resources are written straight away.</summary>
+/// <summary>Writing code, projects, solutions, portable PDBs and the files of packages to files in the
+/// background, one export at a time in the order they were asked for, which <see cref="AppState.Export"/>
+/// queues. Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.
+/// Resources and single files of packages are written straight away.</summary>
 public static class Exports
 {
     private const string ProjectExtension = ".csproj";
@@ -60,6 +60,21 @@ public static class Exports
         if (e is UnauthorizedAccessException)
             return true;
         return e is InvalidDataException;
+    }
+
+    /// <summary>Writes the file of a package <paramref name="place"/> stands for, as the package holds
+    /// it, to the file at <paramref name="path"/>.</summary>
+    public static void ExtractPackageFile(AppState appState, PackagePlace place, string path)
+    {
+        try
+        {
+            var bytes = place.Container.Package!.ReadFile(place.File);
+            File.WriteAllBytes(path, bytes);
+        }
+        catch (Exception e) when (IsFileError(e))
+        {
+            appState.ReportError(Strings.For(appState.Locale).ErrorExtractFile(place.File.Name), e.Message);
+        }
     }
 
     private static void WriteCodeFile(AppState appState, BrowseNode node, string path)
@@ -237,6 +252,38 @@ public static class Exports
         if (failure.Error == null)
             return new ExportProblem(t.ErrorNoPdbEntry(name));
         return new ExportProblem($"{name}: {failure.Error.Message}", failure.Error.Details);
+    }
+
+    /// <summary>Writes every file in the folder of a package that <paramref name="node"/> lists into
+    /// <paramref name="folder"/>, at its path from the folder <paramref name="node"/> lists. Files that
+    /// cannot be written there are the report's problems.</summary>
+    public static void ExtractPackageFolder(AppState appState, BrowseNode node, string folder)
+    {
+        var package = node.Assembly.Package!;
+        var packageFolder = node.PackageFolder!;
+        var t = Strings.For(appState.Locale);
+        var job = new ExportJob(node.Text, ExportKind.Files, folder);
+        var failure = t.ErrorExtractFiles(node.Text);
+        RunExport(appState, job, failure, s => package.ExtractFolder(packageFolder, folder, s.Progress, s.Token),
+            (r, extracted) => r.WithExtracted(extracted, t));
+    }
+
+    /// <summary><paramref name="report"/> listing the files <paramref name="extracted"/> wrote, and those
+    /// it could not as its problems.</summary>
+    private static ExportReport WithExtracted(this ExportReport report, ExtractedFiles extracted, Strings t)
+    {
+        var problems = extracted.Failures
+            .Select(f => DescribeExtractFailure(t, f))
+            .ToList();
+        return report with { Written = extracted.Written, Problems = problems };
+    }
+
+    private static ExportProblem DescribeExtractFailure(Strings t, ExtractFailure failure)
+    {
+        var path = failure.File.FullName;
+        if (failure.Error == null)
+            return new ExportProblem(t.ExportOutsideFolder(path));
+        return new ExportProblem($"{path}: {failure.Error.Message}", failure.Error.Details);
     }
 
     /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>

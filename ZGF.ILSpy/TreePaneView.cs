@@ -189,6 +189,7 @@ internal static class TreePaneView
             ShowInMetadata(appState, node.Reference, inNewTab: false);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
             ResourceImageView.PickExport(ui, appState, node);
+        ExtractItems(ui, appState, node);
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
             SaveDialogs.PickCodeFile(ui, appState, node);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
@@ -221,6 +222,25 @@ internal static class TreePaneView
             return;
         if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: ApiReferenceIcon))
             ui.OpenUrl(page);
+    }
+
+    /// <summary>The items that write files out of a package: the file of an assembly read out of one,
+    /// or every file of a package or a folder of one.</summary>
+    private static void ExtractItems(Ui<UiState> ui, AppState appState, BrowseNode node)
+    {
+        var t = ui.State.Strings;
+        if (IsPackedAssembly(node) && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: SaveDialogs.ExtractIcon))
+            SaveDialogs.PickPackageFile(ui, appState, node.Assembly.InPackage!);
+        if (node.PackageFolder != null && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: SaveDialogs.ExtractIcon))
+            SaveDialogs.PickExtractFolder(ui, appState, node);
+    }
+
+    /// <summary>Whether <paramref name="node"/> is the root of an assembly read out of a package.</summary>
+    private static bool IsPackedAssembly(BrowseNode node)
+    {
+        if (node.Kind != NodeKind.Assembly)
+            return false;
+        return node.Assembly.InPackage != null;
     }
 
     /// <summary>Whether the menu offers to save the node's code: it shows code, and is no resource,

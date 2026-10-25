@@ -7,12 +7,13 @@ using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The dialogs that ask where code, resources and PDBs are written.</summary>
+/// <summary>The dialogs that ask where code, resources, PDBs and the files of packages are written.</summary>
 internal static class SaveDialogs
 {
     public static readonly UiIcon SaveCodeIcon = new(LucideIcons.Save, LucideIcons.Family);
     public static readonly UiIcon ExportIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
     public static readonly UiIcon PdbIcon = new(LucideIcons.Bug, LucideIcons.Family);
+    public static readonly UiIcon ExtractIcon = new(LucideIcons.PackageOpen, LucideIcons.Family);
 
     /// <summary>Asks where to save the code of the active tab's node, when it can be saved.</summary>
     public static void PickActiveCodeFile(Ui<UiState> ui, AppState appState)
@@ -58,5 +59,21 @@ internal static class SaveDialogs
     {
         var t = ui.State.Strings;
         ui.PickFolder(t.ExportPdbsTitle, null, folder => GeneratePdbs(appState, folder));
+    }
+
+    /// <summary>Asks where to write the file of a package <paramref name="place"/> stands for.</summary>
+    public static void PickPackageFile(Ui<UiState> ui, AppState appState, PackagePlace place)
+    {
+        var t = ui.State.Strings;
+        FileFilter[] filters = [new FileFilter(t.FileFilterAll, ["*.*"])];
+        ui.PickSaveFile(t.ExportExtractFileTitle, null, place.File.Name, filters, path => ExtractPackageFile(appState, place, path));
+    }
+
+    /// <summary>Asks for the folder the files of the package folder <paramref name="node"/> lists are
+    /// extracted into.</summary>
+    public static void PickExtractFolder(Ui<UiState> ui, AppState appState, BrowseNode node)
+    {
+        var t = ui.State.Strings;
+        ui.PickFolder(t.ExportExtractFolderTitle, null, folder => ExtractPackageFolder(appState, node, folder));
     }
 }
