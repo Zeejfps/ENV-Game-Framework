@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Analysis;
 
 namespace ZGF.ILSpy.Tests;
 
@@ -111,6 +112,39 @@ public sealed class PackageTests
     }
 
     [Fact]
+    public void Analyzing_a_member_of_an_assembly_in_a_package_finds_its_users_there()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var package = list.Open(WritePackage(temp));
+        var add = TestAssemblyRoot(package.Root.Child(LibFolder)).Assembly.Calculator().Child("Add(T) : void");
+        var symbol = Analyzers.Of(add)!;
+        var usedBy = Analyzers.KindsFor(symbol).Single(k => k.Header == "Used By");
+
+        var callers = Analyzers.RunAsync(list, symbol, usedBy)
+            .ToBlockingEnumerable()
+            .SelectMany(static b => b)
+            .ToList();
+
+        var plus = Assert.Single(callers);
+        Assert.StartsWith("operator +", plus.Label);
+    }
+
+    [Fact]
+    public void A_package_named_like_a_referenced_assembly_is_not_taken_for_it()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        list.Open(WriteTextPackage(temp, "ZGF.ILSpy.Core.zip"));
+        var assembly = list.Open(Trees.TestAssemblyPath);
+
+        var core = assembly.Root.Child("References", "ZGF.ILSpy.Core");
+        var resolved = list.FindNode(core.Target!);
+
+        Assert.Equal(CoreAssemblyPath, resolved!.Assembly.FilePath, ignoreCase: true);
+    }
+
+    [Fact]
     public void A_file_of_a_package_that_is_no_assembly_shows_its_contents()
     {
         using var temp = new TempDir();
@@ -205,6 +239,15 @@ public sealed class PackageTests
         archive.CreateEntryFromFile(Trees.TestAssemblyPath, $"{LibFolder}/ZGF.ILSpy.Tests.dll");
         archive.CreateEntryFromFile(CoreAssemblyPath, $"{LibFolder}/ZGF.ILSpy.Core.dll");
         WriteText(archive, "runtimes/win-x64/native/native.dll", "not an assembly");
+        WriteText(archive, "readme.txt", "Read me");
+        return path;
+    }
+
+    /// <summary>A zip holding nothing but a text file.</summary>
+    private static string WriteTextPackage(TempDir temp, string name)
+    {
+        var path = temp.Write(name, []);
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
         WriteText(archive, "readme.txt", "Read me");
         return path;
     }

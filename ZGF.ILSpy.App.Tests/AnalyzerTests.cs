@@ -38,6 +38,25 @@ public sealed class AnalyzerTests
         Assert.StartsWith("Third()", caller.Symbol.Label);
     }
 
+    [Fact]
+    public void A_failed_analysis_tells_why_in_its_row_and_reports_the_whole_error()
+    {
+        var d = AppStateDriver.Opened();
+        var elsewhere = new AssemblyList().Open(AppStateDriver.FixturePath).Root.Child(AppStateDriver.FixturesNamespace, "Outline");
+        var symbol = Core.Analysis.Analyzers.Of(elsewhere)!;
+        var kind = new AnalyzerKindNode(symbol, Core.Analysis.Analyzers.KindsFor(symbol).Single(k => k.Header == "Used By"));
+
+        RunAnalysis(d.AppState, kind);
+        d.RunUntil(() => kind.IsDone);
+
+        var message = Assert.IsType<AnalyzerMessageNode>(Assert.Single(kind.Found));
+        Assert.NotNull(message.Error);
+        var error = Assert.Single(d.AppState.Errors.Entries);
+        Assert.Equal($"Cannot analyze {symbol.Label} (Used By)", error.Title);
+        Assert.Contains(nameof(InvalidOperationException), error.Details);
+        Assert.Contains(" at ", error.Details);
+    }
+
     [Theory]
     [InlineData("Count", "Increment()")]
     [InlineData("Changed", "Watch(")]

@@ -469,6 +469,7 @@
   "error.go_back": "Impossible de revenir à {place}",
   "error.no_longer_there": "{place} n’existe plus.",
   "error.decompile": "Impossible de décompiler {name}",
+  "error.analyze": "Impossible d'analyser {name} ({analysis})",
   "error.scan_runtime": "Impossible d’analyser les assemblys du runtime",
   "error.search": "Échec de la recherche",
   "error.restore_analyses": "Impossible d’analyser à nouveau ce qui a été analysé la dernière fois",

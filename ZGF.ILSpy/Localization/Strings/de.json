@@ -469,6 +469,7 @@
   "error.go_back": "Zurück zu {place} ist nicht möglich",
   "error.no_longer_there": "{place} ist nicht mehr vorhanden.",
   "error.decompile": "{name} kann nicht dekompiliert werden",
+  "error.analyze": "{name} kann nicht analysiert werden ({analysis})",
   "error.scan_runtime": "Die Assemblys der Laufzeit können nicht durchsucht werden",
   "error.search": "Suche fehlgeschlagen",
   "error.restore_analyses": "Die zuletzt analysierten Symbole können nicht erneut analysiert werden",

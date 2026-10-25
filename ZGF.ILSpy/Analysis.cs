@@ -26,10 +26,17 @@ public static class Analysis
     }
 
     /// <summary>Runs the analysis <paramref name="kind"/> stands for over the open assemblies in the
-    /// background, unless it already started.</summary>
+    /// background, unless it already started. When it fails, why is reported.</summary>
     public static void RunAnalysis(AppState appState, AnalyzerKindNode kind)
     {
-        kind.StartOnce(appState.Assemblies, appState.Analyzer.NoteFindings);
+        kind.StartOnce(appState.Assemblies, appState.Analyzer.NoteFindings, error => ReportAnalysisFailure(appState, kind, error));
+    }
+
+    private static void ReportAnalysisFailure(AppState appState, AnalyzerKindNode kind, Exception error)
+    {
+        var t = Strings.For(appState.Locale);
+        var analysis = AnalyzerText.Header(t, kind.Kind);
+        appState.ReportError(t.ErrorAnalyze(kind.Subject.Label, analysis), error.ToString());
     }
 
     /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>

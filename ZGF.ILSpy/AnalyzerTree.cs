@@ -62,16 +62,17 @@ public sealed class AnalyzerKindNode(AnalysisSymbol subject, AnalysisKind kind) 
     public IReadOnlyList<AnalyzerNode> Found => _found;
 
     /// <summary>Runs the analysis over <paramref name="assemblies"/> unless it already started,
-    /// calling <paramref name="changed"/> each time results come in.</summary>
-    internal void StartOnce(AssemblyList assemblies, Action changed)
+    /// calling <paramref name="changed"/> each time results come in. When it fails, it ends with a row
+    /// telling why and hands the exception to <paramref name="failed"/>.</summary>
+    internal void StartOnce(AssemblyList assemblies, Action changed, Action<Exception> failed)
     {
         if (HasStarted)
             return;
         HasStarted = true;
-        Run(assemblies, changed);
+        Run(assemblies, changed, failed);
     }
 
-    private async void Run(AssemblyList assemblies, Action changed)
+    private async void Run(AssemblyList assemblies, Action changed, Action<Exception> failed)
     {
         var work = new CancellationTokenSource();
         _work = work;
@@ -88,6 +89,7 @@ public sealed class AnalyzerKindNode(AnalysisSymbol subject, AnalysisKind kind) 
         catch (Exception e)
         {
             Finish(work, [new AnalyzerMessageNode(e.Message)], changed);
+            failed(e);
         }
     }
 

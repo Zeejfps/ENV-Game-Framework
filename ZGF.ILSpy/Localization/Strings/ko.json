@@ -469,6 +469,7 @@
   "error.go_back": "{place}(으)로 돌아갈 수 없습니다",
   "error.no_longer_there": "{place}이(가) 더 이상 없습니다.",
   "error.decompile": "{name}을(를) 디컴파일할 수 없습니다",
+  "error.analyze": "{name}을(를) 분석할 수 없습니다 ({analysis})",
   "error.scan_runtime": "런타임 어셈블리를 검사할 수 없습니다",
   "error.search": "검색하지 못했습니다",
   "error.restore_analyses": "지난번에 분석한 항목을 다시 분석할 수 없습니다",

@@ -22,6 +22,8 @@ public sealed class AssemblyLoadException(string filePath, string message, Excep
 public sealed class AssemblyList
 {
     private readonly object _gate = new();
+    /// <summary>What was read, by path: assemblies, packages and the assemblies read out of packages.
+    /// Only those that are no package have a <see cref="LoadedAssembly.File"/>.</summary>
     private readonly Dictionary<string, LoadedAssembly> _known = new(StringComparer.OrdinalIgnoreCase);
     private ImmutableArray<LoadedAssembly> _listed = ImmutableArray<LoadedAssembly>.Empty;
     private ImmutableArray<LoadedAssembly> _loaded = ImmutableArray<LoadedAssembly>.Empty;
@@ -394,6 +396,8 @@ public sealed class AssemblyList
         {
             foreach (var assembly in _known.Values)
             {
+                if (assembly.IsPackage)
+                    continue;
                 if (assembly.File == module)
                     return assembly.TypeSystem;
             }
@@ -408,6 +412,7 @@ public sealed class AssemblyList
             LoadedAssembly? best = null;
             foreach (var assembly in _known.Values)
             {
+                if (assembly.IsPackage) continue;
                 if (!string.Equals(assembly.Name, reference.Name, StringComparison.OrdinalIgnoreCase)) continue;
                 if (exactOrNewer && reference.Version != null && assembly.Version != null && assembly.Version < reference.Version) continue;
                 if (best is null || (assembly.Version ?? new Version()) > (best.Version ?? new Version()))

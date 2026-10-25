@@ -469,6 +469,7 @@
   "error.go_back": "无法返回到 {place}",
   "error.no_longer_there": "{place} 已不存在。",
   "error.decompile": "无法反编译 {name}",
+  "error.analyze": "无法分析 {name}（{analysis}）",
   "error.scan_runtime": "无法扫描运行时的程序集",
   "error.search": "搜索失败",
   "error.restore_analyses": "无法重新分析上次分析的内容",

@@ -469,6 +469,7 @@
   "error.go_back": "{place} に戻れません",
   "error.no_longer_there": "{place} はもう存在しません。",
   "error.decompile": "{name} を逆コンパイルできません",
+  "error.analyze": "{name} を分析できません ({analysis})",
   "error.scan_runtime": "ランタイムのアセンブリをスキャンできません",
   "error.search": "検索に失敗しました",
   "error.restore_analyses": "前回分析した内容を再分析できません",

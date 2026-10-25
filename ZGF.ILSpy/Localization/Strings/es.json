@@ -469,6 +469,7 @@
   "error.go_back": "No se puede volver a {place}",
   "error.no_longer_there": "{place} ya no existe.",
   "error.decompile": "No se puede descompilar {name}",
+  "error.analyze": "No se puede analizar {name} ({analysis})",
   "error.scan_runtime": "No se pueden examinar los ensamblados del runtime",
   "error.search": "Error en la búsqueda",
   "error.restore_analyses": "No se puede volver a analizar lo analizado la última vez",
