@@ -1,6 +1,7 @@
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
 using ICSharpCode.Decompiler.DebugInfo;
+using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.Solution;
 
 namespace ZGF.ILSpy.Core;
@@ -194,7 +195,12 @@ public static class AssemblyExport
         return new ProjectItem(project.ProjectPath, id.PlatformName, id.Guid, id.TypeGuid);
     }
 
-    internal static bool CanGeneratePdb(LoadedAssembly assembly) => PortablePdbWriter.HasCodeViewDebugDirectoryEntry(assembly.File);
+    internal static bool CanGeneratePdb(LoadedAssembly assembly)
+    {
+        if (assembly.PEFile == null)
+            return false;
+        return PortablePdbWriter.HasCodeViewDebugDirectoryEntry(assembly.PEFile);
+    }
 
     /// <summary>Decompiles <paramref name="assembly"/> and writes a portable PDB at <paramref name="path"/>
     /// that maps its IL to that code, with the code embedded. The file is replaced only once the PDB
@@ -227,7 +233,14 @@ public static class AssemblyExport
         var decompiler = NodeDecompiler.CreateCSharpDecompiler(assembly, settings, cancellationToken);
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write);
         var writer = new PortablePdbWriter { Progress = progress, EmbedSourceFiles = embedSources };
-        writer.WritePdb(assembly.File, decompiler, settings, stream);
+        writer.WritePdb(PortableExecutableOf(assembly), decompiler, settings, stream);
+    }
+
+    private static PEFile PortableExecutableOf(LoadedAssembly assembly)
+    {
+        if (assembly.PEFile == null)
+            throw new InvalidOperationException($"'{assembly.FilePath}' is no portable executable, so no PDB can map its IL.");
+        return assembly.PEFile;
     }
 
     /// <summary>Writes a portable PDB of each of <paramref name="assemblies"/> into

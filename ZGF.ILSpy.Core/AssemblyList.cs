@@ -531,7 +531,8 @@ public sealed class AssemblyList
         return ReadOutOfPackage(container, path, inPackage.Value.FullName);
     }
 
-    /// <summary>The assembly at <paramref name="path"/>, else the package, else why it is neither.</summary>
+    /// <summary>The assembly at <paramref name="path"/>, else the WebCIL module, else the package, else
+    /// why it is none of those.</summary>
     private LoadedAssembly ReadAssemblyOrPackage(string path)
     {
         try
@@ -540,10 +541,35 @@ public sealed class AssemblyList
         }
         catch (AssemblyLoadException)
         {
-            var package = ReadPackage(path);
-            if (package == null)
+            var read = ReadWebCilOrPackage(path);
+            if (read == null)
                 throw;
-            return new LoadedAssembly(this, package);
+            return read;
+        }
+    }
+
+    private LoadedAssembly? ReadWebCilOrPackage(string path)
+    {
+        var module = ReadWebCil(path);
+        if (module != null)
+            return new LoadedAssembly(this, module);
+        var package = ReadPackage(path);
+        if (package == null)
+            return null;
+        return new LoadedAssembly(this, package);
+    }
+
+    /// <summary>The assembly <paramref name="path"/> holds as WebCIL, wrapped in WebAssembly the way
+    /// Blazor ships it; null when the file is no WebCIL.</summary>
+    private static WebCilFile? ReadWebCil(string path)
+    {
+        try
+        {
+            return WebCilFile.FromFile(path, MetadataReaderOptions.Default);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
+        {
+            throw new AssemblyLoadException(path, $"Cannot open '{path}': {e.Message}", e);
         }
     }
 

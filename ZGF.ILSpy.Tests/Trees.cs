@@ -26,6 +26,10 @@ internal static class Trees
     /// is embedded in it.</summary>
     public static string EmbeddedPdbPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "EmbeddedPdb", "EmbeddedPdb.dll");
 
+    /// <summary><see cref="SampleAppPath"/> converted to WebCIL by the .NET WebAssembly SDK, wrapped in
+    /// WebAssembly as Blazor ships it.</summary>
+    public static string WebCilSamplePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "WebCil", "SampleApp.wasm");
+
     /// <summary>The test assembly, opened once for the tests that only read it. Its list is out of
     /// reach; a test that needs the list, or nodes no other test has built, opens its own with
     /// <see cref="OpenTestAssembly"/>.</summary>

@@ -28,6 +28,7 @@ public sealed class UiState : IUiState
         Search.Kinds = saved.SearchKinds;
         MetadataFilters = new MetadataFilters(saved.FlagsFilters);
         Picker = new FrameworkPicker(ReadStrings, reportError);
+        NuGetPicker = new NuGetPicker(ReadStrings, reportError);
         ExportSetup.RestoreWindow(saved.ExportWindow);
         Display = DisplayOptions.Restore(saved.Display);
         Analyzer = new AnalyzerRows(AppCommands);
@@ -161,6 +162,9 @@ public sealed class UiState : IUiState
 
     /// <summary>The "open from framework" dialog.</summary>
     public FrameworkPicker Picker { get; }
+
+    /// <summary>The "open from NuGet" dialog.</summary>
+    public NuGetPicker NuGetPicker { get; }
 
     /// <summary>What the export dialog asks for, and whether it is open.</summary>
     public ExportSetup ExportSetup { get; } = new();

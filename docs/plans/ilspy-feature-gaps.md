@@ -7,8 +7,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Biggest gaps
 
-1. **More ways to open.** Open from a NuGet feed, GAC (Windows), open from a running process,
-   WebCIL `.wasm`.
+1. **More ways to open.** GAC (Windows), open from a running process.
 
 ## Medium
 

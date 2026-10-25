@@ -133,6 +133,8 @@
     "file.open": { "font": "lucide", "glyph": "E247" },
     // Open an assembly of an installed framework.
     "file.openFromFramework": { "font": "lucide", "glyph": "E100" },
+    // Open a package from a NuGet feed.
+    "file.openFromNuGet": { "font": "lucide", "glyph": "E269" },
     // Save the code shown.
     "file.saveCode": { "font": "lucide", "glyph": "E14D" },
     // Export assemblies as projects.

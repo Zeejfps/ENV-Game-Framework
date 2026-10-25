@@ -331,7 +331,7 @@ internal static class NodeDecompiler
         var file = assembly.File;
         WriteComment(output, assembly.FilePath);
         WriteComment(output, assembly.FullName);
-        if (file.Metadata.IsAssembly && file.Reader.PEHeaders.CorHeader is { } corHeader)
+        if (file.Metadata.IsAssembly && file.CorHeader is { } corHeader)
         {
             var entryPoint = corHeader.EntryPointTokenOrRelativeVirtualAddress;
             if (entryPoint != 0 && (corHeader.Flags & CorFlags.NativeEntryPoint) == 0)
@@ -345,7 +345,8 @@ internal static class NodeDecompiler
                 }
             }
         }
-        WriteComment(output, $"Architecture: {ArchitectureOf(file.Reader.PEHeaders)}");
+        if (assembly.PEFile != null)
+            WriteComment(output, $"Architecture: {ArchitectureOf(assembly.PEFile.Reader.PEHeaders)}");
         if (assembly.TargetFramework is { } framework)
             WriteComment(output, $"Target framework: {framework}");
         output.WriteLine();

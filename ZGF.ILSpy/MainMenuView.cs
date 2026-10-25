@@ -120,7 +120,7 @@ internal static class MainMenuView
         var t = ui.State.Strings;
         FileFilter[] filters =
         [
-            new(t.FileFilterAssembliesAndPackages, ["*.dll", "*.exe", "*.winmd", "*.nupkg", "*.zip"]),
+            new(t.FileFilterAssembliesAndPackages, ["*.dll", "*.exe", "*.winmd", "*.wasm", "*.nupkg", "*.zip"]),
             new(t.FileFilterAll, ["*.*"]),
         ];
         ui.PickFile(t.FileOpenTitle, null, filters, path => OpenAssembly(appState, path));
@@ -134,6 +134,8 @@ internal static class MainMenuView
             OpenFile(ui, appState);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: new UiIcon(icons.FileOpenFromFramework)))
             ui.State.Picker.Open();
+        if (ui.MenuItem(t.FileOpenFromNuget, id: "open-from-nuget", icon: new UiIcon(icons.FileOpenFromNuGet)))
+            ui.State.NuGetPicker.Open();
         ui.MenuSeparator();
         ExportItems(ui, appState);
         ui.MenuSeparator();

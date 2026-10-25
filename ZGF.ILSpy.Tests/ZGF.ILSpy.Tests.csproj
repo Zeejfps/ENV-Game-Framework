@@ -32,6 +32,7 @@
     <Compile Remove="Fixtures\EmbeddedPdb\**" />
     <None Remove="Fixtures\EmbeddedPdb\**" />
     <None Include="Fixtures\EmbeddedPdb\EmbeddedPdb.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\WebCil\SampleApp.wasm" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -6,7 +6,7 @@ namespace ZGF.ILSpy.Core;
 
 internal sealed class AssemblyResolver : IAssemblyResolver
 {
-    private static readonly string[] Extensions = [".dll", ".exe", ".winmd"];
+    private static readonly string[] Extensions = [".dll", ".exe", ".winmd", ".wasm"];
 
     private readonly AssemblyList _list;
     private readonly string _mainPath;

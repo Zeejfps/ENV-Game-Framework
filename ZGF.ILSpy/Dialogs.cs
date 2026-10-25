@@ -8,6 +8,8 @@ public static class Dialogs
     {
         if (uiState.Picker.IsOpen)
             return true;
+        if (uiState.NuGetPicker.IsOpen)
+            return true;
         if (uiState.ErrorDialog.IsOpen)
             return true;
         return uiState.ExportSetup.IsOpen;

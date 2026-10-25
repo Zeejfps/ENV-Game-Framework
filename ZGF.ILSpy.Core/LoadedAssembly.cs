@@ -26,11 +26,11 @@ public sealed class LoadedAssembly
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
     private readonly Lazy<BrowseNode> _root;
     private readonly Lazy<IReadOnlyList<LoadedAssembly>> _packageAssemblies;
-    private readonly PEFile? _file;
+    private readonly MetadataFile? _file;
     private readonly AssemblyLoadException? _loadError;
     private BrowseNode? _rootInPackage;
 
-    internal LoadedAssembly(AssemblyList list, PEFile file) : this(list, file.FileName, file, null, null, null)
+    internal LoadedAssembly(AssemblyList list, MetadataFile file) : this(list, file.FileName, file, null, null, null)
     {
     }
 
@@ -45,11 +45,11 @@ public sealed class LoadedAssembly
     }
 
     /// <summary>An assembly read out of a package, known by the path <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
-    internal LoadedAssembly(AssemblyList list, PEFile file, PackagePlace place) : this(list, file.FileName, file, null, null, place)
+    internal LoadedAssembly(AssemblyList list, MetadataFile file, PackagePlace place) : this(list, file.FileName, file, null, null, place)
     {
     }
 
-    private LoadedAssembly(AssemblyList list, string filePath, PEFile? file, AssemblyLoadException? error, AssemblyPackage? package, PackagePlace? place)
+    private LoadedAssembly(AssemblyList list, string filePath, MetadataFile? file, AssemblyLoadException? error, AssemblyPackage? package, PackagePlace? place)
     {
         List = list;
         _file = file;
@@ -75,10 +75,17 @@ public sealed class LoadedAssembly
             TargetFramework = TryDetectTargetFramework(file);
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework, place?.Container.Package);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
-        _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File, place?.Container.Package));
+        _debugSymbols = new Lazy<DebugSymbols?>(() => LoadDebugSymbols(place));
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
         _root = new Lazy<BrowseNode>(CreateRoot);
         _packageAssemblies = new Lazy<IReadOnlyList<LoadedAssembly>>(LoadPackageAssemblies);
+    }
+
+    private DebugSymbols? LoadDebugSymbols(PackagePlace? place)
+    {
+        if (PEFile == null)
+            return null;
+        return DebugSymbols.Load(PEFile, place?.Container.Package);
     }
 
     private BrowseNode CreateRoot()
@@ -238,7 +245,10 @@ public sealed class LoadedAssembly
     public bool CanGeneratePdb => _canGeneratePdb.Value;
 
     internal AssemblyList List { get; }
-    internal PEFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' is no assembly that loaded.");
+    internal MetadataFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' is no assembly that loaded.");
+
+    /// <summary><see cref="File"/> as a portable executable; null for a WebCIL module, which has no PE headers.</summary>
+    internal PEFile? PEFile => _file as PEFile;
     internal AssemblyResolver Resolver { get; }
     internal bool IsListed { get; set; }
 
@@ -304,7 +314,7 @@ public sealed class LoadedAssembly
             _ => default,
         };
 
-    private static string? TryDetectTargetFramework(PEFile file)
+    private static string? TryDetectTargetFramework(MetadataFile file)
     {
         try
         {
