@@ -455,7 +455,7 @@ public sealed class SelectButtonTests
         if (!menu.IsOpen) return;
         ui.MenuItem("Red", ref _red, keepOpen: true);
         ui.MenuItem("Green", ref _green, keepOpen: true);
-        ui.MenuItem("Blue", ref _red, keepOpen: true, icon: new UiIcon("B", Color: 0xFF0000FF));
+        ui.MenuItem("Blue", ref _red, keepOpen: true, icon: new UiIcon(IconGlyph.FromFont("B"), Color: 0xFF0000FF));
     }
 
     [Fact]
@@ -505,7 +505,7 @@ public sealed class SplitIconButtonTests
     {
         using (ui.Row(new Box { Gap = 0f }))
         {
-            using (var split = ui.SplitIconButton("go", "G", revision: _revision))
+            using (var split = ui.SplitIconButton("go", IconGlyph.FromFont("G"), revision: _revision))
             {
                 if (split.Clicked) _events.Add("clicked");
                 if (split.IsOpen)
@@ -602,9 +602,9 @@ public sealed class MenuItemIconTests
         using var menu = ui.DropdownButton("more");
         if (!menu.IsOpen) return;
         ui.MenuItem("Plain");
-        ui.MenuItem("Iconic", icon: new UiIcon("I", Color: 0xFF00FF00, Overlay: "o"));
-        ui.MenuItem("Checked", check: true, icon: _checkedHasIcon ? new UiIcon("X") : null);
-        ui.MenuRadioItem("Chosen", selected: true, icon: _checkedHasIcon ? new UiIcon("R") : null);
+        ui.MenuItem("Iconic", icon: new UiIcon(IconGlyph.FromFont("I"), Color: 0xFF00FF00, Overlay: IconGlyph.FromFont("o")));
+        ui.MenuItem("Checked", check: true, icon: _checkedHasIcon ? new UiIcon(IconGlyph.FromFont("X")) : null);
+        ui.MenuRadioItem("Chosen", selected: true, icon: _checkedHasIcon ? new UiIcon(IconGlyph.FromFont("R")) : null);
     }
 
     private void Open() => _frames.Frame().ClickOn("more").Frame(2);
@@ -681,7 +681,7 @@ public sealed class IconOverlayTests
                 {
                     using (ui.Row(new Box { Height = 24f }))
                     {
-                        ui.Icon(new UiIcon("I", Overlay: "o"));
+                        ui.Icon(new UiIcon(IconGlyph.FromFont("I"), Overlay: IconGlyph.FromFont("o")));
                         ui.Text($"row {i}");
                     }
                 }

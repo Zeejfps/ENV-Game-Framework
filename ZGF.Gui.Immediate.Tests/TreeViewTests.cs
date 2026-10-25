@@ -33,7 +33,7 @@ public sealed class TreeViewTests
         public TreeRow Row(Node node)
         {
             RowCalls++;
-            return new TreeRow(node.Name, new UiIcon("#", "Icons", 0xFF00FF00, IconBackground));
+            return new TreeRow(node.Name, new UiIcon(IconGlyph.FromFont("#", "Icons"), 0xFF00FF00, IconBackground));
         }
     }
 

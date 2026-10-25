@@ -5,12 +5,13 @@ using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.CodeDisplay;
+using static ZGF.ILSpy.IconTheming;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.Theming;
 
 namespace ZGF.ILSpy;
 
-/// <summary>How the app is drawn, as settings cards: the interface's theme, scale and language, then the
+/// <summary>How the app is drawn, as settings cards: the interface's theme, icon theme, scale and language, then the
 /// code's font size and switches for line numbers, the current line's highlight and matching brackets,
 /// then how the tree writes metadata tokens. Each option is a row of its card, named on the left, with its control at the right. Every change
 /// shows at once; an option changed from its default has a bold name.</summary>
@@ -55,8 +56,8 @@ internal static class DisplayOptionsPanelView
         ui.ListSystemFonts(families => KeepInstalledFonts(screen, families));
     }
 
-    /// <summary>The theme, the scale and the language. Only the scale is one of the options a reset puts
-    /// back, so only its name turns bold.</summary>
+    /// <summary>The theme, the icon theme, the scale and the language. Only the scale is one of the
+    /// options a reset puts back, so only its name turns bold.</summary>
     private static void InterfaceSection(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
@@ -64,6 +65,10 @@ internal static class DisplayOptionsPanelView
         using var card = Card(ui);
         using (OptionRow(ui, t.DisplayOptionsTheme, null, false))
             ThemePicker(ui, appState);
+        ui.Separator();
+
+        using (OptionRow(ui, t.DisplayOptionsIconTheme, null, false))
+            IconThemePicker(ui, appState);
         ui.Separator();
 
         var changed = ui.State.Display.UiScale != DisplayOptions.Default.UiScale;
@@ -103,7 +108,7 @@ internal static class DisplayOptionsPanelView
     private static void CustomizeThemeButton(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        if (!ui.IconButton("customize-theme", LucideIcons.Palette, LucideIcons.Family, t.DisplayOptionsCustomizeTheme, variant: ButtonVariant.Neutral))
+        if (!ui.IconButton("customize-theme", ui.State.Icons.OptionsCustomizeTheme, t.DisplayOptionsCustomizeTheme, variant: ButtonVariant.Neutral))
             return;
         var file = CreateCustomTheme(appState);
         if (file != null)
@@ -113,7 +118,7 @@ internal static class DisplayOptionsPanelView
     private static void OpenThemesFolderButton(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        if (!ui.IconButton("themes-folder", LucideIcons.FolderOpen, LucideIcons.Family, t.DisplayOptionsOpenThemesFolder, variant: ButtonVariant.Neutral))
+        if (!ui.IconButton("themes-folder", ui.State.Icons.OptionsOpenThemesFolder, t.DisplayOptionsOpenThemesFolder, variant: ButtonVariant.Neutral))
             return;
         var folder = PrepareThemesFolder(appState);
         if (folder != null)
@@ -123,8 +128,60 @@ internal static class DisplayOptionsPanelView
     private static void ReloadThemesButton(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        if (ui.IconButton("reload-themes", LucideIcons.RotateCcw, LucideIcons.Family, t.DisplayOptionsReloadThemes, variant: ButtonVariant.Neutral))
+        if (ui.IconButton("reload-themes", ui.State.Icons.OptionsReloadThemes, t.DisplayOptionsReloadThemes, variant: ButtonVariant.Neutral))
             ReloadUserThemes(appState);
+    }
+
+    /// <summary>The icon themes of the catalog, built-in ones first, then the buttons that start a custom
+    /// icon theme from the one shown, open the icon themes folder and read the user's icon themes again,
+    /// while the settings have a folder to keep icon themes in.</summary>
+    private static void IconThemePicker(Ui<UiState> ui, AppState appState)
+    {
+        using var controls = ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.GapTight, AlignY = Align.Center });
+        PickIconTheme(ui, appState);
+        if (appState.Settings.IconThemesFolder == null)
+            return;
+        CustomizeIconThemeButton(ui, appState);
+        OpenIconThemesFolderButton(ui, appState);
+        ReloadIconThemesButton(ui, appState);
+    }
+
+    private static void PickIconTheme(Ui<UiState> ui, AppState appState)
+    {
+        var themes = appState.IconThemes;
+        var labels = themes.ListNames(ui.State.Strings.Culture);
+        var current = themes.IndexOf(appState.IconTheme);
+        var picked = PickFrom(ui, "icon-theme", labels, current, themes.Ids, themes.Revision);
+        if (picked != NothingPicked)
+            SetIconTheme(appState, themes.Ids[picked]);
+    }
+
+    /// <summary>Starts an icon theme of the user's own from the one shown, switches to it and opens its file.</summary>
+    private static void CustomizeIconThemeButton(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        if (!ui.IconButton("customize-icon-theme", ui.State.Icons.OptionsCustomizeIconTheme, t.DisplayOptionsCustomizeIconTheme, variant: ButtonVariant.Neutral))
+            return;
+        var file = CreateCustomIconTheme(appState);
+        if (file != null)
+            ui.OpenFile(file);
+    }
+
+    private static void OpenIconThemesFolderButton(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        if (!ui.IconButton("icon-themes-folder", ui.State.Icons.OptionsOpenIconThemesFolder, t.DisplayOptionsOpenIconThemesFolder, variant: ButtonVariant.Neutral))
+            return;
+        var folder = PrepareIconThemesFolder(appState);
+        if (folder != null)
+            ui.OpenFolder(folder);
+    }
+
+    private static void ReloadIconThemesButton(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        if (ui.IconButton("reload-icon-themes", ui.State.Icons.OptionsReloadIconThemes, t.DisplayOptionsReloadIconThemes, variant: ButtonVariant.Neutral))
+            ReloadUserIconThemes(appState);
     }
 
     private static void UiScalePicker(Ui<UiState> ui)
@@ -280,13 +337,13 @@ internal static class DisplayOptionsPanelView
         var theme = ui.Theme;
         var display = ui.State.Display;
         var smaller = ui.Memo("smaller", t, static s => s.DisplayOptionsSmaller(Shortcuts.ZoomOut));
-        if (ui.IconButton("smaller", LucideIcons.Minus, LucideIcons.Family, smaller, display.CanZoomOut(theme), ButtonVariant.Neutral))
+        if (ui.IconButton("smaller", ui.State.Icons.OptionsFontSmaller, smaller, display.CanZoomOut(theme), ButtonVariant.Neutral))
             ZoomCode(ui.State, -1);
         var size = display.FontSizeIn(theme);
         var text = ui.Memo("size", size, static s => FormatFontSize(s));
         ui.Text(text, new Box { Width = Sizing.Fixed(MeasureFontSizeSlot(ui)) }, align: Align.Center);
         var larger = ui.Memo("larger", t, static s => s.DisplayOptionsLarger(Shortcuts.ZoomIn));
-        if (ui.IconButton("larger", LucideIcons.Plus, LucideIcons.Family, larger, display.CanZoomIn(theme), ButtonVariant.Neutral))
+        if (ui.IconButton("larger", ui.State.Icons.OptionsFontLarger, larger, display.CanZoomIn(theme), ButtonVariant.Neutral))
             ZoomCode(ui.State, 1);
     }
 
@@ -379,7 +436,7 @@ internal static class DisplayOptionsPanelView
     {
         var t = ui.State.Strings;
         var changed = ui.State.Display != DisplayOptions.Default;
-        var icon = new UiIcon(LucideIcons.RotateCcw, LucideIcons.Family);
+        var icon = new UiIcon(ui.State.Icons.OptionsResetDisplay);
         using (ui.Row(new Box { Width = Sizing.Grow(), AlignX = Align.End }))
         {
             if (ui.Button(t.DisplayOptionsReset, enabled: changed, id: "reset", variant: ButtonVariant.Ghost, icon: icon))

@@ -4,6 +4,7 @@ using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -159,7 +160,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         app.Run(2);
 
         Assert.False(app.Frames.Drew("Open folder"));
-        Assert.True(app.Frames.Drew(LucideIcons.FolderOpen));
+        Assert.True(app.Frames.Drew(Text(Icons.ExportOpenFolder)));
     }
 
     [Fact]
@@ -198,7 +199,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
         app.Run(2);
 
-        Assert.False(app.Frames.Drew(LucideIcons.Loader2));
+        Assert.False(app.Frames.Drew(Text(Icons.StatusLoading)));
         Assert.True(app.Frames.WakeAt - app.Frames.RealTime <= 1.0 / 30.0 + 1e-6);
         app.AppState.Export.Leave(running);
     }

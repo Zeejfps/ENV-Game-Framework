@@ -13,7 +13,6 @@ internal static class ToolbarView
 {
     private const string ListItemPrefix = "list:";
 
-    private static readonly UiIcon ManageListsIcon = new(LucideIcons.LibrarySquare, LucideIcons.Family);
 
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
@@ -34,23 +33,23 @@ internal static class ToolbarView
             using (Group(ui))
             {
                 ListPicker(ui, appState);
-                if (ui.IconButton("manage-lists", LucideIcons.LibrarySquare, LucideIcons.Family, t.ListsManage, variant: ButtonVariant.Neutral))
+                if (ui.IconButton("manage-lists", ui.State.Icons.ToolbarManageLists, t.ListsManage, variant: ButtonVariant.Neutral))
                     AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
             }
 
             using (Group(ui))
             {
-                if (ui.IconButton("open", LucideIcons.FolderOpen, LucideIcons.Family, ui.Memo("open-tip", t, static s => s.ToolbarOpen(Shortcuts.Open)),
+                if (ui.IconButton("open", ui.State.Icons.ToolbarOpen, ui.Memo("open-tip", t, static s => s.ToolbarOpen(Shortcuts.Open)),
                         variant: ButtonVariant.Neutral))
                     MainMenuView.OpenFile(ui, appState);
-                if (ui.IconButton("search", LucideIcons.Search, LucideIcons.Family, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
+                if (ui.IconButton("search", ui.State.Icons.ToolbarSearch, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
                         variant: ButtonVariant.Neutral))
                     OpenSearch(ui.State);
             }
 
             using (Group(ui))
             {
-                using (var back = ui.SplitIconButton("back", LucideIcons.ArrowLeft, LucideIcons.Family,
+                using (var back = ui.SplitIconButton("back", ui.State.Icons.ToolbarBack,
                            ui.Memo("back-tip", t, static s => s.ToolbarBack(Shortcuts.Back)), t.ToolbarBackHistory, appState.History.CanGoBack, appState.History.Revision))
                 {
                     if (back.Clicked)
@@ -58,7 +57,7 @@ internal static class ToolbarView
                     if (back.IsOpen)
                         HistoryItems(ui, appState, -1);
                 }
-                using (var forward = ui.SplitIconButton("forward", LucideIcons.ArrowRight, LucideIcons.Family,
+                using (var forward = ui.SplitIconButton("forward", ui.State.Icons.ToolbarForward,
                            ui.Memo("forward-tip", t, static s => s.ToolbarForward(Shortcuts.Forward)), t.ToolbarForwardHistory, appState.History.CanGoForward,
                            appState.History.Revision))
                 {
@@ -77,7 +76,7 @@ internal static class ToolbarView
                 if (language == DecompilationLanguage.CSharp)
                 {
                     LanguageVersion(ui, appState);
-                    if (ui.IconButton("decompiler-options", LucideIcons.Wrench, LucideIcons.Family, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
+                    if (ui.IconButton("decompiler-options", ui.State.Icons.ToolbarDecompilerOptions, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
                         OpenDecompilerOptions(ui.State);
                 }
             }
@@ -97,7 +96,7 @@ internal static class ToolbarView
         foreach (var name in lists.Names)
             ListItem(ui, appState, name);
         ui.MenuSeparator();
-        if (ui.MenuItem(t.ListsManage, id: "manage", icon: ManageListsIcon))
+        if (ui.MenuItem(t.ListsManage, id: "manage", icon: new UiIcon(ui.State.Icons.ListsManage)))
             AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
     }
 
@@ -170,7 +169,7 @@ internal static class ToolbarView
             using (ui.Id(i))
             {
                 var entry = entries[i];
-                if (ui.MenuItem(entry.Place.Text, id: "entry", icon: NodeIcons.Icon(entry.Place.Kind, entry.Accessibility, palette)))
+                if (ui.MenuItem(entry.Place.Text, id: "entry", icon: NodeIcons.Icon(entry.Place.Kind, entry.Accessibility, palette, ui.State.Icons)))
                 {
                     GoToHistoryEntry(appState, i);
                     return;

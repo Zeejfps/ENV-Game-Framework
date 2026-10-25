@@ -49,7 +49,7 @@ internal static class ResourceImageView
                 ZoomButtons(ui, picture.Zoom);
             if (hasSource)
                 SourceButton(ui, picture);
-            if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: ExportIcon))
+            if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: new UiIcon(ui.State.Icons.ResourceExport)))
                 PickExport(ui, appState, node);
         }
     }
@@ -58,12 +58,12 @@ internal static class ResourceImageView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        if (ui.IconButton("zoom-out", LucideIcons.ZoomOut, LucideIcons.Family, t.ResourceZoomOut, zoom.CanZoomOut))
+        if (ui.IconButton("zoom-out", ui.State.Icons.ResourceZoomOut, t.ResourceZoomOut, zoom.CanZoomOut))
             zoom.ZoomOut();
         ui.Text(t.ResourceZoomPercent(zoom.Percent), color: theme.TextMuted);
-        if (ui.IconButton("zoom-in", LucideIcons.ZoomIn, LucideIcons.Family, t.ResourceZoomIn, zoom.CanZoomIn))
+        if (ui.IconButton("zoom-in", ui.State.Icons.ResourceZoomIn, t.ResourceZoomIn, zoom.CanZoomIn))
             zoom.ZoomIn();
-        if (ui.IconButton("zoom-reset", LucideIcons.RotateCcw, LucideIcons.Family, t.ResourceZoomReset, !zoom.IsOwnSize))
+        if (ui.IconButton("zoom-reset", ui.State.Icons.ResourceZoomReset, t.ResourceZoomReset, !zoom.IsOwnSize))
             zoom.Reset();
         ui.Separator(theme.IconSize);
     }
@@ -73,8 +73,9 @@ internal static class ResourceImageView
     {
         var t = ui.State.Strings;
         var label = picture.ShowsSource ? t.ResourceShowPicture : t.ResourceShowSource;
-        var glyph = picture.ShowsSource ? LucideIcons.FileImage : LucideIcons.FileText;
-        if (ui.Button(label, id: "source", icon: new UiIcon(glyph, LucideIcons.Family)))
+        var icons = ui.State.Icons;
+        var glyph = picture.ShowsSource ? icons.ResourceShowPicture : icons.ResourceShowSource;
+        if (ui.Button(label, id: "source", icon: new UiIcon(glyph)))
             picture.ToggleSource();
     }
 
@@ -117,8 +118,6 @@ internal static class ResourceImageView
             return true;
         return image.IsVector && uploaded.Scale != scale;
     }
-
-    public static readonly UiIcon ExportIcon = new(LucideIcons.Upload, LucideIcons.Family);
 
     /// <summary>Asks where to export the resource <paramref name="node"/> stands for, then writes it there.</summary>
     public static void PickExport(Ui<UiState> ui, AppState appState, BrowseNode node)

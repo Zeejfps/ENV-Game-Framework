@@ -16,18 +16,10 @@ public static class DockPanels
     public const string DisplayOptions = "display-options";
     public const string Exports = "exports";
 
-    private static readonly UiIcon AssembliesIcon = new(LucideIcons.LibraryBig, LucideIcons.Family);
-    private static readonly UiIcon SearchIcon = new(LucideIcons.Search, LucideIcons.Family);
-    private static readonly UiIcon BookmarksIcon = new(LucideIcons.Bookmark, LucideIcons.Family);
-    private static readonly UiIcon AnalyzerIcon = new(LucideIcons.ScanSearch, LucideIcons.Family);
-    private static readonly UiIcon DecompilerOptionsIcon = new(LucideIcons.SlidersHorizontal, LucideIcons.Family);
-    private static readonly UiIcon DisplayOptionsIcon = new(LucideIcons.Palette, LucideIcons.Family);
-    private static readonly UiIcon ExportsIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
-
     /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
     public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer or DecompilerOptions or DisplayOptions or Exports;
 
-    public static DockTab Tab(Strings t, string panel) => new(Title(t, panel), Icon: Icon(panel));
+    public static DockTab Tab(Strings t, AppIcons icons, string panel) => new(Title(t, panel), Icon: Icon(icons, panel));
 
     private static string Title(Strings t, string panel) => panel switch
     {
@@ -40,16 +32,18 @@ public static class DockPanels
         _ => t.PanelSearch,
     };
 
-    /// <summary>The view's icon, on its tab and in the menu that opens it.</summary>
-    public static UiIcon Icon(string panel) => panel switch
+    /// <summary>The view's icon in <paramref name="icons"/>, on its tab and in the menu that opens it.</summary>
+    public static UiIcon Icon(AppIcons icons, string panel) => new(Glyph(icons, panel));
+
+    private static IconGlyph Glyph(AppIcons icons, string panel) => panel switch
     {
-        Assemblies => AssembliesIcon,
-        Bookmarks => BookmarksIcon,
-        Analyzer => AnalyzerIcon,
-        DecompilerOptions => DecompilerOptionsIcon,
-        DisplayOptions => DisplayOptionsIcon,
-        Exports => ExportsIcon,
-        _ => SearchIcon,
+        Assemblies => icons.PanelAssemblies,
+        Bookmarks => icons.PanelBookmarks,
+        Analyzer => icons.PanelAnalyzer,
+        DecompilerOptions => icons.PanelDecompilerOptions,
+        DisplayOptions => icons.PanelDisplayOptions,
+        Exports => icons.PanelExports,
+        _ => icons.PanelSearch,
     };
 
     /// <summary>A copy of the saved layout with only its views — documents do not outlive a run — and

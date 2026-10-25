@@ -13,14 +13,6 @@ namespace ZGF.ILSpy;
 
 internal static class MainMenuView
 {
-    private static readonly UiIcon OpenIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
-    private static readonly UiIcon OpenFromFrameworkIcon = new(LucideIcons.Library, LucideIcons.Family);
-    private static readonly UiIcon CloseIcon = new(LucideIcons.X, LucideIcons.Family);
-    private static readonly UiIcon CloseFailedIcon = new(LucideIcons.FileX, LucideIcons.Family);
-    private static readonly UiIcon ClearListIcon = new(LucideIcons.ListX, LucideIcons.Family);
-    private static readonly UiIcon SortListIcon = new(LucideIcons.ArrowDownAZ, LucideIcons.Family);
-    private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
-    private static readonly UiIcon ExitIcon = new(LucideIcons.LogOut, LucideIcons.Family);
 
     public static void Render(Ui<UiState> ui, AppState appState)
     {
@@ -54,9 +46,10 @@ internal static class MainMenuView
     private static void FileMenu(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: OpenIcon))
+        var icons = ui.State.Icons;
+        if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: new UiIcon(icons.FileOpen)))
             OpenFile(ui, appState);
-        if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: OpenFromFrameworkIcon))
+        if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: new UiIcon(icons.FileOpenFromFramework)))
             ui.State.Picker.Open();
         ui.MenuSeparator();
         ExportItems(ui, appState);
@@ -64,18 +57,18 @@ internal static class MainMenuView
         var tree = ui.State.Tree;
         var selected = tree.View.HasSelection ? tree.View.Selected!.Assembly : null;
         var anyOpen = tree.Roots.Count > 0;
-        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: CloseIcon))
+        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: new UiIcon(icons.FileClose)))
             CloseAssembly(appState, selected!);
-        if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState), id: "close-failed", icon: CloseFailedIcon))
+        if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState), id: "close-failed", icon: new UiIcon(icons.FileCloseFailed)))
             CloseFailedAssemblies(appState);
-        if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: ClearListIcon))
+        if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: new UiIcon(icons.FileClearList)))
             CloseAllAssemblies(appState);
-        if (ui.MenuItem(t.FileSortList, enabled: anyOpen, id: "sort-list", icon: SortListIcon))
+        if (ui.MenuItem(t.FileSortList, enabled: anyOpen, id: "sort-list", icon: new UiIcon(icons.FileSortList)))
             SortAssemblies(appState);
-        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: ReloadIcon))
+        if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: new UiIcon(icons.FileReloadAll)))
             RefreshAssemblies(appState, tree.ExpandedPaths());
         ui.MenuSeparator();
-        if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: ExitIcon))
+        if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: new UiIcon(icons.FileExit)))
             ui.Quit();
     }
 
@@ -83,12 +76,12 @@ internal static class MainMenuView
     {
         var t = ui.State.Strings;
         var canSave = CanSaveCode(appState, appState.Tabs.Active?.Node);
-        if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: SaveDialogs.SaveCodeIcon))
+        if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
             SaveDialogs.PickActiveCodeFile(ui, appState);
         var anyOpen = ui.State.Tree.Roots.Count > 0;
-        if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: SaveDialogs.ExportIcon))
+        if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
             ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
-        if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: SaveDialogs.PdbIcon))
+        if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: new UiIcon(ui.State.Icons.FileGeneratePdb)))
             SaveDialogs.PickPdbFolder(ui, appState);
     }
 
@@ -157,7 +150,7 @@ internal static class MainMenuView
     private static bool PanelItem(Ui<UiState> ui, string label, string panel, string? shortcut = null)
     {
         var open = ui.State.Layout.Contains(panel);
-        return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(panel));
+        return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(ui.State.Icons, panel));
     }
 
     private static void DecompilerMenu(Ui<UiState> ui, AppState appState)

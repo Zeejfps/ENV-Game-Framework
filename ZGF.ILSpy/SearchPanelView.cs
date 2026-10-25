@@ -104,14 +104,14 @@ internal static class SearchPanelView
         var kinds = search.Kinds;
         var checkAll = all;
         var palette = ui.State.NodeIconPalette;
-        var allIcon = new UiIcon(LucideIcons.Layers3, LucideIcons.Family, ui.Theme.TextMuted);
+        var allIcon = new UiIcon(ui.State.Icons.SearchAllKinds, ui.Theme.TextMuted);
         if (ui.MenuItem(t.SearchModeAll, ref checkAll, keepOpen: true, icon: allIcon))
             kinds = SearchKinds.All;
         ui.MenuSeparator();
         foreach (var kind in Kinds)
         {
             var on = !all && (kinds & kind) != 0;
-            var icon = NodeIcons.Icon(KindNode(kind), NodeAccessibility.None, palette);
+            var icon = NodeIcons.Icon(KindNode(kind), NodeAccessibility.None, palette, ui.State.Icons);
             if (ui.MenuItem(KindLabel(t, kind), ref on, keepOpen: true, icon: icon))
                 kinds = Toggle(kinds, kind, all, on);
         }
@@ -140,7 +140,7 @@ internal static class SearchPanelView
         if (TakeSearchFocus(ui.State))
             ui.Focus(fieldId);
         var width = Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth);
-        var submitted = ui.TextField("search", ref search.Query, t.SearchField, width, LucideIcons.Search, LucideIcons.Family);
+        var submitted = ui.TextField("search", ref search.Query, t.SearchField, width, ui.State.Icons.SearchField);
         ui.Tooltip(fieldId, ui.Memo("search-syntax", t, static s => s.SearchSyntaxTooltip(SearchShortcut)));
         if (!ui.HasFocus(fieldId))
             return;
@@ -182,7 +182,7 @@ internal static class SearchPanelView
         var t = ui.State.Strings;
         var search = ui.State.Search;
         var headers = Headers.GetValue(t, static t => [t.SearchColumnName, t.SearchColumnLocation, t.SearchColumnAssembly]);
-        var sort = new TableSort(ColumnOf(search.Sort), SortIcon(search));
+        var sort = new TableSort(ColumnOf(search.Sort), SortIcon(ui.State.Icons, search));
         search.Selection.ShowIn(search.Rows);
         var table = ui.Table(ResultsId, ui.State.SearchColumns, search.Selection.Rows);
         var clicked = table.Header(headers, sort);
@@ -193,10 +193,10 @@ internal static class SearchPanelView
 
     private static int ColumnOf(SearchSort sort) => (int)sort - 1;
 
-    private static UiIcon SortIcon(Search search)
+    private static UiIcon SortIcon(AppIcons icons, Search search)
     {
-        var glyph = search.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp;
-        return new UiIcon(glyph, LucideIcons.Family);
+        var glyph = search.Descending ? icons.SortDescending : icons.SortAscending;
+        return new UiIcon(glyph);
     }
 
     private static SearchSort SortOf(int column) => (SearchSort)(column + 1);

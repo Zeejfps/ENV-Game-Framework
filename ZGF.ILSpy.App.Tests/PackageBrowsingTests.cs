@@ -2,6 +2,7 @@ using System.IO.Compression;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -61,12 +62,12 @@ public sealed class PackageBrowsingTests
 
         app.Ui.Tree.View.Select(Greeter(app).Assembly.Root);
         app.Run(2);
-        app.Click(LucideIcons.Trash2);
+        app.Click(Icons.AssembliesCloseAssembly);
         Assert.Single(app.AppState.Assemblies.Listed);
 
         app.Ui.Tree.View.Select(package.Root);
         app.Run(2);
-        app.Click(LucideIcons.Trash2);
+        app.Click(Icons.AssembliesCloseAssembly);
 
         Assert.Empty(app.AppState.Assemblies.Listed);
     }

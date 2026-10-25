@@ -199,7 +199,7 @@ public sealed class FocusTests
     {
         if (ui.Button("One")) _clicked.Add("One");
         if (ui.Button("Two", enabled: _enabled)) _clicked.Add("Two");
-        if (ui.IconButton("three", "+", tooltip: "Three")) _clicked.Add("Three");
+        if (ui.IconButton("three", IconGlyph.FromFont("+"), tooltip: "Three")) _clicked.Add("Three");
     }
 
     private void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => _frames.Key(key, modifiers).Frame();
@@ -312,7 +312,7 @@ public sealed class ButtonStyleTests
     [Fact]
     public void An_icon_button_is_a_square_of_the_icon_button_size_with_a_tooltip()
     {
-        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.IconButton("back", "<", tooltip: "Back")).Frame();
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.IconButton("back", IconGlyph.FromFont("<"), tooltip: "Back")).Frame();
 
         var rect = frames.RectOf("back");
         Assert.Equal(UiTheme.Dark.IconButtonSize, rect.Width);
@@ -435,7 +435,7 @@ public sealed class TextFieldSlotTests
     private string _text = "hello";
 
     private void Body(Ui ui, float width, string? hint) =>
-        ui.TextField("field", ref _text, width: Sizing.Fixed(width), leadingIcon: "Q", hint: hint);
+        ui.TextField("field", ref _text, width: Sizing.Fixed(width), leadingIcon: IconGlyph.FromFont("Q"), hint: hint);
 
     [Fact]
     public void A_click_places_the_caret_after_the_leading_icon()
@@ -480,7 +480,7 @@ public sealed class TreeRowSlotTests
     [Fact]
     public void The_secondary_text_ellipsizes_before_the_label_and_the_overlay_is_drawn()
     {
-        var model = new Flat(new TreeRow("System.Runtime", new UiIcon("A", Overlay: "L"), Secondary: "C:/dotnet/shared/System.Runtime.dll", Tooltip: "full"));
+        var model = new Flat(new TreeRow("System.Runtime", new UiIcon(IconGlyph.FromFont("A"), Overlay: IconGlyph.FromFont("L")), Secondary: "C:/dotnet/shared/System.Runtime.dll", Tooltip: "full"));
         var state = new TreeViewState<string>(StringComparer.Ordinal);
         string[] roots = ["root"];
 

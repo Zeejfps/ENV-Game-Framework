@@ -100,7 +100,7 @@ public static class MainView
     private static DockTab Tab(UiState screen, AppState appState, Strings t, string panel)
     {
         if (DockPanels.IsView(panel))
-            return DockPanels.Tab(t, panel);
+            return DockPanels.Tab(t, screen.Icons, panel);
         var tab = screen.Documents.FindTab(panel);
         if (tab != null)
             return DocumentsView.Tab(screen, appState, tab);

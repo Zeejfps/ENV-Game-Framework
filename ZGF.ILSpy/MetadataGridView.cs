@@ -33,8 +33,6 @@ internal ref struct MetadataGridFrame
     private const int FlyoutSalt = 0x4D44464C;
     private const int MenuSalt = 0x4D44474D;
 
-    private static readonly UiIcon TokenLink = new(LucideIcons.ExternalLink, LucideIcons.Family);
-
     private readonly Ui<UiState> _ui;
     private readonly MetadataGrid _grid;
     private readonly MetadataGridState _state;
@@ -116,9 +114,10 @@ internal ref struct MetadataGridFrame
 
     private void Header(TableFrame table)
     {
-        var sortGlyph = _state.Descending ? LucideIcons.ChevronDown : LucideIcons.ChevronUp;
-        var sort = new TableSort(_state.SortColumn, new UiIcon(sortGlyph, LucideIcons.Family));
-        var heading = new MetadataGridHeading(_grid, _state, _flags, _t, _listId);
+        var icons = _ui.State.Icons;
+        var sortGlyph = _state.Descending ? icons.SortDescending : icons.SortAscending;
+        var sort = new TableSort(_state.SortColumn, new UiIcon(sortGlyph));
+        var heading = new MetadataGridHeading(_grid, _state, _flags, _t, icons, _listId);
         var clicked = table.Header(_state.Headers, sort, MetadataGridHeading.Render, heading);
         if (clicked < 0) return;
         if (clicked == _state.EditingColumn) return;
@@ -280,7 +279,7 @@ internal ref struct MetadataGridFrame
         if (target != null)
         {
             color = null;
-            link = TokenLink;
+            link = new UiIcon(_ui.State.Icons.LinkToken);
         }
         float? size = null;
         string? family = null;

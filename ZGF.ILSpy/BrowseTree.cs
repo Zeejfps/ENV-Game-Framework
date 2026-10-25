@@ -18,7 +18,8 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private ApiVisibility _visibility = ApiVisibility.AllButCompilerGenerated;
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
-    private NodeIconPalette _icons = BuiltInThemes.Dark.Icons;
+    private NodeIconPalette _iconColors = BuiltInThemes.Dark.Icons;
+    private AppIcons _icons = BuiltInIconThemes.Reference.Icons;
     private TokenFormat _tokens = TokenFormat.Hidden;
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
@@ -57,9 +58,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.Refresh();
     }
 
-    public void SetStyle(UiTheme theme, NodeIconPalette icons)
+    public void SetStyle(UiTheme theme, NodeIconPalette iconColors, AppIcons icons)
     {
         _theme = theme;
+        _iconColors = iconColors;
         _icons = icons;
     }
 
@@ -185,7 +187,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     public TreeRow Row(BrowseNode node) => new(
         RowLabel(node),
-        NodeIcons.Icon(node.Kind, node.Accessibility, _icons),
+        NodeIcons.Icon(node.Kind, node.Accessibility, _iconColors, _icons),
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
         Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
         Secondary: SecondaryOf(node));

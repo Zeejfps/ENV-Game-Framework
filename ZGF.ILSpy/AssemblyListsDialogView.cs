@@ -22,8 +22,6 @@ internal static class AssemblyListsDialogView
     private const string MenuId = "lists-menu";
     private const string PresetMenuId = "presets";
 
-    private static readonly UiIcon NewIcon = new(LucideIcons.Plus, LucideIcons.Family);
-
     public static void Render(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
@@ -53,14 +51,14 @@ internal static class AssemblyListsDialogView
         var any = picked != null;
         using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
         {
-            if (ui.Button(t.ListsNew, id: "new", icon: NewIcon))
+            if (ui.Button(t.ListsNew, id: "new", icon: new UiIcon(ui.State.Icons.ListsNew)))
                 Create(dialog, appState);
             ui.Spacer();
-            if (ui.IconButton("duplicate", LucideIcons.Copy, LucideIcons.Family, t.ListsDuplicate, any))
+            if (ui.IconButton("duplicate", ui.State.Icons.ListsDuplicate, t.ListsDuplicate, any))
                 Duplicate(dialog, appState, picked!);
-            if (ui.IconButton("rename", LucideIcons.Pencil, LucideIcons.Family, t.ListsRename, any))
+            if (ui.IconButton("rename", ui.State.Icons.ListsRename, t.ListsRename, any))
                 dialog.StartRenaming(picked!);
-            if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.ListsDelete, any))
+            if (ui.IconButton("delete", ui.State.Icons.ListsDelete, t.ListsDelete, any))
                 dialog.StartConfirmingDelete(picked!);
         }
     }
@@ -134,11 +132,9 @@ internal static class AssemblyListsDialogView
         using (ui.Box(new Box { Width = theme.IconSize, Height = Sizing.Grow() }))
         {
             if (active)
-                ui.Icon(ActiveIcon(theme));
+                ui.Icon(new UiIcon(ui.State.Icons.ListsActive, theme.Accent));
         }
     }
-
-    private static UiIcon ActiveIcon(UiTheme theme) => new(LucideIcons.Check, LucideIcons.Family, theme.Accent);
 
     private static void NameText(Ui<UiState> ui, string name, bool selected)
     {

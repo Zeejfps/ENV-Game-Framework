@@ -28,6 +28,8 @@ public sealed class TodoState
 
 public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(new DefaultUiState())
 {
+    private static readonly IconGlyph DeleteGlyph = IconGlyph.FromFont("×");
+
     private static readonly (Locale Locale, string Endonym)[] Languages =
     [
         (Locale.En, "English"),
@@ -132,7 +134,7 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
                 {
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");
                     ui.Spacer();
-                    if (ui.IconButton("delete", "×", tooltip: t.ActionDelete))
+                    if (ui.IconButton("delete", DeleteGlyph, tooltip: t.ActionDelete))
                         removed = item;
                 }
             }

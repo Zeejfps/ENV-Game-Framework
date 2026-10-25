@@ -10,11 +10,6 @@ namespace ZGF.ILSpy;
 /// <summary>The dialogs that ask where code, resources, PDBs and the files of packages are written.</summary>
 internal static class SaveDialogs
 {
-    public static readonly UiIcon SaveCodeIcon = new(LucideIcons.Save, LucideIcons.Family);
-    public static readonly UiIcon ExportIcon = new(LucideIcons.FolderOutput, LucideIcons.Family);
-    public static readonly UiIcon PdbIcon = new(LucideIcons.Bug, LucideIcons.Family);
-    public static readonly UiIcon ExtractIcon = new(LucideIcons.PackageOpen, LucideIcons.Family);
-
     /// <summary>Asks where to save the code of the active tab's node, when it can be saved.</summary>
     public static void PickActiveCodeFile(Ui<UiState> ui, AppState appState)
     {

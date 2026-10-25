@@ -14,85 +14,121 @@ public enum NodeIconRole
     Error,
 }
 
-/// <summary>Each node kind's pictogram in the Lucide icon font and the role that colors it.</summary>
+/// <summary>Each node kind's icon, drawn as the icon theme draws its <c>node.*</c> key, and the role
+/// that colors it.</summary>
 public static class NodeIcons
 {
-    private readonly record struct KindIcon(string Glyph, NodeIconRole Role);
+    /// <summary>What a node of <paramref name="kind"/> draws in <paramref name="icons"/>.</summary>
+    public static IconGlyph Glyph(NodeKind kind, AppIcons icons) => kind switch
+    {
+        NodeKind.Assembly => icons.NodeAssembly,
+        NodeKind.ReferencesFolder => icons.NodeReferencesFolder,
+        NodeKind.AssemblyReference => icons.NodeAssemblyReference,
+        NodeKind.ResourcesFolder => icons.NodeResourcesFolder,
+        NodeKind.Resource => icons.NodeResource,
+        NodeKind.Namespace => icons.NodeNamespace,
+        NodeKind.Class => icons.NodeClass,
+        NodeKind.Interface => icons.NodeInterface,
+        NodeKind.Struct => icons.NodeStruct,
+        NodeKind.Enum => icons.NodeEnum,
+        NodeKind.Delegate => icons.NodeDelegate,
+        NodeKind.Record => icons.NodeRecord,
+        NodeKind.RecordStruct => icons.NodeRecordStruct,
+        NodeKind.BaseTypes => icons.NodeBaseTypes,
+        NodeKind.BaseType => icons.NodeBaseType,
+        NodeKind.Field => icons.NodeField,
+        NodeKind.Constant => icons.NodeConstant,
+        NodeKind.Property => icons.NodeProperty,
+        NodeKind.Indexer => icons.NodeIndexer,
+        NodeKind.Event => icons.NodeEvent,
+        NodeKind.Method => icons.NodeMethod,
+        NodeKind.Constructor => icons.NodeConstructor,
+        NodeKind.Operator => icons.NodeOperator,
+        NodeKind.Error => icons.NodeError,
+        NodeKind.Loading => icons.NodeLoading,
+        NodeKind.Metadata => icons.NodeMetadata,
+        NodeKind.MetadataHeader => icons.NodeMetadataHeader,
+        NodeKind.MetadataDirectory => icons.NodeMetadataDirectory,
+        NodeKind.MetadataTables => icons.NodeMetadataTables,
+        NodeKind.MetadataTable => icons.NodeMetadataTable,
+        NodeKind.MetadataHeap => icons.NodeMetadataHeap,
+        NodeKind.DerivedTypes => icons.NodeDerivedTypes,
+        NodeKind.DerivedType => icons.NodeDerivedType,
+        NodeKind.ResourcesFile => icons.NodeResourcesFile,
+        NodeKind.ResourceImage => icons.NodeResourceImage,
+        NodeKind.FailedAssembly => icons.NodeFailedAssembly,
+        NodeKind.ForwardedType => icons.NodeForwardedType,
+        NodeKind.Package => icons.NodePackage,
+        NodeKind.PackageFolder => icons.NodePackageFolder,
+        NodeKind.Bundle => icons.NodeBundle,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 
-    private static readonly KindIcon[] Icons = BuildIcons();
-
-    public const string Family = LucideIcons.Family;
-
-    public static string Glyph(NodeKind kind) => Icons[(int)kind].Glyph;
-
-    public static NodeIconRole Role(NodeKind kind) => Icons[(int)kind].Role;
+    public static NodeIconRole Role(NodeKind kind) => kind switch
+    {
+        NodeKind.Assembly => NodeIconRole.Neutral,
+        NodeKind.ReferencesFolder => NodeIconRole.Neutral,
+        NodeKind.AssemblyReference => NodeIconRole.Neutral,
+        NodeKind.ResourcesFolder => NodeIconRole.Neutral,
+        NodeKind.Resource => NodeIconRole.Neutral,
+        NodeKind.Namespace => NodeIconRole.Neutral,
+        NodeKind.Class => NodeIconRole.Type,
+        NodeKind.Interface => NodeIconRole.Type,
+        NodeKind.Struct => NodeIconRole.Type,
+        NodeKind.Enum => NodeIconRole.Type,
+        NodeKind.Delegate => NodeIconRole.Type,
+        NodeKind.Record => NodeIconRole.Type,
+        NodeKind.RecordStruct => NodeIconRole.Type,
+        NodeKind.BaseTypes => NodeIconRole.Neutral,
+        NodeKind.BaseType => NodeIconRole.Type,
+        NodeKind.Field => NodeIconRole.Data,
+        NodeKind.Constant => NodeIconRole.Data,
+        NodeKind.Property => NodeIconRole.Data,
+        NodeKind.Indexer => NodeIconRole.Data,
+        NodeKind.Event => NodeIconRole.Data,
+        NodeKind.Method => NodeIconRole.Method,
+        NodeKind.Constructor => NodeIconRole.Method,
+        NodeKind.Operator => NodeIconRole.Method,
+        NodeKind.Error => NodeIconRole.Error,
+        NodeKind.Loading => NodeIconRole.Neutral,
+        NodeKind.Metadata => NodeIconRole.Neutral,
+        NodeKind.MetadataHeader => NodeIconRole.Neutral,
+        NodeKind.MetadataDirectory => NodeIconRole.Neutral,
+        NodeKind.MetadataTables => NodeIconRole.Neutral,
+        NodeKind.MetadataTable => NodeIconRole.Data,
+        NodeKind.MetadataHeap => NodeIconRole.Data,
+        NodeKind.DerivedTypes => NodeIconRole.Neutral,
+        NodeKind.DerivedType => NodeIconRole.Type,
+        NodeKind.ResourcesFile => NodeIconRole.Neutral,
+        NodeKind.ResourceImage => NodeIconRole.Neutral,
+        NodeKind.FailedAssembly => NodeIconRole.Error,
+        NodeKind.ForwardedType => NodeIconRole.Type,
+        NodeKind.Package => NodeIconRole.Neutral,
+        NodeKind.PackageFolder => NodeIconRole.Neutral,
+        NodeKind.Bundle => NodeIconRole.Neutral,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 
     /// <summary>The small pictogram over a node's icon that marks it as not visible outside its
-    /// assembly or type: a shield for internal, a lock for private. Null for anything wider.</summary>
-    public static string? Overlay(NodeAccessibility accessibility) => accessibility switch
+    /// assembly or type: a shield for internal, a lock for private, as <paramref name="icons"/> draw
+    /// them. Null for anything wider.</summary>
+    public static IconGlyph? Overlay(NodeAccessibility accessibility, AppIcons icons) => accessibility switch
     {
-        NodeAccessibility.Internal => LucideIcons.Shield,
-        NodeAccessibility.Private or NodeAccessibility.PrivateProtected => LucideIcons.Lock,
+        NodeAccessibility.Internal => icons.OverlayInternal,
+        NodeAccessibility.Private or NodeAccessibility.PrivateProtected => icons.OverlayPrivate,
         _ => null,
     };
 
-    /// <summary>The icon of a node of <paramref name="kind"/> as the tree shows it: colored from
-    /// <paramref name="palette"/>, with the overlay of its <paramref name="accessibility"/>.</summary>
-    public static UiIcon Icon(NodeKind kind, NodeAccessibility accessibility, NodeIconPalette palette) =>
-        new(Glyph(kind), Family, palette.For(kind), Overlay: Overlay(accessibility), OverlayColor: palette.Restricted);
+    /// <summary>The icon of a node of <paramref name="kind"/> as the tree shows it: drawn as
+    /// <paramref name="icons"/> draw it, colored from <paramref name="palette"/>, with the overlay of its
+    /// <paramref name="accessibility"/>.</summary>
+    public static UiIcon Icon(NodeKind kind, NodeAccessibility accessibility, NodeIconPalette palette, AppIcons icons) =>
+        new(Glyph(kind, icons), palette.For(kind), Overlay: Overlay(accessibility, icons), OverlayColor: palette.Restricted);
 
-    /// <summary>Records <paramref name="kind"/>'s <see cref="Icon"/> as the tree shows it, colored from
-    /// the provided <see cref="NodeIconPalette"/>.</summary>
+    /// <summary>Records <paramref name="kind"/>'s <see cref="Icon"/> as the tree shows it, in the screen's
+    /// icons and icon colors.</summary>
     public static void Draw(Ui<UiState> ui, NodeKind kind, NodeAccessibility accessibility = NodeAccessibility.None) =>
-        ui.Icon(Icon(kind, accessibility, ui.State.NodeIconPalette));
-
-    private static KindIcon[] BuildIcons()
-    {
-        var icons = new KindIcon[Enum.GetValues<NodeKind>().Length];
-        Set(NodeKind.Assembly, LucideIcons.Package, NodeIconRole.Neutral);
-        Set(NodeKind.ReferencesFolder, LucideIcons.Library, NodeIconRole.Neutral);
-        Set(NodeKind.AssemblyReference, LucideIcons.Link2, NodeIconRole.Neutral);
-        Set(NodeKind.ResourcesFolder, LucideIcons.Folder, NodeIconRole.Neutral);
-        Set(NodeKind.Resource, LucideIcons.FileIcon, NodeIconRole.Neutral);
-        Set(NodeKind.Namespace, LucideIcons.Braces, NodeIconRole.Neutral);
-        Set(NodeKind.Class, LucideIcons.Box, NodeIconRole.Type);
-        Set(NodeKind.Interface, LucideIcons.GitCommitHorizontal, NodeIconRole.Type);
-        Set(NodeKind.Struct, LucideIcons.LayoutGrid, NodeIconRole.Type);
-        Set(NodeKind.Enum, LucideIcons.ListOrdered, NodeIconRole.Type);
-        Set(NodeKind.Delegate, LucideIcons.Webhook, NodeIconRole.Type);
-        Set(NodeKind.Record, LucideIcons.NotebookText, NodeIconRole.Type);
-        Set(NodeKind.RecordStruct, LucideIcons.NotepadText, NodeIconRole.Type);
-        Set(NodeKind.BaseTypes, LucideIcons.Network, NodeIconRole.Neutral);
-        Set(NodeKind.BaseType, LucideIcons.ArrowUpFromDot, NodeIconRole.Type);
-        Set(NodeKind.Field, LucideIcons.Variable, NodeIconRole.Data);
-        Set(NodeKind.Constant, LucideIcons.Pi, NodeIconRole.Data);
-        Set(NodeKind.Property, LucideIcons.Wrench, NodeIconRole.Data);
-        Set(NodeKind.Indexer, LucideIcons.Brackets, NodeIconRole.Data);
-        Set(NodeKind.Event, LucideIcons.Zap, NodeIconRole.Data);
-        Set(NodeKind.Method, LucideIcons.FunctionSquare, NodeIconRole.Method);
-        Set(NodeKind.Constructor, LucideIcons.Hammer, NodeIconRole.Method);
-        Set(NodeKind.Operator, LucideIcons.Diff, NodeIconRole.Method);
-        Set(NodeKind.Error, LucideIcons.AlertCircle, NodeIconRole.Error);
-        Set(NodeKind.Loading, LucideIcons.Loader2, NodeIconRole.Neutral);
-        Set(NodeKind.Metadata, LucideIcons.Database, NodeIconRole.Neutral);
-        Set(NodeKind.MetadataHeader, LucideIcons.FileText, NodeIconRole.Neutral);
-        Set(NodeKind.MetadataDirectory, LucideIcons.List, NodeIconRole.Neutral);
-        Set(NodeKind.MetadataTables, LucideIcons.Table2, NodeIconRole.Neutral);
-        Set(NodeKind.MetadataTable, LucideIcons.Table, NodeIconRole.Data);
-        Set(NodeKind.MetadataHeap, LucideIcons.Layers3, NodeIconRole.Data);
-        Set(NodeKind.DerivedTypes, LucideIcons.GitFork, NodeIconRole.Neutral);
-        Set(NodeKind.DerivedType, LucideIcons.ArrowDownToDot, NodeIconRole.Type);
-        Set(NodeKind.ResourcesFile, LucideIcons.FileSpreadsheet, NodeIconRole.Neutral);
-        Set(NodeKind.ResourceImage, LucideIcons.FileImage, NodeIconRole.Neutral);
-        Set(NodeKind.FailedAssembly, LucideIcons.PackageX, NodeIconRole.Error);
-        Set(NodeKind.ForwardedType, LucideIcons.Forward, NodeIconRole.Type);
-        Set(NodeKind.Package, LucideIcons.FileArchive, NodeIconRole.Neutral);
-        Set(NodeKind.PackageFolder, LucideIcons.FolderClosed, NodeIconRole.Neutral);
-        Set(NodeKind.Bundle, LucideIcons.AppWindow, NodeIconRole.Neutral);
-        return icons;
-
-        void Set(NodeKind kind, string glyph, NodeIconRole role) => icons[(int)kind] = new KindIcon(glyph, role);
-    }
+        ui.Icon(Icon(kind, accessibility, ui.State.NodeIconPalette, ui.State.Icons));
 }
 
 /// <summary>The colors node icons are drawn in, one per <see cref="NodeIconRole"/>: muted hues

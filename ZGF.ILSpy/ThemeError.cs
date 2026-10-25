@@ -1,6 +1,6 @@
 namespace ZGF.ILSpy;
 
-/// <summary>What can be wrong in a theme file, or in the themes it extends.</summary>
+/// <summary>What can be wrong in a color or icon theme file, or in the themes it extends.</summary>
 public enum ThemeProblem
 {
     /// <summary>The file cannot be read; <see cref="ThemeError.Detail"/> says why.</summary>
@@ -57,6 +57,37 @@ public enum ThemeProblem
 
     /// <summary>A built-in theme, or a user theme read before, already has the id <see cref="ThemeError.Subject"/>.</summary>
     IdTaken,
+
+    /// <summary>The glyph <see cref="ThemeError.Detail"/> of the icon <see cref="ThemeError.Subject"/> is
+    /// not the hex digits of a Unicode codepoint.</summary>
+    NotACodepoint,
+
+    /// <summary>The icon <see cref="ThemeError.Subject"/> is neither a font and a glyph nor an SVG file.</summary>
+    InvalidIcon,
+
+    /// <summary>The icon <see cref="ThemeError.Subject"/> is drawn in the font <see cref="ThemeError.Detail"/>,
+    /// which neither the theme nor any it extends declares.</summary>
+    UnknownFont,
+
+    /// <summary>The file <see cref="ThemeError.Detail"/> of <see cref="ThemeError.Subject"/> is not inside
+    /// the folder of the theme file: an absolute path, or one that leaves the folder.</summary>
+    AssetOutsideFolder,
+
+    /// <summary>The file of <see cref="ThemeError.Subject"/> cannot be read; <see cref="ThemeError.Detail"/>
+    /// names it and says why.</summary>
+    AssetUnreadable,
+
+    /// <summary>The file <see cref="ThemeError.Detail"/> of the font <see cref="ThemeError.Subject"/> is no
+    /// font that can be loaded, such as one cut short.</summary>
+    NotAFont,
+
+    /// <summary>The file of the icon <see cref="ThemeError.Subject"/> is no SVG picture;
+    /// <see cref="ThemeError.Detail"/> names it and says why.</summary>
+    InvalidSvg,
+
+    /// <summary>The font of the icon <see cref="ThemeError.Subject"/> has no glyph for the codepoint
+    /// <see cref="ThemeError.Detail"/>.</summary>
+    MissingGlyph,
 }
 
 /// <summary>Something wrong in the theme file <see cref="File"/> at <see cref="Line"/>, counted from 1,

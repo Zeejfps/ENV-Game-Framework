@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
+using FreeTypeSharp;
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Hosting;
@@ -51,7 +52,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly Ui<TUiState> _ui;
     private readonly IFilePicker _filePicker;
     private readonly ISystemFonts _systemFonts = NativeSystemFonts.Create();
-    private readonly Dictionary<(byte[] Data, int FaceIndex), FontHandle> _loadedFonts = new();
+    private readonly LoadedFonts _loadedFonts = new();
     private readonly List<Popup> _popups = new();
     private readonly List<DialogWindow> _windows = new();
     private readonly PopupPool _pool;
@@ -171,11 +172,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// in, which is otherwise synthesized from the regular face; the default font's bold is Inter
     /// SemiBold. Register italic faces under families of their own. Call it on the UI thread, such as
     /// from <see cref="ImmediateGuiApp{TUiState}.OnStartup"/> or after awaiting a background load there; it
-    /// does nothing once the window has closed.</summary>
+    /// does nothing once the window has closed, or when the data is no font that can be loaded, which
+    /// leaves the family drawn as before.</summary>
     public void RegisterFont(FontFace font)
     {
         if (_disposed) return;
-        AddFont(font);
+        if (!TryAddFont(font)) return;
         _ui.InvalidateMeasurements();
         foreach (var popup in _popups)
             popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
@@ -184,25 +186,27 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         Invalidate();
     }
 
+    private bool TryAddFont(FontFace font)
+    {
+        try
+        {
+            AddFont(font);
+            return true;
+        }
+        catch (FreeTypeException e)
+        {
+            Console.WriteLine($"[ImmediateGuiAppHost] Could not load the font of {font.Family}: {e.Message}");
+            return false;
+        }
+    }
+
     private void AddFont(FontFace font)
     {
-        var handle = LoadOnce(font);
+        var handle = _loadedFonts.LoadOnce(font, LoadFont);
         if (font.Bold)
             _render.MainCanvas.RegisterBoldFont(font.Family, handle);
         else
             _render.MainCanvas.RegisterFont(font.Family, handle);
-    }
-
-    /// <summary>The font loaded from <paramref name="font"/>'s data, loading it the first time, so
-    /// registering a font again, as switching back to it does, keeps the one already loaded.</summary>
-    private FontHandle LoadOnce(FontFace font)
-    {
-        var key = (font.Data, font.FaceIndex);
-        if (_loadedFonts.TryGetValue(key, out var loaded))
-            return loaded;
-        var handle = LoadFont(font.Data, font.FaceIndex);
-        _loadedFonts[key] = handle;
-        return handle;
     }
 
     private void LoadSystemFallbackFonts() => Task.Run(() =>

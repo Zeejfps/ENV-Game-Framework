@@ -17,8 +17,7 @@ internal static class AnalyzerPanelView
     {
         var t = ui.State.Strings;
         var rows = ui.State.Analyzer;
-        var icons = ui.State.NodeIconPalette;
-        rows.SetStyle(ui.Theme, icons, t);
+        rows.SetStyle(ui.Theme, ui.State.NodeIconPalette, ui.State.Icons, t);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         Toolbar(ui, appState, rows);
         ui.Separator();
@@ -40,14 +39,14 @@ internal static class AnalyzerPanelView
         var root = rows.FindSelectedRoot();
         using (ui.PaneToolbar())
         {
-            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
+            if (ui.IconButton("collapse", ui.State.Icons.AnalyzerCollapseAll, t.CodeCollapseAll, any))
                 rows.CollapseAll();
-            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, any))
+            if (ui.IconButton("expand", ui.State.Icons.AnalyzerExpandAll, t.CodeExpandAll, any))
                 rows.ExpandAll();
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("remove", LucideIcons.Trash2, LucideIcons.Family, t.AnalyzerRemoveAnalysis, root != null))
+            if (ui.IconButton("remove", ui.State.Icons.AnalyzerRemove, t.AnalyzerRemoveAnalysis, root != null))
                 analyzer.Remove(root!);
-            if (ui.IconButton("clear", LucideIcons.ListX, LucideIcons.Family, t.AnalyzerRemoveAll, any))
+            if (ui.IconButton("clear", ui.State.Icons.AnalyzerRemoveAll, t.AnalyzerRemoveAll, any))
                 analyzer.Clear();
         }
     }

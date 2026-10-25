@@ -1,0 +1,653 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ILSpy icon theme",
+  "description": "An icon theme: what each icon draws, a glyph of a font or an SVG picture. Its colors come from the color theme. Comments and trailing commas are allowed. The file's name without .json is the theme's id.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "The schema icon theme files follow.",
+      "type": "string"
+    },
+    "name": {
+      "description": "The name the icon theme is listed by: one for every language, or one per language tag, such as en or pt-BR, where English stands in for a language without one.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "extends": {
+      "description": "The id of a built-in or user icon theme to build on; what this theme leaves out comes from it, and what no theme sets from lucide.",
+      "type": "string"
+    },
+    "fonts": {
+      "description": "TrueType or OpenType font files by id, for icons to name. A path is relative to this file and must stay inside its folder. The fonts of the themes extended, and lucide's font, lucide, can be named too; declaring one's id again draws its icons in this font.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "icons": {
+      "description": "What each icon draws. Those left out come from the theme extended, else from lucide.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "node.assembly": {
+          "description": "An assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.referencesFolder": {
+          "description": "The folder of an assembly's references.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.assemblyReference": {
+          "description": "A reference to another assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.resourcesFolder": {
+          "description": "The folder of an assembly's resources.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.resource": {
+          "description": "A resource.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.namespace": {
+          "description": "A namespace.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.class": {
+          "description": "A class.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.interface": {
+          "description": "An interface.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.struct": {
+          "description": "A struct.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.enum": {
+          "description": "An enum.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.delegate": {
+          "description": "A delegate.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.record": {
+          "description": "A record class.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.recordStruct": {
+          "description": "A record struct.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.baseTypes": {
+          "description": "The folder of a type's base types.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.baseType": {
+          "description": "A base type.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.field": {
+          "description": "A field.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.constant": {
+          "description": "A constant.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.property": {
+          "description": "A property.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.indexer": {
+          "description": "An indexer.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.event": {
+          "description": "An event.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.method": {
+          "description": "A method.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.constructor": {
+          "description": "A constructor.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.operator": {
+          "description": "An operator.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.error": {
+          "description": "A node that failed to load.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.loading": {
+          "description": "A node still loading.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.metadata": {
+          "description": "An assembly's metadata.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.metadataHeader": {
+          "description": "A metadata header.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.metadataDirectory": {
+          "description": "A metadata directory.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.metadataTables": {
+          "description": "The folder of the metadata tables.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.metadataTable": {
+          "description": "A metadata table.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.metadataHeap": {
+          "description": "A metadata heap.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.derivedTypes": {
+          "description": "The folder of a type's derived types.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.derivedType": {
+          "description": "A derived type.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.resourcesFile": {
+          "description": "A .resources file.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.resourceImage": {
+          "description": "A picture resource.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.failedAssembly": {
+          "description": "An assembly that failed to open.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.forwardedType": {
+          "description": "A type forwarded to another assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.package": {
+          "description": "A package, such as a NuGet package.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.packageFolder": {
+          "description": "A folder inside a package.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.bundle": {
+          "description": "A single-file app bundle.",
+          "$ref": "#/definitions/icon"
+        },
+        "overlay.internal": {
+          "description": "Over a node visible only inside its assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "overlay.private": {
+          "description": "Over a node visible only inside its type.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.assemblies": {
+          "description": "The assemblies panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.search": {
+          "description": "The search panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.bookmarks": {
+          "description": "The bookmarks panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.analyzer": {
+          "description": "The analyzer panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.decompilerOptions": {
+          "description": "The decompiler options panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.displayOptions": {
+          "description": "The display options panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "panel.exports": {
+          "description": "The exports panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "tab.page": {
+          "description": "A document tab that shows no node.",
+          "$ref": "#/definitions/icon"
+        },
+        "toolbar.manageLists": {
+          "description": "Manage the assembly lists.",
+          "$ref": "#/definitions/icon"
+        },
+        "toolbar.open": {
+          "description": "Open an assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "toolbar.search": {
+          "description": "Search.",
+          "$ref": "#/definitions/icon"
+        },
+        "toolbar.back": {
+          "description": "Go back.",
+          "$ref": "#/definitions/icon"
+        },
+        "toolbar.forward": {
+          "description": "Go forward.",
+          "$ref": "#/definitions/icon"
+        },
+        "toolbar.decompilerOptions": {
+          "description": "Open the decompiler options.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.open": {
+          "description": "Open an assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.openFromFramework": {
+          "description": "Open an assembly of an installed framework.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.saveCode": {
+          "description": "Save the code shown.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.exportProject": {
+          "description": "Export assemblies as projects.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.generatePdb": {
+          "description": "Generate a PDB.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.close": {
+          "description": "Close the selected assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.closeFailed": {
+          "description": "Close the assemblies that failed to open.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.clearList": {
+          "description": "Close every assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.sortList": {
+          "description": "Sort the assemblies by name.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.reloadAll": {
+          "description": "Reload every assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "file.exit": {
+          "description": "Quit.",
+          "$ref": "#/definitions/icon"
+        },
+        "lists.manage": {
+          "description": "Manage the assembly lists, in the list picker's menu.",
+          "$ref": "#/definitions/icon"
+        },
+        "lists.new": {
+          "description": "Make a new list.",
+          "$ref": "#/definitions/icon"
+        },
+        "lists.duplicate": {
+          "description": "Copy a list.",
+          "$ref": "#/definitions/icon"
+        },
+        "lists.rename": {
+          "description": "Rename a list.",
+          "$ref": "#/definitions/icon"
+        },
+        "lists.delete": {
+          "description": "Delete a list.",
+          "$ref": "#/definitions/icon"
+        },
+        "lists.active": {
+          "description": "Marks the list that is open.",
+          "$ref": "#/definitions/icon"
+        },
+        "assemblies.selectOpened": {
+          "description": "Select the node of the document shown.",
+          "$ref": "#/definitions/icon"
+        },
+        "assemblies.collapseAll": {
+          "description": "Collapse every node.",
+          "$ref": "#/definitions/icon"
+        },
+        "assemblies.expandNamespaces": {
+          "description": "Expand the namespaces.",
+          "$ref": "#/definitions/icon"
+        },
+        "assemblies.closeAssembly": {
+          "description": "Close the selected assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "assemblies.openContainingFolder": {
+          "description": "Open the folder holding the assembly.",
+          "$ref": "#/definitions/icon"
+        },
+        "assemblies.extract": {
+          "description": "Extract a file or a folder from a package.",
+          "$ref": "#/definitions/icon"
+        },
+        "link.apiReference": {
+          "description": "Show the symbol in the online API reference.",
+          "$ref": "#/definitions/icon"
+        },
+        "link.bookmark": {
+          "description": "Go to a bookmark's place.",
+          "$ref": "#/definitions/icon"
+        },
+        "link.token": {
+          "description": "Go to the row a metadata token names.",
+          "$ref": "#/definitions/icon"
+        },
+        "resource.zoomOut": {
+          "description": "Zoom out.",
+          "$ref": "#/definitions/icon"
+        },
+        "resource.zoomIn": {
+          "description": "Zoom in.",
+          "$ref": "#/definitions/icon"
+        },
+        "resource.zoomReset": {
+          "description": "Show the picture at its own size.",
+          "$ref": "#/definitions/icon"
+        },
+        "resource.showPicture": {
+          "description": "Show the picture, while its markup shows.",
+          "$ref": "#/definitions/icon"
+        },
+        "resource.showSource": {
+          "description": "Show the picture's markup.",
+          "$ref": "#/definitions/icon"
+        },
+        "resource.export": {
+          "description": "Save a resource to a file, also in the assemblies panel's menu.",
+          "$ref": "#/definitions/icon"
+        },
+        "code.findPrevious": {
+          "description": "Find the previous match.",
+          "$ref": "#/definitions/icon"
+        },
+        "code.findNext": {
+          "description": "Find the next match.",
+          "$ref": "#/definitions/icon"
+        },
+        "code.findClose": {
+          "description": "Close the find bar.",
+          "$ref": "#/definitions/icon"
+        },
+        "code.bookmark": {
+          "description": "A bookmark in the code's margin.",
+          "$ref": "#/definitions/icon"
+        },
+        "code.toggleBookmark": {
+          "description": "Set or clear a bookmark, in the code's menu.",
+          "$ref": "#/definitions/icon"
+        },
+        "analyzer.collapseAll": {
+          "description": "Collapse every analysis.",
+          "$ref": "#/definitions/icon"
+        },
+        "analyzer.expandAll": {
+          "description": "Expand every analysis.",
+          "$ref": "#/definitions/icon"
+        },
+        "analyzer.remove": {
+          "description": "Remove the selected analysis.",
+          "$ref": "#/definitions/icon"
+        },
+        "analyzer.removeAll": {
+          "description": "Remove every analysis.",
+          "$ref": "#/definitions/icon"
+        },
+        "analyzer.analysis": {
+          "description": "What an analysis looks for, such as uses or overrides.",
+          "$ref": "#/definitions/icon"
+        },
+        "bookmarks.previous": {
+          "description": "Go to the previous bookmark.",
+          "$ref": "#/definitions/icon"
+        },
+        "bookmarks.next": {
+          "description": "Go to the next bookmark.",
+          "$ref": "#/definitions/icon"
+        },
+        "bookmarks.delete": {
+          "description": "Delete the selected bookmark.",
+          "$ref": "#/definitions/icon"
+        },
+        "bookmarks.export": {
+          "description": "Export the bookmarks to a file.",
+          "$ref": "#/definitions/icon"
+        },
+        "bookmarks.import": {
+          "description": "Import bookmarks from a file.",
+          "$ref": "#/definitions/icon"
+        },
+        "bookmarks.mark": {
+          "description": "A bookmark's mark, which turns it on and off.",
+          "$ref": "#/definitions/icon"
+        },
+        "search.field": {
+          "description": "The search box.",
+          "$ref": "#/definitions/icon"
+        },
+        "search.allKinds": {
+          "description": "Search every kind of symbol.",
+          "$ref": "#/definitions/icon"
+        },
+        "sort.ascending": {
+          "description": "The column sorted ascending.",
+          "$ref": "#/definitions/icon"
+        },
+        "sort.descending": {
+          "description": "The column sorted descending.",
+          "$ref": "#/definitions/icon"
+        },
+        "metadata.filter": {
+          "description": "Filter a column.",
+          "$ref": "#/definitions/icon"
+        },
+        "metadata.clearFilter": {
+          "description": "Clear a column's filter.",
+          "$ref": "#/definitions/icon"
+        },
+        "metadata.flagRequired": {
+          "description": "A flag a row must have, in a flags filter.",
+          "$ref": "#/definitions/icon"
+        },
+        "metadata.flagExcluded": {
+          "description": "A flag a row must not have, in a flags filter.",
+          "$ref": "#/definitions/icon"
+        },
+        "metadata.flagSet": {
+          "description": "A flag that is set, in a tooltip.",
+          "$ref": "#/definitions/icon"
+        },
+        "metadata.flagUnset": {
+          "description": "A flag that is not set, in a tooltip.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.collapseAll": {
+          "description": "Fold every group of decompiler options.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.expandAll": {
+          "description": "Unfold every group of decompiler options.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.resetDecompiler": {
+          "description": "Put the decompiler options back to their defaults.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.groupFolded": {
+          "description": "A folded group of decompiler options.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.groupUnfolded": {
+          "description": "An unfolded group of decompiler options.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.customizeTheme": {
+          "description": "Start a theme of your own from the current one.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.openThemesFolder": {
+          "description": "Open the themes folder.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.reloadThemes": {
+          "description": "Read the themes again.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.customizeIconTheme": {
+          "description": "Start an icon theme of your own from the current one.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.openIconThemesFolder": {
+          "description": "Open the icon themes folder.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.reloadIconThemes": {
+          "description": "Read the icon themes again.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.fontSmaller": {
+          "description": "Make the code's font smaller.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.fontLarger": {
+          "description": "Make the code's font larger.",
+          "$ref": "#/definitions/icon"
+        },
+        "options.resetDisplay": {
+          "description": "Put the display options back to their defaults.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.add": {
+          "description": "Add assemblies to export.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.removePicked": {
+          "description": "Take the ticked assemblies out of the export.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.filter": {
+          "description": "The export dialog's filter box.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.cancel": {
+          "description": "Cancel the running export.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.withdraw": {
+          "description": "Take a waiting export out of the queue.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.remove": {
+          "description": "Take a finished export off the panel.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.openFolder": {
+          "description": "Open the folder an export wrote to.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.showReport": {
+          "description": "Show an export's report.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.waiting": {
+          "description": "An export waiting its turn.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.problems": {
+          "description": "An export that finished with problems or failed.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.cancelled": {
+          "description": "An export that was cancelled.",
+          "$ref": "#/definitions/icon"
+        },
+        "export.done": {
+          "description": "An export that finished.",
+          "$ref": "#/definitions/icon"
+        },
+        "status.error": {
+          "description": "An error: in the status bar, the error dialog and the analyzer.",
+          "$ref": "#/definitions/icon"
+        },
+        "status.loading": {
+          "description": "Something still loading, in the analyzer.",
+          "$ref": "#/definitions/icon"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "icon": {
+      "oneOf": [
+        {
+          "description": "A glyph of a font.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "font",
+            "glyph"
+          ],
+          "properties": {
+            "font": {
+              "description": "The id of a font in fonts.",
+              "type": "string"
+            },
+            "glyph": {
+              "description": "The glyph's codepoint in hex digits, such as E0F2.",
+              "type": "string",
+              "pattern": "^[0-9A-Fa-f]{1,6}$"
+            }
+          }
+        },
+        {
+          "description": "An SVG picture. One that uses currentColor is drawn in the icon's color; one that does not keeps its own colors.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "svg"
+          ],
+          "properties": {
+            "svg": {
+              "description": "The SVG file, relative to this file and inside its folder.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

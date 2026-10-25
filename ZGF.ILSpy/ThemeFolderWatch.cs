@@ -8,7 +8,7 @@ public enum ThemeFolderEventKind
     /// <summary>Watching stopped, or was not running.</summary>
     Stopped,
 
-    /// <summary>The theme files changed.</summary>
+    /// <summary>The watched files changed.</summary>
     Changed,
 
     /// <summary>The system stopped telling of changes, as when the folder was removed; nothing is watched since.</summary>
@@ -19,7 +19,8 @@ public enum ThemeFolderEventKind
 /// a watch was <see cref="ThemeFolderEventKind.Lost"/>.</summary>
 public readonly record struct ThemeFolderEvent(ThemeFolderEventKind Kind, string Reason = "");
 
-/// <summary>Watches the user's themes folder. <see cref="NextChange"/> completes once the theme files
+/// <summary>Watches a folder of the user's themes for changes to the files of the kinds it is made for,
+/// such as the theme files of the themes folder. <see cref="NextChange"/> completes once those files
 /// changed and then stayed quiet for a moment, so the several writes of one save count once, or once the
 /// watch is lost. What happens while no one waits stays pending until the next <see cref="NextChange"/>
 /// takes it. The file system tells of changes on other threads; this only completes a task there, for
@@ -34,10 +35,25 @@ public sealed class ThemeFolderWatch
 
     private readonly Lock _lock = new();
     private FileSystemWatcher? _watcher;
+    private readonly IReadOnlyList<string> _filters;
+    private readonly bool _includesSubfolders;
     private Timer? _quiet;
     private TaskCompletionSource<ThemeFolderEvent>? _waiter;
     private bool _isChangePending;
     private string? _pendingLoss;
+
+    /// <summary>Watches the color theme files at the top of a folder.</summary>
+    public ThemeFolderWatch() : this([ThemeFilter], includesSubfolders: false)
+    {
+    }
+
+    /// <summary>Watches the files <paramref name="filters"/> match, such as <c>*.json</c>, in a folder, and
+    /// in the folders inside it when <paramref name="includesSubfolders"/>.</summary>
+    public ThemeFolderWatch(IReadOnlyList<string> filters, bool includesSubfolders)
+    {
+        _filters = filters;
+        _includesSubfolders = includesSubfolders;
+    }
 
     /// <summary>Starts watching <paramref name="folder"/> in place of the folder watched before. Returns
     /// why the system cannot watch it, such as a folder gone or a limit on watches reached, and then
@@ -59,7 +75,10 @@ public sealed class ThemeFolderWatch
 
     private void Watch(string folder)
     {
-        var watcher = new FileSystemWatcher(folder, ThemeFilter);
+        var watcher = new FileSystemWatcher(folder);
+        foreach (var filter in _filters)
+            watcher.Filters.Add(filter);
+        watcher.IncludeSubdirectories = _includesSubfolders;
         var quiet = new Timer(OnQuiet);
         watcher.Changed += OnChanged;
         watcher.Created += OnChanged;
@@ -79,7 +98,7 @@ public sealed class ThemeFolderWatch
 
     private static string DescribeFailure(string folder, Exception e) => $"{folder}{Environment.NewLine}{e.Message}";
 
-    /// <summary>Completes once the theme files changed or the watch was lost, at once when either is
+    /// <summary>Completes once the watched files changed or the watch was lost, at once when either is
     /// pending, or as stopped when watching stops first or is not running.</summary>
     public Task<ThemeFolderEvent> NextChange()
     {

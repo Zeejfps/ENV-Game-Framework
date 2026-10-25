@@ -26,12 +26,12 @@ internal static class DecompilerOptionsPanelView
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         using (ui.PaneToolbar())
         {
-            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, !AllFolded(folded)))
+            if (ui.IconButton("collapse", ui.State.Icons.OptionsCollapseAll, t.CodeCollapseAll, !AllFolded(folded)))
                 folded.Fold(Sections.Select(static s => s.Key));
-            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.CodeExpandAll, folded.Count > 0))
+            if (ui.IconButton("expand", ui.State.Icons.OptionsExpandAll, t.CodeExpandAll, folded.Count > 0))
                 folded.UnfoldAll();
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("reset", LucideIcons.RotateCcw, LucideIcons.Family, t.DecompilerOptionsReset, options.Toggles.Count > 0))
+            if (ui.IconButton("reset", ui.State.Icons.OptionsResetDecompiler, t.DecompilerOptionsReset, options.Toggles.Count > 0))
                 ResetDecompilerToggles(appState);
         }
         ui.Separator();
@@ -89,7 +89,9 @@ internal static class DecompilerOptionsPanelView
             Background = item.Hovered ? theme.RowHover : 0u,
         }))
         {
-            ui.Icon(new UiIcon(isFolded ? LucideIcons.ChevronRight : LucideIcons.ChevronDown, LucideIcons.Family, theme.TextMuted));
+            var icons = ui.State.Icons;
+            var mark = isFolded ? icons.OptionsGroupFolded : icons.OptionsGroupUnfolded;
+            ui.Icon(new UiIcon(mark, theme.TextMuted));
             var all = State(section, options);
             if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow(), bold: Changed(section, options)))
                 SetDecompilerToggles(appState, section.Toggles, all == true);

@@ -12,6 +12,7 @@ public readonly record struct SavedSources(
     int Analyzer,
     int View,
     string Theme,
+    string IconTheme,
     DecompilationLanguage Language,
     DecompilerOptions DecompilerOptions,
     ApiVisibility ApiVisibility,

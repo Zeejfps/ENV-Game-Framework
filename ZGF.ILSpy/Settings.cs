@@ -43,6 +43,7 @@ public static class Settings
             appState.Analyzer.Revision,
             appState.ViewSettingsChanges,
             appState.Theme,
+            appState.IconTheme,
             appState.Language,
             appState.DecompilerOptions,
             appState.ApiVisibility,
@@ -55,6 +56,7 @@ public static class Settings
         settings.AssemblyLists = appState.Lists.Save();
         settings.ActiveAssemblyList = appState.Lists.Active;
         settings.Theme = appState.Theme;
+        settings.IconTheme = appState.IconTheme;
         settings.Language = appState.Language;
         settings.Decompiler = appState.DecompilerOptions;
         settings.ApiVisibility = appState.ApiVisibility;

@@ -2,6 +2,7 @@ using System.Globalization;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
+using static ZGF.ILSpy.IconTheming;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.Theming;
 
@@ -48,8 +49,17 @@ public sealed class AppState
     /// <summary>Watches the user's themes folder while the app runs.</summary>
     public ThemeFolderWatch ThemesWatch { get; } = new();
 
+    /// <summary>The icon themes the app can be drawn with, built-in and the user's.</summary>
+    public IconThemeCatalog IconThemes { get; } = new(BuiltInIconThemes.Files);
+
+    /// <summary>Watches the user's icon themes folder, and the fonts and pictures in it, while the app runs.</summary>
+    public ThemeFolderWatch IconThemesWatch { get; } = new(IconThemeFiles, includesSubfolders: true);
+
     /// <summary>The id of the chosen theme, kept even while no theme has it.</summary>
     public string Theme;
+
+    /// <summary>The id of the chosen icon theme, kept even while no icon theme has it.</summary>
+    public string IconTheme;
     public ApiVisibility ApiVisibility;
 
     /// <summary>The interface language.</summary>
@@ -97,6 +107,7 @@ public sealed class AppState
         Settings = settings;
         Tooltips = new CodeTooltips(Assemblies);
         Theme = settings.Theme;
+        IconTheme = settings.IconTheme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
         Locale = ChooseLocale(settings);
@@ -111,6 +122,7 @@ public sealed class AppState
         ReportSettingsLoadError(settings);
         ReportLeftOutBookmarks(this, leftOutBookmarks);
         LoadThemes(this);
+        LoadIconThemes(this);
     }
 
     private static Locale ChooseLocale(AppSettings settings)

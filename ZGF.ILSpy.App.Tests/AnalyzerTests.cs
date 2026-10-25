@@ -6,6 +6,7 @@ using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -352,10 +353,10 @@ public sealed class AnalyzerTests
         var rows = app.Ui.Analyzer;
         var kinds = rows.GetChildren(root).OfType<AnalyzerKindNode>().ToList();
 
-        app.ClickLast(LucideIcons.ChevronsUpDown).Frame();
+        app.ClickLast(Icons.AnalyzerExpandAll).Frame();
         var expanded = kinds.All(k => rows.View.IsExpanded(k));
         d.RunUntil(() => kinds.All(k => k.IsDone));
-        app.ClickLast(LucideIcons.ChevronsDownUp).Frame();
+        app.ClickLast(Icons.AnalyzerCollapseAll).Frame();
 
         Assert.NotEmpty(kinds);
         Assert.True(expanded);
@@ -374,9 +375,9 @@ public sealed class AnalyzerTests
         app.Ui.Analyzer.View.Select(caller);
         app.Run(3);
 
-        app.ClickLast(LucideIcons.Trash2).Frame(2);
+        app.ClickLast(Icons.AnalyzerRemove).Frame(2);
         var left = analyzer.Found().Select(r => r.Symbol.Label).ToList();
-        app.Click(LucideIcons.ListX).Frame(2);
+        app.Click(Icons.AnalyzerRemoveAll).Frame(2);
 
         Assert.Equal(["Greeter"], left);
         Assert.Empty(analyzer.Roots);

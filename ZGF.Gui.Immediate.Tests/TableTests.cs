@@ -432,7 +432,7 @@ public sealed class TableTests
     /// second a link.</summary>
     private sealed class CellTable
     {
-        private static readonly UiIcon Link = new(">", "Icons");
+        private static readonly UiIcon Link = new(IconGlyph.FromFont(">", "Icons"));
 
         private readonly int _rowCount;
         private readonly string[][] _texts;

@@ -1,9 +1,11 @@
 using ZGF.Desktop;
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -118,9 +120,9 @@ public sealed class ExportTests : IDisposable
 
         app.Click("File").Frame(2);
 
-        string[] icons = [LucideIcons.FolderOpen, LucideIcons.Library, LucideIcons.Save, LucideIcons.FolderOutput, LucideIcons.Bug,
-            LucideIcons.X, LucideIcons.FileX, LucideIcons.ListX, LucideIcons.ArrowDownAZ, LucideIcons.RotateCcw, LucideIcons.LogOut];
-        Assert.All(icons, icon => Assert.True(app.Frames.Drew(icon)));
+        IconGlyph[] icons = [Icons.FileOpen, Icons.FileOpenFromFramework, Icons.FileSaveCode, Icons.FileExportProject, Icons.FileGeneratePdb,
+            Icons.FileClose, Icons.FileCloseFailed, Icons.FileClearList, Icons.FileSortList, Icons.FileReloadAll, Icons.FileExit];
+        Assert.All(icons, icon => Assert.True(app.Frames.Drew(Text(icon))));
     }
 
     [Fact]
@@ -241,7 +243,7 @@ public sealed class ExportTests : IDisposable
 
         Assert.True(app.Frames.Drew("Exporting 2/3 · Fixtures"));
         Assert.True(app.Frames.Drew("1 more queued"));
-        app.Frames.Click(app.StatusText(LucideIcons.X)).Frame();
+        app.Frames.Click(app.StatusText(Text(Icons.ExportCancel))).Frame();
 
         Assert.True(start.Token.IsCancellationRequested);
     }

@@ -3,6 +3,14 @@ using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
 
+/// <summary>A folder of the user's themes of one kind as watching keeps it: the watch over it, how it is
+/// made, how its themes are read again, and the title of the error that tells it cannot be watched.</summary>
+internal sealed record WatchedThemeFolder(
+    ThemeFolderWatch Watch,
+    Func<AppState, string?> Prepare,
+    Action<AppState> Reload,
+    Func<Strings, string> UnwatchedTitle);
+
 /// <summary>The themes the app can be drawn in: the built-in ones and those the user keeps in the themes
 /// folder beside the settings, read again whenever that folder changes. What is wrong in a theme file is
 /// reported once, until it is fixed.</summary>
@@ -31,26 +39,28 @@ public static class Theming
     {
         var files = ReadUserThemes(appState.Settings.ThemesFolder);
         appState.Themes.LoadUserThemes(files);
-        ReportNewErrors(appState, known);
+        ReportNewErrors(appState, appState.Themes.Errors, known, TitleThemeErrors);
     }
+
+    private static string TitleThemeErrors(Strings t, string file) => t.ErrorTheme(file);
 
     private static List<ThemeFile> ReadUserThemes(string? folder)
     {
         if (folder == null)
             return new List<ThemeFile>();
-        return ListThemeFiles(folder)
+        return ListThemeFiles(folder, ThemeFilePattern, SchemaFileName)
             .Select(ThemeFile.ReadFile)
             .ToList();
     }
 
-    /// <summary>The theme files in <paramref name="folder"/> by name, without the schema; none when the
-    /// folder is missing or cannot be listed.</summary>
-    private static List<string> ListThemeFiles(string folder)
+    /// <summary>The files <paramref name="pattern"/> matches in <paramref name="folder"/> by name, without
+    /// the schema <paramref name="schemaFileName"/>; none when the folder is missing or cannot be listed.</summary>
+    internal static List<string> ListThemeFiles(string folder, string pattern, string schemaFileName)
     {
         try
         {
-            return Directory.EnumerateFiles(folder, ThemeFilePattern)
-                .Where(static p => !IsSchema(p))
+            return Directory.EnumerateFiles(folder, pattern)
+                .Where(p => !IsNamed(p, schemaFileName))
                 .Order(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
@@ -60,23 +70,25 @@ public static class Theming
         }
     }
 
-    private static bool IsSchema(string path) => string.Equals(Path.GetFileName(path), SchemaFileName, StringComparison.OrdinalIgnoreCase);
+    private static bool IsNamed(string path, string fileName) => string.Equals(Path.GetFileName(path), fileName, StringComparison.OrdinalIgnoreCase);
 
-    private static void ReportNewErrors(AppState appState, IReadOnlyList<ThemeError> known)
+    /// <summary>Reports the errors of <paramref name="errors"/> not in <paramref name="known"/>, one report
+    /// per file, titled by <paramref name="title"/> from the file's name.</summary>
+    internal static void ReportNewErrors(AppState appState, IReadOnlyList<ThemeError> errors, IReadOnlyList<ThemeError> known,
+        Func<Strings, string, string> title)
     {
-        var byFile = appState.Themes.Errors
+        var byFile = errors
             .Where(e => !known.Contains(e))
             .GroupBy(static e => e.File);
-        foreach (var errors in byFile)
-            ReportErrorsOf(appState, errors.Key, errors);
+        foreach (var fileErrors in byFile)
+            ReportErrorsOf(appState, fileErrors.Key, fileErrors, title);
     }
 
-    private static void ReportErrorsOf(AppState appState, string file, IEnumerable<ThemeError> errors)
+    private static void ReportErrorsOf(AppState appState, string file, IEnumerable<ThemeError> errors, Func<Strings, string, string> title)
     {
         var t = Strings.For(appState.Locale);
-        var title = t.ErrorTheme(Path.GetFileName(file));
         var lines = errors.Select(e => DescribeError(t, e));
-        appState.ReportError(title, string.Join(Environment.NewLine, lines));
+        appState.ReportError(title(t, Path.GetFileName(file)), string.Join(Environment.NewLine, lines));
     }
 
     /// <summary><paramref name="error"/> as a line of a report: the file, the line when known, and what is wrong.</summary>
@@ -107,6 +119,14 @@ public static class Theming
         ThemeProblem.ExtendsCycle => t.ThemeErrorExtendsCycle(error.Detail),
         ThemeProblem.MissingColors => t.ThemeErrorMissingColors(error.Detail),
         ThemeProblem.IdTaken => t.ThemeErrorIdTaken(error.Subject),
+        ThemeProblem.NotACodepoint => t.ThemeErrorNotACodepoint(error.Subject, error.Detail),
+        ThemeProblem.InvalidIcon => t.ThemeErrorInvalidIcon(error.Subject),
+        ThemeProblem.UnknownFont => t.ThemeErrorUnknownFont(error.Subject, error.Detail),
+        ThemeProblem.AssetOutsideFolder => t.ThemeErrorAssetOutsideFolder(error.Subject, error.Detail),
+        ThemeProblem.AssetUnreadable => t.ThemeErrorAssetUnreadable(error.Subject, error.Detail),
+        ThemeProblem.NotAFont => t.ThemeErrorNotAFont(error.Subject, error.Detail),
+        ThemeProblem.InvalidSvg => t.ThemeErrorInvalidSvg(error.Subject, error.Detail),
+        ThemeProblem.MissingGlyph => t.ThemeErrorMissingGlyph(error.Subject, error.Detail),
         _ => throw new ArgumentOutOfRangeException(nameof(error), error.Problem, null),
     };
 
@@ -121,22 +141,23 @@ public static class Theming
         var folder = appState.Settings.ThemesFolder;
         if (folder == null)
             return null;
-        var error = CreateThemesFolder(folder);
+        var error = CreateThemeFolder(folder, SchemaFileName, BuiltInThemes.ReadSchema(), BuiltInThemes.ReadGuide());
         if (error == null)
             return folder;
         appState.ReportError(Strings.For(appState.Locale).ErrorThemesFolder, error);
         return null;
     }
 
-    /// <summary>Makes <paramref name="folder"/> with the current theme schema in it, for theme files to
-    /// name in <c>$schema</c>, and a README on writing themes. Returns why it failed, or null.</summary>
-    private static string? CreateThemesFolder(string folder)
+    /// <summary>Makes <paramref name="folder"/> with <paramref name="schema"/> in it as
+    /// <paramref name="schemaFileName"/>, for theme files to name in <c>$schema</c>, and a README of
+    /// <paramref name="guide"/> on writing themes. Returns why it failed, or null.</summary>
+    internal static string? CreateThemeFolder(string folder, string schemaFileName, string schema, string guide)
     {
         try
         {
             Directory.CreateDirectory(folder);
-            WriteIfChanged(Path.Combine(folder, SchemaFileName), BuiltInThemes.ReadSchema());
-            WriteIfChanged(Path.Combine(folder, GuideFileName), BuiltInThemes.ReadGuide());
+            WriteIfChanged(Path.Combine(folder, schemaFileName), schema);
+            WriteIfChanged(Path.Combine(folder, GuideFileName), guide);
             return null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -170,23 +191,25 @@ public static class Theming
             return null;
         var themes = appState.Themes;
         var parent = themes.FindShownId(appState.Theme);
-        var id = FindFreeCustomId(themes, folder, parent);
+        var id = FindFreeCustomId(parent, candidate => IsTaken(themes, folder, candidate));
         var path = Path.Combine(folder, id + ThemeFile.Extension);
-        var text = ThemeDraft.Compose(NameCustomTheme(appState, parent), parent, themes.Find(parent));
-        if (!TryWriteNewFile(appState, path, text))
+        var name = NameCustomTheme(appState, themes, parent);
+        var text = ThemeDraft.Compose(name, parent, themes.Find(parent));
+        var errorTitle = Strings.For(appState.Locale).ErrorCustomTheme;
+        if (!TryWriteNewFile(appState, path, text, errorTitle))
             return null;
         ReloadUserThemes(appState);
         SetTheme(appState, id);
         return path;
     }
 
-    /// <summary><paramref name="parent"/> followed by <c>-custom</c>, numbered from 2 while a theme or a
-    /// file already has that id.</summary>
-    private static string FindFreeCustomId(ThemeCatalog themes, string folder, string parent)
+    /// <summary><paramref name="parent"/> followed by <c>-custom</c>, numbered from 2 while
+    /// <paramref name="isTaken"/> says a theme or a file already has that id.</summary>
+    internal static string FindFreeCustomId(string parent, Func<string, bool> isTaken)
     {
         var id = parent + CustomSuffix;
         var number = FirstCustomNumber;
-        while (IsTaken(themes, folder, id))
+        while (isTaken(id))
         {
             id = $"{parent}{CustomSuffix}-{number}";
             number++;
@@ -194,23 +217,30 @@ public static class Theming
         return id;
     }
 
-    private static bool IsTaken(ThemeCatalog themes, string folder, string id)
+    /// <summary>True when a theme of <paramref name="themes"/> has the id <paramref name="id"/>, or a file
+    /// in <paramref name="folder"/> is named by it.</summary>
+    internal static bool IsTaken<TFile, TTheme>(ThemeCatalog<TFile, TTheme> themes, string folder, string id)
+        where TFile : class, IThemeFile
+        where TTheme : class
     {
         if (themes.IndexOf(id) >= 0)
             return true;
         return File.Exists(Path.Combine(folder, id + ThemeFile.Extension));
     }
 
-    private static string NameCustomTheme(AppState appState, string parent)
+    /// <summary>The name of a custom theme made from the theme <paramref name="parent"/> of <paramref name="themes"/>.</summary>
+    internal static string NameCustomTheme<TFile, TTheme>(AppState appState, ThemeCatalog<TFile, TTheme> themes, string parent)
+        where TFile : class, IThemeFile
+        where TTheme : class
     {
         var t = Strings.For(appState.Locale);
-        var parentName = appState.Themes.NameOf(parent, t.Culture);
+        var parentName = themes.NameOf(parent, t.Culture);
         return t.ThemeCustomName(parentName);
     }
 
     /// <summary>Writes <paramref name="text"/> to a file that must not exist yet; false after reporting why
-    /// it cannot.</summary>
-    private static bool TryWriteNewFile(AppState appState, string path, string text)
+    /// it cannot, under <paramref name="errorTitle"/>.</summary>
+    internal static bool TryWriteNewFile(AppState appState, string path, string text, string errorTitle)
     {
         try
         {
@@ -220,62 +250,72 @@ public static class Theming
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorCustomTheme, $"{path}{Environment.NewLine}{e.Message}");
+            appState.ReportError(errorTitle, $"{path}{Environment.NewLine}{e.Message}");
             return false;
         }
     }
 
     /// <summary>Reads the user's themes again whenever their folder changes, until
-    /// <see cref="StopWatchingUserThemes"/>, so the chosen theme redraws as its file is saved. Makes the
-    /// folder when it is missing, and again when it is removed while watched. When the folder cannot be
-    /// made or watched, reports why and leaves the themes to be read again by hand.</summary>
-    public static async void WatchUserThemes(AppState appState)
+    /// <see cref="StopWatchingUserThemes"/>, so the chosen theme redraws as its file is saved.</summary>
+    public static void WatchUserThemes(AppState appState)
     {
-        if (!StartWatching(appState))
+        var folder = new WatchedThemeFolder(appState.ThemesWatch, PrepareThemesFolder, ReloadUserThemes, TitleUnwatchedThemes);
+        WatchThemeFolder(appState, folder);
+    }
+
+    private static string TitleUnwatchedThemes(Strings t) => t.ErrorWatchThemes;
+
+    /// <summary>Reads the themes of <paramref name="folder"/> again whenever it changes, until its watch
+    /// stops. Makes the folder when it is missing, and again when it is removed while watched. When the
+    /// folder cannot be made or watched, reports why and leaves the themes to be read again by hand.</summary>
+    internal static async void WatchThemeFolder(AppState appState, WatchedThemeFolder folder)
+    {
+        if (!StartWatching(appState, folder))
             return;
         var restartedSinceChange = false;
         while (true)
         {
-            var outcome = await Background.Wait(appState.ThemesWatch.NextChange());
+            var outcome = await Background.Wait(folder.Watch.NextChange());
             var news = outcome.Value;
             if (news.Kind == ThemeFolderEventKind.Stopped)
                 return;
             var isLost = news.Kind == ThemeFolderEventKind.Lost;
-            if (isLost && !RestartWatching(appState, news.Reason, restartedSinceChange))
+            if (isLost && !RestartWatching(appState, folder, news.Reason, restartedSinceChange))
                 return;
             restartedSinceChange = isLost;
-            ReloadUserThemes(appState);
+            folder.Reload(appState);
         }
     }
 
-    /// <summary>Makes the themes folder and watches it; false when there is none to watch, or after
-    /// reporting why it cannot be made or watched.</summary>
-    private static bool StartWatching(AppState appState)
+    /// <summary>Makes the folder and watches it; false when there is none to watch, or after reporting
+    /// why it cannot be made or watched.</summary>
+    private static bool StartWatching(AppState appState, WatchedThemeFolder folder)
     {
-        var folder = PrepareThemesFolder(appState);
-        if (folder == null)
+        var path = folder.Prepare(appState);
+        if (path == null)
             return false;
-        var error = appState.ThemesWatch.Start(folder);
+        var error = folder.Watch.Start(path);
         if (error == null)
             return true;
-        ReportUnwatched(appState, error);
+        ReportUnwatched(appState, folder, error);
         return false;
     }
 
     /// <summary>Watches the folder again after the watch was lost, as when the folder was removed. Once
     /// it was restarted with no change seen since, it gives up rather than lose it again and again, and
     /// reports <paramref name="reason"/>.</summary>
-    private static bool RestartWatching(AppState appState, string reason, bool restartedSinceChange)
+    private static bool RestartWatching(AppState appState, WatchedThemeFolder folder, string reason, bool restartedSinceChange)
     {
         if (!restartedSinceChange)
-            return StartWatching(appState);
-        ReportUnwatched(appState, reason);
+            return StartWatching(appState, folder);
+        ReportUnwatched(appState, folder, reason);
         return false;
     }
 
-    private static void ReportUnwatched(AppState appState, string reason)
+    private static void ReportUnwatched(AppState appState, WatchedThemeFolder folder, string reason)
     {
-        appState.ReportError(Strings.For(appState.Locale).ErrorWatchThemes, reason);
+        var t = Strings.For(appState.Locale);
+        appState.ReportError(folder.UnwatchedTitle(t), reason);
     }
 
     public static void StopWatchingUserThemes(AppState appState)

@@ -8,7 +8,7 @@ using static ZGF.ILSpy.ScreenSettings;
 namespace ZGF.ILSpy;
 
 /// <summary>The screen, one per app: what every view is drawn with this frame (the theme, the editor's
-/// and icons' colors, the strings of the chosen language), and the state that exists only because there
+/// and icons' colors, the icons, the strings of the chosen language), and the state that exists only because there
 /// is a screen: the layout, each tab's view, the trees' and tables' state, the panels and dialogs with
 /// what is selected in them, and UI flags. What the user does to it are static functions grouped by
 /// feature, such as <see cref="DocumentPanels"/> and <see cref="ScreenLayout"/>. It and the app state never
@@ -42,6 +42,15 @@ public sealed class UiState : IUiState
     public UiTheme Theme { get; set; } = UiTheme.Dark;
     public CodeViewPalette CodeViewPalette { get; set; } = BuiltInThemes.Dark.Code;
     public NodeIconPalette NodeIconPalette { get; set; } = BuiltInThemes.Dark.Icons;
+
+    /// <summary>What each icon key draws in the chosen icon theme.</summary>
+    public AppIcons Icons { get; set; } = BuiltInIconThemes.Reference.Icons;
+
+    /// <summary>The fonts <see cref="Icons"/> are drawn in, which must be registered for them to show.</summary>
+    public IReadOnlyList<FontFace> IconFonts { get; set; } = BuiltInIconThemes.Reference.Fonts;
+
+    /// <summary>The icons the screen was last drawn with.</summary>
+    public ShownIcons ShownIcons { get; } = new();
     public Strings Strings { get; set; } = Strings.En;
 
     /// <summary>What the screen asked of the app state while it drew, for the app to run once the frame is drawn.</summary>

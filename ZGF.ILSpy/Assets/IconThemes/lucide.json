@@ -1,0 +1,344 @@
+{
+  "$schema": "./icon-theme.schema.json",
+  "name": "Lucide",
+  "fonts": { "lucide": "Lucide.ttf" },
+  "icons": {
+    // Tree nodes, wherever a node is shown: the trees, document tabs, search results, bookmarks and the analyzer.
+
+    // An assembly.
+    "node.assembly": { "font": "lucide", "glyph": "E129" },
+    // The folder of an assembly's references.
+    "node.referencesFolder": { "font": "lucide", "glyph": "E100" },
+    // A reference to another assembly.
+    "node.assemblyReference": { "font": "lucide", "glyph": "E103" },
+    // The folder of an assembly's resources.
+    "node.resourcesFolder": { "font": "lucide", "glyph": "E0D7" },
+    // A resource.
+    "node.resource": { "font": "lucide", "glyph": "E0C0" },
+    // A namespace.
+    "node.namespace": { "font": "lucide", "glyph": "E36A" },
+    // A class.
+    "node.class": { "font": "lucide", "glyph": "E061" },
+    // An interface.
+    "node.interface": { "font": "lucide", "glyph": "E0E3" },
+    // A struct.
+    "node.struct": { "font": "lucide", "glyph": "E0FF" },
+    // An enum.
+    "node.enum": { "font": "lucide", "glyph": "E1D1" },
+    // A delegate.
+    "node.delegate": { "font": "lucide", "glyph": "E374" },
+    // A record class.
+    "node.record": { "font": "lucide", "glyph": "E598" },
+    // A record struct.
+    "node.recordStruct": { "font": "lucide", "glyph": "E599" },
+    // The folder of a type's base types.
+    "node.baseTypes": { "font": "lucide", "glyph": "E125" },
+    // A base type.
+    "node.baseType": { "font": "lucide", "glyph": "E44E" },
+    // A field.
+    "node.field": { "font": "lucide", "glyph": "E473" },
+    // A constant.
+    "node.constant": { "font": "lucide", "glyph": "E472" },
+    // A property.
+    "node.property": { "font": "lucide", "glyph": "E1B1" },
+    // An indexer.
+    "node.indexer": { "font": "lucide", "glyph": "E443" },
+    // An event.
+    "node.event": { "font": "lucide", "glyph": "E1B4" },
+    // A method.
+    "node.method": { "font": "lucide", "glyph": "E22D" },
+    // A constructor.
+    "node.constructor": { "font": "lucide", "glyph": "E0EC" },
+    // An operator.
+    "node.operator": { "font": "lucide", "glyph": "E30C" },
+    // A node that failed to load.
+    "node.error": { "font": "lucide", "glyph": "E077" },
+    // A node still loading.
+    "node.loading": { "font": "lucide", "glyph": "E10A" },
+    // An assembly's metadata.
+    "node.metadata": { "font": "lucide", "glyph": "E0AD" },
+    // A metadata header.
+    "node.metadataHeader": { "font": "lucide", "glyph": "E0CC" },
+    // A metadata directory.
+    "node.metadataDirectory": { "font": "lucide", "glyph": "E106" },
+    // The folder of the metadata tables.
+    "node.metadataTables": { "font": "lucide", "glyph": "E2F9" },
+    // A metadata table.
+    "node.metadataTable": { "font": "lucide", "glyph": "E17D" },
+    // A metadata heap.
+    "node.metadataHeap": { "font": "lucide", "glyph": "E529" },
+    // The folder of a type's derived types.
+    "node.derivedTypes": { "font": "lucide", "glyph": "E28D" },
+    // A derived type.
+    "node.derivedType": { "font": "lucide", "glyph": "E44D" },
+    // A .resources file.
+    "node.resourcesFile": { "font": "lucide", "glyph": "E326" },
+    // A picture resource.
+    "node.resourceImage": { "font": "lucide", "glyph": "E31C" },
+    // An assembly that failed to open.
+    "node.failedAssembly": { "font": "lucide", "glyph": "E26A" },
+    // A type forwarded to another assembly.
+    "node.forwardedType": { "font": "lucide", "glyph": "E229" },
+    // A package, such as a NuGet package.
+    "node.package": { "font": "lucide", "glyph": "E30D" },
+    // A folder inside a package.
+    "node.packageFolder": { "font": "lucide", "glyph": "E330" },
+    // A single-file app bundle.
+    "node.bundle": { "font": "lucide", "glyph": "E426" },
+
+    // The small marks over a node's icon.
+
+    // Over a node visible only inside its assembly.
+    "overlay.internal": { "font": "lucide", "glyph": "E158" },
+    // Over a node visible only inside its type.
+    "overlay.private": { "font": "lucide", "glyph": "E10B" },
+
+    // The tabs of the docked panels and documents.
+
+    // The assemblies panel.
+    "panel.assemblies": { "font": "lucide", "glyph": "E54E" },
+    // The search panel.
+    "panel.search": { "font": "lucide", "glyph": "E151" },
+    // The bookmarks panel.
+    "panel.bookmarks": { "font": "lucide", "glyph": "E060" },
+    // The analyzer panel.
+    "panel.analyzer": { "font": "lucide", "glyph": "E537" },
+    // The decompiler options panel.
+    "panel.decompilerOptions": { "font": "lucide", "glyph": "E29A" },
+    // The display options panel.
+    "panel.displayOptions": { "font": "lucide", "glyph": "E1DD" },
+    // The exports panel.
+    "panel.exports": { "font": "lucide", "glyph": "E337" },
+    // A document tab that shows no node.
+    "tab.page": { "font": "lucide", "glyph": "E0CC" },
+
+    // The main toolbar.
+
+    // Manage the assembly lists.
+    "toolbar.manageLists": { "font": "lucide", "glyph": "E54F" },
+    // Open an assembly.
+    "toolbar.open": { "font": "lucide", "glyph": "E247" },
+    // Search.
+    "toolbar.search": { "font": "lucide", "glyph": "E151" },
+    // Go back.
+    "toolbar.back": { "font": "lucide", "glyph": "E048" },
+    // Go forward.
+    "toolbar.forward": { "font": "lucide", "glyph": "E049" },
+    // Open the decompiler options.
+    "toolbar.decompilerOptions": { "font": "lucide", "glyph": "E1B1" },
+
+    // The File menu, and the same commands in the assemblies panel's menu.
+
+    // Open an assembly.
+    "file.open": { "font": "lucide", "glyph": "E247" },
+    // Open an assembly of an installed framework.
+    "file.openFromFramework": { "font": "lucide", "glyph": "E100" },
+    // Save the code shown.
+    "file.saveCode": { "font": "lucide", "glyph": "E14D" },
+    // Export assemblies as projects.
+    "file.exportProject": { "font": "lucide", "glyph": "E337" },
+    // Generate a PDB.
+    "file.generatePdb": { "font": "lucide", "glyph": "E20C" },
+    // Close the selected assembly.
+    "file.close": { "font": "lucide", "glyph": "E1B2" },
+    // Close the assemblies that failed to open.
+    "file.closeFailed": { "font": "lucide", "glyph": "E0CD" },
+    // Close every assembly.
+    "file.clearList": { "font": "lucide", "glyph": "E240" },
+    // Sort the assemblies by name.
+    "file.sortList": { "font": "lucide", "glyph": "E415" },
+    // Reload every assembly.
+    "file.reloadAll": { "font": "lucide", "glyph": "E148" },
+    // Quit.
+    "file.exit": { "font": "lucide", "glyph": "E10E" },
+
+    // Assembly lists: the list picker's menu and the lists dialog.
+
+    // Manage the assembly lists, in the list picker's menu.
+    "lists.manage": { "font": "lucide", "glyph": "E54F" },
+    // Make a new list.
+    "lists.new": { "font": "lucide", "glyph": "E13D" },
+    // Copy a list.
+    "lists.duplicate": { "font": "lucide", "glyph": "E09E" },
+    // Rename a list.
+    "lists.rename": { "font": "lucide", "glyph": "E1F9" },
+    // Delete a list.
+    "lists.delete": { "font": "lucide", "glyph": "E18E" },
+    // Marks the list that is open.
+    "lists.active": { "font": "lucide", "glyph": "E06C" },
+
+    // The assemblies panel's toolbar and menu.
+
+    // Select the node of the document shown.
+    "assemblies.selectOpened": { "font": "lucide", "glyph": "E0AC" },
+    // Collapse every node.
+    "assemblies.collapseAll": { "font": "lucide", "glyph": "E228" },
+    // Expand the namespaces.
+    "assemblies.expandNamespaces": { "font": "lucide", "glyph": "E211" },
+    // Close the selected assembly.
+    "assemblies.closeAssembly": { "font": "lucide", "glyph": "E18E" },
+    // Open the folder holding the assembly.
+    "assemblies.openContainingFolder": { "font": "lucide", "glyph": "E247" },
+    // Extract a file or a folder from a package.
+    "assemblies.extract": { "font": "lucide", "glyph": "E2CC" },
+
+    // Links, shown as their text is hovered, and in menus.
+
+    // Show the symbol in the online API reference.
+    "link.apiReference": { "font": "lucide", "glyph": "E0B9" },
+    // Go to a bookmark's place.
+    "link.bookmark": { "font": "lucide", "glyph": "E0B9" },
+    // Go to the row a metadata token names.
+    "link.token": { "font": "lucide", "glyph": "E0B9" },
+
+    // A picture resource's tab.
+
+    // Zoom out.
+    "resource.zoomOut": { "font": "lucide", "glyph": "E1B7" },
+    // Zoom in.
+    "resource.zoomIn": { "font": "lucide", "glyph": "E1B6" },
+    // Show the picture at its own size.
+    "resource.zoomReset": { "font": "lucide", "glyph": "E148" },
+    // Show the picture, while its markup shows.
+    "resource.showPicture": { "font": "lucide", "glyph": "E31C" },
+    // Show the picture's markup.
+    "resource.showSource": { "font": "lucide", "glyph": "E0CC" },
+    // Save a resource to a file, also in the assemblies panel's menu.
+    "resource.export": { "font": "lucide", "glyph": "E19E" },
+
+    // The code view.
+
+    // Find the previous match.
+    "code.findPrevious": { "font": "lucide", "glyph": "E070" },
+    // Find the next match.
+    "code.findNext": { "font": "lucide", "glyph": "E06D" },
+    // Close the find bar.
+    "code.findClose": { "font": "lucide", "glyph": "E1B2" },
+    // A bookmark in the code's margin.
+    "code.bookmark": { "font": "lucide", "glyph": "E060" },
+    // Set or clear a bookmark, in the code's menu.
+    "code.toggleBookmark": { "font": "lucide", "glyph": "E060" },
+
+    // The analyzer panel.
+
+    // Collapse every analysis.
+    "analyzer.collapseAll": { "font": "lucide", "glyph": "E228" },
+    // Expand every analysis.
+    "analyzer.expandAll": { "font": "lucide", "glyph": "E211" },
+    // Remove the selected analysis.
+    "analyzer.remove": { "font": "lucide", "glyph": "E18E" },
+    // Remove every analysis.
+    "analyzer.removeAll": { "font": "lucide", "glyph": "E240" },
+    // What an analysis looks for, such as uses or overrides.
+    "analyzer.analysis": { "font": "lucide", "glyph": "E151" },
+
+    // The bookmarks panel.
+
+    // Go to the previous bookmark.
+    "bookmarks.previous": { "font": "lucide", "glyph": "E04A" },
+    // Go to the next bookmark.
+    "bookmarks.next": { "font": "lucide", "glyph": "E042" },
+    // Delete the selected bookmark.
+    "bookmarks.delete": { "font": "lucide", "glyph": "E18E" },
+    // Export the bookmarks to a file.
+    "bookmarks.export": { "font": "lucide", "glyph": "E19E" },
+    // Import bookmarks from a file.
+    "bookmarks.import": { "font": "lucide", "glyph": "E0B2" },
+    // A bookmark's mark, which turns it on and off.
+    "bookmarks.mark": { "font": "lucide", "glyph": "E060" },
+
+    // The search panel.
+
+    // The search box.
+    "search.field": { "font": "lucide", "glyph": "E151" },
+    // Search every kind of symbol.
+    "search.allKinds": { "font": "lucide", "glyph": "E529" },
+
+    // Tables sorted by a column: the search results and the metadata grids.
+
+    // The column sorted ascending.
+    "sort.ascending": { "font": "lucide", "glyph": "E070" },
+    // The column sorted descending.
+    "sort.descending": { "font": "lucide", "glyph": "E06D" },
+
+    // The metadata grids.
+
+    // Filter a column.
+    "metadata.filter": { "font": "lucide", "glyph": "E0DC" },
+    // Clear a column's filter.
+    "metadata.clearFilter": { "font": "lucide", "glyph": "E3B5" },
+    // A flag a row must have, in a flags filter.
+    "metadata.flagRequired": { "font": "lucide", "glyph": "E06C" },
+    // A flag a row must not have, in a flags filter.
+    "metadata.flagExcluded": { "font": "lucide", "glyph": "E1B2" },
+    // A flag that is set, in a tooltip.
+    "metadata.flagSet": { "font": "lucide", "glyph": "E16A" },
+    // A flag that is not set, in a tooltip.
+    "metadata.flagUnset": { "font": "lucide", "glyph": "E167" },
+
+    // The decompiler and display options.
+
+    // Fold every group of decompiler options.
+    "options.collapseAll": { "font": "lucide", "glyph": "E228" },
+    // Unfold every group of decompiler options.
+    "options.expandAll": { "font": "lucide", "glyph": "E211" },
+    // Put the decompiler options back to their defaults.
+    "options.resetDecompiler": { "font": "lucide", "glyph": "E148" },
+    // A folded group of decompiler options.
+    "options.groupFolded": { "font": "lucide", "glyph": "E06F" },
+    // An unfolded group of decompiler options.
+    "options.groupUnfolded": { "font": "lucide", "glyph": "E06D" },
+    // Start a theme of your own from the current one.
+    "options.customizeTheme": { "font": "lucide", "glyph": "E1DD" },
+    // Open the themes folder.
+    "options.openThemesFolder": { "font": "lucide", "glyph": "E247" },
+    // Read the themes again.
+    "options.reloadThemes": { "font": "lucide", "glyph": "E148" },
+    // Start an icon theme of your own from the current one.
+    "options.customizeIconTheme": { "font": "lucide", "glyph": "E1F9" },
+    // Open the icon themes folder.
+    "options.openIconThemesFolder": { "font": "lucide", "glyph": "E247" },
+    // Read the icon themes again.
+    "options.reloadIconThemes": { "font": "lucide", "glyph": "E148" },
+    // Make the code's font smaller.
+    "options.fontSmaller": { "font": "lucide", "glyph": "E11C" },
+    // Make the code's font larger.
+    "options.fontLarger": { "font": "lucide", "glyph": "E13D" },
+    // Put the display options back to their defaults.
+    "options.resetDisplay": { "font": "lucide", "glyph": "E148" },
+
+    // Exports: the export dialog, the exports panel and the status bar.
+
+    // Add assemblies to export.
+    "export.add": { "font": "lucide", "glyph": "E13D" },
+    // Take the ticked assemblies out of the export.
+    "export.removePicked": { "font": "lucide", "glyph": "E11C" },
+    // The export dialog's filter box.
+    "export.filter": { "font": "lucide", "glyph": "E151" },
+    // Cancel the running export.
+    "export.cancel": { "font": "lucide", "glyph": "E1B2" },
+    // Take a waiting export out of the queue.
+    "export.withdraw": { "font": "lucide", "glyph": "E1B2" },
+    // Take a finished export off the panel.
+    "export.remove": { "font": "lucide", "glyph": "E1B2" },
+    // Open the folder an export wrote to.
+    "export.openFolder": { "font": "lucide", "glyph": "E247" },
+    // Show an export's report.
+    "export.showReport": { "font": "lucide", "glyph": "E0CC" },
+    // An export waiting its turn.
+    "export.waiting": { "font": "lucide", "glyph": "E296" },
+    // An export that finished with problems or failed.
+    "export.problems": { "font": "lucide", "glyph": "E077" },
+    // An export that was cancelled.
+    "export.cancelled": { "font": "lucide", "glyph": "E1B2" },
+    // An export that finished.
+    "export.done": { "font": "lucide", "glyph": "E06C" },
+
+    // States shown beside text.
+
+    // An error: in the status bar, the error dialog and the analyzer.
+    "status.error": { "font": "lucide", "glyph": "E077" },
+    // Something still loading, in the analyzer.
+    "status.loading": { "font": "lucide", "glyph": "E10A" }
+  }
+}

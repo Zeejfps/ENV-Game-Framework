@@ -214,7 +214,6 @@ public readonly record struct CodeViewResult(CodeReference? Navigate, bool Navig
 public static class CodeViewWidget
 {
     private static readonly DisplayOptions Plain = new(HighlightMatchingBrackets: false);
-    private static readonly UiIcon ApiReferenceIcon = new(LucideIcons.ExternalLink, LucideIcons.Family);
 
     private const float FlashSeconds = 1.2f;
     private const float AutoScrollSpeed = 12f;
@@ -652,6 +651,7 @@ public static class CodeViewWidget
         frame.GutterPaddingLeft = markWidth;
         frame.MarkWidth = markWidth;
         frame.IconSize = theme.IconSize;
+        frame.BookmarkGlyph = ui.State.Icons.CodeBookmark;
         frame.Bookmarks = bookmarks;
         frame.HoverMark = hoverMark;
         frame.Advance = cell.Advance;
@@ -889,11 +889,11 @@ public static class CodeViewWidget
                 : ui.Memo("count", (state.CurrentMatch, count, t), static a => a.CurrentMatch >= 0 ? a.t.FindPosition(a.CurrentMatch + 1, a.count) : a.t.FindMatches(a.count));
             ui.Text(label, new Box { Width = Sizing.Grow() }, color: count == 0 && state.Query.Length > 0 ? theme.Warning : theme.TextMuted,
                 size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-            if (ui.IconButton("previous", LucideIcons.ChevronUp, LucideIcons.Family, ui.Memo("previous-tip", t, static s => s.FindPrevious("Shift+F3")), count > 0))
+            if (ui.IconButton("previous", ui.State.Icons.CodeFindPrevious, ui.Memo("previous-tip", t, static s => s.FindPrevious("Shift+F3")), count > 0))
                 Step(state, document, -1);
-            if (ui.IconButton("next", LucideIcons.ChevronDown, LucideIcons.Family, ui.Memo("next-tip", t, static s => s.FindNext("F3")), count > 0))
+            if (ui.IconButton("next", ui.State.Icons.CodeFindNext, ui.Memo("next-tip", t, static s => s.FindNext("F3")), count > 0))
                 Step(state, document, 1);
-            if (ui.IconButton("close", LucideIcons.X, LucideIcons.Family, ui.Memo("close-tip", t, static s => s.FindClose("Esc"))))
+            if (ui.IconButton("close", ui.State.Icons.CodeFindClose, ui.Memo("close-tip", t, static s => s.FindClose("Esc"))))
             {
                 state.FindOpen = false;
                 ui.Focus(focusId, takesText: false);
@@ -941,7 +941,7 @@ public static class CodeViewWidget
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
-                    icon: new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, ui.State.CodeViewPalette.Bookmark)))
+                    icon: new UiIcon(ui.State.Icons.CodeToggleBookmark, ui.State.CodeViewPalette.Bookmark)))
                 result = result with { ToggleBookmark = state.MenuLine };
         }
         if (document.Folds.Length > 0)
@@ -968,7 +968,7 @@ public static class CodeViewWidget
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
                 result = result with { Analyze = entity };
-            if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: ApiReferenceIcon))
+            if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: new UiIcon(ui.State.Icons.LinkApiReference)))
                 result = result with { ShowInApiReference = entity };
         }
         if (state.MenuMetadata is { } shown)

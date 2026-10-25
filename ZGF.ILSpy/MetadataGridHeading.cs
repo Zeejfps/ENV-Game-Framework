@@ -17,14 +17,16 @@ internal readonly struct MetadataGridHeading
     private readonly MetadataGridState _state;
     private readonly MetadataFilters _flags;
     private readonly Strings _t;
+    private readonly AppIcons _icons;
     private readonly int _listId;
 
-    public MetadataGridHeading(MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, int listId)
+    public MetadataGridHeading(MetadataGrid grid, MetadataGridState state, MetadataFilters flags, Strings t, AppIcons icons, int listId)
     {
         _grid = grid;
         _state = state;
         _flags = flags;
         _t = t;
+        _icons = icons;
         _listId = listId;
     }
 
@@ -86,10 +88,10 @@ internal readonly struct MetadataGridHeading
         var funnel = ui.Clickable(FunnelId(_listId, column));
         if (funnel.Clicked)
             ClickFunnel(filter, column);
-        var glyph = FunnelGlyph(filter);
+        var glyph = FunnelGlyph(_icons, filter);
         var color = FunnelColor(theme, filter, funnel.Hovered);
         using (ui.Box(funnel.Id, new Box { Width = theme.IconSize, Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
-            ui.Text(glyph, color: color, size: theme.FontSizeSmall, family: LucideIcons.Family);
+            ui.Glyph(glyph, color, theme.FontSizeSmall);
         if (!_state.IsFlagsFlyoutOpenFor(column))
             ui.Tooltip(funnel.Id, FunnelTooltip(ui, funnel.Id, _grid.Columns[column].Name));
     }
@@ -117,13 +119,13 @@ internal readonly struct MetadataGridHeading
         _state.StartEditingFilter(column);
     }
 
-    private static string FunnelGlyph(MetadataColumnFilter filter)
+    private static IconGlyph FunnelGlyph(AppIcons icons, MetadataColumnFilter filter)
     {
         if (filter.Flags != null)
-            return LucideIcons.Filter;
+            return icons.MetadataFilter;
         if (filter.Text.Length > 0)
-            return LucideIcons.FilterX;
-        return LucideIcons.Filter;
+            return icons.MetadataClearFilter;
+        return icons.MetadataFilter;
     }
 
     private static uint FunnelColor(UiTheme theme, MetadataColumnFilter filter, bool hovered)

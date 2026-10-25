@@ -75,7 +75,7 @@ public static partial class UiWidgets
     /// menu opens below the whole control and closes as a dropdown's does; <paramref name="revision"/>
     /// is as there. The control is one Tab stop: Enter or Space clicks it, Down or Alt+Down opens its
     /// menu. <paramref name="tooltip"/> is for the main half, <paramref name="menuTooltip"/> for the arrow.</summary>
-    public static SplitButtonScope SplitIconButton(this Ui ui, string id, string glyph, string? family = null, string? tooltip = null,
+    public static SplitButtonScope SplitIconButton(this Ui ui, string id, IconGlyph glyph, string? tooltip = null,
         string? menuTooltip = null, bool enabled = true, int revision = 0)
     {
         var theme = ui.Theme;
@@ -106,8 +106,7 @@ public static partial class UiWidgets
             }))
             {
                 PaintJoinedFill(ui, mainFill, Corners.Left(inner));
-                ui.Text(glyph, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize }, color: color, size: theme.IconSize,
-                    align: Align.Center, family: family);
+                ui.Glyph(glyph, color, theme.IconSize, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize });
             }
             ui.Leaf(new Box { Width = theme.BorderWidth, Height = Sizing.Grow(), Background = theme.Border });
             using (ui.Box(arrowId, new Box { Width = theme.DropdownButtonWidth, Height = Sizing.Grow() }))

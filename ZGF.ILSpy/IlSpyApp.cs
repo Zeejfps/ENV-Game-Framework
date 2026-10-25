@@ -2,9 +2,11 @@ using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using static ZGF.ILSpy.Analysis;
+using static ZGF.ILSpy.Appearance;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.CodeDisplay;
+using static ZGF.ILSpy.IconTheming;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenSettings;
 using static ZGF.ILSpy.Theming;
@@ -37,10 +39,12 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         ShowAppIcon(host);
         LoadAndRegisterFonts(host);
         RegisterChosenCodeFont(host);
+        RegisterChosenIconFonts(host);
         OpenStartupAssemblies();
         StartRedrawingOnAssemblyChanges(host);
         RestoreAnalyses(_appState);
         WatchUserThemes(_appState);
+        WatchUserIconThemes(_appState);
     }
 
     protected override void OnUpdate(Ui<UiState> ui)
@@ -54,13 +58,14 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     {
         StopRedrawingOnAssemblyChanges(host);
         StopWatchingUserThemes(_appState);
+        StopWatchingUserIconThemes(_appState);
         SaveOnExit(host.WindowBounds);
     }
 
     /// <summary>Does what comes after drawing a frame: keeps what the screen changed, runs what it asked of
     /// the app state, asks for another frame when there is more to show, saves the changed settings, has
-    /// the window draw at the chosen scale and code in the chosen font from the next frame, and opens the
-    /// web pages asked for.</summary>
+    /// the window draw at the chosen scale, code in the chosen font and icons in their fonts from the next
+    /// frame, and opens the web pages asked for.</summary>
     private static void FinishFrame(Ui<UiState> ui, AppState appState, CodeFontFaces codeFonts)
     {
         KeepScreenChanges(ui.State, appState);
@@ -69,6 +74,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         SaveChangedSettings(ui, appState);
         DrawAtChosenScale(ui);
         DrawCodeInChosenFont(ui, codeFonts);
+        FollowIconTheme(ui);
         OpenAskedWebPages(ui);
     }
 
@@ -77,6 +83,17 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         var pages = ui.State.WebPagesToOpen;
         while (pages.TryDequeue(out var url))
             ui.OpenUrl(url);
+    }
+
+    /// <summary>When the icons changed, registers the fonts they are drawn in and lets go of the pictures
+    /// of the icons they replace.</summary>
+    private static void FollowIconTheme(Ui<UiState> ui)
+    {
+        if (!ui.State.ShownIcons.TakeChange(ui.State.Icons))
+            return;
+        foreach (var font in ui.State.IconFonts)
+            ui.RegisterFont(font);
+        ui.ReleaseUndrawnIconImages();
     }
 
     private static void DrawAtChosenScale(Ui<UiState> ui)
@@ -133,7 +150,6 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     {
         host.RegisterFont(_codeFonts.Bundled);
         host.RegisterFont(LoadFont(TextFonts.Italic, ItalicFontFile));
-        host.RegisterFont(LoadFont(LucideIcons.Family, LucideIcons.File));
     }
 
     /// <summary>Registers the chosen code font before the first frame, so code never shows in the
@@ -144,6 +160,17 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         if (face == null)
             return;
         host.RegisterFont(face);
+    }
+
+    /// <summary>Hands the screen the chosen icon theme and registers its fonts before the first frame, so
+    /// icons never show in another font first and the first frame finds them registered.</summary>
+    private void RegisterChosenIconFonts(ImmediateGuiAppHost<UiState> host)
+    {
+        ApplyIconTheme(UiState, ResolveIconTheme(_appState));
+        if (!UiState.ShownIcons.TakeChange(UiState.Icons))
+            return;
+        foreach (var font in UiState.IconFonts)
+            host.RegisterFont(font);
     }
 
     private void StopRedrawingOnAssemblyChanges(ImmediateGuiAppHost<UiState> host)

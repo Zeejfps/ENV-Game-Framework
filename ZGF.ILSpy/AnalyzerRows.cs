@@ -16,7 +16,8 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
     private readonly AnalyzerMessageNode _loading = new();
     private IReadOnlyList<AnalyzerNode> _roots = Array.Empty<AnalyzerNode>();
     private UiTheme _theme = UiTheme.Dark;
-    private NodeIconPalette _icons = BuiltInThemes.Dark.Icons;
+    private NodeIconPalette _iconColors = BuiltInThemes.Dark.Icons;
+    private AppIcons _icons = BuiltInIconThemes.Reference.Icons;
     private Strings _strings = Strings.For(Locale.En);
     private int _seenChanges = -1;
     private int _seenFindings = -1;
@@ -31,9 +32,10 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
 
     public IReadOnlyList<AnalyzerNode> Roots => _roots;
 
-    public void SetStyle(UiTheme theme, NodeIconPalette icons, Strings strings)
+    public void SetStyle(UiTheme theme, NodeIconPalette iconColors, AppIcons icons, Strings strings)
     {
         _theme = theme;
+        _iconColors = iconColors;
         _icons = icons;
         _strings = strings;
     }
@@ -164,13 +166,13 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
 
     private TreeRow SymbolRow(AnalysisSymbol symbol)
     {
-        var icon = NodeIcons.Icon(symbol.Kind, symbol.Accessibility, _icons);
+        var icon = NodeIcons.Icon(symbol.Kind, symbol.Accessibility, _iconColors, _icons);
         return new TreeRow(symbol.Label, icon, Tooltip: symbol.Location, Secondary: symbol.Location);
     }
 
     private TreeRow KindRow(AnalyzerKindNode kind)
     {
-        var icon = new UiIcon(LucideIcons.Search, LucideIcons.Family, _theme.TextMuted);
+        var icon = new UiIcon(_icons.AnalyzerAnalysis, _theme.TextMuted);
         return new TreeRow(KindLabel(kind), icon);
     }
 
@@ -186,13 +188,13 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
     {
         if (message.Error == null)
             return LoadingRow();
-        var icon = new UiIcon(LucideIcons.AlertCircle, LucideIcons.Family, _theme.Danger);
+        var icon = new UiIcon(_icons.StatusError, _theme.Danger);
         return new TreeRow(message.Error, icon, _theme.Danger);
     }
 
     private TreeRow LoadingRow()
     {
-        var icon = new UiIcon(LucideIcons.Loader2, LucideIcons.Family, _theme.TextMuted);
+        var icon = new UiIcon(_icons.StatusLoading, _theme.TextMuted);
         return new TreeRow(_strings.AnalyzerLoading, icon, _theme.TextMuted);
     }
 }

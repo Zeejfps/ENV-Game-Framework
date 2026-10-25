@@ -8,6 +8,7 @@ using ZGF.KeyboardModule;
 using static ZGF.ILSpy.CodeDisplay;
 using static ZGF.ILSpy.ScreenLayout;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -215,7 +216,7 @@ public sealed class DisplayOptionsTests
         app.Run();
         var size = app.Ui.Theme.MonoFontSize;
 
-        app.ClickLast(LucideIcons.Plus).Frame();
+        app.ClickLast(Icons.OptionsFontLarger).Frame();
         app.Click("Line numbers").Frame();
         app.Click("Highlight current line").Frame();
 
@@ -322,7 +323,7 @@ public sealed class DisplayOptionsTests
         OpenDisplayOptions(app.Ui);
         app.Run();
 
-        app.ClickLast(LucideIcons.Palette).Frame();
+        app.ClickLast(Icons.OptionsCustomizeTheme).Frame();
 
         Assert.Equal("dark-custom", app.AppState.Theme);
         Assert.Equal([temp.PathOf(Path.Combine("themes", "dark-custom.json"))], app.Frames.OpenedFiles);
@@ -409,9 +410,9 @@ public sealed class DisplayOptionsTests
         OpenDisplayOptions(app.Ui);
         app.Run();
 
-        app.ClickLast(LucideIcons.Plus).Frame();
+        app.ClickLast(Icons.OptionsFontLarger).Frame();
         Assert.True(IsBold(app, "Font size"));
-        app.ClickLast(LucideIcons.Minus).Frame();
+        app.ClickLast(Icons.OptionsFontSmaller).Frame();
 
         Assert.Null(app.Ui.Display.FontSize);
         Assert.False(IsBold(app, "Font size"));
@@ -501,7 +502,7 @@ public sealed class DisplayOptionsTests
     {
         var app = OpenedWithFonts();
 
-        app.ClickLast(LucideIcons.Plus).Frame();
+        app.ClickLast(Icons.OptionsFontLarger).Frame();
 
         var preview = app.Frames.Canvas.Texts.First(t => t.Inputs.Text.StartsWith("The quick brown fox"));
         Assert.Equal(MonoFonts.Code, preview.Inputs.Style.FontFamily.Value);
