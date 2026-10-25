@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Geometry;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -21,22 +22,108 @@ internal static class MainMenuView
     private static readonly UiIcon SortListIcon = new(LucideIcons.ArrowDownAZ, LucideIcons.Family);
     private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
     private static readonly UiIcon ExitIcon = new(LucideIcons.LogOut, LucideIcons.Family);
+    private static readonly UiIcon RestoreIcon = new(LucideIcons.Copy, LucideIcons.Family);
+    private static readonly UiIcon MinimizeIcon = new(LucideIcons.Minus, LucideIcons.Family);
+    private static readonly UiIcon MaximizeIcon = new(LucideIcons.Square, LucideIcons.Family);
+    private static readonly UiIcon CloseWindowIcon = new(LucideIcons.X, LucideIcons.Family);
 
+    private const string AppIconId = "title-bar-icon";
+    private const string WindowMenuId = "window-menu";
+
+    /// <summary>The menus: in the window's title bar where the platform allows, unless the system's
+    /// title bar was chosen, and else in a bar of their own.</summary>
     public static void Render(Ui<UiState> ui, AppState appState)
     {
-        var t = ui.State.Strings;
-        using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
+        if (IsInTitleBar(ui))
+            RenderInTitleBar(ui, appState);
+        else
+            RenderMenuBar(ui, appState);
+    }
+
+    private static bool IsInTitleBar(Ui<UiState> ui)
+    {
+        if (ui.State.Display.SystemTitleBar)
+            return false;
+        return ui.CanDrawTitleBar;
+    }
+
+    /// <summary>The title bar: the app's icon, the menus, then room that moves the window up to the
+    /// caption buttons.</summary>
+    private static void RenderInTitleBar(Ui<UiState> ui, AppState appState)
+    {
+        var theme = ui.Theme;
+        var bar = new Box { Background = theme.Background, Gap = 0f, Padding = new Spacing(theme.Gap, 0f, 0f, 0f) };
+        using (ui.TitleBar("title-bar", bar))
         {
-            using (var file = ui.Menu(t.MenuFile, id: "file"))
+            RenderAppIcon(ui);
+            var menus = new Box
             {
-                if (file.IsOpen)
-                    FileMenu(ui, appState);
-            }
-            using (var view = ui.Menu(t.MenuView, id: "view"))
-            {
-                if (view.IsOpen)
-                    ViewMenu(ui, appState);
-            }
+                Width = Sizing.Fit(),
+                Height = Sizing.Grow(),
+                Padding = new Spacing(theme.GapTight),
+                Background = theme.Background,
+            };
+            using (ui.MenuBar("menu", menus))
+                Menus(ui, appState);
+            ui.TitleBarDragArea("title-bar-drag");
+        }
+    }
+
+    /// <summary>The app's icon, which opens the window menu below it when pressed.</summary>
+    private static void RenderAppIcon(Ui<UiState> ui)
+    {
+        if (ui.TitleBarIcon(AppIconId))
+            OpenWindowMenu(ui);
+        RenderWindowMenu(ui);
+    }
+
+    private static void OpenWindowMenu(Ui<UiState> ui)
+    {
+        if (!ui.TryGetRect(ui.GetId(AppIconId), out var icon))
+        {
+            ui.OpenContextMenu(WindowMenuId);
+            return;
+        }
+        ui.OpenContextMenu(WindowMenuId, new PointF(icon.X, icon.Bottom));
+    }
+
+    /// <summary>The window menu: restoring, minimizing, maximizing and closing the window.</summary>
+    private static void RenderWindowMenu(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        using var menu = ui.ContextMenu(WindowMenuId);
+        if (!menu.IsOpen)
+            return;
+        var maximized = ui.WindowBounds.Maximized;
+        if (ui.MenuItem(t.WindowRestore, enabled: maximized, id: "restore", icon: RestoreIcon))
+            ui.RestoreWindow();
+        if (ui.MenuItem(t.WindowMinimize, id: "minimize", icon: MinimizeIcon))
+            ui.MinimizeWindow();
+        if (ui.MenuItem(t.WindowMaximize, enabled: !maximized, id: "maximize", icon: MaximizeIcon))
+            ui.MaximizeWindow();
+        ui.MenuSeparator();
+        if (ui.MenuItem(t.WindowClose, "Alt+F4", id: "close", icon: CloseWindowIcon))
+            ui.Quit();
+    }
+
+    private static void RenderMenuBar(Ui<UiState> ui, AppState appState)
+    {
+        using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
+            Menus(ui, appState);
+    }
+
+    private static void Menus(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        using (var file = ui.Menu(t.MenuFile, id: "file"))
+        {
+            if (file.IsOpen)
+                FileMenu(ui, appState);
+        }
+        using (var view = ui.Menu(t.MenuView, id: "view"))
+        {
+            if (view.IsOpen)
+                ViewMenu(ui, appState);
         }
     }
 

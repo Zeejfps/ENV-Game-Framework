@@ -54,6 +54,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly Dictionary<(byte[] Data, int FaceIndex), FontHandle> _loadedFonts = new();
     private readonly List<Popup> _popups = new();
     private readonly List<DialogWindow> _windows = new();
+    private readonly List<UiRect> _dragAreas = new();
+    private readonly List<RectI> _dragAreasOnWindow = new();
+    private TitleBarContent? _titleBar;
     private readonly PopupPool _pool;
     private UiInput _pending = new();
     private UiInput _frame = new();
@@ -159,11 +162,14 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     }
 
     /// <summary>Shows <paramref name="icon"/> on the window where the platform draws one, such as the
-    /// title bar and taskbar on Windows; macOS takes the app's icon from its bundle instead.</summary>
+    /// title bar and taskbar on Windows, and in the UI's <see cref="Ui.TitleBarIcon(int, float?)"/>; macOS
+    /// takes the app's icon from its bundle instead.</summary>
     public void SetIcon(WindowIcon icon)
     {
         if (_disposed) return;
         _window.SetIcon(icon.Images);
+        _ui.WindowIcon = icon;
+        Invalidate();
     }
 
     /// <summary>Makes <paramref name="font"/> drawable as its family, for <c>ui.Text(family: ...)</c>
@@ -250,6 +256,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _lastFrameTimestamp = now;
 
         _ui.WindowBounds = WindowBounds;
+        ShowCaptionButtonsToUi();
         _drawing = true;
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
         _updateUi(_ui);
@@ -260,7 +267,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             _clearColor = _ui.WindowBackground;
             WireMainFrame();
         }
-        var dark = UiColor.IsDark(_clearColor);
+        ShowTitleBar();
+        var titleBarColor = _ui.TitleBarBackground ?? _clearColor;
+        var dark = UiColor.IsDark(titleBarColor);
         if (dark != _titleBarDark)
         {
             _titleBarDark = dark;
@@ -269,6 +278,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         PresentPopups();
         PresentWindows();
         TakeScale();
+        ApplyRequestedWindowState();
         if (_ui.QuitRequested)
             _render.App.Quit();
 
@@ -302,6 +312,105 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _wakeAt = _ui.WakeAt;
         if (_frame.HasEvents || _ui.UpdateRequested)
             _window.RequestRedraw();
+    }
+
+    /// <summary>Tells the frame whether it can draw in the window's title bar, and where the caption
+    /// buttons are there.</summary>
+    private void ShowCaptionButtonsToUi()
+    {
+        _ui.CanDrawTitleBar = _window.CanExtendIntoTitleBar;
+        _ui.CaptionButtons = CaptionButtonsInUiSpace();
+    }
+
+    private UiRect? CaptionButtonsInUiSpace()
+    {
+        var buttons = _window.CaptionButtons;
+        if (buttons.Width <= 0)
+            return null;
+        var topLeft = ToUiSpace(buttons.X, buttons.Y);
+        var bottomRight = ToUiSpace(buttons.Right, buttons.Bottom);
+        return new UiRect(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+    }
+
+    /// <summary>Has the window's content reach under its title bar while the frame records a title bar,
+    /// shown as recorded, and gives the title bar its strip back once it does not. Draws again when that
+    /// moved the caption buttons.</summary>
+    private void ShowTitleBar()
+    {
+        if (!_window.CanExtendIntoTitleBar)
+            return;
+        var background = _ui.TitleBarBackground;
+        ListDragAreasOnWindow();
+        if (IsTitleBarShown(background))
+            return;
+        _titleBar = CreateTitleBarContent(background);
+        var buttons = _window.CaptionButtons;
+        _window.ExtendIntoTitleBar(_titleBar);
+        if (_window.CaptionButtons != buttons)
+            _window.RequestRedraw();
+    }
+
+    private void ListDragAreasOnWindow()
+    {
+        _ui.ListTitleBarDragAreas(_dragAreas);
+        _dragAreasOnWindow.Clear();
+        foreach (var area in _dragAreas)
+            _dragAreasOnWindow.Add(ToWindowRect(area));
+    }
+
+    private RectI ToWindowRect(UiRect rect)
+    {
+        var s = ScreenPerPoint;
+        var left = (int)MathF.Round(rect.X * s);
+        var top = (int)MathF.Round(rect.Y * s);
+        var right = (int)MathF.Round(rect.Right * s);
+        var bottom = (int)MathF.Round(rect.Bottom * s);
+        return new RectI(left, top, right - left, bottom - top);
+    }
+
+    /// <summary>Whether the window already shows the title bar this frame recorded. Allocates nothing.</summary>
+    private bool IsTitleBarShown(uint? background)
+    {
+        if (_titleBar == null)
+            return background == null;
+        if (background != _titleBar.Background)
+            return false;
+        return AreDragAreasShown(_titleBar.DragAreas);
+    }
+
+    private bool AreDragAreasShown(IReadOnlyList<RectI> shown)
+    {
+        if (shown.Count != _dragAreasOnWindow.Count)
+            return false;
+        for (var i = 0; i < shown.Count; i++)
+        {
+            if (shown[i] != _dragAreasOnWindow[i])
+                return false;
+        }
+        return true;
+    }
+
+    private TitleBarContent? CreateTitleBarContent(uint? background)
+    {
+        if (background == null)
+            return null;
+        return new TitleBarContent(background.Value, _dragAreasOnWindow.ToArray());
+    }
+
+    private void ApplyRequestedWindowState()
+    {
+        switch (_ui.RequestedWindowState)
+        {
+            case WindowState.Normal:
+                _window.Restore();
+                break;
+            case WindowState.Minimized:
+                _window.Minimize();
+                break;
+            case WindowState.Maximized:
+                _window.Maximize();
+                break;
+        }
     }
 
     /// <summary>Puts the OS candidate window at <paramref name="caret"/>, in the window the caret is

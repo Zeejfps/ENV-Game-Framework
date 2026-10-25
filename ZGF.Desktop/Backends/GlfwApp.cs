@@ -136,7 +136,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         Glfw.GetWindowSize(Main.GlfwWindow, out var ww, out var wh);
         var (px, py) = WindowPlacement.Compute(
             Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
-        Glfw.SetWindowPosition(Main.GlfwWindow, px, py);
+        Main.SetPosition(px, py);
         Main.Show();
         if (_startupConfig.StartMaximized)
             Glfw.MaximizeWindow(Main.GlfwWindow);

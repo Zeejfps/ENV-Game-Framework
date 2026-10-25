@@ -2,9 +2,11 @@ using ZGF.Gui.Immediate;
 
 namespace ZGF.ILSpy;
 
-/// <summary>How the app is drawn: the scale of the whole interface, 1 for 100%; how the documents
-/// draw code: its font, null for the bundled one, its size, null for the theme's, and the aids drawn
-/// around it; and how the tree writes metadata tokens.</summary>
+/// <summary>How the app is drawn: the scale of the whole interface, 1 for 100%, and whether the window
+/// keeps the system's title bar, with the menus in a bar of their own, rather than the menus drawn in
+/// the title bar where the platform allows; how the documents draw code: its font, null for the bundled
+/// one, its size, null for the theme's, and the aids drawn around it; and how the tree writes metadata
+/// tokens.</summary>
 public sealed record DisplayOptions(
     float? FontSize = null,
     bool ShowLineNumbers = true,
@@ -12,7 +14,8 @@ public sealed record DisplayOptions(
     bool HighlightMatchingBrackets = true,
     float UiScale = 1f,
     CodeFont? Font = null,
-    TokenFormat TreeTokens = TokenFormat.Hidden)
+    TokenFormat TreeTokens = TokenFormat.Hidden,
+    bool SystemTitleBar = false)
 {
     public const float MinFontSize = 8f;
     public const float MaxFontSize = 32f;

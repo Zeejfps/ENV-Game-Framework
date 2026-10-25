@@ -93,11 +93,30 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     /// <summary>Whether a frame asked the app to close with <see cref="Ui.Quit"/>.</summary>
     public bool QuitRequested { get; private set; }
 
+    /// <summary>The state the last frame asked the window for, or null when it asked for none.</summary>
+    public WindowState? RequestedWindowState { get; private set; }
+
     /// <summary>The window background the last frame asked for.</summary>
     public uint WindowBackground { get; private set; }
 
     /// <summary>What <see cref="Ui.WindowBounds"/> reports from the next frame.</summary>
     public WindowBounds WindowBounds { get; set; }
+
+    /// <summary>Whether the window lets frames draw in its title bar, from the next frame.</summary>
+    public bool CanDrawTitleBar { get; set; }
+
+    /// <summary>Where the window's caption buttons are over the title bar its content reaches under, from
+    /// the next frame; null while it does not.</summary>
+    public UiRect? CaptionButtons { get; set; }
+
+    /// <summary>The color of the title bar the last frame recorded, or null when it recorded none.</summary>
+    public uint? TitleBarBackground { get; private set; }
+
+    /// <summary>Where the last frame's title bar drag areas were laid out.</summary>
+    public List<UiRect> TitleBarDragAreas { get; } = new();
+
+    /// <summary>The icon the window shows, from the next frame; null while it has none.</summary>
+    public WindowIcon? WindowIcon { get; set; }
 
     private Action<Ui<TState>> BoundBody => Body ?? throw new InvalidOperationException("No body is bound.");
 
@@ -342,6 +361,9 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         _popups?.BeginFrame();
 
         _ui.WindowBounds = WindowBounds;
+        _ui.CanDrawTitleBar = CanDrawTitleBar;
+        _ui.CaptionButtons = CaptionButtons;
+        _ui.WindowIcon = WindowIcon;
         _ui.BeginFrame(_frame, deltaTime, RealTime, Width, Height);
     }
 
@@ -359,7 +381,10 @@ public sealed class UiFrames<TState> where TState : class, IUiState
             _pending.Compose(PreeditText.Empty);
         }
         QuitRequested = _ui.QuitRequested;
+        RequestedWindowState = _ui.RequestedWindowState;
         WindowBackground = _ui.WindowBackground;
+        TitleBarBackground = _ui.TitleBarBackground;
+        _ui.ListTitleBarDragAreas(TitleBarDragAreas);
         if (_ui.ShowDialogs(FilePicker))
             _pending.DismissPopups();
         if (_ui.HasFoldersToOpen)

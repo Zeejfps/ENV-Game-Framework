@@ -35,6 +35,10 @@
   "view.reset_layout_question": "Put every panel back where it started? Open documents stay open.",
   "view.reset_layout_confirm": "Reset",
   "view.reset_layout_cancel": "Cancel",
+  "window.restore": "Restore",
+  "window.minimize": "Minimize",
+  "window.maximize": "Maximize",
+  "window.close": "Close",
 
   "view.back": "Back",
   "view.forward": "Forward",
@@ -99,6 +103,7 @@
   "theme.custom_name": "{name} (custom)",
   "display_options.reload_themes": "Reload themes",
   "display_options.language": "Language",
+  "display_options.system_title_bar": "Use system title bar",
   "display_options.ui_scale": "UI scale",
   "display_options.ui_scale_description": "Size of everything in the app",
   "display_options.ui_scale_percent": "{percent}%",

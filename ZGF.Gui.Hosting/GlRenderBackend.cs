@@ -60,6 +60,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
             canvas.BeginFrame();
             drawContent();
             canvas.EndFrame();
+            ClearUnderCaptionButtons(window);
             // Read back after the draw and before the swap, while the back buffer holds this frame.
             _screenshot.Fulfil(capture);
         }
@@ -112,6 +113,24 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
     }
 
     private static void MakeCurrent(IWindow window) => ((OpenGlWindow)window).MakeContextCurrent();
+
+    /// <summary>Makes the frame fully transparent where the platform draws its caption buttons over the
+    /// content, so that they show through.</summary>
+    private static void ClearUnderCaptionButtons(IWindow window)
+    {
+        var buttons = window.CaptionButtons;
+        if (buttons.Width <= 0 || buttons.Height <= 0)
+            return;
+        var scale = window.DpiScale;
+        var left = (int)MathF.Floor(buttons.X * scale);
+        var top = (int)MathF.Floor(buttons.Y * scale);
+        var right = (int)MathF.Ceiling(buttons.Right * scale);
+        var bottom = (int)MathF.Ceiling(buttons.Bottom * scale);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(left, window.FramebufferHeight - bottom, right - left, bottom - top);
+        Clear(Transparent);
+        glDisable(GL_SCISSOR_TEST);
+    }
 
     private static void Clear((float R, float G, float B, float A) color)
     {

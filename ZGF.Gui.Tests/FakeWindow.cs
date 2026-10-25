@@ -109,6 +109,9 @@ internal sealed class FakeWindow : IWindow
     public void Show() => IsVisible = true;
     public void Hide() => IsVisible = false;
     public void Focus() { IsFocused = true; OnFocusChanged?.Invoke(true); }
+    public void Minimize() { }
+    public void Maximize() => IsMaximized = true;
+    public void Restore() => IsMaximized = false;
 
     public void SetMousePassThrough(bool passThrough) => MousePassThrough = passThrough;
     public void CapturePointer(Action<PointI> onOutsideClick) => PointerCapture = onOutsideClick;
@@ -152,6 +155,10 @@ internal sealed class FakeWindow : IWindow
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
     public void SetIcon(IReadOnlyList<WindowIconImage> icons) { }
     public void SetTitleBarTheme(bool dark) { }
+    public bool CanExtendIntoTitleBar { get; set; }
+    public TitleBarContent? TitleBar { get; private set; }
+    public RectI CaptionButtons { get; set; }
+    public void ExtendIntoTitleBar(TitleBarContent? content) => TitleBar = content;
     public void RequestRedraw() => NeedsRedraw = true;
 
     public string GetClipboardText() => string.Empty;

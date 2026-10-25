@@ -10,7 +10,7 @@ using static ZGF.ILSpy.Theming;
 
 namespace ZGF.ILSpy;
 
-/// <summary>How the app is drawn, as settings cards: the interface's theme, scale and language, then the
+/// <summary>How the app is drawn, as settings cards: the interface's theme, scale, language and title bar, then the
 /// code's font size and switches for line numbers, the current line's highlight and matching brackets,
 /// then how the tree writes metadata tokens. Each option is a row of its card, named on the left, with its control at the right. Every change
 /// shows at once; an option changed from its default has a bold name.</summary>
@@ -55,8 +55,8 @@ internal static class DisplayOptionsPanelView
         ui.ListSystemFonts(families => KeepInstalledFonts(screen, families));
     }
 
-    /// <summary>The theme, the scale and the language. Only the scale is one of the options a reset puts
-    /// back, so only its name turns bold.</summary>
+    /// <summary>The theme, the scale, the language and the title bar. Only the scale and the title bar are
+    /// options a reset puts back, so only their names turn bold.</summary>
     private static void InterfaceSection(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
@@ -73,6 +73,22 @@ internal static class DisplayOptionsPanelView
 
         using (OptionRow(ui, t.DisplayOptionsLanguage, null, false))
             LanguagePicker(ui, appState);
+        SystemTitleBarRow(ui);
+    }
+
+    /// <summary>The switch between the menus in the title bar and the system's title bar, only where the
+    /// platform lets the menus into the title bar.</summary>
+    private static void SystemTitleBarRow(Ui<UiState> ui)
+    {
+        if (!ui.CanDrawTitleBar)
+            return;
+        var t = ui.State.Strings;
+        var display = ui.State.Display;
+        ui.Separator();
+        var system = display.SystemTitleBar;
+        var changed = system != DisplayOptions.Default.SystemTitleBar;
+        if (SwitchRow(ui, t.DisplayOptionsSystemTitleBar, ref system, "system-title-bar", changed))
+            SetDisplayOptions(ui.State, display with { SystemTitleBar = system });
     }
 
     /// <summary>The themes of the catalog, built-in ones first, then the buttons that start a custom theme
