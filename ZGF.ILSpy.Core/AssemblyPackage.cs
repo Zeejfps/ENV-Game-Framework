@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using ICSharpCode.Decompiler;
 
 namespace ZGF.ILSpy.Core;
 
@@ -34,20 +35,23 @@ public sealed class PackageFolder(string name, string fullName)
 }
 
 /// <summary>
-/// A zip file such as a NuGet package: its folders and files as the archive's directory lists them.
-/// A file's bytes are read out of the archive only when asked for, and the archive is not kept open.
+/// A file holding assemblies and other files: a zip file such as a NuGet package, or an app published
+/// as a single-file bundle. Its folders and files are listed from the zip's directory or the bundle's
+/// manifest; a file's bytes are read out only when asked for, and the package is not kept open.
 /// </summary>
 public sealed class AssemblyPackage
 {
     private const char Separator = '/';
 
     private readonly Dictionary<string, PackageFile> _files;
+    private readonly Func<PackageFile, byte[]> _read;
 
-    private AssemblyPackage(string filePath, PackageFolder root, Dictionary<string, PackageFile> files)
+    private AssemblyPackage(string filePath, PackageFolder root, Dictionary<string, PackageFile> files, Func<PackageFile, byte[]> read)
     {
         FilePath = filePath;
         Root = root;
         _files = files;
+        _read = read;
     }
 
     /// <summary>The absolute path of the package file.</summary>
@@ -55,14 +59,23 @@ public sealed class AssemblyPackage
 
     public PackageFolder Root { get; }
 
-    /// <summary>The package at <paramref name="path"/>, or null when the file is no zip archive.</summary>
+    /// <summary>The package at <paramref name="path"/>: a zip archive, else a single-file bundle; null
+    /// when the file is neither.</summary>
     /// <exception cref="IOException">The file cannot be read.</exception>
     public static AssemblyPackage? TryRead(string path)
+    {
+        var zip = TryReadZip(path);
+        if (zip != null)
+            return zip;
+        return TryReadBundle(path);
+    }
+
+    private static AssemblyPackage? TryReadZip(string path)
     {
         try
         {
             using var archive = ZipFile.OpenRead(path);
-            return Read(path, archive);
+            return ReadZip(path, archive);
         }
         catch (InvalidDataException)
         {
@@ -70,33 +83,52 @@ public sealed class AssemblyPackage
         }
     }
 
-    private static AssemblyPackage Read(string path, ZipArchive archive)
+    private static AssemblyPackage ReadZip(string path, ZipArchive archive)
     {
-        var root = new PackageFolder("", "");
-        var folders = new Dictionary<string, PackageFolder>(StringComparer.Ordinal) { [""] = root };
-        var files = new Dictionary<string, PackageFile>(StringComparer.Ordinal);
+        var tree = new FileTree();
         foreach (var entry in archive.Entries)
-            AddEntry(entry, folders, files);
-        SortFolder(root);
-        return new AssemblyPackage(path, root, files);
+            AddZipEntry(tree, entry);
+        return tree.CreatePackage(path, file => ReadZipFile(path, file));
     }
 
-    private static void AddEntry(ZipArchiveEntry entry, Dictionary<string, PackageFolder> folders, Dictionary<string, PackageFile> files)
+    private static void AddZipEntry(FileTree tree, ZipArchiveEntry entry)
     {
-        var fullName = entry.FullName.Replace('\\', Separator);
-        var (folderName, name) = SplitName(fullName.TrimEnd(Separator));
-        if (name.Length == 0)
-            return;
+        var fullName = Normalize(entry.FullName);
         if (fullName.EndsWith(Separator))
         {
-            FindOrAddFolder(fullName.TrimEnd(Separator), folders);
+            tree.AddFolder(fullName.TrimEnd(Separator));
             return;
         }
-        var folder = FindOrAddFolder(folderName, folders);
-        var file = new PackageFile(name, fullName, entry.Length);
-        folder.Files.Add(file);
-        files.TryAdd(fullName, file);
+        tree.AddFile(fullName, entry.Length);
     }
+
+    private static byte[] ReadZipFile(string path, PackageFile file)
+    {
+        using var archive = ZipFile.OpenRead(path);
+        var entry = archive.GetEntry(file.FullName) ?? throw new IOException($"'{file.FullName}' is no longer in '{path}'.");
+        using var stream = entry.Open();
+        using var copy = new MemoryStream();
+        stream.CopyTo(copy);
+        return copy.ToArray();
+    }
+
+    private static AssemblyPackage? TryReadBundle(string path)
+    {
+        var entries = BundleContents.TryReadManifest(path);
+        if (entries == null)
+            return null;
+        var tree = new FileTree();
+        var byName = new Dictionary<string, SingleFileBundle.Entry>(StringComparer.Ordinal);
+        foreach (var entry in entries)
+        {
+            var fullName = Normalize(entry.RelativePath);
+            tree.AddFile(fullName, entry.Size);
+            byName.TryAdd(fullName, entry);
+        }
+        return tree.CreatePackage(path, file => BundleContents.Read(path, byName[file.FullName]));
+    }
+
+    private static string Normalize(string fullName) => fullName.Replace('\\', Separator);
 
     private static (string Folder, string Name) SplitName(string fullName)
     {
@@ -106,24 +138,53 @@ public sealed class AssemblyPackage
         return (fullName.Substring(0, at), fullName.Substring(at + 1));
     }
 
-    private static PackageFolder FindOrAddFolder(string fullName, Dictionary<string, PackageFolder> folders)
+    /// <summary>The folders and files of a package as they are listed, sorted into a tree once all are in.</summary>
+    private sealed class FileTree
     {
-        if (folders.TryGetValue(fullName, out var found))
-            return found;
-        var (parentName, name) = SplitName(fullName);
-        var parent = FindOrAddFolder(parentName, folders);
-        var folder = new PackageFolder(name, fullName);
-        parent.Folders.Add(folder);
-        folders.Add(fullName, folder);
-        return folder;
-    }
+        private readonly PackageFolder _root = new("", "");
+        private readonly Dictionary<string, PackageFolder> _folders = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, PackageFile> _files = new(StringComparer.Ordinal);
 
-    private static void SortFolder(PackageFolder folder)
-    {
-        folder.Folders.Sort(static (a, b) => NaturalStringComparer.Instance.Compare(a.Name, b.Name));
-        folder.Files.Sort(static (a, b) => NaturalStringComparer.Instance.Compare(a.Name, b.Name));
-        foreach (var child in folder.Folders)
-            SortFolder(child);
+        public FileTree()
+        {
+            _folders.Add("", _root);
+        }
+
+        public void AddFile(string fullName, long length)
+        {
+            var (folderName, name) = SplitName(fullName);
+            if (name.Length == 0)
+                return;
+            var file = new PackageFile(name, fullName, length);
+            AddFolder(folderName).Files.Add(file);
+            _files.TryAdd(fullName, file);
+        }
+
+        public PackageFolder AddFolder(string fullName)
+        {
+            if (_folders.TryGetValue(fullName, out var found))
+                return found;
+            var (parentName, name) = SplitName(fullName);
+            var parent = AddFolder(parentName);
+            var folder = new PackageFolder(name, fullName);
+            parent.Folders.Add(folder);
+            _folders.Add(fullName, folder);
+            return folder;
+        }
+
+        public AssemblyPackage CreatePackage(string path, Func<PackageFile, byte[]> read)
+        {
+            SortFolder(_root);
+            return new AssemblyPackage(path, _root, _files, read);
+        }
+
+        private static void SortFolder(PackageFolder folder)
+        {
+            folder.Folders.Sort(static (a, b) => NaturalStringComparer.Instance.Compare(a.Name, b.Name));
+            folder.Files.Sort(static (a, b) => NaturalStringComparer.Instance.Compare(a.Name, b.Name));
+            foreach (var child in folder.Folders)
+                SortFolder(child);
+        }
     }
 
     /// <summary>Every file of the package, folder by folder in the order <see cref="Root"/> lists them:
@@ -165,17 +226,10 @@ public sealed class AssemblyPackage
         return FindFile(relative);
     }
 
-    /// <summary>The bytes of <paramref name="file"/>, read out of the archive.</summary>
+    /// <summary>The bytes of <paramref name="file"/>, read out of the package.</summary>
     /// <exception cref="IOException">The package or the file in it cannot be read.</exception>
-    public byte[] ReadFile(PackageFile file)
-    {
-        using var archive = ZipFile.OpenRead(FilePath);
-        var entry = archive.GetEntry(file.FullName) ?? throw new IOException($"'{file.FullName}' is no longer in '{FilePath}'.");
-        using var stream = entry.Open();
-        using var copy = new MemoryStream();
-        stream.CopyTo(copy);
-        return copy.ToArray();
-    }
+    /// <exception cref="InvalidDataException">The package says something about the file that cannot be true.</exception>
+    public byte[] ReadFile(PackageFile file) => _read(file);
 
     /// <summary>The path <paramref name="file"/> is known by, as if the package were a folder:
     /// <c>C:\packages\Foo.nupkg\lib\net8.0\Foo.dll</c>.</summary>

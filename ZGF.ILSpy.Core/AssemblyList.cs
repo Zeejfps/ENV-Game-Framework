@@ -538,11 +538,11 @@ public sealed class AssemblyList
         {
             return new LoadedAssembly(this, ReadFile(path));
         }
-        catch (AssemblyLoadException notAssembly)
+        catch (AssemblyLoadException)
         {
             var package = ReadPackage(path);
             if (package == null)
-                throw notAssembly;
+                throw;
             return new LoadedAssembly(this, package);
         }
     }
