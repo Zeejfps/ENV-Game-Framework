@@ -3,6 +3,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.Theming;
 
 namespace ZGF.ILSpy;
 
@@ -41,7 +42,14 @@ public sealed class AppState
     /// <summary>The declarations and documentation shown when hovering types and members in code.</summary>
     public CodeTooltips Tooltips { get; }
 
-    public AppThemeId Theme;
+    /// <summary>The themes the app can be drawn in, built-in and the user's.</summary>
+    public ThemeCatalog Themes { get; } = new(BuiltInThemes.Files);
+
+    /// <summary>Watches the user's themes folder while the app runs.</summary>
+    public ThemeFolderWatch ThemesWatch { get; } = new();
+
+    /// <summary>The id of the chosen theme, kept even while no theme has it.</summary>
+    public string Theme;
     public ApiVisibility ApiVisibility;
 
     /// <summary>The interface language.</summary>
@@ -102,6 +110,7 @@ public sealed class AppState
         LastSave.Record(CaptureSavedSources(this));
         ReportSettingsLoadError(settings);
         ReportLeftOutBookmarks(this, leftOutBookmarks);
+        LoadThemes(this);
     }
 
     private static Locale ChooseLocale(AppSettings settings)

@@ -3,6 +3,7 @@ using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.Appearance;
 using static ZGF.ILSpy.DocumentPanels;
 using static ZGF.ILSpy.ScreenSettings;
+using static ZGF.ILSpy.Theming;
 using static ZGF.ILSpy.Trees;
 
 namespace ZGF.ILSpy;
@@ -27,7 +28,7 @@ public sealed partial class IlSpyApp
     /// options changed.</summary>
     internal static void StartFrame(UiState uiState, AppState appState)
     {
-        ApplyThemeAndLanguage(uiState, appState.Theme, appState.Locale);
+        ApplyThemeAndLanguage(uiState, ResolveTheme(appState), appState.Locale);
         SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ApiVisibility);
         SyncTabViews(uiState, appState.Tabs);
         FollowActiveTab(uiState, appState.Tabs.Active);

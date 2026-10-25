@@ -6,6 +6,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.CodeDisplay;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.Theming;
 
 namespace ZGF.ILSpy;
 
@@ -25,9 +26,7 @@ internal static class DisplayOptionsPanelView
     private const int NothingPicked = -1;
 
     private static readonly ConditionalWeakTable<Strings, string[]> UiScaleLabels = new();
-    private static readonly ConditionalWeakTable<Strings, string[]> ThemeLabels = new();
     private static readonly ConditionalWeakTable<Strings, string[]> TokenFormatLabels = new();
-    private static readonly AppThemeId[] Themes = ListThemes();
     private static readonly TokenFormat[] TokenFormats = Enum.GetValues<TokenFormat>();
     private static readonly string[] LocaleLabels = ListLocaleLabels();
 
@@ -76,31 +75,43 @@ internal static class DisplayOptionsPanelView
             LanguagePicker(ui, appState);
     }
 
+    /// <summary>The themes of the catalog, built-in ones first, then the buttons that open the themes
+    /// folder and read the user's themes again, while the settings have a folder to keep themes in.</summary>
     private static void ThemePicker(Ui<UiState> ui, AppState appState)
     {
-        var labels = ThemeLabels.GetValue(ui.State.Strings, ListThemeLabels);
-        var current = Array.IndexOf(Themes, appState.Theme);
-        var picked = PickFrom(ui, "theme", labels, current);
+        using var controls = ui.Row(new Box { Gap = ui.Theme.GapTight, AlignY = Align.Center });
+        PickTheme(ui, appState);
+        if (appState.Settings.ThemesFolder == null)
+            return;
+        OpenThemesFolderButton(ui, appState);
+        ReloadThemesButton(ui, appState);
+    }
+
+    private static void PickTheme(Ui<UiState> ui, AppState appState)
+    {
+        var themes = appState.Themes;
+        var labels = themes.ListNames(ui.State.Strings.Culture);
+        var current = themes.IndexOf(appState.Theme);
+        var picked = PickFrom(ui, "theme", labels, current, themes.Ids, themes.Revision);
         if (picked != NothingPicked)
-            SetTheme(appState, Themes[picked]);
+            SetTheme(appState, themes.Ids[picked]);
     }
 
-    private static AppThemeId[] ListThemes()
+    private static void OpenThemesFolderButton(Ui<UiState> ui, AppState appState)
     {
-        var named = AppThemes.Named
-            .Select(n => n.Id);
-        return new[] { AppThemeId.Dark, AppThemeId.Light }
-            .Concat(named)
-            .ToArray();
+        var t = ui.State.Strings;
+        if (!ui.IconButton("themes-folder", LucideIcons.FolderOpen, LucideIcons.Family, t.DisplayOptionsOpenThemesFolder, variant: ButtonVariant.Neutral))
+            return;
+        var folder = PrepareThemesFolder(appState);
+        if (folder != null)
+            ui.OpenFolder(folder);
     }
 
-    private static string[] ListThemeLabels(Strings t)
+    private static void ReloadThemesButton(Ui<UiState> ui, AppState appState)
     {
-        var named = AppThemes.Named
-            .Select(n => n.Name);
-        return new[] { t.DisplayOptionsThemeDark, t.DisplayOptionsThemeLight }
-            .Concat(named)
-            .ToArray();
+        var t = ui.State.Strings;
+        if (ui.IconButton("reload-themes", LucideIcons.RotateCcw, LucideIcons.Family, t.DisplayOptionsReloadThemes, variant: ButtonVariant.Neutral))
+            ReloadUserThemes(appState);
     }
 
     private static void UiScalePicker(Ui<UiState> ui)
@@ -159,21 +170,32 @@ internal static class DisplayOptionsPanelView
 
     /// <summary>A dropdown as wide as the widest of <paramref name="labels"/>, showing the one at
     /// <paramref name="current"/>, or the first when it is none of them; returns the index picked on
-    /// this frame, or <see cref="NothingPicked"/>.</summary>
-    private static int PickFrom(Ui<UiState> ui, string id, string[] labels, int current)
+    /// this frame, or <see cref="NothingPicked"/>. Its items are told apart by <paramref name="itemIds"/>
+    /// when labels can repeat, else by their labels; the open menu closes when <paramref name="revision"/>
+    /// changes, as when the items change under it.</summary>
+    private static int PickFrom(Ui<UiState> ui, string id, string[] labels, int current, IReadOnlyList<string>? itemIds = null,
+        int revision = 0)
     {
         var width = ui.SelectButtonWidth(labels);
         var shown = Math.Max(current, 0);
-        using var menu = ui.SelectButton(id, labels[shown], width);
+        using var menu = ui.SelectButton(id, labels[shown], width, revision: revision);
         if (!menu.IsOpen)
             return NothingPicked;
         var picked = NothingPicked;
         for (var i = 0; i < labels.Length; i++)
         {
-            if (ui.MenuRadioItem(labels[i], i == current))
+            var itemId = ItemIdAt(itemIds, i);
+            if (ui.MenuRadioItem(labels[i], i == current, id: itemId))
                 picked = i;
         }
         return picked;
+    }
+
+    private static string? ItemIdAt(IReadOnlyList<string>? itemIds, int index)
+    {
+        if (itemIds == null)
+            return null;
+        return itemIds[index];
     }
 
     private static void CodeSection(Ui<UiState> ui)

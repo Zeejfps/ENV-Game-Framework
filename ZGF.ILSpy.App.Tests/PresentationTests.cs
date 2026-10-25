@@ -15,8 +15,8 @@ public sealed class PresentationTests
             var glyph = NodeIcons.Glyph(kind);
             Assert.Equal(1, glyph.Length);
             Assert.InRange((int)glyph[0], 0xE000, 0xF8FF);
-            Assert.NotEqual(0u, NodeIconPalette.Dark.For(kind));
-            Assert.NotEqual(0u, NodeIconPalette.Light.For(kind));
+            Assert.NotEqual(0u, BuiltInThemes.Dark.Icons.For(kind));
+            Assert.NotEqual(0u, BuiltInThemes.Light.Icons.For(kind));
         }
         Assert.Equal(kinds.Length, kinds.Select(NodeIcons.Glyph).Distinct().Count());
     }
@@ -78,14 +78,14 @@ public sealed class PresentationTests
         var ns = root.Child(AppStateDriver.FixturesNamespace);
         var privateField = ns.Child("Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
         var tree = new BrowseTree();
-        tree.SetStyle(UiTheme.Light, NodeIconPalette.Light);
+        tree.SetStyle(UiTheme.Light, BuiltInThemes.Light.Icons);
 
         var field = tree.Row(privateField);
         var hidden = tree.Row(ns.Child("Hidden"));
         var greeter = tree.Row(ns.Child("Greeter"));
 
         Assert.Equal(LucideIcons.Lock, field.Icon!.Value.Overlay);
-        Assert.Equal(NodeIconPalette.Light.Restricted, field.Icon!.Value.OverlayColor);
+        Assert.Equal(BuiltInThemes.Light.Icons.Restricted, field.Icon!.Value.OverlayColor);
         Assert.Equal(NodeIcons.Family, field.Icon!.Value.Family);
         Assert.Equal(UiTheme.Light.TextMuted, field.LabelColor);
         Assert.Equal(LucideIcons.Shield, hidden.Icon!.Value.Overlay);

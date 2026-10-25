@@ -16,7 +16,7 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
     private readonly AnalyzerMessageNode _loading = new();
     private IReadOnlyList<AnalyzerNode> _roots = Array.Empty<AnalyzerNode>();
     private UiTheme _theme = UiTheme.Dark;
-    private NodeIconPalette _icons = NodeIconPalette.Dark;
+    private NodeIconPalette _icons = BuiltInThemes.Dark.Icons;
     private Strings _strings = Strings.For(Locale.En);
     private int _seenChanges = -1;
     private int _seenFindings = -1;

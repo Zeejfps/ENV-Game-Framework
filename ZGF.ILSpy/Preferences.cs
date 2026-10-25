@@ -7,7 +7,7 @@ namespace ZGF.ILSpy;
 /// again what it shows when the language or the options change.</summary>
 public static class Preferences
 {
-    public static void SetTheme(AppState appState, AppThemeId theme)
+    public static void SetTheme(AppState appState, string theme)
     {
         appState.Theme = theme;
     }

@@ -100,7 +100,7 @@ public sealed class DisplayOptionsTests
         view.Click(2, 1);
         view.Run();
 
-        var row = Assert.Single(FilledWith(view, CodeViewPalette.Dark.CurrentLine));
+        var row = Assert.Single(FilledWith(view, BuiltInThemes.Dark.Code.CurrentLine));
         Assert.Equal(CodeViewDriver.Origin + 2 * CodeViewDriver.Row, row.Y);
     }
 
@@ -112,7 +112,7 @@ public sealed class DisplayOptionsTests
         view.Click(0, 1);
         view.Run();
 
-        var brackets = FilledWith(view, CodeViewPalette.Dark.MatchingBracket);
+        var brackets = FilledWith(view, BuiltInThemes.Dark.Code.MatchingBracket);
         Assert.Equal(2, brackets.Count);
         Assert.Equal(view.TextLeft + 1 * CodeViewDriver.Cell, brackets.Min(b => b.X));
         Assert.Equal(view.TextLeft + 6 * CodeViewDriver.Cell, brackets.Max(b => b.X));
@@ -254,13 +254,74 @@ public sealed class DisplayOptionsTests
         var app = AppDriver.Opened(width: 1600f);
         OpenDisplayOptions(app.Ui);
         app.Run();
-        Assert.Equal(AppThemeId.Dark, app.AppState.Theme);
+        Assert.Equal("dark", app.AppState.Theme);
 
         app.Click("Dark").Frame();
         app.Click("Dracula").Frame();
 
-        Assert.Equal(AppThemeId.Dracula, app.AppState.Theme);
-        Assert.Equal(UiTheme.Dracula.Background, app.Frames.WindowBackground);
+        Assert.Equal("dracula", app.AppState.Theme);
+        Assert.Equal(app.AppState.Themes.Find("dracula").Ui.Background, app.Frames.WindowBackground);
+    }
+
+    [Fact]
+    public void The_users_themes_are_listed_after_the_built_in_ones()
+    {
+        using var temp = new TempDir();
+        temp.Write("themes/midnight.json", """{ "name": "Midnight", "extends": "dark", "ui": { "background": "#000010" } }""");
+        var app = new AppDriver(width: 1600f, settings: temp.Settings());
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+
+        app.Click("Dark").Frame();
+        app.Click("Midnight").Frame();
+
+        Assert.Equal("midnight", app.AppState.Theme);
+        Assert.Equal(0xFF000010u, app.Frames.WindowBackground);
+    }
+
+    [Fact]
+    public void Themes_of_the_same_name_are_each_picked_as_themselves()
+    {
+        using var temp = new TempDir();
+        temp.Write("themes/twin-a.json", """{ "name": "Twin", "extends": "dark", "ui": { "background": "#00000A" } }""");
+        temp.Write("themes/twin-b.json", """{ "name": "Twin", "extends": "dark", "ui": { "background": "#00000B" } }""");
+        var app = new AppDriver(width: 1600f, settings: temp.Settings());
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+
+        app.Click("Dark").Frame();
+        app.Frames.Click(TwinRects(app)[1]).Frame();
+        Assert.Equal("twin-b", app.AppState.Theme);
+
+        app.Click("Twin").Frame();
+        app.Frames.Click(TwinRects(app)[1]).Frame();
+        Assert.Equal("twin-a", app.AppState.Theme);
+        Assert.Equal(0xFF00000Au, app.Frames.WindowBackground);
+    }
+
+    [Fact]
+    public void The_open_theme_menu_closes_when_the_themes_are_read_again()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        app.Click("Dark").Frame();
+        Assert.True(IsDrawn(app, "Dracula"));
+
+        Theming.ReloadUserThemes(app.AppState);
+        app.Run();
+
+        Assert.False(IsDrawn(app, "Dracula"));
+    }
+
+    private static bool IsDrawn(AppDriver app, string text) => app.Frames.TextRects().Any(t => t.Text == text);
+
+    private static List<UiRect> TwinRects(AppDriver app)
+    {
+        return app.Frames.TextRects()
+            .Where(t => t.Text == "Twin")
+            .Select(t => t.Rect)
+            .ToList();
     }
 
     [Fact]

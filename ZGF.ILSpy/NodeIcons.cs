@@ -98,7 +98,8 @@ public static class NodeIcons
 /// <summary>The colors node icons are drawn in, one per <see cref="NodeIconRole"/>: muted hues
 /// shared with the editor's syntax colors, so color supplements the pictogram rather than
 /// carrying meaning alone.</summary>
-public sealed class NodeIconPalette
+[ThemeColors]
+public sealed partial class NodeIconPalette
 {
     public required uint Neutral { get; init; }
     public required uint Type { get; init; }
@@ -119,94 +120,4 @@ public sealed class NodeIconPalette
     };
 
     public uint For(NodeKind kind) => this[NodeIcons.Role(kind)];
-
-    public static NodeIconPalette Dark { get; } = new()
-    {
-        Neutral = 0xFFA6ACB8,
-        Type = 0xFF88CEC3,
-        Method = 0xFFD7C58F,
-        Data = 0xFFB4C9E8,
-        Error = 0xFFFF9A9A,
-        Restricted = 0xFFE3A57A,
-    };
-
-    public static NodeIconPalette Light { get; } = new()
-    {
-        Neutral = 0xFF5D6675,
-        Type = 0xFF146E68,
-        Method = 0xFF79551D,
-        Data = 0xFF365A88,
-        Error = 0xFFB42332,
-        Restricted = 0xFF9A4F1C,
-    };
-
-    public static NodeIconPalette GitHubDark { get; } = new()
-    {
-        Neutral = 0xFF8B949E,
-        Type = 0xFFFFA657,
-        Method = 0xFFD2A8FF,
-        Data = 0xFF79C0FF,
-        Error = 0xFFF85149,
-        Restricted = 0xFFD29922,
-    };
-
-    public static NodeIconPalette GitHubLight { get; } = new()
-    {
-        Neutral = 0xFF59636E,
-        Type = 0xFF953800,
-        Method = 0xFF8250DF,
-        Data = 0xFF0550AE,
-        Error = 0xFFCF222E,
-        Restricted = 0xFF9A6700,
-    };
-
-    public static NodeIconPalette SolarizedLight { get; } = new()
-    {
-        Neutral = 0xFF586E75,
-        Type = 0xFFB58900,
-        Method = 0xFF268BD2,
-        Data = 0xFF6C71C4,
-        Error = 0xFFDC322F,
-        Restricted = 0xFFCB4B16,
-    };
-
-    public static NodeIconPalette OneDarkPro { get; } = new()
-    {
-        Neutral = 0xFF8B909A,
-        Type = 0xFFE5C07B,
-        Method = 0xFF61AFEF,
-        Data = 0xFFE06C75,
-        Error = 0xFFF44747,
-        Restricted = 0xFFD19A66,
-    };
-
-    public static NodeIconPalette Dracula { get; } = new()
-    {
-        Neutral = 0xFF9CA3C4,
-        Type = 0xFF8BE9FD,
-        Method = 0xFF50FA7B,
-        Data = 0xFFFFB86C,
-        Error = 0xFFFF5555,
-        Restricted = 0xFFF1FA8C,
-    };
-
-    public static NodeIconPalette Monokai { get; } = new()
-    {
-        Neutral = 0xFFA59F85,
-        Type = 0xFF66D9EF,
-        Method = 0xFFA6E22E,
-        Data = 0xFFFD971F,
-        Error = 0xFFF92672,
-        Restricted = 0xFFE6DB74,
-    };
-
-    public static NodeIconPalette CatppuccinMocha { get; } = new()
-    {
-        Neutral = 0xFFA6ADC8,
-        Type = 0xFFF9E2AF,
-        Method = 0xFF89B4FA,
-        Data = 0xFFB4BEFE,
-        Error = 0xFFF38BA8,
-        Restricted = 0xFFFAB387,
-    };
 }

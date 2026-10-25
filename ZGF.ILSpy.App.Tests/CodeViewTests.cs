@@ -41,16 +41,16 @@ public sealed class CodeViewTests
         view.Frames.Run(1f / 60f, ui =>
         {
             ui.State.Theme = UiTheme.Light;
-            ui.State.CodeViewPalette = CodeViewPalette.Light;
+            ui.State.CodeViewPalette = BuiltInThemes.Light.Code;
             ui.CodeView("code", view.Document, view.State);
             ui.State.Theme = UiTheme.Dark;
-            ui.State.CodeViewPalette = CodeViewPalette.Dark;
+            ui.State.CodeViewPalette = BuiltInThemes.Dark.Code;
         });
         var light = view.Frames.Canvas.GlyphRuns.First(r => r.Text == "public").Style.TextColor.Value;
 
         Assert.Equal(SpanKind.Keyword, view.Document.SpanAt(line, column).Kind);
-        Assert.Equal(CodeViewPalette.Dark[SpanKind.Keyword], dark);
-        Assert.Equal(CodeViewPalette.Light[SpanKind.Keyword], light);
+        Assert.Equal(BuiltInThemes.Dark.Code[SpanKind.Keyword], dark);
+        Assert.Equal(BuiltInThemes.Light.Code[SpanKind.Keyword], light);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class CodeViewTests
         view.Frames.MovePointer(1000f, 1000f).Frame();
 
         Assert.Null(result.Navigate);
-        var occurrence = CodeViewPalette.Dark.Occurrence;
+        var occurrence = BuiltInThemes.Dark.Code.Occurrence;
         var expected = view.Document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
         Assert.True(expected >= 3);
         Assert.Equal(expected, view.Frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == occurrence));

@@ -11,7 +11,7 @@ public readonly record struct SavedSources(
     int Bookmarks,
     int Analyzer,
     int View,
-    AppThemeId Theme,
+    string Theme,
     DecompilationLanguage Language,
     DecompilerOptions DecompilerOptions,
     ApiVisibility ApiVisibility,

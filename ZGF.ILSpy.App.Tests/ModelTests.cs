@@ -192,7 +192,7 @@ public sealed class AppSettingsTests : IDisposable
 
         Assert.Null(loaded.LoadError);
         Assert.Empty(loaded.AssemblyLists);
-        Assert.Equal(AppThemeId.Monokai, loaded.Theme);
+        Assert.Equal("monokai", loaded.Theme);
     }
 
     [Fact]

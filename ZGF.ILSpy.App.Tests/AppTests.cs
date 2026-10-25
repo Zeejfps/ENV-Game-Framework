@@ -90,7 +90,7 @@ public sealed class AppTests
     {
         const float width = 480f;
         var app = AppDriver.Opened(width);
-        var theme = AppThemes.For(AppThemeId.Dark).Ui;
+        var theme = BuiltInThemes.Dark.Ui;
         app.Run(2);
         var count = app.StatusText("1 assembly");
 

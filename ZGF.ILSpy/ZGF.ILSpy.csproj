@@ -32,6 +32,12 @@
       <EmbeddedResource Include="Assets\Icon\app_icon.rgba">
         <LogicalName>%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
+      <EmbeddedResource Include="Assets\Themes\*.json" Exclude="Assets\Themes\theme.schema.json">
+        <LogicalName>Themes/%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="Assets\Themes\theme.schema.json">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
       <Content Include="Assets\Fonts\**\LICENSE-*.txt">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <TargetPath>licenses\%(Filename)%(Extension)</TargetPath>

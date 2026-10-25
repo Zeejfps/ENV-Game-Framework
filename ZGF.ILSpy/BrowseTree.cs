@@ -18,7 +18,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private ApiVisibility _visibility = ApiVisibility.AllButCompilerGenerated;
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
-    private NodeIconPalette _icons = NodeIconPalette.Dark;
+    private NodeIconPalette _icons = BuiltInThemes.Dark.Icons;
     private TokenFormat _tokens = TokenFormat.Hidden;
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);

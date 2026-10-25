@@ -7,6 +7,7 @@ using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.CodeDisplay;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenSettings;
+using static ZGF.ILSpy.Theming;
 
 namespace ZGF.ILSpy;
 
@@ -39,6 +40,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         OpenStartupAssemblies();
         StartRedrawingOnAssemblyChanges(host);
         RestoreAnalyses(_appState);
+        WatchUserThemes(_appState);
     }
 
     protected override void OnUpdate(Ui<UiState> ui)
@@ -51,6 +53,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
     {
         StopRedrawingOnAssemblyChanges(host);
+        StopWatchingUserThemes(_appState);
         SaveOnExit(host.WindowBounds);
     }
 

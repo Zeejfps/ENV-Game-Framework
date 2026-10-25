@@ -11,7 +11,7 @@ internal sealed class CodeViewFrame
 
     public DecompiledDocument Document = DecompiledDocument.Empty;
     public CodeFolds Folds = new();
-    public CodeViewPalette Palette = CodeViewPalette.Dark;
+    public CodeViewPalette Palette = BuiltInThemes.Dark.Code;
     public uint Background;
     public uint GutterHover;
     public uint Selection;

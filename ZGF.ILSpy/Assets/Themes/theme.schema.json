@@ -1,0 +1,310 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ILSpy color theme",
+  "description": "A color theme. Comments and trailing commas are allowed. The file's name without .json is the theme's id.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "The schema theme files follow.",
+      "type": "string"
+    },
+    "name": {
+      "description": "The name the theme is listed by: one for every language, or one per language tag, such as en or pt-BR, where English stands in for a language without one.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "type": {
+      "description": "Whether the theme is dark or light. A theme that extends no other takes the code and icon colors of the built-in theme of its type.",
+      "enum": [
+        "dark",
+        "light"
+      ]
+    },
+    "extends": {
+      "description": "The id of a built-in or user theme to build on; what this theme leaves out comes from it.",
+      "type": "string"
+    },
+    "palette": {
+      "description": "Named colors the ui, code and icons sections can use by name. A theme's palette is merged over those of the themes it extends.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/hexColor"
+      }
+    },
+    "ui": {
+      "description": "The interface's colors. Required unless an extended theme sets them: background, surface, control, field, border, text, textMuted, accent, onAccent. The others are derived from these when left out.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "$ref": "#/definitions/color"
+        },
+        "surface": {
+          "$ref": "#/definitions/color"
+        },
+        "surfaceRaised": {
+          "$ref": "#/definitions/color"
+        },
+        "control": {
+          "$ref": "#/definitions/color"
+        },
+        "controlHovered": {
+          "$ref": "#/definitions/color"
+        },
+        "controlPressed": {
+          "$ref": "#/definitions/color"
+        },
+        "field": {
+          "$ref": "#/definitions/color"
+        },
+        "editorBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "paneBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "paneToolbarBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "tableHeaderBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "tabStripBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "tabActiveBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "tabHoverBackground": {
+          "$ref": "#/definitions/color"
+        },
+        "border": {
+          "$ref": "#/definitions/color"
+        },
+        "borderStrong": {
+          "$ref": "#/definitions/color"
+        },
+        "separator": {
+          "$ref": "#/definitions/color"
+        },
+        "text": {
+          "$ref": "#/definitions/color"
+        },
+        "textMuted": {
+          "$ref": "#/definitions/color"
+        },
+        "textDisabled": {
+          "$ref": "#/definitions/color"
+        },
+        "accent": {
+          "$ref": "#/definitions/color"
+        },
+        "accentHovered": {
+          "$ref": "#/definitions/color"
+        },
+        "accentPressed": {
+          "$ref": "#/definitions/color"
+        },
+        "onAccent": {
+          "$ref": "#/definitions/color"
+        },
+        "accentText": {
+          "$ref": "#/definitions/color"
+        },
+        "focusRing": {
+          "$ref": "#/definitions/color"
+        },
+        "rowHover": {
+          "$ref": "#/definitions/color"
+        },
+        "selection": {
+          "$ref": "#/definitions/color"
+        },
+        "selectionInactive": {
+          "$ref": "#/definitions/color"
+        },
+        "selectionText": {
+          "$ref": "#/definitions/color"
+        },
+        "textSelection": {
+          "$ref": "#/definitions/color"
+        },
+        "danger": {
+          "$ref": "#/definitions/color"
+        },
+        "dangerSurface": {
+          "$ref": "#/definitions/color"
+        },
+        "onDanger": {
+          "$ref": "#/definitions/color"
+        },
+        "warning": {
+          "$ref": "#/definitions/color"
+        },
+        "warningSurface": {
+          "$ref": "#/definitions/color"
+        },
+        "success": {
+          "$ref": "#/definitions/color"
+        },
+        "scrim": {
+          "$ref": "#/definitions/color"
+        },
+        "scrollThumb": {
+          "$ref": "#/definitions/color"
+        },
+        "scrollThumbHovered": {
+          "$ref": "#/definitions/color"
+        },
+        "scrollThumbHeld": {
+          "$ref": "#/definitions/color"
+        },
+        "popupShadowColor": {
+          "$ref": "#/definitions/color"
+        },
+        "dialogShadowColor": {
+          "$ref": "#/definitions/color"
+        }
+      }
+    },
+    "code": {
+      "description": "The code view's colors. Those left out come from the theme extended, else from the built-in theme of the type.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plain": {
+          "$ref": "#/definitions/color"
+        },
+        "keyword": {
+          "$ref": "#/definitions/color"
+        },
+        "type": {
+          "$ref": "#/definitions/color"
+        },
+        "namespace": {
+          "$ref": "#/definitions/color"
+        },
+        "method": {
+          "$ref": "#/definitions/color"
+        },
+        "member": {
+          "$ref": "#/definitions/color"
+        },
+        "parameter": {
+          "$ref": "#/definitions/color"
+        },
+        "string": {
+          "$ref": "#/definitions/color"
+        },
+        "number": {
+          "$ref": "#/definitions/color"
+        },
+        "comment": {
+          "$ref": "#/definitions/color"
+        },
+        "preprocessor": {
+          "$ref": "#/definitions/color"
+        },
+        "ilOpcode": {
+          "$ref": "#/definitions/color"
+        },
+        "ilLabel": {
+          "$ref": "#/definitions/color"
+        },
+        "gutterText": {
+          "$ref": "#/definitions/color"
+        },
+        "gutterSeparator": {
+          "$ref": "#/definitions/color"
+        },
+        "foldChip": {
+          "$ref": "#/definitions/color"
+        },
+        "foldChipHovered": {
+          "$ref": "#/definitions/color"
+        },
+        "occurrence": {
+          "$ref": "#/definitions/color"
+        },
+        "findMatch": {
+          "$ref": "#/definitions/color"
+        },
+        "currentFind": {
+          "$ref": "#/definitions/color"
+        },
+        "currentFindOutline": {
+          "$ref": "#/definitions/color"
+        },
+        "flash": {
+          "$ref": "#/definitions/color"
+        },
+        "currentLine": {
+          "$ref": "#/definitions/color"
+        },
+        "matchingBracket": {
+          "$ref": "#/definitions/color"
+        },
+        "bookmark": {
+          "$ref": "#/definitions/color"
+        }
+      }
+    },
+    "icons": {
+      "description": "The tree's icon colors. Those left out come from the theme extended, else from the built-in theme of the type.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "neutral": {
+          "$ref": "#/definitions/color"
+        },
+        "type": {
+          "$ref": "#/definitions/color"
+        },
+        "method": {
+          "$ref": "#/definitions/color"
+        },
+        "data": {
+          "$ref": "#/definitions/color"
+        },
+        "error": {
+          "$ref": "#/definitions/color"
+        },
+        "restricted": {
+          "$ref": "#/definitions/color"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "hexColor": {
+      "description": "#RRGGBB, or #RRGGBBAA with alpha. #00000000 reads as unset, so it is refused; for an invisible color write another transparent one, such as #FFFFFF00.",
+      "type": "string",
+      "pattern": "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+      "not": {
+        "const": "#00000000"
+      }
+    },
+    "color": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/hexColor"
+        },
+        {
+          "description": "The name of a palette color.",
+          "type": "string",
+          "pattern": "^[^#]"
+        }
+      ]
+    }
+  }
+}

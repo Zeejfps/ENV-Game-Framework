@@ -14,13 +14,28 @@ public sealed class AppSettings
     public static string DefaultPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZGF.ILSpy", "settings.json");
 
+    private const string ThemesFolderName = "themes";
+
     /// <summary>Where <see cref="Save"/> writes; null keeps the settings in memory only.</summary>
     [JsonIgnore]
-    public string? FilePath { get; set; }
+    public string? FilePath
+    {
+        get;
+        set
+        {
+            field = value;
+            ThemesFolder = FindThemesFolder(value);
+        }
+    }
 
     /// <summary>Why the file could not be read, when <see cref="Load"/> fell back to defaults.</summary>
     [JsonIgnore]
     public string? LoadError { get; private set; }
+
+    /// <summary>Where the user's themes are: a folder beside the settings file; null while the settings
+    /// are kept in memory only.</summary>
+    [JsonIgnore]
+    public string? ThemesFolder { get; private set; }
 
     /// <summary>The named assembly lists, the open one's as it was left.</summary>
     public List<AssemblyListRecord> AssemblyLists { get; set; } = new();
@@ -32,7 +47,9 @@ public sealed class AppSettings
     /// moves it into <see cref="AssemblyLists"/>, so it is never written.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? Assemblies { get; set; }
-    public AppThemeId Theme { get; set; } = AppThemeId.Dark;
+
+    /// <summary>The id of the chosen theme, the name of its file without the extension.</summary>
+    public string Theme { get; set; } = ThemeCatalog.DarkId;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
 
@@ -146,6 +163,7 @@ public sealed class AppSettings
         settings.MoveUnnamedListIntoDefault();
         settings.MoveAnalysesIntoActiveList();
         settings.MoveShowNonPublicIntoApiVisibility();
+        settings.RenameThemeToId();
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.FilePath = path;
@@ -192,6 +210,44 @@ public sealed class AppSettings
         if (ShowNonPublic == false)
             ApiVisibility = ApiVisibility.PublicOnly;
         ShowNonPublic = null;
+    }
+
+    /// <summary>Turns the theme's name from before themes were files into the id of its file, and a
+    /// missing theme into the default one.</summary>
+    private void RenameThemeToId()
+    {
+        if (string.IsNullOrWhiteSpace(Theme))
+        {
+            Theme = ThemeCatalog.DarkId;
+            return;
+        }
+        var id = IdOfOldTheme(Theme);
+        if (id != null)
+            Theme = id;
+    }
+
+    private static string? IdOfOldTheme(string name) => name switch
+    {
+        "Dark" => "dark",
+        "Light" => "light",
+        "GitHubDark" => "github-dark",
+        "OneDarkPro" => "one-dark-pro",
+        "Dracula" => "dracula",
+        "Monokai" => "monokai",
+        "CatppuccinMocha" => "catppuccin-mocha",
+        "GitHubLight" => "github-light",
+        "SolarizedLight" => "solarized-light",
+        _ => null,
+    };
+
+    private static string? FindThemesFolder(string? settingsFile)
+    {
+        if (settingsFile == null)
+            return null;
+        var folder = Path.GetDirectoryName(settingsFile);
+        if (folder == null)
+            return null;
+        return Path.Combine(folder, ThemesFolderName);
     }
 
     private static List<CodeAnchor> CleanAnalyses(List<CodeAnchor>? analyzed)

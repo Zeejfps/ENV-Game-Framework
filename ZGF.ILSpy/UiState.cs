@@ -40,8 +40,8 @@ public sealed class UiState : IUiState
     private Strings ReadStrings() => Strings;
 
     public UiTheme Theme { get; set; } = UiTheme.Dark;
-    public CodeViewPalette CodeViewPalette { get; set; } = CodeViewPalette.Dark;
-    public NodeIconPalette NodeIconPalette { get; set; } = NodeIconPalette.Dark;
+    public CodeViewPalette CodeViewPalette { get; set; } = BuiltInThemes.Dark.Code;
+    public NodeIconPalette NodeIconPalette { get; set; } = BuiltInThemes.Dark.Icons;
     public Strings Strings { get; set; } = Strings.En;
 
     /// <summary>What the screen asked of the app state while it drew, for the app to run once the frame is drawn.</summary>

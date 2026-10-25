@@ -263,7 +263,7 @@ internal sealed class AppDriver
     public UiState Ui => Driver.Ui;
     public IlSpyApp App { get; }
     public UiFrames Frames { get; }
-    public UiTheme Theme => AppThemes.For(AppState.Theme).Ui;
+    public UiTheme Theme => Theming.ResolveTheme(AppState).Ui;
 
     public BrowseNode Node(params ReadOnlySpan<string> labels) => Driver.Node(labels);
 

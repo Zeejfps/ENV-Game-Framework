@@ -1,8 +1,14 @@
+using System.Globalization;
+
 namespace ZGF.Gui.Immediate;
 
 /// <summary>Helpers for 0xAARRGGBB colors.</summary>
 public static class UiColor
 {
+    private const int OpaqueHexLength = 7;
+    private const int TranslucentHexLength = 9;
+    private const uint OpaqueAlpha = 0xFF000000;
+
     /// <summary>Blends from <paramref name="a"/> toward <paramref name="b"/> by
     /// <paramref name="t"/>, channel by channel including alpha.</summary>
     public static uint Mix(uint a, uint b, float t)
@@ -30,4 +36,29 @@ public static class UiColor
 
     /// <summary>Whether text on <paramref name="color"/> should be light.</summary>
     public static bool IsDark(uint color) => Luminance(color) < 0.18f;
+
+    /// <summary>Reads <paramref name="text"/> written as CSS writes a color, <c>#RRGGBB</c> or
+    /// <c>#RRGGBBAA</c>, as 0xAARRGGBB; six digits are opaque.</summary>
+    public static bool TryParse(ReadOnlySpan<char> text, out uint color)
+    {
+        color = 0;
+        if (text.Length != OpaqueHexLength && text.Length != TranslucentHexLength)
+            return false;
+        if (text[0] != '#')
+            return false;
+        var hex = text.Slice(1);
+        if (!uint.TryParse(hex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var digits))
+            return false;
+        color = ToArgb(digits, text.Length == TranslucentHexLength);
+        return true;
+    }
+
+    private static uint ToArgb(uint digits, bool hasAlpha)
+    {
+        if (!hasAlpha)
+            return OpaqueAlpha | digits;
+        var alpha = digits & 0xFFu;
+        var rgb = digits >> 8;
+        return (alpha << 24) | rgb;
+    }
 }
