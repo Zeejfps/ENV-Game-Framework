@@ -45,7 +45,7 @@ internal static class MainMenuView
         var t = ui.State.Strings;
         FileFilter[] filters =
         [
-            new(t.FileFilterAssemblies, ["*.dll", "*.exe", "*.winmd"]),
+            new(t.FileFilterAssembliesAndPackages, ["*.dll", "*.exe", "*.winmd", "*.nupkg", "*.zip"]),
             new(t.FileFilterAll, ["*.*"]),
         ];
         ui.PickFile(t.FileOpenTitle, null, filters, path => OpenAssembly(appState, path));

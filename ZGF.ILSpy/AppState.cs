@@ -123,15 +123,19 @@ public sealed class AppState
     /// <summary>Queues <paramref name="command"/> for the view to run before it draws next.</summary>
     public void EnqueueCommand(ViewCommand command) => ViewCommands.Enqueue(command);
 
-    /// <summary>True when <paramref name="node"/>'s assembly is open in the active list, loaded or failed.</summary>
-    public bool IsListed(BrowseNode node) => Assemblies.Listed.Contains(node.Assembly);
+    /// <summary>True when <paramref name="node"/>'s assembly, or the package it was read out of, is
+    /// open in the active list, loaded or failed.</summary>
+    public bool IsListed(BrowseNode node) => Assemblies.Listed.Contains(node.Assembly.ListedItem);
 
-    /// <summary>True when the assembly at <paramref name="filePath"/> is open in the active list.</summary>
+    /// <summary>True when the assembly or package at <paramref name="filePath"/> is open in the active
+    /// list and loaded.</summary>
     internal bool IsListed(string filePath)
     {
-        var listed = Assemblies.Assemblies;
+        var listed = Assemblies.Listed;
         for (var i = 0; i < listed.Count; i++)
         {
+            if (listed[i].HasLoadError)
+                continue;
             if (string.Equals(listed[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
                 return true;
         }

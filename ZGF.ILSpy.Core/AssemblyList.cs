@@ -87,17 +87,19 @@ public sealed class AssemblyList
         }
     }
 
-    /// <summary>Removes <paramref name="assembly"/> from the list, and for a package, forgets the
-    /// assemblies read out of it. Documents and nodes already handed out stay valid.</summary>
+    /// <summary>Removes the item of the list holding <paramref name="assembly"/>: the assembly, or the
+    /// package it was read out of, whose assemblies are forgotten with it. Documents and nodes already
+    /// handed out stay valid.</summary>
     public void Close(LoadedAssembly assembly)
     {
+        var item = assembly.ListedItem;
         lock (_gate)
         {
-            if (!assembly.HasLoadError && !ForgetKnown(assembly)) return;
-            ForgetReadOutOf(assembly);
-            if (!assembly.IsListed) return;
-            assembly.IsListed = false;
-            ChangeListed(_listed.Remove(assembly));
+            if (!item.HasLoadError && !ForgetKnown(item)) return;
+            ForgetReadOutOf(item);
+            if (!item.IsListed) return;
+            item.IsListed = false;
+            ChangeListed(_listed.Remove(item));
         }
         Changed?.Invoke();
     }

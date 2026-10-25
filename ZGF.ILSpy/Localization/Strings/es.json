@@ -10,7 +10,7 @@
   "file.reload_all": "Recargar todo",
   "file.exit": "Salir",
   "file.open_title": "Abrir ensamblado",
-  "file.filter_assemblies": "Ensamblados",
+  "file.filter_assemblies_and_packages": "Ensamblados y paquetes",
   "file.filter_all": "Todos los archivos",
   "file.save_code": "Guardar código…",
   "file.export": "Exportar…",

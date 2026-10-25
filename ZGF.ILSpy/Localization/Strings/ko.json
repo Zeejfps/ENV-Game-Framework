@@ -10,7 +10,7 @@
   "file.reload_all": "모두 다시 로드",
   "file.exit": "끝내기",
   "file.open_title": "어셈블리 열기",
-  "file.filter_assemblies": "어셈블리",
+  "file.filter_assemblies_and_packages": "어셈블리 및 패키지",
   "file.filter_all": "모든 파일",
   "file.save_code": "코드 저장…",
   "file.export": "내보내기…",

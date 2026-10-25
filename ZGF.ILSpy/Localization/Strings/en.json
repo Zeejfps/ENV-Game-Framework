@@ -11,7 +11,7 @@
   "file.reload_all": "Reload all",
   "file.exit": "Exit",
   "file.open_title": "Open assembly",
-  "file.filter_assemblies": "Assemblies",
+  "file.filter_assemblies_and_packages": "Assemblies and packages",
   "file.filter_all": "All files",
   "file.save_code": "Save code…",
   "file.export": "Export…",

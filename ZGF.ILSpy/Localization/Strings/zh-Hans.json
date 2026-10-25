@@ -10,7 +10,7 @@
   "file.reload_all": "全部重新加载",
   "file.exit": "退出",
   "file.open_title": "打开程序集",
-  "file.filter_assemblies": "程序集",
+  "file.filter_assemblies_and_packages": "程序集和包",
   "file.filter_all": "所有文件",
   "file.save_code": "保存代码…",
   "file.export": "导出…",

@@ -10,7 +10,7 @@
   "file.reload_all": "Перезагрузить все",
   "file.exit": "Выход",
   "file.open_title": "Открыть сборку",
-  "file.filter_assemblies": "Сборки",
+  "file.filter_assemblies_and_packages": "Сборки и пакеты",
   "file.filter_all": "Все файлы",
   "file.save_code": "Сохранить код…",
   "file.export": "Экспорт…",

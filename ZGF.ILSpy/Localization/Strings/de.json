@@ -10,7 +10,7 @@
   "file.reload_all": "Alle neu laden",
   "file.exit": "Beenden",
   "file.open_title": "Assembly öffnen",
-  "file.filter_assemblies": "Assemblys",
+  "file.filter_assemblies_and_packages": "Assemblys und Pakete",
   "file.filter_all": "Alle Dateien",
   "file.save_code": "Code speichern…",
   "file.export": "Exportieren…",

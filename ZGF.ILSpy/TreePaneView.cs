@@ -79,23 +79,23 @@ internal static class TreePaneView
         ui.Focus(ui.GetId(TreeId), takesText: false);
     }
 
-    /// <summary>The assembly node selected in the tree, loaded or failed, or null when none is or
-    /// another kind of node is.</summary>
+    /// <summary>The root selected in the tree, of an assembly, a package or a file that failed to
+    /// load, or null when none is or another node is.</summary>
     private static BrowseNode? FindPickedAssembly(BrowseTree tree)
     {
         var node = tree.View.Selected;
         if (node == null)
             return null;
-        if (!IsAssemblyRoot(node))
+        if (!IsListedRoot(node))
             return null;
         return node;
     }
 
-    private static bool IsAssemblyRoot(BrowseNode node)
+    /// <summary>Whether <paramref name="node"/> is the root of an item of the list; an assembly read out
+    /// of a package is not one.</summary>
+    private static bool IsListedRoot(BrowseNode node)
     {
-        if (node.Kind == NodeKind.Assembly)
-            return true;
-        return node.Kind == NodeKind.FailedAssembly;
+        return node.Parent == null;
     }
 
     private static void EmptyHint(Ui<UiState> ui)
@@ -201,9 +201,9 @@ internal static class TreePaneView
             ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
             ScopeSearch(ui.State, node);
-        if (IsAssemblyRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: ContainingFolderIcon))
+        if (IsListedRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: ContainingFolderIcon))
             ui.RevealFile(node.Assembly.FilePath);
-        if (IsAssemblyRoot(node))
+        if (IsListedRoot(node))
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))

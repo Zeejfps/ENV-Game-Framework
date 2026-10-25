@@ -10,7 +10,7 @@
   "file.reload_all": "すべて再読み込み",
   "file.exit": "終了",
   "file.open_title": "アセンブリを開く",
-  "file.filter_assemblies": "アセンブリ",
+  "file.filter_assemblies_and_packages": "アセンブリとパッケージ",
   "file.filter_all": "すべてのファイル",
   "file.save_code": "コードを保存…",
   "file.export": "エクスポート…",

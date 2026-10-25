@@ -100,6 +100,17 @@ public sealed class LoadedAssembly
     /// <summary>The package this assembly was read out of, and its file there; null for a file on disk.</summary>
     public PackagePlace? InPackage { get; }
 
+    /// <summary>The item of the list that holds this assembly: itself, or the package it was read out of.</summary>
+    public LoadedAssembly ListedItem
+    {
+        get
+        {
+            if (InPackage == null)
+                return this;
+            return InPackage.Container;
+        }
+    }
+
     /// <summary>The simple name, e.g. <c>System.Private.CoreLib</c>.</summary>
     public string Name { get; }
 
