@@ -51,6 +51,7 @@ public static class LucideIcons
     public const string Layers3 = "\uE529";
     public const string LayoutGrid = "\uE0FF";
     public const string Library = "\uE100";
+    public const string LibrarySquare = "\uE54F";
     public const string LibraryBig = "\uE54E";
     public const string Link2 = "\uE103";
     public const string List = "\uE106";

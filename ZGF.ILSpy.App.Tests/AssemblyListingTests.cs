@@ -489,6 +489,17 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
+    public void The_toolbars_manage_lists_button_opens_the_lists_dialog()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+
+        app.Click(LucideIcons.LibrarySquare).Frame(2);
+
+        Assert.True(app.Ui.ListsDialog.IsOpen);
+    }
+
+    [Fact]
     public void A_rows_activate_button_switches_to_its_list_and_leaves_the_dialog_open()
     {
         var app = OpenedDialog();

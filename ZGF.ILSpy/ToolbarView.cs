@@ -13,6 +13,8 @@ internal static class ToolbarView
 {
     private const string ListItemPrefix = "list:";
 
+    private static readonly UiIcon ManageListsIcon = new(LucideIcons.LibrarySquare, LucideIcons.Family);
+
     private static Strings? _languagesFor;
     private static Segment<DecompilationLanguage>[] _languages = [];
 
@@ -30,7 +32,11 @@ internal static class ToolbarView
         }))
         {
             using (Group(ui))
+            {
                 ListPicker(ui, appState);
+                if (ui.IconButton("manage-lists", LucideIcons.LibrarySquare, LucideIcons.Family, t.ListsManage, variant: ButtonVariant.Neutral))
+                    AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
+            }
 
             using (Group(ui))
             {
@@ -91,7 +97,7 @@ internal static class ToolbarView
         foreach (var name in lists.Names)
             ListItem(ui, appState, name);
         ui.MenuSeparator();
-        if (ui.MenuItem(t.ListsManage, id: "manage"))
+        if (ui.MenuItem(t.ListsManage, id: "manage", icon: ManageListsIcon))
             AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
     }
 
