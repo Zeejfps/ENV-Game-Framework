@@ -15,6 +15,10 @@ namespace ZGF.Gui.Immediate.Widgets;
 public readonly record struct DockTab(string Title, bool Closable = true, bool Movable = true, string? Tooltip = null, bool Current = true,
     UiIcon? Icon = null);
 
+/// <summary>A tab right-clicked in a <see cref="UiWidgets.DockSpace"/>: its panel, and where to open
+/// its context menu.</summary>
+public readonly record struct DockTabMenu(string Panel, PointF At);
+
 /// <summary>An open <see cref="UiWidgets.DockSpace"/>: call <see cref="Next"/> until it returns
 /// false, recording each panel it names, then dispose.</summary>
 public readonly struct DockSpace : IDisposable
@@ -22,6 +26,10 @@ public readonly struct DockSpace : IDisposable
     private readonly DockWalker? _walker;
 
     internal DockSpace(DockWalker walker) => _walker = walker;
+
+    /// <summary>The tab right-clicked this frame, known once <see cref="Next"/> returned false; null
+    /// when none was.</summary>
+    public DockTabMenu? TabMenu => _walker?.TabMenu;
 
     /// <summary>Records the dock space up to the next panel in view and names it: record that
     /// panel's content, then call again. Content is recorded in a <see cref="Ui.StateScope"/> named
@@ -48,7 +56,8 @@ public static partial class UiWidgets
     /// space's rim to split there, or, holding Ctrl, off into a window of its own; drags a window by
     /// its title bar to dock it the same way, or to move it while Ctrl is held, and its edges to
     /// resize it; and drags dividers. Pressing a group focuses its front panel
-    /// (<see cref="DockLayout.Focused"/>). Every change is written to <paramref name="layout"/> when
+    /// (<see cref="DockLayout.Focused"/>). A tab right-clicked is named by <see cref="DockSpace.TabMenu"/>
+    /// for the caller's context menu. Every change is written to <paramref name="layout"/> when
     /// the scope ends. Escape cancels a drag. <paramref name="tabListTooltip"/> names the button
     /// that lists a group's tabs while they overflow.
     /// </summary>
@@ -150,6 +159,8 @@ internal sealed class DockWalker
     private UiRect? _preview;
     private UiRect? _caret;
 
+    public DockTabMenu? TabMenu { get; private set; }
+
     public IDockTabs Tabs<TState>(TState state, Func<TState, string, DockTab> name)
     {
         if (_source is not DockTabs<TState> tabs)
@@ -173,6 +184,7 @@ internal sealed class DockWalker
         _closed.Clear();
         _closedWindows.Clear();
         _preview = _caret = null;
+        TabMenu = null;
         _nextWindow = -1;
         _open = true;
 
@@ -415,6 +427,8 @@ internal sealed class DockWalker
                         _closed.Add(panel);
                     if (tab.Dragged)
                         BeginPanelDrag(panel, elementId, tab.Id);
+                    if (tab.ContextMenuRequested)
+                        TabMenu = new DockTabMenu(panel, tab.ContextMenuAt);
                 }
             }
         }

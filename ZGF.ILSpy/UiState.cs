@@ -81,6 +81,9 @@ public sealed class UiState : IUiState
     /// <summary>The node the tree's context menu was opened on.</summary>
     public BrowseNode? MenuTarget;
 
+    /// <summary>The document whose tab's context menu was opened.</summary>
+    public DocumentTab? TabMenuTarget;
+
     /// <summary>The analyzer's tree as its view shows it.</summary>
     public AnalyzerRows Analyzer { get; }
 

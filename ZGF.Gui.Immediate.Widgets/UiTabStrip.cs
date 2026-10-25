@@ -1,3 +1,5 @@
+using ZGF.Geometry;
+
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>What the pointer did to one tab: <see cref="Selected"/> when it is pressed while not
@@ -10,6 +12,12 @@ public readonly record struct TabResult(bool Selected, bool Closed)
     /// <summary>The tab is held and the pointer has moved far enough to drag it off: the cue to
     /// <see cref="Ui.BeginDrag"/>. Only for a tab recorded as draggable.</summary>
     public bool Dragged { get; init; }
+
+    /// <summary>The tab was right-clicked: the cue to open its context menu at <see cref="ContextMenuAt"/>.</summary>
+    public bool ContextMenuRequested { get; init; }
+
+    /// <summary>Where the pointer was when <see cref="ContextMenuRequested"/>.</summary>
+    public PointF ContextMenuAt { get; init; }
 }
 
 /// <summary>An open <see cref="UiWidgets.TabStrip"/>: record each tab with <see cref="Tab"/>, then
@@ -241,6 +249,12 @@ public static partial class UiWidgets
         }
         if (tooltip != null)
             ui.Tooltip(tab.Id, tooltip);
-        return new TabResult((tab.Pressed || picked) && !selected, closed) { Id = tab.Id, Dragged = draggable && ui.ShouldBeginDrag(tab) };
+        return new TabResult((tab.Pressed || picked) && !selected, closed)
+        {
+            Id = tab.Id,
+            Dragged = draggable && ui.ShouldBeginDrag(tab),
+            ContextMenuRequested = tab.ClickedWith(PointerButton.Right),
+            ContextMenuAt = ui.Input.Pointer,
+        };
     }
 }

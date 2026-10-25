@@ -18,6 +18,7 @@ public sealed class DockSpaceTests
         Root = DockLayout.Split(Direction.Horizontal, 0.5f, DockLayout.Group("a", "b"), DockLayout.Group("c")),
     };
     private readonly Dictionary<string, Counter> _counters = new();
+    private DockTabMenu? _tabMenu;
 
     public DockSpaceTests() => _frames = new UiFrames(new DefaultUiState(), width: 800f, height: 600f, body: Body);
 
@@ -29,6 +30,7 @@ public sealed class DockSpaceTests
             _counters[panel] = ui.GetState<Counter>(ui.GetId("counter"));
             ui.Text("content:" + panel);
         }
+        _tabMenu = dock.TabMenu;
     }
 
     private UiRect TabRect(string panel) => _frames.RectOf(ui => DockWalker.TabId(ui, "dock", panel));
@@ -79,6 +81,21 @@ public sealed class DockSpaceTests
 
         Assert.Equal(["a"], closed);
         Assert.Equal(["b"], _layout.GroupOf("b")!.Panels);
+    }
+
+    [Fact]
+    public void Right_clicking_a_tab_names_its_panel_for_a_context_menu_without_bringing_it_to_the_front()
+    {
+        _frames.Frame();
+        var tab = TabRect("b");
+
+        _frames.ClickOn(ui => DockWalker.TabId(ui, "dock", "b"), PointerButton.Right);
+
+        Assert.Equal("b", _tabMenu!.Value.Panel);
+        Assert.True(tab.Contains(_tabMenu.Value.At));
+        Assert.Equal("a", _layout.GroupOf("b")!.Active);
+        _frames.Frame();
+        Assert.Null(_tabMenu);
     }
 
     [Fact]

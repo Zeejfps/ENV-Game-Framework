@@ -25,6 +25,7 @@ internal static class Shortcuts
     public const string Back = "Alt+Left";
     public const string Forward = "Alt+Right";
     public const string ReloadAll = "F5";
+    public const string CloseTab = "Ctrl+W";
     public const string ZoomIn = "Ctrl+=";
     public const string ZoomOut = "Ctrl+-";
     public const string ZoomReset = "Ctrl+0";

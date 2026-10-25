@@ -71,10 +71,16 @@ public static class MainView
     private static void DockSpace(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        using var dock = ui.DockSpace("dock", ui.State.Layout, (ui.State, appState, t), static (s, panel) => Tab(s.State, s.appState, s.t, panel),
-            tabListTooltip: t.DockAllTabs);
-        while (dock.Next(out var panel))
-            Panel(ui, appState, panel);
+        DockTabMenu? tabMenu;
+        using (var dock = ui.DockSpace("dock", ui.State.Layout, (ui.State, appState, t), static (s, panel) => Tab(s.State, s.appState, s.t, panel),
+                   tabListTooltip: t.DockAllTabs))
+        {
+            while (dock.Next(out var panel))
+                Panel(ui, appState, panel);
+            tabMenu = dock.TabMenu;
+        }
+        TabMenuView.OpenOnRightClick(ui, tabMenu);
+        TabMenuView.Render(ui);
     }
 
     private static DockTab Tab(UiState screen, AppState appState, Strings t, string panel)

@@ -173,7 +173,74 @@ public static class DocumentPanels
         var tab = uiState.ActiveTab;
         if (tab == null)
             return;
+        CloseTab(uiState, tab);
+    }
+
+    /// <summary>Closes <paramref name="tab"/>'s panel, which asks for the tab to be closed.</summary>
+    public static void CloseTab(UiState uiState, DocumentTab tab)
+    {
         uiState.Layout.Close(uiState.Documents.PanelOf(tab));
+    }
+
+    /// <summary>Closes the document tabs of <paramref name="tab"/>'s group but <paramref name="tab"/>.</summary>
+    public static void CloseOtherTabs(UiState uiState, DocumentTab tab)
+    {
+        var others = ListTabsInGroup(uiState, tab);
+        others.Remove(tab);
+        CloseTabs(uiState, others);
+    }
+
+    /// <summary>Closes every document tab of <paramref name="tab"/>'s group.</summary>
+    public static void CloseTabsInGroup(UiState uiState, DocumentTab tab)
+    {
+        var all = ListTabsInGroup(uiState, tab);
+        CloseTabs(uiState, all);
+    }
+
+    /// <summary>Closes the document tabs before <paramref name="tab"/> in its group.</summary>
+    public static void CloseTabsLeftOf(UiState uiState, DocumentTab tab)
+    {
+        var tabs = ListTabsInGroup(uiState, tab);
+        var index = tabs.IndexOf(tab);
+        var left = tabs.GetRange(0, index);
+        CloseTabs(uiState, left);
+    }
+
+    /// <summary>Closes the document tabs after <paramref name="tab"/> in its group.</summary>
+    public static void CloseTabsRightOf(UiState uiState, DocumentTab tab)
+    {
+        var tabs = ListTabsInGroup(uiState, tab);
+        var after = tabs.IndexOf(tab) + 1;
+        var right = tabs.GetRange(after, tabs.Count - after);
+        CloseTabs(uiState, right);
+    }
+
+    /// <summary>The document tabs of <paramref name="tab"/>'s group, in the order its strip shows
+    /// them, leaving out the other panels docked there.</summary>
+    public static List<DocumentTab> ListTabsInGroup(UiState uiState, DocumentTab tab)
+    {
+        var tabs = new List<DocumentTab>();
+        var group = uiState.Layout.GroupOf(uiState.Documents.PanelOf(tab));
+        if (group == null)
+            return tabs;
+        foreach (var panel in group.Panels)
+            AddTabOf(uiState, tabs, panel);
+        return tabs;
+    }
+
+    /// <summary>Adds the tab of <paramref name="panel"/> to <paramref name="tabs"/> when it is a document's.</summary>
+    private static void AddTabOf(UiState uiState, List<DocumentTab> tabs, string? panel)
+    {
+        var tab = uiState.Documents.FindTab(panel);
+        if (tab == null)
+            return;
+        tabs.Add(tab);
+    }
+
+    private static void CloseTabs(UiState uiState, List<DocumentTab> tabs)
+    {
+        foreach (var tab in tabs)
+            CloseTab(uiState, tab);
     }
 
     /// <summary>The panel of the active tab, which the views dock beside, or null.</summary>
@@ -217,15 +284,7 @@ public static class DocumentPanels
     {
         var tabs = new List<DocumentTab>();
         foreach (var group in uiState.Layout.AllGroups())
-            AddFrontTab(uiState, tabs, group.Active);
+            AddTabOf(uiState, tabs, group.Active);
         return tabs;
-    }
-
-    private static void AddFrontTab(UiState uiState, List<DocumentTab> tabs, string? panel)
-    {
-        var tab = uiState.Documents.FindTab(panel);
-        if (tab == null)
-            return;
-        tabs.Add(tab);
     }
 }
