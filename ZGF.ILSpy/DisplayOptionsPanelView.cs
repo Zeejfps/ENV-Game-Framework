@@ -22,6 +22,10 @@ internal static class DisplayOptionsPanelView
     private const float FormMaxWidth = 560f;
     private const string RowSuffix = "-row";
     private const float FontPickerMaxWidth = 220f;
+    private const float PickerMinWidth = 64f;
+    private const float TitleMinWidth = 48f;
+    private const int TitlePriority = 1;
+    private const float WholeWidth = 1f;
     private const string PreviewText = "The quick brown fox jumps over the lazy dog";
 
     private const int NothingPicked = -1;
@@ -85,7 +89,7 @@ internal static class DisplayOptionsPanelView
     /// have a folder to keep themes in.</summary>
     private static void ThemePicker(Ui<UiState> ui, AppState appState)
     {
-        using var controls = ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.GapTight, AlignY = Align.Center });
+        using var controls = ui.Row(new Box { Width = ControlWidth(0f, 0f), Gap = ui.Theme.GapTight, AlignY = Align.Center });
         PickTheme(ui, appState);
         if (appState.Settings.ThemesFolder == null)
             return;
@@ -137,7 +141,7 @@ internal static class DisplayOptionsPanelView
     /// while the settings have a folder to keep icon themes in.</summary>
     private static void IconThemePicker(Ui<UiState> ui, AppState appState)
     {
-        using var controls = ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.GapTight, AlignY = Align.Center });
+        using var controls = ui.Row(new Box { Width = ControlWidth(0f, 0f), Gap = ui.Theme.GapTight, AlignY = Align.Center });
         PickIconTheme(ui, appState);
         if (appState.Settings.IconThemesFolder == null)
             return;
@@ -238,7 +242,8 @@ internal static class DisplayOptionsPanelView
             .ToArray();
     }
 
-    /// <summary>A dropdown as wide as the widest of <paramref name="labels"/>, showing the one at
+    /// <summary>A dropdown as wide as the widest of <paramref name="labels"/> while the row has room, cut
+    /// short with its label ellipsized when the row is narrow, showing the one at
     /// <paramref name="current"/>, or the first when it is none of them; returns the index picked on
     /// this frame, or <see cref="NothingPicked"/>. Its items are told apart by <paramref name="itemIds"/>
     /// when labels can repeat, else by their labels; the open menu closes when <paramref name="revision"/>
@@ -246,7 +251,7 @@ internal static class DisplayOptionsPanelView
     private static int PickFrom(Ui<UiState> ui, string id, string[] labels, int current, IReadOnlyList<string>? itemIds = null,
         int revision = 0)
     {
-        var width = ui.SelectButtonWidth(labels);
+        var width = ControlWidth(PickerMinWidth, ui.SelectButtonWidth(labels));
         var shown = Math.Max(current, 0);
         using var menu = ui.SelectButton(id, labels[shown], width, revision: revision);
         if (!menu.IsOpen)
@@ -308,7 +313,8 @@ internal static class DisplayOptionsPanelView
         var choices = ui.State.CodeFonts;
         var chosen = ui.State.Display.Font;
         var shown = CodeFontChoices.NameOf(chosen);
-        using var menu = ui.SelectButton("code-font", shown, MeasureFontPicker(ui, shown));
+        var width = ControlWidth(PickerMinWidth, MeasureFontPicker(ui, shown), FontPickerMaxWidth);
+        using var menu = ui.SelectButton("code-font", shown, width);
         if (!menu.IsOpen)
             return;
         var fonts = choices.Fonts;
@@ -488,12 +494,27 @@ internal static class DisplayOptionsPanelView
             Padding = new Spacing(theme.PanelPadding, theme.Gap),
             AlignY = Align.Center,
         });
-        using (ui.Column(new Box { Width = Sizing.Grow(), Gap = theme.GapTight }))
+        using (ui.Column(new Box { Width = TitleWidth(ui, title, changed), Gap = theme.GapTight }))
         {
             ui.Text(title, new Box { Width = Sizing.Grow() }, bold: changed, overflow: TextOverflow.Ellipsis);
             if (description != null)
-                ui.Text(description, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
+                ui.Text(description, new Box { Width = Sizing.Percent(WholeWidth) }, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
         }
         return row;
     }
+
+    /// <summary>The title's share of a row: what the control leaves. The description wraps in it and
+    /// asks for no room of its own. When the row is short the control gives up room first, and the
+    /// title only after it, cut short down to its own width or <see cref="TitleMinWidth"/>, whichever
+    /// is less.</summary>
+    private static Sizing TitleWidth(Ui<UiState> ui, string title, bool bold)
+    {
+        var width = ui.MeasureText(title, bold: bold);
+        return Sizing.Grow(MathF.Min(width, TitleMinWidth)) with { Priority = TitlePriority };
+    }
+
+    /// <summary>A control's width at the right of a row: <paramref name="size"/>, or its content's when
+    /// larger, up to <paramref name="max"/>, giving up room down to <paramref name="min"/> before the
+    /// title gives up any.</summary>
+    private static Sizing ControlWidth(float min, float size, float max = float.PositiveInfinity) => Sizing.Shrink(min, size, max);
 }

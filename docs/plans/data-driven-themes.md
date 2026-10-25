@@ -161,7 +161,9 @@ the color themes.
    `Keys` list with each key's description, taken from the comment above it. A misspelled key fails to compile.
 5. Registering a font at runtime already works (`ui.RegisterFont`); a font that fails to load is skipped
    instead of failing the frame, and the host keeps loaded faces by their bytes, so registering an unchanged
-   font again reuses its face. `FontFace.ReadCharacters()` loads a face only to check it and list its
+   font again reuses its face. A face no family draws with any more, after its family is registered with
+   changed bytes or unregistered (`ui.UnregisterFont`), is released between frames with its glyphs' atlas
+   space; ILSpy unregisters the fonts of an icon theme it leaves. `FontFace.ReadCharacters()` loads a face only to check it and list its
    characters, so a theme reports a font that cannot be loaded, or a glyph its font lacks, and falls back.
    The framework's own line-drawn chevrons, checks and crosses stay as they are.
 

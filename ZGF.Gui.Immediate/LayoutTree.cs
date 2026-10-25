@@ -512,37 +512,76 @@ internal sealed class LayoutTree
         {
             ref var e = ref span[i];
             float content;
+            var least = 0f;
             if (e.FirstChild >= 0)
             {
                 var sum = 0f;
                 var max = 0f;
+                var leastSum = 0f;
+                var leastMax = 0f;
                 var count = 0;
                 for (var c = e.FirstChild; c >= 0; c = span[c].NextSibling)
                 {
                     if (span[c].Floating) continue;
                     var size = x ? span[c].W : span[c].H;
+                    var childLeast = LeastSize(ref span[c], x);
                     sum += size;
                     max = MathF.Max(max, size);
+                    leastSum += childLeast;
+                    leastMax = MathF.Max(leastMax, childLeast);
                     count++;
                 }
-                content = e.Horizontal == x ? sum + e.Gap * Math.Max(0, count - 1) : max;
+                var gaps = e.Gap * Math.Max(0, count - 1);
+                content = e.Horizontal == x ? sum + gaps : max;
+                least = e.Horizontal == x ? leastSum + gaps : leastMax;
             }
             else
             {
                 content = x ? e.ContentWidth : e.ContentHeight;
             }
 
-            content += x ? e.Padding.Left + e.Padding.Right : e.Padding.Top + e.Padding.Bottom;
+            var padding = x ? e.Padding.Left + e.Padding.Right : e.Padding.Top + e.Padding.Bottom;
+            content += padding;
             var sizing = x ? e.Width : e.Height;
+            if (sizing.Kind == SizingKind.Shrink)
+                sizing = KeepChildrenRoom(ref e, x, sizing, least + padding);
             var resolved = sizing.Kind switch
             {
                 SizingKind.Fixed => sizing.Value,
                 SizingKind.Percent => 0f,
+                SizingKind.Shrink => Math.Clamp(MathF.Max(content, sizing.Value), sizing.Min, MathF.Max(sizing.Min, sizing.Max)),
                 _ => Math.Clamp(content, sizing.Min, MathF.Max(sizing.Min, sizing.Max)),
             };
             if (x) e.W = resolved;
             else e.H = resolved;
         }
+    }
+
+    /// <summary>The least <paramref name="child"/> takes along the axis once its parent runs out of
+    /// room: a growable or shrinkable child its minimum, any other the size it was fitted to.</summary>
+    private static float LeastSize(ref Element child, bool x)
+    {
+        var sizing = x ? child.Width : child.Height;
+        var size = x ? child.W : child.H;
+        return sizing.Kind switch
+        {
+            SizingKind.Grow => sizing.Min,
+            SizingKind.Shrink => sizing.Min,
+            SizingKind.Percent => sizing.Min,
+            _ => size,
+        };
+    }
+
+    /// <summary>Raises a shrinkable element's minimum to <paramref name="least"/>, the least its
+    /// children and padding take, so it never gives up room its children cannot.</summary>
+    private static Sizing KeepChildrenRoom(ref Element e, bool x, Sizing sizing, float least)
+    {
+        var kept = sizing with { Min = MathF.Max(sizing.Min, least) };
+        if (x)
+            e.Width = kept;
+        else
+            e.Height = kept;
+        return kept;
     }
 
     private void Distribute(bool x)
@@ -575,6 +614,8 @@ internal sealed class LayoutTree
                     size = Math.Clamp(basis * sizing.Value, sizing.Min, MathF.Max(sizing.Min, sizing.Max));
                 else if (sizing.Kind == SizingKind.Grow && (!mainAxis || child.Floating))
                     size = Math.Clamp(basis, sizing.Min, MathF.Max(sizing.Min, sizing.Max));
+                else if (sizing.Kind == SizingKind.Shrink && !mainAxis && !child.Floating)
+                    size = MathF.Max(sizing.Min, MathF.Min(size, basis));
                 if (x) child.W = size;
                 else child.H = size;
                 if (!child.Floating) used += size;
@@ -628,8 +669,10 @@ internal sealed class LayoutTree
     {
         if (child.Floating) return false;
         var sizing = x ? child.Width : child.Height;
-        if (sizing.Kind != SizingKind.Grow) return false;
         var size = x ? child.W : child.H;
+        if (sizing.Kind == SizingKind.Shrink)
+            return !grow && size > sizing.Min;
+        if (sizing.Kind != SizingKind.Grow) return false;
         return grow ? size < sizing.Max : size > sizing.Min;
     }
 

@@ -1,5 +1,4 @@
 using ZGF.AppUtils;
-using ZGF.Fonts;
 
 namespace ZGF.Gui.Immediate.Tests;
 
@@ -28,45 +27,5 @@ public sealed class FontFaceTests
 
         Assert.Null(new FontFace("Cut", truncated).ReadCharacters());
         Assert.Null(new FontFace("Markup", markup).ReadCharacters());
-    }
-}
-
-public sealed class LoadedFontsTests
-{
-    private readonly List<int> _loads = new();
-
-    private FontHandle Load(byte[] data, int faceIndex)
-    {
-        _loads.Add(data.Length);
-        return new FontHandle(_loads.Count);
-    }
-
-    [Fact]
-    public void Registering_the_same_bytes_again_from_new_arrays_keeps_one_face()
-    {
-        var fonts = new LoadedFonts();
-        byte[] bytes = [0, 1, 0, 0, 7, 7];
-
-        var first = fonts.LoadOnce(new FontFace("Mine", bytes.ToArray()), Load);
-        for (var reload = 0; reload < 10; reload++)
-            Assert.Equal(first, fonts.LoadOnce(new FontFace("Mine", bytes.ToArray()), Load));
-
-        Assert.Single(_loads);
-        Assert.Equal(1, fonts.Count);
-    }
-
-    [Fact]
-    public void Changed_bytes_and_another_face_of_a_collection_each_load_a_face_of_their_own()
-    {
-        var fonts = new LoadedFonts();
-        byte[] before = [0, 1, 0, 0, 7, 7];
-        byte[] after = [0, 1, 0, 0, 7, 8];
-
-        var old = fonts.LoadOnce(new FontFace("Mine", before), Load);
-        var changed = fonts.LoadOnce(new FontFace("Mine", after), Load);
-        var second = fonts.LoadOnce(new FontFace("Mine", before, FaceIndex: 1), Load);
-
-        Assert.Equal(3, new[] { old, changed, second }.Distinct().Count());
-        Assert.Equal(3, fonts.Count);
     }
 }

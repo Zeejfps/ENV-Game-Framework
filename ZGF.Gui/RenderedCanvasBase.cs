@@ -879,15 +879,27 @@ public abstract class RenderedCanvasBase : ICanvas
     /// with <paramref name="handle"/>'s face instead of synthesizing it from the regular face.</summary>
     public void RegisterBoldFont(string? family, FontHandle handle) => _boldByFamily[family ?? ""] = handle;
 
+    /// <summary>Stops drawing text in <paramref name="family"/>, regular and bold, with the faces it was
+    /// registered with: text that names it is drawn in the default font, as before it was registered.</summary>
+    public void UnregisterFont(string family)
+    {
+        _fontsByFamily.Remove(family);
+        _familyPointSizes.Remove(family);
+        _boldByFamily.Remove(family);
+    }
+
     /// <summary>
-    /// Copies the source canvas's font-family registry onto this canvas. Popup
-    /// canvases need this so views using non-default font families (e.g. icons,
-    /// monospace) can resolve them when measuring/drawing text in a popup window.
-    /// Also carries the UI base direction so a popup opened under an RTL locale lays out
-    /// right-to-left like its parent window.
+    /// Makes this canvas's font-family registry a copy of the source canvas's, a family the source no
+    /// longer has included. Popup canvases need this so views using non-default font families (e.g.
+    /// icons, monospace) can resolve them when measuring/drawing text in a popup window, and never
+    /// with a face the source let go of. Also carries the UI base direction so a popup opened under
+    /// an RTL locale lays out right-to-left like its parent window.
     /// </summary>
     public void CopyFontsFrom(RenderedCanvasBase source)
     {
+        _fontsByFamily.Clear();
+        _familyPointSizes.Clear();
+        _boldByFamily.Clear();
         foreach (var kv in source._fontsByFamily)
             _fontsByFamily[kv.Key] = kv.Value;
         foreach (var kv in source._familyPointSizes)

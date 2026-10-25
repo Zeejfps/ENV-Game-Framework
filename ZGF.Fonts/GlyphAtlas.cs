@@ -11,6 +11,16 @@ internal sealed class GlyphAtlas
 
     private readonly List<SkylineNode> _skyline = new();
 
+    // Space glyphs of released fonts gave back, padding included, which later glyphs take before the
+    // skyline grows. Freed rects are not merged, so they serve glyphs of about their size best, as
+    // those of a font loaded again are.
+    private readonly List<FreeRect> _freed = new();
+
+    // Glyphs of released fonts whose space waits out QuarantineFrames frames, untouched, before it is
+    // cleared and freed: a frame drawn before the release may still be on the GPU, sampling it.
+    private readonly List<QuarantinedGlyph> _quarantined = new();
+    private long _frame;
+
     private int _dirtyMinX;
     private int _dirtyMinY;
     private int _dirtyMaxX;
@@ -18,6 +28,12 @@ internal sealed class GlyphAtlas
     private bool _dirty;
 
     private const int Padding = 1;
+
+    /// <summary>How many frames released glyphs keep their pixels and space before either is reused.
+    /// Each Metal canvas waits for its previous frame before encoding the next, and every canvas
+    /// submits to one queue, so two frames after a release no GPU work from before it remains; GL
+    /// drivers queue up to three frames. Four covers both.</summary>
+    internal const int QuarantineFrames = 4;
 
     public GlyphAtlas(int width, int height, int maxHeight = 8192)
     {
@@ -72,6 +88,9 @@ internal sealed class GlyphAtlas
             SignalExhausted();
             return false;
         }
+
+        if (TryReserveFreed(w, h, out outX, out outY))
+            return true;
 
         while (true)
         {
@@ -147,6 +166,96 @@ internal sealed class GlyphAtlas
         outX = bestX + Padding;
         outY = bestY + Padding;
         return true;
+    }
+
+    /// <summary>Gives back the space of a glyph <paramref name="width"/> by <paramref name="height"/> at
+    /// (<paramref name="x"/>, <paramref name="y"/>), as <see cref="TryReserve"/> placed it. Its pixels
+    /// stay as they are and its space is not taken again until <see cref="QuarantineFrames"/> calls of
+    /// <see cref="AdvanceFrame"/> later, when no frame drawn before can still be sampling it.</summary>
+    public void Free(int x, int y, int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+            return;
+        _quarantined.Add(new QuarantinedGlyph(x, y, width, height, _frame));
+    }
+
+    /// <summary>Counts a frame begun: space freed <see cref="QuarantineFrames"/> frames ago or more is
+    /// cleared and taken by glyphs reserved from now on. Allocates nothing.</summary>
+    public void AdvanceFrame()
+    {
+        _frame++;
+        for (var i = _quarantined.Count - 1; i >= 0; i--)
+        {
+            var glyph = _quarantined[i];
+            if (_frame - glyph.FreedAt < QuarantineFrames)
+                continue;
+            _quarantined.RemoveAt(i);
+            Release(glyph);
+        }
+    }
+
+    private void Release(QuarantinedGlyph glyph)
+    {
+        Clear(glyph.X, glyph.Y, glyph.Width, glyph.Height);
+        _freed.Add(new FreeRect(glyph.X - Padding, glyph.Y - Padding, glyph.Width + Padding * 2, glyph.Height + Padding * 2));
+    }
+
+    /// <summary>How many freed spaces wait to be taken again.</summary>
+    internal int FreedCount => _freed.Count;
+
+    /// <summary>How many freed glyphs wait out their quarantine.</summary>
+    internal int QuarantinedCount => _quarantined.Count;
+
+    private void Clear(int x, int y, int width, int height)
+    {
+        for (var row = 0; row < height; row++)
+            Array.Clear(_pixels, (y + row) * _width + x, width);
+        MarkDirty(x, y, x + width, y + height);
+    }
+
+    /// <summary>Takes the smallest freed space that fits a glyph <paramref name="w"/> by
+    /// <paramref name="h"/>, keeping what it leaves to the right and above as freed spaces of their own.</summary>
+    private bool TryReserveFreed(int w, int h, out int outX, out int outY)
+    {
+        outX = 0;
+        outY = 0;
+        var paddedW = w + Padding * 2;
+        var paddedH = h + Padding * 2;
+        var best = FindSmallestFreed(paddedW, paddedH);
+        if (best < 0)
+            return false;
+        var rect = _freed[best];
+        _freed.RemoveAt(best);
+        KeepLeftover(rect.X + paddedW, rect.Y, rect.Width - paddedW, paddedH);
+        KeepLeftover(rect.X, rect.Y + paddedH, rect.Width, rect.Height - paddedH);
+        outX = rect.X + Padding;
+        outY = rect.Y + Padding;
+        return true;
+    }
+
+    private int FindSmallestFreed(int width, int height)
+    {
+        var best = -1;
+        var bestArea = long.MaxValue;
+        for (var i = 0; i < _freed.Count; i++)
+        {
+            var rect = _freed[i];
+            if (rect.Width < width || rect.Height < height)
+                continue;
+            var area = (long)rect.Width * rect.Height;
+            if (area >= bestArea)
+                continue;
+            best = i;
+            bestArea = area;
+        }
+        return best;
+    }
+
+    private void KeepLeftover(int x, int y, int width, int height)
+    {
+        if (width <= Padding * 2 || height <= Padding * 2)
+            return;
+        _freed.Add(new FreeRect(x, y, width, height));
     }
 
     public unsafe void Blit(int x, int y, int width, int height, byte* src, int srcPitch)
@@ -252,6 +361,10 @@ internal sealed class GlyphAtlas
             }
         }
     }
+
+    private readonly record struct FreeRect(int X, int Y, int Width, int Height);
+
+    private readonly record struct QuarantinedGlyph(int X, int Y, int Width, int Height, long FreedAt);
 
     private struct SkylineNode
     {

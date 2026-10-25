@@ -52,7 +52,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly Ui<TUiState> _ui;
     private readonly IFilePicker _filePicker;
     private readonly ISystemFonts _systemFonts = NativeSystemFonts.Create();
-    private readonly LoadedFonts _loadedFonts = new();
+    private readonly FontRegistry _fontRegistry;
     private readonly List<Popup> _popups = new();
     private readonly List<DialogWindow> _windows = new();
     private readonly PopupPool _pool;
@@ -82,6 +82,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         Action<Ui<TUiState>> updateUi)
     {
         _render = CreateRenderBackend(config, backend);
+        _fontRegistry = new FontRegistry(_render.Fonts, _render.MainCanvas, LoadFont);
         RegisterDefaultBold();
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
@@ -173,11 +174,29 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// SemiBold. Register italic faces under families of their own. Call it on the UI thread, such as
     /// from <see cref="ImmediateGuiApp{TUiState}.OnStartup"/> or after awaiting a background load there; it
     /// does nothing once the window has closed, or when the data is no font that can be loaded, which
-    /// leaves the family drawn as before.</summary>
+    /// leaves the family drawn as before. Registering the bytes a face was loaded from again reuses it;
+    /// the face a family was drawn with before is released once no family draws with it, between frames.</summary>
     public void RegisterFont(FontFace font)
     {
         if (_disposed) return;
         if (!TryAddFont(font)) return;
+        FollowFontChange();
+    }
+
+    /// <summary>Draws text in <paramref name="family"/> in the default font again, as before it was
+    /// registered, releasing its faces between frames once no family draws with them. Call it on the
+    /// UI thread, as <see cref="RegisterFont"/>.</summary>
+    public void UnregisterFont(string family)
+    {
+        if (_disposed) return;
+        _fontRegistry.Unregister(family);
+        FollowFontChange();
+    }
+
+    /// <summary>Measures text anew, has every popup and dialog draw with the main canvas's fonts and
+    /// draws again.</summary>
+    private void FollowFontChange()
+    {
         _ui.InvalidateMeasurements();
         foreach (var popup in _popups)
             popup.Surface.Canvas.CopyFontsFrom(_render.MainCanvas);
@@ -202,11 +221,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private void AddFont(FontFace font)
     {
-        var handle = _loadedFonts.LoadOnce(font, LoadFont);
-        if (font.Bold)
-            _render.MainCanvas.RegisterBoldFont(font.Family, handle);
-        else
-            _render.MainCanvas.RegisterFont(font.Family, handle);
+        _fontRegistry.Register(font);
     }
 
     private void LoadSystemFallbackFonts() => Task.Run(() =>
@@ -249,6 +264,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _frame.Seal();
         _pending.BeginAfter(_frame);
 
+        _fontRegistry.ReleaseUnused();
+        _render.Fonts.AdvanceFrame();
         var now = Stopwatch.GetTimestamp();
         var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
         _lastFrameTimestamp = now;
@@ -357,8 +374,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             OpenFiles();
         if (_ui.HasUrlsToOpen)
             OpenUrls();
-        if (_ui.HasFontsToRegister)
-            RegisterAskedFonts();
+        if (_ui.HasFontChanges)
+            ApplyAskedFontChanges();
         if (_ui.HasFontListings)
             ListSystemFonts();
         if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
@@ -393,10 +410,18 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             WebBrowser.Open(url);
     }
 
-    private void RegisterAskedFonts()
+    private void ApplyAskedFontChanges()
     {
-        foreach (var font in _ui.TakeFontsToRegister())
-            RegisterFont(font);
+        foreach (var change in _ui.TakeFontChanges())
+            ApplyFontChange(change);
+    }
+
+    private void ApplyFontChange(FontChange change)
+    {
+        if (change.Face != null)
+            RegisterFont(change.Face);
+        else
+            UnregisterFont(change.Family);
     }
 
     /// <summary>Lists the installed fonts on a worker thread and hands them to every listing asked for.</summary>

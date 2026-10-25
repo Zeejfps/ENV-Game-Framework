@@ -1,3 +1,4 @@
+using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Fonts;
 using ZGF.Gui;
@@ -347,6 +348,84 @@ public sealed class DisplayOptionsTests
         Assert.Equal(4, themeRow.Count);
         Assert.Equal(language.X + language.Width, themeRow.Max(r => r.X + r.Width), 0.5f);
         Assert.All(themeRow, r => Assert.Equal(picker.Height, r.Height, 0.5f));
+    }
+
+    [Fact]
+    public void In_a_narrow_pane_the_theme_pickers_give_up_room_before_their_titles_and_nothing_overflows_the_card()
+    {
+        using var temp = new TempDir();
+        var app = NarrowThemeRows(temp, width: 1680f);
+
+        AssertNothingOverflows(app);
+        Assert.True(IsDrawn(app, "Theme"));
+        Assert.True(IsDrawn(app, "Icon theme"));
+        Assert.Contains(app.Frames.TextRects(), t => t.Text.StartsWith("Lu", StringComparison.Ordinal) && t.Text.EndsWith('…'));
+    }
+
+    [Fact]
+    public void In_a_narrower_pane_a_title_is_cut_short_only_once_its_picker_can_give_up_no_more()
+    {
+        using var temp = new TempDir();
+        var app = NarrowThemeRows(temp, width: 1600f);
+
+        AssertNothingOverflows(app);
+        Assert.True(IsDrawn(app, "Theme"));
+        Assert.Contains(app.Frames.TextRects(), t => t.Text.StartsWith("Ico", StringComparison.Ordinal) && t.Text.EndsWith('…'));
+    }
+
+    [Fact]
+    public void The_code_font_picker_never_grows_past_its_cap_for_a_long_font_name()
+    {
+        using var temp = new TempDir();
+        var file = temp.Write("long.ttf", EmbeddedAssets.LoadBytes(typeof(IlSpyApp).Assembly, "JetBrainsMono-Regular.ttf"));
+        var app = AppDriver.Opened(width: 3000f);
+        OpenDisplayOptions(app.Ui);
+        CodeDisplay.SetCodeFont(app.Ui, new CodeFont("A monospaced font with a name far too long to show whole", file, 0));
+        app.Run(2);
+
+        var controls = FilledWith(app, app.Theme.Control);
+        var picker = controls.Single(r => app.Frames.TextRects().Any(t => t.Text.StartsWith("A monospaced", StringComparison.Ordinal) && Contains(r, t.Rect)));
+
+        Assert.True(picker.Width <= 220f + 0.5f, $"{picker.Width}");
+        Assert.Contains(app.Frames.TextRects(), t => t.Text.StartsWith("A monospaced", StringComparison.Ordinal) && t.Text.EndsWith('…'));
+    }
+
+    /// <summary>The display options of a window <paramref name="width"/> wide, with a user icon theme of
+    /// a long name, so both theme pickers are sized for more than the pane leaves them.</summary>
+    private static AppDriver NarrowThemeRows(TempDir temp, float width)
+    {
+        temp.Write("icon-themes/shapes.json", """{ "name": "Shapes with a long name" }""");
+        var app = new AppDriver(width: width, settings: temp.Settings());
+        OpenDisplayOptions(app.Ui);
+        app.Run(2);
+        return app;
+    }
+
+    /// <summary>Asserts that every control of the interface card ends inside it and that its six icon
+    /// buttons keep their size.</summary>
+    private static void AssertNothingOverflows(AppDriver app)
+    {
+        var theme = app.Theme;
+        var card = InterfaceCard(app);
+        var controls = FilledWith(app, theme.Control)
+            .Where(r => r.Y > card.Y && r.Bottom < card.Bottom)
+            .ToList();
+        var buttons = controls
+            .Where(r => Math.Abs(r.Width - theme.IconButtonSize) < 0.5f)
+            .ToList();
+
+        Assert.All(controls, r => Assert.True(r.Right <= card.Right - theme.PanelPadding + 0.5f, $"{r} overflows {card}"));
+        Assert.Equal(6, buttons.Count);
+        Assert.All(buttons, r => Assert.Equal(theme.IconButtonSize, r.Height, 0.5f));
+    }
+
+    /// <summary>The raised card of the interface section, around the color theme's picker.</summary>
+    private static UiRect InterfaceCard(AppDriver app)
+    {
+        var picker = app.Frames.TextRect("Dark");
+        return FilledWith(app, app.Theme.Surface)
+            .Where(r => r.X <= picker.X && r.Y <= picker.Y && r.Bottom >= picker.Bottom)
+            .MinBy(r => r.Width * r.Height);
     }
 
     private static List<UiRect> FilledWith(AppDriver app, uint color)

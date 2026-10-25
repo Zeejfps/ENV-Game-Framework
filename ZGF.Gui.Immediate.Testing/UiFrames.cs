@@ -60,6 +60,9 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     /// <summary>The fonts the app registered with <see cref="Ui.RegisterFont"/>, in order.</summary>
     public List<FontFace> RegisteredFonts { get; } = new();
 
+    /// <summary>The families the app unregistered with <see cref="Ui.UnregisterFont"/>, in order.</summary>
+    public List<string> UnregisteredFonts { get; } = new();
+
     /// <summary>The folders the app asked to show in the OS file manager, in order.</summary>
     public List<string> OpenedFolders { get; } = new();
 
@@ -370,10 +373,24 @@ public sealed class UiFrames<TState> where TState : class, IUiState
             OpenedFiles.AddRange(_ui.TakeFilesToOpen());
         if (_ui.HasUrlsToOpen)
             OpenedUrls.AddRange(_ui.TakeUrlsToOpen());
-        if (_ui.HasFontsToRegister)
-            RegisteredFonts.AddRange(_ui.TakeFontsToRegister());
+        if (_ui.HasFontChanges)
+            TakeFontChanges();
         if (_ui.HasFontListings)
             AnswerFontListings();
+    }
+
+    private void TakeFontChanges()
+    {
+        foreach (var change in _ui.TakeFontChanges())
+            TakeFontChange(change);
+    }
+
+    private void TakeFontChange(FontChange change)
+    {
+        if (change.Face != null)
+            RegisteredFonts.Add(change.Face);
+        else
+            UnregisteredFonts.Add(change.Family);
     }
 
     private void AnswerFontListings()

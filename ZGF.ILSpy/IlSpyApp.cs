@@ -85,12 +85,15 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
             ui.OpenUrl(url);
     }
 
-    /// <summary>When the icons changed, registers the fonts they are drawn in and lets go of the pictures
-    /// of the icons they replace.</summary>
+    /// <summary>When the icons changed, lets go of the fonts they no longer draw in, registers those they
+    /// are drawn in, and lets go of the pictures of the icons they replace.</summary>
     private static void FollowIconTheme(Ui<UiState> ui)
     {
-        if (!ui.State.ShownIcons.TakeChange(ui.State.Icons))
+        var shown = ui.State.ShownIcons;
+        if (!shown.TakeChange(ui.State.Icons, ui.State.IconFonts))
             return;
+        foreach (var family in shown.DroppedFamilies)
+            ui.UnregisterFont(family);
         foreach (var font in ui.State.IconFonts)
             ui.RegisterFont(font);
         ui.ReleaseUndrawnIconImages();
@@ -167,7 +170,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     private void RegisterChosenIconFonts(ImmediateGuiAppHost<UiState> host)
     {
         ApplyIconTheme(UiState, ResolveIconTheme(_appState));
-        if (!UiState.ShownIcons.TakeChange(UiState.Icons))
+        if (!UiState.ShownIcons.TakeChange(UiState.Icons, UiState.IconFonts))
             return;
         foreach (var font in UiState.IconFonts)
             host.RegisterFont(font);

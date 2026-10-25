@@ -14,7 +14,8 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
     private readonly FreeTypeLibrary _library;
     private readonly GlyphAtlas _atlas;
     private readonly Dictionary<long, GlyphRenderInfo> _glyphCache = new();
-    private readonly List<FontEntry> _fonts = new();
+    // Indexed by handle id less one; a released font leaves its slot null, so no handle names another font.
+    private readonly List<FontEntry?> _fonts = new();
     private readonly List<FontHandle> _fallbacks = new();
     private bool _disposed;
 
@@ -114,6 +115,7 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
 
         var variant = LoadFontFromMemory(entry.SourceData, pixelSize, entry.FaceIndex);
         entry.SizeVariants[pixelSize] = variant;
+        GetEntry(variant).IsVariant = true;
         // Preserve the embolden flag across sized variants so e.g. a bold 18px variant of
         // a bold 16px font is still bold.
         if (entry.IsEmboldened)
@@ -144,6 +146,7 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         var variant = LoadFontFromMemory(entry.SourceData, entry.PixelSize, entry.FaceIndex);
         GetEntry(variant).IsEmboldened = true;
         entry.EmboldenedVariant = variant;
+        GetEntry(variant).IsVariant = true;
         return variant;
     }
 
@@ -355,11 +358,112 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         // line shaped before this fallback existed would have fallen back to .notdef (tofu) and be
         // cached that way permanently. Drop every cached shape so it re-itemizes against the new
         // chain. Registration happens once at startup, off the per-frame hot path.
+        ForgetShapes();
+    }
+
+    private void ForgetShapes()
+    {
         foreach (var entry in _fonts)
         {
+            if (entry == null)
+                continue;
             entry.ShapeBuckets = null;
             entry.ResolvedGlyphs = null;
         }
+    }
+
+    /// <summary>Releases <paramref name="font"/>, a font loaded with <see cref="LoadFontFromMemory"/> or
+    /// <see cref="LoadFontFromFile"/>, and every sized and emboldened variant made from it: their
+    /// FreeType faces, pinned data and shaping objects, and the atlas space of their glyphs, which
+    /// glyphs rasterized later take once <see cref="AdvanceFrame"/> says no frame can still sample them.
+    /// Their handles must not be used again. A variant is released only
+    /// with the font it was made from; asking to release one alone throws and changes nothing. Call it
+    /// between frames.</summary>
+    public void ReleaseFont(FontHandle font)
+    {
+        ThrowIfDisposed();
+        if (GetEntry(font).IsVariant)
+            throw new ArgumentException($"Font handle {font.Id} is a variant; release the font it was made from.", nameof(font));
+        var released = new List<FontHandle>();
+        ListWithVariants(font, released);
+        var ids = new HashSet<int>();
+        foreach (var handle in released)
+            ids.Add(handle.Id);
+        foreach (var handle in released)
+            ReleaseEntry(handle);
+        DropCachedGlyphs(ids);
+        _fallbacks.RemoveAll(f => ids.Contains(f.Id));
+        ForgetShapes();
+    }
+
+    /// <summary>Adds <paramref name="handle"/> and every variant made from it to <paramref name="handles"/>,
+    /// throwing before anything is released when one of them is no live font.</summary>
+    private void ListWithVariants(FontHandle handle, List<FontHandle> handles)
+    {
+        var entry = GetEntry(handle);
+        if (handles.Contains(handle))
+            return;
+        handles.Add(handle);
+        if (entry.SizeVariants != null)
+        {
+            foreach (var variant in entry.SizeVariants.Values)
+                ListWithVariants(variant, handles);
+        }
+        if (entry.EmboldenedVariant.HasValue)
+            ListWithVariants(entry.EmboldenedVariant.Value, handles);
+    }
+
+    private void ReleaseEntry(FontHandle handle)
+    {
+        var entry = GetEntry(handle);
+        _fonts[handle.Id - 1] = null;
+        FreeNative(entry);
+    }
+
+    private static void FreeNative(FontEntry entry)
+    {
+        entry.HbBuffer?.Dispose();
+        entry.HbFont?.Dispose();
+        entry.HbFace?.Dispose();
+        FT_Done_Face(entry.Face);
+        if (entry.PinnedData.IsAllocated)
+            entry.PinnedData.Free();
+    }
+
+    /// <summary>Forgets the rasterized glyphs of the fonts <paramref name="released"/> names, giving
+    /// their atlas space back.</summary>
+    private void DropCachedGlyphs(HashSet<int> released)
+    {
+        foreach (var (key, glyph) in _glyphCache)
+        {
+            var fontId = (int)(key >> 32);
+            if (!released.Contains(fontId))
+                continue;
+            _atlas.Free(glyph.AtlasX, glyph.AtlasY, glyph.Width, glyph.Height);
+            _glyphCache.Remove(key);
+        }
+    }
+
+    /// <summary>How many fonts are loaded and not released, variants included.</summary>
+    internal int LoadedFontCount => _fonts.Count(static e => e != null);
+
+    /// <summary>How many rasterized glyphs are cached, of every font.</summary>
+    internal int CachedGlyphCount => _glyphCache.Count;
+
+    /// <summary>How many spaces released glyphs gave back wait in the atlas to be taken again.</summary>
+    internal int FreedAtlasSpaceCount => _atlas.FreedCount;
+
+    /// <summary>How many glyphs of released fonts keep their atlas space until no frame can sample it.</summary>
+    internal int QuarantinedGlyphCount => _atlas.QuarantinedCount;
+
+    /// <summary>Counts a frame begun. The atlas space of glyphs released a few frames ago, which no
+    /// frame still on the GPU can sample by now, is cleared and taken by glyphs rasterized from then
+    /// on; until then it keeps its pixels. Call it once per frame of the windows the fonts draw in,
+    /// before drawing. Allocates nothing.</summary>
+    public void AdvanceFrame()
+    {
+        ThrowIfDisposed();
+        _atlas.AdvanceFrame();
     }
 
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output)
@@ -685,7 +789,10 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
     {
         if (!handle.IsValid || handle.Id > _fonts.Count)
             throw new ArgumentException($"Invalid font handle: {handle.Id}", nameof(handle));
-        return _fonts[handle.Id - 1];
+        var entry = _fonts[handle.Id - 1];
+        if (entry == null)
+            throw new ArgumentException($"Released font handle: {handle.Id}", nameof(handle));
+        return entry;
     }
 
     private static void ActivateSize(FontEntry entry)
@@ -715,12 +822,8 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
 
         foreach (var entry in _fonts)
         {
-            entry.HbBuffer?.Dispose();
-            entry.HbFont?.Dispose();
-            entry.HbFace?.Dispose();
-            FT_Done_Face(entry.Face);
-            if (entry.PinnedData.IsAllocated)
-                entry.PinnedData.Free();
+            if (entry != null)
+                FreeNative(entry);
         }
         _fonts.Clear();
         _library.Dispose();
@@ -740,6 +843,10 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         public HbBuffer? HbBuffer;
         public Dictionary<int, FontHandle>? SizeVariants;
         public FontHandle? EmboldenedVariant;
+
+        // Made by GetSizedVariant or GetEmboldenedVariant: owned by the font it was made from, and
+        // released only with it.
+        public bool IsVariant;
 
         // Per-feature-set cache of shaped runs, keyed by the feature signature (see PutShape).
         public Dictionary<ulong, ShapeBucket>? ShapeBuckets;

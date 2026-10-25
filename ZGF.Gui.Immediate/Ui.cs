@@ -31,7 +31,7 @@ public abstract partial class Ui
     private readonly List<string> _filesToReveal = new();
     private readonly List<string> _filesToOpen = new();
     private readonly List<string> _urlsToOpen = new();
-    private readonly List<FontFace> _fontsToRegister = new();
+    private readonly List<FontChange> _fontChanges = new();
     private readonly List<Action<IReadOnlyList<SystemFontFamily>>> _fontListings = new();
     private readonly UiPainter _painter;
     private readonly LayoutTree _tree = new();
@@ -260,16 +260,20 @@ public abstract partial class Ui
 
     /// <summary>Draws text in <paramref name="font"/>'s family with it from the next frame, in place of
     /// whatever drew that family before.</summary>
-    public void RegisterFont(FontFace font) => _fontsToRegister.Add(font);
+    public void RegisterFont(FontFace font) => _fontChanges.Add(new FontChange(font.Family, font));
 
-    internal bool HasFontsToRegister => _fontsToRegister.Count > 0;
+    /// <summary>Draws text in <paramref name="family"/> in the default font from the next frame, letting
+    /// go of the faces it was registered with.</summary>
+    public void UnregisterFont(string family) => _fontChanges.Add(new FontChange(family, null));
 
-    /// <summary>The fonts asked for since the last call, which the host registers.</summary>
-    internal FontFace[] TakeFontsToRegister()
+    internal bool HasFontChanges => _fontChanges.Count > 0;
+
+    /// <summary>The fonts registered and unregistered since the last call, in order, which the host applies.</summary>
+    internal FontChange[] TakeFontChanges()
     {
-        var fonts = _fontsToRegister.ToArray();
-        _fontsToRegister.Clear();
-        return fonts;
+        var changes = _fontChanges.ToArray();
+        _fontChanges.Clear();
+        return changes;
     }
 
     /// <summary>Lists the installed fonts off the UI thread once this frame is drawn;

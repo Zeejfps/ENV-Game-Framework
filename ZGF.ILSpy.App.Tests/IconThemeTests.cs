@@ -610,6 +610,24 @@ public sealed class UserIconThemeTests : IDisposable
     }
 
     [Fact]
+    public void Leaving_an_icon_theme_lets_go_of_its_fonts_but_never_of_lucides()
+    {
+        var font = _temp.Write("icon-themes/fonts/mine.ttf", LucideFont());
+        WriteIconTheme("mine", """{ "fonts": { "m": "fonts/mine.ttf" }, "icons": { "node.class": { "font": "m", "glyph": "E106" } } }""");
+        var settings = Settings();
+        settings.IconTheme = "mine";
+        var app = new AppDriver(settings: settings);
+        app.Run(2);
+        Assert.Empty(app.Frames.UnregisteredFonts);
+
+        Preferences.SetIconTheme(app.AppState, "lucide");
+        app.Run(2);
+
+        Assert.Equal(["icon-font:" + Path.GetFullPath(font)], app.Frames.UnregisteredFonts);
+        Assert.Equal("lucide", app.Ui.Icons.NodeClass.Family);
+    }
+
+    [Fact]
     public void The_icon_theme_is_picked_from_the_display_options_with_its_buttons()
     {
         _temp.Write(ClassPicture, MemoryIconAssets.Picture);
@@ -618,7 +636,7 @@ public sealed class UserIconThemeTests : IDisposable
         OpenDisplayOptions(app.Ui);
         app.Run();
 
-        app.Click("Lucide").Frame();
+        app.ClickStartingWith("Lu").Frame();
         app.Click("Shapes").Frame(2);
 
         Assert.Equal("shapes", app.AppState.IconTheme);

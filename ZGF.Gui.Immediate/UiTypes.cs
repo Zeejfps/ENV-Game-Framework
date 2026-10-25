@@ -26,16 +26,18 @@ public enum SizingKind
     Grow,
     Fixed,
     Percent,
+    Shrink,
 }
 
 /// <summary>How an element is sized along one axis. <see cref="Fit"/> wraps the content,
 /// <see cref="Grow"/> takes a share of the parent's leftover space, <see cref="Percent"/> takes a
-/// fraction of the parent's inner size; each kept within its min and max.</summary>
+/// fraction of the parent's inner size, <see cref="Shrink"/> wraps the content but gives up room when
+/// the parent runs out; each kept within its min and max.</summary>
 public readonly record struct Sizing(SizingKind Kind, float Value, float Min, float Max)
 {
-    /// <summary>How long a growable element keeps its room when its parent runs out: siblings of
-    /// the lowest priority shrink to their minimum before any of a higher one shrinks at all. Zero
-    /// unless set — <c>Sizing.Grow() with { Priority = 1 }</c> for a primary label beside a
+    /// <summary>How long a growable or shrinkable element keeps its room when its parent runs out:
+    /// siblings of the lowest priority shrink to their minimum before any of a higher one shrinks at
+    /// all. Zero unless set — <c>Sizing.Grow() with { Priority = 1 }</c> for a primary label beside a
     /// secondary one.</summary>
     public int Priority { get; init; }
 
@@ -43,6 +45,13 @@ public readonly record struct Sizing(SizingKind Kind, float Value, float Min, fl
     public static Sizing Grow(float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Grow, 0f, min, max);
     public static Sizing Fixed(float size) => new(SizingKind.Fixed, size, size, size);
     public static Sizing Percent(float fraction, float min = 0f, float max = float.PositiveInfinity) => new(SizingKind.Percent, fraction, min, max);
+
+    /// <summary>As large as the content, or <paramref name="size"/> when that is larger, up to
+    /// <paramref name="max"/>, and never larger than that even with room to spare; when the parent runs
+    /// out of room it gives up room down to <paramref name="min"/>, or to the least its children can
+    /// take when that is more: a picker sized for its widest choice, or the row of controls it sits in,
+    /// in a narrow pane.</summary>
+    public static Sizing Shrink(float min = 0f, float size = 0f, float max = float.PositiveInfinity) => new(SizingKind.Shrink, size, min, max);
 
     public static implicit operator Sizing(float size) => Fixed(size);
 }

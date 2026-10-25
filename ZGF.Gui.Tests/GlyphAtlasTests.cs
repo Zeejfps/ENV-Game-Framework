@@ -79,4 +79,36 @@ public class GlyphAtlasTests
             Assert.False(overlaps, $"reservation {a} overlaps {b} — growth invalidated the skyline");
         }
     }
+
+    [Fact]
+    public void FreedSpaceIsTakenByTheNextGlyphThatFitsOnceItsQuarantineEnds()
+    {
+        var atlas = new GlyphAtlas(64, 64);
+        Assert.True(atlas.TryReserve(10, 12, out var x, out var y));
+
+        atlas.Free(x, y, 10, 12);
+        for (var frame = 0; frame < GlyphAtlas.QuarantineFrames; frame++)
+            atlas.AdvanceFrame();
+        Assert.True(atlas.TryReserve(8, 8, out var againX, out var againY));
+
+        Assert.Equal((x, y), (againX, againY));
+    }
+
+    [Fact]
+    public void FreedSpaceIsNotTakenWhileAFrameDrawnBeforeTheReleaseMayStillSampleIt()
+    {
+        var atlas = new GlyphAtlas(64, 64);
+        Assert.True(atlas.TryReserve(10, 12, out var x, out var y));
+
+        atlas.Free(x, y, 10, 12);
+        Assert.True(atlas.TryReserve(8, 8, out var firstX, out var firstY));
+        for (var frame = 1; frame < GlyphAtlas.QuarantineFrames; frame++)
+            atlas.AdvanceFrame();
+        Assert.True(atlas.TryReserve(8, 8, out var laterX, out var laterY));
+
+        Assert.NotEqual((x, y), (firstX, firstY));
+        Assert.NotEqual((x, y), (laterX, laterY));
+        Assert.Equal(1, atlas.QuarantinedCount);
+        Assert.Equal(0, atlas.FreedCount);
+    }
 }
