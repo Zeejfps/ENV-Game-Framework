@@ -16,7 +16,7 @@ internal static class MetadataTables
 {
     /// <summary>
     /// The schema of table <paramref name="table"/> of <paramref name="file"/>, or null for one
-    /// whose rows ILSpy does not list (EnCLog, EnCMap).
+    /// whose rows have no reader (AssemblyOS, AssemblyProcessor and their AssemblyRef forms).
     /// </summary>
     public static GridSchema? Create(TableIndex table, MetadataFile file)
     {
@@ -325,6 +325,13 @@ internal static class MetadataTables
                 .Handle("KickoffMethod", r => r.Kickoff),
 
             TableIndex.CustomDebugInformation => CustomDebugInformationTable.Columns(Table(() => m.CustomDebugInformation.Select(m.GetCustomDebugInformation)), file),
+
+            TableIndex.EncLog => Table(m.GetEditAndContinueLogEntries).Offset()
+                .Handle("Handle", r => r.Handle)
+                .Value("FuncCode", r => r.Operation, "X8", r => r.Operation.ToString()),
+
+            TableIndex.EncMap => Table(m.GetEditAndContinueMapEntries).Offset()
+                .Handle("Handle", r => r),
 
             TableIndex.FieldPtr or TableIndex.MethodPtr or TableIndex.ParamPtr or TableIndex.EventPtr or TableIndex.PropertyPtr => Table(() => m.GetPtrRows(table))
                 .Handle("Handle", r => r),

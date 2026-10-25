@@ -7,10 +7,9 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Implementation order
 
-1. **EncLog and EncMap tables** in `MetadataTables.Create`.
-2. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
+1. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
    namespace and name.
-3. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
+2. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
    desktop facade first.
 
 ## Biggest gaps
@@ -30,10 +29,10 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   Facades such as `netstandard.dll` and `System.Runtime.dll` show as nearly empty without them.
 - **Tree:** nested-namespace view.
 - **Per-assembly menu:** Set target framework, Pick PDB, Open containing folder.
-- **Metadata explorer:** "Decompile metadata row in new tab", hide
-  empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
-  AssemblyRefOS/Processor only show row counts.
-- **Navigation:** preview tabs, Close all documents across every tab group at once, Search MSDN, omnibar (breadcrumb + search).
+- **Metadata explorer:** "Decompile metadata row in new tab", hide empty tables, decoded blob
+  signatures in tooltips. AssemblyOS/Processor and AssemblyRefOS/Processor only show row counts.
+- **Navigation:** preview tabs, Close all documents across every tab group at once, Search MSDN,
+  omnibar (breadcrumb + search).
 
 ## Smaller
 

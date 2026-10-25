@@ -1,5 +1,7 @@
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
 using ICSharpCode.Decompiler.Metadata;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
@@ -402,6 +404,47 @@ public sealed class MetadataTests
             md.MethodDebugInformation.Select(h => (MoveNext: h.ToDefinitionHandle(), Kickoff: md.GetMethodDebugInformation(h).GetStateMachineKickoffMethod()))
                 .Where(m => !m.Kickoff.IsNil).Select(m => (Token(m.MoveNext), Token(m.Kickoff))),
             rows);
+    }
+
+    [Fact]
+    public void The_edit_and_continue_tables_list_each_logged_change_and_mapped_token()
+    {
+        using var temp = new TempDir();
+        var assembly = new AssemblyList().Open(WriteEditAndContinueAssembly(temp));
+        var type = MetadataTokens.GetToken(MetadataTokens.TypeDefinitionHandle(1));
+
+        var log = Grid(Table(assembly, "EncLog"));
+        var map = Grid(Table(assembly, "EncMap"));
+
+        Assert.Equal(["RID", "Token", "Offset", "Handle", "FuncCode"], log.Columns.Select(c => c.Name));
+        Assert.Equal(2, log.RowCount);
+        Assert.Equal(type, Hex(log, 0, "Handle"));
+        Assert.Equal((int)EditAndContinueOperation.AddMethod, Hex(log, 1, "FuncCode"));
+        Assert.Equal(nameof(EditAndContinueOperation.AddMethod), log.Tooltip(1, log.Column("FuncCode"))!.Text);
+        Assert.Equal(1, map.RowCount);
+        Assert.Equal(type, Hex(map, 0, "Handle"));
+        Assert.Equal(new MetadataTarget(Table(assembly, "TypeDef"), 0), map.Link(0, map.Column("Handle")));
+    }
+
+    /// <summary>An assembly whose metadata logs two changes to its one type, as an edit and continue
+    /// delta does, and maps that type's row.</summary>
+    private static string WriteEditAndContinueAssembly(TempDir temp)
+    {
+        var metadata = new MetadataBuilder();
+        var name = metadata.GetOrAddString("EditAndContinue");
+        metadata.AddModule(0, name, metadata.GetOrAddGuid(Guid.NewGuid()), default, default);
+        metadata.AddAssembly(name, new Version(1, 0), default, default, 0, AssemblyHashAlgorithm.None);
+        var firstField = MetadataTokens.FieldDefinitionHandle(1);
+        var firstMethod = MetadataTokens.MethodDefinitionHandle(1);
+        var type = metadata.AddTypeDefinition(default, default, metadata.GetOrAddString("<Module>"), default, firstField, firstMethod);
+        metadata.AddEncLogEntry(type, EditAndContinueOperation.Default);
+        metadata.AddEncLogEntry(type, EditAndContinueOperation.AddMethod);
+        metadata.AddEncMapEntry(type);
+
+        var pe = new ManagedPEBuilder(PEHeaderBuilder.CreateLibraryHeader(), new MetadataRootBuilder(metadata), new BlobBuilder());
+        var image = new BlobBuilder();
+        pe.Serialize(image);
+        return temp.Write("EditAndContinue.dll", image.ToArray());
     }
 
     [Fact]
