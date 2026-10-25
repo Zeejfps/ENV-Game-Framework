@@ -14,38 +14,43 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image
 
-from build_icon import ALL_PARTS, BACKGROUND_BOTTOM, BACKGROUND_TOP, FLAT, GLASS, build
+from build_icon import (BACKGROUND_BOTTOM, BACKGROUND_TOP, FLAT, FREEFORM_BEAM_ORIGIN, FREEFORM_FLASHLIGHT_SCALE,
+                        FREEFORM_PARTS, GLASS, build)
 from build_small import build as build_small
 
 SOURCE = Path(__file__).parent
 OUTPUT = SOURCE.parent
 MASTER = 1024
-TILE_PADDING = 40
-TILE_RADIUS_FRACTION = 0.2
-SUPERSAMPLE = 4
+FREEFORM_MARGIN = 20
 DEDICATED_SIZES = (32, 16)
-TILE_SIZES = (256, 128, 64, 48)
+MASTER_SIZES = (256, 128, 64, 48)
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 WINDOW_ICON_SIZES = (16, 32, 48, 64, 128, 256)
-MAC_LAYERS = ("braces", "opening", "rock")
+MAC_LAYERS = {
+    "flashlight": ("flashlight",),
+    "braces": ("braces",),
+    "opening": ("opening", "beam"),
+    "rock": ("rock",),
+}
 
 
 def main():
     cli = sys.argv[1]
     with tempfile.TemporaryDirectory() as scratch:
         work = Path(scratch)
-        master = render(cli, work, "master", build(ALL_PARTS, FLAT), keep="ilspelunk")
+        freeform = build(FREEFORM_PARTS, FLAT, FREEFORM_BEAM_ORIGIN, FREEFORM_FLASHLIGHT_SCALE)
+        master = render(cli, work, "master", freeform, keep="ilspelunk")
         dedicated = {}
         for size in DEDICATED_SIZES:
             dedicated[size] = render(cli, work, f"small-{size}", build_small(size), keep=f"ilspelunk-{size}")
         layers = {}
-        for name in MAC_LAYERS:
-            layers[name] = render(cli, work, f"layer-{name}", build((name,), GLASS))
-        tile = make_tile(master)
-        frames = collect_frames(tile, dedicated)
-        tile.save(OUTPUT / "app_icon.png")
+        for name, parts in MAC_LAYERS.items():
+            layers[name] = render(cli, work, f"layer-{name}", build(parts, GLASS))
+        icon = fit_to_canvas(master)
+        frames = collect_frames(icon, dedicated)
+        icon.save(OUTPUT / "app_icon.png")
         write_ico(frames)
         write_window_icon(frames)
         write_mac_icon(layers)
@@ -62,38 +67,21 @@ def render(cli, work, name, steps, keep=None):
     return Image.open(png).convert("RGBA")
 
 
-def make_tile(art):
-    body = MASTER - 2 * TILE_PADDING
-    mask = rounded_mask(body, int(body * TILE_RADIUS_FRACTION))
+def fit_to_canvas(art):
+    shape = art.crop(art.getchannel("A").getbbox())
+    room = MASTER - 2 * FREEFORM_MARGIN
+    scale = room / max(shape.size)
+    size = (round(shape.width * scale), round(shape.height * scale))
     canvas = Image.new("RGBA", (MASTER, MASTER), (0, 0, 0, 0))
-    canvas.alpha_composite(drop_shadow(mask))
-    body_art = art.resize((body, body), Image.LANCZOS)
-    body_art.putalpha(mask)
-    canvas.alpha_composite(body_art, (TILE_PADDING, TILE_PADDING))
+    canvas.alpha_composite(shape.resize(size, Image.LANCZOS), ((MASTER - size[0]) // 2, (MASTER - size[1]) // 2))
     return canvas
 
 
-def rounded_mask(size, radius):
-    big = size * SUPERSAMPLE
-    mask = Image.new("L", (big, big), 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, big - 1, big - 1), radius * SUPERSAMPLE, fill=255)
-    return mask.resize((size, size), Image.LANCZOS)
-
-
-def drop_shadow(mask):
-    alpha = Image.new("L", (MASTER, MASTER), 0)
-    alpha.paste(mask, (TILE_PADDING, TILE_PADDING + 10))
-    alpha = alpha.filter(ImageFilter.GaussianBlur(14)).point(lambda a: a * 0.45)
-    shadow = Image.new("RGBA", (MASTER, MASTER), (0, 0, 0, 0))
-    shadow.putalpha(alpha)
-    return shadow
-
-
-def collect_frames(tile, dedicated):
+def collect_frames(icon, dedicated):
     frames = dict(dedicated)
     frames[24] = dedicated[32].resize((24, 24), Image.LANCZOS)
-    for size in TILE_SIZES:
-        frames[size] = tile.resize((size, size), Image.LANCZOS)
+    for size in MASTER_SIZES:
+        frames[size] = icon.resize((size, size), Image.LANCZOS)
     return frames
 
 
@@ -124,6 +112,7 @@ def mac_icon_manifest():
     return {
         "fill": {"linear-gradient": [srgb(BACKGROUND_TOP), srgb(BACKGROUND_BOTTOM)]},
         "groups": [
+            mac_group("Flashlight", "flashlight", glass=True, specular=True, shadow=0.25),
             mac_group("Braces", "braces", glass=True, specular=True, shadow=0.2),
             mac_group("Opening", "opening", glass=False, specular=False, shadow=0),
             mac_group("Rock", "rock", glass=False, specular=False, shadow=0.15),

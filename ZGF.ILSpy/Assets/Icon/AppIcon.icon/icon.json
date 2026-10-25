@@ -7,6 +7,21 @@
   },
   "groups": [
     {
+      "name": "Flashlight",
+      "layers": [
+        {
+          "image-name": "flashlight.png",
+          "name": "flashlight",
+          "glass": true
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.25
+      },
+      "specular": true
+    },
+    {
       "name": "Braces",
       "layers": [
         {
