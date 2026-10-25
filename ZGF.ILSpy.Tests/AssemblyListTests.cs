@@ -200,6 +200,43 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
+    public void Listing_the_references_lists_those_found_beside_the_assembly_and_in_the_runtime()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var changes = 0;
+        list.Changed += () => changes++;
+
+        var listed = list.ListReferences(assembly);
+
+        var names = listed.Select(a => a.Name).ToList();
+        Assert.Contains("System.Runtime", names);
+        Assert.Contains("ZGF.ILSpy.Core", names);
+        Assert.All(listed, a => Assert.Contains(a, list.Assemblies));
+        Assert.Equal(listed.Count + 1, list.Listed.Count);
+        Assert.Equal(listed.Count, changes);
+    }
+
+    [Fact]
+    public void Sorting_orders_the_list_by_name_failed_files_among_them()
+    {
+        var list = new AssemblyList();
+        using var temp = new TempDir();
+        var tests = list.Open(Trees.TestAssemblyPath);
+        var missing = list.Open(temp.PathOf("Missing.dll"));
+        var coreLib = list.Open(Trees.CoreLibPath);
+        var version = list.Version;
+
+        list.Sort();
+
+        Assert.Equal([missing, coreLib, tests], list.Listed);
+        Assert.Equal([coreLib, tests], list.Assemblies);
+        Assert.NotEqual(version, list.Version);
+        version = list.Version;
+        list.Sort();
+        Assert.Equal(version, list.Version);
+    }
+
+    [Fact]
     public async Task Concurrent_opens_and_reads_agree_on_one_assembly_per_file()
     {
         var list = new AssemblyList();

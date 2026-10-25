@@ -133,6 +133,42 @@ public sealed class AssemblyList
         Changed?.Invoke();
     }
 
+    /// <summary>Orders the open files by name, and those of one name by version.</summary>
+    public void Sort()
+    {
+        lock (_gate)
+        {
+            var sorted = _listed
+                .OrderBy(a => a.Name, NaturalStringComparer.Instance)
+                .ThenBy(a => a.Version)
+                .ToImmutableArray();
+            if (sorted.SequenceEqual(_listed))
+                return;
+            ChangeListed(sorted);
+        }
+        Changed?.Invoke();
+    }
+
+    /// <summary>Lists the assemblies <paramref name="assembly"/> references that can be found, as
+    /// following a reference to them does, and returns them. Those that cannot be found are left out.
+    /// May load files: call it off the UI thread.</summary>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public List<LoadedAssembly> ListReferences(LoadedAssembly assembly, CancellationToken cancellationToken = default)
+    {
+        var generation = Generation;
+        var listed = new List<LoadedAssembly>();
+        foreach (var reference in assembly.File.AssemblyReferences)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var found = assembly.Resolver.ResolveAssembly(reference);
+            if (found == null)
+                continue;
+            if (TryList(found, generation, cancellationToken))
+                listed.Add(found);
+        }
+        return listed;
+    }
+
     /// <summary>
     /// The node <paramref name="reference"/> points at, opening the assembly that defines it if it is
     /// not open yet and its file can be found. For an entity hidden from the tree (compiler-generated)

@@ -16,7 +16,9 @@ internal static class MainMenuView
     private static readonly UiIcon OpenIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
     private static readonly UiIcon OpenFromFrameworkIcon = new(LucideIcons.Library, LucideIcons.Family);
     private static readonly UiIcon CloseIcon = new(LucideIcons.X, LucideIcons.Family);
+    private static readonly UiIcon CloseFailedIcon = new(LucideIcons.FileX, LucideIcons.Family);
     private static readonly UiIcon ClearListIcon = new(LucideIcons.ListX, LucideIcons.Family);
+    private static readonly UiIcon SortListIcon = new(LucideIcons.ArrowDownAZ, LucideIcons.Family);
     private static readonly UiIcon ReloadIcon = new(LucideIcons.RotateCcw, LucideIcons.Family);
     private static readonly UiIcon ExitIcon = new(LucideIcons.LogOut, LucideIcons.Family);
 
@@ -64,8 +66,12 @@ internal static class MainMenuView
         var anyOpen = tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: CloseIcon))
             CloseAssembly(appState, selected!);
+        if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState), id: "close-failed", icon: CloseFailedIcon))
+            CloseFailedAssemblies(appState);
         if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: ClearListIcon))
             CloseAllAssemblies(appState);
+        if (ui.MenuItem(t.FileSortList, enabled: anyOpen, id: "sort-list", icon: SortListIcon))
+            SortAssemblies(appState);
         if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: ReloadIcon))
             RefreshAssemblies(appState, tree.ExpandedPaths());
         ui.MenuSeparator();

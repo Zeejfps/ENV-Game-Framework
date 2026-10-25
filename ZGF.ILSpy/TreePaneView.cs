@@ -191,6 +191,8 @@ internal static class TreePaneView
             ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, appState, node.Assembly);
+        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))
+            OpenDependencies(appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
             ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))

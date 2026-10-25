@@ -10,6 +10,7 @@ public static class LucideIcons
     public const string ArrowLeft = "\uE048";
     public const string ArrowDown = "\uE042";
     public const string ArrowDownToDot = "\uE44D";
+    public const string ArrowDownAZ = "\uE415";
     public const string ArrowRight = "\uE049";
     public const string ArrowUp = "\uE04A";
     public const string ArrowUpFromDot = "\uE44E";
@@ -35,6 +36,7 @@ public static class LucideIcons
     public const string FileImage = "\uE31C";
     public const string FileSpreadsheet = "\uE326";
     public const string FileText = "\uE0CC";
+    public const string FileX = "\uE0CD";
     public const string Filter = "\uE0DC";
     public const string FilterX = "\uE3B5";
     public const string Folder = "\uE0D7";

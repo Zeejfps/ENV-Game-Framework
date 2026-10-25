@@ -29,11 +29,9 @@ public static class Assemblies
 
     private static void ShowOpened(AppState appState, Outcome<LoadedAssembly?> outcome, int ticket)
     {
-        if (outcome.Error is OperationCanceledException)
-            return;
         if (outcome.Error != null)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error.ToString());
+            ReportOpenFailure(appState, outcome.Error);
             return;
         }
         var last = outcome.Value;
@@ -44,9 +42,47 @@ public static class Assemblies
         ShowNode(appState, last.Root);
     }
 
+    /// <summary>Reports why opening failed, unless the opening was cancelled.</summary>
+    private static void ReportOpenFailure(AppState appState, Exception error)
+    {
+        if (error is OperationCanceledException)
+            return;
+        appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, error.ToString());
+    }
+
     public static void OpenAssembly(AppState appState, string path) => OpenAssemblies(appState, [path]);
 
+    /// <summary>Opens, in the background, the assemblies <paramref name="assembly"/> references that
+    /// can be found.</summary>
+    public static async void OpenDependencies(AppState appState, LoadedAssembly assembly)
+    {
+        var token = appState.Opens.Token;
+        var opened = await Background.Run(() => appState.Assemblies.ListReferences(assembly, token));
+        if (opened.Error != null)
+            ReportOpenFailure(appState, opened.Error);
+    }
+
     public static void CloseAssembly(AppState appState, LoadedAssembly assembly) => appState.Assemblies.Close(assembly);
+
+    /// <summary>Takes the files that failed to load off the list.</summary>
+    public static void CloseFailedAssemblies(AppState appState)
+    {
+        var failed = appState.Assemblies.Listed
+            .Where(a => a.HasLoadError)
+            .ToList();
+        foreach (var assembly in failed)
+            appState.Assemblies.Close(assembly);
+    }
+
+    /// <summary>Whether any file on the list failed to load.</summary>
+    public static bool AnyFailedToLoad(AppState appState)
+    {
+        var assemblies = appState.Assemblies;
+        return assemblies.Listed.Count != assemblies.Assemblies.Count;
+    }
+
+    /// <summary>Orders the list by name, and assemblies of one name by version.</summary>
+    public static void SortAssemblies(AppState appState) => appState.Assemblies.Sort();
 
     public static void CloseAllAssemblies(AppState appState)
     {

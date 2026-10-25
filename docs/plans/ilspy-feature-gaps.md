@@ -7,13 +7,11 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Implementation order
 
-1. **Per-assembly menu:** Remove assemblies that failed to load, Load dependencies (through
-   `AssemblyResolver` into `OpenAssemblies`), sort list.
-2. **Close all documents.**
-3. **EncLog and EncMap tables** in `MetadataTables.Create`.
-4. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
+1. **Close all documents.**
+2. **EncLog and EncMap tables** in `MetadataTables.Create`.
+3. **Exported (forwarded) types:** nodes from `metadata.ExportedTypes`, resolving the real type by
    namespace and name.
-5. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
+4. **Open containing folder** and **Search MSDN:** intent-named `RevealFile` and `OpenUrl` on the
    desktop facade first.
 
 ## Biggest gaps
@@ -32,8 +30,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Exported (forwarded) types:** a node per type an assembly forwards, going to the real type.
   Facades such as `netstandard.dll` and `System.Runtime.dll` show as nearly empty without them.
 - **Tree:** nested-namespace view.
-- **Per-assembly menu:** Load dependencies, Set target framework, Pick PDB, Open containing
-  folder, Remove assemblies that failed to load, sort list.
+- **Per-assembly menu:** Set target framework, Pick PDB, Open containing folder.
 - **Metadata explorer:** "Decompile metadata row in new tab", hide
   empty tables, decoded blob signatures in tooltips. EncLog, EncMap, AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.

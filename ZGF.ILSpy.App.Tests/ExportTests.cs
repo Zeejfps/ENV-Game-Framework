@@ -119,7 +119,7 @@ public sealed class ExportTests : IDisposable
         app.Click("File").Frame(2);
 
         string[] icons = [LucideIcons.FolderOpen, LucideIcons.Library, LucideIcons.Save, LucideIcons.FolderOutput, LucideIcons.Bug,
-            LucideIcons.X, LucideIcons.ListX, LucideIcons.RotateCcw, LucideIcons.LogOut];
+            LucideIcons.X, LucideIcons.FileX, LucideIcons.ListX, LucideIcons.ArrowDownAZ, LucideIcons.RotateCcw, LucideIcons.LogOut];
         Assert.All(icons, icon => Assert.True(app.Frames.Drew(icon)));
     }
 
