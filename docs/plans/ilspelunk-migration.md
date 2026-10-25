@@ -10,7 +10,8 @@ Start once the next few features have landed.
 | Product name | ILSpelunk |
 | Tagline | A .NET assembly explorer |
 | GitHub repo | `Zeejfps/ILSpelunk` (PascalCase, like `Zeejfps/PngSharp`) |
-| Site / update feed host | `ilspelunk.com`, fallback `ilspelunk.builtbyzee.com` |
+| Site | `ilspelunk.com`, fallback `ilspelunk.builtbyzee.com` |
+| Update feed | GitHub Releases on `Zeejfps/ILSpelunk` |
 | Velopack `packId` | `ILSpelunk` (permanent: names the install folder `%LocalAppData%\ILSpelunk`, the `.app` and the main exe) |
 | Velopack `packTitle` | `ILSpelunk` |
 | macOS bundle id | `com.builtbyzee.ilspelunk`, passed explicitly; Velopack's default would be `com.ILSpelunk.ILSpelunk` |
@@ -22,7 +23,7 @@ Start once the next few features have landed.
 
 1. **Keep history.** Extract with `git-filter-repo`, as was done for `cs_games_sandbox`. That keeps blame for all 256 commits and costs the same as a copy.
 2. **Consume ZGF as a submodule at `ZGF/`.** Don't copy the framework. This is the Sandbox setup: copying was rejected there because a frozen copy drifts. Framework fixes are made in the nested `ZGF/` checkout and pushed from there.
-3. **Public or private repo, and licence.** Still open. This decides the update feed: Velopack clients can't read GitHub Releases on a private repo without a token, so a private repo means a static feed on the domain instead.
+3. **Public repo.** Updates are served from GitHub Releases, so no feed hosting is needed. The licence is still open.
 4. **Code signing.** Still open. macOS needs a Developer ID ($99/yr) and notarization, or downloaded builds are quarantined. Windows works unsigned but SmartScreen warns; Azure Trusted Signing is the cheap fix.
 
 ## Phase 1 — Extract
@@ -82,7 +83,7 @@ Only once ILSpelunk builds green on its own.
    - download in the background;
    - queue a `ViewCommand` that offers "Restart to update", then apply and restart;
    - add a settings toggle for automatic checks.
-4. Feed: `GithubSource` if the repo is public, otherwise `SimpleWebSource("https://ilspelunk.com/releases")`.
+4. Feed: `GithubSource` pointed at `Zeejfps/ILSpelunk`.
 5. CI (`.github/workflows/release.yml`), triggered by a `v*` tag:
    - **Runners:** a matrix of `windows-latest`, `macos-latest` and `ubuntu-latest`. NativeAOT can't cross-compile between OSes.
    - **Checkout:** `submodules: recursive` and `lfs: true`; the GLFW natives inside `ZGF/` are LFS objects. Watch the LFS bandwidth quota.
@@ -91,7 +92,7 @@ Only once ILSpelunk builds green on its own.
      - all OSes: `vpk pack --packId ILSpelunk --packTitle ILSpelunk --packVersion <MinVer> --mainExe <exe> --icon <icon>`;
      - macOS also: `--bundleId com.builtbyzee.ilspelunk` plus signing and notarization;
      - Linux: produces an AppImage, which needs FUSE on the user's machine. The existing `build_linux-x64.dockerfile` can pin an older glibc.
-   - **Upload:** `vpk upload github` or a copy to the static host.
+   - **Upload:** `vpk upload github --publish`.
    - **Versions:** keep the `vpk` tool and the `Velopack` package on the same version.
 6. RIDs: `win-x64`, `osx-arm64` (add `osx-x64` if needed), `linux-x64`.
 7. Icons: `.ico`, `.icns`, `.png`.
