@@ -226,7 +226,7 @@ internal static class SearchPanelView
                 ShowNode(appState, node);
             NameCell(ui, row, result);
             row.TextCell(1, result.Location, theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
-            row.TextCell(2, node.Assembly.NameAndVersion, theme.TextMuted);
+            row.TextCell(2, NodeText.AssemblyLabel(node.Assembly), theme.TextMuted);
         }
         ui.Tooltip(row.Id, NodeText.Tooltip(node));
     }

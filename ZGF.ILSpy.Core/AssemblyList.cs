@@ -28,8 +28,8 @@ public sealed class AssemblyList
     private int _version;
     private int _generation;
 
-    /// <summary>The open assemblies that loaded, in the order they were opened; packages are left out.
-    /// A snapshot: it never changes after it is read.</summary>
+    /// <summary>The open assemblies that loaded, in the order they were opened, with an open package's
+    /// assemblies where the package is. A snapshot: it never changes after it is read.</summary>
     public IReadOnlyList<LoadedAssembly> Assemblies => _loaded;
 
     /// <summary>The open files in the order they were opened, packages and those that failed to load
@@ -127,8 +127,23 @@ public sealed class AssemblyList
     private void ChangeListed(ImmutableArray<LoadedAssembly> listed)
     {
         _listed = listed;
-        _loaded = listed.RemoveAll(static a => a.HasLoadError || a.IsPackage);
+        _loaded = ListLoaded(listed);
         _version++;
+    }
+
+    private static ImmutableArray<LoadedAssembly> ListLoaded(ImmutableArray<LoadedAssembly> listed)
+    {
+        var loaded = ImmutableArray.CreateBuilder<LoadedAssembly>();
+        foreach (var item in listed)
+        {
+            if (item.HasLoadError)
+                continue;
+            if (item.IsPackage)
+                loaded.AddRange(item.PackageAssemblies);
+            else
+                loaded.Add(item);
+        }
+        return loaded.ToImmutable();
     }
 
     /// <summary>Closes every assembly.</summary>
@@ -423,13 +438,15 @@ public sealed class AssemblyList
 
     internal bool TryList(LoadedAssembly assembly) => TryList(assembly, Generation);
 
-    /// <summary>Lists <paramref name="assembly"/>, or for one read out of a package the package, unless the list was cleared since
-    /// <paramref name="generation"/>, <paramref name="cancellationToken"/> was cancelled, or another
-    /// assembly took its path.</summary>
+    /// <summary>Lists <paramref name="assembly"/>, or for one read out of a package the package, unless
+    /// the list was cleared since <paramref name="generation"/>, <paramref name="cancellationToken"/>
+    /// was cancelled, or another assembly took its path. A package's assemblies are read before it is
+    /// listed, so that listing never reads files while holding the lock.</summary>
     internal bool TryList(LoadedAssembly assembly, int generation, CancellationToken cancellationToken = default)
     {
         if (assembly.InPackage != null)
             return TryList(assembly.InPackage.Container, generation, cancellationToken);
+        assembly.ReadPackageAssemblies();
         lock (_gate)
         {
             if (generation != _generation) return false;

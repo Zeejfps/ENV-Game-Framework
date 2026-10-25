@@ -11,11 +11,13 @@ public static class NodeText
     private const string TokenPrefix = "@";
     private const string HexTokenFormat = "X8";
     private const string ForwardedToPrefix = "→ ";
+    private const string Separator = " · ";
 
     private static readonly ConditionalWeakTable<BrowseNode, string> Tooltips = new();
     private static readonly ConditionalWeakTable<BrowseNode, string> Secondaries = new();
     private static readonly ConditionalWeakTable<BrowseNode, string> HexTokens = new();
     private static readonly ConditionalWeakTable<BrowseNode, string> DecimalTokens = new();
+    private static readonly ConditionalWeakTable<LoadedAssembly, string> AssemblyLabels = new();
 
     /// <summary>The node's own name: an assembly's simple name, any other node's label.</summary>
     public static string Name(BrowseNode node) => node.Kind == NodeKind.Assembly ? node.Assembly.Name : node.Text;
@@ -41,6 +43,18 @@ public static class NodeText
 
     private static string WriteForwardedTo(BrowseNode node) => ForwardedToPrefix + node.ForwardedTo;
 
+    /// <summary>An assembly as a column of results names it: its name and version, and for one read out
+    /// of a package, the folder holding it there, e.g. <c>Newtonsoft.Json (13.0.0.0) · lib/net6.0</c>.</summary>
+    public static string AssemblyLabel(LoadedAssembly assembly) => AssemblyLabels.GetValue(assembly, WriteAssemblyLabel);
+
+    private static string WriteAssemblyLabel(LoadedAssembly assembly)
+    {
+        var place = assembly.InPackage;
+        if (place == null)
+            return assembly.NameAndVersion;
+        return $"{assembly.NameAndVersion}{Separator}{place.File.Folder}";
+    }
+
     /// <summary>The node's metadata token as <paramref name="format"/> writes it, e.g. <c>@06000001</c>
     /// in hex. Null when the node has none or tokens are hidden.</summary>
     public static string? Token(BrowseNode node, TokenFormat format)
@@ -59,7 +73,7 @@ public static class NodeText
     private static string WriteDecimalToken(BrowseNode node) => TokenPrefix + node.Token!.Value.ToString(CultureInfo.InvariantCulture);
 
     private static string Identity(LoadedAssembly assembly) =>
-        string.Join(" · ", new[] { assembly.Version?.ToString(), assembly.FrameworkMoniker }.OfType<string>());
+        string.Join(Separator, new[] { assembly.Version?.ToString(), assembly.FrameworkMoniker }.OfType<string>());
 
     private static string Describe(BrowseNode node)
     {

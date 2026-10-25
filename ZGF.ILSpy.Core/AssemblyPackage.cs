@@ -126,6 +126,22 @@ public sealed class AssemblyPackage
             SortFolder(child);
     }
 
+    /// <summary>Every file of the package, folder by folder in the order <see cref="Root"/> lists them:
+    /// a folder's folders, then its files.</summary>
+    public List<PackageFile> ListFiles()
+    {
+        var files = new List<PackageFile>();
+        CollectFiles(Root, files);
+        return files;
+    }
+
+    private static void CollectFiles(PackageFolder folder, List<PackageFile> files)
+    {
+        foreach (var child in folder.Folders)
+            CollectFiles(child, files);
+        files.AddRange(folder.Files);
+    }
+
     /// <summary>The file at <paramref name="fullName"/>, a path from the package's root; matched
     /// exactly, else ignoring case. Null when the package has none.</summary>
     public PackageFile? FindFile(string fullName)

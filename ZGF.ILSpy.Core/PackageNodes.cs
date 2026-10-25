@@ -124,7 +124,7 @@ internal static class PackageContents
         return assembly.PlaceInPackage(parent);
     }
 
-    private static bool IsAssemblyName(string name)
+    public static bool IsAssemblyName(string name)
     {
         foreach (var extension in AssemblyExtensions)
         {

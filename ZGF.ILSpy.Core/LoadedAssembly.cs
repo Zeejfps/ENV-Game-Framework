@@ -25,6 +25,7 @@ public sealed class LoadedAssembly
     private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
     private readonly Lazy<BrowseNode> _root;
+    private readonly Lazy<IReadOnlyList<LoadedAssembly>> _packageAssemblies;
     private readonly PEFile? _file;
     private readonly AssemblyLoadException? _loadError;
     private BrowseNode? _rootInPackage;
@@ -77,6 +78,7 @@ public sealed class LoadedAssembly
         _debugSymbols = new Lazy<DebugSymbols?>(() => DebugSymbols.Load(File));
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
         _root = new Lazy<BrowseNode>(CreateRoot);
+        _packageAssemblies = new Lazy<IReadOnlyList<LoadedAssembly>>(LoadPackageAssemblies);
     }
 
     private BrowseNode CreateRoot()
@@ -99,6 +101,33 @@ public sealed class LoadedAssembly
 
     /// <summary>The package this assembly was read out of, and its file there; null for a file on disk.</summary>
     public PackagePlace? InPackage { get; }
+
+    /// <summary>For a package, the assemblies read out of it: every assembly file it holds that loads,
+    /// in the order its tree shows them. None for an assembly. Read the first time, then kept.</summary>
+    internal IReadOnlyList<LoadedAssembly> PackageAssemblies => _packageAssemblies.Value;
+
+    /// <summary>Reads <see cref="PackageAssemblies"/> now, unless they are read already; does nothing
+    /// for an assembly.</summary>
+    internal void ReadPackageAssemblies()
+    {
+        _ = _packageAssemblies.Value;
+    }
+
+    private IReadOnlyList<LoadedAssembly> LoadPackageAssemblies()
+    {
+        var assemblies = new List<LoadedAssembly>();
+        if (Package == null)
+            return assemblies;
+        foreach (var file in Package.ListFiles())
+        {
+            if (!PackageContents.IsAssemblyName(file.Name))
+                continue;
+            var assembly = List.TryLoad(Package.PathOf(file));
+            if (assembly != null)
+                assemblies.Add(assembly);
+        }
+        return assemblies;
+    }
 
     /// <summary>The item of the list that holds this assembly: itself, or the package it was read out of.</summary>
     public LoadedAssembly ListedItem

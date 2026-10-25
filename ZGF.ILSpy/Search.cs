@@ -291,7 +291,7 @@ public sealed class Search
         return CompareByName(a, b);
     }
 
-    private static string AssemblyOf(SearchResult row) => row.Node.Assembly.NameAndVersion;
+    private static string AssemblyOf(SearchResult row) => NodeText.AssemblyLabel(row.Node.Assembly);
 
     private static int Compare(string a1, string b1, string a2, string b2, string a3, string b3)
     {

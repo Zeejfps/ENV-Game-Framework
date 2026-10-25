@@ -7,8 +7,8 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Biggest gaps
 
-1. **More ways to open.** `.nupkg` / zip packages, open from a NuGet feed,
-   GAC (Windows), open from a running process, single-file bundles, WebCIL `.wasm`.
+1. **More ways to open.** Open from a NuGet feed, GAC (Windows), open from a running process,
+   single-file bundles, WebCIL `.wasm`.
 
 ## Medium
 

@@ -12,7 +12,7 @@ public sealed class PackageTests
     private static string CoreAssemblyPath => typeof(AssemblyList).Assembly.Location;
 
     [Fact]
-    public void A_zip_opens_as_a_package_listed_among_the_files_but_not_the_assemblies()
+    public void A_zip_opens_as_a_package_listed_in_place_of_the_assemblies_in_it()
     {
         using var temp = new TempDir();
         var list = new AssemblyList();
@@ -21,7 +21,8 @@ public sealed class PackageTests
 
         Assert.True(package.IsPackage);
         Assert.Equal([package], list.Listed);
-        Assert.Empty(list.Assemblies);
+        Assert.Equal(["ZGF.ILSpy.Core", TestAssemblyName], list.Assemblies.Select(a => a.Name));
+        Assert.All(list.Assemblies, a => Assert.Same(package, a.InPackage!.Container));
         Assert.Equal(NodeKind.Package, package.Root.Kind);
         Assert.Equal("Sample.1.0.0.nupkg", package.Root.Text);
         Assert.Equal([LibFolder, "runtimes/win-x64/native", "readme.txt"], package.Root.Children.Select(c => c.Text));
@@ -149,9 +150,26 @@ public sealed class PackageTests
         var before = TestAssemblyRoot(list.Open(packagePath).Root.Child(LibFolder)).Assembly;
 
         list.Close(list.Listed[0]);
+        Assert.Empty(list.Assemblies);
         var after = TestAssemblyRoot(list.Open(packagePath).Root.Child(LibFolder)).Assembly;
 
         Assert.NotSame(before, after);
+    }
+
+    [Fact]
+    public async Task Searching_finds_types_in_the_assemblies_of_an_open_package()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var package = list.Open(WritePackage(temp));
+
+        var results = new List<SearchResult>();
+        await foreach (var batch in list.SearchAsync("Calculator", SearchKinds.Types))
+            results.AddRange(batch);
+
+        var calculator = Assert.Single(results, r => r.Text == "Calculator<T>");
+        Assert.Same(package, calculator.Node.Assembly.InPackage!.Container);
+        Assert.Same(package.Root.Child(LibFolder), calculator.Node.Assembly.Root.Parent);
     }
 
     [Fact]

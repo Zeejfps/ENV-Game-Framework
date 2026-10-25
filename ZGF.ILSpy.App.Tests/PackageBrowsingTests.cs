@@ -71,6 +71,32 @@ public sealed class PackageBrowsingTests
         Assert.Empty(app.AppState.Assemblies.Listed);
     }
 
+    [Fact]
+    public void An_assembly_in_a_package_is_named_in_results_with_the_folder_it_sits_in()
+    {
+        using var temp = new TempDir();
+        var app = OpenedPackage(temp);
+        var assembly = Greeter(app).Assembly;
+
+        var label = NodeText.AssemblyLabel(assembly);
+
+        Assert.Equal($"{assembly.NameAndVersion} · {LibFolder}", label);
+    }
+
+    [Fact]
+    public void Exporting_offers_the_assemblies_of_an_open_package_with_the_picked_one_ticked()
+    {
+        using var temp = new TempDir();
+        var app = OpenedPackage(temp);
+        var assembly = Greeter(app).Assembly;
+
+        app.OpenExportSetup(assembly);
+
+        var choice = Assert.Single(app.Ui.ExportSetup.Choices);
+        Assert.Same(assembly, choice.Assembly);
+        Assert.True(choice.Included);
+    }
+
     private static AppDriver OpenedPackage(TempDir temp)
     {
         var app = new AppDriver();
