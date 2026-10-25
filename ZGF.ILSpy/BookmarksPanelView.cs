@@ -19,8 +19,6 @@ internal static class BookmarksPanelView
     private const int LocationColumn = 2;
     private const int ModuleColumn = 3;
 
-    private static readonly UiIcon LocationLink = new(LucideIcons.ExternalLink, LucideIcons.Family);
-
     private static Strings? _headersFor;
     private static string[] _headers = [];
 
@@ -106,17 +104,17 @@ internal static class BookmarksPanelView
         var selected = panel.Selected;
         using (ui.PaneToolbar())
         {
-            if (ui.IconButton("previous", LucideIcons.ArrowUp, LucideIcons.Family, t.BookmarksPrevious, any))
+            if (ui.IconButton("previous", ui.State.Icons.BookmarksPrevious, t.BookmarksPrevious, any))
                 Step(panel, appState, -1);
-            if (ui.IconButton("next", LucideIcons.ArrowDown, LucideIcons.Family, t.BookmarksNext, any))
+            if (ui.IconButton("next", ui.State.Icons.BookmarksNext, t.BookmarksNext, any))
                 Step(panel, appState, 1);
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("delete", LucideIcons.Trash2, LucideIcons.Family, t.BookmarksDelete, selected != null))
+            if (ui.IconButton("delete", ui.State.Icons.BookmarksDelete, t.BookmarksDelete, selected != null))
                 Remove(panel, bookmarks, selected!);
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("export", LucideIcons.Upload, LucideIcons.Family, t.BookmarksExport, bookmarks.Items.Count > 0))
+            if (ui.IconButton("export", ui.State.Icons.BookmarksExport, t.BookmarksExport, bookmarks.Items.Count > 0))
                 PickExportFile(ui, appState);
-            if (ui.IconButton("import", LucideIcons.Download, LucideIcons.Family, t.BookmarksImport))
+            if (ui.IconButton("import", ui.State.Icons.BookmarksImport, t.BookmarksImport))
                 PickImportFile(ui, appState);
         }
     }
@@ -179,7 +177,7 @@ internal static class BookmarksPanelView
             bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
         var color = bookmark.Enabled ? palette.Bookmark : palette.GutterText;
         using (row.Cell(MarkColumn))
-            ui.Icon(new UiIcon(LucideIcons.Bookmark, LucideIcons.Family, color));
+            ui.Icon(new UiIcon(ui.State.Icons.BookmarksMark, color));
         ui.Tooltip(mark.Id, bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable);
     }
 
@@ -200,7 +198,7 @@ internal static class BookmarksPanelView
         uint? color = null;
         if (IsDimmed(bookmark, listed))
             color = ui.Theme.TextMuted;
-        var followed = row.TextCell(LocationColumn, bookmark.Location, color, link: LocationLink, linkTooltip: t.BookmarksGoTo);
+        var followed = row.TextCell(LocationColumn, bookmark.Location, color, link: new UiIcon(ui.State.Icons.LinkBookmark), linkTooltip: t.BookmarksGoTo);
         if (followed)
             GoToBookmark(appState, bookmark);
     }

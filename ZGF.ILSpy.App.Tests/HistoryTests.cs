@@ -1,6 +1,7 @@
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -156,7 +157,7 @@ public sealed class HistoryTests
 
         ClickBackDropdown(app);
         var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
-        var glyph = NodeIcons.Glyph(outline.Kind);
+        var glyph = Text(NodeIcons.Glyph(outline.Kind, Icons));
 
         Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text == glyph && t.Inputs.Position.Left < row.Left
             && MathF.Abs(t.Inputs.Position.Top - t.Inputs.Position.Height / 2 - (row.Top - row.Height / 2)) < 2f);
@@ -164,7 +165,7 @@ public sealed class HistoryTests
 
     private static void ClickBackDropdown(AppDriver app)
     {
-        var icon = app.TextRect(LucideIcons.ArrowLeft);
+        var icon = app.TextRect(Icons.ToolbarBack);
         var x = icon.X + icon.Width / 2 + app.Theme.IconButtonSize / 2 + app.Theme.DropdownButtonWidth / 2;
         app.Frames.Click(x, icon.Y + icon.Height / 2).Frame();
     }

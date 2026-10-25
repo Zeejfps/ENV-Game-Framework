@@ -63,7 +63,7 @@ Not taken: VS Code's TextMate `tokenColors`. Our syntax kinds are already named 
 - The base `ui` roles are required after merging: `background`, `surface`, `control`, `field`, `border`, `text`,
   `textMuted`, `accent`, `onAccent`. Every `code` and `icons` role is required after merging.
 
-## Phase 1: color themes (this branch)
+## Phase 1: color themes
 
 ### Framework (`ZGF.Gui.Immediate`, `ZGF.Gui.Generator`)
 
@@ -97,16 +97,99 @@ Not taken: VS Code's TextMate `tokenColors`. Our syntax kinds are already named 
 - A snapshot test generates the JSON schema and fails when it differs from the checked-in
   `Assets/Themes/theme.schema.json`.
 
-## Phase 2: icon themes (later branch)
+## Phase 2: icon themes (this branch)
 
-- A reference `lucide.json` maps meaning-based keys (`node.class`, `overlay.private`, `toolbar.back`) to
-  `{ "font": "lucide", "char": "" }` and declares its fonts.
-- A generator builds a typed `Icons` class from it, the way `Strings` is built: `ui.State.Icons.NodeClass` instead
-  of `LucideIcons.Box`.
-- A user icon theme fills the same keys with its own font; missing keys fall back to Lucide.
-- Icon colors stay in color themes.
-- Framework: a shared key-to-`UiIcon` map with fallback, and registering a font from a file path at runtime. The
-  framework's own line-drawn chevrons and check marks stay as they are.
+Icon themes are a second, separate theme: a color theme says how things are colored, an icon theme only what
+is drawn. The built-in `lucide` theme becomes an embedded JSON file, and users add their own in a folder beside
+the color themes.
+
+### Decisions
+
+1. **Icon keys name meaning, not glyph**, one key per distinct use, dotted by area: `node.class`,
+   `overlay.private`, `toolbar.back`, `options.reloadThemes`. A theme can draw "back" differently from the other
+   left arrows.
+2. **The icon theme is its own setting**, `AppSettings.IconTheme`, default `lucide`, picked under "Icon theme" in
+   Display options, beside the color theme. Icon colors stay in color themes.
+3. **An icon is a font glyph or an SVG file.** An SVG is drawn tinted through `currentColor` with the color the
+   caller asks for, the one a font glyph would get; an SVG without `currentColor` keeps its own colors.
+4. **"Customize current icon theme"** writes `<current>-custom.json`, extending the icon theme shown, with every
+   key listed commented out at its current value, switches to it and opens it.
+
+### Icon theme file
+
+```jsonc
+// %AppData%/ZGF.ILSpy/icon-themes/my-icons.json — comments and trailing commas allowed
+{
+  "$schema": "./icon-theme.schema.json",
+  "name": { "en": "My icons", "de": "Meine Symbole" },   // or a plain string
+  "extends": "lucide",                                    // optional: a built-in or user icon theme id
+  "fonts": { "symbols": "fonts/Symbols.ttf" },
+  "icons": {
+    "node.class": { "font": "symbols", "glyph": "E0F2" },  // a codepoint in hex
+    "toolbar.back": { "svg": "svg/back.svg" }
+  }
+}
+```
+
+- `fonts` names font files by id. `icons` names each key's font by id and its codepoint as hex text, or an SVG
+  file.
+- Paths are relative to the theme file and must stay inside the icon themes folder; absolute paths and paths that
+  leave it are reported. Built-in themes name embedded resources.
+- Fonts merge along the `extends` chain, child over parent, and every theme can use the reference theme's fonts.
+  An icon's font is looked up once the chain is merged, so a child that declares a parent's font id again draws
+  the parent's icons in its font.
+- A key no theme in the chain sets, or one whose font or picture is broken, draws as the reference `lucide`
+  theme does.
+- Errors go to the error dialog with file and line: bad JSON, unknown keys, a codepoint that is not one, an icon
+  that is neither a glyph nor an SVG, an unknown font id, a missing or unreadable file, a file that is no font,
+  an SVG that does not parse, a path leaving the folder, `extends` cycles and unknown parents, id clashes. A
+  broken theme falls back to its parent, else to `lucide`.
+
+### Framework (`ZGF.Gui.Immediate`, `ZGF.Gui.Immediate.Widgets`, `ZGF.Gui.Generator`)
+
+1. `IconGlyph`: what an icon draws, a font glyph (text and family) or a parsed `SvgDocument`. Widgets take it
+   where they took a glyph string and a family: `UiIcon`, `IconButton`, `SplitIconButton`, `TextField`'s leading
+   icon, menus, tabs, trees and table sorts.
+2. `IconSet`: icons by key, falling back per key to another set.
+3. `ui.Glyph(glyph, color, size)` and `UiPainter.Glyph`: a font glyph as text; an SVG rasterized at the drawn
+   pixel size (size times the canvas scale) in the asked color, uploaded with the image API and cached by
+   (picture, pixel size, color). A frame that draws only cached icons allocates nothing. Images not drawn for a
+   while are dropped, and `ui.ReleaseUndrawnIconImages()` drops at the end of the frame every one it did not
+   draw, for when the icons changed.
+4. `[ThemeIcons("Assets/IconThemes/lucide.json")]` on a partial class: a generator reads the reference theme (the
+   `AdditionalFiles` item whose path ends so) and gives the class a property per key, built from an `IconSet`, and a
+   `Keys` list with each key's description, taken from the comment above it. A misspelled key fails to compile.
+5. Registering a font at runtime already works (`ui.RegisterFont`); a font that fails to load is skipped
+   instead of failing the frame, and the host keeps loaded faces by their bytes, so registering an unchanged
+   font again reuses its face. `FontFace.ReadCharacters()` loads a face only to check it and list its
+   characters, so a theme reports a font that cannot be loaded, or a glyph its font lacks, and falls back.
+   The framework's own line-drawn chevrons, checks and crosses stay as they are.
+
+### ILSpy
+
+6. `Assets/IconThemes/lucide.json`, embedded, maps every key and declares `"fonts": { "lucide": "Lucide.ttf" }`.
+   `LucideIcons` is deleted; its codepoints move into the file.
+7. `AppIcons` is the generated class. `UiState.Icons` holds the current icon theme's, and views read
+   `ui.State.Icons.NodeClass`. `NodeIcons` keeps its role-based coloring.
+8. `IconThemeFile` reads one file, reading its fonts and SVGs as it goes. `IconThemeCatalog` resolves `extends`
+   into an `IconTheme`: the `AppIcons`, the fonts they need and each key's value as written. It lives on
+   `AppState` beside `ThemeCatalog`; both share `ThemeJson` (JSONC reading with lines), `ThemeName`, `ThemeError`
+   and `ThemeFolderWatch`.
+9. An `IconTheming` feature file: `LoadIconThemes`, `ReloadUserIconThemes`, `ResolveIconTheme`,
+   `PrepareIconThemesFolder`, `CreateCustomIconTheme`, `WatchUserIconThemes`. The app hands the resolved theme's
+   icons and fonts to `UiState` each frame, and registers the fonts when they change.
+10. User icon themes live in `%AppData%/ZGF.ILSpy/icon-themes/`, beside `themes`. "Open icon themes folder" makes
+    it with `icon-theme.schema.json` and a README. Saving a `.json`, `.ttf`, `.otf` or `.svg` file in it, or in a
+    folder inside it, reloads the icon themes. The buttons hide while settings live in memory only.
+
+### Tests
+
+- Every key of the built-in theme resolves to the font and codepoint the old `LucideIcons` constant had
+  (temporary, removed with `LucideIcons`).
+- Parsing and errors, `extends`, cycles and clashes, fallback per key, a path leaving the folder.
+- SVG icons tinted through `currentColor`, rasterized once and reused, released when undrawn after a change.
+- The picker, customize, live reload of a changed SVG and font, the settings default and persistence.
+- A snapshot test of `Assets/IconThemes/icon-theme.schema.json`.
 
 ## Later
 

@@ -88,13 +88,13 @@ public static partial class UiWidgets
     /// <summary>Edits <paramref name="text"/> in place. Returns true when Enter is pressed while
     /// the field has focus. Supports mouse selection (drag, shift-click, double-click for a word,
     /// triple-click for everything), word-wise movement and deletion, the clipboard, and undo. The
-    /// field is a Tab stop. <paramref name="leadingIcon"/> is a glyph drawn before the text in
-    /// <paramref name="iconFamily"/>; <paramref name="hint"/> is muted text at the end — a shortcut —
+    /// field is a Tab stop. <paramref name="leadingIcon"/> is a glyph drawn before the text;
+    /// <paramref name="hint"/> is muted text at the end — a shortcut —
     /// left out while the field is too narrow to keep room for typing. <paramref name="look"/> says
     /// how it looks while not being edited.</summary>
-    public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, string? leadingIcon = null,
-        string? iconFamily = null, string? hint = null, FieldLook look = FieldLook.Boxed) =>
-        Field(ui, id, ref text, placeholder, width, leadingIcon, iconFamily, hint, inline: false, look);
+    public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, IconGlyph? leadingIcon = null,
+        string? hint = null, FieldLook look = FieldLook.Boxed) =>
+        Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look);
 
     /// <summary>Edits <paramref name="text"/> in place of the label it replaces, as in a rename: a
     /// field one line tall, its text where the label's was, outlined in the focus color. On the frame
@@ -119,11 +119,11 @@ public static partial class UiWidgets
         }
         if (ui.Input.TakeKey(KeyboardKey.Escape))
             return InlineEditResult.Cancelled;
-        return Field(ui, id, ref text, null, width, null, null, null, inline: true, FieldLook.Boxed) ? InlineEditResult.Committed : InlineEditResult.Editing;
+        return Field(ui, id, ref text, null, width, null, null, inline: true, FieldLook.Boxed) ? InlineEditResult.Committed : InlineEditResult.Editing;
     }
 
-    private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, string? leadingIcon, string? iconFamily,
-        string? hint, bool inline, FieldLook look)
+    private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon, string? hint,
+        bool inline, FieldLook look)
     {
         var theme = ui.Theme;
         var padding = inline ? theme.InlineEditPaddingX : theme.FieldPaddingX;
@@ -213,7 +213,7 @@ public static partial class UiWidgets
         }))
         {
             if (leadingIcon != null)
-                ui.Text(leadingIcon, new Box { Width = theme.IconSize }, color: theme.TextMuted, size: theme.IconSize, align: Align.Center, family: iconFamily);
+                ui.Glyph(leadingIcon.Value, theme.TextMuted, theme.IconSize, new Box { Width = theme.IconSize });
 
             using (ui.Row(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true, ScrollX = shift }))
             {

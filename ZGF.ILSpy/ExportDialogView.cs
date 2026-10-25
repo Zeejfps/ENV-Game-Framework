@@ -226,10 +226,10 @@ internal static class ExportDialogView
         var theme = ui.Theme;
         using (ui.Row(new Box { Gap = theme.GapTight, Padding = new Spacing(theme.GapTight, theme.GapTight, theme.Gap, theme.GapTight) }))
         {
-            if (ui.IconButton("add", LucideIcons.Plus, LucideIcons.Family, t.ExportAdd))
+            if (ui.IconButton("add", ui.State.Icons.ExportAdd, t.ExportAdd))
                 setup.Choose();
             var anyPicked = setup.RowSelection.Count > 0;
-            if (ui.IconButton("remove-selected", LucideIcons.Minus, LucideIcons.Family, t.ExportRemoveSelected, enabled: anyPicked))
+            if (ui.IconButton("remove-selected", ui.State.Icons.ExportRemovePicked, t.ExportRemoveSelected, enabled: anyPicked))
                 setup.RemoveSelectedRows();
             ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
             SelectedCount(ui, setup);
@@ -414,7 +414,7 @@ internal static class ExportDialogView
         var t = ui.State.Strings;
         using (ui.Row())
         {
-            ui.TextField("filter", ref picker.Filter, t.ExportFilter, Sizing.Grow(), LucideIcons.Search, LucideIcons.Family);
+            ui.TextField("filter", ref picker.Filter, t.ExportFilter, Sizing.Grow(), ui.State.Icons.ExportFilter);
             ui.Checkbox(t.ExportSelectedOnly, ref picker.SelectedOnly, id: "selected-only");
         }
     }

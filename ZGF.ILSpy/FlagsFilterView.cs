@@ -241,7 +241,8 @@ internal static class FlagsFilterView
     private static void PillGlyph(Ui<UiState> ui, TriState state)
     {
         var theme = ui.Theme;
-        var glyph = state == TriState.Required ? LucideIcons.Check : LucideIcons.X;
-        ui.Text(glyph, color: theme.AccentText, size: theme.FontSizeSmall, family: LucideIcons.Family);
+        var icons = ui.State.Icons;
+        var glyph = state == TriState.Required ? icons.MetadataFlagRequired : icons.MetadataFlagExcluded;
+        ui.Glyph(glyph, theme.AccentText, theme.FontSizeSmall);
     }
 }

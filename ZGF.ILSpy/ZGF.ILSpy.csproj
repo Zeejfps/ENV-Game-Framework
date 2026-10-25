@@ -18,6 +18,7 @@
 
     <ItemGroup>
       <AdditionalFiles Include="Localization\Strings\*.json" />
+      <AdditionalFiles Include="Assets\IconThemes\lucide.json" />
     </ItemGroup>
 
     <ItemGroup>
@@ -40,6 +41,15 @@
       </EmbeddedResource>
       <EmbeddedResource Include="Assets\Themes\README.md">
         <LogicalName>themes-readme.md</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="Assets\IconThemes\*.json" Exclude="Assets\IconThemes\icon-theme.schema.json">
+        <LogicalName>IconThemes/%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="Assets\IconThemes\icon-theme.schema.json">
+        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="Assets\IconThemes\README.md">
+        <LogicalName>icon-themes-readme.md</LogicalName>
       </EmbeddedResource>
       <Content Include="Assets\Fonts\**\LICENSE-*.txt">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

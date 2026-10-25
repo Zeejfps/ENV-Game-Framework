@@ -7,6 +7,7 @@ using static ZGF.ILSpy.Bookmarks;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -192,7 +193,7 @@ public sealed class BookmarkTests : IDisposable
         var clicked = view.Click(view.MarkOf(3));
 
         Assert.Equal(line, clicked.ToggleBookmark);
-        Assert.Equal(2, view.Frames.Canvas.Texts.Count(t => t.Inputs.Text == LucideIcons.Bookmark));
+        Assert.Equal(2, view.Frames.Canvas.Texts.Count(t => t.Inputs.Text == Text(Icons.CodeBookmark)));
         Assert.False(view.State.HasSelection);
     }
 
@@ -204,7 +205,7 @@ public sealed class BookmarkTests : IDisposable
         var clicked = view.Click(view.MarkOf(3));
 
         Assert.Null(clicked.ToggleBookmark);
-        Assert.DoesNotContain(view.Frames.Canvas.Texts, t => t.Inputs.Text == LucideIcons.Bookmark);
+        Assert.DoesNotContain(view.Frames.Canvas.Texts, t => t.Inputs.Text == Text(Icons.CodeBookmark));
     }
 
     [Fact]
@@ -247,7 +248,7 @@ public sealed class BookmarkTests : IDisposable
         app.Frames.MovePointer(location.X + 2f, location.Y + location.Height / 2).Frame(90);
         Assert.True(app.Frames.Drew(Strings.En.BookmarksGoToHint));
 
-        app.Frames.Click(app.TextRect(LucideIcons.ExternalLink));
+        app.Frames.Click(app.TextRect(Icons.LinkBookmark));
         d.Settle();
 
         Assert.Equal("Outline", tab.Node!.Text);
@@ -494,7 +495,7 @@ public sealed class BookmarkTests : IDisposable
         var (app, d, _, _) = ShowBookmark();
         app.Frames.FilePicker.Answer = path;
 
-        app.Click(LucideIcons.Download).Frame();
+        app.Click(Icons.BookmarksImport).Frame();
         app.Settle(2);
         var asked = app.Frames.Drew("Import bookmarks");
         app.Click("Merge").Frame(2);

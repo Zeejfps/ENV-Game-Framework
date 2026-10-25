@@ -33,7 +33,7 @@ internal static class ErrorDialogView
         {
             using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                ui.Text(LucideIcons.AlertCircle, color: theme.Danger, size: theme.IconSize, family: LucideIcons.Family);
+                ui.Glyph(ui.State.Icons.StatusError, theme.Danger, theme.IconSize);
                 ui.Text(selected.Title, new Box { Width = Sizing.Grow() }, bold: true, overflow: TextOverflow.Ellipsis);
             }
         }

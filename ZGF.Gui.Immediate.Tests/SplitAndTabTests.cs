@@ -235,7 +235,7 @@ public sealed class TabStripTests
         {
             using var screen = ui.Screen();
             using var strip = ui.TabStrip("icons");
-            strip.Tab("Doc", selected: true, icon: new UiIcon("@"));
+            strip.Tab("Doc", selected: true, icon: new UiIcon(IconGlyph.FromFont("@")));
         }).Frame(2);
 
         var icon = frames.TextRect("@");
@@ -253,7 +253,7 @@ public sealed class TabStripTests
             using var screen = ui.Screen();
             using var strip = ui.TabStrip("tabs");
             for (var i = 1; i <= 10; i++)
-                strip.Tab($"Doc{i}", i == 1, icon: new UiIcon($"@{i}"));
+                strip.Tab($"Doc{i}", i == 1, icon: new UiIcon(IconGlyph.FromFont($"@{i}")));
         }).Frame(3);
 
         frames.ClickOn(ListButtonId).Frame(2);

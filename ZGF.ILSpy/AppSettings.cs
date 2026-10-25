@@ -15,6 +15,7 @@ public sealed class AppSettings
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZGF.ILSpy", "settings.json");
 
     private const string ThemesFolderName = "themes";
+    private const string IconThemesFolderName = "icon-themes";
 
     /// <summary>Where <see cref="Save"/> writes; null keeps the settings in memory only.</summary>
     [JsonIgnore]
@@ -24,7 +25,8 @@ public sealed class AppSettings
         set
         {
             field = value;
-            ThemesFolder = FindThemesFolder(value);
+            ThemesFolder = FindFolderBeside(value, ThemesFolderName);
+            IconThemesFolder = FindFolderBeside(value, IconThemesFolderName);
         }
     }
 
@@ -36,6 +38,11 @@ public sealed class AppSettings
     /// are kept in memory only.</summary>
     [JsonIgnore]
     public string? ThemesFolder { get; private set; }
+
+    /// <summary>Where the user's icon themes are: a folder beside the settings file; null while the
+    /// settings are kept in memory only.</summary>
+    [JsonIgnore]
+    public string? IconThemesFolder { get; private set; }
 
     /// <summary>The named assembly lists, the open one's as it was left.</summary>
     public List<AssemblyListRecord> AssemblyLists { get; set; } = new();
@@ -50,6 +57,9 @@ public sealed class AppSettings
 
     /// <summary>The id of the chosen theme, the name of its file without the extension.</summary>
     public string Theme { get; set; } = ThemeCatalog.DarkId;
+
+    /// <summary>The id of the chosen icon theme, the name of its file without the extension.</summary>
+    public string IconTheme { get; set; } = IconThemeCatalog.ReferenceId;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
 
@@ -164,6 +174,7 @@ public sealed class AppSettings
         settings.MoveAnalysesIntoActiveList();
         settings.MoveShowNonPublicIntoApiVisibility();
         settings.RenameThemeToId();
+        settings.DefaultMissingIconTheme();
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.FilePath = path;
@@ -240,14 +251,20 @@ public sealed class AppSettings
         _ => null,
     };
 
-    private static string? FindThemesFolder(string? settingsFile)
+    private void DefaultMissingIconTheme()
+    {
+        if (string.IsNullOrWhiteSpace(IconTheme))
+            IconTheme = IconThemeCatalog.ReferenceId;
+    }
+
+    private static string? FindFolderBeside(string? settingsFile, string name)
     {
         if (settingsFile == null)
             return null;
         var folder = Path.GetDirectoryName(settingsFile);
         if (folder == null)
             return null;
-        return Path.Combine(folder, ThemesFolderName);
+        return Path.Combine(folder, name);
     }
 
     private static List<CodeAnchor> CleanAnalyses(List<CodeAnchor>? analyzed)

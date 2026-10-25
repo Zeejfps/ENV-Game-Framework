@@ -31,9 +31,6 @@ internal static class ExportsPanelView
     private const int SpinnerDots = 8;
     private const float SlideShare = 0.3f;
 
-    private static readonly UiIcon OpenFolderIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
-    private static readonly UiIcon ShowReportIcon = new(LucideIcons.FileText, LucideIcons.Family);
-
     /// <summary>What every row of a frame needs: the list it is in, for focus and scrolling, the
     /// menu its rows open, resolved outside their id scopes, and whether the panel is narrow.</summary>
     private readonly record struct Rows(int ListId, int MenuId, bool Narrow);
@@ -264,7 +261,7 @@ internal static class ExportsPanelView
         var enabled = !appState.Export.IsCancelling;
         if (rows.Narrow)
         {
-            if (ui.IconButton("cancel", LucideIcons.X, LucideIcons.Family, t.ExportsCancelTooltip, enabled))
+            if (ui.IconButton("cancel", ui.State.Icons.ExportCancel, t.ExportsCancelTooltip, enabled))
                 appState.Export.Cancel();
             return;
         }
@@ -397,7 +394,7 @@ internal static class ExportsPanelView
             {
                 using (ui.Row(TopLine(theme)))
                 {
-                    Glyph(ui, LucideIcons.Hourglass, theme.TextMuted);
+                    Glyph(ui, ui.State.Icons.ExportWaiting, theme.TextMuted);
                     Name(ui, waiting.Job.Name);
                     withdrawn = WithdrawAction(ui, rows);
                 }
@@ -416,7 +413,7 @@ internal static class ExportsPanelView
     {
         var t = ui.State.Strings;
         if (rows.Narrow)
-            return ui.IconButton("withdraw", LucideIcons.X, LucideIcons.Family, t.ExportsWithdraw);
+            return ui.IconButton("withdraw", ui.State.Icons.ExportWithdraw, t.ExportsWithdraw);
         return ui.Button(t.ExportsWithdraw, id: "withdraw", variant: ButtonVariant.Ghost);
     }
 
@@ -466,10 +463,10 @@ internal static class ExportsPanelView
             {
                 using (ui.Row(TopLine(theme)))
                 {
-                    Glyph(ui, OutcomeIcon(report), OutcomeColor(theme, report));
+                    Glyph(ui, OutcomeIcon(ui.State.Icons, report), OutcomeColor(theme, report));
                     Name(ui, report.Name);
                     FinishedActions(ui, appState, rows, report);
-                    removed = ui.IconButton("remove", LucideIcons.X, LucideIcons.Family, t.ExportsRemove);
+                    removed = ui.IconButton("remove", ui.State.Icons.ExportRemove, t.ExportsRemove);
                 }
                 var detail = ui.Memo("detail", (report, t), static a => DescribeFinished(a.t, a.report));
                 Detail(ui, detail, OutcomeTextColor(theme, report));
@@ -507,18 +504,18 @@ internal static class ExportsPanelView
     private static void OpenFolderAction(Ui<UiState> ui, ExportReport report, bool labelled)
     {
         var t = ui.State.Strings;
-        if (labelled && ui.Button(t.ExportOpenFolder, id: "open-folder", icon: OpenFolderIcon))
+        if (labelled && ui.Button(t.ExportOpenFolder, id: "open-folder", icon: new UiIcon(ui.State.Icons.ExportOpenFolder)))
             ui.OpenFolder(report.Folder);
-        if (!labelled && ui.IconButton("open-folder", LucideIcons.FolderOpen, LucideIcons.Family, t.ExportOpenFolder))
+        if (!labelled && ui.IconButton("open-folder", ui.State.Icons.ExportOpenFolder, t.ExportOpenFolder))
             ui.OpenFolder(report.Folder);
     }
 
     private static void ShowReportAction(Ui<UiState> ui, AppState appState, ExportReport report, bool labelled)
     {
         var t = ui.State.Strings;
-        if (labelled && ui.Button(t.ExportShowReport, id: "show-report", icon: ShowReportIcon))
+        if (labelled && ui.Button(t.ExportShowReport, id: "show-report", icon: new UiIcon(ui.State.Icons.ExportShowReport)))
             ShowExportReport(appState, report);
-        if (!labelled && ui.IconButton("show-report", LucideIcons.FileText, LucideIcons.Family, t.ExportShowReport))
+        if (!labelled && ui.IconButton("show-report", ui.State.Icons.ExportShowReport, t.ExportShowReport))
             ShowExportReport(appState, report);
     }
 
@@ -531,13 +528,13 @@ internal static class ExportsPanelView
         return report.FolderExists;
     }
 
-    private static string OutcomeIcon(ExportReport report)
+    private static IconGlyph OutcomeIcon(AppIcons icons, ExportReport report)
     {
         if (report.HasProblems)
-            return LucideIcons.AlertCircle;
+            return icons.ExportProblems;
         if (report.Outcome == ExportOutcome.Cancelled)
-            return LucideIcons.X;
-        return LucideIcons.Check;
+            return icons.ExportCancelled;
+        return icons.ExportDone;
     }
 
     private static uint OutcomeColor(UiTheme theme, ExportReport report)
@@ -577,9 +574,9 @@ internal static class ExportsPanelView
     private static void FinishedMenu(Ui<UiState> ui, AppState appState, ExportReport report)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.ExportShowReport, "Enter", id: "show-report", icon: ShowReportIcon))
+        if (ui.MenuItem(t.ExportShowReport, "Enter", id: "show-report", icon: new UiIcon(ui.State.Icons.ExportShowReport)))
             ShowExportReport(appState, report);
-        if (ui.MenuItem(t.ExportOpenFolder, enabled: report.FolderExists, id: "open-folder", icon: OpenFolderIcon))
+        if (ui.MenuItem(t.ExportOpenFolder, enabled: report.FolderExists, id: "open-folder", icon: new UiIcon(ui.State.Icons.ExportOpenFolder)))
             ui.OpenFolder(report.Folder);
         if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))
             ui.ClipboardText = report.Folder;
@@ -625,10 +622,10 @@ internal static class ExportsPanelView
         ui.Separator();
     }
 
-    private static void Glyph(Ui<UiState> ui, string glyph, uint color)
+    private static void Glyph(Ui<UiState> ui, IconGlyph glyph, uint color)
     {
         var theme = ui.Theme;
-        ui.Text(glyph, new Box { Width = Sizing.Fixed(theme.IconSize) }, color: color, size: theme.IconSize, family: LucideIcons.Family);
+        ui.Glyph(glyph, color, theme.IconSize, new Box { Width = Sizing.Fixed(theme.IconSize) });
     }
 
     /// <summary>The export's name, taking the top line's spare width and cut short when it runs out.</summary>

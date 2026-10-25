@@ -27,7 +27,7 @@ internal static class ExportStatusView
         var t = ui.State.Strings;
         if (Glance(ui, appState, progress))
             OpenExports(ui.State);
-        if (!appState.Export.IsCancelling && IconButton(ui, "cancel-export", LucideIcons.X, t.StatusCancelExport))
+        if (!appState.Export.IsCancelling && IconButton(ui, "cancel-export", ui.State.Icons.ExportCancel, t.StatusCancelExport))
             appState.Export.Cancel();
     }
 
@@ -74,12 +74,12 @@ internal static class ExportStatusView
     }
 
     /// <summary>An icon button that fits the status bar's height, which the theme's are too tall for.</summary>
-    private static bool IconButton(Ui<UiState> ui, string id, string glyph, string tooltip)
+    private static bool IconButton(Ui<UiState> ui, string id, IconGlyph glyph, string tooltip)
     {
         var theme = ui.Theme;
         var i = ui.Clickable(id);
         using (ui.Row(i.Id, ButtonBox(theme, i)))
-            ui.Text(glyph, color: theme.TextMuted, size: theme.IconSize, family: LucideIcons.Family);
+            ui.Glyph(glyph, theme.TextMuted, theme.IconSize);
         ui.Tooltip(i.Id, tooltip);
         return i.Clicked;
     }

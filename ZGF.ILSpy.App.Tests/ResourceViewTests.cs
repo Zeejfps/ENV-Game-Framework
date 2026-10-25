@@ -4,6 +4,7 @@ using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Docking;
 using static ZGF.ILSpy.Exports;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -29,7 +30,7 @@ public sealed class ResourceViewTests
         Assert.Equal((2f, 2f), (drawn.Inputs.Position.Width, drawn.Inputs.Position.Height));
         app.TextRect("PNG, 2 × 2 pixels");
         var export = app.TextRect("Export");
-        var icon = app.Frames.TextRect(LucideIcons.Upload);
+        var icon = app.Frames.TextRect(Text(Icons.ResourceExport));
         Assert.True(icon.Right <= export.X);
         Assert.Equal(export.Y + export.Height / 2, icon.Y + icon.Height / 2, 2f);
     }
@@ -57,11 +58,11 @@ public sealed class ResourceViewTests
     {
         var (app, tab) = ShowResource("logo.png");
 
-        app.ClickLast(LucideIcons.ZoomIn).Frame();
-        app.ClickLast(LucideIcons.ZoomIn).Frame();
+        app.ClickLast(Icons.ResourceZoomIn).Frame();
+        app.ClickLast(Icons.ResourceZoomIn).Frame();
         var zoomed = DrawnSize(app, tab);
         app.TextRect("400%");
-        app.ClickLast(LucideIcons.RotateCcw).Frame();
+        app.ClickLast(Icons.ResourceZoomReset).Frame();
 
         Assert.Equal((8f, 8f), zoomed);
         Assert.Equal((2f, 2f), DrawnSize(app, tab));
@@ -73,7 +74,7 @@ public sealed class ResourceViewTests
     {
         var (app, tab) = ShowResource("shape.svg");
 
-        app.ClickLast(LucideIcons.ZoomIn).Frame();
+        app.ClickLast(Icons.ResourceZoomIn).Frame();
 
         Assert.Equal((8f, 4f), DrawnSize(app, tab));
         Assert.Equal((8, 4), UploadedSize(app, tab));
@@ -83,7 +84,7 @@ public sealed class ResourceViewTests
     public void A_zoom_lasts_until_another_picture_arrives_in_the_tab()
     {
         var (app, tab) = ShowResource("shape.svg");
-        app.ClickLast(LucideIcons.ZoomIn).Frame();
+        app.ClickLast(Icons.ResourceZoomIn).Frame();
         var zoomedBefore = !app.Ui.Documents.ViewOf(tab).Picture.Zoom.IsOwnSize;
 
         app.Show(app.Node(["Resources", "logo.png"]), 3);

@@ -13,11 +13,10 @@ public enum ButtonVariant
 public static partial class UiWidgets
 {
     /// <summary>A square button of <see cref="UiTheme.IconButtonSize"/> showing one icon
-    /// <paramref name="glyph"/>, centered at <see cref="UiTheme.IconSize"/> in <paramref name="family"/>
-    /// (the theme's font when null), with an optional tooltip: <see cref="ButtonVariant.Ghost"/> unless
+    /// <paramref name="glyph"/>, centered at <see cref="UiTheme.IconSize"/>, with an optional tooltip: <see cref="ButtonVariant.Ghost"/> unless
     /// <paramref name="variant"/> says otherwise. Returns true on the frame it is clicked, or activated
     /// with Enter or Space while focused. <paramref name="id"/> is scoped like any other.</summary>
-    public static bool IconButton(this Ui ui, string id, string glyph, string? family = null, string? tooltip = null, bool enabled = true,
+    public static bool IconButton(this Ui ui, string id, IconGlyph glyph, string? tooltip = null, bool enabled = true,
         ButtonVariant variant = ButtonVariant.Ghost)
     {
         var theme = ui.Theme;
@@ -37,8 +36,7 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
-            ui.Text(glyph, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize }, color: text, size: theme.IconSize, align: Align.Center,
-                family: family);
+            ui.Glyph(glyph, text, theme.IconSize, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize });
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
         if (tooltip != null)

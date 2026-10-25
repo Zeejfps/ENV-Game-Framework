@@ -2,6 +2,7 @@ using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -64,7 +65,7 @@ public sealed class ExportsPanelTests : IDisposable
         SaveCode(app.AppState, app.Fixture("Farewell"), _temp.PathOf("Farewell.cs"));
         app.Settle(2);
 
-        app.Frames.Click(app.LastTextRect(LucideIcons.FileText)).Frame(2);
+        app.Frames.Click(app.LastTextRect(Icons.ExportShowReport)).Frame(2);
 
         var tab = app.AppState.Tabs.Active!;
         Assert.IsType<TabContent.Report>(tab.Content);
@@ -151,7 +152,7 @@ public sealed class ExportsPanelTests : IDisposable
 
         Assert.True(app.Frames.Drew("Open folder"));
         Assert.False(app.Frames.Drew("Show report"));
-        Assert.True(app.Frames.Drew(LucideIcons.FileText));
+        Assert.True(app.Frames.Drew(Text(Icons.ExportShowReport)));
     }
 
     [Fact]

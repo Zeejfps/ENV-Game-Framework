@@ -5,6 +5,7 @@ using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -255,12 +256,12 @@ public sealed class ExportDialogTests : IDisposable
         app.Run(2);
         var setup = app.Ui.ExportSetup;
 
-        app.Click(LucideIcons.Plus).Frame(2);
+        app.Click(Icons.ExportAdd).Frame(2);
         Assert.Equal(ExportPage.Choose, setup.Page);
         app.Click("Done").Frame(2);
         Assert.Equal(ExportPage.Main, setup.Page);
 
-        app.Click(LucideIcons.Plus).Frame(2);
+        app.Click(Icons.ExportAdd).Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.Equal(ExportPage.Main, setup.Page);
@@ -292,7 +293,7 @@ public sealed class ExportDialogTests : IDisposable
         app.Ui.ExportSetup.IncludeAll(false);
         app.Run(2);
 
-        app.Click(LucideIcons.Plus).Frame(2);
+        app.Click(Icons.ExportAdd).Frame(2);
 
         Assert.Equal(ExportPage.Choose, app.Ui.ExportSetup.Page);
     }
@@ -331,7 +332,7 @@ public sealed class ExportDialogTests : IDisposable
         Assert.False(setup.RowSelection.Count > 0);
 
         ClickRowOf(app, first);
-        app.Click(LucideIcons.Minus).Frame(2);
+        app.Click(Icons.ExportRemovePicked).Frame(2);
 
         Assert.Equal([false, true], setup.Choices.Select(c => c.Included));
         Assert.True(setup.RowSelection.IsOnly(setup.Choices[1]));

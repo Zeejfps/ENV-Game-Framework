@@ -27,7 +27,7 @@ public static partial class UiWidgets
         if (i.Hovered || button.Hovered || button.Held)
         {
             using (ui.Box(button.Id, new Box { Width = Sizing.Fit(theme.IconSize), Height = Sizing.Grow(), AlignX = Align.Center, AlignY = Align.Center }))
-                ui.Text(icon.Glyph, color: button.Hovered ? theme.AccentText : theme.TextMuted, size: theme.FontSizeSmall, family: icon.Family);
+                ui.Glyph(icon.Glyph, button.Hovered ? theme.AccentText : theme.TextMuted, theme.FontSizeSmall);
             ui.Tooltip(button.Id, tooltip);
         }
         return button.Clicked || i.Clicked && following;

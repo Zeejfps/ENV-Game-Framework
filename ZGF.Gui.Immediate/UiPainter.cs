@@ -158,6 +158,24 @@ public sealed class UiPainter
             _canvas.DrawImage(new DrawImageInputs { Position = _origin.ToCanvas(rect), ImageId = imageId, TintColor = tint, Rotation = 0f, ZIndex = _z });
     }
 
+    /// <summary>Draws <paramref name="glyph"/> at <paramref name="size"/> centered in <paramref name="rect"/>,
+    /// in <paramref name="color"/>, a picture as <see cref="Ui.Glyph"/> draws one.</summary>
+    public void Glyph(UiRect rect, IconGlyph glyph, uint color, float size)
+    {
+        if (glyph.Svg != null)
+        {
+            var imageId = _ui.AcquireIconImage(glyph.Svg, size, color);
+            Image(Centered(rect, size), imageId);
+            return;
+        }
+        if (glyph.Text != null)
+            Text(rect, glyph.Text, color, size, align: Align.Center, family: glyph.Family);
+    }
+
+    /// <summary>A square of <paramref name="size"/> centered in <paramref name="rect"/>.</summary>
+    internal static UiRect Centered(UiRect rect, float size) =>
+        new(rect.X + (rect.Width - size) / 2, rect.Y + (rect.Height - size) / 2, size, size);
+
     /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
     /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
     public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null)

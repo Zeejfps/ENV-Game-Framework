@@ -81,6 +81,15 @@ internal static class FoundAnalyses
     }
 }
 
+/// <summary>The icons of the built-in reference icon theme, which the tests' app draws with.</summary>
+internal static class BuiltInGlyphs
+{
+    public static AppIcons Icons { get; } = BuiltInIconThemes.Reference.Icons;
+
+    /// <summary>The text <paramref name="glyph"/>, a font glyph, is drawn as.</summary>
+    public static string Text(IconGlyph glyph) => glyph.Text!;
+}
+
 internal static class TempSettings
 {
     public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json"));
@@ -291,6 +300,17 @@ internal sealed class AppDriver
     public void Analyze(BrowseNode node) => Driver.Analyze(node);
 
     public void OpenExportSetup(LoadedAssembly? picked) => Driver.OpenExportSetup(picked);
+
+    /// <summary>Where <paramref name="icon"/> was drawn on the last frame, in window coordinates.</summary>
+    public UiRect TextRect(IconGlyph icon) => TextRect(BuiltInGlyphs.Text(icon));
+
+    /// <summary>Where <paramref name="icon"/> was last drawn, as <see cref="LastTextRect(string)"/>.</summary>
+    public UiRect LastTextRect(IconGlyph icon) => LastTextRect(BuiltInGlyphs.Text(icon));
+
+    public UiFrames Click(IconGlyph icon) => Click(BuiltInGlyphs.Text(icon));
+
+    /// <summary>Clicks where <paramref name="icon"/> was last drawn, as <see cref="ClickLast(string)"/>.</summary>
+    public UiFrames ClickLast(IconGlyph icon) => ClickLast(BuiltInGlyphs.Text(icon));
 
     /// <summary>Where the text was drawn on the last frame, in window coordinates.</summary>
     public UiRect TextRect(string text) => Drawn(text, Frames.Canvas.Texts.FirstOrDefault(t => t.Inputs.Text == text));

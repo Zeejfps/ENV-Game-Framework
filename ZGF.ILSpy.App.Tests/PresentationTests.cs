@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -12,13 +13,13 @@ public sealed class PresentationTests
 
         foreach (var kind in kinds)
         {
-            var glyph = NodeIcons.Glyph(kind);
+            var glyph = Text(NodeIcons.Glyph(kind, Icons));
             Assert.Equal(1, glyph.Length);
             Assert.InRange((int)glyph[0], 0xE000, 0xF8FF);
             Assert.NotEqual(0u, BuiltInThemes.Dark.Icons.For(kind));
             Assert.NotEqual(0u, BuiltInThemes.Light.Icons.For(kind));
         }
-        Assert.Equal(kinds.Length, kinds.Select(NodeIcons.Glyph).Distinct().Count());
+        Assert.Equal(kinds.Length, kinds.Select(k => NodeIcons.Glyph(k, Icons)).Distinct().Count());
     }
 
     [Fact]
@@ -78,17 +79,17 @@ public sealed class PresentationTests
         var ns = root.Child(AppStateDriver.FixturesNamespace);
         var privateField = ns.Child("Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
         var tree = new BrowseTree();
-        tree.SetStyle(UiTheme.Light, BuiltInThemes.Light.Icons);
+        tree.SetStyle(UiTheme.Light, BuiltInThemes.Light.Icons, Icons);
 
         var field = tree.Row(privateField);
         var hidden = tree.Row(ns.Child("Hidden"));
         var greeter = tree.Row(ns.Child("Greeter"));
 
-        Assert.Equal(LucideIcons.Lock, field.Icon!.Value.Overlay);
+        Assert.Equal(Icons.OverlayPrivate, field.Icon!.Value.Overlay);
         Assert.Equal(BuiltInThemes.Light.Icons.Restricted, field.Icon!.Value.OverlayColor);
-        Assert.Equal(NodeIcons.Family, field.Icon!.Value.Family);
+        Assert.Equal(IconThemeCatalog.ReferenceId, field.Icon!.Value.Glyph.Family);
         Assert.Equal(UiTheme.Light.TextMuted, field.LabelColor);
-        Assert.Equal(LucideIcons.Shield, hidden.Icon!.Value.Overlay);
+        Assert.Equal(Icons.OverlayInternal, hidden.Icon!.Value.Overlay);
         Assert.Null(greeter.Icon!.Value.Overlay);
         Assert.Null(greeter.Secondary);
     }
@@ -125,7 +126,7 @@ public sealed class PresentationTests
         var row = tree.Row(forwarded);
 
         Assert.Equal("Object", row.Label);
-        Assert.Equal(LucideIcons.Forward, row.Icon!.Value.Glyph);
+        Assert.Equal(Icons.NodeForwardedType, row.Icon!.Value.Glyph);
         Assert.Equal("→ System.Private.CoreLib", row.Secondary);
         Assert.Equal("System.Object", row.Tooltip);
     }

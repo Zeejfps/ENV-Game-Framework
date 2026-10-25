@@ -5,6 +5,7 @@ using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Docking;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -355,7 +356,7 @@ public sealed class AssemblyListingTests
         var greeter = app.Fixture("Greeter");
         app.Show(greeter, 2);
 
-        app.Frames.Click(app.TextRect(LucideIcons.ChevronsDownUp)).Frame(2);
+        app.Frames.Click(app.TextRect(Icons.AssembliesCollapseAll)).Frame(2);
 
         Assert.Same(greeter, app.Ui.Tree.View.Selected);
         Assert.Same(greeter, app.AppState.Tabs.Active!.Node);
@@ -446,7 +447,7 @@ public sealed class AssemblyListingTests
         app.Ui.Tree.View.Select(app.Ui.Tree.Roots[0]);
         app.Run(2);
 
-        app.Frames.Click(app.TextRect(LucideIcons.Crosshair)).Frame(2);
+        app.Frames.Click(app.TextRect(Icons.AssembliesSelectOpened)).Frame(2);
 
         Assert.Same(greeter, app.Ui.Tree.View.Selected);
         Assert.True(app.Ui.Tree.View.IsExpanded(app.Node(AppStateDriver.FixturesNamespace)));
@@ -461,12 +462,12 @@ public sealed class AssemblyListingTests
         app.Ui.Tree.View.Select(app.Node(AppStateDriver.FixturesNamespace));
         app.Run(2);
 
-        app.Click(LucideIcons.Trash2);
+        app.Click(Icons.AssembliesCloseAssembly);
         Assert.Single(app.AppState.Assemblies.Assemblies);
 
         app.Ui.Tree.View.Select(root);
         app.Run(2);
-        app.Click(LucideIcons.Trash2);
+        app.Click(Icons.AssembliesCloseAssembly);
 
         Assert.Empty(app.AppState.Assemblies.Assemblies);
     }
@@ -513,7 +514,7 @@ public sealed class AssemblyListingTests
         Assert.True(app.Frames.Drew("Assembly lists"));
         Assert.True(app.Frames.Drew("1 assembly"));
         Assert.True(app.Frames.Drew("0 assemblies"));
-        Assert.True(app.Frames.Drew(LucideIcons.Check));
+        Assert.True(app.Frames.Drew(Text(Icons.ListsActive)));
     }
 
     [Fact]
@@ -522,7 +523,7 @@ public sealed class AssemblyListingTests
         var app = AppDriver.Opened();
         app.Run(2);
 
-        app.Click(LucideIcons.LibrarySquare).Frame(2);
+        app.Click(Icons.ToolbarManageLists).Frame(2);
 
         Assert.True(app.Ui.ListsDialog.IsOpen);
     }
@@ -589,7 +590,7 @@ public sealed class AssemblyListingTests
     {
         var app = OpenedDialog();
 
-        app.ClickLast(LucideIcons.Trash2).Frame(2);
+        app.ClickLast(Icons.ListsDelete).Frame(2);
         Assert.True(app.Frames.Drew("Delete assembly list"));
         Assert.Equal(SavedAssemblyLists.DefaultName, app.Ui.ListsDialog.Deleting);
         Assert.Equal(Other, app.AppState.Lists.ReplacementFor(SavedAssemblyLists.DefaultName));
@@ -605,7 +606,7 @@ public sealed class AssemblyListingTests
     {
         var app = OpenedDialog();
 
-        app.ClickLast(LucideIcons.Trash2).Frame(2);
+        app.ClickLast(Icons.ListsDelete).Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
         Assert.False(app.Frames.Drew("Delete assembly list"));

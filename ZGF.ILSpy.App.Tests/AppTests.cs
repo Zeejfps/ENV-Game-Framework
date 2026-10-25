@@ -8,6 +8,7 @@ using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -223,7 +224,7 @@ public sealed class AppTests
         Assert.False(app.AppState.DecompilerOptions.IsOn(DecompilerToggle.Find("StringConcat")!));
         Assert.Contains("string.Concat", app.AppState.Tabs.Active!.Document.GetText());
 
-        app.Click(LucideIcons.RotateCcw);
+        app.Click(Icons.OptionsResetDecompiler);
         app.Settle(1);
 
         Assert.Equal(DecompilerOptions.Default, app.AppState.DecompilerOptions);
@@ -262,10 +263,17 @@ public sealed class AppTests
         var title = texts.FindIndex(t => t.Text == "C# 8.0 / VS 2019");
         var chevron = texts
             .Take(title)
-            .Last(t => t.Text is LucideIcons.ChevronDown or LucideIcons.ChevronRight);
+            .Last(t => IsGroupMark(t.Text));
         app.Frames.Click(chevron.Rect).Frame();
         Assert.Contains(nameof(CSharpVersion.CSharp8), app.Ui.FoldedOptionGroups);
         Assert.DoesNotContain(app.Frames.Canvas.Texts, t => t.Inputs.Text == "switch expressions");
+    }
+
+    private static bool IsGroupMark(string text)
+    {
+        if (text == Text(Icons.OptionsGroupUnfolded))
+            return true;
+        return text == Text(Icons.OptionsGroupFolded);
     }
 
     [Fact]
@@ -275,11 +283,11 @@ public sealed class AppTests
         OpenDecompilerOptions(app.Ui);
         app.Run();
 
-        app.ClickLast(LucideIcons.ChevronsDownUp);
+        app.ClickLast(Icons.OptionsCollapseAll);
         Assert.False(app.Frames.Drew("switch expressions"));
         Assert.True(app.Frames.Drew("C# 8.0 / VS 2019"));
 
-        app.ClickLast(LucideIcons.ChevronsUpDown);
+        app.ClickLast(Icons.OptionsExpandAll);
         Assert.Empty(app.Ui.FoldedOptionGroups);
         Assert.True(app.Frames.Drew("Extension members"));
     }
@@ -350,12 +358,12 @@ public sealed class AppTests
         app.Click("Name").Frame();
         Assert.Equal(names.Order(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Text));
         Assert.Same(selected, search.SelectedRow!.Node);
-        Assert.True(app.Frames.Drew(LucideIcons.ChevronUp));
+        Assert.True(app.Frames.Drew(Text(Icons.SortAscending)));
 
         app.Click("Name").Frame();
         Assert.Equal(names.OrderDescending(StringComparer.OrdinalIgnoreCase), search.Rows.Select(r => r.Text));
         Assert.Same(selected, search.SelectedRow!.Node);
-        Assert.True(app.Frames.Drew(LucideIcons.ChevronDown));
+        Assert.True(app.Frames.Drew(Text(Icons.SortDescending)));
 
         app.Click("Name").Frame();
         Assert.Equal(SearchSort.Relevance, search.Sort);
@@ -378,7 +386,7 @@ public sealed class AppTests
             app.ClickMenuItem(kind).Frame();
         Assert.True(app.Frames.Drew("Namespaces"));
         var events = app.LastTextRect("Events");
-        var icon = app.LastTextRect(NodeIcons.Glyph(NodeKind.Event));
+        var icon = app.LastTextRect(Icons.NodeEvent);
         Assert.True(icon.Right <= events.X && events.X - icon.Right < 16f, $"the events icon ends at {icon.Right}, its label starts at {events.X}");
         Assert.True(MathF.Abs(icon.Y + icon.Height / 2 - (events.Y + events.Height / 2)) < 4f);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
@@ -425,8 +433,8 @@ public sealed class AppTests
             .MaxBy(r => r.X);
         var assembliesTab = app.TextRect("Assemblies");
 
-        Assert.True(DrewIconBefore(app, LucideIcons.LibraryBig, assembliesTab));
-        Assert.True(DrewIconBefore(app, NodeIcons.Glyph(shown.Node!.Kind), documentTab));
+        Assert.True(DrewIconBefore(app, Icons.PanelAssemblies, assembliesTab));
+        Assert.True(DrewIconBefore(app, NodeIcons.Glyph(shown.Node!.Kind, Icons), documentTab));
     }
 
     [Fact]
@@ -441,13 +449,14 @@ public sealed class AppTests
         app.Run(2);
 
         var analyzer = app.LastTextRect("Analyzer");
-        Assert.True(DrewIconBefore(app, LucideIcons.ScanSearch, analyzer));
-        Assert.True(DrewIconBefore(app, LucideIcons.Palette, app.LastTextRect("Display options")));
+        Assert.True(DrewIconBefore(app, Icons.PanelAnalyzer, analyzer));
+        Assert.True(DrewIconBefore(app, Icons.PanelDisplayOptions, app.LastTextRect("Display options")));
         Assert.Equal(analyzer.X, app.LastTextRect("Display options").X, 0.01f);
     }
 
-    private static bool DrewIconBefore(AppDriver app, string glyph, UiRect title)
+    private static bool DrewIconBefore(AppDriver app, IconGlyph icon, UiRect title)
     {
+        var glyph = Text(icon);
         return app.Frames.TextRects()
             .Where(t => t.Text == glyph)
             .Any(t => IsJustBefore(t.Rect, title));
@@ -486,7 +495,7 @@ public sealed class AppTests
         OpenSearch(app.Ui);
         app.Run(2);
 
-        var icon = app.LastTextRect(LucideIcons.Search);
+        var icon = app.LastTextRect(Icons.SearchField);
         var placeholder = app.TextRect("Search…");
 
         Assert.True(icon.Right <= placeholder.X, $"the icon ends at {icon.Right}, the placeholder starts at {placeholder.X}");
@@ -499,8 +508,8 @@ public sealed class AppTests
         var app = new AppDriver();
         app.Run(2);
         var theme = app.Theme;
-        var open = app.TextRect(LucideIcons.FolderOpen);
-        var search = app.TextRect(LucideIcons.Search);
+        var open = app.TextRect(Icons.ToolbarOpen);
+        var search = app.TextRect(Icons.ToolbarSearch);
         Assert.Equal(open.Y, search.Y, 1f);
         Assert.InRange(search.X - open.Right, 0f, theme.IconButtonSize);
         Assert.True(app.TextRect("C#").X > search.Right);
@@ -508,10 +517,10 @@ public sealed class AppTests
                                                       && r.Inputs.Position.Left <= open.X && r.Inputs.Position.Left + r.Inputs.Position.Width >= open.Right
                                                       && r.Inputs.Position.Width <= theme.IconButtonSize + 1f);
 
-        app.Click(LucideIcons.FolderOpen).Frame();
+        app.Click(Icons.ToolbarOpen).Frame();
         Assert.Equal(["Open assembly"], app.Frames.FilePicker.Titles);
 
-        app.Click(LucideIcons.Search).Frame(2);
+        app.Click(Icons.ToolbarSearch).Frame(2);
         Assert.True(app.Ui.Layout.Contains(DockPanels.Search));
         Assert.True(app.Frames.Drew("Search…"));
     }
@@ -523,7 +532,7 @@ public sealed class AppTests
         app.Run(2);
         var theme = app.Theme;
         var file = app.TextRect("File");
-        var open = app.TextRect(LucideIcons.FolderOpen);
+        var open = app.TextRect(Icons.ToolbarOpen);
         var rects = app.Frames.Canvas.Rects.Select(r => (r.Inputs.Style.BackgroundColor, Rect: app.Frames.ToUi(r.Inputs.Position))).ToList();
 
         Assert.Contains(rects, r => r.BackgroundColor == theme.Background && r.Rect.Y <= file.Y && r.Rect.Bottom >= file.Bottom && r.Rect.Bottom <= open.Y);
@@ -537,7 +546,7 @@ public sealed class AppTests
 
         var secondary = NodeText.Secondary(app.Node())!;
         Assert.True(app.TextRect(secondary).X > app.TextRect(app.AppState.Assemblies.Assemblies[0].Name).Right);
-        Assert.True(app.Frames.Drew(LucideIcons.Shield));
+        Assert.True(app.Frames.Drew(Text(Icons.OverlayInternal)));
     }
 
     [Fact]
@@ -547,7 +556,7 @@ public sealed class AppTests
         app.Run(2);
 
         var row = app.Ui.Search.Rows.First(r => r.Node.Kind == NodeKind.Class);
-        var header = app.LastTextRect(LucideIcons.Search);
+        var header = app.LastTextRect(Icons.SearchField);
         var texts = app.Frames.TextRects().ToList();
         var name = texts.Single(t => t.Text == row.Text && t.Rect.Y > header.Bottom).Rect;
         var cells = texts.Where(t => t.Rect.Y == name.Y && t.Rect.X > name.Right).OrderBy(t => t.Rect.X).ToList();

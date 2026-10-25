@@ -51,6 +51,7 @@ public sealed class RecordingCanvas : ICanvas
     private readonly Stack<Vector2> _translations = new();
     private readonly Stack<Vector2> _scales = new();
     private readonly Dictionary<string, (int Width, int Height)> _imageSizes = new();
+    private readonly Dictionary<string, byte[]> _imagePixels = new();
     private int _sequence;
 
     private readonly List<RecordedRect> _rects = new();
@@ -83,6 +84,12 @@ public sealed class RecordingCanvas : ICanvas
     public int CommandCount => _sequence;
 
     public int DefaultImageWidth { get; set; }
+
+    /// <summary>The scale the canvas draws at, as a window on a monitor scaled to 150% would at 1.5.</summary>
+    public float DpiScale { get; set; } = 1f;
+
+    /// <summary>The ids of the images the canvas holds now.</summary>
+    public IReadOnlyCollection<string> ImageIds => _imageSizes.Keys;
     public int DefaultImageHeight { get; set; }
 
     public RecordingCanvas(ITextMeasurer? measurer = null)
@@ -278,16 +285,24 @@ public sealed class RecordingCanvas : ICanvas
     public int GetImageHeight(string imageId) =>
         _imageSizes.TryGetValue(imageId, out var size) ? size.Height : DefaultImageHeight;
 
-    /// <summary>Remembers the image's size, as a rendering canvas keeps its pixels.</summary>
+    /// <summary>Keeps the image's size and pixels, as a rendering canvas keeps its pixels.</summary>
     public bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown)
     {
         _imageSizes[imageId] = (widthPx, heightPx);
+        _imagePixels[imageId] = rgbaTopDown.ToArray();
         return true;
     }
 
+    /// <summary>The straight-alpha RGBA pixels the image <paramref name="imageId"/> was last given, rows top-down.</summary>
+    public byte[] PixelsOf(string imageId) => _imagePixels[imageId];
+
     public bool HasImage(string imageId) => _imageSizes.ContainsKey(imageId);
 
-    public void RemoveImage(string imageId) => _imageSizes.Remove(imageId);
+    public void RemoveImage(string imageId)
+    {
+        _imageSizes.Remove(imageId);
+        _imagePixels.Remove(imageId);
+    }
 
     /// <summary>Every captured command merged in draw order.</summary>
     public IReadOnlyList<DrawCommand> InDrawOrder() => _all;

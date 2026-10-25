@@ -17,14 +17,11 @@ internal static class TreePaneView
     private const string MenuId = "tree-menu";
     private const string OpenKey = "Enter";
 
-    private static readonly UiIcon ContainingFolderIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
-    private static readonly UiIcon ApiReferenceIcon = new(LucideIcons.ExternalLink, LucideIcons.Family);
-
     public static void Render(Ui<UiState> ui, AppState appState)
     {
         var theme = ui.Theme;
         var tree = ui.State.Tree;
-        tree.SetStyle(theme, ui.State.NodeIconPalette);
+        tree.SetStyle(theme, ui.State.NodeIconPalette, ui.State.Icons);
         tree.ShowTokens(ui.State.Display.TreeTokens);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         Toolbar(ui, appState);
@@ -47,15 +44,15 @@ internal static class TreePaneView
         using (ui.PaneToolbar())
         {
             var opened = FindOpenedNode(appState);
-            if (ui.IconButton("select-opened", LucideIcons.Crosshair, LucideIcons.Family, t.TreeSelectOpenedNode, opened != null))
+            if (ui.IconButton("select-opened", ui.State.Icons.AssembliesSelectOpened, t.TreeSelectOpenedNode, opened != null))
                 SelectOpenedNode(ui, appState, opened!);
-            if (ui.IconButton("collapse", LucideIcons.ChevronsDownUp, LucideIcons.Family, t.CodeCollapseAll, any))
+            if (ui.IconButton("collapse", ui.State.Icons.AssembliesCollapseAll, t.CodeCollapseAll, any))
                 tree.CollapseAll();
-            if (ui.IconButton("expand", LucideIcons.ChevronsUpDown, LucideIcons.Family, t.TreeExpandNamespaces, any))
+            if (ui.IconButton("expand", ui.State.Icons.AssembliesExpandNamespaces, t.TreeExpandNamespaces, any))
                 tree.ExpandNamespaces();
             ui.Separator(theme.IconSize);
             var picked = FindPickedAssembly(tree);
-            if (ui.IconButton("close-assembly", LucideIcons.Trash2, LucideIcons.Family, t.TreeCloseAssembly, picked != null))
+            if (ui.IconButton("close-assembly", ui.State.Icons.AssembliesCloseAssembly, t.TreeCloseAssembly, picked != null))
                 CloseAssembly(appState, picked!.Assembly);
         }
     }
@@ -187,12 +184,12 @@ internal static class TreePaneView
             AnalyzerPanelView.Analyze(ui.State, appState, node);
         if (node.Reference != null && ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
             ShowInMetadata(appState, node.Reference, inNewTab: false);
-        if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: ResourceImageView.ExportIcon))
+        if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: new UiIcon(ui.State.Icons.ResourceExport)))
             ResourceImageView.PickExport(ui, appState, node);
         ExtractItems(ui, appState, node);
-        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: SaveDialogs.SaveCodeIcon))
+        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
             SaveDialogs.PickCodeFile(ui, appState, node);
-        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: SaveDialogs.ExportIcon))
+        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
             ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItem(ui, appState, node.Assembly);
@@ -202,7 +199,7 @@ internal static class TreePaneView
             ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
             ScopeSearch(ui.State, node);
-        if (IsListedRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: ContainingFolderIcon))
+        if (IsListedRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: new UiIcon(ui.State.Icons.AssembliesOpenContainingFolder)))
             ui.RevealFile(node.Assembly.FilePath);
         if (IsListedRoot(node))
         {
@@ -220,7 +217,7 @@ internal static class TreePaneView
         var page = MicrosoftDocs.FindPage(node);
         if (page == null)
             return;
-        if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: ApiReferenceIcon))
+        if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: new UiIcon(ui.State.Icons.LinkApiReference)))
             ui.OpenUrl(page);
     }
 
@@ -229,9 +226,9 @@ internal static class TreePaneView
     private static void ExtractItems(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
-        if (IsPackedAssembly(node) && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: SaveDialogs.ExtractIcon))
+        if (IsPackedAssembly(node) && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
             SaveDialogs.PickPackageFile(ui, appState, node.Assembly.InPackage!);
-        if (node.PackageFolder != null && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: SaveDialogs.ExtractIcon))
+        if (node.PackageFolder != null && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
             SaveDialogs.PickExtractFolder(ui, appState, node);
     }
 
@@ -255,7 +252,7 @@ internal static class TreePaneView
     private static void PdbItem(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: SaveDialogs.PdbIcon))
+        if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: new UiIcon(ui.State.Icons.FileGeneratePdb)))
             SaveDialogs.PickPdbFile(ui, appState, assembly);
     }
 }

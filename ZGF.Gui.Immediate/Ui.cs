@@ -376,6 +376,7 @@ public abstract partial class Ui
         TraverseFocus();
         EndLayers();
         EndIme();
+        EndIconImages();
         for (var button = 1; button < UiInput.ButtonCount; button++)
         {
             if (!_input.IsDown((PointerButton)button))

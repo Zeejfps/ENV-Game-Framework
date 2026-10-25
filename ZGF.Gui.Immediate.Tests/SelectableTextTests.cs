@@ -215,7 +215,7 @@ public sealed class SelectableLinkTests
         {
             var i = ui.Interact("link");
             using (ui.Row(i.Id, new Box { Width = 200f, Height = 20f, Gap = 0f }))
-                _followed |= ui.SelectableLink(i, "target", _selection, ref _shift, true, new UiIcon(Glyph), "Go");
+                _followed |= ui.SelectableLink(i, "target", _selection, ref _shift, true, new UiIcon(IconGlyph.FromFont(Glyph)), "Go");
         }
     }
 

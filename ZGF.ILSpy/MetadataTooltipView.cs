@@ -62,12 +62,13 @@ internal static class MetadataTooltipView
     private static void Flag(Ui<UiState> ui, MetadataFlag flag)
     {
         var theme = ui.Theme;
-        var box = flag.IsSet ? LucideIcons.CheckSquare : LucideIcons.Square;
+        var icons = ui.State.Icons;
+        var box = flag.IsSet ? icons.MetadataFlagSet : icons.MetadataFlagUnset;
         var boxColor = flag.IsSet ? theme.AccentText : theme.TextMuted;
         var nameColor = flag.IsSet ? theme.Text : theme.TextMuted;
         using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
         {
-            ui.Text(box, color: boxColor, size: theme.FontSizeSmall, family: LucideIcons.Family);
+            ui.Glyph(box, boxColor, theme.FontSizeSmall);
             ui.Text(flag.Name, color: nameColor, size: theme.FontSizeSmall);
         }
     }

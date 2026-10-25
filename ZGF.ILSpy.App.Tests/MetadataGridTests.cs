@@ -7,6 +7,7 @@ using ZGF.ILSpy.Core.Metadata;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Preferences;
+using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -140,7 +141,7 @@ public sealed class MetadataGridTests
         var token = TextBeside(app, grid.Text(row, grid.Column("BaseType")), "Greeter");
 
         app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2).Frame(2);
-        app.Frames.Click(TextBeside(app, LucideIcons.ExternalLink, "Greeter"));
+        app.Frames.Click(TextBeside(app, Text(Icons.LinkToken), "Greeter"));
         app.Settle(3);
 
         Assert.Same(Table(app, "TypeRef"), tab.Node);
@@ -155,11 +156,11 @@ public sealed class MetadataGridTests
         var name = grid.Text(row, grid.Column("Name"));
         var token = TextBeside(app, grid.Text(row, baseType), name);
         app.Frames.MovePointer(token.X + 2f, token.Y + token.Height / 2).Frame(2);
-        var icon = TextBeside(app, LucideIcons.ExternalLink, name);
+        var icon = TextBeside(app, Text(Icons.LinkToken), name);
 
         app.Frames.MovePointer(icon).Frame(2);
 
-        Assert.True(app.Frames.Drew(LucideIcons.ExternalLink));
+        Assert.True(app.Frames.Drew(Text(Icons.LinkToken)));
         Assert.Contains(app.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == app.Theme.RowHover
                                                       && Math.Abs(app.Frames.Height - r.Inputs.Position.Top + r.Inputs.Position.Height / 2 - (icon.Y + icon.Height / 2)) < 4f);
     }
@@ -224,7 +225,7 @@ public sealed class MetadataGridTests
     {
         var header = app.TextRect(column);
         return app.Frames.TextRects()
-            .Where(t => t.Text == LucideIcons.Filter)
+            .Where(t => t.Text == Text(Icons.MetadataFilter))
             .Select(t => t.Rect)
             .Where(r => r.X > header.X && Math.Abs(r.Y + r.Height / 2 - (header.Y + header.Height / 2)) < 4f)
             .MinBy(r => r.X);

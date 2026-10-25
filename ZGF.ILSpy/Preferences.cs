@@ -3,13 +3,18 @@ using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>Choosing the theme, the interface language and how code is decompiled. The screen decompiles
+/// <summary>Choosing the theme, the icon theme, the interface language and how code is decompiled. The screen decompiles
 /// again what it shows when the language or the options change.</summary>
 public static class Preferences
 {
     public static void SetTheme(AppState appState, string theme)
     {
         appState.Theme = theme;
+    }
+
+    public static void SetIconTheme(AppState appState, string iconTheme)
+    {
+        appState.IconTheme = iconTheme;
     }
 
     public static void SetLocale(AppState appState, Locale locale)
