@@ -30,8 +30,12 @@ public sealed class ErrorLog
 
     public IReadOnlyList<AppError> Entries => _entries;
 
+    /// <summary>Changes whenever an error is added; clearing leaves it.</summary>
+    public int Revision { get; private set; }
+
     public void Add(string title, string? details = null)
     {
+        Revision++;
         _entries.Add(new AppError(title, details?.Trim() ?? "", DateTime.Now));
         if (_entries.Count > Capacity)
             _entries.RemoveAt(0);

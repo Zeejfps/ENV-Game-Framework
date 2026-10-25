@@ -119,16 +119,14 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void Clicking_the_error_indicator_opens_the_errors_to_copy_and_close()
+    public void Reported_errors_open_on_the_newest_to_copy_and_close()
     {
         var app = new AppDriver();
         app.AppState.ReportError("First failure", "details one");
         app.AppState.ReportError("Cannot open broken.dll", "System.BadImageFormatException: bad\n   at Somewhere()");
         app.Run(2);
 
-        app.Click("2 errors");
         Assert.True(app.Ui.ErrorDialog.IsOpen);
-        app.Run();
         Assert.Equal("Cannot open broken.dll", app.Ui.ErrorDialog.SelectedError!.Title);
 
         app.Click("Copy");
@@ -139,8 +137,30 @@ public sealed class AppTests
         Assert.StartsWith("First failure", app.Frames.Clipboard.Text);
 
         app.Click("Close");
+        app.Run(2);
         Assert.False(app.Ui.ErrorDialog.IsOpen);
         Assert.Equal(2, app.AppState.Errors.Entries.Count);
+    }
+
+    [Fact]
+    public void The_error_indicator_opens_the_errors_again_and_a_new_error_opens_them_by_itself()
+    {
+        var app = new AppDriver();
+        app.AppState.ReportError("First failure", "details one");
+        app.Run(2);
+        app.Click("Close");
+        app.Run(2);
+
+        app.Click("1 error");
+        Assert.True(app.Ui.ErrorDialog.IsOpen);
+        app.Click("Close");
+        app.Run(2);
+
+        app.AppState.ReportError("Second failure", "details two");
+        app.Run(2);
+
+        Assert.True(app.Ui.ErrorDialog.IsOpen);
+        Assert.Equal("Second failure", app.Ui.ErrorDialog.SelectedError!.Title);
     }
 
     [Fact]

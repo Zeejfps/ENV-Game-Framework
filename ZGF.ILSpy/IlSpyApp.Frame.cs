@@ -34,6 +34,13 @@ public sealed partial class IlSpyApp
         FocusNextTabIfNone(uiState, appState.Tabs);
         RunViewCommands(uiState, appState);
         FollowDecompilation(uiState, appState);
+        ShowNewErrors(uiState, appState.Errors);
+    }
+
+    /// <summary>Opens the error dialog on the newest error whenever one is reported.</summary>
+    private static void ShowNewErrors(UiState uiState, ErrorLog errors)
+    {
+        uiState.ErrorDialog.ShowNewErrors(errors.Revision, errors.Entries);
     }
 
     private static void FollowDecompilation(UiState uiState, AppState appState)

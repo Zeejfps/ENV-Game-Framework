@@ -7,6 +7,7 @@ public sealed class ErrorDialog
 {
     private AppError? _documentFor;
     private DecompiledDocument _document = DecompiledDocument.Empty;
+    private int _shownRevision;
 
     public bool IsOpen;
 
@@ -25,6 +26,16 @@ public sealed class ErrorDialog
             return;
         Selection.Select(errors[^1], errors);
         IsOpen = true;
+    }
+
+    /// <summary>Opens the dialog on the newest of <paramref name="errors"/> when an error was added since
+    /// it last saw the log, at <paramref name="revision"/>.</summary>
+    public void ShowNewErrors(int revision, IReadOnlyList<AppError> errors)
+    {
+        if (revision == _shownRevision)
+            return;
+        _shownRevision = revision;
+        Open(errors);
     }
 
     public void Close()
