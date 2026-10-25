@@ -96,6 +96,7 @@ public static class Settings
         settings.ExportWindow = view.ExportWindow;
         settings.Layout = view.Layout;
         settings.Display = view.Display;
+        settings.NuGet = view.NuGet;
         appState.ViewSettingsChanges++;
     }
 
@@ -112,6 +113,7 @@ public static class Settings
             settings.FlagsFilters,
             settings.ExportWindow,
             settings.Layout,
-            settings.Display);
+            settings.Display,
+            settings.NuGet);
     }
 }

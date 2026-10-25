@@ -4,9 +4,9 @@ using ZGF.ILSpy.Localization;
 namespace ZGF.ILSpy;
 
 /// <summary>
-/// The "open from NuGet" dialog: the feeds of the user's NuGet.Config, read the first time it opens
-/// and searched once the query settles, and the package picked, fetched at the version picked into
-/// the package cache for the view to open.
+/// The "open from NuGet" dialog: the feed typed or picked from the user's NuGet.Config, read the
+/// first time it opens, searched a page at a time once the query settles, and the package picked,
+/// fetched at the version picked into the package cache for the view to open.
 /// </summary>
 public sealed class NuGetPicker
 {
@@ -20,8 +20,11 @@ public sealed class NuGetPicker
     private CancellationTokenSource? _search;
     private CancellationTokenSource? _download;
     private FeedSearch? _searched;
-    private string _typed = "";
+    private NuGetFeed? _resultsFeed;
+    private string _typedQuery = "";
+    private string _typedUrl = "";
     private double _typedAt;
+    private SavedNuGetSearch? _kept;
     private FeedPackage? _versionsOf;
     private string? _downloaded;
     private bool _focusQuery;
@@ -36,10 +39,11 @@ public sealed class NuGetPicker
 
     public bool IsOpen;
     public string Query = "";
-    public bool IncludePrerelease;
 
-    /// <summary>The feed searched; null until the setup is read.</summary>
-    public NuGetFeed? Feed;
+    /// <summary>The URL of the service index of the feed to search, typed or picked from <see cref="Sources"/>.</summary>
+    public string FeedUrl = "";
+
+    public bool IncludePrerelease;
 
     /// <summary>The version of the selected package to open.</summary>
     public string Version = "";
@@ -48,13 +52,37 @@ public sealed class NuGetPicker
 
     public FeedPackage? Selected => Selection.Item;
 
+    /// <summary>The packages on the page shown.</summary>
     public IReadOnlyList<FeedPackage> Results => _results;
 
-    /// <summary>The feeds to pick from, once the setup is read.</summary>
-    public NuGetFeed[] Feeds { get; private set; } = [];
+    /// <summary>The page of the search shown, from 0.</summary>
+    public int Page { get; private set; }
 
-    /// <summary>The names of <see cref="Feeds"/>, in their order.</summary>
-    public string[] FeedNames { get; private set; } = [];
+    /// <summary>How many pages the search has, at least one.</summary>
+    public int PageCount { get; private set; } = 1;
+
+    /// <summary>How many packages the search matched in all.</summary>
+    public int TotalHits { get; private set; }
+
+    public bool HasPreviousPage => Page > 0;
+
+    public bool HasNextPage => Page + 1 < PageCount;
+
+    /// <summary>The feeds the user's NuGet.Config lists, once the setup is read.</summary>
+    public IReadOnlyList<NuGetSource> Sources
+    {
+        get
+        {
+            if (_setup == null)
+                return [];
+            return _setup.Sources;
+        }
+    }
+
+    public bool IsReadingSetup => _setup == null;
+
+    /// <summary>Whether <see cref="FeedUrl"/> is a URL a feed could be at.</summary>
+    public bool HasFeedUrl => NuGetSource.FromUrl(FeedUrl) != null;
 
     /// <summary>The versions of the selected package, newest first.</summary>
     public string[] Versions { get; private set; } = [];
@@ -69,6 +97,10 @@ public sealed class NuGetPicker
     /// <summary>The package and version being downloaded, while <see cref="IsDownloading"/>.</summary>
     public string DownloadingName { get; private set; } = "";
 
+    /// <summary>How many times the feed searched or whether prereleases count changed, for the
+    /// settings to keep <see cref="Save"/> once it did.</summary>
+    public int SearchChanges { get; private set; }
+
     public bool CanOpen
     {
         get
@@ -80,6 +112,21 @@ public sealed class NuGetPicker
             return Version.Length > 0;
         }
     }
+
+    /// <summary>Searches the feed and counts prereleases as the settings kept them.</summary>
+    public void Restore(SavedNuGetSearch? saved)
+    {
+        if (saved == null)
+            return;
+        if (string.IsNullOrWhiteSpace(saved.FeedUrl))
+            return;
+        _kept = saved;
+        FeedUrl = saved.FeedUrl;
+        IncludePrerelease = saved.IncludePrerelease;
+    }
+
+    /// <summary>The feed last searched and whether prereleases counted, for the settings to keep.</summary>
+    public SavedNuGetSearch? Save() => _kept;
 
     public void Open()
     {
@@ -105,15 +152,23 @@ public sealed class NuGetPicker
     }
 
     /// <summary>Searches and downloads with <paramref name="setup"/> from now on, in place of the one
-    /// read from the user's NuGet.Config.</summary>
+    /// read from the user's NuGet.Config; with no feed kept, its first feed is the one searched.</summary>
     internal void UseSetup(NuGetSetup setup)
     {
         _setup = setup;
-        Feeds = setup.Feeds.ToArray();
-        FeedNames = Feeds
-            .Select(f => f.Source.Name)
-            .ToArray();
-        Feed = Feeds[0];
+        if (FeedUrl.Length > 0)
+            return;
+        if (setup.Sources.Count == 0)
+            return;
+        FeedUrl = setup.Sources[0].Url;
+    }
+
+    /// <summary>Searches <paramref name="source"/> at once.</summary>
+    public void PickFeed(NuGetSource source)
+    {
+        FeedUrl = source.Url;
+        _typedUrl = source.Url;
+        _typedAt = double.NegativeInfinity;
     }
 
     /// <summary>Closes the dialog, stopping the search and the download it started.</summary>
@@ -147,18 +202,44 @@ public sealed class NuGetPicker
         return focus;
     }
 
-    /// <summary>Searches again once the typed query settled, or at once when the feed or whether
-    /// prereleases count changed. Returns the seconds left before a typed query settles, or 0.</summary>
+    public void ShowPreviousPage()
+    {
+        if (!HasPreviousPage)
+            return;
+        Page--;
+    }
+
+    public void ShowNextPage()
+    {
+        if (!HasNextPage)
+            return;
+        Page++;
+    }
+
+    /// <summary>Searches again once the typed feed or query settled, or at once when another page is
+    /// asked for or whether prereleases count changed; a new search starts on its first page. Returns
+    /// the seconds left before what was typed settles, or 0.</summary>
     public double Update(double now)
     {
         NoteTyping(now);
-        if (Feed == null)
+        if (_setup == null)
             return 0;
-        var wanted = new FeedSearch(Feed, _typed, IncludePrerelease);
+        var source = NuGetSource.FromUrl(_typedUrl);
+        if (source == null)
+        {
+            DropResults();
+            return 0;
+        }
+        var wanted = new FeedSearch(_setup.FeedAt(source), _typedQuery, IncludePrerelease, Page);
+        if (IsNewSearch(wanted))
+        {
+            Page = 0;
+            wanted = wanted with { Page = 0 };
+        }
         if (wanted == _searched)
             return 0;
         var remaining = DebounceSeconds - (now - _typedAt);
-        if (remaining > 0 && IsOnlyQueryChanged(wanted))
+        if (remaining > 0 && IsOnlyTypingChanged(wanted))
             return remaining;
         StartSearch(wanted);
         return 0;
@@ -166,35 +247,75 @@ public sealed class NuGetPicker
 
     private void NoteTyping(double now)
     {
-        if (Query == _typed)
+        var typed = Query != _typedQuery || FeedUrl != _typedUrl;
+        if (!typed)
             return;
-        _typed = Query;
+        _typedQuery = Query;
+        _typedUrl = FeedUrl;
         _typedAt = now;
     }
 
-    private bool IsOnlyQueryChanged(FeedSearch wanted)
+    /// <summary>Clears what was found once the feed typed is no URL, so nothing shows from another feed.</summary>
+    private void DropResults()
+    {
+        StopSearch();
+        _searched = null;
+        _resultsFeed = null;
+        _results.Clear();
+        Selection.Clear();
+        SearchError = null;
+        Page = 0;
+        PageCount = 1;
+        TotalHits = 0;
+    }
+
+    /// <summary>Whether <paramref name="wanted"/> asks for other packages than the last search, not
+    /// just another page of them.</summary>
+    private bool IsNewSearch(FeedSearch wanted)
     {
         if (_searched == null)
             return false;
         if (wanted.Feed != _searched.Feed)
+            return true;
+        if (wanted.Query != _searched.Query)
+            return true;
+        return wanted.IncludePrerelease != _searched.IncludePrerelease;
+    }
+
+    private bool IsOnlyTypingChanged(FeedSearch wanted)
+    {
+        if (_searched == null)
             return false;
-        return wanted.IncludePrerelease == _searched.IncludePrerelease;
+        if (wanted.IncludePrerelease != _searched.IncludePrerelease)
+            return false;
+        return wanted.Page == _searched.Page;
     }
 
     private async void StartSearch(FeedSearch wanted)
     {
         StopSearch();
         _searched = wanted;
+        KeepSearched(wanted);
         var run = new CancellationTokenSource();
         _search = run;
-        var found = await Background.Wait(wanted.Feed.SearchAsync(wanted.Query, wanted.IncludePrerelease, run.Token));
+        var found = await Background.Wait(wanted.Feed.SearchAsync(wanted.Query, wanted.IncludePrerelease, wanted.Page, run.Token));
         if (_search != run)
             return;
         _search = null;
         ShowFound(wanted, found);
     }
 
-    private void ShowFound(FeedSearch searched, Outcome<IReadOnlyList<FeedPackage>> found)
+    /// <summary>Has the settings keep the feed searched and whether prereleases count, once either changed.</summary>
+    private void KeepSearched(FeedSearch searched)
+    {
+        var kept = new SavedNuGetSearch(searched.Feed.Source.Url, searched.IncludePrerelease);
+        if (kept == _kept)
+            return;
+        _kept = kept;
+        SearchChanges++;
+    }
+
+    private void ShowFound(FeedSearch searched, Outcome<FeedPage> found)
     {
         _results.Clear();
         Selection.Clear();
@@ -204,7 +325,10 @@ public sealed class NuGetPicker
             return;
         }
         SearchError = null;
-        _results.AddRange(found.Value!);
+        _resultsFeed = searched.Feed;
+        _results.AddRange(found.Value!.Packages);
+        TotalHits = found.Value.TotalHits;
+        PageCount = NuGetFeed.CountPages(TotalHits);
         if (_results.Count > 0)
             Selection.Select(_results[0], _results);
     }
@@ -216,23 +340,28 @@ public sealed class NuGetPicker
     }
 
     /// <summary>Offers the versions of the package selected, picking its latest, once another is selected.</summary>
-    public void FollowSelection()
+    public void FollowSelection() => OfferVersionsOf(Selected);
+
+    /// <summary>Offers the versions of <paramref name="package"/>, picking its latest, unless they are
+    /// on offer already. The selected row offers its versions as it draws, before the list hands its
+    /// selection back.</summary>
+    public void OfferVersionsOf(FeedPackage? package)
     {
-        if (Selected == _versionsOf)
+        if (package == _versionsOf)
             return;
-        _versionsOf = Selected;
-        if (Selected == null)
+        _versionsOf = package;
+        if (package == null)
         {
             Version = "";
             Versions = [];
             return;
         }
-        Version = Selected.Version;
-        Versions = Selected.Versions.ToArray();
+        Version = package.Version;
+        Versions = package.Versions.ToArray();
     }
 
-    /// <summary>Fetches <see cref="Version"/> of the selected package into the cache, in the
-    /// background, for <see cref="TakeDownloaded"/> to hand over.</summary>
+    /// <summary>Fetches <see cref="Version"/> of the selected package, from the feed it was found in,
+    /// into the cache, in the background, for <see cref="TakeDownloaded"/> to hand over.</summary>
     public async void Download()
     {
         if (!CanOpen)
@@ -242,7 +371,7 @@ public sealed class NuGetPicker
         var run = new CancellationTokenSource();
         _download = run;
         DownloadingName = $"{package.Id} {version}";
-        var fetched = await Background.Wait(_setup!.Cache.FetchAsync(Feed!, package.Id, version, run.Token));
+        var fetched = await Background.Wait(_setup!.Cache.FetchAsync(_resultsFeed!, package.Id, version, run.Token));
         if (_download != run)
             return;
         _download = null;
@@ -263,5 +392,9 @@ public sealed class NuGetPicker
     }
 
     /// <summary>What a search asked of which feed.</summary>
-    private sealed record FeedSearch(NuGetFeed Feed, string Query, bool IncludePrerelease);
+    private sealed record FeedSearch(NuGetFeed Feed, string Query, bool IncludePrerelease, int Page);
 }
+
+/// <summary>What the settings keep of the "open from NuGet" dialog: the feed last searched and
+/// whether prereleases counted.</summary>
+public sealed record SavedNuGetSearch(string FeedUrl, bool IncludePrerelease);

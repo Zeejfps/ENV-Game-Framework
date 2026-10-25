@@ -7,6 +7,25 @@ namespace ZGF.ILSpy.Core;
 public sealed record NuGetSource(string Name, string Url)
 {
     public static readonly NuGetSource NuGetOrg = new("nuget.org", "https://api.nuget.org/v3/index.json");
+
+    /// <summary>The source a typed <paramref name="url"/> names, called after its host; null unless it
+    /// is an absolute HTTP or HTTPS URL.</summary>
+    public static NuGetSource? FromUrl(string url)
+    {
+        var trimmed = url.Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+            return null;
+        if (!IsWebScheme(uri))
+            return null;
+        return new NuGetSource(uri.Host, trimmed);
+    }
+
+    internal static bool IsWebScheme(Uri uri)
+    {
+        if (uri.Scheme == Uri.UriSchemeHttps)
+            return true;
+        return uri.Scheme == Uri.UriSchemeHttp;
+    }
 }
 
 /// <summary>
@@ -114,7 +133,7 @@ public sealed record NuGetConfig(IReadOnlyList<NuGetSource> Sources, string Glob
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             return false;
-        if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)
+        if (!NuGetSource.IsWebScheme(uri))
             return false;
         return uri.AbsolutePath.EndsWith(ServiceIndexName, StringComparison.OrdinalIgnoreCase);
     }

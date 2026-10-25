@@ -8,7 +8,8 @@ namespace ZGF.ILSpy;
 /// <summary>What the settings keep of the screen: the column widths of the bookmarks, search results
 /// and export tables, the decompiler options panel's folded groups, what the search looks for, the
 /// metadata grids' flags filters, where the export dialog's window was left, a copy of the layout,
-/// which shares nothing with the screen's, and how the documents draw code. A part never saved is null.</summary>
+/// which shares nothing with the screen's, how the documents draw code, and the feed the NuGet
+/// dialog last searched. A part never saved is null.</summary>
 public sealed record ViewSettings(
     List<float>? BookmarkColumns,
     List<float>? SearchColumns,
@@ -18,4 +19,5 @@ public sealed record ViewSettings(
     Dictionary<string, SavedFilterState>? FlagsFilters,
     WindowBounds? ExportWindow,
     DockLayout? Layout,
-    DisplayOptions? Display);
+    DisplayOptions? Display,
+    SavedNuGetSearch? NuGet);

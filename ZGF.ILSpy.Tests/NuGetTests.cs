@@ -20,11 +20,47 @@ public sealed class NuGetFeedTests
 
         var found = await feed.SearchAsync("json", includePrerelease: false);
 
-        Assert.Equal(["Newtonsoft.Json", "Tiny"], found.Select(p => p.Id));
-        Assert.Equal(["13.0.3", "12.0.1"], found[0].Versions);
-        Assert.Equal("James Newton-King", found[0].Authors);
-        Assert.Equal("Ann, Bo", found[1].Authors);
-        Assert.Equal(["1.0.0"], found[1].Versions);
+        var packages = found.Packages;
+        Assert.Equal(["Newtonsoft.Json", "Tiny"], packages.Select(p => p.Id));
+        Assert.Equal(["13.0.3", "12.0.1"], packages[0].Versions);
+        Assert.Equal("James Newton-King", packages[0].Authors);
+        Assert.Equal("Ann, Bo", packages[1].Authors);
+        Assert.Equal(["1.0.0"], packages[1].Versions);
+        Assert.Equal(2, found.TotalHits);
+    }
+
+    [Fact]
+    public async Task A_page_of_a_search_skips_the_pages_before_it()
+    {
+        var fake = new FakeFeed();
+        fake.AnswerSearches(TwoPackages);
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        await feed.SearchAsync("json", includePrerelease: false, page: 2);
+
+        Assert.Contains($"skip={2 * NuGetFeed.PageSize}&take={NuGetFeed.PageSize}&", fake.Requested.Last());
+    }
+
+    [Fact]
+    public async Task A_feed_that_gives_no_total_counts_what_is_on_the_page()
+    {
+        var fake = new FakeFeed();
+        fake.AnswerSearches("""{ "data": [ { "id": "Tiny", "version": "1.0.0" } ] }""");
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        var found = await feed.SearchAsync("", includePrerelease: false);
+
+        Assert.Equal(1, found.TotalHits);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(25, 1)]
+    [InlineData(26, 2)]
+    [InlineData(400000, 121)]
+    public void The_pages_are_counted_up_to_the_last_one_a_feed_lets_start(int totalHits, int pages)
+    {
+        Assert.Equal(pages, NuGetFeed.CountPages(totalHits));
     }
 
     [Fact]
@@ -121,6 +157,40 @@ public sealed class PackageCacheTests
 
         Assert.Null(cache.Find("Gone", "1.0.0"));
         Assert.False(File.Exists(temp.PathOf(Path.Combine("downloads", "gone", "1.0.0", "gone.1.0.0.nupkg.download"))));
+    }
+}
+
+public sealed class NuGetSetupTests
+{
+    [Fact]
+    public void A_typed_url_is_a_source_named_after_its_host()
+    {
+        var source = NuGetSource.FromUrl(" https://pkgs.test/v3/index.json ");
+
+        Assert.Equal(new NuGetSource("pkgs.test", "https://pkgs.test/v3/index.json"), source);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("nuget.org")]
+    [InlineData("C:\\packages")]
+    [InlineData("ftp://pkgs.test/index.json")]
+    public void Text_that_is_no_web_url_is_no_source(string typed)
+    {
+        Assert.Null(NuGetSource.FromUrl(typed));
+    }
+
+    [Fact]
+    public void A_feed_is_made_once_per_url_and_named_as_the_config_names_it()
+    {
+        using var temp = new TempDir();
+        var listed = new NuGetSource("company", "https://pkgs.test/v3/index.json");
+        var setup = new NuGetSetup([listed], new PackageCache(temp.PathOf("global"), temp.PathOf("downloads")));
+
+        var feed = setup.FeedAt(NuGetSource.FromUrl("https://PKGS.test/v3/index.json")!);
+
+        Assert.Same(feed, setup.FeedAt(listed));
+        Assert.Equal("company", feed.Source.Name);
     }
 }
 

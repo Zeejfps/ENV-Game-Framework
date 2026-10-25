@@ -29,6 +29,7 @@ public sealed class UiState : IUiState
         MetadataFilters = new MetadataFilters(saved.FlagsFilters);
         Picker = new FrameworkPicker(ReadStrings, reportError);
         NuGetPicker = new NuGetPicker(ReadStrings, reportError);
+        NuGetPicker.Restore(saved.NuGet);
         ExportSetup.RestoreWindow(saved.ExportWindow);
         Display = DisplayOptions.Restore(saved.Display);
         Analyzer = new AnalyzerRows(AppCommands);

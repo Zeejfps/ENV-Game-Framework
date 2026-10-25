@@ -17,7 +17,13 @@ internal sealed class FakeFeed : HttpMessageHandler
 
     public FakeFeed()
     {
-        Answer(IndexUrl, $$"""
+        AnswerIndexAt(IndexUrl);
+    }
+
+    /// <summary>Serves, at <paramref name="url"/>, a service index naming this feed's search and packages.</summary>
+    public void AnswerIndexAt(string url)
+    {
+        Answer(url, $$"""
             { "version": "3.0.0", "resources": [
                 { "@id": "{{SearchUrl}}", "@type": "SearchQueryService/3.5.0" },
                 { "@id": "{{PackagesUrl}}", "@type": "PackageBaseAddress/3.0.0" } ] }

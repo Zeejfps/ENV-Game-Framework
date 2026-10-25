@@ -7,6 +7,9 @@ namespace ZGF.ILSpy.Core;
 /// listed with it.</summary>
 public sealed record FeedPackage(string Id, string Version, string Description, string Authors, IReadOnlyList<string> Versions);
 
+/// <summary>A page of a feed's search: the packages on it, the closest first, and how many match in all.</summary>
+public sealed record FeedPage(IReadOnlyList<FeedPackage> Packages, int TotalHits);
+
 /// <summary>
 /// A NuGet feed spoken to over the v3 protocol: its service index, read the first time it is needed,
 /// names the search service and the folder of package files the feed serves. Every call may be made
@@ -16,7 +19,13 @@ public sealed class NuGetFeed
 {
     private const string SearchType = "SearchQueryService";
     private const string PackageFolderType = "PackageBaseAddress/3.0.0";
-    private const int SearchSize = 50;
+
+    /// <summary>How many packages a page of a search holds.</summary>
+    public const int PageSize = 25;
+
+    /// <summary>The furthest into a search nuget.org lets a page start; every feed is held to it.</summary>
+    public const int MaxSkip = 3000;
+
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
     private static readonly Lazy<HttpClient> Shared = new(() => CreateClient(new SocketsHttpHandler { AutomaticDecompression = DecompressionMethods.All }));
 
@@ -47,23 +56,33 @@ public sealed class NuGetFeed
 
     public NuGetSource Source { get; }
 
-    /// <summary>The packages matching <paramref name="query"/>, the closest first, as many as one
-    /// page of the search holds; every package when the query is empty.</summary>
-    /// <exception cref="HttpRequestException">The feed could not be reached or refused the request.</exception>
-    /// <exception cref="InvalidDataException">The feed answered with something that is no search result.</exception>
-    public async Task<IReadOnlyList<FeedPackage>> SearchAsync(string query, bool includePrerelease, CancellationToken cancellationToken = default)
+    /// <summary>How many pages a search that matched <paramref name="totalHits"/> packages has, up to
+    /// the last one <see cref="MaxSkip"/> lets start; at least one.</summary>
+    public static int CountPages(int totalHits)
     {
-        var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
-        var url = SearchUrl(index.Search, query, includePrerelease);
-        using var document = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
-        return ReadPackages(document.RootElement);
+        var reachable = Math.Min(totalHits, MaxSkip + PageSize);
+        var pages = (reachable + PageSize - 1) / PageSize;
+        return Math.Max(1, pages);
     }
 
-    private static string SearchUrl(string search, string query, bool includePrerelease)
+    /// <summary>Page <paramref name="page"/>, from 0, of the packages matching <paramref name="query"/>;
+    /// of every package when the query is empty.</summary>
+    /// <exception cref="HttpRequestException">The feed could not be reached or refused the request.</exception>
+    /// <exception cref="InvalidDataException">The feed answered with something that is no search result.</exception>
+    public async Task<FeedPage> SearchAsync(string query, bool includePrerelease, int page = 0, CancellationToken cancellationToken = default)
+    {
+        var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
+        var url = SearchUrl(index.Search, query, includePrerelease, page);
+        using var document = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
+        return ReadPage(document.RootElement);
+    }
+
+    private static string SearchUrl(string search, string query, bool includePrerelease, int page)
     {
         var q = Uri.EscapeDataString(query.Trim());
         var prerelease = includePrerelease ? "true" : "false";
-        return $"{search}?q={q}&skip=0&take={SearchSize}&prerelease={prerelease}&semVerLevel=2.0.0";
+        var skip = Math.Min(page * PageSize, MaxSkip);
+        return $"{search}?q={q}&skip={skip}&take={PageSize}&prerelease={prerelease}&semVerLevel=2.0.0";
     }
 
     /// <summary>Writes the package file of <paramref name="id"/> at <paramref name="version"/> to
@@ -162,12 +181,31 @@ public sealed class NuGetFeed
         }
     }
 
+    private static FeedPage ReadPage(JsonElement root)
+    {
+        var packages = ReadPackages(root);
+        var totalHits = ReadTotalHits(root, packages.Count);
+        return new FeedPage(packages, totalHits);
+    }
+
     private static List<FeedPackage> ReadPackages(JsonElement root)
     {
         var packages = new List<FeedPackage>();
         foreach (var package in ReadArray(root, "data").EnumerateArray())
             packages.Add(ReadPackage(package));
         return packages;
+    }
+
+    /// <summary>How many packages match in all; <paramref name="onPage"/> when the feed does not say.</summary>
+    private static int ReadTotalHits(JsonElement root, int onPage)
+    {
+        if (!root.TryGetProperty("totalHits", out var total))
+            return onPage;
+        if (total.ValueKind != JsonValueKind.Number)
+            return onPage;
+        if (!total.TryGetInt32(out var hits))
+            return onPage;
+        return Math.Max(hits, onPage);
     }
 
     private static FeedPackage ReadPackage(JsonElement package)

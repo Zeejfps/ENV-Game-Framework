@@ -15,6 +15,12 @@ public sealed class NuGetPickerTests : IDisposable
 
     private const string NoPackages = """{ "totalHits": 0, "data": [] }""";
 
+    private const string ThreePagesOfPackages = """
+        { "totalHits": 60, "data": [ { "id": "Fixtures", "version": "2.0.0" } ] }
+        """;
+
+    private const string OtherIndexUrl = "https://other.test/v3/index.json";
+
     private readonly TempDir _temp = new();
     private readonly FakeFeed _fake = new();
     private readonly List<string> _reported = new();
@@ -29,12 +35,13 @@ public sealed class NuGetPickerTests : IDisposable
     private NuGetSetup Setup()
     {
         var cache = new PackageCache(_temp.PathOf("global"), _temp.PathOf("downloads"));
-        return new NuGetSetup([new NuGetFeed(_fake.Source, _fake)], cache);
+        return new NuGetSetup([_fake.Source], cache, _fake);
     }
 
-    private NuGetPicker OpenPicker(PostedActions posted)
+    private NuGetPicker OpenPicker(PostedActions posted, SavedNuGetSearch? saved = null)
     {
         var picker = new NuGetPicker(static () => Strings.En, (title, _) => _reported.Add(title));
+        picker.Restore(saved);
         picker.UseSetup(Setup());
         picker.Open();
         picker.Update(now: 10);
@@ -88,6 +95,76 @@ public sealed class NuGetPickerTests : IDisposable
         Poll.Until(() => !picker.IsSearching, posted.Run);
 
         Assert.Equal(0, wait);
+        Assert.Contains("prerelease=true", _fake.Requested.Last());
+    }
+
+    [Fact]
+    public void The_next_page_is_searched_at_once_and_a_new_query_starts_on_the_first()
+    {
+        var posted = PostedActions.OfThisTest();
+        _fake.AnswerSearches(ThreePagesOfPackages);
+        var picker = OpenPicker(posted);
+
+        picker.ShowNextPage();
+        var wait = picker.Update(now: 10);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+        var nextPage = _fake.Requested.Last();
+        picker.Query = "fix";
+        picker.Update(now: 20);
+        picker.Update(now: 21);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+
+        Assert.Equal(0, wait);
+        Assert.Contains($"skip={NuGetFeed.PageSize}&", nextPage);
+        Assert.Equal(3, picker.PageCount);
+        Assert.Equal(0, picker.Page);
+        Assert.Contains("skip=0&", _fake.Requested.Last());
+    }
+
+    [Fact]
+    public void A_typed_feed_url_is_searched_once_it_settles_and_kept()
+    {
+        var posted = PostedActions.OfThisTest();
+        _fake.AnswerIndexAt(OtherIndexUrl);
+        var picker = OpenPicker(posted);
+
+        picker.FeedUrl = OtherIndexUrl;
+        var wait = picker.Update(now: 20);
+        picker.Update(now: 21);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+
+        Assert.True(wait > 0);
+        Assert.Contains(OtherIndexUrl, _fake.Requested);
+        Assert.Equal(new SavedNuGetSearch(OtherIndexUrl, false), picker.Save());
+    }
+
+    [Fact]
+    public void A_feed_that_is_no_url_shows_nothing_and_is_not_searched()
+    {
+        var posted = PostedActions.OfThisTest();
+        var picker = OpenPicker(posted);
+        var requests = _fake.Requested.Count;
+
+        picker.FeedUrl = "api.nuget";
+        picker.Update(now: 20);
+        picker.Update(now: 21);
+
+        Assert.False(picker.HasFeedUrl);
+        Assert.Empty(picker.Results);
+        Assert.Null(picker.Selected);
+        Assert.Equal(requests, _fake.Requested.Count);
+    }
+
+    [Fact]
+    public void The_kept_feed_and_prerelease_choice_are_searched_in_place_of_the_config_s_first()
+    {
+        var posted = PostedActions.OfThisTest();
+        _fake.AnswerIndexAt(OtherIndexUrl);
+
+        var picker = OpenPicker(posted, new SavedNuGetSearch(OtherIndexUrl, IncludePrerelease: true));
+
+        Assert.Equal(OtherIndexUrl, picker.FeedUrl);
+        Assert.DoesNotContain(FakeFeed.IndexUrl, _fake.Requested);
         Assert.Contains("prerelease=true", _fake.Requested.Last());
     }
 
@@ -182,6 +259,29 @@ public sealed class NuGetPickerTests : IDisposable
     }
 
     [Fact]
+    public void The_selected_row_offers_its_versions_and_Open_downloads_the_one_picked()
+    {
+        var app = new AppDriver();
+        _fake.Answer(FakeFeed.PackagesUrl + "fixtures/1.0.0/fixtures.1.0.0.nupkg", File.ReadAllBytes(WritePackage()));
+        var picker = app.Ui.NuGetPicker;
+        picker.UseSetup(Setup());
+
+        picker.Open();
+        app.RunUntil(() => picker.Results.Count > 0);
+        app.Run(2);
+        app.Click("2.0.0").Frame();
+        app.ClickMenuItem("1.0.0").Frame();
+        var picked = picker.Version;
+        app.ClickLast("Open").Frame();
+        app.RunUntil(() => app.AppState.Assemblies.Listed.Count > 0);
+        app.Settle(2);
+
+        Assert.Equal("1.0.0", picked);
+        Assert.False(picker.IsOpen);
+        Assert.True(app.Frames.Drew("fixtures.1.0.0.nupkg"));
+    }
+
+    [Fact]
     public void The_dialog_lists_what_was_found_with_the_selected_package_s_description()
     {
         var app = new AppDriver();
@@ -196,6 +296,27 @@ public sealed class NuGetPickerTests : IDisposable
         Assert.True(app.Frames.Drew("Fixtures"));
         Assert.True(app.Frames.Drew("The fixtures."));
         Assert.True(app.Frames.Drew("by Zee"));
+    }
+
+    [Fact]
+    public void Next_in_the_dialog_shows_the_next_page_of_how_many()
+    {
+        var app = new AppDriver();
+        _fake.AnswerSearches(ThreePagesOfPackages);
+        var picker = app.Ui.NuGetPicker;
+        picker.UseSetup(Setup());
+
+        picker.Open();
+        app.RunUntil(() => picker.Results.Count > 0);
+        app.Run(2);
+        var first = app.Frames.Drew("Page 1 of 3");
+        app.Click("Next").Frame();
+        app.RunUntil(() => !picker.IsSearching);
+        app.Run(2);
+
+        Assert.True(first);
+        Assert.True(app.Frames.Drew("60 packages"));
+        Assert.True(app.Frames.Drew("Page 2 of 3"));
     }
 
     private string WritePackage()
