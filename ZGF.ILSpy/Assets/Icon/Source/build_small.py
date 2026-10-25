@@ -1,13 +1,12 @@
-from build_icon import (BEAM, FLASHLIGHT_BEZEL, FLASHLIGHT_BODY_HIGHLIGHT, FLAT, FREEFORM_BEAM_ORIGIN,
-                        FREEFORM_FLASHLIGHT_SCALE, HOLLOW, OUTLINE, ROCK_BOTTOM, ROCK_SHADE, ROCK_TOP, beam_cone,
-                        draw_flashlight, linear, rounded_polygon, stop)
+from build_icon import (FLAT, FREEFORM_FLASHLIGHT_SCALE, HOLLOW, OUTLINE, ROCK_BOTTOM, ROCK_SHADE, ROCK_TOP,
+                        draw_beam, draw_flashlight, linear, rounded_polygon, stop)
 
 AMBER = "#ffb53f"
 ROCK_FLAT = "#7656d4"
 
-ZOOM_32 = 7 / 6
+ZOOM_32 = 1.22
 ZOOM_CENTER_32 = (16, 16.5)
-ZOOM_SHIFT_32 = (-1, -1)
+ZOOM_SHIFT_32 = (-0.5, -0.4)
 
 
 def zoomed(point):
@@ -34,23 +33,24 @@ def zoomed_path(d):
     return " ".join(out)
 
 
-ARCH_32 = zoomed_points([(3.5, 27.5), (4, 18), (6.5, 11.5), (9, 8.5), (13, 5.5), (16, 4.5), (19, 5.5), (23, 9),
-                         (26, 12.5), (28, 18.5), (28.5, 27.5)])
-SHADE_32 = zoomed_points([(3.5, 27.5), (4, 18), (6.5, 11.5), (9, 8.5), (13, 5.5), (16, 4.5), (14, 8), (11.5, 13),
-                          (10.5, 27.5)])
-HOLLOW_32 = zoomed_path("M 10 27.5 L 10 15 C 10 12 12 10 14.5 10 L 18 9.5 C 20.5 9.5 22 12 22 15 L 22 27.5 Z")
+ARCH_32 = zoomed_points([(3.5, 28.25), (4, 18), (6.5, 11.5), (9, 8.5), (13, 5.5), (16, 3.5), (19, 5.5), (23, 9),
+                         (26, 12.5), (28, 18.5), (28.5, 28.25)])
+SHADE_32 = zoomed_points([(3.5, 28.25), (4, 18), (6.5, 11.5), (9, 8.5), (13, 5.5), (16, 3.5), (14, 8), (11.5, 13),
+                          (10.5, 28.25)])
+HOLLOW_32 = zoomed_path("M 10 28.25 L 10 15 C 10 12 12 10 14.5 10 L 18 9.5 C 20.5 9.5 22 12 22 15 L 22 28.25 Z")
 BRACE_MIRROR_32 = 2 * zoomed((16, 0))[0]
 LEFT_BRACE_32 = zoomed_path("M 13 11 C 11 11 10 11.8 10 13.5 L 10 15.6 C 10 17 9.2 17.7 7.2 18 "
-                            "C 9.2 18.3 10 19 10 20.4 L 10 22.5 C 10 24.2 11 25 13 25")
+                            "C 9.2 18.3 10 19 10 20.4 L 10 23.5 C 10 25.2 11 26 13 26")
 BRACE_WEIGHT_32 = 2
 BRACE_SEPARATION_32 = 1
-BEAM_ORIGIN_32 = zoomed((FREEFORM_BEAM_ORIGIN[0] / 32 + 0.4, FREEFORM_BEAM_ORIGIN[1] / 32 + 0.4))
+BEAM_ORIGIN_32 = (21.3, 23.5)
 UNIT_32 = ZOOM_32 / 32
 FLASHLIGHT_SCALE_32 = FREEFORM_FLASHLIGHT_SCALE * UNIT_32
-BEAM_TONES_32 = ((0.85, 45), (0.5, 50))
+BEAM_STRENGTH_32 = 0.82
+FLASHLIGHT_OUTLINE_32 = 0.65
 SMALL_BEAM = "#ffe08a"
 
-ARCH_16 = [(1.5, 14), (2, 9), (3.5, 5.5), (5.5, 3.5), (8, 2.5), (10.5, 3.5), (12.5, 5.5), (14, 9), (14.5, 14)]
+ARCH_16 = [(1, 14.5), (1.5, 9), (3, 5), (5, 3), (8, 1), (11, 3), (13, 5), (14.5, 9), (15, 14.5)]
 HOLLOW_16 = "M 5 14 L 5 7 C 5 5.9 5.9 5 7 5 L 9 5 C 10.1 5 11 5.9 11 7 L 11 14 Z"
 LEFT_BRACE_16_PIXELS = {
     (6, 5): 100, (5, 5): 50,
@@ -59,12 +59,8 @@ LEFT_BRACE_16_PIXELS = {
     (5, 10): 100, (5, 11): 100,
     (5, 12): 50, (6, 12): 100,
 }
-BEAM_16_PIXELS = {(8, 11): 70, (8, 10): 70, (8, 9): 70, (7, 9): 70,
+BEAM_16_PIXELS = {(9, 11): 80, (9, 10): 80, (8, 11): 70, (8, 10): 70, (8, 9): 70, (7, 9): 70,
                   (7, 10): 40, (7, 8): 40, (8, 8): 40, (7, 7): 40}
-FLASHLIGHT_GLOW_16_PIXELS = {(11, 11): 60}
-FLASHLIGHT_HEAD_16_PIXELS = {(12, 12): 100, (13, 12): 100, (12, 13): 100}
-FLASHLIGHT_BODY_16_PIXELS = {(13, 13): 100, (14, 14): 100, (15, 15): 100,
-                             (14, 13): 45, (13, 14): 45, (15, 14): 45, (14, 15): 45}
 
 
 def mirrored_path(d, size):
@@ -88,7 +84,7 @@ def pixel_path(x, y):
     return f"M {x} {y} L {x + 1} {y} L {x + 1} {y + 1} L {x} {y + 1} Z"
 
 
-def build(size):
+def build(size, flashlight=True):
     steps = []
 
     def add(command, **params):
@@ -105,7 +101,7 @@ def build(size):
         shape = add("path.create", d=d)
         add("paint.setFill", ids=[f"{shape}.id"], none=True)
         add("paint.setStroke", ids=[f"{shape}.id"], color=color)
-        add("stroke.set", ids=[f"{shape}.id"], weight=weight, cap="round", join="miter", miterLimit=4)
+        add("stroke.set", ids=[f"{shape}.id"], weight=weight, cap="round", join="round")
 
     def pixels(cells, color):
         for (x, y), strength in cells.items():
@@ -115,14 +111,14 @@ def build(size):
 
     add("file.new", width=size, height=size, units="Pixels", backgroundContents="transparent", created=None)
     if size == 32:
-        draw_32(add, filled, stroked)
+        draw_32(add, filled, stroked, flashlight)
     else:
         draw_16(add, filled, pixels)
     add("select.none")
     return steps
 
 
-def draw_32(add, filled, stroked):
+def draw_32(add, filled, stroked, flashlight):
     arch = rounded_polygon(ARCH_32, 1.5)
     filled(arch, gradient=linear(list(zoomed((16, 4.5))), list(zoomed((16, 27.5))),
                                  [stop(0, ROCK_TOP), stop(1, ROCK_BOTTOM)]))
@@ -137,13 +133,12 @@ def draw_32(add, filled, stroked):
         stroked(d, OUTLINE, BRACE_WEIGHT_32 + 2 * BRACE_SEPARATION_32)
     for d in braces:
         stroked(d, AMBER, BRACE_WEIGHT_32)
-    draw_flashlight(add, filled, FLAT, BEAM_ORIGIN_32, FLASHLIGHT_SCALE_32, BRACE_SEPARATION_32)
+    if flashlight:
+        draw_flashlight(add, filled, FLAT, BEAM_ORIGIN_32, FLASHLIGHT_SCALE_32, FLASHLIGHT_OUTLINE_32)
 
 
 def draw_beam_32(add, filled):
-    for length, strength in BEAM_TONES_32:
-        beam = filled(beam_cone(BEAM_ORIGIN_32, UNIT_32 * length), color=SMALL_BEAM)
-        add("object.setProps", id=f"{beam}.id", opacity=strength, blend="Screen")
+    draw_beam(add, filled, BEAM_ORIGIN_32, UNIT_32, BEAM_STRENGTH_32)
 
 
 def draw_16(add, filled, pixels):
@@ -151,6 +146,3 @@ def draw_16(add, filled, pixels):
     filled(HOLLOW_16, color=HOLLOW)
     pixels(BEAM_16_PIXELS, SMALL_BEAM)
     pixels(LEFT_BRACE_16_PIXELS | mirrored_pixels(LEFT_BRACE_16_PIXELS, 16), AMBER)
-    pixels(FLASHLIGHT_GLOW_16_PIXELS, BEAM)
-    pixels(FLASHLIGHT_HEAD_16_PIXELS, FLASHLIGHT_BEZEL)
-    pixels(FLASHLIGHT_BODY_16_PIXELS, FLASHLIGHT_BODY_HIGHLIGHT)

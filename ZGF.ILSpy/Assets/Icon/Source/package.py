@@ -25,6 +25,7 @@ OUTPUT = SOURCE.parent
 MASTER = 1024
 FREEFORM_MARGIN = 20
 DEDICATED_SIZES = (32, 16)
+BEAM_ONLY_SIZE = 24
 MASTER_SIZES = (256, 128, 64, 48)
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 WINDOW_ICON_SIZES = (16, 32, 48, 64, 128, 256)
@@ -45,6 +46,8 @@ def main():
         dedicated = {}
         for size in DEDICATED_SIZES:
             dedicated[size] = render(cli, work, f"small-{size}", build_small(size), keep=f"ilspelunk-{size}")
+        beam_only = build_small(32, flashlight=False)
+        dedicated[BEAM_ONLY_SIZE] = render(cli, work, "beam-only", beam_only, scale=BEAM_ONLY_SIZE / 32)
         layers = {}
         for name, parts in MAC_LAYERS.items():
             layers[name] = render(cli, work, f"layer-{name}", build(parts, GLASS))
@@ -56,11 +59,11 @@ def main():
         write_mac_icon(layers)
 
 
-def render(cli, work, name, steps, keep=None):
+def render(cli, work, name, steps, keep=None, scale=1):
     commands = work / f"{name}.json"
     commands.write_text(json.dumps(steps), encoding="utf-8")
     png = work / f"{name}.png"
-    arguments = [cli, "run", "--commands", str(commands), "--export", str(png)]
+    arguments = [cli, "run", "--commands", str(commands), "--export", str(png), "--scale", str(scale)]
     if keep is not None:
         arguments += ["--export", str(SOURCE / f"{keep}.vectorcraft")]
     subprocess.run(arguments, check=True, capture_output=True)
@@ -79,7 +82,6 @@ def fit_to_canvas(art):
 
 def collect_frames(icon, dedicated):
     frames = dict(dedicated)
-    frames[24] = dedicated[32].resize((24, 24), Image.LANCZOS)
     for size in MASTER_SIZES:
         frames[size] = icon.resize((size, size), Image.LANCZOS)
     return frames

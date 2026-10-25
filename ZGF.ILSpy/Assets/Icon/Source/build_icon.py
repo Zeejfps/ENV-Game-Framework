@@ -14,15 +14,16 @@ ROCK_SHADE = "#24125e"
 ROCK_HIGHLIGHT = "#ffffff"
 HOLLOW = "#120d2c"
 BEAM = "#fff1cc"
+BEAM_WARM = "#ffe3a2"
 AMBER_TOP = "#ffcb63"
 AMBER_BOTTOM = "#f08a1c"
 OUTLINE = "#140e30"
 GLASS_ROCK_TOP = "#8f6de8"
 GLASS_ROCK_BOTTOM = "#6747c6"
 GLASS_AMBER = "#f9a83a"
-FLASHLIGHT_BODY = "#c3c0d2"
+FLASHLIGHT_BODY = "#d4d3df"
 FLASHLIGHT_BODY_HIGHLIGHT = "#eeedf5"
-FLASHLIGHT_TAIL_CAP = "#8d89a3"
+FLASHLIGHT_TAIL_CAP = "#aaa7bf"
 FLASHLIGHT_BEZEL = "#f0a12e"
 FLASHLIGHT_TAIL_BUTTON = "#1f1a3d"
 
@@ -37,23 +38,24 @@ HOLLOW_PATH = ("M 305 870 L 305 520 C 305 420 370 340 448 326 L 578 314 "
 BRACE_TERMINAL_RADIUS = 8
 LEFT_BRACE = ("M 405 358 L 390 358 C 345 358 325 378 325 425 L 325 540 C 325 561 316 577 292 595 "
               "C 316 613 325 629 325 650 L 325 771 C 325 818 345 838 390 838 L 405 838")
-BEAM_ORIGIN = (765, 775)
+BEAM_ORIGIN = (710, 735)
 AIM_DEGREES = 214
 FLASHLIGHT_SCALE = 1.2
-FREEFORM_BEAM_ORIGIN = (770, 770)
-FREEFORM_FLASHLIGHT_SCALE = 1.35
+FREEFORM_BEAM_ORIGIN = (710, 735)
+FREEFORM_FLASHLIGHT_SCALE = 1.25
 FLASHLIGHT_OUTLINE = 12
-BEAM_SPREAD_DEGREES = 17
-BEAM_LENGTH = 580
-BEAM_STRENGTH = 0.52
+BEAM_SPREAD_DEGREES = 15
+BEAM_LENGTH = 540
+BEAM_STRENGTH = 0.72
 BEAM_NEAR_HALF_WIDTH = 38
-BEAM_FEATHER = 18
+BEAM_FEATHER = 30
+BEAM_FEATHER_STEPS = 64
 FLASHLIGHT_HEAD = [(0, -30), (52, -24), (52, 24), (0, 30)]
-FLASHLIGHT_BARREL = [(48, -21), (232, -33), (232, 33), (48, 21)]
-FLASHLIGHT_BARREL_HIGHLIGHT = [(54, -21), (228, -33), (228, -23), (54, -14)]
+FLASHLIGHT_BARREL = [(48, -21), (206, -33), (206, 33), (48, 21)]
+FLASHLIGHT_BARREL_HIGHLIGHT = [(54, -21), (202, -33), (202, -23), (54, -14)]
 FLASHLIGHT_SWITCH = [(118, -33), (152, -35), (152, -27), (118, -25)]
-FLASHLIGHT_TAIL_FACE = (238, 0, 13, 34)
-FLASHLIGHT_TAIL_BUTTON_FACE = (240, 0, 6, 15)
+FLASHLIGHT_TAIL_FACE = (212, 0, 17, 34)
+FLASHLIGHT_TAIL_BUTTON_FACE = (215, 0, 7, 14)
 FLASHLIGHT_GLOW = (-14, 0, 66, 66)
 FLASHLIGHT_GLOW_STRENGTH = 0.5
 
@@ -179,20 +181,26 @@ def draw_opening(filled):
     filled(HOLLOW_PATH, color=HOLLOW)
 
 
-def draw_beam(add, filled, center=BEAM_ORIGIN, unit=1):
+def draw_beam(add, filled, center=BEAM_ORIGIN, unit=1, strength=BEAM_STRENGTH):
     far = toward(center, AIM_DEGREES, BEAM_LENGTH * unit)
-    beam = filled(beam_cone(center, unit), gradient=linear(list(center), list(far),
-                                                           [stop(0, BEAM, BEAM_STRENGTH), stop(1, BEAM, 0)]))
-    add("object.setProps", id=f"{beam}.id", blend="Screen")
-    add("effect.apply", ids=[f"{beam}.id"], effect="stylize.feather", params={"radius": BEAM_FEATHER * unit})
+    # Nested low-opacity cones feather both edges in exported PNGs as well as
+    # editable documents. A live feather effect alone leaves a hard export edge.
+    opacity = 1 - (1 - strength) ** (1 / BEAM_FEATHER_STEPS)
+    for index in range(BEAM_FEATHER_STEPS):
+        inset = BEAM_FEATHER * (2 * index / (BEAM_FEATHER_STEPS - 1) - 1)
+        beam = filled(beam_cone(center, unit, inset), gradient=linear(list(center), list(far),
+                      [stop(0, BEAM_WARM, opacity), stop(0.55, BEAM, opacity * 0.42), stop(1, BEAM, 0)]))
+        add("object.setProps", id=f"{beam}.id", blend="Screen")
 
 
-def beam_cone(center, unit):
+def beam_cone(center, unit, inset=0):
     across = AIM_DEGREES + 90
-    near_left = toward(center, across, BEAM_NEAR_HALF_WIDTH * unit)
-    near_right = toward(center, across, -BEAM_NEAR_HALF_WIDTH * unit)
+    near_left = toward(center, across, (BEAM_NEAR_HALF_WIDTH - inset) * unit)
+    near_right = toward(center, across, -(BEAM_NEAR_HALF_WIDTH - inset) * unit)
     far_left = toward(center, AIM_DEGREES + BEAM_SPREAD_DEGREES, BEAM_LENGTH * unit)
     far_right = toward(center, AIM_DEGREES - BEAM_SPREAD_DEGREES, BEAM_LENGTH * unit)
+    far_left = toward(far_left, across, -inset * unit)
+    far_right = toward(far_right, across, inset * unit)
     return f"M {fmt(near_left)} L {fmt(far_left)} L {fmt(far_right)} L {fmt(near_right)} Z"
 
 
