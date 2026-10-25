@@ -62,6 +62,12 @@ public sealed class UiFrames<TState> where TState : class, IUiState
 
     /// <summary>The folders the app asked to show in the OS file manager, in order.</summary>
     public List<string> OpenedFolders { get; } = new();
+
+    /// <summary>The files the app asked to show selected in the OS file manager, in order.</summary>
+    public List<string> RevealedFiles { get; } = new();
+
+    /// <summary>The web pages the app asked to open in the browser, in order.</summary>
+    public List<string> OpenedUrls { get; } = new();
     public RecordingCanvas Canvas => _canvas;
     public float Width { get; set; }
     public float Height { get; set; }
@@ -348,6 +354,10 @@ public sealed class UiFrames<TState> where TState : class, IUiState
             _pending.DismissPopups();
         if (_ui.HasFoldersToOpen)
             OpenedFolders.AddRange(_ui.TakeFoldersToOpen());
+        if (_ui.HasFilesToReveal)
+            RevealedFiles.AddRange(_ui.TakeFilesToReveal());
+        if (_ui.HasUrlsToOpen)
+            OpenedUrls.AddRange(_ui.TakeUrlsToOpen());
         if (_ui.HasFontsToRegister)
             RegisteredFonts.AddRange(_ui.TakeFontsToRegister());
         if (_ui.HasFontListings)

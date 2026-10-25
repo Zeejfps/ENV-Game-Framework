@@ -32,6 +32,45 @@ public sealed class AssemblyMenuTests
         Assert.False(AnyFailedToLoad(app.AppState));
     }
 
+    private static void PickFromTreeMenu(AppDriver app, string row, string item)
+    {
+        var at = app.TextRect(row);
+        app.Frames.Click(at.X + 2f, at.Y + at.Height / 2, PointerButton.Right).Frame();
+        app.ClickMenuItem(item).Frame();
+    }
+
+    [Fact]
+    public void The_tree_menu_shows_an_assembly_selected_in_its_folder()
+    {
+        var app = AppDriver.Opened();
+        app.Run(2);
+        var assembly = app.AppState.Assemblies.Assemblies[0];
+
+        PickFromTreeMenu(app, assembly.Name, "Open containing folder");
+
+        Assert.Equal([assembly.FilePath], app.Frames.RevealedFiles);
+    }
+
+    [Fact]
+    public void The_tree_menu_opens_the_api_reference_page_of_a_public_type_and_offers_none_for_an_internal_one()
+    {
+        var app = AppDriver.Opened();
+        var greeter = app.Fixture("Greeter");
+        var hidden = app.Fixture("Hidden");
+        app.Ui.Tree.Reveal(hidden);
+        app.Ui.Tree.Reveal(greeter);
+        app.Run(2);
+
+        PickFromTreeMenu(app, "Greeter", "Show in .NET API reference");
+        var row = app.TextRect("Hidden");
+        app.Frames.Click(row.X + 2f, row.Y + row.Height / 2, PointerButton.Right).Frame();
+
+        Assert.Equal([MicrosoftDocs.FindPage(greeter)], app.Frames.OpenedUrls);
+        Assert.EndsWith("/zgf.ilspy.app.tests.fixtures.greeter", app.Frames.OpenedUrls[0]);
+        Assert.True(app.Frames.Drew("Copy full name"));
+        Assert.False(app.Frames.Drew("Show in .NET API reference"));
+    }
+
     [Fact]
     public void The_tree_menu_loads_the_dependencies_of_an_assembly()
     {

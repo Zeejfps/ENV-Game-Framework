@@ -28,6 +28,8 @@ public abstract partial class Ui
     private readonly ConcurrentQueue<Action> _posted;
     private readonly List<Action<IFilePicker>> _dialogs = new();
     private readonly List<string> _foldersToOpen = new();
+    private readonly List<string> _filesToReveal = new();
+    private readonly List<string> _urlsToOpen = new();
     private readonly List<FontFace> _fontsToRegister = new();
     private readonly List<Action<IReadOnlyList<SystemFontFamily>>> _fontListings = new();
     private readonly UiPainter _painter;
@@ -212,6 +214,33 @@ public abstract partial class Ui
         var folders = _foldersToOpen.ToArray();
         _foldersToOpen.Clear();
         return folders;
+    }
+
+    /// <summary>Shows the file at <paramref name="path"/> selected in its folder in the OS file manager
+    /// once this frame is drawn.</summary>
+    public void RevealFile(string path) => _filesToReveal.Add(path);
+
+    internal bool HasFilesToReveal => _filesToReveal.Count > 0;
+
+    /// <summary>The files asked for since the last call, which the host reveals.</summary>
+    internal string[] TakeFilesToReveal()
+    {
+        var files = _filesToReveal.ToArray();
+        _filesToReveal.Clear();
+        return files;
+    }
+
+    /// <summary>Opens <paramref name="url"/> in the default web browser once this frame is drawn.</summary>
+    public void OpenUrl(string url) => _urlsToOpen.Add(url);
+
+    internal bool HasUrlsToOpen => _urlsToOpen.Count > 0;
+
+    /// <summary>The web pages asked for since the last call, which the host opens.</summary>
+    internal string[] TakeUrlsToOpen()
+    {
+        var urls = _urlsToOpen.ToArray();
+        _urlsToOpen.Clear();
+        return urls;
     }
 
     /// <summary>Draws text in <paramref name="font"/>'s family with it from the next frame, in place of

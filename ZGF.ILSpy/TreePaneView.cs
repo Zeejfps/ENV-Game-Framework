@@ -17,6 +17,9 @@ internal static class TreePaneView
     private const string MenuId = "tree-menu";
     private const string OpenKey = "Enter";
 
+    private static readonly UiIcon ContainingFolderIcon = new(LucideIcons.FolderOpen, LucideIcons.Family);
+    private static readonly UiIcon ApiReferenceIcon = new(LucideIcons.ExternalLink, LucideIcons.Family);
+
     public static void Render(Ui<UiState> ui, AppState appState)
     {
         var theme = ui.Theme;
@@ -179,6 +182,7 @@ internal static class TreePaneView
             GoToTarget(appState, node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
+        DocsItem(ui, node);
         if (Analyzers.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             AnalyzerPanelView.Analyze(ui.State, appState, node);
         if (node.Reference != null && ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
@@ -197,12 +201,26 @@ internal static class TreePaneView
             ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
             ScopeSearch(ui.State, node);
+        if (IsAssemblyRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: ContainingFolderIcon))
+            ui.RevealFile(node.Assembly.FilePath);
         if (IsAssemblyRoot(node))
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
                 CloseAssembly(appState, node.Assembly);
         }
+    }
+
+    /// <summary>The item that opens the .NET API reference page of a namespace, or of a public type or
+    /// member, when it has one.</summary>
+    private static void DocsItem(Ui<UiState> ui, BrowseNode node)
+    {
+        var t = ui.State.Strings;
+        var page = MicrosoftDocs.FindPage(node);
+        if (page == null)
+            return;
+        if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: ApiReferenceIcon))
+            ui.OpenUrl(page);
     }
 
     /// <summary>Whether the menu offers to save the node's code: it shows code, and is no resource,

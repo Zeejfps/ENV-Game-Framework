@@ -339,6 +339,10 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
         if (_ui.HasFoldersToOpen)
             OpenFolders();
+        if (_ui.HasFilesToReveal)
+            RevealFiles();
+        if (_ui.HasUrlsToOpen)
+            OpenUrls();
         if (_ui.HasFontsToRegister)
             RegisterAskedFonts();
         if (_ui.HasFontListings)
@@ -355,6 +359,18 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         foreach (var folder in _ui.TakeFoldersToOpen())
             FileManagerWindow.Open(folder);
+    }
+
+    private void RevealFiles()
+    {
+        foreach (var file in _ui.TakeFilesToReveal())
+            FileManagerWindow.Reveal(file);
+    }
+
+    private void OpenUrls()
+    {
+        foreach (var url in _ui.TakeUrlsToOpen())
+            WebBrowser.Open(url);
     }
 
     private void RegisterAskedFonts()
