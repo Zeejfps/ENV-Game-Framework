@@ -8,36 +8,46 @@ using static ZGF.ILSpy.Assemblies;
 namespace ZGF.ILSpy;
 
 /// <summary>
-/// The "open from NuGet" dialog: the feed's URL, typed or picked from the user's NuGet.Config, and a
-/// query on top, with whether prereleases count; a page of the packages found below, the selected
-/// one showing the version to open as a dropdown, with the pages to step through, then what the
-/// selected one says of itself; at the bottom, Open, which downloads the package unless it is on
-/// disk, then opens it and closes.
+/// The "open from NuGet" dialog: the query, whether prereleases count and the feed on top; a page of
+/// the packages found on the left, each with its icon, authors, latest version and description, a
+/// thin bar sliding over them while the next page or search loads, and the pages to step through
+/// under them; the selected package's details on the right, where its version is picked; at the
+/// bottom, Open, which downloads that version unless it is on disk, then opens it and closes.
 /// </summary>
 internal static class NuGetPickerView
 {
     private const string QueryId = "nuget-query";
     private const string ListId = "nuget-list";
-    private const float DescriptionHeight = 64f;
+    private const float RowIconSide = 32f;
+    private const float IconInset = 2f;
+    private const float LoadingStripHeight = 3f;
+    private const int DescriptionLines = 2;
 
     public static void Render(Ui<UiState> ui, AppState appState)
     {
         var picker = ui.State.NuGetPicker;
-        OpenDownloaded(appState, picker);
+        OpenDownloaded(ui, appState, picker);
         if (picker.IsOpen)
             UpdateSearch(ui, picker);
         var wasOpen = picker.IsOpen;
         Dialog(ui, picker);
-        CloseIfDismissed(picker, wasOpen);
+        CloseIfDismissed(ui, picker, wasOpen);
     }
 
-    private static void OpenDownloaded(AppState appState, NuGetPicker picker)
+    private static void OpenDownloaded(Ui<UiState> ui, AppState appState, NuGetPicker picker)
     {
         var path = picker.TakeDownloaded();
         if (path == null)
             return;
         OpenAssembly(appState, path);
-        picker.Close();
+        Close(ui, picker);
+    }
+
+    /// <summary>Closes the dialog and frees the images of the icons it showed.</summary>
+    private static void Close(Ui<UiState> ui, NuGetPicker picker)
+    {
+        foreach (var image in picker.Close())
+            ui.RemoveImage(image);
     }
 
     private static void UpdateSearch(Ui<UiState> ui, NuGetPicker picker)
@@ -50,17 +60,19 @@ internal static class NuGetPickerView
     private static void Dialog(Ui<UiState> ui, NuGetPicker picker)
     {
         var t = ui.State.Strings;
-        var card = new Box { Width = Sizing.Grow(0f, AppLayout.PickerWidth), Height = Sizing.Percent(AppLayout.PickerHeight) };
+        var theme = ui.Theme;
+        var card = new Box { Width = Sizing.Grow(0f, AppLayout.NuGetDialogWidth), Height = Sizing.Percent(AppLayout.NuGetDialogHeight) };
         using var dialog = ui.Dialog("nuget", t.NugetTitle, ref picker.IsOpen, card);
         if (!dialog.IsOpen)
             return;
-        FeedRow(ui, picker);
-        var open = QueryRow(ui, picker);
-        open |= Packages(ui, picker);
-        picker.FollowSelection();
-        if (picker.TotalHits > 0)
-            Pager(ui, picker);
-        Details(ui, picker);
+        TopRow(ui, picker);
+        var open = false;
+        using (ui.Row(new Box { Height = Sizing.Grow(), Gap = theme.Gap, AlignY = Align.Start }))
+        {
+            open |= PackagesColumn(ui, picker);
+            picker.FollowSelection();
+            NuGetDetailsView.Render(ui, picker);
+        }
         open |= Footer(ui, picker);
         if (open)
             picker.Download();
@@ -68,24 +80,42 @@ internal static class NuGetPickerView
 
     /// <summary>Stops what the dialog started once its close button or Escape dismissed it, which
     /// only clears <see cref="NuGetPicker.IsOpen"/>.</summary>
-    private static void CloseIfDismissed(NuGetPicker picker, bool wasOpen)
+    private static void CloseIfDismissed(Ui<UiState> ui, NuGetPicker picker, bool wasOpen)
     {
         if (!wasOpen)
             return;
         if (picker.IsOpen)
             return;
-        picker.Close();
+        Close(ui, picker);
     }
 
-    /// <summary>The URL of the feed to search, and the feeds the user's NuGet.Config lists to pick from.</summary>
-    private static void FeedRow(Ui<UiState> ui, NuGetPicker picker)
+    /// <summary>The query, whether prereleases count, and the feed. Enter in the query opens the
+    /// selected package, or searches what was typed first; Enter in the feed searches it at once.</summary>
+    private static void TopRow(Ui<UiState> ui, NuGetPicker picker)
     {
         var t = ui.State.Strings;
-        using (ui.Row(new Box { Gap = ui.Theme.GapTight, AlignY = Align.Center }))
+        var theme = ui.Theme;
+        using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
         {
-            ui.TextField("nuget-feed", ref picker.FeedUrl, t.NugetFeed, Sizing.Grow());
+            if (ui.HasFocus(ui.GetId(QueryId)))
+                MoveSelectionFromQuery(ui, picker);
+            if (picker.TakeQueryFocus())
+                ui.Focus(ui.GetId(QueryId));
+            if (ui.TextField(QueryId, ref picker.Query, t.NugetQuery, Sizing.Grow(), ui.State.Icons.SearchField))
+                Submit(ui, picker);
+            ui.Checkbox(t.NugetPrerelease, ref picker.IncludePrerelease, id: "nuget-prerelease");
+            ui.Leaf(new Box { Width = theme.Gap });
+            ui.Text(t.NugetSource, color: theme.TextMuted);
+            if (ui.TextField("nuget-feed", ref picker.FeedUrl, t.NugetFeed, Sizing.Fixed(AppLayout.NuGetFeedWidth)))
+                picker.SearchNow();
             KnownFeeds(ui, picker);
         }
+    }
+
+    private static void Submit(Ui<UiState> ui, NuGetPicker picker)
+    {
+        picker.Submit();
+        ui.RequestUpdateIn(0);
     }
 
     private static void KnownFeeds(Ui<UiState> ui, NuGetPicker picker)
@@ -99,22 +129,6 @@ internal static class NuGetPickerView
             var current = source.Url == picker.FeedUrl;
             if (ui.MenuRadioItem(source.Name, current, id: source.Url))
                 picker.PickFeed(source);
-        }
-    }
-
-    /// <summary>The query and whether prereleases count. True when Enter was pressed in the query.</summary>
-    private static bool QueryRow(Ui<UiState> ui, NuGetPicker picker)
-    {
-        var t = ui.State.Strings;
-        using (ui.Row(new Box { Gap = ui.Theme.GapTight, AlignY = Align.Center }))
-        {
-            if (ui.HasFocus(ui.GetId(QueryId)))
-                MoveSelectionFromQuery(ui, picker);
-            if (picker.TakeQueryFocus())
-                ui.Focus(ui.GetId(QueryId));
-            var submitted = ui.TextField(QueryId, ref picker.Query, t.NugetQuery, Sizing.Grow(), ui.State.Icons.SearchField);
-            ui.Checkbox(t.NugetPrerelease, ref picker.IncludePrerelease, id: "nuget-prerelease");
-            return submitted;
         }
     }
 
@@ -139,41 +153,68 @@ internal static class NuGetPickerView
         picker.Selection.Select(results[index], results);
     }
 
-    /// <summary>A package row, tall enough for the version dropdown of the selected one.</summary>
-    private static float RowHeight(Ui<UiState> ui) => ui.Theme.ControlHeight + ui.Theme.GapTight;
+    /// <summary>A package's row: its name line and the lines of its description.</summary>
+    private static float RowHeight(Ui<UiState> ui)
+    {
+        var theme = ui.Theme;
+        var name = ui.LineHeight(theme.FontSize);
+        var description = DescriptionLines * ui.LineHeight(theme.FontSizeSmall);
+        return name + description + theme.Gap * 2;
+    }
 
-    /// <summary>The packages found, or why there are none yet. True when one was activated.</summary>
+    /// <summary>The packages, and the pager under them. True when a package was activated.</summary>
+    private static bool PackagesColumn(Ui<UiState> ui, NuGetPicker picker)
+    {
+        var theme = ui.Theme;
+        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = theme.GapTight }))
+        {
+            var activated = Packages(ui, picker);
+            Pager(ui, picker);
+            return activated;
+        }
+    }
+
+    /// <summary>The packages found, under the strip that slides while another page or search loads
+    /// over them and a note when another page failed to load; or why there are none. True when one
+    /// was activated.</summary>
     private static bool Packages(Ui<UiState> ui, NuGetPicker picker)
     {
         var theme = ui.Theme;
-        using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.Field, Clip = true }))
+        var frame = new Box
         {
-            var placeholder = Placeholder(ui.State.Strings, picker);
-            if (placeholder != null)
+            Height = Sizing.Grow(),
+            Padding = theme.BorderWidth,
+            Background = theme.Field,
+            BorderColor = theme.Border,
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.RadiusSmall,
+            Clip = true,
+        };
+        using (ui.Panel(frame))
+        {
+            LoadingStrip(ui, picker);
+            if (picker.Results.Count == 0)
             {
-                ui.Text(placeholder, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted, wrap: true);
+                NuGetPlaceholderView.Render(ui, picker);
                 return false;
             }
+            if (picker.SearchError != null)
+                NuGetPlaceholderView.PageFailed(ui, picker);
             return Rows(ui, picker);
         }
     }
 
-    /// <summary>What the list says in place of packages: that the config is being read, that the feed
-    /// typed is no URL, that it is searching, why the search failed, or that nothing matched; null
-    /// when there are packages to show.</summary>
-    private static string? Placeholder(Strings t, NuGetPicker picker)
+    /// <summary>A thin sliding bar while a search runs over packages already shown; the same room,
+    /// empty, otherwise, so the list never moves.</summary>
+    private static void LoadingStrip(Ui<UiState> ui, NuGetPicker picker)
     {
-        if (picker.Results.Count > 0)
-            return null;
-        if (picker.IsReadingSetup)
-            return t.NugetReadingConfig;
-        if (!picker.HasFeedUrl)
-            return t.NugetNoFeed;
-        if (picker.IsSearching)
-            return t.NugetSearching;
-        if (picker.SearchError != null)
-            return t.NugetSearchFailed;
-        return t.NugetNoMatch;
+        var refreshing = picker.IsSearching && picker.Results.Count > 0;
+        if (refreshing)
+        {
+            ui.SlidingBar(height: LoadingStripHeight);
+            return;
+        }
+        ui.Leaf(new Box { Width = Sizing.Grow(), Height = LoadingStripHeight });
     }
 
     private static bool Rows(Ui<UiState> ui, NuGetPicker picker)
@@ -188,69 +229,186 @@ internal static class NuGetPickerView
         return list.Activated;
     }
 
-    /// <summary>A package's icon, id and latest version; the selected one offers its versions in a
-    /// dropdown in place of its latest.</summary>
+    /// <summary>A package's icon beside its name, authors and latest version over its description.</summary>
     private static void Row(Ui<UiState> ui, NuGetPicker picker, ListScope list, FeedPackage package, int index)
     {
         var theme = ui.Theme;
+        var box = new Box { Gap = theme.Gap, AlignY = Align.Start, Padding = new Spacing(theme.ShellPaddingX, theme.Gap) };
         using (ui.Id(package.Id))
-        using (var row = list.Row(index, ui.GetId("row"), new Box { Gap = theme.GapTight, AlignY = Align.Center }))
+        using (var row = list.Row(index, ui.GetId("row"), box))
         {
-            var nameColor = row.Selected ? theme.SelectionText : theme.Text;
-            NodeIcons.Draw(ui, NodeKind.Package);
-            using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
+            DrawIcon(ui, picker, package, RowIconSide);
+            using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
             {
-                ui.Text(package.Id, new Box { Width = Sizing.Grow() }, color: nameColor, overflow: TextOverflow.Ellipsis);
-                if (row.Selected)
-                    VersionSelect(ui, picker, package);
-                else
-                    ui.Text(package.Version, color: theme.TextMuted, size: theme.FontSizeSmall);
+                NameLine(ui, package, row.Selected);
+                Description(ui, package, row.Selected);
             }
         }
     }
 
-    private static void VersionSelect(Ui<UiState> ui, NuGetPicker picker, FeedPackage package)
+    /// <summary>The package's own icon once it is in, on a light tile when it is dark marks a dark
+    /// theme would hide; else the stand-in every package shares.</summary>
+    internal static void DrawIcon(Ui<UiState> ui, NuGetPicker picker, FeedPackage package, float side)
     {
-        picker.OfferVersionsOf(package);
-        var width = ui.SelectButtonWidth(picker.Versions);
-        ui.Select("version", ref picker.Version, picker.Versions, VersionLabel, Sizing.Fixed(width), ui.State.Strings.NugetVersion,
-            enabled: !picker.IsDownloading);
+        var icon = picker.IconOf(package);
+        if (!HasPixels(icon))
+        {
+            StandIn(ui, side);
+            return;
+        }
+        Upload(ui, icon!);
+        var backdrop = NeedsBackdrop(ui, icon!);
+        var tile = new Box
+        {
+            Width = side,
+            Height = side,
+            Padding = backdrop ? IconInset : 0f,
+            Background = backdrop ? ui.Theme.Text : 0u,
+            Radius = ui.Theme.RadiusSmall,
+        };
+        using (ui.Box(tile))
+            ui.Image(icon!.ImageId, side, side, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
     }
 
-    private static string VersionLabel(string version) => version;
+    private static bool HasPixels(PackageIcon? icon)
+    {
+        if (icon == null)
+            return false;
+        return icon.Pixels != null;
+    }
 
-    /// <summary>How many packages matched, the page shown of how many, and the buttons that step through them.</summary>
+    private static bool NeedsBackdrop(Ui<UiState> ui, PackageIcon icon)
+    {
+        if (!ui.Theme.IsDark)
+            return false;
+        return icon.IsDarkOnClear;
+    }
+
+    /// <summary>Gives the canvas the icon's pixels unless it holds them already.</summary>
+    private static void Upload(Ui<UiState> ui, PackageIcon icon)
+    {
+        if (ui.HasImage(icon.ImageId))
+            return;
+        var pixels = icon.Pixels!;
+        ui.SetImage(icon.ImageId, pixels.Width, pixels.Height, pixels.Rgba);
+    }
+
+    /// <summary>A tile with the package glyph, for a package with no icon, or whose icon is loading.</summary>
+    private static void StandIn(Ui<UiState> ui, float side)
+    {
+        var theme = ui.Theme;
+        var tile = new Box
+        {
+            Width = side,
+            Height = side,
+            AlignX = Align.Center,
+            AlignY = Align.Center,
+            Background = theme.Control,
+            Radius = theme.RadiusSmall,
+        };
+        using (ui.Box(tile))
+            ui.Icon(new UiIcon(ui.State.Icons.NugetPackage, theme.TextMuted));
+    }
+
+    /// <summary>The package's id in bold, a mark when its owners are verified, who made it, and its latest version.</summary>
+    private static void NameLine(Ui<UiState> ui, FeedPackage package, bool selected)
+    {
+        var theme = ui.Theme;
+        var nameColor = selected ? theme.SelectionText : theme.Text;
+        using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
+        {
+            ui.Text(package.Id, color: nameColor, bold: true, overflow: TextOverflow.Ellipsis);
+            if (package.Verified)
+                ui.Icon(new UiIcon(ui.State.Icons.NugetVerified, theme.AccentText));
+            Authors(ui, package);
+            ui.Text(package.Version, color: theme.TextMuted, size: theme.FontSizeSmall);
+        }
+    }
+
+    /// <summary>"by" the package's authors, taking what room the line has left; nothing when it names none.</summary>
+    private static void Authors(Ui<UiState> ui, FeedPackage package)
+    {
+        var theme = ui.Theme;
+        var box = new Box { Width = Sizing.Grow() };
+        if (package.Authors.Length == 0)
+        {
+            ui.Leaf(box);
+            return;
+        }
+        var authors = ui.Memo("authors", (package.Authors, ui.State.Strings), static a => a.Strings.NugetAuthors(a.Authors));
+        ui.Text(authors, box, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
+    }
+
+    /// <summary>What the package says it is, over as many lines as its row has.</summary>
+    private static void Description(Ui<UiState> ui, FeedPackage package, bool selected)
+    {
+        var theme = ui.Theme;
+        var color = selected ? theme.SelectionText : theme.TextMuted;
+        ui.Text(package.Description, color: color, size: theme.FontSizeSmall, wrap: true, maxLines: DescriptionLines);
+    }
+
+    /// <summary>How many packages matched, and how many of them the pages reach when fewer; then the
+    /// page shown, or the one loading, between the buttons that step through them. The row keeps its
+    /// height while there is nothing to page through.</summary>
     private static void Pager(Ui<UiState> ui, NuGetPicker picker)
+    {
+        var theme = ui.Theme;
+        using (ui.Row(new Box { Height = theme.ControlHeight, Gap = theme.GapTight, AlignY = Align.Center }))
+        {
+            if (picker.TotalHits == 0)
+                return;
+            Count(ui, picker);
+            PageButtons(ui, picker);
+        }
+    }
+
+    private static void Count(Ui<UiState> ui, NuGetPicker picker)
+    {
+        var theme = ui.Theme;
+        var args = (picker.TotalHits, picker.BrowsableHits, ui.State.Strings);
+        var count = ui.Memo("nuget-count", args, static a => CountText(a.Strings, a.TotalHits, a.BrowsableHits));
+        ui.Text(count, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
+    }
+
+    private static string CountText(Strings t, int total, int browsable)
+    {
+        var count = t.NugetCount(total);
+        if (browsable >= total)
+            return count;
+        return $"{count} · {t.NugetCapped(browsable)}";
+    }
+
+    private static void PageButtons(Ui<UiState> ui, NuGetPicker picker)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
-        {
-            var count = ui.Memo("nuget-count", (picker.TotalHits, t), static a => a.t.NugetCount(a.TotalHits));
-            ui.Text(count, color: theme.TextMuted, size: theme.FontSizeSmall);
-            ui.Spacer();
-            var page = ui.Memo("nuget-page", (picker.Page, picker.PageCount, t), static a => a.t.NugetPage(a.Page + 1, a.PageCount));
-            ui.Text(page, color: theme.TextMuted, size: theme.FontSizeSmall);
-            if (ui.Button(t.NugetPreviousPage, enabled: picker.HasPreviousPage, id: "nuget-previous", variant: ButtonVariant.Ghost))
-                picker.ShowPreviousPage();
-            if (ui.Button(t.NugetNextPage, enabled: picker.HasNextPage, id: "nuget-next", variant: ButtonVariant.Ghost))
-                picker.ShowNextPage();
-        }
+        var icons = ui.State.Icons;
+        var idle = !picker.IsSearching;
+        if (ui.IconButton("nuget-previous", icons.NugetPreviousPage, t.NugetPreviousPage, picker.HasPreviousPage && idle, ButtonVariant.Neutral))
+            picker.ShowPreviousPage();
+        var args = (picker.Page, picker.RequestedPage, picker.PageCount, picker.IsLoadingPage, t);
+        var label = ui.Memo("nuget-page", args, static a => PageText(a.t, a.Page, a.RequestedPage, a.PageCount, a.IsLoadingPage));
+        ui.Text(label, new Box { Width = PageLabelWidth(ui, picker.PageCount) }, color: theme.TextMuted, size: theme.FontSizeSmall, align: Align.Center);
+        if (ui.IconButton("nuget-next", icons.NugetNextPage, t.NugetNextPage, picker.HasNextPage && idle, ButtonVariant.Neutral))
+            picker.ShowNextPage();
     }
 
-    /// <summary>Who made the selected package, and what it says it is.</summary>
-    private static void Details(Ui<UiState> ui, NuGetPicker picker)
+    private static string PageText(Strings t, int page, int requested, int count, bool loading)
     {
-        var theme = ui.Theme;
-        var package = picker.Selected;
-        using (ui.Column(new Box { Height = DescriptionHeight, Gap = theme.GapTight, Clip = true }))
-        {
-            if (package == null)
-                return;
-            var authors = ui.Memo("nuget-authors", (package.Authors, ui.State.Strings), static a => a.Strings.NugetAuthors(a.Authors));
-            ui.Text(authors, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-            ui.Text(package.Description, wrap: true);
-        }
+        if (loading)
+            return t.NugetLoadingPage(requested + 1);
+        return t.NugetPage(page + 1, count);
+    }
+
+    /// <summary>As wide as the widest label the pager shows for <paramref name="pageCount"/> pages, the
+    /// last page shown or loading, so the buttons beside it never move.</summary>
+    private static float PageLabelWidth(Ui<UiState> ui, int pageCount)
+    {
+        var t = ui.State.Strings;
+        var size = ui.Theme.FontSizeSmall;
+        var shown = ui.Memo("nuget-page-widest", (pageCount, t), static a => a.t.NugetPage(a.pageCount, a.pageCount));
+        var loading = ui.Memo("nuget-loading-widest", (pageCount, t), static a => a.t.NugetLoadingPage(a.pageCount));
+        return MathF.Max(ui.MeasureText(shown, size), ui.MeasureText(loading, size));
     }
 
     /// <summary>What is being downloaded, Cancel and Open. True when Open was pressed.</summary>
@@ -264,7 +422,7 @@ internal static class NuGetPickerView
                 Downloading(ui, picker);
             ui.Spacer();
             if (ui.Button(t.NugetCancel, id: "nuget-cancel"))
-                picker.Close();
+                Close(ui, picker);
             return ui.Button(t.NugetOpen, enabled: picker.CanOpen, id: "nuget-open", variant: ButtonVariant.Primary);
         }
     }
@@ -272,6 +430,7 @@ internal static class NuGetPickerView
     private static void Downloading(Ui<UiState> ui, NuGetPicker picker)
     {
         var theme = ui.Theme;
+        ui.Spinner(theme.SurfaceRaised);
         var text = ui.Memo("nuget-downloading", (picker.DownloadingName, ui.State.Strings), static a => a.Strings.NugetDownloading(a.DownloadingName));
         ui.Text(text, color: theme.AccentText, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
     }

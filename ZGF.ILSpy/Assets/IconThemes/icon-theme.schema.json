@@ -619,6 +619,30 @@
           "description": "An export that finished.",
           "$ref": "#/definitions/icon"
         },
+        "nuget.previousPage": {
+          "description": "Show the previous page of the packages found.",
+          "$ref": "#/definitions/icon"
+        },
+        "nuget.nextPage": {
+          "description": "Show the next page of the packages found.",
+          "$ref": "#/definitions/icon"
+        },
+        "nuget.package": {
+          "description": "A package that has no icon of its own, or whose icon is still loading.",
+          "$ref": "#/definitions/icon"
+        },
+        "nuget.verified": {
+          "description": "A package whose id prefix the feed vouches belongs to its owners.",
+          "$ref": "#/definitions/icon"
+        },
+        "nuget.warning": {
+          "description": "A version that is deprecated or has known vulnerabilities.",
+          "$ref": "#/definitions/icon"
+        },
+        "nuget.link": {
+          "description": "A link that opens in the browser.",
+          "$ref": "#/definitions/icon"
+        },
         "status.error": {
           "description": "An error: in the status bar, the error dialog and the analyzer.",
           "$ref": "#/definitions/icon"

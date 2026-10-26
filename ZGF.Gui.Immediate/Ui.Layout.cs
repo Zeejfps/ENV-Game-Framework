@@ -187,13 +187,19 @@ public abstract partial class Ui
     /// its text's width when its parent runs out of room, down to its fit minimum, unless the box
     /// gives it a fixed, grow or percent width — <see cref="Sizing.Priority"/> on a fit width orders
     /// which text gives up room first — and is shortened around an ellipsis to the width it is laid
-    /// out at.</summary>
+    /// out at. Wrapped text with more lines than a positive <paramref name="maxLines"/> shows that
+    /// many, the last ending in an ellipsis.</summary>
     public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0,
-        string? family = null, bool wrap = false, TextOverflow overflow = TextOverflow.Clip)
+        string? family = null, bool wrap = false, TextOverflow overflow = TextOverflow.Clip, int maxLines = 0)
     {
         if (wrap && box.Width == null)
             box = box with { Width = Sizing.Grow() };
         var e = Describe(id, box, text, TextStyleFor(size, color ?? Theme.Text, bold, align, family), wrap);
+        if (wrap && maxLines > 0 && e.Lines != null)
+        {
+            e.MaxLines = maxLines;
+            e.ContentHeight = MathF.Min(e.ContentHeight, maxLines * e.LineHeight);
+        }
         if (!wrap && overflow != TextOverflow.Clip && e.Lines == null)
         {
             e.Overflow = overflow;

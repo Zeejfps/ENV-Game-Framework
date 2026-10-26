@@ -38,6 +38,33 @@ public sealed class MultiLineTextTests
     }
 
     [Fact]
+    public void Wrapped_text_held_to_fewer_lines_ends_its_last_in_an_ellipsis()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using (ui.Column(new Box { Width = 100f }))
+                ui.Text("the quick brown fox jumps", id: ui.GetId("t"), wrap: true, maxLines: 2);
+        }).Frame();
+
+        var rect = frames.RectOf("t");
+
+        Assert.Equal(["the quick", "brown fox j…"], Drawn(frames));
+        Assert.Equal(2 * 16f, rect.Height);
+    }
+
+    [Fact]
+    public void Wrapped_text_within_its_lines_is_shown_whole()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using (ui.Column(new Box { Width = 100f }))
+                ui.Text("the quick brown fox jumps", wrap: true, maxLines: 3);
+        }).Frame();
+
+        Assert.Equal(["the quick", "brown fox", "jumps"], Drawn(frames));
+    }
+
+    [Fact]
     public void A_word_longer_than_the_width_breaks_between_its_characters()
     {
         var frames = new UiFrames(new DefaultUiState(), body: ui =>

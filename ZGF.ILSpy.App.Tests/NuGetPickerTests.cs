@@ -21,6 +21,26 @@ public sealed class NuGetPickerTests : IDisposable
 
     private const string OtherIndexUrl = "https://other.test/v3/index.json";
 
+    private const string IconUrl = "https://feed.test/fixtures/icon";
+
+    private const string PackageWithIcon = $$"""
+        { "totalHits": 1, "data": [
+            { "id": "Fixtures", "version": "2.0.0", "description": "The fixtures.", "iconUrl": "{{IconUrl}}" } ] }
+        """;
+
+    private const string DetailsUrl = "https://feed.test/reg/fixtures/2.0.0.json";
+
+    private const string PackageWithDetails = $$"""
+        { "totalHits": 1, "data": [
+            { "id": "Fixtures", "version": "2.0.0", "description": "The fixtures.", "authors": ["Zee"], "owners": ["zee"],
+              "totalDownloads": 1234567, "verified": true,
+              "versions": [ { "version": "2.0.0", "downloads": 10, "@id": "{{DetailsUrl}}" } ] } ] }
+        """;
+
+    private const string SquareSvg = """
+        <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#3366ff"/></svg>
+        """;
+
     private readonly TempDir _temp = new();
     private readonly FakeFeed _fake = new();
     private readonly List<string> _reported = new();
@@ -169,6 +189,114 @@ public sealed class NuGetPickerTests : IDisposable
     }
 
     [Fact]
+    public void Enter_while_a_query_settles_searches_it_instead_of_opening_what_the_last_one_found()
+    {
+        var posted = PostedActions.OfThisTest();
+        var picker = OpenPicker(posted);
+
+        picker.Query = "fix";
+        picker.Update(now: 20);
+        picker.Submit();
+        var wait = picker.Update(now: 20.01);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+
+        Assert.False(picker.IsDownloading);
+        Assert.Equal(0, wait);
+        Assert.Contains("q=fix", _fake.Requested.Last());
+    }
+
+    [Fact]
+    public void What_an_older_query_found_cannot_be_opened_while_a_new_one_settles_or_runs()
+    {
+        var posted = PostedActions.OfThisTest();
+        var picker = OpenPicker(posted);
+        _fake.Holds = true;
+
+        picker.Query = "fix";
+        picker.Update(now: 20);
+        var whileSettling = picker.CanOpen;
+        picker.Update(now: 21);
+        var whileSearching = picker.CanOpen;
+        picker.Close();
+
+        Assert.False(whileSettling);
+        Assert.False(whileSearching);
+    }
+
+    [Fact]
+    public void Details_that_fail_to_load_are_read_again_on_retry()
+    {
+        var posted = PostedActions.OfThisTest();
+        _fake.AnswerSearches(PackageWithDetails);
+        var picker = OpenPicker(posted);
+
+        var failed = picker.DetailsOf(picker.Selected!, "2.0.0")!;
+        Poll.Until(() => !failed.IsLoading, posted.Run);
+        _fake.Answer(DetailsUrl, """{ "catalogEntry": { "licenseExpression": "MIT" } }""");
+        picker.RetryDetails(picker.Selected!, "2.0.0");
+        var retried = picker.DetailsOf(picker.Selected!, "2.0.0")!;
+        Poll.Until(() => !retried.IsLoading, posted.Run);
+
+        Assert.NotNull(failed.Error);
+        Assert.Equal("MIT", retried.Details!.License);
+    }
+
+    [Fact]
+    public void A_page_that_fails_to_load_leaves_the_page_shown_until_Retry_loads_it()
+    {
+        var posted = PostedActions.OfThisTest();
+        _fake.AnswerSearches(ThreePagesOfPackages);
+        var picker = OpenPicker(posted);
+
+        _fake.AnswerSearches("not json");
+        picker.ShowNextPage();
+        picker.Update(now: 20);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+        var shownAfterFailure = (picker.Page, picker.Results.Count, picker.SearchError != null);
+        _fake.AnswerSearches(ThreePagesOfPackages);
+        picker.Retry();
+        picker.Update(now: 21);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+
+        Assert.Equal((0, 1, true), shownAfterFailure);
+        Assert.Equal(1, picker.Page);
+        Assert.Null(picker.SearchError);
+    }
+
+    [Fact]
+    public void A_new_query_that_fails_shows_nothing_from_the_last_one()
+    {
+        var posted = PostedActions.OfThisTest();
+        var picker = OpenPicker(posted);
+
+        _fake.AnswerSearches("not json");
+        picker.Query = "other";
+        picker.Update(now: 20);
+        picker.Update(now: 21);
+        Poll.Until(() => !picker.IsSearching, posted.Run);
+
+        Assert.Empty(picker.Results);
+        Assert.NotNull(picker.SearchError);
+    }
+
+    [Fact]
+    public void The_details_of_the_version_picked_are_read_once_from_the_feed_s_catalog()
+    {
+        var posted = PostedActions.OfThisTest();
+        _fake.AnswerSearches(PackageWithDetails);
+        _fake.Answer(DetailsUrl, """{ "catalogEntry": { "licenseExpression": "MIT" } }""");
+        var picker = OpenPicker(posted);
+
+        var details = picker.DetailsOf(picker.Selected!, "2.0.0")!;
+        Poll.Until(() => !details.IsLoading, posted.Run);
+        var again = picker.DetailsOf(picker.Selected!, "2.0.0");
+
+        Assert.Equal("MIT", details.Details!.License);
+        Assert.Same(details, again);
+        Assert.Single(_fake.Requested, DetailsUrl);
+    }
+
+    [Fact]
     public void A_search_that_finds_nothing_leaves_nothing_to_open()
     {
         var posted = PostedActions.OfThisTest();
@@ -259,7 +387,7 @@ public sealed class NuGetPickerTests : IDisposable
     }
 
     [Fact]
-    public void The_selected_row_offers_its_versions_and_Open_downloads_the_one_picked()
+    public void The_details_offer_the_selected_package_s_versions_and_Open_downloads_the_one_picked()
     {
         var app = new AppDriver();
         _fake.Answer(FakeFeed.PackagesUrl + "fixtures/1.0.0/fixtures.1.0.0.nupkg", File.ReadAllBytes(WritePackage()));
@@ -269,7 +397,7 @@ public sealed class NuGetPickerTests : IDisposable
         picker.Open();
         app.RunUntil(() => picker.Results.Count > 0);
         app.Run(2);
-        app.Click("2.0.0").Frame();
+        app.ClickLast("2.0.0").Frame();
         app.ClickMenuItem("1.0.0").Frame();
         var picked = picker.Version;
         app.ClickLast("Open").Frame();
@@ -310,13 +438,75 @@ public sealed class NuGetPickerTests : IDisposable
         app.RunUntil(() => picker.Results.Count > 0);
         app.Run(2);
         var first = app.Frames.Drew("Page 1 of 3");
-        app.Click("Next").Frame();
+        app.Click(app.Ui.Icons.NugetNextPage).Frame();
         app.RunUntil(() => !picker.IsSearching);
         app.Run(2);
 
         Assert.True(first);
         Assert.True(app.Frames.Drew("60 packages"));
         Assert.True(app.Frames.Drew("Page 2 of 3"));
+    }
+
+    [Fact]
+    public void A_package_s_icon_is_drawn_in_its_row_once_fetched_and_freed_when_the_dialog_closes()
+    {
+        var app = new AppDriver();
+        _fake.AnswerSearches(PackageWithIcon);
+        _fake.Answer(IconUrl, SquareSvg);
+        var picker = app.Ui.NuGetPicker;
+        picker.UseSetup(Setup());
+
+        picker.Open();
+        app.RunUntil(() => picker.Results.Count > 0);
+        var icon = picker.IconOf(picker.Results[0])!;
+        app.RunUntil(() => icon.Pixels != null);
+        app.Run(2);
+        var drawn = app.Frames.Canvas.Images.Any(i => i.Inputs.ImageId == icon.ImageId);
+        app.Frames.Key(KeyboardKey.Escape);
+        app.Run(2);
+
+        Assert.True(drawn);
+        Assert.Equal(NuGetPicker.IconPixels, icon.Pixels!.Width);
+        Assert.False(app.Frames.Canvas.HasImage(icon.ImageId));
+    }
+
+    [Fact]
+    public void A_package_with_no_icon_shows_the_stand_in()
+    {
+        var app = new AppDriver();
+        var picker = app.Ui.NuGetPicker;
+        picker.UseSetup(Setup());
+
+        picker.Open();
+        app.RunUntil(() => picker.Results.Count > 0);
+        app.Run(2);
+
+        Assert.Null(picker.IconOf(picker.Results[0]));
+        Assert.Empty(app.Frames.Canvas.Images);
+    }
+
+    [Fact]
+    public void The_details_panel_shows_what_the_search_and_the_catalog_say_of_the_selected_package()
+    {
+        var app = new AppDriver(width: 1200f, height: 800f);
+        _fake.AnswerSearches(PackageWithDetails);
+        _fake.Answer(DetailsUrl, """
+            { "catalogEntry": { "licenseExpression": "MIT",
+                "dependencyGroups": [ { "targetFramework": "net8.0", "dependencies": [ { "id": "Dep", "range": "[1.0.0, )" } ] } ] } }
+            """);
+        var picker = app.Ui.NuGetPicker;
+        picker.UseSetup(Setup());
+
+        picker.Open();
+        app.RunUntil(() => picker.Results.Count > 0);
+        app.Run(2);
+        app.RunUntil(() => app.Frames.Drew("Dep"));
+
+        Assert.True(app.Frames.Drew("Verified owner"));
+        Assert.True(app.Frames.Drew("1,234,567"));
+        Assert.True(app.Frames.Drew("zee"));
+        Assert.True(app.Frames.Drew("net8.0"));
+        Assert.True(app.Frames.Drew("≥ 1.0.0"));
     }
 
     private string WritePackage()

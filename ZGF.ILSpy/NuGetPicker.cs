@@ -1,26 +1,39 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Resources;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
 /// <summary>
 /// The "open from NuGet" dialog: the feed typed or picked from the user's NuGet.Config, read the
-/// first time it opens, searched a page at a time once the query settles, and the package picked,
-/// fetched at the version picked into the package cache for the view to open.
+/// first time it opens, searched a page at a time once the query settles; the packages found, with
+/// their icons; the details of the version picked of the package selected; and that version, fetched
+/// into the package cache for the view to open.
 /// </summary>
 public sealed class NuGetPicker
 {
     private const double DebounceSeconds = 0.3;
+    private const string IconImagePrefix = "nuget-icon-";
+
+    /// <summary>How many pixels across a package's icon is fetched at, enough for its row on a screen
+    /// of twice the usual density.</summary>
+    public const int IconPixels = 64;
 
     private readonly Func<Strings> _strings;
     private readonly Action<string, string> _reportError;
     private readonly List<FeedPackage> _results = new();
+    private readonly Dictionary<string, PackageIcon> _icons = new();
+    private readonly Dictionary<(string Feed, string Id, string Version), VersionDetails> _details = new();
+    private CancellationTokenSource _fetches = new();
+    private int _iconCount;
     private NuGetSetup? _setup;
     private bool _isReadingSetup;
     private CancellationTokenSource? _search;
     private CancellationTokenSource? _download;
     private FeedSearch? _searched;
-    private NuGetFeed? _resultsFeed;
+    private FeedSearch? _shown;
+    private int _requestedPage;
+    private bool _isSettling;
     private string _typedQuery = "";
     private string _typedUrl = "";
     private double _typedAt;
@@ -55,14 +68,31 @@ public sealed class NuGetPicker
     /// <summary>The packages on the page shown.</summary>
     public IReadOnlyList<FeedPackage> Results => _results;
 
-    /// <summary>The page of the search shown, from 0.</summary>
-    public int Page { get; private set; }
+    /// <summary>The page shown, from 0.</summary>
+    public int Page
+    {
+        get
+        {
+            if (_shown == null)
+                return 0;
+            return _shown.Page;
+        }
+    }
 
-    /// <summary>How many pages the search has, at least one.</summary>
+    /// <summary>The page asked for, from 0: the one shown, or the one loading in its place.</summary>
+    public int RequestedPage => _requestedPage;
+
+    /// <summary>Whether another page of the search shown is loading in its place.</summary>
+    public bool IsLoadingPage => IsSearching && _requestedPage != Page;
+
+    /// <summary>How many pages the search shown has, at least one.</summary>
     public int PageCount { get; private set; } = 1;
 
-    /// <summary>How many packages the search matched in all.</summary>
+    /// <summary>How many packages the search shown matched in all.</summary>
     public int TotalHits { get; private set; }
+
+    /// <summary>How many of <see cref="TotalHits"/> the pages reach.</summary>
+    public int BrowsableHits => Math.Min(TotalHits, NuGetFeed.MaxSkip + NuGetFeed.PageSize);
 
     public bool HasPreviousPage => Page > 0;
 
@@ -84,6 +114,17 @@ public sealed class NuGetPicker
     /// <summary>Whether <see cref="FeedUrl"/> is a URL a feed could be at.</summary>
     public bool HasFeedUrl => NuGetSource.FromUrl(FeedUrl) != null;
 
+    /// <summary>The query the packages shown were found by.</summary>
+    public string ShownQuery
+    {
+        get
+        {
+            if (_shown == null)
+                return "";
+            return _shown.Query;
+        }
+    }
+
     /// <summary>The versions of the selected package, newest first.</summary>
     public string[] Versions { get; private set; } = [];
 
@@ -101,6 +142,23 @@ public sealed class NuGetPicker
     /// settings to keep <see cref="Save"/> once it did.</summary>
     public int SearchChanges { get; private set; }
 
+    /// <summary>Whether the packages shown are what the feed, query and prerelease choice now ask for:
+    /// not while a changed query settles or another search runs. Another page loading over them, or
+    /// failing to, leaves them so.</summary>
+    public bool ShowsWhatWasAsked
+    {
+        get
+        {
+            if (_isSettling)
+                return false;
+            if (_searched == null)
+                return true;
+            return IsSamePackages(_searched, _shown);
+        }
+    }
+
+    /// <summary>Whether the selected package can be opened: it is one of what was asked for, a version
+    /// is picked, and no download runs.</summary>
     public bool CanOpen
     {
         get
@@ -108,6 +166,8 @@ public sealed class NuGetPicker
             if (Selected == null)
                 return false;
             if (IsDownloading)
+                return false;
+            if (!ShowsWhatWasAsked)
                 return false;
             return Version.Length > 0;
         }
@@ -136,6 +196,8 @@ public sealed class NuGetPicker
             ReadSetup();
     }
 
+    /// <summary>Reads the user's NuGet.Config in the background; one that cannot be read at all is
+    /// reported, and nuget.org searched in its place.</summary>
     private async void ReadSetup()
     {
         if (_isReadingSetup)
@@ -146,6 +208,7 @@ public sealed class NuGetPicker
         if (read.Error != null)
         {
             _reportError(_strings().ErrorReadNugetConfig, read.Error.ToString());
+            UseSetup(NuGetSetup.CreateDefault());
             return;
         }
         UseSetup(read.Value!);
@@ -171,12 +234,17 @@ public sealed class NuGetPicker
         _typedAt = double.NegativeInfinity;
     }
 
-    /// <summary>Closes the dialog, stopping the search and the download it started.</summary>
-    public void Close()
+    /// <summary>Closes the dialog, stopping the search, the download and the fetches it started.
+    /// Returns the images of the icons shown, for the screen to free.</summary>
+    public List<string> Close()
     {
         IsOpen = false;
         StopSearch();
         StopDownload();
+        _fetches.Cancel();
+        _fetches = new CancellationTokenSource();
+        _details.Clear();
+        return DropIcons();
     }
 
     private void StopSearch()
@@ -194,6 +262,15 @@ public sealed class NuGetPicker
         _download = null;
     }
 
+    private List<string> DropIcons()
+    {
+        var images = _icons.Values
+            .Select(i => i.ImageId)
+            .ToList();
+        _icons.Clear();
+        return images;
+    }
+
     /// <summary>True once after <see cref="Open"/>: the query box should take focus.</summary>
     public bool TakeQueryFocus()
     {
@@ -206,14 +283,46 @@ public sealed class NuGetPicker
     {
         if (!HasPreviousPage)
             return;
-        Page--;
+        _requestedPage = Page - 1;
     }
 
     public void ShowNextPage()
     {
         if (!HasNextPage)
             return;
-        Page++;
+        _requestedPage = Page + 1;
+    }
+
+    /// <summary>Searches again for what the last search asked, after it failed.</summary>
+    public void Retry()
+    {
+        _searched = null;
+        SearchError = null;
+    }
+
+    public void ClearQuery()
+    {
+        Query = "";
+    }
+
+    /// <summary>Opens the selected package at <see cref="Version"/>, unless the query typed is still to
+    /// be searched: then it is searched at once instead, so Enter never opens what an older query found.</summary>
+    public void Submit()
+    {
+        if (_isSettling)
+        {
+            SearchNow();
+            return;
+        }
+        if (IsSearching)
+            return;
+        Download();
+    }
+
+    /// <summary>Searches what was typed with the next update, without waiting for it to settle.</summary>
+    public void SearchNow()
+    {
+        _typedAt = double.NegativeInfinity;
     }
 
     /// <summary>Searches again once the typed feed or query settled, or at once when another page is
@@ -222,6 +331,7 @@ public sealed class NuGetPicker
     public double Update(double now)
     {
         NoteTyping(now);
+        _isSettling = false;
         if (_setup == null)
             return 0;
         var source = NuGetSource.FromUrl(_typedUrl);
@@ -230,17 +340,20 @@ public sealed class NuGetPicker
             DropResults();
             return 0;
         }
-        var wanted = new FeedSearch(_setup.FeedAt(source), _typedQuery, IncludePrerelease, Page);
+        var wanted = new FeedSearch(_setup.FeedAt(source), _typedQuery, IncludePrerelease, _requestedPage);
         if (IsNewSearch(wanted))
         {
-            Page = 0;
+            _requestedPage = 0;
             wanted = wanted with { Page = 0 };
         }
         if (wanted == _searched)
             return 0;
         var remaining = DebounceSeconds - (now - _typedAt);
         if (remaining > 0 && IsOnlyTypingChanged(wanted))
+        {
+            _isSettling = true;
             return remaining;
+        }
         StartSearch(wanted);
         return 0;
     }
@@ -260,35 +373,57 @@ public sealed class NuGetPicker
     {
         StopSearch();
         _searched = null;
-        _resultsFeed = null;
+        ClearShown();
+        SearchError = null;
+        _requestedPage = 0;
+    }
+
+    private void ClearShown()
+    {
+        _shown = null;
         _results.Clear();
         Selection.Clear();
-        SearchError = null;
-        Page = 0;
         PageCount = 1;
         TotalHits = 0;
+    }
+
+    /// <summary>The search the next one is weighed against: the one running or last run, else the one shown.</summary>
+    private FeedSearch? LastAsked()
+    {
+        if (_searched != null)
+            return _searched;
+        return _shown;
     }
 
     /// <summary>Whether <paramref name="wanted"/> asks for other packages than the last search, not
     /// just another page of them.</summary>
     private bool IsNewSearch(FeedSearch wanted)
     {
-        if (_searched == null)
+        var last = LastAsked();
+        if (last == null)
             return false;
-        if (wanted.Feed != _searched.Feed)
-            return true;
-        if (wanted.Query != _searched.Query)
-            return true;
-        return wanted.IncludePrerelease != _searched.IncludePrerelease;
+        return !IsSamePackages(wanted, last);
+    }
+
+    private static bool IsSamePackages(FeedSearch a, FeedSearch? b)
+    {
+        if (b == null)
+            return false;
+        if (a.Feed != b.Feed)
+            return false;
+        if (a.Query != b.Query)
+            return false;
+        return a.IncludePrerelease == b.IncludePrerelease;
     }
 
     private bool IsOnlyTypingChanged(FeedSearch wanted)
     {
-        if (_searched == null)
+        var last = LastAsked();
+        if (last == null)
             return false;
-        if (wanted.IncludePrerelease != _searched.IncludePrerelease)
+        if (wanted.IncludePrerelease != last.IncludePrerelease)
             return false;
-        return wanted.Page == _searched.Page;
+        return wanted.Page == last.Page;
     }
 
     private async void StartSearch(FeedSearch wanted)
@@ -315,17 +450,19 @@ public sealed class NuGetPicker
         SearchChanges++;
     }
 
+    /// <summary>Shows the page found in place of the one shown. A failed search says why, and keeps
+    /// the page shown when it only asked for another page of it.</summary>
     private void ShowFound(FeedSearch searched, Outcome<FeedPage> found)
     {
-        _results.Clear();
-        Selection.Clear();
         if (found.Error != null)
         {
             ReportSearchFailure(searched, found.Error);
             return;
         }
         SearchError = null;
-        _resultsFeed = searched.Feed;
+        _shown = searched;
+        _results.Clear();
+        Selection.Clear();
         _results.AddRange(found.Value!.Packages);
         TotalHits = found.Value.TotalHits;
         PageCount = NuGetFeed.CountPages(TotalHits);
@@ -336,17 +473,83 @@ public sealed class NuGetPicker
     private void ReportSearchFailure(FeedSearch searched, Exception error)
     {
         SearchError = error.Message;
+        if (!IsSamePackages(searched, _shown))
+            ClearShown();
         _reportError(_strings().ErrorSearchNuget(searched.Feed.Source.Name), error.ToString());
     }
 
-    /// <summary>Offers the versions of the package selected, picking its latest, once another is selected.</summary>
-    public void FollowSelection() => OfferVersionsOf(Selected);
-
-    /// <summary>Offers the versions of <paramref name="package"/>, picking its latest, unless they are
-    /// on offer already. The selected row offers its versions as it draws, before the list hands its
-    /// selection back.</summary>
-    public void OfferVersionsOf(FeedPackage? package)
+    /// <summary>The icon of <paramref name="package"/>, fetched in the background the first time it is
+    /// asked for; null when the package gives none.</summary>
+    public PackageIcon? IconOf(FeedPackage package)
     {
+        if (package.IconUrl.Length == 0)
+            return null;
+        if (_setup == null)
+            return null;
+        if (_icons.TryGetValue(package.IconUrl, out var icon))
+            return icon;
+        _iconCount++;
+        icon = new PackageIcon(IconImagePrefix + _iconCount);
+        _icons.Add(package.IconUrl, icon);
+        FetchIcon(package.IconUrl, icon);
+        return icon;
+    }
+
+    /// <summary>Gives <paramref name="icon"/> its pixels once they are in; one that cannot be fetched
+    /// keeps none, so its row keeps the stand-in.</summary>
+    private async void FetchIcon(string url, PackageIcon icon)
+    {
+        var token = _fetches.Token;
+        var fetched = await Background.Wait(_setup!.Icons.FetchAsync(url, IconPixels, token));
+        if (token.IsCancellationRequested)
+            return;
+        icon.Show(fetched.Value);
+    }
+
+    /// <summary>What the feed says of <paramref name="version"/> of <paramref name="package"/>, read
+    /// in the background the first time it is asked for; null while no page of packages is shown or
+    /// the package lists no such version.</summary>
+    public VersionDetails? DetailsOf(FeedPackage package, string version)
+    {
+        if (_shown == null)
+            return null;
+        var listed = FindVersion(package, version);
+        if (listed == null)
+            return null;
+        var feed = _shown.Feed;
+        var key = (feed.Source.Url, package.Id, version);
+        if (_details.TryGetValue(key, out var details))
+            return details;
+        details = new VersionDetails();
+        _details.Add(key, details);
+        ReadDetails(feed, package.Id, listed, details);
+        return details;
+    }
+
+    /// <summary>Reads the details of <paramref name="version"/> of <paramref name="package"/> again, after they failed.</summary>
+    public void RetryDetails(FeedPackage package, string version)
+    {
+        if (_shown == null)
+            return;
+        _details.Remove((_shown.Feed.Source.Url, package.Id, version));
+    }
+
+    private static FeedVersion? FindVersion(FeedPackage package, string version) =>
+        package.Versions.FirstOrDefault(v => v.Version == version);
+
+    private async void ReadDetails(NuGetFeed feed, string id, FeedVersion version, VersionDetails details)
+    {
+        var token = _fetches.Token;
+        var read = await Background.Wait(feed.ReadDetailsAsync(id, version, token));
+        if (token.IsCancellationRequested)
+            return;
+        details.Finish(read.Value, read.Error);
+    }
+
+    /// <summary>Offers the versions of the package selected, picking its latest, once another is selected.</summary>
+    public void FollowSelection()
+    {
+        var package = Selected;
         if (package == _versionsOf)
             return;
         _versionsOf = package;
@@ -357,7 +560,23 @@ public sealed class NuGetPicker
             return;
         }
         Version = package.Version;
-        Versions = package.Versions.ToArray();
+        Versions = package.Versions
+            .Select(v => v.Version)
+            .ToArray();
+    }
+
+    /// <summary>How many times <see cref="Version"/> of the selected package was downloaded; 0 when the feed does not say.</summary>
+    public long VersionDownloads
+    {
+        get
+        {
+            if (Selected == null)
+                return 0;
+            var listed = FindVersion(Selected, Version);
+            if (listed == null)
+                return 0;
+            return listed.Downloads;
+        }
     }
 
     /// <summary>Fetches <see cref="Version"/> of the selected package, from the feed it was found in,
@@ -371,7 +590,7 @@ public sealed class NuGetPicker
         var run = new CancellationTokenSource();
         _download = run;
         DownloadingName = $"{package.Id} {version}";
-        var fetched = await Background.Wait(_setup!.Cache.FetchAsync(_resultsFeed!, package.Id, version, run.Token));
+        var fetched = await Background.Wait(_setup!.Cache.FetchAsync(_shown!.Feed, package.Id, version, run.Token));
         if (_download != run)
             return;
         _download = null;
@@ -393,6 +612,42 @@ public sealed class NuGetPicker
 
     /// <summary>What a search asked of which feed.</summary>
     private sealed record FeedSearch(NuGetFeed Feed, string Query, bool IncludePrerelease, int Page);
+}
+
+/// <summary>A package's icon: the image the screen draws it as, and its pixels, null until they are
+/// in; with whether it is dark marks on a clear background, which a dark theme would hide.</summary>
+public sealed class PackageIcon(string imageId)
+{
+    public string ImageId { get; } = imageId;
+
+    public ResourceImage? Pixels { get; private set; }
+
+    public bool IsDarkOnClear { get; private set; }
+
+    public void Show(ResourceImage? pixels)
+    {
+        if (pixels == null)
+            return;
+        Pixels = pixels;
+        IsDarkOnClear = pixels.IsDarkOnClear();
+    }
+}
+
+/// <summary>What a feed says of one version of a package: its details once read, or why they could not be.</summary>
+public sealed class VersionDetails
+{
+    public PackageVersionDetails? Details { get; private set; }
+
+    public string? Error { get; private set; }
+
+    public bool IsLoading => Details == null && Error == null;
+
+    public void Finish(PackageVersionDetails? details, Exception? error)
+    {
+        Details = details;
+        if (error != null)
+            Error = error.Message;
+    }
 }
 
 /// <summary>What the settings keep of the "open from NuGet" dialog: the feed last searched and

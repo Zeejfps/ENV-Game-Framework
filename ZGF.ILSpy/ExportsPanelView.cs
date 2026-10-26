@@ -25,11 +25,6 @@ internal static class ExportsPanelView
     private const int SectionQueuedId = -1;
     private const int SectionFinishedId = -2;
     private const int PageRows = 5;
-    private const double AnimationStep = 1.0 / 30.0;
-    private const double SpinnerPeriod = 0.9;
-    private const double SlidePeriod = 1.4;
-    private const int SpinnerDots = 8;
-    private const float SlideShare = 0.3f;
 
     /// <summary>What every row of a frame needs: the list it is in, for focus and scrolling, the
     /// menu its rows open, resolved outside their id scopes, and whether the panel is narrow.</summary>
@@ -56,7 +51,6 @@ internal static class ExportsPanelView
             Finished(ui, appState, rows);
         }
         Menu(ui, appState, rows);
-        KeepAnimating(ui, appState);
     }
 
     private static bool IsEmpty(AppState appState)
@@ -238,7 +232,7 @@ internal static class ExportsPanelView
                 var at = progress.Value;
                 using (ui.Row(TopLine(theme)))
                 {
-                    Spinner(ui);
+                    ui.Spinner(theme.PaneBackground);
                     Name(ui, running.Job.Name);
                     Percent(ui, at.Fraction);
                     CancelAction(ui, appState, rows);
@@ -282,33 +276,6 @@ internal static class ExportsPanelView
         return kindText;
     }
 
-
-    /// <summary>Dots in a ring, the brightest going round once every <see cref="SpinnerPeriod"/>.</summary>
-    private static void Spinner(Ui<UiState> ui)
-    {
-        var theme = ui.Theme;
-        var phase = (float)(ui.RealTime % SpinnerPeriod / SpinnerPeriod);
-        using (ui.Box(new Box { Width = Sizing.Fixed(theme.IconSize), Height = Sizing.Fixed(theme.IconSize) }))
-            ui.Paint((phase, theme.AccentText, theme.PaneBackground), static (p, s) => PaintSpinner(p, s.phase, s.AccentText, s.PaneBackground));
-    }
-
-    private static void PaintSpinner(UiPainter p, float phase, uint color, uint background)
-    {
-        var r = p.Rect;
-        var center = new PointF(r.X + r.Width / 2, r.Y + r.Height / 2);
-        var ring = r.Width * 0.38f;
-        var dot = r.Width * 0.09f;
-        for (var i = 0; i < SpinnerDots; i++)
-        {
-            var share = (float)i / SpinnerDots;
-            var angle = share * MathF.Tau;
-            var at = new PointF(center.X + MathF.Cos(angle) * ring, center.Y + MathF.Sin(angle) * ring);
-            var behind = (phase - share + 1f) % 1f;
-            var shade = UiColor.Mix(color, background, behind * 0.85f);
-            p.Circle(at, dot, shade);
-        }
-    }
-
     /// <summary>How much of the running export is done, on its top line in a slot of its own so the
     /// actions beside it stay put; empty while the export does not know its size.</summary>
     private static void Percent(Ui<UiState> ui, float? fraction)
@@ -328,30 +295,8 @@ internal static class ExportsPanelView
             if (fraction != null)
                 ui.ProgressBar(fraction.Value);
             else
-                SlidingBar(ui);
+                ui.SlidingBar();
         }
-    }
-
-    private static void SlidingBar(Ui<UiState> ui)
-    {
-        var theme = ui.Theme;
-        var height = theme.ProgressHeight;
-        var phase = (float)(ui.RealTime % SlidePeriod / SlidePeriod);
-        using (ui.Box(new Box { Width = Sizing.Grow(), Height = height, Background = theme.Control, Radius = height / 2 }))
-            ui.Paint((phase, theme.Accent), static (p, s) => PaintSlide(p, s.phase, s.Accent));
-    }
-
-    private static void PaintSlide(UiPainter p, float phase, uint color)
-    {
-        var r = p.Rect;
-        var width = r.Width * SlideShare;
-        var travel = r.Width + width;
-        var left = r.X - width + travel * phase;
-        var start = MathF.Max(r.X, left);
-        var end = MathF.Min(r.X + r.Width, left + width);
-        if (end <= start)
-            return;
-        p.FillRect(new UiRect(start, r.Y, end - start, r.Height), color, r.Height / 2);
     }
 
     private static string FormatPercent(float? fraction)
@@ -604,13 +549,6 @@ internal static class ExportsPanelView
             appState.Export.Withdraw(run);
     }
 
-    /// <summary>Asks for the next frame soon while an export runs, so its spinner and sliding bar move.</summary>
-    private static void KeepAnimating(Ui<UiState> ui, AppState appState)
-    {
-        if (!appState.Export.IsRunning)
-            return;
-        ui.RequestUpdateIn(AnimationStep);
-    }
 
     /// <summary>A muted heading over a group of rows, with how many it holds.</summary>
     private static void Section(Ui<UiState> ui, int id, string text)

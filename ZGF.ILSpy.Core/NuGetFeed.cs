@@ -3,22 +3,16 @@ using System.Text.Json;
 
 namespace ZGF.ILSpy.Core;
 
-/// <summary>A package a feed's search found: its latest version and, newest first, every version
-/// listed with it.</summary>
-public sealed record FeedPackage(string Id, string Version, string Description, string Authors, IReadOnlyList<string> Versions);
-
-/// <summary>A page of a feed's search: the packages on it, the closest first, and how many match in all.</summary>
-public sealed record FeedPage(IReadOnlyList<FeedPackage> Packages, int TotalHits);
-
 /// <summary>
 /// A NuGet feed spoken to over the v3 protocol: its service index, read the first time it is needed,
-/// names the search service and the folder of package files the feed serves. Every call may be made
-/// from any thread.
+/// names the search service, the folder of package files the feed serves, and where it describes
+/// each version. Every call may be made from any thread.
 /// </summary>
 public sealed class NuGetFeed
 {
     private const string SearchType = "SearchQueryService";
     private const string PackageFolderType = "PackageBaseAddress/3.0.0";
+    private const string RegistrationsType = "RegistrationsBaseUrl";
 
     /// <summary>How many packages a page of a search holds.</summary>
     public const int PageSize = 25;
@@ -40,7 +34,8 @@ public sealed class NuGetFeed
         _client = ClientFor(handler);
     }
 
-    private static HttpClient ClientFor(HttpMessageHandler? handler)
+    /// <summary>A client sending through <paramref name="handler"/>, or the app's shared one.</summary>
+    internal static HttpClient ClientFor(HttpMessageHandler? handler)
     {
         if (handler == null)
             return Shared.Value;
@@ -74,7 +69,7 @@ public sealed class NuGetFeed
         var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
         var url = SearchUrl(index.Search, query, includePrerelease, page);
         using var document = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
-        return ReadPage(document.RootElement);
+        return FeedJson.ReadPage(document.RootElement);
     }
 
     private static string SearchUrl(string search, string query, bool includePrerelease, int page)
@@ -83,6 +78,43 @@ public sealed class NuGetFeed
         var prerelease = includePrerelease ? "true" : "false";
         var skip = Math.Min(page * PageSize, MaxSkip);
         return $"{search}?q={q}&skip={skip}&take={PageSize}&prerelease={prerelease}&semVerLevel=2.0.0";
+    }
+
+    /// <summary>What the feed's catalog says of <paramref name="version"/> of the package <paramref name="id"/>:
+    /// read from where the search said the feed describes it, else from the feed's registrations.</summary>
+    /// <exception cref="HttpRequestException">The feed could not be reached, or has no such version.</exception>
+    /// <exception cref="InvalidDataException">The feed describes no versions, or answered with something else.</exception>
+    public async Task<PackageVersionDetails> ReadDetailsAsync(string id, FeedVersion version, CancellationToken cancellationToken = default)
+    {
+        var url = await FindDetailsUrlAsync(id, version, cancellationToken).ConfigureAwait(false);
+        using var leaf = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
+        var listedAt = FeedJson.ReadDate(leaf.RootElement, "published");
+        if (!leaf.RootElement.TryGetProperty("catalogEntry", out var entry))
+            throw new InvalidDataException($"{url} names no catalog entry.");
+        return await ReadCatalogEntryAsync(entry, listedAt, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<string> FindDetailsUrlAsync(string id, FeedVersion version, CancellationToken cancellationToken)
+    {
+        if (version.DetailsUrl.Length > 0)
+            return version.DetailsUrl;
+        var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
+        if (index.Registrations == null)
+            throw new InvalidDataException($"The service index of {Source.Url} names no {RegistrationsType}.");
+        var lowerId = id.ToLowerInvariant();
+        var lowerVersion = PackageCache.NormalizeVersion(version.Version);
+        return $"{index.Registrations.TrimEnd('/')}/{lowerId}/{lowerVersion}.json";
+    }
+
+    /// <summary>The details in a catalog entry, which a registration leaf gives inline or as the URL to read it from.</summary>
+    private async Task<PackageVersionDetails> ReadCatalogEntryAsync(JsonElement entry, DateTimeOffset? listedAt, CancellationToken cancellationToken)
+    {
+        if (entry.ValueKind == JsonValueKind.Object)
+            return FeedJson.ReadDetails(entry, listedAt);
+        if (entry.ValueKind != JsonValueKind.String)
+            throw new InvalidDataException("A catalog entry is neither inline nor a URL.");
+        using var catalog = await ReadJsonAsync(entry.GetString()!, cancellationToken).ConfigureAwait(false);
+        return FeedJson.ReadDetails(catalog.RootElement, listedAt);
     }
 
     /// <summary>Writes the package file of <paramref name="id"/> at <paramref name="version"/> to
@@ -141,26 +173,35 @@ public sealed class NuGetFeed
     private async Task<ServiceIndex> FetchIndexAsync(CancellationToken cancellationToken)
     {
         using var document = await ReadJsonAsync(Source.Url, cancellationToken).ConfigureAwait(false);
-        var resources = ReadArray(document.RootElement, "resources");
+        var resources = FeedJson.ReadArray(document.RootElement, "resources");
         var search = FindResource(resources, SearchType);
         var folder = FindResource(resources, PackageFolderType);
-        return new ServiceIndex(search, folder);
+        var registrations = FindOptionalResource(resources, RegistrationsType);
+        return new ServiceIndex(search, folder, registrations);
     }
 
     /// <summary>The URL of the first resource whose type is <paramref name="type"/>, or a version of it.</summary>
     private string FindResource(JsonElement resources, string type)
     {
+        var url = FindOptionalResource(resources, type);
+        if (url == null)
+            throw new InvalidDataException($"The service index of {Source.Url} names no {type}.");
+        return url;
+    }
+
+    private static string? FindOptionalResource(JsonElement resources, string type)
+    {
         foreach (var resource in resources.EnumerateArray())
         {
             if (IsOfType(resource, type))
-                return ReadString(resource, "@id");
+                return FeedJson.ReadString(resource, "@id");
         }
-        throw new InvalidDataException($"The service index of {Source.Url} names no {type}.");
+        return null;
     }
 
     private static bool IsOfType(JsonElement resource, string type)
     {
-        var found = ReadString(resource, "@type");
+        var found = FeedJson.ReadString(resource, "@type");
         if (found == type)
             return true;
         return found.StartsWith(type + "/", StringComparison.Ordinal);
@@ -181,97 +222,6 @@ public sealed class NuGetFeed
         }
     }
 
-    private static FeedPage ReadPage(JsonElement root)
-    {
-        var packages = ReadPackages(root);
-        var totalHits = ReadTotalHits(root, packages.Count);
-        return new FeedPage(packages, totalHits);
-    }
-
-    private static List<FeedPackage> ReadPackages(JsonElement root)
-    {
-        var packages = new List<FeedPackage>();
-        foreach (var package in ReadArray(root, "data").EnumerateArray())
-            packages.Add(ReadPackage(package));
-        return packages;
-    }
-
-    /// <summary>How many packages match in all; <paramref name="onPage"/> when the feed does not say.</summary>
-    private static int ReadTotalHits(JsonElement root, int onPage)
-    {
-        if (!root.TryGetProperty("totalHits", out var total))
-            return onPage;
-        if (total.ValueKind != JsonValueKind.Number)
-            return onPage;
-        if (!total.TryGetInt32(out var hits))
-            return onPage;
-        return Math.Max(hits, onPage);
-    }
-
-    private static FeedPackage ReadPackage(JsonElement package)
-    {
-        var id = ReadString(package, "id");
-        var version = ReadString(package, "version");
-        var description = ReadString(package, "description");
-        var authors = ReadAuthors(package);
-        var versions = ReadVersions(package, version);
-        return new FeedPackage(id, version, description, authors, versions);
-    }
-
-    /// <summary>The authors, which a feed may give as one string or as a list of them.</summary>
-    private static string ReadAuthors(JsonElement package)
-    {
-        if (!package.TryGetProperty("authors", out var authors))
-            return "";
-        if (authors.ValueKind != JsonValueKind.Array)
-            return ReadText(authors);
-        var names = authors.EnumerateArray()
-            .Select(ReadText)
-            .Where(a => a.Length > 0);
-        return string.Join(", ", names);
-    }
-
-    /// <summary>The versions listed with the package, newest first; just <paramref name="latest"/>
-    /// when the feed lists none.</summary>
-    private static List<string> ReadVersions(JsonElement package, string latest)
-    {
-        var versions = new List<string>();
-        if (package.TryGetProperty("versions", out var listed) && listed.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var entry in listed.EnumerateArray())
-                versions.Add(ReadString(entry, "version"));
-        }
-        versions.Reverse();
-        if (versions.Count == 0)
-            versions.Add(latest);
-        return versions;
-    }
-
-    private static JsonElement ReadArray(JsonElement element, string name)
-    {
-        if (element.ValueKind != JsonValueKind.Object)
-            throw new InvalidDataException($"Expected an object holding {name}.");
-        if (!element.TryGetProperty(name, out var array) || array.ValueKind != JsonValueKind.Array)
-            throw new InvalidDataException($"Expected a list named {name}.");
-        return array;
-    }
-
-    private static string ReadString(JsonElement element, string name)
-    {
-        if (element.ValueKind != JsonValueKind.Object)
-            return "";
-        if (!element.TryGetProperty(name, out var value))
-            return "";
-        return ReadText(value);
-    }
-
-    private static string ReadText(JsonElement value)
-    {
-        if (value.ValueKind != JsonValueKind.String)
-            return "";
-        return value.GetString() ?? "";
-    }
-
-    /// <summary>The resources of the feed's service index this reads.</summary>
-    private sealed record ServiceIndex(string Search, string PackageFolder);
+    /// <summary>The resources of the feed's service index this reads; a feed may describe no versions.</summary>
+    private sealed record ServiceIndex(string Search, string PackageFolder, string? Registrations);
 }

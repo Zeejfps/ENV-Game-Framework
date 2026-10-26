@@ -347,6 +347,21 @@
     // An export that finished.
     "export.done": { "font": "lucide", "glyph": "E06C" },
 
+    // The "open from NuGet" dialog.
+
+    // Show the previous page of the packages found.
+    "nuget.previousPage": { "font": "lucide", "glyph": "E06E" },
+    // Show the next page of the packages found.
+    "nuget.nextPage": { "font": "lucide", "glyph": "E06F" },
+    // A package that has no icon of its own, or whose icon is still loading.
+    "nuget.package": { "font": "lucide", "glyph": "E129" },
+    // A package whose id prefix the feed vouches belongs to its owners.
+    "nuget.verified": { "font": "lucide", "glyph": "E241" },
+    // A version that is deprecated or has known vulnerabilities.
+    "nuget.warning": { "font": "lucide", "glyph": "E193" },
+    // A link that opens in the browser.
+    "nuget.link": { "font": "lucide", "glyph": "E0B9" },
+
     // States shown beside text.
 
     // An error: in the status bar, the error dialog and the analyzer.

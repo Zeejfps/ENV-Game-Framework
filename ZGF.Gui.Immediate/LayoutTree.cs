@@ -39,6 +39,12 @@ internal struct Element
     public bool Wrap;
     public TextOverflow Overflow;
     public string? Shown;
+    /// <summary>How many lines wrapped text shows at most, the last ending in an ellipsis when the
+    /// text runs on; 0 shows every line.</summary>
+    public int MaxLines;
+    /// <summary>The last line shown in place of its slice of the text, with the rest of the text cut
+    /// short around an ellipsis; null while every line is shown.</summary>
+    public string? LastLine;
     public IReadOnlyList<RichTextRun>? Runs;
     public RichTextLayoutResult? RunLines;
     /// <summary>The link run under the pointer, underlined; -1 when there is none.</summary>
@@ -197,7 +203,8 @@ internal sealed class LayoutTree
             else if (e.Wrap)
             {
                 e.Lines = text.BreakLines(e.Text!, e.TextStyle!, Inner(ref e));
-                e.ContentHeight = e.Lines.Count * e.LineHeight;
+                e.LastLine = CutLastLine(text, ref e, Inner(ref e));
+                e.ContentHeight = ShownLineCount(ref e) * e.LineHeight;
             }
             else if (e.Overflow != TextOverflow.Clip && e.Lines == null && e.Text is { } value)
             {
@@ -207,6 +214,28 @@ internal sealed class LayoutTree
         }
 
         static float Inner(ref Element e) => MathF.Max(0f, e.W - e.Padding.Left - e.Padding.Right);
+    }
+
+    /// <summary>The last line wrapped text with more lines than <see cref="Element.MaxLines"/> shows:
+    /// the rest of the text from where that line starts, on one line, cut short around an ellipsis
+    /// to <paramref name="width"/>. Null when every line fits.</summary>
+    private static string? CutLastLine(ITextLayout text, ref Element e, float width)
+    {
+        var shown = ShownLineCount(ref e);
+        if (shown >= e.Lines!.Count)
+            return null;
+        var start = e.Lines.Start(shown - 1);
+        var rest = e.Text!.Substring(start).ReplaceLineEndings(" ");
+        return text.Ellipsize(rest, e.TextStyle!, width, TextOverflow.Ellipsis);
+    }
+
+    /// <summary>How many of the wrapped lines are shown: all of them, or <see cref="Element.MaxLines"/> at most.</summary>
+    private static int ShownLineCount(ref Element e)
+    {
+        var count = e.Lines!.Count;
+        if (e.MaxLines <= 0)
+            return count;
+        return Math.Min(count, e.MaxLines);
     }
 
     public void Position()
@@ -484,15 +513,21 @@ internal sealed class LayoutTree
     {
         var lines = e.Lines!;
         var height = e.LineHeight;
-        var top = content.Y + MathF.Max(0f, (content.Height - lines.Count * height) / 2);
+        var shown = ShownLineCount(ref e);
+        var top = content.Y + MathF.Max(0f, (content.Height - shown * height) / 2);
         var clip = _clips[^1];
-        for (var i = 0; i < lines.Count; i++)
+        for (var i = 0; i < shown; i++)
         {
             var length = lines.Length(i);
             if (length == 0) continue;
             var line = new UiRect(content.X, top + i * height, content.Width, height);
             if (line.Y >= clip.Bottom) break;
             if (!line.Intersects(clip)) continue;
+            if (i == shown - 1 && e.LastLine != null)
+            {
+                _canvas.DrawText(new DrawTextInputs { Position = _origin.ToCanvas(line), Text = e.LastLine, Style = e.TextStyle!, ZIndex = z });
+                continue;
+            }
             var start = lines.Start(i);
             _canvas.DrawText(new DrawTextInputs
             {

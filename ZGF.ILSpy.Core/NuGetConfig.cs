@@ -41,6 +41,9 @@ public sealed record NuGetConfig(IReadOnlyList<NuGetSource> Sources, string Glob
     /// <summary>The config of the user running the app.</summary>
     public static NuGetConfig ReadUser() => Read(UserConfigPath());
 
+    /// <summary>What a config that says nothing means: nuget.org, and the default packages folder.</summary>
+    public static NuGetConfig CreateDefault() => new([NuGetSource.NuGetOrg], FindGlobalPackagesFolder(null, ""));
+
     private static string UserConfigPath()
     {
         if (OperatingSystem.IsWindows())

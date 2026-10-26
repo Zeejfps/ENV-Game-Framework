@@ -43,6 +43,94 @@ public sealed class ResourceImage
         return SvgPicture.Rasterize(_shapes, Width * scale, Height * scale);
     }
 
+    /// <summary>The picture shrunk to fit a square <paramref name="side"/> pixels across, keeping its
+    /// aspect: drawn again from its shapes when it has them, else each pixel the average of those it
+    /// covers. A picture that fits already is itself.</summary>
+    public ResourceImage FitInto(int side)
+    {
+        var longest = Math.Max(Width, Height);
+        if (longest <= side)
+            return this;
+        var scale = (float)side / longest;
+        if (_shapes != null)
+            return DrawnAt(scale);
+        var width = Math.Max(1, (int)MathF.Round(Width * scale));
+        var height = Math.Max(1, (int)MathF.Round(Height * scale));
+        return new ResourceImage(width, height, AverageInto(width, height), Format);
+    }
+
+    private byte[] AverageInto(int width, int height)
+    {
+        var rgba = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+                AverageCell(rgba, x, y, width, height);
+        }
+        return rgba;
+    }
+
+    /// <summary>Gives pixel <paramref name="x"/>, <paramref name="y"/> of the shrunk picture the average
+    /// of the pixels it covers, their colors weighed by their alpha so clear pixels lend no color.</summary>
+    private void AverageCell(byte[] target, int x, int y, int width, int height)
+    {
+        var left = x * Width / width;
+        var right = Math.Max(left + 1, (x + 1) * Width / width);
+        var top = y * Height / height;
+        var bottom = Math.Max(top + 1, (y + 1) * Height / height);
+        long red = 0, green = 0, blue = 0, alpha = 0;
+        for (var sy = top; sy < bottom; sy++)
+        {
+            for (var sx = left; sx < right; sx++)
+            {
+                var at = (sy * Width + sx) * 4;
+                var a = Rgba[at + 3];
+                red += Rgba[at] * a;
+                green += Rgba[at + 1] * a;
+                blue += Rgba[at + 2] * a;
+                alpha += a;
+            }
+        }
+        var to = (y * width + x) * 4;
+        var count = (right - left) * (bottom - top);
+        target[to + 3] = (byte)(alpha / count);
+        if (alpha == 0)
+            return;
+        target[to] = (byte)(red / alpha);
+        target[to + 1] = (byte)(green / alpha);
+        target[to + 2] = (byte)(blue / alpha);
+    }
+
+    /// <summary>Whether the picture is dark marks on a see-through background, which a dark backdrop
+    /// would hide: a good share of it clear, and what shows mostly dark.</summary>
+    public bool IsDarkOnClear()
+    {
+        long shown = 0;
+        long clear = 0;
+        var luminance = 0.0;
+        for (var at = 0; at < Rgba.Length; at += 4)
+        {
+            if (Rgba[at + 3] < ClearAlpha)
+            {
+                clear++;
+                continue;
+            }
+            shown++;
+            luminance += LuminanceAt(at);
+        }
+        if (shown == 0)
+            return false;
+        var clearShare = (double)clear / (clear + shown);
+        var meanLuminance = luminance / shown;
+        return clearShare >= MinClearShare && meanLuminance <= MaxDarkLuminance;
+    }
+
+    private const byte ClearAlpha = 32;
+    private const double MinClearShare = 0.2;
+    private const double MaxDarkLuminance = 0.3;
+
+    private double LuminanceAt(int at) => (0.2126 * Rgba[at] + 0.7152 * Rgba[at + 1] + 0.0722 * Rgba[at + 2]) / 255.0;
+
     /// <summary>The formats ILSpy shows as pictures, by the file extension of the resource name.</summary>
     internal static bool IsImageName(string name) =>
         Path.GetExtension(name).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".ico" or ".cur" or ".svg";

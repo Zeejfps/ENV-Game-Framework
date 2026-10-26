@@ -13,8 +13,9 @@ namespace ZGF.Gui.Testing;
 /// without a window, a context, or a GPU.
 /// <para>
 /// Fidelity is "close enough to look at": fills are 1-sample (rects/glyphs hard-edged, shapes lightly
-/// anti-aliased). Box shadows and images are not painted (a screenshot is for layout/colour/clipping
-/// bugs, which the text snapshot can't express; the snapshot remains the precise source of truth).
+/// anti-aliased; images nearest-sampled, unrotated). Box shadows are not painted (a screenshot is for
+/// layout/colour/clipping bugs, which the text snapshot can't express; the snapshot remains the
+/// precise source of truth).
 /// </para>
 /// </summary>
 public sealed class RasterCanvas : RenderedCanvasBase
@@ -31,6 +32,13 @@ public sealed class RasterCanvas : RenderedCanvasBase
     private ShapeInstance[] _shapes = Array.Empty<ShapeInstance>();
     private Vector4[] _clips = Array.Empty<Vector4>();
     private int _clipCount;
+    private ImageInstance[] _imageInstances = Array.Empty<ImageInstance>();
+    private readonly Dictionary<string, HeldImage> _images = new();
+    private readonly Dictionary<uint, HeldImage> _imagesByTexture = new();
+    private uint _lastTexture;
+
+    /// <summary>An image's pixels as it was last given them, straight-alpha RGBA rows top-down.</summary>
+    private sealed record HeldImage(uint Texture, int Width, int Height, byte[] Rgba);
 
     /// <param name="clearColor">Packed ARGB the buffer is cleared to before painting (any area the UI
     /// doesn't cover). Defaults to opaque near-black.</param>
@@ -55,15 +63,35 @@ public sealed class RasterCanvas : RenderedCanvasBase
 
     protected override void OnResize(int width, int height) => AllocBuffer();
 
-    // No image manager headless: images aren't painted. Report a 1x1 size so the base DrawImage's
-    // aspect-fit math stays finite (a zero size would divide to NaN).
-    protected override Size GetImageSizeImpl(string imageId) => new() { Width = 1, Height = 1 };
-    protected override uint GetImageTextureId(string imageId) => 0;
+    /// <summary>Keeps the image's pixels, as a rendering canvas uploads them, to paint where it is drawn.</summary>
+    public override bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown)
+    {
+        var texture = _images.TryGetValue(imageId, out var known) ? known.Texture : ++_lastTexture;
+        var image = new HeldImage(texture, widthPx, heightPx, rgbaTopDown.ToArray());
+        _images[imageId] = image;
+        _imagesByTexture[texture] = image;
+        return true;
+    }
+
+    public override bool HasImage(string imageId) => _images.ContainsKey(imageId);
+
+    public override void RemoveImage(string imageId)
+    {
+        if (!_images.Remove(imageId, out var image)) return;
+        _imagesByTexture.Remove(image.Texture);
+    }
+
+    // An image never given pixels reports 1x1, so the base DrawImage's aspect-fit math stays finite
+    // (a zero size would divide to NaN).
+    protected override Size GetImageSizeImpl(string imageId) =>
+        _images.TryGetValue(imageId, out var image) ? new Size { Width = image.Width, Height = image.Height } : new Size { Width = 1, Height = 1 };
+
+    protected override uint GetImageTextureId(string imageId) => _images.TryGetValue(imageId, out var image) ? image.Texture : 0;
 
     protected override void UploadRectInstances(RectInstance[] data, int count) => _rects = data;
     protected override void UploadGlyphInstances(GlyphInstance[] data, int count) => _glyphs = data;
     protected override void UploadShapeInstances(ShapeInstance[] data, int count) => _shapes = data;
-    protected override void UploadImageInstances(ImageInstance[] data, int count) { }
+    protected override void UploadImageInstances(ImageInstance[] data, int count) => _imageInstances = data;
     protected override void UploadShadowInstances(ShadowInstance[] data, int count) { }
 
     protected override void UploadClips(List<Vector4> clips)
@@ -95,7 +123,10 @@ public sealed class RasterCanvas : RenderedCanvasBase
                 case DrawKind.Shape:
                     for (var k = call.InstanceStart; k < end; k++) RasterShape(_shapes[k]);
                     break;
-                // Image and Shadow are intentionally not painted (see class summary).
+                case DrawKind.Image:
+                    for (var k = call.InstanceStart; k < end; k++) RasterImage(_imageInstances[k]);
+                    break;
+                // Shadows are intentionally not painted (see class summary).
             }
         }
     }
@@ -185,6 +216,33 @@ public sealed class RasterCanvas : RenderedCanvasBase
             int cov = atlas[ay * aw + ax];
             if (cov == 0) continue;
             Blend(x, y, r, gg, b, a * cov / 255);
+        }
+    }
+
+    /// <summary>Paints an image's pixels into its rect, the nearest one to each device pixel, its rows
+    /// top-down over the y-up buffer, multiplied by the tint. Rotation is ignored.</summary>
+    private void RasterImage(in ImageInstance inst)
+    {
+        if (!_imagesByTexture.TryGetValue(inst.TextureId, out var image)) return;
+        if (inst.Rect.Z <= 0 || inst.Rect.W <= 0) return;
+        var (ta, tr, tg, tb) = Unpack(inst.Tint);
+        var (clx0, cly0, clx1, cly1) = ClipBounds(inst.ClipIndex);
+        var (x0, y0, x1, y1) = DeviceBounds(
+            inst.Rect.X, inst.Rect.Y, inst.Rect.X + inst.Rect.Z, inst.Rect.Y + inst.Rect.W, clx0, cly0, clx1, cly1);
+        for (var y = y0; y < y1; y++)
+        for (var x = x0; x < x1; x++)
+        {
+            var fx = (PointAt(x) - inst.Rect.X) / inst.Rect.Z;
+            var fy = (PointAt(y) - inst.Rect.Y) / inst.Rect.W;
+            if (fx < 0f || fx >= 1f || fy < 0f || fy >= 1f) continue;
+            var u = inst.SrcUV.X + fx * inst.SrcUV.Z;
+            var v = inst.SrcUV.Y + (1f - fy) * inst.SrcUV.W;
+            var ix = Math.Clamp((int)(u * image.Width), 0, image.Width - 1);
+            var iy = Math.Clamp((int)(v * image.Height), 0, image.Height - 1);
+            var at = (iy * image.Width + ix) * 4;
+            var px = image.Rgba;
+            var alpha = px[at + 3] * ta / 255;
+            Blend(x, y, (byte)(px[at] * tr / 255), (byte)(px[at + 1] * tg / 255), (byte)(px[at + 2] * tb / 255), alpha);
         }
     }
 
