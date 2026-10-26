@@ -251,6 +251,23 @@ public sealed class DisplayOptionsTests
     }
 
     [Fact]
+    public void The_tree_lists_the_empty_metadata_tables_once_the_panel_switches_them_on()
+    {
+        var app = AppDriver.Opened(width: 1600f, height: TallWindow);
+        var tables = app.Node("Metadata", "Tables");
+        var empty = tables.Table("FieldPtr");
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        Assert.DoesNotContain(empty, app.Ui.Tree.GetChildren(tables));
+
+        app.Click("Show empty metadata tables").Frame(2);
+
+        Assert.True(app.Ui.Display.ShowEmptyMetadataTables);
+        Assert.True(IsBold(app, "Show empty metadata tables"));
+        Assert.Contains(empty, app.Ui.Tree.GetChildren(tables));
+    }
+
+    [Fact]
     public void The_theme_is_picked_from_the_panel_and_draws_the_window()
     {
         var app = AppDriver.Opened(width: 1600f);

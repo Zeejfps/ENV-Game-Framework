@@ -98,6 +98,9 @@ public abstract class BrowseNode
     /// compiler made up. Such nodes are usually hidden.</summary>
     public bool IsCompilerGenerated { get; private protected init; }
 
+    /// <summary>Whether this is a metadata table with no rows, which the tree usually hides.</summary>
+    public bool IsEmptyTable { get; internal init; }
+
     public BrowseNode? Parent { get; }
 
     public LoadedAssembly Assembly { get; }

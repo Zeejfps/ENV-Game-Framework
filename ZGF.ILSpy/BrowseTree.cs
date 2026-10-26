@@ -16,6 +16,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private int _rootsVersion = -1;
     private readonly UserIntent _expansion = new();
     private ApiVisibility _visibility = ApiVisibility.AllButCompilerGenerated;
+    private bool _showEmptyTables;
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _iconColors = BuiltInThemes.Dark.Icons;
@@ -58,6 +59,15 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.Refresh();
     }
 
+    /// <summary>Lists the metadata tables with no rows among the others, or leaves them out.</summary>
+    public void ShowEmptyTables(bool show)
+    {
+        if (show == _showEmptyTables) return;
+        _showEmptyTables = show;
+        _shownChildren.Clear();
+        View.Refresh();
+    }
+
     public void SetStyle(UiTheme theme, NodeIconPalette iconColors, AppIcons icons)
     {
         _theme = theme;
@@ -84,6 +94,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     private bool IsHidden(BrowseNode node)
     {
+        if (node.IsEmptyTable) return !_showEmptyTables;
         if (_visibility == ApiVisibility.All) return false;
         if (node.IsCompilerGenerated) return true;
         return _visibility == ApiVisibility.PublicOnly && !node.IsPublicApi;
@@ -176,7 +187,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
             Build(node);
             return [node.LoadingChild];
         }
-        if (_visibility == ApiVisibility.All) return children;
+        if (ShowsEverything) return children;
         if (_shownChildren.TryGetValue(node, out var cached)) return cached;
         var shown = children
             .Where(c => !IsHidden(c))
@@ -184,6 +195,8 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         _shownChildren.AddOrUpdate(node, shown);
         return shown;
     }
+
+    private bool ShowsEverything => _visibility == ApiVisibility.All && _showEmptyTables;
 
     public TreeRow Row(BrowseNode node) => new(
         RowLabel(node),

@@ -49,6 +49,21 @@ public sealed class MetadataTests
     }
 
     [Fact]
+    public void Every_table_is_listed_and_an_empty_one_shows_only_that_it_has_no_rows()
+    {
+        var assembly = Trees.TestAssembly;
+
+        var tables = Metadata(assembly).Child("Tables").Children;
+        var empty = Table(assembly, "FieldPtr");
+
+        Assert.Equal(Enum.GetValues<TableIndex>().Length, tables.Count);
+        Assert.True(empty.IsEmptyTable);
+        Assert.Equal("03 FieldPtr (0)", empty.Text);
+        Assert.Contains("FieldPtr: 0 rows", empty.Decompile(DecompilationLanguage.CSharp).GetText());
+        Assert.False(Table(assembly, "TypeDef").IsEmptyTable);
+    }
+
+    [Fact]
     public void Every_grid_reads_every_cell_tooltip_and_link()
     {
         var assembly = Trees.TestAssembly;

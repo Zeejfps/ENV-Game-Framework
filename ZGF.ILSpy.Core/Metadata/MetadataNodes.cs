@@ -89,18 +89,27 @@ internal sealed class MetadataTablesNode(LoadedAssembly assembly, BrowseNode par
         foreach (var index in Enum.GetValues<TableIndex>())
         {
             var rows = metadata.GetTableRowCount(index);
-            if (rows == 0) continue;
-            if (MetadataTables.Create(index, file) is { } table)
-                result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataTable, $"{(byte)index:X2} {index} ({rows})", file, table));
-            else
-                result.Add(new UnsupportedTableNode(Assembly, this, index, rows));
+            result.Add(CreateTableNode(index, rows));
         }
         return result.ToArray();
     }
+
+    /// <summary>The grid of the table's rows. An empty table, whose grid cannot always be read, and a
+    /// table ILSpy does not list show only how many rows there are.</summary>
+    private BrowseNode CreateTableNode(TableIndex index, int rows)
+    {
+        if (rows == 0)
+            return new TableRowCountNode(Assembly, this, index, rows) { IsEmptyTable = true };
+        var table = MetadataTables.Create(index, file);
+        if (table == null)
+            return new TableRowCountNode(Assembly, this, index, rows);
+        return new MetadataGridNode(Assembly, this, NodeKind.MetadataTable, $"{(byte)index:X2} {index} ({rows})", file, table);
+    }
 }
 
-/// <summary>A table whose rows ILSpy does not list: only how many there are.</summary>
-internal sealed class UnsupportedTableNode(LoadedAssembly assembly, BrowseNode parent, TableIndex table, int rows)
+/// <summary>A table shown only by how many rows it has: one that is empty, or one whose rows ILSpy
+/// does not list.</summary>
+internal sealed class TableRowCountNode(LoadedAssembly assembly, BrowseNode parent, TableIndex table, int rows)
     : MetadataTextNode(assembly, parent, NodeKind.MetadataTable, $"{(byte)table:X2} {table} ({rows})")
 {
     internal override IEnumerable<string> Lines() => [$"{table}: {rows} rows"];

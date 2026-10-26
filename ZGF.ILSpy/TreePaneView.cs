@@ -23,6 +23,7 @@ internal static class TreePaneView
         var tree = ui.State.Tree;
         tree.SetStyle(theme, ui.State.NodeIconPalette, ui.State.Icons);
         tree.ShowTokens(ui.State.Display.TreeTokens);
+        tree.ShowEmptyTables(ui.State.Display.ShowEmptyMetadataTables);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         Toolbar(ui, appState);
         ui.Separator();
