@@ -264,6 +264,9 @@ namespace GLFW
         ///         <see cref="WindowAttribute.AutoIconify" />
         ///     </para>
         ///     <para>
+        ///         <see cref="WindowAttribute.Iconified" />
+        ///     </para>
+        ///     <para>
         ///         <see cref="WindowAttribute.Focused" />
         ///     </para>
         /// </param>

@@ -12,11 +12,16 @@
 	    Focused = 0x00020001,
 
 	    /// <summary>
+	    ///     Indicates whether the window is iconified (minimized).
+	    /// </summary>
+	    Iconified = 0x00020002,
+
+	    /// <summary>
 	    ///     Indicates whether the full screen window will automatically iconify and restore the previous video mode on input
 	    ///     focus loss.
 	    ///     <para>This hint is ignored for windowed mode windows.</para>
 	    /// </summary>
-	    AutoIconify = 0x00020002,
+	    AutoIconify = 0x00020006,
 
 	    /// <summary>
 	    ///     Indicates whether the windowed mode window will be maximized when created.

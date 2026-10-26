@@ -345,7 +345,7 @@ namespace GLFW
         /// </value>
         public bool Minimized
         {
-            get => Glfw.GetWindowAttribute(Window, WindowAttribute.AutoIconify);
+            get => Glfw.GetWindowAttribute(Window, WindowAttribute.Iconified);
             set
             {
                 if (value)
