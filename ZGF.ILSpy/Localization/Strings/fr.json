@@ -50,6 +50,7 @@
   "toolbar.forward_history": "Historique suivant",
   "toolbar.decompile_csharp": "Décompiler en C#",
   "toolbar.disassemble_il": "Désassembler en IL",
+  "toolbar.disassemble_il_with_csharp": "Désassembler en IL avec le C# au-dessus de chaque instruction",
   "toolbar.language_version": "Version du langage C#",
   "search.field": "Rechercher…",
   "search.field_tooltip": "Rechercher des types et des membres ({shortcut})",

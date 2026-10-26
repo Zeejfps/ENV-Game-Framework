@@ -61,6 +61,18 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
+    public void A_namespace_saves_in_IL_with_its_CSharp_as_plain_comments()
+    {
+        var path = _temp.PathOf("Fixtures.il");
+
+        Trees.TestAssembly.Fixtures().SaveCode(DecompilationLanguage.ILWithCSharp, DecompilerOptions.Default, path);
+
+        var code = File.ReadAllText(path);
+        Assert.Contains("// double grown = Radius;", code);
+        Assert.Contains("IL_0001: ldarg.0", code);
+    }
+
+    [Fact]
     public void An_assembly_saves_its_whole_module_in_IL()
     {
         var path = _temp.PathOf("Tests.il");

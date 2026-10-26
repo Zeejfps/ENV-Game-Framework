@@ -42,7 +42,7 @@ internal static class StatusBarView
                     ErrorIndicator(ui, appState);
                     Dot(ui);
                 }
-                ui.Text(appState.Language == DecompilationLanguage.CSharp ? "C#" : "IL", color: theme.TextMuted, size: size);
+                ui.Text(DecompilationLanguages.Label(appState.Language), color: theme.TextMuted, size: size);
                 Dot(ui);
                 ui.Text(ui.Memo("status-count", (ui.State.Tree.Roots.Count, t), static a => a.t.StatusAssemblies(a.Count)), color: theme.TextMuted, size: size);
             }

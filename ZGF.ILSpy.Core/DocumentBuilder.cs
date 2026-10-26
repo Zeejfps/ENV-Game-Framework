@@ -3,6 +3,7 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using ICSharpCode.Decompiler;
+using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.Disassembler;
 using ICSharpCode.Decompiler.IL;
 using ICSharpCode.Decompiler.Metadata;
@@ -14,6 +15,7 @@ internal sealed class DocumentBuilder : ITextOutput
 {
     private const int MaxSignatureLines = 8;
     private const string DefaultFoldText = "...";
+    private const string SourceLinePrefix = "// ";
 
     private readonly DecompilationLanguage _language;
     private readonly StringBuilder _line = new();
@@ -29,6 +31,7 @@ internal sealed class DocumentBuilder : ITextOutput
     private int _lineFirstSpan;
     private int _indent;
     private bool _lineStarted;
+    private bool _lineClassified;
     private CodeReference? _scope;
 
     public DocumentBuilder(DecompilationLanguage language, LoadedAssembly? assembly = null)
@@ -43,6 +46,19 @@ internal sealed class DocumentBuilder : ITextOutput
 
     /// <summary>Where the next text written to the current line starts.</summary>
     internal int Column => _line.Length;
+
+    /// <summary>Where the next text written lands, from line 1 and column 1, as the decompiler records
+    /// it in the syntax tree: past the indentation a fresh line is still to get.</summary>
+    internal TextLocation Location
+    {
+        get
+        {
+            var column = _line.Length;
+            if (!_lineStarted)
+                column = _indent * IndentationString.Length;
+            return new TextLocation(_lines.Count + 1, column + 1);
+        }
+    }
 
     public DecompiledDocument Build(string title, bool isError = false)
     {
@@ -87,12 +103,61 @@ internal sealed class DocumentBuilder : ITextOutput
 
     public void WriteLine()
     {
-        if (_language == DecompilationLanguage.IL)
+        if (IsUnlexedIL())
             LexILLine();
         _lines.Add((_line.ToString(), _lineFirstSpan, _spans.Count - _lineFirstSpan));
         _line.Clear();
         _lineFirstSpan = _spans.Count;
         _lineStarted = false;
+        _lineClassified = false;
+    }
+
+    private bool IsUnlexedIL()
+    {
+        if (_lineClassified)
+            return false;
+        return DecompilationLanguages.IsIL(_language);
+    }
+
+    /// <summary>Writes <paramref name="line"/> of C# as a comment line, from column <paramref name="from"/>
+    /// on: the statement from <paramref name="start"/> up to <paramref name="end"/> in C#'s colors, the
+    /// rest dimmed as a comment. Names of types and members stay links; locals do not, as they are the
+    /// C# document's.</summary>
+    internal void WriteSourceLine(DocumentLine line, int from, int start, int end)
+    {
+        Append(SourceLinePrefix, SpanKind.Comment, null, false);
+        foreach (var span in line.Spans)
+            AppendSourceSpan(line.Text, span, from, start, end);
+        _lineClassified = true;
+        WriteLine();
+    }
+
+    /// <summary>Appends <paramref name="span"/>'s text from column <paramref name="from"/> on: the part
+    /// inside the statement as it is, the parts before and after it as a comment.</summary>
+    private void AppendSourceSpan(string text, DocumentSpan span, int from, int start, int end)
+    {
+        var first = Math.Max(span.Start, from);
+        var reference = LinkOf(span.Reference);
+        AppendPart(text, first, Math.Min(span.End, start), SpanKind.Comment, null);
+        AppendPart(text, Math.Max(first, start), Math.Min(span.End, end), span.Kind, reference);
+        AppendPart(text, Math.Max(first, end), span.End, SpanKind.Comment, null);
+    }
+
+    private void AppendPart(string text, int from, int to, SpanKind kind, CodeReference? reference)
+    {
+        if (to <= from)
+            return;
+        Append(text.AsSpan(from, to - from), kind, reference, false);
+    }
+
+    /// <summary>The reference a copied span keeps: a type's or member's, not a local's or label's.</summary>
+    private static CodeReference? LinkOf(CodeReference? reference)
+    {
+        if (reference == null)
+            return null;
+        if (reference.Kind is CodeReferenceKind.Local or CodeReferenceKind.Label)
+            return null;
+        return reference;
     }
 
     public void WriteReference(OpCodeInfo opCode, bool omitSuffix = false)

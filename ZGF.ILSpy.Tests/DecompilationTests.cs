@@ -136,7 +136,54 @@ public sealed class DecompilationTests
 
         Assert.True(DecompilerOptions.Default.ProducesSameCode(bracesOff, DecompilationLanguage.IL));
         Assert.False(DecompilerOptions.Default.ProducesSameCode(bracesOff, DecompilationLanguage.CSharp));
+        Assert.False(DecompilerOptions.Default.ProducesSameCode(bracesOff, DecompilationLanguage.ILWithCSharp));
         Assert.False(DecompilerOptions.Default.ProducesSameCode(symbolsOff, DecompilationLanguage.IL));
+    }
+
+    [Fact]
+    public void IL_with_CSharp_writes_each_statement_above_its_first_instruction_in_CSharps_colors()
+    {
+        var document = CircleGrow(DecompilationLanguage.ILWithCSharp);
+
+        var statement = document.LineContaining("// double grown = Radius;");
+        var line = document.Lines[statement];
+        var instruction = document.Lines[statement + 1];
+
+        Assert.StartsWith("IL_0001: ldarg.0", instruction.Text.Trim());
+        Assert.Equal(SpanKind.ILOpcode, document.SpanAt(statement + 1, instruction.Text.IndexOf("ldarg", StringComparison.Ordinal)).Kind);
+        Assert.Equal(SpanKind.Keyword, line.SpanAt("double").Kind);
+        Assert.Equal(SpanKind.Property, line.SpanAt("Radius").Kind);
+        Assert.NotNull(line.SpanAt("Radius").Reference);
+        Assert.Null(line.SpanAt("grown").Reference);
+    }
+
+    [Fact]
+    public void IL_with_CSharp_dims_what_a_line_holds_besides_the_statement()
+    {
+        var document = CircleGrow(DecompilationLanguage.ILWithCSharp);
+
+        var line = document.LineContaining("// for (int step = 0;");
+        var text = document.Lines[line].Text;
+
+        Assert.Equal(SpanKind.Comment, document.SpanAt(line, text.IndexOf("for (", StringComparison.Ordinal)).Kind);
+        Assert.Equal(SpanKind.Keyword, document.SpanAt(line, text.IndexOf("int", StringComparison.Ordinal)).Kind);
+        Assert.Equal(SpanKind.Comment, document.SpanAt(line, text.IndexOf("step++", StringComparison.Ordinal)).Kind);
+    }
+
+    [Fact]
+    public void IL_with_CSharp_says_where_an_instruction_has_no_CSharp()
+    {
+        var document = CircleGrow(DecompilationLanguage.ILWithCSharp);
+
+        Assert.Contains(document.Lines, l => l.Text.Trim() == "// (no C# code)");
+        Assert.DoesNotContain(document.Lines, l => l.Text.Contains("double grown = Radius;", StringComparison.Ordinal) && !l.Text.TrimStart().StartsWith("//"));
+    }
+
+    private static DecompiledDocument CircleGrow(DecompilationLanguage language)
+    {
+        var circle = Trees.TestAssembly.Fixtures().Child("Circle");
+        var grow = circle.Children.Single(c => c.Text.StartsWith("Grow", StringComparison.Ordinal));
+        return grow.Decompile(language);
     }
 
     [Fact]

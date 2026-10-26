@@ -59,6 +59,8 @@ public sealed class CommandLine
             "C#" => DecompilationLanguage.CSharp,
             "CSHARP" => DecompilationLanguage.CSharp,
             "IL" => DecompilationLanguage.IL,
+            "IL WITH C#" => DecompilationLanguage.ILWithCSharp,
+            "ILWITHCSHARP" => DecompilationLanguage.ILWithCSharp,
             _ => null,
         };
     }

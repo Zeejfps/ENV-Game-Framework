@@ -50,6 +50,7 @@
   "toolbar.forward_history": "前进历史记录",
   "toolbar.decompile_csharp": "反编译为 C#",
   "toolbar.disassemble_il": "反汇编为 IL",
+  "toolbar.disassemble_il_with_csharp": "反汇编为 IL,并在每条语句上方显示 C#",
   "toolbar.language_version": "C# 语言版本",
   "search.field": "搜索…",
   "search.field_tooltip": "搜索类型和成员 ({shortcut})",

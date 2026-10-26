@@ -135,7 +135,7 @@ public sealed record DecompilerOptions
     /// with <paramref name="other"/>.</summary>
     public bool ProducesSameCode(DecompilerOptions other, DecompilationLanguage language)
     {
-        if (language == DecompilationLanguage.CSharp)
+        if (DecompilationLanguages.ShowsCSharp(language))
             return WithoutProjectExport().Equals(other.WithoutProjectExport());
         var symbols = DecompilerToggle.UseDebugSymbols;
         return IsOn(symbols) == other.IsOn(symbols);

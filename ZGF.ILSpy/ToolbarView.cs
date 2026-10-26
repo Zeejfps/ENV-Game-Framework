@@ -12,6 +12,7 @@ namespace ZGF.ILSpy;
 internal static class ToolbarView
 {
     private const string ListItemPrefix = "list:";
+    private const string ILWithCSharpLabel = "IL+C#";
 
 
     private static Strings? _languagesFor;
@@ -73,7 +74,7 @@ internal static class ToolbarView
                 var language = appState.Language;
                 if (ui.SegmentedControl("language", ref language, Languages(t)))
                     SetLanguage(appState, language);
-                if (language == DecompilationLanguage.CSharp)
+                if (DecompilationLanguages.ShowsCSharp(language))
                 {
                     LanguageVersion(ui, appState);
                     if (ui.IconButton("decompiler-options", ui.State.Icons.ToolbarDecompilerOptions, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
@@ -139,6 +140,7 @@ internal static class ToolbarView
         [
             new(DecompilationLanguage.CSharp, "C#", t.ToolbarDecompileCsharp),
             new(DecompilationLanguage.IL, "IL", t.ToolbarDisassembleIl),
+            new(DecompilationLanguage.ILWithCSharp, ILWithCSharpLabel, t.ToolbarDisassembleIlWithCsharp),
         ];
         return _languages;
     }

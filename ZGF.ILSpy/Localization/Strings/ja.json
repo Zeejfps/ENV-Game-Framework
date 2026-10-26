@@ -50,6 +50,7 @@
   "toolbar.forward_history": "進む履歴",
   "toolbar.decompile_csharp": "C# に逆コンパイル",
   "toolbar.disassemble_il": "IL に逆アセンブル",
+  "toolbar.disassemble_il_with_csharp": "IL に逆アセンブルし、各ステートメントの上に C# を表示",
   "toolbar.language_version": "C# 言語バージョン",
   "search.field": "検索…",
   "search.field_tooltip": "型とメンバーを検索 ({shortcut})",

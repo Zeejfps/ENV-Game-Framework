@@ -50,6 +50,7 @@
   "toolbar.forward_history": "앞으로 기록",
   "toolbar.decompile_csharp": "C#으로 디컴파일",
   "toolbar.disassemble_il": "IL로 디스어셈블",
+  "toolbar.disassemble_il_with_csharp": "IL로 디스어셈블하고 각 문 위에 C# 표시",
   "toolbar.language_version": "C# 언어 버전",
   "search.field": "검색…",
   "search.field_tooltip": "형식 및 멤버 검색 ({shortcut})",

@@ -178,6 +178,22 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void The_language_control_switches_the_active_tab_to_IL_with_CSharp_and_keeps_the_CSharp_options()
+    {
+        var app = AppDriver.Opened();
+        app.Show(app.Fixture("Greeter"), 1);
+
+        app.Click("IL+C#");
+        app.Settle(1);
+
+        Assert.Equal(DecompilationLanguage.ILWithCSharp, app.AppState.Language);
+        Assert.Equal(DecompilationLanguage.ILWithCSharp, app.AppState.Tabs.Active!.Language);
+        Assert.True(app.Frames.Drew("IL with C#"));
+        Assert.True(app.Frames.Drew("C# 14.0 / VS 2026"));
+        Assert.Contains(app.AppState.Tabs.Active!.Document.Lines, l => l.Text.TrimStart().StartsWith("// return ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void The_language_version_dropdown_decompiles_the_active_tab_again_and_hides_for_IL()
     {
         var app = AppDriver.Opened();

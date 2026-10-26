@@ -50,6 +50,7 @@
   "toolbar.forward_history": "История вперёд",
   "toolbar.decompile_csharp": "Декомпилировать в C#",
   "toolbar.disassemble_il": "Дизассемблировать в IL",
+  "toolbar.disassemble_il_with_csharp": "Дизассемблировать в IL с кодом C# над каждой инструкцией",
   "toolbar.language_version": "Версия языка C#",
   "search.field": "Поиск…",
   "search.field_tooltip": "Поиск типов и членов ({shortcut})",

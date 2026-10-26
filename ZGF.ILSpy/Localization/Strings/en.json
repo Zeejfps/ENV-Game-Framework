@@ -54,6 +54,7 @@
   "toolbar.forward_history": "Forward history",
   "toolbar.decompile_csharp": "Decompile to C#",
   "toolbar.disassemble_il": "Disassemble to IL",
+  "toolbar.disassemble_il_with_csharp": "Disassemble to IL with the C# above each statement",
   "toolbar.language_version": "C# language version",
   "search.field": "Search…",
   "search.field_tooltip": "Search types and members ({shortcut})",

@@ -8,6 +8,29 @@ public enum DecompilationLanguage
 {
     CSharp,
     IL,
+
+    /// <summary>IL with the C# each statement was decompiled from written above its first instruction.</summary>
+    ILWithCSharp,
+}
+
+/// <summary>What each <see cref="DecompilationLanguage"/> is called and what it shows.</summary>
+public static class DecompilationLanguages
+{
+    public static IReadOnlyList<DecompilationLanguage> All { get; } = Enum.GetValues<DecompilationLanguage>();
+
+    /// <summary>The language's name as ILSpy shows it.</summary>
+    public static string Label(DecompilationLanguage language) => language switch
+    {
+        DecompilationLanguage.IL => "IL",
+        DecompilationLanguage.ILWithCSharp => "IL with C#",
+        _ => "C#",
+    };
+
+    /// <summary>Whether the language shows decompiled C#, which the decompiler options shape.</summary>
+    public static bool ShowsCSharp(DecompilationLanguage language) => language != DecompilationLanguage.IL;
+
+    /// <summary>Whether the language is disassembled to IL.</summary>
+    public static bool IsIL(DecompilationLanguage language) => language != DecompilationLanguage.CSharp;
 }
 
 /// <summary>How a <see cref="DocumentSpan"/> is colored.</summary>

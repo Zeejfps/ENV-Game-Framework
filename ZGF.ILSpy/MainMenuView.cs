@@ -252,10 +252,11 @@ internal static class MainMenuView
         var t = ui.State.Strings;
         using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
         if (!decompilers.IsOpen) return;
-        if (ui.MenuRadioItem("C#", appState.Language == DecompilationLanguage.CSharp))
-            SetLanguage(appState, DecompilationLanguage.CSharp);
-        if (ui.MenuRadioItem("IL", appState.Language == DecompilationLanguage.IL))
-            SetLanguage(appState, DecompilationLanguage.IL);
+        foreach (var language in DecompilationLanguages.All)
+        {
+            if (ui.MenuRadioItem(DecompilationLanguages.Label(language), appState.Language == language))
+                SetLanguage(appState, language);
+        }
     }
 
     private static void HelpMenu(Ui<UiState> ui)

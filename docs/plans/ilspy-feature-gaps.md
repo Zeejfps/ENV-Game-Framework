@@ -7,7 +7,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Medium
 
-- **Languages:** IL with C# (interleaved); ReadyToRun disassembly (plugin upstream).
+- **Languages:** ReadyToRun disassembly (plugin upstream).
 - **Debug symbols:** local names come only from portable PDBs; upstream also reads Windows PDBs
   (through Mono.Cecil). The load-time `AutoLoadAssemblyReferences` and
   `ApplyWindowsRuntimeProjections` are left out of the options panel.
