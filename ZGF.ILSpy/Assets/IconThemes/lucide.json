@@ -79,6 +79,18 @@
     "node.failedAssembly": { "font": "lucide", "glyph": "E26A" },
     // A type forwarded to another assembly.
     "node.forwardedType": { "font": "lucide", "glyph": "E229" },
+    // The types an assembly uses from one of its references.
+    "node.referencedTypes": { "font": "lucide", "glyph": "E2D0" },
+    // A type an assembly uses from one of its references.
+    "node.typeReference": { "font": "lucide", "glyph": "E1CB" },
+    // A method an assembly uses of a type from one of its references.
+    "node.methodReference": { "font": "lucide", "glyph": "E444" },
+    // A field an assembly uses of a type from one of its references.
+    "node.fieldReference": { "font": "lucide", "glyph": "E4B0" },
+    // A property an assembly uses of a type from one of its references.
+    "node.propertyReference": { "font": "lucide", "glyph": "E6EA" },
+    // An event an assembly uses of a type from one of its references.
+    "node.eventReference": { "font": "lucide", "glyph": "E37F" },
     // A package, such as a NuGet package.
     "node.package": { "font": "lucide", "glyph": "E30D" },
     // A folder inside a package.

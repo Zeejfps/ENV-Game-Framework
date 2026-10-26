@@ -29,12 +29,16 @@ internal static class ForwardedTypes
         return byNamespace;
     }
 
-    private static bool IsTopLevelForwarder(ExportedType exported)
+    internal static bool IsTopLevelForwarder(ExportedType exported)
     {
         if (!exported.IsForwarder)
             return false;
         return exported.Implementation.Kind == HandleKind.AssemblyReference;
     }
+
+    /// <summary>The top-level type <paramref name="handle"/> forwards.</summary>
+    public static ForwardedType Read(MetadataReader metadata, ExportedTypeHandle handle) =>
+        Read(metadata, handle, metadata.GetExportedType(handle));
 
     private static ForwardedType Read(MetadataReader metadata, ExportedTypeHandle handle, ExportedType exported)
     {
@@ -46,7 +50,7 @@ internal static class ForwardedTypes
 
     /// <summary>The name with a slot for each type parameter, as <c>typeof</c> writes an open generic
     /// type: <c>List&lt;&gt;</c>, <c>Dictionary&lt;,&gt;</c>.</summary>
-    private static string LabelOf(string name, int arity)
+    internal static string LabelOf(string name, int arity)
     {
         if (arity == 0)
             return name;

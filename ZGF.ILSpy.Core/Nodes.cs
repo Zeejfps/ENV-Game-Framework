@@ -113,11 +113,16 @@ internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode p
 {
     private protected override bool MayHaveChildren => !Assembly.File.AssemblyReferences.IsEmpty;
 
-    private protected override BrowseNode[] CreateChildren() =>
-        Assembly.File.AssemblyReferences
+    /// <summary>The references, sorted by name. What the assembly uses of them is read here, off the UI
+    /// thread, so that their rows can tell whether they have children without reading it there.</summary>
+    private protected override BrowseNode[] CreateChildren()
+    {
+        Assembly.ReadReferenceUsage();
+        return Assembly.File.AssemblyReferences
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
             .Select(r => (BrowseNode)new AssemblyReferenceNode(Assembly, this, r))
             .ToArray();
+    }
 }
 
 internal sealed class AssemblyReferenceNode : BrowseNode
@@ -132,6 +137,15 @@ internal sealed class AssemblyReferenceNode : BrowseNode
     public AssemblyReference AssemblyReference { get; }
 
     public override string FullName => AssemblyReference.FullName;
+
+    private protected override bool MayHaveChildren => Assembly.ReferenceUsage.Uses(AssemblyReference.Handle);
+
+    private protected override BrowseNode[] CreateChildren()
+    {
+        if (!MayHaveChildren)
+            return [];
+        return [new ReferencedTypesNode(Assembly, this, AssemblyReference.Handle)];
+    }
 }
 
 internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode parent)

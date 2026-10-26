@@ -21,6 +21,7 @@ namespace ZGF.ILSpy.Core;
 internal static class NodeDecompiler
 {
     private const int MaxResourceBytes = 64 * 1024;
+    private const string UsedIndent = "    ";
     private const string ReferenceAssemblyAttribute = "System.Runtime.CompilerServices.ReferenceAssemblyAttribute";
     private const string ReferenceAssemblyWarning =
         "This assembly is marked as 'reference assembly', which means that it only contains metadata and no executable code.";
@@ -449,6 +450,16 @@ internal static class NodeDecompiler
                 var path = node.Assembly.Resolver.FindFile(reference.AssemblyReference);
                 WriteComment(output, path is null ? "Not found" : $"Resolves to {path}");
                 break;
+            case ReferencedTypesNode:
+                WriteUsed(output, node, "", cancellationToken);
+                break;
+            case TypeReferenceNode type:
+                WriteUsedLine(output, type, "");
+                WriteUsed(output, type, UsedIndent, cancellationToken);
+                break;
+            case MemberReferenceNode member:
+                WriteUsedLine(output, member, "");
+                break;
             case ResourcesFolderNode or AvaloniaResourcesNode:
                 foreach (var child in node.Children)
                 {
@@ -492,6 +503,44 @@ internal static class NodeDecompiler
                 break;
         }
     }
+
+    /// <summary>A line for each type and member <paramref name="node"/> lists as used from a reference,
+    /// going to where it is defined, with what is used of a type indented under it.</summary>
+    private static void WriteUsed(DocumentBuilder output, BrowseNode node, string indent, CancellationToken cancellationToken)
+    {
+        foreach (var child in node.Children)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (child is ForwardedTypeNode forwarded)
+            {
+                output.Write(indent);
+                WriteForwardedType(output, forwarded);
+                continue;
+            }
+            WriteUsedLine(output, child, indent);
+            if (child is TypeReferenceNode)
+                WriteUsed(output, child, indent + UsedIndent, cancellationToken);
+        }
+    }
+
+    /// <summary>A type's full name, or a member's label, going to where it is defined.</summary>
+    private static void WriteUsedLine(DocumentBuilder output, BrowseNode node, string indent)
+    {
+        output.Write(indent);
+        if (node is TypeReferenceNode)
+            output.Write(node.FullName, SpanKind.Type, node.Target);
+        else
+            output.Write(node.Text, UsedMemberSpan(node), node.Target);
+        output.WriteLine();
+    }
+
+    private static SpanKind UsedMemberSpan(BrowseNode node) => node.Kind switch
+    {
+        NodeKind.FieldReference => SpanKind.Field,
+        NodeKind.PropertyReference => SpanKind.Property,
+        NodeKind.EventReference => SpanKind.Event,
+        _ => SpanKind.Method,
+    };
 
     private static string DescribePackageChild(BrowseNode child)
     {

@@ -61,6 +61,12 @@ public static class NodeIcons
         NodeKind.Package => icons.NodePackage,
         NodeKind.PackageFolder => icons.NodePackageFolder,
         NodeKind.Bundle => icons.NodeBundle,
+        NodeKind.ReferencedTypes => icons.NodeReferencedTypes,
+        NodeKind.TypeReference => icons.NodeTypeReference,
+        NodeKind.MethodReference => icons.NodeMethodReference,
+        NodeKind.FieldReference => icons.NodeFieldReference,
+        NodeKind.PropertyReference => icons.NodePropertyReference,
+        NodeKind.EventReference => icons.NodeEventReference,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -106,6 +112,12 @@ public static class NodeIcons
         NodeKind.Package => NodeIconRole.Neutral,
         NodeKind.PackageFolder => NodeIconRole.Neutral,
         NodeKind.Bundle => NodeIconRole.Neutral,
+        NodeKind.ReferencedTypes => NodeIconRole.Neutral,
+        NodeKind.TypeReference => NodeIconRole.Type,
+        NodeKind.MethodReference => NodeIconRole.Method,
+        NodeKind.FieldReference => NodeIconRole.Data,
+        NodeKind.PropertyReference => NodeIconRole.Data,
+        NodeKind.EventReference => NodeIconRole.Data,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 

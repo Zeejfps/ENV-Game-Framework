@@ -25,4 +25,4 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).
 - Module nodes in the tree, for assemblies made of several modules.
-- The types and members used from each assembly reference, under its node.
+- An assembly reference's own references, under its node.

@@ -132,6 +132,23 @@ public sealed class PresentationTests
     }
 
     [Fact]
+    public void A_type_used_from_a_reference_shows_the_type_reference_icon_and_its_namespace()
+    {
+        var assembly = new AssemblyList().Open(AppStateDriver.FixturePath);
+        var used = assembly.Root.Child("References").Children
+            .Where(r => r.HasChildren)
+            .SelectMany(r => r.Child("Referenced types").Children)
+            .First(c => c.Text == "List<>");
+        var tree = new BrowseTree();
+
+        var row = tree.Row(used);
+
+        Assert.Equal(Icons.NodeTypeReference, row.Icon!.Value.Glyph);
+        Assert.Equal("System.Collections.Generic", row.Secondary);
+        Assert.Equal("System.Collections.Generic.List<>", row.Tooltip);
+    }
+
+    [Fact]
     public void A_non_public_type_says_its_accessibility_in_its_tooltip()
     {
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;

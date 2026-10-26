@@ -187,6 +187,30 @@
           "description": "A type forwarded to another assembly.",
           "$ref": "#/definitions/icon"
         },
+        "node.referencedTypes": {
+          "description": "The types an assembly uses from one of its references.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.typeReference": {
+          "description": "A type an assembly uses from one of its references.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.methodReference": {
+          "description": "A method an assembly uses of a type from one of its references.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.fieldReference": {
+          "description": "A field an assembly uses of a type from one of its references.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.propertyReference": {
+          "description": "A property an assembly uses of a type from one of its references.",
+          "$ref": "#/definitions/icon"
+        },
+        "node.eventReference": {
+          "description": "An event an assembly uses of a type from one of its references.",
+          "$ref": "#/definitions/icon"
+        },
         "node.package": {
           "description": "A package, such as a NuGet package.",
           "$ref": "#/definitions/icon"

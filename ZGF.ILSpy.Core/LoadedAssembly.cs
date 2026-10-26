@@ -24,6 +24,7 @@ public sealed class LoadedAssembly
     private readonly Lazy<DecompilerTypeSystem> _typeSystem;
     private readonly Lazy<DebugSymbols?> _debugSymbols;
     private readonly Lazy<bool> _canGeneratePdb;
+    private readonly Lazy<ReferenceUsage> _referenceUsage;
     private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
     private readonly Lazy<BrowseNode> _root;
@@ -80,6 +81,7 @@ public sealed class LoadedAssembly
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
         _debugSymbols = new Lazy<DebugSymbols?>(() => LoadDebugSymbols(place));
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
+        _referenceUsage = new Lazy<ReferenceUsage>(() => new ReferenceUsage(File.Metadata));
         _root = new Lazy<BrowseNode>(CreateRoot);
         _packageAssemblies = new Lazy<IReadOnlyList<LoadedAssembly>>(LoadPackageAssemblies);
     }
@@ -313,6 +315,15 @@ public sealed class LoadedAssembly
     internal bool IsListed { get; set; }
 
     internal DecompilerTypeSystem TypeSystem => _typeSystem.Value;
+
+    /// <summary>What the assembly uses of the assemblies it references. Read the first time, then kept.</summary>
+    internal ReferenceUsage ReferenceUsage => _referenceUsage.Value;
+
+    /// <summary>Reads <see cref="ReferenceUsage"/> now, unless it is read already.</summary>
+    internal void ReadReferenceUsage()
+    {
+        _ = _referenceUsage.Value;
+    }
 
     /// <summary>The assembly's portable PDB, read once; null when it has none.</summary>
     internal DebugSymbols? DebugSymbols => _debugSymbols.Value;

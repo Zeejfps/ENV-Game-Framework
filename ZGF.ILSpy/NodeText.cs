@@ -28,12 +28,14 @@ public static class NodeText
 
     /// <summary>What a row shows after the node's name in muted text: an assembly's version and
     /// target framework, e.g. <c>10.0.0.0 · net10.0</c>, the framework left to <see cref="PickedFramework"/>
-    /// when one was picked, or the assembly a forwarded type is forwarded to, e.g. <c>→ System.Runtime</c>.
-    /// Null for other nodes.</summary>
+    /// when one was picked, the assembly a forwarded type is forwarded to, e.g. <c>→ System.Runtime</c>,
+    /// or the namespace of a type used from a reference. Null for other nodes.</summary>
     public static string? Secondary(BrowseNode node)
     {
         if (node.Kind == NodeKind.ForwardedType)
             return Secondaries.GetValue(node, WriteForwardedTo);
+        if (node.Kind == NodeKind.TypeReference)
+            return UsedNamespace(node);
         if (node.Kind != NodeKind.Assembly)
             return null;
         var identity = Secondaries.GetValue(node, static n => Identity(n.Assembly));
@@ -43,6 +45,13 @@ public static class NodeText
     }
 
     private static string WriteForwardedTo(BrowseNode node) => ForwardedToPrefix + node.ForwardedTo;
+
+    private static string? UsedNamespace(BrowseNode node)
+    {
+        if (string.IsNullOrEmpty(node.Namespace))
+            return null;
+        return node.Namespace;
+    }
 
     /// <summary>The framework picked for an assembly to resolve its references against, as a moniker,
     /// which its row shows bold after <see cref="Secondary"/>; null for any other node, and for an
