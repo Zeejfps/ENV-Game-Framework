@@ -164,7 +164,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     }
 
     /// <summary>Shows <paramref name="icon"/> on the window where the platform draws one, such as the
-    /// title bar and taskbar on Windows, and in the UI's <see cref="Ui.TitleBarIcon(int, float?)"/>; macOS
+    /// title bar and taskbar on Windows, and in the UI's <see cref="Ui.AppIcon"/>; macOS
     /// takes the app's icon from its bundle instead.</summary>
     public void SetIcon(WindowIcon icon)
     {

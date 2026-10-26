@@ -9,9 +9,12 @@ public abstract partial class Ui
     private readonly List<int> _titleBarDragAreas = new();
     private readonly Dictionary<int, ShownWindowIconImage> _windowIconImages = new();
 
-    /// <summary>The icon the platform shows for the window, which <see cref="TitleBarIcon(int, float?)"/>
-    /// and <see cref="AppIcon"/> draw; null until the app sets one.</summary>
+    /// <summary>The icon the platform shows for the window, which <see cref="AppIcon"/> draws; null
+    /// until the app sets one.</summary>
     internal WindowIcon? WindowIcon { get; set; }
+
+    /// <summary>Whether the app has given the window an icon for <see cref="AppIcon"/> to draw.</summary>
+    public bool HasWindowIcon => WindowIcon != null;
 
     /// <summary>Whether the window lets what is recorded reach under its native title bar, with
     /// <see cref="TitleBar(int, Box)"/>; false where the platform keeps the title bar to itself.</summary>
@@ -79,28 +82,9 @@ public abstract partial class Ui
         });
     }
 
-    public bool TitleBarIcon(string id, float? size = null) => TitleBarIcon(GetId(id), size);
-
-    /// <summary>The window's icon in a <see cref="TitleBar(int, Box)"/>, <paramref name="size"/> points
-    /// square or as large as the theme's icons, as a button: true the frame it is pressed, for the app to
-    /// open its window menu. Records nothing while the window has no icon.</summary>
-    public bool TitleBarIcon(int id, float? size = null)
-    {
-        if (WindowIcon == null)
-            return false;
-        var side = size ?? Theme.IconSize;
-        var imageId = ShowWindowIconImage(side);
-        if (imageId == null)
-            return false;
-        var i = Interact(id);
-        var background = i.Hovered ? Theme.ControlHovered : 0u;
-        using (Box(i.Id, new Box { Padding = new Spacing(Theme.GapTight), Radius = Theme.CornerRadius, Background = background }))
-            Image(imageId, side, side);
-        return i.Pressed;
-    }
-
     /// <summary>The window's icon, <paramref name="size"/> points square, drawn in the content as the
-    /// app's own picture, such as in an About dialog. Records nothing while the window has no icon.</summary>
+    /// app's own picture, such as in a title bar's menu or an About dialog. Records nothing while the
+    /// window has no icon.</summary>
     public void AppIcon(float size, Box box = default)
     {
         if (WindowIcon == null)

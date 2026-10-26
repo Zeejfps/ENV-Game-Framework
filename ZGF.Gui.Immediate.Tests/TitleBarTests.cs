@@ -20,7 +20,7 @@ public sealed class TitleBarTests
     {
         using (ui.TitleBar("bar", new Box { Background = Background, Gap = 0f }))
         {
-            ui.TitleBarIcon("icon");
+            ui.AppIcon(ui.Theme.IconSize);
             ui.TitleBarDragArea("drag");
         }
     }
@@ -110,16 +110,13 @@ public sealed class TitleBarTests
     }
 
     [Fact]
-    public void The_window_icon_is_drawn_at_the_theme_icon_size_centered_in_the_title_bar()
+    public void The_window_icon_is_drawn_from_the_image_that_covers_its_size()
     {
         var frames = InTitleBar(TitleBarWithIcon);
         frames.WindowIcon = IconOfSizes(16, 32);
 
         frames.Frame(2);
 
-        var theme = new DefaultUiState().Theme;
-        var side = theme.IconSize + 2 * theme.GapTight;
-        Assert.Equal(new UiRect(0f, (Buttons.Height - side) / 2f, side, side), frames.RectOf("icon"));
         Assert.Equal(16, frames.Canvas.GetImageWidth("window-icon-16"));
     }
 
@@ -156,23 +153,6 @@ public sealed class TitleBarTests
 
         Assert.True(asked);
         Assert.False(frames.FrontRequested);
-    }
-
-    [Fact]
-    public void Pressing_the_window_icon_reports_it_for_the_app_to_open_its_window_menu()
-    {
-        var pressed = false;
-        var frames = InTitleBar(ui =>
-        {
-            using (ui.TitleBar("bar"))
-                pressed |= ui.TitleBarIcon("icon");
-        });
-        frames.WindowIcon = IconOfSizes(16);
-        frames.Frame(2);
-
-        frames.ClickOn("icon");
-
-        Assert.True(pressed);
     }
 
     [Fact]

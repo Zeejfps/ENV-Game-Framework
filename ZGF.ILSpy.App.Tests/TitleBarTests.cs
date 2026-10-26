@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
+using ZGF.KeyboardModule;
 using static ZGF.ILSpy.CodeDisplay;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenLayout;
@@ -52,6 +53,19 @@ public sealed class TitleBarTests : IDisposable
     }
 
     [Fact]
+    public void With_a_menu_open_hovering_the_app_icon_opens_the_window_menu_as_the_other_menus_do()
+    {
+        var app = WithTitleBarToDrawIn();
+        app.Click("File").Frame();
+        var icon = app.Frames.RectOf(AppIcon);
+
+        app.Frames.MovePointer(icon.X + icon.Width / 2f, icon.Y + icon.Height / 2f).Frame(2);
+
+        Assert.True(app.Frames.Drew("Maximize"));
+        Assert.False(app.Frames.Drew("Open…"));
+    }
+
+    [Fact]
     public void Maximize_in_the_app_icon_menu_maximizes_the_window()
     {
         var app = WithTitleBarToDrawIn();
@@ -72,6 +86,7 @@ public sealed class TitleBarTests : IDisposable
         app.Run();
         app.ClickMenuItem("Restore");
         Assert.Null(app.Frames.RequestedWindowState);
+        app.Frames.Key(KeyboardKey.Escape).Frame();
 
         app.Frames.WindowBounds = new WindowBounds(0, 0, 1000, 700, Maximized: true);
         app.Frames.ClickOn(AppIcon);

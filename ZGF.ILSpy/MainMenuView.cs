@@ -1,5 +1,4 @@
 using ZGF.Desktop;
-using ZGF.Geometry;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -17,7 +16,6 @@ namespace ZGF.ILSpy;
 internal static class MainMenuView
 {
     private const string AppIconId = "title-bar-icon";
-    private const string WindowMenuId = "window-menu";
 
     /// <summary>The menus: in the window's title bar where the platform allows, unless the system's
     /// title bar was chosen, and else in a bar of their own.</summary>
@@ -36,15 +34,14 @@ internal static class MainMenuView
         return ui.CanDrawTitleBar;
     }
 
-    /// <summary>The title bar: the app's icon, the menus, then room that moves the window up to the
-    /// caption buttons.</summary>
+    /// <summary>The title bar: the menus, the window's under the app's icon first, then room that moves
+    /// the window up to the caption buttons.</summary>
     private static void RenderInTitleBar(Ui<UiState> ui, AppState appState)
     {
         var theme = ui.Theme;
         var bar = new Box { Background = theme.Background, Gap = 0f, Padding = new Spacing(theme.Gap, 0f, 0f, 0f) };
         using (ui.TitleBar("title-bar", bar))
         {
-            RenderAppIcon(ui);
             var menus = new Box
             {
                 Width = Sizing.Fit(),
@@ -53,34 +50,19 @@ internal static class MainMenuView
                 Background = theme.Background,
             };
             using (ui.MenuBar("menu", menus))
+            {
+                WindowMenu(ui);
                 Menus(ui, appState);
+            }
             ui.TitleBarDragArea("title-bar-drag");
         }
     }
 
-    /// <summary>The app's icon, which opens the window menu below it when pressed.</summary>
-    private static void RenderAppIcon(Ui<UiState> ui)
-    {
-        if (ui.TitleBarIcon(AppIconId))
-            OpenWindowMenu(ui);
-        RenderWindowMenu(ui);
-    }
-
-    private static void OpenWindowMenu(Ui<UiState> ui)
-    {
-        if (!ui.TryGetRect(ui.GetId(AppIconId), out var icon))
-        {
-            ui.OpenContextMenu(WindowMenuId);
-            return;
-        }
-        ui.OpenContextMenu(WindowMenuId, new PointF(icon.X, icon.Bottom));
-    }
-
-    /// <summary>The window menu: restoring, minimizing, maximizing and closing the window.</summary>
-    private static void RenderWindowMenu(Ui<UiState> ui)
+    /// <summary>The menu under the app's icon: restoring, minimizing, maximizing and closing the window.</summary>
+    private static void WindowMenu(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
-        using var menu = ui.ContextMenu(WindowMenuId);
+        using var menu = ui.AppIconMenu(AppIconId);
         if (!menu.IsOpen)
             return;
         var icons = ui.State.Icons;

@@ -324,9 +324,39 @@ public static partial class UiWidgets
     /// as for <see cref="Button"/>.</summary>
     public static Ui.Scope Menu(this Ui ui, string label, string? id = null)
     {
-        var bar = ui.FindOpenGroup<MenuBarState>() ?? throw new InvalidOperationException("A Menu must be recorded inside a MenuBar.");
+        var bar = FindMenuBar(ui);
         var theme = ui.Theme;
         var i = ui.Interact(id ?? label);
+        var open = TakeTitle(ui, bar, i);
+        var title = TitleBox(ui, i, open, theme.MenuItemPaddingX);
+        ui.Text(label, color: open ? theme.SelectionText : theme.Text);
+        return OpenTitled(ui, bar, i.Id, open, title);
+    }
+
+    /// <summary>A title in the enclosing <see cref="MenuBar"/> showing the window's icon, as title
+    /// bars show the menu of the window itself, and its dropdown; otherwise as <see cref="Menu"/>.
+    /// Records nothing while the window has no icon.</summary>
+    public static Ui.Scope AppIconMenu(this Ui ui, string id)
+    {
+        if (!ui.HasWindowIcon)
+            return default;
+        var bar = FindMenuBar(ui);
+        var theme = ui.Theme;
+        var i = ui.Interact(id);
+        var open = TakeTitle(ui, bar, i);
+        var title = TitleBox(ui, i, open, theme.GapTight);
+        ui.AppIcon(theme.IconSize);
+        return OpenTitled(ui, bar, i.Id, open, title);
+    }
+
+    private static MenuBarState FindMenuBar(Ui ui) =>
+        ui.FindOpenGroup<MenuBarState>() ?? throw new InvalidOperationException("A Menu must be recorded inside a MenuBar.");
+
+    /// <summary>Adds the title to <paramref name="bar"/> and opens, closes or switches to it as the
+    /// pointer asks: a press flips it, and hovering it while another menu is open opens it. Whether
+    /// it is open.</summary>
+    private static bool TakeTitle(Ui ui, MenuBarState bar, Interaction i)
+    {
         bar.AddTitle(i.Id);
         if (i.Pressed)
         {
@@ -339,17 +369,36 @@ public static partial class UiWidgets
         {
             bar.Open = i.Id;
         }
-        var open = bar.Open == i.Id;
+        return bar.Open == i.Id;
+    }
 
-        var title = ui.Box(i.Id, new Box
+    /// <summary>The box a title draws its label or icon in, marked while it is open or hovered.</summary>
+    private static Ui.Scope TitleBox(Ui ui, Interaction i, bool open, float paddingX)
+    {
+        var theme = ui.Theme;
+        return ui.Box(i.Id, new Box
         {
             Height = Sizing.Grow(),
-            Padding = new Spacing(theme.MenuItemPaddingX, 0f),
+            Padding = new Spacing(paddingX, 0f),
             AlignY = Align.Center,
             Radius = theme.CornerRadius,
-            Background = open ? theme.Selection : i.Hovered ? theme.ControlHovered : 0u,
+            Background = TitleBackground(theme, open, i.Hovered),
         });
-        ui.Text(label, color: open ? theme.SelectionText : theme.Text);
+    }
+
+    private static uint TitleBackground(UiTheme theme, bool open, bool hovered)
+    {
+        if (open)
+            return theme.Selection;
+        if (hovered)
+            return theme.ControlHovered;
+        return 0u;
+    }
+
+    /// <summary>The scope the open title's items are recorded in, its dropdown shown below it; the
+    /// title closed, and no scope, while it is not open.</summary>
+    private static Ui.Scope OpenTitled(Ui ui, MenuBarState bar, int id, bool open, Ui.Scope title)
+    {
         if (!open)
         {
             title.Dispose();
@@ -357,13 +406,13 @@ public static partial class UiWidgets
         }
 
         bar.OpenSeen = true;
-        bar.PopupId = MenuPopupId(i.Id);
-        bar.BeginItems(i.Id);
-        ui.TryGetRect(i.Id, out var anchor);
+        bar.PopupId = MenuPopupId(id);
+        bar.BeginItems(id);
+        ui.TryGetRect(id, out var anchor);
         OpenMenu(ui, bar, anchor);
         if (MenuKeys(ui, bar, isSubMenu: false) is var direction and not 0)
         {
-            bar.Open = bar.Neighbor(i.Id, direction);
+            bar.Open = bar.Neighbor(id, direction);
             bar.HighlightFirstOwner = bar.Open;
         }
         return title;
