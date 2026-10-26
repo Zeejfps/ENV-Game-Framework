@@ -30,6 +30,7 @@
   "view.panels": "패널",
   "view.bookmarks": "책갈피",
   "view.empty_hint": "모두 닫혀 있습니다. 보기 메뉴에서 어셈블리를 여세요.",
+  "view.close_all_documents": "모든 문서 닫기",
   "view.reset_layout": "레이아웃 다시 설정",
   "view.reset_layout_question": "모든 패널을 처음 위치로 되돌릴까요? 열린 문서는 그대로 유지됩니다.",
   "view.reset_layout_confirm": "재설정",

@@ -30,6 +30,7 @@
   "view.panels": "Painéis",
   "view.bookmarks": "Indicadores",
   "view.empty_hint": "Tudo está fechado. Abra os assemblies pelo menu Exibir.",
+  "view.close_all_documents": "Fechar todos os documentos",
   "view.reset_layout": "Redefinir layout",
   "view.reset_layout_question": "Devolver cada painel à posição inicial? Os documentos abertos continuam abertos.",
   "view.reset_layout_confirm": "Redefinir",

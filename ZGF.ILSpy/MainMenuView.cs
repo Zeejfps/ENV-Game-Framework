@@ -5,6 +5,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.DocumentPanels;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Preferences;
@@ -183,6 +184,8 @@ internal static class MainMenuView
         ApiVisibilityMenu(ui, appState);
         ui.MenuSeparator();
         PanelsMenu(ui);
+        if (ui.MenuItem(t.ViewCloseAllDocuments, enabled: appState.Tabs.Count > 0, id: "close-all-documents"))
+            CloseAllTabs(ui.State);
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             AskToResetLayout(ui.State);
         ui.MenuSeparator();

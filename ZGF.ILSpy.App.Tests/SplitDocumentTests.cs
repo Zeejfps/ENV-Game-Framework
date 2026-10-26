@@ -57,6 +57,19 @@ public sealed class SplitDocumentTests
         Assert.Equal(theme.BorderStrong, Indicator(app, app.LastTextRect("Outline")));
     }
 
+    [Fact]
+    public void Closing_all_documents_from_the_view_menu_closes_the_tabs_of_every_group()
+    {
+        var (app, left, right) = SideBySide();
+        Assert.NotSame(app.Ui.Layout.GroupOf(app.Ui.Documents.PanelOf(left)), app.Ui.Layout.GroupOf(app.Ui.Documents.PanelOf(right)));
+
+        app.Click("View");
+        app.ClickMenuItem("Close all documents").Frame(2);
+        app.Settle(2);
+
+        Assert.Empty(app.AppState.Tabs);
+    }
+
     private static (AppDriver App, DocumentTab Left, DocumentTab Right) SideBySide()
     {
         var app = AppDriver.Opened();

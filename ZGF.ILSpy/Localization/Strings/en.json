@@ -32,6 +32,7 @@
   "view.panels": "Panels",
   "view.bookmarks": "Bookmarks",
   "view.empty_hint": "Everything is closed. Open the assemblies from the View menu.",
+  "view.close_all_documents": "Close all documents",
   "view.reset_layout": "Reset layout",
   "view.reset_layout_question": "Put every panel back where it started? Open documents stay open.",
   "view.reset_layout_confirm": "Reset",

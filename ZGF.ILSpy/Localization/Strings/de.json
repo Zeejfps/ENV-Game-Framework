@@ -30,6 +30,7 @@
   "view.panels": "Bereiche",
   "view.bookmarks": "Lesezeichen",
   "view.empty_hint": "Alles ist geschlossen. Öffnen Sie die Assemblys über das Menü „Ansicht“.",
+  "view.close_all_documents": "Alle Dokumente schließen",
   "view.reset_layout": "Layout zurücksetzen",
   "view.reset_layout_question": "Alle Bereiche an ihren Ausgangsplatz zurücksetzen? Geöffnete Dokumente bleiben offen.",
   "view.reset_layout_confirm": "Zurücksetzen",

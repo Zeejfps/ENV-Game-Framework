@@ -30,6 +30,7 @@
   "view.panels": "パネル",
   "view.bookmarks": "ブックマーク",
   "view.empty_hint": "すべて閉じています。[表示] メニューからアセンブリを開いてください。",
+  "view.close_all_documents": "すべてのドキュメントを閉じる",
   "view.reset_layout": "レイアウトのリセット",
   "view.reset_layout_question": "すべてのパネルを最初の位置に戻しますか?開いているドキュメントはそのままです。",
   "view.reset_layout_confirm": "リセット",

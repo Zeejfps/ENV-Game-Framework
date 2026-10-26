@@ -30,6 +30,7 @@
   "view.panels": "Panneaux",
   "view.bookmarks": "Signets",
   "view.empty_hint": "Tout est fermé. Ouvrez les assemblys depuis le menu Affichage.",
+  "view.close_all_documents": "Fermer tous les documents",
   "view.reset_layout": "Réinitialiser la disposition",
   "view.reset_layout_question": "Remettre chaque panneau à sa place d'origine ? Les documents ouverts restent ouverts.",
   "view.reset_layout_confirm": "Réinitialiser",

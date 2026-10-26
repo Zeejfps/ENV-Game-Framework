@@ -215,6 +215,15 @@ public static class DocumentPanels
         CloseTabs(uiState, right);
     }
 
+    /// <summary>Closes the document tabs of every group, docked or floating.</summary>
+    public static void CloseAllTabs(UiState uiState)
+    {
+        var all = new List<DocumentTab>();
+        foreach (var group in uiState.Layout.AllGroups())
+            AddTabsOf(uiState, all, group);
+        CloseTabs(uiState, all);
+    }
+
     /// <summary>The document tabs of <paramref name="tab"/>'s group, in the order its strip shows
     /// them, leaving out the other panels docked there.</summary>
     public static List<DocumentTab> ListTabsInGroup(UiState uiState, DocumentTab tab)
@@ -223,9 +232,16 @@ public static class DocumentPanels
         var group = uiState.Layout.GroupOf(uiState.Documents.PanelOf(tab));
         if (group == null)
             return tabs;
+        AddTabsOf(uiState, tabs, group);
+        return tabs;
+    }
+
+    /// <summary>Adds the document tabs of <paramref name="group"/> to <paramref name="tabs"/>, in the
+    /// order its strip shows them.</summary>
+    private static void AddTabsOf(UiState uiState, List<DocumentTab> tabs, DockGroup group)
+    {
         foreach (var panel in group.Panels)
             AddTabOf(uiState, tabs, panel);
-        return tabs;
     }
 
     /// <summary>Adds the tab of <paramref name="panel"/> to <paramref name="tabs"/> when it is a document's.</summary>

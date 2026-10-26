@@ -30,6 +30,7 @@
   "view.panels": "面板",
   "view.bookmarks": "书签",
   "view.empty_hint": "所有视图均已关闭。请从“视图”菜单打开程序集。",
+  "view.close_all_documents": "关闭所有文档",
   "view.reset_layout": "重置布局",
   "view.reset_layout_question": "将所有面板恢复到初始位置?已打开的文档保持打开。",
   "view.reset_layout_confirm": "重置",
