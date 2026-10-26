@@ -15,8 +15,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   them on Windows only, so elsewhere the picker offers just the bundled font).
 - **Tree:** nested-namespace view.
 - **Per-assembly menu:** Set target framework.
-- **Metadata explorer:** decoded blob signatures in tooltips. AssemblyOS/Processor and
-  AssemblyRefOS/Processor only show row counts.
+- **Metadata explorer:** decoded blob signatures in tooltips.
 - **Navigation:** preview tabs, omnibar (breadcrumb + search).
 
 ## Smaller
