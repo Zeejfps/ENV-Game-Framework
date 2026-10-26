@@ -15,6 +15,7 @@ public sealed class AutosaveTests : IDisposable
     public void Dispose() => _temp.Dispose();
 
     private static readonly WindowBounds MovedExportWindow = new(-900, 200, 700, 800, false);
+    private static readonly WindowBounds MovedNuGetWindow = new(100, -300, 900, 600, false);
 
     [Theory]
     [InlineData(nameof(AppSettings.Theme))]
@@ -28,6 +29,7 @@ public sealed class AutosaveTests : IDisposable
     [InlineData(nameof(AppSettings.SearchColumns))]
     [InlineData(nameof(AppSettings.ExportColumns))]
     [InlineData(nameof(AppSettings.ExportWindow))]
+    [InlineData(nameof(AppSettings.NuGetWindow))]
     public void A_saved_setting_changed_alone_is_saved_with_the_next_frame(string field)
     {
         var app = new AppDriver(settings: _temp.Settings());
@@ -76,7 +78,10 @@ public sealed class AutosaveTests : IDisposable
                 screen.ExportColumns.Restore([1f, 4f, 1f]);
                 break;
             case nameof(AppSettings.ExportWindow):
-                screen.ExportSetup.Window = MovedExportWindow;
+                screen.ExportSetup.Window.Bounds = MovedExportWindow;
+                break;
+            case nameof(AppSettings.NuGetWindow):
+                screen.NuGetPicker.Window.Bounds = MovedNuGetWindow;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(field), field, null);
@@ -96,6 +101,7 @@ public sealed class AutosaveTests : IDisposable
         nameof(AppSettings.SearchColumns) => saved.SearchColumns?.SequenceEqual([1f, 4f, 1f]) == true,
         nameof(AppSettings.ExportColumns) => saved.ExportColumns?.SequenceEqual([1f, 4f, 1f]) == true,
         nameof(AppSettings.ExportWindow) => saved.ExportWindow == MovedExportWindow,
+        nameof(AppSettings.NuGetWindow) => saved.NuGetWindow == MovedNuGetWindow,
         _ => throw new ArgumentOutOfRangeException(nameof(field), field, null),
     };
 
@@ -106,7 +112,7 @@ public sealed class AutosaveTests : IDisposable
         app.Run(2);
 
         app.Frames.Press().Frame();
-        app.Ui.ExportSetup.Window = MovedExportWindow;
+        app.Ui.ExportSetup.Window.Bounds = MovedExportWindow;
         app.Run(2);
         var savedWhileHeld = _temp.Settings().ExportWindow;
         app.Frames.Release().Frame();
@@ -122,7 +128,7 @@ public sealed class AutosaveTests : IDisposable
         app.Run(2);
 
         app.Frames.Press().Frame();
-        app.Ui.ExportSetup.Window = MovedExportWindow;
+        app.Ui.ExportSetup.Window.Bounds = MovedExportWindow;
         app.Run(2);
         app.App.SaveOnExit(new WindowBounds(10, 20, 1000, 700, false));
 

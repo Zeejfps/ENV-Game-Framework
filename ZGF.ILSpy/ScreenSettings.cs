@@ -28,10 +28,11 @@ public static class ScreenSettings
             uiState.FoldedOptionGroups.Revision,
             uiState.Search.Kinds,
             uiState.MetadataFilters.Revision,
-            uiState.ExportSetup.WindowChanges,
+            uiState.ExportSetup.Window.Changes,
             uiState.Layout.Changes,
             uiState.Display,
-            uiState.NuGetPicker.SearchChanges);
+            uiState.NuGetPicker.SearchChanges,
+            uiState.NuGetPicker.Window.Changes);
     }
 
     private static ViewSettings CreateViewSettings(UiState uiState)
@@ -43,9 +44,10 @@ public static class ScreenSettings
             uiState.FoldedOptionGroups.Save(),
             uiState.Search.Kinds,
             uiState.MetadataFilters.Save(),
-            uiState.ExportSetup.Window,
+            uiState.ExportSetup.Window.Bounds,
             uiState.Layout.CopyArrangement(),
             uiState.Display,
-            uiState.NuGetPicker.Save());
+            uiState.NuGetPicker.Save(),
+            uiState.NuGetPicker.Window.Bounds);
     }
 }

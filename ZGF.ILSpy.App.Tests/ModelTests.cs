@@ -167,14 +167,14 @@ public sealed class AppSettingsTests : IDisposable
     public void The_export_window_reopens_where_it_was_left_in_the_last_run()
     {
         var d = new AppStateDriver(AppSettings.Load(SettingsFile));
-        d.Ui.ExportSetup.Window = new WindowBounds(-900, 200, 700, 800, false);
-        d.Ui.ExportSetup.SettleWindow(held: false);
+        d.Ui.ExportSetup.Window.Bounds = new WindowBounds(-900, 200, 700, 800, false);
+        d.Ui.ExportSetup.Window.Settle(held: false);
         d.NextFrame();
         SaveSettings(d.AppState);
 
         var next = new AppStateDriver(AppSettings.Load(SettingsFile));
 
-        Assert.Equal(new WindowBounds(-900, 200, 700, 800, false), next.Ui.ExportSetup.Window);
+        Assert.Equal(new WindowBounds(-900, 200, 700, 800, false), next.Ui.ExportSetup.Window.Bounds);
         Assert.Null(AppSettings.Load(Written("""{ "ExportWindow": { "X": 5, "Y": 6, "Width": 0, "Height": 0, "Maximized": false } }""")).ExportWindow);
     }
 

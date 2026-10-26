@@ -12,17 +12,28 @@ public sealed class WindowDialogTests
     private int _underClicks;
     private int _okClicks;
 
+    /// <summary>The smallest size the dialog asks for; null leaves it to the default.</summary>
+    private (float Width, float Height)? _smallest;
+
     private void Body(Ui ui)
     {
         var under = ui.Interact("under");
         if (under.Clicked) _underClicks++;
         ui.Leaf(under.Id, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
 
-        using (var dialog = ui.WindowDialog("export", "Export", ref _open, 300f, 200f, ref _bounds))
+        using (var dialog = OpenDialog(ui))
         {
             if (dialog.IsOpen && ui.Button("OK"))
                 _okClicks++;
         }
+    }
+
+    private Ui.Scope OpenDialog(Ui ui)
+    {
+        if (_smallest == null)
+            return ui.WindowDialog("export", "Export", ref _open, 300f, 200f, ref _bounds);
+        var smallest = _smallest.Value;
+        return ui.WindowDialog("export", "Export", ref _open, 300f, 200f, ref _bounds, minWidth: smallest.Width, minHeight: smallest.Height);
     }
 
     private UiFrames Opened(TestPopupHost? host)
@@ -143,6 +154,18 @@ public sealed class WindowDialogTests
         var id = frames.Frame(WindowId);
         Assert.Equal(320f, _host.Windows[id].Width);
         Assert.Equal(240f, _host.Windows[id].Height);
+    }
+
+    [Fact]
+    public void The_grip_stops_at_the_smallest_size_the_dialog_asks_for()
+    {
+        _smallest = (280f, 180f);
+
+        var frames = DragGrip(Opened(_host), -500f, -500f);
+
+        var id = frames.Frame(WindowId);
+        Assert.Equal(280f, _host.Windows[id].Width);
+        Assert.Equal(180f, _host.Windows[id].Height);
     }
 
     [Fact]

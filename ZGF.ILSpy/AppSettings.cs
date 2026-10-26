@@ -108,6 +108,9 @@ public sealed class AppSettings
     /// <summary>The feed the "open from NuGet" dialog last searched; null searches the NuGet.Config's first.</summary>
     public SavedNuGetSearch? NuGet { get; set; }
 
+    /// <summary>The "open from NuGet" dialog's window as it was left; null opens it at its default size, centered.</summary>
+    public WindowBounds? NuGetWindow { get; set; }
+
     public const int MinWindowWidth = 480;
     public const int MinWindowHeight = 320;
     public const int MaxWindowSize = 16384;
@@ -180,6 +183,7 @@ public sealed class AppSettings
         settings.DefaultMissingIconTheme();
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
+        settings.NuGetWindow = SanitizeDialog(settings.NuGetWindow);
         settings.FilePath = path;
         settings.LoadError = error;
         return settings;

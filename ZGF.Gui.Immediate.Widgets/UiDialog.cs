@@ -77,7 +77,8 @@ public static partial class UiWidgets
     /// when it opens, or where <paramref name="bounds"/> says it was left, which it keeps up to date
     /// for the app to save. The window has no frame of the platform's: the dialog draws its title and
     /// its close button, moves the window when dragged by its background anywhere but its controls, and a grip in its bottom-right corner that
-    /// sizes it, down to a smallest size the content then scrolls in. The main window is dimmed and takes no
+    /// sizes it, down to <paramref name="minWidth"/> by <paramref name="minHeight"/> points, a smallest
+    /// size the content then scrolls in. The main window is dimmed and takes no
     /// input until it closes, and a press on it keeps the dialog. The close button sets
     /// <paramref name="open"/> to false, and so does Escape unless not <paramref name="closeOnEscape"/>,
     /// which leaves Escape to the content — to step back from a page of the dialog. Where the platform
@@ -85,7 +86,7 @@ public static partial class UiWidgets
     /// <see cref="Ui.Scope.IsOpen"/>; dispose either way.
     /// </summary>
     public static Ui.Scope WindowDialog(this Ui ui, string id, string title, ref bool open, float width, float height, ref WindowBounds? bounds,
-        bool closeOnEscape = true)
+        bool closeOnEscape = true, float minWidth = MinWindowWidth, float minHeight = MinWindowHeight)
     {
         if (!open) return default;
 
@@ -104,7 +105,7 @@ public static partial class UiWidgets
         if (native)
         {
             DragWindow(ui, windowId, handle);
-            ResizeGrip(ui, dialogId, windowId);
+            ResizeGrip(ui, dialogId, windowId, minWidth, minHeight);
         }
         if (dismissed)
             Dismiss(ui, ref open);
@@ -129,8 +130,8 @@ public static partial class UiWidgets
     }
 
     /// <summary>A grip in the bottom-right corner that sizes the window by as far as the pointer has
-    /// moved since it was pressed.</summary>
-    private static void ResizeGrip(Ui ui, int dialogId, int windowId)
+    /// moved since it was pressed, no smaller than <paramref name="minWidth"/> by <paramref name="minHeight"/>.</summary>
+    private static void ResizeGrip(Ui ui, int dialogId, int windowId, float minWidth, float minHeight)
     {
         var theme = ui.Theme;
         var grip = ui.Interact(HashCode.Combine(dialogId, "resize"));
@@ -139,7 +140,7 @@ public static partial class UiWidgets
         var inset = -(ResizeGripSize + theme.BorderWidth + ResizeGripStep / 2);
         using (ui.Float(1f, 1f, inset, inset, new Box { Width = ResizeGripSize, Height = ResizeGripSize }, id: grip.Id))
             ui.Paint(theme.TextMuted, PaintResizeGrip);
-        ResizeWindow(ui, windowId, grip);
+        ResizeWindow(ui, windowId, grip, minWidth, minHeight);
     }
 
     /// <summary>Three short diagonals stepping into the corner.</summary>
@@ -153,15 +154,15 @@ public static partial class UiWidgets
         }
     }
 
-    private static void ResizeWindow(Ui ui, int windowId, Interaction grip)
+    private static void ResizeWindow(Ui ui, int windowId, Interaction grip, float minWidth, float minHeight)
     {
         if (!ui.TryGetRect(windowId, out var rect)) return;
         if (!ui.TryGetDragStart(grip, rect, out var start)) return;
 
         var pointer = ui.Input.Pointer;
         var press = ui.PressPosition;
-        var width = MathF.Round(MathF.Max(MinWindowWidth, start.Width + pointer.X - press.X));
-        var height = MathF.Round(MathF.Max(MinWindowHeight, start.Height + pointer.Y - press.Y));
+        var width = MathF.Round(MathF.Max(minWidth, start.Width + pointer.X - press.X));
+        var height = MathF.Round(MathF.Max(minHeight, start.Height + pointer.Y - press.Y));
         if (width == rect.Width && height == rect.Height) return;
         ui.PlaceWindow(windowId, rect with { Width = width, Height = height });
     }

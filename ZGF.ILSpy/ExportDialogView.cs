@@ -36,7 +36,7 @@ internal static class ExportDialogView
     public static void Render(Ui<UiState> ui, AppState appState)
     {
         Dialog(ui, appState);
-        ui.State.ExportSetup.SettleWindow(ui.Input.IsDown(PointerButton.Left));
+        ui.State.ExportSetup.Window.Settle(ui.Input.IsDown(PointerButton.Left));
     }
 
     private static void Dialog(Ui<UiState> ui, AppState appState)
@@ -44,7 +44,7 @@ internal static class ExportDialogView
         var setup = ui.State.ExportSetup;
         var choosing = setup.Page == ExportPage.Choose;
         var title = PageTitle(ui.State.Strings, setup.Page);
-        using (var dialog = ui.WindowDialog("export-setup", title, ref setup.IsOpen, WindowWidth, WindowHeight, ref setup.Window,
+        using (var dialog = ui.WindowDialog("export-setup", title, ref setup.IsOpen, WindowWidth, WindowHeight, ref setup.Window.Bounds,
             closeOnEscape: !choosing))
         {
             if (!dialog.IsOpen)

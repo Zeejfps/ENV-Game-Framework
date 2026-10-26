@@ -97,6 +97,7 @@ public static class Settings
         settings.Layout = view.Layout;
         settings.Display = view.Display;
         settings.NuGet = view.NuGet;
+        settings.NuGetWindow = view.NuGetWindow;
         appState.ViewSettingsChanges++;
     }
 
@@ -114,6 +115,7 @@ public static class Settings
             settings.ExportWindow,
             settings.Layout,
             settings.Display,
-            settings.NuGet);
+            settings.NuGet,
+            settings.NuGetWindow);
     }
 }

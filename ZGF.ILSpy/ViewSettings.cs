@@ -9,7 +9,7 @@ namespace ZGF.ILSpy;
 /// and export tables, the decompiler options panel's folded groups, what the search looks for, the
 /// metadata grids' flags filters, where the export dialog's window was left, a copy of the layout,
 /// which shares nothing with the screen's, how the documents draw code, and the feed the NuGet
-/// dialog last searched. A part never saved is null.</summary>
+/// dialog last searched and where its window was left. A part never saved is null.</summary>
 public sealed record ViewSettings(
     List<float>? BookmarkColumns,
     List<float>? SearchColumns,
@@ -20,4 +20,5 @@ public sealed record ViewSettings(
     WindowBounds? ExportWindow,
     DockLayout? Layout,
     DisplayOptions? Display,
-    SavedNuGetSearch? NuGet);
+    SavedNuGetSearch? NuGet,
+    WindowBounds? NuGetWindow);

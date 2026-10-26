@@ -1,4 +1,3 @@
-using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Exports;
@@ -63,33 +62,8 @@ public sealed class ExportSetup
     /// <summary>Whether those PDBs embed the decompiled sources.</summary>
     public bool EmbedSourcesInPdb = true;
 
-    /// <summary>Where the dialog's window is, on the screen, kept as it moves; null opens it centered.</summary>
-    public WindowBounds? Window;
-
-    private WindowBounds? _restingWindow;
-
-    /// <summary>Counts each time the dialog's window comes to rest somewhere new: once for each move or
-    /// resize, when the button comes up, never on the frames in between.</summary>
-    public int WindowChanges { get; private set; }
-
-    /// <summary>Puts the dialog's window where it was left in the last run.</summary>
-    public void RestoreWindow(WindowBounds? bounds)
-    {
-        Window = bounds;
-        _restingWindow = bounds;
-    }
-
-    /// <summary>Counts the window as moved once it rests where it was not before, unless
-    /// <paramref name="held"/>, a button still being held, says it may move on.</summary>
-    public void SettleWindow(bool held)
-    {
-        if (held)
-            return;
-        if (Window == _restingWindow)
-            return;
-        _restingWindow = Window;
-        WindowChanges++;
-    }
+    /// <summary>Where the dialog's window is on the screen.</summary>
+    public DialogWindow Window { get; } = new();
 
     public List<ExportChoice> Choices { get; } = new();
 

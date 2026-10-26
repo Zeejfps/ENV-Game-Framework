@@ -30,7 +30,8 @@ public sealed class UiState : IUiState
         Picker = new FrameworkPicker(ReadStrings, reportError);
         NuGetPicker = new NuGetPicker(ReadStrings, reportError);
         NuGetPicker.Restore(saved.NuGet);
-        ExportSetup.RestoreWindow(saved.ExportWindow);
+        NuGetPicker.Window.Restore(saved.NuGetWindow);
+        ExportSetup.Window.Restore(saved.ExportWindow);
         Display = DisplayOptions.Restore(saved.Display);
         Analyzer = new AnalyzerRows(AppCommands);
         RestoredDocumentsPanel = Documents.NewPanel();

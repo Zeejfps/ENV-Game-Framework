@@ -51,6 +51,10 @@ public sealed class NuGetPicker
     }
 
     public bool IsOpen;
+
+    /// <summary>Where the dialog's window is on the screen.</summary>
+    public DialogWindow Window { get; } = new();
+
     public string Query = "";
 
     /// <summary>The URL of the service index of the feed to search, typed or picked from <see cref="Sources"/>.</summary>

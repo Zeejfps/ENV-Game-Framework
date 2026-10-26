@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -8,7 +9,7 @@ using static ZGF.ILSpy.Assemblies;
 namespace ZGF.ILSpy;
 
 /// <summary>
-/// The "open from NuGet" dialog: the query, whether prereleases count and the feed on top; a page of
+/// The "open from NuGet" dialog, in a window of its own: the query, whether prereleases count and the feed on top; a page of
 /// the packages found on the left, each with its icon, authors, latest version and description, a
 /// thin bar sliding over them while the next page or search loads, and the pages to step through
 /// under them; the selected package's details on the right, where its version is picked; at the
@@ -32,6 +33,7 @@ internal static class NuGetPickerView
         var wasOpen = picker.IsOpen;
         Dialog(ui, picker);
         CloseIfDismissed(ui, picker, wasOpen);
+        picker.Window.Settle(ui.Input.IsDown(PointerButton.Left));
     }
 
     private static void OpenDownloaded(Ui<UiState> ui, AppState appState, NuGetPicker picker)
@@ -61,8 +63,8 @@ internal static class NuGetPickerView
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var card = new Box { Width = Sizing.Grow(0f, AppLayout.NuGetDialogWidth), Height = Sizing.Percent(AppLayout.NuGetDialogHeight) };
-        using var dialog = ui.Dialog("nuget", t.NugetTitle, ref picker.IsOpen, card);
+        using var dialog = ui.WindowDialog("nuget", t.NugetTitle, ref picker.IsOpen, AppLayout.NuGetDialogWidth, AppLayout.NuGetDialogHeight,
+            ref picker.Window.Bounds, minWidth: AppLayout.NuGetDialogMinWidth, minHeight: AppLayout.NuGetDialogMinHeight);
         if (!dialog.IsOpen)
             return;
         TopRow(ui, picker);
