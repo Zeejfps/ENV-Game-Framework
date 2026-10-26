@@ -72,6 +72,44 @@ public static class Assemblies
             ReportOpenFailure(appState, opened.Error);
     }
 
+    /// <summary>Checks in the background that the PDB at <paramref name="pdbPath"/> can be read for
+    /// <paramref name="assembly"/>, then has the assembly read it in place of the one it finds itself,
+    /// kept with the list, and reloads the list to show it, expanding <paramref name="expanded"/>
+    /// again. Reports why when it cannot be read.</summary>
+    public static async void UsePdb(AppState appState, LoadedAssembly assembly, string pdbPath, List<NodePath> expanded)
+    {
+        var checking = await Background.Run(() => assembly.CheckPdb(pdbPath));
+        if (checking.Error != null)
+        {
+            ReportUnreadablePdb(appState, assembly, pdbPath, PdbCheck.Unreadable);
+            return;
+        }
+        if (checking.Value != PdbCheck.Matches)
+        {
+            ReportUnreadablePdb(appState, assembly, pdbPath, checking.Value);
+            return;
+        }
+        if (!appState.IsListed(assembly.Root))
+            return;
+        appState.Assemblies.PickPdb(assembly.FilePath, pdbPath);
+        RefreshAssemblies(appState, expanded);
+    }
+
+    private static void ReportUnreadablePdb(AppState appState, LoadedAssembly assembly, string pdbPath, PdbCheck check)
+    {
+        var t = Strings.For(appState.Locale);
+        var title = t.ErrorSelectPdb(Path.GetFileName(pdbPath), assembly.Name);
+        var reason = DescribePdbCheck(t, check, assembly.Name);
+        appState.ReportError(title, reason + Environment.NewLine + pdbPath);
+    }
+
+    private static string DescribePdbCheck(Strings t, PdbCheck check, string name) => check switch
+    {
+        PdbCheck.OtherBuild => t.ErrorPdbOtherBuild(name),
+        PdbCheck.WindowsPdb => t.ErrorPdbWindows,
+        _ => t.ErrorPdbUnreadable,
+    };
+
     public static void CloseAssembly(AppState appState, LoadedAssembly assembly) => appState.Assemblies.Close(assembly);
 
     /// <summary>Takes the files that failed to load off the list.</summary>
@@ -104,6 +142,7 @@ public static class Assemblies
         appState.Opens.CancelAll();
         appState.Reload.Stop();
         ClearAssemblies(appState);
+        appState.Assemblies.ForgetPickedPdbs();
     }
 
     private static void ClearAssemblies(AppState appState)

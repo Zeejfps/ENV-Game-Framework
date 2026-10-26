@@ -14,7 +14,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Display options:** word wrap; installed code fonts on macOS and Linux (`ISystemFonts` lists
   them on Windows only, so elsewhere the picker offers just the bundled font).
 - **Tree:** nested-namespace view.
-- **Per-assembly menu:** Set target framework, Pick PDB.
+- **Per-assembly menu:** Set target framework.
 - **Metadata explorer:** decoded blob signatures in tooltips. AssemblyOS/Processor and
   AssemblyRefOS/Processor only show row counts.
 - **Navigation:** preview tabs, omnibar (breadcrumb + search).

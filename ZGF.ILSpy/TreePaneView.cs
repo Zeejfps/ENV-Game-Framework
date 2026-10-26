@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -193,7 +194,7 @@ internal static class TreePaneView
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
             ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
-            PdbItem(ui, appState, node.Assembly);
+            PdbItems(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))
             OpenDependencies(appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
@@ -250,10 +251,32 @@ internal static class TreePaneView
         return node.DependsOnLanguage;
     }
 
-    private static void PdbItem(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    /// <summary>Generating a portable PDB for the assembly, and picking the PDB it reads.</summary>
+    private static void PdbItems(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: new UiIcon(ui.State.Icons.FileGeneratePdb)))
             SaveDialogs.PickPdbFile(ui, appState, assembly);
+        if (assembly.CanPickPdb && ui.MenuItem(t.TreeSelectPdb, id: "select-pdb"))
+            PickPdbToRead(ui, appState, assembly);
+    }
+
+    /// <summary>Asks for the PDB <paramref name="assembly"/> reads, starting in its folder, then has it read that one.</summary>
+    private static void PickPdbToRead(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    {
+        var t = ui.State.Strings;
+        var tree = ui.State.Tree;
+        FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"]), new FileFilter(t.FileFilterAll, ["*.*"])];
+        var title = t.TreeSelectPdbTitle(assembly.Name);
+        ui.PickFile(title, FindFolderOf(assembly), filters, path => UsePdb(appState, assembly, path, tree.ExpandedPaths()));
+    }
+
+    /// <summary>The folder the assembly's file is in; null for one read out of a package, whose path runs through it.</summary>
+    private static string? FindFolderOf(LoadedAssembly assembly)
+    {
+        var folder = Path.GetDirectoryName(assembly.FilePath);
+        if (!Directory.Exists(folder))
+            return null;
+        return folder;
     }
 }

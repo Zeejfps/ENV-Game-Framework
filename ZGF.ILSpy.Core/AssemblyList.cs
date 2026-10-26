@@ -29,6 +29,7 @@ public sealed class AssemblyList
     private ImmutableArray<LoadedAssembly> _loaded = ImmutableArray<LoadedAssembly>.Empty;
     private int _version;
     private int _generation;
+    private ImmutableDictionary<string, string> _pickedPdbs = ImmutableDictionary.Create<string, string>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The open assemblies that loaded, in the order they were opened, with an open package's
     /// assemblies where the package is. A snapshot: it never changes after it is read.</summary>
@@ -48,6 +49,41 @@ public sealed class AssemblyList
     /// keeps the assemblies it loads after it, so that what it finds late never lands in the list
     /// that follows.</summary>
     public int Generation => Volatile.Read(ref _generation);
+
+    /// <summary>The PDBs picked for assemblies, by the assembly's path, which they read in place of the
+    /// ones they find themselves when they are opened next. Kept when the list is cleared, as a reload
+    /// does; forgotten with the assembly when it is closed.</summary>
+    public IReadOnlyDictionary<string, string> PickedPdbs => Volatile.Read(ref _pickedPdbs);
+
+    /// <summary>Has the assembly at <paramref name="assemblyPath"/> read the PDB at <paramref name="pdbPath"/>
+    /// from the next time it is opened.</summary>
+    public void PickPdb(string assemblyPath, string pdbPath)
+    {
+        lock (_gate)
+            Volatile.Write(ref _pickedPdbs, _pickedPdbs.SetItem(assemblyPath, pdbPath));
+    }
+
+    /// <summary>Takes <paramref name="pdbs"/> as the picked PDBs in place of those before, as when
+    /// another list opens.</summary>
+    public void UsePickedPdbs(IReadOnlyDictionary<string, string> pdbs)
+    {
+        var picked = ImmutableDictionary.CreateRange(StringComparer.OrdinalIgnoreCase, pdbs);
+        lock (_gate)
+            Volatile.Write(ref _pickedPdbs, picked);
+    }
+
+    /// <summary>Forgets every picked PDB, as when the list is closed for good.</summary>
+    public void ForgetPickedPdbs()
+    {
+        lock (_gate)
+            Volatile.Write(ref _pickedPdbs, _pickedPdbs.Clear());
+    }
+
+    /// <summary>The PDB picked for the assembly at <paramref name="assemblyPath"/>, or null.</summary>
+    internal string? FindPickedPdb(string assemblyPath)
+    {
+        return PickedPdbs.GetValueOrDefault(assemblyPath);
+    }
 
     /// <summary>Raised after <see cref="Assemblies"/> changes, on the thread that changed it, including
     /// background threads when navigation opens a referenced assembly.</summary>
@@ -98,12 +134,22 @@ public sealed class AssemblyList
         lock (_gate)
         {
             if (!item.HasLoadError && !ForgetKnown(item)) return;
+            ForgetPickedPdbsOf(item);
             ForgetReadOutOf(item);
             if (!item.IsListed) return;
             item.IsListed = false;
             ChangeListed(_listed.Remove(item));
         }
         Changed?.Invoke();
+    }
+
+    /// <summary>Forgets the PDBs picked for <paramref name="item"/> and, for a package, the assemblies read out of it.</summary>
+    private void ForgetPickedPdbsOf(LoadedAssembly item)
+    {
+        var picked = _pickedPdbs.Remove(item.FilePath);
+        if (item.IsPackage)
+            picked = picked.RemoveRange(item.PackageAssemblies.Select(static a => a.FilePath));
+        Volatile.Write(ref _pickedPdbs, picked);
     }
 
     private bool ForgetKnown(LoadedAssembly assembly)

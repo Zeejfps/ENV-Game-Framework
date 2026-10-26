@@ -81,11 +81,15 @@ public sealed class LoadedAssembly
         _packageAssemblies = new Lazy<IReadOnlyList<LoadedAssembly>>(LoadPackageAssemblies);
     }
 
+    /// <summary>The symbols of the PDB the list picked for this assembly, else those it finds itself.</summary>
     private DebugSymbols? LoadDebugSymbols(PackagePlace? place)
     {
         if (PEFile == null)
             return null;
-        return DebugSymbols.Load(PEFile, place?.Container.Package);
+        var picked = List.FindPickedPdb(FilePath);
+        if (picked == null)
+            return DebugSymbols.Load(PEFile, place?.Container.Package);
+        return DebugSymbols.LoadPicked(picked);
     }
 
     private BrowseNode CreateRoot()
@@ -235,6 +239,18 @@ public sealed class LoadedAssembly
         if (placed != null)
             return placed;
         return root;
+    }
+
+    /// <summary>Whether a PDB can be picked for this assembly: one that loaded with PE headers, which
+    /// a WebCIL module lacks.</summary>
+    public bool CanPickPdb => PEFile != null;
+
+    /// <summary>Whether the PDB at <paramref name="pdbPath"/> can be read for this assembly. Reads the file.</summary>
+    public PdbCheck CheckPdb(string pdbPath)
+    {
+        if (PEFile == null)
+            return PdbCheck.Unreadable;
+        return DebugSymbols.Check(PEFile, pdbPath);
     }
 
     /// <summary>The name a portable PDB of this assembly is written under.</summary>

@@ -474,7 +474,7 @@ public sealed class AppStateTests
         Assert.Same(search.Rows[2], search.SelectedRow);
         search.Move(-10);
         Assert.Same(search.Rows[0], search.SelectedRow);
-        search.Move(1000);
+        search.Move(search.Rows.Count);
         Assert.Same(search.Rows[search.Rows.Count - 1], search.SelectedRow);
     }
 

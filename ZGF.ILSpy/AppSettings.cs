@@ -190,15 +190,24 @@ public sealed class AppSettings
     }
 
     /// <summary><paramref name="lists"/> without what a hand-edited file can leave in them: missing
-    /// lists, names or assemblies, and blank paths.</summary>
+    /// lists, names or assemblies, and blank paths, picked PDBs among them.</summary>
     private static List<AssemblyListRecord> CleanAssemblyLists(List<AssemblyListRecord>? lists)
     {
         if (lists == null)
             return new List<AssemblyListRecord>();
         return lists
             .Where(static l => l != null && l.Name != null)
-            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed)))
+            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed), CleanPdbs(l.Pdbs)))
             .ToList();
+    }
+
+    private static Dictionary<string, string>? CleanPdbs(Dictionary<string, string>? pdbs)
+    {
+        if (pdbs == null)
+            return null;
+        return pdbs
+            .Where(static p => !string.IsNullOrWhiteSpace(p.Value))
+            .ToDictionary(static p => p.Key, static p => p.Value);
     }
 
     private static List<string> CleanPaths(List<string>? paths)

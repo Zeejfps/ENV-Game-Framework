@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Text;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Tests.Fixtures;
 
@@ -41,6 +42,56 @@ public sealed class DebugSymbolsTests
         Assert.True(symbols.TryGetName(CircleMethod(nameof(Circle.Grow)), 1, out var name));
         Assert.Equal("step", name);
     }
+
+    [Fact]
+    public void A_picked_pdb_is_checked_against_the_build_the_assembly_names()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var test = list.Open(Trees.TestAssemblyPath);
+        var sample = list.Open(Trees.SampleAppPath);
+        var windows = temp.Write("windows.pdb", Encoding.ASCII.GetBytes("Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0"));
+        var text = temp.Write("notes.pdb", "not a pdb");
+
+        Assert.Equal(PdbCheck.Matches, test.CheckPdb(TestPdbPath));
+        Assert.Equal(PdbCheck.OtherBuild, sample.CheckPdb(TestPdbPath));
+        Assert.Equal(PdbCheck.WindowsPdb, test.CheckPdb(windows));
+        Assert.Equal(PdbCheck.Unreadable, test.CheckPdb(text));
+        Assert.Equal(PdbCheck.Unreadable, test.CheckPdb(temp.PathOf("missing.pdb")));
+    }
+
+    [Fact]
+    public void An_assembly_reads_the_pdb_picked_for_it_once_it_is_opened_again()
+    {
+        using var temp = new TempDir();
+        var copy = temp.Copy(Trees.TestAssemblyPath, Path.GetFileName(Trees.TestAssemblyPath));
+        var list = new AssemblyList();
+        var before = list.Open(copy).DebugSymbols;
+
+        list.PickPdb(copy, TestPdbPath);
+        list.Clear();
+        var after = list.Open(copy);
+
+        Assert.Null(before);
+        Assert.Equal(TestPdbPath, after.DebugSymbols!.SourceFileName);
+        Assert.True(after.DebugSymbols.TryGetName(CircleMethod(nameof(Circle.Grow)), 1, out var name));
+        Assert.Equal("step", name);
+        Assert.Contains(after.Root.Children, c => c.Text == "Debug Metadata (From portable PDB)");
+    }
+
+    [Fact]
+    public void Closing_an_assembly_forgets_the_pdb_picked_for_it()
+    {
+        var list = new AssemblyList();
+        var test = list.Open(Trees.TestAssemblyPath);
+        list.PickPdb(test.FilePath, TestPdbPath);
+
+        list.Close(test);
+
+        Assert.Empty(list.PickedPdbs);
+    }
+
+    private static string TestPdbPath => Path.ChangeExtension(Trees.TestAssemblyPath, ".pdb");
 
     private static MethodDefinitionHandle CircleMethod(string name)
     {

@@ -13,6 +13,7 @@ public static class AssemblyLists
     /// saved whole until they are all open. Files that are gone or fail to load stay listed as failed.</summary>
     public static void RestoreActiveAssemblyList(AppState appState)
     {
+        appState.Assemblies.UsePickedPdbs(appState.Lists.ActivePdbs);
         var paths = appState.Lists.ActivePaths.ToList();
         OpenAssembliesAsReload(appState, paths);
     }
@@ -29,19 +30,21 @@ public static class AssemblyLists
         appState.Analyzer.AddPending(appState.Lists.ActiveAnalyses);
     }
 
-    /// <summary>Takes every assembly off the open list before the app starts opening it.</summary>
+    /// <summary>Takes every assembly, and the PDB picked for it, off the open list before the app starts opening it.</summary>
     public static void EmptyActiveAssemblyList(AppState appState)
     {
         appState.Lists.RememberActive([]);
+        appState.Lists.RememberActivePdbs(new Dictionary<string, string>());
     }
 
-    /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
-    /// the list still holds them all.</summary>
+    /// <summary>Records the open assemblies and the PDBs picked for them as the open list's, unless
+    /// they are being reopened, when the list still holds them all.</summary>
     public static void RememberOpenAssemblies(AppState appState)
     {
         if (appState.IsReloading)
             return;
         appState.Lists.RememberActive(appState.Assemblies.FilePaths);
+        appState.Lists.RememberActivePdbs(appState.Assemblies.PickedPdbs);
     }
 
     /// <summary>Records the open assemblies and the analyses as the open list's.</summary>

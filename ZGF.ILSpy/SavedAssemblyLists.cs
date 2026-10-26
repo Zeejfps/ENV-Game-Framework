@@ -3,8 +3,9 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>A named assembly list as the settings keep it: its name, its assemblies' file paths, in
-/// order, and the symbols analyzed in it.</summary>
-public sealed record AssemblyListRecord(string Name, List<string> Assemblies, List<CodeAnchor>? Analyzed = null);
+/// order, the symbols analyzed in it, and the PDBs picked for its assemblies, by assembly path.</summary>
+public sealed record AssemblyListRecord(string Name, List<string> Assemblies, List<CodeAnchor>? Analyzed = null,
+    Dictionary<string, string>? Pdbs = null);
 
 /// <summary>
 /// The user's named assembly lists and which one is open. Names are never empty and never the same
@@ -36,6 +37,9 @@ public sealed class SavedAssemblyLists
     /// <summary>The symbols analyzed in the open list.</summary>
     public IReadOnlyList<CodeAnchor> ActiveAnalyses => _active.Analyzed;
 
+    /// <summary>The PDBs picked for the open list's assemblies, by assembly path.</summary>
+    public IReadOnlyDictionary<string, string> ActivePdbs => _active.Pdbs;
+
     public IReadOnlyList<string> Names => _lists.ConvertAll(static l => l.Name);
 
     public int Count => _lists.Count;
@@ -61,16 +65,32 @@ public sealed class SavedAssemblyLists
         if (Find(name) != null)
             return;
         var analyzed = record.Analyzed ?? new List<CodeAnchor>();
-        _lists.Add(new SavedList(name, record.Assemblies.ToList(), analyzed.ToList()));
+        var pdbs = record.Pdbs ?? new Dictionary<string, string>();
+        _lists.Add(new SavedList(name, record.Assemblies.ToList(), analyzed.ToList(), CopyPdbs(pdbs)));
     }
 
-    private static SavedList CreateEmpty(string name) => new(name, new List<string>(), new List<CodeAnchor>());
+    private static SavedList CreateEmpty(string name) => new(name, new List<string>(), new List<CodeAnchor>(), CreatePdbs());
+
+    private static Dictionary<string, string> CreatePdbs() => new(StringComparer.OrdinalIgnoreCase);
+
+    private static Dictionary<string, string> CopyPdbs(IReadOnlyDictionary<string, string> pdbs)
+    {
+        return new Dictionary<string, string>(pdbs, StringComparer.OrdinalIgnoreCase);
+    }
 
     public List<AssemblyListRecord> Save()
     {
         return _lists
-            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList()))
+            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePdbs(l)))
             .ToList();
+    }
+
+    /// <summary>The list's picked PDBs as the settings keep them; null for none, which leaves them out.</summary>
+    private static Dictionary<string, string>? SavePdbs(SavedList list)
+    {
+        if (list.Pdbs.Count == 0)
+            return null;
+        return new Dictionary<string, string>(list.Pdbs);
     }
 
     public bool Contains(string name) => Find(name) != null;
@@ -117,12 +137,30 @@ public sealed class SavedAssemblyLists
         Revision++;
     }
 
+    /// <summary>Records <paramref name="pdbs"/> as the PDBs picked for the open list's assemblies.</summary>
+    public void RememberActivePdbs(IReadOnlyDictionary<string, string> pdbs)
+    {
+        if (HasPdbs(_active, pdbs))
+            return;
+        _active.Pdbs.Clear();
+        foreach (var (assembly, pdb) in pdbs)
+            _active.Pdbs[assembly] = pdb;
+        Revision++;
+    }
+
+    private static bool HasPdbs(SavedList list, IReadOnlyDictionary<string, string> pdbs)
+    {
+        if (list.Pdbs.Count != pdbs.Count)
+            return false;
+        return pdbs.All(p => list.Pdbs.GetValueOrDefault(p.Key) == p.Value);
+    }
+
     /// <summary>Adds an empty list named <paramref name="name"/>, numbered when that name is taken,
     /// and returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Create(string name)
     {
-        return Add(name, new List<string>(), new List<CodeAnchor>());
+        return Add(name, new List<string>(), new List<CodeAnchor>(), CreatePdbs());
     }
 
     /// <summary>Adds a list of the assemblies at <paramref name="paths"/>, named <paramref name="name"/>
@@ -130,17 +168,27 @@ public sealed class SavedAssemblyLists
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Create(string name, IReadOnlyList<string> paths)
     {
-        return Add(name, paths.ToList(), new List<CodeAnchor>());
+        return Add(name, paths.ToList(), new List<CodeAnchor>(), CreatePdbs());
     }
 
-    /// <summary>Adds a list with the assemblies and analyses of the one named <paramref name="source"/>,
-    /// named <paramref name="name"/> or numbered when that is taken, and returns the name it got.</summary>
+    /// <summary>Adds a list with the assemblies, analyses and picked PDBs of the one named
+    /// <paramref name="source"/>, named <paramref name="name"/> or numbered when that is taken, and
+    /// returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Duplicate(string source, string name)
     {
         var paths = PathsOf(source).ToList();
         var analyzed = AnalysesOf(source).ToList();
-        return Add(name, paths, analyzed);
+        var pdbs = CopyPdbs(PdbsOf(source));
+        return Add(name, paths, analyzed, pdbs);
+    }
+
+    private IReadOnlyDictionary<string, string> PdbsOf(string name)
+    {
+        var list = Find(name);
+        if (list == null)
+            return new Dictionary<string, string>();
+        return list.Pdbs;
     }
 
     private IReadOnlyList<CodeAnchor> AnalysesOf(string name)
@@ -151,11 +199,11 @@ public sealed class SavedAssemblyLists
         return list.Analyzed;
     }
 
-    private string Add(string name, List<string> paths, List<CodeAnchor> analyzed)
+    private string Add(string name, List<string> paths, List<CodeAnchor> analyzed, Dictionary<string, string> pdbs)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var unique = MakeUnique(name.Trim());
-        _lists.Add(new SavedList(unique, paths, analyzed));
+        _lists.Add(new SavedList(unique, paths, analyzed, pdbs));
         Revision++;
         return unique;
     }
@@ -234,10 +282,11 @@ public sealed class SavedAssemblyLists
         return _lists.Find(l => string.Equals(l.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed)
+    private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed, Dictionary<string, string> pdbs)
     {
         public string Name = name;
         public List<string> Paths { get; } = paths;
         public List<CodeAnchor> Analyzed { get; } = analyzed;
+        public Dictionary<string, string> Pdbs { get; } = pdbs;
     }
 }
