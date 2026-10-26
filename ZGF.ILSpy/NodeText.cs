@@ -27,8 +27,9 @@ public static class NodeText
     public static string Tooltip(BrowseNode node) => Tooltips.GetValue(node, Describe);
 
     /// <summary>What a row shows after the node's name in muted text: an assembly's version and
-    /// target framework, e.g. <c>10.0.0.0 · net10.0</c>, or the assembly a forwarded type is forwarded
-    /// to, e.g. <c>→ System.Runtime</c>. Null for other nodes.</summary>
+    /// target framework, e.g. <c>10.0.0.0 · net10.0</c>, the framework left to <see cref="PickedFramework"/>
+    /// when one was picked, or the assembly a forwarded type is forwarded to, e.g. <c>→ System.Runtime</c>.
+    /// Null for other nodes.</summary>
     public static string? Secondary(BrowseNode node)
     {
         if (node.Kind == NodeKind.ForwardedType)
@@ -42,6 +43,18 @@ public static class NodeText
     }
 
     private static string WriteForwardedTo(BrowseNode node) => ForwardedToPrefix + node.ForwardedTo;
+
+    /// <summary>The framework picked for an assembly to resolve its references against, as a moniker,
+    /// which its row shows bold after <see cref="Secondary"/>; null for any other node, and for an
+    /// assembly that resolves against the framework it was built for.</summary>
+    public static string? PickedFramework(BrowseNode node)
+    {
+        if (node.Kind != NodeKind.Assembly)
+            return null;
+        if (!node.Assembly.IsTargetFrameworkPicked)
+            return null;
+        return node.Assembly.FrameworkMoniker;
+    }
 
     /// <summary>An assembly as a column of results names it: its name and version, and for one read out
     /// of a package, the folder holding it there, e.g. <c>Newtonsoft.Json (13.0.0.0) · lib/net6.0</c>.</summary>
@@ -72,8 +85,17 @@ public static class NodeText
 
     private static string WriteDecimalToken(BrowseNode node) => TokenPrefix + node.Token!.Value.ToString(CultureInfo.InvariantCulture);
 
-    private static string Identity(LoadedAssembly assembly) =>
-        string.Join(Separator, new[] { assembly.Version?.ToString(), assembly.FrameworkMoniker }.OfType<string>());
+    /// <summary>An assembly's version and framework; with a picked framework, which its row shows bold
+    /// on its own, the version and the separator before it.</summary>
+    private static string Identity(LoadedAssembly assembly)
+    {
+        var version = assembly.Version?.ToString();
+        if (!assembly.IsTargetFrameworkPicked)
+            return string.Join(Separator, new[] { version, assembly.FrameworkMoniker }.OfType<string>());
+        if (version == null)
+            return "";
+        return version + Separator.TrimEnd();
+    }
 
     private static string Describe(BrowseNode node)
     {

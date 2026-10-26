@@ -128,6 +128,9 @@ public static partial class UiWidgets
                         color: content.LabelColor != 0 ? content.LabelColor : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
                     if (content.Secondary != null)
                         ui.Text(content.Secondary, color: theme.TextMuted, overflow: TextOverflow.Ellipsis);
+                    if (content.SecondaryBold != null)
+                        ui.Text(content.SecondaryBold, new Box { Width = Sizing.Fit() with { Priority = 1 } }, color: theme.TextMuted, bold: true,
+                            overflow: TextOverflow.Ellipsis);
                 }
                 if (content.Tooltip != null)
                     ui.Tooltip(rowId, content.Tooltip);

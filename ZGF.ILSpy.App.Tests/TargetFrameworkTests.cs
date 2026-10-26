@@ -1,3 +1,4 @@
+using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.AssemblyLists;
@@ -37,7 +38,9 @@ public sealed class TargetFrameworkTests
         var assembly = FixturesOf(app.AppState);
         Assert.True(assembly.IsTargetFrameworkPicked);
         Assert.Equal(Net48, assembly.TargetFramework);
-        Assert.Contains("net48", NodeText.Secondary(assembly.Root));
+        Assert.Equal("net48", NodeText.PickedFramework(assembly.Root));
+        Assert.DoesNotContain("net48", NodeText.Secondary(assembly.Root));
+        Assert.Equal(FontWeight.Bold, app.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "net48").Inputs.Style.FontWeight.Value);
         Assert.Equal(Net48, Assert.Single(temp.Settings().AssemblyLists).Frameworks![AppStateDriver.FixturePath]);
     }
 
@@ -54,6 +57,8 @@ public sealed class TargetFrameworkTests
         var assembly = FixturesOf(app.AppState);
         Assert.False(assembly.IsTargetFrameworkPicked);
         Assert.Equal(assembly.DetectedTargetFramework, assembly.TargetFramework);
+        Assert.Null(NodeText.PickedFramework(assembly.Root));
+        Assert.Contains(detected, NodeText.Secondary(assembly.Root));
         Assert.Empty(app.AppState.Assemblies.TargetFrameworks.All);
     }
 

@@ -203,7 +203,8 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         NodeIcons.Icon(node.Kind, node.Accessibility, _iconColors, _icons),
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
         Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
-        Secondary: SecondaryOf(node));
+        Secondary: SecondaryOf(node),
+        SecondaryBold: NodeText.PickedFramework(node));
 
     /// <summary>The node's metadata token when the tree shows tokens and it has one, else what
     /// <see cref="NodeText.Secondary"/> adds.</summary>

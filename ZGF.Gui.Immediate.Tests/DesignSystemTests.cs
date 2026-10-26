@@ -490,4 +490,33 @@ public sealed class TreeRowSlotTests
         Assert.True(frames.Drew("L"));
         Assert.Contains(frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("C:/") && t.Inputs.Text.EndsWith('\u2026'));
     }
+
+    [Fact]
+    public void The_bold_part_of_the_secondary_text_is_drawn_bold_after_the_rest()
+    {
+        var model = new Flat(new TreeRow("System.Runtime", Secondary: "10.0.0.0 ·", SecondaryBold: "net48"));
+        var state = new TreeViewState<string>(StringComparer.Ordinal);
+        string[] roots = ["root"];
+
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 400f).Frame(2);
+
+        var plain = frames.Canvas.Texts.Single(t => t.Inputs.Text == "10.0.0.0 ·");
+        var bold = frames.Canvas.Texts.Single(t => t.Inputs.Text == "net48");
+        Assert.Equal(FontWeight.Bold, bold.Inputs.Style.FontWeight.Value);
+        Assert.NotEqual(FontWeight.Bold, plain.Inputs.Style.FontWeight.Value);
+        Assert.True(frames.TextRect("net48").X > frames.TextRect("10.0.0.0 ·").Right);
+    }
+
+    [Fact]
+    public void A_narrow_row_cuts_the_plain_secondary_text_before_its_bold_part()
+    {
+        var model = new Flat(new TreeRow("System.Runtime", Secondary: "10.0.0.0 · version text", SecondaryBold: "net48"));
+        var state = new TreeViewState<string>(StringComparer.Ordinal);
+        string[] roots = ["root"];
+
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 240f).Frame(2);
+
+        Assert.True(frames.Drew("net48"));
+        Assert.Contains(frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("10.") && t.Inputs.Text.EndsWith('…'));
+    }
 }
