@@ -88,15 +88,18 @@ public static class MainView
     {
         var t = ui.State.Strings;
         DockTabMenu? tabMenu;
+        string? doubleClicked;
         using (var dock = ui.DockSpace("dock", ui.State.Layout, (ui.State, appState, t), static (s, panel) => Tab(s.State, s.appState, s.t, panel),
                    tabListTooltip: t.DockAllTabs))
         {
             while (dock.Next(out var panel))
                 Panel(ui, appState, panel);
             tabMenu = dock.TabMenu;
+            doubleClicked = dock.TabDoubleClicked;
         }
         TabMenuView.OpenOnRightClick(ui, tabMenu);
-        TabMenuView.Render(ui);
+        TabMenuView.Render(ui, appState);
+        TabMenuView.KeepOpenOnDoubleClick(ui, appState, doubleClicked);
     }
 
     private static DockTab Tab(UiState screen, AppState appState, Strings t, string panel)

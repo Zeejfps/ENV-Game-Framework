@@ -16,6 +16,9 @@ public readonly record struct TabResult(bool Selected, bool Closed)
     /// <summary>The tab was right-clicked: the cue to open its context menu at <see cref="ContextMenuAt"/>.</summary>
     public bool ContextMenuRequested { get; init; }
 
+    /// <summary>The tab was double-clicked.</summary>
+    public bool DoubleClicked { get; init; }
+
     /// <summary>Where the pointer was when <see cref="ContextMenuRequested"/>.</summary>
     public PointF ContextMenuAt { get; init; }
 }
@@ -53,11 +56,12 @@ public readonly struct TabStrip : IDisposable
     /// close button; Enter or Space selects or closes. A selected tab that is not
     /// <paramref name="current"/> is marked in a muted color instead of the accent. A tab picked
     /// from the strip's tab list returns <see cref="TabResult.Selected"/> on the next frame.
-    /// <paramref name="icon"/>, when given, sits before the label.</summary>
+    /// <paramref name="icon"/>, when given, sits before the label, which is drawn in the font
+    /// <paramref name="font"/> names, else the theme's.</summary>
     public TabResult Tab(string label, bool selected, bool closable = true, string? id = null, string? tooltip = null, bool draggable = false,
-        bool current = true, UiIcon? icon = null)
+        bool current = true, UiIcon? icon = null, string? font = null)
     {
-        var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current, icon);
+        var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current, icon, font);
         _list.Add(new ListedTab(tab.Id, label, selected, icon));
         if (tab.Id != _picked)
             return tab;
@@ -205,7 +209,7 @@ public static partial class UiWidgets
     }
 
     internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current,
-        UiIcon? icon)
+        UiIcon? icon, string? font)
     {
         var theme = ui.Theme;
         var tab = Pressable(ui, ui.GetId(id ?? label), true, out var picked, out var tabRing, hand: false);
@@ -238,7 +242,7 @@ public static partial class UiWidgets
             if (tabRing) FocusRing(ui, 0f);
             if (icon != null)
                 ui.Icon(icon.Value);
-            ui.Text(label, color: selected ? theme.Text : theme.TextMuted, overflow: TextOverflow.Ellipsis);
+            ui.Text(label, color: selected ? theme.Text : theme.TextMuted, family: font, overflow: TextOverflow.Ellipsis);
             if (closable)
             {
                 ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
@@ -255,6 +259,7 @@ public static partial class UiWidgets
             Dragged = draggable && ui.ShouldBeginDrag(tab),
             ContextMenuRequested = tab.ClickedWith(PointerButton.Right),
             ContextMenuAt = ui.Input.Pointer,
+            DoubleClicked = tab.DoubleClicked,
         };
     }
 }

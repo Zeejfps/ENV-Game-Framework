@@ -11,9 +11,9 @@ namespace ZGF.Gui.Immediate.Widgets;
 /// group, cannot be dragged, and takes other panels only beside it, not as tabs. A panel in front
 /// of its group that is not <see cref="Current"/> — a document other than the one the app is
 /// working in — marks its tab dimmer than one that is. <see cref="Icon"/>, when given, sits before
-/// the title.</summary>
+/// the title, which is drawn in the font <see cref="TitleFont"/> names, else the theme's.</summary>
 public readonly record struct DockTab(string Title, bool Closable = true, bool Movable = true, string? Tooltip = null, bool Current = true,
-    UiIcon? Icon = null);
+    UiIcon? Icon = null, string? TitleFont = null);
 
 /// <summary>A tab right-clicked in a <see cref="UiWidgets.DockSpace"/>: its panel, and where to open
 /// its context menu.</summary>
@@ -30,6 +30,10 @@ public readonly struct DockSpace : IDisposable
     /// <summary>The tab right-clicked this frame, known once <see cref="Next"/> returned false; null
     /// when none was.</summary>
     public DockTabMenu? TabMenu => _walker?.TabMenu;
+
+    /// <summary>The panel whose tab was double-clicked this frame, known once <see cref="Next"/>
+    /// returned false; null when none was.</summary>
+    public string? TabDoubleClicked => _walker?.TabDoubleClicked;
 
     /// <summary>Records the dock space up to the next panel in view and names it: record that
     /// panel's content, then call again. Content is recorded in a <see cref="Ui.StateScope"/> named
@@ -57,7 +61,7 @@ public static partial class UiWidgets
     /// its title bar to dock it the same way, or to move it while Ctrl is held, and its edges to
     /// resize it; and drags dividers. Pressing a group focuses its front panel
     /// (<see cref="DockLayout.Focused"/>). A tab right-clicked is named by <see cref="DockSpace.TabMenu"/>
-    /// for the caller's context menu. Every change is written to <paramref name="layout"/> when
+    /// for the caller's context menu, and one double-clicked by <see cref="DockSpace.TabDoubleClicked"/>. Every change is written to <paramref name="layout"/> when
     /// the scope ends. Escape cancels a drag. <paramref name="tabListTooltip"/> names the button
     /// that lists a group's tabs while they overflow.
     /// </summary>
@@ -161,6 +165,8 @@ internal sealed class DockWalker
 
     public DockTabMenu? TabMenu { get; private set; }
 
+    public string? TabDoubleClicked { get; private set; }
+
     public IDockTabs Tabs<TState>(TState state, Func<TState, string, DockTab> name)
     {
         if (_source is not DockTabs<TState> tabs)
@@ -185,6 +191,7 @@ internal sealed class DockWalker
         _closedWindows.Clear();
         _preview = _caret = null;
         TabMenu = null;
+        TabDoubleClicked = null;
         _nextWindow = -1;
         _open = true;
 
@@ -416,7 +423,8 @@ internal sealed class DockWalker
                 {
                     var panel = group.Panels[i];
                     var info = _tab.Tab(panel);
-                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable, info.Current, info.Icon);
+                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable, info.Current, info.Icon,
+                        info.TitleFont);
                     _tabs.Add(tab.Id);
                     if (tab.Selected)
                     {
@@ -429,6 +437,8 @@ internal sealed class DockWalker
                         BeginPanelDrag(panel, elementId, tab.Id);
                     if (tab.ContextMenuRequested)
                         TabMenu = new DockTabMenu(panel, tab.ContextMenuAt);
+                    if (tab.DoubleClicked)
+                        TabDoubleClicked = panel;
                 }
             }
         }

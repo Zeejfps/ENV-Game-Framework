@@ -134,13 +134,31 @@ internal static class TreePaneView
         var node = result.Node;
         if (node == null)
             return;
+        if (IsPicked(result))
+            Preview(appState, node);
         if (result.Activated)
             Open(appState, node);
         if (result.ContextMenuRequested)
             OpenContextMenu(ui, appState, node, result.ContextMenuAt);
     }
 
-    /// <summary>Goes where <paramref name="node"/> points when it stands for a reference, else shows it in the active tab.</summary>
+    /// <summary>Whether the user picked the node, rather than pressed it for its menu.</summary>
+    private static bool IsPicked(TreeViewResult<BrowseNode> result)
+    {
+        if (!result.SelectionChanged)
+            return false;
+        return !result.ContextMenuRequested;
+    }
+
+    /// <summary>Shows <paramref name="node"/>, just picked, in the preview tab while tabs preview.</summary>
+    private static void Preview(AppState appState, BrowseNode node)
+    {
+        if (!appState.PreviewTabs)
+            return;
+        PreviewNode(appState, node);
+    }
+
+    /// <summary>Goes where <paramref name="node"/> points when it stands for a reference, else opens it in a tab kept open.</summary>
     private static void Open(AppState appState, BrowseNode node)
     {
         if (node.Target != null)
@@ -148,7 +166,7 @@ internal static class TreePaneView
             GoToTarget(appState, node);
             return;
         }
-        ShowNode(appState, node);
+        OpenNode(appState, node);
     }
 
     private static void OpenContextMenu(Ui<UiState> ui, AppState appState, BrowseNode node, PointF at)
@@ -174,7 +192,7 @@ internal static class TreePaneView
         var pointsElsewhere = node.Target != null;
         var openKey = pointsElsewhere ? null : OpenKey;
         if (ui.MenuItem(t.TreeOpen, openKey, id: "open"))
-            ShowNode(appState, node);
+            OpenNode(appState, node);
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
             ShowNode(appState, node, inNewTab: true);
         if (pointsElsewhere && ui.MenuItem(t.TreeGoToTarget, OpenKey, id: "go-to-target"))

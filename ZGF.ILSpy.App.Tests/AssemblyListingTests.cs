@@ -383,9 +383,10 @@ public sealed class AssemblyListingTests
     }
 
     [Fact]
-    public void Clicking_a_node_selects_it_and_double_clicking_opens_it()
+    public void Without_preview_tabs_clicking_a_node_selects_it_and_double_clicking_opens_it_in_the_active_tab()
     {
         var app = AppDriver.Opened();
+        app.Driver.TurnOffPreviewTabs();
         var greeter = app.Fixture("Greeter");
         var farewell = app.Fixture("Farewell");
         app.Show(greeter, 2);

@@ -57,17 +57,17 @@ public static class Bookmarks
     public static async void GoToBookmark(AppState appState, Bookmark bookmark)
     {
         var ticket = appState.Intent.Begin();
-        var tab = appState.Tabs.Active;
+        var destination = ChooseDestination(appState, inNewTab: false);
         var place = bookmark.Place;
         appState.Intent.StartResolving(ticket);
         var found = await Background.Run(() => appState.Assemblies.FindNode(place));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
-        ShowBookmarkPlace(appState, bookmark, found, tab);
+        ShowBookmarkPlace(appState, bookmark, found, destination);
     }
 
-    private static void ShowBookmarkPlace(AppState appState, Bookmark bookmark, Outcome<BrowseNode?> found, DocumentTab? tab)
+    private static void ShowBookmarkPlace(AppState appState, Bookmark bookmark, Outcome<BrowseNode?> found, TabDestination destination)
     {
         var node = found.Value;
         if (node == null)
@@ -78,7 +78,7 @@ public static class Bookmarks
             return;
         }
         LeaveActiveTab(appState);
-        ShowNodeIn(appState, appState.Tabs.KeepIfOpen(tab), node, target: bookmark);
+        ShowNodeIn(appState, destination, node, target: bookmark);
         appState.History.Push(node, appState.Language);
     }
 

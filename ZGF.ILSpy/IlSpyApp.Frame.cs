@@ -2,6 +2,7 @@ using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.Appearance;
 using static ZGF.ILSpy.DocumentPanels;
+using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.IconTheming;
 using static ZGF.ILSpy.ScreenSettings;
 using static ZGF.ILSpy.Theming;
@@ -32,6 +33,7 @@ public sealed partial class IlSpyApp
         ApplyThemeAndLanguage(uiState, ResolveTheme(appState), appState.Locale);
         ApplyIconTheme(uiState, ResolveIconTheme(appState));
         SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ApiVisibility);
+        UsePreviewTabs(appState, uiState.Display.PreviewTabs);
         SyncTabViews(uiState, appState.Tabs);
         FollowActiveTab(uiState, appState.Tabs.Active);
         FocusNextTabIfNone(uiState, appState.Tabs);

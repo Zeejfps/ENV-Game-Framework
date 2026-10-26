@@ -15,7 +15,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   them on Windows only, so elsewhere the picker offers just the bundled font).
 - **Tree:** nested-namespace view.
 - **Metadata explorer:** decoded blob signatures in tooltips.
-- **Navigation:** preview tabs, omnibar (breadcrumb + search).
+- **Navigation:** omnibar (breadcrumb + search).
 
 ## Smaller
 

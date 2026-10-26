@@ -66,6 +66,9 @@ public sealed class AppState
     public string IconTheme;
     public ApiVisibility ApiVisibility;
 
+    /// <summary>Whether what is picked and followed shows in the preview tab rather than the active tab.</summary>
+    public bool PreviewTabs = true;
+
     /// <summary>The interface language.</summary>
     public Locale Locale;
 

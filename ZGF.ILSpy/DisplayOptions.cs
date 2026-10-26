@@ -6,7 +6,8 @@ namespace ZGF.ILSpy;
 /// keeps the system's title bar, with the menus in a bar of their own, rather than the menus drawn in
 /// the title bar where the platform allows; how the documents draw code: its font, null for the bundled
 /// one, its size, null for the theme's, and the aids drawn around it; and how the tree writes metadata
-/// tokens and whether it lists metadata tables with no rows.</summary>
+/// tokens and whether it lists metadata tables with no rows; and whether what is picked shows in a
+/// preview tab.</summary>
 public sealed record DisplayOptions(
     float? FontSize = null,
     bool ShowLineNumbers = true,
@@ -16,7 +17,8 @@ public sealed record DisplayOptions(
     CodeFont? Font = null,
     TokenFormat TreeTokens = TokenFormat.Hidden,
     bool ShowEmptyMetadataTables = false,
-    bool SystemTitleBar = false)
+    bool SystemTitleBar = false,
+    bool PreviewTabs = true)
 {
     public const float MinFontSize = 8f;
     public const float MaxFontSize = 32f;

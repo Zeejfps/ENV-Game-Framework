@@ -107,7 +107,16 @@ internal static class DocumentsView
         var title = TitleOf(screen, tab);
         var tooltip = tab.Tooltip ?? title;
         var icon = IconOf(screen, tab);
-        return new DockTab(title, Tooltip: tooltip, Current: tab == appState.Tabs.Active, Icon: icon);
+        var font = TitleFontOf(appState, tab);
+        return new DockTab(title, Tooltip: tooltip, Current: tab == appState.Tabs.Active, Icon: icon, TitleFont: font);
+    }
+
+    /// <summary>Italics for the preview tab's title, the theme's font for any other.</summary>
+    private static string? TitleFontOf(AppState appState, DocumentTab tab)
+    {
+        if (tab != appState.Tabs.Preview)
+            return null;
+        return TextFonts.Italic;
     }
 
     /// <summary>The tab's icon: its node's as the tree shows it, else a page.</summary>

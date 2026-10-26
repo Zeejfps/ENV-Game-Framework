@@ -76,6 +76,7 @@ public sealed class SplitDocumentTests
         var d = app.Driver;
         var layout = d.Ui.Layout;
         layout.Close(DockPanels.Assemblies);
+        d.TurnOffPreviewTabs();
         d.Show(d.Fixture("Outline"));
         var left = d.AppState.Tabs.Active!;
         d.Show(d.Fixture("Outline"), inNewTab: true);

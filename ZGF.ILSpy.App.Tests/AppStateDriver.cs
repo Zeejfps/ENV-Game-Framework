@@ -179,6 +179,14 @@ internal sealed class AppStateDriver
     /// <summary>Pumps until <paramref name="done"/>.</summary>
     public void RunUntil(Func<bool> done) => Poll.Until(done, Pump);
 
+    /// <summary>Has what is picked and followed shown in the active tab, as the display option does.</summary>
+    public void TurnOffPreviewTabs()
+    {
+        if (_ui != null)
+            _ui.Display = _ui.Display with { PreviewTabs = false };
+        Navigation.UsePreviewTabs(AppState, false);
+    }
+
     /// <summary>Pumps until no background work the app state knows of is left.</summary>
     public void Settle() => RunUntil(IsSettled);
 

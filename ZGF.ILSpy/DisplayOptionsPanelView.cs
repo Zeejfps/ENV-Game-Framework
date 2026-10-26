@@ -13,7 +13,7 @@ namespace ZGF.ILSpy;
 
 /// <summary>How the app is drawn, as settings cards: the interface's theme, icon theme, scale, language and title bar, then the
 /// code's font size and switches for line numbers, the current line's highlight and matching brackets,
-/// then how the tree writes metadata tokens and whether it lists empty metadata tables. Each option is a row of its card, named on the left, with its control at the right. Every change
+/// then how the tree writes metadata tokens, whether it lists empty metadata tables and whether what it picks shows in a preview tab. Each option is a row of its card, named on the left, with its control at the right. Every change
 /// shows at once; an option changed from its default has a bold name.</summary>
 internal static class DisplayOptionsPanelView
 {
@@ -418,6 +418,11 @@ internal static class DisplayOptionsPanelView
         var emptyTables = display.ShowEmptyMetadataTables;
         if (SwitchRow(ui, t.DisplayOptionsEmptyTables, ref emptyTables, "empty-tables", emptyTables != defaults.ShowEmptyMetadataTables))
             SetDisplayOptions(ui.State, display with { ShowEmptyMetadataTables = emptyTables });
+        ui.Separator();
+
+        var previewTabs = display.PreviewTabs;
+        if (SwitchRow(ui, t.DisplayOptionsPreviewTabs, ref previewTabs, "preview-tabs", previewTabs != defaults.PreviewTabs))
+            SetDisplayOptions(ui.State, display with { PreviewTabs = previewTabs });
     }
 
     private static void TokenFormatPicker(Ui<UiState> ui)

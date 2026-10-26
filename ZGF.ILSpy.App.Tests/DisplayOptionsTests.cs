@@ -268,6 +268,23 @@ public sealed class DisplayOptionsTests
     }
 
     [Fact]
+    public void Switching_preview_tabs_off_in_the_panel_keeps_the_preview_tab_open_and_shows_picks_in_the_active_tab()
+    {
+        var app = AppDriver.Opened(width: 1600f, height: TallWindow);
+        var shown = app.AppState.Tabs.Preview;
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+
+        app.Click("Preview tabs").Frame(2);
+
+        Assert.NotNull(shown);
+        Assert.False(app.Ui.Display.PreviewTabs);
+        Assert.False(app.AppState.PreviewTabs);
+        Assert.Null(app.AppState.Tabs.Preview);
+        Assert.True(IsBold(app, "Preview tabs"));
+    }
+
+    [Fact]
     public void The_theme_is_picked_from_the_panel_and_draws_the_window()
     {
         var app = AppDriver.Opened(width: 1600f);

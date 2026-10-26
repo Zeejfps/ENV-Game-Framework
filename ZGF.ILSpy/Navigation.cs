@@ -10,17 +10,80 @@ namespace ZGF.ILSpy;
 /// forward through the history.</summary>
 public static class Navigation
 {
-    /// <summary>Shows <paramref name="node"/> in the active tab, or a new one, reveals it in the tree
-    /// and records it in the history.</summary>
+    /// <summary>Shows <paramref name="node"/> in the preview tab, or the active tab while tabs do not
+    /// preview, or else a new tab kept open, reveals it in the tree and records it in the history.</summary>
     public static void ShowNode(AppState appState, BrowseNode node, bool inNewTab = false)
     {
         if (node.Kind == NodeKind.Loading)
             return;
         appState.Intent.Begin();
         LeaveActiveTab(appState);
-        var tab = inNewTab ? null : appState.Tabs.Active;
-        ShowNodeIn(appState, tab, node);
+        ShowNodeIn(appState, ChooseDestination(appState, inNewTab), node);
         appState.History.Push(node, appState.Language);
+    }
+
+    /// <summary>Shows <paramref name="node"/>, picked in the tree, as <see cref="ShowNode"/> does, unless
+    /// a tab shows it already, which is brought to the front instead.</summary>
+    public static void PreviewNode(AppState appState, BrowseNode node)
+    {
+        var showing = FindTabShowing(appState, node);
+        if (showing == null)
+        {
+            ShowNode(appState, node);
+            return;
+        }
+        appState.Tabs.MakeActive(showing);
+        appState.EnqueueCommand(new ViewCommand.ShowTab(showing, Beside: null));
+    }
+
+    /// <summary>The tab showing <paramref name="node"/>, the active one first; null when none does.</summary>
+    private static DocumentTab? FindTabShowing(AppState appState, BrowseNode node)
+    {
+        var active = appState.Tabs.Active;
+        if (active != null && active.Node == node)
+            return active;
+        foreach (var tab in appState.Tabs)
+        {
+            if (tab.Node == node)
+                return tab;
+        }
+        return null;
+    }
+
+    /// <summary>Shows <paramref name="node"/>, opened from the tree, as <see cref="PreviewNode"/> does and
+    /// keeps the tab showing it open; while tabs do not preview, as <see cref="ShowNode"/> does.</summary>
+    public static void OpenNode(AppState appState, BrowseNode node)
+    {
+        if (!appState.PreviewTabs)
+        {
+            ShowNode(appState, node);
+            return;
+        }
+        PreviewNode(appState, node);
+        KeepActiveTabOpen(appState);
+    }
+
+    private static void KeepActiveTabOpen(AppState appState)
+    {
+        var active = appState.Tabs.Active;
+        if (active == null)
+            return;
+        KeepTabOpen(appState, active);
+    }
+
+    /// <summary>Keeps <paramref name="tab"/> open, so that what is picked next shows in another tab.</summary>
+    public static void KeepTabOpen(AppState appState, DocumentTab tab) => appState.Tabs.Keep(tab);
+
+    /// <summary>Has what is picked and followed shown in the preview tab, or, when <paramref name="on"/>
+    /// is false, in the active tab, the preview tab then kept open as any other.</summary>
+    public static void UsePreviewTabs(AppState appState, bool on)
+    {
+        appState.PreviewTabs = on;
+        if (on)
+            return;
+        var preview = appState.Tabs.Preview;
+        if (preview != null)
+            appState.Tabs.Keep(preview);
     }
 
     /// <summary>Opens the files at <paramref name="paths"/> in the background, then shows the namespace,
@@ -81,16 +144,16 @@ public static class Navigation
         if (!reference.IsNavigable)
             return;
         var ticket = appState.Intent.Begin();
-        var origin = inNewTab ? null : appState.Tabs.Active;
+        var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
         var found = await Background.Run(() => appState.Assemblies.FindNode(reference));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
-        ShowResolved(appState, reference, found, origin);
+        ShowResolved(appState, reference, found, destination);
     }
 
-    private static void ShowResolved(AppState appState, CodeReference reference, Outcome<BrowseNode?> found, DocumentTab? origin)
+    private static void ShowResolved(AppState appState, CodeReference reference, Outcome<BrowseNode?> found, TabDestination destination)
     {
         var node = found.Value;
         if (node == null)
@@ -99,17 +162,16 @@ public static class Navigation
             return;
         }
         LeaveActiveTab(appState);
-        ShowNodeIn(appState, appState.Tabs.KeepIfOpen(origin), node);
+        ShowNodeIn(appState, destination, node);
         appState.History.Push(node, appState.Language);
     }
 
-    /// <summary>Shows the table row a metadata token leads to in the active tab, or a new one, and
-    /// records it in the history.</summary>
+    /// <summary>Shows the table row a metadata token leads to where <see cref="ShowNode"/> shows a
+    /// node, and records it in the history.</summary>
     public static void ShowMetadataTarget(AppState appState, MetadataTarget target, bool inNewTab)
     {
         appState.Intent.Begin();
-        var tab = inNewTab ? null : appState.Tabs.Active;
-        ShowRowIn(appState, tab, target);
+        ShowRowIn(appState, ChooseDestination(appState, inNewTab), target);
     }
 
     /// <summary>Resolves <paramref name="reference"/> in the background, as <see cref="Navigate"/> does,
@@ -119,16 +181,16 @@ public static class Navigation
         if (!reference.IsNavigable)
             return;
         var ticket = appState.Intent.Begin();
-        var origin = inNewTab ? null : appState.Tabs.Active;
+        var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
         var found = await Background.Run(() => appState.Assemblies.FindMetadataRow(reference));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
-        ShowResolvedRow(appState, reference, found, origin);
+        ShowResolvedRow(appState, reference, found, destination);
     }
 
-    private static void ShowResolvedRow(AppState appState, CodeReference reference, Outcome<MetadataTarget?> found, DocumentTab? origin)
+    private static void ShowResolvedRow(AppState appState, CodeReference reference, Outcome<MetadataTarget?> found, TabDestination destination)
     {
         var target = found.Value;
         if (target == null)
@@ -136,13 +198,13 @@ public static class Navigation
             ReportUnresolvedReference(appState, reference, found.Error);
             return;
         }
-        ShowRowIn(appState, appState.Tabs.KeepIfOpen(origin), target.Value);
+        ShowRowIn(appState, destination, target.Value);
     }
 
-    private static void ShowRowIn(AppState appState, DocumentTab? tab, MetadataTarget target)
+    private static void ShowRowIn(AppState appState, TabDestination destination, MetadataTarget target)
     {
         LeaveActiveTab(appState);
-        ShowNodeIn(appState, tab, target.Node, row: target.Row);
+        ShowNodeIn(appState, destination, target.Node, row: target.Row);
         appState.History.Push(target.Node, appState.Language);
     }
 
@@ -202,13 +264,13 @@ public static class Navigation
     private static async void Restore(AppState appState, HistoryEntry entry)
     {
         var ticket = appState.Intent.Begin();
-        var tab = appState.Tabs.Active;
+        var destination = ChooseDestination(appState, inNewTab: false);
         var place = entry.Place;
         var position = entry.Language == appState.Language ? entry.Position : null;
-        var shown = FindShownNode(appState, tab, place);
+        var shown = FindShownNode(appState, FindTab(appState, destination), place);
         if (shown != null)
         {
-            ShowNodeIn(appState, tab, shown, position);
+            ShowNodeIn(appState, destination, shown, position);
             return;
         }
         appState.Intent.StartResolving(ticket);
@@ -216,7 +278,7 @@ public static class Navigation
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
-        ShowHistoryPlace(appState, place, position, found, tab);
+        ShowHistoryPlace(appState, place, position, found, destination);
     }
 
     private static BrowseNode? FindShownNode(AppState appState, DocumentTab? tab, NodePath place)
@@ -233,7 +295,8 @@ public static class Navigation
         return node;
     }
 
-    private static void ShowHistoryPlace(AppState appState, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found, DocumentTab? tab)
+    private static void ShowHistoryPlace(AppState appState, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found,
+        TabDestination destination)
     {
         var node = found.Value;
         if (node == null)
@@ -243,7 +306,7 @@ public static class Navigation
             appState.ReportError(t.ErrorGoBack(place.Text), details);
             return;
         }
-        ShowNodeIn(appState, appState.Tabs.KeepIfOpen(tab), node, position);
+        ShowNodeIn(appState, destination, node, position);
     }
 
     internal static void ReportUnresolvedReference(AppState appState, CodeReference reference, Exception? error)
@@ -276,28 +339,75 @@ public static class Navigation
         return current.Value.Place.Equals(place);
     }
 
-    /// <summary>Shows <paramref name="node"/> in <paramref name="tab"/>, or a new tab when null, makes
+    /// <summary>Where what is asked for now from the active tab will show, in a new tab when
+    /// <paramref name="inNewTab"/>.</summary>
+    internal static TabDestination ChooseDestination(AppState appState, bool inNewTab) => new(appState.Tabs.Active, inNewTab);
+
+    /// <summary>Shows <paramref name="node"/> in the tab <paramref name="destination"/> leads to now, makes
     /// that tab active, and commands the view to bring it to the front and reveal the node in the tree.</summary>
     internal static void ShowNodeIn(
         AppState appState,
-        DocumentTab? tab,
+        TabDestination destination,
         BrowseNode node,
         CodeViewPosition? position = null,
         Bookmark? target = null,
         int row = MetadataGridState.None)
     {
-        var shownIn = ActivateOrOpenTab(appState, tab);
+        var shownIn = FindOrOpenTab(appState, destination);
         appState.Tabs.MakeActive(shownIn);
         LoadIntoTab(appState, shownIn, node, new Arrival(position, target, row));
         appState.EnqueueCommand(new ViewCommand.RevealNode(node));
     }
 
-    private static DocumentTab ActivateOrOpenTab(AppState appState, DocumentTab? tab)
+    /// <summary>The tab <paramref name="destination"/> leads to now, brought to the front, else a new one
+    /// opened; made the preview tab when it shows what tabs preview.</summary>
+    private static DocumentTab FindOrOpenTab(AppState appState, TabDestination destination)
     {
+        var tab = FindTab(appState, destination);
         if (tab == null)
-            return OpenNewTab(appState);
-        appState.EnqueueCommand(new ViewCommand.ShowTab(tab, Beside: null));
+            tab = OpenNewTab(appState);
+        else
+            appState.EnqueueCommand(new ViewCommand.ShowTab(tab, Beside: null));
+        if (IsPreviewed(appState, destination))
+            appState.Tabs.MakePreview(tab);
         return tab;
+    }
+
+    /// <summary>The open tab <paramref name="destination"/> leads to now; null when it calls for a new one.</summary>
+    private static DocumentTab? FindTab(AppState appState, TabDestination destination)
+    {
+        if (destination.InNewTab)
+            return null;
+        if (appState.PreviewTabs)
+            return FindPreviewTab(appState);
+        return appState.Tabs.KeepIfOpen(destination.Origin);
+    }
+
+    /// <summary>The active tab while it shows nothing, as a tab just opened, else the preview tab; null
+    /// when neither is.</summary>
+    private static DocumentTab? FindPreviewTab(AppState appState)
+    {
+        var empty = FindEmptyActiveTab(appState);
+        if (empty != null)
+            return empty;
+        return appState.Tabs.Preview;
+    }
+
+    private static DocumentTab? FindEmptyActiveTab(AppState appState)
+    {
+        var active = appState.Tabs.Active;
+        if (active == null)
+            return null;
+        if (active.Content is not TabContent.Empty)
+            return null;
+        return active;
+    }
+
+    private static bool IsPreviewed(AppState appState, TabDestination destination)
+    {
+        if (destination.InNewTab)
+            return false;
+        return appState.PreviewTabs;
     }
 
     /// <summary>Opens an empty tab, which the view docks beside the active one.</summary>
@@ -308,3 +418,8 @@ public static class Navigation
         return tab;
     }
 }
+
+/// <summary>Where a node asked for shows: a new tab kept open when <see cref="InNewTab"/>; else, as decided
+/// when it shows, the preview tab while tabs preview, else <see cref="Origin"/>, the tab it was asked from,
+/// or a new tab when that was closed meanwhile.</summary>
+internal readonly record struct TabDestination(DocumentTab? Origin, bool InNewTab);
