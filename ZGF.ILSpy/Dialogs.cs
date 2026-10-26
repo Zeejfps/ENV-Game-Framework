@@ -14,4 +14,14 @@ public static class Dialogs
             return true;
         return uiState.ExportSetup.IsOpen;
     }
+
+    public static void OpenAbout(UiState uiState)
+    {
+        uiState.IsAboutOpen = true;
+    }
+
+    public static void CloseAbout(UiState uiState)
+    {
+        uiState.IsAboutOpen = false;
+    }
 }

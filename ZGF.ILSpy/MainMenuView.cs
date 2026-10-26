@@ -5,6 +5,7 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Dialogs;
 using static ZGF.ILSpy.DocumentPanels;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
@@ -113,6 +114,11 @@ internal static class MainMenuView
         {
             if (view.IsOpen)
                 ViewMenu(ui, appState);
+        }
+        using (var help = ui.Menu(t.MenuHelp, id: "help"))
+        {
+            if (help.IsOpen)
+                HelpMenu(ui);
         }
     }
 
@@ -250,6 +256,13 @@ internal static class MainMenuView
             SetLanguage(appState, DecompilationLanguage.CSharp);
         if (ui.MenuRadioItem("IL", appState.Language == DecompilationLanguage.IL))
             SetLanguage(appState, DecompilationLanguage.IL);
+    }
+
+    private static void HelpMenu(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        if (ui.MenuItem(t.HelpAbout, id: "about"))
+            OpenAbout(ui.State);
     }
 
     private static void LanguageMenu(Ui<UiState> ui, AppState appState)

@@ -35,6 +35,7 @@ public static class MainView
         DisplayOptionsResetDialogView.Render(ui);
         ExportDialogView.Render(ui, appState);
         ErrorDialogView.Render(ui, appState);
+        AboutDialogView.Render(ui);
     }
 
     /// <summary>Opens the files dropped on the window, unless a dialog is open over it.</summary>

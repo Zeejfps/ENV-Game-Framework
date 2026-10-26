@@ -1,6 +1,8 @@
 {
   "menu.file": "File",
   "menu.view": "View",
+  "menu.help": "Help",
+  "help.about": "About ILSpy",
 
   "file.open": "Open…",
   "file.open_from_framework": "Open from framework…",
@@ -481,6 +483,15 @@
   "errors.copy_tooltip": "Copy the whole error",
   "errors.clear": "Clear",
   "errors.close": "Close",
+
+  "about.version": "Version {version}",
+  "about.decompiler": "Decompiler",
+  "about.runtime": "Runtime",
+  "about.system": "System",
+  "about.copy": "Copy",
+  "about.copy_tooltip": "Copy the versions, as for a bug report",
+  "about.licenses": "Open licenses folder",
+  "about.close": "Close",
 
   "picker.title": "Open from framework",
   "picker.filter": "Filter by name",

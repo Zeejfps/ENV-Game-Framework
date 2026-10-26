@@ -22,4 +22,5 @@ internal static class AppLayout
     public const float NuGetDialogMinHeight = 480f;
     public const float NuGetDetailsWidth = 380f;
     public const float NuGetFeedWidth = 320f;
+    public const float AboutDialogWidth = 520f;
 }

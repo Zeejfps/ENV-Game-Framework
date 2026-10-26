@@ -84,6 +84,9 @@ public sealed class UiState : IUiState
     /// <summary>Set while the user is asked whether to reset the layout.</summary>
     public bool ConfirmingLayoutReset;
 
+    /// <summary>Set while the About dialog is open.</summary>
+    public bool IsAboutOpen;
+
     /// <summary>The browse tree over the open assemblies, with the view's expansion and selection.</summary>
     public BrowseTree Tree { get; } = new();
 

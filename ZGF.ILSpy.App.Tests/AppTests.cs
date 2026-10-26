@@ -609,4 +609,23 @@ public sealed class AppTests
 
         Assert.Equal(Localization.Locale.De, app.AppState.Locale);
     }
+
+    [Fact]
+    public void About_in_the_help_menu_shows_the_versions_and_closes()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        app.Run();
+
+        app.Click("Help");
+        app.ClickMenuItem("About ILSpy").Frame(2);
+
+        Assert.True(app.Ui.IsAboutOpen);
+        Assert.True(app.Frames.Drew(AppVersions.Decompiler));
+        Assert.True(app.Frames.Drew(AppVersions.Runtime));
+
+        app.Click("Close").Frame(2);
+
+        Assert.False(app.Ui.IsAboutOpen);
+        Assert.False(app.Frames.Drew(AppVersions.Decompiler));
+    }
 }
