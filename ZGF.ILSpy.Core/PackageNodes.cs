@@ -127,8 +127,7 @@ internal static class PackageContents
     {
         if (!IsAssemblyName(file.Name))
             return new PackageFileNode(package, parent, file);
-        var path = package.Package!.PathOf(file);
-        var assembly = package.List.TryLoad(path);
+        var assembly = package.FindPackageAssembly(file);
         if (assembly == null)
             return new PackageFileNode(package, parent, file);
         return assembly.PlaceInPackage(parent);

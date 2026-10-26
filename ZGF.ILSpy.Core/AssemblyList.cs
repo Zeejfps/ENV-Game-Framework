@@ -173,6 +173,46 @@ public sealed class AssemblyList
         Changed?.Invoke();
     }
 
+    /// <summary>Reads the item of the list holding <paramref name="assembly"/> again from its file: the
+    /// assembly, or the package it was read out of with the assemblies in it, each taking what is picked
+    /// for it now. It is not listed until <see cref="Replace"/> puts it in the item's place. Reads the
+    /// file: call it off the UI thread.</summary>
+    /// <exception cref="AssemblyLoadException">The file can no longer be read.</exception>
+    public LoadedAssembly ReadAgain(LoadedAssembly assembly)
+    {
+        var fresh = ReadAssemblyOrPackage(assembly.ListedItem.FilePath);
+        fresh.ReadPackageAssemblies();
+        return fresh;
+    }
+
+    /// <summary>Lists <paramref name="fresh"/>, which <see cref="ReadAgain"/> read for the listed
+    /// <paramref name="item"/>, where the item is, and forgets the item and the assemblies read out of
+    /// it. Nodes already handed out stay valid. False, leaving the list as it is, when the item is no
+    /// longer listed.</summary>
+    public bool Replace(LoadedAssembly item, LoadedAssembly fresh)
+    {
+        lock (_gate)
+        {
+            if (!item.IsListed) return false;
+            if (!ForgetKnown(item)) return false;
+            ForgetReadOutOf(item);
+            Know(fresh);
+            item.IsListed = false;
+            fresh.IsListed = true;
+            ChangeListed(_listed.Replace(item, fresh));
+        }
+        WarmUpLater(fresh);
+        Changed?.Invoke();
+        return true;
+    }
+
+    private void Know(LoadedAssembly item)
+    {
+        _known[item.FilePath] = item;
+        foreach (var assembly in item.PackageAssemblies)
+            _known[assembly.FilePath] = assembly;
+    }
+
     /// <summary>Orders the open files by name, and those of one name by version.</summary>
     public void Sort()
     {
@@ -497,10 +537,73 @@ public sealed class AssemblyList
             assembly.IsListed = true;
             ChangeListed(ListInPlaceOfFailure(assembly));
         }
-        if (!assembly.HasLoadError && !assembly.IsPackage)
-            ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
+        WarmUpLater(assembly);
         Changed?.Invoke();
         return true;
+    }
+
+    /// <summary>Loads a listed assembly's type system in the background, so that it is ready when
+    /// first shown.</summary>
+    private static void WarmUpLater(LoadedAssembly assembly)
+    {
+        if (assembly.HasLoadError)
+            return;
+        if (assembly.IsPackage)
+            return;
+        ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
+    }
+
+    /// <summary>The assembly <paramref name="package"/> holds as <paramref name="file"/>: the one read
+    /// before, else one read now, kept while the list holds the package. Null when it does not load.</summary>
+    internal LoadedAssembly? TryLoadOutOf(LoadedAssembly package, PackageFile file)
+    {
+        var path = package.Package!.PathOf(file);
+        lock (_gate)
+        {
+            var known = FindReadOutOf(package, path);
+            if (known != null) return known;
+        }
+        var read = TryReadOutOfPackage(package, path, file.FullName);
+        if (read == null)
+            return null;
+        lock (_gate)
+        {
+            if (!IsKnown(package)) return read;
+            var known = FindReadOutOf(package, path);
+            if (known != null) return known;
+            _known[path] = read;
+        }
+        return read;
+    }
+
+    private LoadedAssembly? FindReadOutOf(LoadedAssembly package, string path)
+    {
+        if (!_known.TryGetValue(path, out var known))
+            return null;
+        if (known.InPackage == null)
+            return null;
+        if (known.InPackage.Container != package)
+            return null;
+        return known;
+    }
+
+    private LoadedAssembly? TryReadOutOfPackage(LoadedAssembly package, string path, string fullName)
+    {
+        try
+        {
+            return ReadOutOfPackage(package, path, fullName);
+        }
+        catch (AssemblyLoadException)
+        {
+            return null;
+        }
+    }
+
+    private bool IsKnown(LoadedAssembly assembly)
+    {
+        if (!_known.TryGetValue(assembly.FilePath, out var known))
+            return false;
+        return known == assembly;
     }
 
     /// <summary>Whether <paramref name="assembly"/> is what the list holds for its path: the assembly

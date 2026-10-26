@@ -74,9 +74,8 @@ public static class Assemblies
 
     /// <summary>Checks in the background that the PDB at <paramref name="pdbPath"/> can be read for
     /// <paramref name="assembly"/>, then has the assembly read it in place of the one it finds itself,
-    /// kept with the list, and reloads the list to show it, expanding <paramref name="expanded"/>
-    /// again. Reports why when it cannot be read.</summary>
-    public static async void UsePdb(AppState appState, LoadedAssembly assembly, string pdbPath, List<NodePath> expanded)
+    /// kept with the list, and reopens the assembly to show it. Reports why when it cannot be read.</summary>
+    public static async void UsePdb(AppState appState, LoadedAssembly assembly, string pdbPath)
     {
         var checking = await Background.Run(() => assembly.CheckPdb(pdbPath));
         if (checking.Error != null)
@@ -92,7 +91,7 @@ public static class Assemblies
         if (!appState.IsListed(assembly.Root))
             return;
         appState.Assemblies.Pdbs.Pick(assembly.FilePath, pdbPath);
-        RefreshAssemblies(appState, expanded);
+        ReopenAssembly(appState, assembly);
     }
 
     private static void ReportUnreadablePdb(AppState appState, LoadedAssembly assembly, string pdbPath, PdbCheck check)
@@ -112,17 +111,16 @@ public static class Assemblies
 
     /// <summary>Resolves <paramref name="assembly"/>'s references against the framework
     /// <paramref name="framework"/> names, such as <c>.NETCoreApp,Version=v8.0</c>, or, when it is
-    /// null, against the one the assembly was built for; kept with the list, and the list reloaded to
-    /// show it, expanding <paramref name="expanded"/> again. Does nothing when that is the framework
-    /// already in use.</summary>
-    public static void SetTargetFramework(AppState appState, LoadedAssembly assembly, string? framework, List<NodePath> expanded)
+    /// null, against the one the assembly was built for; kept with the list, and the assembly reopened
+    /// to show it. Does nothing when that is the framework already in use.</summary>
+    public static void SetTargetFramework(AppState appState, LoadedAssembly assembly, string? framework)
     {
         if (!appState.IsListed(assembly.Root))
             return;
         if (IsInUse(assembly, framework))
             return;
         PickTargetFramework(appState.Assemblies.TargetFrameworks, assembly, framework);
-        RefreshAssemblies(appState, expanded);
+        ReopenAssembly(appState, assembly);
     }
 
     /// <summary>Whether <paramref name="framework"/>, null for the one the assembly was built for, is
@@ -142,6 +140,84 @@ public static class Assemblies
             return;
         }
         frameworks.Pick(assembly.FilePath, framework);
+    }
+
+    /// <summary>Reads the item of the list holding <paramref name="assembly"/> again in the background,
+    /// its nodes loaded as far as they were, then lists it where the item is and shows each tab's place
+    /// in it again. The other assemblies stay as they are.</summary>
+    private static async void ReopenAssembly(AppState appState, LoadedAssembly assembly)
+    {
+        var item = assembly.ListedItem;
+        var ticket = appState.Reopens.Start(item.FilePath);
+        var tabs = ListTabsShowing(appState, item);
+        var places = tabs.ConvertAll(t => t.Location);
+        var reopened = await Background.Run(() => ReadAgain(appState, item, places));
+        FinishReopen(appState, item, reopened, ticket, tabs);
+    }
+
+    private static List<ReloadingTab> ListTabsShowing(AppState appState, LoadedAssembly item)
+    {
+        var showing = new List<ReloadingTab>();
+        foreach (var tab in appState.Tabs)
+        {
+            var location = tab.Location;
+            if (location == null)
+                continue;
+            if (!IsPathOf(item, location))
+                continue;
+            var position = FindPositionToKeep(appState, tab);
+            showing.Add(new ReloadingTab(tab, location, tab.Version, position));
+        }
+        return showing;
+    }
+
+    private static bool IsPathOf(LoadedAssembly item, NodePath path)
+    {
+        return string.Equals(path.FilePath, item.FilePath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Reopened ReadAgain(AppState appState, LoadedAssembly item, List<NodePath> places)
+    {
+        var fresh = appState.Assemblies.ReadAgain(item);
+        LoadAsLoaded(item.Root, fresh.Root);
+        var placeNodes = places
+            .Select(fresh.FindNode)
+            .ToArray();
+        return new Reopened(fresh, placeNodes);
+    }
+
+    /// <summary>Loads the children of each node under <paramref name="fresh"/> whose counterpart under
+    /// <paramref name="old"/> has them loaded, so that the tree can show the fresh nodes as it showed
+    /// the old ones.</summary>
+    private static void LoadAsLoaded(BrowseNode old, BrowseNode fresh)
+    {
+        if (!old.TryGetChildren(out var children))
+            return;
+        fresh.LoadChildren();
+        foreach (var child in children)
+        {
+            var counterpart = fresh.FindLoadedChildLike(child);
+            if (counterpart != null)
+                LoadAsLoaded(child, counterpart);
+        }
+    }
+
+    private static void FinishReopen(AppState appState, LoadedAssembly item, Outcome<Reopened> outcome, int ticket, List<ReloadingTab> tabs)
+    {
+        if (!appState.Reopens.Finish(item.FilePath, ticket))
+            return;
+        SaveSettings(appState);
+        var reopened = outcome.Value;
+        if (reopened == null)
+        {
+            var t = Strings.For(appState.Locale);
+            appState.ReportError(t.ErrorReloadAssembly(item.Name), outcome.Error!.ToString());
+            return;
+        }
+        if (!appState.Assemblies.Replace(item, reopened.Item))
+            return;
+        for (var i = 0; i < tabs.Count; i++)
+            ShowAgain(appState, tabs[i], reopened.Places[i]);
     }
 
     public static void CloseAssembly(AppState appState, LoadedAssembly assembly) => appState.Assemblies.Close(assembly);
@@ -280,19 +356,28 @@ public static class Assemblies
 
     private static void ReshowTab(AppState appState, ReloadingTab reloading, BrowseNode? node, int intent)
     {
+        if (!ShowAgain(appState, reloading, node))
+            return;
+        if (reloading.Tab == appState.Tabs.Active && appState.Intent.IsCurrent(intent))
+            appState.EnqueueCommand(new ViewCommand.RevealNode(node!));
+    }
+
+    /// <summary>Shows <paramref name="node"/>, the tab's place found again, in the tab, or that its place
+    /// is gone, unless the tab was closed or shows something else now. True when it shows the node.</summary>
+    private static bool ShowAgain(AppState appState, ReloadingTab reloading, BrowseNode? node)
+    {
         var tab = reloading.Tab;
         if (!appState.Tabs.Contains(tab))
-            return;
+            return false;
         if (tab.Version != reloading.Version)
-            return;
+            return false;
         if (node == null)
         {
             ReleaseGoneTab(appState, tab, reloading.Location);
-            return;
+            return false;
         }
         LoadIntoTab(appState, tab, node, new Arrival(reloading.Position));
-        if (tab == appState.Tabs.Active && appState.Intent.IsCurrent(intent))
-            appState.EnqueueCommand(new ViewCommand.RevealNode(node));
+        return true;
     }
 
     private static void ReleaseGoneTab(AppState appState, DocumentTab tab, NodePath location)
@@ -336,6 +421,8 @@ public static class Assemblies
     }
 
     private sealed record Reloaded(List<BrowseNode> Expanded, BrowseNode?[] Places);
+
+    private sealed record Reopened(LoadedAssembly Item, BrowseNode?[] Places);
 
     private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
 }

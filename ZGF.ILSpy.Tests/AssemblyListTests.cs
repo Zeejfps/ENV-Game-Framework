@@ -19,6 +19,37 @@ public sealed class AssemblyListTests
     }
 
     [Fact]
+    public void An_assembly_read_again_takes_its_place_in_the_list_with_what_is_picked_for_it_now()
+    {
+        var list = new AssemblyList();
+        var first = list.Open(Trees.TestAssemblyPath);
+        var second = list.Open(typeof(AssemblyList).Assembly.Location);
+        list.TargetFrameworks.Pick(first.FilePath, ".NETFramework,Version=v4.8");
+
+        var fresh = list.ReadAgain(first);
+        var listedWhileRead = list.Listed.ToList();
+        var replaced = list.Replace(first, fresh);
+
+        Assert.Equal([first, second], listedWhileRead);
+        Assert.True(replaced);
+        Assert.Equal([fresh, second], list.Listed);
+        Assert.Equal("net48", fresh.FrameworkMoniker);
+        Assert.Same(fresh, list.FindNode(first.Root.Path)!.Assembly);
+    }
+
+    [Fact]
+    public void An_assembly_read_again_after_it_was_closed_is_not_listed()
+    {
+        var list = new AssemblyList();
+        var assembly = list.Open(Trees.TestAssemblyPath);
+        var fresh = list.ReadAgain(assembly);
+        list.Close(assembly);
+
+        Assert.False(list.Replace(assembly, fresh));
+        Assert.Empty(list.Listed);
+    }
+
+    [Fact]
     public void An_open_cancelled_before_it_lists_the_assembly_leaves_the_list_as_it_was()
     {
         var list = new AssemblyList();

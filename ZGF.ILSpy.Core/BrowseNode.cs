@@ -162,6 +162,21 @@ public abstract class BrowseNode
         return children != null;
     }
 
+    /// <summary>The child standing where <paramref name="other"/> stands under its own parent, of its kind
+    /// and text: its counterpart under this node's copy, read again, of the same file. Null when there is
+    /// none, or the children are not built yet; never blocks.</summary>
+    public BrowseNode? FindLoadedChildLike(BrowseNode other)
+    {
+        if (!TryGetChildren(out var children))
+            return null;
+        foreach (var child in children)
+        {
+            if (child.Kind == other.Kind && child.Text == other.Text)
+                return child;
+        }
+        return null;
+    }
+
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
     public NodePath Path => _path ??= NodePath.Of(this);
 

@@ -540,6 +540,7 @@
   "error.save_settings": "Не удалось сохранить настройки",
   "error.open_assemblies": "Не удалось открыть сборки",
   "error.reload_assemblies": "Не удалось перезагрузить сборки",
+  "error.reload_assembly": "Не удалось перезагрузить {name}",
   "error.find_after_reload": "После перезагрузки не найдено: {location}",
   "error.resolve": "Не удалось найти определение {name}",
   "error.no_definition": "Определение {reference} не найдено ни в открытых сборках, ни в их ссылках.",

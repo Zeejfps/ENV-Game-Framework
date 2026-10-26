@@ -30,6 +30,26 @@ public sealed class PackageTests
     }
 
     [Fact]
+    public void A_package_read_again_for_an_assembly_in_it_takes_its_place_with_its_assemblies_read_again()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var package = list.Open(WritePackage(temp));
+        var old = list.Assemblies.ToList();
+
+        var fresh = list.ReadAgain(old[1]);
+        var replaced = list.Replace(package, fresh);
+
+        Assert.True(replaced);
+        Assert.Equal([fresh], list.Listed);
+        Assert.All(list.Assemblies, a => Assert.Same(fresh, a.InPackage!.Container));
+        Assert.Empty(list.Assemblies.Intersect(old));
+        var root = TestAssemblyRoot(fresh.Root.Child(LibFolder));
+        Assert.Same(list.Assemblies[1], root.Assembly);
+        Assert.Same(root, list.FindNode(old[1].Root.Path));
+    }
+
+    [Fact]
     public void An_assembly_in_a_package_is_the_root_of_its_tree_under_its_folder_and_known_by_a_path_through_the_package()
     {
         using var temp = new TempDir();

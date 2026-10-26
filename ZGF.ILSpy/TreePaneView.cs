@@ -271,14 +271,13 @@ internal static class TreePaneView
         using var menu = ui.SubMenu(t.TreeTargetFramework, id: "target-framework");
         if (!menu.IsOpen)
             return;
-        var tree = ui.State.Tree;
         if (ui.MenuRadioItem(DetectedFrameworkLabel(t, assembly), !assembly.IsTargetFrameworkPicked, id: "detected"))
-            SetTargetFramework(appState, assembly, null, tree.ExpandedPaths());
+            SetTargetFramework(appState, assembly, null);
         ui.MenuSeparator();
         foreach (var framework in FrameworkIds.Common)
         {
             if (ui.MenuRadioItem(FrameworkIds.MonikerOf(framework), IsPicked(assembly, framework), id: framework))
-                SetTargetFramework(appState, assembly, framework, tree.ExpandedPaths());
+                SetTargetFramework(appState, assembly, framework);
         }
     }
 
@@ -300,10 +299,9 @@ internal static class TreePaneView
     private static void PickPdbToRead(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
     {
         var t = ui.State.Strings;
-        var tree = ui.State.Tree;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"]), new FileFilter(t.FileFilterAll, ["*.*"])];
         var title = t.TreeSelectPdbTitle(assembly.Name);
-        ui.PickFile(title, FindFolderOf(assembly), filters, path => UsePdb(appState, assembly, path, tree.ExpandedPaths()));
+        ui.PickFile(title, FindFolderOf(assembly), filters, path => UsePdb(appState, assembly, path));
     }
 
     /// <summary>The folder the assembly's file is in; null for one read out of a package, whose path runs through it.</summary>

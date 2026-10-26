@@ -540,6 +540,7 @@
   "error.save_settings": "設定を保存できません",
   "error.open_assemblies": "アセンブリを開けません",
   "error.reload_assemblies": "アセンブリを再読み込みできません",
+  "error.reload_assembly": "{name} を再読み込みできません",
   "error.find_after_reload": "再読み込み後に {location} が見つかりません",
   "error.resolve": "{name} を解決できません",
   "error.no_definition": "開いているアセンブリとその参照に {reference} の定義が見つかりませんでした。",

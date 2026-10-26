@@ -11,6 +11,7 @@ namespace ZGF.ILSpy.App.Tests;
 public sealed class TargetFrameworkTests
 {
     private const string Net48 = ".NETFramework,Version=v4.8";
+    private static readonly string SampleAppPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
 
     private static LoadedAssembly FixturesOf(AppState appState) =>
         appState.Assemblies.Assemblies.Single(a => a.FilePath == AppStateDriver.FixturePath);
@@ -65,6 +66,44 @@ public sealed class TargetFrameworkTests
     }
 
     [Fact]
+    public void Picking_a_framework_reopens_only_that_assembly_with_the_tree_as_it_was_on_every_frame()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        OpenAssembly(app.AppState, SampleAppPath);
+        app.RunUntil(() => app.AppState.IsListed(SampleAppPath));
+        var fixtures = FixturesOf(app.AppState);
+        var sample = SampleOf(app.AppState);
+        var tree = app.Ui.Tree;
+        foreach (var node in new[] { fixtures.Root, fixtures.Root.Child(AppStateDriver.FixturesNamespace), sample.Root })
+            tree.View.SetExpanded(node, true);
+        tree.View.Refresh();
+        var greeter = app.Fixture("Greeter");
+        app.Show(greeter, 2);
+        var before = tree.ExpandedPaths();
+        var shapes = new List<List<NodePath>>();
+
+        SetTargetFramework(app.AppState, fixtures, Net48);
+        Poll.Until(() => FixturesOf(app.AppState) != fixtures, RunFrame);
+        RunFrame();
+
+        Assert.All(shapes, shape => Assert.Equal(before, shape));
+        Assert.Same(sample, SampleOf(app.AppState));
+        Assert.Equal(greeter.Path, tree.View.Selected!.Path);
+        Assert.NotSame(greeter, tree.View.Selected);
+        Assert.Same(FixturesOf(app.AppState), app.AppState.Tabs.Active!.Node!.Assembly);
+        Assert.Empty(app.AppState.Errors.Entries);
+
+        void RunFrame()
+        {
+            app.Run();
+            shapes.Add(tree.ExpandedPaths());
+        }
+    }
+
+    private static LoadedAssembly SampleOf(AppState appState) =>
+        appState.Assemblies.Listed.Single(a => a.FilePath == SampleAppPath);
+
+    [Fact]
     public void Picking_a_framework_for_an_assembly_in_a_package_keeps_the_tree_expanded_and_the_tab_on_what_it_showed()
     {
         using var temp = new TempDir();
@@ -82,7 +121,7 @@ public sealed class TargetFrameworkTests
         app.Show(assembly.Child(AppStateDriver.FixturesNamespace, "Greeter"), 2);
         var before = tree.ExpandedPaths();
 
-        SetTargetFramework(app.AppState, assembly.Assembly, Net48, before);
+        SetTargetFramework(app.AppState, assembly.Assembly, Net48);
         app.Settle(3);
 
         Assert.Equal(before, tree.ExpandedPaths());

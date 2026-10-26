@@ -554,6 +554,7 @@
   "error.save_settings": "Cannot save the settings",
   "error.open_assemblies": "Cannot open the assemblies",
   "error.reload_assemblies": "Cannot reload the assemblies",
+  "error.reload_assembly": "Cannot reload {name}",
   "error.find_after_reload": "Cannot find {location} after reloading",
   "error.resolve": "Cannot resolve {name}",
   "error.no_definition": "No definition of {reference} was found in the open assemblies or their references.",

@@ -540,6 +540,7 @@
   "error.save_settings": "Impossible d’enregistrer les paramètres",
   "error.open_assemblies": "Impossible d’ouvrir les assemblys",
   "error.reload_assemblies": "Impossible de recharger les assemblys",
+  "error.reload_assembly": "Impossible de recharger {name}",
   "error.find_after_reload": "Impossible de trouver {location} après le rechargement",
   "error.resolve": "Impossible de résoudre {name}",
   "error.no_definition": "Aucune définition de {reference} n’a été trouvée dans les assemblys ouverts ni dans leurs références.",

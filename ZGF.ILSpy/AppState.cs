@@ -27,6 +27,10 @@ public sealed class AppState
     public NavigationHistory History { get; } = new();
     public UserIntent Intent { get; } = new();
     public Reload Reload { get; } = new();
+
+    /// <summary>The files of the list being read again one at a time, as when another framework or
+    /// PDB is picked for an assembly.</summary>
+    public Reopens Reopens { get; } = new();
     public OpenRequests Opens { get; } = new();
     public LastSave LastSave { get; } = new();
 
@@ -82,6 +86,9 @@ public sealed class AppState
 
     /// <summary>True while <see cref="ZGF.ILSpy.Assemblies.RefreshAssemblies"/> reopens the assemblies.</summary>
     public bool IsReloading => Reload.IsRunning;
+
+    /// <summary>True while a file of the list is read again, the list still holding it as it was.</summary>
+    public bool IsReopening => Reopens.IsRunning;
 
     /// <summary>True while analyzer roots wait for their symbols to be found.</summary>
     public bool IsFindingAnalyses => Analyzer.IsFinding;

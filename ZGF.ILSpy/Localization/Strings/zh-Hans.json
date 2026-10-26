@@ -540,6 +540,7 @@
   "error.save_settings": "无法保存设置",
   "error.open_assemblies": "无法打开程序集",
   "error.reload_assemblies": "无法重新加载程序集",
+  "error.reload_assembly": "无法重新加载 {name}",
   "error.find_after_reload": "重新加载后找不到 {location}",
   "error.resolve": "无法解析 {name}",
   "error.no_definition": "在已打开的程序集及其引用中找不到 {reference} 的定义。",

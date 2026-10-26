@@ -540,6 +540,7 @@
   "error.save_settings": "No se pueden guardar los ajustes",
   "error.open_assemblies": "No se pueden abrir los ensamblados",
   "error.reload_assemblies": "No se pueden recargar los ensamblados",
+  "error.reload_assembly": "No se puede recargar {name}",
   "error.find_after_reload": "No se encuentra {location} tras recargar",
   "error.resolve": "No se puede resolver {name}",
   "error.no_definition": "No se encontró ninguna definición de {reference} en los ensamblados abiertos ni en sus referencias.",

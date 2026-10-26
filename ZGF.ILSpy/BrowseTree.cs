@@ -36,9 +36,93 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         var roots = new BrowseNode[listed.Count];
         for (var i = 0; i < roots.Length; i++)
             roots[i] = listed[i].Root;
+        FollowGoneRoots(roots);
         _roots = roots;
         _rootLabels = RootLabels(roots);
         return true;
+    }
+
+    /// <summary>Moves what was expanded and selected under each root no longer among
+    /// <paramref name="roots"/> to the root of its file read again, when one is, and forgets it.</summary>
+    private void FollowGoneRoots(BrowseNode[] roots)
+    {
+        if (_roots.Length == 0)
+            return;
+        var kept = new HashSet<BrowseNode>(roots, ReferenceEqualityComparer.Instance);
+        foreach (var root in _roots)
+        {
+            if (kept.Contains(root))
+                continue;
+            var replacement = FindRootOfFile(roots, root.Assembly.FilePath);
+            FollowSelection(root, replacement);
+            FollowExpansion(root, replacement);
+        }
+    }
+
+    private static BrowseNode? FindRootOfFile(BrowseNode[] roots, string filePath)
+    {
+        foreach (var root in roots)
+        {
+            if (string.Equals(root.Assembly.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                return root;
+        }
+        return null;
+    }
+
+    private void FollowSelection(BrowseNode gone, BrowseNode? replacement)
+    {
+        if (replacement == null)
+            return;
+        if (!View.HasSelection)
+            return;
+        var selected = View.Selected!;
+        if (RootOf(selected) != gone)
+            return;
+        var counterpart = FindCounterpart(selected, replacement);
+        if (counterpart != null)
+            View.Select(counterpart, scrollIntoView: false);
+    }
+
+    private static BrowseNode RootOf(BrowseNode node)
+    {
+        var root = node;
+        while (root.Parent != null)
+            root = root.Parent;
+        return root;
+    }
+
+    /// <summary>The node standing where <paramref name="node"/> does, under <paramref name="root"/>
+    /// in place of <paramref name="node"/>'s root, found through children already loaded.</summary>
+    private static BrowseNode? FindCounterpart(BrowseNode node, BrowseNode root)
+    {
+        if (node.Parent == null)
+            return root;
+        var parent = FindCounterpart(node.Parent, root);
+        if (parent == null)
+            return null;
+        return parent.FindLoadedChildLike(node);
+    }
+
+    /// <summary>Collapses <paramref name="node"/> and the nodes under it, expanding each one's
+    /// counterpart under <paramref name="counterpart"/> instead.</summary>
+    private void FollowExpansion(BrowseNode node, BrowseNode? counterpart)
+    {
+        if (!View.IsExpanded(node))
+            return;
+        View.SetExpanded(node, false);
+        if (counterpart != null)
+            View.SetExpanded(counterpart, true);
+        if (!node.TryGetChildren(out var children))
+            return;
+        foreach (var child in children)
+            FollowExpansion(child, FindChildLike(counterpart, child));
+    }
+
+    private static BrowseNode? FindChildLike(BrowseNode? parent, BrowseNode child)
+    {
+        if (parent == null)
+            return null;
+        return parent.FindLoadedChildLike(child);
     }
 
     /// <summary>The node's name as tabs show it: assemblies listed more than once under one name

@@ -540,6 +540,7 @@
   "error.save_settings": "Não é possível salvar as configurações",
   "error.open_assemblies": "Não é possível abrir os assemblies",
   "error.reload_assemblies": "Não é possível recarregar os assemblies",
+  "error.reload_assembly": "Não é possível recarregar {name}",
   "error.find_after_reload": "Não é possível encontrar {location} após recarregar",
   "error.resolve": "Não é possível resolver {name}",
   "error.no_definition": "Nenhuma definição de {reference} foi encontrada nos assemblies abertos nem em suas referências.",

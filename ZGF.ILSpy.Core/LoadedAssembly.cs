@@ -148,11 +148,34 @@ public sealed class LoadedAssembly
         {
             if (!PackageContents.IsAssemblyName(file.Name))
                 continue;
-            var assembly = List.TryLoad(Package.PathOf(file));
+            var assembly = List.TryLoadOutOf(this, file);
             if (assembly != null)
                 assemblies.Add(assembly);
         }
         return assemblies;
+    }
+
+    /// <summary>For a package, the assembly of <see cref="PackageAssemblies"/> read out of
+    /// <paramref name="file"/>; null when that file did not load as one.</summary>
+    internal LoadedAssembly? FindPackageAssembly(PackageFile file)
+    {
+        var path = Package!.PathOf(file);
+        foreach (var assembly in PackageAssemblies)
+        {
+            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                return assembly;
+        }
+        return null;
+    }
+
+    /// <summary>The node <paramref name="path"/> leads to from this file's root, when this is the item
+    /// of the list the path starts at; else, or when nothing is there, null. May load the nodes on the
+    /// way: call it off the UI thread.</summary>
+    public BrowseNode? FindNode(NodePath path)
+    {
+        if (!string.Equals(path.FilePath, FilePath, StringComparison.OrdinalIgnoreCase))
+            return null;
+        return path.Resolve(Root);
     }
 
     /// <summary>The item of the list that holds this assembly: itself, or the package it was read out of.</summary>
