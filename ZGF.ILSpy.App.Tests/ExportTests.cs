@@ -11,6 +11,8 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class ExportTests : IDisposable
 {
+    private static readonly string SampleAppPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
+
     private readonly TempDir _temp = new();
 
     public ExportTests()
@@ -19,6 +21,19 @@ public sealed class ExportTests : IDisposable
     }
 
     public void Dispose() => _temp.Dispose();
+
+    /// <summary>A driver that has opened the small sample app, for what works through a whole assembly,
+    /// which would take long on the fixtures, the whole test assembly.</summary>
+    private static AppStateDriver OpenedSample()
+    {
+        var d = new AppStateDriver();
+        OpenAssembly(d.AppState, SampleAppPath);
+        d.RunUntil(() => d.AppState.IsListed(SampleAppPath));
+        d.Settle();
+        return d;
+    }
+
+    private static LoadedAssembly SampleOf(AppStateDriver d) => Assert.Single(d.AppState.Assemblies.Assemblies);
 
     [Fact]
     public void Saving_code_writes_the_node_in_the_current_language()
@@ -37,14 +52,14 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Saving_an_assembly_writes_one_code_file_even_under_a_project_name()
     {
-        var d = AppStateDriver.Opened();
-        var path = _temp.PathOf("Fixtures.csproj");
+        var d = OpenedSample();
+        var path = _temp.PathOf("SampleApp.csproj");
 
-        SaveCode(d.AppState, d.Node(), path);
+        SaveCode(d.AppState, SampleOf(d).Root, path);
         d.Settle();
 
         var code = File.ReadAllText(path);
-        Assert.Contains("public class Greeter", code);
+        Assert.Contains("public class Counter", code);
         Assert.False(code.TrimStart().StartsWith("<Project", StringComparison.Ordinal));
         Assert.Equal([path], Directory.EnumerateFiles(_temp.Path));
     }
@@ -65,8 +80,8 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Pdbs_are_generated_for_every_open_assembly_into_the_folder()
     {
-        var d = AppStateDriver.Opened();
-        var assembly = d.Node().Assembly;
+        var d = OpenedSample();
+        var assembly = SampleOf(d);
 
         GeneratePdbs(d.AppState, _temp.Path);
         d.Settle();

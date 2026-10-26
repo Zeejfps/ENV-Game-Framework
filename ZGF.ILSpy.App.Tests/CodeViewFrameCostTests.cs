@@ -45,20 +45,19 @@ public sealed class CodeViewFrameCostTests(ITestOutputHelper output)
         view.Frames.Canvas.Recording = false;
         for (var i = 0; i < WarmUpFrames; i++)
             Frame(view, scrolling);
-        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        var allocated = SteadyAllocations.PerFrame(MeasuredFrames, _ => Frame(view, scrolling));
         var clock = Stopwatch.StartNew();
         for (var i = 0; i < MeasuredFrames; i++)
             Frame(view, scrolling);
         clock.Stop();
-        allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
 
         output.WriteLine($"{(scrolling ? "scrolling" : "static")}{(folded ? ", half the folds collapsed" : "")}: " +
-                         $"{clock.Elapsed.TotalMilliseconds / MeasuredFrames:F3} ms/frame, {allocated / MeasuredFrames:N0} B/frame allocated, " +
+                         $"{clock.Elapsed.TotalMilliseconds / MeasuredFrames:F3} ms/frame, {allocated:N0} B/frame allocated, " +
                          $"{(double)totalElements / MeasuredFrames:F1} elements/frame (max {maxElements}), {glyphRuns} glyph runs, {visibleRows} rows in view");
 
         Assert.InRange(glyphRuns, visibleRows - 2, (folded ? 3 : 2) * visibleRows + 4);
         Assert.True(maxElements <= (folded ? 5 : 4) * visibleRows + 32, $"{maxElements} elements for {visibleRows} visible rows");
-        Assert.Equal(0, allocated / MeasuredFrames);
+        Assert.Equal(0, allocated);
     }
 
     private static DecompiledDocument Folded(int lines)

@@ -22,13 +22,11 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
 
         app.Frames.Canvas.Recording = false;
         app.Run(WarmUpFrames);
-        var allocated = GC.GetAllocatedBytesForCurrentThread();
-        app.Run(MeasuredFrames);
-        allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
+        var allocated = SteadyAllocations.PerFrame(MeasuredFrames, _ => app.Run());
 
-        output.WriteLine($"{(errorsOpen ? "errors open" : "idle")}: {allocated / MeasuredFrames:N0} B/frame allocated");
+        output.WriteLine($"{(errorsOpen ? "errors open" : "idle")}: {allocated:N0} B/frame allocated");
         Assert.Equal(errorsOpen, app.Ui.ErrorDialog.IsOpen);
-        Assert.Equal(0, allocated / MeasuredFrames);
+        Assert.Equal(0, allocated);
     }
 
     [Fact]
@@ -42,14 +40,12 @@ public sealed class AppFrameCostTests(ITestOutputHelper output)
 
         app.Frames.Canvas.Recording = false;
         app.Run(WarmUpFrames);
-        var allocated = GC.GetAllocatedBytesForCurrentThread();
-        app.Run(MeasuredFrames);
-        allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
+        var allocated = SteadyAllocations.PerFrame(MeasuredFrames, _ => app.Run());
 
-        output.WriteLine($"tool panels only: {allocated / MeasuredFrames:N0} B/frame allocated");
+        output.WriteLine($"tool panels only: {allocated:N0} B/frame allocated");
         Assert.Empty(app.AppState.Tabs);
         Assert.True(app.Ui.Layout.Contains(DockPanels.Bookmarks));
-        Assert.Equal(0, allocated / MeasuredFrames);
+        Assert.Equal(0, allocated);
     }
 
     private static void OpenErrors(AppDriver app)

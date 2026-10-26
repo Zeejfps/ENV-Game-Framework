@@ -19,6 +19,9 @@ public sealed class CodeTooltips
         _version = assemblies.Version;
     }
 
+    /// <summary>Whether a lookup is still running in the background.</summary>
+    public bool IsLookingUp => _pending.Count > 0;
+
     /// <summary>Whether the lookup of <paramref name="reference"/> is done, with its
     /// <paramref name="tooltip"/>, null when it has none. Starts the lookup the first time.</summary>
     public bool TryGet(CodeReference reference, out CodeTooltip? tooltip)

@@ -28,13 +28,10 @@ public sealed class MetadataGridFrameCostTests(ITestOutputHelper output)
         frames.Canvas.Recording = false;
         for (var i = 0; i < WarmUpFrames; i++)
             Frame(frames, scrolling, i);
-        var allocated = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < MeasuredFrames; i++)
-            Frame(frames, scrolling, i);
-        allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
+        var allocated = SteadyAllocations.PerFrame(MeasuredFrames, i => Frame(frames, scrolling, i));
 
-        output.WriteLine($"{(scrolling ? "scrolling" : "static")}: {allocated / MeasuredFrames:N0} B/frame allocated");
-        Assert.Equal(0, allocated / MeasuredFrames);
+        output.WriteLine($"{(scrolling ? "scrolling" : "static")}: {allocated:N0} B/frame allocated");
+        Assert.Equal(0, allocated);
     }
 
     private static MetadataGrid OpenTable(string name)

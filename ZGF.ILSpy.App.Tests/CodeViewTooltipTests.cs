@@ -6,8 +6,8 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class CodeViewTooltipTests
 {
-    private const int MaxPolls = 200;
     private const double PollSeconds = 0.05;
+    private const double RestSeconds = 2;
     private const float WindowHeight = 700f;
     private const double LeaveGraceSeconds = 0.3;
     private const string Context = "ZGF.ILSpy.App.Tests.Fixtures.Farewell";
@@ -23,16 +23,9 @@ public sealed class CodeViewTooltipTests
     }
 
     /// <summary>Runs frames until <paramref name="text"/> is drawn, as the lookup runs in the background.</summary>
-    private static bool DrawsSoon(CodeViewDriver view, string text)
+    private static void RunUntilDrawn(CodeViewDriver view, string text)
     {
-        for (var i = 0; i < MaxPolls; i++)
-        {
-            view.Frames.Wait(PollSeconds).Frame();
-            if (view.Frames.Drew(text))
-                return true;
-            Thread.Sleep(5);
-        }
-        return false;
+        Poll.Until(() => view.Frames.Drew(text), () => view.Frames.Wait(PollSeconds).Frame());
     }
 
     private static void RestOn(CodeViewDriver view, string text)
@@ -48,7 +41,7 @@ public sealed class CodeViewTooltipTests
 
         RestOn(view, "Say()");
 
-        Assert.True(DrawsSoon(view, "Says "));
+        RunUntilDrawn(view, "Says ");
         Assert.True(view.Frames.Drew("Bye"));
         Assert.True(view.Frames.Drew(Context));
         var summary = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Says ");
@@ -63,7 +56,7 @@ public sealed class CodeViewTooltipTests
         var view = Farewell();
 
         RestOn(view, "Compose(");
-        Assert.True(DrawsSoon(view, Context));
+        RunUntilDrawn(view, Context);
         var compose = TooltipText(view, "Compose");
         var greeting = TooltipText(view, "greeting");
         var name = TooltipText(view, "name");
@@ -87,7 +80,7 @@ public sealed class CodeViewTooltipTests
     {
         var view = Farewell();
         RestOn(view, "Say()");
-        Assert.True(DrawsSoon(view, "Says "));
+        RunUntilDrawn(view, "Says ");
 
         var type = TooltipText(view, "Farewell");
         var result = view.Click((type.X + 2f, type.Y + type.Height / 2));
@@ -104,7 +97,7 @@ public sealed class CodeViewTooltipTests
     {
         var view = Farewell();
         RestOn(view, "Say()");
-        Assert.True(DrawsSoon(view, "Says "));
+        RunUntilDrawn(view, "Says ");
 
         view.MoveTo(0, 0);
         view.Frames.Wait(LeaveGraceSeconds).Frame(2);
@@ -118,7 +111,9 @@ public sealed class CodeViewTooltipTests
         var view = Farewell();
 
         RestOn(view, "public class");
+        view.Frames.Wait(RestSeconds).Frame(2);
 
-        Assert.False(DrawsSoon(view, "Says "));
+        Assert.False(view.Tooltips!.IsLookingUp);
+        Assert.False(view.Frames.Drew("Says "));
     }
 }

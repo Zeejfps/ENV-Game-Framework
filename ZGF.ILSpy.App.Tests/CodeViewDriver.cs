@@ -28,10 +28,14 @@ internal sealed class CodeViewDriver
     private static readonly Lazy<DecompiledDocument> s_greeter = new(() => Decompile(typeof(Greeter)));
     private static readonly Lazy<DecompiledDocument> s_outline = new(() => Decompile(typeof(Outline)));
 
+    private readonly PostedActions _posted = PostedActions.OfThisTest();
+
+    /// <summary>A view of <paramref name="document"/>. What background work posts back, such as a
+    /// tooltip's lookup, runs on the test's thread at the start of each frame, as the app runs it.</summary>
     public CodeViewDriver(DecompiledDocument document, float height = 300f)
     {
         Document = document;
-        Frames = new UiFrames(Screens.Blank(), height: height, body: Render) { FrameTime = 1f / 60f };
+        Frames = new UiFrames(Screens.Blank(), height: height, body: Render) { FrameTime = 1f / 60f, BeforeFrame = _posted.Run };
     }
 
     private void Render(Ui<UiState> ui)
