@@ -38,6 +38,10 @@ public sealed class IconThemeFile : IThemeFile
     private const int MaxCodepointDigits = 6;
 
     private static readonly HashSet<string> Keys = ListKeys();
+
+    /// <summary>Icons the app once drew and no longer does. A theme written while it had them still
+    /// names them, so they are passed over without an error.</summary>
+    private static readonly HashSet<string> RetiredKeys = ["file.exit"];
     private static readonly byte[] Utf8Bom = [0xEF, 0xBB, 0xBF];
 
     private readonly ThemeJson _json;
@@ -177,6 +181,11 @@ public sealed class IconThemeFile : IThemeFile
     private void ReadIcon(ref Utf8JsonReader reader, string key, int line)
     {
         var subject = IconsKey + "." + key;
+        if (RetiredKeys.Contains(key))
+        {
+            reader.Skip();
+            return;
+        }
         if (!Keys.Contains(key))
         {
             _json.SkipUnknown(ref reader, subject, line);

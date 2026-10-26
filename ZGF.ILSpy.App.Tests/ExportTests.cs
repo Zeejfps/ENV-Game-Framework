@@ -121,7 +121,7 @@ public sealed class ExportTests : IDisposable
         app.Click("File").Frame(2);
 
         IconGlyph[] icons = [Icons.FileOpen, Icons.FileOpenFromFramework, Icons.FileSaveCode, Icons.FileExportProject, Icons.FileGeneratePdb,
-            Icons.FileClose, Icons.FileCloseFailed, Icons.FileClearList, Icons.FileSortList, Icons.FileReloadAll, Icons.FileExit];
+            Icons.FileClose, Icons.FileCloseFailed, Icons.FileClearList, Icons.FileSortList, Icons.FileReloadAll];
         Assert.All(icons, icon => Assert.True(app.Frames.Drew(Text(icon))));
     }
 

@@ -11,7 +11,6 @@
   "file.clear_list": "Очистить список",
   "file.sort_list": "Сортировать список по имени",
   "file.reload_all": "Перезагрузить все",
-  "file.exit": "Выход",
   "file.open_title": "Открыть сборку",
   "file.filter_assemblies_and_packages": "Сборки и пакеты",
   "file.filter_all": "Все файлы",

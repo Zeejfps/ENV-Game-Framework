@@ -11,7 +11,6 @@
   "file.clear_list": "一覧をクリア",
   "file.sort_list": "名前順に並べ替え",
   "file.reload_all": "すべて再読み込み",
-  "file.exit": "終了",
   "file.open_title": "アセンブリを開く",
   "file.filter_assemblies_and_packages": "アセンブリとパッケージ",
   "file.filter_all": "すべてのファイル",

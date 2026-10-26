@@ -151,8 +151,6 @@
     "file.sortList": { "font": "lucide", "glyph": "E415" },
     // Reload every assembly.
     "file.reloadAll": { "font": "lucide", "glyph": "E148" },
-    // Quit.
-    "file.exit": { "font": "lucide", "glyph": "E10E" },
 
     // The window menu, opened from the app's icon in the title bar.
 

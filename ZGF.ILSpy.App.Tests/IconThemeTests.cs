@@ -198,6 +198,15 @@ public sealed class IconThemeLoadingTests
     }
 
     [Fact]
+    public void An_icon_the_app_no_longer_draws_is_passed_over_without_an_error()
+    {
+        var file = User("older", """{ "icons": { "file.exit": { "font": "lucide", "glyph": "E10E" }, "node.class": { "font": "lucide", "glyph": "E061" } } }""");
+
+        Assert.Empty(file.Errors);
+        Assert.Equal(["node.class"], file.Icons.Keys);
+    }
+
+    [Fact]
     public void An_unknown_field_of_an_icon_is_reported_and_the_icon_kept()
     {
         var file = User("sized", """{ "icons": { "node.class": { "font": "lucide", "glyph": "E061", "size": 3 } } }""");

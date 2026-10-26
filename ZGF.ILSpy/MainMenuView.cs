@@ -159,9 +159,6 @@ internal static class MainMenuView
             SortAssemblies(appState);
         if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: new UiIcon(icons.FileReloadAll)))
             RefreshAssemblies(appState, tree.ExpandedPaths());
-        ui.MenuSeparator();
-        if (ui.MenuItem(t.FileExit, "Alt+F4", id: "exit", icon: new UiIcon(icons.FileExit)))
-            ui.Quit();
     }
 
     private static void ExportItems(Ui<UiState> ui, AppState appState)

@@ -307,10 +307,6 @@
           "description": "Reload every assembly.",
           "$ref": "#/definitions/icon"
         },
-        "file.exit": {
-          "description": "Quit.",
-          "$ref": "#/definitions/icon"
-        },
         "window.restore": {
           "description": "Restore the maximized window.",
           "$ref": "#/definitions/icon"
