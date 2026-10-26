@@ -484,13 +484,13 @@
   "errors.clear": "Clear",
   "errors.close": "Close",
 
+  "about.title": "About",
   "about.version": "Version {version}",
   "about.decompiler": "Decompiler",
   "about.runtime": "Runtime",
   "about.system": "System",
-  "about.copy": "Copy",
-  "about.copy_tooltip": "Copy the versions, as for a bug report",
   "about.licenses": "Open licenses folder",
+  "about.check_for_updates": "Check for updates",
   "about.close": "Close",
 
   "picker.title": "Open from framework",

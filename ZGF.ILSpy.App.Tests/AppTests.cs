@@ -622,6 +622,8 @@ public sealed class AppTests
         Assert.True(app.Ui.IsAboutOpen);
         Assert.True(app.Frames.Drew(AppVersions.Decompiler));
         Assert.True(app.Frames.Drew(AppVersions.Runtime));
+        app.Click("Check for updates").Frame(2);
+        Assert.True(app.Ui.IsAboutOpen);
 
         app.Click("Close").Frame(2);
 

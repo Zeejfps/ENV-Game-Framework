@@ -108,7 +108,23 @@ public sealed class TitleBarTests
         var theme = new DefaultUiState().Theme;
         var side = theme.IconSize + 2 * theme.GapTight;
         Assert.Equal(new UiRect(0f, (Buttons.Height - side) / 2f, side, side), frames.RectOf("icon"));
-        Assert.Equal(16, frames.Canvas.GetImageWidth("window-icon"));
+        Assert.Equal(16, frames.Canvas.GetImageWidth("window-icon-16"));
+    }
+
+    [Fact]
+    public void The_app_icon_drawn_large_keeps_an_image_of_its_own_beside_the_title_bars()
+    {
+        var frames = InTitleBar(ui =>
+        {
+            TitleBarWithIcon(ui);
+            ui.AppIcon(64f);
+        });
+        frames.WindowIcon = IconOfSizes(16, 64);
+
+        frames.Frame(2);
+
+        Assert.Equal(16, frames.Canvas.GetImageWidth("window-icon-16"));
+        Assert.Equal(64, frames.Canvas.GetImageWidth("window-icon-64"));
     }
 
     [Fact]

@@ -4,13 +4,13 @@ namespace ZGF.Gui.Immediate;
 
 public abstract partial class Ui
 {
-    private const string WindowIconImageId = "window-icon";
+    private const string WindowIconImagePrefix = "window-icon-";
 
     private readonly List<int> _titleBarDragAreas = new();
-    private WindowIconImage? _windowIconImage;
+    private readonly Dictionary<int, ShownWindowIconImage> _windowIconImages = new();
 
     /// <summary>The icon the platform shows for the window, which <see cref="TitleBarIcon(int, float?)"/>
-    /// draws; null until the app sets one.</summary>
+    /// and <see cref="AppIcon"/> draw; null until the app sets one.</summary>
     internal WindowIcon? WindowIcon { get; set; }
 
     /// <summary>Whether the window lets what is recorded reach under its native title bar, with
@@ -83,31 +83,49 @@ public abstract partial class Ui
         if (WindowIcon == null)
             return false;
         var side = size ?? Theme.IconSize;
-        if (!ShowWindowIconImage(side))
+        var imageId = ShowWindowIconImage(side);
+        if (imageId == null)
             return false;
         var i = Interact(id);
         var background = i.Hovered ? Theme.ControlHovered : 0u;
         using (Box(i.Id, new Box { Padding = new Spacing(Theme.GapTight), Radius = Theme.CornerRadius, Background = background }))
-        using (Box(new Box { Width = side, Height = side }))
-            Paint(WindowIconImageId, static (painter, image) => painter.Image(painter.Rect, image));
+            Image(imageId, side, side);
         return i.Pressed;
     }
 
-    /// <summary>Has the canvas hold the icon's image that suits <paramref name="size"/> points at its
-    /// scale; false where it holds no images.</summary>
-    private bool ShowWindowIconImage(float size)
+    /// <summary>The window's icon, <paramref name="size"/> points square, drawn in the content as the
+    /// app's own picture, such as in an About dialog. Records nothing while the window has no icon.</summary>
+    public void AppIcon(float size, Box box = default)
+    {
+        if (WindowIcon == null)
+            return;
+        var imageId = ShowWindowIconImage(size);
+        if (imageId == null)
+            return;
+        Image(imageId, size, size, box);
+    }
+
+    /// <summary>The id of the canvas image of the icon that suits <paramref name="size"/> points at its
+    /// scale, each size the icon is drawn at keeping an image of its own; null where the canvas holds
+    /// no images.</summary>
+    private string? ShowWindowIconImage(float size)
     {
         var pixels = (int)MathF.Ceiling(size * _canvas.DpiScale);
         var image = WindowIcon!.PickImage(pixels);
         if (image == null)
-            return false;
-        if (image == _windowIconImage)
-            return true;
-        if (!SetImage(WindowIconImageId, image.Value.Width, image.Value.Height, image.Value.Pixels))
-            return false;
-        _windowIconImage = image;
-        return true;
+            return null;
+        var picked = image.Value;
+        if (_windowIconImages.TryGetValue(picked.Width, out var shown) && shown.Image == picked)
+            return shown.Id;
+        var imageId = WindowIconImagePrefix + picked.Width;
+        if (!SetImage(imageId, picked.Width, picked.Height, picked.Pixels))
+            return null;
+        _windowIconImages[picked.Width] = new ShownWindowIconImage(picked, imageId);
+        return imageId;
     }
+
+    /// <summary>An image of the window's icon the canvas holds, under <paramref name="Id"/>.</summary>
+    private readonly record struct ShownWindowIconImage(WindowIconImage Image, string Id);
 
     /// <summary>Puts where this frame's <see cref="TitleBarDragArea(int, Box)"/>s were laid out into
     /// <paramref name="areas"/>, in UI points.</summary>

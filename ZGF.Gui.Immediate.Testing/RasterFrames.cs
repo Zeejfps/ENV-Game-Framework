@@ -1,4 +1,5 @@
 using ZGF.AppUtils;
+using ZGF.Desktop;
 using ZGF.Fonts;
 using ZGF.Gui.Testing;
 
@@ -36,6 +37,9 @@ public sealed class RasterFrames<TState> where TState : class, IUiState
         _ui = new Ui<TState>(state, _canvas, new TestClipboard());
     }
 
+    /// <summary>The icon the window shows, from the next frame; null while it has none.</summary>
+    public WindowIcon? WindowIcon { get; set; }
+
     /// <summary>The frames of <paramref name="app"/>, each what its <c>OnUpdate</c> records.</summary>
     public static RasterFrames<TState> Running(ImmediateGuiApp<TState> app, int width, int height, float dpiScale = 1f) =>
         new(app.UiState, app.Update, width, height, dpiScale);
@@ -51,6 +55,7 @@ public sealed class RasterFrames<TState> where TState : class, IUiState
         var input = new UiInput();
         input.Seal();
         _canvas.BeginFrame();
+        _ui.WindowIcon = WindowIcon;
         _ui.BeginFrame(input, (float)seconds, _time, _width, _height);
         _body(_ui);
         _ui.EndFrame();

@@ -362,6 +362,11 @@
     // A link that opens in the browser.
     "nuget.link": { "font": "lucide", "glyph": "E0B9" },
 
+    // The About dialog.
+
+    // Open the folder of the licenses the app ships.
+    "about.openLicensesFolder": { "font": "lucide", "glyph": "E247" },
+
     // States shown beside text.
 
     // An error: in the status bar, the error dialog and the analyzer.

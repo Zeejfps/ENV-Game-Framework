@@ -643,6 +643,10 @@
           "description": "A link that opens in the browser.",
           "$ref": "#/definitions/icon"
         },
+        "about.openLicensesFolder": {
+          "description": "Open the folder of the licenses the app ships.",
+          "$ref": "#/definitions/icon"
+        },
         "status.error": {
           "description": "An error: in the status bar, the error dialog and the analyzer.",
           "$ref": "#/definitions/icon"
