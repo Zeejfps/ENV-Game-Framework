@@ -186,7 +186,15 @@ public sealed class LoadedAssembly
     public bool IsTargetFrameworkPicked { get; private set; }
 
     /// <summary><see cref="TargetFramework"/> as ILSpy shows it, e.g. <c>.NETCoreApp, v10.0</c>.</summary>
-    public string? FrameworkName => TargetFramework?.Replace(",Version=", ", ");
+    public string? FrameworkName
+    {
+        get
+        {
+            if (TargetFramework == null)
+                return null;
+            return FrameworkIds.ReadableName(TargetFramework);
+        }
+    }
 
     /// <summary><see cref="TargetFramework"/> as a moniker, e.g. <c>net10.0</c>, <c>netstandard2.0</c>
     /// or <c>net48</c>.</summary>

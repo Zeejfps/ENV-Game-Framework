@@ -1,6 +1,8 @@
+using System.IO.Compression;
 using ZGF.Gui;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Settings;
 
@@ -60,6 +62,41 @@ public sealed class TargetFrameworkTests
         Assert.Null(NodeText.PickedFramework(assembly.Root));
         Assert.Contains(detected, NodeText.Secondary(assembly.Root));
         Assert.Empty(app.AppState.Assemblies.TargetFrameworks.All);
+    }
+
+    [Fact]
+    public void Picking_a_framework_for_an_assembly_in_a_package_keeps_the_tree_expanded_and_the_tab_on_what_it_showed()
+    {
+        using var temp = new TempDir();
+        var app = new AppDriver();
+        OpenAssembly(app.AppState, WritePackage(temp));
+        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Kind == NodeKind.Package);
+        app.Settle(2);
+        var package = app.AppState.Assemblies.Listed[0].Root;
+        var folder = package.Child("lib/net10.0");
+        var assembly = folder.Children.Single(c => c.Kind == NodeKind.Assembly);
+        var tree = app.Ui.Tree;
+        foreach (var node in new[] { package, folder, assembly, assembly.Child(AppStateDriver.FixturesNamespace) })
+            tree.View.SetExpanded(node, true);
+        tree.View.Refresh();
+        app.Show(assembly.Child(AppStateDriver.FixturesNamespace, "Greeter"), 2);
+        var before = tree.ExpandedPaths();
+
+        SetTargetFramework(app.AppState, assembly.Assembly, Net48, before);
+        app.Settle(3);
+
+        Assert.Equal(before, tree.ExpandedPaths());
+        Assert.Equal("Greeter", app.AppState.Tabs.Active!.Node!.Text);
+        Assert.Empty(app.AppState.Errors.Entries);
+    }
+
+    /// <summary>A NuGet package holding the fixture assembly.</summary>
+    private static string WritePackage(TempDir temp)
+    {
+        var path = temp.Write("Fixtures.1.0.0.nupkg", []);
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        archive.CreateEntryFromFile(AppStateDriver.FixturePath, "lib/net10.0/" + Path.GetFileName(AppStateDriver.FixturePath));
+        return path;
     }
 
     [Fact]

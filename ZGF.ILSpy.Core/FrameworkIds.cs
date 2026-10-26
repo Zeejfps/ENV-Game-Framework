@@ -5,6 +5,8 @@ namespace ZGF.ILSpy.Core;
 public static class FrameworkIds
 {
     private const string VersionMark = ",Version=v";
+    private const string VersionKey = ",Version=";
+    private const string ReadableVersionKey = ", ";
     private const string CoreApp = ".NETCoreApp";
     private const string Standard = ".NETStandard";
     private const string Framework = ".NETFramework";
@@ -35,6 +37,9 @@ public static class FrameworkIds
         Framework + VersionMark + "4.6.1",
         Framework + VersionMark + "4.6",
     ];
+
+    /// <summary><paramref name="id"/> as ILSpy shows it, e.g. <c>.NETCoreApp, v10.0</c>.</summary>
+    public static string ReadableName(string id) => id.Replace(VersionKey, ReadableVersionKey);
 
     /// <summary><paramref name="id"/> as a moniker, e.g. <c>net10.0</c>, <c>netstandard2.0</c> or
     /// <c>net48</c>; an id of another framework as its name and version.</summary>

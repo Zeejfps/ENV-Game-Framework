@@ -83,10 +83,20 @@ internal sealed class AssemblyNode : BrowseNode
         return result.ToArray();
     }
 
+    /// <summary>The assembly's name, version and the framework it was built for. The framework picked
+    /// to resolve its references against is left out, so that the label, by which paths find the node,
+    /// stays the same when another is picked.</summary>
     private static string LabelOf(LoadedAssembly assembly)
     {
-        var details = new[] { assembly.Version?.ToString(), assembly.FrameworkName }.OfType<string>().ToArray();
+        var details = new[] { assembly.Version?.ToString(), BuiltForName(assembly) }.OfType<string>().ToArray();
         return details.Length == 0 ? assembly.Name : $"{assembly.Name} ({string.Join(", ", details)})";
+    }
+
+    private static string? BuiltForName(LoadedAssembly assembly)
+    {
+        if (assembly.DetectedTargetFramework == null)
+            return null;
+        return FrameworkIds.ReadableName(assembly.DetectedTargetFramework);
     }
 }
 
