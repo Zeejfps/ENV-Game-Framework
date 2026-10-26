@@ -15,17 +15,16 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   them on Windows only, so elsewhere the picker offers just the bundled font).
 - **Tree:** nested-namespace view.
 - **Per-assembly menu:** Set target framework, Pick PDB.
-- **Metadata explorer:** "Decompile metadata row in new tab", hide empty tables, decoded blob
-  signatures in tooltips. AssemblyOS/Processor and AssemblyRefOS/Processor only show row counts.
-- **Navigation:** preview tabs, Close all documents across every tab group at once, omnibar
-  (breadcrumb + search).
+- **Metadata explorer:** decoded blob signatures in tooltips. AssemblyOS/Processor and
+  AssemblyRefOS/Processor only show row counts.
+- **Navigation:** preview tabs, omnibar (breadcrumb + search).
 
 ## Smaller
 
 - More ways to open: the GAC (Windows), a running process.
 - Compare assemblies (API diff) and Create Diagram.
-- Command line: `/navigateTo:`, `/language:`, `/list:`, `/clearList`, single-instance handling.
-- Help/About and Check for updates.
+- Command line: `/navigateTo:`, single-instance handling.
+- Check for updates.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).
 - Module nodes in the tree, for assemblies made of several modules.
