@@ -43,6 +43,7 @@ internal sealed class FakeWindow : IWindow
     public bool IsPointerOver { get; set; } = true;
     public bool IsMaximized { get; set; }
     public bool IsMinimized { get; set; }
+    public int HiddenContentTop { get; set; }
     public bool MousePassThrough { get; private set; }
     public Action<PointI>? PointerCapture { get; private set; }
     public bool NeedsRedraw { get; private set; } = true;

@@ -142,6 +142,13 @@ internal sealed class WindowsWindowPlatform : WindowPlatform
         return titleBar.CaptionButtons;
     }
 
+    public override int HiddenContentTop(IntPtr hwnd)
+    {
+        var titleBar = FindTitleBar(hwnd);
+        if (titleBar == null) return 0;
+        return titleBar.HiddenTop();
+    }
+
     public override int TitleBarOverlap(IntPtr hwnd)
     {
         var titleBar = FindTitleBar(hwnd);

@@ -219,6 +219,7 @@ public abstract class GlfwWindowBase : IWindow
     public void ExtendIntoTitleBar(TitleBarContent? content) => Platform.ExtendIntoTitleBar(NativeHandle, content);
 
     public RectI CaptionButtons => Platform.CaptionButtons(NativeHandle);
+    public int HiddenContentTop => Platform.HiddenContentTop(NativeHandle);
 
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {

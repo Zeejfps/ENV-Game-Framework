@@ -55,6 +55,18 @@ public sealed class TitleBarTests
     }
 
     [Fact]
+    public void A_maximized_window_whose_top_is_off_the_screen_starts_its_title_bar_below_it_as_tall_as_the_caption_buttons()
+    {
+        var frames = InTitleBar(TitleBarWithMenus);
+        frames.HiddenTop = 7f;
+
+        frames.Frame(2);
+
+        Assert.Equal(new UiRect(0f, 7f, 400f, Buttons.Height), frames.RectOf("bar"));
+        Assert.Equal(7f, Assert.Single(frames.TitleBarDragAreas).Y);
+    }
+
+    [Fact]
     public void A_drag_area_takes_the_room_between_what_comes_before_it_and_the_caption_buttons()
     {
         var frames = InTitleBar(TitleBarWithMenus);

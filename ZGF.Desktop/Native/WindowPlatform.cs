@@ -38,6 +38,10 @@ internal class WindowPlatform
 
     public virtual RectI CaptionButtons(IntPtr window) => default;
 
+    /// <summary>How many pixels of the content, from its top, lie off the screen: where a maximized
+    /// window's frame reaches past its monitor and the content starts at the frame's top.</summary>
+    public virtual int HiddenContentTop(IntPtr window) => 0;
+
     /// <summary>How far the content reaches above where the window's frame, as GLFW computes it, puts
     /// it: the height of the title bar the content extends into, and 0 while it does not.</summary>
     public virtual int TitleBarOverlap(IntPtr window) => 0;

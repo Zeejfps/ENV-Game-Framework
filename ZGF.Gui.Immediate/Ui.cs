@@ -346,7 +346,12 @@ public abstract partial class Ui
         _surfaces = 0;
         BeginScrolls();
 
-        Open(0, new Box { Width = Sizing.Fixed(Width), Height = Sizing.Fixed(Height) });
+        Open(0, new Box
+        {
+            Width = Sizing.Fixed(Width),
+            Height = Sizing.Fixed(Height),
+            Padding = new Spacing(0f, HiddenTop, 0f, 0f),
+        });
     }
 
     internal void EndFrame()

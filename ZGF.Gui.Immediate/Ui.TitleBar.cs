@@ -21,6 +21,10 @@ public abstract partial class Ui
     /// the window's content does not reach under its title bar.</summary>
     internal UiRect? CaptionButtons { get; set; }
 
+    /// <summary>How much of the window, from its top, lies off the screen, in UI points: the content
+    /// starts below it.</summary>
+    internal float HiddenTop { get; set; }
+
     /// <summary>The color of the title bar recorded this frame, or null when none was, and the window's
     /// title bar gets its own strip again.</summary>
     internal uint? TitleBarBackground { get; private set; }
@@ -43,11 +47,13 @@ public abstract partial class Ui
         });
     }
 
+    /// <summary>As tall as the caption buttons: a maximized window's keeps the height it has while
+    /// the window is not maximized, below the part of the window off the screen.</summary>
     private float TitleBarHeight()
     {
         if (CaptionButtons == null)
             return Theme.MenuBarHeight;
-        return CaptionButtons.Value.Bottom;
+        return CaptionButtons.Value.Height;
     }
 
     private Spacing LeaveCaptionButtonsFree(Spacing padding)

@@ -115,6 +115,10 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     /// the next frame; null while it does not.</summary>
     public UiRect? CaptionButtons { get; set; }
 
+    /// <summary>How much of the window, from its top, lies off the screen from the next frame, as a
+    /// maximized window's does on Windows.</summary>
+    public float HiddenTop { get; set; }
+
     /// <summary>The color of the title bar the last frame recorded, or null when it recorded none.</summary>
     public uint? TitleBarBackground { get; private set; }
 
@@ -369,6 +373,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         _ui.WindowBounds = WindowBounds;
         _ui.CanDrawTitleBar = CanDrawTitleBar;
         _ui.CaptionButtons = CaptionButtons;
+        _ui.HiddenTop = HiddenTop;
         _ui.WindowIcon = WindowIcon;
         _ui.BeginFrame(_frame, deltaTime, RealTime, Width, Height);
     }

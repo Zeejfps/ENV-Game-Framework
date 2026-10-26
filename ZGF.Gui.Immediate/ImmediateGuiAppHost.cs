@@ -336,12 +336,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             _window.RequestRedraw();
     }
 
-    /// <summary>Tells the frame whether it can draw in the window's title bar, and where the caption
-    /// buttons are there.</summary>
+    /// <summary>Tells the frame whether it can draw in the window's title bar, where the caption
+    /// buttons are there, and how much of the window's top lies off the screen.</summary>
     private void ShowCaptionButtonsToUi()
     {
         _ui.CanDrawTitleBar = _window.CanExtendIntoTitleBar;
         _ui.CaptionButtons = CaptionButtonsInUiSpace();
+        _ui.HiddenTop = ToUiSpace(0, _window.HiddenContentTop).Y;
     }
 
     private UiRect? CaptionButtonsInUiSpace()

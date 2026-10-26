@@ -33,6 +33,7 @@ internal sealed class WindowsTitleBar
     private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_NOACTIVATE = 0x0010;
     private const uint SWP_FRAMECHANGED = 0x0020;
+    private const uint MONITOR_DEFAULTTONEAREST = 0x0002;
 
     private readonly IntPtr _hwnd;
     private TitleBarContent _content;
@@ -114,17 +115,31 @@ internal sealed class WindowsTitleBar
     }
 
     /// <summary>The client area Windows computes, with the title bar's strip given to it: its top stays
-    /// at the window's top, or, maximized, as far below it as the frame reaches past the monitor.</summary>
+    /// at the window's top, maximized too, where the frame reaches past the monitor. DWM finds the
+    /// caption buttons from the client area's top, so a maximized window's content starts
+    /// <see cref="HiddenTop"/> pixels further down instead.</summary>
     private IntPtr CalculateClientArea(IntPtr next, IntPtr wParam, IntPtr lParam)
     {
         var proposed = Marshal.PtrToStructure<RECT>(lParam);
         var result = CallWindowProc(next, _hwnd, WM_NCCALCSIZE, wParam, lParam);
         var client = Marshal.PtrToStructure<RECT>(lParam);
         client.Top = proposed.Top;
-        if (IsZoomed(_hwnd))
-            client.Top += proposed.Bottom - client.Bottom;
         Marshal.StructureToPtr(client, lParam, false);
         return result;
+    }
+
+    /// <summary>How many pixels of the client area, from its top, lie above the monitor's work area,
+    /// where a maximized window's frame reaches past it; 0 for a window that is not maximized.</summary>
+    public int HiddenTop()
+    {
+        if (!IsZoomed(_hwnd))
+            return 0;
+        var monitor = MonitorFromWindow(_hwnd, MONITOR_DEFAULTTONEAREST);
+        var info = new MONITORINFO { Size = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfo(monitor, ref info))
+            return 0;
+        var client = ReadClientRect();
+        return Math.Max(0, info.Work.Top - client.Y);
     }
 
     private IntPtr HitTest(IntPtr next, IntPtr wParam, IntPtr lParam)
@@ -247,6 +262,21 @@ internal sealed class WindowsTitleBar
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int Size;
+        public RECT Monitor;
+        public RECT Work;
+        public uint Flags;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
 
     [DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
     private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);

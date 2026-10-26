@@ -114,6 +114,10 @@ public interface IWindow : IDisposable
     // Where the platform draws its caption buttons over the content, in window coordinates: the room
     // the content leaves free. Empty while the title bar has its own strip.
     RectI CaptionButtons { get; }
+
+    // How many pixels of the content, from its top, lie off the screen: where a maximized window's
+    // frame reaches past its monitor and the content starts at the frame's top (Windows).
+    int HiddenContentTop { get; }
     void RequestRedraw();
 
     string GetClipboardText();
