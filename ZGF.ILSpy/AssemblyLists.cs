@@ -17,6 +17,24 @@ public static class AssemblyLists
         OpenAssembliesAsReload(appState, paths);
     }
 
+    /// <summary>Opens the list named <paramref name="name"/> as the app starts, in place of the one the
+    /// settings had open, with the analyses it had. A list by that name is added when there is none.</summary>
+    public static void StartWithAssemblyList(AppState appState, string name)
+    {
+        if (!appState.Lists.Contains(name))
+            appState.Lists.Create(name);
+        if (!appState.Lists.Activate(name))
+            return;
+        appState.Analyzer.Clear();
+        appState.Analyzer.AddPending(appState.Lists.ActiveAnalyses);
+    }
+
+    /// <summary>Takes every assembly off the open list before the app starts opening it.</summary>
+    public static void EmptyActiveAssemblyList(AppState appState)
+    {
+        appState.Lists.RememberActive([]);
+    }
+
     /// <summary>Records the open assemblies as the open list's, unless they are being reopened, when
     /// the list still holds them all.</summary>
     public static void RememberOpenAssemblies(AppState appState)
