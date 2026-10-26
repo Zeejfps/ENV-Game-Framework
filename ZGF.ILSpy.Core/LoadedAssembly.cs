@@ -74,7 +74,8 @@ public sealed class LoadedAssembly
         }
         NameAndVersion = JoinNameAndVersion(Name, Version);
         if (file != null)
-            TargetFramework = TryDetectTargetFramework(file);
+            DetectedTargetFramework = TryDetectTargetFramework(file);
+        TargetFramework = PickTargetFramework(file);
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework, place?.Container.Package);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
         _debugSymbols = new Lazy<DebugSymbols?>(() => LoadDebugSymbols(place));
@@ -88,10 +89,22 @@ public sealed class LoadedAssembly
     {
         if (PEFile == null)
             return null;
-        var picked = List.FindPickedPdb(FilePath);
+        var picked = List.Pdbs.Find(FilePath);
         if (picked == null)
             return DebugSymbols.Load(PEFile, place?.Container.Package);
         return DebugSymbols.LoadPicked(picked);
+    }
+
+    /// <summary>The framework the list picked for this assembly, else the one it was built for.</summary>
+    private string? PickTargetFramework(MetadataFile? file)
+    {
+        if (file == null)
+            return null;
+        var picked = List.TargetFrameworks.Find(FilePath);
+        if (picked == null)
+            return DetectedTargetFramework;
+        IsTargetFrameworkPicked = true;
+        return picked;
     }
 
     private BrowseNode CreateRoot()
@@ -163,7 +176,14 @@ public sealed class LoadedAssembly
 
     /// <summary>The target framework the assembly was built for, e.g. <c>.NETCoreApp,Version=v10.0</c>,
     /// or null if it does not say.</summary>
+    public string? DetectedTargetFramework { get; }
+
+    /// <summary>The framework the assembly's references are resolved against: the one the list picked
+    /// for it, else <see cref="DetectedTargetFramework"/>.</summary>
     public string? TargetFramework { get; }
+
+    /// <summary>Whether the list picked <see cref="TargetFramework"/> for this assembly.</summary>
+    public bool IsTargetFrameworkPicked { get; private set; }
 
     /// <summary><see cref="TargetFramework"/> as ILSpy shows it, e.g. <c>.NETCoreApp, v10.0</c>.</summary>
     public string? FrameworkName => TargetFramework?.Replace(",Version=", ", ");
@@ -174,18 +194,9 @@ public sealed class LoadedAssembly
     {
         get
         {
-            if (TargetFramework is not { } id) return null;
-            var at = id.IndexOf(",Version=v", StringComparison.Ordinal);
-            if (at < 0) return id;
-            var name = id[..at];
-            var version = id[(at + ",Version=v".Length)..];
-            return name switch
-            {
-                ".NETCoreApp" => System.Version.TryParse(version, out var v) && v.Major >= 5 ? $"net{version}" : $"netcoreapp{version}",
-                ".NETStandard" => $"netstandard{version}",
-                ".NETFramework" => $"net{version.Replace(".", "")}",
-                _ => $"{name} {version}",
-            };
+            if (TargetFramework == null)
+                return null;
+            return FrameworkIds.MonikerOf(TargetFramework);
         }
     }
 

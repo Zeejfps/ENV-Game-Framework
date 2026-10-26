@@ -68,7 +68,7 @@ public sealed class DebugSymbolsTests
         var list = new AssemblyList();
         var before = list.Open(copy).DebugSymbols;
 
-        list.PickPdb(copy, TestPdbPath);
+        list.Pdbs.Pick(copy, TestPdbPath);
         list.Clear();
         var after = list.Open(copy);
 
@@ -84,11 +84,11 @@ public sealed class DebugSymbolsTests
     {
         var list = new AssemblyList();
         var test = list.Open(Trees.TestAssemblyPath);
-        list.PickPdb(test.FilePath, TestPdbPath);
+        list.Pdbs.Pick(test.FilePath, TestPdbPath);
 
         list.Close(test);
 
-        Assert.Empty(list.PickedPdbs);
+        Assert.Empty(list.Pdbs.All);
     }
 
     private static string TestPdbPath => Path.ChangeExtension(Trees.TestAssemblyPath, ".pdb");

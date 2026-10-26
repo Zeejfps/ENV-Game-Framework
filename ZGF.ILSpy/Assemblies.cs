@@ -91,7 +91,7 @@ public static class Assemblies
         }
         if (!appState.IsListed(assembly.Root))
             return;
-        appState.Assemblies.PickPdb(assembly.FilePath, pdbPath);
+        appState.Assemblies.Pdbs.Pick(assembly.FilePath, pdbPath);
         RefreshAssemblies(appState, expanded);
     }
 
@@ -109,6 +109,40 @@ public static class Assemblies
         PdbCheck.WindowsPdb => t.ErrorPdbWindows,
         _ => t.ErrorPdbUnreadable,
     };
+
+    /// <summary>Resolves <paramref name="assembly"/>'s references against the framework
+    /// <paramref name="framework"/> names, such as <c>.NETCoreApp,Version=v8.0</c>, or, when it is
+    /// null, against the one the assembly was built for; kept with the list, and the list reloaded to
+    /// show it, expanding <paramref name="expanded"/> again. Does nothing when that is the framework
+    /// already in use.</summary>
+    public static void SetTargetFramework(AppState appState, LoadedAssembly assembly, string? framework, List<NodePath> expanded)
+    {
+        if (!appState.IsListed(assembly.Root))
+            return;
+        if (IsInUse(assembly, framework))
+            return;
+        PickTargetFramework(appState.Assemblies.TargetFrameworks, assembly, framework);
+        RefreshAssemblies(appState, expanded);
+    }
+
+    /// <summary>Whether <paramref name="framework"/>, null for the one the assembly was built for, is
+    /// what its references are resolved against now.</summary>
+    private static bool IsInUse(LoadedAssembly assembly, string? framework)
+    {
+        if (!assembly.IsTargetFrameworkPicked)
+            return framework == null;
+        return assembly.TargetFramework == framework;
+    }
+
+    private static void PickTargetFramework(AssemblyPicks frameworks, LoadedAssembly assembly, string? framework)
+    {
+        if (framework == null)
+        {
+            frameworks.Forget(assembly.FilePath);
+            return;
+        }
+        frameworks.Pick(assembly.FilePath, framework);
+    }
 
     public static void CloseAssembly(AppState appState, LoadedAssembly assembly) => appState.Assemblies.Close(assembly);
 
@@ -142,7 +176,8 @@ public static class Assemblies
         appState.Opens.CancelAll();
         appState.Reload.Stop();
         ClearAssemblies(appState);
-        appState.Assemblies.ForgetPickedPdbs();
+        appState.Assemblies.Pdbs.ForgetAll();
+        appState.Assemblies.TargetFrameworks.ForgetAll();
     }
 
     private static void ClearAssemblies(AppState appState)

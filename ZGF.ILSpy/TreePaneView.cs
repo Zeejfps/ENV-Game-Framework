@@ -195,6 +195,8 @@ internal static class TreePaneView
             ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItems(ui, appState, node.Assembly);
+        if (node.Kind == NodeKind.Assembly)
+            TargetFrameworkMenu(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))
             OpenDependencies(appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
@@ -259,6 +261,39 @@ internal static class TreePaneView
             SaveDialogs.PickPdbFile(ui, appState, assembly);
         if (assembly.CanPickPdb && ui.MenuItem(t.TreeSelectPdb, id: "select-pdb"))
             PickPdbToRead(ui, appState, assembly);
+    }
+
+    /// <summary>The submenu of the framework the assembly's references are resolved against: the one it
+    /// was built for, or one of the common ones, the one in use picked.</summary>
+    private static void TargetFrameworkMenu(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    {
+        var t = ui.State.Strings;
+        using var menu = ui.SubMenu(t.TreeTargetFramework, id: "target-framework");
+        if (!menu.IsOpen)
+            return;
+        var tree = ui.State.Tree;
+        if (ui.MenuRadioItem(DetectedFrameworkLabel(t, assembly), !assembly.IsTargetFrameworkPicked, id: "detected"))
+            SetTargetFramework(appState, assembly, null, tree.ExpandedPaths());
+        ui.MenuSeparator();
+        foreach (var framework in FrameworkIds.Common)
+        {
+            if (ui.MenuRadioItem(FrameworkIds.MonikerOf(framework), IsPicked(assembly, framework), id: framework))
+                SetTargetFramework(appState, assembly, framework, tree.ExpandedPaths());
+        }
+    }
+
+    private static string DetectedFrameworkLabel(Strings t, LoadedAssembly assembly)
+    {
+        if (assembly.DetectedTargetFramework == null)
+            return t.TreeTargetFrameworkNone;
+        return t.TreeTargetFrameworkDetected(FrameworkIds.MonikerOf(assembly.DetectedTargetFramework));
+    }
+
+    private static bool IsPicked(LoadedAssembly assembly, string framework)
+    {
+        if (!assembly.IsTargetFrameworkPicked)
+            return false;
+        return assembly.TargetFramework == framework;
     }
 
     /// <summary>Asks for the PDB <paramref name="assembly"/> reads, starting in its folder, then has it read that one.</summary>

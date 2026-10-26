@@ -197,15 +197,15 @@ public sealed class AppSettings
             return new List<AssemblyListRecord>();
         return lists
             .Where(static l => l != null && l.Name != null)
-            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed), CleanPdbs(l.Pdbs)))
+            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed), CleanPicks(l.Pdbs), CleanPicks(l.Frameworks)))
             .ToList();
     }
 
-    private static Dictionary<string, string>? CleanPdbs(Dictionary<string, string>? pdbs)
+    private static Dictionary<string, string>? CleanPicks(Dictionary<string, string>? picks)
     {
-        if (pdbs == null)
+        if (picks == null)
             return null;
-        return pdbs
+        return picks
             .Where(static p => !string.IsNullOrWhiteSpace(p.Value))
             .ToDictionary(static p => p.Key, static p => p.Value);
     }

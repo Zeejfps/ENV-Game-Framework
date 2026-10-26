@@ -23,7 +23,7 @@ public sealed class PickedPdbTests
         app.Frames.FilePicker.Answer = FixturePdb;
 
         app.PickFromTreeMenu(OpenAssemblyOf(app.Driver).Name, "Select PDB…");
-        app.RunUntil(() => app.AppState.Assemblies.PickedPdbs.Count > 0);
+        app.RunUntil(() => app.AppState.Assemblies.Pdbs.All.Count > 0);
         app.Settle(2);
 
         Assert.Equal(FixturePdb, OpenAssemblyOf(app.Driver).DebugSymbols!.SourceFileName);
@@ -56,7 +56,7 @@ public sealed class PickedPdbTests
         d.RunUntil(() => d.AppState.Errors.Entries.Count > 0);
 
         var error = Assert.Single(d.AppState.Errors.Entries);
-        Assert.Empty(d.AppState.Assemblies.PickedPdbs);
+        Assert.Empty(d.AppState.Assemblies.Pdbs.All);
         Assert.Contains("another build", error.Details);
     }
 
@@ -72,7 +72,7 @@ public sealed class PickedPdbTests
         RememberOpenAssemblies(d.AppState);
         SaveSettings(d.AppState);
 
-        Assert.Empty(d.AppState.Assemblies.PickedPdbs);
+        Assert.Empty(d.AppState.Assemblies.Pdbs.All);
         Assert.Null(Assert.Single(temp.Settings().AssemblyLists).Pdbs);
     }
 
@@ -94,7 +94,7 @@ public sealed class PickedPdbTests
     private static void Pick(AppStateDriver d, string pdb)
     {
         UsePdb(d.AppState, OpenAssemblyOf(d), pdb, []);
-        d.RunUntil(() => d.AppState.Assemblies.PickedPdbs.Count > 0);
+        d.RunUntil(() => d.AppState.Assemblies.Pdbs.All.Count > 0);
         d.Settle();
     }
 

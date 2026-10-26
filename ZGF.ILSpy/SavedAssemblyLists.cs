@@ -3,9 +3,10 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>A named assembly list as the settings keep it: its name, its assemblies' file paths, in
-/// order, the symbols analyzed in it, and the PDBs picked for its assemblies, by assembly path.</summary>
+/// order, the symbols analyzed in it, and, by assembly path, the PDBs picked for its assemblies and
+/// the frameworks picked to resolve their references against.</summary>
 public sealed record AssemblyListRecord(string Name, List<string> Assemblies, List<CodeAnchor>? Analyzed = null,
-    Dictionary<string, string>? Pdbs = null);
+    Dictionary<string, string>? Pdbs = null, Dictionary<string, string>? Frameworks = null);
 
 /// <summary>
 /// The user's named assembly lists and which one is open. Names are never empty and never the same
@@ -40,6 +41,9 @@ public sealed class SavedAssemblyLists
     /// <summary>The PDBs picked for the open list's assemblies, by assembly path.</summary>
     public IReadOnlyDictionary<string, string> ActivePdbs => _active.Pdbs;
 
+    /// <summary>The frameworks picked for the open list's assemblies, by assembly path.</summary>
+    public IReadOnlyDictionary<string, string> ActiveFrameworks => _active.Frameworks;
+
     public IReadOnlyList<string> Names => _lists.ConvertAll(static l => l.Name);
 
     public int Count => _lists.Count;
@@ -65,32 +69,35 @@ public sealed class SavedAssemblyLists
         if (Find(name) != null)
             return;
         var analyzed = record.Analyzed ?? new List<CodeAnchor>();
-        var pdbs = record.Pdbs ?? new Dictionary<string, string>();
-        _lists.Add(new SavedList(name, record.Assemblies.ToList(), analyzed.ToList(), CopyPdbs(pdbs)));
+        var list = new SavedList(name, record.Assemblies.ToList(), analyzed.ToList());
+        CopyPicks(record.Pdbs, list.Pdbs);
+        CopyPicks(record.Frameworks, list.Frameworks);
+        _lists.Add(list);
     }
 
-    private static SavedList CreateEmpty(string name) => new(name, new List<string>(), new List<CodeAnchor>(), CreatePdbs());
+    private static SavedList CreateEmpty(string name) => new(name, new List<string>(), new List<CodeAnchor>());
 
-    private static Dictionary<string, string> CreatePdbs() => new(StringComparer.OrdinalIgnoreCase);
-
-    private static Dictionary<string, string> CopyPdbs(IReadOnlyDictionary<string, string> pdbs)
+    private static void CopyPicks(IReadOnlyDictionary<string, string>? picks, Dictionary<string, string> into)
     {
-        return new Dictionary<string, string>(pdbs, StringComparer.OrdinalIgnoreCase);
+        if (picks == null)
+            return;
+        foreach (var (assembly, pick) in picks)
+            into[assembly] = pick;
     }
 
     public List<AssemblyListRecord> Save()
     {
         return _lists
-            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePdbs(l)))
+            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePicks(l.Pdbs), SavePicks(l.Frameworks)))
             .ToList();
     }
 
-    /// <summary>The list's picked PDBs as the settings keep them; null for none, which leaves them out.</summary>
-    private static Dictionary<string, string>? SavePdbs(SavedList list)
+    /// <summary>A list's picks as the settings keep them; null for none, which leaves them out.</summary>
+    private static Dictionary<string, string>? SavePicks(Dictionary<string, string> picks)
     {
-        if (list.Pdbs.Count == 0)
+        if (picks.Count == 0)
             return null;
-        return new Dictionary<string, string>(list.Pdbs);
+        return new Dictionary<string, string>(picks);
     }
 
     public bool Contains(string name) => Find(name) != null;
@@ -140,19 +147,29 @@ public sealed class SavedAssemblyLists
     /// <summary>Records <paramref name="pdbs"/> as the PDBs picked for the open list's assemblies.</summary>
     public void RememberActivePdbs(IReadOnlyDictionary<string, string> pdbs)
     {
-        if (HasPdbs(_active, pdbs))
+        RememberPicks(_active.Pdbs, pdbs);
+    }
+
+    /// <summary>Records <paramref name="frameworks"/> as the frameworks picked for the open list's assemblies.</summary>
+    public void RememberActiveFrameworks(IReadOnlyDictionary<string, string> frameworks)
+    {
+        RememberPicks(_active.Frameworks, frameworks);
+    }
+
+    private void RememberPicks(Dictionary<string, string> kept, IReadOnlyDictionary<string, string> picks)
+    {
+        if (HasPicks(kept, picks))
             return;
-        _active.Pdbs.Clear();
-        foreach (var (assembly, pdb) in pdbs)
-            _active.Pdbs[assembly] = pdb;
+        kept.Clear();
+        CopyPicks(picks, kept);
         Revision++;
     }
 
-    private static bool HasPdbs(SavedList list, IReadOnlyDictionary<string, string> pdbs)
+    private static bool HasPicks(Dictionary<string, string> kept, IReadOnlyDictionary<string, string> picks)
     {
-        if (list.Pdbs.Count != pdbs.Count)
+        if (kept.Count != picks.Count)
             return false;
-        return pdbs.All(p => list.Pdbs.GetValueOrDefault(p.Key) == p.Value);
+        return picks.All(p => kept.GetValueOrDefault(p.Key) == p.Value);
     }
 
     /// <summary>Adds an empty list named <paramref name="name"/>, numbered when that name is taken,
@@ -160,7 +177,7 @@ public sealed class SavedAssemblyLists
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Create(string name)
     {
-        return Add(name, new List<string>(), new List<CodeAnchor>(), CreatePdbs());
+        return Add(new SavedList(name, new List<string>(), new List<CodeAnchor>()));
     }
 
     /// <summary>Adds a list of the assemblies at <paramref name="paths"/>, named <paramref name="name"/>
@@ -168,27 +185,26 @@ public sealed class SavedAssemblyLists
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Create(string name, IReadOnlyList<string> paths)
     {
-        return Add(name, paths.ToList(), new List<CodeAnchor>(), CreatePdbs());
+        return Add(new SavedList(name, paths.ToList(), new List<CodeAnchor>()));
     }
 
-    /// <summary>Adds a list with the assemblies, analyses and picked PDBs of the one named
+    /// <summary>Adds a list with the assemblies, analyses and picks of the one named
     /// <paramref name="source"/>, named <paramref name="name"/> or numbered when that is taken, and
     /// returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Duplicate(string source, string name)
     {
-        var paths = PathsOf(source).ToList();
-        var analyzed = AnalysesOf(source).ToList();
-        var pdbs = CopyPdbs(PdbsOf(source));
-        return Add(name, paths, analyzed, pdbs);
+        var copy = new SavedList(name, PathsOf(source).ToList(), AnalysesOf(source).ToList());
+        var original = Find(source);
+        if (original != null)
+            CopyPicksOf(original, copy);
+        return Add(copy);
     }
 
-    private IReadOnlyDictionary<string, string> PdbsOf(string name)
+    private static void CopyPicksOf(SavedList original, SavedList copy)
     {
-        var list = Find(name);
-        if (list == null)
-            return new Dictionary<string, string>();
-        return list.Pdbs;
+        CopyPicks(original.Pdbs, copy.Pdbs);
+        CopyPicks(original.Frameworks, copy.Frameworks);
     }
 
     private IReadOnlyList<CodeAnchor> AnalysesOf(string name)
@@ -199,13 +215,14 @@ public sealed class SavedAssemblyLists
         return list.Analyzed;
     }
 
-    private string Add(string name, List<string> paths, List<CodeAnchor> analyzed, Dictionary<string, string> pdbs)
+    /// <summary>Adds <paramref name="list"/>, numbered when its name is taken, and returns the name it got.</summary>
+    private string Add(SavedList list)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var unique = MakeUnique(name.Trim());
-        _lists.Add(new SavedList(unique, paths, analyzed, pdbs));
+        ArgumentException.ThrowIfNullOrWhiteSpace(list.Name);
+        list.Name = MakeUnique(list.Name.Trim());
+        _lists.Add(list);
         Revision++;
-        return unique;
+        return list.Name;
     }
 
     private string MakeUnique(string name)
@@ -282,11 +299,14 @@ public sealed class SavedAssemblyLists
         return _lists.Find(l => string.Equals(l.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed, Dictionary<string, string> pdbs)
+    /// <summary>A list: its name, its assemblies' paths, the symbols analyzed in it, and what was
+    /// picked for its assemblies, by assembly path.</summary>
+    private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed)
     {
         public string Name = name;
         public List<string> Paths { get; } = paths;
         public List<CodeAnchor> Analyzed { get; } = analyzed;
-        public Dictionary<string, string> Pdbs { get; } = pdbs;
+        public Dictionary<string, string> Pdbs { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> Frameworks { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }
