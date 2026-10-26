@@ -5,10 +5,6 @@ ported upstream from WPF to Avalonia; the feature set carried over.
 
 Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
-## Biggest gaps
-
-1. **More ways to open.** GAC (Windows), open from a running process.
-
 ## Medium
 
 - **Languages:** IL with C# (interleaved); ReadyToRun disassembly (plugin upstream).
@@ -26,6 +22,7 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 ## Smaller
 
+- More ways to open: the GAC (Windows), a running process.
 - Compare assemblies (API diff) and Create Diagram.
 - Command line: `/navigateTo:`, `/language:`, `/list:`, `/clearList`, single-instance handling.
 - Help/About and Check for updates.
