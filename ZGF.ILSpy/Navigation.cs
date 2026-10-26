@@ -1,6 +1,7 @@
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Decompilation;
 
 namespace ZGF.ILSpy;
@@ -20,6 +21,57 @@ public static class Navigation
         var tab = inNewTab ? null : appState.Tabs.Active;
         ShowNodeIn(appState, tab, node);
         appState.History.Push(node, appState.Language);
+    }
+
+    /// <summary>Opens the files at <paramref name="paths"/> in the background, then shows the namespace,
+    /// type or member <paramref name="idString"/> names, written as XML documentation ids are, looked
+    /// for in the assemblies read from them, or in every open one when there are none. Reports when
+    /// none has it.</summary>
+    public static async void OpenAndShowId(AppState appState, IReadOnlyList<string> paths, string idString)
+    {
+        var ticket = appState.Intent.Begin();
+        var token = appState.Opens.Token;
+        var found = await Background.Run(() => OpenAndFindId(appState, paths, idString, token));
+        if (found.Error != null)
+        {
+            ReportOpenFailure(appState, found.Error);
+            return;
+        }
+        if (appState.Intent.IsStale(ticket))
+            return;
+        if (found.Value == null)
+        {
+            ReportMissingId(appState, idString);
+            return;
+        }
+        ShowNode(appState, found.Value);
+    }
+
+    private static BrowseNode? OpenAndFindId(AppState appState, IReadOnlyList<string> paths, string idString, CancellationToken token)
+    {
+        var opened = new List<LoadedAssembly>();
+        foreach (var path in paths)
+            opened.Add(appState.Assemblies.Open(path, token));
+        var scope = ListIdScope(appState, opened);
+        return appState.Assemblies.FindNodeById(idString, scope);
+    }
+
+    /// <summary>The assemblies an id is looked for in: those read from the files opened, a package's
+    /// among them, else every open one.</summary>
+    private static List<LoadedAssembly> ListIdScope(AppState appState, List<LoadedAssembly> opened)
+    {
+        var open = appState.Assemblies.Assemblies;
+        if (opened.Count == 0)
+            return open.ToList();
+        return open
+            .Where(a => opened.Contains(a.ListedItem))
+            .ToList();
+    }
+
+    private static void ReportMissingId(AppState appState, string idString)
+    {
+        var t = Strings.For(appState.Locale);
+        appState.ReportError(t.ErrorNavigateTo(idString));
     }
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),

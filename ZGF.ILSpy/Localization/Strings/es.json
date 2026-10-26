@@ -569,6 +569,7 @@
   "error.pdb_other_build": "Es el PDB de otra compilación de {name}.",
   "error.pdb_windows": "Es un PDB de Windows; solo se pueden leer PDB portables.",
   "error.pdb_unreadable": "No es un PDB que se pueda leer.",
+  "error.navigate_to": "No se encontró nada llamado {id} en los ensamblados abiertos",
   "error.import_bookmarks": "No se pueden importar marcadores de {file}",
   "error.bookmarks_not_found": "Algunos marcadores de {file} no se encontraron y se omitieron",
   "error.theme": "Problemas en el tema {file}",

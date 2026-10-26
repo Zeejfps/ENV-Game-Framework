@@ -6,6 +6,40 @@ namespace ZGF.ILSpy.Tests;
 
 public sealed class NavigationTests
 {
+    [Theory]
+    [InlineData("N:ZGF.ILSpy.Tests.Fixtures", "ZGF.ILSpy.Tests.Fixtures")]
+    [InlineData("T:ZGF.ILSpy.Tests.Fixtures.Circle", "Circle")]
+    [InlineData("M:ZGF.ILSpy.Tests.Fixtures.Circle.Grow(System.Double,System.Int32)", "Grow(double, int) : double")]
+    [InlineData("P:ZGF.ILSpy.Tests.Fixtures.Circle.Radius", "Radius : double")]
+    public void A_documentation_id_finds_its_namespace_type_or_member(string id, string text)
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+
+        var node = list.FindNodeById(id, [assembly]);
+
+        Assert.Equal(text, node!.Text);
+    }
+
+    [Theory]
+    [InlineData("T:ZGF.ILSpy.Tests.Fixtures.Square")]
+    [InlineData("N:Nowhere")]
+    [InlineData("Circle")]
+    [InlineData("M:ZGF.ILSpy.Tests.Fixtures.Circle.Grow(")]
+    public void A_documentation_id_no_assembly_has_or_none_can_read_finds_nothing(string id)
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+
+        Assert.Null(list.FindNodeById(id, [assembly]));
+    }
+
+    [Fact]
+    public void A_documentation_id_of_a_referenced_type_is_not_found_in_the_assembly_that_only_uses_it()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+
+        Assert.Null(list.FindNodeById("T:System.String", [assembly]));
+    }
+
     [Fact]
     public void A_reference_into_the_framework_opens_the_defining_assembly()
     {

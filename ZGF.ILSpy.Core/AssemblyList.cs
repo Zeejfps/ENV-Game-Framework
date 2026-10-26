@@ -251,6 +251,32 @@ public sealed class AssemblyList
     /// the nearest visible ancestor is returned. Null if the reference is not navigable or cannot be
     /// resolved. May load files: prefer calling it off the UI thread.
     /// </summary>
+    /// <summary>The node of the namespace, type or member <paramref name="idString"/> names, written as
+    /// XML documentation ids are, such as <c>T:System.String</c>, in the first of <paramref name="assemblies"/>
+    /// that defines it; null when none does. May read the assemblies: call it off the UI thread.</summary>
+    public BrowseNode? FindNodeById(string idString, IEnumerable<LoadedAssembly> assemblies)
+    {
+        foreach (var assembly in assemblies)
+        {
+            var node = FindNodeById(idString, assembly);
+            if (node != null)
+                return node;
+        }
+        return null;
+    }
+
+    private static BrowseNode? FindNodeById(string idString, LoadedAssembly assembly)
+    {
+        try
+        {
+            return assembly.FindNodeById(idString);
+        }
+        catch (Exception e) when (IsUnreadable(e))
+        {
+            return null;
+        }
+    }
+
     public BrowseNode? FindNode(CodeReference reference)
     {
         try

@@ -583,6 +583,7 @@
   "error.pdb_other_build": "It is the PDB of another build of {name}.",
   "error.pdb_windows": "It is a Windows PDB; only portable PDBs can be read.",
   "error.pdb_unreadable": "It is no PDB that can be read.",
+  "error.navigate_to": "Nothing named {id} was found in the assemblies opened",
   "error.import_bookmarks": "Cannot import bookmarks from {file}",
   "error.bookmarks_not_found": "Some bookmarks from {file} were not found and were left out",
   "error.theme": "Problems in the theme {file}",

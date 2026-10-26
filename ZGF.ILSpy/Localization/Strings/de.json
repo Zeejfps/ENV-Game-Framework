@@ -569,6 +569,7 @@
   "error.pdb_other_build": "Es ist das PDB eines anderen Builds von {name}.",
   "error.pdb_windows": "Es ist ein Windows-PDB; nur portable PDBs können gelesen werden.",
   "error.pdb_unreadable": "Es ist kein lesbares PDB.",
+  "error.navigate_to": "In den geöffneten Assemblys wurde nichts mit dem Namen {id} gefunden",
   "error.import_bookmarks": "Lesezeichen aus {file} können nicht importiert werden",
   "error.bookmarks_not_found": "Einige Lesezeichen aus {file} wurden nicht gefunden und ausgelassen",
   "error.theme": "Probleme im Design {file}",

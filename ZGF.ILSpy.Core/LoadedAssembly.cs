@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection.Metadata;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
+using ICSharpCode.Decompiler.Documentation;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 
@@ -18,6 +19,7 @@ public sealed record PackagePlace(LoadedAssembly Container, PackageFile File);
 public sealed class LoadedAssembly
 {
     private static readonly TypeSystemOptions DefaultTypeSystemOptions = DecompilerTypeSystem.GetOptions(Settings.Create());
+    private const string NamespaceIdPrefix = "N:";
 
     private readonly Lazy<DecompilerTypeSystem> _typeSystem;
     private readonly Lazy<DebugSymbols?> _debugSymbols;
@@ -309,6 +311,35 @@ public sealed class LoadedAssembly
         if (parent is null) return null;
         _ = parent.Children;
         return _nodes.GetValueOrDefault(handle);
+    }
+
+    /// <summary>The node of the namespace, type or member <paramref name="idString"/> names, written as
+    /// XML documentation ids are (<c>N:</c>, <c>T:</c>, <c>M:</c>, <c>P:</c>, <c>F:</c> or <c>E:</c>
+    /// and the full name); null when this assembly defines none such, or the id cannot be read.</summary>
+    internal BrowseNode? FindNodeById(string idString)
+    {
+        if (_file == null)
+            return null;
+        if (idString.StartsWith(NamespaceIdPrefix, StringComparison.Ordinal))
+            return ((AssemblyNode)Root).FindNamespace(idString.Substring(NamespaceIdPrefix.Length));
+        var entity = FindEntity(idString);
+        if (entity == null)
+            return null;
+        if (!ReferenceEquals(entity.ParentModule, Module))
+            return null;
+        return FindNodeOrAncestor(entity.MetadataToken);
+    }
+
+    private IEntity? FindEntity(string idString)
+    {
+        try
+        {
+            return IdStringProvider.FindEntity(idString, new SimpleTypeResolveContext(Module));
+        }
+        catch (Exception e) when (e is ArgumentException or ReflectionNameParseException)
+        {
+            return null;
+        }
     }
 
     internal BrowseNode? FindNodeOrAncestor(EntityHandle handle)

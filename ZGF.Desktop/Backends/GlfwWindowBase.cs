@@ -102,6 +102,7 @@ public abstract class GlfwWindowBase : IWindow
     public bool IsPointerOver => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.MouseHover);
     public bool NeedsRedraw { get; private set; } = true;
     public bool IsMaximized => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Maximized);
+    public bool IsMinimized => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Iconified);
 
     public event Action<int, int>? OnResize;
     public event Action<int, int>? OnFramebufferResize;

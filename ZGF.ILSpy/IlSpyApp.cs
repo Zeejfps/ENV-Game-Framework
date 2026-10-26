@@ -6,6 +6,7 @@ using static ZGF.ILSpy.Appearance;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.CodeDisplay;
+using static ZGF.ILSpy.CommandLines;
 using static ZGF.ILSpy.IconTheming;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenSettings;
@@ -22,16 +23,19 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     private const string AppIconFile = "app_icon.rgba";
 
     private readonly AppState _appState;
-    private readonly List<string> _startupAssemblies;
+    private readonly CommandLine _startup;
+    private readonly AppInstance? _instance;
     private readonly CodeFontFaces _codeFonts = new(LoadFont(MonoFonts.Code, MonoFontFile));
 
     internal IlSpyApp(
         AppState appState,
         UiState uiState,
-        List<string> startupAssemblies) : base(uiState)
+        CommandLine startup,
+        AppInstance? instance) : base(uiState)
     {
         _appState = appState;
-        _startupAssemblies = startupAssemblies;
+        _startup = startup;
+        _instance = instance;
     }
 
     protected override void OnStartup(ImmediateGuiAppHost<UiState> host)
@@ -41,6 +45,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         RegisterChosenCodeFont(host);
         RegisterChosenIconFonts(host);
         OpenStartupAssemblies();
+        WakeOnHandedCommandLines(host);
         StartRedrawingOnAssemblyChanges(host);
         RestoreAnalyses(_appState);
         WatchUserThemes(_appState);
@@ -49,6 +54,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     protected override void OnUpdate(Ui<UiState> ui)
     {
+        FollowHandedCommandLines(ui);
         StartFrame(ui.State, _appState);
         MainView.Render(ui, _appState);
         FinishFrame(ui, _appState, _codeFonts);
@@ -56,6 +62,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     protected override void OnShutdown(ImmediateGuiAppHost<UiState> host)
     {
+        StopTakingCommandLines();
         StopRedrawingOnAssemblyChanges(host);
         StopWatchingUserThemes(_appState);
         StopWatchingUserIconThemes(_appState);
@@ -195,7 +202,36 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     private void OpenStartupAssemblies()
     {
         RestoreActiveAssemblyList(_appState);
-        OpenAssemblies(_appState, _startupAssemblies);
+        OpenCommandLineFiles(_appState, _startup);
+    }
+
+    /// <summary>Leaves the command lines of later runs to windows of their own once this one closes.</summary>
+    private void StopTakingCommandLines()
+    {
+        if (_instance == null)
+            return;
+        _instance.StopListening();
+    }
+
+    /// <summary>Draws a frame whenever a later run hands this window a command line.</summary>
+    private void WakeOnHandedCommandLines(ImmediateGuiAppHost<UiState> host)
+    {
+        if (_instance == null)
+            return;
+        _instance.WakeWith(host.Invalidate);
+    }
+
+    /// <summary>Does what the command lines later runs handed over ask, bringing the window to the
+    /// front for each.</summary>
+    private void FollowHandedCommandLines(Ui<UiState> ui)
+    {
+        if (_instance == null)
+            return;
+        while (_instance.TryTakeHanded(out var commandLine))
+        {
+            FollowHandedCommandLine(_appState, commandLine);
+            ui.BringWindowToFront();
+        }
     }
 
     internal void SaveOnExit(WindowBounds window)

@@ -10,6 +10,8 @@ public sealed class CommandLine
     private const string LanguageOption = "--language=";
     private const string ListOption = "--list=";
     private const string ClearListFlag = "--clear-list";
+    private const string NavigateToOption = "--navigateto=";
+    private const string NewInstanceFlag = "--newinstance";
     private const string FlagPrefix = "--";
 
     public string SettingsPath { get; private set; } = AppSettings.DefaultPath;
@@ -25,6 +27,15 @@ public sealed class CommandLine
 
     /// <summary>Whether to take every assembly off the list before opening <see cref="AssemblyPaths"/>.</summary>
     public bool ClearList { get; private set; }
+
+    /// <summary>The documentation id of the namespace, type or member to show, such as
+    /// <c>T:System.String</c>, looked for in <see cref="AssemblyPaths"/>, or in every open assembly when
+    /// there are none; null to show the last file opened.</summary>
+    public string? NavigateTo { get; private set; }
+
+    /// <summary>Whether to open a window of its own rather than hand this command line to the one
+    /// already open with the same settings.</summary>
+    public bool NewInstance { get; private set; }
 
     public static CommandLine Parse(string[] args)
     {
@@ -43,9 +54,13 @@ public sealed class CommandLine
         else if (arg.StartsWith(LanguageOption, StringComparison.Ordinal))
             Language = ParseLanguage(arg.Substring(LanguageOption.Length));
         else if (arg.StartsWith(ListOption, StringComparison.Ordinal))
-            AssemblyList = ReadListName(arg.Substring(ListOption.Length));
+            AssemblyList = ReadName(arg.Substring(ListOption.Length));
         else if (arg == ClearListFlag)
             ClearList = true;
+        else if (arg.StartsWith(NavigateToOption, StringComparison.Ordinal))
+            NavigateTo = ReadName(arg.Substring(NavigateToOption.Length));
+        else if (arg == NewInstanceFlag)
+            NewInstance = true;
         else if (!arg.StartsWith(FlagPrefix, StringComparison.Ordinal))
             AssemblyPaths.Add(arg);
     }
@@ -65,12 +80,30 @@ public sealed class CommandLine
         };
     }
 
-    /// <summary>The list name without the spaces around it; null for a blank one.</summary>
-    private static string? ReadListName(string name)
+    /// <summary>The name without the spaces around it; null for a blank one.</summary>
+    private static string? ReadName(string name)
     {
         var trimmed = name.Trim();
         if (trimmed.Length == 0)
             return null;
         return trimmed;
+    }
+
+    /// <summary>The arguments that ask a window already open for what this command line asks: the
+    /// language, the list, what to show and the files, made absolute from this process's folder.</summary>
+    public List<string> ListHandedArguments()
+    {
+        var args = new List<string>();
+        if (Language != null)
+            args.Add(LanguageOption + Language.Value);
+        if (AssemblyList != null)
+            args.Add(ListOption + AssemblyList);
+        if (ClearList)
+            args.Add(ClearListFlag);
+        if (NavigateTo != null)
+            args.Add(NavigateToOption + NavigateTo);
+        foreach (var path in AssemblyPaths)
+            args.Add(Path.GetFullPath(path));
+        return args;
     }
 }

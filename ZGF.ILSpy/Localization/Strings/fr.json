@@ -569,6 +569,7 @@
   "error.pdb_other_build": "C'est le PDB d'une autre build de {name}.",
   "error.pdb_windows": "C'est un PDB Windows ; seuls les PDB portables peuvent être lus.",
   "error.pdb_unreadable": "Ce n'est pas un PDB lisible.",
+  "error.navigate_to": "Rien nommé {id} n'a été trouvé dans les assemblys ouverts",
   "error.import_bookmarks": "Impossible d’importer les signets de {file}",
   "error.bookmarks_not_found": "Certains signets de {file} sont introuvables et ont été ignorés",
   "error.theme": "Problèmes dans le thème {file}",

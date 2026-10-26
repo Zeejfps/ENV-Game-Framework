@@ -128,6 +128,25 @@ public sealed class TitleBarTests
     }
 
     [Fact]
+    public void Bringing_the_window_to_the_front_is_asked_of_the_frame_it_is_called_in_only()
+    {
+        var bringing = true;
+        var frames = InTitleBar(ui =>
+        {
+            if (bringing)
+                ui.BringWindowToFront();
+        });
+
+        frames.Frame();
+        var asked = frames.FrontRequested;
+        bringing = false;
+        frames.Frame();
+
+        Assert.True(asked);
+        Assert.False(frames.FrontRequested);
+    }
+
+    [Fact]
     public void Pressing_the_window_icon_reports_it_for_the_app_to_open_its_window_menu()
     {
         var pressed = false;

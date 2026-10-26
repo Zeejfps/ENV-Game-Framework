@@ -43,7 +43,7 @@ public static class Assemblies
     }
 
     /// <summary>Reports why opening failed, unless the opening was cancelled.</summary>
-    private static void ReportOpenFailure(AppState appState, Exception error)
+    internal static void ReportOpenFailure(AppState appState, Exception error)
     {
         if (error is OperationCanceledException)
             return;

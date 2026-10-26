@@ -66,6 +66,15 @@ public static class AssemblyLists
         OpenActiveList(appState);
     }
 
+    /// <summary>Opens the list named <paramref name="name"/> in place of the open one, as
+    /// <see cref="SwitchAssemblyList"/> does, adding an empty one by that name when there is none.</summary>
+    public static void OpenAssemblyListNamed(AppState appState, string name)
+    {
+        if (!appState.Lists.Contains(name))
+            appState.Lists.Create(name);
+        SwitchAssemblyList(appState, name);
+    }
+
     private static void OpenActiveList(AppState appState)
     {
         CloseAllAssemblies(appState);

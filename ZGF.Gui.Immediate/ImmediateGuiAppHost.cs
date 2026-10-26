@@ -300,6 +300,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         PresentWindows();
         TakeScale();
         ApplyRequestedWindowState();
+        BringToFrontIfRequested();
         if (_ui.QuitRequested)
             _render.App.Quit();
 
@@ -432,6 +433,15 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
                 _window.Maximize();
                 break;
         }
+    }
+
+    private void BringToFrontIfRequested()
+    {
+        if (!_ui.IsFrontRequested)
+            return;
+        if (_window.IsMinimized)
+            _window.Restore();
+        _window.Focus();
     }
 
     /// <summary>Puts the OS candidate window at <paramref name="caret"/>, in the window the caret is

@@ -569,6 +569,7 @@
   "error.pdb_other_build": "Это PDB другой сборки {name}.",
   "error.pdb_windows": "Это PDB Windows; читать можно только переносимые PDB.",
   "error.pdb_unreadable": "Это не PDB, который можно прочитать.",
+  "error.navigate_to": "В открытых сборках не найдено ничего с именем {id}",
   "error.import_bookmarks": "Не удаётся импортировать закладки из {file}",
   "error.bookmarks_not_found": "Некоторые закладки из {file} не найдены и пропущены",
   "error.theme": "Ошибки в теме {file}",

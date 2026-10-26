@@ -1,6 +1,7 @@
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
+using static ZGF.ILSpy.CommandLines;
 using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy.App.Tests;
@@ -19,6 +20,55 @@ public sealed class CommandLineTests
         Assert.Equal("Work", commandLine.AssemblyList);
         Assert.True(commandLine.ClearList);
         Assert.Equal(["a.dll"], commandLine.AssemblyPaths);
+    }
+
+    [Fact]
+    public void What_to_navigate_to_and_a_new_window_are_read_from_their_options()
+    {
+        var commandLine = CommandLine.Parse(["--navigateto= T:Some.Type ", "--newinstance"]);
+
+        Assert.Equal("T:Some.Type", commandLine.NavigateTo);
+        Assert.True(commandLine.NewInstance);
+        Assert.Empty(commandLine.AssemblyPaths);
+    }
+
+    [Fact]
+    public void A_command_line_is_handed_over_with_its_files_made_absolute_and_reads_back_the_same()
+    {
+        var commandLine = CommandLine.Parse(["--language=IL", "--list=Work", "--clear-list", "--navigateto=T:Some.Type", "--gl", "--newinstance", "a.dll"]);
+
+        var handed = CommandLine.Parse(commandLine.ListHandedArguments().ToArray());
+
+        Assert.Equal(DecompilationLanguage.IL, handed.Language);
+        Assert.Equal("Work", handed.AssemblyList);
+        Assert.True(handed.ClearList);
+        Assert.Equal("T:Some.Type", handed.NavigateTo);
+        Assert.False(handed.NewInstance);
+        Assert.Equal([Path.GetFullPath("a.dll")], handed.AssemblyPaths);
+    }
+
+    [Fact]
+    public void A_command_line_naming_a_member_opens_its_files_and_shows_the_member()
+    {
+        var d = new AppStateDriver();
+
+        OpenCommandLineFiles(d.AppState, CommandLine.Parse(["--navigateto=M:ZGF.ILSpy.App.Tests.Fixtures.Greeter.Greet(System.Int32)", AppStateDriver.FixturePath]));
+        d.RunUntil(() => d.AppState.Tabs.Active?.Node != null);
+        d.Settle();
+
+        Assert.Equal("Greet(int) : string", d.AppState.Tabs.Active!.Node!.Text);
+        Assert.Empty(d.AppState.Errors.Entries);
+    }
+
+    [Fact]
+    public void A_command_line_naming_what_its_files_lack_reports_it()
+    {
+        var d = new AppStateDriver();
+
+        OpenCommandLineFiles(d.AppState, CommandLine.Parse(["--navigateto=T:Nowhere.Missing", AppStateDriver.FixturePath]));
+        d.RunUntil(() => d.AppState.Errors.Entries.Count > 0);
+
+        Assert.Contains("T:Nowhere.Missing", Assert.Single(d.AppState.Errors.Entries).Title);
     }
 
     [Fact]
@@ -100,7 +150,7 @@ public sealed class CommandLineTests
     private static void Start(AppStateDriver d, params string[] args)
     {
         var commandLine = CommandLine.Parse(args);
-        ILSpyAppLauncher.FollowCommandLine(d.AppState, commandLine);
+        FollowStartupCommandLine(d.AppState, commandLine);
         RestoreActiveAssemblyList(d.AppState);
         OpenAssemblies(d.AppState, commandLine.AssemblyPaths);
         d.RunUntil(() => AreListed(d.AppState, commandLine.AssemblyPaths));

@@ -242,10 +242,10 @@ internal sealed class AppStateDriver
 /// it pumps before each frame.</summary>
 internal sealed class AppDriver
 {
-    public AppDriver(float width = 1000f, float height = 700f, AppSettings? settings = null)
+    public AppDriver(float width = 1000f, float height = 700f, AppSettings? settings = null, AppInstance? instance = null)
     {
         Driver = new AppStateDriver(settings);
-        App = new IlSpyApp(AppState, Ui, new List<string>());
+        App = new IlSpyApp(AppState, Ui, CommandLine.Parse([]), instance);
         Frames = UiFrames.Running(App, width: width, height: height);
         Frames.FrameTime = 1f / 60f;
         Frames.BeforeFrame = PumpAtFrameTime;

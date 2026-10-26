@@ -23,5 +23,16 @@ public abstract partial class Ui
     /// <summary>Brings the window back to its normal size and place once this frame is drawn.</summary>
     public void RestoreWindow() => RequestedWindowState = WindowState.Normal;
 
-    private void BeginWindowState() => RequestedWindowState = null;
+    /// <summary>Whether this frame asked for the window to come to the front.</summary>
+    internal bool IsFrontRequested { get; private set; }
+
+    /// <summary>Brings the window to the front once this frame is drawn: shown again when it is
+    /// minimized, as it was before, and given the focus, as far as the platform lets an app take it.</summary>
+    public void BringWindowToFront() => IsFrontRequested = true;
+
+    private void BeginWindowState()
+    {
+        RequestedWindowState = null;
+        IsFrontRequested = false;
+    }
 }

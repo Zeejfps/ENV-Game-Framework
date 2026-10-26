@@ -99,6 +99,9 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     /// <summary>The state the last frame asked the window for, or null when it asked for none.</summary>
     public WindowState? RequestedWindowState { get; private set; }
 
+    /// <summary>Whether the last frame asked for the window to come to the front.</summary>
+    public bool FrontRequested { get; private set; }
+
     /// <summary>The window background the last frame asked for.</summary>
     public uint WindowBackground { get; private set; }
 
@@ -385,6 +388,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         }
         QuitRequested = _ui.QuitRequested;
         RequestedWindowState = _ui.RequestedWindowState;
+        FrontRequested = _ui.IsFrontRequested;
         WindowBackground = _ui.WindowBackground;
         TitleBarBackground = _ui.TitleBarBackground;
         _ui.ListTitleBarDragAreas(TitleBarDragAreas);

@@ -23,7 +23,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
 - More ways to open: the GAC (Windows), a running process.
 - Compare assemblies (API diff) and Create Diagram.
-- Command line: `/navigateTo:`, single-instance handling.
 - Check for updates.
 - Plugins (MEF upstream).
 - Copy code with formatting (HTML on the clipboard).

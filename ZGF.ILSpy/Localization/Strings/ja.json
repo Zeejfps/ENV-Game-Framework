@@ -569,6 +569,7 @@
   "error.pdb_other_build": "{name} の別のビルドの PDB です。",
   "error.pdb_windows": "Windows PDB です。読み取れるのはポータブル PDB だけです。",
   "error.pdb_unreadable": "読み取れる PDB ではありません。",
+  "error.navigate_to": "開いたアセンブリに {id} という名前のものは見つかりませんでした",
   "error.import_bookmarks": "{file} からブックマークをインポートできません",
   "error.bookmarks_not_found": "{file} の一部のブックマークが見つからなかったため、除外しました",
   "error.theme": "テーマ {file} に問題があります",

@@ -30,6 +30,7 @@ public interface IWindow : IDisposable
     bool IsFocused { get; }
     bool IsPointerOver { get; }
     bool IsMaximized { get; }
+    bool IsMinimized { get; }
     bool NeedsRedraw { get; }
 
     event Action<int, int> OnResize;

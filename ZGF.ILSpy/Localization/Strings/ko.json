@@ -569,6 +569,7 @@
   "error.pdb_other_build": "{name}의 다른 빌드의 PDB입니다.",
   "error.pdb_windows": "Windows PDB입니다. 이식 가능한 PDB만 읽을 수 있습니다.",
   "error.pdb_unreadable": "읽을 수 있는 PDB가 아닙니다.",
+  "error.navigate_to": "연 어셈블리에서 {id}(이)라는 항목을 찾지 못했습니다",
   "error.import_bookmarks": "{file}에서 책갈피를 가져올 수 없습니다",
   "error.bookmarks_not_found": "{file}의 일부 책갈피를 찾지 못해 제외했습니다",
   "error.theme": "테마 {file}에 문제가 있습니다",

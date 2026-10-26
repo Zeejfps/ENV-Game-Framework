@@ -569,6 +569,7 @@
   "error.pdb_other_build": "这是 {name} 另一个生成版本的 PDB。",
   "error.pdb_windows": "这是 Windows PDB;只能读取可移植 PDB。",
   "error.pdb_unreadable": "这不是可读取的 PDB。",
+  "error.navigate_to": "在打开的程序集中找不到名为 {id} 的项",
   "error.import_bookmarks": "无法从 {file} 导入书签",
   "error.bookmarks_not_found": "{file} 中的部分书签未找到，已略过",
   "error.theme": "主题 {file} 有问题",

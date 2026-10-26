@@ -569,6 +569,7 @@
   "error.pdb_other_build": "É o PDB de outra compilação de {name}.",
   "error.pdb_windows": "É um PDB do Windows; só PDBs portáteis podem ser lidos.",
   "error.pdb_unreadable": "Não é um PDB que possa ser lido.",
+  "error.navigate_to": "Nada chamado {id} foi encontrado nos assemblies abertos",
   "error.import_bookmarks": "Não é possível importar indicadores de {file}",
   "error.bookmarks_not_found": "Alguns indicadores de {file} não foram encontrados e foram ignorados",
   "error.theme": "Problemas no tema {file}",
