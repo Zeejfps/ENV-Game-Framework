@@ -95,6 +95,12 @@ public static partial class UiWidgets
         return OpenTooltip(ui, owner, new TooltipTarget(key, part, anchor), shown, out shownPart);
     }
 
+    /// <summary>As <see cref="TooltipContent(Ui, int, int, UiRect, out int, TooltipLook?)"/>, shown under
+    /// the pointer where it rested on the part rather than under an anchor, starting there; it stays
+    /// put while the pointer moves on.</summary>
+    public static Ui.Scope TooltipContentAtPointer(this Ui ui, int owner, int part, out int shownPart, TooltipLook look) =>
+        ui.TooltipContent(owner, part, PointerRect(ui), out shownPart, look with { Align = Align.Start });
+
     /// <summary>Closes the open tooltip until the pointer rests on another part, as after a link
     /// in it was followed.</summary>
     public static void HideTooltip(this Ui ui)

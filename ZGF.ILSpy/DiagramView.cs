@@ -99,7 +99,7 @@ internal static class DiagramView
         using (ui.Box(id, new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Background = ui.Theme.EditorBackground, Clip = true }))
             ui.Paint(view.Frame, DiagramFrame.Paint);
         if (hasRect)
-            MemberTooltip(ui, appState, view, diagram, id, IsPanning(view, i), hit, rect);
+            MemberTooltip(ui, appState, view, diagram, id, IsPanning(view, i), hit);
     }
 
     /// <summary>Where the selected card is drawn now, before the layout moves on; null when none is.</summary>
@@ -434,14 +434,13 @@ internal static class DiagramView
     }
 
     /// <summary>The declaration and documentation of the type or member under the pointer, once it has
-    /// rested there, under its row; none while the diagram pans.</summary>
+    /// rested there, under the pointer; none while the diagram pans.</summary>
     private static void MemberTooltip(Ui<UiState> ui, AppState appState, DiagramViewState view, TypeDiagram diagram, int canvasId,
-        bool isPanning, DiagramHit hit, UiRect rect)
+        bool isPanning, DiagramHit hit)
     {
         var tooltip = FindTooltip(appState, isPanning, hit);
         var part = PartOf(tooltip, hit);
-        var anchor = RowRectOf(view, hit, rect);
-        using var popup = ui.TooltipContent(canvasId, part, anchor, out var shownPart, CodeTooltipView.Look);
+        using var popup = ui.TooltipContentAtPointer(canvasId, part, out var shownPart, CodeTooltipView.Look);
         RememberTooltip(view, tooltip, part, shownPart);
         if (!popup.IsOpen)
             return;
@@ -474,20 +473,6 @@ internal static class DiagramView
 
     /// <summary>Where the row <paramref name="hit"/> is on is drawn, from its text on, widened to the left by
     /// the tooltip's padding so the tooltip's text starts where the row's does.</summary>
-    private static UiRect RowRectOf(DiagramViewState view, DiagramHit hit, UiRect rect)
-    {
-        var row = hit.FindRow();
-        if (row == null)
-            return default;
-        var place = view.Transition.PlaceOf(hit.Face!.Card.Type);
-        if (place == null)
-            return default;
-        var zoom = view.Camera.Zoom;
-        var start = view.Camera.ToScreen(new PointF(place.Value.X + row.Value.Indent, place.Value.Y + row.Value.Top), rect);
-        var width = (hit.Face.Width - row.Value.Indent) * zoom;
-        return new UiRect(start.X - CodeTooltipView.PaddingX, start.Y, width + CodeTooltipView.PaddingX, row.Value.Height * zoom);
-    }
-
     /// <summary>Keeps the tooltip of the row under the pointer, unless another row's is still shown while the
     /// pointer crosses over to it.</summary>
     private static void RememberTooltip(DiagramViewState view, CodeTooltip? tooltip, int part, int shownPart)

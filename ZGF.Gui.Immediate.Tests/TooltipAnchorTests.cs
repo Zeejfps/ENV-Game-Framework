@@ -52,3 +52,34 @@ public sealed class TooltipAnchorTests
         Assert.Equal(shown, frames.TextRect("tip"));
     }
 }
+
+public sealed class PartTooltipAnchorTests
+{
+    private const int Part = 7;
+
+    private static UiFrames WidePartAtPointer() =>
+        new(new DefaultUiState(), body: ui =>
+        {
+            var owner = ui.Interact("owner");
+            ui.Leaf(owner.Id, new Box { Width = 600f, Height = 200f });
+            using var tooltip = ui.TooltipContentAtPointer(owner.Id, Part, out _, TooltipLook.Of(ui.Theme));
+            if (tooltip.IsOpen)
+                ui.Text("tip");
+        }, width: 800f, height: 600f);
+
+    [Fact]
+    public void A_part_s_tooltip_at_the_pointer_starts_under_where_it_rests_and_stays_there()
+    {
+        var frames = WidePartAtPointer();
+        frames.Frame();
+        frames.MovePointer(420f, 60f).Frame();
+        frames.Wait(0.6).Frame(2);
+        var tip = frames.TextRect("tip");
+
+        Assert.InRange(tip.X, 420f, 440f);
+        Assert.True(tip.Y > 60f + 16f);
+
+        frames.MovePointer(430f, 64f).Frame(2);
+        Assert.Equal(tip, frames.TextRect("tip"));
+    }
+}
