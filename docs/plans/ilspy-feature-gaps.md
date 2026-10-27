@@ -15,4 +15,8 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Open from a running process.**
 - **Compare assemblies** (API diff).
 - **Check for updates.**
-- **Plugins** (MEF upstream).
+
+## Won't do
+
+- **Plugins** (MEF upstream): a Native AOT app can't load plugin DLLs. If we want extensibility,
+  embed a scripting language such as Lua instead.
