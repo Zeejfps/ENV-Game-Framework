@@ -46,6 +46,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     private TNode? _scrollNode;
     private bool _hasScrollNode;
     private bool _selectionMoved;
+    private bool _revealing;
 
     public TreeViewState(IEqualityComparer<TNode>? comparer = null)
     {
@@ -91,6 +92,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         HasSelection = true;
         _selectedIndex = -1;
         _selectionMissingAt = -1;
+        _revealing = false;
         if (scrollIntoView)
             ScrollIntoView(node);
     }
@@ -101,6 +103,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         HasSelection = false;
         _selectedIndex = -1;
         _selectionMissingAt = -1;
+        _revealing = false;
     }
 
     /// <summary>Scrolls <paramref name="node"/> into view on the first frame it is showing.</summary>
@@ -112,13 +115,15 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     }
 
     /// <summary>Expands every node of <paramref name="path"/>, root first, but the last, then
-    /// selects the last and scrolls it into view.</summary>
+    /// selects the last and scrolls it into view. It stays selected while the path is still loading
+    /// its children, even when it showed elsewhere before, until it first shows.</summary>
     public void Reveal(IReadOnlyList<TNode> path)
     {
         if (path.Count == 0) return;
         for (var i = 0; i < path.Count - 1; i++)
             SetExpanded(path[i], true);
         Select(path[^1]);
+        _revealing = true;
     }
 
     /// <summary>The root the selected row sits under, or the selected row itself when it is a root,
@@ -146,7 +151,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         if (!_dirty && ReferenceEquals(roots, _roots) && roots.Count == _rootCount && ReferenceEquals(model, _model))
             return;
 
-        var shown = SelectedIndex;
+        var shown = ShownSelectionIndex();
         _ancestors.Clear();
         if (shown >= 0)
             CollectAncestors(shown);
@@ -158,6 +163,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         Rows.Clear();
         Append(Rows, roots, 0, model);
         RowsChanged();
+        EndRevealOnceShown();
 
         if (shown < 0) return;
         _selectedIndex = -1;
@@ -182,6 +188,24 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         else
             ClearSelection();
         _selectionMoved = true;
+    }
+
+    /// <summary>The selection's row, or -1 while it is being revealed, so that it does not move off
+    /// while its path loads.</summary>
+    private int ShownSelectionIndex()
+    {
+        if (_revealing)
+            return -1;
+        return SelectedIndex;
+    }
+
+    private void EndRevealOnceShown()
+    {
+        if (!_revealing)
+            return;
+        if (SelectedIndex < 0)
+            return;
+        _revealing = false;
     }
 
     /// <summary>Whether the row at <paramref name="index"/>, the nearest showing ancestor of the selection,
@@ -221,6 +245,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         HasSelection = true;
         _selectedIndex = index;
         _selectionMissingAt = -1;
+        _revealing = false;
     }
 
     /// <summary>The row of the node <see cref="ScrollIntoView"/> asked for, once, when it shows; else -1.</summary>

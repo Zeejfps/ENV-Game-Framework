@@ -193,7 +193,6 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     public void Reveal(BrowseNode node)
     {
         var path = ShownPathTo(node);
-        LoadChildrenAlong(path);
         View.Reveal(path);
     }
 
@@ -242,14 +241,6 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         if (_visibility == ApiVisibility.All) return false;
         if (node.IsCompilerGenerated) return true;
         return _visibility == ApiVisibility.PublicOnly && !node.IsPublicApi;
-    }
-
-    /// <summary>Builds the children of the nodes <paramref name="path"/> expands, so that it shows at once
-    /// rather than loading: the namespaces a namespace nests in may not have listed their types yet.</summary>
-    private static void LoadChildrenAlong(List<BrowseNode> path)
-    {
-        for (var i = 0; i < path.Count - 1; i++)
-            path[i].LoadChildren();
     }
 
     /// <summary>The paths of the expanded nodes that are showing, for expanding them again after

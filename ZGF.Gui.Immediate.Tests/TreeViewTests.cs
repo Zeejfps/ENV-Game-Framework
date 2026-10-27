@@ -332,6 +332,32 @@ public sealed class TreeViewTests
     }
 
     [Fact]
+    public void Revealing_a_showing_node_under_a_parent_still_loading_keeps_it_selected_until_it_shows_there()
+    {
+        var node = new Node("moved");
+        var loading = new Node("loading");
+        var parent = new Node("parent", loading);
+        var root = new Node("root", node);
+        var tree = new Tree(root);
+        tree.State.Reveal([root, node]);
+        tree.Frame();
+        tree.Results.Clear();
+
+        root.Children[0] = parent;
+        tree.State.Refresh();
+        tree.State.Reveal([root, parent, node]);
+        var whileLoading = tree.Frame();
+        parent.Children[0] = node;
+        tree.State.Refresh();
+        tree.Frame();
+
+        Assert.False(whileLoading.SelectionMoved);
+        Assert.DoesNotContain(tree.Results, r => r.SelectionMoved);
+        Assert.Equal("moved", tree.Selected);
+        Assert.Equal(2, tree.State.SelectedIndex);
+    }
+
+    [Fact]
     public void Selecting_a_hidden_node_scrolls_to_it_once_its_parent_expands()
     {
         var children = Enumerable.Range(0, 100).Select(i => new Node($"child {i}")).ToArray();
