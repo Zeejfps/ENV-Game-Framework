@@ -172,6 +172,72 @@ public sealed class ContextMenuTests
     }
 }
 
+public sealed class MenuSeparatorTests
+{
+    private Action<Ui> _items = static _ => { };
+
+    private void Body(Ui ui)
+    {
+        var target = ui.Interact("target");
+        if (target.ClickedWith(PointerButton.Right))
+            ui.OpenContextMenu("ctx");
+        ui.Leaf(target.Id, new Box { Width = 200f, Height = 100f });
+
+        using var menu = ui.ContextMenu("ctx");
+        if (menu.IsOpen)
+            _items(ui);
+    }
+
+    private int SeparatorsDrawn(Action<Ui> items)
+    {
+        _items = items;
+        var frames = new UiFrames(new DefaultUiState(), body: Body);
+        frames.Frame().Click(50f, 40f, PointerButton.Right).Frame(2);
+        var theme = UiTheme.Dark;
+        return frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == theme.Separator);
+    }
+
+    [Fact]
+    public void A_separator_between_items_is_drawn()
+    {
+        var drawn = SeparatorsDrawn(static ui =>
+        {
+            ui.MenuItem("Open");
+            ui.MenuSeparator();
+            ui.MenuItem("Remove");
+        });
+
+        Assert.Equal(1, drawn);
+    }
+
+    [Fact]
+    public void Separators_with_no_item_between_them_draw_as_one()
+    {
+        var drawn = SeparatorsDrawn(static ui =>
+        {
+            ui.MenuItem("Open");
+            ui.MenuSeparator();
+            ui.MenuSeparator();
+            ui.MenuItem("Remove");
+        });
+
+        Assert.Equal(1, drawn);
+    }
+
+    [Fact]
+    public void Separators_before_the_first_item_or_after_the_last_are_left_out()
+    {
+        var drawn = SeparatorsDrawn(static ui =>
+        {
+            ui.MenuSeparator();
+            ui.MenuItem("Open");
+            ui.MenuSeparator();
+        });
+
+        Assert.Equal(0, drawn);
+    }
+}
+
 public sealed class TooltipTests
 {
     private readonly UiFrames _frames = new(new DefaultUiState(), body: Body);

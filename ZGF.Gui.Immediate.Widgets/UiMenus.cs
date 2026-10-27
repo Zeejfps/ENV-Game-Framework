@@ -35,6 +35,7 @@ public static partial class UiWidgets
         private bool _childSeen;
         private bool _iconColumn;
         private bool _recordingIconColumn;
+        private bool _separatorAsked;
         private PointF _pointer = new(float.NaN, float.NaN);
         private readonly SubMenuAim _aim = new();
 
@@ -106,6 +107,24 @@ public static partial class UiWidgets
             _recording.Clear();
             _childSeen = false;
             _recordingIconColumn = false;
+            _separatorAsked = false;
+        }
+
+        /// <summary>Asks for a separator before the next item. One asked for before the first item,
+        /// right after another, or with no item after it is left out.</summary>
+        public void AskForSeparator()
+        {
+            if (_recording.Count == 0)
+                return;
+            _separatorAsked = true;
+        }
+
+        /// <summary>Whether a separator was asked for since the last item; taking it clears the ask.</summary>
+        public bool TakeSeparator()
+        {
+            var asked = _separatorAsked;
+            _separatorAsked = false;
+            return asked;
         }
 
         public int AddItem(int id, bool enabled, bool subMenu = false)
@@ -128,6 +147,7 @@ public static partial class UiWidgets
         {
             (_items, _recording) = (_recording, _items);
             _iconColumn = _recordingIconColumn;
+            _separatorAsked = false;
             if (!_childSeen) OpenChild = null;
             PickIndex = -1;
             if (Highlight >= _items.Count) Highlight = -1;
@@ -467,6 +487,7 @@ public static partial class UiWidgets
     public static Ui.Scope SubMenu(this Ui ui, string label, bool enabled = true, string? id = null)
     {
         var parent = ui.FindOpenGroup<MenuPopup>() ?? throw new InvalidOperationException("A SubMenu must be recorded inside a menu.");
+        DrawAskedSeparator(ui, parent);
         var theme = ui.Theme;
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
@@ -551,6 +572,7 @@ public static partial class UiWidgets
     {
         var theme = ui.Theme;
         var menu = ui.FindOpenGroup<MenuPopup>();
+        DrawAskedSeparator(ui, menu);
         var key = id ?? label;
         var i = enabled ? ui.Interact(key) : Interaction.Inert(ui.GetId(key));
         var index = menu?.AddItem(i.Id, enabled) ?? -1;
@@ -638,7 +660,30 @@ public static partial class UiWidgets
         return picked;
     }
 
+    /// <summary>A rule between the items before it and those after; drawn only once an item follows,
+    /// so a menu never starts or ends with one, nor draws two in a row.</summary>
     public static void MenuSeparator(this Ui ui)
+    {
+        var menu = ui.FindOpenGroup<MenuPopup>();
+        if (menu == null)
+        {
+            DrawSeparator(ui);
+            return;
+        }
+        menu.AskForSeparator();
+    }
+
+    /// <summary>The separator asked for before this item of <paramref name="menu"/>, when one was.</summary>
+    private static void DrawAskedSeparator(Ui ui, MenuPopup? menu)
+    {
+        if (menu == null)
+            return;
+        if (!menu.TakeSeparator())
+            return;
+        DrawSeparator(ui);
+    }
+
+    private static void DrawSeparator(Ui ui)
     {
         var theme = ui.Theme;
         using (ui.Box(new Box { Width = Sizing.Grow(), Padding = new Spacing(theme.MenuItemPaddingX, theme.GapTight) }))
