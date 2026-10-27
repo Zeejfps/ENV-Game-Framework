@@ -50,6 +50,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly IWindow _window;
     private readonly Action<Ui<TUiState>> _updateUi;
     private readonly Ui<TUiState> _ui;
+    private readonly PlatformClipboard _clipboard;
     private readonly IFilePicker _filePicker;
     private readonly ISystemFonts _systemFonts = NativeSystemFonts.Create();
     private readonly FontRegistry _fontRegistry;
@@ -90,7 +91,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
         _updateUi = updateUi;
-        _ui = new Ui<TUiState>(uiState, _render.MainCanvas, new WindowClipboard(_window), this);
+        _clipboard = PlatformClipboard.Create(_render.App);
+        _ui = new Ui<TUiState>(uiState, _render.MainCanvas, _clipboard, this);
         _ui.Wake = Invalidate;
         _filePicker = NativeFilePicker.Create(_ui.Post);
         _clearColor = _ui.WindowBackground;
@@ -1146,6 +1148,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         ReleasePopups();
         CloseWindows();
         _pool.Dispose();
+        _clipboard.Dispose();
         _render.Dispose();
     }
 }

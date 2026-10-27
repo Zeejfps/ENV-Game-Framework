@@ -22,6 +22,7 @@ internal sealed class FakeWindowedApp : IWindowedApp
     public IWindow MainWindow { get; }
     public IReadOnlyList<IWindow> Windows => _windows;
     public IReadOnlyList<MonitorWorkArea> Monitors { get; }
+    public WindowSystem WindowSystem => WindowSystem.None;
     public bool IsForeground => true;
     public WindowOptions? LastWindowOptions { get; private set; }
 

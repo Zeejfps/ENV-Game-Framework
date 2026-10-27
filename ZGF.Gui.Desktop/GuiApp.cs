@@ -30,6 +30,7 @@ public sealed class GuiApp : IDisposable
     private readonly Context _context;
     private readonly Func<Context, View> _contentFactory;
     private readonly Action<Type[]?>? _hotReloadHandler;
+    private readonly PlatformClipboard? _platformClipboard;
     private readonly State<McpServerState> _mcpServerState = new(new McpServerState.Stopped());
     private GuiMcpServer? _mcpServer;
     private GuiMcpServer? _debugMcpServer;
@@ -94,11 +95,13 @@ public sealed class GuiApp : IDisposable
         context.AddService<IAppForeground>(new AppForeground(app));
         context.AddService(new SvgImageCache(new SvgImageCacheOptions()));
 
-        // Clipboard: the native implementation where one exists, else the window's
-        // display-server connection. Apps can still override by registering an IClipboard
-        // on the builder before Build.
+        // Clipboard: the window system's own. Apps can still override by registering an
+        // IClipboard on the builder before Build.
         if (context.Get<IClipboard>() == null)
-            context.AddService(CreatePlatformClipboard(app));
+        {
+            _platformClipboard = PlatformClipboard.Create(app);
+            context.AddService<IClipboard>(_platformClipboard);
+        }
 
         renderBackend.RegisterServices(context);
 
@@ -157,15 +160,6 @@ public sealed class GuiApp : IDisposable
         // only dismisses when no arbitrated window (including the menu popup, which is key on macOS)
         // still holds focus, so interacting with an owned popup doesn't self-close the menu.
         _pointerArbiter.NotifyFocusChanged();
-    }
-
-    private static IClipboard CreatePlatformClipboard(IWindowedApp app)
-    {
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
-            return new Platforms.Osx.OsxClipboard();
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-            return new Platforms.Windows.Win32Clipboard();
-        return new WindowClipboard(app.MainWindow);
     }
 
     /// <summary>Starts a fluent <see cref="GuiAppBuilder"/> for configuring and building a GuiApp.</summary>
@@ -560,6 +554,7 @@ public sealed class GuiApp : IDisposable
         _app.MainWindow.OnNonClientPress -= _pointerArbiter.NotifyNonClientPress;
         _secondaryWindows.Dispose();
         _popupFactory.Dispose();
+        _platformClipboard?.Dispose();
         _renderBackend.Dispose();
     }
 }

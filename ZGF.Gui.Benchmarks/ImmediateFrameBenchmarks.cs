@@ -145,6 +145,7 @@ public class ImmediateFrameBenchmarks
     private sealed class NullClipboard : IClipboard
     {
         public void SetText(string text) { }
+        public void SetHtml(string html, string text) { }
         public string? GetText() => null;
     }
 
@@ -233,6 +234,7 @@ public class ImmediateTreeBenchmarks
     private sealed class NullClipboard : IClipboard
     {
         public void SetText(string text) { }
+        public void SetHtml(string html, string text) { }
         public string? GetText() => null;
     }
 }
@@ -333,6 +335,7 @@ public class ImmediateMenuBenchmarks
     private sealed class NullClipboard : IClipboard
     {
         public void SetText(string text) { }
+        public void SetHtml(string html, string text) { }
         public string? GetText() => null;
     }
 }

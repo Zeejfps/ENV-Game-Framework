@@ -9,6 +9,11 @@ public sealed class AppClipboard : IClipboard
         _text = text;
     }
 
+    public void SetHtml(string html, string text)
+    {
+        _text = text;
+    }
+
     public string? GetText()
     {
         return _text;

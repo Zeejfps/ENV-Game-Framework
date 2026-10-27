@@ -5,6 +5,7 @@ public interface IWindowedApp : IDisposable
     IWindow MainWindow { get; }
     IReadOnlyList<IWindow> Windows { get; }
     IReadOnlyList<MonitorWorkArea> Monitors { get; }
+    WindowSystem WindowSystem { get; }
 
     // True while any of this app's windows holds OS focus. Not MainWindow.IsFocused: a popup
     // (which is the key window on macOS) or a secondary window taking focus keeps the app in the

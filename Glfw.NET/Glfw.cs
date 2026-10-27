@@ -530,6 +530,13 @@ namespace GLFW
         public static extern bool Init();
 
         /// <summary>
+        ///     Returns the platform GLFW was initialized for.
+        /// </summary>
+        /// <returns>The platform, e.g. <see cref="Platform.X11" />.</returns>
+        [DllImport(LIBRARY, EntryPoint = "glfwGetPlatform", CallingConvention = CallingConvention.Cdecl)]
+        public static extern Platform GetPlatform();
+
+        /// <summary>
         ///     This function destroys all remaining windows and cursors, restores any modified gamma ramps and frees any other
         ///     allocated resources. Once this function is called, you must again call <see cref="Init" /> successfully before you
         ///     will be able to use most GLFW functions.

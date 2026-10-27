@@ -51,6 +51,16 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     public IWindow MainWindow => Main;
     public IReadOnlyList<IWindow> Windows => _windows;
     public IReadOnlyList<MonitorWorkArea> Monitors => GlfwMonitors.WorkAreas();
+    public WindowSystem WindowSystem => WindowSystemOf(Glfw.GetPlatform());
+
+    private static WindowSystem WindowSystemOf(Platform platform) => platform switch
+    {
+        Platform.Win32 => WindowSystem.Win32,
+        Platform.Cocoa => WindowSystem.Cocoa,
+        Platform.X11 => WindowSystem.X11,
+        Platform.Wayland => WindowSystem.Wayland,
+        _ => WindowSystem.None,
+    };
 
     public bool IsForeground => _foreground.IsForeground;
 

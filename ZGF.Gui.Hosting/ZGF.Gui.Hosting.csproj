@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!-- What both desktop GUI hosts (ZGF.Gui.Desktop, ZGF.Gui.Immediate) draw through: the
-         OpenGL and Metal render backends, the popup window pool and the window clipboard. -->
+         OpenGL and Metal render backends, the popup window pool and the system clipboard. -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

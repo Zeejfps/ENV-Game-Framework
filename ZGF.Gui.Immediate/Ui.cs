@@ -128,6 +128,10 @@ public abstract partial class Ui
         set => _clipboard.SetText(value);
     }
 
+    /// <summary>Puts the HTML fragment <paramref name="html"/> on the clipboard, with
+    /// <paramref name="text"/> for apps that paste only plain text.</summary>
+    public void SetClipboardHtml(string html, string text) => _clipboard.SetHtml(html, text);
+
     /// <summary>Called, from any thread, when <see cref="Post"/> queues work.</summary>
     internal Action? Wake { get; set; }
     internal MouseCursor Cursor { get; private set; }
