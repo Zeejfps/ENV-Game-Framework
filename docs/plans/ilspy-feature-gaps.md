@@ -5,20 +5,19 @@ ported upstream from WPF to Avalonia; the feature set carried over.
 
 Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 
-## Medium
-
-- **Languages:** ReadyToRun disassembly (plugin upstream).
-- **Debug symbols:** local names come only from portable PDBs; upstream also reads Windows PDBs
-  (through Mono.Cecil). The load-time `AutoLoadAssemblyReferences` and
-  `ApplyWindowsRuntimeProjections` are left out of the options panel.
-- **Display options:** word wrap; installed code fonts on macOS and Linux (`ISystemFonts` lists
-  them on Windows only, so elsewhere the picker offers just the bundled font).
-
-## Smaller
-
-- More ways to open: the GAC (Windows), a running process.
-- Compare assemblies (API diff) and Create Diagram.
-- Check for updates.
-- Plugins (MEF upstream).
-- Copy code with formatting (HTML on the clipboard).
-- Module nodes in the tree, for assemblies made of several modules.
+- **ReadyToRun disassembly** (a plugin upstream).
+- **Windows PDBs:** local names come only from portable PDBs; upstream also reads Windows PDBs
+  (through Mono.Cecil).
+- **`AutoLoadAssemblyReferences` option:** a load-time setting left out of the options panel.
+- **`ApplyWindowsRuntimeProjections` option:** a load-time setting left out of the options panel.
+- **Word wrap** in the code view.
+- **Installed code fonts on macOS and Linux:** `ISystemFonts` lists them on Windows only, so elsewhere
+  the font picker offers just the bundled font.
+- **Open from the GAC** (Windows).
+- **Open from a running process.**
+- **Compare assemblies** (API diff).
+- **Create Diagram.**
+- **Check for updates.**
+- **Plugins** (MEF upstream).
+- **Copy code with formatting** (HTML on the clipboard).
+- **Module nodes** in the tree, for assemblies made of several modules.
