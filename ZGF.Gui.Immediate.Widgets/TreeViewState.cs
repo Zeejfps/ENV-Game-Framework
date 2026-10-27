@@ -8,9 +8,10 @@ namespace ZGF.Gui.Immediate.Widgets;
 /// <summary>What a tree row shows: its label and icon, the label's color (0 for the theme's), the
 /// tooltip, and muted text after the label, <paramref name="SecondaryBold"/> drawn bold after
 /// <paramref name="Secondary"/> to stand out, keeping its room as long as the label does while
-/// <paramref name="Secondary"/> gives up its own first.</summary>
+/// <paramref name="Secondary"/> gives up its own first. A <paramref name="Spinning"/> row shows the
+/// spinner in its icon's place, in the icon's color when it has one, for work the row's node is doing.</summary>
 public readonly record struct TreeRow(string Label, UiIcon? Icon = null, uint LabelColor = 0, string? Tooltip = null, string? Secondary = null,
-    string? SecondaryBold = null);
+    string? SecondaryBold = null, bool Spinning = false);
 
 /// <summary>The app's hierarchy as <see cref="UiWidgets.TreeView{TNode}"/> reads it. Children are
 /// asked for when a node is expanded, and again only after

@@ -21,6 +21,7 @@ public sealed class TreeViewTests
         public int RowCalls;
         public int ChildCalls;
         public uint IconBackground;
+        public bool Spinning;
 
         public bool HasChildren(Node node) => node.Children.Count > 0;
 
@@ -33,7 +34,7 @@ public sealed class TreeViewTests
         public TreeRow Row(Node node)
         {
             RowCalls++;
-            return new TreeRow(node.Name, new UiIcon(IconGlyph.FromFont("#", "Icons"), 0xFF00FF00, IconBackground));
+            return new TreeRow(node.Name, new UiIcon(IconGlyph.FromFont("#", "Icons"), 0xFF00FF00, IconBackground), Spinning: Spinning);
         }
     }
 
@@ -83,6 +84,42 @@ public sealed class TreeViewTests
         new("B", new Node("B1")),
         new("C"),
     ];
+
+    [Fact]
+    public void A_spinning_row_shows_the_spinner_in_its_icons_color_and_asks_for_the_frames_that_turn_it()
+    {
+        var tree = new Tree(new Node("a"));
+        tree.Model.Spinning = true;
+
+        tree.Frame();
+
+        var dots = tree.Frames.Canvas.Circles;
+        Assert.NotEmpty(dots);
+        // Each dot fades from the icon's green toward the background by its distance from the
+        // turning head, so all stay green rather than the theme's spinner color.
+        Assert.Empty(dots.Select(d => d.Inputs.Color).Where(c => !IsGreenest(c)).Select(c => c.ToString("X8")));
+        Assert.DoesNotContain(tree.Frames.Canvas.Texts, t => t.Inputs.Text == "#");
+        Assert.True(double.IsFinite(tree.Frames.WakeAt), "the spinner asked for no next frame");
+    }
+
+    private static bool IsGreenest(uint argb)
+    {
+        var red = (argb >> 16) & 0xFF;
+        var green = (argb >> 8) & 0xFF;
+        var blue = argb & 0xFF;
+        return green > red && green > blue;
+    }
+
+    [Fact]
+    public void A_row_at_rest_shows_its_icon_and_asks_for_no_frames()
+    {
+        var tree = new Tree(new Node("a"));
+
+        tree.Frame();
+
+        Assert.Empty(tree.Frames.Canvas.Circles);
+        Assert.True(double.IsPositiveInfinity(tree.Frames.WakeAt));
+    }
 
     [Fact]
     public void Click_selects_a_row_and_reports_the_change()

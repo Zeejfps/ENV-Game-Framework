@@ -122,8 +122,7 @@ public static partial class UiWidgets
                         if (hasChildren)
                             ui.PaintGlyph(expanded ? UiGlyph.DisclosureOpen : UiGlyph.DisclosureClosed, arrow.Hovered ? theme.Text : theme.TextMuted);
                     }
-                    if (content.Icon is { } icon)
-                        ui.Icon(icon);
+                    RowMark(ui, content, background);
                     ui.Text(content.Label, new Box { Width = Sizing.Fit() with { Priority = 1 } },
                         color: content.LabelColor != 0 ? content.LabelColor : selected ? theme.SelectionText : theme.Text, overflow: TextOverflow.Ellipsis);
                     if (content.Secondary != null)
@@ -161,6 +160,30 @@ public static partial class UiWidgets
             Toggled = hasToggled,
             ToggledNode = hasToggled ? toggled : default,
         };
+    }
+
+    /// <summary>A row's icon, or while its node is at work the spinner in the icon's place, in the
+    /// icon's color when it has one. Its dots fade toward the row's background, or the pane's when
+    /// the row has none of its own.</summary>
+    private static void RowMark(Ui ui, TreeRow content, uint background)
+    {
+        if (content.Spinning)
+        {
+            RowSpinner(ui, content.Icon, background);
+            return;
+        }
+        if (content.Icon is { } icon)
+            ui.Icon(icon);
+    }
+
+    private static void RowSpinner(Ui ui, UiIcon? icon, uint background)
+    {
+        var theme = ui.Theme;
+        var behind = background != 0 ? background : theme.PaneBackground;
+        uint? color = null;
+        if (icon != null && icon.Value.Color != 0)
+            color = icon.Value.Color;
+        ui.Spinner(behind, color: color);
     }
 
     private static int RowId<TNode>(int treeId, TreeViewState<TNode> state, TNode node) where TNode : notnull =>
