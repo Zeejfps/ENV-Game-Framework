@@ -484,3 +484,39 @@ public sealed class PointerOutsideTests
         Assert.False(after.FollowsPointerOutside);
     }
 }
+
+public sealed class ClippedPaintTests
+{
+    private const uint Overhang = 0xFF123456;
+    private const float HeaderHeight = 40f;
+
+    private UiRect _paintClip;
+
+    private void Body(Ui ui)
+    {
+        using var screen = ui.Screen();
+        using var column = ui.Column(new Box { Gap = 0f });
+        ui.Leaf(new Box { Width = 200f, Height = HeaderHeight });
+        using (ui.Box(ui.GetId("clipped"), new Box { Width = 200f, Height = 100f, Clip = true }))
+            ui.Paint(this, static (p, t) => t.PaintAbove(p));
+    }
+
+    private void PaintAbove(UiPainter p)
+    {
+        _paintClip = p.Clip;
+        p.FillRect(new UiRect(p.Rect.X, p.Rect.Y - HeaderHeight, p.Rect.Width, p.Rect.Height), Overhang);
+    }
+
+    [Fact]
+    public void A_clipping_box_clips_what_it_paints_itself_not_only_its_children()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: Body).Frame(2);
+        var box = frames.RectOf("clipped");
+
+        var overhang = frames.Canvas.Rects.Last(r => r.Inputs.Style.BackgroundColor == Overhang);
+
+        Assert.Equal(box, _paintClip);
+        Assert.NotNull(overhang.Clip);
+        Assert.Equal(box.Height, overhang.Clip!.Value.Height, 0.01f);
+    }
+}

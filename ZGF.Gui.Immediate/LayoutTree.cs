@@ -376,6 +376,9 @@ internal sealed class LayoutTree
             _canvas.PushClip(_origin.ToCanvas(inner));
         }
 
+        if (visible)
+            RunPaints(ref e, rect, z);
+
         for (var c = e.FirstChild; c >= 0; c = this[c].NextSibling)
         {
             ref var child = ref this[c];
@@ -431,7 +434,12 @@ internal sealed class LayoutTree
 
         if (e.RunLines != null)
             PaintRuns(ref e, ContentOf(ref e, rect), z);
+    }
 
+    /// <summary>Runs what <see cref="Ui.Paint{TState}"/> recorded on the element, inside its own clip
+    /// when it clips, as its children are.</summary>
+    private void RunPaints(ref Element e, UiRect rect, int z)
+    {
         for (var p = e.FirstPaint; p >= 0; p = _paints[p].Next)
         {
             _painter.Begin(rect, _clips[^1], z, _canvas, _origin);

@@ -27,7 +27,8 @@ public sealed class UiPainter
     public UiRect Rect { get; private set; }
 
     /// <summary>The part of the window the element is drawn inside: its scrolls' and clipping
-    /// ancestors' visible area, which stays put while a scroll moves <see cref="Rect"/>.</summary>
+    /// ancestors' visible area, and its own when it clips, which stays put while a scroll moves
+    /// <see cref="Rect"/>.</summary>
     public UiRect Clip { get; private set; }
 
     public int ZIndex => _z;
@@ -76,6 +77,63 @@ public sealed class UiPainter
 
     public void Line(PointF from, PointF to, float thickness, uint color) =>
         _canvas.DrawLine(new DrawLineInputs { Start = _origin.ToCanvas(from), End = _origin.ToCanvas(to), Thickness = thickness, Color = color, ZIndex = _z });
+
+    /// <summary>A line of dashes <paramref name="dashLength"/> long with gaps of <paramref name="gapLength"/>
+    /// between them, from <paramref name="from"/>.</summary>
+    public void DashedLine(PointF from, PointF to, float thickness, uint color, float dashLength, float gapLength)
+    {
+        _canvas.DrawLine(new DrawLineInputs
+        {
+            Start = _origin.ToCanvas(from),
+            End = _origin.ToCanvas(to),
+            Thickness = thickness,
+            Color = color,
+            ZIndex = _z,
+            DashLength = dashLength,
+            GapLength = gapLength,
+        });
+    }
+
+    /// <summary>A cubic Bézier curve from <paramref name="start"/> to <paramref name="end"/>, drawn toward
+    /// <paramref name="control1"/> and <paramref name="control2"/>; dashed as <see cref="DashedLine"/> is
+    /// when <paramref name="dashLength"/> and <paramref name="gapLength"/> are positive.</summary>
+    public void CubicBezier(PointF start, PointF control1, PointF control2, PointF end, float thickness, uint color, float dashLength = 0f,
+        float gapLength = 0f)
+    {
+        _canvas.DrawCubicBezier(new DrawCubicBezierInputs
+        {
+            Start = _origin.ToCanvas(start),
+            Control1 = _origin.ToCanvas(control1),
+            Control2 = _origin.ToCanvas(control2),
+            End = _origin.ToCanvas(end),
+            Thickness = thickness,
+            Color = color,
+            ZIndex = _z,
+            DashLength = dashLength,
+            GapLength = gapLength,
+        });
+    }
+
+    /// <summary>The outline of a triangle pointing at <paramref name="tip"/> from the side of
+    /// <paramref name="tail"/>, <paramref name="length"/> long and <paramref name="width"/> wide at its
+    /// base, as UML draws inheritance.</summary>
+    public void HollowArrowhead(PointF tip, PointF tail, float length, float width, float thickness, uint color)
+    {
+        var corners = ArrowCorners.Of(tip, tail, length, width);
+        Line(tip, corners.Left, thickness, color);
+        Line(corners.Left, corners.Right, thickness, color);
+        Line(corners.Right, tip, thickness, color);
+    }
+
+    /// <summary>The two strokes of an open arrowhead pointing at <paramref name="tip"/> from the side of
+    /// <paramref name="tail"/>, reaching back <paramref name="length"/> and spreading <paramref name="width"/>
+    /// apart, as UML draws an association.</summary>
+    public void OpenArrowhead(PointF tip, PointF tail, float length, float width, float thickness, uint color)
+    {
+        var corners = ArrowCorners.Of(tip, tail, length, width);
+        Line(corners.Left, tip, thickness, color);
+        Line(corners.Right, tip, thickness, color);
+    }
 
     /// <summary>A filled disc, or a ring when <paramref name="thickness"/> is positive.</summary>
     public void Circle(PointF center, float radius, uint color, float thickness = 0f) =>
@@ -218,6 +276,36 @@ public sealed class UiPainter
             ZIndex = _z,
             Underline = underline,
         });
+    }
+}
+
+/// <summary>The corners at the base of an arrowhead: <see cref="Left"/> and <see cref="Right"/> as seen
+/// looking from its tail to its tip.</summary>
+internal readonly record struct ArrowCorners(PointF Left, PointF Right)
+{
+    /// <summary>The corners of an arrowhead at <paramref name="tip"/>, <paramref name="length"/> back
+    /// toward <paramref name="tail"/> and <paramref name="width"/> apart; pointing down when the tail
+    /// is where the tip is.</summary>
+    public static ArrowCorners Of(PointF tip, PointF tail, float length, float width)
+    {
+        var (dx, dy) = DirectionOf(tip, tail);
+        var baseX = tip.X - dx * length;
+        var baseY = tip.Y - dy * length;
+        var half = width / 2;
+        var left = new PointF(baseX + dy * half, baseY - dx * half);
+        var right = new PointF(baseX - dy * half, baseY + dx * half);
+        return new ArrowCorners(left, right);
+    }
+
+    /// <summary>The unit vector from <paramref name="tail"/> to <paramref name="tip"/>.</summary>
+    private static (float X, float Y) DirectionOf(PointF tip, PointF tail)
+    {
+        var dx = tip.X - tail.X;
+        var dy = tip.Y - tail.Y;
+        var length = MathF.Sqrt(dx * dx + dy * dy);
+        if (length == 0f)
+            return (0f, 1f);
+        return (dx / length, dy / length);
     }
 }
 
