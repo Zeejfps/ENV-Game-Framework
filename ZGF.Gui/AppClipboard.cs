@@ -18,4 +18,6 @@ public sealed class AppClipboard : IClipboard
     {
         return _text;
     }
+
+    public ClipboardImage? GetImage() => null;
 }

@@ -9,4 +9,8 @@ public interface IClipboard
     void SetHtml(string html, string text);
 
     string? GetText();
+
+    /// <summary>The picture on the clipboard, as a screenshot puts there, or null where there is
+    /// none or this clipboard cannot read one.</summary>
+    ClipboardImage? GetImage();
 }

@@ -128,6 +128,10 @@ public abstract partial class Ui
         set => _clipboard.SetText(value);
     }
 
+    /// <summary>The picture on the clipboard, as a screenshot puts there, or null where there is none
+    /// or the platform's clipboard cannot read one.</summary>
+    public ClipboardImage? ClipboardImage => _clipboard.GetImage();
+
     /// <summary>Puts the HTML fragment <paramref name="html"/> on the clipboard, with
     /// <paramref name="text"/> for apps that paste only plain text.</summary>
     public void SetClipboardHtml(string html, string text) => _clipboard.SetHtml(html, text);
