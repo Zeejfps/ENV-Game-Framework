@@ -12,6 +12,11 @@ public static partial class UiWidgets
     /// <summary>The id of the popup the menu title, dropdown or submenu item with <paramref name="ownerId"/> opens.</summary>
     internal static int MenuPopupId(int ownerId) => HashCode.Combine(ownerId, MenuSalt);
 
+    /// <summary>The id of the item keyed <paramref name="key"/> (its label, or the id it was given) in
+    /// the menu whose popup is <paramref name="popupId"/>: <see cref="MenuPopupId"/> of the title,
+    /// dropdown or submenu item that opens it, or a context menu's own id.</summary>
+    internal static int MenuItemId(int popupId, string key) => HashCode.Combine(popupId, key);
+
     private static readonly KeyboardKey[] MenuKeySet =
     [
         KeyboardKey.DownArrow, KeyboardKey.UpArrow, KeyboardKey.Home, KeyboardKey.End,
@@ -650,6 +655,11 @@ public static partial class UiWidgets
         ui.Layer(menu.PopupId);
         ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
         ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });
+        // Items are keyed by their labels, which often come from the app's data, so they get an id
+        // scope of the menu's own: a label that matches an id outside the menu, such as an open
+        // dialog's, would otherwise be taken for it. See MenuItemId. Closed with the rest when the
+        // menu's scope is.
+        ui.UniqueId(menu.PopupId);
         return scope;
     }
 

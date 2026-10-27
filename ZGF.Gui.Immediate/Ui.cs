@@ -416,6 +416,15 @@ public abstract partial class Ui
         return BeginScope(ScopeKind.Id);
     }
 
+    /// <summary>Scopes widget ids under <paramref name="id"/> as it is, rather than combined with the
+    /// enclosing scope's: for an id that is unique on its own, such as a popup's, so what is keyed
+    /// inside can be found from that id alone.</summary>
+    public Scope UniqueId(int id)
+    {
+        _ids.Push(id);
+        return BeginScope(ScopeKind.Id);
+    }
+
     /// <summary>
     /// An <see cref="Id(string)"/> scope whose widget state outlives the frames in which its content
     /// is not recorded, for as long as <see cref="KeepState"/> is called with the same id instead —

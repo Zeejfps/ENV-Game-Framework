@@ -56,7 +56,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.ClickOn("Open");
+        _frames.ClickOn(ui => MenuItems.In(ui, "File", "Open"));
 
         Assert.Equal(["Open"], _picks);
         Assert.False(Open("Open"));
@@ -68,7 +68,7 @@ public sealed class MenuTests
     {
         OpenFile();
 
-        _frames.ClickOn("Save");
+        _frames.ClickOn(ui => MenuItems.In(ui, "File", "Save"));
 
         Assert.Empty(_picks);
         Assert.True(Open("Open"));
@@ -122,7 +122,7 @@ public sealed class MenuTests
     {
         _frames.Frame().ClickOn("View").Frame();
 
-        _frames.ClickOn("Dark");
+        _frames.ClickOn(ui => MenuItems.In(ui, "View", "Dark"));
 
         Assert.True(_dark);
     }
@@ -153,7 +153,7 @@ public sealed class ContextMenuTests
         var rect = _frames.RectOf("ctx");
         Assert.Equal((50f, 40f), (rect.X, rect.Y));
 
-        _frames.ClickOn("Copy").Frame();
+        _frames.ClickOn(ui => MenuItems.InContextMenu(ui, "ctx", "Copy")).Frame();
 
         Assert.Equal(["Copy"], _picks);
         Assert.False(_frames.Drew("Copy"));
@@ -312,7 +312,7 @@ public sealed class MenuRadioItemTests
     {
         _frames.Frame().ClickOn("Theme").Frame();
 
-        _frames.ClickOn("Light");
+        _frames.ClickOn(ui => MenuItems.In(ui, "Theme", "Light"));
 
         Assert.Equal("Light", _theme);
     }
@@ -348,7 +348,7 @@ public sealed class DropdownButtonTests
         Assert.Equal(button.X, popup.X);
         Assert.True(popup.Y >= button.Y + button.Height);
 
-        _frames.ClickOn("Second").Frame();
+        _frames.ClickOn(ui => MenuItems.In(ui, "more", "Second")).Frame();
 
         Assert.Equal(["Second"], _picks);
         Assert.False(_frames.Drew("First"));
@@ -395,7 +395,7 @@ public sealed class DropdownButtonTests
     {
         _frames.Frame();
         ClickButton();
-        var first = _frames.RectOf("First");
+        var first = _frames.RectOf(ui => MenuItems.In(ui, "more", "First"));
         _frames.MovePointer(first.X + 4f, first.Y + first.Height / 2).Frame();
 
         _frames.Key(KeyboardKey.DownArrow).Frame(2);
@@ -433,7 +433,7 @@ public sealed class SelectTests
         _frames.ClickOn("fruit").Frame();
         Assert.True(_frames.Drew("Cherry"));
 
-        _frames.ClickOn(pick).Frame();
+        _frames.ClickOn(ui => MenuItems.In(ui, "fruit", pick)).Frame();
 
         Assert.Equal(pick, _value);
         Assert.Equal(changes, _changes);
@@ -465,7 +465,7 @@ public sealed class SelectButtonTests
         Assert.True(IsLeftOf("B", "Blue"));
         Assert.Equal(_frames.TextRect("Red").X, _frames.TextRect("Blue").X, 0.01f);
 
-        _frames.ClickOn("Blue").Frame();
+        _frames.ClickOn(ui => MenuItems.In(ui, "colors", "Blue")).Frame();
 
         Assert.False(_red);
         Assert.Equal(0xFF0000FFu, _frames.TextColor("B"));
@@ -479,8 +479,8 @@ public sealed class SelectButtonTests
     {
         _frames.Frame().ClickOn("colors").Frame();
 
-        _frames.ClickOn("Red").Frame();
-        _frames.ClickOn("Green").Frame();
+        _frames.ClickOn(ui => MenuItems.In(ui, "colors", "Red")).Frame();
+        _frames.ClickOn(ui => MenuItems.In(ui, "colors", "Green")).Frame();
 
         Assert.False(_red);
         Assert.True(_green);
@@ -541,7 +541,7 @@ public sealed class SplitIconButtonTests
         var shell = _frames.RectOf(ui => UiWidgets.SplitShellId(ui.GetId("go")));
         var main = _frames.RectOf("go");
         var popup = _frames.RectOf(ui => UiWidgets.SplitMenuPopupId(ui.GetId("go")));
-        _frames.ClickOn("First").Frame();
+        _frames.ClickOn(ui => MenuItems.InSplitButton(ui, "go", "First")).Frame();
 
         Assert.Equal(main.X - UiTheme.Dark.BorderWidth, shell.X);
         Assert.Equal(shell.X, popup.X);
@@ -660,7 +660,7 @@ public sealed class MenuScrollTests
         var chrome = (theme.MenuPadding + theme.BorderWidth) * 2;
 
         _frames.Key(KeyboardKey.End).Frame(3);
-        var last = _frames.RectOf($"Item {ItemCount - 1}");
+        var last = _frames.RectOf(ui => MenuItems.In(ui, "more", $"Item {ItemCount - 1}"));
 
         Assert.True(popup.Height <= theme.MenuMaxHeight + chrome, $"{popup.Height}");
         Assert.True(last.Y >= popup.Y && last.Bottom <= popup.Bottom, $"{last} outside {popup}");

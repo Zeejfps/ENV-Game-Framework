@@ -129,15 +129,15 @@ public sealed class MenuKeyboardTests
     public void Hovering_a_submenu_opens_it_beside_its_item()
     {
         OpenFile();
-        var recent = _frames.RectOf("Recent");
+        var recent = _frames.RectOf(ui => MenuItems.In(ui, "File", "Recent"));
 
         _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
 
         Assert.True(_frames.Drew("One"));
-        var one = _frames.RectOf("One");
+        var one = _frames.RectOf(ui => MenuItems.InSubMenu(ui, "File", "Recent", "One"));
         Assert.True(one.X >= recent.Right);
 
-        _frames.ClickOn("One");
+        _frames.ClickOn(ui => MenuItems.InSubMenu(ui, "File", "Recent", "One"));
         Assert.Equal(["One"], _picks);
         _frames.Frame();
         Assert.False(_frames.Drew("Open"));
@@ -147,9 +147,9 @@ public sealed class MenuKeyboardTests
     public void Crossing_an_item_on_the_way_to_an_open_submenu_keeps_it_open()
     {
         OpenFile();
-        var recent = _frames.RectOf("Recent");
+        var recent = _frames.RectOf(ui => MenuItems.In(ui, "File", "Recent"));
         _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
-        var pick = _frames.RectOf("Pick…");
+        var pick = _frames.RectOf(ui => MenuItems.In(ui, "File", "Pick…"));
 
         _frames.MovePointer(recent.Right - 10f, pick.Y + 5f).Frame(3);
 
@@ -160,9 +160,9 @@ public sealed class MenuKeyboardTests
     public void Resting_on_an_item_on_the_way_to_a_submenu_closes_it()
     {
         OpenFile();
-        var recent = _frames.RectOf("Recent");
+        var recent = _frames.RectOf(ui => MenuItems.In(ui, "File", "Recent"));
         _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
-        var pick = _frames.RectOf("Pick…");
+        var pick = _frames.RectOf(ui => MenuItems.In(ui, "File", "Pick…"));
         _frames.MovePointer(recent.Right - 10f, pick.Y + 5f).Frame();
 
         _frames.Wait(1.0).Frame(2);
@@ -174,9 +174,9 @@ public sealed class MenuKeyboardTests
     public void Moving_straight_down_from_a_submenu_item_closes_it()
     {
         OpenFile();
-        var recent = _frames.RectOf("Recent");
+        var recent = _frames.RectOf(ui => MenuItems.In(ui, "File", "Recent"));
         _frames.MovePointer(recent.X + 10f, recent.Y + 5f).Frame(3);
-        var pick = _frames.RectOf("Pick…");
+        var pick = _frames.RectOf(ui => MenuItems.In(ui, "File", "Pick…"));
 
         _frames.MovePointer(recent.X + 10f, pick.Y + 5f).Frame(2);
 
@@ -190,7 +190,7 @@ public sealed class MenuKeyboardTests
         var title = _frames.RectOf("File");
         _frames.MovePointer(title.X + 5f, title.Y + 5f).Frame();
         _frames.Press().Frame(2);
-        var open = _frames.RectOf("Open");
+        var open = _frames.RectOf(ui => MenuItems.In(ui, "File", "Open"));
 
         _frames.MovePointer(open.X + 20f, open.Y + 5f).Frame();
         _frames.Release().Frame();
@@ -217,7 +217,7 @@ public sealed class MenuKeyboardTests
 
         OpenFile();
         Assert.False(_listFocused);
-        _frames.ClickOn("Open").Frame(2);
+        _frames.ClickOn(ui => MenuItems.In(ui, "File", "Open")).Frame(2);
 
         Assert.Equal(["Open"], _picks);
         Assert.True(_listFocused);
@@ -234,7 +234,7 @@ public sealed class MenuKeyboardTests
 
         test.OpenFile();
         Assert.NotEmpty(popups.Shown);
-        test._frames.ClickOn("Pick…").Frame(2);
+        test._frames.ClickOn(ui => MenuItems.In(ui, "File", "Pick…")).Frame(2);
 
         Assert.Equal(0, shownAtOpen);
         Assert.Equal(1, popups.HideAllCount);

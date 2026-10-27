@@ -282,9 +282,13 @@ public sealed class TabStripTests
 
     private static int ListButtonId(Ui ui) => UiWidgets.TabListButtonId(ui.GetId("tabs"));
 
+    /// <summary>The list's item for <paramref name="tab"/>, keyed as the list keys it: under the
+    /// list's menu, then under the tab's own id.</summary>
     private static int ListItemId(Ui ui, string tab)
     {
-        using (ui.Id(ui.GetId(tab)))
+        var tabId = ui.GetId(tab);
+        using (ui.UniqueId(UiWidgets.MenuPopupId(ListButtonId(ui))))
+        using (ui.Id(tabId))
             return ui.GetId(tab);
     }
 }
