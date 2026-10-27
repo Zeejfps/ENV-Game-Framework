@@ -246,6 +246,8 @@
   "option.check_for_overflow_underflow": "コードはオーバーフロー チェック付きでコンパイルされた",
   "option.show_xml_documentation": "逆コンパイルされたコードに XML ドキュメント コメントを含める",
   "option.use_debug_symbols": "デバッグ シンボルの変数名を使用する (利用可能な場合)",
+  "option.auto_load_assembly_references": "参照先のアセンブリを読み込む",
+  "option.apply_windows_runtime_projections": "読み込んだアセンブリに Windows ランタイムのプロジェクションを適用する",
   "tree.empty": "[ファイル] › [開く…] ({shortcut}) でアセンブリを開いてください",
   "tree.open": "開く",
   "tree.open_in_new_tab": "新しいタブで開く",

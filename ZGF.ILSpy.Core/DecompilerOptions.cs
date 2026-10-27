@@ -45,13 +45,6 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
     private static readonly Dictionary<string, PropertyInfo> Properties = typeof(DecompilerSettings).GetProperties()
         .Where(static p => p.PropertyType == typeof(bool) && p.CanWrite).ToDictionary(static p => p.Name);
 
-    /// <summary>Settings that do nothing here: they only apply when assemblies load.</summary>
-    private static readonly HashSet<string> Excluded =
-    [
-        nameof(DecompilerSettings.AutoLoadAssemblyReferences),
-        nameof(DecompilerSettings.ApplyWindowsRuntimeProjections),
-    ];
-
     /// <summary>Every toggle that changes decompiled code, in the decompiler's order.</summary>
     public static IReadOnlyList<DecompilerToggle> All { get; } = Discover();
 
@@ -62,6 +55,14 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
     /// <summary>Whether locals take their names from the assembly's PDB; the one toggle IL reads.</summary>
     public static DecompilerToggle UseDebugSymbols => ByName[nameof(DecompilerSettings.UseDebugSymbols)];
 
+    /// <summary>Whether resolving a reference reads its assembly from a file, rather than only finding
+    /// one already listed; applies as assemblies are read.</summary>
+    public static DecompilerToggle AutoLoadAssemblyReferences => ByName[nameof(DecompilerSettings.AutoLoadAssemblyReferences)];
+
+    /// <summary>Whether Windows Runtime metadata reads as the .NET types it projects to; applies as
+    /// assemblies are read.</summary>
+    public static DecompilerToggle ApplyWindowsRuntimeProjections => ByName[nameof(DecompilerSettings.ApplyWindowsRuntimeProjections)];
+
     internal void Apply(DecompilerSettings settings, bool value) => Properties[Name].SetValue(settings, value);
 
     private static List<DecompilerToggle> Discover()
@@ -70,7 +71,7 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
         var toggles = new List<DecompilerToggle>();
         foreach (var property in typeof(DecompilerSettings).GetProperties())
         {
-            if (property.PropertyType != typeof(bool) || !property.CanWrite || Excluded.Contains(property.Name)) continue;
+            if (property.PropertyType != typeof(bool) || !property.CanWrite) continue;
             if (property.GetCustomAttribute<BrowsableAttribute>() is { Browsable: false }) continue;
             if (property.GetCustomAttribute<CategoryAttribute>()?.Category is not { } category) continue;
             var value = (bool)property.GetValue(defaults)!;

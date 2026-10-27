@@ -251,6 +251,8 @@
   "option.check_for_overflow_underflow": "Code was compiled with overflow checking",
   "option.show_xml_documentation": "Include XML documentation comments in the decompiled code",
   "option.use_debug_symbols": "Use variable names from debug symbols, if available",
+  "option.auto_load_assembly_references": "Load the assemblies that references point to",
+  "option.apply_windows_runtime_projections": "Apply Windows Runtime projections to loaded assemblies",
 
   "tree.empty": "Open an assembly with File › Open… ({shortcut})",
   "tree.open": "Open",

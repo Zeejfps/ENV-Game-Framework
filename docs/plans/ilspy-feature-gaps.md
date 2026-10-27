@@ -8,8 +8,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **ReadyToRun disassembly** (a plugin upstream).
 - **Windows PDBs:** local names come only from portable PDBs; upstream also reads Windows PDBs
   (through Mono.Cecil).
-- **`AutoLoadAssemblyReferences` option:** a load-time setting left out of the options panel.
-- **`ApplyWindowsRuntimeProjections` option:** a load-time setting left out of the options panel.
 - **Word wrap** in the code view.
 - **Installed code fonts on macOS and Linux:** `ISystemFonts` lists them on Windows only, so elsewhere
   the font picker offers just the bundled font.

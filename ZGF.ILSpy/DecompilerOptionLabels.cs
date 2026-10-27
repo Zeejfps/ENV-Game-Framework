@@ -118,6 +118,8 @@ internal static class DecompilerOptionLabels
         "CheckForOverflowUnderflow" => t.OptionCheckForOverflowUnderflow,
         "ShowXmlDocumentation" => t.OptionShowXmlDocumentation,
         "UseDebugSymbols" => t.OptionUseDebugSymbols,
+        "AutoLoadAssemblyReferences" => t.OptionAutoLoadAssemblyReferences,
+        "ApplyWindowsRuntimeProjections" => t.OptionApplyWindowsRuntimeProjections,
         _ => null,
     };
 }

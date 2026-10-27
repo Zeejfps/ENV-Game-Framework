@@ -246,6 +246,8 @@
   "option.check_for_overflow_underflow": "Code wurde mit Überlaufprüfung kompiliert",
   "option.show_xml_documentation": "XML-Dokumentationskommentare in den dekompilierten Code aufnehmen",
   "option.use_debug_symbols": "Variablennamen aus Debugsymbolen verwenden, sofern verfügbar",
+  "option.auto_load_assembly_references": "Assemblys laden, auf die Verweise zeigen",
+  "option.apply_windows_runtime_projections": "Windows-Runtime-Projektionen auf geladene Assemblys anwenden",
   "tree.empty": "Öffnen Sie eine Assembly über Datei › Öffnen… ({shortcut})",
   "tree.open": "Öffnen",
   "tree.open_in_new_tab": "In neuem Tab öffnen",

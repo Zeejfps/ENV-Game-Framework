@@ -29,6 +29,8 @@ public sealed class AssemblyList
     private ImmutableArray<LoadedAssembly> _loaded = ImmutableArray<LoadedAssembly>.Empty;
     private int _version;
     private int _generation;
+    private volatile bool _loadsReferences = true;
+    private volatile MetadataReaderOptions _readerOptions = MetadataReaderOptions.ApplyWindowsRuntimeProjections;
 
     /// <summary>The open assemblies that loaded, in the order they were opened, with an open package's
     /// assemblies where the package is. A snapshot: it never changes after it is read.</summary>
@@ -158,6 +160,30 @@ public sealed class AssemblyList
         return loaded.ToImmutable();
     }
 
+    /// <summary>Whether resolving a reference reads its assembly from a file, rather than only finding one listed.</summary>
+    internal bool LoadsReferences => _loadsReferences;
+
+    /// <summary>Takes from <paramref name="options"/> the toggles that apply as assemblies are read: whether
+    /// references load their assemblies, and whether Windows Runtime metadata is projected. Returns true
+    /// when they changed, so that the open assemblies must be read again to follow them.</summary>
+    public bool UseLoadOptions(DecompilerOptions options)
+    {
+        var loadsReferences = options.IsOn(DecompilerToggle.AutoLoadAssemblyReferences);
+        var readerOptions = ChooseReaderOptions(options);
+        if (loadsReferences == _loadsReferences && readerOptions == _readerOptions)
+            return false;
+        _loadsReferences = loadsReferences;
+        _readerOptions = readerOptions;
+        return true;
+    }
+
+    private static MetadataReaderOptions ChooseReaderOptions(DecompilerOptions options)
+    {
+        if (options.IsOn(DecompilerToggle.ApplyWindowsRuntimeProjections))
+            return MetadataReaderOptions.ApplyWindowsRuntimeProjections;
+        return MetadataReaderOptions.None;
+    }
+
     /// <summary>Closes every assembly.</summary>
     public void Clear()
     {
@@ -240,7 +266,7 @@ public sealed class AssemblyList
         foreach (var reference in assembly.File.AssemblyReferences)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var found = assembly.Resolver.ResolveAssembly(reference);
+            var found = assembly.Resolver.LoadAssembly(reference);
             if (found == null)
                 continue;
             if (TryList(found, generation, cancellationToken))
@@ -481,7 +507,10 @@ public sealed class AssemblyList
         throw new InvalidOperationException($"{module.FileName} was not loaded by this list.");
     }
 
-    internal LoadedAssembly? FindKnown(IAssemblyReference reference, bool exactOrNewer)
+    /// <summary>The newest assembly read of <paramref name="reference"/>'s name, only one as new as it asks
+    /// for when <paramref name="exactOrNewer"/>, and only one listed, or read out of a listed package, when
+    /// <paramref name="listedOnly"/>; null when there is none.</summary>
+    internal LoadedAssembly? FindKnown(IAssemblyReference reference, bool exactOrNewer, bool listedOnly = false)
     {
         lock (_gate)
         {
@@ -489,6 +518,7 @@ public sealed class AssemblyList
             foreach (var assembly in _known.Values)
             {
                 if (assembly.IsPackage) continue;
+                if (listedOnly && !assembly.ListedItem.IsListed) continue;
                 if (!string.Equals(assembly.Name, reference.Name, StringComparison.OrdinalIgnoreCase)) continue;
                 if (exactOrNewer && reference.Version != null && assembly.Version != null && assembly.Version < reference.Version) continue;
                 if (best is null || (assembly.Version ?? new Version()) > (best.Version ?? new Version()))
@@ -700,11 +730,11 @@ public sealed class AssemblyList
 
     /// <summary>The assembly <paramref name="path"/> holds as WebCIL, wrapped in WebAssembly the way
     /// Blazor ships it; null when the file is no WebCIL.</summary>
-    private static WebCilFile? ReadWebCil(string path)
+    private WebCilFile? ReadWebCil(string path)
     {
         try
         {
-            return WebCilFile.FromFile(path, MetadataReaderOptions.Default);
+            return WebCilFile.FromFile(path, _readerOptions);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
         {
@@ -736,7 +766,7 @@ public sealed class AssemblyList
         return new LoadedAssembly(this, image, new PackagePlace(container, file));
     }
 
-    private static PEFile ReadPackageFile(AssemblyPackage package, PackageFile file)
+    private PEFile ReadPackageFile(AssemblyPackage package, PackageFile file)
     {
         var path = package.PathOf(file);
         try
@@ -751,7 +781,7 @@ public sealed class AssemblyList
         }
     }
 
-    private static PEFile ReadFile(string path)
+    private PEFile ReadFile(string path)
     {
         try
         {
@@ -765,11 +795,11 @@ public sealed class AssemblyList
     }
 
     /// <summary>The assembly or module <paramref name="stream"/> holds, known by <paramref name="path"/>.</summary>
-    private static PEFile ReadImage(string path, Stream stream)
+    private PEFile ReadImage(string path, Stream stream)
     {
         try
         {
-            var file = new PEFile(path, stream, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default);
+            var file = new PEFile(path, stream, PEStreamOptions.PrefetchEntireImage, _readerOptions);
             if (!file.Reader.HasMetadata)
                 throw new AssemblyLoadException(path, $"'{path}' is not a .NET assembly.");
             return file;

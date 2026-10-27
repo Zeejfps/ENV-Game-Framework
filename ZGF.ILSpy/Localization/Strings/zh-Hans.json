@@ -246,6 +246,8 @@
   "option.check_for_overflow_underflow": "代码使用溢出检查编译",
   "option.show_xml_documentation": "在反编译的代码中包含 XML 文档注释",
   "option.use_debug_symbols": "使用调试符号中的变量名(如果可用)",
+  "option.auto_load_assembly_references": "加载引用指向的程序集",
+  "option.apply_windows_runtime_projections": "对已加载的程序集应用 Windows 运行时投影",
   "tree.empty": "通过“文件 › 打开…”({shortcut})打开程序集",
   "tree.open": "打开",
   "tree.open_in_new_tab": "在新标签页中打开",

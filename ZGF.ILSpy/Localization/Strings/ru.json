@@ -246,6 +246,8 @@
   "option.check_for_overflow_underflow": "Код скомпилирован с проверкой переполнения",
   "option.show_xml_documentation": "Включать XML-комментарии документации в декомпилированный код",
   "option.use_debug_symbols": "Использовать имена переменных из отладочных символов, если они есть",
+  "option.auto_load_assembly_references": "Загружать сборки, на которые указывают ссылки",
+  "option.apply_windows_runtime_projections": "Применять проекции среды выполнения Windows к загруженным сборкам",
   "tree.empty": "Откройте сборку через Файл › Открыть… ({shortcut})",
   "tree.open": "Открыть",
   "tree.open_in_new_tab": "Открыть в новой вкладке",

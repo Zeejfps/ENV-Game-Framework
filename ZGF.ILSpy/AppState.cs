@@ -120,6 +120,7 @@ public sealed class AppState
         IconTheme = settings.IconTheme;
         Language = settings.Language;
         DecompilerOptions = settings.Decompiler;
+        Assemblies.UseLoadOptions(DecompilerOptions);
         Locale = ChooseLocale(settings);
         ApiVisibility = settings.ApiVisibility;
         var first = AddTab();

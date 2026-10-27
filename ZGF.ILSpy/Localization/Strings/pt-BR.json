@@ -246,6 +246,8 @@
   "option.check_for_overflow_underflow": "O código foi compilado com verificação de estouro",
   "option.show_xml_documentation": "Incluir comentários de documentação XML no código descompilado",
   "option.use_debug_symbols": "Usar nomes de variáveis dos símbolos de depuração, se disponíveis",
+  "option.auto_load_assembly_references": "Carregar os assemblies para os quais as referências apontam",
+  "option.apply_windows_runtime_projections": "Aplicar as projeções do Windows Runtime aos assemblies carregados",
   "tree.empty": "Abra um assembly com Arquivo › Abrir… ({shortcut})",
   "tree.open": "Abrir",
   "tree.open_in_new_tab": "Abrir em nova guia",

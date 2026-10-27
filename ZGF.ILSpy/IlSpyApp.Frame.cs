@@ -1,3 +1,4 @@
+using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.Appearance;
@@ -26,8 +27,8 @@ public sealed partial class IlSpyApp
     /// <summary>Does what comes before drawing a frame: the screen takes the theme, icons and strings the
     /// preferences pick, follows the open assemblies and analyses in the trees, the open tabs in the
     /// layout and the active tab, and focuses another tab when none is active; then the commands the
-    /// features queued for the view run, and the tabs in front decompile again when the language or the
-    /// options changed.</summary>
+    /// features queued for the view run, the open assemblies are read again when the options that apply as
+    /// they are read changed, and the tabs in front decompile again when the language or the options changed.</summary>
     internal static void StartFrame(UiState uiState, AppState appState)
     {
         ApplyThemeAndLanguage(uiState, ResolveTheme(appState), appState.Locale);
@@ -38,8 +39,17 @@ public sealed partial class IlSpyApp
         FollowActiveTab(uiState, appState.Tabs.Active);
         FocusNextTabIfNone(uiState, appState.Tabs);
         RunViewCommands(uiState, appState);
+        FollowLoadOptions(uiState, appState);
         FollowDecompilation(uiState, appState);
         ShowNewErrors(uiState, appState.Errors);
+    }
+
+    /// <summary>Reads the open assemblies again, as F5 does, when the options that apply as they are read changed.</summary>
+    private static void FollowLoadOptions(UiState uiState, AppState appState)
+    {
+        if (!appState.Assemblies.UseLoadOptions(appState.DecompilerOptions))
+            return;
+        RefreshAssemblies(appState, uiState.Tree.ExpandedPaths());
     }
 
     /// <summary>Opens the error dialog on the newest error whenever one is reported.</summary>
