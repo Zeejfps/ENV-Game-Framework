@@ -9,6 +9,8 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
 {
     private readonly List<DocumentTab> _tabs = new();
     private DocumentTab? _diagram;
+    private int _changes;
+    private int _closedChanges;
 
     /// <summary>The tab the user last worked in, where the tree and navigation show what they pick.</summary>
     public DocumentTab? Active { get; private set; }
@@ -35,9 +37,24 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
 
     public DocumentTab this[int index] => _tabs[index];
 
+    /// <summary>Counts up whenever a tab opens or closes, another becomes the active or the preview tab,
+    /// or an open one changes as <see cref="DocumentTab.Changes"/> counts; it never counts down.
+    /// Allocates nothing.</summary>
+    public int Changes
+    {
+        get
+        {
+            var changes = _changes + _closedChanges;
+            foreach (var tab in _tabs)
+                changes += tab.Changes;
+            return changes;
+        }
+    }
+
     public void Add(DocumentTab tab)
     {
         _tabs.Add(tab);
+        _changes++;
     }
 
     /// <summary>Cancels the tab's work and closes it. The tab stops being active if it was.</summary>
@@ -46,6 +63,8 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
         if (!_tabs.Remove(tab))
             return;
         tab.Cancel();
+        _closedChanges += tab.Changes;
+        _changes++;
         if (tab == Active)
             Active = null;
         if (tab == Preview)
@@ -59,6 +78,8 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
     {
         if (!_tabs.Contains(tab))
             throw new InvalidOperationException("Only an open tab can be active.");
+        if (tab != Active)
+            _changes++;
         Active = tab;
         if (tab.Diagram != null)
             _diagram = tab;
@@ -69,14 +90,18 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
     {
         if (!_tabs.Contains(tab))
             throw new InvalidOperationException("Only an open tab can be the preview tab.");
+        if (tab != Preview)
+            _changes++;
         Preview = tab;
     }
 
     /// <summary>Keeps <paramref name="tab"/> open: it is no longer the preview tab, if it was.</summary>
     public void Keep(DocumentTab tab)
     {
-        if (tab == Preview)
-            Preview = null;
+        if (tab != Preview)
+            return;
+        Preview = null;
+        _changes++;
     }
 
     public bool Contains(DocumentTab tab) => _tabs.Contains(tab);

@@ -213,6 +213,77 @@ public static class Diagrams
         diagram.Remove(type);
     }
 
+    /// <summary>Shows the diagram <paramref name="saved"/> kept in the tab <paramref name="reopened"/> waits in,
+    /// the assemblies it names its own, and reads in the background the cards of its types still found,
+    /// which it adds unless the tab was pointed elsewhere or the diagram closed meanwhile.</summary>
+    internal static async void ReopenDiagram(AppState appState, ReopenedTab reopened, DiagramDocumentRecord saved)
+    {
+        if (!reopened.IsWaiting)
+            return;
+        var tab = reopened.Tab;
+        var diagram = ShowSavedDiagram(appState, tab, saved);
+        var reading = appState.Reopened.Wait(tab, saved);
+        diagram.StartReading();
+        var read = await Background.Run(() => ReadCards(appState.Assemblies, saved.Types));
+        diagram.FinishReading();
+        if (!appState.Reopened.Finish(reading))
+            return;
+        if (diagram.IsClosed)
+            return;
+        AddSavedCards(appState, diagram, read, saved);
+    }
+
+    private static TypeDiagram ShowSavedDiagram(AppState appState, DocumentTab tab, DiagramDocumentRecord saved)
+    {
+        var diagram = new TypeDiagram();
+        TakeHomes(diagram, saved.HomeAssemblies);
+        var title = saved.Title ?? string.Empty;
+        tab.ShowDiagram(title, diagram);
+        WorkInIfActive(appState, tab);
+        return diagram;
+    }
+
+    private static void TakeHomes(TypeDiagram diagram, List<string>? assemblies)
+    {
+        if (assemblies == null)
+            return;
+        foreach (var assembly in assemblies)
+            diagram.TakeHome(assembly);
+    }
+
+    /// <summary>Has the diagram <paramref name="tab"/> shows taken as the one the user works in, when the tab is the active one.</summary>
+    private static void WorkInIfActive(AppState appState, DocumentTab tab)
+    {
+        if (tab != appState.Tabs.Active)
+            return;
+        appState.Tabs.MakeActive(tab);
+    }
+
+    private static List<TypeCard> ReadCards(AssemblyList list, List<TypeAnchor> types)
+    {
+        return types
+            .Select(t => TypeCards.Read(list, t))
+            .OfType<TypeCard>()
+            .ToList();
+    }
+
+    private static void AddSavedCards(AppState appState, TypeDiagram diagram, Outcome<List<TypeCard>> read, DiagramDocumentRecord saved)
+    {
+        if (read.Value == null)
+        {
+            ReportUnreadableDiagram(appState, saved, read.Error);
+            return;
+        }
+        diagram.Add(read.Value);
+    }
+
+    private static void ReportUnreadableDiagram(AppState appState, DiagramDocumentRecord saved, Exception? error)
+    {
+        var t = Strings.For(appState.Locale);
+        var title = saved.Title ?? string.Empty;
+        appState.ReportError(t.ErrorShowInDiagram(title), AppState.DescribeFailure(error, ""));
+    }
+
     /// <summary>Lays out <paramref name="diagram"/> in the background, its cards and labels as large as
     /// <paramref name="measures"/> says, cancelling the layout in flight, and holds the layout unless
     /// another was started meanwhile or the diagram was closed.</summary>

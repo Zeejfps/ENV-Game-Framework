@@ -13,32 +13,36 @@ namespace ZGF.ILSpy;
 
 public sealed partial class IlSpyApp
 {
-    /// <summary>The screen over <paramref name="appState"/>, restored from what its settings kept, with its
-    /// first tab in the place of the documents and the active tab it starts with. It takes the theme and
-    /// strings with its first frame.</summary>
+    /// <summary>The screen over <paramref name="appState"/>, restored from what its settings kept, with the
+    /// active tab it starts with, the tabs reopened from the open list's documents docked where they were,
+    /// and any other tab in the place of the documents. It takes the theme and strings with its first frame.</summary>
     internal static UiState CreateUiState(AppState appState)
     {
         var uiState = new UiState(ReadViewSettings(appState), appState.ReportError);
-        ShowInRestoredDocuments(uiState, appState.Tabs[0]);
+        uiState.Documents.SkipPanels(appState.Lists.ListDocumentPanels());
         FollowActiveTab(uiState, appState.Tabs.Active);
+        RunViewCommands(uiState, appState);
+        ShowInRestoredDocuments(uiState, appState.Tabs);
         return uiState;
     }
 
     /// <summary>Does what comes before drawing a frame: the screen takes the theme, icons and strings the
-    /// preferences pick, follows the open assemblies and analyses in the trees, the open tabs in the
-    /// layout and the active tab, and focuses another tab when none is active; then the commands the
-    /// features queued for the view run, the open assemblies are read again when the options that apply as
-    /// they are read changed, and the tabs in front decompile again when the language or the options changed.</summary>
+    /// preferences pick, follows the open assemblies and analyses in the trees, what the open tabs show and
+    /// the active tab; then the commands the features queued for the view run, the screen follows the tabs
+    /// opened and closed in the layout and focuses another tab when none is active; then the open
+    /// assemblies are read again when the options that apply as they are read changed, and the tabs in
+    /// front decompile again when the language or the options changed.</summary>
     internal static void StartFrame(UiState uiState, AppState appState)
     {
         ApplyThemeAndLanguage(uiState, ResolveTheme(appState), appState.Locale);
         ApplyIconTheme(uiState, ResolveIconTheme(appState));
         SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ApiVisibility);
         UsePreviewTabs(appState, uiState.Display.PreviewTabs);
-        SyncTabViews(uiState, appState.Tabs);
+        FollowTabContent(uiState);
         FollowActiveTab(uiState, appState.Tabs.Active);
-        FocusNextTabIfNone(uiState, appState.Tabs);
         RunViewCommands(uiState, appState);
+        SyncTabViews(uiState, appState.Tabs);
+        FocusNextTabIfNone(uiState, appState.Tabs);
         FollowLoadOptions(uiState, appState);
         FollowDecompilation(uiState, appState);
         ShowNewErrors(uiState, appState.Errors);

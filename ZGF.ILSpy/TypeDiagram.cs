@@ -97,11 +97,20 @@ public sealed class TypeDiagram
     /// its own, whose members show even when hidden from other assemblies.</summary>
     public void TakeHome(TypeCard card)
     {
-        _homeAssemblies.Add(card.AssemblyPath);
+        TakeHome(card.AssemblyPath);
+    }
+
+    /// <summary>Takes the assembly at <paramref name="assemblyPath"/> as one of the diagram's own.</summary>
+    public void TakeHome(string assemblyPath)
+    {
+        _homeAssemblies.Add(assemblyPath);
     }
 
     /// <summary>Whether the assembly at <paramref name="assemblyPath"/> is one of the diagram's own.</summary>
     public bool IsHome(string assemblyPath) => _homeAssemblies.Contains(assemblyPath);
+
+    /// <summary>The files of the diagram's own assemblies.</summary>
+    public IReadOnlyCollection<string> HomeAssemblies => _homeAssemblies;
 
     /// <summary>Counts a read of cards for the diagram as started, until <see cref="FinishReading"/>.</summary>
     public void StartReading()

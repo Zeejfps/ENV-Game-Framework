@@ -18,7 +18,7 @@ public sealed class KeptView
 
 /// <summary>What the settings keep of the screen is made from: the change counts of the columns,
 /// the folded groups, the flags filters, the export window, the layout, the NuGet dialog's search and window,
-/// what the search looks for, and the display options.</summary>
+/// and the open tabs' views, what the search looks for, and the display options.</summary>
 public readonly record struct ViewSources(
     int BookmarkColumns,
     int SearchColumns,
@@ -30,4 +30,5 @@ public readonly record struct ViewSources(
     int Layout,
     DisplayOptions Display,
     int NuGetSearch,
-    int NuGetWindow);
+    int NuGetWindow,
+    int Documents);

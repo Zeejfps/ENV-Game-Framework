@@ -2,7 +2,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
-using static ZGF.ILSpy.Docking;
+using static ZGF.ILSpy.SavedDocuments;
 
 namespace ZGF.ILSpy;
 
@@ -10,7 +10,8 @@ namespace ZGF.ILSpy;
 public static class AssemblyLists
 {
     /// <summary>Opens the open list's assemblies as the app starts, as a reload, so that the list is
-    /// saved whole until they are all open. Files that are gone or fail to load stay listed as failed.</summary>
+    /// saved whole until they are all open, then shows what the tabs reopened from its documents showed.
+    /// Files that are gone or fail to load stay listed as failed.</summary>
     public static void RestoreActiveAssemblyList(AppState appState)
     {
         appState.Assemblies.Pdbs.Use(appState.Lists.ActivePdbs);
@@ -20,7 +21,7 @@ public static class AssemblyLists
     }
 
     /// <summary>Opens the list named <paramref name="name"/> as the app starts, in place of the one the
-    /// settings had open, with the analyses it had. A list by that name is added when there is none.</summary>
+    /// settings had open, with the analyses and documents it had. A list by that name is added when there is none.</summary>
     public static void StartWithAssemblyList(AppState appState, string name)
     {
         if (!appState.Lists.Contains(name))
@@ -29,6 +30,7 @@ public static class AssemblyLists
             return;
         appState.Analyzer.Clear();
         appState.Analyzer.AddPending(appState.Lists.ActiveAnalyses);
+        ReopenDocuments(appState);
     }
 
     /// <summary>Takes every assembly, and what was picked for it, off the open list before the app starts opening it.</summary>
@@ -50,16 +52,17 @@ public static class AssemblyLists
         appState.Lists.RememberActiveFrameworks(appState.Assemblies.TargetFrameworks.All);
     }
 
-    /// <summary>Records the open assemblies and the analyses as the open list's.</summary>
+    /// <summary>Records the open assemblies, the analyses and the documents as the open list's.</summary>
     internal static void RememberActiveAssemblyList(AppState appState)
     {
         RememberOpenAssemblies(appState);
         var analyzed = appState.Analyzer.ListSavedAnalyses();
         appState.Lists.RememberActiveAnalyses(analyzed);
+        appState.Lists.RememberActiveDocuments(SaveDocuments(appState));
     }
 
     /// <summary>Opens the list named <paramref name="name"/> in place of the open one, with the
-    /// analyses it had. The assemblies, documents, history and analyses of the one before go, kept
+    /// analyses and documents it had. The assemblies, documents, history and analyses of the one before go, kept
     /// with it for when it opens again.</summary>
     public static void SwitchAssemblyList(AppState appState, string name)
     {
@@ -81,7 +84,7 @@ public static class AssemblyLists
     private static void OpenActiveList(AppState appState)
     {
         CloseAllAssemblies(appState);
-        CloseDocuments(appState);
+        ReopenDocuments(appState);
         appState.History.Clear();
         RestoreActiveAssemblyList(appState);
         appState.Analyzer.AddPending(appState.Lists.ActiveAnalyses);

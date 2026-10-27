@@ -6,7 +6,22 @@ namespace ZGF.ILSpy.App.Tests;
 public sealed class SplitDocumentTests
 {
     [Fact]
-    public void A_saved_layout_naming_the_new_document_twice_shows_it_once()
+    public void A_saved_layout_naming_a_panel_twice_shows_it_once()
+    {
+        var saved = new DockLayout
+        {
+            Root = DockLayout.Split(Direction.Horizontal, 0.3f, DockLayout.Group(DockPanels.Assemblies),
+                DockLayout.Split(Direction.Horizontal, 0.5f, DockLayout.Group("document-1"), DockLayout.Group("document-1"))),
+        };
+
+        var layout = DockPanels.Restore(saved);
+
+        var panels = layout.AllGroups().SelectMany(g => g.Panels).ToList();
+        Assert.Equal([DockPanels.Assemblies, "document-1"], panels);
+    }
+
+    [Fact]
+    public void The_first_tab_of_a_run_takes_a_panel_no_saved_document_was_docked_as()
     {
         var saved = new DockLayout
         {
@@ -14,10 +29,13 @@ public sealed class SplitDocumentTests
                 DockLayout.Split(Direction.Horizontal, 0.5f, DockLayout.Group("document-7"), DockLayout.Group("document-1"))),
         };
 
-        var layout = DockPanels.Restore(saved, "document-1", out _);
+        var d = new AppStateDriver(new AppSettings { Layout = saved });
 
-        var panels = layout.AllGroups().SelectMany(g => g.Panels).ToList();
-        Assert.Equal([DockPanels.Assemblies, "document-1"], panels);
+        var panel = d.Ui.Documents.PanelOf(Assert.Single(d.AppState.Tabs));
+        var panels = d.Ui.Layout.AllGroups().SelectMany(g => g.Panels).ToList();
+        Assert.Equal([DockPanels.Assemblies, panel], panels);
+        Assert.NotEqual("document-7", panel);
+        Assert.NotEqual("document-1", panel);
     }
 
     [Fact]

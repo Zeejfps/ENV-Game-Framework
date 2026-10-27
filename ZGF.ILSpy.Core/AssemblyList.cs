@@ -437,6 +437,26 @@ public sealed class AssemblyList
         }
     }
 
+    /// <summary>The definition of the type <paramref name="anchor"/> names, loading the assembly that
+    /// defines it without listing it; null when its file cannot be read or no longer defines it. Call it
+    /// off the UI thread.</summary>
+    internal ITypeDefinition? FindTypeDefinition(TypeAnchor anchor)
+    {
+        try
+        {
+            var assembly = TryLoad(anchor.AssemblyPath);
+            if (assembly is null)
+                return null;
+            if (assembly.HasLoadError)
+                return null;
+            return assembly.Module.GetTypeDefinition(new FullTypeName(anchor.FullName));
+        }
+        catch (Exception e) when (IsUnreadable(e))
+        {
+            return null;
+        }
+    }
+
     /// <summary>The type or member <paramref name="reference"/> points at and the assembly that defines
     /// it, loading that assembly without listing it; nulls for an assembly, a local or a label, or
     /// when it cannot be resolved.</summary>

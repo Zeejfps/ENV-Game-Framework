@@ -41,6 +41,7 @@ public static class Settings
             appState.Lists.Revision,
             appState.Bookmarks.Revision,
             appState.Analyzer.Revision,
+            appState.Tabs.Changes,
             appState.ViewSettingsChanges,
             appState.Theme,
             appState.IconTheme,
@@ -98,7 +99,15 @@ public static class Settings
         settings.Display = view.Display;
         settings.NuGet = view.NuGet;
         settings.NuGetWindow = view.NuGetWindow;
+        KeepTabPanels(appState, view.Tabs);
         appState.ViewSettingsChanges++;
+    }
+
+    private static void KeepTabPanels(AppState appState, IReadOnlyList<TabPanel>? panels)
+    {
+        if (panels == null)
+            return;
+        appState.TabPanels = panels;
     }
 
     /// <summary>What the settings kept of the screen when they were last saved.</summary>
@@ -116,6 +125,7 @@ public static class Settings
             settings.Layout,
             settings.Display,
             settings.NuGet,
-            settings.NuGetWindow);
+            settings.NuGetWindow,
+            Tabs: null);
     }
 }

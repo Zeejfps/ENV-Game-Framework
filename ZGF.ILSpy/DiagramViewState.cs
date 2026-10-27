@@ -1,3 +1,4 @@
+using ZGF.Geometry;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
 
@@ -42,9 +43,24 @@ public sealed class DiagramViewState
     /// <summary>The type whose card is selected, or null.</summary>
     public CodeReference? Selected;
 
+    private int _filterChanges;
+
     /// <summary>Whether members hidden from other assemblies show on the cards of types from assemblies
     /// other than the diagram's own.</summary>
-    public bool ShowsHiddenMembers;
+    public bool ShowsHiddenMembers { get; private set; }
+
+    /// <summary>Counts the changes to what the settings keep of the view: where it looks and how near,
+    /// the folds, and the filter.</summary>
+    public int Changes => Camera.Changes + Folds.Version + _filterChanges;
+
+    /// <summary>Shows members hidden from other assemblies on every card when <paramref name="shows"/>.</summary>
+    public void ShowHiddenMembers(bool shows)
+    {
+        if (shows == ShowsHiddenMembers)
+            return;
+        ShowsHiddenMembers = shows;
+        _filterChanges++;
+    }
 
     /// <summary>Set until the first layout is fitted to the view.</summary>
     public bool IsFitPending = true;
@@ -75,5 +91,29 @@ public sealed class DiagramViewState
     {
         Selected = type;
         PendingFocus = type;
+    }
+
+    /// <summary>What the settings keep of the view.</summary>
+    public DiagramViewRecord Save()
+    {
+        var corner = Camera.Corner;
+        return new DiagramViewRecord(corner.X, corner.Y, Camera.Zoom, Folds.Save(), ShowsHiddenMembers);
+    }
+
+    /// <summary>Returns the view to how <paramref name="saved"/> says it was, which the first layout then
+    /// keeps rather than fitting itself to the view.</summary>
+    public void Restore(DiagramViewRecord saved)
+    {
+        Camera.Restore(new PointF(saved.X, saved.Y), saved.Zoom);
+        RestoreFolds(saved.Folds);
+        ShowsHiddenMembers = saved.ShowsHiddenMembers;
+        IsFitPending = false;
+    }
+
+    private void RestoreFolds(List<CardFold>? folds)
+    {
+        if (folds == null)
+            return;
+        Folds.Restore(folds);
     }
 }

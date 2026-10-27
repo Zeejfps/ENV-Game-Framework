@@ -295,17 +295,17 @@ public sealed class DockPanelsTests
     }
 
     [Fact]
-    public void A_saved_layout_keeps_the_views_left_open_and_drops_documents()
+    public void A_saved_layout_keeps_the_views_left_open_and_shows_the_first_tab_in_place_of_documents_not_kept()
     {
         var saved = new DockLayout { Root = DockLayout.Group("document-7", DockPanels.Search, "gone", DockPanels.Bookmarks) };
 
-        var layout = DockPanels.Restore(saved, "document-99", out var placed);
-        var fresh = DockPanels.Restore(null, "document-99", out var freshPlaced);
+        var d = new AppStateDriver(new AppSettings { Layout = saved });
+        var fresh = DockPanels.Restore(null);
 
-        Assert.True(placed);
-        Assert.Equal(["document-99", DockPanels.Search, DockPanels.Bookmarks], Assert.IsType<DockGroup>(layout.Root).Panels);
+        var panel = d.Ui.Documents.PanelOf(Assert.Single(d.AppState.Tabs));
+        Assert.Equal([panel, DockPanels.Search, DockPanels.Bookmarks], Assert.IsType<DockGroup>(d.Ui.Layout.Root).Panels);
+        Assert.NotEqual("document-7", panel);
         Assert.Equal([DockPanels.Assemblies], Assert.IsType<DockGroup>(fresh.Root).Panels);
-        Assert.False(freshPlaced);
     }
 
     [Fact]

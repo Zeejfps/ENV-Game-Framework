@@ -88,7 +88,7 @@ internal static class DiagramFaces
     {
         var members = ListShown(view, diagram, card.AssemblyPath, section.Members);
         var title = TitleOf(stack.Strings, section.Kind);
-        AddFold(stack, view, CardFold.Own(card.Type, section.Kind), title, members);
+        AddFold(stack, view, CardFold.Own(card.Anchor, section.Kind), title, members);
     }
 
     private static string TitleOf(Strings t, MemberSection section) => section switch
@@ -103,7 +103,7 @@ internal static class DiagramFaces
     {
         var members = ListShown(view, diagram, group.AssemblyPath, group.Members);
         var title = stack.Strings.DiagramInheritedFrom(group.From);
-        AddFold(stack, view, CardFold.Inherited(card.Type, group.From), title, members);
+        AddFold(stack, view, CardFold.Inherited(card.Anchor, group.From), title, members);
     }
 
     /// <summary>The members of <paramref name="members"/>, of the assembly at <paramref name="assemblyPath"/>,

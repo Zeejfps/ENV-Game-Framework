@@ -78,6 +78,7 @@ public sealed class AppSettings
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? ShowNonPublic { get; set; }
     public SearchKinds SearchKinds { get; set; } = SearchKinds.TypesAndMembers;
+    /// <summary>Where the views and the open list's documents were docked; null for where they start out.</summary>
     public DockLayout? Layout { get; set; }
 
     public List<BookmarkRecord> Bookmarks { get; set; } = new();
@@ -190,15 +191,50 @@ public sealed class AppSettings
     }
 
     /// <summary><paramref name="lists"/> without what a hand-edited file can leave in them: missing
-    /// lists, names or assemblies, and blank paths, picked PDBs among them.</summary>
+    /// lists, names or assemblies, blank paths, picked PDBs among them, and documents missing what they show.</summary>
     private static List<AssemblyListRecord> CleanAssemblyLists(List<AssemblyListRecord>? lists)
     {
         if (lists == null)
             return new List<AssemblyListRecord>();
         return lists
             .Where(static l => l != null && l.Name != null)
-            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed), CleanPicks(l.Pdbs), CleanPicks(l.Frameworks)))
+            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed), CleanPicks(l.Pdbs), CleanPicks(l.Frameworks), CleanDocuments(l.Documents)))
             .ToList();
+    }
+
+    private static DocumentsRecord? CleanDocuments(DocumentsRecord? documents)
+    {
+        if (documents == null)
+            return null;
+        if (documents.Tabs == null)
+            return null;
+        var tabs = documents.Tabs
+            .Where(IsWhole)
+            .ToList();
+        return documents with { Tabs = tabs };
+    }
+
+    private static bool IsWhole(DocumentRecord? document) => document switch
+    {
+        NodeDocumentRecord node => IsWholeNode(node),
+        DiagramDocumentRecord diagram => IsWholeDiagram(diagram),
+        _ => false,
+    };
+
+    private static bool IsWholeNode(NodeDocumentRecord node)
+    {
+        if (node.Panel == null)
+            return false;
+        if (node.FilePath == null)
+            return false;
+        return node.Place != null;
+    }
+
+    private static bool IsWholeDiagram(DiagramDocumentRecord diagram)
+    {
+        if (diagram.Panel == null)
+            return false;
+        return diagram.Types != null;
     }
 
     private static Dictionary<string, string>? CleanPicks(Dictionary<string, string>? picks)

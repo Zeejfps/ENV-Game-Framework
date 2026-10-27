@@ -35,8 +35,8 @@ public sealed class UiState : IUiState
         ExportSetup.Window.Restore(saved.ExportWindow);
         Display = DisplayOptions.Restore(saved.Display);
         Analyzer = new AnalyzerRows(AppCommands);
-        RestoredDocumentsPanel = Documents.NewPanel();
-        MainLayout = RestoreLayout(this, saved.Layout, RestoredDocumentsPanel);
+        MainLayout = RestoreLayout(this, saved.Layout);
+        Documents.SkipPanels(MainLayout.ListDocuments());
         KeptView.Keep(CaptureViewSources(this));
     }
 
@@ -65,10 +65,6 @@ public sealed class UiState : IUiState
     public MainLayout MainLayout { get; }
 
     public DockLayout Layout => MainLayout.Dock;
-
-    /// <summary>The document panel the layout was restored with in the place of the documents, which
-    /// shows the app state's first tab.</summary>
-    public string RestoredDocumentsPanel { get; }
 
     /// <summary>How each open tab is shown, and the panel it is docked as.</summary>
     public DocumentViews Documents { get; } = new();

@@ -3,6 +3,7 @@ using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.SavedDocuments;
 using static ZGF.ILSpy.Settings;
 
 namespace ZGF.ILSpy;
@@ -351,6 +352,7 @@ public static class Assemblies
         appState.EnqueueCommand(new ViewCommand.ExpandNodes(reloaded.Expanded));
         for (var i = 0; i < tabs.Count; i++)
             ReshowTab(appState, tabs[i], reloaded.Places[i], intent);
+        ShowReopenedDocuments(appState);
         SaveSettings(appState);
     }
 
@@ -405,6 +407,7 @@ public static class Assemblies
             appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error.ToString());
             return;
         }
+        ShowReopenedDocuments(appState);
         SaveSettings(appState);
     }
 

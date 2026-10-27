@@ -46,15 +46,12 @@ public static class DockPanels
         _ => icons.PanelSearch,
     };
 
-    /// <summary>A copy of the saved layout with only its views — documents do not outlive a run — and
-    /// <paramref name="document"/> in the place of the documents: in the first
-    /// group that held one, so the views docked around them stay where they were. The assemblies
-    /// alone when none was saved. <paramref name="placed"/> tells whether the document has a place.</summary>
-    public static DockLayout Restore(DockLayout? saved, string document, out bool placed)
+    /// <summary>A copy of the saved layout, views and documents, each panel in one place only, or the
+    /// assemblies alone when none was saved.</summary>
+    public static DockLayout Restore(DockLayout? saved)
     {
         var layout = CopyOrStart(saved);
-        placed = PlaceDocument(layout, document);
-        layout.Retain(panel => IsView(panel) || panel == document);
+        layout.Retain(IsNamed);
         return layout;
     }
 
@@ -65,11 +62,16 @@ public static class DockPanels
         return saved.CopyArrangement();
     }
 
-    private static bool PlaceDocument(DockLayout layout, string document)
+    private static bool IsNamed(string panel) => panel.Length > 0;
+
+    /// <summary>Puts <paramref name="document"/> in the place of the first document panel of
+    /// <paramref name="layout"/> that <paramref name="isShown"/> rejects, in front of its group unless a
+    /// view is, so the views docked around the documents stay where they were. False when there is none.</summary>
+    public static bool PlaceDocument(DockLayout layout, string document, Func<string, bool> isShown)
     {
         foreach (var group in layout.AllGroups())
         {
-            var index = group.Panels.FindIndex(static p => !IsView(p));
+            var index = group.Panels.FindIndex(p => IsUnshownDocument(p, isShown));
             if (index < 0)
                 continue;
             group.Panels[index] = document;
@@ -80,5 +82,29 @@ public static class DockPanels
         return false;
     }
 
+    private static bool IsUnshownDocument(string panel, Func<string, bool> isShown)
+    {
+        if (IsView(panel))
+            return false;
+        return !isShown(panel);
+    }
+
     private static bool HasActiveView(DockGroup group) => group.Active != null && IsView(group.Active);
+
+    /// <summary>Renames the panels of <paramref name="layout"/> that <paramref name="names"/> maps to new names.</summary>
+    public static void Rename(DockLayout layout, IReadOnlyDictionary<string, string> names)
+    {
+        foreach (var group in layout.AllGroups())
+            Rename(group, names);
+    }
+
+    private static void Rename(DockGroup group, IReadOnlyDictionary<string, string> names)
+    {
+        for (var i = 0; i < group.Panels.Count; i++)
+            group.Panels[i] = NewNameOf(group.Panels[i], names);
+        if (group.Active != null)
+            group.Active = NewNameOf(group.Active, names);
+    }
+
+    private static string NewNameOf(string panel, IReadOnlyDictionary<string, string> names) => names.GetValueOrDefault(panel, panel);
 }

@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -13,6 +14,11 @@ public abstract record ViewCommand
     /// <summary>Bring <see cref="Tab"/>'s panel to the front, docked beside the tab <see cref="Beside"/>
     /// when it is not docked yet.</summary>
     public sealed record ShowTab(DocumentTab Tab, DocumentTab? Beside) : ViewCommand;
+
+    /// <summary>Show the reopened <see cref="Tabs"/> in the panels they were docked as: where the layout
+    /// still has them, else as <see cref="Layout"/>, the documents' saved arrangement, has them in the place of
+    /// the documents; and return their diagrams' views to how they were saved.</summary>
+    public sealed record ShowReopened(IReadOnlyList<ReopenedTab> Tabs, DockLayout? Layout) : ViewCommand;
 
     /// <summary>Dock the view <see cref="Panel"/>, one of <see cref="DockPanels"/>, if it is not, and
     /// bring it to the front.</summary>

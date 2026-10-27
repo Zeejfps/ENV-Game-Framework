@@ -2,16 +2,114 @@ using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The open tabs as panels of the layout: docking them, bringing them to the front, cycling and
-/// closing them, and keeping a view for each open tab. What changes the tabs themselves is asked of the
+/// <summary>The open tabs as panels of the layout: docking them, the reopened ones where they were docked,
+/// bringing them to the front, cycling and closing them, and keeping a view for each open tab. What changes the tabs themselves is asked of the
 /// app state through <see cref="UiState.AppCommands"/>.</summary>
 public static class DocumentPanels
 {
-    /// <summary>Shows <paramref name="tab"/>, the app state's first tab, in the place of the documents the
-    /// layout was restored with.</summary>
-    public static void ShowInRestoredDocuments(UiState uiState, DocumentTab tab)
+    /// <summary>Shows the reopened <paramref name="tabs"/> in the panels they were docked as: in place where
+    /// the layout still has one no tab is shown in, else, renamed when another tab is shown in one by that
+    /// name, arranged as <paramref name="layout"/>, the documents' saved arrangement, has them, beside the
+    /// documents; returns their diagrams' views to how they were saved, and brings the active tab to the front.</summary>
+    public static void ShowReopenedTabs(UiState uiState, IReadOnlyList<ReopenedTab> tabs, DockLayout? layout)
     {
-        uiState.Documents.Add(tab, uiState.RestoredDocumentsPanel);
+        var panels = new Dictionary<string, string>();
+        foreach (var reopened in tabs)
+            panels[reopened.Record.Panel] = AddReopenedView(uiState, reopened);
+        DockUndocked(uiState, panels, layout);
+        ActivateActivePanel(uiState);
+    }
+
+    /// <summary>Makes the view of the reopened tab, as it was saved, and returns the panel it is shown in.</summary>
+    private static string AddReopenedView(UiState uiState, ReopenedTab reopened)
+    {
+        var panel = ChooseReopenedPanel(uiState, reopened.Record.Panel);
+        uiState.Documents.Add(reopened.Tab, panel);
+        RestoreDiagramView(uiState, reopened);
+        return panel;
+    }
+
+    /// <summary>The panel <paramref name="saved"/>, unless a tab is shown in it; else a new one.</summary>
+    private static string ChooseReopenedPanel(UiState uiState, string saved)
+    {
+        if (!IsTabPanel(uiState, saved))
+            return saved;
+        return uiState.Documents.NewPanel();
+    }
+
+    private static void RestoreDiagramView(UiState uiState, ReopenedTab reopened)
+    {
+        if (reopened.Record is not DiagramDocumentRecord diagram)
+            return;
+        var view = diagram.View;
+        if (view == null)
+            return;
+        uiState.Documents.RestoreDiagramView(reopened.Tab, view);
+    }
+
+    /// <summary>Docks the panels of <paramref name="panels"/>, by the names they were saved as, that the
+    /// layout does not have, as <paramref name="layout"/> arranges them.</summary>
+    private static void DockUndocked(UiState uiState, Dictionary<string, string> panels, DockLayout? layout)
+    {
+        var undocked = panels.Values
+            .Where(p => !uiState.Layout.Contains(p))
+            .ToList();
+        if (undocked.Count == 0)
+            return;
+        var arrangement = ArrangeUndocked(undocked, panels, layout);
+        uiState.MainLayout.DockArranged(undocked, arrangement);
+    }
+
+    /// <summary>A copy of <paramref name="layout"/> renamed as <paramref name="panels"/> says and holding
+    /// <paramref name="undocked"/> alone; one group of them when there is no layout.</summary>
+    private static DockLayout ArrangeUndocked(List<string> undocked, Dictionary<string, string> panels, DockLayout? layout)
+    {
+        if (layout == null)
+            return new DockLayout { Root = DockLayout.Group(undocked.ToArray()) };
+        var arrangement = layout.CopyArrangement();
+        DockPanels.Rename(arrangement, panels);
+        arrangement.Retain(undocked.Contains);
+        return arrangement;
+    }
+
+    /// <summary>Brings the active tab's panel to the front and focuses it, when the layout has it.</summary>
+    internal static void ActivateActivePanel(UiState uiState)
+    {
+        var panel = FindActivePanel(uiState);
+        if (panel == null)
+            return;
+        if (!uiState.Layout.Contains(panel))
+            return;
+        uiState.Layout.Activate(panel);
+    }
+
+    /// <summary>Shows each open tab no panel was given, such as the one a run starts with when the open
+    /// list kept no documents, in the place of the documents the layout was restored with, then takes the
+    /// panels of the documents no tab is shown in out of the layout.</summary>
+    public static void ShowInRestoredDocuments(UiState uiState, DocumentTabs tabs)
+    {
+        for (var i = 0; i < tabs.Count; i++)
+            ShowInRestoredPlace(uiState, tabs[i]);
+        uiState.Layout.Retain(p => IsShownPanel(uiState, p));
+    }
+
+    private static void ShowInRestoredPlace(UiState uiState, DocumentTab tab)
+    {
+        if (uiState.Documents.Contains(tab))
+            return;
+        var panel = uiState.Documents.NewPanel();
+        uiState.Documents.Add(tab, panel);
+        if (DockPanels.PlaceDocument(uiState.Layout, panel, p => IsTabPanel(uiState, p)))
+            return;
+        uiState.MainLayout.DockDocument(panel, panel);
+    }
+
+    /// <summary>Whether <paramref name="panel"/> is a view, or a tab is shown in it.</summary>
+    private static bool IsShownPanel(UiState uiState, string panel)
+    {
+        if (DockPanels.IsView(panel))
+            return true;
+        return IsTabPanel(uiState, panel);
     }
 
     /// <summary>A new panel the layout makes for itself, with an empty tab asked for to be opened in it.</summary>
@@ -262,13 +360,18 @@ public static class DocumentPanels
     /// <summary>The panel of the active tab, which the views dock beside, or null.</summary>
     internal static string? FindActivePanel(UiState uiState) => uiState.Documents.FindPanel(uiState.ActiveTab);
 
-    /// <summary>Drops the view of each tab closed, keeping its image to free, and closes its panel;
-    /// makes a view for each tab opened; and lets each view follow the grid or picture its tab shows.</summary>
+    /// <summary>Lets each view follow the grid or picture its tab shows.</summary>
+    public static void FollowTabContent(UiState uiState)
+    {
+        uiState.Documents.FollowContent();
+    }
+
+    /// <summary>Drops the view of each tab closed, keeping its image to free, and closes its panel; and
+    /// makes a view for each tab opened that has none yet.</summary>
     public static void SyncTabViews(UiState uiState, DocumentTabs tabs)
     {
         DropClosedTabViews(uiState, tabs);
         AddOpenTabViews(uiState, tabs);
-        uiState.Documents.FollowContent();
     }
 
     private static void DropClosedTabViews(UiState uiState, DocumentTabs tabs)

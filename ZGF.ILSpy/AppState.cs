@@ -3,6 +3,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
 using static ZGF.ILSpy.IconTheming;
+using static ZGF.ILSpy.SavedDocuments;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.Theming;
 
@@ -43,6 +44,13 @@ public sealed class AppState
 
     public ErrorLog Errors { get; } = new();
     public DocumentTabs Tabs { get; } = new();
+
+    /// <summary>The tabs reopened from the open list's saved documents that wait for what they showed.</summary>
+    public ReopenedTabs Reopened { get; } = new();
+
+    /// <summary>The panel each open tab is docked as, and how its diagram is viewed, as the screen last
+    /// handed them over with what the settings keep of it.</summary>
+    public IReadOnlyList<TabPanel> TabPanels = [];
 
     /// <summary>The declarations and documentation shown when hovering types and members in code.</summary>
     public CodeTooltips Tooltips { get; }
@@ -92,6 +100,9 @@ public sealed class AppState
 
     /// <summary>True while a file of the list is read again, the list still holding it as it was.</summary>
     public bool IsReopening => Reopens.IsRunning;
+
+    /// <summary>True while the nodes the tabs reopened from the saved documents showed are being found.</summary>
+    public bool IsFindingDocuments => Reopened.IsFinding;
 
     /// <summary>True while analyzer roots wait for their symbols to be found.</summary>
     public bool IsFindingAnalyses => Analyzer.IsFinding;
@@ -151,6 +162,7 @@ public sealed class AppState
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
         var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
+        ReopenDocuments(this);
         LastSave.Record(CaptureSavedSources(this));
         ReportSettingsLoadError(settings);
         ReportLeftOutBookmarks(this, leftOutBookmarks);

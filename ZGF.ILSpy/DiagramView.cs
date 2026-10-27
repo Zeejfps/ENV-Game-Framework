@@ -53,8 +53,15 @@ internal static class DiagramView
             if (ui.Button(t.DiagramFit, id: "fit"))
                 FitToView(view, area);
             ui.Separator(ui.Theme.IconSize);
-            ui.Checkbox(t.DiagramShowHiddenMembers, ref view.ShowsHiddenMembers, id: "show-hidden-members");
+            HiddenMembersFilter(ui, view);
         }
+    }
+
+    private static void HiddenMembersFilter(Ui<UiState> ui, DiagramViewState view)
+    {
+        var shows = view.ShowsHiddenMembers;
+        if (ui.Checkbox(ui.State.Strings.DiagramShowHiddenMembers, ref shows, id: "show-hidden-members"))
+            view.ShowHiddenMembers(shows);
     }
 
     /// <summary>Where the cards were drawn on the last frame.</summary>
@@ -93,6 +100,7 @@ internal static class DiagramView
         Scroll(ui, view, rect, i.Hovered);
         Press(view, i, hit);
         Pan(ui, view, i);
+        SettleCamera(view, i);
         Click(ui, appState, view, diagram, i, hit);
         ShowHandOverClickable(ui, view, i, hit);
         FillFrame(ui, view, diagram, hit);
@@ -277,6 +285,16 @@ internal static class DiagramView
             return;
         var zoom = view.Camera.Zoom;
         view.Camera.LookFrom(new PointF(start.X - dx / zoom, start.Y - dy / zoom));
+    }
+
+    /// <summary>Counts the camera's move as done once no press drags it and the cards stopped moving it along.</summary>
+    private static void SettleCamera(DiagramViewState view, Interaction i)
+    {
+        if (i.Held)
+            return;
+        if (view.Transition.IsMoving)
+            return;
+        view.Camera.FinishMoving();
     }
 
     private static bool IsPanning(DiagramViewState view, Interaction i)

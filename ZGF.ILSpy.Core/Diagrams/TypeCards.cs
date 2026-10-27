@@ -34,6 +34,16 @@ public static class TypeCards
         return cards;
     }
 
+    /// <summary>The card of the type <paramref name="anchor"/> names; null when its assembly cannot be
+    /// read or no longer defines it.</summary>
+    public static TypeCard? Read(AssemblyList list, TypeAnchor anchor)
+    {
+        var definition = list.FindTypeDefinition(anchor);
+        if (definition == null)
+            return null;
+        return Read(definition);
+    }
+
     /// <summary>The cards of the types deriving directly from, or implementing, the type
     /// <paramref name="type"/> points at, among the assemblies <paramref name="list"/> holds now.</summary>
     public static List<TypeCard> ReadDerived(AssemblyList list, CodeReference type, CancellationToken cancellationToken)
@@ -51,6 +61,7 @@ public static class TypeCards
     {
         return new TypeCard(
             Type: CodeReference.To(type)!,
+            Anchor: new TypeAnchor(AssemblyPathOf(type), type.ReflectionName),
             Name: EntityText.Label(type),
             FullName: EntityText.FullName(type),
             AssemblyPath: AssemblyPathOf(type),

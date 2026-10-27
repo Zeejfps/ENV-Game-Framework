@@ -8,14 +8,12 @@ namespace ZGF.ILSpy;
 /// putting it back as it starts out.</summary>
 public static class ScreenLayout
 {
-    /// <summary>The saved layout with the document panel <paramref name="first"/> in the place of the documents,
-    /// a panel the layout makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
-    internal static MainLayout RestoreLayout(UiState uiState, DockLayout? saved, string first)
+    /// <summary>The saved layout, its documents' panels left for the tabs to be shown in them, a panel the
+    /// layout makes for itself opened as a new tab, and a closed panel's tab closed with it.</summary>
+    internal static MainLayout RestoreLayout(UiState uiState, DockLayout? saved)
     {
-        var dock = DockPanels.Restore(saved, first, out var placed);
+        var dock = DockPanels.Restore(saved);
         var layout = new MainLayout(dock);
-        if (!placed)
-            layout.DockDocument(first, first);
         dock.NewPanel = () => OpenTabForPanel(uiState);
         dock.PanelClosed += panel => OnPanelClosed(uiState, panel);
         return layout;
@@ -135,15 +133,5 @@ public static class ScreenLayout
         var panel = uiState.Documents.NewPanel();
         uiState.AppCommands.Enqueue(new AppCommand.OpenTab(panel, Focus: true));
         return panel;
-    }
-
-    private static void ActivateActivePanel(UiState uiState)
-    {
-        var panel = FindActivePanel(uiState);
-        if (panel == null)
-            return;
-        if (!uiState.Layout.Contains(panel))
-            return;
-        uiState.Layout.Activate(panel);
     }
 }

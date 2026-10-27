@@ -3,13 +3,31 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>How each open tab is shown, found by the tab or by the panel it is docked as: each tab with a
-/// view has a panel of its own. The images of the views dropped wait here until the canvas frees them.</summary>
+/// view has a panel of its own, and a new panel is never one a saved document was docked as. The images of
+/// the views dropped wait here until the canvas frees them.</summary>
 public sealed class DocumentViews
 {
+    private const string PanelPrefix = "document-";
+
     private readonly Dictionary<DocumentTab, TabView> _views = new();
     private readonly List<DocumentTab> _closed = new();
     private readonly List<string> _releasedImages = new();
     private int _panels;
+    private int _changes;
+    private int _droppedChanges;
+
+    /// <summary>Counts up whenever a view is made or dropped, or a view's diagram is viewed otherwise as
+    /// <see cref="DiagramViewState.Changes"/> counts; it never counts down. Allocates nothing.</summary>
+    public int Revision
+    {
+        get
+        {
+            var revision = _changes + _droppedChanges;
+            foreach (var view in _views.Values)
+                revision += view.Diagram.Changes;
+            return revision;
+        }
+    }
 
     /// <summary>How <paramref name="tab"/>, an open tab, is shown.</summary>
     public TabView ViewOf(DocumentTab tab) => _views[tab];
@@ -40,11 +58,46 @@ public sealed class DocumentViews
         return null;
     }
 
-    /// <summary>A document panel no tab was shown in before.</summary>
+    /// <summary>A document panel no tab was shown in before, nor any of those <see cref="SkipPanels"/> was given.</summary>
     public string NewPanel()
     {
         _panels++;
-        return $"document-{_panels}";
+        return $"{PanelPrefix}{_panels}";
+    }
+
+    /// <summary>Leaves <paramref name="panels"/>, which saved documents were docked as, to them:
+    /// <see cref="NewPanel"/> hands out none of them.</summary>
+    public void SkipPanels(IEnumerable<string> panels)
+    {
+        foreach (var panel in panels)
+            SkipPanel(panel);
+    }
+
+    private void SkipPanel(string panel)
+    {
+        if (!panel.StartsWith(PanelPrefix, StringComparison.Ordinal))
+            return;
+        var number = panel.AsSpan(PanelPrefix.Length);
+        if (!int.TryParse(number, out var taken))
+            return;
+        _panels = Math.Max(_panels, taken);
+    }
+
+    /// <summary>The panel each tab with a view is docked as, and how its diagram is viewed, for the
+    /// settings to keep.</summary>
+    public List<TabPanel> SavePanels()
+    {
+        var panels = new List<TabPanel>();
+        foreach (var (tab, view) in _views)
+            panels.Add(new TabPanel(tab, view.Panel, SaveDiagramView(tab, view)));
+        return panels;
+    }
+
+    private static DiagramViewRecord? SaveDiagramView(DocumentTab tab, TabView view)
+    {
+        if (tab.Diagram == null)
+            return null;
+        return view.Diagram.Save();
     }
 
     /// <summary>Shows <paramref name="tab"/> in a new panel, unless it is shown already.</summary>
@@ -61,6 +114,7 @@ public sealed class DocumentViews
         if (Contains(tab))
             return;
         _views.Add(tab, new TabView(panel));
+        _changes++;
     }
 
     /// <summary>Drops the view of <paramref name="tab"/>, keeping its image to free.</summary>
@@ -69,6 +123,8 @@ public sealed class DocumentViews
         if (!_views.Remove(tab, out var view))
             return;
         _releasedImages.Add(view.ImageId);
+        _droppedChanges += view.Diagram.Changes;
+        _changes++;
     }
 
     /// <summary>The tabs with a view that <paramref name="tabs"/> no longer holds, in a list the next call reuses.</summary>
@@ -120,6 +176,16 @@ public sealed class DocumentViews
             return;
         }
         view.Grid.Restore(position);
+    }
+
+    /// <summary>Returns the view of the diagram <paramref name="tab"/>, an open tab, shows to how
+    /// <paramref name="saved"/> says it was.</summary>
+    public void RestoreDiagramView(DocumentTab tab, DiagramViewRecord saved)
+    {
+        var view = _views.GetValueOrDefault(tab);
+        if (view == null)
+            return;
+        view.Diagram.Restore(saved);
     }
 
     /// <summary>Scrolls the code of <paramref name="tab"/>, an open tab, to <paramref name="line"/> and flashes it.</summary>

@@ -3,10 +3,10 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>A named assembly list as the settings keep it: its name, its assemblies' file paths, in
-/// order, the symbols analyzed in it, and, by assembly path, the PDBs picked for its assemblies and
-/// the frameworks picked to resolve their references against.</summary>
+/// order, the symbols analyzed in it, by assembly path the PDBs picked for its assemblies and the
+/// frameworks picked to resolve their references against, and the documents it had open.</summary>
 public sealed record AssemblyListRecord(string Name, List<string> Assemblies, List<CodeAnchor>? Analyzed = null,
-    Dictionary<string, string>? Pdbs = null, Dictionary<string, string>? Frameworks = null);
+    Dictionary<string, string>? Pdbs = null, Dictionary<string, string>? Frameworks = null, DocumentsRecord? Documents = null);
 
 /// <summary>
 /// The user's named assembly lists and which one is open. Names are never empty and never the same
@@ -26,7 +26,8 @@ public sealed class SavedAssemblyLists
         _lists.Add(_active);
     }
 
-    /// <summary>Changes whenever a list is added, renamed, removed or opened, or its assemblies or analyses change.</summary>
+    /// <summary>Changes whenever a list is added, renamed, removed or opened, or its assemblies or analyses
+    /// change; not when its documents do, which the open tabs count.</summary>
     public int Revision { get; private set; }
 
     /// <summary>The name of the list that is open.</summary>
@@ -43,6 +44,9 @@ public sealed class SavedAssemblyLists
 
     /// <summary>The frameworks picked for the open list's assemblies, by assembly path.</summary>
     public IReadOnlyDictionary<string, string> ActiveFrameworks => _active.Frameworks;
+
+    /// <summary>The documents the open list had open when they were last kept with it, or null for none.</summary>
+    public DocumentsRecord? ActiveDocuments => _active.Documents;
 
     public IReadOnlyList<string> Names => _lists.ConvertAll(static l => l.Name);
 
@@ -72,6 +76,7 @@ public sealed class SavedAssemblyLists
         var list = new SavedList(name, record.Assemblies.ToList(), analyzed.ToList());
         CopyPicks(record.Pdbs, list.Pdbs);
         CopyPicks(record.Frameworks, list.Frameworks);
+        list.Documents = record.Documents;
         _lists.Add(list);
     }
 
@@ -88,7 +93,18 @@ public sealed class SavedAssemblyLists
     public List<AssemblyListRecord> Save()
     {
         return _lists
-            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePicks(l.Pdbs), SavePicks(l.Frameworks)))
+            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePicks(l.Pdbs), SavePicks(l.Frameworks), l.Documents))
+            .ToList();
+    }
+
+    /// <summary>The panels the documents kept with every list were docked as.</summary>
+    public List<string> ListDocumentPanels()
+    {
+        return _lists
+            .Select(static l => l.Documents)
+            .OfType<DocumentsRecord>()
+            .SelectMany(static d => d.Tabs)
+            .Select(static t => t.Panel)
             .ToList();
     }
 
@@ -142,6 +158,12 @@ public sealed class SavedAssemblyLists
         _active.Analyzed.Clear();
         _active.Analyzed.AddRange(analyzed);
         Revision++;
+    }
+
+    /// <summary>Keeps <paramref name="documents"/>, or none when null, as the documents the open list has open.</summary>
+    public void RememberActiveDocuments(DocumentsRecord? documents)
+    {
+        _active.Documents = documents;
     }
 
     /// <summary>Records <paramref name="pdbs"/> as the PDBs picked for the open list's assemblies.</summary>
@@ -299,11 +321,12 @@ public sealed class SavedAssemblyLists
         return _lists.Find(l => string.Equals(l.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>A list: its name, its assemblies' paths, the symbols analyzed in it, and what was
-    /// picked for its assemblies, by assembly path.</summary>
+    /// <summary>A list: its name, its assemblies' paths, the symbols analyzed in it, what was picked for
+    /// its assemblies, by assembly path, and the documents it had open.</summary>
     private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed)
     {
         public string Name = name;
+        public DocumentsRecord? Documents;
         public List<string> Paths { get; } = paths;
         public List<CodeAnchor> Analyzed { get; } = analyzed;
         public Dictionary<string, string> Pdbs { get; } = new(StringComparer.OrdinalIgnoreCase);

@@ -68,4 +68,12 @@ public static class Docking
             return appState.Tabs[0];
         return OpenNewTab(appState);
     }
+
+    /// <summary>Closes every document tab, leaving none open.</summary>
+    internal static void CloseAllTabs(AppState appState)
+    {
+        var all = appState.Tabs.ToList();
+        foreach (var tab in all)
+            CloseTab(appState, tab);
+    }
 }

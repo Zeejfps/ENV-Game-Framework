@@ -13,6 +13,7 @@ public sealed class DocumentTab
     private Arrival _arrival;
     private CodeViewPosition _viewPosition;
     private string? _title;
+    private int _changes;
 
     /// <summary>Where the tab points; outlives reloads of the assembly.</summary>
     public NodePath? Location { get; private set; }
@@ -59,10 +60,37 @@ public sealed class DocumentTab
         }
     }
 
-    /// <summary>Keeps where the view of what the tab shows stands, for <see cref="Position"/>.</summary>
+    /// <summary>Where the view of the shown node is to stand when the tab is opened again: where it
+    /// stands, or while the node loads, where it is to stand once loaded.</summary>
+    public CodeViewPosition? PositionToReopen
+    {
+        get
+        {
+            if (IsBusy)
+                return _arrival.Position;
+            return Position;
+        }
+    }
+
+    /// <summary>Keeps where the view of what the tab shows stands, for <see cref="Position"/>. Not counted
+    /// in <see cref="Changes"/>: it moves with every scroll, so it is saved with whatever else is, and on exit,
+    /// as the window's bounds are.</summary>
     public void KeepPosition(CodeViewPosition position)
     {
         _viewPosition = position;
+    }
+
+    /// <summary>Counts up whenever the tab is pointed somewhere, or the diagram it shows gains or loses a
+    /// card; it never counts down.</summary>
+    public int Changes
+    {
+        get
+        {
+            var diagram = Diagram;
+            if (diagram == null)
+                return _changes;
+            return _changes + diagram.Version;
+        }
     }
 
     public bool IsBusy => _work != null;
@@ -102,8 +130,7 @@ public sealed class DocumentTab
     /// loading until <see cref="FinishLoading"/>; keeps <paramref name="arrival"/> until then.</summary>
     public LoadTicket StartLoading(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, Arrival arrival)
     {
-        Version++;
-        Cancel();
+        PointElsewhere();
         var work = new CancellationTokenSource();
         _work = work;
         _arrival = arrival;
@@ -145,8 +172,7 @@ public sealed class DocumentTab
     /// <paramref name="title"/>, cancelling what was in flight.</summary>
     public void ShowText(string title, DecompiledDocument document)
     {
-        Version++;
-        Cancel();
+        PointElsewhere();
         Node = null;
         Location = null;
         _title = title;
@@ -156,8 +182,7 @@ public sealed class DocumentTab
     /// <summary>Shows <paramref name="diagram"/>, titled <paramref name="title"/>, cancelling what was in flight.</summary>
     public void ShowDiagram(string title, TypeDiagram diagram)
     {
-        Version++;
-        Cancel();
+        PointElsewhere();
         Node = null;
         Location = null;
         _title = title;
@@ -167,8 +192,7 @@ public sealed class DocumentTab
     /// <summary>Shows nothing, as a new tab does, cancelling what was in flight.</summary>
     public void Clear()
     {
-        Version++;
-        Cancel();
+        PointElsewhere();
         Node = null;
         Location = null;
         _title = null;
@@ -189,10 +213,44 @@ public sealed class DocumentTab
 
     private void Release(TabContent content)
     {
-        Version++;
-        Cancel();
+        PointElsewhere();
         Node = null;
         Content = content;
+    }
+
+    /// <summary>Shows the tab, titled <paramref name="title"/>, waiting for the node at
+    /// <paramref name="location"/>, which it showed in <paramref name="language"/> when the documents were
+    /// saved, to be found once the assemblies are listed.</summary>
+    public void WaitForNode(NodePath location, string? title, DecompilationLanguage language)
+    {
+        Wait(title);
+        Location = location;
+        Language = language;
+    }
+
+    /// <summary>Shows the tab, titled <paramref name="title"/>, waiting for the diagram it showed when the
+    /// documents were saved to be read once the assemblies are listed.</summary>
+    public void WaitForDiagram(string? title)
+    {
+        Wait(title);
+    }
+
+    private void Wait(string? title)
+    {
+        PointElsewhere();
+        Node = null;
+        Location = null;
+        _title = title;
+        Content = new TabContent.Reloading();
+    }
+
+    /// <summary>Counts the tab as pointed somewhere else, past what its diagram counted, and cancels
+    /// what was in flight.</summary>
+    private void PointElsewhere()
+    {
+        _changes = Changes + 1;
+        Version++;
+        Cancel();
     }
 
     /// <summary>Cancels what is in flight for what the tab shows: its load, or its diagram's reading and

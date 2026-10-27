@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.ILSpy;
@@ -149,6 +150,97 @@ public sealed class MainLayout
             return;
         }
         DockBeside(panel, Dock.Root, DockEdge.Right, DocumentShare);
+    }
+
+    /// <summary>Docks <paramref name="panels"/>, documents not docked yet, as <paramref name="arrangement"/>,
+    /// a layout of documents named as they are, has them: its first group joins the documents' group, or
+    /// goes where documents start out when there is none, the groups it splits off go beside that as it
+    /// splits them, and its floating windows float again. Those it does not hold join the documents' group.</summary>
+    public void DockArranged(IReadOnlyList<string> panels, DockLayout arrangement)
+    {
+        var documents = FindDocumentGroup(null);
+        DockArranged(arrangement.Root, documents, DockEdge.Center, DocumentShare);
+        foreach (var window in arrangement.Windows)
+            FloatArranged(window);
+        foreach (var panel in panels)
+            DockIfUndocked(panel);
+    }
+
+    /// <summary>Docks the documents under <paramref name="node"/> as it arranges them, its first group into or
+    /// beside <paramref name="target"/> as <paramref name="edge"/> says, or where documents start out when
+    /// there is no target. Returns that first group, or null when it holds no document.</summary>
+    private DockGroup? DockArranged(DockNode node, DockGroup? target, DockEdge edge, float share)
+    {
+        if (node is DockGroup group)
+            return DockGroupArranged(group, target, edge, share);
+        if (node is not DockSplit split)
+            return null;
+        var first = DockArranged(split.First, target, edge, share);
+        if (first == null)
+            return DockArranged(split.Second, target, edge, share);
+        DockArranged(split.Second, first, EdgeAfter(split.Direction), 1f - split.Ratio);
+        return first;
+    }
+
+    private DockGroup? DockGroupArranged(DockGroup group, DockGroup? target, DockEdge edge, float share)
+    {
+        if (group.Panels.Count == 0)
+            return null;
+        var first = group.Panels[0];
+        DockFirstArranged(first, target, edge, share);
+        var docked = Dock.GroupOf(first);
+        if (docked == null)
+            return null;
+        foreach (var panel in group.Panels.Skip(1))
+            Dock.Dock(panel, docked, DockEdge.Center);
+        BringToFront(group.Active);
+        return docked;
+    }
+
+    /// <summary>Docks <paramref name="panel"/>, the first of a group arranged, into or beside
+    /// <paramref name="target"/>, or where documents start out when there is none; unless it is docked
+    /// already, as the first panel of a floating window is.</summary>
+    private void DockFirstArranged(string panel, DockGroup? target, DockEdge edge, float share)
+    {
+        if (Dock.Contains(panel))
+            return;
+        if (target == null)
+        {
+            DockBeside(panel, Dock.Root, DockEdge.Right, DocumentShare);
+            return;
+        }
+        Dock.Dock(panel, target, edge, share);
+    }
+
+    private void BringToFront(string? panel)
+    {
+        if (panel == null)
+            return;
+        Dock.Activate(panel);
+    }
+
+    private static DockEdge EdgeAfter(Direction direction) => direction switch
+    {
+        Direction.Horizontal => DockEdge.Right,
+        _ => DockEdge.Bottom,
+    };
+
+    /// <summary>Floats the documents of <paramref name="window"/> in a window of their own where it was,
+    /// arranged as it arranges them.</summary>
+    private void FloatArranged(DockWindow window)
+    {
+        var panels = DockLayout.PanelsIn(window.Root);
+        if (panels.Count == 0)
+            return;
+        Dock.Float(panels[0], window.Rect);
+        DockArranged(window.Root, null, DockEdge.Center, DocumentShare);
+    }
+
+    private void DockIfUndocked(string panel)
+    {
+        if (Dock.Contains(panel))
+            return;
+        DockDocument(panel, null);
     }
 
     public List<string> ListDocuments()

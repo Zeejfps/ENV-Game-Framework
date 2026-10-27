@@ -8,8 +8,9 @@ namespace ZGF.ILSpy;
 /// <summary>What the settings keep of the screen: the column widths of the bookmarks, search results
 /// and export tables, the decompiler options panel's folded groups, what the search looks for, the
 /// metadata grids' flags filters, where the export dialog's window was left, a copy of the layout,
-/// which shares nothing with the screen's, how the documents draw code, and the feed the NuGet
-/// dialog last searched and where its window was left. A part never saved is null.</summary>
+/// which shares nothing with the screen's, how the documents draw code, the feed the NuGet
+/// dialog last searched and where its window was left, and the panel each open tab is docked as.
+/// A part never saved is null.</summary>
 public sealed record ViewSettings(
     List<float>? BookmarkColumns,
     List<float>? SearchColumns,
@@ -21,4 +22,8 @@ public sealed record ViewSettings(
     DockLayout? Layout,
     DisplayOptions? Display,
     SavedNuGetSearch? NuGet,
-    WindowBounds? NuGetWindow);
+    WindowBounds? NuGetWindow,
+    IReadOnlyList<TabPanel>? Tabs);
+
+/// <summary>The panel <see cref="Tab"/> is docked as, and how its diagram is viewed while it shows one.</summary>
+public sealed record TabPanel(DocumentTab Tab, string Panel, DiagramViewRecord? Diagram);

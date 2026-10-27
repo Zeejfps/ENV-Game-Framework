@@ -32,7 +32,8 @@ public static class ScreenSettings
             uiState.Layout.Changes,
             uiState.Display,
             uiState.NuGetPicker.SearchChanges,
-            uiState.NuGetPicker.Window.Changes);
+            uiState.NuGetPicker.Window.Changes,
+            uiState.Documents.Revision);
     }
 
     private static ViewSettings CreateViewSettings(UiState uiState)
@@ -48,6 +49,7 @@ public static class ScreenSettings
             uiState.Layout.CopyArrangement(),
             uiState.Display,
             uiState.NuGetPicker.Save(),
-            uiState.NuGetPicker.Window.Bounds);
+            uiState.NuGetPicker.Window.Bounds,
+            uiState.Documents.SavePanels());
     }
 }

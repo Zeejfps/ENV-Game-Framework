@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Diagrams;
@@ -24,6 +25,9 @@ public sealed partial class IlSpyApp
         {
             case ViewCommand.ShowTab show:
                 ShowTabIfOpen(uiState, appState, show.Tab, show.Beside);
+                break;
+            case ViewCommand.ShowReopened show:
+                ShowReopenedIfOpen(uiState, appState, show.Tabs, show.Layout);
                 break;
             case ViewCommand.OpenPanel open:
                 OpenPanel(uiState, open.Panel);
@@ -63,6 +67,15 @@ public sealed partial class IlSpyApp
         if (!appState.Tabs.Contains(tab))
             return;
         ShowTab(uiState, tab, beside);
+    }
+
+    /// <summary>Shows those of the reopened <paramref name="tabs"/> still open where they were docked.</summary>
+    private static void ShowReopenedIfOpen(UiState uiState, AppState appState, IReadOnlyList<ReopenedTab> tabs, DockLayout? layout)
+    {
+        var open = tabs
+            .Where(r => appState.Tabs.Contains(r.Tab))
+            .ToList();
+        ShowReopenedTabs(uiState, open, layout);
     }
 
     private static void RevealIfListed(UiState uiState, AppState appState, BrowseNode node)
