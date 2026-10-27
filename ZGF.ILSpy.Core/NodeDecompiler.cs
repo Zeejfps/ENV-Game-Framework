@@ -448,6 +448,11 @@ internal static class NodeDecompiler
             case ModuleReferenceNode module:
                 WriteComment(output, module.Text);
                 WriteComment(output, DescribeModule(module));
+                WriteImports(output, module);
+                break;
+            case ImportedMethodNode import:
+                WriteImportLine(output, import);
+                WriteComment(output, $"Calls {import.EntryPoint} in {node.Parent!.Text}");
                 break;
             case AssemblyReferenceNode reference:
                 WriteComment(output, reference.FullName);
@@ -644,6 +649,26 @@ internal static class NodeDecompiler
         if (module.ContainsMetadata)
             return "A module of this assembly, holding metadata";
         return "A native library, or a module holding no metadata";
+    }
+
+    /// <summary>The methods the assembly imports from <paramref name="module"/>, after a blank line, a line each.</summary>
+    private static void WriteImports(DocumentBuilder output, ModuleReferenceNode module)
+    {
+        if (module.Children.Count == 0)
+            return;
+        output.WriteLine();
+        foreach (var child in module.Children)
+        {
+            if (child is ImportedMethodNode import)
+                WriteImportLine(output, import);
+        }
+    }
+
+    /// <summary>An imported method's full name, which goes to the method.</summary>
+    private static void WriteImportLine(DocumentBuilder output, ImportedMethodNode import)
+    {
+        output.Write(import.FullName, SpanKind.Method, import.Target);
+        output.WriteLine();
     }
 
     private static void WriteComment(DocumentBuilder output, string text)

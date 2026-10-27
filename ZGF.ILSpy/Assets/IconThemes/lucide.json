@@ -13,6 +13,8 @@
     "node.assemblyReference": { "font": "lucide", "glyph": "E103" },
     // A reference to a module: a native library the assembly calls into, or another of its modules.
     "node.moduleReference": { "font": "lucide", "glyph": "E0A9" },
+    // A method the assembly imports from a module, listed under that module.
+    "node.importedMethod": { "font": "lucide", "glyph": "E45C" },
     // The folder of an assembly's resources.
     "node.resourcesFolder": { "font": "lucide", "glyph": "E0D7" },
     // A resource.

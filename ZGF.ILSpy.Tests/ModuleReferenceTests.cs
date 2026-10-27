@@ -57,4 +57,45 @@ public sealed class ModuleReferenceTests
 
         Assert.Contains("// QCall", text);
     }
+
+    [Fact]
+    public void A_module_lists_the_methods_imported_from_it_with_the_type_declaring_each()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+
+        var answer = assembly.Root.Child("References", "fixture-native").Child("Answer() : int");
+
+        Assert.Equal(NodeKind.ImportedMethod, answer.Kind);
+        Assert.Equal("ZGF.ILSpy.Tests.Fixtures.NativeImports", answer.DeclaringTypeName);
+    }
+
+    [Fact]
+    public void An_imported_method_reads_as_the_function_it_calls_and_goes_to_the_method()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var answer = assembly.Root.Child("References", "fixture-native", "Answer() : int");
+
+        var text = Assert.IsType<DocumentContent>(answer.Content()).Document.GetText();
+        var definition = list.FindNode(answer.Target!);
+
+        Assert.Contains("Calls fixture_answer in fixture-native", text);
+        Assert.Same(assembly.Fixtures().Child("NativeImports", "Answer() : int"), definition);
+    }
+
+    [Fact]
+    public void A_stub_generated_for_an_import_is_named_and_goes_as_the_method_declaring_it()
+    {
+        var qcall = CoreLibReferences().Child("QCall");
+        var list = new AssemblyList();
+        var coreLib = list.Open(RuntimeAssemblies.Find("System.Private.CoreLib")!);
+        var imports = coreLib.Root.Child("References", "QCall").Children;
+
+        var equivalent = imports.First(i => i.Text.StartsWith("AreTypesEquivalent(", StringComparison.Ordinal));
+        var definition = list.FindNode(equivalent.Target!)!;
+
+        Assert.DoesNotContain(qcall.Children, i => i.Text.Contains(">g__", StringComparison.Ordinal));
+        Assert.Equal("System.Runtime.CompilerServices.RuntimeHelpers", equivalent.DeclaringTypeName);
+        Assert.StartsWith("AreTypesEquivalent(", definition.Text, StringComparison.Ordinal);
+        Assert.Equal(NodeKind.Method, definition.Kind);
+    }
 }

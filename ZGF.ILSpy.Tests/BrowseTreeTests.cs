@@ -28,7 +28,7 @@ public sealed class BrowseTreeTests
         Assert.Equal(
             [
                 ("Calculator<T>", NodeKind.Class), ("Callback", NodeKind.Delegate), ("Circle", NodeKind.Class), ("IShape", NodeKind.Interface),
-                ("Point", NodeKind.Record), ("Size", NodeKind.Struct),
+                ("NativeImports", NodeKind.Class), ("Point", NodeKind.Record), ("Size", NodeKind.Struct),
             ],
             fixtures.Children.Select(c => (c.Text, c.Kind)));
         var circle = fixtures.Child("Circle");

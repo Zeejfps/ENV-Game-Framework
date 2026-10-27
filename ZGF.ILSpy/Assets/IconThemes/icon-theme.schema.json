@@ -55,6 +55,10 @@
           "description": "A reference to a module: a native library the assembly calls into, or another of its modules.",
           "$ref": "#/definitions/icon"
         },
+        "node.importedMethod": {
+          "description": "A method the assembly imports from a module, listed under that module.",
+          "$ref": "#/definitions/icon"
+        },
         "node.resourcesFolder": {
           "description": "The folder of an assembly's resources.",
           "$ref": "#/definitions/icon"

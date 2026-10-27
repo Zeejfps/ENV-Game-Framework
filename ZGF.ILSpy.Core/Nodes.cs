@@ -159,17 +159,34 @@ internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode p
 }
 
 /// <summary>A module an assembly references: a native library it calls into, or another module of the
-/// assembly, which holds metadata when the assembly's file table says so.</summary>
+/// assembly, which holds metadata when the assembly's file table says so. It lists the methods the
+/// assembly imports from it, sorted by name.</summary>
 internal sealed class ModuleReferenceNode : BrowseNode
 {
-    private ModuleReferenceNode(LoadedAssembly assembly, BrowseNode parent, string name)
+    private readonly IReadOnlyList<MethodDefinitionHandle> _imports;
+
+    private ModuleReferenceNode(LoadedAssembly assembly, BrowseNode parent, string name, IReadOnlyList<MethodDefinitionHandle> imports)
         : base(assembly, parent, NodeKind.ModuleReference, name)
     {
+        _imports = imports;
         ContainsMetadata = IsModuleWithMetadata(assembly.File.Metadata, name);
     }
 
     /// <summary>Whether the assembly's file table lists the module as one holding metadata.</summary>
     public bool ContainsMetadata { get; }
+
+    private protected override bool MayHaveChildren => _imports.Count > 0;
+
+    private protected override BrowseNode[] CreateChildren()
+    {
+        var module = Assembly.TypeSystem.MainModule;
+        return _imports
+            .Select(h => new ImportedMethodNode(Assembly, this, module.GetDefinition(h)))
+            .OrderBy(n => n.Text, NaturalStringComparer.Instance)
+            .ThenBy(n => n.DeclaringTypeName, NaturalStringComparer.Instance)
+            .Cast<BrowseNode>()
+            .ToArray();
+    }
 
     private static bool IsModuleWithMetadata(MetadataReader metadata, string name)
     {
@@ -182,16 +199,134 @@ internal sealed class ModuleReferenceNode : BrowseNode
         return false;
     }
 
-    /// <summary>The modules <paramref name="assembly"/> references, sorted by name, under <paramref name="parent"/>.</summary>
+    /// <summary>The modules <paramref name="assembly"/> references, sorted by name, under <paramref name="parent"/>.
+    /// Which methods import from each is read here, off the UI thread, so that their rows can tell whether
+    /// they have children without reading it there.</summary>
     internal static BrowseNode[] ListReferences(LoadedAssembly assembly, BrowseNode parent)
     {
         var metadata = assembly.File.Metadata;
+        var imports = ListImports(metadata);
         return Enumerable.Range(1, metadata.GetTableRowCount(TableIndex.ModuleRef))
             .Select(MetadataTokens.ModuleReferenceHandle)
-            .Select(h => metadata.GetString(metadata.GetModuleReference(h).Name))
-            .OrderBy(n => n, NaturalStringComparer.Instance)
-            .Select(n => (BrowseNode)new ModuleReferenceNode(assembly, parent, n))
+            .Select(h => Create(assembly, parent, h, imports))
+            .OrderBy(n => n.Text, NaturalStringComparer.Instance)
+            .Cast<BrowseNode>()
             .ToArray();
+    }
+
+    private static ModuleReferenceNode Create(LoadedAssembly assembly, BrowseNode parent, ModuleReferenceHandle handle,
+        Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>> imports)
+    {
+        var metadata = assembly.File.Metadata;
+        var name = metadata.GetString(metadata.GetModuleReference(handle).Name);
+        return new ModuleReferenceNode(assembly, parent, name, ImportsFrom(imports, handle));
+    }
+
+    /// <summary>The methods imported from each module, read from what each method's import names.</summary>
+    private static Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>> ListImports(MetadataReader metadata)
+    {
+        var imports = new Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>>();
+        foreach (var handle in metadata.MethodDefinitions)
+        {
+            var module = metadata.GetMethodDefinition(handle).GetImport().Module;
+            if (module.IsNil)
+                continue;
+            AddImport(imports, module, handle);
+        }
+        return imports;
+    }
+
+    private static void AddImport(Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>> imports, ModuleReferenceHandle module,
+        MethodDefinitionHandle method)
+    {
+        if (!imports.TryGetValue(module, out var methods))
+        {
+            methods = new List<MethodDefinitionHandle>();
+            imports.Add(module, methods);
+        }
+        methods.Add(method);
+    }
+
+    private static IReadOnlyList<MethodDefinitionHandle> ImportsFrom(Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>> imports,
+        ModuleReferenceHandle module)
+    {
+        if (imports.TryGetValue(module, out var methods))
+            return methods;
+        return [];
+    }
+}
+
+/// <summary>A method an assembly imports from a module, listed under that module: labelled as the tree
+/// labels the method, beside the type declaring it, and going to the method. A stub the compiler generates
+/// as a local function, as <c>[LibraryImport]</c> does, is labelled and goes as the method declaring it,
+/// with the stub's own parameters, the ones the module is called with.</summary>
+internal sealed class ImportedMethodNode : BrowseNode
+{
+    private const string LocalFunctionMarker = ">g__";
+
+    public ImportedMethodNode(LoadedAssembly assembly, BrowseNode parent, IMethod method)
+        : base(assembly, parent, NodeKind.ImportedMethod, LabelOf(method))
+    {
+        var declaring = method.DeclaringTypeDefinition!;
+        var shown = FindEnclosingMethod(method);
+        Accessibility = EntityText.Map(shown.Accessibility);
+        IsPublicApi = EntityText.IsPublicApi(shown);
+        DeclaringTypeName = EntityText.FullName(declaring);
+        FullName = $"{DeclaringTypeName}.{Text}";
+        EntryPoint = ReadEntryPoint(assembly.File.Metadata, method);
+        Target = CodeReference.To(shown);
+    }
+
+    public override string FullName { get; }
+
+    /// <summary>The tree's label for <paramref name="method"/>, named as the method enclosing it when it is a local function.</summary>
+    private static string LabelOf(IMethod method)
+    {
+        var label = EntityText.Label(method);
+        var enclosing = FindEnclosingName(method.Name);
+        if (enclosing == null)
+            return label;
+        return enclosing + label.Substring(method.Name.Length);
+    }
+
+    /// <summary>The name of the method a local function is declared in, as the compiler writes it into the
+    /// function's name, e.g. <c>CloseHandle</c> for <c>&lt;CloseHandle&gt;g____PInvoke|277_0</c>; null
+    /// for a method that is no local function.</summary>
+    private static string? FindEnclosingName(string name)
+    {
+        if (!name.StartsWith('<'))
+            return null;
+        var end = name.IndexOf(LocalFunctionMarker, StringComparison.Ordinal);
+        if (end < 0)
+            return null;
+        return name.Substring(1, end - 1);
+    }
+
+    /// <summary>The method <paramref name="method"/> is declared in when it is a local function and its type
+    /// declares a method of that name, else <paramref name="method"/> itself.</summary>
+    private static IMethod FindEnclosingMethod(IMethod method)
+    {
+        var enclosing = FindEnclosingName(method.Name);
+        if (enclosing == null)
+            return method;
+        var declared = method.DeclaringTypeDefinition!.Methods
+            .FirstOrDefault(m => m.Name == enclosing);
+        if (declared == null)
+            return method;
+        return declared;
+    }
+
+    /// <summary>The name of the function the method calls in the module.</summary>
+    public string EntryPoint { get; }
+
+    /// <summary>The name the method's import gives, else the method's own, as the runtime looks it up.</summary>
+    private static string ReadEntryPoint(MetadataReader metadata, IMethod method)
+    {
+        var handle = (MethodDefinitionHandle)method.MetadataToken;
+        var import = metadata.GetMethodDefinition(handle).GetImport();
+        if (import.Name.IsNil)
+            return method.Name;
+        return metadata.GetString(import.Name);
     }
 }
 

@@ -53,6 +53,7 @@ public enum NodeKind
     PropertyReference,
     EventReference,
     ModuleReference,
+    ImportedMethod,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
@@ -146,6 +147,9 @@ public abstract class BrowseNode
 
     /// <summary>The namespace of a type used from a referenced assembly; null for other nodes.</summary>
     public string? Namespace { get; private protected init; }
+
+    /// <summary>The type declaring a method imported from a module, listed under that module; null for other nodes.</summary>
+    public string? DeclaringTypeName { get; private protected init; }
 
     /// <summary>The name of the assembly a forwarded type is forwarded to; null for other nodes.</summary>
     public string? ForwardedTo { get; private protected init; }

@@ -33,13 +33,16 @@ public static class NodeText
     /// <summary>What a row shows after the node's name in muted text: an assembly's version and
     /// target framework, e.g. <c>10.0.0.0 · net10.0</c>, the framework left to <see cref="PickedFramework"/>
     /// when one was picked, the assembly a forwarded type is forwarded to, e.g. <c>→ System.Runtime</c>,
-    /// or the namespace of a type used from a reference. Null for other nodes.</summary>
+    /// the namespace of a type used from a reference, or the type declaring a method imported from a
+    /// module. Null for other nodes.</summary>
     public static string? Secondary(BrowseNode node)
     {
         if (node.Kind == NodeKind.ForwardedType)
             return Secondaries.GetValue(node, WriteForwardedTo);
         if (node.Kind == NodeKind.TypeReference)
             return UsedNamespace(node);
+        if (node.Kind == NodeKind.ImportedMethod)
+            return node.DeclaringTypeName;
         if (node.Kind != NodeKind.Assembly)
             return null;
         var identity = Secondaries.GetValue(node, static n => Identity(n.Assembly));
