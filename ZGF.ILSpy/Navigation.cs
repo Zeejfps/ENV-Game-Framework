@@ -247,9 +247,15 @@ public static class Navigation
             return;
         LeaveActiveTab(appState);
         var entry = appState.History.MoveTo(index);
-        if (entry == null)
-            return;
-        Restore(appState, entry.Value);
+        switch (entry)
+        {
+            case HistoryEntry.Node node:
+                Restore(appState, node);
+                break;
+            case HistoryEntry.Diagram diagram:
+                BringDiagramToFront(appState, diagram.Shown);
+                break;
+        }
     }
 
     private static bool CanGoTo(AppState appState, int index)
@@ -261,7 +267,7 @@ public static class Navigation
         return index != appState.History.CurrentIndex;
     }
 
-    private static async void Restore(AppState appState, HistoryEntry entry)
+    private static async void Restore(AppState appState, HistoryEntry.Node entry)
     {
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab: false);
@@ -309,6 +315,28 @@ public static class Navigation
         ShowNodeIn(appState, destination, node, position);
     }
 
+    /// <summary>Brings the tab showing <paramref name="diagram"/> to the front, dropping what was being
+    /// navigated to meanwhile.</summary>
+    private static void BringDiagramToFront(AppState appState, TypeDiagram diagram)
+    {
+        appState.Intent.Begin();
+        var tab = FindTabShowing(appState, diagram);
+        if (tab == null)
+            return;
+        appState.Tabs.MakeActive(tab);
+        appState.EnqueueCommand(new ViewCommand.ShowTab(tab, Beside: null));
+    }
+
+    internal static DocumentTab? FindTabShowing(AppState appState, TypeDiagram diagram)
+    {
+        foreach (var tab in appState.Tabs)
+        {
+            if (tab.Diagram == diagram)
+                return tab;
+        }
+        return null;
+    }
+
     internal static void ReportUnresolvedReference(AppState appState, CodeReference reference, Exception? error)
     {
         var t = Strings.For(appState.Locale);
@@ -326,17 +354,9 @@ public static class Navigation
         var position = tab.Position;
         if (position == null)
             return;
-        if (!IsCurrentHistoryPlace(appState, tab.Location))
+        if (!appState.History.IsCurrentPlace(tab.Location))
             return;
         appState.History.Leave(tab.Language, position.Value);
-    }
-
-    private static bool IsCurrentHistoryPlace(AppState appState, NodePath? place)
-    {
-        var current = appState.History.Current;
-        if (current == null)
-            return false;
-        return current.Value.Place.Equals(place);
     }
 
     /// <summary>Where what is asked for now from the active tab will show, in a new tab when
@@ -380,7 +400,19 @@ public static class Navigation
             return null;
         if (appState.PreviewTabs)
             return FindPreviewTab(appState);
-        return appState.Tabs.KeepIfOpen(destination.Origin);
+        return FindOriginToReplace(appState, destination.Origin);
+    }
+
+    /// <summary><paramref name="origin"/> while it is open, unless it shows a diagram, which nothing
+    /// replaces; else null.</summary>
+    private static DocumentTab? FindOriginToReplace(AppState appState, DocumentTab? origin)
+    {
+        var open = appState.Tabs.KeepIfOpen(origin);
+        if (open == null)
+            return null;
+        if (open.Diagram != null)
+            return null;
+        return open;
     }
 
     /// <summary>The active tab while it shows nothing, as a tab just opened, else the preview tab; null
@@ -393,7 +425,8 @@ public static class Navigation
         return appState.Tabs.Preview;
     }
 
-    private static DocumentTab? FindEmptyActiveTab(AppState appState)
+    /// <summary>The active tab while it shows nothing, as a tab just opened; else null.</summary>
+    internal static DocumentTab? FindEmptyActiveTab(AppState appState)
     {
         var active = appState.Tabs.Active;
         if (active == null)

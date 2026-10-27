@@ -6,6 +6,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.Diagrams;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.ScreenLayout;
@@ -205,6 +206,8 @@ internal static class TreePaneView
             AnalyzerPanelView.Analyze(ui.State, appState, node);
         if (node.Reference != null && ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
             ShowInMetadata(appState, node.Reference, inNewTab: false);
+        if (IsType(node))
+            DiagramItems(ui, appState, node.Reference!);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: new UiIcon(ui.State.Icons.ResourceExport)))
             ResourceImageView.PickExport(ui, appState, node);
         ExtractItems(ui, appState, node);
@@ -232,6 +235,25 @@ internal static class TreePaneView
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
                 CloseAssembly(appState, node.Assembly);
         }
+    }
+
+    /// <summary>Whether <paramref name="node"/> stands for a type defined in its assembly.</summary>
+    private static bool IsType(BrowseNode node)
+    {
+        if (node.Reference == null)
+            return false;
+        return node.Reference.Kind == CodeReferenceKind.Type;
+    }
+
+    /// <summary>The items that show the type <paramref name="type"/> points at on the diagram last worked in,
+    /// or on a new one.</summary>
+    private static void DiagramItems(Ui<UiState> ui, AppState appState, CodeReference type)
+    {
+        var t = ui.State.Strings;
+        if (ui.MenuItem(t.TreeShowInDiagram, id: "show-in-diagram"))
+            ShowInDiagram(appState, type);
+        if (ui.MenuItem(t.TreeShowInNewDiagram, id: "show-in-new-diagram"))
+            ShowInNewDiagram(appState, type);
     }
 
     /// <summary>The item that opens the .NET API reference page of a namespace, or of a public type or

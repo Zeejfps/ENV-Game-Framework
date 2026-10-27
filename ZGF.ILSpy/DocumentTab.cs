@@ -43,6 +43,9 @@ public sealed class DocumentTab
     /// <summary>The picture the tab shows, or null while it shows none.</summary>
     public ResourceImage? Image => (Content as TabContent.Picture)?.Image;
 
+    /// <summary>The diagram the tab shows, or null while it shows none.</summary>
+    public TypeDiagram? Diagram => (Content as TabContent.Diagram)?.Types;
+
     /// <summary>Where the view of the shown node stands, as the view last kept it, or null while there is none.</summary>
     public CodeViewPosition? Position
     {
@@ -150,6 +153,17 @@ public sealed class DocumentTab
         Content = new TabContent.Report(document);
     }
 
+    /// <summary>Shows <paramref name="diagram"/>, titled <paramref name="title"/>, cancelling what was in flight.</summary>
+    public void ShowDiagram(string title, TypeDiagram diagram)
+    {
+        Version++;
+        Cancel();
+        Node = null;
+        Location = null;
+        _title = title;
+        Content = new TabContent.Diagram(diagram);
+    }
+
     /// <summary>Shows nothing, as a new tab does, cancelling what was in flight.</summary>
     public void Clear()
     {
@@ -181,10 +195,13 @@ public sealed class DocumentTab
         Content = content;
     }
 
+    /// <summary>Cancels what is in flight for what the tab shows: its load, or its diagram's reading and
+    /// layout, the diagram closed for good.</summary>
     public void Cancel()
     {
         _work?.Cancel();
         _work = null;
+        Diagram?.Close();
     }
 }
 

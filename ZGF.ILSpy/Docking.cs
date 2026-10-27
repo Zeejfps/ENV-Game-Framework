@@ -29,8 +29,19 @@ public static class Docking
             return false;
         appState.Intent.Begin();
         var wasActive = tab == appState.Tabs.Active;
+        ForgetDiagramOf(appState, tab);
         appState.Tabs.Remove(tab);
         return wasActive;
+    }
+
+    /// <summary>Drops the diagram <paramref name="tab"/> shows, which it is about to stop showing, from
+    /// the history.</summary>
+    private static void ForgetDiagramOf(AppState appState, DocumentTab tab)
+    {
+        var diagram = tab.Diagram;
+        if (diagram == null)
+            return;
+        appState.History.Forget(diagram);
     }
 
     /// <summary>Closes every document tab but the active one, and empties that one; with no tab left
@@ -43,6 +54,7 @@ public static class Docking
             .ToList();
         foreach (var tab in others)
             CloseTab(appState, tab);
+        ForgetDiagramOf(appState, kept);
         kept.Clear();
         appState.Tabs.MakeActive(kept);
     }

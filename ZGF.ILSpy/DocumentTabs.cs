@@ -2,11 +2,13 @@ using System.Collections;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The open document tabs, the one the user last worked in, and the preview tab, which shows
-/// what is picked until it is kept open; each of those is always one of the open tabs.</summary>
+/// <summary>The open document tabs, the one the user last worked in, the preview tab, which shows
+/// what is picked until it is kept open, and the diagram the user last worked in; each of those is always
+/// one of the open tabs.</summary>
 public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
 {
     private readonly List<DocumentTab> _tabs = new();
+    private DocumentTab? _diagram;
 
     /// <summary>The tab the user last worked in, where the tree and navigation show what they pick.</summary>
     public DocumentTab? Active { get; private set; }
@@ -14,6 +16,20 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
     /// <summary>The tab that shows what is picked, replaced by what is picked next, until it is kept
     /// open; null when no tab is one.</summary>
     public DocumentTab? Preview { get; private set; }
+
+    /// <summary>The tab of the diagram the user last worked in, which types shown in a diagram are added
+    /// to; null when no open tab shows a diagram the user worked in.</summary>
+    public DocumentTab? Diagram
+    {
+        get
+        {
+            if (_diagram == null)
+                return null;
+            if (_diagram.Diagram == null)
+                return null;
+            return _diagram;
+        }
+    }
 
     public int Count => _tabs.Count;
 
@@ -34,13 +50,18 @@ public sealed class DocumentTabs : IReadOnlyList<DocumentTab>
             Active = null;
         if (tab == Preview)
             Preview = null;
+        if (tab == _diagram)
+            _diagram = null;
     }
 
+    /// <summary>Makes <paramref name="tab"/> the active tab, and the diagram tab when it shows a diagram.</summary>
     public void MakeActive(DocumentTab tab)
     {
         if (!_tabs.Contains(tab))
             throw new InvalidOperationException("Only an open tab can be active.");
         Active = tab;
+        if (tab.Diagram != null)
+            _diagram = tab;
     }
 
     /// <summary>Makes <paramref name="tab"/> the preview tab; the one before it stays open, kept.</summary>

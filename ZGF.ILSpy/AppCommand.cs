@@ -1,3 +1,5 @@
+using ZGF.ILSpy.Core.Diagrams;
+
 namespace ZGF.ILSpy;
 
 /// <summary>What the screen asks of the app state, which <see cref="UiState"/> queues while it draws
@@ -20,4 +22,8 @@ public abstract record AppCommand
 
     /// <summary>Run the analysis <see cref="Kind"/> stands for, whose row was expanded.</summary>
     public sealed record RunAnalysis(AnalyzerKindNode Kind) : AppCommand;
+
+    /// <summary>Lay out <see cref="Diagram"/> anew, its cards and labels as large as <see cref="Measures"/>
+    /// says they are drawn.</summary>
+    public sealed record LayOutDiagram(TypeDiagram Diagram, DiagramMeasures Measures) : AppCommand;
 }

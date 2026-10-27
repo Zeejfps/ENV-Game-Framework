@@ -57,6 +57,10 @@ internal static class EntityText
     public static string TypeName(IType type) =>
         new CSharpAmbience { ConversionFlags = ConversionFlags.UseFullyQualifiedTypeNames | ConversionFlags.ShowTypeParameterList }.ConvertType(type);
 
+    /// <summary><paramref name="type"/> as C# writes it without namespaces, e.g. <c>List&lt;int&gt;</c>.</summary>
+    public static string ShortTypeName(IType type) =>
+        new CSharpAmbience { ConversionFlags = ConversionFlags.ShowTypeParameterList }.ConvertType(type);
+
     public static NodeAccessibility Map(Accessibility accessibility) =>
         accessibility switch
         {

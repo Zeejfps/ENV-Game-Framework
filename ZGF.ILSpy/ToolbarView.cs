@@ -165,13 +165,12 @@ internal static class ToolbarView
     private static void HistoryItems(Ui<UiState> ui, AppState appState, int direction)
     {
         var entries = appState.History.Entries;
-        var palette = ui.State.NodeIconPalette;
         for (var i = appState.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
         {
             using (ui.Id(i))
             {
                 var entry = entries[i];
-                if (ui.MenuItem(entry.Place.Text, id: "entry", icon: NodeIcons.Icon(entry.Place.Kind, entry.Accessibility, palette, ui.State.Icons)))
+                if (ui.MenuItem(TextOf(entry), id: "entry", icon: IconOf(ui.State, entry)))
                 {
                     GoToHistoryEntry(appState, i);
                     return;
@@ -179,4 +178,17 @@ internal static class ToolbarView
             }
         }
     }
+
+    private static string TextOf(HistoryEntry entry) => entry switch
+    {
+        HistoryEntry.Node node => node.Place.Text,
+        HistoryEntry.Diagram diagram => diagram.Title,
+        _ => "",
+    };
+
+    private static UiIcon IconOf(UiState screen, HistoryEntry entry) => entry switch
+    {
+        HistoryEntry.Node node => NodeIcons.Icon(node.Place.Kind, node.Accessibility, screen.NodeIconPalette, screen.Icons),
+        _ => new UiIcon(screen.Icons.TabDiagram),
+    };
 }

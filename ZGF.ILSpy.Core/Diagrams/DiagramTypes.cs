@@ -110,17 +110,7 @@ internal sealed class DiagramTypes(DiagramNames names, DiagramDocs docs)
             return true;
         if (TypeFacts.IsObject(method.DeclaringType))
             return false;
-        return !OverridesObject(method);
-    }
-
-    private static bool OverridesObject(IMethod method)
-    {
-        if (!method.IsOverride)
-            return false;
-        var baseMember = InheritanceHelper.GetBaseMember(method);
-        if (baseMember == null)
-            return false;
-        return TypeFacts.IsObject(baseMember.DeclaringType);
+        return !TypeFacts.OverridesObject(method);
     }
 
     /// <summary>The fields <paramref name="type"/> shows: none compiler-generated, and none that
@@ -193,8 +183,7 @@ internal sealed class DiagramTypes(DiagramNames names, DiagramDocs docs)
     // A property of a generic enumerable of a type drawn in the diagram.
     private ManyRelation? ManyRelationOf(IProperty property)
     {
-        var elementType = property.ReturnType.GetElementTypeFromIEnumerable(property.Compilation, true, out var isGeneric);
-        if (isGeneric != true)
+        if (!TypeFacts.TryGetElementType(property, out var elementType))
             return null;
         if (!names.IsPicked(elementType))
             return null;
@@ -248,17 +237,10 @@ internal sealed class DiagramTypes(DiagramNames names, DiagramDocs docs)
         var inherited = new Dictionary<string, InheritedMembers>();
         var ancestors = type
             .GetNonInterfaceBaseTypes()
-            .Where(t => IsAncestor(type, t));
+            .Where(t => TypeFacts.IsAncestor(type, t));
         foreach (var ancestor in ancestors)
             inherited[names.IdOf(ancestor)] = InheritedFrom(members, ancestor, prefix);
         return inherited;
-    }
-
-    private static bool IsAncestor(ITypeDefinition type, IType other)
-    {
-        if (other.Equals(type))
-            return false;
-        return !TypeFacts.IsObject(other);
     }
 
     private InheritedMembers InheritedFrom(DeclaredMembers members, IType ancestor, string prefix)

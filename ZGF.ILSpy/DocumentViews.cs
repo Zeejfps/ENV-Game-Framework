@@ -1,3 +1,5 @@
+using ZGF.ILSpy.Core;
+
 namespace ZGF.ILSpy;
 
 /// <summary>How each open tab is shown, found by the tab or by the panel it is docked as: each tab with a
@@ -140,6 +142,16 @@ public sealed class DocumentViews
         if (!HasRow(tab, row))
             return;
         view.Grid.Reveal(row);
+    }
+
+    /// <summary>Selects the card of <paramref name="type"/> on the diagram <paramref name="tab"/>, an open tab,
+    /// shows, and brings it into view once it is laid out.</summary>
+    public void FocusCard(DocumentTab tab, CodeReference type)
+    {
+        var view = _views.GetValueOrDefault(tab);
+        if (view == null)
+            return;
+        view.Diagram.Focus(type);
     }
 
     private static bool HasRow(DocumentTab tab, int row)

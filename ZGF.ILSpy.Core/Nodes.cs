@@ -4,7 +4,6 @@ using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
-using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
 using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
@@ -643,23 +642,12 @@ internal sealed class DerivedTypesNode(LoadedAssembly assembly, BrowseNode paren
     public static bool CanHave(ITypeDefinition type) => !type.IsSealed && type.Kind is TypeKind.Class or TypeKind.Interface;
 
     /// <summary>The types in scope of <paramref name="type"/> that derive from it directly, as
-    /// ILSpy finds them: one whose direct base types include one of the same name and arity.</summary>
+    /// <see cref="DerivedTypes"/> finds them.</summary>
     internal static BrowseNode[] Find(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
     {
-        var context = new AnalyzerContext { AssemblyList = assembly.List };
-        var result = new List<BrowseNode>();
-        foreach (var candidate in context.GetScopeOf(type).GetTypesInScope(CancellationToken.None))
-        {
-            foreach (var baseType in candidate.DirectBaseTypes)
-            {
-                if (baseType.FullName == type.FullName && baseType.TypeParameterCount == type.TypeParameterCount)
-                {
-                    result.Add(new DerivedTypeNode(assembly, parent, candidate));
-                    break;
-                }
-            }
-        }
-        return result.ToArray();
+        return DerivedTypes.Find(assembly.List, type, CancellationToken.None)
+            .Select(t => (BrowseNode)new DerivedTypeNode(assembly, parent, t))
+            .ToArray();
     }
 }
 

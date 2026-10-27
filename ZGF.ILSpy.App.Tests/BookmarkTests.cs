@@ -113,7 +113,7 @@ public sealed class BookmarkTests : IDisposable
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, app.Ui.Documents.ViewOf(tab).Code.FlashLine);
-        Assert.Equal("Outline", d.AppState.History.Current!.Value.Place.Text);
+        Assert.Equal("Outline", Assert.IsType<HistoryEntry.Node>(d.AppState.History.Current).Place.Text);
     }
 
     [Fact]

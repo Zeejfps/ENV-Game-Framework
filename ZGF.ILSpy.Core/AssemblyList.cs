@@ -419,6 +419,24 @@ public sealed class AssemblyList
         }
     }
 
+    /// <summary>The definition of the type <paramref name="reference"/> points at, loading the assembly
+    /// that defines it without listing it; null when it points at no type, or cannot be resolved.
+    /// Call it off the UI thread.</summary>
+    internal ITypeDefinition? FindTypeDefinition(CodeReference reference)
+    {
+        if (reference.Kind != CodeReferenceKind.Type)
+            return null;
+        try
+        {
+            var (entity, _) = ResolveEntity(reference);
+            return entity as ITypeDefinition;
+        }
+        catch (Exception e) when (IsUnreadable(e))
+        {
+            return null;
+        }
+    }
+
     /// <summary>The type or member <paramref name="reference"/> points at and the assembly that defines
     /// it, loading that assembly without listing it; nulls for an assembly, a local or a label, or
     /// when it cannot be resolved.</summary>

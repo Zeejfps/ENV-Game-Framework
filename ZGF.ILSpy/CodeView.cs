@@ -212,7 +212,8 @@ public enum CodeZoom
 }
 
 public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null,
-    CodeZoom Zoom = CodeZoom.None, CodeReference? ShowInMetadata = null, CodeReference? ShowInApiReference = null);
+    CodeZoom Zoom = CodeZoom.None, CodeReference? ShowInMetadata = null, CodeReference? ShowInApiReference = null,
+    CodeReference? ShowInDiagram = null, CodeReference? ShowInNewDiagram = null);
 
 public static class CodeViewWidget
 {
@@ -459,6 +460,10 @@ public static class CodeViewWidget
             result = result with { ShowInMetadata = picked.ShowInMetadata };
         if (picked.ShowInApiReference != null)
             result = result with { ShowInApiReference = picked.ShowInApiReference };
+        if (picked.ShowInDiagram != null)
+            result = result with { ShowInDiagram = picked.ShowInDiagram };
+        if (picked.ShowInNewDiagram != null)
+            result = result with { ShowInNewDiagram = picked.ShowInNewDiagram };
         return result with { Zoom = zoom };
     }
 
@@ -945,6 +950,19 @@ public static class CodeViewWidget
         state.ShowColumns(match.Column, match.Column + state.Find.Length);
     }
 
+    /// <summary>The items that show <paramref name="entity"/> on a diagram, when it is a type.</summary>
+    private static CodeViewResult DiagramItems(Ui<UiState> ui, CodeReference entity, CodeViewResult result)
+    {
+        if (entity.Kind != CodeReferenceKind.Type)
+            return result;
+        var t = ui.State.Strings;
+        if (ui.MenuItem(t.TreeShowInDiagram, id: "show-in-diagram"))
+            result = result with { ShowInDiagram = entity };
+        if (ui.MenuItem(t.TreeShowInNewDiagram, id: "show-in-new-diagram"))
+            result = result with { ShowInNewDiagram = entity };
+        return result;
+    }
+
     private static CodeViewResult ContextMenu(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, bool bookmarkable)
     {
         var t = ui.State.Strings;
@@ -991,6 +1009,7 @@ public static class CodeViewWidget
                 result = result with { Analyze = entity };
             if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: new UiIcon(ui.State.Icons.LinkApiReference)))
                 result = result with { ShowInApiReference = entity };
+            result = DiagramItems(ui, entity, result);
         }
         if (state.MenuMetadata is { } shown)
         {

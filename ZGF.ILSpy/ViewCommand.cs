@@ -33,6 +33,10 @@ public abstract record ViewCommand
     /// <summary>Expand the tree's <see cref="Nodes"/>.</summary>
     public sealed record ExpandNodes(IReadOnlyList<BrowseNode> Nodes) : ViewCommand;
 
+    /// <summary>Select the card of <see cref="Type"/> on the diagram <see cref="Tab"/> shows, and bring it
+    /// into view once it is laid out.</summary>
+    public sealed record FocusCard(DocumentTab Tab, CodeReference Type) : ViewCommand;
+
     /// <summary>Expand the analyzer's <see cref="Root"/> and select it.</summary>
     public sealed record ShowAnalysis(AnalyzerSymbolNode Root) : ViewCommand;
 

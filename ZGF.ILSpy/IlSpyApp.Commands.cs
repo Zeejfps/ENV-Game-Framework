@@ -1,5 +1,6 @@
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Analysis;
+using static ZGF.ILSpy.Diagrams;
 using static ZGF.ILSpy.Docking;
 using static ZGF.ILSpy.DocumentPanels;
 using static ZGF.ILSpy.ScreenLayout;
@@ -44,6 +45,9 @@ public sealed partial class IlSpyApp
                 break;
             case ViewCommand.RevealRow reveal:
                 RevealRow(uiState, appState, reveal.Tab, reveal.Row);
+                break;
+            case ViewCommand.FocusCard focus:
+                FocusCard(uiState, appState, focus.Tab, focus.Type);
                 break;
             case ViewCommand.OpenWebPage open:
                 uiState.WebPagesToOpen.Enqueue(open.Url);
@@ -105,6 +109,13 @@ public sealed partial class IlSpyApp
         uiState.Documents.RevealRow(tab, row);
     }
 
+    private static void FocusCard(UiState uiState, AppState appState, DocumentTab tab, CodeReference type)
+    {
+        if (!appState.Tabs.Contains(tab))
+            return;
+        uiState.Documents.FocusCard(tab, type);
+    }
+
     /// <summary>Runs the commands <paramref name="uiState"/> queued for the app state, in the order queued.</summary>
     internal static void RunAppCommands(UiState uiState, AppState appState)
     {
@@ -128,6 +139,9 @@ public sealed partial class IlSpyApp
                 break;
             case AppCommand.RunAnalysis run:
                 RunAnalysis(appState, run.Kind);
+                break;
+            case AppCommand.LayOutDiagram layOut:
+                LayOutDiagram(appState, layOut.Diagram, layOut.Measures);
                 break;
         }
     }

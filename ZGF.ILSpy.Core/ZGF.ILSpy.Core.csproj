@@ -7,6 +7,7 @@
     <ItemGroup>
       <PackageReference Include="ICSharpCode.Decompiler" />
       <PackageReference Include="ICSharpCode.BamlDecompiler" />
+      <PackageReference Include="AutomaticGraphLayout" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,6 +27,7 @@
       <ProjectReference Include="..\JpegSharp\JpegSharp.csproj" />
       <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
       <ProjectReference Include="..\ZGF.Svg\ZGF.Svg.csproj" />
+      <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
     </ItemGroup>
 
     <ItemGroup>

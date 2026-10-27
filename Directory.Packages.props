@@ -30,6 +30,7 @@
         <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
         <PackageVersion Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
         <PackageVersion Include="ICSharpCode.BamlDecompiler" Version="11.1.0.9782" />
+        <PackageVersion Include="AutomaticGraphLayout" Version="1.1.12" />
     </ItemGroup>
 
     <ItemGroup>

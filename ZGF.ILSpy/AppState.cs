@@ -112,6 +112,28 @@ public sealed class AppState
     /// <summary>True while <see cref="Export"/> runs.</summary>
     public bool IsExporting => Export.IsRunning;
 
+    /// <summary>True while the diagram of an open tab reads cards or lays them out in the background.</summary>
+    public bool IsDiagramming
+    {
+        get
+        {
+            foreach (var tab in Tabs)
+            {
+                if (IsDiagramBusy(tab))
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    private static bool IsDiagramBusy(DocumentTab tab)
+    {
+        var diagram = tab.Diagram;
+        if (diagram == null)
+            return false;
+        return diagram.IsBusy;
+    }
+
     public AppState(AppSettings settings)
     {
         Settings = settings;

@@ -5,6 +5,7 @@ using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
 using static ZGF.ILSpy.CodeDisplay;
+using static ZGF.ILSpy.Diagrams;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -33,6 +34,9 @@ internal static class DocumentsView
                 break;
             case TabContent.Table table:
                 RenderGrid(ui, appState, tab, table.Grid);
+                break;
+            case TabContent.Diagram diagram:
+                DiagramView.Render(ui, appState, tab, diagram.Types);
                 break;
             case TabContent.Loading loading when !loading.Node.DependsOnLanguage:
                 Hint(ui, t.MetadataLoading);
@@ -70,7 +74,17 @@ internal static class DocumentsView
             ShowInMetadata(appState, shown, inNewTab: false);
         if (result.ShowInApiReference is { } documented)
             ShowInApiReference(appState, documented);
+        ShowAskedDiagram(appState, result);
         Zoom(ui.State, result.Zoom);
+    }
+
+    /// <summary>Shows the type the code view's menu asked for on the diagram last worked in, or on a new one.</summary>
+    private static void ShowAskedDiagram(AppState appState, CodeViewResult result)
+    {
+        if (result.ShowInDiagram != null)
+            ShowInDiagram(appState, result.ShowInDiagram);
+        if (result.ShowInNewDiagram != null)
+            ShowInNewDiagram(appState, result.ShowInNewDiagram);
     }
 
     private static void Zoom(UiState uiState, CodeZoom zoom)
@@ -126,9 +140,11 @@ internal static class DocumentsView
         return TextFonts.Italic;
     }
 
-    /// <summary>The tab's icon: its node's as the tree shows it, else a page.</summary>
+    /// <summary>The tab's icon: its node's as the tree shows it, a diagram's, else a page.</summary>
     private static UiIcon IconOf(UiState screen, DocumentTab tab)
     {
+        if (tab.Diagram != null)
+            return new UiIcon(screen.Icons.TabDiagram);
         var node = tab.Node;
         if (node == null)
             return new UiIcon(screen.Icons.TabPage);

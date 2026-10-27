@@ -127,6 +127,8 @@
     "panel.exports": { "font": "lucide", "glyph": "E337" },
     // A document tab that shows no node.
     "tab.page": { "font": "lucide", "glyph": "E0CC" },
+    // A document tab that shows a diagram of types.
+    "tab.diagram": { "font": "lucide", "glyph": "E125" },
 
     // The main toolbar.
 
