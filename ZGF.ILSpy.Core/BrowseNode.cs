@@ -52,6 +52,7 @@ public enum NodeKind
     FieldReference,
     PropertyReference,
     EventReference,
+    ModuleReference,
 }
 
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>

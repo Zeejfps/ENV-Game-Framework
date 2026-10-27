@@ -67,6 +67,7 @@ public static class NodeIcons
         NodeKind.FieldReference => icons.NodeFieldReference,
         NodeKind.PropertyReference => icons.NodePropertyReference,
         NodeKind.EventReference => icons.NodeEventReference,
+        NodeKind.ModuleReference => icons.NodeModuleReference,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -118,6 +119,7 @@ public static class NodeIcons
         NodeKind.FieldReference => NodeIconRole.Data,
         NodeKind.PropertyReference => NodeIconRole.Data,
         NodeKind.EventReference => NodeIconRole.Data,
+        NodeKind.ModuleReference => NodeIconRole.Neutral,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 

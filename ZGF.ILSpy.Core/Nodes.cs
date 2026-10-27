@@ -138,9 +138,61 @@ internal sealed class FailedAssemblyNode(LoadedAssembly assembly)
 internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode parent)
     : BrowseNode(assembly, parent, NodeKind.ReferencesFolder, "References")
 {
-    private protected override bool MayHaveChildren => !Assembly.File.AssemblyReferences.IsEmpty;
+    private protected override bool MayHaveChildren => HasReferences(Assembly);
 
-    private protected override BrowseNode[] CreateChildren() => AssemblyReferenceNode.ListReferences(Assembly, this);
+    private static bool HasReferences(LoadedAssembly assembly)
+    {
+        if (!assembly.File.AssemblyReferences.IsEmpty)
+            return true;
+        return assembly.File.Metadata.GetTableRowCount(TableIndex.ModuleRef) > 0;
+    }
+
+    /// <summary>The assemblies referenced, then the modules, each sorted by name.</summary>
+    private protected override BrowseNode[] CreateChildren()
+    {
+        var assemblies = AssemblyReferenceNode.ListReferences(Assembly, this);
+        var modules = ModuleReferenceNode.ListReferences(Assembly, this);
+        return assemblies
+            .Concat(modules)
+            .ToArray();
+    }
+}
+
+/// <summary>A module an assembly references: a native library it calls into, or another module of the
+/// assembly, which holds metadata when the assembly's file table says so.</summary>
+internal sealed class ModuleReferenceNode : BrowseNode
+{
+    private ModuleReferenceNode(LoadedAssembly assembly, BrowseNode parent, string name)
+        : base(assembly, parent, NodeKind.ModuleReference, name)
+    {
+        ContainsMetadata = IsModuleWithMetadata(assembly.File.Metadata, name);
+    }
+
+    /// <summary>Whether the assembly's file table lists the module as one holding metadata.</summary>
+    public bool ContainsMetadata { get; }
+
+    private static bool IsModuleWithMetadata(MetadataReader metadata, string name)
+    {
+        foreach (var handle in metadata.AssemblyFiles)
+        {
+            var file = metadata.GetAssemblyFile(handle);
+            if (metadata.StringComparer.Equals(file.Name, name))
+                return file.ContainsMetadata;
+        }
+        return false;
+    }
+
+    /// <summary>The modules <paramref name="assembly"/> references, sorted by name, under <paramref name="parent"/>.</summary>
+    internal static BrowseNode[] ListReferences(LoadedAssembly assembly, BrowseNode parent)
+    {
+        var metadata = assembly.File.Metadata;
+        return Enumerable.Range(1, metadata.GetTableRowCount(TableIndex.ModuleRef))
+            .Select(MetadataTokens.ModuleReferenceHandle)
+            .Select(h => metadata.GetString(metadata.GetModuleReference(h).Name))
+            .OrderBy(n => n, NaturalStringComparer.Instance)
+            .Select(n => (BrowseNode)new ModuleReferenceNode(assembly, parent, n))
+            .ToArray();
+    }
 }
 
 /// <summary>A reference of an assembly: the types the assembly uses from it, then the references of the

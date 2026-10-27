@@ -11,6 +11,8 @@
     "node.referencesFolder": { "font": "lucide", "glyph": "E100" },
     // A reference to another assembly.
     "node.assemblyReference": { "font": "lucide", "glyph": "E103" },
+    // A reference to a module: a native library the assembly calls into, or another of its modules.
+    "node.moduleReference": { "font": "lucide", "glyph": "E0A9" },
     // The folder of an assembly's resources.
     "node.resourcesFolder": { "font": "lucide", "glyph": "E0D7" },
     // A resource.

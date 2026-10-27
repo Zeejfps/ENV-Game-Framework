@@ -18,4 +18,3 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Check for updates.**
 - **Plugins** (MEF upstream).
 - **Copy code with formatting** (HTML on the clipboard).
-- **Module nodes** in the tree, for assemblies made of several modules.

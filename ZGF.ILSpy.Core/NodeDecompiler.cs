@@ -439,11 +439,15 @@ internal static class NodeDecompiler
             case ReferencesFolderNode:
                 foreach (var child in node.Children)
                 {
-                    if (child is not AssemblyReferenceNode reference) continue;
-                    output.Write("// ", SpanKind.Comment);
-                    output.Write(reference.FullName, SpanKind.Plain, reference.Target);
-                    output.WriteLine();
+                    if (child is AssemblyReferenceNode reference)
+                        WriteReferenceLine(output, reference);
+                    if (child is ModuleReferenceNode module)
+                        WriteComment(output, module.Text);
                 }
+                break;
+            case ModuleReferenceNode module:
+                WriteComment(output, module.Text);
+                WriteComment(output, DescribeModule(module));
                 break;
             case AssemblyReferenceNode reference:
                 WriteComment(output, reference.FullName);
@@ -625,6 +629,21 @@ internal static class NodeDecompiler
             output.Write(" " + line, SpanKind.String);
             output.WriteLine();
         }
+    }
+
+    /// <summary>An assembly reference's full name, which goes to the assembly, after a comment's marker.</summary>
+    private static void WriteReferenceLine(DocumentBuilder output, AssemblyReferenceNode reference)
+    {
+        output.Write("// ", SpanKind.Comment);
+        output.Write(reference.FullName, SpanKind.Plain, reference.Target);
+        output.WriteLine();
+    }
+
+    private static string DescribeModule(ModuleReferenceNode module)
+    {
+        if (module.ContainsMetadata)
+            return "A module of this assembly, holding metadata";
+        return "A native library, or a module holding no metadata";
     }
 
     private static void WriteComment(DocumentBuilder output, string text)
