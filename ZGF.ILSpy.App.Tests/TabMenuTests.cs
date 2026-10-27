@@ -30,7 +30,7 @@ public sealed class TabMenuTests
 
     private static void PickFromTabMenu(AppDriver app, string title, string item)
     {
-        var tab = app.LastTextRect(title);
+        var tab = app.LastTabTitleRect(title);
         app.Frames.Click(tab.X + 4f, tab.Y + tab.Height / 2, PointerButton.Right).Frame();
         app.ClickMenuItem(item).Frame(2);
         app.Settle(2);
@@ -85,7 +85,7 @@ public sealed class TabMenuTests
         var app = AppDriver.Opened(width: 1600f);
         app.Settle(2);
         var title = NodeText.Name(app.AppState.Tabs.Active!.Node!);
-        var tab = app.LastTextRect(title);
+        var tab = app.LastTabTitleRect(title);
 
         app.Frames.Click(tab.X + 4f, tab.Y + tab.Height / 2, PointerButton.Right).Frame();
 

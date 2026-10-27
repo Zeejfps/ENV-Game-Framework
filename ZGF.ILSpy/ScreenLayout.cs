@@ -78,6 +78,24 @@ public static class ScreenLayout
         OpenSearch(uiState);
     }
 
+    /// <summary>Has the active document's omnibar search, its box taking focus; opens the search panel
+    /// instead while no document is active or the omnibar is hidden.</summary>
+    public static void SearchInOmnibar(UiState uiState)
+    {
+        var panel = FindActivePanel(uiState);
+        if (panel == null)
+        {
+            OpenSearch(uiState);
+            return;
+        }
+        if (!uiState.Display.ShowOmnibar)
+        {
+            OpenSearch(uiState);
+            return;
+        }
+        uiState.Omnibar.StartSearch(panel);
+    }
+
     /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>
     public static bool TakeSearchFocus(UiState uiState)
     {

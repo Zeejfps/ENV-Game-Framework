@@ -1,7 +1,7 @@
 namespace ZGF.ILSpy;
 
-/// <summary>How one open tab is shown: the panel it is docked as, its code view and the note it shows while
-/// there is no code, its grid view, its picture, and the image the picture is drawn as. Made when the tab
+/// <summary>How one open tab is shown: the panel it is docked as, the path its omnibar shows, its code view
+/// and the note it shows while there is no code, its grid view, its picture, and the image the picture is drawn as. Made when the tab
 /// opens, and dropped, with its image, when it closes.</summary>
 public sealed class TabView
 {
@@ -13,6 +13,9 @@ public sealed class TabView
 
     /// <summary>The name of the tab's panel in the layout.</summary>
     public string Panel { get; }
+
+    /// <summary>The path to the node the tab shows, for its omnibar.</summary>
+    public Breadcrumb Breadcrumb { get; } = new();
 
     public CodeViewState Code { get; } = new();
 

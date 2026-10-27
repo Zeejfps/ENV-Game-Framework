@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Dialogs;
@@ -52,7 +53,7 @@ public static class MainView
     private static void Panels(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        UpdateSearch(ui, appState);
+        UpdateSearches(ui, appState);
         if (IsLayoutEmpty(ui.State))
         {
             DocumentsView.Hint(ui, t.ViewEmptyHint);
@@ -71,10 +72,16 @@ public static class MainView
         SyncActiveTab(ui.State, appState.Tabs.Active);
     }
 
-    private static void UpdateSearch(Ui<UiState> ui, AppState appState)
+    private static void UpdateSearches(Ui<UiState> ui, AppState appState)
     {
         var shown = ui.State.Layout.Contains(DockPanels.Search);
-        var wait = ui.State.Search.Update(appState.Assemblies, ui.RealTime, shown);
+        UpdateSearch(ui, ui.State.Search, appState.Assemblies, shown);
+        UpdateSearch(ui, ui.State.Omnibar.Search, appState.Assemblies, ui.State.Omnibar.IsSearching);
+    }
+
+    private static void UpdateSearch(Ui<UiState> ui, Search search, AssemblyList assemblies, bool shown)
+    {
+        var wait = search.Update(assemblies, ui.RealTime, shown);
         if (wait > 0)
             ui.RequestUpdateIn(wait);
     }

@@ -334,6 +334,34 @@ internal sealed class AppDriver
         return Frames.ToUi(drawn.Inputs.Position);
     }
 
+    /// <summary>Where the tab titled <paramref name="title"/> was drawn on the last frame; the first of
+    /// those drawn when several tabs are.</summary>
+    public UiRect TabTitleRect(string title) => ListTabTitleRects(title)[0];
+
+    /// <summary>Where the tab titled <paramref name="title"/> was drawn on the last frame; the last of
+    /// those drawn when several tabs are.</summary>
+    public UiRect LastTabTitleRect(string title)
+    {
+        var rects = ListTabTitleRects(title);
+        return rects[rects.Count - 1];
+    }
+
+    /// <summary>The texts reading <paramref name="title"/> drawn highest, in the order drawn: tab titles,
+    /// over the omnibar and the tree that name the same node.</summary>
+    private List<UiRect> ListTabTitleRects(string title)
+    {
+        var rects = Frames.TextRects()
+            .Where(t => t.Text == title)
+            .Select(t => t.Rect)
+            .ToList();
+        if (rects.Count == 0)
+            throw new InvalidOperationException($"'{title}' was not drawn.");
+        var top = rects.Min(r => r.Y);
+        return rects
+            .Where(r => r.Y < top + 0.5f)
+            .ToList();
+    }
+
     /// <summary>The texts drawn in the status bar, the window's bottom row.</summary>
     public IEnumerable<UiRect> StatusTexts()
     {

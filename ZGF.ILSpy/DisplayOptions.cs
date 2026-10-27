@@ -5,7 +5,8 @@ namespace ZGF.ILSpy;
 /// <summary>How the app is drawn: the scale of the whole interface, 1 for 100%, and whether the window
 /// keeps the system's title bar, with the menus in a bar of their own, rather than the menus drawn in
 /// the title bar where the platform allows; how the documents draw code: its font, null for the bundled
-/// one, its size, null for the theme's, and the aids drawn around it; and how the tree writes metadata
+/// one, its size, null for the theme's, the aids drawn around it, and whether an omnibar over each
+/// shows the path to what it shows and searches; and how the tree writes metadata
 /// tokens, whether it lists metadata tables with no rows and whether it nests each namespace in the
 /// one its name extends; and whether what is picked shows in a preview tab.</summary>
 public sealed record DisplayOptions(
@@ -13,6 +14,7 @@ public sealed record DisplayOptions(
     bool ShowLineNumbers = true,
     bool HighlightCurrentLine = false,
     bool HighlightMatchingBrackets = true,
+    bool ShowOmnibar = true,
     float UiScale = 1f,
     CodeFont? Font = null,
     TokenFormat TreeTokens = TokenFormat.Hidden,

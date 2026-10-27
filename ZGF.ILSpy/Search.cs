@@ -62,6 +62,10 @@ public sealed class Search
     public IReadOnlyList<SearchResult> Rows => _rows;
     public bool IsBusy => _runs.Count > 0;
 
+    /// <summary>Whether <see cref="Rows"/> are the hits of the query as typed, rather than of one typed
+    /// before it settled; more may still arrive.</summary>
+    public bool ShowsQuery => _query == Query;
+
     public ItemSelection<SearchResult> Selection { get; } = new();
 
     public SearchResult? SelectedRow => Selection.Item;

@@ -27,6 +27,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
     public IReadOnlyList<BrowseNode> Roots => _roots;
 
+    /// <summary>Changes whenever the roots change or namespaces start or stop nesting, which changes
+    /// the paths and labels of the nodes.</summary>
+    public int Revision { get; private set; }
+
     /// <summary>Rebuilds the roots when the assembly list changed. Returns true when it did.</summary>
     public bool Sync(AssemblyList assemblies)
     {
@@ -40,6 +44,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         FollowGoneRoots(roots);
         _roots = roots;
         _rootLabels = RootLabels(roots);
+        Revision++;
         return true;
     }
 
@@ -166,6 +171,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     {
         if (nest == _nestNamespaces) return;
         _nestNamespaces = nest;
+        Revision++;
         _shownChildren.Clear();
         View.Refresh();
         RevealSelected();
@@ -200,13 +206,21 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     /// ancestor when it is hidden or inside a hidden node.</summary>
     private List<BrowseNode> ShownPathTo(BrowseNode node)
     {
+        var path = ListPathTo(node);
+        var hidden = path.FindIndex(IsHidden);
+        if (hidden > 0)
+            path.RemoveRange(hidden, path.Count - hidden);
+        return path;
+    }
+
+    /// <summary>The nodes from the root down to <paramref name="node"/>, each in the one whose row
+    /// holds it, hidden ones included.</summary>
+    public List<BrowseNode> ListPathTo(BrowseNode node)
+    {
         var path = new List<BrowseNode>();
         for (var n = node; n != null; n = ShownParent(n))
             path.Add(n);
         path.Reverse();
-        var hidden = path.FindIndex(IsHidden);
-        if (hidden > 0)
-            path.RemoveRange(hidden, path.Count - hidden);
         return path;
     }
 

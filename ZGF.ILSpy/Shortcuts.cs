@@ -22,6 +22,7 @@ internal static class Shortcuts
     public const string SaveCode = "Ctrl+S";
     public const string Export = "Ctrl+Shift+E";
     public const string Search = "Ctrl+Shift+F";
+    public const string OmnibarSearch = "Ctrl+L";
     public const string Back = "Alt+Left";
     public const string Forward = "Alt+Right";
     public const string ReloadAll = "F5";
@@ -71,6 +72,9 @@ internal static class Shortcuts
                 case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.F):
                     OpenSearch(ui.State);
                     continue;
+                case (KeyModifiers.Control, KeyboardKey.L) when !IsFoldChordPending(ui.State):
+                    SearchInOmnibar(ui.State);
+                    continue;
                 case (KeyModifiers.Alt, KeyboardKey.LeftArrow):
                     GoBack(appState);
                     continue;
@@ -105,5 +109,16 @@ internal static class Shortcuts
                     break;
             }
         }
+    }
+
+    /// <summary>Whether the active document's code waits for the key after Ctrl+M, which Ctrl+L can be.</summary>
+    private static bool IsFoldChordPending(UiState uiState)
+    {
+        var tab = uiState.ActiveTab;
+        if (tab == null)
+            return false;
+        if (!uiState.Documents.Contains(tab))
+            return false;
+        return uiState.Documents.ViewOf(tab).Code.FoldChord;
     }
 }

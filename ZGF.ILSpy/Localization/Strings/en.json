@@ -78,6 +78,12 @@
   "search.column_location": "Location",
   "search.column_assembly": "Assembly",
 
+  "omnibar.search": "Go to type or member…",
+  "omnibar.contents": "Contents of {name}",
+  "omnibar.filter": "Filter…",
+  "omnibar.searching": "Searching…",
+  "omnibar.no_matches": "No matches",
+
   "panel.assemblies": "Assemblies",
   "panel.search": "Search",
   "panel.bookmarks": "Bookmarks",
@@ -124,6 +130,7 @@
   "display_options.line_numbers": "Line numbers",
   "display_options.current_line": "Highlight current line",
   "display_options.matching_brackets": "Highlight matching brackets",
+  "display_options.omnibar": "Path and search bar",
   "display_options.tree": "Tree",
   "display_options.tokens": "Metadata tokens",
   "display_options.tokens_description": "Shown after each type and member",

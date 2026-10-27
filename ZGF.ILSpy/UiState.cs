@@ -26,6 +26,7 @@ public sealed class UiState : IUiState
         ExportColumns.Restore(saved.ExportColumns);
         Search = new Search(ReadStrings, reportError);
         Search.Kinds = saved.SearchKinds;
+        Omnibar = new Omnibar(ReadStrings, reportError);
         MetadataFilters = new MetadataFilters(saved.FlagsFilters);
         Picker = new FrameworkPicker(ReadStrings, reportError);
         NuGetPicker = new NuGetPicker(ReadStrings, reportError);
@@ -150,6 +151,9 @@ public sealed class UiState : IUiState
 
     /// <summary>Set by <see cref="ScreenLayout.OpenSearch"/> until the search box takes focus.</summary>
     public bool IsSearchFocusPending;
+
+    /// <summary>The bar over each document: its path, or its search.</summary>
+    public Omnibar Omnibar { get; }
 
     /// <summary>The metadata grids' flags filters.</summary>
     public MetadataFilters MetadataFilters { get; }

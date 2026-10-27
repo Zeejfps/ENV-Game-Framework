@@ -12,7 +12,7 @@ using static ZGF.ILSpy.Theming;
 namespace ZGF.ILSpy;
 
 /// <summary>How the app is drawn, as settings cards: the interface's theme, icon theme, scale, language and title bar, then the
-/// code's font size and switches for line numbers, the current line's highlight and matching brackets,
+/// code's font size and switches for line numbers, the current line's highlight, matching brackets and the omnibar,
 /// then how the tree writes metadata tokens, whether it lists empty metadata tables, whether it nests namespaces and whether what it picks shows in a preview tab. Each option is a row of its card, named on the left, with its control at the right. Every change
 /// shows at once; an option changed from its default has a bold name.</summary>
 internal static class DisplayOptionsPanelView
@@ -319,6 +319,11 @@ internal static class DisplayOptionsPanelView
         var brackets = display.HighlightMatchingBrackets;
         if (SwitchRow(ui, t.DisplayOptionsMatchingBrackets, ref brackets, "matching-brackets", brackets != defaults.HighlightMatchingBrackets))
             SetDisplayOptions(ui.State, display with { HighlightMatchingBrackets = brackets });
+        ui.Separator();
+
+        var omnibar = display.ShowOmnibar;
+        if (SwitchRow(ui, t.DisplayOptionsOmnibar, ref omnibar, "omnibar", omnibar != defaults.ShowOmnibar))
+            SetDisplayOptions(ui.State, display with { ShowOmnibar = omnibar });
     }
 
     /// <summary>The bundled font and the installed monospaced ones, the chosen one shown by name even

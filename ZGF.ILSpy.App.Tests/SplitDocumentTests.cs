@@ -47,14 +47,14 @@ public sealed class SplitDocumentTests
         var (app, left, _) = SideBySide();
         var theme = app.Theme;
 
-        Assert.Equal(theme.Accent, Indicator(app, app.LastTextRect("Outline")));
-        Assert.Equal(theme.BorderStrong, Indicator(app, app.TextRect("Outline")));
+        Assert.Equal(theme.Accent, Indicator(app, app.LastTabTitleRect("Outline")));
+        Assert.Equal(theme.BorderStrong, Indicator(app, app.TabTitleRect("Outline")));
 
         app.Frames.Click(250f, 400f).Frame();
 
         Assert.Same(left, app.AppState.Tabs.Active);
-        Assert.Equal(theme.Accent, Indicator(app, app.TextRect("Outline")));
-        Assert.Equal(theme.BorderStrong, Indicator(app, app.LastTextRect("Outline")));
+        Assert.Equal(theme.Accent, Indicator(app, app.TabTitleRect("Outline")));
+        Assert.Equal(theme.BorderStrong, Indicator(app, app.LastTabTitleRect("Outline")));
     }
 
     [Fact]

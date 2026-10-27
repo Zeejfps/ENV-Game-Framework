@@ -9,11 +9,18 @@ using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
-/// <summary>An open document's tab content: its code, grid or picture, or a hint while it shows
-/// nothing.</summary>
+/// <summary>An open document's tab content: its omnibar over its code, grid or picture, or a hint while
+/// it shows nothing.</summary>
 internal static class DocumentsView
 {
     public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    {
+        using var document = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
+        OmnibarView.Render(ui, appState, tab);
+        Content(ui, appState, tab);
+    }
+
+    private static void Content(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
         var t = ui.State.Strings;
         switch (tab.Content)
