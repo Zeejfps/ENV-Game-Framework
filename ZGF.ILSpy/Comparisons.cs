@@ -29,6 +29,19 @@ public static class Comparisons
         return t.ComparisonTitle(assembly.Name);
     }
 
+    /// <summary>Shows the comparison <paramref name="saved"/> kept in the tab <paramref name="reopened"/> waits in,
+    /// and compares its assemblies again, now that the open list's assemblies are listed.</summary>
+    internal static void ReopenComparison(AppState appState, ReopenedTab reopened, ComparisonDocumentRecord saved)
+    {
+        if (!appState.Reopened.Finish(reopened))
+            return;
+        var comparison = new AssemblyComparison(saved.LeftPath, saved.RightPath);
+        comparison.TakeIn(saved.Scope);
+        var title = saved.Title ?? string.Empty;
+        reopened.Tab.ShowComparison(title, comparison);
+        Compare(appState, comparison);
+    }
+
     /// <summary>Compares the assemblies of <paramref name="comparison"/> the other way round, the right one on the left.</summary>
     public static void SwapComparedAssemblies(AppState appState, AssemblyComparison comparison)
     {

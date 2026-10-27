@@ -221,6 +221,7 @@ public sealed class AppSettings
     {
         NodeDocumentRecord node => IsWholeNode(node),
         DiagramDocumentRecord diagram => IsWholeDiagram(diagram),
+        ComparisonDocumentRecord comparison => IsWholeComparison(comparison),
         _ => false,
     };
 
@@ -238,6 +239,15 @@ public sealed class AppSettings
         if (diagram.Panel == null)
             return false;
         return diagram.Types != null;
+    }
+
+    private static bool IsWholeComparison(ComparisonDocumentRecord comparison)
+    {
+        if (comparison.Panel == null)
+            return false;
+        if (comparison.LeftPath == null)
+            return false;
+        return comparison.RightPath != null;
     }
 
     private static Dictionary<string, string>? CleanPicks(Dictionary<string, string>? picks)

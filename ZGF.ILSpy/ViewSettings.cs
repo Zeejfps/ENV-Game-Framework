@@ -25,5 +25,5 @@ public sealed record ViewSettings(
     WindowBounds? NuGetWindow,
     IReadOnlyList<TabPanel>? Tabs);
 
-/// <summary>The panel <see cref="Tab"/> is docked as, and how its diagram is viewed while it shows one.</summary>
-public sealed record TabPanel(DocumentTab Tab, string Panel, DiagramViewRecord? Diagram);
+/// <summary>The panel <see cref="Tab"/> is docked as, and how its diagram or comparison is viewed while it shows one.</summary>
+public sealed record TabPanel(DocumentTab Tab, string Panel, DiagramViewRecord? Diagram, ComparisonViewRecord? Comparison);

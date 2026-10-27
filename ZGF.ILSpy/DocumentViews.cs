@@ -17,18 +17,21 @@ public sealed class DocumentViews
     private int _changes;
     private int _droppedChanges;
 
-    /// <summary>Counts up whenever a view is made or dropped, or a view's diagram is viewed otherwise as
-    /// <see cref="DiagramViewState.Changes"/> counts; it never counts down. Allocates nothing.</summary>
+    /// <summary>Counts up whenever a view is made or dropped, or a view's diagram or comparison is viewed
+    /// otherwise as <see cref="DiagramViewState.Changes"/> and <see cref="ComparisonRows.Changes"/> count; it
+    /// never counts down. Allocates nothing.</summary>
     public int Revision
     {
         get
         {
             var revision = _changes + _droppedChanges;
             foreach (var view in _views.Values)
-                revision += view.Diagram.Changes;
+                revision += CountChanges(view);
             return revision;
         }
     }
+
+    private static int CountChanges(TabView view) => view.Diagram.Changes + view.Comparison.Changes;
 
     /// <summary>How <paramref name="tab"/>, an open tab, is shown.</summary>
     public TabView ViewOf(DocumentTab tab) => _views[tab];
@@ -82,13 +85,13 @@ public sealed class DocumentViews
             _skipped.Add(panel);
     }
 
-    /// <summary>The panel each tab with a view is docked as, and how its diagram is viewed, for the
-    /// settings to keep.</summary>
+    /// <summary>The panel each tab with a view is docked as, and how its diagram or comparison is viewed,
+    /// for the settings to keep.</summary>
     public List<TabPanel> SavePanels()
     {
         var panels = new List<TabPanel>();
         foreach (var (tab, view) in _views)
-            panels.Add(new TabPanel(tab, view.Panel, SaveDiagramView(tab, view)));
+            panels.Add(new TabPanel(tab, view.Panel, SaveDiagramView(tab, view), SaveComparisonView(tab, view)));
         return panels;
     }
 
@@ -97,6 +100,13 @@ public sealed class DocumentViews
         if (tab.Diagram == null)
             return null;
         return view.Diagram.Save();
+    }
+
+    private static ComparisonViewRecord? SaveComparisonView(DocumentTab tab, TabView view)
+    {
+        if (tab.Comparison == null)
+            return null;
+        return view.Comparison.Save();
     }
 
     /// <summary>Shows <paramref name="tab"/> in a new panel, unless it is shown already.</summary>
@@ -126,7 +136,7 @@ public sealed class DocumentViews
         if (!_views.Remove(tab, out var view))
             return;
         _releasedImages.Add(view.ImageId);
-        _droppedChanges += view.Diagram.Changes;
+        _droppedChanges += CountChanges(view);
         _changes++;
     }
 
@@ -189,6 +199,16 @@ public sealed class DocumentViews
         if (view == null)
             return;
         view.Diagram.Restore(saved);
+    }
+
+    /// <summary>Returns the view of the comparison <paramref name="tab"/>, an open tab, shows to how
+    /// <paramref name="saved"/> says it was.</summary>
+    public void RestoreComparisonView(DocumentTab tab, ComparisonViewRecord saved)
+    {
+        var view = _views.GetValueOrDefault(tab);
+        if (view == null)
+            return;
+        view.Comparison.Restore(saved);
     }
 
     /// <summary>Scrolls the code of <paramref name="tab"/>, an open tab, to <paramref name="line"/> and flashes it.</summary>

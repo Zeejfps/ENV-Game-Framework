@@ -26,6 +26,9 @@ public sealed class ComparisonRows : ITreeModel<ApiEntry>
 
     public bool OnlyDifferences { get; private set; } = true;
 
+    /// <summary>Counts up whenever the rows start or stop showing only what differs; it never counts down.</summary>
+    public int Changes { get; private set; }
+
     /// <summary>Draws the rows in <paramref name="theme"/>, <paramref name="icons"/> and <paramref name="strings"/>,
     /// building them again when any of them changed.</summary>
     public void SetStyle(UiTheme theme, NodeIconPalette iconColors, AppIcons icons, Strings strings)
@@ -64,7 +67,16 @@ public sealed class ComparisonRows : ITreeModel<ApiEntry>
         if (only == OnlyDifferences)
             return;
         OnlyDifferences = only;
+        Changes++;
         ListRoots();
+    }
+
+    public ComparisonViewRecord Save() => new(OnlyDifferences);
+
+    /// <summary>Shows the rows as <paramref name="saved"/> says they were shown.</summary>
+    public void Restore(ComparisonViewRecord saved)
+    {
+        ShowOnlyDifferences(saved.OnlyDifferences);
     }
 
     private void ListRoots()

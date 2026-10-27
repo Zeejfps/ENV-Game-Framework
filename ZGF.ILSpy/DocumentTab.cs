@@ -95,17 +95,19 @@ public sealed class DocumentTab
         _viewPosition = position;
     }
 
-    /// <summary>Counts up whenever the tab is pointed somewhere, or the diagram it shows gains or loses a
-    /// card; it never counts down.</summary>
-    public int Changes
+    /// <summary>Counts up whenever the tab is pointed somewhere, the diagram it shows gains or loses a
+    /// card, or the comparison it shows swaps its sides or takes in more or less; it never counts down.</summary>
+    public int Changes => _changes + CountContentChanges();
+
+    private int CountContentChanges()
     {
-        get
-        {
-            var diagram = Diagram;
-            if (diagram == null)
-                return _changes;
-            return _changes + diagram.Version;
-        }
+        var diagram = Diagram;
+        if (diagram != null)
+            return diagram.Version;
+        var comparison = Comparison;
+        if (comparison != null)
+            return comparison.Version;
+        return 0;
     }
 
     public bool IsBusy => _work != null;
@@ -256,6 +258,13 @@ public sealed class DocumentTab
     /// <summary>Shows the tab, titled <paramref name="title"/>, waiting for the diagram it showed when the
     /// documents were saved to be read once the assemblies are listed.</summary>
     public void WaitForDiagram(string? title)
+    {
+        Wait(title);
+    }
+
+    /// <summary>Shows the tab, titled <paramref name="title"/>, waiting for the assemblies the comparison it
+    /// showed when the documents were saved compared to be listed.</summary>
+    public void WaitForComparison(string? title)
     {
         Wait(title);
     }

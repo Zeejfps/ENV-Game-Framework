@@ -1,5 +1,6 @@
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.Comparisons;
 using static ZGF.ILSpy.Decompilation;
 using static ZGF.ILSpy.Diagrams;
 using static ZGF.ILSpy.Docking;
@@ -57,6 +58,9 @@ public static class SavedDocuments
                 break;
             case DiagramDocumentRecord diagram:
                 tab.WaitForDiagram(diagram.Title);
+                break;
+            case ComparisonDocumentRecord comparison:
+                tab.WaitForComparison(comparison.Title);
                 break;
         }
     }
@@ -136,13 +140,16 @@ public static class SavedDocuments
         return waiting with { Panel = panel.Panel };
     }
 
-    /// <summary>What the settings keep of a tab the screen shows: its diagram, or the node at its location;
-    /// null for a tab showing neither, such as a report or nothing.</summary>
+    /// <summary>What the settings keep of a tab the screen shows: its diagram, its comparison, or the node at
+    /// its location; null for a tab showing none of these, such as a report or nothing.</summary>
     private static DocumentRecord? SaveShown(DocumentTab tab, TabPanel panel)
     {
         var diagram = tab.Diagram;
         if (diagram != null)
             return SaveDiagram(tab, diagram, panel);
+        var comparison = tab.Comparison;
+        if (comparison != null)
+            return SaveComparison(tab, comparison, panel);
         var location = tab.Location;
         if (location == null)
             return null;
@@ -157,6 +164,12 @@ public static class SavedDocuments
             .ToList();
         var homes = diagram.HomeAssemblies.ToList();
         return new DiagramDocumentRecord(panel.Panel, tab.Title, types, homes, panel.Diagram);
+    }
+
+    private static ComparisonDocumentRecord SaveComparison(DocumentTab tab, AssemblyComparison comparison, TabPanel panel)
+    {
+        return new ComparisonDocumentRecord(panel.Panel, tab.Title, comparison.LeftPath, comparison.RightPath, comparison.Scope,
+            panel.Comparison);
     }
 
     private static string? FindSavedPanel(List<SavedTab> saved, DocumentTab? tab)
@@ -201,6 +214,9 @@ public static class SavedDocuments
                 break;
             case DiagramDocumentRecord diagram:
                 ReopenDiagram(appState, reopened, diagram);
+                break;
+            case ComparisonDocumentRecord comparison:
+                ReopenComparison(appState, reopened, comparison);
                 break;
         }
     }

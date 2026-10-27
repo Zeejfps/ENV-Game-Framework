@@ -26,6 +26,7 @@ public static class DocumentPanels
         var panel = ChooseReopenedPanel(uiState, reopened.Record.Panel);
         uiState.Documents.Add(reopened.Tab, panel);
         RestoreDiagramView(uiState, reopened);
+        RestoreComparisonView(uiState, reopened);
         return panel;
     }
 
@@ -45,6 +46,16 @@ public static class DocumentPanels
         if (view == null)
             return;
         uiState.Documents.RestoreDiagramView(reopened.Tab, view);
+    }
+
+    private static void RestoreComparisonView(UiState uiState, ReopenedTab reopened)
+    {
+        if (reopened.Record is not ComparisonDocumentRecord comparison)
+            return;
+        var view = comparison.View;
+        if (view == null)
+            return;
+        uiState.Documents.RestoreComparisonView(reopened.Tab, view);
     }
 
     /// <summary>Docks the panels of <paramref name="panels"/>, by the names they were saved as, that the

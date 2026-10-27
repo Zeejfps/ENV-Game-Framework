@@ -34,16 +34,21 @@ public sealed class AssemblyComparison
 
     public bool IsClosed => _open.IsCancellationRequested;
 
+    /// <summary>Counts up whenever the sides are swapped or the comparison takes in more or less; it never counts down.</summary>
+    public int Version { get; private set; }
+
     /// <summary>Puts the right assembly on the left and the left one on the right.</summary>
     public void Swap()
     {
         (LeftPath, RightPath) = (RightPath, LeftPath);
+        Version++;
     }
 
     /// <summary>Takes in what <paramref name="scope"/> says from now on.</summary>
     public void TakeIn(ApiScope scope)
     {
         Scope = scope;
+        Version++;
     }
 
     /// <summary>Starts a comparison, cancelling the one in flight, which is then dropped, until
