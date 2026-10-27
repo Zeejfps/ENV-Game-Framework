@@ -135,6 +135,19 @@ public sealed class UiPainter
         Line(corners.Right, tip, thickness, color);
     }
 
+    /// <summary>The outline of a diamond with a point at <paramref name="tip"/> and its far point
+    /// <paramref name="length"/> back toward <paramref name="tail"/>, <paramref name="width"/> wide at its
+    /// middle, as UML draws aggregation.</summary>
+    public void HollowDiamond(PointF tip, PointF tail, float length, float width, float thickness, uint color)
+    {
+        var middle = ArrowCorners.Of(tip, tail, length / 2, width);
+        var back = ArrowCorners.BackOf(tip, tail, length);
+        Line(tip, middle.Left, thickness, color);
+        Line(middle.Left, back, thickness, color);
+        Line(back, middle.Right, thickness, color);
+        Line(middle.Right, tip, thickness, color);
+    }
+
     /// <summary>A filled disc, or a ring when <paramref name="thickness"/> is positive.</summary>
     public void Circle(PointF center, float radius, uint color, float thickness = 0f) =>
         _canvas.DrawCircle(new DrawCircleInputs { Center = _origin.ToCanvas(center), Radius = radius, Color = color, Thickness = thickness, ZIndex = _z });
@@ -295,6 +308,14 @@ internal readonly record struct ArrowCorners(PointF Left, PointF Right)
         var left = new PointF(baseX + dy * half, baseY - dx * half);
         var right = new PointF(baseX - dy * half, baseY + dx * half);
         return new ArrowCorners(left, right);
+    }
+
+    /// <summary>The point <paramref name="length"/> back from <paramref name="tip"/> toward
+    /// <paramref name="tail"/>; below the tip when the tail is where the tip is.</summary>
+    public static PointF BackOf(PointF tip, PointF tail, float length)
+    {
+        var (dx, dy) = DirectionOf(tip, tail);
+        return new PointF(tip.X - dx * length, tip.Y - dy * length);
     }
 
     /// <summary>The unit vector from <paramref name="tail"/> to <paramref name="tip"/>.</summary>

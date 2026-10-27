@@ -17,11 +17,14 @@ internal readonly record struct DrawnLink(TypeLinkKind Kind, LinkRoute Route, st
 /// over them, in the diagram's coordinates, drawn from <see cref="Corner"/> at <see cref="Zoom"/>.</summary>
 internal sealed class DiagramFrame
 {
-    private const float LineWidth = 1.25f;
+    private const float IsALineWidth = 1.5f;
+    private const float HasALineWidth = 1.25f;
     private const float DashLength = 6f;
     private const float GapLength = 4f;
-    private const float HollowArrowWidth = 12f;
-    private const float OpenArrowWidth = 10f;
+    private const float HollowArrowWidth = 14f;
+    private const float OpenArrowWidth = 11f;
+    private const float DiamondWidth = 9f;
+    private const float LabelBorderWidth = 1f;
     private const float SelectedBorderWidth = 2f;
     private const float ChevronHalf = 3.5f;
     private const float OverlayInset = 0.75f;
@@ -55,42 +58,59 @@ internal sealed class DiagramFrame
         return new PointF(p.Rect.X + (point.X - Corner.X) * Zoom, p.Rect.Y + (point.Y - Corner.Y) * Zoom);
     }
 
-    private float Stroke => MathF.Max(1f, LineWidth * Zoom);
-
+    /// <summary>Links that say what a type is, derived from or implemented, in the color of types; links
+    /// that say what it has, the types its properties hold, in the color of data.</summary>
     private void PaintLink(UiPainter p, DrawnLink link)
     {
-        var color = Theme.TextMuted;
+        var isHeld = IsHeld(link.Kind);
+        var color = isHeld ? Palette.Data : Palette.Type;
+        var width = isHeld ? HasALineWidth : IsALineWidth;
+        var stroke = MathF.Max(1f, width * Zoom);
         var isDashed = link.Kind == TypeLinkKind.Implements;
         var dash = isDashed ? DashLength * Zoom : 0f;
         var gap = isDashed ? GapLength * Zoom : 0f;
         foreach (var piece in link.Route.Pieces)
-            PaintPiece(p, piece, color, dash, gap);
-        PaintArrowhead(p, link, color);
-        PaintLabel(p, link);
+            PaintPiece(p, piece, color, stroke, dash, gap);
+        PaintArrowhead(p, link, color, stroke);
+        PaintDiamond(p, link.Route, color, stroke);
+        PaintLabel(p, link, color);
     }
 
-    private void PaintPiece(UiPainter p, RoutePiece piece, uint color, float dash, float gap)
+    private void PaintPiece(UiPainter p, RoutePiece piece, uint color, float stroke, float dash, float gap)
     {
         var start = ToScreen(p, piece.Start);
         var control1 = ToScreen(p, piece.Control1);
         var control2 = ToScreen(p, piece.Control2);
         var end = ToScreen(p, piece.End);
-        p.CubicBezier(start, control1, control2, end, Stroke, color, dash, gap);
+        p.CubicBezier(start, control1, control2, end, stroke, color, dash, gap);
     }
 
     /// <summary>A hollow triangle at the end of a link to a type derived from or implemented, an open
     /// arrowhead at the end of one to a type held.</summary>
-    private void PaintArrowhead(UiPainter p, DrawnLink link, uint color)
+    private void PaintArrowhead(UiPainter p, DrawnLink link, uint color, float stroke)
     {
         var tip = ToScreen(p, link.Route.Tip);
         var tail = ToScreen(p, ArrowTailOf(link.Route));
         var length = MathF.Sqrt(tip.DistanceSqTo(tail));
         if (IsHeld(link.Kind))
         {
-            p.OpenArrowhead(tip, tail, length, OpenArrowWidth * Zoom, Stroke, color);
+            p.OpenArrowhead(tip, tail, length, OpenArrowWidth * Zoom, stroke, color);
             return;
         }
-        p.HollowArrowhead(tip, tail, length, HollowArrowWidth * Zoom, Stroke, color);
+        p.HollowArrowhead(tip, tail, length, HollowArrowWidth * Zoom, stroke, color);
+    }
+
+    /// <summary>A hollow diamond on the card of a type holding the other, where the route leaves room for one.</summary>
+    private void PaintDiamond(UiPainter p, LinkRoute route, uint color, float stroke)
+    {
+        if (route.SourceTip == null)
+            return;
+        if (route.Pieces.Count == 0)
+            return;
+        var tip = ToScreen(p, route.SourceTip.Value);
+        var back = ToScreen(p, route.Pieces[0].Start);
+        var length = MathF.Sqrt(tip.DistanceSqTo(back));
+        p.HollowDiamond(tip, back, length, DiamondWidth * Zoom, stroke, color);
     }
 
     /// <summary>Where the route's arrowhead starts: where its pieces end, or at its tip when it has none.</summary>
@@ -103,7 +123,8 @@ internal sealed class DiagramFrame
 
     private static bool IsHeld(TypeLinkKind kind) => kind is TypeLinkKind.HoldsOne or TypeLinkKind.HoldsMany;
 
-    private void PaintLabel(UiPainter p, DrawnLink link)
+    /// <summary>The label of a link as a tag bordered in its color.</summary>
+    private void PaintLabel(UiPainter p, DrawnLink link, uint color)
     {
         if (link.Label == null)
             return;
@@ -117,8 +138,8 @@ internal sealed class DiagramFrame
         var width = link.LabelWidth * Zoom;
         var height = link.LabelHeight * Zoom;
         var rect = new UiRect(middle.X - width / 2, middle.Y - height / 2, width, height);
-        p.FillRect(rect, Theme.EditorBackground, Theme.RadiusSmall * Zoom);
-        p.Text(rect, link.Label, Theme.TextMuted, size, align: Align.Center);
+        p.FillRect(rect, Theme.SurfaceRaised, Theme.RadiusSmall * Zoom, color, MathF.Max(1f, LabelBorderWidth * Zoom));
+        p.Text(rect, link.Label, Theme.Text, size, align: Align.Center);
     }
 
     private void PaintCard(UiPainter p, DrawnCard card)

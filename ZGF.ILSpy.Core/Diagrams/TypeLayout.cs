@@ -52,10 +52,10 @@ public readonly record struct RoutePiece(PointF Start, PointF Control1, PointF C
     }
 }
 
-/// <summary>Where a link runs: from its source card to the base of its arrowhead in
-/// <see cref="Pieces"/>, the arrowhead's tip on its target card, and the center of its label when it
-/// has one.</summary>
-public sealed record LinkRoute(TypeLink Link, IReadOnlyList<RoutePiece> Pieces, PointF Tip, PointF? LabelCenter);
+/// <summary>Where a link runs: from its source card, or the far point of its diamond, to the base of its
+/// arrowhead in <see cref="Pieces"/>, the arrowhead's tip on its target card, the center of its label when
+/// it has one, and the diamond's tip on its source card when it holds its target.</summary>
+public sealed record LinkRoute(TypeLink Link, IReadOnlyList<RoutePiece> Pieces, PointF Tip, PointF? LabelCenter, PointF? SourceTip = null);
 
 /// <summary>Where a diagram's cards go and its links run, in layers with the types derived from and held
 /// above those deriving from and holding them, as MSAGL's layered layout places them. Coordinates run
@@ -65,6 +65,9 @@ public sealed class TypeLayout
 {
     /// <summary>How long the arrowhead at the end of a route is.</summary>
     public const float ArrowLength = 12f;
+
+    /// <summary>How long the diamond at the start of a route to a type held is.</summary>
+    public const float DiamondLength = 16f;
 
     private const double LayerSeparation = 56;
     private const double NodeSeparation = 32;
@@ -137,10 +140,14 @@ public sealed class TypeLayout
             return null;
         var edge = new Edge(source, target) { UserData = link.Link };
         edge.EdgeGeometry.TargetArrowhead = new Arrowhead { Length = ArrowLength };
+        if (IsHeld(link.Link.Kind))
+            edge.EdgeGeometry.SourceArrowhead = new Arrowhead { Length = DiamondLength };
         if (HasLabel(link))
             edge.Label = new Label(link.LabelWidth, link.LabelHeight, edge);
         return edge;
     }
+
+    private static bool IsHeld(TypeLinkKind kind) => kind is TypeLinkKind.HoldsOne or TypeLinkKind.HoldsMany;
 
     private static bool HasLabel(MeasuredLink link)
     {
@@ -201,7 +208,15 @@ public sealed class TypeLayout
         var pieces = new List<RoutePiece>();
         AddPieces(pieces, curve, origin);
         var tip = Place(edge.EdgeGeometry.TargetArrowhead.TipPosition, origin);
-        return new LinkRoute((TypeLink)edge.UserData, pieces, tip, LabelCenterOf(edge, origin));
+        return new LinkRoute((TypeLink)edge.UserData, pieces, tip, LabelCenterOf(edge, origin), SourceTipOf(edge, origin));
+    }
+
+    private static PointF? SourceTipOf(Edge edge, MsaglPoint origin)
+    {
+        var diamond = edge.EdgeGeometry.SourceArrowhead;
+        if (diamond == null)
+            return null;
+        return Place(diamond.TipPosition, origin);
     }
 
     private static PointF? LabelCenterOf(Edge edge, MsaglPoint origin)

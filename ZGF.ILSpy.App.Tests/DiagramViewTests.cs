@@ -156,6 +156,21 @@ public sealed class DiagramViewTests
     }
 
     [Fact]
+    public void Links_saying_what_a_type_is_take_the_type_color_and_links_saying_what_it_has_the_data_color()
+    {
+        var app = PickFromTree("Car", "Show in diagram");
+        PickFromCardMenu(app, "Vehicle", "Add the types its properties hold");
+        var palette = app.Ui.NodeIconPalette;
+
+        var colors = app.Frames.Canvas.CubicBeziers
+            .Select(static b => b.Inputs.Color)
+            .ToHashSet();
+
+        Assert.Contains(palette.Type, colors);
+        Assert.Contains(palette.Data, colors);
+    }
+
+    [Fact]
     public void Going_back_from_code_opened_on_a_diagram_returns_to_the_diagram_and_forward_to_the_code()
     {
         var app = PickFromTree("Vehicle", "Show in diagram");

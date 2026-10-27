@@ -104,6 +104,22 @@ public sealed class TypeLayoutTests
     }
 
     [Fact]
+    public void A_route_to_a_type_held_leaves_room_for_a_diamond_on_the_card_holding_it()
+    {
+        var measures = Zoo4();
+
+        var layout = TypeLayout.Arrange(measures);
+
+        var held = layout.Routes.Single(r => r.Link == KeeperHoldsAnimals);
+        var keeper = Placed(layout, measures, Keeper);
+        Assert.NotNull(held.SourceTip);
+        Assert.True(IsOnBorder(held.SourceTip.Value, keeper.TopLeft, keeper.Card));
+        var length = MathF.Sqrt(held.SourceTip.Value.DistanceSqTo(held.Pieces[0].Start));
+        Assert.Equal(TypeLayout.DiamondLength, length, 0.5f);
+        Assert.Null(layout.Routes.Single(r => r.Link == LionIsAnimal).SourceTip);
+    }
+
+    [Fact]
     public void A_labelled_link_has_its_label_placed_and_others_have_none()
     {
         var layout = TypeLayout.Arrange(Zoo4());

@@ -74,6 +74,23 @@ public sealed class PainterCurveTests
     }
 
     [Fact]
+    public void A_hollow_diamond_is_four_lines_from_its_tip_back_toward_its_tail()
+    {
+        var frames = Painted(p => p.HollowDiamond(new PointF(100f, 50f), new PointF(0f, 50f), 16f, 8f, 1f, Ink));
+
+        var lines = frames.Canvas.Lines
+            .Select(static l => (l.Inputs.Start, l.Inputs.End))
+            .ToList();
+        Assert.Equal(
+        [
+            (OnCanvas(100f, 50f), OnCanvas(92f, 46f)),
+            (OnCanvas(92f, 46f), OnCanvas(84f, 50f)),
+            (OnCanvas(84f, 50f), OnCanvas(92f, 54f)),
+            (OnCanvas(92f, 54f), OnCanvas(100f, 50f)),
+        ], lines);
+    }
+
+    [Fact]
     public void An_open_arrowhead_is_two_strokes_meeting_at_its_tip()
     {
         var frames = Painted(p => p.OpenArrowhead(new PointF(50f, 100f), new PointF(50f, 0f), 10f, 8f, 1f, Ink));

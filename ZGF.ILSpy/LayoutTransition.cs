@@ -114,7 +114,9 @@ public sealed class LayoutTransition
         for (var i = 0; i < toPieces.Count; i++)
             pieces.Add(fromPieces[i].Blend(toPieces[i], t));
         var tip = RoutePiece.Lerp(from.Tip, to.Tip, t);
-        return to with { Pieces = pieces, Tip = tip, LabelCenter = BlendLabel(from, to, t) };
+        var labelCenter = BlendPoint(from.LabelCenter, to.LabelCenter, t);
+        var sourceTip = BlendPoint(from.SourceTip, to.SourceTip, t);
+        return to with { Pieces = pieces, Tip = tip, LabelCenter = labelCenter, SourceTip = sourceTip };
     }
 
     /// <summary><paramref name="pieces"/>, halved one after another, until there are at least
@@ -133,12 +135,14 @@ public sealed class LayoutTransition
         return split;
     }
 
-    private static PointF? BlendLabel(LinkRoute from, LinkRoute to, float t)
+    /// <summary>The point <paramref name="t"/> of the way between two a route may have: the one it moves
+    /// to when it had none, and none when it moves to none.</summary>
+    private static PointF? BlendPoint(PointF? from, PointF? to, float t)
     {
-        if (from.LabelCenter == null)
-            return to.LabelCenter;
-        if (to.LabelCenter == null)
+        if (from == null)
+            return to;
+        if (to == null)
             return null;
-        return RoutePiece.Lerp(from.LabelCenter.Value, to.LabelCenter.Value, t);
+        return RoutePiece.Lerp(from.Value, to.Value, t);
     }
 }
