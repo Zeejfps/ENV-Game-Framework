@@ -19,6 +19,7 @@ internal static class ExportReportText
         ExportKind.Solution => t.ExportKindSolution,
         ExportKind.Pdb => t.ExportKindPdb,
         ExportKind.Pdbs => t.ExportKindPdbs,
+        ExportKind.Diagram => t.ExportKindDiagram,
         _ => t.ExportKindFiles,
     };
 

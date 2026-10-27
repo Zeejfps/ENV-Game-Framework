@@ -17,6 +17,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <EmbeddedResource Include="Diagrams\html\template.html;Diagrams\html\script.js;Diagrams\html\styles.css;Diagrams\html\ILSpy.ico">
+        <LogicalName>diagram/%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\JpegSharp\JpegSharp.csproj" />
       <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
       <ProjectReference Include="..\ZGF.Svg\ZGF.Svg.csproj" />

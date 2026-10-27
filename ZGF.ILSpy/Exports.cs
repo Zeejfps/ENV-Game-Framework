@@ -1,18 +1,20 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Diagrams;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
 
-/// <summary>Writing code, projects, solutions, portable PDBs and the files of packages to files in the
+/// <summary>Writing code, projects, solutions, portable PDBs, class diagrams and the files of packages to files in the
 /// background, one export at a time in the order they were asked for, which <see cref="AppState.Export"/>
 /// queues. Each that runs ends in an <see cref="ExportReport"/> in <see cref="AppState.FinishedExports"/>.
 /// Resources and single files of packages are written straight away.</summary>
 public static class Exports
 {
     private const string ProjectExtension = ".csproj";
+    private const string DiagramFolderSuffix = " diagram";
 
     /// <summary>Whether <paramref name="node"/> can be saved: it shows code, or it is a resource,
     /// whose bytes are saved.</summary>
@@ -216,6 +218,25 @@ public static class Exports
     {
         AssemblyExport.GeneratePdb(assembly, options, path, start.Progress, start.Token);
         return true;
+    }
+
+    /// <summary>Writes the HTML class diagrammer of <paramref name="assembly"/> into a folder of its
+    /// own in <paramref name="folder"/>, named after it, and opens it once written.</summary>
+    public static void CreateDiagram(AppState appState, LoadedAssembly assembly, string folder)
+    {
+        var diagramFolder = Path.Combine(folder, assembly.Name + DiagramFolderSuffix);
+        var job = new ExportJob(assembly.Name, ExportKind.Diagram, diagramFolder);
+        var failure = Strings.For(appState.Locale).ErrorCreateDiagram(assembly.Name);
+        RunExport(appState, job, failure, s => ClassDiagrams.Write(assembly, diagramFolder, s.Progress, s.Token),
+            (r, page) => OpenDiagram(appState, r, page));
+    }
+
+    /// <summary><paramref name="report"/> listing the diagrammer's <paramref name="page"/>, which is
+    /// opened.</summary>
+    private static ExportReport OpenDiagram(AppState appState, ExportReport report, string page)
+    {
+        appState.EnqueueCommand(new ViewCommand.OpenFile(page));
+        return report.Listing(page);
     }
 
     /// <summary>Writes a portable PDB of each open assembly into <paramref name="folder"/>, named

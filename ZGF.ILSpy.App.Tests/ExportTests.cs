@@ -91,6 +91,28 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
+    public void The_tree_menu_creates_a_diagram_in_a_folder_named_after_the_assembly_and_opens_it()
+    {
+        var app = new AppDriver();
+        OpenAssembly(app.AppState, SampleAppPath);
+        app.RunUntil(() => app.AppState.IsListed(SampleAppPath));
+        app.Settle(2);
+        app.Frames.FilePicker.Answer = _temp.Path;
+
+        app.PickFromTreeMenu(SampleOf(app.Driver).Name, "Create diagram…");
+        app.RunUntil(() => app.Frames.OpenedFiles.Count == 1);
+
+        var page = Path.Combine(_temp.Path, "SampleApp diagram", "index.html");
+        var report = Assert.Single(app.AppState.FinishedExports);
+        Assert.Equal(["Choose the folder for the diagram"], app.Frames.FilePicker.Titles);
+        Assert.Equal(ExportKind.Diagram, report.Job.Kind);
+        Assert.Equal([page], report.Written);
+        Assert.Equal([page], app.Frames.OpenedFiles);
+        Assert.Contains("class Counter", File.ReadAllText(page));
+        Assert.Empty(app.AppState.Errors.Entries);
+    }
+
+    [Fact]
     public void Ctrl_S_saves_the_active_tab_where_the_user_picks()
     {
         var app = AppDriver.Opened();

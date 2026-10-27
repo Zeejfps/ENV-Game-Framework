@@ -306,6 +306,9 @@ public sealed class LoadedAssembly
     /// names a PDB, which the generated one must match.</summary>
     public bool CanGeneratePdb => _canGeneratePdb.Value;
 
+    /// <summary>Whether a class diagram can be drawn of this assembly: it loaded, with types to read.</summary>
+    public bool CanCreateDiagram => _file != null;
+
     internal AssemblyList List { get; }
     internal MetadataFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' is no assembly that loaded.");
 

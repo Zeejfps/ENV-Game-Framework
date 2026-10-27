@@ -48,6 +48,9 @@ public sealed partial class IlSpyApp
             case ViewCommand.OpenWebPage open:
                 uiState.WebPagesToOpen.Enqueue(open.Url);
                 break;
+            case ViewCommand.OpenFile open:
+                uiState.FilesToOpen.Enqueue(open.Path);
+                break;
         }
     }
 

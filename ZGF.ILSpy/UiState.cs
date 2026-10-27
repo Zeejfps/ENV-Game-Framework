@@ -104,6 +104,10 @@ public sealed class UiState : IUiState
     /// frame is drawn.</summary>
     public Queue<string> WebPagesToOpen { get; } = new();
 
+    /// <summary>The files the features asked to open, which the app hands to the OS once the frame is
+    /// drawn.</summary>
+    public Queue<string> FilesToOpen { get; } = new();
+
     /// <summary>The analyzer's tree as its view shows it.</summary>
     public AnalyzerRows Analyzer { get; }
 

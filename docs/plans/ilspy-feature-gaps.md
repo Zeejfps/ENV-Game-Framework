@@ -14,6 +14,5 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Open from the GAC** (Windows).
 - **Open from a running process.**
 - **Compare assemblies** (API diff).
-- **Create Diagram.**
 - **Check for updates.**
 - **Plugins** (MEF upstream).

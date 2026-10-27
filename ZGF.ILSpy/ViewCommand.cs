@@ -38,4 +38,7 @@ public abstract record ViewCommand
 
     /// <summary>Open the web page at <see cref="Url"/> in the browser.</summary>
     public sealed record OpenWebPage(string Url) : ViewCommand;
+
+    /// <summary>Open the file at <see cref="Path"/> in the app the OS opens its kind of file with.</summary>
+    public sealed record OpenFile(string Path) : ViewCommand;
 }

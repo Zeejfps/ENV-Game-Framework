@@ -72,7 +72,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
     /// <summary>Does what comes after drawing a frame: keeps what the screen changed, runs what it asked of
     /// the app state, asks for another frame when there is more to show, saves the changed settings, has
     /// the window draw at the chosen scale, code in the chosen font and icons in their fonts from the next
-    /// frame, and opens the web pages asked for.</summary>
+    /// frame, and opens the web pages and files asked for.</summary>
     private static void FinishFrame(Ui<UiState> ui, AppState appState, CodeFontFaces codeFonts)
     {
         KeepScreenChanges(ui.State, appState);
@@ -83,6 +83,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         DrawCodeInChosenFont(ui, codeFonts);
         FollowIconTheme(ui);
         OpenAskedWebPages(ui);
+        OpenAskedFiles(ui);
     }
 
     private static void OpenAskedWebPages(Ui<UiState> ui)
@@ -90,6 +91,13 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         var pages = ui.State.WebPagesToOpen;
         while (pages.TryDequeue(out var url))
             ui.OpenUrl(url);
+    }
+
+    private static void OpenAskedFiles(Ui<UiState> ui)
+    {
+        var files = ui.State.FilesToOpen;
+        while (files.TryDequeue(out var path))
+            ui.OpenFile(path);
     }
 
     /// <summary>When the icons changed, lets go of the fonts they no longer draw in, registers those they

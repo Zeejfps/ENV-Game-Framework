@@ -12,6 +12,7 @@ public enum ExportKind
     Pdb,
     Pdbs,
     Files,
+    Diagram,
 }
 
 /// <summary>An export as the user asked for it: what it is named after, what it writes, and the

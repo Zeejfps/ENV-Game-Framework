@@ -214,6 +214,8 @@ internal static class TreePaneView
             ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             PdbItems(ui, appState, node.Assembly);
+        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeCreateDiagram, enabled: node.Assembly.CanCreateDiagram, id: "create-diagram"))
+            SaveDialogs.PickDiagramFolder(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             TargetFrameworkMenu(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))

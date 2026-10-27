@@ -7,7 +7,7 @@ using static ZGF.ILSpy.Exports;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The dialogs that ask where code, resources, PDBs and the files of packages are written.</summary>
+/// <summary>The dialogs that ask where code, resources, PDBs, class diagrams and the files of packages are written.</summary>
 internal static class SaveDialogs
 {
     /// <summary>Asks where to save the code of the active tab's node, when it can be saved.</summary>
@@ -47,6 +47,13 @@ internal static class SaveDialogs
         var t = ui.State.Strings;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"])];
         ui.PickSaveFile(t.ExportPdbTitle, null, assembly.PdbFileName, filters, path => GeneratePdb(appState, assembly, path));
+    }
+
+    /// <summary>Asks for the folder the class diagram of <paramref name="assembly"/> is written into.</summary>
+    public static void PickDiagramFolder(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    {
+        var t = ui.State.Strings;
+        ui.PickFolder(t.ExportDiagramTitle, null, folder => CreateDiagram(appState, assembly, folder));
     }
 
     /// <summary>Asks for the folder the portable PDBs of every open assembly are written into.</summary>
