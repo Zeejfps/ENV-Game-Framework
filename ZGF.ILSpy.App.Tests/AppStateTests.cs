@@ -91,6 +91,23 @@ public sealed class AppStateTests
     }
 
     [Fact]
+    public void A_row_revealed_before_a_new_view_of_a_tab_is_drawn_stays_to_be_revealed()
+    {
+        var d = AppStateDriver.Opened();
+        d.Show(d.Node("Metadata", "Tables").Table("TypeDef"));
+        var grid = d.AppState.Tabs.Active!;
+        var documents = d.Ui.Documents;
+        var panel = documents.PanelOf(grid);
+        documents.Remove(grid);
+
+        documents.Add(grid, panel);
+        documents.RevealRow(grid, 2);
+        d.NextFrame();
+
+        Assert.Equal(2, documents.ViewOf(grid).Grid.PendingReveal);
+    }
+
+    [Fact]
     public void Opening_happens_in_the_background_and_shows_the_assembly()
     {
         var d = new AppStateDriver();

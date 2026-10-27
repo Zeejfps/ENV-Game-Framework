@@ -496,6 +496,37 @@ public sealed class AssemblyList
         }
     }
 
+    /// <summary>The node <paramref name="path"/> leads to in an assembly the list holds now, or null when
+    /// it holds none at that path or the node is no longer there. Opens and lists nothing, so a lookup
+    /// that outlives a switch to another list leaves the new list as it is.</summary>
+    public BrowseNode? FindListedNode(NodePath path)
+    {
+        var assembly = FindListedLoaded(path.FilePath);
+        if (assembly == null)
+            return null;
+        try
+        {
+            return path.Resolve(assembly.Root);
+        }
+        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        {
+            return null;
+        }
+    }
+
+    private LoadedAssembly? FindListedLoaded(string path)
+    {
+        var listed = _listed;
+        foreach (var assembly in listed)
+        {
+            if (assembly.HasLoadError)
+                continue;
+            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                return assembly;
+        }
+        return null;
+    }
+
     /// <summary>
     /// Searches the open assemblies for what <paramref name="query"/> asks, on a background thread.
     /// Results arrive in batches as they are found.

@@ -235,7 +235,7 @@ public static class SavedDocuments
     {
         if (place == null)
             return null;
-        return list.FindNode(place);
+        return list.FindListedNode(place);
     }
 
     private static BrowseNode? FoundAt(List<BrowseNode?>? found, int index)

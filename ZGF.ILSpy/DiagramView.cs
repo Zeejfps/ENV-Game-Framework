@@ -53,11 +53,11 @@ internal static class DiagramView
             if (ui.Button(t.DiagramFit, id: "fit"))
                 FitToView(view, area);
             ui.Separator(ui.Theme.IconSize);
-            HiddenMembersFilter(ui, view);
+            ShowHiddenMembersCheckbox(ui, view);
         }
     }
 
-    private static void HiddenMembersFilter(Ui<UiState> ui, DiagramViewState view)
+    private static void ShowHiddenMembersCheckbox(Ui<UiState> ui, DiagramViewState view)
     {
         var shows = view.ShowsHiddenMembers;
         if (ui.Checkbox(ui.State.Strings.DiagramShowHiddenMembers, ref shows, id: "show-hidden-members"))

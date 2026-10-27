@@ -247,6 +247,8 @@ public static class Assemblies
     /// <summary>Orders the list by name, and assemblies of one name by version.</summary>
     public static void SortAssemblies(AppState appState) => appState.Assemblies.Sort();
 
+    /// <summary>Closes every assembly of the open list, stopping its reload; tabs still waiting for it to
+    /// reopen their places show what is left of them.</summary>
     public static void CloseAllAssemblies(AppState appState)
     {
         appState.Intent.Begin();
@@ -255,6 +257,7 @@ public static class Assemblies
         ClearAssemblies(appState);
         appState.Assemblies.Pdbs.ForgetAll();
         appState.Assemblies.TargetFrameworks.ForgetAll();
+        ShowReopenedDocuments(appState);
     }
 
     private static void ClearAssemblies(AppState appState)
@@ -346,6 +349,7 @@ public static class Assemblies
         var reloaded = outcome.Value;
         if (reloaded == null)
         {
+            ShowReopenedDocuments(appState);
             appState.ReportError(Strings.For(appState.Locale).ErrorReloadAssemblies, outcome.Error!.ToString());
             return;
         }
@@ -402,12 +406,12 @@ public static class Assemblies
     {
         if (!appState.Reload.Finish(ticket))
             return;
+        ShowReopenedDocuments(appState);
         if (outcome.Error != null)
         {
             appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error.ToString());
             return;
         }
-        ShowReopenedDocuments(appState);
         SaveSettings(appState);
     }
 

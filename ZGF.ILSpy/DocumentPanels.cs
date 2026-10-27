@@ -65,11 +65,17 @@ public static class DocumentPanels
     private static DockLayout ArrangeUndocked(List<string> undocked, Dictionary<string, string> panels, DockLayout? layout)
     {
         if (layout == null)
-            return new DockLayout { Root = DockLayout.Group(undocked.ToArray()) };
+            return ArrangeInOneGroup(undocked);
         var arrangement = layout.CopyArrangement();
         DockPanels.Rename(arrangement, panels);
         arrangement.Retain(undocked.Contains);
         return arrangement;
+    }
+
+    private static DockLayout ArrangeInOneGroup(List<string> panels)
+    {
+        var group = DockLayout.Group(panels.ToArray());
+        return new DockLayout { Root = group };
     }
 
     /// <summary>Brings the active tab's panel to the front and focuses it, when the layout has it.</summary>

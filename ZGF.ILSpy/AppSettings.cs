@@ -191,7 +191,8 @@ public sealed class AppSettings
     }
 
     /// <summary><paramref name="lists"/> without what a hand-edited file can leave in them: missing
-    /// lists, names or assemblies, blank paths, picked PDBs among them, and documents missing what they show.</summary>
+    /// lists, names or assemblies, blank paths, picked PDBs among them, documents missing what they show,
+    /// docked as a view, or docked as a panel another document was.</summary>
     private static List<AssemblyListRecord> CleanAssemblyLists(List<AssemblyListRecord>? lists)
     {
         if (lists == null)
@@ -210,6 +211,8 @@ public sealed class AppSettings
             return null;
         var tabs = documents.Tabs
             .Where(IsWhole)
+            .Where(static t => !DockPanels.IsView(t.Panel))
+            .DistinctBy(static t => t.Panel)
             .ToList();
         return documents with { Tabs = tabs };
     }

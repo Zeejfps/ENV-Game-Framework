@@ -185,6 +185,25 @@ public sealed class SavedDocumentsTests : IDisposable
     }
 
     [Fact]
+    public void Clearing_the_list_before_it_reopens_settles_its_tabs_rather_than_leaving_them_reloading()
+    {
+        var place = new List<NodePathSegment>
+        {
+            new(NodeKind.Namespace, AppStateDriver.FixturesNamespace),
+            new(NodeKind.Class, "Greeter"),
+        };
+        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", AppStateDriver.FixturePath, place, DecompilationLanguage.CSharp, null);
+        var d = new AppStateDriver(SettingsWith(new DocumentsRecord([greeter], MissingPanel, null, null)));
+
+        RestoreActiveAssemblyList(d.AppState);
+        CloseAllAssemblies(d.AppState);
+        d.Settle();
+
+        var tab = Assert.Single(d.AppState.Tabs);
+        Assert.IsType<TabContent.Gone>(tab.Content);
+    }
+
+    [Fact]
     public void A_diagram_comes_back_without_the_types_no_longer_found_and_is_the_one_shown_types_go_to()
     {
         var vehicle = FixtureType("Vehicle");
@@ -264,6 +283,32 @@ public sealed class SavedDocumentsTests : IDisposable
         DockSplit split => ParentOf(split.First, target) ?? ParentOf(split.Second, target),
         _ => null,
     };
+
+    [Fact]
+    public void A_hand_edited_list_keeps_one_document_per_panel_and_none_docked_as_a_view()
+    {
+        var settings = _temp.Settings();
+        List<DocumentRecord> tabs = [HandTab("document-1", "First"), HandTab("document-1", "Twin"), HandTab(DockPanels.Assemblies, "Tree")];
+        settings.AssemblyLists.Add(new AssemblyListRecord("Hand", [], Documents: new DocumentsRecord(tabs, null, null, null)));
+        settings.Save();
+
+        var kept = _temp.Settings().AssemblyLists.Single(static l => l.Name == "Hand").Documents!.Tabs;
+
+        Assert.Equal(["First"], kept.Select(static t => t.Title));
+    }
+
+    private static NodeDocumentRecord HandTab(string panel, string title) =>
+        new(panel, title, AppStateDriver.FixturePath, [], DecompilationLanguage.CSharp, null);
+
+    [Fact]
+    public void A_new_panel_skips_every_panel_saved_documents_were_docked_as_however_numbered()
+    {
+        var documents = new DocumentViews();
+
+        documents.SkipPanels(["document-1", "document-2", "document-2147483647"]);
+
+        Assert.Equal("document-3", documents.NewPanel());
+    }
 
     [Fact]
     public void Tabs_showing_nothing_are_not_kept_and_the_next_run_starts_with_one_empty_tab_as_ever()

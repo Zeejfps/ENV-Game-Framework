@@ -12,6 +12,7 @@ public sealed class DocumentViews
     private readonly Dictionary<DocumentTab, TabView> _views = new();
     private readonly List<DocumentTab> _closed = new();
     private readonly List<string> _releasedImages = new();
+    private readonly HashSet<string> _skipped = new();
     private int _panels;
     private int _changes;
     private int _droppedChanges;
@@ -61,6 +62,14 @@ public sealed class DocumentViews
     /// <summary>A document panel no tab was shown in before, nor any of those <see cref="SkipPanels"/> was given.</summary>
     public string NewPanel()
     {
+        var panel = NextPanel();
+        while (_skipped.Contains(panel))
+            panel = NextPanel();
+        return panel;
+    }
+
+    private string NextPanel()
+    {
         _panels++;
         return $"{PanelPrefix}{_panels}";
     }
@@ -70,17 +79,7 @@ public sealed class DocumentViews
     public void SkipPanels(IEnumerable<string> panels)
     {
         foreach (var panel in panels)
-            SkipPanel(panel);
-    }
-
-    private void SkipPanel(string panel)
-    {
-        if (!panel.StartsWith(PanelPrefix, StringComparison.Ordinal))
-            return;
-        var number = panel.AsSpan(PanelPrefix.Length);
-        if (!int.TryParse(number, out var taken))
-            return;
-        _panels = Math.Max(_panels, taken);
+            _skipped.Add(panel);
     }
 
     /// <summary>The panel each tab with a view is docked as, and how its diagram is viewed, for the
@@ -108,12 +107,16 @@ public sealed class DocumentViews
         Add(tab, NewPanel());
     }
 
-    /// <summary>Shows <paramref name="tab"/> in <paramref name="panel"/>, unless it is shown already.</summary>
+    /// <summary>Shows <paramref name="tab"/> in <paramref name="panel"/>, unless it is shown already, its view
+    /// following what the tab shows from the start, so what is asked of the view before it is next drawn,
+    /// such as a row to reveal, is not undone when it first takes the tab's content.</summary>
     public void Add(DocumentTab tab, string panel)
     {
         if (Contains(tab))
             return;
-        _views.Add(tab, new TabView(panel));
+        var view = new TabView(panel);
+        view.Follow(tab);
+        _views.Add(tab, view);
         _changes++;
     }
 

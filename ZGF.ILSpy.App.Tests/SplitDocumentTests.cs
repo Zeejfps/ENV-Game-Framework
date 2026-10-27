@@ -21,6 +21,39 @@ public sealed class SplitDocumentTests
     }
 
     [Fact]
+    public void Documents_arranged_in_nested_splits_dock_as_the_arrangement_splits_them()
+    {
+        var layout = new MainLayout(new DockLayout { Root = DockLayout.Group(DockPanels.Assemblies) });
+        var arrangement = new DockLayout
+        {
+            Root = DockLayout.Split(Direction.Horizontal, 0.6f,
+                DockLayout.Split(Direction.Vertical, 0.5f, DockLayout.Group("document-1"), DockLayout.Group("document-2")),
+                DockLayout.Group("document-3")),
+        };
+
+        layout.DockArranged(["document-1", "document-2", "document-3"], arrangement);
+
+        var beside = FindSplitHolding(layout.Dock.Root, "document-3");
+        Assert.NotNull(beside);
+        Assert.Equal(Direction.Horizontal, beside.Direction);
+        Assert.Equal(["document-1", "document-2"], DockLayout.PanelsIn(beside.First));
+        Assert.Equal(["document-3"], DockLayout.PanelsIn(beside.Second));
+        Assert.Equal(0.6f, beside.Ratio, 0.01f);
+    }
+
+    /// <summary>The split one of whose sides is the group holding only <paramref name="panel"/>.</summary>
+    private static DockSplit? FindSplitHolding(DockNode node, string panel)
+    {
+        if (node is not DockSplit split)
+            return null;
+        if (IsGroupOf(split.First, panel) || IsGroupOf(split.Second, panel))
+            return split;
+        return FindSplitHolding(split.First, panel) ?? FindSplitHolding(split.Second, panel);
+    }
+
+    private static bool IsGroupOf(DockNode node, string panel) => node is DockGroup group && group.Panels.SequenceEqual([panel]);
+
+    [Fact]
     public void The_first_tab_of_a_run_takes_a_panel_no_saved_document_was_docked_as()
     {
         var saved = new DockLayout

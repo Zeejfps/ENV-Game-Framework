@@ -5,6 +5,20 @@ namespace ZGF.ILSpy.Tests;
 public sealed class NodePathTests
 {
     [Fact]
+    public void A_listed_lookup_finds_a_place_only_in_an_assembly_the_list_holds_and_lists_none()
+    {
+        var (_, assembly) = Trees.OpenTestAssembly();
+        var add = assembly.Calculator().Child("Add(T) : void");
+        var empty = new AssemblyList();
+
+        Assert.Null(empty.FindListedNode(add.Path));
+        Assert.Empty(empty.Listed);
+
+        var (listing, _) = Trees.OpenTestAssembly();
+        Assert.Equal(add.Text, listing.FindListedNode(add.Path)!.Text);
+    }
+
+    [Fact]
     public void A_path_finds_the_same_place_in_a_reopened_assembly()
     {
         var (_, assembly) = Trees.OpenTestAssembly();

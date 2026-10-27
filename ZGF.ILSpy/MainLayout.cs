@@ -166,20 +166,55 @@ public sealed class MainLayout
             DockIfUndocked(panel);
     }
 
-    /// <summary>Docks the documents under <paramref name="node"/> as it arranges them, its first group into or
+    /// <summary>Docks the documents under <paramref name="node"/> as it arranges them: its lead group into or
     /// beside <paramref name="target"/> as <paramref name="edge"/> says, or where documents start out when
-    /// there is no target. Returns that first group, or null when it holds no document.</summary>
-    private DockGroup? DockArranged(DockNode node, DockGroup? target, DockEdge edge, float share)
+    /// there is no target, then the others in the place that lead group takes.</summary>
+    private void DockArranged(DockNode node, DockGroup? target, DockEdge edge, float share)
+    {
+        var lead = FindLeadGroup(node);
+        if (lead == null)
+            return;
+        var docked = DockGroupArranged(lead, target, edge, share);
+        if (docked == null)
+            return;
+        DockRestArranged(node, docked);
+    }
+
+    /// <summary>Docks the groups under <paramref name="node"/> but its lead, docked as <paramref name="lead"/>,
+    /// splitting the place it takes as <paramref name="node"/> splits it: each split's second side goes beside
+    /// its first while that first side still fills the place, so each side then splits only its own part.</summary>
+    private void DockRestArranged(DockNode node, DockGroup lead)
+    {
+        if (node is not DockSplit split)
+            return;
+        if (FindLeadGroup(split.First) == null)
+        {
+            DockRestArranged(split.Second, lead);
+            return;
+        }
+        var second = FindLeadGroup(split.Second);
+        if (second == null)
+        {
+            DockRestArranged(split.First, lead);
+            return;
+        }
+        var secondDocked = DockGroupArranged(second, lead, EdgeAfter(split.Direction), 1f - split.Ratio);
+        DockRestArranged(split.First, lead);
+        if (secondDocked != null)
+            DockRestArranged(split.Second, secondDocked);
+    }
+
+    /// <summary>The first group under <paramref name="node"/> that holds a document, or null when none does.</summary>
+    private static DockGroup? FindLeadGroup(DockNode node)
     {
         if (node is DockGroup group)
-            return DockGroupArranged(group, target, edge, share);
+            return group.Panels.Count > 0 ? group : null;
         if (node is not DockSplit split)
             return null;
-        var first = DockArranged(split.First, target, edge, share);
-        if (first == null)
-            return DockArranged(split.Second, target, edge, share);
-        DockArranged(split.Second, first, EdgeAfter(split.Direction), 1f - split.Ratio);
-        return first;
+        var first = FindLeadGroup(split.First);
+        if (first != null)
+            return first;
+        return FindLeadGroup(split.Second);
     }
 
     private DockGroup? DockGroupArranged(DockGroup group, DockGroup? target, DockEdge edge, float share)
