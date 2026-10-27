@@ -299,6 +299,7 @@
   "document.reloading": "再読み込み中…",
   "document.gone": "再読み込み後、{location} が見つかりません。",
   "code.copy": "コピー",
+  "code.copy_plain_text": "プレーンテキストとしてコピー",
   "code.select_all": "すべて選択",
   "code.toggle_fold": "折りたたみの切り替え",
   "code.collapse_all": "すべて折りたたむ",

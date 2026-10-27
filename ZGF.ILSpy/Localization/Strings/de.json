@@ -299,6 +299,7 @@
   "document.reloading": "Wird neu geladen…",
   "document.gone": "{location} ist nach dem Neuladen nicht mehr vorhanden.",
   "code.copy": "Kopieren",
+  "code.copy_plain_text": "Als Nur-Text kopieren",
   "code.select_all": "Alles auswählen",
   "code.toggle_fold": "Faltung umschalten",
   "code.collapse_all": "Alle zuklappen",

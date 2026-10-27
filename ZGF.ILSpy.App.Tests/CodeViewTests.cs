@@ -137,7 +137,51 @@ public sealed class CodeViewTests
         view.Key(KeyboardKey.C, KeyModifiers.Control);
 
         Assert.Equal("beta\ngamma delta\neps", view.Frames.Clipboard.Text);
+        Assert.EndsWith("<div>beta</div><div>gamma delta</div><div>eps</div></div>", view.Frames.Clipboard.Html);
     }
+
+    [Fact]
+    public void Ctrl_c_copies_html_in_the_code_views_colors_and_font()
+    {
+        var (view, _, _) = GreeterAt("public class Greeter");
+        var palette = BuiltInThemes.Dark.Code;
+
+        view.Key(KeyboardKey.Tab).Frame();
+        view.Key(KeyboardKey.A, KeyModifiers.Control);
+        view.Key(KeyboardKey.C, KeyModifiers.Control);
+
+        var html = view.Frames.Clipboard.Html;
+        Assert.NotNull(html);
+        Assert.StartsWith($"<div style=\"color: {Hex(palette.Plain)}; background-color: {Hex(UiTheme.Dark.EditorBackground)};", html);
+        Assert.Contains($"font-family: '{CodeFontChoices.BundledName}', monospace", html);
+        Assert.Contains($"<span style=\"color: {Hex(palette.Keyword)};\">public</span> <span style=\"color: {Hex(palette.Keyword)};\">class</span>", html);
+        Assert.Equal(view.Document.Lines.Length, html.Split("<div>").Length - 1);
+        Assert.Equal(view.Document.GetText(), view.Frames.Clipboard.Text);
+    }
+
+    [Fact]
+    public void Ctrl_shift_c_and_the_context_menu_copy_plain_text_without_html()
+    {
+        var view = ThreeLines();
+        view.MoveTo(0, 6).Press().Frame();
+        view.MoveTo(2, 3).Release().Frame();
+
+        view.Key(KeyboardKey.C, KeyModifiers.Control | KeyModifiers.Shift);
+        Assert.Equal("beta\ngamma delta\neps", view.Frames.Clipboard.Text);
+        Assert.Null(view.Frames.Clipboard.Html);
+
+        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        Assert.NotNull(view.Frames.Clipboard.Html);
+        view.Click(1, 2, PointerButton.Right);
+        view.Run();
+        var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Copy as plain text").Inputs.Position;
+        view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
+
+        Assert.Equal("beta\ngamma delta\neps", view.Frames.Clipboard.Text);
+        Assert.Null(view.Frames.Clipboard.Html);
+    }
+
+    private static string Hex(uint color) => "#" + (color & 0xFFFFFF).ToString("x6");
 
     [Fact]
     public void Shift_click_extends_and_ctrl_a_selects_everything()

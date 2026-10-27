@@ -299,6 +299,7 @@
   "document.reloading": "Rechargement…",
   "document.gone": "{location} n’existe plus après le rechargement.",
   "code.copy": "Copier",
+  "code.copy_plain_text": "Copier en texte brut",
   "code.select_all": "Tout sélectionner",
   "code.toggle_fold": "Basculer le pliage",
   "code.collapse_all": "Tout réduire",

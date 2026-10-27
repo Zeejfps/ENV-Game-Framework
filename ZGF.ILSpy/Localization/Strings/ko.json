@@ -299,6 +299,7 @@
   "document.reloading": "다시 로드하는 중…",
   "document.gone": "다시 로드한 후 {location}이(가) 없습니다.",
   "code.copy": "복사",
+  "code.copy_plain_text": "일반 텍스트로 복사",
   "code.select_all": "모두 선택",
   "code.toggle_fold": "접기 전환",
   "code.collapse_all": "모두 접기",

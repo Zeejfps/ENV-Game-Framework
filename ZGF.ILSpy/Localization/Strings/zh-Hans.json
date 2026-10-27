@@ -299,6 +299,7 @@
   "document.reloading": "正在重新加载…",
   "document.gone": "重新加载后 {location} 已不存在。",
   "code.copy": "复制",
+  "code.copy_plain_text": "复制为纯文本",
   "code.select_all": "全选",
   "code.toggle_fold": "切换折叠",
   "code.collapse_all": "全部折叠",

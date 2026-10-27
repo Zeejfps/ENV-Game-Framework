@@ -17,4 +17,3 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
 - **Create Diagram.**
 - **Check for updates.**
 - **Plugins** (MEF upstream).
-- **Copy code with formatting** (HTML on the clipboard).

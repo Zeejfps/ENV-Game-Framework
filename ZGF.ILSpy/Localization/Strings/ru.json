@@ -299,6 +299,7 @@
   "document.reloading": "Перезагрузка…",
   "document.gone": "После перезагрузки {location} отсутствует.",
   "code.copy": "Копировать",
+  "code.copy_plain_text": "Копировать как обычный текст",
   "code.select_all": "Выделить всё",
   "code.toggle_fold": "Свернуть или развернуть блок",
   "code.collapse_all": "Свернуть всё",

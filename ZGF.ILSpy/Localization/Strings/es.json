@@ -299,6 +299,7 @@
   "document.reloading": "Recargando…",
   "document.gone": "{location} ya no existe tras recargar.",
   "code.copy": "Copiar",
+  "code.copy_plain_text": "Copiar como texto sin formato",
   "code.select_all": "Seleccionar todo",
   "code.toggle_fold": "Alternar plegado",
   "code.collapse_all": "Contraer todo",

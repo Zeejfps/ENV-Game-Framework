@@ -114,6 +114,9 @@ public sealed class CodeViewState
     /// <summary>The selected text of the document last shown, lines joined by '\n', folded lines included.</summary>
     public string SelectedText => Document == null ? "" : CodeText.Between(Document, Selection.Start, Selection.End);
 
+    /// <summary>The selected text as HTML in <paramref name="style"/>, a div per line.</summary>
+    internal string SelectedHtml(CodeHtmlStyle style) => Document == null ? "" : CodeHtml.Between(Document, Selection.Start, Selection.End, style);
+
     /// <summary>Whether fold <paramref name="fold"/> of the shown document's
     /// <see cref="DecompiledDocument.Folds"/> is collapsed.</summary>
     public bool IsCollapsed(int fold) => Folds.IsCollapsed(fold);
@@ -823,8 +826,11 @@ public static class CodeViewWidget
                 case KeyboardKey.A when shortcut && focused:
                     state.Selection.Select(default, CodeText.End(document));
                     break;
-                case KeyboardKey.C when shortcut && focused && state.HasSelection:
+                case KeyboardKey.C when shortcut && shift && focused && state.HasSelection:
                     ui.ClipboardText = state.SelectedText;
+                    break;
+                case KeyboardKey.C when shortcut && focused && state.HasSelection:
+                    CopySelection(ui, state);
                     break;
                 case KeyboardKey.UpArrow when focused:
                     state.KeyScrollRows--;
@@ -859,6 +865,19 @@ public static class CodeViewWidget
         var fold = state.Folds.Innermost(state.Selection.Caret.Line, collapsed: !collapse);
         if (fold >= 0)
             state.SetCollapsed(fold, collapse);
+    }
+
+    /// <summary>Copies the selection as plain text and as HTML in the colors and font it is drawn in.</summary>
+    private static void CopySelection(Ui<UiState> ui, CodeViewState state)
+    {
+        var style = CopyStyleOf(ui, state.Frame);
+        ui.SetClipboardHtml(state.SelectedHtml(style), state.SelectedText);
+    }
+
+    private static CodeHtmlStyle CopyStyleOf(Ui<UiState> ui, CodeViewFrame frame)
+    {
+        var family = CodeFontChoices.NameOf(ui.State.Display.Font);
+        return new CodeHtmlStyle(frame.Palette, frame.Background, frame.ErrorText, family, frame.FontSize, frame.RowHeight);
     }
 
     private static void FindBar(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, int focusId, int findId)
@@ -934,6 +953,8 @@ public static class CodeViewWidget
         if (!menu.IsOpen) return result;
 
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: state.HasSelection, id: "copy"))
+            CopySelection(ui, state);
+        if (ui.MenuItem(t.CodeCopyPlainText, "Ctrl+Shift+C", enabled: state.HasSelection, id: "copy-plain-text"))
             ui.ClipboardText = state.SelectedText;
         if (ui.MenuItem(t.CodeSelectAll, "Ctrl+A", id: "select-all"))
             state.Selection.Select(default, CodeText.End(document));
