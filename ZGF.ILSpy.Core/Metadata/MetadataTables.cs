@@ -2,6 +2,7 @@
 
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Globalization;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.DebugInfo;
@@ -89,7 +90,7 @@ internal static class MetadataTables
             TableIndex.Constant => Table(() => Rids().Select(rid => m.GetConstant(MetadataTokens.ConstantHandle(rid)))).Offset()
                 .Value("Type", r => r.TypeCode, "X8", r => r.TypeCode.ToString())
                 .Handle("Parent", r => r.Parent)
-                .Blob("Value", r => r.Value),
+                .Blob("Value", r => r.Value, r => ConstantText(m, r)),
 
             TableIndex.CustomAttribute => Table(() => m.CustomAttributes.Select(m.GetCustomAttribute)).Offset()
                 .Handle("Parent", r => r.Parent)
@@ -115,7 +116,7 @@ internal static class MetadataTables
                 .Value("FieldOffset", r => r.Offset, "X8"),
 
             TableIndex.StandAloneSig => Table(() => Rids().Select(rid => m.GetStandaloneSignature(MetadataTokens.StandaloneSignatureHandle(rid)))).Offset()
-                .Signature("Signature", r => r.Signature),
+                .Signature("Signature", r => r.Signature, r => LocalsText(file, r)),
 
             TableIndex.EventMap => Table(m.GetEventMaps)
                 .Handle("Parent", r => r.Parent)
@@ -133,7 +134,7 @@ internal static class MetadataTables
             TableIndex.Property => Table(() => m.PropertyDefinitions.Select(m.GetPropertyDefinition)).Offset()
                 .Value("Attributes", r => r.Attributes, "X8")
                 .Name(r => r.Name)
-                .Signature("Signature", r => r.Signature),
+                .Signature("Signature", r => r.Signature, r => PropertySignatureText(file, r)),
 
             TableIndex.MethodSemantics => Table(m.GetMethodSemantics)
                 .Value("Semantics", r => r.Semantics, "X8")
@@ -284,19 +285,7 @@ internal static class MetadataTables
                 {
                     if (r.LocalSignature.IsNil)
                         return null;
-                    ITextOutput output = new PlainTextOutput();
-                    var context = new MetadataGenericContext(default(TypeDefinitionHandle), m);
-                    var signatureDecoder = new DisassemblerSignatureTypeProvider(file, output);
-                    var index = 0;
-                    foreach (var item in m.GetStandaloneSignature(r.LocalSignature).DecodeLocalSignature(signatureDecoder, context))
-                    {
-                        if (index > 0)
-                            output.WriteLine();
-                        output.Write("[{0}] ", index);
-                        item(ILNameSyntax.Signature);
-                        index++;
-                    }
-                    return output.ToString();
+                    return LocalsText(file, m.GetStandaloneSignature(r.LocalSignature));
                 }),
 
             TableIndex.LocalScope => Table(() => m.LocalScopes.Select(m.GetLocalScope))
@@ -341,6 +330,129 @@ internal static class MetadataTables
     }
 
     private static object? NoTooltip<T>(T row) => null;
+
+    private const char StringQuote = '"';
+    private const char CharQuote = '\'';
+
+    /// <summary>The literal <paramref name="constant"/> holds, as C# writes it; null when its blob cannot be read.</summary>
+    private static string? ConstantText(MetadataReader metadata, Constant constant)
+    {
+        try
+        {
+            var value = metadata.GetBlobReader(constant.Value).ReadConstant(constant.TypeCode);
+            return LiteralText(value);
+        }
+        catch (Exception e) when (e is BadImageFormatException or ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
+    private static string LiteralText(object? value) => value switch
+    {
+        null => "null",
+        string text => Quote(text, StringQuote),
+        char c => Quote(c.ToString(), CharQuote),
+        true => "true",
+        false => "false",
+        IFormattable number => number.ToString(null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? "",
+    };
+
+    private static string Quote(string text, char quote) => quote + DisassemblerHelpers.EscapeString(text) + quote;
+
+    /// <summary>The locals a signature of local variables declares, a line each as <c>[index] type</c>; null
+    /// for a signature of another kind, or one that cannot be read.</summary>
+    private static string? LocalsText(MetadataFile file, StandaloneSignature signature)
+    {
+        if (signature.GetKind() != StandaloneSignatureKind.LocalVariables)
+            return null;
+        try
+        {
+            return WriteLocals(file, signature);
+        }
+        catch (BadImageFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string WriteLocals(MetadataFile file, StandaloneSignature signature)
+    {
+        ITextOutput output = new PlainTextOutput();
+        var context = new MetadataGenericContext(default(TypeDefinitionHandle), file.Metadata);
+        var provider = new DisassemblerSignatureTypeProvider(file, output);
+        var locals = signature.DecodeLocalSignature(provider, context);
+        for (var i = 0; i < locals.Length; i++)
+        {
+            if (i > 0)
+                output.WriteLine();
+            output.Write($"[{i}] ");
+            locals[i](ILNameSyntax.Signature);
+        }
+        return output.ToString();
+    }
+
+    /// <summary>A property's signature as IL declares it: <c>instance</c> unless static, its type, its name
+    /// and the types of its index parameters, e.g. <c>instance string Item(int32)</c>; null when it cannot be read.</summary>
+    private static string? PropertySignatureText(MetadataFile file, PropertyDefinition property)
+    {
+        try
+        {
+            return WritePropertySignature(file, property);
+        }
+        catch (BadImageFormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string WritePropertySignature(MetadataFile file, PropertyDefinition property)
+    {
+        ITextOutput output = new PlainTextOutput();
+        var metadata = file.Metadata;
+        var context = new MetadataGenericContext(FindDeclaringType(metadata, property), metadata);
+        var signature = property.DecodeSignature(new DisassemblerSignatureTypeProvider(file, output), context);
+        if (signature.Header.IsInstance)
+            output.Write("instance ");
+        signature.ReturnType(ILNameSyntax.Signature);
+        output.Write(" ");
+        output.Write(DisassemblerHelpers.Escape(metadata.GetString(property.Name)));
+        output.Write("(");
+        WriteTypes(output, signature.ParameterTypes);
+        output.Write(")");
+        return output.ToString();
+    }
+
+    /// <summary>The type that declares <paramref name="property"/>, found through an accessor, so that its
+    /// generic parameters are written by name; none for a property without accessors.</summary>
+    private static TypeDefinitionHandle FindDeclaringType(MetadataReader metadata, PropertyDefinition property)
+    {
+        var accessor = FindAccessor(property);
+        if (accessor.IsNil)
+            return default;
+        return metadata.GetMethodDefinition(accessor).GetDeclaringType();
+    }
+
+    private static MethodDefinitionHandle FindAccessor(PropertyDefinition property)
+    {
+        var accessors = property.GetAccessors();
+        if (!accessors.Getter.IsNil)
+            return accessors.Getter;
+        if (!accessors.Setter.IsNil)
+            return accessors.Setter;
+        return accessors.Others.FirstOrDefault();
+    }
+
+    private static void WriteTypes(ITextOutput output, IReadOnlyList<Action<ILNameSyntax>> types)
+    {
+        for (var i = 0; i < types.Count; i++)
+        {
+            if (i > 0)
+                output.Write(", ");
+            types[i](ILNameSyntax.Signature);
+        }
+    }
 
     private static string? BaseTypeTooltip(MetadataFile file, EntityHandle baseType)
     {

@@ -160,11 +160,27 @@ internal sealed class GridSchema<TRow> : GridSchema
     public GridSchema<TRow> Blob(string name, Func<TRow, BlobHandle> get, Func<TRow, object?>? tooltip = null) =>
         Value(name, r => MetadataTokens.GetHeapOffset(get(r)), "X8", tooltip);
 
-    /// <summary>The offset of a signature blob, explained by the row it is the signature of.</summary>
-    public GridSchema<TRow> Signature(string name, Func<TRow, BlobHandle> get)
+    /// <summary>The offset of a signature blob, explained by what <paramref name="decode"/> reads from the
+    /// blob, else by the row it is the signature of.</summary>
+    public GridSchema<TRow> Signature(string name, Func<TRow, BlobHandle> get, Func<TRow, string?>? decode = null)
     {
         var table = Table!.Value;
-        return Add(name, "X8", (r, _) => MetadataTokens.GetHeapOffset(get(r)), (_, rid) => Describe(_file, MetadataTokens.EntityHandle(table, rid)));
+        return Add(name, "X8", (r, _) => MetadataTokens.GetHeapOffset(get(r)), (r, rid) => ExplainSignature(r, MetadataTokens.EntityHandle(table, rid), decode));
+    }
+
+    private string? ExplainSignature(TRow row, EntityHandle handle, Func<TRow, string?>? decode)
+    {
+        var decoded = Decode(row, decode);
+        if (decoded != null)
+            return decoded;
+        return Describe(_file, handle);
+    }
+
+    private static string? Decode(TRow row, Func<TRow, string?>? decode)
+    {
+        if (decode == null)
+            return null;
+        return decode(row);
     }
 
     /// <summary>The index of a GUID in the #GUID heap, explained by the GUID unless
