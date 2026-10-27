@@ -91,10 +91,41 @@ public static partial class UiWidgets
     /// field is a Tab stop. <paramref name="leadingIcon"/> is a glyph drawn before the text;
     /// <paramref name="hint"/> is muted text at the end — a shortcut —
     /// left out while the field is too narrow to keep room for typing. <paramref name="look"/> says
-    /// how it looks while not being edited.</summary>
+    /// how it looks while not being edited. When not <paramref name="enabled"/> it shows
+    /// <paramref name="text"/> greyed out and ignores input.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, IconGlyph? leadingIcon = null,
-        string? hint = null, FieldLook look = FieldLook.Boxed) =>
-        Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look);
+        string? hint = null, FieldLook look = FieldLook.Boxed, bool enabled = true)
+    {
+        if (!enabled)
+        {
+            DisabledField(ui, text, placeholder, width, leadingIcon);
+            return false;
+        }
+        return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look);
+    }
+
+    /// <summary>A boxed field's look, its text in <see cref="UiTheme.TextDisabled"/>, taking no input.</summary>
+    private static void DisabledField(Ui ui, string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon)
+    {
+        var theme = ui.Theme;
+        using (ui.Row(new Box
+        {
+            Width = width ?? Sizing.Grow(MinFieldWidth),
+            Height = theme.ControlHeight,
+            Padding = new Spacing(theme.FieldPaddingX, 0f),
+            Gap = theme.GapTight,
+            Background = theme.Control,
+            BorderColor = theme.Border,
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.CornerRadius,
+        }))
+        {
+            if (leadingIcon != null)
+                ui.Glyph(leadingIcon.Value, theme.TextDisabled, theme.IconSize, new Box { Width = theme.IconSize });
+            using (ui.Row(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true }))
+                ui.Text(text.Length > 0 ? text : placeholder ?? "", color: theme.TextDisabled);
+        }
+    }
 
     /// <summary>Edits <paramref name="text"/> in place of the label it replaces, as in a rename: a
     /// field one line tall, its text where the label's was, outlined in the focus color. On the frame
