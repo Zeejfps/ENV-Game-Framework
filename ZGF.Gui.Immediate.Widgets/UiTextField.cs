@@ -52,6 +52,10 @@ public static partial class UiWidgets
         public readonly List<TextSnapshot> Redo = new();
         public double BlinkFrom;
 
+        /// <summary>In a text area, the x Up and Down keep the caret at as they pass shorter lines;
+        /// negative until the first of them.</summary>
+        public float GoalX = -1f;
+
         public int Caret => Selection.Caret;
         public int Anchor => Selection.Anchor;
         public bool HasSelection => Selection.HasSelection;
@@ -62,6 +66,7 @@ public static partial class UiWidgets
         {
             Selection.Select(anchor, caret);
             LastEdit = EditKind.None;
+            GoalX = -1f;
         }
     }
 
@@ -162,13 +167,7 @@ public static partial class UiWidgets
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
         var state = ui.GetState<TextFieldState>(i.Id);
-        if (!ReferenceEquals(text, state.Known) && text != state.Known)
-        {
-            state.Known = text;
-            state.Undo.Clear();
-            state.Redo.Clear();
-            state.Select(Math.Min(state.Anchor, text.Length), Math.Min(state.Caret, text.Length));
-        }
+        Adopt(state, text);
 
         var focused = ui.TabStop(i.Id, takesText: true);
         var (caretBefore, anchorBefore, textBefore) = (state.Caret, state.Anchor, text);
@@ -208,7 +207,7 @@ public static partial class UiWidgets
         {
             if (!preedit.IsEmpty && state.HasSelection)
                 Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
-            submitted = Edit(ui, state, ref text);
+            submitted = Edit(ui, state, ref text, area: null);
             focused = ui.HasFocus(i.Id);
         }
         if (!focused)
@@ -276,6 +275,18 @@ public static partial class UiWidgets
         return submitted;
     }
 
+    /// <summary>Takes up <paramref name="text"/> when the caller changed it since the field last
+    /// edited it: the undo history goes, and the selection stays inside it.</summary>
+    private static void Adopt(TextFieldState state, string text)
+    {
+        if (ReferenceEquals(text, state.Known) || text == state.Known)
+            return;
+        state.Known = text;
+        state.Undo.Clear();
+        state.Redo.Clear();
+        state.Select(Math.Min(state.Anchor, text.Length), Math.Min(state.Caret, text.Length));
+    }
+
     private static void UnderlineComposition(Ui ui, string shown, int start, PreeditText preedit, float shift, float lineHeight)
     {
         var theme = ui.Theme;
@@ -307,7 +318,9 @@ public static partial class UiWidgets
         return phase < CaretBlinkSeconds;
     }
 
-    private static bool Edit(Ui ui, TextFieldState state, ref string text)
+    /// <summary>Applies this frame's keys and typing to <paramref name="text"/>. Returns true when they
+    /// submit it. A null <paramref name="area"/> edits one line; otherwise the lines of a text area.</summary>
+    private static bool Edit(Ui ui, TextFieldState state, ref string text, AreaEditing? area)
     {
         foreach (var stroke in ui.Input.Keys)
         {
@@ -318,6 +331,21 @@ public static partial class UiWidgets
             var collapses = !extend && !byWord && state.HasSelection;
             switch (stroke.Key)
             {
+                case KeyboardKey.UpArrow when area != null:
+                    MoveLine(ui, state, text, area.Value, -1, extend);
+                    break;
+                case KeyboardKey.DownArrow when area != null:
+                    MoveLine(ui, state, text, area.Value, 1, extend);
+                    break;
+                case KeyboardKey.Home when area != null && !shortcut:
+                    Move(state, LineStart(ui, text, area.Value, caret), extend);
+                    break;
+                case KeyboardKey.End when area != null && !shortcut:
+                    Move(state, LineEnd(ui, text, area.Value, caret), extend);
+                    break;
+                case KeyboardKey.Enter when area != null && !shortcut && (extend || !area.Value.SubmitOnEnter):
+                    Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "\n", EditKind.None);
+                    break;
                 case KeyboardKey.LeftArrow when collapses:
                     Move(state, state.SelectionStart, extend);
                     break;
@@ -357,7 +385,7 @@ public static partial class UiWidgets
                     Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
                     break;
                 case KeyboardKey.V when shortcut:
-                    var pasted = ui.ClipboardText.ReplaceLineEndings(" ");
+                    var pasted = ui.ClipboardText.ReplaceLineEndings(area != null ? "\n" : " ");
                     if (pasted.Length > 0)
                         Replace(state, ref text, state.SelectionStart, state.SelectionEnd, pasted, EditKind.None);
                     break;
@@ -399,6 +427,7 @@ public static partial class UiWidgets
         state.Known = text;
         state.Selection.Select(start + insert.Length, start + insert.Length);
         state.LastEdit = kind;
+        state.GoalX = -1f;
     }
 
     private static void Restore(TextFieldState state, ref string text, List<TextSnapshot> from, List<TextSnapshot> to)
