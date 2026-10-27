@@ -126,6 +126,7 @@
   "display_options.tokens_hex": "16진수",
   "display_options.tokens_decimal": "10진수",
   "display_options.empty_tables": "빈 메타데이터 테이블 표시",
+  "display_options.nested_namespaces": "중첩된 네임스페이스",
   "display_options.preview_tabs": "미리 보기 탭",
   "display_options.zoom_hint": "문서에서 Ctrl+휠, {reset}로 되돌리기",
   "option.native_integers": "nint 및 nuint 사용",

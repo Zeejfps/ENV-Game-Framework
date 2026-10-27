@@ -17,6 +17,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private readonly UserIntent _expansion = new();
     private ApiVisibility _visibility = ApiVisibility.AllButCompilerGenerated;
     private bool _showEmptyTables;
+    private bool _nestNamespaces;
     private Dictionary<BrowseNode, RootLabel> _rootLabels = new(ReferenceEqualityComparer.Instance);
     private UiTheme _theme = UiTheme.Dark;
     private NodeIconPalette _iconColors = BuiltInThemes.Dark.Icons;
@@ -131,9 +132,16 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Title : NodeText.Name(node);
 
     /// <summary>The node's name as its row shows it, beside <see cref="NodeText.Secondary"/>: an
-    /// assembly's folder is added only when the version and framework there do not tell it apart.</summary>
-    public string RowLabel(BrowseNode node) =>
-        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
+    /// assembly's folder is added only when the version and framework there do not tell it apart, and a
+    /// namespace nested in another shows only its last segment.</summary>
+    public string RowLabel(BrowseNode node)
+    {
+        if (IsNested(node))
+            return NodeText.NestedName(node);
+        return node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
+    }
+
+    private bool IsNested(BrowseNode node) => _nestNamespaces && node.EnclosingNamespace != null;
 
     public void ShowApi(ApiVisibility visibility)
     {
@@ -152,6 +160,24 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.Refresh();
     }
 
+    /// <summary>Nests each namespace in the one its name extends by a segment, or lists them all
+    /// under their assembly, keeping the selected node in view.</summary>
+    public void NestNamespaces(bool nest)
+    {
+        if (nest == _nestNamespaces) return;
+        _nestNamespaces = nest;
+        _shownChildren.Clear();
+        View.Refresh();
+        RevealSelected();
+    }
+
+    private void RevealSelected()
+    {
+        if (!View.HasSelection)
+            return;
+        Reveal(View.Selected!);
+    }
+
     public void SetStyle(UiTheme theme, NodeIconPalette iconColors, AppIcons icons)
     {
         _theme = theme;
@@ -166,22 +192,64 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     /// it is hidden, or inside a hidden node, its nearest shown ancestor is selected instead.</summary>
     public void Reveal(BrowseNode node)
     {
+        var path = ShownPathTo(node);
+        LoadChildrenAlong(path);
+        View.Reveal(path);
+    }
+
+    /// <summary>The rows from the root down to <paramref name="node"/>, or to its nearest shown
+    /// ancestor when it is hidden or inside a hidden node.</summary>
+    private List<BrowseNode> ShownPathTo(BrowseNode node)
+    {
         var path = new List<BrowseNode>();
-        for (var n = node; n != null; n = n.Parent)
+        for (var n = node; n != null; n = ShownParent(n))
             path.Add(n);
         path.Reverse();
         var hidden = path.FindIndex(IsHidden);
         if (hidden > 0)
             path.RemoveRange(hidden, path.Count - hidden);
-        View.Reveal(path);
+        return path;
+    }
+
+    /// <summary>The node whose row holds <paramref name="node"/>'s: the namespace a namespace nests in
+    /// when namespaces nest, else its parent.</summary>
+    private BrowseNode? ShownParent(BrowseNode node)
+    {
+        if (IsNested(node))
+            return node.EnclosingNamespace;
+        return node.Parent;
     }
 
     private bool IsHidden(BrowseNode node)
     {
         if (node.IsEmptyTable) return !_showEmptyTables;
+        if (node.Kind == NodeKind.Namespace) return IsNamespaceHidden(node);
+        return IsApiHidden(node);
+    }
+
+    /// <summary>Whether a namespace is left out: when it holds no type that shows and, when namespaces
+    /// nest, no namespace that shows nests in it.</summary>
+    private bool IsNamespaceHidden(BrowseNode ns)
+    {
+        var ownHidden = ns.IsEnclosingOnly || IsApiHidden(ns);
+        if (!ownHidden) return false;
+        if (!_nestNamespaces) return true;
+        return ns.InnerNamespaces.All(IsNamespaceHidden);
+    }
+
+    private bool IsApiHidden(BrowseNode node)
+    {
         if (_visibility == ApiVisibility.All) return false;
         if (node.IsCompilerGenerated) return true;
         return _visibility == ApiVisibility.PublicOnly && !node.IsPublicApi;
+    }
+
+    /// <summary>Builds the children of the nodes <paramref name="path"/> expands, so that it shows at once
+    /// rather than loading: the namespaces a namespace nests in may not have listed their types yet.</summary>
+    private static void LoadChildrenAlong(List<BrowseNode> path)
+    {
+        for (var i = 0; i < path.Count - 1; i++)
+            path[i].LoadChildren();
     }
 
     /// <summary>The paths of the expanded nodes that are showing, for expanding them again after
@@ -262,16 +330,19 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         CollapseAll();
     }
 
-    public bool HasChildren(BrowseNode node) => node.HasChildren;
+    public bool HasChildren(BrowseNode node)
+    {
+        if (!_nestNamespaces) return node.HasChildren;
+        return node.HasChildren || node.InnerNamespaces.Count > 0;
+    }
 
     public IReadOnlyList<BrowseNode> GetChildren(BrowseNode node)
     {
-        if (!node.TryGetChildren(out var children))
+        if (!TryGetShapedChildren(node, out var children))
         {
             Build(node);
             return [node.LoadingChild];
         }
-        if (ShowsEverything) return children;
         if (_shownChildren.TryGetValue(node, out var cached)) return cached;
         var shown = children
             .Where(c => !IsHidden(c))
@@ -280,7 +351,13 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         return shown;
     }
 
-    private bool ShowsEverything => _visibility == ApiVisibility.All && _showEmptyTables;
+    /// <summary>The children if they are built already, with namespaces nested when the tree nests them.</summary>
+    private bool TryGetShapedChildren(BrowseNode node, out IReadOnlyList<BrowseNode> children)
+    {
+        if (_nestNamespaces)
+            return node.TryGetNestedChildren(out children);
+        return node.TryGetChildren(out children);
+    }
 
     public TreeRow Row(BrowseNode node) => new(
         RowLabel(node),

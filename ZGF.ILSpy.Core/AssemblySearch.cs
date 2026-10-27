@@ -307,9 +307,20 @@ internal static class AssemblySearch
             foreach (var node in assembly.Root.Children)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (node is NamespaceNode ns && InNamespace(ns.Name) && query.IsMatch(ns.Text))
+                if (IsNamespaceFound(node))
                     Add(node, "");
             }
+        }
+
+        /// <summary>Whether <paramref name="node"/> is a namespace the assembly puts types in that the
+        /// query finds.</summary>
+        private bool IsNamespaceFound(BrowseNode node)
+        {
+            if (node is not NamespaceNode ns)
+                return false;
+            if (ns.IsEnclosingOnly)
+                return false;
+            return InNamespace(ns.Name) && query.IsMatch(ns.Text);
         }
 
         private void Add(LoadedAssembly assembly, EntityHandle handle)

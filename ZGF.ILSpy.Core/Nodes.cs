@@ -15,6 +15,7 @@ namespace ZGF.ILSpy.Core;
 internal sealed class AssemblyNode : BrowseNode
 {
     private Dictionary<string, NamespaceNode>? _namespaces;
+    private BrowseNode[]? _nested;
 
     public AssemblyNode(LoadedAssembly assembly, BrowseNode? parent) : base(assembly, parent, NodeKind.Assembly, LabelOf(assembly))
     {
@@ -70,18 +71,44 @@ internal sealed class AssemblyNode : BrowseNode
         var namespaces = new Dictionary<string, NamespaceNode>(StringComparer.Ordinal);
         var names = byNamespace.Keys
             .Union(forwardedByNamespace.Keys)
+            .SelectMany(NamespaceNames.AndEnclosing)
+            .Distinct()
             .Order(NaturalStringComparer.Instance);
         foreach (var name in names)
         {
             var types = byNamespace.GetValueOrDefault(name, []);
             var forwarded = forwardedByNamespace.GetValueOrDefault(name, []);
-            var node = new NamespaceNode(Assembly, this, name, types, forwarded);
+            var enclosing = FindEnclosing(namespaces, name);
+            var node = new NamespaceNode(Assembly, this, name, enclosing, types, forwarded);
+            if (enclosing != null)
+                enclosing.Enclose(node);
             namespaces.Add(name, node);
             result.Add(node);
         }
         Volatile.Write(ref _namespaces, namespaces);
+        _nested = LeaveOutNested(result);
         return result.ToArray();
     }
+
+    /// <summary>The namespace <paramref name="name"/> extends by a segment, made already, as names
+    /// sort after the names they extend; null for an outermost name.</summary>
+    private static NamespaceNode? FindEnclosing(Dictionary<string, NamespaceNode> namespaces, string name)
+    {
+        var enclosing = NamespaceNames.EnclosingName(name);
+        if (enclosing == null)
+            return null;
+        return namespaces[enclosing];
+    }
+
+    /// <summary>The children but the namespaces nested in others.</summary>
+    private static BrowseNode[] LeaveOutNested(List<BrowseNode> children)
+    {
+        return children
+            .Where(static c => c.EnclosingNamespace == null)
+            .ToArray();
+    }
+
+    private protected override IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => _nested ?? children;
 
     /// <summary>The assembly's name, version and the framework it was built for. The framework picked
     /// to resolve its references against is left out, so that the label, by which paths find the node,
@@ -161,18 +188,27 @@ internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode pa
 }
 
 /// <summary>A namespace of an assembly: the types it defines there and those it forwards from
-/// there to other assemblies, sorted together by name, then by how many type parameters they have.</summary>
+/// there to other assemblies, sorted together by name, then by how many type parameters they have.
+/// When the tree nests namespaces, the namespaces nested in it sit among them, each where ILSpy sorts
+/// the full names of the types in it.</summary>
 internal sealed class NamespaceNode : BrowseNode
 {
+    private const string NestedSortMark = ".";
+
     private readonly List<ITypeDefinition> _types;
     private readonly List<ForwardedType> _forwarded;
+    private readonly List<NamespaceNode> _inner = new();
+    private BrowseNode[]? _nested;
 
-    public NamespaceNode(LoadedAssembly assembly, BrowseNode parent, string name, List<ITypeDefinition> types, List<ForwardedType> forwarded)
+    public NamespaceNode(LoadedAssembly assembly, BrowseNode parent, string name, NamespaceNode? enclosing, List<ITypeDefinition> types,
+        List<ForwardedType> forwarded)
         : base(assembly, parent, NodeKind.Namespace, name.Length == 0 ? "-" : name)
     {
         Name = name;
         _types = types;
         _forwarded = forwarded;
+        EnclosingNamespace = enclosing;
+        IsEnclosingOnly = types.Count == 0 && forwarded.Count == 0;
         IsPublicApi = forwarded.Count > 0 || types.Exists(EntityText.IsPublicApi);
         IsCompilerGenerated = forwarded.Count == 0 && types.TrueForAll(Members.IsCompilerGenerated);
     }
@@ -184,20 +220,79 @@ internal sealed class NamespaceNode : BrowseNode
 
     public override string FullName => Name;
 
-    private protected override bool MayHaveChildren => true;
+    public override IReadOnlyList<BrowseNode> InnerNamespaces => _inner;
+
+    /// <summary>Nests <paramref name="inner"/>, whose name extends this one's by a segment, in this namespace.</summary>
+    internal void Enclose(NamespaceNode inner)
+    {
+        _inner.Add(inner);
+    }
+
+    private protected override bool MayHaveChildren => !IsEnclosingOnly;
 
     private protected override BrowseNode[] CreateChildren()
     {
+        var sorted = SortChildren();
+        _nested = Interleave(sorted);
+        return sorted
+            .Select(static c => c.Node)
+            .ToArray();
+    }
+
+    private List<SortedChild> SortChildren()
+    {
         var defined = _types
-            .Select(t => (SortName: t.Name, Arity: t.TypeParameterCount, Node: (BrowseNode)new TypeNode(Assembly, this, t)));
+            .Select(t => new SortedChild(t.Name, t.TypeParameterCount, new TypeNode(Assembly, this, t)));
         var forwarded = _forwarded
-            .Select(f => (f.SortName, f.Arity, Node: (BrowseNode)new ForwardedTypeNode(Assembly, this, f)));
+            .Select(f => new SortedChild(f.SortName, f.Arity, new ForwardedTypeNode(Assembly, this, f)));
         return defined
             .Concat(forwarded)
-            .OrderBy(c => c.SortName, NaturalStringComparer.Instance)
-            .ThenBy(c => c.Arity)
-            .Select(c => c.Node)
-            .ToArray();
+            .OrderBy(static c => c.Name, NaturalStringComparer.Instance)
+            .ThenBy(static c => c.Arity)
+            .ToList();
+    }
+
+    /// <summary>The namespaces nested in this one among <paramref name="own"/>, the children sorted.</summary>
+    private BrowseNode[] Interleave(List<SortedChild> own)
+    {
+        var result = new List<BrowseNode>(own.Count + _inner.Count);
+        var inner = new Queue<NamespaceNode>(_inner);
+        foreach (var child in own)
+        {
+            while (inner.Count > 0 && SortsBefore(inner.Peek(), child))
+                result.Add(inner.Dequeue());
+            result.Add(child.Node);
+        }
+        result.AddRange(inner);
+        return result.ToArray();
+    }
+
+    /// <summary>Whether ILSpy, sorting the full names of the types, comes to those in
+    /// <paramref name="inner"/> before <paramref name="child"/>.</summary>
+    private static bool SortsBefore(NamespaceNode inner, SortedChild child)
+    {
+        var key = NamespaceNames.LastSegment(inner.Name) + NestedSortMark;
+        return NaturalStringComparer.Instance.Compare(key, child.ReflectionName) < 0;
+    }
+
+    private protected override IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => _nested ?? children;
+
+    /// <summary>A type of the namespace with what it is sorted by: its name without type parameters,
+    /// then how many it has.</summary>
+    private readonly record struct SortedChild(string Name, int Arity, BrowseNode Node)
+    {
+        private const string ArityMark = "`";
+
+        /// <summary>The name as its reflection name ends, e.g. <c>List`1</c>.</summary>
+        public string ReflectionName
+        {
+            get
+            {
+                if (Arity == 0)
+                    return Name;
+                return Name + ArityMark + Arity;
+            }
+        }
     }
 }
 

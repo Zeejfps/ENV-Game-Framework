@@ -22,6 +22,10 @@ public static class NodeText
     /// <summary>The node's own name: an assembly's simple name, any other node's label.</summary>
     public static string Name(BrowseNode node) => node.Kind == NodeKind.Assembly ? node.Assembly.Name : node.Text;
 
+    /// <summary>A namespace's name as its row shows it nested in another: its last segment, e.g.
+    /// <c>Generic</c> for <c>System.Collections.Generic</c>.</summary>
+    public static string NestedName(BrowseNode node) => NamespaceNames.LastSegment(node.Text);
+
     /// <summary>The node's full identity: for an assembly its display name, framework and file; for
     /// an entity its full name and, unless public, its accessibility.</summary>
     public static string Tooltip(BrowseNode node) => Tooltips.GetValue(node, Describe);

@@ -126,6 +126,7 @@
   "display_options.tokens_hex": "十六进制",
   "display_options.tokens_decimal": "十进制",
   "display_options.empty_tables": "显示空的元数据表",
+  "display_options.nested_namespaces": "嵌套命名空间",
   "display_options.preview_tabs": "预览标签页",
   "display_options.zoom_hint": "在文档中按 Ctrl+滚轮，按 {reset} 恢复",
   "option.native_integers": "使用 nint 和 nuint",

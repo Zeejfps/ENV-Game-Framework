@@ -15,7 +15,7 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class DisplayOptionsTests
 {
-    private const float TallWindow = 1000f;
+    private const float TallWindow = 1100f;
 
     private static CodeViewDriver Showing(DecompiledDocument document, DisplayOptions? display, int frames = 2)
     {
@@ -265,6 +265,27 @@ public sealed class DisplayOptionsTests
         Assert.True(app.Ui.Display.ShowEmptyMetadataTables);
         Assert.True(IsBold(app, "Show empty metadata tables"));
         Assert.Contains(empty, app.Ui.Tree.GetChildren(tables));
+    }
+
+    [Fact]
+    public void The_tree_nests_namespaces_once_the_panel_switches_it_on()
+    {
+        var app = AppDriver.Opened(width: 1600f, height: TallWindow);
+        var root = app.Node();
+        var outermost = app.Node("ZGF");
+        var fixtures = app.Node(AppStateDriver.FixturesNamespace);
+        OpenDisplayOptions(app.Ui);
+        app.Run();
+        Assert.Contains(fixtures, app.Ui.Tree.GetChildren(root));
+        Assert.DoesNotContain(outermost, app.Ui.Tree.GetChildren(root));
+
+        app.Click("Nested namespaces").Frame(2);
+
+        Assert.True(app.Ui.Display.NestedNamespaces);
+        Assert.True(IsBold(app, "Nested namespaces"));
+        Assert.Contains(outermost, app.Ui.Tree.GetChildren(root));
+        Assert.DoesNotContain(fixtures, app.Ui.Tree.GetChildren(root));
+        Assert.Equal("Fixtures", app.Ui.Tree.RowLabel(fixtures));
     }
 
     [Fact]

@@ -126,6 +126,7 @@
   "display_options.tokens_hex": "Шестнадцатеричные",
   "display_options.tokens_decimal": "Десятичные",
   "display_options.empty_tables": "Показывать пустые таблицы метаданных",
+  "display_options.nested_namespaces": "Вложенные пространства имён",
   "display_options.preview_tabs": "Вкладки предпросмотра",
   "display_options.zoom_hint": "Ctrl+колесо в документе, {reset} — сброс",
   "option.native_integers": "Использовать nint и nuint",

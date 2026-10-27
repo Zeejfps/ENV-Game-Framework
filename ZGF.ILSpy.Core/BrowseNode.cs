@@ -107,6 +107,18 @@ public abstract class BrowseNode
     /// <summary>Whether this is a metadata table with no rows, which the tree usually hides.</summary>
     public bool IsEmptyTable { get; internal init; }
 
+    /// <summary>Whether this is a namespace the assembly puts no types in, listed only because others
+    /// nest in it, which the tree shows only when it nests namespaces.</summary>
+    public bool IsEnclosingOnly { get; private protected init; }
+
+    /// <summary>For a namespace, the one whose name it extends by a segment, which holds it when the
+    /// tree nests namespaces; null for an outermost namespace and for any other node.</summary>
+    public BrowseNode? EnclosingNamespace { get; private protected init; }
+
+    /// <summary>For a namespace, the namespaces whose names extend it by a segment, sorted by name;
+    /// none for any other node.</summary>
+    public virtual IReadOnlyList<BrowseNode> InnerNamespaces => NoChildren;
+
     public BrowseNode? Parent { get; }
 
     public LoadedAssembly Assembly { get; }
@@ -170,6 +182,20 @@ public abstract class BrowseNode
         children = Volatile.Read(ref _children)!;
         return children != null;
     }
+
+    /// <summary>The children as the tree lists them when it nests namespaces, if they are built
+    /// already: for an assembly, its children but the namespaces nested in others; for a namespace,
+    /// the namespaces nested in it and its own children, sorted together by name; else
+    /// <see cref="Children"/>. Never blocks.</summary>
+    public bool TryGetNestedChildren(out IReadOnlyList<BrowseNode> children)
+    {
+        if (!TryGetChildren(out children))
+            return false;
+        children = Nest(children);
+        return true;
+    }
+
+    private protected virtual IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => children;
 
     /// <summary>The child standing where <paramref name="other"/> stands under its own parent, of its kind
     /// and text: its counterpart under this node's copy, read again, of the same file. Null when there is

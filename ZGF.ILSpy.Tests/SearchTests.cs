@@ -207,6 +207,17 @@ public sealed class SearchTests
     }
 
     [Fact]
+    public async Task Only_namespaces_that_hold_types_are_found_not_those_that_only_enclose_others()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+
+        var found = await Collect(list.SearchAsync("n:ILSpy"));
+
+        Assert.Equal(["ZGF.ILSpy.Tests", Trees.FixturesNamespace], found.Select(r => r.Text).Order());
+        Assert.DoesNotContain(assembly.Root.Child("ZGF.ILSpy"), found.Select(r => r.Node));
+    }
+
+    [Fact]
     public async Task Scope_prefixes_keep_results_to_an_assembly_or_namespace()
     {
         var (list, _) = Trees.OpenTestAssembly();

@@ -131,6 +131,7 @@
   "display_options.tokens_hex": "Hexadecimal",
   "display_options.tokens_decimal": "Decimal",
   "display_options.empty_tables": "Show empty metadata tables",
+  "display_options.nested_namespaces": "Nested namespaces",
   "display_options.preview_tabs": "Preview tabs",
   "display_options.zoom_hint": "Ctrl+wheel in a document, {reset} to reset",
   "option.native_integers": "Use nint and nuint",

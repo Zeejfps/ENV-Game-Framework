@@ -15,7 +15,7 @@ public sealed class BrowseTreeTests
         Assert.Equal(NodeKind.Metadata, root.Children[0].Kind);
         Assert.Equal(NodeKind.ReferencesFolder, root.Children.First(c => c.Kind != NodeKind.Metadata).Kind);
         var namespaces = root.Children.Where(c => c.Kind == NodeKind.Namespace).Select(c => c.Text).ToArray();
-        Assert.Equal(["-", "ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests.Fixtures"], namespaces);
+        Assert.Equal(["-", "ZGF", "ZGF.ILSpy", "ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests.Fixtures"], namespaces);
         Assert.Contains(root.Child("References").Children, r => r.Kind == NodeKind.AssemblyReference && r.Text == "System.Runtime");
     }
 

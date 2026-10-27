@@ -126,6 +126,7 @@
   "display_options.tokens_hex": "Hexadecimal",
   "display_options.tokens_decimal": "Decimal",
   "display_options.empty_tables": "Mostrar tabelas de metadados vazias",
+  "display_options.nested_namespaces": "Namespaces aninhados",
   "display_options.preview_tabs": "Guias de visualização",
   "display_options.zoom_hint": "Ctrl+roda em um documento, {reset} para restaurar",
   "option.native_integers": "Usar nint e nuint",
