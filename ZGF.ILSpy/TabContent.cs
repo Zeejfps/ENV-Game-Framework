@@ -5,7 +5,7 @@ using ZGF.ILSpy.Core.Resources;
 namespace ZGF.ILSpy;
 
 /// <summary>What a tab shows: nothing, its node while it decompiles, the node's code, grid or picture,
-/// a document or a diagram of its own, or why it shows none of these.</summary>
+/// a document, a diagram or a comparison of its own, or why it shows none of these.</summary>
 public abstract record TabContent
 {
     private TabContent()
@@ -32,6 +32,9 @@ public abstract record TabContent
 
     /// <summary>A diagram of types, which grows as types are shown in it.</summary>
     public sealed record Diagram(TypeDiagram Types) : TabContent;
+
+    /// <summary>What changed in the API from one assembly to another.</summary>
+    public sealed record Comparison(AssemblyComparison Assemblies) : TabContent;
 
     /// <summary>Decompiling the node failed with <see cref="Message"/>.</summary>
     public sealed record Failed(string Message) : TabContent;

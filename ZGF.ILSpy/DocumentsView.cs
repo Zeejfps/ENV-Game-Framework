@@ -38,6 +38,9 @@ internal static class DocumentsView
             case TabContent.Diagram diagram:
                 DiagramView.Render(ui, appState, tab, diagram.Types);
                 break;
+            case TabContent.Comparison comparison:
+                ComparisonView.Render(ui, appState, tab, comparison.Assemblies);
+                break;
             case TabContent.Loading loading when !loading.Node.DependsOnLanguage:
                 Hint(ui, t.MetadataLoading);
                 break;

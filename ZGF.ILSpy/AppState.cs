@@ -145,6 +145,28 @@ public sealed class AppState
         return diagram.IsBusy;
     }
 
+    /// <summary>True while an open tab compares two assemblies in the background.</summary>
+    public bool IsComparing
+    {
+        get
+        {
+            foreach (var tab in Tabs)
+            {
+                if (IsComparisonBusy(tab))
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    private static bool IsComparisonBusy(DocumentTab tab)
+    {
+        var comparison = tab.Comparison;
+        if (comparison == null)
+            return false;
+        return comparison.IsComparing;
+    }
+
     public AppState(AppSettings settings)
     {
         Settings = settings;

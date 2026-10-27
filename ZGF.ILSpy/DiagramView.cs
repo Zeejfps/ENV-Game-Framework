@@ -10,7 +10,8 @@ using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A diagram's tab: zoom, fit and the member filter over the cards and the links between them.
+/// <summary>A diagram's tab: the cards and the links between them, under the bar over the document, which
+/// holds its zoom, fit and member filter.
 /// Dragging pans, the wheel scrolls and with Ctrl zooms; a click selects a card or folds a part of it, a
 /// double-click opens the code of the type or member under the pointer, and resting on one shows its
 /// documentation. A card's menu grows the diagram along its relations or takes it off.</summary>
@@ -25,8 +26,8 @@ internal static class DiagramView
     {
         var view = ui.State.Documents.ViewOf(tab).Diagram;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = ui.Theme.PaneBackground });
-        Toolbar(ui, view);
-        ui.Separator();
+        if (!ui.State.Display.ShowOmnibar)
+            OwnToolbar(ui, tab);
         if (diagram.Cards.Count == 0)
         {
             EmptyHint(ui, diagram);
@@ -37,13 +38,23 @@ internal static class DiagramView
         CardMenu(ui, appState, view, diagram);
     }
 
-    private static void Toolbar(Ui<UiState> ui, DiagramViewState view)
+    /// <summary>The tools in a bar of the tab's own, while the bar over documents, where they sit otherwise, is hidden.</summary>
+    private static void OwnToolbar(Ui<UiState> ui, DocumentTab tab)
+    {
+        using (ui.PaneToolbar())
+            Tools(ui, tab);
+        ui.Separator();
+    }
+
+    /// <summary>The diagram's tools, for the bar over the document: zoom, fit and the member filter.</summary>
+    public static void Tools(Ui<UiState> ui, DocumentTab tab)
     {
         var t = ui.State.Strings;
         var icons = ui.State.Icons;
+        var view = ui.State.Documents.ViewOf(tab).Diagram;
         var camera = view.Camera;
         var area = FindCanvasRect(ui);
-        using (ui.PaneToolbar(new Box { Gap = ui.Theme.Gap }))
+        using (ui.Row(new Box { Gap = ui.Theme.Gap, AlignY = Align.Center }))
         {
             if (ui.IconButton("zoom-out", icons.ResourceZoomOut, t.ResourceZoomOut, camera.CanZoomOut))
                 camera.ZoomOut(area);

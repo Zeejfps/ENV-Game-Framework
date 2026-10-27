@@ -172,6 +172,9 @@ public sealed class UiState : IUiState
     /// <summary>The "open from framework" dialog.</summary>
     public FrameworkPicker Picker { get; }
 
+    /// <summary>The dialog that picks the assembly to compare another with.</summary>
+    public ComparisonPicker ComparisonPicker { get; } = new();
+
     /// <summary>The "open from NuGet" dialog.</summary>
     public NuGetPicker NuGetPicker { get; }
 

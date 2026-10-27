@@ -28,6 +28,7 @@ public static class MainView
             StatusBarView.Render(ui, appState);
         }
         FrameworkPickerView.Render(ui, appState);
+        ComparisonPickerView.Render(ui, appState);
         NuGetPickerView.Render(ui, appState);
         AssemblyListsDialogView.Render(ui, appState);
         AssemblyListDeleteDialogView.Render(ui, appState);

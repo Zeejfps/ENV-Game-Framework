@@ -13,7 +13,6 @@ Sources: https://github.com/icsharpcode/ILSpy/releases and the `v11.1` source.
   the font picker offers just the bundled font.
 - **Open from the GAC** (Windows).
 - **Open from a running process.**
-- **Compare assemblies** (API diff).
 - **Check for updates.**
 
 ## Won't do

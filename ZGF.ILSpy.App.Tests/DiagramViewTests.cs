@@ -250,6 +250,18 @@ public sealed class DiagramViewTests
     }
 
     [Fact]
+    public void The_diagram_draws_its_tools_in_the_bar_over_it_or_itself_while_that_bar_is_hidden()
+    {
+        var app = PickFromTree("Car", "Show in diagram");
+        Assert.True(app.Frames.Drew("Fit to view"));
+
+        app.Ui.Display = app.Ui.Display with { ShowOmnibar = false };
+        app.Run(2);
+
+        Assert.True(app.Frames.Drew("Fit to view"));
+    }
+
+    [Fact]
     public void A_card_s_menu_adds_the_types_it_holds_while_the_card_stays_where_it_is()
     {
         var app = PickFromTree("Car", "Show in diagram");

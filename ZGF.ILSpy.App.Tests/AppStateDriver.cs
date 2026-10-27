@@ -193,7 +193,7 @@ internal sealed class AppStateDriver
     private bool IsSettled()
     {
         var appState = AppState;
-        return !appState.IsReloading && !appState.IsReopening && !appState.IsFindingDocuments && !appState.IsFindingAnalyses &&!appState.IsResolving && !appState.IsImporting && !appState.IsExporting && !appState.IsDiagramming && !IsSearching() && appState.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
+        return !appState.IsReloading && !appState.IsReopening && !appState.IsFindingDocuments && !appState.IsFindingAnalyses &&!appState.IsResolving && !appState.IsImporting && !appState.IsExporting && !appState.IsDiagramming && !appState.IsComparing && !IsSearching() && appState.Tabs.All(static t => !t.IsBusy) && _posted.IsEmpty;
     }
 
     private bool IsSearching()

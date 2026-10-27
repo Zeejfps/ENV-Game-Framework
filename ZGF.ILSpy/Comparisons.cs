@@ -1,0 +1,103 @@
+using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Comparison;
+using ZGF.ILSpy.Localization;
+using static ZGF.ILSpy.Navigation;
+
+namespace ZGF.ILSpy;
+
+/// <summary>Comparisons of two assemblies' APIs, each in a tab of its own: comparing them, swapping their
+/// sides, and taking in more or less of them. Each comparison runs in the background against the
+/// assemblies open then, and is dropped when another starts or its tab closes meanwhile.</summary>
+public static class Comparisons
+{
+    /// <summary>Compares <paramref name="left"/> with <paramref name="right"/>, in the active tab while it
+    /// shows nothing, else in a new tab.</summary>
+    public static void CompareAssemblies(AppState appState, LoadedAssembly left, LoadedAssembly right)
+    {
+        LeaveActiveTab(appState);
+        var tab = FindOrOpenEmptyTab(appState);
+        var comparison = new AssemblyComparison(left.FilePath, right.FilePath);
+        tab.ShowComparison(TitleOf(appState, left), comparison);
+        appState.Tabs.Keep(tab);
+        appState.Tabs.MakeActive(tab);
+        Compare(appState, comparison);
+    }
+
+    private static string TitleOf(AppState appState, LoadedAssembly assembly)
+    {
+        var t = Strings.For(appState.Locale);
+        return t.ComparisonTitle(assembly.Name);
+    }
+
+    /// <summary>Compares the assemblies of <paramref name="comparison"/> the other way round, the right one on the left.</summary>
+    public static void SwapComparedAssemblies(AppState appState, AssemblyComparison comparison)
+    {
+        comparison.Swap();
+        Compare(appState, comparison);
+    }
+
+    /// <summary>Compares the assemblies of <paramref name="comparison"/> again, taking in what <paramref name="scope"/> says.</summary>
+    public static void ChangeComparedScope(AppState appState, AssemblyComparison comparison, ApiScope scope)
+    {
+        comparison.TakeIn(scope);
+        Compare(appState, comparison);
+    }
+
+    /// <summary>Compares the assemblies of <paramref name="comparison"/>, as they are open now, in the
+    /// background, and shows what changed unless another comparison started or it was closed meanwhile.
+    /// Shows why when either is no longer open or the comparison fails.</summary>
+    private static async void Compare(AppState appState, AssemblyComparison comparison)
+    {
+        var left = FindOpen(appState, comparison.LeftPath);
+        if (left == null)
+        {
+            ShowClosed(appState, comparison, comparison.LeftPath);
+            return;
+        }
+        var right = FindOpen(appState, comparison.RightPath);
+        if (right == null)
+        {
+            ShowClosed(appState, comparison, comparison.RightPath);
+            return;
+        }
+        var scope = comparison.Scope;
+        var ticket = comparison.StartComparing();
+        var compared = await Background.Run(() => ApiDiff.Compare(left, right, scope, ticket.Token));
+        if (!comparison.FinishComparing(ticket))
+            return;
+        if (compared.Value == null)
+        {
+            ReportFailure(appState, comparison, left, right, compared.Error);
+            return;
+        }
+        comparison.Show(compared.Value);
+    }
+
+    /// <summary>The open assembly read from <paramref name="filePath"/> whose API can be compared; null when there is none.</summary>
+    private static LoadedAssembly? FindOpen(AppState appState, string filePath)
+    {
+        foreach (var assembly in appState.Assemblies.Assemblies)
+        {
+            if (!assembly.CanCompareApi)
+                continue;
+            if (string.Equals(assembly.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                return assembly;
+        }
+        return null;
+    }
+
+    private static void ShowClosed(AppState appState, AssemblyComparison comparison, string filePath)
+    {
+        var t = Strings.For(appState.Locale);
+        var name = Path.GetFileName(filePath);
+        comparison.ShowFailure(t.ComparisonAssemblyClosed(name));
+    }
+
+    private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedAssembly left, LoadedAssembly right, Exception? error)
+    {
+        var t = Strings.For(appState.Locale);
+        var title = t.ErrorCompare(left.NameAndVersion, right.NameAndVersion);
+        comparison.ShowFailure(title);
+        appState.ReportError(title, AppState.DescribeFailure(error, ""));
+    }
+}

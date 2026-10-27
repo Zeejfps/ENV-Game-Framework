@@ -10,7 +10,7 @@ using static ZGF.ILSpy.Navigation;
 namespace ZGF.ILSpy;
 
 /// <summary>The bar over a document: the path to what it shows, a crumb per node with an arrow after it
-/// that lists the node's children, and a search button; or, while it searches, the search box with the
+/// that lists the node's children, or the tools of a diagram or comparison it shows, and a search button; or, while it searches, the search box with the
 /// best matches under it. A crumb or child picked shows as one picked in the tree does; a match goes
 /// where a search result goes. Ctrl or the middle button opens either in a new tab.</summary>
 internal static class OmnibarView
@@ -73,10 +73,25 @@ internal static class OmnibarView
                         menuOwner = owner;
                 }
             }
+            ContentTools(ui, appState, tab);
             SearchArea(ui, panel);
             SearchButton(ui, panel);
         }
         ChildrenMenu(ui, appState, panel, menuOwner);
+    }
+
+    /// <summary>The tools of what the tab shows that no node stands for: a diagram's or a comparison's.</summary>
+    private static void ContentTools(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    {
+        switch (tab.Content)
+        {
+            case TabContent.Diagram:
+                DiagramView.Tools(ui, tab);
+                break;
+            case TabContent.Comparison comparison:
+                ComparisonView.Tools(ui, appState, tab, comparison.Assemblies);
+                break;
+        }
     }
 
     /// <summary>The node's icon and name, which gives up room, earlier crumbs first, while the path is

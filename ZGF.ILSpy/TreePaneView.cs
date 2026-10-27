@@ -219,6 +219,8 @@ internal static class TreePaneView
             PdbItems(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeCreateDiagram, enabled: node.Assembly.CanCreateDiagram, id: "create-diagram"))
             SaveDialogs.PickDiagramFolder(ui, appState, node.Assembly);
+        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeCompareWith, enabled: node.Assembly.CanCompareApi, id: "compare-with"))
+            ui.State.ComparisonPicker.Open(node.Assembly);
         if (node.Kind == NodeKind.Assembly)
             TargetFrameworkMenu(ui, appState, node.Assembly);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))

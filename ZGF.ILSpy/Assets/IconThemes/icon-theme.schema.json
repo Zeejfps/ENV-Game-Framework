@@ -483,6 +483,10 @@
           "description": "What an analysis looks for, such as uses or overrides.",
           "$ref": "#/definitions/icon"
         },
+        "comparison.swap": {
+          "description": "Swap the assemblies on the left and on the right.",
+          "$ref": "#/definitions/icon"
+        },
         "bookmarks.previous": {
           "description": "Go to the previous bookmark.",
           "$ref": "#/definitions/icon"

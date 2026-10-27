@@ -63,15 +63,6 @@ public static class Diagrams
         AddWithNeighbours(appState, tab, type);
     }
 
-    private static DocumentTab FindOrOpenEmptyTab(AppState appState)
-    {
-        var empty = FindEmptyActiveTab(appState);
-        if (empty == null)
-            return OpenNewTab(appState);
-        appState.EnqueueCommand(new ViewCommand.ShowTab(empty, Beside: null));
-        return empty;
-    }
-
     private static string TitleOf(AppState appState, CodeReference type)
     {
         var t = Strings.For(appState.Locale);

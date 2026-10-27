@@ -261,6 +261,11 @@
     // What an analysis looks for, such as uses or overrides.
     "analyzer.analysis": { "font": "lucide", "glyph": "E151" },
 
+    // A comparison of two assemblies.
+
+    // Swap the assemblies on the left and on the right.
+    "comparison.swap": { "font": "lucide", "glyph": "E24A" },
+
     // The bookmarks panel.
 
     // Go to the previous bookmark.

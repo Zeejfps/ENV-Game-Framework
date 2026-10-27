@@ -47,6 +47,21 @@ public sealed class DocumentTab
     /// <summary>The diagram the tab shows, or null while it shows none.</summary>
     public TypeDiagram? Diagram => (Content as TabContent.Diagram)?.Types;
 
+    /// <summary>The comparison the tab shows, or null while it shows none.</summary>
+    public AssemblyComparison? Comparison => (Content as TabContent.Comparison)?.Assemblies;
+
+    /// <summary>Whether navigating from the tab may show what it is asked for in its place: not while it
+    /// shows a diagram or a comparison, which are worked in rather than passed through.</summary>
+    public bool IsReplaceable
+    {
+        get
+        {
+            if (Diagram != null)
+                return false;
+            return Comparison == null;
+        }
+    }
+
     /// <summary>Where the view of the shown node stands, as the view last kept it, or null while there is none.</summary>
     public CodeViewPosition? Position
     {
@@ -189,6 +204,16 @@ public sealed class DocumentTab
         Content = new TabContent.Diagram(diagram);
     }
 
+    /// <summary>Shows <paramref name="comparison"/>, titled <paramref name="title"/>, cancelling what was in flight.</summary>
+    public void ShowComparison(string title, AssemblyComparison comparison)
+    {
+        PointElsewhere();
+        Node = null;
+        Location = null;
+        _title = title;
+        Content = new TabContent.Comparison(comparison);
+    }
+
     /// <summary>Shows nothing, as a new tab does, cancelling what was in flight.</summary>
     public void Clear()
     {
@@ -253,13 +278,14 @@ public sealed class DocumentTab
         Cancel();
     }
 
-    /// <summary>Cancels what is in flight for what the tab shows: its load, or its diagram's reading and
-    /// layout, the diagram closed for good.</summary>
+    /// <summary>Cancels what is in flight for what the tab shows: its load, its diagram's reading and
+    /// layout, or its comparison, the diagram or comparison closed for good.</summary>
     public void Cancel()
     {
         _work?.Cancel();
         _work = null;
         Diagram?.Close();
+        Comparison?.Close();
     }
 }
 

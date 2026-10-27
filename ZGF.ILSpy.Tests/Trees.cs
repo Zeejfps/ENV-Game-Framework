@@ -26,6 +26,15 @@ internal static class Trees
     /// is embedded in it.</summary>
     public static string EmbeddedPdbPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "EmbeddedPdb", "EmbeddedPdb.dll");
 
+    /// <summary>Version 1.0 of a small library, built from <c>Fixtures/ApiDiff/Older/Source</c>, to compare
+    /// with <see cref="ApiDiffNewerPath"/>.</summary>
+    public static string ApiDiffOlderPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "ApiDiff", "Older", "ApiDiffSample.dll");
+
+    /// <summary>Version 2.0 of the library at <see cref="ApiDiffOlderPath"/>, built from
+    /// <c>Fixtures/ApiDiff/Newer/Source</c>: members added, removed and declared differently, a namespace
+    /// added and one removed.</summary>
+    public static string ApiDiffNewerPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "ApiDiff", "Newer", "ApiDiffSample.dll");
+
     /// <summary><see cref="SampleAppPath"/> converted to WebCIL by the .NET WebAssembly SDK, wrapped in
     /// WebAssembly as Blazor ships it.</summary>
     public static string WebCilSamplePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "WebCil", "SampleApp.wasm");

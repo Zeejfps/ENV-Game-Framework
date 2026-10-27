@@ -33,6 +33,10 @@
     <None Remove="Fixtures\EmbeddedPdb\**" />
     <None Include="Fixtures\EmbeddedPdb\EmbeddedPdb.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures\WebCil\SampleApp.wasm" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="Fixtures\ApiDiff\**" />
+    <None Remove="Fixtures\ApiDiff\**" />
+    <None Include="Fixtures\ApiDiff\Older\ApiDiffSample.dll" Link="Fixtures\ApiDiff\Older\ApiDiffSample.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\ApiDiff\Newer\ApiDiffSample.dll" Link="Fixtures\ApiDiff\Newer\ApiDiffSample.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

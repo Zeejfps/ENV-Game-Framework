@@ -403,14 +403,14 @@ public static class Navigation
         return FindOriginToReplace(appState, destination.Origin);
     }
 
-    /// <summary><paramref name="origin"/> while it is open, unless it shows a diagram, which nothing
-    /// replaces; else null.</summary>
+    /// <summary><paramref name="origin"/> while it is open, unless it shows a diagram or a comparison,
+    /// which nothing replaces; else null.</summary>
     private static DocumentTab? FindOriginToReplace(AppState appState, DocumentTab? origin)
     {
         var open = appState.Tabs.KeepIfOpen(origin);
         if (open == null)
             return null;
-        if (open.Diagram != null)
+        if (!open.IsReplaceable)
             return null;
         return open;
     }
@@ -441,6 +441,16 @@ public static class Navigation
         if (destination.InNewTab)
             return false;
         return appState.PreviewTabs;
+    }
+
+    /// <summary>The active tab while it shows nothing, brought to the front, else a new tab.</summary>
+    internal static DocumentTab FindOrOpenEmptyTab(AppState appState)
+    {
+        var empty = FindEmptyActiveTab(appState);
+        if (empty == null)
+            return OpenNewTab(appState);
+        appState.EnqueueCommand(new ViewCommand.ShowTab(empty, Beside: null));
+        return empty;
     }
 
     /// <summary>Opens an empty tab, which the view docks beside the active one.</summary>
