@@ -11,8 +11,8 @@ public sealed class ReferencedTypesTests
     private static BrowseNode UsedList(LoadedAssembly assembly)
     {
         return assembly.Root.Child("References").Children
-            .Where(r => r.HasChildren)
-            .Select(r => r.Child("Referenced types"))
+            .SelectMany(r => r.Children)
+            .Where(c => c.Kind == NodeKind.ReferencedTypes)
             .SelectMany(t => t.Children)
             .Single(IsList);
     }
@@ -64,16 +64,6 @@ public sealed class ReferencedTypesTests
         Assert.NotNull(definition);
         Assert.Equal(NodeKind.Class, definition.Kind);
         Assert.Equal("List<T>", definition.Text);
-    }
-
-    [Fact]
-    public void A_reference_with_nothing_used_from_it_has_no_children()
-    {
-        var (_, assembly) = Trees.OpenTestAssembly();
-
-        var references = assembly.Root.Child("References").Children;
-
-        Assert.All(references, r => Assert.Equal(r.HasChildren, r.Children.Count == 1));
     }
 
     [Fact]

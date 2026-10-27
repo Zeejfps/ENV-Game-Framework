@@ -82,19 +82,11 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         if (!View.HasSelection)
             return;
         var selected = View.Selected!;
-        if (RootOf(selected) != gone)
+        if (selected.Root != gone)
             return;
         var counterpart = FindCounterpart(selected, replacement);
         if (counterpart != null)
             View.Select(counterpart, scrollIntoView: false);
-    }
-
-    private static BrowseNode RootOf(BrowseNode node)
-    {
-        var root = node;
-        while (root.Parent != null)
-            root = root.Parent;
-        return root;
     }
 
     /// <summary>The node standing where <paramref name="node"/> does, under <paramref name="root"/>

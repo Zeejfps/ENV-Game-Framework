@@ -121,6 +121,20 @@ public abstract class BrowseNode
 
     public BrowseNode? Parent { get; }
 
+    /// <summary>The root of the tree the node is in: the listed assembly, package or file it was found
+    /// under, whose <see cref="Assembly"/> differs from the node's under a reference's references.</summary>
+    public BrowseNode Root
+    {
+        get
+        {
+            var root = this;
+            while (root.Parent != null)
+                root = root.Parent;
+            return root;
+        }
+    }
+
+    /// <summary>The assembly the node is read from.</summary>
     public LoadedAssembly Assembly { get; }
 
     /// <summary>The entity this node defines, for type and member nodes; null otherwise.</summary>

@@ -140,18 +140,12 @@ internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode p
 {
     private protected override bool MayHaveChildren => !Assembly.File.AssemblyReferences.IsEmpty;
 
-    /// <summary>The references, sorted by name. What the assembly uses of them is read here, off the UI
-    /// thread, so that their rows can tell whether they have children without reading it there.</summary>
-    private protected override BrowseNode[] CreateChildren()
-    {
-        Assembly.ReadReferenceUsage();
-        return Assembly.File.AssemblyReferences
-            .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => (BrowseNode)new AssemblyReferenceNode(Assembly, this, r))
-            .ToArray();
-    }
+    private protected override BrowseNode[] CreateChildren() => AssemblyReferenceNode.ListReferences(Assembly, this);
 }
 
+/// <summary>A reference of an assembly: the types the assembly uses from it, then the references of the
+/// assembly it resolves to, found where following it finds it but not listed; only the types when it
+/// resolves to none.</summary>
 internal sealed class AssemblyReferenceNode : BrowseNode
 {
     public AssemblyReferenceNode(LoadedAssembly assembly, BrowseNode parent, AssemblyReference reference)
@@ -165,13 +159,40 @@ internal sealed class AssemblyReferenceNode : BrowseNode
 
     public override string FullName => AssemblyReference.FullName;
 
-    private protected override bool MayHaveChildren => Assembly.ReferenceUsage.Uses(AssemblyReference.Handle);
+    private protected override bool MayHaveChildren => true;
 
     private protected override BrowseNode[] CreateChildren()
     {
-        if (!MayHaveChildren)
-            return [];
-        return [new ReferencedTypesNode(Assembly, this, AssemblyReference.Handle)];
+        var children = new List<BrowseNode>();
+        if (Assembly.ReferenceUsage.Uses(AssemblyReference.Handle))
+            children.Add(new ReferencedTypesNode(Assembly, this, AssemblyReference.Handle));
+        var referenced = ResolveReferenced();
+        if (referenced != null)
+            children.AddRange(ListReferences(referenced, this));
+        return children.ToArray();
+    }
+
+    /// <summary>The assembly the reference resolves to, loaded if it is not; null when it cannot be found or read.</summary>
+    private LoadedAssembly? ResolveReferenced()
+    {
+        var referenced = Assembly.Resolver.ResolveAssembly(AssemblyReference);
+        if (referenced == null)
+            return null;
+        if (referenced.HasLoadError)
+            return null;
+        return referenced;
+    }
+
+    /// <summary>The references of <paramref name="assembly"/>, sorted by name, under <paramref name="parent"/>.
+    /// What the assembly uses of them is read here, off the UI thread, so that listing what each holds
+    /// never reads it there.</summary>
+    internal static BrowseNode[] ListReferences(LoadedAssembly assembly, BrowseNode parent)
+    {
+        assembly.ReadReferenceUsage();
+        return assembly.File.AssemblyReferences
+            .OrderBy(r => r.Name, NaturalStringComparer.Instance)
+            .Select(r => (BrowseNode)new AssemblyReferenceNode(assembly, parent, r))
+            .ToArray();
     }
 }
 

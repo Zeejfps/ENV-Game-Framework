@@ -136,8 +136,9 @@ public sealed class PresentationTests
     {
         var assembly = new AssemblyList().Open(AppStateDriver.FixturePath);
         var used = assembly.Root.Child("References").Children
-            .Where(r => r.HasChildren)
-            .SelectMany(r => r.Child("Referenced types").Children)
+            .SelectMany(r => r.Children)
+            .Where(c => c.Kind == NodeKind.ReferencedTypes)
+            .SelectMany(t => t.Children)
             .First(c => c.Text == "List<>");
         var tree = new BrowseTree();
 
