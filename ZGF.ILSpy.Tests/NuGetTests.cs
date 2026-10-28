@@ -21,12 +21,32 @@ public sealed class NuGetFeedTests
         var found = await feed.SearchAsync("json", includePrerelease: false);
 
         var packages = found.Packages;
-        Assert.Equal(["Newtonsoft.Json", "Tiny"], packages.Select(p => p.Id));
-        Assert.Equal(["13.0.3", "12.0.1"], packages[0].Versions.Select(v => v.Version));
+        Assert.Equal(["Newtonsoft.Json", "Tiny"], packages.Select(p => p.Id.Text));
+        Assert.Equal(["13.0.3", "12.0.1"], packages[0].Versions.Select(v => v.Version.Text));
         Assert.Equal("James Newton-King", packages[0].Authors);
         Assert.Equal("Ann, Bo", packages[1].Authors);
-        Assert.Equal(["1.0.0"], packages[1].Versions.Select(v => v.Version));
+        Assert.Equal(["1.0.0"], packages[1].Versions.Select(v => v.Version.Text));
         Assert.Equal(2, found.TotalHits);
+    }
+
+    [Fact]
+    public async Task A_search_leaves_out_packages_and_versions_no_folder_could_be_named_for()
+    {
+        var fake = new FakeFeed();
+        fake.AnswerSearches("""
+            { "totalHits": 4, "data": [
+                { "id": "..\\..\\Evil", "version": "1.0.0" },
+                { "id": "C:\\Evil", "version": "1.0.0" },
+                { "id": "Evil", "version": "1.0.0\\..\\.." },
+                { "id": "Tiny", "version": "2.0.0",
+                  "versions": [ { "version": "1.0.0" }, { "version": "../2.0.0" }, { "version": "2.0.0" } ] } ] }
+            """);
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        var package = Assert.Single((await feed.SearchAsync("evil", includePrerelease: false)).Packages);
+
+        Assert.Equal("Tiny", package.Id.Text);
+        Assert.Equal(["2.0.0", "1.0.0"], package.Versions.Select(v => v.Version.Text));
     }
 
     [Fact]
@@ -50,7 +70,7 @@ public sealed class NuGetFeedTests
         Assert.Equal(["logging", "structured"], package.Tags);
         Assert.Equal("https://serilog.net/", package.ProjectUrl);
         Assert.Equal(1, package.Vulnerabilities);
-        Assert.Equal(new FeedVersion("4.4.0", 5, "https://feed.test/reg/serilog/4.4.0.json"), package.Versions[0]);
+        Assert.Equal(new FeedVersion(PackageVersion.Parse("4.4.0")!, 5, "https://feed.test/reg/serilog/4.4.0.json"), package.Versions[0]);
     }
 
     [Fact]
@@ -69,7 +89,7 @@ public sealed class NuGetFeedTests
             """);
         var feed = new NuGetFeed(fake.Source, fake);
 
-        var details = await feed.ReadDetailsAsync("Tiny", new FeedVersion("1.0.0", 0, "https://feed.test/reg/tiny/1.0.0.json"));
+        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0")!, 0, "https://feed.test/reg/tiny/1.0.0.json"));
 
         Assert.Equal(new DateTimeOffset(2024, 5, 1, 10, 0, 0, TimeSpan.Zero), details.Published);
         Assert.Equal("MIT", details.License);
@@ -93,7 +113,7 @@ public sealed class NuGetFeedTests
         fake.Answer("https://feed.test/reg/tiny/1.0.0-beta.json", """{ "catalogEntry": { "licenseUrl": "https://license.test" } }""");
         var feed = new NuGetFeed(fake.Source, fake);
 
-        var details = await feed.ReadDetailsAsync("Tiny", new FeedVersion("1.0.0-Beta", 0, ""));
+        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0-Beta")!, 0, ""));
 
         Assert.Equal("https://license.test", details.LicenseUrl);
         Assert.Null(details.Published);
@@ -198,6 +218,9 @@ public sealed class NuGetFeedTests
 public sealed class PackageCacheTests
 {
     private static readonly byte[] PackageBytes = [1, 2, 3];
+    private static readonly PackageId Tiny = PackageId.Parse("Tiny")!;
+    private static readonly PackageId Gone = PackageId.Parse("Gone")!;
+    private static readonly PackageVersion OneZero = PackageVersion.Parse("1.0.0")!;
 
     [Fact]
     public async Task A_package_not_on_disk_is_downloaded_from_its_lower_case_url_and_kept()
@@ -207,11 +230,11 @@ public sealed class PackageCacheTests
         fake.Answer(FakeFeed.PackagesUrl + "tiny/1.0.0-beta/tiny.1.0.0-beta.nupkg", PackageBytes);
         var cache = new PackageCache(temp.PathOf("global"), temp.PathOf("downloads"));
 
-        var path = await cache.FetchAsync(new NuGetFeed(fake.Source, fake), "Tiny", "1.0.0-Beta+build.5");
+        var path = await cache.FetchAsync(new NuGetFeed(fake.Source, fake), Tiny, PackageVersion.Parse("1.0.0-Beta+build.5")!);
 
         Assert.Equal(temp.PathOf(Path.Combine("downloads", "tiny", "1.0.0-beta", "tiny.1.0.0-beta.nupkg")), path);
         Assert.Equal(PackageBytes, File.ReadAllBytes(path));
-        Assert.Equal(path, cache.Find("Tiny", "1.0.0-beta"));
+        Assert.Equal(path, cache.Find(Tiny, PackageVersion.Parse("1.0.0-beta")!));
     }
 
     [Fact]
@@ -222,7 +245,7 @@ public sealed class PackageCacheTests
         var fake = new FakeFeed();
         var cache = new PackageCache(temp.PathOf("global"), temp.PathOf("downloads"));
 
-        var path = await cache.FetchAsync(new NuGetFeed(fake.Source, fake), "Tiny", "1.0.0");
+        var path = await cache.FetchAsync(new NuGetFeed(fake.Source, fake), Tiny, OneZero);
 
         Assert.Equal(restored, path);
         Assert.Empty(fake.Requested);
@@ -235,10 +258,71 @@ public sealed class PackageCacheTests
         var fake = new FakeFeed();
         var cache = new PackageCache(temp.PathOf("global"), temp.PathOf("downloads"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => cache.FetchAsync(new NuGetFeed(fake.Source, fake), "Gone", "1.0.0"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => cache.FetchAsync(new NuGetFeed(fake.Source, fake), Gone, OneZero));
 
-        Assert.Null(cache.Find("Gone", "1.0.0"));
+        Assert.Null(cache.Find(Gone, OneZero));
         Assert.False(File.Exists(temp.PathOf(Path.Combine("downloads", "gone", "1.0.0", "gone.1.0.0.nupkg.download"))));
+    }
+}
+
+public sealed class PackageIdTests
+{
+    [Theory]
+    [InlineData("Newtonsoft.Json")]
+    [InlineData("Microsoft.Extensions.DependencyInjection")]
+    [InlineData("my_package-2")]
+    public void An_id_NuGet_allows_parses(string text)
+    {
+        Assert.Equal(text, PackageId.Parse(text)?.Text);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("..")]
+    [InlineData("..\\x")]
+    [InlineData("../x")]
+    [InlineData("C:\\x")]
+    [InlineData("/x")]
+    [InlineData("a..b")]
+    [InlineData(".a")]
+    [InlineData("a.")]
+    [InlineData("a\n")]
+    public void An_id_that_could_name_another_folder_does_not_parse(string text)
+    {
+        Assert.Null(PackageId.Parse(text));
+    }
+
+    [Fact]
+    public void An_id_longer_than_NuGet_allows_does_not_parse()
+    {
+        Assert.Null(PackageId.Parse(new string('a', 101)));
+    }
+}
+
+public sealed class PackageVersionTests
+{
+    [Theory]
+    [InlineData("1.0", "1.0")]
+    [InlineData("1.0.0.0", "1.0.0.0")]
+    [InlineData("1.0.0-Beta.2", "1.0.0-beta.2")]
+    [InlineData("1.0.0-rc+build.5", "1.0.0-rc")]
+    public void A_version_NuGet_allows_parses_and_is_filed_in_lower_case_without_its_metadata(string text, string filed)
+    {
+        Assert.Equal(filed, PackageVersion.Parse(text)?.Filed);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("1")]
+    [InlineData("1.0.0.0.0")]
+    [InlineData("..")]
+    [InlineData("1.0/../..")]
+    [InlineData("1.0.0-..")]
+    [InlineData("1.0.0\\x")]
+    [InlineData("1.0\n")]
+    public void A_version_that_could_name_another_folder_does_not_parse(string text)
+    {
+        Assert.Null(PackageVersion.Parse(text));
     }
 }
 

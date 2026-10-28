@@ -62,9 +62,9 @@ internal static class NuGetDetailsView
     private static void Details(Ui<UiState> ui, NuGetPicker picker, FeedPackage package)
     {
         var theme = ui.Theme;
-        using (ui.Id(package.Id))
+        using (ui.Id(package.Id.Text))
         {
-            var details = picker.DetailsOf(package, picker.Version);
+            var details = picker.Version is { } version ? picker.DetailsOf(package, version) : null;
             using (ui.Column(new Box { Width = Sizing.Grow(), Padding = theme.ShellPaddingX, Gap = theme.Gap }))
             {
                 Header(ui, picker, package);
@@ -99,7 +99,7 @@ internal static class NuGetDetailsView
             NuGetPickerView.DrawIcon(ui, picker, package, IconSide);
             using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
             {
-                ui.Text(package.Id, size: theme.FontSize * TitleScale, bold: true, wrap: true);
+                ui.Text(package.Id.Text, size: theme.FontSize * TitleScale, bold: true, wrap: true);
                 if (package.Authors.Length > 0)
                     ui.Text(AuthorsText(ui, package), color: theme.TextMuted, wrap: true);
                 if (package.Verified)
@@ -131,14 +131,15 @@ internal static class NuGetDetailsView
         using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
         {
             ui.Text(t.NugetVersion, new Box { Width = LabelWidth }, color: theme.TextMuted);
-            var width = Math.Clamp(ui.SelectButtonWidth(picker.Versions), VersionMinWidth, VersionMaxWidth);
+            var width = Math.Clamp(ui.SelectButtonWidth(picker.VersionTexts), VersionMinWidth, VersionMaxWidth);
             var enabled = !picker.IsDownloading && picker.ShowsWhatWasAsked;
-            ui.Select("version", ref picker.Version, picker.Versions, VersionLabel, Sizing.Fixed(width), t.NugetVersion, enabled);
+            if (picker.Version is { } version && ui.Select("version", ref version, picker.Versions, VersionLabel, Sizing.Fixed(width), t.NugetVersion, enabled))
+                picker.Version = version;
             DetailsStatus(ui, picker, package, details);
         }
     }
 
-    private static string VersionLabel(string version) => version;
+    private static string VersionLabel(PackageVersion version) => version.Text;
 
     private static void DetailsStatus(Ui<UiState> ui, NuGetPicker picker, FeedPackage package, VersionDetails? details)
     {
@@ -153,8 +154,8 @@ internal static class NuGetDetailsView
         }
         if (details.Error == null)
             return;
-        if (ui.Button(ui.State.Strings.NugetRetry, id: "retry-details", variant: ButtonVariant.Ghost))
-            picker.RetryDetails(package, picker.Version);
+        if (ui.Button(ui.State.Strings.NugetRetry, id: "retry-details", variant: ButtonVariant.Ghost) && picker.Version is { } version)
+            picker.RetryDetails(package, version);
     }
 
     /// <summary>That the version's details could not be read; or why the version should not be opened

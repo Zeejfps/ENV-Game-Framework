@@ -24,7 +24,7 @@ public sealed class NuGetPicker
     private readonly Action<AppProblem> _reportError;
     private readonly List<FeedPackage> _results = new();
     private readonly Dictionary<string, PackageIcon> _icons = new();
-    private readonly Dictionary<(string Feed, string Id, string Version), VersionDetails> _details = new();
+    private readonly Dictionary<(string Feed, PackageId Id, PackageVersion Version), VersionDetails> _details = new();
     private CancellationTokenSource _fetches = new();
     private int _iconCount;
     private NuGetSetup? _setup;
@@ -63,8 +63,8 @@ public sealed class NuGetPicker
 
     public bool IncludePrerelease;
 
-    /// <summary>The version of the selected package to open.</summary>
-    public string Version = "";
+    /// <summary>The version of the selected package to open; null while none is selected.</summary>
+    public PackageVersion? Version;
 
     public ItemSelection<FeedPackage> Selection { get; } = new();
 
@@ -131,7 +131,10 @@ public sealed class NuGetPicker
     }
 
     /// <summary>The versions of the selected package, newest first.</summary>
-    public string[] Versions { get; private set; } = [];
+    public PackageVersion[] Versions { get; private set; } = [];
+
+    /// <summary>How <see cref="Versions"/> are written, in their order.</summary>
+    public string[] VersionTexts { get; private set; } = [];
 
     public bool IsSearching => _search != null;
 
@@ -174,7 +177,7 @@ public sealed class NuGetPicker
                 return false;
             if (!ShowsWhatWasAsked)
                 return false;
-            return Version.Length > 0;
+            return Version != null;
         }
     }
 
@@ -530,7 +533,7 @@ public sealed class NuGetPicker
     /// <summary>What the feed says of <paramref name="version"/> of <paramref name="package"/>, read
     /// in the background the first time it is asked for; null while no page of packages is shown or
     /// the package lists no such version.</summary>
-    public VersionDetails? DetailsOf(FeedPackage package, string version)
+    public VersionDetails? DetailsOf(FeedPackage package, PackageVersion version)
     {
         if (_shown == null)
             return null;
@@ -548,17 +551,17 @@ public sealed class NuGetPicker
     }
 
     /// <summary>Reads the details of <paramref name="version"/> of <paramref name="package"/> again, after they failed.</summary>
-    public void RetryDetails(FeedPackage package, string version)
+    public void RetryDetails(FeedPackage package, PackageVersion version)
     {
         if (_shown == null)
             return;
         _details.Remove((_shown.Feed.Source.Url, package.Id, version));
     }
 
-    private static FeedVersion? FindVersion(FeedPackage package, string version) =>
+    private static FeedVersion? FindVersion(FeedPackage package, PackageVersion version) =>
         package.Versions.FirstOrDefault(v => v.Version == version);
 
-    private async void ReadDetails(NuGetFeed feed, string id, FeedVersion version, VersionDetails details)
+    private async void ReadDetails(NuGetFeed feed, PackageId id, FeedVersion version, VersionDetails details)
     {
         var token = _fetches.Token;
         var read = await Background.Wait(feed.ReadDetailsAsync(id, version, token));
@@ -586,13 +589,17 @@ public sealed class NuGetPicker
         _versionsOf = package;
         if (package == null)
         {
-            Version = "";
+            Version = null;
             Versions = [];
+            VersionTexts = [];
             return;
         }
         Version = package.Version;
         Versions = package.Versions
             .Select(v => v.Version)
+            .ToArray();
+        VersionTexts = Versions
+            .Select(v => v.Text)
             .ToArray();
     }
 
@@ -601,7 +608,7 @@ public sealed class NuGetPicker
     {
         get
         {
-            if (Selected == null)
+            if (Selected == null || Version == null)
                 return 0;
             var listed = FindVersion(Selected, Version);
             if (listed == null)
@@ -614,10 +621,9 @@ public sealed class NuGetPicker
     /// into the cache, in the background, for <see cref="TakeDownloaded"/> to hand over.</summary>
     public async void Download()
     {
-        if (!CanOpen)
+        if (!CanOpen || Version is not { } version)
             return;
         var package = Selected!;
-        var version = Version;
         var run = new CancellationTokenSource();
         _download = run;
         DownloadingName = $"{package.Id} {version}";

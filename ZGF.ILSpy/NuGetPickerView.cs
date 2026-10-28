@@ -236,7 +236,7 @@ internal static class NuGetPickerView
     {
         var theme = ui.Theme;
         var box = new Box { Gap = theme.Gap, AlignY = Align.Start, Padding = new Spacing(theme.ShellPaddingX, theme.Gap) };
-        using (ui.Id(package.Id))
+        using (ui.Id(package.Id.Text))
         using (var row = list.Row(index, ui.GetId("row"), box))
         {
             DrawIcon(ui, picker, package, RowIconSide);
@@ -319,11 +319,11 @@ internal static class NuGetPickerView
         var nameColor = selected ? theme.SelectionText : theme.Text;
         using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
         {
-            ui.Text(package.Id, color: nameColor, bold: true, overflow: TextOverflow.Ellipsis);
+            ui.Text(package.Id.Text, color: nameColor, bold: true, overflow: TextOverflow.Ellipsis);
             if (package.Verified)
                 ui.Icon(new UiIcon(ui.State.Icons.NugetVerified, theme.AccentText));
             Authors(ui, package);
-            ui.Text(package.Version, color: theme.TextMuted, size: theme.FontSizeSmall);
+            ui.Text(package.Version.Text, color: theme.TextMuted, size: theme.FontSizeSmall);
         }
     }
 

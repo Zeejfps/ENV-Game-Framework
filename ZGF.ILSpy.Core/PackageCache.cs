@@ -7,15 +7,13 @@ namespace ZGF.ILSpy.Core;
 /// </summary>
 public sealed class PackageCache(string globalPackagesFolder, string downloadFolder)
 {
-    private const char BuildMetadataSeparator = '+';
-
     /// <summary>The folder the app downloads packages into for the user running it.</summary>
     public static string UserDownloadFolder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZGF.ILSpy", "packages");
 
     /// <summary>The package file of <paramref name="id"/> at <paramref name="version"/> already on disk,
     /// or null.</summary>
-    public string? Find(string id, string version)
+    public string? Find(PackageId id, PackageVersion version)
     {
         var restored = PathIn(globalPackagesFolder, id, version);
         if (File.Exists(restored))
@@ -30,7 +28,7 @@ public sealed class PackageCache(string globalPackagesFolder, string downloadFol
     /// disk, else one downloaded from <paramref name="feed"/> now.</summary>
     /// <exception cref="HttpRequestException">The feed could not be reached, or has no such package.</exception>
     /// <exception cref="IOException">The package could not be written.</exception>
-    public async Task<string> FetchAsync(NuGetFeed feed, string id, string version, CancellationToken cancellationToken = default)
+    public async Task<string> FetchAsync(NuGetFeed feed, PackageId id, PackageVersion version, CancellationToken cancellationToken = default)
     {
         var found = Find(id, version);
         if (found != null)
@@ -42,20 +40,10 @@ public sealed class PackageCache(string globalPackagesFolder, string downloadFol
 
     /// <summary>Where a package sits in a folder laid out as the global packages folder is:
     /// <c>{id}/{version}/{id}.{version}.nupkg</c>, in lower case.</summary>
-    private static string PathIn(string folder, string id, string version)
+    private static string PathIn(string folder, PackageId id, PackageVersion version)
     {
-        var lowerId = id.ToLowerInvariant();
-        var lowerVersion = NormalizeVersion(version);
+        var lowerId = id.Lower;
+        var lowerVersion = version.Filed;
         return Path.Combine(folder, lowerId, lowerVersion, $"{lowerId}.{lowerVersion}.nupkg");
-    }
-
-    /// <summary><paramref name="version"/> as packages are filed under it: in lower case, without
-    /// its build metadata.</summary>
-    internal static string NormalizeVersion(string version)
-    {
-        var at = version.IndexOf(BuildMetadataSeparator);
-        if (at >= 0)
-            version = version.Substring(0, at);
-        return version.ToLowerInvariant();
     }
 }

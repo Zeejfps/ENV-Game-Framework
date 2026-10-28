@@ -5,7 +5,7 @@ namespace ZGF.ILSpy.Core;
 /// and, newest first, every version listed with it. Text a feed leaves out is empty, and counts it
 /// leaves out are 0.
 /// </summary>
-public sealed record FeedPackage(string Id, string Version, string Description, string Authors, string IconUrl, IReadOnlyList<FeedVersion> Versions)
+public sealed record FeedPackage(PackageId Id, PackageVersion Version, string Description, string Authors, string IconUrl, IReadOnlyList<FeedVersion> Versions)
 {
     /// <summary>How many times every version was downloaded.</summary>
     public long TotalDownloads { get; init; }
@@ -28,7 +28,7 @@ public sealed record FeedPackage(string Id, string Version, string Description, 
 
 /// <summary>A version a feed lists for a package, how many times it was downloaded, and where the feed
 /// describes it in full; empty when the search does not say.</summary>
-public sealed record FeedVersion(string Version, long Downloads, string DetailsUrl);
+public sealed record FeedVersion(PackageVersion Version, long Downloads, string DetailsUrl);
 
 /// <summary>A page of a feed's search: the packages on it, the closest first, and how many match in all.</summary>
 public sealed record FeedPage(IReadOnlyList<FeedPackage> Packages, int TotalHits);

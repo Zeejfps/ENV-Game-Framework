@@ -84,7 +84,7 @@ public sealed class NuGetFeed
     /// read from where the search said the feed describes it, else from the feed's registrations.</summary>
     /// <exception cref="HttpRequestException">The feed could not be reached, or has no such version.</exception>
     /// <exception cref="InvalidDataException">The feed describes no versions, or answered with something else.</exception>
-    public async Task<PackageVersionDetails> ReadDetailsAsync(string id, FeedVersion version, CancellationToken cancellationToken = default)
+    public async Task<PackageVersionDetails> ReadDetailsAsync(PackageId id, FeedVersion version, CancellationToken cancellationToken = default)
     {
         var url = await FindDetailsUrlAsync(id, version, cancellationToken).ConfigureAwait(false);
         using var leaf = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
@@ -94,16 +94,14 @@ public sealed class NuGetFeed
         return await ReadCatalogEntryAsync(entry, listedAt, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string> FindDetailsUrlAsync(string id, FeedVersion version, CancellationToken cancellationToken)
+    private async Task<string> FindDetailsUrlAsync(PackageId id, FeedVersion version, CancellationToken cancellationToken)
     {
         if (version.DetailsUrl.Length > 0)
             return version.DetailsUrl;
         var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
         if (index.Registrations == null)
             throw new InvalidDataException($"The service index of {Source.Url} names no {RegistrationsType}.");
-        var lowerId = id.ToLowerInvariant();
-        var lowerVersion = PackageCache.NormalizeVersion(version.Version);
-        return $"{index.Registrations.TrimEnd('/')}/{lowerId}/{lowerVersion}.json";
+        return $"{index.Registrations.TrimEnd('/')}/{id.Lower}/{version.Version.Filed}.json";
     }
 
     /// <summary>The details in a catalog entry, which a registration leaf gives inline or as the URL to read it from.</summary>
@@ -121,7 +119,7 @@ public sealed class NuGetFeed
     /// <paramref name="path"/>, which is replaced only once the whole file is in.</summary>
     /// <exception cref="HttpRequestException">The feed could not be reached, or has no such package.</exception>
     /// <exception cref="IOException">The file could not be written.</exception>
-    public async Task DownloadAsync(string id, string version, string path, CancellationToken cancellationToken = default)
+    public async Task DownloadAsync(PackageId id, PackageVersion version, string path, CancellationToken cancellationToken = default)
     {
         var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
         var url = PackageUrl(index.PackageFolder, id, version);
@@ -132,10 +130,10 @@ public sealed class NuGetFeed
 
     /// <summary>Where the feed serves a package file: <c>{folder}/{id}/{version}/{id}.{version}.nupkg</c>,
     /// in lower case, the version without its build metadata.</summary>
-    private static string PackageUrl(string folder, string id, string version)
+    private static string PackageUrl(string folder, PackageId id, PackageVersion version)
     {
-        var lowerId = id.ToLowerInvariant();
-        var lowerVersion = PackageCache.NormalizeVersion(version);
+        var lowerId = id.Lower;
+        var lowerVersion = version.Filed;
         return $"{folder.TrimEnd('/')}/{lowerId}/{lowerVersion}/{lowerId}.{lowerVersion}.nupkg";
     }
 

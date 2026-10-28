@@ -21,7 +21,10 @@ internal static class FeedJson
     {
         var packages = new List<FeedPackage>();
         foreach (var package in ReadArray(root, "data").EnumerateArray())
-            packages.Add(ReadPackage(package));
+        {
+            if (ReadPackage(package) is { } read)
+                packages.Add(read);
+        }
         return packages;
     }
 
@@ -33,11 +36,16 @@ internal static class FeedJson
         return Math.Max(total, onPage);
     }
 
-    private static FeedPackage ReadPackage(JsonElement package)
+    /// <summary>The package <paramref name="package"/> describes; null when its id or version is none
+    /// NuGet allows.</summary>
+    private static FeedPackage? ReadPackage(JsonElement package)
     {
-        var version = ReadString(package, "version");
+        var id = PackageId.Parse(ReadString(package, "id"));
+        var version = PackageVersion.Parse(ReadString(package, "version"));
+        if (id == null || version == null)
+            return null;
         return new FeedPackage(
-            ReadString(package, "id"),
+            id,
             version,
             ReadString(package, "description"),
             ReadNames(package, "authors"),
@@ -54,22 +62,27 @@ internal static class FeedJson
         };
     }
 
-    /// <summary>The versions listed with the package, newest first; just <paramref name="latest"/>
-    /// when the feed lists none.</summary>
-    private static List<FeedVersion> ReadVersions(JsonElement package, string latest)
+    /// <summary>The versions listed with the package, newest first, leaving out those NuGet allows no
+    /// such version of; just <paramref name="latest"/> when the feed lists none.</summary>
+    private static List<FeedVersion> ReadVersions(JsonElement package, PackageVersion latest)
     {
         var versions = new List<FeedVersion>();
         foreach (var entry in ReadOptionalArray(package, "versions"))
-            versions.Add(ReadVersion(entry));
+        {
+            if (ReadVersion(entry) is { } read)
+                versions.Add(read);
+        }
         versions.Reverse();
         if (versions.Count == 0)
             versions.Add(new FeedVersion(latest, 0, ""));
         return versions;
     }
 
-    private static FeedVersion ReadVersion(JsonElement entry)
+    private static FeedVersion? ReadVersion(JsonElement entry)
     {
-        var version = ReadString(entry, "version");
+        var version = PackageVersion.Parse(ReadString(entry, "version"));
+        if (version == null)
+            return null;
         var downloads = ReadLong(entry, "downloads");
         var detailsUrl = ReadString(entry, "@id");
         return new FeedVersion(version, downloads, detailsUrl);

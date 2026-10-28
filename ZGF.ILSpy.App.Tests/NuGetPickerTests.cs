@@ -79,10 +79,10 @@ public sealed class NuGetPickerTests : IDisposable
 
         var picker = OpenPicker(posted);
 
-        Assert.Equal("Fixtures", Assert.Single(picker.Results).Id);
-        Assert.Equal("Fixtures", picker.Selected!.Id);
-        Assert.Equal("2.0.0", picker.Version);
-        Assert.Equal(["2.0.0", "1.0.0"], picker.Versions);
+        Assert.Equal("Fixtures", Assert.Single(picker.Results).Id.Text);
+        Assert.Equal("Fixtures", picker.Selected!.Id.Text);
+        Assert.Equal("2.0.0", picker.Version?.Text);
+        Assert.Equal(["2.0.0", "1.0.0"], picker.VersionTexts);
         Assert.True(picker.CanOpen);
     }
 
@@ -230,11 +230,11 @@ public sealed class NuGetPickerTests : IDisposable
         _fake.AnswerSearches(PackageWithDetails);
         var picker = OpenPicker(posted);
 
-        var failed = picker.DetailsOf(picker.Selected!, "2.0.0")!;
+        var failed = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!)!;
         Poll.Until(() => !failed.IsLoading, posted.Run);
         _fake.Answer(DetailsUrl, """{ "catalogEntry": { "licenseExpression": "MIT" } }""");
-        picker.RetryDetails(picker.Selected!, "2.0.0");
-        var retried = picker.DetailsOf(picker.Selected!, "2.0.0")!;
+        picker.RetryDetails(picker.Selected!, PackageVersion.Parse("2.0.0")!);
+        var retried = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!)!;
         Poll.Until(() => !retried.IsLoading, posted.Run);
 
         Assert.NotNull(failed.Error);
@@ -287,9 +287,9 @@ public sealed class NuGetPickerTests : IDisposable
         _fake.Answer(DetailsUrl, """{ "catalogEntry": { "licenseExpression": "MIT" } }""");
         var picker = OpenPicker(posted);
 
-        var details = picker.DetailsOf(picker.Selected!, "2.0.0")!;
+        var details = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!)!;
         Poll.Until(() => !details.IsLoading, posted.Run);
-        var again = picker.DetailsOf(picker.Selected!, "2.0.0");
+        var again = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!);
 
         Assert.Equal("MIT", details.Details!.License);
         Assert.Same(details, again);
@@ -328,7 +328,7 @@ public sealed class NuGetPickerTests : IDisposable
         _fake.Answer(FakeFeed.PackagesUrl + "fixtures/1.0.0/fixtures.1.0.0.nupkg", [1, 2, 3]);
         var picker = OpenPicker(posted);
 
-        picker.Version = "1.0.0";
+        picker.Version = PackageVersion.Parse("1.0.0");
         picker.Download();
         Poll.Until(() => !picker.IsDownloading, posted.Run);
 
@@ -404,7 +404,7 @@ public sealed class NuGetPickerTests : IDisposable
         app.RunUntil(() => app.AppState.Assemblies.Listed.Count > 0);
         app.Settle(2);
 
-        Assert.Equal("1.0.0", picked);
+        Assert.Equal("1.0.0", picked?.Text);
         Assert.False(picker.IsOpen);
         Assert.True(app.Frames.Drew("fixtures.1.0.0.nupkg"));
     }
