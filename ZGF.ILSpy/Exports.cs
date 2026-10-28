@@ -84,8 +84,7 @@ public static class Exports
         var language = appState.Language;
         var options = appState.DecompilerOptions;
         var job = new ExportJob(node.Text, CodeKindOf(language), FolderOf(path));
-        var failure = Strings.For(appState.Locale).ErrorSaveCode(node.Text);
-        RunExport(appState, job, failure, s => SaveCodeFile(node, language, options, path, s.Token), (r, _) => r.Listing(path));
+        RunExport(appState, job, node.Text, s => SaveCodeFile(node, language, options, path, s.Token), (r, _) => r.Listing(path));
     }
 
     private static ExportKind CodeKindOf(DecompilationLanguage language)
@@ -106,10 +105,9 @@ public static class Exports
 
     /// <summary>Queues <paramref name="job"/> and shows the exports panel, where it waits, runs and
     /// ends. Once its turn comes, does <paramref name="work"/> in the background, then records how it
-    /// ended, with <paramref name="failure"/> as the problem when it failed, and lets
-    /// <paramref name="complete"/> add what a finished one wrote. One taken out of the queue leaves
-    /// nothing behind.</summary>
-    private static async void RunExport<T>(AppState appState, ExportJob job, string failure, Func<ExportStart, T> work,
+    /// ended, exporting <paramref name="subject"/> as a failure tells, and lets <paramref name="complete"/>
+    /// add what a finished one wrote. One taken out of the queue leaves nothing behind.</summary>
+    private static async void RunExport<T>(AppState appState, ExportJob job, string subject, Func<ExportStart, T> work,
         Func<ExportReport, T, ExportReport> complete)
     {
         appState.EnqueueCommand(new ViewCommand.OpenPanel(DockPanels.Exports));
@@ -122,7 +120,7 @@ public static class Exports
         var report = outcome switch
         {
             Outcome<T>.Ok ok => complete(ExportReport.Finished(start.Run, job, clock.Elapsed), ok.Value),
-            Outcome<T>.Failed failed => ExportReport.Ended(start.Run, job, failed.Error, failure, clock.Elapsed),
+            Outcome<T>.Failed failed => ExportReport.Ended(start.Run, job, failed.Error, subject, clock.Elapsed),
             _ => throw new UnreachableException(),
         };
         appState.FinishedExports.Add(report);
@@ -138,17 +136,15 @@ public static class Exports
     {
         var withExtras = extras ?? ProjectExtras.None;
         var options = appState.DecompilerOptions;
-        var t = Strings.For(appState.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(projectPath), ExportKind.Project, FolderOf(projectPath));
-        var failure = t.ErrorExportProject(assembly.Name);
-        RunExport(appState, job, failure, s => AssemblyExport.ExportProject(assembly, options, projectPath, withExtras, s.Progress, s.Token),
-            (r, project) => r.WithProjects([project], projectPath, t));
+        RunExport(appState, job, assembly.Name, s => AssemblyExport.ExportProject(assembly, options, projectPath, withExtras, s.Progress, s.Token),
+            (r, project) => r.WithProjects([project], projectPath));
     }
 
     /// <summary><paramref name="report"/> listing <paramref name="first"/>, each of
     /// <paramref name="projects"/> and the PDBs written beside them as written, with the parts the
     /// projects could not decompile and the PDBs that could not be written as its problems.</summary>
-    private static ExportReport WithProjects(this ExportReport report, IReadOnlyList<ExportedProject> projects, string first, Strings t)
+    private static ExportReport WithProjects(this ExportReport report, IReadOnlyList<ExportedProject> projects, string first)
     {
         var pdbs = projects
             .Where(static p => p.PdbPath != null)
@@ -161,10 +157,10 @@ public static class Exports
             .ToList();
         var pdbProblems = projects
             .Where(static p => p.PdbFailure != null)
-            .Select(p => DescribePdbFailure(t, p.PdbFailure!));
+            .Select(static p => ProblemOf(p.PdbFailure!));
         var problems = projects
             .SelectMany(static p => p.Errors)
-            .Select(static e => new ExportProblem(e.Message, e.Details))
+            .Select(static ExportProblem (e) => new ExportProblem.NotDecompiled(e))
             .Concat(pdbProblems)
             .ToList();
         return report with { Written = written, Problems = problems };
@@ -175,10 +171,9 @@ public static class Exports
     private static void ExportSolution(AppState appState, List<SolutionProject> projects, string solutionPath, ProjectExtras extras)
     {
         var options = appState.DecompilerOptions;
-        var t = Strings.For(appState.Locale);
         var job = new ExportJob(Path.GetFileNameWithoutExtension(solutionPath), ExportKind.Solution, FolderOf(solutionPath));
-        RunExport(appState, job, t.ErrorExportSolution, s => AssemblyExport.ExportSolution(projects, options, solutionPath, extras, s.Progress, s.Token),
-            (r, exported) => r.WithProjects(exported, solutionPath, t));
+        RunExport(appState, job, "", s => AssemblyExport.ExportSolution(projects, options, solutionPath, extras, s.Progress, s.Token),
+            (r, exported) => r.WithProjects(exported, solutionPath));
     }
 
     /// <summary>The assembly of the node the active tab shows, or null.</summary>
@@ -213,8 +208,7 @@ public static class Exports
     {
         var options = appState.DecompilerOptions;
         var job = new ExportJob(assembly.Name, ExportKind.Pdb, FolderOf(path));
-        var failure = Strings.For(appState.Locale).ErrorGeneratePdb(assembly.Name);
-        RunExport(appState, job, failure, s => GeneratePdbFile(assembly, options, path, s), (r, _) => r.Listing(path));
+        RunExport(appState, job, assembly.Name, s => GeneratePdbFile(assembly, options, path, s), (r, _) => r.Listing(path));
     }
 
     private static bool GeneratePdbFile(LoadedAssembly assembly, DecompilerOptions options, string path, ExportStart start)
@@ -229,8 +223,7 @@ public static class Exports
     {
         var diagramFolder = Path.Combine(folder, assembly.Name + DiagramFolderSuffix);
         var job = new ExportJob(assembly.Name, ExportKind.Diagram, diagramFolder);
-        var failure = Strings.For(appState.Locale).ErrorCreateDiagram(assembly.Name);
-        RunExport(appState, job, failure, s => ClassDiagrams.Write(assembly, diagramFolder, s.Progress, s.Token),
+        RunExport(appState, job, assembly.Name, s => ClassDiagrams.Write(assembly, diagramFolder, s.Progress, s.Token),
             (r, page) => OpenDiagram(appState, r, page));
     }
 
@@ -248,16 +241,15 @@ public static class Exports
     {
         var options = appState.DecompilerOptions;
         var assemblies = appState.Assemblies.Assemblies;
-        var t = Strings.For(appState.Locale);
         var job = new ExportJob(Path.GetFileName(folder), ExportKind.Pdbs, folder);
-        RunExport(appState, job, t.ErrorGeneratePdbs, s => AssemblyExport.GeneratePdbs(assemblies, options, folder, s.Progress, s.Token),
-            (r, failures) => r.WithPdbs(assemblies, failures, folder, t));
+        RunExport(appState, job, "", s => AssemblyExport.GeneratePdbs(assemblies, options, folder, s.Progress, s.Token),
+            (r, failures) => r.WithPdbs(assemblies, failures, folder));
     }
 
     /// <summary><paramref name="report"/> listing the PDB of each of <paramref name="assemblies"/> that
     /// is not among <paramref name="failures"/> as written, and the failures as its problems.</summary>
     private static ExportReport WithPdbs(this ExportReport report, IReadOnlyList<LoadedAssembly> assemblies, List<PdbFailure> failures,
-        string folder, Strings t)
+        string folder)
     {
         var failed = failures
             .Select(static f => f.Assembly)
@@ -266,16 +258,16 @@ public static class Exports
             .Where(a => !failed.Contains(a))
             .Select(a => Path.Combine(folder, a.PdbFileName))
             .ToList();
-        var problems = failures.ConvertAll(f => DescribePdbFailure(t, f));
+        var problems = failures.ConvertAll(ProblemOf);
         return report with { Written = written, Problems = problems };
     }
 
-    private static ExportProblem DescribePdbFailure(Strings t, PdbFailure failure)
+    private static ExportProblem ProblemOf(PdbFailure failure)
     {
         var name = failure.Assembly.Name;
         if (failure.Error == null)
-            return new ExportProblem(t.ErrorNoPdbEntry(name));
-        return new ExportProblem($"{name}: {failure.Error.Message}", failure.Error.Details);
+            return new ExportProblem.NoPdbEntry(name);
+        return new ExportProblem.PdbNotWritten(name, failure.Error);
     }
 
     /// <summary>Writes every file in the folder of a package that <paramref name="node"/> lists into
@@ -285,29 +277,27 @@ public static class Exports
     {
         var package = node.Assembly.Package!;
         var packageFolder = node.PackageFolder!;
-        var t = Strings.For(appState.Locale);
         var job = new ExportJob(node.Text, ExportKind.Files, folder);
-        var failure = t.ErrorExtractFiles(node.Text);
-        RunExport(appState, job, failure, s => package.ExtractFolder(packageFolder, folder, s.Progress, s.Token),
-            (r, extracted) => r.WithExtracted(extracted, t));
+        RunExport(appState, job, node.Text, s => package.ExtractFolder(packageFolder, folder, s.Progress, s.Token),
+            (r, extracted) => r.WithExtracted(extracted));
     }
 
     /// <summary><paramref name="report"/> listing the files <paramref name="extracted"/> wrote, and those
     /// it could not as its problems.</summary>
-    private static ExportReport WithExtracted(this ExportReport report, ExtractedFiles extracted, Strings t)
+    private static ExportReport WithExtracted(this ExportReport report, ExtractedFiles extracted)
     {
         var problems = extracted.Failures
-            .Select(f => DescribeExtractFailure(t, f))
+            .Select(ProblemOf)
             .ToList();
         return report with { Written = extracted.Written, Problems = problems };
     }
 
-    private static ExportProblem DescribeExtractFailure(Strings t, ExtractFailure failure)
+    private static ExportProblem ProblemOf(ExtractFailure failure)
     {
         var path = failure.File.FullName;
         if (failure.Error == null)
-            return new ExportProblem(t.ExportOutsideFolder(path));
-        return new ExportProblem($"{path}: {failure.Error.Message}", failure.Error.Details);
+            return new ExportProblem.OutsideFolder(path);
+        return new ExportProblem.FileNotWritten(path, failure.Error);
     }
 
     /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>

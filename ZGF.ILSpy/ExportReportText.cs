@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using ZGF.ILSpy.Core;
@@ -79,7 +80,7 @@ internal static class ExportReportText
         text.AppendLine(t.ExportTook(FormatDuration(t, report.Elapsed)));
         text.AppendLine();
         WriteWritten(text, t, report.Written);
-        WriteProblems(text, t, report.Problems);
+        WriteProblems(text, t, report.Job.Kind, report.Problems);
     }
 
     private static void WriteWritten(StringBuilder text, Strings t, IReadOnlyList<string> written)
@@ -92,22 +93,58 @@ internal static class ExportReportText
         text.AppendLine();
     }
 
-    private static void WriteProblems(StringBuilder text, Strings t, IReadOnlyList<ExportProblem> problems)
+    private static void WriteProblems(StringBuilder text, Strings t, ExportKind kind, IReadOnlyList<ExportProblem> problems)
     {
         if (problems.Count == 0)
             return;
         text.AppendLine(t.ExportProblemsHeading);
         foreach (var problem in problems)
-            WriteProblem(text, problem);
+            WriteProblem(text, t, kind, problem);
     }
 
-    private static void WriteProblem(StringBuilder text, ExportProblem problem)
+    private static void WriteProblem(StringBuilder text, Strings t, ExportKind kind, ExportProblem problem)
     {
-        text.Append(Indent).AppendLine(problem.Headline);
-        if (problem.Details != null)
-            WriteDetails(text, problem.Details);
+        text.Append(Indent).AppendLine(Headline(t, kind, problem));
+        if (DetailsOf(problem) is { } details)
+            WriteDetails(text, details);
         text.AppendLine();
     }
+
+    /// <summary><paramref name="problem"/> of an export of <paramref name="kind"/> in a line.</summary>
+    public static string Headline(Strings t, ExportKind kind, ExportProblem problem) => problem switch
+    {
+        ExportProblem.Failed failed => FailureOf(t, kind, failed.Subject),
+        ExportProblem.NotDecompiled part => part.Error.Message,
+        ExportProblem.NoPdbEntry pdb => t.ErrorNoPdbEntry(pdb.Assembly),
+        ExportProblem.PdbNotWritten pdb => $"{pdb.Assembly}: {pdb.Error.Message}",
+        ExportProblem.OutsideFolder outside => t.ExportOutsideFolder(outside.Path),
+        ExportProblem.FileNotWritten file => $"{file.Path}: {file.Error.Message}",
+        _ => throw new UnreachableException(),
+    };
+
+    /// <summary>The full error under <paramref name="problem"/>'s headline, when there is one.</summary>
+    public static string? DetailsOf(ExportProblem problem) => problem switch
+    {
+        ExportProblem.Failed failed => failed.Error.ToString(),
+        ExportProblem.NotDecompiled part => part.Error.Details,
+        ExportProblem.NoPdbEntry => null,
+        ExportProblem.PdbNotWritten pdb => pdb.Error.Details,
+        ExportProblem.OutsideFolder => null,
+        ExportProblem.FileNotWritten file => file.Error.Details,
+        _ => throw new UnreachableException(),
+    };
+
+    private static string FailureOf(Strings t, ExportKind kind, string subject) => kind switch
+    {
+        ExportKind.CSharpFile or ExportKind.ILFile => t.ErrorSaveCode(subject),
+        ExportKind.Project => t.ErrorExportProject(subject),
+        ExportKind.Solution => t.ErrorExportSolution,
+        ExportKind.Pdb => t.ErrorGeneratePdb(subject),
+        ExportKind.Pdbs => t.ErrorGeneratePdbs,
+        ExportKind.Files => t.ErrorExtractFiles(subject),
+        ExportKind.Diagram => t.ErrorCreateDiagram(subject),
+        _ => throw new UnreachableException(),
+    };
 
     private static void WriteDetails(StringBuilder text, string details)
     {

@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
@@ -327,8 +328,8 @@ public sealed class ExportTests : IDisposable
         var report = Assert.Single(d.AppState.FinishedExports);
         Assert.Equal(ExportOutcome.Failed, report.Outcome);
         var problem = Assert.Single(report.Problems);
-        Assert.Equal("Cannot save the code of Greeter", problem.Headline);
-        Assert.Contains("DirectoryNotFoundException", problem.Details);
+        Assert.Equal("Cannot save the code of Greeter", ExportReportText.Headline(Strings.En, report.Job.Kind, problem));
+        Assert.Contains("DirectoryNotFoundException", ExportReportText.DetailsOf(problem));
         Assert.Empty(d.AppState.Errors.Entries);
     }
 
