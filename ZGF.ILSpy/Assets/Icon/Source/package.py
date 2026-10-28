@@ -2,9 +2,9 @@
 
     python package.py <path to vectorcraft-cli>
 
-Writes, next to this folder: app.ico (Windows), app_icon.png (Linux), app_icon.rgba (the window
-icon the app embeds) and AppIcon.icon (macOS, compiled by actool when the app is bundled). Keeps
-the editable .vectorcraft documents here.
+Writes, next to this folder: app.ico (Windows), app_icon.png and Linux/ (Linux), app_icon.rgba (the
+window icon the app embeds) and AppIcon.icon (macOS, compiled by actool when the app is bundled).
+Keeps the editable .vectorcraft documents here.
 """
 
 import json
@@ -16,24 +16,19 @@ from pathlib import Path
 
 from PIL import Image
 
-from build_icon import (BACKGROUND_BOTTOM, BACKGROUND_TOP, FLAT, FREEFORM_BEAM_ORIGIN, FREEFORM_FLASHLIGHT_SCALE,
-                        FREEFORM_PARTS, GLASS, build)
+from build_icon import BLADE_PARTS, LENS_PARTS, SIZE, TILE_BOTTOM, TILE_TOP, build
 from build_small import build as build_small
 
 SOURCE = Path(__file__).parent
 OUTPUT = SOURCE.parent
-MASTER = 1024
-FREEFORM_MARGIN = 20
-DEDICATED_SIZES = (32, 16)
-BEAM_ONLY_SIZE = 24
-MASTER_SIZES = (256, 128, 64, 48)
-ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
+HAND_PIXELLED_SIZES = (32, 30, 24, 20, 16)
+VECTOR_SIZES = (512, 256, 128, 64, 48, 40, 36, 30)
+ICO_SIZES = (16, 20, 24, 30, 32, 36, 40, 48, 64, 256)
+LINUX_SIZES = (16, 24, 32, 48, 64, 128, 256, 512)
 WINDOW_ICON_SIZES = (16, 32, 48, 64, 128, 256)
 MAC_LAYERS = {
-    "flashlight": ("flashlight",),
-    "braces": ("braces",),
-    "opening": ("opening", "beam"),
-    "rock": ("rock",),
+    "blades": BLADE_PARTS,
+    "lens": LENS_PARTS,
 }
 
 
@@ -41,56 +36,44 @@ def main():
     cli = sys.argv[1]
     with tempfile.TemporaryDirectory() as scratch:
         work = Path(scratch)
-        freeform = build(FREEFORM_PARTS, FLAT, FREEFORM_BEAM_ORIGIN, FREEFORM_FLASHLIGHT_SCALE)
-        master = render(cli, work, "master", freeform, keep="ilspelunk")
-        dedicated = {}
-        for size in DEDICATED_SIZES:
-            dedicated[size] = render(cli, work, f"small-{size}", build_small(size), keep=f"ilspelunk-{size}")
-        beam_only = build_small(32, flashlight=False)
-        dedicated[BEAM_ONLY_SIZE] = render(cli, work, "beam-only", beam_only, scale=BEAM_ONLY_SIZE / 32)
+        icon = render(cli, work, "master", build(), keep="ilsight")
+        frames = {}
+        for size in HAND_PIXELLED_SIZES:
+            frames[size] = render(cli, work, f"hand-{size}", build_small(size), keep=f"ilsight-{size}")
+        for size in VECTOR_SIZES:
+            frames[size] = render(cli, work, f"vector-{size}", build(size))
         layers = {}
         for name, parts in MAC_LAYERS.items():
-            layers[name] = render(cli, work, f"layer-{name}", build(parts, GLASS))
-        icon = fit_to_canvas(master)
-        frames = collect_frames(icon, dedicated)
+            layers[name] = render(cli, work, f"layer-{name}", build(SIZE, plated=True, parts=parts))
         icon.save(OUTPUT / "app_icon.png")
         write_ico(frames)
+        write_linux_icons(frames)
         write_window_icon(frames)
         write_mac_icon(layers)
 
 
-def render(cli, work, name, steps, keep=None, scale=1):
+def render(cli, work, name, steps, keep=None):
     commands = work / f"{name}.json"
     commands.write_text(json.dumps(steps), encoding="utf-8")
     png = work / f"{name}.png"
-    arguments = [cli, "run", "--commands", str(commands), "--export", str(png), "--scale", str(scale)]
+    arguments = [cli, "run", "--commands", str(commands), "--export", str(png)]
     if keep is not None:
         arguments += ["--export", str(SOURCE / f"{keep}.vectorcraft")]
     subprocess.run(arguments, check=True, capture_output=True)
     return Image.open(png).convert("RGBA")
 
 
-def fit_to_canvas(art):
-    shape = art.crop(art.getchannel("A").getbbox())
-    room = MASTER - 2 * FREEFORM_MARGIN
-    scale = room / max(shape.size)
-    size = (round(shape.width * scale), round(shape.height * scale))
-    canvas = Image.new("RGBA", (MASTER, MASTER), (0, 0, 0, 0))
-    canvas.alpha_composite(shape.resize(size, Image.LANCZOS), ((MASTER - size[0]) // 2, (MASTER - size[1]) // 2))
-    return canvas
-
-
-def collect_frames(icon, dedicated):
-    frames = dict(dedicated)
-    for size in MASTER_SIZES:
-        frames[size] = icon.resize((size, size), Image.LANCZOS)
-    return frames
-
-
 def write_ico(frames):
     largest = frames[ICO_SIZES[-1]]
     smaller = [frames[size] for size in ICO_SIZES[:-1]]
     largest.save(OUTPUT / "app.ico", sizes=[(size, size) for size in ICO_SIZES], append_images=smaller)
+
+
+def write_linux_icons(frames):
+    folder = OUTPUT / "Linux"
+    folder.mkdir(exist_ok=True)
+    for size in LINUX_SIZES:
+        frames[size].save(folder / f"app_icon_{size}.png")
 
 
 def write_window_icon(frames):
@@ -112,12 +95,10 @@ def write_mac_icon(layers):
 
 def mac_icon_manifest():
     return {
-        "fill": {"linear-gradient": [srgb(BACKGROUND_TOP), srgb(BACKGROUND_BOTTOM)]},
+        "fill": {"linear-gradient": [srgb(TILE_TOP), srgb(TILE_BOTTOM)]},
         "groups": [
-            mac_group("Flashlight", "flashlight", glass=True, specular=True, shadow=0.25),
-            mac_group("Braces", "braces", glass=True, specular=True, shadow=0.2),
-            mac_group("Opening", "opening", glass=False, specular=False, shadow=0),
-            mac_group("Rock", "rock", glass=False, specular=False, shadow=0.15),
+            mac_group("Blades", "blades", glass=True, specular=True, shadow=0.25),
+            mac_group("Lens", "lens", glass=False, specular=False, shadow=0),
         ],
         "supported-platforms": {"squares": ["macOS"]},
     }

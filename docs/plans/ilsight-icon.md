@@ -1,47 +1,39 @@
 # ILSight Icon
 
 The app icon for ILSight. Needed by Phase 4 (`vpk pack --icon`) and Phase 5 (About page) of [ilsight-migration.md](ilsight-migration.md).
+Sources and the build live in `Assets/Icon/Source/`; `python package.py <vectorcraft-cli.exe>` regenerates every output.
 
 ## Concept
 
-A glass prism with a short block of code coming out of one face: opaque IL goes in, readable code comes out. The silhouette is **a triangle with an indented code block**.
+A camera aperture opening onto `{ }`: the app lets you see into compiled code.
 
-- No incoming beam and no spectrum. A beam in, an upright triangle and a rainbow out is the *Dark Side of the Moon* cover.
+- Six chunky blades around a hexagonal opening, in a rounded-hexagon body. Not the eight thin blades and round body of the Aperture Science logo from *Portal*.
 - Nothing that resembles ILSpy, dotPeek (monogram) or dnSpy (bug), and no `</>` or magnifier.
 
 ## Elements
 
 | Element | Spec |
 |---|---|
-| Prism | Rounded triangle, indigo `#4B55C8`, left of centre. One lit edge, no other effects. |
-| Code lines | Three horizontal strokes with rounded caps, leaving the prism's right face. Indents 0, 1, 0; lengths long, medium, short. One accent colour. |
-| Accent | Cyan `#3FD0E0` on the macOS tile. On Windows and Linux, a darker teal that keeps 3:1 contrast on both white and `#202020`. Pick it by measuring. |
+| Blades | Flat colour, lit from the top left: two light `#8C96F0`, two mid `#6670E0`, two dark `#4A56EF`. |
+| Opening | Hexagon, near-black navy `#0B0E1F`. |
+| Braces | Cyan `#3FD0E0` on every platform. They only sit on the opening, never on the page background. |
 | macOS tile | Ink navy, `#1C2244` → `#0D1124` top to bottom. |
 
-The line arrangement is the same at every size. Small sizes lose detail, never structure.
+The design is judged at 32px and up. That is the smallest size macOS draws on Retina and Windows draws at 150% scaling or more. 16 and 24 only appear on Windows at 100% scaling (title bar, context menus, taskbar), and get a simplified small mark instead of a reduced app icon: the app icon's colours and main shape, with any detail dropped or redrawn that doesn't hold. Here that is the blades around a solid cyan opening, with no braces.
 
 ## Rules
 
-- **The 16px and 24px silhouettes come first.** Approve them in black on white before any colour, then build the large art from them.
-- **No baked lighting on macOS.** Icon Composer adds the glass, highlights and shadow; painted glows and caustics fight it.
-- **No outlines around the code lines.** A 1px stroke around a 2px bar eats the colour or fills the gaps. Contrast comes from the accent colour.
+- **No baked lighting on macOS.** Icon Composer adds the glass, highlights and shadow; painted glows fight it.
+- **32 is hand-pixelled.** 30 and 20 are exact crops of the hand-drawn 32 and 24; 36 and up are vector.
 - **Monochrome must work.** macOS tinted and clear modes, and colourblind users, get only the shape.
 
 ## Platforms
 
-- **macOS 26:** Icon Composer file with three layers: tile, code lines, prism. Check what Velopack's `--icon` accepts for `.icns` and older macOS versions.
-- **Windows:** transparent, no tile. `.ico` with 16, 20, 24, 30, 32, 36, 40, 48, 64 and 256. Windows scales the nearest larger size for the in-between ones, so each is checked.
-- **Linux:** PNGs at 16, 24, 32, 48, 64, 128, 256 and 512, not one 512 resampled.
+- **macOS 26:** `AppIcon.icon` with the tile as the background gradient and two layers: `blades` (glass, specular, shadow) over `lens` (opening and braces, no glass).
+- **Windows:** `app.ico`, transparent, no tile, with 16, 20, 24, 30, 32, 36, 40, 48, 64 and 256.
+- **Linux:** `Linux/app_icon_<size>.png` at 16, 24, 32, 48, 64, 128, 256 and 512.
 
 ## Open
 
-- **Prism orientation.** Point up, point down, or lying on its side. Pointing right risks reading as a Play button; pointing down as a funnel or warning sign. Decide from the 16px silhouettes.
-- **Who draws it.** Hand-pixelled small sizes need a pixel editor; the large art needs a vector tool.
-
-## Steps
-
-1. Draw 16px and 24px black silhouettes of each orientation. Pick one.
-2. Add the prism colour and the accent. Measure the Windows teal against white and `#202020`.
-3. Draw the 1024px art from the chosen silhouette.
-4. Hand-tune 16, 24 and 32; check every other size at its scale.
-5. Export `.ico`, the macOS icon and the Linux PNGs.
+- **Liquid Glass.** The macOS result has only been approximated on Windows. Check `AppIcon.icon` in Icon Composer on a Mac, and what Velopack's `--icon` accepts for `.icns` and older macOS versions.
+- **36 and 40** are slightly soft at the blade seams. Hand-pixel them if they look soft in the real taskbar.
