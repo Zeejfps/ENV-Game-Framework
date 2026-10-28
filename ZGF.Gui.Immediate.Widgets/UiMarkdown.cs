@@ -6,13 +6,16 @@ namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>How <see cref="UiWidgets.Markdown"/> draws what the theme leaves to the app: the
 /// families code and italic text are drawn in, registered by the app, or null for the theme's font,
-/// which leaves italic text upright; and the icons of a code block's button that copies its code,
-/// which is left out without <see cref="CopyIcon"/>, and of the moment after it did.</summary>
+/// which leaves italic text upright; the icons of a code block's button that copies its code,
+/// which is left out without <see cref="CopyIcon"/>, and of the moment after it did; and whether code
+/// blocks are <see cref="InsetCode"/>: sunk into what is around them, on the field colour and with no
+/// border, for markdown shown on a panel already, where a bordered panel would nest in it.</summary>
 public readonly record struct MarkdownLook(
     string? CodeFamily = null,
     string? ItalicFamily = null,
     IconGlyph? CopyIcon = null,
-    IconGlyph? CopiedIcon = null);
+    IconGlyph? CopiedIcon = null,
+    bool InsetCode = false);
 
 public static partial class UiWidgets
 {
@@ -273,37 +276,52 @@ public static partial class UiWidgets
             ui.RequestUpdate();
         }
 
-        /// <summary>The code on a bordered panel, under its language when the fence names one and the
-        /// button that copies it.</summary>
+        /// <summary>The code on a bordered panel, or inset, under its language and the button that
+        /// copies it when the fence names a language, and beside the button when it names none, so the
+        /// button costs no line of its own.</summary>
         private void Code(ShownBlock.Code code)
         {
             var theme = ui.Theme;
+            var inset = look.InsetCode;
             using (ui.Column(new Box
             {
                 Width = Sizing.Grow(),
                 Padding = new Spacing(theme.PanelPadding, theme.Gap),
                 Gap = theme.GapTight,
-                Background = theme.Surface,
-                BorderColor = theme.Border,
-                BorderWidth = theme.BorderWidth,
+                Background = inset ? theme.Field : theme.Surface,
+                BorderColor = inset ? 0u : theme.Border,
+                BorderWidth = inset ? 0f : theme.BorderWidth,
                 Radius = theme.PanelRadius,
             }))
             {
-                CodeHeader(code);
-                using (ui.Scroll(ui.GetId(HashCode.Combine(MarkdownScrollSalt, code.Leaf)), ScrollAxes.Horizontal, new Box { Gap = 0f, AlignY = Align.Start }))
-                    Leaf(code.Leaf);
+                if (code.Language is { } language)
+                {
+                    CodeHeader(code, language);
+                    CodeLines(code);
+                    return;
+                }
+                using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Start }))
+                {
+                    CodeLines(code);
+                    if (look.CopyIcon is { } copy)
+                        CopyButton(code.Leaf, copy);
+                }
             }
         }
 
-        private void CodeHeader(ShownBlock.Code code)
+        private void CodeLines(ShownBlock.Code code)
         {
-            if (code.Language == null && look.CopyIcon == null)
-                return;
+            var box = new Box { Width = Sizing.Grow(), Gap = 0f, AlignY = Align.Start };
+            using (ui.Scroll(ui.GetId(HashCode.Combine(MarkdownScrollSalt, code.Leaf)), ScrollAxes.Horizontal, box))
+                Leaf(code.Leaf);
+        }
+
+        private void CodeHeader(ShownBlock.Code code, string language)
+        {
             var theme = ui.Theme;
             using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                if (code.Language != null)
-                    ui.Text(code.Language, color: theme.TextMuted, size: theme.FontSizeSmall);
+                ui.Text(language, color: theme.TextMuted, size: theme.FontSizeSmall);
                 ui.Spacer();
                 if (look.CopyIcon is { } copy)
                     CopyButton(code.Leaf, copy);
