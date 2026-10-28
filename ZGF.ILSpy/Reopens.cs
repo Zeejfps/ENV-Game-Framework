@@ -9,6 +9,9 @@ public sealed class Reopens
 
     public bool IsRunning => _current.Count > 0;
 
+    /// <summary>The paths of the files being reopened.</summary>
+    public IReadOnlyCollection<string> Files => _current.Keys;
+
     /// <summary>Starts a reopen of the file at <paramref name="path"/> and returns its ticket.</summary>
     public int Start(string path)
     {

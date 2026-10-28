@@ -26,16 +26,3 @@ named as working examples. Ordered by priority.
    properties with setters only where a feature needs one, and over time move what does not need the
    screen into `ZGF.ILSpy.Core`, which cannot reference `ZGF.Gui.*`. Zultree keeps `AppState` in
    `Zultree.Core` for this reason.
-
-## Adopt from the shared widgets
-
-Recent `ZGF.Gui.Immediate.Widgets` additions that ILSpy does not use yet:
-
-1. **Spinning buttons.** A button can spin while its work runs (`2b7eafff`). NuGet download, export
-   start and Reload could use it instead of a separate `ui.Spinner` (`ExportsPanelView.cs:235`,
-   `NuGetPickerView.cs:435`).
-2. **Tree-row badges and spinners.** These are colored badges after a row's text, and a spinner in their
-   place (`6a0a292d`, `1f732aac`). They fit assemblies still loading or resolving, or a count of
-   analyzer results.
-3. **Markdown and the TextArea** (`90fa1831`, `254d7096`). These could show XML doc comments in code
-   tooltips as rich text, and give bookmark notes a multi-line editor.

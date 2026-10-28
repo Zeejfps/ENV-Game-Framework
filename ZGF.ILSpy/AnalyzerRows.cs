@@ -195,6 +195,6 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
     private TreeRow LoadingRow()
     {
         var icon = new UiIcon(_icons.StatusLoading, _theme.TextMuted);
-        return new TreeRow(_strings.AnalyzerLoading, icon, _theme.TextMuted);
+        return new TreeRow(_strings.AnalyzerLoading, icon, _theme.TextMuted, Spinning: true);
     }
 }

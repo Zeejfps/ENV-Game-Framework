@@ -23,6 +23,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private NodeIconPalette _iconColors = BuiltInThemes.Dark.Icons;
     private AppIcons _icons = BuiltInIconThemes.Reference.Icons;
     private TokenFormat _tokens = TokenFormat.Hidden;
+    private IReadOnlyCollection<string> _reopening = [];
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
     public IReadOnlyList<BrowseNode> Roots => _roots;
@@ -185,6 +186,9 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     /// <summary>Writes each type's and member's metadata token after its name as <paramref name="format"/> says.</summary>
     public void ShowTokens(TokenFormat format) => _tokens = format;
+
+    /// <summary>Spins the roots of the assemblies read from <paramref name="files"/>, which are being reopened.</summary>
+    public void ShowReopening(IReadOnlyCollection<string> files) => _reopening = files;
 
     /// <summary>Expands the tree down to <paramref name="node"/>, selects it and scrolls to it. When
     /// it is hidden, or inside a hidden node, its nearest shown ancestor is selected instead.</summary>
@@ -361,7 +365,19 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
         Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
         Secondary: SecondaryOf(node),
-        SecondaryBold: NodeText.PickedFramework(node));
+        SecondaryBold: NodeText.PickedFramework(node),
+        Spinning: IsBusy(node));
+
+    /// <summary>Whether the node stands in for children being built, or is the root of an assembly
+    /// being reopened.</summary>
+    private bool IsBusy(BrowseNode node)
+    {
+        if (node.Kind == NodeKind.Loading)
+            return true;
+        if (_reopening.Count == 0)
+            return false;
+        return node == node.Assembly.Root && _reopening.Contains(node.Assembly.FilePath);
+    }
 
     /// <summary>The node's metadata token when the tree shows tokens and it has one, else what
     /// <see cref="NodeText.Secondary"/> adds.</summary>

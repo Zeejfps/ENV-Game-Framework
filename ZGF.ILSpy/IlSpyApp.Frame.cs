@@ -36,7 +36,7 @@ public sealed partial class IlSpyApp
     {
         ApplyThemeAndLanguage(uiState, ResolveTheme(appState), appState.Locale);
         ApplyIconTheme(uiState, ResolveIconTheme(appState));
-        SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ApiVisibility);
+        SyncTrees(uiState, appState.Assemblies, appState.Analyzer, appState.ApiVisibility, appState.Reopens.Files);
         UsePreviewTabs(appState, uiState.Display.PreviewTabs);
         FollowTabContent(uiState);
         FollowActiveTab(uiState, appState.Tabs.Active);

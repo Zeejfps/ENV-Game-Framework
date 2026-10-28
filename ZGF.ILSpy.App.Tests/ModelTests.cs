@@ -23,8 +23,25 @@ public sealed class BrowseTreeTests
 
         Assert.Equal([root.LoadingChild], first);
         Assert.Equal("Loading…", tree.Row(root.LoadingChild).Label);
+        Assert.True(tree.Row(root.LoadingChild).Spinning);
         d.RunUntil(() => root.TryGetChildren(out _) && tree.GetChildren(root) is not [{ Kind: NodeKind.Loading }]);
         Assert.Contains(tree.GetChildren(root), c => c.Text == AppStateDriver.FixturesNamespace);
+    }
+
+    [Fact]
+    public void An_assembly_spins_while_it_is_reopened()
+    {
+        var tree = new BrowseTree();
+        var assembly = new AssemblyList().Open(AppStateDriver.FixturePath);
+        var reopens = new Reopens();
+        tree.ShowReopening(reopens.Files);
+        var idle = tree.Row(assembly.Root).Spinning;
+
+        reopens.Start(assembly.FilePath);
+
+        Assert.False(idle);
+        Assert.True(tree.Row(assembly.Root).Spinning);
+        Assert.False(tree.Row(assembly.Root.Child(AppStateDriver.FixturesNamespace)).Spinning);
     }
 
     [Fact]

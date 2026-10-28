@@ -425,14 +425,13 @@ internal static class NuGetPickerView
             ui.Spacer();
             if (ui.Button(t.NugetCancel, id: "nuget-cancel"))
                 Close(ui, picker);
-            return ui.Button(t.NugetOpen, enabled: picker.CanOpen, id: "nuget-open", variant: ButtonVariant.Primary);
+            return ui.Button(t.NugetOpen, enabled: picker.CanOpen, id: "nuget-open", variant: ButtonVariant.Primary, busy: picker.IsDownloading);
         }
     }
 
     private static void Downloading(Ui<UiState> ui, NuGetPicker picker)
     {
         var theme = ui.Theme;
-        ui.Spinner(theme.SurfaceRaised);
         var text = ui.Memo("nuget-downloading", (picker.DownloadingName, ui.State.Strings), static a => a.Strings.NugetDownloading(a.DownloadingName));
         ui.Text(text, color: theme.AccentText, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
     }
