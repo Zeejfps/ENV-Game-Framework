@@ -174,7 +174,24 @@ internal static class MainMenuView
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             AskToResetLayout(ui.State);
         ui.MenuSeparator();
+        ThemeMenu(ui, appState);
         LanguageMenu(ui, appState);
+    }
+
+    /// <summary>The submenu of the catalog's themes, built-in ones first, the one shown picked.</summary>
+    private static void ThemeMenu(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
+        if (!themes.IsOpen) return;
+        var catalog = appState.Themes;
+        var names = catalog.ListNames(t.Culture);
+        for (var i = 0; i < catalog.Ids.Count; i++)
+        {
+            var id = catalog.Ids[i];
+            if (ui.MenuRadioItem(names[i], appState.Theme == id, id: id))
+                SetTheme(appState, id);
+        }
     }
 
     /// <summary>The submenu of which types and members the tree shows, the one shown picked.</summary>

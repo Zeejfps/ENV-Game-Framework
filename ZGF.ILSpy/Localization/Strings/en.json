@@ -29,6 +29,7 @@
   "view.shown_public_only": "Public only",
   "view.shown_source_declared": "Public, internal and private",
   "view.shown_all": "All, including compiler-generated",
+  "view.theme": "Theme",
   "view.language": "Language",
   "view.panels": "Panels",
   "view.bookmarks": "Bookmarks",

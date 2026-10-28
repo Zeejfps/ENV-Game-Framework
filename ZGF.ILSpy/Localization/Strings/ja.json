@@ -27,6 +27,7 @@
   "view.shown_public_only": "パブリックのみ",
   "view.shown_source_declared": "パブリック、内部、プライベート",
   "view.shown_all": "すべて (コンパイラ生成を含む)",
+  "view.theme": "テーマ",
   "view.language": "言語",
   "view.panels": "パネル",
   "view.bookmarks": "ブックマーク",

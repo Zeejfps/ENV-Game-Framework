@@ -586,6 +586,22 @@ public sealed class AppTests
     }
 
     [Fact]
+    public void The_theme_is_picked_from_the_view_menus_theme_submenu_and_draws_the_window()
+    {
+        var app = AppDriver.Opened();
+        app.Run();
+        Assert.Equal("dark", app.AppState.Theme);
+
+        app.Click("View");
+        app.Click("Theme");
+        app.ClickMenuItem("Dracula");
+        app.Run();
+
+        Assert.Equal("dracula", app.AppState.Theme);
+        Assert.Equal(app.AppState.Themes.Find("dracula").Ui.Background, app.Frames.WindowBackground);
+    }
+
+    [Fact]
     public void The_decompiler_is_picked_from_the_view_menus_decompiler_submenu()
     {
         var app = AppDriver.Opened();

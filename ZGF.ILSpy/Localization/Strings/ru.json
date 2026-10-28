@@ -27,6 +27,7 @@
   "view.shown_public_only": "Только публичные",
   "view.shown_source_declared": "Публичные, внутренние и закрытые",
   "view.shown_all": "Все, включая созданные компилятором",
+  "view.theme": "Тема",
   "view.language": "Язык",
   "view.panels": "Панели",
   "view.bookmarks": "Закладки",

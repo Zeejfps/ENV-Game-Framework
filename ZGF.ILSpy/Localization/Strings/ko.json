@@ -27,6 +27,7 @@
   "view.shown_public_only": "public만",
   "view.shown_source_declared": "public, internal 및 private",
   "view.shown_all": "모두(컴파일러 생성 포함)",
+  "view.theme": "테마",
   "view.language": "언어",
   "view.panels": "패널",
   "view.bookmarks": "책갈피",

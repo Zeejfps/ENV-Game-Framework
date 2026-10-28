@@ -27,6 +27,7 @@
   "view.shown_public_only": "Solo públicos",
   "view.shown_source_declared": "Públicos, internos y privados",
   "view.shown_all": "Todos, incluidos los generados por el compilador",
+  "view.theme": "Tema",
   "view.language": "Idioma",
   "view.panels": "Paneles",
   "view.bookmarks": "Marcadores",
