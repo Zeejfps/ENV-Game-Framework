@@ -130,7 +130,7 @@ public sealed class ComparisonTests
         d.Settle();
 
         Assert.Null(comparison.Diff);
-        Assert.Equal("ApiDiffSample.dll is no longer open.", comparison.Failure);
+        Assert.Equal(new ComparisonFailure.AssemblyClosed("ApiDiffSample.dll"), comparison.Failure);
     }
 
     [Fact]

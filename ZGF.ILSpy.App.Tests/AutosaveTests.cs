@@ -239,7 +239,7 @@ public sealed class AutosaveTests : IDisposable
 
         Assert.Equal(DecompilationLanguage.CSharp, languageWhileWaiting);
         Assert.Equal(DecompilationLanguage.IL, _temp.Settings().Language);
-        Assert.Equal("Cannot save the settings", Assert.Single(d.AppState.Errors.Entries).Title);
+        Assert.Equal("Cannot save the settings", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 
     [Fact]

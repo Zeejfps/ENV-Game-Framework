@@ -21,7 +21,7 @@ public sealed class NuGetPicker
     public const int IconPixels = 64;
 
     private readonly Func<Strings> _strings;
-    private readonly Action<string, string> _reportError;
+    private readonly Action<AppProblem> _reportError;
     private readonly List<FeedPackage> _results = new();
     private readonly Dictionary<string, PackageIcon> _icons = new();
     private readonly Dictionary<(string Feed, string Id, string Version), VersionDetails> _details = new();
@@ -44,8 +44,8 @@ public sealed class NuGetPicker
     private bool _focusQuery;
 
     /// <param name="strings">The interface's strings in the current language.</param>
-    /// <param name="reportError">Tells the user a search or a download failed: a title and details.</param>
-    public NuGetPicker(Func<Strings> strings, Action<string, string> reportError)
+    /// <param name="reportError">Tells the user a search or a download failed.</param>
+    public NuGetPicker(Func<Strings> strings, Action<AppProblem> reportError)
     {
         _strings = strings;
         _reportError = reportError;
@@ -216,7 +216,7 @@ public sealed class NuGetPicker
                 UseSetup(ok.Value);
                 break;
             case Outcome<NuGetSetup>.Failed failed:
-                _reportError(_strings().ErrorReadNugetConfig, failed.Error.ToString());
+                _reportError(new AppProblem.NuGetConfigUnreadable(failed.Error));
                 UseSetup(NuGetSetup.CreateDefault());
                 break;
             default:
@@ -495,7 +495,7 @@ public sealed class NuGetPicker
         SearchError = error.Message;
         if (!IsSamePackages(searched, _shown))
             ClearShown();
-        _reportError(_strings().ErrorSearchNuget(searched.Feed.Source.Name), error.ToString());
+        _reportError(new AppProblem.NuGetSearchFailed(searched.Feed.Source.Name, error));
     }
 
     /// <summary>The icon of <paramref name="package"/>, fetched in the background the first time it is
@@ -631,7 +631,7 @@ public sealed class NuGetPicker
                 _downloaded = ok.Value;
                 break;
             case Outcome<string>.Failed failed:
-                _reportError(_strings().ErrorDownloadPackage(DownloadingName), failed.Error.ToString());
+                _reportError(new AppProblem.PackageNotDownloaded(DownloadingName, failed.Error));
                 break;
             default:
                 throw new UnreachableException();

@@ -52,7 +52,7 @@ public static class Assemblies
     {
         if (error is OperationCanceledException)
             return;
-        appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, error.ToString());
+        appState.ReportError(new AppProblem.OpenFailed(error));
     }
 
     public static void OpenAssembly(AppState appState, string path) => OpenAssemblies(appState, [path]);
@@ -102,18 +102,8 @@ public static class Assemblies
 
     private static void ReportUnreadablePdb(AppState appState, LoadedAssembly assembly, string pdbPath, PdbCheck check)
     {
-        var t = Strings.For(appState.Locale);
-        var title = t.ErrorSelectPdb(Path.GetFileName(pdbPath), assembly.Name);
-        var reason = DescribePdbCheck(t, check, assembly.Name);
-        appState.ReportError(title, reason + Environment.NewLine + pdbPath);
+        appState.ReportError(new AppProblem.PdbUnusable(pdbPath, assembly.Name, check));
     }
-
-    private static string DescribePdbCheck(Strings t, PdbCheck check, string name) => check switch
-    {
-        PdbCheck.OtherBuild => t.ErrorPdbOtherBuild(name),
-        PdbCheck.WindowsPdb => t.ErrorPdbWindows,
-        _ => t.ErrorPdbUnreadable,
-    };
 
     /// <summary>Resolves <paramref name="assembly"/>'s references against the framework
     /// <paramref name="framework"/> names, such as <c>.NETCoreApp,Version=v8.0</c>, or, when it is
@@ -219,8 +209,7 @@ public static class Assemblies
                 ShowReopened(appState, item, ok.Value, tabs);
                 break;
             case Outcome<Reopened>.Failed failed:
-                var t = Strings.For(appState.Locale);
-                appState.ReportError(t.ErrorReloadAssembly(item.Name), failed.Error.ToString());
+                appState.ReportError(new AppProblem.AssemblyNotReloaded(item.Name, failed.Error));
                 break;
             default:
                 throw new UnreachableException();
@@ -367,7 +356,7 @@ public static class Assemblies
                 break;
             case Outcome<Reloaded>.Failed failed:
                 ShowReopenedDocuments(appState);
-                appState.ReportError(Strings.For(appState.Locale).ErrorReloadAssemblies, failed.Error.ToString());
+                appState.ReportError(new AppProblem.AssembliesNotReloaded(failed.Error));
                 break;
             default:
                 throw new UnreachableException();
@@ -411,9 +400,8 @@ public static class Assemblies
 
     private static void ReleaseGoneTab(AppState appState, DocumentTab tab, NodePath location)
     {
-        var t = Strings.For(appState.Locale);
         tab.ShowGone(location);
-        appState.ReportError(t.ErrorFindAfterReload(location.Text), location.ToString());
+        appState.ReportError(new AppProblem.GoneAfterReload(location));
     }
 
     /// <summary>Opens <paramref name="paths"/> in the background as a reload does, so that another
@@ -436,7 +424,7 @@ public static class Assemblies
                 SaveSettings(appState);
                 break;
             case Outcome<LoadedAssembly?>.Failed failed:
-                appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, failed.Error.ToString());
+                appState.ReportError(new AppProblem.OpenFailed(failed.Error));
                 break;
             default:
                 throw new UnreachableException();

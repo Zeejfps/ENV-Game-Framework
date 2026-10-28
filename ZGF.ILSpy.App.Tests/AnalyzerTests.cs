@@ -53,9 +53,9 @@ public sealed class AnalyzerTests
         var message = Assert.IsType<AnalyzerMessageNode>(Assert.Single(kind.Found));
         Assert.NotNull(message.Error);
         var error = Assert.Single(d.AppState.Errors.Entries);
-        Assert.Equal($"Cannot analyze {symbol.Label} (Used By)", error.Title);
-        Assert.Contains(nameof(InvalidOperationException), error.Details);
-        Assert.Contains(" at ", error.Details);
+        Assert.Equal($"Cannot analyze {symbol.Label} (Used By)", error.Words().Title);
+        Assert.Contains(nameof(InvalidOperationException), error.Words().Details);
+        Assert.Contains(" at ", error.Words().Details);
     }
 
     [Theory]
@@ -285,7 +285,7 @@ public sealed class AnalyzerTests
         d.Settle();
 
         Assert.Empty(d.AppState.Analyzer.Roots);
-        Assert.Equal("Cannot resolve First", Assert.Single(d.AppState.Errors.Entries).Title);
+        Assert.Equal("Cannot resolve First", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 
     [Fact]

@@ -35,9 +35,7 @@ public static class Analysis
 
     private static void ReportAnalysisFailure(AppState appState, AnalyzerKindNode kind, Exception error)
     {
-        var t = Strings.For(appState.Locale);
-        var analysis = AnalyzerText.Header(t, kind.Kind);
-        appState.ReportError(t.ErrorAnalyze(kind.Subject.Label, analysis), error.ToString());
+        appState.ReportError(new AppProblem.AnalysisFailed(kind.Subject.Label, kind.Kind, error));
     }
 
     /// <summary>Adds a root that shows as loading, in the analyzer, while what <paramref name="reference"/>
@@ -110,7 +108,7 @@ public static class Analysis
                 AnalyzeAgain(appState, restoring, ok.Value);
                 break;
             case Outcome<List<AnalysisSymbol?>>.Failed failed:
-                appState.ReportError(Strings.For(appState.Locale).ErrorRestoreAnalyses, failed.Error.ToString());
+                appState.ReportError(new AppProblem.AnalysesNotRestored(failed.Error));
                 RemoveRoots(appState, restoring);
                 break;
             default:

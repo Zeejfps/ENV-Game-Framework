@@ -85,7 +85,7 @@ public sealed class AssemblyMenuTests
         app.RunUntil(() => app.AppState.Errors.Entries.Count == 1);
 
         Assert.EndsWith("/zgf.ilspy.app.tests.fixtures.greeter", app.Frames.OpenedUrls[0]);
-        Assert.StartsWith("Hidden has no page in the .NET API reference", app.AppState.Errors.Entries[0].FullText);
+        Assert.StartsWith("Hidden has no page in the .NET API reference", app.AppState.Errors.Entries[0].Words().FullText);
     }
 
     [Fact]

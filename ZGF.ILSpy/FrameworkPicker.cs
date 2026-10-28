@@ -10,7 +10,7 @@ namespace ZGF.ILSpy;
 public sealed class FrameworkPicker
 {
     private readonly Func<Strings> _strings;
-    private readonly Action<string, string> _reportError;
+    private readonly Action<AppProblem> _reportError;
     private readonly Func<IReadOnlyList<RuntimeAssembly>> _scan;
     private readonly List<RuntimeAssembly> _filtered = new();
     private readonly HashSet<string> _listed = new(StringComparer.OrdinalIgnoreCase);
@@ -20,9 +20,9 @@ public sealed class FrameworkPicker
     private bool _focusFilter;
 
     /// <param name="strings">The interface's strings in the current language.</param>
-    /// <param name="reportError">Tells the user the runtime could not be scanned: a title and details.</param>
+    /// <param name="reportError">Tells the user the runtime could not be scanned.</param>
     /// <param name="scan">Lists the assemblies to offer; the running runtime's by default.</param>
-    public FrameworkPicker(Func<Strings> strings, Action<string, string> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
+    public FrameworkPicker(Func<Strings> strings, Action<AppProblem> reportError, Func<IReadOnlyList<RuntimeAssembly>>? scan = null)
     {
         _strings = strings;
         _reportError = reportError;
@@ -67,7 +67,7 @@ public sealed class FrameworkPicker
                 break;
             case Outcome<IReadOnlyList<RuntimeAssembly>>.Failed failed:
                 Error = failed.Error.ToString();
-                _reportError(_strings().ErrorScanRuntime, Error);
+                _reportError(new AppProblem.RuntimeNotScanned(failed.Error));
                 break;
             default:
                 throw new UnreachableException();

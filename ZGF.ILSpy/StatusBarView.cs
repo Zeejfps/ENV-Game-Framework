@@ -93,6 +93,6 @@ internal static class StatusBarView
             ui.Text(ui.Memo("status-errors", (errors.Entries.Count, t), static a => a.t.StatusErrors(a.Count)), color: theme.Danger,
                 size: theme.FontSizeSmall);
         }
-        ui.Tooltip(i.Id, errors.Entries[^1].Summary);
+        ui.Tooltip(i.Id, ui.State.ErrorDialog.TextOf(errors.Entries[^1], t).Summary);
     }
 }

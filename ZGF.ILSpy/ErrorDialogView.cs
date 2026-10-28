@@ -34,17 +34,17 @@ internal static class ErrorDialogView
             using (ui.Row(new Box { Gap = theme.GapTight, AlignY = Align.Center }))
             {
                 ui.Glyph(ui.State.Icons.StatusError, theme.Danger, theme.IconSize);
-                ui.Text(selected.Title, new Box { Width = Sizing.Grow() }, bold: true, overflow: TextOverflow.Ellipsis);
+                ui.Text(shown.TextOf(selected, t).Title, new Box { Width = Sizing.Grow() }, bold: true, overflow: TextOverflow.Ellipsis);
             }
         }
 
         using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.EditorBackground, Clip = true }))
-            ui.CodeView("error-text", shown.SelectedDocument(), shown.View);
+            ui.CodeView("error-text", shown.SelectedDocument(t), shown.View);
 
         using (ui.Row(new Box { Gap = theme.GapTight }))
         {
             if (ui.Button(t.ErrorsCopy, id: "error-copy") && selected != null)
-                ui.ClipboardText = selected.FullText;
+                ui.ClipboardText = shown.TextOf(selected, t).FullText;
             ui.Tooltip(ui.GetId("error-copy"), t.ErrorsCopyTooltip);
             if (ui.Button(t.ErrorsClear, id: "error-clear", variant: ButtonVariant.Ghost))
                 ClearErrors(errors, shown);
@@ -79,7 +79,7 @@ internal static class ErrorDialogView
             {
                 var titleColor = row.Selected ? theme.SelectionText : theme.Text;
                 ui.Text(ui.Memo("time", (entry.Time, t), static a => a.Time.ToString("T", a.t.Culture)), color: theme.TextMuted);
-                ui.Text(entry.Title, new Box { Width = Sizing.Grow() }, color: titleColor, overflow: TextOverflow.Ellipsis);
+                ui.Text(shown.TextOf(entry, t).Title, new Box { Width = Sizing.Grow() }, color: titleColor, overflow: TextOverflow.Ellipsis);
             }
         }
         shown.Selection.TakeFrom(entries);

@@ -27,7 +27,7 @@ public sealed class Search
     private const string AssemblyScope = "inassembly";
 
     private readonly Func<Strings> _strings;
-    private readonly Action<string, string> _reportError;
+    private readonly Action<AppProblem> _reportError;
     private readonly SearchStream _stream;
     private readonly List<SearchResult> _rows = new();
     private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
@@ -40,9 +40,9 @@ public sealed class Search
     private int _version = -1;
 
     /// <param name="strings">The interface's strings in the current language.</param>
-    /// <param name="reportError">Tells the user a search failed: a title and details.</param>
+    /// <param name="reportError">Tells the user a search failed.</param>
     /// <param name="stream">Streams a query's hits; the assembly list's own search by default.</param>
-    public Search(Func<Strings> strings, Action<string, string> reportError, SearchStream? stream = null)
+    public Search(Func<Strings> strings, Action<AppProblem> reportError, SearchStream? stream = null)
     {
         _strings = strings;
         _reportError = reportError;
@@ -194,7 +194,7 @@ public sealed class Search
     {
         if (!IsCurrent(work))
             return;
-        _reportError(_strings().ErrorSearch, error.ToString());
+        _reportError(new AppProblem.SearchFailed(error));
     }
 
     private void Deliver(IReadOnlyList<SearchResult> batch, CancellationTokenSource work)

@@ -137,8 +137,7 @@ public static class Navigation
 
     private static void ReportMissingId(AppState appState, string idString)
     {
-        var t = Strings.For(appState.Locale);
-        appState.ReportError(t.ErrorNavigateTo(idString));
+        appState.ReportError(new AppProblem.IdNotFound(idString));
     }
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
@@ -239,8 +238,7 @@ public static class Navigation
 
     private static void ReportNoApiReferencePage(AppState appState, CodeReference reference)
     {
-        var t = Strings.For(appState.Locale);
-        appState.ReportError(t.ErrorNoApiReferencePage(reference.Name), t.ErrorNoApiReferencePageDetails);
+        appState.ReportError(new AppProblem.NoApiReferencePage(reference.Name));
     }
 
     /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
@@ -337,9 +335,7 @@ public static class Navigation
 
     private static void ReportHistoryPlaceGone(AppState appState, NodePath place, Exception? error)
     {
-        var t = Strings.For(appState.Locale);
-        var details = AppState.DescribeFailure(error, t.ErrorNoLongerThere(place));
-        appState.ReportError(t.ErrorGoBack(place.Text), details);
+        appState.ReportError(new AppProblem.HistoryPlaceGone(place, error));
     }
 
     /// <summary>Brings the tab showing <paramref name="diagram"/> to the front, dropping what was being
@@ -366,9 +362,7 @@ public static class Navigation
 
     internal static void ReportUnresolvedReference(AppState appState, CodeReference reference, Exception? error)
     {
-        var t = Strings.For(appState.Locale);
-        var details = AppState.DescribeFailure(error, t.ErrorNoDefinition(reference));
-        appState.ReportError(t.ErrorResolve(reference.Name), details);
+        appState.ReportError(new AppProblem.Unresolved(reference, error));
     }
 
     /// <summary>Records where the active tab's view is in the history entry it shows, before it shows

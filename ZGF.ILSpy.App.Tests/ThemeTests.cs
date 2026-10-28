@@ -429,8 +429,8 @@ public sealed class UserThemeTests : IDisposable
         WriteTheme("broken", """{ "extends": "dark", "ui": { "accent": "violet" } }""");
         ReloadUserThemes(appState);
 
-        Assert.Equal("Problems in the theme broken.json", error.Title);
-        Assert.EndsWith("broken.json(1): ui.accent: the palette has no color named purple", error.Details);
+        Assert.Equal("Problems in the theme broken.json", error.Words().Title);
+        Assert.EndsWith("broken.json(1): ui.accent: the palette has no color named purple", error.Words().Details);
         Assert.Equal(2, appState.Errors.Entries.Count);
     }
 
@@ -538,7 +538,7 @@ public sealed class UserThemeTests : IDisposable
 
         Assert.Null(path);
         Assert.Equal("dark", appState.Theme);
-        Assert.Equal("Cannot write the custom theme", Assert.Single(appState.Errors.Entries).Title);
+        Assert.Equal("Cannot write the custom theme", Assert.Single(appState.Errors.Entries).Words().Title);
     }
 
     [Fact]
@@ -559,7 +559,7 @@ public sealed class UserThemeTests : IDisposable
         WatchUserThemes(d.AppState);
 
         var error = Assert.Single(d.AppState.Errors.Entries);
-        Assert.Equal("Cannot make the themes folder", error.Title);
+        Assert.Equal("Cannot make the themes folder", error.Words().Title);
         Assert.Equal(ThemeFolderEventKind.Stopped, (await d.AppState.ThemesWatch.NextChange()).Kind);
     }
 

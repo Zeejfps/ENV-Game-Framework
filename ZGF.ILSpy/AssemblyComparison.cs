@@ -27,7 +27,7 @@ public sealed class AssemblyComparison
     public ApiDiff? Diff { get; private set; }
 
     /// <summary>Why the newest comparison failed, or null when none did.</summary>
-    public string? Failure { get; private set; }
+    public ComparisonFailure? Failure { get; private set; }
 
     /// <summary>True while a comparison runs in the background.</summary>
     public bool IsComparing => _work != null;
@@ -79,7 +79,7 @@ public sealed class AssemblyComparison
     }
 
     /// <summary>Shows why the assemblies cannot be compared, cancelling the comparison in flight, if any.</summary>
-    public void ShowFailure(string failure)
+    public void ShowFailure(ComparisonFailure failure)
     {
         _work?.Cancel();
         _work = null;
@@ -92,4 +92,18 @@ public sealed class AssemblyComparison
     {
         _open.Cancel();
     }
+}
+
+/// <summary>Why two assemblies could not be compared.</summary>
+public abstract record ComparisonFailure
+{
+    private ComparisonFailure()
+    {
+    }
+
+    /// <summary>The assembly read from <see cref="File"/> is no longer open.</summary>
+    public sealed record AssemblyClosed(string File) : ComparisonFailure;
+
+    /// <summary>Comparing the assemblies <see cref="Left"/> and <see cref="Right"/> failed.</summary>
+    public sealed record Failed(string Left, string Right) : ComparisonFailure;
 }

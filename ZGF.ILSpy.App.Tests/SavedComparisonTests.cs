@@ -110,6 +110,6 @@ public sealed class SavedComparisonTests : IDisposable
         RestoreActiveAssemblyList(next.AppState);
         next.RunUntil(() => FindComparison(next)?.Failure != null);
 
-        Assert.Equal("ApiDiffSample.dll is no longer open.", FindComparison(next)!.Failure);
+        Assert.Equal(new ComparisonFailure.AssemblyClosed("ApiDiffSample.dll"), FindComparison(next)!.Failure);
     }
 }

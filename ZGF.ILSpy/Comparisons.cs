@@ -107,16 +107,12 @@ public static class Comparisons
 
     private static void ShowClosed(AppState appState, AssemblyComparison comparison, string filePath)
     {
-        var t = Strings.For(appState.Locale);
-        var name = Path.GetFileName(filePath);
-        comparison.ShowFailure(t.ComparisonAssemblyClosed(name));
+        comparison.ShowFailure(new ComparisonFailure.AssemblyClosed(Path.GetFileName(filePath)));
     }
 
     private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedAssembly left, LoadedAssembly right, Exception error)
     {
-        var t = Strings.For(appState.Locale);
-        var title = t.ErrorCompare(left.NameAndVersion, right.NameAndVersion);
-        comparison.ShowFailure(title);
-        appState.ReportError(title, error.ToString());
+        comparison.ShowFailure(new ComparisonFailure.Failed(left.NameAndVersion, right.NameAndVersion));
+        appState.ReportError(new AppProblem.ComparisonFailed(left.NameAndVersion, right.NameAndVersion, error));
     }
 }

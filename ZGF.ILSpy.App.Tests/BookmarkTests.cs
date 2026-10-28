@@ -162,7 +162,7 @@ public sealed class BookmarkTests : IDisposable
         var next = new AppStateDriver(settings);
 
         Assert.Single(next.AppState.Bookmarks.Items);
-        Assert.Equal("1 bookmark marked the same line as another and was left out", Assert.Single(next.AppState.Errors.Entries).Title);
+        Assert.Equal("1 bookmark marked the same line as another and was left out", Assert.Single(next.AppState.Errors.Entries).Words().Title);
     }
 
     [Fact]
@@ -500,7 +500,7 @@ public sealed class BookmarkTests : IDisposable
 
         Assert.Single(d.AppState.Bookmarks.Items);
         Assert.Null(d.AppState.Imports.Asking);
-        Assert.Equal("Cannot import bookmarks from other.json", Assert.Single(d.AppState.Errors.Entries).Title);
+        Assert.Equal("Cannot import bookmarks from other.json", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 
     [Fact]
@@ -601,7 +601,7 @@ public sealed class BookmarkTests : IDisposable
         d.Settle();
 
         Assert.Equal("First", Assert.Single(d.AppState.Bookmarks.Items).Name);
-        Assert.Equal("2 bookmarks marked the same line as others and were left out", Assert.Single(d.AppState.Errors.Entries).Title);
+        Assert.Equal("2 bookmarks marked the same line as others and were left out", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 
     [Fact]
@@ -632,6 +632,6 @@ public sealed class BookmarkTests : IDisposable
         var moved = Assert.Single(d.AppState.Bookmarks.Items);
         Assert.Equal("Moved", moved.Name);
         Assert.StartsWith("Third()", moved.Place.Text);
-        Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.AppState.Errors.Entries).Title);
+        Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 }

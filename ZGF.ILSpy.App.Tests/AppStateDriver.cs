@@ -90,6 +90,12 @@ internal static class BuiltInGlyphs
     public static string Text(IconGlyph glyph) => glyph.Text!;
 }
 
+internal static class AppErrors
+{
+    /// <summary>The error in English words.</summary>
+    public static ProblemText Words(this AppError error) => ProblemTexts.Describe(Strings.En, error.Problem);
+}
+
 internal static class TempSettings
 {
     public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json")).Settings;

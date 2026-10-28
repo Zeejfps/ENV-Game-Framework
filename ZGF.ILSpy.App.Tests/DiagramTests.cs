@@ -235,6 +235,6 @@ public sealed class DiagramTests
         d.Settle();
 
         var error = Assert.Single(d.AppState.Errors.Entries);
-        Assert.Equal("Cannot show Twice in a diagram", error.Title);
+        Assert.Equal("Cannot show Twice in a diagram", error.Words().Title);
     }
 }

@@ -198,7 +198,7 @@ public sealed class AppState
         return Locales.For(CultureInfo.CurrentUICulture);
     }
 
-    public void ReportError(string title, string? details = null) => Errors.Add(title, details);
+    public void ReportError(AppProblem problem) => Errors.Add(problem);
 
     /// <summary>Queues <paramref name="command"/> for the view to run before it draws next.</summary>
     public void EnqueueCommand(ViewCommand command) => ViewCommands.Enqueue(command);
@@ -227,12 +227,5 @@ public sealed class AppState
         var tab = new DocumentTab();
         Tabs.Add(tab);
         return tab;
-    }
-
-    internal static string DescribeFailure(Exception? error, string fallback)
-    {
-        if (error == null)
-            return fallback;
-        return error.ToString();
     }
 }

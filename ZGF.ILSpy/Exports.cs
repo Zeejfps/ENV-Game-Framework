@@ -51,7 +51,7 @@ public static class Exports
         }
         catch (Exception e) when (IsFileError(e))
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorSaveResource(node.Text), e.Message);
+            appState.ReportError(new AppProblem.ResourceNotSaved(node.Text, e.Message));
         }
     }
 
@@ -75,7 +75,7 @@ public static class Exports
         }
         catch (Exception e) when (IsFileError(e))
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorExtractFile(place.File.Name), e.Message);
+            appState.ReportError(new AppProblem.PackageFileNotExtracted(place.File.Name, e.Message));
         }
     }
 

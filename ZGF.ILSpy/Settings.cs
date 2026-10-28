@@ -36,27 +36,8 @@ public static class Settings
     {
         if (problem is SettingsProblem.None)
             return;
-        var t = Strings.For(appState.Locale);
-        var details = $"{appState.Settings.FilePath}{Environment.NewLine}{Describe(t, problem)}";
-        appState.ReportError(TitleOf(t, problem), details);
+        appState.ReportError(new AppProblem.SettingsUnreadable(appState.Settings.FilePath, problem));
     }
-
-    private static string TitleOf(Strings t, SettingsProblem problem) => problem switch
-    {
-        SettingsProblem.NotRead or SettingsProblem.NotJson or SettingsProblem.Empty => t.ErrorReadSettings,
-        SettingsProblem.LayoutPartsMissing or SettingsProblem.LayoutPartsRepeated => t.ErrorReadLayout,
-        _ => throw new UnreachableException(),
-    };
-
-    private static string Describe(Strings t, SettingsProblem problem) => problem switch
-    {
-        SettingsProblem.NotRead notRead => notRead.Detail,
-        SettingsProblem.NotJson notJson => t.ErrorSettingsNotJson(notJson.Detail),
-        SettingsProblem.Empty => t.ErrorSettingsEmpty,
-        SettingsProblem.LayoutPartsMissing => t.ErrorLayoutPartsMissing,
-        SettingsProblem.LayoutPartsRepeated => t.ErrorLayoutPartsRepeated,
-        _ => throw new UnreachableException(),
-    };
 
     /// <summary>Writes the settings, counting what they were copied from as saved only once the write
     /// succeeds. A failed write is reported, unless writes were failing already.</summary>
@@ -122,7 +103,7 @@ public static class Settings
     {
         if (!appState.SaveRetry.Fail())
             return;
-        appState.ReportError(Strings.For(appState.Locale).ErrorSaveSettings, error);
+        appState.ReportError(new AppProblem.SettingsNotSaved(error));
     }
 
     /// <summary>Takes what the settings keep of the screen, as it changed, to be written with the next save.</summary>

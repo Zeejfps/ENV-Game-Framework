@@ -273,7 +273,7 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Empty(loaded.AssemblyLists);
         Assert.IsType<SettingsProblem.NotJson>(problem);
         var error = Assert.Single(appState.Errors.Entries);
-        Assert.Contains(SettingsFile, error.Details);
+        Assert.Contains(SettingsFile, error.Words().Details);
     }
 
     [Fact]
@@ -303,7 +303,7 @@ public sealed class AppSettingsTests : IDisposable
         var fresh = new AppStateDriver(new AppSettings());
         Assert.Equal(DockLayout.PanelsIn(fresh.Ui.Layout.Root), DockLayout.PanelsIn(d.Ui.Layout.Root));
         Assert.Empty(d.Ui.Layout.Windows);
-        Assert.Contains(d.AppState.Errors.Entries, e => e.Details.Contains(SettingsFile));
+        Assert.Contains(d.AppState.Errors.Entries, e => e.Words().Details.Contains(SettingsFile));
     }
 
     [Fact]
@@ -420,7 +420,7 @@ public sealed class FrameworkPickerTests
     {
         var posted = PostedActions.OfThisTest();
         var reported = new List<string>();
-        var picker = new FrameworkPicker(static () => Strings.En, (title, _) => reported.Add(title), static () => throw new InvalidDataException("no runtime"));
+        var picker = new FrameworkPicker(static () => Strings.En, problem => reported.Add(ProblemTexts.Describe(Strings.En, problem).Title), static () => throw new InvalidDataException("no runtime"));
 
         picker.Open();
         Poll.Until(() => !picker.IsLoading, posted.Run);
@@ -440,7 +440,7 @@ public sealed class FrameworkPickerTests
             new RuntimeAssembly("System.Net.Sockets", "Microsoft.NETCore.App", "b.dll"),
             new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll"),
         };
-        var picker = new FrameworkPicker(static () => Strings.En, static (_, _) => { }, () => assemblies);
+        var picker = new FrameworkPicker(static () => Strings.En, static _ => { }, () => assemblies);
         var list = new AssemblyList();
         picker.Open();
         Poll.Until(() => !picker.IsLoading, posted.Run);
@@ -459,7 +459,7 @@ public sealed class FrameworkPickerTests
         var posted = PostedActions.OfThisTest();
         var open = new RuntimeAssembly("Fixtures", "Microsoft.NETCore.App", AppStateDriver.FixturePath);
         var other = new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll");
-        var picker = new FrameworkPicker(static () => Strings.En, static (_, _) => { }, () => [open, other]);
+        var picker = new FrameworkPicker(static () => Strings.En, static _ => { }, () => [open, other]);
         var list = new AssemblyList();
         picker.Open();
         Poll.Until(() => !picker.IsLoading, posted.Run);

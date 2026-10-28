@@ -109,9 +109,7 @@ public static class Diagrams
 
     private static void ReportUnreadable(AppState appState, CodeReference type, Exception? error)
     {
-        var t = Strings.For(appState.Locale);
-        var details = AppState.DescribeFailure(error, t.ErrorNoDefinition(type));
-        appState.ReportError(t.ErrorShowInDiagram(type.Name), details);
+        appState.ReportError(new AppProblem.TypeNotDiagrammed(type, error));
     }
 
     /// <summary>Adds to <paramref name="diagram"/> the types <paramref name="card"/> derives from, or, for an
@@ -290,9 +288,7 @@ public static class Diagrams
 
     private static void ReportUnreadableDiagram(AppState appState, DiagramDocumentRecord saved, Exception error)
     {
-        var t = Strings.For(appState.Locale);
-        var title = saved.Title ?? string.Empty;
-        appState.ReportError(t.ErrorShowInDiagram(title), error.ToString());
+        appState.ReportError(new AppProblem.DiagramNotReopened(saved.Title ?? string.Empty, error));
     }
 
     /// <summary>Lays out <paramref name="diagram"/> in the background, its cards and labels as large as
@@ -321,7 +317,6 @@ public static class Diagrams
 
     private static void ReportLayoutFailure(AppState appState, Exception error)
     {
-        var t = Strings.For(appState.Locale);
-        appState.ReportError(t.ErrorLayOutDiagram, error.ToString());
+        appState.ReportError(new AppProblem.DiagramNotLaidOut(error));
     }
 }

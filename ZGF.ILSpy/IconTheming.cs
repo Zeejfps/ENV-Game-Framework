@@ -33,10 +33,8 @@ public static class IconTheming
     {
         var files = ReadUserIconThemes(appState.Settings.IconThemesFolder);
         appState.IconThemes.LoadUserThemes(files);
-        ReportNewErrors(appState, appState.IconThemes.Errors, known, TitleIconThemeErrors);
+        ReportNewErrors(appState, appState.IconThemes.Errors, known, ThemeKind.Icon);
     }
-
-    private static string TitleIconThemeErrors(Strings t, string file) => t.ErrorIconTheme(file);
 
     private static List<IconThemeFile> ReadUserIconThemes(string? folder)
     {
@@ -61,7 +59,7 @@ public static class IconTheming
         var error = CreateThemeFolder(folder, SchemaFileName, BuiltInIconThemes.ReadSchema(), BuiltInIconThemes.ReadGuide());
         if (error == null)
             return folder;
-        appState.ReportError(Strings.For(appState.Locale).ErrorIconThemesFolder, error);
+        appState.ReportError(new AppProblem.ThemesFolderNotMade(ThemeKind.Icon, error));
         return null;
     }
 
@@ -80,8 +78,7 @@ public static class IconTheming
         var path = Path.Combine(folder, id + IconThemeFile.Extension);
         var name = NameCustomTheme(appState, themes, parent);
         var text = IconThemeDraft.Compose(name, parent, themes.Find(parent));
-        var errorTitle = Strings.For(appState.Locale).ErrorCustomIconTheme;
-        if (!TryWriteNewFile(appState, path, text, errorTitle))
+        if (!TryWriteNewFile(appState, path, text, ThemeKind.Icon))
             return null;
         ReloadUserIconThemes(appState);
         SetIconTheme(appState, id);
@@ -92,11 +89,9 @@ public static class IconTheming
     /// <see cref="StopWatchingUserIconThemes"/>, so the chosen icon theme redraws as its files are saved.</summary>
     public static void WatchUserIconThemes(AppState appState)
     {
-        var folder = new WatchedThemeFolder(appState.IconThemesWatch, PrepareIconThemesFolder, ReloadUserIconThemes, TitleUnwatchedIconThemes);
+        var folder = new WatchedThemeFolder(appState.IconThemesWatch, PrepareIconThemesFolder, ReloadUserIconThemes, ThemeKind.Icon);
         WatchThemeFolder(appState, folder);
     }
-
-    private static string TitleUnwatchedIconThemes(Strings t) => t.ErrorWatchIconThemes;
 
     public static void StopWatchingUserIconThemes(AppState appState)
     {

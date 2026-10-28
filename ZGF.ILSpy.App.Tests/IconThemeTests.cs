@@ -408,7 +408,7 @@ public sealed class IconAssetFolderTests : IDisposable
         var appState = new AppState(settings);
 
         var error = Assert.Single(appState.Errors.Entries);
-        Assert.Equal("Problems in the icon theme bad.json", error.Title);
+        Assert.Equal("Problems in the icon theme bad.json", error.Words().Title);
         Assert.Equal(["lucide", "bad", "good"], appState.IconThemes.Ids);
     }
 
@@ -502,8 +502,8 @@ public sealed class UserIconThemeTests : IDisposable
         ReloadUserIconThemes(appState);
 
         Assert.Single(appState.Errors.Entries);
-        Assert.Equal("Problems in the icon theme escape.json", error.Title);
-        Assert.EndsWith("escape.json(1): icons.node.class: ../class.svg is not inside the theme's folder", error.Details);
+        Assert.Equal("Problems in the icon theme escape.json", error.Words().Title);
+        Assert.EndsWith("escape.json(1): icons.node.class: ../class.svg is not inside the theme's folder", error.Words().Details);
     }
 
     [Fact]

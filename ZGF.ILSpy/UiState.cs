@@ -17,8 +17,8 @@ namespace ZGF.ILSpy;
 public sealed class UiState : IUiState
 {
     /// <param name="saved">What the settings kept of the screen when they were last saved.</param>
-    /// <param name="reportError">Tells the user that something done in the background failed: a title and details.</param>
-    public UiState(ViewSettings saved, Action<string, string> reportError)
+    /// <param name="reportError">Tells the user that something done in the background failed.</param>
+    public UiState(ViewSettings saved, Action<AppProblem> reportError)
     {
         FoldedOptionGroups = new FoldedGroups(saved.FoldedOptionGroups);
         BookmarkColumns.Restore(saved.BookmarkColumns);

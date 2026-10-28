@@ -68,7 +68,7 @@ public sealed class CommandLineTests
         OpenCommandLineFiles(d.AppState, CommandLine.Parse(["--navigateto=T:Nowhere.Missing", AppStateDriver.FixturePath]));
         d.RunUntil(() => d.AppState.Errors.Entries.Count > 0);
 
-        Assert.Contains("T:Nowhere.Missing", Assert.Single(d.AppState.Errors.Entries).Title);
+        Assert.Contains("T:Nowhere.Missing", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 
     [Fact]

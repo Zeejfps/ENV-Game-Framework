@@ -72,9 +72,7 @@ public static class Decompilation
     {
         if (node.Assembly.HasLoadError)
             return;
-        var t = Strings.For(appState.Locale);
-        var details = AppState.DescribeFailure(error, tab.Document.GetText());
-        appState.ReportError(t.ErrorDecompile(node.FullName), details);
+        appState.ReportError(new AppProblem.DecompilationFailed(node.FullName, error, tab.Document.GetText()));
     }
 
     /// <summary>Commands the view to return to the arrival's position, else to reveal the grid's row or the

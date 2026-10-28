@@ -57,7 +57,7 @@ public sealed class PickedPdbTests
 
         var error = Assert.Single(d.AppState.Errors.Entries);
         Assert.Empty(d.AppState.Assemblies.Pdbs.All);
-        Assert.Contains("another build", error.Details);
+        Assert.Contains("another build", error.Words().Details);
     }
 
     [Fact]

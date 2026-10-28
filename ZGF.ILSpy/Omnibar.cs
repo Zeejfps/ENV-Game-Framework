@@ -13,8 +13,8 @@ public sealed class Omnibar
     private bool _isFocusPending;
 
     /// <param name="strings">The interface's strings in the current language.</param>
-    /// <param name="reportError">Tells the user a search failed: a title and details.</param>
-    public Omnibar(Func<Strings> strings, Action<string, string> reportError)
+    /// <param name="reportError">Tells the user a search failed.</param>
+    public Omnibar(Func<Strings> strings, Action<AppProblem> reportError)
     {
         Search = new Search(strings, reportError);
     }

@@ -282,7 +282,7 @@ public sealed class AppStateTests
         d.Settle();
 
         var shown = d.AppState.Tabs.Active!.Node!;
-        Assert.Empty(d.AppState.Errors.Entries.Select(e => e.FullText));
+        Assert.Empty(d.AppState.Errors.Entries.Select(e => e.Words().FullText));
         Assert.Equal("Greeter", shown.Text);
         Assert.NotSame(before, shown);
         Assert.Same(d.Fixture("Greeter"), shown);
@@ -441,7 +441,7 @@ public sealed class AppStateTests
         var replaced = new HeldSearch();
         var current = new HeldSearch();
         var streams = new Queue<HeldSearch>([replaced, current]);
-        var search = new Search(static () => Strings.En, (title, _) => reported.Add(title), (_, _, _, _) => streams.Dequeue().Stream());
+        var search = new Search(static () => Strings.En, problem => reported.Add(ProblemTexts.Describe(Strings.En, problem).Title), (_, _, _, _) => streams.Dequeue().Stream());
         var assemblies = new AssemblyList();
         search.Query = "Greet";
         search.Update(assemblies, 0, true);
@@ -539,7 +539,7 @@ public sealed class AppStateTests
         Assert.Equal(new TabContent.Gone(tab.Location!), tab.Content);
         Assert.Contains("gone", TabPlaceholder.Write(d.Ui.Strings, tab.Content));
         Assert.True(Assert.Single(d.AppState.Assemblies.Listed).HasLoadError);
-        Assert.Contains(d.AppState.Errors.Entries, e => e.Title.Contains("Greeter"));
+        Assert.Contains(d.AppState.Errors.Entries, e => e.Words().Title.Contains("Greeter"));
     }
 }
 

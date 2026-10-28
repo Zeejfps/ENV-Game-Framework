@@ -90,9 +90,7 @@ public static class Bookmarks
 
     private static void ReportBookmarkGone(AppState appState, Bookmark bookmark, Exception? error)
     {
-        var t = Strings.For(appState.Locale);
-        var details = AppState.DescribeFailure(error, t.ErrorNoLongerThere(bookmark.Place));
-        appState.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
+        appState.ReportError(new AppProblem.BookmarkGone(bookmark.Name, bookmark.Place, error));
     }
 
     /// <summary>Goes to the next enabled bookmark after <paramref name="from"/>, or the previous when
@@ -112,7 +110,7 @@ public static class Bookmarks
         var error = BookmarkFile.Write(path, records);
         if (error == null)
             return;
-        appState.ReportError(Strings.For(appState.Locale).ErrorExportBookmarks, error);
+        appState.ReportError(new AppProblem.BookmarksNotExported(error));
     }
 
     /// <summary>Reads the bookmarks in the file at <paramref name="path"/> — this app's or the real
@@ -125,7 +123,7 @@ public static class Bookmarks
         var records = BookmarkFile.Read(path, out var error);
         if (records == null)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorImportBookmarks(file), error);
+            appState.ReportError(new AppProblem.BookmarksNotImported(file, error ?? ""));
             return;
         }
         appState.Imports.StartFinding();
@@ -155,7 +153,7 @@ public static class Bookmarks
                 TakeImported(appState, ok.Value, file);
                 break;
             case Outcome<List<FoundBookmark>>.Failed failed:
-                appState.ReportError(Strings.For(appState.Locale).ErrorImportBookmarks(file), failed.Error.ToString());
+                appState.ReportError(new AppProblem.BookmarksNotImported(file, failed.Error.ToString()));
                 break;
             default:
                 throw new UnreachableException();
@@ -184,9 +182,8 @@ public static class Bookmarks
         var lost = found.FindAll(f => f.Place == null);
         if (lost.Count == 0)
             return;
-        var lines = lost.Select(DescribeLostBookmark);
-        var details = string.Join(Environment.NewLine, lines);
-        appState.ReportError(Strings.For(appState.Locale).ErrorBookmarksNotFound(file), details);
+        var lines = lost.ConvertAll(DescribeLostBookmark);
+        appState.ReportError(new AppProblem.ImportedBookmarksLost(file, lines));
     }
 
     private static string DescribeLostBookmark(FoundBookmark lost)
@@ -222,7 +219,7 @@ public static class Bookmarks
     {
         if (leftOut == 0)
             return;
-        appState.ReportError(Strings.For(appState.Locale).ErrorDuplicateBookmarks(leftOut));
+        appState.ReportError(new AppProblem.BookmarksLeftOut(leftOut));
     }
 
     private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);

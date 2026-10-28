@@ -4,12 +4,12 @@ using static ZGF.ILSpy.Preferences;
 namespace ZGF.ILSpy;
 
 /// <summary>A folder of the user's themes of one kind as watching keeps it: the watch over it, how it is
-/// made, how its themes are read again, and the title of the error that tells it cannot be watched.</summary>
+/// made, how its themes are read again, and which themes they are.</summary>
 internal sealed record WatchedThemeFolder(
     ThemeFolderWatch Watch,
     Func<AppState, string?> Prepare,
     Action<AppState> Reload,
-    Func<Strings, string> UnwatchedTitle);
+    ThemeKind Kind);
 
 /// <summary>The themes the app can be drawn in: the built-in ones and those the user keeps in the themes
 /// folder beside the settings, read again whenever that folder changes. What is wrong in a theme file is
@@ -39,10 +39,8 @@ public static class Theming
     {
         var files = ReadUserThemes(appState.Settings.ThemesFolder);
         appState.Themes.LoadUserThemes(files);
-        ReportNewErrors(appState, appState.Themes.Errors, known, TitleThemeErrors);
+        ReportNewErrors(appState, appState.Themes.Errors, known, ThemeKind.Color);
     }
-
-    private static string TitleThemeErrors(Strings t, string file) => t.ErrorTheme(file);
 
     private static List<ThemeFile> ReadUserThemes(string? folder)
     {
@@ -73,62 +71,16 @@ public static class Theming
     private static bool IsNamed(string path, string fileName) => string.Equals(Path.GetFileName(path), fileName, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Reports the errors of <paramref name="errors"/> not in <paramref name="known"/>, one report
-    /// per file, titled by <paramref name="title"/> from the file's name.</summary>
+    /// per file, as problems of themes of <paramref name="kind"/>.</summary>
     internal static void ReportNewErrors(AppState appState, IReadOnlyList<ThemeError> errors, IReadOnlyList<ThemeError> known,
-        Func<Strings, string, string> title)
+        ThemeKind kind)
     {
         var byFile = errors
             .Where(e => !known.Contains(e))
             .GroupBy(static e => e.File);
         foreach (var fileErrors in byFile)
-            ReportErrorsOf(appState, fileErrors.Key, fileErrors, title);
+            appState.ReportError(new AppProblem.ThemeFileProblems(kind, fileErrors.Key, fileErrors.ToList()));
     }
-
-    private static void ReportErrorsOf(AppState appState, string file, IEnumerable<ThemeError> errors, Func<Strings, string, string> title)
-    {
-        var t = Strings.For(appState.Locale);
-        var lines = errors.Select(e => DescribeError(t, e));
-        appState.ReportError(title(t, Path.GetFileName(file)), string.Join(Environment.NewLine, lines));
-    }
-
-    /// <summary><paramref name="error"/> as a line of a report: the file, the line when known, and what is wrong.</summary>
-    private static string DescribeError(Strings t, ThemeError error)
-    {
-        var problem = DescribeProblem(t, error);
-        if (error.Line == 0)
-            return $"{error.File}: {problem}";
-        return $"{error.File}({error.Line}): {problem}";
-    }
-
-    private static string DescribeProblem(Strings t, ThemeError error) => error.Problem switch
-    {
-        ThemeProblem.Unreadable => t.ThemeErrorUnreadable(error.Detail),
-        ThemeProblem.InvalidJson => t.ThemeErrorInvalidJson(error.Detail),
-        ThemeProblem.RootNotAnObject => t.ThemeErrorRootNotAnObject,
-        ThemeProblem.NotAnObject => t.ThemeErrorNotAnObject(error.Subject),
-        ThemeProblem.NotAString => t.ThemeErrorNotAString(error.Subject),
-        ThemeProblem.InvalidName => t.ThemeErrorInvalidName,
-        ThemeProblem.DuplicateLanguage => t.ThemeErrorDuplicateLanguage(error.Subject),
-        ThemeProblem.UnknownKey => t.ThemeErrorUnknownKey(error.Subject),
-        ThemeProblem.UnknownType => t.ThemeErrorUnknownType(error.Subject),
-        ThemeProblem.NotAColor => t.ThemeErrorNotAColor(error.Subject, error.Detail),
-        ThemeProblem.TransparentBlack => t.ThemeErrorTransparentBlack(error.Subject),
-        ThemeProblem.UnknownPaletteName => t.ThemeErrorUnknownPaletteName(error.Subject, error.Detail),
-        ThemeProblem.NoType => t.ThemeErrorNoType,
-        ThemeProblem.UnknownParent => t.ThemeErrorUnknownParent(error.Subject),
-        ThemeProblem.ExtendsCycle => t.ThemeErrorExtendsCycle(error.Detail),
-        ThemeProblem.MissingColors => t.ThemeErrorMissingColors(error.Detail),
-        ThemeProblem.IdTaken => t.ThemeErrorIdTaken(error.Subject),
-        ThemeProblem.NotACodepoint => t.ThemeErrorNotACodepoint(error.Subject, error.Detail),
-        ThemeProblem.InvalidIcon => t.ThemeErrorInvalidIcon(error.Subject),
-        ThemeProblem.UnknownFont => t.ThemeErrorUnknownFont(error.Subject, error.Detail),
-        ThemeProblem.AssetOutsideFolder => t.ThemeErrorAssetOutsideFolder(error.Subject, error.Detail),
-        ThemeProblem.AssetUnreadable => t.ThemeErrorAssetUnreadable(error.Subject, error.Detail),
-        ThemeProblem.NotAFont => t.ThemeErrorNotAFont(error.Subject, error.Detail),
-        ThemeProblem.InvalidSvg => t.ThemeErrorInvalidSvg(error.Subject, error.Detail),
-        ThemeProblem.MissingGlyph => t.ThemeErrorMissingGlyph(error.Subject, error.Detail),
-        _ => throw new ArgumentOutOfRangeException(nameof(error), error.Problem, null),
-    };
 
     /// <summary>The theme the app is drawn in: the chosen one as resolved, or the built-in dark one while
     /// the chosen one's file is missing. The choice is kept, so the theme comes back with its file.</summary>
@@ -144,7 +96,7 @@ public static class Theming
         var error = CreateThemeFolder(folder, SchemaFileName, BuiltInThemes.ReadSchema(), BuiltInThemes.ReadGuide());
         if (error == null)
             return folder;
-        appState.ReportError(Strings.For(appState.Locale).ErrorThemesFolder, error);
+        appState.ReportError(new AppProblem.ThemesFolderNotMade(ThemeKind.Color, error));
         return null;
     }
 
@@ -195,8 +147,7 @@ public static class Theming
         var path = Path.Combine(folder, id + ThemeFile.Extension);
         var name = NameCustomTheme(appState, themes, parent);
         var text = ThemeDraft.Compose(name, parent, themes.Find(parent));
-        var errorTitle = Strings.For(appState.Locale).ErrorCustomTheme;
-        if (!TryWriteNewFile(appState, path, text, errorTitle))
+        if (!TryWriteNewFile(appState, path, text, ThemeKind.Color))
             return null;
         ReloadUserThemes(appState);
         SetTheme(appState, id);
@@ -238,9 +189,9 @@ public static class Theming
         return t.ThemeCustomName(parentName);
     }
 
-    /// <summary>Writes <paramref name="text"/> to a file that must not exist yet; false after reporting why
-    /// it cannot, under <paramref name="errorTitle"/>.</summary>
-    internal static bool TryWriteNewFile(AppState appState, string path, string text, string errorTitle)
+    /// <summary>Writes <paramref name="text"/>, a theme of <paramref name="kind"/>, to a file that must not
+    /// exist yet; false after reporting why it cannot.</summary>
+    internal static bool TryWriteNewFile(AppState appState, string path, string text, ThemeKind kind)
     {
         try
         {
@@ -250,7 +201,7 @@ public static class Theming
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            appState.ReportError(errorTitle, $"{path}{Environment.NewLine}{e.Message}");
+            appState.ReportError(new AppProblem.CustomThemeNotWritten(kind, path, e.Message));
             return false;
         }
     }
@@ -259,11 +210,9 @@ public static class Theming
     /// <see cref="StopWatchingUserThemes"/>, so the chosen theme redraws as its file is saved.</summary>
     public static void WatchUserThemes(AppState appState)
     {
-        var folder = new WatchedThemeFolder(appState.ThemesWatch, PrepareThemesFolder, ReloadUserThemes, TitleUnwatchedThemes);
+        var folder = new WatchedThemeFolder(appState.ThemesWatch, PrepareThemesFolder, ReloadUserThemes, ThemeKind.Color);
         WatchThemeFolder(appState, folder);
     }
-
-    private static string TitleUnwatchedThemes(Strings t) => t.ErrorWatchThemes;
 
     /// <summary>Reads the themes of <paramref name="folder"/> again whenever it changes, until its watch
     /// stops. Makes the folder when it is missing, and again when it is removed while watched. When the
@@ -315,8 +264,7 @@ public static class Theming
 
     private static void ReportUnwatched(AppState appState, WatchedThemeFolder folder, string reason)
     {
-        var t = Strings.For(appState.Locale);
-        appState.ReportError(folder.UnwatchedTitle(t), reason);
+        appState.ReportError(new AppProblem.ThemesNotWatched(folder.Kind, reason));
     }
 
     public static void StopWatchingUserThemes(AppState appState)

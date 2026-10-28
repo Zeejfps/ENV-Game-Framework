@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core.Comparison;
@@ -25,7 +26,7 @@ internal static class ComparisonView
         if (!ui.State.Display.ShowOmnibar)
             OwnToolbar(ui, appState, tab, comparison);
         Summary(ui, comparison);
-        var hint = FindHint(ui.State.Strings, comparison, rows);
+        var hint = FindHint(ui, comparison, rows);
         if (hint != null)
         {
             DocumentsView.Hint(ui, hint);
@@ -111,16 +112,24 @@ internal static class ComparisonView
 
     /// <summary>What the tab says in place of the tree: why the comparison failed, that it runs, or that
     /// nothing differs; null when it shows the tree.</summary>
-    private static string? FindHint(Strings t, AssemblyComparison comparison, ComparisonRows rows)
+    private static string? FindHint(Ui<UiState> ui, AssemblyComparison comparison, ComparisonRows rows)
     {
-        if (comparison.Failure != null)
-            return comparison.Failure;
+        var t = ui.State.Strings;
+        if (comparison.Failure is { } failure)
+            return ui.Memo("comparison-failure", (failure, t), static a => DescribeFailure(a.t, a.failure));
         if (comparison.Diff == null)
             return t.ComparisonComparing;
         if (rows.Roots.Count == 0)
             return t.ComparisonNoDifferences;
         return null;
     }
+
+    private static string DescribeFailure(Strings t, ComparisonFailure failure) => failure switch
+    {
+        ComparisonFailure.AssemblyClosed closed => t.ComparisonAssemblyClosed(closed.File),
+        ComparisonFailure.Failed failed => t.ErrorCompare(failed.Left, failed.Right),
+        _ => throw new UnreachableException(),
+    };
 
     private static void Tree(Ui<UiState> ui, AppState appState, ComparisonRows rows)
     {
