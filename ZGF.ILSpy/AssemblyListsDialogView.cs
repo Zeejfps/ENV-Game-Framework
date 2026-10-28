@@ -52,10 +52,10 @@ internal static class AssemblyListsDialogView
         using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
         {
             if (ui.Button(t.ListsNew, id: "new", icon: new UiIcon(ui.State.Icons.ListsNew)))
-                Create(dialog, appState);
+                Create(dialog, appState, t);
             ui.Spacer();
             if (ui.IconButton("duplicate", ui.State.Icons.ListsDuplicate, t.ListsDuplicate, any))
-                Duplicate(dialog, appState, picked!);
+                Duplicate(dialog, appState, t, picked!);
             if (ui.IconButton("rename", ui.State.Icons.ListsRename, t.ListsRename, any))
                 dialog.StartRenaming(picked!);
             if (ui.IconButton("delete", ui.State.Icons.ListsDelete, t.ListsDelete, any))
@@ -249,7 +249,7 @@ internal static class AssemblyListsDialogView
         if (ui.MenuItem(t.ListsRename, "F2", id: "rename"))
             dialog.StartRenaming(picked);
         if (ui.MenuItem(t.ListsDuplicate, id: "duplicate"))
-            Duplicate(dialog, appState, picked);
+            Duplicate(dialog, appState, t, picked);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsDelete, "Delete", id: "delete"))
             dialog.StartConfirmingDelete(picked);
@@ -304,17 +304,17 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>Adds an empty list, picked to be named, leaving the open one open.</summary>
-    private static void Create(AssemblyListsDialog dialog, AppState appState)
+    private static void Create(AssemblyListsDialog dialog, AppState appState, Strings t)
     {
-        var name = CreateAssemblyList(appState);
+        var name = CreateAssemblyList(appState, t.ListsNewName);
         dialog.PickToRename(appState.Lists, name);
     }
 
     /// <summary>Adds a copy of the list named <paramref name="name"/>, picked to be named, leaving the
     /// open one open.</summary>
-    private static void Duplicate(AssemblyListsDialog dialog, AppState appState, string name)
+    private static void Duplicate(AssemblyListsDialog dialog, AppState appState, Strings t, string name)
     {
-        var copy = DuplicateAssemblyList(appState, name);
+        var copy = DuplicateAssemblyList(appState, name, t.ListsCopyName(name));
         dialog.PickToRename(appState.Lists, copy);
     }
 

@@ -210,7 +210,7 @@ public sealed class AssemblyListingTests
     {
         var d = AppStateDriver.Opened();
         d.Analyze(d.Fixture("Greeter"));
-        var copy = DuplicateAssemblyList(d.AppState, SavedAssemblyLists.DefaultName);
+        var copy = DuplicateAssemblyList(d.AppState, SavedAssemblyLists.DefaultName, "Copy");
 
         SwitchAssemblyList(d.AppState, copy);
         d.Settle();
@@ -264,7 +264,7 @@ public sealed class AssemblyListingTests
         var d = AppStateDriver.Opened();
         var other = typeof(AppState).Assembly.Location;
 
-        CreateAssemblyList(d.AppState);
+        CreateAssemblyList(d.AppState, "New list");
         SwitchAssemblyList(d.AppState, "New list");
         d.Settle();
         OpenAssembly(d.AppState, other);
@@ -308,7 +308,7 @@ public sealed class AssemblyListingTests
     public void Deleting_the_open_list_opens_the_assemblies_of_the_one_that_takes_its_place()
     {
         var d = AppStateDriver.Opened();
-        CreateAssemblyList(d.AppState);
+        CreateAssemblyList(d.AppState, "New list");
         d.Settle();
 
         DeleteAssemblyList(d.AppState, "New list");

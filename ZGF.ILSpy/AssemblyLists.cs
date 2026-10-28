@@ -1,5 +1,4 @@
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.SavedDocuments;
@@ -91,11 +90,11 @@ public static class AssemblyLists
         RestoreAnalyses(appState);
     }
 
-    /// <summary>Adds an empty list, leaving the open one open, and returns its name.</summary>
-    public static string CreateAssemblyList(AppState appState)
+    /// <summary>Adds an empty list named <paramref name="name"/>, or numbered when that is taken,
+    /// leaving the open one open, and returns the name it got.</summary>
+    public static string CreateAssemblyList(AppState appState, string name)
     {
-        var t = Strings.For(appState.Locale);
-        return appState.Lists.Create(t.ListsNewName);
+        return appState.Lists.Create(name);
     }
 
     /// <summary>Adds a list of <paramref name="preset"/>'s assemblies under its name, leaving the open
@@ -105,13 +104,12 @@ public static class AssemblyLists
         return appState.Lists.Create(preset.Name, preset.Paths);
     }
 
-    /// <summary>Adds a copy of the list named <paramref name="name"/>, leaving the open one open, and
-    /// returns the copy's name.</summary>
-    public static string DuplicateAssemblyList(AppState appState, string name)
+    /// <summary>Adds a copy of the list named <paramref name="source"/> named <paramref name="name"/>, or
+    /// numbered when that is taken, leaving the open one open, and returns the name the copy got.</summary>
+    public static string DuplicateAssemblyList(AppState appState, string source, string name)
     {
-        var t = Strings.For(appState.Locale);
         RememberActiveAssemblyList(appState);
-        return appState.Lists.Duplicate(name, t.ListsCopyName(name));
+        return appState.Lists.Duplicate(source, name);
     }
 
     /// <summary>Removes the list named <paramref name="name"/>. When it was open, the list that takes
