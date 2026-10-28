@@ -12,9 +12,11 @@ public readonly record struct RichTextSegment(int RunIndex, int Start, int Lengt
 /// <summary>
 /// One line: its slices left to right, its width, and its height — the tallest line height among
 /// the styles on it. A line left empty by consecutive or trailing newlines has no slices and the
-/// height of the run whose '\n' made it.
+/// height of the run whose '\n' made it. <paramref name="Start"/> and <paramref name="End"/> bound
+/// the line in the runs' joined text (see <see cref="RichTextLayout.ConcatenateRuns"/>): its slices
+/// tile them, and a '\n' that ends the line is past <paramref name="End"/>.
 /// </summary>
-public sealed record RichTextLine(IReadOnlyList<RichTextSegment> Segments, float Width, float Height);
+public sealed record RichTextLine(IReadOnlyList<RichTextSegment> Segments, float Width, float Height, int Start, int End);
 
 /// <summary>Laid-out rich text: lines top to bottom, their total height and the widest line's width.</summary>
 public sealed record RichTextLayoutResult(IReadOnlyList<RichTextLine> Lines, float Height, float MaxLineWidth)
@@ -90,6 +92,81 @@ public static class RichTextLayout
                 return segment.RunIndex;
         }
         return -1;
+    }
+
+    /// <summary>The caret index in the runs' joined text nearest <paramref name="x"/>,
+    /// <paramref name="y"/> from the top-left of <paramref name="layout"/>, on a grapheme-cluster
+    /// boundary: on the line at <paramref name="y"/>, or the first or last line above or below
+    /// them; and its start or end left or right of it.</summary>
+    public static int CharAt(ICanvas canvas, IReadOnlyList<RichTextRun> runs, RichTextLayoutResult layout, float x, float y)
+    {
+        if (layout.Lines.Count == 0)
+            return 0;
+        var line = LineAt(layout, y);
+        if (x <= 0f)
+            return line.Start;
+        var index = line.Start;
+        foreach (var segment in line.Segments)
+        {
+            if (x < segment.X + segment.Width)
+                return index + CaretInSegment(canvas, runs[segment.RunIndex], segment, x - segment.X);
+            index += segment.Length;
+        }
+        return line.End;
+    }
+
+    private static RichTextLine LineAt(RichTextLayoutResult layout, float y)
+    {
+        var top = 0f;
+        foreach (var line in layout.Lines)
+        {
+            top += line.Height;
+            if (y < top)
+                return line;
+        }
+        return layout.Lines[^1];
+    }
+
+    /// <summary>The offset into <paramref name="segment"/> nearest <paramref name="x"/> from its left
+    /// edge, on a grapheme-cluster boundary.</summary>
+    private static int CaretInSegment(ICanvas canvas, RichTextRun run, RichTextSegment segment, float x)
+    {
+        var text = run.Text.AsSpan(segment.Start, segment.Length);
+        var low = 0;
+        var high = text.Length;
+        while (low < high)
+        {
+            var middle = (low + high + 1) / 2;
+            if (canvas.MeasureTextWidth(text[..middle], run.Style) <= x)
+                low = middle;
+            else
+                high = middle - 1;
+        }
+        low = TextBoundaries.Snap(text, low);
+        if (low >= text.Length)
+            return low;
+        var next = TextBoundaries.Next(text, low);
+        var pastLow = x - canvas.MeasureTextWidth(text[..low], run.Style);
+        var beforeNext = canvas.MeasureTextWidth(text[..next], run.Style) - x;
+        return beforeNext < pastLow ? next : low;
+    }
+
+    /// <summary>How far from the start of <paramref name="line"/> the caret at
+    /// <paramref name="index"/> of the runs' joined text sits; clamped to the line.</summary>
+    public static float XOf(ICanvas canvas, IReadOnlyList<RichTextRun> runs, RichTextLine line, int index)
+    {
+        var start = line.Start;
+        foreach (var segment in line.Segments)
+        {
+            if (index <= start + segment.Length)
+            {
+                var length = Math.Max(0, index - start);
+                var run = runs[segment.RunIndex];
+                return segment.X + canvas.MeasureTextWidth(run.Text.AsSpan(segment.Start, length), run.Style);
+            }
+            start += segment.Length;
+        }
+        return line.Width;
     }
 
     /// <summary>The width of the widest chunk of <paramref name="runs"/> that cannot break: the
@@ -279,7 +356,7 @@ public static class RichTextLayout
             g = Math.Min(end, runEnd);
             k++;
         }
-        return new RichTextLine(segments, x, height);
+        return new RichTextLine(segments, x, height, start, end);
     }
 
     /// <summary>A line a '\n' left empty, as tall as the run of the '\n' before it, or of the one
@@ -288,7 +365,7 @@ public static class RichTextLayout
     {
         var anchor = start > 0 ? start - 1 : start;
         var style = map.Runs[map.RunAt(anchor)].Style;
-        return new RichTextLine(Array.Empty<RichTextSegment>(), 0f, map.Canvas.MeasureTextLineHeight(style));
+        return new RichTextLine(Array.Empty<RichTextSegment>(), 0f, map.Canvas.MeasureTextLineHeight(style), start, start);
     }
 
     /// <summary>The runs as one text for break decisions, measured slice by slice in each run's style.</summary>

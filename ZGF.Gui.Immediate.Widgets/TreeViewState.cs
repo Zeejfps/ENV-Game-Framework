@@ -2,15 +2,20 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>What a tree row shows. A <see cref="LabelColor"/> of 0 takes the theme's text color.
-/// <see cref="Secondary"/> is muted text after the label, which gives up its room before the label
-/// does.</summary>
 /// <summary>What a tree row shows: its label and icon, the label's color (0 for the theme's), the
 /// tooltip, and muted text after the label, <paramref name="SecondaryBold"/> drawn bold after
 /// <paramref name="Secondary"/> to stand out, keeping its room as long as the label does while
-/// <paramref name="Secondary"/> gives up its own first.</summary>
+/// <paramref name="Secondary"/> gives up its own first. A <paramref name="Spinning"/> row shows the
+/// spinner in its icon's place, in the icon's color when it has one, for work the row's node is doing.
+/// <paramref name="Badges"/> follow the text, in order, and keep their room as long as the label does.
+/// A <paramref name="BadgesSpinning"/> row shows the spinner in its badges' place instead, for work
+/// that will change them, so the label stays where it is.</summary>
 public readonly record struct TreeRow(string Label, UiIcon? Icon = null, uint LabelColor = 0, string? Tooltip = null, string? Secondary = null,
-    string? SecondaryBold = null);
+    string? SecondaryBold = null, bool Spinning = false, IReadOnlyList<TreeBadge>? Badges = null, bool BadgesSpinning = false);
+
+/// <summary>A small glyph and its text drawn in one color after a tree row's text, such as a branch's
+/// commits to push: an up arrow and a count.</summary>
+public readonly record struct TreeBadge(IconGlyph Glyph, string Text, uint Color);
 
 /// <summary>The app's hierarchy as <see cref="UiWidgets.TreeView{TNode}"/> reads it. Children are
 /// asked for when a node is expanded, and again only after

@@ -508,6 +508,52 @@ public sealed class TreeRowSlotTests
     }
 
     [Fact]
+    public void Badges_are_drawn_in_their_colors_in_order_after_the_secondary_text()
+    {
+        TreeBadge[] badges = [new(IconGlyph.FromFont("U"), "2", 0xFF00FF00), new(IconGlyph.FromFont("D"), "3", 0xFFFF8800)];
+        var model = new Flat(new TreeRow("task", Secondary: "(branch)", Badges: badges));
+        var state = new TreeViewState<string>(StringComparer.Ordinal);
+        string[] roots = ["root"];
+
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 400f).Frame(2);
+
+        Assert.Equal(0xFF00FF00u, frames.TextColor("2"));
+        Assert.Equal(0xFFFF8800u, frames.TextColor("3"));
+        Assert.True(frames.TextRect("2").X > frames.TextRect("(branch)").Right);
+        Assert.True(frames.TextRect("3").X > frames.TextRect("2").Right);
+    }
+
+    [Fact]
+    public void A_row_whose_badges_spin_shows_the_spinner_after_its_text_in_their_place()
+    {
+        TreeBadge[] badges = [new(IconGlyph.FromFont("U"), "2", 0xFF00FF00)];
+        var model = new Flat(new TreeRow("project", Secondary: "(main)", Badges: badges, BadgesSpinning: true));
+        var state = new TreeViewState<string>(StringComparer.Ordinal);
+        string[] roots = ["root"];
+
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 400f).Frame(2);
+
+        Assert.False(frames.Drew("2"));
+        Assert.NotEmpty(frames.Canvas.Circles);
+        Assert.All(frames.Canvas.Circles, c => Assert.True(c.Inputs.Center.X > frames.TextRect("(main)").Right));
+        Assert.True(frames.TextRect("project").X < frames.TextRect("(main)").X);
+    }
+
+    [Fact]
+    public void A_narrow_row_cuts_the_secondary_text_before_its_badges()
+    {
+        TreeBadge[] badges = [new(IconGlyph.FromFont("U"), "12", 0xFF00FF00)];
+        var model = new Flat(new TreeRow("task", Secondary: "(a branch with a long name)", Badges: badges));
+        var state = new TreeViewState<string>(StringComparer.Ordinal);
+        string[] roots = ["root"];
+
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 140f).Frame(2);
+
+        Assert.True(frames.Drew("12"));
+        Assert.Contains(frames.Canvas.Texts, t => t.Inputs.Text.StartsWith("(a") && t.Inputs.Text.EndsWith('…'));
+    }
+
+    [Fact]
     public void A_narrow_row_cuts_the_plain_secondary_text_before_its_bold_part()
     {
         var model = new Flat(new TreeRow("System.Runtime", Secondary: "10.0.0.0 · version text", SecondaryBold: "net48"));

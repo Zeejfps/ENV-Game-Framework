@@ -228,8 +228,11 @@ public abstract partial class Ui
     /// chip of <paramref name="codeBackground"/> when it is not transparent. Layouts are kept by the
     /// list's identity, so pass the same list while the text is the same. With an
     /// <paramref name="id"/>, runs with a <see cref="RichTextRun.Link"/> are links: the pointer turns
-    /// to a hand and underlines the one it is over, and a left or middle click on one returns it.</summary>
-    public RichTextClick RichText(IReadOnlyList<RichTextRun> runs, Box box = default, uint codeBackground = 0u, bool wrap = true, int id = 0)
+    /// to a hand and underlines the one it is over, and a left or middle click on one returns it.
+    /// The characters of the runs' joined text from <paramref name="selected"/>'s start to its end
+    /// are drawn over <see cref="UiTheme.TextSelection"/>; see <see cref="RichTextCharAt"/>.</summary>
+    public RichTextClick RichText(IReadOnlyList<RichTextRun> runs, Box box = default, uint codeBackground = 0u, bool wrap = true, int id = 0,
+        (int Start, int End) selected = default)
     {
         if (wrap && box.Width == null)
             box = box with { Width = Sizing.Grow() };
@@ -244,6 +247,12 @@ public abstract partial class Ui
         e.HoveredRun = hoveredLink;
         e.Wrap = wrap;
         e.CodeBackground = codeBackground;
+        if (selected.Start < selected.End)
+        {
+            e.SelectedStart = selected.Start;
+            e.SelectedEnd = selected.End;
+            e.SelectionColor = Theme.TextSelection;
+        }
         e.ContentWidth = MathF.Ceiling(natural.MaxLineWidth);
         e.ContentHeight = MathF.Ceiling(natural.Height);
         Push(e);
@@ -276,6 +285,18 @@ public abstract partial class Ui
         else if (interaction.ClickedWith(PointerButton.Middle))
             click = new RichTextClick(link, PointerButton.Middle);
         return hovered;
+    }
+
+    /// <summary>The caret index in the joined text of <paramref name="runs"/> nearest
+    /// <paramref name="x"/>, <paramref name="y"/>, as the <see cref="RichText"/> with
+    /// <paramref name="id"/> was laid out on the previous frame, from the line nearest them; -1 when
+    /// it was not laid out.</summary>
+    public int RichTextCharAt(int id, IReadOnlyList<RichTextRun> runs, float x, float y, bool wrap = true)
+    {
+        if (!TryGetContentRect(id, out var rect))
+            return -1;
+        var layout = LayOutRuns(runs, wrap ? rect.Width : 0f);
+        return RichTextLayout.CharAt(_canvas, runs, layout, x - rect.X, y - rect.Y);
     }
 
     /// <summary>The run with a link under the pointer, laid out as last frame laid out the element.</summary>

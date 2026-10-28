@@ -147,6 +147,7 @@ public class ImmediateFrameBenchmarks
         public void SetText(string text) { }
         public void SetHtml(string html, string text) { }
         public string? GetText() => null;
+        public ClipboardImage? GetImage() => null;
     }
 
     internal static string ResolveFontPath()
@@ -236,6 +237,7 @@ public class ImmediateTreeBenchmarks
         public void SetText(string text) { }
         public void SetHtml(string html, string text) { }
         public string? GetText() => null;
+        public ClipboardImage? GetImage() => null;
     }
 }
 
@@ -337,5 +339,6 @@ public class ImmediateMenuBenchmarks
         public void SetText(string text) { }
         public void SetHtml(string html, string text) { }
         public string? GetText() => null;
+        public ClipboardImage? GetImage() => null;
     }
 }

@@ -3,8 +3,9 @@ using System.Runtime.CompilerServices;
 namespace ZGF.Gui.Immediate;
 
 /// <summary>Where a text breaks into lines: each line's start and length in the text, and the
-/// widest line's width.</summary>
-internal sealed class TextLines
+/// widest line's width. A line's length leaves out the spaces a soft wrap broke after, so the next
+/// line can start past its end.</summary>
+public sealed class TextLines
 {
     private int[] _starts = new int[2];
     private int[] _lengths = new int[2];
@@ -15,7 +16,24 @@ internal sealed class TextLines
     public int Start(int line) => _starts[line];
     public int Length(int line) => _lengths[line];
 
-    public void Add(int start, int length, float width)
+    /// <summary>The line <paramref name="index"/> is on: the last that starts at or before it, so an
+    /// index where a soft wrap breaks is on the line after.</summary>
+    public int LineOf(int index)
+    {
+        var low = 0;
+        var high = Count - 1;
+        while (low < high)
+        {
+            var middle = (low + high + 1) / 2;
+            if (_starts[middle] <= index)
+                low = middle;
+            else
+                high = middle - 1;
+        }
+        return low;
+    }
+
+    internal void Add(int start, int length, float width)
     {
         if (Count == _starts.Length)
         {
@@ -129,6 +147,12 @@ public abstract partial class Ui : ITextLayout
         var tailStart = TextBoundaries.Snap(text, text.Length - (kept - head));
         return (head, text.Length - tailStart);
     }
+
+    /// <summary>Where <paramref name="text"/> breaks into lines as <see cref="Text"/> with <c>wrap</c>
+    /// lays it out <paramref name="maxWidth"/> wide: at each <c>\n</c> and, where a line is wider,
+    /// between words. Kept while asked for this frame or the last.</summary>
+    public TextLines BreakText(string text, float maxWidth, float? size = null, bool bold = false, string? family = null) =>
+        BreakLines(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family), maxWidth);
 
     /// <summary>Breaks <paramref name="text"/> at newlines and, where a line is wider than
     /// <paramref name="maxWidth"/>, between words. Kept while asked for this frame or the last.</summary>

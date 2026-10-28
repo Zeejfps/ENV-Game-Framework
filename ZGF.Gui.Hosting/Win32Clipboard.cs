@@ -6,6 +6,8 @@ namespace ZGF.Gui.Hosting;
 internal sealed class Win32Clipboard : PlatformClipboard
 {
     private const uint CfUnicodeText = 13;
+    private const uint CfDib = 8;
+    private const uint CfDibV5 = 17;
     private const uint GmemMoveable = 0x0002;
 
     // Another app (a clipboard history, a remote desktop client) can hold the clipboard open for
@@ -66,6 +68,55 @@ internal sealed class Win32Clipboard : PlatformClipboard
         finally
         {
             CloseClipboard();
+        }
+    }
+
+    /// <summary>The bitmap on the clipboard, which Windows offers in both device-independent forms
+    /// whichever was put there: the V5 one first, as only it can say a picture has alpha.</summary>
+    public override ClipboardImage? GetImage()
+    {
+        if (!TryOpen())
+            return null;
+
+        try
+        {
+            if (Read(CfDibV5) is { } v5 && DeviceIndependentBitmap.Decode(v5) is { } fromV5)
+                return fromV5;
+            if (Read(CfDib) is { } dib)
+                return DeviceIndependentBitmap.Decode(dib);
+            return null;
+        }
+        finally
+        {
+            CloseClipboard();
+        }
+    }
+
+    /// <summary>The bytes of the clipboard's <paramref name="format"/>, or null where it holds none;
+    /// called while the clipboard is open.</summary>
+    private static byte[]? Read(uint format)
+    {
+        var handle = GetClipboardData(format);
+        if (handle == IntPtr.Zero)
+            return null;
+
+        var size = (ulong)GlobalSize(handle);
+        if (size > (ulong)Array.MaxLength)
+            return null;
+
+        var pointer = GlobalLock(handle);
+        if (pointer == IntPtr.Zero)
+            return null;
+
+        try
+        {
+            var bytes = new byte[(int)size];
+            Marshal.Copy(pointer, bytes, 0, bytes.Length);
+            return bytes;
+        }
+        finally
+        {
+            GlobalUnlock(handle);
         }
     }
 
@@ -139,4 +190,7 @@ internal sealed class Win32Clipboard : PlatformClipboard
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GlobalUnlock(IntPtr hMem);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern UIntPtr GlobalSize(IntPtr hMem);
 }

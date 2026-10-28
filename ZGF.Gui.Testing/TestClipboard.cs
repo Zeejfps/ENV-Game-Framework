@@ -20,4 +20,9 @@ public sealed class TestClipboard : IClipboard
     }
 
     public string? GetText() => Text;
+
+    /// <summary>The picture on the clipboard, as a screenshot would put it there.</summary>
+    public ClipboardImage? Image { get; set; }
+
+    public ClipboardImage? GetImage() => Image;
 }
