@@ -55,15 +55,15 @@ public sealed class AssemblyPicks
         return All.GetValueOrDefault(assemblyPath);
     }
 
-    /// <summary>Forgets what was picked for <paramref name="item"/> and, for a package, the assemblies
-    /// read out of it.</summary>
+    /// <summary>Forgets what was picked for <paramref name="item"/> and, for a package, every assembly
+    /// in it.</summary>
     internal void ForgetFor(LoadedAssembly item)
     {
         lock (_gate)
         {
             var picks = _picks.Remove(item.FilePath);
             if (item.IsPackage)
-                picks = picks.RemoveRange(item.PackageAssemblies.Select(static a => a.FilePath));
+                picks = picks.RemoveRange(picks.Keys.Where(path => AssemblyPackage.Holds(item.FilePath, path)));
             Volatile.Write(ref _picks, picks);
         }
     }

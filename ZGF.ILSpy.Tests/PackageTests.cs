@@ -30,6 +30,22 @@ public sealed class PackageTests
     }
 
     [Fact]
+    public void Closing_a_package_reached_through_one_assembly_forgets_the_picks_of_the_others_in_it()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var package = list.Open(WritePackage(temp));
+        var sibling = Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Core.dll");
+        list.TargetFrameworks.Pick(sibling, ".NETFramework,Version=v4.8");
+        list.Clear();
+        var assembly = list.TryLoad(Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Tests.dll"))!;
+
+        list.Close(assembly);
+
+        Assert.Empty(list.TargetFrameworks.All);
+    }
+
+    [Fact]
     public void A_package_read_again_for_an_assembly_in_it_takes_its_place_with_its_assemblies_read_again()
     {
         using var temp = new TempDir();

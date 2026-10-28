@@ -335,6 +335,13 @@ public sealed class AssemblyPackage
         return Path.Combine(FilePath, relative);
     }
 
+    /// <summary>Whether <paramref name="path"/> is one <see cref="PathOf"/> made for a file in the package
+    /// at <paramref name="packagePath"/>.</summary>
+    internal static bool Holds(string packagePath, string path) =>
+        path.Length > packagePath.Length
+        && path[packagePath.Length] == Path.DirectorySeparatorChar
+        && path.StartsWith(packagePath, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>The package file a path made by <see cref="PathOf"/> runs through, and the path of the
     /// file inside it; null when no file on disk lies along <paramref name="path"/>.</summary>
     internal static (string Package, string FullName)? SplitPath(string path)

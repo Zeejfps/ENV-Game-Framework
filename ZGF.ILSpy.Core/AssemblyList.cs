@@ -561,7 +561,9 @@ public sealed class AssemblyList
     }
 
     /// <summary>The type system of the assembly loaded from <paramref name="module"/>.</summary>
-    internal DecompilerTypeSystem TypeSystemOf(MetadataFile module)
+    internal DecompilerTypeSystem TypeSystemOf(MetadataFile module) => LoadedFrom(module).TypeSystem;
+
+    private LoadedAssembly LoadedFrom(MetadataFile module)
     {
         lock (_gate)
         {
@@ -570,7 +572,7 @@ public sealed class AssemblyList
                 if (assembly.IsPackage)
                     continue;
                 if (assembly.File == module)
-                    return assembly.TypeSystem;
+                    return assembly;
             }
         }
         throw new InvalidOperationException($"{module.FileName} was not loaded by this list.");
