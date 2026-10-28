@@ -90,12 +90,13 @@ public sealed class ModuleReferenceTests
         var coreLib = list.Open(RuntimeAssemblies.Find("System.Private.CoreLib")!);
         var imports = coreLib.Root.Child("References", "QCall").Children;
 
-        var equivalent = imports.First(i => i.Text.StartsWith("AreTypesEquivalent(", StringComparison.Ordinal));
-        var definition = list.FindNode(equivalent.Target!)!;
+        // GC._Collect is a generated stub on every system; most QCalls are not, or not everywhere.
+        var collect = imports.First(i => i.Text.StartsWith("_Collect(", StringComparison.Ordinal));
+        var definition = list.FindNode(collect.Target!)!;
 
         Assert.DoesNotContain(qcall.Children, i => i.Text.Contains(">g__", StringComparison.Ordinal));
-        Assert.Equal("System.Runtime.CompilerServices.RuntimeHelpers", equivalent.DeclaringTypeName);
-        Assert.StartsWith("AreTypesEquivalent(", definition.Text, StringComparison.Ordinal);
+        Assert.Equal("System.GC", collect.DeclaringTypeName);
+        Assert.StartsWith("_Collect(", definition.Text, StringComparison.Ordinal);
         Assert.Equal(NodeKind.Method, definition.Kind);
     }
 }

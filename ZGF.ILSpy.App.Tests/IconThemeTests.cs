@@ -367,11 +367,18 @@ public sealed class IconAssetFolderTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
+    /// <summary>Paths that lead out of the folder; a drive's path only on Windows, since elsewhere
+    /// <c>C:</c> is the name of a folder inside it.</summary>
+    public static TheoryData<string> PathsOutside()
+    {
+        var paths = new TheoryData<string> { "../outside.svg", "svg/../../outside.svg", "/outside.svg" };
+        if (OperatingSystem.IsWindows())
+            paths.Add("C:/outside.svg");
+        return paths;
+    }
+
     [Theory]
-    [InlineData("../outside.svg")]
-    [InlineData("svg/../../outside.svg")]
-    [InlineData("C:/outside.svg")]
-    [InlineData("/outside.svg")]
+    [MemberData(nameof(PathsOutside))]
     public void A_path_that_leaves_the_folder_is_refused(string path)
     {
         _temp.Write("outside.svg", MemoryIconAssets.Picture);

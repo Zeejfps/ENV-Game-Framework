@@ -121,8 +121,8 @@ public sealed class ExportTests : IDisposable
         var window = File.ReadAllText(Path.Combine(folder, "SampleApp", "MainWindow.xaml"));
         var codeBehind = File.ReadAllText(Path.Combine(folder, "SampleApp", "MainWindow.cs"));
         Assert.Contains("x:Class=\"SampleApp.MainWindow\"", window);
-        Assert.Contains("<Page Include=\"SampleApp\\MainWindow.xaml\"", project);
-        Assert.Contains("<ApplicationDefinition Include=\"SampleApp\\App.xaml\"", project);
+        Assert.Contains($"<Page Include=\"{Path.Combine("SampleApp", "MainWindow.xaml")}\"", project);
+        Assert.Contains($"<ApplicationDefinition Include=\"{Path.Combine("SampleApp", "App.xaml")}\"", project);
         Assert.DoesNotContain("baml", project);
         Assert.DoesNotContain("void InitializeComponent()", codeBehind);
     }
