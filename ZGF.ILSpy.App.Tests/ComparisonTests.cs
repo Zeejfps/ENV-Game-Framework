@@ -12,6 +12,7 @@ public sealed class ComparisonTests
 {
     private const string LeftName = "ApiDiffSample (1.0.0.0)";
     private const string RightName = "ApiDiffSample (2.0.0.0)";
+    private const string Compared = LeftName + "  →  " + RightName;
 
     private static readonly string LeftPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "ApiDiff", "Older", "ApiDiffSample.dll");
     private static readonly string RightPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "ApiDiff", "Newer", "ApiDiffSample.dll");
@@ -173,24 +174,25 @@ public sealed class ComparisonTests
         app.Settle(2);
 
         Assert.False(app.Ui.ComparisonPicker.IsOpen);
-        Assert.True(app.Frames.Drew(LeftName));
-        Assert.True(app.Frames.Drew(RightName));
+        Assert.True(app.Frames.Drew(Compared));
         Assert.True(app.Frames.Drew("4 added"));
         Assert.True(app.Frames.Drew("Account"));
         Assert.False(app.Frames.Drew("IStore"));
     }
 
     [Fact]
-    public void The_button_between_the_assemblies_swaps_them()
+    public void The_swap_button_in_the_bar_over_the_document_swaps_the_sides()
     {
         var app = ComparedOnScreen();
         var comparison = app.AppState.Tabs.Active!.Comparison!;
+        Assert.True(app.TextRect(app.Ui.Icons.ComparisonSwap).Y < app.TextRect(Compared).Y);
 
         app.Click(app.Ui.Icons.ComparisonSwap).Frame();
         app.RunUntil(() => comparison.Diff!.LeftName == RightName);
         app.Settle(2);
 
         Assert.Equal(LeftPath, comparison.RightPath);
+        Assert.True(app.Frames.Drew(RightName + "  →  " + LeftName));
         Assert.True(app.Frames.Drew("4 removed"));
     }
 
@@ -199,7 +201,7 @@ public sealed class ComparisonTests
     {
         var app = ComparedOnScreen();
         var bar = app.TextRect("Only differences");
-        var summary = app.TextRect(LeftName);
+        var summary = app.TextRect(Compared);
         Assert.True(bar.Y < summary.Y);
 
         app.Ui.Display = app.Ui.Display with { ShowOmnibar = false };

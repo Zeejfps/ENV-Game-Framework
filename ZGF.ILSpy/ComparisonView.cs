@@ -7,13 +7,14 @@ using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A comparison's tab: which assemblies are compared, with the button that swaps them, and how much
-/// changed, over the tree of what changed; its tools sit in the bar over the document. Activating an entry opens its code in the right assembly, or in
-/// the left when the right lacks it; its menu opens either.</summary>
+/// <summary>A comparison's tab: which assemblies are compared and how much changed, over the tree of what
+/// changed; its tools sit in the bar over the document. Activating an entry opens its code in the right
+/// assembly, or in the left when the right lacks it; its menu opens either.</summary>
 internal static class ComparisonView
 {
     private const string TreeId = "comparison";
     private const string MenuId = "comparison-menu";
+    private const string Arrow = "  →  ";
 
     public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, AssemblyComparison comparison)
     {
@@ -23,7 +24,7 @@ internal static class ComparisonView
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = ui.Theme.PaneBackground });
         if (!ui.State.Display.ShowOmnibar)
             OwnToolbar(ui, appState, tab, comparison);
-        Summary(ui, appState, comparison);
+        Summary(ui, comparison);
         var hint = FindHint(ui.State.Strings, comparison, rows);
         if (hint != null)
         {
@@ -42,8 +43,8 @@ internal static class ComparisonView
         ui.Separator();
     }
 
-    /// <summary>The comparison's tools, for the bar over the document: collapsing and expanding the tree, and
-    /// what it shows.</summary>
+    /// <summary>The comparison's tools, for the bar over the document: collapsing and expanding the tree,
+    /// swapping the assemblies' sides, and what it shows.</summary>
     public static void Tools(Ui<UiState> ui, AppState appState, DocumentTab tab, AssemblyComparison comparison)
     {
         var t = ui.State.Strings;
@@ -56,6 +57,9 @@ internal static class ComparisonView
                 rows.CollapseAll();
             if (ui.IconButton("expand", icons.AnalyzerExpandAll, t.CodeExpandAll, any))
                 rows.ExpandAll();
+            ui.Separator(ui.Theme.IconSize);
+            if (ui.IconButton("swap", icons.ComparisonSwap, t.ComparisonSwap))
+                SwapComparedAssemblies(appState, comparison);
             ui.Separator(ui.Theme.IconSize);
             OnlyDifferencesCheckbox(ui, rows);
             HiddenMembersCheckbox(ui, appState, comparison);
@@ -83,11 +87,10 @@ internal static class ComparisonView
         return ApiScope.PublicApi;
     }
 
-    /// <summary>Which assemblies were compared, the left one first, with the button between them that
-    /// swaps them, and how many types and members were added, removed and changed, each in the color its
-    /// rows are drawn in, and whether they are being compared again; nothing before the first comparison
-    /// finished.</summary>
-    private static void Summary(Ui<UiState> ui, AppState appState, AssemblyComparison comparison)
+    /// <summary>Which assemblies were compared, the left one first, and how many types and members were
+    /// added, removed and changed, each in the color its rows are drawn in, and whether they are being
+    /// compared again; nothing before the first comparison finished.</summary>
+    private static void Summary(Ui<UiState> ui, AssemblyComparison comparison)
     {
         var diff = comparison.Diff;
         if (diff == null)
@@ -96,10 +99,7 @@ internal static class ComparisonView
         var theme = ui.Theme;
         using (ui.Row(new Box { Padding = new Spacing(theme.Gap, theme.GapTight), Gap = theme.Gap }))
         {
-            ui.Text(diff.LeftName);
-            if (ui.IconButton("swap", ui.State.Icons.ComparisonSwap, t.ComparisonSwap))
-                SwapComparedAssemblies(appState, comparison);
-            ui.Text(diff.RightName);
+            ui.Text(diff.LeftName + Arrow + diff.RightName);
             ui.Text(t.ComparisonAddedCount(diff.Added), color: theme.Success);
             ui.Text(t.ComparisonRemovedCount(diff.Removed), color: theme.Danger);
             ui.Text(t.ComparisonChangedCount(diff.Changed), color: theme.Warning);
