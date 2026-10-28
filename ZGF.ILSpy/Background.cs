@@ -3,7 +3,16 @@ using System.Runtime.CompilerServices;
 namespace ZGF.ILSpy;
 
 /// <summary>What work run in the background gave: its value, or the error it failed with.</summary>
-public readonly record struct Outcome<T>(T? Value, Exception? Error);
+public abstract record Outcome<T>
+{
+    private Outcome()
+    {
+    }
+
+    public sealed record Ok(T Value) : Outcome<T>;
+
+    public sealed record Failed(Exception Error) : Outcome<T>;
+}
 
 /// <summary>Runs work on the thread pool for the UI thread to await.</summary>
 public static class Background
@@ -45,8 +54,8 @@ public readonly struct BackgroundWork<T>(Task<T> task)
         public Outcome<T> GetResult()
         {
             if (task.IsCompletedSuccessfully)
-                return new Outcome<T>(task.Result, null);
-            return new Outcome<T>(default, FindError());
+                return new Outcome<T>.Ok(task.Result);
+            return new Outcome<T>.Failed(FindError());
         }
 
         private Exception FindError()

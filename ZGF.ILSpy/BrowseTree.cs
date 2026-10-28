@@ -294,8 +294,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         var built = await Background.Run(() => BuildChildren(root));
         if (_expansion.IsStale(ticket))
             return;
-        var children = built.Value;
-        if (children == null)
+        if (built is not Outcome<IReadOnlyList<BrowseNode>>.Ok { Value: var children })
             return;
         foreach (var child in children)
             ExpandIfNamespace(child);

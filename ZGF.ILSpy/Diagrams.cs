@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
 using ZGF.ILSpy.Localization;
@@ -81,12 +82,21 @@ public static class Diagrams
         diagram.FinishReading();
         if (diagram.IsClosed)
             return;
-        var cards = read.Value;
-        if (cards == null)
+        switch (read)
         {
-            ReportUnreadable(appState, type, read.Error);
-            return;
+            case Outcome<List<TypeCard>>.Ok ok:
+                TakeHome(appState, tab, diagram, type, ok.Value);
+                break;
+            case Outcome<List<TypeCard>>.Failed failed:
+                ReportUnreadable(appState, type, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
+    }
+
+    private static void TakeHome(AppState appState, DocumentTab tab, TypeDiagram diagram, CodeReference type, List<TypeCard> cards)
+    {
         if (cards.Count == 0)
         {
             ReportUnreadable(appState, type, null);
@@ -190,12 +200,17 @@ public static class Diagrams
         diagram.FinishReading();
         if (diagram.IsClosed)
             return;
-        if (read.Value == null)
+        switch (read)
         {
-            ReportUnreadable(appState, card.Type, read.Error);
-            return;
+            case Outcome<List<TypeCard>>.Ok ok:
+                diagram.Add(ok.Value);
+                break;
+            case Outcome<List<TypeCard>>.Failed failed:
+                ReportUnreadable(appState, card.Type, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        diagram.Add(read.Value);
     }
 
     /// <summary>Takes the card of <paramref name="type"/> off <paramref name="diagram"/>.</summary>
@@ -260,19 +275,24 @@ public static class Diagrams
 
     private static void AddSavedCards(AppState appState, TypeDiagram diagram, Outcome<List<TypeCard>> read, DiagramDocumentRecord saved)
     {
-        if (read.Value == null)
+        switch (read)
         {
-            ReportUnreadableDiagram(appState, saved, read.Error);
-            return;
+            case Outcome<List<TypeCard>>.Ok ok:
+                diagram.Add(ok.Value);
+                break;
+            case Outcome<List<TypeCard>>.Failed failed:
+                ReportUnreadableDiagram(appState, saved, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        diagram.Add(read.Value);
     }
 
-    private static void ReportUnreadableDiagram(AppState appState, DiagramDocumentRecord saved, Exception? error)
+    private static void ReportUnreadableDiagram(AppState appState, DiagramDocumentRecord saved, Exception error)
     {
         var t = Strings.For(appState.Locale);
         var title = saved.Title ?? string.Empty;
-        appState.ReportError(t.ErrorShowInDiagram(title), AppState.DescribeFailure(error, ""));
+        appState.ReportError(t.ErrorShowInDiagram(title), error.ToString());
     }
 
     /// <summary>Lays out <paramref name="diagram"/> in the background, its cards and labels as large as
@@ -286,17 +306,22 @@ public static class Diagrams
         var laidOut = await Background.Run(() => TypeLayout.Arrange(measures, ticket.Token));
         if (!diagram.FinishLayout(ticket))
             return;
-        if (laidOut.Value == null)
+        switch (laidOut)
         {
-            ReportLayoutFailure(appState, laidOut.Error);
-            return;
+            case Outcome<TypeLayout>.Ok ok:
+                diagram.ShowLayout(ok.Value);
+                break;
+            case Outcome<TypeLayout>.Failed failed:
+                ReportLayoutFailure(appState, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        diagram.ShowLayout(laidOut.Value);
     }
 
-    private static void ReportLayoutFailure(AppState appState, Exception? error)
+    private static void ReportLayoutFailure(AppState appState, Exception error)
     {
         var t = Strings.For(appState.Locale);
-        appState.ReportError(t.ErrorLayOutDiagram, AppState.DescribeFailure(error, ""));
+        appState.ReportError(t.ErrorLayOutDiagram, error.ToString());
     }
 }

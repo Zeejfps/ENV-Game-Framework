@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
@@ -50,14 +51,22 @@ public static class Analysis
         var found = await Background.Run(() => appState.Assemblies.FindNode(reference));
         if (!appState.Analyzer.Contains(root))
             return;
-        var node = found.Value;
-        if (node == null)
+        switch (found)
         {
-            appState.Analyzer.Remove(root);
-            ReportUnresolvedReference(appState, reference, found.Error);
-            return;
+            case Outcome<BrowseNode>.Ok { Value: { } node }:
+                AnalyzeFound(appState, root, node);
+                break;
+            case Outcome<BrowseNode>.Ok:
+                appState.Analyzer.Remove(root);
+                ReportUnresolvedReference(appState, reference, null);
+                break;
+            case Outcome<BrowseNode>.Failed failed:
+                appState.Analyzer.Remove(root);
+                ReportUnresolvedReference(appState, reference, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        AnalyzeFound(appState, root, node);
     }
 
     private static void AnalyzeFound(AppState appState, AnalyzerPendingNode root, BrowseNode node)
@@ -95,8 +104,18 @@ public static class Analysis
         var found = await Background.Run(() => FindAnalyzed(appState, analyzed));
         if (WasListCleared(appState, generation))
             return;
-        ReportRestoreFailure(appState, found.Error);
-        AnalyzeAgain(appState, restoring, found.Value);
+        switch (found)
+        {
+            case Outcome<List<AnalysisSymbol?>>.Ok ok:
+                AnalyzeAgain(appState, restoring, ok.Value);
+                break;
+            case Outcome<List<AnalysisSymbol?>>.Failed failed:
+                appState.ReportError(Strings.For(appState.Locale).ErrorRestoreAnalyses, failed.Error.ToString());
+                RemoveRoots(appState, restoring);
+                break;
+            default:
+                throw new UnreachableException();
+        }
     }
 
     private static bool WasListCleared(AppState appState, int generation) => appState.Assemblies.Generation != generation;
@@ -106,27 +125,16 @@ public static class Analysis
         return analyzed.ConvertAll(a => Analyzers.Find(appState.Assemblies, a));
     }
 
-    private static void ReportRestoreFailure(AppState appState, Exception? error)
-    {
-        if (error == null)
-            return;
-        appState.ReportError(Strings.For(appState.Locale).ErrorRestoreAnalyses, error.ToString());
-    }
-
-    private static void AnalyzeAgain(AppState appState, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?>? found)
+    private static void AnalyzeAgain(AppState appState, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?> found)
     {
         for (var i = 0; i < restoring.Count; i++)
-        {
-            var symbol = FoundAt(found, i);
-            AnalyzeAgain(appState, restoring[i], symbol);
-        }
+            AnalyzeAgain(appState, restoring[i], found[i]);
     }
 
-    private static AnalysisSymbol? FoundAt(List<AnalysisSymbol?>? found, int index)
+    private static void RemoveRoots(AppState appState, List<AnalyzerPendingNode> restoring)
     {
-        if (found == null)
-            return null;
-        return found[index];
+        foreach (var root in restoring)
+            appState.Analyzer.Remove(root);
     }
 
     private static void AnalyzeAgain(AppState appState, AnalyzerPendingNode root, AnalysisSymbol? symbol)

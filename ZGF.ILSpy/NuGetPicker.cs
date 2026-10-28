@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Resources;
 using ZGF.ILSpy.Localization;
@@ -209,13 +210,18 @@ public sealed class NuGetPicker
         _isReadingSetup = true;
         var read = await Background.Run(NuGetSetup.ReadUser);
         _isReadingSetup = false;
-        if (read.Error != null)
+        switch (read)
         {
-            _reportError(_strings().ErrorReadNugetConfig, read.Error.ToString());
-            UseSetup(NuGetSetup.CreateDefault());
-            return;
+            case Outcome<NuGetSetup>.Ok ok:
+                UseSetup(ok.Value);
+                break;
+            case Outcome<NuGetSetup>.Failed failed:
+                _reportError(_strings().ErrorReadNugetConfig, failed.Error.ToString());
+                UseSetup(NuGetSetup.CreateDefault());
+                break;
+            default:
+                throw new UnreachableException();
         }
-        UseSetup(read.Value!);
     }
 
     /// <summary>Searches and downloads with <paramref name="setup"/> from now on, in place of the one
@@ -458,17 +464,27 @@ public sealed class NuGetPicker
     /// the page shown when it only asked for another page of it.</summary>
     private void ShowFound(FeedSearch searched, Outcome<FeedPage> found)
     {
-        if (found.Error != null)
+        switch (found)
         {
-            ReportSearchFailure(searched, found.Error);
-            return;
+            case Outcome<FeedPage>.Ok ok:
+                ShowFound(searched, ok.Value);
+                break;
+            case Outcome<FeedPage>.Failed failed:
+                ReportSearchFailure(searched, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
+    }
+
+    private void ShowFound(FeedSearch searched, FeedPage page)
+    {
         SearchError = null;
         _shown = searched;
         _results.Clear();
         Selection.Clear();
-        _results.AddRange(found.Value!.Packages);
-        TotalHits = found.Value.TotalHits;
+        _results.AddRange(page.Packages);
+        TotalHits = page.TotalHits;
         PageCount = NuGetFeed.CountPages(TotalHits);
         if (_results.Count > 0)
             Selection.Select(_results[0], _results);
@@ -507,7 +523,8 @@ public sealed class NuGetPicker
         var fetched = await Background.Wait(_setup!.Icons.FetchAsync(url, IconPixels, token));
         if (token.IsCancellationRequested)
             return;
-        icon.Show(fetched.Value);
+        if (fetched is Outcome<ResourceImage>.Ok ok)
+            icon.Show(ok.Value);
     }
 
     /// <summary>What the feed says of <paramref name="version"/> of <paramref name="package"/>, read
@@ -547,7 +564,17 @@ public sealed class NuGetPicker
         var read = await Background.Wait(feed.ReadDetailsAsync(id, version, token));
         if (token.IsCancellationRequested)
             return;
-        details.Finish(read.Value, read.Error);
+        switch (read)
+        {
+            case Outcome<PackageVersionDetails>.Ok ok:
+                details.Show(ok.Value);
+                break;
+            case Outcome<PackageVersionDetails>.Failed failed:
+                details.Fail(failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
+        }
     }
 
     /// <summary>Offers the versions of the package selected, picking its latest, once another is selected.</summary>
@@ -598,12 +625,17 @@ public sealed class NuGetPicker
         if (_download != run)
             return;
         _download = null;
-        if (fetched.Error != null)
+        switch (fetched)
         {
-            _reportError(_strings().ErrorDownloadPackage(DownloadingName), fetched.Error.ToString());
-            return;
+            case Outcome<string>.Ok ok:
+                _downloaded = ok.Value;
+                break;
+            case Outcome<string>.Failed failed:
+                _reportError(_strings().ErrorDownloadPackage(DownloadingName), failed.Error.ToString());
+                break;
+            default:
+                throw new UnreachableException();
         }
-        _downloaded = fetched.Value;
     }
 
     /// <summary>The package file the last download fetched, once; null until it is in.</summary>
@@ -646,12 +678,9 @@ public sealed class VersionDetails
 
     public bool IsLoading => Details == null && Error == null;
 
-    public void Finish(PackageVersionDetails? details, Exception? error)
-    {
-        Details = details;
-        if (error != null)
-            Error = error.Message;
-    }
+    public void Show(PackageVersionDetails? details) => Details = details;
+
+    public void Fail(Exception error) => Error = error.Message;
 }
 
 /// <summary>What the settings keep of the "open from NuGet" dialog: the feed last searched and

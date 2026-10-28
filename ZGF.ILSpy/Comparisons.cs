@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Comparison;
 using ZGF.ILSpy.Localization;
@@ -78,12 +79,17 @@ public static class Comparisons
         var compared = await Background.Run(() => ApiDiff.Compare(left, right, scope, ticket.Token));
         if (!comparison.FinishComparing(ticket))
             return;
-        if (compared.Value == null)
+        switch (compared)
         {
-            ReportFailure(appState, comparison, left, right, compared.Error);
-            return;
+            case Outcome<ApiDiff>.Ok ok:
+                comparison.Show(ok.Value);
+                break;
+            case Outcome<ApiDiff>.Failed failed:
+                ReportFailure(appState, comparison, left, right, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        comparison.Show(compared.Value);
     }
 
     /// <summary>The open assembly read from <paramref name="filePath"/> whose API can be compared; null when there is none.</summary>
@@ -106,11 +112,11 @@ public static class Comparisons
         comparison.ShowFailure(t.ComparisonAssemblyClosed(name));
     }
 
-    private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedAssembly left, LoadedAssembly right, Exception? error)
+    private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedAssembly left, LoadedAssembly right, Exception error)
     {
         var t = Strings.For(appState.Locale);
         var title = t.ErrorCompare(left.NameAndVersion, right.NameAndVersion);
         comparison.ShowFailure(title);
-        appState.ReportError(title, AppState.DescribeFailure(error, ""));
+        appState.ReportError(title, error.ToString());
     }
 }

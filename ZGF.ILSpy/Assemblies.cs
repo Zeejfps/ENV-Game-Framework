@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.AssemblyLists;
@@ -30,17 +31,20 @@ public static class Assemblies
 
     private static void ShowOpened(AppState appState, Outcome<LoadedAssembly?> outcome, int ticket)
     {
-        if (outcome.Error != null)
+        switch (outcome)
         {
-            ReportOpenFailure(appState, outcome.Error);
-            return;
+            case Outcome<LoadedAssembly?>.Ok { Value: { } last }:
+                if (!appState.Intent.IsStale(ticket))
+                    ShowNode(appState, last.Root);
+                break;
+            case Outcome<LoadedAssembly?>.Ok:
+                break;
+            case Outcome<LoadedAssembly?>.Failed failed:
+                ReportOpenFailure(appState, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        var last = outcome.Value;
-        if (last == null)
-            return;
-        if (appState.Intent.IsStale(ticket))
-            return;
-        ShowNode(appState, last.Root);
     }
 
     /// <summary>Reports why opening failed, unless the opening was cancelled.</summary>
@@ -69,8 +73,8 @@ public static class Assemblies
     {
         var token = appState.Opens.Token;
         var opened = await Background.Run(() => appState.Assemblies.ListReferences(assembly, token));
-        if (opened.Error != null)
-            ReportOpenFailure(appState, opened.Error);
+        if (opened is Outcome<List<LoadedAssembly>>.Failed failed)
+            ReportOpenFailure(appState, failed.Error);
     }
 
     /// <summary>Checks in the background that the PDB at <paramref name="pdbPath"/> can be read for
@@ -79,14 +83,15 @@ public static class Assemblies
     public static async void UsePdb(AppState appState, LoadedAssembly assembly, string pdbPath)
     {
         var checking = await Background.Run(() => assembly.CheckPdb(pdbPath));
-        if (checking.Error != null)
+        var check = checking switch
         {
-            ReportUnreadablePdb(appState, assembly, pdbPath, PdbCheck.Unreadable);
-            return;
-        }
-        if (checking.Value != PdbCheck.Matches)
+            Outcome<PdbCheck>.Ok ok => ok.Value,
+            Outcome<PdbCheck>.Failed => PdbCheck.Unreadable,
+            _ => throw new UnreachableException(),
+        };
+        if (check != PdbCheck.Matches)
         {
-            ReportUnreadablePdb(appState, assembly, pdbPath, checking.Value);
+            ReportUnreadablePdb(appState, assembly, pdbPath, check);
             return;
         }
         if (!appState.IsListed(assembly.Root))
@@ -208,13 +213,22 @@ public static class Assemblies
         if (!appState.Reopens.Finish(item.FilePath, ticket))
             return;
         SaveSettings(appState);
-        var reopened = outcome.Value;
-        if (reopened == null)
+        switch (outcome)
         {
-            var t = Strings.For(appState.Locale);
-            appState.ReportError(t.ErrorReloadAssembly(item.Name), outcome.Error!.ToString());
-            return;
+            case Outcome<Reopened>.Ok ok:
+                ShowReopened(appState, item, ok.Value, tabs);
+                break;
+            case Outcome<Reopened>.Failed failed:
+                var t = Strings.For(appState.Locale);
+                appState.ReportError(t.ErrorReloadAssembly(item.Name), failed.Error.ToString());
+                break;
+            default:
+                throw new UnreachableException();
         }
+    }
+
+    private static void ShowReopened(AppState appState, LoadedAssembly item, Reopened reopened, List<ReloadingTab> tabs)
+    {
         if (!appState.Assemblies.Replace(item, reopened.Item))
             return;
         for (var i = 0; i < tabs.Count; i++)
@@ -346,13 +360,22 @@ public static class Assemblies
     {
         if (!appState.Reload.Finish(ticket))
             return;
-        var reloaded = outcome.Value;
-        if (reloaded == null)
+        switch (outcome)
         {
-            ShowReopenedDocuments(appState);
-            appState.ReportError(Strings.For(appState.Locale).ErrorReloadAssemblies, outcome.Error!.ToString());
-            return;
+            case Outcome<Reloaded>.Ok ok:
+                ShowReloaded(appState, ok.Value, intent, tabs);
+                break;
+            case Outcome<Reloaded>.Failed failed:
+                ShowReopenedDocuments(appState);
+                appState.ReportError(Strings.For(appState.Locale).ErrorReloadAssemblies, failed.Error.ToString());
+                break;
+            default:
+                throw new UnreachableException();
         }
+    }
+
+    private static void ShowReloaded(AppState appState, Reloaded reloaded, int intent, List<ReloadingTab> tabs)
+    {
         appState.EnqueueCommand(new ViewCommand.ExpandNodes(reloaded.Expanded));
         for (var i = 0; i < tabs.Count; i++)
             ReshowTab(appState, tabs[i], reloaded.Places[i], intent);
@@ -407,12 +430,17 @@ public static class Assemblies
         if (!appState.Reload.Finish(ticket))
             return;
         ShowReopenedDocuments(appState);
-        if (outcome.Error != null)
+        switch (outcome)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, outcome.Error.ToString());
-            return;
+            case Outcome<LoadedAssembly?>.Ok:
+                SaveSettings(appState);
+                break;
+            case Outcome<LoadedAssembly?>.Failed failed:
+                appState.ReportError(Strings.For(appState.Locale).ErrorOpenAssemblies, failed.Error.ToString());
+                break;
+            default:
+                throw new UnreachableException();
         }
-        SaveSettings(appState);
     }
 
     /// <summary>Lists the files, those that fail to load as failed, and returns the last.</summary>

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
@@ -95,19 +96,22 @@ public static class Navigation
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
         var found = await Background.Run(() => OpenAndFindId(appState, paths, idString, token));
-        if (found.Error != null)
+        switch (found)
         {
-            ReportOpenFailure(appState, found.Error);
-            return;
+            case Outcome<BrowseNode>.Ok { Value: { } node }:
+                if (!appState.Intent.IsStale(ticket))
+                    ShowNode(appState, node);
+                break;
+            case Outcome<BrowseNode>.Ok:
+                if (!appState.Intent.IsStale(ticket))
+                    ReportMissingId(appState, idString);
+                break;
+            case Outcome<BrowseNode>.Failed failed:
+                ReportOpenFailure(appState, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        if (appState.Intent.IsStale(ticket))
-            return;
-        if (found.Value == null)
-        {
-            ReportMissingId(appState, idString);
-            return;
-        }
-        ShowNode(appState, found.Value);
     }
 
     private static BrowseNode? OpenAndFindId(AppState appState, IReadOnlyList<string> paths, string idString, CancellationToken token)
@@ -155,15 +159,22 @@ public static class Navigation
 
     private static void ShowResolved(AppState appState, CodeReference reference, Outcome<BrowseNode?> found, TabDestination destination)
     {
-        var node = found.Value;
-        if (node == null)
+        switch (found)
         {
-            ReportUnresolvedReference(appState, reference, found.Error);
-            return;
+            case Outcome<BrowseNode?>.Ok { Value: { } node }:
+                LeaveActiveTab(appState);
+                ShowNodeIn(appState, destination, node);
+                appState.History.Push(node, appState.Language);
+                break;
+            case Outcome<BrowseNode?>.Ok:
+                ReportUnresolvedReference(appState, reference, null);
+                break;
+            case Outcome<BrowseNode?>.Failed failed:
+                ReportUnresolvedReference(appState, reference, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        LeaveActiveTab(appState);
-        ShowNodeIn(appState, destination, node);
-        appState.History.Push(node, appState.Language);
     }
 
     /// <summary>Shows the table row a metadata token leads to where <see cref="ShowNode"/> shows a
@@ -192,13 +203,20 @@ public static class Navigation
 
     private static void ShowResolvedRow(AppState appState, CodeReference reference, Outcome<MetadataTarget?> found, TabDestination destination)
     {
-        var target = found.Value;
-        if (target == null)
+        switch (found)
         {
-            ReportUnresolvedReference(appState, reference, found.Error);
-            return;
+            case Outcome<MetadataTarget?>.Ok { Value: { } target }:
+                ShowRowIn(appState, destination, target);
+                break;
+            case Outcome<MetadataTarget?>.Ok:
+                ReportUnresolvedReference(appState, reference, null);
+                break;
+            case Outcome<MetadataTarget?>.Failed failed:
+                ReportUnresolvedReference(appState, reference, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        ShowRowIn(appState, destination, target.Value);
     }
 
     private static void ShowRowIn(AppState appState, TabDestination destination, MetadataTarget target)
@@ -213,13 +231,10 @@ public static class Navigation
     public static async void ShowInApiReference(AppState appState, CodeReference reference)
     {
         var found = await Background.Run(() => appState.Assemblies.FindApiReferencePage(reference));
-        var page = found.Value;
-        if (page == null)
-        {
+        if (found is Outcome<string>.Ok { Value: { } page })
+            appState.EnqueueCommand(new ViewCommand.OpenWebPage(page));
+        else
             ReportNoApiReferencePage(appState, reference);
-            return;
-        }
-        appState.EnqueueCommand(new ViewCommand.OpenWebPage(page));
     }
 
     private static void ReportNoApiReferencePage(AppState appState, CodeReference reference)
@@ -304,15 +319,27 @@ public static class Navigation
     private static void ShowHistoryPlace(AppState appState, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found,
         TabDestination destination)
     {
-        var node = found.Value;
-        if (node == null)
+        switch (found)
         {
-            var t = Strings.For(appState.Locale);
-            var details = AppState.DescribeFailure(found.Error, t.ErrorNoLongerThere(place));
-            appState.ReportError(t.ErrorGoBack(place.Text), details);
-            return;
+            case Outcome<BrowseNode?>.Ok { Value: { } node }:
+                ShowNodeIn(appState, destination, node, position);
+                break;
+            case Outcome<BrowseNode?>.Ok:
+                ReportHistoryPlaceGone(appState, place, null);
+                break;
+            case Outcome<BrowseNode?>.Failed failed:
+                ReportHistoryPlaceGone(appState, place, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        ShowNodeIn(appState, destination, node, position);
+    }
+
+    private static void ReportHistoryPlaceGone(AppState appState, NodePath place, Exception? error)
+    {
+        var t = Strings.For(appState.Locale);
+        var details = AppState.DescribeFailure(error, t.ErrorNoLongerThere(place));
+        appState.ReportError(t.ErrorGoBack(place.Text), details);
     }
 
     /// <summary>Brings the tab showing <paramref name="diagram"/> to the front, dropping what was being

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Comparisons;
@@ -238,8 +239,14 @@ public static class SavedDocuments
         appState.Reopened.StartFinding();
         var found = await Background.Run(() => FindNodes(appState.Assemblies, places));
         appState.Reopened.StopFinding();
+        var shown = found switch
+        {
+            Outcome<List<BrowseNode?>>.Ok ok => ok.Value,
+            Outcome<List<BrowseNode?>>.Failed => places.ConvertAll(static _ => (BrowseNode?)null),
+            _ => throw new UnreachableException(),
+        };
         for (var i = 0; i < nodes.Count; i++)
-            ShowReopenedNode(appState, nodes[i], FoundAt(found.Value, i));
+            ShowReopenedNode(appState, nodes[i], shown[i]);
     }
 
     private static List<BrowseNode?> FindNodes(AssemblyList list, List<NodePath?> places)
@@ -252,13 +259,6 @@ public static class SavedDocuments
         if (place == null)
             return null;
         return list.FindListedNode(place);
-    }
-
-    private static BrowseNode? FoundAt(List<BrowseNode?>? found, int index)
-    {
-        if (found == null)
-            return null;
-        return found[index];
     }
 
     /// <summary>Shows <paramref name="node"/>, found where the waiting tab's node was, back where its view

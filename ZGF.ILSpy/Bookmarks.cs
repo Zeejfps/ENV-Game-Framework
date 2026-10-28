@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
@@ -69,17 +70,29 @@ public static class Bookmarks
 
     private static void ShowBookmarkPlace(AppState appState, Bookmark bookmark, Outcome<BrowseNode?> found, TabDestination destination)
     {
-        var node = found.Value;
-        if (node == null)
+        switch (found)
         {
-            var t = Strings.For(appState.Locale);
-            var details = AppState.DescribeFailure(found.Error, t.ErrorNoLongerThere(bookmark.Place));
-            appState.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
-            return;
+            case Outcome<BrowseNode?>.Ok { Value: { } node }:
+                LeaveActiveTab(appState);
+                ShowNodeIn(appState, destination, node, target: bookmark);
+                appState.History.Push(node, appState.Language);
+                break;
+            case Outcome<BrowseNode?>.Ok:
+                ReportBookmarkGone(appState, bookmark, null);
+                break;
+            case Outcome<BrowseNode?>.Failed failed:
+                ReportBookmarkGone(appState, bookmark, failed.Error);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        LeaveActiveTab(appState);
-        ShowNodeIn(appState, destination, node, target: bookmark);
-        appState.History.Push(node, appState.Language);
+    }
+
+    private static void ReportBookmarkGone(AppState appState, Bookmark bookmark, Exception? error)
+    {
+        var t = Strings.For(appState.Locale);
+        var details = AppState.DescribeFailure(error, t.ErrorNoLongerThere(bookmark.Place));
+        appState.ReportError(t.ErrorGoToBookmark(bookmark.Name), details);
     }
 
     /// <summary>Goes to the next enabled bookmark after <paramref name="from"/>, or the previous when
@@ -136,12 +149,21 @@ public static class Bookmarks
 
     private static void TakeImported(AppState appState, Outcome<List<FoundBookmark>> found, string file)
     {
-        var places = found.Value;
-        if (places == null)
+        switch (found)
         {
-            appState.ReportError(Strings.For(appState.Locale).ErrorImportBookmarks(file), found.Error!.ToString());
-            return;
+            case Outcome<List<FoundBookmark>>.Ok ok:
+                TakeImported(appState, ok.Value, file);
+                break;
+            case Outcome<List<FoundBookmark>>.Failed failed:
+                appState.ReportError(Strings.For(appState.Locale).ErrorImportBookmarks(file), failed.Error.ToString());
+                break;
+            default:
+                throw new UnreachableException();
         }
+    }
+
+    private static void TakeImported(AppState appState, List<FoundBookmark> places, string file)
+    {
         ReportLostBookmarks(appState, places, file);
         var bookmarks = places
             .Where(f => f.Place != null)

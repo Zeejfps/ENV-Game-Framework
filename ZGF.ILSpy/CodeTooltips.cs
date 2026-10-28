@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -51,6 +52,11 @@ public sealed class CodeTooltips
         if (version != _version)
             return;
         _pending.Remove(reference);
-        _found[reference] = outcome.Value;
+        _found[reference] = outcome switch
+        {
+            Outcome<CodeTooltip>.Ok ok => ok.Value,
+            Outcome<CodeTooltip>.Failed => null,
+            _ => throw new UnreachableException(),
+        };
     }
 }

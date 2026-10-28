@@ -276,7 +276,8 @@ public static class Theming
         while (true)
         {
             var outcome = await Background.Wait(folder.Watch.NextChange());
-            var news = outcome.Value;
+            if (outcome is not Outcome<ThemeFolderEvent>.Ok { Value: var news })
+                return;
             if (news.Kind == ThemeFolderEventKind.Stopped)
                 return;
             var isLost = news.Kind == ThemeFolderEventKind.Lost;

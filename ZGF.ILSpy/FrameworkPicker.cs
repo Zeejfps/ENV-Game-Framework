@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
@@ -58,11 +59,19 @@ public sealed class FrameworkPicker
         Error = null;
         var scanned = await Background.Run(_scan);
         IsLoading = false;
-        _all = scanned.Value;
-        Error = scanned.Error?.ToString();
         _appliedFilter = null;
-        if (Error != null)
-            _reportError(_strings().ErrorScanRuntime, Error);
+        switch (scanned)
+        {
+            case Outcome<IReadOnlyList<RuntimeAssembly>>.Ok ok:
+                _all = ok.Value;
+                break;
+            case Outcome<IReadOnlyList<RuntimeAssembly>>.Failed failed:
+                Error = failed.Error.ToString();
+                _reportError(_strings().ErrorScanRuntime, Error);
+                break;
+            default:
+                throw new UnreachableException();
+        }
     }
 
     public void Close() => IsOpen = false;

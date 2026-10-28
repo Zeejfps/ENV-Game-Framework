@@ -119,9 +119,12 @@ public static class Exports
         var clock = Stopwatch.StartNew();
         var outcome = await Background.Run(() => work(start));
         appState.Export.Leave(start);
-        var report = ExportReport.Of(start.Run, job, outcome.Error, failure, clock.Elapsed);
-        if (outcome.Error == null)
-            report = complete(report, outcome.Value!);
+        var report = outcome switch
+        {
+            Outcome<T>.Ok ok => complete(ExportReport.Finished(start.Run, job, clock.Elapsed), ok.Value),
+            Outcome<T>.Failed failed => ExportReport.Ended(start.Run, job, failed.Error, failure, clock.Elapsed),
+            _ => throw new UnreachableException(),
+        };
         appState.FinishedExports.Add(report);
     }
 
