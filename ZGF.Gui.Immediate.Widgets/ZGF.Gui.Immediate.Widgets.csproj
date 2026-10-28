@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui.Immediate\ZGF.Gui.Immediate.csproj" />
+      <ProjectReference Include="..\ZGF.Markdown\ZGF.Markdown.csproj" />
     </ItemGroup>
 
 </Project>
