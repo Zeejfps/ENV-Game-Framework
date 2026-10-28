@@ -12,6 +12,9 @@ internal sealed class MacClipboard : PlatformClipboard
     private const string TextType = "public.utf8-plain-text";
     private const string HtmlType = "public.html";
 
+    // What a screenshot or a copied picture is put on the pasteboard as, in the order to prefer.
+    private static readonly string[] PictureTypes = ["public.png", "public.tiff"];
+
     public override void SetText(string text)
     {
         var pool = objc_autoreleasePoolPush();
@@ -51,6 +54,26 @@ internal sealed class MacClipboard : PlatformClipboard
             if (text == IntPtr.Zero)
                 return null;
             return Marshal.PtrToStringUTF8(msg_IntPtr(text, Sel("UTF8String")));
+        }
+        finally
+        {
+            objc_autoreleasePoolPop(pool);
+        }
+    }
+
+    public override ClipboardImage? GetImage()
+    {
+        var pool = objc_autoreleasePoolPush();
+        try
+        {
+            var pasteboard = GeneralPasteboard();
+            foreach (var type in PictureTypes)
+            {
+                var data = msg_IntPtr(pasteboard, Sel("dataForType:"), NSString(type));
+                if (data != IntPtr.Zero && MacPicture.Decode(data) is { } picture)
+                    return picture;
+            }
+            return null;
         }
         finally
         {
