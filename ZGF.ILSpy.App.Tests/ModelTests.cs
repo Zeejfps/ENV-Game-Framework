@@ -111,7 +111,7 @@ public sealed class AppSettingsTests : IDisposable
         settings.Decompiler = new DecompilerOptions { LanguageVersion = CSharpVersion.CSharp7_3 }.With(DecompilerToggle.Find("AlwaysUseBraces")!, false);
         settings.FoldedOptionGroups = ["Other"];
 
-        Assert.Null(settings.Save());
+        Assert.IsType<SettingsWrite.Written>(settings.Save());
 
         var (loaded, problem) = AppSettings.Load(SettingsFile);
         Assert.IsType<SettingsProblem.None>(problem);
@@ -142,7 +142,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         var settings = AppSettings.Load(SettingsFile).Settings;
         settings.Window = new WindowBounds(-1200, 80, 1600, 1000, Maximized: true);
-        Assert.Null(settings.Save());
+        Assert.IsType<SettingsWrite.Written>(settings.Save());
 
         var loaded = AppSettings.Load(SettingsFile).Settings;
         var config = loaded.Window!.Value.ApplyTo(new StartupConfig { WindowWidth = 1400, WindowHeight = 900, WindowTitle = "ILSpy" });
@@ -214,7 +214,7 @@ public sealed class AppSettingsTests : IDisposable
         var list = Assert.Single(loaded.AssemblyLists);
         Assert.Equal(SavedAssemblyLists.DefaultName, list.Name);
         Assert.Equal(["a.dll", "b.dll"], list.Assemblies);
-        Assert.Null(loaded.Save());
+        Assert.IsType<SettingsWrite.Written>(loaded.Save());
         Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Assemblies", out _));
     }
 
@@ -230,7 +230,7 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Empty(loaded.AssemblyLists[0].Analyzed!);
         var analyzed = Assert.Single(loaded.AssemblyLists[1].Analyzed!);
         Assert.Equal(new CodeAnchor(CodeAnchorKind.Definition, "a.dll", 33554434), analyzed);
-        Assert.Null(loaded.Save());
+        Assert.IsType<SettingsWrite.Written>(loaded.Save());
         Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Analyzed", out _));
     }
 
@@ -242,7 +242,7 @@ public sealed class AppSettingsTests : IDisposable
         var loaded = AppSettings.Load(Written($$"""{ "ShowNonPublic": {{(showNonPublic ? "true" : "false")}} }""")).Settings;
 
         Assert.Equal(expected, loaded.ApiVisibility);
-        Assert.Null(loaded.Save());
+        Assert.IsType<SettingsWrite.Written>(loaded.Save());
         Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("ShowNonPublic", out _));
     }
 

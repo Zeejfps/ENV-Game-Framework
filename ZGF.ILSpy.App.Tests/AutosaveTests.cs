@@ -200,6 +200,26 @@ public sealed class AutosaveTests : IDisposable
     }
 
     [Fact]
+    public void Saving_tells_whether_it_wrote_failed_or_waits_to_try_again()
+    {
+        var d = new AppStateDriver(_temp.Settings());
+        SaveSettings(d.AppState);
+        var unchanged = SaveSettingsIfChanged(d.AppState, d.Now);
+        var blocker = BlockSettingsWrites();
+        SetLanguage(d.AppState, DecompilationLanguage.IL);
+
+        var failed = SaveSettingsIfChanged(d.AppState, d.Now);
+        var waiting = SaveSettingsIfChanged(d.AppState, d.Now + 0.5);
+        Directory.Delete(blocker);
+        var saved = SaveSettingsIfChanged(d.AppState, d.Now + SaveRetry.DelaySeconds);
+
+        Assert.IsType<Saving.Unchanged>(unchanged);
+        Assert.Equal(SaveRetry.DelaySeconds, Assert.IsType<Saving.Failed>(failed).RetryIn);
+        Assert.Equal(SaveRetry.DelaySeconds - 0.5, Assert.IsType<Saving.Waiting>(waiting).RetryIn);
+        Assert.IsType<Saving.Saved>(saved);
+    }
+
+    [Fact]
     public void A_failed_write_is_retried_after_a_wait_and_reported_once_until_one_succeeds()
     {
         var d = new AppStateDriver(_temp.Settings());

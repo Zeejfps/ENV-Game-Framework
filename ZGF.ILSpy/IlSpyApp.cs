@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.AppUtils;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
@@ -251,8 +252,19 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     private static void SaveChangedSettings(Ui<UiState> ui, AppState appState)
     {
-        var retryWait = SaveSettingsIfChanged(appState, ui.RealTime);
-        if (retryWait > 0)
-            ui.RequestUpdateIn(retryWait);
+        switch (SaveSettingsIfChanged(appState, ui.RealTime))
+        {
+            case Saving.Unchanged:
+            case Saving.Saved:
+                break;
+            case Saving.Waiting waiting:
+                ui.RequestUpdateIn(waiting.RetryIn);
+                break;
+            case Saving.Failed failed:
+                ui.RequestUpdateIn(failed.RetryIn);
+                break;
+            default:
+                throw new UnreachableException();
+        }
     }
 }

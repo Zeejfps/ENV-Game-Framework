@@ -1,10 +1,10 @@
 # ILSpy app-state fixes
 
-What is left to fix in how `ZGF.ILSpy` models what is open over its screen, saves its settings, runs
-background work and keeps its app state (review of 28 Oct 2026, each claim checked against the code).
-Each item breaks a rule in [coding_rules.md](../coding_rules.md), mostly "make illegal states
-unrepresentable". Zultree (`G:\Dev\zultree`) runs on the same app skeleton and already does most of
-these, so its files are named as working examples. Ordered by priority.
+What is left to fix in how `ZGF.ILSpy` models what is open over its screen and keeps its app state
+(review of 28 Oct 2026, each claim checked against the code). Each item breaks a rule in
+[coding_rules.md](../coding_rules.md), mostly "make illegal states unrepresentable". Zultree
+(`G:\Dev\zultree`) runs on the same app skeleton and already does most of these, so its files are
+named as working examples. Ordered by priority.
 
 ## Structure
 
@@ -20,21 +20,7 @@ these, so its files are named as working examples. Ordered by priority.
    `Problems` does), so that a `switch` over them breaks the build when a case is added. Zultree:
    `Overlay` / `Overlays` (`Zultree/Overlay.cs`).
 
-2. **`Outcome<T>` is an optional-field bag.** `Background.cs:6` defines
-   `record struct Outcome<T>(T? Value, Exception? Error)`, which can be built with both fields set or
-   neither, and callers can read `Value` without looking at `Error`. Fix: `Ok(T) | Failed(Exception)`
-   that callers must match on, keeping `BackgroundWork<T>`'s awaiter, which is better than Zultree's
-   because it always continues on a later turn of the UI thread. Zultree's version
-   (`Zultree.Core/Background.cs`) has the sum type but not the awaiter, so this one would suit a shared
-   library both use.
-
-3. **Saves report through side channels.** `SaveSettingsIfChanged` (`Settings.cs:14`) returns the
-   seconds until a retry as a `double` and reports failure through `SaveRetry.Fail`. Fix: return
-   `Saving = Unchanged | Saved | Failed(reason)` and switch on it with `UnreachableException` in the
-   default branch, keeping `SaveRetry`'s timing. Zultree: `Saving` and `ShowFailedSave`
-   (`Zultree/ZultreeApp.cs`).
-
-4. **`AppState` lives in the app project and has public mutable fields.** `Theme`, `IconTheme`,
+2. **`AppState` lives in the app project and has public mutable fields.** `Theme`, `IconTheme`,
    `ApiVisibility`, `PreviewTabs`, `Locale`, `ViewSettingsChanges` and `TabPanels` (`AppState.cs:53-93`)
    can be set from anywhere, and nothing stops `AppState` from referencing the GUI. Fix: make them
    properties with setters only where a feature needs one, and over time move what does not need the

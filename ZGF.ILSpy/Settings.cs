@@ -8,21 +8,27 @@ namespace ZGF.ILSpy;
 /// <summary>Saving the settings when something in them changed.</summary>
 public static class Settings
 {
+    private static readonly Saving.Unchanged Unchanged = new();
+
     /// <summary>Saves the settings when what they are saved from changed since the last save written,
     /// unless the assemblies are reloading or a failed write is still waiting to be tried again at
-    /// <paramref name="now"/>. Returns the seconds left before a failed write is tried again, or 0.</summary>
-    public static double SaveSettingsIfChanged(AppState appState, double now)
+    /// <paramref name="now"/>.</summary>
+    public static Saving SaveSettingsIfChanged(AppState appState, double now)
     {
         if (appState.IsReloading)
-            return 0;
+            return Unchanged;
         var sources = CaptureSavedSources(appState);
         if (!appState.LastSave.IsBehind(sources))
-            return 0;
+            return Unchanged;
         var wait = appState.SaveRetry.Remaining(now);
         if (wait > 0)
-            return wait;
-        SaveSettings(appState);
-        return appState.SaveRetry.Remaining(now);
+            return new Saving.Waiting(wait);
+        return SaveSettings(appState) switch
+        {
+            SettingsWrite.Written => new Saving.Saved(),
+            SettingsWrite.Failed failed => new Saving.Failed(failed.Reason, appState.SaveRetry.Remaining(now)),
+            _ => throw new UnreachableException(),
+        };
     }
 
     /// <summary>Tells the user what was wrong with the settings file, if anything.</summary>
@@ -52,14 +58,16 @@ public static class Settings
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>Writes the settings, counting what they were copied from as saved only once the write succeeds.</summary>
-    public static void SaveSettings(AppState appState)
+    /// <summary>Writes the settings, counting what they were copied from as saved only once the write
+    /// succeeds. A failed write is reported, unless writes were failing already.</summary>
+    public static SettingsWrite SaveSettings(AppState appState)
     {
         RememberActiveAssemblyList(appState);
         CopyStateToSettings(appState);
         var sources = CaptureSavedSources(appState);
-        var error = appState.Settings.Save();
-        TakeWriteOutcome(appState, sources, error);
+        var write = appState.Settings.Save();
+        TakeWrite(appState, sources, write);
+        return write;
     }
 
     internal static SavedSources CaptureSavedSources(AppState appState)
@@ -93,15 +101,20 @@ public static class Settings
         settings.Bookmarks = appState.Bookmarks.Save();
     }
 
-    private static void TakeWriteOutcome(AppState appState, SavedSources sources, string? error)
+    private static void TakeWrite(AppState appState, SavedSources sources, SettingsWrite write)
     {
-        if (error == null)
+        switch (write)
         {
-            appState.LastSave.Record(sources);
-            appState.SaveRetry.Succeed();
-            return;
+            case SettingsWrite.Written:
+                appState.LastSave.Record(sources);
+                appState.SaveRetry.Succeed();
+                break;
+            case SettingsWrite.Failed failed:
+                ReportWriteFailure(appState, failed.Reason);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        ReportWriteFailure(appState, error);
     }
 
     /// <summary>Reports a failed write, unless writes were failing already.</summary>

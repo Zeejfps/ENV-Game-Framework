@@ -402,21 +402,21 @@ public sealed class AppSettings
     }
 
     /// <summary>Writes the settings to <see cref="FilePath"/>, replacing the file whole so a failed
-    /// write never leaves it truncated. Returns why it failed, or null.</summary>
-    public string? Save()
+    /// write never leaves it truncated.</summary>
+    public SettingsWrite Save()
     {
-        if (FilePath == null) return null;
+        if (FilePath == null) return new SettingsWrite.Written();
         var temporary = FilePath + ".tmp";
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
             File.WriteAllText(temporary, JsonSerializer.Serialize(this, AppSettingsJson.Default.AppSettings));
             File.Move(temporary, FilePath, overwrite: true);
-            return null;
+            return new SettingsWrite.Written();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return $"{FilePath}{Environment.NewLine}{e.Message}";
+            return new SettingsWrite.Failed($"{FilePath}{Environment.NewLine}{e.Message}");
         }
     }
 }
