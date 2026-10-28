@@ -26,7 +26,7 @@ public sealed class SavedComparisonTests : IDisposable
         app.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
         app.Settle(2);
         var assemblies = app.AppState.Assemblies.Assemblies;
-        CompareAssemblies(app.AppState, assemblies[0], assemblies[1]);
+        CompareAssemblies(app.AppState, assemblies[0], assemblies[1], Names.Comparison(assemblies[0]));
         app.RunUntil(() => app.AppState.Tabs.Active?.Comparison?.Diff != null);
         app.Settle(2);
         return app;

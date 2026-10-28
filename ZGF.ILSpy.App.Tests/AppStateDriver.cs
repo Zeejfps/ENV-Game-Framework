@@ -90,6 +90,16 @@ internal static class BuiltInGlyphs
     public static string Text(IconGlyph glyph) => glyph.Text!;
 }
 
+/// <summary>What the screen names new things in English.</summary>
+internal static class Names
+{
+    public static string Bookmark(int number) => Strings.En.BookmarksDefaultName(number);
+
+    public static string Comparison(LoadedAssembly left) => Strings.En.ComparisonTitle(left.Name);
+
+    public static string Diagram(CodeReference type) => Strings.En.DiagramTitle(type.Name);
+}
+
 internal static class AppErrors
 {
     /// <summary>The error in English words.</summary>

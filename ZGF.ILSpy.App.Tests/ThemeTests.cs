@@ -457,7 +457,7 @@ public sealed class UserThemeTests : IDisposable
         var appState = new AppState(settings);
         var dracula = appState.Themes.Find("dracula");
 
-        var path = CreateCustomTheme(appState);
+        var path = CreateCustomTheme(appState, parent => Strings.En.ThemeCustomName(appState.Themes.NameOf(parent, Strings.En.Culture)));
 
         var text = File.ReadAllText(path!);
         Assert.Equal(_temp.PathOf(Path.Combine("themes", "dracula-custom.json")), path);
@@ -508,7 +508,7 @@ public sealed class UserThemeTests : IDisposable
         WriteTheme("dark-custom-2", "{}");
         var appState = new AppState(Settings());
 
-        var path = CreateCustomTheme(appState);
+        var path = CreateCustomTheme(appState, parent => Strings.En.ThemeCustomName(appState.Themes.NameOf(parent, Strings.En.Culture)));
 
         Assert.Equal("dark-custom-3.json", Path.GetFileName(path));
         Assert.Equal("dark-custom-3", appState.Theme);
@@ -522,7 +522,7 @@ public sealed class UserThemeTests : IDisposable
         settings.Theme = "broken";
         var appState = new AppState(settings);
 
-        var path = CreateCustomTheme(appState);
+        var path = CreateCustomTheme(appState, parent => Strings.En.ThemeCustomName(appState.Themes.NameOf(parent, Strings.En.Culture)));
 
         Assert.Equal("light-custom.json", Path.GetFileName(path));
         Assert.Contains("\"extends\": \"light\",", File.ReadAllText(path!));
@@ -534,7 +534,7 @@ public sealed class UserThemeTests : IDisposable
         var appState = new AppState(Settings());
         Directory.CreateDirectory(_temp.PathOf(Path.Combine("themes", "dark-custom.json")));
 
-        var path = CreateCustomTheme(appState);
+        var path = CreateCustomTheme(appState, parent => Strings.En.ThemeCustomName(appState.Themes.NameOf(parent, Strings.En.Culture)));
 
         Assert.Null(path);
         Assert.Equal("dark", appState.Theme);
@@ -546,7 +546,7 @@ public sealed class UserThemeTests : IDisposable
     {
         var appState = new AppState(new AppSettings { Locale = Locale.En });
 
-        Assert.Null(CreateCustomTheme(appState));
+        Assert.Null(CreateCustomTheme(appState, parent => Strings.En.ThemeCustomName(appState.Themes.NameOf(parent, Strings.En.Culture))));
         Assert.Equal("dark", appState.Theme);
     }
 

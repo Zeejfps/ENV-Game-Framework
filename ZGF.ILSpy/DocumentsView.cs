@@ -77,17 +77,17 @@ internal static class DocumentsView
             ShowInMetadata(appState, shown, inNewTab: false);
         if (result.ShowInApiReference is { } documented)
             ShowInApiReference(appState, documented);
-        ShowAskedDiagram(appState, result);
+        ShowAskedDiagram(appState, result, ui.State.Strings);
         Zoom(ui.State, result.Zoom);
     }
 
     /// <summary>Shows the type the code view's menu asked for on the diagram last worked in, or on a new one.</summary>
-    private static void ShowAskedDiagram(AppState appState, CodeViewResult result)
+    private static void ShowAskedDiagram(AppState appState, CodeViewResult result, Strings t)
     {
-        if (result.ShowInDiagram != null)
-            ShowInDiagram(appState, result.ShowInDiagram);
-        if (result.ShowInNewDiagram != null)
-            ShowInNewDiagram(appState, result.ShowInNewDiagram);
+        if (result.ShowInDiagram is { } type)
+            ShowInDiagram(appState, type, t.DiagramTitle(type.Name));
+        if (result.ShowInNewDiagram is { } newType)
+            ShowInNewDiagram(appState, newType, t.DiagramTitle(newType.Name));
     }
 
     private static void Zoom(UiState uiState, CodeZoom zoom)
@@ -122,7 +122,7 @@ internal static class DocumentsView
     /// selection of the one removed on.</summary>
     private static void ToggleLineBookmark(Ui<UiState> ui, AppState appState, DocumentTab tab, int line)
     {
-        var toggle = ToggleBookmark(appState, tab, line);
+        var toggle = ToggleBookmark(appState, tab, line, number => ui.State.Strings.BookmarksDefaultName(number));
         ui.State.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
     }
 

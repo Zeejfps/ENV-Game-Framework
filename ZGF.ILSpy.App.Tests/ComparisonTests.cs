@@ -32,7 +32,7 @@ public sealed class ComparisonTests
     /// <summary>Compares <paramref name="assembly"/> with <paramref name="other"/> and waits for the comparison.</summary>
     private static AssemblyComparison Compare(AppStateDriver d, string assembly, string other)
     {
-        CompareAssemblies(d.AppState, Opened(d, assembly), Opened(d, other));
+        CompareAssemblies(d.AppState, Opened(d, assembly), Opened(d, other), Names.Comparison(Opened(d, assembly)));
         d.Settle();
         return d.AppState.Tabs.Active!.Comparison!;
     }
@@ -137,7 +137,7 @@ public sealed class ComparisonTests
     public void Closing_the_tab_drops_the_comparison_in_flight()
     {
         var d = OpenBoth();
-        CompareAssemblies(d.AppState, Opened(d, LeftPath), Opened(d, RightPath));
+        CompareAssemblies(d.AppState, Opened(d, LeftPath), Opened(d, RightPath), Names.Comparison(Opened(d, LeftPath)));
         var tab = d.AppState.Tabs.Active!;
         var comparison = tab.Comparison!;
 
@@ -214,7 +214,7 @@ public sealed class ComparisonTests
     private static AppDriver ComparedOnScreen()
     {
         var app = OpenBothOnScreen();
-        CompareAssemblies(app.AppState, Opened(app.Driver, LeftPath), Opened(app.Driver, RightPath));
+        CompareAssemblies(app.AppState, Opened(app.Driver, LeftPath), Opened(app.Driver, RightPath), Names.Comparison(Opened(app.Driver, LeftPath)));
         app.RunUntil(() => app.AppState.Tabs.Active?.Comparison?.Diff != null);
         app.Settle(2);
         return app;

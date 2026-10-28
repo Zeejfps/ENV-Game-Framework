@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.AssemblyLists;
 
 namespace ZGF.ILSpy;

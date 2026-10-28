@@ -32,10 +32,10 @@ public sealed class BookmarkTests : IDisposable
         var (d, tab, line) = OutlineAt("return First();", AppStateDriver.WithoutScreen());
         var bookmarks = d.AppState.Bookmarks;
 
-        var added = ToggleBookmark(d.AppState, tab, line);
+        var added = ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmark = Assert.Single(bookmarks.Items);
         var marked = bookmarks.LinesIn(tab.Document, tab.Location!);
-        var removed = ToggleBookmark(d.AppState, tab, line);
+        var removed = ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
 
         Assert.Equal(new BookmarkToggle.Added(bookmark), added);
         Assert.Equal(new BookmarkToggle.Removed(bookmark, 0), removed);
@@ -51,8 +51,8 @@ public sealed class BookmarkTests : IDisposable
     {
         var (d, tab, line) = OutlineAt("return First();", AppStateDriver.WithoutScreen());
         var first = tab.Document.Find("foreach").Line;
-        ToggleBookmark(d.AppState, tab, first);
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, first, Names.Bookmark);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmarks = d.AppState.Bookmarks;
         d.TakeViewCommands();
 
@@ -70,7 +70,7 @@ public sealed class BookmarkTests : IDisposable
     public void A_bookmark_follows_its_statement_into_IL_and_into_the_methods_own_document()
     {
         var (d, tab, line) = OutlineAt("return First();");
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmarks = d.AppState.Bookmarks;
 
         SetLanguage(d.AppState, DecompilationLanguage.IL);
@@ -90,7 +90,7 @@ public sealed class BookmarkTests : IDisposable
         var (d, tab, line) = OutlineAt("return First();");
         var brace = line - 1;
         Assert.Equal("{", tab.Document.Lines[brace].Text.Trim());
-        ToggleBookmark(d.AppState, tab, brace);
+        ToggleBookmark(d.AppState, tab, brace, Names.Bookmark);
         var bookmark = Assert.Single(d.AppState.Bookmarks.Items);
 
         SetLanguage(d.AppState, DecompilationLanguage.IL);
@@ -105,7 +105,7 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 360f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         app.Show(app.Fixture("Greeter"), 3);
 
         GoToBookmark(d.AppState, d.AppState.Bookmarks.Items[0]);
@@ -121,8 +121,8 @@ public sealed class BookmarkTests : IDisposable
     {
         var (d, tab, line) = OutlineAt("return First();");
         var first = tab.Document.Find("foreach").Line;
-        ToggleBookmark(d.AppState, tab, first);
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, first, Names.Bookmark);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmarks = d.AppState.Bookmarks;
         bookmarks.SetEnabled(bookmarks.Items[1], false);
 
@@ -140,7 +140,7 @@ public sealed class BookmarkTests : IDisposable
     public void A_bookmark_marking_a_line_already_marked_is_not_added()
     {
         var (d, tab, line) = OutlineAt("return First();");
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmarks = d.AppState.Bookmarks;
         var twin = bookmarks.Items[0];
 
@@ -154,7 +154,7 @@ public sealed class BookmarkTests : IDisposable
     public void Saved_bookmarks_marking_one_line_load_as_one_and_say_how_many_were_left_out()
     {
         var (d, tab, line) = OutlineAt("return First();", new AppStateDriver(_temp.Settings()));
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         SaveSettings(d.AppState);
         var settings = _temp.Settings();
         settings.Bookmarks.Add(settings.Bookmarks[0] with { Name = "Twin" });
@@ -169,7 +169,7 @@ public sealed class BookmarkTests : IDisposable
     public void Bookmarks_are_saved_with_the_settings_and_found_again_on_the_next_run()
     {
         var (d, tab, line) = OutlineAt("return First();", new AppStateDriver(_temp.Settings()));
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmarks = d.AppState.Bookmarks;
         bookmarks.Rename(bookmarks.Items[0], "Calls First");
         d.Pump();
@@ -235,7 +235,7 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         OpenBookmarks(d.Ui);
         app.Run(frames);
         return (app, d, tab, line);
@@ -283,9 +283,9 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        ToggleBookmark(d.AppState, tab, tab.Document.Find("foreach").Line);
-        ToggleBookmark(d.AppState, tab, tab.Document.Find("needle").Line);
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, tab.Document.Find("foreach").Line, Names.Bookmark);
+        ToggleBookmark(d.AppState, tab, tab.Document.Find("needle").Line, Names.Bookmark);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         OpenBookmarks(d.Ui);
         app.Run(3);
         var bookmarks = d.AppState.Bookmarks;
@@ -306,9 +306,9 @@ public sealed class BookmarkTests : IDisposable
     {
         var app = new AppDriver(height: 500f);
         var (d, tab, line) = OutlineAt("return First();", app.Driver);
-        ToggleBookmark(d.AppState, tab, tab.Document.Find("foreach").Line);
-        ToggleBookmark(d.AppState, tab, tab.Document.Find("needle").Line);
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, tab.Document.Find("foreach").Line, Names.Bookmark);
+        ToggleBookmark(d.AppState, tab, tab.Document.Find("needle").Line, Names.Bookmark);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         OpenBookmarks(d.Ui);
         app.Run(3);
         var bookmarks = d.AppState.Bookmarks;
@@ -423,7 +423,7 @@ public sealed class BookmarkTests : IDisposable
         var path = _temp.PathOf(name);
         var (d, tab, _) = OutlineAt("return First();");
         foreach (var text in lines)
-            ToggleBookmark(d.AppState, tab, tab.Document.Find(text).Line);
+            ToggleBookmark(d.AppState, tab, tab.Document.Find(text).Line, Names.Bookmark);
         ExportBookmarks(d.AppState, path);
         Assert.Empty(d.AppState.Errors.Entries);
         return path;
@@ -449,7 +449,7 @@ public sealed class BookmarkTests : IDisposable
         var path = Exported("return First();", "foreach");
         var (d, tab, line) = OutlineAt("return First();");
         var bookmarks = d.AppState.Bookmarks;
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         bookmarks.Rename(bookmarks.Items[0], "Mine");
 
         ImportBookmarks(d.AppState, path);
@@ -473,7 +473,7 @@ public sealed class BookmarkTests : IDisposable
         var first = ExportedAs("first.json", "foreach");
         var second = ExportedAs("second.json", "needle");
         var (d, tab, line) = OutlineAt("return First();");
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
 
         ImportBookmarks(d.AppState, first);
         ImportBookmarks(d.AppState, second);
@@ -493,7 +493,7 @@ public sealed class BookmarkTests : IDisposable
     {
         var path = _temp.Write("other.json", "{ \"assemblies\": [] }");
         var (d, tab, line) = OutlineAt("return First();");
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
 
         ImportBookmarks(d.AppState, path);
         d.Settle();
@@ -546,7 +546,7 @@ public sealed class BookmarkTests : IDisposable
         Directory.CreateDirectory(_temp.Path);
         var path = _temp.PathOf("exported.json");
         var (d, tab, line) = OutlineAt("return First();");
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
 
         ExportBookmarks(d.AppState, path);
         using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
@@ -609,7 +609,7 @@ public sealed class BookmarkTests : IDisposable
     {
         var path = Exported("return First();");
         var (d, tab, line) = OutlineAt("return First();");
-        ToggleBookmark(d.AppState, tab, line);
+        ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
 
         ImportBookmarks(d.AppState, path);
         d.Settle();

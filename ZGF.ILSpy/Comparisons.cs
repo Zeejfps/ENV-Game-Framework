@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Comparison;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -12,22 +11,16 @@ namespace ZGF.ILSpy;
 public static class Comparisons
 {
     /// <summary>Compares <paramref name="left"/> with <paramref name="right"/>, in the active tab while it
-    /// shows nothing, else in a new tab.</summary>
-    public static void CompareAssemblies(AppState appState, LoadedAssembly left, LoadedAssembly right)
+    /// shows nothing, else in a new tab, titled <paramref name="title"/>.</summary>
+    public static void CompareAssemblies(AppState appState, LoadedAssembly left, LoadedAssembly right, string title)
     {
         LeaveActiveTab(appState);
         var tab = FindOrOpenEmptyTab(appState);
         var comparison = new AssemblyComparison(left.FilePath, right.FilePath);
-        tab.ShowComparison(TitleOf(appState, left), comparison);
+        tab.ShowComparison(title, comparison);
         appState.Tabs.Keep(tab);
         appState.Tabs.MakeActive(tab);
         Compare(appState, comparison);
-    }
-
-    private static string TitleOf(AppState appState, LoadedAssembly assembly)
-    {
-        var t = Strings.For(appState.Locale);
-        return t.ComparisonTitle(assembly.Name);
     }
 
     /// <summary>Shows the comparison <paramref name="saved"/> kept in the tab <paramref name="reopened"/> waits in,

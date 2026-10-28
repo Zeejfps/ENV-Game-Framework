@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;

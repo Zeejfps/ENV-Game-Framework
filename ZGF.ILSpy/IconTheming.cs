@@ -1,4 +1,3 @@
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.Theming;
 
@@ -66,8 +65,8 @@ public static class IconTheming
     /// <summary>Writes a new user icon theme that extends the icon theme shown and lists every icon it can
     /// change, commented out as shown, then reads the icon themes again and switches to it. Returns its file
     /// for the screen to open; null when the settings live in memory only, or after reporting why the
-    /// file cannot be written.</summary>
-    public static string? CreateCustomIconTheme(AppState appState)
+    /// file cannot be written. <paramref name="nameOf"/> names the icon theme by the id of the one it is made from.</summary>
+    public static string? CreateCustomIconTheme(AppState appState, Func<string, string> nameOf)
     {
         var folder = PrepareIconThemesFolder(appState);
         if (folder == null)
@@ -76,8 +75,7 @@ public static class IconTheming
         var parent = themes.FindShownId(appState.IconTheme);
         var id = FindFreeCustomId(parent, candidate => IsTaken(themes, folder, candidate));
         var path = Path.Combine(folder, id + IconThemeFile.Extension);
-        var name = NameCustomTheme(appState, themes, parent);
-        var text = IconThemeDraft.Compose(name, parent, themes.Find(parent));
+        var text = IconThemeDraft.Compose(nameOf(parent), parent, themes.Find(parent));
         if (!TryWriteNewFile(appState, path, text, ThemeKind.Icon))
             return null;
         ReloadUserIconThemes(appState);

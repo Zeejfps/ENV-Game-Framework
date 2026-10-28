@@ -131,7 +131,7 @@ public sealed class SavedDocumentsTests : IDisposable
         var greeter = app.AppState.Tabs.Active!;
         MoveRightOf(app, greeter, outline);
         app.Show(app.Fixture("Farewell"), 4);
-        ShowInNewDiagram(app.AppState, app.Fixture("Vehicle").Reference!);
+        ShowInNewDiagram(app.AppState, app.Fixture("Vehicle").Reference!, Names.Diagram(app.Fixture("Vehicle").Reference!));
         app.Settle(2);
         var diagram = app.AppState.Tabs.Active!;
         SettleDiagram(app, diagram);

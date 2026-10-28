@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -13,13 +12,13 @@ public static class Diagrams
 {
     /// <summary>Shows the type <paramref name="type"/> points at, with the types of its assembly it is
     /// directly related to, on the diagram the user last worked in, brought to the front; on a new one
-    /// when none is open.</summary>
-    public static void ShowInDiagram(AppState appState, CodeReference type)
+    /// when none is open, titled <paramref name="newTitle"/>.</summary>
+    public static void ShowInDiagram(AppState appState, CodeReference type, string newTitle)
     {
         var tab = appState.Tabs.Diagram;
         if (tab == null)
         {
-            ShowInNewDiagram(appState, type);
+            ShowInNewDiagram(appState, type, newTitle);
             return;
         }
         BringToFront(appState, tab);
@@ -53,21 +52,15 @@ public static class Diagrams
 
     /// <summary>Shows the type <paramref name="type"/> points at, with the types of its assembly it is
     /// directly related to, on a new diagram: in the active tab while it shows nothing, else in a new tab.</summary>
-    public static void ShowInNewDiagram(AppState appState, CodeReference type)
+    public static void ShowInNewDiagram(AppState appState, CodeReference type, string title)
     {
         LeaveActiveTab(appState);
         var tab = FindOrOpenEmptyTab(appState);
-        tab.ShowDiagram(TitleOf(appState, type), new TypeDiagram());
+        tab.ShowDiagram(title, new TypeDiagram());
         appState.Tabs.Keep(tab);
         appState.Tabs.MakeActive(tab);
         RecordInHistory(appState, tab);
         AddWithNeighbours(appState, tab, type);
-    }
-
-    private static string TitleOf(AppState appState, CodeReference type)
-    {
-        var t = Strings.For(appState.Locale);
-        return t.DiagramTitle(type.Name);
     }
 
     /// <summary>Reads the card of <paramref name="type"/> and its neighbours in the background, adds them to

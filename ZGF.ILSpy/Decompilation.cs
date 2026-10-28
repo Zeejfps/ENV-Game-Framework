@@ -1,5 +1,4 @@
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 

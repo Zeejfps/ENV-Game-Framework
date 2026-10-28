@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -10,8 +9,9 @@ public static class Bookmarks
 {
     /// <summary>Removes the bookmark marking <paramref name="line"/> of <paramref name="tab"/>'s
     /// document, or bookmarks the line, naming the bookmark by the statement or definition on it
-    /// when it has one. Returns which it did.</summary>
-    public static BookmarkToggle ToggleBookmark(AppState appState, DocumentTab tab, int line)
+    /// when it has one. Returns which it did. <paramref name="nameOf"/> names a new bookmark by a number,
+    /// counted from 1 until no bookmark has the name.</summary>
+    public static BookmarkToggle ToggleBookmark(AppState appState, DocumentTab tab, int line, Func<int, string> nameOf)
     {
         var node = tab.Node;
         if (node == null)
@@ -21,7 +21,7 @@ public static class Bookmarks
         var existing = appState.Bookmarks.At(tab.Document, node.Path, line);
         if (existing != null)
             return RemoveBookmark(appState, existing);
-        return AddBookmark(appState, tab, node, line);
+        return AddBookmark(appState, tab, node, line, nameOf);
     }
 
     private static BookmarkToggle RemoveBookmark(AppState appState, Bookmark bookmark)
@@ -41,17 +41,15 @@ public static class Bookmarks
         return line < tab.Document.Lines.Length;
     }
 
-    private static BookmarkToggle AddBookmark(AppState appState, DocumentTab tab, BrowseNode node, int line)
+    private static BookmarkToggle AddBookmark(AppState appState, DocumentTab tab, BrowseNode node, int line, Func<int, string> nameOf)
     {
         var anchor = tab.Document.AnchorAt(line);
-        var name = appState.Bookmarks.NextName(number => FormatBookmarkName(appState, number));
+        var name = appState.Bookmarks.NextName(nameOf);
         var info = ILSpyTree.Describe(node, anchor);
         var bookmark = new Bookmark(node.Path, tab.Language, line, anchor, name, info);
         appState.Bookmarks.Add(bookmark);
         return new BookmarkToggle.Added(bookmark);
     }
-
-    private static string FormatBookmarkName(AppState appState, int number) => Strings.For(appState.Locale).BookmarksDefaultName(number);
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
     /// assembly first if it is not open, and records it in the history.</summary>

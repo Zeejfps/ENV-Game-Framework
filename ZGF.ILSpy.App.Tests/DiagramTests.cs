@@ -20,7 +20,7 @@ public sealed class DiagramTests
 
     private static TypeDiagram ShowInNew(AppStateDriver d, string type)
     {
-        ShowInNewDiagram(d.AppState, TypeOf(d, type));
+        ShowInNewDiagram(d.AppState, TypeOf(d, type), Names.Diagram(TypeOf(d, type)));
         d.Settle();
         return d.AppState.Tabs.Active!.Diagram!;
     }
@@ -37,7 +37,7 @@ public sealed class DiagramTests
     {
         var d = AppStateDriver.Opened();
 
-        ShowInDiagram(d.AppState, TypeOf(d, "Vehicle"));
+        ShowInDiagram(d.AppState, TypeOf(d, "Vehicle"), Names.Diagram(TypeOf(d, "Vehicle")));
         d.Settle();
 
         var tab = d.AppState.Tabs.Active!;
@@ -66,12 +66,12 @@ public sealed class DiagramTests
     public void Showing_another_type_in_the_diagram_adds_it_to_the_same_tab_brought_to_the_front()
     {
         var d = AppStateDriver.Opened();
-        ShowInDiagram(d.AppState, TypeOf(d, "Vehicle"));
+        ShowInDiagram(d.AppState, TypeOf(d, "Vehicle"), Names.Diagram(TypeOf(d, "Vehicle")));
         d.Settle();
         var diagramTab = d.AppState.Tabs.Active!;
         d.Show(d.Fixture("Greeter"));
 
-        ShowInDiagram(d.AppState, TypeOf(d, "Counter"));
+        ShowInDiagram(d.AppState, TypeOf(d, "Counter"), Names.Diagram(TypeOf(d, "Counter")));
         d.Settle();
 
         Assert.Same(diagramTab, d.AppState.Tabs.Active);
@@ -86,7 +86,7 @@ public sealed class DiagramTests
         var first = ShowInNew(d, "Vehicle");
 
         var second = ShowInNew(d, "Greeter");
-        ShowInDiagram(d.AppState, TypeOf(d, "Counter"));
+        ShowInDiagram(d.AppState, TypeOf(d, "Counter"), Names.Diagram(TypeOf(d, "Counter")));
         d.Settle();
 
         Assert.Equal(2, ListDiagramTabs(d).Count);
@@ -195,7 +195,7 @@ public sealed class DiagramTests
     public void Closing_a_diagram_drops_what_it_was_reading()
     {
         var d = AppStateDriver.Opened();
-        ShowInNewDiagram(d.AppState, TypeOf(d, "Vehicle"));
+        ShowInNewDiagram(d.AppState, TypeOf(d, "Vehicle"), Names.Diagram(TypeOf(d, "Vehicle")));
         var tab = d.AppState.Tabs.Active!;
         var diagram = tab.Diagram!;
 
@@ -213,7 +213,7 @@ public sealed class DiagramTests
     {
         var d = AppStateDriver.Opened();
         d.TurnOffPreviewTabs();
-        ShowInNewDiagram(d.AppState, TypeOf(d, "Vehicle"));
+        ShowInNewDiagram(d.AppState, TypeOf(d, "Vehicle"), Names.Diagram(TypeOf(d, "Vehicle")));
         d.Settle();
         var tab = d.AppState.Tabs.Active!;
 
@@ -231,7 +231,7 @@ public sealed class DiagramTests
         var d = AppStateDriver.Opened();
         var member = d.Fixture("Greeter").Child("Twice() : int").Reference!;
 
-        ShowInNewDiagram(d.AppState, member);
+        ShowInNewDiagram(d.AppState, member, Names.Diagram(member));
         d.Settle();
 
         var error = Assert.Single(d.AppState.Errors.Entries);

@@ -130,7 +130,7 @@ internal static class DisplayOptionsPanelView
         var t = ui.State.Strings;
         if (!ui.IconButton("customize-theme", ui.State.Icons.OptionsCustomizeTheme, t.DisplayOptionsCustomizeTheme, variant: ButtonVariant.Neutral))
             return;
-        var file = CreateCustomTheme(appState);
+        var file = CreateCustomTheme(appState, parent => t.ThemeCustomName(appState.Themes.NameOf(parent, t.Culture)));
         if (file != null)
             ui.OpenFile(file);
     }
@@ -182,7 +182,7 @@ internal static class DisplayOptionsPanelView
         var t = ui.State.Strings;
         if (!ui.IconButton("customize-icon-theme", ui.State.Icons.OptionsCustomizeIconTheme, t.DisplayOptionsCustomizeIconTheme, variant: ButtonVariant.Neutral))
             return;
-        var file = CreateCustomIconTheme(appState);
+        var file = CreateCustomIconTheme(appState, parent => t.ThemeCustomName(appState.IconThemes.NameOf(parent, t.Culture)));
         if (file != null)
             ui.OpenFile(file);
     }

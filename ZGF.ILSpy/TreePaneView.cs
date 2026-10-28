@@ -253,9 +253,9 @@ internal static class TreePaneView
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeShowInDiagram, id: "show-in-diagram"))
-            ShowInDiagram(appState, type);
+            ShowInDiagram(appState, type, t.DiagramTitle(type.Name));
         if (ui.MenuItem(t.TreeShowInNewDiagram, id: "show-in-new-diagram"))
-            ShowInNewDiagram(appState, type);
+            ShowInNewDiagram(appState, type, t.DiagramTitle(type.Name));
     }
 
     /// <summary>The item that opens the .NET API reference page of a namespace, or of a public type or

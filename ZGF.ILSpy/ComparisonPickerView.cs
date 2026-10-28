@@ -1,6 +1,7 @@
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Comparisons;
 
@@ -48,7 +49,7 @@ internal static class ComparisonPickerView
             }
         }
         if (compare)
-            close |= CompareWithSelected(appState, picker, compared);
+            close |= CompareWithSelected(appState, picker, compared, t);
         if (close)
             picker.Close();
     }
@@ -111,12 +112,12 @@ internal static class ComparisonPickerView
     }
 
     /// <summary>Compares the assembly to compare with the one selected, if any; true when it did.</summary>
-    private static bool CompareWithSelected(AppState appState, ComparisonPicker picker, LoadedAssembly compared)
+    private static bool CompareWithSelected(AppState appState, ComparisonPicker picker, LoadedAssembly compared, Strings t)
     {
         var other = picker.Selected;
         if (other == null)
             return false;
-        CompareAssemblies(appState, compared, other);
+        CompareAssemblies(appState, compared, other, t.ComparisonTitle(compared.Name));
         return true;
     }
 }

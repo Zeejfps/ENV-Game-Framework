@@ -1,4 +1,3 @@
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Preferences;
 
 namespace ZGF.ILSpy;
@@ -135,8 +134,8 @@ public static class Theming
     /// <summary>Writes a new user theme that extends the theme shown and lists every color it can change,
     /// commented out at the color shown, then reads the themes again and switches to it. Returns its file
     /// for the screen to open; null when the settings live in memory only, or after reporting why the
-    /// file cannot be written.</summary>
-    public static string? CreateCustomTheme(AppState appState)
+    /// file cannot be written. <paramref name="nameOf"/> names the theme by the id of the one it is made from.</summary>
+    public static string? CreateCustomTheme(AppState appState, Func<string, string> nameOf)
     {
         var folder = PrepareThemesFolder(appState);
         if (folder == null)
@@ -145,8 +144,7 @@ public static class Theming
         var parent = themes.FindShownId(appState.Theme);
         var id = FindFreeCustomId(parent, candidate => IsTaken(themes, folder, candidate));
         var path = Path.Combine(folder, id + ThemeFile.Extension);
-        var name = NameCustomTheme(appState, themes, parent);
-        var text = ThemeDraft.Compose(name, parent, themes.Find(parent));
+        var text = ThemeDraft.Compose(nameOf(parent), parent, themes.Find(parent));
         if (!TryWriteNewFile(appState, path, text, ThemeKind.Color))
             return null;
         ReloadUserThemes(appState);
@@ -177,16 +175,6 @@ public static class Theming
         if (themes.IndexOf(id) >= 0)
             return true;
         return File.Exists(Path.Combine(folder, id + ThemeFile.Extension));
-    }
-
-    /// <summary>The name of a custom theme made from the theme <paramref name="parent"/> of <paramref name="themes"/>.</summary>
-    internal static string NameCustomTheme<TFile, TTheme>(AppState appState, ThemeCatalog<TFile, TTheme> themes, string parent)
-        where TFile : class, IThemeFile
-        where TTheme : class
-    {
-        var t = Strings.For(appState.Locale);
-        var parentName = themes.NameOf(parent, t.Culture);
-        return t.ThemeCustomName(parentName);
     }
 
     /// <summary>Writes <paramref name="text"/>, a theme of <paramref name="kind"/>, to a file that must not

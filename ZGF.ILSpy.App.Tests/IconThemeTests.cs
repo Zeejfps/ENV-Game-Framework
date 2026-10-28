@@ -526,7 +526,7 @@ public sealed class UserIconThemeTests : IDisposable
     {
         var appState = new AppState(Settings());
 
-        var path = CreateCustomIconTheme(appState);
+        var path = CreateCustomIconTheme(appState, parent => Strings.En.ThemeCustomName(appState.IconThemes.NameOf(parent, Strings.En.Culture)));
 
         var text = File.ReadAllText(path!);
         Assert.Equal(_temp.PathOf(Path.Combine("icon-themes", "lucide-custom.json")), path);
@@ -572,7 +572,7 @@ public sealed class UserIconThemeTests : IDisposable
     {
         var appState = new AppState(new AppSettings { Locale = Locale.En });
 
-        Assert.Null(CreateCustomIconTheme(appState));
+        Assert.Null(CreateCustomIconTheme(appState, parent => Strings.En.ThemeCustomName(appState.IconThemes.NameOf(parent, Strings.En.Culture))));
         Assert.Null(PrepareIconThemesFolder(appState));
         Assert.Equal("lucide", appState.IconTheme);
     }
