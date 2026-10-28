@@ -178,6 +178,61 @@ public sealed class MarkdownTests
         Assert.True(frames.Drew("k"));
     }
 
+    /// <summary>The HTML Ctrl+C puts on the clipboard after a click on the drawn text
+    /// <paramref name="text"/> and Ctrl+A in <paramref name="markdown"/>.</summary>
+    private static string? CopyAllAsHtml(string markdown, string text)
+    {
+        var frames = new MarkdownView(markdown).Frames.Frame();
+        var start = At(frames, text, 0);
+        frames.Click(start.X, start.Y).Frame();
+        frames.Key(KeyboardKey.A, KeyModifiers.Control).Frame();
+        Copy(frames);
+        return frames.Clipboard.Html;
+    }
+
+    [Fact]
+    public void Copying_puts_the_selection_on_the_clipboard_as_html_too_with_its_inline_styles()
+    {
+        var html = CopyAllAsHtml("# Title\n\nSome **bold**, *slanted*, `code`, ~~gone~~ and [docs](https://example.com/a?b=1&c=2).", "Title");
+
+        Assert.Equal(
+            "<h1>Title</h1><p>Some <b>bold</b>, <i>slanted</i>, <code>code</code>, <s>gone</s> and <a href=\"https://example.com/a?b=1&amp;c=2\">docs</a>.</p>",
+            html);
+    }
+
+    [Fact]
+    public void Lists_quotes_tables_and_code_copy_as_their_elements()
+    {
+        var html = CopyAllAsHtml("1. one\n2. two\n   - inner\n\n> said\n\n| A | B |\n|---|---|\n| 1 | |\n\n```\na < b\n```", "one");
+
+        Assert.Equal(
+            "<ol><li><p>one</p></li><li><p>two</p><ul><li><p>inner</p></li></ul></li></ol>"
+            + "<blockquote><p>said</p></blockquote>"
+            + "<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td></td></tr></table>"
+            + "<pre><code>a &lt; b</code></pre>",
+            html);
+    }
+
+    [Fact]
+    public void A_partial_selection_copies_as_html_only_what_it_covers_inside_the_elements_around_it()
+    {
+        var frames = new MarkdownView("- alpha beta\n- gamma").Frames.Frame();
+
+        frames.Drag(At(frames, "alpha beta", 6), At(frames, "gamma", 3)).Release().Frame();
+        Copy(frames);
+
+        Assert.Equal("<ul><li><p>beta</p></li><li><p>gam</p></li></ul>", frames.Clipboard.Html);
+        Assert.Equal("beta\ngam", frames.Clipboard.Text);
+    }
+
+    [Fact]
+    public void Only_web_and_mail_links_keep_their_address_in_copied_html()
+    {
+        var html = CopyAllAsHtml("[run](file:///C:/tool.exe) [mail](mailto:a@b.c)", "run");
+
+        Assert.Equal("<p>run <a href=\"mailto:a@b.c\">mail</a></p>", html);
+    }
+
     [Fact]
     public void A_selectable_paragraph_shows_its_text_as_it_is_and_copies_it()
     {

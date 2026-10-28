@@ -35,7 +35,8 @@ public static partial class UiWidgets
     /// <para>
     /// Its text selects as in a text field — dragging across blocks, double-clicking a word,
     /// triple-clicking a block, shift-clicking — and Ctrl+C copies what is selected as it reads,
-    /// without the markup, while the selection holds focus; Ctrl+A selects it all. A press elsewhere
+    /// without the markup, and as HTML for pasting where formatting is kept, while the selection
+    /// holds focus; Ctrl+A selects it all. A press elsewhere
     /// that takes focus clears it. With a <see cref="MarkdownLook.CopyIcon"/>, each code block has a
     /// button that copies its code.
     /// </para>
@@ -101,7 +102,7 @@ public static partial class UiWidgets
             var leafEnds = new int[parsed.Count];
             for (var i = 0; i < parsed.Count; i++)
             {
-                shown[i] = i < kept ? Shown[i] : ShownMarkdown.Build(ui, look, parsed[i], ui.Theme.Text, Leaves);
+                shown[i] = i < kept ? Shown[i] : ShownMarkdown.Build(ui, look, parsed[i], ui.Theme.Text, Leaves, []);
                 leafEnds[i] = i < kept ? _leafEnds[i] : Leaves.Count;
             }
             _text = text;
@@ -160,7 +161,7 @@ public static partial class UiWidgets
             switch (stroke.Key)
             {
                 case KeyboardKey.C when Selection.HasSelection:
-                    ui.ClipboardText = Selection.Of(Leaves);
+                    ui.SetClipboardHtml(MarkdownHtml.Of(Leaves, Selection), Selection.Of(Leaves));
                     return true;
                 case KeyboardKey.A:
                     Selection.SelectAll(Leaves);
