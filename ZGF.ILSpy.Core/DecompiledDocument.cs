@@ -101,7 +101,7 @@ public sealed class DecompiledDocument
     private readonly IReadOnlyDictionary<CodeReference, int> _definitions;
     private readonly IReadOnlyDictionary<int, CodeAnchor> _statements;
     private Dictionary<CodeAnchor, int>? _definitionLines;
-    private Dictionary<(string File, int Token), (int Offset, int Line)[]>? _statementLines;
+    private Dictionary<CodeAnchor, (int Offset, int Line)[]>? _statementLines;
 
     internal DecompiledDocument(string title, DecompilationLanguage language, bool isError, ImmutableArray<DocumentLine> lines,
         IReadOnlyDictionary<CodeReference, int> definitions, IReadOnlyDictionary<int, CodeAnchor> statements, ImmutableArray<FoldRegion> folds)
@@ -197,9 +197,9 @@ public sealed class DecompiledDocument
         }
 
         _statementLines ??= _statements
-            .GroupBy(static s => (s.Value.FilePath, s.Value.Token))
+            .GroupBy(static s => MethodOf(s.Value))
             .ToDictionary(static g => g.Key, static g => g.Select(static s => (s.Value.ILOffset, s.Key)).Order().ToArray());
-        if (!_statementLines.TryGetValue((anchor.FilePath, anchor.Token), out var points)) return -1;
+        if (!_statementLines.TryGetValue(MethodOf(anchor), out var points)) return -1;
         var found = points[0].Line;
         foreach (var (offset, line) in points)
         {
@@ -208,6 +208,9 @@ public sealed class DecompiledDocument
         }
         return found;
     }
+
+    /// <summary>The statement anchor <paramref name="statement"/> with its offset left out, naming its method.</summary>
+    private static CodeAnchor MethodOf(CodeAnchor statement) => statement with { ILOffset = 0 };
 
     private static CodeAnchor DefinitionOf(CodeReference reference) =>
         new(CodeAnchorKind.Definition, reference.FilePath!, MetadataTokens.GetToken(reference.Handle));

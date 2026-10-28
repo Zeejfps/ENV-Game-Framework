@@ -36,6 +36,32 @@ public sealed class AnchorTests
         Assert.Equal(il.FindDefinitionLine(Trees.TestAssembly.Calculator().Child("Add(T) : void")), il.FindLine(anchor));
     }
 
+    [Theory]
+    [InlineData("Changed?.Invoke(this, EventArgs.Empty);")]
+    [InlineData("public void Add(T item)")]
+    public void An_anchor_finds_its_line_whatever_the_case_of_its_path(string text)
+    {
+        var type = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
+        var line = type.LineContaining(text);
+        var anchor = type.AnchorAt(line)!.Value;
+
+        var upper = anchor with { FilePath = anchor.FilePath.ToUpperInvariant() };
+
+        Assert.Equal(anchor, upper);
+        Assert.Equal(anchor.GetHashCode(), upper.GetHashCode());
+        Assert.Equal(line, type.FindLine(upper));
+    }
+
+    [Fact]
+    public void A_type_anchor_is_the_same_whatever_the_case_of_its_path_but_not_of_its_name()
+    {
+        var anchor = new TypeAnchor(@"C:\Lib\A.dll", "N.Outer+Inner`1");
+
+        Assert.Equal(anchor, anchor with { AssemblyPath = @"c:\lib\a.DLL" });
+        Assert.Equal(anchor.GetHashCode(), (anchor with { AssemblyPath = @"c:\lib\a.DLL" }).GetHashCode());
+        Assert.NotEqual(anchor, anchor with { FullName = "n.outer+inner`1" });
+    }
+
     [Fact]
     public void A_line_with_no_statement_or_definition_has_no_anchor()
     {
