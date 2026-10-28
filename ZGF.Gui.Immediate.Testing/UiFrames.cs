@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
 using ZGF.Geometry;
+using ZGF.Gui.Hosting;
 using ZGF.Gui.Testing;
 using ZGF.KeyboardModule;
 
@@ -37,6 +38,14 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         TestPopupHost? popups = null, float width = 400f, float height = 300f)
     {
         return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Update);
+    }
+
+    /// <summary>Has every frame's <c>MenuBar</c> record its menus into <paramref name="bar"/>, as on
+    /// macOS, in place of drawing them.</summary>
+    public UiFrames<TState> UseSystemMenuBar(ISystemMenuBar bar)
+    {
+        _ui.SystemMenus = new SystemMenus(bar, static () => { });
+        return this;
     }
 
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between or during frames.</summary>

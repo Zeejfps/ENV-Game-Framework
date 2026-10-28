@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Geometry;
+using ZGF.Gui.Hosting;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
@@ -322,9 +323,15 @@ public static partial class UiWidgets
     /// releasing over an item picks it. While open, Up/Down/Home/End move through the items,
     /// Enter or Space picks, Left/Right switch menus or open and close submenus, and Escape closes.
     /// A press outside or a pick closes it, and keyboard focus returns to where it was. Dispose the
-    /// scope once its menus are recorded.</summary>
+    /// scope once its menus are recorded. Where the window system has a menu bar of its own
+    /// (<see cref="Ui.SystemMenus"/>), the menus are recorded into it instead and nothing is drawn.</summary>
     public static Ui.Scope MenuBar(this Ui ui, string id, Box box = default)
     {
+        if (ui.SystemMenus is { } system)
+        {
+            system.BeginBar();
+            return ui.Group(system, static menus => ((SystemMenus)menus).EndBar());
+        }
         var theme = ui.Theme;
         var barId = ui.GetId(id);
         var state = ui.GetState<MenuBarState>(HashCode.Combine(barId, MenuSalt));
@@ -346,9 +353,12 @@ public static partial class UiWidgets
 
     /// <summary>A title in the enclosing <see cref="MenuBar"/> and its dropdown. While
     /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way. Ids work
-    /// as for <see cref="Button"/>.</summary>
-    public static Ui.Scope Menu(this Ui ui, string label, string? id = null)
+    /// as for <see cref="Button"/>. <paramref name="role"/> tells the window system's menu bar what
+    /// it may add to the menu, and is ignored by a bar drawn in the window.</summary>
+    public static Ui.Scope Menu(this Ui ui, string label, string? id = null, AppMenuRole role = AppMenuRole.Standard)
     {
+        if (RecordingSystemMenus(ui) is { } system)
+            return SystemMenu(ui, system, id ?? label, label, role);
         var bar = FindMenuBar(ui);
         var theme = ui.Theme;
         var i = ui.Interact(id ?? label);
@@ -363,7 +373,7 @@ public static partial class UiWidgets
     /// Records nothing while the window has no icon.</summary>
     public static Ui.Scope AppIconMenu(this Ui ui, string id)
     {
-        if (!ui.HasWindowIcon)
+        if (!ui.HasWindowIcon || RecordingSystemMenus(ui) != null)
             return default;
         var bar = FindMenuBar(ui);
         var theme = ui.Theme;
@@ -372,6 +382,28 @@ public static partial class UiWidgets
         var title = TitleBox(ui, i, open, theme.GapTight);
         ui.AppIcon(theme.IconSize);
         return OpenTitled(ui, bar, i.Id, open, title);
+    }
+
+    /// <summary>The window system's menus while a <see cref="MenuBar"/> records into them, and no menu
+    /// drawn in the window is open inside it.</summary>
+    private static SystemMenus? RecordingSystemMenus(Ui ui)
+    {
+        if (ui.FindOpenGroup<MenuPopup>() != null)
+            return null;
+        return ui.FindOpenGroup<SystemMenus>();
+    }
+
+    private static Ui.Scope SystemMenu(Ui ui, SystemMenus system, string key, string label, AppMenuRole role)
+    {
+        system.BeginMenu(key, label, role);
+        return ui.Group(system, static menus => ((SystemMenus)menus).EndMenu());
+    }
+
+    /// <summary>An item the window system acts on itself, such as macOS's Hide and Quit, recorded into
+    /// its menu bar; nothing in a menu drawn in the window, which has no such items.</summary>
+    public static void SystemMenuItem(this Ui ui, string label, AppMenuSystemAction action, string? shortcut = null)
+    {
+        RecordingSystemMenus(ui)?.Item(label, label, shortcut, enabled: true, check: false, action);
     }
 
     private static MenuBarState FindMenuBar(Ui ui) =>
@@ -483,9 +515,12 @@ public static partial class UiWidgets
 
     /// <summary>An item that opens a nested menu beside it when hovered, clicked, or entered with
     /// Right or Enter; Left or Escape closes just that menu. The scope is as a <see cref="Menu"/>'s;
-    /// ids work as for <see cref="Button"/>.</summary>
-    public static Ui.Scope SubMenu(this Ui ui, string label, bool enabled = true, string? id = null)
+    /// ids work as for <see cref="Button"/>. In the window system's menu bar it is always enabled,
+    /// and <paramref name="role"/> tells the bar what it may add to it.</summary>
+    public static Ui.Scope SubMenu(this Ui ui, string label, bool enabled = true, string? id = null, AppMenuRole role = AppMenuRole.Standard)
     {
+        if (RecordingSystemMenus(ui) is { } system)
+            return SystemMenu(ui, system, id ?? label, label, role);
         var parent = ui.FindOpenGroup<MenuPopup>() ?? throw new InvalidOperationException("A SubMenu must be recorded inside a menu.");
         DrawAskedSeparator(ui, parent);
         var theme = ui.Theme;
@@ -570,6 +605,8 @@ public static partial class UiWidgets
     private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, bool markable, string? id, UiIcon? icon,
         bool keepOpen)
     {
+        if (RecordingSystemMenus(ui) is { } system)
+            return system.Item(id ?? label, label, shortcut, enabled, mark != MenuMark.None);
         var theme = ui.Theme;
         var menu = ui.FindOpenGroup<MenuPopup>();
         DrawAskedSeparator(ui, menu);
@@ -664,6 +701,11 @@ public static partial class UiWidgets
     /// so a menu never starts or ends with one, nor draws two in a row.</summary>
     public static void MenuSeparator(this Ui ui)
     {
+        if (RecordingSystemMenus(ui) is { } system)
+        {
+            system.Separator();
+            return;
+        }
         var menu = ui.FindOpenGroup<MenuPopup>();
         if (menu == null)
         {

@@ -1,5 +1,6 @@
 using ZGF.Desktop;
 using ZGF.Fonts;
+using ZGF.Gui.Hosting;
 using ZGF.Gui.Testing;
 
 namespace ZGF.Gui.Immediate.Testing;
@@ -112,4 +113,41 @@ public sealed class TestPopupHost : IPopupHost
         var bounds = new WindowBounds((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height, false);
         return new WindowSurface(canvas, rect, bounds, closeRequested);
     }
+}
+
+/// <summary>Stands in for macOS's menu bar: keeps the menus last shown, and picks their items as the
+/// user would.</summary>
+public sealed class TestSystemMenuBar : ISystemMenuBar
+{
+    private Action<AppMenuItem>? _picked;
+
+    /// <summary>The menus last shown; as on macOS, their items' enabled and checked states change in
+    /// place between showings.</summary>
+    public IReadOnlyList<AppMenu> Menus { get; private set; } = [];
+
+    /// <summary>How many times the menus were shown.</summary>
+    public int Showings { get; private set; }
+
+    public void Show(IReadOnlyList<AppMenu> menus, Action<AppMenuItem> picked)
+    {
+        Menus = menus;
+        _picked = picked;
+        Showings++;
+    }
+
+    /// <summary>The menu reached through the menus and submenus titled <paramref name="titles"/>.</summary>
+    public AppMenu Menu(params string[] titles)
+    {
+        var menu = Menus.Single(m => m.Title == titles[0]);
+        foreach (var title in titles.AsSpan(1))
+            menu = menu.Entries.OfType<AppMenu>().Single(m => m.Title == title);
+        return menu;
+    }
+
+    /// <summary>The item titled last in <paramref name="path"/>, in the menu the titles before it reach.</summary>
+    public AppMenuItem Item(params string[] path) =>
+        Menu(path[..^1]).Entries.OfType<AppMenuItem>().Single(i => i.Title == path[^1]);
+
+    /// <summary>Picks the item <paramref name="path"/> names, as clicking it in the menu bar would.</summary>
+    public void Pick(params string[] path) => _picked!(Item(path));
 }
