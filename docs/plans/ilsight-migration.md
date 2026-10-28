@@ -36,7 +36,7 @@ Start once the next few features have landed.
    git filter-repo \
      --path ZGF.ILSpy/ --path ZGF.ILSpy.Core/ --path ZGF.ILSpy.Tests/ --path ZGF.ILSpy.App.Tests/ \
      --path docs/plans/ilspy.md --path docs/plans/ilspy-feature-gaps.md --path docs/plans/ilspy-improvements.md \
-     --path docs/plans/ilsight-migration.md
+     --path docs/plans/ilsight-migration.md --path docs/plans/ilsight-icon.md
    ```
 5. `git submodule add https://github.com/Zeejfps/ENV-Game-Framework.git ZGF`, check out the SHA from step 1, then `git submodule update --init --recursive` for the nested PngSharp.
 6. Add root files:
@@ -69,7 +69,7 @@ Start once the next few features have landed.
 
 Only once ILSight builds green on its own.
 
-- Delete the four projects, the three `docs/plans/ilspy*.md` files, this file and `builds/ZGF.ILSpy`.
+- Delete the four projects, the three `docs/plans/ilspy*.md` files, this file, `ilsight-icon.md` and `builds/ZGF.ILSpy`.
 - Remove the projects from `ENV Game Framework.sln`.
 - Swap the ILSpy examples in this repo's `docs/code-readability.md` for neutral ones, or keep that doc ILSight-only.
 - Check that nothing left in ZGF references them: `ZGF.Gui.Immediate.Testing` stays here, since ILSight consumes it.
@@ -95,7 +95,7 @@ Only once ILSight builds green on its own.
    - **Upload:** `vpk upload github --publish`.
    - **Versions:** keep the `vpk` tool and the `Velopack` package on the same version.
 6. RIDs: `win-x64`, `osx-arm64` (add `osx-x64` if needed), `linux-x64`.
-7. Icons: `.ico`, `.icns`, `.png`.
+7. Icons: `.ico`, `.icns`, `.png`, designed in [ilsight-icon.md](ilsight-icon.md).
 
 ## Phase 5 — About page
 
