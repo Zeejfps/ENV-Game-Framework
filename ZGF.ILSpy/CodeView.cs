@@ -54,12 +54,9 @@ public sealed class CodeViewState
     internal float LaidOutScrollY;
     internal float LaidOutScrollX;
     internal CodeReference? Marked;
-    internal CodeReference? MenuReference;
-    internal CodeReference? MenuEntity;
-    internal CodeReference? MenuMetadata;
+    internal CodeMenuTarget Menu = CodeMenuTarget.None;
     internal CodeTooltip? Tooltip;
     internal int TooltipPart;
-    internal int MenuLine = NoLine;
     internal int PendingReveal = NoLine;
     internal int PendingShowLine = NoLine;
     internal int PendingColumnStart = NoLine;
@@ -152,11 +149,10 @@ public sealed class CodeViewState
         PressedSpanLine = PressedSpan = NoLine;
         PressedOnFold = false;
         ScrollX = ScrollY = LaidOutScrollX = LaidOutScrollY = 0f;
-        Marked = MenuReference = null;
-        MenuMetadata = null;
+        Marked = null;
+        Menu = CodeMenuTarget.None;
         Tooltip = null;
         TooltipPart = 0;
-        MenuLine = NoLine;
         PendingShowLine = PendingColumnStart = NoLine;
         FlashLine = NoLine;
         CurrentMatch = NoLine;
@@ -405,10 +401,8 @@ public static class CodeViewWidget
             if (i.ClickedWith(PointerButton.Right))
             {
                 ui.Focus(focusId, takesText: false);
-                state.MenuReference = hoverNavigable ? hoverReference : null;
-                state.MenuEntity = hoverReference is { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } ? hoverReference : null;
-                state.MenuMetadata = hoverReference is { IsNavigable: true } ? hoverReference : null;
-                state.MenuLine = hasRect ? PositionAt(pointer.X, pointer.Y).Line : CodeViewState.NoLine;
+                var onDefinition = hoverSpan >= 0 && document.Lines[hoverLine].Spans[hoverSpan].IsDefinition;
+                state.Menu = new CodeMenuTarget(hoverReference, onDefinition, hasRect ? PositionAt(pointer.X, pointer.Y).Line : CodeViewState.NoLine);
                 ui.OpenContextMenu("menu");
             }
 
@@ -965,6 +959,7 @@ public static class CodeViewWidget
         var result = default(CodeViewResult);
         using var menu = ui.ContextMenu("menu");
         if (!menu.IsOpen) return result;
+        var target = state.Menu;
 
         if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: state.HasSelection, id: "copy"))
             CopySelection(ui, state);
@@ -972,24 +967,24 @@ public static class CodeViewWidget
             ui.ClipboardText = state.SelectedText;
         if (ui.MenuItem(t.CodeSelectAll, "Ctrl+A", id: "select-all"))
             state.Selection.Select(default, CodeText.End(document));
-        if (bookmarkable && state.MenuLine >= 0)
+        if (bookmarkable && target.Line >= 0)
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
                     icon: new UiIcon(ui.State.Icons.CodeToggleBookmark, ui.State.CodeViewPalette.Bookmark)))
-                result = result with { ToggleBookmark = state.MenuLine };
+                result = result with { ToggleBookmark = target.Line };
         }
         if (document.Folds.Length > 0)
         {
             ui.MenuSeparator();
-            if (ui.MenuItem(t.CodeToggleFold, "Ctrl+M, M", id: "toggle-fold", enabled: state.MenuLine >= 0 && state.Folds.Innermost(state.MenuLine) >= 0))
-                state.ToggleFold(state.MenuLine);
+            if (ui.MenuItem(t.CodeToggleFold, "Ctrl+M, M", id: "toggle-fold", enabled: target.Line >= 0 && state.Folds.Innermost(target.Line) >= 0))
+                state.ToggleFold(target.Line);
             if (ui.MenuItem(t.CodeCollapseAll, id: "collapse-all"))
                 state.CollapseAll();
             if (ui.MenuItem(t.CodeExpandAll, id: "expand-all"))
                 state.ExpandAll();
         }
-        if (state.MenuReference is { } reference)
+        if (target.Navigable is { } reference)
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeGoToDefinition, id: "go-to-definition"))
@@ -997,9 +992,9 @@ public static class CodeViewWidget
             if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
                 result = new CodeViewResult(reference, true);
         }
-        if (state.MenuEntity is { } entity)
+        if (target.Entity is { } entity)
         {
-            if (state.MenuReference == null)
+            if (target.Navigable == null)
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
                 result = result with { Analyze = entity };
@@ -1007,9 +1002,9 @@ public static class CodeViewWidget
                 result = result with { ShowInApiReference = entity };
             result = DiagramItems(ui, entity, result);
         }
-        if (state.MenuMetadata is { } shown)
+        if (target.Metadata is { } shown)
         {
-            if (state.MenuReference == null && state.MenuEntity == null)
+            if (target.Navigable == null && target.Entity == null)
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
                 result = result with { ShowInMetadata = shown };

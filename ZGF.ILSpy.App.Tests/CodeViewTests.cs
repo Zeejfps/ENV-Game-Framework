@@ -370,6 +370,21 @@ public sealed class CodeViewTests
         Assert.Null(view.Last.Navigate);
     }
 
+    [Fact]
+    public void Another_document_shown_under_an_open_context_menu_leaves_nothing_of_the_old_one_to_act_on()
+    {
+        var (view, line, column) = GreeterAt("Greet(2)");
+        view.Click(line, column, PointerButton.Right);
+        view.Run();
+        Assert.Contains(view.Frames.Canvas.Texts, t => t.Inputs.Text == "Analyze");
+
+        view.Document = DecompiledDocument.FromText("t", "alpha beta");
+        view.Run();
+
+        Assert.Same(CodeMenuTarget.None, view.State.Menu);
+        Assert.DoesNotContain(view.Frames.Canvas.Texts, t => t.Inputs.Text == "Analyze");
+    }
+
     private static int CountWord(string line, string word)
     {
         var count = 0;
