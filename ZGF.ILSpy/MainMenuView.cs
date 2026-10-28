@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Gui.Hosting;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -17,11 +18,13 @@ internal static class MainMenuView
 {
     private const string AppIconId = "title-bar-icon";
 
-    /// <summary>The menus: in the window's title bar where the platform allows, unless the system's
-    /// title bar was chosen, and else in a bar of their own.</summary>
+    /// <summary>The menus: in the system's menu bar where there is one, else in the window's title bar
+    /// where the platform allows, unless the system's title bar was chosen, and else in a bar of their own.</summary>
     public static void Render(Ui<UiState> ui, AppState appState)
     {
-        if (IsInTitleBar(ui))
+        if (ui.SystemMenus != null)
+            RenderSystemMenuBar(ui, appState);
+        else if (IsInTitleBar(ui))
             RenderInTitleBar(ui, appState);
         else
             RenderMenuBar(ui, appState);
@@ -78,6 +81,55 @@ internal static class MainMenuView
             ui.Quit();
     }
 
+    /// <summary>macOS's menu bar: the app's menu, the window's menus, then the Window menu and a Help
+    /// menu, which the system gives a search of every item.</summary>
+    private static void RenderSystemMenuBar(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        using (ui.MenuBar("menu"))
+        {
+            using (ui.Menu(AboutDialogView.AppName, id: "app"))
+                AppMenu(ui);
+            FileAndViewMenus(ui, appState);
+            using (ui.Menu(t.MenuWindow, id: "window", role: AppMenuRole.Window))
+                SystemWindowMenu(ui);
+            using (ui.Menu(t.MenuHelp, id: "help", role: AppMenuRole.Help))
+            {
+            }
+        }
+    }
+
+    /// <summary>The app's menu of macOS's menu bar: About and Settings, then what macOS does for every app.</summary>
+    private static void AppMenu(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        if (ui.MenuItem(t.HelpAbout, id: "about"))
+            OpenAbout(ui.State);
+        ui.MenuSeparator();
+        if (ui.MenuItem(t.AppMenuSettings, "Cmd+,", id: "settings"))
+            OpenDisplayOptions(ui.State);
+        ui.MenuSeparator();
+        using (ui.SubMenu(t.AppMenuServices, id: "services", role: AppMenuRole.Services))
+        {
+        }
+        ui.MenuSeparator();
+        ui.SystemMenuItem(t.AppMenuHide, AppMenuSystemAction.Hide, "Cmd+H");
+        ui.SystemMenuItem(t.AppMenuHideOthers, AppMenuSystemAction.HideOthers, "Cmd+Alt+H");
+        ui.SystemMenuItem(t.AppMenuShowAll, AppMenuSystemAction.ShowAll);
+        ui.MenuSeparator();
+        ui.SystemMenuItem(t.AppMenuQuit, AppMenuSystemAction.Quit, "Cmd+Q");
+    }
+
+    /// <summary>macOS's Window menu, which the system ends with the open windows.</summary>
+    private static void SystemWindowMenu(Ui<UiState> ui)
+    {
+        var t = ui.State.Strings;
+        ui.SystemMenuItem(t.WindowMinimize, AppMenuSystemAction.Minimize, "Cmd+M");
+        ui.SystemMenuItem(t.WindowZoom, AppMenuSystemAction.Zoom);
+        ui.MenuSeparator();
+        ui.SystemMenuItem(t.WindowBringAllToFront, AppMenuSystemAction.BringAllToFront);
+    }
+
     private static void RenderMenuBar(Ui<UiState> ui, AppState appState)
     {
         using (ui.MenuBar("menu", new Box { Background = ui.Theme.Background }))
@@ -85,6 +137,17 @@ internal static class MainMenuView
     }
 
     private static void Menus(Ui<UiState> ui, AppState appState)
+    {
+        var t = ui.State.Strings;
+        FileAndViewMenus(ui, appState);
+        using (var help = ui.Menu(t.MenuHelp, id: "help"))
+        {
+            if (help.IsOpen)
+                HelpMenu(ui);
+        }
+    }
+
+    private static void FileAndViewMenus(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
         using (var file = ui.Menu(t.MenuFile, id: "file"))
@@ -96,11 +159,6 @@ internal static class MainMenuView
         {
             if (view.IsOpen)
                 ViewMenu(ui, appState);
-        }
-        using (var help = ui.Menu(t.MenuHelp, id: "help"))
-        {
-            if (help.IsOpen)
-                HelpMenu(ui);
         }
     }
 

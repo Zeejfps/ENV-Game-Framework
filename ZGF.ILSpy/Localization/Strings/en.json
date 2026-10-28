@@ -2,7 +2,14 @@
   "menu.file": "File",
   "menu.view": "View",
   "menu.help": "Help",
+  "menu.window": "Window",
   "help.about": "About ILSpy",
+  "app_menu.settings": "Settings…",
+  "app_menu.services": "Services",
+  "app_menu.hide": "Hide ILSpy",
+  "app_menu.hide_others": "Hide Others",
+  "app_menu.show_all": "Show All",
+  "app_menu.quit": "Quit ILSpy",
 
   "file.open": "Open…",
   "file.open_from_framework": "Open from framework…",
@@ -43,6 +50,8 @@
   "window.minimize": "Minimize",
   "window.maximize": "Maximize",
   "window.close": "Close",
+  "window.zoom": "Zoom",
+  "window.bring_all_to_front": "Bring All to Front",
 
   "view.back": "Back",
   "view.forward": "Forward",

@@ -10,7 +10,7 @@ namespace ZGF.ILSpy;
 /// folder where the app ships one, and Close.</summary>
 internal static class AboutDialogView
 {
-    private const string AppName = "ILSpy";
+    internal const string AppName = "ILSpy";
     private const string LicensesFolder = "licenses";
     private const float IconScale = 4f;
     private const float NameScale = 1.25f;
