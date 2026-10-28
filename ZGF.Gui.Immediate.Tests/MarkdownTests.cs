@@ -190,6 +190,27 @@ public sealed class MarkdownTests
         Assert.True(frames.Drew("k"));
     }
 
+    [Fact]
+    public void A_code_blocks_button_without_a_language_sits_on_its_first_line()
+    {
+        var frames = new MarkdownView("```\nline one\nline two\n```").Frames.Frame();
+        var button = frames.ToUi(frames.Canvas.Texts.Single(t => t.Inputs.Text == "c").Inputs.Position);
+        var first = frames.TextRect("line one");
+
+        Assert.True(button.X > first.Right);
+        Assert.InRange(button.Y, first.Y - first.Height, first.Y + first.Height);
+    }
+
+    [Fact]
+    public void A_code_blocks_button_with_a_language_sits_above_its_code_beside_the_language()
+    {
+        var frames = new MarkdownView("```bash\nline one\n```").Frames.Frame();
+        var button = frames.Canvas.Texts.Single(t => t.Inputs.Text == "c");
+
+        Assert.True(frames.ToUi(button.Inputs.Position).Y < frames.TextRect("line one").Y);
+        Assert.True(frames.Drew("bash"));
+    }
+
     /// <summary>The HTML Ctrl+C puts on the clipboard after a click on the drawn text
     /// <paramref name="text"/> and Ctrl+A in <paramref name="markdown"/>.</summary>
     private static string? CopyAllAsHtml(string markdown, string text)
