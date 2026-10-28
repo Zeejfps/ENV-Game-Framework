@@ -25,8 +25,9 @@ public static class ILSpyAppLauncher
 
     private static void RunApp(CommandLine commandLine, AppInstance instance)
     {
-        var settings = AppSettings.Load(commandLine.SettingsPath);
+        var (settings, problem) = AppSettings.Load(commandLine.SettingsPath);
         var appState = new AppState(settings);
+        Settings.ReportSettingsProblem(appState, problem);
         FollowStartupCommandLine(appState, commandLine);
         var screen = IlSpyApp.CreateUiState(appState);
         var app = new IlSpyApp(appState, screen, commandLine, instance);

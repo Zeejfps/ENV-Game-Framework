@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.AssemblyLists;
@@ -23,6 +24,33 @@ public static class Settings
         SaveSettings(appState);
         return appState.SaveRetry.Remaining(now);
     }
+
+    /// <summary>Tells the user what was wrong with the settings file, if anything.</summary>
+    public static void ReportSettingsProblem(AppState appState, SettingsProblem problem)
+    {
+        if (problem is SettingsProblem.None)
+            return;
+        var t = Strings.For(appState.Locale);
+        var details = $"{appState.Settings.FilePath}{Environment.NewLine}{Describe(t, problem)}";
+        appState.ReportError(TitleOf(t, problem), details);
+    }
+
+    private static string TitleOf(Strings t, SettingsProblem problem) => problem switch
+    {
+        SettingsProblem.NotRead or SettingsProblem.NotJson or SettingsProblem.Empty => t.ErrorReadSettings,
+        SettingsProblem.LayoutPartsMissing or SettingsProblem.LayoutPartsRepeated => t.ErrorReadLayout,
+        _ => throw new UnreachableException(),
+    };
+
+    private static string Describe(Strings t, SettingsProblem problem) => problem switch
+    {
+        SettingsProblem.NotRead notRead => notRead.Detail,
+        SettingsProblem.NotJson notJson => t.ErrorSettingsNotJson(notJson.Detail),
+        SettingsProblem.Empty => t.ErrorSettingsEmpty,
+        SettingsProblem.LayoutPartsMissing => t.ErrorLayoutPartsMissing,
+        SettingsProblem.LayoutPartsRepeated => t.ErrorLayoutPartsRepeated,
+        _ => throw new UnreachableException(),
+    };
 
     /// <summary>Writes the settings, counting what they were copied from as saved only once the write succeeds.</summary>
     public static void SaveSettings(AppState appState)

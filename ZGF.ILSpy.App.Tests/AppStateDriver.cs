@@ -92,7 +92,7 @@ internal static class BuiltInGlyphs
 
 internal static class TempSettings
 {
-    public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json"));
+    public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json")).Settings;
 }
 
 internal static class Screens

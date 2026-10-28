@@ -186,7 +186,6 @@ public sealed class AppState
         Analyzer.AddPending(Lists.ActiveAnalyses);
         ReopenDocuments(this);
         LastSave.Record(CaptureSavedSources(this));
-        ReportSettingsLoadError(settings);
         ReportLeftOutBookmarks(this, leftOutBookmarks);
         LoadThemes(this);
         LoadIconThemes(this);
@@ -197,13 +196,6 @@ public sealed class AppState
         if (settings.Locale != null)
             return settings.Locale.Value;
         return Locales.For(CultureInfo.CurrentUICulture);
-    }
-
-    private void ReportSettingsLoadError(AppSettings settings)
-    {
-        if (settings.LoadError == null)
-            return;
-        ReportError(Strings.For(Locale).ErrorReadSettings, settings.LoadError);
     }
 
     public void ReportError(string title, string? details = null) => Errors.Add(title, details);

@@ -373,6 +373,66 @@ public sealed class DockLayout
         _ => throw new ArgumentOutOfRangeException(nameof(node)),
     };
 
+    /// <summary>Whether every node, window and panel a deserialized layout could have left out is there.</summary>
+    public bool IsWhole()
+    {
+        if (Windows == null)
+            return false;
+        if (!IsWhole(Root))
+            return false;
+        foreach (var window in Windows)
+        {
+            if (window == null)
+                return false;
+            if (!IsWhole(window.Root))
+                return false;
+        }
+        return true;
+    }
+
+    private static bool IsWhole(DockNode? node)
+    {
+        if (node is DockGroup group)
+            return IsWhole(group);
+        if (node is DockSplit split)
+            return IsWhole(split.First) && IsWhole(split.Second);
+        return false;
+    }
+
+    private static bool IsWhole(DockGroup group)
+    {
+        if (group.Panels == null)
+            return false;
+        return !group.Panels.Exists(p => p == null);
+    }
+
+    /// <summary>Whether two of the nodes or windows of a whole layout have the same id. The dock space
+    /// only numbers the parts that have none, and keeps a splitter's or tab strip's state by id, so two
+    /// parts under one id would move together.</summary>
+    public bool RepeatsAnId()
+    {
+        var seen = new HashSet<int>();
+        if (RepeatsAnId(Root, seen))
+            return true;
+        foreach (var window in Windows)
+        {
+            if (window.Id != 0 && !seen.Add(window.Id))
+                return true;
+            if (RepeatsAnId(window.Root, seen))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool RepeatsAnId(DockNode node, HashSet<int> seen)
+    {
+        if (node.Id != 0 && !seen.Add(node.Id))
+            return true;
+        if (node is DockSplit split)
+            return RepeatsAnId(split.First, seen) || RepeatsAnId(split.Second, seen);
+        return false;
+    }
+
     /// <summary>Every panel under <paramref name="node"/>, group by group.</summary>
     public static List<string> PanelsIn(DockNode node) => Groups(node).SelectMany(g => g.Panels).ToList();
 

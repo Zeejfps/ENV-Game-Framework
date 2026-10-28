@@ -613,6 +613,11 @@
 
   "error.read_settings": "Cannot read the settings; starting with defaults",
   "error.save_settings": "Cannot save the settings",
+  "error.read_layout": "Cannot restore the saved layout; the panels are where they start out",
+  "error.settings_not_json": "It is not a settings file: {detail}",
+  "error.settings_empty": "It holds no settings.",
+  "error.layout_parts_missing": "Part of the layout is missing: a split, a group, a window or a list of panels.",
+  "error.layout_parts_repeated": "Two parts of the layout have the same id.",
   "error.open_assemblies": "Cannot open the assemblies",
   "error.reload_assemblies": "Cannot reload the assemblies",
   "error.reload_assembly": "Cannot reload {name}",

@@ -382,7 +382,7 @@ public sealed class UserThemeTests : IDisposable
     {
         var path = _temp.Write("settings.json", $$"""{ "Theme": "{{saved}}" }""");
 
-        Assert.Equal(id, AppSettings.Load(path).Theme);
+        Assert.Equal(id, AppSettings.Load(path).Settings.Theme);
     }
 
     [Fact]
@@ -390,7 +390,7 @@ public sealed class UserThemeTests : IDisposable
     {
         var path = _temp.Write("settings.json", """{ "Theme": null }""");
 
-        Assert.Equal("dark", AppSettings.Load(path).Theme);
+        Assert.Equal("dark", AppSettings.Load(path).Settings.Theme);
     }
 
     [Fact]

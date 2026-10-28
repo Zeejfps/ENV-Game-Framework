@@ -30,10 +30,6 @@ public sealed class AppSettings
         }
     }
 
-    /// <summary>Why the file could not be read, when <see cref="Load"/> fell back to defaults.</summary>
-    [JsonIgnore]
-    public string? LoadError { get; private set; }
-
     /// <summary>Where the user's themes are: a folder beside the settings file; null while the settings
     /// are kept in memory only.</summary>
     [JsonIgnore]
@@ -162,20 +158,13 @@ public sealed class AppSettings
         return Window.Value.ApplyTo(config);
     }
 
-    public static AppSettings Load(string path)
+    public static SettingsLoad Load(string path)
     {
-        AppSettings? settings = null;
-        string? error = null;
-        try
-        {
-            if (File.Exists(path))
-                settings = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.AppSettings);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or NotSupportedException)
-        {
-            error = $"{path}{Environment.NewLine}{e.Message}";
-        }
-        settings ??= new AppSettings();
+        var read = Read(path);
+        var settings = read.Settings;
+        var problem = read.Problem;
+        if (problem is SettingsProblem.None)
+            problem = DropBrokenLayout(settings);
         settings.AssemblyLists = CleanAssemblyLists(settings.AssemblyLists);
         settings.MoveUnnamedListIntoDefault();
         settings.MoveAnalysesIntoActiveList();
@@ -186,8 +175,48 @@ public sealed class AppSettings
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.NuGetWindow = SanitizeDialog(settings.NuGetWindow);
         settings.FilePath = path;
-        settings.LoadError = error;
-        return settings;
+        return new SettingsLoad(settings, problem);
+    }
+
+    private static SettingsLoad Read(string path)
+    {
+        if (!File.Exists(path))
+            return new SettingsLoad(new AppSettings(), new SettingsProblem.None());
+        try
+        {
+            var settings = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.AppSettings);
+            if (settings == null)
+                return new SettingsLoad(new AppSettings(), new SettingsProblem.Empty());
+            return new SettingsLoad(settings, new SettingsProblem.None());
+        }
+        catch (Exception e) when (e is JsonException or NotSupportedException)
+        {
+            return new SettingsLoad(new AppSettings(), new SettingsProblem.NotJson(e.Message));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return new SettingsLoad(new AppSettings(), new SettingsProblem.NotRead(e.Message));
+        }
+    }
+
+    /// <summary>Leaves out a saved layout the dock space cannot be given, for the panels to be where
+    /// they start out.</summary>
+    private static SettingsProblem DropBrokenLayout(AppSettings settings)
+    {
+        var layout = settings.Layout;
+        if (layout == null)
+            return new SettingsProblem.None();
+        if (!layout.IsWhole())
+        {
+            settings.Layout = null;
+            return new SettingsProblem.LayoutPartsMissing();
+        }
+        if (layout.RepeatsAnId())
+        {
+            settings.Layout = null;
+            return new SettingsProblem.LayoutPartsRepeated();
+        }
+        return new SettingsProblem.None();
     }
 
     /// <summary><paramref name="lists"/> without what a hand-edited file can leave in them: missing
