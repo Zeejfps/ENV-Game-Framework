@@ -29,12 +29,14 @@ public sealed class ThemeFolderWatch
 {
     private const string ThemeFilter = "*" + ThemeFile.Extension;
     private const int QuietMilliseconds = 200;
+    private const string RemovedReason = "The folder was removed or renamed.";
 
     private static readonly Task<ThemeFolderEvent> Changed = Task.FromResult(new ThemeFolderEvent(ThemeFolderEventKind.Changed));
     private static readonly Task<ThemeFolderEvent> Stopped = Task.FromResult(new ThemeFolderEvent(ThemeFolderEventKind.Stopped));
 
     private readonly Lock _lock = new();
     private FileSystemWatcher? _watcher;
+    private FileSystemWatcher? _removalWatcher;
     private readonly IReadOnlyList<string> _filters;
     private readonly bool _includesSubfolders;
     private Timer? _quiet;
@@ -85,18 +87,46 @@ public sealed class ThemeFolderWatch
         watcher.Deleted += OnChanged;
         watcher.Renamed += OnChanged;
         watcher.Error += OnError;
+        var removalWatcher = WatchRemoval(watcher);
         lock (_lock)
         {
             _quiet = quiet;
             _watcher = watcher;
+            _removalWatcher = removalWatcher;
         }
         watcher.EnableRaisingEvents = true;
+        if (removalWatcher != null)
+            removalWatcher.EnableRaisingEvents = true;
+    }
+
+    /// <summary>Watches the folder holding the one <paramref name="watcher"/> watches, to lose the watch
+    /// once that folder is removed or renamed away: macOS tells its own watcher nothing of either. Null
+    /// for a folder at the root of a drive, which cannot be removed.</summary>
+    private FileSystemWatcher? WatchRemoval(FileSystemWatcher watcher)
+    {
+        var folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(watcher.Path));
+        var parent = Path.GetDirectoryName(folder);
+        if (parent == null)
+            return null;
+        var removalWatcher = new FileSystemWatcher(parent, Path.GetFileName(folder))
+        {
+            NotifyFilter = NotifyFilters.DirectoryName,
+        };
+        removalWatcher.Deleted += (_, _) => LoseFolder(watcher);
+        removalWatcher.Renamed += (_, e) =>
+        {
+            if (e.OldFullPath == folder)
+                LoseFolder(watcher);
+        };
+        return removalWatcher;
     }
 
     private static bool IsWatchFailure(Exception e) =>
         e is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or Win32Exception;
 
-    private static string DescribeFailure(string folder, Exception e) => $"{folder}{Environment.NewLine}{e.Message}";
+    private static string DescribeFailure(string folder, Exception e) => DescribeFailure(folder, e.Message);
+
+    private static string DescribeFailure(string folder, string message) => $"{folder}{Environment.NewLine}{message}";
 
     /// <summary>Completes once the watched files changed or the watch was lost, at once when either is
     /// pending, or as stopped when watching stops first or is not running.</summary>
@@ -141,6 +171,7 @@ public sealed class ThemeFolderWatch
     private TaskCompletionSource<ThemeFolderEvent>? Close(string? loss, FileSystemWatcher? lost = null)
     {
         FileSystemWatcher? watcher;
+        FileSystemWatcher? removalWatcher;
         Timer? quiet;
         TaskCompletionSource<ThemeFolderEvent>? waiter;
         lock (_lock)
@@ -148,15 +179,18 @@ public sealed class ThemeFolderWatch
             if (IsReplaced(lost))
                 return null;
             watcher = _watcher;
+            removalWatcher = _removalWatcher;
             quiet = _quiet;
             waiter = _waiter;
             _watcher = null;
+            _removalWatcher = null;
             _quiet = null;
             _waiter = null;
             _isChangePending = false;
             _pendingLoss = waiter == null ? loss : null;
         }
         watcher?.Dispose();
+        removalWatcher?.Dispose();
         quiet?.Dispose();
         return waiter;
     }
@@ -178,9 +212,14 @@ public sealed class ThemeFolderWatch
         LoseWatch((FileSystemWatcher)sender, e.GetException());
     }
 
-    private void LoseWatch(FileSystemWatcher watcher, Exception error)
+    private void LoseWatch(FileSystemWatcher watcher, Exception error) =>
+        LoseWatch(watcher, DescribeFailure(watcher.Path, error));
+
+    private void LoseFolder(FileSystemWatcher watcher) =>
+        LoseWatch(watcher, DescribeFailure(watcher.Path, RemovedReason));
+
+    private void LoseWatch(FileSystemWatcher watcher, string reason)
     {
-        var reason = DescribeFailure(watcher.Path, error);
         var waiter = Close(reason, watcher);
         waiter?.TrySetResult(new ThemeFolderEvent(ThemeFolderEventKind.Lost, reason));
     }
