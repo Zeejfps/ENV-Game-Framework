@@ -46,6 +46,26 @@ public sealed class TableTests
     }
 
     [Fact]
+    public void A_header_scrolled_out_of_its_scroll_leaves_no_border_behind()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.Leaf(new Box { Width = Sizing.Grow(), Height = 100f });
+            using var scroll = ui.Scroll("scroll", new Box { Height = 100f, Gap = 0f });
+            Body(ui);
+            ui.Leaf(new Box { Width = 10f, Height = 1_000f });
+        }).Frame(2);
+        frames.MovePointer(200f, 150f).Wheel(-3).Frame(2);
+        var border = frames.RectOf(ui => BorderOf(ui, 1));
+
+        frames.MovePointer(border).Frame(2);
+
+        Assert.True(border.Bottom < 100f, $"{border}");
+        Assert.NotEqual(MouseCursor.ResizeHorizontal, frames.Cursor);
+    }
+
+    [Fact]
     public void Dragging_a_border_moves_width_between_its_neighbors_down_to_their_minimum()
     {
         _frames.Frame(2);

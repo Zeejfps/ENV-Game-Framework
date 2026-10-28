@@ -320,7 +320,7 @@ public static partial class UiWidgets
                 edge += columns.Width(i);
                 if (!columns.HasBorder(i)) continue;
                 using (ui.Float(0f, 0f, edge - grip / 2, 0f, new Box { Width = grip, Height = theme.RowHeight, AlignX = Align.Center },
-                           id: TableBorderId(headerId, i), clipped: columns.IsSized))
+                           id: TableBorderId(headerId, i), clipped: true))
                     ui.Leaf(new Box { Width = theme.SeparatorWidth, Height = Sizing.Grow(), Background = hot[i] ? theme.Accent : theme.Separator });
             }
         }
