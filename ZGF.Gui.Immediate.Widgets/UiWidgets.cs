@@ -75,14 +75,16 @@ public static partial class UiWidgets
     /// <summary>Returns true on the frame the button is clicked, or activated with Enter or Space
     /// while it holds keyboard focus, which Tab gives it. The label doubles as the id unless
     /// <paramref name="id"/> is given. An <paramref name="icon"/> leads the label, in the label's
-    /// color unless it has its own.</summary>
+    /// color unless it has its own. While <paramref name="busy"/>, the work it started is under way: a
+    /// <see cref="Spinner"/> leads the label in the icon's place, and the button keeps its colors but
+    /// takes no input.</summary>
     public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true, string? id = null,
-        ButtonVariant variant = ButtonVariant.Neutral, UiIcon? icon = null)
+        ButtonVariant variant = ButtonVariant.Neutral, UiIcon? icon = null, bool busy = false)
     {
         var theme = ui.Theme;
         var key = id ?? label;
-        var i = Pressable(ui, key, enabled, out var activated, out var ring);
-        var (fill, border, text) = ButtonColors(theme, variant, enabled, i.Held || activated, i.Hovered);
+        var i = Pressable(ui, key, enabled && !busy, out var activated, out var ring);
+        var (fill, border, text) = ButtonColors(theme, variant, enabled || busy, i.Held || activated, i.Hovered);
 
         using (ui.Row(i.Id, new Box
         {
@@ -98,7 +100,9 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
-            if (icon is { } shown)
+            if (busy)
+                ui.Spinner(fill, color: text);
+            else if (icon is { } shown)
                 ui.Icon(shown.Color != 0 && enabled ? shown : shown with { Color = text });
             ui.Text(label, color: text, overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
             if (ring) FocusRing(ui, theme.CornerRadius);

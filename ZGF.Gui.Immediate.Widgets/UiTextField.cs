@@ -52,6 +52,10 @@ public static partial class UiWidgets
         public readonly List<TextSnapshot> Redo = new();
         public double BlinkFrom;
 
+        /// <summary>In a text area, the x Up and Down keep the caret at as they pass shorter lines;
+        /// negative until the first of them.</summary>
+        public float GoalX = -1f;
+
         public int Caret => Selection.Caret;
         public int Anchor => Selection.Anchor;
         public bool HasSelection => Selection.HasSelection;
@@ -62,6 +66,7 @@ public static partial class UiWidgets
         {
             Selection.Select(anchor, caret);
             LastEdit = EditKind.None;
+            GoalX = -1f;
         }
     }
 
@@ -91,10 +96,41 @@ public static partial class UiWidgets
     /// field is a Tab stop. <paramref name="leadingIcon"/> is a glyph drawn before the text;
     /// <paramref name="hint"/> is muted text at the end — a shortcut —
     /// left out while the field is too narrow to keep room for typing. <paramref name="look"/> says
-    /// how it looks while not being edited.</summary>
+    /// how it looks while not being edited. When not <paramref name="enabled"/> it shows
+    /// <paramref name="text"/> greyed out and ignores input.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, IconGlyph? leadingIcon = null,
-        string? hint = null, FieldLook look = FieldLook.Boxed) =>
-        Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look);
+        string? hint = null, FieldLook look = FieldLook.Boxed, bool enabled = true)
+    {
+        if (!enabled)
+        {
+            DisabledField(ui, text, placeholder, width, leadingIcon);
+            return false;
+        }
+        return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look);
+    }
+
+    /// <summary>A boxed field's look, its text in <see cref="UiTheme.TextDisabled"/>, taking no input.</summary>
+    private static void DisabledField(Ui ui, string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon)
+    {
+        var theme = ui.Theme;
+        using (ui.Row(new Box
+        {
+            Width = width ?? Sizing.Grow(MinFieldWidth),
+            Height = theme.ControlHeight,
+            Padding = new Spacing(theme.FieldPaddingX, 0f),
+            Gap = theme.GapTight,
+            Background = theme.Control,
+            BorderColor = theme.Border,
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.CornerRadius,
+        }))
+        {
+            if (leadingIcon != null)
+                ui.Glyph(leadingIcon.Value, theme.TextDisabled, theme.IconSize, new Box { Width = theme.IconSize });
+            using (ui.Row(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true }))
+                ui.Text(text.Length > 0 ? text : placeholder ?? "", color: theme.TextDisabled);
+        }
+    }
 
     /// <summary>Edits <paramref name="text"/> in place of the label it replaces, as in a rename: a
     /// field one line tall, its text where the label's was, outlined in the focus color. On the frame
@@ -131,13 +167,7 @@ public static partial class UiWidgets
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
         var state = ui.GetState<TextFieldState>(i.Id);
-        if (!ReferenceEquals(text, state.Known) && text != state.Known)
-        {
-            state.Known = text;
-            state.Undo.Clear();
-            state.Redo.Clear();
-            state.Select(Math.Min(state.Anchor, text.Length), Math.Min(state.Caret, text.Length));
-        }
+        Adopt(state, text);
 
         var focused = ui.TabStop(i.Id, takesText: true);
         var (caretBefore, anchorBefore, textBefore) = (state.Caret, state.Anchor, text);
@@ -177,7 +207,7 @@ public static partial class UiWidgets
         {
             if (!preedit.IsEmpty && state.HasSelection)
                 Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
-            submitted = Edit(ui, state, ref text);
+            submitted = Edit(ui, state, ref text, area: null);
             focused = ui.HasFocus(i.Id);
         }
         if (!focused)
@@ -245,6 +275,18 @@ public static partial class UiWidgets
         return submitted;
     }
 
+    /// <summary>Takes up <paramref name="text"/> when the caller changed it since the field last
+    /// edited it: the undo history goes, and the selection stays inside it.</summary>
+    private static void Adopt(TextFieldState state, string text)
+    {
+        if (ReferenceEquals(text, state.Known) || text == state.Known)
+            return;
+        state.Known = text;
+        state.Undo.Clear();
+        state.Redo.Clear();
+        state.Select(Math.Min(state.Anchor, text.Length), Math.Min(state.Caret, text.Length));
+    }
+
     private static void UnderlineComposition(Ui ui, string shown, int start, PreeditText preedit, float shift, float lineHeight)
     {
         var theme = ui.Theme;
@@ -276,7 +318,9 @@ public static partial class UiWidgets
         return phase < CaretBlinkSeconds;
     }
 
-    private static bool Edit(Ui ui, TextFieldState state, ref string text)
+    /// <summary>Applies this frame's keys and typing to <paramref name="text"/>. Returns true when they
+    /// submit it. A null <paramref name="area"/> edits one line; otherwise the lines of a text area.</summary>
+    private static bool Edit(Ui ui, TextFieldState state, ref string text, AreaEditing? area)
     {
         foreach (var stroke in ui.Input.Keys)
         {
@@ -287,6 +331,21 @@ public static partial class UiWidgets
             var collapses = !extend && !byWord && state.HasSelection;
             switch (stroke.Key)
             {
+                case KeyboardKey.UpArrow when area != null:
+                    MoveLine(ui, state, text, area.Value, -1, extend);
+                    break;
+                case KeyboardKey.DownArrow when area != null:
+                    MoveLine(ui, state, text, area.Value, 1, extend);
+                    break;
+                case KeyboardKey.Home when area != null && !shortcut:
+                    Move(state, LineStart(ui, text, area.Value, caret), extend);
+                    break;
+                case KeyboardKey.End when area != null && !shortcut:
+                    Move(state, LineEnd(ui, text, area.Value, caret), extend);
+                    break;
+                case KeyboardKey.Enter when area != null && !shortcut && (extend || !area.Value.SubmitOnEnter):
+                    Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "\n", EditKind.None);
+                    break;
                 case KeyboardKey.LeftArrow when collapses:
                     Move(state, state.SelectionStart, extend);
                     break;
@@ -326,7 +385,7 @@ public static partial class UiWidgets
                     Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
                     break;
                 case KeyboardKey.V when shortcut:
-                    var pasted = ui.ClipboardText.ReplaceLineEndings(" ");
+                    var pasted = ui.ClipboardText.ReplaceLineEndings(area != null ? "\n" : " ");
                     if (pasted.Length > 0)
                         Replace(state, ref text, state.SelectionStart, state.SelectionEnd, pasted, EditKind.None);
                     break;
@@ -368,6 +427,7 @@ public static partial class UiWidgets
         state.Known = text;
         state.Selection.Select(start + insert.Length, start + insert.Length);
         state.LastEdit = kind;
+        state.GoalX = -1f;
     }
 
     private static void Restore(TextFieldState state, ref string text, List<TextSnapshot> from, List<TextSnapshot> to)
