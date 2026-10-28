@@ -1,4 +1,6 @@
 using ZGF.Desktop;
+using ZGF.Geometry;
+using ZGF.KeyboardModule;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -8,33 +10,185 @@ public sealed class MarkdownTests
     private const string Mono = "mono";
     private const string Italic = "italic";
 
-    private static readonly MarkdownFonts Fonts = new(Mono, Italic);
+    private static readonly IconGlyph CopyIcon = IconGlyph.FromFont("c", "icons");
+    private static readonly IconGlyph CopiedIcon = IconGlyph.FromFont("k", "icons");
+    private static readonly MarkdownLook Look = new(Mono, Italic, CopyIcon, CopiedIcon);
 
-    /// <summary><see cref="Text"/> drawn as markdown in a column <see cref="Width"/> wide, in its own
-    /// frames, keeping the last link clicked.</summary>
+    /// <summary><see cref="Text"/> drawn as markdown, or as it is when <see cref="Plain"/>, in a column
+    /// <see cref="Width"/> wide, in its own frames, keeping the last link clicked. While
+    /// <see cref="FocusElsewhere"/>, something else takes focus each frame.</summary>
     private sealed class MarkdownView
     {
-        public MarkdownView(string text, float width = 400f)
+        public MarkdownView(string text, float width = 400f, bool plain = false)
         {
             Text = text;
             Width = width;
+            Plain = plain;
             Frames = new UiFrames(new DefaultUiState(), body: Render);
         }
 
         public string Text { get; set; }
         public float Width { get; }
+        public bool Plain { get; }
+        public bool FocusElsewhere { get; set; }
         public UiFrames Frames { get; }
         public RichTextClick Clicked { get; private set; }
 
         private void Render(Ui ui)
         {
+            if (FocusElsewhere)
+                ui.Focus(ui.GetId("elsewhere"));
             using (ui.Column(new Box { Width = Width }))
             {
-                var click = ui.Markdown("md", Text, Fonts);
+                if (Plain)
+                {
+                    ui.SelectableParagraph("md", Text);
+                    return;
+                }
+                var click = ui.Markdown("md", Text, Look);
                 if (click.Link != null)
                     Clicked = click;
             }
         }
+    }
+
+    /// <summary>The point <paramref name="chars"/> characters into the drawn text
+    /// <paramref name="text"/>, a character being 8 wide, halfway down its line.</summary>
+    private static PointF At(UiFrames frames, string text, int chars)
+    {
+        var rect = frames.TextRect(text);
+        return new PointF(rect.X + chars * 8f + 1f, rect.Y + rect.Height / 2f);
+    }
+
+    /// <summary>What Ctrl+C puts on the clipboard.</summary>
+    private static string? Copy(UiFrames frames)
+    {
+        frames.Clipboard.Text = null;
+        frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        return frames.Clipboard.Text;
+    }
+
+    private static int SelectionRects(UiFrames frames) =>
+        frames.Canvas.Rects.Count(r => r.Inputs.Style.BackgroundColor == new DefaultUiState().Theme.TextSelection);
+
+    [Fact]
+    public void Dragging_across_blocks_selects_from_the_press_to_the_pointer_and_copies_as_it_reads()
+    {
+        var frames = new MarkdownView("first **paragraph**\n\nsecond one").Frames.Frame();
+
+        frames.Drag(At(frames, "first ", 0), At(frames, "second one", 6)).Release().Frame();
+        var highlighted = SelectionRects(frames);
+
+        Assert.Equal("first paragraph\nsecond", Copy(frames));
+        Assert.Equal(2, highlighted);
+    }
+
+    [Fact]
+    public void A_drag_past_the_text_selects_to_the_nearest_leaf()
+    {
+        var frames = new MarkdownView("alpha beta\n\ngamma").Frames.Frame();
+        var below = frames.TextRect("gamma");
+
+        frames.Drag(At(frames, "alpha beta", 6), new PointF(below.Right + 50f, below.Bottom + 80f)).Release().Frame();
+
+        Assert.Equal("beta\ngamma", Copy(frames));
+    }
+
+    [Fact]
+    public void A_double_click_selects_a_word_and_a_triple_click_its_block()
+    {
+        var doubled = new MarkdownView("one two three\n\nnext").Frames.Frame();
+        var tripled = new MarkdownView("one two three\n\nnext").Frames.Frame();
+        var two = At(doubled, "one two three", 5);
+
+        doubled.DoubleClick(two.X, two.Y).Frame();
+        tripled.DoubleClick(two.X, two.Y).Press().Frame().Release().Frame();
+
+        Assert.Equal("two", Copy(doubled));
+        Assert.Equal("one two three", Copy(tripled));
+    }
+
+    [Fact]
+    public void Shift_click_extends_the_selection_from_its_anchor()
+    {
+        var frames = new MarkdownView("alpha beta gamma").Frames.Frame();
+        var start = At(frames, "alpha beta gamma", 6);
+        var end = At(frames, "alpha beta gamma", 10);
+
+        frames.Click(start.X, start.Y).Frame();
+        frames.Click(end.X, end.Y, modifiers: KeyModifiers.Shift).Frame();
+
+        Assert.Equal("beta", Copy(frames));
+    }
+
+    [Fact]
+    public void Ctrl_A_selects_everything_and_table_cells_copy_as_tab_separated_rows()
+    {
+        var frames = new MarkdownView("Intro\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n- item").Frames.Frame();
+        var intro = At(frames, "Intro", 1);
+
+        frames.Click(intro.X, intro.Y).Frame();
+        frames.Key(KeyboardKey.A, KeyModifiers.Control).Frame();
+
+        Assert.Equal("Intro\nA\tB\n1\t2\nitem", Copy(frames));
+    }
+
+    [Fact]
+    public void The_selection_clears_when_something_else_takes_focus()
+    {
+        var view = new MarkdownView("alpha beta");
+        var frames = view.Frames.Frame();
+        frames.Drag(At(frames, "alpha beta", 0), At(frames, "alpha beta", 5)).Release().Frame();
+        var before = SelectionRects(frames);
+
+        view.FocusElsewhere = true;
+        frames.Frame(2);
+
+        Assert.Equal(1, before);
+        Assert.Equal(0, SelectionRects(frames));
+    }
+
+    [Fact]
+    public void A_selection_ending_in_a_block_that_grows_is_dropped_and_one_before_it_kept()
+    {
+        var view = new MarkdownView("kept text\n\ngrowing");
+        var frames = view.Frames.Frame();
+        frames.Drag(At(frames, "kept text", 0), At(frames, "kept text", 4)).Release().Frame();
+
+        view.Text = "kept text\n\ngrowing more";
+        frames.Frame();
+        var kept = Copy(frames);
+        frames.Drag(At(frames, "kept text", 5), At(frames, "growing more", 3)).Release().Frame();
+        view.Text = "kept text\n\ngrowing more still";
+        frames.Frame();
+
+        Assert.Equal("kept", kept);
+        Assert.Equal(0, SelectionRects(frames));
+    }
+
+    [Fact]
+    public void A_code_blocks_button_copies_its_code_and_shows_it_did()
+    {
+        var frames = new MarkdownView("```\nline one\nline two\n```").Frames.Frame();
+        var button = frames.Canvas.Texts.Single(t => t.Inputs.Text == "c");
+
+        frames.Click(frames.ToUi(button.Inputs.Position)).Frame();
+
+        Assert.Equal("line one\nline two", frames.Clipboard.Text);
+        Assert.True(frames.Drew("k"));
+    }
+
+    [Fact]
+    public void A_selectable_paragraph_shows_its_text_as_it_is_and_copies_it()
+    {
+        var frames = new MarkdownView("**not bold**\nnext line", plain: true).Frames.Frame();
+        var start = At(frames, "**not bold**", 0);
+
+        frames.Click(start.X, start.Y).Frame();
+        frames.Key(KeyboardKey.A, KeyModifiers.Control).Frame();
+
+        Assert.True(frames.Drew("next line"));
+        Assert.Equal("**not bold**\nnext line", Copy(frames));
     }
 
     private static TextStyle StyleOf(UiFrames frames, string text) =>

@@ -50,6 +50,11 @@ internal struct Element
     /// <summary>The link run under the pointer, underlined; -1 when there is none.</summary>
     public int HoveredRun;
     public uint CodeBackground;
+    /// <summary>The selected characters of the runs' joined text, drawn over
+    /// <see cref="SelectionColor"/>; none while the start is not before the end.</summary>
+    public int SelectedStart;
+    public int SelectedEnd;
+    public uint SelectionColor;
 
     public bool Floating;
     public bool KeepsClip;
@@ -453,8 +458,8 @@ internal sealed class LayoutTree
             MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
             MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
 
-    /// <summary>Paints rich text line by line, each slice in its run's style over its code chip,
-    /// with its underline or strikethrough.</summary>
+    /// <summary>Paints rich text line by line, each slice in its run's style over its code chip and
+    /// the selection, with its underline or strikethrough.</summary>
     private void PaintRuns(ref Element e, UiRect content, int z)
     {
         var clip = _clips[^1];
@@ -467,17 +472,42 @@ internal sealed class LayoutTree
             if (!band.Intersects(clip)) continue;
             foreach (var segment in line.Segments)
             {
+                if (e.Runs![segment.RunIndex].IsCode && e.CodeBackground != 0u)
+                    PaintCodeChip(new UiRect(band.X + segment.X, band.Y, segment.Width, band.Height), e.CodeBackground, z);
+            }
+            PaintSelectedOnLine(ref e, line, band, z);
+            foreach (var segment in line.Segments)
+            {
                 var hovered = e.Runs![segment.RunIndex].Link != null && segment.RunIndex == e.HoveredRun;
-                PaintSegment(e.Runs[segment.RunIndex], segment, band, e.CodeBackground, hovered, z);
+                PaintSegment(e.Runs[segment.RunIndex], segment, band, hovered, z);
             }
         }
     }
 
-    private void PaintSegment(RichTextRun run, RichTextSegment segment, UiRect band, uint codeBackground, bool hovered, int z)
+    /// <summary>The selection behind the part of <paramref name="line"/> it covers.</summary>
+    private void PaintSelectedOnLine(ref Element e, RichTextLine line, UiRect band, int z)
+    {
+        var from = Math.Max(e.SelectedStart, line.Start);
+        var to = Math.Min(e.SelectedEnd, line.End);
+        if (from >= to)
+            return;
+        var left = RichTextLayout.XOf(_canvas, e.Runs!, line, from);
+        var right = RichTextLayout.XOf(_canvas, e.Runs!, line, to);
+        _rectStyle.BackgroundColor = e.SelectionColor;
+        _rectStyle.BorderColor = BorderColorStyle.All(0u);
+        _rectStyle.BorderSize = BorderSizeStyle.All(0f);
+        _rectStyle.BorderRadius = BorderRadiusStyle.All(0f);
+        _canvas.DrawRect(new DrawRectInputs
+        {
+            Position = _origin.ToCanvas(new UiRect(band.X + left, band.Y, right - left, band.Height)),
+            Style = _rectStyle,
+            ZIndex = z,
+        });
+    }
+
+    private void PaintSegment(RichTextRun run, RichTextSegment segment, UiRect band, bool hovered, int z)
     {
         var rect = new UiRect(band.X + segment.X, band.Y, segment.Width, band.Height);
-        if (run.IsCode && codeBackground != 0u)
-            PaintCodeChip(rect, codeBackground, z);
         if (run.Underline || hovered)
             PaintRule(rect, rect.Bottom - RuleThickness, run.Style, z);
         if (run.Strikethrough)
