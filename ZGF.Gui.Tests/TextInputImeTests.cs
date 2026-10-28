@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ZGF.Desktop.Input;
 using ZGF.Gui.Desktop.Components.Controls;
 using ZGF.Gui.Desktop.Input;
@@ -23,6 +24,11 @@ namespace ZGF.Gui.Tests;
 /// </summary>
 public class TextInputImeTests
 {
+    // Commands use Cmd (Super) on macOS and Ctrl elsewhere, so press the platform's to exercise the
+    // real key path on whichever machine runs these.
+    private static readonly InputModifiers CommandModifier =
+        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? InputModifiers.Super : InputModifiers.Control;
+
     private static GuiTestHarness Field(State<string> value, TextWrap wrap = TextWrap.NoWrap) =>
         GuiTestHarness.Create(ctx => new TextInput
         {
@@ -214,7 +220,7 @@ public class TextInputImeTests
         using var h = Field(value);
 
         h.Type("old");
-        h.PressKey(KeyboardKey.A, InputModifiers.Control);
+        h.PressKey(KeyboardKey.A, CommandModifier);
         h.Compose("ni'hao", "你好");
 
         Assert.Equal("你好", value.Value);
@@ -230,7 +236,7 @@ public class TextInputImeTests
         using var h = Field(value);
 
         h.Type("old");
-        h.PressKey(KeyboardKey.A, InputModifiers.Control);
+        h.PressKey(KeyboardKey.A, CommandModifier);
         h.SendComposition("ni");
 
         Assert.Equal("", value.Value);

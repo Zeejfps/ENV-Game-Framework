@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using ZGF.Gui.Desktop.Components.Controls;
 using ZGF.Gui.Desktop.Input;
@@ -15,6 +16,16 @@ namespace ZGF.Gui.Tests;
 /// </summary>
 public class TextInputUnicodeTests
 {
+    // Word-jump uses Option on macOS and Ctrl elsewhere, so press the platform's to exercise the
+    // real key path on whichever machine runs these.
+    private static readonly InputModifiers WordModifier =
+        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? InputModifiers.Alt : InputModifiers.Control;
+
+    // Commands use Cmd (Super) on macOS and Ctrl elsewhere, so press the platform's to exercise the
+    // real key path on whichever machine runs these.
+    private static readonly InputModifiers CommandModifier =
+        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? InputModifiers.Super : InputModifiers.Control;
+
     private static GuiTestHarness Field(State<string> value, TextWrap wrap = TextWrap.NoWrap) =>
         GuiTestHarness.Create(ctx => new TextInput
         {
@@ -160,7 +171,7 @@ public class TextInputUnicodeTests
         using var h = Field(value);
 
         h.Type("你好世界");
-        h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Control);
+        h.PressKey(KeyboardKey.LeftArrow, WordModifier);
         h.Type("X");
 
         Assert.Equal("你好世X界", value.Value);
@@ -185,7 +196,7 @@ public class TextInputUnicodeTests
         using var h = Field(value);
 
         h.Type("старый");
-        h.PressKey(KeyboardKey.A, InputModifiers.Control);
+        h.PressKey(KeyboardKey.A, CommandModifier);
         h.Type("новый");
 
         Assert.Equal("новый", value.Value);

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ZGF.Gui.Desktop.Components.Controls;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Testing;
@@ -13,6 +14,11 @@ namespace ZGF.Gui.Tests;
 /// </summary>
 public class TextInputBoundaryTests
 {
+    // Word-jump uses Option on macOS and Ctrl elsewhere, so press the platform's to exercise the
+    // real key path on whichever machine runs these.
+    private static readonly InputModifiers WordModifier =
+        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? InputModifiers.Alt : InputModifiers.Control;
+
     private const string Emoji = "😀";          // 1 rune, 2 code units
     private const string SkinTone = "👍🏽";      // 2 runes (base + modifier), 4 code units, one cluster
     private const string ExtB = "\U00020000";  // CJK Ext-B ideograph, 2 code units
@@ -98,7 +104,7 @@ public class TextInputBoundaryTests
         using var h = Field(value);
 
         h.Type("中文");
-        h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Control);
+        h.PressKey(KeyboardKey.LeftArrow, WordModifier);
         h.Type("X");
 
         Assert.Equal("中X文", value.Value);
@@ -111,9 +117,9 @@ public class TextInputBoundaryTests
         using var h = Field(value);
 
         h.Type("中文");
-        h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Control);
-        h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Control); // caret at 0
-        h.PressKey(KeyboardKey.RightArrow, InputModifiers.Control);
+        h.PressKey(KeyboardKey.LeftArrow, WordModifier);
+        h.PressKey(KeyboardKey.LeftArrow, WordModifier); // caret at 0
+        h.PressKey(KeyboardKey.RightArrow, WordModifier);
         h.Type("X");
 
         Assert.Equal("中X文", value.Value);
@@ -126,7 +132,7 @@ public class TextInputBoundaryTests
         using var h = Field(value);
 
         h.Type("中文");
-        h.PressKey(KeyboardKey.Backspace, InputModifiers.Control);
+        h.PressKey(KeyboardKey.Backspace, WordModifier);
 
         Assert.Equal("中", value.Value);
     }
@@ -139,7 +145,7 @@ public class TextInputBoundaryTests
         using var h = Field(value);
 
         h.Type("hello world");
-        h.PressKey(KeyboardKey.Backspace, InputModifiers.Control);
+        h.PressKey(KeyboardKey.Backspace, WordModifier);
 
         Assert.Equal("hello ", value.Value);
     }
@@ -151,7 +157,7 @@ public class TextInputBoundaryTests
         using var h = Field(value);
 
         h.Type("hello world");
-        h.PressKey(KeyboardKey.LeftArrow, InputModifiers.Control);
+        h.PressKey(KeyboardKey.LeftArrow, WordModifier);
         h.Type("X");
 
         Assert.Equal("hello Xworld", value.Value);
@@ -165,7 +171,7 @@ public class TextInputBoundaryTests
         using var h = Field(value);
 
         h.Type("hi " + Emoji);
-        h.PressKey(KeyboardKey.Backspace, InputModifiers.Control);
+        h.PressKey(KeyboardKey.Backspace, WordModifier);
 
         Assert.DoesNotContain(value.Value, c => char.IsSurrogate(c));
     }
