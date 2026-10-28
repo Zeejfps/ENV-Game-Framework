@@ -1,8 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ZGF.Desktop;
+using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Comparison;
+using ZGF.ILSpy.Core.Diagrams;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 
@@ -445,7 +448,14 @@ public sealed class AppSettings
     }
 }
 
-[JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
+[JsonSourceGenerationOptions(WriteIndented = true, Converters =
+[
+    typeof(EnumByName<ApiScope>), typeof(EnumByName<ApiVisibility>), typeof(EnumByName<BookmarkKind>),
+    typeof(EnumByName<CodeAnchorKind>), typeof(EnumByName<CSharpVersion>), typeof(EnumByName<DecompilationLanguage>),
+    typeof(EnumByName<Direction>), typeof(EnumByName<Locale>), typeof(EnumByName<MatchMode>),
+    typeof(EnumByName<MemberSection>), typeof(EnumByName<NodeKind>), typeof(EnumByName<SearchKinds>),
+    typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>),
+])]
 [JsonSerializable(typeof(AppSettings))]
 [JsonSerializable(typeof(BookmarkFile))]
 internal sealed partial class AppSettingsJson : JsonSerializerContext;

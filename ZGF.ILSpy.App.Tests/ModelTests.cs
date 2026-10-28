@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -306,6 +307,29 @@ public sealed class AppSettingsTests : IDisposable
 
         Assert.IsType<SettingsKept.NotSaved>(Assert.IsType<SettingsProblem.NotRead>(load.Problem).Kept);
         Assert.Equal(held, File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void A_number_where_the_settings_name_a_language_is_refused()
+    {
+        var (loaded, problem) = AppSettings.Load(Written("""{ "Locale": 42 }"""));
+
+        Assert.IsType<SettingsProblem.NotJson>(problem);
+        Assert.Null(loaded.Locale);
+    }
+
+    [Fact]
+    public void Every_enum_the_settings_hold_is_read_by_name_alone()
+    {
+        var enums = typeof(AppSettingsJson).GetProperties()
+            .Select(static p => p.PropertyType)
+            .Where(static t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(JsonTypeInfo<>))
+            .Select(static t => t.GetGenericArguments()[0])
+            .Where(static t => t.IsEnum)
+            .ToList();
+
+        Assert.NotEmpty(enums);
+        Assert.All(enums, type => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize("1", type, AppSettingsJson.Default)));
     }
 
     [Fact]
