@@ -188,11 +188,12 @@ public sealed class ResourceViewTests
     }
 
     [Fact]
-    public void Escape_drops_the_text_selected_in_an_open_string_then_closes_it()
+    public void Escape_stops_editing_an_open_string_then_closes_it()
     {
         var (app, _) = ShowResource("Mixed.resources");
 
         Click(app, app.TextRect("first line"));
+        app.Frames.Key(KeyboardKey.F2).Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
         Assert.True(app.Frames.Drew("second line"));
         app.Frames.Key(KeyboardKey.Escape).Frame(2);

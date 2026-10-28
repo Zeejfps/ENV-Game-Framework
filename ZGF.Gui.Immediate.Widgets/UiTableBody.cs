@@ -72,7 +72,8 @@ public readonly struct TableBody : IDisposable
     /// <summary>The selected row, or -1.</summary>
     public int Index => _state.Rows.Index;
 
-    /// <summary>Enter, or a double-click or middle-click on a row, asked to act on the selected row.</summary>
+    /// <summary>Enter, a middle-click on a row, or in a table without cells a double-click on one,
+    /// asked to act on the selected row.</summary>
     public bool Activated => _state.Activated && _state.Rows.HasSelection;
 
     /// <summary>Whether the activation asked for a new tab: Ctrl+Enter or a middle-click.</summary>
@@ -83,6 +84,10 @@ public readonly struct TableBody : IDisposable
     public bool ContextMenuRequested => _state.ContextMenu && _state.Rows.HasSelection;
 
     public PointF ContextMenuAt => _state.MenuAt;
+
+    /// <summary>A double-click on a cell, or F2, started editing the current cell of a table of
+    /// cells: its text is selectable, or the app shows its own editor for it.</summary>
+    public bool EditRequested => _state.Edit && _state.Rows.HasSelection;
 
     /// <summary>Ctrl+C asked a table of cells to copy the selected row's current cell.</summary>
     public bool CopyRequested => _state.Copy && _state.Rows.HasSelection;
@@ -105,7 +110,8 @@ public readonly struct TableBody : IDisposable
     /// <paramref name="height"/> says otherwise, its background showing whether it is selected, the
     /// table focused and the row under the pointer. A press on it selects it; a double-click or a
     /// middle-click activates it; a right-click selects it and asks for a context menu. In a table of
-    /// cells each cell takes the pointer instead, and a press makes a selectable one current.
+    /// cells each cell takes the pointer instead: a press makes a selectable one current, a
+    /// double-click edits it, and a middle-click activates its row.
     /// </summary>
     public TableRow Row(int index, int key, float? height = null) => UiWidgets.TableRow(_ui, _state, index, key, height);
 
@@ -218,6 +224,7 @@ public static partial class UiWidgets
         public bool InNewTab;
         public bool ContextMenu;
         public bool Copy;
+        public bool Edit;
         public PointF MenuAt;
         public int SelectedRowId;
         public Interaction[] CellHits = [];
@@ -239,6 +246,7 @@ public static partial class UiWidgets
             InNewTab = false;
             ContextMenu = false;
             Copy = false;
+            Edit = false;
             MenuAt = default;
         }
 
@@ -246,6 +254,12 @@ public static partial class UiWidgets
         {
             Activated = true;
             InNewTab = inNewTab;
+        }
+
+        public void EditCell()
+        {
+            Cells!.Edit();
+            Edit = Cells.Editing;
         }
     }
 
@@ -257,6 +271,7 @@ public static partial class UiWidgets
         if (state.Rows.Index >= count)
             state.Rows.Clear();
         state.SelectedRowId = 0;
+        state.Cells?.Follow();
         if (state.Rows.TakeReveal())
             ui.ScrollRowIntoView(state.Id, state.Rows.Index);
         var rows = ScrollTableRows(ui, state, count, tall);
@@ -329,8 +344,11 @@ public static partial class UiWidgets
             case (0, KeyboardKey.RightArrow):
                 cells.SelectColumn(state.Columns.StepSelectable(cells.Column, 1));
                 return true;
+            case (0, KeyboardKey.F2):
+                state.EditCell();
+                return state.Edit;
             case (0, KeyboardKey.Escape):
-                return cells.CollapseText();
+                return cells.StopEditing();
             default:
                 return false;
         }
@@ -414,7 +432,7 @@ public static partial class UiWidgets
             PickTableCell(ui, state, index, column);
         if (!state.Columns.IsSelectable(column)) return;
         if (cell.DoubleClicked)
-            state.Activate(false);
+            state.EditCell();
         if (middle)
             state.Activate(true);
         if (menu)

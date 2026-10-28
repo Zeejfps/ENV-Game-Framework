@@ -41,8 +41,12 @@ public sealed class MetadataGridTests
         return app.Frames.TextRects().First(x => x.Text == text && Math.Abs(x.Rect.Y - line.Y) < 1f).Rect;
     }
 
-    private static void Drag(AppDriver app, float fromX, float toX, float y) =>
+    /// <summary>Edits the cell at <paramref name="y"/> and drags across its text.</summary>
+    private static void Drag(AppDriver app, float fromX, float toX, float y)
+    {
+        app.Frames.Wait(1).Click(fromX, y).Key(KeyboardKey.F2).Frame();
         app.Frames.Wait(1).Drag(new PointF(fromX, y), new PointF(toX, y)).Release().Frame();
+    }
 
     [Fact]
     public void A_table_opens_as_a_grid_of_ILSpys_columns_that_switching_language_leaves_alone()
@@ -166,15 +170,15 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
-    public void Double_clicking_a_row_decompiles_what_its_token_names()
+    public void Double_clicking_a_cell_selects_its_text_instead_of_decompiling_its_row()
     {
         var (app, tab, _, _) = ShowGreeterRow();
 
         app.Frames.DoubleClick(TextBeside(app, "Greeter", "Greeter"));
         app.Settle();
 
-        Assert.Same(app.Fixture("Greeter"), tab.Node);
-        Assert.Null(tab.Grid);
+        Assert.Same(Table(app, "TypeDef"), tab.Node);
+        Assert.Contains(app.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == app.Theme.TextSelection);
     }
 
     [Fact]
@@ -313,7 +317,7 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
-    public void Clicking_a_token_selects_all_its_text_instead_of_following_it()
+    public void Clicking_a_token_selects_its_cell_for_Ctrl_C_instead_of_following_it()
     {
         var (app, tab, grid, row) = ShowGreeterRow();
         var baseType = grid.Text(row, grid.Column("BaseType"));

@@ -228,6 +228,9 @@ public sealed class BookmarkTests : IDisposable
     private static void Click(AppDriver app, string text, KeyModifiers modifiers = KeyModifiers.None) =>
         app.Frames.Wait(1).Click(app.TextRect(text), modifiers: modifiers).Frame();
 
+    private static void DoubleClick(AppDriver app, string text) =>
+        app.Frames.Wait(1).DoubleClick(app.TextRect(text)).Frame();
+
     private static (AppDriver App, AppStateDriver Driver, DocumentTab Tab, int Line) ShowBookmark(int frames = 3)
     {
         var app = new AppDriver(height: 500f);
@@ -322,11 +325,23 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
-    public void Clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
+    public void Clicking_a_name_only_selects_its_cell()
     {
         var (app, d, _, _) = ShowBookmark();
 
         Click(app, "Bookmark 1");
+        app.Frames.Frame(2);
+
+        Assert.Null(d.Ui.BookmarksPanel.Renaming);
+        Assert.True(d.Ui.BookmarksPanel.Cells.IsAt(0, BookmarksPanelView.NameColumn));
+    }
+
+    [Fact]
+    public void Double_clicking_a_name_selects_it_to_type_over_and_Enter_keeps_the_name()
+    {
+        var (app, d, _, _) = ShowBookmark();
+
+        DoubleClick(app, "Bookmark 1");
         app.Frames.Type("Calls First").Frame(2);
         app.Frames.Key(KeyboardKey.Enter).Frame(2);
 
@@ -336,11 +351,11 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
-    public void Escape_leaves_a_clicked_name_as_it_was()
+    public void Escape_leaves_a_renamed_name_as_it_was()
     {
         var (app, d, _, _) = ShowBookmark();
 
-        Click(app, "Bookmark 1");
+        DoubleClick(app, "Bookmark 1");
         app.Frames.Type("Gone").Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
 
@@ -349,7 +364,7 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
-    public void Clicking_a_location_selects_its_text_for_Ctrl_C()
+    public void Clicking_a_location_selects_its_cell_for_Ctrl_C()
     {
         var (app, d, _, _) = ShowBookmark();
         var location = d.AppState.Bookmarks.Items[0].Location;

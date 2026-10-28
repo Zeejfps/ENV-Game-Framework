@@ -15,7 +15,7 @@ internal static class BookmarksPanelView
 
     private const string MenuId = "bookmark-menu";
     private const int MarkColumn = 0;
-    private const int NameColumn = 1;
+    internal const int NameColumn = 1;
     private const int LocationColumn = 2;
     private const int ModuleColumn = 3;
 
@@ -55,6 +55,8 @@ internal static class BookmarksPanelView
         var palette = ui.State.CodeViewPalette;
         var renaming = panel.Renaming != null;
         Bookmark? removed = null;
+        if (table.Focused && !renaming && panel.Selected is { } selected && ui.Input.TakeKey(KeyboardKey.F2))
+            RenameInPlace(panel, selected);
         using var body = table.Body(bookmarks.Items.Count, keys: !renaming);
         panel.Selection.TakeFrom(bookmarks.Items);
         if (body.Focused && !renaming)
@@ -66,7 +68,7 @@ internal static class BookmarksPanelView
         return removed;
     }
 
-    /// <summary>Does what the user asked of the table this frame: go to, copy or open the menu.</summary>
+    /// <summary>Does what the user asked of the table this frame: go to, rename, copy or open the menu.</summary>
     private static void Answer(Ui<UiState> ui, AppState appState, TableBody body)
     {
         var panel = ui.State.BookmarksPanel;
@@ -74,6 +76,8 @@ internal static class BookmarksPanelView
         if (selected == null) return;
         if (body.Activated && panel.Renaming == null)
             GoToBookmark(appState, selected);
+        if (body.EditRequested && panel.Cells.Column == NameColumn)
+            panel.StartRename(selected);
         if (body.CopyRequested && panel.Cells.HasCell)
             ui.ClipboardText = Copied(selected, panel.Cells);
         if (body.ContextMenuRequested)
@@ -151,8 +155,6 @@ internal static class BookmarksPanelView
         int moduleId;
         using (row)
         {
-            if (row.CellAt(NameColumn).Pressed && panel.Renaming != bookmark)
-                panel.StartRename(bookmark);
             MarkCell(ui, bookmarks, row, bookmark, palette);
             NameCell(ui, panel, bookmarks, row, bookmark, listed);
             LocationCell(ui, appState, row, bookmark, listed);
@@ -257,6 +259,7 @@ internal static class BookmarksPanelView
             CommitRename(panel, bookmarks);
         else
             panel.CancelRename();
+        panel.Cells.StopEditing();
         if (stillHere || result == InlineEditResult.Cancelled)
             ui.Focus(ListId, takesText: false);
     }
@@ -278,7 +281,7 @@ internal static class BookmarksPanelView
             ui.ClipboardText = Copied(bookmark, panel.Cells);
         ui.MenuSeparator();
         if (ui.MenuItem(t.BookmarksRename, "F2", id: "rename"))
-            panel.StartRename(bookmark);
+            RenameInPlace(panel, bookmark);
         if (ui.MenuItem(bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable, "Space", id: "enable"))
             bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
         if (ui.MenuItem(t.BookmarksDelete, "Delete", id: "delete"))
@@ -304,10 +307,6 @@ internal static class BookmarksPanelView
             {
                 case KeyboardKey.Space:
                     bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
-                    break;
-                case KeyboardKey.F2:
-                    panel.Cells.SelectColumn(NameColumn);
-                    panel.StartRename(bookmark);
                     break;
                 case KeyboardKey.Delete:
                     removed = bookmark;
@@ -335,6 +334,13 @@ internal static class BookmarksPanelView
         if (bookmark == null)
             return;
         panel.Selection.Select(bookmark, appState.Bookmarks.Items);
+    }
+
+    private static void RenameInPlace(BookmarksPanel panel, Bookmark bookmark)
+    {
+        panel.Cells.SelectColumn(NameColumn);
+        panel.Cells.Edit();
+        panel.StartRename(bookmark);
     }
 
     /// <summary>Gives the bookmark being renamed the name typed, unless it is blank, and ends the rename.</summary>

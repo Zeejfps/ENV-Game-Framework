@@ -18,8 +18,10 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var following = (ui.Input.Modifiers & KeyModifiers.Control) != 0;
         var button = ui.Interact(HashCode.Combine(i.Id, LinkButtonSalt));
-        if (i.Hovered)
-            ui.SetCursor(following ? MouseCursor.Hand : MouseCursor.Text);
+        if (i.Hovered && following)
+            ui.SetCursor(MouseCursor.Hand);
+        else if (i.Hovered && active)
+            ui.SetCursor(MouseCursor.Text);
         if (button.Hovered)
             ui.SetCursor(MouseCursor.Hand);
 

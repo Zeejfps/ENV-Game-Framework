@@ -236,7 +236,7 @@ public sealed class TableTests
     }
 
     [Fact]
-    public void Clicking_a_cell_makes_it_current_with_all_its_text_selected_and_outlined_in_focus()
+    public void Clicking_a_cell_makes_it_current_and_outlined_in_focus_without_selecting_its_text()
     {
         var grid = new CellTable();
         grid.Frames.Frame(2);
@@ -244,9 +244,44 @@ public sealed class TableTests
         grid.Frames.Click(grid.Frames.TextRect(CellTable.Text(1, 1)));
 
         Assert.True(grid.Cells.IsAt(1, 1));
-        Assert.Equal(CellTable.Text(1, 1), grid.Cells.Text.Of(CellTable.Text(1, 1)));
+        Assert.False(grid.Cells.Editing);
+        Assert.DoesNotContain(grid.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.TextSelection);
         Assert.Contains(grid.Frames.Canvas.Rects, r => r.Inputs.Style.BorderColor.Top.Value == UiTheme.Dark.FocusRing);
+        Assert.NotEqual(MouseCursor.Text, grid.Frames.Cursor);
+    }
+
+    [Fact]
+    public void Double_clicking_a_cell_edits_it_selecting_its_text_instead_of_activating_the_row()
+    {
+        var grid = new CellTable();
+        grid.Frames.Frame(2);
+
+        grid.Frames.DoubleClick(grid.Frames.TextRect(CellTable.Text(1, 1))).Frame();
+
+        Assert.True(grid.Cells.IsAt(1, 1));
+        Assert.True(grid.Cells.Editing);
+        Assert.True(grid.EditRequested);
+        Assert.False(grid.Activated);
+        Assert.Contains(grid.Frames.Canvas.Rects, r => r.Inputs.Style.BackgroundColor == UiTheme.Dark.TextSelection);
         Assert.Equal(MouseCursor.Text, grid.Frames.Cursor);
+    }
+
+    [Fact]
+    public void F2_edits_the_current_cell_and_moving_to_another_cell_stops_editing()
+    {
+        var grid = new CellTable();
+        grid.Frames.Frame(2);
+        grid.Frames.Click(grid.Frames.TextRect(CellTable.Text(1, 1)));
+
+        grid.Frames.Key(KeyboardKey.F2).Frame();
+        var edited = grid.Cells.Editing;
+        grid.Frames.Key(KeyboardKey.DownArrow).Frame();
+        grid.Frames.Key(KeyboardKey.UpArrow).Frame();
+
+        Assert.True(edited);
+        Assert.True(grid.EditRequested);
+        Assert.True(grid.Cells.IsAt(1, 1));
+        Assert.False(grid.Cells.Editing);
     }
 
     [Fact]
@@ -309,6 +344,7 @@ public sealed class TableTests
         var grid = new CellTable();
         grid.Frames.Frame(2);
         var cell = grid.Frames.TextRect(CellTable.Text(1, 1));
+        grid.Frames.Click(cell).Key(KeyboardKey.F2).Frame();
         var advance = cell.Width / CellTable.Text(1, 1).Length;
         var y = cell.Y + cell.Height / 2;
         grid.Frames.Drag(new PointF(cell.X + 1f, y), new PointF(cell.X + advance * 3, y)).Release().Frame();
@@ -322,14 +358,15 @@ public sealed class TableTests
     }
 
     [Fact]
-    public void Escape_collapses_the_text_selected_in_the_current_cell_and_then_is_left_for_the_app()
+    public void Escape_stops_editing_the_current_cell_and_then_is_left_for_the_app()
     {
         var grid = new CellTable();
         grid.Frames.Frame(2);
-        grid.Frames.Click(grid.Frames.TextRect(CellTable.Text(1, 1)));
+        grid.Frames.DoubleClick(grid.Frames.TextRect(CellTable.Text(1, 1))).Frame();
 
         grid.Frames.Key(KeyboardKey.Escape).Frame();
-        Assert.False(grid.Cells.Text.HasSelection);
+        Assert.False(grid.Cells.Editing);
+        Assert.True(grid.Cells.IsAt(1, 1));
         Assert.Empty(grid.KeysLeft);
 
         grid.Frames.Key(KeyboardKey.Escape).Frame();
@@ -462,6 +499,7 @@ public sealed class TableTests
         public readonly TableCellSelection Cells = new();
         public readonly List<KeyboardKey> KeysLeft = new();
         public bool Activated;
+        public bool EditRequested;
         public bool MenuRequested;
         public PointF MenuAt;
         public bool Followed;
@@ -504,6 +542,7 @@ public sealed class TableTests
         private void Answer(TableBody body)
         {
             Activated |= body.Activated;
+            EditRequested |= body.EditRequested;
             if (body.ContextMenuRequested)
             {
                 MenuRequested = true;
