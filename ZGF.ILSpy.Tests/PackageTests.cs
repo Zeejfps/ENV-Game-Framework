@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Analysis;
@@ -27,6 +28,22 @@ public sealed class PackageTests
         Assert.Equal(NodeKind.Package, package.Root.Kind);
         Assert.Equal("Sample.1.0.0.nupkg", package.Root.Text);
         Assert.Equal([LibFolder, "runtimes/win-x64/native", "readme.txt"], package.Root.Children.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void A_reference_into_a_package_file_itself_finds_nothing_rather_than_failing()
+    {
+        using var temp = new TempDir();
+        var list = new AssemblyList();
+        var path = WritePackage(temp);
+        var type = CodeReference.ToEntity(CodeReferenceKind.Type, "Sample", path, MetadataTokens.TypeDefinitionHandle(2));
+
+        Assert.Null(list.FindNode(type));
+        Assert.Null(list.FindMetadataRow(type));
+        Assert.Null(list.Describe(type));
+        Assert.Null(list.FindApiReferencePage(type));
+        Assert.Null(list.FindTypeDefinition(type));
+        Assert.Null(list.FindMetadataRow(CodeReference.ToAssembly("Sample", path)));
     }
 
     [Fact]

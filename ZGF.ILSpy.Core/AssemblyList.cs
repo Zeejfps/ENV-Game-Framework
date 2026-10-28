@@ -337,8 +337,7 @@ public sealed class AssemblyList
             var (assembly, handle) = ResolveListed(reference);
             if (assembly is null)
                 return null;
-            var root = (AssemblyNode)assembly.Root;
-            return root.FindMetadataRow(handle);
+            return assembly.Root is AssemblyNode root ? root.FindMetadataRow(handle) : null;
         }
         catch (Exception e) when (IsUnreadable(e))
         {
@@ -354,7 +353,7 @@ public sealed class AssemblyList
         if (reference.FilePath is null)
             return default;
         var generation = Generation;
-        var owner = TryLoad(reference.FilePath, generation);
+        var owner = TryLoadAssembly(reference.FilePath, generation);
         if (owner is null)
             return default;
         var (assembly, handle) = ResolveTarget(owner, reference, generation);
@@ -375,7 +374,7 @@ public sealed class AssemblyList
         return (target, EntityHandle.AssemblyDefinition);
     }
 
-    private static bool IsUnreadable(Exception e) => e is BadImageFormatException or InvalidOperationException or IOException;
+    private static bool IsUnreadable(Exception e) => e is BadImageFormatException or IOException;
 
     /// <summary>
     /// What hovering <paramref name="reference"/> explains: the declaration and XML documentation of
@@ -444,10 +443,8 @@ public sealed class AssemblyList
     {
         try
         {
-            var assembly = TryLoad(anchor.AssemblyPath);
+            var assembly = TryLoadAssembly(anchor.AssemblyPath);
             if (assembly is null)
-                return null;
-            if (assembly.HasLoadError)
                 return null;
             return assembly.Module.GetTypeDefinition(new FullTypeName(anchor.FullName));
         }
@@ -467,7 +464,7 @@ public sealed class AssemblyList
         if (reference.Kind == CodeReferenceKind.Assembly)
             return default;
         var generation = Generation;
-        var owner = TryLoad(reference.FilePath, generation);
+        var owner = TryLoadAssembly(reference.FilePath, generation);
         if (owner is null)
             return default;
         var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
@@ -490,7 +487,7 @@ public sealed class AssemblyList
             var assembly = TryLoad(path.FilePath, generation) ?? FindListedFailure(path.FilePath);
             return assembly is not null && TryList(assembly, generation) ? path.Resolve(assembly.Root) : null;
         }
-        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        catch (Exception e) when (IsUnreadable(e))
         {
             return null;
         }
@@ -508,7 +505,7 @@ public sealed class AssemblyList
         {
             return path.Resolve(assembly.Root);
         }
-        catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or IOException)
+        catch (Exception e) when (IsUnreadable(e))
         {
             return null;
         }
@@ -547,6 +544,13 @@ public sealed class AssemblyList
         SearchAsync(SearchQuery.Parse(text, kinds), cancellationToken);
 
     internal LoadedAssembly? TryLoad(string path) => TryLoad(path, Generation);
+
+    /// <summary>The assembly at <paramref name="path"/>, as <see cref="TryLoad(string, int)"/> loads it;
+    /// null for a package, which has no metadata of its own, or a file that failed to load.</summary>
+    internal LoadedAssembly? TryLoadAssembly(string path) => TryLoadAssembly(path, Generation);
+
+    private LoadedAssembly? TryLoadAssembly(string path, int generation) =>
+        TryLoad(path, generation) is { IsPackage: false, HasLoadError: false } assembly ? assembly : null;
 
     internal LoadedAssembly? TryLoad(string path, int generation)
     {
@@ -753,7 +757,7 @@ public sealed class AssemblyList
         }
 
         return Definitions.Resolve(owner.Module, handle) is { } definition
-            ? (TryLoad(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken)
+            ? (TryLoadAssembly(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken)
             : (null, default);
     }
 

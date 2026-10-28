@@ -31,14 +31,16 @@ internal sealed class AssemblyNode : BrowseNode
     }
 
     /// <summary>The row <paramref name="handle"/> names in this assembly's own metadata tables, or null
-    /// when it names no table row.</summary>
+    /// when it names no table row or the tables could not be read.</summary>
     public MetadataTarget? FindMetadataRow(EntityHandle handle)
     {
         if (!MetadataTokens.TryGetTableIndex(handle.Kind, out var index))
             return null;
         var metadata = Children
             .OfType<MetadataFolderNode>()
-            .First(f => ReferenceEquals(f.File, Assembly.File));
+            .FirstOrDefault(f => ReferenceEquals(f.File, Assembly.File));
+        if (metadata == null)
+            return null;
         var table = metadata.FindTable(index);
         if (table == null)
             return null;

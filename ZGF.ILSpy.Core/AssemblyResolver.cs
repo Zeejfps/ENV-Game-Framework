@@ -52,7 +52,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
     {
         if (_list.FindKnown(reference, exactOrNewer: true) is { } known) return known;
         var path = FindFile(reference);
-        if (path != null && _list.TryLoad(path) is { } loaded) return loaded;
+        if (path != null && _list.TryLoadAssembly(path) is { } loaded) return loaded;
         return _list.FindKnown(reference, exactOrNewer: false);
     }
 
@@ -118,7 +118,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
         var directory = Path.GetDirectoryName(mainModule.FileName);
         if (directory is null) return null;
         var path = Path.Combine(directory, moduleName);
-        return Exists(path) ? _list.TryLoad(path)?.File : null;
+        return Exists(path) ? _list.TryLoadAssembly(path)?.File : null;
     }
 
     public Task<MetadataFile?> ResolveAsync(IAssemblyReference reference) => Task.FromResult(Resolve(reference));
