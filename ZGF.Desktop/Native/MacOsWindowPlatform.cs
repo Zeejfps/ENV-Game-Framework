@@ -22,7 +22,9 @@ internal sealed class MacOsWindowPlatform : WindowPlatform
     {
         if (nsWindow == IntPtr.Zero) return;
 
-        msg_Void_Bool(nsWindow, Sel("setHasShadow:"), true);
+        // The popup paints its own border and shadow. A window-server shadow would draw a second
+        // outline around the window's bounds, the glass rim macOS gives shadowed windows.
+        msg_Void_Bool(nsWindow, Sel("setHasShadow:"), false);
         SetLevel(nsWindow, NSPopUpMenuWindowLevel);
         msg_Void_Bool(nsWindow, Sel("setHidesOnDeactivate:"), false);
         msg_Void_ULong(nsWindow, Sel("setCollectionBehavior:"),
