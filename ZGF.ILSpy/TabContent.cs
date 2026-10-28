@@ -5,7 +5,7 @@ using ZGF.ILSpy.Core.Resources;
 namespace ZGF.ILSpy;
 
 /// <summary>What a tab shows: nothing, its node while it decompiles, the node's code, grid or picture,
-/// a document, a diagram or a comparison of its own, or why it shows none of these.</summary>
+/// an export's report, a diagram or a comparison of its own, or why it shows none of these.</summary>
 public abstract record TabContent
 {
     private TabContent()
@@ -27,8 +27,8 @@ public abstract record TabContent
     /// <summary>The picture of a node that shows one, with its markup when it is stored as such, such as SVG.</summary>
     public sealed record Picture(ResourceImage Image, DecompiledDocument? Source) : TabContent;
 
-    /// <summary>A document no node stands for, such as a report.</summary>
-    public sealed record Report(DecompiledDocument Document) : TabContent;
+    /// <summary>The report of an export, which the screen writes out.</summary>
+    public sealed record Report(ExportReport Export) : TabContent;
 
     /// <summary>A diagram of types, which grows as types are shown in it.</summary>
     public sealed record Diagram(TypeDiagram Types) : TabContent;

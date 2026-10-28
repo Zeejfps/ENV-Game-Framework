@@ -21,6 +21,8 @@ public sealed class TabView
 
     public TabPlaceholder Placeholder { get; } = new();
 
+    public ShownReport Report { get; } = new();
+
     public MetadataGridState Grid { get; } = new();
 
     public PictureView Picture { get; } = new();

@@ -109,6 +109,8 @@ internal static class DocumentsView
     private static DecompiledDocument FindDocumentToShow(UiState screen, TabView view, DocumentTab tab)
     {
         var content = tab.Content;
+        if (content is TabContent.Report report)
+            return view.Report.For(report.Export, screen.Strings);
         if (!IsNote(content))
             return tab.Document;
         return view.Placeholder.For(content, screen.Strings);
@@ -154,9 +156,11 @@ internal static class DocumentsView
         return NodeIcons.Icon(node.Kind, node.Accessibility, screen.NodeIconPalette, screen.Icons);
     }
 
-    /// <summary>The tab's title: its node's name as the tree labels it, else its own title, else a new tab's.</summary>
+    /// <summary>The tab's title: its node's name as the tree labels it, a report's, else its own title, else a new tab's.</summary>
     private static string TitleOf(UiState screen, DocumentTab tab)
     {
+        if (tab.Content is TabContent.Report)
+            return screen.Strings.ExportReportTitle;
         var node = tab.Node;
         if (node == null)
             return tab.Title ?? screen.Strings.DocumentNewTab;

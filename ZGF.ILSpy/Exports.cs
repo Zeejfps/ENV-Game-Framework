@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
-using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Navigation;
 
 namespace ZGF.ILSpy;
@@ -303,11 +302,9 @@ public static class Exports
     /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>
     public static void ShowExportReport(AppState appState, ExportReport report)
     {
-        var t = Strings.For(appState.Locale);
-        var document = ExportReportText.Write(t, [report]);
         var tab = OpenNewTab(appState);
         appState.Tabs.MakeActive(tab);
-        tab.ShowText(t.ExportReportTitle, document);
+        tab.ShowReport(report);
     }
 
     /// <summary>The runs of every export in the order the exports panel lists them: the running one,

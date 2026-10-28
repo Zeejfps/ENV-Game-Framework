@@ -33,7 +33,6 @@ public sealed class DocumentTab
     public DecompiledDocument Document => Content switch
     {
         TabContent.Code code => code.Document,
-        TabContent.Report report => report.Document,
         TabContent.Picture picture => picture.Source ?? DecompiledDocument.Empty,
         _ => DecompiledDocument.Empty,
     };
@@ -187,13 +186,13 @@ public sealed class DocumentTab
 
     /// <summary>Shows <paramref name="document"/>, which no node stands for, titled
     /// <paramref name="title"/>, cancelling what was in flight.</summary>
-    public void ShowText(string title, DecompiledDocument document)
+    public void ShowReport(ExportReport report)
     {
         PointElsewhere();
         Node = null;
         Location = null;
-        _title = title;
-        Content = new TabContent.Report(document);
+        _title = null;
+        Content = new TabContent.Report(report);
     }
 
     /// <summary>Shows <paramref name="diagram"/>, titled <paramref name="title"/>, cancelling what was in flight.</summary>

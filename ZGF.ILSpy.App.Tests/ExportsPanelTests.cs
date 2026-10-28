@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.ScreenLayout;
@@ -68,9 +69,10 @@ public sealed class ExportsPanelTests : IDisposable
         app.Frames.Click(app.LastTextRect(Icons.ExportShowReport)).Frame(2);
 
         var tab = app.AppState.Tabs.Active!;
-        Assert.IsType<TabContent.Report>(tab.Content);
-        Assert.Equal("Export report", tab.Title);
-        var text = tab.Document.GetText();
+        var shown = Assert.IsType<TabContent.Report>(tab.Content);
+        Assert.Equal(path, Assert.Single(shown.Export.Written));
+        Assert.Equal("Export report", DocumentsView.Tab(app.Ui, app.AppState, tab).Title);
+        var text = ExportReportText.Write(Strings.En, [shown.Export]).GetText();
         Assert.Contains("    " + path, text);
         Assert.DoesNotContain("Farewell", text);
         Assert.Equal(2, app.AppState.FinishedExports.Count);
@@ -237,17 +239,35 @@ public sealed class ExportsPanelTests : IDisposable
     }
 
     [Fact]
+    public void The_report_tab_is_written_in_the_interface_language_chosen_after_it_opened()
+    {
+        var app = AppDriver.Opened(height: TallWindow);
+        SaveCode(app.AppState, app.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
+        app.Settle(2);
+        ShowExportReport(app.AppState, app.AppState.FinishedExports[0]);
+        app.Run(2);
+
+        SetLocale(app.AppState, Locale.De);
+        app.Run(2);
+
+        var german = Strings.For(Locale.De);
+        var tab = app.AppState.Tabs.Active!;
+        Assert.Equal(german.ExportReportTitle, DocumentsView.Tab(app.Ui, app.AppState, tab).Title);
+        Assert.Contains(german.ExportWritten, app.Ui.Documents.ViewOf(tab).Code.Document!.GetText());
+    }
+
+    [Fact]
     public void The_report_tab_stays_as_it_is_when_the_language_changes()
     {
         var d = AppStateDriver.Opened();
         SaveCode(d.AppState, d.Fixture("Greeter"), _temp.PathOf("Greeter.cs"));
         d.Settle();
         ShowExportReport(d.AppState, d.AppState.FinishedExports[0]);
-        var report = d.AppState.Tabs.Active!.Document;
+        var report = d.AppState.Tabs.Active!.Content;
 
         SetLanguage(d.AppState, DecompilationLanguage.IL);
         d.Settle();
 
-        Assert.Same(report, d.AppState.Tabs.Active!.Document);
+        Assert.Same(report, d.AppState.Tabs.Active!.Content);
     }
 }
