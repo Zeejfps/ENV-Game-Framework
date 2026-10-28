@@ -601,6 +601,8 @@
   "error.read_layout": "保存したレイアウトを復元できません。パネルは初期位置にあります",
   "error.settings_not_json": "設定ファイルではありません: {detail}",
   "error.settings_empty": "設定が含まれていません。",
+  "error.settings_kept_as": "ファイルは {path} として保存されました。",
+  "error.settings_not_saved": "今回は変更を保存しないため、ファイルはそのまま残ります。",
   "error.layout_parts_missing": "レイアウトの一部 (分割、グループ、ウィンドウ、またはパネルの一覧) がありません。",
   "error.layout_parts_repeated": "レイアウトの 2 つの部分が同じ ID を持っています。",
   "error.open_assemblies": "アセンブリを開けません",

@@ -98,11 +98,18 @@ public static class ProblemTexts
 
     private static string DescribeSettings(Strings t, SettingsProblem problem) => problem switch
     {
-        SettingsProblem.NotRead notRead => notRead.Detail,
-        SettingsProblem.NotJson notJson => t.ErrorSettingsNotJson(notJson.Detail),
+        SettingsProblem.NotRead notRead => notRead.Detail + Environment.NewLine + DescribeKept(t, notRead.Kept),
+        SettingsProblem.NotJson notJson => t.ErrorSettingsNotJson(notJson.Detail) + Environment.NewLine + DescribeKept(t, notJson.Kept),
         SettingsProblem.Empty => t.ErrorSettingsEmpty,
         SettingsProblem.LayoutPartsMissing => t.ErrorLayoutPartsMissing,
         SettingsProblem.LayoutPartsRepeated => t.ErrorLayoutPartsRepeated,
+        _ => throw new UnreachableException(),
+    };
+
+    private static string DescribeKept(Strings t, SettingsKept kept) => kept switch
+    {
+        SettingsKept.CopiedTo copied => t.ErrorSettingsKeptAs(copied.Path),
+        SettingsKept.NotSaved => t.ErrorSettingsNotSaved,
         _ => throw new UnreachableException(),
     };
 

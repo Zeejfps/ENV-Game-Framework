@@ -601,6 +601,8 @@
   "error.read_layout": "No se puede restaurar el diseño guardado; los paneles están donde empiezan",
   "error.settings_not_json": "No es un archivo de ajustes: {detail}",
   "error.settings_empty": "No contiene ajustes.",
+  "error.settings_kept_as": "El archivo se guardó como {path}.",
+  "error.settings_not_saved": "Esta vez no se guardan los cambios, para que el archivo quede como está.",
   "error.layout_parts_missing": "Falta una parte del diseño: una división, un grupo, una ventana o una lista de paneles.",
   "error.layout_parts_repeated": "Dos partes del diseño tienen el mismo id.",
   "error.open_assemblies": "No se pueden abrir los ensamblados",

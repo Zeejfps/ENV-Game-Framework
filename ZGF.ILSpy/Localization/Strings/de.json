@@ -601,6 +601,8 @@
   "error.read_layout": "Das gespeicherte Layout kann nicht wiederhergestellt werden; die Bereiche stehen an ihrem Ausgangsort",
   "error.settings_not_json": "Das ist keine Einstellungsdatei: {detail}",
   "error.settings_empty": "Sie enthält keine Einstellungen.",
+  "error.settings_kept_as": "Die Datei wurde als {path} aufbewahrt.",
+  "error.settings_not_saved": "Änderungen werden diesmal nicht gespeichert, damit die Datei bleibt, wie sie ist.",
   "error.layout_parts_missing": "Ein Teil des Layouts fehlt: eine Teilung, eine Gruppe, ein Fenster oder eine Liste von Bereichen.",
   "error.layout_parts_repeated": "Zwei Teile des Layouts haben dieselbe ID.",
   "error.open_assemblies": "Die Assemblys können nicht geöffnet werden",

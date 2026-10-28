@@ -15,10 +15,10 @@ public abstract record SettingsProblem
     public sealed record None : SettingsProblem;
 
     /// <summary>The file could not be read, so the settings are the defaults.</summary>
-    public sealed record NotRead(string Detail) : SettingsProblem;
+    public sealed record NotRead(string Detail, SettingsKept Kept) : SettingsProblem;
 
     /// <summary>The file is not JSON of the settings, so the settings are the defaults.</summary>
-    public sealed record NotJson(string Detail) : SettingsProblem;
+    public sealed record NotJson(string Detail, SettingsKept Kept) : SettingsProblem;
 
     /// <summary>The file holds <c>null</c>, so the settings are the defaults.</summary>
     public sealed record Empty : SettingsProblem;
@@ -29,4 +29,18 @@ public abstract record SettingsProblem
 
     /// <summary>Two parts of the saved layout have one id, so the panels are where they start out.</summary>
     public sealed record LayoutPartsRepeated : SettingsProblem;
+}
+
+/// <summary>How a settings file that could not be read is kept from being saved over.</summary>
+public abstract record SettingsKept
+{
+    private SettingsKept()
+    {
+    }
+
+    /// <summary>The file was copied to <c>Path</c>, and the settings are saved in its place.</summary>
+    public sealed record CopiedTo(string Path) : SettingsKept;
+
+    /// <summary>The file could not be copied either, so the settings are not saved this time.</summary>
+    public sealed record NotSaved : SettingsKept;
 }

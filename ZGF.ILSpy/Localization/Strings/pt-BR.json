@@ -601,6 +601,8 @@
   "error.read_layout": "Não é possível restaurar o layout salvo; os painéis estão onde começam",
   "error.settings_not_json": "Não é um arquivo de configurações: {detail}",
   "error.settings_empty": "Não contém configurações.",
+  "error.settings_kept_as": "O arquivo foi mantido como {path}.",
+  "error.settings_not_saved": "Desta vez as alterações não são salvas, para que o arquivo fique como está.",
   "error.layout_parts_missing": "Falta uma parte do layout: uma divisão, um grupo, uma janela ou uma lista de painéis.",
   "error.layout_parts_repeated": "Duas partes do layout têm o mesmo id.",
   "error.open_assemblies": "Não é possível abrir os assemblies",

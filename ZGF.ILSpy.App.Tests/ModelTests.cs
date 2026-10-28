@@ -277,6 +277,38 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void An_unreadable_file_is_copied_beside_it_before_the_settings_are_saved_over_it()
+    {
+        const string broken = """{ "Assemblies": [ "a.dll", """;
+        var (loaded, problem) = AppSettings.Load(Written(broken));
+        var appState = new AppState(loaded);
+        ReportSettingsProblem(appState, problem);
+
+        Assert.IsType<SettingsWrite.Written>(loaded.Save());
+
+        var copy = _temp.PathOf("settings.unreadable.json");
+        Assert.Equal(new SettingsKept.CopiedTo(copy), Assert.IsType<SettingsProblem.NotJson>(problem).Kept);
+        Assert.Equal(broken, File.ReadAllText(copy));
+        Assert.Contains(copy, Assert.Single(appState.Errors.Entries).Words().Details);
+        Assert.Equal(JsonValueKind.Object, JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.ValueKind);
+    }
+
+    [Fact]
+    public void A_file_that_cannot_be_read_or_copied_is_not_saved_over()
+    {
+        const string held = """{ "Theme": "light" }""";
+        var path = Written(held);
+        SettingsLoad load;
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+            load = AppSettings.Load(path);
+
+        Assert.IsType<SettingsWrite.Written>(load.Settings.Save());
+
+        Assert.IsType<SettingsKept.NotSaved>(Assert.IsType<SettingsProblem.NotRead>(load.Problem).Kept);
+        Assert.Equal(held, File.ReadAllText(path));
+    }
+
+    [Fact]
     public void A_file_holding_null_falls_back_to_defaults_and_is_reported()
     {
         var (_, problem) = AppSettings.Load(Written("null"));

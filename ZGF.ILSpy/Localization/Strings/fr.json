@@ -601,6 +601,8 @@
   "error.read_layout": "Impossible de restaurer la disposition enregistrée ; les panneaux sont à leur place de départ",
   "error.settings_not_json": "Ce n’est pas un fichier de paramètres : {detail}",
   "error.settings_empty": "Il ne contient aucun paramètre.",
+  "error.settings_kept_as": "Le fichier a été conservé sous {path}.",
+  "error.settings_not_saved": "Les modifications ne sont pas enregistrées cette fois, pour que le fichier reste tel quel.",
   "error.layout_parts_missing": "Une partie de la disposition manque : une division, un groupe, une fenêtre ou une liste de panneaux.",
   "error.layout_parts_repeated": "Deux parties de la disposition ont le même identifiant.",
   "error.open_assemblies": "Impossible d’ouvrir les assemblys",

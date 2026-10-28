@@ -16,6 +16,7 @@ public sealed class AppSettings
 
     private const string ThemesFolderName = "themes";
     private const string IconThemesFolderName = "icon-themes";
+    private const string UnreadableExtension = ".unreadable.json";
 
     /// <summary>Where <see cref="Save"/> writes; null keeps the settings in memory only.</summary>
     [JsonIgnore]
@@ -174,9 +175,16 @@ public sealed class AppSettings
         settings.Window = Sanitize(settings.Window);
         settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
         settings.NuGetWindow = SanitizeDialog(settings.NuGetWindow);
-        settings.FilePath = path;
+        settings.FilePath = MaySaveOver(problem) ? path : null;
         return new SettingsLoad(settings, problem);
     }
+
+    private static bool MaySaveOver(SettingsProblem problem) => problem switch
+    {
+        SettingsProblem.NotRead notRead => notRead.Kept is not SettingsKept.NotSaved,
+        SettingsProblem.NotJson notJson => notJson.Kept is not SettingsKept.NotSaved,
+        _ => true,
+    };
 
     private static SettingsLoad Read(string path)
     {
@@ -191,11 +199,27 @@ public sealed class AppSettings
         }
         catch (Exception e) when (e is JsonException or NotSupportedException)
         {
-            return new SettingsLoad(new AppSettings(), new SettingsProblem.NotJson(e.Message));
+            return new SettingsLoad(new AppSettings(), new SettingsProblem.NotJson(e.Message, Keep(path)));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return new SettingsLoad(new AppSettings(), new SettingsProblem.NotRead(e.Message));
+            return new SettingsLoad(new AppSettings(), new SettingsProblem.NotRead(e.Message, Keep(path)));
+        }
+    }
+
+    /// <summary>Copies the settings file at <paramref name="path"/>, which could not be read, beside
+    /// it, so that saving the settings does not lose what it holds.</summary>
+    private static SettingsKept Keep(string path)
+    {
+        var copy = Path.ChangeExtension(path, UnreadableExtension);
+        try
+        {
+            File.Copy(path, copy, overwrite: true);
+            return new SettingsKept.CopiedTo(copy);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return new SettingsKept.NotSaved();
         }
     }
 
