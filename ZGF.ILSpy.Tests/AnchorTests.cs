@@ -63,6 +63,23 @@ public sealed class AnchorTests
     }
 
     [Fact]
+    public void Anchors_looked_up_from_many_threads_at_once_all_find_their_lines()
+    {
+        var first = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
+        var lines = new[] { first.LineContaining("Changed?.Invoke(this, EventArgs.Empty);"), first.LineContaining("public void Add(T item)") };
+        var anchors = lines.Select(l => first.AnchorAt(l)!.Value).ToArray();
+
+        for (var round = 0; round < 20; round++)
+        {
+            var fresh = Trees.TestAssembly.Calculator().Decompile(DecompilationLanguage.CSharp);
+            var found = new int[64];
+            Parallel.For(0, found.Length, i => found[i] = fresh.FindLine(anchors[i % anchors.Length]));
+
+            Assert.All(Enumerable.Range(0, found.Length), i => Assert.Equal(lines[i % lines.Length], found[i]));
+        }
+    }
+
+    [Fact]
     public void A_line_with_no_statement_or_definition_has_no_anchor()
     {
         var type = Trees.CalculatorDocument(DecompilationLanguage.CSharp);

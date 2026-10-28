@@ -182,24 +182,10 @@ public sealed class DecompiledDocument
     public int FindLine(CodeAnchor anchor)
     {
         if (anchor.Kind == CodeAnchorKind.Definition)
-        {
-            if (_definitionLines == null)
-            {
-                var lines = new Dictionary<CodeAnchor, int>(_definitions.Count);
-                foreach (var (reference, line) in _definitions)
-                {
-                    if (reference.Kind != CodeReferenceKind.Assembly)
-                        lines.TryAdd(DefinitionOf(reference), line);
-                }
-                _definitionLines = lines;
-            }
-            return _definitionLines.GetValueOrDefault(anchor, -1);
-        }
+            return LazyInitializer.EnsureInitialized(ref _definitionLines, ListDefinitionLines).GetValueOrDefault(anchor, -1);
 
-        _statementLines ??= _statements
-            .GroupBy(static s => MethodOf(s.Value))
-            .ToDictionary(static g => g.Key, static g => g.Select(static s => (s.Value.ILOffset, s.Key)).Order().ToArray());
-        if (!_statementLines.TryGetValue(MethodOf(anchor), out var points)) return -1;
+        var statementLines = LazyInitializer.EnsureInitialized(ref _statementLines, ListStatementLines);
+        if (!statementLines.TryGetValue(MethodOf(anchor), out var points)) return -1;
         var found = points[0].Line;
         foreach (var (offset, line) in points)
         {
@@ -208,6 +194,22 @@ public sealed class DecompiledDocument
         }
         return found;
     }
+
+    private Dictionary<CodeAnchor, int> ListDefinitionLines()
+    {
+        var lines = new Dictionary<CodeAnchor, int>(_definitions.Count);
+        foreach (var (reference, line) in _definitions)
+        {
+            if (reference.Kind != CodeReferenceKind.Assembly)
+                lines.TryAdd(DefinitionOf(reference), line);
+        }
+        return lines;
+    }
+
+    private Dictionary<CodeAnchor, (int Offset, int Line)[]> ListStatementLines() =>
+        _statements
+            .GroupBy(static s => MethodOf(s.Value))
+            .ToDictionary(static g => g.Key, static g => g.Select(static s => (s.Value.ILOffset, s.Key)).Order().ToArray());
 
     /// <summary>The statement anchor <paramref name="statement"/> with its offset left out, naming its method.</summary>
     private static CodeAnchor MethodOf(CodeAnchor statement) => statement with { ILOffset = 0 };
