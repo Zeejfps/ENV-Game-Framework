@@ -130,6 +130,8 @@ public static partial class UiWidgets
                     if (content.SecondaryBold != null)
                         ui.Text(content.SecondaryBold, new Box { Width = Sizing.Fit() with { Priority = 1 } }, color: theme.TextMuted, bold: true,
                             overflow: TextOverflow.Ellipsis);
+                    if (content.Badges != null)
+                        RowBadges(ui, content.Badges);
                 }
                 if (content.Tooltip != null)
                     ui.Tooltip(rowId, content.Tooltip);
@@ -174,6 +176,23 @@ public static partial class UiWidgets
         }
         if (content.Icon is { } icon)
             ui.Icon(icon);
+    }
+
+    /// <summary>A row's badges, each its glyph and text in its color, sized to fit so they keep their
+    /// room while the secondary text gives up its own.</summary>
+    private static void RowBadges(Ui ui, IReadOnlyList<TreeBadge> badges)
+    {
+        var theme = ui.Theme;
+        var size = theme.FontSizeSmall;
+        var fit = new Box { Width = Sizing.Fit() with { Priority = 1 } };
+        foreach (var badge in badges)
+        {
+            using (ui.Row(new Box { Width = Sizing.Fit() with { Priority = 1 }, Height = Sizing.Grow(), Gap = 1f, AlignY = Align.Center }))
+            {
+                ui.Glyph(badge.Glyph, badge.Color, size, fit);
+                ui.Text(badge.Text, fit, color: badge.Color, size: size);
+            }
+        }
     }
 
     private static void RowSpinner(Ui ui, UiIcon? icon, uint background)
