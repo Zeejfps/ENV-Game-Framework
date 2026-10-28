@@ -39,16 +39,19 @@ internal static class MarkdownHtml
         open.RemoveRange(shared, open.Count - shared);
         for (var i = shared; i < path.Count; i++)
         {
-            html.Append(OpenTag(path[i]));
+            html.Append(OpenTag(path[i], i + 1 < path.Count ? path[i + 1] : null));
             open.Add(path[i]);
         }
     }
 
-    private static string OpenTag(HtmlContainer container) => container switch
+    /// <summary>The opening tag of <paramref name="container"/>; an ordered list starts at the number
+    /// of <paramref name="inside"/>, the first of its items copied, which a selection may begin
+    /// partway down.</summary>
+    private static string OpenTag(HtmlContainer container, HtmlContainer? inside) => container switch
     {
         HtmlContainer.List { Ordered: false } => "<ul>",
-        HtmlContainer.List { Start: 1 } => "<ol>",
-        HtmlContainer.List list => $"<ol start=\"{list.Start}\">",
+        HtmlContainer.List when inside is HtmlContainer.Item { Number: not 1 } item => $"<ol start=\"{item.Number}\">",
+        HtmlContainer.List => "<ol>",
         HtmlContainer.Item => "<li>",
         HtmlContainer.Quote => "<blockquote>",
         HtmlContainer.Table => "<table>",

@@ -482,6 +482,30 @@ public class InlineParserTests
     }
 
     [Theory]
+    [InlineData("[https://e.com](https://e.com)", "L:https://e.com")]
+    [InlineData("see [https://e.com](https://e.com).", "-:see ¦L:https://e.com¦-:.")]
+    public void A_url_as_a_links_label_stops_at_the_label_s_end(string markdown, string spec)
+    {
+        AssertRuns(markdown, spec);
+    }
+
+    [Theory]
+    [InlineData("`one\ntwo`", "C:one two")]
+    [InlineData("`\nfoo\n`", "C:foo")]
+    public void A_code_span_across_lines_joins_them_with_a_space(string markdown, string spec)
+    {
+        AssertRuns(markdown, spec);
+    }
+
+    [Fact]
+    public void A_url_labelled_link_leads_to_its_destination_not_its_label()
+    {
+        var run = Assert.Single(Parse("[https://a.com](https://b.com)"));
+
+        Assert.Equal(new InlineRun("https://a.com", LinkUrl: "https://b.com"), run);
+    }
+
+    [Theory]
     [InlineData("https://e.com.", "L:https://e.com¦-:.")]
     [InlineData("https://e.com, then", "L:https://e.com¦-:, then")]
     [InlineData("is it https://e.com?", "-:is it ¦L:https://e.com¦-:?")]

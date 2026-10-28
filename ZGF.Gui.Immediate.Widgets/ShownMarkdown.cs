@@ -71,13 +71,16 @@ internal abstract record LeafTag
 /// value: two list items alike are still two items.</summary>
 internal abstract class HtmlContainer
 {
-    public sealed class List(bool ordered, int start) : HtmlContainer
+    public sealed class List(bool ordered) : HtmlContainer
     {
         public bool Ordered { get; } = ordered;
-        public int Start { get; } = start;
     }
 
-    public sealed class Item : HtmlContainer;
+    /// <summary>A list item and the number it shows in an ordered list.</summary>
+    public sealed class Item(int number) : HtmlContainer
+    {
+        public int Number { get; } = number;
+    }
 
     public sealed class Quote : HtmlContainer;
 
@@ -141,11 +144,11 @@ internal static class ShownMarkdown
         _ => theme.FontSize,
     };
 
-    /// <summary>The code, in <see cref="MarkdownLook.CodeFamily"/> as it is, without the fence's
-    /// trailing line break.</summary>
+    /// <summary>The code, in <see cref="MarkdownLook.CodeFamily"/> as it is, blank lines before the
+    /// closing fence included: the parser leaves no line break of the fence's own.</summary>
     private static ShownBlock Code(Ui ui, MarkdownLook look, CodeBlock code, List<MarkdownLeaf> leaves, IReadOnlyList<HtmlContainer> path)
     {
-        var text = code.Text.TrimEnd('\n');
+        var text = code.Text;
         var style = ui.StyleText(ui.Theme.Text, ui.Theme.FontSize, family: look.CodeFamily);
         var leaf = AddLeaf(leaves, [new RichTextRun(text, style)], [new InlineRun(text)], new LeafTag.Code(code.Language), path);
         return new ShownBlock.Code(code.Language, leaf);
@@ -153,12 +156,13 @@ internal static class ShownMarkdown
 
     private static ShownBlock List(Ui ui, MarkdownLook look, ListBlock list, uint color, List<MarkdownLeaf> leaves, IReadOnlyList<HtmlContainer> path)
     {
-        var inList = (IReadOnlyList<HtmlContainer>)[.. path, new HtmlContainer.List(list.Ordered, list.Start)];
+        var inList = (IReadOnlyList<HtmlContainer>)[.. path, new HtmlContainer.List(list.Ordered)];
         var items = new ShownItem[list.Items.Count];
         for (var i = 0; i < items.Length; i++)
         {
             var item = list.Items[i];
-            items[i] = new ShownItem(MarkerOf(list, item, i), BuildAll(ui, look, item.Blocks, color, leaves, [.. inList, new HtmlContainer.Item()]));
+            var inItem = (IReadOnlyList<HtmlContainer>)[.. inList, new HtmlContainer.Item(list.Start + i)];
+            items[i] = new ShownItem(MarkerOf(list, item, i), BuildAll(ui, look, item.Blocks, color, leaves, inItem));
         }
         return new ShownBlock.List(items);
     }

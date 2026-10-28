@@ -84,6 +84,18 @@ public sealed class MarkdownTests
     }
 
     [Fact]
+    public void Letting_go_of_a_drag_over_a_link_selects_without_following_it()
+    {
+        var view = new MarkdownView("read the [docs](https://example.com/docs) first");
+        var frames = view.Frames.Frame();
+
+        frames.Drag(At(frames, "read the ", 0), At(frames, "docs", 2)).Release().Frame();
+
+        Assert.Null(view.Clicked.Link);
+        Assert.Equal("read the do", Copy(frames));
+    }
+
+    [Fact]
     public void A_drag_past_the_text_selects_to_the_nearest_leaf()
     {
         var frames = new MarkdownView("alpha beta\n\ngamma").Frames.Frame();
@@ -223,6 +235,27 @@ public sealed class MarkdownTests
 
         Assert.Equal("<ul><li><p>beta</p></li><li><p>gam</p></li></ul>", frames.Clipboard.Html);
         Assert.Equal("beta\ngam", frames.Clipboard.Text);
+    }
+
+    [Fact]
+    public void Part_of_a_numbered_list_copies_as_html_numbered_as_it_shows()
+    {
+        var frames = new MarkdownView("1. one\n2. two\n3. three").Frames.Frame();
+
+        frames.Drag(At(frames, "two", 0), At(frames, "three", 5)).Release().Frame();
+        Copy(frames);
+
+        Assert.Equal("<ol start=\"2\"><li><p>two</p></li><li><p>three</p></li></ol>", frames.Clipboard.Html);
+    }
+
+    [Fact]
+    public void A_code_block_keeps_the_blank_lines_before_its_closing_fence()
+    {
+        var frames = new MarkdownView("```\nx\n\n```").Frames.Frame();
+
+        frames.Click(frames.ToUi(frames.Canvas.Texts.Single(t => t.Inputs.Text == "c").Inputs.Position)).Frame();
+
+        Assert.Equal("x\n", frames.Clipboard.Text);
     }
 
     [Fact]

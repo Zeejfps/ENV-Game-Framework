@@ -257,7 +257,8 @@ public static partial class UiWidgets
             if (ui.IsHovered(id))
                 ui.SetCursor(MouseCursor.Text);
             var click = ui.RichText(shown.Runs, codeBackground: CodeChip, wrap: shown.Wrap, id: id, selected: Selection.SpanIn(leaf, shown.Text.Length));
-            if (click.Link != null)
+            // A press that dragged out a selection selects; letting go over a link doesn't follow it.
+            if (click.Link != null && !Selection.HasSelection)
                 Clicked = click;
 
             // After RichText: its links take the click first, which a second interaction would lose.

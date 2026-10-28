@@ -191,7 +191,7 @@ internal static class InlineParser
                     break;
 
                 case 'h':
-                    if ((i == 0 || !char.IsLetterOrDigit(s[i - 1])) && TryMatchAutolink(s, i, out var urlEnd))
+                    if ((i == 0 || !char.IsLetterOrDigit(s[i - 1])) && TryMatchAutolink(s, i, HasOpenBracket(nodes), out var urlEnd))
                     {
                         Flush();
                         var url = s[i..urlEnd];
@@ -341,13 +341,15 @@ internal static class InlineParser
 
     // ---------------------------------------------------------------- autolinks
 
-    private static bool TryMatchAutolink(string s, int i, out int end)
+    // Inside a link's label (inLabel) the URL stops at the ']' that may close it, so
+    // "[https://e.com](https://e.com)" stays an explicit link rather than one long autolink.
+    private static bool TryMatchAutolink(string s, int i, bool inLabel, out int end)
     {
         end = 0;
         if (!TryMatchScheme(s, i, out var schemeEnd)) return false;
 
         var stop = schemeEnd;
-        while (stop < s.Length && !char.IsWhiteSpace(s[stop])) stop++;
+        while (stop < s.Length && !char.IsWhiteSpace(s[stop]) && !(inLabel && s[stop] == ']')) stop++;
         // Repeated trailing-punctuation trim. Emphasis/strike markers trim too; trimmed
         // characters are re-scanned rather than consumed, so the closer in "**https://e.com**"
         // still pairs with its opener. A trailing ')' only trims while the URL has more closing
@@ -392,6 +394,16 @@ internal static class InlineParser
         return true;
     }
 
+    private static bool HasOpenBracket(List<Node> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is BracketNode { Active: true })
+                return true;
+        }
+        return false;
+    }
+
     private static bool HasUnbalancedCloseParen(string s, int from, int to)
     {
         var balance = 0;
@@ -434,18 +446,15 @@ internal static class InlineParser
         return false;
     }
 
-    // One flanking space pair strips when both sides have one and the content is not all
-    // spaces; everything inside is verbatim (no escapes, no nested markup).
+    // A line break inside becomes a space, as in CommonMark, so only hard-break runs hold '\n';
+    // then one flanking space pair strips when both sides have one and the content is not all
+    // spaces. Everything else inside is verbatim (no escapes, no nested markup).
     private static string CodeSpanContent(string s, int start, int end)
     {
-        if (end - start >= 2 && s[start] == ' ' && s[end - 1] == ' ')
-        {
-            for (var k = start; k < end; k++)
-            {
-                if (s[k] != ' ') return s[(start + 1)..(end - 1)];
-            }
-        }
-        return s[start..end];
+        var content = s[start..end].Replace('\n', ' ');
+        if (content.Length >= 2 && content[0] == ' ' && content[^1] == ' ' && content.AsSpan().ContainsAnyExcept(' '))
+            return content[1..^1];
+        return content;
     }
 
     // ----------------------------------------------------------------- emphasis
