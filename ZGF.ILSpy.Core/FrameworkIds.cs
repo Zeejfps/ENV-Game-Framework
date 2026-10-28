@@ -38,6 +38,11 @@ public static class FrameworkIds
         Framework + VersionMark + "4.6",
     ];
 
+    /// <summary>Whether an assembly built for <paramref name="id"/> runs on .NET Core, as the running
+    /// runtime is: one built for .NET Core or .NET Standard, or for a framework not known.</summary>
+    internal static bool RunsOnCore(string? id) =>
+        id == null || id.StartsWith(CoreApp + VersionKey, StringComparison.Ordinal) || id.StartsWith(Standard + VersionKey, StringComparison.Ordinal);
+
     /// <summary><paramref name="id"/> as ILSpy shows it, e.g. <c>.NETCoreApp, v10.0</c>.</summary>
     public static string ReadableName(string id) => id.Replace(VersionKey, ReadableVersionKey);
 

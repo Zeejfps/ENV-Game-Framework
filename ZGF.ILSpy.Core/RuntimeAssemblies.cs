@@ -9,13 +9,15 @@ namespace ZGF.ILSpy.Core;
 public sealed record RuntimeAssembly(string Name, string Framework, string FilePath);
 
 /// <summary>The running .NET runtime's shared framework directories and the assemblies in them; for a
-/// native build, which runs on no shared framework, those of the newest installed runtime.</summary>
+/// native build, which runs on no shared framework, those of the newest installed runtime. Each is
+/// found once and kept; one that cannot be found for now is looked for again the next time.</summary>
 public static class RuntimeAssemblies
 {
-    private static readonly Lazy<ImmutableArray<(string Framework, string Path)>> LazyDirectories = new(FindDirectories);
-    private static readonly Lazy<ImmutableArray<string>> LazyDirectoryPaths = new(() => LazyDirectories.Value.Select(d => d.Path).ToImmutableArray());
-    private static readonly Lazy<IReadOnlyDictionary<string, string>> LazyFilesByName = new(IndexFiles);
-    private static readonly Lazy<ImmutableArray<RuntimeAssembly>> LazyAll = new(ScanAssemblies);
+    private static readonly Lazy<ImmutableArray<(string Framework, string Path)>> LazyDirectories = new(FindDirectories, LazyThreadSafetyMode.PublicationOnly);
+    private static readonly Lazy<ImmutableArray<string>> LazyDirectoryPaths =
+        new(() => LazyDirectories.Value.Select(d => d.Path).ToImmutableArray(), LazyThreadSafetyMode.PublicationOnly);
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> LazyFilesByName = new(IndexFiles, LazyThreadSafetyMode.PublicationOnly);
+    private static readonly Lazy<ImmutableArray<RuntimeAssembly>> LazyAll = new(ScanAssemblies, LazyThreadSafetyMode.PublicationOnly);
 
     /// <summary>The runtime's own directory first, then the sibling shared frameworks of the same
     /// version (ASP.NET Core, Windows Desktop) that are installed.</summary>
@@ -25,6 +27,8 @@ public static class RuntimeAssemblies
     /// first use.</summary>
     public static IReadOnlyList<RuntimeAssembly> All => LazyAll.Value;
 
+    /// <summary>The runtime's file of the assembly named <paramref name="simpleName"/>, or null.</summary>
+    /// <exception cref="IOException">The runtime's directories cannot be listed for now.</exception>
     internal static string? Find(string simpleName) => LazyFilesByName.Value.GetValueOrDefault(simpleName);
 
     /// <summary>The newest <c>Microsoft.NETCore.App</c> directory under the first of

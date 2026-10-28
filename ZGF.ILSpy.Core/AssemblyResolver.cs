@@ -11,6 +11,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
     private readonly AssemblyList _list;
     private readonly string _mainPath;
     private readonly AssemblyPackage? _package;
+    private readonly string? _targetFramework;
     private readonly Lazy<UniversalAssemblyResolver> _fallback;
 
     /// <param name="package">The package the main assembly was read out of, whose folders are looked
@@ -20,6 +21,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
         _list = list;
         _mainPath = mainPath;
         _package = package;
+        _targetFramework = targetFramework;
         _fallback = new Lazy<UniversalAssemblyResolver>(() =>
             new UniversalAssemblyResolver(mainPath, false, targetFramework, null, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default));
     }
@@ -64,12 +66,27 @@ internal sealed class AssemblyResolver : IAssemblyResolver
             if (found != null)
                 return found;
         }
-        if (RuntimeAssemblies.Find(reference.Name) is { } runtime) return runtime;
+        if (FrameworkIds.RunsOnCore(_targetFramework) && FindInRuntime(reference.Name) is { } runtime)
+            return runtime;
         try
         {
             return _fallback.Value.FindAssemblyFile(reference);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The running runtime's file of <paramref name="name"/>; null when it has none, or its
+    /// directories cannot be listed for now.</summary>
+    private static string? FindInRuntime(string name)
+    {
+        try
+        {
+            return RuntimeAssemblies.Find(name);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return null;
         }
