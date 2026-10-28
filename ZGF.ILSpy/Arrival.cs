@@ -5,4 +5,4 @@ namespace ZGF.ILSpy;
 public readonly record struct Arrival(
     CodeViewPosition? Position = null,
     Bookmark? Target = null,
-    int Row = MetadataGridState.None);
+    int? Row = null);

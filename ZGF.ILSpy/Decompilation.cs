@@ -98,11 +98,11 @@ public static class Decompilation
         appState.EnqueueCommand(new ViewCommand.RevealLine(tab, line));
     }
 
-    private static void RevealRow(AppState appState, DocumentTab tab, int row)
+    private static void RevealRow(AppState appState, DocumentTab tab, int? row)
     {
-        if (row < 0)
+        if (row == null)
             return;
-        appState.EnqueueCommand(new ViewCommand.RevealRow(tab, row));
+        appState.EnqueueCommand(new ViewCommand.RevealRow(tab, row.Value));
     }
 
     /// <summary>The line <paramref name="target"/> marks, else the node's definition, or -1.</summary>

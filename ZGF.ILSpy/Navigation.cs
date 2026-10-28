@@ -398,7 +398,7 @@ public static class Navigation
         BrowseNode node,
         CodeViewPosition? position = null,
         Bookmark? target = null,
-        int row = MetadataGridState.None)
+        int? row = null)
     {
         var shownIn = FindOrOpenTab(appState, destination);
         appState.Tabs.MakeActive(shownIn);
