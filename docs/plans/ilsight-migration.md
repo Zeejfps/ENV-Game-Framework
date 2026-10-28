@@ -1,23 +1,23 @@
-# ILSpelunk Migration
+# ILSight Migration
 
-Move `ZGF.ILSpy` out of this repo into its own repo as **ILSpelunk**, then add Velopack updates and an About page.
+Move `ZGF.ILSpy` out of this repo into its own repo as **ILSight**, then add Velopack updates and an About page.
 Start once the next few features have landed.
 
 ## Identity
 
 | Thing | Value |
 |---|---|
-| Product name | ILSpelunk |
+| Product name | ILSight |
 | Tagline | A .NET assembly explorer |
-| GitHub repo | `Zeejfps/ILSpelunk` (PascalCase, like `Zeejfps/PngSharp`) |
-| Site | `ilspelunk.com`, fallback `ilspelunk.builtbyzee.com` |
-| Update feed | GitHub Releases on `Zeejfps/ILSpelunk` |
-| Velopack `packId` | `ILSpelunk` (permanent: names the install folder `%LocalAppData%\ILSpelunk`, the `.app` and the main exe) |
-| Velopack `packTitle` | `ILSpelunk` |
-| macOS bundle id | `com.builtbyzee.ilspelunk`, passed explicitly; Velopack's default would be `com.ILSpelunk.ILSpelunk` |
-| Assembly / exe name | `ILSpelunk` |
-| Root namespace | `ILSpelunk` |
-| Settings folder | `ApplicationData/ILSpelunk` |
+| GitHub repo | `Zeejfps/ILSight` (PascalCase, like `Zeejfps/PngSharp`) |
+| Site | `ilsight.com`, fallback `ilsight.builtbyzee.com` |
+| Update feed | GitHub Releases on `Zeejfps/ILSight` |
+| Velopack `packId` | `ILSight` (permanent: names the install folder `%LocalAppData%\ILSight`, the `.app` and the main exe) |
+| Velopack `packTitle` | `ILSight` |
+| macOS bundle id | `com.builtbyzee.ilsight`, passed explicitly; Velopack's default would be `com.ILSight.ILSight` |
+| Assembly / exe name | `ILSight` |
+| Root namespace | `ILSight` |
+| Settings folder | `ApplicationData/ILSight` |
 
 ## Decisions
 
@@ -29,37 +29,37 @@ Start once the next few features have landed.
 ## Phase 1 — Extract
 
 1. Pick the ZGF commit to split from and note its SHA.
-2. Throwaway clone: `git clone --no-local <this repo> ilspelunk-extract`.
+2. Throwaway clone: `git clone --no-local <this repo> ilsight-extract`.
 3. `git lfs fetch --all origin` first. The fonts and test-fixture DLLs are LFS objects, and Sandbox's first push failed without this.
 4. Filter:
    ```
    git filter-repo \
      --path ZGF.ILSpy/ --path ZGF.ILSpy.Core/ --path ZGF.ILSpy.Tests/ --path ZGF.ILSpy.App.Tests/ \
      --path docs/plans/ilspy.md --path docs/plans/ilspy-feature-gaps.md --path docs/plans/ilspy-improvements.md \
-     --path docs/plans/ilspelunk-migration.md
+     --path docs/plans/ilsight-migration.md
    ```
 5. `git submodule add https://github.com/Zeejfps/ENV-Game-Framework.git ZGF`, check out the SHA from step 1, then `git submodule update --init --recursive` for the nested PngSharp.
 6. Add root files:
    - `global.json`: copy.
    - `Directory.Build.props`: `Nullable`, `ImplicitUsings`, MinVer. No submodule guard is needed: MSBuild stops at the nearest props file, so `ZGF/` keeps its own.
    - `Directory.Build.targets`: copy both targets. `LoadLocalAnalyzersFromCopies` is needed for `ZGF.Gui.Generator`, and `PublishRuntimeLicenses` for the AOT publish.
-   - `Directory.Packages.props`: only what ILSpelunk uses.
+   - `Directory.Packages.props`: only what ILSight uses.
    - `.gitattributes`: the LFS rules for `*.ttf` and `*.dll`.
    - `.gitignore`, `CLAUDE.md`, `docs/code-readability.md`: copy.
    - `README.md`, `LICENSE`: new.
-7. Point the `ProjectReference`s at `ZGF\...`. Create `ILSpelunk.sln` with the four app projects plus the ZGF projects they reference.
+7. Point the `ProjectReference`s at `ZGF\...`. Create `ILSight.sln` with the four app projects plus the ZGF projects they reference.
 8. Build and run both test projects. Push, then run `git lfs push --all origin`.
 
 ## Phase 2 — Rename (one commit)
 
-- `git mv` the four project folders and csproj files to `ILSpelunk`, `ILSpelunk.Core`, `ILSpelunk.Tests`, `ILSpelunk.App.Tests`.
-- Rename namespace `ZGF.ILSpy` → `ILSpelunk` across all files, along with `InternalsVisibleTo` and the test `Using`.
+- `git mv` the four project folders and csproj files to `ILSight`, `ILSight.Core`, `ILSight.Tests`, `ILSight.App.Tests`.
+- Rename namespace `ZGF.ILSpy` → `ILSight` across all files, along with `InternalsVisibleTo` and the test `Using`.
 - Rename the app's own types: `IlSpyApp`, `ILSpyAppLauncher`.
 - **Keep the names that refer to the real ILSpy:** `ILSpyBookmarkInfo` and `ILSpyFile` (bookmark import), `LICENSE-ILSpy.txt`. Review every remaining `ILSpy` hit by hand rather than replacing them all.
 - Change these strings:
-  - `WindowTitle` → `ILSpelunk`
-  - settings folder → `ILSpelunk`
-  - `BookmarkFile.SuggestedName` → `ILSpelunk.Bookmarks.json`
+  - `WindowTitle` → `ILSight`
+  - settings folder → `ILSight`
+  - `BookmarkFile.SuggestedName` → `ILSight.Bookmarks.json`
 - Set `Product`, `Company` (`builtbyzee`) and `AssemblyName` in the app csproj.
 - Move your own `settings.json` to the new folder by hand. There are no other users, so no migration code.
 - Update the examples in `docs/code-readability.md` (`IlSpyApp` etc.).
@@ -67,12 +67,12 @@ Start once the next few features have landed.
 
 ## Phase 3 — Remove from this repo
 
-Only once ILSpelunk builds green on its own.
+Only once ILSight builds green on its own.
 
 - Delete the four projects, the three `docs/plans/ilspy*.md` files, this file and `builds/ZGF.ILSpy`.
 - Remove the projects from `ENV Game Framework.sln`.
-- Swap the ILSpy examples in this repo's `docs/code-readability.md` for neutral ones, or keep that doc ILSpelunk-only.
-- Check that nothing left in ZGF references them: `ZGF.Gui.Immediate.Testing` stays here, since ILSpelunk consumes it.
+- Swap the ILSpy examples in this repo's `docs/code-readability.md` for neutral ones, or keep that doc ILSight-only.
+- Check that nothing left in ZGF references them: `ZGF.Gui.Immediate.Testing` stays here, since ILSight consumes it.
 
 ## Phase 4 — Velopack
 
@@ -83,14 +83,14 @@ Only once ILSpelunk builds green on its own.
    - download in the background;
    - queue a `ViewCommand` that offers "Restart to update", then apply and restart;
    - add a settings toggle for automatic checks.
-4. Feed: `GithubSource` pointed at `Zeejfps/ILSpelunk`.
+4. Feed: `GithubSource` pointed at `Zeejfps/ILSight`.
 5. CI (`.github/workflows/release.yml`), triggered by a `v*` tag:
    - **Runners:** a matrix of `windows-latest`, `macos-latest` and `ubuntu-latest`. NativeAOT can't cross-compile between OSes.
    - **Checkout:** `submodules: recursive` and `lfs: true`; the GLFW natives inside `ZGF/` are LFS objects. Watch the LFS bandwidth quota.
    - **Build:** `dotnet publish -c Release -r <rid>`.
    - **Pack:**
-     - all OSes: `vpk pack --packId ILSpelunk --packTitle ILSpelunk --packVersion <MinVer> --mainExe <exe> --icon <icon>`;
-     - macOS also: `--bundleId com.builtbyzee.ilspelunk` plus signing and notarization;
+     - all OSes: `vpk pack --packId ILSight --packTitle ILSight --packVersion <MinVer> --mainExe <exe> --icon <icon>`;
+     - macOS also: `--bundleId com.builtbyzee.ilsight` plus signing and notarization;
      - Linux: produces an AppImage, which needs FUSE on the user's machine. The existing `build_linux-x64.dockerfile` can pin an older glibc.
    - **Upload:** `vpk upload github --publish`.
    - **Versions:** keep the `vpk` tool and the `Velopack` package on the same version.
@@ -99,7 +99,7 @@ Only once ILSpelunk builds green on its own.
 
 ## Phase 5 — About page
 
-- Opened from a new Help menu: About ILSpelunk.
+- Opened from a new Help menu: About ILSight.
 - Shows:
   - app icon, name and version (`AssemblyInformationalVersion` from MinVer);
   - a "Check for updates" button with its status;
