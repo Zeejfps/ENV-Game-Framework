@@ -223,6 +223,10 @@ public abstract class GlfwWindowBase : IWindow
 
     public void SetIcon(IReadOnlyList<WindowIconImage> icons)
     {
+        // macOS windows have no icon of their own, and GLFW reports an error for trying; the Dock
+        // shows the app bundle's.
+        if (OperatingSystem.IsMacOS())
+            return;
         var images = new Image[icons.Count];
         var handles = new GCHandle[icons.Count];
         try
