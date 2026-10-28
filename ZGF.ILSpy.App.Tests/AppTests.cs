@@ -662,4 +662,18 @@ public sealed class AppTests
         Assert.False(app.Ui.IsAboutOpen);
         Assert.False(app.Frames.Drew(AppVersions.Decompiler));
     }
+
+    [Fact]
+    public void Shortcuts_pressed_while_a_dialog_is_open_leave_the_window_behind_it()
+    {
+        var app = AppDriver.Opened(width: 1600f);
+        app.Run();
+        Dialogs.OpenAbout(app.Ui);
+        app.Run(2);
+
+        app.Frames.Key(KeyboardKey.F, KeyModifiers.Control | KeyModifiers.Shift).Frame(2);
+
+        Assert.True(app.Ui.IsAboutOpen);
+        Assert.False(app.Ui.Layout.Contains(DockPanels.Search));
+    }
 }

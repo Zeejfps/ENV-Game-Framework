@@ -4,7 +4,6 @@ using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
-using static ZGF.ILSpy.Dialogs;
 using static ZGF.ILSpy.DocumentPanels;
 using static ZGF.ILSpy.ScreenLayout;
 
@@ -55,8 +54,6 @@ internal static class Shortcuts
 
     public static void Handle(Ui<UiState> ui, AppState appState)
     {
-        if (IsDialogOpen(ui.State)) return;
-
         var input = ui.Input;
         if (input.WasPressed(PointerButton.Back))
             GoBack(appState);

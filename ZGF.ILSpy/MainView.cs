@@ -3,7 +3,6 @@ using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
-using static ZGF.ILSpy.Dialogs;
 using static ZGF.ILSpy.DocumentPanels;
 
 namespace ZGF.ILSpy;
@@ -40,13 +39,11 @@ public static class MainView
         AboutDialogView.Render(ui);
     }
 
-    /// <summary>Opens the files dropped on the window, unless a dialog is open over it.</summary>
+    /// <summary>Opens the files dropped on the window.</summary>
     private static void OpenDropped(Ui<UiState> ui, AppState appState)
     {
         var dropped = ui.Input.TakeDroppedFiles();
         if (dropped.Count == 0)
-            return;
-        if (IsDialogOpen(ui.State))
             return;
         OpenDroppedFiles(appState, dropped);
     }
