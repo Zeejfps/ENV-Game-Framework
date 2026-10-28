@@ -524,6 +524,22 @@ public sealed class TreeRowSlotTests
     }
 
     [Fact]
+    public void A_row_whose_badges_spin_shows_the_spinner_after_its_text_in_their_place()
+    {
+        TreeBadge[] badges = [new(IconGlyph.FromFont("U"), "2", 0xFF00FF00)];
+        var model = new Flat(new TreeRow("project", Secondary: "(main)", Badges: badges, BadgesSpinning: true));
+        var state = new TreeViewState<string>(StringComparer.Ordinal);
+        string[] roots = ["root"];
+
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.TreeView("tree", roots, model, state), width: 400f).Frame(2);
+
+        Assert.False(frames.Drew("2"));
+        Assert.NotEmpty(frames.Canvas.Circles);
+        Assert.All(frames.Canvas.Circles, c => Assert.True(c.Inputs.Center.X > frames.TextRect("(main)").Right));
+        Assert.True(frames.TextRect("project").X < frames.TextRect("(main)").X);
+    }
+
+    [Fact]
     public void A_narrow_row_cuts_the_secondary_text_before_its_badges()
     {
         TreeBadge[] badges = [new(IconGlyph.FromFont("U"), "12", 0xFF00FF00)];

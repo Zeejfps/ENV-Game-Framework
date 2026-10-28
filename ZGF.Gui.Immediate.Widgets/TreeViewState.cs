@@ -7,9 +7,11 @@ namespace ZGF.Gui.Immediate.Widgets;
 /// <paramref name="Secondary"/> to stand out, keeping its room as long as the label does while
 /// <paramref name="Secondary"/> gives up its own first. A <paramref name="Spinning"/> row shows the
 /// spinner in its icon's place, in the icon's color when it has one, for work the row's node is doing.
-/// <paramref name="Badges"/> follow the text, in order, and keep their room as long as the label does.</summary>
+/// <paramref name="Badges"/> follow the text, in order, and keep their room as long as the label does.
+/// A <paramref name="BadgesSpinning"/> row shows the spinner in its badges' place instead, for work
+/// that will change them, so the label stays where it is.</summary>
 public readonly record struct TreeRow(string Label, UiIcon? Icon = null, uint LabelColor = 0, string? Tooltip = null, string? Secondary = null,
-    string? SecondaryBold = null, bool Spinning = false, IReadOnlyList<TreeBadge>? Badges = null);
+    string? SecondaryBold = null, bool Spinning = false, IReadOnlyList<TreeBadge>? Badges = null, bool BadgesSpinning = false);
 
 /// <summary>A small glyph and its text drawn in one color after a tree row's text, such as a branch's
 /// commits to push: an up arrow and a count.</summary>

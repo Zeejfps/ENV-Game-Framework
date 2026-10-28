@@ -130,7 +130,9 @@ public static partial class UiWidgets
                     if (content.SecondaryBold != null)
                         ui.Text(content.SecondaryBold, new Box { Width = Sizing.Fit() with { Priority = 1 } }, color: theme.TextMuted, bold: true,
                             overflow: TextOverflow.Ellipsis);
-                    if (content.Badges != null)
+                    if (content.BadgesSpinning)
+                        BadgesSpinner(ui, background);
+                    else if (content.Badges != null)
                         RowBadges(ui, content.Badges);
                 }
                 if (content.Tooltip != null)
@@ -193,6 +195,16 @@ public static partial class UiWidgets
                 ui.Text(badge.Text, fit, color: badge.Color, size: size);
             }
         }
+    }
+
+    /// <summary>The spinner in a row's badges' place, as small as their text, fading toward the row's
+    /// background, or the pane's when the row has none of its own.</summary>
+    private static void BadgesSpinner(Ui ui, uint background)
+    {
+        var theme = ui.Theme;
+        var behind = background != 0 ? background : theme.PaneBackground;
+        using (ui.Box(new Box { Width = Sizing.Fit() with { Priority = 1 }, Height = Sizing.Grow(), AlignY = Align.Center }))
+            ui.Spinner(behind, theme.FontSizeSmall);
     }
 
     private static void RowSpinner(Ui ui, UiIcon? icon, uint background)
