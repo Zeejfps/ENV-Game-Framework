@@ -97,26 +97,33 @@ public sealed class AssemblyPackage
     private static AssemblyPackage ReadZip(string path, ZipArchive archive)
     {
         var tree = new FileTree();
+        var entryNames = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in archive.Entries)
-            AddZipEntry(tree, entry);
-        return tree.CreatePackage(path, isBundle: false, file => ReadZipFile(path, file));
+            AddZipEntry(tree, entryNames, entry);
+        return tree.CreatePackage(path, isBundle: false, file => ReadZipFile(path, file, entryNames[file.FullName]));
     }
 
-    private static void AddZipEntry(FileTree tree, ZipArchiveEntry entry)
+    /// <summary>Adds <paramref name="entry"/> to <paramref name="tree"/> under its name with <c>/</c>
+    /// between folders, remembering the name the zip gives it to read it by; leaves out one whose name
+    /// leads out of the package.</summary>
+    private static void AddZipEntry(FileTree tree, Dictionary<string, string> entryNames, ZipArchiveEntry entry)
     {
-        var fullName = Normalize(entry.FullName);
-        if (fullName.EndsWith(Separator))
+        var fullName = NameInside(entry.FullName);
+        if (string.IsNullOrEmpty(fullName))
+            return;
+        if (IsFolderName(entry.FullName))
         {
-            tree.AddFolder(fullName.TrimEnd(Separator));
+            tree.AddFolder(fullName);
             return;
         }
         tree.AddFile(fullName, entry.Length);
+        entryNames.TryAdd(fullName, entry.FullName);
     }
 
-    private static byte[] ReadZipFile(string path, PackageFile file)
+    private static byte[] ReadZipFile(string path, PackageFile file, string entryName)
     {
         using var archive = ZipFile.OpenRead(path);
-        var entry = archive.GetEntry(file.FullName) ?? throw new IOException($"'{file.FullName}' is no longer in '{path}'.");
+        var entry = archive.GetEntry(entryName) ?? throw new IOException($"'{file.FullName}' is no longer in '{path}'.");
         using var stream = entry.Open();
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
@@ -132,14 +139,35 @@ public sealed class AssemblyPackage
         var byName = new Dictionary<string, SingleFileBundle.Entry>(StringComparer.Ordinal);
         foreach (var entry in entries)
         {
-            var fullName = Normalize(entry.RelativePath);
+            var fullName = NameInside(entry.RelativePath);
+            if (string.IsNullOrEmpty(fullName))
+                continue;
             tree.AddFile(fullName, entry.Size);
             byName.TryAdd(fullName, entry);
         }
         return tree.CreatePackage(path, isBundle: true, file => BundleContents.Read(path, byName[file.FullName]));
     }
 
-    private static string Normalize(string fullName) => fullName.Replace('\\', Separator);
+    private static bool IsFolderName(string name) => name.EndsWith(Separator) || name.EndsWith('\\');
+
+    /// <summary><paramref name="name"/>, as a package entry gives it, with <c>/</c> between folders
+    /// and no empty or <c>.</c> folders; null when it leads out of the package: rooted, on a drive,
+    /// or through <c>..</c>.</summary>
+    private static string? NameInside(string name)
+    {
+        if (name.StartsWith(Separator) || name.StartsWith('\\') || name.Contains(':'))
+            return null;
+        var parts = new List<string>();
+        foreach (var part in name.Split(Separator, '\\'))
+        {
+            if (part == "..")
+                return null;
+            if (part is "" or ".")
+                continue;
+            parts.Add(part);
+        }
+        return string.Join(Separator, parts);
+    }
 
     private static (string Folder, string Name) SplitName(string fullName)
     {

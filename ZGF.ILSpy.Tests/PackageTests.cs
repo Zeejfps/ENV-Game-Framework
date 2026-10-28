@@ -31,6 +31,48 @@ public sealed class PackageTests
     }
 
     [Fact]
+    public void A_zip_entry_named_with_backslashes_is_listed_with_slashes_and_reads_back()
+    {
+        using var temp = new TempDir();
+        var path = temp.Write("Slashes.zip", []);
+        using (var archive = ZipFile.Open(path, ZipArchiveMode.Update))
+        {
+            WriteText(archive, "docs\\guide.txt", "Guide");
+            WriteText(archive, "./readme.txt", "Read me");
+        }
+
+        var package = AssemblyPackage.TryRead(path)!;
+
+        var guide = package.FindFile("docs/guide.txt")!;
+        Assert.Equal("Guide", Encoding.UTF8.GetString(package.ReadFile(guide)));
+        Assert.Equal("Read me", Encoding.UTF8.GetString(package.ReadFile(package.FindFile("readme.txt")!)));
+    }
+
+    [Theory]
+    [InlineData("../evil.txt")]
+    [InlineData("..\\evil.txt")]
+    [InlineData("docs/../../evil.txt")]
+    [InlineData("/evil.txt")]
+    [InlineData("\\evil.txt")]
+    [InlineData("C:/evil.txt")]
+    [InlineData("C:evil.txt")]
+    public void A_zip_entry_whose_name_leads_out_of_the_package_is_left_out(string name)
+    {
+        using var temp = new TempDir();
+        var path = temp.Write("Escape.zip", []);
+        using (var archive = ZipFile.Open(path, ZipArchiveMode.Update))
+        {
+            WriteText(archive, name, "Evil");
+            WriteText(archive, "readme.txt", "Read me");
+        }
+
+        var package = AssemblyPackage.TryRead(path)!;
+
+        Assert.Equal(["readme.txt"], package.ListFiles().Select(static f => f.FullName));
+        Assert.Empty(package.Root.Folders);
+    }
+
+    [Fact]
     public void A_reference_into_a_package_file_itself_finds_nothing_rather_than_failing()
     {
         using var temp = new TempDir();
@@ -320,9 +362,7 @@ public sealed class PackageTests
 
         var extracted = package.Package!.ExtractFolder(package.Root.PackageFolder!, target);
 
-        var failure = Assert.Single(extracted.Failures);
-        Assert.Equal("../escaped.txt", failure.File.FullName);
-        Assert.Null(failure.Error);
+        Assert.Empty(extracted.Failures);
         Assert.False(File.Exists(temp.PathOf("escaped.txt")));
         Assert.Equal([Path.Combine(target, "kept.txt")], extracted.Written);
     }
