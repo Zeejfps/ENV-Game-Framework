@@ -574,19 +574,26 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void PollPointer()
     {
         _window.GetCursorPosition(out var x, out var y);
-        var inside = x >= 0 && y >= 0 && x <= _window.Width && y <= _window.Height;
-        var ui = ToUiSpace(x, y);
-        var point = inside || _pending.FollowsPointerOutside || OverPopup(ui) || WindowAt(ui) != null ? ui : UiInput.Offscreen;
+        var point = _pending.FollowsPointerOutside || IsPointerOverOwnWindow() ? ToUiSpace(x, y) : UiInput.Offscreen;
         if (point == _pending.Pointer) return;
         _pending.MovePointer(point);
         _window.RequestRedraw();
     }
 
-    private bool OverPopup(PointF point)
+    /// <summary>Whether the topmost window under the cursor is one of this app's, so the pointer is
+    /// not over another app's window that covers it.</summary>
+    private bool IsPointerOverOwnWindow()
     {
+        if (_window.IsPointerOver)
+            return true;
         foreach (var popup in _popups)
         {
-            if (!popup.PassThrough && popup.Rect.Contains(point))
+            if (!popup.PassThrough && popup.Surface.Window.IsPointerOver)
+                return true;
+        }
+        foreach (var dialog in _windows)
+        {
+            if (dialog.Window.IsPointerOver)
                 return true;
         }
         return false;
