@@ -77,13 +77,9 @@ public sealed class NodePathTests
         var (_, assembly) = Trees.OpenTestAssembly();
         var root = assembly.Root;
 
-        Assert.False(root.TryGetChildren(out _));
-        Assert.Same(root.LoadingChild, root.LoadingChild);
-        Assert.Equal(NodeKind.Loading, root.LoadingChild.Kind);
-        Assert.Same(root, root.LoadingChild.Parent);
+        Assert.IsType<ChildrenState.Unloaded>(root.ChildrenState);
 
         var built = root.Children;
-        Assert.True(root.TryGetChildren(out var children));
-        Assert.Same(built, children);
+        Assert.Same(built, Assert.IsType<ChildrenState.Ready>(root.ChildrenState).Children);
     }
 }

@@ -22,7 +22,7 @@ public static class Decompilation
 
     private static async void Load(AppState appState, DocumentTab tab, BrowseNode node, LoadTicket load)
     {
-        var loading = NodeContentLoader.LoadAsync(node, tab.Language, tab.Options, load.Token);
+        var loading = NodeContentLoader.LoadAsync(appState.Session, node, tab.Language, tab.Options, load.Token);
         await Background.Wait(loading);
         FinishLoading(appState, tab, node, load, loading);
     }

@@ -14,7 +14,6 @@ public sealed class SavedPathTests : IDisposable
 
     public static IEnumerable<object[]> SavedKinds() =>
         Enum.GetValues<NodeKind>()
-            .Where(static k => k is not (NodeKind.Error or NodeKind.Loading))
             .Select(static k => new object[] { k });
 
     [Theory]

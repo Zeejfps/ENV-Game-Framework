@@ -103,9 +103,9 @@ internal sealed class AvaloniaResourcesNode : BrowseNode, IResourceData, IModule
 
     public byte[] ReadData() => ResourceNodes.Read(_resource);
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() =>
+    internal override BrowseNode[] CreateChildren() =>
         AvaloniaResources.ReadEntries(ReadData())
             .OrderBy(e => e.Path, NaturalStringComparer.Instance)
             .Select(e => new ResourceEntryNode(Module, this, e.Path, e.Data))
@@ -178,9 +178,9 @@ internal sealed class ResourcesFileNode : MetadataGridNode, IResourceData
 
     public byte[] ReadData() => ResourceNodes.Read(_resource);
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() =>
+    internal override BrowseNode[] CreateChildren() =>
         _entries.Value
             .Select(e => e.Value switch
             {

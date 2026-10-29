@@ -45,7 +45,7 @@ public sealed class NestedNamespaceTests
     private static IReadOnlyList<BrowseNode> ShownChildren(AppDriver app, BrowseNode node)
     {
         node.LoadChildren();
-        return app.Ui.Tree.GetChildren(node);
+        return app.Ui.Tree.GetChildren(node).Nodes;
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class NestedNamespaceTests
     [Fact]
     public void Showing_public_api_a_namespace_of_internal_types_is_hidden_unless_a_namespace_nested_in_it_shows()
     {
-        var tree = new BrowseTree();
+        var tree = new BrowseTree(TestSession.Shared);
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
         var fixtures = root.Child(AppStateDriver.FixturesNamespace);
         var vault = root.Child(AppStateDriver.FixturesNamespace + ".Vault");
@@ -83,16 +83,16 @@ public sealed class NestedNamespaceTests
         vault.LoadChildren();
         tree.ShowApi(ApiVisibility.PublicOnly);
 
-        Assert.DoesNotContain(vault, tree.GetChildren(root));
-        Assert.Contains(door, tree.GetChildren(root));
+        Assert.DoesNotContain(vault, tree.GetChildren(root).Nodes);
+        Assert.Contains(door, tree.GetChildren(root).Nodes);
 
         tree.NestNamespaces(true);
-        Assert.Contains(vault, tree.GetChildren(fixtures));
-        Assert.Equal([door], tree.GetChildren(vault));
+        Assert.Contains(vault, tree.GetChildren(fixtures).Nodes);
+        Assert.Equal([door], tree.GetChildren(vault).Nodes);
 
         tree.NestNamespaces(false);
         tree.ShowApi(ApiVisibility.AllButCompilerGenerated);
-        Assert.Contains(vault, tree.GetChildren(root));
+        Assert.Contains(vault, tree.GetChildren(root).Nodes);
     }
 
     [Fact]

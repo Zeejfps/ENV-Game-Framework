@@ -18,22 +18,44 @@ public sealed class BrowseTreeTests
     public void A_node_whose_children_are_not_built_shows_a_loading_row_until_they_are()
     {
         var d = new AppStateDriver();
-        var tree = new BrowseTree();
+        var tree = new BrowseTree(TestSession.Shared);
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
 
         var first = tree.GetChildren(root);
 
-        Assert.Equal([root.LoadingChild], first);
-        Assert.Equal("Loading…", tree.Row(root.LoadingChild).Label);
-        Assert.True(tree.Row(root.LoadingChild).Spinning);
-        d.RunUntil(() => root.TryGetChildren(out _) && tree.GetChildren(root) is not [{ Kind: NodeKind.Loading }]);
-        Assert.Contains(tree.GetChildren(root), c => c.Text == AppStateDriver.FixturesNamespace);
+        Assert.Empty(first.Nodes);
+        var loading = Assert.IsType<TreeRow>(first.PlaceholderRow);
+        Assert.Equal("Loading…", loading.Label);
+        Assert.True(loading.Spinning);
+        d.RunUntil(() => tree.GetChildren(root).PlaceholderRow == null);
+        Assert.Contains(tree.GetChildren(root).Nodes, c => c.Text == AppStateDriver.FixturesNamespace);
+    }
+
+    [Fact]
+    public void Children_that_fail_to_build_show_a_row_saying_why()
+    {
+        using var temp = new TempDir();
+        var d = new AppStateDriver();
+        var tree = new BrowseTree(TestSession.Shared);
+        var root = new AssemblyList().Open(BrokenAssemblies.WriteUnreadableAvaloniaContainer(temp)).Root;
+        var container = root.Child("Resources", BrokenAssemblies.AvaloniaContainer);
+
+        tree.GetChildren(container);
+        d.RunUntil(() => container.ChildrenState is ChildrenState.Failed);
+
+        var children = tree.GetChildren(container);
+        var failed = Assert.IsType<TreeRow>(children.PlaceholderRow);
+        Assert.Empty(children.Nodes);
+        Assert.StartsWith("Error: ", failed.Label);
+        Assert.Contains("unknown version 9", failed.Label);
+        Assert.False(failed.Spinning);
+        Assert.True(tree.HasChildren(container));
     }
 
     [Fact]
     public void An_assembly_spins_while_it_is_reopened()
     {
-        var tree = new BrowseTree();
+        var tree = new BrowseTree(TestSession.Shared);
         var assembly = new AssemblyList().Open(AppStateDriver.FixturePath);
         var reopens = new Reopens();
         tree.ShowReopening(reopens.Files);
@@ -50,7 +72,7 @@ public sealed class BrowseTreeTests
     public void Revealing_a_hidden_non_public_node_selects_its_nearest_shown_ancestor()
     {
         var d = new AppStateDriver();
-        var tree = new BrowseTree();
+        var tree = new BrowseTree(TestSession.Shared);
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
         var ns = root.Child(AppStateDriver.FixturesNamespace);
         var secret = ns.Child("Hidden", "Secret() : int");
@@ -67,23 +89,23 @@ public sealed class BrowseTreeTests
     [Fact]
     public void Compiler_generated_members_show_only_when_everything_is_shown()
     {
-        var tree = new BrowseTree();
+        var tree = new BrowseTree(TestSession.Shared);
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
         var counter = root.Child(AppStateDriver.FixturesNamespace, "Counter");
         var backingField = counter.Child("<Count>k__BackingField : int");
 
         Assert.True(backingField.IsCompilerGenerated);
-        Assert.DoesNotContain(backingField, tree.GetChildren(counter));
+        Assert.DoesNotContain(backingField, tree.GetChildren(counter).Nodes);
 
         tree.ShowApi(ApiVisibility.All);
 
-        Assert.Contains(backingField, tree.GetChildren(counter));
+        Assert.Contains(backingField, tree.GetChildren(counter).Nodes);
     }
 
     [Fact]
     public void The_public_children_cache_does_not_keep_closed_assemblies_alive()
     {
-        var tree = new BrowseTree();
+        var tree = new BrowseTree(TestSession.Shared);
         tree.ShowApi(ApiVisibility.PublicOnly);
         var assembly = FilterAndClose(tree);
 
@@ -104,7 +126,7 @@ public sealed class BrowseTreeTests
         var assembly = list.Open(AppStateDriver.FixturePath);
         var root = assembly.Root;
         _ = root.Children;
-        Assert.NotEmpty(tree.GetChildren(root));
+        Assert.NotEmpty(tree.GetChildren(root).Nodes);
         list.Close(assembly);
         return new WeakReference(assembly);
     }
@@ -269,7 +291,7 @@ public sealed class AppSettingsTests : IDisposable
     public void An_unreadable_file_falls_back_to_defaults_and_is_reported()
     {
         var (loaded, problem) = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", """));
-        var appState = new AppState(loaded);
+        var appState = new AppState(loaded, TestSession.Shared);
         ReportSettingsProblem(appState, problem);
 
         Assert.Empty(loaded.AssemblyLists);
@@ -283,7 +305,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         const string broken = """{ "Assemblies": [ "a.dll", """;
         var (loaded, problem) = AppSettings.Load(Written(broken));
-        var appState = new AppState(loaded);
+        var appState = new AppState(loaded, TestSession.Shared);
         ReportSettingsProblem(appState, problem);
 
         Assert.IsType<SettingsWrite.Written>(loaded.Save());
@@ -327,7 +349,7 @@ public sealed class AppSettingsTests : IDisposable
               "AssemblyLists": [ { "Name": "Work", "Assemblies": [ "C:\\a.dll" ] } ] }
             """;
         var (loaded, problem) = AppSettings.Load(Written(json));
-        var appState = new AppState(loaded);
+        var appState = new AppState(loaded, TestSession.Shared);
         ReportSettingsProblem(appState, problem);
 
         var leftOut = Assert.IsType<SettingsProblem.ValuesLeftOut>(problem);

@@ -23,11 +23,7 @@ internal sealed class MetadataFolderNode(LoadedModule assembly, BrowseNode paren
 {
     public MetadataFile File { get; } = file;
 
-    private protected override bool MayHaveChildren => true;
-
-    /// <summary>The node listing the rows of <paramref name="table"/>, or null when it has none.</summary>
-    public MetadataGridNode? FindTable(TableIndex table) =>
-        Children.OfType<MetadataTablesNode>().FirstOrDefault()?.Children.OfType<MetadataGridNode>().FirstOrDefault(n => n.Table == table);
+    internal override bool MayHaveChildren => true;
 
     internal override IEnumerable<string> Lines()
     {
@@ -49,7 +45,7 @@ internal sealed class MetadataFolderNode(LoadedModule assembly, BrowseNode paren
             yield return line;
     }
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var result = new List<BrowseNode>();
         if (File is PEFile pe)
@@ -71,7 +67,7 @@ internal sealed class MetadataFolderNode(LoadedModule assembly, BrowseNode paren
 internal sealed class MetadataTablesNode(LoadedModule assembly, BrowseNode parent, MetadataFile file)
     : MetadataTextNode(assembly, parent, NodeKind.MetadataTables, "Tables")
 {
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
     internal static IEnumerable<string> Counts(MetadataReader metadata)
     {
@@ -85,7 +81,7 @@ internal sealed class MetadataTablesNode(LoadedModule assembly, BrowseNode paren
 
     internal override IEnumerable<string> Lines() => Counts(file.Metadata).Prepend("Tables");
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var metadata = file.Metadata;
         var result = new List<BrowseNode>();
@@ -133,28 +129,6 @@ internal class MetadataGridNode(LoadedModule assembly, BrowseNode parent, NodeKi
     /// <summary>The table this lists, for a table node.</summary>
     public TableIndex? Table => schema.Table;
 
-    /// <summary>The "Metadata" folder this belongs to.</summary>
-    private MetadataFolderNode? Folder
-    {
-        get
-        {
-            for (var node = Parent; node != null; node = node.Parent)
-            {
-                if (node is MetadataFolderNode folder) return folder;
-            }
-            return null;
-        }
-    }
-
-    /// <summary>The node of the table <paramref name="address"/> names, among the tables of the
-    /// metadata this grid lists, and the row there.</summary>
-    internal MetadataTarget? Find(MetadataAddress address)
-    {
-        var table = Folder?.FindTable(address.Table);
-        if (table == null) return null;
-        return new MetadataTarget(table, address.Row);
-    }
-
     public MetadataGrid Grid
     {
         get
@@ -168,27 +142,13 @@ internal class MetadataGridNode(LoadedModule assembly, BrowseNode parent, NodeKi
 /// <summary>Where a token cell leads: a row of a table node.</summary>
 public readonly record struct MetadataTarget(BrowseNode Node, int Row);
 
-/// <summary>Where the links of a grid lead in the tree.</summary>
-public static class MetadataLinks
-{
-    /// <summary>The table node and row that <paramref name="address"/>, a link of the grid
-    /// <paramref name="shown"/> shows, leads to; null when <paramref name="shown"/> shows no grid of
-    /// metadata, or its metadata lists no such table.</summary>
-    public static MetadataTarget? Find(BrowseNode shown, MetadataAddress address)
-    {
-        if (shown is not MetadataGridNode grid)
-            return null;
-        return grid.Find(address);
-    }
-}
-
 /// <summary>ILSpy's "Debug Directory": its entries as a grid, and each as a node of its own.</summary>
 internal sealed class DebugDirectoryNode(LoadedModule assembly, BrowseNode parent, PEFile file)
     : MetadataGridNode(assembly, parent, NodeKind.MetadataDirectory, "Debug Directory", file, PEHeaderEntries.DebugDirectory(file))
 {
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var reader = file.Reader;
         var result = new List<BrowseNode>();

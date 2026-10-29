@@ -13,6 +13,9 @@ public sealed class TreeViewTests
         public string Name { get; } = name;
         public List<Node> Children { get; } = children.ToList();
 
+        /// <summary>The row shown in place of the children, when they are not there to show.</summary>
+        public TreeRow? Placeholder { get; init; }
+
         public override string ToString() => Name;
     }
 
@@ -23,12 +26,14 @@ public sealed class TreeViewTests
         public uint IconBackground;
         public bool Spinning;
 
-        public bool HasChildren(Node node) => node.Children.Count > 0;
+        public bool HasChildren(Node node) => node.Children.Count > 0 || node.Placeholder != null;
 
-        public IReadOnlyList<Node> GetChildren(Node node)
+        public TreeChildren<Node> GetChildren(Node node)
         {
             ChildCalls++;
-            return node.Children;
+            if (node.Placeholder != null)
+                return TreeChildren<Node>.Placeholder(node.Placeholder.Value);
+            return TreeChildren<Node>.Of(node.Children);
         }
 
         public TreeRow Row(Node node)
@@ -119,6 +124,30 @@ public sealed class TreeViewTests
 
         Assert.Empty(tree.Frames.Canvas.Circles);
         Assert.True(double.IsPositiveInfinity(tree.Frames.WakeAt));
+    }
+
+    [Fact]
+    public void A_placeholder_row_shows_in_place_of_children_and_neither_selects_nor_expands()
+    {
+        var pending = new Node("A") { Placeholder = new TreeRow("Loading…", Spinning: true) };
+        var tree = new Tree(pending, new Node("B"));
+        tree.State.SetExpanded(pending, true);
+        tree.State.Refresh();
+        tree.Frame();
+
+        Assert.Equal(3, tree.State.VisibleCount);
+        Assert.True(tree.Frames.Drew("Loading…"));
+
+        tree.Click(1);
+        Assert.False(tree.State.HasSelection);
+
+        tree.Click(0);
+        tree.Key(KeyboardKey.DownArrow);
+        Assert.Equal("B", tree.Selected);
+        tree.Key(KeyboardKey.UpArrow);
+        Assert.Equal("A", tree.Selected);
+        tree.Key(KeyboardKey.RightArrow);
+        Assert.Equal("A", tree.Selected);
     }
 
     [Fact]
@@ -482,7 +511,7 @@ public sealed class TreeViewTests
     private sealed class FlatModel : ITreeModel<int>
     {
         public bool HasChildren(int node) => false;
-        public IReadOnlyList<int> GetChildren(int node) => [];
+        public TreeChildren<int> GetChildren(int node) => TreeChildren<int>.Of([]);
         public TreeRow Row(int node) => new("row");
     }
 }

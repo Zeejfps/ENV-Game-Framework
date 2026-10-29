@@ -14,9 +14,10 @@ public sealed class Omnibar
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed.</param>
-    public Omnibar(Func<Strings> strings, Action<AppProblem> reportError)
+    /// <param name="session">The browse tree the search finds nodes of.</param>
+    public Omnibar(Func<Strings> strings, Action<AppProblem> reportError, BrowseSession session)
     {
-        Search = new Search(strings, reportError);
+        Search = new Search(strings, reportError, session);
     }
 
     /// <summary>The query typed into the bar and its matches, the closest first.</summary>

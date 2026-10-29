@@ -44,8 +44,6 @@ public static class NodeIcons
         NodeKind.Method => icons.NodeMethod,
         NodeKind.Constructor => icons.NodeConstructor,
         NodeKind.Operator => icons.NodeOperator,
-        NodeKind.Error => icons.NodeError,
-        NodeKind.Loading => icons.NodeLoading,
         NodeKind.Metadata => icons.NodeMetadata,
         NodeKind.MetadataHeader => icons.NodeMetadataHeader,
         NodeKind.MetadataDirectory => icons.NodeMetadataDirectory,
@@ -97,8 +95,6 @@ public static class NodeIcons
         NodeKind.Method => NodeIconRole.Method,
         NodeKind.Constructor => NodeIconRole.Method,
         NodeKind.Operator => NodeIconRole.Method,
-        NodeKind.Error => NodeIconRole.Error,
-        NodeKind.Loading => NodeIconRole.Neutral,
         NodeKind.Metadata => NodeIconRole.Neutral,
         NodeKind.MetadataHeader => NodeIconRole.Neutral,
         NodeKind.MetadataDirectory => NodeIconRole.Neutral,
@@ -140,6 +136,12 @@ public static class NodeIcons
     /// <paramref name="accessibility"/>.</summary>
     public static UiIcon Icon(NodeKind kind, NodeAccessibility accessibility, NodeIconPalette palette, AppIcons icons) =>
         new(Glyph(kind, icons), palette.For(kind), Overlay: Overlay(accessibility, icons), OverlayColor: palette.Restricted);
+
+    /// <summary>The icon of the row shown while a node's children are being read.</summary>
+    public static UiIcon Loading(NodeIconPalette palette, AppIcons icons) => new(icons.NodeLoading, palette.Neutral);
+
+    /// <summary>The icon of the row shown in place of children that could not be read.</summary>
+    public static UiIcon Failed(NodeIconPalette palette, AppIcons icons) => new(icons.NodeError, palette.Error);
 
     /// <summary>Records <paramref name="kind"/>'s <see cref="Icon"/> as the tree shows it, in the screen's
     /// icons and icon colors.</summary>

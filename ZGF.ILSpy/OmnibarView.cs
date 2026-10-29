@@ -230,7 +230,12 @@ internal static class OmnibarView
         if (!flyout.IsOpen)
             return;
         var children = ui.State.Tree.GetChildren(menu.Node!);
-        var shown = menu.ListShown(children, ui.State.Tree);
+        if (children.PlaceholderRow is TreeRow placeholder)
+        {
+            ui.Text(placeholder.Label, color: theme.TextMuted);
+            return;
+        }
+        var shown = menu.ListShown(children.Nodes, ui.State.Tree);
         var listId = HashCode.Combine(owner, ListSalt);
         var submitted = Filter(ui, menu, shown);
         var picked = ChildRows(ui, menu, shown, listId);

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -7,9 +8,12 @@ namespace ZGF.ILSpy;
 
 /// <summary>The browse tree over the open assemblies: its roots, the model the tree view reads
 /// and the view's expansion and selection. Children not built yet show a loading row while they
-/// are built in the background.</summary>
+/// are built in the background, and children that failed to build a row saying why.</summary>
 public sealed class BrowseTree : ITreeModel<BrowseNode>
 {
+    private const string LoadingLabel = "Loading…";
+
+    private readonly BrowseSession _session;
     private readonly ConditionalWeakTable<BrowseNode, BrowseNode[]> _shownChildren = new();
     private readonly HashSet<BrowseNode> _building = new(ReferenceEqualityComparer.Instance);
     private BrowseNode[] _roots = [];
@@ -24,6 +28,12 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private AppIcons _icons = BuiltInIconThemes.Reference.Icons;
     private TokenFormat _tokens = TokenFormat.Hidden;
     private IReadOnlyCollection<AssemblyPath> _reopening = [];
+
+    /// <param name="session">The browse tree whose nodes this shows.</param>
+    public BrowseTree(BrowseSession session)
+    {
+        _session = session;
+    }
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
     public IReadOnlyList<BrowseNode> Roots => _roots;
@@ -41,7 +51,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         var listed = assemblies.Listed;
         var roots = new BrowseNode[listed.Count];
         for (var i = 0; i < roots.Length; i++)
-            roots[i] = listed[i].Root;
+            roots[i] = _session.RootOf(listed[i]);
         FollowGoneRoots(roots);
         _roots = roots;
         _rootLabels = RootLabels(roots);
@@ -92,14 +102,14 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     /// <summary>The node standing where <paramref name="node"/> does, under <paramref name="root"/>
     /// in place of <paramref name="node"/>'s root, found through children already loaded.</summary>
-    private static BrowseNode? FindCounterpart(BrowseNode node, BrowseNode root)
+    private BrowseNode? FindCounterpart(BrowseNode node, BrowseNode root)
     {
         if (node.Parent == null)
             return root;
         var parent = FindCounterpart(node.Parent, root);
         if (parent == null)
             return null;
-        return parent.FindLoadedChildLike(node);
+        return _session.FindLoadedChildLike(parent, node);
     }
 
     /// <summary>Collapses <paramref name="node"/> and the nodes under it, expanding each one's
@@ -111,17 +121,17 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.SetExpanded(node, false);
         if (counterpart != null)
             View.SetExpanded(counterpart, true);
-        if (!node.TryGetChildren(out var children))
+        if (_session.PeekChildren(node) is not ChildrenState.Ready loaded)
             return;
-        foreach (var child in children)
+        foreach (var child in loaded.Children)
             FollowExpansion(child, FindChildLike(counterpart, child));
     }
 
-    private static BrowseNode? FindChildLike(BrowseNode? parent, BrowseNode child)
+    private BrowseNode? FindChildLike(BrowseNode? parent, BrowseNode child)
     {
         if (parent == null)
             return null;
-        return parent.FindLoadedChildLike(child);
+        return _session.FindLoadedChildLike(parent, child);
     }
 
     /// <summary>The node's name as tabs show it: assemblies listed more than once under one name
@@ -267,8 +277,8 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
             {
                 if (!View.IsExpanded(node)) continue;
                 paths.Add(node.Path);
-                if (node.TryGetChildren(out var children))
-                    Collect(children);
+                if (_session.PeekChildren(node) is ChildrenState.Ready loaded)
+                    Collect(loaded.Children);
             }
         }
     }
@@ -295,20 +305,16 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private async void ExpandAssembly(BrowseNode root, int ticket)
     {
         View.SetExpanded(root, true);
-        var built = await Background.Run(() => BuildChildren(root));
+        var built = await Background.Wait(_session.LoadChildrenAsync(root));
         if (_expansion.IsStale(ticket))
             return;
-        if (built is not Outcome<IReadOnlyList<BrowseNode>>.Ok { Value: var children })
+        if (built is not Outcome<ChildrenState>.Ok ok)
             return;
-        foreach (var child in children)
+        if (ok.Value is not ChildrenState.Ready loaded)
+            return;
+        foreach (var child in loaded.Children)
             ExpandIfNamespace(child);
         View.Refresh();
-    }
-
-    private static IReadOnlyList<BrowseNode> BuildChildren(BrowseNode node)
-    {
-        node.LoadChildren();
-        return node.Children;
     }
 
     private void ExpandIfNamespace(BrowseNode node)
@@ -332,17 +338,32 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     public bool HasChildren(BrowseNode node)
     {
-        if (!_nestNamespaces) return node.HasChildren;
-        return node.HasChildren || node.InnerNamespaces.Count > 0;
+        if (!_nestNamespaces) return _session.HasChildren(node);
+        return _session.HasChildren(node) || node.InnerNamespaces.Count > 0;
     }
 
-    public IReadOnlyList<BrowseNode> GetChildren(BrowseNode node)
+    /// <summary>The children shown under <paramref name="node"/>: those not hidden, with namespaces
+    /// nested when the tree nests them; while they are being built a loading row, which starts
+    /// building them, and a row saying why when they could not be.</summary>
+    public TreeChildren<BrowseNode> GetChildren(BrowseNode node)
     {
-        if (!TryGetShapedChildren(node, out var children))
+        var state = _nestNamespaces ? _session.PeekNestedChildren(node) : _session.PeekChildren(node);
+        switch (state)
         {
-            Build(node);
-            return [node.LoadingChild];
+            case ChildrenState.Ready ready:
+                return TreeChildren<BrowseNode>.Of(Shown(node, ready.Children));
+            case ChildrenState.Failed failed:
+                return TreeChildren<BrowseNode>.Placeholder(FailedRow(failed.Error));
+            case ChildrenState.Running or ChildrenState.Unloaded:
+                Build(node);
+                return TreeChildren<BrowseNode>.Placeholder(LoadingRow());
+            default:
+                throw new UnreachableException();
         }
+    }
+
+    private BrowseNode[] Shown(BrowseNode node, IReadOnlyList<BrowseNode> children)
+    {
         if (_shownChildren.TryGetValue(node, out var cached)) return cached;
         var shown = children
             .Where(c => !IsHidden(c))
@@ -351,32 +372,25 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         return shown;
     }
 
-    /// <summary>The children if they are built already, with namespaces nested when the tree nests them.</summary>
-    private bool TryGetShapedChildren(BrowseNode node, out IReadOnlyList<BrowseNode> children)
-    {
-        if (_nestNamespaces)
-            return node.TryGetNestedChildren(out children);
-        return node.TryGetChildren(out children);
-    }
+    private TreeRow LoadingRow() => new(LoadingLabel, NodeIcons.Loading(_iconColors, _icons), _theme.TextMuted, Spinning: true);
+
+    private TreeRow FailedRow(Exception error) => new($"Error: {error.Message}", NodeIcons.Failed(_iconColors, _icons), Tooltip: error.Message);
 
     public TreeRow Row(BrowseNode node) => new(
         RowLabel(node),
         NodeIcons.Icon(node.Kind, node.Accessibility, _iconColors, _icons),
-        node.IsPublicApi && node.Kind != NodeKind.Loading ? 0u : _theme.TextMuted,
-        Tooltip: node.Kind == NodeKind.Loading ? null : NodeText.Tooltip(node),
+        node.IsPublicApi ? 0u : _theme.TextMuted,
+        Tooltip: NodeText.Tooltip(node),
         Secondary: SecondaryOf(node),
         SecondaryBold: NodeText.PickedFramework(node),
-        Spinning: IsBusy(node));
+        Spinning: IsReopening(node));
 
-    /// <summary>Whether the node stands in for children being built, or is the root of an assembly
-    /// being reopened.</summary>
-    private bool IsBusy(BrowseNode node)
+    /// <summary>Whether the node is the root of a listed file being reopened.</summary>
+    private bool IsReopening(BrowseNode node)
     {
-        if (node.Kind == NodeKind.Loading)
-            return true;
         if (_reopening.Count == 0)
             return false;
-        return node == node.Assembly.Root && _reopening.Contains(node.Assembly.FilePath);
+        return node.Parent == null && _reopening.Contains(node.Assembly.FilePath);
     }
 
     /// <summary>The node's metadata token when the tree shows tokens and it has one, else what
@@ -438,7 +452,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private async void Build(BrowseNode node)
     {
         if (!_building.Add(node)) return;
-        await Background.Run(() => node.Children);
+        await Background.Wait(_session.LoadChildrenAsync(node));
         _building.Remove(node);
         View.Refresh();
     }

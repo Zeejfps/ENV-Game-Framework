@@ -22,44 +22,9 @@ internal sealed class PackageNode(LoadedPackage package)
 
     public override string FullName => Assembly.FilePath.Text;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() => PackageContents.ListChildren(package, this, Folder);
-
-    /// <summary>The node of the folder at <paramref name="folder"/>, a path from the package's root:
-    /// the folder's own node, or the node it is merged into; this node for the root.</summary>
-    public BrowseNode FindFolderNode(string folder)
-    {
-        BrowseNode node = this;
-        while (true)
-        {
-            var next = FindChildFolderHolding(node, folder);
-            if (next == null)
-                return node;
-            if (next.Folder.FullName == folder)
-                return next;
-            node = next;
-        }
-    }
-
-    private static PackageFolderNode? FindChildFolderHolding(BrowseNode node, string folder)
-    {
-        foreach (var child in node.Children)
-        {
-            if (child is not PackageFolderNode folderNode)
-                continue;
-            if (IsWithin(folder, folderNode.Folder.FullName))
-                return folderNode;
-        }
-        return null;
-    }
-
-    private static bool IsWithin(string folder, string candidate)
-    {
-        if (folder == candidate)
-            return true;
-        return folder.StartsWith(candidate + "/", StringComparison.Ordinal);
-    }
+    internal override BrowseNode[] CreateChildren() => PackageContents.ListChildren(package, this, Folder);
 }
 
 /// <summary>A folder of a package. A folder holding nothing but one folder is merged with it into one
@@ -74,9 +39,9 @@ internal sealed class PackageFolderNode(LoadedPackage package, BrowseNode parent
 
     public override string FullName => Folder.FullName;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() => PackageContents.ListChildren(package, this, Folder);
+    internal override BrowseNode[] CreateChildren() => PackageContents.ListChildren(package, this, Folder);
 }
 
 /// <summary>A file of a package that is no assembly: shown as text, a picture or its bytes, read out
@@ -135,7 +100,7 @@ internal static class PackageContents
         var assembly = package.FindAssembly(file);
         if (assembly == null)
             return new PackageFileNode(package, parent, file);
-        return assembly.PlaceInPackage(parent);
+        return new AssemblyNode(assembly, parent);
     }
 
     public static bool IsAssemblyName(string name)

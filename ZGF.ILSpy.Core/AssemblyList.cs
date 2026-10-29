@@ -284,80 +284,10 @@ public sealed class AssemblyList
         return listed;
     }
 
-    /// <summary>
-    /// The node <paramref name="reference"/> points at, opening the assembly that defines it if it is
-    /// not open yet and its file can be found. For an entity hidden from the tree (compiler-generated)
-    /// the nearest visible ancestor is returned. Null if the reference is not navigable or cannot be
-    /// resolved. May load files: prefer calling it off the UI thread.
-    /// </summary>
-    /// <summary>The node of the namespace, type or member <paramref name="idString"/> names, written as
-    /// XML documentation ids are, such as <c>T:System.String</c>, in the first of <paramref name="assemblies"/>
-    /// that defines it; null when none does. May read the assemblies: call it off the UI thread.</summary>
-    public BrowseNode? FindNodeById(string idString, IEnumerable<LoadedModule> assemblies)
-    {
-        foreach (var assembly in assemblies)
-        {
-            var node = FindNodeById(idString, assembly);
-            if (node != null)
-                return node;
-        }
-        return null;
-    }
-
-    private static BrowseNode? FindNodeById(string idString, LoadedModule assembly)
-    {
-        try
-        {
-            return assembly.FindNodeById(idString);
-        }
-        catch (Exception e) when (IsUnreadable(e))
-        {
-            return null;
-        }
-    }
-
-    public BrowseNode? FindNode(CodeReference reference)
-    {
-        try
-        {
-            var (assembly, handle) = ResolveListed(reference);
-            if (assembly is null)
-                return null;
-            if (handle.Kind == HandleKind.AssemblyDefinition)
-                return assembly.Root;
-            return assembly.FindNodeOrAncestor(handle);
-        }
-        catch (Exception e) when (IsUnreadable(e))
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// The metadata table row that defines what <paramref name="reference"/> points at: the row of a
-    /// type or member, or an assembly's own row, opening and listing the assembly that defines it as
-    /// <see cref="FindNode(CodeReference)"/> does. Null if the reference is not navigable or cannot
-    /// be resolved. May load files: prefer calling it off the UI thread.
-    /// </summary>
-    public MetadataTarget? FindMetadataRow(CodeReference reference)
-    {
-        try
-        {
-            var (assembly, handle) = ResolveListed(reference);
-            if (assembly is null)
-                return null;
-            return assembly.AssemblyRoot.FindMetadataRow(handle);
-        }
-        catch (Exception e) when (IsUnreadable(e))
-        {
-            return null;
-        }
-    }
-
     /// <summary>The listed assembly that defines what <paramref name="reference"/> points at, and the
     /// handle of its definition there: the assembly's own handle for an assembly. A null assembly
     /// when it cannot be resolved or listed.</summary>
-    private (LoadedModule? Assembly, EntityHandle Handle) ResolveListed(CodeReference reference)
+    internal (LoadedModule? Assembly, EntityHandle Handle) ResolveListed(CodeReference reference)
     {
         if (reference.FilePath is null)
             return default;
@@ -383,7 +313,7 @@ public sealed class AssemblyList
         return (target, EntityHandle.AssemblyDefinition);
     }
 
-    private static bool IsUnreadable(Exception e) => e is BadImageFormatException or IOException;
+    internal static bool IsUnreadable(Exception e) => e is BadImageFormatException or IOException;
 
     /// <summary>
     /// What hovering <paramref name="reference"/> explains: the declaration and XML documentation of
@@ -483,44 +413,21 @@ public sealed class AssemblyList
         return (entity, assembly);
     }
 
-    /// <summary>
-    /// The node <paramref name="path"/> names, opening its assembly if it is not open and its file
-    /// still exists, or the root of a file listed as failed. Null if the file cannot be opened or no
-    /// longer has that node. May load files and build children: prefer calling it off the UI thread.
-    /// </summary>
-    public BrowseNode? FindNode(NodePath path)
+    /// <summary>The listed item <paramref name="path"/> names: its assembly, opened and listed if it is not
+    /// and its file still exists, or the file listed as failed there. Null if the file cannot be opened,
+    /// or the list was cleared meanwhile. May load files: call it off the UI thread.</summary>
+    internal LoadedAssembly? OpenListed(AssemblyPath path)
     {
         var generation = Generation;
-        try
-        {
-            var assembly = TryLoad(path.FilePath, generation) ?? FindListedFailure(path.FilePath);
-            return assembly is not null && TryList(assembly, generation) ? path.Resolve(assembly.Root) : null;
-        }
-        catch (Exception e) when (IsUnreadable(e))
-        {
+        var assembly = TryLoad(path, generation) ?? FindListedFailure(path);
+        if (assembly is null || !TryList(assembly, generation))
             return null;
-        }
+        return assembly;
     }
 
-    /// <summary>The node <paramref name="path"/> leads to in an assembly the list holds now, or null when
-    /// it holds none at that path or the node is no longer there. Opens and lists nothing, so a lookup
-    /// that outlives a switch to another list leaves the new list as it is.</summary>
-    public BrowseNode? FindListedNode(NodePath path)
-    {
-        var assembly = FindListedLoaded(path.FilePath);
-        if (assembly == null)
-            return null;
-        try
-        {
-            return path.Resolve(assembly.Root);
-        }
-        catch (Exception e) when (IsUnreadable(e))
-        {
-            return null;
-        }
-    }
-
-    private LoadedAssembly? FindListedLoaded(AssemblyPath path)
+    /// <summary>The item the list holds now that was read from <paramref name="path"/>; null when it
+    /// holds none there, or only a file that failed.</summary>
+    internal LoadedAssembly? FindListedLoaded(AssemblyPath path)
     {
         var listed = _listed;
         foreach (var assembly in listed)
@@ -532,25 +439,6 @@ public sealed class AssemblyList
         }
         return null;
     }
-
-    /// <summary>
-    /// Searches the open assemblies for what <paramref name="query"/> asks, on a background thread.
-    /// Results arrive in batches as they are found.
-    /// </summary>
-    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default) =>
-        AssemblySearch.Run(_loaded, query, cancellationToken);
-
-    /// <summary><see cref="SearchAsync(SearchQuery, CancellationToken)"/> over
-    /// <paramref name="assemblies"/> only, e.g. those opened since the last search.</summary>
-    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, IEnumerable<LoadedModule> assemblies,
-        CancellationToken cancellationToken = default) =>
-        AssemblySearch.Run([..assemblies], query, cancellationToken);
-
-    /// <summary><see cref="SearchAsync(SearchQuery, CancellationToken)"/> for
-    /// <paramref name="text"/> parsed with <see cref="SearchQuery.Parse"/>.</summary>
-    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(string text, SearchKinds kinds = SearchKinds.TypesAndMembers,
-        CancellationToken cancellationToken = default) =>
-        SearchAsync(SearchQuery.Parse(text, kinds), cancellationToken);
 
     internal LoadedAssembly? TryLoad(AssemblyPath path) => TryLoad(path, Generation);
 

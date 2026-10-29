@@ -28,8 +28,6 @@ public enum NodeKind
     Method,
     Constructor,
     Operator,
-    Error,
-    Loading,
     Metadata,
     MetadataHeader,
     MetadataDirectory,
@@ -68,18 +66,15 @@ public enum NodeAccessibility
 }
 
 /// <summary>
-/// A node of the browse tree. Children are built on first access, once, and cached, so the same
-/// entity is always the same node object while its <see cref="Assembly"/> stays loaded. All members
-/// are thread-safe.
+/// A node of the browse tree: what it stands for and where it sits. Its children are built and kept by
+/// a <see cref="BrowseSession"/>, so the same entity is the same node object for as long as its
+/// <see cref="Assembly"/> lives. All members are thread-safe.
 /// </summary>
 public abstract class BrowseNode
 {
     private static readonly BrowseNode[] NoChildren = [];
 
-    private readonly Lock _gate = new();
-    private BrowseNode[]? _children;
     private NodePath? _path;
-    private BrowseNode? _loading;
 
     private protected BrowseNode(LoadedAssembly assembly, BrowseNode? parent, NodeKind kind, string text)
     {
@@ -160,95 +155,20 @@ public abstract class BrowseNode
     /// <summary>A qualified name for copying, e.g. <c>System.Collections.Generic.List&lt;T&gt;.Add(T)</c>.</summary>
     public virtual string FullName => Text;
 
-    /// <summary>Whether this node has children, answered without building them where possible.</summary>
-    public bool HasChildren
-    {
-        get
-        {
-            var children = Volatile.Read(ref _children);
-            return children != null ? children.Length > 0 : MayHaveChildren;
-        }
-    }
-
-    /// <summary>The children in ILSpy's order, built on first access.</summary>
-    public IReadOnlyList<BrowseNode> Children
-    {
-        get
-        {
-            var children = Volatile.Read(ref _children);
-            if (children != null) return children;
-            lock (_gate)
-            {
-                if (_children is null)
-                {
-                    BrowseNode[] built;
-                    try
-                    {
-                        built = CreateChildren();
-                    }
-                    catch (Exception e)
-                    {
-                        built = [new ErrorNode(Assembly, this, e)];
-                    }
-                    Volatile.Write(ref _children, built.Length == 0 ? NoChildren : built);
-                }
-                return _children!;
-            }
-        }
-    }
-
-    public void LoadChildren()
-    {
-        _ = Children;
-    }
-
-    /// <summary>The children if they are built already; never blocks.</summary>
-    public bool TryGetChildren(out IReadOnlyList<BrowseNode> children)
-    {
-        children = Volatile.Read(ref _children)!;
-        return children != null;
-    }
-
-    /// <summary>The children as the tree lists them when it nests namespaces, if they are built
-    /// already: for an assembly, its children but the namespaces nested in others; for a namespace,
-    /// the namespaces nested in it and its own children, sorted together by name; else
-    /// <see cref="Children"/>. Never blocks.</summary>
-    public bool TryGetNestedChildren(out IReadOnlyList<BrowseNode> children)
-    {
-        if (!TryGetChildren(out children))
-            return false;
-        children = Nest(children);
-        return true;
-    }
-
-    private protected virtual IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => children;
-
-    /// <summary>The child standing where <paramref name="other"/> stands under its own parent, of its kind
-    /// and text: its counterpart under this node's copy, read again, of the same file. Null when there is
-    /// none, or the children are not built yet; never blocks.</summary>
-    public BrowseNode? FindLoadedChildLike(BrowseNode other)
-    {
-        if (!TryGetChildren(out var children))
-            return null;
-        foreach (var child in children)
-        {
-            if (child.Kind == other.Kind && child.Text == other.Text)
-                return child;
-        }
-        return null;
-    }
+    /// <summary>The children as the tree lists them when it nests namespaces, given
+    /// <paramref name="children"/>, those built: for an assembly, its children but the namespaces nested
+    /// in others; for a namespace, the namespaces nested in it and its own children, sorted together by
+    /// name; else <paramref name="children"/>.</summary>
+    internal virtual IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => children;
 
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
     public NodePath Path => _path ??= NodePath.Of(this);
 
-    /// <summary>A child of kind <see cref="NodeKind.Loading"/> to show while <see cref="Children"/>
-    /// are being built; the same node every time.</summary>
-    public BrowseNode LoadingChild =>
-        Volatile.Read(ref _loading) ?? Interlocked.CompareExchange(ref _loading, new LoadingNode(Assembly, this), null) ?? _loading!;
+    /// <summary>Whether this node may have children, guessed without building them.</summary>
+    internal virtual bool MayHaveChildren => false;
 
-    private protected virtual bool MayHaveChildren => false;
-
-    private protected virtual BrowseNode[] CreateChildren() => NoChildren;
+    /// <summary>Builds the children in ILSpy's order; the <see cref="BrowseSession"/> calls it once.</summary>
+    internal virtual BrowseNode[] CreateChildren() => NoChildren;
 
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
     /// reads, to save them.</summary>
@@ -278,5 +198,3 @@ public abstract class BrowseNode
 
     public override string ToString() => Text;
 }
-
-internal sealed class LoadingNode(LoadedAssembly assembly, BrowseNode parent) : BrowseNode(assembly, parent, NodeKind.Loading, "Loading…");

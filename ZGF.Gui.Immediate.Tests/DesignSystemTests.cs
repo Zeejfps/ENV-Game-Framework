@@ -473,7 +473,7 @@ public sealed class TreeRowSlotTests
     private sealed class Flat(TreeRow row) : ITreeModel<string>
     {
         public bool HasChildren(string node) => false;
-        public IReadOnlyList<string> GetChildren(string node) => [];
+        public TreeChildren<string> GetChildren(string node) => TreeChildren<string>.Of([]);
         public TreeRow Row(string node) => row;
     }
 

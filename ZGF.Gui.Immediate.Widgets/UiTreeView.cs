@@ -24,6 +24,7 @@ public readonly record struct TreeViewResult<TNode>(
 public static partial class UiWidgets
 {
     private const int DisclosureSalt = 0x44495343;
+    private const int PlaceholderSalt = 0x504C4143;
 
     /// <summary>
     /// A virtualized tree over <paramref name="roots"/> and the hierarchy <paramref name="model"/>
@@ -73,6 +74,11 @@ public static partial class UiWidgets
             for (var i = list.First; i < list.End; i++)
             {
                 var flat = state.Rows[i];
+                if (flat.PlaceholderRow is TreeRow placeholder)
+                {
+                    PlaceholderRow(ui, HashCode.Combine(RowId(treeId, state, flat.Node), PlaceholderSalt), placeholder, flat.Depth);
+                    continue;
+                }
                 var rowId = RowId(treeId, state, flat.Node);
                 var row = ui.Interact(rowId);
                 var hasChildren = model.HasChildren(flat.Node);
@@ -166,6 +172,30 @@ public static partial class UiWidgets
         };
     }
 
+    /// <summary>The row a node shows in place of its children, at their depth: its mark and label,
+    /// muted, which neither select nor expand.</summary>
+    private static void PlaceholderRow(Ui ui, int rowId, TreeRow content, int depth)
+    {
+        var theme = ui.Theme;
+        using (ui.Row(rowId, new Box
+        {
+            Width = Sizing.Grow(),
+            Height = theme.RowHeight,
+            Gap = theme.GapTight,
+            Padding = new Spacing(theme.TreePaddingX + depth * theme.TreeIndent, 0f, theme.TreePaddingX, 0f),
+        }))
+        {
+            using (ui.Box(new Box { Width = theme.DisclosureWidth, Height = Sizing.Grow() }))
+            {
+            }
+            RowMark(ui, content, 0);
+            ui.Text(content.Label, new Box { Width = Sizing.Fit() with { Priority = 1 } },
+                color: content.LabelColor != 0 ? content.LabelColor : theme.TextMuted, overflow: TextOverflow.Ellipsis);
+        }
+        if (content.Tooltip != null)
+            ui.Tooltip(rowId, content.Tooltip);
+    }
+
     /// <summary>A row's icon, or while its node is at work the spinner in the icon's place, in the
     /// icon's color when it has one. Its dots fade toward the row's background, or the pane's when
     /// the row has none of its own.</summary>
@@ -232,6 +262,10 @@ public static partial class UiWidgets
             var current = selection;
             if (ApplyListKey(stroke, ref selection, count, page))
             {
+                if (selection >= 0)
+                    selection = state.NodeRowNear(selection, selection < current ? -1 : 1);
+                if (selection < 0)
+                    selection = current;
                 if (selection != current)
                     state.SelectAt(selection);
                 continue;
@@ -259,7 +293,7 @@ public static partial class UiWidgets
                         toggled = row.Node;
                         hasToggled = true;
                     }
-                    else if (current + 1 < state.Rows.Count && state.Rows[current + 1].Depth > row.Depth)
+                    else if (current + 1 < state.Rows.Count && state.Rows[current + 1].Depth > row.Depth && !state.Rows[current + 1].IsPlaceholder)
                         selection = current + 1;
                     break;
                 case KeyboardKey.Enter when current >= 0:

@@ -188,7 +188,7 @@ public class ImmediateTreeBenchmarks
     private sealed class Model : ITreeModel<Node>
     {
         public bool HasChildren(Node node) => node.Children.Length > 0;
-        public IReadOnlyList<Node> GetChildren(Node node) => node.Children;
+        public TreeChildren<Node> GetChildren(Node node) => TreeChildren<Node>.Of(node.Children);
         public TreeRow Row(Node node) => new(node.Label, new UiIcon(IconGlyph.FromFont("#"), Color: 0xFF4C8DFF, Background: 0x334C8DFF));
     }
 

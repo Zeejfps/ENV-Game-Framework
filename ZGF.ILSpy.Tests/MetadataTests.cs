@@ -89,7 +89,7 @@ public sealed class MetadataTests
                         var link = grid.Link(row, column);
                         if (link != null)
                         {
-                            var target = Assert.IsType<MetadataTarget>(MetadataLinks.Find(node, link.Value));
+                            var target = Assert.IsType<MetadataTarget>(TestSession.Shared.FindMetadataRow(node, link.Value));
                             Assert.InRange(target.Row, 0, Grid(target.Node).RowCount - 1);
                         }
                     }
@@ -167,7 +167,7 @@ public sealed class MetadataTests
         var row = grid.RowNamed("Calculator`1");
 
         var link = Assert.IsType<MetadataAddress>(grid.Link(row, grid.Column("BaseType")));
-        var target = Assert.IsType<MetadataTarget>(MetadataLinks.Find(types, link));
+        var target = Assert.IsType<MetadataTarget>(TestSession.Shared.FindMetadataRow(types, link));
 
         Assert.Same(Table(assembly, "TypeRef"), target.Node);
         var typeRefs = Grid(target.Node);
@@ -445,7 +445,7 @@ public sealed class MetadataTests
         Assert.Equal(1, map.RowCount);
         Assert.Equal(type, Hex(map, 0, "Handle"));
         Assert.Equal(new MetadataAddress(TableIndex.TypeDef, 0), map.Link(0, map.Column("Handle")));
-        Assert.Equal(new MetadataTarget(Table(assembly, "TypeDef"), 0), MetadataLinks.Find(Table(assembly, "EncMap"), new MetadataAddress(TableIndex.TypeDef, 0)));
+        Assert.Equal(new MetadataTarget(Table(assembly, "TypeDef"), 0), TestSession.Shared.FindMetadataRow(Table(assembly, "EncMap"), new MetadataAddress(TableIndex.TypeDef, 0)));
     }
 
     /// <summary>An assembly whose metadata logs two changes to its one type, as an edit and continue

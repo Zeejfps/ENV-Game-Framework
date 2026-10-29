@@ -22,6 +22,10 @@ public sealed class AppState
     public AppSettings Settings { get; }
     public AssemblyList Assemblies { get; } = new();
 
+    /// <summary>The browse tree of the assemblies: their roots, the children built so far and the
+    /// nodes of their types and members.</summary>
+    public BrowseSession Session { get; }
+
     /// <summary>The named assembly lists, one of which <see cref="Assemblies"/> holds open.</summary>
     public SavedAssemblyLists Lists { get; } = new();
 
@@ -167,8 +171,9 @@ public sealed class AppState
         return comparison.IsComparing;
     }
 
-    public AppState(AppSettings settings)
+    public AppState(AppSettings settings, BrowseSession session)
     {
+        Session = session;
         Settings = settings;
         Tooltips = new CodeTooltips(Assemblies);
         Theme = settings.Theme;
@@ -205,7 +210,10 @@ public sealed class AppState
 
     /// <summary>True when the assembly at <paramref name="node"/>'s root, or the package it was read out
     /// of, is open in the active list, loaded or failed.</summary>
-    public bool IsListed(BrowseNode node) => Assemblies.Listed.Contains(node.Root.Assembly.ListedItem);
+    public bool IsListed(BrowseNode node) => IsListed(node.Root.Assembly);
+
+    /// <summary>Whether the list holds <paramref name="assembly"/>, or the package it was read out of.</summary>
+    internal bool IsListed(LoadedAssembly assembly) => Assemblies.Listed.Contains(assembly.ListedItem);
 
     /// <summary>True when the assembly or package at <paramref name="filePath"/> is open in the active
     /// list and loaded.</summary>

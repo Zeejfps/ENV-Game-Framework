@@ -32,33 +32,12 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
 
     public override string FullName => Module.FullName;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    public NamespaceNode? FindNamespace(string name)
-    {
-        _ = Children;
-        return Volatile.Read(ref _namespaces)?.GetValueOrDefault(name);
-    }
+    /// <summary>The namespace named <paramref name="name"/>, once the children are built; else null.</summary>
+    internal NamespaceNode? NamespaceNamed(string name) => Volatile.Read(ref _namespaces)?.GetValueOrDefault(name);
 
-    /// <summary>The row <paramref name="handle"/> names in this assembly's own metadata tables, or null
-    /// when it names no table row or the tables could not be read.</summary>
-    public MetadataTarget? FindMetadataRow(EntityHandle handle)
-    {
-        if (!MetadataTokens.TryGetTableIndex(handle.Kind, out var index))
-            return null;
-        var metadata = Children
-            .OfType<MetadataFolderNode>()
-            .FirstOrDefault(f => ReferenceEquals(f.File, Module.File));
-        if (metadata == null)
-            return null;
-        var table = metadata.FindTable(index);
-        if (table == null)
-            return null;
-        var row = MetadataTokens.GetRowNumber(handle) - 1;
-        return new MetadataTarget(table, row);
-    }
-
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var file = Module.File;
         var result = new List<BrowseNode> { new MetadataFolderNode(Module, this, file, "Metadata") };
@@ -119,7 +98,7 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
             .ToArray();
     }
 
-    private protected override IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => _nested ?? children;
+    internal override IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => _nested ?? children;
 
     /// <summary>The assembly's name, version and the framework it was built for. The framework picked
     /// to resolve its references against is left out, so that the label, by which paths find the node,
@@ -153,7 +132,7 @@ internal sealed class ReferencesFolderNode(LoadedModule assembly, BrowseNode par
 {
     public LoadedModule Module { get; } = assembly;
 
-    private protected override bool MayHaveChildren => HasReferences(Module);
+    internal override bool MayHaveChildren => HasReferences(Module);
 
     private static bool HasReferences(LoadedModule assembly)
     {
@@ -163,7 +142,7 @@ internal sealed class ReferencesFolderNode(LoadedModule assembly, BrowseNode par
     }
 
     /// <summary>The assemblies referenced, then the modules, each sorted by name.</summary>
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var assemblies = AssemblyReferenceNode.ListReferences(Module, this);
         var modules = ModuleReferenceNode.ListReferences(Module, this);
@@ -193,9 +172,9 @@ internal sealed class ModuleReferenceNode : BrowseNode, IModuleNode
     /// <summary>Whether the assembly's file table lists the module as one holding metadata.</summary>
     public bool ContainsMetadata { get; }
 
-    private protected override bool MayHaveChildren => _imports.Count > 0;
+    internal override bool MayHaveChildren => _imports.Count > 0;
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var module = Module.TypeSystem.MainModule;
         return _imports
@@ -374,9 +353,9 @@ internal sealed class AssemblyReferenceNode : BrowseNode, IModuleNode
 
     public override string FullName => AssemblyReference.FullName;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var children = new List<BrowseNode>();
         if (Module.ReferenceUsage.Uses(AssemblyReference.Handle))
@@ -413,9 +392,9 @@ internal sealed class ResourcesFolderNode(LoadedModule assembly, BrowseNode pare
 {
     public LoadedModule Module { get; } = assembly;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() =>
+    internal override BrowseNode[] CreateChildren() =>
         Module.File.Resources
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
             .Select(r => ResourceNodes.Create(Module, this, r))
@@ -466,9 +445,9 @@ internal sealed class NamespaceNode : BrowseNode, IModuleNode
         _inner.Add(inner);
     }
 
-    private protected override bool MayHaveChildren => !IsEnclosingOnly;
+    internal override bool MayHaveChildren => !IsEnclosingOnly;
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var sorted = SortChildren();
         _nested = Interleave(sorted);
@@ -513,7 +492,7 @@ internal sealed class NamespaceNode : BrowseNode, IModuleNode
         return NaturalStringComparer.Instance.Compare(key, child.ReflectionName) < 0;
     }
 
-    private protected override IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => _nested ?? children;
+    internal override IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => _nested ?? children;
 
     /// <summary>A type of the namespace with what it is sorted by: its name without type parameters,
     /// then how many it has.</summary>
@@ -566,7 +545,6 @@ internal abstract class EntityNode : BrowseNode, IModuleNode
         IsCompilerGenerated = parent.IsCompilerGenerated || Members.IsCompilerGenerated(entity);
         Reference = CodeReference.To(entity);
         Token = MetadataTokens.GetToken(entity.MetadataToken);
-        assembly.Register(entity.MetadataToken, this);
     }
 
     public IEntity Entity { get; }
@@ -579,7 +557,7 @@ internal sealed class TypeNode(LoadedModule assembly, BrowseNode parent, ITypeDe
 {
     public ITypeDefinition Type => (ITypeDefinition)Entity;
 
-    private protected override bool MayHaveChildren
+    internal override bool MayHaveChildren
     {
         get
         {
@@ -590,7 +568,7 @@ internal sealed class TypeNode(LoadedModule assembly, BrowseNode parent, ITypeDe
         }
     }
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var type = Type;
         var result = new List<BrowseNode>();
@@ -626,9 +604,9 @@ internal sealed class MemberNode(LoadedModule assembly, BrowseNode parent, IMemb
 {
     public IMember Member => (IMember)Entity;
 
-    private protected override bool MayHaveChildren => Member is IProperty or IEvent;
+    internal override bool MayHaveChildren => Member is IProperty or IEvent;
 
-    private protected override BrowseNode[] CreateChildren() =>
+    internal override BrowseNode[] CreateChildren() =>
         Members.Accessors(Member)
             .Where(a => !a.MetadataToken.IsNil)
             .Select(a => (BrowseNode)new MemberNode(Module, this, a))
@@ -642,9 +620,9 @@ internal sealed class BaseTypesNode(LoadedModule assembly, BrowseNode parent, IT
 
     public ITypeDefinition Type { get; } = type;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() =>
+    internal override BrowseNode[] CreateChildren() =>
         Type.DirectBaseTypes.Select(t => (BrowseNode)new BaseTypeNode(Module, this, t)).ToArray();
 }
 
@@ -679,9 +657,9 @@ internal sealed class DerivedTypesNode(LoadedModule assembly, BrowseNode parent,
 
     public ITypeDefinition Type { get; } = type;
 
-    private protected override bool MayHaveChildren => true;
+    internal override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() => Find(Module, this, Type);
+    internal override BrowseNode[] CreateChildren() => Find(Module, this, Type);
 
     /// <summary>Whether anything can derive from <paramref name="type"/>: a class that is not sealed,
     /// or an interface.</summary>
@@ -715,15 +693,9 @@ internal sealed class DerivedTypeNode : BrowseNode, IModuleNode
 
     public ITypeDefinition Type { get; }
 
-    private protected override bool MayHaveChildren => !Type.IsSealed;
+    internal override bool MayHaveChildren => !Type.IsSealed;
 
-    private protected override BrowseNode[] CreateChildren() => DerivedTypesNode.Find(Module, this, Type);
-}
-
-internal sealed class ErrorNode(LoadedAssembly assembly, BrowseNode parent, Exception error)
-    : BrowseNode(assembly, parent, NodeKind.Error, $"Error: {error.Message}")
-{
-    public Exception Error { get; } = error;
+    internal override BrowseNode[] CreateChildren() => DerivedTypesNode.Find(Module, this, Type);
 }
 
 internal static class Members

@@ -34,7 +34,7 @@ public static class Assemblies
         {
             case Outcome<LoadedAssembly?>.Ok ok when ok.Value != null:
                 if (!appState.Intent.IsStale(ticket))
-                    ShowNode(appState, ok.Value.Root);
+                    ShowNode(appState, appState.Session.RootOf(ok.Value));
                 break;
             case Outcome<LoadedAssembly?>.Ok:
                 break;
@@ -103,7 +103,7 @@ public static class Assemblies
             ReportUnreadablePdb(appState, assembly, pdbPath, check);
             return;
         }
-        if (!appState.IsListed(assembly.Root))
+        if (!appState.IsListed(assembly))
             return;
         appState.Assemblies.Pdbs.Pick(assembly.FilePath, pdbPath);
         ReopenAssembly(appState, assembly);
@@ -120,7 +120,7 @@ public static class Assemblies
     /// to show it. Does nothing when that is the framework already in use.</summary>
     public static void SetTargetFramework(AppState appState, LoadedModule assembly, string? framework)
     {
-        if (!appState.IsListed(assembly.Root))
+        if (!appState.IsListed(assembly))
             return;
         if (IsInUse(assembly, framework))
             return;
@@ -184,9 +184,10 @@ public static class Assemblies
     private static Reopened ReadAgain(AppState appState, LoadedAssembly item, List<NodePath> places)
     {
         var fresh = appState.Assemblies.ReadAgain(item);
-        LoadAsLoaded(item.Root, fresh.Root);
+        var session = appState.Session;
+        LoadAsLoaded(session, session.RootOf(item), session.RootOf(fresh));
         var placeNodes = places
-            .Select(fresh.FindNode)
+            .Select(p => session.Find(fresh, p))
             .ToArray();
         return new Reopened(fresh, placeNodes);
     }
@@ -194,16 +195,16 @@ public static class Assemblies
     /// <summary>Loads the children of each node under <paramref name="fresh"/> whose counterpart under
     /// <paramref name="old"/> has them loaded, so that the tree can show the fresh nodes as it showed
     /// the old ones.</summary>
-    private static void LoadAsLoaded(BrowseNode old, BrowseNode fresh)
+    private static void LoadAsLoaded(BrowseSession session, BrowseNode old, BrowseNode fresh)
     {
-        if (!old.TryGetChildren(out var children))
+        if (session.PeekChildren(old) is not ChildrenState.Ready loaded)
             return;
-        fresh.LoadChildren();
-        foreach (var child in children)
+        session.LoadChildren(fresh);
+        foreach (var child in loaded.Children)
         {
-            var counterpart = fresh.FindLoadedChildLike(child);
+            var counterpart = session.FindLoadedChildLike(fresh, child);
             if (counterpart != null)
-                LoadAsLoaded(child, counterpart);
+                LoadAsLoaded(session, child, counterpart);
         }
     }
 
@@ -329,10 +330,10 @@ public static class Assemblies
         foreach (var path in expanded)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var node = appState.Assemblies.FindNode(path);
+            var node = NodeLookup.Find(appState.Assemblies, appState.Session, path);
             if (node == null)
                 continue;
-            node.LoadChildren();
+            appState.Session.LoadChildren(node);
             nodes.Add(node);
         }
         return nodes;
@@ -344,7 +345,7 @@ public static class Assemblies
         for (var i = 0; i < found.Length; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            found[i] = appState.Assemblies.FindNode(places[i]);
+            found[i] = NodeLookup.Find(appState.Assemblies, appState.Session, places[i]);
         }
         return found;
     }

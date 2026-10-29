@@ -141,6 +141,8 @@ public sealed class ComparisonRows : ITreeModel<ApiEntry>
 
     public IReadOnlyList<ApiEntry> GetChildren(ApiEntry entry) => ListShown(entry.Children);
 
+    TreeChildren<ApiEntry> ITreeModel<ApiEntry>.GetChildren(ApiEntry entry) => TreeChildren<ApiEntry>.Of(GetChildren(entry));
+
     private IReadOnlyList<ApiEntry> ListShown(IReadOnlyList<ApiEntry> entries)
     {
         if (!OnlyDifferences)

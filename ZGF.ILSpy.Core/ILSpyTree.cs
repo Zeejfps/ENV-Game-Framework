@@ -61,20 +61,20 @@ public static class ILSpyTree
     /// in, as <see cref="Describe"/> records it: the node <paramref name="treePath"/> names, else the
     /// node of the entity with metadata <paramref name="token"/> or its nearest ancestor. Loads the
     /// assembly without listing it; null when it cannot be opened or has neither.</summary>
-    public static NodePath? Locate(AssemblyList list, AssemblyPath filePath, IReadOnlyList<string>? treePath, uint token) =>
-        (treePath is { Count: > 0 } ? Find(list, treePath) : null) ?? FindEntity(list, filePath, token);
+    public static NodePath? Locate(AssemblyList list, BrowseSession session, AssemblyPath filePath, IReadOnlyList<string>? treePath, uint token) =>
+        (treePath is { Count: > 0 } ? Find(list, session, treePath) : null) ?? FindEntity(list, session, filePath, token);
 
-    private static NodePath? Find(AssemblyList list, IReadOnlyList<string> path)
+    private static NodePath? Find(AssemblyList list, BrowseSession session, IReadOnlyList<string> path)
     {
         var filePath = AssemblyPath.Parse(path[0]);
         if (filePath == null) return null;
         var assembly = Load(list, filePath);
         if (assembly == null) return null;
-        var node = assembly.Root;
+        BrowseNode node = session.RootOf(assembly);
         for (var i = 1; i < path.Count; i++)
         {
             BrowseNode? next = null;
-            foreach (var child in node.Children)
+            foreach (var child in session.ChildrenOf(node))
             {
                 if (NameOf(child) != path[i]) continue;
                 next = child;
@@ -86,14 +86,14 @@ public static class ILSpyTree
         return node.Path;
     }
 
-    private static NodePath? FindEntity(AssemblyList list, AssemblyPath filePath, uint token)
+    private static NodePath? FindEntity(AssemblyList list, BrowseSession session, AssemblyPath filePath, uint token)
     {
         if (token == 0) return null;
         var assembly = Load(list, filePath);
         if (assembly == null) return null;
         try
         {
-            return assembly.FindNodeOrAncestor(MetadataTokens.EntityHandle((int)token))?.Path;
+            return session.FindOrAncestor(assembly, MetadataTokens.EntityHandle((int)token))?.Path;
         }
         catch (Exception e) when (e is ArgumentException or BadImageFormatException)
         {

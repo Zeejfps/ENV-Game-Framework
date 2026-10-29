@@ -237,7 +237,7 @@ public static class SavedDocuments
             return;
         var places = nodes.ConvertAll(static n => n.Place);
         appState.Reopened.StartFinding();
-        var found = await Background.Run(() => FindNodes(appState.Assemblies, places));
+        var found = await Background.Run(() => FindNodes(appState.Assemblies, appState.Session, places));
         appState.Reopened.StopFinding();
         var shown = found switch
         {
@@ -249,16 +249,16 @@ public static class SavedDocuments
             ShowReopenedNode(appState, nodes[i], shown[i]);
     }
 
-    private static List<BrowseNode?> FindNodes(AssemblyList list, List<NodePath?> places)
+    private static List<BrowseNode?> FindNodes(AssemblyList list, BrowseSession session, List<NodePath?> places)
     {
-        return places.ConvertAll(p => FindNode(list, p));
+        return places.ConvertAll(p => FindNode(list, session, p));
     }
 
-    private static BrowseNode? FindNode(AssemblyList list, NodePath? place)
+    private static BrowseNode? FindNode(AssemblyList list, BrowseSession session, NodePath? place)
     {
         if (place == null)
             return null;
-        return list.FindListedNode(place);
+        return NodeLookup.FindListed(list, session, place);
     }
 
     /// <summary>Shows <paramref name="node"/>, found where the waiting tab's node was, back where its view

@@ -10,9 +10,9 @@ internal sealed class ReferencedTypesNode(LoadedModule assembly, BrowseNode pare
 {
     public LoadedModule Module { get; } = assembly;
 
-    private protected override bool MayHaveChildren => Module.ReferenceUsage.Uses(reference);
+    internal override bool MayHaveChildren => Module.ReferenceUsage.Uses(reference);
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var usage = Module.ReferenceUsage;
         var metadata = Module.File.Metadata;
@@ -71,7 +71,7 @@ internal sealed class TypeReferenceNode : BrowseNode, IModuleNode
         return $"{ns}.{label}";
     }
 
-    private protected override bool MayHaveChildren
+    internal override bool MayHaveChildren
     {
         get
         {
@@ -82,7 +82,7 @@ internal sealed class TypeReferenceNode : BrowseNode, IModuleNode
         }
     }
 
-    private protected override BrowseNode[] CreateChildren()
+    internal override BrowseNode[] CreateChildren()
     {
         var usage = Module.ReferenceUsage;
         var module = Module.TypeSystem.MainModule;

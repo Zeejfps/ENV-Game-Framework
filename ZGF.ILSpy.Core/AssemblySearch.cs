@@ -18,19 +18,25 @@ namespace ZGF.ILSpy.Core;
 /// closer, and 0 for compiler-generated names.</param>
 public sealed record SearchResult(BrowseNode Node, string Text, string Location, float Fitness);
 
-internal static class AssemblySearch
+/// <summary>Searches assemblies for the nodes of a <see cref="BrowseSession"/> a query finds.</summary>
+public static class AssemblySearch
 {
-    public static IAsyncEnumerable<IReadOnlyList<SearchResult>> Run(ImmutableArray<LoadedModule> assemblies, SearchQuery query,
-        CancellationToken cancellationToken) =>
-        Batches.Stream<SearchResult>((emit, token) =>
+    /// <summary>Searches <paramref name="assemblies"/> for what <paramref name="query"/> asks, on a
+    /// background thread. Results arrive in batches as they are found.</summary>
+    public static IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(BrowseSession session, IEnumerable<LoadedModule> assemblies,
+        SearchQuery query, CancellationToken cancellationToken = default)
+    {
+        var searched = assemblies.ToImmutableArray();
+        return Batches.Stream<SearchResult>((emit, token) =>
         {
             if (query.IsEmpty) return;
-            var search = new Search(query, emit, token);
-            foreach (var assembly in assemblies)
+            var search = new Search(session, query, emit, token);
+            foreach (var assembly in searched)
                 search.Run(assembly);
         }, cancellationToken);
+    }
 
-    private sealed class Search(SearchQuery query, Action<SearchResult> emit, CancellationToken cancellationToken)
+    private sealed class Search(BrowseSession session, SearchQuery query, Action<SearchResult> emit, CancellationToken cancellationToken)
     {
         private readonly HashSet<BrowseNode> _found = new(ReferenceEqualityComparer.Instance);
 
@@ -270,7 +276,7 @@ internal static class AssemblySearch
 
         private void ScanResources(LoadedModule assembly)
         {
-            foreach (var child in assembly.Root.Children)
+            foreach (var child in session.ChildrenOf(session.RootOf(assembly)))
             {
                 if (child.Kind == NodeKind.ResourcesFolder)
                     ScanResources(child);
@@ -279,13 +285,12 @@ internal static class AssemblySearch
 
         private void ScanResources(BrowseNode parent)
         {
-            foreach (var node in parent.Children)
+            foreach (var node in session.ChildrenOf(parent))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (node.Kind is NodeKind.Error or NodeKind.Loading) continue;
                 if (query.IsMatch(node.Text))
                     Add(node, parent.Kind == NodeKind.ResourcesFile ? parent.Text : "");
-                if (node.HasChildren)
+                if (session.HasChildren(node))
                     ScanResources(node);
             }
         }
@@ -299,12 +304,12 @@ internal static class AssemblySearch
                 _ => query.IsMatch(assembly.Name) || query.IsMatch(assembly.FilePath.FileName),
             };
             if (matches)
-                Add(assembly.Root, assembly.FilePath.Text);
+                Add(session.RootOf(assembly), assembly.FilePath.Text);
         }
 
         private void ScanNamespaces(LoadedModule assembly)
         {
-            foreach (var node in assembly.Root.Children)
+            foreach (var node in session.ChildrenOf(session.RootOf(assembly)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (IsNamespaceFound(node))
@@ -339,7 +344,7 @@ internal static class AssemblySearch
             BrowseNode? node;
             try
             {
-                node = assembly.FindNodeOrAncestor(handle);
+                node = session.FindOrAncestor(assembly, handle);
             }
             catch (Exception e) when (e is BadImageFormatException or InvalidOperationException)
             {
@@ -361,11 +366,11 @@ internal static class AssemblySearch
             return node;
         }
 
-        private static BrowseNode? Find(LoadedModule assembly, EntityHandle handle)
+        private BrowseNode? Find(LoadedModule assembly, EntityHandle handle)
         {
             try
             {
-                return assembly.FindNode(handle);
+                return session.Find(assembly, handle);
             }
             catch (Exception e) when (e is BadImageFormatException or InvalidOperationException)
             {

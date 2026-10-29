@@ -6,7 +6,7 @@ public readonly record struct NodePathSegment(NodeKind Kind, string Text);
 /// <summary>
 /// Where a <see cref="BrowseNode"/> sits: its assembly's file and the kind and label of each node
 /// down from the root. Unlike the node, it stays meaningful after the assembly is closed or
-/// reloaded; <see cref="AssemblyList.FindNode(NodePath)"/> finds the node it names again.
+/// reloaded; <see cref="BrowseSession.Find(LoadedAssembly, NodePath)"/> finds the node it names again.
 /// </summary>
 public sealed class NodePath : IEquatable<NodePath>
 {
@@ -51,26 +51,6 @@ public sealed class NodePath : IEquatable<NodePath>
     /// <summary>The path to the node reached from the root of the assembly at
     /// <paramref name="filePath"/> through <paramref name="segments"/>, as <see cref="Segments"/> gives them.</summary>
     public static NodePath From(AssemblyPath filePath, IEnumerable<NodePathSegment> segments) => new(filePath, segments.ToArray());
-
-    internal BrowseNode? Resolve(BrowseNode root)
-    {
-        var node = root;
-        foreach (var (kind, text) in _segments)
-        {
-            BrowseNode? next = null;
-            foreach (var child in node.Children)
-            {
-                if (child.Kind == kind && child.Text == text)
-                {
-                    next = child;
-                    break;
-                }
-            }
-            if (next is null) return null;
-            node = next;
-        }
-        return node;
-    }
 
     public bool Equals(NodePath? other)
     {

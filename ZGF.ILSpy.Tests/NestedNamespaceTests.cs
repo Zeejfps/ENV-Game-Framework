@@ -9,8 +9,7 @@ public sealed class NestedNamespaceTests
     private static IReadOnlyList<BrowseNode> NestedChildren(BrowseNode node)
     {
         node.LoadChildren();
-        Assert.True(node.TryGetNestedChildren(out var children));
-        return children;
+        return Assert.IsType<ChildrenState.Ready>(TestSession.Shared.PeekNestedChildren(node)).Children;
     }
 
     [Fact]

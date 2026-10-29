@@ -41,18 +41,15 @@ public sealed class Search
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed.</param>
-    /// <param name="stream">Streams a query's hits; the assembly list's own search by default.</param>
-    public Search(Func<Strings> strings, Action<AppProblem> reportError, SearchStream? stream = null)
+    /// <param name="session">The browse tree the search finds nodes of.</param>
+    /// <param name="stream">Streams a query's hits; a search of the assemblies' nodes by default.</param>
+    public Search(Func<Strings> strings, Action<AppProblem> reportError, BrowseSession session, SearchStream? stream = null)
     {
         _strings = strings;
         _reportError = reportError;
         _order = Comparer<SearchResult>.Create(Compare);
-        _stream = stream ?? SearchAssemblies;
+        _stream = stream ?? ((_, query, within, cancellationToken) => AssemblySearch.SearchAsync(session, within, query, cancellationToken));
     }
-
-    private static IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAssemblies(AssemblyList assemblies, SearchQuery query,
-        IEnumerable<LoadedModule> within, CancellationToken cancellationToken) =>
-        assemblies.SearchAsync(query, within, cancellationToken);
 
     public string Query = "";
 

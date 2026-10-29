@@ -18,15 +18,17 @@ public sealed class UiState : IUiState
 {
     /// <param name="saved">What the settings kept of the screen when they were last saved.</param>
     /// <param name="reportError">Tells the user that something done in the background failed.</param>
-    public UiState(ViewSettings saved, Action<AppProblem> reportError)
+    /// <param name="session">The browse tree the tree and searches show nodes of.</param>
+    public UiState(ViewSettings saved, Action<AppProblem> reportError, BrowseSession session)
     {
+        Tree = new BrowseTree(session);
         FoldedOptionGroups = new FoldedGroups(saved.FoldedOptionGroups);
         BookmarkColumns.Restore(saved.BookmarkColumns);
         SearchColumns.Restore(saved.SearchColumns);
         ExportColumns.Restore(saved.ExportColumns);
-        Search = new Search(ReadStrings, reportError);
+        Search = new Search(ReadStrings, reportError, session);
         Search.Kinds = saved.SearchKinds;
-        Omnibar = new Omnibar(ReadStrings, reportError);
+        Omnibar = new Omnibar(ReadStrings, reportError, session);
         MetadataFilters = new MetadataFilters(saved.FlagsFilters);
         Picker = new FrameworkPicker(ReadStrings, reportError);
         NuGetPicker = new NuGetPicker(ReadStrings, reportError);
@@ -85,7 +87,7 @@ public sealed class UiState : IUiState
     public bool IsAboutOpen;
 
     /// <summary>The browse tree over the open assemblies, with the view's expansion and selection.</summary>
-    public BrowseTree Tree { get; } = new();
+    public BrowseTree Tree { get; }
 
     /// <summary>Which assembly list the tree last showed.</summary>
     public ShownList ShownList { get; } = new();

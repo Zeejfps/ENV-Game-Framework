@@ -59,7 +59,7 @@ public static class Bookmarks
         var destination = ChooseDestination(appState, inNewTab: false);
         var place = bookmark.Place;
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => appState.Assemblies.FindNode(place));
+        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, place));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
@@ -143,7 +143,7 @@ public static class Bookmarks
         if (record.Place != null)
             return NodePath.From(record.FileName, record.Place);
         var treePath = record.ViewState?.SelectedTreeNodePath;
-        return ILSpyTree.Locate(appState.Assemblies, record.FileName, treePath, record.Token);
+        return ILSpyTree.Locate(appState.Assemblies, appState.Session, record.FileName, treePath, record.Token);
     }
 
     private static void TakeImported(AppState appState, Outcome<List<FoundBookmark>> found, string file)

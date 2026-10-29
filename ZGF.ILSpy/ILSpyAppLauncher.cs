@@ -1,4 +1,5 @@
 ﻿using ZGF.Gui.Immediate;
+using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.CommandLines;
 
 namespace ZGF.ILSpy;
@@ -26,7 +27,7 @@ public static class ILSpyAppLauncher
     private static void RunApp(CommandLine commandLine, AppInstance instance)
     {
         var (settings, problem) = AppSettings.Load(commandLine.SettingsPath);
-        var appState = new AppState(settings);
+        var appState = new AppState(settings, new BrowseSession());
         Settings.ReportSettingsProblem(appState, problem);
         FollowStartupCommandLine(appState, commandLine);
         var screen = IlSpyApp.CreateUiState(appState);

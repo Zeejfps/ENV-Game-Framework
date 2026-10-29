@@ -123,6 +123,8 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
         _ => false,
     };
 
+    TreeChildren<AnalyzerNode> ITreeModel<AnalyzerNode>.GetChildren(AnalyzerNode node) => TreeChildren<AnalyzerNode>.Of(GetChildren(node));
+
     public IReadOnlyList<AnalyzerNode> GetChildren(AnalyzerNode node)
     {
         switch (node)

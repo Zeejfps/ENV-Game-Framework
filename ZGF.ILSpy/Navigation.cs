@@ -14,8 +14,6 @@ public static class Navigation
     /// preview, or else a new tab kept open, reveals it in the tree and records it in the history.</summary>
     public static void ShowNode(AppState appState, BrowseNode node, bool inNewTab = false)
     {
-        if (node.Kind == NodeKind.Loading)
-            return;
         appState.Intent.Begin();
         LeaveActiveTab(appState);
         ShowNodeIn(appState, ChooseDestination(appState, inNewTab), node);
@@ -119,7 +117,7 @@ public static class Navigation
         foreach (var path in paths)
             opened.Add(appState.Assemblies.Open(path, token));
         var scope = ListIdScope(appState, opened);
-        return appState.Assemblies.FindNodeById(idString, scope);
+        return NodeLookup.FindById(appState.Session, idString, scope);
     }
 
     /// <summary>The assemblies an id is looked for in: those read from the files opened, a package's
@@ -148,7 +146,7 @@ public static class Navigation
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => appState.Assemblies.FindNode(reference));
+        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, reference));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
@@ -187,7 +185,7 @@ public static class Navigation
     /// shows, leads to, as <see cref="ShowMetadataTarget"/> does; nothing when it leads nowhere.</summary>
     public static void ShowMetadataLink(AppState appState, BrowseNode grid, MetadataAddress address, bool inNewTab)
     {
-        var target = MetadataLinks.Find(grid, address);
+        var target = appState.Session.FindMetadataRow(grid, address);
         if (target == null)
             return;
         ShowMetadataTarget(appState, target.Value, inNewTab);
@@ -202,7 +200,7 @@ public static class Navigation
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => appState.Assemblies.FindMetadataRow(reference));
+        var found = await Background.Run(() => NodeLookup.FindMetadataRow(appState.Assemblies, appState.Session, reference));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
@@ -302,7 +300,7 @@ public static class Navigation
             return;
         }
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => appState.Assemblies.FindNode(place));
+        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, place));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();

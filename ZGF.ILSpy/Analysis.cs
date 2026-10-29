@@ -45,7 +45,7 @@ public static class Analysis
     public static async void AddToAnalyzer(AppState appState, CodeReference reference)
     {
         var root = appState.Analyzer.AddPending(savedAs: null);
-        var found = await Background.Run(() => appState.Assemblies.FindNode(reference));
+        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, reference));
         if (!appState.Analyzer.Contains(root))
             return;
         switch (found)

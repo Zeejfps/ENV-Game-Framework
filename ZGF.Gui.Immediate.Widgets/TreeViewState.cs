@@ -17,13 +17,35 @@ public readonly record struct TreeRow(string Label, UiIcon? Icon = null, uint La
 /// commits to push: an up arrow and a count.</summary>
 public readonly record struct TreeBadge(IconGlyph Glyph, string Text, uint Color);
 
+/// <summary>A node's children as a model gives them: the nodes, or, while it has none to give, one row
+/// shown in their place, such as one saying they are loading or why they could not be read. That row
+/// is no node: it cannot be selected or expanded.</summary>
+public readonly struct TreeChildren<TNode>
+{
+    private TreeChildren(IReadOnlyList<TNode> nodes, TreeRow? placeholderRow)
+    {
+        Nodes = nodes;
+        PlaceholderRow = placeholderRow;
+    }
+
+    /// <summary>The children; none when <see cref="PlaceholderRow"/> is shown instead.</summary>
+    public IReadOnlyList<TNode> Nodes { get; }
+
+    /// <summary>The row shown in place of the children; null when there are children to show.</summary>
+    public TreeRow? PlaceholderRow { get; }
+
+    public static TreeChildren<TNode> Of(IReadOnlyList<TNode> nodes) => new(nodes, null);
+
+    public static TreeChildren<TNode> Placeholder(TreeRow row) => new([], row);
+}
+
 /// <summary>The app's hierarchy as <see cref="UiWidgets.TreeView{TNode}"/> reads it. Children are
 /// asked for when a node is expanded, and again only after
 /// <see cref="TreeViewState{TNode}.Refresh"/>; rows only for the nodes in view.</summary>
 public interface ITreeModel<TNode>
 {
     bool HasChildren(TNode node);
-    IReadOnlyList<TNode> GetChildren(TNode node);
+    TreeChildren<TNode> GetChildren(TNode node);
     TreeRow Row(TNode node);
 }
 
@@ -35,7 +57,12 @@ public interface ITreeModel<TNode>
 /// </summary>
 public sealed class TreeViewState<TNode> where TNode : notnull
 {
-    internal readonly record struct FlatRow(TNode Node, int Depth);
+    /// <summary>A row of the tree as shown: a node, or the placeholder row its parent <see cref="Node"/>
+    /// shows in place of its children.</summary>
+    internal readonly record struct FlatRow(TNode Node, int Depth, TreeRow? PlaceholderRow = null)
+    {
+        public bool IsPlaceholder => PlaceholderRow != null;
+    }
 
     private readonly HashSet<TNode> _expanded;
     private readonly HashSet<TNode> _ancestors;
@@ -175,6 +202,8 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         var deepest = -1;
         for (var i = 0; i < Rows.Count; i++)
         {
+            if (Rows[i].IsPlaceholder)
+                continue;
             var node = Rows[i].Node;
             if (Comparer.Equals(node, Selected!))
             {
@@ -244,8 +273,11 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         return moved;
     }
 
+    /// <summary>Selects the node of the row at <paramref name="index"/>; nothing for a placeholder row.</summary>
     internal void SelectAt(int index)
     {
+        if (Rows[index].IsPlaceholder)
+            return;
         Selected = Rows[index].Node;
         HasSelection = true;
         _selectedIndex = index;
@@ -285,10 +317,11 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     internal void Expand(int index, ITreeModel<TNode> model)
     {
         var row = Rows[index];
+        if (row.IsPlaceholder) return;
         _expanded.Add(row.Node);
         if (!model.HasChildren(row.Node)) return;
         _scratch.Clear();
-        Append(_scratch, model.GetChildren(row.Node), row.Depth + 1, model);
+        AppendChildren(_scratch, row.Node, row.Depth + 1, model);
         Rows.InsertRange(index + 1, _scratch);
         if (_selectedIndex > index)
             _selectedIndex += _scratch.Count;
@@ -300,6 +333,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     internal void Collapse(int index)
     {
         var row = Rows[index];
+        if (row.IsPlaceholder) return;
         _expanded.Remove(row.Node);
         var selected = SelectedIndex;
         var end = index + 1;
@@ -332,7 +366,26 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     {
         for (var i = 0; i < Rows.Count; i++)
         {
+            if (Rows[i].IsPlaceholder)
+                continue;
             if (Comparer.Equals(Rows[i].Node, node))
+                return i;
+        }
+        return -1;
+    }
+
+    /// <summary>The row nearest <paramref name="index"/> that shows a node, stepping by
+    /// <paramref name="step"/>, then back the other way; -1 when no row does.</summary>
+    internal int NodeRowNear(int index, int step)
+    {
+        for (var i = index; i >= 0 && i < Rows.Count; i += step)
+        {
+            if (!Rows[i].IsPlaceholder)
+                return i;
+        }
+        for (var i = index - step; i >= 0 && i < Rows.Count; i -= step)
+        {
+            if (!Rows[i].IsPlaceholder)
                 return i;
         }
         return -1;
@@ -345,7 +398,18 @@ public sealed class TreeViewState<TNode> where TNode : notnull
             var node = nodes[i];
             into.Add(new FlatRow(node, depth));
             if (_expanded.Contains(node) && model.HasChildren(node))
-                Append(into, model.GetChildren(node), depth + 1, model);
+                AppendChildren(into, node, depth + 1, model);
         }
+    }
+
+    private void AppendChildren(List<FlatRow> into, TNode parent, int depth, ITreeModel<TNode> model)
+    {
+        var children = model.GetChildren(parent);
+        if (children.PlaceholderRow is TreeRow placeholder)
+        {
+            into.Add(new FlatRow(parent, depth, placeholder));
+            return;
+        }
+        Append(into, children.Nodes, depth, model);
     }
 }

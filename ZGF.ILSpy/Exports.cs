@@ -83,7 +83,7 @@ public static class Exports
         var language = appState.Language;
         var options = appState.DecompilerOptions;
         var job = new ExportJob(node.Text, CodeKindOf(language), FolderOf(path));
-        RunExport(appState, job, node.Text, s => SaveCodeFile(node, language, options, path, s.Token), (r, _) => r.Listing(path));
+        RunExport(appState, job, node.Text, s => SaveCodeFile(appState.Session, node, language, options, path, s.Token), (r, _) => r.Listing(path));
     }
 
     private static ExportKind CodeKindOf(DecompilationLanguage language)
@@ -93,10 +93,10 @@ public static class Exports
         return ExportKind.ILFile;
     }
 
-    private static bool SaveCodeFile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
-        CancellationToken cancellationToken)
+    private static bool SaveCodeFile(BrowseSession session, BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
+        string path, CancellationToken cancellationToken)
     {
-        NodeContentLoader.SaveCode(node, language, options, path, cancellationToken);
+        NodeContentLoader.SaveCode(session, node, language, options, path, cancellationToken);
         return true;
     }
 

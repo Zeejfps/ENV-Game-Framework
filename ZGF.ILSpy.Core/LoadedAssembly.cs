@@ -19,8 +19,7 @@ public sealed record PackageFolderPlace(LoadedPackage Container, PackageFolder F
 /// A file known to an <see cref="AssemblyList"/>: one the user opened, or one loaded to resolve a
 /// reference. It is a <see cref="LoadedModule"/> that was read, a <see cref="FailedAssembly"/> that
 /// could not be, or a <see cref="LoadedPackage"/> whose files are browsed; no other kind can be made.
-/// Its <see cref="Root"/> node, and every node under it, keep their identity for as long as this
-/// object lives.
+/// A <see cref="BrowseSession"/> keeps the nodes of its tree for as long as this object lives.
 /// </summary>
 public abstract class LoadedAssembly
 {
@@ -40,16 +39,6 @@ public abstract class LoadedAssembly
     /// <summary>The absolute path of the file this was loaded from; for an assembly read out of a
     /// package, the path through the package, as <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
     public AssemblyPath FilePath { get; }
-
-    /// <summary>The node <paramref name="path"/> leads to from this file's root, when this is the item
-    /// of the list the path starts at; else, or when nothing is there, null. May load the nodes on the
-    /// way: call it off the UI thread.</summary>
-    public BrowseNode? FindNode(NodePath path)
-    {
-        if (!path.FilePath.Equals(FilePath))
-            return null;
-        return path.Resolve(Root);
-    }
 
     /// <summary>The item of the list that holds this assembly: itself, or the package it was read out of.</summary>
     public LoadedAssembly ListedItem
@@ -80,16 +69,6 @@ public abstract class LoadedAssembly
         return $"{name} ({version})";
     }
 
-    /// <summary>The tree's root for this assembly. For an assembly read out of a package, it sits in
-    /// the package's tree, under the folder holding its file.</summary>
-    public BrowseNode Root => this switch
-    {
-        FailedAssembly failed => failed.FailedRoot,
-        LoadedPackage package => package.PackageRoot,
-        LoadedModule module => module.AssemblyRoot,
-        _ => throw new UnreachableException(),
-    };
-
     internal AssemblyList List { get; }
     internal bool IsListed { get; set; }
 
@@ -101,16 +80,12 @@ public abstract class LoadedAssembly
 public sealed class LoadedModule : LoadedAssembly
 {
     private static readonly TypeSystemOptions DefaultTypeSystemOptions = DecompilerTypeSystem.GetOptions(Settings.Create());
-    private const string NamespaceIdPrefix = "N:";
 
     private readonly Lazy<DecompilerTypeSystem> _typeSystem;
     private readonly Lazy<DebugSymbols?> _debugSymbols;
     private readonly Lazy<bool> _canGeneratePdb;
     private readonly Lazy<ReferenceUsage> _referenceUsage;
     private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
-    private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
-    private readonly Lazy<AssemblyNode> _root;
-    private AssemblyNode? _rootInPackage;
 
     internal LoadedModule(AssemblyList list, AssemblyPath path, MetadataFile file, PackagePlace? place = null)
         : base(list, path, NameOf(path, file), FullNameOf(file), VersionOf(file))
@@ -124,7 +99,6 @@ public sealed class LoadedModule : LoadedAssembly
         _debugSymbols = new Lazy<DebugSymbols?>(LoadDebugSymbols);
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
         _referenceUsage = new Lazy<ReferenceUsage>(() => new ReferenceUsage(File.Metadata));
-        _root = new Lazy<AssemblyNode>(() => new AssemblyNode(this, null));
     }
 
     /// <summary>The assembly's name, or for a module that is no assembly, its file's.</summary>
@@ -217,39 +191,6 @@ public sealed class LoadedModule : LoadedAssembly
         }
     }
 
-    /// <summary>The root of this assembly's tree; for one read out of a package, under the folder of
-    /// the package's tree holding its file.</summary>
-    internal AssemblyNode AssemblyRoot
-    {
-        get
-        {
-            if (Place == null)
-                return _root.Value;
-            return RootInPackage(Place);
-        }
-    }
-
-    private AssemblyNode RootInPackage(PackagePlace place)
-    {
-        var placed = Volatile.Read(ref _rootInPackage);
-        if (placed != null)
-            return placed;
-        var folder = place.Container.PackageRoot.FindFolderNode(place.File.Folder);
-        folder.LoadChildren();
-        return PlaceInPackage(folder);
-    }
-
-    /// <summary>The root of this assembly, read out of a package, under <paramref name="folder"/>:
-    /// made the first time, then kept.</summary>
-    internal AssemblyNode PlaceInPackage(BrowseNode folder)
-    {
-        var root = new AssemblyNode(this, folder);
-        var placed = Interlocked.CompareExchange(ref _rootInPackage, root, null);
-        if (placed != null)
-            return placed;
-        return root;
-    }
-
     /// <summary>Whether a PDB can be picked for this assembly: one that loaded with PE headers, which
     /// a WebCIL module lacks.</summary>
     public bool CanPickPdb => PEFile != null;
@@ -320,35 +261,16 @@ public sealed class LoadedModule : LoadedAssembly
         }
     }
 
-    internal void Register(EntityHandle handle, BrowseNode node) => _nodes.TryAdd(handle, node);
-
-    internal BrowseNode? FindNode(EntityHandle handle)
+    /// <summary>The type or member this assembly defines that <paramref name="idString"/> names, written
+    /// as XML documentation ids are; null when it defines none such, or the id cannot be read.</summary>
+    internal IEntity? FindDefinedEntity(string idString)
     {
-        if (handle.IsNil) return null;
-        if (_nodes.TryGetValue(handle, out var node)) return node;
-
-        var parent = handle.Kind == HandleKind.TypeDefinition && File.Metadata.GetTypeDefinition((TypeDefinitionHandle)handle) is var type
-                     && type.GetDeclaringType().IsNil
-            ? AssemblyRoot.FindNamespace(File.Metadata.GetString(type.Namespace))
-            : FindNode(OwnerOf(handle));
-        if (parent is null) return null;
-        _ = parent.Children;
-        return _nodes.GetValueOrDefault(handle);
-    }
-
-    /// <summary>The node of the namespace, type or member <paramref name="idString"/> names, written as
-    /// XML documentation ids are (<c>N:</c>, <c>T:</c>, <c>M:</c>, <c>P:</c>, <c>F:</c> or <c>E:</c>
-    /// and the full name); null when this assembly defines none such, or the id cannot be read.</summary>
-    internal BrowseNode? FindNodeById(string idString)
-    {
-        if (idString.StartsWith(NamespaceIdPrefix, StringComparison.Ordinal))
-            return AssemblyRoot.FindNamespace(idString.Substring(NamespaceIdPrefix.Length));
         var entity = FindEntity(idString);
         if (entity == null)
             return null;
         if (!ReferenceEquals(entity.ParentModule, MainModule))
             return null;
-        return FindNodeOrAncestor(entity.MetadataToken);
+        return entity;
     }
 
     private IEntity? FindEntity(string idString)
@@ -363,19 +285,9 @@ public sealed class LoadedModule : LoadedAssembly
         }
     }
 
-    internal BrowseNode? FindNodeOrAncestor(EntityHandle handle)
-    {
-        for (; !handle.IsNil; handle = OwnerOf(handle))
-        {
-            var node = FindNode(handle);
-            if (node != null) return node;
-        }
-        return null;
-    }
-
     /// <summary>The entity whose node holds the node of <paramref name="handle"/>'s: a property or
     /// event for its accessor, else the declaring type; nil for a top-level type.</summary>
-    private EntityHandle OwnerOf(EntityHandle handle) =>
+    internal EntityHandle OwnerOf(EntityHandle handle) =>
         MainModule.ResolveEntity(handle) switch
         {
             IMethod { IsAccessor: true } method when method.AccessorOwner != null => method.AccessorOwner.MetadataToken,
@@ -389,41 +301,30 @@ public sealed class LoadedModule : LoadedAssembly
 /// and <see cref="Error"/> tell anything about it.</summary>
 public sealed class FailedAssembly : LoadedAssembly
 {
-    private readonly Lazy<FailedAssemblyNode> _root;
-
     internal FailedAssembly(AssemblyList list, AssemblyLoadException error)
         : base(list, error.FilePath, NameOf(error.FilePath), error.FilePath.Text, null)
     {
         Error = error;
-        _root = new Lazy<FailedAssemblyNode>(() => new FailedAssemblyNode(this));
     }
 
     /// <summary>Why the file could not be read.</summary>
     public AssemblyLoadException Error { get; }
-
-    /// <summary>The root of the file's tree, its <see cref="LoadedAssembly.Root"/>.</summary>
-    internal FailedAssemblyNode FailedRoot => _root.Value;
 }
 
 /// <summary>A package of the list, whose files are browsed as folders.</summary>
 public sealed class LoadedPackage : LoadedAssembly
 {
-    private readonly Lazy<PackageNode> _root;
     private readonly Lazy<IReadOnlyList<LoadedModule>> _assemblies;
 
     internal LoadedPackage(AssemblyList list, AssemblyPackage package)
         : base(list, package.FilePath, NameOf(package.FilePath), package.FilePath.Text, null)
     {
         Package = package;
-        _root = new Lazy<PackageNode>(() => new PackageNode(this));
         _assemblies = new Lazy<IReadOnlyList<LoadedModule>>(LoadAssemblies);
     }
 
     /// <summary>The package's files.</summary>
     public AssemblyPackage Package { get; }
-
-    /// <summary>The root of the package's tree, its <see cref="LoadedAssembly.Root"/>.</summary>
-    internal PackageNode PackageRoot => _root.Value;
 
     /// <summary>The assemblies read out of the package: every assembly file it holds that loads, in
     /// the order its tree shows them. Read the first time, then kept.</summary>

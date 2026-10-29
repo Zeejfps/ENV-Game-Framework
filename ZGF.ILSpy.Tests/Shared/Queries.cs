@@ -31,14 +31,14 @@ internal static class NodeQueries
     private static bool IsSourceDeclared(BrowseNode node) => !node.IsCompilerGenerated;
 
     public static NodeContent Content(this BrowseNode node, DecompilationLanguage language = DecompilationLanguage.CSharp) =>
-        NodeContentLoader.LoadAsync(node, language, DecompilerOptions.Default).GetAwaiter().GetResult();
+        NodeContentLoader.LoadAsync(TestSession.Shared, node, language, DecompilerOptions.Default).GetAwaiter().GetResult();
 
     public static DecompiledDocument Decompile(this BrowseNode node, DecompilationLanguage language, CancellationToken cancellationToken = default) =>
-        NodeContentLoader.Decompile(node, language, DecompilerOptions.Default, cancellationToken);
+        NodeContentLoader.Decompile(TestSession.Shared, node, language, DecompilerOptions.Default, cancellationToken);
 
     public static DecompiledDocument Decompile(this BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
         CancellationToken cancellationToken = default) =>
-        NodeContentLoader.Decompile(node, language, options, cancellationToken);
+        NodeContentLoader.Decompile(TestSession.Shared, node, language, options, cancellationToken);
 }
 
 internal static class DocumentQueries

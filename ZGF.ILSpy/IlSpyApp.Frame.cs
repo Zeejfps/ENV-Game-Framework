@@ -18,7 +18,7 @@ public sealed partial class IlSpyApp
     /// and any other tab in the place of the documents. It takes the theme and strings with its first frame.</summary>
     internal static UiState CreateUiState(AppState appState)
     {
-        var uiState = new UiState(ReadViewSettings(appState), appState.ReportError);
+        var uiState = new UiState(ReadViewSettings(appState), appState.ReportError, appState.Session);
         uiState.Documents.SkipPanels(appState.Lists.ListDocumentPanels());
         FollowActiveTab(uiState, appState.Tabs.Active);
         RunViewCommands(uiState, appState);

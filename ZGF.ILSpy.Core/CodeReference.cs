@@ -21,7 +21,7 @@ public enum CodeReferenceKind
 /// An immutable pointer from code or the tree to an assembly, entity, local or label. References to
 /// the same target compare equal, so every occurrence of a symbol in a document can be matched.
 /// Assembly and entity references can be resolved to a tree node with
-/// <see cref="AssemblyList.FindNode(CodeReference)"/>.
+/// <see cref="NodeLookup.Find(AssemblyList, BrowseSession, CodeReference)"/>.
 /// </summary>
 public sealed class CodeReference : IEquatable<CodeReference>
 {
@@ -43,7 +43,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
     /// <summary>The target's name as written where it was referenced.</summary>
     public string Name { get; }
 
-    /// <summary>Whether <see cref="AssemblyList.FindNode(CodeReference)"/> can resolve this to a node:
+    /// <summary>Whether <see cref="NodeLookup.Find(AssemblyList, BrowseSession, CodeReference)"/> can resolve this to a node:
     /// true for assemblies and entities, false for locals and labels.</summary>
     public bool IsNavigable => FilePath != null;
 

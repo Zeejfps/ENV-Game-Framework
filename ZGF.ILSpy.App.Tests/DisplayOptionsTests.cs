@@ -258,13 +258,13 @@ public sealed class DisplayOptionsTests
         var empty = tables.Table("FieldPtr");
         OpenDisplayOptions(app.Ui);
         app.Run();
-        Assert.DoesNotContain(empty, app.Ui.Tree.GetChildren(tables));
+        Assert.DoesNotContain(empty, app.Ui.Tree.GetChildren(tables).Nodes);
 
         app.Click("Show empty metadata tables").Frame(2);
 
         Assert.True(app.Ui.Display.ShowEmptyMetadataTables);
         Assert.True(IsBold(app, "Show empty metadata tables"));
-        Assert.Contains(empty, app.Ui.Tree.GetChildren(tables));
+        Assert.Contains(empty, app.Ui.Tree.GetChildren(tables).Nodes);
     }
 
     [Fact]
@@ -276,15 +276,15 @@ public sealed class DisplayOptionsTests
         var fixtures = app.Node(AppStateDriver.FixturesNamespace);
         OpenDisplayOptions(app.Ui);
         app.Run();
-        Assert.Contains(fixtures, app.Ui.Tree.GetChildren(root));
-        Assert.DoesNotContain(outermost, app.Ui.Tree.GetChildren(root));
+        Assert.Contains(fixtures, app.Ui.Tree.GetChildren(root).Nodes);
+        Assert.DoesNotContain(outermost, app.Ui.Tree.GetChildren(root).Nodes);
 
         app.Click("Nested namespaces").Frame(2);
 
         Assert.True(app.Ui.Display.NestedNamespaces);
         Assert.True(IsBold(app, "Nested namespaces"));
-        Assert.Contains(outermost, app.Ui.Tree.GetChildren(root));
-        Assert.DoesNotContain(fixtures, app.Ui.Tree.GetChildren(root));
+        Assert.Contains(outermost, app.Ui.Tree.GetChildren(root).Nodes);
+        Assert.DoesNotContain(fixtures, app.Ui.Tree.GetChildren(root).Nodes);
         Assert.Equal("Fixtures", app.Ui.Tree.RowLabel(fixtures));
     }
 
