@@ -50,6 +50,9 @@ public static class ILSpyTree
             IEvent @event => "Event " + @event.Name,
             _ => null,
         },
+        NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
+            or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
+            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType => null,
         _ => throw new UnreachableException(),
     };
 

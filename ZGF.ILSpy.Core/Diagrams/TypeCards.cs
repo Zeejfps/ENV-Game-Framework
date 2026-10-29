@@ -71,7 +71,7 @@ public static class TypeCards
             Sections: ReadSections(type),
             Inherited: ReadInherited(type),
             Links: ReadLinks(type),
-            CanHaveDerived: DerivedTypesNode.CanHave(type));
+            CanHaveDerived: DerivedTypes.CanHave(type));
     }
 
     private static AssemblyPath AssemblyPathOf(ITypeDefinition type) => AssemblyPath.Of(type.ParentModule!.MetadataFile!);

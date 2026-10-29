@@ -254,8 +254,8 @@ public sealed class BrowseSession
 
     private void Register(BrowseNode node)
     {
-        if (node is SubjectNode subject)
-            IndexOf(subject.Module).TryAdd(subject.Handle, subject);
+        if (node is SubjectNode subject && subject.DefinedHandle is EntityHandle handle)
+            IndexOf(subject.Module).TryAdd(handle, subject);
         if (node is AssemblyNode root)
             _moduleRoots.TryAdd(root.Module, root);
     }

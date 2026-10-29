@@ -8,6 +8,10 @@ namespace ZGF.ILSpy.Core;
 /// searches again, so assemblies opened since are searched too.</summary>
 internal static class DerivedTypes
 {
+    /// <summary>Whether anything can derive from <paramref name="type"/>: a class that is not sealed, or
+    /// an interface.</summary>
+    public static bool CanHave(ITypeDefinition type) => !type.IsSealed && type.Kind is TypeKind.Class or TypeKind.Interface;
+
     public static List<ITypeDefinition> Find(AssemblyList list, ITypeDefinition type, CancellationToken cancellationToken)
     {
         var context = new AnalyzerContext { AssemblyList = list, CancellationToken = cancellationToken };

@@ -383,6 +383,13 @@ public sealed class DecompilationTests
 
     /// <summary>The nodes under <paramref name="roots"/> that show no type's or member's code, not
     /// following members, base and derived types, or references into what they name.</summary>
+    private static bool IsLeafToSummarize(BrowseNode node)
+    {
+        if (node is not SubjectNode subject)
+            return false;
+        return subject.Subject is NodeSubject.MemberDefinition or NodeSubject.BaseType or NodeSubject.DerivedType or NodeSubject.AssemblyReference;
+    }
+
     private static List<BrowseNode> ListSummarized(IEnumerable<BrowseNode> roots)
     {
         var nodes = new List<BrowseNode>();
@@ -390,9 +397,9 @@ public sealed class DecompilationTests
         while (pending.Count > 0)
         {
             var node = pending.Pop();
-            if (node is not SubjectNode and not AssemblyNode)
+            if (SubjectNode.EntityOf(node) == null && node is not AssemblyNode)
                 nodes.Add(node);
-            if (SubjectNode.IsMember(node) || node is BaseTypeNode or DerivedTypeNode or AssemblyReferenceNode)
+            if (IsLeafToSummarize(node))
                 continue;
             foreach (var child in node.Children)
                 pending.Push(child);

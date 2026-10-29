@@ -143,22 +143,27 @@ public static class Analyzers
 
     /// <summary>The type or member <paramref name="node"/> stands for — for a base or derived type
     /// entry the type it names — or null for any other node.</summary>
-    public static AnalysisSymbol? Of(BrowseNode node) =>
-        node switch
-        {
-            SubjectNode subject => Describe(subject.Entity),
-            DerivedTypeNode derived => Describe(derived.Type),
-            BaseTypeNode baseType => DescribeDefinitionOf(baseType.Type),
-            _ => null,
-        };
-
-    /// <summary>The type <paramref name="type"/> is, where it is defined; null for one defined nowhere.</summary>
-    private static AnalysisSymbol? DescribeDefinitionOf(IType type)
+    public static AnalysisSymbol? Of(BrowseNode node)
     {
-        var definition = type.GetDefinition();
-        if (definition == null)
+        if (node is not SubjectNode subject)
             return null;
-        return Describe(definition);
+        return subject.Subject switch
+        {
+            NodeSubject.TypeDefinition type => Describe(type.Definition.Symbol),
+            NodeSubject.MemberDefinition member => Describe(member.Definition.Symbol),
+            NodeSubject.DerivedType derived => Describe(derived.Value.Symbol),
+            NodeSubject.BaseType baseType => baseType.Value.Target switch
+            {
+                BaseTypeTarget.Navigable navigable => Describe(navigable.Definition),
+                BaseTypeTarget.Unaddressed unaddressed => Describe(unaddressed.Definition),
+                BaseTypeTarget.Unresolved => null,
+                _ => throw new UnreachableException(),
+            },
+            NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
+                or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
+                or NodeSubject.BaseTypes or NodeSubject.DerivedTypes => null,
+            _ => throw new UnreachableException(),
+        };
     }
 
     /// <summary>The type or member <paramref name="definition"/> names, loading its assembly's file
