@@ -70,7 +70,7 @@ internal static class DiagramFaces
 
     private static void AddHeader(RowStack stack, TypeCard card)
     {
-        stack.Add(new CardRow(CardRowKind.Name, stack.RowHeight + NameRowExtra, Padding, card.Name, NodeIcons.Of(card.Kind), card.Accessibility, card.Type));
+        stack.Add(new CardRow(CardRowKind.Name, stack.RowHeight + NameRowExtra, Padding, card.Name, NodeIcons.Of(card.Shape), card.Accessibility, card.Type));
         var stereotype = StereotypeOf(card.Stereotype);
         if (stereotype == null)
             return;
@@ -141,7 +141,7 @@ internal static class DiagramFaces
 
     private static CardRow MemberRow(RowStack stack, CardMember member)
     {
-        return new CardRow(CardRowKind.Member, stack.RowHeight, Padding + ChevronWidth, member.Text, NodeIcons.Of(member.Kind), member.Accessibility, member.Reference);
+        return new CardRow(CardRowKind.Member, stack.RowHeight, Padding + ChevronWidth, member.Text, NodeIcons.Of(member.Shape), member.Accessibility, member.Reference);
     }
 
     private static DiagramMeasures MeasuresOf(Ui<UiState> ui, TypeDiagram diagram, List<CardFace> faces)

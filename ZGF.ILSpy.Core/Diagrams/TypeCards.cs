@@ -65,7 +65,7 @@ public static class TypeCards
             Name: EntityText.Label(type),
             FullName: EntityText.FullName(type),
             AssemblyPath: AssemblyPathOf(type),
-            Kind: EntityText.KindOf(type),
+            Shape: EntityText.ShapeOf(type),
             Accessibility: EntityText.Map(type.Accessibility),
             Stereotype: StereotypeOf(type),
             Sections: ReadSections(type),
@@ -127,7 +127,7 @@ public static class TypeCards
 
     private static CardMember ToCardMember(IMember member)
     {
-        return new CardMember(CodeReference.To(member)!, EntityText.Label(member), EntityText.KindOf(member), EntityText.Map(member.Accessibility));
+        return new CardMember(CodeReference.To(member)!, EntityText.Label(member), EntityText.ShapeOf(member), EntityText.Map(member.Accessibility));
     }
 
     /// <summary>What <paramref name="type"/> inherits from each of its base classes but object, nearest

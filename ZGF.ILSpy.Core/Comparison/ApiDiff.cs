@@ -65,7 +65,8 @@ public abstract class ApiEntry
         HasChanges = change != ApiChange.Unchanged || children.Any(static c => c.HasChanges);
     }
 
-    public abstract NodeKind Kind { get; }
+    /// <summary>What the entry is: a namespace, or a type or member of some shape.</summary>
+    public abstract SymbolShape Shape { get; }
 
     public string Text { get; }
 
@@ -81,7 +82,7 @@ public abstract class ApiEntry
     public sealed class Namespace(string text, ApiPresence presence, IReadOnlyList<ApiEntry> children)
         : ApiEntry(text, ChangeOf(presence), children)
     {
-        public override NodeKind Kind => NodeKind.Namespace;
+        public override SymbolShape Shape => new SymbolShape.Namespace();
 
         public override NodeAccessibility Accessibility => NodeAccessibility.None;
 
@@ -97,10 +98,10 @@ public abstract class ApiEntry
             };
     }
 
-    public sealed class Entity(NodeKind kind, string text, NodeAccessibility accessibility, ApiSides sides, IReadOnlyList<ApiEntry> children)
+    public sealed class Entity(SymbolShape shape, string text, NodeAccessibility accessibility, ApiSides sides, IReadOnlyList<ApiEntry> children)
         : ApiEntry(text, ChangeOf(sides), children)
     {
-        public override NodeKind Kind => kind;
+        public override SymbolShape Shape => shape;
 
         public override NodeAccessibility Accessibility => accessibility;
 

@@ -37,7 +37,7 @@ public sealed class TypeCardTests
 
         Assert.Equal("Animal", animal.Name);
         Assert.Equal(ZooNamespace + ".Animal", animal.FullName);
-        Assert.Equal(NodeKind.Class, animal.Kind);
+        Assert.Equal(TypeShape.Class, animal.Shape);
         Assert.Equal(TypeStereotype.Abstract, animal.Stereotype);
         Assert.Equal(TypeStereotype.Interface, Card("IFeeds").Stereotype);
         Assert.Equal(TypeStereotype.Static, Card("Visits").Stereotype);
@@ -65,7 +65,7 @@ public sealed class TypeCardTests
 
         var age = animal.Sections[0].Members[1];
         Assert.Equal("_age : int", age.Text);
-        Assert.Equal(NodeKind.Field, age.Kind);
+        Assert.Equal(MemberShape.Field, age.Shape);
         Assert.Equal(NodeAccessibility.Private, age.Accessibility);
         Assert.False(age.IsVisibleOutside);
         Assert.True(animal.Sections[0].Members[0].IsVisibleOutside);

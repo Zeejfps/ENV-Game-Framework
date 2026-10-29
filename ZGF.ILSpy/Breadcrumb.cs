@@ -45,7 +45,7 @@ public sealed class Breadcrumb
     /// name; any other node's as its row labels it.</summary>
     private static string LabelOf(BrowseNode node, BrowseTree tree)
     {
-        if (node.Kind == NodeKind.Assembly)
+        if (node.Subject is NodeSubject.Module)
             return tree.Label(node);
         return tree.RowLabel(node);
     }

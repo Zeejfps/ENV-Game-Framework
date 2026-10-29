@@ -213,11 +213,11 @@ internal static class TreePaneView
         ExtractItems(ui, appState, node);
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
             SaveDialogs.PickCodeFile(ui, appState, node);
-        if (node.Kind == NodeKind.Assembly && node.Assembly is LoadedModule module)
-            AssemblyItems(ui, appState, module);
-        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
+        if (node.Subject is NodeSubject.Module module)
+            AssemblyItems(ui, appState, module.Value);
+        if (node.Subject is NodeSubject.Module && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
             ScopeSearch(ui.State, node);
-        if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
+        if (node.Subject is NodeSubject.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
             ScopeSearch(ui.State, node);
         if (IsListedRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: new UiIcon(ui.State.Icons.AssembliesOpenContainingFolder)))
             ui.RevealFile(node.Assembly.FilePath.Text);
@@ -269,9 +269,9 @@ internal static class TreePaneView
     /// out of a package; else null.</summary>
     private static PackagePlace? PackedAssemblyOf(BrowseNode node)
     {
-        if (node.Kind != NodeKind.Assembly || node.Assembly is not LoadedModule assembly)
+        if (node.Subject is not NodeSubject.Module module)
             return null;
-        return assembly.Place;
+        return module.Value.Place;
     }
 
     /// <summary>Whether the menu offers to save the node's code: it shows code, and is no resource,

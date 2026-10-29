@@ -278,7 +278,7 @@ public static class AssemblySearch
         {
             foreach (var child in session.ChildrenOf(session.RootOf(assembly)))
             {
-                if (child.Kind == NodeKind.ResourcesFolder)
+                if (child.Subject is NodeSubject.Resources)
                     ScanResources(child);
             }
         }
@@ -289,7 +289,7 @@ public static class AssemblySearch
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (query.IsMatch(node.Text))
-                    Add(node, parent.Kind == NodeKind.ResourcesFile ? parent.Text : "");
+                    Add(node, parent.Subject is NodeSubject.ResourceContainer ? parent.Text : "");
                 if (session.HasChildren(node))
                     ScanResources(node);
             }

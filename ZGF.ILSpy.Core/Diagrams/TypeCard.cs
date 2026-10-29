@@ -20,7 +20,7 @@ public enum MemberSection
 
 /// <summary>A member a card lists: what it points at, how the tree labels it, the kind its icon
 /// shows, and its declared accessibility.</summary>
-public sealed record CardMember(CodeReference Reference, string Text, NodeKind Kind, NodeAccessibility Accessibility)
+public sealed record CardMember(CodeReference Reference, string Text, MemberShape Shape, NodeAccessibility Accessibility)
 {
     /// <summary>Whether code of another assembly can reach the member: it is public or protected.</summary>
     public bool IsVisibleOutside => Accessibility is NodeAccessibility.Public or NodeAccessibility.Protected or NodeAccessibility.ProtectedInternal;
@@ -44,7 +44,7 @@ public sealed record TypeCard(
     string Name,
     string FullName,
     AssemblyPath AssemblyPath,
-    NodeKind Kind,
+    TypeShape Shape,
     NodeAccessibility Accessibility,
     TypeStereotype Stereotype,
     IReadOnlyList<CardSection> Sections,

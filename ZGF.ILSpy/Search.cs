@@ -244,7 +244,7 @@ public sealed class Search
 
     private string ScopedQuery(BrowseNode node)
     {
-        if (node.Kind == NodeKind.Namespace)
+        if (node.Subject is NodeSubject.Namespace)
             return SearchQuery.WithScope(Query, NamespaceScope, node.FullName);
         return SearchQuery.WithScope(Query, AssemblyScope, node.Assembly.Name);
     }

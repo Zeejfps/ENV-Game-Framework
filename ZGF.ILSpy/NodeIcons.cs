@@ -118,7 +118,17 @@ public static class NodeIcons
         _ => throw new UnreachableException(),
     };
 
-    private static NodeIcon Of(TypeShape shape) => shape switch
+    /// <summary>The icon of a symbol of <paramref name="shape"/>, as an analysis, a comparison or a diagram lists it.</summary>
+    public static NodeIcon Of(SymbolShape shape) => shape switch
+    {
+        SymbolShape.Assembly => NodeIcon.Assembly,
+        SymbolShape.Namespace => NodeIcon.Namespace,
+        SymbolShape.Type type => Of(type.Shape),
+        SymbolShape.Member member => Of(member.Shape),
+        _ => throw new UnreachableException(),
+    };
+
+    public static NodeIcon Of(TypeShape shape) => shape switch
     {
         TypeShape.Class => NodeIcon.Class,
         TypeShape.Interface => NodeIcon.Interface,
@@ -130,7 +140,7 @@ public static class NodeIcons
         _ => throw new UnreachableException(),
     };
 
-    private static NodeIcon Of(MemberShape shape) => shape switch
+    public static NodeIcon Of(MemberShape shape) => shape switch
     {
         MemberShape.Field => NodeIcon.Field,
         MemberShape.Constant => NodeIcon.Constant,
@@ -143,8 +153,7 @@ public static class NodeIcons
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>The icon of what <paramref name="kind"/> names, for a place saved with its kind or a
-    /// result of a search, a comparison, an analysis or a diagram, which have no subject.</summary>
+    /// <summary>The icon of what <paramref name="kind"/> names, for a place saved with its kind, which has no subject.</summary>
     public static NodeIcon Of(NodeKind kind) => kind switch
     {
         NodeKind.Assembly => NodeIcon.Assembly,

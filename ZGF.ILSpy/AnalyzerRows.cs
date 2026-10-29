@@ -168,7 +168,7 @@ public sealed class AnalyzerRows : ITreeModel<AnalyzerNode>
 
     private TreeRow SymbolRow(AnalysisSymbol symbol)
     {
-        var icon = NodeIcons.Icon(NodeIcons.Of(symbol.Kind), symbol.Accessibility, _iconColors, _icons);
+        var icon = NodeIcons.Icon(NodeIcons.Of(symbol.Shape), symbol.Accessibility, _iconColors, _icons);
         return new TreeRow(symbol.Label, icon, Tooltip: symbol.Location, Secondary: symbol.Location);
     }
 

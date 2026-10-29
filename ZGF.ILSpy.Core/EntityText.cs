@@ -38,6 +38,14 @@ internal static class EntityText
             _ => NodeKind.Method,
         };
 
+    /// <summary>What sort of type or member <paramref name="entity"/> is.</summary>
+    public static SymbolShape SymbolShapeOf(IEntity entity) => entity switch
+    {
+        ITypeDefinition type => new SymbolShape.Type(ShapeOf(type)),
+        IMember member => new SymbolShape.Member(ShapeOf(member)),
+        _ => new SymbolShape.Member(MemberShape.Method),
+    };
+
     /// <summary>What sort of type <paramref name="type"/> is.</summary>
     public static TypeShape ShapeOf(ITypeDefinition type) => type.Kind switch
     {

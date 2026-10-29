@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core.Comparison;
@@ -133,7 +134,7 @@ internal static class ApiEntries
                 entries.Add(Added(rightOne, scope, cancellationToken));
         }
         return entries
-            .OrderBy(static e => SortGroup(e.Kind))
+            .OrderBy(static e => SortGroup(e.Shape))
             .ThenBy(static e => e.Text, NaturalStringComparer.Instance)
             .ToList();
     }
@@ -159,9 +160,9 @@ internal static class ApiEntries
 
     private static ApiEntry EntryOf(IEntity shown, ApiSides sides, List<ApiEntry> children)
     {
-        var kind = EntityText.KindOf(shown);
+        var shape = EntityText.SymbolShapeOf(shown);
         var accessibility = EntityText.Map(shown.Accessibility);
-        return new ApiEntry.Entity(kind, EntityText.Label(shown), accessibility, sides, children);
+        return new ApiEntry.Entity(shape, EntityText.Label(shown), accessibility, sides, children);
     }
 
     private static ApiSide SideOf(IEntity entity) => new(CodeReference.To(entity), ApiDeclarations.Of(entity));
@@ -200,16 +201,21 @@ internal static class ApiEntries
         return !field.IsStatic;
     }
 
-    /// <summary>Where entries of <paramref name="kind"/> sort among a type's: nested types first, then
-    /// fields, properties, events and methods.</summary>
-    private static int SortGroup(NodeKind kind) =>
-        kind switch
+    /// <summary>Where entries of <paramref name="shape"/> sort among a type's: nested types first, then
+    /// fields, properties, events and methods; namespaces among themselves.</summary>
+    private static int SortGroup(SymbolShape shape) =>
+        shape switch
         {
-            NodeKind.Field or NodeKind.Constant => 1,
-            NodeKind.Property or NodeKind.Indexer => 2,
-            NodeKind.Event => 3,
-            NodeKind.Method or NodeKind.Constructor or NodeKind.Operator => 4,
-            _ => 0,
+            SymbolShape.Member member => member.Shape switch
+            {
+                MemberShape.Field or MemberShape.Constant => 1,
+                MemberShape.Property or MemberShape.Indexer => 2,
+                MemberShape.Event => 3,
+                MemberShape.Method or MemberShape.Constructor or MemberShape.Operator => 4,
+                _ => throw new UnreachableException(),
+            },
+            SymbolShape.Type or SymbolShape.Namespace or SymbolShape.Assembly => 0,
+            _ => throw new UnreachableException(),
         };
 
     /// <summary>How many types and members under <paramref name="entries"/> changed as <paramref name="change"/>

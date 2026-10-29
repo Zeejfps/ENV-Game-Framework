@@ -69,10 +69,10 @@ public sealed class AnalysisKind
 /// how to go to it.</summary>
 public sealed class AnalysisSymbol
 {
-    internal AnalysisSymbol(ISymbol symbol, NodeKind kind, NodeAccessibility accessibility, string label, string location, CodeReference? reference)
+    internal AnalysisSymbol(ISymbol symbol, SymbolShape shape, NodeAccessibility accessibility, string label, string location, CodeReference? reference)
     {
         Symbol = symbol;
-        Kind = kind;
+        Shape = shape;
         Accessibility = accessibility;
         Label = label;
         Location = location;
@@ -81,7 +81,8 @@ public sealed class AnalysisSymbol
 
     internal ISymbol Symbol { get; }
 
-    public NodeKind Kind { get; }
+    /// <summary>What it is: an assembly, or a type or member of some shape.</summary>
+    public SymbolShape Shape { get; }
 
     public NodeAccessibility Accessibility { get; }
 
@@ -214,10 +215,10 @@ public static class Analyzers
         switch (symbol)
         {
             case IEntity entity:
-                return new AnalysisSymbol(entity, EntityText.KindOf(entity), EntityText.Map(entity.Accessibility), EntityText.Label(entity),
+                return new AnalysisSymbol(entity, EntityText.SymbolShapeOf(entity), EntityText.Map(entity.Accessibility), EntityText.Label(entity),
                     Where(entity), CodeReference.To(entity));
             case IModule module:
-                return new AnalysisSymbol(module, NodeKind.Assembly, NodeAccessibility.Public, module.AssemblyName, module.MetadataFile?.FileName ?? "",
+                return new AnalysisSymbol(module, new SymbolShape.Assembly(), NodeAccessibility.Public, module.AssemblyName, module.MetadataFile?.FileName ?? "",
                     module.MetadataFile != null ? CodeReference.ToAssembly(module.AssemblyName, AssemblyPath.Of(module.MetadataFile)) : null);
             default:
                 return null;

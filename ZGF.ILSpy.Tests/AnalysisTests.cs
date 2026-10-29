@@ -33,7 +33,7 @@ public sealed class AnalysisTests
         var callers = Run(list, add, "Used By");
 
         var plus = Assert.Single(callers);
-        Assert.Equal(NodeKind.Operator, plus.Kind);
+        Assert.Equal(new SymbolShape.Member(MemberShape.Operator), plus.Shape);
         Assert.StartsWith("operator +", plus.Label);
         Assert.Equal(Trees.FixturesNamespace + ".Calculator<T> (ZGF.ILSpy.Tests)", plus.Location);
         Assert.Same(add.Parent!.Children.Single(c => c.Kind == NodeKind.Operator), list.FindNode(plus.Reference!));

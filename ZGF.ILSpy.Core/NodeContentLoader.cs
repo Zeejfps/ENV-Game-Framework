@@ -92,7 +92,12 @@ public static class NodeContentLoader
         }
     }
 
-    private static bool IsImage(BrowseNode node) => node.Kind == NodeKind.ResourceImage && node.ResourceData != null;
+    private static bool IsImage(BrowseNode node) => node.Subject switch
+    {
+        NodeSubject.ResourceEntry entry => entry.Value.IsImage,
+        NodeSubject.PackageFile file => file.Value.IsImage,
+        _ => false,
+    };
 
     /// <summary>The picture, with the markup it is stored as when it is drawn from shapes.</summary>
     private static ImageContent LoadImage(BrowseSession session, BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
