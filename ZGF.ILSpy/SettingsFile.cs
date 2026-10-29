@@ -49,8 +49,8 @@ internal sealed record SettingsFile(
     public static SettingsFile Of(AppSettings settings) => new(
         settings.AssemblyLists,
         settings.ActiveAssemblyList,
-        settings.Theme,
-        settings.IconTheme,
+        settings.Theme.Text,
+        settings.IconTheme.Text,
         settings.Language,
         settings.Decompiler,
         settings.FoldedOptionGroups,

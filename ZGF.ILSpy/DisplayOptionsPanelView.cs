@@ -264,8 +264,12 @@ internal static class DisplayOptionsPanelView
     /// this frame, or <see cref="NothingPicked"/>. Its items are told apart by <paramref name="itemIds"/>
     /// when labels can repeat, else by their labels; the open menu closes when <paramref name="revision"/>
     /// changes, as when the items change under it.</summary>
-    private static int PickFrom(Ui<UiState> ui, string id, string[] labels, int current, IReadOnlyList<string>? itemIds = null,
-        int revision = 0)
+    private static int PickFrom(Ui<UiState> ui, string id, string[] labels, int current) =>
+        PickFrom<string>(ui, id, labels, current, null, 0);
+
+    private static int PickFrom<TItem>(Ui<UiState> ui, string id, string[] labels, int current, IReadOnlyList<TItem>? itemIds,
+        int revision)
+        where TItem : notnull
     {
         var width = ControlWidth(PickerMinWidth, ui.SelectButtonWidth(labels));
         var shown = Math.Max(current, 0);
@@ -282,11 +286,12 @@ internal static class DisplayOptionsPanelView
         return picked;
     }
 
-    private static string? ItemIdAt(IReadOnlyList<string>? itemIds, int index)
+    private static string? ItemIdAt<TItem>(IReadOnlyList<TItem>? itemIds, int index)
+        where TItem : notnull
     {
         if (itemIds == null)
             return null;
-        return itemIds[index];
+        return itemIds[index].ToString();
     }
 
     private static void CodeSection(Ui<UiState> ui)

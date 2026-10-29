@@ -17,13 +17,13 @@ public static class IconThemeDraft
 
     /// <summary>An icon theme named <paramref name="name"/> extending <paramref name="parent"/>, its icons
     /// listed as <paramref name="shown"/> writes them.</summary>
-    public static string Compose(string name, string parent, IconTheme shown)
+    public static string Compose(string name, ThemeId<IconThemeFile> parent, IconTheme shown)
     {
         var text = new StringBuilder();
         text.Append("{\n");
         text.Append(Indent).Append(SchemaLine).Append('\n');
         text.Append(Indent).Append("\"name\": ").Append(Quote(name)).Append(",\n");
-        text.Append(Indent).Append("\"extends\": ").Append(Quote(parent)).Append(",\n");
+        text.Append(Indent).Append("\"extends\": ").Append(Quote(parent.Text)).Append(",\n");
         text.Append(Indent).Append("\"icons\": {\n");
         foreach (var key in AppIcons.Keys)
             AppendCommentedIcon(text, key.Key, shown.Values[key.Key]);

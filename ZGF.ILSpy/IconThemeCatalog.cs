@@ -6,7 +6,7 @@ namespace ZGF.ILSpy;
 /// theme.</summary>
 public sealed class IconThemeCatalog : ThemeCatalog<IconThemeFile, IconTheme>
 {
-    public const string ReferenceId = "lucide";
+    public static readonly ThemeId<IconThemeFile> ReferenceId = ThemeId<IconThemeFile>.Of("lucide");
 
     /// <param name="builtIns">The built-in icon themes in the order a menu lists them, which must include
     /// <see cref="ReferenceId"/>, mapping every key.</param>
@@ -15,7 +15,7 @@ public sealed class IconThemeCatalog : ThemeCatalog<IconThemeFile, IconTheme>
         LoadUserThemes([]);
     }
 
-    protected override string DefaultId => ReferenceId;
+    protected override ThemeId<IconThemeFile> DefaultId => ReferenceId;
 
     protected override IconTheme Build(IconThemeFile file, IReadOnlyList<IconThemeFile> chain)
     {
@@ -32,7 +32,7 @@ public sealed class IconThemeCatalog : ThemeCatalog<IconThemeFile, IconTheme>
         return theme;
     }
 
-    private static bool IsReference(IconThemeFile file) => string.Equals(file.Id, ReferenceId, StringComparison.OrdinalIgnoreCase);
+    private static bool IsReference(IconThemeFile file) => file.Id.Equals(ReferenceId);
 
-    protected override string FallbackIdOf(IconThemeFile file) => ReferenceId;
+    protected override ThemeId<IconThemeFile> FallbackIdOf(IconThemeFile file) => ReferenceId;
 }

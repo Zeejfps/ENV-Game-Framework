@@ -45,14 +45,28 @@ public static class Theming
     {
         if (folder == null)
             return new List<ThemeFile>();
-        return ListThemeFiles(folder, ThemeFilePattern, SchemaFileName)
-            .Select(ThemeFile.ReadFile)
+        return ListThemeFiles<ThemeFile>(folder, ThemeFilePattern, SchemaFileName)
+            .Select(static f => ThemeFile.ReadFile(f.Id, f.Path))
             .ToList();
     }
 
-    /// <summary>The files <paramref name="pattern"/> matches in <paramref name="folder"/> by name, without
-    /// the schema <paramref name="schemaFileName"/>; none when the folder is missing or cannot be listed.</summary>
-    internal static List<string> ListThemeFiles(string folder, string pattern, string schemaFileName)
+    /// <summary>The files <paramref name="pattern"/> matches in <paramref name="folder"/> by name, each
+    /// with the id its name gives, without the schema <paramref name="schemaFileName"/> and any whose name
+    /// is no id; none when the folder is missing or cannot be listed.</summary>
+    internal static List<(ThemeId<TFile> Id, string Path)> ListThemeFiles<TFile>(string folder, string pattern, string schemaFileName)
+        where TFile : IThemeFile<TFile>
+    {
+        var files = new List<(ThemeId<TFile> Id, string Path)>();
+        foreach (var path in ListFiles(folder, pattern, schemaFileName))
+        {
+            var id = ThemeId<TFile>.Parse(Path.GetFileNameWithoutExtension(path));
+            if (id != null)
+                files.Add((id, path));
+        }
+        return files;
+    }
+
+    private static List<string> ListFiles(string folder, string pattern, string schemaFileName)
     {
         try
         {
@@ -135,7 +149,7 @@ public static class Theming
     /// commented out at the color shown, then reads the themes again and switches to it. Returns its file
     /// for the screen to open; null when the settings live in memory only, or after reporting why the
     /// file cannot be written. <paramref name="nameOf"/> names the theme by the id of the one it is made from.</summary>
-    public static string? CreateCustomTheme(AppState appState, Func<string, string> nameOf)
+    public static string? CreateCustomTheme(AppState appState, Func<ThemeId<ThemeFile>, string> nameOf)
     {
         var folder = PrepareThemesFolder(appState);
         if (folder == null)
@@ -143,7 +157,7 @@ public static class Theming
         var themes = appState.Themes;
         var parent = themes.FindShownId(appState.Theme);
         var id = FindFreeCustomId(parent, candidate => IsTaken(themes, folder, candidate));
-        var path = Path.Combine(folder, id + ThemeFile.Extension);
+        var path = Path.Combine(folder, id.Text + ThemeFile.Extension);
         var text = ThemeDraft.Compose(nameOf(parent), parent, themes.Find(parent));
         if (!TryWriteNewFile(appState, path, text, ThemeKind.Color))
             return null;
@@ -154,13 +168,14 @@ public static class Theming
 
     /// <summary><paramref name="parent"/> followed by <c>-custom</c>, numbered from 2 while
     /// <paramref name="isTaken"/> says a theme or a file already has that id.</summary>
-    internal static string FindFreeCustomId(string parent, Func<string, bool> isTaken)
+    internal static ThemeId<TFile> FindFreeCustomId<TFile>(ThemeId<TFile> parent, Func<ThemeId<TFile>, bool> isTaken)
+        where TFile : IThemeFile<TFile>
     {
-        var id = parent + CustomSuffix;
+        var id = ThemeId<TFile>.Of(parent.Text + CustomSuffix);
         var number = FirstCustomNumber;
         while (isTaken(id))
         {
-            id = $"{parent}{CustomSuffix}-{number}";
+            id = ThemeId<TFile>.Of($"{parent.Text}{CustomSuffix}-{number}");
             number++;
         }
         return id;
@@ -168,13 +183,13 @@ public static class Theming
 
     /// <summary>True when a theme of <paramref name="themes"/> has the id <paramref name="id"/>, or a file
     /// in <paramref name="folder"/> is named by it.</summary>
-    internal static bool IsTaken<TFile, TTheme>(ThemeCatalog<TFile, TTheme> themes, string folder, string id)
-        where TFile : class, IThemeFile
+    internal static bool IsTaken<TFile, TTheme>(ThemeCatalog<TFile, TTheme> themes, string folder, ThemeId<TFile> id)
+        where TFile : class, IThemeFile<TFile>
         where TTheme : class
     {
         if (themes.IndexOf(id) >= 0)
             return true;
-        return File.Exists(Path.Combine(folder, id + ThemeFile.Extension));
+        return File.Exists(Path.Combine(folder, id.Text + ThemeFile.Extension));
     }
 
     /// <summary>Writes <paramref name="text"/>, a theme of <paramref name="kind"/>, to a file that must not

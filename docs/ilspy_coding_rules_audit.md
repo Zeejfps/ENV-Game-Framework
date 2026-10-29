@@ -36,7 +36,6 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Bare identifiers that can be swapped
 
-- Color theme id and icon theme id are both `string` (`AppState.cs:71, 74`); either catalog silently falls back to the default, so the wrong one draws Dark.
 - Panel ids are strings; the title and icon switches fall back to "Search" (`DockPanels.cs:32, 46`).
 - `AssemblyPicks` holds both PDB paths and target-framework ids; a picked framework is never validated.
 - Code view lines, rows, columns and match indexes are all `int`, with `NoLine = -1` as a shared sentinel; with folds, row ≠ line.
@@ -95,5 +94,5 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ## Suggested order
 
-1. Introduce `ThemeId`, `IconThemeId`, `PanelId`, and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
+1. Introduce `PanelId` and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
 2. Make the silent default branches throw.

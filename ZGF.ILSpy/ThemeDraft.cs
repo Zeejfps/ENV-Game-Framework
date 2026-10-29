@@ -16,13 +16,13 @@ public static class ThemeDraft
 
     /// <summary>A theme named <paramref name="name"/> extending <paramref name="parent"/>, its colors
     /// listed at those of <paramref name="shown"/>.</summary>
-    public static string Compose(string name, string parent, AppTheme shown)
+    public static string Compose(string name, ThemeId<ThemeFile> parent, AppTheme shown)
     {
         var text = new StringBuilder();
         text.Append("{\n");
         text.Append(Indent).Append(SchemaLine).Append('\n');
         text.Append(Indent).Append("\"name\": ").Append(Quote(name)).Append(",\n");
-        text.Append(Indent).Append("\"extends\": ").Append(Quote(parent)).Append(",\n");
+        text.Append(Indent).Append("\"extends\": ").Append(Quote(parent.Text)).Append(",\n");
         AppendSection(text, "ui", UiTheme.ColorKeys, shown.Ui.ToColors(), isLast: false);
         AppendSection(text, "code", CodeViewPalette.ColorKeys, shown.Code.ToColors(), isLast: false);
         AppendSection(text, "icons", NodeIconPalette.ColorKeys, shown.Icons.ToColors(), isLast: true);

@@ -210,7 +210,7 @@ public sealed class AppSettingsTests : IDisposable
 
         Assert.IsType<SettingsProblem.None>(problem);
         Assert.Empty(loaded.AssemblyLists);
-        Assert.Equal("monokai", loaded.Theme);
+        Assert.Equal("monokai", loaded.Theme.Text);
     }
 
     [Fact]
@@ -331,7 +331,7 @@ public sealed class AppSettingsTests : IDisposable
 
         var leftOut = Assert.IsType<SettingsProblem.ValuesLeftOut>(problem);
         Assert.Equal(["Language", "Window"], leftOut.Fields);
-        Assert.Equal("light", loaded.Theme);
+        Assert.Equal("light", loaded.Theme.Text);
         Assert.Equal(DecompilationLanguage.CSharp, loaded.Language);
         Assert.Null(loaded.Window);
         Assert.Equal(["a.dll"], Assert.Single(loaded.AssemblyLists).Assemblies);
@@ -499,7 +499,7 @@ public sealed class AppSettingsTests : IDisposable
         ReportSettingsProblem(d.AppState, problem);
 
         Assert.IsType<SettingsProblem.LayoutPartsMissing>(problem);
-        Assert.Equal("light", loaded.Theme);
+        Assert.Equal("light", loaded.Theme.Text);
         var fresh = new AppStateDriver(new AppSettings());
         Assert.Equal(DockLayout.PanelsIn(fresh.Ui.Layout.Root), DockLayout.PanelsIn(d.Ui.Layout.Root));
         Assert.Empty(d.Ui.Layout.Windows);

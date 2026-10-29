@@ -311,13 +311,13 @@ public sealed class DisplayOptionsTests
         var app = AppDriver.Opened(width: 1600f);
         OpenDisplayOptions(app.Ui);
         app.Run();
-        Assert.Equal("dark", app.AppState.Theme);
+        Assert.Equal("dark", app.AppState.Theme.Text);
 
         app.Click("Dark").Frame();
         app.Click("Dracula").Frame();
 
-        Assert.Equal("dracula", app.AppState.Theme);
-        Assert.Equal(app.AppState.Themes.Find("dracula").Ui.Background, app.Frames.WindowBackground);
+        Assert.Equal("dracula", app.AppState.Theme.Text);
+        Assert.Equal(app.AppState.Themes.Find(ThemeId<ThemeFile>.Of("dracula")).Ui.Background, app.Frames.WindowBackground);
     }
 
     [Fact]
@@ -332,7 +332,7 @@ public sealed class DisplayOptionsTests
         app.Click("Dark").Frame();
         app.Click("Midnight").Frame();
 
-        Assert.Equal("midnight", app.AppState.Theme);
+        Assert.Equal("midnight", app.AppState.Theme.Text);
         Assert.Equal(0xFF000010u, app.Frames.WindowBackground);
     }
 
@@ -348,11 +348,11 @@ public sealed class DisplayOptionsTests
 
         app.Click("Dark").Frame();
         app.Frames.Click(TwinRects(app)[1]).Frame();
-        Assert.Equal("twin-b", app.AppState.Theme);
+        Assert.Equal("twin-b", app.AppState.Theme.Text);
 
         app.Click("Twin").Frame();
         app.Frames.Click(TwinRects(app)[1]).Frame();
-        Assert.Equal("twin-a", app.AppState.Theme);
+        Assert.Equal("twin-a", app.AppState.Theme.Text);
         Assert.Equal(0xFF00000Au, app.Frames.WindowBackground);
     }
 
@@ -381,7 +381,7 @@ public sealed class DisplayOptionsTests
 
         app.ClickLast(Icons.OptionsCustomizeTheme).Frame();
 
-        Assert.Equal("dark-custom", app.AppState.Theme);
+        Assert.Equal("dark-custom", app.AppState.Theme.Text);
         Assert.Equal([temp.PathOf(Path.Combine("themes", "dark-custom.json"))], app.Frames.OpenedFiles);
     }
 

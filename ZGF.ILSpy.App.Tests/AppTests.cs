@@ -604,15 +604,15 @@ public sealed class AppTests
     {
         var app = AppDriver.Opened();
         app.Run();
-        Assert.Equal("dark", app.AppState.Theme);
+        Assert.Equal("dark", app.AppState.Theme.Text);
 
         app.Click("View");
         app.Click("Theme");
         app.ClickMenuItem("Dracula");
         app.Run();
 
-        Assert.Equal("dracula", app.AppState.Theme);
-        Assert.Equal(app.AppState.Themes.Find("dracula").Ui.Background, app.Frames.WindowBackground);
+        Assert.Equal("dracula", app.AppState.Theme.Text);
+        Assert.Equal(app.AppState.Themes.Find(ThemeId<ThemeFile>.Of("dracula")).Ui.Background, app.Frames.WindowBackground);
     }
 
     [Fact]

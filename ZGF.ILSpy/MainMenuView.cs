@@ -247,7 +247,7 @@ internal static class MainMenuView
         for (var i = 0; i < catalog.Ids.Count; i++)
         {
             var id = catalog.Ids[i];
-            if (ui.MenuRadioItem(names[i], appState.Theme == id, id: id))
+            if (ui.MenuRadioItem(names[i], appState.Theme == id, id: id.Text))
                 SetTheme(appState, id);
         }
     }

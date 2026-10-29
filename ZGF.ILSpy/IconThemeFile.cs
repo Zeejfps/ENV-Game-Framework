@@ -26,7 +26,7 @@ public sealed record IconValue(string? Font, int Codepoint, string? SvgPath, Svg
 /// <summary>One icon theme file as it is written, without the themes it extends: its name, the theme it
 /// extends, its fonts by id and its icons by key, its fonts and pictures read as it is. Read as
 /// <see cref="ThemeJson"/> reads, leaving out a bad key, value, font or picture.</summary>
-public sealed class IconThemeFile : IThemeFile
+public sealed class IconThemeFile : IThemeFile<IconThemeFile>
 {
     public const string Extension = ".json";
 
@@ -49,21 +49,21 @@ public sealed class IconThemeFile : IThemeFile
     private readonly Dictionary<string, IconFont> _fonts = new();
     private readonly Dictionary<string, IconValue> _icons = new();
 
-    private IconThemeFile(string id, string file, IconAssets assets)
+    private IconThemeFile(ThemeId<IconThemeFile> id, string file, IconAssets assets)
     {
         Id = id;
         _json = new ThemeJson(file);
         _assets = assets;
-        Name = ThemeName.Plain(id);
+        Name = ThemeName.Plain(id.Text);
     }
 
-    public string Id { get; }
+    public ThemeId<IconThemeFile> Id { get; }
 
     public string File => _json.File;
 
     public ThemeName Name { get; private set; }
 
-    public string? Extends { get; private set; }
+    public ThemeId<IconThemeFile>? Extends { get; private set; }
 
     public int ExtendsLine { get; private set; }
 
@@ -77,12 +77,12 @@ public sealed class IconThemeFile : IThemeFile
 
     public bool IsUnreadable => _json.IsUnreadable;
 
-    /// <summary>Reads the icon theme file at <paramref name="path"/> and the fonts and pictures it names
-    /// inside its folder; a file that cannot be read is <see cref="IsUnreadable"/>.</summary>
-    public static IconThemeFile ReadFile(string path)
+    /// <summary>Reads the icon theme <paramref name="id"/> from the file at <paramref name="path"/> and the
+    /// fonts and pictures it names inside its folder; a file that cannot be read is <see cref="IsUnreadable"/>.</summary>
+    public static IconThemeFile ReadFile(ThemeId<IconThemeFile> id, string path)
     {
         var folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
-        var theme = new IconThemeFile(Path.GetFileNameWithoutExtension(path), path, new IconAssetFolder(folder));
+        var theme = new IconThemeFile(id, path, new IconAssetFolder(folder));
         var json = theme._json.ReadBytes(path);
         if (json != null)
             theme._json.Read(json, theme.ReadTopLevel);
@@ -91,7 +91,7 @@ public sealed class IconThemeFile : IThemeFile
 
     /// <summary>Reads the icon theme <paramref name="id"/> from <paramref name="json"/>, the content of
     /// <paramref name="file"/>, its fonts and pictures from <paramref name="assets"/>.</summary>
-    public static IconThemeFile Read(string id, string file, byte[] json, IconAssets assets)
+    public static IconThemeFile Read(ThemeId<IconThemeFile> id, string file, byte[] json, IconAssets assets)
     {
         var theme = new IconThemeFile(id, file, assets);
         theme._json.Read(json, theme.ReadTopLevel);
@@ -125,7 +125,7 @@ public sealed class IconThemeFile : IThemeFile
 
     private void ReadName(ref Utf8JsonReader reader, int line)
     {
-        var name = _json.ReadName(ref reader, line, Id);
+        var name = _json.ReadName(ref reader, line, Id.Text);
         if (name != null)
             Name = name;
     }
@@ -135,7 +135,13 @@ public sealed class IconThemeFile : IThemeFile
         var parent = _json.ReadString(ref reader, ThemeJson.ExtendsKey, line);
         if (parent == null)
             return;
-        Extends = parent;
+        var id = ThemeId<IconThemeFile>.Parse(parent);
+        if (id == null)
+        {
+            _json.AddError(line, ThemeProblem.UnknownParent, parent);
+            return;
+        }
+        Extends = id;
         ExtendsLine = line;
     }
 

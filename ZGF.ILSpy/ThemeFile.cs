@@ -21,7 +21,7 @@ public readonly record struct ThemeValue(string Text, string File, int Line)
 /// <summary>One theme file as it is written, without the themes it extends: its name and type, the theme
 /// it extends, its palette and its <c>ui</c>, <c>code</c> and <c>icons</c> colors by key, read as
 /// <see cref="ThemeJson"/> reads, leaving out a bad key or value.</summary>
-public sealed class ThemeFile : IThemeFile
+public sealed class ThemeFile : IThemeFile<ThemeFile>
 {
     public const string Extension = ".json";
     public const char ColorPrefix = '#';
@@ -45,15 +45,15 @@ public sealed class ThemeFile : IThemeFile
     private readonly Dictionary<string, ThemeValue> _code = new();
     private readonly Dictionary<string, ThemeValue> _icons = new();
 
-    private ThemeFile(string id, string file)
+    private ThemeFile(ThemeId<ThemeFile> id, string file)
     {
         Id = id;
         _json = new ThemeJson(file);
-        Name = ThemeName.Plain(id);
+        Name = ThemeName.Plain(id.Text);
     }
 
     /// <summary>The file's name without its extension, which settings and <see cref="Extends"/> know it by.</summary>
-    public string Id { get; }
+    public ThemeId<ThemeFile> Id { get; }
 
     /// <summary>Where the file is, as errors name it.</summary>
     public string File => _json.File;
@@ -64,7 +64,7 @@ public sealed class ThemeFile : IThemeFile
     public ThemeType? Type { get; private set; }
 
     /// <summary>The id of the theme this one builds on, or null.</summary>
-    public string? Extends { get; private set; }
+    public ThemeId<ThemeFile>? Extends { get; private set; }
 
     /// <summary>The line <see cref="Extends"/> is written on.</summary>
     public int ExtendsLine { get; private set; }
@@ -86,11 +86,11 @@ public sealed class ThemeFile : IThemeFile
     /// <summary>True when the file could not be read as a JSON object, so nothing in it counts.</summary>
     public bool IsUnreadable => _json.IsUnreadable;
 
-    /// <summary>Reads the theme file at <paramref name="path"/>; a file that cannot be read is
-    /// <see cref="IsUnreadable"/>.</summary>
-    public static ThemeFile ReadFile(string path)
+    /// <summary>Reads the theme <paramref name="id"/> from the file at <paramref name="path"/>; a file that
+    /// cannot be read is <see cref="IsUnreadable"/>.</summary>
+    public static ThemeFile ReadFile(ThemeId<ThemeFile> id, string path)
     {
-        var theme = new ThemeFile(Path.GetFileNameWithoutExtension(path), path);
+        var theme = new ThemeFile(id, path);
         var json = theme._json.ReadBytes(path);
         if (json != null)
             theme._json.Read(json, theme.ReadTopLevel);
@@ -99,7 +99,7 @@ public sealed class ThemeFile : IThemeFile
 
     /// <summary>Reads the theme <paramref name="id"/> from <paramref name="json"/>, the content of
     /// <paramref name="file"/>.</summary>
-    public static ThemeFile Read(string id, string file, byte[] json)
+    public static ThemeFile Read(ThemeId<ThemeFile> id, string file, byte[] json)
     {
         var theme = new ThemeFile(id, file);
         theme._json.Read(json, theme.ReadTopLevel);
@@ -142,7 +142,7 @@ public sealed class ThemeFile : IThemeFile
 
     private void ReadName(ref Utf8JsonReader reader, int line)
     {
-        var name = _json.ReadName(ref reader, line, Id);
+        var name = _json.ReadName(ref reader, line, Id.Text);
         if (name != null)
             Name = name;
     }
@@ -169,7 +169,13 @@ public sealed class ThemeFile : IThemeFile
         var parent = _json.ReadString(ref reader, ThemeJson.ExtendsKey, line);
         if (parent == null)
             return;
-        Extends = parent;
+        var id = ThemeId<ThemeFile>.Parse(parent);
+        if (id == null)
+        {
+            _json.AddError(line, ThemeProblem.UnknownParent, parent);
+            return;
+        }
+        Extends = id;
         ExtendsLine = line;
     }
 

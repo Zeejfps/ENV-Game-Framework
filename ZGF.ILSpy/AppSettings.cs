@@ -45,10 +45,10 @@ public sealed class AppSettings
     public string? ActiveAssemblyList { get; set; }
 
     /// <summary>The id of the chosen theme, the name of its file without the extension.</summary>
-    public string Theme { get; set; } = ThemeCatalog.DarkId;
+    public ThemeId<ThemeFile> Theme { get; set; } = ThemeCatalog.DarkId;
 
     /// <summary>The id of the chosen icon theme, the name of its file without the extension.</summary>
-    public string IconTheme { get; set; } = IconThemeCatalog.ReferenceId;
+    public ThemeId<IconThemeFile> IconTheme { get; set; } = IconThemeCatalog.ReferenceId;
     public DecompilationLanguage Language { get; set; } = DecompilationLanguage.CSharp;
     public DecompilerOptions Decompiler { get; set; } = DecompilerOptions.Default;
 
@@ -348,12 +348,15 @@ public sealed class AppSettings
     }
 
     /// <summary>The id of the theme <paramref name="saved"/> names, as the name from before themes
-    /// were files or as the id of its file; the default theme for none.</summary>
-    private static string ThemeIdOf(string? saved)
+    /// were files or as the id of its file; the default theme for none or one that is no id.</summary>
+    private static ThemeId<ThemeFile> ThemeIdOf(string? saved)
     {
-        if (string.IsNullOrWhiteSpace(saved))
+        if (saved == null)
             return ThemeCatalog.DarkId;
-        return IdOfOldTheme(saved) ?? saved;
+        var old = IdOfOldTheme(saved);
+        if (old != null)
+            return ThemeId<ThemeFile>.Of(old);
+        return ThemeId<ThemeFile>.Parse(saved) ?? ThemeCatalog.DarkId;
     }
 
     private static string? IdOfOldTheme(string name) => name switch
@@ -370,11 +373,13 @@ public sealed class AppSettings
         _ => null,
     };
 
-    private static string IconThemeIdOf(string? saved)
+    /// <summary>The id of the icon theme <paramref name="saved"/> names; the reference theme for none or
+    /// one that is no id.</summary>
+    private static ThemeId<IconThemeFile> IconThemeIdOf(string? saved)
     {
-        if (string.IsNullOrWhiteSpace(saved))
+        if (saved == null)
             return IconThemeCatalog.ReferenceId;
-        return saved;
+        return ThemeId<IconThemeFile>.Parse(saved) ?? IconThemeCatalog.ReferenceId;
     }
 
     private static string? FindFolderBeside(string? settingsFile, string name)

@@ -35,8 +35,8 @@ public static class BuiltInIconThemes
         return Resources.GetManifestResourceNames()
             .Where(IsIconThemeResource)
             .Select(ReadFile)
-            .OrderBy(static f => f.Id != IconThemeCatalog.ReferenceId)
-            .ThenBy(static f => f.Id, StringComparer.Ordinal)
+            .OrderBy(static f => !f.Id.Equals(IconThemeCatalog.ReferenceId))
+            .ThenBy(static f => f.Id.Text, StringComparer.Ordinal)
             .ToList();
     }
 
@@ -44,7 +44,7 @@ public static class BuiltInIconThemes
 
     private static IconThemeFile ReadFile(string resource)
     {
-        var id = Path.GetFileNameWithoutExtension(resource);
+        var id = ThemeId<IconThemeFile>.Of(Path.GetFileNameWithoutExtension(resource));
         var json = EmbeddedAssets.LoadBytes(Resources, resource);
         return IconThemeFile.Read(id, resource, json, new EmbeddedIconAssets(Resources));
     }

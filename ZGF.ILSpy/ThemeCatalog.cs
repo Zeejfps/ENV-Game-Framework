@@ -4,8 +4,8 @@ namespace ZGF.ILSpy;
 /// cannot be resolved falls back to its parent, else to the built-in theme of its type.</summary>
 public sealed class ThemeCatalog : ThemeCatalog<ThemeFile, AppTheme>
 {
-    public const string DarkId = "dark";
-    public const string LightId = "light";
+    public static readonly ThemeId<ThemeFile> DarkId = ThemeId<ThemeFile>.Of("dark");
+    public static readonly ThemeId<ThemeFile> LightId = ThemeId<ThemeFile>.Of("light");
 
     /// <param name="builtIns">The built-in themes in the order a menu lists them, which must include
     /// <see cref="DarkId"/> and <see cref="LightId"/>.</param>
@@ -14,7 +14,7 @@ public sealed class ThemeCatalog : ThemeCatalog<ThemeFile, AppTheme>
         LoadUserThemes([]);
     }
 
-    protected override string DefaultId => DarkId;
+    protected override ThemeId<ThemeFile> DefaultId => DarkId;
 
     /// <summary>The theme the chain makes, merged over the code and icon colors of the built-in theme of
     /// its root's type, or null when it does not make a whole one.</summary>
@@ -46,11 +46,11 @@ public sealed class ThemeCatalog : ThemeCatalog<ThemeFile, AppTheme>
         return FileOf(IdOfType(root.Type.Value));
     }
 
-    protected override string FallbackIdOf(ThemeFile file)
+    protected override ThemeId<ThemeFile> FallbackIdOf(ThemeFile file)
     {
         var type = file.Type ?? ThemeType.Dark;
         return IdOfType(type);
     }
 
-    private static string IdOfType(ThemeType type) => type == ThemeType.Light ? LightId : DarkId;
+    private static ThemeId<ThemeFile> IdOfType(ThemeType type) => type == ThemeType.Light ? LightId : DarkId;
 }

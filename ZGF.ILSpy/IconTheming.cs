@@ -39,8 +39,8 @@ public static class IconTheming
     {
         if (folder == null)
             return new List<IconThemeFile>();
-        return ListThemeFiles(folder, IconThemeFilePattern, SchemaFileName)
-            .Select(IconThemeFile.ReadFile)
+        return ListThemeFiles<IconThemeFile>(folder, IconThemeFilePattern, SchemaFileName)
+            .Select(static f => IconThemeFile.ReadFile(f.Id, f.Path))
             .ToList();
     }
 
@@ -66,7 +66,7 @@ public static class IconTheming
     /// change, commented out as shown, then reads the icon themes again and switches to it. Returns its file
     /// for the screen to open; null when the settings live in memory only, or after reporting why the
     /// file cannot be written. <paramref name="nameOf"/> names the icon theme by the id of the one it is made from.</summary>
-    public static string? CreateCustomIconTheme(AppState appState, Func<string, string> nameOf)
+    public static string? CreateCustomIconTheme(AppState appState, Func<ThemeId<IconThemeFile>, string> nameOf)
     {
         var folder = PrepareIconThemesFolder(appState);
         if (folder == null)
@@ -74,7 +74,7 @@ public static class IconTheming
         var themes = appState.IconThemes;
         var parent = themes.FindShownId(appState.IconTheme);
         var id = FindFreeCustomId(parent, candidate => IsTaken(themes, folder, candidate));
-        var path = Path.Combine(folder, id + IconThemeFile.Extension);
+        var path = Path.Combine(folder, id.Text + IconThemeFile.Extension);
         var text = IconThemeDraft.Compose(nameOf(parent), parent, themes.Find(parent));
         if (!TryWriteNewFile(appState, path, text, ThemeKind.Icon))
             return null;

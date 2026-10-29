@@ -48,7 +48,7 @@ public sealed class AutosaveTests : IDisposable
         switch (field)
         {
             case nameof(AppSettings.Theme):
-                appState.Theme = "monokai";
+                appState.Theme = ThemeId<ThemeFile>.Of("monokai");
                 break;
             case nameof(AppSettings.Language):
                 SetLanguage(appState, DecompilationLanguage.IL);
@@ -90,7 +90,7 @@ public sealed class AutosaveTests : IDisposable
 
     private static bool IsSaved(AppSettings saved, string field) => field switch
     {
-        nameof(AppSettings.Theme) => saved.Theme == "monokai",
+        nameof(AppSettings.Theme) => saved.Theme.Text == "monokai",
         nameof(AppSettings.Language) => saved.Language == DecompilationLanguage.IL,
         nameof(AppSettings.Decompiler) => saved.Decompiler.LanguageVersion == CSharpVersion.CSharp7_3,
         nameof(AppSettings.ApiVisibility) => saved.ApiVisibility == ApiVisibility.All,

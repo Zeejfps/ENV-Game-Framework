@@ -42,7 +42,7 @@ public static class BuiltInThemes
             .Where(IsThemeResource)
             .Select(ReadFile)
             .OrderBy(RankOf)
-            .ThenBy(static f => f.Id, StringComparer.Ordinal)
+            .ThenBy(static f => f.Id.Text, StringComparer.Ordinal)
             .ToList();
     }
 
@@ -50,16 +50,16 @@ public static class BuiltInThemes
 
     private static ThemeFile ReadFile(string resource)
     {
-        var id = Path.GetFileNameWithoutExtension(resource);
+        var id = ThemeId<ThemeFile>.Of(Path.GetFileNameWithoutExtension(resource));
         var json = EmbeddedAssets.LoadBytes(Resources, resource);
         return ThemeFile.Read(id, resource, json);
     }
 
     private static int RankOf(ThemeFile file)
     {
-        if (file.Id == ThemeCatalog.DarkId)
+        if (file.Id.Equals(ThemeCatalog.DarkId))
             return DarkRank;
-        if (file.Id == ThemeCatalog.LightId)
+        if (file.Id.Equals(ThemeCatalog.LightId))
             return LightRank;
         if (file.Type == ThemeType.Light)
             return OtherLightRank;

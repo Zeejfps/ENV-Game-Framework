@@ -7,17 +7,17 @@ namespace ZGF.ILSpy;
 /// back to its parent, else to the built-in theme <see cref="FallbackIdOf"/> names. Keeps what was wrong
 /// in each file.</summary>
 public abstract class ThemeCatalog<TFile, TTheme>
-    where TFile : class, IThemeFile
+    where TFile : class, IThemeFile<TFile>
     where TTheme : class
 {
     private const string ChainArrow = " → ";
 
     private readonly IReadOnlyList<TFile> _builtIns;
-    private readonly Dictionary<string, TFile> _files = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, TTheme> _themes = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> _shownIds = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _resolving = new(StringComparer.OrdinalIgnoreCase);
-    private readonly List<string> _ids = new();
+    private readonly Dictionary<ThemeId<TFile>, TFile> _files = new();
+    private readonly Dictionary<ThemeId<TFile>, TTheme> _themes = new();
+    private readonly Dictionary<ThemeId<TFile>, ThemeId<TFile>> _shownIds = new();
+    private readonly HashSet<ThemeId<TFile>> _resolving = new();
+    private readonly List<ThemeId<TFile>> _ids = new();
     private readonly List<ThemeError> _errors = new();
     private CultureInfo? _namesCulture;
     private string[] _names = [];
@@ -30,10 +30,10 @@ public abstract class ThemeCatalog<TFile, TTheme>
     }
 
     /// <summary>The built-in theme an id no theme has shows.</summary>
-    protected abstract string DefaultId { get; }
+    protected abstract ThemeId<TFile> DefaultId { get; }
 
     /// <summary>Every theme's id, built-in ones first, in the order a menu lists them.</summary>
-    public IReadOnlyList<string> Ids => _ids;
+    public IReadOnlyList<ThemeId<TFile>> Ids => _ids;
 
     /// <summary>What was wrong in the theme files the last load read, each told once.</summary>
     public IReadOnlyList<ThemeError> Errors => _errors;
@@ -69,7 +69,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
     {
         if (_files.ContainsKey(file.Id))
         {
-            AddError(new ThemeError(file.File, 0, ThemeProblem.IdTaken, file.Id));
+            AddError(new ThemeError(file.File, 0, ThemeProblem.IdTaken, file.Id.Text));
             return;
         }
         AddFile(file);
@@ -85,7 +85,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
 
     /// <summary>The theme <paramref name="id"/>, which must be one of <see cref="Ids"/>, resolved the
     /// first time it is asked for.</summary>
-    protected TTheme Resolve(string id)
+    protected TTheme Resolve(ThemeId<TFile> id)
     {
         if (_themes.TryGetValue(id, out var resolved))
             return resolved;
@@ -138,7 +138,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
     {
         if (!_files.TryGetValue(child.Extends!, out var parent))
         {
-            AddError(new ThemeError(child.File, child.ExtendsLine, ThemeProblem.UnknownParent, child.Extends!));
+            AddError(new ThemeError(child.File, child.ExtendsLine, ThemeProblem.UnknownParent, child.Extends!.Text));
             return null;
         }
         if (chain.Contains(parent))
@@ -154,9 +154,9 @@ public abstract class ThemeCatalog<TFile, TTheme>
     private static string DescribeCycle(List<TFile> chain, TFile parent)
     {
         var ids = chain
-            .Select(static f => f.Id)
+            .Select(static f => f.Id.Text)
             .Reverse()
-            .Append(parent.Id);
+            .Append(parent.Id.Text);
         return string.Join(ChainArrow, ids);
     }
 
@@ -170,7 +170,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
         return theme;
     }
 
-    private string FindFallBack(TFile file)
+    private ThemeId<TFile> FindFallBack(TFile file)
     {
         if (CanFallBackToParent(file))
             return file.Extends!;
@@ -181,7 +181,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
     }
 
     /// <summary>The built-in theme <paramref name="file"/> shows when neither it nor its parent resolves.</summary>
-    protected abstract string FallbackIdOf(TFile file);
+    protected abstract ThemeId<TFile> FallbackIdOf(TFile file);
 
     private bool CanFallBackToParent(TFile file)
     {
@@ -193,7 +193,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
     }
 
     /// <summary>The file of the theme <paramref name="id"/>, which must be one of <see cref="Ids"/>.</summary>
-    protected TFile FileOf(string id) => _files[id];
+    protected TFile FileOf(ThemeId<TFile> id) => _files[id];
 
     protected void AddErrors(IEnumerable<ThemeError> errors)
     {
@@ -210,7 +210,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
 
     /// <summary>The theme <paramref name="id"/> as resolved, or the built-in <see cref="DefaultId"/> when
     /// there is none with that id.</summary>
-    public TTheme Find(string id)
+    public TTheme Find(ThemeId<TFile> id)
     {
         if (_themes.TryGetValue(id, out var theme))
             return theme;
@@ -219,7 +219,7 @@ public abstract class ThemeCatalog<TFile, TTheme>
 
     /// <summary>The id of the theme <see cref="Find"/> shows for <paramref name="id"/>: the id itself when
     /// it resolves, else the theme it falls back to.</summary>
-    public string FindShownId(string id)
+    public ThemeId<TFile> FindShownId(ThemeId<TFile> id)
     {
         if (_shownIds.TryGetValue(id, out var shown))
             return shown;
@@ -227,14 +227,14 @@ public abstract class ThemeCatalog<TFile, TTheme>
     }
 
     /// <summary>The name of the theme <paramref name="id"/> in <paramref name="culture"/>'s language.</summary>
-    public string NameOf(string id, CultureInfo culture) => _files[id].Name.In(culture);
+    public string NameOf(ThemeId<TFile> id, CultureInfo culture) => _files[id].Name.In(culture);
 
     /// <summary>Where <paramref name="id"/> is in <see cref="Ids"/>, or -1. Allocates nothing.</summary>
-    public int IndexOf(string id)
+    public int IndexOf(ThemeId<TFile> id)
     {
         for (var i = 0; i < _ids.Count; i++)
         {
-            if (string.Equals(_ids[i], id, StringComparison.OrdinalIgnoreCase))
+            if (_ids[i].Equals(id))
                 return i;
         }
         return -1;

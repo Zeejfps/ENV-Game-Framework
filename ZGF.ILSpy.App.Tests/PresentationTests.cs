@@ -87,7 +87,7 @@ public sealed class PresentationTests
 
         Assert.Equal(Icons.OverlayPrivate, field.Icon!.Value.Overlay);
         Assert.Equal(BuiltInThemes.Light.Icons.Restricted, field.Icon!.Value.OverlayColor);
-        Assert.Equal(IconThemeCatalog.ReferenceId, field.Icon!.Value.Glyph.Family);
+        Assert.Equal(IconThemeCatalog.ReferenceId.Text, field.Icon!.Value.Glyph.Family);
         Assert.Equal(UiTheme.Light.TextMuted, field.LabelColor);
         Assert.Equal(Icons.OverlayInternal, hidden.Icon!.Value.Overlay);
         Assert.Null(greeter.Icon!.Value.Overlay);

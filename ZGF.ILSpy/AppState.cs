@@ -68,10 +68,10 @@ public sealed class AppState
     public ThemeFolderWatch IconThemesWatch { get; } = new(IconThemeFiles, includesSubfolders: true);
 
     /// <summary>The id of the chosen theme, kept even while no theme has it.</summary>
-    public string Theme;
+    public ThemeId<ThemeFile> Theme;
 
     /// <summary>The id of the chosen icon theme, kept even while no icon theme has it.</summary>
-    public string IconTheme;
+    public ThemeId<IconThemeFile> IconTheme;
     public ApiVisibility ApiVisibility;
 
     /// <summary>Whether what is picked and followed shows in the preview tab rather than the active tab.</summary>
