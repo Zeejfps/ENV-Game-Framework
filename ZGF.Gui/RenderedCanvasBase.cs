@@ -135,7 +135,11 @@ public abstract class RenderedCanvasBase : ICanvas
     // via push/pop like the clip stack but BAKED into each staged instance's color/position at stage
     // time — so the GPU sees ordinary opaque geometry and no shader/vertex-format change is needed.
     // A drawn local point p maps to p * _scale + _translation; sizes scale by _scale and radial
-    // quantities (radius, stroke, corner radius, blur) by the mean of the two axes. The cached
+    // quantities (radius, stroke, corner radius, blur) by the mean of the two axes. Everything is
+    // snapped to the pixel grid in local space FIRST and transformed after, unsnapped: a transformed
+    // subtree keeps the edges it has at rest, so edges that meet still meet, and it moves and grows by
+    // fractions of a pixel as one piece rather than a pixel at a time with its edges snapping at
+    // different moments. At identity that is exactly what drawing with no transform does. The cached
     // _opacity/_scale/_translation mirror the stack tops for cheap per-draw reads (the glyph loop
     // reads them per glyph). All seeded to identity in BeginFrame; the seed is never popped (the
     // Pop* methods keep one entry as a floor, mirroring the clip stack's slot-0 invariant).
@@ -144,6 +148,10 @@ public abstract class RenderedCanvasBase : ICanvas
     private float _opacity = 1f;
     private Vector2 _scale = Vector2.One;
     private Vector2 _translation = Vector2.Zero;
+
+    // Whether this frame pushed a transform that moves or scales anything, which can leave an edge between
+    // device pixels; only then does batching look for the pixel the GPU grows such an edge by.
+    private bool _framePushedTransform;
 
     private int _sequence;
 
@@ -281,6 +289,14 @@ public abstract class RenderedCanvasBase : ICanvas
         return (snappedStart, MathF.Max(0f, SnapToDevice(end) - snappedStart));
     }
 
+    /// <summary>A rect snapped in local space, through the active transform.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Vector4 Transformed(float left, float bottom, float width, float height) => new(
+        left * _scale.X + _translation.X,
+        bottom * _scale.Y + _translation.Y,
+        width * _scale.X,
+        height * _scale.Y);
+
     public void Resize(int width, int height)
     {
         _width = width;
@@ -326,6 +342,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _xformStack.Push((Vector2.One, Vector2.Zero));
         _scale = Vector2.One;
         _translation = Vector2.Zero;
+        _framePushedTransform = false;
     }
 
     public void DrawRect(in DrawRectInputs inputs)
@@ -340,25 +357,25 @@ public abstract class RenderedCanvasBase : ICanvas
         // filling it. The cost is that a rect's drawn size can vary by a pixel as it moves
         // subpixel, which is inherent to snapping and invisible next to a broken seam.
         var savg = (_scale.X + _scale.Y) * 0.5f;
-        var (left, width) = SnapSpan(pos.Left * _scale.X + _translation.X, pos.Right * _scale.X + _translation.X);
-        var (bottom, height) = SnapSpan(pos.Bottom * _scale.Y + _translation.Y, pos.Top * _scale.Y + _translation.Y);
+        var (left, width) = SnapSpan(pos.Left, pos.Right);
+        var (bottom, height) = SnapSpan(pos.Bottom, pos.Top);
 
         _stagedRects.Add(new StagedRect
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
             Inst = new RectInstance
             {
-                Rect = new Vector4(left, bottom, width, height),
+                Rect = Transformed(left, bottom, width, height),
                 BorderRadius = new Vector4(
                     style.BorderRadius.TopLeft.Value * savg,
                     style.BorderRadius.TopRight.Value * savg,
                     style.BorderRadius.BottomRight.Value * savg,
                     style.BorderRadius.BottomLeft.Value * savg),
                 BorderSize = new Vector4(
-                    SnapStroke(style.BorderSize.Top.Value * savg),
-                    SnapStroke(style.BorderSize.Right.Value * savg),
-                    SnapStroke(style.BorderSize.Bottom.Value * savg),
-                    SnapStroke(style.BorderSize.Left.Value * savg)),
+                    SnapStroke(style.BorderSize.Top.Value) * savg,
+                    SnapStroke(style.BorderSize.Right.Value) * savg,
+                    SnapStroke(style.BorderSize.Bottom.Value) * savg,
+                    SnapStroke(style.BorderSize.Left.Value) * savg),
                 BgColor = Tint(style.BackgroundColor),
                 BorderColorTop = Tint(style.BorderColor.Top.Value),
                 BorderColorRight = Tint(style.BorderColor.Right.Value),
@@ -389,26 +406,21 @@ public abstract class RenderedCanvasBase : ICanvas
         // so the on-screen result roughly matches CSS box-shadow expectations.
         var sigma = MathF.Max(blur * 0.5f * savg, 0.0001f);
 
-        // The shifted+spread source rect that produces the shadow, in world coords.
-        var (sLeft, sWidth) = SnapSpan(
-            (pos.Left + offsetX - spread) * sx + _translation.X, (pos.Right + offsetX + spread) * sx + _translation.X);
-        var (sBottom, sHeight) = SnapSpan(
-            (pos.Bottom + offsetY - spread) * sy + _translation.Y, (pos.Top + offsetY + spread) * sy + _translation.Y);
+        // The shifted+spread source rect that produces the shadow, snapped locally, in world coords.
+        var (sLeft, sWidth) = SnapSpan(pos.Left + offsetX - spread, pos.Right + offsetX + spread);
+        var (sBottom, sHeight) = SnapSpan(pos.Bottom + offsetY - spread, pos.Top + offsetY + spread);
+        var shadowRect = Transformed(sLeft, sBottom, sWidth, sHeight);
 
         // Inflate the drawn quad to include the ~3σ penumbra.
         var pad = MathF.Ceiling(sigma * 3f + 1f);
-        var oLeft = sLeft - pad;
-        var oBottom = sBottom - pad;
-        var oWidth = sWidth + pad * 2f;
-        var oHeight = sHeight + pad * 2f;
 
         _stagedShadows.Add(new StagedShadow
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
             Inst = new ShadowInstance
             {
-                OuterRect = new Vector4(oLeft, oBottom, oWidth, oHeight),
-                ShadowRect = new Vector4(sLeft, sBottom, sWidth, sHeight),
+                OuterRect = new Vector4(shadowRect.X - pad, shadowRect.Y - pad, shadowRect.Z + pad * 2f, shadowRect.W + pad * 2f),
+                ShadowRect = shadowRect,
                 BorderRadius = new Vector4(
                     radius.TopLeft.Value * savg,
                     radius.TopRight.Value * savg,
@@ -735,7 +747,7 @@ public abstract class RenderedCanvasBase : ICanvas
         var bottom = bottomDevice * invScale;
         var width = widthDevice * invScale;
         var height = thicknessDevice * invScale;
-        var (snappedLeft, snappedWidth) = SnapSpan(left * sx + tx, (left + width) * sx + tx);
+        var (snappedLeft, snappedWidth) = SnapSpan(left, left + width);
 
         _stagedRects.Add(new StagedRect
         {
@@ -743,10 +755,10 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new RectInstance
             {
                 Rect = new Vector4(
-                    snappedLeft,
-                    SnapToDevice(bottom * sy + ty),
-                    snappedWidth,
-                    SnapStroke(height * sy)),
+                    snappedLeft * sx + tx,
+                    SnapToDevice(bottom) * sy + ty,
+                    snappedWidth * sx,
+                    SnapStroke(height) * sy),
                 BgColor = color,
                 ClipIndex = clip,
             }
@@ -802,6 +814,13 @@ public abstract class RenderedCanvasBase : ICanvas
                 : boxLeft + boxWidth - w;
         }
 
+        // Moved text is already placed exactly, below; scaled text needs glyphs rasterized to match.
+        if (sx != 1f || sy != 1f)
+        {
+            EmitShapedScaled(shaped[..n], cursorX, baselineY, sx, sy, tx, ty, color, clip, rotation, key);
+            return;
+        }
+
         var atlasWidth = (float)_fonts.AtlasWidth;
         var atlasHeight = (float)_fonts.AtlasHeight;
         // Shaped positions and glyph bitmap dims come back in device pixels;
@@ -851,6 +870,81 @@ public abstract class RenderedCanvasBase : ICanvas
 
             cursorX += sg.XAdvance * invScale;
         }
+    }
+
+    /// <summary>
+    /// Stages a shaped line under a scale. It is placed as at rest — the same pen, shaped at the text's
+    /// own size, so line breaks and widths never change — then transformed. Each glyph is drawn from its
+    /// face rasterized at the smallest whole pixel size covering the scaled size, shrunk the last
+    /// fraction to fit, rather than stretched from the size it was laid out at, so text stays sharp
+    /// while scaled. An animation from 1 to a scale near it rasterizes a size or two.
+    /// </summary>
+    private void EmitShapedScaled(ReadOnlySpan<ShapedGlyph> shaped, float cursorX, float baselineY,
+        float sx, float sy, float tx, float ty, uint color, uint clip, float rotation, long key)
+    {
+        var invScale = 1f / _dpiScale;
+        // A stretch has no single size to rasterize at; the larger axis keeps it from being upscaled.
+        var scale = MathF.Max(MathF.Abs(sx), MathF.Abs(sy));
+        var face = new FontHandle(-1);
+        var raster = face;
+        var shrink = 1f;
+
+        for (var i = 0; i < shaped.Length; i++)
+        {
+            var sg = shaped[i];
+            var glyphFace = new FontHandle(sg.FontId);
+            if (glyphFace != face)
+            {
+                face = glyphFace;
+                (raster, shrink) = RasterFaceFor(face, scale);
+            }
+            if (!_fonts.TryGetGlyph(raster, sg.GlyphIndex, out var glyph))
+            {
+                cursorX += sg.XAdvance * invScale;
+                continue;
+            }
+
+            if (glyph.Width > 0 && glyph.Height > 0)
+            {
+                var glyphW = glyph.Width * invScale * shrink;
+                var glyphH = glyph.Height * invScale * shrink;
+                var glyphX = (MathF.Round((cursorX + sg.XOffset * invScale) * _dpiScale) + glyph.BitmapLeft * shrink) * invScale;
+                var glyphY = (MathF.Round((baselineY + sg.YOffset * invScale) * _dpiScale) + glyph.BitmapTop * shrink) * invScale - glyphH;
+                var atlasWidth = (float)_fonts.AtlasWidth;
+                var atlasHeight = (float)_fonts.AtlasHeight;
+
+                _stagedGlyphs.Add(new StagedGlyph
+                {
+                    Key = key,
+                    Inst = new GlyphInstance
+                    {
+                        Rect = new Vector4(glyphX * sx + tx, glyphY * sy + ty, glyphW * sx, glyphH * sy),
+                        AtlasUV = new Vector4(glyph.AtlasX / atlasWidth, glyph.AtlasY / atlasHeight,
+                            glyph.Width / atlasWidth, glyph.Height / atlasHeight),
+                        Color = color,
+                        ClipIndex = clip,
+                        Rotation = rotation,
+                    }
+                });
+            }
+
+            cursorX += sg.XAdvance * invScale;
+        }
+    }
+
+    /// <summary>The face to rasterize <paramref name="face"/>'s glyphs from at <paramref name="scale"/> —
+    /// the same face at the smallest whole pixel size covering the scaled size — and how much to shrink
+    /// what it draws, before the scale, for the scale to bring it to the scaled size.</summary>
+    private (FontHandle Raster, float Shrink) RasterFaceFor(FontHandle face, float scale)
+    {
+        var pixelSize = _fonts.GetPixelSize(face);
+        if (pixelSize <= 0)
+            return (face, 1f);
+        // The tolerance keeps float noise in an exact scale from rounding a size up.
+        var rasterSize = Math.Max(1, (int)MathF.Ceiling(pixelSize * scale - 1f / 64f));
+        if (rasterSize == pixelSize)
+            return (face, 1f);
+        return (_fonts.GetSizedVariant(face, rasterSize), (float)pixelSize / rasterSize);
     }
 
     private float MeasureLineWidth(FontHandle font, ReadOnlySpan<char> line, in FontFeatureSet features, BidiDirection baseDir)
@@ -972,22 +1066,20 @@ public abstract class RenderedCanvasBase : ICanvas
             scaledWidth = rectH * aspect;
         }
 
-        var sx = _scale.X;
-        var sy = _scale.Y;
-        var offsetX = (pos.Left + (rectW - scaledWidth) * 0.5f) * sx + _translation.X;
-        var offsetY = (pos.Bottom + (rectH - scaledHeight) * 0.5f) * sy + _translation.Y;
+        var offsetX = pos.Left + (rectW - scaledWidth) * 0.5f;
+        var offsetY = pos.Bottom + (rectH - scaledHeight) * 0.5f;
 
         var snappedLeft = SnapToDevice(offsetX);
         var snappedBottom = SnapToDevice(offsetY);
-        var snappedRight = SnapToDevice(offsetX + scaledWidth * sx);
-        var snappedTop = SnapToDevice(offsetY + scaledHeight * sy);
+        var snappedRight = SnapToDevice(offsetX + scaledWidth);
+        var snappedTop = SnapToDevice(offsetY + scaledHeight);
 
         _stagedImages.Add(new StagedImage
         {
             Key = MakeKey(inputs.ZIndex, _sequence++),
             Inst = new ImageInstance
             {
-                Rect = new Vector4(snappedLeft, snappedBottom, snappedRight - snappedLeft, snappedTop - snappedBottom),
+                Rect = Transformed(snappedLeft, snappedBottom, snappedRight - snappedLeft, snappedTop - snappedBottom),
                 SrcUV = new Vector4(0f, 0f, 1f, 1f),
                 Tint = Tint(inputs.TintColor),
                 ClipIndex = (uint)_clipStack.Peek(),
@@ -1015,19 +1107,16 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         // Clips compose with the active transform so content drawn offset/scaled (an animating
         // subtree) is clipped in the same space it's drawn in.
-        var sx = _scale.X;
-        var sy = _scale.Y;
-        var tx = _translation.X;
-        var ty = _translation.Y;
         var current = _stagedClips[_clipStack.Peek()];
-        // Snapped by the same rule as DrawRect, so a view clipped to its own Position keeps every
-        // pixel of its background.
-        var (spanLeft, spanWidth) = SnapSpan(rect.Left * sx + tx, rect.Right * sx + tx);
-        var (spanBottom, spanHeight) = SnapSpan(rect.Bottom * sy + ty, rect.Top * sy + ty);
-        var left = MathF.Max(spanLeft, current.X);
-        var bottom = MathF.Max(spanBottom, current.Y);
-        var right = MathF.Min(spanLeft + spanWidth, current.Z);
-        var top = MathF.Min(spanBottom + spanHeight, current.W);
+        // Snapped locally by the same rule as DrawRect, then transformed, so a view clipped to its own
+        // Position keeps every pixel of its background however it is moved.
+        var (spanLeft, spanWidth) = SnapSpan(rect.Left, rect.Right);
+        var (spanBottom, spanHeight) = SnapSpan(rect.Bottom, rect.Top);
+        var span = Transformed(spanLeft, spanBottom, spanWidth, spanHeight);
+        var left = MathF.Max(span.X, current.X);
+        var bottom = MathF.Max(span.Y, current.Y);
+        var right = MathF.Min(span.X + span.Z, current.Z);
+        var top = MathF.Min(span.Y + span.W, current.W);
         if (right < left) right = left;
         if (top < bottom) top = bottom;
 
@@ -1063,6 +1152,7 @@ public abstract class RenderedCanvasBase : ICanvas
         // scaled one moves at the scaled rate. Identity-preserving when no scale is active.
         _translation += new Vector2(dx, dy) * _scale;
         _xformStack.Push((_scale, _translation));
+        _framePushedTransform |= dx != 0f || dy != 0f;
     }
 
     public void PopTranslation() => PopXform();
@@ -1075,6 +1165,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _translation += new Vector2(pivotX, pivotY) * (Vector2.One - s) * _scale;
         _scale *= s;
         _xformStack.Push((_scale, _translation));
+        _framePushedTransform |= sx != 1f || sy != 1f;
     }
 
     public void PopScale() => PopXform();
@@ -1307,6 +1398,8 @@ public abstract class RenderedCanvasBase : ICanvas
                 case DrawKind.Rect:
                     src = ri++;
                     Bounds(_stagedRects[src].Inst.Rect, 0f, _stagedRects[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
+                    if (_framePushedTransform)
+                        WithFringe(ref minX, ref minY, ref maxX, ref maxY);
                     break;
                 case DrawKind.Glyph:
                     src = gi++;
@@ -1316,6 +1409,8 @@ public abstract class RenderedCanvasBase : ICanvas
                     src = ii++;
                     tex = _stagedImages[src].Inst.TextureId;
                     Bounds(_stagedImages[src].Inst.Rect, _stagedImages[src].Inst.Rotation, _stagedImages[src].Inst.ClipIndex, out minX, out minY, out maxX, out maxY);
+                    if (_framePushedTransform)
+                        WithFringe(ref minX, ref minY, ref maxX, ref maxY);
                     break;
                 case DrawKind.Shadow:
                     src = si++;
@@ -1334,6 +1429,27 @@ public abstract class RenderedCanvasBase : ICanvas
         }
 
         Materialize();
+    }
+
+    /// <summary>Widens bounds by the pixel the GPU grows a rect or image by when a transform left one of its
+    /// edges between device pixels, to fade that edge; batching must see that pixel too, or it could put two
+    /// draws whose faded edges overlap in either order.</summary>
+    private void WithFringe(ref float minX, ref float minY, ref float maxX, ref float maxY)
+    {
+        if (!OffGrid(minX) && !OffGrid(minY) && !OffGrid(maxX) && !OffGrid(maxY))
+            return;
+        var pixel = 1f / _dpiScale;
+        minX -= pixel;
+        minY -= pixel;
+        maxX += pixel;
+        maxY += pixel;
+    }
+
+    /// <summary>Whether a coordinate is off the device pixel grid, by the shaders' rule.</summary>
+    private bool OffGrid(float logical)
+    {
+        var device = logical * _dpiScale;
+        return MathF.Abs(device - MathF.Round(device)) >= 1f / 256f;
     }
 
     private void AssignBatch(int item, DrawKind kind, uint tex, float minX, float minY, float maxX, float maxY)

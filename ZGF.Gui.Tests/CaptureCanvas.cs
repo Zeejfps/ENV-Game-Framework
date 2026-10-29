@@ -18,11 +18,21 @@ internal sealed class CaptureCanvas : RenderedCanvasBase
 
     public List<RectInstance> Rects { get; } = new();
     public List<GlyphInstance> Glyphs { get; } = new();
+    public List<ImageInstance> Images { get; } = new();
+    public List<ShadowInstance> Shadows { get; } = new();
+    public List<ShapeInstance> Shapes { get; } = new();
+
+    /// <summary>The clip rects of the last frame as (left, bottom, right, top), slot 0 the whole canvas.</summary>
+    public List<Vector4> Clips { get; } = new();
+
+    /// <summary>The size an image is drawn as if it had, for <see cref="ICanvas.DrawImage"/>; images not
+    /// named here have none.</summary>
+    public Dictionary<string, Size> ImageSizes { get; } = new();
 
     /// <summary>
-    /// Runs one frame and returns with <see cref="Rects"/> and <see cref="Glyphs"/> holding what
-    /// would be on screen. The base skips re-uploading a kind whose staged content is unchanged, so
-    /// these keep the last uploaded contents rather than emptying — which is what is still drawn.
+    /// Runs one frame and returns with the instance lists holding what would be on screen. The base
+    /// skips re-uploading a kind whose staged content is unchanged, so these keep the last uploaded
+    /// contents rather than emptying — which is what is still drawn.
     /// </summary>
     public void Frame(Action<ICanvas> draw)
     {
@@ -31,25 +41,34 @@ internal sealed class CaptureCanvas : RenderedCanvasBase
         EndFrame();
     }
 
-    protected override void UploadRectInstances(RectInstance[] data, int count)
+    protected override void UploadRectInstances(RectInstance[] data, int count) => Keep(Rects, data, count);
+    protected override void UploadGlyphInstances(GlyphInstance[] data, int count) => Keep(Glyphs, data, count);
+    protected override void UploadImageInstances(ImageInstance[] data, int count) => Keep(Images, data, count);
+    protected override void UploadShadowInstances(ShadowInstance[] data, int count) => Keep(Shadows, data, count);
+    protected override void UploadShapeInstances(ShapeInstance[] data, int count) => Keep(Shapes, data, count);
+
+    protected override void UploadClips(List<Vector4> clips)
     {
-        Rects.Clear();
-        for (var i = 0; i < count; i++) Rects.Add(data[i]);
+        Clips.Clear();
+        Clips.AddRange(clips);
     }
 
-    protected override void UploadGlyphInstances(GlyphInstance[] data, int count)
+    private static void Keep<T>(List<T> kept, T[] data, int count)
     {
-        Glyphs.Clear();
-        for (var i = 0; i < count; i++) Glyphs.Add(data[i]);
+        kept.Clear();
+        for (var i = 0; i < count; i++) kept.Add(data[i]);
     }
 
-    protected override void UploadImageInstances(ImageInstance[] data, int count) { }
-    protected override void UploadShadowInstances(ShadowInstance[] data, int count) { }
-    protected override void UploadShapeInstances(ShapeInstance[] data, int count) { }
-    protected override void UploadClips(List<Vector4> clips) { }
     protected override void UpdateAtlasIfDirty() { }
-    protected override void IssueDraws(IReadOnlyList<DrawCall> drawCalls) { }
+    /// <summary>The draw calls of the last frame, in the order the GPU would run them.</summary>
+    public List<DrawCall> DrawCalls { get; } = new();
+
+    protected override void IssueDraws(IReadOnlyList<DrawCall> drawCalls)
+    {
+        DrawCalls.Clear();
+        DrawCalls.AddRange(drawCalls);
+    }
     protected override void OnResize(int width, int height) { }
-    protected override Size GetImageSizeImpl(string imageId) => default;
+    protected override Size GetImageSizeImpl(string imageId) => ImageSizes.TryGetValue(imageId, out var size) ? size : default;
     protected override uint GetImageTextureId(string imageId) => 0;
 }

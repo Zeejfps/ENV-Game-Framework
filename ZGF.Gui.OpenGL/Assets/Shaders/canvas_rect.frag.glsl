@@ -10,6 +10,7 @@ flat in uint v_borderColorRight;
 flat in uint v_borderColorBottom;
 flat in uint v_borderColorLeft;
 flat in uint v_clipIndex;
+flat in float v_fadesEdges;
 
 // Binding point is assigned from C# via glUniformBlockBinding because the
 // `binding = N` layout qualifier requires GLSL 420 / ARB_shading_language_420pack,
@@ -96,8 +97,31 @@ void main() {
         } else {
             fillFactor = 0.0; // border thicker than the radius: the whole corner is border
         }
+    } else if (v_fadesEdges > 0.0) {
+        // Straight edges a transform left between device pixels: the outer edge and the border's inner
+        // edge each fade the pixels they partly cover, so the rect moves smoothly instead of a pixel at a
+        // time. A side with no border lets the fill run to the outer edge.
+        vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
+        vec2 inside = (vec2(halfW, halfH) - mirror) * devicePerLogical;
+        coverage = clamp(inside.x + 0.5, 0.0, 1.0) * clamp(inside.y + 0.5, 0.0, 1.0);
+        if (coverage <= 0.0) discard;
+        const float noBorder = 1.0e6;
+        float fromLeft   = v_borderSize.w > 0.0 ? v_localPos.x - v_borderSize.w : noBorder;
+        float fromRight  = v_borderSize.y > 0.0 ? rectW - v_borderSize.y - v_localPos.x : noBorder;
+        float fromBottom = v_borderSize.z > 0.0 ? v_localPos.y - v_borderSize.z : noBorder;
+        float fromTop    = v_borderSize.x > 0.0 ? rectH - v_borderSize.x - v_localPos.y : noBorder;
+        vec2 intoFill = vec2(min(fromLeft, fromRight), min(fromBottom, fromTop)) * devicePerLogical;
+        fillFactor = clamp(intoFill.x + 0.5, 0.0, 1.0) * clamp(intoFill.y + 0.5, 0.0, 1.0);
+        // A pixel whose center is just inside the fill takes the nearest side's border color for its share.
+        if (!(inBottom || inTop || inRight || inLeft)) {
+            float nearest = min(min(fromLeft, fromRight), min(fromBottom, fromTop));
+            inBottom = nearest == fromBottom && v_borderSize.z > 0.0;
+            inTop    = !inBottom && nearest == fromTop && v_borderSize.x > 0.0;
+            inRight  = !inBottom && !inTop && nearest == fromRight && v_borderSize.y > 0.0;
+            inLeft   = !inBottom && !inTop && !inRight && nearest == fromLeft && v_borderSize.w > 0.0;
+        }
     } else {
-        // Straight-edge zone: axis-aligned, needs no antialiasing.
+        // Straight-edge zone on the pixel grid: axis-aligned, needs no antialiasing.
         fillFactor = (inBottom || inTop || inRight || inLeft) ? 0.0 : 1.0;
     }
 

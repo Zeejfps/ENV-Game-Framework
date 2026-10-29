@@ -44,6 +44,13 @@ public interface ICanvas
     /// <summary>Offsets everything drawn (and nested clips) by (dx, dy) logical points until the
     /// matching <see cref="PopTranslation"/>; composes (nests) with any active transform. Affects
     /// drawing only — never layout.</summary>
+    /// <remarks>What is drawn under a transform is snapped to the pixel grid where it sits without it,
+    /// then moved and scaled exactly, so it keeps its shape and moves by fractions of a pixel rather than
+    /// a pixel at a time; at identity it draws exactly as with none. Hence a subtree held still at a
+    /// fractional offset is drawn soft, as a CSS transform is. Edges a transform leaves between pixels are
+    /// faded by how much they cover them, which has limits: a clip's own edge still cuts at pixel centers,
+    /// two transformed rects that abut can show a faint seam where both fade, and the Metal backend draws
+    /// such edges hard until its shaders gain the fade.</remarks>
     void PushTranslation(float dx, float dy);
     void PopTranslation();
 
@@ -51,6 +58,8 @@ public interface ICanvas
     /// (pivotX, pivotY) — given in the current local coordinate space — until the matching
     /// <see cref="PopScale"/>; composes (nests) with any active transform. Affects drawing only —
     /// never layout. Pass a view's center as the pivot for a pop/zoom animation.</summary>
+    /// <remarks>Snapped first and scaled after, as <see cref="PushTranslation"/> says. Text is drawn from
+    /// glyphs rasterized at the scaled size, so it stays sharp; a cell grid's glyph runs are stretched.</remarks>
     void PushScale(float sx, float sy, float pivotX, float pivotY);
     void PopScale();
 
