@@ -71,12 +71,22 @@ public static class ILSpyTree
 
     /// <summary>The node a bookmark ILSpy made in the assembly at <paramref name="filePath"/> sits
     /// in, as <see cref="Describe"/> records it: the node <paramref name="treePath"/> names, else the
-    /// node of the entity with metadata <paramref name="token"/> or its nearest ancestor. Loads the
-    /// assembly without listing it; null when it cannot be opened or has neither.</summary>
-    public static NodePath? Locate(AssemblyList list, BrowseSession session, AssemblyPath filePath, IReadOnlyList<string>? treePath, uint token) =>
-        (treePath is { Count: > 0 } ? Find(list, session, treePath) : null) ?? FindEntity(list, session, filePath, token);
+    /// node of the entity with metadata <paramref name="token"/>, when its full name is
+    /// <paramref name="memberName"/>, or its nearest ancestor. Loads the assembly without listing it; null
+    /// when it cannot be opened or has neither.</summary>
+    public static BrowseNode? Locate(AssemblyList list, BrowseSession session, AssemblyPath filePath, IReadOnlyList<string>? treePath, uint token,
+        string memberName)
+    {
+        if (treePath != null && treePath.Count > 0)
+        {
+            var found = Find(list, session, treePath);
+            if (found != null)
+                return found;
+        }
+        return FindEntity(list, session, filePath, token, memberName);
+    }
 
-    private static NodePath? Find(AssemblyList list, BrowseSession session, IReadOnlyList<string> path)
+    private static BrowseNode? Find(AssemblyList list, BrowseSession session, IReadOnlyList<string> path)
     {
         var filePath = AssemblyPath.Parse(path[0]);
         if (filePath == null) return null;
@@ -95,17 +105,22 @@ public static class ILSpyTree
             if (next == null) return null;
             node = next;
         }
-        return node.Path;
+        return node;
     }
 
-    private static NodePath? FindEntity(AssemblyList list, BrowseSession session, AssemblyPath filePath, uint token)
+    /// <summary>The node of the entity <paramref name="token"/> names, or its nearest ancestor; null when
+    /// the entity is not the one called <paramref name="memberName"/>, as after a rebuild the token can name
+    /// another.</summary>
+    private static BrowseNode? FindEntity(AssemblyList list, BrowseSession session, AssemblyPath filePath, uint token, string memberName)
     {
         if (token == 0) return null;
         var assembly = Load(list, filePath);
         if (assembly == null) return null;
+        var entity = Resolve(assembly, (int)token);
+        if (entity == null || entity.FullName != memberName) return null;
         try
         {
-            return session.FindOrAncestor(assembly, MetadataTokens.EntityHandle((int)token))?.Path;
+            return session.FindOrAncestor(assembly, entity.MetadataToken);
         }
         catch (Exception e) when (e is ArgumentException or BadImageFormatException)
         {

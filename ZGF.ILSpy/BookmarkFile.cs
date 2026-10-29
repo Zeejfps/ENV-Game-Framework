@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -40,10 +41,11 @@ public sealed record BookmarkViewState(
 
 /// <summary>
 /// A bookmark as the real ILSpy writes it to ILSpy.Bookmarks.json, field for field, so files go
-/// both ways. <see cref="LineNumber"/> counts from 1. <see cref="Place"/> and <see cref="Language"/>
-/// are this app's own — the steps down its tree to the node the bookmark was made in, and that
-/// document's language — which ILSpy skips; a record without a place finds one through
-/// <see cref="BookmarkViewState.SelectedTreeNodePath"/>.
+/// both ways. <see cref="LineNumber"/> counts from 1. <see cref="Location"/> and <see cref="Language"/>
+/// are this app's own — where in its tree the node the bookmark was made in is, and that document's
+/// language — which ILSpy skips; a record without a location finds one through
+/// <see cref="BookmarkViewState.SelectedTreeNodePath"/>. The file keeps the location as
+/// <see cref="Path"/>, and as <see cref="Place"/> for builds before versioned paths.
 /// </summary>
 public sealed record BookmarkRecord(
     string Name,
@@ -58,8 +60,12 @@ public sealed record BookmarkRecord(
     string MemberName,
     string? LocationNodeName,
     BookmarkViewState? ViewState,
-    List<NodePathSegment>? Place = null,
-    DecompilationLanguage? Language = null);
+    [property: JsonIgnore] NodePath? Location = null,
+    List<LegacyPlaceStep>? Place = null,
+    DecompilationLanguage? Language = null)
+{
+    public SavedPath? Path => Location == null ? null : SavedPlaces.PathOf(Location);
+}
 
 /// <summary>The bookmarks file the real ILSpy reads and writes.</summary>
 public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
@@ -117,7 +123,9 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
         {
             try
             {
-                var bookmark = bookmarks[i].Deserialize(AppSettingsJson.Default.BookmarkJson)?.Parse();
+                var entry = $"#{i + 1}";
+                var bookmark = bookmarks[i].Deserialize(AppSettingsJson.Default.BookmarkJson)
+                    ?.Parse(() => unreadable.Add($"{entry}: the place it was made in cannot be read."));
                 if (bookmark != null)
                     read.Add(bookmark);
             }

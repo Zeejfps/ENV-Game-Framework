@@ -212,14 +212,19 @@ public sealed class AssemblyReferenceInfo
 /// an open generic type, and fully named after the type it is nested in, else after its namespace.</summary>
 public sealed class TypeReferenceInfo
 {
-    internal TypeReferenceInfo(LoadedModule module, TypeReferenceHandle handle, string ns, string label, string fullName)
+    internal TypeReferenceInfo(LoadedModule module, TypeReferenceHandle handle, string ns, string label, string fullName, string reflectionName)
     {
         Module = module;
         Handle = handle;
         Namespace = ns;
         Label = label;
         FullName = fullName;
+        ReflectionName = reflectionName;
     }
+
+    /// <summary>The name with its namespace, the types it is nested in and how many type parameters it
+    /// has, as metadata writes it: <c>System.Collections.Generic.List`1</c>.</summary>
+    public string ReflectionName { get; }
 
     public LoadedModule Module { get; }
 
@@ -282,9 +287,10 @@ public sealed class ModuleReferenceInfo
 /// as, which for a stub the compiler generates as a local function is the method declaring it.</summary>
 public sealed class ImportedMethodInfo
 {
-    internal ImportedMethodInfo(DefinedMember shown, string label, string declaringTypeName, string entryPoint, string moduleName)
+    internal ImportedMethodInfo(DefinedMember shown, string id, string label, string declaringTypeName, string entryPoint, string moduleName)
     {
         Shown = shown;
+        Id = id;
         Label = label;
         DeclaringTypeName = declaringTypeName;
         EntryPoint = entryPoint;
@@ -292,6 +298,10 @@ public sealed class ImportedMethodInfo
     }
 
     public DefinedMember Shown { get; }
+
+    /// <summary>The XML documentation id of the method that calls into the module, the stub itself for a
+    /// local function.</summary>
+    public string Id { get; }
 
     /// <summary>The method as the tree labels it, with the parameters the module is called with.</summary>
     public string Label { get; }
@@ -336,6 +346,17 @@ public sealed class ForwardedTypeInfo
     public string Destination { get; }
 
     public string FullName => Namespace.Length == 0 ? Label : $"{Namespace}.{Label}";
+
+    /// <summary>The name with its namespace and how many type parameters it has, as metadata writes it:
+    /// <c>System.Collections.Generic.Dictionary`2</c>.</summary>
+    public string ReflectionName
+    {
+        get
+        {
+            var name = Arity == 0 ? SortName : $"{SortName}`{Arity}";
+            return Namespace.Length == 0 ? name : $"{Namespace}.{name}";
+        }
+    }
 }
 
 /// <summary>A type a type derives from directly, as <see cref="Module"/> names it, and what it resolves to.</summary>

@@ -254,7 +254,7 @@ public sealed class AppSettings
     {
         const string field = nameof(SettingsFile.Bookmarks);
         return file.ReadEach(field)
-            .Select(b => file.Parse(b, AppSettingsJson.Default.BookmarkJson, field)?.Parse())
+            .Select(b => file.Parse(b, AppSettingsJson.Default.BookmarkJson, field)?.Parse(() => file.LeaveOut(field)))
             .OfType<BookmarkRecord>()
             .ToList();
     }

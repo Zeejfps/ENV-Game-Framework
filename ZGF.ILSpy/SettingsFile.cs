@@ -129,7 +129,7 @@ internal sealed record DocumentsJson(List<JsonElement>? Tabs, string? Active, st
         if (Tabs == null)
             return null;
         var tabs = Tabs
-            .Select(t => file.Parse(t, AppSettingsJson.Default.DocumentJson, field)?.Parse())
+            .Select(t => file.Parse(t, AppSettingsJson.Default.DocumentJson, field)?.Parse(() => file.LeaveOut(field)))
             .OfType<DocumentRecord>()
             .Where(static t => !DockPanels.IsView(t.Panel))
             .DistinctBy(static t => t.Panel)
@@ -156,28 +156,31 @@ internal sealed record DocumentsJson(List<JsonElement>? Tabs, string? Active, st
 [JsonDerivedType(typeof(ComparisonDocumentJson), "comparison")]
 internal abstract record DocumentJson(string? Panel, string? Title)
 {
-    public abstract DocumentRecord? Parse();
+    /// <summary>The tab; <paramref name="leaveOut"/> is told when what it shows cannot be read.</summary>
+    public abstract DocumentRecord? Parse(Action leaveOut);
 }
 
 internal sealed record NodeDocumentJson(
     string? Panel,
     string? Title,
     string? FilePath,
-    List<NodePathSegmentJson?>? Place,
+    List<LegacyPlaceStepJson?>? Place,
+    SavedPathJson? Path,
     DecompilationLanguage Language,
     CodeViewPosition? Position) : DocumentJson(Panel, Title)
 {
-    public override DocumentRecord? Parse()
+    public override DocumentRecord? Parse(Action leaveOut)
     {
         if (Panel == null || FilePath == null)
             return null;
-        var path = AssemblyPath.Parse(FilePath);
-        if (path == null)
+        var file = AssemblyPath.Parse(FilePath);
+        if (file == null)
             return null;
-        var place = SettingsJson.SegmentsOf(Place);
-        if (place == null)
+        var place = SettingsJson.LegacyPlaceOf(Place);
+        var location = SettingsJson.LocationOf(file, Path, place, leaveOut);
+        if (location == null)
             return null;
-        return new NodeDocumentRecord(Panel, Title, path, place, Language, Position);
+        return new NodeDocumentRecord(Panel, Title, location, place, Language, Position);
     }
 }
 
@@ -188,7 +191,7 @@ internal sealed record DiagramDocumentJson(
     List<string?>? HomeAssemblies,
     DiagramViewJson? View) : DocumentJson(Panel, Title)
 {
-    public override DocumentRecord? Parse()
+    public override DocumentRecord? Parse(Action leaveOut)
     {
         if (Panel == null || Types == null)
             return null;
@@ -206,7 +209,7 @@ internal sealed record ComparisonDocumentJson(
     ApiScope Scope,
     ComparisonViewRecord? View) : DocumentJson(Panel, Title)
 {
-    public override DocumentRecord? Parse()
+    public override DocumentRecord? Parse(Action leaveOut)
     {
         if (Panel == null || LeftPath == null || RightPath == null)
             return null;
@@ -218,8 +221,48 @@ internal sealed record ComparisonDocumentJson(
     }
 }
 
-/// <summary>A step down the tree as a settings or bookmarks file can hold it. Without a label it is none.</summary>
-internal sealed record NodePathSegmentJson(NodeKind Kind, string? Text);
+/// <summary>A step down the tree as builds before versioned paths wrote it, as a settings or bookmarks file
+/// can hold it. Without a kind or a label it is none.</summary>
+internal sealed record LegacyPlaceStepJson(string? Kind, string? Text);
+
+/// <summary>A place as a settings or bookmarks file can hold it. Of another version, or with a step that
+/// cannot be read, it is none.</summary>
+internal sealed record SavedPathJson(int Version, List<SavedPathStepJson?>? Steps)
+{
+    /// <summary>The path down from the root of the file at <paramref name="filePath"/>; null when it
+    /// cannot be read.</summary>
+    public NodePath.Semantic? Parse(AssemblyPath filePath)
+    {
+        if (Version != SavedPath.CurrentVersion || Steps == null)
+            return null;
+        var steps = new List<NodePathStep>(Steps.Count);
+        foreach (var json in Steps)
+        {
+            if (json == null)
+                return null;
+            var step = json.Parse();
+            if (step == null)
+                return null;
+            steps.Add(step.Value);
+        }
+        return NodePath.From(filePath, steps);
+    }
+}
+
+/// <summary>A step of a place as a settings or bookmarks file can hold it. Without a segment that reads,
+/// or a label, it is none.</summary>
+internal sealed record SavedPathStepJson(string? Step, string? Label)
+{
+    public NodePathStep? Parse()
+    {
+        if (Step == null || Label == null)
+            return null;
+        var segment = SavedPlaces.ParseSegment(Step);
+        if (segment == null)
+            return null;
+        return new NodePathStep(segment, Label);
+    }
+}
 
 /// <summary>A type as a settings file can hold it. Without its assembly or name it is none.</summary>
 internal sealed record TypeAnchorJson(string? AssemblyPath, string? FullName)
@@ -282,20 +325,23 @@ internal sealed record BookmarkJson(
     string? MemberName,
     string? LocationNodeName,
     BookmarkViewStateJson? ViewState,
-    List<NodePathSegmentJson?>? Place,
+    List<LegacyPlaceStepJson?>? Place,
+    SavedPathJson? Path,
     DecompilationLanguage? Language)
 {
     /// <summary>The bookmark, with what the file lacks filled in; null without the absolute path of an
-    /// assembly file. A place missing a step's label is no place.</summary>
-    public BookmarkRecord? Parse()
+    /// assembly file. A place that cannot be read is no place, and <paramref name="leaveOutPlace"/> is told.</summary>
+    public BookmarkRecord? Parse(Action leaveOutPlace)
     {
         if (FileName == null)
             return null;
         var path = AssemblyPath.Parse(FileName);
         if (path == null)
             return null;
+        var place = SettingsJson.LegacyPlaceOf(Place);
+        var location = SettingsJson.LocationOf(path, Path, place, leaveOutPlace);
         return new BookmarkRecord(Name ?? "", Enabled, path, AssemblyFullName ?? "", ModuleName ?? path.FileName,
-            Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState?.Parse(), SettingsJson.SegmentsOf(Place), Language);
+            Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState?.Parse(), location, place, Language);
     }
 }
 
@@ -424,19 +470,40 @@ internal static class SettingsJson
         return anchors.Select(static a => a?.Parse()).OfType<CodeAnchor>().ToList();
     }
 
-    /// <summary>The steps of <paramref name="place"/>, or null when it has none or a step lacks its label.</summary>
-    public static List<NodePathSegment>? SegmentsOf(List<NodePathSegmentJson?>? place)
+    /// <summary>The steps of <paramref name="place"/>, or null when it has none or a step lacks its kind or label.</summary>
+    public static List<LegacyPlaceStep>? LegacyPlaceOf(List<LegacyPlaceStepJson?>? place)
     {
         if (place == null)
             return null;
-        var segments = new List<NodePathSegment>(place.Count);
-        foreach (var segment in place)
+        var steps = new List<LegacyPlaceStep>(place.Count);
+        foreach (var step in place)
         {
-            if (segment?.Text == null)
+            if (step == null || step.Kind == null || step.Text == null)
                 return null;
-            segments.Add(new NodePathSegment(segment.Kind, segment.Text));
+            steps.Add(new LegacyPlaceStep(step.Kind, step.Text));
         }
-        return segments;
+        return steps;
+    }
+
+    /// <summary>Where a tab or bookmark in the file at <paramref name="filePath"/> was: what
+    /// <paramref name="path"/> says when there is one, else what <paramref name="place"/>, as builds before
+    /// versioned paths wrote it, says. Null when there is neither, or when what there is cannot be read,
+    /// which <paramref name="leaveOut"/> is told; never the root for a path that cannot be read.</summary>
+    public static NodePath? LocationOf(AssemblyPath filePath, SavedPathJson? path, List<LegacyPlaceStep>? place, Action leaveOut)
+    {
+        if (path != null)
+        {
+            var semantic = path.Parse(filePath);
+            if (semantic == null)
+                leaveOut();
+            return semantic;
+        }
+        if (place == null)
+            return null;
+        var legacy = SavedPlaces.LegacyPathOf(filePath, place);
+        if (legacy == null)
+            leaveOut();
+        return legacy;
     }
 }
 
@@ -445,7 +512,7 @@ internal static class SettingsJson
     typeof(EnumByName<ApiScope>), typeof(EnumByName<ApiVisibility>), typeof(EnumByName<BookmarkKind>),
     typeof(EnumByName<CodeAnchorKind>), typeof(EnumByName<CSharpVersion>), typeof(EnumByName<DecompilationLanguage>),
     typeof(EnumByName<Direction>), typeof(EnumByName<Locale>), typeof(EnumByName<MatchMode>),
-    typeof(EnumByName<MemberSection>), typeof(EnumByName<NodeKind>), typeof(EnumByName<SearchKinds>),
+    typeof(EnumByName<MemberSection>), typeof(EnumByName<SearchKinds>),
     typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>), typeof(AssemblyPathJson),
 ])]
 [JsonSerializable(typeof(SettingsFile))]

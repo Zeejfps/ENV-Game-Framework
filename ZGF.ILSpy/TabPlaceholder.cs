@@ -36,7 +36,7 @@ public sealed class TabPlaceholder
         TabContent.Loading => t.DocumentDecompiling,
         TabContent.Failed failed => t.DocumentDecompilationFailed(failed.Message),
         TabContent.Reloading => t.DocumentReloading,
-        TabContent.Gone gone => t.DocumentGone(gone.Location.Text),
+        TabContent.Gone gone => t.DocumentGone(gone.Location.Label),
         _ => throw new UnreachableException(),
     };
 }

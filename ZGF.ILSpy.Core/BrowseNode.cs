@@ -72,7 +72,8 @@ public enum NodeAccessibility
 /// </summary>
 public sealed partial class BrowseNode
 {
-    private NodePath? _path;
+    private NodePath.Semantic? _path;
+    private NodePathSegment? _segment;
 
     public NodeKind Kind { get; }
 
@@ -102,7 +103,10 @@ public sealed partial class BrowseNode
     public LoadedAssembly Assembly { get; }
 
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
-    public NodePath Path => _path ??= NodePath.Of(this);
+    public NodePath.Semantic Path => _path ??= NodePath.Of(this);
+
+    /// <summary>What the node is among its siblings, as a path names it; null for the root of a tree.</summary>
+    internal NodePathSegment? Segment => _segment ??= NodePathSegment.Of(Subject);
 
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
     /// reads, to save them.</summary>

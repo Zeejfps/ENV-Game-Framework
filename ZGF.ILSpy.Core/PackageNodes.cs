@@ -7,14 +7,18 @@ namespace ZGF.ILSpy.Core;
 /// one, labelled with both names, <c>lib/net8.0</c>, and listing the deeper one's contents.</summary>
 public sealed class PackageFolderInfo
 {
-    internal PackageFolderInfo(LoadedPackage package, PackageFolder folder, string label)
+    internal PackageFolderInfo(LoadedPackage package, PackageFolder outermost, PackageFolder folder, string label)
     {
         Package = package;
+        Outermost = outermost;
         Folder = folder;
         Label = label;
     }
 
     public LoadedPackage Package { get; }
+
+    /// <summary>The first of the folders merged into one, the folder itself when none are.</summary>
+    public PackageFolder Outermost { get; }
 
     /// <summary>The folder whose contents it lists.</summary>
     public PackageFolder Folder { get; }
@@ -26,7 +30,37 @@ public sealed class PackageFolderInfo
 
     public string FullName => IsRoot ? Package.FilePath.Text : Folder.FullName;
 
-    internal static PackageFolderInfo RootOf(LoadedPackage package) => new(package, package.Package.Root, package.FilePath.FileName);
+    /// <summary>Whether the folder at <paramref name="path"/>, from the package's root, is one of those
+    /// merged into this one.</summary>
+    internal bool Shows(string path)
+    {
+        if (!PackageFolders.IsWithin(Folder.FullName, path))
+            return false;
+        return PackageFolders.IsWithin(path, Outermost.FullName);
+    }
+
+    internal static PackageFolderInfo RootOf(LoadedPackage package) =>
+        new(package, package.Package.Root, package.Package.Root, package.FilePath.FileName);
+}
+
+internal static class PackageFolders
+{
+    /// <summary>Whether the folder at <paramref name="path"/> is the one at <paramref name="folder"/> or in it.</summary>
+    public static bool IsWithin(string path, string folder)
+    {
+        if (path == folder)
+            return true;
+        return path.StartsWith(folder + "/", StringComparison.Ordinal);
+    }
+
+    /// <summary>The path of the folder holding the entry at <paramref name="path"/>; empty at the root.</summary>
+    public static string FolderOf(string path)
+    {
+        var at = path.LastIndexOf('/');
+        if (at < 0)
+            return "";
+        return path.Substring(0, at);
+    }
 }
 
 /// <summary>A file of a package that is no assembly: shown as text, a picture or its bytes, read out of

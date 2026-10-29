@@ -35,7 +35,7 @@ public sealed class BookmarkTests : IDisposable
 
         var added = ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
         var bookmark = Assert.Single(bookmarks.Items);
-        var marked = bookmarks.LinesIn(tab.Document, tab.Location!);
+        var marked = bookmarks.LinesIn(tab.Document, tab.Node!);
         var removed = ToggleBookmark(d.AppState, tab, line, Names.Bookmark);
 
         Assert.Equal(new BookmarkToggle.Added(bookmark), added);
@@ -76,10 +76,10 @@ public sealed class BookmarkTests : IDisposable
 
         SetLanguage(d.AppState, DecompilationLanguage.IL);
         d.Settle();
-        var il = tab.Document.Lines[Assert.Single(bookmarks.LinesIn(tab.Document, tab.Location!)).Key].Text;
+        var il = tab.Document.Lines[Assert.Single(bookmarks.LinesIn(tab.Document, tab.Node!)).Key].Text;
         SetLanguage(d.AppState, DecompilationLanguage.CSharp);
         d.Show(d.Fixture("Outline").Children.Single(c => c.Text.StartsWith("Third()")));
-        var own = tab.Document.Lines[Assert.Single(bookmarks.LinesIn(tab.Document, tab.Location!)).Key].Text;
+        var own = tab.Document.Lines[Assert.Single(bookmarks.LinesIn(tab.Document, tab.Node!)).Key].Text;
 
         Assert.StartsWith("IL_", il.TrimStart());
         Assert.Contains("return First();", own);
@@ -98,7 +98,7 @@ public sealed class BookmarkTests : IDisposable
         d.Settle();
 
         Assert.Null(bookmark.Anchor);
-        Assert.Empty(d.AppState.Bookmarks.LinesIn(tab.Document, tab.Location!));
+        Assert.Empty(d.AppState.Bookmarks.LinesIn(tab.Document, tab.Node!));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class BookmarkTests : IDisposable
 
         Assert.Equal("Outline", tab.Node!.Text);
         Assert.Equal(line, app.Ui.Documents.ViewOf(tab).Code.FlashLine);
-        Assert.Equal("Outline", Assert.IsType<HistoryEntry.Node>(d.AppState.History.Current).Place.Text);
+        Assert.Equal("Outline", Assert.IsType<HistoryEntry.Node>(d.AppState.History.Current).Place.Label);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class BookmarkTests : IDisposable
         Assert.Equal("Calls First", saved.Name);
         Assert.Equal(tab.Location, saved.Place);
         Assert.Equal(bookmarks.Items[0].Anchor, saved.Anchor);
-        Assert.True(next.AppState.Bookmarks.LinesIn(nextTab.Document, nextTab.Location!)[line]);
+        Assert.True(next.AppState.Bookmarks.LinesIn(nextTab.Document, nextTab.Node!)[line]);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public sealed class BookmarkTests : IDisposable
 
         Assert.Null(d.AppState.Imports.Asking);
         Assert.Equal(["Bookmark 1", "Bookmark 2"], d.AppState.Bookmarks.Items.Select(b => b.Name));
-        Assert.True(d.AppState.Bookmarks.LinesIn(tab.Document, tab.Location!)[line]);
+        Assert.True(d.AppState.Bookmarks.LinesIn(tab.Document, tab.Node!)[line]);
     }
 
     [Fact]
@@ -527,12 +527,15 @@ public sealed class BookmarkTests : IDisposable
 
     private string ILSpyFile(string records) => _temp.Write("ILSpy.Bookmarks.json", $$"""{ "Version": 1, "Bookmarks": [ {{records}} ] }""");
 
-    private static string Record(string name, string kind, int token, int ilOffset, int lineNumber, string treePath, string? file = null) =>
+    /// <summary>A bookmark as ILSpy writes one in <c>Outline</c>, on the member <paramref name="token"/> names, which
+    /// ILSpy records the full name of, <c>Outline.Third</c> unless <paramref name="memberName"/> says otherwise.</summary>
+    private static string Record(string name, string kind, int token, int ilOffset, int lineNumber, string treePath, string? file = null,
+        string memberName = Fixtures + ".Outline.Third") =>
         System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
         {
             ["Name"] = name, ["Enabled"] = true, ["FileName"] = file ?? AppStateDriver.FixturePath, ["AssemblyFullName"] = "ZGF.ILSpy.App.Tests",
             ["ModuleName"] = "ZGF.ILSpy.App.Tests.dll", ["Token"] = token, ["Kind"] = kind, ["ILOffset"] = ilOffset, ["LineNumber"] = lineNumber,
-            ["MemberName"] = Fixtures + ".Outline", ["LocationNodeName"] = Fixtures + ".Outline",
+            ["MemberName"] = memberName, ["LocationNodeName"] = Fixtures + ".Outline",
             ["ViewState"] = new Dictionary<string, object?>
             {
                 ["Version"] = 1, ["CaretOffset"] = 0, ["VerticalOffset"] = 0.0, ["HorizontalOffset"] = 0.0, ["FoldingChecksum"] = null,
@@ -557,7 +560,7 @@ public sealed class BookmarkTests : IDisposable
         Assert.Equal(1, root.GetProperty("Version").GetInt32());
         Assert.Equal(
             ["Name", "Enabled", "FileName", "AssemblyFullName", "ModuleName", "Token", "Kind", "ILOffset", "LineNumber", "MemberName", "LocationNodeName",
-                "ViewState", "Place", "Language"],
+                "ViewState", "Place", "Language", "Path"],
             entry.EnumerateObject().Select(p => p.Name));
         Assert.Equal("Body", entry.GetProperty("Kind").GetString());
         Assert.Equal((uint)TokenOf("Third"), entry.GetProperty("Token").GetUInt32());
@@ -580,7 +583,7 @@ public sealed class BookmarkTests : IDisposable
         ImportBookmarks(d.AppState, path);
         d.Settle();
         var bookmarks = d.AppState.Bookmarks.Items;
-        var marked = d.AppState.Bookmarks.LinesIn(tab.Document, tab.Location!);
+        var marked = d.AppState.Bookmarks.LinesIn(tab.Document, tab.Node!);
 
         Assert.Equal(["Bookmark0", "Bookmark1"], bookmarks.Select(b => b.Name));
         Assert.All(bookmarks, b => Assert.Equal(tab.Location, b.Place));
@@ -648,7 +651,20 @@ public sealed class BookmarkTests : IDisposable
 
         var moved = Assert.Single(d.AppState.Bookmarks.Items);
         Assert.Equal("Moved", moved.Name);
-        Assert.StartsWith("Third()", moved.Place.Text);
+        Assert.StartsWith("Third()", moved.Place.Label);
+        Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.AppState.Errors.Entries).Words().Title);
+    }
+
+    [Fact]
+    public void A_bookmark_whose_token_now_names_another_member_is_reported_rather_than_placed_there()
+    {
+        var path = ILSpyFile(Record("Rebuilt", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Renamed", memberName: Fixtures + ".Outline.Removed"));
+        var d = new AppStateDriver();
+
+        ImportBookmarks(d.AppState, path);
+        d.Settle();
+
+        Assert.Empty(d.AppState.Bookmarks.Items);
         Assert.Equal("Some bookmarks from ILSpy.Bookmarks.json were not found and were left out", Assert.Single(d.AppState.Errors.Entries).Words().Title);
     }
 }

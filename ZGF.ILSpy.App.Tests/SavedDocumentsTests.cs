@@ -95,6 +95,13 @@ public sealed class SavedDocumentsTests : IDisposable
 
     private static TypeAnchor FixtureType(string name) => new(PathOf(AppStateDriver.FixturePath), $"{AppStateDriver.FixturesNamespace}.{name}");
 
+    /// <summary>Where the fixture type <paramref name="name"/> is, as this build saves it.</summary>
+    private static NodePath FixturePlace(string name) => NodePath.From(PathOf(AppStateDriver.FixturePath),
+    [
+        new NodePathStep(new NodePathSegment.Namespace(AppStateDriver.FixturesNamespace), AppStateDriver.FixturesNamespace),
+        new NodePathStep(new NodePathSegment.Definition($"T:{AppStateDriver.FixturesNamespace}.{name}"), name),
+    ]);
+
     [Fact]
     public void Scrolling_alone_writes_no_settings_and_the_next_save_keeps_where_the_view_stands()
     {
@@ -167,12 +174,7 @@ public sealed class SavedDocumentsTests : IDisposable
     [Fact]
     public void A_tab_whose_node_is_gone_after_a_restart_says_so_in_its_panel()
     {
-        var place = new List<NodePathSegment>
-        {
-            new(NodeKind.Namespace, AppStateDriver.FixturesNamespace),
-            new(NodeKind.Class, "Missing"),
-        };
-        var missing = new NodeDocumentRecord(MissingPanel, "Missing", PathOf(AppStateDriver.FixturePath), place, DecompilationLanguage.CSharp, null);
+        var missing = new NodeDocumentRecord(MissingPanel, "Missing", FixturePlace("Missing"), null, DecompilationLanguage.CSharp, null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([missing], MissingPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -180,7 +182,7 @@ public sealed class SavedDocumentsTests : IDisposable
 
         var tab = Assert.Single(d.AppState.Tabs);
         var gone = Assert.IsType<TabContent.Gone>(tab.Content);
-        Assert.Equal("Missing", gone.Location.Text);
+        Assert.Equal("Missing", gone.Location.Label);
         Assert.Equal(MissingPanel, d.Ui.Documents.PanelOf(tab));
         Assert.True(d.Ui.Layout.Contains(MissingPanel));
     }
@@ -188,12 +190,7 @@ public sealed class SavedDocumentsTests : IDisposable
     [Fact]
     public void Clearing_the_list_before_it_reopens_settles_its_tabs_rather_than_leaving_them_reloading()
     {
-        var place = new List<NodePathSegment>
-        {
-            new(NodeKind.Namespace, AppStateDriver.FixturesNamespace),
-            new(NodeKind.Class, "Greeter"),
-        };
-        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", PathOf(AppStateDriver.FixturePath), place, DecompilationLanguage.CSharp, null);
+        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", FixturePlace("Greeter"), null, DecompilationLanguage.CSharp, null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([greeter], MissingPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -299,7 +296,7 @@ public sealed class SavedDocumentsTests : IDisposable
     }
 
     private static NodeDocumentRecord HandTab(string panel, string title) =>
-        new(panel, title, PathOf(AppStateDriver.FixturePath), [], DecompilationLanguage.CSharp, null);
+        new(panel, title, NodePath.From(PathOf(AppStateDriver.FixturePath), []), null, DecompilationLanguage.CSharp, null);
 
     [Fact]
     public void A_new_panel_skips_every_panel_saved_documents_were_docked_as_however_numbered()

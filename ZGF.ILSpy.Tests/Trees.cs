@@ -35,6 +35,15 @@ internal static class Trees
     /// added and one removed.</summary>
     public static string ApiDiffNewerPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "ApiDiff", "Newer", "ApiDiffSample.dll");
 
+    /// <summary>A library built from <c>Fixtures/Paths/Before/Source</c> whose nodes share labels: overloads
+    /// told apart only by the namespace of a parameter's type, types of one name used from two namespaces,
+    /// imports of one name from two types, and an event beside its backing field.</summary>
+    public static string PathsBeforePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Paths", "Before", "PathsSample.dll");
+
+    /// <summary>The library at <see cref="PathsBeforePath"/> rebuilt from <c>Fixtures/Paths/After/Source</c>:
+    /// a generic parameter renamed, a class turned record, a field turned constant, and types added.</summary>
+    public static string PathsAfterPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Paths", "After", "PathsSample.dll");
+
     /// <summary><see cref="SampleAppPath"/> converted to WebCIL by the .NET WebAssembly SDK, wrapped in
     /// WebAssembly as Blazor ships it.</summary>
     public static string WebCilSamplePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "WebCil", "SampleApp.wasm");

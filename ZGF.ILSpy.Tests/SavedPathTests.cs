@@ -31,6 +31,22 @@ public sealed class SavedPathTests : IDisposable
         Assert.Equal((kind, node.Text, node.Path), (found.Kind, found.Text, found.Path));
     }
 
+    [Theory]
+    [MemberData(nameof(SavedKinds))]
+    public void A_place_saved_before_paths_were_versioned_finds_a_node_of_each_kind_again(NodeKind kind)
+    {
+        var node = Sample(kind);
+        var saved = LegacyPathOf(node);
+        var reopened = new AssemblyList();
+        reopened.Open(node.Path.FilePath);
+
+        var found = reopened.FindNode(saved);
+
+        Assert.True(saved.Names(node));
+        Assert.NotNull(found);
+        Assert.Equal((kind, node.Text, node.Path), (found.Kind, found.Text, found.Path));
+    }
+
     [Fact]
     public void A_path_to_a_file_that_failed_finds_nothing_in_a_list_that_does_not_list_it()
     {
@@ -59,6 +75,18 @@ public sealed class SavedPathTests : IDisposable
     };
 
     private static LoadedAssembly Open(string path) => new AssemblyList().Open(path);
+
+    /// <summary>The place builds before versioned paths saved for <paramref name="node"/>: the name of each
+    /// node's kind and its label, down from the root.</summary>
+    private static NodePath LegacyPathOf(BrowseNode node)
+    {
+        var steps = new List<LegacyPathStep>();
+        var root = node;
+        for (; root.Parent != null; root = root.Parent)
+            steps.Add(Assert.NotNull(LegacyPathStep.Read(root.Kind.ToString(), root.Text)));
+        steps.Reverse();
+        return NodePath.FromLegacy(root.Assembly.FilePath, steps);
+    }
 
     /// <summary>The first node of <paramref name="kind"/> breadth first from the root of
     /// <paramref name="assembly"/>, not following a reference into the references of the assembly it

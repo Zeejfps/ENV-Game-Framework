@@ -18,7 +18,7 @@ public static class Bookmarks
             return new BookmarkToggle.Unchanged();
         if (!CanBookmarkLine(tab, line))
             return new BookmarkToggle.Unchanged();
-        var existing = appState.Bookmarks.At(tab.Document, node.Path, line);
+        var existing = appState.Bookmarks.At(tab.Document, node, line);
         if (existing != null)
             return RemoveBookmark(appState, existing);
         return AddBookmark(appState, tab, node, line, nameOf);
@@ -46,7 +46,7 @@ public static class Bookmarks
         var anchor = tab.Document.AnchorAt(line);
         var name = appState.Bookmarks.NextName(nameOf);
         var info = ILSpyTree.Describe(node, anchor);
-        var bookmark = new Bookmark(node.Path, tab.Language, line, anchor, name, info);
+        var bookmark = Bookmark.At(node, tab.Language, line, anchor, name, info);
         appState.Bookmarks.Add(bookmark);
         return new BookmarkToggle.Added(bookmark);
     }
@@ -71,6 +71,7 @@ public static class Bookmarks
         switch (found)
         {
             case Outcome<BrowseNode?>.Ok ok when ok.Value != null:
+                appState.Bookmarks.Resolve(bookmark, ok.Value);
                 LeaveActiveTab(appState);
                 ShowNodeIn(appState, destination, ok.Value, target: bookmark);
                 appState.History.Push(ok.Value, appState.Language);
@@ -135,15 +136,18 @@ public static class Bookmarks
 
     private static List<FoundBookmark> FindPlaces(AppState appState, List<BookmarkRecord> records)
     {
-        return records.ConvertAll(r => new FoundBookmark(r, FindPlace(appState, r)));
+        return records.ConvertAll(r => FindPlace(appState, r));
     }
 
-    private static NodePath? FindPlace(AppState appState, BookmarkRecord record)
+    private static FoundBookmark FindPlace(AppState appState, BookmarkRecord record)
     {
-        if (record.Place != null)
-            return NodePath.From(record.FileName, record.Place);
+        if (record.Location != null)
+            return new FoundBookmark(record, record.Location, record.Place);
         var treePath = record.ViewState?.SelectedTreeNodePath;
-        return ILSpyTree.Locate(appState.Assemblies, appState.Session, record.FileName, treePath, record.Token);
+        var node = ILSpyTree.Locate(appState.Assemblies, appState.Session, record.FileName, treePath, record.Token, record.MemberName);
+        if (node == null)
+            return new FoundBookmark(record, null, null);
+        return new FoundBookmark(record, node.Path, SavedPlaces.LegacyPlaceOf(node));
     }
 
     private static void TakeImported(AppState appState, Outcome<List<FoundBookmark>> found, string file)
@@ -165,8 +169,8 @@ public static class Bookmarks
     {
         ReportLostBookmarks(appState, places, file);
         var bookmarks = places
-            .Where(f => f.Place != null)
-            .Select(f => Bookmark.FromRecord(f.Record, f.Place!))
+            .Select(static f => f.ToBookmark())
+            .OfType<Bookmark>()
             .ToList();
         if (bookmarks.Count == 0)
             return;
@@ -223,5 +227,14 @@ public static class Bookmarks
         appState.ReportError(new AppProblem.BookmarksLeftOut(leftOut));
     }
 
-    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place);
+    /// <summary>A bookmark read, where it was found, and where builds before versioned paths find it.</summary>
+    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place, List<LegacyPlaceStep>? LegacyPlace)
+    {
+        public Bookmark? ToBookmark()
+        {
+            if (Place == null)
+                return null;
+            return Bookmark.FromRecord(Record, Place, LegacyPlace);
+        }
+    }
 }

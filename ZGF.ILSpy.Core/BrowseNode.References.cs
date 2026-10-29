@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using ICSharpCode.Decompiler.Documentation;
 using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core;
@@ -90,7 +91,7 @@ public sealed partial class BrowseNode
         var bare = ReflectionHelper.SplitTypeParameterCountFromReflectionName(name, out var arity);
         var label = ForwardedTypes.LabelOf(bare, arity);
         var ns = metadata.GetString(reference.Namespace);
-        return new TypeReferenceInfo(module, handle, ns, label, QualifiedName(ns, label));
+        return new TypeReferenceInfo(module, handle, ns, label, QualifiedName(ns, label), QualifiedReflectionName(ns, name));
     }
 
     /// <summary>The full name of a type labelled <paramref name="label"/> listed under this node: after the
@@ -104,6 +105,17 @@ public sealed partial class BrowseNode
         return $"{ns}.{label}";
     }
 
+    /// <summary>The reflection name of a type metadata names <paramref name="name"/> listed under this node:
+    /// after the type it is nested in, when this node is one, else after its namespace.</summary>
+    private string QualifiedReflectionName(string ns, string name)
+    {
+        if (Subject is NodeSubject.TypeReference holder)
+            return $"{holder.Value.ReflectionName}+{name}";
+        if (ns.Length == 0)
+            return name;
+        return $"{ns}.{name}";
+    }
+
     private static bool UsesAnythingOf(TypeReferenceInfo type)
     {
         var usage = type.Module.ReferenceUsage;
@@ -113,7 +125,7 @@ public sealed partial class BrowseNode
     }
 
     /// <summary>The types nested in the used type and the members of it the module uses, each sorted by
-    /// label; a member used under several type arguments once.</summary>
+    /// label; a member used under several type arguments once, and overloads whose labels match each.</summary>
     private BrowseNode[] ListUsedOf(TypeReferenceInfo type)
     {
         var usage = type.Module.ReferenceUsage;
@@ -124,7 +136,7 @@ public sealed partial class BrowseNode
             .Cast<BrowseNode>();
         var members = usage.MembersOf(type.Handle)
             .Select(h => UsedMember(type.Module, h, ResolveDeclared(module, h)))
-            .DistinctBy(n => n.Text)
+            .DistinctBy(n => n.Segment)
             .OrderBy(n => n.Text, NaturalStringComparer.Instance);
         return nested
             .Concat(members)
@@ -249,7 +261,8 @@ public sealed partial class BrowseNode
         if (shown == null)
             return null;
         var entryPoint = ReadEntryPoint(module.Module.File.Metadata, method);
-        return new ImportedMethodInfo(shown, ImportLabelOf(method), EntityText.FullName(declaring), entryPoint, module.Name);
+        return new ImportedMethodInfo(shown, IdStringProvider.GetIdString(method), ImportLabelOf(method), EntityText.FullName(declaring), entryPoint,
+            module.Name);
     }
 
     /// <summary>The tree's label for <paramref name="method"/>, named as the method enclosing it when it is a local function.</summary>

@@ -73,44 +73,39 @@ public sealed class BrowseSession
     {
         if (_moduleRoots.TryGetValue(module, out var placed))
             return placed;
-        var folder = FindFolderNode(RootOf(place.Container), place.File.Folder);
+        var packageRoot = RootOf(place.Container);
+        var folder = FindFolderNode(packageRoot, place.File.Folder) ?? packageRoot;
         LoadChildren(folder);
         return _moduleRoots.GetValue(module, m => BrowseNode.ModuleRoot(m, folder));
     }
 
-    /// <summary>The node of the folder at <paramref name="folder"/>, a path from the package's root:
-    /// the folder's own node, or the node it is merged into; the package's root for its root.</summary>
-    private BrowseNode FindFolderNode(BrowseNode packageRoot, string folder)
+    /// <summary>The node of the folder at <paramref name="folder"/>, a path from the package's root: the
+    /// folder's own node, or the node it is merged into; the package's root for its root. Null when the
+    /// package holds no such folder.</summary>
+    private BrowseNode? FindFolderNode(BrowseNode packageRoot, string folder)
     {
+        if (folder.Length == 0)
+            return packageRoot;
         var node = packageRoot;
         while (true)
         {
-            var next = FindChildFolderHolding(node, folder);
+            BrowseNode? next = null;
+            foreach (var child in ChildrenOf(node))
+            {
+                if (child.Subject is not NodeSubject.Package package)
+                    continue;
+                if (package.Value.Shows(folder))
+                    return child;
+                if (PackageFolders.IsWithin(folder, package.Value.Folder.FullName))
+                {
+                    next = child;
+                    break;
+                }
+            }
             if (next == null)
-                return node;
-            if (next.Value.Folder.FullName == folder)
-                return next.Value.Node;
-            node = next.Value.Node;
+                return null;
+            node = next;
         }
-    }
-
-    private (BrowseNode Node, PackageFolder Folder)? FindChildFolderHolding(BrowseNode node, string folder)
-    {
-        foreach (var child in ChildrenOf(node))
-        {
-            if (child.Subject is not NodeSubject.Package package)
-                continue;
-            if (IsWithin(folder, package.Value.Folder.FullName))
-                return (child, package.Value.Folder);
-        }
-        return null;
-    }
-
-    private static bool IsWithin(string folder, string candidate)
-    {
-        if (folder == candidate)
-            return true;
-        return folder.StartsWith(candidate + "/", StringComparison.Ordinal);
     }
 
     /// <summary>Where <paramref name="node"/>'s children stand now; never blocks or builds them.</summary>
@@ -213,18 +208,32 @@ public sealed class BrowseSession
     };
 
     /// <summary>The child of <paramref name="parent"/> standing where <paramref name="other"/> stands under
-    /// its own parent, of its kind and text: its counterpart under a copy of the same file read again.
-    /// Null when there is none, or the children are not built yet; never blocks.</summary>
+    /// its own parent, naming the same thing: its counterpart under a copy of the same file read again.
+    /// Null when there is none or more than one, or the children are not built yet; never blocks.</summary>
     public BrowseNode? FindLoadedChildLike(BrowseNode parent, BrowseNode other)
     {
         if (PeekChildren(parent) is not ChildrenState.Ready ready)
             return null;
-        foreach (var child in ready.Children)
+        var segment = other.Segment;
+        if (segment == null)
+            return null;
+        return FindChild(ready.Children, segment);
+    }
+
+    /// <summary>The one child among <paramref name="children"/> that <paramref name="segment"/> names;
+    /// null when none or more than one does.</summary>
+    private static BrowseNode? FindChild(IReadOnlyList<BrowseNode> children, NodePathSegment segment)
+    {
+        BrowseNode? found = null;
+        foreach (var child in children)
         {
-            if (child.Kind == other.Kind && child.Text == other.Text)
-                return child;
+            if (!segment.Equals(child.Segment))
+                continue;
+            if (found != null)
+                return null;
+            found = child;
         }
-        return null;
+        return found;
     }
 
     private ChildSlot SlotOf(BrowseNode node) => _children.GetValue(node, static _ => new ChildSlot());
@@ -277,18 +286,60 @@ public sealed class BrowseSession
     {
         if (!path.FilePath.Equals(item.FilePath))
             return null;
-        var node = RootOf(item);
-        foreach (var (kind, text) in path.Segments)
+        var root = RootOf(item);
+        return path switch
         {
-            BrowseNode? next = null;
-            foreach (var child in ChildrenOf(node))
-            {
-                if (child.Kind == kind && child.Text == text)
-                {
-                    next = child;
-                    break;
-                }
-            }
+            NodePath.Semantic semantic => Follow(root, semantic.Steps),
+            NodePath.Legacy legacy => Follow(root, legacy.Steps),
+            _ => throw new UnreachableException(),
+        };
+    }
+
+    /// <summary>The node <paramref name="steps"/> lead to from <paramref name="root"/>; null when a step
+    /// names no child, or more than one.</summary>
+    private BrowseNode? Follow(BrowseNode root, IReadOnlyList<NodePathStep> steps)
+    {
+        var node = root;
+        foreach (var step in steps)
+        {
+            var segment = step.Segment;
+            var next = segment.IsPackageEntry ? FindInPackage(node, segment) : FindChild(ChildrenOf(node), segment);
+            if (next is null)
+                return null;
+            node = next;
+        }
+        return node;
+    }
+
+    /// <summary>The entry of the package whose root is <paramref name="packageRoot"/> that
+    /// <paramref name="segment"/> names by its full path, wherever the folders holding it were merged.</summary>
+    private BrowseNode? FindInPackage(BrowseNode packageRoot, NodePathSegment segment)
+    {
+        if (packageRoot.Subject is not NodeSubject.Package package || !package.Value.IsRoot)
+            return null;
+        var path = segment switch
+        {
+            NodePathSegment.PackageFolder folder => folder.Path,
+            NodePathSegment.PackageFile file => file.Path,
+            NodePathSegment.EmbeddedModule module => module.Path,
+            _ => throw new UnreachableException(),
+        };
+        if (segment is NodePathSegment.PackageFolder)
+            return FindFolderNode(packageRoot, path);
+        var holder = FindFolderNode(packageRoot, PackageFolders.FolderOf(path));
+        if (holder == null)
+            return null;
+        return FindChild(ChildrenOf(holder), segment);
+    }
+
+    /// <summary>The node <paramref name="steps"/> lead to from <paramref name="root"/>, each step taken to
+    /// the first child of its role and label, as builds before versioned paths did.</summary>
+    private BrowseNode? Follow(BrowseNode root, IReadOnlyList<LegacyPathStep> steps)
+    {
+        var node = root;
+        foreach (var step in steps)
+        {
+            var next = ChildrenOf(node).FirstOrDefault(c => LegacyPathStep.Of(c) == step);
             if (next is null)
                 return null;
             node = next;

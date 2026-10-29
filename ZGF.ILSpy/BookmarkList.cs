@@ -10,10 +10,11 @@ namespace ZGF.ILSpy;
 /// bookmarks file and read back from one.</summary>
 public sealed class Bookmark
 {
-    public Bookmark(NodePath place, DecompilationLanguage language, int line, CodeAnchor? anchor, string name, ILSpyBookmarkInfo ilspy,
-        BookmarkViewState? viewState = null, bool enabled = true)
+    public Bookmark(NodePath place, List<LegacyPlaceStep>? legacyPlace, DecompilationLanguage language, int line, CodeAnchor? anchor, string name,
+        ILSpyBookmarkInfo ilspy, BookmarkViewState? viewState = null, bool enabled = true)
     {
         Place = place;
+        LegacyPlace = legacyPlace;
         Language = language;
         Line = line;
         Anchor = anchor;
@@ -21,12 +22,17 @@ public sealed class Bookmark
         ILSpy = ilspy;
         ViewState = viewState;
         Enabled = enabled;
-        Location = $"{place.Text}:{line + 1}";
+        Location = $"{place.Label}:{line + 1}";
         Module = place.FilePath.FileName;
     }
 
-    /// <summary>The bookmark <paramref name="record"/> describes, made in the document of <paramref name="place"/>.</summary>
-    public static Bookmark FromRecord(BookmarkRecord record, NodePath place)
+    /// <summary>The bookmark made in the document of <paramref name="node"/>.</summary>
+    public static Bookmark At(BrowseNode node, DecompilationLanguage language, int line, CodeAnchor? anchor, string name, ILSpyBookmarkInfo ilspy) =>
+        new(node.Path, SavedPlaces.LegacyPlaceOf(node), language, line, anchor, name, ilspy);
+
+    /// <summary>The bookmark <paramref name="record"/> describes, made in the document of <paramref name="place"/>,
+    /// which builds before versioned paths find at <paramref name="legacyPlace"/>.</summary>
+    public static Bookmark FromRecord(BookmarkRecord record, NodePath place, List<LegacyPlaceStep>? legacyPlace)
     {
         CodeAnchor? anchor = record.Kind switch
         {
@@ -36,8 +42,8 @@ public sealed class Bookmark
         };
         var ilspy = new ILSpyBookmarkInfo(record.AssemblyFullName, record.ModuleName, record.Token,
             record.MemberName, record.LocationNodeName, record.ViewState?.SelectedTreeNodePath);
-        return new Bookmark(place, record.Language ?? DecompilationLanguage.CSharp, Math.Max(0, record.LineNumber - 1), anchor, record.Name, ilspy,
-            record.ViewState, record.Enabled);
+        return new Bookmark(place, legacyPlace, record.Language ?? DecompilationLanguage.CSharp, Math.Max(0, record.LineNumber - 1), anchor,
+            record.Name, ilspy, record.ViewState, record.Enabled);
     }
 
     /// <summary>This bookmark as ILSpy's bookmarks file holds it, with this app's place and language.</summary>
@@ -59,10 +65,17 @@ public sealed class Bookmark
         ILSpy.MemberName,
         ILSpy.LocationNodeName,
         ViewState ?? new BookmarkViewState(1, 0, 0d, 0d, null, null, null, ILSpy.TreePath?.ToList()),
-        Place.Segments.ToList(),
+        Place,
+        LegacyPlace,
         Language);
 
-    public NodePath Place { get; }
+    /// <summary>Where the document it was made in is: as it was read until the bookmark is gone to, then
+    /// where its node was found.</summary>
+    public NodePath Place { get; internal set; }
+
+    /// <summary>Where builds before versioned paths find the document it was made in, as it was read, or
+    /// as the node was found; null when neither said.</summary>
+    public List<LegacyPlaceStep>? LegacyPlace { get; internal set; }
 
     /// <summary>The language of the document it was made in.</summary>
     public DecompilationLanguage Language { get; }
@@ -96,10 +109,10 @@ public sealed class Bookmark
         Anchor != null ? other.Anchor == Anchor
         : other.Anchor == null && Language == other.Language && Line == other.Line && Place.Equals(other.Place);
 
-    /// <summary>The line it marks in <paramref name="document"/>, shown for <paramref name="place"/>, or -1.</summary>
-    public int FindLine(DecompiledDocument document, NodePath place) =>
+    /// <summary>The line it marks in <paramref name="document"/>, shown for <paramref name="node"/>, or -1.</summary>
+    public int FindLine(DecompiledDocument document, BrowseNode node) =>
         Anchor != null ? document.FindLine(Anchor.Value)
-        : Language == document.Language && Place.Equals(place) && Line < document.Lines.Length ? Line
+        : Language == document.Language && Place.Names(node) && Line < document.Lines.Length ? Line
         : -1;
 }
 
@@ -209,29 +222,29 @@ public sealed class BookmarkList
     }
 
     /// <summary>The first bookmark marking <paramref name="line"/> of <paramref name="document"/>,
-    /// shown for <paramref name="place"/>.</summary>
-    public Bookmark? At(DecompiledDocument document, NodePath place, int line)
+    /// shown for <paramref name="node"/>.</summary>
+    public Bookmark? At(DecompiledDocument document, BrowseNode node, int line)
     {
         foreach (var bookmark in _items)
         {
-            if (bookmark.FindLine(document, place) == line)
+            if (bookmark.FindLine(document, node) == line)
                 return bookmark;
         }
         return null;
     }
 
-    /// <summary>The lines of <paramref name="document"/>, shown for <paramref name="place"/>, that
+    /// <summary>The lines of <paramref name="document"/>, shown for <paramref name="node"/>, that
     /// bookmarks mark, each with whether one marking it is enabled.</summary>
-    public IReadOnlyDictionary<int, bool> LinesIn(DecompiledDocument document, NodePath place)
+    public IReadOnlyDictionary<int, bool> LinesIn(DecompiledDocument document, BrowseNode node)
     {
         var marks = _marks.GetOrCreateValue(document);
-        if (marks.Revision == Revision && Equals(marks.Place, place)) return marks.Lines;
+        if (marks.Revision == Revision && Equals(marks.Place, node.Path)) return marks.Lines;
         marks.Revision = Revision;
-        marks.Place = place;
+        marks.Place = node.Path;
         marks.Lines.Clear();
         foreach (var bookmark in _items)
         {
-            var line = bookmark.FindLine(document, place);
+            var line = bookmark.FindLine(document, node);
             if (line >= 0)
                 marks.Lines[line] = marks.Lines.GetValueOrDefault(line) || bookmark.Enabled;
         }
@@ -254,8 +267,17 @@ public sealed class BookmarkList
     /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.
     /// Returns how many were left out because one before them marks the same line.</summary>
     public int Load(IEnumerable<BookmarkRecord>? saved) =>
-        Import((saved ?? []).Select(static r => r.Place != null ? Bookmark.FromRecord(r, NodePath.From(r.FileName, r.Place)) : null)
+        Import((saved ?? []).Select(static r => r.Location != null ? Bookmark.FromRecord(r, r.Location, r.Place) : null)
             .OfType<Bookmark>(), BookmarkImportMode.Replace);
+
+    /// <summary>Takes <paramref name="node"/>, found where <paramref name="bookmark"/> was made, as its place,
+    /// so that it is saved as the node was found.</summary>
+    public void Resolve(Bookmark bookmark, BrowseNode node)
+    {
+        bookmark.Place = node.Path;
+        bookmark.LegacyPlace = SavedPlaces.LegacyPlaceOf(node);
+        Revision++;
+    }
 
     /// <summary>Adds <paramref name="bookmarks"/>, after dropping every bookmark first when replacing,
     /// leaving out the ones that mark a line already marked. Returns how many were left out.</summary>

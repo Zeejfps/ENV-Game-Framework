@@ -66,7 +66,7 @@ internal static class DocumentsView
     /// <summary>The tab's document in the code view, with its bookmarks, or the note saying why it has none.</summary>
     public static void RenderCode(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
-        var bookmarks = !tab.IsBusy && tab.Node != null && !tab.Document.IsError ? appState.Bookmarks.LinesIn(tab.Document, tab.Node.Path) : null;
+        var bookmarks = !tab.IsBusy && tab.Node != null && !tab.Document.IsError ? appState.Bookmarks.LinesIn(tab.Document, tab.Node) : null;
         var view = ui.State.Documents.ViewOf(tab);
         var document = FindDocumentToShow(ui.State, view, tab);
         var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips, display: ui.State.Display);

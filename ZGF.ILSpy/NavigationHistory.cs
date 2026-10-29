@@ -9,9 +9,9 @@ public abstract record HistoryEntry
     {
     }
 
-    /// <summary>A place navigated to, how visible its node was, the language it was shown in, and where
-    /// its view stood when it was left.</summary>
-    public sealed record Node(NodePath Place, NodeAccessibility Accessibility, DecompilationLanguage Language, CodeViewPosition? Position)
+    /// <summary>A place navigated to, the icon and accessibility its node showed, the language it was shown
+    /// in, and where its view stood when it was left.</summary>
+    public sealed record Node(NodePath Place, NodeIcon Icon, NodeAccessibility Accessibility, DecompilationLanguage Language, CodeViewPosition? Position)
         : HistoryEntry;
 
     /// <summary>A diagram worked in, under the title of its tab.</summary>
@@ -47,7 +47,7 @@ public sealed class NavigationHistory
         var place = node.Path;
         if (IsCurrentPlace(place))
             return;
-        Add(new HistoryEntry.Node(place, NodeVisibility.Of(node.Subject).Accessibility, language, null));
+        Add(new HistoryEntry.Node(place, NodeIcons.Of(node.Subject), NodeVisibility.Of(node.Subject).Accessibility, language, null));
     }
 
     /// <summary>Whether the place being shown is <paramref name="place"/>.</summary>

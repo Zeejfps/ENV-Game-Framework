@@ -11,7 +11,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 ### Optional-field bags that should be sum types
 
 - **Assemblies and nodes**
-    - `BrowseNode` (`BrowseNode.cs:96-160`) has 7 nullable fields marked "null for other nodes", and a 50-value `NodeKind` set independently of the subclass.
+    - `BrowseNode` (`BrowseNode.cs:96-160`) has 7 nullable fields marked "null for other nodes", and a 50-value `NodeKind` set independently of the subclass. Planned in [ilspy/browse_tree_architecture.md](ilspy/browse_tree_architecture.md).
 - **References and documents**
     - `CodeReference` (`CodeReference.cs:31`): entity and local references share one class, and `Kind` is not tied to `FilePath`.
     - `DecompiledDocument` marks failure with `isError: bool` (`:106`, `:127`); the exception is flattened to text in `NodeDecompiler.cs:41`.
@@ -76,5 +76,5 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 ## Follow-ups from the LoadedAssembly split
 
 - The nodes under an assembly name their `LoadedModule` parameter `assembly` (`Nodes.cs`, `ReferenceNodes.cs`, `Resources/ResourceNodes.cs`, `Metadata/MetadataNodes.cs`). Rename it `module`, minding the locals already called `module` in some of those classes.
-- `BrowseNode`'s optional fields and its `NodeKind` set apart from the subclass (Rule 1, Assemblies and nodes) are next: nodes are now typed by the module, package or failure they show, which a split can build on.
+- `BrowseNode`'s optional fields and its `NodeKind` set apart from the subclass (Rule 1, Assemblies and nodes) are next, planned in [ilspy/browse_tree_architecture.md](ilspy/browse_tree_architecture.md).
 - The Core cycles under Rule 2 now run through `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; the split did not aim at them.

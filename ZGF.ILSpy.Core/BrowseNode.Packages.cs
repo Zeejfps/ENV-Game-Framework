@@ -29,7 +29,7 @@ public sealed partial class BrowseNode
             shown = shown.Folders[0];
             label = $"{label}/{shown.Name}";
         }
-        return new PackageFolderInfo(package, shown, label);
+        return new PackageFolderInfo(package, folder, shown, label);
     }
 
     private static bool HoldsOnlyOneFolder(PackageFolder folder)

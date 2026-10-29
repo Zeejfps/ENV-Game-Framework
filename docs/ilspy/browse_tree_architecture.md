@@ -131,8 +131,77 @@ public static class NodeDecompiler
 
 - **Icons:** the UI derives an icon key from the subject and the facts in it.
 - **Search and comparison** switch on the subject or the symbol, not on a kind.
-- **Paths** become a sum of semantic segments: entity signature, namespace name, resource path, metadata table, package path, and structural folders. Tokens speed up lookup within one loaded generation of a module; they are not identity across rebuilds.
-- **Old paths still load.** Saved tabs, bookmarks, navigation history and expanded nodes store `(Kind, Text)` paths today (`SavedDocuments`, `DocumentRecords`, `BookmarkFile`, `NavigationHistory`, `ILSpyTree.Locate`). They are read by a versioned reader that maps them to the new segments, each kind of record with a test that an old path still finds its node. Without that, users lose their open tabs and bookmarks without a word.
+- **Paths** become a sum of segments that name what a node is, not how it is shown; see [Paths](#paths).
+
+### Paths
+
+*Reviewed against the code before work started; the review's findings are folded in below.*
+
+A path today is the listed file and a `(NodeKind, Text)` per step (`NodePath.cs`). That loses the place when a class becomes a record, a field a constant or a property an indexer, since the kind is an icon. Using labels as keys is wrong too:
+- a type's label holds its generic parameters' names (`EntityText.cs:76`);
+- a member's label leaves its parameter types unqualified, so `M(A.Widget)` and `M(B.Widget)` collide (`EntityText.cs:9`);
+- a metadata table's label holds its row count, `02 TypeDef (22)`;
+- used types from two namespaces, and methods imported by two types, can share one label under one parent;
+- a package folder that holds one folder is merged with it into one node, so the steps to a file change with the package's contents.
+
+**Segments.** A step names the node by identity, kept apart from the label the row shows. `PathSegment` is a closed sum, worked out from the subject by one total function:
+
+| Case | Key | For |
+|---|---|---|
+| `Namespace(name)` | full name, empty for the global namespace | namespaces |
+| `Definition(id)` | XML documentation id: `T:Ns.Calculator`1`, `M:Ns.Calculator`1.Add(`0)`, `F:`, `P:`, `E:` | types, nested types, members, accessors |
+| `Folder(role)` | References, Resources, BaseTypes, DerivedTypes, ReferencedTypes, MetadataTables | the fixed folders |
+| `Metadata(which)` | the module's own, or its debug metadata | metadata folders, at the root or under the debug directory |
+| `MetadataPart(part)` | `Header(Dos \| Coff \| Optional)`, `DataDirectories`, `DebugDirectory`, `Table(TableIndex)`, `Heap(name)`, `DebugEntry(index, type)` | headers, tables, heaps and debug entries, empty tables included |
+| `AssemblyReference(name)` | the simple name | references |
+| `ModuleReference(name)` | the module's name | module references |
+| `ImportedMethod(id)` | the documentation id of the method it calls | imports |
+| `UsedType(fullName)` | namespace, nesting and arity: `System.Collections.Generic.List`1` | types used from a reference |
+| `UsedMember(id)` | the documentation id of the member as its type declares it | members used of them |
+| `ForwardedType(fullName)` | as for used types | forwarded types |
+| `BaseType(name)` | the type's reflection name, type arguments included | base types |
+| `DerivedType(id)` | the documentation id of the deriving type | derived types |
+| `Resource(name)` | the manifest resource's name, or the entry's path in its container | resources, containers and their entries |
+| `PackageFolder(path)` / `PackageFile(path)` / `EmbeddedModule(path)` | the entry's full path in the package | package contents |
+
+- **Documentation ids** are what `IdStringProvider` writes and `BrowseSession.FindById` already reads. They tell an event from its backing field (`E:` and `F:`), qualify parameter types, and stay the same when a class becomes a record or a field a constant.
+- **A package path is one step, not one per folder.** A path into a package is the package file, then one `PackageFolder`, `PackageFile` or `EmbeddedModule` step keyed by the full entry path, found with `BrowseSession.FindFolderNode` whatever the folders were merged into. Under an `EmbeddedModule` step the module's own steps follow.
+- **A step that matches more than one child fails**; it never picks the first.
+- **Tokens are no identity.** Within one loaded module a `Definition` step can be found through the session's handle index (`FindById`) instead of walking; a saved path never holds a token.
+
+**Saved places.** A saved tab or bookmark holds a versioned `Path` beside the old `Place`, and is read into `Legacy | Semantic`:
+- **`Path` present and well formed, of a known version:** `Semantic`.
+- **`Path` present but malformed, or of an unknown version:** the place is reported and dropped. It is never read as the root, as an empty path would be.
+- **No `Path`, and a `Place` that reads:** `Legacy`. It is resolved by label and the role its old kind implies, not by the `NodeKind` enum, so legacy places still resolve once `NodeKind` is gone in step 7. A resolved legacy place is written as `Semantic` at the next save.
+- **Neither:** no place, as today.
+
+**Writing.** Write `Path`, and until step 7 also `Place`, generated from the resolved node, so builds from before this change still load the tabs and bookmarks. They drop a tab without a `Place` (`SettingsFile.cs:177`). A bookmark whose node was not found keeps its `Place` and `Path` exactly as read. Step 7 decides when `Place` stops being written.
+
+**Lookups that use paths:**
+- `BrowseSession.Find(LoadedAssembly, NodePath)` matches children by segment.
+- `FindLoadedChildLike`, which finds a node's counterpart in a reloaded assembly and is used to keep expansion and selection, matches by segment too.
+- `NavigationHistory` keeps the `NodeIcon` it showed rather than reading an icon off the path's kind.
+- `ILSpyTree.Locate` finds ILSpy's bookmarks by ILSpy's own node names, which are untouched. Its fallback to the bookmark's token resolves a token without checking it (`ILSpyTree.FindEntity`), so after a rebuild it can land on another entity. It now takes the entity only when its full name is the bookmark's recorded member name.
+
+**Where it plugs in:**
+- **`NodePath` and `NodePathSegment`** (`ZGF.ILSpy.Core/NodePath.cs`): the segments change. `NodePath.Of(node)` builds them from `node.Subject`.
+- **`BrowseSession.Find` and `FindLoadedChildLike`** (`ZGF.ILSpy.Core/BrowseSession.cs`): match by segment.
+- **The settings file** (`ZGF.ILSpy/SettingsFile.cs`): `NodePathSegmentJson` and `SettingsJson.SegmentsOf` read `Place`, in `NodeDocumentJson` and `BookmarkJson`. The new versioned `Path` reader belongs here, at the boundary.
+- **Records:** `NodeDocumentRecord.Place` (`DocumentRecords.cs`), `BookmarkRecord.Place` (`BookmarkFile.cs`), and their writers `SavedDocuments.cs:157` and `BookmarkList.cs:62`.
+- **History icons:** `HistoryEntry.Node` (`NavigationHistory.cs`) and its icon in `ToolbarView.cs:192`, which is the last use of `NodeIcons.Of(NodeKind)`.
+- **Tests:**
+  - `SavedPathTests` builds today's paths from live nodes, so it is no fixture of the old format.
+  - `SavedPlacesTests` loads the old format from literal JSON, for ten kinds of place.
+  - `NodePathTests`, `ILSpyTreeTests` and `BookmarkTests` cover the rest. `BookmarkTests` has a stale tree path falling back to the token.
+
+**Tests to add:**
+- old-format JSON frozen as fixtures for every kind of place, tab and bookmark alike;
+- collisions: overloads differing only in a parameter's namespace, same-named used types from two namespaces, same-named imports from two types, an event and its backing field, two debug entries of one type;
+- rebuild changes: a table's row count, a renamed generic parameter, a class turned record, a field turned constant;
+- a package whose folder merging changes;
+- a malformed `Path`, an unknown version, and both formats present (`Path` wins);
+- expansion and selection kept across a reload;
+- `Locate`'s token fallback refusing an entity of another name.
 
 ### The dependency graph
 
@@ -182,8 +251,8 @@ Nesting namespaces must keep today's behavior: a namespace is hidden only when i
 3. **Done.** **Add `BrowseSession`.** Move the roots, the node index and child loading out of `LoadedModule` and `BrowseNode`.
 4. **Done.** **Replace subclasses with subjects**, one family at a time, each payload validated as it is built: entities, then references, resources, metadata and packages.
 5. **Done.** **Move the consumers** (UI, analyzers, search, comparison) onto subjects, and derive icons at the UI edge. The UI names `NodeKind` only for saved places, through `NodeIcons.Of(NodeKind)` and the settings file, which step 6 takes up.
-6. **Version paths.** Add the new segments and the reader for old ones, and check bookmarks, saved tabs, expansion and `ILSpyTree.Locate`'s path-then-token lookup (`ILSpyTree.cs:64`).
-7. **Delete `NodeKind` from Core** and the compatibility members left over, and add the dependency test to CI.
+6. **Done.** **Version paths**, as [Paths](#paths) sets out: the segments, the versioned reader with old places resolved by label and role, writing both formats until step 7, lookups by segment, `ILSpyTree.Locate`'s checked token fallback, and the tests listed there.
+7. **Delete `NodeKind` from Core** and the compatibility members left over: `BrowseNode.Kind`, which only `SavedPlaces.LegacyPlaceOf` reads to write `Place`; `NodeIcons.Of(NodeKind)`, which only `PresentationTests` calls; and writing `Place`. Add the dependency test to CI.
 
 ## Risks
 

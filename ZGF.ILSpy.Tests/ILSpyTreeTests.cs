@@ -28,7 +28,7 @@ public sealed class ILSpyTreeTests
         foreach (var node in assembly.Calculator().Children.Prepend(assembly.Calculator()))
         {
             if (ILSpyTree.PathOf(node) is not { } path) continue;
-            Assert.Equal(node.Path, ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, path, token: 0));
+            Assert.Equal(node.Path, ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, path, token: 0, memberName: "")?.Path);
         }
     }
 
@@ -37,10 +37,21 @@ public sealed class ILSpyTreeTests
     {
         var (list, assembly) = Trees.OpenTestAssembly();
         var calculator = assembly.Calculator();
+        var info = ILSpyTree.Describe(calculator, null);
 
-        Assert.Equal(calculator.Path, ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, null, ILSpyTree.Describe(calculator, null).Token));
-        Assert.Equal(calculator.Path, ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, ["no such file"], ILSpyTree.Describe(calculator, null).Token));
-        Assert.Null(ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, null, 0x06FFFFFF));
+        Assert.Equal(calculator.Path, ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, null, info.Token, info.MemberName)?.Path);
+        Assert.Equal(calculator.Path, ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, ["no such file"], info.Token, info.MemberName)?.Path);
+        Assert.Null(ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, null, 0x06FFFFFF, info.MemberName));
+    }
+
+    [Fact]
+    public void A_token_that_names_an_entity_of_another_name_finds_nothing()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var info = ILSpyTree.Describe(assembly.Calculator(), null);
+
+        Assert.Null(ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, null, info.Token, Trees.FixturesNamespace + ".Renamed"));
+        Assert.Null(ILSpyTree.Locate(list, TestSession.Shared, assembly.FilePath, ["no such file"], info.Token, ""));
     }
 
     [Fact]

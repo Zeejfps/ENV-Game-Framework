@@ -158,8 +158,8 @@ public sealed class NestedNamespaceTests
         app.Settle(1);
 
         var fixtures = app.Node(AppStateDriver.FixturesNamespace);
-        Assert.Equal([new NodePathSegment(NodeKind.Namespace, AppStateDriver.FixturesNamespace), new NodePathSegment(NodeKind.Class, "Outline")],
-            bookmark.Place.Segments);
+        Assert.Equal([new NodePathSegment.Namespace(AppStateDriver.FixturesNamespace), new NodePathSegment.Definition($"T:{AppStateDriver.FixturesNamespace}.Outline")],
+            Assert.IsType<NodePath.Semantic>(bookmark.Place).Steps.Select(static s => s.Segment));
         Assert.Same(outline, app.AppState.Tabs.Active!.Node);
         Assert.Same(outline, app.Ui.Tree.View.Selected);
         Assert.True(app.Ui.Tree.View.IsExpanded(fixtures));

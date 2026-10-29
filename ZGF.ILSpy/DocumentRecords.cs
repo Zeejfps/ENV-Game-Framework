@@ -17,17 +17,20 @@ public sealed record DocumentsRecord(List<DocumentRecord> Tabs, string? Active, 
 [JsonDerivedType(typeof(ComparisonDocumentRecord), "comparison")]
 public abstract record DocumentRecord(string Panel, string? Title);
 
-/// <summary>A tab showing the node at <see cref="Place"/> under the root of the file at
-/// <see cref="FilePath"/>, in <see cref="Language"/>, its view standing at <see cref="Position"/>.</summary>
+/// <summary>A tab showing the node at <see cref="Location"/>, in <see cref="Language"/>, its view standing
+/// at <see cref="Position"/>. The file keeps the location as <see cref="Path"/>, and as <see cref="Place"/>
+/// for builds before versioned paths: written from the node when it was found, else as it was read.</summary>
 public sealed record NodeDocumentRecord(
     string Panel,
     string? Title,
-    AssemblyPath FilePath,
-    List<NodePathSegment> Place,
+    [property: JsonIgnore] NodePath Location,
+    List<LegacyPlaceStep>? Place,
     DecompilationLanguage Language,
     CodeViewPosition? Position) : DocumentRecord(Panel, Title)
 {
-    public NodePath ToNodePath() => NodePath.From(FilePath, Place);
+    public AssemblyPath FilePath => Location.FilePath;
+
+    public SavedPath? Path => SavedPlaces.PathOf(Location);
 }
 
 /// <summary>A tab showing a diagram of <see cref="Types"/>, in the order added, the assemblies at

@@ -182,14 +182,14 @@ internal static class ToolbarView
 
     private static string TextOf(HistoryEntry entry) => entry switch
     {
-        HistoryEntry.Node node => node.Place.Text,
+        HistoryEntry.Node node => node.Place.Label,
         HistoryEntry.Diagram diagram => diagram.Title,
         _ => throw new UnreachableException(),
     };
 
     private static UiIcon IconOf(UiState screen, HistoryEntry entry) => entry switch
     {
-        HistoryEntry.Node node => NodeIcons.Icon(NodeIcons.Of(node.Place.Kind), node.Accessibility, screen.NodeIconPalette, screen.Icons),
+        HistoryEntry.Node node => NodeIcons.Icon(node.Icon, node.Accessibility, screen.NodeIconPalette, screen.Icons),
         HistoryEntry.Diagram => new UiIcon(screen.Icons.TabDiagram),
         _ => throw new UnreachableException(),
     };

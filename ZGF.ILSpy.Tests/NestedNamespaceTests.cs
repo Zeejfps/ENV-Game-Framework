@@ -87,7 +87,7 @@ public sealed class NestedNamespaceTests
 
         var found = fresh.FindNode(ilspy.Path);
 
-        Assert.Equal([new NodePathSegment(NodeKind.Namespace, "ZGF.ILSpy")], ilspy.Path.Segments);
+        Assert.Equal([new NodePathSegment.Namespace("ZGF.ILSpy")], ilspy.Path.Steps.Select(static s => s.Segment));
         Assert.NotNull(found);
         Assert.True(Assert.IsType<NodeSubject.Namespace>(found!.Subject).Value.IsEnclosingOnly);
         Assert.Equal("ZGF.ILSpy", found.Text);

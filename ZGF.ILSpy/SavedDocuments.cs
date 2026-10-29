@@ -55,7 +55,7 @@ public static class SavedDocuments
         switch (record)
         {
             case NodeDocumentRecord node:
-                tab.WaitForNode(node.ToNodePath(), node.Title, node.Language);
+                tab.WaitForNode(node.Location, node.Title, node.Language);
                 break;
             case DiagramDocumentRecord diagram:
                 tab.WaitForDiagram(diagram.Title);
@@ -154,8 +154,9 @@ public static class SavedDocuments
         var location = tab.Location;
         if (location == null)
             return null;
-        var place = location.Segments.ToList();
-        return new NodeDocumentRecord(panel.Panel, tab.Title, location.FilePath, place, tab.Language, tab.PositionToReopen);
+        var node = tab.Node;
+        var place = node == null ? null : SavedPlaces.LegacyPlaceOf(node);
+        return new NodeDocumentRecord(panel.Panel, tab.Title, location, place, tab.Language, tab.PositionToReopen);
     }
 
     private static DiagramDocumentRecord SaveDiagram(DocumentTab tab, TypeDiagram diagram, TabPanel panel)
@@ -228,7 +229,7 @@ public static class SavedDocuments
     {
         if (!appState.IsListed(node.FilePath))
             return null;
-        return node.ToNodePath();
+        return node.Location;
     }
 
     private static async void FindReopenedNodes(AppState appState, List<WaitingNode> nodes)
@@ -273,7 +274,7 @@ public static class SavedDocuments
             return;
         if (node == null)
         {
-            tab.ShowGone(waiting.Record.ToNodePath());
+            tab.ShowGone(waiting.Record.Location);
             return;
         }
         var position = FindSavedPosition(appState, waiting.Record);

@@ -169,7 +169,7 @@ public sealed class PackageTests
         var found = second.FindNode(path);
 
         Assert.Equal(packagePath, path.FilePath.Text);
-        Assert.Equal(new NodePathSegment(NodeKind.PackageFolder, LibFolder), path.Segments[0]);
+        Assert.Equal(new NodePathSegment.EmbeddedModule($"{LibFolder}/{TestAssemblyName}.dll"), path.Steps[0].Segment);
         Assert.NotNull(found);
         Assert.Equal(calculator.Text, found.Text);
         Assert.IsType<LoadedPackage>(Assert.Single(second.Listed));

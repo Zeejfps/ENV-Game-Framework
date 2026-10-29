@@ -95,7 +95,7 @@ public sealed class AnchorTests
         var (list, assembly) = Trees.OpenTestAssembly();
         var path = assembly.Calculator().Child("Add(T) : void").Path;
 
-        var rebuilt = NodePath.From(path.FilePath, path.Segments.ToList());
+        var rebuilt = NodePath.From(path.FilePath, path.Steps.ToList());
 
         Assert.Equal(path, rebuilt);
         Assert.Same(assembly.Calculator().Child("Add(T) : void"), list.FindNode(rebuilt));
