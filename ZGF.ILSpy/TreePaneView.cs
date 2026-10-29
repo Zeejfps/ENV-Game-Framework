@@ -17,7 +17,6 @@ internal static class TreePaneView
 {
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
-    private const string OpenKey = "Enter";
 
     public static void Render(Ui<UiState> ui, AppState appState)
     {
@@ -111,7 +110,7 @@ internal static class TreePaneView
     {
         if (!ui.HasFocus(ui.GetId(TreeId)))
             return;
-        if (!Shortcuts.AnalyzePressed(ui))
+        if (!ui.IsPressed(Shortcuts.Analyze))
             return;
         var picked = ui.State.Tree.View.Selected;
         if (picked == null)
@@ -126,7 +125,7 @@ internal static class TreePaneView
         var picked = FindPickedAssembly(ui.State.Tree);
         if (picked == null)
             return;
-        if (!Shortcuts.DeletePressed(ui))
+        if (!ui.IsPressed(Shortcuts.Delete))
             return;
         CloseAssembly(appState, picked.Assembly);
     }
@@ -192,12 +191,12 @@ internal static class TreePaneView
     {
         var t = ui.State.Strings;
         var pointsElsewhere = node.Target != null;
-        var openKey = pointsElsewhere ? null : OpenKey;
+        var openKey = pointsElsewhere ? null : Shortcuts.Enter;
         if (ui.MenuItem(t.TreeOpen, openKey, id: "open"))
             OpenNode(appState, node);
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
             ShowNode(appState, node, inNewTab: true);
-        if (pointsElsewhere && ui.MenuItem(t.TreeGoToTarget, OpenKey, id: "go-to-target"))
+        if (pointsElsewhere && ui.MenuItem(t.TreeGoToTarget, Shortcuts.Enter, id: "go-to-target"))
             GoToTarget(appState, node);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;

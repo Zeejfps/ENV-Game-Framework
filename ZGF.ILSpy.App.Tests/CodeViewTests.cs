@@ -62,8 +62,8 @@ public sealed class CodeViewTests
 
         view.Key(KeyboardKey.Tab).Frame();
         Assert.True(Ring(view));
-        view.Key(KeyboardKey.A, KeyModifiers.Control);
-        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        view.Key(Shortcuts.SelectAll);
+        view.Key(Shortcuts.Copy);
         Assert.StartsWith("line 0", view.Frames.Clipboard.Text);
 
         view.Click(2, 1);
@@ -134,7 +134,7 @@ public sealed class CodeViewTests
         view.MoveTo(0, 6).Press().Frame();
         view.MoveTo(1, 3);
         view.MoveTo(2, 3).Release().Frame();
-        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        view.Key(Shortcuts.Copy);
 
         Assert.Equal("beta\ngamma delta\neps", view.Frames.Clipboard.Text);
         Assert.EndsWith("<div>beta</div><div>gamma delta</div><div>eps</div></div>", view.Frames.Clipboard.Html);
@@ -147,8 +147,8 @@ public sealed class CodeViewTests
         var palette = BuiltInThemes.Dark.Code;
 
         view.Key(KeyboardKey.Tab).Frame();
-        view.Key(KeyboardKey.A, KeyModifiers.Control);
-        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        view.Key(Shortcuts.SelectAll);
+        view.Key(Shortcuts.Copy);
 
         var html = view.Frames.Clipboard.Html;
         Assert.NotNull(html);
@@ -166,11 +166,11 @@ public sealed class CodeViewTests
         view.MoveTo(0, 6).Press().Frame();
         view.MoveTo(2, 3).Release().Frame();
 
-        view.Key(KeyboardKey.C, KeyModifiers.Control | KeyModifiers.Shift);
+        view.Key(Shortcuts.CopyPlainText);
         Assert.Equal("beta\ngamma delta\neps", view.Frames.Clipboard.Text);
         Assert.Null(view.Frames.Clipboard.Html);
 
-        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        view.Key(Shortcuts.Copy);
         Assert.NotNull(view.Frames.Clipboard.Html);
         view.Click(1, 2, PointerButton.Right);
         view.Run();
@@ -192,7 +192,7 @@ public sealed class CodeViewTests
         view.Frames.Wait(1);
         view.Click(1, 5, modifiers: KeyModifiers.Shift);
         var extended = view.State.SelectedText;
-        view.Key(KeyboardKey.A, KeyModifiers.Control);
+        view.Key(Shortcuts.SelectAll);
 
         Assert.Equal("pha beta\ngamma", extended);
         Assert.Equal("alpha beta\ngamma delta\nepsilon", view.State.SelectedText);
@@ -234,7 +234,7 @@ public sealed class CodeViewTests
         var view = CodeViewDriver.Showing(DecompiledDocument.FromText("t", "foo\nbar foo\nbaz\nfoo foo"));
         view.Click(2, 0);
 
-        view.Key(KeyboardKey.F, KeyModifiers.Control);
+        view.Key(Shortcuts.Find);
         view.Frames.Type("foo").Frame();
         var first = (view.Frames.Drew("3 of 4"), view.State.Selection.Start);
         view.Key(KeyboardKey.Enter);
@@ -257,7 +257,7 @@ public sealed class CodeViewTests
         var view = CodeViewDriver.Showing(CodeViewDriver.Numbered(1000));
         view.Click(0, 0);
 
-        view.Key(KeyboardKey.F, KeyModifiers.Control);
+        view.Key(Shortcuts.Find);
         view.Frames.Type("line 700").Frame(3);
         var shown = view.DrawnText().Any(d => d.Text == "line 700");
         var counted = view.Frames.Drew("1 of 1");

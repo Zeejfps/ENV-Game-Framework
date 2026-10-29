@@ -360,7 +360,7 @@ public sealed class ExportDialogTests : IDisposable
         var app = AppDriver.Opened();
         app.Run(2);
 
-        app.Frames.Key(KeyboardKey.E, KeyModifiers.Control | KeyModifiers.Shift).Frame(2);
+        app.Frames.Key(Shortcuts.Export).Frame(2);
         Assert.True(app.Ui.ExportSetup.IsOpen);
         app.Frames.FilePicker.Answer = _temp.Path;
         app.Click("Browse…").Frame(2);

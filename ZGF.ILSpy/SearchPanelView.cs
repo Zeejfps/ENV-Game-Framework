@@ -14,8 +14,6 @@ internal static class SearchPanelView
     /// <summary>The results list's focus and scroll id.</summary>
     public const int ResultsId = 0x53524C54;
 
-    private const string SearchShortcut = "Ctrl+Shift+F";
-
     private static readonly SearchKinds[] Kinds =
     [
         SearchKinds.Types, SearchKinds.Methods, SearchKinds.Fields, SearchKinds.Properties, SearchKinds.Events, SearchKinds.Literals,
@@ -141,7 +139,7 @@ internal static class SearchPanelView
             ui.Focus(fieldId);
         var width = Sizing.Grow(AppLayout.SearchMinWidth, AppLayout.SearchWidth);
         var submitted = ui.TextField("search", ref search.Query, t.SearchField, width, ui.State.Icons.SearchField);
-        ui.Tooltip(fieldId, ui.Memo("search-syntax", t, static s => s.SearchSyntaxTooltip(SearchShortcut)));
+        ui.Tooltip(fieldId, ui.Memo("search-syntax", t, static s => s.SearchSyntaxTooltip(Shortcuts.Search.Label)));
         if (!ui.HasFocus(fieldId))
             return;
         if (submitted)

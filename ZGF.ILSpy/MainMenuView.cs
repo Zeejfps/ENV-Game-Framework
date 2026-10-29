@@ -77,7 +77,7 @@ internal static class MainMenuView
         if (ui.MenuItem(t.WindowMaximize, enabled: !maximized, id: "maximize", icon: new UiIcon(icons.WindowMaximize)))
             ui.MaximizeWindow();
         ui.MenuSeparator();
-        if (ui.MenuItem(t.WindowClose, "Alt+F4", id: "close", icon: new UiIcon(icons.WindowClose)))
+        if (ui.MenuItem(t.WindowClose, Shortcuts.CloseWindow, id: "close", icon: new UiIcon(icons.WindowClose)))
             ui.Quit();
     }
 
@@ -106,25 +106,25 @@ internal static class MainMenuView
         if (ui.MenuItem(t.HelpAbout, id: "about"))
             OpenAbout(ui.State);
         ui.MenuSeparator();
-        if (ui.MenuItem(t.AppMenuSettings, "Cmd+,", id: "settings"))
+        if (ui.MenuItem(t.AppMenuSettings, Shortcuts.Settings, id: "settings"))
             OpenDisplayOptions(ui.State);
         ui.MenuSeparator();
         using (ui.SubMenu(t.AppMenuServices, id: "services", role: AppMenuRole.Services))
         {
         }
         ui.MenuSeparator();
-        ui.SystemMenuItem(t.AppMenuHide, AppMenuSystemAction.Hide, "Cmd+H");
-        ui.SystemMenuItem(t.AppMenuHideOthers, AppMenuSystemAction.HideOthers, "Cmd+Alt+H");
+        ui.SystemMenuItem(t.AppMenuHide, AppMenuSystemAction.Hide, Shortcuts.Hide);
+        ui.SystemMenuItem(t.AppMenuHideOthers, AppMenuSystemAction.HideOthers, Shortcuts.HideOthers);
         ui.SystemMenuItem(t.AppMenuShowAll, AppMenuSystemAction.ShowAll);
         ui.MenuSeparator();
-        ui.SystemMenuItem(t.AppMenuQuit, AppMenuSystemAction.Quit, "Cmd+Q");
+        ui.SystemMenuItem(t.AppMenuQuit, AppMenuSystemAction.Quit, Shortcuts.Quit);
     }
 
     /// <summary>macOS's Window menu, which the system ends with the open windows.</summary>
     private static void SystemWindowMenu(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
-        ui.SystemMenuItem(t.WindowMinimize, AppMenuSystemAction.Minimize, "Cmd+M");
+        ui.SystemMenuItem(t.WindowMinimize, AppMenuSystemAction.Minimize, Shortcuts.Minimize);
         ui.SystemMenuItem(t.WindowZoom, AppMenuSystemAction.Zoom);
         ui.MenuSeparator();
         ui.SystemMenuItem(t.WindowBringAllToFront, AppMenuSystemAction.BringAllToFront);
@@ -295,7 +295,7 @@ internal static class MainMenuView
 
     /// <summary>The item that opens <paramref name="panel"/>, checked while it is open, with the
     /// icon its tab shows.</summary>
-    private static bool PanelItem(Ui<UiState> ui, string label, string panel, string? shortcut = null)
+    private static bool PanelItem(Ui<UiState> ui, string label, string panel, Shortcut? shortcut = null)
     {
         var open = ui.State.Layout.Contains(panel);
         return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(ui.State.Icons, panel));

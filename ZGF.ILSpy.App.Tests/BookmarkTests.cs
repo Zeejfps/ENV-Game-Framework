@@ -370,7 +370,7 @@ public sealed class BookmarkTests : IDisposable
         var location = d.AppState.Bookmarks.Items[0].Location;
 
         Click(app, location);
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
 
         Assert.Equal(location, app.Frames.Clipboard.Text);
         Assert.Null(d.Ui.BookmarksPanel.Renaming);

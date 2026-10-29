@@ -23,7 +23,7 @@ internal static class AnalyzerPanelView
         ui.Separator();
         if (rows.Roots.Count == 0)
         {
-            DocumentsView.Hint(ui, t.AnalyzerHint(Shortcuts.Analyze));
+            DocumentsView.Hint(ui, t.AnalyzerHint(Shortcuts.Analyze.Label));
             return;
         }
         Tree(ui, appState);
@@ -66,9 +66,9 @@ internal static class AnalyzerPanelView
 
     private static void HandleKeys(Ui<UiState> ui, AppState appState, AnalyzerRows rows)
     {
-        if (Shortcuts.AnalyzePressed(ui))
+        if (ui.IsPressed(Shortcuts.Analyze))
             AnalyzeSelected(appState, rows);
-        if (Shortcuts.DeletePressed(ui))
+        if (ui.IsPressed(Shortcuts.Delete))
             RemoveSelectedAnalysis(appState, rows);
     }
 
@@ -121,7 +121,7 @@ internal static class AnalyzerPanelView
     private static void GoToItems(Ui<UiState> ui, AppState appState, CodeReference target)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.AnalyzerGoTo, "Enter", id: "go-to"))
+        if (ui.MenuItem(t.AnalyzerGoTo, Shortcuts.Enter, id: "go-to"))
             Navigate(appState, target, inNewTab: false);
         if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
             Navigate(appState, target, inNewTab: true);

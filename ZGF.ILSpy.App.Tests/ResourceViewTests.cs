@@ -223,12 +223,12 @@ public sealed class ResourceViewTests
         var (app, _) = ShowResource("Mixed.resources");
 
         Click(app, app.TextRect("first line"));
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
         Assert.Equal("first line\nsecond line", app.Frames.Clipboard.Text);
 
         var name = app.TextRect("Notes.xml");
         app.Frames.Wait(1).DoubleClick(name with { Width = name.Width / 3 }).Frame(2);
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
         Assert.Equal("Notes", app.Frames.Clipboard.Text);
     }
 

@@ -187,7 +187,7 @@ public sealed class MetadataGridTests
         var (app, tab, _, _) = ShowGreeterRow();
         app.Frames.Click(TextBeside(app, "Greeter", "Greeter"));
 
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
         var copied = app.Frames.Clipboard.Text;
         app.Frames.Key(KeyboardKey.Enter).Frame();
         app.Settle();
@@ -295,7 +295,7 @@ public sealed class MetadataGridTests
         var advance = name.Width / "Greeter".Length;
 
         Drag(app, name.X + 1f, name.X + advance * 4, name.Y + name.Height / 2);
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
 
         Assert.Equal("Gree", app.Frames.Clipboard.Text);
         Assert.Equal(row, GridOf(app, tab).Selected);
@@ -324,7 +324,7 @@ public sealed class MetadataGridTests
 
         app.Frames.Click(TextBeside(app, baseType, "Greeter"));
         app.Settle();
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
 
         Assert.Same(Table(app, "TypeDef"), tab.Node);
         Assert.Equal(baseType, app.Frames.Clipboard.Text);
@@ -339,7 +339,7 @@ public sealed class MetadataGridTests
 
         app.Frames.Key(KeyboardKey.LeftArrow).Frame();
         app.Frames.Key(KeyboardKey.RightArrow).Frame();
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
 
         Assert.Equal("Greeter", app.Frames.Clipboard.Text);
     }

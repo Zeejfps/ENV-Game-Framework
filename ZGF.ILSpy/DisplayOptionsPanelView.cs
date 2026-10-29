@@ -300,7 +300,7 @@ internal static class DisplayOptionsPanelView
             FontPicker(ui);
         ui.Separator();
 
-        var hint = ui.Memo("zoom-hint", t, static s => s.DisplayOptionsZoomHint(Shortcuts.ZoomReset));
+        var hint = ui.Memo("zoom-hint", t, static s => s.DisplayOptionsZoomHint(Shortcuts.ZoomReset.Label));
         using (OptionRow(ui, t.DisplayOptionsFontSize, hint, display.FontSize != null))
             FontSizeStepper(ui);
         FontPreview(ui);
@@ -363,13 +363,13 @@ internal static class DisplayOptionsPanelView
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var display = ui.State.Display;
-        var smaller = ui.Memo("smaller", t, static s => s.DisplayOptionsSmaller(Shortcuts.ZoomOut));
+        var smaller = ui.Memo("smaller", t, static s => s.DisplayOptionsSmaller(Shortcuts.ZoomOut.Label));
         if (ui.IconButton("smaller", ui.State.Icons.OptionsFontSmaller, smaller, display.CanZoomOut(theme), ButtonVariant.Neutral))
             ZoomCode(ui.State, -1);
         var size = display.FontSizeIn(theme);
         var text = ui.Memo("size", size, static s => FormatFontSize(s));
         ui.Text(text, new Box { Width = Sizing.Fixed(MeasureFontSizeSlot(ui)) }, align: Align.Center);
-        var larger = ui.Memo("larger", t, static s => s.DisplayOptionsLarger(Shortcuts.ZoomIn));
+        var larger = ui.Memo("larger", t, static s => s.DisplayOptionsLarger(Shortcuts.ZoomIn.Label));
         if (ui.IconButton("larger", ui.State.Icons.OptionsFontLarger, larger, display.CanZoomIn(theme), ButtonVariant.Neutral))
             ZoomCode(ui.State, 1);
     }

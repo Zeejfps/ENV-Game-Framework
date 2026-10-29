@@ -60,7 +60,7 @@ public sealed class OmnibarTests
     private static void SearchFor(AppDriver app, string query, int moreThan = 0)
     {
         var omnibar = app.Ui.Omnibar;
-        app.Frames.Key(KeyboardKey.L, KeyModifiers.Control).Frame(2);
+        app.Frames.Key(Shortcuts.OmnibarSearch).Frame(2);
         app.Frames.Type(query).Frame().Wait(1);
         app.RunUntil(() => !omnibar.Search.IsBusy && omnibar.Search.ShowsQuery && omnibar.SuggestionCount > moreThan);
     }
@@ -209,7 +209,7 @@ public sealed class OmnibarTests
         var searchIcon = BuiltInGlyphs.Text(BuiltInGlyphs.Icons.SearchField);
         var searchButtons = app.Frames.TextRects()
             .Count(t => t.Text == searchIcon);
-        app.Frames.Key(KeyboardKey.L, KeyModifiers.Control).Frame(2);
+        app.Frames.Key(Shortcuts.OmnibarSearch).Frame(2);
 
         Assert.Equal(1, searchButtons);
         Assert.False(app.Ui.Omnibar.IsSearching);

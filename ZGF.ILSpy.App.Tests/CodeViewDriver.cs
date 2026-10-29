@@ -102,6 +102,8 @@ internal sealed class CodeViewDriver
 
     public UiFrames Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => Frames.Key(key, modifiers).Frame();
 
+    public UiFrames Key(Shortcut shortcut) => Frames.Key(shortcut).Frame();
+
     /// <summary>The lines whose text was drawn, by the top of the row they were drawn in.</summary>
     public IEnumerable<(string Text, float Top)> DrawnText() =>
         Frames.Canvas.GlyphRuns.Where(r => r.Origin.X >= TextLeft - 0.5f).Select(r => (r.Text, RowTop(r.Origin.Y)));

@@ -529,7 +529,7 @@ public sealed class AppTests
         var placeholder = app.TextRect("Search…");
 
         Assert.True(icon.Right <= placeholder.X, $"the icon ends at {icon.Right}, the placeholder starts at {placeholder.X}");
-        Assert.False(app.Frames.Drew("Ctrl+Shift+F"));
+        Assert.False(app.Frames.Drew(Shortcuts.Search.Label));
     }
 
     [Fact]
@@ -685,7 +685,7 @@ public sealed class AppTests
         Dialogs.OpenAbout(app.Ui);
         app.Run(2);
 
-        app.Frames.Key(KeyboardKey.F, KeyModifiers.Control | KeyModifiers.Shift).Frame(2);
+        app.Frames.Key(Shortcuts.Search).Frame(2);
 
         Assert.True(app.Ui.IsAboutOpen);
         Assert.False(app.Ui.Layout.Contains(DockPanels.Search));

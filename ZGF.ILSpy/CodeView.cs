@@ -66,7 +66,6 @@ public sealed class CodeViewState
     internal double FlashFrom;
     internal bool FindOpen;
     internal bool FocusFind;
-    internal bool FoldChord;
     internal string Query = "";
     internal int CurrentMatch = NoLine;
     internal int KeyScrollRows;
@@ -157,7 +156,6 @@ public sealed class CodeViewState
         FlashLine = NoLine;
         CurrentMatch = NoLine;
         KeyScrollRows = KeyScrollPages = 0;
-        FoldChord = false;
     }
 
     internal void RevealFolds(int line)
@@ -264,7 +262,7 @@ public static class CodeViewWidget
         if (focused || findFocused)
         {
             HandleKeys(ui, state, document, focusId, focused, advance);
-            if (focused && Shortcuts.AnalyzePressed(ui) && AnalyzableAt(document, state.Selection.Caret) is { } analyzed)
+            if (focused && ui.IsPressed(Shortcuts.Analyze) && AnalyzableAt(document, state.Selection.Caret) is { } analyzed)
                 result = result with { Analyze = analyzed };
         }
 
@@ -491,27 +489,14 @@ public static class CodeViewWidget
 
     private static CodeZoom ZoomPressed(Ui<UiState> ui)
     {
-        foreach (var stroke in ui.Input.Keys)
-        {
-            if (!IsShortcut(stroke.Modifiers))
-                continue;
-            var zoom = ZoomOfKey(stroke.Key);
-            if (zoom != CodeZoom.None)
-                return zoom;
-        }
+        if (Shortcuts.AnyPressed(ui, Shortcuts.ZoomInKeys))
+            return CodeZoom.In;
+        if (Shortcuts.AnyPressed(ui, Shortcuts.ZoomOutKeys))
+            return CodeZoom.Out;
+        if (Shortcuts.AnyPressed(ui, Shortcuts.ZoomResetKeys))
+            return CodeZoom.Reset;
         return CodeZoom.None;
     }
-
-    private static CodeZoom ZoomOfKey(KeyboardKey key) => key switch
-    {
-        KeyboardKey.Equals => CodeZoom.In,
-        KeyboardKey.NumpadAdd => CodeZoom.In,
-        KeyboardKey.Minus => CodeZoom.Out,
-        KeyboardKey.NumpadSubtract => CodeZoom.Out,
-        KeyboardKey.Alpha0 => CodeZoom.Reset,
-        KeyboardKey.Numpad0 => CodeZoom.Reset,
-        _ => CodeZoom.None,
-    };
 
     private static CodeZoom ZoomScrolled(UiInput input)
     {
@@ -524,6 +509,7 @@ public static class CodeViewWidget
         return CodeZoom.None;
     }
 
+    // The wheel zooms with Ctrl or Command held, as the framework's own zoom does.
     private static bool IsShortcut(KeyModifiers modifiers) => (modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
 
     /// <summary>Fills what <paramref name="display"/> draws around the text: the caret's line and the
@@ -781,51 +767,13 @@ public static class CodeViewWidget
         var keys = ui.Input.Keys;
         for (var k = 0; k < keys.Count; k++)
         {
-            var stroke = keys[k];
-            var shortcut = (stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
-            var shift = (stroke.Modifiers & KeyModifiers.Shift) != 0;
-            var chord = state.FoldChord;
-            state.FoldChord = false;
-            switch (stroke.Key)
+            if (RunShortcut(ui, state, document, focused, k))
+                continue;
+            switch (keys[k].Key)
             {
-                case KeyboardKey.F when shortcut && !shift && (stroke.Modifiers & KeyModifiers.Alt) == 0:
-                    if (!state.FindOpen && state.HasSelection && state.Selection.Anchor.Line == state.Selection.Caret.Line)
-                        state.Query = state.SelectedText;
-                    state.FindOpen = true;
-                    state.FocusFind = true;
-                    break;
-                case KeyboardKey.F3 when state.Query.Length > 0:
-                    state.FindOpen = true;
-                    Step(state, document, shift ? -1 : 1);
-                    break;
                 case KeyboardKey.Escape when state.FindOpen:
                     state.FindOpen = false;
                     ui.Focus(focusId, takesText: false);
-                    break;
-                case KeyboardKey.M when focused && chord:
-                    state.ToggleFold(state.Selection.Caret.Line);
-                    break;
-                case KeyboardKey.L when focused && chord:
-                    if (state.Folds.AnyCollapsed) state.ExpandAll();
-                    else state.CollapseAll();
-                    break;
-                case KeyboardKey.M when focused && shortcut && !shift:
-                    state.FoldChord = true;
-                    break;
-                case KeyboardKey.LeftBracket when focused && shortcut && shift:
-                    FoldAtCaret(state, collapse: true);
-                    break;
-                case KeyboardKey.RightBracket when focused && shortcut && shift:
-                    FoldAtCaret(state, collapse: false);
-                    break;
-                case KeyboardKey.A when shortcut && focused:
-                    state.Selection.Select(default, CodeText.End(document));
-                    break;
-                case KeyboardKey.C when shortcut && shift && focused && state.HasSelection:
-                    ui.ClipboardText = state.SelectedText;
-                    break;
-                case KeyboardKey.C when shortcut && focused && state.HasSelection:
-                    CopySelection(ui, state);
                     break;
                 case KeyboardKey.UpArrow when focused:
                     state.KeyScrollRows--;
@@ -853,6 +801,65 @@ public static class CodeViewWidget
                     break;
             }
         }
+    }
+
+    /// <summary>Runs the code's shortcut the key at <paramref name="index"/> completes, if any; false
+    /// for a key that is none, which then moves the view.</summary>
+    private static bool RunShortcut(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, bool focused, int index)
+    {
+        if (ui.IsPressedAt(Shortcuts.Find, index))
+        {
+            if (!state.FindOpen && state.HasSelection && state.Selection.Anchor.Line == state.Selection.Caret.Line)
+                state.Query = state.SelectedText;
+            state.FindOpen = true;
+            state.FocusFind = true;
+            return true;
+        }
+        if (state.Query.Length > 0 && (ui.IsPressedAt(Shortcuts.FindNext, index) || ui.IsPressedAt(Shortcuts.FindPrevious, index)))
+        {
+            state.FindOpen = true;
+            Step(state, document, ui.IsPressedAt(Shortcuts.FindPrevious, index) ? -1 : 1);
+            return true;
+        }
+        if (!focused)
+            return false;
+        if (ui.IsPressedAt(Shortcuts.ToggleFold, index))
+        {
+            state.ToggleFold(state.Selection.Caret.Line);
+            return true;
+        }
+        if (ui.IsPressedAt(Shortcuts.ToggleAllFolds, index))
+        {
+            if (state.Folds.AnyCollapsed) state.ExpandAll();
+            else state.CollapseAll();
+            return true;
+        }
+        if (ui.IsPressedAt(Shortcuts.CollapseFold, index))
+        {
+            FoldAtCaret(state, collapse: true);
+            return true;
+        }
+        if (ui.IsPressedAt(Shortcuts.ExpandFold, index))
+        {
+            FoldAtCaret(state, collapse: false);
+            return true;
+        }
+        if (ui.IsPressedAt(Shortcuts.SelectAll, index))
+        {
+            state.Selection.Select(default, CodeText.End(document));
+            return true;
+        }
+        if (state.HasSelection && ui.IsPressedAt(Shortcuts.CopyPlainText, index))
+        {
+            ui.ClipboardText = state.SelectedText;
+            return true;
+        }
+        if (state.HasSelection && ui.IsPressedAt(Shortcuts.Copy, index))
+        {
+            CopySelection(ui, state);
+            return true;
+        }
+        return false;
     }
 
     private static void FoldAtCaret(CodeViewState state, bool collapse)
@@ -961,11 +968,11 @@ public static class CodeViewWidget
         if (!menu.IsOpen) return result;
         var target = state.Menu;
 
-        if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: state.HasSelection, id: "copy"))
+        if (ui.MenuItem(t.CodeCopy, Shortcuts.Copy, enabled: state.HasSelection, id: "copy"))
             CopySelection(ui, state);
-        if (ui.MenuItem(t.CodeCopyPlainText, "Ctrl+Shift+C", enabled: state.HasSelection, id: "copy-plain-text"))
+        if (ui.MenuItem(t.CodeCopyPlainText, Shortcuts.CopyPlainText, enabled: state.HasSelection, id: "copy-plain-text"))
             ui.ClipboardText = state.SelectedText;
-        if (ui.MenuItem(t.CodeSelectAll, "Ctrl+A", id: "select-all"))
+        if (ui.MenuItem(t.CodeSelectAll, Shortcuts.SelectAll, id: "select-all"))
             state.Selection.Select(default, CodeText.End(document));
         if (bookmarkable && target.Line >= 0)
         {
@@ -977,7 +984,7 @@ public static class CodeViewWidget
         if (document.Folds.Length > 0)
         {
             ui.MenuSeparator();
-            if (ui.MenuItem(t.CodeToggleFold, "Ctrl+M, M", id: "toggle-fold", enabled: target.Line >= 0 && state.Folds.Innermost(target.Line) >= 0))
+            if (ui.MenuItem(t.CodeToggleFold, Shortcuts.ToggleFold, id: "toggle-fold", enabled: target.Line >= 0 && state.Folds.Innermost(target.Line) >= 0))
                 state.ToggleFold(target.Line);
             if (ui.MenuItem(t.CodeCollapseAll, id: "collapse-all"))
                 state.CollapseAll();

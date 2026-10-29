@@ -90,7 +90,7 @@ public sealed class TabMenuTests
         app.Frames.Click(tab.X + 4f, tab.Y + tab.Height / 2, PointerButton.Right).Frame();
 
         Assert.True(app.Frames.Drew("Close others"));
-        Assert.True(app.Frames.Drew("Ctrl+W"));
+        Assert.True(app.Frames.Drew(Shortcuts.CloseTab.Label));
         app.ClickMenuItem("Close others").Frame(2);
         Assert.Single(app.AppState.Tabs);
     }

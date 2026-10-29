@@ -179,7 +179,7 @@ internal static class AssemblyListsDialogView
             return;
         if (ui.Input.TakeKey(KeyboardKey.F2))
             dialog.StartRenaming(picked);
-        if (Shortcuts.DeletePressed(ui))
+        if (ui.IsPressed(Shortcuts.Delete))
             dialog.StartConfirmingDelete(picked);
     }
 
@@ -246,12 +246,12 @@ internal static class AssemblyListsDialogView
         var active = picked == appState.Lists.Active;
         if (ui.MenuItem(t.ListsActivate, enabled: !active, id: "activate"))
             SwitchAssemblyList(appState, picked);
-        if (ui.MenuItem(t.ListsRename, "F2", id: "rename"))
+        if (ui.MenuItem(t.ListsRename, Shortcuts.Rename, id: "rename"))
             dialog.StartRenaming(picked);
         if (ui.MenuItem(t.ListsDuplicate, id: "duplicate"))
             Duplicate(dialog, appState, t, picked);
         ui.MenuSeparator();
-        if (ui.MenuItem(t.ListsDelete, "Delete", id: "delete"))
+        if (ui.MenuItem(t.ListsDelete, Shortcuts.Delete, id: "delete"))
             dialog.StartConfirmingDelete(picked);
     }
 
@@ -283,7 +283,7 @@ internal static class AssemblyListsDialogView
         foreach (var preset in presets)
         {
             var count = t.ListsCount(preset.Paths.Count);
-            if (ui.MenuItem(preset.Name, count))
+            if (ui.MenuItem(preset.Name, detail: count))
                 AddPreset(ui.State.ListsDialog, appState, preset);
         }
     }

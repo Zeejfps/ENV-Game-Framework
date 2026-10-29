@@ -121,7 +121,7 @@ public sealed class AnalyzerTests
         ClickAt(app, leftmost);
         d.Settle();
 
-        app.Frames.Key(KeyboardKey.R, KeyModifiers.Control).Frame(2);
+        app.Frames.Key(Shortcuts.Analyze).Frame(2);
 
         Assert.StartsWith("First()", Assert.Single(d.AppState.Analyzer.Found()).Symbol.Label);
     }
@@ -134,7 +134,7 @@ public sealed class AnalyzerTests
         var row = view.State.Folds.RowOf(line);
 
         view.Click(row, column + "return First".Length);
-        view.Key(KeyboardKey.R, KeyModifiers.Control);
+        view.Key(Shortcuts.Analyze);
 
         Assert.Equal("First", view.Last.Analyze?.Name);
     }
@@ -148,7 +148,7 @@ public sealed class AnalyzerTests
         var third = app.Frames.TextRects().Last(t => t.Text.StartsWith("Third()"));
         ClickAt(app, third.Rect).Frame();
 
-        app.Frames.Key(KeyboardKey.R, KeyModifiers.Control).Frame(2);
+        app.Frames.Key(Shortcuts.Analyze).Frame(2);
 
         Assert.Equal(2, d.AppState.Analyzer.Roots.Count);
         Assert.StartsWith("Third()", d.AppState.Analyzer.Found()[1].Symbol.Label);

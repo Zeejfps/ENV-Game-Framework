@@ -131,10 +131,10 @@ internal static class OmnibarView
         return theme.TextMuted;
     }
 
-    /// <summary>Shows <paramref name="node"/> as one picked in the tree is, or in a new tab while Ctrl is held.</summary>
+    /// <summary>Shows <paramref name="node"/> as one picked in the tree is, or in a new tab while Ctrl, or ⌘ on macOS, is held.</summary>
     private static void PickNode(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
-        if (IsControlHeld(ui))
+        if (IsCommandHeld(ui))
         {
             ShowNode(appState, node, inNewTab: true);
             return;
@@ -142,7 +142,7 @@ internal static class OmnibarView
         PreviewNode(appState, node);
     }
 
-    private static bool IsControlHeld(Ui<UiState> ui) => (ui.Input.Modifiers & KeyModifiers.Control) != 0;
+    private static bool IsCommandHeld(Ui<UiState> ui) => (ui.Input.Modifiers & Shortcut.CommandModifier) != 0;
 
     /// <summary>The arrow after a crumb that has children, which opens and closes the list of them, pointing
     /// down while it is open. Returns the arrow's id while its list is open, else 0.</summary>
@@ -235,7 +235,7 @@ internal static class OmnibarView
         var submitted = Filter(ui, menu, shown);
         var picked = ChildRows(ui, menu, shown, listId);
         if (submitted)
-            picked = new PickedChild(menu.Selection.Item, IsControlHeld(ui));
+            picked = new PickedChild(menu.Selection.Item, IsCommandHeld(ui));
         if (picked.Node != null)
             ShowChild(ui, appState, menu, picked);
     }
@@ -303,7 +303,7 @@ internal static class OmnibarView
         NodeIcons.Draw(ui, child.Kind, child.Accessibility);
         ui.Text(ui.State.Tree.RowLabel(child), new Box { Width = Sizing.Grow() }, color: color, overflow: TextOverflow.Ellipsis);
         if (row.Interaction.Clicked)
-            return new PickedChild(child, IsControlHeld(ui));
+            return new PickedChild(child, IsCommandHeld(ui));
         if (row.Interaction.ClickedWith(PointerButton.Middle))
             return new PickedChild(child, true);
         return new PickedChild(null, false);
@@ -336,7 +336,7 @@ internal static class OmnibarView
         WalkSuggestions(ui, omnibar, fieldId);
         var clicked = Suggestions(ui, omnibar, fieldId);
         if (submitted)
-            clicked = new PickedMatch(omnibar.FindSuggestionToShow(), IsControlHeld(ui));
+            clicked = new PickedMatch(omnibar.FindSuggestionToShow(), IsCommandHeld(ui));
         if (clicked.Match != null)
             ShowMatch(appState, omnibar, clicked);
     }
@@ -437,7 +437,7 @@ internal static class OmnibarView
             ui.Text(match.Location, new Box { Width = Sizing.Shrink() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.EllipsisMiddle);
         }
         if (i.Clicked)
-            return new PickedMatch(match, IsControlHeld(ui));
+            return new PickedMatch(match, IsCommandHeld(ui));
         if (i.ClickedWith(PointerButton.Middle))
             return new PickedMatch(match, true);
         return new PickedMatch(null, false);

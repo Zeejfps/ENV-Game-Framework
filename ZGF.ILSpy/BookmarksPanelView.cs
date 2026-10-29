@@ -275,16 +275,16 @@ internal static class BookmarksPanelView
         if (bookmark == null)
             return;
         var bookmarks = appState.Bookmarks;
-        if (ui.MenuItem(t.BookmarksGoTo, "Enter", id: "go-to"))
+        if (ui.MenuItem(t.BookmarksGoTo, Shortcuts.Enter, id: "go-to"))
             GoToBookmark(appState, bookmark);
-        if (ui.MenuItem(t.CodeCopy, "Ctrl+C", enabled: panel.Cells.HasCell, id: "copy"))
+        if (ui.MenuItem(t.CodeCopy, Shortcuts.Copy, enabled: panel.Cells.HasCell, id: "copy"))
             ui.ClipboardText = Copied(bookmark, panel.Cells);
         ui.MenuSeparator();
-        if (ui.MenuItem(t.BookmarksRename, "F2", id: "rename"))
+        if (ui.MenuItem(t.BookmarksRename, Shortcuts.Rename, id: "rename"))
             RenameInPlace(panel, bookmark);
-        if (ui.MenuItem(bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable, "Space", id: "enable"))
+        if (ui.MenuItem(bookmark.Enabled ? t.BookmarksDisable : t.BookmarksEnable, Shortcuts.Space, id: "enable"))
             bookmarks.SetEnabled(bookmark, !bookmark.Enabled);
-        if (ui.MenuItem(t.BookmarksDelete, "Delete", id: "delete"))
+        if (ui.MenuItem(t.BookmarksDelete, Shortcuts.Delete, id: "delete"))
             Remove(panel, bookmarks, bookmark);
     }
 

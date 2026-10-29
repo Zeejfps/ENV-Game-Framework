@@ -121,7 +121,7 @@ public sealed class ExportTests : IDisposable
         var path = _temp.PathOf("Greeter.cs");
         app.Frames.FilePicker.Answer = path;
 
-        app.Frames.Key(KeyboardKey.S, KeyModifiers.Control).Frame(2);
+        app.Frames.Key(Shortcuts.SaveCode).Frame(2);
         app.Settle();
 
         Assert.Equal(["Save code"], app.Frames.FilePicker.Titles);
@@ -141,7 +141,7 @@ public sealed class ExportTests : IDisposable
         var path = _temp.PathOf("mainwindow.xaml");
         app.Frames.FilePicker.Answer = path;
 
-        app.Frames.Key(KeyboardKey.S, KeyModifiers.Control).Frame(2);
+        app.Frames.Key(Shortcuts.SaveCode).Frame(2);
         app.Settle();
 
         var (fileName, filters) = app.Frames.FilePicker.LastSave;

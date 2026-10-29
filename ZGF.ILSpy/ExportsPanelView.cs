@@ -103,14 +103,16 @@ internal static class ExportsPanelView
         if (!ui.HasFocus(rows.ListId))
             return;
         var runs = ListExports(appState);
-        foreach (var stroke in ui.Input.Keys)
-            HandleKey(ui, appState, rows, runs, stroke);
+        var keys = ui.Input.Keys;
+        for (var i = 0; i < keys.Count; i++)
+            HandleKey(ui, appState, rows, runs, i);
     }
 
-    private static void HandleKey(Ui<UiState> ui, AppState appState, Rows rows, List<int> runs, KeyStroke stroke)
+    private static void HandleKey(Ui<UiState> ui, AppState appState, Rows rows, List<int> runs, int index)
     {
+        var stroke = ui.Input.Keys[index];
         var selected = ui.State.SelectedExport;
-        if (IsMenuKey(stroke))
+        if (stroke.Key == KeyboardKey.Menu || ui.IsPressedAt(Shortcuts.ContextMenu, index))
         {
             OpenMenuOnSelection(ui, appState, rows, selected);
             return;
@@ -120,7 +122,7 @@ internal static class ExportsPanelView
             ActivateExport(appState, selected);
             return;
         }
-        if (IsCopy(stroke))
+        if (ui.IsPressedAt(Shortcuts.Copy, index))
         {
             CopyFolder(ui, appState, selected);
             return;
@@ -131,20 +133,6 @@ internal static class ExportsPanelView
             return;
         }
         MoveSelection(ui, appState, rows, runs, stroke);
-    }
-
-    private static bool IsMenuKey(KeyStroke stroke)
-    {
-        if (stroke.Key == KeyboardKey.Menu)
-            return true;
-        return stroke.Key == KeyboardKey.F10 && stroke.Modifiers.HasFlag(KeyModifiers.Shift);
-    }
-
-    private static bool IsCopy(KeyStroke stroke)
-    {
-        if (stroke.Key != KeyboardKey.C)
-            return false;
-        return stroke.Modifiers.HasFlag(KeyModifiers.Control);
     }
 
     private static void MoveSelection(Ui<UiState> ui, AppState appState, Rows rows, List<int> runs, KeyStroke stroke)
@@ -519,14 +507,14 @@ internal static class ExportsPanelView
     private static void FinishedMenu(Ui<UiState> ui, AppState appState, ExportReport report)
     {
         var t = ui.State.Strings;
-        if (ui.MenuItem(t.ExportShowReport, "Enter", id: "show-report", icon: new UiIcon(ui.State.Icons.ExportShowReport)))
+        if (ui.MenuItem(t.ExportShowReport, Shortcuts.Enter, id: "show-report", icon: new UiIcon(ui.State.Icons.ExportShowReport)))
             ShowExportReport(appState, report);
         if (ui.MenuItem(t.ExportOpenFolder, enabled: report.FolderExists, id: "open-folder", icon: new UiIcon(ui.State.Icons.ExportOpenFolder)))
             ui.OpenFolder(report.Folder);
-        if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))
+        if (ui.MenuItem(t.ExportsCopyFolder, Shortcuts.Copy, id: "copy-folder"))
             ui.ClipboardText = report.Folder;
         ui.MenuSeparator();
-        if (ui.MenuItem(t.ExportsRemove, "Delete", id: "remove"))
+        if (ui.MenuItem(t.ExportsRemove, Shortcuts.Delete, id: "remove"))
             RemoveFinishedExport(appState, report);
     }
 
@@ -536,7 +524,7 @@ internal static class ExportsPanelView
         var folder = FindExportFolder(appState, run);
         if (folder == null)
             return;
-        if (ui.MenuItem(t.ExportsCopyFolder, "Ctrl+C", id: "copy-folder"))
+        if (ui.MenuItem(t.ExportsCopyFolder, Shortcuts.Copy, id: "copy-folder"))
             ui.ClipboardText = folder;
         ui.MenuSeparator();
         if (appState.Export.Running?.Run == run)
@@ -545,7 +533,7 @@ internal static class ExportsPanelView
                 appState.Export.Cancel();
             return;
         }
-        if (ui.MenuItem(t.ExportsWithdraw, "Delete", id: "withdraw"))
+        if (ui.MenuItem(t.ExportsWithdraw, Shortcuts.Delete, id: "withdraw"))
             appState.Export.Withdraw(run);
     }
 

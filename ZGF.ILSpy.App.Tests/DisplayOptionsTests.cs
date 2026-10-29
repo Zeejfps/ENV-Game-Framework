@@ -60,11 +60,11 @@ public sealed class DisplayOptionsTests
         var view = Showing(CodeViewDriver.Numbered(5), DisplayOptions.Default);
         view.Click(0, 0);
 
-        view.Key(KeyboardKey.Equals, KeyModifiers.Control);
+        view.Key(Shortcuts.ZoomIn);
         Assert.Equal(CodeZoom.In, view.Last.Zoom);
-        view.Key(KeyboardKey.Minus, KeyModifiers.Control);
+        view.Key(Shortcuts.ZoomOut);
         Assert.Equal(CodeZoom.Out, view.Last.Zoom);
-        view.Key(KeyboardKey.Alpha0, KeyModifiers.Control);
+        view.Key(Shortcuts.ZoomReset);
         Assert.Equal(CodeZoom.Reset, view.Last.Zoom);
     }
 
@@ -74,7 +74,7 @@ public sealed class DisplayOptionsTests
         var view = Showing(CodeViewDriver.Numbered(5), null);
         view.Click(0, 0);
 
-        view.Key(KeyboardKey.Equals, KeyModifiers.Control);
+        view.Key(Shortcuts.ZoomIn);
 
         Assert.Equal(CodeZoom.None, view.Last.Zoom);
     }
@@ -563,7 +563,7 @@ public sealed class DisplayOptionsTests
 
         var code = app.Frames.Canvas.GlyphRuns.First(r => r.Text == "Greeter");
         app.Frames.Click(code.Origin.X + 2f, app.Frames.Height - code.Origin.Y + 2f).Frame();
-        app.Frames.Key(KeyboardKey.Equals, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.ZoomIn).Frame();
 
         Assert.Equal(size + 1f, app.Ui.Display.FontSize);
     }

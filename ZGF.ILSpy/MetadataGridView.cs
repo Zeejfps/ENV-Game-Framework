@@ -141,8 +141,10 @@ internal ref struct MetadataGridFrame
     {
         if (_state.View.Length == 0) return default;
         var result = default(MetadataGridResult);
-        foreach (var stroke in _ui.Input.Keys)
+        var keys = _ui.Input.Keys;
+        for (var i = 0; i < keys.Count; i++)
         {
+            var stroke = keys[i];
             var modifiers = stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Super);
             switch (modifiers, stroke.Key)
             {
@@ -150,18 +152,18 @@ internal ref struct MetadataGridFrame
                 case (0, KeyboardKey.Escape) when _state.IsOpen:
                     _state.CollapseCurrent();
                     _state.SelectAllText();
-                    break;
+                    continue;
                 case (0, KeyboardKey.Space) when _state.HasCurrentCell && _grid.Lines(_state.Selected, _state.CurrentColumn).MoreLines > 0:
                     _state.Expand(_state.Selected, _state.CurrentColumn);
                     _state.SelectAllText();
-                    break;
-                case (KeyModifiers.Control, KeyboardKey.A) when _state.HasCurrentCell:
-                    _state.SelectAllText();
-                    break;
-                case (KeyModifiers.Control, KeyboardKey.G) when _state.HasCurrentCell && _grid.Link(_state.Selected, _state.CurrentColumn) is { } target:
-                    result = new MetadataGridResult(target, null, false);
-                    break;
+                    continue;
             }
+            if (!_state.HasCurrentCell)
+                continue;
+            if (_ui.IsPressedAt(Shortcuts.SelectAll, i))
+                _state.SelectAllText();
+            else if (_ui.IsPressedAt(Shortcuts.GoToToken, i) && _grid.Link(_state.Selected, _state.CurrentColumn) is { } target)
+                result = new MetadataGridResult(target, null, false);
         }
         return result;
     }
@@ -326,7 +328,7 @@ internal ref struct MetadataGridFrame
         var row = _state.Selected;
         var column = _state.CurrentColumn;
         MetadataGridResult? result = null;
-        if (_ui.MenuItem(_t.CodeCopy, "Ctrl+C", enabled: column >= 0, id: "copy"))
+        if (_ui.MenuItem(_t.CodeCopy, Shortcuts.Copy, enabled: column >= 0, id: "copy"))
             _ui.ClipboardText = _state.CellText();
         if (_ui.MenuItem(_t.MetadataCopyRow, id: "copy-row"))
             _ui.ClipboardText = _state.RowText(row);
@@ -334,11 +336,11 @@ internal ref struct MetadataGridFrame
         var definition = _grid.Definition(row);
         if (target == null && definition == null) return null;
         _ui.MenuSeparator();
-        if (target != null && _ui.MenuItem(_t.MetadataGoToToken, "Ctrl+G", id: "go-to-token"))
+        if (target != null && _ui.MenuItem(_t.MetadataGoToToken, Shortcuts.GoToToken, id: "go-to-token"))
             result = new MetadataGridResult(target, null, false);
         if (definition != null)
         {
-            if (_ui.MenuItem(_t.CodeGoToDefinition, "Enter", id: "go-to-definition"))
+            if (_ui.MenuItem(_t.CodeGoToDefinition, Shortcuts.Enter, id: "go-to-definition"))
                 result = new MetadataGridResult(null, definition, false);
             if (_ui.MenuItem(_t.CodeOpenInNewTab, id: "open-in-new-tab"))
                 result = new MetadataGridResult(null, definition, true);

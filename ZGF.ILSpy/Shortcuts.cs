@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.KeyboardModule;
+using static ZGF.Desktop.ShortcutModifiers;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
@@ -9,49 +10,92 @@ using static ZGF.ILSpy.ScreenLayout;
 
 namespace ZGF.ILSpy;
 
+/// <summary>Every key that does something in the app, matched and labelled from here: the app-wide
+/// ones in <see cref="Bindings"/>, which <see cref="Handle"/> runs, and those the focused view handles
+/// itself. Command is Ctrl, but ⌘ on macOS.</summary>
 internal static class Shortcuts
 {
-    private const KeyModifiers Chord = KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt;
+    /// <summary>Analyzes what the focused view has picked: the tree's node, the code's reference at
+    /// the caret, the analyzer's result.</summary>
+    public static readonly Shortcut Analyze = Shortcut.Command(KeyboardKey.R);
 
-    /// <summary>The key that analyzes what the focused view has picked: the tree's node, the code's
-    /// reference at the caret, the analyzer's result.</summary>
-    public const string Analyze = "Ctrl+R";
+    public static readonly Shortcut Open = Shortcut.Command(KeyboardKey.O);
+    public static readonly Shortcut SaveCode = Shortcut.Command(KeyboardKey.S);
+    public static readonly Shortcut Export = Shortcut.Command(KeyboardKey.E, Shift);
+    public static readonly Shortcut Search = Shortcut.Command(KeyboardKey.F, Shift);
+    public static readonly Shortcut OmnibarSearch = Shortcut.Command(KeyboardKey.L);
+    public static readonly Shortcut ReloadAll = Shortcut.Key(KeyboardKey.F5);
+    public static readonly Shortcut CloseTab = Shortcut.Command(KeyboardKey.W);
+    public static readonly Shortcut NextTab = Shortcut.Key(KeyboardKey.Tab, Control);
+    public static readonly Shortcut PreviousTab = Shortcut.Key(KeyboardKey.Tab, Control | Shift);
 
-    public const string Open = "Ctrl+O";
-    public const string SaveCode = "Ctrl+S";
-    public const string Export = "Ctrl+Shift+E";
-    public const string Search = "Ctrl+Shift+F";
-    public const string OmnibarSearch = "Ctrl+L";
-    public const string Back = "Alt+Left";
-    public const string Forward = "Alt+Right";
-    public const string ReloadAll = "F5";
-    public const string CloseTab = "Ctrl+W";
-    public const string ZoomIn = "Ctrl+=";
-    public const string ZoomOut = "Ctrl+-";
-    public const string ZoomReset = "Ctrl+0";
+    // macOS goes back and forward with ⌘[ and ⌘]: Option and the arrows move by word in a text field.
+    public static readonly Shortcut Back = OperatingSystem.IsMacOS()
+        ? Shortcut.Command(KeyboardKey.LeftBracket)
+        : Shortcut.Key(KeyboardKey.LeftArrow, Alt);
+    public static readonly Shortcut Forward = OperatingSystem.IsMacOS()
+        ? Shortcut.Command(KeyboardKey.RightBracket)
+        : Shortcut.Key(KeyboardKey.RightArrow, Alt);
 
-    /// <summary>Whether Ctrl+R was pressed this frame, for the focused view to analyze its pick.</summary>
-    public static bool AnalyzePressed(Ui<UiState> ui)
-    {
-        foreach (var stroke in ui.Input.Keys)
-        {
-            if (stroke.Key == KeyboardKey.R && (stroke.Modifiers & Chord) == KeyModifiers.Control)
-                return true;
-        }
-        return false;
-    }
+    public static readonly Shortcut ZoomIn = Shortcut.Command(KeyboardKey.Equals);
+    public static readonly Shortcut ZoomOut = Shortcut.Command(KeyboardKey.Minus);
+    public static readonly Shortcut ZoomReset = Shortcut.Command(KeyboardKey.Alpha0);
 
-    /// <summary>Whether Delete was pressed this frame, for the focused view to remove its pick.</summary>
-    public static bool DeletePressed(Ui<UiState> ui)
-    {
-        foreach (var stroke in ui.Input.Keys)
-        {
-            if (stroke.Key == KeyboardKey.Delete && (stroke.Modifiers & Chord) == KeyModifiers.None)
-                return true;
-        }
-        return false;
-    }
+    /// <summary>What zooms the code, the labelled keys first: also Command with Shift and =, which
+    /// reads as Command and +, and the keypad's.</summary>
+    public static readonly Shortcut[] ZoomInKeys = [ZoomIn, Shortcut.Command(KeyboardKey.Equals, Shift), Shortcut.Command(KeyboardKey.NumpadAdd)];
+    public static readonly Shortcut[] ZoomOutKeys = [ZoomOut, Shortcut.Command(KeyboardKey.NumpadSubtract)];
+    public static readonly Shortcut[] ZoomResetKeys = [ZoomReset, Shortcut.Command(KeyboardKey.Numpad0)];
 
+    public static readonly Shortcut Copy = Shortcut.Command(KeyboardKey.C);
+    public static readonly Shortcut CopyPlainText = Shortcut.Command(KeyboardKey.C, Shift);
+    public static readonly Shortcut SelectAll = Shortcut.Command(KeyboardKey.A);
+    public static readonly Shortcut Find = Shortcut.Command(KeyboardKey.F);
+    public static readonly Shortcut FindNext = Shortcut.Key(KeyboardKey.F3);
+    public static readonly Shortcut FindPrevious = Shortcut.Key(KeyboardKey.F3, Shift);
+
+    // The fold chords take Control itself on every platform: ⌘M minimizes the window on macOS.
+    public static readonly Shortcut ToggleFold = Shortcut.Key(KeyboardKey.M, Control).Then(KeyboardKey.M);
+    public static readonly Shortcut ToggleAllFolds = Shortcut.Key(KeyboardKey.M, Control).Then(KeyboardKey.L);
+    public static readonly Shortcut CollapseFold = Shortcut.Command(KeyboardKey.LeftBracket, Shift);
+    public static readonly Shortcut ExpandFold = Shortcut.Command(KeyboardKey.RightBracket, Shift);
+
+    public static readonly Shortcut GoToToken = Shortcut.Command(KeyboardKey.G);
+    public static readonly Shortcut Rename = Shortcut.Key(KeyboardKey.F2);
+    public static readonly Shortcut Delete = Shortcut.Key(KeyboardKey.Delete);
+    public static readonly Shortcut Enter = Shortcut.Key(KeyboardKey.Enter);
+    public static readonly Shortcut Space = Shortcut.Key(KeyboardKey.Space);
+    public static readonly Shortcut ContextMenu = Shortcut.Key(KeyboardKey.F10, Shift);
+    public static readonly Shortcut CloseWindow = Shortcut.Key(KeyboardKey.F4, Alt);
+
+    // macOS's app and Window menus, which the system handles.
+    public static readonly Shortcut Settings = Shortcut.Command(KeyboardKey.Comma);
+    public static readonly Shortcut Hide = Shortcut.Command(KeyboardKey.H);
+    public static readonly Shortcut HideOthers = Shortcut.Command(KeyboardKey.H, Alt);
+    public static readonly Shortcut Quit = Shortcut.Command(KeyboardKey.Q);
+    public static readonly Shortcut Minimize = Shortcut.Command(KeyboardKey.M);
+
+    /// <summary>An app-wide shortcut and what it does; one that works <see cref="WhileTyping"/> runs
+    /// even while a text field has focus.</summary>
+    private readonly record struct Binding(Shortcut Keys, Action<Ui<UiState>, AppState> Run, bool WhileTyping = false);
+
+    private static readonly Binding[] Bindings =
+    [
+        new(Search, static (ui, _) => OpenSearch(ui.State), WhileTyping: true),
+        new(OmnibarSearch, static (ui, _) => SearchInOmnibarUnlessFolding(ui), WhileTyping: true),
+        new(Back, static (_, appState) => GoBack(appState), WhileTyping: true),
+        new(Forward, static (_, appState) => GoForward(appState), WhileTyping: true),
+        new(Open, static (ui, appState) => MainMenuView.OpenFile(ui, appState)),
+        new(SaveCode, static (ui, appState) => SaveDialogs.PickActiveCodeFile(ui, appState)),
+        new(Export, static (ui, appState) => ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState))),
+        new(ReloadAll, static (ui, appState) => RefreshAssemblies(appState, ui.State.Tree.ExpandedPaths())),
+        new(CloseTab, static (ui, _) => CloseActiveTab(ui.State)),
+        new(NextTab, static (ui, _) => CycleTab(ui.State, 1)),
+        new(PreviousTab, static (ui, _) => CycleTab(ui.State, -1)),
+    ];
+
+    /// <summary>Runs the app-wide shortcuts pressed this frame, and goes back and forward with the
+    /// pointer's side buttons.</summary>
     public static void Handle(Ui<UiState> ui, AppState appState)
     {
         var input = ui.Input;
@@ -60,62 +104,31 @@ internal static class Shortcuts
         if (input.WasPressed(PointerButton.Forward))
             GoForward(appState);
 
-        var keys = input.Keys;
-        for (var i = 0; i < keys.Count; i++)
+        foreach (var binding in Bindings)
         {
-            var stroke = keys[i];
-            switch (stroke.Modifiers & Chord, stroke.Key)
-            {
-                case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.F):
-                    OpenSearch(ui.State);
-                    continue;
-                case (KeyModifiers.Control, KeyboardKey.L) when !IsFoldChordPending(ui.State):
-                    SearchInOmnibar(ui.State);
-                    continue;
-                case (KeyModifiers.Alt, KeyboardKey.LeftArrow):
-                    GoBack(appState);
-                    continue;
-                case (KeyModifiers.Alt, KeyboardKey.RightArrow):
-                    GoForward(appState);
-                    continue;
-            }
-            if (ui.WantsTextInput) continue;
-
-            switch (stroke.Modifiers & Chord, stroke.Key)
-            {
-                case (KeyModifiers.Control, KeyboardKey.O):
-                    MainMenuView.OpenFile(ui, appState);
-                    break;
-                case (KeyModifiers.Control, KeyboardKey.S):
-                    SaveDialogs.PickActiveCodeFile(ui, appState);
-                    break;
-                case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.E):
-                    ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
-                    break;
-                case (KeyModifiers.None, KeyboardKey.F5):
-                    RefreshAssemblies(appState, ui.State.Tree.ExpandedPaths());
-                    break;
-                case (KeyModifiers.Control, KeyboardKey.W):
-                    CloseActiveTab(ui.State);
-                    break;
-                case (KeyModifiers.Control, KeyboardKey.Tab):
-                    CycleTab(ui.State, 1);
-                    break;
-                case (KeyModifiers.Control | KeyModifiers.Shift, KeyboardKey.Tab):
-                    CycleTab(ui.State, -1);
-                    break;
-            }
+            if (ui.WantsTextInput && !binding.WhileTyping)
+                continue;
+            if (ui.IsPressed(binding.Keys))
+                binding.Run(ui, appState);
         }
     }
 
-    /// <summary>Whether the active document's code waits for the key after Ctrl+M, which Ctrl+L can be.</summary>
-    private static bool IsFoldChordPending(UiState uiState)
+    /// <summary>Searches in the omnibar, unless the key ends Ctrl+M, Ctrl+L in the code, which folds it.</summary>
+    private static void SearchInOmnibarUnlessFolding(Ui<UiState> ui)
     {
-        var tab = uiState.ActiveTab;
-        if (tab == null)
-            return false;
-        if (!uiState.Documents.Contains(tab))
-            return false;
-        return uiState.Documents.ViewOf(tab).Code.FoldChord;
+        if (ui.IsPressed(ToggleAllFolds))
+            return;
+        SearchInOmnibar(ui.State);
+    }
+
+    /// <summary>Whether any of <paramref name="shortcuts"/> was pressed this frame.</summary>
+    public static bool AnyPressed(Ui<UiState> ui, Shortcut[] shortcuts)
+    {
+        foreach (var shortcut in shortcuts)
+        {
+            if (ui.IsPressed(shortcut))
+                return true;
+        }
+        return false;
     }
 }

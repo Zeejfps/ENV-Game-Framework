@@ -88,7 +88,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         var app = TwoFinished();
         app.Frames.Wait(1).Click(app.TextRect("Greeter")).Frame();
 
-        app.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        app.Frames.Key(Shortcuts.Copy).Frame();
 
         Assert.Equal(_temp.PathOf("First"), app.Frames.Clipboard.Text);
     }

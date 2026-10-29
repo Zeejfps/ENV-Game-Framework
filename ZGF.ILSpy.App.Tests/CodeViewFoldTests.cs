@@ -87,12 +87,12 @@ public sealed class CodeViewFoldTests
         view.Key(KeyboardKey.M, KeyModifiers.Control);
         view.Key(KeyboardKey.M);
         var back = view.State.IsCollapsed(second);
-        view.Key(KeyboardKey.LeftBracket, KeyModifiers.Control | KeyModifiers.Shift);
+        view.Key(Shortcuts.CollapseFold);
         var collapsed = view.State.IsCollapsed(second);
-        view.Key(KeyboardKey.LeftBracket, KeyModifiers.Control | KeyModifiers.Shift);
+        view.Key(Shortcuts.CollapseFold);
         var outer = view.State.IsCollapsed(document.FoldIndexAt("public class Outline"));
-        view.Key(KeyboardKey.RightBracket, KeyModifiers.Control | KeyModifiers.Shift);
-        view.Key(KeyboardKey.RightBracket, KeyModifiers.Control | KeyModifiers.Shift);
+        view.Key(Shortcuts.ExpandFold);
+        view.Key(Shortcuts.ExpandFold);
 
         Assert.True(toggled);
         Assert.False(back);
@@ -144,7 +144,7 @@ public sealed class CodeViewFoldTests
         view.Frames.Press().Frame();
         view.MoveTo(first + 1, 4);
         view.Frames.Release().Frame();
-        view.Key(KeyboardKey.C, KeyModifiers.Control);
+        view.Key(Shortcuts.Copy);
 
         var end = document.FoldAt("public int First()").EndLine + 2;
         Assert.Equal(CodeText.Between(document, new TextPosition(first - 1, 0), new TextPosition(end, 4)), view.Frames.Clipboard.Text);
@@ -161,7 +161,7 @@ public sealed class CodeViewFoldTests
         view.Run();
         view.Click(0, 0);
 
-        view.Key(KeyboardKey.F, KeyModifiers.Control);
+        view.Key(Shortcuts.Find);
         view.Frames.Type("needle").Frame(2);
 
         Assert.False(view.State.IsCollapsed(second));
