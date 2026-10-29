@@ -56,7 +56,7 @@ public static class NodeContentLoader
         var name = node switch
         {
             AssemblyNode => node.Assembly.Name,
-            EntityNode entity => entity.Entity.Name,
+            SubjectNode subject => subject.Entity.Name,
             _ => node.Text,
         };
         var extension = DecompilationLanguages.IsIL(language) ? ".il" : ".cs";
@@ -108,10 +108,8 @@ public static class NodeContentLoader
                 return new DocumentRequest.Failure(failed.Failed, node.Text, node.FullName);
             case AssemblyNode assembly:
                 return new DocumentRequest.ModulePreview(assembly.Module, node.Text, node.FullName);
-            case TypeNode type:
-                return new DocumentRequest.Type(type.Module, type.Type, node.Text, node.FullName);
-            case MemberNode member:
-                return new DocumentRequest.Member(member.Module, member.Member, node.Text, node.FullName);
+            case SubjectNode subject:
+                return RequestOf(subject);
             case ResourcesFolderNode or AvaloniaResourcesNode:
                 return Summary(session, node);
             case BamlEntryNode baml:
@@ -122,6 +120,13 @@ public static class NodeContentLoader
                 return Summary(session, node);
         }
     }
+
+    private static DocumentRequest RequestOf(SubjectNode node) => node.Subject switch
+    {
+        NodeSubject.TypeDefinition type => new DocumentRequest.Type(type.Definition, node.Text, node.FullName),
+        NodeSubject.MemberDefinition member => new DocumentRequest.Member(member.Definition, node.Text, node.FullName),
+        _ => throw new UnreachableException(),
+    };
 
     private static DocumentRequest.Summary Summary(BrowseSession session, BrowseNode node) =>
         new(SummaryOf(session, node), ModuleOf(node), node.Text, node.FullName);
@@ -174,8 +179,8 @@ public static class NodeContentLoader
         foreach (var child in session.ChildrenOf(ns))
         {
             if (child.IsCompilerGenerated) continue;
-            if (child is TypeNode type)
-                entries.Add(new NamespaceEntry.Declared(type.Type, type.Text, type.Reference));
+            if (child is SubjectNode subject && subject.Subject is NodeSubject.TypeDefinition type)
+                entries.Add(new NamespaceEntry.Declared(type.Definition.Symbol, child.Text, child.Reference));
             if (child is ForwardedTypeNode forwarded)
                 entries.Add(new NamespaceEntry.Forwarded(ForwardedLineOf(forwarded)));
         }

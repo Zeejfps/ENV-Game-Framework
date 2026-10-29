@@ -14,8 +14,9 @@ public static class MicrosoftDocs
     {
         if (node is NamespaceNode ns)
             return FindNamespacePage(ns);
-        if (node is EntityNode entity)
-            return FindPage(entity.Entity);
+        var entity = SubjectNode.EntityOf(node);
+        if (entity != null)
+            return FindPage(entity);
         return null;
     }
 

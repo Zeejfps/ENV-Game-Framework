@@ -458,12 +458,16 @@ internal sealed class NamespaceNode : BrowseNode, IModuleNode
 
     private List<SortedChild> SortChildren()
     {
-        var defined = _types
-            .Select(t => new SortedChild(t.Name, t.TypeParameterCount, new TypeNode(Module, this, t)));
-        var forwarded = _forwarded
-            .Select(f => new SortedChild(f.SortName, f.Arity, new ForwardedTypeNode(Module, this, f)));
-        return defined
-            .Concat(forwarded)
+        var children = new List<SortedChild>(_types.Count + _forwarded.Count);
+        foreach (var type in _types)
+        {
+            var node = SubjectNode.ForType(Module, this, type);
+            if (node != null)
+                children.Add(new SortedChild(type.Name, type.TypeParameterCount, node));
+        }
+        foreach (var forwarded in _forwarded)
+            children.Add(new SortedChild(forwarded.SortName, forwarded.Arity, new ForwardedTypeNode(Module, this, forwarded)));
+        return children
             .OrderBy(static c => c.Name, NaturalStringComparer.Instance)
             .ThenBy(static c => c.Arity)
             .ToList();
@@ -529,88 +533,6 @@ internal sealed class ForwardedTypeNode : BrowseNode, IModuleNode
     }
 
     public override string FullName { get; }
-}
-
-internal abstract class EntityNode : BrowseNode, IModuleNode
-{
-    public LoadedModule Module { get; }
-
-    private protected EntityNode(LoadedModule assembly, BrowseNode parent, IEntity entity)
-        : base(assembly, parent, EntityText.KindOf(entity), EntityText.Label(entity))
-    {
-        Module = assembly;
-        Entity = entity;
-        Accessibility = EntityText.Map(entity.Accessibility);
-        IsPublicApi = EntityText.IsPublicApi(entity);
-        IsCompilerGenerated = parent.IsCompilerGenerated || Members.IsCompilerGenerated(entity);
-        Reference = CodeReference.To(entity);
-        Token = MetadataTokens.GetToken(entity.MetadataToken);
-    }
-
-    public IEntity Entity { get; }
-
-    public override string FullName => EntityText.FullName(Entity);
-}
-
-internal sealed class TypeNode(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)
-    : EntityNode(assembly, parent, type)
-{
-    public ITypeDefinition Type => (ITypeDefinition)Entity;
-
-    internal override bool MayHaveChildren
-    {
-        get
-        {
-            var definition = Module.File.Metadata.GetTypeDefinition((TypeDefinitionHandle)Type.MetadataToken);
-            return !definition.BaseType.IsNil || definition.GetInterfaceImplementations().Count > 0 || definition.GetNestedTypes().Length > 0 || DerivedTypesNode.CanHave(Type) ||
-                   definition.GetFields().Count > 0 || definition.GetMethods().Count > 0 || definition.GetProperties().Count > 0 ||
-                   definition.GetEvents().Count > 0;
-        }
-    }
-
-    internal override BrowseNode[] CreateChildren()
-    {
-        var type = Type;
-        var result = new List<BrowseNode>();
-        if (type.DirectBaseTypes.Any())
-            result.Add(new BaseTypesNode(Module, this, type));
-        if (DerivedTypesNode.CanHave(type))
-            result.Add(new DerivedTypesNode(Module, this, type));
-
-        foreach (var nested in type.NestedTypes.Where(t => !Members.IsMissing(t)).OrderBy(t => t.Name, NaturalStringComparer.Instance))
-            result.Add(new TypeNode(Module, this, nested));
-
-        var fields = type.Fields.Where(f => !Members.IsMissing(f) && !(type.Kind == TypeKind.Enum && !f.IsStatic));
-        if (type.Kind != TypeKind.Enum)
-            fields = fields.OrderBy(f => f.Name, NaturalStringComparer.Instance);
-        foreach (var field in fields)
-            result.Add(new MemberNode(Module, this, field));
-
-        foreach (var property in type.Properties.Where(p => !Members.IsMissing(p)).OrderBy(p => p.Name, NaturalStringComparer.Instance))
-            result.Add(new MemberNode(Module, this, property));
-
-        foreach (var @event in type.Events.Where(e => !Members.IsMissing(e)).OrderBy(e => e.Name, NaturalStringComparer.Instance))
-            result.Add(new MemberNode(Module, this, @event));
-
-        foreach (var method in type.Methods.Where(m => !m.IsAccessor && !Members.IsMissing(m)).OrderBy(m => m.Name, NaturalStringComparer.Instance))
-            result.Add(new MemberNode(Module, this, method));
-
-        return result.ToArray();
-    }
-}
-
-internal sealed class MemberNode(LoadedModule assembly, BrowseNode parent, IMember member)
-    : EntityNode(assembly, parent, member)
-{
-    public IMember Member => (IMember)Entity;
-
-    internal override bool MayHaveChildren => Member is IProperty or IEvent;
-
-    internal override BrowseNode[] CreateChildren() =>
-        Members.Accessors(Member)
-            .Where(a => !a.MetadataToken.IsNil)
-            .Select(a => (BrowseNode)new MemberNode(Module, this, a))
-            .ToArray();
 }
 
 internal sealed class BaseTypesNode(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)

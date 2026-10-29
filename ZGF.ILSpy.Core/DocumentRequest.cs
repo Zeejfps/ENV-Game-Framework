@@ -19,9 +19,9 @@ internal abstract record DocumentRequest
     /// <summary>A module's summary and attributes, not its types.</summary>
     public sealed record ModulePreview(LoadedModule Module, string Title, string FullName) : DocumentRequest(Title, FullName);
 
-    public sealed record Type(LoadedModule Module, ITypeDefinition Definition, string Title, string FullName) : DocumentRequest(Title, FullName);
+    public sealed record Type(DefinedType Definition, string Title, string FullName) : DocumentRequest(Title, FullName);
 
-    public sealed record Member(LoadedModule Module, IMember Definition, string Title, string FullName) : DocumentRequest(Title, FullName);
+    public sealed record Member(DefinedMember Definition, string Title, string FullName) : DocumentRequest(Title, FullName);
 
     /// <summary>What a node without code of its own lists, read from <paramref name="Module"/>, or
     /// from none for a package's.</summary>

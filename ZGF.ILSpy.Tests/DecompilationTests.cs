@@ -390,9 +390,9 @@ public sealed class DecompilationTests
         while (pending.Count > 0)
         {
             var node = pending.Pop();
-            if (node is not EntityNode and not AssemblyNode)
+            if (node is not SubjectNode and not AssemblyNode)
                 nodes.Add(node);
-            if (node is MemberNode or BaseTypeNode or DerivedTypeNode or AssemblyReferenceNode)
+            if (SubjectNode.IsMember(node) || node is BaseTypeNode or DerivedTypeNode or AssemblyReferenceNode)
                 continue;
             foreach (var child in node.Children)
                 pending.Push(child);

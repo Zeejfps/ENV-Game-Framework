@@ -83,8 +83,8 @@ internal static class NodeDecompiler
     private static LoadedModule? ModuleOf(DocumentRequest request) => request switch
     {
         DocumentRequest.ModulePreview preview => preview.Module,
-        DocumentRequest.Type type => type.Module,
-        DocumentRequest.Member member => member.Module,
+        DocumentRequest.Type type => type.Definition.Module,
+        DocumentRequest.Member member => member.Definition.Module,
         DocumentRequest.Summary summary => summary.Module,
         DocumentRequest.Resource resource => resource.Module,
         DocumentRequest.Baml baml => baml.Module,
@@ -193,8 +193,9 @@ internal static class NodeDecompiler
                 WriteSyntaxTree(preview.Module, output, settings, d => d.DecompileModuleAndAssemblyAttributes(), cancellationToken);
                 break;
             case DocumentRequest.Type type:
-                WriteHeader(type.Module, output, type.Definition, ConversionFlags.UseFullyQualifiedTypeNames | ConversionFlags.UseFullyQualifiedEntityNames);
-                WriteSyntaxTree(type.Module, output, settings, d => d.Decompile(type.Definition.MetadataToken), cancellationToken);
+                var definition = type.Definition;
+                WriteHeader(definition.Module, output, definition.Symbol, ConversionFlags.UseFullyQualifiedTypeNames | ConversionFlags.UseFullyQualifiedEntityNames);
+                WriteSyntaxTree(definition.Module, output, settings, d => d.Decompile(definition.Handle), cancellationToken);
                 break;
             case DocumentRequest.Member member:
                 WriteMember(member, output, settings, cancellationToken);
@@ -209,15 +210,16 @@ internal static class NodeDecompiler
 
     private static void WriteMember(DocumentRequest.Member request, DocumentBuilder output, DecompilerSettings settings, CancellationToken cancellationToken)
     {
-        var member = request.Definition;
+        var module = request.Definition.Module;
+        var member = request.Definition.Symbol;
         var declaring = member.DeclaringTypeDefinition;
         if (declaring == null)
         {
-            WriteSyntaxTree(request.Module, output, settings, d => d.Decompile(member.MetadataToken), cancellationToken);
+            WriteSyntaxTree(module, output, settings, d => d.Decompile(request.Definition.Handle), cancellationToken);
             return;
         }
-        WriteHeader(request.Module, output, member.DeclaringType, ConversionFlags.UseFullyQualifiedEntityNames | ConversionFlags.UseFullyQualifiedTypeNames);
-        WriteSyntaxTree(request.Module, output, settings, d => DecompileMember(d, member, declaring), cancellationToken);
+        WriteHeader(module, output, member.DeclaringType, ConversionFlags.UseFullyQualifiedEntityNames | ConversionFlags.UseFullyQualifiedTypeNames);
+        WriteSyntaxTree(module, output, settings, d => DecompileMember(d, member, declaring), cancellationToken);
     }
 
     private static void WriteIL(DocumentRequest request, DocumentBuilder output, DecompilationLanguage language, DecompilerSettings settings,
@@ -237,12 +239,12 @@ internal static class NodeDecompiler
                 disassembler.WriteModuleHeader(file);
                 break;
             case DocumentRequest.Type type:
-                CreateDisassembler(type.Module, output, language, settings, cancellationToken)
-                    .DisassembleType(type.Module.File, (TypeDefinitionHandle)type.Definition.MetadataToken);
+                CreateDisassembler(type.Definition.Module, output, language, settings, cancellationToken)
+                    .DisassembleType(type.Definition.Module.File, type.Definition.Handle);
                 break;
             case DocumentRequest.Member member:
-                var memberDisassembler = CreateDisassembler(member.Module, output, language, settings, cancellationToken);
-                DisassembleMember(memberDisassembler, member.Module.File, member.Definition.MetadataToken);
+                var memberDisassembler = CreateDisassembler(member.Definition.Module, output, language, settings, cancellationToken);
+                DisassembleMember(memberDisassembler, member.Definition.Module.File, member.Definition.Handle);
                 break;
             case DocumentRequest.Summary or DocumentRequest.Resource or DocumentRequest.Baml:
                 WriteSummary(request, output, cancellationToken);

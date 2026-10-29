@@ -146,7 +146,7 @@ public static class Analyzers
     public static AnalysisSymbol? Of(BrowseNode node) =>
         node switch
         {
-            EntityNode entity => Describe(entity.Entity),
+            SubjectNode subject => Describe(subject.Entity),
             DerivedTypeNode derived => Describe(derived.Type),
             BaseTypeNode baseType => DescribeDefinitionOf(baseType.Type),
             _ => null,

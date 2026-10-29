@@ -335,7 +335,7 @@ public static class AssemblySearch
                 return;
             if (node.IsCompilerGenerated)
                 return;
-            if (node.Parent is not MemberNode)
+            if (!SubjectNode.IsMember(node.Parent))
                 Add(node);
         }
 
@@ -351,8 +351,8 @@ public static class AssemblySearch
                 return;
             }
             node = SourceDeclaredAncestor(node);
-            if (node is { Parent: MemberNode owner })
-                node = owner;
+            if (node != null && SubjectNode.IsMember(node.Parent))
+                node = node.Parent;
             if (node is not null)
                 Add(node);
         }
@@ -384,7 +384,8 @@ public static class AssemblySearch
             while (ns is not null and not NamespaceNode)
                 ns = ns.Parent;
             var name = ns?.Text ?? "";
-            if (node.Parent is TypeNode type)
+            var type = node.Parent;
+            if (type is SubjectNode owner && owner.Subject is NodeSubject.TypeDefinition)
                 Add(node, name.Length == 0 ? type.Text : $"{name}.{type.Text}");
             else
                 Add(node, name.Length == 0 ? "-" : name);
@@ -398,13 +399,19 @@ public static class AssemblySearch
 
         private static float Fitness(BrowseNode node)
         {
-            var name = node switch
-            {
-                EntityNode { Entity: IMethod { IsConstructor: true } constructor } when constructor.DeclaringTypeDefinition != null => constructor.DeclaringTypeDefinition.Name,
-                EntityNode entity => entity.Entity.Name,
-                _ => node.Text,
-            };
+            var name = NameOf(node);
             return name.Length == 0 || name[0] == '<' ? 0f : 1f / name.Length;
+        }
+
+        /// <summary>The name a node is matched by: a constructor's its type's, an entity's its own, else its label.</summary>
+        private static string NameOf(BrowseNode node)
+        {
+            var entity = SubjectNode.EntityOf(node);
+            if (entity == null)
+                return node.Text;
+            if (entity is IMethod method && method.IsConstructor && method.DeclaringTypeDefinition != null)
+                return method.DeclaringTypeDefinition.Name;
+            return entity.Name;
         }
     }
 }

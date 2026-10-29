@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler.IL;
@@ -34,12 +35,22 @@ public static class ILSpyTree
     {
         AssemblyNode => node.Assembly.FilePath.Text,
         NamespaceNode ns => ns.Name,
-        TypeNode type => type.Type.ReflectionName,
-        MemberNode { Member: IMethod method } => "Method " + Signatures.ConvertSymbol(method),
-        MemberNode { Member: IProperty property } => "Property " + Signatures.ConvertSymbol(property),
-        MemberNode { Member: IField field } => "Field " + field.Name,
-        MemberNode { Member: IEvent @event } => "Event " + @event.Name,
+        SubjectNode subject => NameOf(subject.Subject),
         _ => null,
+    };
+
+    private static string? NameOf(NodeSubject subject) => subject switch
+    {
+        NodeSubject.TypeDefinition type => type.Definition.Symbol.ReflectionName,
+        NodeSubject.MemberDefinition member => member.Definition.Symbol switch
+        {
+            IMethod method => "Method " + Signatures.ConvertSymbol(method),
+            IProperty property => "Property " + Signatures.ConvertSymbol(property),
+            IField field => "Field " + field.Name,
+            IEvent @event => "Event " + @event.Name,
+            _ => null,
+        },
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>The names of the nodes down from the assembly to <paramref name="node"/>, as ILSpy's
@@ -107,7 +118,7 @@ public static class ILSpyTree
     public static ILSpyBookmarkInfo Describe(BrowseNode place, CodeAnchor? anchor)
     {
         var assembly = place.Assembly;
-        var entity = place is EntityNode owner ? owner.Entity : null;
+        var entity = SubjectNode.EntityOf(place);
         var token = entity is null ? 0u : (uint)MetadataTokens.GetToken(entity.MetadataToken);
         if (anchor != null && anchor.Value.FilePath.Equals(assembly.FilePath))
         {
@@ -119,7 +130,7 @@ public static class ILSpyTree
         {
             token = (uint)anchor.Value.Token;
         }
-        var location = place is EntityNode shown ? shown.Entity.FullName : NameOf(place);
+        var location = SubjectNode.EntityOf(place)?.FullName ?? NameOf(place);
         return new ILSpyBookmarkInfo(assembly.FullName, assembly.FilePath.FileName, token, entity?.FullName ?? location ?? place.Text, location,
             PathOf(place));
     }
