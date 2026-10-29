@@ -70,10 +70,10 @@ public static class Bookmarks
     {
         switch (found)
         {
-            case Outcome<BrowseNode?>.Ok { Value: { } node }:
+            case Outcome<BrowseNode?>.Ok ok when ok.Value != null:
                 LeaveActiveTab(appState);
-                ShowNodeIn(appState, destination, node, target: bookmark);
-                appState.History.Push(node, appState.Language);
+                ShowNodeIn(appState, destination, ok.Value, target: bookmark);
+                appState.History.Push(ok.Value, appState.Language);
                 break;
             case Outcome<BrowseNode?>.Ok:
                 ReportBookmarkGone(appState, bookmark, null);

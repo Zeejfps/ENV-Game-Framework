@@ -39,7 +39,8 @@ public sealed class MetadataFilters
     {
         foreach (var (key, state) in _states)
         {
-            if (state.Save() is { } saved)
+            var saved = state.Save();
+            if (saved != null)
                 _saved[key] = saved;
             else
                 _saved.Remove(key);

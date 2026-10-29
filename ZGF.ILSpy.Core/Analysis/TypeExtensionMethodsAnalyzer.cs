@@ -20,7 +20,10 @@ internal sealed class TypeExtensionMethodsAnalyzer : IAnalyzer
                 continue;
             foreach (var method in type.Methods)
             {
-                if (method.IsExtensionMethod && method.Parameters[0].Type.GetDefinition() is { } extended && extended.IsSame(analyzed))
+                if (!method.IsExtensionMethod)
+                    continue;
+                var extended = method.Parameters[0].Type.GetDefinition();
+                if (extended != null && extended.IsSame(analyzed))
                     yield return method;
             }
         }

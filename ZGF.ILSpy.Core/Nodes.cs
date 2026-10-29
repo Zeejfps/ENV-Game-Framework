@@ -653,7 +653,9 @@ internal sealed class BaseTypeNode : BrowseNode, IModuleNode
     {
         Module = assembly;
         Type = type;
-        if (type.GetDefinition() is { } definition && CodeReference.To(definition) is { } target)
+        var definition = type.GetDefinition();
+        var target = definition != null ? CodeReference.To(definition) : null;
+        if (definition != null && target != null)
         {
             Target = target;
             Accessibility = EntityText.Map(definition.Accessibility);
@@ -729,8 +731,11 @@ internal static class Members
     /// <summary>Whether <paramref name="entity"/> has no metadata of its own to show.</summary>
     public static bool IsMissing(IEntity entity) => entity.MetadataToken.IsNil;
 
-    public static bool IsCompilerGenerated(IEntity entity) =>
-        entity.ParentModule?.MetadataFile is { } file && CSharpDecompiler.MemberIsHidden(file, entity.MetadataToken, Settings);
+    public static bool IsCompilerGenerated(IEntity entity)
+    {
+        var file = entity.ParentModule?.MetadataFile;
+        return file != null && CSharpDecompiler.MemberIsHidden(file, entity.MetadataToken, Settings);
+    }
 
     /// <summary>The accessors of a property or event, in ILSpy's order; none for other entities.</summary>
     public static IEnumerable<IMethod> Accessors(IEntity entity)

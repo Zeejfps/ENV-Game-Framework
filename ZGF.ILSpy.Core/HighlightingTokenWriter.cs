@@ -25,8 +25,8 @@ internal sealed class HighlightingTokenWriter : DecoratingTokenWriter
         {
             if (instruction.ILRangeIsEmpty || instruction.Parent is null || instruction is BlockContainer or Block) continue;
             var function = instruction.Parent.Ancestors.OfType<ILFunction>().FirstOrDefault();
-            if (function is { Kind: ILFunctionKind.TopLevelFunction, Method: { } method })
-                _builder.MarkStatement(method, instruction.StartILOffset);
+            if (function != null && function.Kind == ILFunctionKind.TopLevelFunction && function.Method != null)
+                _builder.MarkStatement(function.Method, instruction.StartILOffset);
         }
     }
 

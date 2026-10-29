@@ -97,9 +97,9 @@ public static class Navigation
         var found = await Background.Run(() => OpenAndFindId(appState, paths, idString, token));
         switch (found)
         {
-            case Outcome<BrowseNode>.Ok { Value: { } node }:
+            case Outcome<BrowseNode>.Ok ok when ok.Value != null:
                 if (!appState.Intent.IsStale(ticket))
-                    ShowNode(appState, node);
+                    ShowNode(appState, ok.Value);
                 break;
             case Outcome<BrowseNode>.Ok:
                 if (!appState.Intent.IsStale(ticket))
@@ -159,10 +159,10 @@ public static class Navigation
     {
         switch (found)
         {
-            case Outcome<BrowseNode?>.Ok { Value: { } node }:
+            case Outcome<BrowseNode?>.Ok ok when ok.Value != null:
                 LeaveActiveTab(appState);
-                ShowNodeIn(appState, destination, node);
-                appState.History.Push(node, appState.Language);
+                ShowNodeIn(appState, destination, ok.Value);
+                appState.History.Push(ok.Value, appState.Language);
                 break;
             case Outcome<BrowseNode?>.Ok:
                 ReportUnresolvedReference(appState, reference, null);
@@ -203,8 +203,8 @@ public static class Navigation
     {
         switch (found)
         {
-            case Outcome<MetadataTarget?>.Ok { Value: { } target }:
-                ShowRowIn(appState, destination, target);
+            case Outcome<MetadataTarget?>.Ok ok when ok.Value != null:
+                ShowRowIn(appState, destination, ok.Value.Value);
                 break;
             case Outcome<MetadataTarget?>.Ok:
                 ReportUnresolvedReference(appState, reference, null);
@@ -229,8 +229,8 @@ public static class Navigation
     public static async void ShowInApiReference(AppState appState, CodeReference reference)
     {
         var found = await Background.Run(() => appState.Assemblies.FindApiReferencePage(reference));
-        if (found is Outcome<string>.Ok { Value: { } page })
-            appState.EnqueueCommand(new ViewCommand.OpenWebPage(page));
+        if (found is Outcome<string>.Ok ok && ok.Value != null)
+            appState.EnqueueCommand(new ViewCommand.OpenWebPage(ok.Value));
         else
             ReportNoApiReferencePage(appState, reference);
     }
@@ -318,8 +318,8 @@ public static class Navigation
     {
         switch (found)
         {
-            case Outcome<BrowseNode?>.Ok { Value: { } node }:
-                ShowNodeIn(appState, destination, node, position);
+            case Outcome<BrowseNode?>.Ok ok when ok.Value != null:
+                ShowNodeIn(appState, destination, ok.Value, position);
                 break;
             case Outcome<BrowseNode?>.Ok:
                 ReportHistoryPlaceGone(appState, place, null);

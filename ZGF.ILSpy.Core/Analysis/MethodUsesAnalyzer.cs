@@ -13,8 +13,9 @@ internal sealed class MethodUsesAnalyzer : IAnalyzer
 
     public IEnumerable<ISymbol> Analyze(ISymbol symbol, AnalyzerContext context)
     {
-        if (symbol is not IMethod { ParentModule.MetadataFile: { } file } method)
+        if (symbol is not IMethod method || method.ParentModule?.MetadataFile == null)
             throw new InvalidOperationException("Should never happen.");
+        var file = method.ParentModule.MetadataFile;
         var module = context.AssemblyList.TypeSystemOf(file).MainModule;
         return context.MappingOf(method).GetMethodParts((MethodDefinitionHandle)method.MetadataToken)
             .SelectMany(part => ScanMethod(module, part)).Distinct();
@@ -22,7 +23,8 @@ internal sealed class MethodUsesAnalyzer : IAnalyzer
 
     private static IEnumerable<IEntity> ScanMethod(MetadataModule module, MethodDefinitionHandle handle)
     {
-        if (module.MetadataFile.ReadBody(handle) is not { } body)
+        var body = module.MetadataFile.ReadBody(handle);
+        if (body == null)
             yield break;
         var types = new TypeDefinitionCollector();
         foreach (var (opCode, token) in body.Tokens())

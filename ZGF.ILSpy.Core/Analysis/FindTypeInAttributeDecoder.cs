@@ -71,10 +71,12 @@ internal sealed class FindTypeInAttributeDecoder : ICustomAttributeTypeProvider<
 
     private TokenSearchResult GetResultFromResolvedType(IType type)
     {
-        if (type.GetDefinition() is not { } definition)
+        var definition = type.GetDefinition();
+        if (definition == null)
             return TokenSearchResult.NoResult;
         var result = TokenSearchResult.NoResult;
-        if (definition.EnumUnderlyingType?.GetDefinition() is { } underlyingType)
+        var underlyingType = definition.EnumUnderlyingType?.GetDefinition();
+        if (underlyingType != null)
             result = (TokenSearchResult)underlyingType.KnownTypeCode.ToPrimitiveTypeCode();
         else if (definition.KnownTypeCode == KnownTypeCode.Type)
             result = TokenSearchResult.SystemType;

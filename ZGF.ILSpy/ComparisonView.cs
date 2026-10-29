@@ -115,7 +115,8 @@ internal static class ComparisonView
     private static string? FindHint(Ui<UiState> ui, AssemblyComparison comparison, ComparisonRows rows)
     {
         var t = ui.State.Strings;
-        if (comparison.Failure is { } failure)
+        var failure = comparison.Failure;
+        if (failure != null)
             return ui.Memo("comparison-failure", (failure, t), static a => DescribeFailure(a.t, a.failure));
         if (comparison.Diff == null)
             return t.ComparisonComparing;

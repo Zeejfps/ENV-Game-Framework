@@ -49,7 +49,8 @@ public static class ILSpyTree
         var path = new List<string>();
         for (var n = node; n != null; n = n.Parent)
         {
-            if (NameOf(n) is not { } name) return null;
+            var name = NameOf(n);
+            if (name == null) return null;
             path.Add(name);
         }
         path.Reverse();
@@ -65,7 +66,8 @@ public static class ILSpyTree
 
     private static NodePath? Find(AssemblyList list, IReadOnlyList<string> path)
     {
-        if (Load(list, path[0]) is not { } assembly) return null;
+        var assembly = Load(list, path[0]);
+        if (assembly == null) return null;
         var node = assembly.Root;
         for (var i = 1; i < path.Count; i++)
         {
@@ -84,7 +86,9 @@ public static class ILSpyTree
 
     private static NodePath? FindEntity(AssemblyList list, string filePath, uint token)
     {
-        if (token == 0 || Load(list, filePath) is not { } assembly) return null;
+        if (token == 0) return null;
+        var assembly = Load(list, filePath);
+        if (assembly == null) return null;
         try
         {
             return assembly.FindNodeOrAncestor(MetadataTokens.EntityHandle((int)token))?.Path;
@@ -103,17 +107,17 @@ public static class ILSpyTree
         var assembly = place.Assembly;
         var entity = place is EntityNode owner ? owner.Entity : null;
         var token = entity is null ? 0u : (uint)MetadataTokens.GetToken(entity.MetadataToken);
-        if (anchor is { } a && string.Equals(a.FilePath, assembly.FilePath, StringComparison.OrdinalIgnoreCase))
+        if (anchor != null && string.Equals(anchor.Value.FilePath, assembly.FilePath, StringComparison.OrdinalIgnoreCase))
         {
-            token = (uint)a.Token;
+            token = (uint)anchor.Value.Token;
             if (assembly is LoadedModule module)
-                entity = Resolve(module, a.Token) ?? entity;
+                entity = Resolve(module, anchor.Value.Token) ?? entity;
         }
-        else if (anchor is { } other)
+        else if (anchor != null)
         {
-            token = (uint)other.Token;
+            token = (uint)anchor.Value.Token;
         }
-        var location = place is EntityNode { Entity: { } shown } ? shown.FullName : NameOf(place);
+        var location = place is EntityNode shown ? shown.Entity.FullName : NameOf(place);
         return new ILSpyBookmarkInfo(assembly.FullName, Path.GetFileName(assembly.FilePath), token, entity?.FullName ?? location ?? place.Text, location,
             PathOf(place));
     }

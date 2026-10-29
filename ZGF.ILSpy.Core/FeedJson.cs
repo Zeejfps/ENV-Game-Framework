@@ -22,7 +22,8 @@ internal static class FeedJson
         var packages = new List<FeedPackage>();
         foreach (var package in ReadArray(root, "data").EnumerateArray())
         {
-            if (ReadPackage(package) is { } read)
+            var read = ReadPackage(package);
+            if (read != null)
                 packages.Add(read);
         }
         return packages;
@@ -69,7 +70,8 @@ internal static class FeedJson
         var versions = new List<FeedVersion>();
         foreach (var entry in ReadOptionalArray(package, "versions"))
         {
-            if (ReadVersion(entry) is { } read)
+            var read = ReadVersion(entry);
+            if (read != null)
                 versions.Add(read);
         }
         versions.Reverse();

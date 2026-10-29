@@ -28,18 +28,25 @@ internal sealed class AnalyzerContext
 
     public AnalyzerScope GetScopeOf(IEntity entity) => new(AssemblyList, entity);
 
-    public MethodBodyBlock? GetMethodBody(IMethod method) =>
-        method.HasBody && !method.MetadataToken.IsNil && method.ParentModule?.MetadataFile is { } module
-            ? module.ReadBody((MethodDefinitionHandle)method.MetadataToken)
-            : null;
+    public MethodBodyBlock? GetMethodBody(IMethod method)
+    {
+        var module = method.ParentModule?.MetadataFile;
+        if (!method.HasBody || method.MetadataToken.IsNil || module == null)
+            return null;
+        return module.ReadBody((MethodDefinitionHandle)method.MetadataToken);
+    }
 
     /// <summary>How C# maps the compiler-generated code around <paramref name="entity"/> to the
     /// methods it came from; the last one asked for is kept.</summary>
     public CodeMappingInfo MappingOf(IEntity entity)
     {
         var file = entity.ParentModule!.MetadataFile!;
-        if (_mapping is not { } mapping || mapping.File != file || mapping.Handle != entity.MetadataToken)
-            _mapping = mapping = (file, entity.MetadataToken, CSharpDecompiler.GetCodeMappingInfo(file, entity.MetadataToken));
-        return mapping.Mapping;
+        var mapping = _mapping;
+        if (mapping == null || mapping.Value.File != file || mapping.Value.Handle != entity.MetadataToken)
+        {
+            mapping = (file, entity.MetadataToken, CSharpDecompiler.GetCodeMappingInfo(file, entity.MetadataToken));
+            _mapping = mapping;
+        }
+        return mapping.Value.Mapping;
     }
 }

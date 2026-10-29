@@ -82,11 +82,11 @@ internal sealed class CodeViewFrame
         if (Brackets != null)
             FillBrackets(p, x0, textAreaLeft, r, index, Brackets.Value);
 
-        if (Highlight is { } highlight)
+        if (Highlight != null)
         {
             foreach (var span in line.Spans)
             {
-                if (span.Reference is { } reference && reference.Equals(highlight))
+                if (span.Reference != null && span.Reference.Equals(Highlight))
                     Fill(p, x0, textAreaLeft, r, span.Start, span.End, Palette.Occurrence);
             }
         }

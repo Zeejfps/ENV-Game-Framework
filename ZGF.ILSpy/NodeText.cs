@@ -78,9 +78,9 @@ public static class NodeText
 
     private static string WriteAssemblyLabel(LoadedAssembly assembly)
     {
-        if (assembly is not LoadedModule { Place: { } place })
+        if (assembly is not LoadedModule module || module.Place == null)
             return assembly.NameAndVersion;
-        return $"{assembly.NameAndVersion}{Separator}{place.File.Folder}";
+        return $"{assembly.NameAndVersion}{Separator}{module.Place.File.Folder}";
     }
 
     /// <summary>The node's metadata token as <paramref name="format"/> writes it, e.g. <c>@06000001</c>
@@ -119,7 +119,8 @@ public static class NodeText
         if (node.Kind == NodeKind.FailedAssembly && node.Assembly is FailedAssembly failed)
             return failed.Error.Message;
         var name = node.FullName;
-        return Accessibility(node.Accessibility) is { } accessibility ? $"{name}\n{accessibility}" : name;
+        var accessibility = Accessibility(node.Accessibility);
+        return accessibility != null ? $"{name}\n{accessibility}" : name;
     }
 
     private static string? Accessibility(NodeAccessibility accessibility) => accessibility switch

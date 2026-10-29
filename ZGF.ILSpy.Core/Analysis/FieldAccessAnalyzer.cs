@@ -28,8 +28,9 @@ internal sealed class FieldAccessAnalyzer(FieldAccessKind kind) : IAnalyzer
 
     private bool Accesses(IMethod method, IField field, AnalyzerContext context)
     {
-        if (method.MetadataToken.IsNil || method.ParentModule is not MetadataModule { MetadataFile: { } file } module)
+        if (method.MetadataToken.IsNil || method.ParentModule is not MetadataModule module || module.MetadataFile == null)
             return false;
+        var file = module.MetadataFile;
         return context.MappingOf(method.DeclaringTypeDefinition!).GetMethodParts((MethodDefinitionHandle)method.MetadataToken)
             .Any(part => file.ReadBody(part).AnyToken((opCode, token) =>
                 Is(opCode) && token.Kind.IsMemberKind() && module.ResolveEntity(token) is IField found && found.IsSame(field)));

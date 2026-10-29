@@ -117,8 +117,12 @@ internal static class AnalyzerHelpers
                 continue;
             if (attribute.Parent.Kind == HandleKind.Parameter)
                 parameters.Add((ParameterHandle)attribute.Parent);
-            else if (GetParentEntity(ts, attribute) is { } parent)
-                yield return parent;
+            else
+            {
+                var parent = GetParentEntity(ts, attribute);
+                if (parent != null)
+                    yield return parent;
+            }
         }
         if (parameters.Count == 0)
             yield break;
@@ -126,7 +130,8 @@ internal static class AnalyzerHelpers
         {
             if (!metadata.GetMethodDefinition(h).GetParameters().Any(parameters.Contains))
                 continue;
-            if (ts.MainModule.ResolveMethod(h, default) is { } method)
+            var method = ts.MainModule.ResolveMethod(h, default);
+            if (method != null)
                 yield return method.IsAccessor ? method.AccessorOwner : method;
         }
     }

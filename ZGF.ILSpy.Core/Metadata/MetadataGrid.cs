@@ -116,7 +116,8 @@ public sealed class MetadataGrid
     /// nothing.</summary>
     public MetadataRowDetails? Details(int row)
     {
-        if (_schema.Details is not { } details) return null;
+        var details = _schema.Details;
+        if (details == null) return null;
         if (_details.TryGetValue(row, out var known)) return known;
         MetadataRowDetails? result;
         try
@@ -137,7 +138,8 @@ public sealed class MetadataGrid
     {
         var lines = _lines ??= new (string, int)?[_rows.Count * _columns.Count];
         var index = row * _columns.Count + column;
-        if (lines[index] is { } known) return known;
+        var known = lines[index];
+        if (known != null) return known.Value;
         var text = Text(row, column).TrimEnd('\r', '\n');
         var end = text.IndexOf('\n');
         var result = end < 0 ? (text, 0) : (text[..end].TrimEnd('\r'), text.AsSpan(end).Count('\n'));
@@ -172,8 +174,8 @@ public sealed class MetadataGrid
         object? value;
         try
         {
-            value = info.Column.Flags is { } flags
-                ? Value(row, column) is { } cell ? flags.Explain(Bits(cell)) : null
+            value = info.Column.Flags != null
+                ? ExplainFlags(info.Column.Flags, Value(row, column))
                 : info.Tooltip!(_rows[row], row + 1);
         }
         catch (Exception e) when (IsUnreadable(e))
@@ -206,14 +208,15 @@ public sealed class MetadataGrid
     private MetadataTarget? FindLink(int row, int column)
     {
         if (Value(row, column) is not int token || (token & 0xFFFFFF) == 0) return null;
-        if (_owner.Folder?.FindTable((TableIndex)(token >>> 24)) is not { } table) return null;
+        var table = _owner.Folder?.FindTable((TableIndex)(token >>> 24));
+        if (table == null) return null;
         var count = table.File.Metadata.GetTableRowCount(table.Table!.Value);
         return new MetadataTarget(table, Math.Min(token & 0xFFFFFF, count) - 1);
     }
 
     /// <summary>The row of <paramref name="token"/>'s table it is, or -1 when this does not list
     /// that table.</summary>
-    public int RowOf(int token) => _schema.Table is { } table && (int)table == token >>> 24 ? (token & 0xFFFFFF) - 1 : -1;
+    public int RowOf(int token) => _schema.Table != null && (int)_schema.Table == token >>> 24 ? (token & 0xFFFFFF) - 1 : -1;
 
     /// <summary>
     /// What the row stands for in the decompiled code, as the double-click on it goes to: the type,
@@ -223,14 +226,15 @@ public sealed class MetadataGrid
     public CodeReference? Definition(int row)
     {
         var file = _owner.File;
-        if (!ReferenceEquals(file, _owner.Module.File) || _schema.Table is not { } table) return null;
-        var token = (int)table << 24 | row + 1;
+        if (!ReferenceEquals(file, _owner.Module.File) || _schema.Table == null) return null;
+        var token = (int)_schema.Table << 24 | row + 1;
         var handle = MetadataTokens.EntityHandle(token);
-        if (CodeReference.KindOf(file.Metadata, handle) is not { } kind) return null;
+        var kind = CodeReference.KindOf(file.Metadata, handle);
+        if (kind == null) return null;
         var name = handle.Kind == HandleKind.AssemblyDefinition ? _owner.Assembly.Name
             : _schema.NameColumn >= 0 ? Text(row, _schema.NameColumn)
             : token.ToString("X8");
-        return CodeReference.ToEntity(kind, name, file.FileName, handle);
+        return CodeReference.ToEntity(kind.Value, name, file.FileName, handle);
     }
 
     private bool Matches(int row, int column, MetadataColumnFilter filter)
@@ -241,11 +245,24 @@ public sealed class MetadataGrid
             return false;
         var text = filter.Text;
         if (text.Length == 0) return true;
-        if (Pattern(text) is { } pattern)
+        var pattern = Pattern(text);
+        if (pattern != null)
             return pattern.IsMatch(value.ToString() ?? "");
-        if (_columns[column].Column.IsNumeric && Compare(value, text) is { } compared)
-            return compared;
+        if (_columns[column].Column.IsNumeric)
+        {
+            var compared = Compare(value, text);
+            if (compared != null)
+                return compared.Value;
+        }
         return Text(row, column).Contains(text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>What the flags set in <paramref name="cell"/> mean; null for an empty cell.</summary>
+    private static MetadataTooltip? ExplainFlags(FlagsSchema flags, object? cell)
+    {
+        if (cell == null)
+            return null;
+        return flags.Explain(Bits(cell));
     }
 
     private static Regex? Pattern(string text)

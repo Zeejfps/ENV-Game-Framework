@@ -50,8 +50,8 @@ public static class Analysis
             return;
         switch (found)
         {
-            case Outcome<BrowseNode>.Ok { Value: { } node }:
-                AnalyzeFound(appState, root, node);
+            case Outcome<BrowseNode>.Ok ok when ok.Value != null:
+                AnalyzeFound(appState, root, ok.Value);
                 break;
             case Outcome<BrowseNode>.Ok:
                 appState.Analyzer.Remove(root);

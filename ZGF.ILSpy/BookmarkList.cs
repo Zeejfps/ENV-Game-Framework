@@ -93,12 +93,12 @@ public sealed class Bookmark
     /// <summary>Whether <paramref name="other"/> marks the same line: the same anchor, or for one
     /// without, the same line of the same place in the same language.</summary>
     public bool MarksSameLine(Bookmark other) =>
-        Anchor is { } anchor ? other.Anchor == anchor
+        Anchor != null ? other.Anchor == Anchor
         : other.Anchor == null && Language == other.Language && Line == other.Line && Place.Equals(other.Place);
 
     /// <summary>The line it marks in <paramref name="document"/>, shown for <paramref name="place"/>, or -1.</summary>
     public int FindLine(DecompiledDocument document, NodePath place) =>
-        Anchor is { } anchor ? document.FindLine(anchor)
+        Anchor != null ? document.FindLine(Anchor.Value)
         : Language == document.Language && Place.Equals(place) && Line < document.Lines.Length ? Line
         : -1;
 }
@@ -254,7 +254,7 @@ public sealed class BookmarkList
     /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.
     /// Returns how many were left out because one before them marks the same line.</summary>
     public int Load(IEnumerable<BookmarkRecord>? saved) =>
-        Import((saved ?? []).Select(static r => r.Place is { } place ? Bookmark.FromRecord(r, NodePath.From(r.FileName, place)) : null)
+        Import((saved ?? []).Select(static r => r.Place != null ? Bookmark.FromRecord(r, NodePath.From(r.FileName, r.Place)) : null)
             .OfType<Bookmark>(), BookmarkImportMode.Replace);
 
     /// <summary>Adds <paramref name="bookmarks"/>, after dropping every bookmark first when replacing,

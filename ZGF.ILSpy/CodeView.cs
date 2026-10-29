@@ -262,8 +262,12 @@ public static class CodeViewWidget
         if (focused || findFocused)
         {
             HandleKeys(ui, state, document, focusId, focused, advance);
-            if (focused && ui.IsPressed(Shortcuts.Analyze) && AnalyzableAt(document, state.Selection.Caret) is { } analyzed)
-                result = result with { Analyze = analyzed };
+            if (focused && ui.IsPressed(Shortcuts.Analyze))
+            {
+                var analyzed = AnalyzableAt(document, state.Selection.Caret);
+                if (analyzed != null)
+                    result = result with { Analyze = analyzed };
+            }
         }
 
         using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Background = theme.EditorBackground }))
@@ -680,8 +684,9 @@ public static class CodeViewWidget
     {
         var folds = state.Folds;
         var viewport = content.Height;
-        if (state.PendingRestore is { } restore)
+        if (state.PendingRestore != null)
         {
+            var restore = state.PendingRestore.Value;
             if (viewport <= 0f)
             {
                 ui.RequestUpdate();
@@ -991,7 +996,8 @@ public static class CodeViewWidget
             if (ui.MenuItem(t.CodeExpandAll, id: "expand-all"))
                 state.ExpandAll();
         }
-        if (target.Navigable is { } reference)
+        var reference = target.Navigable;
+        if (reference != null)
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeGoToDefinition, id: "go-to-definition"))
@@ -999,7 +1005,8 @@ public static class CodeViewWidget
             if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
                 result = new CodeViewResult(reference, true);
         }
-        if (target.Entity is { } entity)
+        var entity = target.Entity;
+        if (entity != null)
         {
             if (target.Navigable == null)
                 ui.MenuSeparator();
@@ -1009,7 +1016,8 @@ public static class CodeViewWidget
                 result = result with { ShowInApiReference = entity };
             result = DiagramItems(ui, entity, result);
         }
-        if (target.Metadata is { } shown)
+        var shown = target.Metadata;
+        if (shown != null)
         {
             if (target.Navigable == null && target.Entity == null)
                 ui.MenuSeparator();

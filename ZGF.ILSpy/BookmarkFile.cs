@@ -94,10 +94,10 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
         try
         {
             var file = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.BookmarkFileJson);
-            if (file is { Bookmarks: { } bookmarks })
+            if (file?.Bookmarks != null)
             {
                 error = null;
-                return ReadEach(bookmarks);
+                return ReadEach(file.Bookmarks);
             }
             error = $"{path}{Environment.NewLine}Not a bookmarks file.";
             return null;
@@ -117,7 +117,8 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
         {
             try
             {
-                if (bookmarks[i].Deserialize(AppSettingsJson.Default.BookmarkJson)?.Parse() is { } bookmark)
+                var bookmark = bookmarks[i].Deserialize(AppSettingsJson.Default.BookmarkJson)?.Parse();
+                if (bookmark != null)
                     read.Add(bookmark);
             }
             catch (Exception e) when (e is JsonException or NotSupportedException)

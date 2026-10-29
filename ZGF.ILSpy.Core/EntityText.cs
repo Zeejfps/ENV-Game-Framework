@@ -40,8 +40,8 @@ internal static class EntityText
 
     public static string FullName(IEntity entity) =>
         entity is ITypeDefinition type
-            ? type.DeclaringTypeDefinition is { } declaring
-                ? $"{FullName(declaring)}.{TypeLabel(type)}"
+            ? type.DeclaringTypeDefinition != null
+                ? $"{FullName(type.DeclaringTypeDefinition)}.{TypeLabel(type)}"
                 : type.Namespace.Length == 0 ? TypeLabel(type) : $"{type.Namespace}.{TypeLabel(type)}"
             : Convert(entity, FullNameFlags);
 

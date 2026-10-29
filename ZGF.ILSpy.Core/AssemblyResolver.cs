@@ -52,9 +52,11 @@ internal sealed class AssemblyResolver : IAssemblyResolver
     /// else read from its file, else any read of its name; for loading it whatever the list's options.</summary>
     public LoadedModule? LoadAssembly(IAssemblyReference reference)
     {
-        if (_list.FindKnown(reference, exactOrNewer: true) is { } known) return known;
+        var known = _list.FindKnown(reference, exactOrNewer: true);
+        if (known != null) return known;
         var path = FindFile(reference);
-        if (path != null && _list.TryLoadAssembly(path) is { } loaded) return loaded;
+        var loaded = path != null ? _list.TryLoadAssembly(path) : null;
+        if (loaded != null) return loaded;
         return _list.FindKnown(reference, exactOrNewer: false);
     }
 
@@ -66,8 +68,12 @@ internal sealed class AssemblyResolver : IAssemblyResolver
             if (found != null)
                 return found;
         }
-        if (FrameworkIds.RunsOnCore(_targetFramework) && FindInRuntime(reference.Name) is { } runtime)
-            return runtime;
+        if (FrameworkIds.RunsOnCore(_targetFramework))
+        {
+            var runtime = FindInRuntime(reference.Name);
+            if (runtime != null)
+                return runtime;
+        }
         try
         {
             return _fallback.Value.FindAssemblyFile(reference);

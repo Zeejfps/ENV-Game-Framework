@@ -264,9 +264,11 @@ internal static class TreePaneView
     private static void ExtractItems(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
-        if (PackedAssemblyOf(node) is { } file && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
+        var file = PackedAssemblyOf(node);
+        if (file != null && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
             SaveDialogs.PickPackageFile(ui, appState, file);
-        if (node.FolderInPackage is { } folder && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
+        var folder = node.FolderInPackage;
+        if (folder != null && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
             SaveDialogs.PickExtractFolder(ui, appState, node.Text, folder);
     }
 

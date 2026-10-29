@@ -162,8 +162,12 @@ internal ref struct MetadataGridFrame
                 continue;
             if (_ui.IsPressedAt(Shortcuts.SelectAll, i))
                 _state.SelectAllText();
-            else if (_ui.IsPressedAt(Shortcuts.GoToToken, i) && _grid.Link(_state.Selected, _state.CurrentColumn) is { } target)
-                result = new MetadataGridResult(target, null, false);
+            else if (_ui.IsPressedAt(Shortcuts.GoToToken, i))
+            {
+                var target = _grid.Link(_state.Selected, _state.CurrentColumn);
+                if (target != null)
+                    result = new MetadataGridResult(target, null, false);
+            }
         }
         return result;
     }

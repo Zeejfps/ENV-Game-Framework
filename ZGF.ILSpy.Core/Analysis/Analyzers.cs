@@ -59,10 +59,18 @@ public sealed class AnalysisSymbol
 
     /// <summary>Its assembly file and metadata token, to find it again with
     /// <see cref="Analyzers.Find"/> in a later run; null for an assembly.</summary>
-    public CodeAnchor? Definition =>
-        Symbol is IEntity { ParentModule.MetadataFile: { } file } entity && !entity.MetadataToken.IsNil
-            ? new CodeAnchor(CodeAnchorKind.Definition, file.FileName, MetadataTokens.GetToken(entity.MetadataToken))
-            : null;
+    public CodeAnchor? Definition
+    {
+        get
+        {
+            if (Symbol is not IEntity entity || entity.MetadataToken.IsNil)
+                return null;
+            var file = entity.ParentModule?.MetadataFile;
+            if (file == null)
+                return null;
+            return new CodeAnchor(CodeAnchorKind.Definition, file.FileName, MetadataTokens.GetToken(entity.MetadataToken));
+        }
+    }
 
     public override string ToString() => Label;
 }
@@ -103,9 +111,18 @@ public static class Analyzers
         {
             EntityNode entity => Describe(entity.Entity),
             DerivedTypeNode derived => Describe(derived.Type),
-            BaseTypeNode { Type: var type } when type.GetDefinition() is { } definition => Describe(definition),
+            BaseTypeNode baseType => DescribeDefinitionOf(baseType.Type),
             _ => null,
         };
+
+    /// <summary>The type <paramref name="type"/> is, where it is defined; null for one defined nowhere.</summary>
+    private static AnalysisSymbol? DescribeDefinitionOf(IType type)
+    {
+        var definition = type.GetDefinition();
+        if (definition == null)
+            return null;
+        return Describe(definition);
+    }
 
     /// <summary>The type or member <paramref name="definition"/> names, loading its assembly's file
     /// without listing it; null when the file or the entity is gone.</summary>
@@ -113,8 +130,10 @@ public static class Analyzers
     {
         try
         {
-            if (list.TryLoadAssembly(definition.FilePath) is not { } assembly) return null;
-            return assembly.MainModule.ResolveEntity(MetadataTokens.EntityHandle(definition.Token)) is { } entity ? Describe(entity) : null;
+            var assembly = list.TryLoadAssembly(definition.FilePath);
+            if (assembly == null) return null;
+            var entity = assembly.MainModule.ResolveEntity(MetadataTokens.EntityHandle(definition.Token));
+            return entity != null ? Describe(entity) : null;
         }
         catch (Exception e) when (e is ArgumentException or BadImageFormatException or InvalidOperationException or IOException)
         {
@@ -157,7 +176,7 @@ public static class Analyzers
                     Where(entity), CodeReference.To(entity));
             case IModule module:
                 return new AnalysisSymbol(module, NodeKind.Assembly, NodeAccessibility.Public, module.AssemblyName, module.MetadataFile?.FileName ?? "",
-                    module.MetadataFile is { } file ? CodeReference.ToAssembly(module.AssemblyName, file.FileName) : null);
+                    module.MetadataFile != null ? CodeReference.ToAssembly(module.AssemblyName, module.MetadataFile.FileName) : null);
             default:
                 return null;
         }
@@ -165,7 +184,11 @@ public static class Analyzers
 
     private static string Where(IEntity entity)
     {
-        var container = entity.DeclaringTypeDefinition is { } outer ? EntityText.FullName(outer) : entity is ITypeDefinition type ? type.Namespace : "";
-        return entity.ParentModule?.AssemblyName is { } assembly ? container.Length == 0 ? assembly : $"{container} ({assembly})" : container;
+        var outer = entity.DeclaringTypeDefinition;
+        var container = outer != null ? EntityText.FullName(outer) : entity is ITypeDefinition type ? type.Namespace : "";
+        var assembly = entity.ParentModule?.AssemblyName;
+        if (assembly == null)
+            return container;
+        return container.Length == 0 ? assembly : $"{container} ({assembly})";
     }
 }

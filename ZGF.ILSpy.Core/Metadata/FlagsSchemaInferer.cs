@@ -129,7 +129,8 @@ namespace ZGF.ILSpy.Core.Metadata
 				if (values.Count == 0)
 					continue;
 				values.Sort(static (a, b) => a.Value.CompareTo(b.Value));
-				values.Insert(0, (zeroNames.GetValueOrDefault(mask) ?? unclaimedZero) is { } zeroName
+				var zeroName = zeroNames.GetValueOrDefault(mask) ?? unclaimedZero;
+				values.Insert(0, zeroName != null
 					? new MutexValue($"{ValueName(zeroName, maskName)} (0000)", 0)
 					: new MutexValue("(none)", 0));
 				groups.Add(new MutexGroup(GroupName(maskName), mask, values));

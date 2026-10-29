@@ -54,29 +54,29 @@ internal static class DocumentsView
     {
         var view = ui.State.Documents.ViewOf(tab);
         var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
-        if (picked.Target is { } target)
-            ShowMetadataTarget(appState, target, picked.InNewTab);
-        if (picked.Definition is { } definition)
-            Navigate(appState, definition, picked.InNewTab);
+        if (picked.Target != null)
+            ShowMetadataTarget(appState, picked.Target.Value, picked.InNewTab);
+        if (picked.Definition != null)
+            Navigate(appState, picked.Definition, picked.InNewTab);
     }
 
     /// <summary>The tab's document in the code view, with its bookmarks, or the note saying why it has none.</summary>
     public static void RenderCode(Ui<UiState> ui, AppState appState, DocumentTab tab)
     {
-        var bookmarks = tab is { IsBusy: false, Node: { } node, Document.IsError: false } ? appState.Bookmarks.LinesIn(tab.Document, node.Path) : null;
+        var bookmarks = !tab.IsBusy && tab.Node != null && !tab.Document.IsError ? appState.Bookmarks.LinesIn(tab.Document, tab.Node.Path) : null;
         var view = ui.State.Documents.ViewOf(tab);
         var document = FindDocumentToShow(ui.State, view, tab);
         var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips, display: ui.State.Display);
-        if (result.Navigate is { } reference)
-            Navigate(appState, reference, result.NavigateInNewTab);
-        if (result.ToggleBookmark is { } line)
-            ToggleLineBookmark(ui, appState, tab, line);
-        if (result.Analyze is { } analyzed)
-            AnalyzerPanelView.Analyze(ui.State, appState, analyzed);
-        if (result.ShowInMetadata is { } shown)
-            ShowInMetadata(appState, shown, inNewTab: false);
-        if (result.ShowInApiReference is { } documented)
-            ShowInApiReference(appState, documented);
+        if (result.Navigate != null)
+            Navigate(appState, result.Navigate, result.NavigateInNewTab);
+        if (result.ToggleBookmark != null)
+            ToggleLineBookmark(ui, appState, tab, result.ToggleBookmark.Value);
+        if (result.Analyze != null)
+            AnalyzerPanelView.Analyze(ui.State, appState, result.Analyze);
+        if (result.ShowInMetadata != null)
+            ShowInMetadata(appState, result.ShowInMetadata, inNewTab: false);
+        if (result.ShowInApiReference != null)
+            ShowInApiReference(appState, result.ShowInApiReference);
         ShowAskedDiagram(appState, result, ui.State.Strings);
         Zoom(ui.State, result.Zoom);
     }
@@ -84,10 +84,10 @@ internal static class DocumentsView
     /// <summary>Shows the type the code view's menu asked for on the diagram last worked in, or on a new one.</summary>
     private static void ShowAskedDiagram(AppState appState, CodeViewResult result, Strings t)
     {
-        if (result.ShowInDiagram is { } type)
-            ShowInDiagram(appState, type, t.DiagramTitle(type.Name));
-        if (result.ShowInNewDiagram is { } newType)
-            ShowInNewDiagram(appState, newType, t.DiagramTitle(newType.Name));
+        if (result.ShowInDiagram != null)
+            ShowInDiagram(appState, result.ShowInDiagram, t.DiagramTitle(result.ShowInDiagram.Name));
+        if (result.ShowInNewDiagram != null)
+            ShowInNewDiagram(appState, result.ShowInNewDiagram, t.DiagramTitle(result.ShowInNewDiagram.Name));
     }
 
     private static void Zoom(UiState uiState, CodeZoom zoom)

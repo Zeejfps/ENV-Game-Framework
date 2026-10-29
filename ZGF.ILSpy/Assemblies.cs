@@ -32,9 +32,9 @@ public static class Assemblies
     {
         switch (outcome)
         {
-            case Outcome<LoadedAssembly?>.Ok { Value: { } last }:
+            case Outcome<LoadedAssembly?>.Ok ok when ok.Value != null:
                 if (!appState.Intent.IsStale(ticket))
-                    ShowNode(appState, last.Root);
+                    ShowNode(appState, ok.Value.Root);
                 break;
             case Outcome<LoadedAssembly?>.Ok:
                 break;

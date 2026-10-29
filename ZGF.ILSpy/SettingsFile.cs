@@ -236,9 +236,10 @@ internal sealed record CardFoldJson(TypeAnchorJson? Card, MemberSection? Section
 {
     public CardFold? Parse()
     {
-        if (Card?.Parse() is not { } card)
+        var card = Card?.Parse();
+        if (card == null)
             return null;
-        return new CardFold(card, Section, InheritedFrom);
+        return new CardFold(card.Value, Section, InheritedFrom);
     }
 }
 
@@ -410,9 +411,9 @@ internal static class SettingsJson
         var segments = new List<NodePathSegment>(place.Count);
         foreach (var segment in place)
         {
-            if (segment?.Text is not { } text)
+            if (segment?.Text == null)
                 return null;
-            segments.Add(new NodePathSegment(segment.Kind, text));
+            segments.Add(new NodePathSegment(segment.Kind, segment.Text));
         }
         return segments;
     }

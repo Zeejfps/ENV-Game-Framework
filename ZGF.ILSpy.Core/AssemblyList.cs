@@ -131,7 +131,7 @@ public sealed class AssemblyList
     private void ForgetReadOutOf(LoadedAssembly package)
     {
         var read = _known
-            .Where(k => k.Value is LoadedModule { Place: { } place } && place.Container == package)
+            .Where(k => k.Value is LoadedModule module && module.Place != null && module.Place.Container == package)
             .Select(k => k.Key)
             .ToList();
         foreach (var path in read)
@@ -638,8 +638,8 @@ public sealed class AssemblyList
     /// listed, so that listing never reads files while holding the lock.</summary>
     internal bool TryList(LoadedAssembly assembly, int generation, CancellationToken cancellationToken = default)
     {
-        if (assembly is LoadedModule { Place: { } place })
-            return TryList(place.Container, generation, cancellationToken);
+        if (assembly is LoadedModule module && module.Place != null)
+            return TryList(module.Place.Container, generation, cancellationToken);
         if (assembly is LoadedPackage package)
             package.ReadAssemblies();
         lock (_gate)
@@ -692,9 +692,9 @@ public sealed class AssemblyList
     {
         if (!_known.TryGetValue(path, out var known))
             return null;
-        if (known is not LoadedModule { Place: { } place } module)
+        if (known is not LoadedModule module || module.Place == null)
             return null;
-        if (place.Container != package)
+        if (module.Place.Container != package)
             return null;
         return module;
     }
@@ -763,9 +763,10 @@ public sealed class AssemblyList
                 return (owner, handle);
         }
 
-        return Definitions.Resolve(owner.MainModule, handle) is { } definition
-            ? (TryLoadAssembly(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken)
-            : (null, default);
+        var definition = Definitions.Resolve(owner.MainModule, handle);
+        if (definition == null)
+            return (null, default);
+        return (TryLoadAssembly(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken);
     }
 
     /// <summary>What <paramref name="path"/> holds: an assembly, a package, or an assembly in a

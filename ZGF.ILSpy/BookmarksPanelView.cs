@@ -55,7 +55,8 @@ internal static class BookmarksPanelView
         var palette = ui.State.CodeViewPalette;
         var renaming = panel.Renaming != null;
         Bookmark? removed = null;
-        if (table.Focused && !renaming && panel.Selected is { } selected && ui.Input.TakeKey(KeyboardKey.F2))
+        var selected = panel.Selected;
+        if (table.Focused && !renaming && selected != null && ui.Input.TakeKey(KeyboardKey.F2))
             RenameInPlace(panel, selected);
         using var body = table.Body(bookmarks.Items.Count, keys: !renaming);
         panel.Selection.TakeFrom(bookmarks.Items);

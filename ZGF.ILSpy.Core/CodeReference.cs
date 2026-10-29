@@ -55,10 +55,13 @@ public sealed class CodeReference : IEquatable<CodeReference>
 
     /// <summary>A reference to the definition <paramref name="entity"/>, named <paramref name="name"/>
     /// or else by its own name; null when it has no metadata file or token.</summary>
-    internal static CodeReference? To(IEntity entity, string? name = null) =>
-        entity.ParentModule?.MetadataFile is { } file && !entity.MetadataToken.IsNil
-            ? ToEntity(KindOf(entity.SymbolKind), name ?? entity.Name, file.FileName, entity.MetadataToken)
-            : null;
+    internal static CodeReference? To(IEntity entity, string? name = null)
+    {
+        var file = entity.ParentModule?.MetadataFile;
+        if (file == null || entity.MetadataToken.IsNil)
+            return null;
+        return ToEntity(KindOf(entity.SymbolKind), name ?? entity.Name, file.FileName, entity.MetadataToken);
+    }
 
     /// <summary>What a reference to <paramref name="handle"/> of <paramref name="metadata"/> points
     /// at, or null for a handle no reference is made to.</summary>

@@ -35,7 +35,8 @@ internal sealed class MetadataFolderNode(LoadedModule assembly, BrowseNode paren
         yield return Text;
         yield return "MetadataKind: " + metadata.MetadataKind;
         yield return "MetadataVersion: " + metadata.MetadataVersion;
-        if (metadata.DebugMetadataHeader is { } header)
+        var header = metadata.DebugMetadataHeader;
+        if (header != null)
         {
             yield return "";
             yield return "Header:";

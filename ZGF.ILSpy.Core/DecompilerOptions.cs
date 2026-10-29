@@ -73,9 +73,11 @@ public sealed record DecompilerToggle(string Name, DecompilerToggleGroup Group, 
         {
             if (property.PropertyType != typeof(bool) || !property.CanWrite) continue;
             if (property.GetCustomAttribute<BrowsableAttribute>() is { Browsable: false }) continue;
-            if (property.GetCustomAttribute<CategoryAttribute>()?.Category is not { } category) continue;
+            var category = property.GetCustomAttribute<CategoryAttribute>()?.Category;
+            if (category == null) continue;
             var value = (bool)property.GetValue(defaults)!;
-            if (Introduced(category) is { } version)
+            var version = Introduced(category);
+            if (version != null)
                 toggles.Add(new DecompilerToggle(property.Name, DecompilerToggleGroup.Language, version, value));
             else if (category == "DecompilerSettings.Other")
                 toggles.Add(new DecompilerToggle(property.Name, DecompilerToggleGroup.Other, null, value));
@@ -130,7 +132,7 @@ public sealed record DecompilerOptions
     public bool IsOn(DecompilerToggle toggle) => Toggles.TryGetValue(toggle.Name, out var value) ? value : toggle.DefaultValue;
 
     /// <summary>Whether <see cref="LanguageVersion"/> is new enough for <paramref name="toggle"/>.</summary>
-    public bool Allows(DecompilerToggle toggle) => toggle.IntroducedIn is not { } version || version <= LanguageVersion;
+    public bool Allows(DecompilerToggle toggle) => toggle.IntroducedIn == null || toggle.IntroducedIn <= LanguageVersion;
 
     /// <summary>Whether code in <paramref name="language"/> comes out the same with these options as
     /// with <paramref name="other"/>.</summary>
@@ -207,7 +209,8 @@ public sealed record DecompilerOptions
     {
         foreach (var (name, value) in Toggles)
         {
-            if (DecompilerToggle.Find(name) is { } toggle && Allows(toggle))
+            var toggle = DecompilerToggle.Find(name);
+            if (toggle != null && Allows(toggle))
                 toggle.Apply(settings, value);
         }
     }

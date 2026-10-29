@@ -621,7 +621,8 @@ public sealed class NuGetPicker
     /// into the cache, in the background, for <see cref="TakeDownloaded"/> to hand over.</summary>
     public async void Download()
     {
-        if (!CanOpen || Version is not { } version)
+        var version = Version;
+        if (!CanOpen || version == null)
             return;
         var package = Selected!;
         var run = new CancellationTokenSource();

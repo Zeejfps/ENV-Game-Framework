@@ -180,7 +180,8 @@ internal sealed class DocumentBuilder : ITextOutput
 
     public void WriteReference(IType type, string text, bool isDefinition = false)
     {
-        var reference = type.GetDefinition() is { } definition ? CodeReference.To(definition, text) : null;
+        var definition = type.GetDefinition();
+        var reference = definition != null ? CodeReference.To(definition, text) : null;
         WriteReferenceSpan(text, Kind ?? SpanKind.Type, reference, isDefinition);
     }
 
@@ -213,7 +214,8 @@ internal sealed class DocumentBuilder : ITextOutput
     /// <paramref name="method"/> starts. A line keeps the first method marked on it and its lowest offset.</summary>
     public void MarkStatement(IMethod method, int ilOffset)
     {
-        if (CodeReference.To(method) is { } reference)
+        var reference = CodeReference.To(method);
+        if (reference != null)
             MarkStatement(reference, ilOffset);
     }
 
@@ -229,8 +231,8 @@ internal sealed class DocumentBuilder : ITextOutput
         var anchors = new Dictionary<int, CodeAnchor>(_statements.Count);
         foreach (var (line, (method, offset)) in _statements)
         {
-            if (method.FilePath is { } file)
-                anchors[line] = new CodeAnchor(CodeAnchorKind.Statement, file, MetadataTokens.GetToken(method.Handle), offset);
+            if (method.FilePath != null)
+                anchors[line] = new CodeAnchor(CodeAnchorKind.Statement, method.FilePath, MetadataTokens.GetToken(method.Handle), offset);
         }
         return anchors;
     }
@@ -389,12 +391,16 @@ internal sealed class DocumentBuilder : ITextOutput
     private CodeReference? ReferenceTo(MetadataFile metadata, Handle handle, string text)
     {
         if (handle.IsNil) return null;
-        if (handle.Kind is HandleKind.TypeReference or HandleKind.TypeSpecification or HandleKind.MemberReference or HandleKind.MethodSpecification
-            && ResolveDefinition(metadata, (EntityHandle)handle) is { } definition)
-            return CodeReference.To(definition, text);
-        return CodeReference.KindOf(metadata.Metadata, handle) is { } kind
-            ? CodeReference.ToEntity(kind, text, metadata.FileName, (EntityHandle)handle)
-            : null;
+        if (handle.Kind is HandleKind.TypeReference or HandleKind.TypeSpecification or HandleKind.MemberReference or HandleKind.MethodSpecification)
+        {
+            var definition = ResolveDefinition(metadata, (EntityHandle)handle);
+            if (definition != null)
+                return CodeReference.To(definition, text);
+        }
+        var kind = CodeReference.KindOf(metadata.Metadata, handle);
+        if (kind == null)
+            return null;
+        return CodeReference.ToEntity(kind.Value, text, metadata.FileName, (EntityHandle)handle);
     }
 
     private IEntity? ResolveDefinition(MetadataFile metadata, EntityHandle handle)

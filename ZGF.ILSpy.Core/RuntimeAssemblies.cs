@@ -66,7 +66,8 @@ public static class RuntimeAssemblies
             var candidate = new FileInfo(Path.Combine(dir, exe));
             if (!candidate.Exists) continue;
             var target = candidate.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? candidate.FullName;
-            if (Path.GetDirectoryName(target) is { } resolved)
+            var resolved = Path.GetDirectoryName(target);
+            if (resolved != null)
                 yield return resolved;
         }
         if (OperatingSystem.IsWindows())

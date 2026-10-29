@@ -72,8 +72,8 @@ internal static class NodeDecompiler
         var error = node.Failed.Error;
         var builder = new DocumentBuilder(language);
         WriteComment(builder, error.Message);
-        if (error.InnerException is { } inner)
-            builder.Write(inner.ToString(), SpanKind.Comment);
+        if (error.InnerException != null)
+            builder.Write(error.InnerException.ToString(), SpanKind.Comment);
         return builder.Build(node.Text, isError: true);
     }
 
@@ -195,7 +195,9 @@ internal static class NodeDecompiler
                 WriteHeader(type.Module, output, type.Type, ConversionFlags.UseFullyQualifiedTypeNames | ConversionFlags.UseFullyQualifiedEntityNames);
                 WriteSyntaxTree(type.Module, output, settings, d => d.Decompile(type.Type.MetadataToken), cancellationToken);
                 break;
-            case MemberNode { Member: { DeclaringTypeDefinition: { } declaring } member } memberNode:
+            case MemberNode memberNode when memberNode.Member.DeclaringTypeDefinition != null:
+                var member = memberNode.Member;
+                var declaring = member.DeclaringTypeDefinition;
                 WriteHeader(memberNode.Module, output, member.DeclaringType, ConversionFlags.UseFullyQualifiedEntityNames | ConversionFlags.UseFullyQualifiedTypeNames);
                 WriteSyntaxTree(memberNode.Module, output, settings, d => DecompileMember(d, member, declaring), cancellationToken);
                 break;
@@ -211,7 +213,8 @@ internal static class NodeDecompiler
     private static void WriteIL(BrowseNode node, DocumentBuilder output, DecompilationLanguage language, DecompilerSettings settings,
         CancellationToken cancellationToken)
     {
-        if (CodeModuleOf(node) is not { } module)
+        var module = CodeModuleOf(node);
+        if (module == null)
         {
             WriteSummary(node, output, cancellationToken);
             return;
@@ -366,24 +369,26 @@ internal static class NodeDecompiler
         var file = assembly.File;
         WriteComment(output, assembly.FilePath);
         WriteComment(output, assembly.FullName);
-        if (file.Metadata.IsAssembly && file.CorHeader is { } corHeader)
+        var corHeader = file.CorHeader;
+        if (file.Metadata.IsAssembly && corHeader != null)
         {
             var entryPoint = corHeader.EntryPointTokenOrRelativeVirtualAddress;
             if (entryPoint != 0 && (corHeader.Flags & CorFlags.NativeEntryPoint) == 0)
             {
                 var handle = MetadataTokens.EntityHandle(entryPoint);
-                if (handle.Kind == HandleKind.MethodDefinition && assembly.FindNode(handle) is { Reference: { } reference } entry)
+                var entry = handle.Kind == HandleKind.MethodDefinition ? assembly.FindNode(handle) : null;
+                if (entry?.Reference != null)
                 {
                     output.Write("// Entry point: ", SpanKind.Comment);
-                    output.Write(entry.FullName, SpanKind.Method, reference);
+                    output.Write(entry.FullName, SpanKind.Method, entry.Reference);
                     output.WriteLine();
                 }
             }
         }
         if (assembly.PEFile != null)
             WriteComment(output, $"Architecture: {ArchitectureOf(assembly.PEFile.Reader.PEHeaders)}");
-        if (assembly.TargetFramework is { } framework)
-            WriteComment(output, $"Target framework: {framework}");
+        if (assembly.TargetFramework != null)
+            WriteComment(output, $"Target framework: {assembly.TargetFramework}");
         output.WriteLine();
     }
 

@@ -17,12 +17,14 @@ internal sealed class DockLayoutJson
     /// <summary>The layout, or null when it is missing a part.</summary>
     public DockLayout? Parse()
     {
-        if (Root?.Parse() is not { } root || Windows == null)
+        var root = Root?.Parse();
+        if (root == null || Windows == null)
             return null;
         var windows = new List<DockWindow>(Windows.Count);
         foreach (var window in Windows)
         {
-            if (window?.Parse() is not { } parsed)
+            var parsed = window?.Parse();
+            if (parsed == null)
                 return null;
             windows.Add(parsed);
         }
@@ -50,7 +52,11 @@ internal sealed class DockSplitJson : DockNodeJson
 
     public override DockNode? Parse()
     {
-        if (First?.Parse() is not { } first || Second?.Parse() is not { } second)
+        var first = First?.Parse();
+        if (first == null)
+            return null;
+        var second = Second?.Parse();
+        if (second == null)
             return null;
         return new DockSplit { Id = Id, Direction = Direction, Ratio = Ratio, First = first, Second = second };
     }
@@ -83,7 +89,8 @@ internal sealed class DockWindowJson
 
     public DockWindow? Parse()
     {
-        if (Root?.Parse() is not { } root)
+        var root = Root?.Parse();
+        if (root == null)
             return null;
         return new DockWindow { Id = Id, Root = root, X = X, Y = Y, Width = Width, Height = Height };
     }

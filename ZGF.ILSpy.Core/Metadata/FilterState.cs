@@ -95,7 +95,8 @@ namespace ZGF.ILSpy.Core.Metadata
 				return false;
 			foreach (var group in Schema.MutexGroups)
 			{
-				if (mutexSelections.GetValueOrDefault(group.Name) is { } allowed && !allowed.Contains(value & group.Mask))
+				var allowed = mutexSelections.GetValueOrDefault(group.Name);
+				if (allowed != null && !allowed.Contains(value & group.Mask))
 					return false;
 			}
 			return requiredMask == 0

@@ -105,7 +105,8 @@ internal sealed class TypeUsedByAnalyzer : IAnalyzer
 
     private static bool ScanMethodBody(MetadataFile module, MethodDefinitionHandle handle, FindTypeDecoder decoder)
     {
-        if (module.ReadBody(handle) is not { } body)
+        var body = module.ReadBody(handle);
+        if (body == null)
             return false;
         var metadata = module.Metadata;
         if (!body.LocalSignature.IsNil)

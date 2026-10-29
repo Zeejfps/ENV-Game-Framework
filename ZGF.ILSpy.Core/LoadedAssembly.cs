@@ -56,8 +56,8 @@ public abstract class LoadedAssembly
     {
         get
         {
-            if (this is LoadedModule { Place: { } place })
-                return place.Container;
+            if (this is LoadedModule module && module.Place != null)
+                return module.Place.Container;
             return this;
         }
     }
@@ -367,7 +367,8 @@ public sealed class LoadedModule : LoadedAssembly
     {
         for (; !handle.IsNil; handle = OwnerOf(handle))
         {
-            if (FindNode(handle) is { } node) return node;
+            var node = FindNode(handle);
+            if (node != null) return node;
         }
         return null;
     }
@@ -377,8 +378,8 @@ public sealed class LoadedModule : LoadedAssembly
     private EntityHandle OwnerOf(EntityHandle handle) =>
         MainModule.ResolveEntity(handle) switch
         {
-            IMethod { IsAccessor: true, AccessorOwner: { } owner } => owner.MetadataToken,
-            IEntity { DeclaringTypeDefinition: { } type } => type.MetadataToken,
+            IMethod { IsAccessor: true } method when method.AccessorOwner != null => method.AccessorOwner.MetadataToken,
+            IEntity entity when entity.DeclaringTypeDefinition != null => entity.DeclaringTypeDefinition.MetadataToken,
             _ => default,
         };
 }

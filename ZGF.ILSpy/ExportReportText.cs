@@ -105,7 +105,8 @@ internal static class ExportReportText
     private static void WriteProblem(StringBuilder text, Strings t, ExportKind kind, ExportProblem problem)
     {
         text.Append(Indent).AppendLine(Headline(t, kind, problem));
-        if (DetailsOf(problem) is { } details)
+        var details = DetailsOf(problem);
+        if (details != null)
             WriteDetails(text, details);
         text.AppendLine();
     }

@@ -36,7 +36,7 @@ internal static class AssemblySearch
 
         public void Run(LoadedModule assembly)
         {
-            if (query.InAssembly is { } scope && !InAssembly(assembly, scope)) return;
+            if (query.InAssembly != null && !InAssembly(assembly, query.InAssembly)) return;
             var kinds = query.Kinds;
             Scan(kinds, SearchKinds.Assemblies, MatchAssembly, assembly);
             Scan(kinds, SearchKinds.Namespaces, ScanNamespaces, assembly);
@@ -63,7 +63,7 @@ internal static class AssemblySearch
             assembly.FullName.Contains(scope, StringComparison.OrdinalIgnoreCase);
 
         private bool InNamespace(string ns) =>
-            query.InNamespace is not { } scope || (scope.Length == 0 ? ns.Length == 0 : ns.Contains(scope, StringComparison.OrdinalIgnoreCase));
+            query.InNamespace == null || (query.InNamespace.Length == 0 ? ns.Length == 0 : ns.Contains(query.InNamespace, StringComparison.OrdinalIgnoreCase));
 
         private void ScanEntities(LoadedModule assembly)
         {
@@ -395,7 +395,7 @@ internal static class AssemblySearch
         {
             var name = node switch
             {
-                EntityNode { Entity: IMethod { IsConstructor: true, DeclaringTypeDefinition: { } type } } => type.Name,
+                EntityNode { Entity: IMethod { IsConstructor: true } constructor } when constructor.DeclaringTypeDefinition != null => constructor.DeclaringTypeDefinition.Name,
                 EntityNode entity => entity.Entity.Name,
                 _ => node.Text,
             };

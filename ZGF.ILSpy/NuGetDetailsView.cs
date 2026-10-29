@@ -64,7 +64,7 @@ internal static class NuGetDetailsView
         var theme = ui.Theme;
         using (ui.Id(package.Id.Text))
         {
-            var details = picker.Version is { } version ? picker.DetailsOf(package, version) : null;
+            var details = picker.Version != null ? picker.DetailsOf(package, picker.Version) : null;
             using (ui.Column(new Box { Width = Sizing.Grow(), Padding = theme.ShellPaddingX, Gap = theme.Gap }))
             {
                 Header(ui, picker, package);
@@ -133,7 +133,8 @@ internal static class NuGetDetailsView
             ui.Text(t.NugetVersion, new Box { Width = LabelWidth }, color: theme.TextMuted);
             var width = Math.Clamp(ui.SelectButtonWidth(picker.VersionTexts), VersionMinWidth, VersionMaxWidth);
             var enabled = !picker.IsDownloading && picker.ShowsWhatWasAsked;
-            if (picker.Version is { } version && ui.Select("version", ref version, picker.Versions, VersionLabel, Sizing.Fixed(width), t.NugetVersion, enabled))
+            var version = picker.Version;
+            if (version != null && ui.Select("version", ref version, picker.Versions, VersionLabel, Sizing.Fixed(width), t.NugetVersion, enabled))
                 picker.Version = version;
             DetailsStatus(ui, picker, package, details);
         }
@@ -154,8 +155,8 @@ internal static class NuGetDetailsView
         }
         if (details.Error == null)
             return;
-        if (ui.Button(ui.State.Strings.NugetRetry, id: "retry-details", variant: ButtonVariant.Ghost) && picker.Version is { } version)
-            picker.RetryDetails(package, version);
+        if (ui.Button(ui.State.Strings.NugetRetry, id: "retry-details", variant: ButtonVariant.Ghost) && picker.Version != null)
+            picker.RetryDetails(package, picker.Version);
     }
 
     /// <summary>That the version's details could not be read; or why the version should not be opened

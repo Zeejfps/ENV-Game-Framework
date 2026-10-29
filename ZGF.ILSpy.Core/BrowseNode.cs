@@ -162,14 +162,22 @@ public abstract class BrowseNode
     public virtual string FullName => Text;
 
     /// <summary>Whether this node has children, answered without building them where possible.</summary>
-    public bool HasChildren => Volatile.Read(ref _children) is { } children ? children.Length > 0 : MayHaveChildren;
+    public bool HasChildren
+    {
+        get
+        {
+            var children = Volatile.Read(ref _children);
+            return children != null ? children.Length > 0 : MayHaveChildren;
+        }
+    }
 
     /// <summary>The children in ILSpy's order, built on first access.</summary>
     public IReadOnlyList<BrowseNode> Children
     {
         get
         {
-            if (Volatile.Read(ref _children) is { } children) return children;
+            var children = Volatile.Read(ref _children);
+            if (children != null) return children;
             lock (_gate)
             {
                 if (_children is null)
