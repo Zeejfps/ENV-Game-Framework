@@ -39,6 +39,10 @@ public sealed class WebPage : IDisposable
 
     internal bool HasFrame { get; private set; }
 
+    /// <summary>The image holding the page's latest frame, to draw as a picture anywhere and at any size,
+    /// such as while it moves out of its element; null before the first frame.</summary>
+    public string? FrameImageId => HasFrame ? ImageId : null;
+
     internal MouseCursor Cursor { get; private set; } = MouseCursor.Default;
 
     public static WebPage Open(Ui ui, IWebViewFactory factory, string url, WebViewSetup? setup = null)

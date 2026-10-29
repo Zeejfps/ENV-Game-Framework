@@ -58,6 +58,18 @@ public sealed class WebViewTests
     }
 
     [Fact]
+    public void The_latest_frame_can_be_drawn_as_a_picture_once_there_is_one()
+    {
+        _frames.Frame();
+        Assert.Null(_page!.FrameImageId);
+
+        _web.Sink!.OnPixels(2, 2, new byte[16]);
+
+        Assert.NotNull(_page.FrameImageId);
+        Assert.Contains(_page.FrameImageId, _frames.Canvas.ImageIds);
+    }
+
+    [Fact]
     public void A_click_reaches_the_page_where_it_landed_and_focuses_it()
     {
         _frames.Frame();
