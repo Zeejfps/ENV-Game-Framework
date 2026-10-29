@@ -2,6 +2,10 @@
 
 in vec2 v_pixelPos;
 in vec2 v_uv;
+in vec2 v_local;
+flat in vec2 v_halfSize;
+flat in vec4 v_srcUV;
+flat in float v_fadesEdges;
 flat in uint v_tint;
 flat in uint v_clipIndex;
 
@@ -10,6 +14,8 @@ layout(std140) uniform ClipRects {
 };
 
 uniform sampler2D u_texture;
+// Logical canvas size followed by the actual, rounded framebuffer size.
+uniform vec4 u_canvasMetrics;
 
 out vec4 f_Color;
 
@@ -28,7 +34,17 @@ void main() {
         discard;
     }
 
-    vec4 sample0 = texture(u_texture, v_uv);
+    // An edge between device pixels fades the pixels it partly covers, by how much it covers them.
+    float coverage = 1.0;
+    if (v_fadesEdges > 0.0) {
+        vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
+        vec2 inside = (v_halfSize - abs(v_local)) * devicePerLogical;
+        coverage = clamp(inside.x + 0.5, 0.0, 1.0) * clamp(inside.y + 0.5, 0.0, 1.0);
+        if (coverage <= 0.0) discard;
+    }
+
+    vec2 uv = clamp(v_uv, v_srcUV.xy, v_srcUV.xy + v_srcUV.zw);
+    vec4 sample0 = texture(u_texture, uv);
     vec4 tint = unpackARGB(v_tint);
-    f_Color = sample0 * tint;
+    f_Color = sample0 * tint * vec4(1.0, 1.0, 1.0, coverage);
 }

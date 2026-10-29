@@ -766,6 +766,7 @@ public abstract partial class Ui
             Radius = box.Radius ?? 0f,
             Shadow = box.Shadow ?? default,
             Clip = box.Clip,
+            TransformSlot = box.Transform != null ? _tree.AddTransform(box.Transform.Value) : 0,
         };
 
         if (!string.IsNullOrEmpty(text) && style != null)

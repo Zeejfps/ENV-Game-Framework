@@ -275,6 +275,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glUniformMatrix4fv(_shared.GlyphProjLoc, 1, false, ptr);
         glUseProgram(_shared.ImageShader);
         glUniformMatrix4fv(_shared.ImageProjLoc, 1, false, ptr);
+        glUniform4f(_shared.ImageCanvasMetricsLoc, ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight);
         glUseProgram(_shared.ShadowShader);
         glUniformMatrix4fv(_shared.ShadowProjLoc, 1, false, ptr);
         glUseProgram(_shared.ShapeShader);

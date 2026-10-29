@@ -24,6 +24,7 @@ public sealed unsafe class GlSharedResources : IDisposable
     public uint ShapeShader => _shapeShader;
     public int RectProjLoc => _rectProjLoc;
     internal int RectCanvasMetricsLoc { get; }
+    internal int ImageCanvasMetricsLoc { get; }
     public int GlyphProjLoc => _glyphProjLoc;
     public int ImageProjLoc => _imageProjLoc;
     public int ShadowProjLoc => _shadowProjLoc;
@@ -63,6 +64,7 @@ public sealed unsafe class GlSharedResources : IDisposable
 
         _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");
         RectCanvasMetricsLoc = glGetUniformLocation(_rectShader, "u_canvasMetrics");
+        ImageCanvasMetricsLoc = glGetUniformLocation(_imageShader, "u_canvasMetrics");
         _glyphProjLoc = glGetUniformLocation(_glyphShader, "u_projection");
         _imageProjLoc = glGetUniformLocation(_imageShader, "u_projection");
         _shadowProjLoc = glGetUniformLocation(_shadowShader, "u_projection");

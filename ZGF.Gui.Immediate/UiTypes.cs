@@ -134,6 +134,49 @@ public enum ScrollAxes
     Both,
 }
 
+/// <summary>
+/// How a <see cref="Box"/> is drawn moved and scaled from where layout put it, without moving it in
+/// layout: it, its children and what floats in it are drawn transformed, by fractions of a pixel, while
+/// its rect, its hit testing and everything around it stay where they are — so a box lifting under the
+/// pointer cannot lift itself out from under it. For motion: a lift, a slide, a grow. Content can be
+/// drawn past the box, where a clip around it cuts it off; leave room for it there. Popups and other
+/// layers opened from inside it are windows of their own, placed from its rect where layout put it.
+/// </summary>
+public readonly record struct UiTransform
+{
+    /// <summary>The transform that leaves a box where layout put it.</summary>
+    public UiTransform() : this(0f, 0f, 1f)
+    {
+    }
+
+    /// <param name="offsetX">How far right the box is drawn, in points.</param>
+    /// <param name="offsetY">How far down the box is drawn, in points.</param>
+    /// <param name="scale">How much bigger the box is drawn, about its origin.</param>
+    /// <param name="originX">The point it scales about, from 0 at the box's left edge to 1 at its right.</param>
+    /// <param name="originY">The point it scales about, from 0 at the box's top edge to 1 at its bottom.</param>
+    public UiTransform(float offsetX = 0f, float offsetY = 0f, float scale = 1f, float originX = 0.5f, float originY = 0.5f)
+    {
+        if (!(scale > 0f) || !float.IsFinite(scale))
+            throw new ArgumentOutOfRangeException(nameof(scale), scale, "A box's scale must be positive and finite.");
+        if (!float.IsFinite(offsetX) || !float.IsFinite(offsetY) || !float.IsFinite(originX) || !float.IsFinite(originY))
+            throw new ArgumentException("A box's offset and origin must be finite.");
+        OffsetX = offsetX;
+        OffsetY = offsetY;
+        Scale = scale;
+        OriginX = originX;
+        OriginY = originY;
+    }
+
+    public float OffsetX { get; }
+    public float OffsetY { get; }
+    public float Scale { get; }
+    public float OriginX { get; }
+    public float OriginY { get; }
+
+    /// <summary>Whether it draws the box where layout put it: no move, no scale.</summary>
+    public bool IsIdentity => OffsetX == 0f && OffsetY == 0f && Scale == 1f;
+}
+
 /// <summary>Declares one element: how it sizes, lays out its children and paints its box.
 /// Unset values take the defaults of the method it is passed to; set ones, zero included, are kept,
 /// so <c>Radius = 0f</c> asks a widget for square corners and <c>BorderWidth = 0f</c> for none.</summary>
@@ -154,6 +197,10 @@ public readonly record struct Box
     /// <summary>A shadow drawn under the box, outside it. A popup's window grows to hold it.</summary>
     public UiShadow? Shadow { get; init; }
     public bool Clip { get; init; }
+
+    /// <summary>Draws the box, its children and what floats in it moved and scaled from where layout
+    /// put it, by fractions of a pixel. Layout, hit testing and its rect stay where they were.</summary>
+    public UiTransform? Transform { get; init; }
 
     /// <summary>Shifts the children left/up by this much, for content scrolled inside a clip.</summary>
     public float ScrollX { get; init; }
