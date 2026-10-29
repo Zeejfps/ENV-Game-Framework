@@ -274,18 +274,19 @@ internal static class TreePaneView
     private static void ExtractItems(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
-        if (IsPackedAssembly(node) && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
-            SaveDialogs.PickPackageFile(ui, appState, node.Assembly.InPackage!);
-        if (node.PackageFolder != null && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
-            SaveDialogs.PickExtractFolder(ui, appState, node);
+        if (PackedAssemblyOf(node) is { } file && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
+            SaveDialogs.PickPackageFile(ui, appState, file);
+        if (node.FolderInPackage is { } folder && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
+            SaveDialogs.PickExtractFolder(ui, appState, node.Text, folder);
     }
 
-    /// <summary>Whether <paramref name="node"/> is the root of an assembly read out of a package.</summary>
-    private static bool IsPackedAssembly(BrowseNode node)
+    /// <summary>Where the assembly is read from, when <paramref name="node"/> is the root of one read
+    /// out of a package; else null.</summary>
+    private static PackagePlace? PackedAssemblyOf(BrowseNode node)
     {
         if (node.Kind != NodeKind.Assembly)
-            return false;
-        return node.Assembly.InPackage != null;
+            return null;
+        return node.Assembly.InPackage;
     }
 
     /// <summary>Whether the menu offers to save the node's code: it shows code, and is no resource,

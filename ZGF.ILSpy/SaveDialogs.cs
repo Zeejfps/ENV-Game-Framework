@@ -71,11 +71,11 @@ internal static class SaveDialogs
         ui.PickSaveFile(t.ExportExtractFileTitle, null, place.File.Name, filters, path => ExtractPackageFile(appState, place, path));
     }
 
-    /// <summary>Asks for the folder the files of the package folder <paramref name="node"/> lists are
-    /// extracted into.</summary>
-    public static void PickExtractFolder(Ui<UiState> ui, AppState appState, BrowseNode node)
+    /// <summary>Asks for the folder the files of the package folder <paramref name="place"/> stands for,
+    /// shown as <paramref name="name"/>, are extracted into.</summary>
+    public static void PickExtractFolder(Ui<UiState> ui, AppState appState, string name, PackageFolderPlace place)
     {
         var t = ui.State.Strings;
-        ui.PickFolder(t.ExportExtractFolderTitle, null, folder => ExtractPackageFolder(appState, node, folder));
+        ui.PickFolder(t.ExportExtractFolderTitle, null, folder => ExtractPackageFolder(appState, name, place, folder));
     }
 }

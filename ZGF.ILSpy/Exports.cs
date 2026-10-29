@@ -69,7 +69,7 @@ public static class Exports
     {
         try
         {
-            var bytes = place.Container.Package!.ReadFile(place.File);
+            var bytes = place.Container.Package.ReadFile(place.File);
             File.WriteAllBytes(path, bytes);
         }
         catch (Exception e) when (IsFileError(e))
@@ -269,15 +269,13 @@ public static class Exports
         return new ExportProblem.PdbNotWritten(name, failure.Error);
     }
 
-    /// <summary>Writes every file in the folder of a package that <paramref name="node"/> lists into
-    /// <paramref name="folder"/>, at its path from the folder <paramref name="node"/> lists. Files that
+    /// <summary>Writes every file in the folder of a package <paramref name="place"/> stands for, shown as
+    /// <paramref name="name"/>, into <paramref name="folder"/>, at its path from that folder. Files that
     /// cannot be written there are the report's problems.</summary>
-    public static void ExtractPackageFolder(AppState appState, BrowseNode node, string folder)
+    public static void ExtractPackageFolder(AppState appState, string name, PackageFolderPlace place, string folder)
     {
-        var package = node.Assembly.Package!;
-        var packageFolder = node.PackageFolder!;
-        var job = new ExportJob(node.Text, ExportKind.Files, folder);
-        RunExport(appState, job, node.Text, s => package.ExtractFolder(packageFolder, folder, s.Progress, s.Token),
+        var job = new ExportJob(name, ExportKind.Files, folder);
+        RunExport(appState, job, name, s => place.Container.Package.ExtractFolder(place.Folder, folder, s.Progress, s.Token),
             (r, extracted) => r.WithExtracted(extracted));
     }
 

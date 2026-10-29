@@ -317,13 +317,13 @@ public abstract class BrowseNode
 
     /// <summary>The folder of a package this node lists, whose files can be extracted: the root folder
     /// for a package's own node; null for a node that lists none.</summary>
-    public PackageFolder? PackageFolder
+    public PackageFolderPlace? FolderInPackage
     {
         get
         {
             if (this is not IPackageFolderNode node)
                 return null;
-            return node.Folder;
+            return new PackageFolderPlace(node.Package, node.Folder);
         }
     }
 

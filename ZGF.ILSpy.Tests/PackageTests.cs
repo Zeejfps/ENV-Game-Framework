@@ -243,7 +243,7 @@ public sealed class PackageTests
     public void A_file_of_a_package_that_is_no_assembly_shows_its_contents()
     {
         using var temp = new TempDir();
-        var package = new AssemblyList().Open(WritePackage(temp));
+        var package = Assert.IsType<LoadedPackage>(new AssemblyList().Open(WritePackage(temp)));
 
         var readme = package.Root.Child("readme.txt");
         var native = package.Root.Child("runtimes/win-x64/native", "native.dll");
@@ -259,7 +259,7 @@ public sealed class PackageTests
     public void A_package_and_its_folders_list_what_they_hold(DecompilationLanguage language)
     {
         using var temp = new TempDir();
-        var package = new AssemblyList().Open(WritePackage(temp));
+        var package = Assert.IsType<LoadedPackage>(new AssemblyList().Open(WritePackage(temp)));
 
         var root = package.Root.Decompile(language);
         var folder = package.Root.Child(LibFolder).Decompile(language);
@@ -321,10 +321,10 @@ public sealed class PackageTests
     public void Extracting_a_folder_writes_its_files_at_their_paths_from_it()
     {
         using var temp = new TempDir();
-        var package = new AssemblyList().Open(WritePackage(temp));
+        var package = Assert.IsType<LoadedPackage>(new AssemblyList().Open(WritePackage(temp)));
         var target = temp.PathOf("out");
 
-        var extracted = package.Package!.ExtractFolder(package.Root.Child(LibFolder).PackageFolder!, target);
+        var extracted = package.Package.ExtractFolder(FolderOf(package.Root.Child(LibFolder)), target);
 
         var dll = Path.Combine(target, "ZGF.ILSpy.Tests.dll");
         Assert.Empty(extracted.Failures);
@@ -337,10 +337,10 @@ public sealed class PackageTests
     public void Extracting_a_package_keeps_its_folders()
     {
         using var temp = new TempDir();
-        var package = new AssemblyList().Open(WritePackage(temp));
+        var package = Assert.IsType<LoadedPackage>(new AssemblyList().Open(WritePackage(temp)));
         var target = temp.PathOf("out");
 
-        package.Package!.ExtractFolder(package.Root.PackageFolder!, target);
+        package.Package.ExtractFolder(FolderOf(package.Root), target);
 
         Assert.Equal("Read me", File.ReadAllText(Path.Combine(target, "readme.txt")));
         Assert.True(File.Exists(Path.Combine(target, "runtimes", "win-x64", "native", "native.dll")));
@@ -357,10 +357,10 @@ public sealed class PackageTests
             WriteText(archive, "../escaped.txt", "Out");
             WriteText(archive, "kept.txt", "In");
         }
-        var package = new AssemblyList().Open(path);
+        var package = Assert.IsType<LoadedPackage>(new AssemblyList().Open(path));
         var target = temp.PathOf("out");
 
-        var extracted = package.Package!.ExtractFolder(package.Root.PackageFolder!, target);
+        var extracted = package.Package.ExtractFolder(FolderOf(package.Root), target);
 
         Assert.Empty(extracted.Failures);
         Assert.False(File.Exists(temp.PathOf("escaped.txt")));
@@ -393,6 +393,8 @@ public sealed class PackageTests
 
     /// <summary>A NuGet package of the test assembly, with its PDB, and the assembly it references,
     /// without one, beside a native library and a text file.</summary>
+    private static PackageFolder FolderOf(BrowseNode node) => Assert.IsType<PackageFolderPlace>(node.FolderInPackage).Folder;
+
     private static string WritePackage(TempDir temp)
     {
         var path = temp.Write("Sample.1.0.0.nupkg", []);

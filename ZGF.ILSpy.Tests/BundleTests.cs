@@ -68,7 +68,7 @@ public sealed class BundleTests
     {
         using var temp = new TempDir();
         var path = WriteBundle(temp, ("Broken.dll", [1, 2, 3], false, 1_000_000));
-        var bundle = new AssemblyList().Open(path);
+        var bundle = Assert.IsType<LoadedPackage>(new AssemblyList().Open(path));
 
         var broken = bundle.Root.Child("Broken.dll");
 
@@ -81,10 +81,10 @@ public sealed class BundleTests
     {
         using var temp = new TempDir();
         var path = WriteBundle(temp, ("Broken.dll", [1, 2, 3], false, 1_000_000), ("App.deps.json", Encoding.UTF8.GetBytes("{}"), false, 0));
-        var bundle = new AssemblyList().Open(path);
+        var bundle = Assert.IsType<LoadedPackage>(new AssemblyList().Open(path));
         var target = temp.PathOf("out");
 
-        var extracted = bundle.Package!.ExtractFolder(bundle.Root.PackageFolder!, target);
+        var extracted = bundle.Package.ExtractFolder(FolderOf(bundle.Root), target);
 
         var failure = Assert.Single(extracted.Failures);
         Assert.Equal("Broken.dll", failure.File.Name);
@@ -102,6 +102,8 @@ public sealed class BundleTests
 
         Assert.True(failed.HasLoadError);
     }
+
+    private static PackageFolder FolderOf(BrowseNode node) => Assert.IsType<PackageFolderPlace>(node.FolderInPackage).Folder;
 
     private static string WriteBundle(TempDir temp)
     {

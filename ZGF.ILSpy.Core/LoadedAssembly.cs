@@ -10,7 +10,10 @@ using ICSharpCode.Decompiler.TypeSystem;
 namespace ZGF.ILSpy.Core;
 
 /// <summary>Where an assembly read out of a package came from: the package, as listed, and its file there.</summary>
-public sealed record PackagePlace(LoadedAssembly Container, PackageFile File);
+public sealed record PackagePlace(LoadedPackage Container, PackageFile File);
+
+/// <summary>A folder of a listed package, whose files can be extracted: the package and the folder.</summary>
+public sealed record PackageFolderPlace(LoadedPackage Container, PackageFolder Folder);
 
 /// <summary>
 /// A file known to an <see cref="AssemblyList"/>: one the user opened, or one loaded to resolve a
@@ -31,18 +34,16 @@ public abstract class LoadedAssembly
     private readonly ConcurrentDictionary<TypeSystemOptions, Lazy<DecompilerTypeSystem>> _typeSystems = new();
     private readonly ConcurrentDictionary<EntityHandle, BrowseNode> _nodes = new();
     private readonly Lazy<BrowseNode> _root;
-    private readonly Lazy<IReadOnlyList<LoadedAssembly>> _packageAssemblies;
     private readonly MetadataFile? _file;
     private readonly AssemblyLoadException? _loadError;
     private BrowseNode? _rootInPackage;
 
-    private protected LoadedAssembly(AssemblyList list, string filePath, MetadataFile? file, AssemblyLoadException? error, AssemblyPackage? package, PackagePlace? place)
+    private protected LoadedAssembly(AssemblyList list, string filePath, MetadataFile? file, AssemblyLoadException? error, PackagePlace? place)
     {
         List = list;
         _file = file;
         _loadError = error;
         FilePath = filePath;
-        Package = package;
         InPackage = place;
         if (file != null && file.Metadata.IsAssembly)
         {
@@ -67,7 +68,6 @@ public abstract class LoadedAssembly
         _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
         _referenceUsage = new Lazy<ReferenceUsage>(() => new ReferenceUsage(File.Metadata));
         _root = new Lazy<BrowseNode>(CreateRoot);
-        _packageAssemblies = new Lazy<IReadOnlyList<LoadedAssembly>>(LoadPackageAssemblies);
     }
 
     /// <summary>The symbols of the PDB the list picked for this assembly, else those it finds itself.</summary>
@@ -96,7 +96,7 @@ public abstract class LoadedAssembly
     private BrowseNode CreateRoot() => this switch
     {
         FailedAssembly => new FailedAssemblyNode(this),
-        LoadedPackage when Package is { } files => new PackageNode(this, files),
+        LoadedPackage package => package.PackageRoot,
         LoadedModule => new AssemblyNode(this, null),
         _ => throw new UnreachableException(),
     };
@@ -105,53 +105,10 @@ public abstract class LoadedAssembly
     /// package, the path through the package, as <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
     public string FilePath { get; }
 
-    /// <summary>The files of a package, when this is one; null for an assembly.</summary>
-    public AssemblyPackage? Package { get; }
-
     public bool IsPackage => this is LoadedPackage;
 
     /// <summary>The package this assembly was read out of, and its file there; null for a file on disk.</summary>
     public PackagePlace? InPackage { get; }
-
-    /// <summary>For a package, the assemblies read out of it: every assembly file it holds that loads,
-    /// in the order its tree shows them. None for an assembly. Read the first time, then kept.</summary>
-    internal IReadOnlyList<LoadedAssembly> PackageAssemblies => _packageAssemblies.Value;
-
-    /// <summary>Reads <see cref="PackageAssemblies"/> now, unless they are read already; does nothing
-    /// for an assembly.</summary>
-    internal void ReadPackageAssemblies()
-    {
-        _ = _packageAssemblies.Value;
-    }
-
-    private IReadOnlyList<LoadedAssembly> LoadPackageAssemblies()
-    {
-        var assemblies = new List<LoadedAssembly>();
-        if (Package == null)
-            return assemblies;
-        foreach (var file in Package.ListFiles())
-        {
-            if (!PackageContents.IsAssemblyName(file.Name))
-                continue;
-            var assembly = List.TryLoadOutOf(this, file);
-            if (assembly != null)
-                assemblies.Add(assembly);
-        }
-        return assemblies;
-    }
-
-    /// <summary>For a package, the assembly of <see cref="PackageAssemblies"/> read out of
-    /// <paramref name="file"/>; null when that file did not load as one.</summary>
-    internal LoadedAssembly? FindPackageAssembly(PackageFile file)
-    {
-        var path = Package!.PathOf(file);
-        foreach (var assembly in PackageAssemblies)
-        {
-            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
-                return assembly;
-        }
-        return null;
-    }
 
     /// <summary>The node <paramref name="path"/> leads to from this file's root, when this is the item
     /// of the list the path starts at; else, or when nothing is there, null. May load the nodes on the
@@ -253,8 +210,7 @@ public abstract class LoadedAssembly
         var placed = Volatile.Read(ref _rootInPackage);
         if (placed != null)
             return placed;
-        var packageRoot = (PackageNode)place.Container.Root;
-        var folder = packageRoot.FindFolderNode(place.File.Folder);
+        var folder = place.Container.PackageRoot.FindFolderNode(place.File.Folder);
         folder.LoadChildren();
         return PlaceInPackage(folder);
     }
@@ -424,7 +380,7 @@ public abstract class LoadedAssembly
 public sealed class LoadedModule : LoadedAssembly
 {
     internal LoadedModule(AssemblyList list, MetadataFile file, PackagePlace? place = null)
-        : base(list, file.FileName, file, null, null, place)
+        : base(list, file.FileName, file, null, place)
     {
     }
 }
@@ -433,7 +389,7 @@ public sealed class LoadedModule : LoadedAssembly
 public sealed class FailedAssembly : LoadedAssembly
 {
     internal FailedAssembly(AssemblyList list, AssemblyLoadException error)
-        : base(list, error.FilePath, null, error, null, null)
+        : base(list, error.FilePath, null, error, null)
     {
     }
 }
@@ -441,8 +397,57 @@ public sealed class FailedAssembly : LoadedAssembly
 /// <summary>A package of the list, whose files are browsed as folders.</summary>
 public sealed class LoadedPackage : LoadedAssembly
 {
+    private readonly Lazy<PackageNode> _root;
+    private readonly Lazy<IReadOnlyList<LoadedModule>> _assemblies;
+
     internal LoadedPackage(AssemblyList list, AssemblyPackage package)
-        : base(list, package.FilePath, null, null, package, null)
+        : base(list, package.FilePath, null, null, null)
     {
+        Package = package;
+        _root = new Lazy<PackageNode>(() => new PackageNode(this));
+        _assemblies = new Lazy<IReadOnlyList<LoadedModule>>(LoadAssemblies);
+    }
+
+    /// <summary>The package's files.</summary>
+    public AssemblyPackage Package { get; }
+
+    /// <summary>The root of the package's tree, its <see cref="LoadedAssembly.Root"/>.</summary>
+    internal PackageNode PackageRoot => _root.Value;
+
+    /// <summary>The assemblies read out of the package: every assembly file it holds that loads, in
+    /// the order its tree shows them. Read the first time, then kept.</summary>
+    internal IReadOnlyList<LoadedModule> Assemblies => _assemblies.Value;
+
+    /// <summary>Reads <see cref="Assemblies"/> now, unless they are read already.</summary>
+    internal void ReadAssemblies()
+    {
+        _ = _assemblies.Value;
+    }
+
+    private IReadOnlyList<LoadedModule> LoadAssemblies()
+    {
+        var assemblies = new List<LoadedModule>();
+        foreach (var file in Package.ListFiles())
+        {
+            if (!PackageContents.IsAssemblyName(file.Name))
+                continue;
+            var assembly = List.TryLoadOutOf(this, file);
+            if (assembly != null)
+                assemblies.Add(assembly);
+        }
+        return assemblies;
+    }
+
+    /// <summary>The assembly of <see cref="Assemblies"/> read out of <paramref name="file"/>; null when
+    /// that file did not load as one.</summary>
+    internal LoadedModule? FindAssembly(PackageFile file)
+    {
+        var path = Package.PathOf(file);
+        foreach (var assembly in Assemblies)
+        {
+            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                return assembly;
+        }
+        return null;
     }
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -150,12 +151,19 @@ public sealed class AssemblyList
         var loaded = ImmutableArray.CreateBuilder<LoadedAssembly>();
         foreach (var item in listed)
         {
-            if (item.HasLoadError)
-                continue;
-            if (item.IsPackage)
-                loaded.AddRange(item.PackageAssemblies);
-            else
-                loaded.Add(item);
+            switch (item)
+            {
+                case FailedAssembly:
+                    break;
+                case LoadedPackage package:
+                    loaded.AddRange(package.Assemblies);
+                    break;
+                case LoadedModule module:
+                    loaded.Add(module);
+                    break;
+                default:
+                    throw new UnreachableException();
+            }
         }
         return loaded.ToImmutable();
     }
@@ -207,7 +215,8 @@ public sealed class AssemblyList
     public LoadedAssembly ReadAgain(LoadedAssembly assembly)
     {
         var fresh = ReadAssemblyOrPackage(assembly.ListedItem.FilePath);
-        fresh.ReadPackageAssemblies();
+        if (fresh is LoadedPackage package)
+            package.ReadAssemblies();
         return fresh;
     }
 
@@ -235,7 +244,9 @@ public sealed class AssemblyList
     private void Know(LoadedAssembly item)
     {
         _known[item.FilePath] = item;
-        foreach (var assembly in item.PackageAssemblies)
+        if (item is not LoadedPackage package)
+            return;
+        foreach (var assembly in package.Assemblies)
             _known[assembly.FilePath] = assembly;
     }
 
@@ -632,7 +643,8 @@ public sealed class AssemblyList
     {
         if (assembly.InPackage != null)
             return TryList(assembly.InPackage.Container, generation, cancellationToken);
-        assembly.ReadPackageAssemblies();
+        if (assembly is LoadedPackage package)
+            package.ReadAssemblies();
         lock (_gate)
         {
             if (generation != _generation) return false;
@@ -660,9 +672,9 @@ public sealed class AssemblyList
 
     /// <summary>The assembly <paramref name="package"/> holds as <paramref name="file"/>: the one read
     /// before, else one read now, kept while the list holds the package. Null when it does not load.</summary>
-    internal LoadedAssembly? TryLoadOutOf(LoadedAssembly package, PackageFile file)
+    internal LoadedModule? TryLoadOutOf(LoadedPackage package, PackageFile file)
     {
-        var path = package.Package!.PathOf(file);
+        var path = package.Package.PathOf(file);
         lock (_gate)
         {
             var known = FindReadOutOf(package, path);
@@ -681,18 +693,18 @@ public sealed class AssemblyList
         return read;
     }
 
-    private LoadedAssembly? FindReadOutOf(LoadedAssembly package, string path)
+    private LoadedModule? FindReadOutOf(LoadedPackage package, string path)
     {
         if (!_known.TryGetValue(path, out var known))
             return null;
-        if (known.InPackage == null)
+        if (known is not LoadedModule { InPackage: { } place } module)
             return null;
-        if (known.InPackage.Container != package)
+        if (place.Container != package)
             return null;
-        return known;
+        return module;
     }
 
-    private LoadedAssembly? TryReadOutOfPackage(LoadedAssembly package, string path, string fullName)
+    private LoadedModule? TryReadOutOfPackage(LoadedPackage package, string path, string fullName)
     {
         try
         {
@@ -772,7 +784,9 @@ public sealed class AssemblyList
         if (inPackage == null)
             return new LoadedModule(this, ReadFile(path));
         var container = Load(inPackage.Value.Package, generation);
-        return ReadOutOfPackage(container, path, inPackage.Value.FullName);
+        if (container is not LoadedPackage package)
+            throw new AssemblyLoadException(path, $"'{container.FilePath}' is not a package.");
+        return ReadOutOfPackage(package, path, inPackage.Value.FullName);
     }
 
     /// <summary>The assembly at <paramref name="path"/>, else the WebCIL module, else the package, else
@@ -829,11 +843,9 @@ public sealed class AssemblyList
         }
     }
 
-    private LoadedAssembly ReadOutOfPackage(LoadedAssembly container, string path, string fullName)
+    private LoadedModule ReadOutOfPackage(LoadedPackage container, string path, string fullName)
     {
         var package = container.Package;
-        if (package == null)
-            throw new AssemblyLoadException(path, $"'{container.FilePath}' is not a package.");
         var file = package.FindFile(fullName);
         if (file == null)
             throw new AssemblyLoadException(path, $"'{container.FilePath}' holds no '{fullName}'.");
