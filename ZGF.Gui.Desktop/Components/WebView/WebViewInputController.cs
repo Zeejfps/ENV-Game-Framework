@@ -3,7 +3,6 @@ using ZGF.Geometry;
 using ZGF.Gui.Desktop.Controllers;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Views;
-using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Desktop.Components.WebView;
 
@@ -81,7 +80,7 @@ internal sealed class WebViewInputController : KeyboardMouseController, IProvide
         // command modifiers (Ctrl/Alt/Super) behave, and the natural press→text→release ordering
         // falls out of GLFW delivering OnKey(press) → OnText → OnKey(release).
         var pressed = e.State == InputState.Pressed;
-        var vk = VirtualKey(e.Key);
+        var vk = WebKeys.VirtualKeyOf(e.Key);
         _webView.SendKey(pressed ? WebKeyEventKind.RawKeyDown : WebKeyEventKind.KeyUp,
             vk, vk, '\0', Modifiers(e.Modifiers), isSystemKey: false);
         // Claim the keystroke (as text, so the character it produces still arrives) so it reaches the
@@ -148,53 +147,4 @@ internal sealed class WebViewInputController : KeyboardMouseController, IProvide
         WebCursor.ResizeVertical => MouseCursor.ResizeVertical,
         _ => MouseCursor.Default,
     };
-
-    // Common ZGF keys → Windows virtual-key codes (what CEF's WindowsKeyCode expects on RawKeyDown/
-    // KeyUp). Letters/digits map to their ASCII code; punctuation to its US-layout VK_OEM_* code so a
-    // key like '.' is a real OEM_PERIOD (0xBE) rather than colliding with VK_DELETE (0x2E). Unmapped
-    // keys pass 0, which is harmless on a keydown (never mistaken for an editing command).
-    private static int VirtualKey(KeyboardKey key)
-    {
-        if (key is >= KeyboardKey.A and <= KeyboardKey.Z)
-            return 'A' + (key - KeyboardKey.A);
-        if (key is >= KeyboardKey.Alpha0 and <= KeyboardKey.Alpha9)
-            return '0' + (key - KeyboardKey.Alpha0);
-        if (key is >= KeyboardKey.F1 and <= KeyboardKey.F12)
-            return 0x70 + (key - KeyboardKey.F1);
-        return key switch
-        {
-            KeyboardKey.Backspace => 0x08,
-            KeyboardKey.Tab => 0x09,
-            KeyboardKey.Enter or KeyboardKey.NumpadEnter => 0x0D,
-            KeyboardKey.Escape => 0x1B,
-            KeyboardKey.Space => 0x20,
-            KeyboardKey.PageUp => 0x21,
-            KeyboardKey.PageDown => 0x22,
-            KeyboardKey.End => 0x23,
-            KeyboardKey.Home => 0x24,
-            KeyboardKey.LeftArrow => 0x25,
-            KeyboardKey.UpArrow => 0x26,
-            KeyboardKey.RightArrow => 0x27,
-            KeyboardKey.DownArrow => 0x28,
-            KeyboardKey.Insert => 0x2D,
-            KeyboardKey.Delete => 0x2E,
-            KeyboardKey.LeftShift or KeyboardKey.RightShift => 0x10,
-            KeyboardKey.LeftControl or KeyboardKey.RightControl => 0x11,
-            KeyboardKey.LeftAlt or KeyboardKey.RightAlt => 0x12,
-            KeyboardKey.LeftSuper or KeyboardKey.RightSuper => 0x5B,
-            // US-layout OEM punctuation (VK_OEM_*): the code Blink expects for these keys.
-            KeyboardKey.SemiColon => 0xBA,
-            KeyboardKey.Equals => 0xBB,
-            KeyboardKey.Comma => 0xBC,
-            KeyboardKey.Minus => 0xBD,
-            KeyboardKey.Period => 0xBE,
-            KeyboardKey.Slash => 0xBF,
-            KeyboardKey.GraveAccent => 0xC0,
-            KeyboardKey.LeftBracket => 0xDB,
-            KeyboardKey.Backslash => 0xDC,
-            KeyboardKey.RightBracket => 0xDD,
-            KeyboardKey.Apostrophe => 0xDE,
-            _ => 0,
-        };
-    }
 }

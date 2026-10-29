@@ -45,6 +45,7 @@ public sealed class UiInput
     private readonly bool[] _released = new bool[ButtonCount];
     private readonly bool[] _cancelled = new bool[ButtonCount];
     private readonly List<KeyStroke> _keys = new();
+    private readonly List<KeyStroke> _releasedKeys = new();
     private readonly StringBuilder _text = new();
     private readonly List<string> _droppedFiles = new();
 
@@ -54,6 +55,10 @@ public sealed class UiInput
     public KeyModifiers Modifiers { get; private set; }
     public string Text { get; private set; } = "";
     public KeyStrokes Keys => new(_keys);
+
+    /// <summary>This frame's key releases, in order, for what follows a key while it is held; most
+    /// widgets want only <see cref="Keys"/>.</summary>
+    public KeyStrokes ReleasedKeys => new(_releasedKeys);
     public bool HasEvents { get; private set; }
 
     /// <summary>The IME composition in flight, kept across frames until the platform replaces or
@@ -158,7 +163,9 @@ public sealed class UiInput
     internal void Key(KeyboardKey key, InputAction action, KeyModifiers modifiers)
     {
         Modifiers = modifiers;
-        if (action != InputAction.Release)
+        if (action == InputAction.Release)
+            _releasedKeys.Add(new KeyStroke(key, false, modifiers));
+        else
             _keys.Add(new KeyStroke(key, action == InputAction.Repeat, modifiers));
         HasEvents = true;
     }
@@ -267,6 +274,7 @@ public sealed class UiInput
     {
         _droppedFiles.Clear();
         _keys.Clear();
+        _releasedKeys.Clear();
         _text.Clear();
         Text = "";
         Composition = PreeditText.Empty;

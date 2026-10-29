@@ -162,6 +162,10 @@ public abstract partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
+    /// <summary>Draws a frame soon, for something that changed outside one, such as a picture arriving.
+    /// Safe from any thread.</summary>
+    public void RequestFrame() => Wake?.Invoke();
+
     /// <summary>Runs <paramref name="action"/> on the UI thread at the start of the next frame, and
     /// makes sure there is one. Safe from any thread — the way background work hands back results.</summary>
     public void Post(Action action)

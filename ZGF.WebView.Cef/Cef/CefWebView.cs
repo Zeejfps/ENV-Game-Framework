@@ -82,6 +82,12 @@ internal sealed class CefWebView : IWebView
         CefLog.Write("OnAfterCreated");
         _browser = browser;
         _browserHost = browser.GetHost();
+        _host.BrowserOpened();
+        if (_disposed)
+        {
+            _browserHost.CloseBrowser(forceClose: true);
+            return;
+        }
         _browserHost.WasResized();
         foreach (var action in _deferred)
             action();
@@ -92,6 +98,7 @@ internal sealed class CefWebView : IWebView
     {
         _browser = null;
         _browserHost = null;
+        _host.BrowserClosed();
     }
 
     // Rate-limited auto-reload to recover from a render-process crash.

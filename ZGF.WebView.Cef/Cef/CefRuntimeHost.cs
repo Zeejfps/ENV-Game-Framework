@@ -22,6 +22,7 @@ internal sealed class CefRuntimeHost : IDisposable
     private Timer? _pumpTimer;
     private bool _initialized;
     private bool _disposed;
+    private int _openBrowsers;
 
     public CefRuntimeHost(IUiDispatcher dispatcher)
     {
@@ -93,6 +94,11 @@ internal sealed class CefRuntimeHost : IDisposable
     }
 
     private const int PumpIntervalMs = 15;
+    private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(2);
+
+    internal void BrowserOpened() => _openBrowsers++;
+
+    internal void BrowserClosed() => _openBrowsers--;
 
     /// <summary>Registers a web view for browser creation. Before CEF is initialised the creation is
     /// deferred until <see cref="Initialize"/>; afterwards it is posted so the owning widget can finish
@@ -141,9 +147,24 @@ internal sealed class CefRuntimeHost : IDisposable
         _pumpTimer = null;
         if (_initialized)
         {
+            PumpUntilBrowsersClose();
             CefRuntime.Shutdown();
             _initialized = false;
         }
+    }
+
+    /// <summary>CEF must not shut down with a browser open, and a disposed view's browser closes over
+    /// later pumps, which no longer come once the app has stopped drawing.</summary>
+    private void PumpUntilBrowsersClose()
+    {
+        var deadline = DateTime.UtcNow + CloseTimeout;
+        while (_openBrowsers > 0 && DateTime.UtcNow < deadline)
+        {
+            CefRuntime.DoMessageLoopWork();
+            Thread.Sleep(5);
+        }
+        if (_openBrowsers > 0)
+            CefLog.Error($"shutting down with {_openBrowsers} browser(s) still open");
     }
 
     // CEF expects the process's own command-line args (minus the executable path on Windows).

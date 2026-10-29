@@ -94,6 +94,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CefGlue", "CefGlue", "{0B67
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xilium.CefGlue", "CefGlue\Xilium.CefGlue\Xilium.CefGlue.csproj", "{0F7B27EE-8B8D-4B8D-97EA-9824E1974025}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.WebView.Immediate.Demo", "ZGF.WebView.Immediate.Demo\ZGF.WebView.Immediate.Demo.csproj", "{4147D1BC-A233-477D-BD3D-11CC9247C079}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -644,6 +646,18 @@ Global
 		{0F7B27EE-8B8D-4B8D-97EA-9824E1974025}.Release|x64.Build.0 = Release|Any CPU
 		{0F7B27EE-8B8D-4B8D-97EA-9824E1974025}.Release|x86.ActiveCfg = Release|Any CPU
 		{0F7B27EE-8B8D-4B8D-97EA-9824E1974025}.Release|x86.Build.0 = Release|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Debug|x64.Build.0 = Debug|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Debug|x86.Build.0 = Debug|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Release|x64.ActiveCfg = Release|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Release|x64.Build.0 = Release|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Release|x86.ActiveCfg = Release|Any CPU
+		{4147D1BC-A233-477D-BD3D-11CC9247C079}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
