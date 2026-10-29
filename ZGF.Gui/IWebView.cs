@@ -6,9 +6,9 @@ namespace ZGF.Gui;
 /// without referencing any web engine; the concrete implementation (CEF) is an opt-in package that an
 /// app pulls in with <c>UseCefWebView()</c>. All members are used on the UI thread; the implementation
 /// marshals any engine callbacks onto it.
-/// <para>The engine renders into an off-screen surface. The widget pulls the latest pixels each frame
-/// via <see cref="TryAcquireFrame"/> and uploads them through <see cref="ICanvas.CreateOrUpdateRgbaImage"/>,
-/// so a web view composes with the rest of the canvas exactly like an <see cref="Views.ImageView"/>.</para>
+/// <para>The engine renders off-screen and pushes each frame to the <see cref="IWebViewFrameSink"/> it was
+/// created with, which hands it to the canvas as an image, so a web view composes with the rest of the
+/// canvas exactly like an <see cref="Views.ImageView"/>.</para>
 /// </summary>
 public interface IWebView : IDisposable
 {
@@ -39,18 +39,9 @@ public interface IWebView : IDisposable
     event Action<WebCursor>? CursorChanged;
 
     // --- Off-screen surface (UI thread only) ----------------------------------
-    /// <summary>Raised (on the UI thread) when a new frame has been painted, so the widget can
-    /// schedule a repaint.</summary>
-    event Action? FrameReady;
-
     /// <summary>Sizes the off-screen browser to <paramref name="widthPx"/> × <paramref name="heightPx"/>
     /// device pixels rendered at <paramref name="dpiScale"/>. No-op if unchanged.</summary>
     void Resize(int widthPx, int heightPx, float dpiScale);
-
-    /// <summary>If a frame has been painted since the last successful call, hands back the latest
-    /// straight-alpha RGBA8 top-down pixels — valid only for the duration of the call — and returns
-    /// true. Returns false when there is nothing new.</summary>
-    bool TryAcquireFrame(out int widthPx, out int heightPx, out ReadOnlySpan<byte> rgba);
 
     // --- Input forwarding (widget-local logical points) -----------------------
     void SendMouseMove(float x, float y, WebInputModifiers modifiers);
@@ -67,7 +58,23 @@ public interface IWebView : IDisposable
 /// pattern text-input widgets use for <see cref="IClipboard"/>.</summary>
 public interface IWebViewFactory
 {
-    IWebView Create();
+    /// <summary>Creates a web view that delivers its frames to <paramref name="frames"/>.</summary>
+    IWebView Create(IWebViewFrameSink frames);
+}
+
+/// <summary>Receives a web view's painted frames on the UI thread. Each frame is valid only for the
+/// call it arrives in.</summary>
+public interface IWebViewFrameSink
+{
+    /// <summary>Asked before the engine starts painting: whether frames may arrive as
+    /// <see cref="OnSharedTexture"/> of <paramref name="kind"/> instead of pixels.</summary>
+    bool AcceptsSharedTextures(SharedTextureKind kind);
+
+    /// <summary>A frame as straight-alpha RGBA8 rows, top row first.</summary>
+    void OnPixels(int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown);
+
+    /// <summary>A frame as a GPU texture. Returns false when it could not be imported.</summary>
+    bool OnSharedTexture(in SharedTexture texture);
 }
 
 /// <summary>Modifier / mouse-button state carried by a forwarded web-view input event. An

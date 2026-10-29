@@ -93,10 +93,8 @@ internal sealed class CefWebViewClient : CefClient
             owner.OnPaint(type, buffer, width, height);
 
         protected override void OnAcceleratedPaint(
-            CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr sharedHandle)
-        {
-            // GPU shared-texture fast path (plan perf phase) — not used with software OnPaint.
-        }
+            CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, CefAcceleratedPaintInfo info) =>
+            owner.OnAcceleratedPaint(type, info);
 
         protected override void OnPopupSize(CefBrowser browser, CefRectangle rect) { }
 

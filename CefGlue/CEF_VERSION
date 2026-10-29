@@ -1,0 +1,17 @@
+# Pinned CEF / Chromium version for the ZgfCef binding.
+# Consumed by fetch-cef.ps1 / fetch-cef.sh. One source of truth for the exact
+# headers (generator input) AND the matching runtime binaries.
+#
+# Change this file + the SHA lines below together, then re-run fetch + the
+# generator. Never mix headers from one version with a runtime from another:
+# the P/Invoke vtable/struct ABI is generated per CEF version and must match
+# byte-for-byte.
+
+CEF_VERSION=150.0.14+g7c1aa68+chromium-150.0.7871.129
+CHROMIUM_VERSION=150.0.7871.129
+
+# Spotify CDN distribution SHA1s (from https://cef-builds.spotifycdn.com/index.json).
+# minimal = headers + Release runtime (what the binding + harness need).
+# client  = prebuilt cefclient.exe/cefsimple.exe (Phase 0 OSR probe only).
+SHA1_WINDOWS64_MINIMAL=63272475eee07ec21cbc8774e2e7e18957115a55
+SHA1_WINDOWS64_CLIENT=91b924b0032a106833d7f83d07c935ea7377abef

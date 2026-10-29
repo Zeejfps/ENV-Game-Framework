@@ -4,22 +4,17 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <!-- The exe CEF re-launches for its render / GPU / utility processes. -->
         <AssemblyName>zgf-cef-helper</AssemblyName>
-        <!-- A console host, not WinExe: the subprocess must never open a window of its own. -->
+        <!-- V8 rewrites return addresses, which CET shadow stacks kill the renderer for (fastfail 0x39).
+             Chromium's sandbox turns CET off for renderers; without the sandbox the helper must opt out. -->
+        <CetCompat>false</CetCompat>
     </PropertyGroup>
 
-    <!-- CEF 150 cutover: bind the render-process helper to our own regenerated binding
-         (Cef150Binding/ZgfCef.Interop, assembly Xilium.CefGlue) instead of CefGlue.Common
-         (Chromium 120). Same core Xilium.CefGlue API, so ZgfCefRenderApp compiles unchanged. -->
     <ItemGroup>
-        <ProjectReference Include="..\..\Cef150Binding\ZgfCef.Interop\ZgfCef.Interop.csproj" />
+        <ProjectReference Include="..\CefGlue\Xilium.CefGlue\Xilium.CefGlue.csproj" />
     </ItemGroup>
 
-    <!-- The renderer side of the JS bridge runs in the render process, i.e. in THIS exe, not the
-         app. The handler is defined once in ZGF.WebView.Cef and shared here as linked source rather
-         than a project reference, so the helper stays tiny (no app-side CEF surface) and there is no
-         Cef <-> SubProcess reference cycle (ZGF.WebView.Cef builds this project). -->
+    <!-- Linked, not referenced: ZGF.WebView.Cef builds this project, so a reference back would be a cycle. -->
     <ItemGroup>
         <Compile Include="..\ZGF.WebView.Cef\Cef\ZgfCefRenderApp.cs">
             <Link>Shared\ZgfCefRenderApp.cs</Link>

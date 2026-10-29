@@ -1,0 +1,14 @@
+# CEF binary payload — large, fetched by fetch-cef.ps1 from the pinned CEF_VERSION.
+# Never committed; CI and fresh clones run the fetch script.
+cef/
+.cef-download/
+
+# Vendored generator source is a shallow clone staged by the Phase 2 tooling.
+generator/_cefglue-src/
+
+# Wrapper scaffolds the generator writes beside itself on every run; never compiled.
+generator/*.tmpl/
+
+# Build output
+**/bin/
+**/obj/

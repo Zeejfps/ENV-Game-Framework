@@ -13,7 +13,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
 
     private readonly OpenGlApp _app;
     private readonly OpenGlWindow _mainWindow;
-    private readonly GlImageManager _images = new();
+    private readonly GlImageManager _images = new(GLFW.Glfw.GetProcAddress);
     private readonly GlSharedResources _shared;
     private readonly OpenGlRenderedCanvas _mainCanvas;
     private readonly PendingScreenshot _screenshot = new();

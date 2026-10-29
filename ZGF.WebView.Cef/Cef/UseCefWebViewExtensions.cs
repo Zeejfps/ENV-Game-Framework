@@ -12,11 +12,14 @@ namespace ZGF.WebView.Cef;
 /// </summary>
 public static class UseCefWebViewExtensions
 {
-    public static GuiAppBuilder UseCefWebView(this GuiAppBuilder builder)
+    public static GuiAppBuilder UseCefWebView(this GuiAppBuilder builder) =>
+        builder.UseCefWebView(new CefWebViewOptions());
+
+    public static GuiAppBuilder UseCefWebView(this GuiAppBuilder builder, CefWebViewOptions options)
     {
         var context = builder.Context;
         context.AddSingleton(ctx => new CefRuntimeHost(ctx.Require<IUiDispatcher>()));
-        context.AddSingleton<IWebViewFactory>(ctx => new CefWebViewFactory(ctx.Require<CefRuntimeHost>()));
+        context.AddSingleton<IWebViewFactory>(ctx => new CefWebViewFactory(ctx.Require<CefRuntimeHost>(), options));
         context.AddHostedService(ctx => new CefHostedService(ctx.Require<CefRuntimeHost>()));
         return builder;
     }

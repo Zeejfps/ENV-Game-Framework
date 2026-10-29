@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Xilium.CefGlue;
 using ZGF.Gui;
@@ -14,6 +15,8 @@ namespace ZGF.WebView.Cef;
 internal sealed class CefWebView : IWebView
 {
     private readonly CefRuntimeHost _host;
+    private readonly IWebViewFrameSink _frames;
+    private readonly CefWebViewOptions _options;
     private readonly CefWebViewClient _client;
     private readonly List<Action> _deferred = new();
 
@@ -23,28 +26,29 @@ internal sealed class CefWebView : IWebView
     private bool _created;
     private bool _disposed;
 
-    // Off-screen surface (UI thread only).
     private byte[] _pixels = [];
-    private int _frameWidth;
-    private int _frameHeight;
-    private bool _frameDirty;
+    private PaintPath _paintPath = PaintPath.Software;
+    private PaintStats _stats;
+    private bool _reportedImportFailure;
 
     // Logical (DIP) size + device scale CEF renders at; OnPaint returns logical*scale device pixels.
     private int _logicalWidth = 1;
     private int _logicalHeight = 1;
     private float _dpi = 1f;
 
-    public CefWebView(CefRuntimeHost host)
+    public CefWebView(CefRuntimeHost host, IWebViewFrameSink frames, CefWebViewOptions options)
     {
         _host = host;
+        _frames = frames;
+        _options = options;
         _client = new CefWebViewClient(this);
+        _stats = new PaintStats(Stopwatch.GetTimestamp());
     }
 
     public event Action<string>? MessageReceived;
     public event Action<string>? TitleChanged;
     public event Action<string>? UrlChanged;
     public event Action<WebCursor>? CursorChanged;
-    public event Action? FrameReady;
 
     // --- Creation (driven by CefRuntimeHost once CEF is initialised) -----------
 
@@ -54,18 +58,20 @@ internal sealed class CefWebView : IWebView
             return;
         _created = true;
 
+        _paintPath = ChoosePaintPath();
         var windowInfo = CefWindowInfo.Create();
         windowInfo.SetAsWindowless(IntPtr.Zero, transparent: false);
         windowInfo.WindowlessRenderingEnabled = true;
+        windowInfo.SharedTextureEnabled = _paintPath == PaintPath.Accelerated;
 
         var settings = new CefBrowserSettings
         {
-            WindowlessFrameRate = 30,
+            WindowlessFrameRate = _options.FrameRate,
             // Opaque background sidesteps CEF's premultiplied-alpha OnPaint buffer (plan decision 5).
             BackgroundColor = new CefColor(255, 255, 255, 255),
         };
 
-        CefLog.Write($"CreateBrowser url={_initialUrl} logical={_logicalWidth}x{_logicalHeight}");
+        CefLog.Write($"CreateBrowser url={_initialUrl} logical={_logicalWidth}x{_logicalHeight} paint={_paintPath}");
         CefBrowserHost.CreateBrowser(windowInfo, _client, settings, _initialUrl, null, null);
     }
 
@@ -153,20 +159,27 @@ internal sealed class CefWebView : IWebView
         return true;
     }
 
-    private int _paintCount;
+    private PaintPath ChoosePaintPath() =>
+        _options.PaintPath switch
+        {
+            CefPaintPath.Software => PaintPath.Software,
+            CefPaintPath.PreferAccelerated => OperatingSystem.IsWindows() && _frames.AcceptsSharedTextures(SharedTextureKind.D3D11NtHandle)
+                ? PaintPath.Accelerated
+                : PaintPath.Software,
+            _ => throw new ArgumentOutOfRangeException(nameof(_options.PaintPath), _options.PaintPath, null),
+        };
 
     internal unsafe void OnPaint(CefPaintElementType type, IntPtr buffer, int width, int height)
     {
-        if (_paintCount++ < 5) CefLog.Write($"OnPaint #{_paintCount} type={type} {width}x{height}");
-        if (type != CefPaintElementType.View || width <= 0 || height <= 0)
+        if (_disposed || type != CefPaintElementType.View || width <= 0 || height <= 0)
             return; // Popup element (e.g. <select> dropdown) compositing is deferred (plan decision 9).
 
+        var started = Stopwatch.GetTimestamp();
         var needed = width * height * 4;
         if (_pixels.Length < needed)
             _pixels = new byte[needed];
 
-        // CEF hands a top-left-origin BGRA buffer; swizzle to RGBA. CreateOrUpdateRgbaImage flips rows
-        // to the GL/Metal convention internally, so the top-down copy draws right-side up.
+        // CEF hands a top-left-origin BGRA buffer; swizzle to RGBA.
         var src = (byte*)buffer;
         fixed (byte* dstPtr = _pixels)
         {
@@ -180,10 +193,40 @@ internal sealed class CefWebView : IWebView
             }
         }
 
-        _frameWidth = width;
-        _frameHeight = height;
-        _frameDirty = true;
-        FrameReady?.Invoke();
+        _frames.OnPixels(width, height, _pixels.AsSpan(0, needed));
+        RecordPaint(started, "software", width, height);
+    }
+
+    internal void OnAcceleratedPaint(CefPaintElementType type, in CefAcceleratedPaintInfo info)
+    {
+        if (_disposed || type != CefPaintElementType.View)
+            return;
+
+        var started = Stopwatch.GetTimestamp();
+        if (_stats.Total == 0)
+            CefLog.Write($"OnAcceleratedPaint format={info.Format} coded={info.CodedSize.Width}x{info.CodedSize.Height} visible={info.VisibleRect.Width}x{info.VisibleRect.Height}");
+        var imported = _frames.OnSharedTexture(new SharedTexture(SharedTextureKind.D3D11NtHandle, info.SharedTextureHandle));
+        if (!imported && !_reportedImportFailure)
+        {
+            _reportedImportFailure = true;
+            CefLog.Error("the canvas could not import a shared texture; the page will not be shown");
+        }
+        RecordPaint(started, "accelerated", info.VisibleRect.Width, info.VisibleRect.Height);
+    }
+
+    private void RecordPaint(long started, string path, int width, int height)
+    {
+        var now = Stopwatch.GetTimestamp();
+        _stats = _stats.Add(now - started);
+        if (!_options.ReportPaintStats)
+            return;
+        var elapsed = Stopwatch.GetElapsedTime(_stats.WindowStart, now);
+        if (elapsed.TotalSeconds < 1)
+            return;
+        Console.Error.WriteLine(
+            $"[zgf-cef] paints {_stats.InWindow / elapsed.TotalSeconds:F1}/s {path} {width}x{height}, " +
+            $"callback avg {_stats.AverageMs:F3} ms max {_stats.MaxMs:F3} ms");
+        _stats = _stats.StartWindow(now);
     }
 
     internal void RaiseTitle(string title) => TitleChanged?.Invoke(title);
@@ -199,21 +242,6 @@ internal sealed class CefWebView : IWebView
         _logicalWidth = Math.Max(1, (int)MathF.Round(widthPx / _dpi));
         _logicalHeight = Math.Max(1, (int)MathF.Round(heightPx / _dpi));
         _browserHost?.WasResized();
-    }
-
-    public bool TryAcquireFrame(out int widthPx, out int heightPx, out ReadOnlySpan<byte> rgba)
-    {
-        if (!_frameDirty || _frameWidth <= 0 || _frameHeight <= 0)
-        {
-            widthPx = heightPx = 0;
-            rgba = default;
-            return false;
-        }
-        widthPx = _frameWidth;
-        heightPx = _frameHeight;
-        rgba = _pixels.AsSpan(0, _frameWidth * _frameHeight * 4);
-        _frameDirty = false;
-        return true;
     }
 
     // --- IWebView: navigation / scripting --------------------------------------
@@ -283,7 +311,6 @@ internal sealed class CefWebView : IWebView
     {
         if (_disposed) return;
         _disposed = true;
-        FrameReady = null;
         _browserHost?.CloseBrowser(forceClose: true);
     }
 
@@ -343,4 +370,21 @@ internal sealed class CefWebView : IWebView
         CefCursorType.None => WebCursor.None,
         _ => WebCursor.Default,
     };
+
+    private enum PaintPath
+    {
+        Software,
+        Accelerated,
+    }
+
+    private readonly record struct PaintStats(long WindowStart, long InWindow = 0, long Total = 0, long TicksInWindow = 0, long MaxTicks = 0)
+    {
+        public double AverageMs => InWindow == 0 ? 0 : TicksInWindow * 1000.0 / Stopwatch.Frequency / InWindow;
+        public double MaxMs => MaxTicks * 1000.0 / Stopwatch.Frequency;
+
+        public PaintStats Add(long ticks) =>
+            this with { InWindow = InWindow + 1, Total = Total + 1, TicksInWindow = TicksInWindow + ticks, MaxTicks = Math.Max(MaxTicks, ticks) };
+
+        public PaintStats StartWindow(long now) => this with { WindowStart = now, InWindow = 0, TicksInWindow = 0, MaxTicks = 0 };
+    }
 }

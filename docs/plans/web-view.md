@@ -1,6 +1,6 @@
 # Native Web View
 
-Status: **phases 1–3 implemented** (Windows). Drafted 2026-07-21; implemented 2026-07-21.
+Status: **phases 1–3 implemented** (Windows), plus a GPU shared-texture spike. Drafted 2026-07-21; implemented 2026-07-21.
 
 ## Implementation status
 
@@ -37,8 +37,24 @@ system — a deliberate refinement of the "widget in core" table row below); all
   helper as transitive copy-local content (zero csproj work for consuming apps — verified).
 
 Not yet done: IME/preedit, in-page clipboard shortcuts, `PET_POPUP` (`<select>` dropdowns),
-transparent pages, DevTools, Linux/macOS packaging, and the accelerated shared-texture path
-(phases 4–7).
+transparent pages, DevTools, Linux/macOS packaging.
+
+### Since then (spike, 2026-10-29)
+
+- **Binding:** `CefGlue.Common` (Chromium 120) is replaced by our own CEF 150 binding, vendored at
+  `CefGlue/` (`Xilium.CefGlue` project, generator, `CEF_VERSION`, `fetch-cef.ps1`; history in
+  `CefGlue/PLAN.md`). The payload is fetched into `CefGlue/cef/` (gitignored) and staged by
+  `ZGF.WebView.Cef.targets`.
+- **Renderer crash fixed:** the `STATUS_STACK_BUFFER_OVERRUN` renderer deaths were CET shadow-stack
+  faults (fastfail 0x39): the .NET apphost is CET-compatible by default and V8 rewrites return
+  addresses. Chromium's sandbox turns CET off for renderers, but we run without it, so the helper sets
+  `CetCompat=false`. Games that crashed every load now run.
+- **GPU path (phase 7, Windows/OpenGL):** frames arrive as `OnAcceleratedPaint` D3D11 shared textures.
+  `IWebView` pushes frames to an `IWebViewFrameSink` (pixels or a `SharedTexture`); the canvas imports a
+  `SharedTexture` with `ICanvas.CreateOrUpdateSharedTextureImage`, which on the GL backend opens the
+  handle on a D3D11 device on the GL adapter and copies it into a texture registered with GL through
+  `WGL_NV_DX_interop2` (`ZGF.Gui.OpenGL/Windows/`). It draws through the normal image path with flipped
+  UVs. `CefPaintPath.Software` (or a canvas without support) falls back to `OnPaint`.
 
 Embeds a fully-interactive native web view into ZGF, rendered **off-screen into a texture**
 and drawn through the ordinary `ICanvas` image path so it composes with the rest of the UI

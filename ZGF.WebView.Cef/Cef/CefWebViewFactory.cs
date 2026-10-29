@@ -7,15 +7,17 @@ namespace ZGF.WebView.Cef;
 internal sealed class CefWebViewFactory : IWebViewFactory
 {
     private readonly CefRuntimeHost _host;
+    private readonly CefWebViewOptions _options;
 
-    public CefWebViewFactory(CefRuntimeHost host)
+    public CefWebViewFactory(CefRuntimeHost host, CefWebViewOptions options)
     {
         _host = host;
+        _options = options;
     }
 
-    public IWebView Create()
+    public IWebView Create(IWebViewFrameSink frames)
     {
-        var webView = new CefWebView(_host);
+        var webView = new CefWebView(_host, frames, _options);
         _host.RegisterWebView(webView);
         return webView;
     }

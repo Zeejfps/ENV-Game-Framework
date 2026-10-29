@@ -5,27 +5,14 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <!-- The one and only thing that drags in Chromium. No common ZGF project references this
-         project, so an app that never adds it pays zero Chromium bytes / zero build cost.
-         CEF 150 cutover: bound to our own regenerated binding (Cef150Binding/ZgfCef.Interop,
-         assembly Xilium.CefGlue) instead of CefGlue.Common (Chromium 120). Same core API surface,
-         so CefWebView/CefWebViewClient compile with only the ~2 CEF-150 handler-signature deltas.
-         The 150 native payload no longer comes from a runtime NuGet, so the .targets below stages
-         it (libcef + *.pak + locales) next to the app the way CefGlue.Common used to. -->
+    <!-- The only project that drags in Chromium; no common ZGF project references it. -->
     <ItemGroup>
-        <ProjectReference Include="..\..\Cef150Binding\ZgfCef.Interop\ZgfCef.Interop.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
+        <ProjectReference Include="..\CefGlue\Xilium.CefGlue\Xilium.CefGlue.csproj" />
         <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
         <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
         <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
     </ItemGroup>
 
-    <!-- Builds the zgf-cef-helper subprocess exe and stages it as transitive copy-local content
-         under cef-helper/, so any app that references this project gets the helper in its own
-         bin/.../cef-helper/ with no csproj work of its own. Kept in build/ (Pack'd) so a future
-         NuGet publish auto-imports the same logic. See the file for the cycle-free design. -->
     <Import Project="build\ZGF.WebView.Cef.targets" />
 
     <ItemGroup>

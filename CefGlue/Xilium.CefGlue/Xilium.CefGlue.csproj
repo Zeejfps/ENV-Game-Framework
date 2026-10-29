@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Fork of CefGlue's core managed binding (Xilium.CefGlue), regenerated for
+       CEF 150 by ../generator (see that folder's README). The assembly name is
+       kept as Xilium.CefGlue so the existing ZGF.WebView.Cef sources and our
+       harness bind against the same public API surface — the eventual ZGF swap
+       is a package/reference swap, not a rewrite. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Xilium.CefGlue</AssemblyName>
+    <RootNamespace>Xilium.CefGlue</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- CS1591: missing XML doc on generated interop; NU-style irrelevant here. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Wrapper/** (the CEF C++ wrapper) is not vendored; nothing else to remove.
+       A single upstream-disabled source is kept out of the compile. -->
+  <ItemGroup>
+    <Compile Remove="Interop\Base\cef_string_t.disabled.cs" />
+    <None Include="Interop\Base\cef_string_t.disabled.cs" />
+  </ItemGroup>
+
+</Project>

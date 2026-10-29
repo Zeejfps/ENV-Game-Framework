@@ -97,6 +97,17 @@ public interface ICanvas
     /// </summary>
     bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => false;
 
+    /// <summary>Whether <see cref="CreateOrUpdateSharedTextureImage"/> can import textures of
+    /// <paramref name="kind"/> on this canvas.</summary>
+    bool SupportsSharedTextures(SharedTextureKind kind) => false;
+
+    /// <summary>
+    /// Creates the image under <paramref name="imageId"/>, or replaces its contents (and size) if it
+    /// already exists, by copying <paramref name="texture"/> on the GPU. The texture is only read during
+    /// the call. Returns false when the canvas cannot import it.
+    /// </summary>
+    bool CreateOrUpdateSharedTextureImage(string imageId, in SharedTexture texture) => false;
+
     bool HasImage(string imageId) => false;
 
     void RemoveImage(string imageId) { }

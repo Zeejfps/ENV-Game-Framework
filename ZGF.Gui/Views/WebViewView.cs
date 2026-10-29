@@ -5,8 +5,8 @@ namespace ZGF.Gui.Views;
 /// <summary>
 /// Draws an off-screen web view as a texture through the ordinary <see cref="ICanvas"/> image path, so
 /// it composes with clipping, opacity, scale, z-order and scroll panes exactly like an
-/// <see cref="ImageView"/>. Engine-agnostic: it owns an <see cref="IWebView"/> (or none) and knows
-/// nothing about CEF. When no <see cref="IWebViewFactory"/> is registered the view is null and a
+/// <see cref="ImageView"/>. Engine-agnostic: it creates its <see cref="IWebView"/> from an
+/// <see cref="IWebViewFactory"/> and knows nothing about CEF. With no factory the view is null and a
 /// placeholder is drawn instead of crashing.
 /// <para>Input forwarding and cursor/focus wiring live in the desktop <c>WebView</c> widget's
 /// controller; this view is purely the renderer.</para>
@@ -22,12 +22,14 @@ public sealed class WebViewView : View
     private int _lastDeviceHeight;
     private bool _uploaded;
 
-    public WebViewView(ICanvas canvas, IWebView? webView)
+    public WebViewView(ICanvas canvas, IWebViewFactory? factory)
     {
         _canvas = canvas;
+        if (factory == null)
+            return;
+        var webView = factory.Create(new FrameSink(this));
         WebView = webView;
-        if (webView != null)
-            Behaviors.Add(new SurfaceBehavior(this, webView));
+        Behaviors.Add(new LifetimeBehavior(this, webView));
     }
 
     /// <summary>The underlying web view, or null when no engine is registered. The desktop widget's
@@ -61,14 +63,6 @@ public sealed class WebViewView : View
             WebView.Resize(deviceWidth, deviceHeight, dpi);
         }
 
-        // CEF paints a top-down BGRA buffer we swizzle to RGBA; CreateOrUpdateRgbaImage flips it to the
-        // GL/Metal bottom-up convention internally, so it draws right-side up at the logical Position.
-        if (WebView.TryAcquireFrame(out var w, out var h, out var rgba) && w > 0 && h > 0)
-        {
-            c.CreateOrUpdateRgbaImage(_imageId, w, h, rgba);
-            _uploaded = true;
-        }
-
         if (!_uploaded)
         {
             DrawPlaceholder(c);
@@ -98,22 +92,37 @@ public sealed class WebViewView : View
         });
     }
 
-    // Called by the behavior when the engine reports a fresh frame — schedule a repaint. A layout
-    // invalidation here is cheap (the box size hasn't changed, so measures return cached values) and is
-    // the seam a View subclass has for "please repaint me".
-    private void NotifyFrameReady() => SetDirty();
-
-    // Bridges the view's mounted lifetime to the web view: subscribes to frame notifications while
-    // mounted, removes the uploaded texture and disposes the engine browser on unmount.
-    private sealed class SurfaceBehavior(WebViewView view, IWebView webView) : IViewBehavior
+    private void OnFrameUploaded(bool uploaded)
     {
-        public void Attach(View _) => webView.FrameReady += view.NotifyFrameReady;
+        if (!uploaded)
+            return;
+        _uploaded = true;
+        MarkVisualDirty();
+    }
+
+    private sealed class FrameSink(WebViewView view) : IWebViewFrameSink
+    {
+        public bool AcceptsSharedTextures(SharedTextureKind kind) => view._canvas.SupportsSharedTextures(kind);
+
+        public void OnPixels(int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) =>
+            view.OnFrameUploaded(view._canvas.CreateOrUpdateRgbaImage(view._imageId, widthPx, heightPx, rgbaTopDown));
+
+        public bool OnSharedTexture(in SharedTexture texture)
+        {
+            var uploaded = view._canvas.CreateOrUpdateSharedTextureImage(view._imageId, texture);
+            view.OnFrameUploaded(uploaded);
+            return uploaded;
+        }
+    }
+
+    private sealed class LifetimeBehavior(WebViewView view, IWebView webView) : IViewBehavior
+    {
+        public void Attach(View _) { }
 
         public void Detach(View _)
         {
-            webView.FrameReady -= view.NotifyFrameReady;
-            view._canvas.RemoveImage(view._imageId);
             webView.Dispose();
+            view._canvas.RemoveImage(view._imageId);
         }
     }
 }

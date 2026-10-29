@@ -1,0 +1,186 @@
+diff --git a/CefGlue.Interop.Gen/cef_parser.py b/CefGlue.Interop.Gen/cef_parser.py
+index bb29bf4..76cb47b 100644
+--- a/CefGlue.Interop.Gen/cef_parser.py
++++ b/CefGlue.Interop.Gen/cef_parser.py
+@@ -19,6 +19,94 @@ def notify(msg):
+   sys.stdout.write('  NOTE: ' + msg + '\n')
+ 
+ 
++# --- CEF API-version awareness (added for CEF >= 127) -----------------------
++#
++# CEF 127+ gates C++/C-API members behind #if CEF_API_ADDED(v) / CEF_API_REMOVED(v)
++# and keys the binary ABI to a single CEF_API_VERSION. The prebuilt libcef.dll
++# supports [CEF_API_VERSION_MIN .. CEF_API_VERSION_LAST]; to produce a byte-exact
++# vtable/struct layout we must resolve these gates against ONE pinned version
++# rather than blindly including every member (the pre-127 generator did the latter,
++# which would pull in EXPERIMENTAL members the release DLL does not expose).
++#
++# We pin CEF_API_VERSION_LAST (overridable via the CEF_API_VERSION env var). This
++# runs before any member extraction, so gated-out members never reach the vtable.
++CEF_EXPERIMENTAL = 999999
++CEF_API_VERSION_NEXT = 999998
++CEF_TARGET_API_VERSION = int(os.environ.get('CEF_API_VERSION', '15000'))
++
++_cef_gate_re = re.compile(r'^[ \t]*#if[ \t]+CEF_API_(ADDED|REMOVED)\((.*?)\)[ \t]*$')
++_cef_if_re = re.compile(r'^[ \t]*#(if|ifdef|ifndef)\b')
++_cef_else_re = re.compile(r'^[ \t]*#else\b')
++_cef_endif_re = re.compile(r'^[ \t]*#endif\b')
++
++
++def _cef_gate_keep(kind, expr):
++  """ Evaluate CEF_API_ADDED/REMOVED(expr) against the pinned target version.
++      Returns True/False to keep the branch, or None if expr is not understood
++      (leave such directives untouched as ordinary conditionals). """
++  expr = expr.strip()
++  if expr in ('CEF_EXPERIMENTAL', 'CEF_API_VERSION_EXPERIMENTAL'):
++    v = CEF_EXPERIMENTAL
++  elif expr in ('CEF_NEXT', 'CEF_API_VERSION_NEXT'):
++    v = CEF_API_VERSION_NEXT
++  else:
++    try:
++      v = int(expr)
++    except ValueError:
++      return None
++  # ADDED(v): member exists once target >= v.  REMOVED(v): member gone once target >= v.
++  return CEF_TARGET_API_VERSION >= v if kind == 'ADDED' else CEF_TARGET_API_VERSION < v
++
++
++def resolve_api_version(data):
++  """ Minimal C preprocessor that strips members outside the pinned CEF_API_VERSION.
++      Only #if CEF_API_ADDED/REMOVED gates are evaluated; every other directive
++      (include guards, #if defined(OS_*), etc.) is passed through verbatim while
++      nesting depth is tracked so balanced #endif's still match. """
++  out = []
++  # Each frame: {'gate': bool, 'keep': bool}. 'keep' is the branch decision for
++  # gate frames (True for non-gate frames, which are pure passthrough).
++  stack = []
++
++  def emitting():
++    return all(f['keep'] for f in stack)
++
++  for line in data.split('\n'):
++    m = _cef_gate_re.match(line)
++    if m:
++      keep = _cef_gate_keep(m.group(1), m.group(2))
++      if keep is None:
++        # Unrecognised expr: treat as an ordinary conditional (passthrough).
++        parent = emitting()
++        stack.append({'gate': False, 'keep': True})
++        if parent:
++          out.append(line)
++      else:
++        # Gate directive itself is dropped; body kept only if in-range.
++        stack.append({'gate': True, 'keep': keep})
++      continue
++    if _cef_if_re.match(line):
++      parent = emitting()
++      stack.append({'gate': False, 'keep': True})
++      if parent:
++        out.append(line)
++      continue
++    if _cef_endif_re.match(line):
++      frame = stack.pop() if stack else {'gate': False, 'keep': True}
++      if not frame['gate'] and emitting():
++        out.append(line)
++      continue
++    if _cef_else_re.match(line):
++      if stack and stack[-1]['gate']:
++        stack[-1]['keep'] = not stack[-1]['keep']
++      elif emitting():
++        out.append(line)
++      continue
++    if emitting():
++      out.append(line)
++  return '\n'.join(out)
++
++
+ def wrap_text(text, indent='', maxchars=80):
+   """ Wrap the text to the specified number of characters. If
+     necessary a line will be broken and wrapped after a word.
+@@ -583,6 +671,10 @@ class obj_header:
+ 
+     added = False
+ 
++    # Resolve CEF_API_ADDED/REMOVED gates against the pinned CEF_API_VERSION so
++    # the generated vtables match the release DLL's ABI (see resolve_api_version).
++    data = resolve_api_version(data)
++
+     # remove space from between template definition end brackets
+     data = data.replace("> >", ">>")
+ 
+diff --git a/CefGlue.Interop.Gen/make_interop.py b/CefGlue.Interop.Gen/make_interop.py
+index 021fdf5..6a01392 100644
+--- a/CefGlue.Interop.Gen/make_interop.py
++++ b/CefGlue.Interop.Gen/make_interop.py
+@@ -803,7 +803,7 @@ def append_xmldoc(result, lines):
+     return
+ 
+ 
+-def make_version_cs(content, api_hash_content):
++def make_version_cs(content, api_versions_content):
+     result = []
+ 
+     result.append('public const string CEF_VERSION = %s;' % __get_version_constant(content, "CEF_VERSION"))
+@@ -818,11 +818,24 @@ def make_version_cs(content, api_hash_content):
+     result.append('public const int CHROME_VERSION_PATCH = %s;' % __get_version_constant(content, "CHROME_VERSION_PATCH"))
+     result.append("");
+ 
+-    result.append('public const string CEF_API_HASH_UNIVERSAL = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_UNIVERSAL"))
++    # CEF 127+ keys the ABI to CEF_API_VERSION. We pin the version the parser
++    # resolved gates against and read that version's platform hashes from
++    # cef_api_versions.h (the old single CEF_API_HASH_UNIVERSAL #define is gone).
++    # CEF_API_HASH_UNIVERSAL is deprecated and equals the platform hash.
++    import cef_parser
++    api_version = cef_parser.CEF_TARGET_API_VERSION
++    hash_name = "CEF_API_HASH_%d" % api_version
++    win_hash = __get_version_constant(api_versions_content, hash_name, "WIN")
++    mac_hash = __get_version_constant(api_versions_content, hash_name, "MAC")
++    linux_hash = __get_version_constant(api_versions_content, hash_name, "LINUX")
++
++    result.append('public const int CEF_API_VERSION = %d;' % api_version)
+     result.append("");
+-    result.append('public const string CEF_API_HASH_PLATFORM_WIN = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_PLATFORM", "WIN"))
+-    result.append('public const string CEF_API_HASH_PLATFORM_MACOS = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_PLATFORM", "MAC"))
+-    result.append('public const string CEF_API_HASH_PLATFORM_LINUX = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_PLATFORM", "LINUX"))
++    result.append('public const string CEF_API_HASH_UNIVERSAL = %s;' % win_hash)
++    result.append("");
++    result.append('public const string CEF_API_HASH_PLATFORM_WIN = %s;' % win_hash)
++    result.append('public const string CEF_API_HASH_PLATFORM_MACOS = %s;' % mac_hash)
++    result.append('public const string CEF_API_HASH_PLATFORM_LINUX = %s;' % linux_hash)
+ 
+     body = []
+     body.append('using System;')
+@@ -904,8 +917,9 @@ def write_interop(header, filepath, backup, schema_name, cppheaderdir):
+             tmplpath = schema.proxy_tmpl_path
+         writect += update_file(None, './' + tmplpath, schema.cpp2csname(cls.get_name()) + ".tmpl.g.cs", content, backup)
+ 
+-    # process cef_version.h and cef_api_hash.h
+-    content = make_version_cs(read_file(cppheaderdir + '/' + 'cef_version.h'), read_file(cppheaderdir + '/' + 'cef_api_hash.h'),)
++    # process cef_version.h and cef_api_versions.h (CEF 127+ moved the API
++    # hashes out of cef_api_hash.h into per-version defines in cef_api_versions.h)
++    content = make_version_cs(read_file(cppheaderdir + '/' + 'cef_version.h'), read_file(cppheaderdir + '/' + 'cef_api_versions.h'),)
+     writect += update_file(project_props_compile_items, filepath + '/' + schema.libcef_path, schema.libcef_version_filename, content, backup)
+ 
+     # make project props file
+diff --git a/CefGlue.Interop.Gen/schema_cef3.py b/CefGlue.Interop.Gen/schema_cef3.py
+index 5e1fcb4..fab04b7 100644
+--- a/CefGlue.Interop.Gen/schema_cef3.py
++++ b/CefGlue.Interop.Gen/schema_cef3.py
+@@ -6,6 +6,17 @@
+ from schema import *
+ 
+ classdef = {
++    # --- CEF 150 additions (classified by header "allocated client/DLL-side" note:
++    #     client-side => ROLE_HANDLER (we implement), DLL-side => ROLE_PROXY (CEF implements)) ---
++    'CefComponent': { 'role': ROLE_PROXY },
++    'CefComponentUpdateCallback': { 'role': ROLE_HANDLER },
++    'CefComponentUpdater': { 'role': ROLE_PROXY },
++    'CefPreferenceObserver': { 'role': ROLE_HANDLER },
++    'CefSettingObserver': { 'role': ROLE_HANDLER },
++    'CefTaskManager': { 'role': ROLE_PROXY },
++    'CefUnresponsiveProcessCallback': { 'role': ROLE_PROXY },
++    'CefV8BackingStore': { 'role': ROLE_PROXY },
++
+     'CefUserData': { 'role': ROLE_HANDLER, 'reversible': True },
+ 
+     'CefApp': { 'role': ROLE_HANDLER, 'name': 'CefApp' },

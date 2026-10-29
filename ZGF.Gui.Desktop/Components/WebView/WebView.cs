@@ -34,8 +34,8 @@ public sealed record WebView : Widget
 
     protected override View CreateView(Context ctx)
     {
-        var factory = ctx.Get<IWebViewFactory>();   // null-tolerant, like IClipboard
-        var webView = factory?.Create();
+        var view = new WebViewView(ctx.Canvas, ctx.Get<IWebViewFactory>());
+        var webView = view.WebView;
 
         if (webView != null)
         {
@@ -47,8 +47,6 @@ public sealed record WebView : Widget
             else if (!string.IsNullOrEmpty(Url))
                 webView.Navigate(Url);
         }
-
-        var view = new WebViewView(ctx.Canvas, webView);
 
         // Input, focus and cursor need the desktop input system, so — like TextInput — the
         // interactive widget lives here in ZGF.Gui.Desktop rather than in core. The controller forwards

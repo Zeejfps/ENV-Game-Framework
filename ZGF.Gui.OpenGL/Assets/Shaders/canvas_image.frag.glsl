@@ -43,7 +43,8 @@ void main() {
         if (coverage <= 0.0) discard;
     }
 
-    vec2 uv = clamp(v_uv, v_srcUV.xy, v_srcUV.xy + v_srcUV.zw);
+    vec2 uvEnd = v_srcUV.xy + v_srcUV.zw;
+    vec2 uv = clamp(v_uv, min(v_srcUV.xy, uvEnd), max(v_srcUV.xy, uvEnd));
     vec4 sample0 = texture(u_texture, uv);
     vec4 tint = unpackARGB(v_tint);
     f_Color = sample0 * tint * vec4(1.0, 1.0, 1.0, coverage);

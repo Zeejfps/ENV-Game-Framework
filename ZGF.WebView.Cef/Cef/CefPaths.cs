@@ -4,10 +4,9 @@ namespace ZGF.WebView.Cef;
 
 /// <summary>
 /// Locates the CEF native payload and the <c>zgf-cef-helper</c> subprocess relative to the running
-/// app. The CefGlue runtime packages copy <c>libcef</c> + the <c>.pak</c> resources into the app root
-/// on Windows (and under <c>runtimes/&lt;rid&gt;/native</c> otherwise), and the web-view targets stage
-/// the helper into <c>cef-helper/</c>. Keeping this resolution behind one type is also the seam where a
-/// future "download CEF on first run" would slot in (plan decision 3) without touching call sites.
+/// app. <c>ZGF.WebView.Cef.targets</c> stages <c>libcef</c> and the <c>.pak</c> resources into the app
+/// root and the helper into <c>cef-helper/</c>. Keeping this resolution behind one type is also the seam
+/// where a future "download CEF on first run" would slot in (plan decision 3) without touching call sites.
 /// </summary>
 internal static class CefPaths
 {
