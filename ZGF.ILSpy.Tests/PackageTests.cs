@@ -399,7 +399,7 @@ public sealed class PackageTests
 
     private static PackageFolder FolderOf(BrowseNode node) => Assert.IsType<PackageFolderPlace>(node.FolderInPackage).Folder;
 
-    private static string WritePackage(TempDir temp)
+    internal static string WritePackage(TempDir temp)
     {
         var path = temp.Write("Sample.1.0.0.nupkg", []);
         using var archive = ZipFile.Open(path, ZipArchiveMode.Update);

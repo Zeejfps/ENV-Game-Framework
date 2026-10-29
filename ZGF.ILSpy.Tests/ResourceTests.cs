@@ -214,6 +214,32 @@ public sealed class ResourceTests
         Assert.Contains(("root", SpanKind.Keyword), file.Child("Notes.xml").Decompile(DecompilationLanguage.CSharp).SpansOf().Select(s => (s.Text, s.Span.Kind)));
     }
 
+    [Fact]
+    public void A_resources_file_is_its_bytes_its_entries_and_a_grid_at_once()
+    {
+        var file = Resources(Trees.TestAssembly).Child("Mixed.resources");
+
+        Assert.True(file.HasResource);
+        Assert.Equal(Fixture("Mixed.resources"), file.ReadResource());
+        Assert.Equal("Mixed.resources", file.ResourceFileName);
+        Assert.True(file.HasChildren);
+        Assert.IsType<GridContent>(file.Content(DecompilationLanguage.IL));
+        Assert.False(file.DependsOnLanguage);
+        Assert.Null(file.FolderInPackage);
+    }
+
+    [Fact]
+    public void Baml_shows_as_xaml_whatever_the_language()
+    {
+        var baml = MainWindowBaml();
+
+        var document = Assert.IsType<DocumentContent>(baml.Content(DecompilationLanguage.IL)).Document;
+
+        Assert.Equal(NodeKind.Resource, baml.Kind);
+        Assert.True(baml.DependsOnLanguage);
+        Assert.Contains("x:Class=\"SampleApp.MainWindow\"", document.GetText());
+    }
+
     private static BrowseNode MainWindowBaml()
     {
         var assembly = new AssemblyList().Open(Trees.SampleAppPath);

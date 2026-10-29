@@ -105,7 +105,7 @@ public sealed class BundleTests
 
     private static PackageFolder FolderOf(BrowseNode node) => Assert.IsType<PackageFolderPlace>(node.FolderInPackage).Folder;
 
-    private static string WriteBundle(TempDir temp)
+    internal static string WriteBundle(TempDir temp)
     {
         return WriteBundle(temp,
             ("ZGF.ILSpy.Tests.dll", File.ReadAllBytes(Trees.TestAssemblyPath), true, 0),

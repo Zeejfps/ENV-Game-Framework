@@ -85,6 +85,37 @@ public sealed class ExportTests : IDisposable
     }
 
     [Fact]
+    public void An_assembly_shows_its_attributes_alone_but_saves_its_whole_module_in_CSharp()
+    {
+        var root = Trees.TestAssembly.Root;
+        var path = _temp.PathOf("Tests.cs");
+
+        root.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
+
+        var shown = root.Decompile(DecompilationLanguage.CSharp).GetText();
+        var saved = File.ReadAllText(path);
+        Assert.Contains("[assembly: AssemblyProduct(\"ZGF.ILSpy.Tests\")]", shown);
+        Assert.DoesNotContain("class Calculator<T>", shown);
+        Assert.Contains("[assembly: AssemblyProduct(\"ZGF.ILSpy.Tests\")]", saved);
+        Assert.Contains("public class Calculator<T>", saved);
+    }
+
+    [Fact]
+    public void A_namespace_shows_its_types_declarations_but_saves_their_code()
+    {
+        var fixtures = Trees.TestAssembly.Fixtures();
+        var path = _temp.PathOf("Fixtures.cs");
+
+        fixtures.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
+
+        var shown = fixtures.Decompile(DecompilationLanguage.CSharp).GetText();
+        var saved = File.ReadAllText(path);
+        Assert.Contains("internal sealed class Circle", shown);
+        Assert.DoesNotContain("double grown = Radius;", shown);
+        Assert.Contains("double grown = Radius;", saved);
+    }
+
+    [Fact]
     public void Code_files_are_offered_under_the_node_name_with_the_language_extension()
     {
         var calculator = Trees.TestAssembly.Calculator();

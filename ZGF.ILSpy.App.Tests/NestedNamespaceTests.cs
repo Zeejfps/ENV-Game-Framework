@@ -72,6 +72,30 @@ public sealed class NestedNamespaceTests
     }
 
     [Fact]
+    public void Showing_public_api_a_namespace_of_internal_types_is_hidden_unless_a_namespace_nested_in_it_shows()
+    {
+        var tree = new BrowseTree();
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
+        var fixtures = root.Child(AppStateDriver.FixturesNamespace);
+        var vault = root.Child(AppStateDriver.FixturesNamespace + ".Vault");
+        var door = root.Child(AppStateDriver.FixturesNamespace + ".Vault.Door");
+        fixtures.LoadChildren();
+        vault.LoadChildren();
+        tree.ShowApi(ApiVisibility.PublicOnly);
+
+        Assert.DoesNotContain(vault, tree.GetChildren(root));
+        Assert.Contains(door, tree.GetChildren(root));
+
+        tree.NestNamespaces(true);
+        Assert.Contains(vault, tree.GetChildren(fixtures));
+        Assert.Equal([door], tree.GetChildren(vault));
+
+        tree.NestNamespaces(false);
+        tree.ShowApi(ApiVisibility.AllButCompilerGenerated);
+        Assert.Contains(vault, tree.GetChildren(root));
+    }
+
+    [Fact]
     public void Switching_the_tree_to_nested_namespaces_keeps_the_selected_node_in_view()
     {
         var app = AppDriver.Opened();

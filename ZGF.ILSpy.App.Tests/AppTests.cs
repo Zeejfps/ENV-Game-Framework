@@ -26,7 +26,7 @@ public sealed class AppTests
 
     private static AppDriver ExpandedTree(string until)
     {
-        var app = AppDriver.Opened();
+        var app = AppDriver.Opened(height: 800f);
         var view = app.Ui.Tree.View;
         view.SetExpanded(app.Node(), true);
         view.SetExpanded(app.Node(AppStateDriver.FixturesNamespace), true);

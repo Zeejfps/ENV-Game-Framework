@@ -165,6 +165,33 @@ public sealed class BrowseTreeTests
     }
 
     [Fact]
+    public void A_node_found_by_its_entity_is_the_one_its_parent_lists_whichever_thread_builds_it_first()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var reference = Assert.IsType<CodeReference>(Trees.TestAssembly.Calculator().Child("Add(T) : void").Reference);
+
+        var nodes = Enumerable.Range(0, 16)
+            .AsParallel()
+            .WithDegreeOfParallelism(8)
+            .Select(i => i % 2 == 0 ? list.FindNode(reference) : assembly.Calculator().Child("Add(T) : void"))
+            .ToArray();
+
+        Assert.All(nodes, n => Assert.Same(nodes[0], n));
+        Assert.Same(assembly.Calculator(), Assert.IsAssignableFrom<BrowseNode>(nodes[0]).Parent);
+    }
+
+    [Fact]
+    public void A_path_in_the_list_that_holds_its_node_finds_that_very_node()
+    {
+        var (list, assembly) = Trees.OpenTestAssembly();
+        var add = assembly.Calculator().Child("Add(T) : void");
+
+        Assert.Same(add, list.FindNode(add.Path));
+        Assert.Same(add, list.FindListedNode(add.Path));
+        Assert.Same(assembly.Root, list.FindNode(assembly.Root.Path));
+    }
+
+    [Fact]
     public void Entity_nodes_carry_a_reference_to_themselves()
     {
         var (list, assembly) = Trees.OpenTestAssembly();
