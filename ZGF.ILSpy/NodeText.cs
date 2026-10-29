@@ -21,7 +21,12 @@ public static class NodeText
     private static readonly ConditionalWeakTable<LoadedAssembly, string> AssemblyLabels = new();
 
     /// <summary>The node's own name: an assembly's simple name, any other node's label.</summary>
-    public static string Name(BrowseNode node) => node.Kind == NodeKind.Assembly ? node.Assembly.Name : node.Text;
+    public static string Name(BrowseNode node)
+    {
+        if (node.Subject is NodeSubject.Module module)
+            return module.Value.Name;
+        return node.Text;
+    }
 
     /// <summary>A namespace's name as its row shows it nested in another: its last segment, e.g.
     /// <c>Generic</c> for <c>System.Collections.Generic</c>.</summary>
@@ -36,29 +41,39 @@ public static class NodeText
     /// when one was picked, the assembly a forwarded type is forwarded to, e.g. <c>→ System.Runtime</c>,
     /// the namespace of a type used from a reference, or the type declaring a method imported from a
     /// module. Null for other nodes.</summary>
-    public static string? Secondary(BrowseNode node)
+    public static string? Secondary(BrowseNode node) => node.Subject switch
     {
-        if (node.Kind == NodeKind.ForwardedType)
-            return Secondaries.GetValue(node, WriteForwardedTo);
-        if (node.Kind == NodeKind.TypeReference)
-            return UsedNamespace(node);
-        if (node.Kind == NodeKind.ImportedMethod)
-            return node.DeclaringTypeName;
-        if (node.Kind != NodeKind.Assembly)
-            return null;
-        var identity = Secondaries.GetValue(node, static n => n.Assembly is LoadedModule assembly ? Identity(assembly) : "");
-        if (identity.Length == 0)
-            return null;
-        return identity;
+        NodeSubject.ForwardedType => Secondaries.GetValue(node, WriteForwardedTo),
+        NodeSubject.TypeReference type => EmptyToNull(type.Value.Namespace),
+        NodeSubject.ImportedMethod import => import.Value.DeclaringTypeName,
+        NodeSubject.Module => EmptyToNull(Secondaries.GetValue(node, WriteIdentity)),
+        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.References or NodeSubject.AssemblyReference
+            or NodeSubject.ReferencedTypes or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.BaseTypes
+            or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources or NodeSubject.ResourceContainer
+            or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable or NodeSubject.Package
+            or NodeSubject.PackageFile or NodeSubject.Namespace or NodeSubject.FailedAssembly => null,
+        _ => throw new UnreachableException(),
+    };
+
+    private static string WriteForwardedTo(BrowseNode node)
+    {
+        if (node.Subject is not NodeSubject.ForwardedType forwarded)
+            throw new UnreachableException();
+        return ForwardedToPrefix + forwarded.Value.Destination;
     }
 
-    private static string WriteForwardedTo(BrowseNode node) => ForwardedToPrefix + node.ForwardedTo;
-
-    private static string? UsedNamespace(BrowseNode node)
+    private static string WriteIdentity(BrowseNode node)
     {
-        if (string.IsNullOrEmpty(node.Namespace))
+        if (node.Subject is not NodeSubject.Module module)
+            throw new UnreachableException();
+        return Identity(module.Value);
+    }
+
+    private static string? EmptyToNull(string text)
+    {
+        if (text.Length == 0)
             return null;
-        return node.Namespace;
+        return text;
     }
 
     /// <summary>The framework picked for an assembly to resolve its references against, as a moniker,
@@ -66,11 +81,11 @@ public static class NodeText
     /// assembly that resolves against the framework it was built for.</summary>
     public static string? PickedFramework(BrowseNode node)
     {
-        if (node.Kind != NodeKind.Assembly)
+        if (node.Subject is not NodeSubject.Module module)
             return null;
-        if (node.Assembly is not LoadedModule { IsTargetFrameworkPicked: true } assembly)
+        if (!module.Value.IsTargetFrameworkPicked)
             return null;
-        return assembly.FrameworkMoniker;
+        return module.Value.FrameworkMoniker;
     }
 
     /// <summary>An assembly as a column of results names it: its name and version, and for one read out
@@ -118,10 +133,13 @@ public static class NodeText
 
     private static string Describe(BrowseNode node)
     {
-        if (node.Kind == NodeKind.Assembly && node.Assembly is LoadedModule assembly)
+        if (node.Subject is NodeSubject.Module module)
+        {
+            var assembly = module.Value;
             return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath.Text }.OfType<string>());
-        if (node.Kind == NodeKind.FailedAssembly && node.Assembly is FailedAssembly failed)
-            return failed.Error.Message;
+        }
+        if (node.Subject is NodeSubject.FailedAssembly failed)
+            return failed.Value.Error.Message;
         var name = node.FullName;
         var accessibility = Accessibility(node.Accessibility);
         return accessibility != null ? $"{name}\n{accessibility}" : name;

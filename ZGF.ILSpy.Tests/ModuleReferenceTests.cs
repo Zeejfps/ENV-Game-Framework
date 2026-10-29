@@ -66,7 +66,7 @@ public sealed class ModuleReferenceTests
         var answer = assembly.Root.Child("References", "fixture-native").Child("Answer() : int");
 
         Assert.Equal(NodeKind.ImportedMethod, answer.Kind);
-        Assert.Equal("ZGF.ILSpy.Tests.Fixtures.NativeImports", answer.DeclaringTypeName);
+        Assert.Equal("ZGF.ILSpy.Tests.Fixtures.NativeImports", Assert.IsType<NodeSubject.ImportedMethod>(answer.Subject).Value.DeclaringTypeName);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class ModuleReferenceTests
         var definition = list.FindNode(collect.Destination)!;
 
         Assert.DoesNotContain(qcall.Children, i => i.Text.Contains(">g__", StringComparison.Ordinal));
-        Assert.Equal("System.GC", collect.DeclaringTypeName);
+        Assert.Equal("System.GC", Assert.IsType<NodeSubject.ImportedMethod>(collect.Subject).Value.DeclaringTypeName);
         Assert.StartsWith("_Collect(", definition.Text, StringComparison.Ordinal);
         Assert.Equal(NodeKind.Method, definition.Kind);
     }

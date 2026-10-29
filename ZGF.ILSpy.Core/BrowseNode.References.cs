@@ -59,10 +59,10 @@ public sealed partial class BrowseNode
         var metadata = module.File.Metadata;
         var handle = reference.Reference.Handle;
         var used = usage.TypesIn(handle)
-            .Select(h => UsedType(module, h))
-            .OrderBy(n => n.Namespace, NaturalStringComparer.Instance)
-            .ThenBy(n => n.Text, NaturalStringComparer.Instance)
-            .Cast<BrowseNode>();
+            .Select(h => UsedTypeInfo(module, h))
+            .OrderBy(i => i.Namespace, NaturalStringComparer.Instance)
+            .ThenBy(i => i.Label, NaturalStringComparer.Instance)
+            .Select(i => new BrowseNode(this, new NodeSubject.TypeReference(i)));
         var forwarded = usage.ForwardedTo(handle)
             .Select(h => ForwardedTypes.Read(metadata, h))
             .OrderBy(f => f.Namespace, NaturalStringComparer.Instance)
@@ -78,7 +78,11 @@ public sealed partial class BrowseNode
         new(parent, new NodeSubject.ForwardedType(new ForwardedTypeInfo(module, type)));
 
     /// <summary>The node of the type <paramref name="handle"/> names, used from a reference, under this node.</summary>
-    private BrowseNode UsedType(LoadedModule module, TypeReferenceHandle handle)
+    private BrowseNode UsedType(LoadedModule module, TypeReferenceHandle handle) =>
+        new(this, new NodeSubject.TypeReference(UsedTypeInfo(module, handle)));
+
+    /// <summary>The type <paramref name="handle"/> names, used from a reference, as listed under this node.</summary>
+    private TypeReferenceInfo UsedTypeInfo(LoadedModule module, TypeReferenceHandle handle)
     {
         var metadata = module.File.Metadata;
         var reference = metadata.GetTypeReference(handle);
@@ -86,8 +90,7 @@ public sealed partial class BrowseNode
         var bare = ReflectionHelper.SplitTypeParameterCountFromReflectionName(name, out var arity);
         var label = ForwardedTypes.LabelOf(bare, arity);
         var ns = metadata.GetString(reference.Namespace);
-        var info = new TypeReferenceInfo(module, handle, ns, label, QualifiedName(ns, label));
-        return new BrowseNode(this, new NodeSubject.TypeReference(info));
+        return new TypeReferenceInfo(module, handle, ns, label, QualifiedName(ns, label));
     }
 
     /// <summary>The full name of a type labelled <paramref name="label"/> listed under this node: after the

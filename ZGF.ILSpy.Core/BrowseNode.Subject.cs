@@ -22,17 +22,10 @@ public sealed partial class BrowseNode
             case NodeSubject.MemberDefinition member:
                 (Accessibility, IsPublicApi, IsCompilerGenerated) = DescribeDefinition(parent, member.Definition.Symbol);
                 break;
-            case NodeSubject.TypeReference type:
-                Namespace = type.Value.Namespace;
-                break;
             case NodeSubject.ImportedMethod import:
                 var shown = import.Value.Shown;
                 Accessibility = EntityText.Map(shown.Symbol.Accessibility);
                 IsPublicApi = EntityText.IsPublicApi(shown.Symbol);
-                DeclaringTypeName = import.Value.DeclaringTypeName;
-                break;
-            case NodeSubject.ForwardedType forwarded:
-                ForwardedTo = forwarded.Value.Destination;
                 break;
             case NodeSubject.BaseType baseType:
                 if (baseType.Value.Target is BaseTypeTarget.Navigable navigable)
@@ -60,7 +53,8 @@ public sealed partial class BrowseNode
                 IsPublicApi = ns.Value.IsPublicApi;
                 IsCompilerGenerated = ns.Value.IsCompilerGenerated;
                 break;
-            case NodeSubject.AssemblyReference or NodeSubject.MemberReference or NodeSubject.References or NodeSubject.ReferencedTypes
+            case NodeSubject.AssemblyReference or NodeSubject.MemberReference or NodeSubject.TypeReference or NodeSubject.ForwardedType
+                or NodeSubject.References or NodeSubject.ReferencedTypes
                 or NodeSubject.ModuleReference or NodeSubject.BaseTypes
                 or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables
                 or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.FailedAssembly:

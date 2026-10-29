@@ -119,15 +119,6 @@ public sealed partial class BrowseNode
     /// <summary>The assembly the node is read from.</summary>
     public LoadedAssembly Assembly { get; }
 
-    /// <summary>The namespace of a type used from a referenced assembly; null for other nodes.</summary>
-    public string? Namespace { get; private init; }
-
-    /// <summary>The type declaring a method imported from a module, listed under that module; null for other nodes.</summary>
-    public string? DeclaringTypeName { get; private init; }
-
-    /// <summary>The name of the assembly a forwarded type is forwarded to; null for other nodes.</summary>
-    public string? ForwardedTo { get; private init; }
-
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
     public NodePath Path => _path ??= NodePath.Of(this);
 

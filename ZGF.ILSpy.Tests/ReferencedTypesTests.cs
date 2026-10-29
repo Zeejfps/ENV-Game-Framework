@@ -21,7 +21,7 @@ public sealed class ReferencedTypesTests
     {
         if (node.Text != ListLabel)
             return false;
-        return node.Namespace == ListNamespace;
+        return node.Subject is NodeSubject.TypeReference type && type.Value.Namespace == ListNamespace;
     }
 
     [Fact]

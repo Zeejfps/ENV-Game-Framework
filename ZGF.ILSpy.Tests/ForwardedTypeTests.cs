@@ -18,7 +18,7 @@ public sealed class ForwardedTypeTests
 
         Assert.True(generic.IsPublicApi);
         Assert.Equal(NodeKind.ForwardedType, list.Kind);
-        Assert.Equal("System.Private.CoreLib", list.ForwardedTo);
+        Assert.Equal("System.Private.CoreLib", Assert.IsType<NodeSubject.ForwardedType>(list.Subject).Value.Destination);
         Assert.Equal("System.Collections.Generic.IList<>", list.FullName);
         Assert.Equal(NodeKind.ForwardedType, dictionary.Kind);
         Assert.Equal(NodeKind.ForwardedType, exception.Kind);
@@ -48,7 +48,7 @@ public sealed class ForwardedTypeTests
 
         var definition = list.FindNode(forwarded.Destination);
 
-        Assert.Equal("System.Collections", forwarded.ForwardedTo);
+        Assert.Equal("System.Collections", Assert.IsType<NodeSubject.ForwardedType>(forwarded.Subject).Value.Destination);
         Assert.Equal(NodeKind.Class, definition!.Kind);
         Assert.Equal("List<T>", definition.Text);
         Assert.Equal("System.Private.CoreLib", definition.Assembly.Name);
