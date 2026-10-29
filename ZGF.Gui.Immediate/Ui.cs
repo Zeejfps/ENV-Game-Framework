@@ -356,7 +356,7 @@ public abstract partial class Ui
         _hits.Clear();
         _rects.Clear();
         _contentRects.Clear();
-        _hovered = Topmost(_previousHits, null, out _);
+        _hovered = input.PointerLocked ? 0 : Topmost(_previousHits, null, out _);
         TrackPresses();
 
         _ids.Clear();

@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.Geometry;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -24,6 +25,24 @@ public sealed class PointerMotionTests
         var motion = _frames.MovePointer(300f, 200f).Frame(ui => ui.Input.PointerMotion);
 
         Assert.Equal(default, motion);
+    }
+
+    [Fact]
+    public void A_locked_pointer_hovers_and_presses_nothing()
+    {
+        var clicks = 0;
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            if (ui.Button("Press", id: "press"))
+                clicks++;
+        }).Frame();
+        var button = frames.RectOf("press");
+
+        frames.LockPointer(true).Click(button);
+
+        Assert.Equal(0, clicks);
+        Assert.False(frames.Frame(ui => ui.IsHovered(ui.GetId("press"))));
     }
 
     [Fact]
