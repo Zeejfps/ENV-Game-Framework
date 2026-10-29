@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
@@ -82,7 +83,8 @@ internal static class DiagramFaces
         TypeStereotype.Abstract => Abstract,
         TypeStereotype.Static => Static,
         TypeStereotype.Interface => Interface,
-        _ => null,
+        TypeStereotype.None => null,
+        _ => throw new UnreachableException(),
     };
 
     private static void AddSection(RowStack stack, DiagramViewState view, TypeDiagram diagram, TypeCard card, CardSection section)
@@ -97,7 +99,8 @@ internal static class DiagramFaces
         MemberSection.Fields => t.DiagramFields,
         MemberSection.Properties => t.DiagramProperties,
         MemberSection.Methods => t.DiagramMethods,
-        _ => t.DiagramEvents,
+        MemberSection.Events => t.DiagramEvents,
+        _ => throw new UnreachableException(),
     };
 
     private static void AddInherited(RowStack stack, DiagramViewState view, TypeDiagram diagram, TypeCard card, InheritedGroup group)

@@ -41,14 +41,6 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - `CodeViewPosition.TopLine` is a document line in the code view but a row index in the metadata grid.
 - Export runs are `int` with 0 for "none", sharing the `ui.Id` space with section ids -1/-2 (`ExportsPanelView.cs:25`).
 
-### Silent defaults over closed sets
-
-- Core: `NodeDecompiler.cs:205/253/510` fall to a one-line summary; `:237` has no default and yields a blank IL document.
-- App: `DocumentsView.cs:47` draws any unknown tab content as code; also `DocumentTab.cs:37`, `TabPlaceholder.cs:39`, `ExportReportText.cs:24`, `DiagramFaces.cs:99`, `ProblemTexts.cs:89`, `MainLayout.cs:260`, `ToolbarView.cs:182`, `ExportDialogView.cs:393`, `MainView.cs:145`, `SearchPanelView.cs:258`.
-- `AnalyzerText.cs:10` matches on English header strings from ICSharpCode, falling back to untranslated text.
-- `ApiKeys` falls back to `"?:" + Name`.
-- Other switches in the same files throw `UnreachableException`, so the codebase is inconsistent.
-
 ### Escape hatches
 
 - Swallowed: swallow-all at `AssemblySearch.cs:56`; broad catches at `BrowseNode.cs:182`, `NodeDecompiler.cs:41`, `Batches.cs:26`, `Search.cs:182`, `AnalyzerTree.cs:88`.
@@ -90,7 +82,3 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - The nodes under an assembly name their `LoadedModule` parameter `assembly` (`Nodes.cs`, `ReferenceNodes.cs`, `Resources/ResourceNodes.cs`, `Metadata/MetadataNodes.cs`). Rename it `module`, minding the locals already called `module` in some of those classes.
 - `BrowseNode`'s optional fields and its `NodeKind` set apart from the subclass (Rule 1, Assemblies and nodes) are next: nodes are now typed by the module, package or failure they show, which a split can build on.
 - The Core cycles under Rule 2 now run through `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; the split did not aim at them.
-
-## Suggested order
-
-1. Make the silent default branches throw.

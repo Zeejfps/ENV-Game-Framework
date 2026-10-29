@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -64,7 +65,8 @@ internal static class ExportDialogView
         return page switch
         {
             ExportPage.Choose => t.ExportChooseTitle,
-            _ => t.ExportDialogTitle,
+            ExportPage.Main => t.ExportDialogTitle,
+            _ => throw new UnreachableException(),
         };
     }
 
@@ -389,7 +391,8 @@ internal static class ExportDialogView
             ExportBlocker.NamelessProject => t.ExportNeedsName,
             ExportBlocker.Clash => t.ExportNameClash(setup.Clash!),
             ExportBlocker.KeyFileMissing => t.ExportKeyFileMissing,
-            _ => "",
+            ExportBlocker.None => "",
+            _ => throw new UnreachableException(),
         };
     }
 

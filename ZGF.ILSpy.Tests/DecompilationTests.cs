@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
@@ -354,6 +355,49 @@ public sealed class DecompilationTests
         Assert.Contains(il.SpansOf(), s => s.Text.Contains(nameof(BadImageFormatException)));
         Assert.False(csharp.IsError);
         Assert.Contains("Could not decode attribute arguments", csharp.GetText());
+    }
+
+    [Fact]
+    public void Every_node_without_code_is_summarized_in_both_languages()
+    {
+        using var temp = new TempDir();
+        var package = temp.Write("Sample.1.0.0.nupkg", []);
+        using (var archive = ZipFile.Open(package, ZipArchiveMode.Update))
+        {
+            archive.CreateEntryFromFile(Trees.TestAssemblyPath, "lib/net10.0/ZGF.ILSpy.Tests.dll");
+            using var writer = new StreamWriter(archive.CreateEntry("readme.txt").Open());
+            writer.Write("Read me");
+        }
+        var list = new AssemblyList();
+        var roots = new[] { Trees.TestAssemblyPath, Trees.SampleAppPath, package }
+            .Select(p => list.Open(p).Root);
+
+        var failed = ListSummarized(roots)
+            .SelectMany(static n => new[] { DecompilationLanguage.CSharp, DecompilationLanguage.IL }.Select(l => (Node: n, Document: n.Decompile(l))))
+            .Where(static d => d.Document.IsError)
+            .Select(static d => $"{d.Node.GetType().Name} {d.Node.Text}")
+            .ToList();
+
+        Assert.Empty(failed);
+    }
+
+    /// <summary>The nodes under <paramref name="roots"/> that show no type's or member's code, not
+    /// following members, base and derived types, or references into what they name.</summary>
+    private static List<BrowseNode> ListSummarized(IEnumerable<BrowseNode> roots)
+    {
+        var nodes = new List<BrowseNode>();
+        var pending = new Stack<BrowseNode>(roots);
+        while (pending.Count > 0)
+        {
+            var node = pending.Pop();
+            if (node is not EntityNode and not AssemblyNode and not ErrorNode)
+                nodes.Add(node);
+            if (node is MemberNode or BaseTypeNode or DerivedTypeNode or AssemblyReferenceNode)
+                continue;
+            foreach (var child in node.Children)
+                pending.Push(child);
+        }
+        return nodes;
     }
 
     private static byte[] WithBrokenAttribute(byte[] image, string methodName)

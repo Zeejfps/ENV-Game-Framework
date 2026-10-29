@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 
@@ -36,6 +37,6 @@ public sealed class TabPlaceholder
         TabContent.Failed failed => t.DocumentDecompilationFailed(failed.Message),
         TabContent.Reloading => t.DocumentReloading,
         TabContent.Gone gone => t.DocumentGone(gone.Location.Text),
-        _ => "",
+        _ => throw new UnreachableException(),
     };
 }

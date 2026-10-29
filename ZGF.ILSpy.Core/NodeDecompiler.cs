@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
@@ -251,6 +252,8 @@ internal static class NodeDecompiler
                     case HandleKind.EventDefinition:
                         disassembler.DisassembleEvent(file, (EventDefinitionHandle)handle);
                         break;
+                    default:
+                        throw new UnreachableException();
                 }
                 break;
             default:
@@ -517,9 +520,11 @@ internal static class NodeDecompiler
                 foreach (var line in error.Error.ToString().Split('\n'))
                     WriteComment(output, line.TrimEnd('\r'));
                 break;
-            default:
+            case LoadingNode or MetadataGridNode:
                 WriteComment(output, node.Text);
                 break;
+            default:
+                throw new UnreachableException();
         }
     }
 
@@ -558,7 +563,8 @@ internal static class NodeDecompiler
         NodeKind.FieldReference => SpanKind.Field,
         NodeKind.PropertyReference => SpanKind.Property,
         NodeKind.EventReference => SpanKind.Event,
-        _ => SpanKind.Method,
+        NodeKind.MethodReference => SpanKind.Method,
+        _ => throw new UnreachableException(),
     };
 
     private static string DescribePackageChild(BrowseNode child)

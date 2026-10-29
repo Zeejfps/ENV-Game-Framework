@@ -1,22 +1,59 @@
+using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core.Analysis;
 
+/// <summary>What an analysis finds, which names it in the interface.</summary>
+public enum AnalysisName
+{
+    AppliedTo,
+    ImplementedBy,
+    OverriddenBy,
+    ReadBy,
+    AssignedBy,
+    AddressTakenBy,
+    Implements,
+    Overrides,
+    UsedBy,
+    Uses,
+    ExposedBy,
+    ExtensionMethods,
+    InstantiatedBy,
+}
+
 /// <summary>One way of relating a symbol to others, such as "Used By", as ILSpy's analyzer
-/// offers it: its header and its place among the others.</summary>
+/// offers it: its name and its place among the others.</summary>
 public sealed class AnalysisKind
 {
-    internal AnalysisKind(string header, int order, IAnalyzer analyzer, bool sortsResults = false)
+    internal AnalysisKind(AnalysisName name, int order, IAnalyzer analyzer, bool sortsResults = false)
     {
-        Header = header;
+        Name = name;
         Order = order;
         Analyzer = analyzer;
         SortsResults = sortsResults;
     }
 
-    /// <summary>ILSpy's name for it, which also keys its translation.</summary>
-    public string Header { get; }
+    public AnalysisName Name { get; }
+
+    /// <summary>ILSpy's English name for it.</summary>
+    public string Header => Name switch
+    {
+        AnalysisName.AppliedTo => "Applied To",
+        AnalysisName.ImplementedBy => "Implemented By",
+        AnalysisName.OverriddenBy => "Overridden By",
+        AnalysisName.ReadBy => "Read By",
+        AnalysisName.AssignedBy => "Assigned By",
+        AnalysisName.AddressTakenBy => "Address Taken By",
+        AnalysisName.Implements => "Implements",
+        AnalysisName.Overrides => "Overrides",
+        AnalysisName.UsedBy => "Used By",
+        AnalysisName.Uses => "Uses",
+        AnalysisName.ExposedBy => "Exposed By",
+        AnalysisName.ExtensionMethods => "Extension Methods",
+        AnalysisName.InstantiatedBy => "Instantiated By",
+        _ => throw new UnreachableException(),
+    };
 
     public int Order { get; }
 
@@ -83,25 +120,25 @@ public static class Analyzers
 {
     private static readonly AnalysisKind[] Kinds =
     [
-        new("Applied To", 10, new AttributeAppliedToAnalyzer()),
-        new("Implemented By", 10, new InheritorsAnalyzer<IEvent>(overrides: false)),
-        new("Overridden By", 20, new InheritorsAnalyzer<IEvent>(overrides: true)),
-        new("Read By", 10, new FieldAccessAnalyzer(FieldAccessKind.Read)),
-        new("Assigned By", 20, new FieldAccessAnalyzer(FieldAccessKind.Write)),
-        new("Address Taken By", 30, new FieldAccessAnalyzer(FieldAccessKind.AddressOf)),
-        new("Implements", 40, new MemberImplementsInterfaceAnalyzer()),
-        new("Overrides", 35, new MemberOverridesAnalyzer()),
-        new("Implemented By", 40, new InheritorsAnalyzer<IMethod>(overrides: false)),
-        new("Overridden By", 30, new InheritorsAnalyzer<IMethod>(overrides: true)),
-        new("Used By", 20, new MethodUsedByAnalyzer()),
-        new("Uses", 10, new MethodUsesAnalyzer()),
-        new("Used By", 5, new MemberUsedByAnalyzer()),
-        new("Implemented By", 10, new InheritorsAnalyzer<IProperty>(overrides: false)),
-        new("Overridden By", 20, new InheritorsAnalyzer<IProperty>(overrides: true)),
-        new("Exposed By", 40, new TypeExposedByAnalyzer()),
-        new("Extension Methods", 50, new TypeExtensionMethodsAnalyzer()),
-        new("Instantiated By", 20, new TypeInstantiatedByAnalyzer()),
-        new("Used By", 30, new TypeUsedByAnalyzer(), sortsResults: true),
+        new(AnalysisName.AppliedTo, 10, new AttributeAppliedToAnalyzer()),
+        new(AnalysisName.ImplementedBy, 10, new InheritorsAnalyzer<IEvent>(overrides: false)),
+        new(AnalysisName.OverriddenBy, 20, new InheritorsAnalyzer<IEvent>(overrides: true)),
+        new(AnalysisName.ReadBy, 10, new FieldAccessAnalyzer(FieldAccessKind.Read)),
+        new(AnalysisName.AssignedBy, 20, new FieldAccessAnalyzer(FieldAccessKind.Write)),
+        new(AnalysisName.AddressTakenBy, 30, new FieldAccessAnalyzer(FieldAccessKind.AddressOf)),
+        new(AnalysisName.Implements, 40, new MemberImplementsInterfaceAnalyzer()),
+        new(AnalysisName.Overrides, 35, new MemberOverridesAnalyzer()),
+        new(AnalysisName.ImplementedBy, 40, new InheritorsAnalyzer<IMethod>(overrides: false)),
+        new(AnalysisName.OverriddenBy, 30, new InheritorsAnalyzer<IMethod>(overrides: true)),
+        new(AnalysisName.UsedBy, 20, new MethodUsedByAnalyzer()),
+        new(AnalysisName.Uses, 10, new MethodUsesAnalyzer()),
+        new(AnalysisName.UsedBy, 5, new MemberUsedByAnalyzer()),
+        new(AnalysisName.ImplementedBy, 10, new InheritorsAnalyzer<IProperty>(overrides: false)),
+        new(AnalysisName.OverriddenBy, 20, new InheritorsAnalyzer<IProperty>(overrides: true)),
+        new(AnalysisName.ExposedBy, 40, new TypeExposedByAnalyzer()),
+        new(AnalysisName.ExtensionMethods, 50, new TypeExtensionMethodsAnalyzer()),
+        new(AnalysisName.InstantiatedBy, 20, new TypeInstantiatedByAnalyzer()),
+        new(AnalysisName.UsedBy, 30, new TypeUsedByAnalyzer(), sortsResults: true),
     ];
 
     /// <summary>The type or member <paramref name="node"/> stands for — for a base or derived type

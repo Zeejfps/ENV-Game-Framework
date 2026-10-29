@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -253,7 +254,7 @@ internal static class SearchPanelView
         SearchKinds.Resources => t.SearchModeResources,
         SearchKinds.Assemblies => t.SearchModeAssemblies,
         SearchKinds.Namespaces => t.SearchModeNamespaces,
-        _ => kind.ToString(),
+        _ => throw new UnreachableException(),
     };
 
     private static NodeKind KindNode(SearchKinds kind) => kind switch
@@ -267,6 +268,7 @@ internal static class SearchPanelView
         SearchKinds.Tokens => NodeKind.MetadataTable,
         SearchKinds.Resources => NodeKind.Resource,
         SearchKinds.Assemblies => NodeKind.Assembly,
-        _ => NodeKind.Namespace,
+        SearchKinds.Namespaces => NodeKind.Namespace,
+        _ => throw new UnreachableException(),
     };
 }

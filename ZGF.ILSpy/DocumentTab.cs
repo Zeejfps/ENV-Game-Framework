@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
@@ -34,7 +35,9 @@ public sealed class DocumentTab
     {
         TabContent.Code code => code.Document,
         TabContent.Picture picture => picture.Source ?? DecompiledDocument.Empty,
-        _ => DecompiledDocument.Empty,
+        TabContent.Empty or TabContent.Loading or TabContent.Table or TabContent.Report or TabContent.Diagram or TabContent.Comparison
+            or TabContent.Failed or TabContent.Reloading or TabContent.Gone => DecompiledDocument.Empty,
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>The rows the tab shows, or null while it shows no grid.</summary>

@@ -87,7 +87,8 @@ public static class ProblemTexts
     {
         PdbCheck.OtherBuild => t.ErrorPdbOtherBuild(name),
         PdbCheck.WindowsPdb => t.ErrorPdbWindows,
-        _ => t.ErrorPdbUnreadable,
+        PdbCheck.Unreadable => t.ErrorPdbUnreadable,
+        _ => throw new UnreachableException(),
     };
 
     private static string SettingsTitle(Strings t, SettingsProblem problem) => problem switch

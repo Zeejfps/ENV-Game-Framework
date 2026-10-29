@@ -21,7 +21,8 @@ internal static class ExportReportText
         ExportKind.Pdb => t.ExportKindPdb,
         ExportKind.Pdbs => t.ExportKindPdbs,
         ExportKind.Diagram => t.ExportKindDiagram,
-        _ => t.ExportKindFiles,
+        ExportKind.Files => t.ExportKindFiles,
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>How <paramref name="report"/>'s export ended, in a few words: whether it finished,

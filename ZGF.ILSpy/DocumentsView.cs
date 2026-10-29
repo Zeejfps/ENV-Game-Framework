@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -44,9 +45,11 @@ internal static class DocumentsView
             case TabContent.Loading loading when !loading.Node.DependsOnLanguage:
                 Hint(ui, t.MetadataLoading);
                 break;
-            default:
+            case TabContent.Code or TabContent.Report or TabContent.Loading or TabContent.Failed or TabContent.Reloading or TabContent.Gone:
                 RenderCode(ui, appState, tab);
                 break;
+            default:
+                throw new UnreachableException();
         }
     }
 

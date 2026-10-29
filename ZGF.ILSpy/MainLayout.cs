@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 
@@ -257,7 +258,8 @@ public sealed class MainLayout
     private static DockEdge EdgeAfter(Direction direction) => direction switch
     {
         Direction.Horizontal => DockEdge.Right,
-        _ => DockEdge.Bottom,
+        Direction.Vertical => DockEdge.Bottom,
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>Floats the documents of <paramref name="window"/> in a window of their own where it was,

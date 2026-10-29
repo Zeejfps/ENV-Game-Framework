@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core.Comparison;
@@ -13,7 +14,6 @@ internal static class ApiKeys
     private const string PropertyPrefix = "P:";
     private const string EventPrefix = "E:";
     private const string MethodPrefix = "M:";
-    private const string OtherPrefix = "?:";
     private const string ImplicitConversion = "op_Implicit";
     private const string ExplicitConversion = "op_Explicit";
 
@@ -25,7 +25,7 @@ internal static class ApiKeys
             IProperty property => PropertyPrefix + property.Name + ParameterList(property.Parameters),
             IEvent @event => EventPrefix + @event.Name,
             IMethod method => OfMethod(method),
-            _ => OtherPrefix + entity.Name,
+            _ => throw new UnreachableException(),
         };
 
     /// <summary>A conversion operator also keys by the type it converts to, as only that sets apart its overloads.</summary>
