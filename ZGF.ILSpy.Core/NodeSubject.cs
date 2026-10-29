@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
@@ -101,6 +102,24 @@ public abstract class NodeSubject
     public sealed class ResourceEntry(ResourceEntryInfo value) : NodeSubject
     {
         public ResourceEntryInfo Value { get; } = value;
+    }
+
+    /// <summary>The raw CLI metadata of a file: a module's own, or its debug metadata.</summary>
+    public sealed class Metadata(MetadataFolderInfo value) : NodeSubject
+    {
+        public MetadataFolderInfo Value { get; } = value;
+    }
+
+    /// <summary>The folder of the tables of the metadata <see cref="Folder"/> stands for.</summary>
+    public sealed class MetadataTables(MetadataFolderInfo folder) : NodeSubject
+    {
+        public MetadataFolderInfo Folder { get; } = folder;
+    }
+
+    /// <summary>A part of a metadata folder: a header, directory, table or heap, or a debug directory entry.</summary>
+    public sealed class MetadataTable(MetadataTableInfo value) : NodeSubject
+    {
+        public MetadataTableInfo Value { get; } = value;
     }
 }
 

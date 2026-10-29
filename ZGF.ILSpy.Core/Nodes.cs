@@ -40,10 +40,10 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
     internal override BrowseNode[] CreateChildren()
     {
         var file = Module.File;
-        var result = new List<BrowseNode> { new MetadataFolderNode(Module, this, file, "Metadata") };
+        var result = new List<BrowseNode> { SubjectNode.MetadataFolder(Module, this, file, "Metadata") };
         var symbols = Module.DebugSymbols;
         if (symbols != null)
-            result.Add(new MetadataFolderNode(Module, this, symbols.File, symbols.Title));
+            result.Add(SubjectNode.MetadataFolder(Module, this, symbols.File, symbols.Title));
         result.Add(SubjectNode.Of(Module, this, new NodeSubject.References(Module)));
         if (!file.Resources.IsEmpty)
             result.Add(SubjectNode.Of(Module, this, new NodeSubject.Resources(Module)));

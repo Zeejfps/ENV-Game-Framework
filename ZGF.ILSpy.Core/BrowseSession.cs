@@ -359,8 +359,7 @@ public sealed class BrowseSession
         if (!MetadataTokens.TryGetTableIndex(handle.Kind, out var index))
             return null;
         var metadata = ChildrenOf(RootOf(module))
-            .OfType<MetadataFolderNode>()
-            .FirstOrDefault(f => ReferenceEquals(f.File, module.File));
+            .FirstOrDefault(f => IsMetadataOf(f, module.File));
         if (metadata == null)
             return null;
         var table = FindTable(metadata, index);
@@ -385,24 +384,44 @@ public sealed class BrowseSession
     }
 
     /// <summary>The "Metadata" folder <paramref name="node"/> belongs to.</summary>
-    private static MetadataFolderNode? FolderOf(BrowseNode node)
+    private static BrowseNode? FolderOf(BrowseNode node)
     {
         for (var parent = node.Parent; parent != null; parent = parent.Parent)
         {
-            if (parent is MetadataFolderNode folder)
-                return folder;
+            if (MetadataOf(parent) != null)
+                return parent;
         }
         return null;
     }
 
+    /// <summary>Whether <paramref name="node"/> is the folder of <paramref name="file"/>'s metadata.</summary>
+    private static bool IsMetadataOf(BrowseNode node, ICSharpCode.Decompiler.Metadata.MetadataFile file)
+    {
+        var metadata = MetadataOf(node);
+        if (metadata == null)
+            return false;
+        return ReferenceEquals(metadata.File, file);
+    }
+
+    /// <summary>The metadata <paramref name="node"/> is the folder of; null for a node of anything else.</summary>
+    private static MetadataFolderInfo? MetadataOf(BrowseNode node)
+    {
+        if (node is not SubjectNode subject)
+            return null;
+        if (subject.Subject is not NodeSubject.Metadata metadata)
+            return null;
+        return metadata.Value;
+    }
+
     /// <summary>The node listing the rows of <paramref name="table"/> in <paramref name="folder"/>, or null
     /// when it lists none.</summary>
-    private MetadataGridNode? FindTable(MetadataFolderNode folder, TableIndex table)
+    private BrowseNode? FindTable(BrowseNode folder, TableIndex table)
     {
-        var tables = ChildrenOf(folder).OfType<MetadataTablesNode>().FirstOrDefault();
+        var tables = ChildrenOf(folder).FirstOrDefault(static c => c is SubjectNode subject && subject.Subject is NodeSubject.MetadataTables);
         if (tables == null)
             return null;
-        return ChildrenOf(tables).OfType<MetadataGridNode>().FirstOrDefault(n => n.Table == table);
+        return ChildrenOf(tables).FirstOrDefault(c => c is SubjectNode subject && subject.Subject is NodeSubject.MetadataTable part
+            && part.Value.ListedTable == table);
     }
 
     private sealed class ChildSlot

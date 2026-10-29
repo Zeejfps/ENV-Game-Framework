@@ -12,6 +12,9 @@ public sealed class MetadataTests
 {
     private static BrowseNode Metadata(LoadedAssembly assembly) => assembly.Root.Child("Metadata");
 
+    private static MetadataFolderInfo FolderOf(BrowseNode node) =>
+        Assert.IsType<NodeSubject.Metadata>(Assert.IsType<SubjectNode>(node).Subject).Value;
+
     private static BrowseNode Table(LoadedAssembly assembly, string name) => Metadata(assembly).Child("Tables").Table(name);
 
     private static MetadataGrid Grid(BrowseNode node) => Assert.IsType<GridContent>(node.Content()).Grid;
@@ -222,10 +225,10 @@ public sealed class MetadataTests
     public void The_debug_directory_shows_the_embedded_pdb_the_assembly_already_loaded()
     {
         var assembly = new AssemblyList().Open(Trees.EmbeddedPdbPath);
-        var atRoot = (MetadataFolderNode)assembly.Root.Child("Debug Metadata (Embedded)");
+        var atRoot = FolderOf(assembly.Root.Child("Debug Metadata (Embedded)"));
 
         var directory = Metadata(assembly).Child("Debug Directory");
-        var embedded = (MetadataFolderNode)directory.Child("Debug Metadata (Embedded)");
+        var embedded = FolderOf(directory.Child("Debug Metadata (Embedded)"));
 
         Assert.Same(atRoot.File, embedded.File);
     }

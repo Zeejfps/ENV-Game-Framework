@@ -6,6 +6,9 @@ namespace ZGF.ILSpy.Tests;
 
 public sealed class NavigationTests
 {
+    private static MetadataTableInfo TableOf(BrowseNode node) =>
+        Assert.IsType<NodeSubject.MetadataTable>(Assert.IsType<SubjectNode>(node).Subject).Value;
+
     [Theory]
     [InlineData("N:ZGF.ILSpy.Tests.Fixtures", "ZGF.ILSpy.Tests.Fixtures")]
     [InlineData("T:ZGF.ILSpy.Tests.Fixtures.Circle", "Circle")]
@@ -83,14 +86,14 @@ public sealed class NavigationTests
         var field = list.FindMetadataRow(call.SpanAt("_items").Reference!)!.Value;
         var self = list.FindMetadataRow(CodeReference.ToAssembly(assembly.Name, assembly.FilePath))!.Value;
 
-        var methods = ((MetadataGridNode)add.Node).Grid;
-        var fields = ((MetadataGridNode)field.Node).Grid;
+        var methods = Assert.IsType<MetadataGrid>(TableOf(add.Node).Grid);
+        var fields = Assert.IsType<MetadataGrid>(TableOf(field.Node).Grid);
         Assert.Equal("System.Private.CoreLib", add.Node.Assembly.Name);
-        Assert.Equal(TableIndex.MethodDef, ((MetadataGridNode)add.Node).Table);
+        Assert.Equal(TableIndex.MethodDef, TableOf(add.Node).ListedTable);
         Assert.Equal("Add", methods.Text(add.Row, methods.Column("Name")));
         Assert.Same(assembly, field.Node.Assembly);
         Assert.Equal("_items", fields.Text(field.Row, fields.Column("Name")));
-        Assert.Equal(TableIndex.Assembly, ((MetadataGridNode)self.Node).Table);
+        Assert.Equal(TableIndex.Assembly, TableOf(self.Node).ListedTable);
         Assert.Equal(0, self.Row);
     }
 
