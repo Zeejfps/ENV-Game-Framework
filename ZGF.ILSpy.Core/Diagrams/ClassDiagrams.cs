@@ -23,7 +23,7 @@ public static class ClassDiagrams
 
     /// <summary>Writes the diagrammer of <paramref name="assembly"/> into <paramref name="folder"/>,
     /// creating it, and returns the path of its page.</summary>
-    public static string Write(LoadedAssembly assembly, string folder, IProgress<ExportProgress>? progress = null,
+    public static string Write(LoadedModule assembly, string folder, IProgress<ExportProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
         var model = BuildModel(assembly, progress, cancellationToken);
@@ -37,9 +37,9 @@ public static class ClassDiagrams
 
     /// <summary>The model of every type of <paramref name="assembly"/> but compiler-generated ones and
     /// those nested in them, by namespace and then by full name.</summary>
-    internal static DiagramModel BuildModel(LoadedAssembly assembly, IProgress<ExportProgress>? progress, CancellationToken cancellationToken)
+    internal static DiagramModel BuildModel(LoadedModule assembly, IProgress<ExportProgress>? progress, CancellationToken cancellationToken)
     {
-        var picked = assembly.Module.TypeDefinitions
+        var picked = assembly.MainModule.TypeDefinitions
             .Where(static t => !t.IsCompilerGeneratedOrIsInCompilerGeneratedClass())
             .ToArray();
         var names = new DiagramNames(picked);
@@ -68,10 +68,10 @@ public static class ClassDiagrams
         return byId;
     }
 
-    private static string WritePage(LoadedAssembly assembly, DiagramModel model)
+    private static string WritePage(LoadedModule assembly, DiagramModel model)
     {
         var json = JsonSerializer.Serialize(model, DiagramJson.Default.DiagramModel);
-        var module = assembly.Module;
+        var module = assembly.MainModule;
         return ReadAsset(TemplateName)
             .Replace("{{SourceAssemblyName}}", WebUtility.HtmlEncode(module.AssemblyName))
             .Replace("{{SourceAssemblyVersion}}", WebUtility.HtmlEncode(module.AssemblyVersion.ToString()))

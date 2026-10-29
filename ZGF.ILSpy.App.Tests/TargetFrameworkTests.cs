@@ -13,7 +13,7 @@ public sealed class TargetFrameworkTests
     private const string Net48 = ".NETFramework,Version=v4.8";
     private static readonly string SampleAppPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
 
-    private static LoadedAssembly FixturesOf(AppState appState) =>
+    private static LoadedModule FixturesOf(AppState appState) =>
         appState.Assemblies.Assemblies.Single(a => a.FilePath == AppStateDriver.FixturePath);
 
     /// <summary>Right-clicks the fixture assembly's row and picks <paramref name="item"/> from its
@@ -100,8 +100,8 @@ public sealed class TargetFrameworkTests
         }
     }
 
-    private static LoadedAssembly SampleOf(AppState appState) =>
-        appState.Assemblies.Listed.Single(a => a.FilePath == SampleAppPath);
+    private static LoadedModule SampleOf(AppState appState) =>
+        appState.Assemblies.Assemblies.Single(a => a.FilePath == SampleAppPath);
 
     [Fact]
     public void Picking_a_framework_for_an_assembly_in_a_package_keeps_the_tree_expanded_and_the_tab_on_what_it_showed()
@@ -121,7 +121,7 @@ public sealed class TargetFrameworkTests
         app.Show(assembly.Child(AppStateDriver.FixturesNamespace, "Greeter"), 2);
         var before = tree.ExpandedPaths();
 
-        SetTargetFramework(app.AppState, assembly.Assembly, Net48);
+        SetTargetFramework(app.AppState, Assert.IsType<LoadedModule>(assembly.Assembly), Net48);
         app.Settle(3);
 
         Assert.Equal(before, tree.ExpandedPaths());

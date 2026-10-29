@@ -6,7 +6,7 @@ internal static class Trees
 {
     public const string FixturesNamespace = "ZGF.ILSpy.Tests.Fixtures";
 
-    private static readonly Lazy<LoadedAssembly> s_testAssembly = new(() => new AssemblyList().Open(TestAssemblyPath));
+    private static readonly Lazy<LoadedModule> s_testAssembly = new(() => new AssemblyList().OpenModule(TestAssemblyPath));
     private static readonly Lazy<DecompiledDocument> s_calculatorCSharp = new(() => TestAssembly.Calculator().Decompile(DecompilationLanguage.CSharp));
     private static readonly Lazy<DecompiledDocument> s_calculatorIL = new(() => TestAssembly.Calculator().Decompile(DecompilationLanguage.IL));
 
@@ -42,7 +42,7 @@ internal static class Trees
     /// <summary>The test assembly, opened once for the tests that only read it. Its list is out of
     /// reach; a test that needs the list, or nodes no other test has built, opens its own with
     /// <see cref="OpenTestAssembly"/>.</summary>
-    public static LoadedAssembly TestAssembly => s_testAssembly.Value;
+    public static LoadedModule TestAssembly => s_testAssembly.Value;
 
     public static DecompiledDocument CalculatorDocument(DecompilationLanguage language) => language switch
     {
@@ -55,9 +55,13 @@ internal static class Trees
 
     public static BrowseNode Calculator(this LoadedAssembly assembly) => assembly.Fixtures().Child("Calculator<T>");
 
-    public static (AssemblyList List, LoadedAssembly Assembly) OpenTestAssembly()
+    public static (AssemblyList List, LoadedModule Assembly) OpenTestAssembly()
     {
         var list = new AssemblyList();
-        return (list, list.Open(TestAssemblyPath));
+        return (list, list.OpenModule(TestAssemblyPath));
     }
+
+    /// <summary>The assembly or module at <paramref name="path"/>, opened in <paramref name="list"/>; fails
+    /// the test when it opens as anything else.</summary>
+    public static LoadedModule OpenModule(this AssemblyList list, string path) => Assert.IsType<LoadedModule>(list.Open(path));
 }

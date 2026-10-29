@@ -20,7 +20,7 @@ public sealed record SearchResult(BrowseNode Node, string Text, string Location,
 
 internal static class AssemblySearch
 {
-    public static IAsyncEnumerable<IReadOnlyList<SearchResult>> Run(ImmutableArray<LoadedAssembly> assemblies, SearchQuery query,
+    public static IAsyncEnumerable<IReadOnlyList<SearchResult>> Run(ImmutableArray<LoadedModule> assemblies, SearchQuery query,
         CancellationToken cancellationToken) =>
         Batches.Stream<SearchResult>((emit, token) =>
         {
@@ -34,7 +34,7 @@ internal static class AssemblySearch
     {
         private readonly HashSet<BrowseNode> _found = new(ReferenceEqualityComparer.Instance);
 
-        public void Run(LoadedAssembly assembly)
+        public void Run(LoadedModule assembly)
         {
             if (query.InAssembly is { } scope && !InAssembly(assembly, scope)) return;
             var kinds = query.Kinds;
@@ -46,7 +46,7 @@ internal static class AssemblySearch
             Scan(kinds, SearchKinds.Resources, ScanResources, assembly);
         }
 
-        private static void Scan(SearchKinds kinds, SearchKinds wanted, Action<LoadedAssembly> scan, LoadedAssembly assembly)
+        private static void Scan(SearchKinds kinds, SearchKinds wanted, Action<LoadedModule> scan, LoadedModule assembly)
         {
             if ((kinds & wanted) == 0) return;
             try
@@ -58,14 +58,14 @@ internal static class AssemblySearch
             }
         }
 
-        private static bool InAssembly(LoadedAssembly assembly, string scope) =>
+        private static bool InAssembly(LoadedModule assembly, string scope) =>
             Path.GetFileName(assembly.FilePath).Contains(scope, StringComparison.OrdinalIgnoreCase) ||
             assembly.FullName.Contains(scope, StringComparison.OrdinalIgnoreCase);
 
         private bool InNamespace(string ns) =>
             query.InNamespace is not { } scope || (scope.Length == 0 ? ns.Length == 0 : ns.Contains(scope, StringComparison.OrdinalIgnoreCase));
 
-        private void ScanEntities(LoadedAssembly assembly)
+        private void ScanEntities(LoadedModule assembly)
         {
             var reader = assembly.File.Metadata;
             var kinds = query.Kinds;
@@ -109,7 +109,7 @@ internal static class AssemblySearch
             }
         }
 
-        private void MatchMember(LoadedAssembly assembly, string typeName, string name, EntityHandle handle)
+        private void MatchMember(LoadedModule assembly, string typeName, string name, EntityHandle handle)
         {
             if (query.IsMatch(query.FullName ? typeName + "." + name : name))
                 Add(assembly, handle);
@@ -165,7 +165,7 @@ internal static class AssemblySearch
             }
         }
 
-        private void ScanLiterals(LoadedAssembly assembly)
+        private void ScanLiterals(LoadedModule assembly)
         {
             var file = assembly.File;
             var reader = file.Metadata;
@@ -246,7 +246,7 @@ internal static class AssemblySearch
             _ => code - ILOpCode.Ldc_i4_0,
         };
 
-        private void FindToken(LoadedAssembly assembly)
+        private void FindToken(LoadedModule assembly)
         {
             var term = query.Terms.Count == 1 ? query.Terms[0] : "";
             if (term.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) term = term[2..];
@@ -268,7 +268,7 @@ internal static class AssemblySearch
                 AddOrAncestor(assembly, handle);
         }
 
-        private void ScanResources(LoadedAssembly assembly)
+        private void ScanResources(LoadedModule assembly)
         {
             foreach (var child in assembly.Root.Children)
             {
@@ -290,7 +290,7 @@ internal static class AssemblySearch
             }
         }
 
-        private void MatchAssembly(LoadedAssembly assembly)
+        private void MatchAssembly(LoadedModule assembly)
         {
             var matches = query.AssemblyName switch
             {
@@ -302,7 +302,7 @@ internal static class AssemblySearch
                 Add(assembly.Root, assembly.FilePath);
         }
 
-        private void ScanNamespaces(LoadedAssembly assembly)
+        private void ScanNamespaces(LoadedModule assembly)
         {
             foreach (var node in assembly.Root.Children)
             {
@@ -323,7 +323,7 @@ internal static class AssemblySearch
             return InNamespace(ns.Name) && query.IsMatch(ns.Text);
         }
 
-        private void Add(LoadedAssembly assembly, EntityHandle handle)
+        private void Add(LoadedModule assembly, EntityHandle handle)
         {
             var node = Find(assembly, handle);
             if (node == null)
@@ -334,7 +334,7 @@ internal static class AssemblySearch
                 Add(node);
         }
 
-        private void AddOrAncestor(LoadedAssembly assembly, EntityHandle handle)
+        private void AddOrAncestor(LoadedModule assembly, EntityHandle handle)
         {
             BrowseNode? node;
             try
@@ -361,7 +361,7 @@ internal static class AssemblySearch
             return node;
         }
 
-        private static BrowseNode? Find(LoadedAssembly assembly, EntityHandle handle)
+        private static BrowseNode? Find(LoadedModule assembly, EntityHandle handle)
         {
             try
             {

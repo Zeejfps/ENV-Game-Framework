@@ -229,12 +229,12 @@ internal sealed class AppStateDriver
     }
 
     /// <summary>Opens the fixture assembly and waits until its root shows.</summary>
-    public LoadedAssembly OpenFixtures()
+    public LoadedModule OpenFixtures()
     {
         OpenAssembly(AppState, FixturePath);
         RunUntil(() => AppState.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
         Settle();
-        return AppState.Tabs.Active!.Node!.Assembly;
+        return Assert.IsType<LoadedModule>(AppState.Tabs.Active!.Node!.Assembly);
     }
 
     /// <summary>The listed node at the labels under the fixture assembly's root.</summary>
@@ -259,7 +259,7 @@ internal sealed class AppStateDriver
     public void Analyze(CodeReference reference) => AnalyzerPanelView.Analyze(Ui, AppState, reference);
 
     /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
-    public void OpenExportSetup(LoadedAssembly? picked) => Ui.ExportSetup.Open(AppState.Assemblies.Assemblies, picked);
+    public void OpenExportSetup(LoadedModule? picked) => Ui.ExportSetup.Open(AppState.Assemblies.Assemblies, picked);
 }
 
 /// <summary>Renders the whole app window frame by frame over a <see cref="AppStateDriver"/>, which
@@ -323,7 +323,7 @@ internal sealed class AppDriver
 
     public void Analyze(BrowseNode node) => Driver.Analyze(node);
 
-    public void OpenExportSetup(LoadedAssembly? picked) => Driver.OpenExportSetup(picked);
+    public void OpenExportSetup(LoadedModule? picked) => Driver.OpenExportSetup(picked);
 
     /// <summary>Where <paramref name="icon"/> was drawn on the last frame, in window coordinates.</summary>
     public UiRect TextRect(IconGlyph icon) => TextRect(BuiltInGlyphs.Text(icon));

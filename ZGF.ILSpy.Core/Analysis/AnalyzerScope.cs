@@ -17,7 +17,7 @@ internal sealed class AnalyzerScope
     private const GetMemberOptions MemberDefinitions = GetMemberOptions.IgnoreInheritedMembers | GetMemberOptions.ReturnMemberDefinitions;
 
     private readonly AssemblyList _list;
-    private readonly IReadOnlyList<LoadedAssembly> _assemblies;
+    private readonly IReadOnlyList<LoadedModule> _assemblies;
     private readonly Accessibility _effectiveAccessibility;
 
     public AnalyzerScope(AssemblyList list, IEntity entity)

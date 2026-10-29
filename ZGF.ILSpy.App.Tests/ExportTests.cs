@@ -34,7 +34,7 @@ public sealed class ExportTests : IDisposable
         return d;
     }
 
-    private static LoadedAssembly SampleOf(AppStateDriver d) => Assert.Single(d.AppState.Assemblies.Assemblies);
+    private static LoadedModule SampleOf(AppStateDriver d) => Assert.Single(d.AppState.Assemblies.Assemblies);
 
     [Fact]
     public void Saving_code_writes_the_node_in_the_current_language()
@@ -261,7 +261,7 @@ public sealed class ExportTests : IDisposable
         var d = AppStateDriver.Opened();
         var path = _temp.PathOf(Path.Combine("Project", "Fixtures.csproj"));
 
-        ExportProject(d.AppState, d.Node().Assembly, path);
+        ExportProject(d.AppState, Assert.IsType<LoadedModule>(d.Node().Assembly), path);
         d.AppState.Export.Cancel();
         d.Settle();
 
@@ -307,7 +307,7 @@ public sealed class ExportTests : IDisposable
     {
         var d = AppStateDriver.Opened();
 
-        ExportProject(d.AppState, d.Node().Assembly, _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
+        ExportProject(d.AppState, Assert.IsType<LoadedModule>(d.Node().Assembly), _temp.PathOf(Path.Combine("Project", "Fixtures.csproj")));
         d.AppState.Export.Cancel();
         d.Settle();
 

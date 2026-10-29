@@ -48,8 +48,8 @@ public sealed class DebugSymbolsTests
     {
         using var temp = new TempDir();
         var list = new AssemblyList();
-        var test = list.Open(Trees.TestAssemblyPath);
-        var sample = list.Open(Trees.SampleAppPath);
+        var test = list.OpenModule(Trees.TestAssemblyPath);
+        var sample = list.OpenModule(Trees.SampleAppPath);
         var windows = temp.Write("windows.pdb", Encoding.ASCII.GetBytes("Microsoft C/C++ MSF 7.00\r\n\u001aDS\0\0\0"));
         var text = temp.Write("notes.pdb", "not a pdb");
 
@@ -66,11 +66,11 @@ public sealed class DebugSymbolsTests
         using var temp = new TempDir();
         var copy = temp.Copy(Trees.TestAssemblyPath, Path.GetFileName(Trees.TestAssemblyPath));
         var list = new AssemblyList();
-        var before = list.Open(copy).DebugSymbols;
+        var before = list.OpenModule(copy).DebugSymbols;
 
         list.Pdbs.Pick(copy, TestPdbPath);
         list.Clear();
-        var after = list.Open(copy);
+        var after = list.OpenModule(copy);
 
         Assert.Null(before);
         Assert.Equal(TestPdbPath, after.DebugSymbols!.SourceFileName);

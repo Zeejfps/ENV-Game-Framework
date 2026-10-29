@@ -27,14 +27,14 @@ internal sealed class DocumentBuilder : ITextOutput
     private readonly Dictionary<object, int> _localKeys = new();
     private readonly Stack<OpenFold> _openFolds = new();
     private readonly List<(OpenFold Start, int EndLine)> _folds = new();
-    private readonly LoadedAssembly? _assembly;
+    private readonly LoadedModule? _assembly;
     private int _lineFirstSpan;
     private int _indent;
     private bool _lineStarted;
     private bool _lineClassified;
     private CodeReference? _scope;
 
-    public DocumentBuilder(DecompilationLanguage language, LoadedAssembly? assembly = null)
+    public DocumentBuilder(DecompilationLanguage language, LoadedModule? assembly = null)
     {
         _language = language;
         _assembly = assembly;
@@ -402,7 +402,7 @@ internal sealed class DocumentBuilder : ITextOutput
         if (_assembly is null || !ReferenceEquals(metadata, _assembly.File)) return null;
         try
         {
-            return Definitions.Resolve(_assembly.Module, handle);
+            return Definitions.Resolve(_assembly.MainModule, handle);
         }
         catch (Exception e) when (e is BadImageFormatException or InvalidOperationException or NotSupportedException)
         {

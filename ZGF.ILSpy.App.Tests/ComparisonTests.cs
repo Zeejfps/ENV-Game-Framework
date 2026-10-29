@@ -27,7 +27,7 @@ public sealed class ComparisonTests
         return d;
     }
 
-    private static LoadedAssembly Opened(AppStateDriver d, string path) => d.AppState.Assemblies.Assemblies.Single(a => a.FilePath == path);
+    private static LoadedModule Opened(AppStateDriver d, string path) => d.AppState.Assemblies.Assemblies.Single(a => a.FilePath == path);
 
     /// <summary>Compares <paramref name="assembly"/> with <paramref name="other"/> and waits for the comparison.</summary>
     private static AssemblyComparison Compare(AppStateDriver d, string assembly, string other)

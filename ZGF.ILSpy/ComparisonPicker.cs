@@ -8,8 +8,8 @@ namespace ZGF.ILSpy;
 /// closes when the assembly to compare is closed.</summary>
 public sealed class ComparisonPicker
 {
-    private readonly List<LoadedAssembly> _candidates = new();
-    private readonly List<LoadedAssembly> _filtered = new();
+    private readonly List<LoadedModule> _candidates = new();
+    private readonly List<LoadedModule> _filtered = new();
     private int _listedVersion = -1;
     private string? _appliedFilter;
     private bool _focusFilter;
@@ -20,13 +20,13 @@ public sealed class ComparisonPicker
     public ListSelection Selection { get; } = new();
 
     /// <summary>The assembly to compare, or null while the dialog is closed.</summary>
-    public LoadedAssembly? Compared { get; private set; }
+    public LoadedModule? Compared { get; private set; }
 
     /// <summary>The assemblies offered, in the order shown.</summary>
-    public IReadOnlyList<LoadedAssembly> Filtered => _filtered;
+    public IReadOnlyList<LoadedModule> Filtered => _filtered;
 
     /// <summary>The assembly selected to compare with, or null when none is.</summary>
-    public LoadedAssembly? Selected
+    public LoadedModule? Selected
     {
         get
         {
@@ -37,7 +37,7 @@ public sealed class ComparisonPicker
     }
 
     /// <summary>Opens the dialog to pick what to compare <paramref name="compared"/> with.</summary>
-    public void Open(LoadedAssembly compared)
+    public void Open(LoadedModule compared)
     {
         Compared = compared;
         IsOpen = true;
@@ -86,21 +86,21 @@ public sealed class ComparisonPicker
         _appliedFilter = null;
     }
 
-    private IEnumerable<LoadedAssembly> ListCandidates(IReadOnlyList<LoadedAssembly> open)
+    private IEnumerable<LoadedModule> ListCandidates(IReadOnlyList<LoadedModule> open)
     {
         return open
             .Where(IsCandidate)
             .OrderByDescending(IsNamedAsCompared);
     }
 
-    private bool IsCandidate(LoadedAssembly assembly)
+    private bool IsCandidate(LoadedModule assembly)
     {
         if (assembly == Compared)
             return false;
         return assembly.CanCompareApi;
     }
 
-    private bool IsNamedAsCompared(LoadedAssembly assembly)
+    private bool IsNamedAsCompared(LoadedModule assembly)
     {
         return string.Equals(assembly.Name, Compared!.Name, StringComparison.OrdinalIgnoreCase);
     }
@@ -124,7 +124,7 @@ public sealed class ComparisonPicker
         SelectAgain(selected);
     }
 
-    private static bool Matches(LoadedAssembly assembly, string filter)
+    private static bool Matches(LoadedModule assembly, string filter)
     {
         if (filter.Length == 0)
             return true;
@@ -133,7 +133,7 @@ public sealed class ComparisonPicker
         return assembly.FilePath.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 
-    private void SelectAgain(LoadedAssembly? selected)
+    private void SelectAgain(LoadedModule? selected)
     {
         var index = 0;
         if (selected != null)

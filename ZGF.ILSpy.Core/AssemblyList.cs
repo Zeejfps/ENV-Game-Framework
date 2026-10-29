@@ -23,11 +23,10 @@ public sealed class AssemblyLoadException(string filePath, string message, Excep
 public sealed class AssemblyList
 {
     private readonly object _gate = new();
-    /// <summary>What was read, by path: assemblies, packages and the assemblies read out of packages.
-    /// Only those that are no package have a <see cref="LoadedAssembly.File"/>.</summary>
+    /// <summary>What was read, by path: assemblies, packages and the assemblies read out of packages.</summary>
     private readonly Dictionary<string, LoadedAssembly> _known = new(StringComparer.OrdinalIgnoreCase);
     private ImmutableArray<LoadedAssembly> _listed = ImmutableArray<LoadedAssembly>.Empty;
-    private ImmutableArray<LoadedAssembly> _loaded = ImmutableArray<LoadedAssembly>.Empty;
+    private ImmutableArray<LoadedModule> _loaded = ImmutableArray<LoadedModule>.Empty;
     private int _version;
     private int _generation;
     private volatile bool _loadsReferences = true;
@@ -35,7 +34,7 @@ public sealed class AssemblyList
 
     /// <summary>The open assemblies that loaded, in the order they were opened, with an open package's
     /// assemblies where the package is. A snapshot: it never changes after it is read.</summary>
-    public IReadOnlyList<LoadedAssembly> Assemblies => _loaded;
+    public IReadOnlyList<LoadedModule> Assemblies => _loaded;
 
     /// <summary>The open files in the order they were opened, packages and those that failed to load
     /// (<see cref="LoadedAssembly.HasLoadError"/>) among them. A snapshot, like <see cref="Assemblies"/>.</summary>
@@ -146,9 +145,9 @@ public sealed class AssemblyList
         _version++;
     }
 
-    private static ImmutableArray<LoadedAssembly> ListLoaded(ImmutableArray<LoadedAssembly> listed)
+    private static ImmutableArray<LoadedModule> ListLoaded(ImmutableArray<LoadedAssembly> listed)
     {
-        var loaded = ImmutableArray.CreateBuilder<LoadedAssembly>();
+        var loaded = ImmutableArray.CreateBuilder<LoadedModule>();
         foreach (var item in listed)
         {
             switch (item)
@@ -270,10 +269,10 @@ public sealed class AssemblyList
     /// following a reference to them does, and returns them. Those that cannot be found are left out.
     /// May load files: call it off the UI thread.</summary>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    public List<LoadedAssembly> ListReferences(LoadedAssembly assembly, CancellationToken cancellationToken = default)
+    public List<LoadedModule> ListReferences(LoadedModule assembly, CancellationToken cancellationToken = default)
     {
         var generation = Generation;
-        var listed = new List<LoadedAssembly>();
+        var listed = new List<LoadedModule>();
         foreach (var reference in assembly.File.AssemblyReferences)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -295,7 +294,7 @@ public sealed class AssemblyList
     /// <summary>The node of the namespace, type or member <paramref name="idString"/> names, written as
     /// XML documentation ids are, such as <c>T:System.String</c>, in the first of <paramref name="assemblies"/>
     /// that defines it; null when none does. May read the assemblies: call it off the UI thread.</summary>
-    public BrowseNode? FindNodeById(string idString, IEnumerable<LoadedAssembly> assemblies)
+    public BrowseNode? FindNodeById(string idString, IEnumerable<LoadedModule> assemblies)
     {
         foreach (var assembly in assemblies)
         {
@@ -306,7 +305,7 @@ public sealed class AssemblyList
         return null;
     }
 
-    private static BrowseNode? FindNodeById(string idString, LoadedAssembly assembly)
+    private static BrowseNode? FindNodeById(string idString, LoadedModule assembly)
     {
         try
         {
@@ -348,7 +347,7 @@ public sealed class AssemblyList
             var (assembly, handle) = ResolveListed(reference);
             if (assembly is null)
                 return null;
-            return assembly.Root is AssemblyNode root ? root.FindMetadataRow(handle) : null;
+            return assembly.AssemblyRoot.FindMetadataRow(handle);
         }
         catch (Exception e) when (IsUnreadable(e))
         {
@@ -359,7 +358,7 @@ public sealed class AssemblyList
     /// <summary>The listed assembly that defines what <paramref name="reference"/> points at, and the
     /// handle of its definition there: the assembly's own handle for an assembly. A null assembly
     /// when it cannot be resolved or listed.</summary>
-    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveListed(CodeReference reference)
+    private (LoadedModule? Assembly, EntityHandle Handle) ResolveListed(CodeReference reference)
     {
         if (reference.FilePath is null)
             return default;
@@ -375,7 +374,7 @@ public sealed class AssemblyList
         return (assembly, handle);
     }
 
-    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveTarget(LoadedAssembly owner, CodeReference reference, int generation)
+    private (LoadedModule? Assembly, EntityHandle Handle) ResolveTarget(LoadedModule owner, CodeReference reference, int generation)
     {
         if (reference.Kind != CodeReferenceKind.Assembly)
             return ResolveDefinition(owner, reference.Handle, generation);
@@ -398,9 +397,9 @@ public sealed class AssemblyList
         try
         {
             var (entity, assembly) = ResolveEntity(reference);
-            if (entity is null)
+            if (entity is null || assembly is null)
                 return null;
-            return CodeTooltip.Create(entity, assembly!);
+            return CodeTooltip.Create(entity, assembly);
         }
         catch (Exception e) when (IsUnreadable(e))
         {
@@ -457,7 +456,7 @@ public sealed class AssemblyList
             var assembly = TryLoadAssembly(anchor.AssemblyPath);
             if (assembly is null)
                 return null;
-            return assembly.Module.GetTypeDefinition(new FullTypeName(anchor.FullName));
+            return assembly.MainModule.GetTypeDefinition(new FullTypeName(anchor.FullName));
         }
         catch (Exception e) when (IsUnreadable(e))
         {
@@ -468,7 +467,7 @@ public sealed class AssemblyList
     /// <summary>The type or member <paramref name="reference"/> points at and the assembly that defines
     /// it, loading that assembly without listing it; nulls for an assembly, a local or a label, or
     /// when it cannot be resolved.</summary>
-    private (IEntity? Entity, LoadedAssembly? Assembly) ResolveEntity(CodeReference reference)
+    private (IEntity? Entity, LoadedModule? Assembly) ResolveEntity(CodeReference reference)
     {
         if (reference.FilePath is null)
             return default;
@@ -481,7 +480,7 @@ public sealed class AssemblyList
         var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
         if (assembly is null)
             return default;
-        var entity = assembly.Module.ResolveEntity(handle);
+        var entity = assembly.MainModule.ResolveEntity(handle);
         return (entity, assembly);
     }
 
@@ -544,7 +543,7 @@ public sealed class AssemblyList
 
     /// <summary><see cref="SearchAsync(SearchQuery, CancellationToken)"/> over
     /// <paramref name="assemblies"/> only, e.g. those opened since the last search.</summary>
-    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, IEnumerable<LoadedAssembly> assemblies,
+    public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, IEnumerable<LoadedModule> assemblies,
         CancellationToken cancellationToken = default) =>
         AssemblySearch.Run([..assemblies], query, cancellationToken);
 
@@ -558,10 +557,10 @@ public sealed class AssemblyList
 
     /// <summary>The assembly at <paramref name="path"/>, as <see cref="TryLoad(string, int)"/> loads it;
     /// null for a package, which has no metadata of its own, or a file that failed to load.</summary>
-    internal LoadedAssembly? TryLoadAssembly(string path) => TryLoadAssembly(path, Generation);
+    internal LoadedModule? TryLoadAssembly(string path) => TryLoadAssembly(path, Generation);
 
-    private LoadedAssembly? TryLoadAssembly(string path, int generation) =>
-        TryLoad(path, generation) is { IsPackage: false, HasLoadError: false } assembly ? assembly : null;
+    private LoadedModule? TryLoadAssembly(string path, int generation) =>
+        TryLoad(path, generation) is LoadedModule module ? module : null;
 
     internal LoadedAssembly? TryLoad(string path, int generation)
     {
@@ -578,16 +577,14 @@ public sealed class AssemblyList
     /// <summary>The type system of the assembly loaded from <paramref name="module"/>.</summary>
     internal DecompilerTypeSystem TypeSystemOf(MetadataFile module) => LoadedFrom(module).TypeSystem;
 
-    private LoadedAssembly LoadedFrom(MetadataFile module)
+    private LoadedModule LoadedFrom(MetadataFile module)
     {
         lock (_gate)
         {
             foreach (var assembly in _known.Values)
             {
-                if (assembly.IsPackage)
-                    continue;
-                if (assembly.File == module)
-                    return assembly;
+                if (assembly is LoadedModule loaded && loaded.File == module)
+                    return loaded;
             }
         }
         throw new InvalidOperationException($"{module.FileName} was not loaded by this list.");
@@ -596,14 +593,14 @@ public sealed class AssemblyList
     /// <summary>The newest assembly read of <paramref name="reference"/>'s name, only one as new as it asks
     /// for when <paramref name="exactOrNewer"/>, and only one listed, or read out of a listed package, when
     /// <paramref name="listedOnly"/>; null when there is none.</summary>
-    internal LoadedAssembly? FindKnown(IAssemblyReference reference, bool exactOrNewer, bool listedOnly = false)
+    internal LoadedModule? FindKnown(IAssemblyReference reference, bool exactOrNewer, bool listedOnly = false)
     {
         lock (_gate)
         {
-            LoadedAssembly? best = null;
-            foreach (var assembly in _known.Values)
+            LoadedModule? best = null;
+            foreach (var known in _known.Values)
             {
-                if (assembly.IsPackage) continue;
+                if (known is not LoadedModule assembly) continue;
                 if (listedOnly && !assembly.ListedItem.IsListed) continue;
                 if (!string.Equals(assembly.Name, reference.Name, StringComparison.OrdinalIgnoreCase)) continue;
                 if (exactOrNewer && reference.Version != null && assembly.Version != null && assembly.Version < reference.Version) continue;
@@ -663,11 +660,9 @@ public sealed class AssemblyList
     /// first shown.</summary>
     private static void WarmUpLater(LoadedAssembly assembly)
     {
-        if (assembly.HasLoadError)
+        if (assembly is not LoadedModule module)
             return;
-        if (assembly.IsPackage)
-            return;
-        ThreadPool.QueueUserWorkItem(static a => a.WarmUp(), assembly, preferLocal: false);
+        ThreadPool.QueueUserWorkItem(static m => m.WarmUp(), module, preferLocal: false);
     }
 
     /// <summary>The assembly <paramref name="package"/> holds as <paramref name="file"/>: the one read
@@ -759,7 +754,7 @@ public sealed class AssemblyList
         return null;
     }
 
-    private (LoadedAssembly? Assembly, EntityHandle Handle) ResolveDefinition(LoadedAssembly owner, EntityHandle handle, int generation)
+    private (LoadedModule? Assembly, EntityHandle Handle) ResolveDefinition(LoadedModule owner, EntityHandle handle, int generation)
     {
         switch (handle.Kind)
         {
@@ -768,7 +763,7 @@ public sealed class AssemblyList
                 return (owner, handle);
         }
 
-        return Definitions.Resolve(owner.Module, handle) is { } definition
+        return Definitions.Resolve(owner.MainModule, handle) is { } definition
             ? (TryLoadAssembly(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken)
             : (null, default);
     }

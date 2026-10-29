@@ -6,9 +6,9 @@ namespace ZGF.ILSpy;
 
 /// <summary>An open assembly as the export dialog lists it: whether it is exported, and the name of
 /// its project.</summary>
-public sealed class ExportChoice(LoadedAssembly assembly, string name)
+public sealed class ExportChoice(LoadedModule assembly, string name)
 {
-    public LoadedAssembly Assembly { get; } = assembly;
+    public LoadedModule Assembly { get; } = assembly;
     public bool Included;
     public string Name = name;
 }
@@ -77,7 +77,7 @@ public sealed class ExportSetup
     /// <summary>Opens the dialog on <paramref name="assemblies"/> with <paramref name="picked"/>
     /// ticked, or the only one when there is just one, unless there are none. The folder stays as it
     /// was last time.</summary>
-    public void Open(IReadOnlyList<LoadedAssembly> assemblies, LoadedAssembly? picked)
+    public void Open(IReadOnlyList<LoadedModule> assemblies, LoadedModule? picked)
     {
         if (assemblies.Count == 0)
             return;
@@ -93,7 +93,7 @@ public sealed class ExportSetup
             Choose();
     }
 
-    private void TickFirstChoice(LoadedAssembly? picked)
+    private void TickFirstChoice(LoadedModule? picked)
     {
         foreach (var choice in Choices)
             choice.Included = choice.Assembly == picked;

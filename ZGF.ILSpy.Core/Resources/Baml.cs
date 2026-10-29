@@ -22,7 +22,7 @@ internal static class Baml
         return decompiler.Decompile(data);
     }
 
-    public static string DecompileToText(LoadedAssembly assembly, byte[] data, CancellationToken cancellationToken)
+    public static string DecompileToText(LoadedModule assembly, byte[] data, CancellationToken cancellationToken)
     {
         var typeSystem = new BamlDecompilerTypeSystem(assembly.File, assembly.Resolver);
         using var stream = new MemoryStream(data);

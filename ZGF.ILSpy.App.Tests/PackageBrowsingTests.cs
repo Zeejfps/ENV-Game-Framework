@@ -89,7 +89,7 @@ public sealed class PackageBrowsingTests
     {
         using var temp = new TempDir();
         var app = OpenedPackage(temp);
-        var assembly = Greeter(app).Assembly;
+        var assembly = Assert.IsType<LoadedModule>(Greeter(app).Assembly);
 
         app.OpenExportSetup(assembly);
 

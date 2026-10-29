@@ -45,7 +45,7 @@ public static class NodeText
             return node.DeclaringTypeName;
         if (node.Kind != NodeKind.Assembly)
             return null;
-        var identity = Secondaries.GetValue(node, static n => Identity(n.Assembly));
+        var identity = Secondaries.GetValue(node, static n => n.Assembly is LoadedModule assembly ? Identity(assembly) : "");
         if (identity.Length == 0)
             return null;
         return identity;
@@ -67,9 +67,9 @@ public static class NodeText
     {
         if (node.Kind != NodeKind.Assembly)
             return null;
-        if (!node.Assembly.IsTargetFrameworkPicked)
+        if (node.Assembly is not LoadedModule { IsTargetFrameworkPicked: true } assembly)
             return null;
-        return node.Assembly.FrameworkMoniker;
+        return assembly.FrameworkMoniker;
     }
 
     /// <summary>An assembly as a column of results names it: its name and version, and for one read out
@@ -103,7 +103,7 @@ public static class NodeText
 
     /// <summary>An assembly's version and framework; with a picked framework, which its row shows bold
     /// on its own, the version and the separator before it.</summary>
-    private static string Identity(LoadedAssembly assembly)
+    private static string Identity(LoadedModule assembly)
     {
         var version = assembly.Version?.ToString();
         if (!assembly.IsTargetFrameworkPicked)
@@ -115,11 +115,8 @@ public static class NodeText
 
     private static string Describe(BrowseNode node)
     {
-        if (node.Kind == NodeKind.Assembly)
-        {
-            var assembly = node.Assembly;
+        if (node.Kind == NodeKind.Assembly && node.Assembly is LoadedModule assembly)
             return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath }.OfType<string>());
-        }
         if (node.Kind == NodeKind.FailedAssembly)
             return node.Assembly.LoadError!;
         var name = node.FullName;

@@ -9,7 +9,7 @@ public sealed class AssemblyListTests
     {
         var list = new AssemblyList();
 
-        var first = list.Open(Trees.TestAssemblyPath);
+        var first = list.OpenModule(Trees.TestAssemblyPath);
         var second = list.Open(Path.Combine(Path.GetDirectoryName(Trees.TestAssemblyPath)!, ".", Path.GetFileName(Trees.TestAssemblyPath)));
 
         Assert.Same(first, second);
@@ -33,7 +33,7 @@ public sealed class AssemblyListTests
         Assert.Equal([first, second], listedWhileRead);
         Assert.True(replaced);
         Assert.Equal([fresh, second], list.Listed);
-        Assert.Equal("net48", fresh.FrameworkMoniker);
+        Assert.Equal("net48", Assert.IsType<LoadedModule>(fresh).FrameworkMoniker);
         Assert.Same(fresh, list.FindNode(first.Root.Path)!.Assembly);
     }
 

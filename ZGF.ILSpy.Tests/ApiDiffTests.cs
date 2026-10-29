@@ -7,15 +7,15 @@ public sealed class ApiDiffTests
 {
     private const string SampleNamespace = "ApiDiffSample";
 
-    private static readonly Lazy<(AssemblyList List, LoadedAssembly Left, LoadedAssembly Right)> s_opened = new(OpenBoth);
+    private static readonly Lazy<(AssemblyList List, LoadedModule Left, LoadedModule Right)> s_opened = new(OpenBoth);
     private static readonly Lazy<ApiDiff> s_public = new(() => Compare(ApiScope.PublicApi));
     private static readonly Lazy<ApiDiff> s_all = new(() => Compare(ApiScope.AllDeclared));
 
-    private static (AssemblyList List, LoadedAssembly Left, LoadedAssembly Right) OpenBoth()
+    private static (AssemblyList List, LoadedModule Left, LoadedModule Right) OpenBoth()
     {
         var list = new AssemblyList();
-        var left = list.Open(Trees.ApiDiffOlderPath);
-        var right = list.Open(Trees.ApiDiffNewerPath);
+        var left = list.OpenModule(Trees.ApiDiffOlderPath);
+        var right = list.OpenModule(Trees.ApiDiffNewerPath);
         return (list, left, right);
     }
 

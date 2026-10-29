@@ -70,7 +70,7 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
             result.Add(new ResourcesFolderNode(Module, this));
 
         var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
-        foreach (var type in Module.Module.TopLevelTypeDefinitions)
+        foreach (var type in Module.MainModule.TopLevelTypeDefinitions)
         {
             if (Members.IsMissing(type)) continue;
             if (!byNamespace.TryGetValue(type.Namespace, out var types))

@@ -89,7 +89,7 @@ internal static class ComparisonPickerView
     }
 
     /// <summary>The assembly's name and version, then its framework and, muted, its file, shortened in the middle so its folder and name stay.</summary>
-    private static void Row(Ui<UiState> ui, ListScope list, int index, LoadedAssembly assembly)
+    private static void Row(Ui<UiState> ui, ListScope list, int index, LoadedModule assembly)
     {
         var theme = ui.Theme;
         using (ui.Id(assembly.FilePath))
@@ -103,7 +103,7 @@ internal static class ComparisonPickerView
         }
     }
 
-    private static void FrameworkText(Ui<UiState> ui, LoadedAssembly assembly)
+    private static void FrameworkText(Ui<UiState> ui, LoadedModule assembly)
     {
         var moniker = assembly.FrameworkMoniker;
         if (moniker == null)
@@ -112,7 +112,7 @@ internal static class ComparisonPickerView
     }
 
     /// <summary>Compares the assembly to compare with the one selected, if any; true when it did.</summary>
-    private static bool CompareWithSelected(AppState appState, ComparisonPicker picker, LoadedAssembly compared, Strings t)
+    private static bool CompareWithSelected(AppState appState, ComparisonPicker picker, LoadedModule compared, Strings t)
     {
         var other = picker.Selected;
         if (other == null)

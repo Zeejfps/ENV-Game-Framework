@@ -106,7 +106,8 @@ public static class ILSpyTree
         if (anchor is { } a && string.Equals(a.FilePath, assembly.FilePath, StringComparison.OrdinalIgnoreCase))
         {
             token = (uint)a.Token;
-            entity = Resolve(assembly, a.Token) ?? entity;
+            if (assembly is LoadedModule module)
+                entity = Resolve(module, a.Token) ?? entity;
         }
         else if (anchor is { } other)
         {
@@ -117,11 +118,11 @@ public static class ILSpyTree
             PathOf(place));
     }
 
-    private static IEntity? Resolve(LoadedAssembly assembly, int token)
+    private static IEntity? Resolve(LoadedModule assembly, int token)
     {
         try
         {
-            return assembly.Module.ResolveEntity(MetadataTokens.EntityHandle(token));
+            return assembly.MainModule.ResolveEntity(MetadataTokens.EntityHandle(token));
         }
         catch (Exception e) when (e is ArgumentException or BadImageFormatException or InvalidOperationException)
         {
@@ -129,11 +130,11 @@ public static class ILSpyTree
         }
     }
 
-    private static LoadedAssembly? Load(AssemblyList list, string filePath)
+    private static LoadedModule? Load(AssemblyList list, string filePath)
     {
         try
         {
-            return list.TryLoad(filePath);
+            return list.TryLoadAssembly(filePath);
         }
         catch (Exception e) when (e is IOException or BadImageFormatException or InvalidOperationException or UnauthorizedAccessException)
         {

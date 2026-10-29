@@ -32,7 +32,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     /// <summary>The assembly <paramref name="reference"/> names: read from its file, when the list loads
     /// references, as <see cref="LoadAssembly"/> finds it; else only one listed.</summary>
-    public LoadedAssembly? ResolveAssembly(IAssemblyReference reference)
+    public LoadedModule? ResolveAssembly(IAssemblyReference reference)
     {
         if (!_list.LoadsReferences)
             return FindListed(reference);
@@ -40,7 +40,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
     }
 
     /// <summary>The listed assembly <paramref name="reference"/> names, one as new as it asks for first.</summary>
-    private LoadedAssembly? FindListed(IAssemblyReference reference)
+    private LoadedModule? FindListed(IAssemblyReference reference)
     {
         var exact = _list.FindKnown(reference, exactOrNewer: true, listedOnly: true);
         if (exact != null)
@@ -50,7 +50,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     /// <summary>The assembly <paramref name="reference"/> names, one read already as new as it asks for,
     /// else read from its file, else any read of its name; for loading it whatever the list's options.</summary>
-    public LoadedAssembly? LoadAssembly(IAssemblyReference reference)
+    public LoadedModule? LoadAssembly(IAssemblyReference reference)
     {
         if (_list.FindKnown(reference, exactOrNewer: true) is { } known) return known;
         var path = FindFile(reference);

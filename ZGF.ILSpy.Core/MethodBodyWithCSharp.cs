@@ -20,7 +20,7 @@ internal sealed class MethodBodyWithCSharp : MethodBodyDisassembler
     private const string NoCSharp = "(no C# code)";
     private const string CommentPrefix = "// ";
 
-    private readonly LoadedAssembly _assembly;
+    private readonly LoadedModule _assembly;
     private readonly DecompilerSettings _settings;
     private readonly CancellationToken _cancellationToken;
     private List<SequencePoint> _points = [];
@@ -28,7 +28,7 @@ internal sealed class MethodBodyWithCSharp : MethodBodyDisassembler
     private string? _failure;
     private int _next;
 
-    public MethodBodyWithCSharp(ITextOutput output, LoadedAssembly assembly, DecompilerSettings settings, CancellationToken cancellationToken)
+    public MethodBodyWithCSharp(ITextOutput output, LoadedModule assembly, DecompilerSettings settings, CancellationToken cancellationToken)
         : base(output, cancellationToken)
     {
         _assembly = assembly;

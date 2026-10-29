@@ -212,18 +212,8 @@ internal static class TreePaneView
         ExtractItems(ui, appState, node);
         if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
             SaveDialogs.PickCodeFile(ui, appState, node);
-        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.FileExport, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
-            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, node.Assembly);
-        if (node.Kind == NodeKind.Assembly)
-            PdbItems(ui, appState, node.Assembly);
-        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeCreateDiagram, enabled: node.Assembly.CanCreateDiagram, id: "create-diagram"))
-            SaveDialogs.PickDiagramFolder(ui, appState, node.Assembly);
-        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeCompareWith, enabled: node.Assembly.CanCompareApi, id: "compare-with"))
-            ui.State.ComparisonPicker.Open(node.Assembly);
-        if (node.Kind == NodeKind.Assembly)
-            TargetFrameworkMenu(ui, appState, node.Assembly);
-        if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))
-            OpenDependencies(appState, node.Assembly);
+        if (node.Kind == NodeKind.Assembly && node.Assembly is LoadedModule module)
+            AssemblyItems(ui, appState, module);
         if (node.Kind == NodeKind.Assembly && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
             ScopeSearch(ui.State, node);
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
@@ -298,8 +288,25 @@ internal static class TreePaneView
         return node.DependsOnLanguage;
     }
 
+    /// <summary>What only an assembly's node offers: exporting it, its PDBs, a diagram of it, comparing it
+    /// with another, the framework it resolves against, and opening what it references.</summary>
+    private static void AssemblyItems(Ui<UiState> ui, AppState appState, LoadedModule assembly)
+    {
+        var t = ui.State.Strings;
+        if (ui.MenuItem(t.FileExport, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
+            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, assembly);
+        PdbItems(ui, appState, assembly);
+        if (ui.MenuItem(t.TreeCreateDiagram, id: "create-diagram"))
+            SaveDialogs.PickDiagramFolder(ui, appState, assembly);
+        if (ui.MenuItem(t.TreeCompareWith, id: "compare-with"))
+            ui.State.ComparisonPicker.Open(assembly);
+        TargetFrameworkMenu(ui, appState, assembly);
+        if (ui.MenuItem(t.TreeLoadDependencies, id: "load-dependencies"))
+            OpenDependencies(appState, assembly);
+    }
+
     /// <summary>Generating a portable PDB for the assembly, and picking the PDB it reads.</summary>
-    private static void PdbItems(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    private static void PdbItems(Ui<UiState> ui, AppState appState, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: new UiIcon(ui.State.Icons.FileGeneratePdb)))
@@ -310,7 +317,7 @@ internal static class TreePaneView
 
     /// <summary>The submenu of the framework the assembly's references are resolved against: the one it
     /// was built for, or one of the common ones, the one in use picked.</summary>
-    private static void TargetFrameworkMenu(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    private static void TargetFrameworkMenu(Ui<UiState> ui, AppState appState, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         using var menu = ui.SubMenu(t.TreeTargetFramework, id: "target-framework");
@@ -326,14 +333,14 @@ internal static class TreePaneView
         }
     }
 
-    private static string DetectedFrameworkLabel(Strings t, LoadedAssembly assembly)
+    private static string DetectedFrameworkLabel(Strings t, LoadedModule assembly)
     {
         if (assembly.DetectedTargetFramework == null)
             return t.TreeTargetFrameworkNone;
         return t.TreeTargetFrameworkDetected(FrameworkIds.MonikerOf(assembly.DetectedTargetFramework));
     }
 
-    private static bool IsPicked(LoadedAssembly assembly, string framework)
+    private static bool IsPicked(LoadedModule assembly, string framework)
     {
         if (!assembly.IsTargetFrameworkPicked)
             return false;
@@ -341,7 +348,7 @@ internal static class TreePaneView
     }
 
     /// <summary>Asks for the PDB <paramref name="assembly"/> reads, starting in its folder, then has it read that one.</summary>
-    private static void PickPdbToRead(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    private static void PickPdbToRead(Ui<UiState> ui, AppState appState, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"]), new FileFilter(t.FileFilterAll, ["*.*"])];
@@ -350,7 +357,7 @@ internal static class TreePaneView
     }
 
     /// <summary>The folder the assembly's file is in; null for one read out of a package, whose path runs through it.</summary>
-    private static string? FindFolderOf(LoadedAssembly assembly)
+    private static string? FindFolderOf(LoadedModule assembly)
     {
         var folder = Path.GetDirectoryName(assembly.FilePath);
         if (!Directory.Exists(folder))

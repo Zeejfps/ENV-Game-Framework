@@ -308,7 +308,7 @@ public sealed class PackageTests
         var list = new AssemblyList();
         var package = list.Open(WritePackage(temp));
         var folder = package.Root.Child(LibFolder);
-        var assembly = TestAssemblyRoot(folder).Assembly;
+        var assembly = Assert.IsType<LoadedModule>(TestAssemblyRoot(folder).Assembly);
         var core = list.Assemblies.Single(a => a.Name == "ZGF.ILSpy.Core");
 
         var symbols = assembly.DebugSymbols;

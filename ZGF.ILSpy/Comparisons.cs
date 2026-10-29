@@ -12,7 +12,7 @@ public static class Comparisons
 {
     /// <summary>Compares <paramref name="left"/> with <paramref name="right"/>, in the active tab while it
     /// shows nothing, else in a new tab, titled <paramref name="title"/>.</summary>
-    public static void CompareAssemblies(AppState appState, LoadedAssembly left, LoadedAssembly right, string title)
+    public static void CompareAssemblies(AppState appState, LoadedModule left, LoadedModule right, string title)
     {
         LeaveActiveTab(appState);
         var tab = FindOrOpenEmptyTab(appState);
@@ -86,7 +86,7 @@ public static class Comparisons
     }
 
     /// <summary>The open assembly read from <paramref name="filePath"/> whose API can be compared; null when there is none.</summary>
-    private static LoadedAssembly? FindOpen(AppState appState, string filePath)
+    private static LoadedModule? FindOpen(AppState appState, string filePath)
     {
         foreach (var assembly in appState.Assemblies.Assemblies)
         {
@@ -103,7 +103,7 @@ public static class Comparisons
         comparison.ShowFailure(new ComparisonFailure.AssemblyClosed(Path.GetFileName(filePath)));
     }
 
-    private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedAssembly left, LoadedAssembly right, Exception error)
+    private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedModule left, LoadedModule right, Exception error)
     {
         comparison.ShowFailure(new ComparisonFailure.Failed(left.NameAndVersion, right.NameAndVersion));
         appState.ReportError(new AppProblem.ComparisonFailed(left.NameAndVersion, right.NameAndVersion, error));

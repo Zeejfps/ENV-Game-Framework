@@ -111,7 +111,7 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Baml_exports_as_xaml_pages_beside_their_code_behind()
     {
-        var assembly = new AssemblyList().Open(Trees.SampleAppPath);
+        var assembly = new AssemblyList().OpenModule(Trees.SampleAppPath);
         var projectPath = _temp.PathOf(Path.Combine("Sample", "SampleApp.csproj"));
 
         AssemblyExport.ExportProject(assembly, DecompilerOptions.Default, projectPath);
@@ -215,7 +215,7 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public void Each_assembly_takes_the_share_of_the_export_its_types_make_up()
     {
-        var coreLib = new AssemblyList().Open(Trees.CoreLibPath);
+        var coreLib = new AssemblyList().OpenModule(Trees.CoreLibPath);
         var tests = Trees.TestAssembly;
 
         var bounds = AssemblyExport.PartBounds([tests, coreLib]);

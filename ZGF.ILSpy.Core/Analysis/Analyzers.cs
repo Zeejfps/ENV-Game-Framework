@@ -113,8 +113,8 @@ public static class Analyzers
     {
         try
         {
-            if (list.TryLoad(definition.FilePath) is not { } assembly) return null;
-            return assembly.Module.ResolveEntity(MetadataTokens.EntityHandle(definition.Token)) is { } entity ? Describe(entity) : null;
+            if (list.TryLoadAssembly(definition.FilePath) is not { } assembly) return null;
+            return assembly.MainModule.ResolveEntity(MetadataTokens.EntityHandle(definition.Token)) is { } entity ? Describe(entity) : null;
         }
         catch (Exception e) when (e is ArgumentException or BadImageFormatException or InvalidOperationException or IOException)
         {

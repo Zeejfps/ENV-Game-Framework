@@ -68,18 +68,18 @@ public static class Assemblies
 
     /// <summary>Opens, in the background, the assemblies <paramref name="assembly"/> references that
     /// can be found.</summary>
-    public static async void OpenDependencies(AppState appState, LoadedAssembly assembly)
+    public static async void OpenDependencies(AppState appState, LoadedModule assembly)
     {
         var token = appState.Opens.Token;
         var opened = await Background.Run(() => appState.Assemblies.ListReferences(assembly, token));
-        if (opened is Outcome<List<LoadedAssembly>>.Failed failed)
+        if (opened is Outcome<List<LoadedModule>>.Failed failed)
             ReportOpenFailure(appState, failed.Error);
     }
 
     /// <summary>Checks in the background that the PDB at <paramref name="pdbPath"/> can be read for
     /// <paramref name="assembly"/>, then has the assembly read it in place of the one it finds itself,
     /// kept with the list, and reopens the assembly to show it. Reports why when it cannot be read.</summary>
-    public static async void UsePdb(AppState appState, LoadedAssembly assembly, string pdbPath)
+    public static async void UsePdb(AppState appState, LoadedModule assembly, string pdbPath)
     {
         var checking = await Background.Run(() => assembly.CheckPdb(pdbPath));
         var check = checking switch
@@ -108,7 +108,7 @@ public static class Assemblies
     /// <paramref name="framework"/> names, such as <c>.NETCoreApp,Version=v8.0</c>, or, when it is
     /// null, against the one the assembly was built for; kept with the list, and the assembly reopened
     /// to show it. Does nothing when that is the framework already in use.</summary>
-    public static void SetTargetFramework(AppState appState, LoadedAssembly assembly, string? framework)
+    public static void SetTargetFramework(AppState appState, LoadedModule assembly, string? framework)
     {
         if (!appState.IsListed(assembly.Root))
             return;
@@ -120,7 +120,7 @@ public static class Assemblies
 
     /// <summary>Whether <paramref name="framework"/>, null for the one the assembly was built for, is
     /// what its references are resolved against now.</summary>
-    private static bool IsInUse(LoadedAssembly assembly, string? framework)
+    private static bool IsInUse(LoadedModule assembly, string? framework)
     {
         if (!assembly.IsTargetFrameworkPicked)
             return framework == null;

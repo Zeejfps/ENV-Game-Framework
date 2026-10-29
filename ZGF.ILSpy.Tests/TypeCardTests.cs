@@ -7,7 +7,7 @@ public sealed class TypeCardTests
 {
     private const string ZooNamespace = Trees.FixturesNamespace;
 
-    private static readonly Lazy<(AssemblyList List, LoadedAssembly Assembly)> s_opened = new(Trees.OpenTestAssembly);
+    private static readonly Lazy<(AssemblyList List, LoadedModule Assembly)> s_opened = new(Trees.OpenTestAssembly);
 
     private static AssemblyList List => s_opened.Value.List;
 

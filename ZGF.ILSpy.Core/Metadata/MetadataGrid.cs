@@ -223,7 +223,7 @@ public sealed class MetadataGrid
     public CodeReference? Definition(int row)
     {
         var file = _owner.File;
-        if (!ReferenceEquals(file, _owner.Assembly.File) || _schema.Table is not { } table) return null;
+        if (!ReferenceEquals(file, _owner.Module.File) || _schema.Table is not { } table) return null;
         var token = (int)table << 24 | row + 1;
         var handle = MetadataTokens.EntityHandle(token);
         if (CodeReference.KindOf(file.Metadata, handle) is not { } kind) return null;

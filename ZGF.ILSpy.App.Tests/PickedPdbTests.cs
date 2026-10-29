@@ -98,5 +98,5 @@ public sealed class PickedPdbTests
         d.Settle();
     }
 
-    private static LoadedAssembly OpenAssemblyOf(AppStateDriver d) => Assert.Single(d.AppState.Assemblies.Assemblies);
+    private static LoadedModule OpenAssemblyOf(AppStateDriver d) => Assert.Single(d.AppState.Assemblies.Assemblies);
 }

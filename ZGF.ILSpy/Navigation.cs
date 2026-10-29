@@ -124,7 +124,7 @@ public static class Navigation
 
     /// <summary>The assemblies an id is looked for in: those read from the files opened, a package's
     /// among them, else every open one.</summary>
-    private static List<LoadedAssembly> ListIdScope(AppState appState, List<LoadedAssembly> opened)
+    private static List<LoadedModule> ListIdScope(AppState appState, List<LoadedAssembly> opened)
     {
         var open = appState.Assemblies.Assemblies;
         if (opened.Count == 0)

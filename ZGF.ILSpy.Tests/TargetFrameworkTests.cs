@@ -37,12 +37,12 @@ public sealed class TargetFrameworkTests
     public void An_assembly_for_dotnet_framework_resolves_its_references_for_dotnet_framework_not_the_running_runtime()
     {
         var list = new AssemblyList();
-        var detected = list.Open(Trees.TestAssemblyPath);
+        var detected = list.OpenModule(Trees.TestAssemblyPath);
         var reference = AssemblyNameReference.Parse("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
         var onCore = detected.Resolver.FindFile(reference);
         list.TargetFrameworks.Pick(detected.FilePath, Net48);
         list.Clear();
-        var picked = list.Open(Trees.TestAssemblyPath);
+        var picked = list.OpenModule(Trees.TestAssemblyPath);
 
         var onFramework = picked.Resolver.FindFile(reference);
 
@@ -55,11 +55,11 @@ public sealed class TargetFrameworkTests
     public void An_assembly_resolves_against_the_framework_picked_for_it_once_it_is_opened_again()
     {
         var list = new AssemblyList();
-        var detected = list.Open(Trees.TestAssemblyPath);
+        var detected = list.OpenModule(Trees.TestAssemblyPath);
 
         list.TargetFrameworks.Pick(detected.FilePath, Net48);
         list.Clear();
-        var picked = list.Open(Trees.TestAssemblyPath);
+        var picked = list.OpenModule(Trees.TestAssemblyPath);
 
         Assert.False(detected.IsTargetFrameworkPicked);
         Assert.True(picked.IsTargetFrameworkPicked);

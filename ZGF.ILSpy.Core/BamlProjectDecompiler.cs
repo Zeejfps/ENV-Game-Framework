@@ -12,7 +12,7 @@ namespace ZGF.ILSpy.Core;
 /// <summary>Decompiles an assembly into a project as ILSpy does, writing its BAML back as XAML
 /// pages beside the code-behind, whose generated members stay out of the C# files.</summary>
 internal sealed class BamlProjectDecompiler(
-    LoadedAssembly assembly, DecompilerSettings settings, IDebugInfoProvider? symbols, CancellationToken cancellationToken)
+    LoadedModule assembly, DecompilerSettings settings, IDebugInfoProvider? symbols, CancellationToken cancellationToken)
     : WholeProjectDecompiler(settings, assembly.Resolver, null, null, symbols)
 {
     private const string PageItem = "Page";

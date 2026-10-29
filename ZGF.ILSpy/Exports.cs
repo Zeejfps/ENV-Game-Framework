@@ -131,7 +131,7 @@ public static class Exports
     /// <summary>Decompiles <paramref name="assembly"/> into a C# project whose file is
     /// <paramref name="projectPath"/>, with what <paramref name="extras"/> asks for besides. The export
     /// dialog warns about a folder that holds files before this is asked for.</summary>
-    public static void ExportProject(AppState appState, LoadedAssembly assembly, string projectPath, ProjectExtras? extras = null)
+    public static void ExportProject(AppState appState, LoadedModule assembly, string projectPath, ProjectExtras? extras = null)
     {
         var withExtras = extras ?? ProjectExtras.None;
         var options = appState.DecompilerOptions;
@@ -175,13 +175,12 @@ public static class Exports
             (r, exported) => r.WithProjects(exported, solutionPath));
     }
 
-    /// <summary>The assembly of the node the active tab shows, or null.</summary>
-    public static LoadedAssembly? FindActiveAssembly(AppState appState)
+    /// <summary>The assembly of the node the active tab shows, or null when it shows none that was read.</summary>
+    public static LoadedModule? FindActiveAssembly(AppState appState)
     {
-        var node = appState.Tabs.Active?.Node;
-        if (node == null)
+        if (appState.Tabs.Active?.Node?.Assembly is not LoadedModule assembly)
             return null;
-        return node.Assembly;
+        return assembly;
     }
 
     /// <summary>Exports what <paramref name="request"/> asks for: one assembly as a project straight
@@ -203,14 +202,14 @@ public static class Exports
 
     /// <summary>Writes a portable PDB of <paramref name="assembly"/>'s decompiled C# to
     /// <paramref name="path"/>.</summary>
-    public static void GeneratePdb(AppState appState, LoadedAssembly assembly, string path)
+    public static void GeneratePdb(AppState appState, LoadedModule assembly, string path)
     {
         var options = appState.DecompilerOptions;
         var job = new ExportJob(assembly.Name, ExportKind.Pdb, FolderOf(path));
         RunExport(appState, job, assembly.Name, s => GeneratePdbFile(assembly, options, path, s), (r, _) => r.Listing(path));
     }
 
-    private static bool GeneratePdbFile(LoadedAssembly assembly, DecompilerOptions options, string path, ExportStart start)
+    private static bool GeneratePdbFile(LoadedModule assembly, DecompilerOptions options, string path, ExportStart start)
     {
         AssemblyExport.GeneratePdb(assembly, options, path, start.Progress, start.Token);
         return true;
@@ -218,7 +217,7 @@ public static class Exports
 
     /// <summary>Writes the HTML class diagrammer of <paramref name="assembly"/> into a folder of its
     /// own in <paramref name="folder"/>, named after it, and opens it once written.</summary>
-    public static void CreateDiagram(AppState appState, LoadedAssembly assembly, string folder)
+    public static void CreateDiagram(AppState appState, LoadedModule assembly, string folder)
     {
         var diagramFolder = Path.Combine(folder, assembly.Name + DiagramFolderSuffix);
         var job = new ExportJob(assembly.Name, ExportKind.Diagram, diagramFolder);
@@ -247,7 +246,7 @@ public static class Exports
 
     /// <summary><paramref name="report"/> listing the PDB of each of <paramref name="assemblies"/> that
     /// is not among <paramref name="failures"/> as written, and the failures as its problems.</summary>
-    private static ExportReport WithPdbs(this ExportReport report, IReadOnlyList<LoadedAssembly> assemblies, List<PdbFailure> failures,
+    private static ExportReport WithPdbs(this ExportReport report, IReadOnlyList<LoadedModule> assemblies, List<PdbFailure> failures,
         string folder)
     {
         var failed = failures

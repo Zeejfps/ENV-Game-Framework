@@ -79,14 +79,14 @@ public sealed record CodeTooltip(CodeSignature Signature, CodeContainer? Contain
         ConversionFlags.All & ~(ConversionFlags.ShowBody | ConversionFlags.PlaceReturnTypeAfterParameterList |
                                 ConversionFlags.UseFullyQualifiedEntityNames | ConversionFlags.UseFullyQualifiedTypeNames);
 
-    internal static CodeTooltip Create(IEntity entity, LoadedAssembly assembly)
+    internal static CodeTooltip Create(IEntity entity, LoadedModule assembly)
     {
         var signature = WriteSignature(entity, assembly);
         var sections = Documentation.Read(entity);
         return new CodeTooltip(signature, ContainerOf(entity), sections);
     }
 
-    private static CodeSignature WriteSignature(IEntity entity, LoadedAssembly assembly)
+    private static CodeSignature WriteSignature(IEntity entity, LoadedModule assembly)
     {
         var settings = Settings.Create();
         var output = new DocumentBuilder(DecompilationLanguage.CSharp, assembly);
@@ -103,7 +103,7 @@ public sealed record CodeTooltip(CodeSignature Signature, CodeContainer? Contain
 
     /// <summary>The <c>where</c> clauses of the entity's own type parameters, highlighted as code,
     /// one a line; none when it has no constraints.</summary>
-    private static IReadOnlyList<DocumentLine> WriteConstraints(IEntity entity, LoadedAssembly assembly, DecompilerSettings settings)
+    private static IReadOnlyList<DocumentLine> WriteConstraints(IEntity entity, LoadedModule assembly, DecompilerSettings settings)
     {
         var builder = new TypeSystemAstBuilder
         {

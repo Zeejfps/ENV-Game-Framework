@@ -8,11 +8,11 @@ public sealed class LoadOptionsTests
     private static DecompilerOptions Off(DecompilerToggle toggle) => DecompilerOptions.Default.With(toggle, false);
 
     /// <summary>A list that reads with <paramref name="options"/>, having opened the test assembly.</summary>
-    private static (AssemblyList List, LoadedAssembly Assembly) OpenWith(DecompilerOptions options)
+    private static (AssemblyList List, LoadedModule Assembly) OpenWith(DecompilerOptions options)
     {
         var list = new AssemblyList();
         list.UseLoadOptions(options);
-        return (list, list.Open(Trees.TestAssemblyPath));
+        return (list, list.OpenModule(Trees.TestAssemblyPath));
     }
 
     private static BrowseNode RuntimeReference(LoadedAssembly assembly) => assembly.Root.Child("References", "System.Runtime");

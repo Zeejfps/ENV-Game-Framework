@@ -89,9 +89,9 @@ public sealed class ApiDiff
 
     /// <summary>Compares the API of <paramref name="left"/> with that of <paramref name="right"/>, taking in
     /// what <paramref name="scope"/> says. Reads both assemblies' types: call it off the UI thread.</summary>
-    public static ApiDiff Compare(LoadedAssembly left, LoadedAssembly right, ApiScope scope, CancellationToken cancellationToken)
+    public static ApiDiff Compare(LoadedModule left, LoadedModule right, ApiScope scope, CancellationToken cancellationToken)
     {
-        var namespaces = ApiEntries.CompareNamespaces(left.Module, right.Module, scope, cancellationToken);
+        var namespaces = ApiEntries.CompareNamespaces(left.MainModule, right.MainModule, scope, cancellationToken);
         return new ApiDiff(left.NameAndVersion, right.NameAndVersion, scope, namespaces);
     }
 }

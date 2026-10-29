@@ -15,7 +15,7 @@ public enum SearchSort
 /// <summary>Streams the hits of <paramref name="query"/> in <paramref name="within"/>, of
 /// <paramref name="assemblies"/>, in batches.</summary>
 public delegate IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchStream(AssemblyList assemblies, SearchQuery query,
-    IEnumerable<LoadedAssembly> within, CancellationToken cancellationToken);
+    IEnumerable<LoadedModule> within, CancellationToken cancellationToken);
 
 /// <summary>The search panel's query, streamed results and selection. While the panel is open a
 /// query runs once typing pauses; assemblies opened later are searched and their hits added, and
@@ -51,7 +51,7 @@ public sealed class Search
     }
 
     private static IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAssemblies(AssemblyList assemblies, SearchQuery query,
-        IEnumerable<LoadedAssembly> within, CancellationToken cancellationToken) =>
+        IEnumerable<LoadedModule> within, CancellationToken cancellationToken) =>
         assemblies.SearchAsync(query, within, cancellationToken);
 
     public string Query = "";
@@ -138,7 +138,7 @@ public sealed class Search
             Start(assemblies, added);
     }
 
-    private void DropClosed(IReadOnlyList<LoadedAssembly> listed)
+    private void DropClosed(IReadOnlyList<LoadedModule> listed)
     {
         var closed = _searched.RemoveWhere(a => !listed.Contains(a));
         if (closed == 0)
@@ -147,9 +147,9 @@ public sealed class Search
         Selection.DropIfGone(_rows);
     }
 
-    private List<LoadedAssembly> MarkSearched(IReadOnlyList<LoadedAssembly> listed)
+    private List<LoadedModule> MarkSearched(IReadOnlyList<LoadedModule> listed)
     {
-        var added = new List<LoadedAssembly>();
+        var added = new List<LoadedModule>();
         foreach (var assembly in listed)
         {
             if (_searched.Add(assembly))
@@ -158,7 +158,7 @@ public sealed class Search
         return added;
     }
 
-    private void Start(AssemblyList assemblies, IEnumerable<LoadedAssembly> within)
+    private void Start(AssemblyList assemblies, IEnumerable<LoadedModule> within)
     {
         var query = SearchQuery.Parse(_query!, _kinds);
         if (query.IsEmpty)

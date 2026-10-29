@@ -31,7 +31,7 @@ public sealed class ExportDialogTests : IDisposable
         return d;
     }
 
-    private static LoadedAssembly Fixtures(AppStateDriver d) => d.Node().Assembly;
+    private static LoadedModule Fixtures(AppStateDriver d) => Assert.IsType<LoadedModule>(d.Node().Assembly);
 
     [Fact]
     public void The_dialog_opens_with_the_picked_assembly_ticked()

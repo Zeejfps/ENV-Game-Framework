@@ -42,7 +42,7 @@ internal static class SaveDialogs
 
 
     /// <summary>Asks where to write the portable PDB of <paramref name="assembly"/>.</summary>
-    public static void PickPdbFile(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    public static void PickPdbFile(Ui<UiState> ui, AppState appState, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"])];
@@ -50,7 +50,7 @@ internal static class SaveDialogs
     }
 
     /// <summary>Asks for the folder the class diagram of <paramref name="assembly"/> is written into.</summary>
-    public static void PickDiagramFolder(Ui<UiState> ui, AppState appState, LoadedAssembly assembly)
+    public static void PickDiagramFolder(Ui<UiState> ui, AppState appState, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         ui.PickFolder(t.ExportDiagramTitle, null, folder => CreateDiagram(appState, assembly, folder));
