@@ -30,7 +30,7 @@ public sealed partial class IlSpyApp
                 ShowReopenedIfOpen(uiState, appState, show.Tabs, show.Layout);
                 break;
             case ViewCommand.OpenPanel open:
-                OpenPanel(uiState, open.Panel);
+                OpenPanel(uiState, open.View);
                 break;
             case ViewCommand.RevealNode reveal:
                 RevealIfListed(uiState, appState, reveal.Node);

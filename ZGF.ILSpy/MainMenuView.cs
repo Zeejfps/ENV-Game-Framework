@@ -277,28 +277,29 @@ internal static class MainMenuView
         var screen = ui.State;
         using var panels = ui.SubMenu(t.ViewPanels, id: "panels");
         if (!panels.IsOpen) return;
-        if (PanelItem(ui, t.PanelAssemblies, DockPanels.Assemblies))
+        if (PanelItem(ui, t.PanelAssemblies, DockView.Assemblies))
             OpenAssembliesPanel(screen);
-        if (PanelItem(ui, t.ViewBookmarks, DockPanels.Bookmarks))
+        if (PanelItem(ui, t.ViewBookmarks, DockView.Bookmarks))
             OpenBookmarks(screen);
-        if (PanelItem(ui, t.PanelAnalyzer, DockPanels.Analyzer))
+        if (PanelItem(ui, t.PanelAnalyzer, DockView.Analyzer))
             OpenAnalyzer(screen);
-        if (PanelItem(ui, t.PanelSearch, DockPanels.Search, Shortcuts.Search))
+        if (PanelItem(ui, t.PanelSearch, DockView.Search, Shortcuts.Search))
             OpenSearch(screen);
-        if (PanelItem(ui, t.PanelDecompilerOptions, DockPanels.DecompilerOptions))
+        if (PanelItem(ui, t.PanelDecompilerOptions, DockView.DecompilerOptions))
             OpenDecompilerOptions(screen);
-        if (PanelItem(ui, t.PanelDisplayOptions, DockPanels.DisplayOptions))
+        if (PanelItem(ui, t.PanelDisplayOptions, DockView.DisplayOptions))
             OpenDisplayOptions(screen);
-        if (PanelItem(ui, t.PanelExports, DockPanels.Exports))
+        if (PanelItem(ui, t.PanelExports, DockView.Exports))
             OpenExports(screen);
     }
 
-    /// <summary>The item that opens <paramref name="panel"/>, checked while it is open, with the
+    /// <summary>The item that opens <paramref name="view"/>, checked while it is open, with the
     /// icon its tab shows.</summary>
-    private static bool PanelItem(Ui<UiState> ui, string label, string panel, Shortcut? shortcut = null)
+    private static bool PanelItem(Ui<UiState> ui, string label, DockView view, Shortcut? shortcut = null)
     {
+        var panel = DockPanels.NameOf(view);
         var open = ui.State.Layout.Contains(panel);
-        return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(ui.State.Icons, panel));
+        return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(ui.State.Icons, view));
     }
 
     private static void DecompilerMenu(Ui<UiState> ui, AppState appState)

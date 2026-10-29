@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.DocumentPanels;
@@ -31,32 +32,34 @@ public static class ScreenLayout
 
     public static void OpenAssembliesPanel(UiState uiState) => uiState.MainLayout.OpenAssemblies();
 
-    /// <summary>Docks the view <paramref name="panel"/>, one of <see cref="DockPanels"/>, if it is not, and brings it to the front.</summary>
-    public static void OpenPanel(UiState uiState, string panel)
+    /// <summary>Docks <paramref name="view"/> if it is not, and brings it to the front.</summary>
+    public static void OpenPanel(UiState uiState, DockView view)
     {
-        switch (panel)
+        switch (view)
         {
-            case DockPanels.Assemblies:
+            case DockView.Assemblies:
                 OpenAssembliesPanel(uiState);
                 break;
-            case DockPanels.Search:
+            case DockView.Search:
                 OpenSearch(uiState);
                 break;
-            case DockPanels.Bookmarks:
+            case DockView.Bookmarks:
                 OpenBookmarks(uiState);
                 break;
-            case DockPanels.Analyzer:
+            case DockView.Analyzer:
                 OpenAnalyzer(uiState);
                 break;
-            case DockPanels.DecompilerOptions:
+            case DockView.DecompilerOptions:
                 OpenDecompilerOptions(uiState);
                 break;
-            case DockPanels.DisplayOptions:
+            case DockView.DisplayOptions:
                 OpenDisplayOptions(uiState);
                 break;
-            case DockPanels.Exports:
+            case DockView.Exports:
                 OpenExports(uiState);
                 break;
+            default:
+                throw new UnreachableException();
         }
     }
 

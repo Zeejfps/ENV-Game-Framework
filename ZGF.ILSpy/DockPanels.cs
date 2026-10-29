@@ -1,11 +1,25 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
+/// <summary>A view of the main window's dock space besides the open documents.</summary>
+public enum DockView
+{
+    Assemblies,
+    Search,
+    Bookmarks,
+    Analyzer,
+    DecompilerOptions,
+    DisplayOptions,
+    Exports,
+}
+
 /// <summary>The views of the main window's dock space besides the open documents, which share it
-/// with them as tabs, and the layout they start in.</summary>
+/// with them as tabs, and the layout they start in. The layout knows every panel by name: a view by
+/// the name below, a document by the name its tab was given.</summary>
 public static class DockPanels
 {
     public const string Assemblies = "assemblies";
@@ -16,34 +30,62 @@ public static class DockPanels
     public const string DisplayOptions = "display-options";
     public const string Exports = "exports";
 
-    /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
-    public static bool IsView(string panel) => panel is Assemblies or Search or Bookmarks or Analyzer or DecompilerOptions or DisplayOptions or Exports;
-
-    public static DockTab Tab(Strings t, AppIcons icons, string panel) => new(Title(t, panel), Icon: Icon(icons, panel));
-
-    private static string Title(Strings t, string panel) => panel switch
+    /// <summary>The name the layout knows <paramref name="view"/> by.</summary>
+    public static string NameOf(DockView view) => view switch
     {
-        Assemblies => t.PanelAssemblies,
-        Bookmarks => t.PanelBookmarks,
-        Analyzer => t.PanelAnalyzer,
-        DecompilerOptions => t.PanelDecompilerOptions,
-        DisplayOptions => t.PanelDisplayOptions,
-        Exports => t.PanelExports,
-        _ => t.PanelSearch,
+        DockView.Assemblies => Assemblies,
+        DockView.Search => Search,
+        DockView.Bookmarks => Bookmarks,
+        DockView.Analyzer => Analyzer,
+        DockView.DecompilerOptions => DecompilerOptions,
+        DockView.DisplayOptions => DisplayOptions,
+        DockView.Exports => Exports,
+        _ => throw new UnreachableException(),
+    };
+
+    /// <summary>The view the layout knows as <paramref name="panel"/>, or null for a document.</summary>
+    public static DockView? ViewOf(string panel) => panel switch
+    {
+        Assemblies => DockView.Assemblies,
+        Search => DockView.Search,
+        Bookmarks => DockView.Bookmarks,
+        Analyzer => DockView.Analyzer,
+        DecompilerOptions => DockView.DecompilerOptions,
+        DisplayOptions => DockView.DisplayOptions,
+        Exports => DockView.Exports,
+        _ => null,
+    };
+
+    /// <summary>Whether <paramref name="panel"/> is one of these views rather than a document.</summary>
+    public static bool IsView(string panel) => ViewOf(panel) != null;
+
+    public static DockTab Tab(Strings t, AppIcons icons, DockView view) => new(Title(t, view), Icon: Icon(icons, view));
+
+    private static string Title(Strings t, DockView view) => view switch
+    {
+        DockView.Assemblies => t.PanelAssemblies,
+        DockView.Search => t.PanelSearch,
+        DockView.Bookmarks => t.PanelBookmarks,
+        DockView.Analyzer => t.PanelAnalyzer,
+        DockView.DecompilerOptions => t.PanelDecompilerOptions,
+        DockView.DisplayOptions => t.PanelDisplayOptions,
+        DockView.Exports => t.PanelExports,
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>The view's icon in <paramref name="icons"/>, on its tab and in the menu that opens it.</summary>
-    public static UiIcon Icon(AppIcons icons, string panel) => new(Glyph(icons, panel));
+    public static UiIcon Icon(AppIcons icons, DockView view) => new(Glyph(icons, view));
 
-    private static IconGlyph Glyph(AppIcons icons, string panel) => panel switch
+    private static IconGlyph Glyph(AppIcons icons, DockView view) => view switch
     {
-        Assemblies => icons.PanelAssemblies,
-        Bookmarks => icons.PanelBookmarks,
-        Analyzer => icons.PanelAnalyzer,
-        DecompilerOptions => icons.PanelDecompilerOptions,
-        DisplayOptions => icons.PanelDisplayOptions,
-        Exports => icons.PanelExports,
-        _ => icons.PanelSearch,
+        DockView.Assemblies => icons.PanelAssemblies,
+        DockView.Search => icons.PanelSearch,
+        DockView.Bookmarks => icons.PanelBookmarks,
+        DockView.Analyzer => icons.PanelAnalyzer,
+        DockView.DecompilerOptions => icons.PanelDecompilerOptions,
+        DockView.DisplayOptions => icons.PanelDisplayOptions,
+        DockView.Exports => icons.PanelExports,
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>A copy of the saved layout, views and documents, each panel in one place only, or the

@@ -109,7 +109,7 @@ public static class Exports
     private static async void RunExport<T>(AppState appState, ExportJob job, string subject, Func<ExportStart, T> work,
         Func<ExportReport, T, ExportReport> complete)
     {
-        appState.EnqueueCommand(new ViewCommand.OpenPanel(DockPanels.Exports));
+        appState.EnqueueCommand(new ViewCommand.OpenPanel(DockView.Exports));
         var start = await appState.Export.Enter(job);
         if (start.IsWithdrawn)
             return;

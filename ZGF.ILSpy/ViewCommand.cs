@@ -20,9 +20,8 @@ public abstract record ViewCommand
     /// the documents; and return their diagrams' views to how they were saved.</summary>
     public sealed record ShowReopened(IReadOnlyList<ReopenedTab> Tabs, DockLayout? Layout) : ViewCommand;
 
-    /// <summary>Dock the view <see cref="Panel"/>, one of <see cref="DockPanels"/>, if it is not, and
-    /// bring it to the front.</summary>
-    public sealed record OpenPanel(string Panel) : ViewCommand;
+    /// <summary>Dock <see cref="View"/> if it is not, and bring it to the front.</summary>
+    public sealed record OpenPanel(DockView View) : ViewCommand;
 
     /// <summary>Return <see cref="Tab"/>'s view to <see cref="Position"/>.</summary>
     public sealed record RestoreView(DocumentTab Tab, CodeViewPosition Position) : ViewCommand;

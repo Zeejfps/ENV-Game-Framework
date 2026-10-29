@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -109,8 +110,9 @@ public static class MainView
 
     private static DockTab Tab(UiState screen, AppState appState, Strings t, string panel)
     {
-        if (DockPanels.IsView(panel))
-            return DockPanels.Tab(t, screen.Icons, panel);
+        var view = DockPanels.ViewOf(panel);
+        if (view != null)
+            return DockPanels.Tab(t, screen.Icons, view.Value);
         var tab = screen.Documents.FindTab(panel);
         if (tab != null)
             return DocumentsView.Tab(screen, appState, tab);
@@ -119,32 +121,42 @@ public static class MainView
 
     private static void Panel(Ui<UiState> ui, AppState appState, string panel)
     {
-        switch (panel)
+        var view = DockPanels.ViewOf(panel);
+        if (view == null)
         {
-            case DockPanels.Assemblies:
+            Document(ui, appState, panel);
+            return;
+        }
+        View(ui, appState, view.Value);
+    }
+
+    private static void View(Ui<UiState> ui, AppState appState, DockView view)
+    {
+        switch (view)
+        {
+            case DockView.Assemblies:
                 TreePaneView.Render(ui, appState);
                 break;
-            case DockPanels.Search:
+            case DockView.Search:
                 SearchPanelView.Render(ui, appState);
                 break;
-            case DockPanels.Bookmarks:
+            case DockView.Bookmarks:
                 BookmarksPanelView.Render(ui, appState);
                 break;
-            case DockPanels.Analyzer:
+            case DockView.Analyzer:
                 AnalyzerPanelView.Render(ui, appState);
                 break;
-            case DockPanels.DecompilerOptions:
+            case DockView.DecompilerOptions:
                 DecompilerOptionsPanelView.Render(ui, appState);
                 break;
-            case DockPanels.DisplayOptions:
+            case DockView.DisplayOptions:
                 DisplayOptionsPanelView.Render(ui, appState);
                 break;
-            case DockPanels.Exports:
+            case DockView.Exports:
                 ExportsPanelView.Render(ui, appState);
                 break;
             default:
-                Document(ui, appState, panel);
-                break;
+                throw new UnreachableException();
         }
     }
 

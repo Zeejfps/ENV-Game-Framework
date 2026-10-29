@@ -570,6 +570,16 @@ public sealed class DockPanelsTests
     }
 
     [Fact]
+    public void Every_view_is_known_by_its_own_name_and_a_document_by_none()
+    {
+        var views = Enum.GetValues<DockView>();
+
+        Assert.All(views, v => Assert.Equal(v, DockPanels.ViewOf(DockPanels.NameOf(v))));
+        Assert.Equal(views.Length, views.Select(DockPanels.NameOf).Distinct().Count());
+        Assert.Null(DockPanels.ViewOf("document-1"));
+    }
+
+    [Fact]
     public void Opening_a_search_docks_its_panel_and_closing_the_panel_clears_the_query()
     {
         var d = new AppStateDriver();
